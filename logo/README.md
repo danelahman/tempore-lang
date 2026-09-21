@@ -1,4 +1,4 @@
-# Temporal Millet logo
+# Tempore logo
 
 The mark shows elapsed time closing around a boxed delay: a ring for the
 grade accumulated so far, and the type brackets `[ ]` holding three ticks of
@@ -7,12 +7,12 @@ ticks.
 
 Files:
 
-- `temporal-millet-logo.svg` — the mark for light backgrounds (ink brackets).
-- `temporal-millet-logo-dark.svg` — the same mark with paper-coloured brackets
+- `tempore-logo.svg` — the mark for light backgrounds (ink brackets).
+- `tempore-logo-dark.svg` — the same mark with paper-coloured brackets
   and a darker track, for dark backgrounds.
-- `temporal-millet-logo-mono.svg` — a single-colour version drawn in
+- `tempore-logo-mono.svg` — a single-colour version drawn in
   `currentColor`, for badges, print, or anywhere one colour is wanted.
-- `temporal-millet-logo-512.png` — a raster export of the light mark.
+- `tempore-logo-512.png` — a raster export of the light mark.
 - `favicon.svg` — the mark with heavier strokes, so that it survives 16 px;
   `favicon-16.png`, `favicon-32.png`, `favicon.ico` and `apple-touch-icon.png`
   are rasterised from it.
