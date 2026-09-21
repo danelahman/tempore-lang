@@ -5,17 +5,17 @@ programming language that combines graded modal types with graded effect systems
 to specify and verify temporal properties of resources that programs manipulate.
 The properties are checked automatically by Hindley–Milner style type inference.
 
-Tempore is a further development of Temporal Millet was implemented in [Joosep
-Tavits](https://github.com/joosepgit)'s Master's thesis at the University of
-Tartu ([code](https://github.com/joosepgit/temporal-millet),
-[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). Tempore
-develops it further with (i) temporal algebraic effects and effect handlers that
-are guaranteed to respect the temporal specifications of operations, and (ii)
-general resource grades in place of natural-number time grades, which were only
-modelling left-sided time intervals (expressing lower time bounds of programs).
+Tempore is a further development of Temporal Millet, which was implemented in
+[Joosep Tavits](https://github.com/joosepgit)'s Master's thesis at the
+University of Tartu ([code](https://github.com/joosepgit/temporal-millet),
+[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). It adds
+(i) temporal algebraic effects and effect handlers that are guaranteed to
+respect the temporal specifications of operations, and (ii) general resource
+grades in place of natural-number time grades, which only modelled left-sided
+time intervals expressing lower time bounds of programs.
 
 Tempore (and Temporal Millet that preceded it) is built on Matija Pretnar's
-[Millet Language](https://github.com/matijapretnar/millet) and follows the 
+[Millet Language](https://github.com/matijapretnar/millet) and follows the
 ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 Žajdela](https://msfp-workshop.github.io/msfp2024/submissions/ahman+%c5%beajdela.pdf).
 
@@ -26,8 +26,7 @@ Tested to work with OCaml >= 5.0. Install the dependencies and build:
     opam install menhir vdom ocamlformat=0.28.1
     make
 
-`make test` runs the test suite, and
-`make clean` removes the build.
+`make test` runs the test suite, and `make clean` removes the build.
 
 There are two ways to run programs:
 
@@ -41,8 +40,8 @@ There are two ways to run programs:
       ./tempore file1.tpe file2.tpe ...
 
   loads all listed files and runs every `run` command, printing each run's
-  result and final resource state. 
-  
+  result and final resource state.
+
   Options: `--resources <monoid>` selects the grading monoid (see below),
   `--typecheck-only` typechecks the files without running them, `--no-stdlib`
   skips the standard library, and `--debug` also prints the typing context.
@@ -59,7 +58,7 @@ the program is run: with `--resources` on the command line, e.g.
     ./tempore --resources time-interval examples/time_intervals.tpe
 
 or with the **Resource grade** selector in the web interface, which switches
-its value automatically when a built-in example is loaded. The default grade 
+its value automatically when a built-in example is loaded. The default grade
 monoid is `time-lower-bound`. Currently, six monoids are available to choose.
 
 Three monoids grade resources and computations by time, written as integer
@@ -77,8 +76,7 @@ literals such as `3` or pairs such as `(1, 4)`:
   [`examples/time_intervals.tpe`](examples/time_intervals.tpe).
 
 All three variants of time bounds are inclusive on the values they carry, e.g.,
-while intervals are written as `(n,m)`, they should be read as `[n,m]`. This is
-to avoid the proliferation of rectangular brackets in modal types' grades.
+while intervals are written as `(n,m)`, they should be read as `[n,m]`.
 
 Three monoids grade resources and computations by the *timed traces* they may
 exhibit. A timed trace is one run of a computation, an alternation of operation
@@ -190,7 +188,7 @@ Operations are declared at the top of a source file:
 operation OperationName : input-type ~> result-type # grade
 ```
 
-The grade records the resource usage of one call. 
+The grade records the resource usage of one call.
 
 Under the timed-trace monoids an *atomic* operation, one graded by the singleton
 trace set containing just itself, must also state its runtime bounds,
@@ -202,7 +200,7 @@ operation OperationName : input-type ~> result-type # grade within (lo, hi)
 the least and greatest number of ticks a call may take (`within n` is short for
 `within (n, n)`). The bounds are the cost model of the trace orders:
 `traces-lower-bound` reads `lo`, `traces-upper-bound` reads `hi`,
-and `traces-interval` reads both. 
+and `traces-interval` reads both.
 
 A *compound* operation names other, already declared operations in its grade,
 and its bounds are computed from theirs: `lo` is the duration of the fastest run
@@ -299,13 +297,10 @@ A continuation is a box, and a box type is never eternal, so an inner case
 cannot resume an outer handler's continuation: in nested handlers each case
 resumes its own continuation, and the outer one is resumed after the inner
 `handle` returns. The same restriction stops a rigid continuation grade
-escaping into the type of a definition through a captured function, for which
-the check above is now only a safety net.
+escaping into the type of a definition through a captured function.
 
 Top-level definitions are exempt: they are closed, time-invariant values, so
-they stay in scope inside a case whatever their type. This is a deliberate
-deviation from the formalisation, where the restriction applies to the whole
-context.
+they stay in scope inside a case whatever their type.
 
 See [`tests/op_case_context.tpe`](tests/op_case_context.tpe) and the
 `tests/op_case_context_reject_*.tpe` files, and
@@ -377,7 +372,8 @@ prototype compares grades by unification, that is, for equality:
   non-ground. Inequalities are currently also not carried into the
   generalised types of top-level definitions.
 
-The workaround, where a grade has to be increased, is an explicit type annotation.
+The workaround, where a grade has to be increased, is an explicit type
+annotation.
 
 ## Editor support
 
