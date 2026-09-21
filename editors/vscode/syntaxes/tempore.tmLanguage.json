@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Temporal Millet",
-  "scopeName": "source.millet",
+  "name": "Tempore",
+  "scopeName": "source.tempore",
   "fileTypes": ["tpe"],
   "patterns": [
     { "include": "#comment" },
@@ -17,7 +17,7 @@
   ],
   "repository": {
     "comment": {
-      "name": "comment.block.millet",
+      "name": "comment.block.tempore",
       "begin": "\\(\\*(?!\\))",
       "end": "\\*\\)",
       "patterns": [
@@ -25,12 +25,12 @@
       ]
     },
     "string": {
-      "name": "string.quoted.double.millet",
+      "name": "string.quoted.double.tempore",
       "begin": "\"",
       "end": "\"",
       "patterns": [
         {
-          "name": "constant.character.escape.millet",
+          "name": "constant.character.escape.tempore",
           "match": "\\\\."
         }
       ]
@@ -38,27 +38,27 @@
     "number": {
       "patterns": [
         {
-          "name": "constant.numeric.integer.hex.millet",
+          "name": "constant.numeric.integer.hex.tempore",
           "match": "\\b0[xX][0-9a-fA-F][0-9a-fA-F_]*\\b"
         },
         {
-          "name": "constant.numeric.integer.octal.millet",
+          "name": "constant.numeric.integer.octal.tempore",
           "match": "\\b0[oO][0-7][0-7_]*\\b"
         },
         {
-          "name": "constant.numeric.integer.binary.millet",
+          "name": "constant.numeric.integer.binary.tempore",
           "match": "\\b0[bB][01][01_]*\\b"
         },
         {
-          "name": "constant.numeric.float.millet",
+          "name": "constant.numeric.float.tempore",
           "match": "\\b[0-9][0-9_]*(\\.[0-9_]*)?([eE][+\\-]?[0-9][0-9_]*)\\b"
         },
         {
-          "name": "constant.numeric.float.millet",
+          "name": "constant.numeric.float.tempore",
           "match": "\\b[0-9][0-9_]*\\.[0-9_]*\\b"
         },
         {
-          "name": "constant.numeric.integer.millet",
+          "name": "constant.numeric.integer.tempore",
           "match": "\\b[0-9][0-9_]*\\b"
         }
       ]
@@ -66,58 +66,58 @@
     "keyword": {
       "patterns": [
         {
-          "name": "constant.language.boolean.millet",
+          "name": "constant.language.boolean.tempore",
           "match": "\\b(true|false)\\b"
         },
         {
-          "name": "keyword.other.millet",
+          "name": "keyword.other.tempore",
           "match": "\\b(let|in|and|rec|fun|function|as|of|type|noneternal|operation|handler|box|unbox|delay|begin|end|if|then|else|match|with|run|handle|return|perform|continue|within|default)\\b"
         }
       ]
     },
     "constructor": {
-      "name": "entity.name.type.constructor.millet",
+      "name": "entity.name.type.constructor.tempore",
       "match": "\\b[A-Z][A-Za-z0-9_']*\\b"
     },
     "operation-decl": {
       "match": "\\b(operation)\\s+([A-Z][A-Za-z0-9_']*)",
       "captures": {
-        "1": { "name": "keyword.other.millet" },
-        "2": { "name": "keyword.control.operation.millet" }
+        "1": { "name": "keyword.other.tempore" },
+        "2": { "name": "keyword.control.operation.tempore" }
       }
     },
     "default-decl": {
       "match": "\\b(default)\\s+([A-Z][A-Za-z0-9_']*)",
       "captures": {
-        "1": { "name": "keyword.other.millet" },
-        "2": { "name": "keyword.control.operation.millet" }
+        "1": { "name": "keyword.other.tempore" },
+        "2": { "name": "keyword.control.operation.tempore" }
       }
     },
     "perform-call": {
       "match": "\\b(perform)\\s+([A-Z][A-Za-z0-9_']*)",
       "captures": {
-        "1": { "name": "keyword.other.millet" },
-        "2": { "name": "keyword.control.operation.millet" }
+        "1": { "name": "keyword.other.tempore" },
+        "2": { "name": "keyword.control.operation.tempore" }
       }
     },
     "handler-block": {
       "begin": "\\b(handler)\\b",
       "beginCaptures": {
-        "1": { "name": "keyword.other.millet" }
+        "1": { "name": "keyword.other.tempore" }
       },
       "end": "(?=^(let|run|operation|default|type|noneternal|and)\\b)",
       "patterns": [
         {
           "match": "(\\|)\\s+([A-Z][A-Za-z0-9_']*)",
           "captures": {
-            "2": { "name": "keyword.control.operation.millet" }
+            "2": { "name": "keyword.control.operation.tempore" }
           }
         },
         { "include": "$self" }
       ]
     },
     "type-param": {
-      "name": "variable.other.generic-type.millet",
+      "name": "variable.other.generic-type.tempore",
       "match": "'[a-z_][a-zA-Z0-9_']*\\b"
     }
   }

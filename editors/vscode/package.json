@@ -1,16 +1,16 @@
 {
-  "name": "vscode-temporal-millet",
-  "displayName": "Temporal Millet",
-  "description": "Syntax highlighting for Temporal Millet (.tpe) source files.",
+  "name": "vscode-tempore",
+  "displayName": "Tempore",
+  "description": "Syntax highlighting for Tempore (.tpe) source files.",
   "version": "0.1.0",
-  "publisher": "temporal-millet",
+  "publisher": "tempore",
   "engines": {
     "vscode": "^1.60.0"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/danelahman/temporal-millet"
+    "url": "https://github.com/danelahman/tempore-lang"
   },
   "categories": [
     "Programming Languages"
@@ -18,10 +18,10 @@
   "contributes": {
     "languages": [
       {
-        "id": "millet",
+        "id": "tempore",
         "aliases": [
-          "Temporal Millet",
-          "millet"
+          "Tempore",
+          "tempore"
         ],
         "extensions": [
           ".tpe"
@@ -31,9 +31,9 @@
     ],
     "grammars": [
       {
-        "language": "millet",
-        "scopeName": "source.millet",
-        "path": "./syntaxes/millet.tmLanguage.json"
+        "language": "tempore",
+        "scopeName": "source.tempore",
+        "path": "./syntaxes/tempore.tmLanguage.json"
       }
     ]
   }

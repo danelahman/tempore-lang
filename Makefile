@@ -18,8 +18,8 @@ clean:
 
 vscode-extension:
 	cd editors/vscode && \
-	  rm -f vscode-temporal-millet-*.vsix && \
+	  rm -f vscode-tempore-*.vsix && \
 	  npx --yes @vscode/vsce package && \
-	  code --install-extension vscode-temporal-millet-*.vsix --force
+	  code --install-extension vscode-tempore-*.vsix --force
 
 .PHONY: default format check-format release test clean vscode-extension
