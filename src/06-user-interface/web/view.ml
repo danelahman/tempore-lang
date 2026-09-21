@@ -673,7 +673,7 @@ let view_navbar =
               ~a:
                 [
                   class_ "brand-logo";
-                  attr "src" "logo/temporal-millet-logo.svg";
+                  attr "src" "logo/tempore-logo.svg";
                   attr "alt" "";
                   attr "width" "56";
                   attr "height" "56";
