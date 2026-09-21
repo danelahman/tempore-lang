@@ -1,6 +1,6 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./temporal-millet --resources time-upper-bound tests/continuation_fixed_reject.tpe *)
+     ./tempore --resources time-upper-bound tests/continuation_fixed_reject.tpe *)
 
 operation Op : unit ~> unit # 1
 

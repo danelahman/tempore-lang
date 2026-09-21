@@ -1,6 +1,6 @@
 (* Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./temporal-millet --resources time-lower-bound examples/handlers_nested.tpe *)
+     ./tempore --resources time-lower-bound examples/handlers_nested.tpe *)
 
 (* An operation case is checked for every grade its continuation may have, so
    two nested cases quantify over two such grades: ρ₀ for the outer 'k' and ρ₁

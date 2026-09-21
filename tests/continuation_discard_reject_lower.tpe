@@ -1,6 +1,6 @@
 (* Run this test with the default 'time-lower-bound' grading monoid, e.g.
 
-     ./temporal-millet tests/continuation_discard_reject_lower.tpe *)
+     ./tempore tests/continuation_discard_reject_lower.tpe *)
 
 operation Op : unit ~> unit # 1
 

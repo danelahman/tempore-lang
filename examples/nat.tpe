@@ -1,6 +1,6 @@
 (* Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./temporal-millet --resources time-lower-bound examples/nat.tpe *)
+     ./tempore --resources time-lower-bound examples/nat.tpe *)
 
 (* Unary natural numbers. *)
 type nat =

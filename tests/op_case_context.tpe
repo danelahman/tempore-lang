@@ -1,6 +1,6 @@
 (* Run this test with the default 'time-lower-bound' grading monoid, e.g.
 
-     ./temporal-millet tests/op_case_context.tpe
+     ./tempore tests/op_case_context.tpe
 
    An operation case is checked in the eternal restriction of the ambient
    context: a variable bound outside the case survives only if its type is

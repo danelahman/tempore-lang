@@ -4,25 +4,25 @@
   >   echo $f
   >   echo "======================================================================"
   >   case $f in
-  >     time_intervals.tpe) ../temporal-millet --resources time-interval $f;;
-  >     time_upper.tpe) ../temporal-millet --resources time-upper-bound $f;;
-  >     comp_type_annotation_upper*.tpe) ../temporal-millet --resources time-upper-bound $f;;
-  >     eternal_lower.tpe) ../temporal-millet $f;;
-  >     eternal_*.tpe) ../temporal-millet --resources time-upper-bound $f;;
-  >     noneternal_lower.tpe) ../temporal-millet $f;;
-  >     noneternal*.tpe) ../temporal-millet --resources time-upper-bound $f;;
-  >     continuation_discard_reject_lower.tpe) ../temporal-millet $f;;
-  >     continuation_nested_discard_reject_lower.tpe) ../temporal-millet $f;;
-  >     continuation_twice_lower.tpe) ../temporal-millet $f;;
-  >     continuation_*.tpe) ../temporal-millet --resources time-upper-bound $f;;
-  >     error_use_after_delay.tpe) ../temporal-millet --resources time-upper-bound $f;;
-  >     traces_lower.tpe) ../temporal-millet --resources traces-lower-bound $f;;
-  >     3dprint_traces.tpe) ../temporal-millet --resources traces-interval $f;;
-  >     traces_intervals.tpe) ../temporal-millet --resources traces-interval $f;;
-  >     traces_intervals_bounds.tpe) ../temporal-millet --resources traces-interval $f;;
-  >     traces_intervals_default_bounds.tpe) ../temporal-millet --resources traces-interval $f;;
-  >     traces_*.tpe) ../temporal-millet --resources traces-upper-bound $f;;
-  >     *) ../temporal-millet $f;;
+  >     time_intervals.tpe) ../tempore --resources time-interval $f;;
+  >     time_upper.tpe) ../tempore --resources time-upper-bound $f;;
+  >     comp_type_annotation_upper*.tpe) ../tempore --resources time-upper-bound $f;;
+  >     eternal_lower.tpe) ../tempore $f;;
+  >     eternal_*.tpe) ../tempore --resources time-upper-bound $f;;
+  >     noneternal_lower.tpe) ../tempore $f;;
+  >     noneternal*.tpe) ../tempore --resources time-upper-bound $f;;
+  >     continuation_discard_reject_lower.tpe) ../tempore $f;;
+  >     continuation_nested_discard_reject_lower.tpe) ../tempore $f;;
+  >     continuation_twice_lower.tpe) ../tempore $f;;
+  >     continuation_*.tpe) ../tempore --resources time-upper-bound $f;;
+  >     error_use_after_delay.tpe) ../tempore --resources time-upper-bound $f;;
+  >     traces_lower.tpe) ../tempore --resources traces-lower-bound $f;;
+  >     3dprint_traces.tpe) ../tempore --resources traces-interval $f;;
+  >     traces_intervals.tpe) ../tempore --resources traces-interval $f;;
+  >     traces_intervals_bounds.tpe) ../tempore --resources traces-interval $f;;
+  >     traces_intervals_default_bounds.tpe) ../tempore --resources traces-interval $f;;
+  >     traces_*.tpe) ../tempore --resources traces-upper-bound $f;;
+  >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
@@ -2133,17 +2133,17 @@
 The options: typechecking only reports errors and runs nothing, and the
 single-dash form of the help option is not accepted.
 
-  $ ../temporal-millet --typecheck-only nat.tpe
-  $ ../temporal-millet --typecheck-only comp_type_annotation_reject.tpe
+  $ ../tempore --typecheck-only nat.tpe
+  $ ../tempore --typecheck-only comp_type_annotation_reject.tpe
   File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
   3 | let f () : int # 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the resource inequality `3 >= 5` does not hold
   [1]
-  $ ../temporal-millet -help
-  ../temporal-millet: unknown option '-help'.
-  Run Temporal Millet as '../temporal-millet [filename.tpe] ...'
+  $ ../tempore -help
+  ../tempore: unknown option '-help'.
+  Run Temporal Millet as '../tempore [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
     --help            Display this list of options
     --no-stdlib       Do not load the standard library

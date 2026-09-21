@@ -1,6 +1,6 @@
 .DS_Store
 _build
-temporal-millet
+tempore
 .devcontainer
 .vscode
 .merlin
@@ -8,5 +8,5 @@ web/web.bc.js
 
 examples/temp*.tpe
 
-editors/vscode/vscode-temporal-millet-*.vsix
+editors/vscode/vscode-tempore-*.vsix
 notes

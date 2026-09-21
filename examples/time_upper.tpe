@@ -1,6 +1,6 @@
 (* Run this example with the 'time-upper-bound' grading monoid, e.g.
 
-     ./temporal-millet --resources time-upper-bound examples/time_upper.tpe *)
+     ./tempore --resources time-upper-bound examples/time_upper.tpe *)
 
 (* Correctly accepted by the typechecker: delaying 1 and 2 ticks spends exactly
    the 3 ticks the box allows. *)

@@ -1,6 +1,6 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./temporal-millet --resources time-upper-bound tests/eternal_tyvars.tpe
+     ./tempore --resources time-upper-bound tests/eternal_tyvars.tpe
 
    Zero is the minimal element of that sub-grade order, so using a local
    variable after some grade has accumulated requires its type to be eternal.

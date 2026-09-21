@@ -1,6 +1,6 @@
 (* Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./temporal-millet --resources time-lower-bound examples/handlers_nested_reject.tpe *)
+     ./tempore --resources time-lower-bound examples/handlers_nested_reject.tpe *)
 
 operation Op1 : unit ~> unit # 2
 operation Op2 : unit ~> unit # 3

@@ -1,6 +1,6 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./temporal-millet --resources time-upper-bound tests/noneternal_reject_unknown_grade.tpe
+     ./tempore --resources time-upper-bound tests/noneternal_reject_unknown_grade.tpe
 
    Both rejections below are the same disjunction 'eternal τ or ρ ≾ 0' with its
    inequality left open rather than refuted: the grade that has elapsed is the

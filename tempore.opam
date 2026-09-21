@@ -3,11 +3,11 @@ opam-version: "2.0"
 version: "0.1.0"
 synopsis: "Prototype language with modal types and graded temporal effects"
 description:
-  "Temporal Millet is a prototype programming language exploring how modal types and graded effect systems can be combined to specify and verify temporal properties of resources."
+  "Tempore is a prototype programming language exploring how modal types and graded effect systems can be combined to specify and verify temporal properties of resources."
 maintainer: ["Danel Ahman"]
 authors: ["Danel Ahman"]
 license: "MIT"
-homepage: "https://danel.ahman.ee/temporal-millet/"
+homepage: "https://danel.ahman.ee/tempore-lang/"
 depends: [
   "dune" {>= "3.17"}
   "ocaml" {>= "5.0"}
@@ -30,4 +30,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/danelahman/temporal-millet.git"
+dev-repo: "git+https://github.com/danelahman/tempore-lang.git"

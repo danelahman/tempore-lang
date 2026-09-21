@@ -1,6 +1,6 @@
 (* Run this test with the default 'time-lower-bound' grading monoid, e.g.
 
-     ./temporal-millet tests/op_case_context_reject_unbox.tpe *)
+     ./tempore tests/op_case_context_reject_unbox.tpe *)
 
 operation Op : unit ~> int # 0
 
