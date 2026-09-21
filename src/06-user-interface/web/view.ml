@@ -682,7 +682,7 @@ let view_navbar =
             div
               ~a:[ class_ "brand-text" ]
               [
-                elt "p" ~a:[ class_ "title" ] [ text "Tempore" ];
+                elt "p" ~a:[ class_ "title" ] [ text "Tempore Language" ];
                 elt "p"
                   ~a:[ class_ "brand-tagline" ]
                   [
