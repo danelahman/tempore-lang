@@ -634,26 +634,37 @@
 
     .site-footer {
       display: flex;
+      align-items: center;
       justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
       padding: 1rem 0 0.5rem;
       font-size: 0.9rem;
+    }
+
+    .site-footer .footer-link {
+      color: #7a7a7a;
+    }
+
+    .site-footer .footer-link:hover {
+      /* Bulma's is-info blue, as on the run button and in the logo. */
+      color: #3298dc;
     }
 
     .site-footer .github-link {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      color: #7a7a7a;
-    }
-
-    .site-footer .github-link:hover {
-      /* Bulma's is-info blue, as on the run button and in the logo. */
-      color: #3298dc;
     }
 
     .site-footer .github-link svg {
       width: 18px;
       height: 18px;
+    }
+
+    /* Punctuation, not a link: lighter than the links either side of it. */
+    .site-footer .footer-separator {
+      color: #b5b5b5;
     }
   </style>
 </head>

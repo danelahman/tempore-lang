@@ -53,8 +53,9 @@ let select ?(a = []) empty_description msg describe_choice selected choices =
 
 let nil = text ""
 
-(* Octicons (MIT licensed), drawn in the current text colour so that they
-   follow the hover styling of the link they sit in. *)
+(* Octicons (MIT licensed, Copyright (c) GitHub Inc.; see THIRD-PARTY.md),
+   drawn in the current text colour so that they follow the hover styling of
+   the link they sit in. *)
 let octicon path =
   svg_elt "svg"
     ~a:
@@ -685,8 +686,12 @@ let run_view (run_model : Model.run_model) =
 
 let github_url = "https://github.com/danelahman/tempore-lang"
 
-(* The GitHub mark, as in GitHub's Octicons (MIT licensed), drawn in the
-   current text colour so that it follows the link's hover styling. *)
+(* A file at the tip of main in the public repository. *)
+let github_blob name = github_url ^ "/blob/main/" ^ name
+
+(* The GitHub mark, as in GitHub's Octicons (MIT licensed, Copyright (c)
+   GitHub Inc.; see THIRD-PARTY.md), drawn in the current text colour so
+   that it follows the link's hover styling. *)
 let github_mark =
   svg_elt "svg"
     ~a:
@@ -753,6 +758,28 @@ let view_navbar =
 
   elt "navbar" ~a:[ class_ "navbar" ] [ view_title ]
 
+(* A muted footer link, styled the same as the GitHub link beside it. *)
+let view_footer_link ~href ~title label =
+  elt "a"
+    ~a:
+      [
+        class_ "footer-link";
+        attr "href" href;
+        attr "target" "_blank";
+        attr "rel" "noopener";
+        attr "title" title;
+      ]
+    [ text label ]
+
+(* A decorative separator between footer links; it carries no content of its
+   own, so it is hidden from screen readers. *)
+let view_footer_separator =
+  elt "span"
+    ~a:[ class_ "footer-separator"; attr "aria-hidden" "true" ]
+    [ text "\xC2\xB7" ]
+
+(* The web interface is served with the program compiled into it, so the
+   license it is served under is kept within reach of every page. *)
 let view_footer =
   elt "footer"
     ~a:[ class_ "site-footer" ]
@@ -760,7 +787,7 @@ let view_footer =
       elt "a"
         ~a:
           [
-            class_ "github-link";
+            class_ "footer-link github-link";
             attr "href" github_url;
             attr "target" "_blank";
             attr "rel" "noopener";
@@ -770,6 +797,9 @@ let view_footer =
           elt "span" ~a:[ class_ "icon" ] [ github_mark ];
           elt "span" [ text "Source on GitHub" ];
         ];
+      view_footer_separator;
+      view_footer_link ~href:(github_blob "LICENSE")
+        ~title:"Tempore is MIT licensed" "MIT license";
     ]
 
 let view (model : Model.model) =

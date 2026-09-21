@@ -2,8 +2,10 @@
 
 Tempore (as in *in tempore*, Latin for "in good time") is a prototype
 programming language that combines graded modal types with graded effects to
-specify and verify temporal properties of resources that programs manipulate.
-The properties are checked automatically by Hindley–Milner style type inference.
+specify and verify temporal properties of resources that programs manipulate, in
+particular allowing one to statically verify that resources are used only when
+their type-based specifications deem it safe to do so. These properties are
+checked automatically by Hindley–Milner style type and grade inference.
 
 Tempore grew out of Temporal Millet, which was implemented in [Joosep
 Tavits](https://github.com/joosepgit)'s Master's thesis at the University of
@@ -408,7 +410,9 @@ Tempore is released under the MIT license (see [`LICENSE`](LICENSE)).
 It is derived from Matija Pretnar's
 [Millet](https://github.com/matijapretnar/millet) and from Joosep Tavits's
 [original Temporal Millet](https://github.com/joosepgit/temporal-millet), both
-MIT licensed; their copyright notices are retained in `LICENSE`.
+MIT licensed; their copyright notices are retained in `LICENSE`. The notices
+for the third-party code bundled into or loaded by the web interface are
+collected in [`THIRD-PARTY.md`](THIRD-PARTY.md).
 
 ## AI usage disclaimer
 <!-- web-skip -->
