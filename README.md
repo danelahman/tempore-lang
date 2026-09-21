@@ -1,6 +1,6 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="web/logo/tempore-logo-dark.svg"><img src="web/logo/tempore-logo.svg" alt="" width="40" height="40" align="top"></picture> Temporal Millet
+# <picture><source media="(prefers-color-scheme: dark)" srcset="web/logo/tempore-logo-dark.svg"><img src="web/logo/tempore-logo.svg" alt="" width="40" height="40" align="top"></picture> Tempore
 
-Temporal Millet is a prototype programming language that combines modal types
+Tempore is a prototype programming language that combines modal types
 with graded effect systems to specify and verify temporal properties of the
 resources programs manipulate. The properties are checked automatically by
 Hindley–Milner style type inference.
@@ -14,7 +14,7 @@ handlers that are guaranteed to respect the temporal specifications of
 operations, and (ii) general resource grades in place of natural-number time
 grades.
 
-Temporal Millet is built on Matija Pretnar's
+Tempore is built on Matija Pretnar's
 [Millet](https://github.com/matijapretnar/millet) and follows the ideas of
 [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 Žajdela](https://msfp-workshop.github.io/msfp2024/submissions/ahman+%c5%beajdela.pdf).
@@ -32,13 +32,13 @@ Requires OCaml >= 5.0. Install the dependencies and build:
 There are two ways to run programs:
 
 - **Web interface**, at `web/index.html` after building, or online at
-  <https://danel.ahman.ee/temporal-millet/>. Load a built-in example or type a
+  <https://danel.ahman.ee/tempore-lang/>. Load a built-in example or type a
   program, then step through its reductions one by one while watching the
   resource state.
 
 - **Command line**:
 
-      ./temporal-millet file1.tpe file2.tpe ...
+      ./tempore file1.tpe file2.tpe ...
 
   loads all listed files and runs every `run` command, printing each run's
   result and final resource state. Non-deterministic choices are made at
@@ -56,7 +56,7 @@ Resource usage is measured in a grading monoid (an ordered monoid with some
 additional structure). The monoid is not part of a source file but chosen when
 the program is run: with `--resources` on the command line, e.g.
 
-    ./temporal-millet --resources time-interval examples/time_intervals.tpe
+    ./tempore --resources time-interval examples/time_intervals.tpe
 
 or with the **Resource grade** selector in the web interface, which switches
 automatically when a built-in example is loaded. The default is
@@ -391,18 +391,18 @@ or by hand with
 
     cd editors/vscode
     npx --yes @vscode/vsce package
-    code --install-extension vscode-temporal-millet-*.vsix --force
+    code --install-extension vscode-tempore-*.vsix --force
 
 then restart VS Code. Uninstall with
 
-    code --uninstall-extension temporal-millet.vscode-temporal-millet
+    code --uninstall-extension tempore.vscode-tempore
 
 To work on the extension itself, open `editors/vscode` in VS Code and press F5
 for an Extension Development Host with the extension loaded.
 
 ## License
 
-Temporal Millet is released under the MIT license (see [`LICENSE`](LICENSE)).
+Tempore is released under the MIT license (see [`LICENSE`](LICENSE)).
 It is derived from Matija Pretnar's
 [Millet](https://github.com/matijapretnar/millet) and from Joosep Tavits's
 [original Temporal Millet](https://github.com/joosepgit/temporal-millet), both
