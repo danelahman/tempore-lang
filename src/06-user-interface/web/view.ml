@@ -627,7 +627,7 @@ let run_view (run_model : Model.run_model) =
   in
   view_contents (active_view @ completed_views) [ view_steps run_model steps ]
 
-let github_url = "https://github.com/danelahman/temporal-millet"
+let github_url = "https://github.com/danelahman/tempore-lang"
 
 (* The GitHub mark, as in GitHub's Octicons (MIT licensed), drawn in the
    current text colour so that it follows the link's hover styling. *)
@@ -682,7 +682,7 @@ let view_navbar =
             div
               ~a:[ class_ "brand-text" ]
               [
-                elt "p" ~a:[ class_ "title" ] [ text "Temporal Millet" ];
+                elt "p" ~a:[ class_ "title" ] [ text "Tempore" ];
                 elt "p"
                   ~a:[ class_ "brand-tagline" ]
                   [

@@ -5,7 +5,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
   open Vdom
   module Ast = Language.Ast
   module PrettyPrint = Language.PrettyPrint
-  module RS = RedexSelectorTM.Make (ResourceGrade)
+  module RS = RedexSelector.Make (ResourceGrade)
 
   (* Renders the interpreter state with markers around binding-position
      resource names so the syntax highlighter colors only those (and not

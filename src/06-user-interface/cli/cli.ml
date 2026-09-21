@@ -51,7 +51,7 @@ let parse_args_to_config () =
   and debug = ref false
   and typecheck_only = ref false
   and resource_type = ref default_resource_name in
-  let usage = "Run Temporal Millet as '" ^ Sys.argv.(0) ^ " [filename.tpe] ...'"
+  let usage = "Run Tempore as '" ^ Sys.argv.(0) ^ " [filename.tpe] ...'"
   and anonymous filename = filenames := filename :: !filenames
   (* The options, in alphabetical order. [--help] is listed rather than left
      to [Arg] to add, which would put it last; it refers back to the list to

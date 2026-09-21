@@ -2143,7 +2143,7 @@ single-dash form of the help option is not accepted.
   [1]
   $ ../tempore -help
   ../tempore: unknown option '-help'.
-  Run Temporal Millet as '../tempore [filename.tpe] ...'
+  Run Tempore as '../tempore [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
