@@ -1,9 +1,10 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="web/logo/tempore-logo-dark.svg"><img src="web/logo/tempore-logo.svg" alt="" width="40" height="40" align="top"></picture> Tempore Language
 
-Tempore is a prototype programming language that combines modal types
-with graded effect systems to specify and verify temporal properties of the
-resources programs manipulate. The properties are checked automatically by
-Hindley–Milner style type inference.
+Tempore (as in *in tempore*, Latin for "in good time") is a prototype
+programming language that combines modal types with graded effect systems to
+specify and verify temporal properties of the resources programs manipulate.
+The properties are checked automatically by Hindley–Milner style type
+inference.
 
 The original Temporal Millet was implemented in [Joosep
 Tavits](https://github.com/joosepgit)'s Master's thesis at the University of
