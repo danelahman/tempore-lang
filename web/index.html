@@ -28,6 +28,45 @@
       display: block
     }
 
+    /* The heading carries the name of the panel and, at its right, the link to
+       the other page. */
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    /* The mark stands alone here, so it is given a hit area of its own and the
+       panel heading's colour rather than a link's. */
+    .panel-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      margin: -0.35rem -0.35rem -0.35rem 0;
+      border-radius: 4px;
+      color: inherit;
+      opacity: 0.55;
+    }
+
+    .panel-action:hover {
+      color: inherit;
+      opacity: 1;
+      background-color: rgba(10, 10, 10, 0.07);
+    }
+
+    /* An inline <svg> reserves room under itself for descenders, which would
+       lift the mark off the centre of its box. The size is set here rather
+       than on the mark, so that it is a matter of how the panel reads. */
+    .panel-action svg {
+      display: block;
+      width: 1.2rem;
+      height: 1.2rem;
+    }
+
     /* Bulma's box and panel shadows are offset downwards and so leave the
        top edge bare; spread them evenly around all four edges instead. */
     .box,
@@ -409,6 +448,25 @@
       white-space: nowrap;
     }
 
+    /* Inline code on the documentation page is treated as the diagnostics'
+       fragments are, and for the same reason: Bulma's red for a bare <code> is
+       the colour this interface reports errors in. */
+    .content code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.9em;
+      color: inherit;
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.05em 0.3em;
+      border-radius: 3px;
+    }
+
+    /* Bulma already strips the background inside a <pre>; the colour it leaves
+       is its own grey, where the block should read as strongly as the prose. */
+    .content pre,
+    .content pre code {
+      color: #24292e;
+    }
+
     /* The error the caret sits in, singled out among the messages. */
     .editor-error.is-active {
       border-left: 4px solid #f14668;
@@ -474,7 +532,8 @@
 
     /* <navbar> is not an element the browser knows, so it is laid out inline
        — dropping its vertical margin — until Bulma makes it a flex box at the
-       desktop breakpoint. Laid out the same way at every width instead. */
+       desktop breakpoint. Laid out the same way at every width instead, the
+       brand growing so that the page link sits opposite it. */
     .navbar {
       background-color: transparent;
       display: block;
@@ -482,12 +541,22 @@
       margin-bottom: 1.5rem;
     }
 
+
+
     /* Bulma holds the brand 3.25rem tall and pads its items out, either of
        which would leave the gap below the header wider than the margin. */
     .navbar-brand {
       flex-grow: 1;
       min-height: 0;
+      /* A flex item will not shrink past its contents unless told to, which
+         would let the tagline push the page link off the right of the page. */
+      min-width: 0;
     }
+
+
+
+
+
 
     .navbar-brand .brand-title {
       display: flex;
@@ -536,6 +605,7 @@
     /* The one-line tagline needs 715px of page, so below the tablet
        breakpoint the header keeps only the mark and the name, and the mark
        shrinks to leave room for it. */
+
     @media screen and (max-width: 768px) {
       .navbar-brand .brand-tagline {
         display: none;

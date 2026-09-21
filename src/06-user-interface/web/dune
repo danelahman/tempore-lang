@@ -3,6 +3,7 @@
  (libraries
   utils
   language
+  cmarkit
   vdom
   vdom.base
   ojs
@@ -15,6 +16,19 @@
   (until-clean)
   (into ../../../web)
   (only web.bc.js)))
+
+;; The same trick as in src/core/dune, generating the module Readme_md with the
+;; README's source, which the documentation view renders. The {md| |md} delimiter
+;; is used rather than {| |}, so that a "|}" written in the README some day does
+;; not silently terminate the literal.
+
+(rule
+ (with-stdout-to
+  readme_md.ml
+  (progn
+   (echo "let contents = {md|")
+   (cat ../../../README.md)
+   (echo "|md}"))))
 
 ;; This is an expanded form of the trick used in src/core/dune to generate the module
 ;; Examples_tpe with the examples to include in the web interface.
@@ -30,63 +44,63 @@
    ;; when the example is loaded), and the second gives its source.
    (echo "({|Time: upper bounds|}, {|time-upper-bound|}, {|")
    (cat ../../../examples/time_upper.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/time_upper.tpe|});")
    (echo "({|Time: intervals|}, {|time-interval|}, {|")
    (cat ../../../examples/time_intervals.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/time_intervals.tpe|});")
    (echo "({|Traces: lower bounds|}, {|traces-lower-bound|}, {|")
    (cat ../../../examples/traces_lower.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/traces_lower.tpe|});")
    (echo "({|Traces: upper bounds|}, {|traces-upper-bound|}, {|")
    (cat ../../../examples/traces_upper.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/traces_upper.tpe|});")
    (echo "({|Traces: intervals|}, {|traces-interval|}, {|")
    (cat ../../../examples/traces_intervals.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/traces_intervals.tpe|});")
    (echo "({|3D printing|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/3dprint.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/3dprint.tpe|});")
    (echo "({|3D printing with handlers|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/3dprint_handlers.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/3dprint_handlers.tpe|});")
    (echo "({|3D printing with traces|}, {|traces-interval|}, {|")
    (cat ../../../examples/3dprint_traces.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/3dprint_traces.tpe|});")
    (echo "({|Eternal types|}, {|time-upper-bound|}, {|")
    (cat ../../../examples/eternal_types.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/eternal_types.tpe|});")
    (echo "({|Basic temporal operations|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/delay.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/delay.tpe|});")
    (echo "({|Basic unbox|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/basic_unbox.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/basic_unbox.tpe|});")
    (echo "({|Folding over boxed values|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/fold_over_boxes.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/fold_over_boxes.tpe|});")
    (echo "({|Algebraic operations|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/operations.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/operations.tpe|});")
    (echo "({|Effect handlers: lower bounds|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/handlers_lower_bound.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/handlers_lower_bound.tpe|});")
    (echo "({|Effect handlers: upper bounds|}, {|time-upper-bound|}, {|")
    (cat ../../../examples/handlers_upper_bound.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/handlers_upper_bound.tpe|});")
    (echo "({|Effect handlers: nested|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/handlers_nested.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/handlers_nested.tpe|});")
    (echo "({|Effect handlers: nested (rejected)|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/handlers_nested_reject.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/handlers_nested_reject.tpe|});")
    (echo "({|Top-level structures|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/toplevel.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/toplevel.tpe|});")
    (echo
     "({|Natural numbers as an inductive type|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/nat.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/nat.tpe|});")
    (echo "({|Recursive functions on integers|}, {|time-lower-bound|}, {|")
    (cat ../../../examples/recursion.tpe)
-   (echo "|});")
+   (echo "|}, {|examples/recursion.tpe|});")
    (echo "]"))))

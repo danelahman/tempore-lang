@@ -5,9 +5,15 @@ module Location = Utils.Location
 module SyntaxHighlight = WebInterpreter.SyntaxHighlight
 
 (* Auxiliary definitions *)
-let panel ?(a = []) heading blocks =
+(* [action] is placed at the right of the heading, opposite its name. *)
+let panel ?(a = []) ?action heading blocks =
+  let named =
+    match action with
+    | None -> [ text heading ]
+    | Some action -> [ elt "span" [ text heading ]; action ]
+  in
   div ~a:(class_ "panel" :: a)
-    (elt "p" ~a:[ class_ "panel-heading" ] [ text heading ] :: blocks)
+    (elt "p" ~a:[ class_ "panel-heading" ] named :: blocks)
 
 let panel_block = div ~a:[ class_ "panel-block" ]
 
@@ -46,6 +52,56 @@ let select ?(a = []) empty_description msg describe_choice selected choices =
     ]
 
 let nil = text ""
+
+(* Octicons (MIT licensed), drawn in the current text colour so that they
+   follow the hover styling of the link they sit in. *)
+let octicon path =
+  svg_elt "svg"
+    ~a:
+      [
+        attr "viewBox" "0 0 16 16";
+        attr "width" "16";
+        attr "height" "16";
+        attr "aria-hidden" "true";
+      ]
+    [ svg_elt "path" ~a:[ attr "fill" "currentColor"; attr "d" path ] [] ]
+
+let book_mark =
+  octicon
+    "M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.744 3.744 0 0 \
+     1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 \
+     2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 \
+     0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 \
+     10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 \
+     3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 \
+     1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"
+
+let code_mark =
+  octicon
+    "m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 \
+     1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 \
+     .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 \
+     1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 \
+     1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"
+
+(* The other page is reached from the side panel's heading. The mark stands on
+   its own there, so the name it is given is the one read out. *)
+let page_link target =
+  let mark, label =
+    match target with
+    | Model.Docs -> (book_mark, "Documentation")
+    | Model.Editor -> (code_mark, "Editor")
+  in
+  elt "a"
+    ~a:
+      [
+        class_ "panel-action";
+        attr "href" "#";
+        attr "title" label;
+        attr "aria-label" label;
+        onclick ~prevent_default:() (fun _ -> Model.ShowPage target);
+      ]
+    [ mark ]
 
 let view_contents main aside =
   div
@@ -390,10 +446,10 @@ let view_compiler (model : Model.model) =
                 select
                   ~a:[ class_ "select is-fullwidth" ]
                   "Load example"
-                  (fun (title, resource_name, source) ->
+                  (fun (title, resource_name, source, _) ->
                     Model.EditMsg (LoadExample (title, resource_name, source)))
-                  (fun (title, _, _) -> title)
-                  (fun (title, _, _) ->
+                  (fun (title, _, _, _) -> title)
+                  (fun (title, _, _, _) ->
                     Some title = model.edit_model.selected_example)
                   (* The module Examples_tpe is semi-automatically generated from examples/*.tpe. Check the dune file for details. *)
                   Examples_tpe.examples;
@@ -469,7 +525,7 @@ let view_compiler (model : Model.model) =
         | _ -> nil);
       ]
   in
-  panel "Code options"
+  panel ~action:(page_link Model.Docs) "Code options"
     [ use_stdlib; load_example; select_resource; run_process ]
 
 let edit_view (model : Model.model) =
@@ -591,7 +647,7 @@ let view_steps (run_model : Model.run_model) steps =
          else text "");
       ]
   in
-  panel "Interaction"
+  panel ~action:(page_link Model.Docs) "Interaction"
     ~a:[ onmouseleave (fun _ -> Model.RunMsg (Model.SelectStepIndex None)) ]
     (view_edit_source :: view_undo_last_step :: view_random_steps steps
    :: List.mapi view_step steps)
@@ -720,8 +776,13 @@ let view (model : Model.model) =
   div
     [
       view_navbar;
-      (match model.run_model with
-      | Error _ -> edit_view model
-      | Ok run_model -> run_view run_model);
+      (match model.page with
+      | Model.Docs ->
+          let main, aside = Docs.view (page_link Model.Editor) in
+          view_contents main aside
+      | Model.Editor -> (
+          match model.run_model with
+          | Error _ -> edit_view model
+          | Ok run_model -> run_view run_model));
       view_footer;
     ]

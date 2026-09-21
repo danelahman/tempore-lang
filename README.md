@@ -1,18 +1,18 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="web/logo/tempore-logo-dark.svg"><img src="web/logo/tempore-logo.svg" alt="" width="40" height="40" align="top"></picture> Tempore Language
 
 Tempore (as in *in tempore*, Latin for "in good time") is a prototype
-programming language that combines graded modal types with graded effect systems
-to specify and verify temporal properties of resources that programs manipulate.
+programming language that combines graded modal types with graded effects to
+specify and verify temporal properties of resources that programs manipulate.
 The properties are checked automatically by Hindley–Milner style type inference.
 
-Tempore is a further development of Temporal Millet, which was implemented in
-[Joosep Tavits](https://github.com/joosepgit)'s Master's thesis at the
-University of Tartu ([code](https://github.com/joosepgit/temporal-millet),
-[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). It adds
-(i) temporal algebraic effects and effect handlers that are guaranteed to
-respect the temporal specifications of operations, and (ii) general resource
-grades in place of natural-number time grades, which only modelled left-sided
-time intervals expressing lower time bounds of programs.
+Tempore grew out of Temporal Millet, which was implemented in [Joosep
+Tavits](https://github.com/joosepgit)'s Master's thesis at the University of
+Tartu ([code](https://github.com/joosepgit/temporal-millet),
+[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). Tempore
+(currently) adds (i) temporal algebraic effects and effect handlers that are
+guaranteed to respect the temporal specifications of operations, and (ii)
+general resource grades in place of natural-number time grades, which only
+modelled left-sided time intervals expressing lower time bounds of programs.
 
 Tempore (and Temporal Millet that preceded it) is built on Matija Pretnar's
 [Millet Language](https://github.com/matijapretnar/millet) and follows the
@@ -20,6 +20,7 @@ ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 Žajdela](https://msfp-workshop.github.io/msfp2024/submissions/ahman+%c5%beajdela.pdf).
 
 ## Installing and running
+<!-- web-skip -->
 
 Tested to work with OCaml >= 5.0. Install the dependencies and build:
 
@@ -271,7 +272,7 @@ Resuming twice under `Op # 1` fails likewise under an upper bound, since
 `rho + rho <= 1 + rho` fails already for `rho = 2`; under a lower bound it is
 accepted, as `rho >= 0` always holds.
 
-### The context of an operation case
+### Contexts of operation cases
 
 An operation case runs at a time the handler does not fix: the call may come
 at any point of the handled computation, and the case must be well-typed for
@@ -375,7 +376,12 @@ prototype compares grades by unification, that is, for equality:
 The workaround, where a grade has to be increased, is an explicit type
 annotation.
 
+**Note:** A new prototype supporting deep sub-typing and -effecting throughout
+the typing derivations is currently in the works, resolving many of the current
+limitations.
+
 ## Editor support
+<!-- web-skip -->
 
 `editors/vscode/` contains a minimal VS Code extension with syntax highlighting
 for `.tpe` files. Package and install it with
@@ -396,6 +402,7 @@ To work on the extension itself, open `editors/vscode` in VS Code and press F5
 for an Extension Development Host with the extension loaded.
 
 ## License
+<!-- web-skip -->
 
 Tempore is released under the MIT license (see [`LICENSE`](LICENSE)).
 It is derived from Matija Pretnar's
@@ -404,6 +411,7 @@ It is derived from Matija Pretnar's
 MIT licensed; their copyright notices are retained in `LICENSE`.
 
 ## AI usage disclaimer
+<!-- web-skip -->
 
 Agentic AI tools (from the Claude family) have been used to develop parts of
 this prototype implementation.

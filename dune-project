@@ -37,6 +37,7 @@
    (>= 5.0))
   (menhir
    (>= 20231231))
+  cmarkit
   vdom
   ojs
   js_of_ocaml-compiler

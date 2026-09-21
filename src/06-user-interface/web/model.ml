@@ -59,6 +59,9 @@ and msg =
   | RunCode
   | RunMsg of run_msg
   | EditCode
+  | ShowPage of page
+      (** Switch between the editor and the documentation. The rest of the model
+          is left alone, so the source and any run survive the detour. *)
   | HoverLabel of (int * int) option
       (** The pointer has entered label [j] of reported error [i], or left the
           labels. Top-level, since the error display belongs to neither the
@@ -71,6 +74,10 @@ and msg =
       (** The caret has been placed at the given offset of the editor, in UTF-16
           code units: the error whose span it lands in, if any, becomes the
           active one. *)
+
+(* Which of the two top-level pages is showing. [Editor] covers both editing and
+   running, which [run_model] distinguishes between. *)
+and page = Editor | Docs
 
 type edit_model = {
   use_stdlib : bool;
@@ -203,6 +210,7 @@ type model = {
   stale_errors : bool;
       (** Whether the source has been edited since the errors were reported, so
           that their spans point at bytes that have moved. *)
+  page : page;
 }
 
 let init =
@@ -212,6 +220,7 @@ let init =
     active_error = None;
     hovered_error = None;
     stale_errors = false;
+    page = Editor;
   }
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
@@ -254,12 +263,18 @@ let update model = function
         | LoadExample _ -> (Error [], false)
         | _ -> (model.run_model, model.stale_errors || edits_source edit_msg)
       in
+      (* Examples are also linked from the documentation, where loading one is a
+         request to go and look at it. *)
+      let page =
+        match edit_msg with LoadExample _ -> Editor | _ -> model.page
+      in
       {
         edit_model = edit_update model.edit_model edit_msg;
         run_model;
         active_error = None;
         hovered_error = None;
         stale_errors;
+        page;
       }
   | RunMsg run_msg -> (
       match model.run_model with
@@ -375,6 +390,7 @@ let update model = function
           in
           { model with run_model = Error errors }
       | Ok _ -> model)
+  | ShowPage page -> { model with page }
   | HoverError hovered_error -> { model with hovered_error }
   | CaretAt offset -> (
       (* Edited source: the spans no longer say where the caret is. *)
