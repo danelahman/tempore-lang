@@ -36,6 +36,8 @@
   (menhir
    (>= 20231231))
   vdom
+  ojs
+  js_of_ocaml-compiler
   (ocamlformat
    (and
     :with-dev-setup

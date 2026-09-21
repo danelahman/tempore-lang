@@ -23,7 +23,7 @@ ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 
 Tested to work with OCaml >= 5.0. Install the dependencies and build:
 
-    opam install menhir vdom ocamlformat=0.28.1
+    opam install menhir vdom ojs js_of_ocaml-compiler ocamlformat=0.28.1
     make
 
 `make test` runs the test suite, and `make clean` removes the build.

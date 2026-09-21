@@ -13,6 +13,8 @@ depends: [
   "ocaml" {>= "5.0"}
   "menhir" {>= "20231231"}
   "vdom"
+  "ojs"
+  "js_of_ocaml-compiler"
   "ocamlformat" {with-dev-setup & = "0.28.1"}
   "odoc" {with-doc}
 ]
