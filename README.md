@@ -1,55 +1,54 @@
 # <picture><source media="(prefers-color-scheme: dark)" srcset="web/logo/tempore-logo-dark.svg"><img src="web/logo/tempore-logo.svg" alt="" width="40" height="40" align="top"></picture> Tempore Language
 
 Tempore (as in *in tempore*, Latin for "in good time") is a prototype
-programming language that combines modal types with graded effect systems to
-specify and verify temporal properties of the resources programs manipulate.
-The properties are checked automatically by Hindley–Milner style type
-inference.
+programming language that combines graded modal types with graded effect systems
+to specify and verify temporal properties of resources that programs manipulate.
+The properties are checked automatically by Hindley–Milner style type inference.
 
-The original Temporal Millet was implemented in [Joosep
+Tempore is a further development of Temporal Millet was implemented in [Joosep
 Tavits](https://github.com/joosepgit)'s Master's thesis at the University of
 Tartu ([code](https://github.com/joosepgit/temporal-millet),
-[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). This
-repository develops it further with (i) temporal algebraic effects and effect
-handlers that are guaranteed to respect the temporal specifications of
-operations, and (ii) general resource grades in place of natural-number time
-grades.
+[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). Tempore
+develops it further with (i) temporal algebraic effects and effect handlers that
+are guaranteed to respect the temporal specifications of operations, and (ii)
+general resource grades in place of natural-number time grades, which were only
+modelling left-sided time intervals (expressing lower time bounds of programs).
 
-Tempore is built on Matija Pretnar's
-[Millet](https://github.com/matijapretnar/millet) and follows the ideas of
-[Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
+Tempore (and Temporal Millet that preceded it) is built on Matija Pretnar's
+[Millet Language](https://github.com/matijapretnar/millet) and follows the 
+ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 Žajdela](https://msfp-workshop.github.io/msfp2024/submissions/ahman+%c5%beajdela.pdf).
 
 ## Installing and running
 
-Requires OCaml >= 5.0. Install the dependencies and build:
+Tested to work with OCaml >= 5.0. Install the dependencies and build:
 
     opam install menhir vdom ocamlformat=0.28.1
     make
 
-`make test` runs the test suite (also run by CI on every push to `main`), and
+`make test` runs the test suite, and
 `make clean` removes the build.
 
 There are two ways to run programs:
 
 - **Web interface**, at `web/index.html` after building, or online at
   <https://danel.ahman.ee/tempore-lang/>. Load a built-in example or type a
-  program, then step through its reductions one by one while watching the
-  resource state.
+  program, check whether the example typechecks, and if it does, step through
+  its reductions one by one while watching the resource state evolve.
 
 - **Command line**:
 
       ./tempore file1.tpe file2.tpe ...
 
   loads all listed files and runs every `run` command, printing each run's
-  result and final resource state. Non-deterministic choices are made at
-  random. Options: `--resources <monoid>` selects the grading monoid (see
-  below), `--typecheck-only` typechecks the files without running them,
-  `--no-stdlib` skips the standard library, and `--debug` also prints the
-  typing context.
+  result and final resource state. 
+  
+  Options: `--resources <monoid>` selects the grading monoid (see below),
+  `--typecheck-only` typechecks the files without running them, `--no-stdlib`
+  skips the standard library, and `--debug` also prints the typing context.
 
 The [`examples/`](examples/) directory contains the programs available in the
-web interface; each starts with the command that runs it.
+web interface; each also starts with listing the command that runs it in CLI.
 
 ## Grading monoids
 
@@ -60,11 +59,11 @@ the program is run: with `--resources` on the command line, e.g.
     ./tempore --resources time-interval examples/time_intervals.tpe
 
 or with the **Resource grade** selector in the web interface, which switches
-automatically when a built-in example is loaded. The default is
-`time-lower-bound`. Six monoids are available.
+its value automatically when a built-in example is loaded. The default grade 
+monoid is `time-lower-bound`. Currently, six monoids are available to choose.
 
-Three grade computations by time, written as integer literals such as `3` or
-pairs such as `(1, 4)`:
+Three monoids grade resources and computations by time, written as integer
+literals such as `3` or pairs such as `(1, 4)`:
 
 - **`time-lower-bound`** — non-negative integers, a lower bound on the time a
   computation takes. `rho` is a sub-grade of `rho'` when `rho >= rho'`; zero is
@@ -77,15 +76,19 @@ pairs such as `(1, 4)`:
   `l >= m` (interval containment); `(0, 0)` is the minimum. See
   [`examples/time_intervals.tpe`](examples/time_intervals.tpe).
 
-Three grade computations by the *timed traces* they may exhibit. A timed trace
-is one run of a computation, an alternation of operation events and positive
-delays: `Read; 3; Send` performs `Read`, waits three ticks, and performs `Send`.
-A grade is a non-empty finite set of runs, the alternatives a computation may
-exhibit, written `{Read; 3; Send | Send; Send}`; grades multiply by the
-(non-commutative) language product. An integer `n` abbreviates `{n}`, so the
-zero grade is `{0}`. The orders trade time against operations through the
-runtime bounds `within (lo, hi)` every atomic operation declares under these
-monoids (see below).
+All three variants of time bounds are inclusive on the values they carry, e.g.,
+while intervals are written as `(n,m)`, they should be read as `[n,m]`. This is
+to avoid the proliferation of rectangular brackets in modal types' grades.
+
+Three monoids grade resources and computations by the *timed traces* they may
+exhibit. A timed trace is one run of a computation, an alternation of operation
+events and positive delays: `Read; 3; Send` performs `Read`, waits three ticks,
+and performs `Send`. A grade built from traces is a non-empty finite set of
+runs, the alternatives a computation may exhibit, `{Read; 3; Send | Send;
+Send}`; grades multiply by the (non-commutative) language product. An integer
+`n` abbreviates `{n}`, so the zero grade is `{0}`. The orders trade time against
+operations through the runtime bounds `within (lo, hi)` every atomic operation
+(one whose trace is its own name) declares under these monoids (see below).
 
 - **`traces-lower-bound`** — the runs a computation must *cover*. `rho`
   is a sub-grade of `rho'` when every run of `rho` covers some run of `rho'`:
@@ -137,9 +140,9 @@ after they are bound. Eternal are the base types (integers, strings, booleans,
 floats, unit), tuples of eternal types, and algebraic types all of whose
 constructor arguments are eternal. Function types, handler types, and box types
 `[rho]a` are never eternal. A type variable is eternal exactly when it is
-instantiated with an eternal type, so a parameterised type is eternal
-depending on how its parameters are used: `'a list` is eternal when `'a` is,
-while a phantom parameter, as in `type 'a tag = Tag`, imposes nothing.
+instantiated with an eternal type, so a parameterised type is eternal depending
+on how its parameters are used: `'a list` is eternal when `'a` is, while a
+phantom parameter, as in `type 'a tag = Tag`, imposes nothing.
 
 Referencing a local variable `x : a` generates the constraint "`a` is eternal,
 or the grade accumulated since `x` was bound is a sub-grade of zero". Under
@@ -150,14 +153,14 @@ used before any `delay` or operation call has happened since it was bound.
 
 When the constraint depends on a type variable of a top-level definition, it
 is not decided at the definition but becomes a qualifier of its generalised
-type, checked at every use. Under `time-upper-bound`,
+type, checked at every use. For example, under `time-upper-bound`,
 
 ```
 let keep x = delay 1; x
 let after g x = g (); x
 ```
 
-get the types `{eternal α} α → α # 1` and
+respectively get the types `{eternal α} α → α # 1` and
 `{eternal α ∨ ρ <= 0} (unit → β # ρ) → α → α # ρ`, shown by `--debug`. So
 `keep 5` is accepted, `keep (fun () -> ())` is rejected, and
 `after (fun () -> delay 2) 5` is accepted because `5` is eternal, while
@@ -187,9 +190,10 @@ Operations are declared at the top of a source file:
 operation OperationName : input-type ~> result-type # grade
 ```
 
-The grade records the resource usage of one call. Under the timed-trace
-monoids an *atomic* operation, one graded by the single run of itself, must
-also state its runtime bounds,
+The grade records the resource usage of one call. 
+
+Under the timed-trace monoids an *atomic* operation, one graded by the singleton
+trace set containing just itself, must also state its runtime bounds,
 
 ```
 operation OperationName : input-type ~> result-type # grade within (lo, hi)
@@ -198,16 +202,17 @@ operation OperationName : input-type ~> result-type # grade within (lo, hi)
 the least and greatest number of ticks a call may take (`within n` is short for
 `within (n, n)`). The bounds are the cost model of the trace orders:
 `traces-lower-bound` reads `lo`, `traces-upper-bound` reads `hi`,
-and `traces-interval` reads both. A *compound* operation names other, already
-declared operations in its grade, and its bounds are computed from theirs: `lo`
-is the duration of the fastest run of its grade with every event at its lower
-bound, `hi` that of the slowest run with every event at its upper bound. So
-given `Tx : string ~> unit # {Tx} within (2, 3)`, the operation
-`Send : string ~> unit # {Tx | Tx; Tx}` gets the bounds `(2, 6)`; declaring
-bounds on it is rejected, as is naming itself, since `Send # {Send | Send;
-Send}` would make its bounds depend on themselves. Retries are expressed
-through a smaller operation instead. Under the time monoids no bounds are
-declared, since the grade already is the bound.
+and `traces-interval` reads both. 
+
+A *compound* operation names other, already declared operations in its grade,
+and its bounds are computed from theirs: `lo` is the duration of the fastest run
+of its grade with every event at its lower bound, `hi` that of the slowest run
+with every event at its upper bound. So given `Tx : string ~> unit # {Tx} within
+(2, 3)`, the operation `Send : string ~> unit # {Tx | Tx; Tx}` gets the bounds
+`(2, 6)`; declaring bounds on it is rejected, as is naming itself, since `Send #
+{Send | Send; Send}` would make its bounds depend on themselves. Retries are
+expressed through a smaller operation instead. Under the time monoids no bounds
+are declared, since the grade already is the bound.
 
 An operation is called with
 
@@ -218,7 +223,7 @@ perform OperationName argument
 which returns a `result-type` value and advances the accumulated grade by the
 operation's grade.
 
-Calls are given meaning by handlers:
+Operation calls are given meaning by handlers:
 
 ```
 let h =
@@ -228,10 +233,10 @@ let h =
   | ...
 ```
 
-The return case runs when the handled program returns a value `x`. An
-operation case runs when the handled program calls the operation; `p` is the
-argument and `k` the continuation, resumed with `continue k with result`.
-Operations without a case are forwarded to the enclosing handler.
+The return case runs when the handled program returns a value `x`. An operation
+case runs when the handled program calls the operation; `p` is the
+argument/parameter and `k` the continuation, resumed with `continue k with
+result`. Operations without a case are forwarded to the enclosing handler.
 
 An operation case need not have exactly the grade of the operation: it
 suffices that its grade is a sub-grade of the operation's grade composed with
@@ -239,28 +244,25 @@ that of the continuation. So `PrintModel : model ~> print # {Heat; Extrude;
 Cool}` may be handled by performing `Heat`, `Extrude` and `Cool`
 in that order and continuing, while another order is rejected:
 
-```
-The case for `PrintModel` has grade `{Cool; Extrude; Heat}`, which does not
-match the grade `{Heat; Extrude; Cool}` of `PrintModel` followed by its
-continuation
-  Note: the resource inequality
-    `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
-```
+    The case for `PrintModel` has grade `{Cool; Extrude; Heat}`, which does not
+    match the grade `{Heat; Extrude; Cool}` of `PrintModel` followed by its
+    continuation
+      Note: the resource inequality
+        `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
 
 Under the time monoids the same rule lets a case delay longer than the
 operation's grade under `time-lower-bound`, and shorter under
 `time-upper-bound`.
 
-The grade of the continuation `k` is not known when the handler is
-typechecked, so an operation case must be well-typed for *every* grade `rho`
-of `k`. The typechecker makes `rho` a rigid grade variable: unification never
-solves it, and it may not occur in the type of a top-level definition, so it
-can be neither fixed by the case nor instantiated at a use site. Inequalities
-mentioning `rho` are still decided where the order allows. A case that does
-not resume, `Op p k -> 5`, has grade `0`, a sub-grade of `1 + rho` for every
-`rho` under an upper bound, where zero is the minimum, but for no `rho` under
-a lower bound, where the messages state the quantification and the failing
-instance:
+The grade of the continuation `k` is not known when the handler is typechecked,
+so an operation case must be well-typed for *every* grade `rho` of `k`. The
+typechecker makes `rho` a rigid grade variable: unification never solves it, and
+it may not occur in the type of a top-level definition, so it can be neither
+fixed by the case nor instantiated at a use site. Inequalities mentioning `rho`
+are still decided where the order allows. A case that does not resume, `Op p k
+-> 5`, has grade `0`, a sub-grade of `1 + rho` for every `rho` under an upper
+bound, where zero is the minimum, but for no `rho` under a lower bound, where
+the messages state the quantification and the failing instance:
 
     For every grade `ρ₀` the continuation `k` may have, the case for `Op` must
     have a grade matching `1 + ρ₀`, but its grade `0` does not
@@ -270,10 +272,6 @@ instance:
 Resuming twice under `Op # 1` fails likewise under an upper bound, since
 `rho + rho <= 1 + rho` fails already for `rho = 2`; under a lower bound it is
 accepted, as `rho >= 0` always holds.
-
-Nested handlers quantify over one grade per case, and a message names the
-continuation each grade belongs to, so that a constraint mentioning several of
-them can be read.
 
 ### The context of an operation case
 
@@ -379,7 +377,7 @@ prototype compares grades by unification, that is, for equality:
   non-ground. Inequalities are currently also not carried into the
   generalised types of top-level definitions.
 
-The workaround, where a grade has to be widened, is an explicit type annotation.
+The workaround, where a grade has to be increased, is an explicit type annotation.
 
 ## Editor support
 
