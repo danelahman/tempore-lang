@@ -23,11 +23,13 @@
 
 (homepage "https://danel.ahman.ee/tempore-lang/")
 
+(bug_reports "https://github.com/danelahman/tempore-lang/issues")
+
 (package
  (name tempore)
  (allow_empty)
  (synopsis
-  "Prototype language with modal types and graded temporal effects")
+  "Prototype language with modal types and graded effects to specify and verify temporal properties of resources")
  (description
   "Tempore is a prototype programming language exploring how modal types and graded effect systems can be combined to specify and verify temporal properties of resources.")
  (depends
