@@ -1,7 +1,7 @@
 {
   "name": "vscode-temporal-millet",
   "displayName": "Temporal Millet",
-  "description": "Syntax highlighting for Temporal Millet (.mlt) source files.",
+  "description": "Syntax highlighting for Temporal Millet (.tpe) source files.",
   "version": "0.1.0",
   "publisher": "temporal-millet",
   "engines": {
@@ -24,7 +24,7 @@
           "millet"
         ],
         "extensions": [
-          ".mlt"
+          ".tpe"
         ],
         "configuration": "./language-configuration.json"
       }

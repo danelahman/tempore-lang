@@ -1,0 +1,469 @@
+(* Run this example with the 'traces-interval' grading monoid, e.g.
+
+     ./temporal-millet --resources traces-interval examples/traces_intervals.tpe *)
+
+type model = Model of string
+type heated = Heated of model
+type extruded = Extruded of heated
+type cooled = Cooled of extruded
+type print = Printed of cooled | Reheated of heated
+(* Mixed epoxy does not keep: 'noneternal' annotation means the glue has to be
+   used in the very step in which it is unboxed. *)
+noneternal type epoxy = Epoxy
+
+(* Mounting uses the glue up, so a mounted print holds no epoxy and is
+   structurally eternal again. *)
+type mounted = Mounted of print
+type receipt = Receipt of string
+
+(* The heater warms a model up, so that it can be extruded. *)
+operation Heat : model ~> heated # ({Heat}, {Heat}) within (1, 2)
+default Heat m = delay 1; Heated m
+
+(* A freshly extruded model is still hot: it may be handed to the cooler, but
+   not touched otherwise until it has rested for two ticks. *)
+operation Extrude : heated ~> [2] extruded
+  # ({Extrude}, {Extrude})
+  within (3, 5)
+default Extrude h = delay 3; box 2 (Extruded h)
+
+(* The cooler takes the hot extruded model, once it has rested, and cools it
+   down to something that can be handled. *)
+operation Cool : [2] extruded ~> cooled # ({Cool}, {Cool}) within (2, 2)
+default Cool p = delay 2; unbox p as e in Cooled e
+
+(* Mounting glues a finished print onto its base; the glue is used up. *)
+operation Mount : print * epoxy ~> mounted # ({Mount}, {Mount}) within (1, 1)
+default Mount (p, g) = delay 1; Mounted p
+
+(* Mixing two-part epoxy takes a tick; the mix then needs eight ticks to set,
+   and it has hardened after eleven. *)
+operation MixEpoxy : unit ~> [(8, 11)] epoxy
+  # ({MixEpoxy}, {MixEpoxy})
+  within (1, 1)
+default MixEpoxy () = delay 1; box (8, 11) Epoxy
+
+(* A quick-setting epoxy for small parts. *)
+operation MixQuickEpoxy : unit ~> [(3, 7)] epoxy
+  # ({MixQuickEpoxy}, {MixQuickEpoxy})
+  within (1, 1)
+default MixQuickEpoxy () = delay 1; box (3, 7) Epoxy
+
+(* A print is the three steps, in that order, on both sides of the pair. The
+   finished print has to set for two ticks and be collected within eight. *)
+operation PrintModel : model ~> [(2, 8)] print
+  # ({Heat; Extrude; Cool}, {Heat; Extrude; Cool})
+
+(* A print job either prints the model in full or is a quick reheat, again on
+   both sides of the pair. *)
+operation Print : model ~> [(2, 8)] print
+  # ({Heat; Extrude; Cool | Heat; Cool}, {Heat; Extrude; Cool | Heat; Cool})
+
+(* An asymmetric job: the lower bound guarantees at least a reheat, while the
+   upper bound allows a full print. *)
+operation Print2 : model ~> [(2, 8)] print
+  # ({Heat; Cool}, {Heat; Extrude; Cool | Heat; Cool})
+
+(* A single transmission of a message. *)
+operation Tx : string ~> unit # ({Tx}, {Tx}) within (2, 3)
+default Tx msg = delay 2
+
+(* A send is one or two transmissions, on both sides of the pair. *)
+operation Send : string ~> unit # ({Tx | Tx; Tx}, {Tx | Tx; Tx})
+
+(* Correctly accepted by the typechecker: the clause performs exactly the three
+   steps 'PrintModel' promises, in the promised order, which covers the lower
+   bound and fits inside the upper bound. *)
+let printer =
+  handler
+  | x -> x
+  | PrintModel m k ->
+      let h = perform Heat m in
+      let p = perform Extrude h in
+      let c = perform Cool p in
+      continue k with (box (2, 8) (Printed c))
+
+(* Correctly accepted by the typechecker: the rest banks the two ticks the
+   print's '[(2, 8)]' box demands, and the print plus the rest bank exactly
+   the eight the epoxy needs to set (1 + 3 + 2 + 2) while staying within its
+   pot life of eleven (2 + 5 + 2 + 2). *)
+let print_sword () =
+  handle
+    let glue = perform MixEpoxy () in
+    let printed = perform PrintModel (Model "Sword") in
+    delay 2;
+    unbox printed as p in
+    unbox glue as g in
+    perform Mount (p, g)
+  with printer
+
+(* Correctly accepted by the typechecker: the same window realised by hand,
+   without the handler --- the three steps and the closing rest bank
+   1 + 3 + 2 + 2 = 8 on the lower bound and 2 + 5 + 2 + 2 = 11 on the upper,
+   which is exactly what the epoxy of 'MixEpoxy' asks for. *)
+let print_cog () =
+  let glue = perform MixEpoxy () in
+  let h = perform Heat (Model "Cog") in
+  let p = perform Extrude h in
+  let c = perform Cool p in
+  delay 2;
+  unbox glue as g in
+  perform Mount (Printed c, g)
+
+(* Correctly accepted by the typechecker: the clause realises the first of the
+   two runs 'Print' allows, covering it on the lower bound and fitting inside
+   it on the upper bound. *)
+let full_printer =
+  handler
+  | x -> x
+  | Print m k ->
+      let h = perform Heat m in
+      let p = perform Extrude h in
+      let c = perform Cool p in
+      continue k with (box (2, 8) (Printed c))
+
+(* Correctly accepted by the typechecker: the clause realises the other run, a
+   reheat that skips the extrusion --- the model was extruded in an earlier
+   job, so it goes straight from the heater to the cooler. *)
+let quick_printer =
+  handler
+  | x -> x
+  | Print m k ->
+      let h = perform Heat m in
+      perform Cool (box 2 (Extruded h));
+      continue k with (box (2, 8) (Reheated h))
+
+(* Correctly accepted by the typechecker: a reheat is exactly what the lower
+   bound of 'Print2' guarantees, and it fits inside the second run of its
+   upper bound. *)
+let reheater =
+  handler
+  | x -> x
+  | Print2 m k ->
+      let h = perform Heat m in
+      perform Cool (box 2 (Extruded h));
+      continue k with (box (2, 8) (Reheated h))
+
+(* Correctly accepted by the typechecker: the upper bound of 'Print2' also
+   allows a full print, and the extrusion in the middle does not stop the
+   clause from covering the reheat the lower bound demands. *)
+let deluxe_printer =
+  handler
+  | x -> x
+  | Print2 m k ->
+      let h = perform Heat m in
+      let p = perform Extrude h in
+      let c = perform Cool p in
+      continue k with (box (2, 8) (Printed c))
+
+(* Correctly accepted by the typechecker: transmitting once covers the first
+   trace of the lower bound and fits inside the first trace of the upper
+   bound. *)
+let send_once =
+  handler
+  | x -> x
+  | Send msg k -> perform Tx msg; continue k with ()
+
+(* Correctly accepted by the typechecker: the retry likewise covers and fits
+   inside the two-transmission trace on either side of the pair. *)
+let send_retry =
+  handler
+  | x -> x
+  | Send msg k -> perform Tx msg; perform Tx msg; continue k with ()
+
+(* Correctly accepted by the typechecker: the receipt may be read only once a
+   transmission has gone out, which banks at least the two ticks the lower
+   bound demands, and the session expires after the six ticks of the upper
+   bound, which a retried send costs at most. *)
+let send_telemetry () =
+  handle
+    box (2, 6) (Receipt "telemetry") as slot in
+    perform Send "telemetry";
+    unbox slot as r in
+    r
+  with send_retry
+
+(* Correctly accepted by the typechecker: a non-exact bound on both sides ---
+   the lower bound demands only the first transmission before the receipt may
+   be read, and the upper bound allows either two transmissions or six ticks of
+   waiting. *)
+let send_by_events () =
+  box ({Tx}, {Tx; Tx | 6}) (Receipt "telemetry") as slot in
+  perform Send "telemetry";
+  unbox slot as r in
+  r
+
+(* Correctly rejected by the typechecker: the order of the events is part of
+   both sides of the pair, and this clause sends the model to the cooler before
+   it has been through the extruder. The types alone no longer allow a print to
+   be run backwards, so only the grade can catch this:
+
+     Typing error: The case for `PrintModel` has grade
+       `({Heat; Cool; Extrude},{Heat; Cool; Extrude})`, which does not match
+       the grade `({Heat; Extrude; Cool},{Heat; Extrude; Cool})` of
+       `PrintModel` followed by its continuation
+       Note: the resource inequality
+         `({Heat; Cool; Extrude},{Heat; Cool; Extrude}) <= ({Heat; Extrude; Cool},{Heat; Extrude; Cool})`
+         does not hold
+*)
+(*
+let early_cooler =
+  handler
+  | x -> x
+  | PrintModel m k ->
+      let h = perform Heat m in
+      perform Cool (box 2 (Extruded h));
+      perform Extrude h;
+      continue k with (box (2, 8) (Reheated h))
+*)
+
+(* Correctly rejected by the typechecker: neither run of 'Print' begins with a
+   'Cool', and the order of a bound is not negotiable, however the model that
+   is handed to the cooler came to be:
+
+     Typing error: The case for `Print` has grade
+       `({Cool; Heat},{Cool; Heat})`, which does not match the grade
+       `({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+       of `Print` followed by its continuation
+       Note: the resource inequality
+         `({Cool; Heat},{Cool; Heat}) <= ({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+         does not hold
+*)
+(*
+let twisted_printer =
+  handler
+  | x -> x
+  | Print m k ->
+      perform Cool (box 2 (Extruded (Heated m)));
+      let h = perform Heat m in
+      continue k with (box (2, 8) (Reheated h))
+*)
+
+(* Correctly rejected by the typechecker on the lower bound, which demands the
+   whole run it promises: a clause that stops after the extrusion covers
+   neither run of 'Print', even though the upper bound of 'Print' would
+   happily allow it:
+
+     Typing error: The case for `Print` has grade
+       `({Heat; Extrude},{Heat; Extrude})`, which does not match the grade
+       `({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+       of `Print` followed by its continuation
+       Note: the resource inequality
+         `({Heat; Extrude},{Heat; Extrude}) <= ({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+         does not hold
+*)
+(*
+let sloppy_printer =
+  handler
+  | x -> x
+  | Print m k ->
+      let h = perform Heat m in
+      perform Extrude h;
+      continue k with (box (2, 8) (Reheated h))
+*)
+
+(* Correctly rejected by the typechecker, and the reason the mixing has to be a
+   default implementation rather than a handler: an operation case is checked
+   against the grade of the operation, and a delay never realises the event
+   '{MixEpoxy}' --- only performing 'MixEpoxy' itself would, which is circular.
+   A default is checked against the 'within (1, 1)' bounds instead, which the
+   very same tick of mixing meets exactly:
+
+     Typing error: The case for `MixEpoxy` has grade `({1},{1})`, which does
+       not match the grade `({MixEpoxy},{MixEpoxy})` of `MixEpoxy` followed
+       by its continuation
+       Note: the resource inequality `({1},{1}) <= ({MixEpoxy},{MixEpoxy})`
+         does not hold
+*)
+(*
+let mixer =
+  handler
+  | x -> x
+  | MixEpoxy () k -> delay 1; continue k with (box (8, 11) Epoxy)
+*)
+
+(* Correctly rejected by the typechecker: the epoxy is mixed after the print
+   instead of before it, so only the two ticks of the closing rest are banked
+   towards the eight it needs to set:
+
+     Typing error: Variable `glue` is unboxed after grade `({2},{2})` has
+       elapsed, which does not match its box grade `({8},{11})`
+       Note: the resource inequality `({2},{2}) <= ({8},{11})` does not hold
+*)
+(*
+let print_sword_lazy () =
+  handle
+    let printed = perform PrintModel (Model "Sword") in
+    let glue = perform MixEpoxy () in
+    delay 2;
+    unbox printed as p in
+    unbox glue as g in
+    perform Mount (p, g)
+  with printer
+*)
+
+(* Correctly rejected by the typechecker: the print is left to rest for five
+   ticks instead of two, which its own '[(2, 8)]' box still allows, but by then
+   the epoxy may have hardened, since 2 + 5 + 2 + 5 = 14 is past its pot life
+   of eleven:
+
+     Typing error: Variable `glue` is unboxed after grade
+       `({Heat; Extrude; Cool; 5},{Heat; Extrude; Cool; 5})` has elapsed,
+       which does not match its box grade `({8},{11})`
+       Note: the resource inequality
+         `({Heat; Extrude; Cool; 5},{Heat; Extrude; Cool; 5}) <= ({8},{11})`
+         does not hold
+*)
+(*
+let print_sword_impatient () =
+  handle
+    let glue = perform MixEpoxy () in
+    let printed = perform PrintModel (Model "Sword") in
+    delay 5;
+    unbox printed as p in
+    unbox glue as g in
+    perform Mount (p, g)
+  with printer
+*)
+
+(* Correctly rejected by the typechecker: the glue is unboxed after the rest,
+   exactly as in 'print_sword', but then a tick passes before the mounting ---
+   and mixed epoxy does not keep, since 'epoxy' is declared 'noneternal', so
+   the unboxed glue does not survive that tick:
+
+     Typing error: Variable `g` is used after grade `({1},{1})` has elapsed,
+       but its type `epoxy` is not eternal
+       Note: the resource inequality `({1},{1}) <= ({0},{0})` does not hold
+*)
+(*
+let print_sword_hasty () =
+  handle
+    let glue = perform MixEpoxy () in
+    let printed = perform PrintModel (Model "Sword") in
+    delay 2;
+    unbox printed as p in
+    unbox glue as g in
+    delay 1;
+    perform Mount (p, g)
+  with printer
+*)
+
+(* Correctly rejected by the typechecker: a tick of dawdling between the heater
+   and the extruder, and the quick epoxy may have hardened by the time it is
+   reached, since 2 + 1 + 5 = 8 is past the seven ticks of its pot life:
+
+     Typing error: Variable `glue` is unboxed after grade
+       `({Heat; 1; Extrude},{Heat; 1; Extrude})` has elapsed, which does not
+       match its box grade `({3},{7})`
+       Note: the resource inequality
+         `({Heat; 1; Extrude},{Heat; 1; Extrude}) <= ({3},{7})` does not hold
+*)
+(*
+let make_cog_impatient () =
+  let glue = perform MixQuickEpoxy () in
+  let h = perform Heat (Model "Cog") in
+  delay 1;
+  let p = perform Extrude h in
+  unbox glue as g in
+  let c = perform Cool p in
+  perform Mount (Printed c, g)
+*)
+
+(* Correctly rejected by the typechecker: the quick epoxy is mixed only after
+   the extrusion, so nothing at all is banked towards the three ticks it needs
+   to set by the time it is unboxed:
+
+     Typing error: Variable `glue` is unboxed before any grade has elapsed,
+       but its box grade is `({3},{7})`
+       Note: the resource inequality `({0},{0}) <= ({3},{7})` does not hold
+*)
+(*
+let make_cog_lazy () =
+  let h = perform Heat (Model "Cog") in
+  let p = perform Extrude h in
+  let glue = perform MixQuickEpoxy () in
+  unbox glue as g in
+  let c = perform Cool p in
+  perform Mount (Printed c, g)
+*)
+
+(* Correctly rejected by the typechecker: the upper bound of 'Send' allows at
+   most two transmissions, so a clause that retries twice does not fit:
+
+     Typing error: The case for `Send` has grade
+       `({Tx; Tx; Tx},{Tx; Tx; Tx})`, which does not match the grade
+       `({Tx | Tx; Tx},{Tx | Tx; Tx})` of `Send` followed by its continuation
+       Note: the resource inequality
+         `({Tx; Tx; Tx},{Tx; Tx; Tx}) <= ({Tx | Tx; Tx},{Tx | Tx; Tx})` does
+         not hold
+*)
+(*
+let send_thrice =
+  handler
+  | x -> x
+  | Send msg k ->
+      perform Tx msg;
+      perform Tx msg;
+      perform Tx msg;
+      continue k with ()
+*)
+
+(* Correctly rejected by the typechecker: the upper bound of 'Send' contains no
+   delays, so there is no allowance left to pay for a tick of waiting, even
+   though the lower bound would be happy with it:
+
+     Typing error: The case for `Send` has grade `({Tx; 1},{Tx; 1})`, which
+       does not match the grade `({Tx | Tx; Tx},{Tx | Tx; Tx})` of `Send`
+       followed by its continuation
+       Note: the resource inequality
+         `({Tx; 1},{Tx; 1}) <= ({Tx | Tx; Tx},{Tx | Tx; Tx})` does not hold
+*)
+(*
+let send_lazy =
+  handler
+  | x -> x
+  | Send msg k -> perform Tx msg; delay 1; continue k with ()
+*)
+
+(* Correctly rejected by the typechecker: the session expires after five
+   ticks, which does not pay for a retried send, which costs 3 + 3:
+
+     Typing error: Variable `slot` is unboxed after grade
+       `({Tx | Tx; Tx},{Tx | Tx; Tx})` has elapsed, which does not match its
+       box grade `({2},{5})`
+       Note: the resource inequality
+         `({Tx | Tx; Tx},{Tx | Tx; Tx}) <= ({2},{5})` does not hold
+*)
+(*
+let send_telemetry_impatient () =
+  handle
+    box (2, 5) (Receipt "telemetry") as slot in
+    perform Send "telemetry";
+    unbox slot as r in
+    r
+  with send_retry
+*)
+
+(* Correctly rejected by the typechecker: the receipt is not ready after four
+   ticks if the send consists of a single transmission, which banks only two:
+
+     Typing error: Variable `slot` is unboxed after grade
+       `({Tx | Tx; Tx},{Tx | Tx; Tx})` has elapsed, which does not match its
+       box grade `({4},{6})`
+       Note: the resource inequality
+         `({Tx | Tx; Tx},{Tx | Tx; Tx}) <= ({4},{6})` does not hold
+*)
+(*
+let send_telemetry_lazy () =
+  handle
+    box (4, 6) (Receipt "telemetry") as slot in
+    perform Send "telemetry";
+    unbox slot as r in
+    r
+  with send_retry
+*)
+
+(* 'printer' handles 'PrintModel'; the atomic 'MixEpoxy', 'Heat', 'Extrude',
+   'Cool' and 'Mount' reach the top level and run their defaults, so the run
+   completes with the sword mounted on its base. *)
+run print_sword ()

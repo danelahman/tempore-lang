@@ -1,0 +1,115 @@
+(* Run this example with the 'traces-interval' grading monoid, e.g.
+
+     ./temporal-millet --resources traces-interval examples/3dprint_traces.tpe *)
+
+type model = Model of string
+type heated = Heated of model
+type extruded = Extruded of heated
+type cooled = Cooled of extruded
+type print = Printed of cooled
+noneternal type epoxy = Epoxy
+type mounted = Mounted of print
+
+(* The heater warms a model up, so that it can be extruded. *)
+operation Heat : model ~> heated # ({Heat}, {Heat}) within (1, 2)
+default Heat m = delay 1; Heated m
+
+(* A freshly extruded model is still hot: it may be handed to the cooler, but
+   not touched otherwise until it has rested for two ticks. *)
+operation Extrude : heated ~> [2] extruded # ({Extrude}, {Extrude}) within (3, 5)
+default Extrude h = delay 3; box 2 (Extruded h)
+
+(* The cooler takes the hot extruded model, once it has rested, and cools it
+   down to something that can be handled. *)
+operation Cool : [2] extruded ~> cooled # ({Cool}, {Cool}) within (2, 2)
+default Cool p = delay 2; unbox p as e in Cooled e
+
+(* Mounting glues a finished print onto its base; the glue is used up. *)
+operation Mount : print * epoxy ~> mounted # ({Mount}, {Mount}) within (1, 1)
+default Mount (p, g) = delay 1; Mounted p
+
+(* Mixing two-part epoxy takes a tick; the mix then needs eight ticks to set,
+   and it has hardened after eleven. *)
+operation MixEpoxy : unit ~> [(8, 11)] epoxy # ({MixEpoxy}, {MixEpoxy}) within (1, 1)
+default MixEpoxy () = delay 1; box (8, 11) Epoxy
+
+(* A print is the three steps, in that order, on both sides of the pair. The
+   finished print has to set for two ticks and be collected within eight. *)
+operation PrintModel : model ~> [(2, 8)] print # ({Heat; Extrude; Cool}, {Heat; Extrude; Cool})
+
+(* Correctly accepted by the typechecker: the clause performs exactly the three
+   steps 'PrintModel' promises, in the promised order, which covers the lower
+   bound and fits inside the upper bound. *)
+let printer =
+  handler
+  | x -> x
+  | PrintModel m k ->
+      let h = perform Heat m in
+      let p = perform Extrude h in
+      let c = perform Cool p in
+      continue k with (box (2, 8) (Printed c))
+
+(* Correctly accepted by the typechecker: the rest banks the two ticks the
+   print's '[(2, 8)]' box demands, and the print plus the rest bank exactly
+   the eight the epoxy needs to set (1 + 3 + 2 + 2) while staying within its
+   pot life of eleven (2 + 5 + 2 + 2). *)
+let print_sword () =
+  handle
+    let glue = perform MixEpoxy () in
+    let printed = perform PrintModel (Model "Sword") in
+    delay 2;
+    unbox printed as p in
+    unbox glue as g in
+    perform Mount (p, g)
+  with printer
+
+(* 'printer' handles 'PrintModel'; the atomic 'MixEpoxy', 'Heat', 'Extrude',
+   'Cool' and 'Mount' reach the top level and run their defaults, so the run
+   completes with the sword mounted on its base. *)
+run print_sword ()
+
+(* Eternality constraints on type variables: a value kept across an operation
+   call or a delay must have an eternal type, and 'epoxy' is the one type here
+   that is not. *)
+
+(* The tag is kept across the print, so it must be eternal. Inferred type:
+   {eternal α} α → model → α × print # ... *)
+let label_print tag m =
+  let printed = perform PrintModel m in
+  delay 2;
+  unbox printed as p in
+  (tag, p)
+
+(* Correctly accepted by the typechecker: a string is eternal. *)
+run handle label_print "Sword #1" (Model "Sword") with printer
+
+(* Correctly rejected by the typechecker: epoxy is not,
+
+     Typing error: `epoxy` is not eternal, but `label_print` needs the type
+       of `tag` to be eternal
+*)
+(*
+run handle label_print Epoxy (Model "Sword") with printer
+*)
+
+(* The item is kept across a step of unknown grade ρ, so either its type is
+   eternal or ρ is zero. Inferred type:
+   {eternal α ∨ ρ <= ({0},{0})} (unit → β # ρ) → α → α # ρ *)
+let after_preparing prepare item = prepare (); item
+
+(* Correctly accepted by the typechecker: a model is eternal. *)
+run after_preparing (fun () -> perform Heat (Model "Base")) (Model "Sword")
+
+(* Correctly accepted by the typechecker: the step accumulates no grade. *)
+run after_preparing (fun () -> ()) Epoxy
+
+(* Correctly rejected by the typechecker: neither holds,
+
+     Typing error: `epoxy` is not eternal, but `after_preparing` needs the
+       type of `item` to be eternal
+       Note: the resource inequality `({Heat},{Heat}) <= ({0},{0})` does not
+         hold
+*)
+(*
+run after_preparing (fun () -> perform Heat (Model "Base")) Epoxy
+*)

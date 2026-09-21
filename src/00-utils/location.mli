@@ -32,7 +32,7 @@ val is_point : t -> bool
 
 val print : t -> Format.formatter -> unit
 (** Prints the span in the format the OCaml compiler uses, which editors already
-    know how to read: [File "f.mlt", line 3, characters 4-9], or [lines 3-5] for
+    know how to read: [File "f.tpe", line 3, characters 4-9], or [lines 3-5] for
     a span crossing lines. Without a file name the file part is left out. *)
 
 val print_short : t -> Format.formatter -> unit

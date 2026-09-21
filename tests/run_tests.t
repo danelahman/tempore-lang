@@ -1,33 +1,33 @@
-  $ for f in *.mlt
+  $ for f in *.tpe
   > do
   >   echo "======================================================================"
   >   echo $f
   >   echo "======================================================================"
   >   case $f in
-  >     time_intervals.mlt) ../temporal-millet --resources time-interval $f;;
-  >     time_upper.mlt) ../temporal-millet --resources time-upper-bound $f;;
-  >     comp_type_annotation_upper*.mlt) ../temporal-millet --resources time-upper-bound $f;;
-  >     eternal_lower.mlt) ../temporal-millet $f;;
-  >     eternal_*.mlt) ../temporal-millet --resources time-upper-bound $f;;
-  >     noneternal_lower.mlt) ../temporal-millet $f;;
-  >     noneternal*.mlt) ../temporal-millet --resources time-upper-bound $f;;
-  >     continuation_discard_reject_lower.mlt) ../temporal-millet $f;;
-  >     continuation_nested_discard_reject_lower.mlt) ../temporal-millet $f;;
-  >     continuation_twice_lower.mlt) ../temporal-millet $f;;
-  >     continuation_*.mlt) ../temporal-millet --resources time-upper-bound $f;;
-  >     error_use_after_delay.mlt) ../temporal-millet --resources time-upper-bound $f;;
-  >     traces_lower.mlt) ../temporal-millet --resources traces-lower-bound $f;;
-  >     3dprint_traces.mlt) ../temporal-millet --resources traces-interval $f;;
-  >     traces_intervals.mlt) ../temporal-millet --resources traces-interval $f;;
-  >     traces_intervals_bounds.mlt) ../temporal-millet --resources traces-interval $f;;
-  >     traces_intervals_default_bounds.mlt) ../temporal-millet --resources traces-interval $f;;
-  >     traces_*.mlt) ../temporal-millet --resources traces-upper-bound $f;;
+  >     time_intervals.tpe) ../temporal-millet --resources time-interval $f;;
+  >     time_upper.tpe) ../temporal-millet --resources time-upper-bound $f;;
+  >     comp_type_annotation_upper*.tpe) ../temporal-millet --resources time-upper-bound $f;;
+  >     eternal_lower.tpe) ../temporal-millet $f;;
+  >     eternal_*.tpe) ../temporal-millet --resources time-upper-bound $f;;
+  >     noneternal_lower.tpe) ../temporal-millet $f;;
+  >     noneternal*.tpe) ../temporal-millet --resources time-upper-bound $f;;
+  >     continuation_discard_reject_lower.tpe) ../temporal-millet $f;;
+  >     continuation_nested_discard_reject_lower.tpe) ../temporal-millet $f;;
+  >     continuation_twice_lower.tpe) ../temporal-millet $f;;
+  >     continuation_*.tpe) ../temporal-millet --resources time-upper-bound $f;;
+  >     error_use_after_delay.tpe) ../temporal-millet --resources time-upper-bound $f;;
+  >     traces_lower.tpe) ../temporal-millet --resources traces-lower-bound $f;;
+  >     3dprint_traces.tpe) ../temporal-millet --resources traces-interval $f;;
+  >     traces_intervals.tpe) ../temporal-millet --resources traces-interval $f;;
+  >     traces_intervals_bounds.tpe) ../temporal-millet --resources traces-interval $f;;
+  >     traces_intervals_default_bounds.tpe) ../temporal-millet --resources traces-interval $f;;
+  >     traces_*.tpe) ../temporal-millet --resources traces-upper-bound $f;;
   >     *) ../temporal-millet $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
-  3dprint_traces.mlt
+  3dprint_traces.tpe
   ======================================================================
   === Run 1 ===
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
@@ -92,7 +92,7 @@
   State: []
   
   ======================================================================
-  comp_type_annotation.mlt
+  comp_type_annotation.tpe
   ======================================================================
   === Run 1 ===
   return 1
@@ -119,15 +119,15 @@
   ]
   
   ======================================================================
-  comp_type_annotation_reject.mlt
+  comp_type_annotation_reject.tpe
   ======================================================================
-  File "comp_type_annotation_reject.mlt", line 3, characters 9-31:
+  File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
   3 | let f () : int # 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the resource inequality `3 >= 5` does not hold
   ======================================================================
-  comp_type_annotation_upper.mlt
+  comp_type_annotation_upper.tpe
   ======================================================================
   === Run 1 ===
   return 1
@@ -136,31 +136,31 @@
   ]
   
   ======================================================================
-  comp_type_annotation_upper_reject.mlt
+  comp_type_annotation_upper_reject.tpe
   ======================================================================
-  File "comp_type_annotation_upper_reject.mlt", line 3, characters 9-31:
+  File "comp_type_annotation_upper_reject.tpe", line 3, characters 9-31:
   3 | let f () : int # 2 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `2`
     Note: the resource inequality `3 <= 2` does not hold
   ======================================================================
-  continuation_discard_reject_lower.mlt
+  continuation_discard_reject_lower.tpe
   ======================================================================
-  File "continuation_discard_reject_lower.mlt", line 10, characters 27-38:
+  File "continuation_discard_reject_lower.tpe", line 10, characters 27-38:
   10 | let h = handler | x -> x | Op p k -> 5
                                   ^^^^^^^^^^^
   Typing error: For every grade `ρ₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 + ρ₀`, but its grade `0` does not
-    File "continuation_discard_reject_lower.mlt", line 5, characters 0-31:
+    File "continuation_discard_reject_lower.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "continuation_discard_reject_lower.mlt", line 10, characters 32-33:
+    File "continuation_discard_reject_lower.tpe", line 10, characters 32-33:
     10 | let h = handler | x -> x | Op p k -> 5
                                          ^
     `k` may have any grade `ρ₀`
     Note: the resource inequality `∀ρ₀. 0 >= ρ₀ + 1` does not hold: for `ρ₀ = 0` it becomes `0 >= 1`
   ======================================================================
-  continuation_discard_upper.mlt
+  continuation_discard_upper.tpe
   ======================================================================
   === Run 1 ===
   return 5
@@ -176,109 +176,109 @@
   ]
   
   ======================================================================
-  continuation_escape_reject.mlt
+  continuation_escape_reject.tpe
   ======================================================================
-  File "continuation_escape_reject.mlt", line 11, characters 39-40:
+  File "continuation_escape_reject.tpe", line 11, characters 39-40:
   11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                                               ^
   Typing error: Variable `g` has type `[1](unit → α # ρ₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
-    File "continuation_escape_reject.mlt", line 5, characters 0-31:
+    File "continuation_escape_reject.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "continuation_escape_reject.mlt", line 11, characters 6-7:
+    File "continuation_escape_reject.tpe", line 11, characters 6-7:
     11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                ^
     `g` is bound here
-    File "continuation_escape_reject.mlt", line 11, characters 29-71:
+    File "continuation_escape_reject.tpe", line 11, characters 29-71:
     11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the case for `Op` begins here
   ======================================================================
-  continuation_fixed_reject.mlt
+  continuation_fixed_reject.tpe
   ======================================================================
-  File "continuation_fixed_reject.mlt", line 10, characters 39-95:
+  File "continuation_fixed_reject.tpe", line 10, characters 39-95:
   10 | let h = handler | x -> (fun () -> x) | Op p k -> (fun () -> let f = continue k with () in f ())
                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The continuation `k` in the case for `Op` may have any grade `ρ₀`, but here `ρ₀` is required to equal `0`
-    File "continuation_fixed_reject.mlt", line 5, characters 0-31:
+    File "continuation_fixed_reject.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "continuation_fixed_reject.mlt", line 10, characters 44-45:
+    File "continuation_fixed_reject.tpe", line 10, characters 44-45:
     10 | let h = handler | x -> (fun () -> x) | Op p k -> (fun () -> let f = continue k with () in f ())
                                                      ^
     `k` may have any grade `ρ₀`
     Note: while matching `unit → β # ρ₁ + ρ₂` against `unit → α`
   ======================================================================
-  continuation_nested_discard_reject_lower.mlt
+  continuation_nested_discard_reject_lower.tpe
   ======================================================================
-  File "continuation_nested_discard_reject_lower.mlt", line 21, characters 13-43:
+  File "continuation_nested_discard_reject_lower.tpe", line 21, characters 13-43:
   21 |            | Op2 q k' -> delay 3; return ())
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ρ₀` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 + ρ₀`, but its grade `3` does not
-    File "continuation_nested_discard_reject_lower.mlt", line 6, characters 0-32:
+    File "continuation_nested_discard_reject_lower.tpe", line 6, characters 0-32:
     6 | operation Op2 : unit ~> unit # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
-    File "continuation_nested_discard_reject_lower.mlt", line 21, characters 19-21:
+    File "continuation_nested_discard_reject_lower.tpe", line 21, characters 19-21:
     21 |            | Op2 q k' -> delay 3; return ())
                             ^^
     `k'` may have any grade `ρ₀`
     Note: the resource inequality `∀ρ₀. 0 >= ρ₀` does not hold: for `ρ₀ = 1` it becomes `0 >= 1`
   ======================================================================
-  continuation_nested_escape_reject.mlt
+  continuation_nested_escape_reject.tpe
   ======================================================================
-  File "continuation_nested_escape_reject.mlt", line 23, characters 23-24:
+  File "continuation_nested_escape_reject.tpe", line 23, characters 23-24:
   23 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
                               ^
   Typing error: Variable `g` has type `[1](unit → α # ρ₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs at a time the handler does not fix
-    File "continuation_nested_escape_reject.mlt", line 5, characters 0-32:
+    File "continuation_nested_escape_reject.tpe", line 5, characters 0-32:
     5 | operation Op1 : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op1` is declared here
-    File "continuation_nested_escape_reject.mlt", line 13, characters 6-7:
+    File "continuation_nested_escape_reject.tpe", line 13, characters 6-7:
     13 | let h g =
                ^
     `g` is bound here
-    File "continuation_nested_escape_reject.mlt", lines 16-23, characters 4-58:
+    File "continuation_nested_escape_reject.tpe", lines 16-23, characters 4-58:
     16 |   | Op1 p k ->
              ^^^^^^^^^^
     the case for `Op1` begins here
   ======================================================================
-  continuation_nested_fixed_reject.mlt
+  continuation_nested_fixed_reject.tpe
   ======================================================================
-  File "continuation_nested_fixed_reject.mlt", line 21, characters 11-70:
+  File "continuation_nested_fixed_reject.tpe", line 21, characters 11-70:
   21 |          | Op2 q k' -> (fun () -> let f = continue k' with () in f ()))
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The continuation `k'` in the case for `Op2` may have any grade `ρ₀`, but here `ρ₀` is required to equal `0`
-    File "continuation_nested_fixed_reject.mlt", line 6, characters 0-32:
+    File "continuation_nested_fixed_reject.tpe", line 6, characters 0-32:
     6 | operation Op2 : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
-    File "continuation_nested_fixed_reject.mlt", line 21, characters 17-19:
+    File "continuation_nested_fixed_reject.tpe", line 21, characters 17-19:
     21 |          | Op2 q k' -> (fun () -> let f = continue k' with () in f ()))
                           ^^
     `k'` may have any grade `ρ₀`
     Note: while matching `unit → β # ρ₁ + ρ₂` against `unit → α`
   ======================================================================
-  continuation_nested_twice_reject_upper.mlt
+  continuation_nested_twice_reject_upper.tpe
   ======================================================================
-  File "continuation_nested_twice_reject_upper.mlt", lines 22-24, characters 13-34:
+  File "continuation_nested_twice_reject_upper.tpe", lines 22-24, characters 13-34:
   22 |            | Op2 q k' ->
                     ^^^^^^^^^^^
   Typing error: For every grade `ρ₀` the continuation `k'` may have, the case for `Op2` must have a grade matching `1 + ρ₀`, but its grade `ρ₀ + ρ₀` does not
-    File "continuation_nested_twice_reject_upper.mlt", line 6, characters 0-32:
+    File "continuation_nested_twice_reject_upper.tpe", line 6, characters 0-32:
     6 | operation Op2 : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
-    File "continuation_nested_twice_reject_upper.mlt", line 22, characters 19-21:
+    File "continuation_nested_twice_reject_upper.tpe", line 22, characters 19-21:
     22 |            | Op2 q k' ->
                             ^^
     `k'` may have any grade `ρ₀`
     Note: the resource inequality `∀ρ₀. ρ₀ <= 1` does not hold: for `ρ₀ = 2` it becomes `2 <= 1`
   ======================================================================
-  continuation_twice_lower.mlt
+  continuation_twice_lower.tpe
   ======================================================================
   === Run 1 ===
   return 3
@@ -290,23 +290,23 @@
   ]
   
   ======================================================================
-  continuation_twice_reject_upper.mlt
+  continuation_twice_reject_upper.tpe
   ======================================================================
-  File "continuation_twice_reject_upper.mlt", line 10, characters 27-85:
+  File "continuation_twice_reject_upper.tpe", line 10, characters 27-85:
   10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ρ₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 + ρ₀`, but its grade `ρ₀ + ρ₀` does not
-    File "continuation_twice_reject_upper.mlt", line 5, characters 0-31:
+    File "continuation_twice_reject_upper.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "continuation_twice_reject_upper.mlt", line 10, characters 32-33:
+    File "continuation_twice_reject_upper.tpe", line 10, characters 32-33:
     10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                          ^
     `k` may have any grade `ρ₀`
     Note: the resource inequality `∀ρ₀. ρ₀ <= 1` does not hold: for `ρ₀ = 2` it becomes `2 <= 1`
   ======================================================================
-  default_ops.mlt
+  default_ops.tpe
   ======================================================================
   === Run 1 ===
   return 7
@@ -335,151 +335,151 @@
   ]
   
   ======================================================================
-  default_reject_bounds.mlt
+  default_reject_bounds.tpe
   ======================================================================
-  File "default_reject_bounds.mlt", line 7, characters 0-24:
+  File "default_reject_bounds.tpe", line 7, characters 0-24:
   7 | default Get () = delay 2
       ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Get` has grade `2`, which does not match the declared grade `3` of `Get`
-    File "default_reject_bounds.mlt", line 5, characters 0-32:
+    File "default_reject_bounds.tpe", line 5, characters 0-32:
     5 | operation Get : unit ~> unit # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
     Note: the resource inequality `2 >= 3` does not hold
   ======================================================================
-  default_reject_duplicate.mlt
+  default_reject_duplicate.tpe
   ======================================================================
-  File "default_reject_duplicate.mlt", line 8, characters 0-25:
+  File "default_reject_duplicate.tpe", line 8, characters 0-25:
   8 | default Log msg = delay 2
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: operation `Log` already has a default implementation
   ======================================================================
-  default_reject_type.mlt
+  default_reject_type.tpe
   ======================================================================
-  File "default_reject_type.mlt", line 7, characters 0-32:
+  File "default_reject_type.tpe", line 7, characters 0-32:
   7 | default Get () = delay 3; "zero"
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Get` returns `string` but `Get` returns `int`
-    File "default_reject_type.mlt", line 5, characters 0-31:
+    File "default_reject_type.tpe", line 5, characters 0-31:
     5 | operation Get : unit ~> int # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
   ======================================================================
-  default_reject_unknown.mlt
+  default_reject_unknown.tpe
   ======================================================================
-  File "default_reject_unknown.mlt", line 5, characters 0-25:
+  File "default_reject_unknown.tpe", line 5, characters 0-25:
   5 | default Log msg = delay 1
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Unknown name `Log`
   ======================================================================
-  duplicate_variant_tydef_sum.mlt
+  duplicate_variant_tydef_sum.tpe
   ======================================================================
-  File "duplicate_variant_tydef_sum.mlt", line 3, characters 0-39:
+  File "duplicate_variant_tydef_sum.tpe", line 3, characters 0-39:
   3 | type cow = Horn of int | Horn of string
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Label `Horn` defined multiple times
   ======================================================================
-  error_apply_arg.mlt
+  error_apply_arg.tpe
   ======================================================================
-  File "error_apply_arg.mlt", line 11, characters 8-9:
+  File "error_apply_arg.tpe", line 11, characters 8-9:
   11 |   f "one"
                ^
   Typing error: This argument has type `string` but the function expects `int`
-    File "error_apply_arg.mlt", line 11, characters 2-3:
+    File "error_apply_arg.tpe", line 11, characters 2-3:
     11 |   f "one"
            ^
     the function has type `int → int # ρ₀ + ρ₁`
-    File "error_apply_arg.mlt", line 9, characters 10-29:
+    File "error_apply_arg.tpe", line 9, characters 10-29:
     9 |   let f = id (fun n -> n + 1) in
                   ^^^^^^^^^^^^^^^^^^^
     `int` was inferred here
     Note: while matching `int → int # ρ₀ + ρ₁` against `string → α # ρ₂`
   ======================================================================
-  error_handler_case.mlt
+  error_handler_case.tpe
   ======================================================================
-  File "error_handler_case.mlt", line 9, characters 4-20:
+  File "error_handler_case.tpe", line 9, characters 4-20:
   9 |   | Op p k -> "done"
           ^^^^^^^^^^^^^^^^
   Typing error: The case for `Op` returns `string` but the return clause returns `int`
-    File "error_handler_case.mlt", line 5, characters 0-31:
+    File "error_handler_case.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
   ======================================================================
-  error_unbox_nonvariable.mlt
+  error_unbox_nonvariable.tpe
   ======================================================================
-  File "error_unbox_nonvariable.mlt", line 7, characters 10-12:
+  File "error_unbox_nonvariable.tpe", line 7, characters 10-12:
   7 | run unbox 42 as v in v
                 ^^
   Typing error: Only a variable can be unboxed
   ======================================================================
-  error_use_after_delay.mlt
+  error_use_after_delay.tpe
   ======================================================================
-  File "error_use_after_delay.mlt", line 21, characters 2-3:
+  File "error_use_after_delay.tpe", line 21, characters 2-3:
   21 |   t
          ^
   Typing error: Variable `t` is used after grade `3` has elapsed, but its type `token` is not eternal
-    File "error_use_after_delay.mlt", line 16, characters 6-7:
+    File "error_use_after_delay.tpe", line 16, characters 6-7:
     16 |   let t = Token in
                ^
     `t` is bound here
-    File "error_use_after_delay.mlt", line 17, characters 2-9:
+    File "error_use_after_delay.tpe", line 17, characters 2-9:
     17 |   delay 2;
            ^^^^^^^
     `delay 2` elapses here
-    File "error_use_after_delay.mlt", line 19, characters 2-17:
+    File "error_use_after_delay.tpe", line 19, characters 2-17:
     19 |   perform Ping ();
            ^^^^^^^^^^^^^^^
     `Ping` is performed here (grade `1`)
     Note: the resource inequality `3 <= 0` does not hold
   ======================================================================
-  error_variant_arity.mlt
+  error_variant_arity.tpe
   ======================================================================
-  File "error_variant_arity.mlt", line 12, characters 4-9:
+  File "error_variant_arity.tpe", line 12, characters 4-9:
   12 | run Red 1
            ^^^^^
   Typing error: Constructor `Red` takes no argument but is given one
   
-  File "error_variant_arity.mlt", line 14, characters 4-8:
+  File "error_variant_arity.tpe", line 14, characters 4-8:
   14 | run Wrap
            ^^^^
   Typing error: Constructor `Wrap` takes an argument but is given none
   
-  File "error_variant_arity.mlt", line 17, characters 6-11:
+  File "error_variant_arity.tpe", line 17, characters 6-11:
   17 |     | Red x -> 0
              ^^^^^
   Typing error: Constructor `Red` takes no argument but is given one
   
-  File "error_variant_arity.mlt", line 21, characters 6-10:
+  File "error_variant_arity.tpe", line 21, characters 6-10:
   21 |     | Wrap -> 0
              ^^^^
   Typing error: Constructor `Wrap` takes an argument but is given none
   ======================================================================
-  errors_multiple.mlt
+  errors_multiple.tpe
   ======================================================================
-  File "errors_multiple.mlt", line 12, characters 25-26:
+  File "errors_multiple.tpe", line 12, characters 25-26:
   12 | let first (n : string) = n + 1
                                 ^
   Typing error: This argument has type `string` but the function expects `int`
-    File "errors_multiple.mlt", line 12, characters 27-28:
+    File "errors_multiple.tpe", line 12, characters 27-28:
     12 | let first (n : string) = n + 1
                                     ^
     the function has type `int → int → int`
     Note: while matching `int → int → int` against `string → int → α # ρ₀ # ρ₁`
   
-  File "errors_multiple.mlt", line 15, characters 14-36:
+  File "errors_multiple.tpe", line 15, characters 14-36:
   15 |   let slow () : int # 5 = delay 3; 1 in
                      ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the resource inequality `3 >= 5` does not hold
   
-  File "errors_multiple.mlt", line 18, characters 15-24:
+  File "errors_multiple.tpe", line 18, characters 15-24:
   18 | let second n = first n + "two"
                       ^^^^^^^^^
   Typing error: The application has type `int` but `string` is expected here
     Note: while matching `int → int → int` against `int → string → α # ρ₀ # ρ₁`
   ======================================================================
-  eternal_lower.mlt
+  eternal_lower.tpe
   ======================================================================
   === Run 1 ===
   return (fun () ↦ return ())
@@ -494,7 +494,7 @@
   ]
   
   ======================================================================
-  eternal_types.mlt
+  eternal_types.tpe
   ======================================================================
   === Run 1 ===
   return 5
@@ -553,7 +553,7 @@
   State: []
   
   ======================================================================
-  eternal_tyvars.mlt
+  eternal_tyvars.tpe
   ======================================================================
   === Run 1 ===
   return 5
@@ -609,139 +609,139 @@
   ]
   
   ======================================================================
-  eternal_tyvars_reject_function.mlt
+  eternal_tyvars_reject_function.tpe
   ======================================================================
-  File "eternal_tyvars_reject_function.mlt", line 9, characters 4-8:
+  File "eternal_tyvars_reject_function.tpe", line 9, characters 4-8:
   9 | run keep (fun () -> ())
           ^^^^
   Typing error: `unit → unit` is not eternal, but `keep` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_function.mlt", line 5, characters 0-23:
+    File "eternal_tyvars_reject_function.tpe", line 5, characters 0-23:
     5 | let keep x = delay 1; x
         ^^^^^^^^^^^^^^^^^^^^^^^
     `keep` is defined here
-    File "eternal_tyvars_reject_function.mlt", line 5, characters 9-10:
+    File "eternal_tyvars_reject_function.tpe", line 5, characters 9-10:
     5 | let keep x = delay 1; x
                  ^
     `x` is bound here
-    File "eternal_tyvars_reject_function.mlt", line 5, characters 13-20:
+    File "eternal_tyvars_reject_function.tpe", line 5, characters 13-20:
     5 | let keep x = delay 1; x
                      ^^^^^^^
     `delay 1` elapses here
-    File "eternal_tyvars_reject_function.mlt", line 5, characters 22-23:
+    File "eternal_tyvars_reject_function.tpe", line 5, characters 22-23:
     5 | let keep x = delay 1; x
                               ^
     `x` is used here after grade `1` has elapsed, which only an eternal type allows
   ======================================================================
-  eternal_tyvars_reject_handler.mlt
+  eternal_tyvars_reject_handler.tpe
   ======================================================================
-  File "eternal_tyvars_reject_handler.mlt", line 12, characters 48-49:
+  File "eternal_tyvars_reject_handler.tpe", line 12, characters 48-49:
   12 | run handle (perform Op (); (fun () -> ())) with h (fun () -> ())
                                                        ^
   Typing error: `unit → unit` is not eternal, but `h` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_handler.mlt", line 9, characters 0-70:
+    File "eternal_tyvars_reject_handler.tpe", line 9, characters 0-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `h` is defined here
-    File "eternal_tyvars_reject_handler.mlt", line 5, characters 0-31:
+    File "eternal_tyvars_reject_handler.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "eternal_tyvars_reject_handler.mlt", line 9, characters 6-7:
+    File "eternal_tyvars_reject_handler.tpe", line 9, characters 6-7:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
               ^
     `x` is bound here
-    File "eternal_tyvars_reject_handler.mlt", line 9, characters 29-70:
+    File "eternal_tyvars_reject_handler.tpe", line 9, characters 29-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the case for `Op` begins here
-    File "eternal_tyvars_reject_handler.mlt", line 9, characters 47-65:
+    File "eternal_tyvars_reject_handler.tpe", line 9, characters 47-65:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                        ^^^^^^^^^^^^^^^^^^
     this computation runs here (grade `ρ₀`)
-    File "eternal_tyvars_reject_handler.mlt", line 9, characters 69-70:
+    File "eternal_tyvars_reject_handler.tpe", line 9, characters 69-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                                              ^
     `x` is used here, in the case for `Op`
   ======================================================================
-  eternal_tyvars_reject_higher_order.mlt
+  eternal_tyvars_reject_higher_order.tpe
   ======================================================================
-  File "eternal_tyvars_reject_higher_order.mlt", line 9, characters 4-9:
+  File "eternal_tyvars_reject_higher_order.tpe", line 9, characters 4-9:
   9 | run after (fun () -> delay 2) (fun () -> ())
           ^^^^^
   Typing error: `unit → unit` is not eternal, but `after` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_higher_order.mlt", line 5, characters 0-23:
+    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 0-23:
     5 | let after g x = g (); x
         ^^^^^^^^^^^^^^^^^^^^^^^
     `after` is defined here
-    File "eternal_tyvars_reject_higher_order.mlt", line 5, characters 12-13:
+    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 12-13:
     5 | let after g x = g (); x
                     ^
     `x` is bound here
-    File "eternal_tyvars_reject_higher_order.mlt", line 5, characters 16-20:
+    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 16-20:
     5 | let after g x = g (); x
                         ^^^^
     this computation runs here (grade `2`)
-    File "eternal_tyvars_reject_higher_order.mlt", line 5, characters 22-23:
+    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 22-23:
     5 | let after g x = g (); x
                               ^
     `x` is used here after grade `2` has elapsed, which only an eternal type allows
     Note: the resource inequality `2 <= 0` does not hold
   ======================================================================
-  eternal_tyvars_reject_noneternal.mlt
+  eternal_tyvars_reject_noneternal.tpe
   ======================================================================
-  File "eternal_tyvars_reject_noneternal.mlt", line 11, characters 4-8:
+  File "eternal_tyvars_reject_noneternal.tpe", line 11, characters 4-8:
   11 | run keep Token
            ^^^^
   Typing error: `token` is not eternal, but `keep` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_noneternal.mlt", line 7, characters 0-23:
+    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 0-23:
     7 | let keep x = delay 1; x
         ^^^^^^^^^^^^^^^^^^^^^^^
     `keep` is defined here
-    File "eternal_tyvars_reject_noneternal.mlt", line 7, characters 9-10:
+    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 9-10:
     7 | let keep x = delay 1; x
                  ^
     `x` is bound here
-    File "eternal_tyvars_reject_noneternal.mlt", line 7, characters 13-20:
+    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 13-20:
     7 | let keep x = delay 1; x
                      ^^^^^^^
     `delay 1` elapses here
-    File "eternal_tyvars_reject_noneternal.mlt", line 7, characters 22-23:
+    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 22-23:
     7 | let keep x = delay 1; x
                               ^
     `x` is used here after grade `1` has elapsed, which only an eternal type allows
   ======================================================================
-  invalid_match_type.mlt
+  invalid_match_type.tpe
   ======================================================================
-  File "invalid_match_type.mlt", line 6, characters 6-7:
+  File "invalid_match_type.tpe", line 6, characters 6-7:
   6 |     | B -> ()
             ^
   Typing error: This pattern matches values of type `b` but the matched value has type `a list`
-    File "invalid_match_type.mlt", line 5, characters 8-9:
+    File "invalid_match_type.tpe", line 5, characters 8-9:
     5 |   match a with
                 ^
     the matched value has type `a list`
-    File "invalid_match_type.mlt", line 4, characters 8-9:
+    File "invalid_match_type.tpe", line 4, characters 8-9:
     4 | run let a = [A] in
                 ^
     `a list` was inferred here
   ======================================================================
-  iterative_unbox.mlt
+  iterative_unbox.tpe
   ======================================================================
-  File "iterative_unbox.mlt", line 7, characters 30-57:
+  File "iterative_unbox.tpe", line 7, characters 30-57:
   7 |   fold_left (fun acc value -> unbox value as v in acc + v) 0 boxed
                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `value` is unboxed before any grade has elapsed, but its box grade is `3`
-    File "iterative_unbox.mlt", line 7, characters 21-26:
+    File "iterative_unbox.tpe", line 7, characters 21-26:
     7 |   fold_left (fun acc value -> unbox value as v in acc + v) 0 boxed
                              ^^^^^
     `value` is bound here
     Note: the resource inequality `0 >= 3` does not hold
   ======================================================================
-  less_than_function.mlt
+  less_than_function.tpe
   ======================================================================
   Runtime error: Incomparable expression (fun x ↦ return x)
   ======================================================================
-  lexer.mlt
+  lexer.tpe
   ======================================================================
   === Run 1 ===
   return 10
@@ -816,28 +816,28 @@
   State: []
   
   ======================================================================
-  malformed_type_application.mlt
+  malformed_type_application.tpe
   ======================================================================
-  File "malformed_type_application.mlt", line 4, characters 0-25:
+  File "malformed_type_application.tpe", line 4, characters 0-25:
   4 | type bar = (int, int) foo
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Type `foo` expects 1 argument but is given 2
   ======================================================================
-  nat.mlt
+  nat.tpe
   ======================================================================
   === Run 1 ===
   return 42
   State: []
   
   ======================================================================
-  non_linear_pattern.mlt
+  non_linear_pattern.tpe
   ======================================================================
-  File "non_linear_pattern.mlt", line 3, characters 8-13:
+  File "non_linear_pattern.tpe", line 3, characters 8-13:
   3 | run let (a,a) = (10, 20) in a
               ^^^^^
   Syntax error: Variable `a` defined multiple times
   ======================================================================
-  noneternal_lower.mlt
+  noneternal_lower.tpe
   ======================================================================
   === Run 1 ===
   return Token
@@ -846,75 +846,75 @@
   ]
   
   ======================================================================
-  noneternal_reject_after_delay.mlt
+  noneternal_reject_after_delay.tpe
   ======================================================================
-  File "noneternal_reject_after_delay.mlt", line 13, characters 2-3:
+  File "noneternal_reject_after_delay.tpe", line 13, characters 2-3:
   13 |   t
          ^
   Typing error: Variable `t` is used after grade `1` has elapsed, but its type `token` is not eternal
-    File "noneternal_reject_after_delay.mlt", line 11, characters 6-7:
+    File "noneternal_reject_after_delay.tpe", line 11, characters 6-7:
     11 |   let t = Token in
                ^
     `t` is bound here
-    File "noneternal_reject_after_delay.mlt", line 12, characters 2-9:
+    File "noneternal_reject_after_delay.tpe", line 12, characters 2-9:
     12 |   delay 1;
            ^^^^^^^
     `delay 1` elapses here
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
-  noneternal_reject_alias.mlt
+  noneternal_reject_alias.tpe
   ======================================================================
-  File "noneternal_reject_alias.mlt", line 5, characters 0-29:
+  File "noneternal_reject_alias.tpe", line 5, characters 0-29:
   5 | noneternal type seconds = int
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: type `seconds` is an alias and cannot be declared noneternal; wrap it in a constructor, as in `noneternal type seconds = Seconds of ...`
   ======================================================================
-  noneternal_reject_unknown_grade.mlt
+  noneternal_reject_unknown_grade.tpe
   ======================================================================
-  File "noneternal_reject_unknown_grade.mlt", line 21, characters 2-3:
+  File "noneternal_reject_unknown_grade.tpe", line 21, characters 2-3:
   21 |   t
          ^
   Typing error: Variable `t` is used after grade `ρ₀ + 1` has elapsed, but its type `token` is not eternal and grade `ρ₀ + 1` cannot be compared with `0`
-    File "noneternal_reject_unknown_grade.mlt", line 18, characters 6-7:
+    File "noneternal_reject_unknown_grade.tpe", line 18, characters 6-7:
     18 |   let t = Token in
                ^
     `t` is bound here
-    File "noneternal_reject_unknown_grade.mlt", line 19, characters 10-14:
+    File "noneternal_reject_unknown_grade.tpe", line 19, characters 10-14:
     19 |   let r = g () in
                    ^^^^
     this computation runs here (grade `ρ₀`)
-    File "noneternal_reject_unknown_grade.mlt", line 20, characters 2-9:
+    File "noneternal_reject_unknown_grade.tpe", line 20, characters 2-9:
     20 |   delay 1;
            ^^^^^^^
     `delay 1` elapses here
   
-  File "noneternal_reject_unknown_grade.mlt", line 34, characters 19-23:
+  File "noneternal_reject_unknown_grade.tpe", line 34, characters 19-23:
   34 | let hold_token g = hold g Token
                           ^^^^
   Typing error: `token` is not eternal, but `hold` needs the type of `y` to be eternal
-    File "noneternal_reject_unknown_grade.mlt", lines 26-30, characters 0-3:
+    File "noneternal_reject_unknown_grade.tpe", lines 26-30, characters 0-3:
     26 | let hold g x =
          ^^^^^^^^^^^^^^
     `hold` is defined here
-    File "noneternal_reject_unknown_grade.mlt", line 27, characters 6-7:
+    File "noneternal_reject_unknown_grade.tpe", line 27, characters 6-7:
     27 |   let y = x in
                ^
     `y` is bound here
-    File "noneternal_reject_unknown_grade.mlt", line 28, characters 10-14:
+    File "noneternal_reject_unknown_grade.tpe", line 28, characters 10-14:
     28 |   let r = g () in
                    ^^^^
     this computation runs here (grade `ρ₀`)
-    File "noneternal_reject_unknown_grade.mlt", line 29, characters 2-9:
+    File "noneternal_reject_unknown_grade.tpe", line 29, characters 2-9:
     29 |   delay 1;
            ^^^^^^^
     `delay 1` elapses here
-    File "noneternal_reject_unknown_grade.mlt", line 30, characters 2-3:
+    File "noneternal_reject_unknown_grade.tpe", line 30, characters 2-3:
     30 |   y
            ^
     `y` is used here after grade `ρ₀ + 1` has elapsed, which only an eternal type allows
     Note: grade `ρ₀ + 1` cannot be compared with `0`
   ======================================================================
-  noneternal_type.mlt
+  noneternal_type.tpe
   ======================================================================
   === Run 1 ===
   return (Ticket Token)
@@ -927,14 +927,14 @@
   ]
   
   ======================================================================
-  occurs_check.mlt
+  occurs_check.tpe
   ======================================================================
-  File "occurs_check.mlt", line 1, characters 14-19:
+  File "occurs_check.tpe", line 1, characters 14-19:
   1 | run let rec f x = f in f
                     ^^^^^
   Typing error: Cannot construct the infinite type `α = β → α`
   ======================================================================
-  op_case_context.mlt
+  op_case_context.tpe
   ======================================================================
   === Run 1 ===
   return 12
@@ -962,92 +962,92 @@
   ]
   
   ======================================================================
-  op_case_context_reject_continuation.mlt
+  op_case_context_reject_continuation.tpe
   ======================================================================
-  File "op_case_context_reject_continuation.mlt", line 23, characters 13-31:
+  File "op_case_context_reject_continuation.tpe", line 23, characters 13-31:
   23 |              continue k with ())
                     ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` has type `[0](unit → α # ρ₀)`, which is not eternal, so it cannot be used in the case for `Op2`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_continuation.mlt", line 6, characters 0-32:
+    File "op_case_context_reject_continuation.tpe", line 6, characters 0-32:
     6 | operation Op2 : unit ~> unit # 0
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op2` is declared here
-    File "op_case_context_reject_continuation.mlt", line 14, characters 10-11:
+    File "op_case_context_reject_continuation.tpe", line 14, characters 10-11:
     14 |   | Op1 p k ->
                    ^
     `k` is bound here
-    File "op_case_context_reject_continuation.mlt", lines 21-23, characters 11-31:
+    File "op_case_context_reject_continuation.tpe", lines 21-23, characters 11-31:
     21 |          | Op2 q k' ->
                     ^^^^^^^^^^^
     the case for `Op2` begins here
-    File "op_case_context_reject_continuation.mlt", line 22, characters 21-40:
+    File "op_case_context_reject_continuation.tpe", line 22, characters 21-40:
     22 |              let a = continue k' with () in
                               ^^^^^^^^^^^^^^^^^^^
     this computation runs here (grade `ρ₁`)
     Note: a box type is never eternal
   ======================================================================
-  op_case_context_reject_function.mlt
+  op_case_context_reject_function.tpe
   ======================================================================
-  File "op_case_context_reject_function.mlt", line 13, characters 14-15:
+  File "op_case_context_reject_function.tpe", line 13, characters 14-15:
   13 |       let v = f () in
                      ^
   Typing error: Variable `f` has type `unit → int # ρ₀`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_function.mlt", line 5, characters 0-30:
+    File "op_case_context_reject_function.tpe", line 5, characters 0-30:
     5 | operation Op : unit ~> int # 0
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "op_case_context_reject_function.mlt", line 9, characters 6-7:
+    File "op_case_context_reject_function.tpe", line 9, characters 6-7:
     9 | let h f =
               ^
     `f` is bound here
-    File "op_case_context_reject_function.mlt", lines 12-14, characters 4-23:
+    File "op_case_context_reject_function.tpe", lines 12-14, characters 4-23:
     12 |   | Op p k ->
              ^^^^^^^^^
     the case for `Op` begins here
   ======================================================================
-  op_case_context_reject_noneternal.mlt
+  op_case_context_reject_noneternal.tpe
   ======================================================================
-  File "op_case_context_reject_noneternal.mlt", line 15, characters 30-31:
+  File "op_case_context_reject_noneternal.tpe", line 15, characters 30-31:
   15 |   | Op p k -> continue k with t
                                      ^
   Typing error: Variable `t` has type `token`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_noneternal.mlt", line 8, characters 0-32:
+    File "op_case_context_reject_noneternal.tpe", line 8, characters 0-32:
     8 | operation Op : unit ~> token # 0
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "op_case_context_reject_noneternal.mlt", line 12, characters 6-7:
+    File "op_case_context_reject_noneternal.tpe", line 12, characters 6-7:
     12 | let h t =
                ^
     `t` is bound here
-    File "op_case_context_reject_noneternal.mlt", line 15, characters 4-31:
+    File "op_case_context_reject_noneternal.tpe", line 15, characters 4-31:
     15 |   | Op p k -> continue k with t
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the case for `Op` begins here
   ======================================================================
-  op_case_context_reject_unbox.mlt
+  op_case_context_reject_unbox.tpe
   ======================================================================
-  File "op_case_context_reject_unbox.mlt", lines 14-15, characters 6-23:
+  File "op_case_context_reject_unbox.tpe", lines 14-15, characters 6-23:
   14 |       unbox b as v in
              ^^^^^^^^^^^^^^^
   Typing error: Variable `b` has type `[ρ₀]int`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_unbox.mlt", line 5, characters 0-30:
+    File "op_case_context_reject_unbox.tpe", line 5, characters 0-30:
     5 | operation Op : unit ~> int # 0
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "op_case_context_reject_unbox.mlt", line 10, characters 6-7:
+    File "op_case_context_reject_unbox.tpe", line 10, characters 6-7:
     10 | let h b =
                ^
     `b` is bound here
-    File "op_case_context_reject_unbox.mlt", lines 13-15, characters 4-23:
+    File "op_case_context_reject_unbox.tpe", lines 13-15, characters 4-23:
     13 |   | Op p k ->
              ^^^^^^^^^
     the case for `Op` begins here
     Note: a box type is never eternal
   ======================================================================
-  orelse_andalso.mlt
+  orelse_andalso.tpe
   ======================================================================
   ======================================================================
-  patterns.mlt
+  patterns.tpe
   ======================================================================
   === Run 1 ===
   return 5
@@ -1086,7 +1086,7 @@
   State: []
   
   ======================================================================
-  polymorphism.mlt
+  polymorphism.tpe
   ======================================================================
   === Run 1 ===
   return (5, "foo")
@@ -1119,44 +1119,44 @@
   State: []
   
   ======================================================================
-  polymorphism_id_id.mlt
+  polymorphism_id_id.tpe
   ======================================================================
-  File "polymorphism_id_id.mlt", line 3, characters 17-18:
+  File "polymorphism_id_id.tpe", line 3, characters 17-18:
   3 |     (v 42, v "foo")
                        ^
   Typing error: This argument has type `string` but the function expects `int`
-    File "polymorphism_id_id.mlt", line 3, characters 11-12:
+    File "polymorphism_id_id.tpe", line 3, characters 11-12:
     3 |     (v 42, v "foo")
                    ^
     the function has type `int → int`
-    File "polymorphism_id_id.mlt", line 2, characters 12-15:
+    File "polymorphism_id_id.tpe", line 2, characters 12-15:
     2 | run let v = u u in
                     ^^^
     `int` was inferred here
     Note: while matching `int → int` against `string → α # ρ₀`
   ======================================================================
-  recursion.mlt
+  recursion.tpe
   ======================================================================
   === Run 1 ===
   return 5
   State: []
   
   ======================================================================
-  shadow_label.mlt
+  shadow_label.tpe
   ======================================================================
-  File "shadow_label.mlt", line 2, characters 0-41:
+  File "shadow_label.tpe", line 2, characters 0-41:
   2 | type bull = Tail of string | Horn of bull
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Label `Horn` defined multiple times
   ======================================================================
-  shadow_type.mlt
+  shadow_type.tpe
   ======================================================================
-  File "shadow_type.mlt", line 3, characters 0-23:
+  File "shadow_type.tpe", line 3, characters 0-23:
   3 | type cow = Hoof of bool
       ^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Type `cow` defined multiple times
   ======================================================================
-  test_equality.mlt
+  test_equality.tpe
   ======================================================================
   === Run 1 ===
   return true
@@ -1183,7 +1183,7 @@
   State: []
   
   ======================================================================
-  test_less_then.mlt
+  test_less_then.tpe
   ======================================================================
   === Run 1 ===
   return false
@@ -1226,7 +1226,7 @@
   State: []
   
   ======================================================================
-  test_mocked_ops.mlt
+  test_mocked_ops.tpe
   ======================================================================
   === Run 1 ===
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
@@ -1241,7 +1241,7 @@
   ]
   
   ======================================================================
-  test_op_handling.mlt
+  test_op_handling.tpe
   ======================================================================
   === Run 1 ===
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
@@ -1306,7 +1306,7 @@
   ]
   
   ======================================================================
-  test_precedence_and_associativity.mlt
+  test_precedence_and_associativity.tpe
   ======================================================================
   === Run 1 ===
   return 1
@@ -1345,7 +1345,7 @@
   State: []
   
   ======================================================================
-  test_stdlib.mlt
+  test_stdlib.tpe
   ======================================================================
   === Run 1 ===
   return "test less"
@@ -1720,7 +1720,7 @@
   State: []
   
   ======================================================================
-  test_temporal.mlt
+  test_temporal.tpe
   ======================================================================
   === Run 1 ===
   return 0
@@ -1789,7 +1789,7 @@
   ]
   
   ======================================================================
-  time_fold_delays.mlt
+  time_fold_delays.tpe
   ======================================================================
   === Run 1 ===
   return 42
@@ -1809,7 +1809,7 @@
   ]
   
   ======================================================================
-  time_intervals.mlt
+  time_intervals.tpe
   ======================================================================
   === Run 1 ===
   return 1
@@ -1852,14 +1852,14 @@
   ]
   
   ======================================================================
-  time_reject_within.mlt
+  time_reject_within.tpe
   ======================================================================
-  File "time_reject_within.mlt", line 6, characters 0-47:
+  File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: runtime bounds are only used by the timed-trace grading monoids; under `time-lower-bound` the operation grade already carries them
   ======================================================================
-  time_upper.mlt
+  time_upper.tpe
   ======================================================================
   === Run 1 ===
   return 1
@@ -1877,7 +1877,7 @@
   ]
   
   ======================================================================
-  traces_annotation.mlt
+  traces_annotation.tpe
   ======================================================================
   === Run 1 ===
   return ()
@@ -1886,7 +1886,7 @@
   ]
   
   ======================================================================
-  traces_default.mlt
+  traces_default.tpe
   ======================================================================
   === Run 1 ===
   return (Fresh (Model "Sword"))
@@ -1903,7 +1903,7 @@
   ]
   
   ======================================================================
-  traces_intervals.mlt
+  traces_intervals.tpe
   ======================================================================
   === Run 1 ===
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
@@ -1934,26 +1934,26 @@
   ]
   
   ======================================================================
-  traces_intervals_bounds.mlt
+  traces_intervals_bounds.tpe
   ======================================================================
   === Run 1 ===
   return 1
   State: []
   
   ======================================================================
-  traces_intervals_default_bounds.mlt
+  traces_intervals_default_bounds.tpe
   ======================================================================
-  File "traces_intervals_default_bounds.mlt", line 9, characters 0-28:
+  File "traces_intervals_default_bounds.tpe", line 9, characters 0-28:
   9 | default Extrude () = delay 1
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `({1},{1})`, which does not match the declared grade `({3},{5})` of `Extrude`
-    File "traces_intervals_default_bounds.mlt", line 7, characters 0-71:
+    File "traces_intervals_default_bounds.tpe", line 7, characters 0-71:
     7 | operation Extrude : unit ~> unit # ({Extrude}, {Extrude}) within (3, 5)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the resource inequality `({1},{1}) <= ({3},{5})` does not hold
   ======================================================================
-  traces_lower.mlt
+  traces_lower.tpe
   ======================================================================
   === Run 1 ===
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
@@ -1981,7 +1981,7 @@
   ]
   
   ======================================================================
-  traces_normalise.mlt
+  traces_normalise.tpe
   ======================================================================
   === Run 1 ===
   return 7
@@ -1990,89 +1990,89 @@
   ]
   
   ======================================================================
-  traces_reject_allowance.mlt
+  traces_reject_allowance.tpe
   ======================================================================
-  File "traces_reject_allowance.mlt", lines 10-11, characters 2-3:
+  File "traces_reject_allowance.tpe", lines 10-11, characters 2-3:
   10 |   unbox r as x in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed after grade `{Heat}` has elapsed, which does not match its box grade `{1}`
-    File "traces_reject_allowance.mlt", line 8, characters 14-15:
+    File "traces_reject_allowance.tpe", line 8, characters 14-15:
     8 |   box 1 42 as r in
                       ^
     `r` is bound here
-    File "traces_reject_allowance.mlt", line 9, characters 2-17:
+    File "traces_reject_allowance.tpe", line 9, characters 2-17:
     9 |   perform Heat ();
           ^^^^^^^^^^^^^^^
     `Heat` is performed here (grade `{Heat}`)
     Note: the resource inequality `{Heat} <= {1}` does not hold
   ======================================================================
-  traces_reject_bounds.mlt
+  traces_reject_bounds.tpe
   ======================================================================
-  File "traces_reject_bounds.mlt", line 4, characters 0-52:
+  File "traces_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Heat : unit ~> unit # {Heat} within (3, 0)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: the runtime bounds of operation `Heat` must satisfy `lo <= hi`
   ======================================================================
-  traces_reject_bounds_declared.mlt
+  traces_reject_bounds_declared.tpe
   ======================================================================
-  File "traces_reject_bounds_declared.mlt", line 6, characters 0-61:
+  File "traces_reject_bounds_declared.tpe", line 6, characters 0-61:
   6 | operation Send : string ~> unit # {Tx | Tx; Tx} within (2, 6)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: operation `Send` is compound, so its runtime bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
   ======================================================================
-  traces_reject_default_bounds.mlt
+  traces_reject_default_bounds.tpe
   ======================================================================
-  File "traces_reject_default_bounds.mlt", line 8, characters 0-28:
+  File "traces_reject_default_bounds.tpe", line 8, characters 0-28:
   8 | default Extrude () = delay 6
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `{6}`, which does not match the declared grade `{5}` of `Extrude`
-    File "traces_reject_default_bounds.mlt", line 6, characters 0-58:
+    File "traces_reject_default_bounds.tpe", line 6, characters 0-58:
     6 | operation Extrude : unit ~> unit # {Extrude} within (3, 5)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the resource inequality `{6} <= {5}` does not hold
   ======================================================================
-  traces_reject_default_nonatomic.mlt
+  traces_reject_default_nonatomic.tpe
   ======================================================================
-  File "traces_reject_default_nonatomic.mlt", line 14, characters 0-39:
+  File "traces_reject_default_nonatomic.tpe", line 14, characters 0-39:
   14 | default PrintModel m = delay 6; Fresh m
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: a default implementation may only be given for an atomic operation, but the grade of `PrintModel` is `{Heat; Extrude; Cool}`; handle it with a handler in terms of the operations it names
   ======================================================================
-  traces_reject_missing_within.mlt
+  traces_reject_missing_within.tpe
   ======================================================================
-  File "traces_reject_missing_within.mlt", line 5, characters 0-38:
+  File "traces_reject_missing_within.tpe", line 5, characters 0-38:
   5 | operation Heat : unit ~> unit # {Heat}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: atomic operation `Heat` needs runtime bounds `within (lo, hi)` under the `traces-upper-bound` grading monoid
   ======================================================================
-  traces_reject_order.mlt
+  traces_reject_order.tpe
   ======================================================================
-  File "traces_reject_order.mlt", lines 16-20, characters 4-31:
+  File "traces_reject_order.tpe", lines 16-20, characters 4-31:
   16 |   | PrintModel m k ->
            ^^^^^^^^^^^^^^^^^
   Typing error: The case for `PrintModel` has grade `{Cool; Extrude; Heat}`, which does not match the grade `{Heat; Extrude; Cool}` of `PrintModel` followed by its continuation
-    File "traces_reject_order.mlt", line 11, characters 0-61:
+    File "traces_reject_order.tpe", line 11, characters 0-61:
     11 | operation PrintModel : model ~> fresh # {Heat; Extrude; Cool}
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `PrintModel` is declared here
     Note: the resource inequality `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
   ======================================================================
-  traces_reject_self_retry.mlt
+  traces_reject_self_retry.tpe
   ======================================================================
-  File "traces_reject_self_retry.mlt", line 6, characters 0-53:
+  File "traces_reject_self_retry.tpe", line 6, characters 0-53:
   6 | operation Send : string ~> unit # {Send | Send; Send}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: compound operation `Send` may not name itself in its grade `{Send | Send; Send}`
   ======================================================================
-  traces_reject_unknown_event.mlt
+  traces_reject_unknown_event.tpe
   ======================================================================
-  File "traces_reject_unknown_event.mlt", line 6, characters 0-53:
+  File "traces_reject_unknown_event.tpe", line 6, characters 0-53:
   6 | operation PrintModel : unit ~> unit # {Heat; Extrude}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: unknown event `Extrude` in the grade of operation `PrintModel`
   ======================================================================
-  traces_upper.mlt
+  traces_upper.tpe
   ======================================================================
   === Run 1 ===
   return (Receipt "telemetry")
@@ -2092,7 +2092,7 @@
   ]
   
   ======================================================================
-  tydef.mlt
+  tydef.tpe
   ======================================================================
   === Run 1 ===
   return Tail
@@ -2103,7 +2103,7 @@
   State: []
   
   ======================================================================
-  type_annotations.mlt
+  type_annotations.tpe
   ======================================================================
   === Run 1 ===
   return (fun y ↦ return (fun z ↦ let b = (let b = z y in
@@ -2112,7 +2112,7 @@
   State: []
   
   ======================================================================
-  typing.mlt
+  typing.tpe
   ======================================================================
   === Run 1 ===
   return (fun y ↦ return y)
@@ -2123,9 +2123,9 @@
   State: []
   
   ======================================================================
-  use_undefined_type.mlt
+  use_undefined_type.tpe
   ======================================================================
-  File "use_undefined_type.mlt", line 1, characters 18-21:
+  File "use_undefined_type.tpe", line 1, characters 18-21:
   1 | type foo = One of bar | Two of int
                         ^^^
   Syntax error: Unknown name `bar`
@@ -2133,9 +2133,9 @@
 The options: typechecking only reports errors and runs nothing, and the
 single-dash form of the help option is not accepted.
 
-  $ ../temporal-millet --typecheck-only nat.mlt
-  $ ../temporal-millet --typecheck-only comp_type_annotation_reject.mlt
-  File "comp_type_annotation_reject.mlt", line 3, characters 9-31:
+  $ ../temporal-millet --typecheck-only nat.tpe
+  $ ../temporal-millet --typecheck-only comp_type_annotation_reject.tpe
+  File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
   3 | let f () : int # 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
@@ -2143,7 +2143,7 @@ single-dash form of the help option is not accepted.
   [1]
   $ ../temporal-millet -help
   ../temporal-millet: unknown option '-help'.
-  Run Temporal Millet as '../temporal-millet [filename.mlt] ...'
+  Run Temporal Millet as '../temporal-millet [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
     --help            Display this list of options
     --no-stdlib       Do not load the standard library

@@ -1,0 +1,12 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./temporal-millet tests/continuation_discard_reject_lower.tpe *)
+
+operation Op : unit ~> unit # 1
+
+(* Correctly rejected by the typechecker: as 'continuation_discard_upper.tpe',
+   but under a lower bound 0 is the top of the order, so 0 >= 1 + rho fails
+   already for rho = 0. *)
+let h = handler | x -> x | Op p k -> 5
+
+run handle (perform Op (); delay 5; 3) with h

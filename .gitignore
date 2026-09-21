@@ -6,7 +6,7 @@ temporal-millet
 .merlin
 web/web.bc.js
 
-examples/temp*.mlt
+examples/temp*.tpe
 
 editors/vscode/vscode-temporal-millet-*.vsix
 notes

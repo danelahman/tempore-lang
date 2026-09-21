@@ -38,7 +38,7 @@ There are two ways to run programs:
 
 - **Command line**:
 
-      ./temporal-millet file1.mlt file2.mlt ...
+      ./temporal-millet file1.tpe file2.tpe ...
 
   loads all listed files and runs every `run` command, printing each run's
   result and final resource state. Non-deterministic choices are made at
@@ -56,7 +56,7 @@ Resource usage is measured in a grading monoid (an ordered monoid with some
 additional structure). The monoid is not part of a source file but chosen when
 the program is run: with `--resources` on the command line, e.g.
 
-    ./temporal-millet --resources time-interval examples/time_intervals.mlt
+    ./temporal-millet --resources time-interval examples/time_intervals.tpe
 
 or with the **Resource grade** selector in the web interface, which switches
 automatically when a built-in example is loaded. The default is
@@ -74,7 +74,7 @@ pairs such as `(1, 4)`:
 - **`time-interval`** — pairs `(n, m)` with `n <= m`, a lower and an upper
   bound at once. `(n, m)` is a sub-grade of `(k, l)` when `n >= k` and
   `l >= m` (interval containment); `(0, 0)` is the minimum. See
-  [`examples/time_intervals.mlt`](examples/time_intervals.mlt).
+  [`examples/time_intervals.tpe`](examples/time_intervals.tpe).
 
 Three grade computations by the *timed traces* they may exhibit. A timed trace
 is one run of a computation, an alternation of operation events and positive
@@ -91,19 +91,19 @@ monoids (see below).
   each operation performed banks its `lo` towards the delays `rho'` demands,
   but waiting never counts as performing a demanded operation. `{0}` is the
   top of the order. See
-  [`examples/traces_lower.mlt`](examples/traces_lower.mlt).
+  [`examples/traces_lower.tpe`](examples/traces_lower.tpe).
 - **`traces-upper-bound`** — the runs a computation is *allowed*. `rho`
   is a sub-grade of `rho'` when every run of `rho` fits inside some run of
   `rho'`: a delay in `rho'` pays for operations of `rho` at their `hi`, but
   waiting never counts as performing an operation the bound asks for. `{0}` is
   the minimum of the order. See
-  [`examples/traces_upper.mlt`](examples/traces_upper.mlt).
+  [`examples/traces_upper.tpe`](examples/traces_upper.tpe).
 - **`traces-interval`** — pairs `({...}, {...})` of a lower bound
   (coverage order, reading `lo`) and an upper bound (allowance order, reading
   `hi`), compared componentwise. `{...}` abbreviates the pair of a set with
   itself, `n` abbreviates `({n}, {n})`, and `(n, m)` abbreviates
   `({n}, {m})`. `({0}, {0})` is neither the top nor the minimum. See
-  [`examples/traces_intervals.mlt`](examples/traces_intervals.mlt).
+  [`examples/traces_intervals.tpe`](examples/traces_intervals.tpe).
 
 ## Temporal resources
 
@@ -121,7 +121,7 @@ of time, a sequence of operations, or whatever the chosen monoid measures.
 - `delay tau` advances the accumulated grade by `tau`. Operation calls (below)
   advance it by the grade of the operation.
 
-See [`examples/delay.mlt`](examples/delay.mlt).
+See [`examples/delay.tpe`](examples/delay.tpe).
 
 The computation type of a function can be stated explicitly, either on its body,
 `let f () : mounted # rho = ...`, or on the function as a whole, `let f : unit
@@ -165,8 +165,8 @@ zero. Only a constraint on a variable of the definition's type is kept: an
 operation case runs at a time the handler does not fix, so a local variable
 captured anywhere in a case must be eternal outright, and a variable occurring
 in no exported type is instantiated as the constraint needs. See
-[`examples/eternal_types.mlt`](examples/eternal_types.mlt) and the end of
-[`examples/3dprint_traces.mlt`](examples/3dprint_traces.mlt).
+[`examples/eternal_types.tpe`](examples/eternal_types.tpe) and the end of
+[`examples/3dprint_traces.tpe`](examples/3dprint_traces.tpe).
 
 A type definition can be declared non-eternal regardless of its structure:
 
@@ -308,13 +308,13 @@ they stay in scope inside a case whatever their type. This is a deliberate
 deviation from the formalisation, where the restriction applies to the whole
 context.
 
-See [`tests/op_case_context.mlt`](tests/op_case_context.mlt) and the
-`tests/op_case_context_reject_*.mlt` files, and
-[`examples/handlers_lower_bound.mlt`](examples/handlers_lower_bound.mlt),
-[`examples/handlers_upper_bound.mlt`](examples/handlers_upper_bound.mlt),
-[`examples/handlers_nested.mlt`](examples/handlers_nested.mlt),
-[`examples/handlers_nested_reject.mlt`](examples/handlers_nested_reject.mlt)
-and [`examples/3dprint_handlers.mlt`](examples/3dprint_handlers.mlt).
+See [`tests/op_case_context.tpe`](tests/op_case_context.tpe) and the
+`tests/op_case_context_reject_*.tpe` files, and
+[`examples/handlers_lower_bound.tpe`](examples/handlers_lower_bound.tpe),
+[`examples/handlers_upper_bound.tpe`](examples/handlers_upper_bound.tpe),
+[`examples/handlers_nested.tpe`](examples/handlers_nested.tpe),
+[`examples/handlers_nested_reject.tpe`](examples/handlers_nested_reject.tpe)
+and [`examples/3dprint_handlers.tpe`](examples/3dprint_handlers.tpe).
 
 ### Default implementations
 
@@ -383,7 +383,7 @@ The workaround, where a grade has to be widened, is an explicit type annotation.
 ## Editor support
 
 `editors/vscode/` contains a minimal VS Code extension with syntax highlighting
-for `.mlt` files. Package and install it with
+for `.tpe` files. Package and install it with
 
     make vscode-extension
 

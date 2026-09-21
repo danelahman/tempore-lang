@@ -4,12 +4,12 @@
 
 ;; This is a neat trick to include the standard library inside the binary, borrowed from
 ;; (https://gitlab.inria.fr/fpottier/menhir/-/blob/673f63e0f2c4ba7046ffae2504eb9ea29ad6d88c/src/dune)
-;; We generate the file "stdlib_mlt.ml" which contains a string with the contents of "stdlib.mlt"
+;; We generate the file "stdlib_tpe.ml" which contains a string with the contents of "stdlib.tpe"
 
 (rule
  (with-stdout-to
-  stdlib_mlt.ml
+  stdlib_tpe.ml
   (progn
    (echo "let contents = {|")
-   (cat stdlib.mlt)
+   (cat stdlib.tpe)
    (echo "|}"))))

@@ -1,0 +1,28 @@
+(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./temporal-millet --resources time-lower-bound examples/basic_unbox.tpe *)
+
+(* Correctly rejected by the typechecker: unboxing demands the five ticks the
+   box was given, and only four are delayed. The run is left uncommented, so
+   that running the file shows the error:
+
+     Typing error: Variable `boxed` is unboxed after grade `4` has elapsed,
+       which does not match its box grade `5`
+       Note: the resource inequality `4 >= 5` does not hold
+*)
+run
+    let x = (10, 10) in
+    box 5 x as boxed in
+    delay 4;                     (* <- insufficient delay *)
+    unbox boxed as (l, r) in
+    l + r
+
+(* Correctly rejected for the same reason, with the generic-effect forms of
+   'box' and 'unbox'; the file already stops at the run above, so this error is
+   never reached. *)
+run
+    let x = (10, 10) in
+    let boxed = box 5 x in
+    delay 4;                       (* <- insufficient delay *)
+    let (l, r) = unbox boxed in
+    l + r

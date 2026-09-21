@@ -188,15 +188,15 @@ module Loader (Backend : Backend.S) = struct
   let load_file_all state source =
     load_commands_all state (Parser.Lexer.read_file parse_commands source)
 
-  (** The module Stdlib_mlt is automatically generated from stdlib.mlt. Check
+  (** The module Stdlib_tpe is automatically generated from stdlib.tpe. Check
       the dune file for details. *)
-  let stdlib_source = Stdlib_mlt.contents
+  let stdlib_source = Stdlib_tpe.contents
 end
 
 (** The standard library's source, independently of any backend, for callers
     that need to know what precedes a program's own source. *)
-let stdlib_source = Stdlib_mlt.contents
+let stdlib_source = Stdlib_tpe.contents
 
 (** The file name the standard library's locations are reported under, since it
     is loaded from a string rather than from a file. *)
-let stdlib_filename = "stdlib.mlt"
+let stdlib_filename = "stdlib.tpe"

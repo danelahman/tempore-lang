@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Temporal Millet",
   "scopeName": "source.millet",
-  "fileTypes": ["mlt"],
+  "fileTypes": ["tpe"],
   "patterns": [
     { "include": "#comment" },
     { "include": "#string" },

@@ -1,0 +1,38 @@
+(* Run this example with the 'time-upper-bound' grading monoid, e.g.
+
+     ./temporal-millet --resources time-upper-bound examples/time_upper.tpe *)
+
+(* Correctly accepted by the typechecker: delaying 1 and 2 ticks spends exactly
+   the 3 ticks the box allows. *)
+let foo1 () = 
+  box 3 1 as r in
+  let _ = delay 1 in
+  let _ = delay 2 in
+  unbox r as y in
+  y
+
+(* Correctly accepted by the typechecker: an upper bound only forbids unboxing
+   late, so unboxing after 2 of the 3 ticks is fine. *)
+let foo2 () = 
+  box 3 1 as r in
+  let _ = delay 2 in
+  unbox r as y in
+  y
+
+(* Correctly rejected by the typechecker: four ticks overrun the three the box
+   allows:
+
+     Typing error: Variable `r` is unboxed after grade `4` has elapsed, which
+       does not match its box grade `3`
+       Note: the resource inequality `4 <= 3` does not hold
+*)
+(*
+let foo3 () = 
+  box 3 1 as r in
+  let _ = delay 4 in
+  unbox r as y in
+  y
+*)
+
+run foo1 ()
+run foo2 ()

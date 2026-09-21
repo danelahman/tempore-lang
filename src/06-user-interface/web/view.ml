@@ -395,8 +395,8 @@ let view_compiler (model : Model.model) =
                   (fun (title, _, _) -> title)
                   (fun (title, _, _) ->
                     Some title = model.edit_model.selected_example)
-                  (* The module Examples_mlt is semi-automatically generated from examples/*.mlt. Check the dune file for details. *)
-                  Examples_mlt.examples;
+                  (* The module Examples_tpe is semi-automatically generated from examples/*.tpe. Check the dune file for details. *)
+                  Examples_tpe.examples;
               ];
           ];
       ]
