@@ -1,5 +1,16 @@
-; Unit tests of the grade normal forms and decisions of the type inference.
+; Unit tests of the grade normal forms and decisions of the type inference,
+; and of constraint generation over the examples and tests.
 
 (test
  (name test_gradeNormal)
+ (modules test_gradeNormal)
  (libraries language inference))
+
+(test
+ (name test_generate)
+ (modules test_generate)
+ (libraries utils language parser desugarer loader inference)
+ (deps
+  (glob_files %{project_root}/examples/*.tpe)
+  (glob_files %{project_root}/tests/*.tpe)
+  %{project_root}/tests/run_tests.t))
