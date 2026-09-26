@@ -10,3 +10,16 @@ examples/temp*.tpe
 
 editors/vscode/vscode-tempore-*.vsix
 notes
+
+.claude/
+.claude.json
+CLAUDE.md
+CLAUDE.local.md
+**/CLAUDE.md
+**/CLAUDE.local.md
+.mcp.json
+.claudeignore
+AGENTS.md
+.agents/
+.worktrees/
+*.claude-*
