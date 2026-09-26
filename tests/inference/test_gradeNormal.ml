@@ -4,9 +4,9 @@
 
 module Grade = Language.Grade
 module GradeSystem = Language.GradeSystem
-module GradeExp = Solver.GradeExp
-module GradeNormal = Solver.GradeNormal
-module Reach = Solver.Reach
+module GradeExp = Inference.GradeExp
+module GradeNormal = Inference.GradeNormal
+module Reach = Inference.Reach
 
 type check = { name : string; passed : bool; detail : string }
 

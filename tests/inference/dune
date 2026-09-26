@@ -1,5 +1,5 @@
-; Unit tests of the grade normal forms and decisions of the constraint solver.
+; Unit tests of the grade normal forms and decisions of the type inference.
 
 (test
  (name test_gradeNormal)
- (libraries language solver))
+ (libraries language inference))
