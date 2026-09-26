@@ -1,6 +1,0 @@
-; Grade expressions, their normal forms and the decisions of the constraint
-; solver made on them.
-
-(library
- (name solver)
- (libraries utils language))

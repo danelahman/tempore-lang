@@ -1,0 +1,6 @@
+; Type inference: open grade expressions and types, constraint generation
+; and constraint solving.
+
+(library
+ (name inference)
+ (libraries utils language))
