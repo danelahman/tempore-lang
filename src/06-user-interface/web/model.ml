@@ -44,8 +44,7 @@ and edit_msg =
       (** Load a bundled example: its title, the name of the resource grade it
           is meant to be run with, and its source. *)
   | SelectResource of string
-      (** Select the resource grade to use (by name from
-          [resource_grade_modules]). *)
+      (** Select the grades to use (by name from [grade_modules]). *)
 
 and run_msg =
   | SelectStepIndex of int option
@@ -83,16 +82,14 @@ type edit_model = {
   use_stdlib : bool;
   unparsed_code : string;
   selected_resource : string;
-      (** Name of the currently selected resource grade (key in
-          [resource_grade_modules]). *)
+      (** Name of the currently selected grades (key in [grade_modules]). *)
   selected_example : string option;
       (** Title of the bundled example last loaded; editing it keeps the
           selection, so the select box still says where the program came from.
       *)
 }
 
-let default_resource_name =
-  fst (List.hd Language.ResourceGrade.resource_grade_modules)
+let default_resource_name = fst (List.hd Language.Grade.grade_modules)
 
 let edit_init =
   {
@@ -286,16 +283,16 @@ let update model = function
         try
           match
             List.assoc_opt model.edit_model.selected_resource
-              Language.ResourceGrade.resource_grade_modules
+              Language.Grade.grade_modules
           with
           | None ->
               Error
                 [
                   fatal
-                    (Printf.sprintf "Unknown resource grade '%s'"
+                    (Printf.sprintf "Unknown grades '%s'"
                        model.edit_model.selected_resource);
                 ]
-          | Some (module RG : Language.ResourceGrade.Grade) ->
+          | Some (module RG : Language.Grade.S) ->
               let module B = WebInterpreter.Make (RG) in
               let module L = Loader.Loader (B) in
               (* Loaded as two separate sources, so that an editor location

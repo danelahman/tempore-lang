@@ -112,8 +112,7 @@ let print_rho_params ?max_level:_ rho_pp rho_params ppf =
   print_helper rho_params;
   Format.fprintf ppf "]"
 
-let print_rho (type a)
-    (module ResourceGrade : ResourceGrade.Grade with type t = a) rho_pp =
+let print_rho (type a) (module ResourceGrade : Grade.S with type t = a) rho_pp =
   let rec aux (rho : a rho) ppf =
     match rho with
     | RhoConst i -> Format.fprintf ppf "%s" (ResourceGrade.show i)
@@ -126,9 +125,7 @@ let print_rho (type a)
   aux
 
 let print_ty (type a) ?max_level rho_module ty_print_param rho_print_param =
-  let module ResourceGrade =
-    (val rho_module : ResourceGrade.Grade with type t = a)
-  in
+  let module ResourceGrade = (val rho_module : Grade.S with type t = a) in
   let rec aux ?max_level p ppf =
     let print ?at_level = Print.print ?max_level ?at_level ppf in
     match p with
@@ -141,7 +138,7 @@ let print_ty (type a) ?max_level rho_module ty_print_param rho_print_param =
           (Print.print_tuple aux tys)
           (TyName.print ty_name)
     | TyParam a -> print "%t" (ty_print_param a)
-    | TyArrow (ty1, CompTy (ty2, RhoConst z)) when z = ResourceGrade.zero ->
+    | TyArrow (ty1, CompTy (ty2, RhoConst z)) when z = ResourceGrade.one ->
         print ~at_level:3 "%t → %t" (aux ~max_level:2 ty1)
           (aux ~max_level:3 ty2)
     | TyArrow (ty1, CompTy (ty2, rho)) ->
@@ -165,13 +162,11 @@ let print_ty (type a) ?max_level rho_module ty_print_param rho_print_param =
   aux ?max_level
 
 let print_constr (type a) rho_module ty_pp rho_pp =
-  let module ResourceGrade =
-    (val rho_module : ResourceGrade.Grade with type t = a)
-  in
+  let module ResourceGrade = (val rho_module : Grade.S with type t = a) in
   let print_ineq rho1 rho2 ppf =
     Format.fprintf ppf "%t %s %t"
       (print_rho rho_module rho_pp rho1)
-      ResourceGrade.is_sub_rho_symbol
+      ResourceGrade.leq_symbol
       (print_rho rho_module rho_pp rho2)
   in
   let print_eternal ty ppf =

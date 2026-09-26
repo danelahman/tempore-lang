@@ -7,7 +7,7 @@ module Context = Language.Context
 module Exception = Language.Exception
 module PrettyPrint = Language.PrettyPrint
 
-module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
+module Make (ResourceGrade : Language.Grade.S) = struct
   module E = Explain.Make (ResourceGrade)
 
   (* A grade accumulated in the context, with where and how it was spent, so
@@ -39,6 +39,13 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
       (Barrier)
 
   module P = Primitives.Make (ResourceGrade)
+
+  (** Whether the unit is the greatest grade, [⊤ ≾ u]. Neither grade mentions an
+      event, so the cost model is never consulted. *)
+  let unit_is_top =
+    ResourceGrade.leq
+      (fun ev -> invalid_arg ("unit_is_top: unexpected event " ^ ev))
+      ResourceGrade.top ResourceGrade.one
 
   type ty = ResourceGrade.t Ast.ty
   type rho = ResourceGrade.t Ast.rho
@@ -460,7 +467,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
                       ( ty,
                         ContextHolderModule.sum_rhos_added_after x
                           state.variables,
-                        Ast.RhoConst ResourceGrade.zero,
+                        Ast.RhoConst ResourceGrade.one,
                         because e.at why );
                   ])
           | Global -> []
@@ -509,7 +516,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
           union cs
             (rho_eq
                (because e.at Ast.PureBody)
-               rho (Ast.RhoConst ResourceGrade.zero)) )
+               rho (Ast.RhoConst ResourceGrade.one)) )
     | Ast.RecLambda (f, abs) ->
         let f_ty = fresh_ty () in
         let state' = extend_local_variables state [ (f, f_ty, e.at) ] in
@@ -522,7 +529,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
               cs;
               rho_eq
                 (because e.at Ast.PureBody)
-                rho (Ast.RhoConst ResourceGrade.zero);
+                rho (Ast.RhoConst ResourceGrade.one);
             ] )
     | Ast.Variant (lbl, arg) -> (
         let ty_in, ty_out = infer_variant state lbl in
@@ -615,7 +622,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
     match c.it with
     | Ast.Return expr ->
         let ty, cs = infer_expression state expr in
-        (Ast.CompTy (ty, Ast.RhoConst ResourceGrade.zero), cs)
+        (Ast.CompTy (ty, Ast.RhoConst ResourceGrade.one), cs)
     | Ast.Do (comp1, ((pat, _) as comp2)) ->
         let Ast.CompTy (ty1, rho1), cs1 = infer_computation state comp1 in
         let comp_rho = fresh_rho () in
@@ -920,8 +927,8 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
         let t2' = simplify_rho t2 in
         match (t1', t2') with
         | Ast.RhoConst c1, Ast.RhoConst c2 ->
-            Ast.RhoConst (ResourceGrade.add c1 c2)
-        | (Ast.RhoConst z, t | t, Ast.RhoConst z) when z = ResourceGrade.zero ->
+            Ast.RhoConst (ResourceGrade.mul c1 c2)
+        | (Ast.RhoConst z, t | t, Ast.RhoConst z) when z = ResourceGrade.one ->
             t
         | _ -> Ast.RhoAdd (t1', t2'))
     | _ -> rho
@@ -979,7 +986,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
       rho = (fun rho -> E.code (rho_raw rho));
       ty_raw;
       rho_raw;
-      is_zero = (fun rho -> simplify_rho rho = Ast.RhoConst ResourceGrade.zero);
+      is_zero = (fun rho -> simplify_rho rho = Ast.RhoConst ResourceGrade.one);
     }
 
   (* ------------------------------------------------------------------ *)
@@ -1160,12 +1167,12 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
       a clause performing [delay 3; delay 4] realise the grade [7]. *)
   let rec fold_adjacent_constants = function
     | [] -> []
-    | Either.Right c :: rest when c = ResourceGrade.zero ->
+    | Either.Right c :: rest when c = ResourceGrade.one ->
         fold_adjacent_constants rest
     | Either.Right c :: rest -> (
         match fold_adjacent_constants rest with
         | Either.Right c' :: rest' ->
-            Either.Right (ResourceGrade.add c c') :: rest'
+            Either.Right (ResourceGrade.mul c c') :: rest'
         | rest' -> Either.Right c :: rest')
     | (Either.Left _ as p) :: rest -> p :: fold_adjacent_constants rest
 
@@ -1177,11 +1184,11 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
       List.fold_left
         (fun (rest, total) -> function
           | Either.Left _ as p -> (p :: rest, total)
-          | Either.Right c -> (rest, ResourceGrade.add total c))
-        ([], ResourceGrade.zero) params
+          | Either.Right c -> (rest, ResourceGrade.mul total c))
+        ([], ResourceGrade.one) params
     in
     let rest = List.rev rest in
-    if total = ResourceGrade.zero then rest else rest @ [ Either.Right total ]
+    if total = ResourceGrade.one then rest else rest @ [ Either.Right total ]
 
   let cancel_common_elements left right =
     let rec aux l r acc_left acc_right =
@@ -1211,7 +1218,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
       | Either.Right x -> Ast.RhoConst x
     in
     match params with
-    | [] -> Ast.RhoConst ResourceGrade.zero
+    | [] -> Ast.RhoConst ResourceGrade.one
     | hd :: tl ->
         List.fold_left (fun acc e -> Ast.RhoAdd (acc, to_rho e)) (to_rho hd) tl
 
@@ -1246,7 +1253,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
     let left = fold_adjacent_constants (build_rho_param_list rho1) in
     let right = fold_adjacent_constants (build_rho_param_list rho2) in
     let left', right' =
-      if ResourceGrade.is_commutative then
+      if ResourceGrade.commutative then
         cancel_common_elements
           (List.sort compare_rho (fold_all_constants left))
           (List.sort compare_rho (fold_all_constants right))
@@ -1311,10 +1318,10 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
         | rho, Ast.RhoParam tp when not (occurs_rho tp rho) -> eliminate tp rho
         | Ast.RhoConst z, Ast.RhoAdd (t1, t2)
         | Ast.RhoAdd (t1, t2), Ast.RhoConst z
-          when z = ResourceGrade.zero ->
+          when z = ResourceGrade.one ->
             unify_rho_constraints state ~rigids prev_unsolved_size unsolved
-              (defer t1 (Ast.RhoConst ResourceGrade.zero)
-              :: defer t2 (Ast.RhoConst ResourceGrade.zero)
+              (defer t1 (Ast.RhoConst ResourceGrade.one)
+              :: defer t2 (Ast.RhoConst ResourceGrade.one)
               :: eqs)
         | t, (Ast.RhoAdd _ as u) ->
             let left_rho, right_rho = normalise_rho_pair t u in
@@ -1428,8 +1435,8 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
       | Ast.RhoParam tp, rho
         when may_default
              && (not (occurs_rho tp rho))
-             && rho = Ast.RhoConst ResourceGrade.zero
-             && not ResourceGrade.is_zero_top_sub_rho ->
+             && rho = Ast.RhoConst ResourceGrade.one
+             && not unit_is_top ->
           let singleton = Subst.add_rho tp rho reason Subst.empty in
           let rho_subst, unsolved' =
             unify_rho_ineq_constraints state prev_unsolved_size
@@ -1521,17 +1528,14 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
        inequality holds whatever the smaller side is, and dually. *)
     let decide_ground rho1 rho2 =
       match eval rho2 with
-      | Some v2
-        when v2 = ResourceGrade.zero && ResourceGrade.is_zero_top_sub_rho ->
-          Some true
+      | Some v2 when v2 = ResourceGrade.one && unit_is_top -> Some true
       | v2 -> (
           match (eval rho1, v2) with
-          | Some v1, _
-            when v1 = ResourceGrade.zero
-                 && ResourceGrade.is_zero_minimal_sub_rho ->
+          | Some v1, _ when v1 = ResourceGrade.one && ResourceGrade.unit_least
+            ->
               Some true
           | Some v1, Some v2 ->
-              Some (ResourceGrade.is_sub_rho (op_bounds ~loc state) v1 v2)
+              Some (ResourceGrade.leq (op_bounds ~loc state) v1 v2)
           | _ -> None)
     in
     let strip_rigid rho =
@@ -1544,11 +1548,9 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
     if rho1 = rho2 then Holds
     else
       let left, right = normalise_rho_pair rho1 rho2 in
-      let left' =
-        if ResourceGrade.is_zero_top_sub_rho then strip_rigid left else left
+      let left' = if unit_is_top then strip_rigid left else left
       and right' =
-        if ResourceGrade.is_zero_minimal_sub_rho then strip_rigid right
-        else right
+        if ResourceGrade.unit_least then strip_rigid right else right
       in
       match decide_ground left' right' with
       | Some true -> Holds
@@ -1570,14 +1572,14 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
             let beyond =
               List.fold_left
                 (fun acc -> function
-                  | Either.Right c -> ResourceGrade.add acc c
+                  | Either.Right c -> ResourceGrade.mul acc c
                   | Either.Left _ -> acc)
                 (ResourceGrade.of_nat 1)
                 (build_rho_param_list left @ build_rho_param_list right)
             in
             match
               List.find_opt refutes
-                [ ResourceGrade.zero; ResourceGrade.of_nat 1; beyond ]
+                [ ResourceGrade.one; ResourceGrade.of_nat 1; beyond ]
             with
             | Some w -> Fails (Some w)
             | None -> Unknown)
@@ -1663,7 +1665,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
     let rho_subst =
       Ast.RhoParamSet.fold
         (fun r subst ->
-          Ast.RhoParamMap.add r (Ast.RhoConst ResourceGrade.zero) subst)
+          Ast.RhoParamMap.add r (Ast.RhoConst ResourceGrade.one) subst)
         (Ast.RhoParamSet.diff fv_rhos gen_rhos)
         Ast.RhoParamMap.empty
     in

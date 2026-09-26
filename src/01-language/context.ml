@@ -35,7 +35,7 @@ end
 module Make
     (Variable : Symbol.S)
     (VariableMap : Map.S with type key = Variable.t)
-    (Base : ResourceGrade.Grade)
+    (Base : Grade.S)
     (Elapsed : sig
       type t
 
@@ -57,7 +57,7 @@ struct
 
   let add_temp (n : elapsed) (lst : 'a t) : 'a t =
     match Elapsed.rho n with
-    | RhoConst z when z = Base.zero -> lst
+    | RhoConst z when z = Base.one -> lst
     | _ -> Rho n :: lst
 
   let add_barrier (b : barrier) (lst : 'a t) : 'a t = Barrier b :: lst
@@ -128,7 +128,7 @@ struct
           | Some _ -> acc
           | None -> go acc rest)
     in
-    go (Ast.RhoConst Base.zero) lst
+    go (Ast.RhoConst Base.one) lst
 
   (** [elapsed_after key lst] are the entries recorded in [lst] since [key] was
       bound, oldest first: the summands of {!sum_rhos_added_after} with whatever
@@ -154,12 +154,12 @@ struct
       | Rho t :: rest -> sum (RhoAdd (Elapsed.rho t, acc)) rest
       | (VarMap _ | Barrier _) :: rest -> sum acc rest
     in
-    sum (RhoConst Base.zero) lst
+    sum (RhoConst Base.one) lst
 
   let rec eval_rho (t : base_rho) : base =
     match t with
     | RhoConst c -> c
     | RhoParam _ | RhoRigid _ ->
         raise (RhoParamInEval "RhoParam not supported in eval_rho")
-    | RhoAdd (t1, t2) -> Base.add (eval_rho t1) (eval_rho t2)
+    | RhoAdd (t1, t2) -> Base.mul (eval_rho t1) (eval_rho t2)
 end

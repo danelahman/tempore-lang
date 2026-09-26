@@ -40,9 +40,7 @@ type config = {
   resource_type : string;
 }
 
-let accepted_resource_names =
-  List.map fst Language.ResourceGrade.resource_grade_modules
-
+let accepted_resource_names = List.map fst Language.Grade.grade_modules
 let default_resource_name = List.hd accepted_resource_names
 
 let parse_args_to_config () =
@@ -64,6 +62,12 @@ let parse_args_to_config () =
           Arg.Set debug,
           " Show final internal state and top level typing results after \
            execution" );
+        ( "--grades",
+          Arg.Set_string resource_type,
+          Printf.sprintf " Selects the grades (default: %s). Accepted: %s"
+            default_resource_name
+            (String.concat ", "
+               (List.map (fun s -> "'" ^ s ^ "'") accepted_resource_names)) );
         ( "--help",
           Arg.Unit
             (fun () -> raise (Arg.Help (Arg.usage_string !options usage))),
@@ -71,13 +75,6 @@ let parse_args_to_config () =
         ( "--no-stdlib",
           Arg.Clear use_stdlib,
           " Do not load the standard library" );
-        ( "--resources",
-          Arg.Set_string resource_type,
-          Printf.sprintf
-            " Type of resource grades to use (default: %s). Accepted: %s"
-            default_resource_name
-            (String.concat ", "
-               (List.map (fun s -> "'" ^ s ^ "'") accepted_resource_names)) );
         ( "--typecheck-only",
           Arg.Set typecheck_only,
           " Typecheck the files without running them" );
@@ -97,9 +94,8 @@ let parse_args_to_config () =
     resource_type = !resource_type;
   }
 
-let run_with (type t)
-    (module ResourceGrade : Language.ResourceGrade.Grade with type t = t) config
-    =
+let run_with (type t) (module ResourceGrade : Language.Grade.S with type t = t)
+    config =
   let module Backend = CliInterpreter.Make (ResourceGrade) in
   let module Loader = Loader.Loader (Backend) in
   let rec run (state : Backend.run_state) run_num =
@@ -170,15 +166,11 @@ let run_with (type t)
 
 let main () =
   let config = parse_args_to_config () in
-  match
-    List.assoc_opt config.resource_type
-      Language.ResourceGrade.resource_grade_modules
-  with
-  | Some (module ResourceGrade : Language.ResourceGrade.Grade) ->
+  match List.assoc_opt config.resource_type Language.Grade.grade_modules with
+  | Some (module ResourceGrade : Language.Grade.S) ->
       run_with (module ResourceGrade) config
   | None ->
-      Printf.eprintf "Unknown type of resource grades '%s'. Accepted: %s\n"
-        config.resource_type
+      Printf.eprintf "Unknown grades '%s'. Accepted: %s\n" config.resource_type
         (String.concat ", "
            (List.map (fun s -> "'" ^ s ^ "'") accepted_resource_names));
       exit 1

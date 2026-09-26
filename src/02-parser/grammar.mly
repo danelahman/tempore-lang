@@ -3,7 +3,7 @@
   open Utils
 %}
 
-%parameter<ResourceGrade : Language.ResourceGrade.Grade>
+%parameter<ResourceGrade : Language.Grade.S>
 
 %token LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE
 %token COLON COMMA SEMI EQUAL CONS
@@ -417,7 +417,7 @@ plain_ty:
   | t1 = ty_apply ARROW t2 = ty HASH grade = rho_grade
     { TyArrow (t1, CompTy (t2, grade)) }
   | t1 = ty_apply ARROW t2 = ty
-    { TyArrow (t1, CompTy (t2, ResourceGrade.zero)) }
+    { TyArrow (t1, CompTy (t2, ResourceGrade.one)) }
   | t = plain_prod_ty
     { t }
 
@@ -462,11 +462,11 @@ op_bounds:
   | WITHIN LPAREN n = INT COMMA m = INT RPAREN { (n, m) }
 
 rho_grade:
-  | n = INT { ResourceGrade.of_lit (Language.ResourceGrade.Int n) }
-  | LPAREN n = INT COMMA m = INT RPAREN { ResourceGrade.of_lit (Language.ResourceGrade.Pair (n, m)) }
-  | LBRACE ts = trace_set RBRACE { ResourceGrade.of_lit (Language.ResourceGrade.Traces ts) }
+  | n = INT { ResourceGrade.of_lit (Language.Grade.Int n) }
+  | LPAREN n = INT COMMA m = INT RPAREN { ResourceGrade.of_lit (Language.Grade.Pair (n, m)) }
+  | LBRACE ts = trace_set RBRACE { ResourceGrade.of_lit (Language.Grade.Traces ts) }
   | LPAREN LBRACE ts1 = trace_set RBRACE COMMA LBRACE ts2 = trace_set RBRACE RPAREN
-    { ResourceGrade.of_lit (Language.ResourceGrade.TracePair (ts1, ts2)) }
+    { ResourceGrade.of_lit (Language.Grade.TracePair (ts1, ts2)) }
 
 trace_set:
   | ts = separated_nonempty_list(BAR, trace_lit) { ts }
@@ -475,7 +475,7 @@ trace_lit:
   | evs = separated_nonempty_list(SEMI, trace_event) { evs }
 
 trace_event:
-  | op = UNAME { Language.ResourceGrade.Ev op }
-  | n = INT { Language.ResourceGrade.Wait n }
+  | op = UNAME { Language.Grade.Ev op }
+  | n = INT { Language.Grade.Wait n }
 
 %%

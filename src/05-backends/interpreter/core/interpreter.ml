@@ -25,7 +25,7 @@ module Types = struct
   type step_label = ComputationReduction of computation_reduction | Return
 end
 
-module Make (T : Language.ResourceGrade.Grade) = struct
+module Make (T : Language.Grade.S) = struct
   module ResourceGrade = T
 
   (* The interpreter has no use for anything but the accumulated grade itself,

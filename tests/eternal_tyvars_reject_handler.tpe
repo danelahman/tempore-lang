@@ -1,6 +1,6 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./tempore --resources time-upper-bound tests/eternal_tyvars_reject_handler.tpe *)
+     ./tempore --grades time-upper-bound tests/eternal_tyvars_reject_handler.tpe *)
 
 operation Op : unit ~> unit # 1
 

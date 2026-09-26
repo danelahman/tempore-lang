@@ -8,7 +8,7 @@ module Diagnostic = Utils.Diagnostic
 module Location = Utils.Location
 module Ast = Language.Ast
 
-module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
+module Make (ResourceGrade : Language.Grade.S) = struct
   type ty = ResourceGrade.t Ast.ty
   type rho = ResourceGrade.t Ast.rho
   type reason = ResourceGrade.t Ast.reason
@@ -143,7 +143,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
           (code
              (Printf.sprintf "%s %s %s"
                 (p.rho_raw (Ast.instantiate_rigid w rho1))
-                ResourceGrade.is_sub_rho_symbol
+                ResourceGrade.leq_symbol
                 (p.rho_raw (Ast.instantiate_rigid w rho2))))
 
   (* A fragment whose sides mention rigid grades states what it claims of every
@@ -600,8 +600,7 @@ module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
   (* The inequality is one fragment of the user's code, so its two sides come
      in unmarked and the whole of it is marked here. *)
   let ineq_code p rs g1 g2 =
-    quantified p rs
-      (Printf.sprintf "%s %s %s" g1 ResourceGrade.is_sub_rho_symbol g2)
+    quantified p rs (Printf.sprintf "%s %s %s" g1 ResourceGrade.leq_symbol g2)
 
   let plain_ineq p rs g1 g2 =
     Printf.sprintf "the resource inequality %s does not hold"

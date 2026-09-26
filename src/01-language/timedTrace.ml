@@ -57,6 +57,9 @@ let product p q =
   List.sort_uniq compare
     (List.concat_map (fun s -> List.map (fun t -> concat s t) q) p)
 
+(** [union p q] is the set of the runs of [p] and of [q]. *)
+let union p q = List.sort_uniq compare (p @ q)
+
 (** [of_nat n] is the singleton set containing the pure delay of duration [n];
     [of_nat 0] is the unit [{ε}]. *)
 let of_nat n = [ normalise [ Wait n ] ]

@@ -45,7 +45,7 @@ There are two ways to run programs:
   loads all listed files and runs every `run` command, printing each run's
   result and final resource state.
 
-  Options: `--resources <monoid>` selects the grading monoid (see below),
+  Options: `--grades <grades>` selects the grades (see below),
   `--typecheck-only` typechecks the files without running them, `--no-stdlib`
   skips the standard library, and `--debug` also prints the typing context.
 
@@ -56,11 +56,11 @@ web interface; each also starts with listing the command that runs it in CLI.
 
 Resource usage is measured in a grading monoid (an ordered monoid with some
 additional structure). The monoid is not part of a source file but chosen when
-the program is run: with `--resources` on the command line, e.g.
+the program is run: with `--grades` on the command line, e.g.
 
-    ./tempore --resources time-interval examples/time_intervals.tpe
+    ./tempore --grades time-interval examples/time_intervals.tpe
 
-or with the **Resource grade** selector in the web interface, which switches
+or with the **Grades** selector in the web interface, which switches
 its value automatically when a built-in example is loaded. The default grade
 monoid is `time-lower-bound`. Currently, six monoids are available to choose.
 
@@ -72,10 +72,11 @@ literals such as `3` or pairs such as `(1, 4)`:
   the *top* of the order.
 - **`time-upper-bound`** — non-negative integers, an upper bound on the time a
   computation takes. `rho` is a sub-grade of `rho'` when `rho <= rho'`; zero is
-  the *minimum* of the order.
+  the *minimum* of the order and `∞`, which has no literal, its top.
 - **`time-interval`** — pairs `(n, m)` with `n <= m`, a lower and an upper
   bound at once. `(n, m)` is a sub-grade of `(k, l)` when `n >= k` and
-  `l >= m` (interval containment); `(0, 0)` is the minimum. See
+  `l >= m` (interval containment); `(0, 0)` is neither the top nor the
+  minimum, and the top `(0, ∞)` has no literal. See
   [`examples/time_intervals.tpe`](examples/time_intervals.tpe).
 
 All three variants of time bounds are inclusive on the values they carry, e.g.,
@@ -101,7 +102,8 @@ operations through the runtime bounds `within (lo, hi)` every atomic operation
   is a sub-grade of `rho'` when every run of `rho` fits inside some run of
   `rho'`: a delay in `rho'` pays for operations of `rho` at their `hi`, but
   waiting never counts as performing an operation the bound asks for. `{0}` is
-  the minimum of the order. See
+  the minimum of the order; its top is a separate point `⊤`, permitting any
+  run, which has no literal. See
   [`examples/traces_upper.tpe`](examples/traces_upper.tpe).
 - **`traces-interval`** — pairs `({...}, {...})` of a lower bound
   (coverage order, reading `lo`) and an upper bound (allowance order, reading

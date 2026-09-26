@@ -1,6 +1,6 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./tempore --resources time-upper-bound tests/continuation_nested_twice_reject_upper.tpe *)
+     ./tempore --grades time-upper-bound tests/continuation_nested_twice_reject_upper.tpe *)
 
 operation Op1 : unit ~> unit # 1
 operation Op2 : unit ~> unit # 1

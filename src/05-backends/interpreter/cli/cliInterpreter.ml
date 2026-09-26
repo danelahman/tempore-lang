@@ -1,4 +1,4 @@
-module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
+module Make (ResourceGrade : Language.Grade.S) = struct
   include Interpreter.Make (ResourceGrade)
   module Ast = Language.Ast
   module PrettyPrint = Language.PrettyPrint

@@ -464,17 +464,17 @@ let view_compiler (model : Model.model) =
         div
           ~a:[ class_ "field" ]
           [
-            elt "label" ~a:[ class_ "label" ] [ text "Resource grade" ];
+            elt "label" ~a:[ class_ "label" ] [ text "Grades" ];
             div
               ~a:[ class_ "control is-expanded" ]
               [
                 select
                   ~a:[ class_ "select is-fullwidth" ]
-                  "Select resource grade"
+                  "Select grades"
                   (fun name -> Model.EditMsg (Model.SelectResource name))
                   (fun name -> name)
                   (fun name -> name = model.edit_model.selected_resource)
-                  (List.map fst Language.ResourceGrade.resource_grade_modules);
+                  (List.map fst Language.Grade.grade_modules);
               ];
           ];
       ]

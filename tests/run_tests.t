@@ -4,24 +4,24 @@
   >   echo $f
   >   echo "======================================================================"
   >   case $f in
-  >     time_intervals.tpe) ../tempore --resources time-interval $f;;
-  >     time_upper.tpe) ../tempore --resources time-upper-bound $f;;
-  >     comp_type_annotation_upper*.tpe) ../tempore --resources time-upper-bound $f;;
+  >     time_intervals.tpe) ../tempore --grades time-interval $f;;
+  >     time_upper.tpe) ../tempore --grades time-upper-bound $f;;
+  >     comp_type_annotation_upper*.tpe) ../tempore --grades time-upper-bound $f;;
   >     eternal_lower.tpe) ../tempore $f;;
-  >     eternal_*.tpe) ../tempore --resources time-upper-bound $f;;
+  >     eternal_*.tpe) ../tempore --grades time-upper-bound $f;;
   >     noneternal_lower.tpe) ../tempore $f;;
-  >     noneternal*.tpe) ../tempore --resources time-upper-bound $f;;
+  >     noneternal*.tpe) ../tempore --grades time-upper-bound $f;;
   >     continuation_discard_reject_lower.tpe) ../tempore $f;;
   >     continuation_nested_discard_reject_lower.tpe) ../tempore $f;;
   >     continuation_twice_lower.tpe) ../tempore $f;;
-  >     continuation_*.tpe) ../tempore --resources time-upper-bound $f;;
-  >     error_use_after_delay.tpe) ../tempore --resources time-upper-bound $f;;
-  >     traces_lower.tpe) ../tempore --resources traces-lower-bound $f;;
-  >     3dprint_traces.tpe) ../tempore --resources traces-interval $f;;
-  >     traces_intervals.tpe) ../tempore --resources traces-interval $f;;
-  >     traces_intervals_bounds.tpe) ../tempore --resources traces-interval $f;;
-  >     traces_intervals_default_bounds.tpe) ../tempore --resources traces-interval $f;;
-  >     traces_*.tpe) ../tempore --resources traces-upper-bound $f;;
+  >     continuation_*.tpe) ../tempore --grades time-upper-bound $f;;
+  >     error_use_after_delay.tpe) ../tempore --grades time-upper-bound $f;;
+  >     traces_lower.tpe) ../tempore --grades traces-lower-bound $f;;
+  >     3dprint_traces.tpe) ../tempore --grades traces-interval $f;;
+  >     traces_intervals.tpe) ../tempore --grades traces-interval $f;;
+  >     traces_intervals_bounds.tpe) ../tempore --grades traces-interval $f;;
+  >     traces_intervals_default_bounds.tpe) ../tempore --grades traces-interval $f;;
+  >     traces_*.tpe) ../tempore --grades traces-upper-bound $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -2145,8 +2145,8 @@ single-dash form of the help option is not accepted.
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
+    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval'
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
-    --resources       Type of resource grades to use (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval'
     --typecheck-only  Typecheck the files without running them
   [2]

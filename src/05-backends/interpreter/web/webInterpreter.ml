@@ -1,6 +1,6 @@
 module SyntaxHighlight = SyntaxHighlight
 
-module Make (ResourceGrade : Language.ResourceGrade.Grade) = struct
+module Make (ResourceGrade : Language.Grade.S) = struct
   include Interpreter.Make (ResourceGrade)
   open Vdom
   module Ast = Language.Ast

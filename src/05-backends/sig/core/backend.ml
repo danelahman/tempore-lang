@@ -2,7 +2,7 @@ module Ast = Language.Ast
 module Primitives = Language.Primitives
 
 module type S = sig
-  module ResourceGrade : Language.ResourceGrade.Grade
+  module ResourceGrade : Language.Grade.S
 
   type load_state
 
