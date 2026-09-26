@@ -1,7 +1,5 @@
-(* Normal forms and decisions of open grade expressions, after
-   [SolverImpl/Product.agda], [Normal.agda], [Canon.agda], [Closed.agda] and
-   [Refute.agda]. The sort-independent part is [Core], instantiated at both
-   sorts in [Make]. *)
+(* Normal forms and decisions of open grade expressions. The sort-independent
+   part is [Core], instantiated at both sorts in [Make]. *)
 
 type ('c, 'v) atom = Const of 'c | Var of 'v
 type ('e, 'a) ordering = { lhs : 'e; rhs : 'e; info : 'a }
@@ -32,15 +30,14 @@ module type BASE = sig
   val unit_least : bool
   val commutative : bool
 
-  (* The unit is below the variable atom by the other sort's leastness
-     ([minᵐ] of [Normal.agda]). *)
+  (* The unit is below the variable atom by the other sort's leastness. *)
   val unit_below_var : var -> bool
   val fold_exp : (const, var, 's) algebra -> exp -> 's
   val exp_of_atom : (const, var) atom -> exp
   val exp_mul : exp -> exp -> exp
   val exp_join : exp -> exp -> exp
 
-  (* The atom a side of a hypothesis is, if it is one ([atomʳ?]/[atomᵉ?]). *)
+  (* The atom a side of a hypothesis is, if it is one. *)
   val as_atom : exp -> (const, var) atom option
   val value : exp -> const option
   val equal_exp : Language.Grade.bounds -> exp -> exp -> bool
@@ -72,10 +69,10 @@ module Core (S : BASE) = struct
   let equal_product bounds = List.equal (equal_atom bounds)
 
   (* ---------------------------------------------------------------------- *)
-  (* Flattening (Product.agda) *)
+  (* Flattening *)
 
   (* Consing an atom onto a product: adjacent constants are multiplied, and a
-     constant that is the unit dropped ([consₑ]/[consᵣ]). *)
+     constant that is the unit dropped. *)
   let rec cons bounds a p =
     match (a, p) with
     | Const c, Const d :: p -> cons bounds (Const (S.mul c d)) p
@@ -84,26 +81,24 @@ module Core (S : BASE) = struct
 
   let app bounds p q = List.fold_right (cons bounds) p q
 
-  (* Every alternative of the one sum against every alternative of the other
-     ([mulₑ]/[mulᵣ]). *)
+  (* Every alternative of the one sum against every alternative of the
+     other. *)
   let cross bounds s t = List.concat_map (fun p -> List.map (app bounds p) t) s
 
-  (* A repeated alternative is absorbed by its last occurrence
-     ([nubₑ]/[nubᵣ]). *)
+  (* A repeated alternative is absorbed by its last occurrence. *)
   let nub bounds s =
     List.fold_right
       (fun p s' ->
         if List.exists (equal_product bounds p) s' then s' else p :: s')
       s []
 
-  (* The constant top, or the empty product where the unit is the top
-     ([isTopₑ?]/[isTopᵣ?]). *)
+  (* The constant top, or the empty product where the unit is the top. *)
   let is_top bounds = function
     | [] -> S.equal bounds S.one S.top
     | [ Const c ] -> S.equal bounds c S.top
     | _ -> false
 
-  (* A sum with a top alternative is the top ([absorbₑ]/[absorbᵣ]). *)
+  (* A sum with a top alternative is the top. *)
   let absorb bounds s =
     if List.exists (is_top bounds) s then [ cons bounds (Const S.top) [] ]
     else s
@@ -117,8 +112,7 @@ module Core (S : BASE) = struct
         join = (fun s t -> absorb bounds (nub bounds (s @ t)));
       }
 
-  (* A product as its constant followed by its variables in order
-     ([commuteₑ]/[commuteᵣ]). *)
+  (* A product as its constant followed by its variables in order. *)
   let commute bounds p =
     let c =
       List.fold_right
@@ -150,7 +144,7 @@ module Core (S : BASE) = struct
     | p :: s -> S.exp_join (read_back_product p) (read_back s)
 
   (* ---------------------------------------------------------------------- *)
-  (* Grouping (Grouping of Product.agda) *)
+  (* Grouping *)
 
   (* A product read as its variables with a constant slot before each and one
      at the end, an empty slot being the unit. *)
@@ -191,7 +185,7 @@ module Core (S : BASE) = struct
       s.pairs t.pairs
     && S.equal bounds s.last t.last
 
-  (* [c₁ ⊔ (c₂ ⊔ … ⊔ cₙ)] ([joinᴷ]). *)
+  (* [c₁ ⊔ (c₂ ⊔ … ⊔ cₙ)]. *)
   let rec join_right c = function
     | [] -> c
     | d :: ds -> S.join c (join_right d ds)
@@ -204,7 +198,7 @@ module Core (S : BASE) = struct
   (* A group, its members sharing a skeleton, folded into one alternative:
      with an empty skeleton the join of the constants; otherwise the same first
      slot and the rest folded, or else the same remaining slots and the first
-     slot joined ([fold?], [sameHead?], [sameTail?]). *)
+     slot joined. *)
   let rec fold_slots bounds group =
     match group with
     | [] -> None
@@ -281,7 +275,7 @@ module Core (S : BASE) = struct
     List.map (of_slots bounds) (canonical bounds (List.map to_slots s))
 
   (* ---------------------------------------------------------------------- *)
-  (* Atomic hypotheses (Chains of Normal.agda) *)
+  (* Atomic hypotheses *)
 
   (* Two atoms linked: equal variables, or constants in order. *)
   let link bounds a b =
@@ -296,7 +290,7 @@ module Core (S : BASE) = struct
       reached
 
   (* One round along the edges, each target newly reached from a reached
-     source added with its chain ([grow]). *)
+     source added with its chain. *)
   let grow bounds edges reached =
     List.fold_right
       (fun (c, d, used) reached ->
@@ -305,8 +299,7 @@ module Core (S : BASE) = struct
         | _ -> reached)
       edges reached
 
-  (* At most [n] rounds, stopping at the first that reaches nothing new
-     ([sat]). *)
+  (* At most [n] rounds, stopping at the first that reaches nothing new. *)
   let rec saturate bounds edges n reached =
     if n = 0 then reached
     else
@@ -314,8 +307,8 @@ module Core (S : BASE) = struct
       if List.length reached' = List.length reached then reached'
       else saturate bounds edges (n - 1) reached'
 
-  (* Each distinct source, in order of first occurrence, with what it reaches
-     ([table]). *)
+  (* Each distinct source, in order of first occurrence, with what it
+     reaches. *)
   let table bounds edges =
     let sources =
       List.rev
@@ -334,7 +327,7 @@ module Core (S : BASE) = struct
     table : (atom * (atom * 'a list) list) list;
   }
 
-  (* [reach?] *)
+  (* Whether [a] reaches [b] directly or along the table's edges. *)
   let reach ctx a b =
     derived_if (link ctx.bounds a b) <|> fun () ->
     List.find_map
@@ -342,25 +335,26 @@ module Core (S : BASE) = struct
         if link ctx.bounds a c then find ctx.bounds reached b else None)
       ctx.table
 
-  (* An atom that the top reaches ([ceilₑ]/[ceilᵣ] and [⊤≤?]). *)
+  (* An atom that the top reaches. *)
   let top_leq ctx b = reach ctx (Const S.top) b
 
-  (* [atom≾ₑ]/[atom≾ᵣ] *)
+  (* Whether the atom [a] is below the atom [b]: linked directly, or [b]
+     reached from the top, or [b] reached from [a]. *)
   let atom_leq ctx a b =
     derived_if (link ctx.bounds a b) <|> fun () ->
     top_leq ctx b <|> fun () -> reach ctx a b
 
-  (* [unit≾ₑ]/[unit≾ᵣ] *)
+  (* Whether the unit is below the atom [b]. *)
   let unit_leq ctx b =
     derived_if S.unit_least <|> fun () ->
     (match b with Var v -> derived_if (S.unit_below_var v) | Const _ -> None)
     <|> fun () -> atom_leq ctx (Const S.one) b
 
-  (* [≾unitₑ]/[≾unitᵣ] *)
+  (* Whether the atom [a] is below the unit. *)
   let leq_unit ctx a = atom_leq ctx a (Const S.one)
 
   (* ---------------------------------------------------------------------- *)
-  (* Products (Embedding of Normal.agda) *)
+  (* Products *)
 
   (* A step, when its condition is decided, to the pair it leads to. *)
   let step decide next : _ Seq.t =
@@ -373,10 +367,11 @@ module Core (S : BASE) = struct
 
   let remove_at i = List.filteri (fun j _ -> j <> i)
 
-  (* The steps out of a pair, in the order the search tries them: [match],
-     [skipʳ], [skipˡ], [absorb], [mergeʳ], [mergeˡ], and where the product
-     commutes [pick] and [absorbAt] past the right head. [absorbAt] is tried
-     at its first position only, every position leading to the same pair. *)
+  (* The steps out of a pair, in the order the search tries them: [matches],
+     [skips_right], [skips_left], [absorbs], [merges_right], [merges_left],
+     and, where the product commutes, [picks] and [absorbs_at] past the right
+     head. [absorbs_at] is tried at its first position only, every position
+     leading to the same pair. *)
   let steps ctx left right =
     let matches =
       match (left, right) with
@@ -451,8 +446,8 @@ module Core (S : BASE) = struct
       ]
       absorbs_at
 
-  (* Depth-first search for a sequence of steps to the empty pair
-     ([_⊑ᵖ?_]); each step shortens the pair. *)
+  (* Depth-first search for a sequence of steps to the empty pair; each step
+     shortens the pair. *)
   let rec embed ctx left right =
     match (left, right) with
     | [], [] -> Some []
@@ -462,10 +457,10 @@ module Core (S : BASE) = struct
             Option.map (List.append used) (embed ctx left' right'))
           (steps ctx left right)
 
-  (* Some alternative of [t] bounds [p] ([altSum≾]). *)
+  (* Some alternative of [t] bounds [p]. *)
   let alt_sum_leq ctx p t = List.find_map (embed ctx p) t
 
-  (* Every alternative of [s] is below [t] ([sum≾]). *)
+  (* Every alternative of [s] is below [t]. *)
   let sum_leq ctx s t =
     List.fold_left
       (fun found p ->
@@ -473,14 +468,14 @@ module Core (S : BASE) = struct
             Option.map (List.append used) (alt_sum_leq ctx p t)))
       (Some []) s
 
-  (* [decide≾ₑ]/[decide≾ᵣ] along the given atomic edges. *)
+  (* Decides the ordering [e ≾ e'] along the given atomic edges. *)
   let decide bounds edges e e' =
     sum_leq
       { bounds; table = table bounds edges }
       (normal bounds e)
       (fold_sum bounds (normal bounds e'))
 
-  (* The atomic hypotheses among orderings, as edges ([edgesₑ]/[edgesᵣ]). *)
+  (* The atomic hypotheses among orderings, as edges. *)
   let edges orderings =
     List.filter_map
       (fun o ->
@@ -490,10 +485,10 @@ module Core (S : BASE) = struct
       orderings
 
   (* ---------------------------------------------------------------------- *)
-  (* Canonical forms (Pruning of Product.agda, Canon.agda) *)
+  (* Canonical forms *)
 
   (* Every alternative strictly below another kept is dropped, and each kept
-     one absorbs those below it, ties included ([prune]). *)
+     one absorbs those below it, ties included. *)
   let prune leq slots =
     let place p kept =
       if List.exists (fun k -> leq p k && not (leq k p)) kept then kept
@@ -501,7 +496,7 @@ module Core (S : BASE) = struct
     in
     List.fold_right place slots []
 
-  (* Rounds of folding and pruning, while the sum shrinks ([maximal]). *)
+  (* Rounds of folding and pruning, while the sum shrinks. *)
   let maximal bounds leq slots =
     let rec rounds n slots =
       if n = 0 then slots
@@ -512,8 +507,7 @@ module Core (S : BASE) = struct
     in
     rounds (List.length slots) slots
 
-  (* Where the unit is least, a product with the top is the top
-     ([absorbProdₑ]/[absorbProdᵣ]). *)
+  (* Where the unit is least, a product with the top is the top. *)
   let absorb_product bounds p =
     if S.unit_least && List.exists (equal_atom bounds (Const S.top)) p then
       cons bounds (Const S.top) []
@@ -539,7 +533,7 @@ module Core (S : BASE) = struct
     List.concat_map (split bounds) orderings
 
   (* ---------------------------------------------------------------------- *)
-  (* Closed orderings (Closed.agda) and refutation (Refute.agda) *)
+  (* Closed orderings and refutation *)
 
   let value = S.value
 
@@ -704,7 +698,7 @@ module Make (X : GradeExp.S) = struct
       | Resource _ -> false
 
     (* The image of an effect expression is folded through its constants'
-       images and its variables' images ([flatᵐ]). *)
+       images and its variables' images. *)
     let rec fold_exp alg = function
       | X.Rho_var v -> alg.var (Resource v)
       | X.Rho_const c -> alg.const c
@@ -754,13 +748,12 @@ module Make (X : GradeExp.S) = struct
   module Rho = struct
     include Rho_core
 
-    (* The image of an effect atom ([∣_∣ᵃ]). *)
+    (* The image of an effect atom. *)
     let image = function
       | Const c -> Const (X.GS.map c)
       | Var v -> Var (Image v)
 
-    (* The resource hypotheses and the images of the effect ones
-       ([redgesᵣ]). *)
+    (* The resource hypotheses and the images of the effect ones. *)
     let decide_leq bounds hyps rho rho' =
       let images =
         List.map

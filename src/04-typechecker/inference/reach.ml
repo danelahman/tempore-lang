@@ -1,4 +1,4 @@
-(* Warshall's algorithm, after [SolverImpl/Reach.agda]. *)
+(* Warshall's algorithm. *)
 
 type ('v, 'e) t = {
   equal : 'v -> 'v -> bool;

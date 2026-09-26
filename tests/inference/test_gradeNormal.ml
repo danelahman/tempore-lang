@@ -1,6 +1,5 @@
 (* Unit tests of [GradeExp], [GradeNormal] and [Reach], at the identity grade
-   system over each grade of [Grade.grade_modules]. Cases marked with an Agda
-   name mirror [TypeInference/Examples/Stages.agda] and [Reports.agda]. *)
+   system over each grade of [Grade.grade_modules]. *)
 
 module Grade = Language.Grade
 module GradeSystem = Language.GradeSystem
@@ -182,21 +181,17 @@ module Suite (G : Grade.S) = struct
         (decide_rho N.no_hyps x z);
       expect "a chain is not reversed" show_used ~expected:None
         (decide_rho chain z x);
-      (* crossed-e, crossed-e-∅, crossed-in-order *)
       expect "crossed factors match only when commutative" show_bool
         ~expected:G.commutative
         (decided_eps crossed (c *. d) (a *. b));
       check "crossed factors without hypotheses"
         (not (decided_eps N.no_hyps (c *. d) (a *. b)))
         "c · d ≾ a · b decided at no hypotheses";
-      (* crossed-in-order-swapped *)
       check "factors in order match"
         (decided_eps crossed (d *. c) (a *. b))
         "d · c ≾ a · b not decided";
-      (* crossed-r *)
       expect "crossed resource factors" show_bool ~expected:G.commutative
         (decided_rho (rho_hyps [ hyp z y 1; hyp w x 2 ]) (z * w) (x * y));
-      (* crossed-images *)
       expect "crossed images" show_bool ~expected:G.commutative
         (decided_rho
            (rho_hyps [ hyp z (map a) 1; hyp (map b) x 2 ])
@@ -217,7 +212,6 @@ module Suite (G : Grade.S) = struct
     @
     if G.name = "time-upper-bound" then
       [
-        (* crossed-constant, crossed-constant-∅ *)
         check "crossed constant"
           (decided_eps (eps_hyps [ hyp (en 3) b 1 ]) (en 3 *. a) (a *. b))
           "3 · a ≾ a · b not decided";
@@ -227,7 +221,6 @@ module Suite (G : Grade.S) = struct
       ]
     else if G.commutative && not unit_is_top then
       [
-        (* top-crossed, top-crossed-converse *)
         check "the top matched crosswise"
           (decided_eps N.no_hyps (a *. b) (X.Eps.top *. a))
           "a · b ≾ ⊤ · a not decided";
@@ -240,7 +233,6 @@ module Suite (G : Grade.S) = struct
   let canonical_forms =
     let canon = N.Rho.canon bounds in
     [
-      (* top-product-r, top-product-kept *)
       same "a product with the top"
         ~expected:
           (if G.unit_least then top
@@ -248,7 +240,6 @@ module Suite (G : Grade.S) = struct
            else if G.commutative then top * x
            else x * top)
         (canon (x * top));
-      (* top-product-e *)
       check "an effect product with the top"
         (X.Eps.equal bounds
            (N.Eps.canon bounds (a *. X.Eps.top))
@@ -268,14 +259,12 @@ module Suite (G : Grade.S) = struct
     @
     if G.unit_least then
       [
-        (* top-product-join; claimed-after-call of Reports.agda *)
         same "a product with the top absorbs a join" ~expected:top
           (canon ((x * top) + y));
         same "an image times the top" ~expected:top (canon (map a * top));
       ]
     else []
 
-  (* split-left-r, split-left-e *)
   let splits =
     let show_split show os =
       String.concat "; "
@@ -319,18 +308,15 @@ module Suite (G : Grade.S) = struct
           Some failure.info
     in
     [
-      (* chain-late *)
       expect "closed sides joined by a chain" show_used
         ~expected:(if fails 3 2 then Some [ 1; 2 ] else None)
         (failure_info
            (N.Rho.check_closed bounds [ hyp (n 3) x 1; hyp x (n 2) 2 ]));
-      (* chain-late-long *)
       expect "closed sides joined by a long chain" show_used
         ~expected:(if fails 5 4 then Some [ 1; 3; 4; 2 ] else None)
         (failure_info
            (N.Eps.check_closed bounds
               [ hyp (en 5) a 1; hyp b (en 4) 2; hyp a c 3; hyp c b 4 ]));
-      (* chain-on-time *)
       expect "a chain that holds keeps the set" string_of_int ~expected:2
         (match N.Rho.check_closed bounds [ hyp (n 2) x 1; hyp x (n 2) 2 ] with
         | Ok kept -> List.length kept

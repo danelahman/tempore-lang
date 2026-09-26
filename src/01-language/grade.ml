@@ -1,6 +1,5 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins,
-    after the [Grade] record of the formalisation ([Syntax/Grades.agda]), and
-    the instances the prototype offers.
+    and the instances the prototype offers.
 
     {2 Cost model}
 
@@ -12,11 +11,10 @@
     {2 Representations}
 
     A set of timed traces is kept sorted and duplicate-free (see {!TimedTrace}),
-    not reduced to the antichain of its extremal members as in the formalisation
-    ([Syntax/Grades/Traces/Reduced.agda]), since that reduction depends on the
-    order and hence on the cost model. So [mul] and [join] need no cost model,
-    but a trace grade may have several representations; [equal] is mutual [leq],
-    which is equality of the reduced antichains. *)
+    not reduced to the antichain of its extremal members, since that reduction
+    depends on the order and hence on the cost model. So [mul] and [join] need
+    no cost model, but a trace grade may have several representations; [equal]
+    is mutual [leq], which is equality of the reduced antichains. *)
 
 (** The events a trace literal is made of, re-exported from {!TimedTrace} so
     that the parser can build literals without a conversion step. *)
@@ -69,10 +67,10 @@ module type S = sig
   (** [equal bounds c d] decides [c = d] under the cost model [bounds]. *)
 
   val unit_least : bool
-  (** Whether {!one} is the least grade (the formalisation's [u-least?]). *)
+  (** Whether {!one} is the least grade. *)
 
   val commutative : bool
-  (** Whether {!mul} is commutative (the formalisation's [·-comm?]). *)
+  (** Whether {!mul} is commutative. *)
 
   val needs_op_bounds : bool
   (** Whether operation signatures must carry their runtime bounds
@@ -136,8 +134,8 @@ let check_nat who n =
   if n < 0 then invalid_arg (who ^ ".of_nat: expected non-negative integer")
   else n
 
-(** Lower bounds on time (after [Time/LeftSided.agda]): [n] is "at least [n]
-    time steps", ordered by [≥], so the unit [0] is the top. *)
+(** Lower bounds on time: [n] is "at least [n] time steps", ordered by [≥], so
+    the unit [0] is the top. *)
 module TimeLowerBoundGrade : S = struct
   type t = int
 
@@ -161,8 +159,8 @@ module TimeLowerBoundGrade : S = struct
   let show = string_of_int
 end
 
-(** Upper bounds on time (after [Time/RightSided.agda]): [n] is "at most [n]
-    time steps", with [∞] imposing no bound, ordered by [≤]. *)
+(** Upper bounds on time: [n] is "at most [n] time steps", with [∞] imposing no
+    bound, ordered by [≤]. *)
 module TimeUpperBoundGrade : S = struct
   type t = ExtendedNat.t
 
@@ -186,9 +184,8 @@ module TimeUpperBoundGrade : S = struct
   let show = ExtendedNat.show
 end
 
-(** Intervals of time (after the [two-sided-intervals-with-∞] grade of
-    [Time/TwoSidedWithInfinity.agda]): [(n, m)] is "between [n] and [m] time
-    steps", with [m = ∞] imposing no upper bound, ordered by containment. *)
+(** Intervals of time: [(n, m)] is "between [n] and [m] time steps", with
+    [m = ∞] imposing no upper bound, ordered by containment. *)
 module IntervalResourceGrade : S = struct
   type t = int * ExtendedNat.t
 
@@ -251,8 +248,7 @@ let traces_of_lit = function
   | Traces ts -> TimedTrace.of_list ts
   | Pair _ | TracePair _ -> invalid_arg trace_of_lit_pair_msg
 
-(** Sets of timed traces read as lower bounds, in the coverage order (after
-    [Traces/Lifted/LeftSided.agda]). *)
+(** Sets of timed traces read as lower bounds, in the coverage order. *)
 module LowerTraces = struct
   type t = TimedTrace.traces
 
@@ -270,8 +266,7 @@ module LowerTraces = struct
 end
 
 (** Sets of timed traces read as upper bounds, in the allowance order, with a
-    separate greatest point [Unbounded] (the [Bounds] of
-    [Traces/Lifted/RightSided.agda]). *)
+    separate greatest point [Unbounded]. *)
 module UpperTraces = struct
   type t =
     | Within of TimedTrace.traces  (** every run stays within a listed bound *)
@@ -362,8 +357,7 @@ module TimedTracesUpperBoundGrade : S = struct
   let is_atomic name p = p = Within (atomic_traces name)
 end
 
-(** Pairs of a lower and an upper bound, each endpoint at its own order (after
-    [Traces/Lifted/TwoSided.agda]). *)
+(** Pairs of a lower and an upper bound, each endpoint at its own order. *)
 module TimedTracesIntervalGrade : S = struct
   type t = LowerTraces.t * UpperTraces.t
 

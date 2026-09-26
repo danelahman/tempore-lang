@@ -1,6 +1,4 @@
-(** Normal forms of open grade expressions and the decisions made on them, after
-    [SolverImpl/Product.agda], [Normal.agda], [Canon.agda], [Closed.agda] and
-    [Refute.agda].
+(** Normal forms of open grade expressions and the decisions made on them.
 
     {2 Normal forms}
 
@@ -67,20 +65,19 @@ module Make (X : GradeExp.S) : sig
     (** A nonempty join of products. *)
 
     val normal : Language.Grade.bounds -> exp -> sum
-    (** [normal bounds e] is the normal form of [e] ([nrmᵣ]/[nrmₑ]). *)
+    (** [normal bounds e] is the normal form of [e]. *)
 
     val fold_sum : Language.Grade.bounds -> sum -> sum
     (** [fold_sum bounds s] groups the alternatives of [s] by their sequence of
         variables, in the order of those sequences, and folds each group that
         varies in a single constant slot into one alternative, that slot holding
-        the join of its constants ([foldSumᵣ]/[foldSumₑ]). *)
+        the join of its constants. *)
 
     val canon_sum : Language.Grade.bounds -> sum -> sum
     (** [canon_sum bounds s] is [s] with, where the unit is least, each product
         with the top among its factors replaced by the top, then grouped and
         folded as by {!fold_sum}, with every alternative decided below another
-        at no hypotheses dropped, repeated until the sum stops shrinking
-        ([canonSumᵣ]/[canonSumₑ]). *)
+        at no hypotheses dropped, repeated until the sum stops shrinking. *)
 
     val read_back_product : product -> exp
     (** [read_back_product p] is [p] as a right-nested product, the empty
@@ -93,29 +90,28 @@ module Make (X : GradeExp.S) : sig
 
     val canon : Language.Grade.bounds -> exp -> exp
     (** [canon bounds e] is the canonical form of [e], the read-back of
-        {!canon_sum} of its normal form ([canonᵣ]/[canonₑ]). *)
+        {!canon_sum} of its normal form. *)
 
     val decide_leq :
       Language.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
     (** [decide_leq bounds hyps e e'] is [Some used] when [e ≾ e'] is derived
         from [hyps], [used] being the payloads of the hypotheses the derivation
         uses, in order and possibly repeated, and [None] when no derivation is
-        found ([decide≾ᵣ]/[decide≾ₑ]). Each alternative of [e] is compared with
-        some alternative of the {!fold_sum} of [e'], product against product by
-        an embedding of the left into the right, which matches atoms in order,
-        passes over atoms above or below the unit, lets an atom above the top
-        absorb a run of atoms, and multiplies constants on either side of an
-        atom passed over; where the product commutes, as multisets. Atoms are
-        compared by the grade's order, by identity, and along chains of the
-        hypotheses whose both sides are single atoms; on the resource side also
-        along the images of such effect hypotheses. Other hypotheses are not
-        used. *)
+        found. Each alternative of [e] is compared with some alternative of the
+        {!fold_sum} of [e'], product against product by an embedding of the left
+        into the right, which matches atoms in order, passes over atoms above or
+        below the unit, lets an atom above the top absorb a run of atoms, and
+        multiplies constants on either side of an atom passed over; where the
+        product commutes, as multisets. Atoms are compared by the grade's order,
+        by identity, and along chains of the hypotheses whose both sides are
+        single atoms; on the resource side also along the images of such effect
+        hypotheses. Other hypotheses are not used. *)
 
     val split :
       Language.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
     (** [split bounds o] is one ordering per alternative of the canonical form
         of [o.lhs], each below the canonical form of [o.rhs] and carrying
-        [o.info] ([piecesʳ]/[piecesᵉ] of [Canon.agda]). *)
+        [o.info]. *)
 
     val canon_orderings :
       Language.Grade.bounds ->
@@ -139,7 +135,7 @@ module Make (X : GradeExp.S) : sig
     (** [chains bounds os] is, for each pair of variable-free sides of [os]
         joined by a chain of two or more orderings of [os], sides compared
         syntactically, the ordering between them carrying the payloads along the
-        chain ([Transitive] of [Closed.agda]). *)
+        chain. *)
 
     val check_closed :
       Language.Grade.bounds ->
@@ -149,13 +145,13 @@ module Make (X : GradeExp.S) : sig
         of {!chains}[ bounds os] by the grade's order. It is [Error o] for the
         first of them that fails, [o.info] being the payloads of the orderings
         it follows from, and otherwise [Ok] of the orderings of [os] that have a
-        variable ([closedʳ]/[closedᵉ] of [Closed.agda]). *)
+        variable. *)
 
     val refute_leq_unit : Language.Grade.bounds -> exp -> const option
     (** [refute_leq_unit bounds e] is [Some c] when some alternative of the
         normal form of [e] has a constant factor [c] not below the unit, so that
         by the zero-product law no instance of [e] is below the unit, and [None]
-        otherwise ([scanᵤ] of [Refute.agda]). *)
+        otherwise. *)
   end
 
   (** Resource grades. *)
@@ -176,12 +172,11 @@ module Make (X : GradeExp.S) : sig
     | Eps_failure of (X.eps, 'a list) ordering
 
   val canon_hyps : Language.Grade.bounds -> 'a hyps -> 'a hyps
-  (** [canon_hyps bounds hyps] is [hyps] with each ordering {!SORT.split}
-      ([canonᴴ] of [Canon.agda], on the grade orderings). *)
+  (** [canon_hyps bounds hyps] is [hyps] with each ordering {!SORT.split},
+      applied to the orderings of both grade sorts. *)
 
   val check_closed_hyps :
     Language.Grade.bounds -> 'a hyps -> ('a hyps, 'a closed_failure) result
   (** [check_closed_hyps bounds hyps] is {!SORT.check_closed} on each sort, the
-      resource orderings first ([closedᴴ] of [Closed.agda], on the grade
-      orderings). *)
+      resource orderings first. *)
 end

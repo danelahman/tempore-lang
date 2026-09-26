@@ -64,12 +64,12 @@ let union p q = List.sort_uniq compare (p @ q)
     [of_nat 0] is the unit [{ε}]. *)
 let of_nat n = [ normalise [ Wait n ] ]
 
-(** [allowance cost k s t] decides [s ≼ᵃ[k] t]: the bound [t] permits the run
-    [s], given [k] units of budget already banked. Budget comes from the bound's
-    delays and is spent on the run's delays and on operations the bound does not
-    name, at their [cost]; a matched operation resets the budget, so slack the
-    bound offers before an operation it names is spent before that operation or
-    not at all.
+(** [allowance cost k s t] decides the allowance order at budget [k]: the bound
+    [t] permits the run [s], given [k] units of budget already banked. Budget
+    comes from the bound's delays and is spent on the run's delays and on
+    operations the bound does not name, at their [cost]; a matched operation
+    resets the budget, so slack the bound offers before an operation it names is
+    spent before that operation or not at all.
 
     Each rule shrinks [s] or [t], so the plain backtracking search terminates.
     The [when] guards are the backtracking: a failing guard falls through to the
@@ -87,13 +87,13 @@ let rec allowance cost k s t =
       true (* use-op *)
   | _ -> false
 
-(** [coverage cost k s t] decides [s ≼ᶜ[k] t]: the run [t] covers the guarantee
-    [s], given [k] units of slack already banked. Slack comes from whatever [t]
-    did that [s] did not demand — its unmatched operations at their [cost] and
-    its delays at their length — and is spent only on delays [s] demands.
-    Nothing but the operation itself discharges a demand for an operation, which
-    is what a guarantee wants and what makes this order not the converse of
-    {!allowance}. *)
+(** [coverage cost k s t] decides the coverage order at budget [k]: the run [t]
+    covers the guarantee [s], given [k] units of slack already banked. Slack
+    comes from whatever [t] did that [s] did not demand — its unmatched
+    operations at their [cost] and its delays at their length — and is spent
+    only on delays [s] demands. Nothing but the operation itself discharges a
+    demand for an operation, which is what a guarantee wants and what makes this
+    order not the converse of {!allowance}. *)
 let rec coverage cost k s t =
   match (s, t) with
   | [], _ -> true (* nil *)
@@ -112,10 +112,11 @@ let upper_bound_le cost p q =
   List.for_all (fun s -> List.exists (fun t -> allowance cost 0 s t) q) p
 
 (** [lower_bound_le cost p q] is the Smyth lift of the coverage order: every
-    guarantee listed by [p] has an easier one listed by [q]. Note the direction
-    — the universal quantifier runs over [p] but the witness is compared the
-    other way round ([t ≼ᶜ s]), as in [xs ≽ˢ ys = liftˢ _≽_ ys xs]. This is the
-    sub-grade order of the lower-bound (left-sided) grade. *)
+    guarantee listed by [p] has an easier one listed by [q]. Note the direction:
+    the universal quantifier runs over [p], but each witness [t] is compared
+    against [s] the other way round, as an argument to {!coverage} with [t] and
+    [s] swapped. This is the sub-grade order of the lower-bound (left-sided)
+    grade. *)
 let lower_bound_le cost p q =
   List.for_all (fun s -> List.exists (fun t -> coverage cost 0 t s) q) p
 

@@ -1,6 +1,5 @@
 (* Unit tests of [Skeleton]: unification, decoration and expansion, at the
-   identity grade system over the first grade of [Grade.grade_modules].
-   [Examples/Stages.agda] has no skeleton cases to mirror. *)
+   identity grade system over the first grade of [Grade.grade_modules]. *)
 
 module Ast = Language.Ast
 module Const = Language.Const

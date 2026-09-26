@@ -1,4 +1,4 @@
-(* Open grade expressions, after [OpenSyntax/Grades.agda]. *)
+(* Open grade expressions. *)
 
 module type VAR = sig
   include Utils.Symbol.S

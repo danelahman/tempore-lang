@@ -1,5 +1,5 @@
 (** Extended natural numbers [ℕ∞], the natural numbers with a greatest element
-    [∞] (after [Syntax/Grades/Example/Time/ExtendedNat.agda]). *)
+    [∞]. *)
 
 type t =
   | Fin of int  (** a natural number, non-negative *)

@@ -1,5 +1,5 @@
 (** Open grade expressions of the two sorts, resource grades [rho] and effect
-    grades [eps], over a grade system (after [OpenSyntax/Grades.agda]).
+    grades [eps], over a grade system.
 
     An expression is a variable, a closed grade, a product or a binary join; a
     resource expression may also be the image [∣eps∣] of an effect expression
@@ -98,7 +98,7 @@ module type S = sig
 
     val value : t -> GS.E.t option
     (** [value eps] is the grade a variable-free [eps] evaluates to, and [None]
-        when [eps] has a variable (after [valᵉ?] of [Closed.agda]). *)
+        when [eps] has a variable. *)
 
     val equal : Language.Grade.bounds -> t -> t -> bool
     (** [equal bounds eps eps'] is syntactic equality, constants compared by the
@@ -153,8 +153,7 @@ module type S = sig
 
     val value : t -> GS.R.t option
     (** [value rho] is the grade a variable-free [rho] evaluates to, an image
-        through {!GS.map}, and [None] when [rho] has a variable (after [valʳ?]
-        of [Closed.agda]). *)
+        through {!GS.map}, and [None] when [rho] has a variable. *)
 
     val equal : Language.Grade.bounds -> t -> t -> bool
     (** [equal bounds rho rho'] is syntactic equality, constants compared by the

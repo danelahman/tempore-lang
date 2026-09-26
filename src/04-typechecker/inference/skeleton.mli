@@ -1,7 +1,5 @@
 (** Skeletons of types, their first-order unification, decoration and the
-    expansion of type unknowns that subtyping demands call for (after
-    [SolverImpl/Core/Skel.agda], [Core/SkelUnify.agda], [Core/Decorate.agda] and
-    [SolverImpl/Expand.agda]).
+    expansion of type unknowns that subtyping demands call for.
 
     A skeleton is a type with its grades erased. Its variables are the type
     unknowns themselves, so a skeleton substitution is a finite map on type
@@ -22,11 +20,10 @@ type t =
   | Handler of t * t
 
 val of_ty : ('rho, 'eps) Language.Ast.ty -> t
-(** [of_ty ty] is the skeleton of [ty], its grades erased (after [skelᵛ]). *)
+(** [of_ty ty] is the skeleton of [ty], its grades erased. *)
 
 val of_comp_ty : ('rho, 'eps) Language.Ast.comp_ty -> t
-(** [of_comp_ty cty] is the skeleton of the value type of [cty] (after [skelᶜ]).
-*)
+(** [of_comp_ty cty] is the skeleton of the value type of [cty]. *)
 
 val equal : t -> t -> bool
 (** [equal t u] is syntactic equality. *)
@@ -81,11 +78,11 @@ type 'info failure = {
 
 val unify : unfold -> 'info equation list -> (subst, 'info failure) result
 (** [unify unfold equations] is the most general unifier of [equations], solved
-    left to right, or the failure of the first equation that has none (after
-    [unifyᵏ]). An alias application is unfolded by [unfold] when it meets a
-    skeleton of another former or head, and also when it meets an application of
-    its own head, since an alias may ignore its arguments. An unknown is bound
-    to a skeleton without unfolding. *)
+    left to right, or the failure of the first equation that has none. An alias
+    application is unfolded by [unfold] when it meets a skeleton of another
+    former or head, and also when it meets an application of its own head, since
+    an alias may ignore its arguments. An unknown is bound to a skeleton without
+    unfolding. *)
 
 (** {1 Decoration and expansion} *)
 
@@ -105,7 +102,7 @@ module Make (X : GradeExp.S) : sig
   (** [decorate t] is the most general open type of skeleton [t]: a fresh
       resource variable grades each box, a fresh effect variable each
       computation type, and a fresh type unknown stands at each occurrence of a
-      skeleton variable (after [decorate]). *)
+      skeleton variable. *)
 
   val substitute : ty_subst -> ty -> ty
   (** [substitute theta ty] replaces each type unknown of [ty] by its image
@@ -118,8 +115,8 @@ module Make (X : GradeExp.S) : sig
   (** [expand unfold demands] unifies the skeletons of the two sides of every
       subtyping demand, and instantiates each unknown the unifier sends to a
       skeleton other than a variable by a decoration of that skeleton; the other
-      unknowns are kept (after [expandSub]). Under the result the two sides of
-      every demand have the same shape, their skeletons with all unknowns
-      identified. A failure names the payload of the first demand whose shapes
-      are incompatible with those before it. *)
+      unknowns are kept. Under the result the two sides of every demand have the
+      same shape, their skeletons with all unknowns identified. A failure names
+      the payload of the first demand whose shapes are incompatible with those
+      before it. *)
 end

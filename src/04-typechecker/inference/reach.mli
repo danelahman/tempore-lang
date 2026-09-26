@@ -1,6 +1,5 @@
 (** Reachability in a finite graph: the reflexive–transitive closure of a list
-    of labelled edges over a list of vertices, by Warshall's algorithm (after
-    [SolverImpl/Reach.agda]).
+    of labelled edges over a list of vertices, by Warshall's algorithm.
 
     The closure holds, for each pair of vertices, perhaps a chain of edge labels
     joining them: the empty chain on the diagonal, a single edge where one joins

@@ -1,6 +1,4 @@
-(* Skeletons, their unification, decoration and expansion, after
-   [SolverImpl/Core/Skel.agda], [Core/SkelUnify.agda], [Core/Decorate.agda]
-   and [SolverImpl/Expand.agda]. *)
+(* Skeletons, their unification, decoration and expansion. *)
 
 module Ast = Language.Ast
 module Const = Language.Const
@@ -17,7 +15,7 @@ type t =
   | Box of t
   | Handler of t * t
 
-(* [skelᵛ] and [skelᶜ] of [Core/Skel.agda]. *)
+(* The skeleton of a type, its grades erased. *)
 let rec of_ty : ('rho, 'eps) Ast.ty -> t = function
   | Ast.TyConst c -> Const c
   | Ast.TyParam a -> Var a
@@ -123,7 +121,7 @@ let fail site mismatch sigma lhs rhs =
     }
 
 (* The binding of [a] to [t], composed with the idempotent [sigma] so that the
-   result is idempotent (the [flexᵏ] case of [amguᵏ]). *)
+   result is idempotent. *)
 let bind site sigma a t ~lhs ~rhs =
   let t = apply sigma t in
   if occurs a t then fail site (Occurs a) sigma lhs rhs
@@ -137,8 +135,7 @@ let resolve sigma = function
   | t -> t
 
 (* [unify_at unfold site sigma lhs rhs] extends [sigma] to a most general
-   unifier of [lhs] and [rhs] (the rigid-rigid and flexible cases of
-   [amguᵏ]). *)
+   unifier of [lhs] and [rhs], both the rigid-rigid and the flexible cases. *)
 let rec unify_at unfold site sigma lhs rhs =
   let open Result.Syntax in
   match (resolve sigma lhs, resolve sigma rhs) with
@@ -194,7 +191,7 @@ and unify_args unfold site sigma step ts us =
   in
   snd (List.fold_left2 unify_pair (1, Ok sigma) ts us)
 
-(* [unifyᵏ]: the equations solved left to right under one growing unifier. *)
+(* The equations solved left to right under one growing unifier. *)
 let unify unfold equations =
   let unify_equation sigma ({ lhs; rhs; info } : _ equation) =
     Result.bind sigma (fun sigma ->
@@ -211,8 +208,7 @@ module Make (X : GradeExp.S) = struct
   let fresh_rho () = X.Rho.var (X.Rho_var.fresh_indexed ())
   let fresh_eps () = X.Eps.var (X.Eps_var.fresh_indexed ())
 
-  (* [decorate] of [Core/Decorate.agda]; fresh variables are drawn left to
-     right. *)
+  (* Fresh variables are drawn left to right. *)
   let rec decorate : t -> ty = function
     | Var _ -> fresh_ty ()
     | Const c -> Ast.TyConst c
@@ -235,7 +231,8 @@ module Make (X : GradeExp.S) = struct
   let substitute theta ty =
     Ast.substitute_ty theta ~on_rho:Fun.id ~on_eps:Fun.id ty
 
-  (* [expandᵏ] and [expandSub] of [Core/Decorate.agda]. *)
+  (* Unifies the skeletons of every demand and instantiates the unknowns the
+     unifier sends to a non-variable skeleton, by a decoration of it. *)
   let expand unfold demands =
     let equation ({ lhs; rhs; info } : (ty, _) GradeNormal.ordering) =
       { lhs = of_ty lhs; rhs = of_ty rhs; info }

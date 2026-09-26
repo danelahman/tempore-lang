@@ -80,7 +80,7 @@ module Make (GS : Language.GradeSystem.S) = struct
 
   exception PatternMismatch
 
-  (** [rho_of_eps eps] is the resource grade [∣eps∣ᵉ] of the effect grade [eps]
+  (** [rho_of_eps eps] is the resource grade [∣eps∣] of the effect grade [eps]
       of an operation signature, which has no parameters. *)
   let rec rho_of_eps = function
     | Ast.EpsConst c -> Ast.RhoConst (GS.map c)
