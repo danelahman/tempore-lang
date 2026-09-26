@@ -2,13 +2,13 @@
 
 module Error = Utils.Error
 module List = Utils.List
-module Sugared = Parser.SugaredAst
+module Sugared = SugaredAst
 module Untyped = Language.Ast
 module Context = Language.Context
 module Const = Language.Const
 module StringMap = Map.Make (String)
 
-module Make (ResourceGrade : Language.Grade.S) = struct
+module Make (GS : Language.GradeSystem.S) = struct
   let add_unique ~loc kind str symb string_map =
     StringMap.update str
       (function
@@ -66,10 +66,10 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     | Sugared.TyParam ty_param ->
         let ty_param' = lookup_ty_param ~loc state ty_param in
         Untyped.TyParam ty_param'
-    | Sugared.TyArrow (ty1, CompTy (ty2, rho)) ->
+    | Sugared.TyArrow (ty1, CompTy (ty2, eps)) ->
         let ty1' = desugar_ty state ty1 in
         let ty2' = desugar_ty state ty2 in
-        Untyped.TyArrow (ty1', CompTy (ty2', RhoConst rho))
+        Untyped.TyArrow (ty1', CompTy (ty2', Untyped.EpsConst eps))
     | Sugared.TyTuple tys ->
         let tys' = List.map (desugar_ty state) tys in
         Untyped.TyTuple tys'
@@ -78,12 +78,12 @@ module Make (ResourceGrade : Language.Grade.S) = struct
         let rho' = Untyped.RhoConst rho in
         let ty' = desugar_ty state ty in
         Untyped.TyBox (rho', ty')
-    | Sugared.TyHandler (CompTy (ty1, rho1), CompTy (ty2, rho2)) ->
+    | Sugared.TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
         let ty1' = desugar_ty state ty1 in
-        let rho1' = Untyped.RhoConst rho1 in
+        let eps1' = Untyped.EpsConst eps1 in
         let ty2' = desugar_ty state ty2 in
-        let rho2' = Untyped.RhoConst rho2 in
-        Untyped.TyHandler (CompTy (ty1', rho1'), CompTy (ty2', rho2'))
+        let eps2' = Untyped.EpsConst eps2 in
+        Untyped.TyHandler (CompTy (ty1', eps1'), CompTy (ty2', eps2'))
 
   let rec desugar_pattern state vars { Sugared.it = pat; at = loc } =
     let vars, pat' = desugar_plain_pattern ~loc state vars pat in
@@ -259,13 +259,13 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     | Sugared.Box (rho, e, (p, c)) ->
         let binds, e' = desugar_expression state e in
         let abs = desugar_abstraction state (p, c) in
-        (binds, Untyped.Box (RhoConst rho, e', abs))
+        (binds, Untyped.Box (Untyped.RhoConst rho, e', abs))
     | Sugared.GenBox (rho, e) ->
         let binds, e' = desugar_expression state e in
         let var = Untyped.Variable.fresh_synthetic "box_var" in
         ( binds,
           Untyped.Box
-            ( RhoConst rho,
+            ( Untyped.RhoConst rho,
               e',
               ( Untyped.located loc (Untyped.PVar var),
                 Untyped.located loc
@@ -314,13 +314,14 @@ module Make (ResourceGrade : Language.Grade.S) = struct
             ) )
     (* A computation annotated with its type has no node of its own: it is the
        immediate application of a thunk annotated with the arrow type
-       [unit -> ty # rho], which the typechecker already knows how to check
+       [unit -> ty # eps], which the typechecker already knows how to check
        and which the interpreter reduces in one step. *)
-    | Sugared.AnnotatedComp (term, ty, rho) ->
+    | Sugared.AnnotatedComp (term, ty, eps) ->
         let comp = desugar_computation state term in
         let thunk_ty =
           Untyped.TyArrow
-            (Untyped.TyTuple [], CompTy (desugar_ty state ty, RhoConst rho))
+            ( Untyped.TyTuple [],
+              CompTy (desugar_ty state ty, Untyped.EpsConst eps) )
         in
         let thunk =
           Untyped.located loc
@@ -433,13 +434,13 @@ module Make (ResourceGrade : Language.Grade.S) = struct
             List.fold_right2 aux defs new_names (state', [])
           in
           (state'', Untyped.TyDef (eternality, defs'))
-      | Sugared.OpSig (op_name, ty1_name, ty2_name, rho_val, bounds) ->
+      | Sugared.OpSig (op_name, ty1_name, ty2_name, eps_val, bounds) ->
           let operation = Untyped.OpName.fresh op_name in
           let ty1 = desugar_ty state ty1_name in
           let ty2 = desugar_ty state ty2_name in
-          let rho = Untyped.RhoConst rho_val in
+          let eps = Untyped.EpsConst eps_val in
           let state' = add_operation ~loc state op_name operation in
-          (state', Untyped.OpSig (operation, ty1, ty2, rho, bounds))
+          (state', Untyped.OpSig (operation, ty1, ty2, eps, bounds))
       | Sugared.OpDefault (op_name, abs) ->
           let operation = lookup_operation ~loc state op_name in
           (state, Untyped.OpDefault (operation, desugar_abstraction state abs))

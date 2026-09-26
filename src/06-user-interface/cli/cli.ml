@@ -94,10 +94,9 @@ let parse_args_to_config () =
     resource_type = !resource_type;
   }
 
-let run_with (type t) (module ResourceGrade : Language.Grade.S with type t = t)
-    config =
-  let module Backend = CliInterpreter.Make (ResourceGrade) in
-  let module Loader = Loader.Loader (Backend) in
+let run_with (module G : Language.Grade.S) config =
+  let module Backend = CliInterpreter.Make (Language.GradeSystem.Identity (G)) in
+  let module Loader = Loader.Loader (G) (Backend) in
   let rec run (state : Backend.run_state) run_num =
     let printed = Backend.view_run_state state ~run_num in
     let next_run_num = if printed then run_num + 1 else run_num in
@@ -142,8 +141,8 @@ let run_with (type t) (module ResourceGrade : Language.Grade.S with type t = t)
         print_endline "=== Standard library ===";
         print_string
           (PrettyPrint.string_of_variable_context
-             (module ResourceGrade)
-             Loader.TC.Elapsed.rho Loader.TC.scheme_of
+             (module G)
+             Loader.TC.Elapsed.grade Loader.TC.scheme_of
              stdlib_state.typechecker.variables);
         print_newline ()
       end;
@@ -154,8 +153,8 @@ let run_with (type t) (module ResourceGrade : Language.Grade.S with type t = t)
       in
       print_string
         (PrettyPrint.string_of_variable_context
-           (module ResourceGrade)
-           Loader.TC.Elapsed.rho Loader.TC.scheme_of user_vars);
+           (module G)
+           Loader.TC.Elapsed.grade Loader.TC.scheme_of user_vars);
       print_newline ()
     end;
     (* loading the files has typechecked every command, the [run]s included *)
@@ -167,8 +166,7 @@ let run_with (type t) (module ResourceGrade : Language.Grade.S with type t = t)
 let main () =
   let config = parse_args_to_config () in
   match List.assoc_opt config.resource_type Language.Grade.grade_modules with
-  | Some (module ResourceGrade : Language.Grade.S) ->
-      run_with (module ResourceGrade) config
+  | Some grade -> run_with grade config
   | None ->
       Printf.eprintf "Unknown grades '%s'. Accepted: %s\n" config.resource_type
         (String.concat ", "

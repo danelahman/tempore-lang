@@ -21,30 +21,47 @@ module RhoParamSet = Set.Make (RhoParamModule)
 
 type rho_param = RhoParamModule.t
 
+module EpsParamModule = Symbol.Make ()
+module EpsParamMap = Map.Make (EpsParamModule)
+module EpsParamSet = Set.Make (EpsParamModule)
+
+type eps_param = EpsParamModule.t
+
 module OpName = Symbol.Make ()
 module OpNameMap = Map.Make (OpName)
 module OpNameSet = Set.Make (OpName)
 
 type operation = OpName.t
 
-type 'a rho =
-  | RhoConst of 'a
+(** Resource grade expressions over the resource grades ['rho]. *)
+type 'rho rho =
+  | RhoConst of 'rho
   | RhoParam of rho_param  (** an unknown grade, solved by unification *)
-  | RhoRigid of rho_param
+  | RhoAdd of 'rho rho * 'rho rho  (** the product of two grades *)
+
+(** Effect grade expressions over the effect grades ['eps]. *)
+type 'eps eps =
+  | EpsConst of 'eps
+  | EpsParam of eps_param  (** an unknown grade, solved by unification *)
+  | EpsRigid of eps_param
       (** the grade of a handler continuation: universally quantified, so it is
           never substituted and may not occur in the type of a definition *)
-  | RhoAdd of 'a rho * 'a rho
+  | EpsAdd of 'eps eps * 'eps eps  (** the product of two grades *)
 
-type 'a ty =
+(** Types, over the grades ['rho] of resources and ['eps] of effects: a box is
+    graded by a resource grade, a computation by an effect grade. Nothing else
+    is assumed about ['rho] and ['eps]. *)
+type ('rho, 'eps) ty =
   | TyConst of Const.ty
-  | TyApply of ty_name * 'a ty list  (** [(ty1, ty2, ..., tyn) type_name] *)
+  | TyApply of ty_name * ('rho, 'eps) ty list
+      (** [(ty1, ty2, ..., tyn) type_name] *)
   | TyParam of ty_param  (** ['a] *)
-  | TyArrow of 'a ty * 'a comp_ty  (** [ty1 -> ty2 ! rho] *)
-  | TyTuple of 'a ty list  (** [ty1 * ty2 * ... * tyn] *)
-  | TyBox of 'a rho * 'a ty  (** [ [rho]ty ] *)
-  | TyHandler of 'a comp_ty * 'a comp_ty
+  | TyArrow of ('rho, 'eps) ty * ('rho, 'eps) comp_ty  (** [ty1 -> ty2 ! eps] *)
+  | TyTuple of ('rho, 'eps) ty list  (** [ty1 * ty2 * ... * tyn] *)
+  | TyBox of 'rho * ('rho, 'eps) ty  (** [ [rho]ty ] *)
+  | TyHandler of ('rho, 'eps) comp_ty * ('rho, 'eps) comp_ty
 
-and 'a comp_ty = CompTy of 'a ty * 'a rho  (** [ty ! rho] *)
+and ('rho, 'eps) comp_ty = CompTy of ('rho, 'eps) ty * 'eps  (** [ty ! eps] *)
 
 let bool_ty_name = TyName.fresh "bool"
 let int_ty_name = TyName.fresh "int"
@@ -107,12 +124,12 @@ type 'a why =
   | Unboxed of {
       var : variable;
       bound_at : Location.t option;
-      elapsed : ('a rho * Location.t * elapsed_kind) list;
+      elapsed : ('a eps * Location.t * elapsed_kind) list;
     }
   | UseAfterTime of {
       var : variable;
       bound_at : Location.t;
-      elapsed : ('a rho * Location.t * elapsed_kind) list;
+      elapsed : ('a eps * Location.t * elapsed_kind) list;
     }
   | InstanceOf of {
       var : variable;
@@ -128,7 +145,7 @@ type 'a why =
       op : operation;
       signature_at : Location.t;
       case_at : Location.t;
-      elapsed : ('a rho * Location.t * elapsed_kind) list;
+      elapsed : ('a eps * Location.t * elapsed_kind) list;
     }
       (** a variable bound outside the case for [op] is used inside it, where
           only an eternal type survives *)
@@ -145,7 +162,7 @@ and 'a reason = {
   at : Location.t;
   why : 'a why;
   path : step list;
-  stated : ('a rho * 'a rho) option;
+  stated : ('a eps * 'a eps) option;
       (** An inequality as it was generated, before the solver cancelled what
           its two sides have in common; [None] for the other constraints and for
           one that was never cancelled, which states itself. *)
@@ -159,18 +176,23 @@ and 'a reason = {
     may be compared with polymorphic equality. *)
 
 (** The constraints of a typing derivation besides the equations unification
-    solves. Those left over qualify the definition's generalised scheme. *)
+    solves. Those left over qualify the definition's generalised scheme.
+
+    The typechecker that generates them grades resources and effects alike by
+    the one carrier ['a], and represents the grades of both sorts as effect
+    grade expressions: a constraint does not record the sort of the grades it
+    compares. *)
 type 'a constr =
-  | Ineq of 'a rho * 'a rho * 'a reason  (** [rho1] is a sub-grade of [rho2] *)
-  | Eternal of 'a ty * 'a reason  (** the type is eternal *)
-  | EternalOrIneq of 'a ty * 'a rho * 'a rho * 'a reason
-      (** the type is eternal, or [rho1] is a sub-grade of [rho2] *)
+  | Ineq of 'a eps * 'a eps * 'a reason  (** [eps1] is a sub-grade of [eps2] *)
+  | Eternal of ('a eps, 'a eps) ty * 'a reason  (** the type is eternal *)
+  | EternalOrIneq of ('a eps, 'a eps) ty * 'a eps * 'a eps * 'a reason
+      (** the type is eternal, or [eps1] is a sub-grade of [eps2] *)
 
 type 'a ty_scheme = {
   ty_params : ty_param list;
-  rho_params : rho_param list;
+  eps_params : eps_param list;
   constrs : 'a constr list;
-  ty : 'a ty;
+  ty : ('a eps, 'a eps) ty;
 }
 (** A generalised type. It lives here rather than in the typechecker because
     {!PrettyPrint} prints it and the variable context stores it. *)
@@ -182,45 +204,47 @@ type 'a located = 'a Location.located = { it : 'a; at : Location.t }
 let located at it = { it; at }
 
 (* Patterns, expressions and computations carry the span they were desugared
-   from; types do not, since unification rebuilds them out of no source. *)
-type 'a pattern = 'a plain_pattern located
+   from; types do not, since unification rebuilds them out of no source. The
+   grade of [box ρ] is a resource grade, that of an operation signature an
+   effect grade. *)
+type ('rho, 'eps) pattern = ('rho, 'eps) plain_pattern located
 
-and 'a plain_pattern =
+and ('rho, 'eps) plain_pattern =
   | PVar of variable
-  | PAnnotated of 'a pattern * 'a ty
-  | PAs of 'a pattern * variable
-  | PTuple of 'a pattern list
-  | PVariant of label * 'a pattern option
+  | PAnnotated of ('rho, 'eps) pattern * ('rho, 'eps) ty
+  | PAs of ('rho, 'eps) pattern * variable
+  | PTuple of ('rho, 'eps) pattern list
+  | PVariant of label * ('rho, 'eps) pattern option
   | PConst of Const.t
   | PNonbinding
 
-type 'a expression = 'a plain_expression located
+type ('rho, 'eps) expression = ('rho, 'eps) plain_expression located
 
-and 'a plain_expression =
+and ('rho, 'eps) plain_expression =
   | Var of variable
   | Const of Const.t
-  | Annotated of 'a expression * 'a ty
-  | Tuple of 'a expression list
-  | Variant of label * 'a expression option
-  | Lambda of 'a abstraction
-  | PureLambda of 'a abstraction
-  | RecLambda of variable * 'a abstraction
-  | Handler of 'a abstraction * 'a abstraction OpNameMap.t
+  | Annotated of ('rho, 'eps) expression * ('rho, 'eps) ty
+  | Tuple of ('rho, 'eps) expression list
+  | Variant of label * ('rho, 'eps) expression option
+  | Lambda of ('rho, 'eps) abstraction
+  | PureLambda of ('rho, 'eps) abstraction
+  | RecLambda of variable * ('rho, 'eps) abstraction
+  | Handler of ('rho, 'eps) abstraction * ('rho, 'eps) abstraction OpNameMap.t
 
-and 'a computation = 'a plain_computation located
+and ('rho, 'eps) computation = ('rho, 'eps) plain_computation located
 
-and 'a plain_computation =
-  | Return of 'a expression
-  | Do of 'a computation * 'a abstraction
-  | Match of 'a expression * 'a abstraction list
-  | Apply of 'a expression * 'a expression
-  | Delay of int * 'a computation
-  | Box of 'a rho * 'a expression * 'a abstraction
-  | Unbox of 'a expression * 'a abstraction
-  | Perform of operation * 'a expression * 'a abstraction
-  | Handle of 'a computation * 'a expression
+and ('rho, 'eps) plain_computation =
+  | Return of ('rho, 'eps) expression
+  | Do of ('rho, 'eps) computation * ('rho, 'eps) abstraction
+  | Match of ('rho, 'eps) expression * ('rho, 'eps) abstraction list
+  | Apply of ('rho, 'eps) expression * ('rho, 'eps) expression
+  | Delay of int * ('rho, 'eps) computation
+  | Box of 'rho * ('rho, 'eps) expression * ('rho, 'eps) abstraction
+  | Unbox of ('rho, 'eps) expression * ('rho, 'eps) abstraction
+  | Perform of operation * ('rho, 'eps) expression * ('rho, 'eps) abstraction
+  | Handle of ('rho, 'eps) computation * ('rho, 'eps) expression
 
-and 'a abstraction = 'a pattern * 'a computation
+and ('rho, 'eps) abstraction = ('rho, 'eps) pattern * ('rho, 'eps) computation
 
 (* A stable order on expressions built from different constructors.
    [Annotated] is looked through before a rank is ever taken. *)
@@ -267,21 +291,45 @@ and compare_expressions es1 es2 =
       | 0 -> compare_expressions es1 es2
       | c -> c)
 
-type 'a ty_def = TySum of (label * 'a ty option) list | TyInline of 'a ty
+type ('rho, 'eps) ty_def =
+  | TySum of (label * ('rho, 'eps) ty option) list
+  | TyInline of ('rho, 'eps) ty
 
 (* Whether the eternality of a type definition is computed from its structure,
    as usual ([Derived]), or fixed to non-eternal by a [noneternal type ...]
    declaration ([Noneternal]). *)
 type eternality = Derived | Noneternal
 
-type 'a plain_command =
-  | TyDef of eternality * (ty_param list * ty_name * 'a ty_def) list
-  | OpSig of (operation * 'a ty * 'a ty * 'a rho * (int * int) option)
-  | OpDefault of operation * 'a abstraction
-  | TopLet of variable * 'a expression
-  | TopDo of 'a computation
+type ('rho, 'eps) plain_command =
+  | TyDef of eternality * (ty_param list * ty_name * ('rho, 'eps) ty_def) list
+  | OpSig of
+      (operation
+      * ('rho, 'eps) ty
+      * ('rho, 'eps) ty
+      * 'eps
+      * (int * int) option)
+  | OpDefault of operation * ('rho, 'eps) abstraction
+  | TopLet of variable * ('rho, 'eps) expression
+  | TopDo of ('rho, 'eps) computation
 
-type 'a command = 'a plain_command located
+type ('rho, 'eps) command = ('rho, 'eps) plain_command located
+
+(** The types and terms of a program graded by [GS], whose grades are grade
+    expressions over the resource grades [GS.R] ({!rho}) and the effect grades
+    [GS.E] ({!eps}): the program as the parser, the desugarer and the
+    interpreter handle it. *)
+module Graded (GS : GradeSystem.S) = struct
+  type nonrec rho = GS.R.t rho
+  type nonrec eps = GS.E.t eps
+  type nonrec ty = (rho, eps) ty
+  type nonrec comp_ty = (rho, eps) comp_ty
+  type nonrec pattern = (rho, eps) pattern
+  type nonrec expression = (rho, eps) expression
+  type nonrec computation = (rho, eps) computation
+  type nonrec abstraction = (rho, eps) abstraction
+  type nonrec ty_def = (rho, eps) ty_def
+  type nonrec command = (rho, eps) command
+end
 
 (* [Barrier] marks where an operation case restricts the ambient context. It
    carries no grade and takes no part in the grade arithmetic. *)
@@ -293,46 +341,97 @@ type ('var, 'map, 'rho, 'bar) context_elem_ty =
 type ('var, 'map, 'rho, 'bar) context =
   ('var, 'map, 'rho, 'bar) context_elem_ty list
 
-let rec substitute_rho subst = function
-  | (RhoConst _ | RhoRigid _) as rho -> rho
-  | RhoParam tp as rho -> (
-      match RhoParamMap.find_opt tp subst with None -> rho | Some rho' -> rho')
-  | RhoAdd (rho, rho') ->
-      RhoAdd (substitute_rho subst rho, substitute_rho subst rho')
+(** [map_ty ~on_rho ~on_eps ty] applies [on_rho] to the resource grades of [ty]
+    and [on_eps] to its effect grades. *)
+let rec map_ty ~on_rho ~on_eps = function
+  | TyConst c -> TyConst c
+  | TyParam a -> TyParam a
+  | TyApply (ty_name, tys) ->
+      TyApply (ty_name, List.map (map_ty ~on_rho ~on_eps) tys)
+  | TyTuple tys -> TyTuple (List.map (map_ty ~on_rho ~on_eps) tys)
+  | TyArrow (ty, cty) ->
+      TyArrow (map_ty ~on_rho ~on_eps ty, map_comp_ty ~on_rho ~on_eps cty)
+  | TyBox (rho, ty) -> TyBox (on_rho rho, map_ty ~on_rho ~on_eps ty)
+  | TyHandler (cty1, cty2) ->
+      TyHandler
+        (map_comp_ty ~on_rho ~on_eps cty1, map_comp_ty ~on_rho ~on_eps cty2)
 
-let rec substitute_ty ty_subst rho_subst = function
+and map_comp_ty ~on_rho ~on_eps (CompTy (ty, eps)) =
+  CompTy (map_ty ~on_rho ~on_eps ty, on_eps eps)
+
+(** [substitute_ty ty_subst ~on_rho ~on_eps ty] replaces the type parameters of
+    [ty] bound in [ty_subst], and applies [on_rho] to its resource grades and
+    [on_eps] to its effect grades. *)
+let rec substitute_ty ty_subst ~on_rho ~on_eps = function
   | TyConst _ as ty -> ty
   | TyParam a as ty -> (
       match TyParamMap.find_opt a ty_subst with None -> ty | Some ty' -> ty')
   | TyApply (ty_name, tys) ->
-      TyApply (ty_name, List.map (substitute_ty ty_subst rho_subst) tys)
-  | TyTuple tys -> TyTuple (List.map (substitute_ty ty_subst rho_subst) tys)
-  | TyArrow (ty1, CompTy (ty2, rho)) ->
+      TyApply (ty_name, List.map (substitute_ty ty_subst ~on_rho ~on_eps) tys)
+  | TyTuple tys ->
+      TyTuple (List.map (substitute_ty ty_subst ~on_rho ~on_eps) tys)
+  | TyArrow (ty, cty) ->
       TyArrow
-        ( substitute_ty ty_subst rho_subst ty1,
-          CompTy
-            (substitute_ty ty_subst rho_subst ty2, substitute_rho rho_subst rho)
-        )
+        ( substitute_ty ty_subst ~on_rho ~on_eps ty,
+          substitute_comp_ty ty_subst ~on_rho ~on_eps cty )
   | TyBox (rho, ty) ->
-      TyBox (substitute_rho rho_subst rho, substitute_ty ty_subst rho_subst ty)
-  | TyHandler (CompTy (ty1, rho1), CompTy (ty2, rho2)) ->
+      TyBox (on_rho rho, substitute_ty ty_subst ~on_rho ~on_eps ty)
+  | TyHandler (cty1, cty2) ->
       TyHandler
-        ( CompTy
-            (substitute_ty ty_subst rho_subst ty1, substitute_rho rho_subst rho1),
-          CompTy
-            (substitute_ty ty_subst rho_subst ty2, substitute_rho rho_subst rho2)
-        )
+        ( substitute_comp_ty ty_subst ~on_rho ~on_eps cty1,
+          substitute_comp_ty ty_subst ~on_rho ~on_eps cty2 )
 
-let substitute_comp_ty ty_subst rho_subst = function
-  | CompTy (ty, rho) ->
-      CompTy (substitute_ty ty_subst rho_subst ty, substitute_rho rho_subst rho)
+and substitute_comp_ty ty_subst ~on_rho ~on_eps (CompTy (ty, eps)) =
+  CompTy (substitute_ty ty_subst ~on_rho ~on_eps ty, on_eps eps)
+
+(** [fold_ty ~on_param ~on_rho ~on_eps ty acc] folds [on_param] over the type
+    parameters of [ty], [on_rho] over its resource grades and [on_eps] over its
+    effect grades. *)
+let rec fold_ty ~on_param ~on_rho ~on_eps ty acc =
+  match ty with
+  | TyConst _ -> acc
+  | TyParam a -> on_param a acc
+  | TyApply (_, tys) | TyTuple tys ->
+      List.fold_left
+        (fun acc ty -> fold_ty ~on_param ~on_rho ~on_eps ty acc)
+        acc tys
+  | TyArrow (ty, cty) ->
+      fold_comp_ty ~on_param ~on_rho ~on_eps cty
+        (fold_ty ~on_param ~on_rho ~on_eps ty acc)
+  | TyBox (rho, ty) -> fold_ty ~on_param ~on_rho ~on_eps ty (on_rho rho acc)
+  | TyHandler (cty1, cty2) ->
+      fold_comp_ty ~on_param ~on_rho ~on_eps cty2
+        (fold_comp_ty ~on_param ~on_rho ~on_eps cty1 acc)
+
+and fold_comp_ty ~on_param ~on_rho ~on_eps (CompTy (ty, eps)) acc =
+  on_eps eps (fold_ty ~on_param ~on_rho ~on_eps ty acc)
+
+(* What follows serves the typechecker that grades resources and effects alike,
+   representing the grades of both sorts as effect grade expressions. *)
+
+let rec substitute_eps subst = function
+  | (EpsConst _ | EpsRigid _) as eps -> eps
+  | EpsParam p as eps -> (
+      match EpsParamMap.find_opt p subst with None -> eps | Some eps' -> eps')
+  | EpsAdd (eps, eps') ->
+      EpsAdd (substitute_eps subst eps, substitute_eps subst eps')
+
+(** [substitute_eps_ty ty_subst eps_subst ty] is {!substitute_ty} substituting
+    by [eps_subst] in the grades of both sorts. *)
+let substitute_eps_ty ty_subst eps_subst =
+  substitute_ty ty_subst ~on_rho:(substitute_eps eps_subst)
+    ~on_eps:(substitute_eps eps_subst)
+
+let substitute_eps_comp_ty ty_subst eps_subst =
+  substitute_comp_ty ty_subst ~on_rho:(substitute_eps eps_subst)
+    ~on_eps:(substitute_eps eps_subst)
 
 (** Elapsed grades are solved like any other, so reasons are substituted into
     too: else a label would report the parameter a [let] contributed rather than
     the grade it stands for, which is often nothing at all. *)
-let rec substitute_reason rho_subst reason =
+let rec substitute_reason eps_subst reason =
   let elapsed =
-    List.map (fun (rho, at, kind) -> (substitute_rho rho_subst rho, at, kind))
+    List.map (fun (eps, at, kind) -> (substitute_eps eps_subst eps, at, kind))
   in
   let why =
     match reason.why with
@@ -340,127 +439,93 @@ let rec substitute_reason rho_subst reason =
     | UseAfterTime u -> UseAfterTime { u with elapsed = elapsed u.elapsed }
     | OpCaseCapture u -> OpCaseCapture { u with elapsed = elapsed u.elapsed }
     | InstanceOf i ->
-        InstanceOf { i with inner = substitute_reason rho_subst i.inner }
+        InstanceOf { i with inner = substitute_reason eps_subst i.inner }
     | why -> why
   in
   let stated =
     Option.map
-      (fun (rho1, rho2) ->
-        (substitute_rho rho_subst rho1, substitute_rho rho_subst rho2))
+      (fun (eps1, eps2) ->
+        (substitute_eps eps_subst eps1, substitute_eps eps_subst eps2))
       reason.stated
   in
   { reason with why; stated }
 
-let substitute_constr ty_subst rho_subst =
-  let reason_of = substitute_reason rho_subst in
+let substitute_constr ty_subst eps_subst =
+  let reason_of = substitute_reason eps_subst in
   function
-  | Ineq (rho1, rho2, reason) ->
+  | Ineq (eps1, eps2, reason) ->
       Ineq
-        ( substitute_rho rho_subst rho1,
-          substitute_rho rho_subst rho2,
+        ( substitute_eps eps_subst eps1,
+          substitute_eps eps_subst eps2,
           reason_of reason )
   | Eternal (ty, reason) ->
-      Eternal (substitute_ty ty_subst rho_subst ty, reason_of reason)
-  | EternalOrIneq (ty, rho1, rho2, reason) ->
+      Eternal (substitute_eps_ty ty_subst eps_subst ty, reason_of reason)
+  | EternalOrIneq (ty, eps1, eps2, reason) ->
       EternalOrIneq
-        ( substitute_ty ty_subst rho_subst ty,
-          substitute_rho rho_subst rho1,
-          substitute_rho rho_subst rho2,
+        ( substitute_eps_ty ty_subst eps_subst ty,
+          substitute_eps eps_subst eps1,
+          substitute_eps eps_subst eps2,
           reason_of reason )
 
 (** [wrap_reason f c] rewrites the reason of [c] with [f]: instantiating a
     scheme's qualifier nests the definition's reason inside the use's. *)
 let wrap_reason f = function
-  | Ineq (rho1, rho2, reason) -> Ineq (rho1, rho2, f reason)
+  | Ineq (eps1, eps2, reason) -> Ineq (eps1, eps2, f reason)
   | Eternal (ty, reason) -> Eternal (ty, f reason)
-  | EternalOrIneq (ty, rho1, rho2, reason) ->
-      EternalOrIneq (ty, rho1, rho2, f reason)
+  | EternalOrIneq (ty, eps1, eps2, reason) ->
+      EternalOrIneq (ty, eps1, eps2, f reason)
 
-let rec free_vars = function
-  | TyConst _ -> (TyParamSet.empty, RhoParamSet.empty)
-  | TyParam a -> (TyParamSet.singleton a, RhoParamSet.empty)
-  | TyApply (_, tys) ->
-      List.fold_left
-        (fun (ty_params, rho_params) ty ->
-          let fv_ty, fv_rho = free_vars ty in
-          (TyParamSet.union ty_params fv_ty, RhoParamSet.union rho_params fv_rho))
-        (TyParamSet.empty, RhoParamSet.empty)
-        tys
-  | TyTuple tys ->
-      List.fold_left
-        (fun (ty_params, rho_params) ty ->
-          let fv_ty, fv_rho = free_vars ty in
-          (TyParamSet.union ty_params fv_ty, RhoParamSet.union rho_params fv_rho))
-        (TyParamSet.empty, RhoParamSet.empty)
-        tys
-  | TyArrow (ty1, CompTy (ty2, rho)) ->
-      let fv_ty1, fv_rho1 = free_vars ty1 in
-      let fv_ty2, fv_rho2 = free_vars ty2 in
-      let nested_free_rhos = free_rhos rho in
-      ( TyParamSet.union fv_ty1 fv_ty2,
-        RhoParamSet.union (RhoParamSet.union fv_rho1 fv_rho2) nested_free_rhos
-      )
-  | TyBox (rho, ty) ->
-      let fv_ty, fv_rho = free_vars ty in
-      let nested_free_rhos = free_rhos rho in
-      (fv_ty, RhoParamSet.union fv_rho nested_free_rhos)
-  | TyHandler (CompTy (ty1, rho1), CompTy (ty2, rho2)) ->
-      let fv_ty1, fv_rho1 = free_vars ty1 in
-      let fv_ty2, fv_rho2 = free_vars ty2 in
-      let nested_free_rhos1 = free_rhos rho1 in
-      let nested_free_rhos2 = free_rhos rho2 in
-      ( TyParamSet.union fv_ty1 fv_ty2,
-        RhoParamSet.union
-          (RhoParamSet.union fv_rho1 fv_rho2)
-          (RhoParamSet.union nested_free_rhos1 nested_free_rhos2) )
+let rec free_eps_params = function
+  | EpsConst _ | EpsRigid _ -> EpsParamSet.empty
+  | EpsParam p -> EpsParamSet.singleton p
+  | EpsAdd (l, r) -> EpsParamSet.union (free_eps_params l) (free_eps_params r)
 
-and free_rhos rho =
-  match rho with
-  | RhoConst _ | RhoRigid _ -> RhoParamSet.empty
-  | RhoParam a -> RhoParamSet.singleton a
-  | RhoAdd (l, r) -> RhoParamSet.union (free_rhos l) (free_rhos r)
+(** The type and grade parameters of a type, the latter of either sort. *)
+let free_vars ty =
+  let grade eps (ty_params, eps_params) =
+    (ty_params, EpsParamSet.union eps_params (free_eps_params eps))
+  in
+  fold_ty
+    ~on_param:(fun a (ty_params, eps_params) ->
+      (TyParamSet.add a ty_params, eps_params))
+    ~on_rho:grade ~on_eps:grade ty
+    (TyParamSet.empty, EpsParamSet.empty)
 
 (** The rigid grades of a grade or a type. They are never substituted or
     generalised, so [free_vars] leaves them out. *)
-let rec rigid_rhos = function
-  | RhoConst _ | RhoParam _ -> RhoParamSet.empty
-  | RhoRigid a -> RhoParamSet.singleton a
-  | RhoAdd (l, r) -> RhoParamSet.union (rigid_rhos l) (rigid_rhos r)
+let rec rigid_eps_params = function
+  | EpsConst _ | EpsParam _ -> EpsParamSet.empty
+  | EpsRigid p -> EpsParamSet.singleton p
+  | EpsAdd (l, r) -> EpsParamSet.union (rigid_eps_params l) (rigid_eps_params r)
 
-(** [instantiate_rigid w rho] takes the instance of [rho] in which every rigid
+(** [instantiate_rigid w eps] takes the instance of [eps] in which every rigid
     grade is [w]. A failing ground instance refutes the universal statement. *)
 let rec instantiate_rigid w = function
-  | RhoRigid _ -> RhoConst w
-  | RhoAdd (l, r) -> RhoAdd (instantiate_rigid w l, instantiate_rigid w r)
-  | rho -> rho
+  | EpsRigid _ -> EpsConst w
+  | EpsAdd (l, r) -> EpsAdd (instantiate_rigid w l, instantiate_rigid w r)
+  | eps -> eps
 
-let rec rigid_rhos_ty = function
-  | TyConst _ | TyParam _ -> RhoParamSet.empty
-  | TyApply (_, tys) | TyTuple tys ->
-      List.fold_left
-        (fun acc ty -> RhoParamSet.union acc (rigid_rhos_ty ty))
-        RhoParamSet.empty tys
-  | TyArrow (ty1, CompTy (ty2, rho)) ->
-      RhoParamSet.union
-        (RhoParamSet.union (rigid_rhos_ty ty1) (rigid_rhos_ty ty2))
-        (rigid_rhos rho)
-  | TyBox (rho, ty) -> RhoParamSet.union (rigid_rhos rho) (rigid_rhos_ty ty)
-  | TyHandler (CompTy (ty1, rho1), CompTy (ty2, rho2)) ->
-      RhoParamSet.union
-        (RhoParamSet.union (rigid_rhos_ty ty1) (rigid_rhos_ty ty2))
-        (RhoParamSet.union (rigid_rhos rho1) (rigid_rhos rho2))
+let rigid_eps_params_ty ty =
+  let grade eps acc = EpsParamSet.union acc (rigid_eps_params eps) in
+  fold_ty
+    ~on_param:(fun _ acc -> acc)
+    ~on_rho:grade ~on_eps:grade ty EpsParamSet.empty
 
-let rigid_rhos_comp_ty = function
-  | CompTy (ty, rho) -> RhoParamSet.union (rigid_rhos_ty ty) (rigid_rhos rho)
+let rigid_eps_params_comp_ty cty =
+  let grade eps acc = EpsParamSet.union acc (rigid_eps_params eps) in
+  fold_comp_ty
+    ~on_param:(fun _ acc -> acc)
+    ~on_rho:grade ~on_eps:grade cty EpsParamSet.empty
 
 (* The reasons are not looked at: their only grades are the elapsed entries,
    the summands of a grade the constraint already states. *)
 let free_vars_constr = function
-  | Ineq (rho1, rho2, _) ->
-      (TyParamSet.empty, RhoParamSet.union (free_rhos rho1) (free_rhos rho2))
+  | Ineq (eps1, eps2, _) ->
+      ( TyParamSet.empty,
+        EpsParamSet.union (free_eps_params eps1) (free_eps_params eps2) )
   | Eternal (ty, _) -> free_vars ty
-  | EternalOrIneq (ty, rho1, rho2, _) ->
-      let fv_ty, fv_rho = free_vars ty in
+  | EternalOrIneq (ty, eps1, eps2, _) ->
+      let fv_ty, fv_eps = free_vars ty in
       ( fv_ty,
-        RhoParamSet.union fv_rho
-          (RhoParamSet.union (free_rhos rho1) (free_rhos rho2)) )
+        EpsParamSet.union fv_eps
+          (EpsParamSet.union (free_eps_params eps1) (free_eps_params eps2)) )

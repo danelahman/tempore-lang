@@ -25,15 +25,23 @@ module Types = struct
   type step_label = ComputationReduction of computation_reduction | Return
 end
 
-module Make (T : Language.Grade.S) = struct
-  module ResourceGrade = T
+module Make (GS : Language.GradeSystem.S) = struct
+  module Grades = GS
+  module Graded = Ast.Graded (GS)
 
-  (* The interpreter has no use for anything but the accumulated grade itself,
-     so its contexts record just that. *)
+  (* The interpreter has no use for anything but the accumulated resource grade
+     itself, so its contexts record just that. *)
   module Elapsed = struct
-    type t = ResourceGrade.t Ast.rho
+    module Grade = struct
+      type t = Graded.rho
 
-    let rho r = r
+      let one = Ast.RhoConst GS.R.one
+      let mul rho rho' = Ast.RhoAdd (rho, rho')
+    end
+
+    type t = Graded.rho
+
+    let grade rho = rho
   end
 
   (* Operation-case barriers are a typing device; the interpreter builds none. *)
@@ -42,24 +50,22 @@ module Make (T : Language.Grade.S) = struct
   end
 
   module ContextHolderModule =
-    Context.Make (Ast.Variable) (Map.Make (Ast.Variable)) (ResourceGrade)
-      (Elapsed)
-      (Barrier)
+    Context.Make (Ast.Variable) (Map.Make (Ast.Variable)) (Elapsed) (Barrier)
 
-  module P = Primitives.Make (ResourceGrade)
+  module P = Primitives.Make (GS)
   include Types
 
+  (* The state holds each resource with the resource grade it was boxed at,
+     interleaved with the resource grades that have passed; operations are
+     graded by effect grades. *)
   type evaluation_environment = {
-    state :
-      (ResourceGrade.t Ast.rho * ResourceGrade.t Ast.expression)
-      ContextHolderModule.t;
-    variables : ResourceGrade.t Ast.expression ContextHolderModule.t;
+    state : (Graded.rho * Graded.expression) ContextHolderModule.t;
+    variables : Graded.expression ContextHolderModule.t;
     builtin_functions :
-      (ResourceGrade.t Ast.expression -> ResourceGrade.t Ast.computation)
-      ContextHolderModule.t;
+      (Graded.expression -> Graded.computation) ContextHolderModule.t;
     resource_counter : int;
-    op_signatures : ResourceGrade.t Ast.rho Ast.OpNameMap.t;
-    op_defaults : ResourceGrade.t Ast.abstraction Ast.OpNameMap.t;
+    op_signatures : Graded.eps Ast.OpNameMap.t;
+    op_defaults : Graded.abstraction Ast.OpNameMap.t;
   }
 
   let initial_environment =
@@ -74,6 +80,14 @@ module Make (T : Language.Grade.S) = struct
 
   exception PatternMismatch
 
+  (** [rho_of_eps eps] is the resource grade [∣eps∣ᵉ] of the effect grade [eps]
+      of an operation signature, which has no parameters. *)
+  let rec rho_of_eps = function
+    | Ast.EpsConst c -> Ast.RhoConst (GS.map c)
+    | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
+    | Ast.EpsParam _ | Ast.EpsRigid _ ->
+        Error.runtime "internal: grade parameter in an operation signature"
+
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Annotated (expr', _) -> eval_tuple env expr'
@@ -82,7 +96,7 @@ module Make (T : Language.Grade.S) = struct
         eval_tuple env (ContextHolderModule.find_variable x env.variables)
     | _ ->
         Error.runtime "Tuple expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_variant (env : evaluation_environment) (expr : _ Ast.expression)
       =
@@ -93,7 +107,7 @@ module Make (T : Language.Grade.S) = struct
         eval_variant env (ContextHolderModule.find_variable x env.variables)
     | _ ->
         Error.runtime "Variant expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_const (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with
@@ -103,7 +117,7 @@ module Make (T : Language.Grade.S) = struct
         eval_const env (ContextHolderModule.find_variable x env.variables)
     | _ ->
         Error.runtime "Const expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec match_pattern_with_expression env (pat : _ Ast.pattern) expr =
     match pat.it with
@@ -388,7 +402,7 @@ module Make (T : Language.Grade.S) = struct
         | None -> ContextHolderModule.find_variable x env.builtin_functions)
     | _ ->
         Error.runtime "Function expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_handler env (expr : _ Ast.expression) =
     match expr.it with
@@ -402,7 +416,7 @@ module Make (T : Language.Grade.S) = struct
               "Handler expected but did not find it from environment")
     | _ ->
         Error.runtime "Handler expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let step_in_context step env redCtx ctx term =
     let terms' = step env term in
@@ -465,7 +479,7 @@ module Make (T : Language.Grade.S) = struct
             :: comps1'
         | _ -> comps1')
     | Ast.Delay (n, comp) ->
-        let rho = Ast.RhoConst (ResourceGrade.of_nat n) in
+        let rho = Ast.RhoConst (GS.R.of_nat n) in
         let env' =
           { env with state = ContextHolderModule.add_temp rho env.state }
         in
@@ -514,7 +528,7 @@ module Make (T : Language.Grade.S) = struct
           | Ast.Annotated (expr', _) -> doUnbox expr' pat body
           | _ ->
               Error.runtime "Unbox expected a variable but got expression %t"
-                (PrettyPrint.print_expression (module ResourceGrade) expr)
+                (PrettyPrint.print_expression (module GS.R) expr)
         in
         doUnbox expr pat body
     | Ast.Perform _ -> []
@@ -542,7 +556,7 @@ module Make (T : Language.Grade.S) = struct
               -> (
                 let op_sig = Ast.OpNameMap.find_opt op env.op_signatures in
                 match op_sig with
-                | Some rho ->
+                | Some eps ->
                     let resource_counter = env.resource_counter in
                     let x =
                       Ast.Variable.fresh
@@ -558,12 +572,14 @@ module Make (T : Language.Grade.S) = struct
                       match_pattern_with_expression env' op_cont_pat
                         (Ast.located at (Ast.Var x))
                     in
+                    (* The continuation is boxed at the resource grade the
+                       operation's effect grade maps to. *)
                     ( env',
                       ComputationRedex HandleOp,
                       fun () ->
                         Ast.located at
                           (Ast.Box
-                             ( rho,
+                             ( rho_of_eps eps,
                                Ast.located at
                                  (Ast.Lambda
                                     ( op_pat,
@@ -594,7 +610,7 @@ module Make (T : Language.Grade.S) = struct
 
   type load_state = {
     environment : evaluation_environment;
-    computations : ResourceGrade.t Ast.computation list;
+    computations : Graded.computation list;
   }
 
   let initial_load_state =
@@ -630,14 +646,14 @@ module Make (T : Language.Grade.S) = struct
   let load_top_do load_state comp =
     { load_state with computations = load_state.computations @ [ comp ] }
 
-  let load_op_sig load_state op rho =
+  let load_op_sig load_state op eps =
     {
       load_state with
       environment =
         {
           load_state.environment with
           op_signatures =
-            Ast.OpNameMap.add op rho load_state.environment.op_signatures;
+            Ast.OpNameMap.add op eps load_state.environment.op_signatures;
         };
     }
 

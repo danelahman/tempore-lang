@@ -292,9 +292,10 @@ let update model = function
                     (Printf.sprintf "Unknown grades '%s'"
                        model.edit_model.selected_resource);
                 ]
-          | Some (module RG : Language.Grade.S) ->
-              let module B = WebInterpreter.Make (RG) in
-              let module L = Loader.Loader (B) in
+          | Some (module G : Language.Grade.S) ->
+              let module B =
+                WebInterpreter.Make (Language.GradeSystem.Identity (G)) in
+              let module L = Loader.Loader (G) (B) in
               (* Loaded as two separate sources, so that an editor location
                  is a location in what the user typed. *)
               let state =

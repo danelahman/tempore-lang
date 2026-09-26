@@ -4,7 +4,7 @@ module Const = Language.Const
 module Primitives = Language.Primitives
 module PrettyPrint = Language.PrettyPrint
 
-module Make (ResourceGrade : Language.Grade.S) = struct
+module Make (GS : Language.GradeSystem.S) = struct
   (* A primitive's result is not written anywhere in the source, so it is
      reported at the span of the argument it was computed from. *)
   let return_const at c =
@@ -15,21 +15,21 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     | Ast.Tuple [ expr1; expr2 ] -> f expr1 expr2
     | _ ->
         Error.runtime "Pair expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let get_int (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Const (Const.Integer n) -> n
     | _ ->
         Error.runtime "Integer expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let get_float (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Const (Const.Float n) -> n
     | _ ->
         Error.runtime "Float expected but got %t"
-          (PrettyPrint.print_expression (module ResourceGrade) expr)
+          (PrettyPrint.print_expression (module GS.R) expr)
 
   let int_to f expr =
     let n = get_int expr in
@@ -86,14 +86,10 @@ module Make (ResourceGrade : Language.Grade.S) = struct
       (fun e1 e2 ->
         if not (comparable_expression e1) then
           Error.runtime "Incomparable expression %t"
-            (PrettyPrint.print_expression
-               (module ResourceGrade)
-               ~max_level:0 e1)
+            (PrettyPrint.print_expression (module GS.R) ~max_level:0 e1)
         else if not (comparable_expression e2) then
           Error.runtime "Incomparable expression %t"
-            (PrettyPrint.print_expression
-               (module ResourceGrade)
-               ~max_level:0 e2)
+            (PrettyPrint.print_expression (module GS.R) ~max_level:0 e2)
         else
           return_const expr.at
             (Const.Boolean (f (Ast.compare_expression e1 e2) 0)))
@@ -121,6 +117,5 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     | Primitives.ToString ->
         fun expr ->
           return_const expr.Ast.at
-            (Const.String
-               (PrettyPrint.string_of_expression (module ResourceGrade) expr))
+            (Const.String (PrettyPrint.string_of_expression (module GS.R) expr))
 end

@@ -5,10 +5,16 @@ module List = Utils.List
 module Ast = Language.Ast
 open Backend
 
-module Loader (Backend : Backend.S) = struct
-  module D = Desugarer.Make (Backend.ResourceGrade)
-  module TC = Typechecker.Make (Backend.ResourceGrade)
-  module G = Parser.Grammar.Make (Backend.ResourceGrade)
+(* The typechecker grades resources and effects alike by [G], so the backend's
+   grade system is required to grade both sorts by [G] until the typechecker
+   is replaced by one for grade systems in general. *)
+module Loader
+    (G : Language.Grade.S)
+    (Backend : Backend.S with type Grades.R.t = G.t and type Grades.E.t = G.t) =
+struct
+  module D = Desugarer.Make (Backend.Grades)
+  module TC = Typechecker.Make (G)
+  module Grammar = Parser.Grammar.Make (Backend.Grades)
 
   type state = {
     desugarer : D.state;
@@ -40,18 +46,19 @@ module Loader (Backend : Backend.S) = struct
       Language.Primitives.primitives
 
   let parse_commands lexbuf =
-    try G.commands Parser.Lexer.token lexbuf with
-    | G.Error -> Error.syntax ~loc:(Location.of_lexbuf lexbuf) "parser error"
+    try Grammar.commands Parser.Lexer.token lexbuf with
+    | Grammar.Error ->
+        Error.syntax ~loc:(Location.of_lexbuf lexbuf) "parser error"
     | Failure failmsg when failmsg = "lexing: empty token" ->
         Error.syntax ~loc:(Location.of_lexbuf lexbuf) "unrecognised symbol"
-    (* Grade literals are converted by the grading monoid the parser is
-       parameterised by, which rejects literal forms it does not support. This
-       is the usual symptom of running a file under the wrong grading monoid,
-       so report it as a located syntax error naming the monoid in use. *)
+    (* Grade literals are converted by the grades the parser is parameterised
+       by, which reject literal forms they do not support. This is the usual
+       symptom of running a file under the wrong grades, so report it as a
+       located syntax error naming the grades in use. *)
     | Invalid_argument msg ->
         Error.syntax
           ~loc:(Location.of_lexbuf lexbuf)
-          "in the '%s' grading monoid, %s" Backend.ResourceGrade.name msg
+          "in the '%s' grading monoid, %s" G.name msg
 
   (* A typing error raised without a location of its own is pinned to the
      command being executed. *)
@@ -71,16 +78,16 @@ module Loader (Backend : Backend.S) = struct
             typechecker = typechecker_state';
             backend = backend_state';
           }
-      | Ast.OpSig (op, ty1, ty2, rho, bounds) ->
+      | Ast.OpSig (op, ty1, ty2, eps, bounds) ->
           let typechecker_state' =
             TC.add_operation_signature ~loc:cmd.at state.typechecker
-              (op, ty1, ty2, rho, bounds)
+              (op, ty1, ty2, eps, bounds)
           in
           let _evaluation_environment_state' = state.backend in
           {
             state with
             typechecker = typechecker_state';
-            backend = Backend.load_op_sig state.backend op rho;
+            backend = Backend.load_op_sig state.backend op eps;
           }
       | Ast.OpDefault (op, abs) ->
           let typechecker_state' =

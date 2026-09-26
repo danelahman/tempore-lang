@@ -1,6 +1,17 @@
+;; The sugared syntax is a library of its own: menhir infers the types of the
+;; grammar's symbols with -short-paths, which prints the two-parameter
+;; abbreviations of the sugared syntax as [Parser.SugaredAst.term] and so on
+;; from within the parser library, a dependency of the parser on itself.
+
+(library
+ (name sugaredAst)
+ (modules sugaredAst)
+ (libraries utils language))
+
 (library
  (name parser)
- (libraries utils language))
+ (modules :standard \ sugaredAst)
+ (libraries utils language sugaredAst))
 
 (ocamllex lexer)
 

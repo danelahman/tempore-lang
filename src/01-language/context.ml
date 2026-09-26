@@ -5,7 +5,7 @@ module Symbol = Utils.Symbol
 
 module type S = sig
   type var
-  type base
+  type grade
   type elapsed
   type barrier
   type 'a map_or_rho
@@ -18,36 +18,40 @@ module type S = sig
   val find_variable : var -> 'a t -> 'a
   val find_variable_opt : var -> 'a t -> 'a option
   val barrier_after : var -> 'a t -> barrier option
-  val sum_rhos_added_after : var -> 'a t -> base rho
+  val sum_grades_added_after : var -> 'a t -> grade
   val elapsed_after : var -> 'a t -> elapsed list
-  val abstract_rho_sum : 'a t -> base rho
-  val eval_rho : base rho -> base
+  val abstract_grade_sum : 'a t -> grade
 end
 
-(** A context is a stack of variable bindings interleaved with the resource
-    grades accumulated between them. [Elapsed] is a payload the context stores
-    as it is and only ever reads a grade out of: the interpreter needs the grade
-    alone, while the typechecker also remembers where it came from, so that an
-    error can point at the [delay], [perform] or sequenced computation that
-    spent it. [Barrier] is a payload of the same kind, stored at the point an
-    operation case restricts the context and never read by the context itself.
-*)
+(** A context is a stack of variable bindings interleaved with the grades
+    accumulated between them, which are grade expressions of [Elapsed.Grade].
+    [Elapsed] is a payload the context stores as it is and only ever reads a
+    grade out of: the interpreter needs the grade alone, while the typechecker
+    also remembers where it came from, so that an error can point at the
+    [delay], [perform] or sequenced computation that spent it. [Barrier] is a
+    payload of the same kind, stored at the point an operation case restricts
+    the context and never read by the context itself. *)
 module Make
     (Variable : Symbol.S)
     (VariableMap : Map.S with type key = Variable.t)
-    (Base : Grade.S)
     (Elapsed : sig
+      module Grade : sig
+        type t
+
+        val one : t
+        val mul : t -> t -> t
+      end
+
       type t
 
-      val rho : t -> Base.t rho
+      val grade : t -> Grade.t
     end)
     (Barrier : sig
       type t
     end) =
 struct
   type var = Variable.t
-  type base = Base.t
-  type base_rho = base rho
+  type grade = Elapsed.Grade.t
   type elapsed = Elapsed.t
   type barrier = Barrier.t
   type 'a map_or_rho = (var, 'a VariableMap.t, elapsed, barrier) context_elem_ty
@@ -55,10 +59,9 @@ struct
 
   let empty : 'a t = []
 
+  (* The unit grade is not recorded. *)
   let add_temp (n : elapsed) (lst : 'a t) : 'a t =
-    match Elapsed.rho n with
-    | RhoConst z when z = Base.one -> lst
-    | _ -> Rho n :: lst
+    if Elapsed.grade n = Elapsed.Grade.one then lst else Rho n :: lst
 
   let add_barrier (b : barrier) (lst : 'a t) : 'a t = Barrier b :: lst
 
@@ -110,29 +113,29 @@ struct
     in
     go None lst
 
-  (** [sum_rhos_added_after key lst] is the sum of the resource grades recorded
-      in [lst] since [key] was bound. The context is kept most-recent-first, so
+  (** [sum_grades_added_after key lst] is the sum of the grades recorded in
+      [lst] since [key] was bound. The context is kept most-recent-first, so
       walking it from the front visits the grades newest-first and each one is
       added on the *left* of what has been accumulated so far: the sum reads
       chronologically, oldest first. This matters for the non-commutative
       (timed-trace) grades, where the order of the summands is the order the
       events happened in. *)
-  let sum_rhos_added_after (key : var) (lst : 'a t) : base_rho =
+  let sum_grades_added_after (key : var) (lst : 'a t) : grade =
     let rec go acc = function
       | [] ->
           raise (VariableNotFound (Format.asprintf "%t" (Variable.print key)))
-      | Rho t :: rest -> go (Ast.RhoAdd (Elapsed.rho t, acc)) rest
+      | Rho t :: rest -> go (Elapsed.Grade.mul (Elapsed.grade t) acc) rest
       | Barrier _ :: rest -> go acc rest
       | VarMap map :: rest -> (
           match VariableMap.find_opt key map with
           | Some _ -> acc
           | None -> go acc rest)
     in
-    go (Ast.RhoConst Base.one) lst
+    go Elapsed.Grade.one lst
 
   (** [elapsed_after key lst] are the entries recorded in [lst] since [key] was
-      bound, oldest first: the summands of {!sum_rhos_added_after} with whatever
-      else the client stored alongside them still attached. *)
+      bound, oldest first: the summands of {!sum_grades_added_after} with
+      whatever else the client stored alongside them still attached. *)
   let elapsed_after (key : var) (lst : 'a t) : elapsed list =
     let rec go acc = function
       | [] ->
@@ -146,20 +149,13 @@ struct
     in
     go [] lst
 
-  (** [abstract_rho_sum lst] is the sum of all the resource grades recorded in
-      [lst], oldest first, for the same reason as in {!sum_rhos_added_after}. *)
-  let abstract_rho_sum (lst : 'a t) : base_rho =
+  (** [abstract_grade_sum lst] is the sum of all the grades recorded in [lst],
+      oldest first, for the same reason as in {!sum_grades_added_after}. *)
+  let abstract_grade_sum (lst : 'a t) : grade =
     let rec sum acc = function
       | [] -> acc
-      | Rho t :: rest -> sum (RhoAdd (Elapsed.rho t, acc)) rest
+      | Rho t :: rest -> sum (Elapsed.Grade.mul (Elapsed.grade t) acc) rest
       | (VarMap _ | Barrier _) :: rest -> sum acc rest
     in
-    sum (RhoConst Base.one) lst
-
-  let rec eval_rho (t : base_rho) : base =
-    match t with
-    | RhoConst c -> c
-    | RhoParam _ | RhoRigid _ ->
-        raise (RhoParamInEval "RhoParam not supported in eval_rho")
-    | RhoAdd (t1, t2) -> Base.mul (eval_rho t1) (eval_rho t2)
+    sum Elapsed.Grade.one lst
 end

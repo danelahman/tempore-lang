@@ -1,11 +1,11 @@
 module SyntaxHighlight = SyntaxHighlight
 
-module Make (ResourceGrade : Language.Grade.S) = struct
-  include Interpreter.Make (ResourceGrade)
+module Make (GS : Language.GradeSystem.S) = struct
+  include Interpreter.Make (GS)
   open Vdom
   module Ast = Language.Ast
   module PrettyPrint = Language.PrettyPrint
-  module RS = RedexSelector.Make (ResourceGrade)
+  module RS = RedexSelector.Make (GS)
 
   (* Renders the interpreter state with markers around binding-position
      resource names so the syntax highlighter colors only those (and not
@@ -32,12 +32,12 @@ module Make (ResourceGrade : Language.Grade.S) = struct
       Format.fprintf ppf "%t@[<hv 2>%t%t%t ↦@ %t@ # %t@]%t" surround label_mark
         (Ast.Variable.print variable)
         label_mark
-        (PrettyPrint.print_expression (module ResourceGrade) expr)
-        (PrettyPrint.print_rho (module ResourceGrade) rho_pp rho)
+        (PrettyPrint.print_expression (module GS.R) expr)
+        (PrettyPrint.print_rho (module GS.R) rho_pp rho)
         surround
     in
     PrettyPrint.print_vars_and_exprs
-      (module ResourceGrade)
+      (module GS.R)
       print_var_and_expr state Format.str_formatter;
     Format.flush_str_formatter ()
 

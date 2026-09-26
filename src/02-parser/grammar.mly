@@ -3,7 +3,7 @@
   open Utils
 %}
 
-%parameter<ResourceGrade : Language.Grade.S>
+%parameter<GS : Language.GradeSystem.S>
 
 %token LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE
 %token COLON COMMA SEMI EQUAL CONS
@@ -42,8 +42,8 @@
 %left  INFIXOP3 STAR MOD LAND LOR LXOR
 %right INFIXOP4 LSL LSR ASR
 
-%start <ResourceGrade.t SugaredAst.term> payload
-%start <ResourceGrade.t SugaredAst.command list> commands
+%start <(GS.R.t, GS.E.t) SugaredAst.term> payload
+%start <(GS.R.t, GS.E.t) SugaredAst.command list> commands
 
 %%
 
@@ -64,9 +64,9 @@ plain_command:
     { TyDef (Language.Ast.Derived, defs) }
   | NONETERNAL TYPE defs = separated_nonempty_list(AND, ty_def)
     { TyDef (Language.Ast.Noneternal, defs) }
-  | OPERATION op = UNAME COLON ty1 = ty SIGARROW ty2 = ty HASH grade = rho_grade
+  | OPERATION op = UNAME COLON ty1 = ty SIGARROW ty2 = ty HASH eps = eps_grade
     bounds = option(op_bounds)
-    { OpSig (op, ty1, ty2, grade, bounds) }
+    { OpSig (op, ty1, ty2, eps, bounds) }
   | DEFAULT op = UNAME p = simple_pattern EQUAL t = term
     { OpDefault (op, (p, t)) }
   | LET x = ident t = lambdas0(EQUAL)
@@ -100,10 +100,10 @@ plain_term:
     { Conditional (t_cond, t_true, t_false) }
   | DELAY grade = INT
     { Delay grade }
-  | BOX grade = rho_grade e = term AS p = pattern IN c = term
-    { Box (grade, e, (p, c)) }
-  | BOX grade = rho_grade e = term
-    { GenBox (grade, e) }
+  | BOX rho = rho_grade e = term AS p = pattern IN c = term
+    { Box (rho, e, (p, c)) }
+  | BOX rho = rho_grade e = term
+    { GenBox (rho, e) }
   | UNBOX e = term AS p = pattern IN c = term
     { Unbox (e, (p, c)) }
   | UNBOX e = term
@@ -227,8 +227,8 @@ lambdas0(SEP):
     { {it= Lambda (p, t); at= Location.of_lexing $startpos $endpos} }
   | COLON ty = ty SEP t = term
     { {it= Annotated (t, ty); at= Location.of_lexing $startpos $endpos} }
-  | COLON ty = ty HASH grade = rho_grade SEP t = term
-    { {it= AnnotatedComp (t, ty, grade); at= Location.of_lexing $startpos $endpos} }
+  | COLON ty = ty HASH eps = eps_grade SEP t = term
+    { {it= AnnotatedComp (t, ty, eps); at= Location.of_lexing $startpos $endpos} }
 
 lambdas1(SEP):
   | p = simple_pattern t = lambdas0(SEP)
@@ -241,8 +241,8 @@ pure_lambdas(SEP):
     { {it= PureLambda (p, t); at= Location.of_lexing $startpos $endpos} }
   | COLON ty = ty SEP t = term
     { {it= Annotated (t, ty); at= Location.of_lexing $startpos $endpos} }
-  | COLON ty = ty HASH grade = rho_grade SEP t = term
-    { {it= AnnotatedComp (t, ty, grade); at= Location.of_lexing $startpos $endpos} }
+  | COLON ty = ty HASH eps = eps_grade SEP t = term
+    { {it= AnnotatedComp (t, ty, eps); at= Location.of_lexing $startpos $endpos} }
 
 let_def:
   | p = pattern EQUAL t = term
@@ -414,10 +414,10 @@ defined_ty:
 
 ty: mark_position(plain_ty) { $1 }
 plain_ty:
-  | t1 = ty_apply ARROW t2 = ty HASH grade = rho_grade
-    { TyArrow (t1, CompTy (t2, grade)) }
+  | t1 = ty_apply ARROW t2 = ty HASH eps = eps_grade
+    { TyArrow (t1, CompTy (t2, eps)) }
   | t1 = ty_apply ARROW t2 = ty
-    { TyArrow (t1, CompTy (t2, ResourceGrade.one)) }
+    { TyArrow (t1, CompTy (t2, GS.E.one)) }
   | t = plain_prod_ty
     { t }
 
@@ -444,8 +444,8 @@ plain_simple_ty:
     { TyApply (t, []) }
   | t = PARAM
     { TyParam t }
-  | LBRACK grade = rho_grade RBRACK ty = ty
-    { TyBox (grade, ty) }
+  | LBRACK rho = rho_grade RBRACK ty = ty
+    { TyBox (rho, ty) }
   | LPAREN t = ty RPAREN
     { t.it }
 
@@ -461,12 +461,20 @@ op_bounds:
   | WITHIN n = INT { (n, n) }
   | WITHIN LPAREN n = INT COMMA m = INT RPAREN { (n, m) }
 
+(* A resource grade, read by the resource grades of the grade system. *)
 rho_grade:
-  | n = INT { ResourceGrade.of_lit (Language.Grade.Int n) }
-  | LPAREN n = INT COMMA m = INT RPAREN { ResourceGrade.of_lit (Language.Grade.Pair (n, m)) }
-  | LBRACE ts = trace_set RBRACE { ResourceGrade.of_lit (Language.Grade.Traces ts) }
+  | lit = grade_lit { GS.R.of_lit lit }
+
+(* An effect grade, read by the effect grades of the grade system. *)
+eps_grade:
+  | lit = grade_lit { GS.E.of_lit lit }
+
+grade_lit:
+  | n = INT { Language.Grade.Int n }
+  | LPAREN n = INT COMMA m = INT RPAREN { Language.Grade.Pair (n, m) }
+  | LBRACE ts = trace_set RBRACE { Language.Grade.Traces ts }
   | LPAREN LBRACE ts1 = trace_set RBRACE COMMA LBRACE ts2 = trace_set RBRACE RPAREN
-    { ResourceGrade.of_lit (Language.Grade.TracePair (ts1, ts2)) }
+    { Language.Grade.TracePair (ts1, ts2) }
 
 trace_set:
   | ts = separated_nonempty_list(BAR, trace_lit) { ts }

@@ -1,5 +1,5 @@
-module Make (ResourceGrade : Language.Grade.S) = struct
-  include Interpreter.Make (ResourceGrade)
+module Make (GS : Language.GradeSystem.S) = struct
+  include Interpreter.Make (GS)
   module Ast = Language.Ast
   module PrettyPrint = Language.PrettyPrint
 
@@ -7,11 +7,10 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     match run_state with
     | { computations = ({ it = Ast.Return _; _ } as comp) :: _; environment } ->
         Format.printf "=== Run %d ===@." run_num;
-        Format.printf "%t@."
-          (PrettyPrint.print_computation (module ResourceGrade) comp);
+        Format.printf "%t@." (PrettyPrint.print_computation (module GS.R) comp);
         print_string
           (PrettyPrint.string_of_interpreter_state
-             (module ResourceGrade)
+             (module GS.R)
              environment.state);
         print_newline ();
         true
@@ -23,8 +22,7 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     }
       when not (Ast.OpNameMap.mem op environment.op_defaults) ->
         Format.printf "=== Run %d (unhandled operation) ===@." run_num;
-        Format.printf "%t@."
-          (PrettyPrint.print_computation (module ResourceGrade) comp);
+        Format.printf "%t@." (PrettyPrint.print_computation (module GS.R) comp);
         print_newline ();
         true
     | _ -> false

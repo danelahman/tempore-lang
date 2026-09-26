@@ -8,10 +8,10 @@ module Diagnostic = Utils.Diagnostic
 module Location = Utils.Location
 module Ast = Language.Ast
 
-module Make (ResourceGrade : Language.Grade.S) = struct
-  type ty = ResourceGrade.t Ast.ty
-  type rho = ResourceGrade.t Ast.rho
-  type reason = ResourceGrade.t Ast.reason
+module Make (G : Language.Grade.S) = struct
+  type rho = G.t Ast.eps
+  type ty = (rho, rho) Ast.ty
+  type reason = G.t Ast.reason
 
   (** A fragment of the user's code inside a sentence, marked as {!Diagnostic}
       marks it: this is the one place a diagnostic's backticks come from. *)
@@ -74,7 +74,7 @@ module Make (ResourceGrade : Language.Grade.S) = struct
   (* Universally quantified continuation grades                          *)
   (* ------------------------------------------------------------------ *)
 
-  type rigids = Ast.rigid_origin Ast.RhoParamMap.t
+  type rigids = Ast.rigid_origin Ast.EpsParamMap.t
   (** Where each rigid grade a message may print was introduced. One that
       reaches a message without an origin is described as before. *)
 
@@ -94,11 +94,11 @@ module Make (ResourceGrade : Language.Grade.S) = struct
       [Location.compare] puts a containing span before the span it contains. *)
   let rigids_of rigids rhos =
     List.fold_left
-      (fun acc rho -> Ast.RhoParamSet.union acc (Ast.rigid_rhos rho))
-      Ast.RhoParamSet.empty rhos
-    |> Ast.RhoParamSet.elements
+      (fun acc rho -> Ast.EpsParamSet.union acc (Ast.rigid_eps_params rho))
+      Ast.EpsParamSet.empty rhos
+    |> Ast.EpsParamSet.elements
     |> List.filter_map (fun r ->
-        Option.map (fun o -> (r, o)) (Ast.RhoParamMap.find_opt r rigids))
+        Option.map (fun o -> (r, o)) (Ast.EpsParamMap.find_opt r rigids))
     |> List.sort (fun (_, o1) (_, o2) ->
         Location.compare o1.Ast.case_at o2.Ast.case_at)
 
@@ -109,21 +109,21 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     ^ String.concat " and every "
         (List.map
            (fun (r, o) ->
-             Printf.sprintf "grade %s %s may have" (p.rho (Ast.RhoRigid r))
+             Printf.sprintf "grade %s %s may have" (p.rho (Ast.EpsRigid r))
                (continuation_phrase o))
            rs)
 
   (* A rigid grade on first mention, where the sentence has room for it. *)
   let rigid_description p (r, (o : Ast.rigid_origin)) =
     Printf.sprintf "%s, the grade of %s in the case for %s"
-      (p.rho (Ast.RhoRigid r)) (continuation_phrase o) (op_name o.op)
+      (p.rho (Ast.EpsRigid r)) (continuation_phrase o) (op_name o.op)
 
   let rigid_labels p rs =
     List.map
       (fun (r, (o : Ast.rigid_origin)) ->
         label o.continuation_at
           (Printf.sprintf "%s may have any grade %s" (continuation_subject o)
-             (p.rho (Ast.RhoRigid r))))
+             (p.rho (Ast.EpsRigid r))))
       rs
 
   (* The refuting instance of the quantified grades, spelled out as the
@@ -137,13 +137,13 @@ module Make (ResourceGrade : Language.Grade.S) = struct
                 (fun (r, _) ->
                   code
                     (Printf.sprintf "%s = %s"
-                       (p.rho_raw (Ast.RhoRigid r))
-                       (ResourceGrade.show w)))
+                       (p.rho_raw (Ast.EpsRigid r))
+                       (G.show w)))
                 rs))
           (code
              (Printf.sprintf "%s %s %s"
                 (p.rho_raw (Ast.instantiate_rigid w rho1))
-                ResourceGrade.leq_symbol
+                G.leq_symbol
                 (p.rho_raw (Ast.instantiate_rigid w rho2))))
 
   (* A fragment whose sides mention rigid grades states what it claims of every
@@ -156,7 +156,7 @@ module Make (ResourceGrade : Language.Grade.S) = struct
         code
           (Printf.sprintf "∀%s. %s"
              (String.concat " "
-                (List.map (fun (r, _) -> p.rho_raw (Ast.RhoRigid r)) rs))
+                (List.map (fun (r, _) -> p.rho_raw (Ast.EpsRigid r)) rs))
              text)
 
   (* One place that contributed to an elapsed grade, naming its share; the
@@ -231,7 +231,7 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     | (rho, _, _) :: rest ->
         Some
           (List.fold_left
-             (fun acc (rho, _, _) -> Ast.RhoAdd (acc, rho))
+             (fun acc (rho, _, _) -> Ast.EpsAdd (acc, rho))
              rho rest)
 
   (** The story of a use after time, in source order: where the variable was
@@ -558,8 +558,8 @@ module Make (ResourceGrade : Language.Grade.S) = struct
     let rs = rigids_of rigids [ rigid; other ] in
     let named =
       match rigid with
-      | Ast.RhoRigid r ->
-          Option.map (fun o -> (r, o)) (Ast.RhoParamMap.find_opt r rigids)
+      | Ast.EpsRigid r ->
+          Option.map (fun o -> (r, o)) (Ast.EpsParamMap.find_opt r rigids)
       | _ -> None
     in
     let message =
@@ -600,7 +600,7 @@ module Make (ResourceGrade : Language.Grade.S) = struct
   (* The inequality is one fragment of the user's code, so its two sides come
      in unmarked and the whole of it is marked here. *)
   let ineq_code p rs g1 g2 =
-    quantified p rs (Printf.sprintf "%s %s %s" g1 ResourceGrade.leq_symbol g2)
+    quantified p rs (Printf.sprintf "%s %s %s" g1 G.leq_symbol g2)
 
   let plain_ineq p rs g1 g2 =
     Printf.sprintf "the resource inequality %s does not hold"
@@ -810,13 +810,13 @@ module Make (ResourceGrade : Language.Grade.S) = struct
   (** A rigid grade in the type a definition or a run exports. [described] is
       that type, rendered with [p] so that its grades are already numbered. *)
   let rigid_escape p ~rigids ~loc ~described r =
-    match Ast.RhoParamMap.find_opt r rigids with
+    match Ast.EpsParamMap.find_opt r rigids with
     | None ->
         fail ~loc ~labels:[] ~notes:[]
           (Printf.sprintf
              "The grade %s of a handler continuation may be any grade and \
               cannot occur in %s"
-             (p.rho (Ast.RhoRigid r)) described)
+             (p.rho (Ast.EpsRigid r)) described)
     | Some o ->
         fail ~loc
           ~labels:(rigid_labels p [ (r, o) ])

@@ -1,4 +1,2 @@
 module SyntaxHighlight = SyntaxHighlight
-
-module Make (ResourceGrade : Language.Grade.S) :
-  WebBackend.S with module ResourceGrade = ResourceGrade
+module Make (GS : Language.GradeSystem.S) : WebBackend.S with module Grades = GS
