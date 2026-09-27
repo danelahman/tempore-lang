@@ -36,7 +36,7 @@ module Make (C : Constraint.S) : sig
   type solution = {
     subst : C.subst;  (** the values of the unknowns solved *)
     hyps : Residual.Make(C).hyps;
-        (** the atoms left on the unknowns, the qualifier [Q] *)
+        (** the atoms left on the unknowns, the hypotheses [Q] *)
     obligations : Residual.Make(C).deferred list;
         (** the deferred rigid conditions, the obligations [R] *)
     context : context;  (** the cost model and type definitions solved under *)

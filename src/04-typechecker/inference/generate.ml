@@ -629,7 +629,8 @@ module Make (C : Constraint.S) = struct
     | None ->
         Error.typing ~loc "Unknown operation `%s`" (Ast.OpName.string_of op)
 
-  (* The atoms of a scheme's qualifier, owed by the use of [x] at [at]. *)
+  (* The qualifier [Q ∧ R] of a scheme, its atoms and obligations owed by the
+     use of [x] at [at]. *)
   let instance_of at x defined_at qualifier =
     C.map_reasons
       (fun inner ->
@@ -638,7 +639,7 @@ module Make (C : Constraint.S) = struct
 
   (* The use of the variable [x] at [at]: its type is a subtype of the expected
      type, and it is eternal or the grade accumulated since its binding is
-     below the unit. A scheme is instantiated first and its qualifier owed. *)
+     below the unit. A scheme is instantiated first and its qualifier [Q ∧ R] owed. *)
   let variable env at x expected =
     match lookup ~loc:at env x with
     | Local { ty; bound_at; locks } ->

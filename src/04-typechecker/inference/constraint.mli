@@ -153,7 +153,7 @@ module type S = sig
         (** the atoms and rigid obligations an instance owes, [Q ∧ R] *)
     ty : ty;
   }
-  (** A qualified type scheme [∀ᾱ ρ̄ ε̄. Q ⇒ A]. *)
+  (** A qualified type scheme [∀ᾱ ρ̄ ε̄. Q ∧ R ⇒ A]. *)
 
   val monomorphic : ty -> scheme
   (** [monomorphic a] is [a] as a scheme without parameters or qualifier. *)
@@ -192,10 +192,10 @@ module type S = sig
       parentheses. *)
 
   val print_scheme : ?names:names -> scheme -> Format.formatter -> unit
-  (** [print_scheme ~names scheme ppf] prints [scheme] as [∀ α ρ₀ ε₀. Q ⇒ A],
-      the quantifier omitted when it binds nothing and the qualifier when it is
-      [⊤]. The parameters are listed, and named, in the order of their first
-      occurrence in [A] and then in [Q]. *)
+  (** [print_scheme ~names scheme ppf] prints [scheme] as
+      [∀ α ρ₀ ε₀. Q ∧ R ⇒ A], the quantifier omitted when it binds nothing and
+      the qualifier when it is [⊤]. The parameters are listed, and named, in the
+      order of their first occurrence in [A] and then in [Q ∧ R]. *)
 end
 
 (** [Make (X)] is the constraints over the grade expressions [X]. *)

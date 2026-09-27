@@ -105,8 +105,8 @@ type ('rho, 'eps) why =
       defined_at : Location.t option;
       inner : ('rho, 'eps) t;
     }
-      (** at = a use of [var]; an atom of its scheme's qualifier, generated for
-          [inner] *)
+      (** at = a use of [var]; an atom or obligation of its scheme's qualifier
+          [Q ∧ R], generated for [inner] *)
   | Handler_case of { op : Ast.operation; signature_at : Location.t }
       (** at = the clause, or its pattern; the clause's pattern and result are
           the operation's parameter, continuation and the handler's result *)
