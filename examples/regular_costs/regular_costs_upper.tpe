@@ -2,15 +2,6 @@
 
      ./tempore --grades traces-regex-upper-symbolic examples/regular_costs/regular_costs_upper.tpe *)
 
-(* A grade is a regular language of runs, as under 'traces-regex', read as an
-   upper bound: a run is permitted if it fits inside some run of the grade,
-   where the ticks of the grade pay for operations the grade does not name, at
-   the upper end of their runtime bounds 'within (lo, hi)'. An operation the
-   grade names may be matched by the run instead, and a match resets the
-   budget: ticks before it cannot pay for operations after it, and conversely.
-   The wildcard '_' and the complement '~' range over the ticks and the
-   declared operations. *)
-
 type reading = Reading of int
 
 (* The operations of a sensor station: a sample takes one to two ticks, a

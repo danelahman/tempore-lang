@@ -2,13 +2,6 @@
 
      ./tempore --grades time-lower-bound-levels examples/levels/time_lower_levels.tpe *)
 
-(* A grade '(n, l)' pairs a lower bound on time with a security level: at least
-   'n' ticks, touching nothing above 'l'. A resource boxed at '(n, l)' is under
-   an embargo with a taint check: it may be unboxed once at least 'n' ticks
-   have passed, and only while nothing above 'l' has been touched since boxing.
-   Grades are compared componentwise, and a delay of 'n' ticks has the grade
-   '(n, Low)'. *)
-
 type report = Report of string
 
 (* Compiling the figures takes at least two ticks and touches nothing

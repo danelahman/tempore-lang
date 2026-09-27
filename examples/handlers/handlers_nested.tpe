@@ -2,18 +2,14 @@
 
      ./tempore --grades time-lower-bound examples/handlers/handlers_nested.tpe *)
 
-(* An operation case is checked for every grade its continuation may have, so
-   two nested cases quantify over two such grades: ε₀ for the outer 'k' and ε₁
-   for the inner 'k''. A case may only resume its own continuation: the outer
-   'k' is bound outside the inner case, whose context keeps nothing but
-   eternal types, and a continuation is a box, which is never eternal. *)
-
 operation Op1 : unit ~> unit # 2
 operation Op2 : unit ~> unit # 3
 
-(* Correctly accepted by the typechecker: the inner case delays the 3 ticks of
-   'Op2' and resumes 'k'', so its grade 3 · ε₁ is a sub-grade of 3 · ε₁; the
-   outer case resumes 'k' once the inner handle is done. *)
+(* Correctly accepted by the typechecker: with ε₀ the grade the outer
+   continuation 'k' may have and ε₁ that of the inner 'k'', the inner case
+   delays the 3 ticks of 'Op2' and resumes 'k'', so its grade 3 · ε₁ is a
+   sub-grade of 3 · ε₁; the outer case resumes 'k' once the inner handle is
+   done. *)
 let h =
   handler
   | x -> x

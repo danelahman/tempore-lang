@@ -2,12 +2,6 @@
 
      ./tempore --grades security-levels examples/levels/security_levels.tpe *)
 
-(* A computation's grade is the highest security level it touches, 'Low' or
-   'High'. A resource boxed at a level may be unboxed only while the level has
-   not risen above it since boxing, so a public channel is out of reach once a
-   secret has been read: no writing down after reading up. Delays touch no
-   level at all. *)
-
 type channel = Channel of string
 
 (* Reading the public feed touches nothing secret. *)

@@ -1,14 +1,6 @@
-(* Run this example with the 'traces-regex-interval-symbolic' grading monoid,
-   e.g.
+(* Run this example with the 'traces-regex-interval-symbolic' grading monoid, e.g.
 
      ./tempore --grades traces-regex-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe *)
-
-(* A grade is a pair '({...}, {...})' of regular languages of runs: a lower
-   bound, ordered as under 'traces-regex-lower' at the lower ends of the
-   runtime bounds 'within (lo, hi)', and an upper bound, ordered as under
-   'traces-regex-upper' at their upper ends; pairs are compared componentwise.
-   '{...}' abbreviates the pair of a language with itself, and '(n, m)' the
-   pair '({n}, {m})'. *)
 
 type part = Part of string
 

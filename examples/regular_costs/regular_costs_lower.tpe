@@ -2,14 +2,6 @@
 
      ./tempore --grades traces-regex-lower-symbolic examples/regular_costs/regular_costs_lower.tpe *)
 
-(* A grade is a regular language of runs, as under 'traces-regex', read as a
-   lower bound: a run is permitted if it covers some run of the grade, where
-   the ticks and the operations of the run bank towards the ticks the grade
-   demands, operations at the lower end of their runtime bounds
-   'within (lo, hi)'. An operation the grade demands is covered only by that
-   operation, and ticks banked before it do not count towards demands after
-   it. The unit '{0}' is the top of the order. *)
-
 type part = Part of string
 
 (* The operations of a coating line: a coating takes one to two ticks, a bake

@@ -2,14 +2,6 @@
 
      ./tempore --grades traces-regex-symbolic examples/regular/regular_traces.tpe *)
 
-(* A grade is a regular language of runs, each run a word whose letters are
-   operations and ticks: '{Open; (Read | Write)*; Close}' permits the runs that
-   open, read and write any number of times, and close. A resource boxed at a
-   grade may be unboxed after any run the language contains, and a
-   computation's grade lists the runs it may exhibit. Grades are compared by
-   inclusion; '_' is any single letter, '~' the complement, '&' the
-   intersection and '*' repetition. *)
-
 type token = Token of string
 
 (* The operations of a file protocol. *)

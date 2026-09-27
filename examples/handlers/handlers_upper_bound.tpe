@@ -2,12 +2,6 @@
 
      ./tempore --grades time-upper-bound examples/handlers/handlers_upper_bound.tpe *)
 
-(* Under 'time-upper-bound' a grade rho is an upper bound on the ticks a
-   computation takes, rho is a sub-grade of rho' when rho <= rho', and zero
-   is the minimum grade. A 'Get' clause's continuation k : [71](int -> ... #
-   eps) may be resumed at any time up to 71 ticks after the call, for every
-   rigid effect eps the continuation may have. *)
-
 (* Reading the state takes at most 71 ticks. *)
 operation Get : unit ~> int # 71
 (* Writing it takes at most 2. *)
