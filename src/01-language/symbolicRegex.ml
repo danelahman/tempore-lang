@@ -84,6 +84,15 @@ module Letters = struct
 
   let order p q = Stdlib.compare (least p, p) (least q, q)
   let mentioned p = match p.names with Only a | Except a -> a
+
+  let partition sets =
+    let split block p =
+      List.filter
+        (fun b -> not (is_empty b))
+        [ inter block p; inter block (compl p) ]
+    in
+    let refine blocks p = List.concat_map (fun b -> split b p) blocks in
+    List.sort order (List.fold_left refine [ any ] sets)
 end
 
 type t = { id : int; view : view; nullable : bool }
@@ -101,6 +110,7 @@ and view =
 
 let view r = r.view
 let equal_form r s = r.id = s.id
+let hash r = r.id
 let by_id r s = Int.compare r.id s.id
 let mem_form r rs = List.exists (equal_form r) rs
 
@@ -200,12 +210,16 @@ let merge_letters part combine rs =
   | [] -> others
   | p :: ps -> letters (List.fold_left combine p ps) :: others
 
-(** [complementary rs] is whether some operand of [rs] is the complement of
-    another. *)
-let complementary rs =
-  List.exists
-    (fun r -> match r.view with Compl s -> mem_form s rs | _ -> false)
-    rs
+(** [complementary split rs] is whether some operand of [rs] is the complement
+    of another, or of the operation that [split] splits into operands, all of
+    them among [rs]: the operands of a flattened union or intersection. *)
+let complementary split rs =
+  let among s =
+    match split s with
+    | Some ss -> List.for_all (fun s' -> mem_form s' rs) ss
+    | None -> mem_form s rs
+  in
+  List.exists (fun r -> match r.view with Compl s -> among s | _ -> false) rs
 
 let is_top r = equal_form r top
 let is_empty_form r = equal_form r empty
@@ -230,7 +244,7 @@ let union rs =
   else
     let rs = List.sort_uniq by_id (merge_letters letter_set Letters.union rs) in
     let rs = List.filter (fun r -> not (subsumed rs r)) rs in
-    if complementary rs then top
+    if complementary split rs then top
     else match rs with [] -> empty | [ r ] -> r | rs -> make (Union rs)
 
 let inter rs =
@@ -253,7 +267,7 @@ let inter rs =
     if List.for_all (fun r -> r.nullable) rs then eps else empty
   else
     let rs = List.sort_uniq by_id rs in
-    if complementary rs then empty
+    if complementary split rs then empty
     else match rs with [] -> top | [ r ] -> r | rs -> make (Inter rs)
 
 let compl r =
@@ -300,18 +314,7 @@ let names r =
 
 (** {1 Derivatives} *)
 
-(** [partition sets] is the coarsest partition of the letters that the letter
-    sets [sets] respect, ordered by {!Letters.order}. *)
-let partition sets =
-  let split block p =
-    List.filter
-      (fun b -> not (Letters.is_empty b))
-      [ Letters.inter block p; Letters.inter block (Letters.compl p) ]
-  in
-  let refine blocks p = List.concat_map (fun b -> split b p) blocks in
-  List.sort Letters.order (List.fold_left refine [ Letters.any ] sets)
-
-let minterms r = partition (letter_sets [ r ])
+let minterms r = Letters.partition (letter_sets [ r ])
 
 type minterm = { set : Letters.t; key : int }
 (** A block of a partition, with the number of its normal form as a key. *)
@@ -392,10 +395,32 @@ let search r =
 let shortest r =
   if r.nullable then Some [] else if known_empty r then None else search r
 
+(** [inhabited r] is whether some derivative of [r] is nullable, found by
+    depth-first exploration of its derivatives; the derivatives known to be
+    empty are not explored, and if none is nullable every expression explored is
+    recorded as empty. *)
+let inhabited r =
+  let ms = List.map minterm (minterms r) in
+  let seen = Hashtbl.create 64 in
+  let fresh d = not (Hashtbl.mem seen d.id || known_empty d) in
+  let rec go = function
+    | [] -> false
+    | d :: _ when d.nullable -> true
+    | d :: stack ->
+        let next = List.filter fresh (List.map (fun m -> derive m d) ms) in
+        List.iter (fun d -> Hashtbl.replace seen d.id ()) next;
+        go (next @ stack)
+  in
+  Hashtbl.add seen r.id ();
+  let found = go [ r ] in
+  if found then Hashtbl.replace emptiness r.id false
+  else Hashtbl.iter (fun id () -> Hashtbl.replace emptiness id true) seen;
+  found
+
 let is_empty r =
   match Hashtbl.find_opt emptiness r.id with
   | Some e -> e
-  | None -> (not r.nullable) && Option.is_none (search r)
+  | None -> not (inhabited r)
 
 let subset r s = equal_form r s || is_top s || is_empty (inter [ r; compl s ])
 
@@ -406,7 +431,7 @@ let equalities : (int * int, bool) Hashtbl.t = Hashtbl.create 1024
     words, merging the classes of the two expressions of each pair, until two
     expressions of a pair differ in nullability or no pair is left. *)
 let bisimilar r s =
-  let ms = List.map minterm (partition (letter_sets [ r; s ])) in
+  let ms = List.map minterm (Letters.partition (letter_sets [ r; s ])) in
   let parent = Hashtbl.create 64 in
   let rec find x =
     match Hashtbl.find_opt parent x with

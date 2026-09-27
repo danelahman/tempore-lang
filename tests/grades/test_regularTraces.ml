@@ -3,16 +3,12 @@
    normal forms, inclusion with counterexamples, alphabet alignment, laws on
    samples, and the reading and printing of their literals, checked against a
    direct matcher of regular expressions and against the parser; and the
-   agreement of the two on random expressions. *)
+   agreement of the two on random expressions, on which equal grades have equal
+   canonical automata and print alike. *)
 
 module Grade = Language.Grade
+module LetterRegex = Language.LetterRegex
 module SugaredAst = SugaredAst
-
-module type GRADE = sig
-  include Grade.S
-
-  val counterexample : t -> t -> t option
-end
 
 type implementation = Automata | Derivatives
 type check = { name : string; passed : bool; detail : string }
@@ -102,7 +98,7 @@ let take n l = List.filteri (fun i _ -> i < n) l
 (* The checks of one implementation [G], the expected printed forms being those
    of [implementation]. *)
 module Suite
-    (G : GRADE)
+    (G : Grade.S)
     (I : sig
       val implementation : implementation
     end) =
@@ -179,7 +175,25 @@ struct
       reads "{Read; Read*}" ~automata:"{Read; Read*}"
         ~derivatives:"{Read; Read*}";
       reads "{~(_*; Read; _*)}" ~automata:"{(_ & ~Read)*}"
-        ~derivatives:"{~{_*; Read; _*}}";
+        ~derivatives:"{(_ & ~Read)*}";
+      reads "{~{_*; Revoke; _*}}" ~automata:"{(_ & ~Revoke)*}"
+        ~derivatives:"{(_ & ~Revoke)*}";
+      reads "{(_ & ~Auth)*; Auth; _*}" ~automata:"{~(_ & ~Auth)*}"
+        ~derivatives:"{~(_ & ~Auth)*}";
+      reads "{_*; Auth; _*}" ~automata:"{~(_ & ~Auth)*}"
+        ~derivatives:"{~(_ & ~Auth)*}";
+      reads "{3 | 2*}" ~automata:"{0 | 2; (0 | 1; {0 | 1; 2*})}"
+        ~derivatives:"{3 | 2*}";
+      reads "{1 | 2 | 3}" ~automata:"{1; (0 | 1; (0 | 1))}"
+        ~derivatives:"{1 | 2 | 3}";
+      reads "{Open; Read*; Close | Open; Write*; Close}"
+        ~automata:"{Open; {Read* | Write*}; Close}"
+        ~derivatives:"{Open; {Read* | Write*}; Close}";
+      reads "{(Open; (Read | Write)*; Close | 1)*}"
+        ~automata:"{(1 | Open; (Read | Write)*; Close)*}"
+        ~derivatives:"{(1 | Open; (Read | Write)*; Close)*}";
+      reads "{(A; A)* & (A; A; A)*}" ~automata:"{(A; A; A; A; A; A)*}"
+        ~derivatives:"{(A; A)* & (A; A; A)*}";
       reads "{_ & ~(1 | Read)}" ~automata:"{_ & ~(1 | Read)}"
         ~derivatives:"{_ & ~(1 | Read)}";
       reads "{3; _*}" ~automata:"{3; _*}" ~derivatives:"{3; _*}";
@@ -187,15 +201,14 @@ struct
 
   let lexing =
     [
-      reads "{Read*|Send}" ~automata:"{Read* | Send}"
+      reads "{Read*|Send}" ~automata:"{Send | Read*}"
         ~derivatives:"{Send | Read*}";
-      reads "{Read*&~Send}" ~automata:"{Read*}" ~derivatives:"{Read* & ~Send}";
+      reads "{Read*&~Send}" ~automata:"{Read*}" ~derivatives:"{Read*}";
       reads "{~~Read}" ~automata:"{Read}" ~derivatives:"{Read}";
       reads "{Read**}" ~automata:"{Read*}" ~derivatives:"{Read*}";
       reads "{_&~Read|Read}" ~automata:"{_}" ~derivatives:"{_}";
-      reads "{Read;(*a comment*)Send*|~_}"
-        ~automata:"{0 | (Read | (_ & ~Read); _); _*}"
-        ~derivatives:"{Read; Send* | ~_}";
+      reads "{Read;(*a comment*)Send*|~_}" ~automata:"{~(_ & ~Read)}"
+        ~derivatives:"{~(_ & ~Read)}";
     ]
 
   let errors =
@@ -247,7 +260,7 @@ struct
      the automata, that it is [expected]. *)
   let counterexample a b ~expected =
     let name = "counterexample of " ^ a ^ " and " ^ b in
-    match G.counterexample (lit a) (lit b) with
+    match G.counterexample bounds (lit a) (lit b) with
     | None -> check name false "none"
     | Some word ->
         let shown = G.show word in
@@ -269,7 +282,7 @@ struct
       counterexample "{_}" "{A | 1}" ~expected:"{_ & ~(1 | A)}";
       counterexample "{3; (A | B)*; C}" "{3; A*; C}" ~expected:"{3; B; C}";
       expect "no counterexample" Fun.id ~expected:"none"
-        (show_option (G.counterexample (lit "{A; B}") (lit "{A; _*}")));
+        (show_option (G.counterexample bounds (lit "{A; B}") (lit "{A; _*}")));
       check "top is not absorbing"
         (not (G.equal bounds (G.mul (lit "{3}") G.top) G.top))
         "{3} · ⊤ = ⊤";
@@ -297,7 +310,12 @@ struct
 
   let properties =
     [
-      expect "name" Fun.id ~expected:"regular-traces" G.name;
+      expect "name" Fun.id
+        ~expected:
+          (match I.implementation with
+          | Automata -> "traces-regex"
+          | Derivatives -> "traces-regex-symbolic")
+        G.name;
       expect "unit" G.show ~expected:(lit "{0}") G.one;
       expect "of_nat" G.show ~expected:(lit "{4}") (G.of_nat 4);
       expect "unit least" show_bool ~expected:false G.unit_least;
@@ -505,7 +523,9 @@ module Cross = struct
             (A.equal bounds a a' = D.equal bounds d d')
             (D.show d ^ " = " ^ D.show d');
           check (name "counterexample")
-            (same_length (A.counterexample a a') (D.counterexample d d'))
+            (same_length
+               (A.counterexample bounds a a')
+               (D.counterexample bounds d d'))
             (D.show d ^ " <= " ^ D.show d');
         ]
     | _ -> []
@@ -529,7 +549,43 @@ module Cross = struct
     | _ -> []
 
   let printing = List.concat (List.mapi print expressions)
-  let checks = emptiness @ decisions @ printing
+
+  (* Whether the derivatives print [d] as its normal form rather than as an
+     expression of its automaton. *)
+  let prints_normal_form d =
+    D.show d = "{" ^ LetterRegex.to_string (LetterRegex.of_symbolic d) ^ "}"
+
+  (* Equal grades have equal automata and print alike: the automata always,
+     the derivatives unless one of them prints its normal form, and the two
+     implementations alike unless the derivatives print the normal form. *)
+  let canonicity i (r, s) =
+    match (grades r, grades s) with
+    | (Some a, Some d), (Some a', Some d') when D.equal bounds d d' ->
+        let name what = "cross: " ^ what ^ " of pair " ^ string_of_int i in
+        let automaton = Language.SymbolicAutomaton.of_regex ~limit:256 in
+        [
+          check (name "equal automata")
+            (match (automaton d, automaton d') with
+            | Some x, Some y -> Language.SymbolicAutomaton.equal x y
+            | _ -> true)
+            (D.show d ^ " = " ^ D.show d');
+          check
+            (name "printing by automata")
+            (A.show a = A.show a')
+            (A.show a ^ " vs " ^ A.show a');
+          check
+            (name "printing by derivatives")
+            (D.show d = D.show d'
+            || prints_normal_form d || prints_normal_form d')
+            (D.show d ^ " vs " ^ D.show d');
+          check (name "printing by both")
+            (D.show d = A.show a || prints_normal_form d)
+            (D.show d ^ " vs " ^ A.show a);
+        ]
+    | _ -> []
+
+  let canonical = List.concat (List.mapi canonicity pairs)
+  let checks = emptiness @ decisions @ printing @ canonical
 end
 
 let () =

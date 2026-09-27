@@ -1,11 +1,12 @@
 open Grade
+module Letters = SymbolicRegex.Letters
 
 type t = { names : string list; dfa : Dfa.t }
 (* The letters of the automaton [dfa] are [tick], the operation [names] in
    increasing order, and the catch-all letter. Only names whose letter the
    language tells apart from the catch-all letter are kept. *)
 
-let name = "regular-traces"
+let name = "traces-regex"
 let tick = 0
 let other names = List.length names + 1
 let size names = List.length names + 2
@@ -98,7 +99,7 @@ let of_bounds (lo, hi) =
 
 let is_atomic name rho = rho = of_regex (Letter name)
 
-let counterexample rho rho' =
+let counterexample _bounds rho rho' =
   let names = merge rho.names rho'.names in
   Option.map
     (fun word -> canonical names (Dfa.word (size names) word))
@@ -122,59 +123,25 @@ let of_lit = function
 
 (** {1 Printing} *)
 
-let union_all = function
-  | [] -> invalid_arg "RegularTraceGrade.show: empty language"
-  | r :: rs -> List.fold_left (fun acc s -> Union (acc, s)) r rs
+(** [letters names a] is the letter set of the letter [a] over [names]: [tick],
+    a name, or the names other than [names]. *)
+let letters names a =
+  if a = tick then Letters.tick
+  else if a = other names then
+    Letters.compl
+      (List.fold_left Letters.union Letters.tick (List.map Letters.name names))
+  else Letters.name (List.nth names (a - 1))
 
-let seq_all = function
-  | [] -> Tick 0
-  | r :: rs -> List.fold_left (fun acc s -> Seq (acc, s)) r rs
+(** [symbolic rho] is the automaton of [rho] over letter sets. *)
+let symbolic rho =
+  let letters = List.init (size rho.names) (letters rho.names) in
+  let states = List.init (Dfa.states rho.dfa) Fun.id in
+  SymbolicAutomaton.of_table
+    ~final:(Array.of_list (List.map (Dfa.final rho.dfa) states))
+    ~edges:
+      (Array.of_list
+         (List.map
+            (fun q -> List.mapi (fun a p -> (p, Dfa.next rho.dfa q a)) letters)
+            states))
 
-let letter_regex names a =
-  if a = tick then Tick 1 else Letter (List.nth names (a - 1))
-
-(** [set_regex names s] is a regular expression for the one-letter words of the
-    set [s] of letters over [names]. *)
-let set_regex names s =
-  let missing =
-    List.filter (fun a -> not (List.mem a s)) (List.init (other names) Fun.id)
-  in
-  match (List.mem (other names) s, missing) with
-  | false, _ -> union_all (List.map (letter_regex names) s)
-  | true, [] -> Any
-  | true, missing ->
-      Inter (Any, Compl (union_all (List.map (letter_regex names) missing)))
-
-(** [merge_ticks rs] joins adjacent delays of a concatenation. *)
-let merge_ticks rs =
-  let add r acc =
-    match (r, acc) with
-    | Tick m, Tick n :: acc -> Tick (m + n) :: acc
-    | r, acc -> r :: acc
-  in
-  List.fold_right add rs []
-
-let rec regex_of names = function
-  | Dfa.Letters s -> set_regex names s
-  | Dfa.Seq parts -> seq_all (merge_ticks (List.map (regex_of names) parts))
-  | Dfa.Union parts -> union_all (List.map (regex_of names) parts)
-  | Dfa.Star r -> Star (regex_of names r)
-
-(** [show_regex prec r] prints [r] in the literal syntax, in parentheses if its
-    operator binds more loosely than the precedence [prec]: [|] is [0], [&] is
-    [1], [;] is [2], [~] is [3] and [*] is [4]. *)
-let rec show_regex prec r =
-  let wrap p s = if prec > p then "(" ^ s ^ ")" else s in
-  match r with
-  | Letter name -> name
-  | Tick n -> string_of_int n
-  | Any -> "_"
-  | Union (r, s) -> wrap 0 (show_regex 0 r ^ " | " ^ show_regex 1 s)
-  | Inter (r, s) -> wrap 1 (show_regex 1 r ^ " & " ^ show_regex 2 s)
-  | Seq (r, s) -> wrap 2 (show_regex 2 r ^ "; " ^ show_regex 3 s)
-  | Compl r -> wrap 3 ("~" ^ show_regex 3 r)
-  | Star r -> wrap 4 (show_regex 4 r ^ "*")
-
-let show rho =
-  if Dfa.is_all rho.dfa then "⊤"
-  else "{" ^ show_regex 0 (regex_of rho.names (Dfa.to_regex rho.dfa)) ^ "}"
+let show rho = SymbolicAutomaton.show ~others:[] (symbolic rho)

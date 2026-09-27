@@ -1,8 +1,8 @@
 (* A benchmark of the two implementations of the regular trace grade, by
-   automata ([RegularTraceGrade]) and by symbolic derivatives
-   ([RegularTraceGradeDerivative]): the grade operations on families of
-   grades of increasing size, and the typechecking of the programs that use
-   the grade, the standard library included.
+   automata ([RegularTraceGrade], "traces-regex") and by symbolic derivatives
+   ([RegularTraceGradeDerivative], "traces-regex-symbolic"): the grade
+   operations on families of grades of increasing size, and the typechecking
+   of the programs that use the grade, the standard library included.
 
    Each measurement runs in a fresh child process, so that the tables of the
    derivatives start empty: it prepares its inputs untimed, then times the
@@ -13,12 +13,6 @@
      dune exec --profile release bench/regular/bench_regular.exe *)
 
 module Grade = Language.Grade
-
-module type GRADE = sig
-  include Grade.S
-
-  val counterexample : t -> t -> t option
-end
 
 let bounds _ = (0, 0)
 
@@ -168,7 +162,7 @@ let rec nested d =
 let from_end a n = "_*; " ^ a ^ "; " ^ String.concat "; " (repeat n "_")
 let names k = List.init k (fun i -> "Op" ^ string_of_int (i + 1))
 
-module Workloads (G : GRADE) = struct
+module Workloads (G : Grade.S) = struct
   module Grammar = Parser.Grammar.Make (Language.GradeSystem.Identity (G))
 
   let lit text =
@@ -207,7 +201,8 @@ module Workloads (G : GRADE) = struct
       op family "join, all pairs" grades (on_pairs G.join);
       op family "leq, all pairs" grades (on_pairs leq);
       op family "equal, all pairs" grades (on_pairs equal);
-      op family "counterexample, all pairs" grades (on_pairs G.counterexample);
+      op family "counterexample, all pairs" grades
+        (on_pairs (G.counterexample bounds));
     ]
 
   (* [P] the session, [P*] its repetition and [J] the join of [P] to [P^k]. *)
@@ -226,7 +221,7 @@ module Workloads (G : GRADE) = struct
       op family "leq P; P* <= J (false)" prepared (fun (_, j, plus, _) ->
           leq plus j);
       op family "counterexample P; P*, J" prepared (fun (_, j, plus, _) ->
-          G.counterexample plus j);
+          G.counterexample bounds plus j);
       op family "equal J | P; P* = P; P*" prepared (fun (_, j, plus, _) ->
           equal (G.join j plus) plus);
     ]
@@ -243,7 +238,7 @@ module Workloads (G : GRADE) = struct
       op family "elaborate N_d" Fun.id (fun () -> braces (nested d));
       op family "leq N_d <= N_d+1" both (fun (n, n') -> leq n n');
       op family "counterexample N_d+1, N_d" both (fun (n, n') ->
-          G.counterexample n' n);
+          G.counterexample bounds n' n);
       op family "equal N_d = N_d | P" with_session (fun (n, n') -> equal n n');
     ]
 
@@ -267,7 +262,7 @@ module Workloads (G : GRADE) = struct
       op family "elaborate E2" Fun.id (fun () -> braces e2);
       op family "leq (B | C)* <= E" (against "(B | C)*") (fun (x, e) -> leq x e);
       op family "counterexample (B | C)*; A; (B | C)^n, E" (against bc)
-        (fun (x, e) -> G.counterexample x e);
+        (fun (x, e) -> G.counterexample bounds x e);
       op family "leq C* <= E2"
         (fun () -> (braces "C*", braces e2))
         (fun (x, e2) -> leq x e2);
@@ -289,7 +284,8 @@ module Workloads (G : GRADE) = struct
       op family "join X W" both (fun (w, x) -> G.join x w);
       op family "leq X <= W" both (fun (w, x) -> leq x w);
       op family "leq W <= X (false)" both (fun (w, x) -> leq w x);
-      op family "counterexample W, X" both (fun (w, x) -> G.counterexample w x);
+      op family "counterexample W, X" both (fun (w, x) ->
+          G.counterexample bounds w x);
       op family "equal W = W | X"
         (fun () ->
           let w, x = both () in
@@ -314,10 +310,11 @@ let programs =
     "tests/regular_protocol.tpe";
     "tests/regular_reject_auth.tpe";
     "tests/regular_reject_bounds.tpe";
+    "tests/regular_reject_counterexample.tpe";
     "tests/regular_reject_protocol.tpe";
   ]
 
-module Programs (G : GRADE) = struct
+module Programs (G : Grade.S) = struct
   module Backend = CliInterpreter.Make (Language.GradeSystem.Identity (G))
   module L = Loader.Loader (Backend)
 

@@ -1,5 +1,6 @@
-(* Unit tests of the security-level grade, the product construction, and the
-   interpretation of literals by the grades of [GradeRegistry.grade_modules]. *)
+(* Unit tests of the security-level grade, the product construction and its
+   counterexamples, and the interpretation of literals by the grades of
+   [GradeRegistry.grade_modules]. *)
 
 module Grade = Language.Grade
 module TimeGrades = Language.TimeGrades
@@ -80,7 +81,43 @@ module TraceLevels =
     (TimedTraceGrades.UpperBound)
     (LevelGrades.SecurityLevels)
 
+module RegexLevels =
+  GradeConstructions.Product
+    (Language.RegularTraceGradeDerivative)
+    (LevelGrades.SecurityLevels)
+
 let lit_of_pair n level = Grade.Tuple [ Grade.Int n; Grade.Name level ]
+
+(* Counterexamples: in the component where the order fails, with the other
+   component of the lesser grade, and none from grades that offer none. *)
+let counterexamples =
+  let regex r level =
+    RegexLevels.of_lit (Grade.Tuple [ Grade.Braces r; Grade.Name level ])
+  in
+  let read = Grade.Letter "Read" and write = Grade.Letter "Write" in
+  let show = function Some e -> RegexLevels.show e | None -> "none" in
+  let time n level = TimeLevels.of_lit (lit_of_pair n level) in
+  [
+    expect "counterexample: in the first component" Fun.id
+      ~expected:"({Write},Low)"
+      (show
+         (RegexLevels.counterexample bounds
+            (regex (Grade.Union (read, write)) "Low")
+            (regex read "High")));
+    expect "counterexample: none from the second component" Fun.id
+      ~expected:"none"
+      (show
+         (RegexLevels.counterexample bounds (regex read "High")
+            (regex (Grade.Union (read, write)) "Low")));
+    expect "counterexample: none where the order holds" Fun.id ~expected:"none"
+      (show
+         (RegexLevels.counterexample bounds (regex read "Low")
+            (regex (Grade.Union (read, write)) "High")));
+    check "counterexample: none from time and levels"
+      (Option.is_none
+         (TimeLevels.counterexample bounds (time 2 "High") (time 3 "Low")))
+      "";
+  ]
 
 let products =
   let p n level = TimeLevels.of_lit (lit_of_pair n level) in
@@ -252,10 +289,15 @@ let registry =
     expect "registry: grades reading an open interval" show_names
       ~expected:[ "time-interval" ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
+    expect "registry: grades reading a repetition" show_names
+      ~expected:[ "traces-regex"; "traces-regex-symbolic" ]
+      (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
   ]
 
 let () =
-  let checks = levels @ products @ literals @ tops @ registry in
+  let checks =
+    levels @ products @ counterexamples @ literals @ tops @ registry
+  in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
   Printf.printf "%d of %d checks passed\n"

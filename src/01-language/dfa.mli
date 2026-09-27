@@ -23,6 +23,12 @@ val letters : t -> int
 val states : t -> int
 (** [states l] is the number of states of the minimal automaton of [l]. *)
 
+val next : t -> int -> int -> int
+(** [next l q a] is the successor of the state [q] of [l] by the letter [a]. *)
+
+val final : t -> int -> bool
+(** [final l q] is whether the state [q] of [l] is final. *)
+
 val equal : t -> t -> bool
 (** [equal l m] is whether [l] and [m] are the same language over the same
     alphabet. *)
@@ -92,21 +98,3 @@ val counterexample : t -> t -> int list option
 
 val subset : t -> t -> bool
 (** [subset l m] is whether [l ⊆ m]. *)
-
-(** {1 Regular expressions} *)
-
-(** Regular expressions over letter sets, as read off an automaton. *)
-type regex =
-  | Letters of int list
-      (** One letter out of a non-empty set, listed in increasing order *)
-  | Seq of regex list  (** Concatenation; [Seq []] is the empty word *)
-  | Union of regex list  (** Union; [Union []] is the empty language *)
-  | Star of regex  (** Repetition *)
-
-val to_regex : t -> regex
-(** [to_regex l] is a regular expression for [l], obtained by state elimination:
-    the states that reach no final state are dropped, the transitions between
-    two states are labelled by the set of their letters, and the remaining
-    states are eliminated fewest paths first. The expression is simplified as it
-    is built, so that the languages of single words and of small unions print as
-    such. *)

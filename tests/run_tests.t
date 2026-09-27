@@ -31,9 +31,9 @@
   >     literals_reject_star.tpe) ../tempore --grades traces-upper-bound $f;;
   >     literals_reject_component.tpe) ../tempore --grades time-lower-bound-levels $f;;
   >     literals_reject_complement.tpe) ../tempore --grades traces-upper-bound $f;;
-  >     literals_reject_empty.tpe) ../tempore --grades regular-traces $f;;
-  >     literals_regular.tpe) ../tempore --grades regular-traces $f;;
-  >     regular_*.tpe) ../tempore --grades regular-traces $f;;
+  >     literals_reject_empty.tpe) ../tempore --grades traces-regex-symbolic $f;;
+  >     literals_regular.tpe) ../tempore --grades traces-regex-symbolic $f;;
+  >     regular_*.tpe) ../tempore --grades traces-regex-symbolic $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -833,7 +833,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval' or 'regular-traces' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex' or 'traces-regex-symbolic' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1044,7 +1044,7 @@
   === Run 2 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read* & ~Send} }
+    { resource_0 ↦ 1 # {Read*} }
   ]
   
   === Run 3 ===
@@ -1062,25 +1062,25 @@
   === Run 5 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 3; (Send | Write)* & ~(_; Read)} }
+    { resource_0 ↦ 1 # {Read; 3; (Send | Write)*} }
   ]
   
   === Run 6 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(Send; 2)* & ~{_*; Send; Send; _*}} }
+    { resource_0 ↦ 1 # {(Send; 2)*} }
   ]
   
   === Run 7 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {~{_*; Revoke; _*}} }
+    { resource_0 ↦ 1 # {(_ & ~Revoke)*} }
   ]
   
   === Run 8 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Open; Close | Open; (Read | Write)*; Close} }
+    { resource_0 ↦ 1 # {Open; (Read | Write)*; Close} }
   ]
   
   === Run 9 ===
@@ -1113,7 +1113,7 @@
   File "literals_reject_complement.tpe", line 4, characters 19-32:
   4 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use the 'regular-traces' grading monoid?
+  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'traces-regex' or 'traces-regex-symbolic' grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -1127,7 +1127,7 @@
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'regular-traces' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: in the 'traces-regex-symbolic' grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_reject_inf.tpe
   ======================================================================
@@ -1148,7 +1148,7 @@
   File "literals_reject_star.tpe", line 3, characters 19-31:
   3 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use the 'regular-traces' grading monoid?
+  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'traces-regex' or 'traces-regex-symbolic' grading monoids?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -1556,7 +1556,7 @@
   File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
   15 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{_*; Auth; _*}`
+  Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{~(_ & ~Auth)*}`
     File "regular_reject_auth.tpe", line 13, characters 36-37:
     13 |   box {_*; Auth; _*} (Token "t") as t in
                                              ^
@@ -1565,12 +1565,12 @@
     14 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    Note: the resource inequality `{Fetch} <= {_*; Auth; _*}` does not hold
+    Note: the resource inequality `{Fetch} <= {~(_ & ~Auth)*}` does not hold
   
   File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
   22 |   unbox c as cap in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{~{_*; Revoke; _*}}`
+  Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
     File "regular_reject_auth.tpe", line 20, characters 41-42:
     20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
                                                   ^
@@ -1579,7 +1579,7 @@
     21 |   perform Revoke ();
            ^^^^^^^^^^^^^^^^^
     grade `{Revoke}` accumulates here (operation `Revoke`)
-    Note: the resource inequality `{Revoke} <= {~{_*; Revoke; _*}}` does not hold
+    Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
   
   File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
   29 |   unbox x as n in
@@ -1604,7 +1604,31 @@
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `regular-traces` grading monoid
+  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `traces-regex-symbolic` grading monoid
+  ======================================================================
+  regular_reject_counterexample.tpe
+  ======================================================================
+  File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
+  13 | let session (b : bool) : int # {Open; Read*; Close} =
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
+    Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
+    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+  
+  File "regular_reject_counterexample.tpe", lines 24-25, characters 2-5:
+  24 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated since it was bound, which is not below its box grade `{Auth; _*}`
+    File "regular_reject_counterexample.tpe", line 22, characters 23-24:
+    22 |   box {Auth; _*} 42 as t in
+                                ^
+    `t` is bound here
+    File "regular_reject_counterexample.tpe", line 23, characters 2-49:
+    23 |   if b then perform Auth () else perform Fetch ();
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{Auth | Fetch}` accumulates here (this computation)
+    Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
+    Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
   ======================================================================
   regular_reject_protocol.tpe
   ======================================================================
@@ -2636,6 +2660,223 @@
                         ^^^
   Syntax error: Unknown name `bar`
 
+The programs of the regular trace grade, run above under its implementation
+by symbolic derivatives, 'traces-regex-symbolic', under its implementation by
+automata, 'traces-regex':
+
+  $ for f in literals_reject_empty.tpe literals_regular.tpe regular_*.tpe
+  > do
+  >   echo "======================================================================"
+  >   echo "$f (traces-regex)"
+  >   echo "======================================================================"
+  >   ../tempore --grades traces-regex $f
+  >   :  # this command is here to suppress potential non-zero exit codes in the output
+  > done
+  ======================================================================
+  literals_reject_empty.tpe (traces-regex)
+  ======================================================================
+  File "literals_reject_empty.tpe", line 4, characters 19-33:
+  4 | let claim () = box {Read & Write} 1
+                         ^^^^^^^^^^^^^^
+  Syntax error: in the 'traces-regex' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  ======================================================================
+  literals_regular.tpe (traces-regex)
+  ======================================================================
+  === Run 1 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Send | Read*} }
+  ]
+  
+  === Run 2 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read*} }
+  ]
+  
+  === Run 3 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read*} }
+  ]
+  
+  === Run 4 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {_} }
+  ]
+  
+  === Run 5 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 3; (Send | Write)*} }
+  ]
+  
+  === Run 6 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {(Send; 2)*} }
+  ]
+  
+  === Run 7 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {(_ & ~Revoke)*} }
+  ]
+  
+  === Run 8 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Open; (Read | Write)*; Close} }
+  ]
+  
+  === Run 9 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {0 | 2; (0 | 1; {0 | 1; 2*})} }
+  ]
+  
+  === Run 10 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {3} }
+  ]
+  
+  === Run 11 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {0} }
+  ]
+  
+  === Run 12 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # ⊤ }
+  ]
+  
+  ======================================================================
+  regular_auth.tpe (traces-regex)
+  ======================================================================
+  === Run 1 ===
+  return 42
+  State: [
+    { resource_0 ↦ 42 # {3; _*} },
+    {4}
+  ]
+  
+  ======================================================================
+  regular_protocol.tpe (traces-regex)
+  ======================================================================
+  ======================================================================
+  regular_reject_auth.tpe (traces-regex)
+  ======================================================================
+  File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
+  15 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{~(_ & ~Auth)*}`
+    File "regular_reject_auth.tpe", line 13, characters 36-37:
+    13 |   box {_*; Auth; _*} (Token "t") as t in
+                                             ^
+    `t` is bound here
+    File "regular_reject_auth.tpe", line 14, characters 2-18:
+    14 |   perform Fetch ();
+           ^^^^^^^^^^^^^^^^
+    grade `{Fetch}` accumulates here (operation `Fetch`)
+    Note: the resource inequality `{Fetch} <= {~(_ & ~Auth)*}` does not hold
+  
+  File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
+  22 |   unbox c as cap in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
+    File "regular_reject_auth.tpe", line 20, characters 41-42:
+    20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
+                                                  ^
+    `c` is bound here
+    File "regular_reject_auth.tpe", line 21, characters 2-19:
+    21 |   perform Revoke ();
+           ^^^^^^^^^^^^^^^^^
+    grade `{Revoke}` accumulates here (operation `Revoke`)
+    Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
+  
+  File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
+  29 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `{Fetch; 3}` accumulated since it was bound, which is not below its box grade `{3; _*}`
+    File "regular_reject_auth.tpe", line 26, characters 20-21:
+    26 |   box {3; _*} 42 as x in
+                             ^
+    `x` is bound here
+    File "regular_reject_auth.tpe", line 27, characters 2-18:
+    27 |   perform Fetch ();
+           ^^^^^^^^^^^^^^^^
+    grade `{Fetch}` accumulates here (operation `Fetch`)
+    File "regular_reject_auth.tpe", line 28, characters 2-9:
+    28 |   delay 3;
+           ^^^^^^^
+    grade `{3}` accumulates here (delay)
+    Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
+  ======================================================================
+  regular_reject_bounds.tpe (traces-regex)
+  ======================================================================
+  File "regular_reject_bounds.tpe", line 4, characters 0-52:
+  4 | operation Send : unit ~> unit # {Send} within (1, 2)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `traces-regex` grading monoid
+  ======================================================================
+  regular_reject_counterexample.tpe (traces-regex)
+  ======================================================================
+  File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
+  13 | let session (b : bool) : int # {Open; Read*; Close} =
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
+    Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
+    Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+  
+  File "regular_reject_counterexample.tpe", lines 24-25, characters 2-5:
+  24 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated since it was bound, which is not below its box grade `{Auth; _*}`
+    File "regular_reject_counterexample.tpe", line 22, characters 23-24:
+    22 |   box {Auth; _*} 42 as t in
+                                ^
+    `t` is bound here
+    File "regular_reject_counterexample.tpe", line 23, characters 2-49:
+    23 |   if b then perform Auth () else perform Fetch ();
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{Auth | Fetch}` accumulates here (this computation)
+    Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
+    Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
+  ======================================================================
+  regular_reject_protocol.tpe (traces-regex)
+  ======================================================================
+  File "regular_reject_protocol.tpe", line 16, characters 6-23:
+  16 |       continue k with x
+             ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `{Open; Close; Read}` accumulated since it was bound, which is not below its box grade `{Open; Read*; Close}`
+    File "regular_reject_protocol.tpe", line 12, characters 15-16:
+    12 |   | Session () k ->
+                        ^
+    `k` is bound here
+    File "regular_reject_protocol.tpe", line 13, characters 6-21:
+    13 |       perform Open ();
+               ^^^^^^^^^^^^^^^
+    grade `{Open}` accumulates here (operation `Open`)
+    File "regular_reject_protocol.tpe", line 14, characters 6-22:
+    14 |       perform Close ();
+               ^^^^^^^^^^^^^^^^
+    grade `{Close}` accumulates here (operation `Close`)
+    File "regular_reject_protocol.tpe", line 15, characters 14-29:
+    15 |       let x = perform Read () in
+                       ^^^^^^^^^^^^^^^
+    grade `{Read}` accumulates here (operation `Read`)
+    Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
+  
+  File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
+  18 | let unclosed () : int # {Open; Read*; Close} =
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
+    Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
+
 The options: typechecking only reports errors and runs nothing, and the
 single-dash form of the help option is not accepted.
 
@@ -2651,7 +2892,7 @@ single-dash form of the help option is not accepted.
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
-    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'regular-traces', 'security-levels', 'time-lower-bound-levels', 'time-upper-bound-levels'
+    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'security-levels', 'time-lower-bound-levels', 'time-upper-bound-levels'
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

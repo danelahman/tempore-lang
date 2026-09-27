@@ -18,6 +18,7 @@ module LowerBound = struct
   let top = 0
   let join = Int.min
   let equal _bounds = Int.equal
+  let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = true
   let needs_op_bounds = false
@@ -41,6 +42,7 @@ module UpperBound = struct
   let top = ExtendedNat.Inf
   let join = ExtendedNat.max
   let equal _bounds = ( = )
+  let counterexample _bounds _ _ = None
   let unit_least = true
   let commutative = true
   let needs_op_bounds = false
@@ -68,6 +70,7 @@ module Interval = struct
   let top = (0, ExtendedNat.Inf)
   let join (n, m) (k, l) = (Int.min n k, ExtendedNat.max m l)
   let equal _bounds = ( = )
+  let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = true
   let needs_op_bounds = false

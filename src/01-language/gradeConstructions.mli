@@ -33,8 +33,8 @@ end
 (** The grade of a lattice [L]: [mul] and [join] are both the join of [L], [one]
     its bottom, [top] its top and [leq] its order. A tick touches no level of
     the lattice, so [of_nat] is constantly the bottom, and so is [of_bounds].
-    The unit is least and [mul] commutes. No operation needs runtime bounds, and
-    every grade is atomic. *)
+    The unit is least and [mul] commutes. No operation needs runtime bounds,
+    every grade is atomic, and no counterexample is offered. *)
 module OfLattice (L : LATTICE) : Grade.S with type t = L.t
 
 (** The product of the grades [G1] and [G2]: pairs [(g1, g2)], written as such
@@ -47,6 +47,9 @@ module OfLattice (L : LATTICE) : Grade.S with type t = L.t
     - [leq_symbol] is the components' symbol if they share it, and [≾]
       otherwise;
     - [needs_op_bounds] holds iff it holds for either component;
+    - [counterexample] pairs a witness in the first component with the second
+      component of the lesser grade, or else the first component of the lesser
+      grade with a witness in the second component;
     - [implied_bounds] intersects the bounds the components imply, the greater
       lower bound and the lesser upper bound, and is [None] only if neither
       implies any;

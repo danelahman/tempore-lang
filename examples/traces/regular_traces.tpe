@@ -1,6 +1,6 @@
-(* Run this example with the 'regular-traces' grading monoid, e.g.
+(* Run this example with the 'traces-regex-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regular-traces examples/traces/regular_traces.tpe *)
+     ./tempore --grades traces-regex-symbolic examples/traces/regular_traces.tpe *)
 
 (* A grade is a regular language of runs, each run a word whose letters are
    operations and ticks: '{Open; (Read | Write)*; Close}' permits the runs that
@@ -58,7 +58,7 @@ let two_sessions () : int # {(Open; (Read | Write)*; Close | 1)*} =
 
 (* Correctly accepted by the typechecker: the token may be used once the
    session has authenticated, whatever happened before and since. Its grade is
-   printed as written, '{_*; Auth; _*}'. *)
+   printed as '{~(_ & ~Auth)*}', all runs but those avoiding 'Auth'. *)
 let after_auth () =
   box {_*; Auth; _*} (Token "t") as t in
   perform Fetch ();
@@ -125,9 +125,9 @@ let unclosed () : int # {Open; (Read | Write)*; Close} =
    authenticating:
 
      Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since
-       it was bound, which is not below its box grade `{_*; Auth; _*}`
+       it was bound, which is not below its box grade `{~(_ & ~Auth)*}`
        ...
-       Note: the resource inequality `{Fetch} <= {_*; Auth; _*}` does not
+       Note: the resource inequality `{Fetch} <= {~(_ & ~Auth)*}` does not
          hold
 *)
 (*
@@ -143,10 +143,10 @@ let before_auth () =
    revocation:
 
      Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated
-       since it was bound, which is not below its box grade `{~{_*; Revoke; _*}}`
+       since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
        ...
-       Note: the resource inequality `{Revoke} <= {~{_*; Revoke; _*}}` does
-         not hold
+       Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not
+         hold
 *)
 (*
 let after_revoke () =
@@ -176,3 +176,45 @@ let settle_early () =
 (* The operations have no default implementations, since only performing an
    operation realises its grade; the run uses delays alone. *)
 run box {3; _*} "settled" as s in delay 4; unbox s as msg in msg
+
+(* Correctly rejected by the typechecker: a session that may write, annotated
+   as one that only reads; the second note names a run the body may exhibit
+   that the annotated grade does not contain:
+
+     Typing error: This function's body has grade
+       `{Open; Read; (0 | Write); Close}`, which does not match its annotated
+       grade `{Open; Read*; Close}`
+       Note: the effect inequality
+         `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not
+         hold
+       Note: the grade `{Open; Read; Write; Close}` is below
+         `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
+*)
+(*
+let maybe_write (b : bool) : int # {Open; Read*; Close} =
+  perform Open ();
+  let x = perform Read () in
+  if b then perform Write x else ();
+  perform Close ();
+  x
+*)
+
+(* A grade whose automaton is large: the box grade permits the runs whose
+   13th-last step, if any, is neither an 'A' nor a 'B'. Under 'traces-regex',
+   reading the literal builds the minimal automata of the two complements, of
+   2^13 states each by the subset construction, and of their intersection,
+   which dominates: the program takes about 10 s. Under
+   'traces-regex-symbolic', the literal is kept as a normalised expression, and
+   the inclusions the typechecker decides explore only the derivatives along
+   one run: the program takes about 0.04 s. *)
+(*
+operation A : unit ~> unit # {A}
+operation B : unit ~> unit # {B}
+operation C : unit ~> unit # {C}
+run
+  box {~(_*; A; _; _; _; _; _; _; _; _; _; _; _; _)
+       & ~(_*; B; _; _; _; _; _; _; _; _; _; _; _; _)} 42 as x in
+  perform C ();
+  unbox x as v in
+  v
+*)

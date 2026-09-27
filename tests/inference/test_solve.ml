@@ -297,6 +297,7 @@ let expected_rejections =
     ("polymorphism_id_id.tpe", [ 2 ]);
     ("regular_reject_auth.tpe", [ 12; 19; 25 ]);
     ("regular_reject_bounds.tpe", [ 4 ]);
+    ("regular_reject_counterexample.tpe", [ 13; 21 ]);
     ("regular_reject_protocol.tpe", [ 9; 18 ]);
     ("time_reject_within.tpe", [ 6 ]);
     ("traces_intervals_default_bounds.tpe", [ 9 ]);

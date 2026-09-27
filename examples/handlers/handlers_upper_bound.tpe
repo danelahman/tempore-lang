@@ -102,9 +102,9 @@ let h_before =
 
      Typing error: Variable `f` is used with grade `∣ε₀∣` accumulated since it
        was bound, but its type `unit → int` is not eternal
-       Note: for every grade `ε₀` the continuation `k` may have, the
-         resource inequality `∀ε₀. ∣ε₀∣ <= 0` must hold, but does not: for
-         `ε₀ = ∞` it becomes `∞ <= 0`
+       Note: the resource inequality
+         `∀ε₀. ∣ε₀∣ <= 0` does not hold: for `ε₀ = ∞` it becomes
+         `∞ <= 0`
 *)
 (*
 let h_after =

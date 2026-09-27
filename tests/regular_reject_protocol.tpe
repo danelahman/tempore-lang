@@ -1,4 +1,4 @@
-(* Rejected under the 'regular-traces' grading monoid: a session that reads
+(* Rejected under the regular trace grading monoids: a session that reads
    after closing, and one that is never closed. *)
 
 operation Open : unit ~> unit # {Open}

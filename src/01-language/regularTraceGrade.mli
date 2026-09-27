@@ -1,9 +1,9 @@
-(** The regular trace grade, ["regular-traces"]: non-empty regular languages of
-    words over delays and operations, multiplied by concatenation.
+(** The regular trace grade decided by automata, ["traces-regex"]: non-empty
+    regular languages of words over delays and operations, multiplied by
+    concatenation.
 
-    This implementation by automata is not the one {!GradeRegistry} lists, which
-    is {!RegularTraceGradeDerivative}; it is kept for the tests and the
-    benchmark comparing the two.
+    {!RegularTraceGradeDerivative}, ["traces-regex-symbolic"], implements the
+    same grade by symbolic derivatives.
 
     {2 Runs as words}
 
@@ -29,6 +29,18 @@
     letter, with the minimal automaton over them in the canonical form of
     {!Dfa}. Grades denoting the same language are thus structurally equal.
 
+    {2 Counterexamples and printing}
+
+    {!Grade.S.counterexample} [bounds rho rho'] is the grade of a shortest word
+    of [rho] not in [rho'], in which the catch-all letter, if it occurs, stands
+    for any operation neither grade names. A grade is printed as the smaller, by
+    {!LetterRegex.size}, of the regular expressions of its automaton and of the
+    complement of its automaton, as {!SymbolicAutomaton.show} prints the
+    automaton over letter sets whose labels join the letters of each transition,
+    the catch-all letter standing for the names not mentioned. The printed form
+    is thus determined by the language, and the same as for
+    {!RegularTraceGradeDerivative} unless that prints its normal form.
+
     {2 Literals}
 
     A grade is written as a brace literal holding a regular expression: an
@@ -48,9 +60,3 @@
     the language [{name}]. *)
 
 include Grade.S
-
-val counterexample : t -> t -> t option
-(** [counterexample rho rho'] is [None] if [rho] is included in [rho'], and
-    otherwise the grade of a shortest word of [rho] that is not in [rho'], in
-    which the catch-all letter, if it occurs, stands for any operation neither
-    grade names. *)

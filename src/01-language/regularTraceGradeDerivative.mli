@@ -1,5 +1,5 @@
-(** The regular trace grade, ["regular-traces"], decided by symbolic
-    derivatives.
+(** The regular trace grade decided by symbolic derivatives,
+    ["traces-regex-symbolic"].
 
     The grade is that of {!RegularTraceGrade}, with the same runs, alphabet,
     order, operations, literals and runtime bounds; only the representation and
@@ -20,22 +20,22 @@
     Inclusion [rho ⊆ rho'] is the emptiness of [rho & ~rho'], decided by
     breadth-first exploration of its derivatives by the minterms of its letter
     sets; equality is decided by a bisimulation of the derivatives of both
-    grades. Grades denoting the same language need not have the same normal
-    form, and are then printed differently.
+    grades. {!Grade.S.counterexample} [bounds rho rho'] is the grade of a
+    shortest word of [rho & ~rho'], found by the same exploration, in which a
+    letter is the least letter of its minterm: [tick], else its least name, else
+    the minterm itself, the names neither grade mentions.
 
     {2 Printing}
 
-    A grade is printed as its normal form in the literal syntax, the top as [⊤],
-    runs of ticks as integers, the empty word as [0], and letter sets as unions
-    of letters or as [_ & ~(…)]; a group ending with a repetition is printed in
-    braces rather than parentheses, e.g. [~{_*; Revoke; _*}], so that a printed
-    grade can be quoted in a comment. The literal read back denotes the same
-    language. *)
+    A grade is printed as the smallest, by {!LetterRegex.size}, of three regular
+    expressions: the expression of its automaton, the complement of the
+    expression of the automaton of its complement, and its normal form, the
+    first of these on a tie. The automaton is the canonical form
+    {!SymbolicAutomaton.of_regex} of the automaton of its derivatives, and its
+    expression is obtained by state elimination ({!SymbolicAutomaton.to_regex});
+    both are determined by the language, so that grades denoting the same
+    language print alike unless the normal form of one of them is printed. A
+    grade with more than 256 derivatives is printed as its normal form. The top
+    is printed as [⊤]. The literal read back denotes the same language. *)
 
-include Grade.S
-
-val counterexample : t -> t -> t option
-(** [counterexample rho rho'] is [None] if [rho] is included in [rho'], and
-    otherwise the grade of a shortest word of [rho] that is not in [rho'], in
-    which the catch-all letter, if it occurs, stands for any operation neither
-    grade names. *)
+include Grade.S with type t = SymbolicRegex.t

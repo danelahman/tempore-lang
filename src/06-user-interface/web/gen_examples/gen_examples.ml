@@ -2,7 +2,8 @@
    examples the web interface's selector offers. Reads the manifest
    [examples/index] and the source of each example it names, and prints an
    OCaml module of the groups and examples it describes, in the manifest's
-   order; invoked by a dune rule, see src/06-user-interface/web/dune. *)
+   order; invoked by a dune rule, see src/06-user-interface/web/dune. It fails
+   on a grade the registry does not list. *)
 
 (* One example: its group, title, the grading monoid the web interface
    switches to when it is loaded, its path relative to the project root, and
@@ -34,9 +35,18 @@ let entry_of_line line =
           }
     | _ -> failwith (Printf.sprintf "malformed manifest line: %s" line)
 
+(* [entry], if its grade is one of those Language.GradeRegistry lists. *)
+let checked (entry : entry) =
+  if List.mem_assoc entry.grade Language.GradeRegistry.grade_modules then entry
+  else
+    failwith
+      (Printf.sprintf "the manifest names the unknown grade '%s' for %s"
+         entry.grade entry.path)
+
 let read_entries manifest_path =
   In_channel.with_open_text manifest_path In_channel.input_lines
   |> List.filter_map entry_of_line
+  |> List.map checked
 
 (* [entries] grouped by [group], preserving the manifest's order of both the
    groups and the examples within them; entries of one group are expected to

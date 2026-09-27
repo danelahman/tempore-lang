@@ -25,11 +25,12 @@
     associated to the right. The empty language, the empty word and [Σ*] obey
     their unit and zero laws, an intersection with the empty word being the
     empty word or the empty language; [~~r] is [r], [r | ~r] is [Σ*] and
-    [r & ~r] the empty language; [0 | r] is [r] for a nullable [r] and [r | r*]
-    is [r*]; [r**], [(0 | r)*] and [r*; r*] are [r*], and the repetition of the
-    empty word or language is the empty word. Brzozowski's similarity is thus
-    decided syntactically, and every expression has finitely many derivatives up
-    to it.
+    [r & ~r] the empty language, also where [r] is a union, respectively an
+    intersection, whose operands are flattened among those of the other; [0 | r]
+    is [r] for a nullable [r] and [r | r*] is [r*]; [r**], [(0 | r)*] and
+    [r*; r*] are [r*], and the repetition of the empty word or language is the
+    empty word. Brzozowski's similarity is thus decided syntactically, and every
+    expression has finitely many derivatives up to it.
 
     {2 Interning}
 
@@ -78,6 +79,11 @@ module Letters : sig
   (** [order p q] orders letter sets by their least letter: [tick], then the
       names in increasing order, then the names a finite set of names leaves
       out; it is a total order. *)
+
+  val partition : t list -> t list
+  (** [partition sets] is the coarsest partition of the letters into non-empty
+      sets that the letter sets [sets] respect, each of them a union of blocks;
+      the blocks are listed by {!order}. *)
 end
 
 type t
@@ -102,6 +108,10 @@ val view : t -> view
 val equal_form : t -> t -> bool
 (** [equal_form r s] is whether [r] and [s] have the same normal form, in
     constant time. It implies, but is stronger than, {!equal}. *)
+
+val hash : t -> int
+(** [hash r] is a hash of the normal form of [r], compatible with {!equal_form}.
+*)
 
 (** {1 Constructions} *)
 
@@ -144,15 +154,17 @@ val derivative : Letters.t -> t -> t
 
 (** {1 Decisions}
 
-    The decisions explore the graph of derivatives breadth-first, the states
-    being normal forms and the edges labelled by the minterms of the start. *)
+    The decisions explore the graph of derivatives, the states being normal
+    forms and the edges labelled by the minterms of the start. *)
 
 val is_empty : t -> bool
-(** [is_empty r] is whether [r] has no words. *)
+(** [is_empty r] is whether [r] has no words, decided by depth-first
+    exploration, which stops at the first nullable derivative. *)
 
 val shortest : t -> Letters.t list option
 (** [shortest r] is [None] if [r] is empty, and otherwise a shortest word of
-    [r], each letter given as the block of {!minterms} it is taken from. *)
+    [r], each letter given as the block of {!minterms} it is taken from, found
+    by breadth-first exploration. *)
 
 val subset : t -> t -> bool
 (** [subset r s] is whether [r ⊆ s], i.e. whether [r & ~s] is empty. *)

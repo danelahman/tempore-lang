@@ -55,18 +55,18 @@ run twice_keep true
 run handle (perform Op (); 5) with h 6
 
 (* Correctly rejected by the typechecker: a function is never eternal,
-
      Typing error: `unit → unit` is not eternal, but `keep` needs the type of
        `x` to be eternal
+       Note: the resource inequality `1 <= 0` does not hold
 *)
 (*
 run keep (fun () -> ())
 *)
 
 (* Correctly rejected by the typechecker: neither is a noneternal type,
-
      Typing error: `token` is not eternal, but `keep` needs the type of `x`
        to be eternal
+       Note: the resource inequality `1 <= 0` does not hold
 *)
 (*
 run keep Token

@@ -26,6 +26,7 @@ module OfLattice (L : LATTICE) = struct
     L.bottom
 
   let equal _bounds l l' = L.leq l l' && L.leq l' l
+  let counterexample _bounds _ _ = None
   let unit_least = true
   let commutative = true
   let needs_op_bounds = false
@@ -59,6 +60,11 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
 
   let equal bounds (a, b) (a', b') =
     G1.equal bounds a a' && G2.equal bounds b b'
+
+  let counterexample bounds (a, b) (a', b') =
+    match G1.counterexample bounds a a' with
+    | Some e -> Some (e, b)
+    | None -> Option.map (fun e -> (a, e)) (G2.counterexample bounds b b')
 
   let unit_least = G1.unit_least && G2.unit_least
   let commutative = G1.commutative && G2.commutative

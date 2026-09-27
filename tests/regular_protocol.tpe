@@ -1,4 +1,4 @@
-(* Accepted under the 'regular-traces' grading monoid: a file protocol whose
+(* Accepted under the regular trace grading monoids: a file protocol whose
    sessions open, read and write any number of times, and close, in that
    order. *)
 

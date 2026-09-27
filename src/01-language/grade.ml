@@ -1,10 +1,10 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
-    {!TimedTraceGrades}, {!RegularTraceGradeDerivative} and {!LevelGrades},
-    built with the constructions of {!GradeConstructions}, and listed in
-    {!GradeRegistry}; {!RegularTraceGrade} is an alternative implementation of
-    the regular trace grade, not listed.
+    {!TimedTraceGrades}, {!RegularTraceGrade}, {!RegularTraceGradeDerivative}
+    and {!LevelGrades}, built with the constructions of {!GradeConstructions},
+    and listed in {!GradeRegistry}; the two regular trace grades are two
+    implementations of the same grade.
 
     {2 Cost model}
 
@@ -103,6 +103,12 @@ module type S = sig
 
   val equal : bounds -> t -> t -> bool
   (** [equal bounds c d] decides [c = d] under the cost model [bounds]. *)
+
+  val counterexample : bounds -> t -> t -> t option
+  (** [counterexample bounds c d] is [None] if [c ≾ d] under the cost model
+      [bounds], and otherwise either a grade [e] such that [e ≾ c] but not
+      [e ≾ d], a witness of the failure, or [None] for grades that offer no
+      witness. *)
 
   val unit_least : bool
   (** Whether {!one} is the least grade. *)

@@ -115,9 +115,9 @@ run handle (perform Tick (); 1) with h 2
 
 (* Correctly rejected by the typechecker: a function is not, whatever the
    case does with it:
-
      Typing error: `unit → unit` is not eternal, but `h` needs the type of
        `x` to be eternal
+       Note: the resource inequality `∞ <= 0` does not hold
 *)
 (*
 run handle (perform Tick (); (fun () -> ())) with h (fun () -> ())

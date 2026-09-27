@@ -1,6 +1,6 @@
-(* The regular expressions of the 'regular-traces' grading monoid, their
+(* The regular expressions of the regular trace grading monoids, their
    operators written with and without spaces and braces grouping as
-   parentheses do, printed back in normal form in the state of a run. *)
+   parentheses do, printed back in the state of a run. *)
 
 run box {Read*|Send} 1 as x in 0
 run box {Read*&~Send} 1 as x in 0

@@ -113,6 +113,7 @@ module LowerBound = struct
   let mul = TimedTrace.product
   let leq_symbol = "<="
   let equal bounds p q = leq bounds p q && leq bounds q p
+  let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = false
   let needs_op_bounds = true
@@ -134,6 +135,7 @@ module UpperBound = struct
   let leq_symbol = "<="
   let top = Unbounded
   let equal bounds p q = leq bounds p q && leq bounds q p
+  let counterexample _bounds _ _ = None
   let unit_least = true
   let commutative = false
   let needs_op_bounds = true
@@ -170,6 +172,7 @@ module Interval = struct
     (LowerTraces.join lo lo', UpperTraces.join hi hi')
 
   let equal bounds p q = leq bounds p q && leq bounds q p
+  let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = false
   let needs_op_bounds = true

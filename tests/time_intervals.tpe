@@ -76,7 +76,7 @@ let foo6 () =
    binding:
 
      Typing error: Variable `r` is used with grade `(3,3)` accumulated since it
-       was bound, but its type `[(1,4)]int` is not eternal
+       was bound, but its type `[(3,3)]int` is not eternal
        Note: the resource inequality `(3,3) <= (0,0)` does not hold
 *)
 (*

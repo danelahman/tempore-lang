@@ -63,10 +63,10 @@ let leak () =
 
 (* Correctly rejected by the typechecker: a branch touches the join of the
    levels its arms touch, here 'High', even if the public arm is taken:
-
      Typing error: Variable `c` is unboxed with grade `High` accumulated since
        it was bound, which is not below its box grade `Low`
        ...
+       Note: the resource inequality `High <= Low` does not hold
 *)
 (*
 let maybe_leak public =

@@ -3,4 +3,5 @@
 
 (executable
  (name gen_examples)
- (modules gen_examples))
+ (modules gen_examples)
+ (libraries language))

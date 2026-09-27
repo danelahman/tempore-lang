@@ -185,8 +185,24 @@ module Make (C : Inference.Constraint.S) = struct
         (** whether two grades have an unknown in common *)
     hyps_of : R.hyps -> ('e, C.reason) Inference.GradeNormal.ordering list;
         (** the hypotheses of this sort *)
+    counterexample : printer -> 'e * 'e -> string option;
+        (** a grade below the first of two constant grades but not below the
+            second, other than the first itself, printed, if the grades offer
+            one *)
   }
   (** The operations a message needs on the grades of one sort. *)
+
+  (** [counterexample_of (module G) value p (lhs, rhs)] is the counterexample
+      [G] offers to [lhs ≾ rhs], printed, when [value] finds both sides constant
+      and it is not [lhs] itself. *)
+  let counterexample_of (type g) (module G : Language.Grade.S with type t = g)
+      value p (lhs, rhs) =
+    match (value p lhs, value p rhs) with
+    | Some c, Some d -> (
+        match G.counterexample p.bounds c d with
+        | Some e when not (G.equal p.bounds e c) -> Some (G.show e)
+        | Some _ | None -> None)
+    | _ -> None
 
   let rho_sort =
     {
@@ -210,6 +226,10 @@ module Make (C : Inference.Constraint.S) = struct
                (X.Eps_var.Set.disjoint (X.Rho.free_eps_vars rho)
                   (X.Rho.free_eps_vars rho')));
       hyps_of = (fun hyps -> hyps.R.rho_hyps);
+      counterexample =
+        counterexample_of
+          (module GS.R)
+          (fun p rho -> X.Rho.value (canon_rho p rho));
     }
 
   let eps_sort =
@@ -230,6 +250,10 @@ module Make (C : Inference.Constraint.S) = struct
           not
             (X.Eps_var.Set.disjoint (X.Eps.free_vars eps) (X.Eps.free_vars eps')));
       hyps_of = (fun hyps -> hyps.R.eps_hyps);
+      counterexample =
+        counterexample_of
+          (module GS.E)
+          (fun p eps -> X.Eps.value (canon_eps p eps));
     }
 
   (* ------------------------------------------------------------------ *)
@@ -431,6 +455,22 @@ module Make (C : Inference.Constraint.S) = struct
         Printf.sprintf
           "the %s inequality %s does not hold: for %s it becomes %s" f.sort.noun
           stated values instance
+
+  (** The note naming a counterexample to the refuted ordering between the
+      constant grades of its instance, if the grades offer one. *)
+  let counterexample_notes p f =
+    let lhs, rhs = f.instance in
+    match f.sort.counterexample p f.instance with
+    | Some e ->
+        [
+          Printf.sprintf "the grade %s is below %s but not below %s" (code e)
+            (code (f.sort.raw p lhs))
+            (code (f.sort.raw p rhs));
+        ]
+    | None -> []
+
+  (** The notes spelling out the ordering and a counterexample to it. *)
+  let ineq_notes p f = ineq_note p f :: counterexample_notes p f
 
   (* ------------------------------------------------------------------ *)
   (* Accumulated grades                                                  *)
@@ -1310,14 +1350,14 @@ module Make (C : Inference.Constraint.S) = struct
                  its type is not eternal"
                 (subject var) total
         in
-        (reason.at, message, [ ineq_note p f ])
+        (reason.at, message, ineq_notes p f)
     | Reason.Op_case_capture { var; clause; _ }, _ ->
         let message = capture_message var clause (Option.map (ty_code p) ty) in
-        (reason.at, message, box_note ty @ [ ineq_note p f ])
+        (reason.at, message, box_note ty @ ineq_notes p f)
     | Reason.Instance_of { var; inner; _ }, _ when Option.is_some (use_of inner)
       ->
         let t = Option.map (ty_code p) ty in
-        (reason.at, instance_eternal t var inner, [ ineq_note p f ])
+        (reason.at, instance_eternal t var inner, ineq_notes p f)
     | Reason.Unboxed { var; locks; _ }, Rho_tag ->
         let total = shown_rho f (accumulated_grade locks) (fst f.instance) in
         let f = at_accumulated p f total in
@@ -1328,7 +1368,7 @@ module Make (C : Inference.Constraint.S) = struct
              which is not below its box grade %s"
             (subject var) unit_word (rho_code p total) (g s2)
         in
-        (reason.at, message, [ ineq_note p f ])
+        (reason.at, message, ineq_notes p f)
     | Reason.Continuation_grade { op; _ }, _ when rs <> [] ->
         let quantifier = String.capitalize_ascii (for_every p rs) in
         let g2 = g s2 in
@@ -1338,7 +1378,7 @@ module Make (C : Inference.Constraint.S) = struct
             "%s, the case for %s must have a grade matching %s, but its grade \
              %s does not"
             quantifier (op_name op) g2 g1,
-          [ ineq_note p f ] )
+          ineq_notes p f )
     | Reason.Continuation_grade { op; _ }, _ ->
         let g1 = g s1 in
         let g2 = g s2 in
@@ -1347,7 +1387,7 @@ module Make (C : Inference.Constraint.S) = struct
             "The case for %s has grade %s, which does not match the grade %s \
              of %s followed by its continuation"
             (op_name op) g1 g2 (op_name op),
-          [ ineq_note p f ] )
+          ineq_notes p f )
     | Reason.Default_of { op; _ }, _ ->
         let g1 = g s1 in
         let g2 = g s2 in
@@ -1356,7 +1396,7 @@ module Make (C : Inference.Constraint.S) = struct
             "The default implementation of %s has grade %s, which does not \
              match the declared grade %s of %s"
             (op_name op) g1 g2 (op_name op),
-          [ ineq_note p f ] )
+          ineq_notes p f )
     | Reason.Annotation, _ when specific reason ->
         let g1 = g s1 in
         let g2 = g s2 in
@@ -1365,13 +1405,15 @@ module Make (C : Inference.Constraint.S) = struct
             "This function's body has grade %s, which does not match its \
              annotated grade %s"
             g1 g2,
-          [ ineq_note p f ] )
+          ineq_notes p f )
     | _ -> (
         let inequality =
           Printf.sprintf "The %s inequality %s does not hold" f.sort.noun
             (quantified p rs (ineq_text p f.sort f.stated))
         in
-        let witness = if rs = [] then [] else [ ineq_note p f ] in
+        let witness =
+          if rs = [] then counterexample_notes p f else ineq_notes p f
+        in
         match root source reason with
         | Some ((r : C.reason), a, b, _)
           when List.length r.path < List.length reason.path -> (
@@ -1382,7 +1424,7 @@ module Make (C : Inference.Constraint.S) = struct
                 let primary, message =
                   mismatch_message ~reason:r ~path ~o ~e ~non_box:e
                 in
-                (primary, message, [ ineq_note p f ])
+                (primary, message, ineq_notes p f)
             | None ->
                 let o = ty_code p a in
                 let e = ty_code p b in

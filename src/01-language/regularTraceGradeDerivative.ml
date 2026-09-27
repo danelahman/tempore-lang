@@ -4,7 +4,7 @@ module Letters = SymbolicRegex.Letters
 
 type t = R.t
 
-let name = "regular-traces"
+let name = "traces-regex-symbolic"
 let tick = R.letters Letters.tick
 
 let ticks n =
@@ -49,7 +49,7 @@ let representative (m : Letters.t) =
   | { names = Only (name :: _); _ } -> Letters.name name
   | m -> m
 
-let counterexample rho rho' =
+let counterexample _bounds rho rho' =
   Option.map
     (List.fold_left
        (fun r m -> R.concat r (R.letters (representative m)))
@@ -74,110 +74,25 @@ let of_lit = function
 
 (** {1 Printing} *)
 
-(** [rank r] orders the forms of expressions for printing. *)
-let rank r =
-  match R.view r with
-  | Eps -> 0
-  | Letters _ -> 1
-  | Concat _ -> 2
-  | Star _ -> 3
-  | Compl _ -> 4
-  | Inter _ -> 5
-  | Union _ -> 6
-  | Empty -> 7
+(** The number of derivatives beyond which a grade is printed as its normal
+    form, without building its automaton. *)
+let derivatives_limit = 256
 
-(** [display_compare r s] is a total order on normal forms, independent of the
-    order of their construction, in which the operands of unions and
-    intersections are printed. *)
-let rec display_compare r s =
-  match (R.view r, R.view s) with
-  | Letters p, Letters q -> Letters.order p q
-  | Concat (r1, r2), Concat (s1, s2) ->
-      let c = display_compare r1 s1 in
-      if c <> 0 then c else display_compare r2 s2
-  | Star r, Star s | Compl r, Compl s -> display_compare r s
-  | Inter rs, Inter ss | Union rs, Union ss ->
-      List.compare display_compare (sorted rs) (sorted ss)
-  | _ -> Int.compare (rank r) (rank s)
+(* The printed grades, by the number of their normal forms. *)
+let printed : (int, string) Hashtbl.t = Hashtbl.create 64
 
-and sorted rs = List.sort display_compare rs
-
-type printed = { text : string; level : int }
-(* The level of the outermost operator of [text]: [0] union, [1]
-   intersection, [2] concatenation, [3] complement, [4] repetition and [5] an
-   atom. *)
-
-let atom text = { text; level = 5 }
-
-(** [at level p] is [p] grouped if its operator binds more loosely than [level]:
-    in braces if it ends with a repetition, so that no printed grade contains a
-    star followed by a closing parenthesis, which would close a comment quoting
-    it, and in parentheses otherwise. *)
-let at level p =
-  if p.level >= level then p.text
-  else if String.ends_with ~suffix:"*" p.text then "{" ^ p.text ^ "}"
-  else "(" ^ p.text ^ ")"
-
-let alternatives = function
-  | [ item ] -> atom item
-  | items -> { text = String.concat " | " items; level = 0 }
-
-let print_letters (p : Letters.t) =
-  let ticks tick = if tick then [ "1" ] else [] in
-  match p.names with
-  | Only names -> alternatives (ticks p.tick @ names)
-  | Except [] when p.tick -> atom "_"
-  | Except names ->
-      let excluded = alternatives (ticks (not p.tick) @ names) in
-      { text = "_ & ~" ^ at 3 excluded; level = 1 }
-
-(** [factors r] is the list of the factors of the concatenation [r]. *)
-let rec factors r =
-  match R.view r with Concat (r, s) -> r :: factors s | _ -> [ r ]
-
-let is_tick r =
-  match R.view r with Letters p -> Letters.equal p Letters.tick | _ -> false
-
-type factor = Ticks of int | Factor of R.t
-
-(** [group_ticks rs] joins the runs of ticks of the factors [rs] into their
-    number. *)
-let group_ticks rs =
-  let add r acc =
-    match acc with
-    | Ticks n :: acc when is_tick r -> Ticks (n + 1) :: acc
-    | acc when is_tick r -> Ticks 1 :: acc
-    | acc -> Factor r :: acc
-  in
-  List.fold_right add rs []
-
-let rec print r =
-  match R.view r with
-  | Empty -> { text = "~_*"; level = 3 }
-  | Eps -> atom "0"
-  | Letters p -> print_letters p
-  | Concat _ -> print_concat r
-  | Union rs -> nary " | " 0 rs
-  | Inter rs -> nary " & " 1 rs
-  | Compl r -> { text = "~" ^ at 3 (print r); level = 3 }
-  | Star r -> { text = at 4 (print r) ^ "*"; level = 4 }
-
-and nary separator level rs =
-  {
-    text =
-      String.concat separator
-        (List.map (fun r -> at level (print r)) (sorted rs));
-    level;
-  }
-
-and print_concat r =
-  let factor = function
-    | Ticks n -> string_of_int n
-    | Factor r -> at 3 (print r)
-  in
-  match group_ticks (factors r) with
-  | [ Ticks n ] -> atom (string_of_int n)
-  | parts -> { text = String.concat "; " (List.map factor parts); level = 2 }
+(** [print rho] is [rho] in the literal syntax. *)
+let print rho =
+  let normal_form = LetterRegex.of_symbolic rho in
+  match SymbolicAutomaton.of_regex ~limit:derivatives_limit rho with
+  | Some a -> SymbolicAutomaton.show ~others:[ normal_form ] a
+  | None when R.is_empty (R.compl rho) -> "⊤"
+  | None -> "{" ^ LetterRegex.to_string normal_form ^ "}"
 
 let show rho =
-  if R.equal_form rho top then "⊤" else "{" ^ (print rho).text ^ "}"
+  match Hashtbl.find_opt printed (R.hash rho) with
+  | Some text -> text
+  | None ->
+      let text = print rho in
+      Hashtbl.add printed (R.hash rho) text;
+      text

@@ -66,7 +66,7 @@ the program is run: with `--grades` on the command line, e.g.
 
 or with the **Grades** selector in the web interface, which switches
 its value automatically when a built-in example is loaded. The default grade
-monoid is `time-lower-bound`. Currently, ten monoids are available to choose.
+monoid is `time-lower-bound`. Currently, eleven monoids are available to choose.
 
 All monoids share one syntax of grade literals, and each reads the literals it
 understands; a literal the chosen monoid does not understand is a syntax error,
@@ -131,21 +131,24 @@ intersection `r & s`, complement `~r` and the wildcard `_`, denote infinite or
 cofinite sets of runs, which these three monoids reject with a syntax error at
 the literal naming the monoid.
 
-One monoid grades resources and computations by *regular languages* of runs:
+Two monoids grade resources and computations by *regular languages* of runs;
+they are one grade, implemented in two ways:
 
-- **`regular-traces`** — a run is read as a word whose letters are operations
-  and ticks: an operation `Read` is the letter `Read`, and a delay of `n` ticks
-  is `n` copies of the letter `tick`. A grade is a non-empty regular language,
-  the runs a computation may exhibit, or after which a resource may be used.
-  `rho` is a sub-grade of `rho'` when every word of `rho` is in `rho'`
-  (inclusion); grades multiply by concatenation and join by union; the unit is
-  `{0}`, the language of the empty word, and the top `⊤` is the language of
-  all words. The top is not absorbing: `{3}` multiplied by `⊤` is `{3; _*}`,
-  the runs that begin with three ticks, not `⊤`. The order does not trade time
-  against operations, so no operation declares runtime bounds. See
-  [`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe).
+- **`traces-regex-symbolic`** and **`traces-regex`** — a run is read as a word
+  whose letters are operations and ticks: an operation `Read` is the letter
+  `Read`, and a delay of `n` ticks is `n` copies of the letter `tick`. A grade
+  is a non-empty regular language, the runs a computation may exhibit, or after
+  which a resource may be used. `rho` is a sub-grade of `rho'` when every word
+  of `rho` is in `rho'` (inclusion); grades multiply by concatenation and join
+  by union; the unit is `{0}`, the language of the empty word, and the top `⊤`
+  is the language of all words. The top is not absorbing: `{3}` multiplied by
+  `⊤` is `{3; _*}`, the runs that begin with three ticks, not `⊤`. The order
+  does not trade time against operations, so no operation declares runtime
+  bounds. See
+  [`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
+  which runs with `traces-regex-symbolic`, the implementation to prefer.
 
-Its brace literals are the full regular expressions, by increasing precedence:
+Their brace literals are the full regular expressions, by increasing precedence:
 union `r | s`, intersection `r & s`, concatenation `r; s`, complement `~r` and
 repetition `r*`; an operation name is that letter, an integer `n` is `n` ticks
 (`0` the empty word), `_` is any single letter, and parentheses or braces
@@ -164,27 +167,51 @@ When two grades are combined or compared, both are read over the operations
 either names, the catch-all letter of each standing also for the operations
 only the other names: `{Send}` is a sub-grade of `{_ & ~Read}`.
 
-Grades are kept as regular expressions in a normal form: unions and
-intersections are sets of operands, with the unit and zero laws, `~~r` is `r`,
-and letter sets are merged, as in `{_ & ~Read | Read}`, which is `{_}`. They
-are printed in this form, close to the literal as written, e.g. `{Read*|Send}`
-as `{Send | Read*}` and `{~(_*; Revoke; _*)}` as `{~{_*; Revoke; _*}}` (a
-group ending with `*` is printed in braces, so that it can be quoted in a
-comment); two grades denoting the same language may thus print differently.
-Inclusion and equality are decided by *symbolic derivatives*, in the style of
-RE# (Varatalu, Veanes and Ernits, POPL 2025): `rho <= rho'` holds when no
-derivative of `rho & ~rho'`, taken by the classes of letters the expression
-tells apart and explored breadth-first, contains the empty word, and equality
-is a bisimulation of the derivatives of both grades. No automaton is built, so
-products and joins cost nothing and only the derivatives a decision needs are
-computed. An alternative implementation by minimal deterministic automata is
-kept for comparison; `dune exec --profile release
-bench/regular/bench_regular.exe` benchmarks the two. The derivatives typecheck
-the example and the tests of this grade 1.2 to 1.3 times faster, build
-products and joins 10 to 200 times faster, and decide inclusions involving the
-complement of "the 17th letter from the end is `A`" in microseconds where the
-automata take seconds; the automata decide equality of grades already built
-faster, their canonical forms being compared structurally.
+`traces-regex-symbolic` keeps grades as regular expressions in a normal form:
+unions and intersections are sets of operands, with the unit and zero laws,
+`~~r` is `r`, and letter sets are merged, as in `{_ & ~Read | Read}`, which is
+`{_}`. Inclusion and equality are decided by *symbolic derivatives*, in the
+style of RE# (Varatalu, Veanes and Ernits, POPL 2025): `rho <= rho'` holds when
+no derivative of `rho & ~rho'`, taken by the classes of letters the expression
+tells apart, contains the empty word, and equality is a bisimulation of the
+derivatives of both grades. No automaton is built, so products and joins cost
+nothing and only the derivatives a decision needs are computed.
+`traces-regex` keeps each grade as its minimal deterministic automaton over the
+letters it names, so that equal grades are equal automata, and builds the
+automata of products, joins and complements by the product and subset
+constructions.
+
+A grade is printed as the smallest of a few regular expressions for it: the
+one read off its minimal automaton by state elimination and simplified by laws
+of Kleene algebra, the complement of the one for its complement, and, under
+`traces-regex-symbolic`, its normal form. The automaton depends on the language
+only, so two grades denoting the same language print alike unless the normal
+form of one of them is printed. For example, `{~(_*; Revoke; _*)}` prints as
+`{(_ & ~Revoke)*}`, `{_*; Auth; _*}` as `{~(_ & ~Auth)*}`, `{Open; Read*; Close
+| Open; Write*; Close}` as `{Open; {Read* | Write*}; Close}`, and `{3 | 2*}` as
+written; a group ending with `*` is printed in braces, so that it can be quoted
+in a comment. When an ordering of grades fails, a note names a shortest run of
+the lesser grade that the greater one does not contain, unless that run is the
+lesser grade itself:
+
+```
+Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated since it was bound, which is not below its box grade `{Auth; _*}`
+  ...
+  Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
+  Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
+```
+
+`dune exec --profile release bench/regular/bench_regular.exe` benchmarks the two
+implementations. `traces-regex-symbolic` typechecks the example and the tests
+of this grade 1.2 to 1.35 times faster, builds products and joins 6 to 280
+times faster, and decides inclusions involving the complement of "the 16th
+letter from the end is `A`" in microseconds where `traces-regex` takes seconds;
+`traces-regex` decides the equality of grades already built faster, and small
+inclusions in a few microseconds rather than tens, its canonical automata being
+at hand. The last program of
+[`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
+left commented out, runs in about 0.04 s under `traces-regex-symbolic` and
+10 s under `traces-regex`.
 
 One monoid grades resources and computations by *security levels*, and two
 more pair it with time:
@@ -226,7 +253,7 @@ of time, a sequence of operations, or whatever the chosen monoid measures.
   if the grade accumulated since `e` was boxed is a sub-grade of `rho`: at
   least `rho` ticks under the lower-bound monoids, at most `rho` under the
   upper-bound ones, a run that covers or fits inside `rho` under the trace
-  monoids, a run in the language `rho` under `regular-traces`, and a level no higher than `rho` under `security-levels`; the
+  monoids, a run in the language `rho` under the regular trace monoids, and a level no higher than `rho` under `security-levels`; the
   products check both components.
 - `delay tau` advances the accumulated grade by `tau`. Operation calls (below)
   advance it by the grade of the operation.
@@ -327,8 +354,8 @@ with every event at its upper bound. So given `Tx : string ~> unit # {Tx} within
 `(2, 6)`; declaring bounds on it is rejected, as is naming itself, since `Send #
 {Send | Send; Send}` would make its bounds depend on themselves. Retries are
 expressed through a smaller operation instead. Under the time monoids no bounds
-are declared, since the grade already is the bound, nor under `regular-traces`,
-whose order does not read them.
+are declared, since the grade already is the bound, nor under the regular trace
+monoids, whose order does not read them.
 
 An operation is called with
 
@@ -471,8 +498,8 @@ A default is checked against the operation's runtime bounds rather than its
 grade: the body must have a sub-grade of `{lo}` under
 `traces-lower-bound`, of `{hi}` under `traces-upper-bound`, and of
 `({lo}, {hi})` under `traces-interval`. Under the time monoids it is
-checked against the operation's grade, and so it is under `regular-traces`,
-whose operations declare no runtime bounds; there an atomic operation such as
+checked against the operation's grade, and so it is under the regular trace
+monoids, whose operations declare no runtime bounds; there an atomic operation such as
 `Read # {Read}` thus admits no default, and is only realised by performing it. The grade itself cannot be required,
 since realising `{Heat}` would mean performing `Heat` again. So
 
