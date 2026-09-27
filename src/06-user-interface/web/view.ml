@@ -546,11 +546,7 @@ let view_compiler (model : Model.model) =
               ];
             elt "p"
               ~a:[ class_ "grades-command" ]
-              [
-                text
-                  (Printf.sprintf "./tempore\n  --grades %s"
-                     model.edit_model.selected_resource);
-              ];
+              [ text model.edit_model.selected_resource ];
           ];
       ]
   and run_process =
