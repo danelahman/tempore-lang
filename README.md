@@ -324,19 +324,42 @@ compared by subtyping: functions are contravariant in the argument and
 covariant in the result and effect, and a box `[rho]a` is contravariant in
 `rho`. Top-level `let` definitions are generalised to qualified schemes,
 
-    ∀ α ρ₀ ε₀. Q ⇒ A
+    ∀ α ρ₀ ε₀. Q ∧ R ⇒ A
 
-where `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables, and
-`∣ε∣` is the resource grade accumulated while `ε` runs. `--debug` prints the
+where `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables, `R`
+lists the conditions of operation cases that must hold for every effect of
+their continuations (printed as `∀ε. …`), and `∣ε∣` is the resource grade
+accumulated while `ε` runs. `--debug` prints the
 schemes. Under `time-upper-bound`, the standard library's
 `compose f g x = f (g x)` has
 
     ∀ α β γ ε₀ ε₁. ∣ε₁∣ ≾ 0 ⇒ (α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # 0 # 0
 
 where `∣ε₁∣ ≾ 0` asks `g` to take no time, since the non-eternal `f` is used
-after it. A qualifier is checked at every use of the definition. Limits:
+after it. A qualifier is checked at every use of the definition.
 
-- type-constructor arguments and handler inputs are compared by equality;
+### Sub-effecting
+
+A computation may be used where one of a super-grade is expected, and an
+annotation is an upper bound. Under `time-upper-bound`,
+
+```
+let apply (f : unit -> int # 2) = f ()
+let slow () = delay 1; 3
+let branch c = if c then delay 1 else delay 2
+```
+
+`apply slow` is accepted, `unit → int # 1` being a subtype of
+`unit → int # 2`, and `branch` has the type `bool → unit # 2`. A box type is
+contravariant in its grade: under `time-lower-bound`, a `[2]int` is accepted
+where a `[3]int` is expected, a `[4]int` is not.
+
+Limits:
+
+- type-constructor arguments and handler inputs are compared by equality: a
+  `(unit -> int # 1) list` is not accepted where a `(unit -> int # 2) list` is
+  expected, although `[slow]` has the scheme
+  `∀ ε₀. 1 ≾ ε₀ ⇒ (unit → int # ε₀) list` and is accepted at both;
 - local `let` definitions are not generalised;
 - the continuation effect of an operation case is rigid (see
   [Handlers and continuations](#handlers-and-continuations));
