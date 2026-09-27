@@ -74,25 +74,22 @@ let of_lit = function
 
 (** {1 Printing} *)
 
-(** The number of derivatives beyond which a grade is printed as its normal
-    form, without building its automaton. *)
-let derivatives_limit = 256
+let canonical rho =
+  let budget = LetterRegex.size (LetterRegex.of_symbolic rho) in
+  Option.bind
+    (SymbolicAutomaton.of_regex ~limit:budget rho)
+    (SymbolicAutomaton.canonical ~budget)
 
-(* The printed grades, by the number of their normal forms. *)
+(* The printed grades, by the numbers of their normal forms. *)
 let printed : (int, string) Hashtbl.t = Hashtbl.create 64
-
-(** [print rho] is [rho] in the literal syntax. *)
-let print rho =
-  let normal_form = LetterRegex.of_symbolic rho in
-  match SymbolicAutomaton.of_regex ~limit:derivatives_limit rho with
-  | Some a -> SymbolicAutomaton.show ~others:[ normal_form ] a
-  | None when R.is_empty (R.compl rho) -> "⊤"
-  | None -> "{" ^ LetterRegex.to_string normal_form ^ "}"
 
 let show rho =
   match Hashtbl.find_opt printed (R.hash rho) with
   | Some text -> text
   | None ->
-      let text = print rho in
+      let text =
+        LetterRegex.literal
+          (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho))
+      in
       Hashtbl.add printed (R.hash rho) text;
       text

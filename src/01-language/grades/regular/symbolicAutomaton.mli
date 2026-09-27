@@ -49,31 +49,75 @@ val of_regex : limit:int -> SymbolicRegex.t -> t option
     derivatives of [r]: its states are the normal forms of the derivatives of
     [r] by words, explored breadth-first by the blocks of the minterms of [r],
     the final states the nullable ones. It is [None] if [r] has more than
-    [limit] derivatives up to the normal form. *)
+    [limit] derivatives up to the normal form, the exploration stopping as soon
+    as it finds them: their number is bounded by no elementary function of the
+    size of [r]. *)
 
 val complement : t -> t
 (** [complement a] is the automaton of the complement of the language of [a],
     whose final states are the other states of [a]. *)
 
+val reverse : limit:int -> t -> t option
+(** [reverse ~limit a] is the canonical form of the automaton of the reversal of
+    the language of [a], the words of [a] read backwards, by Brzozowski's
+    reversal: the subset construction on the reverse of [a], whose states are
+    the sets of states of [a] from which the words read so far, reversed, lead
+    to a final state. As [a] is deterministic and its states reachable, these
+    sets are as many as the states of the minimal automaton of the reversal. It
+    is [None] if there are more than [limit] of them, the construction stopping
+    as soon as it finds them. *)
+
 (** {1 State elimination} *)
 
-val to_regex : t -> LetterRegex.t
-(** [to_regex a] is a regular expression for the language of [a], obtained by
-    state elimination (Brzozowski and McCluskey): the states from which no final
-    state is reachable are dropped, a source and a sink are joined to the start
-    and from the final states by the empty word, and the other states are
-    eliminated one by one, each time the one with the fewest paths through it,
-    the lowest-numbered of those with equally few; the paths through a state [q]
-    become edges [x; y*; z], [y] the label of the loop at [q]. The labels are
-    letter sets and the expressions built of them by the smart constructors of
-    {!LetterRegex}. The expression is thus determined by the automaton, and so
-    by the language. *)
+val to_regex : budget:int -> t -> LetterRegex.t option
+(** [to_regex ~budget a] is a regular expression for the language of [a],
+    obtained by state elimination (Brzozowski and McCluskey): the states from
+    which no final state is reachable are dropped, a source and a sink are
+    joined to the start and from the final states by the empty word, and the
+    other states are eliminated one by one, each time the one with the fewest
+    paths through it, the lowest-numbered of those with equally few; the paths
+    through a state [q] become edges [x; y*; z], [y] the label of the loop at
+    [q]. The labels are letter sets and the expressions built of them by the
+    smart constructors of {!LetterRegex}. The elimination {e uses} the labels of
+    the edges into, out of and looping at each state it eliminates, and the
+    final label of the edge from the source to the sink, which is the
+    expression. The expression is thus determined by the automaton, and so by
+    the language.
 
-(** {1 Printing} *)
+    It is [None] if a label used has a {!LetterRegex.size} greater than
+    [budget], the elimination stopping at the first state whose labels do: each
+    label then has size at most [budget], and each edge at most one alternative
+    per state eliminated, so that the time is polynomial in [budget] and the
+    number of states of [a]. *)
 
-val show : others:LetterRegex.t list -> t -> string
-(** [show ~others a] prints the language of [a] in the literal syntax of the
-    regular trace grade: [⊤] if it has all words, and otherwise, in braces, the
-    smallest by {!LetterRegex.size} of {!to_regex} [a], the complement of
-    {!to_regex} [(complement a)] and the expressions [others] for the same
-    language, the first of these on a tie. *)
+(** {1 Printing}
+
+    The regular trace grades print a language by one of three expressions
+    determined by the language, its {e canonical candidates}, with [A] its
+    automaton and [Aᴿ] that of its reversal ({!reverse}):
+
+    + the expression of [A] by state elimination ({!to_regex});
+    + the complement [~r] of the expression [r] of the automaton of the
+      complement ({!complement});
+    + the reversal ({!LetterRegex.reverse}) of the expression of [Aᴿ].
+
+    The {e cost} of a candidate is the largest of the number of states of the
+    automata it is computed from ([A] for the first two, [A] and [Aᴿ] for the
+    third), the sizes of the labels its elimination uses and its own
+    {!LetterRegex.size}; it is at least the size of the candidate. Every part of
+    the cost is determined by the language, and so is the cost. *)
+
+val canonical : budget:int -> t -> LetterRegex.t option
+(** [canonical ~budget a] is the canonical candidate of the language of [a] of
+    least cost, then of least size, then first in the order above, among those
+    of cost at most [budget]; it is [None] if there is none. The computation of
+    a candidate stops as soon as its cost exceeds [budget] ({!reverse},
+    {!to_regex}), and none is computed if [a] has more than [budget] states, so
+    that the time is polynomial in [budget].
+
+    As the candidates within the budget are exactly those of cost at most
+    [budget], a set that grows with [budget], the candidate chosen, when there
+    is one, is the same for every budget: the candidate of least cost, size and
+    position. The expressions [canonical ~budget a] and [canonical ~budget' a']
+    for automata [a] and [a'] of the same language are thus equal whenever
+    neither is [None]. *)

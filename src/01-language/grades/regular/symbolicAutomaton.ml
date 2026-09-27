@@ -29,11 +29,11 @@ module Signatures = Map.Make (struct
   let compare = Stdlib.compare
 end)
 
-(** [refine final delta classes] is the Moore refinement of the partition
-    [classes] of the states of the table [delta] of successors by block, with
-    its number of classes: two states stay together iff they agree on finality
-    and on the classes of their successors. Classes are numbered in the order of
-    their first member. *)
+(** [refine final delta classes] is one round of Moore's partition refinement
+    (Moore, Automata Studies 1956) of the partition [classes] of the states of
+    the table [delta] of successors by block, with its number of classes: two
+    states stay together iff they agree on finality and on the classes of their
+    successors. Classes are numbered in the order of their first member. *)
 let refine final delta classes =
   let classify (seen, count) q =
     let signature = (final.(q), Array.map (Array.get classes) delta.(q)) in
@@ -69,8 +69,9 @@ let merge edges =
   |> List.sort (fun (p, _) (p', _) -> Letters.order p p')
 
 (** [number start next] numbers the states reachable from [start] by [next],
-    listing the targets of the edges out of a state, breadth-first; it is the
-    array of the states by number, and the numbering. *)
+    listing the targets of the edges out of a state, in the order of their
+    discovery by breadth-first search; it is the array of the states by number,
+    and the numbering. *)
 let number start next =
   let numbers = Hashtbl.create 16 in
   let queue = Queue.create () in
@@ -90,15 +91,20 @@ let number start next =
   visit start;
   (Array.of_list (go []), Hashtbl.find numbers)
 
+(** [blocks edges] is the coarsest partition of the letters that the labels of
+    the rows [edges] of a table respect. *)
+let blocks edges =
+  Letters.partition
+    (List.sort_uniq Letters.compare
+       (List.concat_map (List.map fst) (Array.to_list edges)))
+
+(* Minimisation by {!partition} over the blocks of the labels, then the
+   breadth-first numbering of {!number}. *)
 let of_table ~final ~edges =
   let n = Array.length final in
   if n = 0 || Array.length edges <> n then
     invalid_arg "SymbolicAutomaton.of_table: malformed table";
-  let blocks =
-    Letters.partition
-      (List.sort_uniq Letters.compare
-         (List.concat_map (List.map fst) (Array.to_list edges)))
-  in
+  let blocks = blocks edges in
   let delta =
     Array.map (fun es -> Array.of_list (List.map (target es) blocks)) edges
   in
@@ -122,7 +128,41 @@ let of_table ~final ~edges =
         order;
   }
 
-(** {1 Derivatives} *)
+(** {1 Exploration} *)
+
+(** [explore (module H) ~limit ~blocks ~final ~next start] is the canonical form
+    of the automaton of the states reachable from [start], of which [final]
+    tells the final ones and [next m s] is the successor of [s] by the block [m]
+    of [blocks], explored breadth-first; it is [None] if more than [limit]
+    states are reachable, the exploration stopping as soon as it finds them. *)
+let explore (type s) (module H : Hashtbl.S with type key = s) ~limit ~blocks
+    ~final ~next (start : s) =
+  let ids = H.create 64 in
+  let queue = Queue.create () in
+  let id s =
+    match H.find_opt ids s with
+    | Some i -> i
+    | None ->
+        let i = H.length ids in
+        H.add ids s i;
+        Queue.push s queue;
+        i
+  in
+  let rec go rows =
+    if H.length ids > limit then None
+    else
+      match Queue.take_opt queue with
+      | None -> Some (List.rev rows)
+      | Some s ->
+          go ((final s, List.map (fun m -> (m, id (next m s))) blocks) :: rows)
+  in
+  ignore (id start);
+  Option.map
+    (fun rows ->
+      of_table
+        ~final:(Array.of_list (List.map fst rows))
+        ~edges:(Array.of_list (List.map snd rows)))
+    (go [])
 
 module Forms = Hashtbl.Make (struct
   type t = SymbolicRegex.t
@@ -131,42 +171,42 @@ module Forms = Hashtbl.Make (struct
   let hash = SymbolicRegex.hash
 end)
 
+(* Brzozowski's automaton of derivatives (Brzozowski, JACM 1964), its states the
+   normal forms of the derivatives and its edges labelled by minterms, as in
+   symbolic automata. *)
 let of_regex ~limit r =
-  let blocks = SymbolicRegex.minterms r in
-  let ids = Forms.create 64 in
-  let queue = Queue.create () in
-  let id d =
-    match Forms.find_opt ids d with
-    | Some i -> i
-    | None ->
-        let i = Forms.length ids in
-        Forms.add ids d i;
-        Queue.push d queue;
-        i
-  in
-  let rec explore rows =
-    if Forms.length ids > limit then None
-    else
-      match Queue.take_opt queue with
-      | None -> Some (List.rev rows)
-      | Some d ->
-          let row =
-            List.map (fun m -> (m, id (SymbolicRegex.derivative m d))) blocks
-          in
-          explore ((SymbolicRegex.nullable d, row) :: rows)
-  in
-  ignore (id r);
-  Option.map
-    (fun rows ->
-      of_table
-        ~final:(Array.of_list (List.map fst rows))
-        ~edges:(Array.of_list (List.map snd rows)))
-    (explore [])
-
-(** {1 State elimination} *)
+  explore
+    (module Forms)
+    ~limit ~blocks:(SymbolicRegex.minterms r) ~final:SymbolicRegex.nullable
+    ~next:SymbolicRegex.derivative r
 
 module IntMap = Map.Make (Int)
 module IntSet = Set.Make (Int)
+
+module Subsets = Hashtbl.Make (struct
+  type t = IntSet.t
+
+  let equal = IntSet.equal
+  let hash s = Hashtbl.hash (IntSet.elements s)
+end)
+
+(* Brzozowski's reversal (Brzozowski, Symp. Math. Theory of Automata 1962): the
+   subset construction on the reverse of a deterministic automaton whose states
+   are all reachable, here [a], yields the minimal automaton of the reversed
+   language. A state is the set of the states of [a] from which the words read
+   so far, reversed, lead to a final state. *)
+let reverse ~limit a =
+  let all = List.init (states a) Fun.id in
+  let predecessors m s =
+    IntSet.of_list
+      (List.filter (fun q -> IntSet.mem (target a.edges.(q) m) s) all)
+  in
+  explore
+    (module Subsets)
+    ~limit ~blocks:(blocks a.edges) ~final:(IntSet.mem 0) ~next:predecessors
+    (IntSet.of_list (List.filter (final a) all))
+
+(** {1 State elimination} *)
 
 type graph = {
   out : LetterRegex.t list IntMap.t IntMap.t;
@@ -214,13 +254,14 @@ let paths g k =
   IntSet.cardinal (IntSet.remove k (predecessors g k))
   * IntMap.cardinal (IntMap.remove k (successors g k))
 
-(** [eliminate g k] removes the node [k] from [g], each path [p → k → q]
+(** [eliminate ~budget g k] removes the node [k] from [g], each path [p → k → q]
     becoming an edge [p → q] labelled [x; y*; z], [y] the label of the loop at
-    [k]. *)
-let eliminate g k =
-  let loop =
-    Option.fold ~none:LetterRegex.eps ~some:LetterRegex.star (label g k k)
-  in
+    [k]: one step of state elimination (Brzozowski and McCluskey, IEEE Trans.
+    Electronic Computers 1963). It is the graph with the largest size of the
+    labels it uses, those of the edges into, out of and looping at [k], or
+    [None] if that exceeds [budget]. *)
+let eliminate ~budget g k =
+  let loop = label g k k in
   let ins =
     List.map
       (fun p -> (p, Option.get (label g p k)))
@@ -231,23 +272,39 @@ let eliminate g k =
       (fun (q, alternatives) -> (q, LetterRegex.union alternatives))
       (IntMap.bindings (IntMap.remove k (successors g k)))
   in
+  let largest =
+    List.fold_left max 0
+      (List.map LetterRegex.size
+         (Option.to_list loop @ List.map snd ins @ List.map snd outs))
+  in
+  let loop = Option.fold ~none:LetterRegex.eps ~some:LetterRegex.star loop in
   let bypass g (p, x) =
     List.fold_left
       (fun g (q, z) -> add_edge g (p, q, LetterRegex.seq [ x; loop; z ]))
       g outs
   in
-  List.fold_left bypass (remove_node g k) ins
+  if largest > budget then None
+  else Some (List.fold_left bypass (remove_node g k) ins, largest)
 
-(** [eliminate_all g nodes] eliminates the [nodes], listed in increasing order,
-    one by one, each time the first with the fewest paths through it. *)
-let rec eliminate_all g = function
-  | [] -> g
-  | k :: ks as nodes ->
-      let fewer k k' = if paths g k' < paths g k then k' else k in
-      let best = List.fold_left fewer k ks in
-      eliminate_all (eliminate g best) (List.filter (( <> ) best) nodes)
+(** [eliminate_all ~budget g nodes] eliminates the [nodes], listed in increasing
+    order, one by one, each time the first with the fewest paths through it. It
+    is the graph with the largest size of the labels used, or [None] as soon as
+    that exceeds [budget]. *)
+let eliminate_all ~budget g nodes =
+  let open Option.Syntax in
+  let rec go (g, largest) = function
+    | [] -> Some (g, largest)
+    | k :: ks as nodes ->
+        let fewer k k' = if paths g k' < paths g k then k' else k in
+        let best = List.fold_left fewer k ks in
+        let* g, used = eliminate ~budget g best in
+        go (g, max largest used) (List.filter (( <> ) best) nodes)
+  in
+  go (g, 0) nodes
 
-(** [live a] marks the states of [a] from which a final state is reachable. *)
+(** [live a] marks the states of [a] from which a final state is reachable, the
+    least fixed point of backward reachability from the final states, by
+    iteration. *)
 let live a =
   let reaches marked q = List.exists (fun (_, q') -> marked.(q')) a.edges.(q) in
   let rec grow marked =
@@ -256,7 +313,11 @@ let live a =
   in
   grow a.finals
 
-let to_regex a =
+(** [elimination ~budget a] is the expression of [a] by state elimination, with
+    the largest size of the labels used, itself included, or [None] as soon as
+    that exceeds [budget]. *)
+let elimination ~budget a =
+  let open Option.Syntax in
   let n = states a in
   let source = n and sink = n + 1 in
   let live = live a in
@@ -273,15 +334,43 @@ let to_regex a =
       { out = IntMap.empty; into = IntMap.empty }
       ((source, 0, LetterRegex.eps) :: List.concat_map edges nodes)
   in
-  let g = eliminate_all initial nodes in
-  Option.value (label g source sink) ~default:LetterRegex.empty
+  let* g, largest = eliminate_all ~budget initial nodes in
+  let r = Option.value (label g source sink) ~default:LetterRegex.empty in
+  let largest = max largest (LetterRegex.size r) in
+  if largest > budget then None else Some (r, largest)
+
+let to_regex ~budget a = Option.map fst (elimination ~budget a)
 
 (** {1 Printing} *)
 
-let show ~others a =
-  if states a = 1 && final a 0 then "⊤"
+(** [candidate ~budget ~states finish a] is the candidate [finish r], [r] the
+    expression of [a] by state elimination, with its cost: the largest of
+    [states], the sizes of the labels the elimination uses and the size of the
+    candidate; it is [None] if the cost exceeds [budget]. *)
+let candidate ~budget ~states finish a =
+  let open Option.Syntax in
+  let* r, largest = elimination ~budget a in
+  let r = finish r in
+  let cost = max states (max largest (LetterRegex.size r)) in
+  if cost > budget then None else Some (cost, r)
+
+let canonical ~budget a =
+  let n = states a in
+  let key (cost, r) = (cost, LetterRegex.size r) in
+  let least best c = if key c < key best then c else best in
+  if n > budget then None
   else
-    let candidates =
-      to_regex a :: LetterRegex.compl (to_regex (complement a)) :: others
+    let reversed =
+      Option.bind (reverse ~limit:budget a) (fun a' ->
+          candidate ~budget ~states:(max n (states a')) LetterRegex.reverse a')
     in
-    "{" ^ LetterRegex.to_string (LetterRegex.smallest candidates) ^ "}"
+    match
+      List.filter_map Fun.id
+        [
+          candidate ~budget ~states:n Fun.id a;
+          candidate ~budget ~states:n LetterRegex.compl (complement a);
+          reversed;
+        ]
+    with
+    | [] -> None
+    | c :: cs -> Some (snd (List.fold_left least c cs))

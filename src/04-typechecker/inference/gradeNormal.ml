@@ -354,7 +354,8 @@ module Core (S : BASE) = struct
      first round that passes it with its source reached, so a round passes, in
      the same order, only the edges out of atoms newly reached: in the round
      an atom is reached, those before the edge that reached it, the others in
-     the next round. *)
+     the next round. This is single-source reachability by semi-naive
+     iteration (Bancilhon, On Knowledge Base Management Systems, 1986). *)
   let saturate bounds edges source =
     let rec round reached now next =
       match Int_set.max_elt_opt now with

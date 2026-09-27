@@ -437,6 +437,10 @@ module Make (C : Constraint.S) = struct
         else None)
       vertices
 
+  (* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998): the
+     local members occurring in no type of each strongly connected component
+     of the orderings between whole unknowns sent to its representative, the
+     components computed by Kosaraju's algorithm ({!Reach.representatives}). *)
   let collapse scope (r : residual) =
     let eps_edges =
       List.filter_map
@@ -617,6 +621,10 @@ module Make (C : Constraint.S) = struct
         | None -> (acc, r, changed))
       (acc, r, changed) unknowns
 
+  (* Rounds of localisation, until no unknown receives a value, at most [n] of
+     them. Each value is a least or a greatest solution for its unknown, chosen
+     by the sides it occurs on, as the elimination of {!Report} chooses by
+     polarity. *)
   let rec rounds context scope n (acc, r) =
     if n <= 0 then (acc, r)
     else

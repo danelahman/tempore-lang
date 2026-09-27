@@ -181,17 +181,26 @@ letters it names, so that equal grades are equal automata, and builds the
 automata of products, joins and complements by the product and subset
 constructions.
 
-A grade is printed as the smallest of a few regular expressions for it: the
-one read off its minimal automaton by state elimination and simplified by laws
-of Kleene algebra, the complement of the one for its complement, and, under
-`traces-regex-symbolic`, its normal form. The automaton depends on the language
-only, so two grades denoting the same language print alike unless the normal
-form of one of them is printed. For example, `{~(_*; Revoke; _*)}` prints as
-`{(_ & ~Revoke)*}`, `{_*; Auth; _*}` as `{~(_ & ~Auth)*}`, `{Open; Read*; Close
-| Open; Write*; Close}` as `{Open; {Read* | Write*}; Close}`, and `{3 | 2*}` as
-written; a group ending with `*` is printed in braces, so that it can be quoted
-in a comment. When an ordering of grades fails, a note names a shortest run of
-the lesser grade that the greater one does not contain, unless that run is the
+A grade is printed as one of three regular expressions determined by its
+language: the one read off its minimal automaton by state elimination and
+simplified by laws of Kleene algebra, the complement of the one for its
+complement, and the reversal of the one for its reversal. The one printed is
+the least costly, the cost counting the states of the automata and the sizes of
+the expressions built along the way, provided that the cost does not exceed the
+size of the grade's normal form (under `traces-regex`, the normal form of the
+expression the grade was built from): each construction stops as soon as it
+does, and if none fits, the normal form itself is printed. Two grades denoting
+the same language thus print alike unless one of them is printed as its normal
+form, and so do the two implementations unless `traces-regex-symbolic`, which
+explores the derivatives of the normal form rather than an automaton at hand,
+prints its normal form. For example, `{~(_*; Revoke; _*)}` prints as `{(_ &
+~Revoke)*}`, `{_*; Auth; _*}` as `{~(_ & ~Auth)*}`, `{Open; Read*; Close |
+Open; Write*; Close}` as `{Open; {Read* | Write*}; Close}` and `{~(A*; (_ &
+~A))*}` as `{_*; A}`, but `{3 | 2*}` and `{_*; A; _; _; _}`, whose minimal
+automata have more states than their normal forms have symbols, as written; a
+group ending with `*` is printed in braces, so that it can be quoted in a
+comment. When an ordering of grades fails, a note names a shortest run of the
+lesser grade that the greater one does not contain, unless that run is the
 lesser grade itself:
 
 ```

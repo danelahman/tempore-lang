@@ -1,4 +1,4 @@
-(* Warshall's algorithm. *)
+(* Warshall's algorithm (Warshall, JACM 1962). *)
 
 type ('v, 'e) t = {
   equal : 'v -> 'v -> bool;
@@ -71,9 +71,10 @@ let representative closure order a =
       Option.map (fun (there, back) -> (v, there, back)) (joined closure a v))
     order
 
-(* Kosaraju's algorithm on the vertices numbered: the vertices in decreasing
-   order of the end of a depth-first visit, then the component of each, not
-   yet assigned, collected along the reversed edges and named by it. *)
+(* Kosaraju's algorithm (Sharir, Computers & Mathematics with Applications,
+   1981) on the vertices numbered: the vertices in decreasing order of the end
+   of a depth-first visit, then the component of each, not yet assigned,
+   collected along the reversed edges and named by it. *)
 let representatives (type v) ~(compare : v -> v -> int) edges =
   let module M = Map.Make (struct
     type t = v

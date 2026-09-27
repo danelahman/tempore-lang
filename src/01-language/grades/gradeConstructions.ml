@@ -10,6 +10,7 @@ module type LATTICE = sig
   val show : t -> string
 end
 
+(* A bounded join-semilattice as a grading monoid, its join the product. *)
 module OfLattice (L : LATTICE) = struct
   type t = L.t
 
@@ -46,6 +47,7 @@ let intersect b b' =
   | Some b, None | None, Some b -> Some b
   | None, None -> None
 
+(* The product of two grading monoids, ordered componentwise. *)
 module Product (G1 : Grade.S) (G2 : Grade.S) = struct
   type t = G1.t * G2.t
 

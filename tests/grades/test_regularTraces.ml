@@ -4,10 +4,11 @@
    samples, and the reading and printing of their literals, checked against a
    direct matcher of regular expressions and against the parser; and the
    agreement of the two on random expressions, on which equal grades have equal
-   canonical automata and print alike. *)
+   canonical automata and print alike unless the printing of one of them falls
+   back to its normal form; and the time and size of the printing, bounded by
+   the size of the normal form. *)
 
 module Grade = Grades.Grade
-module LetterRegex = Grades.LetterRegex
 module SugaredAst = SugaredAst
 
 type implementation = Automata | Derivatives
@@ -95,10 +96,17 @@ let words =
 
 let take n l = List.filteri (fun i _ -> i < n) l
 
-(* The checks of one implementation [G], the expected printed forms being those
-   of [implementation]. *)
+(* An implementation of the regular trace grade, whose [canonical] tells
+   whether the printing of a grade falls back. *)
+module type PRINTED = sig
+  include Grade.S
+
+  val canonical : t -> Grades.LetterRegex.t option
+end
+
+(* The checks of one implementation [G], both printing each grade alike. *)
 module Suite
-    (G : Grade.S)
+    (G : PRINTED)
     (I : sig
       val implementation : implementation
     end) =
@@ -116,19 +124,12 @@ struct
   let expect name = expect (label name)
   let show_option = function Some rho -> G.show rho | None -> "none"
 
-  (* [printed ~automata ~derivatives] is the printed form expected of the
-     implementation. *)
-  let printed ~automata ~derivatives =
-    match I.implementation with
-    | Automata -> automata
-    | Derivatives -> derivatives
+  (* Whether two grades are the same, by [equal]: for the automata, the equality
+     of their canonical automata. *)
+  let same = G.equal bounds
 
-  (* Whether two grades are the same: structurally for the automata, which are
-     canonical, and by [equal] for the derivatives. *)
-  let same rho rho' =
-    match I.implementation with
-    | Automata -> rho = rho'
-    | Derivatives -> G.equal bounds rho rho'
+  (* Whether the printing of [rho] falls back to its normal form. *)
+  let falls_back rho = Option.is_none (G.canonical rho)
 
   (* [parse text] is the grade the parser reads [text] as, in the grade
      position of a box. *)
@@ -143,8 +144,7 @@ struct
   let lit text =
     match parse text with Ok rho -> rho | Error reason -> failwith reason
 
-  let reads text ~automata ~derivatives =
-    let expected = printed ~automata ~derivatives in
+  let reads text ~expected =
     match parse text with
     | Ok rho -> expect ("reads " ^ text) Fun.id ~expected (G.show rho)
     | Error reason -> check ("reads " ^ text) false reason
@@ -158,57 +158,44 @@ struct
 
   let printing =
     [
-      reads "{Read; 3; Send}" ~automata:"{Read; 3; Send}"
-        ~derivatives:"{Read; 3; Send}";
-      reads "{Read | Send}" ~automata:"{Read | Send}"
-        ~derivatives:"{Read | Send}";
+      reads "{Read; 3; Send}" ~expected:"{Read; 3; Send}";
+      reads "{Read | Send}" ~expected:"{Read | Send}";
       reads "{Open; (Read | Write)*; Close}"
-        ~automata:"{Open; (Read | Write)*; Close}"
-        ~derivatives:"{Open; (Read | Write)*; Close}";
-      reads "{0}" ~automata:"{0}" ~derivatives:"{0}";
-      reads "3" ~automata:"{3}" ~derivatives:"{3}";
-      reads "⊤" ~automata:"⊤" ~derivatives:"⊤";
-      reads "top" ~automata:"⊤" ~derivatives:"⊤";
-      reads "{_*}" ~automata:"⊤" ~derivatives:"⊤";
-      reads "{_}" ~automata:"{_}" ~derivatives:"{_}";
-      reads "{(1; 1)*}" ~automata:"{2*}" ~derivatives:"{2*}";
-      reads "{Read; Read*}" ~automata:"{Read; Read*}"
-        ~derivatives:"{Read; Read*}";
-      reads "{~(_*; Read; _*)}" ~automata:"{(_ & ~Read)*}"
-        ~derivatives:"{(_ & ~Read)*}";
-      reads "{~{_*; Revoke; _*}}" ~automata:"{(_ & ~Revoke)*}"
-        ~derivatives:"{(_ & ~Revoke)*}";
-      reads "{(_ & ~Auth)*; Auth; _*}" ~automata:"{~(_ & ~Auth)*}"
-        ~derivatives:"{~(_ & ~Auth)*}";
-      reads "{_*; Auth; _*}" ~automata:"{~(_ & ~Auth)*}"
-        ~derivatives:"{~(_ & ~Auth)*}";
-      reads "{3 | 2*}" ~automata:"{0 | 2; (0 | 1; {0 | 1; 2*})}"
-        ~derivatives:"{3 | 2*}";
-      reads "{1 | 2 | 3}" ~automata:"{1; (0 | 1; (0 | 1))}"
-        ~derivatives:"{1 | 2 | 3}";
+        ~expected:"{Open; (Read | Write)*; Close}";
+      reads "{0}" ~expected:"{0}";
+      reads "3" ~expected:"{3}";
+      reads "⊤" ~expected:"⊤";
+      reads "top" ~expected:"⊤";
+      reads "{_*}" ~expected:"⊤";
+      reads "{_}" ~expected:"{_}";
+      reads "{(1; 1)*}" ~expected:"{2*}";
+      reads "{Read; Read*}" ~expected:"{Read; Read*}";
+      reads "{~(_*; Read; _*)}" ~expected:"{(_ & ~Read)*}";
+      reads "{~{_*; Revoke; _*}}" ~expected:"{(_ & ~Revoke)*}";
+      reads "{(_ & ~Auth)*; Auth; _*}" ~expected:"{~(_ & ~Auth)*}";
+      reads "{_*; Auth; _*}" ~expected:"{~(_ & ~Auth)*}";
+      reads "{3 | 2*}" ~expected:"{3 | 2*}";
+      reads "{1 | 2 | 3}" ~expected:"{1 | 2 | 3}";
       reads "{Open; Read*; Close | Open; Write*; Close}"
-        ~automata:"{Open; {Read* | Write*}; Close}"
-        ~derivatives:"{Open; {Read* | Write*}; Close}";
+        ~expected:"{Open; {Read* | Write*}; Close}";
       reads "{(Open; (Read | Write)*; Close | 1)*}"
-        ~automata:"{(1 | Open; (Read | Write)*; Close)*}"
-        ~derivatives:"{(1 | Open; (Read | Write)*; Close)*}";
-      reads "{(A; A)* & (A; A; A)*}" ~automata:"{(A; A; A; A; A; A)*}"
-        ~derivatives:"{(A; A)* & (A; A; A)*}";
-      reads "{_ & ~(1 | Read)}" ~automata:"{_ & ~(1 | Read)}"
-        ~derivatives:"{_ & ~(1 | Read)}";
-      reads "{3; _*}" ~automata:"{3; _*}" ~derivatives:"{3; _*}";
+        ~expected:"{(1 | Open; (Read | Write)*; Close)*}";
+      reads "{(A; A)* & (A; A; A)*}" ~expected:"{(A; A)* & (A; A; A)*}";
+      reads "{(A; A)* & (A; A; A)* | A; A; A; A; A; A; A; A; A; A; A; A}"
+        ~expected:"{(A; A; A; A; A; A)*}";
+      reads "{~(A*; (_ & ~A))*}" ~expected:"{_*; A}";
+      reads "{_ & ~(1 | Read)}" ~expected:"{_ & ~(1 | Read)}";
+      reads "{3; _*}" ~expected:"{3; _*}";
     ]
 
   let lexing =
     [
-      reads "{Read*|Send}" ~automata:"{Send | Read*}"
-        ~derivatives:"{Send | Read*}";
-      reads "{Read*&~Send}" ~automata:"{Read*}" ~derivatives:"{Read*}";
-      reads "{~~Read}" ~automata:"{Read}" ~derivatives:"{Read}";
-      reads "{Read**}" ~automata:"{Read*}" ~derivatives:"{Read*}";
-      reads "{_&~Read|Read}" ~automata:"{_}" ~derivatives:"{_}";
-      reads "{Read;(*a comment*)Send*|~_}" ~automata:"{~(_ & ~Read)}"
-        ~derivatives:"{~(_ & ~Read)}";
+      reads "{Read*|Send}" ~expected:"{Send | Read*}";
+      reads "{Read*&~Send}" ~expected:"{Read*}";
+      reads "{~~Read}" ~expected:"{Read}";
+      reads "{Read**}" ~expected:"{Read*}";
+      reads "{_&~Read|Read}" ~expected:"{_}";
+      reads "{Read;(*a comment*)Send*|~_}" ~expected:"{~(_ & ~Read)}";
     ]
 
   let errors =
@@ -388,8 +375,8 @@ struct
         | exception Grade.Invalid_literal _ -> None)
       samples
 
-  (* Mutual inclusion is sameness: structural equality for the automata, [equal]
-     for the derivatives. *)
+  (* Mutual inclusion is sameness; and the same grades print alike unless the
+     printing of one of them falls back. *)
   let canonical_samples =
     let sample = take 80 nonempty in
     List.concat_map
@@ -397,7 +384,12 @@ struct
         List.filter_map
           (fun rho' ->
             let mutual = G.leq bounds rho rho' && G.leq bounds rho' rho in
-            if mutual = same rho rho' then None
+            let alike =
+              (not mutual)
+              || G.show rho = G.show rho'
+              || falls_back rho || falls_back rho'
+            in
+            if mutual = same rho rho' && alike then None
             else
               Some (check "canonical" false (G.show rho ^ " vs " ^ G.show rho')))
           sample)
@@ -435,9 +427,37 @@ struct
         "";
     ]
 
+  (* Printing stops within the size of the normal form: on the words whose
+     [n + 1]-th letter from the end is [A], of 2^(n + 1) states, and on the grade
+     at the end of examples/traces/regular_traces.tpe, of 2^13 states, each
+     printed as its normal form. Reading the larger of these grades as automata
+     takes seconds, by the subset construction; the automata are checked up to
+     [n = 12] only. *)
+  let bounded_printing =
+    let from_end a n =
+      String.concat "; " ("_*" :: a :: List.init n (Fun.const "_"))
+    in
+    let slow = "~(" ^ from_end "A" 12 ^ ") & ~(" ^ from_end "B" 12 ^ ")" in
+    let texts =
+      match I.implementation with
+      | Automata -> List.init 12 (fun n -> from_end "A" (n + 1))
+      | Derivatives -> List.init 16 (fun n -> from_end "A" (n + 1)) @ [ slow ]
+    in
+    List.map
+      (fun text ->
+        let rho = lit ("{" ^ text ^ "}") in
+        let start = Sys.time () in
+        let shown = G.show rho in
+        let time = Sys.time () -. start in
+        check
+          ("prints {" ^ text ^ "} quickly")
+          (shown = "{" ^ text ^ "}" && time < 1.)
+          (Printf.sprintf "printed as %s in %.2f s" shown time))
+      texts
+
   let checks =
     printing @ lexing @ errors @ canonicity @ inclusion @ alignment @ properties
-    @ semantics @ canonical_samples @ laws
+    @ semantics @ canonical_samples @ laws @ bounded_printing
 end
 
 module Automata =
@@ -540,52 +560,81 @@ module Cross = struct
           | Ok a', Ok d' -> A.equal bounds a a' && D.equal bounds d d'
           | _ -> false
         in
+        let normal_form = Grades.LetterRegex.of_symbolic d in
+        let name what =
+          "cross: " ^ what ^ " of expression " ^ string_of_int i
+        in
         [
+          check (name "printing") read_back (A.show a ^ " and " ^ D.show d);
           check
-            ("cross: printing of expression " ^ string_of_int i)
-            read_back
-            (A.show a ^ " and " ^ D.show d);
+            (name "size of the printing")
+            (Option.for_all
+               (fun r ->
+                 Grades.LetterRegex.size r
+                 <= Grades.LetterRegex.size normal_form)
+               (D.canonical d))
+            (D.show d ^ " for " ^ Grades.LetterRegex.literal normal_form);
+          check (name "printing by both")
+            (Option.is_none (D.canonical d) || A.show a = D.show d)
+            (D.show d ^ " vs " ^ A.show a);
         ]
     | _ -> []
 
   let printing = List.concat (List.mapi print expressions)
 
-  (* Whether the derivatives print [d] as its normal form rather than as an
-     expression of its automaton. *)
-  let prints_normal_form d =
-    D.show d = "{" ^ LetterRegex.to_string (LetterRegex.of_symbolic d) ^ "}"
+  (* Whether the grades [x] and [y] of an implementation print alike or the
+     printing of one of them falls back. *)
+  let alike canonical show x y =
+    show x = show y
+    || Option.is_none (canonical x)
+    || Option.is_none (canonical y)
 
-  (* Equal grades have equal automata and print alike: the automata always,
-     the derivatives unless one of them prints its normal form, and the two
-     implementations alike unless the derivatives print the normal form. *)
+  (* Equal grades have equal automata and print alike, by each implementation
+     and by both, unless the printing of one of them falls back. *)
   let canonicity i (r, s) =
     match (grades r, grades s) with
     | (Some a, Some d), (Some a', Some d') when D.equal bounds d d' ->
         let name what = "cross: " ^ what ^ " of pair " ^ string_of_int i in
-        let automaton = Grades.SymbolicAutomaton.of_regex ~limit:256 in
+        let automaton = Grades.SymbolicAutomaton.of_regex ~limit:max_int in
         [
           check (name "equal automata")
-            (match (automaton d, automaton d') with
-            | Some x, Some y -> Grades.SymbolicAutomaton.equal x y
-            | _ -> true)
+            (Option.equal Grades.SymbolicAutomaton.equal (automaton d)
+               (automaton d'))
             (D.show d ^ " = " ^ D.show d');
           check
             (name "printing by automata")
-            (A.show a = A.show a')
+            (alike A.canonical A.show a a')
             (A.show a ^ " vs " ^ A.show a');
           check
             (name "printing by derivatives")
-            (D.show d = D.show d'
-            || prints_normal_form d || prints_normal_form d')
+            (alike D.canonical D.show d d')
             (D.show d ^ " vs " ^ D.show d');
           check (name "printing by both")
-            (D.show d = A.show a || prints_normal_form d)
+            (alike D.canonical D.show d d' || A.show a = D.show d)
             (D.show d ^ " vs " ^ A.show a);
         ]
     | _ -> []
 
   let canonical = List.concat (List.mapi canonicity pairs)
-  let checks = emptiness @ decisions @ printing @ canonical
+
+  (* The pairs of distinct but equal expressions whose grades both print
+     canonically, of which there are some. *)
+  let canonical_pairs =
+    let printed_canonically (r, s) =
+      match (grades r, grades s) with
+      | (_, Some d), (_, Some d') ->
+          r <> s && D.equal bounds d d'
+          && Option.is_some (D.canonical d)
+          && Option.is_some (D.canonical d')
+      | _ -> false
+    in
+    let count = List.length (List.filter printed_canonically pairs) in
+    [
+      check "cross: equal pairs printed canonically" (count > 0)
+        (string_of_int count ^ " pairs");
+    ]
+
+  let checks = emptiness @ decisions @ printing @ canonical @ canonical_pairs
 end
 
 let () =

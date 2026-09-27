@@ -371,6 +371,9 @@ module Make (C : Constraint.S) = struct
   let simplify context hyps =
     prune context (settle_all context (canon_hyps context hyps))
 
+  (* Each atom entailed by the others dropped in turn; on the subtyping atoms
+     a greedy minimal equivalent graph, the transitive reduction where they
+     are acyclic (Aho, Garey and Ullman, SIAM J. Comput. 1972). *)
   let trim context hyps =
     let hyps = settle_all context hyps in
     let reached ~seen ~rest s =
@@ -601,7 +604,9 @@ module Make (C : Constraint.S) = struct
     | None -> None
 
   (* A type unknown on a cycle of subtyping atoms sent to the representative
-     of its component: a fixed member where there is one, else the earliest. *)
+     of its component: a fixed member where there is one, else the earliest.
+     This is cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998),
+     the components by Kosaraju's algorithm ({!Reach.representatives}). *)
   let collapse_cycle context (fixed : C.free) st =
     let edges = edges st.hyps.sub_vars in
     let ends pick = TyParamSet.of_list (List.map pick edges) in
@@ -665,8 +670,11 @@ module Make (C : Constraint.S) = struct
         at lower_ty tys;
       ]
 
-  (* The steps are tried at the unknowns of the initial state, which include
-     those of every later state: a step replaces an unknown by a part of the
+  (* The elimination of unknowns, the lowering and raising steps by polarity
+     in the manner of Pottier (Simplifying subtyping constraints, ICFP 1996)
+     and of Trifonov and Smith (Subtyping constrained types, SAS 1996). The
+     steps are tried at the unknowns of the initial state, which include those
+     of every later state: a step replaces an unknown by a part of the
      hypotheses and drops hypotheses, and no step applies at an unknown that
      does not occur in them. *)
   let eliminate context ~fixed ty hyps =

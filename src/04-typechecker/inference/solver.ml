@@ -1,4 +1,6 @@
-(* The constraint solver. *)
+(* The constraint solver, reducing a constraint to a substitution and a
+   residual of undecided atoms, the solved form of HM(X) (Odersky, Sulzmann
+   and Wehr, TAPOS 1999). *)
 
 module Ast = Language.Ast
 module TyParamMap = Ast.TyParamMap

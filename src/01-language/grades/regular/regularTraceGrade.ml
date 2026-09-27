@@ -1,10 +1,13 @@
 open Grade
 module Letters = SymbolicRegex.Letters
+module Expression = RegularTraceGradeDerivative
 
-type t = { names : string list; dfa : Dfa.t }
+type t = { names : string list; dfa : Dfa.t; expression : SymbolicRegex.t }
 (* The letters of the automaton [dfa] are [tick], the operation [names] in
    increasing order, and the catch-all letter. Only names whose letter the
-   language tells apart from the catch-all letter are kept. *)
+   language tells apart from the catch-all letter are kept. The [expression]
+   denotes the same language: it is built alongside [dfa] by the operations of
+   {!RegularTraceGradeDerivative}, and read only by the printing. *)
 
 let name = "traces-regex"
 let tick = 0
@@ -29,18 +32,21 @@ let translate ~from ~into dfa =
     in
     Dfa.relabel (size into) (Array.get source) dfa
 
-(** [canonical names dfa] is the grade of the automaton [dfa] over [names],
-    without the names that act as the catch-all letter. *)
-let canonical names dfa =
+(** [restrict names dfa expression] is the grade of the automaton [dfa] over
+    [names], without the names that act as the catch-all letter, and of the
+    [expression]. *)
+let restrict names dfa expression =
   let distinct name = not (Dfa.alike dfa (letter names name) (other names)) in
   let kept = List.filter distinct names in
-  { names = kept; dfa = translate ~from:names ~into:kept dfa }
+  { names = kept; dfa = translate ~from:names ~into:kept dfa; expression }
 
 let align names rho = translate ~from:rho.names ~into:names rho.dfa
 
-let lift2 op rho rho' =
+let lift2 op op' rho rho' =
   let names = merge rho.names rho'.names in
-  canonical names (op (align names rho) (align names rho'))
+  restrict names
+    (op (align names rho) (align names rho'))
+    (op' rho.expression rho'.expression)
 
 let rec names_of = function
   | Letter name -> [ name ]
@@ -49,7 +55,8 @@ let rec names_of = function
   | Star r | Compl r -> names_of r
 
 (** [dfa_of_regex names r] is the automaton over [names] of the regular
-    expression [r], whose names are among [names]. *)
+    expression [r], whose names are among [names], built by recursion on [r]
+    with the product and subset constructions of {!Dfa}. *)
 let dfa_of_regex names =
   let n = size names in
   let rec go = function
@@ -68,19 +75,25 @@ let dfa_of_regex names =
     empty. *)
 let of_regex r =
   let names = List.sort_uniq String.compare (names_of r) in
-  canonical names (dfa_of_regex names r)
+  restrict names (dfa_of_regex names r) (Expression.of_regex r)
 
 let one = of_regex (Tick 0)
-let mul = lift2 Dfa.concat
-let join = lift2 Dfa.union
-let top = { names = []; dfa = Dfa.all (size []) }
+let mul = lift2 Dfa.concat Expression.mul
+let join = lift2 Dfa.union Expression.join
+let top = { names = []; dfa = Dfa.all (size []); expression = Expression.top }
 
 let leq _bounds rho rho' =
   let names = merge rho.names rho'.names in
   Dfa.subset (align names rho) (align names rho')
 
 let leq_symbol = "<="
-let equal _bounds rho rho' = rho = rho'
+
+(** [same rho rho'] is whether [rho] and [rho'] denote the same language:
+    whether their names and automata are equal. *)
+let same rho rho' =
+  List.equal String.equal rho.names rho'.names && Dfa.equal rho.dfa rho'.dfa
+
+let equal _bounds = same
 let of_nat n = of_regex (Tick (check_nat "RegularTraceGrade" n))
 let unit_least = false
 let commutative = false
@@ -91,18 +104,38 @@ let events rho = rho.names
 (* [lo] ticks followed by up to [hi - lo] more. *)
 let of_bounds (lo, hi) =
   let tick_or_not = Union (Tick 0, Tick 1) in
-  of_regex
-    (List.fold_left
-       (fun r _ -> Seq (r, tick_or_not))
-       (Tick lo)
-       (List.init (max 0 (hi - lo)) Fun.id))
+  let rho =
+    of_regex
+      (List.fold_left
+         (fun r _ -> Seq (r, tick_or_not))
+         (Tick lo)
+         (List.init (max 0 (hi - lo)) Fun.id))
+  in
+  { rho with expression = Expression.of_bounds (lo, hi) }
 
-let is_atomic name rho = rho = of_regex (Letter name)
+let is_atomic name rho = same rho (of_regex (Letter name))
+
+(** [letters names a] is the letter set of the letter [a] over [names]: [tick],
+    a name, or the names other than [names]. *)
+let letters names a =
+  if a = tick then Letters.tick
+  else if a = other names then
+    Letters.compl
+      (List.fold_left Letters.union Letters.tick (List.map Letters.name names))
+  else Letters.name (List.nth names (a - 1))
+
+(** [word names w] is the grade of the word [w] over [names]. *)
+let word names w =
+  restrict names
+    (Dfa.word (size names) w)
+    (List.fold_left
+       (fun r a ->
+         SymbolicRegex.concat r (SymbolicRegex.letters (letters names a)))
+       SymbolicRegex.eps w)
 
 let counterexample _bounds rho rho' =
   let names = merge rho.names rho'.names in
-  Option.map
-    (fun word -> canonical names (Dfa.word (size names) word))
+  Option.map (word names)
     (Dfa.counterexample (align names rho) (align names rho'))
 
 let of_lit = function
@@ -123,15 +156,6 @@ let of_lit = function
 
 (** {1 Printing} *)
 
-(** [letters names a] is the letter set of the letter [a] over [names]: [tick],
-    a name, or the names other than [names]. *)
-let letters names a =
-  if a = tick then Letters.tick
-  else if a = other names then
-    Letters.compl
-      (List.fold_left Letters.union Letters.tick (List.map Letters.name names))
-  else Letters.name (List.nth names (a - 1))
-
 (** [symbolic rho] is the automaton of [rho] over letter sets. *)
 let symbolic rho =
   let letters = List.init (size rho.names) (letters rho.names) in
@@ -144,4 +168,12 @@ let symbolic rho =
             (fun q -> List.mapi (fun a p -> (p, Dfa.next rho.dfa q a)) letters)
             states))
 
-let show rho = SymbolicAutomaton.show ~others:[] (symbolic rho)
+let canonical rho =
+  let budget = LetterRegex.size (LetterRegex.of_symbolic rho.expression) in
+  if Dfa.states rho.dfa > budget then None
+  else SymbolicAutomaton.canonical ~budget (symbolic rho)
+
+let show rho =
+  LetterRegex.literal
+    (Option.value (canonical rho)
+       ~default:(LetterRegex.of_symbolic rho.expression))

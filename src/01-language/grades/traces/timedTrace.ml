@@ -105,18 +105,19 @@ let rec coverage cost k s t =
       true (* use-delay *)
   | _ -> false
 
-(** [upper_bound_le cost p q] is the Hoare lift of the allowance order: every
-    bound listed by [p] stays within some bound listed by [q]. This is the
-    sub-grade order of the upper-bound (right-sided) grade. *)
+(** [upper_bound_le cost p q] is the Hoare lift of the allowance order, the
+    order of the lower powerdomain: every bound listed by [p] stays within some
+    bound listed by [q]. This is the sub-grade order of the upper-bound
+    (right-sided) grade. *)
 let upper_bound_le cost p q =
   List.for_all (fun s -> List.exists (fun t -> allowance cost 0 s t) q) p
 
-(** [lower_bound_le cost p q] is the Smyth lift of the coverage order: every
-    guarantee listed by [p] has an easier one listed by [q]. Note the direction:
-    the universal quantifier runs over [p], but each witness [t] is compared
-    against [s] the other way round, as an argument to {!coverage} with [t] and
-    [s] swapped. This is the sub-grade order of the lower-bound (left-sided)
-    grade. *)
+(** [lower_bound_le cost p q] is the Smyth lift of the coverage order, the order
+    of the upper powerdomain (Smyth, JCSS 1978): every guarantee listed by [p]
+    has an easier one listed by [q]. Note the direction: the universal
+    quantifier runs over [p], but each witness [t] is compared against [s] the
+    other way round, as an argument to {!coverage} with [t] and [s] swapped.
+    This is the sub-grade order of the lower-bound (left-sided) grade. *)
 let lower_bound_le cost p q =
   List.for_all (fun s -> List.exists (fun t -> coverage cost 0 t s) q) p
 

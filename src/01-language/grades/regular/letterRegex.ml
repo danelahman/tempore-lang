@@ -38,7 +38,10 @@ let rec nullable = function
   | Union rs -> List.exists nullable rs
   | Compl r -> not (nullable r)
 
-(** {1 Constructions} *)
+(** {1 Constructions}
+
+    The smart constructors rewrite by identities of Kleene algebra (Kozen, Inf.
+    Comput. 1994), oriented as the interface lists them. *)
 
 let empty = Empty
 let eps = Eps
@@ -228,6 +231,14 @@ let rec of_symbolic r =
   | Compl r -> compl (of_symbolic r)
   | Star r -> star (of_symbolic r)
 
+let rec reverse = function
+  | (Empty | Eps | Letters _) as r -> r
+  | Seq rs -> seq (List.rev_map reverse rs)
+  | Union rs -> union (List.map reverse rs)
+  | Inter rs -> inter (List.map reverse rs)
+  | Compl r -> compl (reverse r)
+  | Star r -> star (reverse r)
+
 (** {1 Printing} *)
 
 type factor = Ticks of int | Factor of t
@@ -262,11 +273,6 @@ let rec size = function
   | Union rs | Inter rs ->
       List.fold_left (fun n r -> n + size r) (List.length rs - 1) rs
   | Compl r | Star r -> 1 + size r
-
-let smallest = function
-  | [] -> invalid_arg "LetterRegex.smallest: no expression"
-  | r :: rs ->
-      List.fold_left (fun best r -> if size r < size best then r else best) r rs
 
 type printed = { text : string; level : int }
 (* The level of the outermost operator of [text]: [0] union, [1]
@@ -321,3 +327,4 @@ and print_seq rs =
   | parts -> { text = String.concat "; " (List.map part parts); level = 2 }
 
 let to_string r = (print r).text
+let literal r = if equal r top then "⊤" else "{" ^ to_string r ^ "}"

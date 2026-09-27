@@ -85,6 +85,9 @@ module Letters = struct
   let order p q = Stdlib.compare (least p, p) (least q, q)
   let mentioned p = match p.names with Only a | Except a -> a
 
+  (* The minterms of [sets], the atoms of the Boolean algebra they generate, as
+     in symbolic automata (D'Antoni and Veanes, POPL 2014), by splitting every
+     block by each set in turn. *)
   let partition sets =
     let split block p =
       List.filter
@@ -151,7 +154,8 @@ let nullable_view = function
   | Inter rs -> List.for_all (fun r -> r.nullable) rs
   | Compl r -> not r.nullable
 
-(** [make view] is the normal form of [view], built on its first request. *)
+(** [make view] is the normal form of [view], built on its first request: the
+    expressions are hash-consed (Filliâtre and Conchon, ML Workshop 2006). *)
 let make view =
   match Forms.find_opt forms view with
   | Some r -> r
@@ -164,7 +168,12 @@ let make view =
 
 let nullable r = r.nullable
 
-(** {1 Constructions} *)
+(** {1 Constructions}
+
+    The smart constructors keep the normal form, which includes the similarity
+    rules of Brzozowski (JACM 1964) extended to intersection and complement, as
+    in Owens, Reppy and Turon (JFP 2009), so that every expression has finitely
+    many derivatives up to its normal form. *)
 
 let empty = make Empty
 let eps = make Eps
@@ -325,6 +334,9 @@ let minterm set = { set; key = (letters set).id }
    expression. *)
 let derivatives : (int * int, t) Hashtbl.t = Hashtbl.create 4096
 
+(* The derivative (Brzozowski, JACM 1964) of an extended regular expression by a
+   minterm rather than a letter, as in RE# (Varatalu, Veanes and Ernits, POPL
+   2025), memoised by minterm and expression. *)
 let rec derive m r =
   let key = (m.key, r.id) in
   match Hashtbl.find_opt derivatives key with
@@ -429,7 +441,9 @@ let equalities : (int * int, bool) Hashtbl.t = Hashtbl.create 1024
 
 (** [bisimilar r s] explores the pairs of derivatives of [r] and [s] by the same
     words, merging the classes of the two expressions of each pair, until two
-    expressions of a pair differ in nullability or no pair is left. *)
+    expressions of a pair differ in nullability or no pair is left: Hopcroft and
+    Karp's algorithm (Cornell TR 1971), a bisimulation up to equivalence, the
+    classes kept in a union–find forest with path compression. *)
 let bisimilar r s =
   let ms = List.map minterm (Letters.partition (letter_sets [ r; s ])) in
   let parent = Hashtbl.create 64 in

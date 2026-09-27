@@ -280,6 +280,9 @@ module Make (C : Constraint.S) = struct
   (* How the arguments of two types of one former are related. *)
   type variance = Covariant | Invariant
 
+  (* The structural decomposition of a subtyping demand between types of one
+     shape into atomic demands and grade orderings (Mitchell, JFP 1991; Fuh
+     and Mishra, ESOP 1988). *)
   let rec push_sub context (s : sub) r =
     let open Result.Syntax in
     let ordering lhs rhs info : _ GradeNormal.ordering = { lhs; rhs; info } in

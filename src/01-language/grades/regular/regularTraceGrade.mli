@@ -27,19 +27,29 @@
 
     A grade keeps only the names its language tells apart from the catch-all
     letter, with the minimal automaton over them in the canonical form of
-    {!Dfa}. Grades denoting the same language are thus structurally equal.
+    {!Dfa}. Grades denoting the same language thus have equal names and
+    automata, which {!Grade.S.equal} compares. A grade also keeps the normal
+    form of the expression it was built from, by the operations of
+    {!RegularTraceGradeDerivative}, for its printing only.
 
     {2 Counterexamples and printing}
 
     {!Grade.S.counterexample} [bounds rho rho'] is the grade of a shortest word
     of [rho] not in [rho'], in which the catch-all letter, if it occurs, stands
-    for any operation neither grade names. A grade is printed as the smaller, by
-    {!LetterRegex.size}, of the regular expressions of its automaton and of the
-    complement of its automaton, as {!SymbolicAutomaton.show} prints the
-    automaton over letter sets whose labels join the letters of each transition,
-    the catch-all letter standing for the names not mentioned. The printed form
-    is thus determined by the language, and the same as for
-    {!RegularTraceGradeDerivative} unless that prints its normal form.
+    for any operation neither grade names. A grade is printed as
+    {!RegularTraceGradeDerivative} prints the normal form [e] of its expression,
+    within the budget [b], the {!LetterRegex.size} of {!LetterRegex.of_symbolic}
+    [e], but from its own automaton, over letter sets whose labels join the
+    letters of each transition, the catch-all letter standing for the names not
+    mentioned: as the canonical candidate {!SymbolicAutomaton.canonical}
+    [~budget:b] of that automaton, and otherwise as [e]. The printing thus falls
+    back to [e] iff no canonical candidate of the language costs at most [b],
+    which is the case if the automaton has more than [b] states; it takes time
+    polynomial in [b] besides that of {!LetterRegex.of_symbolic}. Grades
+    denoting the same language print alike unless the printing of one of them
+    falls back, and a grade prints as under {!RegularTraceGradeDerivative}
+    unless the printing falls back there, which it also does when [e] has more
+    than [b] derivatives.
 
     {2 Literals}
 
@@ -60,3 +70,7 @@
     the language [{name}]. *)
 
 include Grade.S
+
+val canonical : t -> LetterRegex.t option
+(** [canonical rho] is the canonical expression printed for [rho], or [None] if
+    the printing of [rho] falls back to its expression. *)

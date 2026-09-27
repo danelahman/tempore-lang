@@ -68,17 +68,16 @@ val star : t -> t
 val of_symbolic : SymbolicRegex.t -> t
 (** [of_symbolic r] is the normal form of the expression [r]. *)
 
+val reverse : t -> t
+(** [reverse r] is the normal form of the reversal of [r], whose words are those
+    of [r] read backwards: the factors of every concatenation are reversed. *)
+
 (** {1 Printing} *)
 
 val size : t -> int
 (** [size r] is the number of atoms and operators of the printed form of [r]: a
     run of ticks counts as the one integer it is printed as, and a letter set as
     its printed form [A | B], [_] or [_ & ~(A | B)]. *)
-
-val smallest : t list -> t
-(** [smallest rs] is the first of the expressions [rs] of least {!size}.
-
-    @raise Invalid_argument if [rs] is empty. *)
 
 val to_string : t -> string
 (** [to_string r] prints [r] in the literal syntax, without the enclosing
@@ -88,3 +87,7 @@ val to_string : t -> string
     e.g. [~{_*; Revoke; _*}], so that no printed expression contains a
     repetition followed by a closing parenthesis, which would close a comment
     quoting it. *)
+
+val literal : t -> string
+(** [literal r] is the literal of the regular trace grade [r]: [⊤] if [r] is
+    [_*], and otherwise {!to_string} [r] in braces. *)

@@ -153,7 +153,10 @@ let resolve sigma = function
   | t -> t
 
 (* [unify_at unfold site st lhs rhs] extends the unifier [st] to a most general
-   unifier of [lhs] and [rhs], both the rigid-rigid and the flexible cases. *)
+   unifier of [lhs] and [rhs], both the rigid-rigid and the flexible cases. It
+   is Robinson's first-order unification with occurs check (Robinson, JACM
+   1965), by recursion on the two skeletons, the unifier an idempotent
+   substitution. *)
 let rec unify_at unfold site st lhs rhs =
   let open Result.Syntax in
   match (resolve st.sigma lhs, resolve st.sigma rhs) with
@@ -256,7 +259,9 @@ module Make (X : GradeExp.S) = struct
     Ast.substitute_ty theta ~on_rho:Fun.id ~on_eps:Fun.id ty
 
   (* Unifies the skeletons of every demand and instantiates the unknowns the
-     unifier sends to a non-variable skeleton, by a decoration of it. *)
+     unifier sends to a non-variable skeleton, by a decoration of it: the
+     shape matching and expansion that reduce subtyping to atomic constraints
+     (Fuh and Mishra, ESOP 1988; Mitchell, JFP 1991). *)
   let expand_traced unfold demands =
     let equation ({ lhs; rhs; info } : (ty, _) GradeNormal.ordering) =
       { lhs = of_ty lhs; rhs = of_ty rhs; info }

@@ -1,4 +1,6 @@
-(* Constraint generation in checking mode. *)
+(* Constraint generation in checking mode, against an expected type, in the
+   manner of Pottier and Rémy (The Essence of ML Type Inference, ATTAPL,
+   2005). *)
 
 module Ast = Language.Ast
 module Const = Language.Const

@@ -2745,7 +2745,7 @@ automata, 'traces-regex':
   === Run 9 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {0 | 2; (0 | 1; {0 | 1; 2*})} }
+    { resource_0 ↦ 1 # {3 | 2*} }
   ]
   
   === Run 10 ===

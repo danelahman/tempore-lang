@@ -11,7 +11,8 @@ let compare (l : t) m = Stdlib.compare l m
 let range n = List.init n Fun.id
 let sort_uniq = List.sort_uniq Int.compare
 
-(** First-in first-out queues, as a front list and a reversed back list. *)
+(** First-in first-out queues, as a front list and a reversed back list, with
+    amortised constant-time operations (Burton, IPL 1982). *)
 module Fifo = struct
   type 'a t = 'a list * 'a list
 
@@ -30,7 +31,8 @@ module Explore (State : Map.OrderedType) = struct
   module Ids = Map.Make (State)
 
   (** [table n ~start ~next ~final] is the table of the states reachable from
-      [start] over [n] letters, numbered in the order of their discovery. *)
+      [start] over [n] letters, numbered in the order of their discovery by
+      breadth-first search, the letters of a state in increasing order. *)
   let table n ~start ~next ~final =
     let visit s (ids, count, fifo) a =
       let s' = next s a in
@@ -70,10 +72,11 @@ module Signatures = Map.Make (struct
   let compare = Stdlib.compare
 end)
 
-(** [refine l classes] is the Moore refinement of the partition [classes] of the
-    states of [l], with its number of classes: two states stay together iff they
-    agree on finality and on the classes of their successors. Classes are
-    numbered in the order of their first member. *)
+(** [refine l classes] is one round of Moore's partition refinement (Moore,
+    Automata Studies 1956) of the partition [classes] of the states of [l], with
+    its number of classes: two states stay together iff they agree on finality
+    and on the classes of their successors. Classes are numbered in the order of
+    their first member. *)
 let refine l classes =
   let classify (seen, count) q =
     let signature = (final l q, Array.map (Array.get classes) l.rows.(q)) in
@@ -87,7 +90,8 @@ let refine l classes =
   (count, Array.of_list classes)
 
 (** [partition l] is the coarsest partition of the states of [l] stable under
-    refinement: the classes of states with equal residual languages. *)
+    refinement: the classes of states with equal residual languages, reached by
+    iterating {!refine} until the number of classes is stable. *)
 let partition l =
   let rec go (count, classes) =
     let count', classes' = refine l classes in
@@ -96,7 +100,9 @@ let partition l =
   go (1, Array.make (states l) 0)
 
 (** [minimise l] is the canonical form of [l]: the quotient by {!partition},
-    explored breadth-first from the class of the start. *)
+    explored breadth-first from the class of the start. The quotient is the
+    minimal automaton, unique up to isomorphism (Myhill–Nerode), and the
+    breadth-first numbering fixes the isomorphism. *)
 let minimise l =
   let classes = partition l in
   let first (count, reps) (q, c) =
@@ -129,6 +135,8 @@ let letter_set n s =
   let step q a = if q = 0 && List.mem a s then 1 else 2 in
   minimise (Ints.table n ~start:0 ~next:step ~final:(Int.equal 1))
 
+(* The product construction (Rabin and Scott, IBM J. Res. Dev. 1959), over the
+   reachable pairs of states. *)
 let product who accept l m =
   same_letters who l m;
   minimise
@@ -149,6 +157,8 @@ module Subsets = Explore (struct
   let compare = Stdlib.compare
 end)
 
+(* The subset construction (Rabin and Scott, IBM J. Res. Dev. 1959) of the
+   concatenation, over the reachable states. *)
 let concat l m =
   same_letters "concat" l m;
   let enter p s = if final l p then sort_uniq (0 :: s) else s in
@@ -168,8 +178,9 @@ module Closures = Explore (struct
   let compare = Stdlib.compare
 end)
 
-(* A state is [None], the start, or [Some s], the non-empty set [s] of states of
-   [l] reached, closed under restarting [l] after a word of [l]. *)
+(* The subset construction of the repetition: a state is [None], the start, or
+   [Some s], the non-empty set [s] of states of [l] reached, closed under
+   restarting [l] after a word of [l]. *)
 let star l =
   let close s =
     if List.exists (final l) s then sort_uniq (0 :: s) else sort_uniq s
@@ -194,6 +205,8 @@ let alike l a b = Array.for_all (fun row -> row.(a) = row.(b)) l.rows
 
 module Pair_set = Set.Make (Pair)
 
+(* Breadth-first search of the product of [l] and [m] for a pair of states final
+   in [l] only, the first found giving a shortest word. *)
 let counterexample l m =
   same_letters "counterexample" l m;
   let rec go seen fifo =
