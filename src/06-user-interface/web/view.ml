@@ -548,7 +548,7 @@ let view_compiler (model : Model.model) =
               ~a:[ class_ "grades-command" ]
               [
                 text
-                  (Printf.sprintf "./tempore --grades %s"
+                  (Printf.sprintf "./tempore\n  --grades %s"
                      model.edit_model.selected_resource);
               ];
           ];
