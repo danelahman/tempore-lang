@@ -5,6 +5,20 @@ module List = Utils.List
 module Ast = Language.Ast
 open Backend
 
+(** [declared_operations commands] is the operation declarations of [commands],
+    in order, each the name of the operation with its runtime bounds if it
+    declares them. Only these are read, so that an operation declared with a
+    malformed or ill-typed signature is listed all the same. *)
+let declared_operations commands =
+  List.filter_map
+    (fun (cmd : _ SugaredAst.command) ->
+      match cmd.it with
+      | SugaredAst.OpSig (name, _, _, _, bounds) -> Some (name, bounds)
+      | SugaredAst.TyDef _ | SugaredAst.OpDefault _ | SugaredAst.TopLet _
+      | SugaredAst.TopLetRec _ | SugaredAst.TopDo _ ->
+          None)
+    commands
+
 module Loader (Backend : Backend.S) = struct
   module D = Desugarer.Make (Backend.Grades)
   module TC = Typechecker.Make (Backend.Grades)
@@ -15,6 +29,19 @@ module Loader (Backend : Backend.S) = struct
     backend : Backend.load_state;
     typechecker : TC.state;
   }
+
+  (** [declare sources state] is [state] in the program made of the parsed
+      [sources], all of which are to be loaded into it: the grades of every
+      command are read over the operations these sources declare
+      ({!Typechecker.Make.declare_operations}), before or after the command. *)
+  let declare sources state =
+    {
+      state with
+      typechecker =
+        TC.declare_operations
+          (declared_operations (List.concat sources))
+          state.typechecker;
+    }
 
   let load_primitive state prim =
     let x = Ast.Variable.fresh (Language.Primitives.primitive_name prim) in
@@ -91,6 +118,10 @@ module Loader (Backend : Backend.S) = struct
     in
     ({ state with desugarer = desugarer_state' }, cmds')
 
+  (** Load the parsed source [cmds] of a program {!declare}d, reporting every
+      typing error it contains rather than only the first. Desugaring stays
+      fatal: an unknown name would only cascade. The standard library goes
+      through {!load_commands}, an error in it being a bug. *)
   let load_commands_all state cmds =
     let state', cmds' = desugar_commands state cmds in
     execute_commands ~recover:true state' cmds'
@@ -108,22 +139,7 @@ module Loader (Backend : Backend.S) = struct
     lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
     parse_commands lexbuf
 
-  let load_source ?filename state source =
-    load_commands state (parse_source ?filename source)
-
-  let load_file state source =
-    load_commands state (Parser.Lexer.read_file parse_commands source)
-
-  (** Load a source, reporting every typing error it contains rather than only
-      the first. Parsing and desugaring stay fatal: a parse error leaves nothing
-      to continue with, and an unknown name would only cascade. The standard
-      library goes through {!load_source}, an error in it being a bug. *)
-  let load_source_all ?filename state source =
-    load_commands_all state (parse_source ?filename source)
-
-  (** {!load_source_all} for a file. *)
-  let load_file_all state source =
-    load_commands_all state (Parser.Lexer.read_file parse_commands source)
+  let parse_file filename = Parser.Lexer.read_file parse_commands filename
 
   (** The module Stdlib_tpe is automatically generated from stdlib.tpe. Check
       the dune file for details. *)

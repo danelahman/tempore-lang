@@ -95,6 +95,9 @@ let malformed =
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
     "regular_reject_bounds.tpe";
+    "regex_costs_interval_runs_reject.tpe";
+    "regex_costs_lower_runs_reject.tpe";
+    "regex_costs_upper_runs_reject.tpe";
   ]
 
 (* ------------------------------------------------------------------ *)
@@ -188,12 +191,17 @@ module Program (G : Grade.S) = struct
          (run "stdlib" ~expect_errors:false initial
             (parse_source Loader.stdlib_source)))
 
-  (* Whether the file was rejected. *)
+  (* Whether the file was rejected; the program declares the operations of the
+     file, the standard library declaring none. *)
   let file path ~expect_errors =
     let name = Filename.basename path in
     match Parser.Lexer.read_file parse path with
     | cmds -> (
-        match run name ~expect_errors (Lazy.force with_stdlib) cmds with
+        let desugarer, env = Lazy.force with_stdlib in
+        let env =
+          Gen.declare_operations (Loader.declared_operations cmds) env
+        in
+        match run name ~expect_errors (desugarer, env) cmds with
         | _, errors -> errors > 0
         | exception Error.Error _ when expect_errors -> true)
     | exception Error.Error _ when expect_errors -> true
@@ -310,7 +318,8 @@ module Small = struct
   let box () =
     let c =
       at
-        (Ast.Box (Ast.RhoConst (G.of_nat 3), unit_expr, (pvar y, return (var y))))
+        (Ast.Box
+           (Ast.RhoConst (G.of_nat 3, None), unit_expr, (pvar y, return (var y))))
     in
     expect_text "box"
       ~expected:
@@ -379,7 +388,11 @@ module Small = struct
     let op = Ast.OpName.fresh "Op" in
     let env =
       Gen.add_operation_signature ~loc env_x
-        (op, Ast.TyTuple [], Ast.TyTuple [], Ast.EpsConst (G.of_nat 2), None)
+        ( op,
+          Ast.TyTuple [],
+          Ast.TyTuple [],
+          Ast.EpsConst (G.of_nat 2, None),
+          None )
     in
     let k = Ast.Variable.fresh "k" in
     let u = Ast.Variable.fresh "u" in

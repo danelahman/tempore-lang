@@ -75,8 +75,8 @@
 %left  INFIXOP3 STAR MOD LAND LOR LXOR
 %right INFIXOP4 LSL LSR ASR
 
-%start <(GS.R.t, GS.E.t) SugaredAst.term> payload
-%start <(GS.R.t, GS.E.t) SugaredAst.command list> commands
+%start <(GS.R.t annotated, GS.E.t annotated) SugaredAst.term> payload
+%start <(GS.R.t annotated, GS.E.t annotated) SugaredAst.command list> commands
 
 %%
 
@@ -450,7 +450,8 @@ plain_ty:
   | t1 = ty_apply ARROW t2 = ty HASH eps = eps_grade
     { TyArrow (t1, CompTy (t2, eps)) }
   | t1 = ty_apply ARROW t2 = ty
-    { TyArrow (t1, CompTy (t2, GS.E.one)) }
+    { let at = Location.of_lexing $startpos $endpos in
+      TyArrow (t1, CompTy (t2, { it = GS.E.one; at })) }
   | t = plain_prod_ty
     { t }
 
@@ -494,15 +495,19 @@ op_bounds:
   | WITHIN n = INT { (n, n) }
   | WITHIN LPAREN n = INT COMMA m = INT RPAREN { (n, m) }
 
-(* A resource grade, read by the resource grades of the grade system. *)
+(* A resource grade, read by the resource grades of the grade system, at the
+   location of its literal. *)
 rho_grade:
   | lit = grade_lit
-    { grade ~loc:(Location.of_lexing $startpos $endpos) GS.R.name GS.R.of_lit lit }
+    { let at = Location.of_lexing $startpos $endpos in
+      { it = grade ~loc:at GS.R.name GS.R.of_lit lit; at } }
 
-(* An effect grade, read by the effect grades of the grade system. *)
+(* An effect grade, read by the effect grades of the grade system, at the
+   location of its literal. *)
 eps_grade:
   | lit = grade_lit
-    { grade ~loc:(Location.of_lexing $startpos $endpos) GS.E.name GS.E.of_lit lit }
+    { let at = Location.of_lexing $startpos $endpos in
+      { it = grade ~loc:at GS.E.name GS.E.of_lit lit; at } }
 
 (* A grade literal, shared by all grades; each grade reads the forms it
    understands. *)

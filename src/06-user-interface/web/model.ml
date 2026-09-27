@@ -299,15 +299,19 @@ let update model = function
               let module L = Loader.Loader (B) in
               (* Loaded as two separate sources, so that an editor location
                  is a location in what the user typed. *)
-              let state =
+              let stdlib =
                 if model.edit_model.use_stdlib then
-                  L.load_source ~filename:Loader.stdlib_filename L.initial_state
+                  L.parse_source ~filename:Loader.stdlib_filename
                     L.stdlib_source
-                else L.initial_state
+                else []
               in
-              let state, diagnostics =
-                L.load_source_all state model.edit_model.unparsed_code
+              let code = L.parse_source model.edit_model.unparsed_code in
+              let state =
+                L.load_commands
+                  (L.declare [ stdlib; code ] L.initial_state)
+                  stdlib
               in
+              let state, diagnostics = L.load_commands_all state code in
               (* Build a run_model_state from a B.run_state, capturing all
                  resource-grade-specific types in closures so the rest of the
                  application is independent of the chosen resource grade. *)

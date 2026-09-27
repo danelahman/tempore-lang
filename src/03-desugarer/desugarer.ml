@@ -55,6 +55,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let lookup_label ~loc state = find_symbol ~loc state.labels
   let lookup_operation ~loc state = find_symbol ~loc state.operations
 
+  (* The grade constants of grade literals, at their locations. *)
+  let rho_const { Sugared.it; at } = Untyped.RhoConst (it, Some at)
+  let eps_const { Sugared.it; at } = Untyped.EpsConst (it, Some at)
+
   let rec desugar_ty state { Sugared.it = plain_ty; at = loc } =
     desugar_plain_ty ~loc state plain_ty
 
@@ -69,20 +73,20 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Sugared.TyArrow (ty1, CompTy (ty2, eps)) ->
         let ty1' = desugar_ty state ty1 in
         let ty2' = desugar_ty state ty2 in
-        Untyped.TyArrow (ty1', CompTy (ty2', Untyped.EpsConst eps))
+        Untyped.TyArrow (ty1', CompTy (ty2', eps_const eps))
     | Sugared.TyTuple tys ->
         let tys' = List.map (desugar_ty state) tys in
         Untyped.TyTuple tys'
     | Sugared.TyConst c -> Untyped.TyConst c
     | Sugared.TyBox (rho, ty) ->
-        let rho' = Untyped.RhoConst rho in
+        let rho' = rho_const rho in
         let ty' = desugar_ty state ty in
         Untyped.TyBox (rho', ty')
     | Sugared.TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
         let ty1' = desugar_ty state ty1 in
-        let eps1' = Untyped.EpsConst eps1 in
+        let eps1' = eps_const eps1 in
         let ty2' = desugar_ty state ty2 in
-        let eps2' = Untyped.EpsConst eps2 in
+        let eps2' = eps_const eps2 in
         Untyped.TyHandler (CompTy (ty1', eps1'), CompTy (ty2', eps2'))
 
   let rec desugar_pattern state vars { Sugared.it = pat; at = loc } =
@@ -259,13 +263,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Sugared.Box (rho, e, (p, c)) ->
         let binds, e' = desugar_expression state e in
         let abs = desugar_abstraction state (p, c) in
-        (binds, Untyped.Box (Untyped.RhoConst rho, e', abs))
+        (binds, Untyped.Box (rho_const rho, e', abs))
     | Sugared.GenBox (rho, e) ->
         let binds, e' = desugar_expression state e in
         let var = Untyped.Variable.fresh_synthetic "box_var" in
         ( binds,
           Untyped.Box
-            ( Untyped.RhoConst rho,
+            ( rho_const rho,
               e',
               ( Untyped.located loc (Untyped.PVar var),
                 Untyped.located loc
@@ -320,8 +324,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let comp = desugar_computation state term in
         let thunk_ty =
           Untyped.TyArrow
-            ( Untyped.TyTuple [],
-              CompTy (desugar_ty state ty, Untyped.EpsConst eps) )
+            (Untyped.TyTuple [], CompTy (desugar_ty state ty, eps_const eps))
         in
         let thunk =
           Untyped.located loc
@@ -438,7 +441,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
           let operation = Untyped.OpName.fresh op_name in
           let ty1 = desugar_ty state ty1_name in
           let ty2 = desugar_ty state ty2_name in
-          let eps = Untyped.EpsConst eps_val in
+          let eps = eps_const eps_val in
           let state' = add_operation ~loc state op_name operation in
           (state', Untyped.OpSig (operation, ty1, ty2, eps, bounds))
       | Sugared.OpDefault (op_name, abs) ->

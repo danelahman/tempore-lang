@@ -33,6 +33,11 @@ val edges : t -> int -> (Letters.t * int) list
 (** [edges a q] lists the edges out of the state [q] of [a], each as its label
     and its target, in the order of their labels. *)
 
+val next : t -> int -> Letters.t -> int
+(** [next a q p] is the target of the edge out of the state [q] of [a] whose
+    label meets the letter set [p], which lies within one label, e.g. a single
+    letter. *)
+
 (** {1 Constructions} *)
 
 val of_table : final:bool array -> edges:(Letters.t * int) list array -> t

@@ -32,6 +32,7 @@ module OfLattice (L : LATTICE) = struct
   let commutative = true
   let needs_op_bounds = false
   let implied_bounds _bounds _ = None
+  let inhabited _bounds _ = true
   let events _ = []
   let of_lit = function Grade.Top -> L.top | lit -> L.of_lit lit
   let of_bounds _ = L.bottom
@@ -75,6 +76,7 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
   let implied_bounds bounds (a, b) =
     intersect (G1.implied_bounds bounds a) (G2.implied_bounds bounds b)
 
+  let inhabited bounds (a, b) = G1.inhabited bounds a && G2.inhabited bounds b
   let events (a, b) = List.sort_uniq String.compare (G1.events a @ G2.events b)
 
   let of_lit = function

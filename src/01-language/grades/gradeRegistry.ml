@@ -14,6 +14,9 @@ let grade_modules =
       (module RegularCostTraceGrades.Lower);
       (module RegularCostTraceGrades.Upper);
       (module RegularCostTraceGrades.Interval);
+      (module RegularCostTraceGrades.Symbolic.Lower);
+      (module RegularCostTraceGrades.Symbolic.Upper);
+      (module RegularCostTraceGrades.Symbolic.Interval);
       (module LevelGrades.SecurityLevels);
       (module LevelGrades.TimeLowerBoundLevels);
       (module LevelGrades.TimeUpperBoundLevels);

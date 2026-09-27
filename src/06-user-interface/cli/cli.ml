@@ -103,20 +103,27 @@ let run_with (module G : Grades.Grade.S) config =
   in
   try
     Random.self_init ();
-    let stdlib_state =
+    (* Every source is parsed before any is loaded, so that the grades of the
+       program are read over the operations all of them declare. *)
+    let stdlib =
       if config.use_stdlib then
-        Loader.load_source ~filename:stdlib_filename Loader.initial_state
-          Loader.stdlib_source
-      else Loader.initial_state
+        Loader.parse_source ~filename:stdlib_filename Loader.stdlib_source
+      else []
+    in
+    let files = List.map Loader.parse_file config.filenames in
+    let stdlib_state =
+      Loader.load_commands
+        (Loader.declare (stdlib :: files) Loader.initial_state)
+        stdlib
     in
     (* Every file is loaded even when an earlier one had errors, so that all
        of them are reported at once; a fatal failure still stops everything. *)
     let state', diagnostics =
       List.fold_left
-        (fun (state, diagnostics) filename ->
-          let state', diagnostics' = Loader.load_file_all state filename in
+        (fun (state, diagnostics) file ->
+          let state', diagnostics' = Loader.load_commands_all state file in
           (state', diagnostics @ diagnostics'))
-        (stdlib_state, []) config.filenames
+        (stdlib_state, []) files
     in
     (* A blank line between diagnostics, so that a reader can tell where one
        ends. A rejected program is not run, whatever [--typecheck-only] says. *)

@@ -136,7 +136,7 @@ struct
   let parse text =
     let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
     match Grammar.payload (Parser.Lexer.tokens ()) lexbuf with
-    | { it = SugaredAst.GenBox (rho, _); _ } -> Ok rho
+    | { it = SugaredAst.GenBox (rho, _); _ } -> Ok rho.it
     | _ -> Error "not a box"
     | exception Grammar.Error -> Error "parser error"
     | exception Utils.Error.Error d -> Error d.Utils.Diagnostic.message

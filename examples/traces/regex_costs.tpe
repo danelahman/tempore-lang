@@ -153,4 +153,18 @@ let batch_calibrated (b : bool) : int # {Sample*; Send} =
   x
 *)
 
+(* Correctly rejected by the typechecker: a grade must permit at least one run
+   of the operations the program declares, and a single letter other than a
+   tick and the three declared operations is none:
+
+     Typing error: The grade `{_ & ~(1 | Calibrate | Sample | Send)}` permits
+       no run of the declared operations
+*)
+(*
+let undeclared () =
+  box {_ & ~1 & ~Sample & ~Send & ~Calibrate} (Reading 0) as r in
+  unbox r as x in
+  x
+*)
+
 run send_then_calibrate ()

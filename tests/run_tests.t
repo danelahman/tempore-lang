@@ -848,7 +848,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper' or 'traces-regex-interval' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic' or 'traces-regex-interval-symbolic' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1128,7 +1128,7 @@
   File "literals_reject_complement.tpe", line 4, characters 19-32:
   4 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper' or 'traces-regex-interval' grading monoids?
+  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic' or 'traces-regex-interval-symbolic' grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -1163,7 +1163,7 @@
   File "literals_reject_star.tpe", line 3, characters 19-31:
   3 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper' or 'traces-regex-interval' grading monoids?
+  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic' or 'traces-regex-interval-symbolic' grading monoids?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -1593,6 +1593,18 @@
     grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
     Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
   ======================================================================
+  regex_costs_interval_runs_reject.tpe
+  ======================================================================
+  File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
+  12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  
+  File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
+  19 | operation Other : unit ~> unit # ({Fetch}, {_ & ~1 & ~Fetch})
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  ======================================================================
   regex_costs_lower.tpe
   ======================================================================
   === Run 1 ===
@@ -1653,6 +1665,13 @@
     grade `{Ping | Fetch; 1}` accumulates here (this computation)
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
+  ======================================================================
+  regex_costs_lower_runs_reject.tpe
+  ======================================================================
+  File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
+  11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
   ======================================================================
   regex_costs_upper.tpe
   ======================================================================
@@ -1718,6 +1737,33 @@
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
+  ======================================================================
+  regex_costs_upper_runs.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Token "l")
+  State: [
+    { resource_0 ↦ Token "l" # {_ & ~(1 | Fetch)} },
+    {1}
+  ]
+  
+  ======================================================================
+  regex_costs_upper_runs_reject.tpe
+  ======================================================================
+  File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
+  12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
+             ^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  
+  File "regex_costs_upper_runs_reject.tpe", line 17, characters 26-43:
+  17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+                                 ^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  
+  File "regex_costs_upper_runs_reject.tpe", line 20, characters 27-44:
+  20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
+                                  ^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
   ======================================================================
   regular_auth.tpe
   ======================================================================
@@ -3058,6 +3104,236 @@ automata, 'traces-regex':
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
 
+The programs of the cost-model regular trace grades, run above under their
+implementations by automata, under their implementations by symbolic
+derivatives:
+
+  $ for f in regex_costs_*.tpe
+  > do
+  >   case $f in
+  >     regex_costs_lower*.tpe) grades=traces-regex-lower-symbolic;;
+  >     regex_costs_upper*.tpe) grades=traces-regex-upper-symbolic;;
+  >     regex_costs_interval*.tpe) grades=traces-regex-interval-symbolic;;
+  >   esac
+  >   echo "======================================================================"
+  >   echo "$f ($grades)"
+  >   echo "======================================================================"
+  >   ../tempore --grades $grades $f
+  >   :  # this command is here to suppress potential non-zero exit codes in the output
+  > done
+  ======================================================================
+  regex_costs_interval.tpe (traces-regex-interval-symbolic)
+  ======================================================================
+  === Run 1 ===
+  return (Token "t")
+  State: [
+    { resource_0 ↦ Token "t" # ({2},{4}) },
+    ({3},{3})
+  ]
+  
+  ======================================================================
+  regex_costs_interval_reject.tpe (traces-regex-interval-symbolic)
+  ======================================================================
+  File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
+  13 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({3},{4})`
+    File "regex_costs_interval_reject.tpe", line 11, characters 28-29:
+    11 |   box (3, 4) (Token "t") as t in
+                                     ^
+    `t` is bound here
+    File "regex_costs_interval_reject.tpe", line 12, characters 2-18:
+    12 |   perform Fetch ();
+           ^^^^^^^^^^^^^^^^
+    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
+    Note: the resource inequality `({Fetch},{Fetch}) <= ({3},{4})` does not hold
+  
+  File "regex_costs_interval_reject.tpe", lines 20-21, characters 2-5:
+  20 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({2},{3})`
+    File "regex_costs_interval_reject.tpe", line 18, characters 28-29:
+    18 |   box (2, 3) (Token "t") as t in
+                                     ^
+    `t` is bound here
+    File "regex_costs_interval_reject.tpe", line 19, characters 2-18:
+    19 |   perform Fetch ();
+           ^^^^^^^^^^^^^^^^
+    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
+    Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
+  ======================================================================
+  regex_costs_interval_runs_reject.tpe (traces-regex-interval-symbolic)
+  ======================================================================
+  File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
+  12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  
+  File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
+  19 | operation Other : unit ~> unit # ({Fetch}, {_ & ~1 & ~Fetch})
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  ======================================================================
+  regex_costs_lower.tpe (traces-regex-lower-symbolic)
+  ======================================================================
+  === Run 1 ===
+  return (Token "t")
+  State: [
+    { resource_0 ↦ Token "t" # {Ping; 3} },
+    {1},
+    {3},
+    {1}
+  ]
+  
+  ======================================================================
+  regex_costs_lower_reject.tpe (traces-regex-lower-symbolic)
+  ======================================================================
+  File "regex_costs_lower_reject.tpe", lines 15-16, characters 2-5:
+  15 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{Ping; 2}` accumulated since it was bound, which is not below its box grade `{Ping; 3}`
+    File "regex_costs_lower_reject.tpe", line 12, characters 31-32:
+    12 |   box {Ping; 3} (Token "t") as t in
+                                        ^
+    `t` is bound here
+    File "regex_costs_lower_reject.tpe", line 13, characters 2-17:
+    13 |   perform Ping ();
+           ^^^^^^^^^^^^^^^
+    grade `{Ping}` accumulates here (operation `Ping`)
+    File "regex_costs_lower_reject.tpe", line 14, characters 2-9:
+    14 |   delay 2;
+           ^^^^^^^
+    grade `{2}` accumulates here (delay)
+    Note: the resource inequality `{Ping; 2} <= {Ping; 3}` does not hold
+  
+  File "regex_costs_lower_reject.tpe", lines 22-23, characters 2-5:
+  22 |   unbox f as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `f` is unboxed with grade `{10}` accumulated since it was bound, which is not below its box grade `{Fetch}`
+    File "regex_costs_lower_reject.tpe", line 20, characters 29-30:
+    20 |   box {Fetch} (Token "f") as f in
+                                      ^
+    `f` is bound here
+    File "regex_costs_lower_reject.tpe", line 21, characters 2-10:
+    21 |   delay 10;
+           ^^^^^^^^
+    grade `{10}` accumulates here (delay)
+    Note: the resource inequality `{10} <= {Fetch}` does not hold
+  
+  File "regex_costs_lower_reject.tpe", lines 29-30, characters 2-5:
+  29 |   unbox q as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `q` is unboxed with grade `{Ping | Fetch; 1}` accumulated since it was bound, which is not below its box grade `{3}`
+    File "regex_costs_lower_reject.tpe", line 27, characters 25-26:
+    27 |   box {3} (Token "q") as q in
+                                  ^
+    `q` is bound here
+    File "regex_costs_lower_reject.tpe", line 28, characters 2-58:
+    28 |   if b then perform Fetch (); delay 1 else perform Ping ();
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{Ping | Fetch; 1}` accumulates here (this computation)
+    Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
+    Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
+  ======================================================================
+  regex_costs_lower_runs_reject.tpe (traces-regex-lower-symbolic)
+  ======================================================================
+  File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
+  11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
+  ======================================================================
+  regex_costs_upper.tpe (traces-regex-upper-symbolic)
+  ======================================================================
+  === Run 1 ===
+  return (Token "t")
+  State: [
+    { resource_0 ↦ Token "t" # {4} },
+    {3}
+  ]
+  
+  ======================================================================
+  regex_costs_upper_reject.tpe (traces-regex-upper-symbolic)
+  ======================================================================
+  File "regex_costs_upper_reject.tpe", lines 14-15, characters 2-5:
+  14 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{3}`
+    File "regex_costs_upper_reject.tpe", line 12, characters 25-26:
+    12 |   box {3} (Token "t") as t in
+                                  ^
+    `t` is bound here
+    File "regex_costs_upper_reject.tpe", line 13, characters 2-18:
+    13 |   perform Fetch ();
+           ^^^^^^^^^^^^^^^^
+    grade `{Fetch}` accumulates here (operation `Fetch`)
+    Note: the resource inequality `{Fetch} <= {3}` does not hold
+  
+  File "regex_costs_upper_reject.tpe", lines 23-24, characters 2-5:
+  23 |   unbox l as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `l` is unboxed with grade `{Fetch; Log}` accumulated since it was bound, which is not below its box grade `{Log; 4}`
+    File "regex_costs_upper_reject.tpe", line 20, characters 30-31:
+    20 |   box {Log; 4} (Token "l") as l in
+                                       ^
+    `l` is bound here
+    File "regex_costs_upper_reject.tpe", line 21, characters 2-18:
+    21 |   perform Fetch ();
+           ^^^^^^^^^^^^^^^^
+    grade `{Fetch}` accumulates here (operation `Fetch`)
+    File "regex_costs_upper_reject.tpe", line 22, characters 2-16:
+    22 |   perform Log ();
+           ^^^^^^^^^^^^^^
+    grade `{Log}` accumulates here (operation `Log`)
+    Note: the resource inequality `{Fetch; Log} <= {Log; 4}` does not hold
+  
+  File "regex_costs_upper_reject.tpe", lines 30-31, characters 2-5:
+  30 |   unbox c as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `c` is unboxed with grade `{Fetch | Ping}` accumulated since it was bound, which is not below its box grade `{(Log | Ping)*}`
+    File "regex_costs_upper_reject.tpe", line 28, characters 37-38:
+    28 |   box {(Ping | Log)*} (Token "c") as c in
+                                              ^
+    `c` is bound here
+    File "regex_costs_upper_reject.tpe", line 29, characters 2-49:
+    29 |   if b then perform Ping () else perform Fetch ();
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `{Fetch | Ping}` accumulates here (this computation)
+    Note: the resource inequality `{Fetch | Ping} <= {(Log | Ping)*}` does not hold
+    Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
+  
+  File "regex_costs_upper_reject.tpe", lines 34-36, characters 17-17:
+  34 | let two_pings () : unit # {3} =
+                        ^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
+    Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
+  ======================================================================
+  regex_costs_upper_runs.tpe (traces-regex-upper-symbolic)
+  ======================================================================
+  === Run 1 ===
+  return (Token "l")
+  State: [
+    { resource_0 ↦ Token "l" # {_ & ~(1 | Fetch)} },
+    {1}
+  ]
+  
+  ======================================================================
+  regex_costs_upper_runs_reject.tpe (traces-regex-upper-symbolic)
+  ======================================================================
+  File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
+  12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
+             ^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  
+  File "regex_costs_upper_runs_reject.tpe", line 17, characters 26-43:
+  17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+                                 ^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  
+  File "regex_costs_upper_runs_reject.tpe", line 20, characters 27-44:
+  20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
+                                  ^^^^^^^^^^^^^^^^^
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+
 The options: typechecking only reports errors and runs nothing, and the
 single-dash form of the help option is not accepted.
 
@@ -3073,7 +3349,7 @@ single-dash form of the help option is not accepted.
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
-    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'security-levels', 'time-lower-bound-levels', 'time-upper-bound-levels'
+    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'security-levels', 'time-lower-bound-levels', 'time-upper-bound-levels'
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

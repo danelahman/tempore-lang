@@ -26,62 +26,95 @@ let rec at_least m n s =
     let s' = reach m (image m tick s) in
     if States.equal s' s then s else at_least m (n - 1) s'
 
-(** [memoise f] is [f], its results tabulated. *)
-let memoise f =
-  let table = Hashtbl.create 8 in
-  fun x ->
-    match Hashtbl.find_opt table x with
-    | Some y -> y
-    | None ->
-        let y = f x in
-        Hashtbl.add table x y;
-        y
+(** Transition functions tabulated, over states ordered by [State.compare]. *)
+module Memo (State : Map.OrderedType) = struct
+  module Steps = Map.Make (struct
+    type t = State.t * int
 
-let accepts m s = List.exists (Dfa.final m) s
+    let compare (q, a) (q', a') =
+      match Int.compare a a' with 0 -> State.compare q q' | c -> c
+  end)
+
+  (** [memoise step] is [step], its results tabulated. *)
+  let memoise step =
+    let table = ref Steps.empty in
+    fun q a ->
+      match Steps.find_opt (q, a) !table with
+      | Some q' -> q'
+      | None ->
+          let q' = step q a in
+          table := Steps.add (q, a) q' !table;
+          q'
+end
+
+module Subsets = Memo (struct
+  type t = int list
+
+  let compare = List.compare Int.compare
+end)
 
 (* The downward closure is prefix-closed, so that a set without a final state
    rejects every word, and all such sets are the empty set. *)
 let allowance ~cost m =
-  let step (s, x) =
+  let step s x =
     let s = States.of_list s in
     let bought = at_least m (weight ~cost x) s in
     let matched = if x = tick then States.empty else reach m (image m x s) in
     let s' = States.union bought matched in
     if States.exists (Dfa.final m) s' then States.elements s' else []
   in
-  let step = memoise step in
   {
     Dfa.start = States.elements (reach m (States.singleton 0));
-    step = (fun s x -> step (s, x));
-    accepts = accepts m;
+    step = Subsets.memoise step;
+    accepts = List.exists (Dfa.final m);
+    dead = List.is_empty;
   }
 
-(** [delays m n q] is the set of the successors of the state [q] of [m] by [j]
-    ticks for [j ≤ n], computed up to the first repetition. *)
-let delays m n q =
-  let rec go seen j q =
-    if j > n || States.mem q seen then seen
-    else go (States.add q seen) (j + 1) (Dfa.next m q tick)
-  in
-  go States.empty 0 q
+module Coverage (State : Map.OrderedType) = struct
+  module States = Set.Make (State)
 
-(* The upward closure is a right ideal, so that a set with a final state
-   accepts every word, and is kept. *)
-let coverage ~cost m =
-  let targets y q =
-    let banked = delays m (weight ~cost y) q in
-    if y = tick then banked else States.add (Dfa.next m q y) banked
-  in
-  let step (s, y) =
-    if accepts m s then s
-    else
-      States.elements
-        (List.fold_left
-           (fun targets' q -> States.union targets' (targets y q))
-           States.empty s)
-  in
-  let step = memoise step in
-  { Dfa.start = [ 0 ]; step = (fun s y -> step (s, y)); accepts = accepts m }
+  include Memo (struct
+    type t = State.t list
+
+    let compare = List.compare State.compare
+  end)
+
+  (** [delays m n q] is the set of the successors of the state [q] of [m] by [j]
+      ticks for [j ≤ n], computed up to the first repetition. *)
+  let delays m n q =
+    let rec go seen j q =
+      if j > n || States.mem q seen then seen
+      else go (States.add q seen) (j + 1) (m.Dfa.step q tick)
+    in
+    go States.empty 0 q
+
+  (* The upward closure is a right ideal, so that a set with a final state
+     accepts every word, and is kept. *)
+  let closure ~cost m =
+    let accepts = List.exists m.Dfa.accepts in
+    let targets y q =
+      let banked = delays m (weight ~cost y) q in
+      if y = tick then banked else States.add (m.step q y) banked
+    in
+    let step s y =
+      if accepts s then s
+      else
+        States.elements
+          (List.fold_left
+             (fun targets' q -> States.union targets' (targets y q))
+             States.empty s)
+    in
+    {
+      Dfa.start = [ m.start ];
+      step = memoise step;
+      accepts;
+      dead = List.for_all m.dead;
+    }
+end
+
+module Tables = Coverage (Int)
+
+let coverage ~cost m = Tables.closure ~cost (Dfa.automaton m)
 
 (** [relax m better d] is one round of Bellman–Ford relaxation of the weights
     [d] of the states of [m] towards a final state, [better] choosing between

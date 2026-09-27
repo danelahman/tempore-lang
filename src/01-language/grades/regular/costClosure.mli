@@ -23,7 +23,7 @@
 
     The downward closure of a language [M] is [↓M = {s | s ≼ᵃ t for some t ∈ M}]
     and its upward closure [↑M = {s | t ≼ᶜ s for some t ∈ M}]. Both are regular.
-    They are returned as implicit automata over sets of states of the automaton
+    They are returned as implicit automata over sets of states of an automaton
     of [M], as sorted lists, explored only as far as a search needs; their
     determinisation is exponential in the worst case. *)
 
@@ -38,16 +38,32 @@ val allowance : cost:(int -> int) -> Dfa.t -> int list Dfa.automaton
     of the states reachable with at least [0, 1, 2, …] ticks is descending, and
     is followed only until it is stationary, so that large costs are cheap. The
     closure is prefix-closed, and all sets without a final state, which reject
-    every word, are the empty set. *)
+    every word, are the empty set, the one dead state. *)
+
+(** The upward closures of the languages of implicit automata, over sets of
+    their states ordered by [State.compare]. *)
+module Coverage (State : Map.OrderedType) : sig
+  val closure :
+    cost:(int -> int) -> State.t Dfa.automaton -> State.t list Dfa.automaton
+  (** [closure ~cost m] is the automaton of the upward closure [↑m], by the
+      subset construction of the non-deterministic automaton over the states of
+      [m] in which the letter [y] of weight [w] leads from [q] to the successors
+      of [q] by [j] ticks for every [j ≤ w] (banking [y] towards a delay of
+      [m]), and, if [y] is an operation, to the successor of [q] by [y]
+      (matching [y]). The states of [m] are explored only as far as the closure
+      is. The closure is a right ideal, and a set with a final state, which
+      accepts every word, is its own successor; a set is dead if all its states
+      are dead in [m].
+
+      Over the automaton of the derivatives of an expression, this is the
+      derivative of the closure: the derivative of the closure of the union of a
+      set [S] of expressions by [y] is the closure of the union of the
+      derivatives of the members of [S] by [j] ticks for [j ≤ w] and, if [y] is
+      an operation, by [y]. *)
+end
 
 val coverage : cost:(int -> int) -> Dfa.t -> int list Dfa.automaton
-(** [coverage ~cost m] is the automaton of the upward closure [↑m], by the
-    subset construction of the non-deterministic automaton over the states of
-    [m] in which the letter [y] of weight [w] leads from [q] to the successors
-    of [q] by [j] ticks for every [j ≤ w] (banking [y] towards a delay of [m]),
-    and, if [y] is an operation, to the successor of [q] by [y] (matching [y]).
-    The closure is a right ideal, and a set with a final state, which accepts
-    every word, is its own successor. *)
+(** [coverage ~cost m] is {!Coverage.closure} over the table of [m]. *)
 
 val min_weight : cost:(int -> int) -> Dfa.t -> int option
 (** [min_weight ~cost m] is the least weight of a word of [m], or [None] if [m]

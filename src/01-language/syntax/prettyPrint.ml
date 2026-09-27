@@ -78,7 +78,7 @@ end
 let print_rho (type a) (module R : Grades.Grade.S with type t = a) =
   let rec aux (rho : a rho) ppf =
     match rho with
-    | RhoConst c -> Format.fprintf ppf "%s" (R.show c)
+    | RhoConst (c, _) -> Format.fprintf ppf "%s" (R.show c)
     | RhoAdd (rho1, rho2) ->
         Format.fprintf ppf "@[%t + %t@]"
           (fun ppf -> aux rho1 ppf)

@@ -35,7 +35,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     module Grade = struct
       type t = Graded.rho
 
-      let one = Ast.RhoConst GS.R.one
+      let one = Ast.RhoConst (GS.R.one, None)
     end
 
     type t = Graded.rho
@@ -77,7 +77,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   (** [rho_of_eps eps] is the resource grade [∣eps∣] of the effect grade [eps]
       of an operation signature. *)
   let rec rho_of_eps = function
-    | Ast.EpsConst c -> Ast.RhoConst (GS.map c)
+    | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map c, at)
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
 
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
@@ -471,7 +471,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
             :: comps1'
         | _ -> comps1')
     | Ast.Delay (n, comp) ->
-        let rho = Ast.RhoConst (GS.R.of_nat n) in
+        let rho = Ast.RhoConst (GS.R.of_nat n, None) in
         let env' =
           { env with state = ContextHolderModule.add_temp rho env.state }
         in

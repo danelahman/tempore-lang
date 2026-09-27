@@ -113,6 +113,7 @@ and view =
 
 let view r = r.view
 let equal_form r s = r.id = s.id
+let compare_form r s = Int.compare r.id s.id
 let hash r = r.id
 let by_id r s = Int.compare r.id s.id
 let mem_form r rs = List.exists (equal_form r) rs

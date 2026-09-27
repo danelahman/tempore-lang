@@ -109,6 +109,10 @@ val equal_form : t -> t -> bool
 (** [equal_form r s] is whether [r] and [s] have the same normal form, in
     constant time. It implies, but is stronger than, {!equal}. *)
 
+val compare_form : t -> t -> int
+(** A total order on normal forms compatible with {!equal_form}, in constant
+    time. *)
+
 val hash : t -> int
 (** [hash r] is a hash of the normal form of [r], compatible with {!equal_form}.
 *)

@@ -82,11 +82,13 @@ module Programs (G : Grade.S) = struct
     { ty; atoms = List.sort String.compare atoms }
 
   (* The scheme of each definition of [source], after the standard library,
-     or [None] where it is rejected. *)
+     or [None] where it is rejected; the program declares the operations of
+     [source], the standard library declaring none. *)
   let schemes source =
-    let _, outcomes =
-      execute (Lazy.force with_stdlib) (parse ~name:"small" source)
-    in
+    let cmds = parse ~name:"small" source in
+    let desugarer, env = Lazy.force with_stdlib in
+    let env = Gen.declare_operations (Loader.declared_operations cmds) env in
+    let _, outcomes = execute (desugarer, env) cmds in
     List.rev_map
       (fun (name, outcome) ->
         match outcome with

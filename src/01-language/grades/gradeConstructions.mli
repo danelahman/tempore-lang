@@ -53,6 +53,7 @@ module OfLattice (L : LATTICE) : Grade.S with type t = L.t
     - [implied_bounds] intersects the bounds the components imply, the greater
       lower bound and the lesser upper bound, and is [None] only if neither
       implies any;
+    - [inhabited] holds iff it holds for both components;
     - [events] are the events of either component;
     - [is_atomic name] holds iff it holds for both components;
     - [of_lit] reads [⊤] as the top and a pair [(l1, l2)] componentwise, a

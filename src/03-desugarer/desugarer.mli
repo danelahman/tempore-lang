@@ -15,6 +15,8 @@ module Make (GS : Grades.GradeSystem.S) : sig
 
   val desugar_command :
     state ->
-    (GS.R.t, GS.E.t) SugaredAst.command ->
+    ( GS.R.t SugaredAst.annotated,
+      GS.E.t SugaredAst.annotated )
+    SugaredAst.command ->
     state * Language.Ast.Graded(GS).command
 end

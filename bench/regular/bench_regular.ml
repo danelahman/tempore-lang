@@ -1,8 +1,11 @@
 (* A benchmark of the two implementations of the regular trace grade, by
    automata ([RegularTraceGrade], "traces-regex") and by symbolic derivatives
-   ([RegularTraceGradeDerivative], "traces-regex-symbolic"): the grade
-   operations on families of grades of increasing size, and the typechecking
-   of the programs that use the grade, the standard library included.
+   ([RegularTraceGradeDerivative], "traces-regex-symbolic"), and of the two
+   implementations of the cost-model regular trace grades over them
+   ([RegularCostTraceGrades], "traces-regex-upper" and the others, and their
+   "-symbolic" variants): the grade operations on families of grades of
+   increasing size, and the typechecking of the programs that use the grades,
+   the standard library included.
 
    Each measurement runs in a fresh child process, so that the tables of the
    derivatives start empty: it prepares its inputs untimed, then times the
@@ -168,7 +171,7 @@ module Workloads (G : Grade.S) = struct
   let lit text =
     let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
     match Grammar.payload (Parser.Lexer.tokens ()) lexbuf with
-    | { it = SugaredAst.GenBox (rho, _); _ } -> rho
+    | { it = SugaredAst.GenBox (rho, _); _ } -> rho.it
     | _ -> invalid_arg ("not a grade: " ^ text)
 
   let braces text = lit ("{" ^ text ^ "}")
@@ -301,8 +304,9 @@ module Workloads (G : Grade.S) = struct
     @ List.concat_map alphabet [ 8; 32; 128 ]
 end
 
-(* The programs typechecked: the example and the tests of the grade. *)
-let programs =
+(* The programs typechecked under the regular trace grade: the example and
+   the tests of the grade. *)
+let regular_programs =
   [
     "examples/traces/regular_traces.tpe";
     "tests/literals_regular.tpe";
@@ -322,23 +326,128 @@ module Programs (G : Grade.S) = struct
      diagnostics of its rejection collected. *)
   let typecheck file () =
     let stdlib =
-      L.load_source ~filename:Loader.stdlib_filename L.initial_state
-        L.stdlib_source
+      L.parse_source ~filename:Loader.stdlib_filename L.stdlib_source
     in
-    Option.iter (fun file -> ignore (L.load_file_all stdlib file)) file
+    let program = Option.map L.parse_file file in
+    let state = L.declare (stdlib :: Option.to_list program) L.initial_state in
+    let state = L.load_commands state stdlib in
+    Option.iter
+      (fun program -> ignore (L.load_commands_all state program))
+      program
 
   let workload file =
     let name = Option.value file ~default:"standard library alone" in
-    { family = "typechecking"; name; prepare = (fun () -> typecheck file) }
+    {
+      family = "typechecking, " ^ G.name;
+      name;
+      prepare = (fun () -> typecheck file);
+    }
 
-  let workloads =
+  (* The standard library alone, then with each of [programs]. *)
+  let workloads programs =
     workload None :: List.map (fun f -> workload (Some f)) programs
 end
 
+(** {1 Cost-model workloads} *)
+
+(* The cost model declaring [operations], whose runtime bounds are [(1, 2)],
+   [(2, 3)] or [(3, 4)] by the length of their names. *)
+let cost_model operations =
+  let cost name =
+    let lo = 1 + (String.length name mod 3) in
+    (lo, lo + 1)
+  in
+  { Grade.cost; operations }
+
+let corpus_names =
+  [ "Open"; "Read"; "Write"; "Close"; "Auth"; "Fetch"; "Revoke"; "Send" ]
+
+module CostWorkloads (G : Grade.S) = struct
+  include Workloads (G)
+
+  let costs =
+    let bounds = cost_model corpus_names in
+    let family =
+      Printf.sprintf "%s: corpus (%d literals)" G.name (List.length corpus)
+    in
+    let grades () = List.map lit corpus in
+    let on_pairs f rhos = List.map (fun (x, y) -> f bounds x y) (pairs rhos) in
+    [
+      op family "leq, all pairs" grades (on_pairs G.leq);
+      op family "equal, all pairs" grades (on_pairs G.equal);
+      op family "counterexample, all pairs" grades (on_pairs G.counterexample);
+    ]
+
+  (* [T] a delay of [n] ticks, [S] the runs of reads and writes each paced by
+     two ticks, and [R] a delay of [n] ticks between a read and a write. *)
+  let delays n =
+    let bounds = cost_model corpus_names in
+    let family = Printf.sprintf "%s: delays, n = %d" G.name n in
+    let t = string_of_int n in
+    let grades () =
+      ( braces t,
+        braces "(Read; 2 | Write; 2)*",
+        braces ("Read; " ^ t ^ "; Write") )
+    in
+    [
+      op family "leq T <= S" grades (fun (t, s, _) -> G.leq bounds t s);
+      op family "leq S <= T (false)" grades (fun (t, s, _) -> G.leq bounds s t);
+      op family "counterexample S, T" grades (fun (t, s, _) ->
+          G.counterexample bounds s t);
+      op family "leq R <= T" grades (fun (t, _, r) -> G.leq bounds r t);
+      op family "equal T = T | R" grades (fun (t, _, r) ->
+          G.equal bounds t (G.join t r));
+    ]
+
+  (* [W] any word over [k] declared names, [X] a word of them between two
+     [Op1], and [Y] any two letters. *)
+  let declared k =
+    let bounds = cost_model (names k) in
+    let family = Printf.sprintf "%s: %d declared names" G.name k in
+    let all = "(" ^ String.concat " | " (names k) ^ ")*" in
+    let inner = "(" ^ String.concat " | " (List.tl (names k)) ^ ")*" in
+    let grades () =
+      (braces all, braces ("Op1; " ^ inner ^ "; Op1"), (braces "_; _", lit "8"))
+    in
+    [
+      op family "leq X <= W" grades (fun (w, x, _) -> G.leq bounds x w);
+      op family "leq W <= X (false)" grades (fun (w, x, _) -> G.leq bounds w x);
+      op family "counterexample W, X" grades (fun (w, x, _) ->
+          G.counterexample bounds w x);
+      op family "leq Y <= {8}" grades (fun (_, _, (y, eight)) ->
+          G.leq bounds y eight);
+      op family "inhabited X" grades (fun (_, x, _) -> G.inhabited bounds x);
+    ]
+
+  let operations =
+    costs
+    @ List.concat_map delays [ 8; 32; 128 ]
+    @ List.concat_map declared [ 8; 32; 128 ]
+end
+
+(* The programs typechecked under the cost-model regular trace grades: the
+   example, and the tests of each grade. *)
+let cost_programs grade =
+  List.filter Sys.file_exists
+    (List.map
+       (fun name -> "tests/regex_costs_" ^ grade ^ name ^ ".tpe")
+       [ ""; "_reject"; "_runs"; "_runs_reject" ])
+
+module Cost = Grades.RegularCostTraceGrades
 module AutomataOps = Workloads (Grades.RegularTraceGrade)
 module DerivativeOps = Workloads (Grades.RegularTraceGradeDerivative)
 module AutomataPrograms = Programs (Grades.RegularTraceGrade)
 module DerivativePrograms = Programs (Grades.RegularTraceGradeDerivative)
+module AutomataUpper = Programs (Cost.Upper)
+module DerivativeUpper = Programs (Cost.Symbolic.Upper)
+module AutomataLower = Programs (Cost.Lower)
+module DerivativeLower = Programs (Cost.Symbolic.Lower)
+module AutomataInterval = Programs (Cost.Interval)
+module DerivativeInterval = Programs (Cost.Symbolic.Interval)
+module AutomataUpperOps = CostWorkloads (Cost.Upper)
+module DerivativeUpperOps = CostWorkloads (Cost.Symbolic.Upper)
+module AutomataLowerOps = CostWorkloads (Cost.Lower)
+module DerivativeLowerOps = CostWorkloads (Cost.Symbolic.Lower)
 
 (** {1 The table} *)
 
@@ -394,5 +503,17 @@ let () =
   Printf.printf "|%s|%s|%s|%s|%s|%s|\n" (String.make 42 '-')
     (String.make 12 '-') (String.make 12 '-') (String.make 12 '-')
     (String.make 12 '-') (String.make 10 '-');
-  family_rows AutomataPrograms.workloads DerivativePrograms.workloads;
-  family_rows AutomataOps.operations DerivativeOps.operations
+  family_rows
+    (AutomataPrograms.workloads regular_programs)
+    (DerivativePrograms.workloads regular_programs);
+  family_rows AutomataOps.operations DerivativeOps.operations;
+  let upper = "examples/traces/regex_costs.tpe" :: cost_programs "upper" in
+  family_rows (AutomataUpper.workloads upper) (DerivativeUpper.workloads upper);
+  family_rows
+    (AutomataLower.workloads (cost_programs "lower"))
+    (DerivativeLower.workloads (cost_programs "lower"));
+  family_rows
+    (AutomataInterval.workloads (cost_programs "interval"))
+    (DerivativeInterval.workloads (cost_programs "interval"));
+  family_rows AutomataUpperOps.operations DerivativeUpperOps.operations;
+  family_rows AutomataLowerOps.operations DerivativeLowerOps.operations

@@ -297,6 +297,9 @@ let registry =
           "traces-regex-lower";
           "traces-regex-upper";
           "traces-regex-interval";
+          "traces-regex-lower-symbolic";
+          "traces-regex-upper-symbolic";
+          "traces-regex-interval-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
   ]

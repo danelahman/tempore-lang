@@ -23,6 +23,8 @@ let target edges m =
   | Some (_, q) -> q
   | None -> invalid_arg "SymbolicAutomaton.of_table: the labels miss a letter"
 
+let next a q p = target a.edges.(q) p
+
 module Signatures = Map.Make (struct
   type t = bool * int array
 

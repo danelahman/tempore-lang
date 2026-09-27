@@ -110,12 +110,16 @@ type 'state automaton = {
   step : 'state -> int -> 'state;
       (** [step q a] is the successor of the state [q] by the letter [a]. *)
   accepts : 'state -> bool;  (** [accepts q] is whether [q] is final. *)
+  dead : 'state -> bool;
+      (** [dead q] holds only if no final state is reachable from [q]; it need
+          not hold of every such state. *)
 }
 (** A deterministic automaton over the states ['state], which must be finitely
     many from the start. *)
 
 val automaton : t -> int automaton
-(** [automaton l] is the automaton of [l] over the states of its table. *)
+(** [automaton l] is the automaton of [l] over the states of its table, [dead]
+    holding exactly of the state from which no final state is reachable. *)
 
 (** The implicit automata over states ordered by [State.compare], equal states
     being one state. *)
@@ -124,9 +128,20 @@ module Implicit (State : Map.OrderedType) : sig
   (** [canonical n a] is the language of [a] over [n] letters, by breadth-first
       exploration of the states reachable from the start and minimisation. *)
 
-  val counterexample : t -> State.t automaton -> int list option
-  (** [counterexample l a] is a shortest word in [l] not accepted by [a], found
-      by breadth-first search of the product of [l] with [a], which explores
-      only the pairs of states reachable from the start whose state of [l] is
-      not dead; it is [None] iff every word of [l] is accepted by [a]. *)
+  val is_empty : int -> State.t automaton -> bool
+  (** [is_empty n a] is whether [a] accepts no word over [n] letters, by
+      depth-first exploration of the states reachable from the start that are
+      not dead. *)
+end
+
+(** The products of the implicit automata over states ordered by [Left.compare]
+    with those over states ordered by [Right.compare]. *)
+module Product (Left : Map.OrderedType) (Right : Map.OrderedType) : sig
+  val counterexample :
+    int -> Left.t automaton -> Right.t automaton -> int list option
+  (** [counterexample n a b] is a shortest word over [n] letters accepted by [a]
+      and not by [b], found by breadth-first search of the product of [a] and
+      [b], which explores only the pairs of states reachable from the start
+      whose state of [a] is not dead; it is [None] iff every word over [n]
+      letters accepted by [a] is accepted by [b]. *)
 end

@@ -41,6 +41,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
       definitions = (x, scheme) :: state.definitions;
     }
 
+  let declare_operations declarations state =
+    {
+      state with
+      envs = P.both (Gen.declare_operations declarations) state.envs;
+    }
+
   (* The constraint of a command that has one, generated afresh. *)
   let constraint_of env (cmd : command) =
     let loc = cmd.at in

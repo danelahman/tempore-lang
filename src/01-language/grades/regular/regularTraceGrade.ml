@@ -99,6 +99,7 @@ let unit_least = false
 let commutative = false
 let needs_op_bounds = false
 let implied_bounds _bounds _rho = None
+let inhabited _bounds _rho = true
 let events rho = rho.names
 
 (* [lo] ticks followed by up to [hi - lo] more. *)

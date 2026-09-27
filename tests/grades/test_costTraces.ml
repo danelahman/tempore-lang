@@ -1,17 +1,19 @@
 (* Property tests of the cost-model regular trace grades and of the closures
    that decide them: the segment characterisations of allowance and coverage
-   against [TimedTrace.allowance] and [TimedTrace.coverage]; the membership of
-   short runs in the closures against a search of the runs of the greater
-   language; the laws of the orders on samples; the embedding of the finite
-   timed-trace grades; and examples of the closed world, of zero costs, of the
-   laws that hold up to equivalence, and of the literals. *)
+   against [TimedTrace.allowance] and [TimedTrace.coverage]; then, for each of
+   the two implementations, by automata and by symbolic derivatives, the
+   membership of short runs in the closures against a search of the runs of
+   the greater language, the laws of the orders on samples, the embedding of
+   the finite timed-trace grades, and examples of the closed world, of zero
+   costs, of the laws that hold up to equivalence, of the literals and of the
+   grades without runs; and the agreement of the two implementations on
+   random grades and cost models. *)
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
 module CostClosure = Grades.CostClosure
 module TimedTrace = Grades.TimedTrace
 module TimedTraceGrades = Grades.TimedTraceGrades
-module Regular = Grades.RegularTraceGrade
 module Cost = Grades.RegularCostTraceGrades
 
 type check = { name : string; passed : bool; detail : string }
@@ -163,7 +165,7 @@ let segments =
       ])
     tables
 
-(* {1 (b) Closure membership} *)
+(* {1 Grades} *)
 
 let letter = function
   | T -> 0
@@ -210,51 +212,6 @@ let random_regex ?(finite = false) ~depth state =
   in
   go depth
 
-let grade r =
-  match Regular.of_lit (Grade.Braces r) with
-  | rho -> Some rho
-  | exception Grade.Invalid_literal _ -> None
-
-(* [membership name table short (rho, members)] checks that a run of [short]
-   is in a closure of [rho] under [table] iff it is below one of the [members]
-   of [rho] in the order of [TimedTrace]. *)
-let membership name table short (rho, members) =
-  let dfa = Regular.concrete names rho in
-  let down = CostClosure.allowance ~cost:(letter_cost table snd) dfa in
-  let up = CostClosure.coverage ~cost:(letter_cost table fst) dfa in
-  let lo = lo_of table and hi = hi_of table in
-  let show w =
-    show_word w ^ " and " ^ Regular.show rho ^ " at " ^ show_table table
-  in
-  let n = Dfa.letters dfa in
-  let closed = Subsets.canonical n in
-  let show_rho = Regular.show rho ^ " at " ^ show_table table in
-  let operator closure =
-    let closure dfa = closed (closure dfa) in
-    let m = closure dfa in
-    Dfa.subset dfa m && Dfa.equal (closure m) m
-  in
-  let exists order w =
-    List.exists (fun m -> order (encode w) (encode m)) members
-  in
-  [
-    all (name ^ ": allowance") show
-      (fun w -> accepts down w = exists (TimedTrace.allowance hi 0) w)
-      short;
-    all (name ^ ": coverage") show
-      (fun w ->
-        accepts up w = exists (fun w m -> TimedTrace.coverage lo 0 m w) w)
-      short;
-    check
-      (name ^ ": allowance closure extensive and idempotent")
-      (operator (CostClosure.allowance ~cost:(letter_cost table snd)))
-      show_rho;
-    check
-      (name ^ ": coverage closure extensive and idempotent")
-      (operator (CostClosure.coverage ~cost:(letter_cost table fst)))
-      show_rho;
-  ]
-
 (* [finite_words r] is the words of the expression [r] without [*], [&], [~]
    and [_]. *)
 let rec finite_words = function
@@ -267,40 +224,6 @@ let rec finite_words = function
   | Grade.Union (r, s) -> finite_words r @ finite_words s
   | Grade.Any | Grade.Star _ | Grade.Inter _ | Grade.Compl _ ->
       invalid_arg "finite_words"
-
-(* Finite languages, whose members are all known, and regular languages, whose
-   members are searched among the runs of length at most 6: with costs at most
-   2, these include a member above each run of length at most 2 in the closure,
-   for the samples. *)
-let closures =
-  let state = Random.State.make [| 3 |] in
-  let finite =
-    List.filter_map
-      (fun r -> Option.map (fun rho -> (rho, finite_words r)) (grade r))
-      (List.init 30 (fun _ -> random_regex ~finite:true ~depth:3 state))
-  in
-  let regular =
-    List.filter_map
-      (fun r ->
-        Option.map
-          (fun rho ->
-            (rho, List.filter (member (Regular.concrete names rho)) (words 6)))
-          (grade r))
-      (List.init 20 (fun _ -> random_regex ~depth:3 state))
-  in
-  let small table = List.for_all (fun (_, (_, hi)) -> hi <= 2) table in
-  List.concat_map
-    (fun table ->
-      List.concat_map
-        (membership "closure of a finite language" table (words 3))
-        finite
-      @
-      if small table then
-        List.concat_map (membership "closure" table (words 2)) regular
-      else [])
-    tables
-
-(* {1 (c) Laws} *)
 
 (* [laws (module G) table samples] checks the laws of a preorder with a
    monotone product and join on [samples] under [table]. *)
@@ -354,7 +277,9 @@ let laws (type a) (module G : Grade.S with type t = a) table (samples : a list)
   @
   if G.unit_least then
     [
-      all (name "unit least") show1 (fun x -> leq G.one x) samples;
+      all (name "unit least") show1
+        (fun x -> implies (G.inhabited bounds x) (leq G.one x))
+        samples;
       all
         (name "top absorbing up to equality")
         show1
@@ -382,80 +307,6 @@ let of_nat_laws (module G : Grade.S) ~monotone =
       ns;
   ]
 
-let law_checks =
-  let state = Random.State.make [| 5 |] in
-  let samples =
-    List.filter_map grade (List.init 14 (fun _ -> random_regex ~depth:2 state))
-  in
-  let intervals =
-    List.filteri (fun i _ -> i < 8) (List.combine samples (List.rev samples))
-  in
-  let some_tables = List.filteri (fun i _ -> i mod 3 = 0) tables in
-  List.concat_map
-    (fun table ->
-      laws (module Cost.Upper) table samples
-      @ laws (module Cost.Lower) table samples
-      @ laws (module Cost.Interval) table intervals)
-    some_tables
-  @ of_nat_laws (module Cost.Upper) ~monotone:true
-  @ of_nat_laws (module Cost.Lower) ~monotone:false
-  @ [
-      all "traces-regex-lower: the unit is the top"
-        (fun table -> show_table table)
-        (fun table ->
-          Cost.Lower.equal (bounds_of table) Cost.Lower.top Regular.top)
-        tables;
-    ]
-
-(* {1 (d) Embedding of the finite timed-trace grades} *)
-
-let embedding =
-  let state = Random.State.make [| 13 |] in
-  let finite =
-    List.init 30 (fun _ ->
-        Grade.Braces (random_regex ~finite:true ~depth:3 state))
-  in
-  let lits = Grade.Top :: finite in
-  let agree (module F : Grade.S) (module G : Grade.S) lits =
-    List.concat_map
-      (fun table ->
-        let bounds = bounds_of table in
-        let show (l, l') =
-          G.show (G.of_lit l)
-          ^ ", "
-          ^ G.show (G.of_lit l')
-          ^ " at " ^ show_table table
-        in
-        [
-          all
-            (G.name ^ ": embeds " ^ F.name)
-            show
-            (fun (l, l') ->
-              F.leq bounds (F.of_lit l) (F.of_lit l')
-              = G.leq bounds (G.of_lit l) (G.of_lit l'))
-            (pairs lits);
-          all
-            (G.name ^ ": implied bounds as " ^ F.name)
-            (fun l -> G.show (G.of_lit l) ^ " at " ^ show_table table)
-            (fun l ->
-              F.implied_bounds bounds (F.of_lit l)
-              = G.implied_bounds bounds (G.of_lit l))
-            lits;
-        ])
-      tables
-  in
-  let pairs_of lits =
-    List.map2 (fun l l' -> Grade.Tuple [ l; l' ]) lits (List.rev lits)
-  in
-  agree (module TimedTraceGrades.UpperBound) (module Cost.Upper) lits
-  @ agree (module TimedTraceGrades.LowerBound) (module Cost.Lower) lits
-  @ agree
-      (module TimedTraceGrades.Interval)
-      (module Cost.Interval)
-      (pairs_of lits)
-
-(* {1 (e) Examples} *)
-
 (* [Reader (G)] reads the literals of [G] by the parser, in the grade position
    of a box. *)
 module Reader (G : Grade.S) = struct
@@ -464,13 +315,9 @@ module Reader (G : Grade.S) = struct
   let lit text =
     let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
     match Grammar.payload (Parser.Lexer.tokens ()) lexbuf with
-    | { it = SugaredAst.GenBox (rho, _); _ } -> rho
+    | { it = SugaredAst.GenBox (rho, _); _ } -> rho.it
     | _ -> invalid_arg ("not a box: " ^ text)
 end
-
-module U = Reader (Cost.Upper)
-module L = Reader (Cost.Lower)
-module I = Reader (Cost.Interval)
 
 (* [A] costs 1 to 3, [B] exactly 2 and [C] up to 5. *)
 let costs = bounds_of [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)) ]
@@ -479,125 +326,435 @@ let fails name b = check name (not b) ""
 let show_option show = function Some x -> show x | None -> "none"
 let show_bounds = show_option (fun (lo, hi) -> Printf.sprintf "(%d, %d)" lo hi)
 
-let upper_examples =
-  let leq a b = Cost.Upper.leq costs (U.lit a) (U.lit b) in
-  let equal a b = Cost.Upper.equal costs (U.lit a) (U.lit b) in
-  let name = ( ^ ) "traces-regex-upper: " in
-  [
-    holds (name "a delay pays for an operation at hi") (leq "{A}" "{3}");
-    fails (name "an operation does not pay for a delay") (leq "{3}" "{A}");
-    fails (name "a delay short of hi") (leq "{A}" "{2}");
-    holds (name "equal up to the closure") (equal "{A | 3}" "{3}");
-    fails (name "not equal as languages") (equal "{A}" "{3}");
-    holds (name "a bound's operation may go unspent") (leq "{A}" "{A; B}");
-    holds (name "an operation matched, another bought") (leq "{B; A}" "{B; 3}");
-    fails (name "a match resets the budget") (leq "{A; B}" "{B; 3}");
-    holds
-      (name "the closure of a product is larger")
-      (Cost.Upper.leq costs (U.lit "{A}")
-         (Cost.Upper.mul (U.lit "{2}") (U.lit "{2}")));
-    holds
-      (name "the catch-all letter stands for C")
-      (leq "{C}" "{_ & ~1 & ~A & ~B}");
-    holds (name "any letter within the dearest cost") (leq "{_}" "{5}");
-    fails (name "any letter beyond the dearest cost") (leq "{_}" "{4}");
-    fails
-      (name "a further declared operation")
-      (Cost.Upper.leq
-         (bounds_of
-            [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)); ("D", (9, 9)) ])
-         (U.lit "{_}") (U.lit "{5}"));
-    holds (name "an unbounded time buys anything") (equal "{1*}" "⊤");
-    holds
-      (name "an operation is not excluded while time is unbounded")
-      (equal "{(_ & ~A)*}" "⊤");
-    holds
-      (name "the top absorbs a product")
-      (Cost.Upper.equal costs
-         (Cost.Upper.mul (U.lit "{3}") Cost.Upper.top)
-         Cost.Upper.top);
-    holds (name "the top absorbs up to equality") (equal "{3; _*}" "⊤");
-    holds
-      (name "a zero cost is invisible")
-      (Cost.Upper.equal
-         (bounds_of [ ("A", (0, 0)) ])
-         (U.lit "{A*}") (U.lit "{0}"));
-    expect (name "counterexample") (show_option Fun.id)
-      ~expected:(Some "{A; 3}")
-      (Option.map Cost.Upper.show
-         (Cost.Upper.counterexample costs (U.lit "{A; 3 | 1}") (U.lit "{5}")));
-    expect (name "implied bounds") show_bounds
-      ~expected:(Some (1, 3))
-      (Cost.Upper.implied_bounds costs (U.lit "{A | B; 1}"));
-    expect
-      (name "no implied bounds when unbounded")
-      show_bounds ~expected:None
-      (Cost.Upper.implied_bounds costs (U.lit "{A; B*}"));
-    expect (name "time shadow") Fun.id ~expected:"{3}"
-      (Cost.Upper.show (Cost.Upper.of_bounds (1, 3)));
-    holds (name "atomic") (Cost.Upper.is_atomic "A" (U.lit "{A}"));
-    holds (name "needs runtime bounds") Cost.Upper.needs_op_bounds;
-    holds (name "unit least") Cost.Upper.unit_least;
-    expect (name "top") Fun.id ~expected:"⊤" (Cost.Upper.show (U.lit "⊤"));
-  ]
+(* {1 The implementations} *)
 
-let lower_examples =
-  let leq a b = Cost.Lower.leq costs (L.lit a) (L.lit b) in
-  let equal a b = Cost.Lower.equal costs (L.lit a) (L.lit b) in
-  let name = ( ^ ) "traces-regex-lower: " in
-  [
-    holds (name "an operation covers a delay at lo") (leq "{A}" "{1}");
-    fails (name "an operation short of a delay") (leq "{A}" "{2}");
-    fails (name "a delay does not cover an operation") (leq "{3}" "{A}");
-    holds (name "an operation and a delay cover their sum") (leq "{A; 1}" "{2}");
-    holds (name "a demanded operation is matched") (leq "{1; A}" "{A}");
-    fails (name "a demanded operation is not bought") (leq "{B}" "{A}");
-    holds (name "equal up to the closure") (equal "{A | 1}" "{1}");
-    holds (name "the unit is the top") (equal "⊤" "{_*}");
-    fails (name "the unit is not least") (leq "{0}" "{A}");
-    expect (name "counterexample") (show_option Fun.id) ~expected:(Some "{A}")
-      (Option.map Cost.Lower.show
-         (Cost.Lower.counterexample costs (L.lit "{A | 3}") (L.lit "{2}")));
-    expect (name "implied bounds") show_bounds
-      ~expected:(Some (1, 3))
-      (Cost.Lower.implied_bounds costs (L.lit "{A | B; 1}"));
-    expect (name "time shadow") Fun.id ~expected:"{1}"
-      (Cost.Lower.show (Cost.Lower.of_bounds (1, 3)));
-    fails (name "unit least") Cost.Lower.unit_least;
-    expect (name "top") Fun.id ~expected:"{0}" (Cost.Lower.show (L.lit "⊤"));
-  ]
+module type IMPLEMENTATION = sig
+  val name : string
 
-let interval_examples =
-  let leq a b = Cost.Interval.leq costs (I.lit a) (I.lit b) in
-  let name = ( ^ ) "traces-regex-interval: " in
-  let reads text expected =
-    expect
-      (name ("reads " ^ text))
-      Fun.id ~expected
-      (Cost.Interval.show (I.lit text))
+  module L : Cost.LANGUAGE
+  module Upper : Grade.S with type t = L.t
+  module Lower : Grade.S with type t = L.t
+  module Interval : Grade.S with type t = L.t * L.t
+end
+
+module Automata = struct
+  let name = "automata"
+
+  module L = Cost.Automata
+  module Upper = Cost.Upper
+  module Lower = Cost.Lower
+  module Interval = Cost.Interval
+end
+
+module Derivatives = struct
+  let name = "derivatives"
+
+  module L = Cost.Derivatives
+  include Cost.Symbolic
+end
+
+(* The checks of the implementation [I]. *)
+module Suite (I : IMPLEMENTATION) = struct
+  include I
+  module Coverage = CostClosure.Coverage (L.State)
+
+  module Covering = Dfa.Implicit (struct
+    type t = L.State.t list
+
+    let compare = List.compare L.State.compare
+  end)
+
+  let grade r =
+    match L.of_lit (Grade.Braces r) with
+    | rho -> Some rho
+    | exception Grade.Invalid_literal _ -> None
+
+  (* {2 (b) Closure membership} *)
+
+  (* [membership name table short (rho, members)] checks that a run of [short]
+     is in a closure of [rho] under [table] iff it is below one of the
+     [members] of [rho] in the order of [TimedTrace], that the closures of the
+     table of [rho] are closure operators, and that the upward closure of the
+     runs of [rho] is that of its table. *)
+  let membership name table short (rho, members) =
+    let name = I.name ^ ": " ^ name in
+    let dfa = L.concrete names rho in
+    let down = CostClosure.allowance ~cost:(letter_cost table snd) dfa in
+    let up =
+      Coverage.closure ~cost:(letter_cost table fst) (L.runs names rho)
+    in
+    let lo = lo_of table and hi = hi_of table in
+    let show w =
+      show_word w ^ " and " ^ L.show rho ^ " at " ^ show_table table
+    in
+    let n = Dfa.letters dfa in
+    let closed = Subsets.canonical n in
+    let show_rho = L.show rho ^ " at " ^ show_table table in
+    let operator closure =
+      let closure dfa = closed (closure dfa) in
+      let m = closure dfa in
+      Dfa.subset dfa m && Dfa.equal (closure m) m
+    in
+    let exists order w =
+      List.exists (fun m -> order (encode w) (encode m)) members
+    in
+    [
+      all (name ^ ": allowance") show
+        (fun w -> accepts down w = exists (TimedTrace.allowance hi 0) w)
+        short;
+      all (name ^ ": coverage") show
+        (fun w ->
+          accepts up w = exists (fun w m -> TimedTrace.coverage lo 0 m w) w)
+        short;
+      check
+        (name ^ ": allowance closure extensive and idempotent")
+        (operator (CostClosure.allowance ~cost:(letter_cost table snd)))
+        show_rho;
+      check
+        (name ^ ": coverage closure extensive and idempotent")
+        (operator (CostClosure.coverage ~cost:(letter_cost table fst)))
+        show_rho;
+      check
+        (name ^ ": coverage closure of the runs")
+        (Dfa.equal (Covering.canonical n up)
+           (closed (CostClosure.coverage ~cost:(letter_cost table fst) dfa)))
+        show_rho;
+    ]
+
+  (* Finite languages, whose members are all known, and regular languages,
+     whose members are searched among the runs of length at most 6: with costs
+     at most 2, these include a member above each run of length at most 2 in
+     the closure, for the samples. *)
+  let closures =
+    let state = Random.State.make [| 3 |] in
+    let finite =
+      List.filter_map
+        (fun r -> Option.map (fun rho -> (rho, finite_words r)) (grade r))
+        (List.init 30 (fun _ -> random_regex ~finite:true ~depth:3 state))
+    in
+    let regular =
+      List.filter_map
+        (fun r ->
+          Option.map
+            (fun rho ->
+              (rho, List.filter (member (L.concrete names rho)) (words 6)))
+            (grade r))
+        (List.init 20 (fun _ -> random_regex ~depth:3 state))
+    in
+    let small table = List.for_all (fun (_, (_, hi)) -> hi <= 2) table in
+    List.concat_map
+      (fun table ->
+        List.concat_map
+          (membership "closure of a finite language" table (words 3))
+          finite
+        @
+        if small table then
+          List.concat_map (membership "closure" table (words 2)) regular
+        else [])
+      tables
+
+  (* {2 (c) Laws} *)
+
+  let law_checks =
+    let state = Random.State.make [| 5 |] in
+    let samples =
+      List.filter_map grade
+        (List.init 14 (fun _ -> random_regex ~depth:2 state))
+    in
+    let intervals =
+      List.filteri (fun i _ -> i < 8) (List.combine samples (List.rev samples))
+    in
+    let some_tables = List.filteri (fun i _ -> i mod 3 = 0) tables in
+    List.concat_map
+      (fun table ->
+        laws (module Upper) table samples
+        @ laws (module Lower) table samples
+        @ laws (module Interval) table intervals)
+      some_tables
+    @ of_nat_laws (module Upper) ~monotone:true
+    @ of_nat_laws (module Lower) ~monotone:false
+    @ [
+        all
+          (Lower.name ^ ": the unit is the top")
+          (fun table -> show_table table)
+          (fun table -> Lower.equal (bounds_of table) Lower.top L.top)
+          tables;
+      ]
+
+  (* {2 (d) Embedding of the finite timed-trace grades} *)
+
+  let embedding =
+    let state = Random.State.make [| 13 |] in
+    let finite =
+      List.init 30 (fun _ ->
+          Grade.Braces (random_regex ~finite:true ~depth:3 state))
+    in
+    let lits = Grade.Top :: finite in
+    let agree (module F : Grade.S) (module G : Grade.S) lits =
+      List.concat_map
+        (fun table ->
+          let bounds = bounds_of table in
+          let show (l, l') =
+            G.show (G.of_lit l)
+            ^ ", "
+            ^ G.show (G.of_lit l')
+            ^ " at " ^ show_table table
+          in
+          [
+            all
+              (G.name ^ ": embeds " ^ F.name)
+              show
+              (fun (l, l') ->
+                F.leq bounds (F.of_lit l) (F.of_lit l')
+                = G.leq bounds (G.of_lit l) (G.of_lit l'))
+              (pairs lits);
+            all
+              (G.name ^ ": implied bounds as " ^ F.name)
+              (fun l -> G.show (G.of_lit l) ^ " at " ^ show_table table)
+              (fun l ->
+                F.implied_bounds bounds (F.of_lit l)
+                = G.implied_bounds bounds (G.of_lit l))
+              lits;
+          ])
+        tables
+    in
+    let pairs_of lits =
+      List.map2 (fun l l' -> Grade.Tuple [ l; l' ]) lits (List.rev lits)
+    in
+    agree (module TimedTraceGrades.UpperBound) (module Upper) lits
+    @ agree (module TimedTraceGrades.LowerBound) (module Lower) lits
+    @ agree (module TimedTraceGrades.Interval) (module Interval) (pairs_of lits)
+
+  (* {2 (e) Examples} *)
+
+  module U = Reader (Upper)
+  module Lo = Reader (Lower)
+  module In = Reader (Interval)
+
+  let upper_examples =
+    let leq a b = Upper.leq costs (U.lit a) (U.lit b) in
+    let equal a b = Upper.equal costs (U.lit a) (U.lit b) in
+    let name = ( ^ ) (Upper.name ^ ": ") in
+    [
+      holds (name "a delay pays for an operation at hi") (leq "{A}" "{3}");
+      fails (name "an operation does not pay for a delay") (leq "{3}" "{A}");
+      fails (name "a delay short of hi") (leq "{A}" "{2}");
+      holds (name "equal up to the closure") (equal "{A | 3}" "{3}");
+      fails (name "not equal as languages") (equal "{A}" "{3}");
+      holds (name "a bound's operation may go unspent") (leq "{A}" "{A; B}");
+      holds
+        (name "an operation matched, another bought")
+        (leq "{B; A}" "{B; 3}");
+      fails (name "a match resets the budget") (leq "{A; B}" "{B; 3}");
+      holds
+        (name "the closure of a product is larger")
+        (Upper.leq costs (U.lit "{A}") (Upper.mul (U.lit "{2}") (U.lit "{2}")));
+      holds
+        (name "the catch-all letter stands for C")
+        (leq "{C}" "{_ & ~1 & ~A & ~B}");
+      holds (name "any letter within the dearest cost") (leq "{_}" "{5}");
+      fails (name "any letter beyond the dearest cost") (leq "{_}" "{4}");
+      fails
+        (name "a further declared operation")
+        (Upper.leq
+           (bounds_of
+              [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)); ("D", (9, 9)) ])
+           (U.lit "{_}") (U.lit "{5}"));
+      holds (name "an unbounded time buys anything") (equal "{1*}" "⊤");
+      holds
+        (name "an operation is not excluded while time is unbounded")
+        (equal "{(_ & ~A)*}" "⊤");
+      holds
+        (name "the top absorbs a product")
+        (Upper.equal costs (Upper.mul (U.lit "{3}") Upper.top) Upper.top);
+      holds (name "the top absorbs up to equality") (equal "{3; _*}" "⊤");
+      holds
+        (name "a zero cost is invisible")
+        (Upper.equal (bounds_of [ ("A", (0, 0)) ]) (U.lit "{A*}") (U.lit "{0}"));
+      expect (name "counterexample") (show_option Fun.id)
+        ~expected:(Some "{A; 3}")
+        (Option.map Upper.show
+           (Upper.counterexample costs (U.lit "{A; 3 | 1}") (U.lit "{5}")));
+      expect (name "implied bounds") show_bounds
+        ~expected:(Some (1, 3))
+        (Upper.implied_bounds costs (U.lit "{A | B; 1}"));
+      expect
+        (name "no implied bounds when unbounded")
+        show_bounds ~expected:None
+        (Upper.implied_bounds costs (U.lit "{A; B*}"));
+      expect (name "time shadow") Fun.id ~expected:"{3}"
+        (Upper.show (Upper.of_bounds (1, 3)));
+      holds (name "atomic") (Upper.is_atomic "A" (U.lit "{A}"));
+      holds (name "needs runtime bounds") Upper.needs_op_bounds;
+      holds (name "unit least") Upper.unit_least;
+      expect (name "top") Fun.id ~expected:"⊤" (Upper.show (U.lit "⊤"));
+    ]
+
+  let lower_examples =
+    let leq a b = Lower.leq costs (Lo.lit a) (Lo.lit b) in
+    let equal a b = Lower.equal costs (Lo.lit a) (Lo.lit b) in
+    let name = ( ^ ) (Lower.name ^ ": ") in
+    [
+      holds (name "an operation covers a delay at lo") (leq "{A}" "{1}");
+      fails (name "an operation short of a delay") (leq "{A}" "{2}");
+      fails (name "a delay does not cover an operation") (leq "{3}" "{A}");
+      holds
+        (name "an operation and a delay cover their sum")
+        (leq "{A; 1}" "{2}");
+      holds (name "a demanded operation is matched") (leq "{1; A}" "{A}");
+      fails (name "a demanded operation is not bought") (leq "{B}" "{A}");
+      holds (name "equal up to the closure") (equal "{A | 1}" "{1}");
+      holds (name "the unit is the top") (equal "⊤" "{_*}");
+      fails (name "the unit is not least") (leq "{0}" "{A}");
+      expect (name "counterexample") (show_option Fun.id) ~expected:(Some "{A}")
+        (Option.map Lower.show
+           (Lower.counterexample costs (Lo.lit "{A | 3}") (Lo.lit "{2}")));
+      expect (name "implied bounds") show_bounds
+        ~expected:(Some (1, 3))
+        (Lower.implied_bounds costs (Lo.lit "{A | B; 1}"));
+      expect (name "time shadow") Fun.id ~expected:"{1}"
+        (Lower.show (Lower.of_bounds (1, 3)));
+      fails (name "unit least") Lower.unit_least;
+      expect (name "top") Fun.id ~expected:"{0}" (Lower.show (Lo.lit "⊤"));
+    ]
+
+  let interval_examples =
+    let leq a b = Interval.leq costs (In.lit a) (In.lit b) in
+    let name = ( ^ ) (Interval.name ^ ": ") in
+    let reads text expected =
+      expect
+        (name ("reads " ^ text))
+        Fun.id ~expected
+        (Interval.show (In.lit text))
+    in
+    [
+      reads "({A}, {3})" "({A},{3})";
+      reads "{A | B}" "({A | B},{A | B})";
+      reads "2" "({2},{2})";
+      reads "(1, 3)" "({1},{3})";
+      reads "({A}, ⊤)" "({A},⊤)";
+      reads "⊤" "({0},⊤)";
+      holds (name "componentwise") (leq "{A}" "(1, 3)");
+      fails (name "the lower component") (leq "{A}" "(2, 3)");
+      fails (name "the upper component") (leq "{A}" "(1, 2)");
+      expect (name "implied bounds") show_bounds
+        ~expected:(Some (1, 2))
+        (Interval.implied_bounds costs (In.lit "({A | B}, {B})"));
+      expect (name "time shadow") Fun.id ~expected:"({1},{3})"
+        (Interval.show (Interval.of_bounds (1, 3)));
+      fails (name "unit least") Interval.unit_least;
+    ]
+
+  (* Grades without runs of the declared operations. *)
+  let inhabitation_examples =
+    let only_a = bounds_of [ ("A", (1, 3)) ] in
+    let a_and_b = bounds_of [ ("A", (1, 3)); ("B", (2, 2)) ] in
+    let none = bounds_of [] in
+    let name = ( ^ ) (I.name ^ ": inhabited: ") in
+    [
+      fails
+        (name "the catch-all letter where every operation is named")
+        (Upper.inhabited only_a (U.lit "{_ & ~1 & ~A}"));
+      holds
+        (name "a further declared operation")
+        (Upper.inhabited a_and_b (U.lit "{_ & ~1 & ~A}"));
+      holds
+        (name "the catch-all letter besides the runs")
+        (Upper.inhabited only_a (U.lit "{_ & ~1 & ~A | 2}"));
+      holds (name "a mentioned name") (Lower.inhabited none (Lo.lit "{B}"));
+      fails
+        (name "no operation declared")
+        (Lower.inhabited none (Lo.lit "{_ & ~1}"));
+      holds (name "ticks") (Lower.inhabited none (Lo.lit "{_*}"));
+      fails
+        (name "the lower component")
+        (Interval.inhabited only_a (In.lit "({_ & ~1 & ~A}, {A})"));
+      fails
+        (name "the upper component")
+        (Interval.inhabited only_a (In.lit "({A}, {_ & ~1 & ~A})"));
+      holds (name "both components")
+        (Interval.inhabited only_a (In.lit "({A}, {1})"));
+    ]
+
+  let examples =
+    upper_examples @ lower_examples @ interval_examples @ inhabitation_examples
+
+  let checks = closures @ law_checks @ embedding @ examples
+
+  (* {2 Verdicts} *)
+
+  (* [length rho] is the length of a shortest run of [rho] over [names]. *)
+  let length rho =
+    Option.map List.length
+      (Dfa.counterexample (L.concrete names rho)
+         (Dfa.empty (List.length names + 1)))
+
+  (* [verdicts bounds (r, r')] is, for each grade, whether [r] is below [r'],
+     whether they are equal, and the lengths of the shortest runs of the
+     components of the counterexample, [r] and [r'] read as grades. *)
+  let verdicts bounds (r, r') =
+    match (grade r, grade r') with
+    | Some rho, Some rho' ->
+        let verdict (type a) (module G : Grade.S with type t = a) lengths x y =
+          ( G.leq bounds x y,
+            G.equal bounds x y,
+            Option.map lengths (G.counterexample bounds x y) )
+        in
+        let single rho = [ length rho ] in
+        let pair (lo, hi) = [ length lo; length hi ] in
+        Some
+          [
+            verdict (module Upper) single rho rho';
+            verdict (module Lower) single rho rho';
+            verdict (module Interval) pair (rho, rho') (rho', rho);
+          ]
+    | _ -> None
+end
+
+module OfAutomata = Suite (Automata)
+module OfDerivatives = Suite (Derivatives)
+
+(* {1 (f) Agreement of the implementations} *)
+
+let agreement =
+  let state = Random.State.make [| 17 |] in
+  let regexes = List.init 16 (fun _ -> random_regex ~depth:3 state) in
+  let show_regex r =
+    match OfAutomata.grade r with
+    | Some rho -> OfAutomata.L.show rho
+    | None -> "∅"
+  in
+  List.map
+    (fun table ->
+      let bounds = bounds_of table in
+      all "the implementations agree on leq, equal and counterexamples"
+        (fun (r, r') ->
+          show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
+        (fun pair ->
+          OfAutomata.verdicts bounds pair = OfDerivatives.verdicts bounds pair)
+        (pairs regexes))
+    tables
+
+(* The plain regular trace grades have a run whatever the operations. *)
+let plain_inhabited =
+  let none = bounds_of [] in
+  let lit =
+    Grade.Braces (Grade.Inter (Grade.Any, Grade.Compl (Grade.Tick 1)))
   in
   [
-    reads "({A}, {3})" "({A},{3})";
-    reads "{A | B}" "({A | B},{A | B})";
-    reads "2" "({2},{2})";
-    reads "(1, 3)" "({1},{3})";
-    reads "({A}, ⊤)" "({A},⊤)";
-    reads "⊤" "({0},⊤)";
-    holds (name "componentwise") (leq "{A}" "(1, 3)");
-    fails (name "the lower component") (leq "{A}" "(2, 3)");
-    fails (name "the upper component") (leq "{A}" "(1, 2)");
-    expect (name "implied bounds") show_bounds
-      ~expected:(Some (1, 2))
-      (Cost.Interval.implied_bounds costs (I.lit "({A | B}, {B})"));
-    expect (name "time shadow") Fun.id ~expected:"({1},{3})"
-      (Cost.Interval.show (Cost.Interval.of_bounds (1, 3)));
-    fails (name "unit least") Cost.Interval.unit_least;
+    holds "traces-regex: inhabited"
+      (Grades.RegularTraceGrade.inhabited none
+         (Grades.RegularTraceGrade.of_lit lit));
+    holds "traces-regex-symbolic: inhabited"
+      (Grades.RegularTraceGradeDerivative.inhabited none
+         (Grades.RegularTraceGradeDerivative.of_lit lit));
   ]
 
-let examples = upper_examples @ lower_examples @ interval_examples
-
 let () =
-  let checks = segments @ closures @ law_checks @ embedding @ examples in
+  let checks =
+    segments @ OfAutomata.checks @ OfDerivatives.checks @ agreement
+    @ plain_inhabited
+  in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
   Printf.printf "%d of %d checks passed\n"

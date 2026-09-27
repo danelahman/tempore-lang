@@ -1,0 +1,14 @@
+(* Rejected under the 'traces-regex-lower' grading monoid: a grade must demand
+   at least one run of the operations the program declares. *)
+
+type token = Token of string
+
+operation Ping : unit ~> unit # {Ping} within (1, 2)
+
+(* A lower bound whose runs perform an operation other than a ping, when a ping
+   is the only operation the program declares. *)
+let other_than_ping () =
+  box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
+  perform Ping ();
+  unbox o as tok in
+  tok

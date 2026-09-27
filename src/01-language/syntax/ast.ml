@@ -23,12 +23,14 @@ type operation = OpName.t
 
 (** Resource grade expressions over the resource grades ['rho]. *)
 type 'rho rho =
-  | RhoConst of 'rho
+  | RhoConst of 'rho * Location.t option
+      (** a grade, with the location of the source it is read from, if any *)
   | RhoAdd of 'rho rho * 'rho rho  (** the product of two grades *)
 
 (** Effect grade expressions over the effect grades ['eps]. *)
 type 'eps eps =
-  | EpsConst of 'eps
+  | EpsConst of 'eps * Location.t option
+      (** a grade, with the location of the source it is read from, if any *)
   | EpsAdd of 'eps eps * 'eps eps  (** the product of two grades *)
 
 (** Types, over the grades ['rho] of resources and ['eps] of effects: a box is

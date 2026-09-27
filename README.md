@@ -66,7 +66,7 @@ the program is run: with `--grades` on the command line, e.g.
 
 or with the **Grades** selector in the web interface, which switches
 its value automatically when a built-in example is loaded. The default grade
-monoid is `time-lower-bound`. Currently, fourteen monoids are available to choose.
+monoid is `time-lower-bound`. Currently, seventeen monoids are available to choose.
 
 All monoids share one syntax of grade literals, and each reads the literals it
 understands; a literal the chosen monoid does not understand is a syntax error,
@@ -225,7 +225,9 @@ left commented out, runs in about 0.04 s under `traces-regex-symbolic` and
 Three monoids read the regular languages of runs the way the timed-trace
 monoids read finite sets of runs, trading time against operations at the
 runtime bounds `within (lo, hi)` that every atomic operation declares under
-them:
+them; like the regular trace grade, each is implemented in two ways, over the
+implementation of `traces-regex` and, under the same name followed by
+`-symbolic`, over that of `traces-regex-symbolic`:
 
 - **`traces-regex-upper`** — the runs a computation is *allowed*, as under
   `traces-upper-bound`. `rho` is a sub-grade of `rho'` when every run of `rho`
@@ -246,27 +248,52 @@ them:
   itself, `n` is `({n}, {n})` and `(n, m)` is `({n}, {m})`. The top is
   `({0}, ⊤)`.
 
-Their literals, products, joins and printing are those of `traces-regex`. The
-alphabet is *closed*: the letters of a comparison are `tick` and the operations
-declared in the program so far, each at its own runtime bounds, and the
-catch-all letter of a grade stands for each declared operation it does not
-name. So `_` is any single tick or declared operation, and under
-`traces-regex-upper` `{_}` is a sub-grade of `{n}` exactly when `n` is at least
-the greatest `hi` declared (and at least 1); declaring a further operation may
-change the answer. A run that performs the catch-all letter where every
-declared operation is named is no run at all. Every operation a grade names
-must be declared, as for the timed-trace monoids.
+Their literals, products, joins and printing are those of `traces-regex` and
+`traces-regex-symbolic`. The alphabet is *closed*: the letters of a comparison
+are `tick` and the operations the whole program declares with runtime bounds,
+its atomic operations, each at its own runtime bounds, and the catch-all letter
+of a grade stands for each of them it does not name. All the sources of a
+program, the standard library included, are read before any is typechecked,
+and the operations they declare are collected from their `operation`
+declarations, their names and runtime bounds only, so that a grade means the
+same wherever it is written, before or after the declarations; an operation is
+still performed only after its declaration. So `_` is any single tick or
+atomic operation of the program, and under `traces-regex-upper` `{_}` is a
+sub-grade of `{n}` exactly when `n` is at least the greatest `hi` declared
+(and at least 1). A compound operation is no letter: performing it exhibits the
+runs of its grade. Every operation a grade names must be declared, as for the
+timed-trace monoids.
+
+A run that performs the catch-all letter where every operation of the program
+is named is no run at all, and a grade must denote at least one run: a grade
+written in a program that declares only `Fetch`, such as `{_ & ~1 & ~Fetch}`,
+is rejected at its literal, wherever it is written,
+
+```
+Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+```
+
+and accepted once the program declares another atomic operation anywhere.
+Each component of an interval grade must denote a run. This keeps `{0}` the
+minimum of `traces-regex-upper`.
 
 A grade stands for its *closure*: under `traces-regex-upper`, the runs that fit
 inside one of its runs, and under `traces-regex-lower`, the runs that cover one
 of them. `rho` is a sub-grade of `rho'` when every run of `rho` is in the
-closure of `rho'`, which is decided by exploring the product of the minimal
-automaton of `rho` with an automaton of that closure, whose states are sets of
-states of the minimal automaton of `rho'`, built only as far as the search
-needs it. The closure automaton can be exponentially larger than `rho'`, as for
-the scattered-subword closures that are a special case of it. When an ordering
-fails, a note names a shortest run of the lesser grade outside the closure of
-the greater one.
+closure of `rho'`, which is decided by exploring the product of an automaton of
+`rho` with an automaton of that closure, whose states are sets of states of an
+automaton of `rho'`, both built only as far as the search needs them. Over
+`traces-regex`, both are the minimal automata of the grades. Over
+`traces-regex-symbolic`, the states of the automaton of `rho` are its
+derivatives, and so are those of the automaton of `rho'` under the lower order,
+whose closure has a derivative of its own: the derivative of the closure of a
+set of expressions by a letter is the closure of their derivatives by the
+letter and by the ticks it banks; the closure under the upper order needs all
+the states of `rho'` at once, and is built over the automaton of the
+derivatives of `rho'`, explored in full. The closure automaton can be
+exponentially larger than `rho'`, as for the scattered-subword closures that
+are a special case of it. When an ordering fails, a note names a shortest run
+of the lesser grade outside the closure of the greater one.
 
 Grades equal as closures are equal, which is coarser than equality of
 languages, so several laws hold only up to this equality. With `Read` declared
@@ -278,7 +305,20 @@ sub-grade of `{2}` multiplied by `{2}` but not of `{2}`. An operation cannot
 be excluded while unbounded time is allowed: `{(_ & ~Read)*}` equals `⊤`,
 since its ticks pay for `Read`. Under `traces-regex-lower`, `{Read | 1}` equals
 `{1}`, and `⊤` equals the unit `{0}`, which every run covers. See
-[`examples/traces/regex_costs.tpe`](examples/traces/regex_costs.tpe).
+[`examples/traces/regex_costs.tpe`](examples/traces/regex_costs.tpe), which
+runs with `traces-regex-upper`, the implementation to prefer.
+
+The benchmark above also compares the two implementations of these monoids.
+Over `traces-regex`, they typecheck the example and the tests of
+`traces-regex-upper` about 1.1 times faster than over `traces-regex-symbolic`,
+and those of `traces-regex-lower` and `traces-regex-interval` 1.05 to 1.15
+times slower, the programs being checked about as fast on the whole. Over
+`traces-regex`, most inclusions over many declared operations are decided
+faster, by up to 7 times under `traces-regex-upper` and more under
+`traces-regex-lower`; over `traces-regex-symbolic`, inclusions against short
+delays, and under `traces-regex-lower` those that fail early, are decided 2 to
+100 times faster. The decisions are tabulated, so that a comparison made again
+costs a lookup.
 
 One monoid grades resources and computations by *security levels*, and two
 more pair it with time:

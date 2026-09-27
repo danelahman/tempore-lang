@@ -186,10 +186,19 @@ module Programs (G : Grade.S) = struct
          verdicts;
        st)
 
+  (* [declare cmds st] is [st] in the program of the standard library, which
+     declares no operations, and [cmds]. *)
+  let declare cmds st =
+    {
+      st with
+      env = Gen.declare_operations (Loader.declared_operations cmds) st.env;
+    }
+
   (* The solver's verdict on each command of [source], after the standard
      library: the command, whether it is accepted, and why not. *)
   let definitions source =
-    let st = Lazy.force with_stdlib in
+    let cmds = parse_source ~name:"small" source in
+    let st = declare cmds (Lazy.force with_stdlib) in
     let _, _, verdicts =
       List.fold_left
         (fun (desugarer, env, verdicts) cmd ->
@@ -203,8 +212,7 @@ module Programs (G : Grade.S) = struct
           ( desugarer,
             env,
             (kind_of cmd, ok, detail_of verdict.outcome) :: verdicts ))
-        (st.desugarer, st.env, [])
-        (parse_source ~name:"small" source)
+        (st.desugarer, st.env, []) cmds
     in
     List.rev verdicts
 
@@ -212,7 +220,7 @@ module Programs (G : Grade.S) = struct
   let file path =
     match Parser.Lexer.read_file parse path with
     | cmds -> (
-        match run (Lazy.force with_stdlib) cmds with
+        match run (declare cmds (Lazy.force with_stdlib)) cmds with
         | _, verdicts -> Some verdicts
         | exception Error.Error _ -> None)
     | exception Error.Error _ -> None
@@ -297,8 +305,11 @@ let expected_rejections =
     ("occurs_check.tpe", [ 1 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
     ("regex_costs_interval_reject.tpe", [ 10; 17 ]);
+    ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);
     ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);
+    ("regex_costs_lower_runs_reject.tpe", [ 10 ]);
     ("regex_costs_upper_reject.tpe", [ 11; 19; 27; 34 ]);
+    ("regex_costs_upper_runs_reject.tpe", [ 11; 17; 20 ]);
     ("regular_reject_auth.tpe", [ 12; 19; 25 ]);
     ("regular_reject_bounds.tpe", [ 4 ]);
     ("regular_reject_counterexample.tpe", [ 13; 21 ]);

@@ -24,6 +24,7 @@ module LowerBound = struct
   let needs_op_bounds = false
   let events _ = []
   let implied_bounds _bounds _ = None
+  let inhabited _bounds _ = true
   let of_lit = function Top -> top | lit -> nat_of_lit "plain integers" lit
   let of_nat = check_nat "TimeGrades.LowerBound"
   let of_bounds (lo, _hi) = lo
@@ -48,6 +49,7 @@ module UpperBound = struct
   let needs_op_bounds = false
   let events _ = []
   let implied_bounds _bounds _ = None
+  let inhabited _bounds _ = true
 
   let of_lit = function
     | Top | Inf -> top
@@ -76,6 +78,7 @@ module Interval = struct
   let needs_op_bounds = false
   let events _ = []
   let implied_bounds _bounds _ = None
+  let inhabited _bounds _ = true
 
   (** [interval lit n m] is the interval from [n] to [m], checked. *)
   let interval lit n m =

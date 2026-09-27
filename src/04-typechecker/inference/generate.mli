@@ -58,17 +58,6 @@ module Make (C : Constraint.S) : sig
   type abstraction = (program_rho, program_eps) Ast.abstraction
   (** Abstractions. *)
 
-  val open_rho : program_rho -> rho
-  (** [open_rho rho] is the program grade [rho] as an open expression.
-      @raise Invalid_argument if [rho] has a parameter. *)
-
-  val open_eps : program_eps -> eps
-  (** [open_eps eps] is the program grade [eps] as an open expression.
-      @raise Invalid_argument if [eps] has a parameter or a rigid grade. *)
-
-  val open_ty : program_ty -> ty
-  (** [open_ty ty] is the program type [ty] as an open type. *)
-
   (** {2 Environments} *)
 
   type ty_definition = {
@@ -92,7 +81,38 @@ module Make (C : Constraint.S) : sig
 
   val initial_env : env
   (** The environment of the built-in types [bool], [int], [unit], [string],
-      [float], [empty] and [list], and nothing else. *)
+      [float], [empty] and [list], and nothing else, in a program that declares
+      no operations. *)
+
+  val declare_operations : (string * (int * int) option) list -> env -> env
+  (** [declare_operations declarations env] is [env] in a program whose
+      operation declarations are [declarations], each an operation name with its
+      runtime bounds if it declares them, the first declaration of a name
+      counting. The operations it declares with runtime bounds, its atomic
+      operations under the grades that read them, are the closed world of
+      {!cost_model}, whichever command is checked. *)
+
+  val cost_model : loc:Location.t -> env -> Grades.Grade.bounds
+  (** [cost_model ~loc env] is the cost model of the program of [env]: its
+      operations are those the program declares with runtime bounds
+      ({!declare_operations}), and the cost of an event is its declared runtime
+      bounds, or else those implied by the grade of a compound operation
+      declared so far; the cost of any other event is a typing error at [loc].
+  *)
+
+  val open_rho : env -> program_rho -> rho
+  (** [open_rho env rho] is the program grade [rho] as an open expression.
+      @raise Utils.Error.Error
+        if a grade of [rho] read from the source is not
+        {!Grades.Grade.S.inhabited} under the operations declared in [env]. *)
+
+  val open_eps : env -> program_eps -> eps
+  (** [open_eps env eps] is the program grade [eps] as an open expression.
+      @raise Utils.Error.Error as {!open_rho}. *)
+
+  val open_ty : env -> program_ty -> ty
+  (** [open_ty env ty] is the program type [ty] as an open type.
+      @raise Utils.Error.Error as {!open_rho}. *)
 
   val add_type_definitions :
     loc:Location.t ->

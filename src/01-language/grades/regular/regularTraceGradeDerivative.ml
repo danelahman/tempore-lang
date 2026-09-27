@@ -32,6 +32,7 @@ let unit_least = false
 let commutative = false
 let needs_op_bounds = false
 let implied_bounds _bounds _rho = None
+let inhabited _bounds _rho = true
 let events = R.names
 
 (* The delays of [lo] to [hi] time steps. *)
@@ -71,6 +72,35 @@ let of_lit = function
       invalid_lit lit
         "grades are regular expressions '{...}', plain integers or '⊤', not %s"
         (describe_lit lit)
+
+(** {1 Runs over given names} *)
+
+(** [letters names] is the letter set of each letter over [names]: [tick],
+    numbered [0], and the names, numbered from [1] in their order. *)
+let letters names = Array.of_list (Letters.tick :: List.map Letters.name names)
+
+let runs names rho =
+  let letters = letters names in
+  {
+    Dfa.start = rho;
+    step = (fun r a -> R.derivative letters.(a) r);
+    accepts = R.nullable;
+    dead = R.is_empty;
+  }
+
+module Tables = Dfa.Implicit (Int)
+
+(* No automaton has more than [max_int] states. *)
+let concrete names rho =
+  let letters = letters names in
+  let a = Option.get (SymbolicAutomaton.of_regex ~limit:Int.max_int rho) in
+  Tables.canonical (Array.length letters)
+    {
+      start = 0;
+      step = (fun q x -> SymbolicAutomaton.next a q letters.(x));
+      accepts = SymbolicAutomaton.final a;
+      dead = Fun.const false;
+    }
 
 (** {1 Printing} *)
 

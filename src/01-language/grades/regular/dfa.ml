@@ -212,54 +212,68 @@ type 'state automaton = {
   start : 'state;
   step : 'state -> int -> 'state;
   accepts : 'state -> bool;
+  dead : 'state -> bool;
 }
 
-let automaton l = { start = 0; step = next l; accepts = final l }
+let automaton l = { start = 0; step = next l; accepts = final l; dead = dead l }
 
 module Implicit (State : Map.OrderedType) = struct
   module Table = Explore (State)
-
-  module Pairs = Set.Make (struct
-    type t = int * State.t
-
-    let compare (p, q) (p', q') =
-      match Int.compare p p' with 0 -> State.compare q q' | c -> c
-  end)
+  module States = Set.Make (State)
 
   let canonical n a =
     minimise (Table.table n ~start:a.start ~next:a.step ~final:a.accepts)
 
-  (* Breadth-first search of the product of [l] and [a] for a pair of states
-     final in [l] only, the first found giving a shortest word. The pairs whose
-     state of [l] is dead are not explored, since they lead to no such pair. *)
-  let counterexample l a =
+  (* Depth-first search for a final state, the dead states not explored. *)
+  let is_empty n a =
+    let rec go seen = function
+      | [] -> true
+      | q :: _ when a.accepts q -> false
+      | q :: stack ->
+          let fresh q = not (a.dead q || States.mem q seen) in
+          let next = List.filter fresh (List.map (a.step q) (range n)) in
+          go (List.fold_right States.add next seen) (next @ stack)
+    in
+    a.dead a.start || go (States.singleton a.start) [ a.start ]
+end
+
+module Product (Left : Map.OrderedType) (Right : Map.OrderedType) = struct
+  module Pairs = Set.Make (struct
+    type t = Left.t * Right.t
+
+    let compare (p, q) (p', q') =
+      match Left.compare p p' with 0 -> Right.compare q q' | c -> c
+  end)
+
+  (* Breadth-first search of the product of [a] and [b] for a pair of states
+     final in [a] only, the first found giving a shortest word. The pairs whose
+     state of [a] is dead are not explored, since they lead to no such pair. *)
+  let counterexample n a b =
     let rec go seen fifo =
       match Fifo.pop fifo with
       | None -> None
-      | Some (((p, q), rev_word), _) when final l p && not (a.accepts q) ->
+      | Some (((p, q), rev_word), _) when a.accepts p && not (b.accepts q) ->
           Some (List.rev rev_word)
       | Some (((p, q), rev_word), fifo) ->
           let visit (seen, fifo) c =
-            let p' = next l p c in
-            if dead l p' then (seen, fifo)
+            let p' = a.step p c in
+            if a.dead p' then (seen, fifo)
             else
-              let s = (p', a.step q c) in
+              let s = (p', b.step q c) in
               if Pairs.mem s seen then (seen, fifo)
               else (Pairs.add s seen, Fifo.push (s, c :: rev_word) fifo)
           in
-          let seen, fifo =
-            List.fold_left visit (seen, fifo) (range (letters l))
-          in
+          let seen, fifo = List.fold_left visit (seen, fifo) (range n) in
           go seen fifo
     in
-    let start = (0, a.start) in
+    let start = (a.start, b.start) in
     go (Pairs.singleton start) (Fifo.push (start, []) Fifo.empty)
 end
 
-module Implicit_int = Implicit (Int)
+module Tables = Product (Int) (Int)
 
 let counterexample l m =
   same_letters "counterexample" l m;
-  Implicit_int.counterexample l (automaton m)
+  Tables.counterexample (letters l) (automaton l) (automaton m)
 
 let subset l m = Option.is_none (counterexample l m)

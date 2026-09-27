@@ -29,26 +29,6 @@ module Make (C : Constraint.S) = struct
   type abstraction = (program_rho, program_eps) Ast.abstraction
 
   (* ------------------------------------------------------------------ *)
-  (* Program syntax                                                      *)
-  (* ------------------------------------------------------------------ *)
-
-  let rec open_rho = function
-    | Ast.RhoConst c -> Rho.const c
-    | Ast.RhoAdd (rho, rho') -> Rho.mul (open_rho rho) (open_rho rho')
-
-  let rec open_eps = function
-    | Ast.EpsConst c -> Eps.const c
-    | Ast.EpsAdd (eps, eps') -> Eps.mul (open_eps eps) (open_eps eps')
-
-  let open_ty ty = Ast.map_ty ~on_rho:open_rho ~on_eps:open_eps ty
-
-  let open_ty_def = function
-    | Ast.TySum variants ->
-        Ast.TySum
-          (List.map (fun (lbl, ty) -> (lbl, Option.map open_ty ty)) variants)
-    | Ast.TyInline ty -> Ast.TyInline (open_ty ty)
-
-  (* ------------------------------------------------------------------ *)
   (* Environments                                                        *)
   (* ------------------------------------------------------------------ *)
 
@@ -80,6 +60,8 @@ module Make (C : Constraint.S) = struct
     op_signatures : op_signature Ast.OpNameMap.t;
     op_bounds : (int * int) StringMap.t;
     op_defaults : Ast.OpNameSet.t;
+    world : (int * int) StringMap.t;
+        (** the operations the whole program declares with runtime bounds *)
   }
 
   let add_type_definition name def env =
@@ -122,6 +104,7 @@ module Make (C : Constraint.S) = struct
       op_signatures = Ast.OpNameMap.empty;
       op_bounds = StringMap.empty;
       op_defaults = Ast.OpNameSet.empty;
+      world = StringMap.empty;
     }
     |> add_type_definition Ast.bool_ty_name
          (alias (Ast.TyConst Const.BooleanTy))
@@ -141,6 +124,69 @@ module Make (C : Constraint.S) = struct
   let is_noneternal env name = Ast.TyNameSet.mem name env.noneternal
   let find_op_signature env op = Ast.OpNameMap.find_opt op env.op_signatures
   let op_bounds env = env.op_bounds
+
+  let declare_operations declarations env =
+    let add world (name, bounds) =
+      match bounds with
+      | Some bounds when not (StringMap.mem name world) ->
+          StringMap.add name bounds world
+      | Some _ | None -> world
+    in
+    { env with world = List.fold_left add StringMap.empty declarations }
+
+  (* ------------------------------------------------------------------ *)
+  (* Program syntax                                                      *)
+  (* ------------------------------------------------------------------ *)
+
+  let cost_model ~loc env =
+    let bounds event =
+      match StringMap.find_opt event env.world with
+      | Some bounds -> Some bounds
+      | None -> StringMap.find_opt event env.op_bounds
+    in
+    {
+      Grades.Grade.cost =
+        (fun event ->
+          match bounds event with
+          | Some bounds -> bounds
+          | None ->
+              Error.typing ~loc
+                "Unknown event `%s`; the events of a grade must be declared \
+                 operations"
+                event);
+      operations = List.map fst (StringMap.bindings env.world);
+    }
+
+  (* A grade constant read from the source at [at] must denote a run of the
+     operations declared in [env]. *)
+  let check_inhabited ~inhabited ~show env c = function
+    | Some loc when not (inhabited (cost_model ~loc env) c) ->
+        Error.typing ~loc
+          "The grade `%s` permits no run of the declared operations" (show c)
+    | Some _ | None -> ()
+
+  let rec open_rho env = function
+    | Ast.RhoConst (c, at) ->
+        check_inhabited ~inhabited:GS.R.inhabited ~show:GS.R.show env c at;
+        Rho.const c
+    | Ast.RhoAdd (rho, rho') -> Rho.mul (open_rho env rho) (open_rho env rho')
+
+  let rec open_eps env = function
+    | Ast.EpsConst (c, at) ->
+        check_inhabited ~inhabited:GS.E.inhabited ~show:GS.E.show env c at;
+        Eps.const c
+    | Ast.EpsAdd (eps, eps') -> Eps.mul (open_eps env eps) (open_eps env eps')
+
+  let open_ty env ty =
+    Ast.map_ty ~on_rho:(open_rho env) ~on_eps:(open_eps env) ty
+
+  let open_ty_def env = function
+    | Ast.TySum variants ->
+        Ast.TySum
+          (List.map
+             (fun (lbl, ty) -> (lbl, Option.map (open_ty env) ty))
+             variants)
+    | Ast.TyInline ty -> Ast.TyInline (open_ty env ty)
 
   (* Every type application in a type has as many arguments as its type has
      parameters. *)
@@ -196,7 +242,7 @@ module Make (C : Constraint.S) = struct
         (fun env (params, name, def) ->
           let env =
             add_type_definition name
-              { params; definition = open_ty_def def }
+              { params; definition = open_ty_def env def }
               env
           in
           match eternality with
@@ -205,7 +251,9 @@ module Make (C : Constraint.S) = struct
               { env with noneternal = Ast.TyNameSet.add name env.noneternal })
         env defs
     in
-    List.iter (fun (_, _, def) -> check_ty_def ~loc env' (open_ty_def def)) defs;
+    List.iter
+      (fun (_, _, def) -> check_ty_def ~loc env' (open_ty_def env' def))
+      defs;
     env'
 
   (* The runtime bounds of the operations, extended by those of [op_name],
@@ -230,7 +278,7 @@ module Make (C : Constraint.S) = struct
           "the grade of operation `%s` must be a literal under the `%s` \
            grading monoid"
           op_name GS.E.name
-    | true, Ast.EpsConst c, _ when GS.E.is_atomic op_name c -> (
+    | true, Ast.EpsConst (c, _), _ when GS.E.is_atomic op_name c -> (
         match bounds with
         | None ->
             Error.typing ~loc
@@ -246,18 +294,21 @@ module Make (C : Constraint.S) = struct
               "the upper runtime bound of operation `%s` must be at least 1"
               op_name
         | Some bounds -> StringMap.add op_name bounds env.op_bounds)
-    | true, Ast.EpsConst c, Some _ ->
+    | true, Ast.EpsConst (c, _), Some _ ->
         Error.typing ~loc
           "operation `%s` is compound, so its runtime bounds follow from its \
            grade `%s` and must not be declared"
           op_name (GS.E.show c)
-    | true, Ast.EpsConst c, None -> (
+    | true, Ast.EpsConst (c, _), None -> (
         if List.mem op_name (GS.E.events c) then
           Error.typing ~loc
             "compound operation `%s` may not name itself in its grade `%s`"
             op_name (GS.E.show c);
-        let operations = List.map fst (StringMap.bindings env.op_bounds) in
-        match GS.E.implied_bounds { cost = event_bounds; operations } c with
+        match
+          GS.E.implied_bounds
+            { (cost_model ~loc env) with cost = event_bounds }
+            c
+        with
         | Some bounds -> StringMap.add op_name bounds env.op_bounds
         | None -> env.op_bounds)
 
@@ -266,9 +317,9 @@ module Make (C : Constraint.S) = struct
     let op_bounds = checked_op_bounds ~loc env op_name grade bounds in
     let signature =
       {
-        param = open_ty param;
-        arity = open_ty arity;
-        op_grade = open_eps grade;
+        param = open_ty env param;
+        arity = open_ty env arity;
+        op_grade = open_eps env grade;
         signature_at = loc;
       }
     in
@@ -451,7 +502,7 @@ module Make (C : Constraint.S) = struct
         { p with bindings = (x, expected.bound, at) :: p.bindings }
     | Ast.PNonbinding -> no_pattern
     | Ast.PAnnotated (pat', ty) ->
-        let ty = open_ty ty in
+        let ty = open_ty env ty in
         let because = Reason.because at Reason.Pattern_annotation in
         let p = pattern env pat' (expect ty because) in
         {
@@ -622,7 +673,7 @@ module Make (C : Constraint.S) = struct
     | Ast.Annotated (e', ty) ->
         (* the expression against the annotation, a subtype of the expected
            type *)
-        let ty = open_ty ty in
+        let ty = open_ty env ty in
         C.conj
           (generate_expression env e'
              (expect ty (Reason.because at Reason.Annotation)))
@@ -812,7 +863,8 @@ module Make (C : Constraint.S) = struct
                  (expect eps'
                     (Reason.because c'.Ast.at (Reason.Continuation_effect kind))))
               (leq_expected at (Eps.mul (Eps.of_nat n) eps') eps))
-    | Ast.Box (rho, e, (pat, c')) -> box env at (open_rho rho) e pat c' ty eps
+    | Ast.Box (rho, e, (pat, c')) ->
+        box env at (open_rho env rho) e pat c' ty eps
     | Ast.Unbox (e, (pat, c')) -> unbox env at e pat c' ty eps
     | Ast.Perform (op, e, (pat, c')) -> perform env at op e pat c' ty eps
     | Ast.Handle (c', h) -> handle env at c' h ty eps

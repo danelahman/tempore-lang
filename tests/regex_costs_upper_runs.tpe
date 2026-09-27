@@ -1,0 +1,32 @@
+(* Accepted under the 'traces-regex-upper' grading monoid: the catch-all
+   letter ranges over the operations the whole program declares, before or
+   after the grade, so that a grade whose runs perform an operation other than
+   those it names is well formed if the program declares such an operation
+   anywhere. *)
+
+type token = Token of string
+
+operation Fetch : unit ~> token # {Fetch} within (2, 4)
+default Fetch () = delay 3; Token "f"
+
+(* The runs of the grade perform one operation other than a fetch: a log,
+   declared below, is one. *)
+let other_than_fetch () =
+  box {_ & ~1 & ~Fetch} (Token "o") as o in
+  unbox o as tok in
+  tok
+
+(* A type used by the operation declared after it. *)
+type entry = Entry of token
+
+operation Log : entry ~> unit # {Log} within (1, 1)
+default Log e = delay 1
+
+(* The grade permits the log performed. *)
+let logged () =
+  box {_ & ~1 & ~Fetch} (Token "l") as l in
+  perform Log (Entry (Token "e"));
+  unbox l as tok in
+  tok
+
+run logged ()

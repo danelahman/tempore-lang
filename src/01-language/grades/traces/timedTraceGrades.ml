@@ -122,6 +122,7 @@ module LowerBound = struct
   let implied_bounds bounds p =
     implied_trace_bounds bounds p (UpperTraces.Within p)
 
+  let inhabited _bounds _ = true
   let of_nat n = TimedTrace.of_nat (check_nat "TimedTraceGrades.LowerBound" n)
   let of_bounds (lo, _hi) = TimedTrace.of_nat lo
   let is_atomic name p = p = atomic_traces name
@@ -143,6 +144,8 @@ module UpperBound = struct
   let implied_bounds bounds = function
     | Within p -> implied_trace_bounds bounds p (Within p)
     | Unbounded -> None
+
+  let inhabited _bounds _ = true
 
   let of_nat n =
     Within (TimedTrace.of_nat (check_nat "TimedTraceGrades.UpperBound" n))
@@ -181,6 +184,7 @@ module Interval = struct
     List.sort_uniq compare (TimedTrace.events lo @ UpperTraces.events hi)
 
   let implied_bounds bounds (lo, hi) = implied_trace_bounds bounds lo hi
+  let inhabited _bounds _ = true
 
   let of_lit = function
     | Top -> top

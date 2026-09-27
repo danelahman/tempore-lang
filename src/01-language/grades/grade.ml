@@ -10,10 +10,12 @@
 
     The orders of the timed-trace grades read the runtime bounds
     [within (lo, hi)] that operations declare, and those of the cost-model
-    regular trace grades also the set of declared operations, over which their
-    catch-all letter ranges. The operations that depend on the order, [leq],
-    [equal], [counterexample] and [implied_bounds], take both as an argument of
-    type {!bounds}; the other grades ignore it.
+    regular trace grades also the set of the operations the program declares,
+    over which their catch-all letter ranges: all of them, before or after the
+    grade, so that a grade means the same throughout a program. The operations
+    that depend on the order, [leq], [equal], [counterexample], [implied_bounds]
+    and [inhabited], take both as an argument of type {!bounds}; the other
+    grades ignore it.
 
     {2 Literals}
 
@@ -73,7 +75,9 @@ let describe_lit = function
 type bounds = {
   cost : string -> int * int;
       (** The runtime bounds [(lo, hi)] declared by each operation, by name. *)
-  operations : string list;  (** The names of the declared operations. *)
+  operations : string list;
+      (** The names of the operations the program declares with runtime bounds.
+      *)
 }
 (** A cost model. *)
 
@@ -134,6 +138,12 @@ module type S = sig
       which coincide for the one-sided trace grades. The time grades imply
       nothing, since there the grade of an operation already is its runtime
       bound, and return [None]; so does an unbounded upper-bound component. *)
+
+  val inhabited : bounds -> t -> bool
+  (** [inhabited bounds rho] is whether the grade [rho] denotes at least one run
+      of the operations of the cost model [bounds]; the typechecker rejects the
+      grades of a program that do not. It holds of every grade whose meaning
+      does not depend on the declared operations. *)
 
   val events : t -> string list
   (** The operation names mentioned by a grade; empty for the time grades. *)

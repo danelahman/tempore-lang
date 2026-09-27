@@ -1,7 +1,7 @@
 (** The cost-model regular trace grades: the regular languages of runs of
-    {!RegularTraceGrade}, ordered as the timed-trace grades of
-    {!TimedTraceGrades} order finite sets of runs, trading time against
-    operations at their declared runtime bounds.
+    {!RegularTraceGrade}, or of {!RegularTraceGradeDerivative}, ordered as the
+    timed-trace grades of {!TimedTraceGrades} order finite sets of runs, trading
+    time against operations at their declared runtime bounds.
 
     {2 Orders}
 
@@ -29,11 +29,18 @@
 
     {2 Closed world}
 
-    The alphabet of a comparison is [tick], the declared operations of the cost
-    model and the names the grades compared mention, each operation with its own
-    runtime bounds; the catch-all letter of each grade stands for each of these
-    operations it does not name. A run of a grade that performs its catch-all
-    letter where no such operation exists is no run.
+    The alphabet of a comparison is [tick], the operations of the cost model and
+    the names the grades compared mention, each operation with its own runtime
+    bounds; the catch-all letter of each grade stands for each of these
+    operations it does not name. The operations of the cost model are those the
+    whole program declares with runtime bounds, before or after the grade, so
+    that a grade means the same throughout a program. A run of a grade that
+    performs its catch-all letter where no such operation exists is no run, and
+    a grade must denote at least one run: {!Grade.S.inhabited} [bounds rho] is
+    whether [rho] has a run over [tick], the operations of [bounds] and the
+    names [rho] mentions, which fails for [{_ & ~1 & ~A}] if [A] is the only
+    operation declared. On the grades that have one, the unit [{0}] is least
+    under the upper order.
 
     {2 Grades}
 
@@ -48,20 +55,38 @@
     [ρ ≾ ρ'] is the grade of a shortest run of [ρ] outside the closure of [ρ'],
     in which a name stands for itself. *)
 
-(** A regular trace grade with the concrete languages of its grades. *)
+(** A regular trace grade with the languages of its grades over given names. *)
 module type LANGUAGE = sig
   include Grade.S
+
+  module State : Map.OrderedType
+  (** The states of the automata of {!runs}. *)
 
   val concrete : string list -> t -> Dfa.t
   (** [concrete names rho] is the language of the runs of [rho] that perform
       only operations among [names], over the letters [tick], numbered [0], and
       [names], numbered from [1] in their order, the catch-all letter of [rho]
       standing for each of [names] that [rho] does not mention. *)
+
+  val runs : string list -> t -> State.t Dfa.automaton
+  (** [runs names rho] is an automaton of the same language over the same
+      letters, explored only as far as a search needs. *)
 end
 
 (** The three grades over the regular trace grade [L], named
     ["traces-regex-lower"], ["traces-regex-upper"] and
-    ["traces-regex-interval"], each followed by [Variant.suffix]. *)
+    ["traces-regex-interval"], each followed by [Variant.suffix].
+
+    [ρ ≾ ρ'] is decided by breadth-first search of the product of the automaton
+    {!LANGUAGE.runs} of [ρ] with an automaton of the closure of [ρ'], both
+    explored only as far as the search needs: under the upper order, the
+    automaton {!CostClosure.allowance} of the table {!LANGUAGE.concrete} of
+    [ρ'], and under the lower order, the automaton {!CostClosure.Coverage} of
+    the automaton {!LANGUAGE.runs} of [ρ']. The searches are tabulated by the
+    names, the costs of their operations and the grades compared, in
+    module-level tables that only ever grow. A grade is {!Grade.S.inhabited} iff
+    {!LANGUAGE.runs} accepts some word, and its runtime bounds are read off
+    {!LANGUAGE.concrete}. *)
 module Make
     (L : LANGUAGE)
     (Variant : sig
@@ -80,12 +105,36 @@ module Make
       [({n}, {m})]. *)
 end
 
+module Automata : LANGUAGE with type t = RegularTraceGrade.t
+(** {!RegularTraceGrade}, the automata {!LANGUAGE.runs} being the tables
+    {!LANGUAGE.concrete}. *)
+
+module Derivatives : LANGUAGE with type t = RegularTraceGradeDerivative.t
+(** {!RegularTraceGradeDerivative}, the automata {!LANGUAGE.runs} being those of
+    the derivatives {!RegularTraceGradeDerivative.runs}, and the tables
+    {!LANGUAGE.concrete} {!RegularTraceGradeDerivative.concrete}, built from the
+    automaton of the derivatives by minterms. *)
+
 module Lower : Grade.S with type t = RegularTraceGrade.t
-(** ["traces-regex-lower"], over {!RegularTraceGrade}. *)
+(** ["traces-regex-lower"], over {!Automata}. *)
 
 module Upper : Grade.S with type t = RegularTraceGrade.t
-(** ["traces-regex-upper"], over {!RegularTraceGrade}. *)
+(** ["traces-regex-upper"], over {!Automata}. *)
 
 module Interval :
   Grade.S with type t = RegularTraceGrade.t * RegularTraceGrade.t
-(** ["traces-regex-interval"], over {!RegularTraceGrade}. *)
+(** ["traces-regex-interval"], over {!Automata}. *)
+
+(** The grades over {!Derivatives}, named ["traces-regex-lower-symbolic"],
+    ["traces-regex-upper-symbolic"] and ["traces-regex-interval-symbolic"]: the
+    lesser grade of a comparison, and the greater one under the lower order, are
+    explored by derivatives. *)
+module Symbolic : sig
+  module Lower : Grade.S with type t = RegularTraceGradeDerivative.t
+  module Upper : Grade.S with type t = RegularTraceGradeDerivative.t
+
+  module Interval :
+    Grade.S
+      with type t =
+        RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
+end
