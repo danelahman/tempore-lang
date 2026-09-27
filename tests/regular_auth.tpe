@@ -1,5 +1,5 @@
 (* Accepted under the 'regular-traces' grading monoid: resources guarded by
-   the runs that may elapse before they are used. *)
+   the runs that may occur before they are used. *)
 
 type token = Token of string
 

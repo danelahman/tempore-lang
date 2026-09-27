@@ -44,8 +44,8 @@ let h_offset n =
 (* Correctly rejected by the typechecker: 72 ticks overrun the 71 the
    continuation must be resumed within:
 
-     Typing error: Variable `k` is unboxed after grade `72` has elapsed,
-       which does not match its box grade `71`
+     Typing error: Variable `k` is unboxed with grade `72` accumulated since it
+       was bound, which is not below its box grade `71`
        Note: the resource inequality `72 <= 71` does not hold
 *)
 (*
@@ -70,8 +70,8 @@ let h_abandon =
    continuation's own rigid effect eps, and |eps| <= 71 already fails
    once eps is unbounded:
 
-     Typing error: Variable `k` is unboxed after grade `∣ε₀∣` has
-       elapsed, which does not match its box grade `71`
+     Typing error: Variable `k` is unboxed with grade `∣ε₀∣` accumulated since
+       it was bound, which is not below its box grade `71`
        Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 71` does not hold:
          for `ε₀ = ∞` it becomes `∞ <= 71`
    (Contrast: accepted under a lower bound.)
@@ -100,8 +100,8 @@ let h_before =
 (* Correctly rejected by the typechecker: 'f' is not eternal, so it may not
    be used after a resumption that may take any number of ticks:
 
-     Typing error: Variable `f` is used after grade `∣ε₀∣` has elapsed, but
-       its type `unit → int` is not eternal
+     Typing error: Variable `f` is used with grade `∣ε₀∣` accumulated since it
+       was bound, but its type `unit → int` is not eternal
        Note: for every grade `ε₀` the continuation `k` may have, the
          resource inequality `∀ε₀. ∣ε₀∣ <= 0` must hold, but does not: for
          `ε₀ = ∞` it becomes `∞ <= 0`
@@ -120,9 +120,9 @@ let h_after =
    types from outside it; letting 'g', a function, in would leak the
    continuation's arbitrary grade through it into the type of 'h_leak':
 
-     Typing error: Variable `g` has type `[71](int → α # ε₀) → β`, which
-       is not eternal, so it cannot be used in the case for `Get`: the
-       case runs at a time the handler does not fix
+     Typing error: Variable `g` has type `[71](int → α # ε₀) → β`, which is not
+       eternal, so it cannot be used in the case for `Get`: the case runs with a
+       grade the handler does not fix
        Note: the resource inequality `∞ <= 0` does not hold
 *)
 (*

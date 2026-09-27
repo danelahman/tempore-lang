@@ -80,8 +80,8 @@ run
    print the moment it is made, with nothing banked towards the five ticks it
    has to cool:
 
-     Typing error: This expression is unboxed before any grade has elapsed,
-       but its box grade is `5`
+     Typing error: This expression is unboxed with the unit grade `0`
+       accumulated since it was bound, which is not below its box grade `5`
        Note: the resource inequality `0 >= 5` does not hold
 *)
 (*

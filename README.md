@@ -250,7 +250,7 @@ respectively get the qualified schemes
     ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → β → β # ε₀ # 0
 
 shown by `--debug`, where `Et(β)` requires `β` to be eternal and `∣ε₀∣` is the
-resource grade that elapses while `g` runs. So `keep 5` is accepted and
+resource grade that accumulates while `g` runs. So `keep 5` is accepted and
 `keep (fun () -> ())` is rejected:
 
     `unit → unit` is not eternal, but `keep` needs the type of `x` to be
@@ -260,7 +260,7 @@ resource grade that elapses while `g` runs. So `keep 5` is accepted and
 while `after (fun () -> delay 2) 5` is accepted because `5` is eternal, and
 `after (fun () -> ()) (fun () -> ())` because `g` takes no time. A variable
 captured in an operation case is constrained in the same way, the top grade
-having elapsed for it (see [Contexts of operation
+having accumulated for it (see [Contexts of operation
 cases](#contexts-of-operation-cases)). See
 [`examples/eternal_types.tpe`](examples/eternal_types.tpe) and the end of
 [`examples/3dprint_traces.tpe`](examples/3dprint_traces.tpe).
@@ -340,8 +340,9 @@ case has accumulated a sub-grade of that grade. So `PrintModel : model ~> print
 # {Heat; Extrude; Cool}` may be handled by performing `Heat`, `Extrude` and
 `Cool` in that order and continuing, while another order is rejected:
 
-    Variable `k` is unboxed after grade `{Cool; Extrude; Heat}` has elapsed,
-    which does not match its box grade `{Heat; Extrude; Cool}`
+    Variable `k` is unboxed with grade `{Cool; Extrude; Heat}` accumulated
+    since it was bound, which is not below its box grade
+    `{Heat; Extrude; Cool}`
       Note: the resource inequality
         `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
 
@@ -370,22 +371,22 @@ Resuming twice under `Op # 1` fails under an upper bound: the second
 resumption unboxes `k` after the first has run for `eps`, and `∣eps∣ <= 1`
 fails for `eps = ∞`:
 
-    Variable `k` is unboxed after grade `∣ε₀∣` has elapsed, which does not
-    match its box grade `1`
+    Variable `k` is unboxed with grade `∣ε₀∣` accumulated since it was bound,
+    which is not below its box grade `1`
       Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for
         `ε₀ = ∞` it becomes `∞ <= 1`
 
 Under a lower bound it is accepted once the case has waited for the
 operation's grade, `Op p k -> delay 1; let a = continue k with () in continue
-k with ()`, as the grade elapsed before the second resumption only grows.
+k with ()`, as the grade accumulated before the second resumption only grows.
 
 ### Contexts of operation cases
 
-An operation case runs at a time the handler does not fix: the call may come
+An operation case runs with a grade the handler does not fix: the call may come
 at any point of the handled computation, and the case must be well-typed for
 every grade its continuation may have. So a case is typed in its context
 *locked* at the top grade `⊤`: to the variables bound outside the case, the
-top grade has elapsed by the time the case runs. By the usual rules, such a
+top grade has accumulated when the case runs. By the usual rules, such a
 variable may then be used in the case only if its type is eternal or `⊤` is
 below the unit, and an outer box may be unboxed in the case only if `⊤` is
 below its grade.
@@ -397,13 +398,14 @@ monoids a variable of non-eternal type bound outside the case is rejected
 there, whatever the grades are; under `time-upper-bound`:
 
     Variable `f` has type `unit → int`, which is not eternal, so it cannot be
-    used in the case for `Op`: the case runs at a time the handler does not fix
+    used in the case for `Op`: the case runs with a grade the handler does not
+    fix
       Note: the resource inequality `∞ <= 0` does not hold
 
 and an outer box of grade `3` cannot be unboxed in a case:
 
-    Variable `b` is unboxed after grade `∞` has elapsed, which does not match
-    its box grade `3`
+    Variable `b` is unboxed with grade `∞` accumulated since it was bound, which
+    is not below its box grade `3`
       Note: the resource inequality `∞ <= 3` does not hold
 
 The case's own `p` and `k`, and everything bound inside it, are unaffected:
@@ -480,19 +482,19 @@ solved and simplified.
 - **Subtyping.** Types are compared by subtyping rather than by equality. A
   function type is contravariant in its argument and covariant in its result
   and effect, and a box type `[rho]a` is contravariant in its grade: a box
-  claimable after `rho` may be used where one claimable after a sub-grade of
-  `rho` is expected. Subtyping preserves the shape of types, and the arguments
+  claimable with `rho` accumulated may be used where one claimable with a
+  sub-grade of `rho` accumulated is expected. Subtyping preserves the shape of types, and the arguments
   of type constructors such as `list` are compared for equality.
-- **Resource and effect grades.** Box types and the grades elapsed in a
-  context are *resource* grades; computations and operation signatures carry
+- **Resource and effect grades.** Box types and the grades accumulated in
+  a context are *resource* grades; computations and operation signatures carry
   *effect* grades. The two sorts are related by a grade system, which maps an
-  effect grade to the resource grade that elapses while it runs. At present
+  effect grade to the resource grade that accumulates while it runs. At present
   each grading monoid provides both sorts, related by the identity.
 - **Constraints.** Besides subtyping, a program asks for orderings between
-  grades, for types to be eternal, and, for a variable used after some grade
-  `rho` has elapsed, that its type is eternal or `rho` is below the unit. The
-  effect of the continuation of a handler's operation case is unknown to the
-  case, so the case is checked for every such effect.
+  grades, for types to be eternal, and, for a variable used with some grade
+  `rho` accumulated since its binding, that its type is eternal or `rho` is
+  below the unit. The effect of the continuation of a handler's operation case
+  is unknown to the case, so the case is checked for every such effect.
 - **Schemes.** Only top-level `let` definitions are generalised; a local
   `let` has a monomorphic type. The scheme of a top-level definition is
   qualified, `∀ α ρ₀ ε₀. Q ∧ R ⇒ A`: `Q` are the constraints left on its

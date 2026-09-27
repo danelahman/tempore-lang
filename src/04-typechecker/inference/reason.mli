@@ -3,9 +3,9 @@
     from.
 
     Reasons are parametric in the resource grades ['rho] and the effect grades
-    ['eps] they mention, so that each grade keeps its sort: the elapsed grades
-    of a context are resource grades, an ordering as stated may be of either
-    sort. Apart from these grades a reason is plain data. *)
+    ['eps] they mention, so that each grade keeps its sort: the grades of the
+    locks of a context are resource grades, an ordering as stated may be of
+    either sort. Apart from these grades a reason is plain data. *)
 
 module Location = Utils.Location
 module Ast = Language.Ast
@@ -18,17 +18,17 @@ type clause = {
 (** A handler clause or a default implementation of an operation. *)
 
 (** The construct a lock of the context stands for. *)
-type elapsed_kind =
+type lock_kind =
   | Delayed of int  (** [delay n] *)
   | Performed of Ast.operation  (** [perform Op], before its continuation *)
   | Sequenced  (** the computation bound by [let] or [;] *)
-  | Boxed  (** the payload of [box ρ], checked [ρ] ahead *)
+  | Boxed  (** the payload of [box ρ], checked under the lock [⟨ρ⟩] *)
   | Handled
       (** the handled computation, before the return clause of a handler *)
   | Clause_lock of clause
       (** the lock [⟨⊤⟩] of a handler clause or of a default implementation *)
 
-type 'rho elapsed = { grade : 'rho; at : Location.t; kind : elapsed_kind }
+type 'rho lock = { grade : 'rho; at : Location.t; kind : lock_kind }
 (** A lock of the context, with its resource grade and its construct. *)
 
 (** A position within a decomposed atom. *)
@@ -71,25 +71,27 @@ type ('rho, 'eps) why =
   | Unboxed of {
       var : Ast.variable;
       bound_at : Location.t option;
-      elapsed : 'rho elapsed list;
+      locks : 'rho lock list;
     }
       (** at = the [unbox]; the variable's type is a box whose grade covers the
-          grades elapsed since its binding, oldest first *)
-  | Use_after_time of {
+          grade accumulated since its binding, that of [locks], the locks since
+          the binding, oldest first *)
+  | Use_under_locks of {
       var : Ast.variable;
       bound_at : Location.t;
-      elapsed : 'rho elapsed list;
+      locks : 'rho lock list;
     }
-      (** at = the use; the type is eternal or the grades elapsed since the
-          binding, oldest first, are below the unit *)
+      (** at = the use; the type is eternal or the grade accumulated since the
+          binding, that of [locks], the locks since the binding, oldest first,
+          is below the unit *)
   | Op_case_capture of {
       var : Ast.variable;
       bound_at : Location.t;
       clause : clause;
-      elapsed : 'rho elapsed list;
+      locks : 'rho lock list;
     }
-      (** as [Use_after_time], for a variable bound outside [clause], the
-          outermost such clause, whose lock [⟨⊤⟩] is among the elapsed grades *)
+      (** as [Use_under_locks], for a variable bound outside [clause], the
+          outermost such clause, whose lock [⟨⊤⟩] is among the locks *)
   | Instance_of of {
       var : Ast.variable;
       defined_at : Location.t option;
@@ -126,9 +128,9 @@ type ('rho, 'eps) why =
   | Sequencing
       (** at = the computation bound by [let] or [;]; its type is the pattern's
           and its effect the lock of the continuation *)
-  | Continuation_effect of elapsed_kind
-      (** at = the computation that runs after a lock of the given kind; its
-          effect is composed after the lock's *)
+  | Continuation_effect of lock_kind
+      (** at = the computation under a lock of the given kind; its effect is
+          composed after the lock's *)
   | Default_of of { op : Ast.operation; signature_at : Location.t }
       (** at = the default implementation; its parameter, result (steps
           [Argument], [Result]) and effect (step [Effect]) are bounded by the
@@ -170,10 +172,9 @@ val with_stated : ('rho, 'eps) stated -> ('rho, 'eps) t -> ('rho, 'eps) t
 (** [with_stated s reason] is [reason] recording [s] as stated, unless it
     records a stated ordering already. *)
 
-val clause_of_elapsed : 'rho elapsed list -> clause option
-(** [clause_of_elapsed elapsed] is the clause of the first lock of kind
-    [Clause_lock] in [elapsed], the outermost one when [elapsed] is oldest
-    first. *)
+val clause_of_locks : 'rho lock list -> clause option
+(** [clause_of_locks locks] is the clause of the first lock of kind
+    [Clause_lock] in [locks], the outermost one when [locks] is oldest first. *)
 
 val map_grades :
   ('rho -> 'rho2) -> ('eps -> 'eps2) -> ('rho, 'eps) t -> ('rho2, 'eps2) t

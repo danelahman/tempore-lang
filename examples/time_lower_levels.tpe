@@ -50,8 +50,8 @@ let publish_after_work () =
 (* Correctly rejected by the typechecker: two ticks are too early for an
    embargo of three:
 
-     Typing error: Variable `e` is unboxed after grade `(2,Low)` has elapsed,
-       which does not match its box grade `(3,Low)`
+     Typing error: Variable `e` is unboxed with grade `(2,Low)` accumulated
+       since it was bound, which is not below its box grade `(3,Low)`
        ...
        Note: the resource inequality `(2,Low) ≾ (3,Low)` does not hold
 *)
@@ -66,8 +66,8 @@ let publish_too_early () =
 (* Correctly rejected by the typechecker: the embargo has lifted, but the desk
    consulted an insider in the meantime:
 
-     Typing error: Variable `e` is unboxed after grade `(3,High)` has elapsed,
-       which does not match its box grade `(3,Low)`
+     Typing error: Variable `e` is unboxed with grade `(3,High)` accumulated
+       since it was bound, which is not below its box grade `(3,Low)`
        ...
        Note: the resource inequality `(3,High) ≾ (3,Low)` does not hold
 *)

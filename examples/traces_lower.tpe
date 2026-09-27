@@ -209,9 +209,9 @@ let deliver_by_events () =
    through the extruder. The types alone no longer allow a print to be run
    backwards, so only the grade can catch this:
 
-     Typing error: Variable `k` is unboxed after grade
-       `{Heat; Cool; Extrude}` has elapsed, which does not match its box
-       grade `{Heat; Extrude; Cool}`
+     Typing error: Variable `k` is unboxed with grade `{Heat; Cool; Extrude}`
+       accumulated since it was bound, which is not below its box grade
+       `{Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Heat; Cool; Extrude} <= {Heat; Extrude; Cool}` does not hold
 *)
@@ -230,8 +230,8 @@ let early_cooler =
    'Cool', and the order of a demand is not negotiable, however the model that
    is handed to the cooler came to be:
 
-     Typing error: Variable `k` is unboxed after grade `{Cool; Heat}` has
-       elapsed, which does not match its box grade
+     Typing error: Variable `k` is unboxed with grade `{Cool; Heat}` accumulated
+       since it was bound, which is not below its box grade
        `{Heat; Cool | Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Cool; Heat} <= {Heat; Cool | Heat; Extrude; Cool}` does not hold
@@ -252,8 +252,8 @@ let twisted_printer =
    where the very same clause is accepted, because an upper bound only forbids
    doing more:
 
-     Typing error: Variable `k` is unboxed after grade `{Heat; Extrude}`
-       has elapsed, which does not match its box grade
+     Typing error: Variable `k` is unboxed with grade `{Heat; Extrude}`
+       accumulated since it was bound, which is not below its box grade
        `{Heat; Cool | Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Heat; Extrude} <= {Heat; Cool | Heat; Extrude; Cool}` does not
@@ -276,8 +276,8 @@ let sloppy_printer =
    circular. A default is checked against the 'within (1, 1)' bounds instead,
    which the very same tick of mixing meets exactly:
 
-     Typing error: Variable `k` is unboxed after grade `{1}` has
-       elapsed, which does not match its box grade `{MixEpoxy}`
+     Typing error: Variable `k` is unboxed with grade `{1}` accumulated since it
+       was bound, which is not below its box grade `{MixEpoxy}`
        Note: the resource inequality `{1} <= {MixEpoxy}` does not
          hold
 *)
@@ -292,8 +292,8 @@ let mixer =
    instead of before it, so only the two ticks of the closing rest are banked
    towards the eight it needs to set:
 
-     Typing error: Variable `glue` is unboxed after grade `{2}` has elapsed,
-       which does not match its box grade `{8}`
+     Typing error: Variable `glue` is unboxed with grade `{2}` accumulated since
+       it was bound, which is not below its box grade `{8}`
        Note: the resource inequality `{2} <= {8}` does not hold
 *)
 (*
@@ -312,8 +312,8 @@ let print_sword_eager () =
    demanded operation, so a clause that only delays cannot realise the
    transmission 'Deliver' promises, no matter how long it waits:
 
-     Typing error: Variable `k` is unboxed after grade `{6}` has
-       elapsed, which does not match its box grade `{Tx | Tx; Tx}`
+     Typing error: Variable `k` is unboxed with grade `{6}` accumulated since it
+       was bound, which is not below its box grade `{Tx | Tx; Tx}`
        Note: the resource inequality `{6} <= {Tx | Tx; Tx}` does not
          hold
 *)
@@ -327,8 +327,8 @@ let deliver_stall =
 (* Correctly rejected by the typechecker: a clause that drops the message
    altogether banks nothing towards the transmission 'Deliver' promises:
 
-     Typing error: Variable `k` is unboxed before any grade has
-       elapsed, but its box grade is `{Tx | Tx; Tx}`
+     Typing error: Variable `k` is unboxed with the unit grade `{0}` accumulated
+       since it was bound, which is not below its box grade `{Tx | Tx; Tx}`
        Note: the resource inequality `{0} <= {Tx | Tx; Tx}` does not
          hold
 *)
@@ -343,8 +343,8 @@ let deliver_drop =
    the extrusion, so the three ticks the extruder banks are spent before the
    glue exists, and nothing at all is banked towards the three it needs to set:
 
-     Typing error: Variable `glue` is unboxed before any grade has elapsed,
-       but its box grade is `{3}`
+     Typing error: Variable `glue` is unboxed with the unit grade `{0}`
+       accumulated since it was bound, which is not below its box grade `{3}`
        Note: the resource inequality `{0} <= {3}` does not hold
 *)
 (*
@@ -359,8 +359,8 @@ let extrude_layer_slow h =
    transmission, which banks only two ticks, not the four the receipt
    demands:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{4}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{4}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {4}` does not hold
 *)
 (*
@@ -376,8 +376,8 @@ let deliver_ping_eager () =
 (* Correctly rejected by the typechecker: one 'Deliver' does not guarantee two
    transmissions, so it does not cover a demand for two:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{Tx; Tx}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{Tx; Tx}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {Tx; Tx}` does not
          hold
 *)

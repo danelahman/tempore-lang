@@ -240,9 +240,9 @@ let mixer =
    epoxy may have hardened, since 2 + 5 + 2 + 5 = 14 is past the eleven ticks
    it allows:
 
-     Typing error: Variable `glue` is unboxed after grade
-       `{Heat; Extrude; Cool; 5}` has elapsed, which does not match its box
-       grade `{11}`
+     Typing error: Variable `glue` is unboxed with grade
+       `{Heat; Extrude; Cool; 5}` accumulated since it was bound, which is not
+       below its box grade `{11}`
        Note: the resource inequality `{Heat; Extrude; Cool; 5} <= {11}` does
          not hold
 *)
@@ -263,8 +263,8 @@ let print_sword_cheap () =
    and mixed epoxy does not keep, since 'epoxy' is declared 'noneternal', so
    the unboxed glue does not survive that tick:
 
-     Typing error: Variable `g` is used after grade `{1}` has elapsed, but
-       its type `epoxy` is not eternal
+     Typing error: Variable `g` is used with grade `{1}` accumulated since it
+       was bound, but its type `epoxy` is not eternal
        Note: the resource inequality `{1} <= {0}` does not hold
 *)
 (*
@@ -318,8 +318,8 @@ let send_lazy =
    ticks, which does not pay for the two-transmission alternative of 'Send',
    which costs 3 + 3:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{5}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{5}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {5}` does not hold
 *)
 (*
@@ -335,8 +335,8 @@ let send_telemetry_cheap () =
 (* Correctly rejected by the typechecker: a bound of one transmission is a
    strict sub-grade of what 'Send' may exhibit, since it may transmit twice:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{Tx}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{Tx}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {Tx}` does not hold
 *)
 (*

@@ -292,8 +292,8 @@ let mixer =
    instead of before it, so only the two ticks of the closing rest are banked
    towards the eight it needs to set:
 
-     Typing error: Variable `glue` is unboxed after grade `{2}` has elapsed,
-       which does not match its box grade `{8}`
+     Typing error: Variable `glue` is unboxed with grade `{2}` accumulated since
+       it was bound, which is not below its box grade `{8}`
        Note: the resource inequality `{2} <= {8}` does not hold
 *)
 (*
@@ -343,8 +343,8 @@ let deliver_drop =
    the extrusion, so the three ticks the extruder banks are spent before the
    glue exists, and nothing at all is banked towards the three it needs to set:
 
-     Typing error: Variable `glue` is unboxed before any grade has elapsed,
-       but its box grade is `{3}`
+     Typing error: Variable `glue` is unboxed with the unit grade `{0}`
+       accumulated since it was bound, which is not below its box grade `{3}`
        Note: the resource inequality `{0} <= {3}` does not hold
 *)
 (*
@@ -359,8 +359,8 @@ let extrude_layer_slow h =
    transmission, which banks only two ticks, not the four the receipt
    demands:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{4}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{4}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {4}` does not hold
 *)
 (*
@@ -376,8 +376,8 @@ let deliver_ping_eager () =
 (* Correctly rejected by the typechecker: one 'Deliver' does not guarantee two
    transmissions, so it does not cover a demand for two:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{Tx; Tx}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{Tx; Tx}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {Tx; Tx}` does not
          hold
 *)

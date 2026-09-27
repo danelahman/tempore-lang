@@ -90,8 +90,8 @@ let settle () =
 (* Correctly rejected by the typechecker: the clause reads after closing,
    which no session permits:
 
-     Typing error: Variable `k` is unboxed after grade `{Open; Close; Read}`
-       has elapsed, which does not match its box grade
+     Typing error: Variable `k` is unboxed with grade `{Open; Close; Read}`
+       accumulated since it was bound, which is not below its box grade
        `{Open; (Read | Write)*; Close}`
        ...
        Note: the resource inequality
@@ -124,8 +124,8 @@ let unclosed () : int # {Open; (Read | Write)*; Close} =
 (* Correctly rejected by the typechecker: the token is used before
    authenticating:
 
-     Typing error: Variable `t` is unboxed after grade `{Fetch}` has elapsed,
-       which does not match its box grade `{(_ & ~Auth)*; Auth; _*}`
+     Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since
+       it was bound, which is not below its box grade `{(_ & ~Auth)*; Auth; _*}`
        ...
        Note: the resource inequality `{Fetch} <= {(_ & ~Auth)*; Auth; _*}`
          does not hold
@@ -142,8 +142,8 @@ let before_auth () =
 (* Correctly rejected by the typechecker: the capability is used after its
    revocation:
 
-     Typing error: Variable `c` is unboxed after grade `{Revoke}` has elapsed,
-       which does not match its box grade `{(_ & ~Revoke)*}`
+     Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated
+       since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
        ...
        Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not
          hold
@@ -159,8 +159,8 @@ let after_revoke () =
 (* Correctly rejected by the typechecker: the three ticks come after the
    'Fetch', and the order is part of the grade:
 
-     Typing error: Variable `s` is unboxed after grade `{Fetch; 3}` has
-       elapsed, which does not match its box grade `{3; _*}`
+     Typing error: Variable `s` is unboxed with grade `{Fetch; 3}` accumulated
+       since it was bound, which is not below its box grade `{3; _*}`
        ...
        Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
 *)

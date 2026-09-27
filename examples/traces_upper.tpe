@@ -179,9 +179,9 @@ let send_by_two () =
    through the extruder. The types alone no longer allow a print to be run
    backwards, so only the grade can catch this:
 
-     Typing error: Variable `k` is unboxed after grade
-       `{Heat; Cool; Extrude}` has elapsed, which does not match its box
-       grade `{Heat; Extrude; Cool}`
+     Typing error: Variable `k` is unboxed with grade `{Heat; Cool; Extrude}`
+       accumulated since it was bound, which is not below its box grade
+       `{Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Heat; Cool; Extrude} <= {Heat; Extrude; Cool}` does not hold
 *)
@@ -200,8 +200,8 @@ let early_cooler =
    with a 'Cool', and the order of a bound is not negotiable, however the model
    that is handed to the cooler came to be:
 
-     Typing error: Variable `k` is unboxed after grade `{Cool; Heat}` has
-       elapsed, which does not match its box grade
+     Typing error: Variable `k` is unboxed with grade `{Cool; Heat}` accumulated
+       since it was bound, which is not below its box grade
        `{Heat; Cool | Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Cool; Heat} <= {Heat; Cool | Heat; Extrude; Cool}` does not hold
@@ -223,8 +223,8 @@ let twisted_printer =
    A default is checked against the 'within (1, 1)' bounds instead, which the
    very same tick of mixing meets exactly:
 
-     Typing error: Variable `k` is unboxed after grade `{1}` has
-       elapsed, which does not match its box grade `{MixEpoxy}`
+     Typing error: Variable `k` is unboxed with grade `{1}` accumulated since it
+       was bound, which is not below its box grade `{MixEpoxy}`
        Note: the resource inequality `{1} <= {MixEpoxy}` does not
          hold
 *)
@@ -240,9 +240,9 @@ let mixer =
    epoxy may have hardened, since 2 + 5 + 2 + 5 = 14 is past the eleven ticks
    it allows:
 
-     Typing error: Variable `glue` is unboxed after grade
-       `{Heat; Extrude; Cool; 5}` has elapsed, which does not match its box
-       grade `{11}`
+     Typing error: Variable `glue` is unboxed with grade
+       `{Heat; Extrude; Cool; 5}` accumulated since it was bound, which is not
+       below its box grade `{11}`
        Note: the resource inequality `{Heat; Extrude; Cool; 5} <= {11}` does
          not hold
 *)
@@ -263,8 +263,8 @@ let print_sword_cheap () =
    and mixed epoxy does not keep, since 'epoxy' is declared 'noneternal', so
    the unboxed glue does not survive that tick:
 
-     Typing error: Variable `g` is used after grade `{1}` has elapsed, but
-       its type `epoxy` is not eternal
+     Typing error: Variable `g` is used with grade `{1}` accumulated since it
+       was bound, but its type `epoxy` is not eternal
        Note: the resource inequality `{1} <= {0}` does not hold
 *)
 (*
@@ -283,8 +283,8 @@ let print_sword_hasty () =
 (* Correctly rejected by the typechecker: 'Send' allows at most two
    transmissions, so a clause that retries twice does not fit:
 
-     Typing error: Variable `k` is unboxed after grade `{Tx; Tx; Tx}`
-       has elapsed, which does not match its box grade
+     Typing error: Variable `k` is unboxed with grade `{Tx; Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade
        `{Tx | Tx; Tx}`
        Note: the resource inequality `{Tx; Tx; Tx} <= {Tx | Tx; Tx}` does not
          hold
@@ -303,8 +303,8 @@ let send_thrice =
 (* Correctly rejected by the typechecker: the alternatives of 'Send' contain no
    delays, so there is no allowance left to pay for a tick of waiting:
 
-     Typing error: Variable `k` is unboxed after grade `{Tx; 1}` has
-       elapsed, which does not match its box grade `{Tx | Tx; Tx}`
+     Typing error: Variable `k` is unboxed with grade `{Tx; 1}` accumulated
+       since it was bound, which is not below its box grade `{Tx | Tx; Tx}`
        Note: the resource inequality `{Tx; 1} <= {Tx | Tx; Tx}` does not hold
 *)
 (*
@@ -318,8 +318,8 @@ let send_lazy =
    ticks, which does not pay for the two-transmission alternative of 'Send',
    which costs 3 + 3:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{5}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{5}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {5}` does not hold
 *)
 (*
@@ -335,8 +335,8 @@ let send_telemetry_cheap () =
 (* Correctly rejected by the typechecker: a bound of one transmission is a
    strict sub-grade of what 'Send' may exhibit, since it may transmit twice:
 
-     Typing error: Variable `slot` is unboxed after grade `{Tx | Tx; Tx}` has
-       elapsed, which does not match its box grade `{Tx}`
+     Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
+       accumulated since it was bound, which is not below its box grade `{Tx}`
        Note: the resource inequality `{Tx | Tx; Tx} <= {Tx}` does not hold
 *)
 (*

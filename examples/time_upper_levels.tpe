@@ -43,8 +43,8 @@ let query_eventually () =
 (* Correctly rejected by the typechecker: after six ticks the session has
    expired:
 
-     Typing error: Variable `s` is unboxed after grade `(6,Low)` has elapsed,
-       which does not match its box grade `(5,Low)`
+     Typing error: Variable `s` is unboxed with grade `(6,Low)` accumulated
+       since it was bound, which is not below its box grade `(5,Low)`
        ...
        Note: the resource inequality `(6,Low) <= (5,Low)` does not hold
 *)
@@ -59,8 +59,8 @@ let query_expired () =
 (* Correctly rejected by the typechecker: the session is still fresh, but
    reading the payroll has revoked it:
 
-     Typing error: Variable `s` is unboxed after grade `(1,High)` has elapsed,
-       which does not match its box grade `(5,Low)`
+     Typing error: Variable `s` is unboxed with grade `(1,High)` accumulated
+       since it was bound, which is not below its box grade `(5,Low)`
        ...
        Note: the resource inequality `(1,High) <= (5,Low)` does not hold
 *)

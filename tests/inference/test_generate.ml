@@ -280,8 +280,8 @@ module Small = struct
     expect_text "variable" ~expected:"α <: α\nEt(α) ∨ 0 ≾ 0"
       (Gen.generate_expression env_x (var x) (expect alpha))
 
-  (* The same variable behind the lock of a clause: the elapsed grade is the
-     top, and the use a capture by the clause. *)
+  (* The same variable behind the lock of a clause: the accumulated grade is
+     the top, and the use a capture by the clause. *)
   let variable_in_clause () =
     let op = Ast.OpName.fresh "Op" in
     let clause = { Reason.op; signature_at = loc; case_at = loc } in
@@ -324,8 +324,8 @@ module Small = struct
     let locks =
       List.filter_map
         (function
-          | C.Eternal_or_unit ({ why = Reason.Use_after_time u; _ }, _, rho) ->
-              Some (u.elapsed, rho)
+          | C.Eternal_or_unit ({ why = Reason.Use_under_locks u; _ }, _, rho) ->
+              Some (u.locks, rho)
           | _ -> None)
         (atoms constr)
     in
@@ -336,7 +336,7 @@ module Small = struct
           (C.to_string constr)
 
   (* [unbox x as y in return y] for [x : [3]int] bound before [delay 2]: the
-     box type is pinned and the elapsed grade below its grade. *)
+     box type is pinned and the accumulated grade below its grade. *)
   let unbox () =
     let boxed =
       Ast.TyBox (X.Rho.of_nat 3, Ast.TyConst Language.Const.IntegerTy)
@@ -396,7 +396,7 @@ module Small = struct
                       why =
                         Reason.Op_case_capture
                           {
-                            elapsed =
+                            locks =
                               {
                                 grade = X.Rho_const top;
                                 kind = Clause_lock _;

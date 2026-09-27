@@ -13,10 +13,11 @@
     atom against the bound carries that reason with the term as its subject.
 
     The context is a stack of bindings [x : A] and locks [⟨ρ⟩] of resource
-    grades; a variable bound under locks [⟨ρ₁⟩ … ⟨ρₙ⟩] is used after the elapsed
-    grade [ρ₁ · … · ρₙ]. A handler clause and a default implementation are
-    generated under the lock [⟨⊤⟩]. Top-level definitions and primitives are not
-    in the context but in a table of schemes, and are used at any time. *)
+    grades; a variable bound under locks [⟨ρ₁⟩ … ⟨ρₙ⟩] is used with the grade
+    [ρ₁ · … · ρₙ] accumulated since its binding. A handler clause and a default
+    implementation are generated under the lock [⟨⊤⟩]. Top-level definitions and
+    primitives are not in the context but in a table of schemes, and are used
+    under any locks. *)
 
 module Ast = Language.Ast
 module Location = Utils.Location
@@ -134,8 +135,8 @@ module Make (C : Constraint.S) : sig
   val bind : env -> Ast.variable -> ty -> bound_at:Location.t -> env
   (** [bind env x ty ~bound_at] extends the context by [x : ty]. *)
 
-  val lock : env -> rho Reason.elapsed -> env
-  (** [lock env elapsed] extends the context by the lock [⟨elapsed.grade⟩]. *)
+  val lock : env -> rho Reason.lock -> env
+  (** [lock env l] extends the context by the lock [⟨l.grade⟩]. *)
 
   val find_type_definition : env -> Ast.ty_name -> ty_definition option
   (** [find_type_definition env name] is the definition of [name]. *)

@@ -48,8 +48,8 @@ let forward_secret () =
 (* Correctly rejected by the typechecker: once the vault has been read, the
    public channel is out of reach:
 
-     Typing error: Variable `c` is unboxed after grade `High` has elapsed, which
-       does not match its box grade `Low`
+     Typing error: Variable `c` is unboxed with grade `High` accumulated since
+       it was bound, which is not below its box grade `Low`
        ...
        Note: the resource inequality `High <= Low` does not hold
 *)
@@ -64,8 +64,8 @@ let leak () =
 (* Correctly rejected by the typechecker: a branch touches the join of the
    levels its arms touch, here 'High', even if the public arm is taken:
 
-     Typing error: Variable `c` is unboxed after grade `High` has elapsed, which
-       does not match its box grade `Low`
+     Typing error: Variable `c` is unboxed with grade `High` accumulated since
+       it was bound, which is not below its box grade `Low`
        ...
 *)
 (*

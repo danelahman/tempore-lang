@@ -9,7 +9,7 @@ type clause = {
   case_at : Location.t;
 }
 
-type elapsed_kind =
+type lock_kind =
   | Delayed of int
   | Performed of Ast.operation
   | Sequenced
@@ -17,7 +17,7 @@ type elapsed_kind =
   | Handled
   | Clause_lock of clause
 
-type 'rho elapsed = { grade : 'rho; at : Location.t; kind : elapsed_kind }
+type 'rho lock = { grade : 'rho; at : Location.t; kind : lock_kind }
 
 type step =
   | Argument
@@ -47,18 +47,18 @@ type ('rho, 'eps) why =
   | Unboxed of {
       var : Ast.variable;
       bound_at : Location.t option;
-      elapsed : 'rho elapsed list;
+      locks : 'rho lock list;
     }
-  | Use_after_time of {
+  | Use_under_locks of {
       var : Ast.variable;
       bound_at : Location.t;
-      elapsed : 'rho elapsed list;
+      locks : 'rho lock list;
     }
   | Op_case_capture of {
       var : Ast.variable;
       bound_at : Location.t;
       clause : clause;
-      elapsed : 'rho elapsed list;
+      locks : 'rho lock list;
     }
   | Instance_of of {
       var : Ast.variable;
@@ -77,7 +77,7 @@ type ('rho, 'eps) why =
   | Function_parameter
   | Pure_body
   | Sequencing
-  | Continuation_effect of elapsed_kind
+  | Continuation_effect of lock_kind
   | Default_of of { op : Ast.operation; signature_at : Location.t }
   | Top_definition of Ast.variable
   | Top_computation
@@ -103,21 +103,21 @@ let with_stated s reason =
   | Some _ -> reason
   | None -> { reason with stated = Some s }
 
-let clause_of_elapsed elapsed =
+let clause_of_locks locks =
   List.find_map
     (fun e -> match e.kind with Clause_lock c -> Some c | _ -> None)
-    elapsed
+    locks
 
-let map_elapsed on_rho = List.map (fun e -> { e with grade = on_rho e.grade })
+let map_locks on_rho = List.map (fun e -> { e with grade = on_rho e.grade })
 
 let rec map_grades on_rho on_eps reason =
   let why =
     match reason.why with
-    | Unboxed u -> Unboxed { u with elapsed = map_elapsed on_rho u.elapsed }
-    | Use_after_time u ->
-        Use_after_time { u with elapsed = map_elapsed on_rho u.elapsed }
+    | Unboxed u -> Unboxed { u with locks = map_locks on_rho u.locks }
+    | Use_under_locks u ->
+        Use_under_locks { u with locks = map_locks on_rho u.locks }
     | Op_case_capture u ->
-        Op_case_capture { u with elapsed = map_elapsed on_rho u.elapsed }
+        Op_case_capture { u with locks = map_locks on_rho u.locks }
     | Instance_of i ->
         Instance_of { i with inner = map_grades on_rho on_eps i.inner }
     | Application a -> Application a
@@ -146,16 +146,16 @@ let rec map_grades on_rho on_eps reason =
   in
   { reason with why; stated }
 
-let fold_elapsed on_rho elapsed acc =
-  List.fold_left (fun acc e -> on_rho e.grade acc) acc elapsed
+let fold_locks on_rho locks acc =
+  List.fold_left (fun acc e -> on_rho e.grade acc) acc locks
 
 let rec fold_grades on_rho on_eps reason acc =
   let acc =
     match reason.why with
-    | Unboxed { elapsed; _ }
-    | Use_after_time { elapsed; _ }
-    | Op_case_capture { elapsed; _ } ->
-        fold_elapsed on_rho elapsed acc
+    | Unboxed { locks; _ }
+    | Use_under_locks { locks; _ }
+    | Op_case_capture { locks; _ } ->
+        fold_locks on_rho locks acc
     | Instance_of { inner; _ } -> fold_grades on_rho on_eps inner acc
     | _ -> acc
   in
@@ -176,7 +176,7 @@ let print_step s ppf =
   | Handler_input -> Format.pp_print_string ppf "handler input"
   | Handler_output -> Format.pp_print_string ppf "handler output"
 
-let print_elapsed_kind kind ppf =
+let print_lock_kind kind ppf =
   match kind with
   | Delayed n -> Format.fprintf ppf "delay %d" n
   | Performed op -> Format.fprintf ppf "perform %t" (Ast.OpName.print op)
@@ -202,7 +202,7 @@ let print_why why ppf =
       Format.fprintf ppf "argument of %t" (Ast.Label.print lbl)
   | Boxed_value -> text "boxed value"
   | Unboxed { var; _ } -> var_rule "unbox" var
-  | Use_after_time { var; _ } -> var_rule "use of" var
+  | Use_under_locks { var; _ } -> var_rule "use of" var
   | Op_case_capture { var; clause; _ } ->
       Format.fprintf ppf "use of %t in the clause for %t"
         (Ast.Variable.print var)
@@ -221,7 +221,7 @@ let print_why why ppf =
   | Pure_body -> text "pure body"
   | Sequencing -> text "sequencing"
   | Continuation_effect kind ->
-      Format.fprintf ppf "continuation of %t" (print_elapsed_kind kind)
+      Format.fprintf ppf "continuation of %t" (print_lock_kind kind)
   | Default_of { op; _ } -> op_rule "default of" op
   | Top_definition x -> var_rule "definition of" x
   | Top_computation -> text "top-level computation"

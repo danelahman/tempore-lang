@@ -131,8 +131,6 @@ module Make (C : Inference.Constraint.S) = struct
     | Some c -> GS.E.equal p.bounds c GS.E.one
     | None -> false
 
-  let is_closed_rho rho = Option.is_some (X.Rho.value rho)
-
   (* A computation's effect of the unit is not shown. *)
   let ty_raw p ty =
     let grades =
@@ -276,7 +274,7 @@ module Make (C : Inference.Constraint.S) = struct
   let needed_eternal x =
     match var_name x with
     | Some name -> "the type of " ^ name
-    | None -> "the type it keeps across a delay"
+    | None -> "the type of a value it keeps while a grade accumulates"
 
   (* ------------------------------------------------------------------ *)
   (* Continuation grades                                                 *)
@@ -435,59 +433,57 @@ module Make (C : Inference.Constraint.S) = struct
           stated values instance
 
   (* ------------------------------------------------------------------ *)
-  (* Elapsed grades                                                      *)
+  (* Accumulated grades                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  (* An elapsed grade as a label shows it: the image of an effect grade as the
-     effect grade. *)
-  let elapsed_raw p rho =
+  (* The grade of a lock as a label shows it: the image of an effect grade as
+     the effect grade. *)
+  let lock_grade_raw p rho =
     match canon_rho p rho with
     | X.Rho_map eps -> eps_raw p eps
     | rho -> rho_raw p rho
 
-  (* One place that contributed to an elapsed grade, naming its share. A
-     [delay n] states its grade in the source, so it is repeated only where the
-     grades render it as other than [n]. *)
-  let elapsed_text p (e : C.rho Reason.elapsed) =
-    let grade = code (elapsed_raw p e.grade) in
+  (* The grade a label names for a lock: its own, or, where that is not
+     closed, the grade [n] a [delay n] states in the source. *)
+  let lock_grade p (e : C.rho Reason.lock) =
+    match (e.kind, X.Rho.value (canon_rho p e.grade)) with
+    | Reason.Delayed n, None -> X.Rho.of_nat n
+    | _ -> e.grade
+
+  (* One lock that contributed to an accumulated grade, naming its grade and
+     its construct. *)
+  let lock_text p (e : C.rho Reason.lock) =
+    let grade = code (lock_grade_raw p (lock_grade p e)) in
+    let accumulates what =
+      Printf.sprintf "grade %s accumulates %s (%s)" grade here what
+    in
     match e.kind with
-    | Reason.Delayed n ->
-        let g = elapsed_raw p e.grade in
-        if g = string_of_int n || not (is_closed_rho (canon_rho p e.grade)) then
-          Printf.sprintf "%s elapses %s"
-            (code (Printf.sprintf "delay %d" n))
-            here
-        else
-          Printf.sprintf "%s elapses %s (grade %s)"
-            (code (Printf.sprintf "delay %d" n))
-            here (code g)
-    | Reason.Performed op ->
-        Printf.sprintf "%s is performed %s (grade %s)" (op_name op) here grade
-    | Reason.Sequenced ->
-        Printf.sprintf "this computation runs %s (grade %s)" here grade
-    | Reason.Boxed ->
-        Printf.sprintf "the value is boxed %s (grade %s ahead)" here grade
-    | Reason.Handled ->
-        Printf.sprintf "the handled computation runs %s (grade %s)" here grade
+    | Reason.Delayed _ -> accumulates "delay"
+    | Reason.Performed op -> accumulates ("operation " ^ op_name op)
+    | Reason.Sequenced -> accumulates "this computation"
+    | Reason.Boxed -> accumulates "the boxed value"
+    | Reason.Handled -> accumulates "the handled computation"
     | Reason.Clause_lock clause ->
-        Printf.sprintf "the case for %s begins %s (grade %s)"
-          (op_name clause.op) here grade
+        Printf.sprintf
+          "the case for %s is checked with the top grade %s accumulated"
+          (op_name clause.op) grade
 
   (* A grade of the unit is no part of the explanation. *)
-  let elapsed_labels p elapsed =
+  let lock_labels p locks =
     List.filter_map
-      (fun (e : C.rho Reason.elapsed) ->
+      (fun (e : C.rho Reason.lock) ->
         if is_unit_rho p e.grade then None
-        else Some (label e.at (elapsed_text p e)))
-      elapsed
+        else Some (label e.at (lock_text p e)))
+      locks
 
-  (* The product of the elapsed grades, oldest first. *)
-  let elapsed_total (elapsed : C.rho Reason.elapsed list) =
-    match elapsed with
+  (* The grade accumulated by locks, oldest first: the product of their
+     grades. *)
+  let accumulated_grade (locks : C.rho Reason.lock list) =
+    match locks with
     | [] -> X.Rho.unit
     | e :: rest ->
         List.fold_left
-          (fun rho (e : C.rho Reason.elapsed) -> X.Rho.mul rho e.grade)
+          (fun rho (e : C.rho Reason.lock) -> X.Rho.mul rho e.grade)
           e.grade rest
 
   (* Labels a reader meets in the order the program reads. *)
@@ -516,18 +512,18 @@ module Make (C : Inference.Constraint.S) = struct
   let rec use_of (reason : C.reason) =
     match reason.why with
     | Reason.Instance_of { inner; _ } -> use_of inner
-    | Reason.Use_after_time _ | Reason.Op_case_capture _ -> Some reason
+    | Reason.Use_under_locks _ | Reason.Op_case_capture _ -> Some reason
     | _ -> None
 
-  (** The story of a use after time, in source order: where the variable was
-      bound, where grades elapsed, and the use itself. *)
+  (** The story of a use under locks, in source order: where the variable was
+      bound, where grades accumulated since, and the use itself. *)
   let use_labels p (use : C.reason) =
     match use.why with
-    | Reason.Use_after_time { var; bound_at; elapsed }
-    | Reason.Op_case_capture { var; bound_at; elapsed; _ } ->
-        let spent = elapsed_labels p elapsed in
-        let total = elapsed_total elapsed in
-        let clause = Reason.clause_of_elapsed elapsed in
+    | Reason.Use_under_locks { var; bound_at; locks }
+    | Reason.Op_case_capture { var; bound_at; locks; _ } ->
+        let spent = lock_labels p locks in
+        let total = accumulated_grade locks in
+        let clause = Reason.clause_of_locks locks in
         let text =
           match clause with
           | Some c ->
@@ -537,8 +533,8 @@ module Make (C : Inference.Constraint.S) = struct
               Printf.sprintf "%s is used %s" (describe var) here
           | None ->
               Printf.sprintf
-                "%s is used %s after grade %s has elapsed, which only an \
-                 eternal type allows"
+                "%s is used %s with grade %s accumulated since it was bound, \
+                 which only an eternal type allows"
                 (describe var) here (rho_code p total)
         in
         let clause =
@@ -554,20 +550,19 @@ module Make (C : Inference.Constraint.S) = struct
     | _ -> []
 
   (** The related places a reason contributes: where a variable was bound, where
-      time elapsed since, where an operation was declared, and the chain of
-      definitions a scheme's atom came through. *)
+      grades accumulated since, where an operation was declared, and the chain
+      of definitions a scheme's atom came through. *)
   let rec labels_of_reason p (reason : C.reason) =
     match reason.why with
-    | Reason.Use_after_time { var; bound_at; elapsed } ->
-        in_span_order
-          (binding_labels var (Some bound_at) @ elapsed_labels p elapsed)
-    | Reason.Unboxed { var; bound_at; elapsed } ->
-        in_span_order (binding_labels var bound_at @ elapsed_labels p elapsed)
-    | Reason.Op_case_capture { var; bound_at; clause; elapsed } ->
+    | Reason.Use_under_locks { var; bound_at; locks } ->
+        in_span_order (binding_labels var (Some bound_at) @ lock_labels p locks)
+    | Reason.Unboxed { var; bound_at; locks } ->
+        in_span_order (binding_labels var bound_at @ lock_labels p locks)
+    | Reason.Op_case_capture { var; bound_at; clause; locks } ->
         in_span_order
           (declared_label clause.op clause.signature_at
            :: binding_labels var (Some bound_at)
-          @ elapsed_labels p elapsed)
+          @ lock_labels p locks)
     | Reason.Instance_of { var; defined_at; inner } ->
         let definition =
           match defined_at with
@@ -576,7 +571,7 @@ module Make (C : Inference.Constraint.S) = struct
         in
         let rest =
           match inner.why with
-          | Reason.Use_after_time _ | Reason.Op_case_capture _ ->
+          | Reason.Use_under_locks _ | Reason.Op_case_capture _ ->
               use_labels p inner
           | _ -> labels_of_reason p inner
         in
@@ -606,7 +601,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Variant_argument lbl -> "the argument of " ^ label_name lbl
     | Reason.Boxed_value -> "the box"
     | Reason.Unboxed { var; _ } -> "the unboxing of " ^ describe var
-    | Reason.Use_after_time { var; _ } | Reason.Op_case_capture { var; _ } ->
+    | Reason.Use_under_locks { var; _ } | Reason.Op_case_capture { var; _ } ->
         "the use of " ^ describe var
     | Reason.Instance_of { var; _ } -> "the type of " ^ describe var
     | Reason.Handler_case { op; _ } | Reason.Continuation_grade { op; _ } ->
@@ -634,8 +629,9 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Instance_of _ | Reason.Annotation | Reason.Pattern_annotation
     | Reason.Boxed_value | Reason.Default_of _ | Reason.Handler_case _
     | Reason.Continuation_grade _ | Reason.Perform_argument _
-    | Reason.Perform_continuation _ | Reason.Unboxed _ | Reason.Use_after_time _
-    | Reason.Op_case_capture _ | Reason.Variant_argument _ ->
+    | Reason.Perform_continuation _ | Reason.Unboxed _
+    | Reason.Use_under_locks _ | Reason.Op_case_capture _
+    | Reason.Variant_argument _ ->
         true
     | Reason.Application _ | Reason.Match_scrutinee _ | Reason.Match_branch
     | Reason.Handle_with | Reason.Handled_computation | Reason.Return_clause
@@ -1177,7 +1173,7 @@ module Make (C : Inference.Constraint.S) = struct
     | ( Some
           {
             why =
-              ( Reason.Use_after_time { var = x; _ }
+              ( Reason.Use_under_locks { var = x; _ }
               | Reason.Op_case_capture { var = x; _ } );
             _;
           },
@@ -1187,7 +1183,7 @@ module Make (C : Inference.Constraint.S) = struct
     | ( Some
           {
             why =
-              ( Reason.Use_after_time { var = x; _ }
+              ( Reason.Use_under_locks { var = x; _ }
               | Reason.Op_case_capture { var = x; _ } );
             _;
           },
@@ -1206,19 +1202,19 @@ module Make (C : Inference.Constraint.S) = struct
     | Some (Ast.TyBox _) -> [ "a box type is never eternal" ]
     | _ -> []
 
-  (* The case a capture crosses into runs at a time the handler does not
+  (* The case a capture crosses into runs with a grade the handler does not
      fix. *)
   let capture_message var clause t =
     match t with
     | Some t ->
         Printf.sprintf
           "%s has type %s, which is not eternal, so it cannot be used in the \
-           case for %s: the case runs at a time the handler does not fix"
+           case for %s: the case runs with a grade the handler does not fix"
           (subject var) t (op_name clause.Reason.op)
     | None ->
         Printf.sprintf
           "%s does not have an eternal type, so it cannot be used in the case \
-           for %s: the case runs at a time the handler does not fix"
+           for %s: the case runs with a grade the handler does not fix"
           (subject var) (op_name clause.Reason.op)
 
   let never_eternal source ty (reason : C.reason) =
@@ -1226,10 +1222,10 @@ module Make (C : Inference.Constraint.S) = struct
     let t = ty_code p ty in
     let message =
       match reason.why with
-      | Reason.Use_after_time { var; _ } ->
+      | Reason.Use_under_locks { var; _ } ->
           Printf.sprintf
-            "%s has type %s, which is not eternal, but is used after a grade \
-             has elapsed"
+            "%s has type %s, which is not eternal, but is used with a grade \
+             accumulated since it was bound that only an eternal type allows"
             (subject var) t
       | Reason.Op_case_capture { var; clause; _ } ->
           capture_message var clause (Some t)
@@ -1252,7 +1248,7 @@ module Make (C : Inference.Constraint.S) = struct
   (* Whether a reason names the promise an ordering breaks. *)
   let specific (r : C.reason) =
     match r.why with
-    | Reason.Unboxed _ | Reason.Use_after_time _ | Reason.Op_case_capture _
+    | Reason.Unboxed _ | Reason.Use_under_locks _ | Reason.Op_case_capture _
     | Reason.Instance_of _ | Reason.Continuation_grade _ | Reason.Default_of _
       ->
         true
@@ -1278,9 +1274,9 @@ module Make (C : Inference.Constraint.S) = struct
     then preferred
     else fallback
 
-  (* The failing ordering of a use or an unboxing, at the grades [total]
-     elapsed since the binding where they alone fail. *)
-  let at_elapsed p (f : C.rho refutation) total =
+  (* The failing ordering of a use or an unboxing, at the grade [total]
+     accumulated since the binding where it alone fails. *)
+  let at_accumulated p (f : C.rho refutation) total =
     match (f.rigids, N.Rho.closed_leq p.bounds total (snd f.instance)) with
     | [], Some false ->
         {
@@ -1297,21 +1293,21 @@ module Make (C : Inference.Constraint.S) = struct
     let g side = code (f.sort.raw p side) in
     let rs = f.rigids in
     match (reason.Reason.why, f.sort.tag) with
-    | Reason.Use_after_time { var; elapsed; _ }, Rho_tag ->
-        let total = shown_rho f (elapsed_total elapsed) (fst f.instance) in
-        let f = at_elapsed p f total in
+    | Reason.Use_under_locks { var; locks; _ }, Rho_tag ->
+        let total = shown_rho f (accumulated_grade locks) (fst f.instance) in
+        let f = at_accumulated p f total in
         let total = rho_code p total in
         let message =
           match Option.map (ty_code p) ty with
           | Some t ->
               Printf.sprintf
-                "%s is used after grade %s has elapsed, but its type %s is not \
-                 eternal"
+                "%s is used with grade %s accumulated since it was bound, but \
+                 its type %s is not eternal"
                 (subject var) total t
           | None ->
               Printf.sprintf
-                "%s is used after grade %s has elapsed, but its type is not \
-                 eternal"
+                "%s is used with grade %s accumulated since it was bound, but \
+                 its type is not eternal"
                 (subject var) total
         in
         (reason.at, message, [ ineq_note p f ])
@@ -1322,21 +1318,15 @@ module Make (C : Inference.Constraint.S) = struct
       ->
         let t = Option.map (ty_code p) ty in
         (reason.at, instance_eternal t var inner, [ ineq_note p f ])
-    | Reason.Unboxed { var; elapsed; _ }, Rho_tag ->
-        let total = shown_rho f (elapsed_total elapsed) (fst f.instance) in
-        let f = at_elapsed p f total in
+    | Reason.Unboxed { var; locks; _ }, Rho_tag ->
+        let total = shown_rho f (accumulated_grade locks) (fst f.instance) in
+        let f = at_accumulated p f total in
+        let unit_word = if is_unit_rho p total then "the unit " else "" in
         let message =
-          if is_unit_rho p total then
-            Printf.sprintf
-              "%s is unboxed before any grade has elapsed, but its box grade \
-               is %s"
-              (subject var) (g s2)
-          else
-            let total = rho_code p total in
-            Printf.sprintf
-              "%s is unboxed after grade %s has elapsed, which does not match \
-               its box grade %s"
-              (subject var) total (g s2)
+          Printf.sprintf
+            "%s is unboxed with %sgrade %s accumulated since it was bound, \
+             which is not below its box grade %s"
+            (subject var) unit_word (rho_code p total) (g s2)
         in
         (reason.at, message, [ ineq_note p f ])
     | Reason.Continuation_grade { op; _ }, _ when rs <> [] ->

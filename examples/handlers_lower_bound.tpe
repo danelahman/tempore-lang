@@ -45,7 +45,7 @@ let h'' =
 
 (* Correctly accepted by the typechecker: resuming twice unboxes 'k' a
    second time only after the first resumption has run for the
-   continuation's own rigid effect eps, growing the elapsed grade to
+   continuation's own rigid effect eps, growing the accumulated grade to
    71 · eps, which still meets its box grade 71, since more grade only helps. *)
 let h_twice =
   handler
@@ -68,8 +68,8 @@ let h_offset n =
    only once 71 ticks have passed since the call, but this clause delays
    only 70:
 
-     Typing error: Variable `k` is unboxed after grade `70` has elapsed,
-       which does not match its box grade `71`
+     Typing error: Variable `k` is unboxed with grade `70` accumulated since it
+       was bound, which is not below its box grade `71`
        Note: the resource inequality `70 >= 71` does not hold
 *)
 (*
@@ -84,8 +84,8 @@ let h_short =
 (* Correctly rejected by the typechecker: performing 'Set' costs only 2
    ticks, short of the 71 the continuation demands:
 
-     Typing error: Variable `k` is unboxed after grade `2` has elapsed,
-       which does not match its box grade `71`
+     Typing error: Variable `k` is unboxed with grade `2` accumulated since it
+       was bound, which is not below its box grade `71`
        Note: the resource inequality `2 >= 71` does not hold
 *)
 (*
@@ -116,10 +116,10 @@ let h_abandon =
 
 (* Correctly rejected by the typechecker: the return case makes the
    handler's result type 'unit -> α # 0', so the continuation must be
-   resumed as soon as the case runs, before any grade has elapsed:
+   resumed as soon as the case runs, with only the unit grade accumulated:
 
-     Typing error: Variable `k` is unboxed before any grade has elapsed,
-       but its box grade is `71`
+     Typing error: Variable `k` is unboxed with the unit grade `0` accumulated
+       since it was bound, which is not below its box grade `71`
        Note: the resource inequality `0 >= 71` does not hold
 *)
 (*

@@ -65,7 +65,7 @@ module Make (C : Constraint.S) = struct
   (* An entry of the context: a binding [x : A] or a lock [⟨ρ⟩]. *)
   type entry =
     | Bound of Ast.variable * ty * Location.t
-    | Lock of rho Reason.elapsed
+    | Lock of rho Reason.lock
 
   type global = { scheme : C.scheme; defined_at : Location.t option }
 
@@ -219,8 +219,8 @@ module Make (C : Constraint.S) = struct
     match (GS.E.needs_op_bounds, grade, bounds) with
     | false, _, Some _ ->
         Error.typing ~loc
-          "runtime bounds are only used by the timed-trace grading monoids; \
-           under `%s` the operation grade already carries them"
+          "runtime bounds are only used by the timed-trace grading monoids and \
+           must not be declared under the `%s` grading monoid"
           GS.E.name
     | false, _, None -> env.op_bounds
     | true, Ast.EpsAdd _, _ ->
@@ -290,24 +290,20 @@ module Make (C : Constraint.S) = struct
   let bind env x ty ~bound_at =
     { env with context = Bound (x, ty, bound_at) :: env.context }
 
-  let lock env elapsed = { env with context = Lock elapsed :: env.context }
+  let lock env l = { env with context = Lock l :: env.context }
 
   (* A variable in the environment: bound in the context, with the locks since
      its binding, oldest first, or a top-level definition or primitive. *)
   type lookup =
-    | Local of {
-        ty : ty;
-        bound_at : Location.t;
-        elapsed : rho Reason.elapsed list;
-      }
+    | Local of { ty : ty; bound_at : Location.t; locks : rho Reason.lock list }
     | Global of global
 
   let lookup ~loc env x =
-    let rec find elapsed = function
+    let rec find locks = function
       | Bound (y, ty, bound_at) :: _ when Ast.Variable.compare x y = 0 ->
-          Local { ty; bound_at; elapsed }
-      | Bound _ :: context -> find elapsed context
-      | Lock e :: context -> find (e :: elapsed) context
+          Local { ty; bound_at; locks }
+      | Bound _ :: context -> find locks context
+      | Lock e :: context -> find (e :: locks) context
       | [] -> (
           match Ast.VariableMap.find_opt x env.globals with
           | Some global -> Global global
@@ -320,15 +316,16 @@ module Make (C : Constraint.S) = struct
   (* The locks of the whole context, oldest first. *)
   let all_locks env =
     List.fold_left
-      (fun elapsed -> function Lock e -> e :: elapsed | Bound _ -> elapsed)
+      (fun locks -> function Lock e -> e :: locks | Bound _ -> locks)
       [] env.context
 
-  (* The product of the grades of [elapsed], oldest first, the unit for none. *)
-  let elapsed_grade = function
+  (* The grade accumulated by locks, oldest first: the product of their
+     grades, the unit for none. *)
+  let accumulated_grade = function
     | [] -> Rho.unit
-    | (e : rho Reason.elapsed) :: rest ->
+    | (e : rho Reason.lock) :: rest ->
         List.fold_left
-          (fun rho (e : rho Reason.elapsed) -> Rho.mul rho e.grade)
+          (fun rho (e : rho Reason.lock) -> Rho.mul rho e.grade)
           e.grade rest
 
   (* The constructor [lbl]: its type's name and parameters, and its argument
@@ -580,20 +577,20 @@ module Make (C : Constraint.S) = struct
       qualifier
 
   (* The use of the variable [x] at [at]: its type is a subtype of the expected
-     type, and it is eternal or the grades elapsed since its binding are below
-     the unit. A scheme is instantiated first and its qualifier owed. *)
+     type, and it is eternal or the grade accumulated since its binding is
+     below the unit. A scheme is instantiated first and its qualifier owed. *)
   let variable env at x expected =
     match lookup ~loc:at env x with
-    | Local { ty; bound_at; elapsed } ->
+    | Local { ty; bound_at; locks } ->
         let why =
-          match Reason.clause_of_elapsed elapsed with
+          match Reason.clause_of_locks locks with
           | Some clause ->
-              Reason.Op_case_capture { var = x; bound_at; clause; elapsed }
-          | None -> Reason.Use_after_time { var = x; bound_at; elapsed }
+              Reason.Op_case_capture { var = x; bound_at; clause; locks }
+          | None -> Reason.Use_under_locks { var = x; bound_at; locks }
         in
         C.conj
           (sub_expected at ty expected)
-          (C.Eternal_or_unit (Reason.because at why, ty, elapsed_grade elapsed))
+          (C.Eternal_or_unit (Reason.because at why, ty, accumulated_grade locks))
     | Global { scheme; defined_at } ->
         let ty, qualifier = C.instantiate scheme in
         C.conj
@@ -894,7 +891,7 @@ module Make (C : Constraint.S) = struct
              (fun env' -> generate_computation env' c' ty eps)))
 
   (* [unbox x as p in c], of a variable only: its type is a box [[r] α] whose
-     grade covers the grades elapsed since its binding, the pattern against
+     grade covers the grade accumulated since its binding, the pattern against
      [α]. *)
   and unbox env at e pat c' ty eps =
     let rec find_var (e : expression) =
@@ -904,9 +901,9 @@ module Make (C : Constraint.S) = struct
       | _ -> Error.typing ~loc:e.Ast.at "Only a variable can be unboxed"
     in
     let x = find_var e in
-    let boxed_ty, bound_at, elapsed, instance =
+    let boxed_ty, bound_at, locks, instance =
       match lookup ~loc:e.Ast.at env x with
-      | Local { ty; bound_at; elapsed } -> (ty, Some bound_at, elapsed, C.True)
+      | Local { ty; bound_at; locks } -> (ty, Some bound_at, locks, C.True)
       | Global { scheme; defined_at } ->
           let ty, qualifier = C.instantiate scheme in
           ( ty,
@@ -917,16 +914,16 @@ module Make (C : Constraint.S) = struct
     exists_ty (fun payload_ty ->
         exists_rho (fun rho ->
             let because =
-              Reason.because at (Reason.Unboxed { var = x; bound_at; elapsed })
+              Reason.because at (Reason.Unboxed { var = x; bound_at; locks })
             in
             C.conj_all
               [
                 C.equal_ty because boxed_ty (Ast.TyBox (rho, payload_ty));
-                C.Rho_leq (because, elapsed_grade elapsed, rho);
+                C.Rho_leq (because, accumulated_grade locks, rho);
                 with_pattern env pat
                   (expect payload_ty
                      (Reason.because pat.Ast.at
-                        (Reason.Unboxed { var = x; bound_at; elapsed })))
+                        (Reason.Unboxed { var = x; bound_at; locks })))
                   (fun env' -> generate_computation env' c' ty eps);
                 instance;
               ]))

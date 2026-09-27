@@ -3,7 +3,7 @@
      ./tempore tests/op_case_context.tpe
 
    An operation case is typed in its context locked at the top grade: a
-   variable bound outside the case is used after the top grade has elapsed.
+   variable bound outside the case is used with the top grade accumulated.
    Under this monoid the top is the unit 0, so the lock restricts nothing. *)
 
 operation Op : int ~> int # 0

@@ -19,8 +19,8 @@ let stamp_later () =
 (* Correctly rejected by the typechecker: a function is never eternal, and f
    is used a tick after it was bound:
 
-     Typing error: Variable `f` is used after grade `1` has elapsed, but its
-       type `unit → int` is not eternal
+     Typing error: Variable `f` is used with grade `1` accumulated since it was
+       bound, but its type `unit → int` is not eternal
        Note: the resource inequality `1 <= 0` does not hold
 *)
 (*
@@ -42,8 +42,8 @@ let use_now () =
 
 (* Correctly rejected by the typechecker:
 
-     Typing error: Variable `c` is used after grade `1` has elapsed, but its
-       type `ticket` is not eternal
+     Typing error: Variable `c` is used with grade `1` accumulated since it was
+       bound, but its type `ticket` is not eternal
        Note: the resource inequality `1 <= 0` does not hold
 *)
 (*
@@ -103,7 +103,7 @@ run after (fun () -> ()) (fun () -> ())
 run after (fun () -> delay 2) (fun () -> ())
 *)
 
-(* An operation case runs at a time the handler does not fix, so it is typed
+(* An operation case runs with a grade the handler does not fix, so it is typed
    under the lock of the top grade ∞, and a variable captured in it must be
    eternal: h gets a scheme qualified by Et(α) for the type α of x. *)
 operation Tick : unit ~> unit # 1

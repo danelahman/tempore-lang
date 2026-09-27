@@ -193,7 +193,7 @@
   File "continuation_escape_reject.tpe", line 11, characters 39-40:
   11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                                               ^
-  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
+  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs with a grade the handler does not fix
     File "continuation_escape_reject.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -205,7 +205,7 @@
     File "continuation_escape_reject.tpe", line 11, characters 29-71:
     11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the case for `Op` begins here (grade `∞`)
+    the case for `Op` is checked with the top grade `∞` accumulated
     Note: the resource inequality `∞ <= 0` does not hold
   ======================================================================
   continuation_fixed.tpe
@@ -244,7 +244,7 @@
   File "continuation_nested_escape_reject.tpe", line 23, characters 23-24:
   23 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
                               ^
-  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs at a time the handler does not fix
+  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs with a grade the handler does not fix
     File "continuation_nested_escape_reject.tpe", line 5, characters 0-32:
     5 | operation Op1 : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -256,11 +256,11 @@
     File "continuation_nested_escape_reject.tpe", lines 16-23, characters 4-58:
     16 |   | Op1 p k ->
              ^^^^^^^^^^
-    the case for `Op1` begins here (grade `∞`)
+    the case for `Op1` is checked with the top grade `∞` accumulated
     File "continuation_nested_escape_reject.tpe", line 23, characters 11-57:
     23 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the case for `Op2` begins here (grade `∞`)
+    the case for `Op2` is checked with the top grade `∞` accumulated
     Note: the resource inequality `∞ <= 0` does not hold
   ======================================================================
   continuation_nested_fixed.tpe
@@ -298,11 +298,11 @@
   File "continuation_nested_twice_reject_upper.tpe", line 24, characters 15-34:
   24 |                continue k' with ())
                       ^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k'` is unboxed after grade `∣ε₀∣` has elapsed, which does not match its box grade `1`
+  Typing error: Variable `k'` is unboxed with grade `∣ε₀∣` accumulated since it was bound, which is not below its box grade `1`
     File "continuation_nested_twice_reject_upper.tpe", line 23, characters 23-42:
     23 |                let b = continue k' with () in
                                 ^^^^^^^^^^^^^^^^^^^
-    this computation runs here (grade `ε₀`)
+    grade `ε₀` accumulates here (this computation)
     File "continuation_nested_twice_reject_upper.tpe", line 22, characters 19-21:
     22 |            | Op2 q k' ->
                             ^^
@@ -326,11 +326,11 @@
   File "continuation_twice_reject_upper.tpe", line 10, characters 67-85:
   10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                                                           ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed after grade `∣ε₀∣` has elapsed, which does not match its box grade `1`
+  Typing error: Variable `k` is unboxed with grade `∣ε₀∣` accumulated since it was bound, which is not below its box grade `1`
     File "continuation_twice_reject_upper.tpe", line 10, characters 45-63:
     10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                                       ^^^^^^^^^^^^^^^^^^
-    this computation runs here (grade `ε₀`)
+    grade `ε₀` accumulates here (this computation)
     File "continuation_twice_reject_upper.tpe", line 10, characters 32-33:
     10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                          ^
@@ -453,7 +453,7 @@
   File "error_use_after_delay.tpe", line 21, characters 2-3:
   21 |   t
          ^
-  Typing error: Variable `t` is used after grade `3` has elapsed, but its type `token` is not eternal
+  Typing error: Variable `t` is used with grade `3` accumulated since it was bound, but its type `token` is not eternal
     File "error_use_after_delay.tpe", line 16, characters 6-7:
     16 |   let t = Token in
                ^
@@ -461,11 +461,11 @@
     File "error_use_after_delay.tpe", line 17, characters 2-9:
     17 |   delay 2;
            ^^^^^^^
-    `delay 2` elapses here
+    grade `2` accumulates here (delay)
     File "error_use_after_delay.tpe", line 19, characters 2-17:
     19 |   perform Ping ();
            ^^^^^^^^^^^^^^^
-    `Ping` is performed here (grade `1`)
+    grade `1` accumulates here (operation `Ping`)
     Note: the resource inequality `3 <= 0` does not hold
   ======================================================================
   error_variant_arity.tpe
@@ -665,11 +665,11 @@
     File "eternal_tyvars_reject_function.tpe", line 5, characters 13-20:
     5 | let keep x = delay 1; x
                      ^^^^^^^
-    `delay 1` elapses here
+    grade `1` accumulates here (delay)
     File "eternal_tyvars_reject_function.tpe", line 5, characters 22-23:
     5 | let keep x = delay 1; x
                               ^
-    `x` is used here after grade `1` has elapsed, which only an eternal type allows
+    `x` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   eternal_tyvars_reject_handler.tpe
@@ -693,11 +693,11 @@
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 29-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the case for `Op` begins here (grade `∞`)
+    the case for `Op` is checked with the top grade `∞` accumulated
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 47-65:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                        ^^^^^^^^^^^^^^^^^^
-    this computation runs here (grade `ε₀`)
+    grade `ε₀` accumulates here (this computation)
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 69-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                                              ^
@@ -721,11 +721,11 @@
     File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 16-20:
     5 | let after g x = g (); x
                         ^^^^
-    this computation runs here (grade `2`)
+    grade `2` accumulates here (this computation)
     File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 22-23:
     5 | let after g x = g (); x
                               ^
-    `x` is used here after grade `2` has elapsed, which only an eternal type allows
+    `x` is used here with grade `2` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `2 <= 0` does not hold
   ======================================================================
   eternal_tyvars_reject_noneternal.tpe
@@ -745,11 +745,11 @@
     File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 13-20:
     7 | let keep x = delay 1; x
                      ^^^^^^^
-    `delay 1` elapses here
+    grade `1` accumulates here (delay)
     File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 22-23:
     7 | let keep x = delay 1; x
                               ^
-    `x` is used here after grade `1` has elapsed, which only an eternal type allows
+    `x` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   invalid_match_type.tpe
@@ -772,7 +772,7 @@
   File "iterative_unbox.tpe", line 7, characters 30-57:
   7 |   fold_left (fun acc value -> unbox value as v in acc + v) 0 boxed
                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `value` is unboxed before any grade has elapsed, but its box grade is `3`
+  Typing error: Variable `value` is unboxed with the unit grade `0` accumulated since it was bound, which is not below its box grade `3`
     File "iterative_unbox.tpe", line 7, characters 21-26:
     7 |   fold_left (fun acc value -> unbox value as v in acc + v) 0 boxed
                              ^^^^^
@@ -817,7 +817,7 @@
   File "levels_reject.tpe", lines 11-12, characters 2-3:
   11 |   unbox r as y in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed after grade `High` has elapsed, which does not match its box grade `Low`
+  Typing error: Variable `r` is unboxed with grade `High` accumulated since it was bound, which is not below its box grade `Low`
     File "levels_reject.tpe", line 9, characters 22-23:
     9 |   box Low "public" as r in
                               ^
@@ -825,7 +825,7 @@
     File "levels_reject.tpe", line 10, characters 2-23:
     10 |   perform Send "secret";
            ^^^^^^^^^^^^^^^^^^^^^
-    `Send` is performed here (grade `High`)
+    grade `High` accumulates here (operation `Send`)
     Note: the resource inequality `High <= Low` does not hold
   ======================================================================
   levels_reject_literal.tpe
@@ -873,7 +873,7 @@
   File "levels_time_lower_reject.tpe", lines 12-13, characters 2-3:
   12 |   unbox r as y in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed after grade `(2,Low)` has elapsed, which does not match its box grade `(3,Low)`
+  Typing error: Variable `r` is unboxed with grade `(2,Low)` accumulated since it was bound, which is not below its box grade `(3,Low)`
     File "levels_time_lower_reject.tpe", line 10, characters 27-28:
     10 |   box (3, Low) "report" as r in
                                     ^
@@ -881,13 +881,13 @@
     File "levels_time_lower_reject.tpe", line 11, characters 2-9:
     11 |   delay 2;
            ^^^^^^^
-    `delay 2` elapses here (grade `(2,Low)`)
+    grade `(2,Low)` accumulates here (delay)
     Note: the resource inequality `(2,Low) ≾ (3,Low)` does not hold
   
   File "levels_time_lower_reject.tpe", lines 20-21, characters 2-3:
   20 |   unbox r as y in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed after grade `(3,High)` has elapsed, which does not match its box grade `(3,Low)`
+  Typing error: Variable `r` is unboxed with grade `(3,High)` accumulated since it was bound, which is not below its box grade `(3,Low)`
     File "levels_time_lower_reject.tpe", line 17, characters 27-28:
     17 |   box (3, Low) "report" as r in
                                     ^
@@ -895,11 +895,11 @@
     File "levels_time_lower_reject.tpe", line 18, characters 2-24:
     18 |   perform Publish "news";
            ^^^^^^^^^^^^^^^^^^^^^^
-    `Publish` is performed here (grade `(1,High)`)
+    grade `(1,High)` accumulates here (operation `Publish`)
     File "levels_time_lower_reject.tpe", line 19, characters 2-9:
     19 |   delay 2;
            ^^^^^^^
-    `delay 2` elapses here (grade `(2,Low)`)
+    grade `(2,Low)` accumulates here (delay)
     Note: the resource inequality `(3,High) ≾ (3,Low)` does not hold
   ======================================================================
   levels_time_upper.tpe
@@ -933,7 +933,7 @@
   File "levels_time_upper_reject.tpe", lines 12-13, characters 2-3:
   12 |   unbox c as t in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `c` is unboxed after grade `(6,Low)` has elapsed, which does not match its box grade `(5,Low)`
+  Typing error: Variable `c` is unboxed with grade `(6,Low)` accumulated since it was bound, which is not below its box grade `(5,Low)`
     File "levels_time_upper_reject.tpe", line 10, characters 26-27:
     10 |   box (5, Low) "token" as c in
                                    ^
@@ -941,13 +941,13 @@
     File "levels_time_upper_reject.tpe", line 11, characters 2-9:
     11 |   delay 6;
            ^^^^^^^
-    `delay 6` elapses here (grade `(6,Low)`)
+    grade `(6,Low)` accumulates here (delay)
     Note: the resource inequality `(6,Low) <= (5,Low)` does not hold
   
   File "levels_time_upper_reject.tpe", lines 19-20, characters 2-3:
   19 |   unbox c as t in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `c` is unboxed after grade `(1,High)` has elapsed, which does not match its box grade `(5,Low)`
+  Typing error: Variable `c` is unboxed with grade `(1,High)` accumulated since it was bound, which is not below its box grade `(5,Low)`
     File "levels_time_upper_reject.tpe", line 17, characters 26-27:
     17 |   box (5, Low) "token" as c in
                                    ^
@@ -955,7 +955,7 @@
     File "levels_time_upper_reject.tpe", line 18, characters 2-23:
     18 |   perform Leak "secret";
            ^^^^^^^^^^^^^^^^^^^^^
-    `Leak` is performed here (grade `(1,High)`)
+    grade `(1,High)` accumulates here (operation `Leak`)
     Note: the resource inequality `(1,High) <= (5,Low)` does not hold
   ======================================================================
   lexer.tpe
@@ -1300,7 +1300,7 @@
   File "noneternal_reject_after_delay.tpe", line 13, characters 2-3:
   13 |   t
          ^
-  Typing error: Variable `t` is used after grade `1` has elapsed, but its type `token` is not eternal
+  Typing error: Variable `t` is used with grade `1` accumulated since it was bound, but its type `token` is not eternal
     File "noneternal_reject_after_delay.tpe", line 11, characters 6-7:
     11 |   let t = Token in
                ^
@@ -1308,7 +1308,7 @@
     File "noneternal_reject_after_delay.tpe", line 12, characters 2-9:
     12 |   delay 1;
            ^^^^^^^
-    `delay 1` elapses here
+    grade `1` accumulates here (delay)
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   noneternal_reject_alias.tpe
@@ -1323,7 +1323,7 @@
   File "noneternal_reject_unknown_grade.tpe", line 21, characters 2-3:
   21 |   t
          ^
-  Typing error: Variable `t` is used after grade `1` has elapsed, but its type `token` is not eternal
+  Typing error: Variable `t` is used with grade `1` accumulated since it was bound, but its type `token` is not eternal
     File "noneternal_reject_unknown_grade.tpe", line 18, characters 6-7:
     18 |   let t = Token in
                ^
@@ -1331,7 +1331,7 @@
     File "noneternal_reject_unknown_grade.tpe", line 20, characters 2-9:
     20 |   delay 1;
            ^^^^^^^
-    `delay 1` elapses here
+    grade `1` accumulates here (delay)
     Note: the resource inequality `1 <= 0` does not hold
   
   File "noneternal_reject_unknown_grade.tpe", line 34, characters 19-23:
@@ -1349,11 +1349,11 @@
     File "noneternal_reject_unknown_grade.tpe", line 29, characters 2-9:
     29 |   delay 1;
            ^^^^^^^
-    `delay 1` elapses here
+    grade `1` accumulates here (delay)
     File "noneternal_reject_unknown_grade.tpe", line 30, characters 2-3:
     30 |   y
            ^
-    `y` is used here after grade `1` has elapsed, which only an eternal type allows
+    `y` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   noneternal_type.tpe
@@ -1556,7 +1556,7 @@
   File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
   15 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed after grade `{Fetch}` has elapsed, which does not match its box grade `{(_ & ~Auth)*; Auth; _*}`
+  Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{(_ & ~Auth)*; Auth; _*}`
     File "regular_reject_auth.tpe", line 13, characters 36-37:
     13 |   box {_*; Auth; _*} (Token "t") as t in
                                              ^
@@ -1564,13 +1564,13 @@
     File "regular_reject_auth.tpe", line 14, characters 2-18:
     14 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    `Fetch` is performed here (grade `{Fetch}`)
+    grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {(_ & ~Auth)*; Auth; _*}` does not hold
   
   File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
   22 |   unbox c as cap in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `c` is unboxed after grade `{Revoke}` has elapsed, which does not match its box grade `{(_ & ~Revoke)*}`
+  Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
     File "regular_reject_auth.tpe", line 20, characters 41-42:
     20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
                                                   ^
@@ -1578,13 +1578,13 @@
     File "regular_reject_auth.tpe", line 21, characters 2-19:
     21 |   perform Revoke ();
            ^^^^^^^^^^^^^^^^^
-    `Revoke` is performed here (grade `{Revoke}`)
+    grade `{Revoke}` accumulates here (operation `Revoke`)
     Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
   
   File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
   29 |   unbox x as n in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `x` is unboxed after grade `{Fetch; 3}` has elapsed, which does not match its box grade `{3; _*}`
+  Typing error: Variable `x` is unboxed with grade `{Fetch; 3}` accumulated since it was bound, which is not below its box grade `{3; _*}`
     File "regular_reject_auth.tpe", line 26, characters 20-21:
     26 |   box {3; _*} 42 as x in
                              ^
@@ -1592,11 +1592,11 @@
     File "regular_reject_auth.tpe", line 27, characters 2-18:
     27 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    `Fetch` is performed here (grade `{Fetch}`)
+    grade `{Fetch}` accumulates here (operation `Fetch`)
     File "regular_reject_auth.tpe", line 28, characters 2-9:
     28 |   delay 3;
            ^^^^^^^
-    `delay 3` elapses here (grade `{3}`)
+    grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
   regular_reject_bounds.tpe
@@ -1604,14 +1604,14 @@
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids; under `regular-traces` the operation grade already carries them
+  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `regular-traces` grading monoid
   ======================================================================
   regular_reject_protocol.tpe
   ======================================================================
   File "regular_reject_protocol.tpe", line 16, characters 6-23:
   16 |       continue k with x
              ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed after grade `{Open; Close; Read}` has elapsed, which does not match its box grade `{Open; Read*; Close}`
+  Typing error: Variable `k` is unboxed with grade `{Open; Close; Read}` accumulated since it was bound, which is not below its box grade `{Open; Read*; Close}`
     File "regular_reject_protocol.tpe", line 12, characters 15-16:
     12 |   | Session () k ->
                         ^
@@ -1619,15 +1619,15 @@
     File "regular_reject_protocol.tpe", line 13, characters 6-21:
     13 |       perform Open ();
                ^^^^^^^^^^^^^^^
-    `Open` is performed here (grade `{Open}`)
+    grade `{Open}` accumulates here (operation `Open`)
     File "regular_reject_protocol.tpe", line 14, characters 6-22:
     14 |       perform Close ();
                ^^^^^^^^^^^^^^^^
-    `Close` is performed here (grade `{Close}`)
+    grade `{Close}` accumulates here (operation `Close`)
     File "regular_reject_protocol.tpe", line 15, characters 14-29:
     15 |       let x = perform Read () in
                        ^^^^^^^^^^^^^^^
-    `Read` is performed here (grade `{Read}`)
+    grade `{Read}` accumulates here (operation `Read`)
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
@@ -2351,7 +2351,7 @@
   File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids; under `time-lower-bound` the operation grade already carries them
+  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `time-lower-bound` grading monoid
   ======================================================================
   time_upper.tpe
   ======================================================================
@@ -2489,7 +2489,7 @@
   File "traces_reject_allowance.tpe", lines 10-11, characters 2-3:
   10 |   unbox r as x in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed after grade `{Heat}` has elapsed, which does not match its box grade `{1}`
+  Typing error: Variable `r` is unboxed with grade `{Heat}` accumulated since it was bound, which is not below its box grade `{1}`
     File "traces_reject_allowance.tpe", line 8, characters 14-15:
     8 |   box 1 42 as r in
                       ^
@@ -2497,7 +2497,7 @@
     File "traces_reject_allowance.tpe", line 9, characters 2-17:
     9 |   perform Heat ();
           ^^^^^^^^^^^^^^^
-    `Heat` is performed here (grade `{Heat}`)
+    grade `{Heat}` accumulates here (operation `Heat`)
     Note: the resource inequality `{Heat} <= {1}` does not hold
   ======================================================================
   traces_reject_bounds.tpe
@@ -2545,7 +2545,7 @@
   File "traces_reject_order.tpe", line 20, characters 6-31:
   20 |       continue k with (Fresh m)
              ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed after grade `{Cool; Extrude; Heat}` has elapsed, which does not match its box grade `{Heat; Extrude; Cool}`
+  Typing error: Variable `k` is unboxed with grade `{Cool; Extrude; Heat}` accumulated since it was bound, which is not below its box grade `{Heat; Extrude; Cool}`
     File "traces_reject_order.tpe", line 16, characters 17-18:
     16 |   | PrintModel m k ->
                           ^
@@ -2553,15 +2553,15 @@
     File "traces_reject_order.tpe", line 17, characters 6-21:
     17 |       perform Cool ();
                ^^^^^^^^^^^^^^^
-    `Cool` is performed here (grade `{Cool}`)
+    grade `{Cool}` accumulates here (operation `Cool`)
     File "traces_reject_order.tpe", line 18, characters 6-24:
     18 |       perform Extrude ();
                ^^^^^^^^^^^^^^^^^^
-    `Extrude` is performed here (grade `{Extrude}`)
+    grade `{Extrude}` accumulates here (operation `Extrude`)
     File "traces_reject_order.tpe", line 19, characters 6-21:
     19 |       perform Heat ();
                ^^^^^^^^^^^^^^^
-    `Heat` is performed here (grade `{Heat}`)
+    grade `{Heat}` accumulates here (operation `Heat`)
     Note: the resource inequality `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
   ======================================================================
   traces_reject_self_retry.tpe
