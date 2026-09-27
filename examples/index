@@ -29,7 +29,7 @@ Timed traces | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3
 Timed traces | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
 Timed traces | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
 
-Regular traces | Regular languages | traces-regex-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
+Regular traces | Upper bounds | traces-regex-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
 
 Regular traces with costs | Lower bounds | traces-regex-lower-symbolic | regular_costs/regular_costs_lower.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower runtime bounds.
 Regular traces with costs | Upper bounds | traces-regex-upper-symbolic | regular_costs/regular_costs_upper.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.

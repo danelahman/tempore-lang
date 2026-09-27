@@ -4393,10 +4393,10 @@ single-dash form of the help option is not accepted.
           traces-upper-bound                Upper bounds
           traces-interval                   Intervals
         Regular traces:
-          traces-regex                      Regular languages
-          traces-regex-symbolic             Regular languages (symbolic derivatives)
-          traces-regex-derivatives          Regular languages (plain derivatives)
-          traces-regex-plain                Regular languages (fully plain derivatives)
+          traces-regex                      Upper bounds
+          traces-regex-symbolic             Upper bounds (symbolic derivatives)
+          traces-regex-derivatives          Upper bounds (plain derivatives)
+          traces-regex-plain                Upper bounds (fully plain derivatives)
         Regular traces with costs:
           traces-regex-lower                Lower bounds
           traces-regex-upper                Upper bounds

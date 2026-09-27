@@ -49,23 +49,23 @@ let entries =
       "Pairs of a lower and an upper timed-trace bound, compared componentwise.";
     entry
       (module RegularTraceGrade)
-      "Regular traces" "Regular languages"
-      "Regular languages of runs over delays and operations, decided by \
-       automata.";
+      "Regular traces" "Upper bounds"
+      "Regular languages of runs over delays and operations, bounding the runs \
+       permitted by inclusion; decided by automata.";
     entry
       (module RegularTraceGradeDerivative)
-      "Regular traces" "Regular languages (symbolic derivatives)"
-      "The same grade as regular languages, decided by symbolic derivatives \
+      "Regular traces" "Upper bounds (symbolic derivatives)"
+      "The same grade as the automata version, decided by symbolic derivatives \
        instead of automata.";
     entry ~visibility:Cli_only
       (module RegularTraceGradeDerivative.Concrete)
-      "Regular traces" "Regular languages (plain derivatives)"
-      "The same grade as regular languages, decided by derivatives by single \
-       letters instead of minterms.";
+      "Regular traces" "Upper bounds (plain derivatives)"
+      "The same grade as the automata version, decided by derivatives by \
+       single letters instead of minterms.";
     entry ~visibility:Cli_only
       (module RegularTraceGradePlain)
-      "Regular traces" "Regular languages (fully plain derivatives)"
-      "The same grade as regular languages over single letters instead of \
+      "Regular traces" "Upper bounds (fully plain derivatives)"
+      "The same grade as the automata version, over single letters instead of \
        letter sets, decided by derivatives by letters.";
     entry
       (module RegularCostTraceGrades.Lower)
