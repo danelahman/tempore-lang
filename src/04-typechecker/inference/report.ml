@@ -89,38 +89,9 @@ module Make (C : Constraint.S) = struct
   let in_ordering occurs (o : _ GradeNormal.ordering) =
     at Plus (occurs o.lhs) ++ at Minus (occurs o.rhs)
 
-  let in_hyps u (hyps : hyps) =
-    union_map (in_ordering (in_rho u)) hyps.rho_hyps
-    ++ union_map (in_ordering (in_eps u)) hyps.eps_hyps
-    ++ union_map
-         (fun (s : R.sub) -> in_ty u Plus s.lhs ++ in_ty u Minus s.rhs)
-         hyps.sub_vars
-    ++ union_map
-         (fun (d : R.disjunction) -> at Plus (in_rho u d.disj_grade))
-         hyps.disj_hyps
-
   (* ------------------------------------------------------------------ *)
   (* Hypotheses                                                          *)
   (* ------------------------------------------------------------------ *)
-
-  let to_residual (hyps : hyps) : R.t =
-    {
-      rho_orderings = hyps.rho_hyps;
-      eps_orderings = hyps.eps_hyps;
-      eternals = hyps.eternal_hyps;
-      subs = hyps.sub_vars;
-      disjunctions = hyps.disj_hyps;
-      deferred = [];
-    }
-
-  let of_residual (r : R.t) : hyps =
-    {
-      rho_hyps = r.rho_orderings;
-      eps_hyps = r.eps_orderings;
-      eternal_hyps = r.eternals;
-      sub_vars = r.subs;
-      disj_hyps = r.disjunctions;
-    }
 
   let free_hyps hyps = C.free_vars (R.hyps_to_constraint hyps)
 
@@ -405,71 +376,382 @@ module Make (C : Constraint.S) = struct
     }
 
   (* ------------------------------------------------------------------ *)
-  (* Elimination                                                         *)
+  (* Elimination: atoms and their index                                  *)
   (* ------------------------------------------------------------------ *)
 
-  (* The reported type and hypotheses being reduced. *)
-  type state = { ty : C.ty; hyps : hyps }
+  module Unknown = struct
+    type t = unknown
 
-  (* The state under [sigma]. A substitution of type unknowns alone is applied
-     to the types only, leaving the grades and the reasons, which have no type
-     unknown, as they are. *)
-  let moved (sigma : C.subst) st =
-    let ty = C.subst_ty sigma st.ty in
-    if
-      X.Rho_var.Map.is_empty sigma.grade_subst.rho_subst
-      && X.Eps_var.Map.is_empty sigma.grade_subst.eps_subst
-    then
-      let on_sub (s : R.sub) =
-        { s with lhs = C.subst_ty sigma s.lhs; rhs = C.subst_ty sigma s.rhs }
-      and on_eternal (e : R.eternal) =
-        { e with eternal_ty = C.subst_ty sigma e.eternal_ty }
-      and on_disj (d : R.disjunction) =
-        { d with disj_ty = C.subst_ty sigma d.disj_ty }
-      in
-      {
-        ty;
-        hyps =
-          {
-            st.hyps with
-            sub_vars = List.map on_sub st.hyps.sub_vars;
-            eternal_hyps = List.map on_eternal st.hyps.eternal_hyps;
-            disj_hyps = List.map on_disj st.hyps.disj_hyps;
-          };
-      }
-    else { ty; hyps = of_residual (R.subst sigma (to_residual st.hyps)) }
+    let rank = function
+      | Ty_unknown _ -> 0
+      | Rho_unknown _ -> 1
+      | Eps_unknown _ -> 2
 
-  let assign_eps k eps : C.subst =
-    {
-      C.empty_subst with
-      grade_subst =
-        { X.empty_subst with eps_subst = X.Eps_var.Map.singleton k eps };
-    }
+    let compare u v =
+      match (u, v) with
+      | Ty_unknown a, Ty_unknown b -> TyParam.compare a b
+      | Rho_unknown k, Rho_unknown k' -> X.Rho_var.compare k k'
+      | Eps_unknown k, Eps_unknown k' -> X.Eps_var.compare k k'
+      | (Ty_unknown _ | Rho_unknown _ | Eps_unknown _), _ ->
+          Int.compare (rank u) (rank v)
+  end
 
-  let assign_rho k rho : C.subst =
-    {
-      C.empty_subst with
-      grade_subst =
-        { X.empty_subst with rho_subst = X.Rho_var.Map.singleton k rho };
-    }
+  module Unknown_map = Map.Make (Unknown)
+  module Unknown_set = Set.Make (Unknown)
+  module Int_map = Map.Make (Int)
+  module Int_set = Set.Make (Int)
 
-  let assign_ty a b : C.subst =
-    { C.empty_subst with ty_subst = TyParamMap.singleton a (Ast.TyParam b) }
+  (* A hypothesis of any kind. *)
+  type atom =
+    | Rho_atom of R.rho_ordering
+    | Eps_atom of R.eps_ordering
+    | Sub_atom of R.sub
+    | Eternal_atom of R.eternal
+    | Disj_atom of R.disjunction
 
-  (* The orderings and subtyping atoms made reflexive dropped. *)
-  let apart context st =
+  let add_eps eps us =
+    Eps_set.fold
+      (fun k -> Unknown_set.add (Eps_unknown k))
+      (X.Eps.free_vars eps) us
+
+  let add_rho rho us =
+    Rho_set.fold
+      (fun k -> Unknown_set.add (Rho_unknown k))
+      (X.Rho.free_rho_vars rho)
+      (Eps_set.fold
+         (fun k -> Unknown_set.add (Eps_unknown k))
+         (X.Rho.free_eps_vars rho) us)
+
+  let add_ty ty us =
+    Ast.fold_ty
+      ~on_param:(fun a -> Unknown_set.add (Ty_unknown a))
+      ~on_rho:add_rho ~on_eps:add_eps ty us
+
+  (* The unknowns of an atom, its reason aside. *)
+  let atom_unknowns atom =
+    let none = Unknown_set.empty in
+    match atom with
+    | Rho_atom o -> add_rho o.lhs (add_rho o.rhs none)
+    | Eps_atom o -> add_eps o.lhs (add_eps o.rhs none)
+    | Sub_atom s -> add_ty s.lhs (add_ty s.rhs none)
+    | Eternal_atom e -> add_ty e.eternal_ty none
+    | Disj_atom d -> add_ty d.disj_ty (add_rho d.disj_grade none)
+
+  (* The unknowns of the values of a substitution. *)
+  let value_unknowns (sigma : C.subst) =
+    let us =
+      TyParamMap.fold (fun _ ty -> add_ty ty) sigma.ty_subst Unknown_set.empty
+    in
+    let us =
+      X.Rho_var.Map.fold
+        (fun _ rho -> add_rho rho)
+        sigma.grade_subst.rho_subst us
+    in
+    X.Eps_var.Map.fold (fun _ eps -> add_eps eps) sigma.grade_subst.eps_subst us
+
+  (* The polarity of [u] in an atom. *)
+  let in_atom u = function
+    | Rho_atom o -> in_ordering (in_rho u) o
+    | Eps_atom o -> in_ordering (in_eps u) o
+    | Sub_atom s -> in_ty u Plus s.lhs ++ in_ty u Minus s.rhs
+    | Eternal_atom _ -> neither
+    | Disj_atom d -> at Plus (in_rho u d.disj_grade)
+
+  (* An atom under [sigma], its reason aside. *)
+  let subst_atom (sigma : C.subst) atom =
+    let on_rho = X.Rho.subst sigma.grade_subst
+    and on_eps = X.Eps.subst sigma.grade_subst
+    and on_ty = C.subst_ty sigma in
+    match atom with
+    | Rho_atom o -> Rho_atom { o with lhs = on_rho o.lhs; rhs = on_rho o.rhs }
+    | Eps_atom o -> Eps_atom { o with lhs = on_eps o.lhs; rhs = on_eps o.rhs }
+    | Sub_atom s -> Sub_atom { s with lhs = on_ty s.lhs; rhs = on_ty s.rhs }
+    | Eternal_atom e -> Eternal_atom { e with eternal_ty = on_ty e.eternal_ty }
+    | Disj_atom d ->
+        Disj_atom
+          { d with disj_ty = on_ty d.disj_ty; disj_grade = on_rho d.disj_grade }
+
+  let is_reflexive context atom =
     let bounds = context.Residual.bounds in
-    let differ equal (o : _ GradeNormal.ordering) = not (equal o.lhs o.rhs) in
+    match atom with
+    | Rho_atom o -> X.Rho.equal bounds o.lhs o.rhs
+    | Eps_atom o -> X.Eps.equal bounds o.lhs o.rhs
+    | Sub_atom s -> same_ty context s.lhs s.rhs
+    | Eternal_atom _ | Disj_atom _ -> false
+
+  (* The composite of substitutions [steps], the last first, each sending
+     unknowns of none of the later ones to expressions free of the earlier
+     ones: each unknown sent to its value under the later steps. *)
+  let resolve steps =
+    List.fold_left
+      (fun (later : X.subst) (s : X.subst) : X.subst ->
+        {
+          rho_subst =
+            X.Rho_var.Map.fold
+              (fun k rho -> X.Rho_var.Map.add k (X.Rho.subst later rho))
+              s.rho_subst later.rho_subst;
+          eps_subst =
+            X.Eps_var.Map.fold
+              (fun k eps -> X.Eps_var.Map.add k (X.Eps.subst later eps))
+              s.eps_subst later.eps_subst;
+        })
+      X.empty_subst steps
+
+  (* ------------------------------------------------------------------ *)
+  (* Elimination: steps                                                  *)
+  (* ------------------------------------------------------------------ *)
+
+  (* The kinds of step, in the order they are tried. *)
+  type kind =
+    | Equate_eps
+    | Equate_rho
+    | Lower_eps
+    | Lower_rho
+    | Raise_eps
+    | Raise_rho
+    | Collapse
+    | Lower_ty
+
+  let kinds =
+    [
+      Equate_eps;
+      Equate_rho;
+      Lower_eps;
+      Lower_rho;
+      Raise_eps;
+      Raise_rho;
+      Collapse;
+      Lower_ty;
+    ]
+
+  module Kind_map = Map.Make (struct
+    type t = kind
+
+    let rank = function
+      | Equate_eps -> 0
+      | Equate_rho -> 1
+      | Lower_eps -> 2
+      | Lower_rho -> 3
+      | Raise_eps -> 4
+      | Raise_rho -> 5
+      | Collapse -> 6
+      | Lower_ty -> 7
+
+    let compare a b = Int.compare (rank a) (rank b)
+  end)
+
+  (* Whether a kind of step is tested at an unknown alone, and at [u]. *)
+  let tested_at kind u =
+    match (kind, u) with
+    | (Equate_eps | Lower_eps | Raise_eps), Eps_unknown _
+    | (Equate_rho | Lower_rho | Raise_rho), Rho_unknown _
+    | Lower_ty, Ty_unknown _ ->
+        true
+    | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
+        | Raise_rho | Collapse | Lower_ty ),
+        _ ) ->
+        false
+
+  (* A step at an unknown: the substitution sending it to its value, the
+     atoms dropped with it, and whether the atoms made reflexive are dropped
+     after it. *)
+  type plan = {
+    value : C.subst;
+    dropped : Int_set.t;
+    apart : bool;
+    chains : bool; (* whether it may add chains of atomic orderings *)
+  }
+
+  (* The tests of one kind: the unknowns where it succeeds, with the step,
+     and, apart from them, the unknowns to be tested again. *)
+  type tests = { passed : plan Unknown_map.t; stale : Unknown_set.t }
+
+  (* An atom and its unknowns. *)
+  type entry = { atom : atom; unknowns : Unknown_set.t }
+
+  type env = {
+    context : context;
+    fixed : C.free;
+    candidates : Unknown_set.t; (* the unknowns outside [fixed] *)
+    tested : Unknown_set.t Kind_map.t;
+        (* the candidates tested by each kind of step *)
+  }
+
+  type state = {
+    ty : C.ty;
+    atoms : entry Int_map.t; (* the hypotheses, by position *)
+    occurrences : Int_set.t Unknown_map.t;
+        (* the positions of the atoms of each unknown *)
+    reflexive : Int_set.t;
+        (* the positions of the reflexive orderings and subtyping atoms *)
+    steps : X.subst list;
+        (* the grade substitutions of the steps taken, the last first *)
+    tests : tests Kind_map.t; (* the tests of each kind but collapsing *)
+    cycle : (unknown * plan) list option;
+        (* the collapsing steps due, in order, once found *)
+  }
+
+  let atom_at st id = (Int_map.find id st.atoms).atom
+
+  let occurrences st u =
+    Option.value (Unknown_map.find_opt u st.occurrences) ~default:Int_set.empty
+
+  (* The atom at [id] set to [atom], or removed, its unknowns having been
+     [before] and being [after]. *)
+  let reindex context id atom ~before ~after st =
+    let add ids =
+      Some (Int_set.add id (Option.value ids ~default:Int_set.empty))
+    and remove ids = Option.map (Int_set.remove id) ids in
+    let update f us occurrences =
+      Unknown_set.fold (fun u -> Unknown_map.update u f) us occurrences
+    in
+    let occurrences =
+      update add
+        (Unknown_set.diff after before)
+        (update remove (Unknown_set.diff before after) st.occurrences)
+    in
+    match atom with
+    | Some atom ->
+        {
+          st with
+          atoms = Int_map.add id { atom; unknowns = after } st.atoms;
+          occurrences;
+          reflexive =
+            (if is_reflexive context atom then Int_set.add id st.reflexive
+             else Int_set.remove id st.reflexive);
+        }
+    | None ->
+        {
+          st with
+          atoms = Int_map.remove id st.atoms;
+          occurrences;
+          reflexive = Int_set.remove id st.reflexive;
+        }
+
+  (* The atom at [id] replaced by [f] of it, or removed, with the unknowns of
+     both added to [touched]. *)
+  let replace context f id (st, touched) =
+    let { atom; unknowns = before } = Int_map.find id st.atoms in
+    let atom' = f atom in
+    let after = Option.fold ~none:Unknown_set.empty ~some:atom_unknowns atom' in
+    ( reindex context id atom' ~before ~after st,
+      Unknown_set.union touched (Unknown_set.union before after) )
+
+  (* The tests of [kind] at [us] due again. *)
+  let due us t =
+    {
+      passed = Unknown_set.fold Unknown_map.remove us t.passed;
+      stale = Unknown_set.union t.stale us;
+    }
+
+  (* The tests at the unknowns in [touched] due again. *)
+  let mark env touched st =
+    let touched = Unknown_set.inter touched env.candidates in
+    let tys, grades =
+      Unknown_set.partition
+        (function
+          | Ty_unknown _ -> true | Rho_unknown _ | Eps_unknown _ -> false)
+        touched
+    in
+    let rhos, eps =
+      Unknown_set.partition
+        (function
+          | Rho_unknown _ -> true | Ty_unknown _ | Eps_unknown _ -> false)
+        grades
+    in
+    let mark_kind kind t =
+      let us =
+        match kind with
+        | Equate_eps | Lower_eps | Raise_eps -> eps
+        | Equate_rho | Lower_rho | Raise_rho -> rhos
+        | Lower_ty -> tys
+        | Collapse -> Unknown_set.empty
+      in
+      if Unknown_set.is_empty us then t else due us t
+    in
+    if Unknown_set.is_empty touched then st
+    else { st with tests = Kind_map.mapi mark_kind st.tests }
+
+  (* The tests of [kind] due again at the unknowns where it succeeds. *)
+  let mark_passed kind st =
+    let again t =
+      due
+        (Unknown_map.fold
+           (fun u _ -> Unknown_set.add u)
+           t.passed Unknown_set.empty)
+        t
+    in
+    { st with tests = Kind_map.update kind (Option.map again) st.tests }
+
+  (* The tests of [kind] due again at every unknown. *)
+  let mark_all env kind st =
     {
       st with
-      hyps =
-        {
-          st.hyps with
-          rho_hyps = List.filter (differ (X.Rho.equal bounds)) st.hyps.rho_hyps;
-          eps_hyps = List.filter (differ (X.Eps.equal bounds)) st.hyps.eps_hyps;
-          sub_vars = List.filter (differ (same_ty context)) st.hyps.sub_vars;
-        };
+      tests =
+        Kind_map.add kind
+          { passed = Unknown_map.empty; stale = Kind_map.find kind env.tested }
+          st.tests;
     }
+
+  (* The step [plan] of [kind] taken at [u].
+
+     Only the collapsing steps and the lowering of type unknowns change the
+     subtyping atoms between type unknowns. After a collapsing step the others
+     stay due: the components of the other unknowns and their representatives
+     are those before it. A lowering step, taken when none is due, closes no
+     cycle: a cycle through [β <: y], from [a <: y] with [a] sent to [β], was
+     one through [β <: a <: y].
+
+     After an equating step the equating tests that succeeded are taken
+     again, and every equating test when the step may add chains. *)
+  let take env kind u plan st =
+    let context = env.context and cycle = st.cycle in
+    let drop _ = None in
+    let st, touched =
+      Int_set.fold (replace context drop) plan.dropped
+        (st, Unknown_set.singleton u)
+    in
+    let st, touched =
+      Int_set.fold
+        (replace context (fun atom -> Some (subst_atom plan.value atom)))
+        (occurrences st u) (st, touched)
+    in
+    let grades = plan.value.grade_subst in
+    let st =
+      {
+        st with
+        ty = C.subst_ty plan.value st.ty;
+        steps =
+          (if
+             X.Rho_var.Map.is_empty grades.rho_subst
+             && X.Eps_var.Map.is_empty grades.eps_subst
+           then st.steps
+           else grades :: st.steps);
+      }
+    in
+    let st, touched =
+      if plan.apart then
+        Int_set.fold (replace context drop) st.reflexive (st, touched)
+      else (st, touched)
+    in
+    let st =
+      mark env (Unknown_set.union touched (value_unknowns plan.value)) st
+    in
+    let equate kinds =
+      let again = if plan.chains then mark_all env else mark_passed in
+      List.fold_left (fun st kind -> again kind st) st kinds
+    in
+    match (kind, cycle) with
+    | Equate_eps, _ -> equate [ Equate_eps; Equate_rho ]
+    | Equate_rho, _ -> equate [ Equate_rho ]
+    | Collapse, Some (_ :: rest) -> { st with cycle = Some rest }
+    | (Lower_eps | Lower_rho | Raise_eps | Raise_rho | Collapse | Lower_ty), _
+      ->
+        st
+
+  (* ------------------------------------------------------------------ *)
+  (* Elimination: tests                                                  *)
+  (* ------------------------------------------------------------------ *)
 
   let decided_rho context = entails_rho context N.no_hyps
   let decided_eps context = entails_eps context N.no_hyps
@@ -494,30 +776,85 @@ module Make (C : Constraint.S) = struct
       join = X.Rho.join;
     }
 
-  (* The expressions the orderings set against each unknown, in order: the
-     right side against an unknown on the left, else the left side against an
-     unknown on the right. *)
-  let facing (type v) ~(compare : v -> v -> int) ~var_of orderings =
-    let module M = Map.Make (struct
-      type t = v
+  let assign_eps k eps : C.subst =
+    {
+      C.empty_subst with
+      grade_subst =
+        { X.empty_subst with eps_subst = X.Eps_var.Map.singleton k eps };
+    }
 
-      let compare = compare
-    end) in
-    let add k e facing =
-      M.update k (fun es -> Some (e :: Option.value es ~default:[])) facing
-    in
-    let facing =
-      List.fold_right
-        (fun (o : _ GradeNormal.ordering) facing ->
-          match (var_of o.lhs, var_of o.rhs) with
-          | Some k, Some k' when compare k k' <> 0 ->
-              add k o.rhs (add k' o.lhs facing)
-          | Some k, _ -> add k o.rhs facing
-          | None, Some k' -> add k' o.lhs facing
-          | None, None -> facing)
-        orderings M.empty
-    in
-    fun k -> Option.value (M.find_opt k facing) ~default:[]
+  let assign_rho k rho : C.subst =
+    {
+      C.empty_subst with
+      grade_subst =
+        { X.empty_subst with rho_subst = X.Rho_var.Map.singleton k rho };
+    }
+
+  let assign_ty a b : C.subst =
+    { C.empty_subst with ty_subst = TyParamMap.singleton a (Ast.TyParam b) }
+
+  (* A grade unknown and how the orderings of its sort are read for it. *)
+  type 'e grade = {
+    unknown : unknown;
+    self : 'e; (* the unknown as an expression *)
+    sort : 'e Bounds.sort;
+    ordering : atom -> ('e, R.reason) GradeNormal.ordering option;
+    earlier : 'e -> bool option;
+        (* for a variable, whether it is created before the unknown *)
+    assign : 'e -> C.subst;
+    atomic : 'e -> bool;
+        (* whether an expression is a single atom of the decision procedure *)
+  }
+
+  let eps_grade context k =
+    {
+      unknown = Eps_unknown k;
+      self = X.Eps.var k;
+      sort = eps_sort context k;
+      ordering = (function Eps_atom o -> Some o | _ -> None);
+      earlier =
+        (function X.Eps_var j -> Some (X.Eps_var.compare j k < 0) | _ -> None);
+      assign = assign_eps k;
+      atomic = (function X.Eps_var _ | X.Eps_const _ -> true | _ -> false);
+    }
+
+  let rho_grade context k =
+    {
+      unknown = Rho_unknown k;
+      self = X.Rho.var k;
+      sort = rho_sort context k;
+      ordering = (function Rho_atom o -> Some o | _ -> None);
+      earlier =
+        (function X.Rho_var j -> Some (X.Rho_var.compare j k < 0) | _ -> None);
+      assign = assign_rho k;
+      atomic =
+        (function
+        | X.Rho_var _ | X.Rho_const _ | X.Rho_map (X.Eps_var _) -> true
+        | _ -> false);
+    }
+
+  (* The orderings of the sort of [g] at its unknown, in order, each carrying
+     its position. *)
+  let orderings g st =
+    List.filter_map
+      (fun id ->
+        Option.map
+          (fun (o : _ GradeNormal.ordering) -> { o with info = id })
+          (g.ordering (atom_at st id)))
+      (Int_set.elements (occurrences st g.unknown))
+
+  let positions orderings =
+    Int_set.of_list
+      (List.map (fun (o : _ GradeNormal.ordering) -> o.info) orderings)
+
+  (* Whether a value for [u] is blocked: [pick] holds of the polarity of [u]
+     in the atoms other than [dropped] or in the reported type. *)
+  let blocked pick u st dropped =
+    pick (in_ty u Plus st.ty)
+    || Int_set.exists
+         (fun id ->
+           (not (Int_set.mem id dropped)) && pick (in_atom u (atom_at st id)))
+         (occurrences st u)
 
   (* The first expression facing the unknown, an earlier unknown or free of
      it, that the hypotheses equate with it. *)
@@ -530,85 +867,113 @@ module Make (C : Constraint.S) = struct
         && entails unknown b && entails b unknown)
       facing
 
-  let equate_eps context st =
-    let entails = entails_eps context (grades_of st.hyps)
-    and facing =
-      facing ~compare:X.Eps_var.compare
-        ~var_of:(function X.Eps_var k -> Some k | _ -> None)
-        st.hyps.eps_hyps
+  (* Whether an ordering [lhs ≾ rhs] of the sort of [g] is [atom]. *)
+  let is_ordering g lhs rhs atom =
+    match g.ordering atom with
+    | Some o -> g.sort.equal o.lhs lhs && g.sort.equal o.rhs rhs
+    | None -> false
+
+  (* Whether sending the unknown [v] of [g] to [b] may add chains of atomic
+     orderings: [b] is a single atom, and some grade ordering bounds [v] below
+     without [v ≾ b] assumed, or above without [b ≾ v] assumed, [x ≾ v]
+     becoming [x ≾ b] and [v ≾ y] becoming [b ≾ y]. *)
+  let adds_chains g st b =
+    let atoms =
+      List.map (atom_at st) (Int_set.elements (occurrences st g.unknown))
     in
-    fun k ->
-      Option.map
-        (fun b -> apart context (moved (assign_eps k b) st))
-        (equal_value ~occurs:(in_eps (Eps_unknown k))
-           ~earlier:(function
-             | X.Eps_var j -> Some (X.Eps_var.compare j k < 0) | _ -> None)
-           ~entails (facing k) (X.Eps.var k))
-
-  let equate_rho context st =
-    let entails = entails_rho context (grades_of st.hyps)
-    and facing =
-      facing ~compare:X.Rho_var.compare
-        ~var_of:(function X.Rho_var k -> Some k | _ -> None)
-        st.hyps.rho_hyps
+    let assumed lhs rhs = List.exists (is_ordering g lhs rhs) atoms in
+    let bounded pick lhs rhs =
+      List.exists
+        (fun atom ->
+          match atom with
+          | Rho_atom _ | Eps_atom _ ->
+              (not (is_ordering g lhs rhs atom))
+              && pick (in_atom g.unknown atom)
+          | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false)
+        atoms
     in
-    fun k ->
-      Option.map
-        (fun b -> apart context (moved (assign_rho k b) st))
-        (equal_value ~occurs:(in_rho (Rho_unknown k))
-           ~earlier:(function
-             | X.Rho_var j -> Some (X.Rho_var.compare j k < 0) | _ -> None)
-           ~entails (facing k) (X.Rho.var k))
+    g.atomic b
+    && ((bounded (fun p -> p.below) b g.self && not (assumed g.self b))
+       || (bounded (fun p -> p.above) g.self b && not (assumed b g.self)))
 
-  (* Whether a value for [u] is blocked: [pick] holds of the polarity of [u]
-     in the hypotheses left or in the reported type. *)
-  let blocked pick u st hyps =
-    pick (in_hyps u hyps) || pick (in_ty u Plus st.ty)
+  (* The expressions the orderings set against the unknown, in order: the
+     right side where it is the left side, else the left side where it is the
+     right side. *)
+  let equate g entails st =
+    let face id facing =
+      match g.ordering (atom_at st id) with
+      | Some o when g.sort.is_unknown o.lhs -> o.rhs :: facing
+      | Some o when g.sort.is_unknown o.rhs -> o.lhs :: facing
+      | Some _ | None -> facing
+    in
+    let facing = List.rev (Int_set.fold face (occurrences st g.unknown) []) in
+    Option.map
+      (fun b ->
+        {
+          value = g.assign b;
+          dropped = Int_set.empty;
+          apart = true;
+          chains = adds_chains g st b;
+        })
+      (equal_value ~occurs:g.sort.occurs ~earlier:g.earlier ~entails facing
+         g.self)
 
-  let lower_eps context st k =
-    let sort = eps_sort context k in
-    match Bounds.lows sort st.hyps.eps_hyps with
+  let lower g st =
+    let os = orderings g st in
+    match Bounds.lows g.sort os with
     | Some { lower = x :: xs; lower_rest } ->
-        let hyps = { st.hyps with eps_hyps = lower_rest } in
-        if blocked (fun p -> p.below) (Eps_unknown k) st hyps then None
+        let dropped = Int_set.diff (positions os) (positions lower_rest) in
+        if blocked (fun p -> p.below) g.unknown st dropped then None
         else
           Some
-            (moved (assign_eps k (Bounds.join_all sort x xs)) { st with hyps })
+            {
+              value = g.assign (Bounds.join_all g.sort x xs);
+              dropped;
+              apart = false;
+              chains = false;
+            }
     | Some { lower = []; _ } | None -> None
 
-  let lower_rho context st k =
-    let sort = rho_sort context k in
-    match Bounds.lows sort st.hyps.rho_hyps with
-    | Some { lower = x :: xs; lower_rest } ->
-        let hyps = { st.hyps with rho_hyps = lower_rest } in
-        if blocked (fun p -> p.below) (Rho_unknown k) st hyps then None
+  let raise_to_cap g st =
+    let os = orderings g st in
+    match Bounds.ups g.sort os with
+    | Some { cap; upper_rest } ->
+        let dropped = Int_set.diff (positions os) (positions upper_rest) in
+        if blocked (fun p -> p.above) g.unknown st dropped then None
         else
-          Some
-            (moved (assign_rho k (Bounds.join_all sort x xs)) { st with hyps })
-    | Some { lower = []; _ } | None -> None
-
-  let raise_eps context st k =
-    match Bounds.ups (eps_sort context k) st.hyps.eps_hyps with
-    | Some { cap; upper_rest } ->
-        let hyps = { st.hyps with eps_hyps = upper_rest } in
-        if blocked (fun p -> p.above) (Eps_unknown k) st hyps then None
-        else Some (moved (assign_eps k cap) { st with hyps })
+          Some { value = g.assign cap; dropped; apart = false; chains = false }
     | None -> None
 
-  let raise_rho context st k =
-    match Bounds.ups (rho_sort context k) st.hyps.rho_hyps with
-    | Some { cap; upper_rest } ->
-        let hyps = { st.hyps with rho_hyps = upper_rest } in
-        if blocked (fun p -> p.above) (Rho_unknown k) st hyps then None
-        else Some (moved (assign_rho k cap) { st with hyps })
-    | None -> None
+  (* The first subtyping atom [β <: a]: a type unknown with a lower bound
+     sent to it. *)
+  let lower_ty a st =
+    let u = Ty_unknown a in
+    let lower_bound id =
+      match atom_at st id with
+      | Sub_atom s -> (
+          match edge s with
+          | Some (b, a') when same_param a a' -> Some (id, b)
+          | Some _ | None -> None)
+      | Rho_atom _ | Eps_atom _ | Eternal_atom _ | Disj_atom _ -> None
+    in
+    match List.find_map lower_bound (Int_set.elements (occurrences st u)) with
+    | Some (id, b) when not (same_param a b) ->
+        let dropped = Int_set.singleton id in
+        if blocked (fun p -> p.below) u st dropped then None
+        else
+          Some { value = assign_ty a b; dropped; apart = true; chains = false }
+    | Some _ | None -> None
 
-  (* A type unknown on a cycle of subtyping atoms sent to the representative
-     of its component: a fixed member where there is one, else the earliest.
-     This is cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998),
+  (* Each type unknown on a cycle of subtyping atoms, in order, sent to the
+     representative of its component: a fixed member where there is one, else
+     the earliest. This is cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998),
      the components by Kosaraju's algorithm ({!Reach.representatives}). *)
-  let collapse_cycle context (fixed : C.free) st =
-    let edges = edges st.hyps.sub_vars in
+  let collapse (fixed : C.free) st =
+    let edges =
+      List.filter_map
+        (function Sub_atom s -> edge s | _ -> None)
+        (List.map (fun (_, e) -> e.atom) (Int_map.bindings st.atoms))
+    in
     let ends pick = TyParamSet.of_list (List.map pick edges) in
     let vertices =
       TyParamSet.elements (TyParamSet.inter (ends fst) (ends snd))
@@ -621,54 +986,195 @@ module Make (C : Constraint.S) = struct
     let representative =
       Reach.representatives ~compare:TyParam.compare edges order
     in
-    List.find_map
+    List.filter_map
       (fun a ->
         if is_fixed a then None
         else
           match representative a with
           | Some r when not (same_param a r) ->
-              Some (apart context (moved (assign_ty a r) st))
+              Some
+                ( Ty_unknown a,
+                  {
+                    value = assign_ty a r;
+                    dropped = Int_set.empty;
+                    apart = true;
+                    chains = false;
+                  } )
           | Some _ | None -> None)
       vertices
 
-  (* The first subtyping atom [β <: a], and the others. *)
-  let rec lower_bound a before = function
-    | [] -> None
-    | (s : R.sub) :: after -> (
-        match edge s with
-        | Some (b, a') when same_param a a' ->
-            Some (b, List.rev_append before after)
-        | Some _ | None -> lower_bound a (s :: before) after)
+  (* The grade hypotheses, in order. *)
+  let grades st : R.reason N.hyps =
+    Seq.fold_left
+      (fun (grades : R.reason N.hyps) atom ->
+        match atom with
+        | Rho_atom o -> { grades with rho_hyps = o :: grades.rho_hyps }
+        | Eps_atom o -> { grades with eps_hyps = o :: grades.eps_hyps }
+        | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> grades)
+      N.no_hyps
+      (Seq.map (fun (_, e) -> e.atom) (Int_map.to_rev_seq st.atoms))
 
-  let lower_ty context st a =
-    match lower_bound a [] st.hyps.sub_vars with
-    | Some (b, rest) when not (same_param a b) ->
-        let hyps = { st.hyps with sub_vars = rest } in
-        if blocked (fun p -> p.below) (Ty_unknown a) st hyps then None
-        else Some (apart context (moved (assign_ty a b) { st with hyps }))
-    | Some _ | None -> None
+  (* The test of [kind] at an unknown; for equating, the decision procedure
+     of the hypotheses is shared by the unknowns tested. *)
+  let test env kind st =
+    let context = env.context in
+    let entails make = lazy (make context (grades st)) in
+    let eps = entails entails_eps and rho = entails entails_rho in
+    fun u ->
+      match (kind, u) with
+      | Equate_eps, Eps_unknown k ->
+          equate (eps_grade context k) (fun a b -> Lazy.force eps a b) st
+      | Equate_rho, Rho_unknown k ->
+          equate (rho_grade context k) (fun a b -> Lazy.force rho a b) st
+      | Lower_eps, Eps_unknown k -> lower (eps_grade context k) st
+      | Lower_rho, Rho_unknown k -> lower (rho_grade context k) st
+      | Raise_eps, Eps_unknown k -> raise_to_cap (eps_grade context k) st
+      | Raise_rho, Rho_unknown k -> raise_to_cap (rho_grade context k) st
+      | Lower_ty, Ty_unknown a -> lower_ty a st
+      | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
+          | Raise_rho | Collapse | Lower_ty ),
+          _ ) ->
+          None
 
-  (* The unknowns of [st] outside [fixed], each sort by creation. *)
-  let unknowns (fixed : C.free) st =
-    let free = C.union_free (C.free_vars_ty st.ty) (free_hyps st.hyps) in
-    ( TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys),
-      Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos),
-      Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps) )
+  (* The tests of [kind] that are due taken again, in order, up to the first
+     unknown where it succeeds, and that unknown with its step. *)
+  let refresh env kind st =
+    let test = lazy (test env kind st) in
+    let rec go t =
+      match
+        (Unknown_set.min_elt_opt t.stale, Unknown_map.min_binding_opt t.passed)
+      with
+      | Some u, Some (v, _) when Unknown.compare u v > 0 -> t
+      | Some u, (Some _ | None) -> (
+          let stale = Unknown_set.remove u t.stale in
+          match Lazy.force test u with
+          | Some plan -> { passed = Unknown_map.add u plan t.passed; stale }
+          | None -> go { t with stale })
+      | None, (Some _ | None) -> t
+    in
+    let t = Kind_map.find kind st.tests in
+    let t' = go t in
+    ( (if t' == t then st else { st with tests = Kind_map.add kind t' st.tests }),
+      Unknown_map.min_binding_opt t'.passed )
 
-  let any_step context fixed (tys, rhos, eps) st =
-    let at step unknowns () = List.find_map (step context st) unknowns in
-    List.find_map
-      (fun step -> step ())
-      [
-        at equate_eps eps;
-        at equate_rho rhos;
-        at lower_eps eps;
-        at lower_rho rhos;
-        at raise_eps eps;
-        at raise_rho rhos;
-        (fun () -> collapse_cycle context fixed st);
-        at lower_ty tys;
-      ]
+  (* The first kind of step, in order, that succeeds at some unknown, and the
+     first such unknown. *)
+  let rec next env st = function
+    | [] -> (st, None)
+    | Collapse :: kinds -> (
+        let st =
+          match st.cycle with
+          | Some _ -> st
+          | None -> { st with cycle = Some (collapse env.fixed st) }
+        in
+        match st.cycle with
+        | Some ((u, plan) :: _) -> (st, Some (Collapse, u, plan))
+        | Some [] | None -> next env st kinds)
+    | kind :: kinds -> (
+        match refresh env kind st with
+        | st, Some (u, plan) -> (st, Some (kind, u, plan))
+        | st, None -> next env st kinds)
+
+  (* The unknowns of [ty] and [hyps] outside [fixed]. *)
+  let unknowns (fixed : C.free) ty hyps =
+    let free = C.union_free (C.free_vars_ty ty) (free_hyps hyps) in
+    Unknown_set.of_list
+      (List.map
+         (fun a -> Ty_unknown a)
+         (TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys))
+      @ List.map
+          (fun k -> Rho_unknown k)
+          (Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos))
+      @ List.map
+          (fun k -> Eps_unknown k)
+          (Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps)))
+
+  (* The unknowns outside [fixed] tested by each kind of step. *)
+  let tested candidates =
+    Kind_map.of_list
+      (List.filter_map
+         (fun kind ->
+           match kind with
+           | Collapse -> None
+           | Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
+           | Raise_rho | Lower_ty ->
+               Some (kind, Unknown_set.filter (tested_at kind) candidates))
+         kinds)
+
+  let initial env ty (hyps : hyps) =
+    let atoms =
+      List.map (fun o -> Rho_atom o) hyps.rho_hyps
+      @ List.map (fun o -> Eps_atom o) hyps.eps_hyps
+      @ List.map (fun s -> Sub_atom s) hyps.sub_vars
+      @ List.map (fun e -> Eternal_atom e) hyps.eternal_hyps
+      @ List.map (fun d -> Disj_atom d) hyps.disj_hyps
+    in
+    let empty =
+      {
+        ty;
+        atoms = Int_map.empty;
+        occurrences = Unknown_map.empty;
+        reflexive = Int_set.empty;
+        steps = [];
+        tests =
+          Kind_map.map
+            (fun stale -> { passed = Unknown_map.empty; stale })
+            env.tested;
+        cycle = None;
+      }
+    in
+    let insert (id, st) atom =
+      ( id + 1,
+        reindex env.context id (Some atom) ~before:Unknown_set.empty
+          ~after:(atom_unknowns atom) st )
+    in
+    snd (List.fold_left insert (0, empty) atoms)
+
+  (* The hypotheses, in order, the grade substitutions of the steps applied
+     to their reasons. *)
+  let hyps_of st : hyps =
+    let reason =
+      C.subst_reason { C.empty_subst with grade_subst = resolve st.steps }
+    in
+    Seq.fold_left
+      (fun (hyps : hyps) atom ->
+        match atom with
+        | Rho_atom o ->
+            {
+              hyps with
+              rho_hyps = { o with info = reason o.info } :: hyps.rho_hyps;
+            }
+        | Eps_atom o ->
+            {
+              hyps with
+              eps_hyps = { o with info = reason o.info } :: hyps.eps_hyps;
+            }
+        | Sub_atom s ->
+            {
+              hyps with
+              sub_vars = { s with info = reason s.info } :: hyps.sub_vars;
+            }
+        | Eternal_atom e ->
+            {
+              hyps with
+              eternal_hyps =
+                { e with eternal_reason = reason e.eternal_reason }
+                :: hyps.eternal_hyps;
+            }
+        | Disj_atom d ->
+            {
+              hyps with
+              disj_hyps =
+                { d with disj_reason = reason d.disj_reason } :: hyps.disj_hyps;
+            })
+      {
+        rho_hyps = [];
+        eps_hyps = [];
+        sub_vars = [];
+        eternal_hyps = [];
+        disj_hyps = [];
+      }
+      (Seq.map (fun (_, e) -> e.atom) (Int_map.to_rev_seq st.atoms))
 
   (* The elimination of unknowns, the lowering and raising steps by polarity
      in the manner of Pottier (Simplifying subtyping constraints, ICFP 1996)
@@ -676,19 +1182,35 @@ module Make (C : Constraint.S) = struct
      steps are tried at the unknowns of the initial state, which include those
      of every later state: a step replaces an unknown by a part of the
      hypotheses and drops hypotheses, and no step applies at an unknown that
-     does not occur in them. *)
+     does not occur in them.
+
+     The hypotheses are indexed by the unknowns occurring in them; a step
+     substitutes into the atoms of its unknown alone, and into the reasons
+     once, at the end. The outcome of each test is kept, and taken again, in
+     order and up to the first success, at the unknowns of the atoms a step
+     changes or drops and of its value. A test reads the atoms of its unknown
+     and the type alone, but for equating, which reads the chains of atomic
+     orderings too ({!GradeNormal.Make.SORT.decide_leq}), decisions being
+     monotone in them. At an unknown [v], lowering turns [x ≾ v ≾ y] into
+     [x ≾ y] or drops it, raising turns [x ≾ v ≾ U] into [x ≾ U], equating
+     with [b] turns [x ≾ v] into [x ≾ b] and [v ≾ y] into [b ≾ y], and steps
+     drop orderings: no step adds a chain but an equating one to a single
+     atom [b] without [v ≾ b], or [b ≾ v], assumed. An equating test that
+     failed thus fails after any other step, unless the atoms of its unknown
+     changed. *)
   let eliminate context ~fixed ty hyps =
-    let st = { ty; hyps } in
-    let ((tys, rhos, eps) as unknowns) = unknowns fixed st in
+    let candidates = unknowns fixed ty hyps in
+    let env = { context; fixed; candidates; tested = tested candidates } in
     let rec reduce fuel st =
       if fuel = 0 then st
       else
-        match any_step context fixed unknowns st with
-        | Some st -> reduce (fuel - 1) st
-        | None -> st
+        match next env st kinds with
+        | st, Some (kind, u, plan) ->
+            reduce (fuel - 1) (take env kind u plan st)
+        | st, None -> st
     in
-    let st = reduce (List.length tys + List.length rhos + List.length eps) st in
-    (st.ty, st.hyps)
+    let st = reduce (Unknown_set.cardinal candidates) (initial env ty hyps) in
+    (st.ty, hyps_of st)
 
   (* ------------------------------------------------------------------ *)
   (* Reports and schemes                                                 *)
