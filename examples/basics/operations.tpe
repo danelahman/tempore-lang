@@ -1,6 +1,6 @@
 (* Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound examples/operations.tpe *)
+     ./tempore --grades time-lower-bound examples/basics/operations.tpe *)
 
 (* Reading the state takes 3 ticks. *)
 operation Get : unit ~> int # 3

@@ -1,6 +1,6 @@
 (* Run this example with the 'time-upper-bound-levels' grading monoid, e.g.
 
-     ./tempore --grades time-upper-bound-levels examples/time_upper_levels.tpe *)
+     ./tempore --grades time-upper-bound-levels examples/levels/time_upper_levels.tpe *)
 
 (* A grade '(n, l)' pairs an upper bound on time with a security level: at most
    'n' ticks, touching nothing above 'l'. A resource boxed at '(n, l)' is an

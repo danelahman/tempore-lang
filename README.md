@@ -50,7 +50,11 @@ There are two ways to run programs:
   skips the standard library, and `--debug` also prints the typing context.
 
 The [`examples/`](examples/) directory contains the programs available in the
-web interface; each also starts with listing the command that runs it in CLI.
+web interface, grouped into subdirectories by topic (`basics/`, `handlers/`,
+`time/`, `traces/`, `levels/`, `3dprint/`) that match the groups the web
+interface's example selector lists them under; [`examples/index`](examples/index)
+gives the selector's manifest. Each example also starts with listing the
+command that runs it on the CLI.
 
 ## Grading monoids
 
@@ -58,7 +62,7 @@ Resource usage is measured in a grading monoid (an ordered monoid with some
 additional structure). The monoid is not part of a source file but chosen when
 the program is run: with `--grades` on the command line, e.g.
 
-    ./tempore --grades time-interval examples/time_intervals.tpe
+    ./tempore --grades time-interval examples/time/time_intervals.tpe
 
 or with the **Grades** selector in the web interface, which switches
 its value automatically when a built-in example is loaded. The default grade
@@ -83,7 +87,7 @@ literals such as `3` or pairs such as `(1, 4)`:
   `l >= m` (interval containment); `(n, ∞)` (ASCII `(n, inf)`) imposes no
   upper bound. `(0, 0)` is neither the top nor the minimum, and the top is
   `(0, ∞)`. See
-  [`examples/time_intervals.tpe`](examples/time_intervals.tpe).
+  [`examples/time/time_intervals.tpe`](examples/time/time_intervals.tpe).
 
 All three variants of time bounds are inclusive on the values they carry, e.g.,
 while intervals are written as `(n,m)`, they should be read as `[n,m]`.
@@ -103,21 +107,21 @@ operations through the runtime bounds `within (lo, hi)` every atomic operation
   each operation performed banks its `lo` towards the delays `rho'` demands,
   but waiting never counts as performing a demanded operation. `{0}` is the
   top of the order. See
-  [`examples/traces_lower.tpe`](examples/traces_lower.tpe).
+  [`examples/traces/traces_lower.tpe`](examples/traces/traces_lower.tpe).
 - **`traces-upper-bound`** — the runs a computation is *allowed*. `rho`
   is a sub-grade of `rho'` when every run of `rho` fits inside some run of
   `rho'`: a delay in `rho'` pays for operations of `rho` at their `hi`, but
   waiting never counts as performing an operation the bound asks for. `{0}` is
   the minimum of the order; its top is a separate point `⊤`, permitting any
   run. See
-  [`examples/traces_upper.tpe`](examples/traces_upper.tpe).
+  [`examples/traces/traces_upper.tpe`](examples/traces/traces_upper.tpe).
 - **`traces-interval`** — pairs `({...}, {...})` of a lower bound
   (coverage order, reading `lo`) and an upper bound (allowance order, reading
   `hi`), compared componentwise. `{...}` abbreviates the pair of a set with
   itself, `n` abbreviates `({n}, {n})`, and `(n, m)` abbreviates
   `({n}, {m})`; either component may be `⊤`, the top of its order.
   `({0}, {0})` is neither the top nor the minimum, and the top is `({0}, ⊤)`.
-  See [`examples/traces_intervals.tpe`](examples/traces_intervals.tpe).
+  See [`examples/traces/traces_intervals.tpe`](examples/traces/traces_intervals.tpe).
 
 The sets of traces are written in a brace literal `{...}`, which is a regular
 expression over operation names and delays: `r; s` concatenates, `r | s` is a
@@ -139,7 +143,7 @@ One monoid grades resources and computations by *regular languages* of runs:
   all words. The top is not absorbing: `{3}` multiplied by `⊤` is `{3; _*}`,
   the runs that begin with three ticks, not `⊤`. The order does not trade time
   against operations, so no operation declares runtime bounds. See
-  [`examples/regular_traces.tpe`](examples/regular_traces.tpe).
+  [`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe).
 
 Its brace literals are the full regular expressions, by increasing precedence:
 union `r | s`, intersection `r & s`, concatenation `r; s`, complement `~r` and
@@ -174,17 +178,17 @@ more pair it with time:
   the grade `Low`. A resource boxed at a level may be unboxed only while the
   level has not risen above it since boxing: a value boxed at `Low` is out of
   reach once an operation of grade `High` has run. See
-  [`examples/security_levels.tpe`](examples/security_levels.tpe).
+  [`examples/levels/security_levels.tpe`](examples/levels/security_levels.tpe).
 - **`time-lower-bound-levels`** — pairs `(n, l)` of a `time-lower-bound`
   grade and a level: at least `n` ticks, touching nothing above `l`. A box at
   `(3, Low)` is an embargo with a taint check, claimable after at least three
   ticks and only while nothing `High` has run. See
-  [`examples/time_lower_levels.tpe`](examples/time_lower_levels.tpe).
+  [`examples/levels/time_lower_levels.tpe`](examples/levels/time_lower_levels.tpe).
 - **`time-upper-bound-levels`** — pairs `(n, l)` of a `time-upper-bound`
   grade and a level: at most `n` ticks, touching nothing above `l`. A box at
   `(5, Low)` is an expiring capability, usable within five ticks and only while
   nothing `High` has run; `(∞, Low)` never expires. See
-  [`examples/time_upper_levels.tpe`](examples/time_upper_levels.tpe).
+  [`examples/levels/time_upper_levels.tpe`](examples/levels/time_upper_levels.tpe).
 
 The last two are instances of a general *product* of two monoids: pairs of
 grades, multiplied, joined and compared componentwise, with the pair of the
@@ -209,7 +213,7 @@ of time, a sequence of operations, or whatever the chosen monoid measures.
 - `delay tau` advances the accumulated grade by `tau`. Operation calls (below)
   advance it by the grade of the operation.
 
-See [`examples/delay.tpe`](examples/delay.tpe).
+See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 The computation type of a function can be stated explicitly, either on its body,
 `let f () : mounted # rho = ...`, or on the function as a whole, `let f : unit
@@ -262,8 +266,8 @@ while `after (fun () -> delay 2) 5` is accepted because `5` is eternal, and
 captured in an operation case is constrained in the same way, the top grade
 having accumulated for it (see [Contexts of operation
 cases](#contexts-of-operation-cases)). See
-[`examples/eternal_types.tpe`](examples/eternal_types.tpe) and the end of
-[`examples/3dprint_traces.tpe`](examples/3dprint_traces.tpe).
+[`examples/basics/eternal_types.tpe`](examples/basics/eternal_types.tpe) and the end of
+[`examples/3dprint/3dprint_traces.tpe`](examples/3dprint/3dprint_traces.tpe).
 
 A type definition can be declared non-eternal regardless of its structure:
 
@@ -426,11 +430,11 @@ they stay in scope inside a case whatever their type.
 
 See [`tests/op_case_context.tpe`](tests/op_case_context.tpe) and the
 `tests/op_case_context_*.tpe` files, and
-[`examples/handlers_lower_bound.tpe`](examples/handlers_lower_bound.tpe),
-[`examples/handlers_upper_bound.tpe`](examples/handlers_upper_bound.tpe),
-[`examples/handlers_nested.tpe`](examples/handlers_nested.tpe),
-[`examples/handlers_nested_reject.tpe`](examples/handlers_nested_reject.tpe)
-and [`examples/3dprint_handlers.tpe`](examples/3dprint_handlers.tpe).
+[`examples/handlers/handlers_lower_bound.tpe`](examples/handlers/handlers_lower_bound.tpe),
+[`examples/handlers/handlers_upper_bound.tpe`](examples/handlers/handlers_upper_bound.tpe),
+[`examples/handlers/handlers_nested.tpe`](examples/handlers/handlers_nested.tpe),
+[`examples/handlers/handlers_nested_reject.tpe`](examples/handlers/handlers_nested_reject.tpe)
+and [`examples/3dprint/3dprint_handlers.tpe`](examples/3dprint/3dprint_handlers.tpe).
 
 ### Default implementations
 

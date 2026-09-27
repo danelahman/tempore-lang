@@ -40,9 +40,11 @@ and edit_msg =
       (** Tab pressed in the editor: the source as the browser has it, and the
           selection to replace with an indentation, in the UTF-16 code units the
           browser counts selections in. *)
-  | LoadExample of string * string * string
-      (** Load a bundled example: its title, the name of the resource grade it
-          is meant to be run with, and its source. *)
+  | LoadExample of string * string * string * string
+      (** Load a bundled example: its group, its title, the name of the resource
+          grade it is meant to be run with, and its source. The group is carried
+          along with the title because two examples of different groups may
+          share a title. *)
   | SelectResource of string
       (** Select the grades to use (by name from [grade_modules]). *)
 
@@ -83,10 +85,10 @@ type edit_model = {
   unparsed_code : string;
   selected_resource : string;
       (** Name of the currently selected grades (key in [grade_modules]). *)
-  selected_example : string option;
-      (** Title of the bundled example last loaded; editing it keeps the
-          selection, so the select box still says where the program came from.
-      *)
+  selected_example : (string * string) option;
+      (** Group and title of the bundled example last loaded; editing it keeps
+          the selection, so the select box still says where the program came
+          from. *)
 }
 
 let default_resource_name = fst (List.hd Language.GradeRegistry.grade_modules)
@@ -130,14 +132,14 @@ let edit_update edit_model = function
       let before = String.sub source 0 start
       and after = String.sub source stop (String.length source - stop) in
       { edit_model with unparsed_code = before ^ indentation ^ after }
-  | LoadExample (title, resource_name, source) ->
+  | LoadExample (group, title, resource_name, source) ->
       (* An example is written for a particular resource grade, so loading one
          switches to that grade. The user remains free to change it afterwards. *)
       {
         edit_model with
         unparsed_code = source;
         selected_resource = resource_name;
-        selected_example = Some title;
+        selected_example = Some (group, title);
       }
   | SelectResource name -> { edit_model with selected_resource = name }
 

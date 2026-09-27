@@ -1,6 +1,6 @@
 (* Run this example with the 'regular-traces' grading monoid, e.g.
 
-     ./tempore --grades regular-traces examples/regular_traces.tpe *)
+     ./tempore --grades regular-traces examples/traces/regular_traces.tpe *)
 
 (* A grade is a regular language of runs, each run a word whose letters are
    operations and ticks: '{Open; (Read | Write)*; Close}' permits the runs that

@@ -247,11 +247,15 @@ let file_verdicts path grades =
   let verdicts = P.file path in
   (verdicts, Unix.gettimeofday () -. start)
 
-let tpe_files dir =
-  Sys.readdir dir |> Array.to_list
-  |> List.filter (fun f -> Filename.check_suffix f ".tpe")
-  |> List.sort String.compare
-  |> List.map (Filename.concat dir)
+(* The '.tpe' files under [dir], recursing into subdirectories (examples are
+   grouped into some), each named entries sorted within its own directory. *)
+let rec tpe_files dir =
+  Sys.readdir dir |> Array.to_list |> List.sort String.compare
+  |> List.concat_map (fun name ->
+      let path = Filename.concat dir name in
+      if Sys.is_directory path then tpe_files path
+      else if Filename.check_suffix name ".tpe" then [ path ]
+      else [])
 
 (* The lines of the commands the solver rejects, by file: every other command
    of the examples and the tests is accepted. *)

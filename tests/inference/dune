@@ -12,7 +12,7 @@
  (modules test_generate)
  (libraries utils language parser desugarer loader inference)
  (deps
-  (glob_files %{project_root}/examples/*.tpe)
+  (glob_files_rec %{project_root}/examples/*.tpe)
   (glob_files %{project_root}/tests/*.tpe)
   %{project_root}/tests/run_tests.t))
 
@@ -21,7 +21,7 @@
  (modules test_solve)
  (libraries utils language parser desugarer loader inference unix)
  (deps
-  (glob_files %{project_root}/examples/*.tpe)
+  (glob_files_rec %{project_root}/examples/*.tpe)
   (glob_files %{project_root}/tests/*.tpe)
   %{project_root}/tests/run_tests.t))
 

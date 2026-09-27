@@ -75,7 +75,14 @@ let heading_id h =
   | None -> None
 
 let example_of_path dest =
-  List.find_opt (fun (_, _, _, path) -> path = dest) Examples_tpe.examples
+  List.find_map
+    (fun (g : Examples_tpe.group) ->
+      Option.map
+        (fun (e : Examples_tpe.example) -> (g.label, e))
+        (List.find_opt
+           (fun (e : Examples_tpe.example) -> e.path = dest)
+           g.examples))
+    Examples_tpe.examples
 
 (* Three kinds of destination: a bundled example, which is loaded into the
    editor instead of being followed; another path in the repository, which is
@@ -83,13 +90,14 @@ let example_of_path dest =
    of them is an <a>, so that the page stays navigable by keyboard. *)
 let link_to dest content =
   match example_of_path dest with
-  | Some (title, resource_name, code, _) ->
+  | Some (group, (e : Examples_tpe.example)) ->
       elt "a"
         ~a:
           [
             attr "href" "#";
             onclick ~prevent_default:() (fun _ ->
-                Model.EditMsg (Model.LoadExample (title, resource_name, code)));
+                Model.EditMsg
+                  (Model.LoadExample (group, e.title, e.grade, e.source)));
           ]
         content
   | None when String.starts_with ~prefix:"#" dest ->

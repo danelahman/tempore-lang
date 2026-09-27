@@ -1,6 +1,6 @@
 (* Run this example with the 'time-lower-bound-levels' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound-levels examples/time_lower_levels.tpe *)
+     ./tempore --grades time-lower-bound-levels examples/levels/time_lower_levels.tpe *)
 
 (* A grade '(n, l)' pairs a lower bound on time with a security level: at least
    'n' ticks, touching nothing above 'l'. A resource boxed at '(n, l)' is under

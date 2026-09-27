@@ -51,6 +51,49 @@ let select ?(a = []) empty_description msg describe_choice selected choices =
         :: List.map view_choice choices);
     ]
 
+(* As [select], but the choices are laid out under labelled <optgroup>s;
+   [describe_title] fills the option's hover tooltip. The change handler still
+   indexes into the flat list of choices, since a browser counts every
+   <option> of a <select> in document order for "selectedIndex" whatever
+   <optgroup>s it is laid out under. *)
+let grouped_select ?(a = []) empty_description msg describe_choice
+    describe_title selected groups =
+  let view_choice choice =
+    elt "option"
+      ~a:
+        [
+          bool_prop "selected" (selected choice);
+          attr "title" (describe_title choice);
+        ]
+      [ text (describe_choice choice) ]
+  in
+  let view_group (label, choices) =
+    elt "optgroup" ~a:[ attr "label" label ] (List.map view_choice choices)
+  in
+  let choices = List.concat_map snd groups in
+  div ~a
+    [
+      (* index 0 is the placeholder below, and a browser may report it *)
+      elt "select"
+        ~a:
+          [
+            on "change"
+              Vdom.Decoder.(
+                map
+                  (fun i -> Option.map msg (List.nth_opt choices (i - 1)))
+                  (field "target.selectedIndex" Int));
+          ]
+        (elt "option"
+           ~a:
+             [
+               disabled true;
+               bool_prop "selected"
+                 (List.for_all (fun choice -> not (selected choice)) choices);
+             ]
+           [ text empty_description ]
+        :: List.map view_group groups);
+    ]
+
 let nil = text ""
 
 (* Octicons (MIT licensed, Copyright (c) GitHub Inc.; see THIRD-PARTY.md),
@@ -444,16 +487,24 @@ let view_compiler (model : Model.model) =
             div
               ~a:[ class_ "control is-expanded" ]
               [
-                select
+                (* The module Examples_tpe is generated from examples/index;
+                   check the dune file for details. Each choice is paired with
+                   its group's label, since two examples of different groups
+                   may share a title. *)
+                grouped_select
                   ~a:[ class_ "select is-fullwidth" ]
                   "Load example"
-                  (fun (title, resource_name, source, _) ->
-                    Model.EditMsg (LoadExample (title, resource_name, source)))
-                  (fun (title, _, _, _) -> title)
-                  (fun (title, _, _, _) ->
-                    Some title = model.edit_model.selected_example)
-                  (* The module Examples_tpe is semi-automatically generated from examples/*.tpe. Check the dune file for details. *)
-                  Examples_tpe.examples;
+                  (fun (group, (e : Examples_tpe.example)) ->
+                    Model.EditMsg
+                      (LoadExample (group, e.title, e.grade, e.source)))
+                  (fun (_, (e : Examples_tpe.example)) -> e.title)
+                  (fun (_, (e : Examples_tpe.example)) -> e.description)
+                  (fun (group, (e : Examples_tpe.example)) ->
+                    Some (group, e.title) = model.edit_model.selected_example)
+                  (List.map
+                     (fun (g : Examples_tpe.group) ->
+                       (g.label, List.map (fun e -> (g.label, e)) g.examples))
+                     Examples_tpe.examples);
               ];
           ];
       ]

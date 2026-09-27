@@ -1,6 +1,6 @@
 (* Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound examples/delay.tpe *)
+     ./tempore --grades time-lower-bound examples/basics/delay.tpe *)
 
 (* Unary natural numbers, here only something to match on. *)
 type nat =

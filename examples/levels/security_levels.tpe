@@ -1,6 +1,6 @@
 (* Run this example with the 'security-levels' grading monoid, e.g.
 
-     ./tempore --grades security-levels examples/security_levels.tpe *)
+     ./tempore --grades security-levels examples/levels/security_levels.tpe *)
 
 (* A computation's grade is the highest security level it touches, 'Low' or
    'High'. A resource boxed at a level may be unboxed only while the level has

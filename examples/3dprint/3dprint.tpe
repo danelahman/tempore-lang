@@ -1,6 +1,6 @@
 (* Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound examples/3dprint.tpe *)
+     ./tempore --grades time-lower-bound examples/3dprint/3dprint.tpe *)
 
 (* The stages a printed model goes through, from the model file to a
    finished print. *)

@@ -1,0 +1,48 @@
+# Manifest of the examples shown in the web interface's selector, read by
+# src/06-user-interface/web/gen_examples/gen_examples.ml to generate the
+# module Examples_tpe (see src/06-user-interface/web/dune).
+#
+# One example per non-blank, non-comment line, five fields separated by ' | ':
+#
+#   group | title | grade | path | description
+#
+# - group: the optgroup label the example is listed under in the selector.
+# - title: the option's text, without a prefix already given by the group.
+# - grade: the grading monoid the web interface switches to when the example
+#   is loaded (a key of Language.GradeRegistry.grade_modules).
+# - path: the example's file, relative to this directory.
+# - description: one sentence, shown as the option's tooltip.
+#
+# Examples are listed in the order they appear in the selector: groups in the
+# order given here, and within a group from the simplest example to the most
+# advanced.
+
+Basics | Delay | time-lower-bound | basics/delay.tpe | Functions accumulate delays, whether taken directly or hidden in a returned closure.
+Basics | Unbox | time-lower-bound | basics/basic_unbox.tpe | Unboxing before the box's grade has accumulated is rejected.
+Basics | Folding over boxes | time-lower-bound | basics/fold_over_boxes.tpe | A fold builds a chain of boxed accumulators, each claimed once the grade it demands has accumulated.
+Basics | Algebraic operations | time-lower-bound | basics/operations.tpe | Operation calls advance the accumulated grade by their declared cost.
+Basics | Top-level structures | time-lower-bound | basics/toplevel.tpe | A polymorphic sum type and a generalised top-level function, folded over a list.
+Basics | Natural numbers as an inductive type | time-lower-bound | basics/nat.tpe | Unary natural numbers with addition and multiplication, defined by structural recursion.
+Basics | Recursive functions on integers | time-lower-bound | basics/recursion.tpe | Factorial, Fibonacci and Euclid's algorithm, by ordinary recursion.
+Basics | Eternal types | time-upper-bound | basics/eternal_types.tpe | Values of eternal types stay usable however much grade accumulates; functions and non-eternal types do not.
+
+Effect handlers | Lower bounds | time-lower-bound | handlers/handlers_lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
+Effect handlers | Upper bounds | time-upper-bound | handlers/handlers_upper_bound.tpe | An operation case may resume its continuation at any point up to the operation's grade, or not at all.
+Effect handlers | Nested | time-lower-bound | handlers/handlers_nested.tpe | Nested handlers each resume their own continuation, quantifying over one rigid effect per level of nesting.
+Effect handlers | Nested (rejected) | time-lower-bound | handlers/handlers_nested_reject.tpe | The nested-handlers example with one inner continuation left unresumed, correctly rejected.
+
+Time grades | Upper bounds | time-upper-bound | time/time_upper.tpe | A box may be unboxed at any point up to its upper-bound grade.
+Time grades | Intervals | time-interval | time/time_intervals.tpe | A box grade pairs a lower and an upper time bound, unboxable only within that interval.
+
+Trace grades | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3D-printing pipeline whose operations must be covered by the runs a box demands, waiting banking towards them.
+Trace grades | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
+Trace grades | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
+Trace grades | Regular languages | regular-traces | traces/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
+
+Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
+Security levels | Embargoes | time-lower-bound-levels | levels/time_lower_levels.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.
+Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_upper_levels.tpe | A box paired with a time upper bound and a level: a capability that expires and can be revoked by a taint.
+
+Case study: 3D printing | Time bounds | time-lower-bound | 3dprint/3dprint.tpe | The stages of a 3D print, boxed at the lower time bounds each stage demands.
+Case study: 3D printing | With effect handlers | time-lower-bound | 3dprint/3dprint_handlers.tpe | The same pipeline with each stage an operation, handled by clauses that respect its timing.
+Case study: 3D printing | With trace grades | traces-interval | 3dprint/3dprint_traces.tpe | The same pipeline graded by the traces of operations it may exhibit, bounds on runtime included.

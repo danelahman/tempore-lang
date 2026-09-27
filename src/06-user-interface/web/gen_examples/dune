@@ -1,0 +1,6 @@
+; A native, host-run generator, kept in its own directory so that its module
+; does not collide with those of the (js-only) web executable it feeds.
+
+(executable
+ (name gen_examples)
+ (modules gen_examples))

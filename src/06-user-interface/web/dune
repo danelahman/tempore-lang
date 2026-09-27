@@ -30,90 +30,20 @@
    (cat ../../../README.md)
    (echo "|md}"))))
 
-;; This is an expanded form of the trick used in src/core/dune to generate the module
-;; Examples_tpe with the examples to include in the web interface.
+;; The module Examples_tpe, generated from the example manifest
+;; examples/index and the source of the examples it names by gen_examples
+;; (see gen_examples/gen_examples.ml); the rule depends on the whole examples
+;; tree, so that editing the manifest or any example rebuilds it.
 
 (rule
- (with-stdout-to
-  examples_tpe.ml
-  (progn
-   (echo "let examples = [")
-   ;; We need to repeat the following three lines for each included example.
-   ;; The first line gives the name of the example and the name of the resource
-   ;; grade it is meant to be run with (the web interface switches to that grade
-   ;; when the example is loaded), and the second gives its source.
-   (echo "({|Time: upper bounds|}, {|time-upper-bound|}, {|")
-   (cat ../../../examples/time_upper.tpe)
-   (echo "|}, {|examples/time_upper.tpe|});")
-   (echo "({|Time: intervals|}, {|time-interval|}, {|")
-   (cat ../../../examples/time_intervals.tpe)
-   (echo "|}, {|examples/time_intervals.tpe|});")
-   (echo "({|Traces: lower bounds|}, {|traces-lower-bound|}, {|")
-   (cat ../../../examples/traces_lower.tpe)
-   (echo "|}, {|examples/traces_lower.tpe|});")
-   (echo "({|Traces: upper bounds|}, {|traces-upper-bound|}, {|")
-   (cat ../../../examples/traces_upper.tpe)
-   (echo "|}, {|examples/traces_upper.tpe|});")
-   (echo "({|Traces: intervals|}, {|traces-interval|}, {|")
-   (cat ../../../examples/traces_intervals.tpe)
-   (echo "|}, {|examples/traces_intervals.tpe|});")
-   (echo "({|Traces: regular languages|}, {|regular-traces|}, {|")
-   (cat ../../../examples/regular_traces.tpe)
-   (echo "|}, {|examples/regular_traces.tpe|});")
-   (echo "({|Security levels|}, {|security-levels|}, {|")
-   (cat ../../../examples/security_levels.tpe)
-   (echo "|}, {|examples/security_levels.tpe|});")
-   (echo "({|Time and levels: embargoes|}, {|time-lower-bound-levels|}, {|")
-   (cat ../../../examples/time_lower_levels.tpe)
-   (echo "|}, {|examples/time_lower_levels.tpe|});")
-   (echo
-    "({|Time and levels: expiring capabilities|}, {|time-upper-bound-levels|}, {|")
-   (cat ../../../examples/time_upper_levels.tpe)
-   (echo "|}, {|examples/time_upper_levels.tpe|});")
-   (echo "({|3D printing|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/3dprint.tpe)
-   (echo "|}, {|examples/3dprint.tpe|});")
-   (echo "({|3D printing with handlers|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/3dprint_handlers.tpe)
-   (echo "|}, {|examples/3dprint_handlers.tpe|});")
-   (echo "({|3D printing with traces|}, {|traces-interval|}, {|")
-   (cat ../../../examples/3dprint_traces.tpe)
-   (echo "|}, {|examples/3dprint_traces.tpe|});")
-   (echo "({|Eternal types|}, {|time-upper-bound|}, {|")
-   (cat ../../../examples/eternal_types.tpe)
-   (echo "|}, {|examples/eternal_types.tpe|});")
-   (echo "({|Basic temporal operations|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/delay.tpe)
-   (echo "|}, {|examples/delay.tpe|});")
-   (echo "({|Basic unbox|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/basic_unbox.tpe)
-   (echo "|}, {|examples/basic_unbox.tpe|});")
-   (echo "({|Folding over boxed values|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/fold_over_boxes.tpe)
-   (echo "|}, {|examples/fold_over_boxes.tpe|});")
-   (echo "({|Algebraic operations|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/operations.tpe)
-   (echo "|}, {|examples/operations.tpe|});")
-   (echo "({|Effect handlers: lower bounds|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/handlers_lower_bound.tpe)
-   (echo "|}, {|examples/handlers_lower_bound.tpe|});")
-   (echo "({|Effect handlers: upper bounds|}, {|time-upper-bound|}, {|")
-   (cat ../../../examples/handlers_upper_bound.tpe)
-   (echo "|}, {|examples/handlers_upper_bound.tpe|});")
-   (echo "({|Effect handlers: nested|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/handlers_nested.tpe)
-   (echo "|}, {|examples/handlers_nested.tpe|});")
-   (echo "({|Effect handlers: nested (rejected)|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/handlers_nested_reject.tpe)
-   (echo "|}, {|examples/handlers_nested_reject.tpe|});")
-   (echo "({|Top-level structures|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/toplevel.tpe)
-   (echo "|}, {|examples/toplevel.tpe|});")
-   (echo
-    "({|Natural numbers as an inductive type|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/nat.tpe)
-   (echo "|}, {|examples/nat.tpe|});")
-   (echo "({|Recursive functions on integers|}, {|time-lower-bound|}, {|")
-   (cat ../../../examples/recursion.tpe)
-   (echo "|}, {|examples/recursion.tpe|});")
-   (echo "]"))))
+ (target examples_tpe.ml)
+ (deps
+  (glob_files_rec %{project_root}/examples/*)
+  gen_examples/gen_examples.exe)
+ (action
+  (with-stdout-to
+   examples_tpe.ml
+   (run
+    gen_examples/gen_examples.exe
+    %{project_root}/examples/index
+    %{project_root}))))
