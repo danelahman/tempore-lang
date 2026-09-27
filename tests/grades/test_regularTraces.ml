@@ -429,7 +429,7 @@ struct
 
   (* Printing stops within the size of the normal form: on the words whose
      [n + 1]-th letter from the end is [A], of 2^(n + 1) states, and on the grade
-     at the end of examples/traces/regular_traces.tpe, of 2^13 states, each
+     at the end of examples/regular/regular_traces.tpe, of 2^13 states, each
      printed as its normal form. Reading the larger of these grades as automata
      takes seconds, by the subset construction; the automata are checked up to
      [n = 12] only. *)

@@ -25,11 +25,15 @@ Effect handlers | Nested (rejected) | time-lower-bound | handlers/handlers_neste
 Time grades | Upper bounds | time-upper-bound | time/time_upper.tpe | A box may be unboxed at any point up to its upper-bound grade.
 Time grades | Intervals | time-interval | time/time_intervals.tpe | A box grade pairs a lower and an upper time bound, unboxable only within that interval.
 
-Trace grades | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3D-printing pipeline whose operations must be covered by the runs a box demands, waiting banking towards them.
-Trace grades | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
-Trace grades | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
-Trace grades | Regular languages | traces-regex-symbolic | traces/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
-Trace grades | Regular languages with costs | traces-regex-upper-symbolic | traces/regex_costs.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.
+Timed traces | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3D-printing pipeline whose operations must be covered by the runs a box demands, waiting banking towards them.
+Timed traces | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
+Timed traces | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
+
+Regular traces | Regular languages | traces-regex-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
+
+Regular traces with costs | Lower bounds | traces-regex-lower-symbolic | regular_costs/regular_costs_lower.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower runtime bounds.
+Regular traces with costs | Upper bounds | traces-regex-upper-symbolic | regular_costs/regular_costs_upper.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.
+Regular traces with costs | Intervals | traces-regex-interval-symbolic | regular_costs/regular_costs_intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
 
 Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower_levels.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.

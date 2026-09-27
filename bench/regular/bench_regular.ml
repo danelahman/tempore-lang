@@ -118,7 +118,7 @@ type workload = {
   prepare : unit -> unit -> unit;
 }
 
-(* The brace literals of examples/traces/regular_traces.tpe and of
+(* The brace literals of examples/regular/regular_traces.tpe and of
    tests/*regular*.tpe. *)
 let corpus =
   [
@@ -308,7 +308,7 @@ end
    the tests of the grade. *)
 let regular_programs =
   [
-    "examples/traces/regular_traces.tpe";
+    "examples/regular/regular_traces.tpe";
     "tests/literals_regular.tpe";
     "tests/regular_auth.tpe";
     "tests/regular_protocol.tpe";
@@ -507,7 +507,9 @@ let () =
     (AutomataPrograms.workloads regular_programs)
     (DerivativePrograms.workloads regular_programs);
   family_rows AutomataOps.operations DerivativeOps.operations;
-  let upper = "examples/traces/regex_costs.tpe" :: cost_programs "upper" in
+  let upper =
+    "examples/regular_costs/regular_costs_upper.tpe" :: cost_programs "upper"
+  in
   family_rows (AutomataUpper.workloads upper) (DerivativeUpper.workloads upper);
   family_rows
     (AutomataLower.workloads (cost_programs "lower"))

@@ -52,11 +52,14 @@ program, check whether the example typechecks, and if it does, step through
 its reductions one by one while watching the resource state evolve.
 
 The [`examples/`](examples/) directory contains example programs, grouped into
-subdirectories by topic (`basics/`, `handlers/`, `time/`, `traces/`, `levels/`,
-`3dprint/`); most of these, `basics/` excepted, are also offered by the web
-interface's example selector, grouped to match, with [`examples/index`](examples/index)
-giving the selector's manifest. Each example also starts with listing the
-command that runs it on the CLI.
+subdirectories by topic: `basics/` (the core language), `handlers/` (effect
+handlers), `time/` (time grades), `traces/` (timed traces), `regular/`
+(regular traces), `regular_costs/` (regular traces with costs), `levels/`
+(security levels) and `3dprint/` (a case study of 3D printing). The examples
+outside `basics/` are also offered by the web interface's example selector, in
+groups matching these subdirectories, with [`examples/index`](examples/index)
+giving the selector's manifest. Each example starts with the command that runs
+it on the CLI.
 
 ## Grading monoids
 
@@ -188,7 +191,7 @@ they are one grade, implemented in two ways:
   `⊤` is `{3; _*}`, the runs that begin with three ticks, not `⊤`. The order
   does not trade time against operations, so no operation declares runtime
   bounds. See
-  [`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
+  [`examples/regular/regular_traces.tpe`](examples/regular/regular_traces.tpe),
   which runs with `traces-regex-symbolic`, the implementation to prefer.
 
 #### Alphabet and literals
@@ -236,7 +239,7 @@ letter from the end is `A`" in microseconds where `traces-regex` takes seconds;
 `traces-regex` decides the equality of grades already built faster, and small
 inclusions in a few microseconds rather than tens, its canonical automata being
 at hand. The last program of
-[`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
+[`examples/regular/regular_traces.tpe`](examples/regular/regular_traces.tpe),
 left commented out, runs in about 0.04 s under `traces-regex-symbolic` and
 10 s under `traces-regex`.
 
@@ -356,9 +359,13 @@ sub-grade of `{2}` multiplied by `{2}` but not of `{2}`. An operation cannot
 be excluded while unbounded time is allowed: `{(_ & ~Read)*}` equals `⊤`,
 since its ticks pay for `Read`. Under `traces-regex-lower`, `{Read | 1}` equals
 `{1}`, and `⊤` equals the unit `{0}`, which every run covers. See
-[`examples/traces/regex_costs.tpe`](examples/traces/regex_costs.tpe), which
-runs with `traces-regex-upper-symbolic`, the default, consistent with
-`traces-regex-symbolic`.
+[`examples/regular_costs/regular_costs_lower.tpe`](examples/regular_costs/regular_costs_lower.tpe),
+[`examples/regular_costs/regular_costs_upper.tpe`](examples/regular_costs/regular_costs_upper.tpe)
+and
+[`examples/regular_costs/regular_costs_intervals.tpe`](examples/regular_costs/regular_costs_intervals.tpe),
+which run with `traces-regex-lower-symbolic`, `traces-regex-upper-symbolic`
+and `traces-regex-interval-symbolic` respectively, the default implementations,
+consistent with `traces-regex-symbolic`.
 
 The benchmark above also compares the two implementations of these monoids,
 which typecheck whole programs within a few percent of one another. Over
@@ -824,5 +831,5 @@ collected in [`THIRD-PARTY.md`](THIRD-PARTY.md).
 ## AI usage disclaimer
 <!-- web-skip -->
 
-Agentic AI tools (from Anthropic's Claude family) have been used to develop parts of
-this prototype implementation.
+Agentic AI tools (from Anthropic's Claude family) have been used to develop
+parts of this prototype implementation.
