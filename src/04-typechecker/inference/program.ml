@@ -34,14 +34,18 @@ module Make (C : Constraint.S) = struct
     let op_bounds = Gen.op_bounds env in
     {
       bounds =
-        (fun event ->
-          match StringMap.find_opt event op_bounds with
-          | Some bounds -> bounds
-          | None ->
-              Error.typing ~loc
-                "Unknown event `%s`; the events of a grade must be declared \
-                 operations"
-                event);
+        {
+          cost =
+            (fun event ->
+              match StringMap.find_opt event op_bounds with
+              | Some bounds -> bounds
+              | None ->
+                  Error.typing ~loc
+                    "Unknown event `%s`; the events of a grade must be \
+                     declared operations"
+                    event);
+          operations = List.map fst (StringMap.bindings op_bounds);
+        };
       find_definition =
         (fun name ->
           Option.map

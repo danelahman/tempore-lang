@@ -296,6 +296,9 @@ let expected_rejections =
     ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
     ("occurs_check.tpe", [ 1 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
+    ("regex_costs_interval_reject.tpe", [ 10; 17 ]);
+    ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);
+    ("regex_costs_upper_reject.tpe", [ 11; 19; 27; 34 ]);
     ("regular_reject_auth.tpe", [ 12; 19; 25 ]);
     ("regular_reject_bounds.tpe", [ 4 ]);
     ("regular_reject_counterexample.tpe", [ 13; 21 ]);
@@ -384,7 +387,7 @@ module Small (G : Grade.S) = struct
   module R = Inference.Residual.Make (C)
 
   let name = G.name
-  let no_bounds _ = (0, 0)
+  let no_bounds = { Grade.cost = (fun _ -> (0, 0)); operations = [] }
 
   (* A location per line: a failure names the atom it comes from by its
      line. *)

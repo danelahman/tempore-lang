@@ -203,28 +203,63 @@ let is_empty l = not (Array.mem true l.finals)
 let is_all l = not (Array.mem false l.finals)
 let alike l a b = Array.for_all (fun row -> row.(a) = row.(b)) l.rows
 
-module Pair_set = Set.Make (Pair)
+(* [dead l q] is whether no final state is reachable from the state [q] of the
+   minimal automaton [l]: such a state is unique, and its own successor by
+   every letter. *)
+let dead l q = (not (final l q)) && Array.for_all (Int.equal q) l.rows.(q)
 
-(* Breadth-first search of the product of [l] and [m] for a pair of states final
-   in [l] only, the first found giving a shortest word. *)
+type 'state automaton = {
+  start : 'state;
+  step : 'state -> int -> 'state;
+  accepts : 'state -> bool;
+}
+
+let automaton l = { start = 0; step = next l; accepts = final l }
+
+module Implicit (State : Map.OrderedType) = struct
+  module Table = Explore (State)
+
+  module Pairs = Set.Make (struct
+    type t = int * State.t
+
+    let compare (p, q) (p', q') =
+      match Int.compare p p' with 0 -> State.compare q q' | c -> c
+  end)
+
+  let canonical n a =
+    minimise (Table.table n ~start:a.start ~next:a.step ~final:a.accepts)
+
+  (* Breadth-first search of the product of [l] and [a] for a pair of states
+     final in [l] only, the first found giving a shortest word. The pairs whose
+     state of [l] is dead are not explored, since they lead to no such pair. *)
+  let counterexample l a =
+    let rec go seen fifo =
+      match Fifo.pop fifo with
+      | None -> None
+      | Some (((p, q), rev_word), _) when final l p && not (a.accepts q) ->
+          Some (List.rev rev_word)
+      | Some (((p, q), rev_word), fifo) ->
+          let visit (seen, fifo) c =
+            let p' = next l p c in
+            if dead l p' then (seen, fifo)
+            else
+              let s = (p', a.step q c) in
+              if Pairs.mem s seen then (seen, fifo)
+              else (Pairs.add s seen, Fifo.push (s, c :: rev_word) fifo)
+          in
+          let seen, fifo =
+            List.fold_left visit (seen, fifo) (range (letters l))
+          in
+          go seen fifo
+    in
+    let start = (0, a.start) in
+    go (Pairs.singleton start) (Fifo.push (start, []) Fifo.empty)
+end
+
+module Implicit_int = Implicit (Int)
+
 let counterexample l m =
   same_letters "counterexample" l m;
-  let rec go seen fifo =
-    match Fifo.pop fifo with
-    | None -> None
-    | Some (((p, q), rev_word), _) when final l p && not (final m q) ->
-        Some (List.rev rev_word)
-    | Some (((p, q), rev_word), fifo) ->
-        let visit (seen, fifo) a =
-          let s = (next l p a, next m q a) in
-          if Pair_set.mem s seen then (seen, fifo)
-          else (Pair_set.add s seen, Fifo.push (s, a :: rev_word) fifo)
-        in
-        let seen, fifo =
-          List.fold_left visit (seen, fifo) (range (letters l))
-        in
-        go seen fifo
-  in
-  go (Pair_set.singleton (0, 0)) (Fifo.push ((0, 0), []) Fifo.empty)
+  Implicit_int.counterexample l (automaton m)
 
 let subset l m = Option.is_none (counterexample l m)

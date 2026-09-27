@@ -1,17 +1,19 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
-    {!TimedTraceGrades}, {!RegularTraceGrade}, {!RegularTraceGradeDerivative}
-    and {!LevelGrades}, built with the constructions of {!GradeConstructions},
-    and listed in {!GradeRegistry}; the two regular trace grades are two
-    implementations of the same grade.
+    {!TimedTraceGrades}, {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
+    {!RegularCostTraceGrades} and {!LevelGrades}, built with the constructions
+    of {!GradeConstructions}, and listed in {!GradeRegistry}; the two regular
+    trace grades are two implementations of the same grade.
 
     {2 Cost model}
 
     The orders of the timed-trace grades read the runtime bounds
-    [within (lo, hi)] that operations declare. The operations that depend on the
-    order, [leq] and [equal], take them as an argument of type {!bounds}; the
-    other grades ignore it.
+    [within (lo, hi)] that operations declare, and those of the cost-model
+    regular trace grades also the set of declared operations, over which their
+    catch-all letter ranges. The operations that depend on the order, [leq],
+    [equal], [counterexample] and [implied_bounds], take both as an argument of
+    type {!bounds}; the other grades ignore it.
 
     {2 Literals}
 
@@ -68,9 +70,12 @@ let describe_lit = function
   | Tuple _ -> "tuples"
   | Braces _ -> "brace literals '{...}'"
 
-type bounds = string -> int * int
-(** A cost model: the runtime bounds [(lo, hi)] declared by each operation,
-    given by name. *)
+type bounds = {
+  cost : string -> int * int;
+      (** The runtime bounds [(lo, hi)] declared by each operation, by name. *)
+  operations : string list;  (** The names of the declared operations. *)
+}
+(** A cost model. *)
 
 module type S = sig
   type t

@@ -1,0 +1,156 @@
+(* Run this example with the 'traces-regex-upper' grading monoid, e.g.
+
+     ./tempore --grades traces-regex-upper examples/traces/regex_costs.tpe *)
+
+(* A grade is a regular language of runs, as under 'traces-regex', read as an
+   upper bound: a run is permitted if it fits inside some run of the grade,
+   where the ticks of the grade pay for operations the grade does not name, at
+   the upper end of their runtime bounds 'within (lo, hi)'. An operation the
+   grade names may be matched by the run instead, and a match resets the
+   budget: ticks before it cannot pay for operations after it, and conversely.
+   The wildcard '_' and the complement '~' range over the ticks and the
+   declared operations. *)
+
+type reading = Reading of int
+
+(* The operations of a sensor station: a sample takes one to two ticks, a
+   transmission two to three and a calibration four to six. *)
+operation Sample : unit ~> int # {Sample} within (1, 2)
+default Sample () = delay 1; 7
+
+operation Send : int ~> unit # {Send} within (2, 3)
+default Send x = delay 2
+
+operation Calibrate : unit ~> unit # {Calibrate} within (4, 6)
+default Calibrate () = delay 5
+
+(* Correctly accepted by the typechecker: six ticks pay for a calibration,
+   which takes at most six. *)
+let calibrated () =
+  box {6} (Reading 0) as r in
+  perform Calibrate ();
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: the transmission is matched by the
+   grade's own, and the six ticks after it pay for the calibration. *)
+let send_then_calibrate () =
+  box {2; Send; 6} (Reading 0) as r in
+  perform Sample ();
+  perform Send 1;
+  perform Calibrate ();
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: any number of samples, then a
+   transmission. *)
+let batch () : int # {Sample*; Send} =
+  let x = perform Sample () in
+  let y = perform Sample () in
+  perform Send (x + y);
+  x + y
+
+(* Correctly accepted by the typechecker: samples paced by blocks of two ticks,
+   one of which pays for the tick of waiting. *)
+let paced () =
+  box {(Sample | 2)*} (Reading 0) as r in
+  perform Sample ();
+  delay 1;
+  perform Sample ();
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: grades are compared up to their
+   closures, and '{Calibrate | 6}' is equivalent to '{6}', which already pays
+   for a calibration. *)
+let calibrate_or_wait (b : bool) : unit # {6} =
+  if b then perform Calibrate () else delay 6
+
+(* Correctly accepted by the typechecker: '_' is any single tick or declared
+   operation, so a single transmission fits. *)
+let any_one () =
+  box {_} (Reading 0) as r in
+  perform Send 1;
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker, which may be surprising: the grade
+   excludes calibrations, but it also allows any number of ticks, which pay for
+   one. An operation cannot be forbidden while unbounded time is allowed. *)
+let unexcluded () =
+  box {(_ & ~Calibrate)*} (Reading 0) as r in
+  perform Calibrate ();
+  unbox r as x in
+  x
+
+(* Correctly rejected by the typechecker: a calibration may take six ticks,
+   more than the five the grade allows:
+
+     Typing error: Variable `r` is unboxed with grade `{Calibrate}` accumulated
+       since it was bound, which is not below its box grade `{5}`
+       ...
+       Note: the resource inequality `{Calibrate} <= {5}` does not hold
+*)
+(*
+let slow_calibration () =
+  box {5} (Reading 0) as r in
+  perform Calibrate ();
+  unbox r as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: the six ticks come after the
+   transmission, and the match resets the budget, so they cannot pay for a
+   calibration before it:
+
+     Typing error: Variable `r` is unboxed with grade `{Calibrate; Send}`
+       accumulated since it was bound, which is not below its box grade
+       `{2; Send; 6}`
+       ...
+       Note: the resource inequality `{Calibrate; Send} <= {2; Send; 6}` does
+         not hold
+*)
+(*
+let calibrate_first () =
+  box {2; Send; 6} (Reading 0) as r in
+  perform Calibrate ();
+  perform Send 1;
+  unbox r as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: a single letter other than
+   'Calibrate' is a tick or one of the other operations, none of which pays for
+   a calibration:
+
+     Typing error: Variable `r` is unboxed with grade `{Calibrate}` accumulated
+       since it was bound, which is not below its box grade `{_ & ~Calibrate}`
+       ...
+       Note: the resource inequality `{Calibrate} <= {_ & ~Calibrate}` does not
+         hold
+*)
+(*
+let no_calibration () =
+  box {_ & ~Calibrate} (Reading 0) as r in
+  perform Calibrate ();
+  unbox r as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: the annotated grade has no ticks to
+   pay for the calibration the batch may perform:
+
+     Typing error: This function's body has grade `{Sample; Calibrate; Send}`,
+       which does not match its annotated grade `{Sample*; Send}`
+       Note: the effect inequality
+         `{Sample; Calibrate; Send} <= {Sample*; Send}` does not hold
+*)
+(*
+let batch_calibrated (b : bool) : int # {Sample*; Send} =
+  let x = perform Sample () in
+  if b then perform Calibrate () else ();
+  perform Send x;
+  x
+*)
+
+run send_then_calibrate ()

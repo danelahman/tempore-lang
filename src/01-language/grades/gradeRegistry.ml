@@ -11,6 +11,9 @@ let grade_modules =
       (module TimedTraceGrades.Interval);
       (module RegularTraceGrade);
       (module RegularTraceGradeDerivative);
+      (module RegularCostTraceGrades.Lower);
+      (module RegularCostTraceGrades.Upper);
+      (module RegularCostTraceGrades.Interval);
       (module LevelGrades.SecurityLevels);
       (module LevelGrades.TimeLowerBoundLevels);
       (module LevelGrades.TimeUpperBoundLevels);

@@ -38,6 +38,7 @@ Trace grades | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3
 Trace grades | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
 Trace grades | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
 Trace grades | Regular languages | traces-regex-symbolic | traces/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
+Trace grades | Regular languages with costs | traces-regex-upper | traces/regex_costs.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.
 
 Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower_levels.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.

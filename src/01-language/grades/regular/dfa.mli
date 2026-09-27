@@ -98,3 +98,35 @@ val counterexample : t -> t -> int list option
 
 val subset : t -> t -> bool
 (** [subset l m] is whether [l ⊆ m]. *)
+
+(** {1 Implicit automata}
+
+    Deterministic automata given by their start state and transition and
+    acceptance functions rather than by a table, their states being explored
+    only as needed. *)
+
+type 'state automaton = {
+  start : 'state;  (** The start state. *)
+  step : 'state -> int -> 'state;
+      (** [step q a] is the successor of the state [q] by the letter [a]. *)
+  accepts : 'state -> bool;  (** [accepts q] is whether [q] is final. *)
+}
+(** A deterministic automaton over the states ['state], which must be finitely
+    many from the start. *)
+
+val automaton : t -> int automaton
+(** [automaton l] is the automaton of [l] over the states of its table. *)
+
+(** The implicit automata over states ordered by [State.compare], equal states
+    being one state. *)
+module Implicit (State : Map.OrderedType) : sig
+  val canonical : int -> State.t automaton -> t
+  (** [canonical n a] is the language of [a] over [n] letters, by breadth-first
+      exploration of the states reachable from the start and minimisation. *)
+
+  val counterexample : t -> State.t automaton -> int list option
+  (** [counterexample l a] is a shortest word in [l] not accepted by [a], found
+      by breadth-first search of the product of [l] with [a], which explores
+      only the pairs of states reachable from the start whose state of [l] is
+      not dead; it is [None] iff every word of [l] is accepted by [a]. *)
+end

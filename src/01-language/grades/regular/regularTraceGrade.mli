@@ -71,6 +71,13 @@
 
 include Grade.S
 
+val concrete : string list -> t -> Dfa.t
+(** [concrete names rho] is the language of the runs of [rho] that perform only
+    operations among [names], over the letters [tick], numbered [0], and
+    [names], numbered from [1] in their order, with no catch-all letter: the
+    catch-all letter of [rho] stands for each of [names] that [rho] does not
+    mention. *)
+
 val canonical : t -> LetterRegex.t option
 (** [canonical rho] is the canonical expression printed for [rho], or [None] if
     the printing of [rho] falls back to its expression. *)

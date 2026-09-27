@@ -423,7 +423,9 @@ module Small = struct
                     },
                     _,
                     _ ) ->
-                  G.equal (fun _ -> (0, 0)) top G.top
+                  G.equal
+                    { cost = (fun _ -> (0, 0)); operations = [] }
+                    top G.top
               | _ -> false)
             (atoms body)
         in

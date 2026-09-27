@@ -1,6 +1,7 @@
 ; Unit tests of the grades: the security levels, the products of grades, the
-; literals of every grade, and the two implementations of the regular trace
-; grade, by automata and by symbolic derivatives.
+; literals of every grade, the two implementations of the regular trace grade,
+; by automata and by symbolic derivatives, and the cost-model regular trace
+; grades with their closures.
 
 (test
  (name test_grades)
@@ -11,3 +12,8 @@
  (name test_regularTraces)
  (modules test_regularTraces)
  (libraries utils language grades parser sugaredAst))
+
+(test
+ (name test_costTraces)
+ (modules test_costTraces)
+ (libraries grades parser sugaredAst))

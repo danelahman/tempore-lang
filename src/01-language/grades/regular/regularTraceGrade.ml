@@ -115,6 +115,10 @@ let of_bounds (lo, hi) =
 
 let is_atomic name rho = same rho (of_regex (Letter name))
 
+let concrete names rho =
+  let source = Array.of_list (tick :: List.map (letter rho.names) names) in
+  Dfa.relabel (List.length names + 1) (Array.get source) rho.dfa
+
 (** [letters names a] is the letter set of the letter [a] over [names]: [tick],
     a name, or the names other than [names]. *)
 let letters names a =

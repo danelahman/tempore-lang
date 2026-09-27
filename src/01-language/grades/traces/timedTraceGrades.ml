@@ -1,7 +1,7 @@
 open Grade
 
-let lo_cost (bounds : bounds) op = fst (bounds op)
-let hi_cost (bounds : bounds) op = snd (bounds op)
+let lo_cost (bounds : bounds) op = fst (bounds.cost op)
+let hi_cost (bounds : bounds) op = snd (bounds.cost op)
 
 (** [traces_of_regex lit r] is the set of timed traces the star-free regular
     expression [r], without [&], [~] or [_], denotes; [lit] is the literal it is

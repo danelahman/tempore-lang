@@ -14,7 +14,7 @@
 
 module Grade = Grades.Grade
 
-let bounds _ = (0, 0)
+let bounds = { Grade.cost = (fun _ -> (0, 0)); operations = [] }
 
 (** {1 Measurement} *)
 

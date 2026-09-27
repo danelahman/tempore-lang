@@ -19,7 +19,7 @@ let expect name show ~expected actual =
 
 let show_bool = string_of_bool
 let show_names names = "[" ^ String.concat "; " names ^ "]"
-let bounds _ = (1, 2)
+let bounds = { Grade.cost = (fun _ -> (1, 2)); operations = [] }
 
 (* [contains s sub] is whether [sub] occurs in [s]. *)
 let contains s sub =
@@ -290,7 +290,14 @@ let registry =
       ~expected:[ "time-interval" ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
     expect "registry: grades reading a repetition" show_names
-      ~expected:[ "traces-regex"; "traces-regex-symbolic" ]
+      ~expected:
+        [
+          "traces-regex";
+          "traces-regex-symbolic";
+          "traces-regex-lower";
+          "traces-regex-upper";
+          "traces-regex-interval";
+        ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
   ]
 

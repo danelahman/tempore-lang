@@ -256,7 +256,8 @@ module Make (C : Constraint.S) = struct
           Error.typing ~loc
             "compound operation `%s` may not name itself in its grade `%s`"
             op_name (GS.E.show c);
-        match GS.E.implied_bounds event_bounds c with
+        let operations = List.map fst (StringMap.bindings env.op_bounds) in
+        match GS.E.implied_bounds { cost = event_bounds; operations } c with
         | Some bounds -> StringMap.add op_name bounds env.op_bounds
         | None -> env.op_bounds)
 

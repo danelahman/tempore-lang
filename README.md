@@ -66,7 +66,7 @@ the program is run: with `--grades` on the command line, e.g.
 
 or with the **Grades** selector in the web interface, which switches
 its value automatically when a built-in example is loaded. The default grade
-monoid is `time-lower-bound`. Currently, eleven monoids are available to choose.
+monoid is `time-lower-bound`. Currently, fourteen monoids are available to choose.
 
 All monoids share one syntax of grade literals, and each reads the literals it
 understands; a literal the chosen monoid does not understand is a syntax error,
@@ -221,6 +221,64 @@ at hand. The last program of
 [`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
 left commented out, runs in about 0.04 s under `traces-regex-symbolic` and
 10 s under `traces-regex`.
+
+Three monoids read the regular languages of runs the way the timed-trace
+monoids read finite sets of runs, trading time against operations at the
+runtime bounds `within (lo, hi)` that every atomic operation declares under
+them:
+
+- **`traces-regex-upper`** — the runs a computation is *allowed*, as under
+  `traces-upper-bound`. `rho` is a sub-grade of `rho'` when every run of `rho`
+  fits inside some run of `rho'`: the ticks of `rho'` pay for the operations
+  of `rho` at their `hi`, an operation `rho'` names may instead be matched by
+  the same operation of `rho`, and a match resets the budget, so that ticks
+  before it pay for nothing after it and conversely. `{0}` is the minimum of
+  the order and `⊤` its top.
+- **`traces-regex-lower`** — the runs a computation must *cover*, as under
+  `traces-lower-bound`. `rho` is a sub-grade of `rho'` when every run of `rho`
+  covers some run of `rho'`: the ticks and operations of `rho` bank towards the
+  ticks `rho'` demands, operations at their `lo`, and an operation `rho'`
+  demands is covered only by that operation. `{0}` is the top of the order.
+- **`traces-regex-interval`** — pairs `({...}, {...})` of a lower bound (the
+  order of `traces-regex-lower`, reading `lo`) and an upper bound (the order of
+  `traces-regex-upper`, reading `hi`), compared componentwise, with the
+  abbreviations of `traces-interval`: `{...}` is the pair of a language with
+  itself, `n` is `({n}, {n})` and `(n, m)` is `({n}, {m})`. The top is
+  `({0}, ⊤)`.
+
+Their literals, products, joins and printing are those of `traces-regex`. The
+alphabet is *closed*: the letters of a comparison are `tick` and the operations
+declared in the program so far, each at its own runtime bounds, and the
+catch-all letter of a grade stands for each declared operation it does not
+name. So `_` is any single tick or declared operation, and under
+`traces-regex-upper` `{_}` is a sub-grade of `{n}` exactly when `n` is at least
+the greatest `hi` declared (and at least 1); declaring a further operation may
+change the answer. A run that performs the catch-all letter where every
+declared operation is named is no run at all. Every operation a grade names
+must be declared, as for the timed-trace monoids.
+
+A grade stands for its *closure*: under `traces-regex-upper`, the runs that fit
+inside one of its runs, and under `traces-regex-lower`, the runs that cover one
+of them. `rho` is a sub-grade of `rho'` when every run of `rho` is in the
+closure of `rho'`, which is decided by exploring the product of the minimal
+automaton of `rho` with an automaton of that closure, whose states are sets of
+states of the minimal automaton of `rho'`, built only as far as the search
+needs it. The closure automaton can be exponentially larger than `rho'`, as for
+the scattered-subword closures that are a special case of it. When an ordering
+fails, a note names a shortest run of the lesser grade outside the closure of
+the greater one.
+
+Grades equal as closures are equal, which is coarser than equality of
+languages, so several laws hold only up to this equality. With `Read` declared
+`within (1, 3)`: under `traces-regex-upper`, `{Read}` is a sub-grade of `{3}`
+but not conversely, and `{Read | 3}` equals `{3}`; `⊤` is absorbing, `{3}`
+multiplied by `⊤` being `⊤`, unlike under `traces-regex`; and the closure of a
+product may be larger than the product of the closures, `{Read}` being a
+sub-grade of `{2}` multiplied by `{2}` but not of `{2}`. An operation cannot
+be excluded while unbounded time is allowed: `{(_ & ~Read)*}` equals `⊤`,
+since its ticks pay for `Read`. Under `traces-regex-lower`, `{Read | 1}` equals
+`{1}`, and `⊤` equals the unit `{0}`, which every run covers. See
+[`examples/traces/regex_costs.tpe`](examples/traces/regex_costs.tpe).
 
 One monoid grades resources and computations by *security levels*, and two
 more pair it with time:
