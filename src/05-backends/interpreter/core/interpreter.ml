@@ -36,7 +36,6 @@ module Make (GS : Language.GradeSystem.S) = struct
       type t = Graded.rho
 
       let one = Ast.RhoConst GS.R.one
-      let mul rho rho' = Ast.RhoAdd (rho, rho')
     end
 
     type t = Graded.rho
@@ -44,13 +43,8 @@ module Make (GS : Language.GradeSystem.S) = struct
     let grade rho = rho
   end
 
-  (* Operation-case barriers are a typing device; the interpreter builds none. *)
-  module Barrier = struct
-    type t = unit
-  end
-
   module ContextHolderModule =
-    Context.Make (Ast.Variable) (Map.Make (Ast.Variable)) (Elapsed) (Barrier)
+    Context.Make (Ast.Variable) (Map.Make (Ast.Variable)) (Elapsed)
 
   module P = Primitives.Make (GS)
   include Types

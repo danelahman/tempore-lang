@@ -1,0 +1,17 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/op_case_context_noneternal.tpe *)
+
+(* A single-use token, fixed to be non-eternal whatever its structure. *)
+noneternal type token = Token
+
+operation Op : unit ~> token # 0
+
+(* Correctly accepted by the typechecker: the case is typed under the lock of
+   the top grade, which under 'time-lower-bound', whose top is the unit 0,
+   restricts nothing; so the token 't', bound outside the case, may be used
+   in it. *)
+let h t =
+  handler
+  | x -> x
+  | Op p k -> continue k with t

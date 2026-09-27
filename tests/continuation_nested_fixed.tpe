@@ -1,13 +1,14 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./tempore --grades time-upper-bound tests/continuation_nested_fixed_reject.tpe *)
+     ./tempore --grades time-upper-bound tests/continuation_nested_fixed.tpe *)
 
 operation Op1 : unit ~> unit # 1
 operation Op2 : unit ~> unit # 1
 
-(* Correctly rejected by the typechecker: the return clause makes the result
-   type 'unit -> α # 0', so the inner case's function would fix the arbitrary
-   grade of k' to 0. *)
+(* Correctly accepted by the typechecker: the inner case returns a function
+   graded by the continuation k', whose grade may be any; the only solution
+   grades the function the handler returns by the top grade ∞, that is,
+   without a time bound. *)
 let h =
   handler
   | x -> (fun () -> x)

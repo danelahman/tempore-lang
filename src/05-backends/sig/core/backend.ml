@@ -12,23 +12,20 @@ module type S = sig
       ( Ast.Variable.t,
         (Ast.Graded(Grades).rho * Ast.Graded(Grades).expression)
         Ast.VariableMap.t,
-        Ast.Graded(Grades).rho,
-        unit )
+        Ast.Graded(Grades).rho )
       Ast.context_elem_ty
       list;
     variables :
       ( Ast.Variable.t,
         Ast.Graded(Grades).expression Ast.VariableMap.t,
-        Ast.Graded(Grades).rho,
-        unit )
+        Ast.Graded(Grades).rho )
       Ast.context_elem_ty
       list;
     builtin_functions :
       ( Ast.Variable.t,
         (Ast.Graded(Grades).expression -> Ast.Graded(Grades).computation)
         Ast.VariableMap.t,
-        Ast.Graded(Grades).rho,
-        unit )
+        Ast.Graded(Grades).rho )
       Ast.context_elem_ty
       list;
     resource_counter : int;

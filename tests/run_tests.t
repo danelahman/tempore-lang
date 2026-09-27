@@ -125,7 +125,7 @@
   3 | let f () : int # 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
-    Note: the resource inequality `3 >= 5` does not hold
+    Note: the effect inequality `3 >= 5` does not hold
   ======================================================================
   comp_type_annotation_upper.tpe
   ======================================================================
@@ -142,14 +142,14 @@
   3 | let f () : int # 2 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `2`
-    Note: the resource inequality `3 <= 2` does not hold
+    Note: the effect inequality `3 <= 2` does not hold
   ======================================================================
   continuation_discard_reject_lower.tpe
   ======================================================================
   File "continuation_discard_reject_lower.tpe", line 10, characters 27-38:
   10 | let h = handler | x -> x | Op p k -> 5
                                   ^^^^^^^^^^^
-  Typing error: For every grade `ρ₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 + ρ₀`, but its grade `0` does not
+  Typing error: For every grade `ε₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε₀`, but its grade `0` does not
     File "continuation_discard_reject_lower.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -157,8 +157,8 @@
     File "continuation_discard_reject_lower.tpe", line 10, characters 32-33:
     10 | let h = handler | x -> x | Op p k -> 5
                                          ^
-    `k` may have any grade `ρ₀`
-    Note: the resource inequality `∀ρ₀. 0 >= ρ₀ + 1` does not hold: for `ρ₀ = 0` it becomes `0 >= 1`
+    `k` may have any grade `ε₀`
+    Note: the effect inequality `∀ε₀. 0 >= 1 · ε₀` does not hold: for `ε₀ = 0` it becomes `0 >= 1`
   ======================================================================
   continuation_discard_upper.tpe
   ======================================================================
@@ -181,7 +181,7 @@
   File "continuation_escape_reject.tpe", line 11, characters 39-40:
   11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                                               ^
-  Typing error: Variable `g` has type `[1](unit → α # ρ₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
+  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
     File "continuation_escape_reject.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -193,30 +193,30 @@
     File "continuation_escape_reject.tpe", line 11, characters 29-71:
     11 | let h g = handler | x -> x | Op p k -> g k; delay 1; continue k with ()
                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the case for `Op` begins here
+    the case for `Op` begins here (grade `∞`)
+    Note: the resource inequality `∞ <= 0` does not hold
   ======================================================================
-  continuation_fixed_reject.tpe
+  continuation_fixed.tpe
   ======================================================================
-  File "continuation_fixed_reject.tpe", line 10, characters 39-95:
-  10 | let h = handler | x -> (fun () -> x) | Op p k -> (fun () -> let f = continue k with () in f ())
-                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The continuation `k` in the case for `Op` may have any grade `ρ₀`, but here `ρ₀` is required to equal `0`
-    File "continuation_fixed_reject.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op` is declared here
-    File "continuation_fixed_reject.tpe", line 10, characters 44-45:
-    10 | let h = handler | x -> (fun () -> x) | Op p k -> (fun () -> let f = continue k with () in f ())
-                                                     ^
-    `k` may have any grade `ρ₀`
-    Note: while matching `unit → β # ρ₁ + ρ₂` against `unit → α`
+  === Run 1 ===
+  return (fun () ↦
+            let f = (unbox resource_1 as unbox_var in
+                     unbox_var ()) in
+            f ())
+  State: [
+    { resource_1 ↦ fun op_var ↦ handle
+                                  return op_var;
+                                  return 3
+                                with h # 1 }
+  ]
+  
   ======================================================================
   continuation_nested_discard_reject_lower.tpe
   ======================================================================
   File "continuation_nested_discard_reject_lower.tpe", line 21, characters 13-43:
   21 |            | Op2 q k' -> delay 3; return ())
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: For every grade `ρ₀` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 + ρ₀`, but its grade `3` does not
+  Typing error: For every grade `ε₀` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε₀`, but its grade `3` does not
     File "continuation_nested_discard_reject_lower.tpe", line 6, characters 0-32:
     6 | operation Op2 : unit ~> unit # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -224,15 +224,15 @@
     File "continuation_nested_discard_reject_lower.tpe", line 21, characters 19-21:
     21 |            | Op2 q k' -> delay 3; return ())
                             ^^
-    `k'` may have any grade `ρ₀`
-    Note: the resource inequality `∀ρ₀. 0 >= ρ₀` does not hold: for `ρ₀ = 1` it becomes `0 >= 1`
+    `k'` may have any grade `ε₀`
+    Note: the effect inequality `∀ε₀. 3 >= 3 · ε₀` does not hold: for `ε₀ = 1` it becomes `3 >= 4`
   ======================================================================
   continuation_nested_escape_reject.tpe
   ======================================================================
   File "continuation_nested_escape_reject.tpe", line 23, characters 23-24:
   23 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
                               ^
-  Typing error: Variable `g` has type `[1](unit → α # ρ₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs at a time the handler does not fix
+  Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs at a time the handler does not fix
     File "continuation_nested_escape_reject.tpe", line 5, characters 0-32:
     5 | operation Op1 : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -244,39 +244,58 @@
     File "continuation_nested_escape_reject.tpe", lines 16-23, characters 4-58:
     16 |   | Op1 p k ->
              ^^^^^^^^^^
-    the case for `Op1` begins here
+    the case for `Op1` begins here (grade `∞`)
+    File "continuation_nested_escape_reject.tpe", line 23, characters 11-57:
+    23 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the case for `Op2` begins here (grade `∞`)
+    Note: the resource inequality `∞ <= 0` does not hold
   ======================================================================
-  continuation_nested_fixed_reject.tpe
+  continuation_nested_fixed.tpe
   ======================================================================
-  File "continuation_nested_fixed_reject.tpe", line 21, characters 11-70:
-  21 |          | Op2 q k' -> (fun () -> let f = continue k' with () in f ()))
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The continuation `k'` in the case for `Op2` may have any grade `ρ₀`, but here `ρ₀` is required to equal `0`
-    File "continuation_nested_fixed_reject.tpe", line 6, characters 0-32:
-    6 | operation Op2 : unit ~> unit # 1
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op2` is declared here
-    File "continuation_nested_fixed_reject.tpe", line 21, characters 17-19:
-    21 |          | Op2 q k' -> (fun () -> let f = continue k' with () in f ()))
-                          ^^
-    `k'` may have any grade `ρ₀`
-    Note: while matching `unit → β # ρ₁ + ρ₂` against `unit → α`
+  === Run 1 ===
+  return (fun () ↦
+            let f = (unbox resource_3 as unbox_var in
+                     unbox_var ()) in
+            f ())
+  State: [
+    { resource_1 ↦ fun op_var ↦ handle
+                                  return op_var;
+                                  return 7
+                                with h # 1,
+      resource_3 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            unbox resource_1 as unbox_var in
+            unbox_var ()
+          with handler
+               | return y ↦ return y
+               | Op2 (q, k') ↦
+                       return (fun () ↦
+                                 let f = (unbox k' as unbox_var in
+                                          unbox_var ()) in
+                                 f ())
+        # 1
+    }
+  ]
+  
   ======================================================================
   continuation_nested_twice_reject_upper.tpe
   ======================================================================
-  File "continuation_nested_twice_reject_upper.tpe", lines 22-24, characters 13-34:
-  22 |            | Op2 q k' ->
-                    ^^^^^^^^^^^
-  Typing error: For every grade `ρ₀` the continuation `k'` may have, the case for `Op2` must have a grade matching `1 + ρ₀`, but its grade `ρ₀ + ρ₀` does not
-    File "continuation_nested_twice_reject_upper.tpe", line 6, characters 0-32:
-    6 | operation Op2 : unit ~> unit # 1
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op2` is declared here
+  File "continuation_nested_twice_reject_upper.tpe", line 24, characters 15-34:
+  24 |                continue k' with ())
+                      ^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k'` is unboxed after grade `∣ε₀∣` has elapsed, which does not match its box grade `1`
+    File "continuation_nested_twice_reject_upper.tpe", line 23, characters 23-42:
+    23 |                let b = continue k' with () in
+                                ^^^^^^^^^^^^^^^^^^^
+    this computation runs here (grade `ε₀`)
     File "continuation_nested_twice_reject_upper.tpe", line 22, characters 19-21:
     22 |            | Op2 q k' ->
                             ^^
-    `k'` may have any grade `ρ₀`
-    Note: the resource inequality `∀ρ₀. ρ₀ <= 1` does not hold: for `ρ₀ = 2` it becomes `2 <= 1`
+    `k'` may have any grade `ε₀`
+    Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for `ε₀ = ∞` it becomes `∞ <= 1`
   ======================================================================
   continuation_twice_lower.tpe
   ======================================================================
@@ -292,19 +311,19 @@
   ======================================================================
   continuation_twice_reject_upper.tpe
   ======================================================================
-  File "continuation_twice_reject_upper.tpe", line 10, characters 27-85:
+  File "continuation_twice_reject_upper.tpe", line 10, characters 67-85:
   10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
-                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: For every grade `ρ₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 + ρ₀`, but its grade `ρ₀ + ρ₀` does not
-    File "continuation_twice_reject_upper.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op` is declared here
+                                                                          ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed after grade `∣ε₀∣` has elapsed, which does not match its box grade `1`
+    File "continuation_twice_reject_upper.tpe", line 10, characters 45-63:
+    10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
+                                                      ^^^^^^^^^^^^^^^^^^
+    this computation runs here (grade `ε₀`)
     File "continuation_twice_reject_upper.tpe", line 10, characters 32-33:
     10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                          ^
-    `k` may have any grade `ρ₀`
-    Note: the resource inequality `∀ρ₀. ρ₀ <= 1` does not hold: for `ρ₀ = 2` it becomes `2 <= 1`
+    `k` may have any grade `ε₀`
+    Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for `ε₀ = ∞` it becomes `∞ <= 1`
   ======================================================================
   default_ops.tpe
   ======================================================================
@@ -345,7 +364,7 @@
     5 | operation Get : unit ~> unit # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
-    Note: the resource inequality `2 >= 3` does not hold
+    Note: the effect inequality `2 >= 3` does not hold
   ======================================================================
   default_reject_duplicate.tpe
   ======================================================================
@@ -388,12 +407,7 @@
     File "error_apply_arg.tpe", line 11, characters 2-3:
     11 |   f "one"
            ^
-    the function has type `int → int # ρ₀ + ρ₁`
-    File "error_apply_arg.tpe", line 9, characters 10-29:
-    9 |   let f = id (fun n -> n + 1) in
-                  ^^^^^^^^^^^^^^^^^^^
-    `int` was inferred here
-    Note: while matching `int → int # ρ₀ + ρ₁` against `string → α # ρ₂`
+    the function has type `int → int`
   ======================================================================
   error_handler_case.tpe
   ======================================================================
@@ -465,19 +479,21 @@
     12 | let first (n : string) = n + 1
                                     ^
     the function has type `int → int → int`
-    Note: while matching `int → int → int` against `string → int → α # ρ₀ # ρ₁`
   
   File "errors_multiple.tpe", line 15, characters 14-36:
   15 |   let slow () : int # 5 = delay 3; 1 in
                      ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
-    Note: the resource inequality `3 >= 5` does not hold
+    Note: the effect inequality `3 >= 5` does not hold
   
-  File "errors_multiple.tpe", line 18, characters 15-24:
+  File "errors_multiple.tpe", line 18, characters 29-30:
   18 | let second n = first n + "two"
-                      ^^^^^^^^^
-  Typing error: The application has type `int` but `string` is expected here
-    Note: while matching `int → int → int` against `int → string → α # ρ₀ # ρ₁`
+                                    ^
+  Typing error: This argument has type `string` but the function expects `int`
+    File "errors_multiple.tpe", line 18, characters 15-24:
+    18 | let second n = first n + "two"
+                        ^^^^^^^^^
+    the function has type `int → int`
   ======================================================================
   eternal_lower.tpe
   ======================================================================
@@ -631,6 +647,7 @@
     5 | let keep x = delay 1; x
                               ^
     `x` is used here after grade `1` has elapsed, which only an eternal type allows
+    Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   eternal_tyvars_reject_handler.tpe
   ======================================================================
@@ -653,15 +670,16 @@
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 29-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the case for `Op` begins here
+    the case for `Op` begins here (grade `∞`)
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 47-65:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                        ^^^^^^^^^^^^^^^^^^
-    this computation runs here (grade `ρ₀`)
+    this computation runs here (grade `ε₀`)
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 69-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                                              ^
     `x` is used here, in the case for `Op`
+    Note: the resource inequality `∞ <= 0` does not hold
   ======================================================================
   eternal_tyvars_reject_higher_order.tpe
   ======================================================================
@@ -709,6 +727,7 @@
     7 | let keep x = delay 1; x
                               ^
     `x` is used here after grade `1` has elapsed, which only an eternal type allows
+    Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   invalid_match_type.tpe
   ======================================================================
@@ -720,10 +739,6 @@
     5 |   match a with
                 ^
     the matched value has type `a list`
-    File "invalid_match_type.tpe", line 4, characters 8-9:
-    4 | run let a = [A] in
-                ^
-    `a list` was inferred here
   ======================================================================
   iterative_unbox.tpe
   ======================================================================
@@ -735,6 +750,14 @@
     7 |   fold_left (fun acc value -> unbox value as v in acc + v) 0 boxed
                              ^^^^^
     `value` is bound here
+    File "iterative_unbox.tpe", line 7, characters 2-11:
+    7 |   fold_left (fun acc value -> unbox value as v in acc + v) 0 boxed
+          ^^^^^^^^^
+    the inequality goes through the type of `fold_left` here
+    File "iterative_unbox.tpe", line 5, characters 14-26:
+    5 |   let boxed = box_n_values 5 [] in 
+                      ^^^^^^^^^^^^
+    the inequality goes through the type of `box_n_values` here
     Note: the resource inequality `0 >= 3` does not hold
   ======================================================================
   less_than_function.tpe
@@ -874,19 +897,16 @@
   File "noneternal_reject_unknown_grade.tpe", line 21, characters 2-3:
   21 |   t
          ^
-  Typing error: Variable `t` is used after grade `ρ₀ + 1` has elapsed, but its type `token` is not eternal and grade `ρ₀ + 1` cannot be compared with `0`
+  Typing error: Variable `t` is used after grade `1` has elapsed, but its type `token` is not eternal
     File "noneternal_reject_unknown_grade.tpe", line 18, characters 6-7:
     18 |   let t = Token in
                ^
     `t` is bound here
-    File "noneternal_reject_unknown_grade.tpe", line 19, characters 10-14:
-    19 |   let r = g () in
-                   ^^^^
-    this computation runs here (grade `ρ₀`)
     File "noneternal_reject_unknown_grade.tpe", line 20, characters 2-9:
     20 |   delay 1;
            ^^^^^^^
     `delay 1` elapses here
+    Note: the resource inequality `1 <= 0` does not hold
   
   File "noneternal_reject_unknown_grade.tpe", line 34, characters 19-23:
   34 | let hold_token g = hold g Token
@@ -900,10 +920,6 @@
     27 |   let y = x in
                ^
     `y` is bound here
-    File "noneternal_reject_unknown_grade.tpe", line 28, characters 10-14:
-    28 |   let r = g () in
-                   ^^^^
-    this computation runs here (grade `ρ₀`)
     File "noneternal_reject_unknown_grade.tpe", line 29, characters 2-9:
     29 |   delay 1;
            ^^^^^^^
@@ -911,8 +927,8 @@
     File "noneternal_reject_unknown_grade.tpe", line 30, characters 2-3:
     30 |   y
            ^
-    `y` is used here after grade `ρ₀ + 1` has elapsed, which only an eternal type allows
-    Note: grade `ρ₀ + 1` cannot be compared with `0`
+    `y` is used here after grade `1` has elapsed, which only an eternal type allows
+    Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   noneternal_type.tpe
   ======================================================================
@@ -962,87 +978,41 @@
   ]
   
   ======================================================================
-  op_case_context_reject_continuation.tpe
+  op_case_context_continuation.tpe
   ======================================================================
-  File "op_case_context_reject_continuation.tpe", line 23, characters 13-31:
-  23 |              continue k with ())
-                    ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` has type `[0](unit → α # ρ₀)`, which is not eternal, so it cannot be used in the case for `Op2`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_continuation.tpe", line 6, characters 0-32:
-    6 | operation Op2 : unit ~> unit # 0
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op2` is declared here
-    File "op_case_context_reject_continuation.tpe", line 14, characters 10-11:
-    14 |   | Op1 p k ->
-                   ^
-    `k` is bound here
-    File "op_case_context_reject_continuation.tpe", lines 21-23, characters 11-31:
-    21 |          | Op2 q k' ->
-                    ^^^^^^^^^^^
-    the case for `Op2` begins here
-    File "op_case_context_reject_continuation.tpe", line 22, characters 21-40:
-    22 |              let a = continue k' with () in
-                              ^^^^^^^^^^^^^^^^^^^
-    this computation runs here (grade `ρ₁`)
-    Note: a box type is never eternal
+  === Run 1 ===
+  return 7
+  State: [
+    { resource_1 ↦ fun op_var ↦ handle
+                                  return op_var;
+                                  return 7
+                                with h # 0,
+      resource_3 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            unbox resource_1 as unbox_var in
+            unbox_var ()
+          with handler
+               | return y ↦ return y
+               | Op2 (q, k') ↦
+                       let a = (unbox k' as unbox_var in
+                                unbox_var ()) in
+                       unbox resource_1 as unbox_var in
+                       unbox_var ()
+        # 0
+    }
+  ]
+  
   ======================================================================
-  op_case_context_reject_function.tpe
+  op_case_context_function.tpe
   ======================================================================
-  File "op_case_context_reject_function.tpe", line 13, characters 14-15:
-  13 |       let v = f () in
-                     ^
-  Typing error: Variable `f` has type `unit → int # ρ₀`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_function.tpe", line 5, characters 0-30:
-    5 | operation Op : unit ~> int # 0
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op` is declared here
-    File "op_case_context_reject_function.tpe", line 9, characters 6-7:
-    9 | let h f =
-              ^
-    `f` is bound here
-    File "op_case_context_reject_function.tpe", lines 12-14, characters 4-23:
-    12 |   | Op p k ->
-             ^^^^^^^^^
-    the case for `Op` begins here
   ======================================================================
-  op_case_context_reject_noneternal.tpe
+  op_case_context_noneternal.tpe
   ======================================================================
-  File "op_case_context_reject_noneternal.tpe", line 15, characters 30-31:
-  15 |   | Op p k -> continue k with t
-                                     ^
-  Typing error: Variable `t` has type `token`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_noneternal.tpe", line 8, characters 0-32:
-    8 | operation Op : unit ~> token # 0
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op` is declared here
-    File "op_case_context_reject_noneternal.tpe", line 12, characters 6-7:
-    12 | let h t =
-               ^
-    `t` is bound here
-    File "op_case_context_reject_noneternal.tpe", line 15, characters 4-31:
-    15 |   | Op p k -> continue k with t
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    the case for `Op` begins here
   ======================================================================
-  op_case_context_reject_unbox.tpe
+  op_case_context_unbox.tpe
   ======================================================================
-  File "op_case_context_reject_unbox.tpe", lines 14-15, characters 6-23:
-  14 |       unbox b as v in
-             ^^^^^^^^^^^^^^^
-  Typing error: Variable `b` has type `[ρ₀]int`, which is not eternal, so it cannot be used in the case for `Op`: the case runs at a time the handler does not fix
-    File "op_case_context_reject_unbox.tpe", line 5, characters 0-30:
-    5 | operation Op : unit ~> int # 0
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op` is declared here
-    File "op_case_context_reject_unbox.tpe", line 10, characters 6-7:
-    10 | let h b =
-               ^
-    `b` is bound here
-    File "op_case_context_reject_unbox.tpe", lines 13-15, characters 4-23:
-    13 |   | Op p k ->
-             ^^^^^^^^^
-    the case for `Op` begins here
-    Note: a box type is never eternal
   ======================================================================
   orelse_andalso.tpe
   ======================================================================
@@ -1129,11 +1099,6 @@
     3 |     (v 42, v "foo")
                    ^
     the function has type `int → int`
-    File "polymorphism_id_id.tpe", line 2, characters 12-15:
-    2 | run let v = u u in
-                    ^^^
-    `int` was inferred here
-    Note: while matching `int → int` against `string → α # ρ₀`
   ======================================================================
   recursion.tpe
   ======================================================================
@@ -1951,7 +1916,7 @@
     7 | operation Extrude : unit ~> unit # ({Extrude}, {Extrude}) within (3, 5)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
-    Note: the resource inequality `({1},{1}) <= ({3},{5})` does not hold
+    Note: the effect inequality `({1},{1}) <= ({3},{5})` does not hold
   ======================================================================
   traces_lower.tpe
   ======================================================================
@@ -2030,7 +1995,7 @@
     6 | operation Extrude : unit ~> unit # {Extrude} within (3, 5)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
-    Note: the resource inequality `{6} <= {5}` does not hold
+    Note: the effect inequality `{6} <= {5}` does not hold
   ======================================================================
   traces_reject_default_nonatomic.tpe
   ======================================================================
@@ -2048,14 +2013,26 @@
   ======================================================================
   traces_reject_order.tpe
   ======================================================================
-  File "traces_reject_order.tpe", lines 16-20, characters 4-31:
-  16 |   | PrintModel m k ->
-           ^^^^^^^^^^^^^^^^^
-  Typing error: The case for `PrintModel` has grade `{Cool; Extrude; Heat}`, which does not match the grade `{Heat; Extrude; Cool}` of `PrintModel` followed by its continuation
-    File "traces_reject_order.tpe", line 11, characters 0-61:
-    11 | operation PrintModel : model ~> fresh # {Heat; Extrude; Cool}
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `PrintModel` is declared here
+  File "traces_reject_order.tpe", line 20, characters 6-31:
+  20 |       continue k with (Fresh m)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed after grade `{Cool; Extrude; Heat}` has elapsed, which does not match its box grade `{Heat; Extrude; Cool}`
+    File "traces_reject_order.tpe", line 16, characters 17-18:
+    16 |   | PrintModel m k ->
+                          ^
+    `k` is bound here
+    File "traces_reject_order.tpe", line 17, characters 6-21:
+    17 |       perform Cool ();
+               ^^^^^^^^^^^^^^^
+    `Cool` is performed here (grade `{Cool}`)
+    File "traces_reject_order.tpe", line 18, characters 6-24:
+    18 |       perform Extrude ();
+               ^^^^^^^^^^^^^^^^^^
+    `Extrude` is performed here (grade `{Extrude}`)
+    File "traces_reject_order.tpe", line 19, characters 6-21:
+    19 |       perform Heat ();
+               ^^^^^^^^^^^^^^^
+    `Heat` is performed here (grade `{Heat}`)
     Note: the resource inequality `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
   ======================================================================
   traces_reject_self_retry.tpe
@@ -2139,7 +2116,7 @@ single-dash form of the help option is not accepted.
   3 | let f () : int # 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
-    Note: the resource inequality `3 >= 5` does not hold
+    Note: the effect inequality `3 >= 5` does not hold
   [1]
   $ ../tempore -help
   ../tempore: unknown option '-help'.

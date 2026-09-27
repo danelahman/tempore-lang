@@ -5,15 +5,9 @@ module List = Utils.List
 module Ast = Language.Ast
 open Backend
 
-(* The typechecker grades resources and effects alike by [G], so the backend's
-   grade system is required to grade both sorts by [G] until the typechecker
-   is replaced by one for grade systems in general. *)
-module Loader
-    (G : Language.Grade.S)
-    (Backend : Backend.S with type Grades.R.t = G.t and type Grades.E.t = G.t) =
-struct
+module Loader (Backend : Backend.S) = struct
   module D = Desugarer.Make (Backend.Grades)
-  module TC = Typechecker.Make (G)
+  module TC = Typechecker.Make (Backend.Grades)
   module Grammar = Parser.Grammar.Make (Backend.Grades)
 
   type state = {
@@ -24,25 +18,19 @@ struct
 
   let load_primitive state prim =
     let x = Ast.Variable.fresh (Language.Primitives.primitive_name prim) in
-    let desugarer_state' = D.load_primitive state.desugarer x prim in
-    let typechecker_state' = TC.load_primitive state.typechecker x prim in
-    let backend_state' = Backend.load_primitive state.backend x prim in
     {
-      desugarer = desugarer_state';
-      typechecker = typechecker_state';
-      backend = backend_state';
+      desugarer = D.load_primitive state.desugarer x prim;
+      typechecker = TC.load_primitive state.typechecker x prim;
+      backend = Backend.load_primitive state.backend x prim;
     }
 
   let initial_state =
-    let initial_state_without_primitives =
+    List.fold_left load_primitive
       {
         desugarer = D.initial_state;
         typechecker = TC.initial_state;
         backend = Backend.initial_load_state;
       }
-    in
-
-    List.fold_left load_primitive initial_state_without_primitives
       Language.Primitives.primitives
 
   let parse_commands lexbuf =
@@ -58,82 +46,34 @@ struct
     | Invalid_argument msg ->
         Error.syntax
           ~loc:(Location.of_lexbuf lexbuf)
-          "in the '%s' grading monoid, %s" G.name msg
+          "in the '%s' grading monoid, %s" Backend.Grades.R.name msg
 
-  (* A typing error raised without a location of its own is pinned to the
-     command being executed. *)
+  (* The backend loads a command the typechecker has accepted. *)
+  let load_backend backend (cmd : _ Ast.command) =
+    match cmd.it with
+    | Ast.TyDef (eternality, ty_defs) ->
+        Backend.load_ty_def backend (eternality, ty_defs)
+    | Ast.OpSig (op, _, _, eps, _) -> Backend.load_op_sig backend op eps
+    | Ast.OpDefault (op, abs) -> Backend.load_op_default backend op abs
+    | Ast.TopLet (x, expr) -> Backend.load_top_let backend x expr
+    | Ast.TopDo comp -> Backend.load_top_do backend comp
+
+  (* A command checked and loaded, or the diagnostic of its rejection and how
+     to go on. An error raised without a location of its own is pinned to the
+     command. *)
   let execute_command state (cmd : _ Ast.command) =
     try
-      match cmd.it with
-      | Ast.TyDef (eternality, ty_defs) ->
-          let typechecker_state' =
-            TC.add_type_definitions ~loc:cmd.at state.typechecker
-              (eternality, ty_defs)
-          in
-          let backend_state' =
-            Backend.load_ty_def state.backend (eternality, ty_defs)
-          in
-          {
-            state with
-            typechecker = typechecker_state';
-            backend = backend_state';
-          }
-      | Ast.OpSig (op, ty1, ty2, eps, bounds) ->
-          let typechecker_state' =
-            TC.add_operation_signature ~loc:cmd.at state.typechecker
-              (op, ty1, ty2, eps, bounds)
-          in
-          let _evaluation_environment_state' = state.backend in
-          {
-            state with
-            typechecker = typechecker_state';
-            backend = Backend.load_op_sig state.backend op eps;
-          }
-      | Ast.OpDefault (op, abs) ->
-          let typechecker_state' =
-            TC.add_operation_default ~loc:cmd.at state.typechecker (op, abs)
-          in
-          {
-            state with
-            typechecker = typechecker_state';
-            backend = Backend.load_op_default state.backend op abs;
-          }
-      | Ast.TopLet (x, expr) ->
-          let typechecker_state' =
-            TC.add_top_definition ~loc:cmd.at state.typechecker x expr
-          in
-          let backend_state' = Backend.load_top_let state.backend x expr in
-          {
-            state with
-            typechecker = typechecker_state';
-            backend = backend_state';
-          }
-      | Ast.TopDo comp ->
-          let _ = TC.infer ~loc:cmd.at state.typechecker comp in
-          let backend_state' = Backend.load_top_do state.backend comp in
-          { state with backend = backend_state' }
+      match TC.check state.typechecker cmd with
+      | Ok typechecker ->
+          Ok
+            { state with typechecker; backend = load_backend state.backend cmd }
+      | Error (d, TC.Continue typechecker) ->
+          (* The backend is left alone: nothing is run once there are
+             errors. *)
+          Error (d, Some { state with typechecker })
+      | Error (d, TC.Stop) -> Error (d, None)
     with Error.Error ({ primary = None; _ } as d) ->
       raise (Error.Error { d with primary = Some cmd.at })
-
-  (* What is left to check after a command was rejected. [Stop] gives up: the
-     rest could only repeat that a type or operation was never declared. *)
-  type recovery = Continue of state | Stop
-
-  let recover_from state (cmd : _ Ast.command) =
-    match cmd.it with
-    (* The definition is assumed to have any type at all, so that its uses below
-       are checked rather than reported as unknown variables. The backend is left
-       alone: nothing is run once there are errors. *)
-    | Ast.TopLet (x, _) ->
-        Continue
-          {
-            state with
-            typechecker = TC.assume_definition ~loc:cmd.at state.typechecker x;
-          }
-    (* A [run] exports nothing and a rejected default leaves the operation
-       without one, so the next command is checked in the state before it. *)
-    | Ast.TopDo _ | Ast.OpDefault _ -> Continue state
-    | Ast.TyDef _ | Ast.OpSig _ -> Stop
 
   (** Execute [cmds] in order, returning the state they leave behind and the
       diagnostics they produced. With [~recover:true] the typing errors the
@@ -145,12 +85,10 @@ struct
       if stopped then (state, diagnostics, stopped)
       else
         match execute_command state cmd with
-        | state' -> (state', diagnostics, false)
-        | exception Error.Error ({ kind = Diagnostic.Typing; _ } as d)
-          when recover -> (
-            match recover_from state cmd with
-            | Continue state' -> (state', d :: diagnostics, false)
-            | Stop -> (state, d :: diagnostics, true))
+        | Ok state' -> (state', diagnostics, false)
+        | Error (d, _) when not recover -> raise (Error.Error d)
+        | Error (d, Some state') -> (state', d :: diagnostics, false)
+        | Error (d, None) -> (state, d :: diagnostics, true)
     in
     let state', diagnostics, _ = List.fold_left step (state, [], false) cmds in
     (state', List.rev diagnostics)

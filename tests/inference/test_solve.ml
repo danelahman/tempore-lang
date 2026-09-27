@@ -1,6 +1,6 @@
 (* Tests of the constraint solver: whole programs, compared command by command
-   with the current typechecker, and targeted checks of the solver's rules on
-   small constraints and programs. Silent on success. *)
+   with fixed verdicts, and targeted checks of the solver's rules on small
+   constraints and programs. Silent on success. *)
 
 module Ast = Language.Ast
 module Grade = Language.Grade
@@ -93,18 +93,11 @@ let expectations lines =
     (blocks None [] lines)
 
 (* ------------------------------------------------------------------ *)
-(* Whole programs, against the current typechecker                     *)
+(* Whole programs, against fixed verdicts                              *)
 (* ------------------------------------------------------------------ *)
 
-(* The verdicts on one command: of the current typechecker and of the
-   solver. *)
-type command_verdict = {
-  line : int;
-  kind : string;
-  old_ok : bool;
-  new_ok : bool;
-  detail : string;
-}
+type command_verdict = { line : int; kind : string; ok : bool; detail : string }
+(** The verdict of the solver on one command. *)
 
 module Programs (G : Grade.S) = struct
   module GS = GradeSystem.Identity (G)
@@ -114,11 +107,10 @@ module Programs (G : Grade.S) = struct
   module P = Inference.Program.Make (C)
   module S = Inference.Solver.Make (C)
   module R = Inference.Residual.Make (C)
-  module TC = Typechecker.Make (G)
   module D = Desugarer.Make (GS)
   module Grammar = Parser.Grammar.Make (GS)
 
-  type state = { desugarer : D.state; env : Gen.env; tc : TC.state }
+  type state = { desugarer : D.state; env : Gen.env }
 
   let parse lexbuf = Grammar.commands Parser.Lexer.token lexbuf
 
@@ -134,36 +126,9 @@ module Programs (G : Grade.S) = struct
         {
           desugarer = D.load_primitive st.desugarer x prim;
           env = Gen.load_primitive st.env x prim;
-          tc = TC.load_primitive st.tc x prim;
         })
-      {
-        desugarer = D.initial_state;
-        env = Gen.initial_env;
-        tc = TC.initial_state;
-      }
+      { desugarer = D.initial_state; env = Gen.initial_env }
       Language.Primitives.primitives
-
-  (* The current typechecker on one command, with the loader's recovery:
-     whether it accepts, the state after, and whether to go on. *)
-  let old_execute tc (cmd : _ Ast.command) =
-    let loc = cmd.at in
-    match
-      match cmd.it with
-      | Ast.TyDef (eternality, defs) ->
-          TC.add_type_definitions ~loc tc (eternality, defs)
-      | Ast.OpSig signature -> TC.add_operation_signature ~loc tc signature
-      | Ast.OpDefault (op, abs) -> TC.add_operation_default ~loc tc (op, abs)
-      | Ast.TopLet (x, e) -> TC.add_top_definition ~loc tc x e
-      | Ast.TopDo c ->
-          ignore (TC.infer ~loc tc c);
-          tc
-    with
-    | tc -> (true, tc, true)
-    | exception Error.Error { kind = Diagnostic.Typing; _ } -> (
-        match cmd.it with
-        | Ast.TopLet (x, _) -> (false, TC.assume_definition ~loc tc x, true)
-        | Ast.TopDo _ | Ast.OpDefault _ -> (false, tc, true)
-        | Ast.TyDef _ | Ast.OpSig _ -> (false, tc, false))
 
   let kind_of (cmd : _ Ast.command) =
     match cmd.it with
@@ -182,37 +147,31 @@ module Programs (G : Grade.S) = struct
     | P.Rejected (P.Refuted f) -> Format.asprintf "%t" (R.print_failure f)
     | P.Rejected (P.Stuck _) -> "stuck"
 
-  (* Each command desugared, then executed by both; the verdicts, in order. *)
+  (* Each command desugared, then executed, until one stops the others; the
+     verdicts, in order. *)
   let run st cmds =
-    let step (st, verdicts, old_on, new_on) cmd =
-      let desugarer, cmd = D.desugar_command st.desugarer cmd in
-      let old_ok, tc, old_on' =
-        if old_on then old_execute st.tc cmd else (false, st.tc, false)
-      in
-      let env, (verdict : P.verdict), next =
-        if new_on then P.execute st.env cmd
-        else (st.env, { at = cmd.at; outcome = P.Accepted }, P.Stop)
-      in
-      let new_ok =
-        match verdict.outcome with
-        | P.Accepted | P.Defined _ -> true
-        | P.Rejected _ -> false
-      in
-      let v =
-        {
-          line = cmd.at.Location.start.line;
-          kind = kind_of cmd;
-          old_ok = old_ok || not old_on;
-          new_ok = new_ok || not new_on;
-          detail = detail_of verdict.outcome;
-        }
-      in
-      ( { desugarer; env; tc },
-        v :: verdicts,
-        old_on && old_on',
-        new_on && next = P.Continue )
+    let step (st, verdicts, next) cmd =
+      match next with
+      | P.Stop -> (st, verdicts, next)
+      | P.Continue ->
+          let desugarer, cmd = D.desugar_command st.desugarer cmd in
+          let env, (verdict : P.verdict), next = P.execute st.env cmd in
+          let ok =
+            match verdict.outcome with
+            | P.Accepted | P.Defined _ -> true
+            | P.Rejected _ -> false
+          in
+          let v =
+            {
+              line = cmd.at.Location.start.line;
+              kind = kind_of cmd;
+              ok;
+              detail = detail_of verdict.outcome;
+            }
+          in
+          ({ desugarer; env }, v :: verdicts, next)
     in
-    let st, verdicts, _, _ = List.fold_left step (st, [], true, true) cmds in
+    let st, verdicts, _ = List.fold_left step (st, [], P.Continue) cmds in
     (st, List.rev verdicts)
 
   let with_stdlib =
@@ -222,7 +181,7 @@ module Programs (G : Grade.S) = struct
        in
        List.iter
          (fun v ->
-           if not (v.old_ok && v.new_ok) then
+           if not v.ok then
              fail "stdlib (%s) line %d, %s: %s" G.name v.line v.kind v.detail)
          verdicts;
        st)
@@ -294,50 +253,83 @@ let tpe_files dir =
   |> List.sort String.compare
   |> List.map (Filename.concat dir)
 
-(* The test files the solver now accepts although the current typechecker
-   rejects them: handler clauses are typed under the lock [⟨⊤⟩], not behind
-   the eternal barrier. *)
-let now_accepted =
+(* The lines of the commands the solver rejects, by file: every other command
+   of the examples and the tests is accepted. *)
+let expected_rejections =
   [
-    "op_case_context_reject_continuation.tpe";
-    "op_case_context_reject_function.tpe";
-    "op_case_context_reject_noneternal.tpe";
-    "op_case_context_reject_unbox.tpe";
+    ("basic_unbox.tpe", [ 13; 23 ]);
+    ("handlers_nested_reject.tpe", [ 11 ]);
+    ("comp_type_annotation_reject.tpe", [ 3 ]);
+    ("comp_type_annotation_upper_reject.tpe", [ 3 ]);
+    ("continuation_discard_reject_lower.tpe", [ 10 ]);
+    ("continuation_escape_reject.tpe", [ 11 ]);
+    ("continuation_nested_discard_reject_lower.tpe", [ 10 ]);
+    ("continuation_nested_escape_reject.tpe", [ 13 ]);
+    ("continuation_nested_twice_reject_upper.tpe", [ 11 ]);
+    ("continuation_twice_reject_upper.tpe", [ 10 ]);
+    ("default_reject_bounds.tpe", [ 7 ]);
+    ("default_reject_duplicate.tpe", [ 8 ]);
+    ("default_reject_type.tpe", [ 7 ]);
+    ("error_apply_arg.tpe", [ 8 ]);
+    ("error_handler_case.tpe", [ 7 ]);
+    ("error_unbox_nonvariable.tpe", [ 7 ]);
+    ("error_use_after_delay.tpe", [ 15 ]);
+    ("error_variant_arity.tpe", [ 12; 14; 16; 20 ]);
+    ("errors_multiple.tpe", [ 12; 14; 18 ]);
+    ("eternal_tyvars_reject_function.tpe", [ 9 ]);
+    ("eternal_tyvars_reject_handler.tpe", [ 12 ]);
+    ("eternal_tyvars_reject_higher_order.tpe", [ 9 ]);
+    ("eternal_tyvars_reject_noneternal.tpe", [ 11 ]);
+    ("invalid_match_type.tpe", [ 4 ]);
+    ("iterative_unbox.tpe", [ 4 ]);
+    ("malformed_type_application.tpe", [ 4 ]);
+    ("noneternal_reject_after_delay.tpe", [ 10 ]);
+    ("noneternal_reject_alias.tpe", [ 5 ]);
+    ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
+    ("occurs_check.tpe", [ 1 ]);
+    ("polymorphism_id_id.tpe", [ 2 ]);
+    ("time_reject_within.tpe", [ 6 ]);
+    ("traces_intervals_default_bounds.tpe", [ 9 ]);
+    ("traces_reject_allowance.tpe", [ 7 ]);
+    ("traces_reject_bounds.tpe", [ 4 ]);
+    ("traces_reject_bounds_declared.tpe", [ 6 ]);
+    ("traces_reject_default_bounds.tpe", [ 8 ]);
+    ("traces_reject_default_nonatomic.tpe", [ 14 ]);
+    ("traces_reject_missing_within.tpe", [ 5 ]);
+    ("traces_reject_order.tpe", [ 13 ]);
+    ("traces_reject_self_retry.tpe", [ 6 ]);
+    ("traces_reject_unknown_event.tpe", [ 6 ]);
   ]
-
-(* The commands on which the solver and the current typechecker disagree,
-   by file and line, beyond [now_accepted], each with its explanation. *)
-let known_differences =
-  [
-    ( "continuation_fixed_reject.tpe",
-      10,
-      "the clause returns a function whose latent effect is the continuation's \
-       grade followed by the result's own, [j · ε ≾ ε] for every [j]; the \
-       result's effect [ε] may be the top, which the current grades lack" );
-    ( "continuation_nested_fixed_reject.tpe",
-      11,
-      "as continuation_fixed_reject.tpe, for the inner clause: [⊤ ≾ ε] is met \
-       by the top" );
-  ]
-
-let report_differences name verdicts =
-  if not (List.mem name now_accepted) then
-    List.iter
-      (fun v ->
-        if v.old_ok <> v.new_ok then
-          let known =
-            List.exists
-              (fun (f, l, _) -> f = name && l = v.line)
-              known_differences
-          in
-          if not known then
-            fail "%s line %d (%s): current %s, solver %s %s" name v.line v.kind
-              (if v.old_ok then "accepts" else "rejects")
-              (if v.new_ok then "accepts" else "rejects")
-              v.detail)
-      verdicts
 
 let slow = ref []
+
+(* The verdicts on the file at [path] against [expected_rejections], or
+   [None] when it does not parse or desugar. *)
+let check path grades =
+  let name = Filename.basename path in
+  match file_verdicts path grades with
+  | None, _ -> None
+  | Some verdicts, time ->
+      if time > 2. then slow := (name, time) :: !slow;
+      if verbose then (
+        Format.eprintf "%s (%s): %.2fs@." name grades time;
+        if Sys.getenv_opt "SOLVE_FILE" = Some name then
+          List.iter
+            (fun v ->
+              Format.eprintf "  line %d %s: %b@.    %s@." v.line v.kind v.ok
+                v.detail)
+            verdicts);
+      let rejected =
+        List.filter_map (fun v -> if v.ok then None else Some v.line) verdicts
+      in
+      let expected =
+        Option.value (List.assoc_opt name expected_rejections) ~default:[]
+      in
+      if rejected <> expected then
+        fail "%s: rejects lines [%s], expected [%s]" name
+          (String.concat "; " (List.map string_of_int rejected))
+          (String.concat "; " (List.map string_of_int expected));
+      Some verdicts
 
 let programs () =
   let root = "../.." in
@@ -347,23 +339,6 @@ let programs () =
       In_channel.input_lines
   in
   let table = case_table cram and expected = expectations cram in
-  let check path grades =
-    let name = Filename.basename path in
-    match file_verdicts path grades with
-    | None, _ -> None
-    | Some verdicts, time ->
-        if time > 2. then slow := (name, time) :: !slow;
-        if verbose then (
-          Format.eprintf "%s (%s): %.2fs@." name grades time;
-          if Sys.getenv_opt "SOLVE_FILE" = Some name then
-            List.iter
-              (fun v ->
-                Format.eprintf "  line %d %s: %b %b@.    %s@." v.line v.kind
-                  v.old_ok v.new_ok v.detail)
-              verdicts);
-        report_differences name verdicts;
-        Some verdicts
-  in
   List.iter
     (fun path ->
       let grades = Option.value (header_grades path) ~default:default_grades in
@@ -376,16 +351,10 @@ let programs () =
       match (check path grades, List.assoc_opt name expected) with
       | None, _ | _, None -> ()
       | Some verdicts, Some e ->
-          let rejected = List.exists (fun v -> not v.new_ok) verdicts in
-          let expect_rejected =
-            e.typing_error && not (List.mem name now_accepted)
-          in
-          let known =
-            List.exists (fun (f, _, _) -> f = name) known_differences
-          in
-          if rejected <> expect_rejected && not (e.syntax_error || known) then
-            fail "%s: expected %s, solver %s" name
-              (if expect_rejected then "rejected" else "accepted")
+          let rejected = List.exists (fun v -> not v.ok) verdicts in
+          if rejected <> e.typing_error && not e.syntax_error then
+            fail "%s: the cram test shows it %s, the solver %s" name
+              (if e.typing_error then "rejected" else "accepted")
               (if rejected then "rejects" else "accepts"))
     (tpe_files (Filename.concat root "tests"))
 
