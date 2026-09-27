@@ -13,7 +13,9 @@
    runs). The table shows the medians over several processes. Run from the root
    of the repository:
 
-     dune exec --profile release bench/regular/bench_regular.exe *)
+     dune exec --profile release bench/regular/bench_regular.exe
+
+   See bench/regular/README.md for a results table and the total run time. *)
 
 module Grade = Grades.Grade
 
@@ -362,17 +364,78 @@ let cost_model operations =
 let corpus_names =
   [ "Open"; "Read"; "Write"; "Close"; "Auth"; "Fetch"; "Revoke"; "Send" ]
 
+(* The operations named by [cost_corpus], the runtime-bound declarations of
+   examples/regular_costs/*.tpe and tests/regex_costs_*.tpe. *)
+let cost_corpus_names =
+  [
+    "Coat";
+    "Bake";
+    "Inspect";
+    "Seal";
+    "Sample";
+    "Send";
+    "Calibrate";
+    "Ping";
+    "Log";
+    "Fetch";
+  ]
+
+(* The one-sided box grades of examples/regular_costs/*.tpe and of
+   tests/regex_costs_*.tpe, understood by every cost-model grade. *)
+let cost_corpus =
+  [
+    "{Coat; 4}";
+    "{Bake | 6}";
+    "{(Bake; Inspect)*}";
+    "{Ping; 3}";
+    "{Ping | Log}";
+    "{2; Send; 6}";
+    "{Sample*; Send}";
+    "{(Sample | 2)*}";
+    "{(_ & ~Calibrate)*}";
+    "{_ & ~Calibrate}";
+    "{Log; 2*}";
+    "{(_ & ~Fetch)*}";
+    "{(Ping | Log)*}";
+    "{6}";
+    "top";
+  ]
+
+(* The two-sided box grades of examples/regular_costs/regular_costs_intervals.tpe
+   and tests/regex_costs_interval*.tpe, understood only by the interval grade.
+*)
+let interval_cost_corpus =
+  [
+    "(4, 8)";
+    "({Bake}, {Bake; (Inspect | 1)*})";
+    "({Coat; 4; Seal}, {Coat; 8; Seal})";
+    "({Ping}, {(Ping | 1)*})";
+    "({Fetch}, {_ & ~1 & ~Fetch})";
+  ]
+
+(* Whether [name] contains [infix], to tell the interval grade, whose name
+   contains "interval", from the lower and upper bounds. *)
+let has_infix infix name =
+  let n = String.length infix and m = String.length name in
+  let rec go i = i + n <= m && (String.sub name i n = infix || go (i + 1)) in
+  go 0
+
 module CostWorkloads (G : Grade.S) = struct
   include Workloads (G)
 
   let costs =
-    let bounds = cost_model corpus_names in
+    let corpus =
+      if has_infix "interval" G.name then cost_corpus @ interval_cost_corpus
+      else cost_corpus
+    in
+    let bounds = cost_model cost_corpus_names in
     let family =
-      Printf.sprintf "%s: corpus (%d literals)" G.name (List.length corpus)
+      Printf.sprintf "%s: cost corpus (%d literals)" G.name (List.length corpus)
     in
     let grades () = List.map lit corpus in
     let on_pairs f rhos = List.map (fun (x, y) -> f bounds x y) (pairs rhos) in
     [
+      op family "elaborate" Fun.id (fun () -> List.map lit corpus);
       op family "leq, all pairs" grades (on_pairs G.leq);
       op family "equal, all pairs" grades (on_pairs G.equal);
       op family "counterexample, all pairs" grades (on_pairs G.counterexample);
@@ -419,10 +482,37 @@ module CostWorkloads (G : Grade.S) = struct
       op family "inhabited X" grades (fun (_, x, _) -> G.inhabited bounds x);
     ]
 
+  (* [E] the complement of "the [n]-th letter from the end is [A]" and [E2]
+     its intersection with the analogous complement for [B], over a cost
+     model declaring [A], [B] and [C]; scales the corpus's complement and
+     intersection literals as [nth_from_end] does for the plain grade. *)
+  let nth_from_end n =
+    let bounds = cost_model [ "A"; "B"; "C" ] in
+    let family =
+      Printf.sprintf "%s: n-th letter from the end, n = %d" G.name n
+    in
+    let e = "~(" ^ from_end "A" n ^ ")" in
+    let e2 = e ^ " & ~(" ^ from_end "B" n ^ ")" in
+    let bc = "(B | C)*; A; " ^ String.concat "; " (repeat n "(B | C)") in
+    let against text () = (braces text, braces e) in
+    [
+      op family "elaborate E, E2" Fun.id (fun () -> (braces e, braces e2));
+      op family "leq (B | C)* <= E" (against "(B | C)*") (fun (x, e) ->
+          G.leq bounds x e);
+      op family "counterexample (B | C)*; A; (B | C)^n, E" (against bc)
+        (fun (x, e) -> G.counterexample bounds x e);
+      op family "leq C* <= E2"
+        (fun () -> (braces "C*", braces e2))
+        (fun (x, e2) -> G.leq bounds x e2);
+    ]
+
+  (* [n] stops at 8: automata already take seconds to elaborate [E2] there,
+     and 12 pushes the interval grade's symbolic derivatives past 20 s. *)
   let operations =
     costs
     @ List.concat_map delays [ 8; 32; 128 ]
     @ List.concat_map declared [ 8; 32; 128 ]
+    @ List.concat_map nth_from_end [ 4; 8 ]
 end
 
 (* The programs typechecked under the cost-model regular trace grades: the
@@ -448,6 +538,8 @@ module AutomataUpperOps = CostWorkloads (Cost.Upper)
 module DerivativeUpperOps = CostWorkloads (Cost.Symbolic.Upper)
 module AutomataLowerOps = CostWorkloads (Cost.Lower)
 module DerivativeLowerOps = CostWorkloads (Cost.Symbolic.Lower)
+module AutomataIntervalOps = CostWorkloads (Cost.Interval)
+module DerivativeIntervalOps = CostWorkloads (Cost.Symbolic.Interval)
 
 (** {1 The table} *)
 
@@ -510,12 +602,18 @@ let () =
   let upper =
     "examples/regular_costs/regular_costs_upper.tpe" :: cost_programs "upper"
   in
+  let lower =
+    "examples/regular_costs/regular_costs_lower.tpe" :: cost_programs "lower"
+  in
+  let interval =
+    "examples/regular_costs/regular_costs_intervals.tpe"
+    :: cost_programs "interval"
+  in
   family_rows (AutomataUpper.workloads upper) (DerivativeUpper.workloads upper);
+  family_rows (AutomataLower.workloads lower) (DerivativeLower.workloads lower);
   family_rows
-    (AutomataLower.workloads (cost_programs "lower"))
-    (DerivativeLower.workloads (cost_programs "lower"));
-  family_rows
-    (AutomataInterval.workloads (cost_programs "interval"))
-    (DerivativeInterval.workloads (cost_programs "interval"));
+    (AutomataInterval.workloads interval)
+    (DerivativeInterval.workloads interval);
   family_rows AutomataUpperOps.operations DerivativeUpperOps.operations;
-  family_rows AutomataLowerOps.operations DerivativeLowerOps.operations
+  family_rows AutomataLowerOps.operations DerivativeLowerOps.operations;
+  family_rows AutomataIntervalOps.operations DerivativeIntervalOps.operations

@@ -232,16 +232,8 @@ automata of products, joins and complements by the product and subset
 constructions.
 
 `dune exec --profile release bench/regular/bench_regular.exe` benchmarks the two
-implementations. `traces-regex-symbolic` typechecks the example and the tests
-of this grade 1.2 to 1.35 times faster, builds products and joins 6 to 280
-times faster, and decides inclusions involving the complement of "the 16th
-letter from the end is `A`" in microseconds where `traces-regex` takes seconds;
-`traces-regex` decides the equality of grades already built faster, and small
-inclusions in a few microseconds rather than tens, its canonical automata being
-at hand. The last program of
-[`examples/regular/regular_traces.tpe`](examples/regular/regular_traces.tpe),
-left commented out, runs in about 0.04 s under `traces-regex-symbolic` and
-10 s under `traces-regex`.
+implementations on the example, the tests and grade operations at scale, with
+the results in [`bench/regular/README.md`](bench/regular/README.md).
 
 #### Printing and counterexamples
 
@@ -367,18 +359,10 @@ which run with `traces-regex-lower-symbolic`, `traces-regex-upper-symbolic`
 and `traces-regex-interval-symbolic` respectively, the default implementations,
 consistent with `traces-regex-symbolic`.
 
-The benchmark above also compares the two implementations of these monoids,
-which typecheck whole programs within a few percent of one another. Over
-`traces-regex`, they typecheck the example and the tests of
-`traces-regex-upper` about 1.1 times faster than over `traces-regex-symbolic`,
-and those of `traces-regex-lower` and `traces-regex-interval` 1.05 to 1.15
-times slower, the programs being checked about as fast on the whole. Over
-`traces-regex`, most inclusions over many declared operations are decided
-faster, by up to 7 times under `traces-regex-upper` and more under
-`traces-regex-lower`; over `traces-regex-symbolic`, inclusions against short
-delays, and under `traces-regex-lower` those that fail early, are decided 2 to
-100 times faster. The decisions are tabulated, so that a comparison made again
-costs a lookup.
+`dune exec --profile release bench/regular/bench_regular.exe` also benchmarks
+the two implementations of these monoids, on their examples, their tests and
+grade operations at scale, with the results in
+[`bench/regular/README.md`](bench/regular/README.md).
 
 ### Security levels and products
 
