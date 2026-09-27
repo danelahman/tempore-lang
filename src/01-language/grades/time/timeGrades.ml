@@ -7,6 +7,21 @@ let nat_of_lit expected = function
   | Int n -> n
   | lit -> invalid_lit lit "grades are %s, not %s" expected (describe_lit lit)
 
+(* Completeness of the witnesses. Products being sums and joins minima
+   (lower bounds) or maxima (upper bounds), an expression over the constants
+   [cs] and a rigid [j] is, at a finite [j], the minimum or maximum of affine
+   pieces [c + a·j], [a ∈ ℕ] and [c] a sum of some of the constants, so that
+   [c ≤ s] for [s] the sum of the finite ones; a piece with an infinite
+   constant is constantly [∞]. Two pieces of different slopes cross at
+   [j = (c' - c) / (a - a') ≤ s], so beyond [s] each side of an ordering is
+   one piece and their difference keeps its sign: the ordering fails at some
+   [j] iff it fails at some [j ≤ s+1] or, for upper bounds, at [j = ∞]. The
+   argument is for one rigid; for several no grid is complete, e.g.
+   [j₂ ≥ min(j₁, 2·j₂)] fails at [(2, 1)] but nowhere in [{0, 1}²]. *)
+
+(** [up_to cs] is [0, ..., s+1], [s] the sum of [cs]. *)
+let up_to cs = List.init (List.fold_left ( + ) 0 cs + 2) Fun.id
+
 module LowerBound = struct
   type t = int
 
@@ -30,6 +45,7 @@ module LowerBound = struct
   let of_bounds (lo, _hi) = lo
   let is_atomic _name _ = true
   let show = string_of_int
+  let witnesses _bounds cs = (up_to cs, Complete)
 end
 
 module UpperBound = struct
@@ -59,6 +75,10 @@ module UpperBound = struct
   let of_bounds (_lo, hi) = ExtendedNat.Fin hi
   let is_atomic _name _ = true
   let show = ExtendedNat.show
+
+  let witnesses _bounds cs =
+    let finite = List.filter_map ExtendedNat.to_int cs in
+    (List.map (fun n -> ExtendedNat.Fin n) (up_to finite) @ [ top ], Complete)
 end
 
 module Interval = struct
@@ -105,4 +125,15 @@ module Interval = struct
   let of_bounds (lo, hi) = (lo, ExtendedNat.Fin hi)
   let is_atomic _name _ = true
   let show (n, m) = "(" ^ string_of_int n ^ "," ^ ExtendedNat.show m ^ ")"
+
+  (* The endpoints are compared, multiplied and joined separately, so an
+     ordering fails iff it fails at the lower endpoints, at the lower-bound
+     witnesses paired with [∞], or at the upper ones, at [0] paired with the
+     upper-bound witnesses. *)
+  let witnesses bounds cs =
+    let lower, _ = LowerBound.witnesses bounds (List.map fst cs) in
+    let upper, _ = UpperBound.witnesses bounds (List.map snd cs) in
+    ( List.map (fun n -> (n, ExtendedNat.Inf)) lower
+      @ List.map (fun m -> (0, m)) upper,
+      Complete )
 end

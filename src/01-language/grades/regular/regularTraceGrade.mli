@@ -54,6 +54,12 @@
     unless the printing falls back there, which it also does when [e] has more
     than [b] derivatives.
 
+    {2 Witnesses}
+
+    The witnesses of a closed condition, in every implementation, are its
+    constants and their pairwise products ({!Grade.sampled}), which are not
+    complete.
+
     {2 Literals}
 
     A grade is written as a brace literal holding a regular expression: an

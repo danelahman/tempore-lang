@@ -116,7 +116,8 @@ module Make (C : Constraint.S) : sig
 
   (** {1 Failures} *)
 
-  (** Why a constraint has no solution. *)
+  (** Why a constraint has no solution, or, for a run, is not shown to have one.
+  *)
   type failure =
     | Shape_mismatch of reason Skeleton.failure
         (** two types of different shapes are related *)
@@ -135,6 +136,9 @@ module Make (C : Constraint.S) : sig
         witness : C.X.GS.E.t list;
             (** the values of its rigids at which the ordering fails *)
       }  (** a deferred condition fails at some value of its rigids *)
+    | Undecided_condition of deferred
+        (** a deferred condition of a run, closed, that is neither discharged
+            nor refuted; its first ordering is reported *)
     | Rigid_escape of Reason.rigid_origin
         (** the rigid variable of the clause occurs in the value of an unknown
             outside it *)

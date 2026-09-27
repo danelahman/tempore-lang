@@ -1,0 +1,15 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/continuation_discard_abort_reject_lower.tpe *)
+
+operation Op : unit ~> unit # 1
+
+(* Accepted: the case for Op discards k and runs f, so the handler carries the
+   obligation that the effect ε₀ of f matches 1 · ε for every effect ε of k. *)
+let abort f = handler | x -> x | Op () k -> f ()
+
+(* Correctly rejected by the typechecker: at the use, ε₀ = 5, and
+   5 >= 1 · ε fails for ε = 5. *)
+let g () = handle (perform Op (); delay 10; 3) with abort (fun () -> delay 5; 0)
+
+run g ()

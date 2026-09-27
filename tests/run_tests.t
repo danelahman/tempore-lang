@@ -12,6 +12,9 @@
   >     noneternal_lower.tpe) ../tempore $f;;
   >     noneternal*.tpe) ../tempore --grades time-upper-bound $f;;
   >     continuation_discard_reject_lower.tpe) ../tempore $f;;
+  >     continuation_discard_abort_reject_lower.tpe) ../tempore $f;;
+  >     continuation_discard_delay_reject_lower.tpe) ../tempore $f;;
+  >     continuation_obligation_lower.tpe) ../tempore $f;;
   >     continuation_nested_discard_reject_lower.tpe) ../tempore $f;;
   >     continuation_twice_lower.tpe) ../tempore $f;;
   >     continuation_*.tpe) ../tempore --grades time-upper-bound $f;;
@@ -158,6 +161,42 @@
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `2`
     Note: the effect inequality `3 <= 2` does not hold
+  ======================================================================
+  continuation_discard_abort_reject_lower.tpe
+  ======================================================================
+  File "continuation_discard_abort_reject_lower.tpe", line 13, characters 52-57:
+  13 | let g () = handle (perform Op (); delay 10; 3) with abort (fun () -> delay 5; 0)
+                                                           ^^^^^
+  Typing error: The effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold
+    File "continuation_discard_abort_reject_lower.tpe", line 9, characters 0-48:
+    9 | let abort f = handler | x -> x | Op () k -> f ()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `abort` is defined here
+    File "continuation_discard_abort_reject_lower.tpe", line 5, characters 0-31:
+    5 | operation Op : unit ~> unit # 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Op` is declared here
+    File "continuation_discard_abort_reject_lower.tpe", line 9, characters 39-40:
+    9 | let abort f = handler | x -> x | Op () k -> f ()
+                                               ^
+    `k` may have any grade `ε₀`
+    Note: the effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold: for `ε₀ = 5` it becomes `5 >= 6`
+  ======================================================================
+  continuation_discard_delay_reject_lower.tpe
+  ======================================================================
+  File "continuation_discard_delay_reject_lower.tpe", line 11, characters 27-48:
+  11 | let h = handler | x -> x | Op () k -> delay 5; 0
+                                  ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: For every grade `ε₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε₀`, but its grade `5` does not
+    File "continuation_discard_delay_reject_lower.tpe", line 5, characters 0-31:
+    5 | operation Op : unit ~> unit # 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Op` is declared here
+    File "continuation_discard_delay_reject_lower.tpe", line 11, characters 33-34:
+    11 | let h = handler | x -> x | Op () k -> delay 5; 0
+                                          ^
+    `k` may have any grade `ε₀`
+    Note: the effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold: for `ε₀ = 5` it becomes `5 >= 6`
   ======================================================================
   continuation_discard_reject_lower.tpe
   ======================================================================
@@ -311,6 +350,28 @@
                             ^^
     `k'` may have any grade `ε₀`
     Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for `ε₀ = ∞` it becomes `∞ <= 1`
+  ======================================================================
+  continuation_obligation_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            return 3
+          with handler
+               | return x ↦ return x
+               | Op ((), k) ↦
+                      (fun () ↦ delay 1 (return ())) ();
+                      unbox k as unbox_var in
+                      unbox_var ()
+        # 1
+    },
+    1
+  ]
+  
   ======================================================================
   continuation_twice_lower.tpe
   ======================================================================
@@ -2821,6 +2882,30 @@
   6 | operation Send : string ~> unit # {Send | Send; Send}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: compound operation `Send` may not name itself in its grade `{Send | Send; Send}`
+  ======================================================================
+  traces_reject_undecided_condition.tpe
+  ======================================================================
+  File "traces_reject_undecided_condition.tpe", line 15, characters 49-50:
+  15 | run handle (perform Op (); perform Tick ()) with h
+                                                        ^
+  Typing error: The condition `∀ε₀. ε₀ · {1} <= {1} · ε₀` of the case for `Op` cannot be established
+    File "traces_reject_undecided_condition.tpe", line 13, characters 0-78:
+    13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `h` is defined here
+    File "traces_reject_undecided_condition.tpe", line 11, characters 0-31:
+    11 | operation Op : unit ~> unit # 1
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Op` is declared here
+    File "traces_reject_undecided_condition.tpe", line 13, characters 33-34:
+    13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
+                                          ^
+    `k` may have any grade `ε₀`
+    File "traces_reject_undecided_condition.tpe", line 13, characters 27-78:
+    13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the case for `Op` begins here
+    Note: a run requires the effect inequality to hold for every grade the continuation `k` may have, and it is neither derived nor refuted
   ======================================================================
   traces_reject_unknown_event.tpe
   ======================================================================

@@ -61,9 +61,15 @@
     {2 Retry}
 
     A deferred condition's ordering is dropped when decided from the orderings
-    of the residual, the rigids being opaque; it refutes the condition when the
-    unit or the top for each rigid makes it a failing ordering between
-    variable-free sides. A condition left with no ordering is dropped. *)
+    of the residual, the rigids being opaque. An ordering whose unknowns are
+    rigids alone is otherwise evaluated at every assignment to the rigids it
+    mentions of the unit, the top, one time step and the witnesses the grades
+    supply for its constants ({!Grades.GradeSystem.S.witnesses}): it refutes the
+    condition at the first assignment where it fails, and is dropped when it
+    holds at all of them and mentions no rigid, or a single one whose witnesses
+    are complete. An ordering in several rigids is thus refuted, never
+    discharged, by the grid of their witnesses. A condition left with no
+    ordering is dropped. *)
 
 module Make (C : Constraint.S) : sig
   type residual = Residual.Make(C).t

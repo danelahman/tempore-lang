@@ -99,6 +99,10 @@ module type S = sig
     (** [subst sigma eps] replaces each variable of [eps] by its image under
         [sigma]. *)
 
+    val constants : t -> GS.E.t list
+    (** [constants eps] is the constants of [eps], each occurrence once, from
+        left to right. *)
+
     val value : t -> GS.E.t option
     (** [value eps] is the grade a variable-free [eps] evaluates to, and [None]
         when [eps] has a variable. *)
@@ -159,6 +163,10 @@ module type S = sig
     val subst : subst -> t -> t
     (** [subst sigma rho] replaces each variable of [rho], of either sort, by
         its image under [sigma]. *)
+
+    val constants : t -> GS.R.t list * GS.E.t list
+    (** [constants rho] is the constants of [rho] of either sort, those of the
+        effect sort under images, each occurrence once, from left to right. *)
 
     val value : t -> GS.R.t option
     (** [value rho] is the grade a variable-free [rho] evaluates to, an image

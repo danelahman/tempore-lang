@@ -22,7 +22,12 @@
     [{Read; 3; Send | Send; Send}]; parentheses group, and a concatenation of
     unions denotes the set of the concatenations of their members. An integer
     [n] abbreviates [{n}], and [⊤] (ASCII [top]) is the greatest grade. The
-    other regular-expression forms, [*], [&], [~] and [_], are rejected. *)
+    other regular-expression forms, [*], [&], [~] and [_], are rejected.
+
+    {2 Witnesses}
+
+    The witnesses of a closed condition are its constants and their pairwise
+    products ({!Grade.sampled}), which are not complete. *)
 
 module LowerBound : Grade.S
 (** Sets of timed traces read as lower bounds, ["traces-lower-bound"], in the

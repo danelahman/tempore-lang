@@ -340,6 +340,21 @@ schemes. Under `time-upper-bound`, the standard library's
 where `∣ε₁∣ ≾ 0` asks `g` to take no time, since the non-eternal `f` is used
 after it. A qualifier is checked at every use of the definition.
 
+Under `time-lower-bound`, with `operation Op : unit ~> unit # 1`, the handler
+
+    let via f = handler | x -> x | Op () k -> f (); continue k with ()
+
+has
+
+    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε₂ (Op). ε₂ · ε₀ ≾ 1 · ε₂) ⇒ (unit → α # ε₀) → β # ε₁ ⇒ β # 0 # 0
+
+where `R`, `∀ε₂ (Op). ε₂ · ε₀ ≾ 1 · ε₂`, is the condition of the case for `Op`
+that must hold for every effect `ε₂` of `k`: the case, `f` followed by `k`,
+takes at least the time of `Op` followed by `k`. A `run` must establish every such condition: one that the
+typechecker can neither derive nor refute rejects it. Under the time grades,
+the security levels and their products, a condition in the effect of a single
+continuation is always decided; under the trace grades it may not be.
+
 ### Sub-effecting
 
 A computation may be used where one of a super-grade is expected, and an
@@ -366,7 +381,8 @@ Limits:
 - the continuation effect of an operation case is rigid (see
   [Handlers and continuations](#handlers-and-continuations));
 - satisfiability of a qualifier is decided provisionally: a definition is
-  rejected only when its qualifier is refuted, and each use checks it.
+  rejected only when its qualifier is refuted, and each use checks it; a `run`
+  must establish its conditions `R`.
 
 ## Editor support
 <!-- web-skip -->

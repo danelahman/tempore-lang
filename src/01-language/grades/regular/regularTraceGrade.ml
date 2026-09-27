@@ -174,3 +174,5 @@ let show rho =
   LetterRegex.literal
     (Option.value (canonical rho)
        ~default:(LetterRegex.of_symbolic rho.expression))
+
+let witnesses _bounds = Grade.sampled mul

@@ -46,15 +46,21 @@ module Make (C : Constraint.S) = struct
     let a = Ast.TyParamModule.fresh "assumed" in
     { (C.monomorphic (Ast.TyParam a)) with C.ty_params = [ a ] }
 
-  (* The constraint of a command solved and its qualifier searched for a
-     closed instance: its solution, or why it has none. *)
-  let solved ~loc env constr =
-    let context = context ~loc env in
+  let check (cmd : command) =
+    match cmd.it with
+    | Ast.TopDo _ -> S.established
+    | Ast.TyDef _ | Ast.OpSig _ | Ast.OpDefault _ | Ast.TopLet _ ->
+        S.satisfiable
+
+  (* The constraint of a command [cmd] solved and its qualifier checked: its
+     solution, or why it has none. *)
+  let solved (cmd : command) env constr =
+    let context = context ~loc:cmd.at env in
     match S.solve context constr with
     | S.Solved solution ->
         Result.map_error
           (fun failure -> Refuted failure)
-          (Result.map (fun () -> solution) (S.satisfiable context solution))
+          (Result.map (fun () -> solution) (check cmd context solution))
     | S.Refuted failure -> Error (Refuted failure)
     | S.Stuck stuck -> Error (Stuck stuck)
 
@@ -99,7 +105,7 @@ module Make (C : Constraint.S) = struct
     | Ast.OpDefault (op, abs) -> (
         match
           attempt (fun () ->
-              solved ~loc env (Gen.generate_default env ~loc op abs))
+              solved cmd env (Gen.generate_default env ~loc op abs))
         with
         | Ok _ ->
             ( both (fun env -> Gen.add_operation_default env op) envs,
@@ -122,7 +128,7 @@ module Make (C : Constraint.S) = struct
               Result.map
                 (fun solution ->
                   (S.generalise ty solution, S.unsimplified ty solution))
-                (solved ~loc env constr))
+                (solved cmd env constr))
         with
         | Ok (scheme, unsimplified) ->
             (add scheme unsimplified, verdict (Defined (x, scheme)), Continue)
@@ -133,7 +139,7 @@ module Make (C : Constraint.S) = struct
         match
           attempt (fun () ->
               let _, constr = Gen.generate_run env ~loc c in
-              solved ~loc env constr)
+              solved cmd env constr)
         with
         | Ok _ -> (envs, verdict Accepted, Continue)
         | Error e -> (envs, verdict (Rejected e), Continue))

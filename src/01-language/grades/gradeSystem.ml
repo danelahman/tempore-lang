@@ -11,6 +11,13 @@ module type S = sig
   val map : E.t -> R.t
   (** The grade morphism [∣_∣]: monotone, and preserving the unit, the product,
       the top, joins and [of_nat]. *)
+
+  val witnesses :
+    Grade.bounds -> R.t list -> E.t list -> E.t list * Grade.completeness
+  (** [witnesses bounds rcs ecs] is {!Grade.S.witnesses} for a condition over an
+      effect rigid [j] whose orderings are of either sort, [j] occurring under
+      images on the resource side, with resource constants [rcs] and effect
+      constants [ecs]. *)
 end
 
 (** The grade system in which effects and resources are graded alike by [G],
@@ -20,4 +27,5 @@ module Identity (G : Grade.S) : S with module R = G and module E = G = struct
   module E = G
 
   let map c = c
+  let witnesses bounds rcs ecs = G.witnesses bounds (rcs @ ecs)
 end

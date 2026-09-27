@@ -6,6 +6,7 @@ module type LATTICE = sig
   val top : t
   val join : t -> t -> t
   val leq : t -> t -> bool
+  val elements : t list
   val of_lit : Grade.lit -> t
   val show : t -> string
 end
@@ -38,6 +39,7 @@ module OfLattice (L : LATTICE) = struct
   let of_bounds _ = L.bottom
   let is_atomic _name _ = true
   let show = L.show
+  let witnesses _bounds _ = (L.elements, Grade.Complete)
 end
 
 (** [intersect b b'] is the intersection of the runtime bounds [b] and [b'],
@@ -104,4 +106,16 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
   let of_bounds b = (G1.of_bounds b, G2.of_bounds b)
   let is_atomic name (a, b) = G1.is_atomic name a && G2.is_atomic name b
   let show (a, b) = "(" ^ G1.show a ^ "," ^ G2.show b ^ ")"
+
+  (* An ordering fails iff it fails in one component, at a witness of that
+     component when its list is complete, paired with any grade. *)
+  let witnesses bounds cs =
+    let ws1, complete1 = G1.witnesses bounds (List.map fst cs) in
+    let ws2, complete2 = G2.witnesses bounds (List.map snd cs) in
+    let completeness =
+      match (complete1, complete2) with
+      | Grade.Complete, Grade.Complete -> Grade.Complete
+      | Grade.Partial, _ | _, Grade.Partial -> Grade.Partial
+    in
+    (List.concat_map (fun a -> List.map (fun b -> (a, b)) ws2) ws1, completeness)
 end

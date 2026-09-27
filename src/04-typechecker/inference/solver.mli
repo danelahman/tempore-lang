@@ -96,6 +96,12 @@ module Make (C : Constraint.S) : sig
       closed instance the search refutes is thus reported at the uses of the
       definition, not at the definition itself. *)
 
+  val established : context -> solution -> (unit, failure) result
+  (** [established context solution] is {!satisfiable}, and moreover
+      [Error (Undecided_condition d)] when the search leaves a deferred
+      condition [d] neither discharged nor refuted. It is the check of a run,
+      whose program is closed: there no later use may refute an obligation. *)
+
   val qualifier : solution -> C.t
   (** [qualifier solution] is [Q ∧ R] as a constraint, each obligation under the
       rigid scopes of its rigids. *)

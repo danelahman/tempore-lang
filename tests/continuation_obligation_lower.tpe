@@ -1,0 +1,13 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/continuation_obligation_lower.tpe *)
+
+operation Op : unit ~> unit # 1
+
+(* The handler carries the obligation ∀ε. ε · ε₀ >= 1 · ε, for the effect ε₀
+   of f and every effect ε of k, besides ∣ε₀∣ >= 1. *)
+let via f = handler | x -> x | Op () k -> f (); continue k with ()
+
+(* Correctly accepted by the typechecker: at the use ε₀ = 1, and the
+   obligation holds for every ε; the run returns 3 at time 1. *)
+run handle (perform Op (); 3) with via (fun () -> delay 1)

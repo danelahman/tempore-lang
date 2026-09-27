@@ -126,6 +126,7 @@ module Make (C : Constraint.S) = struct
     | Refuted_eps of (eps, reason list) GradeNormal.ordering
     | Never_eternal of { ty : ty; reason : reason }
     | Refuted_condition of { condition : deferred; witness : X.GS.E.t list }
+    | Undecided_condition of deferred
     | Rigid_escape of Reason.rigid_origin
 
   (* The mismatch of the two sides of [s], whose formers differ. *)
@@ -501,6 +502,9 @@ module Make (C : Constraint.S) = struct
           (Reason.print reason)
     | Refuted_condition { condition; _ } ->
         Format.fprintf ppf "refuted deferred condition %t"
+          (C.print (deferred_to_constraint condition))
+    | Undecided_condition condition ->
+        Format.fprintf ppf "undecided deferred condition %t"
           (C.print (deferred_to_constraint condition))
     | Rigid_escape _ -> Format.pp_print_string ppf "rigid variable escapes"
 end

@@ -481,7 +481,8 @@ module Make (C : Constraint.S) = struct
 
   let solve context c = fst (solve_traced context c)
 
-  let satisfiable context solution =
+  (* The residual of the search for a closed instance of the qualifier. *)
+  let search context solution =
     let open Result.Syntax in
     let hyps = solution.hyps in
     let _, residual =
@@ -498,7 +499,15 @@ module Make (C : Constraint.S) = struct
     let* residual = RS.retry context residual in
     let* hyps = R.to_hyps context residual in
     let* _ = R.check_closed context hyps in
-    Ok ()
+    Ok residual
+
+  let satisfiable context solution = Result.map ignore (search context solution)
+
+  let established context solution =
+    Result.bind (search context solution) (fun (residual : R.t) ->
+        match residual.deferred with
+        | [] -> Ok ()
+        | d :: _ -> Error (R.Undecided_condition d))
 
   (* ------------------------------------------------------------------ *)
   (* Generalisation                                                      *)

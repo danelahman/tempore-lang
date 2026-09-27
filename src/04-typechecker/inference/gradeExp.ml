@@ -92,6 +92,11 @@ module type S = sig
     val free_vars : t -> Eps_var.Set.t
     val mem_var : Eps_var.t -> t -> bool
     val subst : subst -> t -> t
+
+    val constants : t -> GS.E.t list
+    (** [constants eps] is the constants of [eps], each occurrence once, from
+        left to right. *)
+
     val value : t -> GS.E.t option
     val equal : Grades.Grade.bounds -> t -> t -> bool
     val print : t -> Format.formatter -> unit
@@ -114,6 +119,11 @@ module type S = sig
     val mem_rho_var : Rho_var.t -> t -> bool
     val mem_eps_var : Eps_var.t -> t -> bool
     val subst : subst -> t -> t
+
+    val constants : t -> GS.R.t list * GS.E.t list
+    (** [constants rho] is the constants of [rho] of either sort, those of the
+        effect sort under images, each occurrence once, from left to right. *)
+
     val value : t -> GS.R.t option
     val equal : Grades.Grade.bounds -> t -> t -> bool
     val print : t -> Format.formatter -> unit
@@ -187,6 +197,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
       | Eps_const _ as eps -> eps
       | Eps_mul (eps, eps') -> Eps_mul (subst sigma eps, subst sigma eps')
       | Eps_join (eps, eps') -> Eps_join (subst sigma eps, subst sigma eps')
+
+    let rec constants = function
+      | Eps_var _ -> []
+      | Eps_const c -> [ c ]
+      | Eps_mul (eps, eps') | Eps_join (eps, eps') ->
+          constants eps @ constants eps'
 
     let rec value = function
       | Eps_var _ -> None
@@ -271,6 +287,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
       | Rho_mul (rho, rho') -> Rho_mul (subst sigma rho, subst sigma rho')
       | Rho_join (rho, rho') -> Rho_join (subst sigma rho, subst sigma rho')
       | Rho_map eps -> Rho_map (Eps.subst sigma eps)
+
+    let rec constants = function
+      | Rho_var _ -> ([], [])
+      | Rho_const c -> ([ c ], [])
+      | Rho_map eps -> ([], Eps.constants eps)
+      | Rho_mul (rho, rho') | Rho_join (rho, rho') ->
+          let rcs, ecs = constants rho and rcs', ecs' = constants rho' in
+          (rcs @ rcs', ecs @ ecs')
 
     let rec value = function
       | Rho_var _ -> None

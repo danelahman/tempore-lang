@@ -845,51 +845,124 @@ module Make (C : Constraint.S) = struct
   (* Retry                                                               *)
   (* ------------------------------------------------------------------ *)
 
-  (* The grades tried for a rigid: the unit, the top and one time step,
-     without repetition. *)
-  let candidates context =
-    List.fold_left
-      (fun cs c ->
-        if List.exists (X.GS.E.equal context.Residual.bounds c) cs then cs
-        else cs @ [ c ])
-      []
-      [ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
+  (* What the retry reads of the expressions of one sort. *)
+  type 'e sort = {
+    decide : 'e -> 'e -> bool;
+    closed_leq : 'e -> 'e -> bool option;
+    subst : X.subst -> 'e -> 'e;
+    rho_vars : 'e -> Rho_set.t;
+    eps_vars : 'e -> Eps_set.t;
+    constants : 'e -> X.GS.R.t list * X.GS.E.t list;
+  }
 
-  (* Every assignment of a candidate to each of [rigids]. *)
-  let witnesses context rigids =
-    let candidates = candidates context in
+  let rho_sort bounds hyps =
+    {
+      decide = (fun x y -> Option.is_some (N.Rho.decide_leq bounds hyps x y));
+      closed_leq = N.Rho.closed_leq bounds;
+      subst = X.Rho.subst;
+      rho_vars = X.Rho.free_rho_vars;
+      eps_vars = X.Rho.free_eps_vars;
+      constants = X.Rho.constants;
+    }
+
+  let eps_sort bounds hyps =
+    {
+      decide = (fun x y -> Option.is_some (N.Eps.decide_leq bounds hyps x y));
+      closed_leq = N.Eps.closed_leq bounds;
+      subst = X.Eps.subst;
+      rho_vars = (fun _ -> Rho_set.empty);
+      eps_vars = X.Eps.free_vars;
+      constants = (fun eps -> ([], X.Eps.constants eps));
+    }
+
+  (* The grades tried for a rigid of an ordering with the constants
+     [(rcs, ecs)]: the unit, the top and one time step, without repetition,
+     then the witnesses the grades supply, with their completeness. *)
+  let candidates context (rcs, ecs) =
+    let bounds = context.Residual.bounds in
+    let base =
+      List.fold_left
+        (fun cs c ->
+          if List.exists (X.GS.E.equal bounds c) cs then cs else cs @ [ c ])
+        []
+        [ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
+    in
+    let supplied, completeness = X.GS.witnesses bounds rcs ecs in
+    (base @ supplied, completeness)
+
+  (* Every assignment of a candidate to each of [rigids], lazily. *)
+  let assignments candidates rigids =
     List.fold_right
       (fun rigid tails ->
-        List.concat_map
-          (fun c -> List.map (fun tail -> (rigid, c) :: tail) tails)
-          candidates)
-      rigids [ [] ]
+        Seq.flat_map
+          (fun c -> Seq.map (fun tail -> (rigid, c) :: tail) tails)
+          (List.to_seq candidates))
+      rigids (Seq.return [])
 
-  let witness_subst witness : X.subst =
+  let witness_subst assignment : X.subst =
     {
       empty_grade_subst with
       eps_subst =
         X.Eps_var.Map.of_seq
           (List.to_seq
-             (List.map (fun (rigid, c) -> (rigid, X.Eps.const c)) witness));
+             (List.map (fun (rigid, c) -> (rigid, X.Eps.const c)) assignment));
     }
+
+  (* An ordering evaluated at a sequence of assignments: the first at which
+     it fails, else whether it holds at every one. *)
+  type search = Fails_at of (X.Eps_var.t * X.GS.E.t) list | Holds | Open
+
+  let rec search holds_at found assignments =
+    match assignments () with
+    | Seq.Nil -> found
+    | Seq.Cons (a, rest) -> (
+        match holds_at a with
+        | Some false -> Fails_at a
+        | Some true -> search holds_at found rest
+        | None -> search holds_at Open rest)
 
   (* The verdict on one ordering of a condition. *)
   type verdict = Settled | Refuted_at of X.GS.E.t list | Undecided
 
-  let verdict ~decide ~closed_leq ~subst witnesses (o : _ GradeNormal.ordering)
-      =
-    if decide o.lhs o.rhs then Settled
+  (* An ordering decided from the hypotheses is settled. One whose unknowns
+     are rigids of [rigids] alone is evaluated at every assignment of
+     candidates to the rigids it mentions: it is refuted at the first that
+     fails, the other rigids at the unit, and settled when it holds at all of
+     them and mentions no rigid, or one whose candidates are complete. *)
+  let verdict context sort rigids (o : _ GradeNormal.ordering) =
+    let eps_vars = Eps_set.union (sort.eps_vars o.lhs) (sort.eps_vars o.rhs) in
+    let rho_vars = Rho_set.union (sort.rho_vars o.lhs) (sort.rho_vars o.rhs) in
+    if sort.decide o.lhs o.rhs then Settled
+    else if
+      not
+        (Rho_set.is_empty rho_vars
+        && Eps_set.subset eps_vars (Eps_set.of_list rigids))
+    then Undecided
     else
+      let mentioned = List.filter (fun k -> Eps_set.mem k eps_vars) rigids in
+      let rcs, ecs = sort.constants o.lhs
+      and rcs', ecs' = sort.constants o.rhs in
+      let candidates, completeness =
+        candidates context (rcs @ rcs', ecs @ ecs')
+      in
+      let holds_at a =
+        let sigma = witness_subst a in
+        sort.closed_leq (sort.subst sigma o.lhs) (sort.subst sigma o.rhs)
+      in
+      let value a k =
+        Option.value ~default:X.GS.E.one
+          (List.find_map
+             (fun (k', c) -> if X.Eps_var.equal k k' then Some c else None)
+             a)
+      in
       match
-        List.find_opt
-          (fun witness ->
-            let sigma = witness_subst witness in
-            closed_leq (subst sigma o.lhs) (subst sigma o.rhs) = Some false)
-          witnesses
+        ( search holds_at Holds (assignments candidates mentioned),
+          mentioned,
+          completeness )
       with
-      | Some witness -> Refuted_at (List.map snd witness)
-      | None -> Undecided
+      | Fails_at a, _, _ -> Refuted_at (List.map (value a) rigids)
+      | Holds, [], _ | Holds, [ _ ], Grades.Grade.Complete -> Settled
+      | Holds, _, _ | Open, _, _ -> Undecided
 
   (* The orderings left undecided, or the first refuted with its witness. *)
   let sift judge orderings =
@@ -905,7 +978,7 @@ module Make (C : Constraint.S) = struct
   let retry_condition context (hyps : C.reason N.hyps) (d : R.deferred) =
     let open Result.Syntax in
     let bounds = context.Residual.bounds in
-    let witnesses = witnesses context (List.map fst d.rigids) in
+    let rigids = List.map fst d.rigids in
     let refuted condition witness =
       R.Refuted_condition { condition; witness }
     in
@@ -913,23 +986,13 @@ module Make (C : Constraint.S) = struct
       Result.map_error
         (fun (o, witness) ->
           refuted { d with rho_conditions = [ o ]; eps_conditions = [] } witness)
-        (sift
-           (verdict
-              ~decide:(fun x y ->
-                Option.is_some (N.Rho.decide_leq bounds hyps x y))
-              ~closed_leq:(N.Rho.closed_leq bounds) ~subst:X.Rho.subst witnesses)
-           d.rho_conditions)
+        (sift (verdict context (rho_sort bounds hyps) rigids) d.rho_conditions)
     in
     let* eps_conditions =
       Result.map_error
         (fun (o, witness) ->
           refuted { d with rho_conditions = []; eps_conditions = [ o ] } witness)
-        (sift
-           (verdict
-              ~decide:(fun x y ->
-                Option.is_some (N.Eps.decide_leq bounds hyps x y))
-              ~closed_leq:(N.Eps.closed_leq bounds) ~subst:X.Eps.subst witnesses)
-           d.eps_conditions)
+        (sift (verdict context (eps_sort bounds hyps) rigids) d.eps_conditions)
     in
     match (rho_conditions, eps_conditions) with
     | [], [] -> Ok []

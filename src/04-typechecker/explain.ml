@@ -1631,6 +1631,56 @@ module Make (C : Inference.Constraint.S) = struct
          (continuation_phrase origin)
          (op_name origin.clause.op))
 
+  (* A condition of a run that is neither discharged nor refuted, reported
+     at its first ordering. *)
+  let undecided_condition source (d : R.deferred) =
+    let p = printer source in
+    let origin = d.origin in
+    let report (type e) (sort : e sort)
+        (o : (e, C.reason) Inference.GradeNormal.ordering) =
+      let mentioned =
+        X.Eps_var.Set.union (sort.eps_vars o.lhs) (sort.eps_vars o.rhs)
+      in
+      let rs =
+        List.filter_map
+          (fun (var, origin) ->
+            if X.Eps_var.Set.mem var mentioned then
+              Some { var; origin; value = GS.E.top }
+            else None)
+          d.rigids
+      in
+      diagnostic ~primary:o.info.at
+        ~labels:
+          (dedup
+             (labels_of_reason p o.info @ rigid_labels p rs
+             @ [
+                 label origin.clause.case_at
+                   (Printf.sprintf "the case for %s begins %s"
+                      (op_name origin.clause.op) here);
+               ]))
+        ~notes:
+          [
+            Printf.sprintf
+              "a run requires the %s inequality to hold for every grade %s may \
+               have, and it is neither derived nor refuted"
+              sort.noun
+              (continuation_phrase origin);
+          ]
+        (Printf.sprintf
+           "The condition %s of the case for %s cannot be established"
+           (quantified p rs (ineq_text p sort (o.lhs, o.rhs)))
+           (op_name origin.clause.op))
+    in
+    match (d.rho_conditions, d.eps_conditions) with
+    | o :: _, _ -> report rho_sort o
+    | [], o :: _ -> report eps_sort o
+    | [], [] ->
+        diagnostic ~primary:origin.clause.case_at ~labels:[] ~notes:[]
+          (Printf.sprintf
+             "The case for %s cannot be typed for every grade of %s"
+             (op_name origin.clause.op)
+             (continuation_phrase origin))
+
   let refuted source = function
     | R.Shape_mismatch f | R.Occurs_check f -> mismatch source f
     | R.Refuted_rho o -> refuted_orderings source rho_sort o
@@ -1638,6 +1688,7 @@ module Make (C : Inference.Constraint.S) = struct
     | R.Never_eternal { ty; reason } -> never_eternal source ty reason
     | R.Refuted_condition { condition; witness } ->
         refuted_condition source condition witness
+    | R.Undecided_condition condition -> undecided_condition source condition
     | R.Rigid_escape origin -> rigid_escape source origin
 
   (* ------------------------------------------------------------------ *)
@@ -1712,7 +1763,8 @@ module Make (C : Inference.Constraint.S) = struct
     | R.Refuted_rho o -> Some (principal o.info)
     | R.Refuted_eps o -> Some (principal o.info)
     | R.Never_eternal { reason; _ } -> Some reason
-    | R.Refuted_condition { condition; _ } -> (
+    | R.Refuted_condition { condition; _ } | R.Undecided_condition condition
+      -> (
         match (condition.rho_conditions, condition.eps_conditions) with
         | o :: _, _ -> Some o.info
         | [], o :: _ -> Some o.info
@@ -1721,9 +1773,12 @@ module Make (C : Inference.Constraint.S) = struct
 
   let refutes_effect = function
     | R.Refuted_eps _ -> true
-    | R.Refuted_condition { condition = { rho_conditions = []; _ }; _ } -> true
-    | R.Refuted_condition _ | R.Shape_mismatch _ | R.Occurs_check _
-    | R.Refuted_rho _ | R.Never_eternal _ | R.Rigid_escape _ ->
+    | R.Refuted_condition { condition = { rho_conditions = []; _ }; _ }
+    | R.Undecided_condition { rho_conditions = []; _ } ->
+        true
+    | R.Refuted_condition _ | R.Undecided_condition _ | R.Shape_mismatch _
+    | R.Occurs_check _ | R.Refuted_rho _ | R.Never_eternal _ | R.Rigid_escape _
+      ->
         false
 
   let reason_of_atom = function

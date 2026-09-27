@@ -1,6 +1,6 @@
 (** Generic constructions of grades. *)
 
-(** Decidable bounded join-semilattices. *)
+(** Decidable finite join-semilattices with a least and a greatest element. *)
 module type LATTICE = sig
   type t
   (** The elements. *)
@@ -20,6 +20,9 @@ module type LATTICE = sig
   val leq : t -> t -> bool
   (** The partial order. *)
 
+  val elements : t list
+  (** Every element. *)
+
   val of_lit : Grade.lit -> t
   (** [of_lit lit] is the element the literal [lit] denotes; [⊤] need not be
       handled.
@@ -34,7 +37,8 @@ end
     its bottom, [top] its top and [leq] its order. A tick touches no level of
     the lattice, so [of_nat] is constantly the bottom, and so is [of_bounds].
     The unit is least and [mul] commutes. No operation needs runtime bounds,
-    every grade is atomic, and no counterexample is offered. *)
+    every grade is atomic, and no counterexample is offered. The witnesses are
+    all the elements, and complete. *)
 module OfLattice (L : LATTICE) : Grade.S with type t = L.t
 
 (** The product of the grades [G1] and [G2]: pairs [(g1, g2)], written as such
@@ -56,6 +60,9 @@ module OfLattice (L : LATTICE) : Grade.S with type t = L.t
     - [inhabited] holds iff it holds for both components;
     - [events] are the events of either component;
     - [is_atomic name] holds iff it holds for both components;
+    - [witnesses] pairs each witness of the first component with each of the
+      second, and is complete iff both are: an ordering fails iff it fails in
+      one component;
     - [of_lit] reads [⊤] as the top and a pair [(l1, l2)] componentwise, a
       rejection naming the component;
     - [show] prints [(g1,g2)]. *)

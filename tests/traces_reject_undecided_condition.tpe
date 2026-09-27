@@ -1,0 +1,15 @@
+(* Correctly rejected by the typechecker, under the 'traces-upper-bound'
+   grading monoid: the case for Op resumes k and then waits, so its grade must
+   match {1} · ε for every effect ε of k, that is ε · {1} <= {1} · ε. This
+   fails for ε = {Tick}, a grade the typechecker does not try: those it tries
+   for timed traces are not complete, so it neither derives nor refutes the
+   ordering, and a run requires it established. Were the run accepted, the
+   handled computation would have the grade {0}, yet it performs Tick and then
+   waits. *)
+
+operation Tick : unit ~> unit # {Tick} within (1, 1)
+operation Op : unit ~> unit # 1
+
+let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
+
+run handle (perform Op (); perform Tick ()) with h

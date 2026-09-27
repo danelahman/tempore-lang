@@ -127,6 +127,7 @@ module LowerBound = struct
   let of_bounds (lo, _hi) = TimedTrace.of_nat lo
   let is_atomic name p = p = atomic_traces name
   let show = TimedTrace.show
+  let witnesses _bounds = sampled mul
 end
 
 module UpperBound = struct
@@ -152,6 +153,7 @@ module UpperBound = struct
 
   let of_bounds (_lo, hi) = Within (TimedTrace.of_nat hi)
   let is_atomic name p = p = Within (atomic_traces name)
+  let witnesses _bounds = sampled mul
 end
 
 module Interval = struct
@@ -214,4 +216,5 @@ module Interval = struct
     lo = atomic_traces name && hi = UpperTraces.Within (atomic_traces name)
 
   let show (lo, hi) = "(" ^ TimedTrace.show lo ^ "," ^ UpperTraces.show hi ^ ")"
+  let witnesses _bounds = sampled mul
 end

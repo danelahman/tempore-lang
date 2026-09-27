@@ -4,15 +4,17 @@
     A type definition or operation signature extends the environment. A default
     implementation, a top-level definition and a run have their constraint
     generated and solved, and the qualifier of the solution searched for a
-    closed instance ({!Solver.Make.satisfiable}); the command is rejected when
-    either refutes. A top-level definition is generalised to its reported scheme
-    [∀Θ. Q ∧ R ⇒ A] ({!Solver.Make.generalise}), no unknown being free in the
-    environment of top-level definitions; local definitions are not generalised.
+    closed instance ({!check}); the command is rejected when either refutes. A
+    top-level definition is generalised to its reported scheme [∀Θ. Q ∧ R ⇒ A]
+    ({!Solver.Make.generalise}), no unknown being free in the environment of
+    top-level definitions; local definitions are not generalised.
 
     Satisfiability of a definition's qualifier is decided provisionally: the
     definition is accepted unless the search for a closed instance refutes its
     qualifier, and each use of the definition checks the qualifier instantiated
-    at the use.
+    at the use. A run is a closed program, used nowhere, so its qualifier must
+    be established: an obligation the search neither discharges nor refutes
+    rejects it.
 
     A rejected definition is assumed to have the scheme [∀α. α], so that its
     uses are checked; a rejected default leaves the operation without one; a
@@ -50,6 +52,15 @@ module Make (C : Constraint.S) : sig
   (** [context ~loc env] is the cost model ({!Generate.Make.cost_model}) and the
       type definitions of [env]; the cost of an undeclared event is a typing
       error at [loc]. *)
+
+  val check :
+    command ->
+    Solver.Make(C).context ->
+    Solver.Make(C).solution ->
+    (unit, Solver.Make(C).failure) result
+  (** [check cmd] is how the qualifier of the solution of [cmd] is checked:
+      {!Solver.Make.established} for a run and {!Solver.Make.satisfiable}
+      otherwise. *)
 
   (** Whether the commands after one are processed. *)
   type next = Continue | Stop

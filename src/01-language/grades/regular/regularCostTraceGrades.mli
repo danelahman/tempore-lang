@@ -61,7 +61,9 @@
     latter is unbounded; an operation's time shadow [of_bounds (lo, hi)] is
     [{lo}] under the lower order and [{hi}] under the upper. A counterexample to
     [ρ ≾ ρ'] is the grade of a shortest run of [ρ] outside the closure of [ρ'],
-    in which a name stands for itself. *)
+    in which a name stands for itself. The witnesses of a closed condition are
+    its constants and their pairwise products ({!Grade.sampled}), which are not
+    complete. *)
 
 (** A regular trace grade with the languages of its grades over given names. *)
 module type LANGUAGE = sig

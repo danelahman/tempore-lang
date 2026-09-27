@@ -1,6 +1,6 @@
 (* Unit tests of the security-level grade, the product construction and its
-   counterexamples, and the interpretation of literals by the grades of
-   [GradeRegistry.grade_modules]. *)
+   counterexamples, the witnesses of closed conditions, and the interpretation
+   of literals by the grades of [GradeRegistry.grade_modules]. *)
 
 module Grade = Grades.Grade
 module TimeGrades = Grades.TimeGrades
@@ -323,9 +323,194 @@ let registry =
          GradeRegistry.groups);
   ]
 
+(* ------------------------------------------------------------------ *)
+(* Witnesses                                                           *)
+(* ------------------------------------------------------------------ *)
+
+(* Conditions [lhs ≾ rhs] in one rigid [j] over a grade [G], evaluated at
+   the witnesses of their constants and, by brute force, at the grades of
+   [D.values]; [D.constant] draws a random constant. *)
+module Conditions
+    (G : Grade.S)
+    (D : sig
+      val constant : Random.State.t -> G.t
+      val values : G.t list
+    end) =
+struct
+  type exp = Rigid | Const of G.t | Mul of exp * exp | Join of exp * exp
+
+  let rec eval j = function
+    | Rigid -> j
+    | Const c -> c
+    | Mul (e, e') -> G.mul (eval j e) (eval j e')
+    | Join (e, e') -> G.join (eval j e) (eval j e')
+
+  let rec constants = function
+    | Rigid -> []
+    | Const c -> [ c ]
+    | Mul (e, e') | Join (e, e') -> constants e @ constants e'
+
+  let rec show = function
+    | Rigid -> "j"
+    | Const c -> G.show c
+    | Mul (e, e') -> "(" ^ show e ^ " · " ^ show e' ^ ")"
+    | Join (e, e') -> "(" ^ show e ^ " ⊔ " ^ show e' ^ ")"
+
+  let rec random st depth =
+    if depth = 0 || Random.State.int st 3 = 0 then
+      if Random.State.bool st then Rigid else Const (D.constant st)
+    else
+      let e = random st (depth - 1) and e' = random st (depth - 1) in
+      if Random.State.bool st then Mul (e, e') else Join (e, e')
+
+  let holds (lhs, rhs) j = G.leq bounds (eval j lhs) (eval j rhs)
+
+  let witnesses (lhs, rhs) =
+    fst (G.witnesses bounds (constants lhs @ constants rhs))
+
+  (* Whether [cond] holds at every witness. *)
+  let at_witnesses cond = List.for_all (holds cond) (witnesses cond)
+
+  (* A condition of [count] random ones of depth at most 3 that holds at
+     every witness and fails at a grade of [D.values]. *)
+  let incomplete ~count =
+    let st = Random.State.make [| 42 |] in
+    List.find_opt
+      (fun cond ->
+        at_witnesses cond && not (List.for_all (holds cond) D.values))
+      (List.init count (fun _ -> (random st 3, random st 3)))
+
+  let complete ~count =
+    let name = G.name ^ ": witnesses complete on random conditions" in
+    match incomplete ~count with
+    | None -> check name true ""
+    | Some (lhs, rhs) -> check name false (show lhs ^ " ≾ " ^ show rhs)
+end
+
+let nat n = Grade.Int n
+let up_to n = List.init (n + 1) Fun.id
+
+module Lower_conditions =
+  Conditions
+    (TimeGrades.LowerBound)
+    (struct
+      let constant st =
+        TimeGrades.LowerBound.of_lit (nat (Random.State.int st 5))
+
+      let values = List.map TimeGrades.LowerBound.of_nat (up_to 60)
+    end)
+
+module Upper_conditions =
+  Conditions
+    (TimeGrades.UpperBound)
+    (struct
+      let constant st =
+        TimeGrades.UpperBound.of_lit
+          (if Random.State.int st 8 = 0 then Grade.Inf
+           else nat (Random.State.int st 5))
+
+      let values =
+        TimeGrades.UpperBound.top
+        :: List.map TimeGrades.UpperBound.of_nat (up_to 60)
+    end)
+
+(* The intervals [(n, m)] with [n ≤ m ≤ bound] or [m = ∞]. *)
+let intervals bound =
+  List.concat_map
+    (fun n ->
+      Grade.Tuple [ nat n; Grade.Inf ]
+      :: List.map
+           (fun m -> Grade.Tuple [ nat n; nat m ])
+           (List.init (bound - n + 1) (( + ) n)))
+    (up_to bound)
+
+module Interval_conditions =
+  Conditions
+    (TimeGrades.Interval)
+    (struct
+      let constant st =
+        let n = Random.State.int st 4 in
+        TimeGrades.Interval.of_lit
+          (Grade.Tuple
+             [
+               nat n;
+               (if Random.State.int st 6 = 0 then Grade.Inf
+                else nat (n + Random.State.int st 3));
+             ])
+
+      let values = List.map TimeGrades.Interval.of_lit (intervals 40)
+    end)
+
+module Levels_conditions =
+  Conditions
+    (TimeLevels)
+    (struct
+      let level st = if Random.State.bool st then "Low" else "High"
+
+      let constant st =
+        TimeLevels.of_lit (lit_of_pair (Random.State.int st 5) (level st))
+
+      let values =
+        List.concat_map
+          (fun n ->
+            [
+              TimeLevels.of_lit (lit_of_pair n "Low");
+              TimeLevels.of_lit (lit_of_pair n "High");
+            ])
+          (up_to 60)
+    end)
+
+let witnesses =
+  let module L = TimeGrades.LowerBound in
+  let lower n = L.of_lit (nat n) in
+  let five_ge_one_j =
+    ( Lower_conditions.Const (lower 5),
+      Lower_conditions.Mul (Const (lower 1), Rigid) )
+  in
+  let completeness (module G : Grade.S) =
+    match snd (G.witnesses bounds []) with
+    | Grade.Complete -> "complete"
+    | Grade.Partial -> "partial"
+  in
+  [
+    check "time-lower-bound: 5 >= 1 · j fails at a witness"
+      (not (Lower_conditions.at_witnesses five_ge_one_j))
+      "5 >= 1 · j";
+    check "time-lower-bound: 5 >= 1 · j fails at j = 5"
+      (List.exists
+         (fun j ->
+           L.equal bounds j (lower 5)
+           && not (Lower_conditions.holds five_ge_one_j j))
+         (Lower_conditions.witnesses five_ge_one_j))
+      "5 >= 1 + 5";
+    check "time-lower-bound: 1 · j >= j holds at every witness"
+      (Lower_conditions.at_witnesses (Mul (Const (lower 1), Rigid), Rigid))
+      "1 · j >= j";
+    check "time-lower-bound: 5 >= 5 ⊔ j holds at every witness"
+      (Lower_conditions.at_witnesses
+         (Const (lower 5), Join (Const (lower 5), Rigid)))
+      "5 >= min(5, j)";
+    Lower_conditions.complete ~count:2000;
+    Upper_conditions.complete ~count:2000;
+    Interval_conditions.complete ~count:1000;
+    Levels_conditions.complete ~count:1000;
+    expect "witnesses: time grades complete" Fun.id ~expected:"complete"
+      (completeness time_interval);
+    expect "witnesses: levels complete" Fun.id ~expected:"complete"
+      (completeness (module LevelGrades.SecurityLevels));
+    expect "witnesses: product of complete grades complete" Fun.id
+      ~expected:"complete"
+      (completeness (module UpperLevels));
+    expect "witnesses: timed traces partial" Fun.id ~expected:"partial"
+      (completeness traces_upper);
+    expect "witnesses: product with a partial grade partial" Fun.id
+      ~expected:"partial"
+      (completeness (module TraceLevels));
+  ]
+
 let () =
   let checks =
-    levels @ products @ counterexamples @ literals @ tops @ registry
+    levels @ products @ counterexamples @ witnesses @ literals @ tops @ registry
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

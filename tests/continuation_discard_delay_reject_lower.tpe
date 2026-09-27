@@ -1,0 +1,17 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/continuation_discard_delay_reject_lower.tpe *)
+
+operation Op : unit ~> unit # 1
+
+(* Correctly rejected by the typechecker: the case must have a grade matching
+   1 · ε for every effect ε of k, and 5 >= 1 · ε fails for ε = 5, though it
+   holds for ε = 0 and ε = 1. The witnesses of the time grades range up to one
+   past the sum of the constants, which suffices for a single effect ε. *)
+let h = handler | x -> x | Op () k -> delay 5; 0
+
+(* Were h accepted, g would be given the lower bound 11, and its run would
+   finish at time 5. *)
+let g () = handle (perform Op (); delay 10; 3) with h
+
+run g ()

@@ -56,17 +56,17 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.OpDefault (op, abs) -> Some (Gen.generate_default env ~loc op abs)
     | Ast.TyDef _ | Ast.OpSig _ -> None
 
-  (* The failure of a constraint, solved and its qualifier searched for a
-     closed instance as a command's is, with what it is explained against:
-     the solution in the latter case, the provenance of a failed expansion in
-     the former. *)
-  let failure context constr =
+  (* The failure of the constraint of a command [cmd], solved and its
+     qualifier checked as the command's is, with what it is explained
+     against: the solution in the latter case, the provenance of a failed
+     expansion in the former. *)
+  let failure cmd context constr =
     let source solution mismatch =
       { E.context; constr = Some constr; solution; mismatch }
     in
     match S.solve_traced context constr with
     | S.Solved solution, _ -> (
-        match S.satisfiable context solution with
+        match P.check cmd context solution with
         | Ok () -> None
         | Error failure -> Some (source (Some solution) None, P.Refuted failure)
         )
@@ -81,13 +81,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
   (* The failures of a constraint in the order they are found: its failure,
      then, after a refutation, the refutations of the constraint without the
      atoms it refutes. *)
-  let rec failures context constr =
-    match failure context constr with
+  let rec failures cmd context constr =
+    match failure cmd context constr with
     | None -> []
     | Some ((_, P.Refuted refuted) as found) ->
         let rest =
           match E.without_refuted refuted constr with
-          | Some constr -> List.filter is_refutation (failures context constr)
+          | Some constr ->
+              List.filter is_refutation (failures cmd context constr)
           | None -> []
         in
         found :: rest
@@ -142,7 +143,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let context = P.context ~loc:cmd.at env in
     let found =
       match constraint_of env cmd with
-      | Some constr -> failures context constr
+      | Some constr -> failures cmd context constr
       | None -> []
       | exception Error.Error _ -> []
     in

@@ -18,5 +18,8 @@ let leq m n =
 (** [max m n] is the greater of [m] and [n]. *)
 let max m n = match (m, n) with Fin m, Fin n -> Fin (Int.max m n) | _ -> Inf
 
+(** [to_int n] is [Some n] for a natural number and [None] for [∞]. *)
+let to_int = function Fin n -> Some n | Inf -> None
+
 (** [show n] prints a natural number in decimal and [∞] as [∞]. *)
 let show = function Fin n -> string_of_int n | Inf -> "∞"

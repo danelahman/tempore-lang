@@ -273,6 +273,8 @@ let expected_rejections =
     ("handlers_nested_reject.tpe", [ 11 ]);
     ("comp_type_annotation_reject.tpe", [ 3 ]);
     ("comp_type_annotation_upper_reject.tpe", [ 3 ]);
+    ("continuation_discard_abort_reject_lower.tpe", [ 13 ]);
+    ("continuation_discard_delay_reject_lower.tpe", [ 11 ]);
     ("continuation_discard_reject_lower.tpe", [ 10 ]);
     ("continuation_escape_reject.tpe", [ 11 ]);
     ("continuation_nested_discard_reject_lower.tpe", [ 10 ]);
@@ -324,6 +326,7 @@ let expected_rejections =
     ("traces_reject_missing_within.tpe", [ 5 ]);
     ("traces_reject_order.tpe", [ 13 ]);
     ("traces_reject_self_retry.tpe", [ 6 ]);
+    ("traces_reject_undecided_condition.tpe", [ 15 ]);
     ("traces_reject_unknown_event.tpe", [ 6 ]);
   ]
 

@@ -179,6 +179,7 @@ let symbolic rho =
 let events rho = SymbolicRegex.names (symbolic rho)
 let canonical rho = RegularTraceGradeDerivative.canonical (symbolic rho)
 let show rho = RegularTraceGradeDerivative.show (symbolic rho)
+let witnesses _bounds = Grade.sampled mul
 
 (** {1 Runs over given names} *)
 

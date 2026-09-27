@@ -155,6 +155,7 @@ struct
     let events = L.events
     let is_atomic = L.is_atomic
     let show = L.show
+    let witnesses = L.witnesses
   end
 
   module Lower = struct
@@ -237,6 +238,7 @@ struct
     let of_bounds (lo, hi) = (L.of_nat lo, L.of_nat hi)
     let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
     let show (lo, hi) = "(" ^ Lower.show lo ^ "," ^ Upper.show hi ^ ")"
+    let witnesses _bounds = sampled mul
   end
 end
 
