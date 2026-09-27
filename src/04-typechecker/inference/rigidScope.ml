@@ -118,16 +118,7 @@ module Make (C : Constraint.S) = struct
   (* Bounds of one unknown                                               *)
   (* ------------------------------------------------------------------ *)
 
-  (* How the orderings of one sort are read for one unknown. *)
-  type 'e sort = {
-    equal : 'e -> 'e -> bool;
-    occurs : 'e -> bool;  (** whether the unknown occurs *)
-    is_unknown : 'e -> bool;  (** whether the expression is the unknown *)
-    leq : 'e -> 'e -> bool;  (** decided at no hypotheses *)
-    join : 'e -> 'e -> 'e;
-  }
-
-  let eps_sort context k =
+  let eps_sort context k : _ Bounds.sort =
     {
       equal = X.Eps.equal context.Residual.bounds;
       occurs = in_eps (Eps_unknown k);
@@ -137,7 +128,7 @@ module Make (C : Constraint.S) = struct
       join = X.Eps.join;
     }
 
-  let rho_sort context u =
+  let rho_sort context u : _ Bounds.sort =
     {
       equal = X.Rho.equal context.Residual.bounds;
       occurs = in_rho u;
@@ -150,51 +141,11 @@ module Make (C : Constraint.S) = struct
       join = X.Rho.join;
     }
 
-  (* The lower bounds of the unknown, in order, when each ordering is one of
-     them ([x ≾ v], [x] free of [v]), is reflexive, or has [v] on no right
-     side. *)
-  let lows_of sort orderings =
-    List.fold_right
-      (fun (o : _ GradeNormal.ordering) bounds ->
-        Option.bind bounds (fun bounds ->
-            if sort.is_unknown o.rhs && not (sort.occurs o.lhs) then
-              Some (o.lhs :: bounds)
-            else if sort.equal o.lhs o.rhs || not (sort.occurs o.rhs) then
-              Some bounds
-            else None))
-      orderings (Some [])
+  let lows sort orderings =
+    Option.map (fun (l : _ Bounds.lows) -> l.lower) (Bounds.lows sort orderings)
 
-  let free_right sort orderings =
-    List.for_all
-      (fun (o : _ GradeNormal.ordering) ->
-        sort.equal o.lhs o.rhs || not (sort.occurs o.rhs))
-      orderings
-
-  let free_left sort orderings =
-    List.for_all
-      (fun (o : _ GradeNormal.ordering) ->
-        sort.equal o.lhs o.rhs || not (sort.occurs o.lhs))
-      orderings
-
-  (* The first upper bound [U] of the unknown, [v ≾ U] with [U] free of [v],
-     such that each ordering is reflexive, has [v] on no left side, or is
-     [v ≾ x'] with [x'] the bound or decided above it. *)
-  let ups_of sort orderings =
-    let caps =
-      List.filter_map
-        (fun (o : _ GradeNormal.ordering) ->
-          if sort.is_unknown o.lhs && not (sort.occurs o.rhs) then Some o.rhs
-          else None)
-        orderings
-    in
-    let capped cap (o : _ GradeNormal.ordering) =
-      sort.equal o.lhs o.rhs
-      || (not (sort.occurs o.lhs))
-      || (sort.is_unknown o.lhs && (sort.equal o.rhs cap || sort.leq cap o.rhs))
-    in
-    List.find_opt (fun cap -> List.for_all (capped cap) orderings) caps
-
-  let join_all sort x xs = List.fold_left sort.join x xs
+  let ups sort orderings =
+    Option.map (fun (u : _ Bounds.ups) -> u.cap) (Bounds.ups sort orderings)
 
   (* ------------------------------------------------------------------ *)
   (* The value of one unknown                                            *)
@@ -225,16 +176,18 @@ module Make (C : Constraint.S) = struct
   let eps_value context k (r : residual) =
     let u = Eps_unknown k in
     let es = eps_sort context k and rs = rho_sort context u in
-    let lows = lows_of es r.eps_orderings in
-    let free_right_rs = free_right rs r.rho_orderings in
+    let lows = lows es r.eps_orderings in
+    let free_right_rs = Bounds.free_right rs r.rho_orderings in
     let lower () =
       match lows with
       | Some (x :: xs) when free_right_rs && still Greater u r ->
-          Some (join_all es x xs, Drop_greater)
+          Some (Bounds.join_all es x xs, Drop_greater)
       | Some _ | None -> None
     and raise () =
-      if free_left rs r.rho_orderings && disj_free u r && still Smaller u r then
-        Option.map (fun cap -> (cap, Keep_all)) (ups_of es r.eps_orderings)
+      if
+        Bounds.free_left rs r.rho_orderings
+        && disj_free u r && still Smaller u r
+      then Option.map (fun cap -> (cap, Keep_all)) (ups es r.eps_orderings)
       else None
     and unit () =
       match lows with
@@ -245,8 +198,8 @@ module Make (C : Constraint.S) = struct
       | Some _ | None -> None
     and top () =
       if
-        free_left es r.eps_orderings
-        && free_left rs r.rho_orderings
+        Bounds.free_left es r.eps_orderings
+        && Bounds.free_left rs r.rho_orderings
         && disj_free u r && occurs_above u r && still Smaller u r
       then Some (X.Eps.top, Keep_all)
       else None
@@ -256,15 +209,15 @@ module Make (C : Constraint.S) = struct
   let rho_value context k (r : residual) =
     let u = Rho_unknown k in
     let rs = rho_sort context u in
-    let lows = lows_of rs r.rho_orderings in
+    let lows = lows rs r.rho_orderings in
     let lower () =
       match lows with
       | Some (x :: xs) when still Greater u r ->
-          Some (join_all rs x xs, Drop_greater)
+          Some (Bounds.join_all rs x xs, Drop_greater)
       | Some _ | None -> None
     and raise () =
       if disj_free u r && still Smaller u r then
-        Option.map (fun cap -> (cap, Keep_all)) (ups_of rs r.rho_orderings)
+        Option.map (fun cap -> (cap, Keep_all)) (ups rs r.rho_orderings)
       else None
     and unit () =
       match lows with
@@ -274,7 +227,7 @@ module Make (C : Constraint.S) = struct
       | Some _ | None -> None
     and top () =
       if
-        free_left rs r.rho_orderings
+        Bounds.free_left rs r.rho_orderings
         && disj_free u r && occurs_above u r && still Smaller u r
       then Some (X.Rho.top, Keep_all)
       else None

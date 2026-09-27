@@ -9,7 +9,8 @@
       have the same shape ({!Skeleton.Make.expand}); the residual is decomposed
       again under the instantiation, and the atom is decomposed.
     - A grade ordering, an eternality demand and a var-rule disjunction are
-      added to the residual, the decided ones dropped.
+      added to the residual ({!Residual}): the variable-free orderings and the
+      disjunctions decided are dropped.
     - An existential scope brings its unknowns into play.
     - A rigid scope is solved with a residual of its own, expanded again, and
       closed ({!RigidScope}): its local unknowns receive values, its atoms are
@@ -38,6 +39,7 @@ module Make (C : Constraint.S) : sig
         (** the atoms left on the unknowns, the qualifier [Q] *)
     obligations : Residual.Make(C).deferred list;
         (** the deferred rigid conditions, the obligations [R] *)
+    context : context;  (** the cost model and type definitions solved under *)
   }
   (** A solution: every instance of the unknowns satisfying [Q] and [R]
       satisfies the constraint through [subst]. *)
@@ -55,18 +57,26 @@ module Make (C : Constraint.S) : sig
       localisation that applies to it ({!RigidScope}), the deferred conditions
       are retried, and the orderings between variable-free sides decided. It is
       [Error] only when the search refutes the qualifier; an instance not found
-      is no refutation. *)
+      is no refutation.
+
+      This is a provisional choice for top-level definitions: a definition is
+      accepted unless the search refutes its qualifier, and each use of it
+      checks the qualifier instantiated at the use. A qualifier that has no
+      closed instance the search refutes is thus reported at the uses of the
+      definition, not at the definition itself. *)
 
   val qualifier : solution -> C.t
   (** [qualifier solution] is [Q ∧ R] as a constraint, each obligation under the
       rigid scopes of its rigids. *)
 
   val generalise : ?fixed:C.free -> C.ty -> solution -> C.scheme
-  (** [generalise ~fixed ty solution] is the scheme of [ty] under [solution],
-      quantified over every unknown free in the solved type or in
-      {!qualifier}[ solution] other than those of [fixed], with qualifier
-      {!qualifier}[ solution]. It stands for the generalisation of a top-level
-      definition, [fixed] being the unknowns free in the environment. *)
+  (** [generalise ~fixed ty solution] is the reported scheme of [ty] under
+      [solution] ({!Report}): the solved type and the hypotheses simplified, the
+      unknowns not needed by the type or the obligations eliminated, and the
+      scheme quantified over the unknowns that remain other than those of
+      [fixed]. The unknowns of [fixed], those free in the environment, are never
+      eliminated nor quantified. It is the generalisation of a top-level
+      definition. *)
 
   val print_outcome : outcome -> Format.formatter -> unit
   (** [print_outcome outcome ppf] prints [outcome], for debugging. *)

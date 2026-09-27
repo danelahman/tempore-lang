@@ -186,8 +186,16 @@ module type S = sig
   val to_string : t -> string
   (** [to_string c] is the text {!print} prints. *)
 
+  val print_inline : ?names:names -> t -> Format.formatter -> unit
+  (** [print_inline ~names c ppf] prints [c] as one formula, its conjuncts
+      joined by [∧], a binder or a disjunction within a conjunction in
+      parentheses. *)
+
   val print_scheme : ?names:names -> scheme -> Format.formatter -> unit
-  (** [print_scheme ~names scheme ppf] prints [scheme]. *)
+  (** [print_scheme ~names scheme ppf] prints [scheme] as [∀ α ρ₀ ε₀. Q ⇒ A],
+      the quantifier omitted when it binds nothing and the qualifier when it is
+      [⊤]. The parameters are listed, and named, in the order of their first
+      occurrence in [A] and then in [Q]. *)
 end
 
 (** [Make (X)] is the constraints over the grade expressions [X]. *)

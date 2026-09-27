@@ -5,10 +5,14 @@
     implementation, a top-level definition and a run have their constraint
     generated and solved, and the qualifier of the solution searched for a
     closed instance ({!Solver.Make.satisfiable}); the command is rejected when
-    either refutes. A definition is generalised over every unknown of its solved
-    type and of its qualifier [Q ∧ R], none being free in the environment of
-    top-level definitions; this stands for the simplification and satisfiability
-    check that are to replace it.
+    either refutes. A top-level definition is generalised to its reported scheme
+    [∀Θ. Q ∧ R ⇒ A] ({!Solver.Make.generalise}), no unknown being free in the
+    environment of top-level definitions; local definitions are not generalised.
+
+    Satisfiability of a definition's qualifier is decided provisionally: the
+    definition is accepted unless the search for a closed instance refutes its
+    qualifier, and each use of the definition checks the qualifier instantiated
+    at the use.
 
     A rejected definition is assumed to have the scheme [∀α. α], so that its
     uses are checked; a rejected default leaves the operation without one; a
@@ -55,4 +59,8 @@ module Make (C : Constraint.S) : sig
 
   val execute_all : env -> command list -> env * verdict list
   (** [execute_all env cmds] executes [cmds] in order until one stops them. *)
+
+  val print_outcome : outcome -> Format.formatter -> unit
+  (** [print_outcome outcome ppf] prints [outcome]: a definition with its scheme
+      ({!Constraint.S.print_scheme}), a rejection with its failure. *)
 end

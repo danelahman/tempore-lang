@@ -9,6 +9,7 @@ module StringMap = Utils.StringMap
 module Make (C : Constraint.S) = struct
   module Gen = Generate.Make (C)
   module S = Solver.Make (C)
+  module R = Residual.Make (C)
 
   type env = Gen.env
   type command = (Gen.program_rho, Gen.program_eps) Ast.command
@@ -117,6 +118,19 @@ module Make (C : Constraint.S) = struct
         with
         | Ok _ -> (env, verdict Accepted, Continue)
         | Error e -> (env, verdict (Rejected e), Continue))
+
+  let print_outcome outcome ppf =
+    match outcome with
+    | Accepted -> Format.pp_print_string ppf "accepted"
+    | Defined (x, scheme) ->
+        Format.fprintf ppf "@[<hov 2>%t :@ %t@]" (Ast.Variable.print x)
+          (C.print_scheme scheme)
+    | Rejected (Malformed d) ->
+        Format.fprintf ppf "rejected: %s" d.Diagnostic.message
+    | Rejected (Refuted failure) ->
+        Format.fprintf ppf "rejected: %t" (R.print_failure failure)
+    | Rejected (Stuck stuck) ->
+        Format.fprintf ppf "rejected: %t" (S.print_outcome (S.Stuck stuck))
 
   let execute_all env cmds =
     let rec go env verdicts = function

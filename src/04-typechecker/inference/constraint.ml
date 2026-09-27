@@ -78,6 +78,7 @@ module type S = sig
   val print_ty : ?names:names -> ty -> Format.formatter -> unit
   val print : ?names:names -> t -> Format.formatter -> unit
   val to_string : t -> string
+  val print_inline : ?names:names -> t -> Format.formatter -> unit
   val print_scheme : ?names:names -> scheme -> Format.formatter -> unit
 end
 
@@ -509,20 +510,113 @@ module Make (X : GradeExp.S) = struct
   let print ?names c = print_with (names_or names) c
   let to_string c = Format.asprintf "%t" (print c)
 
+  (* A formula on one line: conjuncts joined by [∧], a binder or a
+     disjunction within a conjunction in parentheses. *)
+  let rec inline_with names c ppf =
+    match c with
+    | And _ ->
+        Format.pp_print_list
+          ~pp_sep:(fun ppf () -> Format.fprintf ppf " ∧@ ")
+          (fun ppf c -> conjunct_with names c ppf)
+          ppf (conjuncts c)
+    | Exists (vs, c) ->
+        Format.fprintf ppf "∃%t.@ %t" (print_vars names vs)
+          (inline_with names c)
+    | Forall_eps (e, origin, c) ->
+        Format.fprintf ppf "∀%t (%t).@ %t" (names.eps_name e)
+          (Ast.OpName.print origin.Reason.clause.op)
+          (inline_with names c)
+    | True | Sub _ | Rho_leq _ | Eps_leq _ | Eternal _ | Eternal_or_unit _ ->
+        print_with names c ppf
+
+  and conjunct_with names c ppf =
+    match c with
+    | Exists _ | Forall_eps _ | Eternal_or_unit _ ->
+        paren true (inline_with names c) ppf
+    | True | And _ | Sub _ | Rho_leq _ | Eps_leq _ | Eternal _ ->
+        inline_with names c ppf
+
+  let print_inline ?names c ppf =
+    Format.fprintf ppf "@[<hov 2>%t@]" (inline_with (names_or names) c)
+
+  (* The unknowns of types and constraints in the reverse order of their
+     occurrences. *)
+  type occurrences = {
+    ty_occ : Ast.ty_param list;
+    rho_occ : X.Rho_var.t list;
+    eps_occ : X.Eps_var.t list;
+  }
+
+  let rec eps_occurrences eps occ =
+    match eps with
+    | X.Eps_var e -> { occ with eps_occ = e :: occ.eps_occ }
+    | X.Eps_const _ -> occ
+    | X.Eps_mul (eps, eps') | X.Eps_join (eps, eps') ->
+        eps_occurrences eps' (eps_occurrences eps occ)
+
+  let rec rho_occurrences rho occ =
+    match rho with
+    | X.Rho_var r -> { occ with rho_occ = r :: occ.rho_occ }
+    | X.Rho_const _ -> occ
+    | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
+        rho_occurrences rho' (rho_occurrences rho occ)
+    | X.Rho_map eps -> eps_occurrences eps occ
+
+  let ty_occurrences ty occ =
+    Ast.fold_ty
+      ~on_param:(fun a occ -> { occ with ty_occ = a :: occ.ty_occ })
+      ~on_rho:rho_occurrences ~on_eps:eps_occurrences ty occ
+
+  let rec occurrences c occ =
+    match c with
+    | True -> occ
+    | And (c, d) -> occurrences d (occurrences c occ)
+    | Sub (_, a, b) -> ty_occurrences b (ty_occurrences a occ)
+    | Rho_leq (_, rho, rho') -> rho_occurrences rho' (rho_occurrences rho occ)
+    | Eps_leq (_, eps, eps') -> eps_occurrences eps' (eps_occurrences eps occ)
+    | Eternal (_, a) -> ty_occurrences a occ
+    | Eternal_or_unit (_, a, rho) -> rho_occurrences rho (ty_occurrences a occ)
+    | Exists (_, c) | Forall_eps (_, _, c) -> occurrences c occ
+
+  (* [params] ordered by [occ], reversed, those absent from it last. *)
+  let ordered equal params occ =
+    let seen = List.rev occ in
+    let first =
+      List.fold_left
+        (fun acc v ->
+          if List.exists (equal v) params && not (List.exists (equal v) acc)
+          then v :: acc
+          else acc)
+        [] seen
+    in
+    List.rev first
+    @ List.filter (fun p -> not (List.exists (equal p) first)) params
+
   let print_scheme ?names scheme ppf =
     let names = names_or names in
+    let occ =
+      occurrences scheme.qualifier
+        (ty_occurrences scheme.ty { ty_occ = []; rho_occ = []; eps_occ = [] })
+    in
     let vs =
       {
-        ty_vars = scheme.ty_params;
-        rho_vars = scheme.rho_params;
-        eps_vars = scheme.eps_params;
+        ty_vars =
+          ordered
+            (fun a b -> Ast.TyParamModule.compare a b = 0)
+            scheme.ty_params occ.ty_occ;
+        rho_vars = ordered X.Rho_var.equal scheme.rho_params occ.rho_occ;
+        eps_vars = ordered X.Eps_var.equal scheme.eps_params occ.eps_occ;
       }
     in
-    match scheme.qualifier with
-    | True ->
-        Format.fprintf ppf "@[<v 2>∀%t.@,%t@]" (print_vars names vs)
-          (ty_with names scheme.ty)
-    | q ->
-        Format.fprintf ppf "@[<v 2>∀%t.@,%t@,⇒ %t@]" (print_vars names vs)
-          (print_with names q) (ty_with names scheme.ty)
+    let quantifier ppf =
+      match vs with
+      | { ty_vars = []; rho_vars = []; eps_vars = [] } -> ()
+      | _ -> Format.fprintf ppf "∀ %t.@ " (print_vars names vs)
+    and qualifier ppf =
+      match scheme.qualifier with
+      | True -> ()
+      | q -> Format.fprintf ppf "%t ⇒@ " (inline_with names q)
+    in
+    Format.fprintf ppf "@[<hov 2>%t%t%t@]" quantifier qualifier
+      (ty_with names scheme.ty)
 end

@@ -8,6 +8,7 @@ module Make (C : Constraint.S) = struct
   module X = C.X
   module R = Residual.Make (C)
   module RS = RigidScope.Make (C)
+  module Rep = Report.Make (C)
   module Sk = Skeleton.Make (X)
   module Rho_set = X.Rho_var.Set
   module Eps_set = X.Eps_var.Set
@@ -20,6 +21,7 @@ module Make (C : Constraint.S) = struct
     subst : C.subst;
     hyps : R.hyps;
     obligations : R.deferred list;
+    context : context;
   }
 
   type outcome = Solved of solution | Refuted of failure | Stuck of stuck
@@ -335,7 +337,7 @@ module Make (C : Constraint.S) = struct
     let* st = reexpand context { st with residual } in
     let* hyps = R.to_hyps context st.residual in
     let* hyps = R.check_closed context hyps in
-    Ok { subst = st.theta; hyps; obligations = st.residual.deferred }
+    Ok { subst = st.theta; hyps; obligations = st.residual.deferred; context }
 
   let solve context c =
     let st =
@@ -378,18 +380,10 @@ module Make (C : Constraint.S) = struct
       (C.conj_all (List.map R.deferred_to_constraint solution.obligations))
 
   let generalise ?(fixed = C.no_free) ty solution =
-    let ty = C.subst_ty solution.subst ty in
-    let qualifier = qualifier solution in
-    let free = C.union_free (C.free_vars_ty ty) (C.free_vars qualifier) in
-    {
-      C.ty_params =
-        TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys);
-      rho_params =
-        Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos);
-      eps_params = Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps);
-      qualifier;
-      ty;
-    }
+    Rep.scheme ~fixed
+      (Rep.report solution.context ~fixed
+         (C.subst_ty solution.subst ty)
+         solution.hyps solution.obligations)
 
   let print_outcome outcome ppf =
     match outcome with

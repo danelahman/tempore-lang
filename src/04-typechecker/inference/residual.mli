@@ -23,8 +23,10 @@
 
     {2 Eager decisions}
 
-    An ordering decided at no hypotheses is dropped when it is pushed, and one
-    between variable-free sides decided false refutes. A var-rule disjunction is
+    An ordering between variable-free sides is decided when it is pushed:
+    dropped when true, refuting when false. An ordering with an unknown is kept
+    even when decided at no hypotheses, as a bound on its unknowns that the
+    simplification of a report reads ({!Report}). A var-rule disjunction is
     dropped when its grade is decided below the unit; otherwise, of a type never
     eternal, it becomes the ordering of its grade below the unit; of a type
     eternal outright, it is dropped; otherwise it is kept. *)
@@ -152,8 +154,8 @@ module Make (C : Constraint.S) : sig
       instance. *)
 
   val push_rho : context -> rho_ordering -> t -> (t, failure) result
-  (** [push_rho context o r] adds [o] to [r], dropping it when decided at no
-      hypotheses and refuting it when variable-free and false. *)
+  (** [push_rho context o r] adds [o] to [r]; when [o] is variable-free it is
+      dropped when true and refuting when false. *)
 
   val push_eps : context -> eps_ordering -> t -> (t, failure) result
   (** [push_eps context o r] is {!push_rho} for an effect ordering. *)

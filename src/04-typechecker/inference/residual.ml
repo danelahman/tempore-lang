@@ -219,20 +219,14 @@ module Make (C : Constraint.S) = struct
     match N.Rho.closed_leq bounds o.lhs o.rhs with
     | Some true -> Ok r
     | Some false -> Error (Refuted_rho { o with info = [ o.info ] })
-    | None -> (
-        match N.Rho.decide_leq bounds N.no_hyps o.lhs o.rhs with
-        | Some _ -> Ok r
-        | None -> Ok { r with rho_orderings = o :: r.rho_orderings })
+    | None -> Ok { r with rho_orderings = o :: r.rho_orderings }
 
   let push_eps context (o : eps_ordering) r =
     let bounds = context.bounds in
     match N.Eps.closed_leq bounds o.lhs o.rhs with
     | Some true -> Ok r
     | Some false -> Error (Refuted_eps { o with info = [ o.info ] })
-    | None -> (
-        match N.Eps.decide_leq bounds N.no_hyps o.lhs o.rhs with
-        | Some _ -> Ok r
-        | None -> Ok { r with eps_orderings = o :: r.eps_orderings })
+    | None -> Ok { r with eps_orderings = o :: r.eps_orderings }
 
   let is_param a = function
     | { eternal_ty = Ast.TyParam b; _ } -> TyParam.compare a b = 0

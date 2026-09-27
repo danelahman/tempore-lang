@@ -354,6 +354,48 @@ of the operations it names. A default may itself perform operations, which are
 handled or defaulted in turn; a default that performs its own operation
 typechecks but never terminates.
 
+## Type inference
+
+Types and grades are inferred in the style of HM(X), Hindley–Milner inference
+over a constraint domain: a program generates constraints, which are then
+solved and simplified.
+
+- **Subtyping.** Types are compared by subtyping rather than by equality. A
+  function type is contravariant in its argument and covariant in its result
+  and effect, and a box type `[rho]a` is contravariant in its grade: a box
+  claimable after `rho` may be used where one claimable after a sub-grade of
+  `rho` is expected. Subtyping preserves the shape of types, and the arguments
+  of type constructors such as `list` are compared for equality.
+- **Resource and effect grades.** Box types and the grades elapsed in a
+  context are *resource* grades; computations and operation signatures carry
+  *effect* grades. The two sorts are related by a grade system, which maps an
+  effect grade to the resource grade that elapses while it runs. At present
+  each grading monoid provides both sorts, related by the identity.
+- **Constraints.** Besides subtyping, a program asks for orderings between
+  grades, for types to be eternal, and, for a variable used after some grade
+  `rho` has elapsed, that its type is eternal or `rho` is below the unit. The
+  effect of the continuation of a handler's operation case is unknown to the
+  case, so the case is checked for every such effect.
+- **Schemes.** Only top-level `let` definitions are generalised; a local
+  `let` has a monomorphic type. The scheme of a top-level definition is
+  qualified, `∀ α ρ₀ ε₀. Q ∧ R ⇒ A`: `Q` are the constraints left on its
+  unknowns and `R` conditions of operation cases that must hold for every
+  effect of their continuations. Every use of the definition instantiates the
+  scheme and checks its qualifier. Schemes are simplified before they are
+  reported: redundant constraints are dropped, and an unknown the type does not
+  need is replaced by its bound. For example, under `time-upper-bound` the
+  standard library's `compose f g x = f (g x)` has the scheme
+
+      ∀ α β γ ε₀ ε₁. ∣ε₁∣ ≾ 0 ⇒ (α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # 0 # 0
+
+  where `ε₁ · ε₀` is `g`'s effect followed by `f`'s, and `∣ε₁∣ ≾ 0` asks `g`
+  to take no time, as the non-eternal `f` is used after it has run.
+- **Satisfiability.** Whether the qualifier of a definition can be met is
+  decided provisionally: a closed instance of it is searched for, and the
+  definition is rejected only when the search refutes the qualifier. When the
+  search neither finds nor refutes an instance, the definition is accepted, and
+  its uses report any failure of the qualifier instantiated there.
+
 ## Sub-effecting and its limits
 
 Currently, a grade may be replaced by a super-grade in the sub-grade order in

@@ -32,3 +32,8 @@
   (glob_files %{project_root}/examples/*.tpe)
   (glob_files %{project_root}/tests/*.tpe)
   %{project_root}/tests/run_tests.t))
+
+(test
+ (name test_report)
+ (modules test_report)
+ (libraries utils language parser desugarer loader inference))
