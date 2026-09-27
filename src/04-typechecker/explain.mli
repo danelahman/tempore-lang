@@ -17,6 +17,8 @@ module Make (C : Inference.Constraint.S) : sig
     hyps : Inference.Residual.Make(C).hyps option;
         (** the hypotheses of its solution, when the failure is found by the
             search for a closed instance of them *)
+    mismatch : Inference.Solver.Make(C).mismatch option;
+        (** the provenance of the failure, when it is a failed expansion *)
   }
   (** What a failure is explained against. *)
 

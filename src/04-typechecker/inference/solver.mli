@@ -51,6 +51,37 @@ module Make (C : Constraint.S) : sig
   (** [solve context c] solves [c]; its free unknowns are in play from the
       start. *)
 
+  (** {1 Provenance} *)
+
+  type decision = {
+    reason : C.reason;
+        (** the atom whose expansion, or whose decomposition, gave the unknown
+            its value *)
+    path : Language.Ast.step list;
+        (** the position within the atom, outermost first, after the unfolding
+            of aliases *)
+  }
+  (** Where a type unknown was decided. An unknown bound facing an unknown
+      decided before, or facing the part of an atom's side that such an unknown
+      stands for, inherits its decision; the part of a type at a path was
+      decided where the innermost unknown on the way to it was. *)
+
+  type mismatch = {
+    atom : Residual.Make(C).sub;
+        (** the atom whose expansion fails, its sides under the values of the
+            unknowns solved before; the undecomposed atom when it is one the
+            constraint states *)
+    lhs_decided : decision option;
+        (** where the part of its left side that fails was decided, when an
+            unknown decided before stands for it or for a part enclosing it *)
+    rhs_decided : decision option;  (** likewise for its right side *)
+  }
+  (** The provenance of a shape mismatch or an occurs check. *)
+
+  val solve_traced : context -> C.t -> outcome * mismatch option
+  (** [solve_traced context c] is [solve context c] with the provenance of its
+      failure when it is a failed expansion. *)
+
   val satisfiable : context -> solution -> (unit, failure) result
   (** [satisfiable context solution] searches a closed instance of the qualifier
       of [solution]: every unknown receives the value of the first rule of

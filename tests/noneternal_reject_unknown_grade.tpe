@@ -2,18 +2,18 @@
 
      ./tempore --grades time-upper-bound tests/noneternal_reject_unknown_grade.tpe
 
-   Both rejections below are the same disjunction 'eternal τ or ρ ≾ 0' with its
-   inequality left open rather than refuted: the grade that has elapsed is the
-   unknown grade of a function argument plus a delay, so it can be compared
-   with neither 0 nor anything else, while the type is known not to be eternal.
-   A bare unknown grade would instead be taken to be 0 and the constraint
-   discharged; it is the '+ 1' that keeps the comparison open. *)
+   Both rejections below are the same disjunction 'Et(τ) ∨ ρ ≾ 0' with the
+   type known not to be eternal: the grade that has elapsed is the unknown
+   effect of a function argument followed by a delay, which is below 0 for no
+   effect of the argument. The diagnostic shows the least instance, where the
+   argument takes no time and 1 <= 0 does not hold; without the delay the
+   disjunction would become the qualifier ∣ε₀∣ ≾ 0 of the definition. *)
 
 noneternal type token = Token
 
 (* Correctly rejected by the typechecker: the token is used after g has run and
-   a tick has passed, and whether that amounts to nothing depends on a grade
-   nobody knows. The constraint is reported where it arises. *)
+   a tick has passed, which amounts to at least one tick whatever the effect of
+   g. The constraint is reported where it arises. *)
 let keep g =
   let t = Token in
   let r = g () in
@@ -21,8 +21,8 @@ let keep g =
   t
 
 (* Correctly accepted by the typechecker: the same body, but the value kept is
-   the polymorphic argument x, so the disjunction cannot be decided here and is
-   carried in the type scheme of 'hold' instead, to be owed again at each use. *)
+   the polymorphic argument x, so the disjunction reduces to Et(β) for its type
+   β and is carried in the scheme of 'hold' instead, owed again at each use. *)
 let hold g x =
   let y = x in
   let r = g () in

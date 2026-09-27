@@ -6,8 +6,8 @@ operation Op1 : unit ~> unit # 1
 operation Op2 : unit ~> unit # 1
 
 (* Correctly rejected by the typechecker: g is bound outside the case for Op1,
-   whose context keeps nothing but eternal types, and a function is never
-   eternal. Were g admitted, the grade of the inner continuation k' would
+   which is typed under the lock of the top grade ∞, and a function is never
+   eternal. Were g admitted, the effect of the inner continuation k' would
    escape into the type of h through it, which the rigid-escape check catches
    as a safety net. *)
 let h g =

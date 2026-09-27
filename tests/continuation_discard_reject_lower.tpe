@@ -5,8 +5,8 @@
 operation Op : unit ~> unit # 1
 
 (* Correctly rejected by the typechecker: as 'continuation_discard_upper.tpe',
-   but under a lower bound 0 is the top of the order, so 0 >= 1 + rho fails
-   already for rho = 0. *)
+   but under a lower bound 0 is the top of the order, so 0 >= 1 · ε fails
+   already for the effect ε = 0 of k. *)
 let h = handler | x -> x | Op p k -> 5
 
 run handle (perform Op (); delay 5; 3) with h

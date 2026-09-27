@@ -408,6 +408,11 @@
     11 |   f "one"
            ^
     the function has type `int → int`
+    File "error_apply_arg.tpe", line 9, characters 10-29:
+    9 |   let f = id (fun n -> n + 1) in
+                  ^^^^^^^^^^^^^^^^^^^
+    `int` was inferred here
+    Note: while matching `int → int` against `string → α # ε₀`
   ======================================================================
   error_handler_case.tpe
   ======================================================================
@@ -419,6 +424,10 @@
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
+    File "error_handler_case.tpe", line 8, characters 9-10:
+    8 |   | x -> 0
+                 ^
+    `int` was inferred here
   ======================================================================
   error_unbox_nonvariable.tpe
   ======================================================================
@@ -479,6 +488,7 @@
     12 | let first (n : string) = n + 1
                                     ^
     the function has type `int → int → int`
+    Note: while matching `int → int → int` against `string → α # ε₀`
   
   File "errors_multiple.tpe", line 15, characters 14-36:
   15 |   let slow () : int # 5 = delay 3; 1 in
@@ -494,6 +504,7 @@
     18 | let second n = first n + "two"
                         ^^^^^^^^^
     the function has type `int → int`
+    Note: while matching `int → int` against `string → α # ε₀`
   ======================================================================
   eternal_lower.tpe
   ======================================================================
@@ -739,6 +750,10 @@
     5 |   match a with
                 ^
     the matched value has type `a list`
+    File "invalid_match_type.tpe", line 4, characters 12-15:
+    4 | run let a = [A] in
+                    ^^^
+    `a list` was inferred here
   ======================================================================
   iterative_unbox.tpe
   ======================================================================
@@ -1099,6 +1114,11 @@
     3 |     (v 42, v "foo")
                    ^
     the function has type `int → int`
+    File "polymorphism_id_id.tpe", line 3, characters 5-9:
+    3 |     (v 42, v "foo")
+             ^^^^
+    `int` was inferred here
+    Note: while matching `int → int` against `string → α # ε₀`
   ======================================================================
   recursion.tpe
   ======================================================================

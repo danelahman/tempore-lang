@@ -14,12 +14,12 @@ noneternal type token = Token
 type 'a tag = Tag
 
 (* Correctly accepted by the typechecker: x is used after a tick of waiting,
-   so keep gets the qualified type {eternal α} α → α # 1. *)
+   so keep gets the qualified scheme ∀ α. Et(α) ⇒ α → α # 1. *)
 let keep x = delay 1; x
 
 (* Correctly accepted by the typechecker: x is used after g has run, whose
-   grade ρ is unknown here, so after gets the type
-   {eternal α ∨ ρ <= 0} (unit → β # ρ) → α → α # ρ, and either side of the
+   effect ε₀ is unknown here, so after gets the scheme ∀ α β ε₀. Et(β) ∨
+   ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → β → β # ε₀ # 0, and either side of the
    disjunction may discharge the constraint at a use. *)
 let after g x = g (); x
 

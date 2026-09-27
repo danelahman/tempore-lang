@@ -2,9 +2,9 @@
 
      ./tempore tests/op_case_context.tpe
 
-   An operation case is checked in the eternal restriction of the ambient
-   context: a variable bound outside the case survives only if its type is
-   eternal. 'Op' takes no time, so nothing but that restriction can fail. *)
+   An operation case is typed in its context locked at the top grade: a
+   variable bound outside the case is used after the top grade has elapsed.
+   Under this monoid the top is the unit 0, so the lock restricts nothing. *)
 
 operation Op : int ~> int # 0
 

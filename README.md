@@ -163,15 +163,24 @@ let keep x = delay 1; x
 let after g x = g (); x
 ```
 
-respectively get the types `{eternal α} α → α # 1` and
-`{eternal α ∨ ρ <= 0} (unit → β # ρ) → α → α # ρ`, shown by `--debug`. So
-`keep 5` is accepted, `keep (fun () -> ())` is rejected, and
-`after (fun () -> delay 2) 5` is accepted because `5` is eternal, while
-`after (fun () -> ()) (fun () -> ())` is accepted because the grade of `g` is
-zero. Only a constraint on a variable of the definition's type is kept: an
-operation case runs at a time the handler does not fix, so a local variable
-captured anywhere in a case must be eternal outright, and a variable occurring
-in no exported type is instantiated as the constraint needs. See
+respectively get the qualified schemes
+
+    ∀ α. Et(α) ⇒ α → α # 1
+    ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → β → β # ε₀ # 0
+
+shown by `--debug`, where `Et(β)` requires `β` to be eternal and `∣ε₀∣` is the
+resource grade that elapses while `g` runs. So `keep 5` is accepted and
+`keep (fun () -> ())` is rejected:
+
+    `unit → unit` is not eternal, but `keep` needs the type of `x` to be
+    eternal
+      Note: the resource inequality `1 <= 0` does not hold
+
+while `after (fun () -> delay 2) 5` is accepted because `5` is eternal, and
+`after (fun () -> ()) (fun () -> ())` because `g` takes no time. A variable
+captured in an operation case is constrained in the same way, the top grade
+having elapsed for it (see [Contexts of operation
+cases](#contexts-of-operation-cases)). See
 [`examples/eternal_types.tpe`](examples/eternal_types.tpe) and the end of
 [`examples/3dprint_traces.tpe`](examples/3dprint_traces.tpe).
 
@@ -243,13 +252,14 @@ result`. Operations without a case are forwarded to the enclosing handler.
 
 An operation case need not have exactly the grade of the operation: it
 suffices that its grade is a sub-grade of the operation's grade composed with
-that of the continuation. So `PrintModel : model ~> print # {Heat; Extrude;
-Cool}` may be handled by performing `Heat`, `Extrude` and `Cool`
-in that order and continuing, while another order is rejected:
+that of the continuation. The continuation `k` is a resource of the
+operation's grade, so resuming it unboxes it, which is allowed only once the
+case has accumulated a sub-grade of that grade. So `PrintModel : model ~> print
+# {Heat; Extrude; Cool}` may be handled by performing `Heat`, `Extrude` and
+`Cool` in that order and continuing, while another order is rejected:
 
-    The case for `PrintModel` has grade `{Cool; Extrude; Heat}`, which does not
-    match the grade `{Heat; Extrude; Cool}` of `PrintModel` followed by its
-    continuation
+    Variable `k` is unboxed after grade `{Cool; Extrude; Heat}` has elapsed,
+    which does not match its box grade `{Heat; Extrude; Cool}`
       Note: the resource inequality
         `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
 
@@ -257,24 +267,35 @@ Under the time monoids the same rule lets a case delay longer than the
 operation's grade under `time-lower-bound`, and shorter under
 `time-upper-bound`.
 
-The grade of the continuation `k` is not known when the handler is typechecked,
-so an operation case must be well-typed for *every* grade `rho` of `k`. The
-typechecker makes `rho` a rigid grade variable: unification never solves it, and
-it may not occur in the type of a top-level definition, so it can be neither
-fixed by the case nor instantiated at a use site. Inequalities mentioning `rho`
-are still decided where the order allows. A case that does not resume, `Op p k
--> 5`, has grade `0`, a sub-grade of `1 + rho` for every `rho` under an upper
-bound, where zero is the minimum, but for no `rho` under a lower bound, where
-the messages state the quantification and the failing instance:
+The effect of the continuation `k` is not known when the handler is
+typechecked, so an operation case must be well-typed for *every* effect `eps`
+of `k`: `k` has the type `[rho](b → c # eps)` for the operation's grade `rho`,
+and the case must have a sub-grade of `rho · eps`. The typechecker makes `eps`
+a rigid effect variable: it is never given a value, and it may not occur in the
+type of a top-level definition, so it can be neither fixed by the case nor
+instantiated at a use site. An inequality mentioning `eps` must hold for every
+value of it. A case that does not resume, `Op p k -> 5`, has grade `0`, a
+sub-grade of `1 · eps` for every `eps` under an upper bound, where zero is the
+minimum, but for no `eps` under a lower bound, where the messages state the
+quantification and the failing instance:
 
-    For every grade `ρ₀` the continuation `k` may have, the case for `Op` must
-    have a grade matching `1 + ρ₀`, but its grade `0` does not
-      Note: the resource inequality `∀ρ₀. 0 >= ρ₀ + 1` does not hold: for
-        `ρ₀ = 0` it becomes `0 >= 1`
+    For every grade `ε₀` the continuation `k` may have, the case for `Op` must
+    have a grade matching `1 · ε₀`, but its grade `0` does not
+      Note: the effect inequality `∀ε₀. 0 >= 1 · ε₀` does not hold: for
+        `ε₀ = 0` it becomes `0 >= 1`
 
-Resuming twice under `Op # 1` fails likewise under an upper bound, since
-`rho + rho <= 1 + rho` fails already for `rho = 2`; under a lower bound it is
-accepted, as `rho >= 0` always holds.
+Resuming twice under `Op # 1` fails under an upper bound: the second
+resumption unboxes `k` after the first has run for `eps`, and `∣eps∣ <= 1`
+fails for `eps = ∞`:
+
+    Variable `k` is unboxed after grade `∣ε₀∣` has elapsed, which does not
+    match its box grade `1`
+      Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for
+        `ε₀ = ∞` it becomes `∞ <= 1`
+
+Under a lower bound it is accepted once the case has waited for the
+operation's grade, `Op p k -> delay 1; let a = continue k with () in continue
+k with ()`, as the grade elapsed before the second resumption only grows.
 
 ### Contexts of operation cases
 
@@ -355,9 +376,9 @@ default Heat () = delay 1
 is accepted under `traces-interval` because `({1}, {1}) <= ({1}, {2})`,
 while `delay 6` is rejected:
 
-```
-Comparing resource inequality ({6},{6}) <= ({1},{2}) failed
-```
+    The default implementation of `Heat` has grade `({6},{6})`, which does not
+    match the declared grade `({1},{2})` of `Heat`
+      Note: the effect inequality `({6},{6}) <= ({1},{2})` does not hold
 
 Under the trace monoids only *atomic* operations, graded by the single run of
 themselves such as `Heat # {Heat}`, may have defaults; a compound operation
@@ -410,33 +431,39 @@ solved and simplified.
 
 ## Sub-effecting and its limits
 
-Currently, a grade may be replaced by a super-grade in the sub-grade order in
-exactly three places: an operation case of a handler, a default implementation
-of an algebraic operation, and a function annotation. Everywhere else the
-prototype compares grades by unification, that is, for equality:
+Grades are compared by the sub-grade order wherever a value or a computation
+meets what is expected of it, following the subtyping of types: a computation
+may be used where one of a super-grade is expected, and an annotation on a
+function or its body is an upper bound, the grade the body accumulates having
+to be a sub-grade of the annotated one. So under `time-upper-bound`
 
-- the branches of a `match` or `if` currently must have the same grade;
-- the grade of a box type is not coerced: a `[3]int` is not accepted where a
-  `[2]int` is expected, regardless of the given resource monoid;
-- function and handler types are compared for equality when a value is passed
-  as an argument or a computation is handled, so a function of type
-  `unit -> int # 1` is not accepted where `unit -> int # 2` is expected;
-- a sub-effecting constraint is only checked once unification has made both of
-  its grades ground. One that still mentions an unresolved grade parameter is
-  rejected ("Cannot compare non-ground resource values"), except that `rho <= 0`
-  with `rho` unknown is solved by `rho := 0` (the only solution when zero is the
-  minimum of the order, and a sound but incomplete guess under
-  `traces-interval`). A rigid continuation grade is never guessed at; an
-  inequality mentioning one that the rules above leave open is rejected as
-  non-ground. Inequalities are currently also not carried into the
-  generalised types of top-level definitions.
+```
+let apply (f : unit -> int # 2) = f ()
+let slow () = delay 1; 3
+let branch c = if c then delay 1 else delay 2
+```
 
-The workaround, where a grade has to be increased, is an explicit type
-annotation.
+`apply slow` is accepted, `unit → int # 1` being a subtype of
+`unit → int # 2`, and `branch` gets the type `bool → unit # 2`, both branches
+having a sub-grade of `2`. A box type is contravariant in its grade: under
+`time-lower-bound` a `[2]int` is accepted where a `[3]int` is expected, since
+a resource that may be claimed after two ticks may also be claimed after three,
+while a `[4]int` is not.
 
-**Note:** A new prototype supporting deep sub-typing and -effecting throughout
-the typing derivations is currently in the works, resolving many of the current
-limitations.
+The limits are these:
+
+- the arguments of a type constructor such as `list`, and the input of a
+  handler type, are compared for equality, grades included: a
+  `(unit -> int # 1) list` is not accepted where a `(unit -> int # 2) list` is
+  expected, although a list built from `slow` gets the scheme
+  `∀ ε₀. 1 ≾ ε₀ ⇒ (unit → int # ε₀) list` and is accepted at both;
+- a local `let` is not generalised, so a locally defined function is used at
+  one type throughout its scope;
+- the effect of a handler clause's continuation is rigid, so the clause is
+  checked for every effect its continuation may have (see
+  [Algebraic effects and effect handlers](#algebraic-effects-and-effect-handlers));
+- whether the qualifier of a top-level definition can be met is decided
+  provisionally (see [Type inference](#type-inference)).
 
 ## Editor support
 <!-- web-skip -->

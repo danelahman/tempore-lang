@@ -7,7 +7,7 @@
 
         Typing error: This argument has type `string` but the function
           expects `int`
-          Note: while matching `int → int` against `string → α # ρ₀`
+          Note: while matching `int → int` against `string → α # ε₀`
 *)
 
 let f x = x

@@ -84,6 +84,38 @@ val unify : unfold -> 'info equation list -> (subst, 'info failure) result
     an alias may ignore its arguments. An unknown is bound to a skeleton without
     unfolding. *)
 
+(** {1 Traced unification} *)
+
+(** A side of an equation. *)
+type side = Left | Right
+
+(** Where the value an unknown is bound to comes from. *)
+type source =
+  | Side of side
+      (** the sub-skeleton of the given side of the equation, at the position of
+          the binding, other than an unknown *)
+  | Through of Language.Ast.ty_param
+      (** the value of the given unknown, which faced the bound unknown *)
+
+type 'info binding = {
+  site : 'info;  (** the payload of the equation whose unification bound it *)
+  at : Language.Ast.step list;
+      (** the position of the binding within the equation, outermost first,
+          after the unfolding of aliases *)
+  source : source;
+}
+(** How an unknown came to be bound in a unification. *)
+
+type 'info bindings = 'info binding Language.Ast.TyParamMap.t
+(** The binding of each unknown of the domain of a unifier. *)
+
+val unify_traced :
+  unfold ->
+  'info equation list ->
+  (subst * 'info bindings, 'info failure * 'info bindings) result
+(** [unify_traced unfold equations] is {!unify} with the bindings made, those
+    made before the failure when there is one. *)
+
 (** {1 Decoration and expansion} *)
 
 (** [Make (X)] decorates and expands with the open grade expressions of [X]. *)
@@ -119,4 +151,11 @@ module Make (X : GradeExp.S) : sig
       same shape, their skeletons with all unknowns identified. A failure names
       the payload of the first demand whose shapes are incompatible with those
       before it. *)
+
+  val expand_traced :
+    unfold ->
+    (ty, 'info) GradeNormal.ordering list ->
+    (ty_subst * 'info bindings, 'info failure * 'info bindings) result
+  (** [expand_traced unfold demands] is {!expand} with the bindings of the
+      unification of the skeletons ({!unify_traced}). *)
 end

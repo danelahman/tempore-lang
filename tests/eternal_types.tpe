@@ -55,8 +55,8 @@ let use_late () =
 
 (* A type variable is eternal when it is instantiated with an eternal type. A
    constraint on one is not decided in the definition but becomes part of its
-   type, checked at each use: x is kept across a tick, so keep gets the type
-   {eternal α} α → α # 1. *)
+   type, checked at each use: x is kept across a tick, so keep gets the scheme
+   ∀ α. Et(α) ⇒ α → α # 1. *)
 let keep x = delay 1; x
 
 (* Correctly accepted by the typechecker: int and stamp are eternal. *)
@@ -83,8 +83,8 @@ type 'a tag = Tag
 run keep (Tag : (unit -> unit) tag)
 
 (* When the grade is unknown as well, both ways to satisfy the constraint are
-   kept: x is used after g has run, so after gets the type
-   {eternal α ∨ ρ <= 0} (unit → β # ρ) → α → α # ρ. *)
+   kept: x is used after g has run, so after gets the scheme
+   ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → β → β # ε₀ # 0. *)
 let after g x = g (); x
 
 (* Correctly accepted by the typechecker: 5 is eternal, whatever g takes. *)
@@ -103,9 +103,9 @@ run after (fun () -> ()) (fun () -> ())
 run after (fun () -> delay 2) (fun () -> ())
 *)
 
-(* An operation case runs at a time the handler does not fix, so a variable
-   captured anywhere in a case must be eternal outright: h gets the type
-   {eternal α} α → α # ρ ⇒ α # 0. *)
+(* An operation case runs at a time the handler does not fix, so it is typed
+   under the lock of the top grade ∞, and a variable captured in it must be
+   eternal: h gets a scheme qualified by Et(α) for the type α of x. *)
 operation Tick : unit ~> unit # 1
 
 let h x = handler | y -> y | Tick p k -> let r = continue k with () in x

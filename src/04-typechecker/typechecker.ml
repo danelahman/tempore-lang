@@ -51,15 +51,16 @@ module Make (GS : Language.GradeSystem.S) = struct
 
   (* The failure of a constraint, solved and its qualifier searched for a
      closed instance as a command's is, with the hypotheses of the solution
-     in the latter case. *)
+     in the latter case and the provenance of a failed expansion in the
+     former. *)
   let failure context constr =
-    match S.solve context constr with
-    | S.Solved solution -> (
+    match S.solve_traced context constr with
+    | S.Solved solution, _ -> (
         match S.satisfiable context solution with
         | Ok () -> None
-        | Error failure -> Some (P.Refuted failure, Some solution.hyps))
-    | S.Refuted failure -> Some (P.Refuted failure, None)
-    | S.Stuck stuck -> Some (P.Stuck stuck, None)
+        | Error failure -> Some (P.Refuted failure, Some solution.hyps, None))
+    | S.Refuted failure, mismatch -> Some (P.Refuted failure, None, mismatch)
+    | S.Stuck stuck, mismatch -> Some (P.Stuck stuck, None, mismatch)
 
   (* A rejection explained against the command's constraint generated afresh
      over the unsimplified schemes of the definitions, whose unknowns the
@@ -72,15 +73,16 @@ module Make (GS : Language.GradeSystem.S) = struct
       match constraint_of env cmd with
       | Some constr ->
           Option.map
-            (fun (error, hyps) -> (Some constr, hyps, error))
+            (fun (error, hyps, mismatch) ->
+              (Some constr, hyps, mismatch, error))
             (failure context constr)
       | None -> None
       | exception Error.Error _ -> None
     in
-    let constr, hyps, error =
-      Option.value replayed ~default:(None, None, error)
+    let constr, hyps, mismatch, error =
+      Option.value replayed ~default:(None, None, None, error)
     in
-    let source = { E.context; constr; hyps } in
+    let source = { E.context; constr; hyps; mismatch } in
     match error with
     | P.Malformed d -> d
     | P.Refuted failure -> E.refuted source failure

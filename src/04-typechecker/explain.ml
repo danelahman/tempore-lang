@@ -19,6 +19,7 @@ module Make (C : Inference.Constraint.S) = struct
     context : S.context;
     constr : C.t option;
     hyps : R.hyps option;
+    mismatch : S.mismatch option;
   }
 
   (* ------------------------------------------------------------------ *)
@@ -820,16 +821,20 @@ module Make (C : Inference.Constraint.S) = struct
               (fun resolve -> (r, resolve a, resolve b, resolve))
               (without source dropped))
 
-  (* The type of the function of an application, from its generated atom. *)
-  let function_ty source resolve (reason : C.reason) ~func_at =
+  (* The sides of the generated atom of the function of an application. *)
+  let function_atom source (reason : C.reason) ~func_at =
     let generated = erase { reason with subject = Some func_at } in
     Option.bind source.constr (fun c ->
         List.find_map
           (function
-            | C.Sub (r, a, _) when r.path = [] && erase r = generated ->
-                Some (resolve a)
+            | C.Sub (r, a, b) when r.path = [] && erase r = generated ->
+                Some (a, b)
             | _ -> None)
           (atoms c))
+
+  (* The type of the function of an application, from its generated atom. *)
+  let function_ty source resolve reason ~func_at =
+    Option.map (fun (a, _) -> resolve a) (function_atom source reason ~func_at)
 
   (* ------------------------------------------------------------------ *)
   (* Type mismatches                                                     *)
@@ -1035,13 +1040,52 @@ module Make (C : Inference.Constraint.S) = struct
             (descend step sides)
       | _ -> None
 
+  (* The provenance of the failed expansion [f], as solving recorded it. *)
+  let recorded source (f : C.reason Skeleton.failure) =
+    match source.mismatch with
+    | Some (m : S.mismatch) when m.atom.info == f.info -> Some m
+    | Some _ | None -> None
+
+  (* A label at the place each part [shown] of a mismatch was decided, other
+     than the construct [at] of the failing atom and the places already
+     pointed at. *)
+  let decided_labels ~primary ~at ~labels sides =
+    List.fold_left
+      (fun acc (shown, decision) ->
+        match decision with
+        | Some (d : S.decision)
+          when not
+                 (Location.equal d.reason.at primary
+                 || Location.equal d.reason.at at
+                 || List.exists
+                      (fun (l : Diagnostic.label) ->
+                        Location.equal l.span d.reason.at)
+                      (labels @ acc)) ->
+            acc @ [ label d.reason.at (shown ^ " was inferred " ^ here) ]
+        | Some _ | None -> acc)
+      [] sides
+
+  (* The application of a function to an argument as one subtyping: the
+     function's type against the argument's type to the result. *)
+  let application_root source resolve (reason : C.reason) ~func_at arg_ty =
+    match function_atom source reason ~func_at with
+    | Some (func_ty, Ast.TyArrow (_, result)) ->
+        Some (resolve func_ty, Ast.TyArrow (arg_ty, result))
+    | Some _ | None -> None
+
   let mismatch source (f : C.reason Skeleton.failure) =
     let p = printer source in
     let reason = f.info in
     let path = reason.path @ List.map step_of_skeleton f.path in
     let root = root source reason in
-    let lhs, rhs =
-      if flipped reason path then (f.rhs, f.lhs) else (f.lhs, f.rhs)
+    let flipped = flipped reason path in
+    let lhs, rhs = if flipped then (f.rhs, f.lhs) else (f.lhs, f.rhs) in
+    let recorded = recorded source f in
+    let lhs_decided, rhs_decided =
+      match recorded with
+      | Some m when flipped -> (m.rhs_decided, m.lhs_decided)
+      | Some m -> (m.lhs_decided, m.rhs_decided)
+      | None -> (None, None)
     in
     let message =
       match f.mismatch with
@@ -1084,22 +1128,43 @@ module Make (C : Inference.Constraint.S) = struct
           [ label scrutinee_at ("the matched value has type " ^ ty_code p a) ]
       | _ -> []
     in
-    let notes =
-      match root with
-      | Some ((r : C.reason), a, b, _)
-        when List.length r.path < List.length path ->
-          let a = ty_code p a in
-          let b = ty_code p b in
-          [ Printf.sprintf "while matching %s against %s" a b ]
-      | Some _ | None -> []
+    let labels =
+      dedup
+        (with_rigid_labels p
+           (mentioned_rigids source [ reason ])
+           (function_label @ scrutinee_label @ labels_of_reason p reason))
     in
-    diagnostic ~primary
-      ~labels:
-        (dedup
-           (with_rigid_labels p
-              (mentioned_rigids source [ reason ])
-              (function_label @ scrutinee_label @ labels_of_reason p reason)))
-      ~notes message
+    let labels =
+      labels
+      @ decided_labels ~primary ~at:reason.at ~labels
+          [
+            (code (skeleton_raw p lhs), lhs_decided);
+            (code (skeleton_raw p rhs), rhs_decided);
+          ]
+    in
+    let matching (a, b) =
+      [
+        Printf.sprintf "while matching %s against %s" (ty_code p a)
+          (ty_code p b);
+      ]
+    in
+    let notes =
+      match (reason.why, reason.path, root) with
+      | ( Reason.Application { func_at; _ },
+          Reason.Argument :: _,
+          Some (_, a, _, resolve) ) ->
+          Option.fold ~none:[] ~some:matching
+            (application_root source resolve reason ~func_at a)
+      | _, _, Some ((r : C.reason), a, b, _)
+        when List.length r.path < List.length path ->
+          matching (a, b)
+      | _, _, None when f.path <> [] ->
+          Option.fold ~none:[]
+            ~some:(fun (m : S.mismatch) -> matching (m.atom.lhs, m.atom.rhs))
+            recorded
+      | _, _, (Some _ | None) -> []
+    in
+    diagnostic ~primary ~labels ~notes message
 
   (* ------------------------------------------------------------------ *)
   (* Eternality                                                          *)

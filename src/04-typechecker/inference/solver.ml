@@ -25,13 +25,35 @@ module Make (C : Constraint.S) = struct
   }
 
   type outcome = Solved of solution | Refuted of failure | Stuck of stuck
+  type decision = { reason : C.reason; path : Ast.step list }
+
+  type mismatch = {
+    atom : R.sub;
+    lhs_decided : decision option;
+    rhs_decided : decision option;
+  }
+
+  (* A type unknown solved: where it was decided, and the value it was given,
+     before the values given later were substituted into it. *)
+  type solved = { decision : decision; value : C.ty }
 
   (* The state of the traversal: the values of the unknowns solved, an
-     idempotent substitution; the unknowns in play, none solved; and the
-     residual. *)
-  type state = { theta : C.subst; live : C.free; residual : R.t }
+     idempotent substitution; the unknowns in play, none solved; the residual;
+     and each type unknown solved. *)
+  type state = {
+    theta : C.subst;
+    live : C.free;
+    residual : R.t;
+    solved : solved TyParamMap.t;
+  }
 
-  let refused result = Result.map_error (fun f -> RS.Refused f) result
+  (* The failures of [result], none of them a mismatch. *)
+  let refused result = Result.map_error (fun f -> (RS.Refused f, None)) result
+  let failed result = Result.map_error (fun e -> (e, None)) result
+
+  (* The failures of an expansion. *)
+  let expansion_refused result =
+    Result.map_error (fun (f, mismatch) -> (RS.Refused f, mismatch)) result
 
   (* ------------------------------------------------------------------ *)
   (* Substitutions                                                       *)
@@ -113,9 +135,96 @@ module Make (C : Constraint.S) = struct
   (* The state once [sigma] is made. *)
   let moved st sigma =
     {
+      st with
       theta = compose st.theta sigma;
       live = moved_live st.live sigma;
       residual = R.subst sigma st.residual;
+    }
+
+  (* ------------------------------------------------------------------ *)
+  (* Provenance                                                          *)
+  (* ------------------------------------------------------------------ *)
+
+  (* An atom unified by an expansion: its reason and its two sides before the
+     values of the unknowns solved were substituted. *)
+  type site = { site_reason : C.reason; generated : C.ty * C.ty }
+
+  let side_of (site : site) = function
+    | Skeleton.Left -> fst site.generated
+    | Skeleton.Right -> snd site.generated
+
+  (* The part of [ty] at [step] of a skeleton path. *)
+  let child (ty : C.ty) (step : Ast.step) =
+    match (step, ty) with
+    | Ast.Argument, Ast.TyArrow (ty, _)
+    | Ast.Result, Ast.TyArrow (_, Ast.CompTy (ty, _))
+    | Ast.BoxContent, Ast.TyBox (_, ty)
+    | Ast.HandlerInput, Ast.TyHandler (Ast.CompTy (ty, _), _)
+    | Ast.HandlerOutput, Ast.TyHandler (_, Ast.CompTy (ty, _)) ->
+        Some ty
+    | Ast.Component i, Ast.TyTuple tys | Ast.TypeArgument i, Ast.TyApply (_, tys)
+      ->
+        List.nth_opt tys (i - 1)
+    | _ -> None
+
+  (* [decided context solved bindings] is where the part at a path of a type
+     was decided: at the innermost unknown on the way to it, solved before or
+     bound by [bindings], whose decision is known. An unknown bound facing
+     another unknown, or facing the part of an atom's side that such an
+     unknown stands for, inherits its decision; otherwise it is decided at its
+     binding. *)
+  let decided context solved (bindings : site Skeleton.bindings) =
+    let rec along seen (ty : C.ty) path =
+      match (ty, path) with
+      | Ast.TyParam a, _ -> within seen a path
+      | Ast.TyApply (name, args), _
+        when Option.is_some (R.unfold_alias context name args) ->
+          along seen (Option.get (R.unfold_alias context name args)) path
+      | _, [] -> None
+      | _, step :: path ->
+          Option.bind (child ty step) (fun ty -> along seen ty path)
+    (* The decision of the part at [path] of the value of [a]. *)
+    and within seen a path =
+      let deeper decision inner = Some (Option.value inner ~default:decision) in
+      let seen' = TyParamSet.add a seen in
+      match (TyParamMap.find_opt a bindings, TyParamMap.find_opt a solved) with
+      | _, _ when TyParamSet.mem a seen -> None
+      | Some (b : site Skeleton.binding), _ ->
+          deeper
+            { reason = b.site.site_reason; path = b.at }
+            (match b.source with
+            | Skeleton.Through c -> within seen' c path
+            | Skeleton.Side side ->
+                along seen' (side_of b.site side) (b.at @ path))
+      | None, Some { decision; value } ->
+          deeper decision (along seen' value path)
+      | None, None -> None
+    in
+    along TyParamSet.empty
+
+  (* The unknowns solved, extended by those [delta] instantiates. *)
+  let solved_by context solved bindings delta =
+    let decided = decided context solved bindings in
+    TyParamMap.fold
+      (fun a value solved ->
+        match decided (Ast.TyParam a) [] with
+        | Some decision -> TyParamMap.add a { decision; value } solved
+        | None -> solved)
+      delta solved
+
+  (* The mismatch of a failed expansion at the state [st]. *)
+  let mismatch_of context st bindings (f : site Skeleton.failure) =
+    let decided = decided context st.solved bindings in
+    let lhs, rhs = f.info.generated in
+    {
+      atom =
+        {
+          lhs = C.subst_ty st.theta lhs;
+          rhs = C.subst_ty st.theta rhs;
+          info = f.info.site_reason;
+        };
+      lhs_decided = decided lhs f.path;
+      rhs_decided = decided rhs f.path;
     }
 
   (* ------------------------------------------------------------------ *)
@@ -145,38 +254,51 @@ module Make (C : Constraint.S) = struct
   and aligned_all ts us =
     List.compare_lengths ts us = 0 && List.for_all2 aligned ts us
 
-  (* The pending demands and [extra] expanded, and the residual decomposed
-     again under the instantiation. *)
+  (* The failures of [result], without provenance. *)
+  let untraced result = Result.map_error (fun f -> (f, None)) result
+
+  (* The pending demands and [extra], each with its sides as generated,
+     expanded, and the residual decomposed again under the instantiation. *)
   let expand context st extra =
     let open Result.Syntax in
-    let* delta =
-      Result.map_error shape_failure
-        (Sk.expand (R.skeleton_unfold context) (extra @ st.residual.subs))
+    let demand generated (s : R.sub) : (C.ty, site) GradeNormal.ordering =
+      { s with info = { site_reason = s.info; generated } }
     in
-    if TyParamMap.is_empty delta then Ok (st, C.empty_subst)
-    else
-      let sigma = { C.empty_subst with ty_subst = delta } in
-      let st = moved st sigma in
-      let* residual = R.atomise context st.residual in
-      Ok ({ st with residual }, sigma)
+    let demands =
+      List.map (fun (s, generated) -> demand generated s) extra
+      @ List.map (fun (s : R.sub) -> demand (s.lhs, s.rhs) s) st.residual.subs
+    in
+    match Sk.expand_traced (R.skeleton_unfold context) demands with
+    | Error (f, bindings) ->
+        Error
+          ( shape_failure { f with info = f.info.site_reason },
+            Some (mismatch_of context st bindings f) )
+    | Ok (delta, _) when TyParamMap.is_empty delta -> Ok (st, C.empty_subst)
+    | Ok (delta, bindings) ->
+        let sigma = { C.empty_subst with ty_subst = delta } in
+        let solved = solved_by context st.solved bindings delta in
+        let st = moved { st with solved } sigma in
+        let* residual = untraced (R.atomise context st.residual) in
+        Ok ({ st with residual }, sigma)
 
   let reexpand context st =
     let open Result.Syntax in
     let* st, _ = expand context st [] in
-    let* residual = R.atomise context st.residual in
+    let* residual = untraced (R.atomise context st.residual) in
     Ok { st with residual }
 
-  let sub_atom context st (s : R.sub) =
+  (* The subtyping atom [s], whose sides as generated are [generated]. *)
+  let sub_atom context st (s : R.sub) generated =
     let open Result.Syntax in
     if aligned (Skeleton.of_ty s.lhs) (Skeleton.of_ty s.rhs) then
-      let* residual = R.push_sub context s st.residual in
+      let* residual = untraced (R.push_sub context s st.residual) in
       Ok { st with residual }
     else
-      let* st, sigma = expand context st [ s ] in
+      let* st, sigma = expand context st [ (s, generated) ] in
       let s =
         { s with lhs = C.subst_ty sigma s.lhs; rhs = C.subst_ty sigma s.rhs }
       in
-      let* residual = R.push_sub context s st.residual in
+      let* residual = untraced (R.push_sub context s st.residual) in
       Ok { st with residual }
 
   (* ------------------------------------------------------------------ *)
@@ -235,13 +357,14 @@ module Make (C : Constraint.S) = struct
         let* st = solve_in context st c in
         solve_in context st d
     | C.Sub (why, a, b) ->
-        refused
+        expansion_refused
           (sub_atom context st
              {
                lhs = C.subst_ty theta a;
                rhs = C.subst_ty theta b;
                info = reason why;
-             })
+             }
+             (a, b))
     | C.Rho_leq (why, rho, rho') ->
         pushed st
           (R.push_rho context
@@ -289,7 +412,7 @@ module Make (C : Constraint.S) = struct
       }
     in
     let* inner = solve_in context inner body in
-    let* inner = refused (reexpand context inner) in
+    let* inner = expansion_refused (reexpand context inner) in
     let outer = images inner.theta entered in
     let scope =
       {
@@ -306,15 +429,15 @@ module Make (C : Constraint.S) = struct
     in
     let* () =
       if Eps_set.mem rigid (images inner.theta entered).free_eps then
-        Error (RS.Refused (R.Rigid_escape origin))
+        refused (Error (R.Rigid_escape origin))
       else Ok ()
     in
-    let* kept = RS.split context scope origin residual in
+    let* kept = failed (RS.split context scope origin residual) in
     let outside = R.subst inner.theta st.residual in
     let* residual = refused (merge context outside kept) in
     let st =
       {
-        theta = inner.theta;
+        inner with
         live =
           {
             inner.live with
@@ -323,7 +446,7 @@ module Make (C : Constraint.S) = struct
         residual;
       }
     in
-    let* st = refused (reexpand context st) in
+    let* st = expansion_refused (reexpand context st) in
     let* residual = refused (RS.retry context st.residual) in
     Ok { st with residual }
 
@@ -333,23 +456,28 @@ module Make (C : Constraint.S) = struct
 
   let finish context st =
     let open Result.Syntax in
-    let* residual = RS.retry context st.residual in
-    let* st = reexpand context { st with residual } in
-    let* hyps = R.to_hyps context st.residual in
-    let* hyps = R.check_closed context hyps in
+    let* residual = refused (RS.retry context st.residual) in
+    let* st = expansion_refused (reexpand context { st with residual }) in
+    let* hyps = refused (R.to_hyps context st.residual) in
+    let* hyps = refused (R.check_closed context hyps) in
     Ok { subst = st.theta; hyps; obligations = st.residual.deferred; context }
 
-  let solve context c =
+  let solve_traced context c =
     let st =
-      { theta = C.empty_subst; live = C.free_vars c; residual = R.empty }
+      {
+        theta = C.empty_subst;
+        live = C.free_vars c;
+        residual = R.empty;
+        solved = TyParamMap.empty;
+      }
     in
-    match solve_in context st c with
-    | Error (RS.Refused failure) -> Refuted failure
-    | Error (RS.Stuck stuck) -> Stuck stuck
-    | Ok st -> (
-        match finish context st with
-        | Ok solution -> Solved solution
-        | Error failure -> Refuted failure)
+    let result = Result.bind (solve_in context st c) (finish context) in
+    match result with
+    | Ok solution -> (Solved solution, None)
+    | Error (RS.Refused failure, mismatch) -> (Refuted failure, mismatch)
+    | Error (RS.Stuck stuck, mismatch) -> (Stuck stuck, mismatch)
+
+  let solve context c = fst (solve_traced context c)
 
   let satisfiable context solution =
     let open Result.Syntax in

@@ -4,8 +4,8 @@
 
 operation Op : unit ~> unit # 0
 
-(* Resuming twice gives the case grade rho + rho; under a lower bound this
-   reduces to rho >= 0, which holds for every rho. *)
+(* Resuming twice gives the case grade ε · ε and unboxes k after ε; under a
+   lower bound ε · ε >= 0 · ε and ε >= 0 hold for every effect ε of k. *)
 let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
 
 (* Correctly accepted by the typechecker: the run returns 3. *)
