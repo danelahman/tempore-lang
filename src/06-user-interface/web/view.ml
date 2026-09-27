@@ -545,7 +545,12 @@ let view_compiler (model : Model.model) =
                      Grades.GradeRegistry.groups);
               ];
             elt "p"
-              ~a:[ class_ "grades-command" ]
+              ~a:
+                [
+                  class_ "grades-command";
+                  attr "title"
+                    ("./tempore --grades " ^ model.edit_model.selected_resource);
+                ]
               [ text model.edit_model.selected_resource ];
           ];
       ]
