@@ -19,8 +19,11 @@
 
     Inclusion [rho ⊆ rho'] is the emptiness of [rho & ~rho'], decided by
     depth-first exploration of its derivatives by the minterms of its letter
-    sets; equality is decided by a bisimulation of the derivatives of both
-    grades. {!Grade.S.counterexample} [bounds rho rho'] is the grade of a
+    sets, the symbolic derivatives of RE# (Varatalu, Veanes and Ernits, POPL
+    2025); equality is decided by a bisimulation of the derivatives of both
+    grades. Deciding extended regular expressions by derivatives follows Keil
+    and Thiemann (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits (CAV
+    2025). {!Grade.S.counterexample} [bounds rho rho'] is the grade of a
     shortest word of [rho & ~rho'], found by breadth-first exploration, in which
     a letter is the least letter of its minterm: [tick], else its least name,
     else the minterm itself, the names neither grade mentions.
@@ -45,10 +48,11 @@
     - The top is printed as [⊤] unless the printing falls back, and the literal
       read back denotes the same language.
 
-    The fallback cannot be dispensed with: a printing determined by the language
+    The fallback cannot be dispensed with. The equality of extended regular
+    expressions has no elementary bound (Stockmeyer and Meyer, STOC 1973;
+    Stockmeyer, PhD thesis, MIT 1974), and a printing determined by the language
     and bounded by an elementary function of the size of the expression would
-    decide the equality of extended regular expressions, which has no elementary
-    bound (Stockmeyer and Meyer, STOC 1973). *)
+    decide it. *)
 
 include Grade.S with type t = SymbolicRegex.t
 

@@ -174,7 +174,9 @@ let nullable r = r.nullable
     The smart constructors keep the normal form, which includes the similarity
     rules of Brzozowski (JACM 1964) extended to intersection and complement, as
     in Owens, Reppy and Turon (JFP 2009), so that every expression has finitely
-    many derivatives up to its normal form. *)
+    many derivatives up to its normal form. Symbolic derivatives over an
+    effective Boolean algebra are likewise finite up to similarity (Zhuchko,
+    Maarand, Veanes and Ebner, ITP 2025). *)
 
 let empty = make Empty
 let eps = make Eps

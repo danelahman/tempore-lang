@@ -25,7 +25,8 @@
     and its upward closure [↑M = {s | t ≼ᶜ s for some t ∈ M}]. Both are regular.
     They are returned as implicit automata over sets of states of an automaton
     of [M], as sorted lists, explored only as far as a search needs; their
-    determinisation is exponential in the worst case. *)
+    determinisation is exponential in the worst case, as for the closures under
+    the scattered-subword order, a special case. *)
 
 val allowance : cost:(int -> int) -> Dfa.t -> int list Dfa.automaton
 (** [allowance ~cost m] is the automaton of the downward closure [↓m], by the

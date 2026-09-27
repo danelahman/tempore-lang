@@ -30,7 +30,9 @@
     is [r] for a nullable [r] and [r | r*] is [r*]; [r**], [(0 | r)*] and
     [r*; r*] are [r*], and the repetition of the empty word or language is the
     empty word. Brzozowski's similarity is thus decided syntactically, and every
-    expression has finitely many derivatives up to it.
+    expression has finitely many derivatives up to it, as symbolic derivatives
+    over an effective Boolean algebra do (Zhuchko, Maarand, Veanes and Ebner,
+    ITP 2025).
 
     {2 Interning}
 
@@ -159,7 +161,10 @@ val derivative : Letters.t -> t -> t
 (** {1 Decisions}
 
     The decisions explore the graph of derivatives, the states being normal
-    forms and the edges labelled by the minterms of the start. *)
+    forms and the edges labelled by the minterms of the start, the derivatives
+    by minterms being those of RE#. Deciding the inclusion and equivalence of
+    extended regular expressions by derivatives follows Keil and Thiemann
+    (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits (CAV 2025). *)
 
 val is_empty : t -> bool
 (** [is_empty r] is whether [r] has no words, decided by depth-first

@@ -25,7 +25,13 @@
     [{Read | 1} ≡ {1}] and [⊤ ≡ {0}] under the lower order. Products and joins
     are those of languages, monotone in the orders, and [≡] is a congruence for
     them; the product of closures is in general strictly smaller than the
-    closure of the product.
+    closure of the product: under the upper order the run [Read] is in
+    [↓({2}·{2})] but not in [↓{2}·↓{2}]. An operation cannot be excluded while
+    unbounded time is allowed: [{(_ & ~Read)*} ≡ ⊤] under the upper order, its
+    ticks paying for [Read]. The grades are thus regular languages modulo
+    downward closure under a preorder on runs compatible with concatenation
+    (allowance, or the converse of coverage), the model of Kleene algebra with
+    hypotheses (Doumane, Kuperberg, Pous and Pradic, FoSSaCS 2019).
 
     {2 Closed world}
 

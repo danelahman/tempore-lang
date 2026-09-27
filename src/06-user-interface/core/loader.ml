@@ -1,3 +1,14 @@
+(** Loading programs: parsing, desugaring, typechecking and running their
+    commands.
+
+    A program is loaded in two passes. First all its sources, the standard
+    library included, are parsed, and the operation declarations are collected
+    from them, the name and runtime bounds of each operation only
+    ([Loader.declare]); the grades of every command are read over these
+    operations, whether declared before or after the command. Then the sources
+    are desugared, typechecked and run command by command, in order, so that an
+    operation is still performed only after its declaration. *)
+
 module Location = Utils.Location
 module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
