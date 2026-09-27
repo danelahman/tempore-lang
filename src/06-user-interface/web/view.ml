@@ -549,7 +549,8 @@ let view_compiler (model : Model.model) =
                 [
                   class_ "grades-command";
                   attr "title"
-                    ("./tempore --grades " ^ model.edit_model.selected_resource);
+                    ("./tempore --grades " ^ model.edit_model.selected_resource
+                   ^ " file.tpe");
                 ]
               [ text model.edit_model.selected_resource ];
           ];
