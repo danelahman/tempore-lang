@@ -34,9 +34,9 @@
   >     literals_reject_empty.tpe) ../tempore --grades traces-regex-symbolic $f;;
   >     literals_regular.tpe) ../tempore --grades traces-regex-symbolic $f;;
   >     regular_*.tpe) ../tempore --grades traces-regex-symbolic $f;;
-  >     regex_costs_lower*.tpe) ../tempore --grades traces-regex-lower $f;;
-  >     regex_costs_upper*.tpe) ../tempore --grades traces-regex-upper $f;;
-  >     regex_costs_interval*.tpe) ../tempore --grades traces-regex-interval $f;;
+  >     regex_costs_lower*.tpe) ../tempore --grades traces-regex-lower-symbolic $f;;
+  >     regex_costs_upper*.tpe) ../tempore --grades traces-regex-upper-symbolic $f;;
+  >     regex_costs_interval*.tpe) ../tempore --grades traces-regex-interval-symbolic $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -3105,15 +3105,15 @@ automata, 'traces-regex':
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
 
 The programs of the cost-model regular trace grades, run above under their
-implementations by automata, under their implementations by symbolic
-derivatives:
+implementations by symbolic derivatives, under their implementations by
+automata:
 
   $ for f in regex_costs_*.tpe
   > do
   >   case $f in
-  >     regex_costs_lower*.tpe) grades=traces-regex-lower-symbolic;;
-  >     regex_costs_upper*.tpe) grades=traces-regex-upper-symbolic;;
-  >     regex_costs_interval*.tpe) grades=traces-regex-interval-symbolic;;
+  >     regex_costs_lower*.tpe) grades=traces-regex-lower;;
+  >     regex_costs_upper*.tpe) grades=traces-regex-upper;;
+  >     regex_costs_interval*.tpe) grades=traces-regex-interval;;
   >   esac
   >   echo "======================================================================"
   >   echo "$f ($grades)"
@@ -3122,7 +3122,7 @@ derivatives:
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
-  regex_costs_interval.tpe (traces-regex-interval-symbolic)
+  regex_costs_interval.tpe (traces-regex-interval)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -3132,7 +3132,7 @@ derivatives:
   ]
   
   ======================================================================
-  regex_costs_interval_reject.tpe (traces-regex-interval-symbolic)
+  regex_costs_interval_reject.tpe (traces-regex-interval)
   ======================================================================
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
@@ -3162,7 +3162,7 @@ derivatives:
     grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
     Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
   ======================================================================
-  regex_costs_interval_runs_reject.tpe (traces-regex-interval-symbolic)
+  regex_costs_interval_runs_reject.tpe (traces-regex-interval)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
@@ -3174,7 +3174,7 @@ derivatives:
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
   ======================================================================
-  regex_costs_lower.tpe (traces-regex-lower-symbolic)
+  regex_costs_lower.tpe (traces-regex-lower)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -3186,7 +3186,7 @@ derivatives:
   ]
   
   ======================================================================
-  regex_costs_lower_reject.tpe (traces-regex-lower-symbolic)
+  regex_costs_lower_reject.tpe (traces-regex-lower)
   ======================================================================
   File "regex_costs_lower_reject.tpe", lines 15-16, characters 2-5:
   15 |   unbox t as tok in
@@ -3235,14 +3235,14 @@ derivatives:
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
   ======================================================================
-  regex_costs_lower_runs_reject.tpe (traces-regex-lower-symbolic)
+  regex_costs_lower_runs_reject.tpe (traces-regex-lower)
   ======================================================================
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
   ======================================================================
-  regex_costs_upper.tpe (traces-regex-upper-symbolic)
+  regex_costs_upper.tpe (traces-regex-upper)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -3252,7 +3252,7 @@ derivatives:
   ]
   
   ======================================================================
-  regex_costs_upper_reject.tpe (traces-regex-upper-symbolic)
+  regex_costs_upper_reject.tpe (traces-regex-upper)
   ======================================================================
   File "regex_costs_upper_reject.tpe", lines 14-15, characters 2-5:
   14 |   unbox t as tok in
@@ -3307,7 +3307,7 @@ derivatives:
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
-  regex_costs_upper_runs.tpe (traces-regex-upper-symbolic)
+  regex_costs_upper_runs.tpe (traces-regex-upper)
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -3317,7 +3317,7 @@ derivatives:
   ]
   
   ======================================================================
-  regex_costs_upper_runs_reject.tpe (traces-regex-upper-symbolic)
+  regex_costs_upper_runs_reject.tpe (traces-regex-upper)
   ======================================================================
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
@@ -3349,7 +3349,29 @@ single-dash form of the help option is not accepted.
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
-    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'security-levels', 'time-lower-bound-levels', 'time-upper-bound-levels'
+    --grades          Selects the grades (default: time-lower-bound); accepted:
+        Time:
+          time-lower-bound                 Lower bounds
+          time-upper-bound                 Upper bounds
+          time-interval                    Intervals
+        Timed traces:
+          traces-lower-bound               Lower bounds
+          traces-upper-bound               Upper bounds
+          traces-interval                  Intervals
+        Regular traces:
+          traces-regex                     Regular languages
+          traces-regex-symbolic            Regular languages (symbolic derivatives)
+        Regular traces with costs:
+          traces-regex-lower               Lower bounds
+          traces-regex-upper               Upper bounds
+          traces-regex-interval            Intervals
+          traces-regex-lower-symbolic      Lower bounds (symbolic derivatives)
+          traces-regex-upper-symbolic      Upper bounds (symbolic derivatives)
+          traces-regex-interval-symbolic   Intervals (symbolic derivatives)
+        Security levels:
+          security-levels                  Levels
+          time-lower-bound-levels          Embargoes
+          time-upper-bound-levels          Expiring capabilities
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

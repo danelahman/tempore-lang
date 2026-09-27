@@ -17,15 +17,6 @@
 # order given here, and within a group from the simplest example to the most
 # advanced.
 
-Basics | Delay | time-lower-bound | basics/delay.tpe | Functions accumulate delays, whether taken directly or hidden in a returned closure.
-Basics | Unbox | time-lower-bound | basics/basic_unbox.tpe | Unboxing before the box's grade has accumulated is rejected.
-Basics | Folding over boxes | time-lower-bound | basics/fold_over_boxes.tpe | A fold builds a chain of boxed accumulators, each claimed once the grade it demands has accumulated.
-Basics | Algebraic operations | time-lower-bound | basics/operations.tpe | Operation calls advance the accumulated grade by their declared cost.
-Basics | Top-level structures | time-lower-bound | basics/toplevel.tpe | A polymorphic sum type and a generalised top-level function, folded over a list.
-Basics | Natural numbers as an inductive type | time-lower-bound | basics/nat.tpe | Unary natural numbers with addition and multiplication, defined by structural recursion.
-Basics | Recursive functions on integers | time-lower-bound | basics/recursion.tpe | Factorial, Fibonacci and Euclid's algorithm, by ordinary recursion.
-Basics | Eternal types | time-upper-bound | basics/eternal_types.tpe | Values of eternal types stay usable however much grade accumulates; functions and non-eternal types do not.
-
 Effect handlers | Lower bounds | time-lower-bound | handlers/handlers_lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
 Effect handlers | Upper bounds | time-upper-bound | handlers/handlers_upper_bound.tpe | An operation case may resume its continuation at any point up to the operation's grade, or not at all.
 Effect handlers | Nested | time-lower-bound | handlers/handlers_nested.tpe | Nested handlers each resume their own continuation, quantifying over one rigid effect per level of nesting.
@@ -38,7 +29,7 @@ Trace grades | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3
 Trace grades | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
 Trace grades | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
 Trace grades | Regular languages | traces-regex-symbolic | traces/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
-Trace grades | Regular languages with costs | traces-regex-upper | traces/regex_costs.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.
+Trace grades | Regular languages with costs | traces-regex-upper-symbolic | traces/regex_costs.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.
 
 Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower_levels.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.

@@ -49,11 +49,11 @@ There are two ways to run programs:
   `--typecheck-only` typechecks the files without running them, `--no-stdlib`
   skips the standard library, and `--debug` also prints the typing context.
 
-The [`examples/`](examples/) directory contains the programs available in the
-web interface, grouped into subdirectories by topic (`basics/`, `handlers/`,
-`time/`, `traces/`, `levels/`, `3dprint/`) that match the groups the web
-interface's example selector lists them under; [`examples/index`](examples/index)
-gives the selector's manifest. Each example also starts with listing the
+The [`examples/`](examples/) directory contains example programs, grouped into
+subdirectories by topic (`basics/`, `handlers/`, `time/`, `traces/`, `levels/`,
+`3dprint/`); most of these, `basics/` excepted, are also offered by the web
+interface's example selector, grouped to match, with [`examples/index`](examples/index)
+giving the selector's manifest. Each example also starts with listing the
 command that runs it on the CLI.
 
 ## Grading monoids
@@ -65,8 +65,12 @@ the program is run: with `--grades` on the command line, e.g.
     ./tempore --grades time-interval examples/time/time_intervals.tpe
 
 or with the **Grades** selector in the web interface, which switches
-its value automatically when a built-in example is loaded. The default grade
-monoid is `time-lower-bound`. Currently, seventeen monoids are available to choose.
+its value automatically when a built-in example is loaded. The selector groups
+the monoids under a descriptive title and a one-line description (its
+tooltip), and shows below it the `--grades` command equivalent to the current
+selection; the CLI's `--help` lists the same names and titles, grouped
+likewise. The default grade monoid is `time-lower-bound`. Currently, seventeen
+monoids are available to choose.
 
 All monoids share one syntax of grade literals, and each reads the literals it
 understands; a literal the chosen monoid does not understand is a syntax error,
@@ -306,10 +310,12 @@ be excluded while unbounded time is allowed: `{(_ & ~Read)*}` equals `⊤`,
 since its ticks pay for `Read`. Under `traces-regex-lower`, `{Read | 1}` equals
 `{1}`, and `⊤` equals the unit `{0}`, which every run covers. See
 [`examples/traces/regex_costs.tpe`](examples/traces/regex_costs.tpe), which
-runs with `traces-regex-upper`, the implementation to prefer.
+runs with `traces-regex-upper-symbolic`, the default, consistent with
+`traces-regex-symbolic`.
 
-The benchmark above also compares the two implementations of these monoids.
-Over `traces-regex`, they typecheck the example and the tests of
+The benchmark above also compares the two implementations of these monoids,
+which typecheck whole programs within a few percent of one another. Over
+`traces-regex`, they typecheck the example and the tests of
 `traces-regex-upper` about 1.1 times faster than over `traces-regex-symbolic`,
 and those of `traces-regex-lower` and `traces-regex-interval` 1.05 to 1.15
 times slower, the programs being checked about as fast on the whole. Over

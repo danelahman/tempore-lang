@@ -36,6 +36,19 @@ type config = {
 let accepted_resource_names = List.map fst Grades.GradeRegistry.grade_modules
 let default_resource_name = List.hd accepted_resource_names
 
+(* The accepted grades, one per line and grouped as the web selector groups
+   them, each with its title; indented to align under the "--grades" entry of
+   [Arg]'s aligned option list. *)
+let accepted_grades_help =
+  let line (name, (info : Grades.GradeRegistry.info)) =
+    Printf.sprintf "\n        %-32s %s" name info.title
+  in
+  let group (g : Grades.GradeRegistry.group) =
+    Printf.sprintf "\n      %s:%s" g.label
+      (String.concat "" (List.map line g.grades))
+  in
+  String.concat "" (List.map group Grades.GradeRegistry.groups)
+
 let parse_args_to_config () =
   let filenames = ref []
   and use_stdlib = ref true
@@ -57,10 +70,8 @@ let parse_args_to_config () =
            execution" );
         ( "--grades",
           Arg.Set_string resource_type,
-          Printf.sprintf " Selects the grades (default: %s). Accepted: %s"
-            default_resource_name
-            (String.concat ", "
-               (List.map (fun s -> "'" ^ s ^ "'") accepted_resource_names)) );
+          Printf.sprintf " Selects the grades (default: %s); accepted:%s"
+            default_resource_name accepted_grades_help );
         ( "--help",
           Arg.Unit
             (fun () -> raise (Arg.Help (Arg.usage_string !options usage))),

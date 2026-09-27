@@ -1,6 +1,6 @@
-(* Run this example with the 'traces-regex-upper' grading monoid, e.g.
+(* Run this example with the 'traces-regex-upper-symbolic' grading monoid, e.g.
 
-     ./tempore --grades traces-regex-upper examples/traces/regex_costs.tpe *)
+     ./tempore --grades traces-regex-upper-symbolic examples/traces/regex_costs.tpe *)
 
 (* A grade is a regular language of runs, as under 'traces-regex', read as an
    upper bound: a run is permitted if it fits inside some run of the grade,

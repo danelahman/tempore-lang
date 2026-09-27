@@ -44,6 +44,11 @@ let select ?(a = []) empty_description msg describe_choice selected choices =
            ~a:
              [
                disabled true;
+               (* Hidden so a browser leaves it out of the opened list, but
+                  still shown in the closed control while nothing else is
+                  selected, since it stays index 0 of the same <select>. *)
+               bool_prop "hidden" true;
+               value "";
                bool_prop "selected"
                  (List.for_all (fun choice -> not (selected choice)) choices);
              ]
@@ -87,6 +92,11 @@ let grouped_select ?(a = []) empty_description msg describe_choice
            ~a:
              [
                disabled true;
+               (* Hidden so a browser leaves it out of the opened list, but
+                  still shown in the closed control while nothing else is
+                  selected, since it stays index 0 of the same <select>. *)
+               bool_prop "hidden" true;
+               value "";
                bool_prop "selected"
                  (List.for_all (fun choice -> not (selected choice)) choices);
              ]
@@ -519,13 +529,27 @@ let view_compiler (model : Model.model) =
             div
               ~a:[ class_ "control is-expanded" ]
               [
-                select
+                (* Grouped as {!Grades.GradeRegistry.groups} groups them, the
+                   option text its title and the tooltip its description. *)
+                grouped_select
                   ~a:[ class_ "select is-fullwidth" ]
                   "Select grades"
-                  (fun name -> Model.EditMsg (Model.SelectResource name))
-                  (fun name -> name)
-                  (fun name -> name = model.edit_model.selected_resource)
-                  (List.map fst Grades.GradeRegistry.grade_modules);
+                  (fun (name, _) -> Model.EditMsg (Model.SelectResource name))
+                  (fun (_, (info : Grades.GradeRegistry.info)) -> info.title)
+                  (fun (_, (info : Grades.GradeRegistry.info)) ->
+                    info.description)
+                  (fun (name, _) -> name = model.edit_model.selected_resource)
+                  (List.map
+                     (fun (g : Grades.GradeRegistry.group) ->
+                       (g.label, g.grades))
+                     Grades.GradeRegistry.groups);
+              ];
+            elt "p"
+              ~a:[ class_ "grades-command" ]
+              [
+                text
+                  (Printf.sprintf "./tempore --grades %s"
+                     model.edit_model.selected_resource);
               ];
           ];
       ]
