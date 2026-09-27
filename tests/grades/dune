@@ -1,5 +1,6 @@
 ; Unit tests of the grades: the security levels, the products of grades, the
-; literals of every grade, and the regular trace grade.
+; literals of every grade, and the two implementations of the regular trace
+; grade, by automata and by symbolic derivatives.
 
 (test
  (name test_grades)

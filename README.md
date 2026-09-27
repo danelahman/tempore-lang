@@ -162,11 +162,29 @@ letter standing for every other operation; `_` and `~` range over these
 letters, so `{_ & ~Read}` is any single tick or operation other than `Read`.
 When two grades are combined or compared, both are read over the operations
 either names, the catch-all letter of each standing also for the operations
-only the other names: `{Send}` is a sub-grade of `{_ & ~Read}`. Grades are
-kept as minimal deterministic automata, which only name the operations the
-language tells apart from the others, so that equal languages are equal
-grades, and are printed as a regular expression read off the automaton, e.g.
-`{_*; Auth; _*}` as `{(_ & ~Auth)*; Auth; _*}`.
+only the other names: `{Send}` is a sub-grade of `{_ & ~Read}`.
+
+Grades are kept as regular expressions in a normal form: unions and
+intersections are sets of operands, with the unit and zero laws, `~~r` is `r`,
+and letter sets are merged, as in `{_ & ~Read | Read}`, which is `{_}`. They
+are printed in this form, close to the literal as written, e.g. `{Read*|Send}`
+as `{Send | Read*}` and `{~(_*; Revoke; _*)}` as `{~{_*; Revoke; _*}}` (a
+group ending with `*` is printed in braces, so that it can be quoted in a
+comment); two grades denoting the same language may thus print differently.
+Inclusion and equality are decided by *symbolic derivatives*, in the style of
+RE# (Varatalu, Veanes and Ernits, POPL 2025): `rho <= rho'` holds when no
+derivative of `rho & ~rho'`, taken by the classes of letters the expression
+tells apart and explored breadth-first, contains the empty word, and equality
+is a bisimulation of the derivatives of both grades. No automaton is built, so
+products and joins cost nothing and only the derivatives a decision needs are
+computed. An alternative implementation by minimal deterministic automata is
+kept for comparison; `dune exec --profile release
+bench/regular/bench_regular.exe` benchmarks the two. The derivatives typecheck
+the example and the tests of this grade 1.2 to 1.3 times faster, build
+products and joins 10 to 200 times faster, and decide inclusions involving the
+complement of "the 17th letter from the end is `A`" in microseconds where the
+automata take seconds; the automata decide equality of grades already built
+faster, their canonical forms being compared structurally.
 
 One monoid grades resources and computations by *security levels*, and two
 more pair it with time:

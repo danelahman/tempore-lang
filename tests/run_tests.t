@@ -1038,13 +1038,13 @@
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read* | Send} }
+    { resource_0 ↦ 1 # {Send | Read*} }
   ]
   
   === Run 2 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read*} }
+    { resource_0 ↦ 1 # {Read* & ~Send} }
   ]
   
   === Run 3 ===
@@ -1062,31 +1062,31 @@
   === Run 5 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Read; 3; (Send | Write)*} }
+    { resource_0 ↦ 1 # {Read; 3; (Send | Write)* & ~(_; Read)} }
   ]
   
   === Run 6 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(Send; 2)*} }
+    { resource_0 ↦ 1 # {(Send; 2)* & ~{_*; Send; Send; _*}} }
   ]
   
   === Run 7 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {(_ & ~Revoke)*} }
+    { resource_0 ↦ 1 # {~{_*; Revoke; _*}} }
   ]
   
   === Run 8 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {Open; (Read | Write)*; Close} }
+    { resource_0 ↦ 1 # {Open; Close | Open; (Read | Write)*; Close} }
   ]
   
   === Run 9 ===
   return 0
   State: [
-    { resource_0 ↦ 1 # {0 | 2; (0 | 1; (0 | 1; 2*))} }
+    { resource_0 ↦ 1 # {3 | 2*} }
   ]
   
   === Run 10 ===
@@ -1556,7 +1556,7 @@
   File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
   15 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{(_ & ~Auth)*; Auth; _*}`
+  Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{_*; Auth; _*}`
     File "regular_reject_auth.tpe", line 13, characters 36-37:
     13 |   box {_*; Auth; _*} (Token "t") as t in
                                              ^
@@ -1565,12 +1565,12 @@
     14 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    Note: the resource inequality `{Fetch} <= {(_ & ~Auth)*; Auth; _*}` does not hold
+    Note: the resource inequality `{Fetch} <= {_*; Auth; _*}` does not hold
   
   File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
   22 |   unbox c as cap in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
+  Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{~{_*; Revoke; _*}}`
     File "regular_reject_auth.tpe", line 20, characters 41-42:
     20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
                                                   ^
@@ -1579,7 +1579,7 @@
     21 |   perform Revoke ();
            ^^^^^^^^^^^^^^^^^
     grade `{Revoke}` accumulates here (operation `Revoke`)
-    Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
+    Note: the resource inequality `{Revoke} <= {~{_*; Revoke; _*}}` does not hold
   
   File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
   29 |   unbox x as n in

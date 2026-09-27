@@ -58,7 +58,7 @@ let two_sessions () : int # {(Open; (Read | Write)*; Close | 1)*} =
 
 (* Correctly accepted by the typechecker: the token may be used once the
    session has authenticated, whatever happened before and since. Its grade is
-   printed as '{(_ & ~Auth)*; Auth; _*}'. *)
+   printed as written, '{_*; Auth; _*}'. *)
 let after_auth () =
   box {_*; Auth; _*} (Token "t") as t in
   perform Fetch ();
@@ -125,10 +125,10 @@ let unclosed () : int # {Open; (Read | Write)*; Close} =
    authenticating:
 
      Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since
-       it was bound, which is not below its box grade `{(_ & ~Auth)*; Auth; _*}`
+       it was bound, which is not below its box grade `{_*; Auth; _*}`
        ...
-       Note: the resource inequality `{Fetch} <= {(_ & ~Auth)*; Auth; _*}`
-         does not hold
+       Note: the resource inequality `{Fetch} <= {_*; Auth; _*}` does not
+         hold
 *)
 (*
 let before_auth () =
@@ -143,10 +143,10 @@ let before_auth () =
    revocation:
 
      Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated
-       since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
+       since it was bound, which is not below its box grade `{~{_*; Revoke; _*}}`
        ...
-       Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not
-         hold
+       Note: the resource inequality `{Revoke} <= {~{_*; Revoke; _*}}` does
+         not hold
 *)
 (*
 let after_revoke () =

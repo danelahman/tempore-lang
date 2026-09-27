@@ -9,7 +9,7 @@ let grade_modules =
       (module TimedTraceGrades.LowerBound);
       (module TimedTraceGrades.UpperBound);
       (module TimedTraceGrades.Interval);
-      (module RegularTraceGrade);
+      (module RegularTraceGradeDerivative);
       (module LevelGrades.SecurityLevels);
       (module LevelGrades.TimeLowerBoundLevels);
       (module LevelGrades.TimeUpperBoundLevels);

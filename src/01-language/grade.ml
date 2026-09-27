@@ -1,8 +1,10 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
-    {!TimedTraceGrades}, {!RegularTraceGrade} and {!LevelGrades}, built with the
-    constructions of {!GradeConstructions}, and listed in {!GradeRegistry}.
+    {!TimedTraceGrades}, {!RegularTraceGradeDerivative} and {!LevelGrades},
+    built with the constructions of {!GradeConstructions}, and listed in
+    {!GradeRegistry}; {!RegularTraceGrade} is an alternative implementation of
+    the regular trace grade, not listed.
 
     {2 Cost model}
 

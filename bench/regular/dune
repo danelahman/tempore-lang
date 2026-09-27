@@ -1,0 +1,8 @@
+; A benchmark of the two implementations of the regular trace grade, by
+; automata and by symbolic derivatives; it is built but not run by the tests:
+;
+;   dune exec --profile release bench/regular/bench_regular.exe
+
+(executable
+ (name bench_regular)
+ (libraries utils language parser sugaredAst loader cliInterpreter unix))

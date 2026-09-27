@@ -1,6 +1,10 @@
 (** The regular trace grade, ["regular-traces"]: non-empty regular languages of
     words over delays and operations, multiplied by concatenation.
 
+    This implementation by automata is not the one {!GradeRegistry} lists, which
+    is {!RegularTraceGradeDerivative}; it is kept for the tests and the
+    benchmark comparing the two.
+
     {2 Runs as words}
 
     A run is read as a word: an operation [o] is the letter [o], and a delay of
