@@ -132,3 +132,25 @@ let coated_twice () =
 *)
 
 run sealed ()
+
+(* A grade with large intermediate automata: both bounds of the box grade are
+   the runs of one or more cycles of a coating, a bake and a sealing whose
+   12th-last step, if any, is neither a coating nor a bake, that is, the runs of
+   one to three cycles. Under 'traces-regex-interval', reading the literal
+   builds the minimal automata of the two complements and of their intersection
+   before the cycles restrict it: the example, with this program uncommented,
+   takes about 3.5 s, and about 11 s with the 13th-last step. Under
+   'traces-regex-interval-symbolic', the literal is kept as a normalised
+   expression, whose derivatives are few: the example takes about 0.09 s at both
+   sizes, as without the program. *)
+(*
+let cycles () =
+  box {~(_*; Coat; _; _; _; _; _; _; _; _; _; _; _)
+       & ~(_*; Bake; _; _; _; _; _; _; _; _; _; _; _)
+       & ((Coat; Bake; Seal)*; Coat; Bake; Seal)} (Part "gear") as p in
+  perform Coat ();
+  perform Bake ();
+  perform Seal ();
+  unbox p as x in
+  x
+*)
