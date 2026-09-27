@@ -426,6 +426,18 @@
     `int` was inferred here
     Note: while matching `int → int` against `string → α # ε₀`
   ======================================================================
+  error_earliest_failure.tpe
+  ======================================================================
+  File "error_earliest_failure.tpe", lines 14-16, characters 2-25:
+  14 |   unbox b as x in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with the unit grade `0` accumulated since it was bound, which is not below its box grade `3`
+    File "error_earliest_failure.tpe", line 13, characters 13-14:
+    13 |   box 3 1 as b in
+                      ^
+    `b` is bound here
+    Note: the resource inequality `0 >= 3` does not hold
+  ======================================================================
   error_handler_case.tpe
   ======================================================================
   File "error_handler_case.tpe", line 9, characters 4-20:

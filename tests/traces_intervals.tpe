@@ -352,11 +352,11 @@ let print_sword_hasty () =
    and the extruder, and the quick epoxy may have hardened by the time it is
    reached, since 2 + 1 + 5 = 8 is past the seven ticks of its pot life:
 
-     Typing error: Variable `g` is used with grade
-       `({Cool},{Cool})` accumulated since it was bound, but its type
-       `epoxy` is not eternal
+     Typing error: Variable `glue` is unboxed with grade
+       `({Heat; 1; Extrude},{Heat; 1; Extrude})` accumulated since it was
+       bound, which is not below its box grade `({3},{7})`
        Note: the resource inequality
-         `({Cool},{Cool}) <= ({0},{0})` does not hold
+         `({Heat; 1; Extrude},{Heat; 1; Extrude}) <= ({3},{7})` does not hold
 *)
 (*
 let make_cog_impatient () =

@@ -5,7 +5,13 @@
     signature extends the environment, a default implementation, a top-level
     definition and a run have their constraint generated and solved. A rejected
     command is explained by {!Explain}, against its constraint generated again
-    over the unsimplified schemes of the definitions. *)
+    over the unsimplified schemes of the definitions.
+
+    Of the failing requirements of a command, each found by solving its
+    constraint again without the atoms refuted by those found before, the one
+    met first in reading order is explained: an effect bound at the end of the
+    place its diagnostic points at, any other requirement where that place
+    begins, the first found among those met at one point. *)
 
 module Ast = Language.Ast
 

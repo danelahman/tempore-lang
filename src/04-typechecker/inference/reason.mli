@@ -28,7 +28,15 @@ type lock_kind =
   | Clause_lock of clause
       (** the lock [⟨⊤⟩] of a handler clause or of a default implementation *)
 
-type 'rho lock = { grade : 'rho; at : Location.t; kind : lock_kind }
+type 'rho lock = {
+  grade : 'rho;
+  at : Location.t;
+  kind : lock_kind;
+  declared : 'rho option;
+      (** the grade its construct declares, when that is not the lock's grade:
+          [n] of a [delay n] and the grade of [Op] mapped to a resource grade of
+          a [perform Op e], each bound by [let] or [;] *)
+}
 (** A lock of the context, with its resource grade and its construct. *)
 
 (** A position within a decomposed atom. *)

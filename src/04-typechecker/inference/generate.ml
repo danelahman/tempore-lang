@@ -555,13 +555,19 @@ module Make (C : Constraint.S) = struct
         (match k with Some k -> k.Ast.at | None -> clause.Reason.case_at);
     }
 
-  (* The kind of the lock a [Do] puts in the context: the desugarer turns
-     [delay n; c] and [perform Op e; c] into [Do]s bound to exactly these. *)
-  let sequenced_kind (comp : computation) =
+  (* The kind of the lock a [Do] puts in the context and the grade its bound
+     computation declares: the desugarer turns [delay n; c] and
+     [perform Op e; c] into [Do]s bound to exactly these. *)
+  let sequenced_kind env (comp : computation) =
     match comp.Ast.it with
-    | Ast.Delay (n, { it = Ast.Return _; _ }) -> Reason.Delayed n
-    | Ast.Perform (op, _, (_, { it = Ast.Return _; _ })) -> Reason.Performed op
-    | _ -> Reason.Sequenced
+    | Ast.Delay (n, { it = Ast.Return _; _ }) ->
+        (Reason.Delayed n, Some (Rho.of_nat n))
+    | Ast.Perform (op, _, (_, { it = Ast.Return _; _ })) ->
+        ( Reason.Performed op,
+          Option.map
+            (fun signature -> Rho.map signature.op_grade)
+            (find_op_signature env op) )
+    | _ -> (Reason.Sequenced, None)
 
   let signature ~loc env op =
     match find_op_signature env op with
@@ -709,7 +715,12 @@ module Make (C : Constraint.S) = struct
                     in
                     let env_ret =
                       lock env
-                        { grade = Rho.map input_eps; at; kind = Reason.Handled }
+                        {
+                          grade = Rho.map input_eps;
+                          at;
+                          kind = Reason.Handled;
+                          declared = None;
+                        }
                     in
                     let because =
                       Reason.because ret_body.Ast.at Reason.Return_clause
@@ -748,7 +759,12 @@ module Make (C : Constraint.S) = struct
     let rigid = X.Eps_var.fresh_indexed () in
     let env_clause =
       lock env
-        { grade = Rho.top; at = case_at; kind = Reason.Clause_lock clause }
+        {
+          grade = Rho.top;
+          at = case_at;
+          kind = Reason.Clause_lock clause;
+          declared = None;
+        }
     in
     let continuation_ty =
       Ast.TyBox
@@ -788,7 +804,7 @@ module Make (C : Constraint.S) = struct
             let kind = Reason.Delayed n in
             C.conj
               (generate_computation
-                 (lock env { grade = Rho.of_nat n; at; kind })
+                 (lock env { grade = Rho.of_nat n; at; kind; declared = None })
                  c' ty
                  (expect eps'
                     (Reason.because c'.Ast.at (Reason.Continuation_effect kind))))
@@ -804,10 +820,11 @@ module Make (C : Constraint.S) = struct
     exists_ty (fun ty1 ->
         exists_eps (fun eps1 ->
             exists_eps (fun eps2 ->
-                let kind = sequenced_kind c1 in
+                let kind, declared = sequenced_kind env c1 in
                 let bound = Reason.because c1.Ast.at Reason.Sequencing in
                 let env' =
-                  lock env { grade = Rho.map eps1; at = c1.Ast.at; kind }
+                  lock env
+                    { grade = Rho.map eps1; at = c1.Ast.at; kind; declared }
                 in
                 C.conj_all
                   [
@@ -883,7 +900,8 @@ module Make (C : Constraint.S) = struct
         let because = Reason.because at Reason.Boxed_value in
         C.conj
           (generate_expression
-             (lock env { grade = rho; at; kind = Reason.Boxed })
+             (lock env
+                { grade = rho; at; kind = Reason.Boxed; declared = None })
              e
              (expect payload_ty because))
           (with_pattern env pat
@@ -934,7 +952,9 @@ module Make (C : Constraint.S) = struct
     let { param; arity; op_grade; signature_at } = signature ~loc:at env op in
     exists_eps (fun eps' ->
         let kind = Reason.Performed op in
-        let env' = lock env { grade = Rho.map op_grade; at; kind } in
+        let env' =
+          lock env { grade = Rho.map op_grade; at; kind; declared = None }
+        in
         C.conj_all
           [
             generate_expression env e
@@ -1018,7 +1038,13 @@ module Make (C : Constraint.S) = struct
     in
     let clause = { Reason.op; signature_at; case_at = loc } in
     let env' =
-      lock env { grade = Rho.top; at = loc; kind = Reason.Clause_lock clause }
+      lock env
+        {
+          grade = Rho.top;
+          at = loc;
+          kind = Reason.Clause_lock clause;
+          declared = None;
+        }
     in
     let default = Reason.because loc (Reason.Default_of { op; signature_at }) in
     with_pattern env' pat

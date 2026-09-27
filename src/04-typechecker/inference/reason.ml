@@ -17,7 +17,12 @@ type lock_kind =
   | Handled
   | Clause_lock of clause
 
-type 'rho lock = { grade : 'rho; at : Location.t; kind : lock_kind }
+type 'rho lock = {
+  grade : 'rho;
+  at : Location.t;
+  kind : lock_kind;
+  declared : 'rho option;
+}
 
 type step =
   | Argument
@@ -108,7 +113,9 @@ let clause_of_locks locks =
     (fun e -> match e.kind with Clause_lock c -> Some c | _ -> None)
     locks
 
-let map_locks on_rho = List.map (fun e -> { e with grade = on_rho e.grade })
+let map_locks on_rho =
+  List.map (fun e ->
+      { e with grade = on_rho e.grade; declared = Option.map on_rho e.declared })
 
 let rec map_grades on_rho on_eps reason =
   let why =
@@ -147,7 +154,10 @@ let rec map_grades on_rho on_eps reason =
   { reason with why; stated }
 
 let fold_locks on_rho locks acc =
-  List.fold_left (fun acc e -> on_rho e.grade acc) acc locks
+  List.fold_left
+    (fun acc e ->
+      Option.fold ~none:Fun.id ~some:on_rho e.declared (on_rho e.grade acc))
+    acc locks
 
 let rec fold_grades on_rho on_eps reason acc =
   let acc =

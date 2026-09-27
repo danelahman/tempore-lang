@@ -3,6 +3,7 @@
 module Ast = Language.Ast
 module Diagnostic = Utils.Diagnostic
 module Error = Utils.Error
+module Location = Utils.Location
 
 module Make (GS : Language.GradeSystem.S) = struct
   module X = Inference.GradeExp.Make (GS)
@@ -50,43 +51,101 @@ module Make (GS : Language.GradeSystem.S) = struct
     | Ast.TyDef _ | Ast.OpSig _ -> None
 
   (* The failure of a constraint, solved and its qualifier searched for a
-     closed instance as a command's is, with the hypotheses of the solution
-     in the latter case and the provenance of a failed expansion in the
-     former. *)
+     closed instance as a command's is, with what it is explained against:
+     the solution in the latter case, the provenance of a failed expansion in
+     the former. *)
   let failure context constr =
+    let source solution mismatch =
+      { E.context; constr = Some constr; solution; mismatch }
+    in
     match S.solve_traced context constr with
     | S.Solved solution, _ -> (
         match S.satisfiable context solution with
         | Ok () -> None
-        | Error failure -> Some (P.Refuted failure, Some solution.hyps, None))
-    | S.Refuted failure, mismatch -> Some (P.Refuted failure, None, mismatch)
-    | S.Stuck stuck, mismatch -> Some (P.Stuck stuck, None, mismatch)
+        | Error failure -> Some (source (Some solution) None, P.Refuted failure)
+        )
+    | S.Refuted failure, mismatch ->
+        Some (source None mismatch, P.Refuted failure)
+    | S.Stuck stuck, mismatch -> Some (source None mismatch, P.Stuck stuck)
 
-  (* A rejection explained against the command's constraint generated afresh
-     over the unsimplified schemes of the definitions, whose unknowns the
-     failure of solving it again mentions; against the failure alone where
-     that does not reproduce it. *)
-  let explain (envs : P.envs) (cmd : command) error =
-    let env = envs.unsimplified in
-    let context = P.context ~loc:cmd.at env in
-    let replayed =
-      match constraint_of env cmd with
-      | Some constr ->
-          Option.map
-            (fun (error, hyps, mismatch) ->
-              (Some constr, hyps, mismatch, error))
-            (failure context constr)
-      | None -> None
-      | exception Error.Error _ -> None
-    in
-    let constr, hyps, mismatch, error =
-      Option.value replayed ~default:(None, None, None, error)
-    in
-    let source = { E.context; constr; hyps; mismatch } in
-    match error with
+  let is_refutation = function
+    | _, P.Refuted _ -> true
+    | _, (P.Malformed _ | P.Stuck _) -> false
+
+  (* The failures of a constraint in the order they are found: its failure,
+     then, after a refutation, the refutations of the constraint without the
+     atoms it refutes. *)
+  let rec failures context constr =
+    match failure context constr with
+    | None -> []
+    | Some ((_, P.Refuted refuted) as found) ->
+        let rest =
+          match E.without_refuted refuted constr with
+          | Some constr -> List.filter is_refutation (failures context constr)
+          | None -> []
+        in
+        found :: rest
+    | Some found -> [ found ]
+
+  let diagnose source = function
     | P.Malformed d -> d
     | P.Refuted failure -> E.refuted source failure
     | P.Stuck stuck -> E.stuck source stuck
+
+  (* The point at which a failing requirement is met in reading order: for
+     an effect bound, once the computation it bounds has been read, at the end
+     of the place its diagnostic points at; for any other requirement, where
+     that place begins. *)
+  let met_at error (d : Diagnostic.t) =
+    Option.map
+      (fun (at : Location.t) ->
+        match error with
+        | P.Refuted failure when E.refutes_effect failure ->
+            { at with start = at.stop }
+        | P.Refuted _ | P.Stuck _ | P.Malformed _ -> { at with stop = at.start })
+      d.primary
+
+  (* Whether a point is read before another; no point is read last. *)
+  let read_before point point' =
+    match (point, point') with
+    | Some at, Some at' -> Location.compare at at' < 0
+    | Some _, None -> true
+    | None, (Some _ | None) -> false
+
+  (* The diagnostic of the failing requirement met first, the first found
+     among those met at one point. *)
+  let first_met found =
+    let met (source, error) =
+      let d = diagnose source error in
+      (met_at error d, d)
+    in
+    let earlier ((point, _) as first) ((point', _) as next) =
+      if read_before point' point then next else first
+    in
+    match List.map met found with
+    | [] -> None
+    | first :: rest -> Some (snd (List.fold_left earlier first rest))
+
+  (* A rejection explained against the command's constraint generated afresh
+     over the unsimplified schemes of the definitions, whose unknowns the
+     failures of solving it again mention: the failing requirement met first
+     in reading order, explained against the constraint it is found in;
+     against the failure alone where solving again does not reproduce it. *)
+  let explain (envs : P.envs) (cmd : command) error =
+    let env = envs.unsimplified in
+    let context = P.context ~loc:cmd.at env in
+    let found =
+      match constraint_of env cmd with
+      | Some constr -> failures context constr
+      | None -> []
+      | exception Error.Error _ -> []
+    in
+    match first_met found with
+    | Some d -> d
+    | None ->
+        diagnose
+          { E.context; constr = None; solution = None; mismatch = None }
+          error
 
   (* The diagnostic of a rejected command, pinned to the command when it has
      no location of its own. *)

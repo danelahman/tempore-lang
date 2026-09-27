@@ -1,0 +1,16 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/error_earliest_failure.tpe
+
+   Two requirements fail: 'b' is unboxed before its box grade has accumulated,
+   and later the non-eternal 't' is used after a delay. The requirement met
+   first in reading order is reported. *)
+
+noneternal type token = Token
+
+let f () =
+  let t = Token in
+  box 3 1 as b in
+  unbox b as x in
+  delay 1;
+  match t with Token -> x

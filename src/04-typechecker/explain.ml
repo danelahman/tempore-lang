@@ -18,7 +18,7 @@ module Make (C : Inference.Constraint.S) = struct
   type source = {
     context : S.context;
     constr : C.t option;
-    hyps : R.hyps option;
+    solution : S.solution option;
     mismatch : S.mismatch option;
   }
 
@@ -52,6 +52,7 @@ module Make (C : Inference.Constraint.S) = struct
 
   type printer = {
     bounds : Language.Grade.bounds;
+    values : X.subst;  (** the values of the unknowns explained against *)
     ty_name : Ast.ty_param -> Format.formatter -> unit;
     rho_name : X.Rho_var.t -> Format.formatter -> unit;
     eps_name : X.Eps_var.t -> Format.formatter -> unit;
@@ -60,9 +61,54 @@ module Make (C : Inference.Constraint.S) = struct
       are first printed, so that a name means the same unknown in the headline,
       the labels and the notes. *)
 
+  (* Whether a closed grade is the top and not the unit. *)
+  let is_top_rho bounds rho =
+    match X.Rho.value rho with
+    | Some c ->
+        GS.R.equal bounds c GS.R.top && not (GS.R.equal bounds c GS.R.one)
+    | None -> false
+
+  let is_top_eps bounds eps =
+    match X.Eps.value eps with
+    | Some c ->
+        GS.E.equal bounds c GS.E.top && not (GS.E.equal bounds c GS.E.one)
+    | None -> false
+
+  (* The values of the grade unknowns of a solution in the search for a closed
+     instance of its qualifier, except those sent to the top for want of any
+     bound, which stay unknown. *)
+  let instance_values (context : S.context) (solution : S.solution) =
+    let hyps = solution.hyps in
+    let values, _ =
+      RS.localise_all context
+        {
+          R.rho_orderings = hyps.rho_hyps;
+          eps_orderings = hyps.eps_hyps;
+          eternals = hyps.eternal_hyps;
+          subs = hyps.sub_vars;
+          disjunctions = hyps.disj_hyps;
+          deferred = solution.obligations;
+        }
+    in
+    let bounds = context.bounds in
+    {
+      X.rho_subst =
+        X.Rho_var.Map.filter
+          (fun _ rho -> not (is_top_rho bounds rho))
+          values.X.rho_subst;
+      eps_subst =
+        X.Eps_var.Map.filter
+          (fun _ eps -> not (is_top_eps bounds eps))
+          values.eps_subst;
+    }
+
   let printer (source : source) =
     {
       bounds = source.context.bounds;
+      values =
+        Option.fold ~none:X.empty_subst
+          ~some:(instance_values source.context)
+          source.solution;
       ty_name = Ty_names.create ();
       rho_name = Rho_names.create ();
       eps_name = Eps_names.create ();
@@ -483,12 +529,14 @@ module Make (C : Inference.Constraint.S) = struct
     | X.Rho_map eps -> eps_raw p eps
     | rho -> rho_raw p rho
 
-  (* The grade a label names for a lock: its own, or, where that is not
-     closed, the grade [n] a [delay n] states in the source. *)
+  (* The grade a label names for a lock: its own at the values of the
+     instance explained against where that is closed, else the grade its
+     construct declares, where there is one. *)
   let lock_grade p (e : C.rho Reason.lock) =
-    match (e.kind, X.Rho.value (canon_rho p e.grade)) with
-    | Reason.Delayed n, None -> X.Rho.of_nat n
-    | _ -> e.grade
+    let grade = X.Rho.subst p.values e.grade in
+    match (X.Rho.value (canon_rho p grade), e.declared) with
+    | None, Some declared -> declared
+    | Some _, _ | None, None -> grade
 
   (* One lock that contributed to an accumulated grade, naming its grade and
      its construct. *)
@@ -512,7 +560,7 @@ module Make (C : Inference.Constraint.S) = struct
   let lock_labels p locks =
     List.filter_map
       (fun (e : C.rho Reason.lock) ->
-        if is_unit_rho p e.grade then None
+        if is_unit_rho p (lock_grade p e) then None
         else Some (label e.at (lock_text p e)))
       locks
 
@@ -755,48 +803,11 @@ module Make (C : Inference.Constraint.S) = struct
         C.Forall_eps (rigid, origin, drop dropped c)
     | c -> if dropped c then C.True else c
 
-  (* Whether a closed grade is the top and not the unit. *)
-  let is_top_rho bounds rho =
-    match X.Rho.value rho with
-    | Some c ->
-        GS.R.equal bounds c GS.R.top && not (GS.R.equal bounds c GS.R.one)
-    | None -> false
-
-  let is_top_eps bounds eps =
-    match X.Eps.value eps with
-    | Some c ->
-        GS.E.equal bounds c GS.E.top && not (GS.E.equal bounds c GS.E.one)
-    | None -> false
-
   (* An instance of a solution as a message shows it: its grade unknowns given
-     the values of the search for a closed instance of its qualifier, except
-     those sent to the top for want of any bound, which stay unknown. *)
+     their values in the search for a closed instance of its qualifier
+     ({!instance_values}). *)
   let instance context (solution : S.solution) =
-    let hyps = solution.hyps in
-    let values, _ =
-      RS.localise_all context
-        {
-          R.rho_orderings = hyps.rho_hyps;
-          eps_orderings = hyps.eps_hyps;
-          eternals = hyps.eternal_hyps;
-          subs = hyps.sub_vars;
-          disjunctions = hyps.disj_hyps;
-          deferred = solution.obligations;
-        }
-    in
-    let bounds = context.bounds in
-    let values : X.subst =
-      {
-        rho_subst =
-          X.Rho_var.Map.filter
-            (fun _ rho -> not (is_top_rho bounds rho))
-            values.rho_subst;
-        eps_subst =
-          X.Eps_var.Map.filter
-            (fun _ eps -> not (is_top_eps bounds eps))
-            values.eps_subst;
-      }
-    in
+    let values = instance_values context solution in
     fun ty ->
       C.subst_ty
         { C.empty_subst with grade_subst = values }
@@ -1517,7 +1528,9 @@ module Make (C : Inference.Constraint.S) = struct
      values. *)
   let completed source sort
       (o : ('e, C.reason list) Inference.GradeNormal.ordering) =
-    match (source.hyps, o.info) with
+    match
+      (Option.map (fun (s : S.solution) -> s.hyps) source.solution, o.info)
+    with
     | Some hyps, [ reason ] -> (
         let hyps = sort.hyps_of hyps in
         match
@@ -1687,4 +1700,46 @@ module Make (C : Inference.Constraint.S) = struct
                  "The case for %s cannot be typed for every grade of %s"
                  (op_name origin.clause.op)
                  (continuation_phrase origin)))
+
+  (* ------------------------------------------------------------------ *)
+  (* Refuted atoms                                                       *)
+  (* ------------------------------------------------------------------ *)
+
+  (* The reason of the atom a failure refutes, the one its diagnostic is built
+     on, when the failure names one. *)
+  let refuted_reason = function
+    | R.Shape_mismatch f | R.Occurs_check f -> Some f.info
+    | R.Refuted_rho o -> Some (principal o.info)
+    | R.Refuted_eps o -> Some (principal o.info)
+    | R.Never_eternal { reason; _ } -> Some reason
+    | R.Refuted_condition { condition; _ } -> (
+        match (condition.rho_conditions, condition.eps_conditions) with
+        | o :: _, _ -> Some o.info
+        | [], o :: _ -> Some o.info
+        | [], [] -> None)
+    | R.Rigid_escape _ -> None
+
+  let refutes_effect = function
+    | R.Refuted_eps _ -> true
+    | R.Refuted_condition { condition = { rho_conditions = []; _ }; _ } -> true
+    | R.Refuted_condition _ | R.Shape_mismatch _ | R.Occurs_check _
+    | R.Refuted_rho _ | R.Never_eternal _ | R.Rigid_escape _ ->
+        false
+
+  let reason_of_atom = function
+    | C.Sub (r, _, _)
+    | C.Rho_leq (r, _, _)
+    | C.Eps_leq (r, _, _)
+    | C.Eternal (r, _)
+    | C.Eternal_or_unit (r, _, _) ->
+        Some r
+    | C.True | C.And _ | C.Exists _ | C.Forall_eps _ -> None
+
+  let without_refuted failure c =
+    Option.bind (refuted_reason failure) (fun reason ->
+        let refuted atom =
+          Option.fold ~none:false ~some:(generated_by reason)
+            (reason_of_atom atom)
+        in
+        if List.exists refuted (atoms c) then Some (drop refuted c) else None)
 end

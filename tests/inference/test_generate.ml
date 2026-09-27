@@ -291,7 +291,12 @@ module Small = struct
     let clause = { Reason.op; signature_at = loc; case_at = loc } in
     let env =
       Gen.lock env_x
-        { grade = X.Rho.top; at = loc; kind = Reason.Clause_lock clause }
+        {
+          grade = X.Rho.top;
+          at = loc;
+          kind = Reason.Clause_lock clause;
+          declared = None;
+        }
     in
     let constr = Gen.generate_expression env (var x) (expect alpha) in
     expect_text "variable in clause" ~expected:"α <: α\nEt(α) ∨ 0 ≾ 0" constr;
@@ -348,7 +353,12 @@ module Small = struct
     let env =
       Gen.lock
         (Gen.bind Gen.initial_env x boxed ~bound_at:loc)
-        { grade = X.Rho.of_nat 2; at = loc; kind = Reason.Delayed 2 }
+        {
+          grade = X.Rho.of_nat 2;
+          at = loc;
+          kind = Reason.Delayed 2;
+          declared = None;
+        }
     in
     let c = at (Ast.Unbox (var x, (pvar y, return (var y)))) in
     expect_text "unbox"

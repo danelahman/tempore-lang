@@ -275,6 +275,7 @@ let expected_rejections =
     ("default_reject_duplicate.tpe", [ 8 ]);
     ("default_reject_type.tpe", [ 7 ]);
     ("error_apply_arg.tpe", [ 8 ]);
+    ("error_earliest_failure.tpe", [ 11 ]);
     ("error_handler_case.tpe", [ 7 ]);
     ("error_unbox_nonvariable.tpe", [ 7 ]);
     ("error_use_after_delay.tpe", [ 15 ]);

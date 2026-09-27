@@ -14,9 +14,10 @@ module Make (C : Inference.Constraint.S) : sig
     constr : C.t option;
         (** the constraint of the command, whose unknowns the failure mentions,
             when known *)
-    hyps : Inference.Residual.Make(C).hyps option;
-        (** the hypotheses of its solution, when the failure is found by the
-            search for a closed instance of them *)
+    solution : Inference.Solver.Make(C).solution option;
+        (** its solution, when the failure is found by the search for a closed
+            instance of its qualifier, whose values the grades of the locks are
+            shown at *)
     mismatch : Inference.Solver.Make(C).mismatch option;
         (** the provenance of the failure, when it is a failed expansion *)
   }
@@ -29,4 +30,13 @@ module Make (C : Inference.Constraint.S) : sig
   val stuck : source -> Inference.RigidScope.Make(C).stuck -> Utils.Diagnostic.t
   (** [stuck source s] is the diagnostic of a handler clause whose rigid scope
       cannot be closed. *)
+
+  val refutes_effect : Inference.Residual.Make(C).failure -> bool
+  (** [refutes_effect failure] is whether the ordering [failure] refutes, the
+      one its diagnostic is built on, is an effect ordering: a bound on the
+      effect of a computation. *)
+
+  val without_refuted : Inference.Residual.Make(C).failure -> C.t -> C.t option
+  (** [without_refuted failure c] is [c] without the atoms that [failure]
+      refutes, the atoms its diagnostic is built on, when [c] has any. *)
 end
