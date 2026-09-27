@@ -5,8 +5,8 @@
 (* Under 'time-upper-bound' a grade rho is an upper bound on the ticks a
    computation takes, rho is a sub-grade of rho' when rho <= rho', and zero
    is the minimum grade. A 'Get' clause's continuation k : [71](int -> ... #
-   rho) may be resumed at any time up to 71 ticks after the call, and its
-   grade rho is arbitrary. *)
+   eps) may be resumed at any time up to 71 ticks after the call, for every
+   rigid effect eps the continuation may have. *)
 
 (* Reading the state takes at most 71 ticks. *)
 operation Get : unit ~> int # 71
@@ -24,7 +24,7 @@ let h =
 
 (* Correctly accepted by the typechecker: an upper bound only forbids taking
    more than the operation allows, so a case may take less; delaying only 10
-   before resuming is fine, since 10 + rho <= 71 + rho. *)
+   before resuming is fine, since 10 · eps <= 71 · eps. *)
 let h_fast =
   handler
   | x -> x
@@ -44,8 +44,8 @@ let h_offset n =
 (* Correctly rejected by the typechecker: 72 ticks overrun the 71 the
    continuation must be resumed within:
 
-     Typing error: The case for `Get` has grade `72`, which does not match
-       the grade `71` of `Get` followed by its continuation
+     Typing error: Variable `k` is unboxed after grade `72` has elapsed,
+       which does not match its box grade `71`
        Note: the resource inequality `72 <= 71` does not hold
 *)
 (*
@@ -58,22 +58,22 @@ let h_slow =
 *)
 
 (* Correctly accepted by the typechecker: never resuming gives the case
-   grade 0, a sub-grade of 71 + rho for every rho, since zero is the minimum
+   grade 0, a sub-grade of 71 · eps for every eps, since zero is the minimum
    grade. Under a lower bound the same handler is rejected. *)
 let h_abandon =
   handler
   | x -> x
   | Get () k -> 0
 
-(* Correctly rejected by the typechecker: resuming twice takes rho + rho, but
-   the clause may promise only 71 + rho, i.e. rho <= 71, which fails already
-   for rho = 72:
+(* Correctly rejected by the typechecker: resuming twice unboxes 'k' a
+   second time only after the first resumption has run for the
+   continuation's own rigid effect eps, and |eps| <= 71 already fails
+   once eps is unbounded:
 
-     Typing error: For every grade `ρ₀` the continuation `k` may have, the
-       case for `Get` must have a grade matching `71 + ρ₀`, but its grade
-       `ρ₀ + ρ₀` does not
-       Note: the resource inequality `∀ρ₀. ρ₀ <= 71` does not hold: for
-         `ρ₀ = 72` it becomes `72 <= 71`
+     Typing error: Variable `k` is unboxed after grade `∣ε₀∣` has
+       elapsed, which does not match its box grade `71`
+       Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 71` does not hold:
+         for `ε₀ = ∞` it becomes `∞ <= 71`
    (Contrast: accepted under a lower bound.)
 *)
 (*
@@ -100,11 +100,11 @@ let h_before =
 (* Correctly rejected by the typechecker: 'f' is not eternal, so it may not
    be used after a resumption that may take any number of ticks:
 
-     Typing error: Variable `f` is used after grade `ρ₀` has elapsed, but
+     Typing error: Variable `f` is used after grade `∣ε₀∣` has elapsed, but
        its type `unit → int` is not eternal
-       Note: for every grade `ρ₀` the continuation `k` may have, the resource
-         inequality `∀ρ₀. ρ₀ <= 0` must hold, but does not: for `ρ₀ = 1`
-         it becomes `1 <= 0`
+       Note: for every grade `ε₀` the continuation `k` may have, the
+         resource inequality `∀ε₀. ∣ε₀∣ <= 0` must hold, but does not: for
+         `ε₀ = ∞` it becomes `∞ <= 0`
 *)
 (*
 let h_after =
@@ -117,13 +117,13 @@ let h_after =
 *)
 
 (* Correctly rejected by the typechecker: a case keeps nothing but eternal
-   types from outside it, and 'g' is a function. Were it admitted, the
-   continuation's arbitrary grade would escape into the type of 'h_leak'
-   through 'g', where a caller could pick it:
+   types from outside it; letting 'g', a function, in would leak the
+   continuation's arbitrary grade through it into the type of 'h_leak':
 
-     Typing error: Variable `g` has type `[71](int → α # ρ₀) → β # ρ₁`, which
-       is not eternal, so it cannot be used in the case for `Get`: the case
-       runs at a time the handler does not fix
+     Typing error: Variable `g` has type `[71](int → α # ε₀) → β`, which
+       is not eternal, so it cannot be used in the case for `Get`: the
+       case runs at a time the handler does not fix
+       Note: the resource inequality `∞ <= 0` does not hold
 *)
 (*
 let h_leak g =

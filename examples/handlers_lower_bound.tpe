@@ -43,10 +43,10 @@ let h'' =
       perform Get ();
       continue k with 42
 
-(* Correctly accepted by the typechecker: resuming twice gives the case grade
-   71 + rho + rho, a sub-grade of 71 + rho, i.e. rho >= 0, which holds for
-   every rho since zero is the top of the order; the second resumption also
-   happens 71 + rho ticks after the call, and 71 + rho >= 71. *)
+(* Correctly accepted by the typechecker: resuming twice unboxes 'k' a
+   second time only after the first resumption has run for the
+   continuation's own rigid effect eps, growing the elapsed grade to
+   71 · eps, which still meets its box grade 71, since more grade only helps. *)
 let h_twice =
   handler
   | x -> x
@@ -68,8 +68,8 @@ let h_offset n =
    only once 71 ticks have passed since the call, but this clause delays
    only 70:
 
-     Typing error: The case for `Get` has grade `70`, which does not match
-       the grade `71` of `Get` followed by its continuation
+     Typing error: Variable `k` is unboxed after grade `70` has elapsed,
+       which does not match its box grade `71`
        Note: the resource inequality `70 >= 71` does not hold
 *)
 (*
@@ -84,8 +84,8 @@ let h_short =
 (* Correctly rejected by the typechecker: performing 'Set' costs only 2
    ticks, short of the 71 the continuation demands:
 
-     Typing error: The case for `Get` has grade `2`, which does not match
-       the grade `71` of `Get` followed by its continuation
+     Typing error: Variable `k` is unboxed after grade `2` has elapsed,
+       which does not match its box grade `71`
        Note: the resource inequality `2 >= 71` does not hold
 *)
 (*
@@ -98,14 +98,14 @@ let h_swap =
 *)
 
 (* Correctly rejected by the typechecker: the case must be a sub-grade of
-   71 + rho for every rho, but never resuming gives it grade 0, which already
-   fails for rho = 0:
+   71 · eps for every eps, but never resuming gives it grade 0, which
+   already fails for eps = 0:
 
-     Typing error: For every grade `ρ₀` the continuation `k` may have, the
-       case for `Get` must have a grade matching `71 + ρ₀`, but its grade `0`
-       does not
-       Note: the resource inequality `∀ρ₀. 0 >= ρ₀ + 71` does not hold: for
-         `ρ₀ = 0` it becomes `0 >= 71`
+     Typing error: For every grade `ε₀` the continuation `k` may have, the
+       case for `Get` must have a grade matching `71 · ε₀`, but its grade
+       `0` does not
+       Note: the effect inequality `∀ε₀. 0 >= 71 · ε₀` does not hold: for
+         `ε₀ = 0` it becomes `0 >= 71`
 *)
 (*
 let h_abandon =
@@ -115,12 +115,12 @@ let h_abandon =
 *)
 
 (* Correctly rejected by the typechecker: the return case makes the
-   handler's result type 'unit -> α # 0', so the 'Get' clause's function must
-   also have grade 0, forcing the continuation's arbitrary grade to equal 0:
+   handler's result type 'unit -> α # 0', so the continuation must be
+   resumed as soon as the case runs, before any grade has elapsed:
 
-     Typing error: The continuation `k` in the case for `Get` may have any
-       grade `ρ₀`, but here `ρ₀` is required to equal `0`
-       Note: while matching `unit → β # ρ₁ + ρ₂` against `unit → α`
+     Typing error: Variable `k` is unboxed before any grade has elapsed,
+       but its box grade is `71`
+       Note: the resource inequality `0 >= 71` does not hold
 *)
 (*
 let h_fixed =
@@ -129,13 +129,13 @@ let h_fixed =
   | Get () k -> (fun () -> let f = continue k with 42 in f ())
 *)
 
-(* Correctly rejected by the typechecker: 'f' is bound outside the handler
-   like 'n' above, but a function is never eternal, so the case may not use
-   it:
+(* Accepted by the typechecker: 'f' is bound outside the handler like 'n'
+   above, but under time-lower-bound the case's lock at the top grade
+   restricts nothing, since zero is the top of the order, so a
+   non-eternal function may still be used in it:
 
-     Typing error: Variable `f` has type `unit → int # ρ₀`, which is not
-       eternal, so it cannot be used in the case for `Get`: the case runs at
-       a time the handler does not fix
+     Under time-upper-bound the same case is rejected, since the top
+     grade there is not the unit (see 'handlers_upper_bound.tpe').
 *)
 (*
 let h_helper f =
@@ -149,12 +149,12 @@ let h_helper f =
 (* A single-use token, declared non-eternal whatever its structure. *)
 noneternal type token = Token
 
-(* Correctly rejected by the typechecker: 't' is bound outside the handler
-   and a token is declared noneternal, so the case may not use it:
+(* Accepted by the typechecker: 't' is bound outside the handler and a
+   token is declared noneternal, but under time-lower-bound the case's
+   lock at the top grade restricts nothing, so it may still be used:
 
-     Typing error: Variable `t` has type `token`, which is not eternal, so
-       it cannot be used in the case for `Get`: the case runs at a time the
-       handler does not fix
+     zero is the top grade there, unlike under time-upper-bound, where
+     the same case is rejected (see 'handlers_upper_bound.tpe').
 *)
 (*
 let h_token t =
@@ -166,14 +166,14 @@ let h_token t =
       continue k with 42
 *)
 
-(* Correctly rejected by the typechecker: a case keeps nothing but eternal
-   types from outside it, and g is a function. Were it admitted, the
-   continuation's arbitrary grade would escape into the type of h_leak
-   through g, where a caller could pick it:
+(* Accepted by the typechecker: a case may keep a non-eternal function
+   like 'g' from outside it under time-lower-bound, since the lock at
+   the top grade restricts nothing there; 'g''s inferred type
+   `[71](int → α # 0) → β # ε₀` still pins down the continuation's grade,
 
-     Typing error: Variable `g` has type `[71](int → α # ρ₀) → β # ρ₁`, which
-       is not eternal, so it cannot be used in the case for `Get`: the case
-       runs at a time the handler does not fix
+     so no soundness is lost by letting the case call 'g' on 'k'. Under
+     time-upper-bound the same case is rejected, since the top grade
+     there is not the unit (see 'handlers_upper_bound.tpe').
 *)
 (*
 let h_leak g =

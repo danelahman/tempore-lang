@@ -209,9 +209,9 @@ let deliver_by_events () =
    through the extruder. The types alone no longer allow a print to be run
    backwards, so only the grade can catch this:
 
-     Typing error: The case for `PrintModel` has grade
-       `{Heat; Cool; Extrude}`, which does not match the grade
-       `{Heat; Extrude; Cool}` of `PrintModel` followed by its continuation
+     Typing error: Variable `k` is unboxed after grade
+       `{Heat; Cool; Extrude}` has elapsed, which does not match its box
+       grade `{Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Heat; Cool; Extrude} <= {Heat; Extrude; Cool}` does not hold
 *)
@@ -230,9 +230,9 @@ let early_cooler =
    'Cool', and the order of a demand is not negotiable, however the model that
    is handed to the cooler came to be:
 
-     Typing error: The case for `Print` has grade `{Cool; Heat}`, which does
-       not match the grade `{Heat; Cool | Heat; Extrude; Cool}` of `Print`
-       followed by its continuation
+     Typing error: Variable `k` is unboxed after grade `{Cool; Heat}` has
+       elapsed, which does not match its box grade
+       `{Heat; Cool | Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Cool; Heat} <= {Heat; Cool | Heat; Extrude; Cool}` does not hold
 *)
@@ -252,9 +252,9 @@ let twisted_printer =
    where the very same clause is accepted, because an upper bound only forbids
    doing more:
 
-     Typing error: The case for `Print` has grade `{Heat; Extrude}`, which
-       does not match the grade `{Heat; Cool | Heat; Extrude; Cool}` of
-       `Print` followed by its continuation
+     Typing error: Variable `k` is unboxed after grade `{Heat; Extrude}`
+       has elapsed, which does not match its box grade
+       `{Heat; Cool | Heat; Extrude; Cool}`
        Note: the resource inequality
          `{Heat; Extrude} <= {Heat; Cool | Heat; Extrude; Cool}` does not
          hold
@@ -276,10 +276,10 @@ let sloppy_printer =
    circular. A default is checked against the 'within (1, 1)' bounds instead,
    which the very same tick of mixing meets exactly:
 
-     Typing error: The case for `MixEpoxy` has grade `{1}`, which does not
-       match the grade `{MixEpoxy}` of `MixEpoxy` followed by its
-       continuation
-       Note: the resource inequality `{1} <= {MixEpoxy}` does not hold
+     Typing error: Variable `k` is unboxed after grade `{1}` has
+       elapsed, which does not match its box grade `{MixEpoxy}`
+       Note: the resource inequality `{1} <= {MixEpoxy}` does not
+         hold
 *)
 (*
 let mixer =
@@ -312,10 +312,10 @@ let print_sword_eager () =
    demanded operation, so a clause that only delays cannot realise the
    transmission 'Deliver' promises, no matter how long it waits:
 
-     Typing error: The case for `Deliver` has grade `{6}`, which does not
-       match the grade `{Tx | Tx; Tx}` of `Deliver` followed by its
-       continuation
-       Note: the resource inequality `{6} <= {Tx | Tx; Tx}` does not hold
+     Typing error: Variable `k` is unboxed after grade `{6}` has
+       elapsed, which does not match its box grade `{Tx | Tx; Tx}`
+       Note: the resource inequality `{6} <= {Tx | Tx; Tx}` does not
+         hold
 *)
 (*
 let deliver_stall =
@@ -327,10 +327,10 @@ let deliver_stall =
 (* Correctly rejected by the typechecker: a clause that drops the message
    altogether banks nothing towards the transmission 'Deliver' promises:
 
-     Typing error: The case for `Deliver` has grade `{0}`, which does not
-       match the grade `{Tx | Tx; Tx}` of `Deliver` followed by its
-       continuation
-       Note: the resource inequality `{0} <= {Tx | Tx; Tx}` does not hold
+     Typing error: Variable `k` is unboxed before any grade has
+       elapsed, but its box grade is `{Tx | Tx; Tx}`
+       Note: the resource inequality `{0} <= {Tx | Tx; Tx}` does not
+         hold
 *)
 (*
 let deliver_drop =

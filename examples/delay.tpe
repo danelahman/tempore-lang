@@ -40,7 +40,7 @@ let higher2 n =
   fun m -> delay 5; n + m
 
 (* Correctly accepted by the typechecker: the grades of the two function
-   arguments stay polymorphic, giving grade rho0 + rho1 + 42. *)
+   arguments stay polymorphic, giving grade 42 · eps0 · eps1. *)
 let foo f1 f2 n = f1 n; f2 n; delay 42
 
 (* A delaying function of grade 24, to instantiate 'foo' with. *)
