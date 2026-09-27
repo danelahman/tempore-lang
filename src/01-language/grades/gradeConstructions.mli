@@ -20,6 +20,12 @@ module type LATTICE = sig
   val leq : t -> t -> bool
   (** The partial order. *)
 
+  val compare : t -> t -> int
+  (** A total order compatible with the equality of the elements. *)
+
+  val hash : t -> int
+  (** A hash compatible with {!compare}. *)
+
   val elements : t list
   (** Every element. *)
 
@@ -38,7 +44,8 @@ end
     the lattice, so [of_nat] is constantly the bottom, and so is [of_bounds].
     The unit is least and [mul] commutes. No operation needs runtime bounds,
     every grade is atomic, and no counterexample is offered. The witnesses are
-    all the elements, and complete. *)
+    all the elements, and complete. [is_top] is decided by the order, and
+    [compare] and [hash] are those of [L]. *)
 module OfLattice (L : LATTICE) : Grade.S with type t = L.t
 
 (** The product of the grades [G1] and [G2]: pairs [(g1, g2)], written as such
@@ -59,7 +66,9 @@ module OfLattice (L : LATTICE) : Grade.S with type t = L.t
       implies any;
     - [inhabited] holds iff it holds for both components;
     - [events] are the events of either component;
-    - [is_atomic name] holds iff it holds for both components;
+    - [is_atomic name] and [is_top bounds] hold iff they hold for both
+      components;
+    - [compare] is lexicographic, and [hash] combines those of the components;
     - [witnesses] pairs each witness of the first component with each of the
       second, and is complete iff both are: an ordering fails iff it fails in
       one component;

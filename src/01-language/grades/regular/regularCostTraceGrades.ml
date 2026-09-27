@@ -41,27 +41,66 @@ struct
     let costs = Array.of_list costs in
     fun a -> costs.(a - 1)
 
-  (** [tabulated search] is [search], its results tabulated by the names, the
-      costs of their operations and the grades. *)
+  (** The arguments of a search: the names, the costs of their operations, and
+      the grades compared, by their representations. *)
+  module Search = Hashtbl.Make (struct
+    type t = string list * int list * L.t * L.t
+
+    let equal (names, costs, rho, sigma) (names', costs', rho', sigma') =
+      List.equal String.equal names names'
+      && List.equal Int.equal costs costs'
+      && L.compare rho rho' = 0
+      && L.compare sigma sigma' = 0
+
+    let hash (names, costs, rho, sigma) =
+      combine
+        (combine (hash_list String.hash names) (hash_list Int.hash costs))
+        (combine (L.hash rho) (L.hash sigma))
+  end)
+
+  (** [tabulated search] is [search], its results tabulated by its arguments. *)
   let tabulated search =
-    let table = Hashtbl.create 64 in
+    let table = Search.create 64 in
     fun names costs rho rho' ->
       let key = (names, costs, rho, rho') in
-      match Hashtbl.find_opt table key with
+      match Search.find_opt table key with
       | Some word -> word
       | None ->
           let word = search ~cost:(letter_cost costs) names rho rho' in
-          Hashtbl.add table key word;
+          Search.add table key word;
           word
+
+  (** The grades over given names, by their representations. *)
+  module Tables = Hashtbl.Make (struct
+    type t = string list * L.t
+
+    let equal (names, rho) (names', rho') =
+      List.equal String.equal names names' && L.compare rho rho' = 0
+
+    let hash (names, rho) = combine (hash_list String.hash names) (L.hash rho)
+  end)
+
+  (** [concrete names rho] is [L.concrete names rho], tabulated by its
+      arguments. *)
+  let concrete =
+    let table = Tables.create 16 in
+    fun names rho ->
+      match Tables.find_opt table (names, rho) with
+      | Some dfa -> dfa
+      | None ->
+          let dfa = L.concrete names rho in
+          Tables.add table (names, rho) dfa;
+          dfa
 
   type order = {
     search : string list -> int list -> L.t -> L.t -> int list option;
     endpoint : int * int -> int;
+    top : L.t;
   }
   (** An order on runs: the search for a shortest run of the lesser grade
       outside the closure of the greater one, over given names at given costs of
-      their operations, and the end of the runtime bounds it reads as the cost
-      of an operation. *)
+      their operations, the end of the runtime bounds it reads as the cost of an
+      operation, and the representation of its greatest grade. *)
 
   let letters names = List.length names + 1
 
@@ -70,8 +109,9 @@ struct
       search =
         tabulated (fun ~cost names rho rho' ->
             Allowed.counterexample (letters names) (L.runs names rho)
-              (CostClosure.allowance ~cost (L.concrete names rho')));
+              (CostClosure.allowance ~cost (concrete names rho')));
       endpoint = snd;
+      top = L.top;
     }
 
   let coverage =
@@ -81,6 +121,7 @@ struct
             Covered.counterexample (letters names) (L.runs names rho)
               (Coverage.closure ~cost (L.runs names rho')));
       endpoint = fst;
+      top = L.one;
     }
 
   (** [alphabet bounds rhos] is the names of the operations of a comparison of
@@ -97,9 +138,9 @@ struct
 
   (** [find order bounds rho rho'] is a shortest run of [rho] outside the
       closure of [rho'] under [order], with the names its letters index; there
-      is none if [rho] and [rho'] are the same language. *)
+      is none if [rho] and [rho'] are the same language or [rho'] is the top. *)
   let find order bounds rho rho' =
-    if L.equal bounds rho rho' then None
+    if L.equal bounds rho rho' || L.compare rho' order.top = 0 then None
     else
       let names = alphabet bounds [ rho; rho' ] in
       order.search names (costs order.endpoint bounds names) rho rho'
@@ -120,6 +161,11 @@ struct
 
   let leq order bounds rho rho' = Option.is_none (find order bounds rho rho')
 
+  (** [is_top order bounds rho] is whether [rho] is the top: by its
+      representation, and otherwise by the order. *)
+  let is_top order bounds rho =
+    L.compare rho order.top = 0 || leq order bounds order.top rho
+
   let counterexample order bounds rho rho' =
     Option.map grade_of_word (find order bounds rho rho')
 
@@ -129,7 +175,7 @@ struct
     let names = alphabet bounds [ rho ] in
     extreme
       ~cost:(letter_cost (costs endpoint bounds names))
-      (L.concrete names rho)
+      (concrete names rho)
 
   let implied_bounds bounds lower upper =
     match
@@ -153,6 +199,8 @@ struct
     let implied_bounds bounds rho = implied_bounds bounds rho rho
     let inhabited = inhabited
     let events = L.events
+    let compare = L.compare
+    let hash = L.hash
     let is_atomic = L.is_atomic
     let show = L.show
     let witnesses = L.witnesses
@@ -167,8 +215,9 @@ struct
     let counterexample = counterexample coverage
 
     (** The unit [{0}], covered by every run. *)
-    let top = one
+    let top = coverage.top
 
+    let is_top = is_top coverage
     let unit_least = false
     let of_lit = function Top -> top | lit -> L.of_lit lit
     let of_bounds (lo, _hi) = of_nat lo
@@ -181,7 +230,8 @@ struct
     let leq = leq allowance
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample allowance
-    let top = L.top
+    let top = allowance.top
+    let is_top = is_top allowance
     let unit_least = true
     let of_lit = L.of_lit
     let of_bounds (_lo, hi) = of_nat hi
@@ -201,6 +251,14 @@ struct
     let top = (Lower.top, Upper.top)
     let join (lo, hi) (lo', hi') = (L.join lo lo', L.join hi hi')
     let equal bounds p q = leq bounds p q && leq bounds q p
+
+    let is_top bounds (lo, hi) =
+      Lower.is_top bounds lo && Upper.is_top bounds hi
+
+    let compare (lo, hi) (lo', hi') =
+      match L.compare lo lo' with 0 -> L.compare hi hi' | c -> c
+
+    let hash (lo, hi) = combine (L.hash lo) (L.hash hi)
 
     let counterexample bounds (lo, hi) (lo', hi') =
       match Lower.counterexample bounds lo lo' with

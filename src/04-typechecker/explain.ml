@@ -64,14 +64,12 @@ module Make (C : Inference.Constraint.S) = struct
   (* Whether a closed grade is the top and not the unit. *)
   let is_top_rho bounds rho =
     match X.Rho.value rho with
-    | Some c ->
-        GS.R.equal bounds c GS.R.top && not (GS.R.equal bounds c GS.R.one)
+    | Some c -> GS.R.is_top bounds c && not (GS.R.equal bounds c GS.R.one)
     | None -> false
 
   let is_top_eps bounds eps =
     match X.Eps.value eps with
-    | Some c ->
-        GS.E.equal bounds c GS.E.top && not (GS.E.equal bounds c GS.E.one)
+    | Some c -> GS.E.is_top bounds c && not (GS.E.equal bounds c GS.E.one)
     | None -> false
 
   (* The values of the grade unknowns of a solution in the search for a closed

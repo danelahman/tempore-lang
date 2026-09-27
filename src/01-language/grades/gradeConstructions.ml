@@ -6,6 +6,8 @@ module type LATTICE = sig
   val top : t
   val join : t -> t -> t
   val leq : t -> t -> bool
+  val compare : t -> t -> int
+  val hash : t -> int
   val elements : t list
   val of_lit : Grade.lit -> t
   val show : t -> string
@@ -28,6 +30,9 @@ module OfLattice (L : LATTICE) = struct
     L.bottom
 
   let equal _bounds l l' = L.leq l l' && L.leq l' l
+  let is_top _bounds = L.leq L.top
+  let compare = L.compare
+  let hash = L.hash
   let counterexample _bounds _ _ = None
   let unit_least = true
   let commutative = true
@@ -65,6 +70,13 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
 
   let equal bounds (a, b) (a', b') =
     G1.equal bounds a a' && G2.equal bounds b b'
+
+  let is_top bounds (a, b) = G1.is_top bounds a && G2.is_top bounds b
+
+  let compare (a, b) (a', b') =
+    match G1.compare a a' with 0 -> G2.compare b b' | c -> c
+
+  let hash (a, b) = Grade.combine (G1.hash a) (G2.hash b)
 
   let counterexample bounds (a, b) (a', b') =
     match G1.counterexample bounds a a' with

@@ -13,7 +13,10 @@
     antichain of its extremal members, since that reduction depends on the order
     and hence on the cost model. So [mul] and [join] need no cost model, but a
     grade may have several representations; [equal] is mutual [leq], which is
-    equality of the reduced antichains.
+    equality of the reduced antichains, and [compare] and [hash] are those of
+    the representations. The top alone is decided from the representation: a
+    lower bound is the top iff it lists the empty run, and an upper bound iff it
+    is [⊤].
 
     {2 Literals}
 

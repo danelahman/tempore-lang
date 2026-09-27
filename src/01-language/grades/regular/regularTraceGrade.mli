@@ -31,9 +31,10 @@
     A grade keeps only the names its language tells apart from the catch-all
     letter, with the minimal automaton over them in the canonical form of
     {!Dfa}. Grades denoting the same language thus have equal names and
-    automata, which {!Grade.S.equal} compares. A grade also keeps the normal
-    form of the expression it was built from, by the operations of
-    {!RegularTraceGradeDerivative}, for its printing only.
+    automata, which {!Grade.S.equal}, {!Grade.S.compare}, {!Grade.S.hash} and
+    {!Grade.S.is_top} read. A grade also keeps the normal form of the expression
+    it was built from, by the operations of {!RegularTraceGradeDerivative}, for
+    its printing only.
 
     {2 Counterexamples and printing}
 

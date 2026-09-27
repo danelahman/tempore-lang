@@ -93,10 +93,15 @@ end
     automaton {!CostClosure.allowance} of the table {!LANGUAGE.concrete} of
     [ρ'], and under the lower order, the automaton {!CostClosure.Coverage} of
     the automaton {!LANGUAGE.runs} of [ρ']. The searches are tabulated by the
-    names, the costs of their operations and the grades compared, in
-    module-level tables that only ever grow. A grade is {!Grade.S.inhabited} iff
-    {!LANGUAGE.runs} accepts some word, and its runtime bounds are read off
-    {!LANGUAGE.concrete}. *)
+    names, the costs of their operations and the representations of the grades
+    compared ({!Grade.S.compare} and {!Grade.S.hash} of [L]), and the tables
+    {!LANGUAGE.concrete} by the names and the representation of the grade, in
+    module-level tables that only ever grow. A grade is the top if its
+    representation is that of the top and otherwise iff the search decides
+    [⊤ ≾ ρ], since grades of other representations may be equivalent to the top;
+    [compare] and [hash] are those of [L], componentwise for the intervals. A
+    grade is {!Grade.S.inhabited} iff {!LANGUAGE.runs} accepts some word, and
+    its runtime bounds are read off {!LANGUAGE.concrete}. *)
 module Make
     (L : LANGUAGE)
     (Variant : sig

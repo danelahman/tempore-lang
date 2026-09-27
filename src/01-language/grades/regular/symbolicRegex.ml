@@ -2,8 +2,18 @@ module Letters = struct
   type names = Only of string list | Except of string list
   type t = { tick : bool; names : names }
 
-  let equal (p : t) q = p = q
-  let compare (p : t) q = Stdlib.compare p q
+  let compare_names a b =
+    match (a, b) with
+    | Only a, Only b | Except a, Except b -> List.compare String.compare a b
+    | Only _, Except _ -> -1
+    | Except _, Only _ -> 1
+
+  let compare p q =
+    match Bool.compare p.tick q.tick with
+    | 0 -> compare_names p.names q.names
+    | c -> c
+
+  let equal p q = compare p q = 0
   let empty = { tick = false; names = Only [] }
   let any = { tick = true; names = Except [] }
   let tick = { tick = true; names = Only [] }
@@ -64,16 +74,16 @@ module Letters = struct
       names = (match p.names with Only a -> Except a | Except a -> Only a);
     }
 
-  let is_empty p = (not p.tick) && p.names = Only []
+  let is_empty p =
+    match p with { tick = false; names = Only [] } -> true | _ -> false
 
   let hash p =
     let names, cofinite =
       match p.names with Only a -> (a, false) | Except a -> (a, true)
     in
-    List.fold_left
-      (fun h n -> (h * 65599) + Hashtbl.hash n)
-      (Hashtbl.hash (p.tick, cofinite))
-      names
+    Grade.combine
+      (Grade.combine (Bool.to_int p.tick) (Bool.to_int cofinite))
+      (Grade.hash_list String.hash names)
 
   (* [least p] is the least letter of [p]: [tick], then the names listed in
      increasing order, then the names not listed. *)
@@ -83,7 +93,12 @@ module Letters = struct
     | { names = Only (n :: _); _ } -> (1, n)
     | _ -> (2, "")
 
-  let order p q = Stdlib.compare (least p, p) (least q, q)
+  let order p q =
+    let (i, n), (j, m) = (least p, least q) in
+    match Int.compare i j with
+    | 0 -> ( match String.compare n m with 0 -> compare p q | c -> c)
+    | c -> c
+
   let mentioned p = match p.names with Only a | Except a -> a
 
   (* The minterms of [sets], the atoms of the Boolean algebra they generate, as
@@ -406,20 +421,28 @@ struct
 
   let minterm set = { set; key = (letters set).id }
 
+  (** Tables by pairs of numbers. *)
+  module Pairs = Hashtbl.Make (struct
+    type t = int * int
+
+    let equal (i, j) (i', j') = Int.equal i i' && Int.equal j j'
+    let hash (i, j) = Grade.combine i j
+  end)
+
   (* The derivatives computed, by the key of the block and the number of the
      expression. *)
-  let derivatives : (int * int, t) Hashtbl.t = Hashtbl.create 4096
+  let derivatives : t Pairs.t = Pairs.create 4096
 
   (* The derivative (Brzozowski, JACM 1964) of an extended regular expression
      by a block of letters rather than a letter, as in RE# (Varatalu, Veanes
      and Ernits, POPL 2025), memoised by block and expression. *)
   let rec derive m r =
     let key = (m.key, r.id) in
-    match Hashtbl.find_opt derivatives key with
+    match Pairs.find_opt derivatives key with
     | Some d -> d
     | None ->
         let d = derive_view m r in
-        Hashtbl.add derivatives key d;
+        Pairs.add derivatives key d;
         d
 
   and derive_view m r =
@@ -541,7 +564,7 @@ struct
       equal_form r s || is_top s || is_empty (inter [ r; compl s ])
 
     (* The pairs of expressions compared, by their numbers, the lesser first. *)
-    let equalities : (int * int, bool) Hashtbl.t = Hashtbl.create 1024
+    let equalities : bool Pairs.t = Pairs.create 1024
 
     (** [bisimilar r s] explores the pairs of derivatives of [r] and [s] by the
         same words, merging the classes of the two expressions of each pair,
@@ -582,11 +605,11 @@ struct
       || r.nullable = s.nullable
          &&
          let key = if r.id < s.id then (r.id, s.id) else (s.id, r.id) in
-         match Hashtbl.find_opt equalities key with
+         match Pairs.find_opt equalities key with
          | Some e -> e
          | None ->
              let e = bisimilar r s in
-             Hashtbl.add equalities key e;
+             Pairs.add equalities key e;
              e
   end
 end

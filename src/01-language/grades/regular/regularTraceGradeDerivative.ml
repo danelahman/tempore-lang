@@ -76,6 +76,9 @@ struct
   let leq _bounds = D.subset
   let leq_symbol = "<="
   let equal _bounds = D.equal
+  let is_top _bounds = D.subset top
+  let compare = R.compare_form
+  let hash = R.hash
   let of_nat n = ticks (check_nat "RegularTraceGradeDerivative" n)
   let unit_least = false
   let commutative = false

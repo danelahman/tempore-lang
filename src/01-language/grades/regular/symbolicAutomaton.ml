@@ -4,7 +4,13 @@ type t = { finals : bool array; edges : (Letters.t * int) list array }
 (* State [0] is the start; [edges.(q)] lists the edges out of [q] in the order
    of their labels. *)
 
-let equal (a : t) b = a = b
+let equal a b =
+  Array.length a.finals = Array.length b.finals
+  && Array.for_all2 Bool.equal a.finals b.finals
+  && Array.for_all2
+       (List.equal (fun (p, q) (p', q') -> Letters.equal p p' && Int.equal q q'))
+       a.edges b.edges
+
 let states a = Array.length a.finals
 let final a q = a.finals.(q)
 let edges a q = a.edges.(q)
@@ -28,7 +34,10 @@ let next a q p = target a.edges.(q) p
 module Signatures = Map.Make (struct
   type t = bool * int array
 
-  let compare = Stdlib.compare
+  let compare (f, a) (f', a') =
+    match Bool.compare f f' with
+    | 0 -> Grade.compare_array Int.compare a a'
+    | c -> c
 end)
 
 (** [refine final delta classes] is one round of Moore's partition refinement
@@ -192,7 +201,7 @@ module Subsets = Hashtbl.Make (struct
   type t = IntSet.t
 
   let equal = IntSet.equal
-  let hash s = Hashtbl.hash (IntSet.elements s)
+  let hash s = IntSet.fold (fun q h -> Grade.combine h q) s 0
 end)
 
 (* Brzozowski's reversal (Brzozowski, Symp. Math. Theory of Automata 1962): the

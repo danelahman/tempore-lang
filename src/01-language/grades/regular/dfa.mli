@@ -36,6 +36,9 @@ val equal : t -> t -> bool
 val compare : t -> t -> int
 (** A total order compatible with {!equal}. *)
 
+val hash : t -> int
+(** A hash compatible with {!equal}. *)
+
 (** {1 Constructions}
 
     The binary constructions take two languages over the same alphabet.

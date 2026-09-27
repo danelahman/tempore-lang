@@ -10,12 +10,11 @@
 
     {2 Canonical representation}
 
-    Grade values are compared with the structural [=] and [compare] all over the
-    typechecker, the context and the pretty-printer, so every function here that
-    produces a [trace] or a [traces] returns the canonical normal form: a trace
-    contains no [Wait 0] and no two adjacent [Wait]s, and a set of traces is
-    sorted and duplicate-free. Anything building a value of these types outside
-    this module must go through {!normalise} and {!of_list}. *)
+    Every function here that produces a [trace] or a [traces] returns the
+    canonical normal form: a trace contains no [Wait 0] and no two adjacent
+    [Wait]s, and a set of traces is sorted by {!compare} and duplicate-free.
+    Anything building a value of these types outside this module must go through
+    {!normalise} and {!of_list}. *)
 
 type event =
   | Ev of string  (** an operation event, named by its surface name *)
@@ -26,7 +25,31 @@ type trace = event list
 
 type traces = trace list
 (** A non-empty finite set of runs. Normal form: sorted and duplicate-free, as
-    produced by [List.sort_uniq compare]. *)
+    produced by [List.sort_uniq compare_trace]. *)
+
+(** [compare_event e e'] orders the events, operations before delays, the
+    operations by name and the delays by duration. *)
+let compare_event e e' =
+  match (e, e') with
+  | Ev o, Ev o' -> String.compare o o'
+  | Ev _, Wait _ -> -1
+  | Wait _, Ev _ -> 1
+  | Wait n, Wait n' -> Int.compare n n'
+
+(** [compare_trace s t] orders the runs lexicographically by {!compare_event}.
+*)
+let compare_trace = List.compare compare_event
+
+(** [compare p q] orders the sets of runs lexicographically by {!compare_trace}.
+*)
+let compare = List.compare compare_trace
+
+let equal p q = compare p q = 0
+let hash_event = function Ev o -> String.hash o | Wait n -> Int.hash n
+let hash_trace = Grade.hash_list hash_event
+
+(** [hash p] is a hash of [p] compatible with {!compare}. *)
+let hash = Grade.hash_list hash_trace
 
 (** [normalise evs] is the trace denoted by the raw event sequence [evs]: zero
     delays are dropped and adjacent delays are merged. This invariant is what
@@ -49,16 +72,16 @@ let normalise evs =
 let concat s t = normalise (s @ t)
 
 (** [of_list ts] is the canonical set of traces denoted by the raw list [ts]. *)
-let of_list ts = List.sort_uniq compare (List.map normalise ts)
+let of_list ts = List.sort_uniq compare_trace (List.map normalise ts)
 
 (** [product p q] is the language product: every run of [p] sequenced with every
     run of [q]. *)
 let product p q =
-  List.sort_uniq compare
+  List.sort_uniq compare_trace
     (List.concat_map (fun s -> List.map (fun t -> concat s t) q) p)
 
 (** [union p q] is the set of the runs of [p] and of [q]. *)
-let union p q = List.sort_uniq compare (p @ q)
+let union p q = List.sort_uniq compare_trace (p @ q)
 
 (** [of_nat n] is the singleton set containing the pure delay of duration [n];
     [of_nat 0] is the unit [{ε}]. *)
@@ -145,7 +168,7 @@ let max_duration cost = function
 (** [events p] lists, sorted and without repetitions, the operation names
     mentioned anywhere in [p]. *)
 let events p =
-  List.sort_uniq compare
+  List.sort_uniq String.compare
     (List.concat_map
        (List.filter_map (function Ev o -> Some o | Wait _ -> None))
        p)

@@ -133,6 +133,20 @@ module type S = sig
   val equal : bounds -> t -> t -> bool
   (** [equal bounds c d] decides [c = d] under the cost model [bounds]. *)
 
+  val is_top : bounds -> t -> bool
+  (** [is_top bounds c] decides [⊤ ≾ c], equivalently [equal bounds c top],
+      under the cost model [bounds]: from the representation of [c] where that
+      decides it, and otherwise by the order once the representation is found
+      not to be that of the top. *)
+
+  val compare : t -> t -> int
+  (** A total order on the representations of the grades: [compare c d = 0]
+      implies [equal bounds c d] under every cost model [bounds], and the
+      converse holds where the representation is canonical. *)
+
+  val hash : t -> int
+  (** A hash of the representation of a grade, compatible with {!compare}. *)
+
   val counterexample : bounds -> t -> t -> t option
   (** [counterexample bounds c d] is [None] if [c ≾ d] under the cost model
       [bounds], and otherwise either a grade [e] such that [e ≾ c] but not
@@ -203,6 +217,23 @@ end
     pairwise products by [mul]. *)
 let sampled mul cs =
   (cs @ List.concat_map (fun c -> List.map (mul c) cs) cs, Partial)
+
+(** [compare_array compare a b] orders arrays by length, then lexicographically
+    by [compare]. *)
+let compare_array compare a b =
+  let n = Array.length a in
+  let rec from i =
+    if i = n then 0
+    else match compare a.(i) b.(i) with 0 -> from (i + 1) | c -> c
+  in
+  match Int.compare n (Array.length b) with 0 -> from 0 | c -> c
+
+(** [combine h h'] is a hash of a pair whose components hash to [h] and [h']. *)
+let combine h h' = (h * 65599) + h'
+
+(** [hash_list hash xs] is a hash of the list [xs] whose elements hash by
+    [hash]. *)
+let hash_list hash xs = List.fold_left (fun h x -> combine h (hash x)) 0 xs
 
 (** [check_nat who n] is [n] if it is non-negative.
 
