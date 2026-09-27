@@ -29,3 +29,12 @@ val representative :
 (** [representative closure order a] is the first vertex [r] of [order] joined
     to [a] in both directions, with the chains from [a] to [r] and from [r] to
     [a]. *)
+
+val representatives :
+  compare:('v -> 'v -> int) -> ('v * 'v) list -> 'v list -> 'v -> 'v option
+(** [representatives ~compare edges order v] is the first vertex of [order]
+    joined to [v] in both directions along [edges], [v] being joined to itself:
+    the first of [order] in the strongly connected component of [v]. Vertices
+    are compared by [compare]. Applied to [edges] and [order] alone, the
+    components are computed once, in time linear in the edges up to the cost of
+    the comparisons. *)

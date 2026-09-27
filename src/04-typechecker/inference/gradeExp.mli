@@ -92,6 +92,9 @@ module type S = sig
     val free_vars : t -> Eps_var.Set.t
     (** [free_vars eps] is the set of variables of [eps]. *)
 
+    val mem_var : Eps_var.t -> t -> bool
+    (** [mem_var k eps] is whether [k] is a variable of [eps]. *)
+
     val subst : subst -> t -> t
     (** [subst sigma eps] replaces each variable of [eps] by its image under
         [sigma]. *)
@@ -146,6 +149,12 @@ module type S = sig
     val free_eps_vars : t -> Eps_var.Set.t
     (** [free_eps_vars rho] is the set of effect variables of [rho], those under
         an image. *)
+
+    val mem_rho_var : Rho_var.t -> t -> bool
+    (** [mem_rho_var k rho] is whether [k] is a resource variable of [rho]. *)
+
+    val mem_eps_var : Eps_var.t -> t -> bool
+    (** [mem_eps_var k rho] is whether [k] is an effect variable of [rho]. *)
 
     val subst : subst -> t -> t
     (** [subst sigma rho] replaces each variable of [rho], of either sort, by

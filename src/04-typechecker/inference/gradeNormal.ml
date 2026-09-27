@@ -284,56 +284,138 @@ module Core (S : BASE) = struct
     | Var v, Var w -> equal_var v w
     | (Const _ | Var _), _ -> false
 
-  let find bounds reached b =
-    List.find_map
-      (fun (c, used) -> if link bounds c b then Some used else None)
-      reached
+  module Var_map = Map.Make (struct
+    type t = S.var
 
-  (* One round along the edges, each target newly reached from a reached
-     source added with its chain. *)
-  let grow bounds edges reached =
-    List.fold_right
-      (fun (c, d, used) reached ->
-        match (find bounds reached c, find bounds reached d) with
-        | Some chain, None -> (d, chain @ used) :: reached
-        | _ -> reached)
-      edges reached
+    let compare = S.compare_var
+  end)
 
-  (* At most [n] rounds, stopping at the first that reaches nothing new. *)
-  let rec saturate bounds edges n reached =
-    if n = 0 then reached
-    else
-      let reached' = grow bounds edges reached in
-      if List.length reached' = List.length reached then reached'
-      else saturate bounds edges (n - 1) reached'
+  module Int_set = Set.Make (Int)
 
-  (* Each distinct source, in order of first occurrence, with what it
-     reaches. *)
-  let table bounds edges =
-    let sources =
-      List.rev
-        (List.fold_left
-           (fun sources (c, _, _) ->
-             if List.exists (equal_atom bounds c) sources then sources
-             else c :: sources)
-           [] edges)
-    in
-    List.map
-      (fun c -> (c, saturate bounds edges (List.length edges) [ (c, []) ]))
-      sources
-
-  type 'a context = {
-    bounds : Language.Grade.bounds;
-    table : (atom * (atom * 'a list) list) list;
+  (* The atoms reached, each with its chain: a variable at most once, the
+     constants newest first. *)
+  type 'a reached = {
+    vars : 'a list Var_map.t;
+    consts : (const * 'a list) list;
   }
+
+  let reached_from = function
+    | Var v -> { vars = Var_map.singleton v []; consts = [] }
+    | Const c -> { vars = Var_map.empty; consts = [ (c, []) ] }
+
+  let add_reached a used reached =
+    match a with
+    | Var v -> { reached with vars = Var_map.add v used reached.vars }
+    | Const c -> { reached with consts = (c, used) :: reached.consts }
+
+  (* The chain of the newest atom reached linked to [b]. *)
+  let find bounds reached b =
+    match b with
+    | Var v -> Var_map.find_opt v reached.vars
+    | Const d ->
+        List.find_map
+          (fun (c, used) -> if S.leq bounds c d then Some used else None)
+          reached.consts
+
+  (* The edges by position, with the positions of those out of each variable
+     and of those out of a constant. *)
+  type 'a edges = {
+    at : (atom * atom * 'a list) array;
+    out_vars : int list Var_map.t;
+    out_consts : (const * int) list;
+  }
+
+  let index edges =
+    let add (out_vars, out_consts) (p, (a, _, _)) =
+      match a with
+      | Var v ->
+          let ps = Option.value (Var_map.find_opt v out_vars) ~default:[] in
+          (Var_map.add v (p :: ps) out_vars, out_consts)
+      | Const c -> (out_vars, (c, p) :: out_consts)
+    in
+    let out_vars, out_consts =
+      List.fold_left add (Var_map.empty, [])
+        (List.mapi (fun p e -> (p, e)) edges)
+    in
+    { at = Array.of_list edges; out_vars; out_consts }
+
+  (* The positions of the edges whose source the atom [a] is linked to. *)
+  let out_of bounds edges = function
+    | Var v -> Option.value (Var_map.find_opt v edges.out_vars) ~default:[]
+    | Const c ->
+        List.filter_map
+          (fun (d, p) -> if S.leq bounds c d then Some p else None)
+          edges.out_consts
+
+  (* What a source reaches, with the chains: rounds along the edges from the
+     last to the first, an edge whose source is reached and whose target is
+     not adding its target with the chain of the source followed by the edge,
+     until a round reaches nothing new. An edge acts at most once, in the
+     first round that passes it with its source reached, so a round passes, in
+     the same order, only the edges out of atoms newly reached: in the round
+     an atom is reached, those before the edge that reached it, the others in
+     the next round. *)
+  let saturate bounds edges source =
+    let rec round reached now next =
+      match Int_set.max_elt_opt now with
+      | None when Int_set.is_empty next -> reached
+      | None -> round reached next Int_set.empty
+      | Some p -> (
+          let now = Int_set.remove p now in
+          let c, d, used = edges.at.(p) in
+          match (find bounds reached d, find bounds reached c) with
+          | None, Some chain ->
+              let schedule (now, next) q =
+                if q < p then (Int_set.add q now, next)
+                else (now, Int_set.add q next)
+              in
+              let now, next =
+                List.fold_left schedule (now, next) (out_of bounds edges d)
+              in
+              round (add_reached d (chain @ used) reached) now next
+          | Some _, _ | None, None -> round reached now next)
+    in
+    round (reached_from source)
+      (Int_set.of_list (out_of bounds edges source))
+      Int_set.empty
+
+  (* The distinct sources of the edges, each with what it reaches, computed
+     when first needed: the variables by identity, the constants in order of
+     first occurrence. *)
+  type 'a table = {
+    var_sources : 'a reached Lazy.t Var_map.t;
+    const_sources : (const * 'a reached Lazy.t) list;
+  }
+
+  let table bounds edges =
+    let indexed = lazy (index edges) in
+    let from a = lazy (saturate bounds (Lazy.force indexed) a) in
+    let add (vars, consts) (a, _, _) =
+      match a with
+      | Var v when Var_map.mem v vars -> (vars, consts)
+      | Var v -> (Var_map.add v (from a) vars, consts)
+      | Const c when List.exists (fun (d, _) -> S.equal bounds c d) consts ->
+          (vars, consts)
+      | Const c -> (vars, (c, from a) :: consts)
+    in
+    let var_sources, consts = List.fold_left add (Var_map.empty, []) edges in
+    { var_sources; const_sources = List.rev consts }
+
+  type 'a context = { bounds : Language.Grade.bounds; table : 'a table }
 
   (* Whether [a] reaches [b] directly or along the table's edges. *)
   let reach ctx a b =
     derived_if (link ctx.bounds a b) <|> fun () ->
-    List.find_map
-      (fun (c, reached) ->
-        if link ctx.bounds a c then find ctx.bounds reached b else None)
-      ctx.table
+    match a with
+    | Var v ->
+        Option.bind (Var_map.find_opt v ctx.table.var_sources) (fun reached ->
+            find ctx.bounds (Lazy.force reached) b)
+    | Const c ->
+        List.find_map
+          (fun (d, reached) ->
+            if S.leq ctx.bounds c d then find ctx.bounds (Lazy.force reached) b
+            else None)
+          ctx.table.const_sources
 
   (* An atom that the top reaches. *)
   let top_leq ctx b = reach ctx (Const S.top) b
@@ -356,106 +438,83 @@ module Core (S : BASE) = struct
   (* ---------------------------------------------------------------------- *)
   (* Products *)
 
-  (* A step, when its condition is decided, to the pair it leads to. *)
-  let step decide next : _ Seq.t =
-   fun () ->
-    match decide () with
-    | Some used ->
-        let left, right = next () in
-        Seq.Cons ((used, left, right), Seq.empty)
-    | None -> Seq.Nil
-
   let remove_at i = List.filteri (fun j _ -> j <> i)
 
-  (* The steps out of a pair, in the order the search tries them: [matches],
-     [skips_right], [skips_left], [absorbs], [merges_right], [merges_left],
-     and, where the product commutes, [picks] and [absorbs_at] past the right
-     head. [absorbs_at] is tried at its first position only, every position
-     leading to the same pair. *)
-  let steps ctx left right =
-    let matches =
-      match (left, right) with
-      | a :: left', b :: right' ->
-          step (fun () -> atom_leq ctx a b) (fun () -> (left', right'))
-      | _ -> Seq.empty
-    in
-    let skips_right =
-      match right with
-      | b :: right' ->
-          step (fun () -> unit_leq ctx b) (fun () -> (left, right'))
-      | [] -> Seq.empty
-    in
-    let skips_left =
-      match left with
-      | a :: left' -> step (fun () -> leq_unit ctx a) (fun () -> (left', right))
-      | [] -> Seq.empty
-    in
-    let absorbs =
-      match (left, right) with
-      | _ :: left', b :: _ ->
-          step (fun () -> top_leq ctx b) (fun () -> (left', right))
-      | _ -> Seq.empty
-    in
-    let merges_right =
-      match right with
-      | Const c :: b :: right' ->
-          step
-            (fun () -> unit_leq ctx b)
-            (fun () -> (left, cons ctx.bounds (Const c) right'))
-      | _ -> Seq.empty
-    in
-    let merges_left =
-      match left with
-      | Const c :: a :: left' ->
-          step
-            (fun () -> leq_unit ctx a)
-            (fun () -> (cons ctx.bounds (Const c) left', right))
-      | _ -> Seq.empty
-    in
-    let positions right' = Seq.mapi (fun i b -> (i, b)) (List.to_seq right') in
-    let picks =
-      match (left, right) with
-      | a :: left', b :: right' when S.commutative ->
-          Seq.filter_map
-            (fun (i, b') ->
-              Option.map
-                (fun used -> (used, left', b :: remove_at i right'))
-                (atom_leq ctx a b'))
-            (positions right')
-      | _ -> Seq.empty
-    in
-    let absorbs_at =
-      match (left, right) with
-      | _ :: left', _ :: right' when S.commutative ->
-          Seq.take 1
-            (Seq.filter_map
-               (fun b' ->
-                 Option.map (fun used -> (used, left', right)) (top_leq ctx b'))
-               (List.to_seq right'))
-      | _ -> Seq.empty
-    in
-    List.fold_right Seq.append
-      [
-        matches;
-        skips_right;
-        skips_left;
-        absorbs;
-        merges_right;
-        merges_left;
-        picks;
-      ]
-      absorbs_at
-
   (* Depth-first search for a sequence of steps to the empty pair; each step
-     shortens the pair. *)
+     shortens the pair. The steps out of a pair are tried in the order
+     [matches], [skips_right], [skips_left], [absorbs], [merges_right],
+     [merges_left], and, where the product commutes, [picks] and [absorbs_at]
+     past the right head. [absorbs_at] is tried at its first position only,
+     every position leading to the same pair. *)
   let rec embed ctx left right =
     match (left, right) with
     | [], [] -> Some []
     | _ ->
-        Seq.find_map
-          (fun (used, left', right') ->
-            Option.map (List.append used) (embed ctx left' right'))
-          (steps ctx left right)
+        (* A step, when its condition is decided, to the pair it leads to. *)
+        let step decide next =
+          match decide () with
+          | Some used ->
+              let left, right = next () in
+              Option.map (List.append used) (embed ctx left right)
+          | None -> None
+        in
+        let matches () =
+          match (left, right) with
+          | a :: left', b :: right' ->
+              step (fun () -> atom_leq ctx a b) (fun () -> (left', right'))
+          | _ -> None
+        and skips_right () =
+          match right with
+          | b :: right' ->
+              step (fun () -> unit_leq ctx b) (fun () -> (left, right'))
+          | [] -> None
+        and skips_left () =
+          match left with
+          | a :: left' ->
+              step (fun () -> leq_unit ctx a) (fun () -> (left', right))
+          | [] -> None
+        and absorbs () =
+          match (left, right) with
+          | _ :: left', b :: _ ->
+              step (fun () -> top_leq ctx b) (fun () -> (left', right))
+          | _ -> None
+        and merges_right () =
+          match right with
+          | Const c :: b :: right' ->
+              step
+                (fun () -> unit_leq ctx b)
+                (fun () -> (left, cons ctx.bounds (Const c) right'))
+          | _ -> None
+        and merges_left () =
+          match left with
+          | Const c :: a :: left' ->
+              step
+                (fun () -> leq_unit ctx a)
+                (fun () -> (cons ctx.bounds (Const c) left', right))
+          | _ -> None
+        and picks () =
+          match (left, right) with
+          | a :: left', b :: right' when S.commutative ->
+              let rec from i = function
+                | [] -> None
+                | b' :: rest ->
+                    step
+                      (fun () -> atom_leq ctx a b')
+                      (fun () -> (left', b :: remove_at i right'))
+                    <|> fun () -> from (i + 1) rest
+              in
+              from 0 right'
+          | _ -> None
+        and absorbs_at () =
+          match (left, right) with
+          | _ :: left', _ :: right' when S.commutative ->
+              step
+                (fun () -> List.find_map (top_leq ctx) right')
+                (fun () -> (left', right))
+          | _ -> None
+        in
+        matches () <|> skips_right <|> skips_left <|> absorbs <|> merges_right
+        <|> merges_left <|> picks <|> absorbs_at
 
   (* Some alternative of [t] bounds [p]. *)
   let alt_sum_leq ctx p t = List.find_map (embed ctx p) t
@@ -468,12 +527,12 @@ module Core (S : BASE) = struct
             Option.map (List.append used) (alt_sum_leq ctx p t)))
       (Some []) s
 
-  (* Decides the ordering [e ≾ e'] along the given atomic edges. *)
-  let decide bounds edges e e' =
-    sum_leq
-      { bounds; table = table bounds edges }
-      (normal bounds e)
-      (fold_sum bounds (normal bounds e'))
+  (* Decides orderings [e ≾ e'] along the given atomic edges, the table of the
+     edges shared by the orderings decided. *)
+  let decide bounds edges =
+    let ctx = { bounds; table = table bounds edges } in
+    fun e e' ->
+      sum_leq ctx (normal bounds e) (fold_sum bounds (normal bounds e'))
 
   (* The atomic hypotheses among orderings, as edges. *)
   let edges orderings =
@@ -514,9 +573,8 @@ module Core (S : BASE) = struct
     else p
 
   let canon_sum bounds s =
-    let leq p p' =
-      Option.is_some (decide bounds [] (exp_of_slots p) (exp_of_slots p'))
-    in
+    let decide = decide bounds [] in
+    let leq p p' = Option.is_some (decide (exp_of_slots p) (exp_of_slots p')) in
     List.map (of_slots bounds)
       (maximal bounds leq
          (List.map to_slots (List.map (absorb_product bounds) s)))
@@ -542,12 +600,15 @@ module Core (S : BASE) = struct
     | Some c, Some c' -> Some (S.leq bounds c c')
     | _ -> None
 
-  let chains bounds orderings =
+  (* The sides of the orderings, each once, sides compared syntactically. *)
+  let sides bounds orderings =
     let equal = S.equal_exp bounds in
     let insert e es = if List.exists (equal e) es then es else e :: es in
-    let vertices =
-      List.fold_right (fun o vs -> insert o.lhs (insert o.rhs vs)) orderings []
-    in
+    List.fold_right (fun o vs -> insert o.lhs (insert o.rhs vs)) orderings []
+
+  let chains bounds orderings =
+    let equal = S.equal_exp bounds in
+    let vertices = sides bounds orderings in
     let closure =
       Reach.closure ~equal vertices
         (List.map (fun o -> (o.lhs, o.rhs, o.info)) orderings)
@@ -563,10 +624,51 @@ module Core (S : BASE) = struct
           closed)
       closed
 
+  (* Whether some variable-free side of the orderings reaches along them
+     another that it is not below. Where no ordering between variable-free
+     sides fails, this is whether some chain of {!chains} fails, decided by
+     reachability alone. *)
+  let chain_fails bounds orderings =
+    let vertices = Array.of_list (sides bounds orderings) in
+    let index e =
+      Option.get (Array.find_index (fun v -> S.equal_exp bounds e v) vertices)
+    in
+    let edges = List.map (fun o -> (index o.lhs, index o.rhs)) orderings in
+    let successors =
+      Array.init (Array.length vertices) (fun i ->
+          List.filter_map (fun (a, b) -> if a = i then Some b else None) edges)
+    in
+    let rec visit seen = function
+      | [] -> seen
+      | i :: rest when Int_set.mem i seen -> visit seen rest
+      | i :: rest -> visit (Int_set.add i seen) (successors.(i) @ rest)
+    in
+    let fails_from i c =
+      Int_set.exists
+        (fun j ->
+          j <> i
+          &&
+          match S.value vertices.(j) with
+          | Some c' -> not (S.leq bounds c c')
+          | None -> false)
+        (visit Int_set.empty [ i ])
+    in
+    Seq.exists
+      (fun (i, v) ->
+        match S.value v with Some c -> fails_from i c | None -> false)
+      (Array.to_seqi vertices)
+
   let check_closed bounds orderings =
     let fails o = closed_leq bounds o.lhs o.rhs = Some false in
     let direct = List.map (fun o -> { o with info = [ o.info ] }) orderings in
-    match List.find_opt fails (direct @ chains bounds orderings) with
+    let failure =
+      match List.find_opt fails direct with
+      | Some failure -> Some failure
+      | None when chain_fails bounds orderings ->
+          List.find_opt fails (chains bounds orderings)
+      | None -> None
+    in
+    match failure with
     | Some failure -> Error failure
     | None ->
         Ok
@@ -741,8 +843,7 @@ module Make (X : GradeExp.S) = struct
   module Eps = struct
     include Eps_core
 
-    let decide_leq bounds hyps eps eps' =
-      decide bounds (edges hyps.eps_hyps) eps eps'
+    let decide_leq bounds hyps = decide bounds (edges hyps.eps_hyps)
   end
 
   module Rho = struct
@@ -754,13 +855,13 @@ module Make (X : GradeExp.S) = struct
       | Var v -> Var (Image v)
 
     (* The resource hypotheses and the images of the effect ones. *)
-    let decide_leq bounds hyps rho rho' =
+    let decide_leq bounds hyps =
       let images =
         List.map
           (fun (a, b, used) -> (image a, image b, used))
           (Eps_core.edges hyps.eps_hyps)
       in
-      decide bounds (edges hyps.rho_hyps @ images) rho rho'
+      decide bounds (edges hyps.rho_hyps @ images)
   end
 
   type 'a closed_failure =

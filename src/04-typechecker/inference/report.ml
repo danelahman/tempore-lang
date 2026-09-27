@@ -37,13 +37,13 @@ module Make (C : Constraint.S) = struct
   let in_rho u rho =
     match u with
     | Ty_unknown _ -> false
-    | Rho_unknown k -> Rho_set.mem k (X.Rho.free_rho_vars rho)
-    | Eps_unknown k -> Eps_set.mem k (X.Rho.free_eps_vars rho)
+    | Rho_unknown k -> X.Rho.mem_rho_var k rho
+    | Eps_unknown k -> X.Rho.mem_eps_var k rho
 
   let in_eps u eps =
     match u with
     | Ty_unknown _ | Rho_unknown _ -> false
-    | Eps_unknown k -> Eps_set.mem k (X.Eps.free_vars eps)
+    | Eps_unknown k -> X.Eps.mem_var k eps
 
   (* ------------------------------------------------------------------ *)
   (* Polarity                                                            *)
@@ -132,18 +132,24 @@ module Make (C : Constraint.S) = struct
       (fun (o : _ GradeNormal.ordering) -> equal o.lhs lhs && equal o.rhs rhs)
       orderings
 
-  (* An ordering entailed: one of the hypotheses, or derived from them. *)
-  let entails_rho context (grades : R.reason N.hyps) lhs rhs =
+  (* An ordering entailed: one of the hypotheses, or derived from them. Applied
+     to [context] and [grades] alone, the decision procedure of the hypotheses
+     is shared by the orderings decided. *)
+  let entails_rho context (grades : R.reason N.hyps) =
     let bounds = context.Residual.bounds in
-    mem (X.Rho.equal bounds) lhs rhs grades.rho_hyps
-    || N.Rho.closed_leq bounds lhs rhs = Some true
-    || Option.is_some (N.Rho.decide_leq bounds grades lhs rhs)
+    let decide = N.Rho.decide_leq bounds grades in
+    fun lhs rhs ->
+      mem (X.Rho.equal bounds) lhs rhs grades.rho_hyps
+      || N.Rho.closed_leq bounds lhs rhs = Some true
+      || Option.is_some (decide lhs rhs)
 
-  let entails_eps context (grades : R.reason N.hyps) lhs rhs =
+  let entails_eps context (grades : R.reason N.hyps) =
     let bounds = context.Residual.bounds in
-    mem (X.Eps.equal bounds) lhs rhs grades.eps_hyps
-    || N.Eps.closed_leq bounds lhs rhs = Some true
-    || Option.is_some (N.Eps.decide_leq bounds grades lhs rhs)
+    let decide = N.Eps.decide_leq bounds grades in
+    fun lhs rhs ->
+      mem (X.Eps.equal bounds) lhs rhs grades.eps_hyps
+      || N.Eps.closed_leq bounds lhs rhs = Some true
+      || Option.is_some (decide lhs rhs)
 
   let rec same_ty context (a : C.ty) (b : C.ty) =
     match (a, b) with
@@ -181,21 +187,29 @@ module Make (C : Constraint.S) = struct
 
   let edges subs = List.filter_map edge subs
 
-  (* Whether [b] is reached from [a] along [edges], in none or more steps. *)
-  let reaches edges a b =
+  (* The targets of the edges out of each type unknown, in order. *)
+  let successors edges =
+    List.fold_right
+      (fun (a, b) succ ->
+        TyParamMap.update a
+          (fun bs -> Some (b :: Option.value bs ~default:[]))
+          succ)
+      edges TyParamMap.empty
+
+  let targets succ a = Option.value (TyParamMap.find_opt a succ) ~default:[]
+
+  (* The type unknowns reached from [a] along [succ], in none or more
+     steps. *)
+  let reached succ a =
     let rec visit seen = function
-      | [] -> false
-      | v :: _ when same_param v b -> true
+      | [] -> seen
       | v :: rest when TyParamSet.mem v seen -> visit seen rest
-      | v :: rest ->
-          let next =
-            List.filter_map
-              (fun (x, y) -> if same_param x v then Some y else None)
-              edges
-          in
-          visit (TyParamSet.add v seen) (next @ rest)
+      | v :: rest -> visit (TyParamSet.add v seen) (targets succ v @ rest)
     in
     visit TyParamSet.empty [ a ]
+
+  (* Whether [b] is reached from [a] along [edges], in none or more steps. *)
+  let reaches edges a b = TyParamSet.mem b (reached (successors edges) a)
 
   (* The type unknowns joined to [seeds] by [edges] in either direction. *)
   let rec joined edges seeds =
@@ -298,12 +312,12 @@ module Make (C : Constraint.S) = struct
   (* The disjunctions entailed by another dropped: one of the same type with
      a grade entailed above. *)
   let walk_disjunctions context (hyps : hyps) =
-    let grades = grades_of hyps in
+    let entails = entails_rho context (grades_of hyps) in
     let entailed ~seen ~rest (d : R.disjunction) =
       List.exists
         (fun (d' : R.disjunction) ->
           same_ty context d.disj_ty d'.disj_ty
-          && entails_rho context grades d.disj_grade d'.disj_grade)
+          && entails d.disj_grade d'.disj_grade)
         (seen @ rest)
     in
     { hyps with disj_hyps = walk entailed hyps.disj_hyps }
@@ -319,13 +333,13 @@ module Make (C : Constraint.S) = struct
 
   (* The subtyping atoms reached along those kept before them dropped. *)
   let prune_subs subs =
-    List.rev
-      (List.fold_left
-         (fun kept s ->
-           match edge s with
-           | Some (a, b) when reaches (edges kept) a b -> kept
-           | Some _ | None -> s :: kept)
-         [] subs)
+    let keep (kept, succ) s =
+      match edge s with
+      | Some (a, b) when TyParamSet.mem b (reached succ a) -> (kept, succ)
+      | Some (a, b) -> (s :: kept, TyParamMap.add a (b :: targets succ a) succ)
+      | None -> (s :: kept, succ)
+    in
+    List.rev (fst (List.fold_left keep ([], TyParamMap.empty) subs))
 
   (* The eternality atoms joined to those kept before them dropped. *)
   let prune_eternals subs eternals =
@@ -394,11 +408,33 @@ module Make (C : Constraint.S) = struct
   (* The reported type and hypotheses being reduced. *)
   type state = { ty : C.ty; hyps : hyps }
 
+  (* The state under [sigma]. A substitution of type unknowns alone is applied
+     to the types only, leaving the grades and the reasons, which have no type
+     unknown, as they are. *)
   let moved (sigma : C.subst) st =
-    {
-      ty = C.subst_ty sigma st.ty;
-      hyps = of_residual (R.subst sigma (to_residual st.hyps));
-    }
+    let ty = C.subst_ty sigma st.ty in
+    if
+      X.Rho_var.Map.is_empty sigma.grade_subst.rho_subst
+      && X.Eps_var.Map.is_empty sigma.grade_subst.eps_subst
+    then
+      let on_sub (s : R.sub) =
+        { s with lhs = C.subst_ty sigma s.lhs; rhs = C.subst_ty sigma s.rhs }
+      and on_eternal (e : R.eternal) =
+        { e with eternal_ty = C.subst_ty sigma e.eternal_ty }
+      and on_disj (d : R.disjunction) =
+        { d with disj_ty = C.subst_ty sigma d.disj_ty }
+      in
+      {
+        ty;
+        hyps =
+          {
+            st.hyps with
+            sub_vars = List.map on_sub st.hyps.sub_vars;
+            eternal_hyps = List.map on_eternal st.hyps.eternal_hyps;
+            disj_hyps = List.map on_disj st.hyps.disj_hyps;
+          };
+      }
+    else { ty; hyps = of_residual (R.subst sigma (to_residual st.hyps)) }
 
   let assign_eps k eps : C.subst =
     {
@@ -432,8 +468,8 @@ module Make (C : Constraint.S) = struct
         };
     }
 
-  let decided_rho context lhs rhs = entails_rho context N.no_hyps lhs rhs
-  let decided_eps context lhs rhs = entails_eps context N.no_hyps lhs rhs
+  let decided_rho context = entails_rho context N.no_hyps
+  let decided_eps context = entails_eps context N.no_hyps
 
   let eps_sort context k : _ Bounds.sort =
     {
@@ -455,45 +491,71 @@ module Make (C : Constraint.S) = struct
       join = X.Rho.join;
     }
 
-  (* The expressions an ordering sets against the unknown. *)
-  let facing (sort : _ Bounds.sort) orderings =
-    List.filter_map
-      (fun (o : _ GradeNormal.ordering) ->
-        if sort.is_unknown o.lhs then Some o.rhs
-        else if sort.is_unknown o.rhs then Some o.lhs
-        else None)
-      orderings
+  (* The expressions the orderings set against each unknown, in order: the
+     right side against an unknown on the left, else the left side against an
+     unknown on the right. *)
+  let facing (type v) ~(compare : v -> v -> int) ~var_of orderings =
+    let module M = Map.Make (struct
+      type t = v
+
+      let compare = compare
+    end) in
+    let add k e facing =
+      M.update k (fun es -> Some (e :: Option.value es ~default:[])) facing
+    in
+    let facing =
+      List.fold_right
+        (fun (o : _ GradeNormal.ordering) facing ->
+          match (var_of o.lhs, var_of o.rhs) with
+          | Some k, Some k' when compare k k' <> 0 ->
+              add k o.rhs (add k' o.lhs facing)
+          | Some k, _ -> add k o.rhs facing
+          | None, Some k' -> add k' o.lhs facing
+          | None, None -> facing)
+        orderings M.empty
+    in
+    fun k -> Option.value (M.find_opt k facing) ~default:[]
 
   (* The first expression facing the unknown, an earlier unknown or free of
      it, that the hypotheses equate with it. *)
-  let equal_value (sort : _ Bounds.sort) ~earlier ~entails orderings unknown =
+  let equal_value ~occurs ~earlier ~entails facing unknown =
     List.find_opt
       (fun b ->
         (match earlier b with
           | Some earlier -> earlier
-          | None -> not (sort.occurs b))
+          | None -> not (occurs b))
         && entails unknown b && entails b unknown)
-      (facing sort orderings)
+      facing
 
-  let equate_eps context st k =
-    let grades = grades_of st.hyps in
-    Option.map
-      (fun b -> apart context (moved (assign_eps k b) st))
-      (equal_value (eps_sort context k)
-         ~earlier:(function
-           | X.Eps_var j -> Some (X.Eps_var.compare j k < 0) | _ -> None)
-         ~entails:(entails_eps context grades)
-         st.hyps.eps_hyps (X.Eps.var k))
+  let equate_eps context st =
+    let entails = entails_eps context (grades_of st.hyps)
+    and facing =
+      facing ~compare:X.Eps_var.compare
+        ~var_of:(function X.Eps_var k -> Some k | _ -> None)
+        st.hyps.eps_hyps
+    in
+    fun k ->
+      Option.map
+        (fun b -> apart context (moved (assign_eps k b) st))
+        (equal_value ~occurs:(in_eps (Eps_unknown k))
+           ~earlier:(function
+             | X.Eps_var j -> Some (X.Eps_var.compare j k < 0) | _ -> None)
+           ~entails (facing k) (X.Eps.var k))
 
-  let equate_rho context st k =
-    let grades = grades_of st.hyps in
-    Option.map
-      (fun b -> apart context (moved (assign_rho k b) st))
-      (equal_value (rho_sort context k)
-         ~earlier:(function
-           | X.Rho_var j -> Some (X.Rho_var.compare j k < 0) | _ -> None)
-         ~entails:(entails_rho context grades)
-         st.hyps.rho_hyps (X.Rho.var k))
+  let equate_rho context st =
+    let entails = entails_rho context (grades_of st.hyps)
+    and facing =
+      facing ~compare:X.Rho_var.compare
+        ~var_of:(function X.Rho_var k -> Some k | _ -> None)
+        st.hyps.rho_hyps
+    in
+    fun k ->
+      Option.map
+        (fun b -> apart context (moved (assign_rho k b) st))
+        (equal_value ~occurs:(in_rho (Rho_unknown k))
+           ~earlier:(function
+             | X.Rho_var j -> Some (X.Rho_var.compare j k < 0) | _ -> None)
+           ~entails (facing k) (X.Rho.var k))
 
   (* Whether a value for [u] is blocked: [pick] holds of the polarity of [u]
      in the hypotheses left or in the reported type. *)
@@ -542,29 +604,23 @@ module Make (C : Constraint.S) = struct
      of its component: a fixed member where there is one, else the earliest. *)
   let collapse_cycle context (fixed : C.free) st =
     let edges = edges st.hyps.sub_vars in
-    let on_left a = List.exists (fun (b, _) -> same_param a b) edges
-    and on_right a = List.exists (fun (_, b) -> same_param a b) edges in
+    let ends pick = TyParamSet.of_list (List.map pick edges) in
     let vertices =
-      TyParamSet.elements
-        (List.fold_left
-           (fun set (a, b) -> TyParamSet.add a (TyParamSet.add b set))
-           TyParamSet.empty edges)
-      |> List.filter (fun a -> on_left a && on_right a)
+      TyParamSet.elements (TyParamSet.inter (ends fst) (ends snd))
     in
     let is_fixed a = TyParamSet.mem a fixed.free_tys in
     let order =
       List.filter is_fixed vertices
       @ List.filter (fun a -> not (is_fixed a)) vertices
     in
+    let representative =
+      Reach.representatives ~compare:TyParam.compare edges order
+    in
     List.find_map
       (fun a ->
         if is_fixed a then None
         else
-          match
-            List.find_opt
-              (fun r -> reaches edges a r && reaches edges r a)
-              order
-          with
+          match representative a with
           | Some r when not (same_param a r) ->
               Some (apart context (moved (assign_ty a r) st))
           | Some _ | None -> None)
@@ -594,8 +650,7 @@ module Make (C : Constraint.S) = struct
       Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos),
       Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps) )
 
-  let any_step context fixed st =
-    let tys, rhos, eps = unknowns fixed st in
+  let any_step context fixed (tys, rhos, eps) st =
     let at step unknowns () = List.find_map (step context st) unknowns in
     List.find_map
       (fun step -> step ())
@@ -610,16 +665,20 @@ module Make (C : Constraint.S) = struct
         at lower_ty tys;
       ]
 
+  (* The steps are tried at the unknowns of the initial state, which include
+     those of every later state: a step replaces an unknown by a part of the
+     hypotheses and drops hypotheses, and no step applies at an unknown that
+     does not occur in them. *)
   let eliminate context ~fixed ty hyps =
+    let st = { ty; hyps } in
+    let ((tys, rhos, eps) as unknowns) = unknowns fixed st in
     let rec reduce fuel st =
       if fuel = 0 then st
       else
-        match any_step context fixed st with
+        match any_step context fixed unknowns st with
         | Some st -> reduce (fuel - 1) st
         | None -> st
     in
-    let st = { ty; hyps } in
-    let tys, rhos, eps = unknowns fixed st in
     let st = reduce (List.length tys + List.length rhos + List.length eps) st in
     (st.ty, st.hyps)
 

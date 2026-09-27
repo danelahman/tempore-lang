@@ -90,6 +90,7 @@ module type S = sig
     val mul : t -> t -> t
     val join : t -> t -> t
     val free_vars : t -> Eps_var.Set.t
+    val mem_var : Eps_var.t -> t -> bool
     val subst : subst -> t -> t
     val value : t -> GS.E.t option
     val equal : Language.Grade.bounds -> t -> t -> bool
@@ -110,6 +111,8 @@ module type S = sig
     val map : eps -> t
     val free_rho_vars : t -> Rho_var.Set.t
     val free_eps_vars : t -> Eps_var.Set.t
+    val mem_rho_var : Rho_var.t -> t -> bool
+    val mem_eps_var : Eps_var.t -> t -> bool
     val subst : subst -> t -> t
     val value : t -> GS.R.t option
     val equal : Language.Grade.bounds -> t -> t -> bool
@@ -170,6 +173,12 @@ module Make (GS : Language.GradeSystem.S) = struct
       | Eps_const _ -> Eps_var.Set.empty
       | Eps_mul (eps, eps') | Eps_join (eps, eps') ->
           Eps_var.Set.union (free_vars eps) (free_vars eps')
+
+    let rec mem_var k = function
+      | Eps_var eps_var -> Eps_var.equal k eps_var
+      | Eps_const _ -> false
+      | Eps_mul (eps, eps') | Eps_join (eps, eps') ->
+          mem_var k eps || mem_var k eps'
 
     let rec subst sigma = function
       | Eps_var eps_var as eps ->
@@ -241,6 +250,18 @@ module Make (GS : Language.GradeSystem.S) = struct
       | Rho_map eps -> Eps.free_vars eps
       | Rho_mul (rho, rho') | Rho_join (rho, rho') ->
           Eps_var.Set.union (free_eps_vars rho) (free_eps_vars rho')
+
+    let rec mem_rho_var k = function
+      | Rho_var rho_var -> Rho_var.equal k rho_var
+      | Rho_const _ | Rho_map _ -> false
+      | Rho_mul (rho, rho') | Rho_join (rho, rho') ->
+          mem_rho_var k rho || mem_rho_var k rho'
+
+    let rec mem_eps_var k = function
+      | Rho_var _ | Rho_const _ -> false
+      | Rho_map eps -> Eps.mem_var k eps
+      | Rho_mul (rho, rho') | Rho_join (rho, rho') ->
+          mem_eps_var k rho || mem_eps_var k rho'
 
     let rec subst sigma = function
       | Rho_var rho_var as rho ->

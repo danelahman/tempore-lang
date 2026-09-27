@@ -105,7 +105,11 @@ module Make (X : GradeExp.S) : sig
         product commutes, as multisets. Atoms are compared by the grade's order,
         by identity, and along chains of the hypotheses whose both sides are
         single atoms; on the resource side also along the images of such effect
-        hypotheses. Other hypotheses are not used. *)
+        hypotheses. Other hypotheses are not used.
+
+        Applied to [bounds] and [hyps] alone, it is a decision procedure whose
+        chains along the hypotheses are computed once, when first needed, and
+        shared by the orderings it decides. *)
 
     val split :
       Language.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list

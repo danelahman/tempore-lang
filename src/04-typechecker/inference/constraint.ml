@@ -318,8 +318,10 @@ module Make (X : GradeExp.S) = struct
   let free_param a acc =
     { acc with free_tys = Ast.TyParamSet.add a acc.free_tys }
 
-  let free_vars_ty a =
-    Ast.fold_ty ~on_param:free_param ~on_rho:free_rho ~on_eps:free_eps a no_free
+  let add_free_ty a acc =
+    Ast.fold_ty ~on_param:free_param ~on_rho:free_rho ~on_eps:free_eps a acc
+
+  let free_vars_ty a = add_free_ty a no_free
 
   let free_vars_comp_ty c =
     Ast.fold_comp_ty ~on_param:free_param ~on_rho:free_rho ~on_eps:free_eps c
@@ -341,18 +343,22 @@ module Make (X : GradeExp.S) = struct
           f.free_eps vs.eps_vars;
     }
 
-  let rec free_vars = function
-    | True -> no_free
-    | And (c, d) -> union_free (free_vars c) (free_vars d)
-    | Sub (_, a, b) -> union_free (free_vars_ty a) (free_vars_ty b)
-    | Rho_leq (_, rho, rho') -> free_rho rho (free_rho rho' no_free)
-    | Eps_leq (_, eps, eps') -> free_eps eps (free_eps eps' no_free)
-    | Eternal (_, a) -> free_vars_ty a
-    | Eternal_or_unit (_, a, rho) -> free_rho rho (free_vars_ty a)
-    | Exists (vs, c) -> remove_free vs (free_vars c)
+  (* The unknowns free in a constraint added to [acc]. *)
+  let rec add_free c acc =
+    match c with
+    | True -> acc
+    | And (c, d) -> add_free d (add_free c acc)
+    | Sub (_, a, b) -> add_free_ty b (add_free_ty a acc)
+    | Rho_leq (_, rho, rho') -> free_rho rho (free_rho rho' acc)
+    | Eps_leq (_, eps, eps') -> free_eps eps (free_eps eps' acc)
+    | Eternal (_, a) -> add_free_ty a acc
+    | Eternal_or_unit (_, a, rho) -> free_rho rho (add_free_ty a acc)
+    | Exists (vs, c) -> union_free acc (remove_free vs (free_vars c))
     | Forall_eps (e, _, c) ->
         let f = free_vars c in
-        { f with free_eps = X.Eps_var.Set.remove e f.free_eps }
+        union_free acc { f with free_eps = X.Eps_var.Set.remove e f.free_eps }
+
+  and free_vars c = add_free c no_free
 
   (* ------------------------------------------------------------------ *)
   (* Schemes                                                             *)

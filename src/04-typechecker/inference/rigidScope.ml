@@ -33,19 +33,18 @@ module Make (C : Constraint.S) = struct
 
   let in_rho u rho =
     match u with
-    | Rho_unknown k -> Rho_set.mem k (X.Rho.free_rho_vars rho)
-    | Eps_unknown k -> Eps_set.mem k (X.Rho.free_eps_vars rho)
+    | Rho_unknown k -> X.Rho.mem_rho_var k rho
+    | Eps_unknown k -> X.Rho.mem_eps_var k rho
 
   let in_eps u eps =
-    match u with
-    | Rho_unknown _ -> false
-    | Eps_unknown k -> Eps_set.mem k (X.Eps.free_vars eps)
+    match u with Rho_unknown _ -> false | Eps_unknown k -> X.Eps.mem_var k eps
 
   let in_ty u ty =
-    let free = C.free_vars_ty ty in
-    match u with
-    | Rho_unknown k -> Rho_set.mem k free.free_rhos
-    | Eps_unknown k -> Eps_set.mem k free.free_eps
+    Language.Ast.fold_ty
+      ~on_param:(fun _ found -> found)
+      ~on_rho:(fun rho found -> found || in_rho u rho)
+      ~on_eps:(fun eps found -> found || in_eps u eps)
+      ty false
 
   let is_rigid scope k = X.Eps_var.equal k scope.rigid
 
@@ -419,18 +418,21 @@ module Make (C : Constraint.S) = struct
         (fun v -> List.exists (fun w -> compare v w = 0) targets)
         (ends (fun (a, _, ()) -> a))
     in
-    let equal v w = compare v w = 0 in
-    let closure = Reach.closure ~equal vertices edges in
     let order =
       List.filter outer vertices
       @ List.filter (fun v -> not (outer v || movable v)) vertices
       @ List.filter movable vertices
     in
+    let representative =
+      Reach.representatives ~compare
+        (List.map (fun (a, b, ()) -> (a, b)) edges)
+        order
+    in
     List.filter_map
       (fun v ->
-        if movable v && Reach.on_cycle closure v then
-          match Reach.representative closure order v with
-          | Some (rep, _, _) when not (equal rep v) -> Some (v, rep)
+        if movable v then
+          match representative v with
+          | Some rep when compare rep v <> 0 -> Some (v, rep)
           | Some _ | None -> None
         else None)
       vertices
