@@ -1,4 +1,6 @@
 (cram
  (deps
   ../tempore
-  (source_tree .)))
+  (source_tree .)
+  (source_tree ../examples/regular)
+  (source_tree ../examples/regular_costs)))

@@ -261,6 +261,24 @@ module Derivatives = struct
   end
 end
 
+(** The regular trace grade by the derivatives by concrete letters. *)
+module ConcreteDerivatives = struct
+  include RegularTraceGradeDerivative.Concrete
+  module State = Derivatives.State
+end
+
+(** The regular trace grade by plain derivatives, its runs over given names
+    explored by their derivatives. *)
+module PlainDerivatives = struct
+  include RegularTraceGradePlain
+
+  module State = struct
+    type t = Regex.t
+
+    let compare = Regex.compare_form
+  end
+end
+
 include
   Make
     (Automata)
@@ -273,4 +291,18 @@ module Symbolic =
     (Derivatives)
     (struct
       let suffix = "-symbolic"
+    end)
+
+module Concrete =
+  Make
+    (ConcreteDerivatives)
+    (struct
+      let suffix = "-derivatives"
+    end)
+
+module Plain =
+  Make
+    (PlainDerivatives)
+    (struct
+      let suffix = "-plain"
     end)

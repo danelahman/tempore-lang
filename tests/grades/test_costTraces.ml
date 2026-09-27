@@ -1,13 +1,14 @@
 (* Property tests of the cost-model regular trace grades and of the closures
    that decide them: the segment characterisations of allowance and coverage
    against [TimedTrace.allowance] and [TimedTrace.coverage]; then, for each of
-   the two implementations, by automata and by symbolic derivatives, the
+   the four implementations, by automata, by symbolic derivatives, by
+   derivatives by letters and by derivatives over single letters, the
    membership of short runs in the closures against a search of the runs of
    the greater language, the laws of the orders on samples, the embedding of
    the finite timed-trace grades, and examples of the closed world, of zero
    costs, of the laws that hold up to equivalence, of the literals and of the
-   grades without runs; and the agreement of the two implementations on
-   random grades and cost models. *)
+   grades without runs; and the agreement of the implementations on random
+   grades and cost models, in their verdicts and their printing. *)
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
@@ -351,6 +352,20 @@ module Derivatives = struct
 
   module L = Cost.Derivatives
   include Cost.Symbolic
+end
+
+module ByLetters = struct
+  let name = "derivatives by letters"
+
+  module L = Cost.ConcreteDerivatives
+  include Cost.Concrete
+end
+
+module Plain = struct
+  let name = "plain derivatives"
+
+  module L = Cost.PlainDerivatives
+  include Cost.Plain
 end
 
 (* The checks of the implementation [I]. *)
@@ -713,6 +728,8 @@ end
 
 module OfAutomata = Suite (Automata)
 module OfDerivatives = Suite (Derivatives)
+module OfByLetters = Suite (ByLetters)
+module OfPlain = Suite (Plain)
 
 (* {1 (f) Agreement of the implementations} *)
 
@@ -731,9 +748,37 @@ let agreement =
         (fun (r, r') ->
           show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
         (fun pair ->
-          OfAutomata.verdicts bounds pair = OfDerivatives.verdicts bounds pair)
+          let verdicts = OfAutomata.verdicts bounds pair in
+          OfDerivatives.verdicts bounds pair = verdicts
+          && OfByLetters.verdicts bounds pair = verdicts
+          && OfPlain.verdicts bounds pair = verdicts)
         (pairs regexes))
     tables
+
+(* The implementations by derivatives print each grade alike, unless the
+   printing of that over single letters or that by symbolic derivatives falls
+   back. *)
+let printing =
+  let state = Random.State.make [| 23 |] in
+  let regexes = List.init 64 (fun _ -> random_regex ~depth:3 state) in
+  let module D = Grades.RegularTraceGradeDerivative in
+  let module P = Grades.RegularTraceGradePlain in
+  let alike r =
+    match (OfDerivatives.grade r, OfByLetters.grade r, OfPlain.grade r) with
+    | Some d, Some c, Some p ->
+        OfByLetters.L.show c = D.show d
+        && (P.show p = D.show d
+           || Option.is_none (P.canonical p)
+           || Option.is_none (D.canonical d))
+    | None, None, None -> true
+    | _ -> false
+  in
+  [
+    all "the implementations by derivatives print alike"
+      (fun r ->
+        match OfDerivatives.grade r with Some d -> D.show d | None -> "∅")
+      alike regexes;
+  ]
 
 (* The plain regular trace grades have a run whatever the operations. *)
 let plain_inhabited =
@@ -748,12 +793,18 @@ let plain_inhabited =
     holds "traces-regex-symbolic: inhabited"
       (Grades.RegularTraceGradeDerivative.inhabited none
          (Grades.RegularTraceGradeDerivative.of_lit lit));
+    holds "traces-regex-derivatives: inhabited"
+      (Grades.RegularTraceGradeDerivative.Concrete.inhabited none
+         (Grades.RegularTraceGradeDerivative.Concrete.of_lit lit));
+    holds "traces-regex-plain: inhabited"
+      (Grades.RegularTraceGradePlain.inhabited none
+         (Grades.RegularTraceGradePlain.of_lit lit));
   ]
 
 let () =
   let checks =
-    segments @ OfAutomata.checks @ OfDerivatives.checks @ agreement
-    @ plain_inhabited
+    segments @ OfAutomata.checks @ OfDerivatives.checks @ OfByLetters.checks
+    @ OfPlain.checks @ agreement @ printing @ plain_inhabited
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

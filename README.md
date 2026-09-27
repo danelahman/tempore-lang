@@ -145,7 +145,9 @@ Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated si
 
 See [`examples/regular/regular_traces.tpe`](examples/regular/regular_traces.tpe).
 `dune exec --profile release bench/regular/bench_regular.exe` benchmarks the
-two implementations; see [`bench/regular/README.md`](bench/regular/README.md).
+two implementations, together with two intermediate ones that separate the
+effects of their design choices; see
+[`bench/regular/README.md`](bench/regular/README.md).
 
 ### Regular traces with costs
 

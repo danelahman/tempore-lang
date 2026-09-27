@@ -529,8 +529,9 @@ let view_compiler (model : Model.model) =
             div
               ~a:[ class_ "control is-expanded" ]
               [
-                (* Grouped as {!Grades.GradeRegistry.groups} groups them, the
-                   option text its title and the tooltip its description. *)
+                (* Grouped as {!Grades.GradeRegistry.groups} groups them,
+                   without the grades offered by the CLI only, the option text
+                   its title and the tooltip its description. *)
                 grouped_select
                   ~a:[ class_ "select is-fullwidth" ]
                   "Select grades"
@@ -541,7 +542,11 @@ let view_compiler (model : Model.model) =
                   (fun (name, _) -> name = model.edit_model.selected_resource)
                   (List.map
                      (fun (g : Grades.GradeRegistry.group) ->
-                       (g.label, g.grades))
+                       ( g.label,
+                         List.filter
+                           (fun (_, (info : Grades.GradeRegistry.info)) ->
+                             info.visibility = Everywhere)
+                           g.grades ))
                      Grades.GradeRegistry.groups);
               ];
             elt "p"

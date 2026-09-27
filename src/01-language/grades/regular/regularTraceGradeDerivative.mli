@@ -52,27 +52,53 @@
     expressions has no elementary bound (Stockmeyer and Meyer, STOC 1973;
     Stockmeyer, PhD thesis, MIT 1974), and a printing determined by the language
     and bounded by an elementary function of the size of the expression would
-    decide it. *)
+    decide it.
 
-include Grade.S with type t = SymbolicRegex.t
+    {2 Derivatives by letters}
 
-val of_regex : Grade.regex -> t
-(** [of_regex r] is the normal form of the expression [r], which may denote the
-    empty language. *)
+    {!Concrete}, ["traces-regex-derivatives"], is the same grade decided by the
+    derivatives by the concrete letters of the grades compared,
+    {!SymbolicRegex.S.Concrete}, rather than by their minterms, and otherwise
+    alike. *)
 
-val concrete : string list -> t -> Dfa.t
-(** [concrete names rho] is the language of the runs of [rho] that perform only
-    operations among [names], over the letters [tick], numbered [0], and
-    [names], numbered from [1] in their order, as {!RegularTraceGrade.concrete}:
-    the automaton {!SymbolicAutomaton.of_regex} of the derivatives of [rho],
-    explored in full, each letter following the edge whose label contains it. *)
+(** A regular trace grade by derivatives. *)
+module type S = sig
+  include Grade.S with type t = SymbolicRegex.t
 
-val runs : string list -> t -> t Dfa.automaton
-(** [runs names rho] is the automaton of the same language over the same
-    letters, explored lazily: its states are the normal forms of the derivatives
-    of [rho] by these letters, the final ones the nullable ones and the dead
-    ones the empty ones. *)
+  val of_regex : Grade.regex -> t
+  (** [of_regex r] is the normal form of the expression [r], which may denote
+      the empty language. *)
 
-val canonical : t -> LetterRegex.t option
-(** [canonical rho] is the canonical expression printed for [rho], or [None] if
-    the printing of [rho] falls back to its normal form. *)
+  val concrete : string list -> t -> Dfa.t
+  (** [concrete names rho] is the language of the runs of [rho] that perform
+      only operations among [names], over the letters [tick], numbered [0], and
+      [names], numbered from [1] in their order, as
+      {!RegularTraceGrade.concrete}: the automaton
+      {!SymbolicAutomaton.of_derivatives} of the derivatives of [rho] by the
+      blocks of its alphabet, explored in full, each letter following the edge
+      whose label contains it. *)
+
+  val runs : string list -> t -> t Dfa.automaton
+  (** [runs names rho] is the automaton of the same language over the same
+      letters, explored lazily: its states are the normal forms of the
+      derivatives of [rho] by these letters, the final ones the nullable ones
+      and the dead ones the empty ones. *)
+
+  val canonical : t -> LetterRegex.t option
+  (** [canonical rho] is the canonical expression printed for [rho], or [None]
+      if the printing of [rho] falls back to its normal form. *)
+end
+
+(** The grade decided by the derivatives by the blocks of [Alphabet], named
+    [Name.name]. *)
+module Make
+    (Alphabet : SymbolicRegex.ALPHABET)
+    (Name : sig
+      val name : string
+    end) : S
+
+include S
+(** @inline *)
+
+module Concrete : S
+(** ["traces-regex-derivatives"], by {!SymbolicRegex.S.Concrete}. *)

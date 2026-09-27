@@ -174,13 +174,16 @@ module Forms = Hashtbl.Make (struct
 end)
 
 (* Brzozowski's automaton of derivatives (Brzozowski, JACM 1964), its states the
-   normal forms of the derivatives and its edges labelled by minterms, as in
-   symbolic automata. *)
-let of_regex ~limit r =
+   normal forms of the derivatives and its edges labelled by the blocks of a
+   partition, e.g. minterms, as in symbolic automata. *)
+let of_derivatives ~limit ~blocks r =
   explore
     (module Forms)
-    ~limit ~blocks:(SymbolicRegex.minterms r) ~final:SymbolicRegex.nullable
-    ~next:SymbolicRegex.derivative r
+    ~limit ~blocks ~final:SymbolicRegex.nullable ~next:SymbolicRegex.derivative
+    r
+
+let of_regex ~limit r =
+  of_derivatives ~limit ~blocks:(SymbolicRegex.minterms r) r
 
 module IntMap = Map.Make (Int)
 module IntSet = Set.Make (Int)

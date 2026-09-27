@@ -2,12 +2,18 @@
 
 val grade_modules : (string * (module Grade.S)) list
 (** All available grades by name, the default first. The names accepted by the
-    CLI's [--grades] option and listed by the web interface's grade selector are
-    taken from here. *)
+    CLI's [--grades] option and listed by the web interface's grade selector,
+    those shown {!Everywhere}, are taken from here. *)
 
 val accepting : Grade.lit -> string list
-(** [accepting lit] lists the names of the grades that understand the literal
-    [lit], in the order of {!grade_modules}. *)
+(** [accepting lit] lists the names of the grades shown {!Everywhere} that
+    understand the literal [lit], in the order of {!grade_modules}. *)
+
+(** Where a grade is offered. *)
+type visibility =
+  | Everywhere  (** By the CLI and the web interface's selector *)
+  | Cli_only
+      (** By the CLI only, e.g. the implementations kept for comparison *)
 
 type info = {
   title : string;
@@ -17,6 +23,7 @@ type info = {
       (** One line describing the grade, e.g.
           ["At most n time steps; the unit 0 is least."]; shown as the web
           selector's option tooltip. *)
+  visibility : visibility;  (** Where the grade is offered. *)
 }
 (** Descriptive metadata about a grade, shown next to its CLI name (a key of
     {!grade_modules}) by the web interface's selector and the CLI's [--help], in

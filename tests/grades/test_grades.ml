@@ -302,6 +302,25 @@ let registry =
           "traces-regex-interval-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
+    expect "registry: grades offered by the CLI only" show_names
+      ~expected:
+        [
+          "traces-regex-derivatives";
+          "traces-regex-plain";
+          "traces-regex-lower-derivatives";
+          "traces-regex-upper-derivatives";
+          "traces-regex-interval-derivatives";
+          "traces-regex-lower-plain";
+          "traces-regex-upper-plain";
+          "traces-regex-interval-plain";
+        ]
+      (List.concat_map
+         (fun (g : GradeRegistry.group) ->
+           List.filter_map
+             (fun (name, (info : GradeRegistry.info)) ->
+               if info.visibility = Cli_only then Some name else None)
+             g.grades)
+         GradeRegistry.groups);
   ]
 
 let () =

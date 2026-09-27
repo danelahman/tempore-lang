@@ -1,9 +1,10 @@
-(* Unit tests of the two implementations of the regular trace grade, by
-   automata and by symbolic derivatives: their constructions, canonical or
-   normal forms, inclusion with counterexamples, alphabet alignment, laws on
-   samples, and the reading and printing of their literals, checked against a
-   direct matcher of regular expressions and against the parser; and the
-   agreement of the two on random expressions, on which equal grades have equal
+(* Unit tests of the four implementations of the regular trace grade, by
+   automata, by symbolic derivatives, by derivatives by letters and by
+   derivatives over single letters: their constructions, canonical or normal
+   forms, inclusion with counterexamples, alphabet alignment, laws on samples,
+   and the reading and printing of their literals, checked against a direct
+   matcher of regular expressions and against the parser; and the agreement of
+   the implementations on random expressions, on which equal grades have equal
    canonical automata and print alike unless the printing of one of them falls
    back to its normal form; and the time and size of the printing, bounded by
    the size of the normal form. *)
@@ -11,7 +12,7 @@
 module Grade = Grades.Grade
 module SugaredAst = SugaredAst
 
-type implementation = Automata | Derivatives
+type implementation = Automata | Symbolic | Concrete | Plain
 type check = { name : string; passed : bool; detail : string }
 
 let check name passed detail = { name; passed; detail }
@@ -117,7 +118,9 @@ struct
   let label name =
     (match I.implementation with
       | Automata -> "automata: "
-      | Derivatives -> "derivatives: ")
+      | Symbolic -> "derivatives: "
+      | Concrete -> "derivatives by letters: "
+      | Plain -> "plain derivatives: ")
     ^ name
 
   let check name = check (label name)
@@ -127,6 +130,13 @@ struct
   (* Whether two grades are the same, by [equal]: for the automata, the equality
      of their canonical automata. *)
   let same = G.equal bounds
+
+  (* [expect_grade name ~expected actual] checks that [actual] is the same
+     grade as [expected] and prints alike. *)
+  let expect_grade name ~expected actual =
+    check name
+      (same expected actual && G.show expected = G.show actual)
+      ("expected " ^ G.show expected ^ ", got " ^ G.show actual)
 
   (* Whether the printing of [rho] falls back to its normal form. *)
   let falls_back rho = Option.is_none (G.canonical rho)
@@ -255,7 +265,7 @@ struct
           (G.leq bounds word (lit a)
           && (not (G.leq bounds word (lit b)))
           && length word = length (lit expected)
-          && (I.implementation = Derivatives || shown = expected))
+          && (I.implementation <> Automata || shown = expected))
           ("got " ^ shown ^ ", expected " ^ expected)
 
   let inclusion =
@@ -283,11 +293,11 @@ struct
       check "{A} </= {_ & ~A}" (not (leq "{A}" "{_ & ~A}")) "";
       check "{_ & ~A} <= {_}" (leq "{_ & ~A}" "{_}") "";
       check "{_} </= {_ & ~A}" (not (leq "{_}" "{_ & ~A}")) "";
-      expect "join of the catch-alls" G.show ~expected:(lit "{_}")
+      expect_grade "join of the catch-alls" ~expected:(lit "{_}")
         (G.join (lit "{_ & ~A}") (lit "{A}"));
       expect "join of two names" show_names ~expected:[ "A"; "B" ]
         (G.events (G.join (lit "{A}") (lit "{B}")));
-      expect "product over aligned alphabets" G.show
+      expect_grade "product over aligned alphabets"
         ~expected:(lit "{(_ & ~B); B}")
         (G.mul (lit "{_ & ~B}") (lit "{B}"));
       check "catch-all versus a later name"
@@ -301,10 +311,12 @@ struct
         ~expected:
           (match I.implementation with
           | Automata -> "traces-regex"
-          | Derivatives -> "traces-regex-symbolic")
+          | Symbolic -> "traces-regex-symbolic"
+          | Concrete -> "traces-regex-derivatives"
+          | Plain -> "traces-regex-plain")
         G.name;
-      expect "unit" G.show ~expected:(lit "{0}") G.one;
-      expect "of_nat" G.show ~expected:(lit "{4}") (G.of_nat 4);
+      expect_grade "unit" ~expected:(lit "{0}") G.one;
+      expect_grade "of_nat" ~expected:(lit "{4}") (G.of_nat 4);
       expect "unit least" show_bool ~expected:false G.unit_least;
       expect "commutative" show_bool ~expected:false G.commutative;
       expect "no runtime bounds" show_bool ~expected:false G.needs_op_bounds;
@@ -312,7 +324,7 @@ struct
         (G.is_atomic "Send" (lit "{Send}"));
       expect "not atomic" show_bool ~expected:false
         (G.is_atomic "Send" (lit "{Send | Read}"));
-      expect "time shadow" G.show ~expected:(lit "{1 | 2 | 3}")
+      expect_grade "time shadow" ~expected:(lit "{1 | 2 | 3}")
         (G.of_bounds (1, 3));
       check "no implied bounds"
         (G.implied_bounds bounds (lit "{Send}") = None)
@@ -441,7 +453,8 @@ struct
     let texts =
       match I.implementation with
       | Automata -> List.init 12 (fun n -> from_end "A" (n + 1))
-      | Derivatives -> List.init 16 (fun n -> from_end "A" (n + 1)) @ [ slow ]
+      | Symbolic | Concrete | Plain ->
+          List.init 16 (fun n -> from_end "A" (n + 1)) @ [ slow ]
     in
     List.map
       (fun text ->
@@ -471,13 +484,27 @@ module Derivatives =
   Suite
     (Grades.RegularTraceGradeDerivative)
     (struct
-      let implementation = Derivatives
+      let implementation = Symbolic
     end)
 
-(* The two implementations agree on the emptiness, inclusion and equality of
-   random expressions over four names, and on the lengths of the
-   counterexamples to inclusion; each reads the other's printed forms as the
-   same grade. *)
+module ByLetters =
+  Suite
+    (Grades.RegularTraceGradeDerivative.Concrete)
+    (struct
+      let implementation = Concrete
+    end)
+
+module Plain =
+  Suite
+    (Grades.RegularTraceGradePlain)
+    (struct
+      let implementation = Plain
+    end)
+
+(* The implementations by automata and by symbolic derivatives agree on the
+   emptiness, inclusion and equality of random expressions over four names,
+   and on the lengths of the counterexamples to inclusion; each reads the
+   other's printed forms as the same grade. *)
 module Cross = struct
   module A = Grades.RegularTraceGrade
   module D = Grades.RegularTraceGradeDerivative
@@ -637,8 +664,109 @@ module Cross = struct
   let checks = emptiness @ decisions @ printing @ canonical @ canonical_pairs
 end
 
+(* The implementation [G] agrees with those by automata and by symbolic
+   derivatives on the expressions and pairs of [Cross]: on emptiness,
+   inclusion, equality and the lengths of the counterexamples to inclusion;
+   and it prints each grade as the implementation by symbolic derivatives
+   unless the printing of one of them falls back. *)
+module Agreement
+    (G : PRINTED)
+    (S : sig
+      val suite : string
+      val length : G.t -> int
+    end) =
+struct
+  module A = Grades.RegularTraceGrade
+  module D = Grades.RegularTraceGradeDerivative
+
+  let grades r =
+    let a, d = Cross.grades r in
+    let g =
+      match G.of_lit (Grade.Braces r) with
+      | rho -> Some rho
+      | exception Grade.Invalid_literal _ -> None
+    in
+    (a, d, g)
+
+  let name what i = "cross, " ^ S.suite ^ ": " ^ what ^ " " ^ string_of_int i
+
+  let emptiness =
+    List.mapi
+      (fun i r ->
+        let a, d, g = grades r in
+        check
+          (name "emptiness of expression" i)
+          (Option.is_some g = Option.is_some a
+          && Option.is_some g = Option.is_some d)
+          "the implementations disagree")
+      Cross.expressions
+
+  (* The length of a counterexample, if any. *)
+  let length length = Option.map length
+
+  let decide i (r, s) =
+    match (grades r, grades s) with
+    | (Some a, Some d, Some g), (Some a', Some d', Some g') ->
+        let leq = G.leq bounds g g' and equal = G.equal bounds g g' in
+        let found = length S.length (G.counterexample bounds g g') in
+        [
+          check
+            (name "inclusion of pair" i)
+            (leq = A.leq bounds a a' && leq = D.leq bounds d d')
+            (G.show g ^ " <= " ^ G.show g');
+          check
+            (name "equality of pair" i)
+            (equal = A.equal bounds a a' && equal = D.equal bounds d d')
+            (G.show g ^ " = " ^ G.show g');
+          check
+            (name "counterexample of pair" i)
+            (found = length Automata.length (A.counterexample bounds a a')
+            && found = length Derivatives.length (D.counterexample bounds d d')
+            )
+            (G.show g ^ " <= " ^ G.show g');
+        ]
+    | _ -> []
+
+  let decisions = List.concat (List.mapi decide Cross.pairs)
+
+  let print i r =
+    match grades r with
+    | _, Some d, Some g ->
+        [
+          check
+            (name "printing of expression" i)
+            (G.show g = D.show d
+            || Option.is_none (G.canonical g)
+            || Option.is_none (D.canonical d))
+            (G.show g ^ " vs " ^ D.show d);
+        ]
+    | _ -> []
+
+  let printing = List.concat (List.mapi print Cross.expressions)
+  let checks = emptiness @ decisions @ printing
+end
+
+module ByLettersAgreement =
+  Agreement
+    (Grades.RegularTraceGradeDerivative.Concrete)
+    (struct
+      let suite = "derivatives by letters"
+      let length = ByLetters.length
+    end)
+
+module PlainAgreement =
+  Agreement
+    (Grades.RegularTraceGradePlain)
+    (struct
+      let suite = "plain derivatives"
+      let length = Plain.length
+    end)
+
 let () =
-  let checks = Automata.checks @ Derivatives.checks @ Cross.checks in
+  let checks =
+    Automata.checks @ Derivatives.checks @ ByLetters.checks @ Plain.checks
+    @ Cross.checks @ ByLettersAgreement.checks @ PlainAgreement.checks
+  in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
   Printf.printf "%d of %d checks passed\n"

@@ -1,11 +1,17 @@
-(* A benchmark of the two implementations of the regular trace grade, by
-   automata ([RegularTraceGrade], "traces-regex") and by symbolic derivatives
-   ([RegularTraceGradeDerivative], "traces-regex-symbolic"), and of the two
-   implementations of the cost-model regular trace grades over them
-   ([RegularCostTraceGrades], "traces-regex-upper" and the others, and their
-   "-symbolic" variants): the grade operations on families of grades of
-   increasing size, and the typechecking of the programs that use the grades,
-   the standard library included.
+(* A benchmark of the four implementations of the regular trace grade, and of
+   the cost-model regular trace grades over each: by automata
+   ([RegularTraceGrade], "traces-regex"), by plain derivatives of expressions
+   over single letters ([RegularTraceGradePlain], "traces-regex-plain"), by
+   derivatives by letters of expressions over letter sets
+   ([RegularTraceGradeDerivative.Concrete], "traces-regex-derivatives"), and by
+   symbolic derivatives by minterms ([RegularTraceGradeDerivative],
+   "traces-regex-symbolic"); the cost-model grades are "traces-regex-upper"
+   and the others, with the same suffixes. Consecutive implementations differ
+   in one design choice each: the construction (automata or derivatives), the
+   representation of letters (single letters or letter sets) and the letters
+   derived by (letters or minterms). The workloads are the grade operations on
+   families of grades of increasing size, and the typechecking of the programs
+   that use the grades, the standard library included.
 
    Each measurement runs in a fresh child process, so that the tables of the
    derivatives start empty: it prepares its inputs untimed, then times the
@@ -298,12 +304,29 @@ module Workloads (G : Grade.S) = struct
         (fun (w, w') -> equal w w');
     ]
 
+  (* [U] the word of [k] names, each once, and [V] its repetition: every name
+     is told apart from the others, so that the minterms are the letters. *)
+  let told_apart k =
+    let family = Printf.sprintf "k = %d names told apart" k in
+    let u = String.concat "; " (names k) in
+    let both () = (braces u, braces ("(" ^ u ^ ")*")) in
+    [
+      op family "elaborate U, V" Fun.id both;
+      op family "leq U <= V" both (fun (u, v) -> leq u v);
+      op family "leq V <= U (false)" both (fun (u, v) -> leq v u);
+      op family "counterexample V, U" both (fun (u, v) ->
+          G.counterexample bounds v u);
+      op family "equal V = 0 | U; V" both (fun (u, v) ->
+          equal v (G.join G.one (G.mul u v)));
+    ]
+
   let operations =
     corpus_workloads
     @ List.concat_map protocol [ 2; 8; 32 ]
     @ List.concat_map nesting [ 1; 3; 6 ]
     @ List.concat_map nth_from_end [ 4; 8; 12; 16 ]
     @ List.concat_map alphabet [ 8; 32; 128 ]
+    @ List.concat_map told_apart [ 8; 32; 128 ]
 end
 
 (* The programs typechecked under the regular trace grade: the example and
@@ -524,22 +547,63 @@ let cost_programs grade =
        [ ""; "_reject"; "_runs"; "_runs_reject" ])
 
 module Cost = Grades.RegularCostTraceGrades
-module AutomataOps = Workloads (Grades.RegularTraceGrade)
-module DerivativeOps = Workloads (Grades.RegularTraceGradeDerivative)
-module AutomataPrograms = Programs (Grades.RegularTraceGrade)
-module DerivativePrograms = Programs (Grades.RegularTraceGradeDerivative)
-module AutomataUpper = Programs (Cost.Upper)
-module DerivativeUpper = Programs (Cost.Symbolic.Upper)
-module AutomataLower = Programs (Cost.Lower)
-module DerivativeLower = Programs (Cost.Symbolic.Lower)
-module AutomataInterval = Programs (Cost.Interval)
-module DerivativeInterval = Programs (Cost.Symbolic.Interval)
-module AutomataUpperOps = CostWorkloads (Cost.Upper)
-module DerivativeUpperOps = CostWorkloads (Cost.Symbolic.Upper)
-module AutomataLowerOps = CostWorkloads (Cost.Lower)
-module DerivativeLowerOps = CostWorkloads (Cost.Symbolic.Lower)
-module AutomataIntervalOps = CostWorkloads (Cost.Interval)
-module DerivativeIntervalOps = CostWorkloads (Cost.Symbolic.Interval)
+
+(* The programs typechecked under the cost-model grade [grade], the example
+   first. *)
+let cost_files example grade =
+  ("examples/regular_costs/regular_costs_" ^ example ^ ".tpe")
+  :: cost_programs grade
+
+(** The workloads of one implementation, over its grades [G], [Upper], [Lower]
+    and [Interval], by family, in the order of the table. *)
+module Implementation
+    (G : Grade.S)
+    (Upper : Grade.S)
+    (Lower : Grade.S)
+    (Interval : Grade.S) =
+struct
+  module Plain = Programs (G)
+  module Ops = Workloads (G)
+  module UpperPrograms = Programs (Upper)
+  module LowerPrograms = Programs (Lower)
+  module IntervalPrograms = Programs (Interval)
+  module UpperOps = CostWorkloads (Upper)
+  module LowerOps = CostWorkloads (Lower)
+  module IntervalOps = CostWorkloads (Interval)
+
+  let workloads =
+    [
+      Plain.workloads regular_programs;
+      Ops.operations;
+      UpperPrograms.workloads (cost_files "upper" "upper");
+      LowerPrograms.workloads (cost_files "lower" "lower");
+      IntervalPrograms.workloads (cost_files "intervals" "interval");
+      UpperOps.operations;
+      LowerOps.operations;
+      IntervalOps.operations;
+    ]
+end
+
+module Automata =
+  Implementation (Grades.RegularTraceGrade) (Cost.Upper) (Cost.Lower)
+    (Cost.Interval)
+
+module Plain =
+  Implementation (Grades.RegularTraceGradePlain) (Cost.Plain.Upper)
+    (Cost.Plain.Lower)
+    (Cost.Plain.Interval)
+
+module Letters =
+  Implementation
+    (Grades.RegularTraceGradeDerivative.Concrete)
+    (Cost.Concrete.Upper)
+    (Cost.Concrete.Lower)
+    (Cost.Concrete.Interval)
+
+module Symbolic =
+  Implementation (Grades.RegularTraceGradeDerivative) (Cost.Symbolic.Upper)
+    (Cost.Symbolic.Lower)
+    (Cost.Symbolic.Interval)
 
 (** {1 The table} *)
 
@@ -558,62 +622,78 @@ let show_warm = function
   | Sample { warm = None; _ } -> "-"
   | Timeout | Failure -> ""
 
-let show_ratio automata derivatives =
-  match (automata, derivatives) with
-  | Sample a, Sample d -> Printf.sprintf "%.2f" (a.cold /. d.cold)
-  | Timeout, Sample d ->
-      Printf.sprintf "> %.0f" (float_of_int time_limit /. d.cold)
+(* The ratio of the cold times of [x] and [y], bounded if one of them timed
+   out, and none if [y] took no measurable time. *)
+let show_ratio x y =
+  match (x, y) with
+  | Sample x, Sample y when y.cold > 0. ->
+      Printf.sprintf "%.2f" (x.cold /. y.cold)
+  | Timeout, Sample y ->
+      Printf.sprintf "> %.0f" (float_of_int time_limit /. y.cold)
+  | Sample x, Timeout ->
+      Printf.sprintf "< %.2g" (x.cold /. float_of_int time_limit)
   | _ -> ""
 
-let row (automata : workload) (derivatives : workload) =
-  let a = measure automata.prepare in
-  let d = measure derivatives.prepare in
-  Printf.printf "| %-40s | %10s | %10s | %10s | %10s | %8s |\n%!" automata.name
-    (show_cold a) (show_cold d) (show_warm a) (show_warm d) (show_ratio a d)
+let columns =
+  [
+    "automata";
+    "plain";
+    "letters";
+    "symbolic";
+    "aut/plain";
+    "plain/let";
+    "let/symb";
+    "aut. warm";
+    "pl. warm";
+    "let. warm";
+    "sym. warm";
+  ]
 
-let family_rows automata derivatives =
-  let rec go current = function
-    | [], [] -> ()
-    | (a : workload) :: rest, d :: rest' ->
-        if a.family <> current then
-          Printf.printf "| **%s** | | | | | |\n" a.family;
-        row a d;
-        go a.family (rest, rest')
-    | _ -> invalid_arg "the workloads differ"
-  in
-  go "" (automata, derivatives)
+let print_row name cells =
+  Printf.printf "| %-40s |%s\n%!" name
+    (String.concat "" (List.map (Printf.sprintf " %10s |") cells))
+
+(* The row of the workload [a] and its counterparts [p], [l] and [s] in the
+   other implementations, in the order of [columns]. *)
+let row (a : workload) p l s =
+  let a' = measure a.prepare in
+  let p' = measure p.prepare in
+  let l' = measure l.prepare in
+  let s' = measure s.prepare in
+  let outcomes = [ a'; p'; l'; s' ] in
+  print_row a.name
+    (List.map show_cold outcomes
+    @ [ show_ratio a' p'; show_ratio p' l'; show_ratio l' s' ]
+    @ List.map show_warm outcomes)
+
+(* The rows of the workloads of a family of each implementation, under the
+   headings of their families. *)
+let rec family_rows current = function
+  | [], [], [], [] -> ()
+  | (a : workload) :: a', p :: p', l :: l', s :: s' ->
+      if a.family <> current then
+        print_row ("**" ^ a.family ^ "**") (List.map (Fun.const "") columns);
+      row a p l s;
+      family_rows a.family (a', p', l', s')
+  | _ -> invalid_arg "the workloads differ"
+
+let rec tables = function
+  | [], [], [], [] -> ()
+  | a :: a', p :: p', l :: l', s :: s' ->
+      family_rows "" (a, p, l, s);
+      tables (a', p', l', s')
+  | _ -> invalid_arg "the families differ"
 
 let () =
   (match Sys.argv with [| _; root |] -> Sys.chdir root | _ -> ());
   Printf.printf
     "Median over %d processes (fewer past %.0f s); cold: first run in a fresh \
-     process, warm: mean of repeated runs; ratio: automata / derivatives, \
-     cold.\n\n"
+     process, warm: mean of repeated runs; ratios of the cold times: automata \
+     / plain (construction), plain / letters (representation), letters / \
+     symbolic (minterms).\n\n"
     processes patience;
-  Printf.printf "| %-40s | %10s | %10s | %10s | %10s | %8s |\n" "workload"
-    "automata" "derivative" "aut. warm" "der. warm" "ratio";
-  Printf.printf "|%s|%s|%s|%s|%s|%s|\n" (String.make 42 '-')
-    (String.make 12 '-') (String.make 12 '-') (String.make 12 '-')
-    (String.make 12 '-') (String.make 10 '-');
-  family_rows
-    (AutomataPrograms.workloads regular_programs)
-    (DerivativePrograms.workloads regular_programs);
-  family_rows AutomataOps.operations DerivativeOps.operations;
-  let upper =
-    "examples/regular_costs/regular_costs_upper.tpe" :: cost_programs "upper"
-  in
-  let lower =
-    "examples/regular_costs/regular_costs_lower.tpe" :: cost_programs "lower"
-  in
-  let interval =
-    "examples/regular_costs/regular_costs_intervals.tpe"
-    :: cost_programs "interval"
-  in
-  family_rows (AutomataUpper.workloads upper) (DerivativeUpper.workloads upper);
-  family_rows (AutomataLower.workloads lower) (DerivativeLower.workloads lower);
-  family_rows
-    (AutomataInterval.workloads interval)
-    (DerivativeInterval.workloads interval);
-  family_rows AutomataUpperOps.operations DerivativeUpperOps.operations;
-  family_rows AutomataLowerOps.operations DerivativeLowerOps.operations;
-  family_rows AutomataIntervalOps.operations DerivativeIntervalOps.operations
+  print_row "workload" columns;
+  Printf.printf "|%s|%s\n" (String.make 42 '-')
+    (String.concat "" (List.map (Fun.const "------------|") columns));
+  tables
+    (Automata.workloads, Plain.workloads, Letters.workloads, Symbolic.workloads)

@@ -3,7 +3,10 @@
     concatenation.
 
     {!RegularTraceGradeDerivative}, ["traces-regex-symbolic"], implements the
-    same grade by symbolic derivatives.
+    same grade by symbolic derivatives; {!RegularTraceGradeDerivative.Concrete},
+    ["traces-regex-derivatives"], by derivatives by letters, and
+    {!RegularTraceGradePlain}, ["traces-regex-plain"], by derivatives of
+    expressions over single letters.
 
     {2 Runs as words}
 

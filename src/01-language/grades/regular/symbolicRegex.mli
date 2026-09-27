@@ -41,7 +41,23 @@
     expressions, the derivatives and the emptiness of the expressions explored
     are recorded in module-level tables, which only ever grow; they are an
     implementation device invisible through this interface, every function being
-    pure. *)
+    pure.
+
+    {2 Letters and alphabets}
+
+    The expressions and decisions above are those of RE#. Two parameters, each a
+    single design choice, replace their letters by those of Brzozowski, sharing
+    everything else:
+    - the {e alphabet} of the decisions ({!S.Decide}): the minterms of the
+      letter sets ({!S.Minterms}), or the concrete letters [tick], each name
+      mentioned and one catch-all letter for the names not mentioned
+      ({!S.Concrete}), the finest partition that the letter sets respect up to
+      the names they do not tell apart;
+    - the {e letters} of the expressions ({!Make}): letter sets, merged in
+      unions ({!Sets}), or single letters ({!Atoms}), a union of letters being a
+      union of expressions.
+
+    The module itself is [Make (Sets)] with the decisions by minterms. *)
 
 (** Letter sets. *)
 module Letters : sig
@@ -69,6 +85,10 @@ module Letters : sig
   val name : string -> t
   (** [name n] is the set [{n}]. *)
 
+  val others : string list -> t
+  (** [others names] is the set of the names not among [names], listed in
+      increasing order. *)
+
   val union : t -> t -> t
   val inter : t -> t -> t
 
@@ -88,98 +108,155 @@ module Letters : sig
       the blocks are listed by {!order}. *)
 end
 
-type t
-(** An expression in normal form. *)
+(** The letters of the expressions. *)
+type letters =
+  | Sets
+      (** Letter sets, the letter sets among the operands of a union being
+          merged into their union: the predicates of RE#. *)
+  | Atoms
+      (** Single letters: [tick], a name, or a catch-all letter given as a set
+          {!Letters.others}; a union of letters is a union of expressions, and
+          [Σ*] is [~∅]. *)
 
-(** The top-level form of an expression. *)
-type view =
-  | Empty  (** The empty language *)
-  | Eps  (** The language of the empty word *)
-  | Letters of Letters.t  (** The one-letter words of a non-empty letter set *)
-  | Concat of t * t
-      (** Concatenation, the first operand neither a concatenation, the empty
-          word nor the empty language *)
-  | Union of t list  (** Union of at least two operands *)
-  | Inter of t list  (** Intersection of at least two operands *)
-  | Compl of t  (** Complement *)
-  | Star of t  (** Repetition *)
+(** Extended regular expressions in normal form. *)
+module type S = sig
+  type t
+  (** An expression in normal form. *)
 
-val view : t -> view
-(** [view r] is the top-level form of [r]. *)
+  (** The top-level form of an expression. *)
+  type view =
+    | Empty  (** The empty language *)
+    | Eps  (** The language of the empty word *)
+    | Letters of Letters.t
+        (** The one-letter words of a non-empty letter set *)
+    | Concat of t * t
+        (** Concatenation, the first operand neither a concatenation, the empty
+            word nor the empty language *)
+    | Union of t list  (** Union of at least two operands *)
+    | Inter of t list  (** Intersection of at least two operands *)
+    | Compl of t  (** Complement *)
+    | Star of t  (** Repetition *)
 
-val equal_form : t -> t -> bool
-(** [equal_form r s] is whether [r] and [s] have the same normal form, in
-    constant time. It implies, but is stronger than, {!equal}. *)
+  val view : t -> view
+  (** [view r] is the top-level form of [r]. *)
 
-val compare_form : t -> t -> int
-(** A total order on normal forms compatible with {!equal_form}, in constant
-    time. *)
+  val equal_form : t -> t -> bool
+  (** [equal_form r s] is whether [r] and [s] have the same normal form, in
+      constant time. It implies, but is stronger than, {!DECISIONS.equal}. *)
 
-val hash : t -> int
-(** [hash r] is a hash of the normal form of [r], compatible with {!equal_form}.
-*)
+  val compare_form : t -> t -> int
+  (** A total order on normal forms compatible with {!equal_form}, in constant
+      time. *)
 
-(** {1 Constructions} *)
+  val hash : t -> int
+  (** [hash r] is a hash of the normal form of [r], compatible with
+      {!equal_form}. *)
 
-val empty : t
-(** The empty language. *)
+  (** {1 Constructions} *)
 
-val eps : t
-(** The language of the empty word. *)
+  val empty : t
+  (** The empty language. *)
 
-val top : t
-(** The language [Σ*] of all words, [_*]. *)
+  val eps : t
+  (** The language of the empty word. *)
 
-val letters : Letters.t -> t
-(** [letters p] is the language of the one-letter words of [p]. *)
+  val top : t
+  (** The language [Σ*] of all words: [_*] over letter sets, [~∅] over single
+      letters. *)
 
-val concat : t -> t -> t
-val union : t list -> t
-val inter : t list -> t
-val compl : t -> t
-val star : t -> t
+  val letters : Letters.t -> t
+  (** [letters p] is the language of the one-letter words of [p]. *)
 
-val names : t -> string list
-(** [names r] is the list of the names [r] mentions, in increasing order. *)
+  val concat : t -> t -> t
+  val union : t list -> t
+  val inter : t list -> t
+  val compl : t -> t
+  val star : t -> t
 
-(** {1 Derivatives} *)
+  val names : t -> string list
+  (** [names r] is the list of the names [r] mentions, in increasing order. *)
 
-val nullable : t -> bool
-(** [nullable r] is whether [r] contains the empty word. *)
+  (** {1 Derivatives} *)
 
-val minterms : t -> Letters.t list
-(** [minterms r] is the coarsest partition of the letters into non-empty sets
-    that every letter set occurring in [r] respects: each such letter set is a
-    union of blocks. The blocks are listed by their least letter, [tick] before
-    the names in increasing order before the names [r] does not mention. *)
+  val nullable : t -> bool
+  (** [nullable r] is whether [r] contains the empty word. *)
 
-val derivative : Letters.t -> t -> t
-(** [derivative m r] is the derivative [a⁻¹r] of [r] by any letter [a] of [m],
-    the words [w] such that [a w] is in [r], for [m] contained in a block of
-    [minterms r]. *)
+  val minterms : t -> Letters.t list
+  (** [minterms r] is the coarsest partition of the letters into non-empty sets
+      that every letter set occurring in [r] respects: each such letter set is a
+      union of blocks. The blocks are listed by their least letter, [tick]
+      before the names in increasing order before the names [r] does not
+      mention. *)
 
-(** {1 Decisions}
+  val derivative : Letters.t -> t -> t
+  (** [derivative m r] is the derivative [a⁻¹r] of [r] by any letter [a] of [m],
+      the words [w] such that [a w] is in [r], for [m] contained in a block of
+      [minterms r]. *)
 
-    The decisions explore the graph of derivatives, the states being normal
-    forms and the edges labelled by the minterms of the start, the derivatives
-    by minterms being those of RE#. Deciding the inclusion and equivalence of
-    extended regular expressions by derivatives follows Keil and Thiemann
-    (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits (CAV 2025). *)
+  (** {1 Alphabets} *)
 
-val is_empty : t -> bool
-(** [is_empty r] is whether [r] has no words, decided by depth-first
-    exploration, which stops at the first nullable derivative. *)
+  (** An alphabet of the decisions. *)
+  module type ALPHABET = sig
+    val blocks : t list -> Letters.t list
+    (** [blocks roots] is a partition of the letters into non-empty sets that
+        every letter set occurring in [roots] respects, listed by
+        {!Letters.order}: the derivatives of [roots] are taken by one letter of
+        each block. *)
+  end
 
-val shortest : t -> Letters.t list option
-(** [shortest r] is [None] if [r] is empty, and otherwise a shortest word of
-    [r], each letter given as the block of {!minterms} it is taken from, found
-    by breadth-first exploration. *)
+  module Minterms : ALPHABET
+  (** The minterms of the letter sets of the roots, the coarsest such partition,
+      as in RE#. *)
 
-val subset : t -> t -> bool
-(** [subset r s] is whether [r ⊆ s], i.e. whether [r & ~s] is empty. *)
+  module Concrete : ALPHABET
+  (** The concrete letters of the roots: [tick], each name they mention, and one
+      catch-all letter, the set of the names they do not mention, as in
+      Brzozowski's derivatives over a finite alphabet. *)
 
-val equal : t -> t -> bool
-(** [equal r s] is whether [r] and [s] denote the same language, decided by a
-    bisimulation up to the normal form (Hopcroft and Karp): the pairs of
-    derivatives of [r] and [s] by the same words are explored breadth-first, the
-    classes of the expressions found equal being merged as they go. *)
+  (** {1 Decisions}
+
+      The decisions explore the graph of derivatives, the states being normal
+      forms and the edges labelled by the blocks of an alphabet of the start,
+      the derivatives by minterms being those of RE#. Deciding the inclusion and
+      equivalence of extended regular expressions by derivatives follows Keil
+      and Thiemann (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits (CAV
+      2025). *)
+
+  module type DECISIONS = sig
+    val is_empty : t -> bool
+    (** [is_empty r] is whether [r] has no words, decided by depth-first
+        exploration, which stops at the first nullable derivative. *)
+
+    val shortest : t -> Letters.t list option
+    (** [shortest r] is [None] if [r] is empty, and otherwise a shortest word of
+        [r], each letter given as the block of the alphabet it is taken from,
+        found by breadth-first exploration. *)
+
+    val subset : t -> t -> bool
+    (** [subset r s] is whether [r ⊆ s], i.e. whether [r & ~s] is empty. *)
+
+    val equal : t -> t -> bool
+    (** [equal r s] is whether [r] and [s] denote the same language, decided by
+        a bisimulation up to the normal form (Hopcroft and Karp): the pairs of
+        derivatives of [r] and [s] by the same words are explored breadth-first,
+        the classes of the expressions found equal being merged as they go. *)
+  end
+
+  (** The decisions by the alphabet [A], with their own tables of the emptiness
+      and equality of the expressions explored. *)
+  module Decide (A : ALPHABET) : DECISIONS
+end
+
+(** The expressions over the letters [L.letters], in a normal form of their own,
+    with their own tables. With {!Atoms}, the letter sets given to {!S.letters}
+    are single letters, and the catch-all letters of the expressions combined
+    the same. *)
+module Make (L : sig
+  val letters : letters
+end) : S
+
+include S
+(** @inline *)
+
+include DECISIONS
+(** The decisions by {!Minterms}. *)

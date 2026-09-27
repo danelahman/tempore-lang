@@ -2,9 +2,10 @@
 
     The instances the prototype offers are defined in {!TimeGrades},
     {!TimedTraceGrades}, {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
-    {!RegularCostTraceGrades} and {!LevelGrades}, built with the constructions
-    of {!GradeConstructions}, and listed in {!GradeRegistry}; the two regular
-    trace grades are two implementations of the same grade.
+    {!RegularTraceGradePlain}, {!RegularCostTraceGrades} and {!LevelGrades},
+    built with the constructions of {!GradeConstructions}, and listed in
+    {!GradeRegistry}; the regular trace grades are implementations of the same
+    grade.
 
     {2 Cost model}
 
@@ -34,6 +35,17 @@ type regex =
   | Star of regex  (** Repetition, [r*] *)
   | Inter of regex * regex  (** Intersection, [r & s] *)
   | Compl of regex  (** Complement, [~r] *)
+
+(** [regex_names r] is the list of the operation names [r] mentions, in
+    increasing order. *)
+let regex_names r =
+  let rec go = function
+    | Letter name -> [ name ]
+    | Tick _ | Any -> []
+    | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
+    | Star r | Compl r -> go r
+  in
+  List.sort_uniq String.compare (go r)
 
 (** Grade literals as they appear in source. *)
 type lit =

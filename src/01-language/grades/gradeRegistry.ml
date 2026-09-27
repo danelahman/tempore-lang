@@ -1,4 +1,5 @@
-type info = { title : string; description : string }
+type visibility = Everywhere | Cli_only
+type info = { title : string; description : string; visibility : visibility }
 type group = { label : string; grades : (string * info) list }
 
 (* One registered grade: its module, named by [Grade.S.name], grouped and
@@ -12,12 +13,13 @@ type entry = {
   info : info;
 }
 
-let entry (module G : Grade.S) group title description =
+let entry ?(visibility = Everywhere) (module G : Grade.S) group title
+    description =
   {
     name = G.name;
     grade = (module G : Grade.S);
     group;
-    info = { title; description };
+    info = { title; description; visibility };
   }
 
 let entries =
@@ -55,6 +57,16 @@ let entries =
       "Regular traces" "Regular languages (symbolic derivatives)"
       "The same grade as regular languages, decided by symbolic derivatives \
        instead of automata.";
+    entry ~visibility:Cli_only
+      (module RegularTraceGradeDerivative.Concrete)
+      "Regular traces" "Regular languages (plain derivatives)"
+      "The same grade as regular languages, decided by derivatives by single \
+       letters instead of minterms.";
+    entry ~visibility:Cli_only
+      (module RegularTraceGradePlain)
+      "Regular traces" "Regular languages (fully plain derivatives)"
+      "The same grade as regular languages over single letters instead of \
+       letter sets, decided by derivatives by letters.";
     entry
       (module RegularCostTraceGrades.Lower)
       "Regular traces with costs" "Lower bounds"
@@ -85,6 +97,36 @@ let entries =
       "Regular traces with costs" "Intervals (symbolic derivatives)"
       "The interval cost grade, decided by symbolic derivatives instead of \
        automata.";
+    entry ~visibility:Cli_only
+      (module RegularCostTraceGrades.Concrete.Lower)
+      "Regular traces with costs" "Lower bounds (plain derivatives)"
+      "The lower-bound cost grade, decided by derivatives by letters instead \
+       of minterms.";
+    entry ~visibility:Cli_only
+      (module RegularCostTraceGrades.Concrete.Upper)
+      "Regular traces with costs" "Upper bounds (plain derivatives)"
+      "The upper-bound cost grade, decided by derivatives by letters instead \
+       of minterms.";
+    entry ~visibility:Cli_only
+      (module RegularCostTraceGrades.Concrete.Interval)
+      "Regular traces with costs" "Intervals (plain derivatives)"
+      "The interval cost grade, decided by derivatives by letters instead of \
+       minterms.";
+    entry ~visibility:Cli_only
+      (module RegularCostTraceGrades.Plain.Lower)
+      "Regular traces with costs" "Lower bounds (fully plain derivatives)"
+      "The lower-bound cost grade over single letters instead of letter sets, \
+       decided by derivatives by letters.";
+    entry ~visibility:Cli_only
+      (module RegularCostTraceGrades.Plain.Upper)
+      "Regular traces with costs" "Upper bounds (fully plain derivatives)"
+      "The upper-bound cost grade over single letters instead of letter sets, \
+       decided by derivatives by letters.";
+    entry ~visibility:Cli_only
+      (module RegularCostTraceGrades.Plain.Interval)
+      "Regular traces with costs" "Intervals (fully plain derivatives)"
+      "The interval cost grade over single letters instead of letter sets, \
+       decided by derivatives by letters.";
     entry
       (module LevelGrades.SecurityLevels)
       "Security levels" "Levels"
@@ -111,7 +153,10 @@ let understands lit (module G : Grade.S) =
 
 let accepting lit =
   List.filter_map
-    (fun e -> if understands lit e.grade then Some e.name else None)
+    (fun e ->
+      if e.info.visibility = Everywhere && understands lit e.grade then
+        Some e.name
+      else None)
     entries
 
 (* [entries] grouped by [group], preserving both the order groups first occur

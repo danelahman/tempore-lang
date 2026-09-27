@@ -48,12 +48,6 @@ let lift2 op op' rho rho' =
     (op (align names rho) (align names rho'))
     (op' rho.expression rho'.expression)
 
-let rec names_of = function
-  | Letter name -> [ name ]
-  | Tick _ | Any -> []
-  | Seq (r, s) | Union (r, s) | Inter (r, s) -> names_of r @ names_of s
-  | Star r | Compl r -> names_of r
-
 (** [dfa_of_regex names r] is the automaton over [names] of the regular
     expression [r], whose names are among [names], built by recursion on [r]
     with the product and subset constructions of {!Dfa}. *)
@@ -74,7 +68,7 @@ let dfa_of_regex names =
 (** [of_regex r] is the language of [r] over the names it mentions; it may be
     empty. *)
 let of_regex r =
-  let names = List.sort_uniq String.compare (names_of r) in
+  let names = regex_names r in
   restrict names (dfa_of_regex names r) (Expression.of_regex r)
 
 let one = of_regex (Tick 0)
@@ -124,9 +118,7 @@ let concrete names rho =
     a name, or the names other than [names]. *)
 let letters names a =
   if a = tick then Letters.tick
-  else if a = other names then
-    Letters.compl
-      (List.fold_left Letters.union Letters.tick (List.map Letters.name names))
+  else if a = other names then Letters.others names
   else Letters.name (List.nth names (a - 1))
 
 (** [word names w] is the grade of the word [w] over [names]. *)

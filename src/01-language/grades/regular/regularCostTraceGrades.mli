@@ -1,7 +1,9 @@
 (** The cost-model regular trace grades: the regular languages of runs of
-    {!RegularTraceGrade}, or of {!RegularTraceGradeDerivative}, ordered as the
-    timed-trace grades of {!TimedTraceGrades} order finite sets of runs, trading
-    time against operations at their declared runtime bounds.
+    {!RegularTraceGrade}, or of its implementations by derivatives
+    {!RegularTraceGradeDerivative}, {!RegularTraceGradeDerivative.Concrete} and
+    {!RegularTraceGradePlain}, ordered as the timed-trace grades of
+    {!TimedTraceGrades} order finite sets of runs, trading time against
+    operations at their declared runtime bounds.
 
     {2 Orders}
 
@@ -121,6 +123,17 @@ module Derivatives : LANGUAGE with type t = RegularTraceGradeDerivative.t
     {!LANGUAGE.concrete} {!RegularTraceGradeDerivative.concrete}, built from the
     automaton of the derivatives by minterms. *)
 
+module ConcreteDerivatives :
+  LANGUAGE with type t = RegularTraceGradeDerivative.Concrete.t
+(** {!RegularTraceGradeDerivative.Concrete}, as {!Derivatives}, the tables
+    {!LANGUAGE.concrete} being built from the automaton of the derivatives by
+    concrete letters. *)
+
+module PlainDerivatives : LANGUAGE with type t = RegularTraceGradePlain.t
+(** {!RegularTraceGradePlain}, the automata {!LANGUAGE.runs} being those of the
+    derivatives {!RegularTraceGradePlain.runs}, and the tables
+    {!LANGUAGE.concrete} their exploration in full. *)
+
 module Lower : Grade.S with type t = RegularTraceGrade.t
 (** ["traces-regex-lower"], over {!Automata}. *)
 
@@ -143,4 +156,29 @@ module Symbolic : sig
     Grade.S
       with type t =
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
+end
+
+(** The grades over {!ConcreteDerivatives}, named
+    ["traces-regex-lower-derivatives"], ["traces-regex-upper-derivatives"] and
+    ["traces-regex-interval-derivatives"]: {!Symbolic} with derivatives by
+    letters in place of minterms. *)
+module Concrete : sig
+  module Lower : Grade.S with type t = RegularTraceGradeDerivative.t
+  module Upper : Grade.S with type t = RegularTraceGradeDerivative.t
+
+  module Interval :
+    Grade.S
+      with type t =
+        RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
+end
+
+(** The grades over {!PlainDerivatives}, named ["traces-regex-lower-plain"],
+    ["traces-regex-upper-plain"] and ["traces-regex-interval-plain"]:
+    {!Concrete} with single letters in place of letter sets. *)
+module Plain : sig
+  module Lower : Grade.S with type t = RegularTraceGradePlain.t
+  module Upper : Grade.S with type t = RegularTraceGradePlain.t
+
+  module Interval :
+    Grade.S with type t = RegularTraceGradePlain.t * RegularTraceGradePlain.t
 end

@@ -58,6 +58,12 @@ val of_regex : limit:int -> SymbolicRegex.t -> t option
     as it finds them: their number is bounded by no elementary function of the
     size of [r]. *)
 
+val of_derivatives :
+  limit:int -> blocks:Letters.t list -> SymbolicRegex.t -> t option
+(** [of_derivatives ~limit ~blocks r] is as [of_regex ~limit r], the derivatives
+    being explored by the blocks of [blocks], a partition of the letters into
+    non-empty sets that every letter set occurring in [r] respects. *)
+
 val complement : t -> t
 (** [complement a] is the automaton of the complement of the language of [a],
     whose final states are the other states of [a]. *)

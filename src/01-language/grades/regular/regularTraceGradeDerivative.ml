@@ -2,9 +2,15 @@ open Grade
 module R = SymbolicRegex
 module Letters = SymbolicRegex.Letters
 
-type t = R.t
+module type S = sig
+  include Grade.S with type t = SymbolicRegex.t
 
-let name = "traces-regex-symbolic"
+  val of_regex : Grade.regex -> t
+  val concrete : string list -> t -> Dfa.t
+  val runs : string list -> t -> t Dfa.automaton
+  val canonical : t -> LetterRegex.t option
+end
+
 let tick = R.letters Letters.tick
 
 let ticks n =
@@ -20,87 +26,14 @@ let rec of_regex = function
   | Star r -> R.star (of_regex r)
   | Compl r -> R.compl (of_regex r)
 
-let one = R.eps
-let mul = R.concat
-let join rho rho' = R.union [ rho; rho' ]
-let top = R.top
-let leq _bounds = R.subset
-let leq_symbol = "<="
-let equal _bounds = R.equal
-let of_nat n = ticks (check_nat "RegularTraceGradeDerivative" n)
-let unit_least = false
-let commutative = false
-let needs_op_bounds = false
-let implied_bounds _bounds _rho = None
-let inhabited _bounds _rho = true
-let events = R.names
-
-(* The delays of [lo] to [hi] time steps. *)
-let of_bounds (lo, hi) =
-  R.union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)))
-
-let is_atomic name rho = R.equal rho (R.letters (Letters.name name))
-
-(** [representative m] is the least letter of the block [m] of minterms: [tick],
-    else its least name, else the block itself, the names the grades compared do
-    not mention. *)
+(** [representative m] is the least letter of the block [m] of an alphabet:
+    [tick], else its least name, else the block itself, the names the grades
+    compared do not mention. *)
 let representative (m : Letters.t) =
   match m with
   | { tick = true; _ } -> Letters.tick
   | { names = Only (name :: _); _ } -> Letters.name name
   | m -> m
-
-let counterexample _bounds rho rho' =
-  Option.map
-    (List.fold_left
-       (fun r m -> R.concat r (R.letters (representative m)))
-       R.eps)
-    (R.shortest (R.inter [ rho; R.compl rho' ]))
-
-let of_lit = function
-  | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-  | Int n -> of_nat n
-  | Top -> top
-  | Braces r as lit ->
-      let rho = of_regex r in
-      if R.is_empty rho then
-        invalid_lit lit
-          "this regular expression denotes the empty language, but grades are \
-           non-empty"
-      else rho
-  | lit ->
-      invalid_lit lit
-        "grades are regular expressions '{...}', plain integers or '⊤', not %s"
-        (describe_lit lit)
-
-(** {1 Runs over given names} *)
-
-(** [letters names] is the letter set of each letter over [names]: [tick],
-    numbered [0], and the names, numbered from [1] in their order. *)
-let letters names = Array.of_list (Letters.tick :: List.map Letters.name names)
-
-let runs names rho =
-  let letters = letters names in
-  {
-    Dfa.start = rho;
-    step = (fun r a -> R.derivative letters.(a) r);
-    accepts = R.nullable;
-    dead = R.is_empty;
-  }
-
-module Tables = Dfa.Implicit (Int)
-
-(* No automaton has more than [max_int] states. *)
-let concrete names rho =
-  let letters = letters names in
-  let a = Option.get (SymbolicAutomaton.of_regex ~limit:Int.max_int rho) in
-  Tables.canonical (Array.length letters)
-    {
-      start = 0;
-      step = (fun q x -> SymbolicAutomaton.next a q letters.(x));
-      accepts = SymbolicAutomaton.final a;
-      dead = Fun.const false;
-    }
 
 (** {1 Printing} *)
 
@@ -123,3 +56,111 @@ let show rho =
       in
       Hashtbl.add printed (R.hash rho) text;
       text
+
+module Make
+    (Alphabet : SymbolicRegex.ALPHABET)
+    (Name : sig
+      val name : string
+    end) =
+struct
+  module D = R.Decide (Alphabet)
+
+  type t = R.t
+
+  let name = Name.name
+  let of_regex = of_regex
+  let one = R.eps
+  let mul = R.concat
+  let join rho rho' = R.union [ rho; rho' ]
+  let top = R.top
+  let leq _bounds = D.subset
+  let leq_symbol = "<="
+  let equal _bounds = D.equal
+  let of_nat n = ticks (check_nat "RegularTraceGradeDerivative" n)
+  let unit_least = false
+  let commutative = false
+  let needs_op_bounds = false
+  let implied_bounds _bounds _rho = None
+  let inhabited _bounds _rho = true
+  let events = R.names
+
+  (* The delays of [lo] to [hi] time steps. *)
+  let of_bounds (lo, hi) =
+    R.union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)))
+
+  let is_atomic name rho = D.equal rho (R.letters (Letters.name name))
+
+  let counterexample _bounds rho rho' =
+    Option.map
+      (List.fold_left
+         (fun r m -> R.concat r (R.letters (representative m)))
+         R.eps)
+      (D.shortest (R.inter [ rho; R.compl rho' ]))
+
+  let of_lit = function
+    | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
+    | Int n -> of_nat n
+    | Top -> top
+    | Braces r as lit ->
+        let rho = of_regex r in
+        if D.is_empty rho then
+          invalid_lit lit
+            "this regular expression denotes the empty language, but grades \
+             are non-empty"
+        else rho
+    | lit ->
+        invalid_lit lit
+          "grades are regular expressions '{...}', plain integers or '⊤', not \
+           %s"
+          (describe_lit lit)
+
+  (** {1 Runs over given names} *)
+
+  (** [letters names] is the letter set of each letter over [names]: [tick],
+      numbered [0], and the names, numbered from [1] in their order. *)
+  let letters names = Array.of_list (Letters.tick :: List.map Letters.name names)
+
+  let runs names rho =
+    let letters = letters names in
+    {
+      Dfa.start = rho;
+      step = (fun r a -> R.derivative letters.(a) r);
+      accepts = R.nullable;
+      dead = D.is_empty;
+    }
+
+  module Tables = Dfa.Implicit (Int)
+
+  (* No automaton has more than [max_int] states. *)
+  let concrete names rho =
+    let letters = letters names in
+    let a =
+      Option.get
+        (SymbolicAutomaton.of_derivatives ~limit:Int.max_int
+           ~blocks:(Alphabet.blocks [ rho ]) rho)
+    in
+    Tables.canonical (Array.length letters)
+      {
+        start = 0;
+        step = (fun q x -> SymbolicAutomaton.next a q letters.(x));
+        accepts = SymbolicAutomaton.final a;
+        dead = Fun.const false;
+      }
+
+  let canonical = canonical
+  let show = show
+end
+
+include
+  Make
+    (R.Minterms)
+    (struct
+      let name = "traces-regex-symbolic"
+    end)
+
+module Concrete =
+  Make
+    (R.Concrete)
+    (struct
+      let name = "traces-regex-derivatives"
+    end)
