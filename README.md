@@ -24,6 +24,8 @@ ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 ## Installing and running
 <!-- web-skip -->
 
+### Building
+
 Tested to work with OCaml >= 5.0. Install the dependencies and build:
 
     opam install --deps-only --with-dev-setup .
@@ -31,23 +33,23 @@ Tested to work with OCaml >= 5.0. Install the dependencies and build:
 
 `make test` runs the test suite, and `make clean` removes the build.
 
-There are two ways to run programs:
+### Command line
 
-- **Web interface**, at `web/index.html` after building, or online at
-  <https://danel.ahman.ee/tempore-lang/>. Load a built-in example or type a
-  program, check whether the example typechecks, and if it does, step through
-  its reductions one by one while watching the resource state evolve.
+    ./tempore file1.tpe file2.tpe ...
 
-- **Command line**:
+loads all listed files and runs every `run` command, printing each run's
+result and final resource state.
 
-      ./tempore file1.tpe file2.tpe ...
+Options: `--grades <grades>` selects the grades (see below),
+`--typecheck-only` typechecks the files without running them, `--no-stdlib`
+skips the standard library, and `--debug` also prints the typing context.
 
-  loads all listed files and runs every `run` command, printing each run's
-  result and final resource state.
+### Web interface
 
-  Options: `--grades <grades>` selects the grades (see below),
-  `--typecheck-only` typechecks the files without running them, `--no-stdlib`
-  skips the standard library, and `--debug` also prints the typing context.
+At `web/index.html` after building, or online at
+<https://danel.ahman.ee/tempore-lang/>. Load a built-in example or type a
+program, check whether the example typechecks, and if it does, step through
+its reductions one by one while watching the resource state evolve.
 
 The [`examples/`](examples/) directory contains example programs, grouped into
 subdirectories by topic (`basics/`, `handlers/`, `time/`, `traces/`, `levels/`,
@@ -70,12 +72,45 @@ the monoids under a descriptive title and a one-line description (its
 tooltip), and shows below it the `--grades` command equivalent to the current
 selection; the CLI's `--help` lists the same names and titles, grouped
 likewise. The default grade monoid is `time-lower-bound`. Currently, seventeen
-monoids are available to choose.
+monoids are available to choose, listed below by CLI name and title, as in
+[`gradeRegistry.ml`](src/01-language/grades/gradeRegistry.ml), with what each
+bounds:
+
+- **Time** — `time-lower-bound` (Lower bounds): at least *n* time steps, the
+  unit `0` greatest; `time-upper-bound` (Upper bounds): at most *n* time
+  steps, the unit `0` least; `time-interval` (Intervals): between *n* and *m*
+  time steps, ordered by containment.
+- **Timed traces** — `traces-lower-bound` (Lower bounds): timed traces in the
+  coverage order, operations costing their lower runtime bounds;
+  `traces-upper-bound` (Upper bounds): timed traces in the allowance order,
+  operations costing their upper runtime bounds; `traces-interval`
+  (Intervals): a lower and an upper timed-trace bound, compared
+  componentwise.
+- **Regular traces** — `traces-regex` (Regular languages) and
+  `traces-regex-symbolic` (Regular languages, symbolic derivatives): the same
+  grade, regular languages of runs over delays and operations, decided
+  respectively by automata and by symbolic derivatives.
+- **Regular traces with costs** — `traces-regex-lower`, `traces-regex-upper`
+  and `traces-regex-interval` (Lower bounds, Upper bounds, Intervals),
+  each also offered with a `-symbolic` suffix: regular languages of runs
+  costed by the runtime bounds of the operations they name, in the coverage
+  order, the allowance order, or both, decided by automata or, with the
+  suffix, by symbolic derivatives.
+- **Security levels** — `security-levels` (Levels): the two-point security
+  lattice `Low < High`; `time-lower-bound-levels` (Embargoes): a time lower
+  bound paired with a level; `time-upper-bound-levels` (Expiring
+  capabilities): a time upper bound paired with a level.
+
+### Grade literals
 
 All monoids share one syntax of grade literals, and each reads the literals it
 understands; a literal the chosen monoid does not understand is a syntax error,
-which names the monoids that do. The greatest grade of every monoid is written
+which names the monoids that do. Grades are written as integers such as `3`,
+pairs such as `(1, 4)`, or brace expressions such as `{...}`, depending on the
+monoid, detailed below. The greatest grade of every monoid is written
 `⊤` (ASCII `top`).
+
+### Time
 
 Three monoids grade resources and computations by time, written as integer
 literals such as `3` or pairs such as `(1, 4)`:
@@ -95,6 +130,8 @@ literals such as `3` or pairs such as `(1, 4)`:
 
 All three variants of time bounds are inclusive on the values they carry, e.g.,
 while intervals are written as `(n,m)`, they should be read as `[n,m]`.
+
+### Timed traces
 
 Three monoids grade resources and computations by the *timed traces* they may
 exhibit. A timed trace is one run of a computation, an alternation of operation
@@ -135,6 +172,8 @@ intersection `r & s`, complement `~r` and the wildcard `_`, denote infinite or
 cofinite sets of runs, which these three monoids reject with a syntax error at
 the literal naming the monoid.
 
+### Regular traces
+
 Two monoids grade resources and computations by *regular languages* of runs;
 they are one grade, implemented in two ways:
 
@@ -151,6 +190,8 @@ they are one grade, implemented in two ways:
   bounds. See
   [`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
   which runs with `traces-regex-symbolic`, the implementation to prefer.
+
+#### Alphabet and literals
 
 Their brace literals are the full regular expressions, by increasing precedence:
 union `r | s`, intersection `r & s`, concatenation `r; s`, complement `~r` and
@@ -171,6 +212,8 @@ When two grades are combined or compared, both are read over the operations
 either names, the catch-all letter of each standing also for the operations
 only the other names: `{Send}` is a sub-grade of `{_ & ~Read}`.
 
+#### Two implementations: automata and symbolic derivatives
+
 `traces-regex-symbolic` keeps grades as regular expressions in a normal form:
 unions and intersections are sets of operands, with the unit and zero laws,
 `~~r` is `r`, and letter sets are merged, as in `{_ & ~Read | Read}`, which is
@@ -184,6 +227,20 @@ nothing and only the derivatives a decision needs are computed.
 letters it names, so that equal grades are equal automata, and builds the
 automata of products, joins and complements by the product and subset
 constructions.
+
+`dune exec --profile release bench/regular/bench_regular.exe` benchmarks the two
+implementations. `traces-regex-symbolic` typechecks the example and the tests
+of this grade 1.2 to 1.35 times faster, builds products and joins 6 to 280
+times faster, and decides inclusions involving the complement of "the 16th
+letter from the end is `A`" in microseconds where `traces-regex` takes seconds;
+`traces-regex` decides the equality of grades already built faster, and small
+inclusions in a few microseconds rather than tens, its canonical automata being
+at hand. The last program of
+[`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
+left commented out, runs in about 0.04 s under `traces-regex-symbolic` and
+10 s under `traces-regex`.
+
+#### Printing and counterexamples
 
 A grade is printed as one of three regular expressions determined by its
 language: the one read off its minimal automaton by state elimination and
@@ -214,17 +271,7 @@ Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated si
   Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
 ```
 
-`dune exec --profile release bench/regular/bench_regular.exe` benchmarks the two
-implementations. `traces-regex-symbolic` typechecks the example and the tests
-of this grade 1.2 to 1.35 times faster, builds products and joins 6 to 280
-times faster, and decides inclusions involving the complement of "the 16th
-letter from the end is `A`" in microseconds where `traces-regex` takes seconds;
-`traces-regex` decides the equality of grades already built faster, and small
-inclusions in a few microseconds rather than tens, its canonical automata being
-at hand. The last program of
-[`examples/traces/regular_traces.tpe`](examples/traces/regular_traces.tpe),
-left commented out, runs in about 0.04 s under `traces-regex-symbolic` and
-10 s under `traces-regex`.
+### Regular traces with costs
 
 Three monoids read the regular languages of runs the way the timed-trace
 monoids read finite sets of runs, trading time against operations at the
@@ -326,6 +373,8 @@ delays, and under `traces-regex-lower` those that fail early, are decided 2 to
 100 times faster. The decisions are tabulated, so that a comparison made again
 costs a lookup.
 
+### Security levels and products
+
 One monoid grades resources and computations by *security levels*, and two
 more pair it with time:
 
@@ -360,6 +409,8 @@ A value of the modal type `[rho]a` is an `a`-typed resource that may be used
 only once the grade `rho` has been accumulated since it was created: an amount
 of time, a sequence of operations, or whatever the chosen monoid measures.
 
+### Boxes and unboxing
+
 - `box rho e` creates a resource of type `[rho]a`. The expression `e` is typed
   in the hypothetical future in which the accumulated grade has grown by `rho`.
 - `unbox e` opens a resource `e : [rho]a`, yielding an `a`. It is allowed only
@@ -368,10 +419,12 @@ of time, a sequence of operations, or whatever the chosen monoid measures.
   upper-bound ones, a run that covers or fits inside `rho` under the trace
   monoids, a run in the language `rho` under the regular trace monoids, and a level no higher than `rho` under `security-levels`; the
   products check both components.
-- `delay tau` advances the accumulated grade by `tau`. Operation calls (below)
-  advance it by the grade of the operation.
 
-See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
+### Delays
+
+`delay tau` advances the accumulated grade by `tau`. Operation calls (below)
+advance it by the grade of the operation. See
+[`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 The computation type of a function can be stated explicitly, either on its body,
 `let f () : mounted # rho = ...`, or on the function as a whole, `let f : unit
@@ -396,6 +449,8 @@ or the grade accumulated since `x` was bound is a sub-grade of zero". Under
 so the constraint always holds and any local variable may be used at any later
 point. Under the other monoids a local variable of a non-eternal type must be
 used before any `delay` or operation call has happened since it was bound.
+
+### Schemes and qualifiers
 
 When the constraint depends on a type variable of a top-level definition, it
 is not decided at the definition but becomes a qualifier of its generalised
@@ -427,6 +482,8 @@ cases](#contexts-of-operation-cases)). See
 [`examples/basics/eternal_types.tpe`](examples/basics/eternal_types.tpe) and the end of
 [`examples/3dprint/3dprint_traces.tpe`](examples/3dprint/3dprint_traces.tpe).
 
+### Noneternal declarations
+
 A type definition can be declared non-eternal regardless of its structure:
 
 ```
@@ -438,6 +495,8 @@ prefixes a whole `type ... and ...` group. It is allowed on algebraic types
 only, since type aliases are unfolded before eternality is checked.
 
 ## Algebraic effects and effect handlers
+
+### Operations and their grades
 
 Operations are declared at the top of a source file:
 
@@ -479,6 +538,8 @@ perform OperationName argument
 which returns a `result-type` value and advances the accumulated grade by the
 operation's grade.
 
+### Handlers and continuations
+
 Operation calls are given meaning by handlers:
 
 ```
@@ -498,9 +559,10 @@ An operation case need not have exactly the grade of the operation: it
 suffices that its grade is a sub-grade of the operation's grade composed with
 that of the continuation. The continuation `k` is a resource of the
 operation's grade, so resuming it unboxes it, which is allowed only once the
-case has accumulated a sub-grade of that grade. So `PrintModel : model ~> print
-# {Heat; Extrude; Cool}` may be handled by performing `Heat`, `Extrude` and
-`Cool` in that order and continuing, while another order is rejected:
+case has accumulated a sub-grade of that grade. So
+`PrintModel : model ~> print # {Heat; Extrude; Cool}` may be handled by
+performing `Heat`, `Extrude` and `Cool` in that order and continuing, while
+another order is rejected:
 
     Variable `k` is unboxed with grade `{Cool; Extrude; Heat}` accumulated
     since it was bound, which is not below its box grade
@@ -641,41 +703,55 @@ Types and grades are inferred in the style of HM(X), Hindley–Milner inference
 over a constraint domain: a program generates constraints, which are then
 solved and simplified.
 
-- **Subtyping.** Types are compared by subtyping rather than by equality. A
-  function type is contravariant in its argument and covariant in its result
-  and effect, and a box type `[rho]a` is contravariant in its grade: a box
-  claimable with `rho` accumulated may be used where one claimable with a
-  sub-grade of `rho` accumulated is expected. Subtyping preserves the shape of types, and the arguments
-  of type constructors such as `list` are compared for equality.
-- **Resource and effect grades.** Box types and the grades accumulated in
-  a context are *resource* grades; computations and operation signatures carry
-  *effect* grades. The two sorts are related by a grade system, which maps an
-  effect grade to the resource grade that accumulates while it runs. At present
-  each grading monoid provides both sorts, related by the identity.
-- **Constraints.** Besides subtyping, a program asks for orderings between
-  grades, for types to be eternal, and, for a variable used with some grade
-  `rho` accumulated since its binding, that its type is eternal or `rho` is
-  below the unit. The effect of the continuation of a handler's operation case
-  is unknown to the case, so the case is checked for every such effect.
-- **Schemes.** Only top-level `let` definitions are generalised; a local
-  `let` has a monomorphic type. The scheme of a top-level definition is
-  qualified, `∀ α ρ₀ ε₀. Q ∧ R ⇒ A`: `Q` are the constraints left on its
-  unknowns and `R` conditions of operation cases that must hold for every
-  effect of their continuations. Every use of the definition instantiates the
-  scheme and checks its qualifier. Schemes are simplified before they are
-  reported: redundant constraints are dropped, and an unknown the type does not
-  need is replaced by its bound. For example, under `time-upper-bound` the
-  standard library's `compose f g x = f (g x)` has the scheme
+### Subtyping
 
-      ∀ α β γ ε₀ ε₁. ∣ε₁∣ ≾ 0 ⇒ (α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # 0 # 0
+Types are compared by subtyping rather than by equality. A function type is
+contravariant in its argument and covariant in its result and effect, and a
+box type `[rho]a` is contravariant in its grade: a box claimable with `rho`
+accumulated may be used where one claimable with a sub-grade of `rho`
+accumulated is expected. Subtyping preserves the shape of types, and the
+arguments of type constructors such as `list` are compared for equality.
 
-  where `ε₁ · ε₀` is `g`'s effect followed by `f`'s, and `∣ε₁∣ ≾ 0` asks `g`
-  to take no time, as the non-eternal `f` is used after it has run.
-- **Satisfiability.** Whether the qualifier of a definition can be met is
-  decided provisionally: a closed instance of it is searched for, and the
-  definition is rejected only when the search refutes the qualifier. When the
-  search neither finds nor refutes an instance, the definition is accepted, and
-  its uses report any failure of the qualifier instantiated there.
+### Resource and effect grades
+
+Box types and the grades accumulated in a context are *resource* grades;
+computations and operation signatures carry *effect* grades. The two sorts
+are related by a grade system, which maps an effect grade to the resource
+grade that accumulates while it runs. At present each grading monoid
+provides both sorts, related by the identity.
+
+### Constraints
+
+Besides subtyping, a program asks for orderings between grades, for types
+to be eternal, and, for a variable used with some grade `rho` accumulated
+since its binding, that its type is eternal or `rho` is below the unit. The
+effect of the continuation of a handler's operation case is unknown to the
+case, so the case is checked for every such effect.
+
+### Schemes
+
+Only top-level `let` definitions are generalised; a local `let` has a
+monomorphic type. The scheme of a top-level definition is qualified,
+`∀ α ρ₀ ε₀. Q ∧ R ⇒ A`: `Q` are the constraints left on its unknowns and `R`
+conditions of operation cases that must hold for every effect of their
+continuations. Every use of the definition instantiates the scheme and
+checks its qualifier. Schemes are simplified before they are reported:
+redundant constraints are dropped, and an unknown the type does not need is
+replaced by its bound. For example, under `time-upper-bound` the standard
+library's `compose f g x = f (g x)` has the scheme
+
+    ∀ α β γ ε₀ ε₁. ∣ε₁∣ ≾ 0 ⇒ (α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # 0 # 0
+
+where `ε₁ · ε₀` is `g`'s effect followed by `f`'s, and `∣ε₁∣ ≾ 0` asks `g`
+to take no time, as the non-eternal `f` is used after it has run.
+
+### Satisfiability
+
+Whether the qualifier of a definition can be met is decided provisionally:
+a closed instance of it is searched for, and the definition is rejected
+only when the search refutes the qualifier. When the search neither finds
+nor refutes an instance, the definition is accepted, and its uses report
+any failure of the qualifier instantiated there.
 
 ## Sub-effecting and its limits
 
@@ -748,5 +824,5 @@ collected in [`THIRD-PARTY.md`](THIRD-PARTY.md).
 ## AI usage disclaimer
 <!-- web-skip -->
 
-Agentic AI tools (from the Claude family) have been used to develop parts of
+Agentic AI tools (from Anthropic's Claude family) have been used to develop parts of
 this prototype implementation.
