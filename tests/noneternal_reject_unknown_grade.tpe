@@ -7,7 +7,7 @@
    effect of a function argument followed by a delay, which is below 0 for no
    effect of the argument. The diagnostic shows the least instance, where the
    argument takes no time and 1 <= 0 does not hold; without the delay the
-   disjunction would become the qualifier ∣ε₀∣ ≾ 0 of the definition. *)
+   disjunction would become ∣ε₀∣ ≾ 0, which sets the argument's effect to 0. *)
 
 noneternal type token = Token
 

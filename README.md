@@ -335,10 +335,12 @@ accumulated while `ε` runs. `--debug` prints the
 schemes. Under `time-upper-bound`, the standard library's
 `compose f g x = f (g x)` has
 
-    ∀ α β γ ε₀ ε₁. ∣ε₁∣ ≾ 0 ⇒ (α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # 0 # 0
+    ∀ α β γ ε₀. (α → β # ε₀) → (γ → α # 0) → γ → β # ε₀ # 0 # 0
 
-where `∣ε₁∣ ≾ 0` asks `g` to take no time, since the non-eternal `f` is used
-after it. A qualifier is checked at every use of the definition.
+where `g` takes no time, since the non-eternal `f` is used after it: the
+qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` leaves `ε₁` no value but the
+least, `0`, which the scheme puts in its place. A qualifier is checked at
+every use of the definition.
 
 Under `time-lower-bound`, with `operation Op : unit ~> unit # 1`, the handler
 

@@ -12,6 +12,10 @@ module type S = sig
   (** The grade morphism [∣_∣]: monotone, and preserving the unit, the product,
       the top, joins and [of_nat]. *)
 
+  val unit_reflecting : bool
+  (** Whether [map] reflects the order at the unit: [∣e∣ ≾ one] implies
+      [e ≾ one]. *)
+
   val witnesses :
     Grade.bounds -> R.t list -> E.t list -> E.t list * Grade.completeness
   (** [witnesses bounds rcs ecs] is {!Grade.S.witnesses} for a condition over an
@@ -27,5 +31,6 @@ module Identity (G : Grade.S) : S with module R = G and module E = G = struct
   module E = G
 
   let map c = c
+  let unit_reflecting = true
   let witnesses bounds rcs ecs = G.witnesses bounds (rcs @ ecs)
 end

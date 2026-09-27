@@ -304,12 +304,17 @@ let expected g =
     (* An empty match does not fix the type of its scrutinee. *)
     ("absurd", typed "α → β # ε₀");
     ("pipe", typed (Printf.sprintf "α → (α → β # ε₀) → β # ε₀ # %s" u));
-    (* [g]'s effect, then [f]'s; [f] is used after [g x] has run. *)
+    (* [g]'s effect, then [f]'s; [f] is used after [g x] has run, so [g]'s
+       effect is bounded by the unit, and is the unit where the unit is
+       least. *)
     ( "compose",
       typed
-        ~atoms:(after_call [ Printf.sprintf "∣ε₁∣ ≾ %s" u ])
-        (Printf.sprintf
-           "(α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # %s # %s" u u) );
+        (if g.least then
+           Printf.sprintf "(α → β # ε₀) → (γ → α # %s) → γ → β # ε₀ # %s # %s" u
+             u u
+         else
+           Printf.sprintf
+             "(α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # %s # %s" u u) );
     ( "min",
       typed
         ~atoms:

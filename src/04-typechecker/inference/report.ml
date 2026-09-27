@@ -457,11 +457,8 @@ module Make (C : Constraint.S) = struct
     | Eternal_atom _ -> neither
     | Disj_atom d -> at Plus (in_rho u d.disj_grade)
 
-  (* An atom under [sigma], its reason aside. *)
-  let subst_atom (sigma : C.subst) atom =
-    let on_rho = X.Rho.subst sigma.grade_subst
-    and on_eps = X.Eps.subst sigma.grade_subst
-    and on_ty = C.subst_ty sigma in
+  (* An atom with its grades and types mapped, its reason aside. *)
+  let map_atom ~on_rho ~on_eps ~on_ty atom =
     match atom with
     | Rho_atom o -> Rho_atom { o with lhs = on_rho o.lhs; rhs = on_rho o.rhs }
     | Eps_atom o -> Eps_atom { o with lhs = on_eps o.lhs; rhs = on_eps o.rhs }
@@ -470,6 +467,26 @@ module Make (C : Constraint.S) = struct
     | Disj_atom d ->
         Disj_atom
           { d with disj_ty = on_ty d.disj_ty; disj_grade = on_rho d.disj_grade }
+
+  (* An atom under [sigma], its reason aside. *)
+  let subst_atom (sigma : C.subst) =
+    map_atom
+      ~on_rho:(X.Rho.subst sigma.grade_subst)
+      ~on_eps:(X.Eps.subst sigma.grade_subst)
+      ~on_ty:(C.subst_ty sigma)
+
+  (* An atom written canonically, an ordering split into one per alternative
+     of its left side. *)
+  let canon_atom context atom =
+    let bounds = context.Residual.bounds in
+    match atom with
+    | Rho_atom o -> List.map (fun o -> Rho_atom o) (N.Rho.split bounds o)
+    | Eps_atom o -> List.map (fun o -> Eps_atom o) (N.Eps.split bounds o)
+    | Sub_atom _ | Eternal_atom _ | Disj_atom _ ->
+        [
+          map_atom ~on_rho:(N.Rho.canon bounds) ~on_eps:(N.Eps.canon bounds)
+            ~on_ty:(canon_ty context) atom;
+        ]
 
   let is_reflexive context atom =
     let bounds = context.Residual.bounds in
@@ -501,7 +518,8 @@ module Make (C : Constraint.S) = struct
   (* Elimination: steps                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  (* The kinds of step, in the order they are tried. *)
+  (* The kinds of step, in the order they are tried: sending an unknown to
+     the unit comes after lowering and raising. *)
   type kind =
     | Equate_eps
     | Equate_rho
@@ -509,6 +527,8 @@ module Make (C : Constraint.S) = struct
     | Lower_rho
     | Raise_eps
     | Raise_rho
+    | Unit_eps
+    | Unit_rho
     | Collapse
     | Lower_ty
 
@@ -520,6 +540,8 @@ module Make (C : Constraint.S) = struct
       Lower_rho;
       Raise_eps;
       Raise_rho;
+      Unit_eps;
+      Unit_rho;
       Collapse;
       Lower_ty;
     ]
@@ -534,8 +556,10 @@ module Make (C : Constraint.S) = struct
       | Lower_rho -> 3
       | Raise_eps -> 4
       | Raise_rho -> 5
-      | Collapse -> 6
-      | Lower_ty -> 7
+      | Unit_eps -> 6
+      | Unit_rho -> 7
+      | Collapse -> 8
+      | Lower_ty -> 9
 
     let compare a b = Int.compare (rank a) (rank b)
   end)
@@ -543,12 +567,12 @@ module Make (C : Constraint.S) = struct
   (* Whether a kind of step is tested at an unknown alone, and at [u]. *)
   let tested_at kind u =
     match (kind, u) with
-    | (Equate_eps | Lower_eps | Raise_eps), Eps_unknown _
-    | (Equate_rho | Lower_rho | Raise_rho), Rho_unknown _
+    | (Equate_eps | Lower_eps | Raise_eps | Unit_eps), Eps_unknown _
+    | (Equate_rho | Lower_rho | Raise_rho | Unit_rho), Rho_unknown _
     | Lower_ty, Ty_unknown _ ->
         true
     | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
-        | Raise_rho | Collapse | Lower_ty ),
+        | Raise_rho | Unit_eps | Unit_rho | Collapse | Lower_ty ),
         _ ) ->
         false
 
@@ -589,6 +613,7 @@ module Make (C : Constraint.S) = struct
     tests : tests Kind_map.t; (* the tests of each kind but collapsing *)
     cycle : (unknown * plan) list option;
         (* the collapsing steps due, in order, once found *)
+    next : int; (* the position after the last atom *)
   }
 
   let atom_at st id = (Int_map.find id st.atoms).atom
@@ -628,14 +653,30 @@ module Make (C : Constraint.S) = struct
           reflexive = Int_set.remove id st.reflexive;
         }
 
-  (* The atom at [id] replaced by [f] of it, or removed, with the unknowns of
-     both added to [touched]. *)
+  (* The atom at [id] replaced by [f] of it, or removed where [f] gives no
+     atom, the first at [id] and the others after the last atom, with the
+     unknowns of all added to [touched]. *)
   let replace context f id (st, touched) =
-    let { atom; unknowns = before } = Int_map.find id st.atoms in
-    let atom' = f atom in
-    let after = Option.fold ~none:Unknown_set.empty ~some:atom_unknowns atom' in
-    ( reindex context id atom' ~before ~after st,
-      Unknown_set.union touched (Unknown_set.union before after) )
+    let { atom; unknowns } = Int_map.find id st.atoms in
+    let set id atom ~before (st, touched) =
+      let after =
+        Option.fold ~none:Unknown_set.empty ~some:atom_unknowns atom
+      in
+      ( reindex context id atom ~before ~after st,
+        Unknown_set.union touched (Unknown_set.union before after) )
+    in
+    let add (st, touched) atom =
+      let st, touched =
+        set st.next (Some atom) ~before:Unknown_set.empty (st, touched)
+      in
+      ({ st with next = st.next + 1 }, touched)
+    in
+    match f atom with
+    | [] -> set id None ~before:unknowns (st, touched)
+    | first :: rest ->
+        List.fold_left add
+          (set id (Some first) ~before:unknowns (st, touched))
+          rest
 
   (* The tests of [kind] at [us] due again. *)
   let due us t =
@@ -662,8 +703,8 @@ module Make (C : Constraint.S) = struct
     let mark_kind kind t =
       let us =
         match kind with
-        | Equate_eps | Lower_eps | Raise_eps -> eps
-        | Equate_rho | Lower_rho | Raise_rho -> rhos
+        | Equate_eps | Lower_eps | Raise_eps | Unit_eps -> eps
+        | Equate_rho | Lower_rho | Raise_rho | Unit_rho -> rhos
         | Lower_ty -> tys
         | Collapse -> Unknown_set.empty
       in
@@ -702,19 +743,27 @@ module Make (C : Constraint.S) = struct
      cycle: a cycle through [β <: y], from [a <: y] with [a] sent to [β], was
      one through [β <: a <: y].
 
-     After an equating step the equating tests that succeeded are taken
-     again, and every equating test when the step may add chains. *)
+     After an equating step or a step to the unit the equating tests that
+     succeeded are taken again, and every equating test when the step may add
+     chains. A step to the unit writes the atoms it changes canonically, each
+     ordering split into one per alternative of its left side. *)
   let take env kind u plan st =
     let context = env.context and cycle = st.cycle in
-    let drop _ = None in
+    let drop _ = [] in
     let st, touched =
       Int_set.fold (replace context drop) plan.dropped
         (st, Unknown_set.singleton u)
     in
+    let rewrite =
+      match kind with
+      | Unit_eps | Unit_rho ->
+          fun atom -> canon_atom context (subst_atom plan.value atom)
+      | Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps | Raise_rho
+      | Collapse | Lower_ty ->
+          fun atom -> [ subst_atom plan.value atom ]
+    in
     let st, touched =
-      Int_set.fold
-        (replace context (fun atom -> Some (subst_atom plan.value atom)))
-        (occurrences st u) (st, touched)
+      Int_set.fold (replace context rewrite) (occurrences st u) (st, touched)
     in
     let grades = plan.value.grade_subst in
     let st =
@@ -742,8 +791,8 @@ module Make (C : Constraint.S) = struct
       List.fold_left (fun st kind -> again kind st) st kinds
     in
     match (kind, cycle) with
-    | Equate_eps, _ -> equate [ Equate_eps; Equate_rho ]
-    | Equate_rho, _ -> equate [ Equate_rho ]
+    | (Equate_eps | Unit_eps), _ -> equate [ Equate_eps; Equate_rho ]
+    | (Equate_rho | Unit_rho), _ -> equate [ Equate_rho ]
     | Collapse, Some (_ :: rest) -> { st with cycle = Some rest }
     | (Lower_eps | Lower_rho | Raise_eps | Raise_rho | Collapse | Lower_ty), _
       ->
@@ -804,9 +853,14 @@ module Make (C : Constraint.S) = struct
     assign : 'e -> C.subst;
     atomic : 'e -> bool;
         (* whether an expression is a single atom of the decision procedure *)
+    unit : 'e;
+    at_unit : atom -> bool;
+        (* whether an atom bounds the unknown, its left side written
+           canonically, by the unit, the unit being least *)
   }
 
   let eps_grade context k =
+    let bounds = context.Residual.bounds in
     {
       unknown = Eps_unknown k;
       self = X.Eps.var k;
@@ -816,9 +870,28 @@ module Make (C : Constraint.S) = struct
         (function X.Eps_var j -> Some (X.Eps_var.compare j k < 0) | _ -> None);
       assign = assign_eps k;
       atomic = (function X.Eps_var _ | X.Eps_const _ -> true | _ -> false);
+      unit = X.Eps.unit;
+      at_unit =
+        (function
+        | Eps_atom o -> (
+            X.GS.E.unit_least
+            &&
+            match N.Eps.canon bounds o.lhs with
+            | X.Eps_var k' ->
+                X.Eps_var.equal k k' && decided_eps context o.rhs X.Eps.unit
+            | _ -> false)
+        | Rho_atom o -> (
+            X.GS.E.unit_least && X.GS.unit_reflecting
+            &&
+            match N.Rho.canon bounds o.lhs with
+            | X.Rho_map (X.Eps_var k') ->
+                X.Eps_var.equal k k' && decided_rho context o.rhs X.Rho.unit
+            | _ -> false)
+        | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false);
     }
 
   let rho_grade context k =
+    let bounds = context.Residual.bounds in
     {
       unknown = Rho_unknown k;
       self = X.Rho.var k;
@@ -831,6 +904,17 @@ module Make (C : Constraint.S) = struct
         (function
         | X.Rho_var _ | X.Rho_const _ | X.Rho_map (X.Eps_var _) -> true
         | _ -> false);
+      unit = X.Rho.unit;
+      at_unit =
+        (function
+        | Rho_atom o -> (
+            X.GS.R.unit_least
+            &&
+            match N.Rho.canon bounds o.lhs with
+            | X.Rho_var k' ->
+                X.Rho_var.equal k k' && decided_rho context o.rhs X.Rho.unit
+            | _ -> false)
+        | Eps_atom _ | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false);
     }
 
   (* The orderings of the sort of [g] at its unknown, in order, each carrying
@@ -944,6 +1028,22 @@ module Make (C : Constraint.S) = struct
           Some { value = g.assign cap; dropped; apart = false; chains = false }
     | None -> None
 
+  (* The unknown sent to the unit where the unit is least and bounds it
+     above, the atoms bounding it dropped and those it occurs in written
+     canonically, which may add chains. Every solution of the hypotheses
+     sends the unknown to the unit, so the step is principal wherever the
+     unknown occurs. An image [∣ε∣] bounded by the resource unit bounds [ε]
+     by the effect unit where the map reflects the unit
+     ({!Grades.GradeSystem.S.unit_reflecting}). *)
+  let to_unit g st =
+    let dropped =
+      Int_set.filter
+        (fun id -> g.at_unit (atom_at st id))
+        (occurrences st g.unknown)
+    in
+    if Int_set.is_empty dropped then None
+    else Some { value = g.assign g.unit; dropped; apart = true; chains = true }
+
   (* The first subtyping atom [β <: a]: a type unknown with a lower bound
      sent to it. *)
   let lower_ty a st =
@@ -1030,9 +1130,11 @@ module Make (C : Constraint.S) = struct
       | Lower_rho, Rho_unknown k -> lower (rho_grade context k) st
       | Raise_eps, Eps_unknown k -> raise_to_cap (eps_grade context k) st
       | Raise_rho, Rho_unknown k -> raise_to_cap (rho_grade context k) st
+      | Unit_eps, Eps_unknown k -> to_unit (eps_grade context k) st
+      | Unit_rho, Rho_unknown k -> to_unit (rho_grade context k) st
       | Lower_ty, Ty_unknown a -> lower_ty a st
       | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
-          | Raise_rho | Collapse | Lower_ty ),
+          | Raise_rho | Unit_eps | Unit_rho | Collapse | Lower_ty ),
           _ ) ->
           None
 
@@ -1097,7 +1199,7 @@ module Make (C : Constraint.S) = struct
            match kind with
            | Collapse -> None
            | Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
-           | Raise_rho | Lower_ty ->
+           | Raise_rho | Unit_eps | Unit_rho | Lower_ty ->
                Some (kind, Unknown_set.filter (tested_at kind) candidates))
          kinds)
 
@@ -1121,14 +1223,18 @@ module Make (C : Constraint.S) = struct
             (fun stale -> { passed = Unknown_map.empty; stale })
             env.tested;
         cycle = None;
+        next = 0;
       }
     in
-    let insert (id, st) atom =
-      ( id + 1,
-        reindex env.context id (Some atom) ~before:Unknown_set.empty
-          ~after:(atom_unknowns atom) st )
+    let insert st atom =
+      {
+        (reindex env.context st.next (Some atom) ~before:Unknown_set.empty
+           ~after:(atom_unknowns atom) st)
+        with
+        next = st.next + 1;
+      }
     in
-    snd (List.fold_left insert (0, empty) atoms)
+    List.fold_left insert empty atoms
 
   (* The hypotheses, in order, the grade substitutions of the steps applied
      to their reasons. *)
@@ -1186,18 +1292,20 @@ module Make (C : Constraint.S) = struct
 
      The hypotheses are indexed by the unknowns occurring in them; a step
      substitutes into the atoms of its unknown alone, and into the reasons
-     once, at the end. The outcome of each test is kept, and taken again, in
-     order and up to the first success, at the unknowns of the atoms a step
-     changes or drops and of its value. A test reads the atoms of its unknown
-     and the type alone, but for equating, which reads the chains of atomic
-     orderings too ({!GradeNormal.Make.SORT.decide_leq}), decisions being
-     monotone in them. At an unknown [v], lowering turns [x ≾ v ≾ y] into
-     [x ≾ y] or drops it, raising turns [x ≾ v ≾ U] into [x ≾ U], equating
-     with [b] turns [x ≾ v] into [x ≾ b] and [v ≾ y] into [b ≾ y], and steps
-     drop orderings: no step adds a chain but an equating one to a single
-     atom [b] without [v ≾ b], or [b ≾ v], assumed. An equating test that
-     failed thus fails after any other step, unless the atoms of its unknown
-     changed. *)
+     once, at the end; a step to the unit adds the further alternatives of
+     the orderings it splits after the last atom. The outcome of each test is
+     kept, and taken again, in order and up to the first success, at the
+     unknowns of the atoms a step changes, adds or drops and of its value. A
+     test reads the atoms of its unknown and the type alone, but for
+     equating, which reads the chains of atomic orderings too
+     ({!GradeNormal.Make.SORT.decide_leq}), decisions being monotone in them.
+     At an unknown [v], lowering turns [x ≾ v ≾ y] into [x ≾ y] or drops it,
+     raising turns [x ≾ v ≾ U] into [x ≾ U], equating with [b] turns [x ≾ v]
+     into [x ≾ b] and [v ≾ y] into [b ≾ y], and steps drop orderings: no step
+     adds a chain but an equating one to a single atom [b] without [v ≾ b],
+     or [b ≾ v], assumed, and a step to the unit, which writes the orderings
+     it changes canonically. An equating test that failed thus fails after
+     any other step, unless the atoms of its unknown changed. *)
   let eliminate context ~fixed ty hyps =
     let candidates = unknowns fixed ty hyps in
     let env = { context; fixed; candidates; tested = tested candidates } in
