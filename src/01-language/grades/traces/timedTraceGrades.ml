@@ -56,6 +56,12 @@ module LowerTraces = struct
   let top = one
 
   let join = TimedTrace.union
+
+  (** A set covering the unit lists the empty run, which is its least. *)
+  let is_top _bounds = function [] :: _ -> true | _ -> false
+
+  let compare = TimedTrace.compare
+  let hash = TimedTrace.hash
   let of_lit = function Top -> top | lit -> traces_of_lit lit
 end
 
@@ -87,6 +93,17 @@ module UpperTraces = struct
     | Within p, Within q -> Within (TimedTrace.union p q)
     | _ -> Unbounded
 
+  (** No set of runs allows every run. *)
+  let is_top _bounds = function Unbounded -> true | Within _ -> false
+
+  let compare p q =
+    match (p, q) with
+    | Within p, Within q -> TimedTrace.compare p q
+    | Unbounded, Within _ -> -1
+    | Within _, Unbounded -> 1
+    | Unbounded, Unbounded -> 0
+
+  let hash = function Within p -> TimedTrace.hash p | Unbounded -> -1
   let events = function Within p -> TimedTrace.events p | Unbounded -> []
 
   let max_duration bounds = function
@@ -125,7 +142,7 @@ module LowerBound = struct
   let inhabited _bounds _ = true
   let of_nat n = TimedTrace.of_nat (check_nat "TimedTraceGrades.LowerBound" n)
   let of_bounds (lo, _hi) = TimedTrace.of_nat lo
-  let is_atomic name p = p = atomic_traces name
+  let is_atomic name p = TimedTrace.equal p (atomic_traces name)
   let show = TimedTrace.show
   let witnesses _bounds = sampled mul
 end
@@ -152,7 +169,7 @@ module UpperBound = struct
     Within (TimedTrace.of_nat (check_nat "TimedTraceGrades.UpperBound" n))
 
   let of_bounds (_lo, hi) = Within (TimedTrace.of_nat hi)
-  let is_atomic name p = p = Within (atomic_traces name)
+  let is_atomic name p = compare p (Within (atomic_traces name)) = 0
   let witnesses _bounds = sampled mul
 end
 
@@ -177,13 +194,23 @@ module Interval = struct
     (LowerTraces.join lo lo', UpperTraces.join hi hi')
 
   let equal bounds p q = leq bounds p q && leq bounds q p
+
+  let is_top bounds (lo, hi) =
+    LowerTraces.is_top bounds lo && UpperTraces.is_top bounds hi
+
+  let compare (lo, hi) (lo', hi') =
+    match LowerTraces.compare lo lo' with
+    | 0 -> UpperTraces.compare hi hi'
+    | c -> c
+
+  let hash (lo, hi) = combine (LowerTraces.hash lo) (UpperTraces.hash hi)
   let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = false
   let needs_op_bounds = true
 
   let events (lo, hi) =
-    List.sort_uniq compare (TimedTrace.events lo @ UpperTraces.events hi)
+    List.sort_uniq String.compare (TimedTrace.events lo @ UpperTraces.events hi)
 
   let implied_bounds bounds (lo, hi) = implied_trace_bounds bounds lo hi
   let inhabited _bounds _ = true
@@ -213,7 +240,7 @@ module Interval = struct
     (TimedTrace.of_nat lo, UpperTraces.Within (TimedTrace.of_nat hi))
 
   let is_atomic name (lo, hi) =
-    lo = atomic_traces name && hi = UpperTraces.Within (atomic_traces name)
+    LowerBound.is_atomic name lo && UpperBound.is_atomic name hi
 
   let show (lo, hi) = "(" ^ TimedTrace.show lo ^ "," ^ UpperTraces.show hi ^ ")"
   let witnesses _bounds = sampled mul

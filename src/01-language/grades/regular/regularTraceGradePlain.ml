@@ -103,6 +103,14 @@ let top = { names = []; regex = Regex.top }
 let leq _bounds = decide2 D.subset
 let leq_symbol = "<="
 let equal _bounds = decide2 D.equal
+let is_top _bounds = decide2 D.subset top
+
+let compare rho rho' =
+  match List.compare String.compare rho.names rho'.names with
+  | 0 -> Regex.compare_form rho.regex rho'.regex
+  | c -> c
+
+let hash rho = combine (hash_list String.hash rho.names) (Regex.hash rho.regex)
 
 let of_nat n =
   { names = []; regex = ticks (check_nat "RegularTraceGradePlain" n) }

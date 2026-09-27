@@ -14,6 +14,9 @@
     being finite or cofinite in the names, so that the names a grade does not
     mention are all alike to it: this is the catch-all letter of
     {!RegularTraceGrade}, and grades over different names need no alignment.
+    {!Grade.S.compare} and {!Grade.S.hash} read the number of the normal form,
+    in constant time; grades of different normal forms may denote the same
+    language, so {!Grade.S.is_top} is decided by inclusion.
 
     {2 Decisions}
 

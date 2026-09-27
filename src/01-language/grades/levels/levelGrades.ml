@@ -9,6 +9,9 @@ module LowHigh = struct
   let top = High
   let join l l' = match (l, l') with Low, Low -> Low | _ -> High
   let leq l l' = match (l, l') with High, Low -> false | _ -> true
+  let rank = function Low -> 0 | High -> 1
+  let compare l l' = Int.compare (rank l) (rank l')
+  let hash = rank
   let elements = [ Low; High ]
 
   let of_lit = function

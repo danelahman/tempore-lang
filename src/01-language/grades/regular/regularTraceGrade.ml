@@ -25,7 +25,7 @@ let letter names name =
     read over the names [into], each name of [into] acting as its letter over
     [from]. *)
 let translate ~from ~into dfa =
-  if from = into then dfa
+  if List.equal String.equal from into then dfa
   else
     let source =
       Array.of_list ((tick :: List.map (letter from) into) @ [ other from ])
@@ -88,6 +88,14 @@ let same rho rho' =
   List.equal String.equal rho.names rho'.names && Dfa.equal rho.dfa rho'.dfa
 
 let equal _bounds = same
+let is_top _bounds = same top
+
+let compare rho rho' =
+  match List.compare String.compare rho.names rho'.names with
+  | 0 -> Dfa.compare rho.dfa rho'.dfa
+  | c -> c
+
+let hash rho = combine (hash_list String.hash rho.names) (Dfa.hash rho.dfa)
 let of_nat n = of_regex (Tick (check_nat "RegularTraceGrade" n))
 let unit_least = false
 let commutative = false

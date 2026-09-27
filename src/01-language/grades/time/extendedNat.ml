@@ -15,6 +15,17 @@ let leq m n =
   | Inf, Fin _ -> false
   | Fin m, Fin n -> m <= n
 
+(** [compare m n] is the order [≤]. *)
+let compare m n =
+  match (m, n) with
+  | Fin m, Fin n -> Int.compare m n
+  | Fin _, Inf -> -1
+  | Inf, Fin _ -> 1
+  | Inf, Inf -> 0
+
+let equal m n = compare m n = 0
+let hash = function Fin n -> Int.hash n | Inf -> -1
+
 (** [max m n] is the greater of [m] and [n]. *)
 let max m n = match (m, n) with Fin m, Fin n -> Fin (Int.max m n) | _ -> Inf
 

@@ -33,6 +33,9 @@ module LowerBound = struct
   let top = 0
   let join = Int.min
   let equal _bounds = Int.equal
+  let is_top _bounds = Int.equal top
+  let compare = Int.compare
+  let hash = Int.hash
   let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = true
@@ -58,7 +61,10 @@ module UpperBound = struct
   let leq_symbol = "<="
   let top = ExtendedNat.Inf
   let join = ExtendedNat.max
-  let equal _bounds = ( = )
+  let equal _bounds = ExtendedNat.equal
+  let is_top _bounds = ExtendedNat.equal top
+  let compare = ExtendedNat.compare
+  let hash = ExtendedNat.hash
   let counterexample _bounds _ _ = None
   let unit_least = true
   let commutative = true
@@ -91,7 +97,13 @@ module Interval = struct
   let leq_symbol = "<="
   let top = (0, ExtendedNat.Inf)
   let join (n, m) (k, l) = (Int.min n k, ExtendedNat.max m l)
-  let equal _bounds = ( = )
+
+  let compare (n, m) (k, l) =
+    match Int.compare n k with 0 -> ExtendedNat.compare m l | c -> c
+
+  let equal _bounds p q = compare p q = 0
+  let is_top _bounds p = compare p top = 0
+  let hash (n, m) = combine (Int.hash n) (ExtendedNat.hash m)
   let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = true

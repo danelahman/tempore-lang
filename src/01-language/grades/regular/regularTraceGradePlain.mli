@@ -16,7 +16,9 @@
     [Σ*] is [~∅]. When two grades are combined or compared, both are expressed
     over the union of their names, the catch-all letter of each being replaced
     by the union of the catch-all letter over the union and the names only the
-    other grade has.
+    other grade has. {!Grade.S.compare} and {!Grade.S.hash} read [N] and the
+    number of the normal form; grades of different representations may denote
+    the same language, so {!Grade.S.is_top} is decided by inclusion.
 
     {2 Decisions}
 

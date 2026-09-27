@@ -27,6 +27,7 @@ module type BASE = sig
   val join : const -> const -> const
   val leq : Grades.Grade.bounds -> const -> const -> bool
   val equal : Grades.Grade.bounds -> const -> const -> bool
+  val is_top : Grades.Grade.bounds -> const -> bool
   val unit_least : bool
   val commutative : bool
 
@@ -68,6 +69,10 @@ module Core (S : BASE) = struct
 
   let equal_product bounds = List.equal (equal_atom bounds)
 
+  let atom_is_top bounds = function
+    | Const c -> S.is_top bounds c
+    | Var _ -> false
+
   (* ---------------------------------------------------------------------- *)
   (* Flattening *)
 
@@ -94,8 +99,8 @@ module Core (S : BASE) = struct
 
   (* The constant top, or the empty product where the unit is the top. *)
   let is_top bounds = function
-    | [] -> S.equal bounds S.one S.top
-    | [ Const c ] -> S.equal bounds c S.top
+    | [] -> S.is_top bounds S.one
+    | [ a ] -> atom_is_top bounds a
     | _ -> false
 
   (* A sum with a top alternative is the top. *)
@@ -569,7 +574,7 @@ module Core (S : BASE) = struct
 
   (* Where the unit is least, a product with the top is the top. *)
   let absorb_product bounds p =
-    if S.unit_least && List.exists (equal_atom bounds (Const S.top)) p then
+    if S.unit_least && List.exists (atom_is_top bounds) p then
       cons bounds (Const S.top) []
     else p
 
@@ -749,6 +754,7 @@ module Make (X : GradeExp.S) = struct
     let join = E.join
     let leq = E.leq
     let equal = E.equal
+    let is_top = E.is_top
     let unit_least = E.unit_least
     let commutative = E.commutative
     let unit_below_var _ = false
@@ -791,6 +797,7 @@ module Make (X : GradeExp.S) = struct
     let join = R.join
     let leq = R.leq
     let equal = R.equal
+    let is_top = R.is_top
     let unit_least = R.unit_least
     let commutative = R.commutative
 

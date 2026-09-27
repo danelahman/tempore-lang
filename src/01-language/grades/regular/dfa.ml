@@ -6,8 +6,20 @@ let letters l = Array.length l.rows.(0)
 let states l = Array.length l.rows
 let next l q a = l.rows.(q).(a)
 let final l q = l.finals.(q)
-let equal (l : t) m = l = m
-let compare (l : t) m = Stdlib.compare l m
+
+let compare l m =
+  match Grade.compare_array Bool.compare l.finals m.finals with
+  | 0 -> Grade.compare_array (Grade.compare_array Int.compare) l.rows m.rows
+  | c -> c
+
+let equal l m = compare l m = 0
+
+let hash l =
+  let finals =
+    Array.fold_left (fun h f -> Grade.combine h (Bool.to_int f)) 0 l.finals
+  in
+  Array.fold_left (Array.fold_left Grade.combine) finals l.rows
+
 let range n = List.init n Fun.id
 let sort_uniq = List.sort_uniq Int.compare
 
@@ -61,7 +73,8 @@ module Ints = Explore (Int)
 module Pair = struct
   type t = int * int
 
-  let compare = Stdlib.compare
+  let compare (p, q) (p', q') =
+    match Int.compare p p' with 0 -> Int.compare q q' | c -> c
 end
 
 module Pairs = Explore (Pair)
@@ -69,7 +82,10 @@ module Pairs = Explore (Pair)
 module Signatures = Map.Make (struct
   type t = bool * int array
 
-  let compare = Stdlib.compare
+  let compare (f, a) (f', a') =
+    match Bool.compare f f' with
+    | 0 -> Grade.compare_array Int.compare a a'
+    | c -> c
 end)
 
 (** [refine l classes] is one round of Moore's partition refinement (Moore,
@@ -154,7 +170,8 @@ let complement l = { l with finals = Array.map not l.finals }
 module Subsets = Explore (struct
   type t = int * int list
 
-  let compare = Stdlib.compare
+  let compare (p, s) (p', s') =
+    match Int.compare p p' with 0 -> List.compare Int.compare s s' | c -> c
 end)
 
 (* The subset construction (Rabin and Scott, IBM J. Res. Dev. 1959) of the
@@ -175,7 +192,7 @@ let concat l m =
 module Closures = Explore (struct
   type t = int list option
 
-  let compare = Stdlib.compare
+  let compare = Option.compare (List.compare Int.compare)
 end)
 
 (* The subset construction of the repetition: a state is [None], the start, or
