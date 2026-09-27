@@ -34,7 +34,7 @@ module Loader (Backend : Backend.S) = struct
       Language.Primitives.primitives
 
   let parse_commands lexbuf =
-    try Grammar.commands Parser.Lexer.token lexbuf with
+    try Grammar.commands (Parser.Lexer.tokens ()) lexbuf with
     | Grammar.Error ->
         Error.syntax ~loc:(Location.of_lexbuf lexbuf) "parser error"
     | Failure failmsg when failmsg = "lexing: empty token" ->

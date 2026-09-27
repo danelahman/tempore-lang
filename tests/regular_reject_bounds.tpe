@@ -1,0 +1,4 @@
+(* Rejected under the 'regular-traces' grading monoid, whose order does not
+   read runtime bounds. *)
+
+operation Send : unit ~> unit # {Send} within (1, 2)

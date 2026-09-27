@@ -87,11 +87,14 @@ let malformed =
     "shadow_type.tpe";
     "time_reject_within.tpe";
     "levels_reject_literal.tpe";
+    "literals_reject_complement.tpe";
     "literals_reject_component.tpe";
+    "literals_reject_empty.tpe";
     "literals_reject_inf.tpe";
     "literals_reject_name.tpe";
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
+    "regular_reject_bounds.tpe";
   ]
 
 (* ------------------------------------------------------------------ *)
@@ -106,7 +109,7 @@ module Program (G : Grade.S) = struct
   module D = Desugarer.Make (GS)
   module Grammar = Parser.Grammar.Make (GS)
 
-  let parse lexbuf = Grammar.commands Parser.Lexer.token lexbuf
+  let parse lexbuf = Grammar.commands (Parser.Lexer.tokens ()) lexbuf
 
   let parse_source source =
     let lexbuf = Lexing.from_string source in

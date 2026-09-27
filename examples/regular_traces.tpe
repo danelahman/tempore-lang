@@ -1,0 +1,178 @@
+(* Run this example with the 'regular-traces' grading monoid, e.g.
+
+     ./tempore --grades regular-traces examples/regular_traces.tpe *)
+
+(* A grade is a regular language of runs, each run a word whose letters are
+   operations and ticks: '{Open; (Read | Write)*; Close}' permits the runs that
+   open, read and write any number of times, and close. A resource boxed at a
+   grade may be unboxed after any run the language contains, and a
+   computation's grade lists the runs it may exhibit. Grades are compared by
+   inclusion; '_' is any single letter, '~' the complement, '&' the
+   intersection and '*' repetition. *)
+
+type token = Token of string
+
+(* The operations of a file protocol. *)
+operation Open : unit ~> unit # {Open}
+operation Read : unit ~> int # {Read}
+operation Write : int ~> unit # {Write}
+operation Close : unit ~> unit # {Close}
+
+(* A session: open, any number of reads and writes, close. *)
+operation Session : unit ~> int # {Open; (Read | Write)*; Close}
+
+(* The operations of an authenticated service. *)
+operation Auth : unit ~> unit # {Auth}
+operation Fetch : unit ~> unit # {Fetch}
+operation Revoke : unit ~> unit # {Revoke}
+
+(* Correctly accepted by the typechecker: two copies within one session
+   follow the protocol. *)
+let copy_twice () : int # {Open; (Read | Write)*; Close} =
+  perform Open ();
+  let x = perform Read () in
+  perform Write x;
+  let y = perform Read () in
+  perform Write y;
+  perform Close ();
+  x + y
+
+(* Correctly accepted by the typechecker: the clause realises a session by a
+   single read, one of the runs 'Session' permits. *)
+let one_read =
+  handler
+  | x -> x
+  | Session () k ->
+      perform Open ();
+      let x = perform Read () in
+      perform Close ();
+      continue k with x
+
+(* Correctly accepted by the typechecker: sessions separated by ticks, any
+   number of times. *)
+let two_sessions () : int # {(Open; (Read | Write)*; Close | 1)*} =
+  let x = perform Session () in
+  delay 2;
+  let y = perform Session () in
+  x + y
+
+(* Correctly accepted by the typechecker: the token may be used once the
+   session has authenticated, whatever happened before and since. Its grade is
+   printed as '{(_ & ~Auth)*; Auth; _*}'. *)
+let after_auth () =
+  box {_*; Auth; _*} (Token "t") as t in
+  perform Fetch ();
+  perform Auth ();
+  delay 1;
+  unbox t as tok in
+  tok
+
+(* Correctly accepted by the typechecker: the capability may be used as long
+   as it has not been revoked. *)
+let before_revoke () =
+  box {~{_*; Revoke; _*}} (Token "c") as c in
+  perform Auth ();
+  perform Fetch ();
+  unbox c as cap in
+  perform Revoke ();
+  cap
+
+(* Correctly accepted by the typechecker: the grade permits the runs that
+   begin with three ticks, whatever follows. This is '{3}' followed by '⊤',
+   which is not '⊤': the top grade is not absorbing. *)
+let settle () =
+  box {3; _*} "settled" as s in
+  delay 3;
+  perform Fetch ();
+  unbox s as msg in
+  msg
+
+(* Correctly rejected by the typechecker: the clause reads after closing,
+   which no session permits:
+
+     Typing error: Variable `k` is unboxed after grade `{Open; Close; Read}`
+       has elapsed, which does not match its box grade
+       `{Open; (Read | Write)*; Close}`
+       ...
+       Note: the resource inequality
+         `{Open; Close; Read} <= {Open; (Read | Write)*; Close}` does not hold
+*)
+(*
+let late_read =
+  handler
+  | x -> x
+  | Session () k ->
+      perform Open ();
+      perform Close ();
+      let x = perform Read () in
+      continue k with x
+*)
+
+(* Correctly rejected by the typechecker: the session is never closed:
+
+     Typing error: This function's body has grade `{Open; Read}`, which does
+       not match its annotated grade `{Open; (Read | Write)*; Close}`
+       Note: the effect inequality
+         `{Open; Read} <= {Open; (Read | Write)*; Close}` does not hold
+*)
+(*
+let unclosed () : int # {Open; (Read | Write)*; Close} =
+  perform Open ();
+  perform Read ()
+*)
+
+(* Correctly rejected by the typechecker: the token is used before
+   authenticating:
+
+     Typing error: Variable `t` is unboxed after grade `{Fetch}` has elapsed,
+       which does not match its box grade `{(_ & ~Auth)*; Auth; _*}`
+       ...
+       Note: the resource inequality `{Fetch} <= {(_ & ~Auth)*; Auth; _*}`
+         does not hold
+*)
+(*
+let before_auth () =
+  box {_*; Auth; _*} (Token "t") as t in
+  perform Fetch ();
+  unbox t as tok in
+  perform Auth ();
+  tok
+*)
+
+(* Correctly rejected by the typechecker: the capability is used after its
+   revocation:
+
+     Typing error: Variable `c` is unboxed after grade `{Revoke}` has elapsed,
+       which does not match its box grade `{(_ & ~Revoke)*}`
+       ...
+       Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not
+         hold
+*)
+(*
+let after_revoke () =
+  box {~{_*; Revoke; _*}} (Token "c") as c in
+  perform Revoke ();
+  unbox c as cap in
+  cap
+*)
+
+(* Correctly rejected by the typechecker: the three ticks come after the
+   'Fetch', and the order is part of the grade:
+
+     Typing error: Variable `s` is unboxed after grade `{Fetch; 3}` has
+       elapsed, which does not match its box grade `{3; _*}`
+       ...
+       Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
+*)
+(*
+let settle_early () =
+  box {3; _*} "settled" as s in
+  perform Fetch ();
+  delay 3;
+  unbox s as msg in
+  msg
+*)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run uses delays alone. *)
+run box {3; _*} "settled" as s in delay 4; unbox s as msg in msg

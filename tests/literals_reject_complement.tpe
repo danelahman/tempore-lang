@@ -1,0 +1,4 @@
+(* Rejected under the 'traces-upper-bound' grading monoid, whose finite sets of
+   timed traces have no complement. *)
+
+let claim () = box {Send; ~Read} 1

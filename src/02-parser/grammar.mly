@@ -518,7 +518,7 @@ grade_lit:
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
-   [*]. *)
+   [*]. Braces group as parentheses do. *)
 regex:
   | r = regex_inter { r }
   | r = regex BAR s = regex_inter { Grade.Union (r, s) }
@@ -548,5 +548,6 @@ regex_atom:
   | n = INT { Grade.Tick n }
   | UNDERSCORE { Grade.Any }
   | LPAREN r = regex RPAREN { r }
+  | LBRACE r = regex RBRACE { r }
 
 %%

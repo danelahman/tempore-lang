@@ -1,0 +1,19 @@
+(* Rejected under the 'regular-traces' grading monoid: a session that reads
+   after closing, and one that is never closed. *)
+
+operation Open : unit ~> unit # {Open}
+operation Read : unit ~> int # {Read}
+operation Close : unit ~> unit # {Close}
+operation Session : unit ~> int # {Open; Read*; Close}
+
+let late_read =
+  handler
+  | x -> x
+  | Session () k ->
+      perform Open ();
+      perform Close ();
+      let x = perform Read () in
+      continue k with x
+
+let unclosed () : int # {Open; Read*; Close} =
+  perform Open (); perform Read ()

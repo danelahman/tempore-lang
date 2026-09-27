@@ -62,7 +62,7 @@ the program is run: with `--grades` on the command line, e.g.
 
 or with the **Grades** selector in the web interface, which switches
 its value automatically when a built-in example is loaded. The default grade
-monoid is `time-lower-bound`. Currently, nine monoids are available to choose.
+monoid is `time-lower-bound`. Currently, ten monoids are available to choose.
 
 All monoids share one syntax of grade literals, and each reads the literals it
 understands; a literal the chosen monoid does not understand is a syntax error,
@@ -122,9 +122,47 @@ operations through the runtime bounds `within (lo, hi)` every atomic operation
 The sets of traces are written in a brace literal `{...}`, which is a regular
 expression over operation names and delays: `r; s` concatenates, `r | s` is a
 union, and parentheses group, so that `{(Read | 2); Send}` is `{Read; Send | 2;
-Send}`. Repetition `r*`, intersection `r & s`, complement `~r` and the wildcard
-`_`, standing for any single operation, are also part of the syntax, but no
-monoid accepts them yet.
+Send}`. The other forms of regular expressions below, repetition `r*`,
+intersection `r & s`, complement `~r` and the wildcard `_`, denote infinite or
+cofinite sets of runs, which these three monoids reject with a syntax error at
+the literal naming the monoid.
+
+One monoid grades resources and computations by *regular languages* of runs:
+
+- **`regular-traces`** — a run is read as a word whose letters are operations
+  and ticks: an operation `Read` is the letter `Read`, and a delay of `n` ticks
+  is `n` copies of the letter `tick`. A grade is a non-empty regular language,
+  the runs a computation may exhibit, or after which a resource may be used.
+  `rho` is a sub-grade of `rho'` when every word of `rho` is in `rho'`
+  (inclusion); grades multiply by concatenation and join by union; the unit is
+  `{0}`, the language of the empty word, and the top `⊤` is the language of
+  all words. The top is not absorbing: `{3}` multiplied by `⊤` is `{3; _*}`,
+  the runs that begin with three ticks, not `⊤`. The order does not trade time
+  against operations, so no operation declares runtime bounds. See
+  [`examples/regular_traces.tpe`](examples/regular_traces.tpe).
+
+Its brace literals are the full regular expressions, by increasing precedence:
+union `r | s`, intersection `r & s`, concatenation `r; s`, complement `~r` and
+repetition `r*`; an operation name is that letter, an integer `n` is `n` ticks
+(`0` the empty word), `_` is any single letter, and parentheses or braces
+group. So `{Open; (Read | Write)*; Close}` is a file session, `{_*; Auth; _*}`
+the runs that authenticate at some point, and `{~{_*; Revoke; _*}}` those that
+never revoke. The operators need no spaces around them inside braces, as in
+`{Read*|~Send}`; as in OCaml, a `*)` inside a comment closes it, so a
+commented-out `{~(_*; Revoke; _*)}` is better written with braces. A plain
+integer `n` abbreviates `{n}`, and a literal denoting the empty language, such
+as `{Read & Send}`, is a syntax error, since grades are non-empty.
+
+The letters of a grade are `tick`, the operations it names, and one catch-all
+letter standing for every other operation; `_` and `~` range over these
+letters, so `{_ & ~Read}` is any single tick or operation other than `Read`.
+When two grades are combined or compared, both are read over the operations
+either names, the catch-all letter of each standing also for the operations
+only the other names: `{Send}` is a sub-grade of `{_ & ~Read}`. Grades are
+kept as minimal deterministic automata, which only name the operations the
+language tells apart from the others, so that equal languages are equal
+grades, and are printed as a regular expression read off the automaton, e.g.
+`{_*; Auth; _*}` as `{(_ & ~Auth)*; Auth; _*}`.
 
 One monoid grades resources and computations by *security levels*, and two
 more pair it with time:
@@ -166,7 +204,7 @@ of time, a sequence of operations, or whatever the chosen monoid measures.
   if the grade accumulated since `e` was boxed is a sub-grade of `rho`: at
   least `rho` ticks under the lower-bound monoids, at most `rho` under the
   upper-bound ones, a run that covers or fits inside `rho` under the trace
-  monoids, and a level no higher than `rho` under `security-levels`; the
+  monoids, a run in the language `rho` under `regular-traces`, and a level no higher than `rho` under `security-levels`; the
   products check both components.
 - `delay tau` advances the accumulated grade by `tau`. Operation calls (below)
   advance it by the grade of the operation.
@@ -267,7 +305,8 @@ with every event at its upper bound. So given `Tx : string ~> unit # {Tx} within
 `(2, 6)`; declaring bounds on it is rejected, as is naming itself, since `Send #
 {Send | Send; Send}` would make its bounds depend on themselves. Retries are
 expressed through a smaller operation instead. Under the time monoids no bounds
-are declared, since the grade already is the bound.
+are declared, since the grade already is the bound, nor under `regular-traces`,
+whose order does not read them.
 
 An operation is called with
 
@@ -408,7 +447,9 @@ A default is checked against the operation's runtime bounds rather than its
 grade: the body must have a sub-grade of `{lo}` under
 `traces-lower-bound`, of `{hi}` under `traces-upper-bound`, and of
 `({lo}, {hi})` under `traces-interval`. Under the time monoids it is
-checked against the operation's grade. The grade itself cannot be required,
+checked against the operation's grade, and so it is under `regular-traces`,
+whose operations declare no runtime bounds; there an atomic operation such as
+`Read # {Read}` thus admits no default, and is only realised by performing it. The grade itself cannot be required,
 since realising `{Heat}` would mean performing `Heat` again. So
 
 ```

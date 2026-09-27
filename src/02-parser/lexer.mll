@@ -89,7 +89,7 @@ let infixop4 = "**"                           operatorchar*
 rule token = parse
   | '\n'                { Lexing.new_line lexbuf; token lexbuf }
   | [' ' '\r' '\t']     { token lexbuf }
-  | "(*"                { comment 0 lexbuf }
+  | "(*"                { comment token 0 lexbuf }
   | int                 { INT (int_of_string (Lexing.lexeme lexbuf)) }
   | xxxint              { try
                             INT (int_of_string (Lexing.lexeme lexbuf))
@@ -140,11 +140,25 @@ rule token = parse
   | infixop3            { INFIXOP3(Lexing.lexeme lexbuf) }
   | eof                 { EOF }
 
-and comment n = parse
-  | "*)"                { if n = 0 then token lexbuf else comment (n - 1) lexbuf }
-  | "(*"                { comment (n + 1) lexbuf }
-  | '\n'                { Lexing.new_line lexbuf; comment n lexbuf }
-  | _                   { comment n lexbuf }
+(* Inside a brace literal each of the regular-expression operators [*], [|], [&]
+   and [~] is a token of its own, so that, e.g., [A*|~B] needs no spaces; any
+   other input is lexed as outside. *)
+and brace_token = parse
+  | '\n'                { Lexing.new_line lexbuf; brace_token lexbuf }
+  | [' ' '\r' '\t']     { brace_token lexbuf }
+  | "(*"                { comment brace_token 0 lexbuf }
+  | '*'                 { STAR }
+  | '|'                 { BAR }
+  | '&'                 { AMPER }
+  | '~'                 { PREFIXOP "~" }
+  | ""                  { token lexbuf }
+
+(* A comment nested [n] deep, after which lexing resumes with [continue]. *)
+and comment continue n = parse
+  | "*)"                { if n = 0 then continue lexbuf else comment continue (n - 1) lexbuf }
+  | "(*"                { comment continue (n + 1) lexbuf }
+  | '\n'                { Lexing.new_line lexbuf; comment continue n lexbuf }
+  | _                   { comment continue n lexbuf }
   | eof                 { Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unterminated comment" }
 
 and string acc = parse
@@ -160,6 +174,20 @@ and escaped = parse
                         }
 
 {
+  (** [tokens ()] is a lexer for one source: [token] outside brace literals and
+      [brace_token] inside them. The lexer keeps the depth of the braces open,
+      so each source needs a lexer of its own. *)
+  let tokens () =
+    let depth = ref 0 in
+    fun lexbuf ->
+      let tok = if !depth > 0 then brace_token lexbuf else token lexbuf in
+      (match tok with
+       | LBRACE -> incr depth
+       | RBRACE -> depth := max 0 (!depth - 1)
+       | EOF -> depth := 0
+       | _ -> ());
+      tok
+
   (* [In_channel.with_open_text] guarantees the channel is closed on any
      exception path (parser errors, lexer errors, asynchronous exceptions),
      replacing the older manual [open_in]/[close_in] dance. *)

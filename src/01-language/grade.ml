@@ -1,8 +1,8 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
-    {!TimedTraceGrades} and {!LevelGrades}, built with the constructions of
-    {!GradeConstructions}, and listed in {!GradeRegistry}.
+    {!TimedTraceGrades}, {!RegularTraceGrade} and {!LevelGrades}, built with the
+    constructions of {!GradeConstructions}, and listed in {!GradeRegistry}.
 
     {2 Cost model}
 
@@ -22,7 +22,7 @@
 type regex =
   | Letter of string  (** An operation name, e.g. [Send] *)
   | Tick of int  (** A delay of [n] time steps, e.g. [3] *)
-  | Any  (** Any single operation name, [_] *)
+  | Any  (** Any single operation or time step, [_] *)
   | Seq of regex * regex  (** Concatenation, [r; s] *)
   | Union of regex * regex  (** Union, [r | s] *)
   | Star of regex  (** Repetition, [r*] *)

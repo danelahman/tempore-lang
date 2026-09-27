@@ -1,0 +1,41 @@
+(* Accepted under the 'regular-traces' grading monoid: a file protocol whose
+   sessions open, read and write any number of times, and close, in that
+   order. *)
+
+operation Open : unit ~> unit # {Open}
+operation Read : unit ~> int # {Read}
+operation Write : int ~> unit # {Write}
+operation Close : unit ~> unit # {Close}
+operation Session : unit ~> int # {Open; (Read | Write)*; Close}
+
+(* Two copies within one session. *)
+let copy_twice () : int # {Open; (Read | Write)*; Close} =
+  perform Open ();
+  let x = perform Read () in
+  perform Write x;
+  let y = perform Read () in
+  perform Write y;
+  perform Close ();
+  x + y
+
+(* An empty session is a session too. *)
+let touch () : unit # {Open; (Read | Write)*; Close} =
+  perform Open (); perform Close ()
+
+(* A session realised by one read. *)
+let sessions =
+  handler
+  | x -> x
+  | Session () k ->
+      perform Open ();
+      let x = perform Read () in
+      perform Close ();
+      continue k with x
+
+(* Sub-effecting: a single read fits inside any number of reads and writes,
+   and delays may be spent between sessions. *)
+let two_sessions () : int # {(Open; (Read | Write)*; Close | 1)*} =
+  let x = perform Session () in
+  delay 2;
+  let y = perform Session () in
+  x + y

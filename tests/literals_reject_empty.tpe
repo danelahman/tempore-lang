@@ -1,0 +1,4 @@
+(* Rejected under the 'regular-traces' grading monoid: grades are non-empty
+   languages. *)
+
+let claim () = box {Read & Write} 1

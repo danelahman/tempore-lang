@@ -112,7 +112,7 @@ module Programs (G : Grade.S) = struct
 
   type state = { desugarer : D.state; env : Gen.env }
 
-  let parse lexbuf = Grammar.commands Parser.Lexer.token lexbuf
+  let parse lexbuf = Grammar.commands (Parser.Lexer.tokens ()) lexbuf
 
   let parse_source ~name source =
     let lexbuf = Lexing.from_string source in
@@ -291,6 +291,9 @@ let expected_rejections =
     ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
     ("occurs_check.tpe", [ 1 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
+    ("regular_reject_auth.tpe", [ 12; 19; 25 ]);
+    ("regular_reject_bounds.tpe", [ 4 ]);
+    ("regular_reject_protocol.tpe", [ 9; 18 ]);
     ("time_reject_within.tpe", [ 6 ]);
     ("traces_intervals_default_bounds.tpe", [ 9 ]);
     ("traces_reject_allowance.tpe", [ 7 ]);

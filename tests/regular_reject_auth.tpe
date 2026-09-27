@@ -1,0 +1,30 @@
+(* Rejected under the 'regular-traces' grading monoid: a token used before
+   authenticating, a capability used after its revocation, and a grade whose
+   runs must begin with delays unboxed after an operation. The top is not
+   absorbing: '{3}' followed by '⊤' is '{3; _*}', not '⊤'. *)
+
+type token = Token of string
+
+operation Auth : unit ~> unit # {Auth}
+operation Fetch : unit ~> unit # {Fetch}
+operation Revoke : unit ~> unit # {Revoke}
+
+let before_auth () =
+  box {_*; Auth; _*} (Token "t") as t in
+  perform Fetch ();
+  unbox t as tok in
+  perform Auth ();
+  tok
+
+let after_revoke () =
+  box {~(_*; Revoke; _*)} (Token "c") as c in
+  perform Revoke ();
+  unbox c as cap in
+  cap
+
+let early () =
+  box {3; _*} 42 as x in
+  perform Fetch ();
+  delay 3;
+  unbox x as n in
+  n

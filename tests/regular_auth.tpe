@@ -1,0 +1,44 @@
+(* Accepted under the 'regular-traces' grading monoid: resources guarded by
+   the runs that may elapse before they are used. *)
+
+type token = Token of string
+
+operation Auth : unit ~> unit # {Auth}
+operation Fetch : unit ~> unit # {Fetch}
+operation Revoke : unit ~> unit # {Revoke}
+
+(* A token usable only once the session has authenticated. *)
+let after_auth () =
+  box {_*; Auth; _*} (Token "t") as t in
+  perform Fetch ();
+  perform Auth ();
+  delay 1;
+  unbox t as tok in
+  tok
+
+(* A capability usable only as long as it has not been revoked. *)
+let before_revoke () =
+  box {~(_*; Revoke; _*)} (Token "c") as c in
+  perform Auth ();
+  perform Fetch ();
+  unbox c as cap in
+  perform Revoke ();
+  cap
+
+(* The top grade permits every run. *)
+let anytime () =
+  box ⊤ (Token "a") as a in
+  perform Revoke ();
+  delay 5;
+  unbox a as tok in
+  tok
+
+(* A grade that permits only the runs beginning with three time steps. *)
+let embargo () =
+  box {3; _*} 42 as x in
+  delay 3;
+  perform Fetch ();
+  unbox x as n in
+  n
+
+run box {3; _*} 42 as x in delay 4; unbox x as n in n

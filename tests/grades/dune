@@ -1,6 +1,12 @@
-; Unit tests of the grades: the security levels, the products of grades, and
-; the literals of every grade.
+; Unit tests of the grades: the security levels, the products of grades, the
+; literals of every grade, and the regular trace grade.
 
 (test
  (name test_grades)
+ (modules test_grades)
  (libraries language))
+
+(test
+ (name test_regularTraces)
+ (modules test_regularTraces)
+ (libraries utils language parser sugaredAst))

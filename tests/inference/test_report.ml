@@ -31,7 +31,7 @@ module Programs (G : Grade.S) = struct
   let parse ~name source =
     let lexbuf = Lexing.from_string source in
     lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = name };
-    Grammar.commands Parser.Lexer.token lexbuf
+    Grammar.commands (Parser.Lexer.tokens ()) lexbuf
 
   let initial =
     List.fold_left
