@@ -1,0 +1,21 @@
+(* Time lower bounds paired with security levels: rejected claims of an
+   embargoed report. *)
+
+operation Publish : string ~> unit # (1, High)
+
+default Publish s = delay 1
+
+(* Rejected: claimed after two ticks, before the embargo of three is over. *)
+let claim_too_early () =
+  box (3, Low) "report" as r in
+  delay 2;
+  unbox r as y in
+  y
+
+(* Rejected: claimed in time, but after publishing touched High. *)
+let claim_after_high () =
+  box (3, Low) "report" as r in
+  perform Publish "news";
+  delay 2;
+  unbox r as y in
+  y

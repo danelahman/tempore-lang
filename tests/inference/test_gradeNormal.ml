@@ -1,5 +1,5 @@
 (* Unit tests of [GradeExp], [GradeNormal] and [Reach], at the identity grade
-   system over each grade of [Grade.grade_modules]. *)
+   system over each grade of [GradeRegistry.grade_modules]. *)
 
 module Grade = Language.Grade
 module GradeSystem = Language.GradeSystem
@@ -56,6 +56,9 @@ module Suite (G : Grade.S) = struct
   let show_rho = X.Rho.to_string
   let show_eps = X.Eps.to_string
   let unit_is_top = G.equal bounds G.one G.top
+
+  (* Whether ticks are graded by the unit, as for the security levels. *)
+  let ticks_are_unit = G.equal bounds (G.of_nat 1) G.one
 
   (* [same name expected actual] compares resource expressions syntactically. *)
   let same name ~expected actual =
@@ -130,7 +133,10 @@ module Suite (G : Grade.S) = struct
         ~expected:(if G.commutative then x * y else y * x)
         (nf (y * x));
       same "constants in front when commutative"
-        ~expected:(if G.commutative then n 2 * x else x * n 2)
+        ~expected:
+          (if ticks_are_unit then x
+           else if G.commutative then n 2 * x
+           else x * n 2)
         (nf (x * n 2));
       same "the top absorbs a join" ~expected:top (nf (x + top));
       same "an image is a product of images"
@@ -142,7 +148,9 @@ module Suite (G : Grade.S) = struct
         (List.length
            (N.Rho.fold_sum bounds (N.Rho.normal bounds ((n 1 * x) + (n 2 * x)))));
       same "fold_sum joins the varying slot"
-        ~expected:(X.Rho.const (G.join (G.of_nat 1) (G.of_nat 2)) * x)
+        ~expected:
+          (if ticks_are_unit then x
+           else X.Rho.const (G.join (G.of_nat 1) (G.of_nat 2)) * x)
         (N.Rho.read_back
            (N.Rho.fold_sum bounds (N.Rho.normal bounds ((n 1 * x) + (n 2 * x)))));
     ]
@@ -432,7 +440,7 @@ let () =
         (fun (_, (module G : Grade.S)) ->
           let module S = Suite (G) in
           S.run ())
-        Grade.grade_modules
+        Language.GradeRegistry.grade_modules
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

@@ -140,7 +140,7 @@ module Programs (G : Grade.S) = struct
 end
 
 let grade_module name =
-  match List.assoc_opt name Grade.grade_modules with
+  match List.assoc_opt name Language.GradeRegistry.grade_modules with
   | Some g -> g
   | None -> failwith ("unknown grades " ^ name)
 

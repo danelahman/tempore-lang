@@ -1,0 +1,36 @@
+(* Time upper bounds paired with security levels: a capability boxed at
+   (5, Low) expires after five ticks, and only works while nothing above Low
+   has been touched since it was issued. *)
+
+operation Ping : unit ~> unit # (1, Low)
+operation Leak : string ~> unit # (1, High)
+
+default Ping () = delay 1
+default Leak s = delay 1
+
+(* Accepted: two pings and two ticks stay within five ticks, at Low. *)
+let use_in_time () =
+  box (5, Low) "token" as c in
+  perform Ping ();
+  perform Ping ();
+  delay 2;
+  unbox c as t in
+  t
+
+(* Accepted: a High capability survives a leak. *)
+let use_after_leak_high () =
+  box (5, High) "token" as c in
+  perform Leak "secret";
+  unbox c as t in
+  t
+
+(* Accepted: '∞' (ASCII 'inf') imposes no time bound. *)
+let use_eventually () =
+  box (inf, Low) "token" as c in
+  delay 100;
+  unbox c as t in
+  t
+
+run use_in_time ()
+run use_after_leak_high ()
+run use_eventually ()

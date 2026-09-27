@@ -1,0 +1,3 @@
+(* Rejected: a level is no grade under time-lower-bound. *)
+
+let claim () = box Low 1

@@ -1,5 +1,5 @@
 (* Unit tests of [Skeleton]: unification, decoration and expansion, at the
-   identity grade system over the first grade of [Grade.grade_modules]. *)
+   identity grade system over the first grade of [GradeRegistry.grade_modules]. *)
 
 module Ast = Language.Ast
 module Const = Language.Const
@@ -12,7 +12,7 @@ type check = { name : string; passed : bool; detail : string }
 
 let check name passed detail = { name; passed; detail }
 
-module G = (val snd (List.hd Grade.grade_modules) : Grade.S)
+module G = (val snd (List.hd Language.GradeRegistry.grade_modules) : Grade.S)
 module GS = GradeSystem.Identity (G)
 module X = GradeExp.Make (GS)
 module K = Skeleton.Make (X)

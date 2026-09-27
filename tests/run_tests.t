@@ -22,6 +22,14 @@
   >     traces_intervals_bounds.tpe) ../tempore --grades traces-interval $f;;
   >     traces_intervals_default_bounds.tpe) ../tempore --grades traces-interval $f;;
   >     traces_*.tpe) ../tempore --grades traces-upper-bound $f;;
+  >     levels_time_lower*.tpe) ../tempore --grades time-lower-bound-levels $f;;
+  >     levels_time_upper*.tpe) ../tempore --grades time-upper-bound-levels $f;;
+  >     levels*.tpe) ../tempore --grades security-levels $f;;
+  >     literals_time_upper.tpe) ../tempore --grades time-upper-bound $f;;
+  >     literals_time_interval.tpe) ../tempore --grades time-interval $f;;
+  >     literals_traces.tpe) ../tempore --grades traces-interval $f;;
+  >     literals_reject_star.tpe) ../tempore --grades traces-upper-bound $f;;
+  >     literals_reject_component.tpe) ../tempore --grades time-lower-bound-levels $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -779,6 +787,173 @@
   ======================================================================
   Runtime error: Incomparable expression (fun x ↦ return x)
   ======================================================================
+  levels.tpe
+  ======================================================================
+  === Run 1 ===
+  return ("public", "report")
+  State: [
+    { resource_0 ↦ "public" # Low }
+  ]
+  
+  === Run 2 ===
+  return "secret"
+  State: [
+    { resource_0 ↦ "secret" # High }
+  ]
+  
+  === Run 3 ===
+  return "public"
+  State: [
+    { resource_0 ↦ "public" # Low }
+  ]
+  
+  ======================================================================
+  levels_reject.tpe
+  ======================================================================
+  File "levels_reject.tpe", lines 11-12, characters 2-3:
+  11 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed after grade `High` has elapsed, which does not match its box grade `Low`
+    File "levels_reject.tpe", line 9, characters 22-23:
+    9 |   box Low "public" as r in
+                              ^
+    `r` is bound here
+    File "levels_reject.tpe", line 10, characters 2-23:
+    10 |   perform Send "secret";
+           ^^^^^^^^^^^^^^^^^^^^^
+    `Send` is performed here (grade `High`)
+    Note: the resource inequality `High <= Low` does not hold
+  ======================================================================
+  levels_reject_literal.tpe
+  ======================================================================
+  File "levels_reject_literal.tpe", line 3, characters 19-20:
+  3 | let claim () = box 3 1
+                         ^
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound' or 'traces-interval' grading monoids?
+  ======================================================================
+  levels_time_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return "report"
+  State: [
+    { resource_0 ↦ "report" # (3,Low) },
+    (3,Low)
+  ]
+  
+  === Run 2 ===
+  return ("report", "figures")
+  State: [
+    { resource_0 ↦ "report" # (3,Low) },
+    (2,Low),
+    (1,Low)
+  ]
+  
+  === Run 3 ===
+  return "report"
+  State: [
+    { resource_0 ↦ "report" # (3,High) },
+    (1,Low),
+    (2,Low)
+  ]
+  
+  === Run 4 ===
+  return "report"
+  State: [
+    { resource_0 ↦ "report" # (0,High) },
+    (1,Low)
+  ]
+  
+  ======================================================================
+  levels_time_lower_reject.tpe
+  ======================================================================
+  File "levels_time_lower_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed after grade `(2,Low)` has elapsed, which does not match its box grade `(3,Low)`
+    File "levels_time_lower_reject.tpe", line 10, characters 27-28:
+    10 |   box (3, Low) "report" as r in
+                                    ^
+    `r` is bound here
+    File "levels_time_lower_reject.tpe", line 11, characters 2-9:
+    11 |   delay 2;
+           ^^^^^^^
+    `delay 2` elapses here (grade `(2,Low)`)
+    Note: the resource inequality `(2,Low) ≾ (3,Low)` does not hold
+  
+  File "levels_time_lower_reject.tpe", lines 20-21, characters 2-3:
+  20 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed after grade `(3,High)` has elapsed, which does not match its box grade `(3,Low)`
+    File "levels_time_lower_reject.tpe", line 17, characters 27-28:
+    17 |   box (3, Low) "report" as r in
+                                    ^
+    `r` is bound here
+    File "levels_time_lower_reject.tpe", line 18, characters 2-24:
+    18 |   perform Publish "news";
+           ^^^^^^^^^^^^^^^^^^^^^^
+    `Publish` is performed here (grade `(1,High)`)
+    File "levels_time_lower_reject.tpe", line 19, characters 2-9:
+    19 |   delay 2;
+           ^^^^^^^
+    `delay 2` elapses here (grade `(2,Low)`)
+    Note: the resource inequality `(3,High) ≾ (3,Low)` does not hold
+  ======================================================================
+  levels_time_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return "token"
+  State: [
+    { resource_0 ↦ "token" # (5,Low) },
+    (1,Low),
+    (1,Low),
+    (2,Low)
+  ]
+  
+  === Run 2 ===
+  return "token"
+  State: [
+    { resource_0 ↦ "token" # (5,High) },
+    (1,Low)
+  ]
+  
+  === Run 3 ===
+  return "token"
+  State: [
+    { resource_0 ↦ "token" # (∞,Low) },
+    (100,Low)
+  ]
+  
+  ======================================================================
+  levels_time_upper_reject.tpe
+  ======================================================================
+  File "levels_time_upper_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox c as t in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `c` is unboxed after grade `(6,Low)` has elapsed, which does not match its box grade `(5,Low)`
+    File "levels_time_upper_reject.tpe", line 10, characters 26-27:
+    10 |   box (5, Low) "token" as c in
+                                   ^
+    `c` is bound here
+    File "levels_time_upper_reject.tpe", line 11, characters 2-9:
+    11 |   delay 6;
+           ^^^^^^^
+    `delay 6` elapses here (grade `(6,Low)`)
+    Note: the resource inequality `(6,Low) <= (5,Low)` does not hold
+  
+  File "levels_time_upper_reject.tpe", lines 19-20, characters 2-3:
+  19 |   unbox c as t in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `c` is unboxed after grade `(1,High)` has elapsed, which does not match its box grade `(5,Low)`
+    File "levels_time_upper_reject.tpe", line 17, characters 26-27:
+    17 |   box (5, Low) "token" as c in
+                                   ^
+    `c` is bound here
+    File "levels_time_upper_reject.tpe", line 18, characters 2-23:
+    18 |   perform Leak "secret";
+           ^^^^^^^^^^^^^^^^^^^^^
+    `Leak` is performed here (grade `(1,High)`)
+    Note: the resource inequality `(1,High) <= (5,Low)` does not hold
+  ======================================================================
   lexer.tpe
   ======================================================================
   === Run 1 ===
@@ -852,6 +1027,149 @@
   === Run 18 ===
   return -3.14
   State: []
+  
+  ======================================================================
+  literals_reject_component.tpe
+  ======================================================================
+  File "literals_reject_component.tpe", line 3, characters 19-30:
+  3 | let claim () = box (3, Medium) 1
+                         ^^^^^^^^^^^
+  Syntax error: in the 'time-lower-bound-levels' grading monoid, in the second component ('security-levels'), unknown level 'Medium'; the levels are 'Low' and 'High'
+  ======================================================================
+  literals_reject_inf.tpe
+  ======================================================================
+  File "literals_reject_inf.tpe", line 3, characters 19-22:
+  3 | let claim () = box ∞ 1
+                         ^^^
+  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use the 'time-upper-bound' grading monoid?
+  ======================================================================
+  literals_reject_name.tpe
+  ======================================================================
+  File "literals_reject_name.tpe", line 3, characters 19-22:
+  3 | let claim () = box Low 1
+                         ^^^
+  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not names such as 'Low'; did you mean to use the 'security-levels' grading monoid?
+  ======================================================================
+  literals_reject_star.tpe
+  ======================================================================
+  File "literals_reject_star.tpe", line 3, characters 19-31:
+  3 | let claim () = box {(Send; 2)*} 1
+                         ^^^^^^^^^^^^
+  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without repetition '*'
+  ======================================================================
+  literals_reject_unknown.tpe
+  ======================================================================
+  File "literals_reject_unknown.tpe", line 3, characters 19-26:
+  3 | let claim () = box forever 1
+                         ^^^^^^^
+  Syntax error: 'forever' is no grade literal; grades are written as integers, names such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)' and brace literals '{...}'
+  ======================================================================
+  literals_time_interval.tpe
+  ======================================================================
+  === Run 1 ===
+  return "open-ended"
+  State: [
+    { resource_0 ↦ "open-ended" # (3,∞) },
+    (100,100)
+  ]
+  
+  === Run 2 ===
+  return "open-ended"
+  State: [
+    { resource_0 ↦ "open-ended" # (3,∞) },
+    (3,3)
+  ]
+  
+  === Run 3 ===
+  return "any time"
+  State: [
+    { resource_0 ↦ "any time" # (0,∞) },
+    (5,5)
+  ]
+  
+  === Run 4 ===
+  return ()
+  State: [
+    (7,7)
+  ]
+  
+  ======================================================================
+  literals_time_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return "now"
+  State: [
+    { resource_0 ↦ "now" # 0 }
+  ]
+  
+  === Run 2 ===
+  return "now"
+  State: [
+    { resource_0 ↦ "now" # 0 }
+  ]
+  
+  === Run 3 ===
+  return "boxed"
+  State: [
+    { resource_0 ↦ "boxed" # 0 }
+  ]
+  
+  ======================================================================
+  literals_time_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return "forever"
+  State: [
+    { resource_0 ↦ "forever" # ∞ },
+    100
+  ]
+  
+  === Run 2 ===
+  return "forever"
+  State: [
+    { resource_0 ↦ "forever" # ∞ },
+    100
+  ]
+  
+  === Run 3 ===
+  return "forever"
+  State: [
+    { resource_0 ↦ "forever" # ∞ },
+    100
+  ]
+  
+  === Run 4 ===
+  return ()
+  State: [
+    7
+  ]
+  
+  ======================================================================
+  literals_traces.tpe
+  ======================================================================
+  === Run 1 ===
+  return "any run"
+  State: [
+    { resource_0 ↦ "any run" # ({0},⊤) },
+    ({1},{1}),
+    ({3},{3})
+  ]
+  
+  === Run 2 ===
+  return "after a send"
+  State: [
+    { resource_0 ↦ "after a send" # ({Send},⊤) },
+    ({1},{1}),
+    ({1},{1})
+  ]
+  
+  === Run 3 ===
+  return "a send or a wait"
+  State: [
+    { resource_0 ↦ "a send or a wait" # ({1},{Send; 1 | 3}) },
+    ({1},{1}),
+    ({1},{1})
+  ]
   
   ======================================================================
   malformed_type_application.tpe
@@ -2142,7 +2460,7 @@ single-dash form of the help option is not accepted.
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
     --debug           Show final internal state and top level typing results after execution
-    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval'
+    --grades          Selects the grades (default: time-lower-bound). Accepted: 'time-lower-bound', 'time-upper-bound', 'time-interval', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'security-levels', 'time-lower-bound-levels', 'time-upper-bound-levels'
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

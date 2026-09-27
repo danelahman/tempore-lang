@@ -39,14 +39,6 @@ module Loader (Backend : Backend.S) = struct
         Error.syntax ~loc:(Location.of_lexbuf lexbuf) "parser error"
     | Failure failmsg when failmsg = "lexing: empty token" ->
         Error.syntax ~loc:(Location.of_lexbuf lexbuf) "unrecognised symbol"
-    (* Grade literals are converted by the grades the parser is parameterised
-       by, which reject literal forms they do not support. This is the usual
-       symptom of running a file under the wrong grades, so report it as a
-       located syntax error naming the grades in use. *)
-    | Invalid_argument msg ->
-        Error.syntax
-          ~loc:(Location.of_lexbuf lexbuf)
-          "in the '%s' grading monoid, %s" Backend.Grades.R.name msg
 
   (* The backend loads a command the typechecker has accepted. *)
   let load_backend backend (cmd : _ Ast.command) =

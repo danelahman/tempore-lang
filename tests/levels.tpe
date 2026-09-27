@@ -1,0 +1,38 @@
+(* Security levels: a computation's level is the highest level it touches, and
+   a box at level l may be unboxed only while the level has not risen above l
+   since boxing. *)
+
+operation Send : string ~> unit # High
+operation Read : unit ~> string # Low
+
+default Send s = ()
+default Read () = "report"
+
+(* Accepted: reading touches nothing above Low. *)
+let read_then_claim () =
+  box Low "public" as r in
+  let s = perform Read () in
+  unbox r as y in
+  (y, s)
+
+(* Accepted: a High box may be claimed after anything. *)
+let send_then_claim_high () =
+  box High "secret" as r in
+  perform Send "message";
+  unbox r as y in
+  y
+
+(* Accepted: ticks touch no level. *)
+let delay_then_claim () =
+  box Low "public" as r in
+  delay 5;
+  unbox r as y in
+  y
+
+(* The level of a branch is the join of its arms. *)
+let branch b =
+  if b then perform Send "message" else (let _ = perform Read () in ())
+
+run read_then_claim ()
+run send_then_claim_high ()
+run delay_then_claim ()

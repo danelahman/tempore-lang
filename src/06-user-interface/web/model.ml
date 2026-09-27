@@ -89,7 +89,7 @@ type edit_model = {
       *)
 }
 
-let default_resource_name = fst (List.hd Language.Grade.grade_modules)
+let default_resource_name = fst (List.hd Language.GradeRegistry.grade_modules)
 
 let edit_init =
   {
@@ -283,7 +283,7 @@ let update model = function
         try
           match
             List.assoc_opt model.edit_model.selected_resource
-              Language.Grade.grade_modules
+              Language.GradeRegistry.grade_modules
           with
           | None ->
               Error

@@ -1,0 +1,3 @@
+(* Rejected: infinity is no lower bound on time. *)
+
+let claim () = box ∞ 1

@@ -51,6 +51,22 @@ let is_ident_char c = is_ident_start c || is_digit c || c = '\''
    highlighter does not split it. *)
 let is_greek_lead b = b = 0xCE || b = 0xCF
 
+(* The grade constants written as symbols, the top and infinity, highlighted as
+   numbers. *)
+let grade_symbols = [ "⊤"; "∞" ]
+
+(* [grade_symbol_at s i] is the length of the grade symbol starting at [i] in
+   [s], if any. Both symbols start with the byte 0xE2. *)
+let grade_symbol_at s i =
+  if s.[i] <> '\xE2' then None
+  else
+    List.find_map
+      (fun sym ->
+        let k = String.length sym in
+        if i + k <= String.length s && String.sub s i k = sym then Some k
+        else None)
+      grade_symbols
+
 (* Byte used by the state printer to bracket resource names that appear as
    binding labels (and only those — references to resources inside stored
    values are left unmarked). The byte must not occur in any user-visible
@@ -182,6 +198,12 @@ let tokens s =
         after_op_kw := false;
         after_bar := false
       end
+    end
+    else if Option.is_some (grade_symbol_at s start) then begin
+      i := start + Option.get (grade_symbol_at s start);
+      emit start !i (Some "syn-num");
+      after_op_kw := false;
+      after_bar := false
     end
     else if is_greek_lead (Char.code c) && !i + 1 < n then begin
       (* Single Greek letter (two-byte UTF-8); pass through as identifier. *)

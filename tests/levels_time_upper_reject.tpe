@@ -1,0 +1,20 @@
+(* Time upper bounds paired with security levels: rejected uses of an expiring
+   capability. *)
+
+operation Leak : string ~> unit # (1, High)
+
+default Leak s = delay 1
+
+(* Rejected: used after six ticks, once the capability has expired. *)
+let use_expired () =
+  box (5, Low) "token" as c in
+  delay 6;
+  unbox c as t in
+  t
+
+(* Rejected: used in time, but after a leak touched High. *)
+let use_after_leak () =
+  box (5, Low) "token" as c in
+  perform Leak "secret";
+  unbox c as t in
+  t

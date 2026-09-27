@@ -1,0 +1,17 @@
+(* The top '⊤' (ASCII 'top') under time-lower-bound is 0: claimable at once. *)
+
+let claim_top () =
+  box ⊤ "now" as r in
+  unbox r as y in
+  y
+
+let claim_top_ascii () =
+  box top "now" as r in
+  unbox r as y in
+  y
+
+let annotated : ([top] string) -> string # ⊤ = fun r -> unbox r as y in y
+
+run claim_top ()
+run claim_top_ascii ()
+run annotated (box 0 "boxed")

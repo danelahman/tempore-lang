@@ -1,0 +1,3 @@
+(* Rejected: Medium is no security level. *)
+
+let claim () = box (3, Medium) 1
