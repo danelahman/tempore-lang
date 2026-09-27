@@ -33,13 +33,10 @@ module Make (C : Constraint.S) = struct
   let rec open_rho = function
     | Ast.RhoConst c -> Rho.const c
     | Ast.RhoAdd (rho, rho') -> Rho.mul (open_rho rho) (open_rho rho')
-    | Ast.RhoParam _ -> invalid_arg "open_rho: a grade parameter in a program"
 
   let rec open_eps = function
     | Ast.EpsConst c -> Eps.const c
     | Ast.EpsAdd (eps, eps') -> Eps.mul (open_eps eps) (open_eps eps')
-    | Ast.EpsParam _ | Ast.EpsRigid _ ->
-        invalid_arg "open_eps: a grade parameter in a program"
 
   let open_ty ty = Ast.map_ty ~on_rho:open_rho ~on_eps:open_eps ty
 
@@ -226,7 +223,7 @@ module Make (C : Constraint.S) = struct
            under `%s` the operation grade already carries them"
           GS.E.name
     | false, _, None -> env.op_bounds
-    | true, (Ast.EpsParam _ | Ast.EpsRigid _ | Ast.EpsAdd _), _ ->
+    | true, Ast.EpsAdd _, _ ->
         Error.typing ~loc
           "the grade of operation `%s` must be a literal under the `%s` \
            grading monoid"

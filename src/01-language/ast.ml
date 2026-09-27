@@ -15,18 +15,6 @@ module TyParamSet = Set.Make (TyParamModule)
 
 type ty_param = TyParamModule.t
 
-module RhoParamModule = Symbol.Make ()
-module RhoParamMap = Map.Make (RhoParamModule)
-module RhoParamSet = Set.Make (RhoParamModule)
-
-type rho_param = RhoParamModule.t
-
-module EpsParamModule = Symbol.Make ()
-module EpsParamMap = Map.Make (EpsParamModule)
-module EpsParamSet = Set.Make (EpsParamModule)
-
-type eps_param = EpsParamModule.t
-
 module OpName = Symbol.Make ()
 module OpNameMap = Map.Make (OpName)
 module OpNameSet = Set.Make (OpName)
@@ -36,16 +24,11 @@ type operation = OpName.t
 (** Resource grade expressions over the resource grades ['rho]. *)
 type 'rho rho =
   | RhoConst of 'rho
-  | RhoParam of rho_param  (** an unknown grade, solved by unification *)
   | RhoAdd of 'rho rho * 'rho rho  (** the product of two grades *)
 
 (** Effect grade expressions over the effect grades ['eps]. *)
 type 'eps eps =
   | EpsConst of 'eps
-  | EpsParam of eps_param  (** an unknown grade, solved by unification *)
-  | EpsRigid of eps_param
-      (** the grade of a handler continuation: universally quantified, so it is
-          never substituted and may not occur in the type of a definition *)
   | EpsAdd of 'eps eps * 'eps eps  (** the product of two grades *)
 
 (** Types, over the grades ['rho] of resources and ['eps] of effects: a box is

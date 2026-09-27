@@ -4,7 +4,8 @@
     A command is checked by {!Inference.Program}: a type definition or operation
     signature extends the environment, a default implementation, a top-level
     definition and a run have their constraint generated and solved. A rejected
-    command is explained by {!Explain}. *)
+    command is explained by {!Explain}, against its constraint generated again
+    over the unsimplified schemes of the definitions. *)
 
 module Ast = Language.Ast
 

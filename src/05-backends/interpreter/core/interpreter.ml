@@ -75,12 +75,10 @@ module Make (GS : Language.GradeSystem.S) = struct
   exception PatternMismatch
 
   (** [rho_of_eps eps] is the resource grade [∣eps∣] of the effect grade [eps]
-      of an operation signature, which has no parameters. *)
+      of an operation signature. *)
   let rec rho_of_eps = function
     | Ast.EpsConst c -> Ast.RhoConst (GS.map c)
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
-    | Ast.EpsParam _ | Ast.EpsRigid _ ->
-        Error.runtime "internal: grade parameter in an operation signature"
 
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with

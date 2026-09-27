@@ -17,19 +17,26 @@ module Make (GS : Language.GradeSystem.S) = struct
   type command = P.command
 
   type state = {
-    env : Gen.env;
+    envs : P.envs;
     definitions : (Ast.variable * scheme) list;
         (** the primitives and top-level definitions, newest first *)
   }
 
   type recovery = Continue of state | Stop
 
-  let initial_state = { env = Gen.initial_env; definitions = [] }
+  let initial_state =
+    {
+      envs = { reported = Gen.initial_env; unsimplified = Gen.initial_env };
+      definitions = [];
+    }
 
   let load_primitive state x prim =
     let scheme = Primitive_schemes.scheme prim in
     {
-      env = Gen.add_global state.env x ~defined_at:None scheme;
+      envs =
+        P.both
+          (fun env -> Gen.add_global env x ~defined_at:None scheme)
+          state.envs;
       definitions = (x, scheme) :: state.definitions;
     }
 
@@ -54,10 +61,12 @@ module Make (GS : Language.GradeSystem.S) = struct
     | S.Refuted failure -> Some (P.Refuted failure, None)
     | S.Stuck stuck -> Some (P.Stuck stuck, None)
 
-  (* A rejection explained against the command's constraint generated afresh,
-     whose unknowns the failure of solving it again mentions; against the
-     failure alone where that does not reproduce it. *)
-  let explain env (cmd : command) error =
+  (* A rejection explained against the command's constraint generated afresh
+     over the unsimplified schemes of the definitions, whose unknowns the
+     failure of solving it again mentions; against the failure alone where
+     that does not reproduce it. *)
+  let explain (envs : P.envs) (cmd : command) error =
+    let env = envs.unsimplified in
     let context = P.context ~loc:cmd.at env in
     let replayed =
       match constraint_of env cmd with
@@ -79,28 +88,28 @@ module Make (GS : Language.GradeSystem.S) = struct
 
   (* The diagnostic of a rejected command, pinned to the command when it has
      no location of its own. *)
-  let diagnostic env (cmd : command) error =
+  let diagnostic envs (cmd : command) error =
     let d =
       match error with
       | P.Malformed d -> d
-      | P.Refuted _ | P.Stuck _ -> explain env cmd error
+      | P.Refuted _ | P.Stuck _ -> explain envs cmd error
     in
     match d.Diagnostic.primary with
     | None -> { d with primary = Some cmd.at }
     | Some _ -> d
 
   let check state (cmd : command) =
-    match P.execute state.env cmd with
-    | env, { outcome = P.Defined (x, scheme); _ }, _ ->
-        Ok { env; definitions = (x, scheme) :: state.definitions }
-    | env, { outcome = P.Accepted; _ }, _ -> Ok { state with env }
-    | env, { outcome = P.Rejected error; _ }, next ->
+    match P.execute_both state.envs cmd with
+    | envs, { outcome = P.Defined (x, scheme); _ }, _ ->
+        Ok { envs; definitions = (x, scheme) :: state.definitions }
+    | envs, { outcome = P.Accepted; _ }, _ -> Ok { state with envs }
+    | envs, { outcome = P.Rejected error; _ }, next ->
         let recovery =
           match next with
-          | P.Continue -> Continue { state with env }
+          | P.Continue -> Continue { state with envs }
           | P.Stop -> Stop
         in
-        Error (diagnostic state.env cmd error, recovery)
+        Error (diagnostic state.envs cmd error, recovery)
 
   let definitions state = List.rev state.definitions
   let print_scheme scheme ppf = C.print_scheme scheme ppf

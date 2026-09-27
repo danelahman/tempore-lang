@@ -385,6 +385,20 @@ module Make (C : Constraint.S) = struct
          (C.subst_ty solution.subst ty)
          solution.hyps solution.obligations)
 
+  let unsimplified ?(fixed = C.no_free) ty solution =
+    let ty = C.subst_ty solution.subst ty in
+    let qualifier = qualifier solution in
+    let free = C.union_free (C.free_vars_ty ty) (C.free_vars qualifier) in
+    {
+      C.ty_params =
+        TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys);
+      rho_params =
+        Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos);
+      eps_params = Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps);
+      qualifier;
+      ty;
+    }
+
   let print_outcome outcome ppf =
     match outcome with
     | Solved solution ->

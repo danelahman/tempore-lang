@@ -57,6 +57,19 @@ module Make (C : Constraint.S) : sig
   (** [execute env cmd] is the environment after [cmd], its verdict, and whether
       the commands after it are processed. *)
 
+  type envs = { reported : env; unsimplified : env }
+  (** The environments of the definitions with their reported schemes and with
+      their unsimplified schemes ({!Solver.Make.unsimplified}), against which
+      failures are explained. *)
+
+  val both : (env -> env) -> envs -> envs
+  (** [both f envs] is [f] applied to each environment of [envs]. *)
+
+  val execute_both : envs -> command -> envs * verdict * next
+  (** [execute_both envs cmd] is {!execute} on [envs.reported], the environments
+      after [cmd] extended alike except that a definition enters [unsimplified]
+      with its unsimplified scheme. *)
+
   val execute_all : env -> command list -> env * verdict list
   (** [execute_all env cmds] executes [cmds] in order until one stops them. *)
 

@@ -27,13 +27,12 @@ module Make (GS : Language.GradeSystem.S) = struct
       | None -> false
     in
     let print_var_and_expr (variable, (rho, expr)) ppf =
-      let rho_pp = PrettyPrint.RhoPrintParam.create () in
       let surround ppf = if is_active variable then active_mark ppf in
       Format.fprintf ppf "%t@[<hv 2>%t%t%t ↦@ %t@ # %t@]%t" surround label_mark
         (Ast.Variable.print variable)
         label_mark
         (PrettyPrint.print_expression (module GS.R) expr)
-        (PrettyPrint.print_rho (module GS.R) rho_pp rho)
+        (PrettyPrint.print_rho (module GS.R) rho)
         surround
     in
     PrettyPrint.print_vars_and_exprs

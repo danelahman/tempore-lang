@@ -78,6 +78,14 @@ module Make (C : Constraint.S) : sig
       eliminated nor quantified. It is the generalisation of a top-level
       definition. *)
 
+  val unsimplified : ?fixed:C.free -> C.ty -> solution -> C.scheme
+  (** [unsimplified ~fixed ty solution] is the scheme of [ty] under [solution]
+      as solved: the solved type, the qualifier {!qualifier}, and the scheme
+      quantified over their unknowns other than those of [fixed]. It is
+      equivalent to {!generalise}, and keeps the atoms the simplification
+      eliminates, through which the explanation of a failure at a use of the
+      definition is traced. *)
+
   val print_outcome : outcome -> Format.formatter -> unit
   (** [print_outcome outcome ppf] prints [outcome], for debugging. *)
 end

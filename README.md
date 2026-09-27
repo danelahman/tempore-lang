@@ -280,29 +280,41 @@ accepted, as `rho >= 0` always holds.
 
 An operation case runs at a time the handler does not fix: the call may come
 at any point of the handled computation, and the case must be well-typed for
-every grade its continuation may have. So a case is checked not in the ambient
-context but in its *eternal restriction* — of the variables bound outside the
-case only those of eternal type survive, and the grades accumulated before it
-are erased. Using a variable of non-eternal type inside a case is rejected
-outright, whatever the grades are:
+every grade its continuation may have. So a case is typed in its context
+*locked* at the top grade `⊤`: to the variables bound outside the case, the
+top grade has elapsed by the time the case runs. By the usual rules, such a
+variable may then be used in the case only if its type is eternal or `⊤` is
+below the unit, and an outer box may be unboxed in the case only if `⊤` is
+below its grade.
 
-    Variable `f` has type `unit → int # ρ₀`, which is not eternal, so it
-    cannot be used in the case for `Op`: the case runs at a time the handler
-    does not fix
+Under `time-lower-bound` and `traces-lower-bound` the top is the unit, so the
+lock restricts nothing: a case may use a function, a non-eternal value or an
+outer continuation bound outside it, and unbox any outer box. Under the other
+monoids a variable of non-eternal type bound outside the case is rejected
+there, whatever the grades are; under `time-upper-bound`:
+
+    Variable `f` has type `unit → int`, which is not eternal, so it cannot be
+    used in the case for `Op`: the case runs at a time the handler does not fix
+      Note: the resource inequality `∞ <= 0` does not hold
+
+and an outer box of grade `3` cannot be unboxed in a case:
+
+    Variable `b` is unboxed after grade `∞` has elapsed, which does not match
+    its box grade `3`
+      Note: the resource inequality `∞ <= 3` does not hold
 
 The case's own `p` and `k`, and everything bound inside it, are unaffected:
-they obey the usual rule that a non-eternal variable may not be used once a
-grade has elapsed. When the type is a type variable the obligation becomes a
-qualifier of the definition's scheme, as above, so
+they obey the usual rules from the start of the case. When the type is a type
+variable the obligation becomes a qualifier of the definition's scheme, as
+above, so under `time-upper-bound`
 `let h x = handler | y -> y | Op p k -> let r = continue k with () in x` gets
-the type `{eternal α} α → (α # ρ₀ ⇒ α # ρ₁)`, usable at `int` and not at
-`unit -> unit`.
+a scheme qualified by `Et(α)` for the type `α` of `x`, usable at `int` and not
+at `unit → unit`.
 
-A continuation is a box, and a box type is never eternal, so an inner case
-cannot resume an outer handler's continuation: in nested handlers each case
-resumes its own continuation, and the outer one is resumed after the inner
-`handle` returns. The same restriction stops a rigid continuation grade
-escaping into the type of a definition through a captured function.
+A continuation is a box, so under the monoids whose top is not the unit an
+inner case cannot resume an outer handler's continuation: in nested handlers
+each case resumes its own continuation, and the outer one is resumed after the
+inner `handle` returns.
 
 Top-level definitions are exempt: they are closed, time-invariant values, so
 they stay in scope inside a case whatever their type.

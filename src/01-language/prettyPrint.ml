@@ -75,48 +75,14 @@ struct
       Format.fprintf ppf "%s" symbol
 end
 
-module TyPrintParam =
-  MakeParamPrinter
-    (TyParamMap)
-    (struct
-      let symbol_for_index = type_symbol
-    end)
-
-module RhoPrintParam =
-  MakeParamPrinter
-    (RhoParamMap)
-    (struct
-      let symbol_for_index = rho_symbol
-    end)
-
-module EpsPrintParam =
-  MakeParamPrinter
-    (EpsParamMap)
-    (struct
-      let symbol_for_index = eps_symbol
-    end)
-
-let print_rho (type a) (module R : Grade.S with type t = a) rho_pp =
+let print_rho (type a) (module R : Grade.S with type t = a) =
   let rec aux (rho : a rho) ppf =
     match rho with
     | RhoConst c -> Format.fprintf ppf "%s" (R.show c)
-    | RhoParam p -> rho_pp p ppf
     | RhoAdd (rho1, rho2) ->
         Format.fprintf ppf "@[%t + %t@]"
           (fun ppf -> aux rho1 ppf)
           (fun ppf -> aux rho2 ppf)
-  in
-  aux
-
-let print_eps (type a) (module E : Grade.S with type t = a) eps_pp =
-  let rec aux (eps : a eps) ppf =
-    match eps with
-    | EpsConst c -> Format.fprintf ppf "%s" (E.show c)
-    | EpsParam p | EpsRigid p -> eps_pp p ppf
-    | EpsAdd (eps1, eps2) ->
-        Format.fprintf ppf "@[%t + %t@]"
-          (fun ppf -> aux eps1 ppf)
-          (fun ppf -> aux eps2 ppf)
   in
   aux
 
@@ -241,9 +207,8 @@ and print_computation resource_grade =
     | Delay (n, c) ->
         print ~at_level:1 "@[<hov 2>delay %d@ %t@]" n (aux ~max_level:0 c)
     | Box (rho, e, (p, c)) ->
-        let rho_pp = RhoPrintParam.create () in
         print ~at_level:2 "@[<v 0>box %t %t as %t in@,%t@]"
-          (print_rho resource_grade rho_pp rho)
+          (print_rho resource_grade rho)
           (print_expression resource_grade ~max_level:0 e)
           (print_pattern ~max_level:0 p)
           (aux c)
@@ -290,9 +255,7 @@ let print_vars_and_exprs resource_grade print_var_and_expr
   in
   let print_elem ppf = function
     | VarMap map -> print_var_map map ppf
-    | Rho n ->
-        let rho_pp = RhoPrintParam.create () in
-        print_rho resource_grade rho_pp n ppf
+    | Rho n -> print_rho resource_grade n ppf
   in
   match List.rev lst with
   | [] -> Format.fprintf ppf "State: []@\n"
@@ -311,10 +274,9 @@ let print_vars_and_exprs resource_grade print_var_and_expr
 
 let print_interpreter_state resource_grade ctx ppf =
   let print_var_and_expr (variable, (rho, expr)) ppf =
-    let rho_print_param = RhoPrintParam.create () in
     Format.fprintf ppf "@[<hv 2>%t ↦@ %t@ # %t@]" (Variable.print variable)
       (print_expression resource_grade expr)
-      (print_rho resource_grade rho_print_param rho)
+      (print_rho resource_grade rho)
   in
   print_vars_and_exprs resource_grade print_var_and_expr ctx ppf
 
