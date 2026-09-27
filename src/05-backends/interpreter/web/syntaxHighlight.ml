@@ -102,6 +102,9 @@ let tokens s =
   let after_op_kw = ref false in
   let after_bar = ref false in
   let last_block = ref `None in
+  (* The nesting depth of grade literal braces, inside which [|] is the union
+     of grades rather than the start of a pattern clause. *)
+  let brace_depth = ref 0 in
   let i = ref 0 in
   while !i < n do
     let c = s.[!i] in
@@ -159,7 +162,8 @@ let tokens s =
       if !i < n then incr i;
       emit start !i (Some "syn-resource")
     end
-    else if c = '|' && (!i + 1 >= n || s.[!i + 1] <> '|') then begin
+    else if c = '|' && !brace_depth = 0 && (!i + 1 >= n || s.[!i + 1] <> '|')
+    then begin
       (* A lone [|] starts a pattern clause. [||] is logical-or and does
          not. *)
       incr i;
@@ -214,6 +218,8 @@ let tokens s =
     end
     else begin
       let was_space = c = ' ' || c = '\t' || c = '\n' || c = '\r' in
+      if c = '{' then incr brace_depth
+      else if c = '}' then brace_depth := max 0 (!brace_depth - 1);
       incr i;
       emit start !i None;
       if not was_space then begin
