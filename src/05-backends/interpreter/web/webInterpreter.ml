@@ -1,6 +1,6 @@
 module SyntaxHighlight = SyntaxHighlight
 
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   include Interpreter.Make (GS)
   open Vdom
   module Ast = Language.Ast

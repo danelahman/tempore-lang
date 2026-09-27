@@ -1,12 +1,12 @@
 %{
   open SugaredAst
   open Utils
-  module Grade = Language.Grade
+  module Grade = Grades.Grade
 
   (* The hint naming the grades that understand the literal [lit]. *)
   let suggestion lit =
     let quote name = "'" ^ name ^ "'" in
-    match List.map quote (Language.GradeRegistry.accepting lit) with
+    match List.map quote (Grades.GradeRegistry.accepting lit) with
     | [] -> ""
     | [ name ] -> "; did you mean to use the " ^ name ^ " grading monoid?"
     | names ->
@@ -35,7 +35,7 @@
            and brace literals '{...}'" name
 %}
 
-%parameter<GS : Language.GradeSystem.S>
+%parameter<GS : Grades.GradeSystem.S>
 
 %token LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE
 %token COLON COMMA SEMI EQUAL CONS

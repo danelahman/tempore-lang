@@ -5,4 +5,12 @@
 
 (executable
  (name bench_regular)
- (libraries utils language parser sugaredAst loader cliInterpreter unix))
+ (libraries
+  utils
+  language
+  grades
+  parser
+  sugaredAst
+  loader
+  cliInterpreter
+  unix))

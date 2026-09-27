@@ -8,7 +8,7 @@ module Context = Language.Context
 module Const = Language.Const
 module StringMap = Map.Make (String)
 
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   let add_unique ~loc kind str symb string_map =
     StringMap.update str
       (function

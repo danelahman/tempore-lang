@@ -4,8 +4,8 @@
    success. *)
 
 module Ast = Language.Ast
-module Grade = Language.Grade
-module GradeSystem = Language.GradeSystem
+module Grade = Grades.Grade
+module GradeSystem = Grades.GradeSystem
 
 let failures = ref []
 let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
@@ -140,7 +140,7 @@ module Programs (G : Grade.S) = struct
 end
 
 let grade_module name =
-  match List.assoc_opt name Language.GradeRegistry.grade_modules with
+  match List.assoc_opt name Grades.GradeRegistry.grade_modules with
   | Some g -> g
   | None -> failwith ("unknown grades " ^ name)
 

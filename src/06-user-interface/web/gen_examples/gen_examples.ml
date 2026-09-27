@@ -35,9 +35,9 @@ let entry_of_line line =
           }
     | _ -> failwith (Printf.sprintf "malformed manifest line: %s" line)
 
-(* [entry], if its grade is one of those Language.GradeRegistry lists. *)
+(* [entry], if its grade is one of those Grades.GradeRegistry lists. *)
 let checked (entry : entry) =
-  if List.mem_assoc entry.grade Language.GradeRegistry.grade_modules then entry
+  if List.mem_assoc entry.grade Grades.GradeRegistry.grade_modules then entry
   else
     failwith
       (Printf.sprintf "the manifest names the unknown grade '%s' for %s"

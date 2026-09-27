@@ -3,6 +3,7 @@
  (libraries
   utils
   language
+  grades
   cmarkit
   vdom
   vdom.base

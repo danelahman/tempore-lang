@@ -5,7 +5,7 @@ module Diagnostic = Utils.Diagnostic
 module Error = Utils.Error
 module Location = Utils.Location
 
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   module X = Inference.GradeExp.Make (GS)
   module C = Inference.Constraint.Make (X)
   module Gen = Inference.Generate.Make (C)

@@ -4,4 +4,4 @@
 (executable
  (name gen_examples)
  (modules gen_examples)
- (libraries language))
+ (libraries language grades))

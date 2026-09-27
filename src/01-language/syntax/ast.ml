@@ -191,7 +191,7 @@ type ('rho, 'eps) command = ('rho, 'eps) plain_command located
     expressions over the resource grades [GS.R] ({!rho}) and the effect grades
     [GS.E] ({!eps}): the program as the parser, the desugarer and the
     interpreter handle it. *)
-module Graded (GS : GradeSystem.S) = struct
+module Graded (GS : Grades.GradeSystem.S) = struct
   type nonrec rho = GS.R.t rho
   type nonrec eps = GS.E.t eps
   type nonrec ty = (rho, eps) ty

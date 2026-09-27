@@ -525,7 +525,7 @@ let view_compiler (model : Model.model) =
                   (fun name -> Model.EditMsg (Model.SelectResource name))
                   (fun name -> name)
                   (fun name -> name = model.edit_model.selected_resource)
-                  (List.map fst Language.GradeRegistry.grade_modules);
+                  (List.map fst Grades.GradeRegistry.grade_modules);
               ];
           ];
       ]

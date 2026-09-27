@@ -25,8 +25,8 @@ module type BASE = sig
   val top : const
   val mul : const -> const -> const
   val join : const -> const -> const
-  val leq : Language.Grade.bounds -> const -> const -> bool
-  val equal : Language.Grade.bounds -> const -> const -> bool
+  val leq : Grades.Grade.bounds -> const -> const -> bool
+  val equal : Grades.Grade.bounds -> const -> const -> bool
   val unit_least : bool
   val commutative : bool
 
@@ -40,7 +40,7 @@ module type BASE = sig
   (* The atom a side of a hypothesis is, if it is one. *)
   val as_atom : exp -> (const, var) atom option
   val value : exp -> const option
-  val equal_exp : Language.Grade.bounds -> exp -> exp -> bool
+  val equal_exp : Grades.Grade.bounds -> exp -> exp -> bool
 end
 
 (* The first of two searches that succeeds, the second run only if needed
@@ -401,7 +401,7 @@ module Core (S : BASE) = struct
     let var_sources, consts = List.fold_left add (Var_map.empty, []) edges in
     { var_sources; const_sources = List.rev consts }
 
-  type 'a context = { bounds : Language.Grade.bounds; table : 'a table }
+  type 'a context = { bounds : Grades.Grade.bounds; table : 'a table }
 
   (* Whether [a] reaches [b] directly or along the table's edges. *)
   let reach ctx a b =
@@ -704,38 +704,36 @@ module Make (X : GradeExp.S) = struct
     type product = (const, var) atom list
     type sum = product list
 
-    val normal : Language.Grade.bounds -> exp -> sum
-    val fold_sum : Language.Grade.bounds -> sum -> sum
-    val canon_sum : Language.Grade.bounds -> sum -> sum
+    val normal : Grades.Grade.bounds -> exp -> sum
+    val fold_sum : Grades.Grade.bounds -> sum -> sum
+    val canon_sum : Grades.Grade.bounds -> sum -> sum
     val read_back_product : product -> exp
     val read_back : sum -> exp
-    val canon : Language.Grade.bounds -> exp -> exp
+    val canon : Grades.Grade.bounds -> exp -> exp
 
     val decide_leq :
-      Language.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
+      Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
 
     val split :
-      Language.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
+      Grades.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
 
     val canon_orderings :
-      Language.Grade.bounds ->
-      (exp, 'a) ordering list ->
-      (exp, 'a) ordering list
+      Grades.Grade.bounds -> (exp, 'a) ordering list -> (exp, 'a) ordering list
 
     val value : exp -> const option
-    val closed_leq : Language.Grade.bounds -> exp -> exp -> bool option
+    val closed_leq : Grades.Grade.bounds -> exp -> exp -> bool option
 
     val chains :
-      Language.Grade.bounds ->
+      Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       (exp, 'a list) ordering list
 
     val check_closed :
-      Language.Grade.bounds ->
+      Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       ((exp, 'a) ordering list, (exp, 'a list) ordering) result
 
-    val refute_leq_unit : Language.Grade.bounds -> exp -> const option
+    val refute_leq_unit : Grades.Grade.bounds -> exp -> const option
   end
 
   module Eps_base = struct

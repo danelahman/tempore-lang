@@ -2,7 +2,7 @@ module Ast = Language.Ast
 module Primitives = Language.Primitives
 
 module type S = sig
-  module Grades : Language.GradeSystem.S
+  module Grades : Grades.GradeSystem.S
   (** The grade system grading the programs the backend runs. *)
 
   type load_state

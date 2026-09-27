@@ -1,4 +1,4 @@
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   include Interpreter.Make (GS)
   module Ast = Language.Ast
   module PrettyPrint = Language.PrettyPrint

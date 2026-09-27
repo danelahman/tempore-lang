@@ -7,7 +7,7 @@ module TyParamMap = Ast.TyParamMap
 module TyParamSet = Ast.TyParamSet
 
 type ('rho, 'eps) types = {
-  bounds : Language.Grade.bounds;
+  bounds : Grades.Grade.bounds;
   find_definition :
     Ast.ty_name -> (Ast.ty_param list * ('rho, 'eps) Ast.ty_def) option;
   is_noneternal : Ast.ty_name -> bool;

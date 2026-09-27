@@ -33,7 +33,7 @@ module Eps_var : VAR
     system. *)
 
 module type S = sig
-  module GS : Language.GradeSystem.S
+  module GS : Grades.GradeSystem.S
   (** The grade system the constants are drawn from. *)
 
   module Rho_var = Rho_var
@@ -103,7 +103,7 @@ module type S = sig
     (** [value eps] is the grade a variable-free [eps] evaluates to, and [None]
         when [eps] has a variable. *)
 
-    val equal : Language.Grade.bounds -> t -> t -> bool
+    val equal : Grades.Grade.bounds -> t -> t -> bool
     (** [equal bounds eps eps'] is syntactic equality, constants compared by the
         grade's [equal] under the cost model [bounds]. *)
 
@@ -164,7 +164,7 @@ module type S = sig
     (** [value rho] is the grade a variable-free [rho] evaluates to, an image
         through {!GS.map}, and [None] when [rho] has a variable. *)
 
-    val equal : Language.Grade.bounds -> t -> t -> bool
+    val equal : Grades.Grade.bounds -> t -> t -> bool
     (** [equal bounds rho rho'] is syntactic equality, constants compared by the
         grades' [equal] under the cost model [bounds]. *)
 
@@ -177,4 +177,4 @@ module type S = sig
 end
 
 (** [Make (GS)] is the expressions over [GS]. *)
-module Make (GS : Language.GradeSystem.S) : S with module GS = GS
+module Make (GS : Grades.GradeSystem.S) : S with module GS = GS

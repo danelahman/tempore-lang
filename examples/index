@@ -9,7 +9,7 @@
 # - group: the optgroup label the example is listed under in the selector.
 # - title: the option's text, without a prefix already given by the group.
 # - grade: the grading monoid the web interface switches to when the example
-#   is loaded (a key of Language.GradeRegistry.grade_modules).
+#   is loaded (a key of Grades.GradeRegistry.grade_modules).
 # - path: the example's file, relative to this directory.
 # - description: one sentence, shown as the option's tooltip.
 #

@@ -91,7 +91,7 @@ type edit_model = {
           from. *)
 }
 
-let default_resource_name = fst (List.hd Language.GradeRegistry.grade_modules)
+let default_resource_name = fst (List.hd Grades.GradeRegistry.grade_modules)
 
 let edit_init =
   {
@@ -285,7 +285,7 @@ let update model = function
         try
           match
             List.assoc_opt model.edit_model.selected_resource
-              Language.GradeRegistry.grade_modules
+              Grades.GradeRegistry.grade_modules
           with
           | None ->
               Error
@@ -294,9 +294,8 @@ let update model = function
                     (Printf.sprintf "Unknown grades '%s'"
                        model.edit_model.selected_resource);
                 ]
-          | Some (module G : Language.Grade.S) ->
-              let module B =
-                WebInterpreter.Make (Language.GradeSystem.Identity (G)) in
+          | Some (module G : Grades.Grade.S) ->
+              let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
               let module L = Loader.Loader (B) in
               (* Loaded as two separate sources, so that an editor location
                  is a location in what the user typed. *)

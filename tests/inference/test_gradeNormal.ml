@@ -1,8 +1,8 @@
 (* Unit tests of [GradeExp], [GradeNormal] and [Reach], at the identity grade
    system over each grade of [GradeRegistry.grade_modules]. *)
 
-module Grade = Language.Grade
-module GradeSystem = Language.GradeSystem
+module Grade = Grades.Grade
+module GradeSystem = Grades.GradeSystem
 module GradeExp = Inference.GradeExp
 module GradeNormal = Inference.GradeNormal
 module Reach = Inference.Reach
@@ -440,7 +440,7 @@ let () =
         (fun (_, (module G : Grade.S)) ->
           let module S = Suite (G) in
           S.run ())
-        Language.GradeRegistry.grade_modules
+        Grades.GradeRegistry.grade_modules
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

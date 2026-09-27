@@ -15,7 +15,7 @@
 
 module Ast = Language.Ast
 
-module Make (GS : Language.GradeSystem.S) : sig
+module Make (GS : Grades.GradeSystem.S) : sig
   type scheme
   (** The qualified type scheme of a top-level definition or primitive. *)
 

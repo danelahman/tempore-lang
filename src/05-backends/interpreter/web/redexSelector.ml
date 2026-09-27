@@ -3,7 +3,7 @@ module Print = Utils.Print
 module Ast = Language.Ast
 module PrettyPrint = Language.PrettyPrint
 
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   module I = Interpreter.Make (GS)
   open I
 

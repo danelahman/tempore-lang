@@ -2,12 +2,12 @@
    counterexamples, and the interpretation of literals by the grades of
    [GradeRegistry.grade_modules]. *)
 
-module Grade = Language.Grade
-module TimeGrades = Language.TimeGrades
-module TimedTraceGrades = Language.TimedTraceGrades
-module LevelGrades = Language.LevelGrades
-module GradeConstructions = Language.GradeConstructions
-module GradeRegistry = Language.GradeRegistry
+module Grade = Grades.Grade
+module TimeGrades = Grades.TimeGrades
+module TimedTraceGrades = Grades.TimedTraceGrades
+module LevelGrades = Grades.LevelGrades
+module GradeConstructions = Grades.GradeConstructions
+module GradeRegistry = Grades.GradeRegistry
 
 type check = { name : string; passed : bool; detail : string }
 
@@ -83,7 +83,7 @@ module TraceLevels =
 
 module RegexLevels =
   GradeConstructions.Product
-    (Language.RegularTraceGradeDerivative)
+    (Grades.RegularTraceGradeDerivative)
     (LevelGrades.SecurityLevels)
 
 let lit_of_pair n level = Grade.Tuple [ Grade.Int n; Grade.Name level ]

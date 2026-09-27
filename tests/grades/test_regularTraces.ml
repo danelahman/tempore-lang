@@ -6,8 +6,8 @@
    agreement of the two on random expressions, on which equal grades have equal
    canonical automata and print alike. *)
 
-module Grade = Language.Grade
-module LetterRegex = Language.LetterRegex
+module Grade = Grades.Grade
+module LetterRegex = Grades.LetterRegex
 module SugaredAst = SugaredAst
 
 type implementation = Automata | Derivatives
@@ -103,7 +103,7 @@ module Suite
       val implementation : implementation
     end) =
 struct
-  module GS = Language.GradeSystem.Identity (G)
+  module GS = Grades.GradeSystem.Identity (G)
   module Grammar = Parser.Grammar.Make (GS)
 
   let label name =
@@ -442,14 +442,14 @@ end
 
 module Automata =
   Suite
-    (Language.RegularTraceGrade)
+    (Grades.RegularTraceGrade)
     (struct
       let implementation = Automata
     end)
 
 module Derivatives =
   Suite
-    (Language.RegularTraceGradeDerivative)
+    (Grades.RegularTraceGradeDerivative)
     (struct
       let implementation = Derivatives
     end)
@@ -459,8 +459,8 @@ module Derivatives =
    counterexamples to inclusion; each reads the other's printed forms as the
    same grade. *)
 module Cross = struct
-  module A = Language.RegularTraceGrade
-  module D = Language.RegularTraceGradeDerivative
+  module A = Grades.RegularTraceGrade
+  module D = Grades.RegularTraceGradeDerivative
 
   let expressions =
     let state = Random.State.make [| 1789 |] in
@@ -562,11 +562,11 @@ module Cross = struct
     match (grades r, grades s) with
     | (Some a, Some d), (Some a', Some d') when D.equal bounds d d' ->
         let name what = "cross: " ^ what ^ " of pair " ^ string_of_int i in
-        let automaton = Language.SymbolicAutomaton.of_regex ~limit:256 in
+        let automaton = Grades.SymbolicAutomaton.of_regex ~limit:256 in
         [
           check (name "equal automata")
             (match (automaton d, automaton d') with
-            | Some x, Some y -> Language.SymbolicAutomaton.equal x y
+            | Some x, Some y -> Grades.SymbolicAutomaton.equal x y
             | _ -> true)
             (D.show d ^ " = " ^ D.show d');
           check

@@ -3,8 +3,8 @@
    of the constraints generated for small terms. Silent on success. *)
 
 module Ast = Language.Ast
-module Grade = Language.Grade
-module GradeSystem = Language.GradeSystem
+module Grade = Grades.Grade
+module GradeSystem = Grades.GradeSystem
 module Location = Utils.Location
 module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
@@ -201,7 +201,7 @@ module Program (G : Grade.S) = struct
 end
 
 let grade_module name =
-  match List.assoc_opt name Language.GradeRegistry.grade_modules with
+  match List.assoc_opt name Grades.GradeRegistry.grade_modules with
   | Some g -> g
   | None -> failwith ("unknown grades " ^ name)
 
@@ -247,7 +247,7 @@ let programs () =
 (* ------------------------------------------------------------------ *)
 
 module Small = struct
-  module G = Language.TimeGrades.LowerBound
+  module G = Grades.TimeGrades.LowerBound
   module GS = GradeSystem.Identity (G)
   module X = Inference.GradeExp.Make (GS)
   module C = Inference.Constraint.Make (X)

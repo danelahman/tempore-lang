@@ -12,7 +12,7 @@
 
      dune exec --profile release bench/regular/bench_regular.exe *)
 
-module Grade = Language.Grade
+module Grade = Grades.Grade
 
 let bounds _ = (0, 0)
 
@@ -163,7 +163,7 @@ let from_end a n = "_*; " ^ a ^ "; " ^ String.concat "; " (repeat n "_")
 let names k = List.init k (fun i -> "Op" ^ string_of_int (i + 1))
 
 module Workloads (G : Grade.S) = struct
-  module Grammar = Parser.Grammar.Make (Language.GradeSystem.Identity (G))
+  module Grammar = Parser.Grammar.Make (Grades.GradeSystem.Identity (G))
 
   let lit text =
     let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
@@ -315,7 +315,7 @@ let programs =
   ]
 
 module Programs (G : Grade.S) = struct
-  module Backend = CliInterpreter.Make (Language.GradeSystem.Identity (G))
+  module Backend = CliInterpreter.Make (Grades.GradeSystem.Identity (G))
   module L = Loader.Loader (Backend)
 
   (* The standard library loaded, then the program [file], if any, with the
@@ -335,10 +335,10 @@ module Programs (G : Grade.S) = struct
     workload None :: List.map (fun f -> workload (Some f)) programs
 end
 
-module AutomataOps = Workloads (Language.RegularTraceGrade)
-module DerivativeOps = Workloads (Language.RegularTraceGradeDerivative)
-module AutomataPrograms = Programs (Language.RegularTraceGrade)
-module DerivativePrograms = Programs (Language.RegularTraceGradeDerivative)
+module AutomataOps = Workloads (Grades.RegularTraceGrade)
+module DerivativeOps = Workloads (Grades.RegularTraceGradeDerivative)
+module AutomataPrograms = Programs (Grades.RegularTraceGrade)
+module DerivativePrograms = Programs (Grades.RegularTraceGradeDerivative)
 
 (** {1 The table} *)
 

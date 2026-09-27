@@ -3,4 +3,4 @@
 
 (library
  (name inference)
- (libraries utils language))
+ (libraries utils language grades))

@@ -3,8 +3,8 @@
 
 module Ast = Language.Ast
 module Const = Language.Const
-module Grade = Language.Grade
-module GradeSystem = Language.GradeSystem
+module Grade = Grades.Grade
+module GradeSystem = Grades.GradeSystem
 module GradeExp = Inference.GradeExp
 module Skeleton = Inference.Skeleton
 
@@ -12,7 +12,7 @@ type check = { name : string; passed : bool; detail : string }
 
 let check name passed detail = { name; passed; detail }
 
-module G = (val snd (List.hd Language.GradeRegistry.grade_modules) : Grade.S)
+module G = (val snd (List.hd Grades.GradeRegistry.grade_modules) : Grade.S)
 module GS = GradeSystem.Identity (G)
 module X = GradeExp.Make (GS)
 module K = Skeleton.Make (X)

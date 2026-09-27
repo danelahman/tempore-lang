@@ -58,7 +58,7 @@ module Eps_var =
     ()
 
 module type S = sig
-  module GS : Language.GradeSystem.S
+  module GS : Grades.GradeSystem.S
   module Rho_var = Rho_var
   module Eps_var = Eps_var
 
@@ -93,7 +93,7 @@ module type S = sig
     val mem_var : Eps_var.t -> t -> bool
     val subst : subst -> t -> t
     val value : t -> GS.E.t option
-    val equal : Language.Grade.bounds -> t -> t -> bool
+    val equal : Grades.Grade.bounds -> t -> t -> bool
     val print : t -> Format.formatter -> unit
     val to_string : t -> string
   end
@@ -115,7 +115,7 @@ module type S = sig
     val mem_eps_var : Eps_var.t -> t -> bool
     val subst : subst -> t -> t
     val value : t -> GS.R.t option
-    val equal : Language.Grade.bounds -> t -> t -> bool
+    val equal : Grades.Grade.bounds -> t -> t -> bool
     val print : t -> Format.formatter -> unit
     val to_string : t -> string
   end
@@ -134,7 +134,7 @@ let paren wrap body ppf =
 let join_level = 0
 let mul_level = 1
 
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   module GS = GS
   module Rho_var = Rho_var
   module Eps_var = Eps_var

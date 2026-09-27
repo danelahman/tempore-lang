@@ -5,7 +5,7 @@
     [desugar_pattern], etc.) are intentionally hidden — only the command-level
     entry points are part of the public API. *)
 
-module Make (GS : Language.GradeSystem.S) : sig
+module Make (GS : Grades.GradeSystem.S) : sig
   type state
 
   val initial_state : state

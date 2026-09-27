@@ -20,7 +20,7 @@
     of the hypotheses whose chain it refutes.
 
     Every operation depending on the grades' order or equality takes the cost
-    model {!Language.Grade.bounds}. *)
+    model {!Grades.Grade.bounds}. *)
 
 type ('c, 'v) atom =
   | Const of 'c  (** a closed grade *)
@@ -64,16 +64,16 @@ module Make (X : GradeExp.S) : sig
     type sum = product list
     (** A nonempty join of products. *)
 
-    val normal : Language.Grade.bounds -> exp -> sum
+    val normal : Grades.Grade.bounds -> exp -> sum
     (** [normal bounds e] is the normal form of [e]. *)
 
-    val fold_sum : Language.Grade.bounds -> sum -> sum
+    val fold_sum : Grades.Grade.bounds -> sum -> sum
     (** [fold_sum bounds s] groups the alternatives of [s] by their sequence of
         variables, in the order of those sequences, and folds each group that
         varies in a single constant slot into one alternative, that slot holding
         the join of its constants. *)
 
-    val canon_sum : Language.Grade.bounds -> sum -> sum
+    val canon_sum : Grades.Grade.bounds -> sum -> sum
     (** [canon_sum bounds s] is [s] with, where the unit is least, each product
         with the top among its factors replaced by the top, then grouped and
         folded as by {!fold_sum}, with every alternative decided below another
@@ -88,12 +88,12 @@ module Make (X : GradeExp.S) : sig
 
         @raise Invalid_argument on the empty list, which is no sum. *)
 
-    val canon : Language.Grade.bounds -> exp -> exp
+    val canon : Grades.Grade.bounds -> exp -> exp
     (** [canon bounds e] is the canonical form of [e], the read-back of
         {!canon_sum} of its normal form. *)
 
     val decide_leq :
-      Language.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
+      Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
     (** [decide_leq bounds hyps e e'] is [Some used] when [e ≾ e'] is derived
         from [hyps], [used] being the payloads of the hypotheses the derivation
         uses, in order and possibly repeated, and [None] when no derivation is
@@ -112,15 +112,13 @@ module Make (X : GradeExp.S) : sig
         shared by the orderings it decides. *)
 
     val split :
-      Language.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
+      Grades.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
     (** [split bounds o] is one ordering per alternative of the canonical form
         of [o.lhs], each below the canonical form of [o.rhs] and carrying
         [o.info]. *)
 
     val canon_orderings :
-      Language.Grade.bounds ->
-      (exp, 'a) ordering list ->
-      (exp, 'a) ordering list
+      Grades.Grade.bounds -> (exp, 'a) ordering list -> (exp, 'a) ordering list
     (** [canon_orderings bounds os] is every ordering of [os] {!split}, in
         order. *)
 
@@ -128,12 +126,12 @@ module Make (X : GradeExp.S) : sig
     (** [value e] is the grade a variable-free [e] evaluates to, and [None] when
         [e] has a variable. *)
 
-    val closed_leq : Language.Grade.bounds -> exp -> exp -> bool option
+    val closed_leq : Grades.Grade.bounds -> exp -> exp -> bool option
     (** [closed_leq bounds e e'] decides [e ≾ e'] by the grade's order when both
         sides are variable-free, and is [None] otherwise. *)
 
     val chains :
-      Language.Grade.bounds ->
+      Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       (exp, 'a list) ordering list
     (** [chains bounds os] is, for each pair of variable-free sides of [os]
@@ -142,7 +140,7 @@ module Make (X : GradeExp.S) : sig
         chain. *)
 
     val check_closed :
-      Language.Grade.bounds ->
+      Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       ((exp, 'a) ordering list, (exp, 'a list) ordering) result
     (** [check_closed bounds os] decides the variable-free orderings of [os] and
@@ -151,7 +149,7 @@ module Make (X : GradeExp.S) : sig
         it follows from, and otherwise [Ok] of the orderings of [os] that have a
         variable. *)
 
-    val refute_leq_unit : Language.Grade.bounds -> exp -> const option
+    val refute_leq_unit : Grades.Grade.bounds -> exp -> const option
     (** [refute_leq_unit bounds e] is [Some c] when some alternative of the
         normal form of [e] has a constant factor [c] not below the unit, so that
         by the zero-product law no instance of [e] is below the unit, and [None]
@@ -175,12 +173,12 @@ module Make (X : GradeExp.S) : sig
     | Rho_failure of (X.rho, 'a list) ordering
     | Eps_failure of (X.eps, 'a list) ordering
 
-  val canon_hyps : Language.Grade.bounds -> 'a hyps -> 'a hyps
+  val canon_hyps : Grades.Grade.bounds -> 'a hyps -> 'a hyps
   (** [canon_hyps bounds hyps] is [hyps] with each ordering {!SORT.split},
       applied to the orderings of both grade sorts. *)
 
   val check_closed_hyps :
-    Language.Grade.bounds -> 'a hyps -> ('a hyps, 'a closed_failure) result
+    Grades.Grade.bounds -> 'a hyps -> ('a hyps, 'a closed_failure) result
   (** [check_closed_hyps bounds hyps] is {!SORT.check_closed} on each sort, the
       resource orderings first. *)
 end

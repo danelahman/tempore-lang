@@ -4,7 +4,7 @@ module Const = Language.Const
 module Primitives = Language.Primitives
 module PrettyPrint = Language.PrettyPrint
 
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   (* A primitive's result is not written anywhere in the source, so it is
      reported at the span of the argument it was computed from. *)
   let return_const at c =

@@ -34,7 +34,7 @@
 module Ast = Language.Ast
 
 type ('rho, 'eps) types = {
-  bounds : Language.Grade.bounds;  (** the cost model of the grades' order *)
+  bounds : Grades.Grade.bounds;  (** the cost model of the grades' order *)
   find_definition :
     Ast.ty_name -> (Ast.ty_param list * ('rho, 'eps) Ast.ty_def) option;
       (** the parameters and definition of a type name *)

@@ -51,7 +51,7 @@ module Make (C : Inference.Constraint.S) = struct
       end)
 
   type printer = {
-    bounds : Language.Grade.bounds;
+    bounds : Grades.Grade.bounds;
     values : X.subst;  (** the values of the unknowns explained against *)
     ty_name : Ast.ty_param -> Format.formatter -> unit;
     rho_name : X.Rho_var.t -> Format.formatter -> unit;
@@ -241,7 +241,7 @@ module Make (C : Inference.Constraint.S) = struct
   (** [counterexample_of (module G) value p (lhs, rhs)] is the counterexample
       [G] offers to [lhs ≾ rhs], printed, when [value] finds both sides constant
       and it is not [lhs] itself. *)
-  let counterexample_of (type g) (module G : Language.Grade.S with type t = g)
+  let counterexample_of (type g) (module G : Grades.Grade.S with type t = g)
       value p (lhs, rhs) =
     match (value p lhs, value p rhs) with
     | Some c, Some d -> (

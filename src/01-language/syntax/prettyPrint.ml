@@ -75,7 +75,7 @@ struct
       Format.fprintf ppf "%s" symbol
 end
 
-let print_rho (type a) (module R : Grade.S with type t = a) =
+let print_rho (type a) (module R : Grades.Grade.S with type t = a) =
   let rec aux (rho : a rho) ppf =
     match rho with
     | RhoConst c -> Format.fprintf ppf "%s" (R.show c)

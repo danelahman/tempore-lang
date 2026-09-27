@@ -5,12 +5,12 @@
 (tests
  (names test_gradeNormal test_skeleton)
  (modules test_gradeNormal test_skeleton)
- (libraries language inference))
+ (libraries language grades inference))
 
 (test
  (name test_generate)
  (modules test_generate)
- (libraries utils language parser desugarer loader inference)
+ (libraries utils language grades parser desugarer loader inference)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)
   (glob_files %{project_root}/tests/*.tpe)
@@ -19,7 +19,7 @@
 (test
  (name test_solve)
  (modules test_solve)
- (libraries utils language parser desugarer loader inference unix)
+ (libraries utils language grades parser desugarer loader inference unix)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)
   (glob_files %{project_root}/tests/*.tpe)
@@ -28,4 +28,4 @@
 (test
  (name test_report)
  (modules test_report)
- (libraries utils language parser desugarer loader inference))
+ (libraries utils language grades parser desugarer loader inference))

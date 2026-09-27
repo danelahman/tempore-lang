@@ -25,7 +25,7 @@ module Types = struct
   type step_label = ComputationReduction of computation_reduction | Return
 end
 
-module Make (GS : Language.GradeSystem.S) = struct
+module Make (GS : Grades.GradeSystem.S) = struct
   module Grades = GS
   module Graded = Ast.Graded (GS)
 
