@@ -132,31 +132,24 @@ let h_fixed =
 (* Accepted by the typechecker: 'f' is bound outside the handler like 'n'
    above, but under time-lower-bound the case's lock at the top grade
    restricts nothing, since zero is the top of the order, so a
-   non-eternal function may still be used in it:
-
-     Under time-upper-bound the same case is rejected, since the top
-     grade there is not the unit (see 'handlers_upper_bound.tpe').
-*)
-(*
+   non-eternal function may still be used in it. Under time-upper-bound
+   the same case is rejected, since the top grade there is not the unit
+   (see 'handlers_upper_bound.tpe'). *)
 let h_helper f =
   handler
   | x -> x
   | Get () k ->
       delay 71;
       continue k with (f ())
-*)
 
 (* A single-use token, declared non-eternal whatever its structure. *)
 noneternal type token = Token
 
 (* Accepted by the typechecker: 't' is bound outside the handler and a
    token is declared noneternal, but under time-lower-bound the case's
-   lock at the top grade restricts nothing, so it may still be used:
-
-     zero is the top grade there, unlike under time-upper-bound, where
-     the same case is rejected (see 'handlers_upper_bound.tpe').
-*)
-(*
+   lock at the top grade restricts nothing, so it may still be used,
+   zero being the top grade there. Under time-upper-bound the same case
+   is rejected (see 'handlers_upper_bound.tpe'). *)
 let h_token t =
   handler
   | x -> x
@@ -164,18 +157,14 @@ let h_token t =
       delay 71;
       let (Token) = t in
       continue k with 42
-*)
 
 (* Accepted by the typechecker: a case may keep a non-eternal function
    like 'g' from outside it under time-lower-bound, since the lock at
    the top grade restricts nothing there; 'g''s inferred type
    `[71](int → α # 0) → β # ε₀` still pins down the continuation's grade,
-
-     so no soundness is lost by letting the case call 'g' on 'k'. Under
-     time-upper-bound the same case is rejected, since the top grade
-     there is not the unit (see 'handlers_upper_bound.tpe').
-*)
-(*
+   so no soundness is lost by letting the case call 'g' on 'k'. Under
+   time-upper-bound the same case is rejected, since the top grade
+   there is not the unit (see 'handlers_upper_bound.tpe'). *)
 let h_leak g =
   handler
   | x -> x
@@ -183,7 +172,6 @@ let h_leak g =
       g k;
       delay 71;
       continue k with 42
-*)
 
 (* The run handles a 'Get' with 'h_twice': the first resumption returns 45,
    which the second resumption then continues with, so the run returns 48. *)
