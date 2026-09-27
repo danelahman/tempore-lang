@@ -79,27 +79,7 @@ let nil_label = Label.fresh nil_label_string
 let cons_label_string = "$cons$"
 let cons_label = Label.fresh cons_label_string
 
-type rigid_origin = {
-  op : operation;
-  continuation : variable option;
-  case_at : Location.t;
-  continuation_at : Location.t;
-}
-(** Where a rigid continuation grade was introduced, so that a message can name
-    the continuation it belongs to. [continuation] is the variable the case
-    binds it to, when the pattern is one. *)
-
-(** How a grade came to be accumulated, for the messages that explain why a
-    variable may no longer be used. *)
-type elapsed_kind =
-  | Delayed of int  (** [delay n] *)
-  | Performed of operation  (** [perform Op] *)
-  | Sequenced  (** the grade of a computation bound by [let] or [;] *)
-  | Boxed  (** the value of a [box ρ] is checked ρ ahead *)
-  | Handled
-      (** the return clause of a handler runs after the handled computation *)
-
-(** The position within a type equation a decomposed equation came from. *)
+(** A position within a type, where the unification of two types fails. *)
 type step =
   | Argument
   | Result  (** of a function type *)
@@ -109,96 +89,6 @@ type step =
   | HandlerInput
   | HandlerOutput
 
-(** Why a constraint was generated. Each constructor carries the places its
-    messages point at, so a message cannot ask for one the reason lacks. *)
-type 'a why =
-  | Application of { func_at : Location.t; arg_at : Location.t }
-  | MatchScrutinee of { scrutinee_at : Location.t }  (** at = the pattern *)
-  | MatchBranch
-      (** at = the branch body; its type and grade must agree with the earlier
-          branches *)
-  | Annotation  (** at = the annotated expression *)
-  | PatternAnnotation
-  | VariantArgument of label
-  | BoxedValue  (** at = the box *)
-  | Unboxed of {
-      var : variable;
-      bound_at : Location.t option;
-      elapsed : ('a eps * Location.t * elapsed_kind) list;
-    }
-  | UseAfterTime of {
-      var : variable;
-      bound_at : Location.t;
-      elapsed : ('a eps * Location.t * elapsed_kind) list;
-    }
-  | InstanceOf of {
-      var : variable;
-      defined_at : Location.t option;
-      inner : 'a reason;
-    }
-  | HandlerCase of { op : operation; signature_at : Location.t }
-  | ContinuationGrade of { op : operation; signature_at : Location.t }
-      (** the case's grade ≾ the grade of [Op] plus the continuation's *)
-  | OpCaseCapture of {
-      var : variable;
-      bound_at : Location.t;
-      op : operation;
-      signature_at : Location.t;
-      case_at : Location.t;
-      elapsed : ('a eps * Location.t * elapsed_kind) list;
-    }
-      (** a variable bound outside the case for [op] is used inside it, where
-          only an eternal type survives *)
-  | PerformArgument of { op : operation; signature_at : Location.t }
-  | PerformContinuation of { op : operation; signature_at : Location.t }
-  | HandleWith  (** at = the handler expression of a [handle] *)
-  | RecursiveDefinition of variable
-  | PureBody  (** a pure or recursive function body has grade 0 *)
-  | Sequencing
-      (** [Do]: the bound computation's grade names the context entry *)
-  | DefaultOf of { op : operation; signature_at : Location.t }
-
-and 'a reason = {
-  at : Location.t;
-  why : 'a why;
-  path : step list;
-  stated : ('a eps * 'a eps) option;
-      (** An inequality as it was generated, before the solver cancelled what
-          its two sides have in common; [None] for the other constraints and for
-          one that was never cancelled, which states itself. *)
-}
-(** [at] is the construct the constraint was generated for, [path] the position
-    within it a decomposed equation came from, innermost last.
-
-    The elapsed grades are the one thing a reason carries that inference has yet
-    to decide; {!substitute_constr} solves them along with the constraint.
-    Everything else is plain data — no types, no closures — so that two reasons
-    may be compared with polymorphic equality. *)
-
-(** The constraints of a typing derivation besides the equations unification
-    solves. Those left over qualify the definition's generalised scheme.
-
-    The typechecker that generates them grades resources and effects alike by
-    the one carrier ['a], and represents the grades of both sorts as effect
-    grade expressions: a constraint does not record the sort of the grades it
-    compares. *)
-type 'a constr =
-  | Ineq of 'a eps * 'a eps * 'a reason  (** [eps1] is a sub-grade of [eps2] *)
-  | Eternal of ('a eps, 'a eps) ty * 'a reason  (** the type is eternal *)
-  | EternalOrIneq of ('a eps, 'a eps) ty * 'a eps * 'a eps * 'a reason
-      (** the type is eternal, or [eps1] is a sub-grade of [eps2] *)
-
-type 'a ty_scheme = {
-  ty_params : ty_param list;
-  eps_params : eps_param list;
-  constrs : 'a constr list;
-  ty : ('a eps, 'a eps) ty;
-}
-(** A generalised type. It lives here rather than in the typechecker because
-    {!PrettyPrint} prints it and the variable context stores it. *)
-
-(* After [reason], which has an [at] of its own: an unannotated [.at] resolves
-   to the last declared, and almost every [.at] wants a syntax node's span. *)
 type 'a located = 'a Location.located = { it : 'a; at : Location.t }
 
 let located at it = { it; at }
@@ -331,15 +221,8 @@ module Graded (GS : GradeSystem.S) = struct
   type nonrec command = (rho, eps) command
 end
 
-(* [Barrier] marks where an operation case restricts the ambient context. It
-   carries no grade and takes no part in the grade arithmetic. *)
-type ('var, 'map, 'rho, 'bar) context_elem_ty =
-  | VarMap of 'map
-  | Rho of 'rho
-  | Barrier of 'bar
-
-type ('var, 'map, 'rho, 'bar) context =
-  ('var, 'map, 'rho, 'bar) context_elem_ty list
+type ('var, 'map, 'rho) context_elem_ty = VarMap of 'map | Rho of 'rho
+type ('var, 'map, 'rho) context = ('var, 'map, 'rho) context_elem_ty list
 
 (** [map_ty ~on_rho ~on_eps ty] applies [on_rho] to the resource grades of [ty]
     and [on_eps] to its effect grades. *)
@@ -405,127 +288,3 @@ let rec fold_ty ~on_param ~on_rho ~on_eps ty acc =
 
 and fold_comp_ty ~on_param ~on_rho ~on_eps (CompTy (ty, eps)) acc =
   on_eps eps (fold_ty ~on_param ~on_rho ~on_eps ty acc)
-
-(* What follows serves the typechecker that grades resources and effects alike,
-   representing the grades of both sorts as effect grade expressions. *)
-
-let rec substitute_eps subst = function
-  | (EpsConst _ | EpsRigid _) as eps -> eps
-  | EpsParam p as eps -> (
-      match EpsParamMap.find_opt p subst with None -> eps | Some eps' -> eps')
-  | EpsAdd (eps, eps') ->
-      EpsAdd (substitute_eps subst eps, substitute_eps subst eps')
-
-(** [substitute_eps_ty ty_subst eps_subst ty] is {!substitute_ty} substituting
-    by [eps_subst] in the grades of both sorts. *)
-let substitute_eps_ty ty_subst eps_subst =
-  substitute_ty ty_subst ~on_rho:(substitute_eps eps_subst)
-    ~on_eps:(substitute_eps eps_subst)
-
-let substitute_eps_comp_ty ty_subst eps_subst =
-  substitute_comp_ty ty_subst ~on_rho:(substitute_eps eps_subst)
-    ~on_eps:(substitute_eps eps_subst)
-
-(** Elapsed grades are solved like any other, so reasons are substituted into
-    too: else a label would report the parameter a [let] contributed rather than
-    the grade it stands for, which is often nothing at all. *)
-let rec substitute_reason eps_subst reason =
-  let elapsed =
-    List.map (fun (eps, at, kind) -> (substitute_eps eps_subst eps, at, kind))
-  in
-  let why =
-    match reason.why with
-    | Unboxed u -> Unboxed { u with elapsed = elapsed u.elapsed }
-    | UseAfterTime u -> UseAfterTime { u with elapsed = elapsed u.elapsed }
-    | OpCaseCapture u -> OpCaseCapture { u with elapsed = elapsed u.elapsed }
-    | InstanceOf i ->
-        InstanceOf { i with inner = substitute_reason eps_subst i.inner }
-    | why -> why
-  in
-  let stated =
-    Option.map
-      (fun (eps1, eps2) ->
-        (substitute_eps eps_subst eps1, substitute_eps eps_subst eps2))
-      reason.stated
-  in
-  { reason with why; stated }
-
-let substitute_constr ty_subst eps_subst =
-  let reason_of = substitute_reason eps_subst in
-  function
-  | Ineq (eps1, eps2, reason) ->
-      Ineq
-        ( substitute_eps eps_subst eps1,
-          substitute_eps eps_subst eps2,
-          reason_of reason )
-  | Eternal (ty, reason) ->
-      Eternal (substitute_eps_ty ty_subst eps_subst ty, reason_of reason)
-  | EternalOrIneq (ty, eps1, eps2, reason) ->
-      EternalOrIneq
-        ( substitute_eps_ty ty_subst eps_subst ty,
-          substitute_eps eps_subst eps1,
-          substitute_eps eps_subst eps2,
-          reason_of reason )
-
-(** [wrap_reason f c] rewrites the reason of [c] with [f]: instantiating a
-    scheme's qualifier nests the definition's reason inside the use's. *)
-let wrap_reason f = function
-  | Ineq (eps1, eps2, reason) -> Ineq (eps1, eps2, f reason)
-  | Eternal (ty, reason) -> Eternal (ty, f reason)
-  | EternalOrIneq (ty, eps1, eps2, reason) ->
-      EternalOrIneq (ty, eps1, eps2, f reason)
-
-let rec free_eps_params = function
-  | EpsConst _ | EpsRigid _ -> EpsParamSet.empty
-  | EpsParam p -> EpsParamSet.singleton p
-  | EpsAdd (l, r) -> EpsParamSet.union (free_eps_params l) (free_eps_params r)
-
-(** The type and grade parameters of a type, the latter of either sort. *)
-let free_vars ty =
-  let grade eps (ty_params, eps_params) =
-    (ty_params, EpsParamSet.union eps_params (free_eps_params eps))
-  in
-  fold_ty
-    ~on_param:(fun a (ty_params, eps_params) ->
-      (TyParamSet.add a ty_params, eps_params))
-    ~on_rho:grade ~on_eps:grade ty
-    (TyParamSet.empty, EpsParamSet.empty)
-
-(** The rigid grades of a grade or a type. They are never substituted or
-    generalised, so [free_vars] leaves them out. *)
-let rec rigid_eps_params = function
-  | EpsConst _ | EpsParam _ -> EpsParamSet.empty
-  | EpsRigid p -> EpsParamSet.singleton p
-  | EpsAdd (l, r) -> EpsParamSet.union (rigid_eps_params l) (rigid_eps_params r)
-
-(** [instantiate_rigid w eps] takes the instance of [eps] in which every rigid
-    grade is [w]. A failing ground instance refutes the universal statement. *)
-let rec instantiate_rigid w = function
-  | EpsRigid _ -> EpsConst w
-  | EpsAdd (l, r) -> EpsAdd (instantiate_rigid w l, instantiate_rigid w r)
-  | eps -> eps
-
-let rigid_eps_params_ty ty =
-  let grade eps acc = EpsParamSet.union acc (rigid_eps_params eps) in
-  fold_ty
-    ~on_param:(fun _ acc -> acc)
-    ~on_rho:grade ~on_eps:grade ty EpsParamSet.empty
-
-let rigid_eps_params_comp_ty cty =
-  let grade eps acc = EpsParamSet.union acc (rigid_eps_params eps) in
-  fold_comp_ty
-    ~on_param:(fun _ acc -> acc)
-    ~on_rho:grade ~on_eps:grade cty EpsParamSet.empty
-
-(* The reasons are not looked at: their only grades are the elapsed entries,
-   the summands of a grade the constraint already states. *)
-let free_vars_constr = function
-  | Ineq (eps1, eps2, _) ->
-      ( TyParamSet.empty,
-        EpsParamSet.union (free_eps_params eps1) (free_eps_params eps2) )
-  | Eternal (ty, _) -> free_vars ty
-  | EternalOrIneq (ty, eps1, eps2, _) ->
-      let fv_ty, fv_eps = free_vars ty in
-      ( fv_ty,
-        EpsParamSet.union fv_eps
-          (EpsParamSet.union (free_eps_params eps1) (free_eps_params eps2)) )

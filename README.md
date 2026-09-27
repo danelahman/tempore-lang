@@ -308,7 +308,7 @@ Top-level definitions are exempt: they are closed, time-invariant values, so
 they stay in scope inside a case whatever their type.
 
 See [`tests/op_case_context.tpe`](tests/op_case_context.tpe) and the
-`tests/op_case_context_reject_*.tpe` files, and
+`tests/op_case_context_*.tpe` files, and
 [`examples/handlers_lower_bound.tpe`](examples/handlers_lower_bound.tpe),
 [`examples/handlers_upper_bound.tpe`](examples/handlers_upper_bound.tpe),
 [`examples/handlers_nested.tpe`](examples/handlers_nested.tpe),

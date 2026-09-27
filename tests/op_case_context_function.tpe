@@ -1,0 +1,16 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/op_case_context_function.tpe *)
+
+operation Op : unit ~> int # 0
+
+(* Correctly accepted by the typechecker: the case is typed under the lock of
+   the top grade, which under 'time-lower-bound', whose top is the unit 0,
+   restricts nothing; so the function 'f', bound outside the case, may be used
+   in it. *)
+let h f =
+  handler
+  | x -> x
+  | Op p k ->
+      let v = f () in
+      continue k with v

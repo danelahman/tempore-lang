@@ -1,13 +1,14 @@
 (* Run this test with the default 'time-lower-bound' grading monoid, e.g.
 
-     ./tempore tests/op_case_context_reject_continuation.tpe *)
+     ./tempore tests/op_case_context_continuation.tpe *)
 
 operation Op1 : unit ~> unit # 0
 operation Op2 : unit ~> unit # 0
 
-(* Correctly rejected by the typechecker: the outer continuation 'k' is bound
-   outside the inner case, and a continuation is a box, which is never
-   eternal; the grades would allow the resumption, only the context does not. *)
+(* Correctly accepted by the typechecker: the inner case is typed under the
+   lock of the top grade, which under 'time-lower-bound', whose top is the
+   unit 0, restricts nothing; so the outer continuation 'k', bound outside the
+   inner case, may be resumed in it. *)
 let h =
   handler
   | x -> x

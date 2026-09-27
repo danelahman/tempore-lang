@@ -96,41 +96,6 @@ module EpsPrintParam =
       let symbol_for_index = eps_symbol
     end)
 
-(* The grade parameters of the typechecker that grades resources and effects
-   alike, which represents both sorts by effect grade expressions: they are
-   printed as the parameters of either sort were before the sorts were told
-   apart. *)
-module SingleSortPrintParam =
-  MakeParamPrinter
-    (EpsParamMap)
-    (struct
-      let symbol_for_index = rho_symbol
-    end)
-
-let print_ty_params ty_pp ty_params ppf =
-  Format.fprintf ppf "[";
-  let rec print_helper = function
-    | [] -> ()
-    | [ last ] -> Format.fprintf ppf "%t" (ty_pp last)
-    | hd :: tl ->
-        Format.fprintf ppf "%t, " (ty_pp hd);
-        print_helper tl
-  in
-  print_helper ty_params;
-  Format.fprintf ppf "]"
-
-let print_grade_params ?max_level:_ param_pp params ppf =
-  Format.fprintf ppf "[";
-  let rec print_helper = function
-    | [] -> ()
-    | [ last ] -> Format.fprintf ppf "%t" (param_pp last)
-    | hd :: tl ->
-        Format.fprintf ppf "%t, " (param_pp hd);
-        print_helper tl
-  in
-  print_helper params;
-  Format.fprintf ppf "]"
-
 let print_rho (type a) (module R : Grade.S with type t = a) rho_pp =
   let rec aux (rho : a rho) ppf =
     match rho with
@@ -164,13 +129,6 @@ type ('rho, 'eps) grade_printer = {
     effect grades by [eps]. An arrow whose effect grade is [pure] is printed
     without it. *)
 
-(** [single_sort_printer grade eps_pp] prints the grades of the typechecker that
-    grades resources and effects alike by [grade]. *)
-let single_sort_printer (type a) grade eps_pp : (a eps, a eps) grade_printer =
-  let module G = (val grade : Grade.S with type t = a) in
-  let print = print_eps grade eps_pp in
-  { rho = print; eps = print; pure = (fun eps -> eps = EpsConst G.one) }
-
 (** [print_ty grades ty_print_param ty] prints [ty], its grades by [grades]. *)
 let print_ty ?max_level grades ty_print_param =
   let rec aux ?max_level p ppf =
@@ -202,38 +160,6 @@ let print_ty ?max_level grades ty_print_param =
           (grades.eps eps1) (aux ~max_level:3 ty2) (grades.eps eps2)
   in
   aux ?max_level
-
-(** [print_constr grade] prints a constraint of the typechecker that grades
-    resources and effects alike by [grade]. *)
-let print_constr (type a) grade ty_pp eps_pp =
-  let module G = (val grade : Grade.S with type t = a) in
-  let print_ineq eps1 eps2 ppf =
-    Format.fprintf ppf "%t %s %t"
-      (print_eps grade eps_pp eps1)
-      G.leq_symbol
-      (print_eps grade eps_pp eps2)
-  in
-  let print_eternal ty ppf =
-    Format.fprintf ppf "eternal %t"
-      (print_ty ~max_level:0 (single_sort_printer grade eps_pp) ty_pp ty)
-  in
-  (* A constraint's reason is provenance for diagnostics, not part of what the
-     constraint says, so a scheme's qualifier prints without it. *)
-  fun (c : a constr) ppf ->
-    match c with
-    | Ineq (eps1, eps2, _) -> print_ineq eps1 eps2 ppf
-    | Eternal (ty, _) -> print_eternal ty ppf
-    | EternalOrIneq (ty, eps1, eps2, _) ->
-        Format.fprintf ppf "%t ∨ %t" (print_eternal ty) (print_ineq eps1 eps2)
-
-(** The qualifier of a type scheme, [{c1, ..., cn}], or nothing when there are
-    no constraints. *)
-let print_constrs grade ty_pp eps_pp constrs ppf =
-  match constrs with
-  | [] -> ()
-  | _ ->
-      Format.fprintf ppf "{%t} "
-        (Print.print_sequence ", " (print_constr grade ty_pp eps_pp) constrs)
 
 let rec print_pattern ?max_level p ppf =
   let print ?at_level = Print.print ?max_level ?at_level ppf in
@@ -346,32 +272,8 @@ and print_op_case resource_grade (op, a) ppf =
   Format.fprintf ppf "%t %t" (OpName.print op)
     (print_abstraction resource_grade a)
 
-(** [grade_of] reads the grade out of a context entry of the typechecker that
-    grades resources and effects alike by [grade], which wraps it in what else
-    it remembers about where the grade was accumulated. *)
-let print_vars_and_tys grade grade_of print_var_and_ty lst ppf =
-  let rec print_list = function
-    | [] -> ()
-    | VarMap map :: rest ->
-        List.iter
-          (fun entry ->
-            let ty_pp = TyPrintParam.create () in
-            let eps_pp = SingleSortPrintParam.create () in
-            print_var_and_ty ty_pp eps_pp entry ppf)
-          (VariableMap.bindings map);
-        print_list rest
-    | Rho n :: rest ->
-        let eps_pp = SingleSortPrintParam.create () in
-        print_eps grade eps_pp (grade_of n) ppf;
-        Print.print ppf "\n";
-        print_list rest
-    (* A barrier has nothing to print: it carries no binding and no grade. *)
-    | Barrier _ :: rest -> print_list rest
-  in
-  print_list (List.rev lst)
-
 let print_vars_and_exprs resource_grade print_var_and_expr
-    (lst : ('var, 'map, 'rho, 'bar) Ast.context_elem_ty list) ppf =
+    (lst : ('var, 'map, 'rho) Ast.context_elem_ty list) ppf =
   let print_var_map map ppf =
     let elements = VariableMap.bindings map in
     Format.fprintf ppf "@[<hv 2>{ ";
@@ -391,15 +293,10 @@ let print_vars_and_exprs resource_grade print_var_and_expr
     | Rho n ->
         let rho_pp = RhoPrintParam.create () in
         print_rho resource_grade rho_pp n ppf
-    | Barrier _ -> ()
   in
-  (* A barrier has nothing to print: it carries no binding and no grade. *)
-  let elems =
-    List.filter (function Barrier _ -> false | _ -> true) (List.rev lst)
-  in
-  match elems with
+  match List.rev lst with
   | [] -> Format.fprintf ppf "State: []@\n"
-  | _ ->
+  | elems ->
       Format.fprintf ppf "@[<v 2>State: [@,";
       let rec print_list = function
         | [] -> ()
@@ -412,19 +309,6 @@ let print_vars_and_exprs resource_grade print_var_and_expr
       print_list elems;
       Format.fprintf ppf "@;<0 -2>]@]@\n"
 
-(** [scheme_of] reads the type scheme out of a context entry, which the
-    typechecker wraps in what else it remembers, such as where it was bound. *)
-let print_variable_context grade grade_of scheme_of ctx =
-  let print_var_and_ty ty_pp eps_pp (variable, entry) ppf =
-    let { ty_params; eps_params; constrs; ty } = scheme_of entry in
-    Format.fprintf ppf "@[<h>%t : %t, %t %t%t@]@." (Variable.print variable)
-      (print_ty_params ty_pp ty_params)
-      (print_grade_params eps_pp eps_params)
-      (print_constrs grade ty_pp eps_pp constrs)
-      (print_ty (single_sort_printer grade eps_pp) ty_pp ty)
-  in
-  print_vars_and_tys grade grade_of print_var_and_ty ctx
-
 let print_interpreter_state resource_grade ctx ppf =
   let print_var_and_expr (variable, (rho, expr)) ppf =
     let rho_print_param = RhoPrintParam.create () in
@@ -433,10 +317,6 @@ let print_interpreter_state resource_grade ctx ppf =
       (print_rho resource_grade rho_print_param rho)
   in
   print_vars_and_exprs resource_grade print_var_and_expr ctx ppf
-
-let string_of_variable_context grade grade_of scheme_of context =
-  print_variable_context grade grade_of scheme_of context Format.str_formatter;
-  Format.flush_str_formatter ()
 
 let string_of_interpreter_state resource_grade context =
   print_interpreter_state resource_grade context Format.str_formatter;

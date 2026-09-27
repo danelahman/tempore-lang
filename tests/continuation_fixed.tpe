@@ -1,0 +1,13 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/continuation_fixed.tpe *)
+
+operation Op : unit ~> unit # 1
+
+(* Correctly accepted by the typechecker: the case returns a function graded
+   by the continuation, whose grade may be any; the only solution grades the
+   function the handler returns by the top grade ∞, that is, without a time
+   bound. *)
+let h = handler | x -> (fun () -> x) | Op p k -> (fun () -> let f = continue k with () in f ())
+
+run handle (perform Op (); 3) with h

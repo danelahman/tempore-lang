@@ -1,7 +1,6 @@
 module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
 module Ast = Language.Ast
-module PrettyPrint = Language.PrettyPrint
 
 (* [Loader] is shadowed inside [run_with] by the backend's instance of the
    functor, so the name is bound here while the library module is in scope. *)
@@ -17,20 +16,14 @@ let source filename =
     try Some (In_channel.with_open_text filename In_channel.input_all)
     with Sys_error _ -> None
 
-let user_defined_variables ~stdlib_vars ~final_vars =
-  let in_stdlib var =
-    List.exists
-      (function
-        | Ast.VarMap m -> Ast.VariableMap.mem var m
-        | Ast.Rho _ | Ast.Barrier _ -> false)
-      stdlib_vars
-  in
-  List.map
-    (function
-      | Ast.VarMap m ->
-          Ast.VarMap (Ast.VariableMap.filter (fun k _ -> not (in_stdlib k)) m)
-      | (Ast.Rho _ | Ast.Barrier _) as r -> r)
-    final_vars
+(* The definitions with their schemes, from the [skip]-th on. *)
+let print_definitions ~print_scheme ?(skip = 0) definitions =
+  List.iteri
+    (fun i (x, scheme) ->
+      if i >= skip then
+        Format.printf "@[<v 2>%t :@,%t@]@." (Ast.Variable.print x)
+          (print_scheme scheme))
+    definitions
 
 type config = {
   filenames : string list;
@@ -96,7 +89,7 @@ let parse_args_to_config () =
 
 let run_with (module G : Language.Grade.S) config =
   let module Backend = CliInterpreter.Make (Language.GradeSystem.Identity (G)) in
-  let module Loader = Loader.Loader (G) (Backend) in
+  let module Loader = Loader.Loader (Backend) in
   let rec run (state : Backend.run_state) run_num =
     let printed = Backend.view_run_state state ~run_num in
     let next_run_num = if printed then run_num + 1 else run_num in
@@ -137,24 +130,21 @@ let run_with (module G : Language.Grade.S) config =
     end;
     let run_state = Backend.run state'.backend in
     if config.debug then begin
+      let definitions (state : Loader.state) =
+        Loader.TC.definitions state.typechecker
+      in
+      let print_definitions =
+        print_definitions ~print_scheme:Loader.TC.print_scheme
+      in
       if config.use_stdlib then begin
         print_endline "=== Standard library ===";
-        print_string
-          (PrettyPrint.string_of_variable_context
-             (module G)
-             Loader.TC.Elapsed.grade Loader.TC.scheme_of
-             stdlib_state.typechecker.variables);
+        print_definitions (definitions stdlib_state);
         print_newline ()
       end;
       print_endline "=== Top-level definitions ===";
-      let user_vars =
-        user_defined_variables ~stdlib_vars:stdlib_state.typechecker.variables
-          ~final_vars:state'.typechecker.variables
-      in
-      print_string
-        (PrettyPrint.string_of_variable_context
-           (module G)
-           Loader.TC.Elapsed.grade Loader.TC.scheme_of user_vars);
+      print_definitions
+        ~skip:(List.length (definitions stdlib_state))
+        (definitions state');
       print_newline ()
     end;
     (* loading the files has typechecked every command, the [run]s included *)

@@ -295,7 +295,7 @@ let update model = function
           | Some (module G : Language.Grade.S) ->
               let module B =
                 WebInterpreter.Make (Language.GradeSystem.Identity (G)) in
-              let module L = Loader.Loader (G) (B) in
+              let module L = Loader.Loader (B) in
               (* Loaded as two separate sources, so that an editor location
                  is a location in what the user typed. *)
               let state =
