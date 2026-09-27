@@ -1,0 +1,3 @@
+(* Rejected: an integer is no security level. *)
+
+let claim () = box 3 1

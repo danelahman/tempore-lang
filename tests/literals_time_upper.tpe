@@ -1,0 +1,27 @@
+(* Infinity '∞' (ASCII 'inf') is the top '⊤' (ASCII 'top') under
+   time-upper-bound: a box that never expires. *)
+
+let claim_late () =
+  box ∞ "forever" as r in
+  delay 100;
+  unbox r as y in
+  y
+
+let claim_late_ascii () =
+  box inf "forever" as r in
+  delay 100;
+  unbox r as y in
+  y
+
+let claim_top () =
+  box ⊤ "forever" as r in
+  delay 100;
+  unbox r as y in
+  y
+
+let wait : unit -> unit # top = fun () -> delay 7
+
+run claim_late ()
+run claim_late_ascii ()
+run claim_top ()
+run wait ()

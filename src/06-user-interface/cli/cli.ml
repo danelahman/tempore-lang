@@ -33,7 +33,7 @@ type config = {
   resource_type : string;
 }
 
-let accepted_resource_names = List.map fst Language.Grade.grade_modules
+let accepted_resource_names = List.map fst Language.GradeRegistry.grade_modules
 let default_resource_name = List.hd accepted_resource_names
 
 let parse_args_to_config () =
@@ -155,7 +155,9 @@ let run_with (module G : Language.Grade.S) config =
 
 let main () =
   let config = parse_args_to_config () in
-  match List.assoc_opt config.resource_type Language.Grade.grade_modules with
+  match
+    List.assoc_opt config.resource_type Language.GradeRegistry.grade_modules
+  with
   | Some grade -> run_with grade config
   | None ->
       Printf.eprintf "Unknown grades '%s'. Accepted: %s\n" config.resource_type

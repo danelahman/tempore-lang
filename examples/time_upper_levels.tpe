@@ -1,0 +1,76 @@
+(* Run this example with the 'time-upper-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-levels examples/time_upper_levels.tpe *)
+
+(* A grade '(n, l)' pairs an upper bound on time with a security level: at most
+   'n' ticks, touching nothing above 'l'. A resource boxed at '(n, l)' is an
+   expiring capability that is revoked by a taint: it may be unboxed within
+   'n' ticks, and only while nothing above 'l' has been touched since boxing.
+   Grades are compared componentwise, and a delay of 'n' ticks has the grade
+   '(n, Low)'. *)
+
+type token = Token of string
+
+(* Logging in takes at most a tick and issues a session token that expires
+   after five. *)
+operation Login : string ~> [(5, Low)] token # (1, Low)
+default Login user = delay 1; box (5, Low) (Token user)
+
+(* Querying the public database takes at most two ticks. *)
+operation Query : token * string ~> string # (2, Low)
+default Query (t, q) = delay 2; "rows"
+
+(* Reading the payroll takes at most a tick and touches secret data. *)
+operation ReadPayroll : unit ~> string # (1, High)
+default ReadPayroll () = delay 1; "salaries"
+
+(* Correctly accepted by the typechecker: a query and three ticks of thinking
+   stay within the five ticks of the session. *)
+let query_in_time () =
+  let s = perform Login "alice" in
+  delay 3;
+  unbox s as t in
+  perform Query (t, "select *")
+
+(* Correctly accepted by the typechecker: with no bound on time, '(∞, Low)'
+   (ASCII '(inf, Low)'), a token only has to stay untainted. *)
+let query_eventually () =
+  let s = box (∞, Low) (Token "bob") in
+  delay 100;
+  unbox s as t in
+  perform Query (t, "select *")
+
+(* Correctly rejected by the typechecker: after six ticks the session has
+   expired:
+
+     Typing error: Variable `s` is unboxed after grade `(6,Low)` has elapsed,
+       which does not match its box grade `(5,Low)`
+       ...
+       Note: the resource inequality `(6,Low) <= (5,Low)` does not hold
+*)
+(*
+let query_expired () =
+  let s = perform Login "alice" in
+  delay 6;
+  unbox s as t in
+  perform Query (t, "select *")
+*)
+
+(* Correctly rejected by the typechecker: the session is still fresh, but
+   reading the payroll has revoked it:
+
+     Typing error: Variable `s` is unboxed after grade `(1,High)` has elapsed,
+       which does not match its box grade `(5,Low)`
+       ...
+       Note: the resource inequality `(1,High) <= (5,Low)` does not hold
+*)
+(*
+let query_tainted () =
+  let s = perform Login "alice" in
+  let _ = perform ReadPayroll () in
+  unbox s as t in
+  perform Query (t, "select *")
+*)
+
+run query_in_time ()
+run query_eventually ()

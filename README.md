@@ -62,7 +62,12 @@ the program is run: with `--grades` on the command line, e.g.
 
 or with the **Grades** selector in the web interface, which switches
 its value automatically when a built-in example is loaded. The default grade
-monoid is `time-lower-bound`. Currently, six monoids are available to choose.
+monoid is `time-lower-bound`. Currently, nine monoids are available to choose.
+
+All monoids share one syntax of grade literals, and each reads the literals it
+understands; a literal the chosen monoid does not understand is a syntax error,
+which names the monoids that do. The greatest grade of every monoid is written
+`⊤` (ASCII `top`).
 
 Three monoids grade resources and computations by time, written as integer
 literals such as `3` or pairs such as `(1, 4)`:
@@ -72,11 +77,12 @@ literals such as `3` or pairs such as `(1, 4)`:
   the *top* of the order.
 - **`time-upper-bound`** — non-negative integers, an upper bound on the time a
   computation takes. `rho` is a sub-grade of `rho'` when `rho <= rho'`; zero is
-  the *minimum* of the order and `∞`, which has no literal, its top.
+  the *minimum* of the order and `∞` (ASCII `inf`), imposing no bound, its top.
 - **`time-interval`** — pairs `(n, m)` with `n <= m`, a lower and an upper
   bound at once. `(n, m)` is a sub-grade of `(k, l)` when `n >= k` and
-  `l >= m` (interval containment); `(0, 0)` is neither the top nor the
-  minimum, and the top `(0, ∞)` has no literal. See
+  `l >= m` (interval containment); `(n, ∞)` (ASCII `(n, inf)`) imposes no
+  upper bound. `(0, 0)` is neither the top nor the minimum, and the top is
+  `(0, ∞)`. See
   [`examples/time_intervals.tpe`](examples/time_intervals.tpe).
 
 All three variants of time bounds are inclusive on the values they carry, e.g.,
@@ -103,14 +109,50 @@ operations through the runtime bounds `within (lo, hi)` every atomic operation
   `rho'`: a delay in `rho'` pays for operations of `rho` at their `hi`, but
   waiting never counts as performing an operation the bound asks for. `{0}` is
   the minimum of the order; its top is a separate point `⊤`, permitting any
-  run, which has no literal. See
+  run. See
   [`examples/traces_upper.tpe`](examples/traces_upper.tpe).
 - **`traces-interval`** — pairs `({...}, {...})` of a lower bound
   (coverage order, reading `lo`) and an upper bound (allowance order, reading
   `hi`), compared componentwise. `{...}` abbreviates the pair of a set with
   itself, `n` abbreviates `({n}, {n})`, and `(n, m)` abbreviates
-  `({n}, {m})`. `({0}, {0})` is neither the top nor the minimum. See
-  [`examples/traces_intervals.tpe`](examples/traces_intervals.tpe).
+  `({n}, {m})`; either component may be `⊤`, the top of its order.
+  `({0}, {0})` is neither the top nor the minimum, and the top is `({0}, ⊤)`.
+  See [`examples/traces_intervals.tpe`](examples/traces_intervals.tpe).
+
+The sets of traces are written in a brace literal `{...}`, which is a regular
+expression over operation names and delays: `r; s` concatenates, `r | s` is a
+union, and parentheses group, so that `{(Read | 2); Send}` is `{Read; Send | 2;
+Send}`. Repetition `r*`, intersection `r & s`, complement `~r` and the wildcard
+`_`, standing for any single operation, are also part of the syntax, but no
+monoid accepts them yet.
+
+One monoid grades resources and computations by *security levels*, and two
+more pair it with time:
+
+- **`security-levels`** — the two levels `Low` and `High`, with `Low` below
+  `High`. The grade of a computation is the highest level it touches: both the
+  product and the join of two levels are the higher of them, `Low` is the unit
+  and the minimum, and `High` the top. Delays touch no level, so `delay n` has
+  the grade `Low`. A resource boxed at a level may be unboxed only while the
+  level has not risen above it since boxing: a value boxed at `Low` is out of
+  reach once an operation of grade `High` has run. See
+  [`examples/security_levels.tpe`](examples/security_levels.tpe).
+- **`time-lower-bound-levels`** — pairs `(n, l)` of a `time-lower-bound`
+  grade and a level: at least `n` ticks, touching nothing above `l`. A box at
+  `(3, Low)` is an embargo with a taint check, claimable after at least three
+  ticks and only while nothing `High` has run. See
+  [`examples/time_lower_levels.tpe`](examples/time_lower_levels.tpe).
+- **`time-upper-bound-levels`** — pairs `(n, l)` of a `time-upper-bound`
+  grade and a level: at most `n` ticks, touching nothing above `l`. A box at
+  `(5, Low)` is an expiring capability, usable within five ticks and only while
+  nothing `High` has run; `(∞, Low)` never expires. See
+  [`examples/time_upper_levels.tpe`](examples/time_upper_levels.tpe).
+
+The last two are instances of a general *product* of two monoids: pairs of
+grades, multiplied, joined and compared componentwise, with the pair of the
+units as the unit and the pair of the tops, written `⊤`, as the top; a delay of
+`n` ticks is graded in both components at once. The unit is the minimum, and
+the product commutative, when they are so in both components.
 
 ## Temporal resources
 
@@ -123,8 +165,9 @@ of time, a sequence of operations, or whatever the chosen monoid measures.
 - `unbox e` opens a resource `e : [rho]a`, yielding an `a`. It is allowed only
   if the grade accumulated since `e` was boxed is a sub-grade of `rho`: at
   least `rho` ticks under the lower-bound monoids, at most `rho` under the
-  upper-bound ones, and a run that covers or fits inside `rho` under the trace
-  monoids.
+  upper-bound ones, a run that covers or fits inside `rho` under the trace
+  monoids, and a level no higher than `rho` under `security-levels`; the
+  products check both components.
 - `delay tau` advances the accumulated grade by `tau`. Operation calls (below)
   advance it by the grade of the operation.
 

@@ -1,0 +1,3 @@
+(* Rejected: 'forever' is no grade literal. *)
+
+let claim () = box forever 1

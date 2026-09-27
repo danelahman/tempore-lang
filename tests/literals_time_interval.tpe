@@ -1,0 +1,27 @@
+(* Intervals with no upper bound, '(n, ∞)' (ASCII '(n, inf)'), and the top '⊤'
+   (ASCII 'top'), which is '(0, ∞)', under time-interval. *)
+
+let claim_late () =
+  box (3, ∞) "open-ended" as r in
+  delay 100;
+  unbox r as y in
+  y
+
+let claim_late_ascii () =
+  box (3, inf) "open-ended" as r in
+  delay 3;
+  unbox r as y in
+  y
+
+let claim_top () =
+  box ⊤ "any time" as r in
+  delay 5;
+  unbox r as y in
+  y
+
+let wait : unit -> unit # top = fun () -> delay 7
+
+run claim_late ()
+run claim_late_ascii ()
+run claim_top ()
+run wait ()

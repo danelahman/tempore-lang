@@ -86,6 +86,12 @@ let malformed =
     "non_linear_pattern.tpe";
     "shadow_type.tpe";
     "time_reject_within.tpe";
+    "levels_reject_literal.tpe";
+    "literals_reject_component.tpe";
+    "literals_reject_inf.tpe";
+    "literals_reject_name.tpe";
+    "literals_reject_star.tpe";
+    "literals_reject_unknown.tpe";
   ]
 
 (* ------------------------------------------------------------------ *)
@@ -192,7 +198,7 @@ module Program (G : Grade.S) = struct
 end
 
 let grade_module name =
-  match List.assoc_opt name Grade.grade_modules with
+  match List.assoc_opt name Language.GradeRegistry.grade_modules with
   | Some g -> g
   | None -> failwith ("unknown grades " ^ name)
 
@@ -234,7 +240,7 @@ let programs () =
 (* ------------------------------------------------------------------ *)
 
 module Small = struct
-  module G = Grade.TimeLowerBoundGrade
+  module G = Language.TimeGrades.LowerBound
   module GS = GradeSystem.Identity (G)
   module X = Inference.GradeExp.Make (GS)
   module C = Inference.Constraint.Make (X)

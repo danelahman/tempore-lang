@@ -220,7 +220,7 @@ module Programs (G : Grade.S) = struct
 end
 
 let grade_module name =
-  match List.assoc_opt name Grade.grade_modules with
+  match List.assoc_opt name Language.GradeRegistry.grade_modules with
   | Some g -> g
   | None -> failwith ("unknown grades " ^ name)
 
@@ -282,6 +282,9 @@ let expected_rejections =
     ("eternal_tyvars_reject_noneternal.tpe", [ 11 ]);
     ("invalid_match_type.tpe", [ 4 ]);
     ("iterative_unbox.tpe", [ 4 ]);
+    ("levels_reject.tpe", [ 8 ]);
+    ("levels_time_lower_reject.tpe", [ 9; 16 ]);
+    ("levels_time_upper_reject.tpe", [ 9; 16 ]);
     ("malformed_type_application.tpe", [ 4 ]);
     ("noneternal_reject_after_delay.tpe", [ 10 ]);
     ("noneternal_reject_alias.tpe", [ 5 ]);

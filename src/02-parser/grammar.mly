@@ -1,6 +1,38 @@
 %{
   open SugaredAst
   open Utils
+  module Grade = Language.Grade
+
+  (* The hint naming the grades that understand the literal [lit]. *)
+  let suggestion lit =
+    let quote name = "'" ^ name ^ "'" in
+    match List.map quote (Language.GradeRegistry.accepting lit) with
+    | [] -> ""
+    | [ name ] -> "; did you mean to use the " ^ name ^ " grading monoid?"
+    | names ->
+        let rev = List.rev names in
+        "; did you mean to use one of the "
+        ^ String.concat ", " (List.rev (List.tl rev))
+        ^ " or " ^ List.hd rev ^ " grading monoids?"
+
+  (* [grade ~loc name of_lit lit] is the grade [of_lit] reads the literal [lit]
+     as. A rejection, the usual symptom of running a file under the wrong
+     grades, is a syntax error at [loc] naming the grade [name]. *)
+  let grade ~loc name of_lit lit =
+    try of_lit lit
+    with Grade.Invalid_literal (lit, reason) ->
+      Error.syntax ~loc "in the '%s' grading monoid, %s%s" name reason
+        (suggestion lit)
+
+  (* The literals written as lowercase names. *)
+  let named_lit ~loc = function
+    | "top" -> Grade.Top
+    | "inf" -> Grade.Inf
+    | name ->
+        Error.syntax ~loc
+          "'%s' is no grade literal; grades are written as integers, names \
+           such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)' \
+           and brace literals '{...}'" name
 %}
 
 %parameter<GS : Language.GradeSystem.S>
@@ -28,6 +60,7 @@
 %token AMPER AMPERAMPER
 %token LAND LOR LXOR
 %token <string> PREFIXOP INFIXOP0 INFIXOP1 INFIXOP2 INFIXOP3 INFIXOP4
+%token TOP INFINITY
 %token EOF
 
 %nonassoc ARROW IN
@@ -463,27 +496,57 @@ op_bounds:
 
 (* A resource grade, read by the resource grades of the grade system. *)
 rho_grade:
-  | lit = grade_lit { GS.R.of_lit lit }
+  | lit = grade_lit
+    { grade ~loc:(Location.of_lexing $startpos $endpos) GS.R.name GS.R.of_lit lit }
 
 (* An effect grade, read by the effect grades of the grade system. *)
 eps_grade:
-  | lit = grade_lit { GS.E.of_lit lit }
+  | lit = grade_lit
+    { grade ~loc:(Location.of_lexing $startpos $endpos) GS.E.name GS.E.of_lit lit }
 
+(* A grade literal, shared by all grades; each grade reads the forms it
+   understands. *)
 grade_lit:
-  | n = INT { Language.Grade.Int n }
-  | LPAREN n = INT COMMA m = INT RPAREN { Language.Grade.Pair (n, m) }
-  | LBRACE ts = trace_set RBRACE { Language.Grade.Traces ts }
-  | LPAREN LBRACE ts1 = trace_set RBRACE COMMA LBRACE ts2 = trace_set RBRACE RPAREN
-    { Language.Grade.TracePair (ts1, ts2) }
+  | n = INT { Grade.Int n }
+  | name = UNAME { Grade.Name name }
+  | TOP { Grade.Top }
+  | INFINITY { Grade.Inf }
+  | name = LNAME { named_lit ~loc:(Location.of_lexing $startpos $endpos) name }
+  | LPAREN lit = grade_lit COMMA lits = separated_nonempty_list(COMMA, grade_lit) RPAREN
+    { Grade.Tuple (lit :: lits) }
+  | LBRACE r = regex RBRACE { Grade.Braces r }
 
-trace_set:
-  | ts = separated_nonempty_list(BAR, trace_lit) { ts }
+(* The regular expressions of brace literals, by increasing precedence: union
+   [|], intersection [&], concatenation [;], complement [~] and repetition
+   [*]. *)
+regex:
+  | r = regex_inter { r }
+  | r = regex BAR s = regex_inter { Grade.Union (r, s) }
 
-trace_lit:
-  | evs = separated_nonempty_list(SEMI, trace_event) { evs }
+regex_inter:
+  | r = regex_seq { r }
+  | r = regex_inter AMPER s = regex_seq { Grade.Inter (r, s) }
 
-trace_event:
-  | op = UNAME { Language.Grade.Ev op }
-  | n = INT { Language.Grade.Wait n }
+regex_seq:
+  | r = regex_unary { r }
+  | r = regex_seq SEMI s = regex_unary { Grade.Seq (r, s) }
+
+regex_unary:
+  | r = regex_postfix { r }
+  | op = PREFIXOP r = regex_unary
+    { if op = "~" then Grade.Compl r
+      else
+        Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
+          "unknown operator '%s' in a brace literal" op }
+
+regex_postfix:
+  | r = regex_atom { r }
+  | r = regex_postfix STAR { Grade.Star r }
+
+regex_atom:
+  | name = UNAME { Grade.Letter name }
+  | n = INT { Grade.Tick n }
+  | UNDERSCORE { Grade.Any }
+  | LPAREN r = regex RPAREN { r }
 
 %%

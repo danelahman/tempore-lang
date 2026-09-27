@@ -1,0 +1,82 @@
+(* Run this example with the 'security-levels' grading monoid, e.g.
+
+     ./tempore --grades security-levels examples/security_levels.tpe *)
+
+(* A computation's grade is the highest security level it touches, 'Low' or
+   'High'. A resource boxed at a level may be unboxed only while the level has
+   not risen above it since boxing, so a public channel is out of reach once a
+   secret has been read: no writing down after reading up. Delays touch no
+   level at all. *)
+
+type channel = Channel of string
+
+(* Reading the public feed touches nothing secret. *)
+operation ReadPublic : unit ~> string # Low
+default ReadPublic () = "weather: sunny"
+
+(* Reading the vault touches a secret. *)
+operation ReadSecret : unit ~> string # High
+default ReadSecret () = "launch code: 0000"
+
+(* Posting a message on a channel touches nothing secret by itself. *)
+operation Post : channel * string ~> string # Low
+default Post (c, msg) = msg
+
+(* A public channel, usable while nothing secret has been touched. *)
+let public_channel () = box Low (Channel "public")
+
+(* A classified channel, usable whatever has been touched. *)
+let classified_channel () = box High (Channel "classified")
+
+(* Correctly accepted by the typechecker: the public feed may be forwarded to
+   the public channel, even after a delay. *)
+let forward_public () =
+  let c = public_channel () in
+  let msg = perform ReadPublic () in
+  delay 3;
+  unbox c as ch in
+  perform Post (ch, msg)
+
+(* Correctly accepted by the typechecker: a secret may be posted on the
+   classified channel. *)
+let forward_secret () =
+  let c = classified_channel () in
+  let msg = perform ReadSecret () in
+  unbox c as ch in
+  perform Post (ch, msg)
+
+(* Correctly rejected by the typechecker: once the vault has been read, the
+   public channel is out of reach:
+
+     Typing error: Variable `c` is unboxed after grade `High` has elapsed, which
+       does not match its box grade `Low`
+       ...
+       Note: the resource inequality `High <= Low` does not hold
+*)
+(*
+let leak () =
+  let c = public_channel () in
+  let msg = perform ReadSecret () in
+  unbox c as ch in
+  perform Post (ch, msg)
+*)
+
+(* Correctly rejected by the typechecker: a branch touches the join of the
+   levels its arms touch, here 'High', even if the public arm is taken:
+
+     Typing error: Variable `c` is unboxed after grade `High` has elapsed, which
+       does not match its box grade `Low`
+       ...
+*)
+(*
+let maybe_leak public =
+  let c = public_channel () in
+  let msg =
+    if public then perform ReadPublic () else perform ReadSecret ()
+  in
+  unbox c as ch in
+  perform Post (ch, msg)
+*)
+
+run forward_public ()
+run forward_secret ()

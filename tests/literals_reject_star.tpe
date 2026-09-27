@@ -1,0 +1,3 @@
+(* Rejected: the timed-trace grades do not accept repetition. *)
+
+let claim () = box {(Send; 2)*} 1

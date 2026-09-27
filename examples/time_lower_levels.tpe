@@ -1,0 +1,84 @@
+(* Run this example with the 'time-lower-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound-levels examples/time_lower_levels.tpe *)
+
+(* A grade '(n, l)' pairs a lower bound on time with a security level: at least
+   'n' ticks, touching nothing above 'l'. A resource boxed at '(n, l)' is under
+   an embargo with a taint check: it may be unboxed once at least 'n' ticks
+   have passed, and only while nothing above 'l' has been touched since boxing.
+   Grades are compared componentwise, and a delay of 'n' ticks has the grade
+   '(n, Low)'. *)
+
+type report = Report of string
+
+(* Compiling the figures takes at least two ticks and touches nothing
+   secret. *)
+operation Compile : unit ~> report # (2, Low)
+default Compile () = delay 2; Report "quarterly figures"
+
+(* Consulting an insider takes at least a tick and taints the desk. *)
+operation Consult : string ~> string # (1, High)
+default Consult question = delay 1; "insider view"
+
+(* Publishing a report takes at least a tick. *)
+operation Publish : report ~> report # (1, Low)
+default Publish r = delay 1; r
+
+(* A report under embargo: publishable in three ticks by an untainted
+   desk. *)
+let embargoed () =
+  let r = perform Compile () in
+  box (3, Low) r
+
+(* Correctly accepted by the typechecker: the embargo has lifted after three
+   ticks, and nothing secret was touched. *)
+let publish_after_embargo () =
+  let e = embargoed () in
+  delay 3;
+  unbox e as r in
+  perform Publish r
+
+(* Correctly accepted by the typechecker: compiling another report takes two of
+   the three ticks. *)
+let publish_after_work () =
+  let e = embargoed () in
+  let _ = perform Compile () in
+  delay 1;
+  unbox e as r in
+  perform Publish r
+
+(* Correctly rejected by the typechecker: two ticks are too early for an
+   embargo of three:
+
+     Typing error: Variable `e` is unboxed after grade `(2,Low)` has elapsed,
+       which does not match its box grade `(3,Low)`
+       ...
+       Note: the resource inequality `(2,Low) ≾ (3,Low)` does not hold
+*)
+(*
+let publish_too_early () =
+  let e = embargoed () in
+  delay 2;
+  unbox e as r in
+  perform Publish r
+*)
+
+(* Correctly rejected by the typechecker: the embargo has lifted, but the desk
+   consulted an insider in the meantime:
+
+     Typing error: Variable `e` is unboxed after grade `(3,High)` has elapsed,
+       which does not match its box grade `(3,Low)`
+       ...
+       Note: the resource inequality `(3,High) ≾ (3,Low)` does not hold
+*)
+(*
+let publish_tainted () =
+  let e = embargoed () in
+  let _ = perform Consult "what next?" in
+  delay 2;
+  unbox e as r in
+  perform Publish r
+*)
+
+run publish_after_embargo ()
+run publish_after_work ()

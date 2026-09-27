@@ -1,0 +1,31 @@
+(* The top '⊤' (ASCII 'top') under traces-interval is '({0}, ⊤)', and either
+   component of a pair may be the top of its own order. *)
+
+operation Send : unit ~> unit # {Send} within (1, 2)
+
+default Send () = delay 1
+
+let claim_top () =
+  box ⊤ "any run" as r in
+  perform Send ();
+  delay 3;
+  unbox r as y in
+  y
+
+let claim_unbounded () =
+  box ({Send}, top) "after a send" as r in
+  perform Send ();
+  perform Send ();
+  unbox r as y in
+  y
+
+let claim_either () =
+  box ({1}, {(Send | 2); 1}) "a send or a wait" as r in
+  perform Send ();
+  delay 1;
+  unbox r as y in
+  y
+
+run claim_top ()
+run claim_unbounded ()
+run claim_either ()

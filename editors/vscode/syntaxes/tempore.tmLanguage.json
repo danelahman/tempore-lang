@@ -11,6 +11,7 @@
     { "include": "#perform-call" },
     { "include": "#handler-block" },
     { "include": "#number" },
+    { "include": "#grade-constant" },
     { "include": "#keyword" },
     { "include": "#constructor" },
     { "include": "#type-param" }
@@ -62,6 +63,10 @@
           "match": "\\b[0-9][0-9_]*\\b"
         }
       ]
+    },
+    "grade-constant": {
+      "name": "constant.language.grade.tempore",
+      "match": "⊤|∞"
     },
     "keyword": {
       "patterns": [

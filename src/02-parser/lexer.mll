@@ -106,6 +106,8 @@ rule token = parse
   | '\'' lname          { let str = Lexing.lexeme lexbuf in
                           PARAM (String.sub str 1 (String.length str - 1)) }
   | '_'                 { UNDERSCORE }
+  | "⊤"                 { TOP }
+  | "∞"                 { INFINITY }
   | '('                 { LPAREN }
   | ')'                 { RPAREN }
   | '['                 { LBRACK }

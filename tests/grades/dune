@@ -1,0 +1,6 @@
+; Unit tests of the grades: the security levels, the products of grades, and
+; the literals of every grade.
+
+(test
+ (name test_grades)
+ (libraries language))

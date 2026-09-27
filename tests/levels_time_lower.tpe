@@ -1,0 +1,44 @@
+(* Time lower bounds paired with security levels: an embargoed report boxed at
+   (3, Low) may be claimed after at least 3 ticks, and only while nothing above
+   Low has been touched since boxing. *)
+
+operation Fetch : unit ~> string # (2, Low)
+operation Publish : string ~> unit # (1, High)
+
+default Fetch () = delay 2; "figures"
+default Publish s = delay 1
+
+(* Accepted: three ticks pass and nothing High is touched. *)
+let claim_in_time () =
+  box (3, Low) "report" as r in
+  delay 3;
+  unbox r as y in
+  y
+
+(* Accepted: fetching takes two ticks at Low, so one more tick suffices. *)
+let fetch_then_claim () =
+  box (3, Low) "report" as r in
+  let s = perform Fetch () in
+  delay 1;
+  unbox r as y in
+  (y, s)
+
+(* Accepted: a report embargoed at High may be claimed after publishing. *)
+let publish_then_claim_high () =
+  box (3, High) "report" as r in
+  perform Publish "news";
+  delay 2;
+  unbox r as y in
+  y
+
+(* Accepted: the top '⊤' (ASCII 'top') is (0, High), claimable at once. *)
+let claim_top () =
+  box top "report" as r in
+  perform Publish "news";
+  unbox r as y in
+  y
+
+run claim_in_time ()
+run fetch_then_claim ()
+run publish_then_claim_high ()
+run claim_top ()
