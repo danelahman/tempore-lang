@@ -57,9 +57,10 @@ selects its monoid.
 
 The [`examples/`](examples/) directory holds example programs by topic:
 `basics/`, `handlers/`, `time/`, `traces/`, `regular/`, `regular_costs/`,
-`levels/` and `3dprint/` (a 3D-printing case study). All but `basics/` are
-offered in the web interface ([`examples/index`](examples/index)). Each example
-starts with the command that runs it.
+`levels/`, `semidirect/` and `3dprint/` (a 3D-printing case study). All but
+`basics/` are offered in the web interface
+([`examples/index`](examples/index)). Each example starts with the command
+that runs it.
 
 ## Grading monoids
 
@@ -78,7 +79,8 @@ implementation is documented in the modules under
 All monoids share one literal syntax: integers (`3`), pairs (`(1, 4)`) and
 brace expressions (`{...}`). Each monoid accepts the literals it understands;
 any other literal is a syntax error naming the monoids that accept it. The
-greatest grade is `⊤` (ASCII `top`).
+greatest grade is `⊤` (ASCII `top`). Integers may be negative (`-1`); only
+`peak-usage` accepts negative ones.
 
 ### Time
 
@@ -187,6 +189,25 @@ The pairs are compared, multiplied and joined componentwise. See
 [`examples/levels/time_lower_levels.tpe`](examples/levels/time_lower_levels.tpe)
 and
 [`examples/levels/time_upper_levels.tpe`](examples/levels/time_upper_levels.tpe).
+
+### Semidirect products
+
+A grade is a pair `(m, n)` whose second component is acted on by the first
+components of the grades before it: `(m, n) · (m', n') = (m · m', n ⊔ m ▷ n')`,
+`m ▷ n'` being the action of `m` on `n'`. The pairs are compared and joined
+componentwise.
+
+- `peak-usage`: pairs `(d, h)` of the net change `d` and the peak `h` of a
+  resource held, such as open files, with `h >= 0` and `h >= d`;
+  `(d, h) · (d', h') = (d + d', max(h, d + h'))`. Delays change nothing, so
+  the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. An operation opening
+  a file has grade `(1, 1)`, and one closing it `(-1, 0)`; two copies in
+  sequence, each holding two files, have grade `(0, 2)`.
+
+An operation whose grade no code meets, such as closing a file under
+`peak-usage`, has no default implementation, and a run stops at its first
+call. See
+[`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe).
 
 ## Temporal resources
 

@@ -76,3 +76,90 @@ module OfLattice (L : LATTICE) : Grade.S with type t = L.t
       rejection naming the component;
     - [show] prints [(g1,g2)]. *)
 module Product (G1 : Grade.S) (G2 : Grade.S) : Grade.S with type t = G1.t * G2.t
+
+(** Decidable join-semilattices with a least and a greatest element. *)
+module type SEMILATTICE = sig
+  type t
+  (** The elements. *)
+
+  val name : string
+  (** The name of the semilattice. *)
+
+  val bottom : t
+  (** The least element. *)
+
+  val top : t
+  (** The greatest element. *)
+
+  val join : t -> t -> t
+  (** The binary join. *)
+
+  val leq : t -> t -> bool
+  (** The partial order. *)
+
+  val compare : t -> t -> int
+  (** A total order on the representations of the elements: [compare l l' = 0]
+      implies that [l] and [l'] are equal. *)
+
+  val hash : t -> int
+  (** A hash compatible with {!compare}. *)
+
+  val of_lit : Grade.lit -> t
+  (** [of_lit lit] is the element the literal [lit] denotes; [⊤] need not be
+      handled.
+
+      @raise Grade.Invalid_literal if [lit] denotes no element. *)
+
+  val show : t -> string
+  (** [show l] prints [l] in the literal syntax. *)
+end
+
+(** Actions of the grades [m] on the elements [n] of a semilattice. *)
+module type ACTION = sig
+  type m
+  (** The acting grades. *)
+
+  type n
+  (** The elements acted on. *)
+
+  val act : m -> n -> n
+  (** [act m n] is the action of [m] on [n]. *)
+end
+
+(** The semidirect product of the grade [M] and the semilattice [N] under the
+    action [Act]: pairs [(m, n)] with
+    - [one = (M.one, ⊥)] and [(m, n) · (m', n') = (m · m', n ⊔ act m n')];
+    - [top], [join] and the order componentwise;
+    - [of_nat k = (M.of_nat k, ⊥)] and [of_bounds b = (M.of_bounds b, ⊥)].
+
+    The construction satisfies the laws of {!Grade} if [M] does and, for all
+    grades [m], [m'] and elements [n], [n'],
+    - (A1) [act M.one n = n];
+    - (A2) [act (m · m') n = act m (act m' n)];
+    - (A3) [act m ⊥ = ⊥] and [act m (n ⊔ n') = act m n ⊔ act m n'];
+    - (A4) [act (m ⊔ m') n = act m n ⊔ act m' n];
+    - (A5) [act] is monotone in both arguments.
+
+    The unit is least iff it is in [M], and [mul] is not taken to commute.
+
+    The remaining fields are those of [M] on the first component:
+    [needs_op_bounds], [implied_bounds], [inhabited], [events] and [is_atomic];
+    [counterexample] pairs a witness in [M] with the second component of the
+    lesser grade.
+
+    The name is [M.name ^ "⋉" ^ N.name], and [leq_symbol] is [<=] if it is that
+    of [M] and [≾] otherwise. [equal] and [is_top] are decided componentwise,
+    [compare] is lexicographic and [hash] combines those of the components.
+
+    [of_lit] reads [⊤] as the top, a literal that [M] reads as [m] as [(m, ⊥)],
+    and otherwise a pair [(l1, l2)] componentwise, [⊤] in the second component
+    being the top of [N]; [show] prints the top as [⊤], [(m, ⊥)] as [m] and
+    other grades as [(m,n)].
+
+    [witnesses] are the witnesses of [M] paired with [⊥], and the constants and
+    their pairwise products, and are partial. *)
+module SemiDirect
+    (M : Grade.S)
+    (N : SEMILATTICE)
+    (Act : ACTION with type m = M.t and type n = N.t) :
+  Grade.S with type t = M.t * N.t

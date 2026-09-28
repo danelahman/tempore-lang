@@ -1,0 +1,44 @@
+(* Peak usage: the net change of the descriptors held and their peak. *)
+
+type file = File of string
+
+operation Open : string ~> file # (1, 1)
+operation Close : file ~> unit # (-1, 0)
+
+default Open name = File name
+
+(* Accepted: the peak is two, and both descriptors are released. *)
+let pair () : unit # (0, 2) =
+  let a = perform Open "a" in
+  let b = perform Open "b" in
+  perform Close b;
+  perform Close a
+
+(* Accepted: the grade is inferred, the peak of the second open shifted by
+   the first. *)
+let twice () =
+  let a = perform Open "a" in
+  let b = perform Open "b" in
+  (a, b)
+
+(* Accepted: a box of grade (0, 1) is unboxed after an open and a close. *)
+let reopen () =
+  box (0, 1) 7 as x in
+  let f = perform Open "f" in
+  perform Close f;
+  unbox x as n in
+  n
+
+(* Accepted: a handler may give an open without holding a descriptor. *)
+let unheld () =
+  handle twice () with
+  handler
+  | x -> x
+  | Open name k -> continue k with File name
+
+(* Accepted: a delay changes nothing. *)
+let wait () : unit # (0, 0) = delay 5
+
+run twice ()
+run unheld ()
+run wait ()

@@ -2,10 +2,21 @@
 
     The instances the prototype offers are defined in {!TimeGrades},
     {!TimedTraceGrades}, {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
-    {!RegularTraceGradePlain}, {!RegularCostTraceGrades} and {!LevelGrades},
-    built with the constructions of {!GradeConstructions}, and listed in
-    {!GradeRegistry}; the regular trace grades are implementations of the same
-    grade.
+    {!RegularTraceGradePlain}, {!RegularCostTraceGrades}, {!LevelGrades} and
+    {!PeakGrades}, built with the constructions of {!GradeConstructions}, and
+    listed in {!GradeRegistry}; the regular trace grades are implementations of
+    the same grade.
+
+    {2 Laws}
+
+    Under every cost model, an instance satisfies, [=] being {!S.equal}:
+    - [mul] is associative, with unit [one];
+    - [leq] is a preorder, whose equivalence is [equal];
+    - [mul] is monotone in both arguments;
+    - [join] is a least upper bound and [top] a greatest element;
+    - [mul] distributes over [join] on both sides: [c · (d ⊔ e) = c · d ⊔ c · e]
+      and [(d ⊔ e) · c = d · c ⊔ e · c];
+    - [of_nat] is a monoid morphism from [(ℕ, +, 0)].
 
     {2 Cost model}
 
@@ -49,7 +60,7 @@ let regex_names r =
 
 (** Grade literals as they appear in source. *)
 type lit =
-  | Int of int  (** A non-negative integer, e.g. [42] *)
+  | Int of int  (** An integer, e.g. [42] or [-1] *)
   | Name of string  (** A capitalised name, e.g. [High] *)
   | Top  (** The greatest grade, [⊤] or [top] *)
   | Inf  (** Infinity, [∞] or [inf] *)

@@ -1,0 +1,79 @@
+(* Run this example with the 'peak-usage' grading monoid, e.g.
+
+     ./tempore --grades peak-usage examples/semidirect/peak_usage.tpe *)
+
+type file = File of string
+
+(* Opening a file holds one more descriptor, closing one releases it, and
+   reading and writing hold none. No code releases a descriptor, so closing has
+   no default implementation, and a run stops at its first 'Close'. *)
+operation Open : string ~> file # (1, 1)
+default Open name = File name
+
+operation Close : file ~> unit # (-1, 0)
+
+operation Read : file ~> string # (0, 0)
+default Read f = "contents"
+
+operation Write : file * string ~> unit # (0, 0)
+default Write (f, s) = ()
+
+(* Correctly accepted by the typechecker: a copy holds two descriptors at its
+   peak and releases both. *)
+let copy (src, dst) : unit # (0, 2) =
+  let i = perform Open src in
+  let o = perform Open dst in
+  let s = perform Read i in
+  perform Write (o, s);
+  perform Close o;
+  perform Close i
+
+(* Correctly accepted by the typechecker: two copies in sequence still hold at
+   most two descriptors at a time, although they open four. *)
+let backup () : unit # (0, 2) =
+  copy ("a", "a.bak");
+  copy ("b", "b.bak")
+
+(* Correctly accepted by the typechecker: a branch holds the join of the peaks
+   of its arms. *)
+let maybe_backup b : unit # (0, 2) =
+  if b then backup () else ()
+
+(* Correctly rejected by the typechecker: the source is never closed, so one
+   descriptor is still held at the end:
+
+     Typing error: This function's body has grade `(1,2)`, which does not
+       match its annotated grade `(0,2)`
+       Note: the effect inequality `(1,2) <= (0,2)` does not hold
+*)
+(*
+let leaky_copy (src, dst) : unit # (0, 2) =
+  let i = perform Open src in
+  let o = perform Open dst in
+  let s = perform Read i in
+  perform Write (o, s);
+  perform Close o
+*)
+
+(* Correctly rejected by the typechecker: merging opens both sources before the
+   destination, holding three descriptors at its peak:
+
+     Typing error: This function's body has grade `(0,3)`, which does not
+       match its annotated grade `(0,2)`
+       Note: the effect inequality `(0,3) <= (0,2)` does not hold
+*)
+(*
+let merge (a, b, dst) : unit # (0, 2) =
+  let i = perform Open a in
+  let j = perform Open b in
+  let o = perform Open dst in
+  let s = perform Read i in
+  let t = perform Read j in
+  perform Write (o, s);
+  perform Write (o, t);
+  perform Close o;
+  perform Close j;
+  perform Close i
+*)
+
+run backup ()

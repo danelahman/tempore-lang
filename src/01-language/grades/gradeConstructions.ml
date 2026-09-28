@@ -131,3 +131,106 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
     in
     (List.concat_map (fun a -> List.map (fun b -> (a, b)) ws2) ws1, completeness)
 end
+
+module type SEMILATTICE = sig
+  type t
+
+  val name : string
+  val bottom : t
+  val top : t
+  val join : t -> t -> t
+  val leq : t -> t -> bool
+  val compare : t -> t -> int
+  val hash : t -> int
+  val of_lit : Grade.lit -> t
+  val show : t -> string
+end
+
+module type ACTION = sig
+  type m
+  type n
+
+  val act : m -> n -> n
+end
+
+(* The semidirect product of a grading monoid and a semilattice, ordered
+   componentwise. *)
+module SemiDirect
+    (M : Grade.S)
+    (N : SEMILATTICE)
+    (Act : ACTION with type m = M.t and type n = N.t) =
+struct
+  type t = M.t * N.t
+
+  let name = M.name ^ "⋉" ^ N.name
+  let one = (M.one, N.bottom)
+  let mul (m, n) (m', n') = (M.mul m m', N.join n (Act.act m n'))
+  let leq bounds (m, n) (m', n') = M.leq bounds m m' && N.leq n n'
+  let leq_symbol = if M.leq_symbol = "<=" then "<=" else "≾"
+  let top = (M.top, N.top)
+  let join (m, n) (m', n') = (M.join m m', N.join n n')
+  let of_nat k = (M.of_nat k, N.bottom)
+
+  let equal bounds (m, n) (m', n') =
+    M.equal bounds m m' && N.leq n n' && N.leq n' n
+
+  let is_top bounds (m, n) = M.is_top bounds m && N.leq N.top n
+
+  let compare (m, n) (m', n') =
+    match M.compare m m' with 0 -> N.compare n n' | c -> c
+
+  let hash (m, n) = Grade.combine (M.hash m) (N.hash n)
+
+  let counterexample bounds (m, n) (m', _) =
+    Option.map (fun e -> (e, n)) (M.counterexample bounds m m')
+
+  let unit_least = M.unit_least
+  let commutative = false
+  let needs_op_bounds = M.needs_op_bounds
+  let implied_bounds bounds (m, _) = M.implied_bounds bounds m
+  let inhabited bounds (m, _) = M.inhabited bounds m
+  let events (m, _) = M.events m
+
+  let of_lit = function
+    | Grade.Top -> top
+    | lit -> (
+        match M.of_lit lit with
+        | m -> (m, N.bottom)
+        | exception Grade.Invalid_literal _ -> (
+            match lit with
+            | Grade.Tuple [ l1; l2 ] ->
+                let component ordinal name =
+                  Printf.sprintf "in the %s component ('%s'), " ordinal name
+                in
+                let m =
+                  Grade.component_of_lit lit ~context:(component "first" M.name)
+                    M.of_lit l1
+                in
+                let n =
+                  match l2 with
+                  | Grade.Top -> N.top
+                  | l2 ->
+                      Grade.component_of_lit lit
+                        ~context:(component "second" N.name)
+                        N.of_lit l2
+                in
+                (m, n)
+            | lit ->
+                Grade.invalid_lit lit
+                  "grades are '%s' grades or pairs '(m, n)' of a '%s' grade \
+                   and a '%s' element, not %s"
+                  M.name M.name N.name (Grade.describe_lit lit)))
+
+  let of_bounds b = (M.of_bounds b, N.bottom)
+  let is_atomic name (m, _) = M.is_atomic name m
+
+  let show ((m, n) as c) =
+    if compare c top = 0 then "⊤"
+    else if N.leq n N.bottom then M.show m
+    else "(" ^ M.show m ^ "," ^ N.show n ^ ")"
+
+  let witnesses bounds cs =
+    let ms, _ = M.witnesses bounds (List.map fst cs) in
+    ( List.map (fun m -> (m, N.bottom)) ms @ fst (Grade.sampled mul cs),
+      Grade.Partial )
+end

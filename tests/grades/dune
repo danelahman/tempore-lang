@@ -1,12 +1,18 @@
 ; Unit tests of the grades: the security levels, the products of grades, the
 ; literals of every grade, the four implementations of the regular trace grade,
 ; by automata and by three kinds of derivatives, and the cost-model regular
-; trace grades with their closures.
+; trace grades with their closures; the laws of every registered grade, on
+; samples, by the checks the tests share.
+
+(library
+ (name lawChecks)
+ (modules lawChecks)
+ (libraries grades))
 
 (test
  (name test_grades)
  (modules test_grades)
- (libraries language grades))
+ (libraries language grades lawChecks))
 
 (test
  (name test_regularTraces)
@@ -16,4 +22,4 @@
 (test
  (name test_costTraces)
  (modules test_costTraces)
- (libraries grades parser sugaredAst))
+ (libraries grades parser sugaredAst lawChecks))

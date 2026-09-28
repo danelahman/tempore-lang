@@ -40,6 +40,8 @@
   >     regex_costs_lower*.tpe) ../tempore --grades traces-regex-lower-symbolic $f;;
   >     regex_costs_upper*.tpe) ../tempore --grades traces-regex-upper-symbolic $f;;
   >     regex_costs_interval*.tpe) ../tempore --grades traces-regex-interval-symbolic $f;;
+  >     peak_*.tpe) ../tempore --grades peak-usage $f;;
+  >     literals_reject_peak.tpe) ../tempore --grades peak-usage $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -1219,6 +1221,20 @@
                          ^^^
   Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not names such as 'Low'; did you mean to use the 'security-levels' grading monoid?
   ======================================================================
+  literals_reject_negative.tpe
+  ======================================================================
+  File "literals_reject_negative.tpe", line 3, characters 19-21:
+  3 | let claim () = box -1 1
+                         ^^
+  Syntax error: in the 'time-lower-bound' grading monoid, grades must be non-negative
+  ======================================================================
+  literals_reject_peak.tpe
+  ======================================================================
+  File "literals_reject_peak.tpe", line 3, characters 19-25:
+  3 | let claim () = box (2, 1) 1
+                         ^^^^^^
+  Syntax error: in the 'peak-usage' grading monoid, the peak must be at least 0 and at least the net change
+  ======================================================================
   literals_reject_star.tpe
   ======================================================================
   File "literals_reject_star.tpe", line 3, characters 19-31:
@@ -1557,6 +1573,90 @@
   return ("foo", "foo", "bar")
   State: []
   
+  ======================================================================
+  peak_usage.tpe
+  ======================================================================
+  === Run 1 ===
+  return (File "a", File "b")
+  State: []
+  
+  === Run 2 ===
+  return (File "a", File "b")
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            let a = return op_var in
+            let b = perform Open "b" (op_var. return op_var) in
+            return (a, b)
+          with handler
+               | return x ↦ return x
+               | Open (name, k) ↦ unbox k as unbox_var in
+                                  unbox_var (File name)
+        # (1,1),
+      resource_3 ↦
+        fun op_var ↦
+          handle
+            let b = return op_var in
+            return (File "a", b)
+          with handler
+               | return x ↦ return x
+               | Open (name, k) ↦ unbox k as unbox_var in
+                                  unbox_var (File name)
+        # (1,1)
+    }
+  ]
+  
+  === Run 3 ===
+  return ()
+  State: []
+  
+  ======================================================================
+  peak_usage_reject.tpe
+  ======================================================================
+  File "peak_usage_reject.tpe", lines 9-15, characters 13-17:
+  9 | let three () : unit # (0, 2) =
+                   ^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(0,3)`, which does not match its annotated grade `(0,2)`
+    Note: the effect inequality `(0,3) <= (0,2)` does not hold
+  
+  File "peak_usage_reject.tpe", lines 22-23, characters 2-3:
+  22 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(0,1)` accumulated since it was bound, which is not below its box grade `(0,0)`
+    File "peak_usage_reject.tpe", line 19, characters 18-19:
+    19 |   box (0, 0) 7 as x in
+                           ^
+    `x` is bound here
+    File "peak_usage_reject.tpe", line 20, characters 10-26:
+    20 |   let f = perform Open "f" in
+                   ^^^^^^^^^^^^^^^^
+    grade `(1,1)` accumulates here (operation `Open`)
+    File "peak_usage_reject.tpe", line 21, characters 2-17:
+    21 |   perform Close f;
+           ^^^^^^^^^^^^^^^
+    grade `(-1,0)` accumulates here (operation `Close`)
+    Note: the resource inequality `(0,1) <= (0,0)` does not hold
+  
+  File "peak_usage_reject.tpe", line 27, characters 0-20:
+  27 | default Close f = ()
+       ^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Close` has grade `(0,0)`, which does not match the declared grade `(-1,0)` of `Close`
+    File "peak_usage_reject.tpe", line 6, characters 0-40:
+    6 | operation Close : file ~> unit # (-1, 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Close` is declared here
+    Note: the effect inequality `(0,0) <= (-1,0)` does not hold
+  
+  File "peak_usage_reject.tpe", line 34, characters 17-35:
+  34 |   | Close f k -> continue k with ()
+                        ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with the unit grade `(0,0)` accumulated since it was bound, which is not below its box grade `(-1,0)`
+    File "peak_usage_reject.tpe", line 34, characters 12-13:
+    34 |   | Close f k -> continue k with ()
+                     ^
+    `k` is bound here
+    Note: the resource inequality `(0,0) <= (-1,0)` does not hold
   ======================================================================
   polymorphism.tpe
   ======================================================================
@@ -4414,6 +4514,8 @@ single-dash form of the help option is not accepted.
           security-levels                   Levels
           time-lower-bound-levels           Embargoes
           time-upper-bound-levels           Expiring capabilities
+        Semidirect products:
+          peak-usage                        Peak usage
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

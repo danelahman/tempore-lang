@@ -1,0 +1,34 @@
+(* Peak usage: rejected programs. *)
+
+type file = File of string
+
+operation Open : string ~> file # (1, 1)
+operation Close : file ~> unit # (-1, 0)
+
+(* Rejected: three descriptors are held at the peak. *)
+let three () : unit # (0, 2) =
+  let a = perform Open "a" in
+  let b = perform Open "b" in
+  let c = perform Open "c" in
+  perform Close c;
+  perform Close b;
+  perform Close a
+
+(* Rejected: the box allows no descriptor held since boxing. *)
+let held () =
+  box (0, 0) 7 as x in
+  let f = perform Open "f" in
+  perform Close f;
+  unbox x as n in
+  n
+
+(* Rejected: closing has no default implementation, since no code meets its
+   grade. *)
+default Close f = ()
+
+(* Rejected: a handler cannot release a descriptor. *)
+let released () =
+  handle perform Close (File "f") with
+  handler
+  | x -> x
+  | Close f k -> continue k with ()

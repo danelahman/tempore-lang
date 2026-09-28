@@ -17,24 +17,7 @@ module CostClosure = Grades.CostClosure
 module TimedTrace = Grades.TimedTrace
 module TimedTraceGrades = Grades.TimedTraceGrades
 module Cost = Grades.RegularCostTraceGrades
-
-type check = { name : string; passed : bool; detail : string }
-
-let check name passed detail = { name; passed; detail }
-
-let expect name show ~expected actual =
-  check name (expected = actual)
-    ("expected " ^ show expected ^ ", got " ^ show actual)
-
-(* [all name show p xs] checks [p] on every element of [xs], reporting the
-   first failure by [show]. *)
-let all name show p xs =
-  match List.find_opt (fun x -> not (p x)) xs with
-  | None -> check name true ""
-  | Some x -> check name false ("fails on " ^ show x)
-
-let implies a b = (not a) || b
-let pairs xs = List.concat_map (fun x -> List.map (fun y -> (x, y)) xs) xs
+open LawChecks
 
 (* {1 Runs} *)
 
@@ -226,88 +209,6 @@ let rec finite_words = function
   | Grade.Union (r, s) -> finite_words r @ finite_words s
   | Grade.Any | Grade.Star _ | Grade.Inter _ | Grade.Compl _ ->
       invalid_arg "finite_words"
-
-(* [laws (module G) table samples] checks the laws of a preorder with a
-   monotone product and join on [samples] under [table]. *)
-let laws (type a) (module G : Grade.S with type t = a) table (samples : a list)
-    =
-  let bounds = bounds_of table in
-  let name law = G.name ^ ": " ^ law in
-  let leq = G.leq bounds in
-  let equal = G.equal bounds in
-  let show1 x = G.show x ^ " at " ^ show_table table in
-  let show2 (x, y) = G.show x ^ ", " ^ G.show y ^ " at " ^ show_table table in
-  let below = List.filter (fun (x, y) -> leq x y) (pairs samples) in
-  let triples =
-    List.concat_map (fun (x, y) -> List.map (fun z -> (x, y, z)) samples) below
-  in
-  [
-    all (name "reflexive") show1 (fun x -> leq x x) samples;
-    all (name "transitive")
-      (fun (x, y, z) -> show2 (x, y) ^ ", " ^ G.show z)
-      (fun (x, y, z) -> implies (leq y z) (leq x z))
-      triples;
-    all (name "product monotone")
-      (fun (x, y, z) -> show2 (x, y) ^ ", " ^ G.show z)
-      (fun (x, y, z) ->
-        leq (G.mul x z) (G.mul y z) && leq (G.mul z x) (G.mul z y))
-      triples;
-    all
-      (name "join an upper bound")
-      show2
-      (fun (x, y) -> leq x (G.join x y) && leq y (G.join x y))
-      (pairs samples);
-    all (name "join least")
-      (fun (x, y, z) -> show2 (x, y) ^ ", " ^ G.show z)
-      (fun (x, y, z) -> implies (leq x z && leq y z) (leq (G.join x y) z))
-      (List.concat_map
-         (fun (x, y) -> List.map (fun z -> (x, y, z)) samples)
-         (pairs (List.filteri (fun i _ -> i < 8) samples)));
-    all (name "top greatest") show1 (fun x -> leq x G.top) samples;
-    all
-      (name "equal is mutual leq")
-      show2
-      (fun (x, y) -> equal x y = (leq x y && leq y x))
-      (pairs samples);
-    all (name "counterexamples") show2
-      (fun (x, y) ->
-        match G.counterexample bounds x y with
-        | None -> leq x y
-        | Some e -> (not (leq x y)) && leq e x && not (leq e y))
-      (pairs samples);
-  ]
-  @
-  if G.unit_least then
-    [
-      all (name "unit least") show1
-        (fun x -> implies (G.inhabited bounds x) (leq G.one x))
-        samples;
-      all
-        (name "top absorbing up to equality")
-        show1
-        (fun x -> equal (G.mul x G.top) G.top && equal (G.mul G.top x) G.top)
-        samples;
-    ]
-  else []
-
-let of_nat_laws (module G : Grade.S) ~monotone =
-  let bounds = bounds_of (List.hd tables) in
-  let ns = pairs (List.init 5 Fun.id) in
-  [
-    all
-      (G.name ^ ": of_nat a homomorphism")
-      (fun (m, n) -> Printf.sprintf "%d, %d" m n)
-      (fun (m, n) ->
-        G.equal bounds (G.of_nat (m + n)) (G.mul (G.of_nat m) (G.of_nat n)))
-      ns;
-    all
-      (G.name ^ ": of_nat ordered")
-      (fun (m, n) -> Printf.sprintf "%d, %d" m n)
-      (fun (m, n) ->
-        G.leq bounds (G.of_nat m) (G.of_nat n)
-        = if monotone then m <= n else m >= n)
-      ns;
-  ]
 
 (* [Reader (G)] reads the literals of [G] by the parser, in the grade position
    of a box. *)
@@ -529,12 +430,13 @@ module Suite (I : IMPLEMENTATION) = struct
     let some_tables = List.filteri (fun i _ -> i mod 3 = 0) tables in
     List.concat_map
       (fun table ->
-        laws (module Upper) table samples
-        @ laws (module Lower) table samples
-        @ laws (module Interval) table intervals)
+        let context = show_table table and bounds = bounds_of table in
+        laws (module Upper) ~context bounds samples
+        @ laws (module Lower) ~context bounds samples
+        @ laws (module Interval) ~context bounds intervals)
       some_tables
-    @ of_nat_laws (module Upper) ~monotone:true
-    @ of_nat_laws (module Lower) ~monotone:false
+    @ of_nat_laws (module Upper) (bounds_of (List.hd tables)) ~monotone:true ()
+    @ of_nat_laws (module Lower) (bounds_of (List.hd tables)) ~monotone:false ()
     @ [
         all
           (Lower.name ^ ": the unit is the top")

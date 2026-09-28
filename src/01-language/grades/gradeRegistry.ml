@@ -142,6 +142,11 @@ let entries =
       "Security levels" "Expiring capabilities"
       "A time upper bound paired with a security level: at most n time steps, \
        touching nothing above the level.";
+    entry
+      (module PeakGrades.PeakUsage)
+      "Semidirect products" "Peak usage"
+      "Pairs (d, h) of the net change and the peak of a resource held, such as \
+       open files; a later peak is shifted by the earlier change.";
   ]
 
 let grade_modules = List.map (fun e -> (e.name, e.grade)) entries

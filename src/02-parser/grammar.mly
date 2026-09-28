@@ -513,6 +513,7 @@ eps_grade:
    understands. *)
 grade_lit:
   | n = INT { Grade.Int n }
+  | MINUS n = INT { Grade.Int (-n) }
   | name = UNAME { Grade.Name name }
   | TOP { Grade.Top }
   | INFINITY { Grade.Inf }

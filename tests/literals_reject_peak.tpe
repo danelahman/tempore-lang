@@ -1,0 +1,3 @@
+(* Rejected: a peak below the net change. *)
+
+let claim () = box (2, 1) 1

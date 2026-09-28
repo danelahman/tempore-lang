@@ -1,6 +1,7 @@
 (* Unit tests of the security-level grade, the product construction and its
-   counterexamples, the witnesses of closed conditions, and the interpretation
-   of literals by the grades of [GradeRegistry.grade_modules]. *)
+   counterexamples, the witnesses of closed conditions, the interpretation of
+   literals by the grades of [GradeRegistry.grade_modules], and the laws of
+   these grades on samples. *)
 
 module Grade = Grades.Grade
 module TimeGrades = Grades.TimeGrades
@@ -8,14 +9,7 @@ module TimedTraceGrades = Grades.TimedTraceGrades
 module LevelGrades = Grades.LevelGrades
 module GradeConstructions = Grades.GradeConstructions
 module GradeRegistry = Grades.GradeRegistry
-
-type check = { name : string; passed : bool; detail : string }
-
-let check name passed detail = { name; passed; detail }
-
-let expect name show ~expected actual =
-  check name (expected = actual)
-    ("expected " ^ show expected ^ ", got " ^ show actual)
+open LawChecks
 
 let show_bool = string_of_bool
 let show_names names = "[" ^ String.concat "; " names ^ "]"
@@ -197,6 +191,7 @@ let traces_lower = (module TimedTraceGrades.LowerBound : Grade.S)
 let traces_upper = (module TimedTraceGrades.UpperBound : Grade.S)
 let traces_interval = (module TimedTraceGrades.Interval : Grade.S)
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
+let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
 
@@ -205,6 +200,22 @@ let literals =
   let seq r s = Seq (r, s) and union r s = Union (r, s) in
   let send = Letter "Send" in
   [
+    rejects "negative integer" time_lower (Int (-1)) "must be non-negative";
+    rejects "negative interval endpoint" time_interval
+      (Tuple [ Int (-1); Int 5 ])
+      "must be non-negative";
+    reads "release" peak_usage (Tuple [ Int (-1); Int 0 ]) "(-1,0)";
+    reads "unbounded peak" peak_usage (Tuple [ Int (-3); Inf ]) "(-3,∞)";
+    reads "top" peak_usage Top "(∞,∞)";
+    rejects "peak below the change" peak_usage
+      (Tuple [ Int 2; Int 1 ])
+      "at least the net change";
+    rejects "negative peak" peak_usage
+      (Tuple [ Int (-2); Int (-1) ])
+      "at least 0";
+    rejects "unbounded change" peak_usage (Tuple [ Inf; Int 3 ]) "needs a peak";
+    rejects "integer" peak_usage (Int 3) "not plain integers";
+    rejects "level" peak_usage (Tuple [ Int 1; Name "Low" ]) "in the peak";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not '∞'";
@@ -287,7 +298,7 @@ let registry =
       ~expected:[ "time-lower-bound-levels"; "time-upper-bound-levels" ]
       (GradeRegistry.accepting (lit_of_pair 3 "High"));
     expect "registry: grades reading an open interval" show_names
-      ~expected:[ "time-interval" ]
+      ~expected:[ "time-interval"; "peak-usage" ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
     expect "registry: grades reading a repetition" show_names
       ~expected:
@@ -506,11 +517,87 @@ let witnesses =
     expect "witnesses: product with a partial grade partial" Fun.id
       ~expected:"partial"
       (completeness (module TraceLevels));
+    expect "witnesses: peak usage partial" Fun.id ~expected:"partial"
+      (completeness peak_usage);
   ]
+
+(* ------------------------------------------------------------------ *)
+(* Laws of the registered grades                                       *)
+(* ------------------------------------------------------------------ *)
+
+(* A cost model over the operations [A], [B] and [C]. *)
+let costs =
+  let table = [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)) ] in
+  {
+    Grade.cost = (fun o -> List.assoc o table);
+    operations = List.map fst table;
+  }
+
+(* A random literal of any form, over the operations [A] and [B] and the
+   levels. *)
+let random_lit st =
+  let int () = Random.State.int st 9 - 2 in
+  let level () = Grade.Name (if Random.State.bool st then "Low" else "High") in
+  let rec regex depth =
+    match Random.State.int st (if depth = 0 then 3 else 6) with
+    | 0 -> Grade.Letter (if Random.State.bool st then "A" else "B")
+    | 1 -> Grade.Tick (Random.State.int st 3)
+    | 2 -> Grade.Any
+    | 3 -> Grade.Seq (regex (depth - 1), regex (depth - 1))
+    | 4 -> Grade.Union (regex (depth - 1), regex (depth - 1))
+    | _ -> Grade.Star (regex (depth - 1))
+  in
+  match Random.State.int st 7 with
+  | 0 -> Grade.Int (int ())
+  | 1 -> level ()
+  | 2 -> Grade.Tuple [ Grade.Int (int ()); Grade.Int (int ()) ]
+  | 3 -> Grade.Tuple [ Grade.Int (int ()); Grade.Inf ]
+  | 4 -> Grade.Tuple [ Grade.Int (int ()); level () ]
+  | 5 -> Grade.Braces (regex 2)
+  | _ -> Grade.Tuple [ Grade.Braces (regex 2); Grade.Braces (regex 2) ]
+
+(* [samples (module G)] is [G]'s unit, top and grades of one and two time
+   steps, the first six distinct grades read from random literals, and
+   products and joins of pairs of these. *)
+let samples (type a) (module G : Grade.S with type t = a) : a list =
+  let st = Random.State.make [| 11 |] in
+  let read lit =
+    match G.of_lit lit with
+    | c when G.inhabited costs c -> Some c
+    | _ | (exception Grade.Invalid_literal _) -> None
+  in
+  let distinct =
+    List.fold_left
+      (fun cs c ->
+        if List.exists (fun c' -> G.compare c c' = 0) cs then cs else cs @ [ c ])
+      []
+  in
+  let read_back =
+    List.filteri
+      (fun i _ -> i < 6)
+      (distinct (List.filter_map read (List.init 400 (fun _ -> random_lit st))))
+  in
+  let base = [ G.one; G.top; G.of_nat 1; G.of_nat 2 ] @ read_back in
+  let nth i = List.nth base (i mod List.length base) in
+  base
+  @ List.init 3 (fun i -> G.mul (nth (i + 4)) (nth (i + 5)))
+  @ List.init 3 (fun i -> G.join (nth (i + 4)) (nth (i + 6)))
+
+let registered_laws =
+  List.concat_map
+    (fun (_, (module G : Grade.S)) ->
+      let samples = samples (module G) in
+      let context = "A:(1,3), B:(2,2), C:(0,5)" in
+      order_laws (module G) ~context costs samples
+      @ algebra_laws (module G) ~context costs samples
+      @ counterexample_laws (module G) ~offered:false ~context costs samples
+      @ of_nat_laws (module G) costs ())
+    GradeRegistry.grade_modules
 
 let () =
   let checks =
     levels @ products @ counterexamples @ witnesses @ literals @ tops @ registry
+    @ registered_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
