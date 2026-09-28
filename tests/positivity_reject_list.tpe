@@ -1,0 +1,3 @@
+(* Correctly rejected by the typechecker: `t` occurs in the domain of a
+   function type, nested in a list. *)
+type t = T of (t list -> nat)

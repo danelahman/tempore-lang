@@ -10,7 +10,7 @@ type ('k,'v) assoc = ('k * 'v) list
 
 
 (* Mutually recursive types. *)
-type cow = bull -> nat
+type cow = nat -> bull
 
 and bull =
    | Tail

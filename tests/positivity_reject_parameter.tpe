@@ -1,0 +1,5 @@
+(* Correctly rejected by the typechecker: the parameter of `pred` is not
+   strictly positive, so `t` may not occur in its argument. *)
+type 'a pred = Pred of ('a -> bool)
+
+type t = T of t pred

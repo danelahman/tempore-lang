@@ -274,6 +274,8 @@ let expected_rejections =
     ("basic_unbox.tpe", [ 20; 30 ]);
     ("handlers_nested_reject.tpe", [ 18 ]);
     ("comp_type_annotation_reject.tpe", [ 3 ]);
+    ("comparison_reject_box.tpe", [ 3 ]);
+    ("comparison_reject_function.tpe", [ 5 ]);
     ("comp_type_annotation_upper_reject.tpe", [ 3 ]);
     ("continuation_discard_abort_reject_lower.tpe", [ 13 ]);
     ("continuation_discard_delay_reject_lower.tpe", [ 11 ]);
@@ -304,6 +306,7 @@ let expected_rejections =
     ("invalid_match_type.tpe", [ 4 ]);
     ("flow_levels_reject.tpe", [ 8; 13; 18; 26 ]);
     ("iterative_unbox.tpe", [ 4 ]);
+    ("less_than_function.tpe", [ 1 ]);
     ("levels_reject.tpe", [ 8 ]);
     ("levels_time_lower_reject.tpe", [ 9; 16 ]);
     ("levels_time_upper_reject.tpe", [ 9; 16 ]);
@@ -314,9 +317,16 @@ let expected_rejections =
     ("noneternal_reject_alias.tpe", [ 5 ]);
     ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
     ("occurs_check.tpe", [ 1 ]);
+    ("operation_reject_datatype.tpe", [ 5 ]);
+    ("operation_reject_higher_order.tpe", [ 8 ]);
     ("peak_resources_reject.tpe", [ 11; 18; 28 ]);
     ("peak_usage_reject.tpe", [ 9; 18; 27; 30 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
+    ("positivity_reject_list.tpe", [ 3 ]);
+    ("positivity_reject_mutual.tpe", [ 3 ]);
+    ("positivity_reject_nested.tpe", [ 3 ]);
+    ("positivity_reject_omega.tpe", [ 7 ]);
+    ("positivity_reject_parameter.tpe", [ 5 ]);
     ("regex_costs_interval_reject.tpe", [ 10; 17 ]);
     ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);
     ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);

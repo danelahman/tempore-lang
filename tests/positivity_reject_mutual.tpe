@@ -1,0 +1,4 @@
+(* Correctly rejected by the typechecker: `b` occurs in the domain of a
+   function type in the definition of `a`, defined together with it. *)
+type a = A of (b -> nat)
+and b = B of a

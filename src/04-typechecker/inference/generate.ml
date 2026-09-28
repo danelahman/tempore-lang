@@ -35,6 +35,7 @@ module Make (C : Constraint.S) = struct
   type ty_definition = {
     params : Ast.ty_param list;
     definition : (rho, eps) Ast.ty_def;
+    strictly_positive : bool list;
   }
 
   type op_signature = {
@@ -64,6 +65,12 @@ module Make (C : Constraint.S) = struct
         (** the operations the whole program declares with runtime bounds *)
   }
 
+  let set_type_definition name def env =
+    {
+      env with
+      type_definitions = Ast.TyNameMap.add name def env.type_definitions;
+    }
+
   let add_type_definition name def env =
     let constructors =
       match def.definition with
@@ -73,15 +80,190 @@ module Make (C : Constraint.S) = struct
             (fun cs (lbl, _) -> LabelMap.add lbl name cs)
             env.constructors variants
     in
-    {
-      env with
-      type_definitions = Ast.TyNameMap.add name def env.type_definitions;
-      constructors;
-    }
+    { (set_type_definition name def env) with constructors }
+
+  let find_type_definition env name =
+    Ast.TyNameMap.find_opt name env.type_definitions
+
+  (* ------------------------------------------------------------------ *)
+  (* Strict positivity                                                   *)
+  (* ------------------------------------------------------------------ *)
+
+  (* A position at which an occurrence is not strictly positive. *)
+  type position =
+    | Function_domain
+    | Handler_input
+    | Grouped_argument of Ast.ty_name
+        (** an argument of a type defined together with the occurring one *)
+    | Nonpositive_argument of Ast.ty_name
+        (** an argument of a type at a parameter not strictly positive *)
+
+  (* The types a definition is made of: the arguments of its constructors, or
+     the body of an alias. *)
+  let components = function
+    | Ast.TySum variants -> List.filter_map snd variants
+    | Ast.TyInline ty -> [ ty ]
+
+  let immediate_subtypes = function
+    | Ast.TyConst _ | Ast.TyParam _ -> []
+    | Ast.TyApply (_, tys) | Ast.TyTuple tys -> tys
+    | Ast.TyArrow (ty, Ast.CompTy (ty', _))
+    | Ast.TyHandler (Ast.CompTy (ty, _), Ast.CompTy (ty', _)) ->
+        [ ty; ty' ]
+    | Ast.TyBox (_, ty) -> [ ty ]
+
+  (* The first subtype of [ty], outermost first, that [target] finds. *)
+  let rec occurrence target ty =
+    match target ty with
+    | Some _ as found -> found
+    | None -> List.find_map (occurrence target) (immediate_subtypes ty)
+
+  (* The first occurrence of [target] in [ty] that is not strictly positive,
+     with its position, at the parameter polarities of [env]; [grouped name]
+     is whether [name] is defined together with the types [target] finds. *)
+  let rec nonpositive env ~target ~grouped ty =
+    let at position ty =
+      Option.map (fun found -> (found, position)) (occurrence target ty)
+    in
+    let within = nonpositive env ~target ~grouped in
+    let first found ty =
+      match found with Some _ -> found | None -> within ty
+    in
+    match ty with
+    | Ast.TyConst _ | Ast.TyParam _ -> None
+    | Ast.TyTuple tys -> List.find_map within tys
+    | Ast.TyBox (_, ty) -> within ty
+    | Ast.TyArrow (ty, Ast.CompTy (ty', _)) -> first (at Function_domain ty) ty'
+    | Ast.TyHandler (Ast.CompTy (ty, _), Ast.CompTy (ty', _)) ->
+        first (at Handler_input ty) ty'
+    | Ast.TyApply (name, tys) when grouped name ->
+        List.find_map (at (Grouped_argument name)) tys
+    | Ast.TyApply (name, tys) ->
+        let positive =
+          match find_type_definition env name with
+          | Some def -> def.strictly_positive
+          | None -> []
+        in
+        List.find_map
+          (fun (i, ty) ->
+            if List.nth_opt positive i = Some true then within ty
+            else at (Nonpositive_argument name) ty)
+          (List.mapi (fun i ty -> (i, ty)) tys)
+
+  (* Whether each parameter of [def] occurs only strictly positively in it, at
+     the parameter polarities of [env]. *)
+  let polarity env def =
+    List.map
+      (fun a ->
+        let target = function
+          | Ast.TyParam b when Ast.TyParamModule.compare a b = 0 -> Some ()
+          | _ -> None
+        in
+        List.for_all
+          (fun ty ->
+            Option.is_none
+              (nonpositive env ~target ~grouped:(fun _ -> false) ty))
+          (components def.definition))
+      def.params
+
+  (* [env] with the definitions [group], defined together, their parameter
+     polarities the greatest fixpoint below those they record. *)
+  let rec settle_polarities env group =
+    let env =
+      List.fold_left
+        (fun env (name, def) -> set_type_definition name def env)
+        env group
+    in
+    let settled =
+      List.map
+        (fun (name, def) ->
+          ( name,
+            {
+              def with
+              strictly_positive =
+                List.map2 ( && ) def.strictly_positive (polarity env def);
+            } ))
+        group
+    in
+    if
+      List.equal
+        (fun (_, def) (_, def') ->
+          List.equal Bool.equal def.strictly_positive def'.strictly_positive)
+        group settled
+    then env
+    else settle_polarities env settled
+
+  let describe_position = function
+    | Function_domain -> "in the domain of a function type"
+    | Handler_input -> "in the input type of a handler type"
+    | Grouped_argument name ->
+        Format.asprintf "in an argument of `%t`, a type being defined,"
+          (Ast.TyName.print name)
+    | Nonpositive_argument name ->
+        Format.asprintf
+          "in an argument of `%t`, at a parameter that is not strictly \
+           positive,"
+          (Ast.TyName.print name)
+
+  (* Every type of the definitions [group], defined together, occurs only
+     strictly positively in each of them. *)
+  let check_strictly_positive ~loc env group =
+    let grouped name =
+      List.exists (fun (name', _) -> Ast.TyName.compare name name' = 0) group
+    in
+    let target = function
+      | Ast.TyApply (name, _) when grouped name -> Some name
+      | _ -> None
+    in
+    let check where ty =
+      match nonpositive env ~target ~grouped ty with
+      | None -> ()
+      | Some (name, position) ->
+          Error.typing ~loc
+            ~notes:
+              [
+                "a type occurring other than strictly positively in its own \
+                 definition admits non-terminating programs without recursion";
+              ]
+            "Type `%t` is not strictly positive: it occurs %s %s"
+            (Ast.TyName.print name)
+            (describe_position position)
+            where
+    in
+    List.iter
+      (fun (name, def) ->
+        match def.definition with
+        | Ast.TySum variants ->
+            List.iter
+              (fun (lbl, ty) ->
+                Option.iter
+                  (check
+                     (Printf.sprintf "in the argument of constructor `%s`"
+                        (Ast.Label.string_of lbl)))
+                  ty)
+              variants
+        | Ast.TyInline ty ->
+            check
+              (Printf.sprintf "in the definition of `%s`"
+                 (Ast.TyName.string_of name))
+              ty)
+      group
+
+  (* [env] with the definitions [group], defined together. *)
+  let add_type_group env group =
+    settle_polarities
+      (List.fold_left
+         (fun env (name, def) -> add_type_definition name def env)
+         env group)
+      group
+
+  (* A definition whose parameters are assumed strictly positive. *)
+  let assumed_positive params definition =
+    { params; definition; strictly_positive = List.map (fun _ -> true) params }
 
   let initial_env =
     let a = Ast.TyParamModule.fresh "list" in
-    let alias ty = { params = []; definition = Ast.TyInline ty } in
+    let alias ty = assumed_positive [] (Ast.TyInline ty) in
     let list_def =
       Ast.TySum
         [
@@ -114,12 +296,9 @@ module Make (C : Constraint.S) = struct
          (alias (Ast.TyConst Const.StringTy))
     |> add_type_definition Ast.float_ty_name (alias (Ast.TyConst Const.FloatTy))
     |> add_type_definition Ast.empty_ty_name
-         { params = []; definition = Ast.TySum [] }
-    |> add_type_definition Ast.list_ty_name
-         { params = [ a ]; definition = list_def }
-
-  let find_type_definition env name =
-    Ast.TyNameMap.find_opt name env.type_definitions
+         (assumed_positive [] (Ast.TySum []))
+    |> fun env ->
+    add_type_group env [ (Ast.list_ty_name, assumed_positive [ a ] list_def) ]
 
   let is_noneternal env name = Ast.TyNameSet.mem name env.noneternal
   let find_op_signature env op = Ast.OpNameMap.find_opt op env.op_signatures
@@ -242,24 +421,25 @@ module Make (C : Constraint.S) = struct
     (match eternality with
     | Ast.Derived -> ()
     | Ast.Noneternal -> List.iter (check_noneternal_definable ~loc) defs);
+    let group =
+      List.map
+        (fun (params, name, def) ->
+          (name, assumed_positive params (open_ty_def env def)))
+        defs
+    in
     let env' =
       List.fold_left
-        (fun env (params, name, def) ->
-          let env =
-            add_type_definition name
-              { params; definition = open_ty_def env def }
-              env
-          in
+        (fun env (name, def) ->
+          let env = add_type_definition name def env in
           match eternality with
           | Ast.Derived -> env
           | Ast.Noneternal ->
               { env with noneternal = Ast.TyNameSet.add name env.noneternal })
-        env defs
+        env group
     in
-    List.iter
-      (fun (_, _, def) -> check_ty_def ~loc env' (open_ty_def env' def))
-      defs;
-    env'
+    List.iter (fun (_, def) -> check_ty_def ~loc env' def.definition) group;
+    check_strictly_positive ~loc env' group;
+    settle_polarities env' group
 
   (* The runtime bounds of the operations, extended by those of [op_name],
      declared or implied by its grade. *)
@@ -317,17 +497,63 @@ module Make (C : Constraint.S) = struct
         | Some bounds -> StringMap.add op_name bounds env.op_bounds
         | None -> env.op_bounds)
 
+  type higher_order = Function_type | Handler_type
+
+  (* The first function or handler type in [ty], with the outermost type
+     whose definition it is found in, if any; definitions are unfolded, a
+     type of [unfolding] being ground. *)
+  let rec higher_order env ~unfolding = function
+    | Ast.TyConst _ | Ast.TyParam _ -> None
+    | Ast.TyArrow _ -> Some (Function_type, None)
+    | Ast.TyHandler _ -> Some (Handler_type, None)
+    | Ast.TyTuple tys -> List.find_map (higher_order env ~unfolding) tys
+    | Ast.TyBox (_, ty) -> higher_order env ~unfolding ty
+    | Ast.TyApply (name, tys) -> (
+        match List.find_map (higher_order env ~unfolding) tys with
+        | Some _ as found -> found
+        | None
+          when List.exists (fun n -> Ast.TyName.compare n name = 0) unfolding ->
+            None
+        | None ->
+            Option.bind (find_type_definition env name) (fun def ->
+                List.find_map
+                  (higher_order env ~unfolding:(name :: unfolding))
+                  (components def.definition))
+            |> Option.map (fun (former, _) -> (former, Some name)))
+
+  (* The parameter or result type [ty] of the operation [op] contains no
+     function or handler type. *)
+  let check_ground ~loc env op which ty =
+    match higher_order env ~unfolding:[] ty with
+    | None -> ()
+    | Some (former, through) ->
+        Error.typing ~loc
+          ~notes:
+            [
+              "a function or handler in an operation's parameter or result \
+               lets a handler build non-terminating programs without recursion";
+            ]
+          "The operation `%s` has a %s type containing a %s type%s; operation \
+           parameter and result types must be ground"
+          (Ast.OpName.string_of op) which
+          (match former with
+          | Function_type -> "function"
+          | Handler_type -> "handler")
+          (match through with
+          | Some name ->
+              Printf.sprintf " through the definition of `%s`"
+                (Ast.TyName.string_of name)
+          | None -> "")
+
   let add_operation_signature ~loc env (op, param, arity, grade, bounds) =
     let op_name = Ast.OpName.string_of op in
     let op_bounds = checked_op_bounds ~loc env op_name grade bounds in
-    let signature =
-      {
-        param = open_ty env param;
-        arity = open_ty env arity;
-        op_grade = open_eps env grade;
-        signature_at = loc;
-      }
-    in
+    let op_grade = open_eps env grade in
+    let arity = open_ty env arity in
+    let param = open_ty env param in
+    check_ground ~loc env op "parameter" param;
+    check_ground ~loc env op "result" arity;
+    let signature = { param; arity; op_grade; signature_at = loc } in
     {
       env with
       op_signatures = Ast.OpNameMap.add op signature env.op_signatures;

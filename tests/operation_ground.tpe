@@ -1,0 +1,7 @@
+(* Ground operation signatures: tuples, boxes and datatypes without functions,
+   recursive ones included. *)
+type tree = Leaf | Branch of tree * nat * tree
+
+operation Op : tree * [1] nat ~> nat list # 1
+
+run 1

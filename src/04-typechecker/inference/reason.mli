@@ -149,6 +149,9 @@ type ('rho, 'eps) why =
   | Top_definition of Ast.variable
       (** at = a top-level definition; its type is the one generalised *)
   | Top_computation  (** at = a top-level computation *)
+  | Compared_values
+      (** at = none, the primitives having no source; the values a comparison
+          compares have an eternal type *)
 
 (** An ordering as it was generated, before the solver rewrote it. *)
 and ('rho, 'eps) stated =

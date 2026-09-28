@@ -1,0 +1,5 @@
+(* Correctly rejected by the typechecker: the parameter type of `Op` contains
+   a function type through the definition of `callback`. *)
+type callback = Callback of (nat -> nat)
+
+operation Op : callback list ~> unit # 1

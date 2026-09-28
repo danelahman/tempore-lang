@@ -294,6 +294,29 @@
   Typing error: This function's body has grade `3`, which does not match its annotated grade `2`
     Note: the effect inequality `3 <= 2` does not hold
   ======================================================================
+  comparison_reject_box.tpe
+  ======================================================================
+  File "comparison_reject_box.tpe", line 3, characters 23-24:
+  3 | run (box 1 3 as b in b = b)
+                             ^
+  Typing error: Type `[ρ₀]nat` is not eternal, as required by the type of `(=)`
+    File "stdlib.tpe", line 1, characters 0-37:
+    1 | let ( = ) x y = __compare_eq__ (x, y)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `(=)` is defined here
+    Note: a box type is never eternal
+  ======================================================================
+  comparison_reject_function.tpe
+  ======================================================================
+  File "comparison_reject_function.tpe", line 5, characters 7-8:
+  5 | run (f = f)
+             ^
+  Typing error: Type `α → β # ε₀` is not eternal, as required by the type of `(=)`
+    File "stdlib.tpe", line 1, characters 0-37:
+    1 | let ( = ) x y = __compare_eq__ (x, y)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `(=)` is defined here
+  ======================================================================
   continuation_discard_abort_reject_lower.tpe
   ======================================================================
   File "continuation_discard_abort_reject_lower.tpe", line 13, characters 52-57:
@@ -1183,7 +1206,14 @@
   ======================================================================
   less_than_function.tpe
   ======================================================================
-  Runtime error: Incomparable expression (fun x ↦ return x)
+  File "less_than_function.tpe", line 1, characters 17-18:
+  1 | run (fun x -> x) < (fun x -> 2 * x)
+                       ^
+  Typing error: Type `α → β # ε₀` is not eternal, as required by the type of `(<)`
+    File "stdlib.tpe", line 2, characters 0-37:
+    2 | let ( < ) x y = __compare_lt__ (x, y)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `(<)` is defined here
   ======================================================================
   levels.tpe
   ======================================================================
@@ -2105,6 +2135,29 @@
   op_case_context_unbox.tpe
   ======================================================================
   ======================================================================
+  operation_ground.tpe
+  ======================================================================
+  === Run 1 ===
+  return 1
+  State: []
+  
+  ======================================================================
+  operation_reject_datatype.tpe
+  ======================================================================
+  File "operation_reject_datatype.tpe", line 5, characters 0-40:
+  5 | operation Op : callback list ~> unit # 1
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The operation `Op` has a parameter type containing a function type through the definition of `callback`; operation parameter and result types must be ground
+    Note: a function or handler in an operation's parameter or result lets a handler build non-terminating programs without recursion
+  ======================================================================
+  operation_reject_higher_order.tpe
+  ======================================================================
+  File "operation_reject_higher_order.tpe", line 8, characters 0-45:
+  8 | operation Op : unit ~> (unit -> unit # 0) # 0
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The operation `Op` has a result type containing a function type; operation parameter and result types must be ground
+    Note: a function or handler in an operation's parameter or result lets a handler build non-terminating programs without recursion
+  ======================================================================
   orelse_andalso.tpe
   ======================================================================
   === Run 1 ===
@@ -2350,6 +2403,57 @@
              ^^^^
     `nat` was inferred here
     Note: while matching `nat → nat` against `string → α # ε₀`
+  ======================================================================
+  positivity.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Node ((Node [])::(Node ((Node [])::[]))::[]))
+  State: []
+  
+  === Run 2 ===
+  return (Even (Odd Zero))
+  State: []
+  
+  ======================================================================
+  positivity_reject_list.tpe
+  ======================================================================
+  File "positivity_reject_list.tpe", line 3, characters 0-29:
+  3 | type t = T of (t list -> nat)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Type `t` is not strictly positive: it occurs in the domain of a function type in the argument of constructor `T`
+    Note: a type occurring other than strictly positively in its own definition admits non-terminating programs without recursion
+  ======================================================================
+  positivity_reject_mutual.tpe
+  ======================================================================
+  File "positivity_reject_mutual.tpe", lines 3-4, characters 0-14:
+  3 | type a = A of (b -> nat)
+      ^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Type `b` is not strictly positive: it occurs in the domain of a function type in the argument of constructor `A`
+    Note: a type occurring other than strictly positively in its own definition admits non-terminating programs without recursion
+  ======================================================================
+  positivity_reject_nested.tpe
+  ======================================================================
+  File "positivity_reject_nested.tpe", line 3, characters 0-33:
+  3 | type 'a t = Leaf | Node of 'a t t
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Type `t` is not strictly positive: it occurs in an argument of `t`, a type being defined, in the argument of constructor `Node`
+    Note: a type occurring other than strictly positively in its own definition admits non-terminating programs without recursion
+  ======================================================================
+  positivity_reject_omega.tpe
+  ======================================================================
+  File "positivity_reject_omega.tpe", line 7, characters 0-27:
+  7 | type t = Fold of (t -> nat)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Type `t` is not strictly positive: it occurs in the domain of a function type in the argument of constructor `Fold`
+    Note: a type occurring other than strictly positively in its own definition admits non-terminating programs without recursion
+  ======================================================================
+  positivity_reject_parameter.tpe
+  ======================================================================
+  File "positivity_reject_parameter.tpe", line 5, characters 0-20:
+  5 | type t = T of t pred
+      ^^^^^^^^^^^^^^^^^^^^
+  Typing error: Type `t` is not strictly positive: it occurs in an argument of `pred`, at a parameter that is not strictly positive, in the argument of constructor `T`
+    Note: a type occurring other than strictly positively in its own definition admits non-terminating programs without recursion
   ======================================================================
   rational_time_intervals.tpe
   ======================================================================

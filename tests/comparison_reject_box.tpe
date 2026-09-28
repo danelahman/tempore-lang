@@ -1,0 +1,3 @@
+(* Correctly rejected by the typechecker: boxes are not eternal, so they
+   cannot be compared. *)
+run (box 1 3 as b in b = b)

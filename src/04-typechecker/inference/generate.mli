@@ -63,6 +63,8 @@ module Make (C : Constraint.S) : sig
   type ty_definition = {
     params : Ast.ty_param list;
     definition : (rho, eps) Ast.ty_def;
+    strictly_positive : bool list;
+        (** for each parameter, whether it occurs only strictly positively *)
   }
   (** A type definition, [TySum] for a variant type, [TyInline] for an alias. *)
 
@@ -123,10 +125,14 @@ module Make (C : Constraint.S) : sig
     env
   (** [add_type_definitions ~loc env (eternality, defs)] adds the mutually
       recursive definitions [defs], declared [noneternal] when [eternality] is
-      [Noneternal].
+      [Noneternal], and records the polarities of their parameters, the greatest
+      fixpoint.
       @raise Utils.Error.Error
-        if an alias is declared [noneternal] or a type is applied to the wrong
-        number of arguments. *)
+        if an alias is declared [noneternal], a type is applied to the wrong
+        number of arguments, or a type of [defs] occurs in one of them other
+        than strictly positively: in the domain of a function type, in the input
+        type of a handler type, in an argument of a type of [defs], or in an
+        argument of another type at a parameter not strictly positive. *)
 
   val add_operation_signature :
     loc:Location.t ->
@@ -137,7 +143,9 @@ module Make (C : Constraint.S) : sig
       the signature of [op] and its runtime bounds, declared or implied by its
       grade.
       @raise Utils.Error.Error
-        if the bounds are missing, superfluous or malformed for the grade. *)
+        if the bounds are missing, superfluous or malformed for the grade, or
+        the parameter or result type contains a function or handler type, the
+        definitions of types being unfolded. *)
 
   val add_global :
     env -> Ast.variable -> defined_at:Location.t option -> C.scheme -> env

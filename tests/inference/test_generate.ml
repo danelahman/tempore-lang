@@ -103,6 +103,13 @@ let malformed =
     "literals_reject_windows.tpe";
     "nat_reject_negative.tpe";
     "nat_reject_successor_zero.tpe";
+    "operation_reject_datatype.tpe";
+    "operation_reject_higher_order.tpe";
+    "positivity_reject_list.tpe";
+    "positivity_reject_mutual.tpe";
+    "positivity_reject_nested.tpe";
+    "positivity_reject_omega.tpe";
+    "positivity_reject_parameter.tpe";
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
     "literals_reject_rational_negative.tpe";

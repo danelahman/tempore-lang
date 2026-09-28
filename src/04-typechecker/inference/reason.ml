@@ -87,6 +87,7 @@ type ('rho, 'eps) why =
   | Default_of of { op : Ast.operation; signature_at : Location.t }
   | Top_definition of Ast.variable
   | Top_computation
+  | Compared_values
 
 and ('rho, 'eps) stated =
   | Stated_rho of 'rho * 'rho
@@ -142,7 +143,7 @@ let rec map_grades on_rho on_eps reason =
     | ( Match_branch | Annotation | Pattern_annotation | Successor_pattern
       | Boxed_value | Handle_with | Handled_computation | Return_clause
       | Function_body | Function_parameter | Pure_body | Sequencing
-      | Top_computation ) as why ->
+      | Top_computation | Compared_values ) as why ->
         why
   in
   let stated =
@@ -237,6 +238,7 @@ let print_why why ppf =
   | Default_of { op; _ } -> op_rule "default of" op
   | Top_definition x -> var_rule "definition of" x
   | Top_computation -> text "top-level computation"
+  | Compared_values -> text "compared values"
 
 let print reason ppf =
   Format.fprintf ppf "%t at %t" (print_why reason.why)

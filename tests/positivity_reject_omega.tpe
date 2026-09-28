@@ -1,0 +1,7 @@
+(* Correctly rejected by the typechecker: `t` occurs in the domain of a
+   function type in its own definition, which would give a non-terminating
+   program without recursion:
+
+     let app x = match x with | Fold f -> f x
+     let omega () = app (Fold app) *)
+type t = Fold of (t -> nat)

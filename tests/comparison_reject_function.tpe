@@ -1,0 +1,5 @@
+let f x = x
+
+(* Correctly rejected by the typechecker: functions are not eternal, so they
+   cannot be compared. *)
+run (f = f)

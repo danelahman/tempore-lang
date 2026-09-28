@@ -1,0 +1,23 @@
+(* Types occurring only strictly positively in their own definitions: through
+   lists, tuples, boxes, the results of functions and the strictly positive
+   parameters of other types. *)
+type rose = Node of rose list
+
+type ('k, 'v) assoc = ('k * 'v) list
+
+type 'a maybe = Nothing | Just of 'a
+
+type trie = Trie of (nat, trie maybe * [1] trie) assoc
+
+type stream = More of nat * (unit -> stream)
+
+type 'a reader = Reader of (nat -> 'a)
+
+type config = Config of config reader
+
+type even = Zero | Even of odd
+and odd = Odd of even
+
+run Node [Node []; Node [Node []]]
+
+run Even (Odd Zero)

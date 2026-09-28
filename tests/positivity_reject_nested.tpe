@@ -1,0 +1,3 @@
+(* Correctly rejected by the typechecker: `t` occurs in an argument of a type
+   being defined together with it. *)
+type 'a t = Leaf | Node of 'a t t

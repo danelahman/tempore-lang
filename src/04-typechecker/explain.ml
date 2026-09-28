@@ -675,7 +675,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Recursive_definition _ | Reason.Function_body
     | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing
     | Reason.Continuation_effect _ | Reason.Top_definition _
-    | Reason.Top_computation ->
+    | Reason.Top_computation | Reason.Compared_values ->
         []
 
   (* The construct a reason names, as "the inequality goes through" continues. *)
@@ -708,6 +708,7 @@ module Make (C : Inference.Constraint.S) = struct
         "the default implementation of " ^ op_name op
     | Reason.Top_definition x -> "the definition of " ^ describe x
     | Reason.Top_computation -> "the computation"
+    | Reason.Compared_values -> "the comparison"
 
   (* Whether a link of a chain of orderings is a source of grades: a type
      stated or inferred elsewhere, rather than a construct passing a grade
@@ -726,7 +727,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Return_clause | Reason.Recursive_definition _
     | Reason.Function_body | Reason.Function_parameter | Reason.Pure_body
     | Reason.Sequencing | Reason.Continuation_effect _ | Reason.Top_definition _
-    | Reason.Top_computation ->
+    | Reason.Top_computation | Reason.Compared_values ->
         false
 
   (* The sources along a chain of orderings other than the places already
