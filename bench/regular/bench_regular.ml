@@ -31,7 +31,7 @@ let bounds = { Grade.cost = (fun _ -> (0, 0)); operations = [] }
 
 let now = Unix.gettimeofday
 let processes = 5
-let time_limit = 20
+let time_limit = 10
 let warm_budget = 0.1
 let patience = 10.
 
@@ -531,11 +531,13 @@ module CostWorkloads (G : Grade.S) = struct
     ]
 
   (* [n] stops at 8: automata already take seconds to elaborate [E2] there,
-     and 12 pushes the interval grade's symbolic derivatives past 20 s. *)
+     and 12 pushes the interval grade's symbolic derivatives past 20 s. The
+     delays of 1024 ticks exercise the runs of ticks as counters, and the 512
+     declared names, of three costs, the classes of names of equal cost. *)
   let operations =
     costs
-    @ List.concat_map delays [ 8; 32; 128 ]
-    @ List.concat_map declared [ 8; 32; 128 ]
+    @ List.concat_map delays [ 8; 32; 128; 1024 ]
+    @ List.concat_map declared [ 8; 32; 128; 512 ]
     @ List.concat_map nth_from_end [ 4; 8 ]
 end
 
