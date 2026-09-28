@@ -432,10 +432,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
           Untyped.Do
             ( Untyped.located loc (Untyped.Return expr1),
               (Untyped.located loc (Untyped.PVar f), c) ) )
-    | Sugared.Delay n ->
+    | Sugared.Delay q ->
         ( [],
           Untyped.Delay
-            ( n,
+            ( q,
               Untyped.located loc
                 (Untyped.Return (Untyped.located loc (Untyped.Tuple []))) ) )
     | Sugared.Box (rho, e, (p, c)) ->

@@ -29,6 +29,7 @@ module OfLattice (L : LATTICE) = struct
     let (_ : int) = Grade.check_nat L.name n in
     L.bottom
 
+  let of_duration = Grade.whole ~who:L.name of_nat
   let equal _bounds l l' = L.leq l l' && L.leq l' l
   let is_top _bounds = L.leq L.top
   let compare = L.compare
@@ -67,6 +68,7 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
   let top = (G1.top, G2.top)
   let join (a, b) (a', b') = (G1.join a a', G2.join b b')
   let of_nat n = (G1.of_nat n, G2.of_nat n)
+  let of_duration q = (G1.of_duration q, G2.of_duration q)
 
   let equal bounds (a, b) (a', b') =
     G1.equal bounds a a' && G2.equal bounds b b'
@@ -170,6 +172,7 @@ struct
   let top = (M.top, N.top)
   let join (m, n) (m', n') = (M.join m m', N.join n n')
   let of_nat k = (M.of_nat k, N.bottom)
+  let of_duration q = (M.of_duration q, N.bottom)
 
   let equal bounds (m, n) (m', n') =
     M.equal bounds m m' && N.leq n n' && N.leq n' n
@@ -414,6 +417,7 @@ module Indexed = struct
     let top = everywhere G.top
     let join = map2 G.compare G.join
     let of_nat n = everywhere (G.of_nat n)
+    let of_duration q = everywhere (G.of_duration q)
     let equal bounds = for_all2 (G.equal bounds)
     let is_top bounds = for_all (G.is_top bounds)
     let compare = compare_with G.compare

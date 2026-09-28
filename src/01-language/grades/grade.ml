@@ -16,7 +16,9 @@
     - [join] is a least upper bound and [top] a greatest element;
     - [mul] distributes over [join] on both sides: [c · (d ⊔ e) = c · d ⊔ c · e]
       and [(d ⊔ e) · c = d · c ⊔ e · c];
-    - [of_nat] is a monoid morphism from [(ℕ, +, 0)].
+    - [of_nat] is a monoid morphism from [(ℕ, +, 0)];
+    - [of_duration] is a monoid morphism from [(ℚ≥0, +, 0)] on its domain, a
+      submonoid containing [ℕ], on which it agrees with [of_nat].
 
     {2 Cost model}
 
@@ -61,6 +63,8 @@ let regex_names r =
 (** Grade literals as they appear in source. *)
 type lit =
   | Int of int  (** An integer, e.g. [42] or [-1] *)
+  | Rat of Rational.t
+      (** A rational that is not an [int], e.g. [3/2] or [1.5] *)
   | Name of string  (** A capitalised name, e.g. [High], or [_] *)
   | Top  (** The greatest grade, [⊤] or [top] *)
   | Inf  (** Infinity, [∞] or [inf] *)
@@ -84,10 +88,16 @@ let component_of_lit lit ~context of_lit component =
   try of_lit component
   with Invalid_literal (_, reason) -> invalid_lit lit "%s%s" context reason
 
+(** [rational_lit q] is the literal of the rational [q]: [Int n] if [q] is an
+    [int] [n], and [Rat q] otherwise. *)
+let rational_lit q =
+  match Rational.to_int q with Some n -> Int n | None -> Rat q
+
 (** [describe_lit lit] names the form of [lit] in the plural, for messages such
     as "grades are plain integers, not pairs". *)
 let describe_lit = function
   | Int _ -> "plain integers"
+  | Rat _ -> "fractions such as '3/2'"
   | Name name -> "names such as '" ^ name ^ "'"
   | Top -> "'⊤'"
   | Inf -> "'∞'"
@@ -140,6 +150,12 @@ module type S = sig
 
   val of_nat : int -> t
   (** [of_nat n] is the grade of [n] time steps; [of_nat 0] is {!one}. *)
+
+  val of_duration : Rational.t -> t
+  (** [of_duration q] is the grade of a delay of [q ≥ 0] time steps; it agrees
+      with {!of_nat} on the natural numbers.
+
+      @raise Invalid_literal if the grade has no delay of [q]. *)
 
   val equal : bounds -> t -> t -> bool
   (** [equal bounds c d] decides [c = d] under the cost model [bounds]. *)
@@ -253,3 +269,16 @@ let hash_list hash xs = List.fold_left (fun h x -> combine h (hash x)) 0 xs
 let check_nat who n =
   if n < 0 then invalid_arg (who ^ ".of_nat: expected non-negative integer")
   else n
+
+(** [whole ~who of_nat q] is [of_nat n] if the duration [q] is a natural number
+    [n], the {!S.of_duration} of a grade counting whole time steps by [of_nat].
+
+    @raise Invalid_argument if [q] is negative, naming the function [who].
+    @raise Invalid_literal if [q] is not an integer. *)
+let whole ~who of_nat q =
+  if Rational.sign q < 0 then
+    invalid_arg (who ^ ".of_duration: expected non-negative duration")
+  else
+    match Rational.to_int q with
+    | Some n -> of_nat n
+    | None -> invalid_lit (Rat q) "delays are whole numbers of time steps"

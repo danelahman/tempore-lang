@@ -6,7 +6,7 @@
 (library
  (name sugaredAst)
  (modules sugaredAst)
- (libraries utils language))
+ (libraries utils language grades))
 
 (library
  (name parser)

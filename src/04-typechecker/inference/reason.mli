@@ -19,7 +19,7 @@ type clause = {
 
 (** The construct a lock of the context stands for. *)
 type lock_kind =
-  | Delayed of int  (** [delay n] *)
+  | Delayed of Grades.Rational.t  (** [delay q] *)
   | Performed of Ast.operation  (** [perform Op], before its continuation *)
   | Sequenced  (** the computation bound by [let] or [;] *)
   | Boxed  (** the payload of [box ρ], checked under the lock [⟨ρ⟩] *)

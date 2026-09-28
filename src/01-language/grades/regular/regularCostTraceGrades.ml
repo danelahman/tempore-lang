@@ -188,6 +188,7 @@ struct
     let mul = L.mul
     let join = L.join
     let of_nat = L.of_nat
+    let of_duration = L.of_duration
     let leq_symbol = "<="
     let commutative = false
     let needs_op_bounds = true
@@ -288,6 +289,7 @@ struct
             (describe_lit lit)
 
     let of_nat n = (L.of_nat n, L.of_nat n)
+    let of_duration q = (L.of_duration q, L.of_duration q)
     let of_bounds (lo, hi) = (L.of_nat lo, L.of_nat hi)
     let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
     let show (lo, hi) = "(" ^ Lower.show lo ^ "," ^ Upper.show hi ^ ")"

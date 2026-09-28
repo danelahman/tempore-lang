@@ -97,6 +97,7 @@ let compare rho rho' =
 
 let hash rho = combine (hash_list String.hash rho.names) (Dfa.hash rho.dfa)
 let of_nat n = of_regex (Tick (check_nat "RegularTraceGrade" n))
+let of_duration = whole ~who:"RegularTraceGrade" of_nat
 let unit_least = false
 let commutative = false
 let needs_op_bounds = false

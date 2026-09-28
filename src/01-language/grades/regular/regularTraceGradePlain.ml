@@ -115,6 +115,7 @@ let hash rho = combine (hash_list String.hash rho.names) (Regex.hash rho.regex)
 let of_nat n =
   { names = []; regex = ticks (check_nat "RegularTraceGradePlain" n) }
 
+let of_duration = whole ~who:"RegularTraceGradePlain" of_nat
 let unit_least = false
 let commutative = false
 let needs_op_bounds = false

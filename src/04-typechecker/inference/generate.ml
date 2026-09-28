@@ -615,12 +615,12 @@ module Make (C : Constraint.S) = struct
     }
 
   (* The kind of the lock a [Do] puts in the context and the grade its bound
-     computation declares: the desugarer turns [delay n; c] and
+     computation declares: the desugarer turns [delay q; c] and
      [perform Op e; c] into [Do]s bound to exactly these. *)
   let sequenced_kind env (comp : computation) =
     match comp.Ast.it with
-    | Ast.Delay (n, { it = Ast.Return _; _ }) ->
-        (Reason.Delayed n, Some (Rho.of_nat n))
+    | Ast.Delay (q, { it = Ast.Return _; _ }) ->
+        (Reason.Delayed q, Some (Rho.of_duration q))
     | Ast.Perform (op, _, (_, { it = Ast.Return _; _ })) ->
         ( Reason.Performed op,
           Option.map
@@ -857,18 +857,19 @@ module Make (C : Constraint.S) = struct
     | Ast.Do (c1, (pat, c2)) -> sequence env at c1 pat c2 ty eps
     | Ast.Apply (e1, e2) -> apply env at e1 e2 ty eps
     | Ast.Match (e, cases) -> match_ env at e cases ty eps
-    | Ast.Delay (n, c') ->
-        (* [delay n c]: [c] under the lock [⟨n⟩], the effect [n · ε] below the
+    | Ast.Delay (q, c') ->
+        (* [delay q c]: [c] under the lock [⟨q⟩], the effect [q · ε] below the
            expected one *)
         exists_eps (fun eps' ->
-            let kind = Reason.Delayed n in
+            let kind = Reason.Delayed q in
             C.conj
               (generate_computation
-                 (lock env { grade = Rho.of_nat n; at; kind; declared = None })
+                 (lock env
+                    { grade = Rho.of_duration q; at; kind; declared = None })
                  c' ty
                  (expect eps'
                     (Reason.because c'.Ast.at (Reason.Continuation_effect kind))))
-              (leq_expected at (Eps.mul (Eps.of_nat n) eps') eps))
+              (leq_expected at (Eps.mul (Eps.of_duration q) eps') eps))
     | Ast.Box (rho, e, (pat, c')) ->
         box env at (open_rho env rho) e pat c' ty eps
     | Ast.Unbox (e, (pat, c')) -> unbox env at e pat c' ty eps

@@ -184,6 +184,16 @@ let accepting lit =
       else None)
     entries
 
+let accepting_delay q =
+  List.filter_map
+    (fun e ->
+      let (module G : Grade.S) = e.grade in
+      match G.of_duration q with
+      | _ when e.info.visibility = Everywhere -> Some e.name
+      | _ -> None
+      | exception Grade.Invalid_literal _ -> None)
+    entries
+
 (* [entries] grouped by [group], preserving both the order groups first occur
    in and the order of the grades within each, as {!grade_modules} lists
    them. *)

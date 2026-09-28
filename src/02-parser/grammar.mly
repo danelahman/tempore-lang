@@ -2,11 +2,12 @@
   open SugaredAst
   open Utils
   module Grade = Grades.Grade
+  module Rational = Grades.Rational
 
-  (* The hint naming the grades that understand the literal [lit]. *)
-  let suggestion lit =
+  (* The hint naming the grades [names]. *)
+  let suggestion names =
     let quote name = "'" ^ name ^ "'" in
-    match List.map quote (Grades.GradeRegistry.accepting lit) with
+    match List.map quote names with
     | [] -> ""
     | [ name ] -> "; did you mean to use the " ^ name ^ " grading monoid?"
     | names ->
@@ -22,7 +23,20 @@
     try of_lit lit
     with Grade.Invalid_literal (lit, reason) ->
       Error.syntax ~loc "in the '%s' grading monoid, %s%s" name reason
-        (suggestion lit)
+        (suggestion (Grades.GradeRegistry.accepting lit))
+
+  (* [delay ~loc q] is [q] if both grades of the grade system have a delay of
+     [q]; otherwise a syntax error at [loc] naming the grades that have one. *)
+  let delay ~loc q =
+    let check name of_duration =
+      try ignore (of_duration q)
+      with Grade.Invalid_literal (_, reason) ->
+        Error.syntax ~loc "in the '%s' grading monoid, %s%s" name reason
+          (suggestion (Grades.GradeRegistry.accepting_delay q))
+    in
+    check GS.R.name GS.R.of_duration;
+    check GS.E.name GS.E.of_duration;
+    q
 
   (* The literals written as lowercase names. *)
   let named_lit ~loc = function
@@ -45,7 +59,7 @@
 %token <int> INT
 %token <string> STRING
 %token <bool> BOOL
-%token <float> FLOAT
+%token <string> FLOAT
 %token <SugaredAst.label> UNAME
 %token <SugaredAst.ty_param> PARAM
 %token TYPE NONETERNAL OPERATION DEFAULT WITHIN ARROW SIGARROW OF HASH
@@ -131,8 +145,8 @@ plain_term:
     { Let ({it= PNonbinding; at= t1.at}, t1, t2) }
   | IF t_cond = comma_term THEN t_true = term ELSE t_false = term
     { Conditional (t_cond, t_true, t_false) }
-  | DELAY grade = INT
-    { Delay grade }
+  | DELAY q = duration
+    { Delay (delay ~loc:(Location.of_lexing $startpos(q) $endpos(q)) q) }
   | BOX rho = rho_grade e = term AS p = pattern IN c = term
     { Box (rho, e, (p, c)) }
   | BOX rho = rho_grade e = term
@@ -243,7 +257,7 @@ const:
   | b = BOOL
     { Language.Const.of_boolean b }
   | f = FLOAT
-    { Language.Const.of_float f }
+    { Language.Const.of_float (float_of_string f) }
 
 case:
   | p = pattern ARROW t = term
@@ -513,10 +527,32 @@ eps_grade:
   | p = PARAM
     { { it = GradeParam p; at = Location.of_lexing $startpos $endpos } }
 
+(* A non-negative duration: an integer or a fraction. *)
+duration:
+  | n = INT { Rational.of_int n }
+  | q = fraction
+    { if Rational.sign q < 0 then
+        Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+          "durations must be non-negative"
+      else q }
+
+(* A fraction, exact: a decimal, or the quotient of two integers. *)
+fraction:
+  | f = FLOAT { Rational.of_decimal f }
+  | n = INT op = INFIXOP3 d = INT
+    { if op <> "/" then
+        Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
+          "unknown operator '%s' in a fraction" op
+      else if d = 0 then
+        Error.syntax ~loc:(Location.of_lexing $startpos(d) $endpos(d))
+          "fractions have positive denominators"
+      else Rational.make n d }
+
 (* A grade literal, shared by all grades; each grade reads the forms it
    understands. *)
 grade_lit:
   | n = INT { Grade.Int n }
+  | q = fraction { Grade.rational_lit q }
   | MINUS n = INT { Grade.Int (-n) }
   | UNDERSCORE { Grade.Name "_" }
   | name = UNAME { Grade.Name name }

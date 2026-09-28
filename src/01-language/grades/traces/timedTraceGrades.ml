@@ -141,6 +141,7 @@ module LowerBound = struct
 
   let inhabited _bounds _ = true
   let of_nat n = TimedTrace.of_nat (check_nat "TimedTraceGrades.LowerBound" n)
+  let of_duration = whole ~who:"TimedTraceGrades.LowerBound" of_nat
   let of_bounds (lo, _hi) = TimedTrace.of_nat lo
   let is_atomic name p = TimedTrace.equal p (atomic_traces name)
   let show = TimedTrace.show
@@ -168,6 +169,7 @@ module UpperBound = struct
   let of_nat n =
     Within (TimedTrace.of_nat (check_nat "TimedTraceGrades.UpperBound" n))
 
+  let of_duration = whole ~who:"TimedTraceGrades.UpperBound" of_nat
   let of_bounds (_lo, hi) = Within (TimedTrace.of_nat hi)
   let is_atomic name p = compare p (Within (atomic_traces name)) = 0
   let witnesses ~degree:_ _bounds = sampled mul
@@ -235,6 +237,8 @@ module Interval = struct
   let of_nat n =
     let n = TimedTrace.of_nat (check_nat "TimedTraceGrades.Interval" n) in
     (n, UpperTraces.Within n)
+
+  let of_duration = whole ~who:"TimedTraceGrades.Interval" of_nat
 
   let of_bounds (lo, hi) =
     (TimedTrace.of_nat lo, UpperTraces.Within (TimedTrace.of_nat hi))

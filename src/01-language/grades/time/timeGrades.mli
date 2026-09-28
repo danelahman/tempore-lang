@@ -40,6 +40,14 @@ module type DOMAIN = sig
   (** [of_int n] is the duration of [n ≥ 0] time steps; a monoid morphism from
       [(ℕ, +, 0)]. *)
 
+  val of_duration : Rational.t -> t
+  (** [of_duration q] is the duration [q ≥ 0]; a monoid morphism from
+      [(ℚ≥0, +, 0)] on its domain, a submonoid containing [ℕ], agreeing with
+      {!of_int} there.
+
+      @raise Grade.Invalid_literal if [q] is not a duration.
+      @raise Invalid_argument if [q] is negative. *)
+
   val read : Grade.lit -> t option
   (** [read lit] is the duration, possibly negative, the literal [lit] denotes,
       and [None] if it does not denote one. *)
@@ -76,9 +84,9 @@ end
 
 (** {1 Discrete time}
 
-    The durations are the natural numbers of time steps, written as integers.
-    The witnesses of the finite constants summing to [s] are [0], ..., [s+1],
-    whatever the degree. *)
+    The durations are the natural numbers of time steps, written as integers,
+    and so are the delays. The witnesses of the finite constants summing to [s]
+    are [0], ..., [s+1], whatever the degree. *)
 
 module LowerBound : Grade.S
 (** Lower bounds, ["time-lower-bound"]: [n] is "at least [n] time steps",

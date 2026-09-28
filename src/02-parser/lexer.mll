@@ -95,7 +95,7 @@ rule token = parse
                             INT (int_of_string (Lexing.lexeme lexbuf))
                           with Failure _ -> Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Invalid integer constant"
                         }
-  | float               { FLOAT (float_of_string(Lexing.lexeme lexbuf)) }
+  | float               { FLOAT (Lexing.lexeme lexbuf) }
   | '"'                 { STRING (string "" lexbuf) }
   | lname               { let s = Lexing.lexeme lexbuf in
                             match StringMap.find_opt s reserved with

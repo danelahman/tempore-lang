@@ -18,7 +18,7 @@ type token =
   | INT of int
   | STRING of string
   | BOOL of bool
-  | FLOAT of float
+  | FLOAT of string
   | UNAME of SugaredAst.label
   | PARAM of SugaredAst.ty_param
   | TYPE

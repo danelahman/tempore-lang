@@ -242,6 +242,7 @@ module ModeCosts = struct
     let (_ : int) = Grade.check_nat "ModeGrades.ModeCosts" n in
     one
 
+  let of_duration = Grade.whole ~who:"ModeGrades.ModeCosts" of_nat
   let equal _bounds = equal
   let is_top _bounds = is_top
   let compare = compare

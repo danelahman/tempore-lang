@@ -10,6 +10,7 @@ module type DOMAIN = sig
   val compare : t -> t -> int
   val hash : t -> int
   val of_int : int -> t
+  val of_duration : Rational.t -> t
   val read : Grade.lit -> t option
   val numbers : string
   val show : t -> string
@@ -61,6 +62,7 @@ module Make (N : DOMAIN) = struct
       | lit -> duration_of_lit ("plain " ^ N.numbers) lit
 
     let of_nat = of_nat "LowerBound"
+    let of_duration = N.of_duration
     let of_bounds (lo, _hi) = N.of_int lo
     let is_atomic _name _ = true
     let show = N.show
@@ -94,6 +96,7 @@ module Make (N : DOMAIN) = struct
       | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or '∞'") lit)
 
     let of_nat n = Ext.Fin (of_nat "UpperBound" n)
+    let of_duration q = Ext.Fin (N.of_duration q)
     let of_bounds (_lo, hi) = Ext.Fin (N.of_int hi)
     let is_atomic _name _ = true
     let show = Ext.show
@@ -159,6 +162,10 @@ module Make (N : DOMAIN) = struct
       let n = of_nat "Interval" n in
       (n, Ext.Fin n)
 
+    let of_duration q =
+      let d = N.of_duration q in
+      (d, Ext.Fin d)
+
     let of_bounds (lo, hi) = (N.of_int lo, Ext.Fin (N.of_int hi))
     let is_atomic _name _ = true
     let show (n, m) = "(" ^ N.show n ^ "," ^ Ext.show m ^ ")"
@@ -197,6 +204,7 @@ include Make (struct
   let compare = Int.compare
   let hash = Int.hash
   let of_int n = n
+  let of_duration = whole ~who:module_name Fun.id
   let read = function Int n -> Some n | _ -> None
   let numbers = "integers"
   let show = string_of_int

@@ -345,7 +345,7 @@ module Small = struct
   (* [let y = delay 2 (return ()) in return x]: [x] is used under the lock of
      the bound computation's effect. *)
   let sequencing () =
-    let bound = at (Ast.Delay (2, return unit_expr)) in
+    let bound = at (Ast.Delay (Grades.Rational.of_int 2, return unit_expr)) in
     let c = at (Ast.Do (bound, (pvar y, return (var x)))) in
     let constr = Gen.generate_computation env_x c (expect alpha) unit_eps in
     let locks =
@@ -357,7 +357,9 @@ module Small = struct
         (atoms constr)
     in
     match locks with
-    | [ ([ { kind = Reason.Delayed 2; _ } ], X.Rho_map (X.Eps_var _)) ] -> ()
+    | [ ([ { kind = Reason.Delayed q; _ } ], X.Rho_map (X.Eps_var _)) ]
+      when Grades.Rational.to_int q = Some 2 ->
+        ()
     | _ ->
         fail "sequencing: expected the lock of the bound effect, got@.%s"
           (C.to_string constr)
@@ -374,7 +376,7 @@ module Small = struct
         {
           grade = X.Rho.of_nat 2;
           at = loc;
-          kind = Reason.Delayed 2;
+          kind = Reason.Delayed (Grades.Rational.of_int 2);
           declared = None;
         }
     in

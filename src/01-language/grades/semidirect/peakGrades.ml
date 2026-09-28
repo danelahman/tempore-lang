@@ -47,6 +47,7 @@ module NetChange = struct
     let (_ : int) = Grade.check_nat "PeakGrades.NetChange" n in
     one
 
+  let of_duration = Grade.whole ~who:"PeakGrades.NetChange" of_nat
   let equal _bounds b b' = compare b b' = 0
   let is_top _bounds b = compare b top = 0
   let compare = compare
@@ -98,6 +99,7 @@ module OneResource = struct
     let (_ : int) = Grade.check_nat "PeakGrades.OneResource" n in
     one
 
+  let of_duration = Grade.whole ~who:"PeakGrades.OneResource" of_nat
   let of_bounds _ = one
 
   let of_lit = function

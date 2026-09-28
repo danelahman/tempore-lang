@@ -77,6 +77,7 @@ struct
   let compare = R.compare_form
   let hash = R.hash
   let of_nat n = ticks (check_nat "RegularTraceGradeDerivative" n)
+  let of_duration = whole ~who:"RegularTraceGradeDerivative" of_nat
   let unit_least = false
   let commutative = false
   let needs_op_bounds = false

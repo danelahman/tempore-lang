@@ -184,7 +184,7 @@ and ('rho, 'eps) plain_computation =
   | Do of ('rho, 'eps) computation * ('rho, 'eps) abstraction
   | Match of ('rho, 'eps) expression * ('rho, 'eps) abstraction list
   | Apply of ('rho, 'eps) expression * ('rho, 'eps) expression
-  | Delay of int * ('rho, 'eps) computation
+  | Delay of Grades.Rational.t * ('rho, 'eps) computation
   | Box of 'rho * ('rho, 'eps) expression * ('rho, 'eps) abstraction
   | Unbox of ('rho, 'eps) expression * ('rho, 'eps) abstraction
   | Perform of operation * ('rho, 'eps) expression * ('rho, 'eps) abstraction
