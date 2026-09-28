@@ -1,0 +1,21 @@
+(* Run this test with the 'dense-time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades dense-time-lower-bound tests/dense_time_lower.tpe *)
+
+operation Wait : unit ~> unit # 1/2
+
+(* Correctly accepted by the typechecker: the delays of 1/2 and 1.25 and the
+   operation's 1/2 accumulate 2.25, at least the 2.25 the box demands. *)
+let ripe () =
+  box 2.25 "ripe" as r in
+  delay 1/2;
+  delay 1.25;
+  perform Wait ();
+  unbox r as y in
+  y
+
+(* Correctly accepted by the typechecker: the case waits 0.5 before resuming
+   the continuation, at least the 1/2 the operation promises. *)
+let h = handler | x -> x | Wait () k -> delay 0.5; continue k with ()
+
+run handle ripe () with h

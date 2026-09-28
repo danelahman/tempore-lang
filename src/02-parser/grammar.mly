@@ -44,9 +44,10 @@
     | "inf" -> Grade.Inf
     | name ->
         Error.syntax ~loc
-          "'%s' is no grade literal; grades are written as integers, names \
-           such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)' \
-           and brace literals '{...}'" name
+          "'%s' is no grade literal; grades are written as integers, \
+           fractions such as '3/2' or '1.5', names such as 'High', '⊤' (ASCII \
+           'top'), '∞' (ASCII 'inf'), tuples '(...)' and brace literals \
+           '{...}'" name
 %}
 
 %parameter<GS : Grades.GradeSystem.S>

@@ -34,6 +34,20 @@ let entries =
       (module TimeGrades.Interval)
       "Time" "Intervals" "Between n and m time steps, ordered by containment.";
     entry
+      (module DenseTimeGrades.LowerBound)
+      "Time" "Lower bounds (dense)"
+      "At least q time units, q a non-negative rational; the unit 0 is \
+       greatest.";
+    entry
+      (module DenseTimeGrades.UpperBound)
+      "Time" "Upper bounds (dense)"
+      "At most q time units, q a non-negative rational or ∞; the unit 0 is \
+       least.";
+    entry
+      (module DenseTimeGrades.Interval)
+      "Time" "Intervals (dense)"
+      "Between q and r time units, rationals, ordered by containment.";
+    entry
       (module TimedTraceGrades.LowerBound)
       "Timed traces" "Lower bounds"
       "Sets of timed traces in the coverage order, operations costing their \

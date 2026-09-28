@@ -102,6 +102,11 @@ let malformed =
     "literals_reject_windows.tpe";
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
+    "literals_reject_dense_negative.tpe";
+    "literals_reject_fraction.tpe";
+    "literals_reject_fraction_operator.tpe";
+    "literals_reject_fraction_zero.tpe";
+    "delay_reject_fraction.tpe";
     "regular_reject_bounds.tpe";
     "regex_costs_interval_runs_reject.tpe";
     "regex_costs_lower_runs_reject.tpe";

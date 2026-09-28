@@ -1,0 +1,3 @@
+(* Rejected: a fraction has a positive denominator. *)
+
+let claim () = box 1/0 1

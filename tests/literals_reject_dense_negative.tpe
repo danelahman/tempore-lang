@@ -1,0 +1,3 @@
+(* Rejected: a negative fraction is no upper bound on time. *)
+
+let claim () = box -0.5 1

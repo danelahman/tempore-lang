@@ -29,7 +29,11 @@ module OfLattice (L : LATTICE) = struct
     let (_ : int) = Grade.check_nat L.name n in
     L.bottom
 
-  let of_duration = Grade.whole ~who:L.name of_nat
+  let of_duration q =
+    if Rational.sign q < 0 then
+      invalid_arg (L.name ^ ".of_duration: expected non-negative duration")
+    else L.bottom
+
   let equal _bounds l l' = L.leq l l' && L.leq l' l
   let is_top _bounds = L.leq L.top
   let compare = L.compare

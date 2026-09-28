@@ -5,6 +5,8 @@
 
 module Grade = Grades.Grade
 module TimeGrades = Grades.TimeGrades
+module DenseTimeGrades = Grades.DenseTimeGrades
+module Rational = Grades.Rational
 module TimedTraceGrades = Grades.TimedTraceGrades
 module LevelGrades = Grades.LevelGrades
 module GradeConstructions = Grades.GradeConstructions
@@ -187,6 +189,9 @@ let products =
 let time_lower = (module TimeGrades.LowerBound : Grade.S)
 let time_upper = (module TimeGrades.UpperBound : Grade.S)
 let time_interval = (module TimeGrades.Interval : Grade.S)
+let dense_lower = (module DenseTimeGrades.LowerBound : Grade.S)
+let dense_upper = (module DenseTimeGrades.UpperBound : Grade.S)
+let dense_interval = (module DenseTimeGrades.Interval : Grade.S)
 let traces_lower = (module TimedTraceGrades.LowerBound : Grade.S)
 let traces_upper = (module TimedTraceGrades.UpperBound : Grade.S)
 let traces_interval = (module TimedTraceGrades.Interval : Grade.S)
@@ -205,6 +210,31 @@ let literals =
   let send = Letter "Send" in
   [
     rejects "negative integer" time_lower (Int (-1)) "must be non-negative";
+    rejects "fraction, discrete" time_upper
+      (Rat (Rational.make 3 2))
+      "not fractions such as '3/2'";
+    rejects "fractional endpoint, discrete" time_interval
+      (Tuple [ Rat (Rational.make 1 3); Inf ])
+      "endpoints are integers";
+    reads "fraction, decimal" dense_upper (Rat (Rational.make 3 2)) "1.5";
+    reads "fraction, quotient" dense_lower (Rat (Rational.make 1 3)) "1/3";
+    reads "integer, dense" dense_upper (Int 2) "2";
+    reads "infinity, dense" dense_upper Inf "∞";
+    reads "open interval, dense" dense_interval
+      (Tuple [ Rat (Rational.make 1 3); Inf ])
+      "(1/3,∞)";
+    reads "interval, dense" dense_interval
+      (Tuple [ Rat (Rational.make 1 8); Int 2 ])
+      "(0.125,2)";
+    rejects "negative fraction" dense_upper
+      (Rat (Rational.make (-1) 2))
+      "must be non-negative";
+    rejects "reversed interval, dense" dense_interval
+      (Tuple [ Rat (Rational.make 3 2); Int 1 ])
+      "must satisfy n <= m";
+    rejects "pair, dense" dense_upper
+      (Tuple [ Int 1; Int 2 ])
+      "grades are plain numbers or '∞', not pairs";
     rejects "negative interval endpoint" time_interval
       (Tuple [ Int (-1); Int 5 ])
       "must be non-negative";
@@ -455,8 +485,32 @@ let registry =
       ~expected:[ "time-lower-bound-levels"; "time-upper-bound-levels" ]
       (GradeRegistry.accepting (lit_of_pair 3 "High"));
     expect "registry: grades reading an open interval" show_names
-      ~expected:[ "time-interval"; "peak-usage"; "time-windows" ]
+      ~expected:
+        [ "time-interval"; "dense-time-interval"; "peak-usage"; "time-windows" ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
+    expect "registry: grades reading a fraction" show_names
+      ~expected:[ "dense-time-lower-bound"; "dense-time-upper-bound" ]
+      (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
+    expect "registry: grades with a fractional delay" show_names
+      ~expected:
+        [
+          "dense-time-lower-bound";
+          "dense-time-upper-bound";
+          "dense-time-interval";
+          "security-levels";
+          "flow-levels";
+        ]
+      (GradeRegistry.accepting_delay (Rational.make 1 2));
+    expect "registry: every grade has a whole delay" show_names
+      ~expected:
+        (List.concat_map
+           (fun (g : GradeRegistry.group) ->
+             List.filter_map
+               (fun (name, (info : GradeRegistry.info)) ->
+                 if info.visibility = Everywhere then Some name else None)
+               g.grades)
+           GradeRegistry.groups)
+      (GradeRegistry.accepting_delay (Rational.of_int 2));
     expect "registry: grades reading a repetition" show_names
       ~expected:
         [
@@ -672,6 +726,89 @@ module Flow_conditions =
       let values = flow_grades [ "Audit"; "Board"; "Other" ]
     end)
 
+(* The rationals [x/d] in [[0, 30]] with [d ≤ 48], in increasing order. *)
+let dense_values =
+  List.sort_uniq Rational.compare
+    (List.concat_map
+       (fun d -> List.init ((30 * d) + 1) (fun x -> Rational.make x d))
+       (List.init 48 (( + ) 1)))
+
+(* A random rational with a denominator of at most 4, below 8. *)
+let random_rational st =
+  Rational.make (Random.State.int st 8) (1 + Random.State.int st 4)
+
+let rational_lit st = Grade.rational_lit (random_rational st)
+
+module Dense_lower_conditions =
+  Conditions
+    (DenseTimeGrades.LowerBound)
+    (struct
+      let constant st = DenseTimeGrades.LowerBound.of_lit (rational_lit st)
+      let values = List.map DenseTimeGrades.LowerBound.of_duration dense_values
+    end)
+
+module Dense_upper_conditions =
+  Conditions
+    (DenseTimeGrades.UpperBound)
+    (struct
+      let constant st =
+        DenseTimeGrades.UpperBound.of_lit
+          (if Random.State.int st 8 = 0 then Grade.Inf else rational_lit st)
+
+      let values =
+        DenseTimeGrades.UpperBound.top
+        :: List.map DenseTimeGrades.UpperBound.of_duration dense_values
+    end)
+
+(* The dense interval [(q, r)], [r] possibly [∞]. *)
+let interval_of q r =
+  DenseTimeGrades.Interval.of_lit (Grade.Tuple [ Grade.rational_lit q; r ])
+
+module Dense_interval_conditions =
+  Conditions
+    (DenseTimeGrades.Interval)
+    (struct
+      let constant st =
+        let q = random_rational st in
+        interval_of q
+          (if Random.State.int st 6 = 0 then Grade.Inf
+           else
+             Grade.rational_lit
+               (Rational.add q (Rational.make (Random.State.int st 3) 2)))
+
+      (* The endpoints of an ordering are compared separately: the intervals
+         [(q, ∞)] and [(0, r)], and the intervals between the rationals with
+         denominators up to 6 in [[0, 6]]. *)
+      let values =
+        let coarse =
+          List.filter
+            (fun q -> Rational.compare q (Rational.of_int 6) <= 0)
+            (List.filter
+               (fun q -> 6 mod Rational.denominator q = 0)
+               dense_values)
+        in
+        List.map (fun q -> interval_of q Grade.Inf) dense_values
+        @ List.map
+            (fun r -> interval_of Rational.zero (Grade.rational_lit r))
+            dense_values
+        @ List.concat_map
+            (fun q ->
+              List.filter_map
+                (fun r ->
+                  if Rational.compare q r <= 0 then
+                    Some (interval_of q (Grade.rational_lit r))
+                  else None)
+                coarse)
+            coarse
+    end)
+
+(* [1·j ≾ 1 ⊔ jᵏ], which fails exactly for [j] in [(0, 1/(k-1))]. *)
+let power_condition k =
+  let open Dense_upper_conditions in
+  let one = Const (DenseTimeGrades.UpperBound.of_nat 1) in
+  let rec power k = if k = 1 then Rigid else Mul (Rigid, power (k - 1)) in
+  (Mul (one, Rigid), Join (one, power k))
+
 let witnesses =
   let module L = TimeGrades.LowerBound in
   let lower n = L.of_lit (nat n) in
@@ -707,6 +844,22 @@ let witnesses =
     Interval_conditions.complete ~count:1000;
     Levels_conditions.complete ~count:1000;
     Flow_conditions.complete ~count:3000;
+    Dense_lower_conditions.complete ~count:1000;
+    Dense_upper_conditions.complete ~count:1000;
+    Dense_interval_conditions.complete ~count:500;
+    all "dense-time-upper-bound: 1·j ≾ 1 ⊔ jᵏ refuted at a witness"
+      string_of_int
+      (fun k -> not (Dense_upper_conditions.at_witnesses (power_condition k)))
+      (List.init 9 (( + ) 2));
+    check
+      "dense-time-upper-bound: 1·j ≾ 1 ⊔ j³ holds at the witnesses of degree 1"
+      (let lhs, rhs = power_condition 3 in
+       List.for_all
+         (Dense_upper_conditions.holds (lhs, rhs))
+         (fst
+            (DenseTimeGrades.UpperBound.witnesses ~degree:1 bounds
+               Dense_upper_conditions.(constants lhs @ constants rhs))))
+      "1·j <= 1 ⊔ j·j·j";
     check "flow-levels: a failure at an unnamed sink shows at a witness"
       (not
          (Flow_conditions.at_witnesses
@@ -714,6 +867,8 @@ let witnesses =
       "j <= High";
     expect "witnesses: time grades complete" Fun.id ~expected:"complete"
       (completeness time_interval);
+    expect "witnesses: dense time grades complete" Fun.id ~expected:"complete"
+      (completeness dense_interval);
     expect "witnesses: levels complete" Fun.id ~expected:"complete"
       (completeness (module LevelGrades.SecurityLevels));
     expect "witnesses: product of complete grades complete" Fun.id
@@ -765,13 +920,21 @@ let random_lit st =
     | 4 -> Grade.Union (regex (depth - 1), regex (depth - 1))
     | _ -> Grade.Star (regex (depth - 1))
   in
-  match Random.State.int st 7 with
+  let rat () =
+    Grade.rational_lit
+      (Rational.make (Random.State.int st 9 - 2) (2 + Random.State.int st 3))
+  in
+  match Random.State.int st 9 with
   | 0 -> Grade.Int (int ())
   | 1 -> level ()
   | 2 -> Grade.Tuple [ Grade.Int (int ()); Grade.Int (int ()) ]
   | 3 -> Grade.Tuple [ Grade.Int (int ()); Grade.Inf ]
   | 4 -> Grade.Tuple [ Grade.Int (int ()); level () ]
   | 5 -> Grade.Braces (regex 2)
+  | 6 -> rat ()
+  | 7 ->
+      Grade.Tuple
+        [ rat (); (if Random.State.bool st then Grade.Inf else rat ()) ]
   | _ -> Grade.Tuple [ Grade.Braces (regex 2); Grade.Braces (regex 2) ]
 
 (* [samples (module G)] is [G]'s unit, top and grades of one and two time
@@ -809,7 +972,8 @@ let registered_laws =
       order_laws (module G) ~context costs samples
       @ algebra_laws (module G) ~context costs samples
       @ counterexample_laws (module G) ~offered:false ~context costs samples
-      @ of_nat_laws (module G) costs ())
+      @ of_nat_laws (module G) costs ()
+      @ of_duration_laws (module G) costs)
     GradeRegistry.grade_modules
 
 (* ------------------------------------------------------------------ *)

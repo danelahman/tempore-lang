@@ -42,11 +42,11 @@ end
 (** The grade of a lattice [L]: [mul] and [join] are both the join of [L], [one]
     its bottom, [top] its top and [leq] its order. A tick touches no level of
     the lattice, so [of_nat] is constantly the bottom, and so are [of_bounds]
-    and [of_duration], defined on the natural numbers. The unit is least and
-    [mul] commutes. No operation needs runtime bounds, every grade is atomic,
-    and no counterexample is offered. The witnesses are all the elements, and
-    complete. [is_top] is decided by the order, and [compare] and [hash] are
-    those of [L]. *)
+    and [of_duration], defined on every duration. The unit is least and [mul]
+    commutes. No operation needs runtime bounds, every grade is atomic, and no
+    counterexample is offered. The witnesses are all the elements, and complete.
+    [is_top] is decided by the order, and [compare] and [hash] are those of [L].
+*)
 module OfLattice (L : LATTICE) : Grade.S with type t = L.t
 
 (** The product of the grades [G1] and [G2]: pairs [(g1, g2)], written as such

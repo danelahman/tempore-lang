@@ -1,0 +1,34 @@
+(* Run this test with the 'dense-time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades dense-time-upper-bound tests/dense_time_upper.tpe *)
+
+operation Beep : unit ~> unit # 0.125
+
+default Beep () = delay 1/8
+
+(* Correctly accepted by the typechecker: three delays of 1/3 spend exactly the
+   1 the box allows. *)
+let thirds () =
+  box 1 "fresh" as r in
+  delay 1/3;
+  delay 1/3;
+  delay 1/3;
+  unbox r as y in
+  y
+
+(* Correctly accepted by the typechecker: a delay of 0.375 and a beep of at
+   most 0.125 stay within 0.5. *)
+let beeped () =
+  box 0.5 "fresh" as r in
+  delay 0.375;
+  perform Beep ();
+  unbox r as y in
+  y
+
+(* Correctly accepted by the typechecker: the case resumes the continuation
+   once, after at most the 1/8 the operation allows. *)
+let h = handler | x -> x | Beep () k -> delay 0.0625; continue k with ()
+
+run thirds ()
+run beeped ()
+run handle beeped () with h

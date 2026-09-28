@@ -26,7 +26,9 @@ ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 
 ### Building
 
-Requires OCaml 5.5 or later. Install the dependencies and build:
+Requires OCaml 5.5 or later. The dense time grades use zarith, which needs the
+GMP library (opam installs it through `conf-gmp`). Install the dependencies
+and build:
 
     opam install --deps-only --with-dev-setup .
     make
@@ -75,11 +77,13 @@ implementation is documented in the modules under
 
 ### Grade literals
 
-All monoids share one literal syntax: integers (`3`), pairs (`(1, 4)`) and
-brace expressions (`{...}`). Each monoid accepts the literals it understands;
-any other literal is a syntax error naming the monoids that accept it. The
-greatest grade is `⊤` (ASCII `top`). Integers may be negative (`-1`); only
-`peak-usage` accepts negative ones.
+All monoids share one literal syntax: integers (`3`), fractions (`3/2`, or
+exact decimals such as `1.5`), pairs (`(1, 4)`) and brace expressions
+(`{...}`). Each monoid accepts the literals it understands; any other literal
+is a syntax error naming the monoids that accept it. The greatest grade is `⊤`
+(ASCII `top`). Integers may be negative (`-1`); only `peak-usage` accepts
+negative ones. A fraction equal to an integer, such as `4/2` or `2.0`, is that
+integer.
 
 ### Time
 
@@ -96,6 +100,14 @@ inclusive.
 Example: `box (2, 5) x` may be unboxed after two to five steps. See
 [`examples/time/time_upper.tpe`](examples/time/time_upper.tpe) and
 [`examples/time/time_intervals.tpe`](examples/time/time_intervals.tpe).
+
+The dense variants `dense-time-lower-bound`, `dense-time-upper-bound` and
+`dense-time-interval` measure time by non-negative rationals, with the same
+orders, units and tops: `box (0.5, 4/3) x` may be unboxed after half a unit
+and before four thirds. Arithmetic is exact, so three delays of `1/3` spend
+exactly `1`. A grade is printed as an integer, as a decimal if it has a
+finite one (`0.125`), and otherwise as a fraction (`1/3`). See
+[`examples/time/dense_time_intervals.tpe`](examples/time/dense_time_intervals.tpe).
 
 ### Timed traces
 
@@ -279,7 +291,10 @@ See [`examples/basics/basic_unbox.tpe`](examples/basics/basic_unbox.tpe).
 ### Delays
 
 `delay tau` advances the accumulated grade by `tau`; an operation call advances
-it by the operation's grade. See
+it by the operation's grade. `tau` is a non-negative integer or fraction: the
+dense time grades accept any, such as `delay 1/3` or `delay 0.25`, and the
+monoids counting whole time steps only integers, a fraction being a syntax
+error naming the monoids that accept it. See
 [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 ## Eternal types
