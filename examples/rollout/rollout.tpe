@@ -162,9 +162,10 @@ let probe_retrying (h : host) : health # (1, Low) =
 (* Correctly accepted by the typechecker: a deployer that installs a host and
    probes it by the policy 'policy'. The case runs with the top grade
    accumulated for 'policy', bound outside it, so the policy is a box, unboxed
-   after the installation's (3, High); a box type being contravariant in its
-   grade, a policy boxed at '⊤' (ASCII 'top') is accepted. The installation
-   and the probe bank the four ticks of 'Deploy' before 'k' is resumed. *)
+   with (3, High) accumulated: the top grade and the installation's three
+   ticks. A box type being contravariant in its grade, a policy boxed at '⊤'
+   (ASCII 'top') is accepted. The installation and the probe bank the four
+   ticks of 'Deploy' before 'k' is resumed. *)
 let deployer_with (policy : [(3, High)] (host -> health # 'e)) =
   handler
   | x -> x
