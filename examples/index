@@ -46,8 +46,7 @@ Semidirect products | Mode costs | mode-costs | semidirect/mode_costs.tpe | A se
 
 Operation counts | Upper bounds | counts-upper-bound | counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
 
-Case study: 3D printing | Time bounds | time-lower-bound | 3dprint/3dprint.tpe | The stages of a 3D print, boxed at the lower time bounds each stage demands.
-Case study: 3D printing | With effect handlers | time-lower-bound | 3dprint/3dprint_handlers.tpe | The same pipeline with each stage an operation, handled by clauses that respect its timing.
-Case study: 3D printing | With trace grades | traces-interval | 3dprint/3dprint_traces.tpe | The same pipeline graded by the traces of operations it may exhibit, bounds on runtime included.
-
+Case study | 3D printing: time bounds | time-lower-bound | 3dprint/3dprint.tpe | The stages of a 3D print, boxed at the lower time bounds each stage demands.
+Case study | 3D printing: with effect handlers | time-lower-bound | 3dprint/3dprint_handlers.tpe | The same pipeline with each stage an operation, handled by clauses that respect its timing.
+Case study | 3D printing: with trace grades | traces-interval | 3dprint/3dprint_traces.tpe | The same pipeline graded by the traces of operations it may exhibit, bounds on runtime included.
 Case study | Staged rollout | time-lower-bound-levels | rollout/rollout.tpe | A rollout across waves of hosts, each unboxing its approval to proceed only after the hosts before it have been watched, and only if nothing untrusted was touched since the release was approved.
