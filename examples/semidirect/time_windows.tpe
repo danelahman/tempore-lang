@@ -39,7 +39,8 @@ let maybe_twice b :
   frame ()
 
 (* Correctly accepted by the typechecker: a reading stays fresh for three to
-   five ticks, provided no operation is performed meanwhile. *)
+   five ticks, provided no operation is performed meanwhile. The box grade
+   (3, 5) is the durations of 3 to 5 ticks, with no operation listed. *)
 let fresh () =
   let x = perform Sense () in
   box (3, 5) x as r in
