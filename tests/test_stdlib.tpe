@@ -39,7 +39,7 @@ run ~-. 3.14159
 
 run ~-. 1.0
 
-run "test integer operations"
+run "test natural number operations"
 
 run 2 + 2
 
@@ -95,9 +95,9 @@ run string_of_float 12.0
 
 run string_of_float -12.000009
 
-run string_of_int 0
+run string_of_nat 0
 
-run string_of_int -18
+run string_of_nat -18
 *)
 
 run to_string 13
@@ -110,11 +110,11 @@ run to_string (fun x -> x)
 
 (* Casting is not supported.
 
-run int_of_float ~-.1.5
+run nat_of_float ~-.1.5
 
-run int_of_float 12.0001
+run nat_of_float 12.0001
 
-run float_of_int 42
+run float_of_nat 42
 *)
 
 run "test some and none"

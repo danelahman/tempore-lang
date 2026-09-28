@@ -22,7 +22,7 @@ module K = Skeleton.Make (X)
 let fresh_var name = Ast.TyParamModule.fresh name
 let a_var, b_var, c_var = (fresh_var "a", fresh_var "b", fresh_var "c")
 let a, b, c = Skeleton.(Var a_var, Var b_var, Var c_var)
-let int = Skeleton.Const Const.IntegerTy
+let nat = Skeleton.Const Const.NatTy
 let bool = Skeleton.Const Const.BooleanTy
 let ( @-> ) t u = Skeleton.Arrow (t, u)
 let list_name = Ast.list_ty_name
@@ -31,12 +31,12 @@ let pair_name = Ast.TyName.fresh "pair"
 let phantom_name = Ast.TyName.fresh "phantom"
 let apply name ts = Skeleton.Apply (name, ts)
 
-(* The aliases [pair] ['a pair = 'a * 'a] and ['a phantom = int]. *)
+(* The aliases [pair] ['a pair = 'a * 'a] and ['a phantom = nat]. *)
 let unfold name args =
   match args with
   | [ t ] when Ast.TyName.compare name pair_name = 0 ->
       Some (Skeleton.Tuple [ t; t ])
-  | [ _ ] when Ast.TyName.compare name phantom_name = 0 -> Some int
+  | [ _ ] when Ast.TyName.compare name phantom_name = 0 -> Some nat
   | _ -> None
 
 let eq ?(info = "") lhs rhs = { Skeleton.lhs; rhs; info }
@@ -104,32 +104,32 @@ let unify = Skeleton.unify unfold
 let unification =
   [
     binds "unify: solved left to right, idempotent"
-      (unify [ eq a (int @-> b); eq b bool ])
-      [ (a_var, int @-> bool); (b_var, bool) ];
+      (unify [ eq a (nat @-> b); eq b bool ])
+      [ (a_var, nat @-> bool); (b_var, bool) ];
     binds "unify: two unknowns" (unify [ eq a b ]) [ (a_var, b) ];
     binds "unify: an unknown with itself" (unify [ eq (a @-> a) (a @-> a) ]) [];
     binds "unify: tuples componentwise"
-      (unify [ eq (Skeleton.Tuple [ a; int ]) (Skeleton.Tuple [ bool; b ]) ])
-      [ (a_var, bool); (b_var, int) ];
+      (unify [ eq (Skeleton.Tuple [ a; nat ]) (Skeleton.Tuple [ bool; b ]) ])
+      [ (a_var, bool); (b_var, nat) ];
     binds "unify: boxes and handlers"
       (unify
          [
            eq
-             (Skeleton.Box (Skeleton.Handler (a, int)))
+             (Skeleton.Box (Skeleton.Handler (a, nat)))
              (Skeleton.Box (Skeleton.Handler (bool, b)));
          ])
-      [ (a_var, bool); (b_var, int) ];
+      [ (a_var, bool); (b_var, nat) ];
     fails "unify: occurs check"
-      (unify [ eq ~info:"loop" a (a @-> int) ])
-      ~info:"loop" ~mismatch:(Skeleton.Occurs a_var) ~lhs:a ~rhs:(a @-> int)
+      (unify [ eq ~info:"loop" a (a @-> nat) ])
+      ~info:"loop" ~mismatch:(Skeleton.Occurs a_var) ~lhs:a ~rhs:(a @-> nat)
       ~path:[];
     fails "unify: occurs check through a binding"
       (unify
          [
-           eq a (b @-> int);
+           eq a (b @-> nat);
            eq ~info:"loop" (Skeleton.Tuple [ b ]) (Skeleton.Tuple [ a ]);
          ])
-      ~info:"loop" ~mismatch:(Skeleton.Occurs b_var) ~lhs:b ~rhs:(b @-> int)
+      ~info:"loop" ~mismatch:(Skeleton.Occurs b_var) ~lhs:b ~rhs:(b @-> nat)
       ~path:[ Ast.Component 1 ];
     fails "unify: head mismatch"
       (unify
@@ -145,24 +145,24 @@ let unification =
     fails "unify: constructor arguments"
       (unify
          [
-           eq ~info:"args" (apply list_name [ int ]) (apply list_name [ bool ]);
+           eq ~info:"args" (apply list_name [ nat ]) (apply list_name [ bool ]);
          ])
-      ~info:"args" ~mismatch:Skeleton.Clash ~lhs:int ~rhs:bool
+      ~info:"args" ~mismatch:Skeleton.Clash ~lhs:nat ~rhs:bool
       ~path:[ Ast.TypeArgument 1 ];
     binds "unify: an alias unfolded against a tuple"
-      (unify [ eq (apply pair_name [ a ]) (Skeleton.Tuple [ int; b ]) ])
-      [ (a_var, int); (b_var, int) ];
+      (unify [ eq (apply pair_name [ a ]) (Skeleton.Tuple [ nat; b ]) ])
+      [ (a_var, nat); (b_var, nat) ];
     binds "unify: an alias unfolded on the right"
       (unify
          [
            eq
-             (Skeleton.Tuple [ bool; bool ] @-> int)
+             (Skeleton.Tuple [ bool; bool ] @-> nat)
              (apply pair_name [ a ] @-> apply phantom_name [ b ]);
          ])
       [ (a_var, bool) ];
     fails "unify: an alias that mismatches after unfolding"
       (unify
-         [ eq ~info:"alias" (bool @-> int) (apply pair_name [ a ] @-> int) ])
+         [ eq ~info:"alias" (bool @-> nat) (apply pair_name [ a ] @-> nat) ])
       ~info:"alias" ~mismatch:Skeleton.Clash ~lhs:bool
       ~rhs:(Skeleton.Tuple [ a; a ])
       ~path:[ Ast.Argument ];
@@ -170,31 +170,31 @@ let unification =
       (unify [ eq (apply phantom_name [ a ]) (apply phantom_name [ bool ]) ])
       [];
     binds "unify: an unknown bound to an alias unfolded"
-      (unify [ eq a (apply pair_name [ int ]) ])
-      [ (a_var, apply pair_name [ int ]) ];
+      (unify [ eq a (apply pair_name [ nat ]) ])
+      [ (a_var, apply pair_name [ nat ]) ];
     fails "unify: the payload of the failing equation"
       (unify
          [
            eq ~info:"first" b bool;
-           eq ~info:"second" (int @-> b) (int @-> int);
+           eq ~info:"second" (nat @-> b) (nat @-> nat);
            eq ~info:"third" c c;
          ])
-      ~info:"second" ~mismatch:Skeleton.Clash ~lhs:bool ~rhs:int
+      ~info:"second" ~mismatch:Skeleton.Clash ~lhs:bool ~rhs:nat
       ~path:[ Ast.Result ];
     fails "unify: a path through a handler"
       (unify
          [
            eq ~info:"handler"
-             (Skeleton.Handler (int, Skeleton.Tuple [ a; int ]))
-             (Skeleton.Handler (int, Skeleton.Tuple [ a; bool ]));
+             (Skeleton.Handler (nat, Skeleton.Tuple [ a; nat ]))
+             (Skeleton.Handler (nat, Skeleton.Tuple [ a; bool ]));
          ])
-      ~info:"handler" ~mismatch:Skeleton.Clash ~lhs:int ~rhs:bool
+      ~info:"handler" ~mismatch:Skeleton.Clash ~lhs:nat ~rhs:bool
       ~path:[ Ast.HandlerOutput; Ast.Component 2 ];
   ]
 
 (* Open types *)
 
-let ty_int : K.ty = Ast.TyConst Const.IntegerTy
+let ty_nat : K.ty = Ast.TyConst Const.NatTy
 let ty_bool : K.ty = Ast.TyConst Const.BooleanTy
 let ty_a, ty_b, ty_c = Ast.(TyParam a_var, TyParam b_var, TyParam c_var)
 let pure = X.Eps.unit
@@ -248,7 +248,7 @@ let show_ty ty = Skeleton.to_string (Skeleton.of_ty ty)
 
 let decoration =
   let skeleton =
-    Skeleton.Box (Skeleton.Tuple [ a @-> a; Skeleton.Handler (int, a) ])
+    Skeleton.Box (Skeleton.Tuple [ a @-> a; Skeleton.Handler (nat, a) ])
   in
   let ty = K.decorate skeleton in
   let rhos, epss, params = contents ty in
@@ -318,43 +318,43 @@ let handler ty ty' : K.ty =
 let expansion =
   [
     expands "expand: an unknown against an arrow"
-      [ demand ty_a (ty_int --> ty_int) ]
-      [ (a_var, int @-> int) ];
+      [ demand ty_a (ty_nat --> ty_nat) ]
+      [ (a_var, nat @-> nat) ];
     expands "expand: a box against an unknown"
-      [ demand (box ty_int) ty_a ]
-      [ (a_var, Skeleton.Box int) ];
+      [ demand (box ty_nat) ty_a ]
+      [ (a_var, Skeleton.Box nat) ];
     expands "expand: an unknown against a tuple with an unknown"
-      [ demand ty_a (Ast.TyTuple [ ty_int; ty_b ]) ]
-      [ (a_var, Skeleton.Tuple [ int; b ]) ];
+      [ demand ty_a (Ast.TyTuple [ ty_nat; ty_b ]) ]
+      [ (a_var, Skeleton.Tuple [ nat; b ]) ];
     expands "expand: an unknown against a handler"
-      [ demand (handler ty_b ty_int) ty_a ]
-      [ (a_var, Skeleton.Handler (b, int)) ];
+      [ demand (handler ty_b ty_nat) ty_a ]
+      [ (a_var, Skeleton.Handler (b, nat)) ];
     expands "expand: demands chained through unknowns"
-      [ demand ty_a ty_b; demand ty_b (ty_int --> ty_bool); demand ty_c ty_a ]
-      [ (a_var, int @-> bool); (b_var, int @-> bool); (c_var, int @-> bool) ];
+      [ demand ty_a ty_b; demand ty_b (ty_nat --> ty_bool); demand ty_c ty_a ]
+      [ (a_var, nat @-> bool); (b_var, nat @-> bool); (c_var, nat @-> bool) ];
     expands "expand: an unknown under a former"
-      [ demand (ty_a --> ty_int) (box ty_bool --> ty_b) ]
-      [ (a_var, Skeleton.Box bool); (b_var, int) ];
+      [ demand (ty_a --> ty_nat) (box ty_bool --> ty_b) ]
+      [ (a_var, Skeleton.Box bool); (b_var, nat) ];
     expands "expand: unknowns only" [ demand ty_a ty_b; demand ty_b ty_c ] [];
     expands "expand: invariant constructor arguments"
       [
         demand
           (Ast.TyApply (list_name, [ ty_a ]))
-          (Ast.TyApply (list_name, [ ty_int --> ty_b ]));
+          (Ast.TyApply (list_name, [ ty_nat --> ty_b ]));
       ]
-      [ (a_var, int @-> b) ];
+      [ (a_var, nat @-> b) ];
     expands "expand: an unknown against an alias"
-      [ demand ty_a (Ast.TyApply (pair_name, [ box ty_int ])) ]
-      [ (a_var, apply pair_name [ Skeleton.Box int ]) ];
+      [ demand ty_a (Ast.TyApply (pair_name, [ box ty_nat ])) ]
+      [ (a_var, apply pair_name [ Skeleton.Box nat ]) ];
     expand_fails "expand: incompatible shapes"
       [
-        demand ~info:"arrow" ty_a (ty_int --> ty_int);
+        demand ~info:"arrow" ty_a (ty_nat --> ty_nat);
         demand ~info:"base" ty_bool ty_a;
       ]
-      ~info:"base" ~mismatch:Skeleton.Clash ~lhs:bool ~rhs:(int @-> int)
+      ~info:"base" ~mismatch:Skeleton.Clash ~lhs:bool ~rhs:(nat @-> nat)
       ~path:[];
     expand_fails "expand: a cyclic shape"
-      [ demand ~info:"cycle" (ty_b --> ty_a) (ty_int --> box ty_a) ]
+      [ demand ~info:"cycle" (ty_b --> ty_a) (ty_nat --> box ty_a) ]
       ~info:"cycle" ~mismatch:(Skeleton.Occurs a_var) ~lhs:a
       ~rhs:(Skeleton.Box a) ~path:[ Ast.Result ];
   ]

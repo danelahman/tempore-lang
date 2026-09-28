@@ -3,13 +3,13 @@
    order. *)
 
 operation Open : unit ~> unit # {Open}
-operation Read : unit ~> int # {Read}
-operation Write : int ~> unit # {Write}
+operation Read : unit ~> nat # {Read}
+operation Write : nat ~> unit # {Write}
 operation Close : unit ~> unit # {Close}
-operation Session : unit ~> int # {Open; (Read | Write)*; Close}
+operation Session : unit ~> nat # {Open; (Read | Write)*; Close}
 
 (* Two copies within one session. *)
-let copy_twice () : int # {Open; (Read | Write)*; Close} =
+let copy_twice () : nat # {Open; (Read | Write)*; Close} =
   perform Open ();
   let x = perform Read () in
   perform Write x;
@@ -34,7 +34,7 @@ let sessions =
 
 (* Sub-effecting: a single read fits inside any number of reads and writes,
    and delays may be spent between sessions. *)
-let two_sessions () : int # {(Open; (Read | Write)*; Close | 1)*} =
+let two_sessions () : nat # {(Open; (Read | Write)*; Close | 1)*} =
   let x = perform Session () in
   delay 2;
   let y = perform Session () in

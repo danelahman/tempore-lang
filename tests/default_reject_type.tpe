@@ -1,7 +1,7 @@
 (* Correctly rejected by the typechecker, under the default 'time-lower-bound'
    grading monoid: the default implementation of 'Get' returns a string, while
-   the result type of the operation is 'int'. *)
+   the result type of the operation is 'nat'. *)
 
-operation Get : unit ~> int # 3
+operation Get : unit ~> nat # 3
 
 default Get () = delay 3; "zero"

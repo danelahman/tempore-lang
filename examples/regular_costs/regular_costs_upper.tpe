@@ -9,14 +9,14 @@
      - Top ⊤: every run permitted
      - Product: concatenation of runs *)
 
-type reading = Reading of int
+type reading = Reading of nat
 
 (* The operations of a sensor station: a sample takes one to two ticks, a
    transmission two to three and a calibration four to six. *)
-operation Sample : unit ~> int # {Sample} within (1, 2)
+operation Sample : unit ~> nat # {Sample} within (1, 2)
 default Sample () = delay 1; 7
 
-operation Send : int ~> unit # {Send} within (2, 3)
+operation Send : nat ~> unit # {Send} within (2, 3)
 default Send x = delay 2
 
 operation Calibrate : unit ~> unit # {Calibrate} within (4, 6)
@@ -42,7 +42,7 @@ let send_then_calibrate () =
 
 (* Correctly accepted by the typechecker: any number of samples, then a
    transmission. *)
-let batch () : int # {Sample*; Send} =
+let batch () : nat # {Sample*; Send} =
   let x = perform Sample () in
   let y = perform Sample () in
   perform Send (x + y);
@@ -144,7 +144,7 @@ let no_calibration () =
          `{Sample; Calibrate; Send} <= {Sample*; Send}` does not hold
 *)
 (*
-let batch_calibrated (b : bool) : int # {Sample*; Send} =
+let batch_calibrated (b : bool) : nat # {Sample*; Send} =
   let x = perform Sample () in
   if b then perform Calibrate () else ();
   perform Send x;

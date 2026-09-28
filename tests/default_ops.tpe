@@ -6,8 +6,8 @@
    operation, not against the grade of a handler clause, so it has to take at
    least as long as the operation promises. *)
 
-operation Get : unit ~> int # 3
-operation Set : int ~> unit # 2
+operation Get : unit ~> nat # 3
+operation Set : nat ~> unit # 2
 operation Log : string ~> unit # 1
 
 default Get () = delay 3; 0

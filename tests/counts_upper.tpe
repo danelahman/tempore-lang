@@ -1,6 +1,6 @@
 (* Operation counts: at most n calls of each operation. *)
 
-operation Send : int ~> unit # (Send, 1)
+operation Send : nat ~> unit # (Send, 1)
 operation Auth : unit ~> unit # (Auth, 1)
 
 default Send n = ()

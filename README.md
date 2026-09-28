@@ -259,7 +259,7 @@ and [`examples/semidirect/mode_costs.tpe`](examples/semidirect/mode_costs.tpe).
   delays count none. An operation not listed is bounded by `0`, or by the entry
   `(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
   allows one `Auth`, three `Send` and nothing else. An operation counts itself,
-  e.g. `operation Send : int ~> unit # (Send, 1)`. See
+  e.g. `operation Send : nat ~> unit # (Send, 1)`. See
   [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
 ## Temporal resources
@@ -435,12 +435,12 @@ continuation is always decided; under the trace grades it may not be.
 
 ### Annotations
 
-A function's computation type may be annotated, `let f () : int # 3 = ...`; the
+A function's computation type may be annotated, `let f () : nat # 3 = ...`; the
 body's grade must be a sub-grade of the annotation. Types may contain variables
 `'a`, and grades may be variables `'e` or `'r`: within a top-level definition,
 the same name is the same unknown, inferred and generalised with it. A name
 also written after `#` stands for the resource image `∣ε∣` of that effect in box
-grades. `let pass (f : unit -> int # 'e) : int # 'e = f ()` has the grade of `f`.
+grades. `let pass (f : unit -> nat # 'e) : nat # 'e = f ()` has the grade of `f`.
 
 ### Sub-effecting
 
@@ -448,22 +448,22 @@ A computation may be used where one of a super-grade is expected, and an
 annotation is an upper bound. Under `time-upper-bound`,
 
 ```
-let apply (f : unit -> int # 2) = f ()
+let apply (f : unit -> nat # 2) = f ()
 let slow () = delay 1; 3
 let branch c = if c then delay 1 else delay 2
 ```
 
-`apply slow` is accepted, `unit → int # 1` being a subtype of
-`unit → int # 2`, and `branch` has the type `bool → unit # 2`. A box type is
-contravariant in its grade: under `time-lower-bound`, a `[2]int` is accepted
-where a `[3]int` is expected, a `[4]int` is not.
+`apply slow` is accepted, `unit → nat # 1` being a subtype of
+`unit → nat # 2`, and `branch` has the type `bool → unit # 2`. A box type is
+contravariant in its grade: under `time-lower-bound`, a `[2]nat` is accepted
+where a `[3]nat` is expected, a `[4]nat` is not.
 
 Limits:
 
 - type-constructor arguments and handler inputs are compared by equality: a
-  `(unit -> int # 1) list` is not accepted where a `(unit -> int # 2) list` is
+  `(unit -> nat # 1) list` is not accepted where a `(unit -> nat # 2) list` is
   expected, although `[slow]` has the scheme
-  `∀ ε₀. 1 ≾ ε₀ ⇒ (unit → int # ε₀) list` and is accepted at both;
+  `∀ ε₀. 1 ≾ ε₀ ⇒ (unit → nat # ε₀) list` and is accepted at both;
 - local `let` definitions are not generalised;
 - the continuation effect of an operation case is rigid (see
   [Handlers and continuations](#handlers-and-continuations));

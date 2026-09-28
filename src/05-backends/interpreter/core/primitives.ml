@@ -17,11 +17,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Error.runtime "Pair expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
-  let get_int (expr : _ Ast.expression) =
+  let get_nat (expr : _ Ast.expression) =
     match expr.it with
-    | Ast.Const (Const.Integer n) -> n
+    | Ast.Const (Const.Nat n) -> n
     | _ ->
-        Error.runtime "Integer expected but got %t"
+        Error.runtime "Natural number expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   let get_float (expr : _ Ast.expression) =
@@ -31,15 +31,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Error.runtime "Float expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
-  let int_to f expr =
-    let n = get_int expr in
+  let nat_to f expr =
+    let n = get_nat expr in
     f n
 
-  let int_int_to f expr =
+  let nat_nat_to f expr =
     binary_function
       (fun expr1 expr2 ->
-        let n1 = get_int expr1 in
-        let n2 = get_int expr2 in
+        let n1 = get_nat expr1 in
+        let n2 = get_nat expr2 in
         f n1 n2)
       expr
 
@@ -55,11 +55,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
         f n1 n2)
       expr
 
-  let int_to_int f expr =
-    return_const expr.Ast.at (Const.Integer (int_to f expr))
+  let nat_to_nat f expr = return_const expr.Ast.at (Const.Nat (nat_to f expr))
 
-  let int_int_to_int f expr =
-    return_const expr.Ast.at (Const.Integer (int_int_to f expr))
+  let nat_nat_to_nat f expr =
+    return_const expr.Ast.at (Const.Nat (nat_nat_to f expr))
 
   let float_to_float f expr =
     return_const expr.Ast.at (Const.Float (float_to f expr))
@@ -102,12 +101,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Primitives.CompareLe -> comparison ( <= )
     | Primitives.CompareGe -> comparison ( >= )
     | Primitives.CompareNe -> comparison ( <> )
-    | Primitives.IntegerAdd -> int_int_to_int ( + )
-    | Primitives.IntegerMul -> int_int_to_int ( * )
-    | Primitives.IntegerSub -> int_int_to_int ( - )
-    | Primitives.IntegerDiv -> int_int_to_int ( / )
-    | Primitives.IntegerMod -> int_int_to_int ( mod )
-    | Primitives.IntegerNeg -> int_to_int ( ~- )
+    | Primitives.NatAdd -> nat_nat_to_nat Z.add
+    | Primitives.NatMul -> nat_nat_to_nat Z.mul
+    | Primitives.NatSub -> nat_nat_to_nat Z.sub
+    | Primitives.NatDiv -> nat_nat_to_nat Z.div
+    | Primitives.NatMod -> nat_nat_to_nat Z.rem
+    | Primitives.NatNeg -> nat_to_nat Z.neg
     | Primitives.FloatAdd -> float_float_to_float ( +. )
     | Primitives.FloatMul -> float_float_to_float ( *. )
     | Primitives.FloatSub -> float_float_to_float ( -. )

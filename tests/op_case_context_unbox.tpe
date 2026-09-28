@@ -2,7 +2,7 @@
 
      ./tempore tests/op_case_context_unbox.tpe *)
 
-operation Op : unit ~> int # 0
+operation Op : unit ~> nat # 0
 
 (* Correctly accepted by the typechecker: the case is typed under the lock of
    the top grade, which under 'time-lower-bound', whose top is the unit 0,

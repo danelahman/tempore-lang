@@ -108,7 +108,7 @@ module Make (C : Constraint.S) = struct
     }
     |> add_type_definition Ast.bool_ty_name
          (alias (Ast.TyConst Const.BooleanTy))
-    |> add_type_definition Ast.int_ty_name (alias (Ast.TyConst Const.IntegerTy))
+    |> add_type_definition Ast.nat_ty_name (alias (Ast.TyConst Const.NatTy))
     |> add_type_definition Ast.unit_ty_name (alias (Ast.TyTuple []))
     |> add_type_definition Ast.string_ty_name
          (alias (Ast.TyConst Const.StringTy))

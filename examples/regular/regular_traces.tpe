@@ -13,12 +13,12 @@ type token = Token of string
 
 (* The operations of a file protocol. *)
 operation Open : unit ~> unit # {Open}
-operation Read : unit ~> int # {Read}
-operation Write : int ~> unit # {Write}
+operation Read : unit ~> nat # {Read}
+operation Write : nat ~> unit # {Write}
 operation Close : unit ~> unit # {Close}
 
 (* A session: open, any number of reads and writes, close. *)
-operation Session : unit ~> int # {Open; (Read | Write)*; Close}
+operation Session : unit ~> nat # {Open; (Read | Write)*; Close}
 
 (* The operations of an authenticated service. *)
 operation Auth : unit ~> unit # {Auth}
@@ -27,7 +27,7 @@ operation Revoke : unit ~> unit # {Revoke}
 
 (* Correctly accepted by the typechecker: two copies within one session
    follow the protocol. *)
-let copy_twice () : int # {Open; (Read | Write)*; Close} =
+let copy_twice () : nat # {Open; (Read | Write)*; Close} =
   perform Open ();
   let x = perform Read () in
   perform Write x;
@@ -49,7 +49,7 @@ let one_read =
 
 (* Correctly accepted by the typechecker: sessions separated by ticks, any
    number of times. *)
-let two_sessions () : int # {(Open; (Read | Write)*; Close | 1)*} =
+let two_sessions () : nat # {(Open; (Read | Write)*; Close | 1)*} =
   let x = perform Session () in
   delay 2;
   let y = perform Session () in
@@ -115,7 +115,7 @@ let late_read =
          `{Open; Read} <= {Open; (Read | Write)*; Close}` does not hold
 *)
 (*
-let unclosed () : int # {Open; (Read | Write)*; Close} =
+let unclosed () : nat # {Open; (Read | Write)*; Close} =
   perform Open ();
   perform Read ()
 *)
@@ -190,7 +190,7 @@ run box {3; _*} "settled" as s in delay 4; unbox s as msg in msg
          `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
 *)
 (*
-let maybe_write (b : bool) : int # {Open; Read*; Close} =
+let maybe_write (b : bool) : nat # {Open; Read*; Close} =
   perform Open ();
   let x = perform Read () in
   if b then perform Write x else ();

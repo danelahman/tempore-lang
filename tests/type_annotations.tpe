@@ -1,13 +1,13 @@
 (* functions *)
 
-let f (x: int) = x
+let f (x: nat) = x
 
-let f (x: int) : int = x
+let f (x: nat) : nat = x
 
-let f (x: bool) (y: int) (z: int -> bool -> int) : int = z y x
+let f (x: bool) (y: nat) (z: nat -> bool -> nat) : nat = z y x
 run f true
 
-let f x : int*int = (x, x)
+let f x : nat*nat = (x, x)
 
 let g (x: 'a) = x
 let g (x: 'a) : 'a = 12
@@ -19,27 +19,27 @@ let g (x: 'a) (y: 'b) : 'a*'b = (x, y)
 let g x : 'a*'a = (x, x)
 
 let f = function
-  | (x: int) -> x
+  | (x: nat) -> x
 
 (* variants *)
 type ('a,'b) cow = Small of 'a | Large of 'b
 
-let f (x : ('a, 'b) cow) : int =
+let f (x : ('a, 'b) cow) : nat =
   match x with
   | Small x -> x
   | Large x -> 100
 
-let f x : int =
+let f x : nat =
   match x with
   | Small s -> 100
-  | Large (l :int) -> 100
+  | Large (l :nat) -> 100
 
 (* records *)
 (* Records are not supported.
 type ('a,'b) bull = {small : 'a; large : 'b}
 
-let f {small= (x: int); large= (y: int)} = x
+let f {small= (x: nat); large= (y: nat)} = x
 *)
 
 (* other *)
-let x = ([] : int list)
+let x = ([] : nat list)

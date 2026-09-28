@@ -11,7 +11,7 @@
 
 (* Base types, tuples of eternal types, and algebraic types built from them
    are eternal. *)
-type stamp = Stamp of int
+type stamp = Stamp of nat
 
 (* Correctly accepted by the typechecker: a stamp survives the wait. *)
 let stamp_later () =
@@ -23,7 +23,7 @@ let stamp_later () =
    is used a tick after it was bound:
 
      Typing error: Variable `f` is used with grade `1` accumulated since it was
-       bound, but its type `unit → int` is not eternal
+       bound, but its type `unit → nat` is not eternal
        Note: the resource inequality `1 <= 0` does not hold
 *)
 (*
@@ -62,7 +62,7 @@ let use_late () =
    scheme ∀ α. Et(α) ⇒ α → α # 1. *)
 let keep x = delay 1; x
 
-(* Correctly accepted by the typechecker: int and stamp are eternal. *)
+(* Correctly accepted by the typechecker: nat and stamp are eternal. *)
 run keep 5
 run keep (Stamp 1)
 
@@ -113,7 +113,7 @@ operation Tick : unit ~> unit # 1
 
 let h x = handler | y -> y | Tick p k -> let r = continue k with () in x
 
-(* Correctly accepted by the typechecker: an int is eternal. *)
+(* Correctly accepted by the typechecker: a nat is eternal. *)
 run handle (perform Tick (); 1) with h 2
 
 (* Correctly rejected by the typechecker: a function is not, whatever the

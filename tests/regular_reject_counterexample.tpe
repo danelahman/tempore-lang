@@ -3,14 +3,14 @@
    note names when the lesser grade has more than one word. *)
 
 operation Open : unit ~> unit # {Open}
-operation Read : unit ~> int # {Read}
-operation Write : int ~> unit # {Write}
+operation Read : unit ~> nat # {Read}
+operation Write : nat ~> unit # {Write}
 operation Close : unit ~> unit # {Close}
 operation Auth : unit ~> unit # {Auth}
 operation Fetch : unit ~> unit # {Fetch}
 
 (* A session that may write, annotated as one that only reads. *)
-let session (b : bool) : int # {Open; Read*; Close} =
+let session (b : bool) : nat # {Open; Read*; Close} =
   perform Open ();
   let x = perform Read () in
   if b then perform Write x else ();

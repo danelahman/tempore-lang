@@ -1,6 +1,6 @@
 (* Operation counts: rejected programs. *)
 
-operation Send : int ~> unit # (Send, 1)
+operation Send : nat ~> unit # (Send, 1)
 operation Auth : unit ~> unit # (Auth, 1)
 
 (* Rejected: four transmissions. *)

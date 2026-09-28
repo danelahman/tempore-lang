@@ -1,5 +1,5 @@
 (* Correctly rejected by the typechecker: the return clause of the handler
-   returns an int, so the case for 'Op' must return one too, and it returns a
+   returns a nat, so the case for 'Op' must return one too, and it returns a
    string instead. *)
 
 operation Op : unit ~> unit # 1

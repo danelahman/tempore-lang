@@ -164,7 +164,7 @@ let declarations ~traces ~upper =
         (if upper then hi else lo)
   in
   [
-    "noneternal type reading = Reading of int";
+    "noneternal type reading = Reading of nat";
     op "Read" "reading" 1 1;
     op "Write" "unit" 2 3;
     op "Send" "unit" 4 6;

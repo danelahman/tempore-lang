@@ -1,20 +1,20 @@
-type nat =
+type unary =
   | Zero
-  | Succ of nat
+  | Succ of unary
 
-let foo_int =
+let foo_nat =
   function
   | Zero -> 0
   | Succ m -> 1
 
-let foo_int_temporal =
+let foo_nat_temporal =
   function
   | Zero -> delay 3; 0
   | Succ m -> delay 3; 1
 
 let del n = 
   delay 9; 
-  foo_int_temporal (delay 2; Succ n)
+  foo_nat_temporal (delay 2; Succ n)
 
 let higher n = 
   fun m -> delay 5; n + m
@@ -53,8 +53,8 @@ in
   delay 3;
   unbox r as (n, a, h) in (n, h)
 
-run foo_int Zero
-run foo_int_temporal Zero
+run foo_nat Zero
+run foo_nat_temporal Zero
 run del Zero
 run higher 5 6
 run higher2 5 6

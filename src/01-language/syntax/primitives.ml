@@ -5,12 +5,12 @@ type primitive =
   | CompareLe
   | CompareGe
   | CompareNe
-  | IntegerAdd
-  | IntegerMul
-  | IntegerSub
-  | IntegerDiv
-  | IntegerMod
-  | IntegerNeg
+  | NatAdd
+  | NatMul
+  | NatSub
+  | NatDiv
+  | NatMod
+  | NatNeg
   | FloatAdd
   | FloatMul
   | FloatSub
@@ -28,12 +28,12 @@ let primitives =
     CompareLe;
     CompareGe;
     CompareNe;
-    IntegerAdd;
-    IntegerMul;
-    IntegerSub;
-    IntegerDiv;
-    IntegerMod;
-    IntegerNeg;
+    NatAdd;
+    NatMul;
+    NatSub;
+    NatDiv;
+    NatMod;
+    NatNeg;
     FloatAdd;
     FloatMul;
     FloatSub;
@@ -50,12 +50,12 @@ let primitive_name = function
   | CompareLe -> "__compare_le__"
   | CompareGe -> "__compare_ge__"
   | CompareNe -> "__compare_ne__"
-  | IntegerAdd -> "__integer_add__"
-  | IntegerMul -> "__integer_mul__"
-  | IntegerSub -> "__integer_sub__"
-  | IntegerDiv -> "__integer_div__"
-  | IntegerMod -> "__integer_mod__"
-  | IntegerNeg -> "__integer_neg__"
+  | NatAdd -> "__nat_add__"
+  | NatMul -> "__nat_mul__"
+  | NatSub -> "__nat_sub__"
+  | NatDiv -> "__nat_div__"
+  | NatMod -> "__nat_mod__"
+  | NatNeg -> "__nat_neg__"
   | FloatAdd -> "__float_add__"
   | FloatMul -> "__float_mul__"
   | FloatSub -> "__float_sub__"

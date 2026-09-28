@@ -252,7 +252,7 @@ plain_simple_term:
 
 const:
   | n = INT
-    { Language.Const.of_integer n }
+    { Language.Const.of_nat (Z.of_int n) }
   | str = STRING
     { Language.Const.of_string str }
   | b = BOOL

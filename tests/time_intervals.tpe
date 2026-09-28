@@ -32,7 +32,7 @@ let foo3 () =
   y + z
 
 (* Correctly accepted by the typechecker: 'x' is used three ticks after it was
-   bound, which is fine because 'int' is an eternal type. *)
+   bound, which is fine because 'nat' is an eternal type. *)
 let foo4 () = 
   let x = 7 in
   box (1,4) 1 as r in
@@ -43,7 +43,7 @@ let foo4 () =
   y + x
 
 (* Correctly accepted by the typechecker: boxing 'x' at (2, 5) requires it to be
-   usable in that future, which 'int' being eternal allows, and the delays'
+   usable in that future, which 'nat' being eternal allows, and the delays'
    (3, 3) lies inside both (1, 4) and (2, 5). *)
 let foo5 () = 
   let x = 7 in
@@ -76,7 +76,7 @@ let foo6 () =
    binding:
 
      Typing error: Variable `r` is used with grade `(3,3)` accumulated since it
-       was bound, but its type `[(3,3)]int` is not eternal
+       was bound, but its type `[(3,3)]nat` is not eternal
        Note: the resource inequality `(3,3) <= (0,0)` does not hold
 *)
 (*

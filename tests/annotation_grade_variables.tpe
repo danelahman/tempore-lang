@@ -10,27 +10,27 @@
    variable. *)
 
 (* Correctly accepted by the typechecker: the effect of f passes through, so
-   pass gets the scheme ∀ ε₀. (unit → int # ε₀) → int # ε₀. *)
-let pass (f : unit -> int # 'e) : int # 'e = f ()
+   pass gets the scheme ∀ ε₀. (unit → nat # ε₀) → nat # ε₀. *)
+let pass (f : unit -> nat # 'e) : nat # 'e = f ()
 
 (* Correctly accepted by the typechecker: the box grade is the image of the
    effect of the boxed function, so release gets the scheme
-   ∀ ε₀. [∣ε₀∣](unit → int # ε₀) → int # ε₀. *)
-let release (policy : [ 'e ] (unit -> int # 'e)) = unbox policy as p in p ()
+   ∀ ε₀. [∣ε₀∣](unit → nat # ε₀) → nat # ε₀. *)
+let release (policy : [ 'e ] (unit -> nat # 'e)) = unbox policy as p in p ()
 
 (* Correctly accepted by the typechecker: type arguments are invariant, so the
    two uses of 'e make the elements of both lists functions of one effect, and
-   append gets the scheme ∀ ε₀. (unit → int # ε₀) list →
-   (unit → int # ε₀) list → (unit → int # ε₀) list # 0 # 0. *)
-let append (xs : (unit -> int # 'e) list) (ys : (unit -> int # 'e) list) =
+   append gets the scheme ∀ ε₀. (unit → nat # ε₀) list →
+   (unit → nat # ε₀) list → (unit → nat # ε₀) list # 0 # 0. *)
+let append (xs : (unit -> nat # 'e) list) (ys : (unit -> nat # 'e) list) =
   xs @ ys
 
 (* Correctly accepted by the typechecker: 'r occurs in box grades only, so it
-   is a resource variable, and rebox gets the scheme ∀ ρ₀. [ρ₀]int → [ρ₀]int. *)
-let rebox (x : [ 'r ] int) : [ 'r ] int = x
+   is a resource variable, and rebox gets the scheme ∀ ρ₀. [ρ₀]nat → [ρ₀]nat. *)
+let rebox (x : [ 'r ] nat) : [ 'r ] nat = x
 
 (* Correctly accepted by the typechecker: pass is used at the effects 1 and
-   2, so both gets the type unit → int # 3. *)
+   2, so both gets the type unit → nat # 3. *)
 let both () =
   let a = pass (fun () -> delay 1; 1) in
   let b = pass (fun () -> delay 2; 2) in

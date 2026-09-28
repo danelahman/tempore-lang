@@ -10,9 +10,9 @@
      - Product: addition *)
 
 (* Reading the state takes 3 ticks. *)
-operation Get : unit ~> int # 3
+operation Get : unit ~> nat # 3
 (* Writing it takes 7. *)
-operation Set : int ~> unit # 7
+operation Set : nat ~> unit # 7
 
 (* Correctly accepted by the typechecker: grade 13, the three ticks of each of
    the two 'Get's and the seven of the 'Set'. *)

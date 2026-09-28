@@ -1,4 +1,4 @@
-type baire = int -> int
+type baire = nat -> nat
 
 type 'a tree = Empty | Node of 'a * 'a tree * 'a tree
 
@@ -10,7 +10,7 @@ type ('k,'v) assoc = ('k * 'v) list
 
 
 (* Mutually recursive types. *)
-type cow = bull -> int
+type cow = bull -> nat
 
 and bull =
    | Tail

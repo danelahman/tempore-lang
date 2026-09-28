@@ -10,11 +10,11 @@
      - Product: (T, E) · (T', E') = (T + T', E ∪ (T + E')) *)
 
 (* Sensing takes a tick, and happens at its start. *)
-operation Sense : unit ~> int # (1, (Sense, {0}))
+operation Sense : unit ~> nat # (1, (Sense, {0}))
 default Sense () = delay 1; 21
 
 (* A transmission takes a tick, and happens at its start. *)
-operation Send : int ~> unit # (1, (Send, {0}))
+operation Send : nat ~> unit # (1, (Send, {0}))
 default Send x = delay 1
 
 (* Correctly accepted by the typechecker: a frame of ten ticks that senses at

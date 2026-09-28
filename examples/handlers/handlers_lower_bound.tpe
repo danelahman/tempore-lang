@@ -10,9 +10,9 @@
      - Product: addition *)
 
 (* Reading the state takes 71 ticks. *)
-operation Get : unit ~> int # 71
+operation Get : unit ~> nat # 71
 (* Writing it takes 2. *)
-operation Set : int ~> unit # 2
+operation Set : nat ~> unit # 2
 
 (* Correctly accepted by the typechecker: the 'Get' clause delays exactly the
    71 ticks of the operation and the 'Set' clause forwards it at its own cost
@@ -63,7 +63,7 @@ let h_twice =
       continue k with y
 
 (* Correctly accepted by the typechecker: 'n' is bound outside the handler,
-   but an int is eternal, so the case may use it however late it runs. *)
+   but a nat is eternal, so the case may use it however late it runs. *)
 let h_offset n =
   handler
   | x -> x + n
@@ -168,7 +168,7 @@ let h_token t =
 (* Accepted by the typechecker: a case may keep a non-eternal function
    like 'g' from outside it under time-lower-bound, since the lock at
    the top grade restricts nothing there; 'g''s inferred type
-   `[71](int → α # 0) → β # ε₀` still pins down the continuation's grade,
+   `[71](nat → α # 0) → β # ε₀` still pins down the continuation's grade,
    so no soundness is lost by letting the case call 'g' on 'k'. Under
    time-upper-bound the same case is rejected, since the top grade
    there is not the unit (see 'handlers_upper_bound.tpe'). *)

@@ -1,4 +1,4 @@
-(* Unary natural numbers, with addition, multiplication and conversion to int.
+(* Unary natural numbers, with addition, multiplication and conversion to nat.
 
    Run this example with the 'time-lower-bound' grading monoid, e.g.
 
@@ -10,9 +10,9 @@
      - Product: addition *)
 
 (* Unary natural numbers. *)
-type nat =
+type unary =
   | Zero
-  | Succ of nat
+  | Succ of unary
 
 (* Correctly accepted by the typechecker: structural recursion on 'm', of
    grade 0 --- nothing in this file takes time. *)
@@ -27,19 +27,19 @@ let rec multiply m n =
   | Zero -> Zero
   | Succ m' -> add n (multiply m' n)
 
-(* Conversion to a built-in integer. *)
-let rec to_int =
+(* Conversion to a built-in natural number. *)
+let rec to_nat =
   function
   | Zero -> 0
-  | Succ m -> to_int m + 1
+  | Succ m -> to_nat m + 1
 
-(* And back, by recursion on the integer. *)
-let rec from_int n =
-  if n = 0 then Zero else Succ (from_int (n - 1))
+(* And back, by recursion on the natural number. *)
+let rec from_nat n =
+  if n = 0 then Zero else Succ (from_nat (n - 1))
 
-(* The run computes 6 * 7 in unary and prints it as an integer. *)
+(* The run computes 6 * 7 in unary and prints it as a natural number. *)
 run
-  let six = from_int 6 in
+  let six = from_nat 6 in
   let seven = Succ six in
   let forty_two = multiply six seven in
-  to_int forty_two
+  to_nat forty_two

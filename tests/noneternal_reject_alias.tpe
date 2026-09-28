@@ -2,4 +2,4 @@
    algebraic type. An alias is transparent and is unfolded by the unifier long
    before the eternality check ever sees it, so a flag on one could not be
    honoured. *)
-noneternal type seconds = int
+noneternal type seconds = nat

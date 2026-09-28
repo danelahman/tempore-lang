@@ -426,7 +426,7 @@ module Small (G : Grade.S) = struct
   let rho_var () = X.Rho_var.fresh_indexed ()
   let eps_var () = X.Eps_var.fresh_indexed ()
   let param a = Ast.TyParam a
-  let int = Ast.TyConst Language.Const.IntegerTy
+  let nat = Ast.TyConst Language.Const.NatTy
   let bool = Ast.TyConst Language.Const.BooleanTy
   let arrow a b e = Ast.TyArrow (a, Ast.CompTy (b, X.Eps.var e))
 
@@ -552,36 +552,36 @@ module Small (G : Grade.S) = struct
       (solved "alias"
          (C.Sub (because 1, Ast.TyApply (Ast.bool_ty_name, []), bool)));
     match
-      solve (C.Sub (because 7, Ast.TyApply (Ast.int_ty_name, []), bool))
+      solve (C.Sub (because 7, Ast.TyApply (Ast.nat_ty_name, []), bool))
     with
     | S.Refuted (R.Shape_mismatch f) when line_of f.info = 7 -> ()
     | outcome ->
         fail "alias mismatch (%s): got %t" name (S.print_outcome outcome)
 
-  (* [a <: int → b ! ε]: [a] is expanded to an arrow from [int]. *)
+  (* [a <: nat → b ! ε]: [a] is expanded to an arrow from [nat]. *)
   let expansion () =
     let a = ty_var () and b = ty_var () and e = eps_var () in
     let constr =
       C.Exists
         ( vars ~tys:[ a; b ] ~eps:[ e ] (),
-          C.Sub (because 1, param a, arrow int (param b) e) )
+          C.Sub (because 1, param a, arrow nat (param b) e) )
     in
     Option.iter
       (fun (s : S.solution) ->
         match Ast.TyParamMap.find_opt a s.subst.ty_subst with
         | Some
             (Ast.TyArrow
-               ( Ast.TyConst Language.Const.IntegerTy,
+               ( Ast.TyConst Language.Const.NatTy,
                  Ast.CompTy (Ast.TyParam b', X.Eps_var e') )) ->
             expect "expansion"
               (has_sub s.hyps b' b [ Reason.Result ]
               && has_eps s.hyps (X.Eps.var e') (X.Eps.var e) [ Reason.Effect ])
-        | _ -> fail "expansion (%s): not expanded to an arrow from int" name)
+        | _ -> fail "expansion (%s): not expanded to an arrow from nat" name)
       (solved "expansion" constr)
 
   (* Shape and occurs failures name the atom they come from. *)
   let mismatches () =
-    (match solve (C.Sub (because 7, int, bool)) with
+    (match solve (C.Sub (because 7, nat, bool)) with
     | S.Refuted (R.Shape_mismatch f) when line_of f.info = 7 -> ()
     | outcome -> fail "mismatch (%s): got %t" name (S.print_outcome outcome));
     let a = ty_var () and b = ty_var () and e = eps_var () in
@@ -619,14 +619,14 @@ module Small (G : Grade.S) = struct
         ( Ast.Noneternal,
           [ ([], token, Ast.TySum [ (Ast.Label.fresh "Token", None) ]) ] )
     in
-    never "arrow never eternal" (arrow int int e);
-    never "box never eternal" (Ast.TyBox (X.Rho.unit, int));
+    never "arrow never eternal" (arrow nat nat e);
+    never "box never eternal" (Ast.TyBox (X.Rho.unit, nat));
     never "list of arrows never eternal"
-      (Ast.TyApply (Ast.list_ty_name, [ arrow int int e ]));
+      (Ast.TyApply (Ast.list_ty_name, [ arrow nat nat e ]));
     never "noneternal type" ~env (Ast.TyApply (token, []));
     never "list of a noneternal type" ~env
       (Ast.TyApply (Ast.list_ty_name, [ Ast.TyApply (token, []) ]));
-    on_a "tuple eternal by its unknown" (Ast.TyTuple [ param a; int ]);
+    on_a "tuple eternal by its unknown" (Ast.TyTuple [ param a; nat ]);
     on_a "list eternal by its argument"
       (Ast.TyApply (Ast.list_ty_name, [ param a ]))
 
@@ -648,9 +648,9 @@ module Small (G : Grade.S) = struct
       (solved "disjunction at a function" (disj unit_arrow (X.Rho.var r)));
     Option.iter
       (fun (s : S.solution) ->
-        expect "disjunction at int"
+        expect "disjunction at nat"
           (s.hyps.rho_hyps = [] && s.hyps.disj_hyps = []))
-      (solved "disjunction at int" (disj int (X.Rho.var r)));
+      (solved "disjunction at nat" (disj nat (X.Rho.var r)));
     Option.iter
       (fun (s : S.solution) ->
         expect "disjunction at an unknown"
@@ -836,7 +836,7 @@ type expected = Typed | Refuted
 let small_programs ~lit ~read =
   let src =
     [
-      "noneternal type reading = Reading of int";
+      "noneternal type reading = Reading of nat";
       read;
       (* Handlers *)
       "let relay m = handle m () with (handler | x -> () | Read p k -> let a = \

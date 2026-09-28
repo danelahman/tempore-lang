@@ -1,8 +1,8 @@
 (* Flow-sensitive levels: rejected programs. *)
 
-operation ReadSecret : unit ~> int # High
-operation Post : int ~> unit # (Low, (Board, Low))
-operation Log : int ~> unit # (Low, (Audit, Low))
+operation ReadSecret : unit ~> nat # High
+operation Post : nat ~> unit # (Low, (Board, Low))
+operation Log : nat ~> unit # (Low, (Audit, Low))
 
 (* Rejected: the post follows the secret. *)
 let post_after () : unit # (High, (Board, Low)) =

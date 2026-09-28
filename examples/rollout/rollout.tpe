@@ -12,7 +12,7 @@
 (* Hosts, artefacts built from a source at a version, and approved
    releases. *)
 type host = Host of string
-type artefact = Artefact of string * int
+type artefact = Artefact of string * nat
 type release = Release of artefact
 
 (* The health a probe reports. *)
@@ -29,21 +29,21 @@ type progress = Deployed of host list | Failed of host * host list
    that failed or the number of hosts reporting errors, and the number of
    hosts reverted. *)
 type outcome =
-  | Completed of int
-  | FailedAt of host * int
-  | Unstable of int * int
+  | Completed of nat
+  | FailedAt of host * nat
+  | Unstable of nat * nat
 
 (* The events of the audit trail. *)
 type event =
-  | Built of int
-  | Approved of int
+  | Built of nat
+  | Approved of nat
   | Installed of host
   | Retried of host
   | Reverted of host
-  | Watched of int
+  | Watched of nat
 
 (* Building takes at least six ticks. *)
-operation Build : string * int ~> artefact # (6, Low)
+operation Build : string * nat ~> artefact # (6, Low)
 default Build (src, v) = delay 6; Artefact (src, v)
 
 (* Approving takes a tick, and the release may be installed only after a
@@ -61,14 +61,14 @@ default Revert h = delay 2
 
 (* A probe of a host at an attempt takes a tick; 'db-2' is degraded at its
    first attempt. *)
-operation Probe : host * int ~> health # (1, Low)
+operation Probe : host * nat ~> health # (1, Low)
 default Probe (h, attempt) =
   delay 1;
   if h = Host "db-2" && attempt = 0 then Degraded else Healthy
 
 (* Watching hosts takes at least ten ticks, and returns the number of them
    reporting errors; 'cache-1' reports errors. *)
-operation Watch : host list ~> int # (10, Low)
+operation Watch : host list ~> nat # (10, Low)
 default Watch hs = delay 10; length (filter (fun h -> h = Host "cache-1") hs)
 
 (* Deploying a host takes at least four ticks. It has no default
@@ -86,7 +86,7 @@ default FetchPatch src = delay 2; "patched"
 
 (* Correctly accepted by the typechecker: a plan of a first wave of one item
    followed by waves of at most 'n' items. *)
-let plan (n : int) (items : 'a list) : 'a waves =
+let plan (n : nat) (items : 'a list) : 'a waves =
   let rec split k xs wave =
     match xs with
     | [] -> if wave = [] then Last else Wave (reverse wave, Last)
@@ -99,7 +99,7 @@ let plan (n : int) (items : 'a list) : 'a waves =
   | x :: rest -> Wave ([x], split 0 rest [])
 
 (* Correctly accepted by the typechecker: the number of items in a plan. *)
-let rec size (ws : 'a waves) : int =
+let rec size (ws : 'a waves) : nat =
   match ws with
   | Last -> 0
   | Wave (items, rest) -> length items + size rest
@@ -191,7 +191,7 @@ let audit =
    rolled out under the deployer of the given policy. The approval's
    '[(8, Low)]' box is accepted where 'roll' expects a '[(10, Low)]' one. *)
 let release (policy : [(3, High)] (host -> health # 'e)) (src : string)
-    (v : int) (hosts : host list) : outcome # (7, Low) =
+    (v : nat) (hosts : host list) : outcome # (7, Low) =
   let deployer = deployer_with policy in
   handle
     let a = perform Build (src, v) in
@@ -204,7 +204,7 @@ let release (policy : [(3, High)] (host -> health # 'e)) (src : string)
 (* Correctly accepted by the typechecker: a patched release is built from a
    patch fetched before the release is approved, so the untrusted input is
    touched before its notice period starts. *)
-let patched_release (src : string) (v : int) (hosts : host list)
+let patched_release (src : string) (v : nat) (hosts : host list)
     : outcome # (9, High) =
   let patched = perform FetchPatch src in
   release (box ⊤ probe_retrying) patched v hosts

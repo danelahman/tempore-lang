@@ -42,7 +42,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
       ty_names =
         StringMap.empty
         |> StringMap.add Sugared.bool_ty_name Untyped.bool_ty_name
-        |> StringMap.add Sugared.int_ty_name Untyped.int_ty_name
+        |> StringMap.add Sugared.nat_ty_name Untyped.nat_ty_name
         |> StringMap.add Sugared.unit_ty_name Untyped.unit_ty_name
         |> StringMap.add Sugared.string_ty_name Untyped.string_ty_name
         |> StringMap.add Sugared.float_ty_name Untyped.float_ty_name

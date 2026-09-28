@@ -2,9 +2,9 @@
    after closing, and one that is never closed. *)
 
 operation Open : unit ~> unit # {Open}
-operation Read : unit ~> int # {Read}
+operation Read : unit ~> nat # {Read}
 operation Close : unit ~> unit # {Close}
-operation Session : unit ~> int # {Open; Read*; Close}
+operation Session : unit ~> nat # {Open; Read*; Close}
 
 let late_read =
   handler
@@ -15,5 +15,5 @@ let late_read =
       let x = perform Read () in
       continue k with x
 
-let unclosed () : int # {Open; Read*; Close} =
+let unclosed () : nat # {Open; Read*; Close} =
   perform Open (); perform Read ()

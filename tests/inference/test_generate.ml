@@ -369,12 +369,10 @@ module Small = struct
         fail "sequencing: expected the lock of the bound effect, got@.%s"
           (C.to_string constr)
 
-  (* [unbox x as y in return y] for [x : [3]int] bound before [delay 2]: the
+  (* [unbox x as y in return y] for [x : [3]nat] bound before [delay 2]: the
      box type is pinned and the accumulated grade below its grade. *)
   let unbox () =
-    let boxed =
-      Ast.TyBox (X.Rho.of_nat 3, Ast.TyConst Language.Const.IntegerTy)
-    in
+    let boxed = Ast.TyBox (X.Rho.of_nat 3, Ast.TyConst Language.Const.NatTy) in
     let env =
       Gen.lock
         (Gen.bind Gen.initial_env x boxed ~bound_at:loc)
@@ -389,8 +387,8 @@ module Small = struct
     expect_text "unbox"
       ~expected:
         "∃α ρ₀.\n\
-        \  [3]int <: [ρ₀]α\n\
-        \  [ρ₀]α <: [3]int\n\
+        \  [3]nat <: [ρ₀]α\n\
+        \  [ρ₀]α <: [3]nat\n\
         \  2 ≾ ρ₀\n\
         \  α <: β\n\
         \  Et(α) ∨ 0 ≾ 0\n\

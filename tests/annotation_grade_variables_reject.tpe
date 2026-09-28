@@ -7,11 +7,11 @@
 
 (* Correctly rejected by the typechecker: type arguments are invariant, so the
    first use of 'e makes it 2 and the second 1. *)
-let mismatch (slow : (unit -> int # 2) list) (fast : (unit -> int # 1) list) =
-  ((slow : (unit -> int # 'e) list), (fast : (unit -> int # 'e) list))
+let mismatch (slow : (unit -> nat # 2) list) (fast : (unit -> nat # 1) list) =
+  ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
 
-let run_fast (f : unit -> int # 1) = f ()
+let run_fast (f : unit -> nat # 1) = f ()
 
 (* Correctly rejected by the typechecker: run_fast bounds 'e by 1, which the
    body of the annotated function, taking 2 ticks, exceeds. *)
-let violated () = run_fast ((fun () -> delay 2; 0) : unit -> int # 'e)
+let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)

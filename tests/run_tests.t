@@ -154,21 +154,21 @@
   annotation_grade_variables_reject.tpe
   ======================================================================
   File "annotation_grade_variables_reject.tpe", line 11, characters 37-69:
-  11 |   ((slow : (unit -> int # 'e) list), (fast : (unit -> int # 'e) list))
+  11 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This expression has type `(unit → int # 1) list` but is annotated with `(unit → int # 2) list`
+  Typing error: This expression has type `(unit → nat # 1) list` but is annotated with `(unit → nat # 2) list`
     File "annotation_grade_variables_reject.tpe", line 11, characters 3-35:
-    11 |   ((slow : (unit -> int # 'e) list), (fast : (unit -> int # 'e) list))
+    11 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
     Note: the effect inequality `2 <= 1` does not hold
   
   File "annotation_grade_variables_reject.tpe", line 17, characters 27-70:
-  17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> int # 'e)
+  17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
     File "annotation_grade_variables_reject.tpe", line 17, characters 18-26:
-    17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> int # 'e)
+    17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
                            ^^^^^^^^
     the inequality goes through the type of `run_fast` here
     Note: the effect inequality `2 <= 1` does not hold
@@ -211,20 +211,20 @@
   annotation_recursion_reject.tpe
   ======================================================================
   File "annotation_recursion_reject.tpe", line 4, characters 14-71:
-  4 | let rec count (n : int) : bool = if n = 0 then 0 else 1 + count (n - 1)
+  4 | let rec count (n : nat) : bool = if n = 0 then 0 else 1 + count (n - 1)
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The body of the recursive function `count` has type `bool` but `count` is used as returning `int`
+  Typing error: The body of the recursive function `count` has type `bool` but `count` is used as returning `nat`
     File "annotation_recursion_reject.tpe", line 4, characters 54-57:
-    4 | let rec count (n : int) : bool = if n = 0 then 0 else 1 + count (n - 1)
+    4 | let rec count (n : nat) : bool = if n = 0 then 0 else 1 + count (n - 1)
                                                               ^^^
-    `int` was inferred here
+    `nat` was inferred here
   
   File "annotation_recursion_reject.tpe", line 8, characters 22-73:
-  8 | let rec pick (x : 'b) (y : 'b) : int = if y then x else pick (x + 1) true
+  8 | let rec pick (x : 'b) (y : 'b) : nat = if y then x else pick (x + 1) true
                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Type `int` is not compatible with type `bool`
+  Typing error: Type `nat` is not compatible with type `bool`
     File "annotation_recursion_reject.tpe", line 8, characters 39-73:
-    8 | let rec pick (x : 'b) (y : 'b) : int = if y then x else pick (x + 1) true
+    8 | let rec pick (x : 'b) (y : 'b) : nat = if y then x else pick (x + 1) true
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `bool` was inferred here
   ======================================================================
@@ -272,7 +272,7 @@
   comp_type_annotation_reject.tpe
   ======================================================================
   File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
-  3 | let f () : int # 5 = delay 3; 1
+  3 | let f () : nat # 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the effect inequality `3 >= 5` does not hold
@@ -289,7 +289,7 @@
   comp_type_annotation_upper_reject.tpe
   ======================================================================
   File "comp_type_annotation_upper_reject.tpe", line 3, characters 9-31:
-  3 | let f () : int # 2 = delay 3; 1
+  3 | let f () : nat # 2 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `2`
     Note: the effect inequality `3 <= 2` does not hold
@@ -685,9 +685,9 @@
   File "default_reject_type.tpe", line 7, characters 0-32:
   7 | default Get () = delay 3; "zero"
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Get` returns `string` but `Get` returns `int`
+  Typing error: The default implementation of `Get` returns `string` but `Get` returns `nat`
     File "default_reject_type.tpe", line 5, characters 0-31:
-    5 | operation Get : unit ~> int # 3
+    5 | operation Get : unit ~> nat # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
   ======================================================================
@@ -708,7 +708,7 @@
   duplicate_variant_tydef_sum.tpe
   ======================================================================
   File "duplicate_variant_tydef_sum.tpe", line 3, characters 0-39:
-  3 | type cow = Horn of int | Horn of string
+  3 | type cow = Horn of nat | Horn of string
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Label `Horn` defined multiple times
   ======================================================================
@@ -717,16 +717,16 @@
   File "error_apply_arg.tpe", line 11, characters 8-9:
   11 |   f "one"
                ^
-  Typing error: This argument has type `string` but the function expects `int`
+  Typing error: This argument has type `string` but the function expects `nat`
     File "error_apply_arg.tpe", line 11, characters 2-3:
     11 |   f "one"
            ^
-    the function has type `int → int`
+    the function has type `nat → nat`
     File "error_apply_arg.tpe", line 9, characters 10-29:
     9 |   let f = id (fun n -> n + 1) in
                   ^^^^^^^^^^^^^^^^^^^
-    `int` was inferred here
-    Note: while matching `int → int` against `string → α # ε₀`
+    `nat` was inferred here
+    Note: while matching `nat → nat` against `string → α # ε₀`
   ======================================================================
   error_earliest_failure.tpe
   ======================================================================
@@ -745,7 +745,7 @@
   File "error_handler_case.tpe", line 9, characters 4-20:
   9 |   | Op p k -> "done"
           ^^^^^^^^^^^^^^^^
-  Typing error: The case for `Op` returns `string` but the return clause returns `int`
+  Typing error: The case for `Op` returns `string` but the return clause returns `nat`
     File "error_handler_case.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -753,7 +753,7 @@
     File "error_handler_case.tpe", line 8, characters 9-10:
     8 |   | x -> 0
                  ^
-    `int` was inferred here
+    `nat` was inferred here
   ======================================================================
   error_unbox_nonvariable.tpe
   ======================================================================
@@ -809,15 +809,15 @@
   File "errors_multiple.tpe", line 12, characters 25-26:
   12 | let first (n : string) = n + 1
                                 ^
-  Typing error: This argument has type `string` but the function expects `int`
+  Typing error: This argument has type `string` but the function expects `nat`
     File "errors_multiple.tpe", line 12, characters 27-28:
     12 | let first (n : string) = n + 1
                                     ^
-    the function has type `int → int → int`
-    Note: while matching `int → int → int` against `string → α # ε₀`
+    the function has type `nat → nat → nat`
+    Note: while matching `nat → nat → nat` against `string → α # ε₀`
   
   File "errors_multiple.tpe", line 15, characters 14-36:
-  15 |   let slow () : int # 5 = delay 3; 1 in
+  15 |   let slow () : nat # 5 = delay 3; 1 in
                      ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the effect inequality `3 >= 5` does not hold
@@ -825,12 +825,12 @@
   File "errors_multiple.tpe", line 18, characters 29-30:
   18 | let second n = first n + "two"
                                     ^
-  Typing error: This argument has type `string` but the function expects `int`
+  Typing error: This argument has type `string` but the function expects `nat`
     File "errors_multiple.tpe", line 18, characters 15-24:
     18 | let second n = first n + "two"
                         ^^^^^^^^^
-    the function has type `int → int`
-    Note: while matching `int → int` against `string → α # ε₀`
+    the function has type `nat → nat`
+    Note: while matching `nat → nat` against `string → α # ε₀`
   ======================================================================
   eternal_lower.tpe
   ======================================================================
@@ -1787,7 +1787,7 @@
   malformed_type_application.tpe
   ======================================================================
   File "malformed_type_application.tpe", line 4, characters 0-25:
-  4 | type bar = (int, int) foo
+  4 | type bar = (nat, nat) foo
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Type `foo` expects 1 argument but is given 2
   ======================================================================
@@ -1880,7 +1880,7 @@
   noneternal_reject_alias.tpe
   ======================================================================
   File "noneternal_reject_alias.tpe", line 5, characters 0-29:
-  5 | noneternal type seconds = int
+  5 | noneternal type seconds = nat
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: type `seconds` is an alias and cannot be declared noneternal; wrap it in a constructor, as in `noneternal type seconds = Seconds of ...`
   ======================================================================
@@ -2241,16 +2241,16 @@
   File "polymorphism_id_id.tpe", line 3, characters 17-18:
   3 |     (v 42, v "foo")
                        ^
-  Typing error: This argument has type `string` but the function expects `int`
+  Typing error: This argument has type `string` but the function expects `nat`
     File "polymorphism_id_id.tpe", line 3, characters 11-12:
     3 |     (v 42, v "foo")
                    ^
-    the function has type `int → int`
+    the function has type `nat → nat`
     File "polymorphism_id_id.tpe", line 3, characters 5-9:
     3 |     (v 42, v "foo")
              ^^^^
-    `int` was inferred here
-    Note: while matching `int → int` against `string → α # ε₀`
+    `nat` was inferred here
+    Note: while matching `nat → nat` against `string → α # ε₀`
   ======================================================================
   rational_time_intervals.tpe
   ======================================================================
@@ -2706,7 +2706,7 @@
   regular_reject_counterexample.tpe
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : int # {Open; Read*; Close} =
+  13 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -2752,7 +2752,7 @@
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : int # {Open; Read*; Close} =
+  18 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -3007,7 +3007,7 @@
   State: []
   
   === Run 12 ===
-  return "test integer operations"
+  return "test natural number operations"
   State: []
   
   === Run 13 ===
@@ -3777,7 +3777,7 @@
   use_undefined_type.tpe
   ======================================================================
   File "use_undefined_type.tpe", line 1, characters 18-21:
-  1 | type foo = One of bar | Two of int
+  1 | type foo = One of bar | Two of nat
                         ^^^
   Syntax error: Unknown name `bar`
   ======================================================================
@@ -4040,7 +4040,7 @@ automata, 'traces-regex':
   regular_reject_counterexample.tpe (traces-regex)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : int # {Open; Read*; Close} =
+  13 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -4086,7 +4086,7 @@ automata, 'traces-regex':
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : int # {Open; Read*; Close} =
+  18 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -4741,7 +4741,7 @@ above:
   regular_reject_counterexample.tpe (traces-regex-derivatives)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : int # {Open; Read*; Close} =
+  13 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -4765,7 +4765,7 @@ above:
   regular_reject_counterexample.tpe (traces-regex-plain)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : int # {Open; Read*; Close} =
+  13 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
@@ -4811,7 +4811,7 @@ above:
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : int # {Open; Read*; Close} =
+  18 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -4841,7 +4841,7 @@ above:
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
   File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : int # {Open; Read*; Close} =
+  18 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -5276,7 +5276,7 @@ single-dash form of the help option is not accepted.
   $ ../tempore --typecheck-only nat.tpe
   $ ../tempore --typecheck-only comp_type_annotation_reject.tpe
   File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
-  3 | let f () : int # 5 = delay 3; 1
+  3 | let f () : nat # 5 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `5`
     Note: the effect inequality `3 >= 5` does not hold

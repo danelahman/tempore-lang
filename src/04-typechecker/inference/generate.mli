@@ -80,7 +80,7 @@ module Make (C : Constraint.S) : sig
       bounds, and the operations with a default implementation. *)
 
   val initial_env : env
-  (** The environment of the built-in types [bool], [int], [unit], [string],
+  (** The environment of the built-in types [bool], [nat], [unit], [string],
       [float], [empty] and [list], and nothing else, in a program that declares
       no operations. *)
 

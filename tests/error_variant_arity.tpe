@@ -7,7 +7,7 @@
 
 type colour = Red | Green
 
-type wrapped = Wrap of int
+type wrapped = Wrap of nat
 
 run Red 1
 

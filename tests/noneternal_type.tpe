@@ -13,7 +13,7 @@ noneternal type token = Token
 type ticket = Ticket of token
 
 (* A stamp holds no token, so it stays eternal. *)
-type stamp = Stamp of int
+type stamp = Stamp of nat
 
 (* Correctly accepted by the typechecker: the token is used in the very step in
    which it is bound, so no grade has accumulated since. *)

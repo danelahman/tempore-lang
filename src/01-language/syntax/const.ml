@@ -1,15 +1,15 @@
 module Error = Utils.Error
 
-type t = Integer of int | String of string | Boolean of bool | Float of float
-type ty = IntegerTy | StringTy | BooleanTy | FloatTy
+type t = Nat of Z.t | String of string | Boolean of bool | Float of float
+type ty = NatTy | StringTy | BooleanTy | FloatTy
 
 let is_eternal_ty = function
-  | IntegerTy -> true
+  | NatTy -> true
   | StringTy -> true
   | BooleanTy -> true
   | FloatTy -> true
 
-let of_integer n = Integer n
+let of_nat n = Nat n
 let of_string s = String s
 let of_boolean b = Boolean b
 let of_float f = Float f
@@ -18,36 +18,30 @@ let of_false = of_boolean false
 
 let print c ppf =
   match c with
-  | Integer k -> Format.fprintf ppf "%d" k
+  | Nat n -> Z.pp_print ppf n
   | String s -> Format.fprintf ppf "%S" s
   | Boolean b -> Format.fprintf ppf "%B" b
   | Float f -> Format.fprintf ppf "%F" f
 
 let print_ty c ppf =
   match c with
-  | IntegerTy -> Format.fprintf ppf "int"
+  | NatTy -> Format.fprintf ppf "nat"
   | StringTy -> Format.fprintf ppf "string"
   | BooleanTy -> Format.fprintf ppf "bool"
   | FloatTy -> Format.fprintf ppf "float"
 
 let infer_ty = function
-  | Integer _ -> IntegerTy
+  | Nat _ -> NatTy
   | String _ -> StringTy
   | Boolean _ -> BooleanTy
   | Float _ -> FloatTy
 
-type comparison = Less | Equal | Greater
-
 let compare c1 c2 =
-  let cmp x y =
-    let r = Stdlib.compare x y in
-    if r < 0 then Less else if r > 0 then Greater else Equal
-  in
   match (c1, c2) with
-  | Integer n1, Integer n2 -> cmp n1 n2
-  | String s1, String s2 -> cmp s1 s2
-  | Boolean b1, Boolean b2 -> cmp b1 b2
-  | Float x1, Float x2 -> cmp x1 x2
+  | Nat n1, Nat n2 -> Z.compare n1 n2
+  | String s1, String s2 -> String.compare s1 s2
+  | Boolean b1, Boolean b2 -> Bool.compare b1 b2
+  | Float x1, Float x2 -> Float.compare x1 x2
   | _ -> Error.runtime "Incomparable constants %t and %t" (print c1) (print c2)
 
-let equal c1 c2 = compare c1 c2 = Equal
+let equal c1 c2 = compare c1 c2 = 0

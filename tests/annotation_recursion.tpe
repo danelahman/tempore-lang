@@ -1,10 +1,10 @@
 (* Correctly accepted by the typechecker and run to its values: a recursive
    function may be annotated with its result type, and its value flows into
    the primitives as the unannotated one's does. *)
-let rec fact (n : int) : int = if n = 0 then 1 else n * fact (n - 1)
+let rec fact (n : nat) : nat = if n = 0 then 1 else n * fact (n - 1)
 
 (* Correctly accepted by the typechecker: the same with the result grade. *)
-let rec fact_graded (n : int) : int # 0 =
+let rec fact_graded (n : nat) : nat # 0 =
   if n = 0 then 1 else n * fact_graded (n - 1)
 
 (* Correctly accepted by the typechecker: a type variable 'b of an annotation
@@ -18,22 +18,22 @@ let rec last (x : 'b) (xs : 'b list) : 'b =
   | y :: ys -> last y ys
 
 (* Correctly accepted by the typechecker: the unknown 'b of each definition is
-   its own, here int, so succ gets the type int → int # 0. *)
+   its own, here nat, so succ gets the type nat → nat # 0. *)
 let succ (x : 'b) : 'b = x + 1
 
 (* Correctly accepted by the typechecker: a type definition's parameters are
    its own, so the 'b of an annotation after it is still flexible, and size
-   gets the scheme ∀ α. α tree → int # 0. *)
+   gets the scheme ∀ α. α tree → nat # 0. *)
 type 'b tree = Leaf | Node of 'b tree * 'b * 'b tree
 
-let rec size (t : 'b tree) : int =
+let rec size (t : 'b tree) : nat =
   match t with
   | Leaf -> 0
   | Node (l, _, r) -> size l + 1 + size r
 
 (* Correctly accepted by the typechecker: an annotated value of a top-level
    definition flows into the primitives as its value. *)
-let four = (4 : int)
+let four = (4 : nat)
 
 run fact 5
 run fact_graded 5
@@ -41,7 +41,7 @@ run last 0 [ 1; 2; 3 ] + 1
 run last true [ false ]
 run succ (fact 3)
 run size (Node (Node (Leaf, "a", Leaf), "b", Leaf)) * 2
-run let rec sum (xs : int list) : int =
+run let rec sum (xs : nat list) : nat =
       match xs with [] -> 0 | x :: xs -> x + sum xs
     in
     sum [ 1; 2; 3 ] * four

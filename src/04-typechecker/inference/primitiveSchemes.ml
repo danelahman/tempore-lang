@@ -7,7 +7,7 @@ module Primitives = Language.Primitives
 module Make (C : Constraint.S) = struct
   let pure ty = Ast.CompTy (ty, C.X.Eps.unit)
   let arrow ty ty' = Ast.TyArrow (ty, pure ty')
-  let int = Ast.TyConst Const.IntegerTy
+  let nat = Ast.TyConst Const.NatTy
   let float = Ast.TyConst Const.FloatTy
   let bool = Ast.TyConst Const.BooleanTy
   let string = Ast.TyConst Const.StringTy
@@ -25,10 +25,10 @@ module Make (C : Constraint.S) = struct
     | Primitives.CompareEq | Primitives.CompareLt | Primitives.CompareGt
     | Primitives.CompareLe | Primitives.CompareGe | Primitives.CompareNe ->
         comparison
-    | Primitives.IntegerAdd | Primitives.IntegerMul | Primitives.IntegerSub
-    | Primitives.IntegerDiv | Primitives.IntegerMod ->
-        binary int
-    | Primitives.IntegerNeg -> unary int
+    | Primitives.NatAdd | Primitives.NatMul | Primitives.NatSub
+    | Primitives.NatDiv | Primitives.NatMod ->
+        binary nat
+    | Primitives.NatNeg -> unary nat
     | Primitives.FloatAdd | Primitives.FloatMul | Primitives.FloatSub
     | Primitives.FloatDiv | Primitives.FloatPow ->
         binary float

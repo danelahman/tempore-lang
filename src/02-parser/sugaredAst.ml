@@ -3,7 +3,7 @@ module Location = Utils.Location
 type ty_name = string
 
 let bool_ty_name = "bool"
-let int_ty_name = "int"
+let nat_ty_name = "nat"
 let unit_ty_name = "unit"
 let string_ty_name = "string"
 let float_ty_name = "float"

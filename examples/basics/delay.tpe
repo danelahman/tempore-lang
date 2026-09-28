@@ -10,38 +10,38 @@
      - Product: addition *)
 
 (* Unary natural numbers, here only something to match on. *)
-type nat =
+type unary =
   | Zero
-  | Succ of nat
+  | Succ of unary
 
 (* Correctly accepted by the typechecker: a plain match, of grade 0 --- nothing
    in it takes time. *)
-let foo_int =
+let foo_nat =
   function
   | Zero -> 0
   | Succ m -> 1
 
 (* Correctly accepted by the typechecker: both branches delay three ticks, so
    the function has grade 3. *)
-let foo_int_temporal =
+let foo_nat_temporal =
   function
   | Zero -> delay 3; 0
   | Succ m -> delay 3; 1
 
 (* Correctly accepted by the typechecker: grade 14, the nine ticks of the
    delay, the two spent building the argument and the three of
-   'foo_int_temporal'. *)
+   'foo_nat_temporal'. *)
 let del n = 
   delay 9; 
-  foo_int_temporal (delay 2; Succ n)
+  foo_nat_temporal (delay 2; Succ n)
 
 (* Correctly accepted by the typechecker: returning the closure costs nothing
    and its five ticks are paid on application, so the grade sits on the inner
-   arrow: int -> int -> int # 5. *)
+   arrow: nat -> nat -> nat # 5. *)
 let higher n = fun m -> delay 5; n + m
 
 (* Correctly accepted by the typechecker: ten ticks are paid before the closure
-   is returned and five more when it is applied: int -> int -> int # 5 # 10. *)
+   is returned and five more when it is applied: nat -> nat -> nat # 5 # 10. *)
 let higher2 n = 
   delay 10; 
   fun m -> delay 5; n + m
@@ -93,8 +93,8 @@ let test3 () =
 
 (* The runs below evaluate the definitions above; the resource state printed
    with each is the delays it accumulated. *)
-run foo_int Zero
-run foo_int_temporal Zero
+run foo_nat Zero
+run foo_nat_temporal Zero
 run del Zero
 run higher 5 6
 run higher2 5 6

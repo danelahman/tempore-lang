@@ -6,16 +6,16 @@
    variable bound outside the case is used with the top grade accumulated.
    Under this monoid the top is the unit 0, so the lock restricts nothing. *)
 
-operation Op : int ~> int # 0
+operation Op : nat ~> nat # 0
 
-type stamp = Stamp of int
+type stamp = Stamp of nat
 
 (* A top-level definition is a closed, time-invariant value, so it stays in
    scope inside a case whatever its type. *)
 let double x = 2 * x
 
 (* Correctly accepted by the typechecker: the case uses its own 'p' and 'k',
-   the captured int 'n', the captured stamp 's' of eternals, and the
+   the captured nat 'n', the captured stamp 's' of eternals, and the
    top-level 'double'. *)
 let h n s =
   handler

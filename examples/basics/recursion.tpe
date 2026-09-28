@@ -9,7 +9,7 @@
      - Top 0: no time needed; the unit is the top
      - Product: addition *)
 
-(* Correctly accepted by the typechecker: plain recursion on integers, of
+(* Correctly accepted by the typechecker: plain recursion on natural numbers, of
    grade 0 --- nothing in this file takes time. *)
 let rec fact n =
   if n = 0 then 1 else n * fact (n - 1)

@@ -6,12 +6,12 @@
 (library
  (name sugaredAst)
  (modules sugaredAst)
- (libraries utils language grades))
+ (libraries utils language grades zarith))
 
 (library
  (name parser)
  (modules :standard \ sugaredAst)
- (libraries utils language grades sugaredAst))
+ (libraries utils language grades sugaredAst zarith))
 
 (ocamllex lexer)
 

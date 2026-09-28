@@ -10,9 +10,9 @@
      - Product: addition *)
 
 (* Reading the state takes at most 71 ticks. *)
-operation Get : unit ~> int # 71
+operation Get : unit ~> nat # 71
 (* Writing it takes at most 2. *)
-operation Set : int ~> unit # 2
+operation Set : nat ~> unit # 2
 
 (* Correctly accepted by the typechecker: the 'Get' clause delays exactly the
    71 ticks the operation allows and then resumes. *)
@@ -34,7 +34,7 @@ let h_fast =
       continue k with 42
 
 (* Correctly accepted by the typechecker: 'n' is bound outside the handler,
-   but an int is eternal, so the case may use it however late it runs. *)
+   but a nat is eternal, so the case may use it however late it runs. *)
 let h_offset n =
   handler
   | x -> x
@@ -102,7 +102,7 @@ let h_before =
    be used after a resumption that may take any number of ticks:
 
      Typing error: Variable `f` is used with grade `∣ε₀∣` accumulated since it
-       was bound, but its type `unit → int` is not eternal
+       was bound, but its type `unit → nat` is not eternal
        Note: the resource inequality
          `∀ε₀. ∣ε₀∣ <= 0` does not hold: for `ε₀ = ∞` it becomes
          `∞ <= 0`
@@ -121,7 +121,7 @@ let h_after =
    types from outside it; letting 'g', a function, in would leak the
    continuation's arbitrary grade through it into the type of 'h_leak':
 
-     Typing error: Variable `g` has type `[71](int → α # ε₀) → β`, which is not
+     Typing error: Variable `g` has type `[71](nat → α # ε₀) → β`, which is not
        eternal, so it cannot be used in the case for `Get`: the case runs with a
        grade the handler does not fix
        Note: the resource inequality `∞ <= 0` does not hold

@@ -120,7 +120,7 @@ type ('rho, 'eps) ty =
 and ('rho, 'eps) comp_ty = CompTy of ('rho, 'eps) ty * 'eps  (** [ty ! eps] *)
 
 let bool_ty_name = TyName.fresh "bool"
-let int_ty_name = TyName.fresh "int"
+let nat_ty_name = TyName.fresh "nat"
 let unit_ty_name = TyName.fresh "unit"
 let string_ty_name = TyName.fresh "string"
 let float_ty_name = TyName.fresh "float"
@@ -213,7 +213,7 @@ let rec compare_expression e1 e2 =
   | Annotated (e1', _), _ -> compare_expression e1' e2
   | _, Annotated (e2', _) -> compare_expression e1 e2'
   | Var x, Var y -> Variable.compare x y
-  | Const c1, Const c2 -> Stdlib.compare c1 c2
+  | Const c1, Const c2 -> Const.compare c1 c2
   | Tuple es1, Tuple es2 -> compare_expressions es1 es2
   | Variant (lbl1, arg1), Variant (lbl2, arg2) -> (
       match Label.compare lbl1 lbl2 with

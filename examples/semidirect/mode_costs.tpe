@@ -17,16 +17,16 @@ operation RadioOn : unit ~> unit # (Off, On, 2)
 operation RadioOff : unit ~> unit # (On, Off, 0)
 
 (* A sample costs 1 with the radio off and 3 with it on. *)
-operation Sample : unit ~> int # ((Off, Off, 1), (On, On, 3))
+operation Sample : unit ~> nat # ((Off, Off, 1), (On, On, 3))
 
 (* A transmission is possible only with the radio on, and costs 4. *)
-operation Send : int ~> unit # (On, On, 4)
+operation Send : nat ~> unit # (On, On, 4)
 
 (* Sleeping for ten ticks draws 10 with the radio off and 50 with it on. *)
 operation Sleep : unit ~> unit # ((Off, Off, 10), (On, On, 50))
 
 (* Averaging costs 1 whatever the mode, and keeps it. *)
-operation Average : int * int ~> int # 1
+operation Average : nat * nat ~> nat # 1
 default Average (x, y) = (x + y) / 2
 
 (* Correctly accepted by the typechecker: from the radio off back to it off,
@@ -40,7 +40,7 @@ let report () : unit # (Off, Off, 17) =
 
 (* Correctly accepted by the typechecker: averaging two samples keeps the mode,
    costing 3 with the radio off and 7 with it on. *)
-let averaged () : int # ((Off, Off, 3), (On, On, 7)) =
+let averaged () : nat # ((Off, Off, 3), (On, On, 7)) =
   let x = perform Sample () in
   let y = perform Sample () in
   perform Average (x, y)
@@ -52,7 +52,7 @@ let maybe_report b : unit # ((Off, Off, 17), (On, On, 50)) =
 
 (* Correctly accepted by the typechecker: averaging alone costs 1 in any
    mode. *)
-let average_only () : int # 1 = perform Average (4, 6)
+let average_only () : nat # 1 = perform Average (4, 6)
 
 (* Correctly rejected by the typechecker: sleeping with the radio still on
    costs 50 instead of 10:

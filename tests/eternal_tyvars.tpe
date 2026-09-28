@@ -35,7 +35,7 @@ let twice_keep x = keep (keep x)
 operation Op : unit ~> unit # 1
 let h x = handler | y -> y | Op p k -> let r = continue k with () in x
 
-(* Correctly accepted by the typechecker: int is eternal. *)
+(* Correctly accepted by the typechecker: nat is eternal. *)
 run keep 5
 
 (* Correctly accepted by the typechecker: a tag imposes nothing on its
