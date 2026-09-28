@@ -337,6 +337,7 @@ let expected_rejections =
     ("positivity_reject_nested.tpe", [ 3 ]);
     ("positivity_reject_omega.tpe", [ 7 ]);
     ("positivity_reject_parameter.tpe", [ 5 ]);
+    ("recursion_lock_reject.tpe", [ 8 ]);
     ("regex_costs_interval_reject.tpe", [ 10; 17 ]);
     ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);
     ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);

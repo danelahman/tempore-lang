@@ -16,6 +16,7 @@ type lock_kind =
   | Boxed
   | Handled
   | Clause_lock of clause
+  | Recursive_lock of Ast.variable
 
 type 'rho lock = {
   grade : 'rho;
@@ -66,6 +67,13 @@ type ('rho, 'eps) why =
       clause : clause;
       locks : 'rho lock list;
     }
+  | Rec_capture of {
+      var : Ast.variable;
+      bound_at : Location.t;
+      f : Ast.variable;
+      defined_at : Location.t;
+      locks : 'rho lock list;
+    }
   | Instance_of of {
       var : Ast.variable;
       defined_at : Location.t option;
@@ -110,10 +118,18 @@ let with_stated s reason =
   | Some _ -> reason
   | None -> { reason with stated = Some s }
 
-let clause_of_locks locks =
-  List.find_map
-    (fun e -> match e.kind with Clause_lock c -> Some c | _ -> None)
-    locks
+let use_under ~var ~bound_at locks =
+  let capture e =
+    match e.kind with
+    | Clause_lock clause ->
+        Some (Op_case_capture { var; bound_at; clause; locks })
+    | Recursive_lock f ->
+        Some (Rec_capture { var; bound_at; f; defined_at = e.at; locks })
+    | Delayed _ | Performed _ | Sequenced | Boxed | Handled -> None
+  in
+  match List.find_map capture locks with
+  | Some why -> why
+  | None -> Use_under_locks { var; bound_at; locks }
 
 let map_locks on_rho =
   List.map (fun e ->
@@ -127,6 +143,7 @@ let rec map_grades on_rho on_eps reason =
         Use_under_locks { u with locks = map_locks on_rho u.locks }
     | Op_case_capture u ->
         Op_case_capture { u with locks = map_locks on_rho u.locks }
+    | Rec_capture u -> Rec_capture { u with locks = map_locks on_rho u.locks }
     | Instance_of i ->
         Instance_of { i with inner = map_grades on_rho on_eps i.inner }
     | Application a -> Application a
@@ -166,7 +183,8 @@ let rec fold_grades on_rho on_eps reason acc =
     match reason.why with
     | Unboxed { locks; _ }
     | Use_under_locks { locks; _ }
-    | Op_case_capture { locks; _ } ->
+    | Op_case_capture { locks; _ }
+    | Rec_capture { locks; _ } ->
         fold_locks on_rho locks acc
     | Instance_of { inner; _ } -> fold_grades on_rho on_eps inner acc
     | _ -> acc
@@ -197,6 +215,7 @@ let print_lock_kind kind ppf =
   | Handled -> Format.pp_print_string ppf "handled computation"
   | Clause_lock { op; _ } ->
       Format.fprintf ppf "clause for %t" (Ast.OpName.print op)
+  | Recursive_lock f -> Format.fprintf ppf "body of %t" (Ast.Variable.print f)
 
 let print_why why ppf =
   let text = Format.pp_print_string ppf in
@@ -220,6 +239,9 @@ let print_why why ppf =
       Format.fprintf ppf "use of %t in the clause for %t"
         (Ast.Variable.print var)
         (Ast.OpName.print clause.op)
+  | Rec_capture { var; f; _ } ->
+      Format.fprintf ppf "use of %t in the body of %t" (Ast.Variable.print var)
+        (Ast.Variable.print f)
   | Instance_of { var; _ } -> var_rule "instance of" var
   | Handler_case { op; _ } -> op_rule "clause for" op
   | Continuation_grade { op; _ } -> op_rule "continuation grade of" op

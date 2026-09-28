@@ -45,9 +45,11 @@ module Make (C : Constraint.S) = struct
     signature_at : Location.t;
   }
 
-  (* An entry of the context: a binding [x : A] or a lock [⟨ρ⟩]. *)
+  (* An entry of the context: a binding [x : A], a persistent binding
+     [x :[⊤] A], used with an implicit unbox, or a lock [⟨ρ⟩]. *)
   type entry =
     | Bound of Ast.variable * ty * Location.t
+    | Persistent of Ast.variable * ty * Location.t
     | Lock of rho Reason.lock
 
   type global = { scheme : C.scheme; defined_at : Location.t option }
@@ -585,19 +587,26 @@ module Make (C : Constraint.S) = struct
   let bind env x ty ~bound_at =
     { env with context = Bound (x, ty, bound_at) :: env.context }
 
+  let bind_persistent env x ty ~bound_at =
+    { env with context = Persistent (x, ty, bound_at) :: env.context }
+
   let lock env l = { env with context = Lock l :: env.context }
 
   (* A variable in the environment: bound in the context, with the locks since
-     its binding, oldest first, or a top-level definition or primitive. *)
+     its binding, oldest first, bound persistently in the context, or a
+     top-level definition or primitive. *)
   type lookup =
     | Local of { ty : ty; bound_at : Location.t; locks : rho Reason.lock list }
+    | Persistent_local of { ty : ty; bound_at : Location.t }
     | Global of global
 
   let lookup ~loc env x =
     let rec find locks = function
       | Bound (y, ty, bound_at) :: _ when Ast.Variable.compare x y = 0 ->
           Local { ty; bound_at; locks }
-      | Bound _ :: context -> find locks context
+      | Persistent (y, ty, bound_at) :: _ when Ast.Variable.compare x y = 0 ->
+          Persistent_local { ty; bound_at }
+      | (Bound _ | Persistent _) :: context -> find locks context
       | Lock e :: context -> find (e :: locks) context
       | [] -> (
           match Ast.VariableMap.find_opt x env.globals with
@@ -611,7 +620,8 @@ module Make (C : Constraint.S) = struct
   (* The locks of the whole context, oldest first. *)
   let all_locks env =
     List.fold_left
-      (fun locks -> function Lock e -> e :: locks | Bound _ -> locks)
+      (fun locks -> function
+        | Lock e -> e :: locks | Bound _ | Persistent _ -> locks)
       [] env.context
 
   (* The grade accumulated by locks, oldest first: the product of their
@@ -905,19 +915,16 @@ module Make (C : Constraint.S) = struct
 
   (* The use of the variable [x] at [at]: its type is a subtype of the expected
      type, and it is eternal or the grade accumulated since its binding is
-     below the unit. A scheme is instantiated first and its qualifier [Q ∧ R] owed. *)
+     below the unit, unless it is bound persistently. A scheme is instantiated
+     first and its qualifier [Q ∧ R] owed. *)
   let variable env at x expected =
     match lookup ~loc:at env x with
     | Local { ty; bound_at; locks } ->
-        let why =
-          match Reason.clause_of_locks locks with
-          | Some clause ->
-              Reason.Op_case_capture { var = x; bound_at; clause; locks }
-          | None -> Reason.Use_under_locks { var = x; bound_at; locks }
-        in
+        let why = Reason.use_under ~var:x ~bound_at locks in
         C.conj
           (sub_expected at ty expected)
           (C.Eternal_or_unit (Reason.because at why, ty, accumulated_grade locks))
+    | Persistent_local { ty; _ } -> sub_expected at ty expected
     | Global { scheme; defined_at } ->
         let ty, qualifier = C.instantiate scheme in
         C.conj
@@ -987,9 +994,10 @@ module Make (C : Constraint.S) = struct
       (C.Eps_leq (reason, Eps.unit, eps))
 
   (* A function: the body is typed at the arrow [α → β ! ε] the function
-     synthesises, a subtype of the expected type. A recursive function binds
-     itself at that arrow; the body of a pure or recursive function has effect
-     the unit, as two orderings. *)
+     synthesises, a subtype of the expected type. The body of a recursive
+     function sees its surrounding context behind the lock [⟨⊤⟩], and the
+     function itself bound persistently at that arrow after it; the body of a
+     pure or recursive function has effect the unit, as two orderings. *)
   and function_ env at kind (pat, body) expected =
     exists_ty (fun param_ty ->
         exists_ty (fun result_ty ->
@@ -1005,7 +1013,16 @@ module Make (C : Constraint.S) = struct
                 in
                 let env_body =
                   match kind with
-                  | Recursive f -> bind env f arrow ~bound_at:at
+                  | Recursive f ->
+                      bind_persistent
+                        (lock env
+                           {
+                             grade = Rho.top;
+                             at;
+                             kind = Reason.Recursive_lock f;
+                             declared = None;
+                           })
+                        f arrow ~bound_at:at
                   | Impure | Pure -> env
                 in
                 C.conj_all
@@ -1256,6 +1273,7 @@ module Make (C : Constraint.S) = struct
     let boxed_ty, bound_at, locks, instance =
       match lookup ~loc:e.Ast.at env x with
       | Local { ty; bound_at; locks } -> (ty, Some bound_at, locks, C.True)
+      | Persistent_local { ty; bound_at } -> (ty, Some bound_at, [], C.True)
       | Global { scheme; defined_at } ->
           let ty, qualifier = C.instantiate scheme in
           ( ty,

@@ -1,0 +1,18 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/recursion_lock_lower.tpe *)
+
+(* Correctly accepted by the typechecker: the body of 'go' is typed under the
+   lock of the top grade, which under 'time-lower-bound', whose top is the
+   unit 0, restricts nothing; so the function 'g', bound outside the body, may
+   be used in it. *)
+let apply_times g n =
+  let rec go m =
+    match m with
+    | 0 -> 0
+    | j + 1 -> g (go j)
+  in
+  go n
+
+(* The run adds 2 three times to 0. *)
+run apply_times (fun x -> x + 2) 3

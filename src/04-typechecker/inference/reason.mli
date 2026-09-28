@@ -27,6 +27,8 @@ type lock_kind =
       (** the handled computation, before the return clause of a handler *)
   | Clause_lock of clause
       (** the lock [⟨⊤⟩] of a handler clause or of a default implementation *)
+  | Recursive_lock of Ast.variable
+      (** the lock [⟨⊤⟩] of the body of the recursive function it names *)
 
 type 'rho lock = {
   grade : 'rho;
@@ -101,8 +103,20 @@ type ('rho, 'eps) why =
       clause : clause;
       locks : 'rho lock list;
     }
-      (** as [Use_under_locks], for a variable bound outside [clause], the
-          outermost such clause, whose lock [⟨⊤⟩] is among the locks *)
+      (** as [Use_under_locks], for a variable bound outside [clause], whose
+          lock [⟨⊤⟩] is the outermost lock of kind [Clause_lock] or
+          [Recursive_lock] among the locks *)
+  | Rec_capture of {
+      var : Ast.variable;
+      bound_at : Location.t;
+      f : Ast.variable;
+      defined_at : Location.t;
+      locks : 'rho lock list;
+    }
+      (** as [Use_under_locks], for a variable bound outside the body of the
+          recursive function [f] defined at [defined_at], whose lock [⟨⊤⟩] is
+          the outermost lock of kind [Clause_lock] or [Recursive_lock] among the
+          locks *)
   | Instance_of of {
       var : Ast.variable;
       defined_at : Location.t option;
@@ -186,9 +200,12 @@ val with_stated : ('rho, 'eps) stated -> ('rho, 'eps) t -> ('rho, 'eps) t
 (** [with_stated s reason] is [reason] recording [s] as stated, unless it
     records a stated ordering already. *)
 
-val clause_of_locks : 'rho lock list -> clause option
-(** [clause_of_locks locks] is the clause of the first lock of kind
-    [Clause_lock] in [locks], the outermost one when [locks] is oldest first. *)
+val use_under :
+  var:Ast.variable -> bound_at:Location.t -> 'rho lock list -> ('rho, 'eps) why
+(** [use_under ~var ~bound_at locks] is the rule of a use of [var], bound at
+    [bound_at], under [locks], oldest first: a capture by the clause or the
+    recursive body of the outermost lock of kind [Clause_lock] or
+    [Recursive_lock] in [locks], else a use under locks. *)
 
 val map_grades :
   ('rho -> 'rho2) -> ('eps -> 'eps2) -> ('rho, 'eps) t -> ('rho2, 'eps2) t

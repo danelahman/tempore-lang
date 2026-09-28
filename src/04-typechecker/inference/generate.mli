@@ -15,9 +15,10 @@
     The context is a stack of bindings [x : A] and locks [⟨ρ⟩] of resource
     grades; a variable bound under locks [⟨ρ₁⟩ … ⟨ρₙ⟩] is used with the grade
     [ρ₁ · … · ρₙ] accumulated since its binding. A handler clause and a default
-    implementation are generated under the lock [⟨⊤⟩]. Top-level definitions and
-    primitives are not in the context but in a table of schemes, and are used
-    under any locks. *)
+    implementation are generated under the lock [⟨⊤⟩], and so is the body of a
+    recursive function, which uses the function itself under any locks.
+    Top-level definitions and primitives are not in the context but in a table
+    of schemes, and are used under any locks. *)
 
 module Ast = Language.Ast
 module Location = Utils.Location
@@ -179,6 +180,10 @@ module Make (C : Constraint.S) : sig
 
   val bind : env -> Ast.variable -> ty -> bound_at:Location.t -> env
   (** [bind env x ty ~bound_at] extends the context by [x : ty]. *)
+
+  val bind_persistent : env -> Ast.variable -> ty -> bound_at:Location.t -> env
+  (** [bind_persistent env x ty ~bound_at] extends the context by [x :[⊤] ty],
+      used under any locks with an implicit unbox. *)
 
   val lock : env -> rho Reason.lock -> env
   (** [lock env l] extends the context by the lock [⟨l.grade⟩]. *)

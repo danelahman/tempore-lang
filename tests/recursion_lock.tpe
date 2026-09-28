@@ -1,0 +1,43 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/recursion_lock.tpe
+
+   The body of a recursive function sees its surrounding context behind a
+   lock of the top grade, and the function itself under any locks. *)
+
+operation Ask : unit ~> nat # 0
+
+(* Correctly accepted by the typechecker: the local 'go' captures 'k', a nat,
+   whose type is eternal. *)
+let repeat_add k n =
+  let rec go m =
+    match m with
+    | 0 -> 0
+    | j + 1 -> k + go j
+  in
+  go n
+
+(* Correctly accepted by the typechecker: 'count' is used in the case for
+   'Ask' within its own body, under the lock of the top grade. *)
+let rec count n =
+  match n with
+  | 0 -> 0
+  | m + 1 ->
+      handle perform Ask () with handler
+      | x -> x
+      | Ask _ k -> continue k with (count m + 1)
+
+(* The same, for a local recursive function. *)
+let local_count n =
+  let rec go m =
+    match m with
+    | 0 -> 0
+    | j + 1 ->
+        handle perform Ask () with handler
+        | x -> x
+        | Ask _ k -> continue k with (go j + 1)
+  in
+  go n
+
+(* The run returns 3 * 4 and the two counts. *)
+run (repeat_add 3 4, count 2, local_count 3)

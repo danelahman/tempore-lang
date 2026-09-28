@@ -553,6 +553,10 @@ module Make (C : Inference.Constraint.S) = struct
         Printf.sprintf
           "the case for %s is checked with the top grade %s accumulated"
           (op_name clause.op) grade
+    | Reason.Recursive_lock f ->
+        Printf.sprintf
+          "%s is defined %s, its body checked with the top grade %s accumulated"
+          (describe f) here grade
 
   (* A grade of the unit is no part of the explanation. *)
   let lock_labels p locks =
@@ -593,45 +597,67 @@ module Make (C : Inference.Constraint.S) = struct
   let declared_label op signature_at =
     label signature_at ("operation " ^ op_name op ^ " is declared " ^ here)
 
+  (* The places of a capture by the body of the recursive function [f]: where
+     grades accumulated, and where [f] is defined, which the label of the lock
+     of its body names unless that lock's grade is the unit. *)
+  let rec_capture_labels p f defined_at locks =
+    let names_f (e : C.rho Reason.lock) =
+      match e.kind with
+      | Reason.Recursive_lock g ->
+          Ast.Variable.compare f g = 0 && not (is_unit_rho p (lock_grade p e))
+      | _ -> false
+    in
+    let spent = lock_labels p locks in
+    if List.exists names_f locks then spent
+    else label defined_at (describe f ^ " is defined " ^ here) :: spent
+
   (* The use a var-rule atom began at, through the definitions whose schemes
      carried it: the reason of the use. *)
   let rec use_of (reason : C.reason) =
     match reason.why with
     | Reason.Instance_of { inner; _ } -> use_of inner
-    | Reason.Use_under_locks _ | Reason.Op_case_capture _ -> Some reason
+    | Reason.Use_under_locks _ | Reason.Op_case_capture _ | Reason.Rec_capture _
+      ->
+        Some reason
     | _ -> None
 
   (** The story of a use under locks, in source order: where the variable was
       bound, where grades accumulated since, and the use itself. *)
   let use_labels p (use : C.reason) =
     match use.why with
-    | Reason.Use_under_locks { var; bound_at; locks }
-    | Reason.Op_case_capture { var; bound_at; locks; _ } ->
-        let spent = lock_labels p locks in
+    | Reason.Use_under_locks { var; bound_at; locks } ->
         let total = accumulated_grade locks in
-        let clause = Reason.clause_of_locks locks in
         let text =
-          match clause with
-          | Some c ->
-              Printf.sprintf "%s is used %s, in the case for %s" (describe var)
-                here (op_name c.op)
-          | None when is_unit_rho p total ->
-              Printf.sprintf "%s is used %s" (describe var) here
-          | None ->
-              Printf.sprintf
-                "%s is used %s with grade %s accumulated since it was bound, \
-                 which only an eternal type allows"
-                (describe var) here (rho_code p total)
-        in
-        let clause =
-          match clause with
-          | Some c -> [ declared_label c.op c.signature_at ]
-          | None -> []
+          if is_unit_rho p total then
+            Printf.sprintf "%s is used %s" (describe var) here
+          else
+            Printf.sprintf
+              "%s is used %s with grade %s accumulated since it was bound, \
+               which only an eternal type allows"
+              (describe var) here (rho_code p total)
         in
         in_span_order
-          (clause
-          @ binding_labels var (Some bound_at)
-          @ spent
+          (binding_labels var (Some bound_at)
+          @ lock_labels p locks
+          @ [ label use.at text ])
+    | Reason.Op_case_capture { var; bound_at; clause; locks } ->
+        let text =
+          Printf.sprintf "%s is used %s, in the case for %s" (describe var) here
+            (op_name clause.op)
+        in
+        in_span_order
+          (declared_label clause.op clause.signature_at
+           :: binding_labels var (Some bound_at)
+          @ lock_labels p locks
+          @ [ label use.at text ])
+    | Reason.Rec_capture { var; bound_at; f; defined_at; locks } ->
+        let text =
+          Printf.sprintf "%s is used %s, in the body of %s" (describe var) here
+            (describe f)
+        in
+        in_span_order
+          (binding_labels var (Some bound_at)
+          @ rec_capture_labels p f defined_at locks
           @ [ label use.at text ])
     | _ -> []
 
@@ -649,6 +675,10 @@ module Make (C : Inference.Constraint.S) = struct
           (declared_label clause.op clause.signature_at
            :: binding_labels var (Some bound_at)
           @ lock_labels p locks)
+    | Reason.Rec_capture { var; bound_at; f; defined_at; locks } ->
+        in_span_order
+          (binding_labels var (Some bound_at)
+          @ rec_capture_labels p f defined_at locks)
     | Reason.Instance_of { var; defined_at; inner } ->
         let definition =
           match defined_at with
@@ -657,7 +687,8 @@ module Make (C : Inference.Constraint.S) = struct
         in
         let rest =
           match inner.why with
-          | Reason.Use_under_locks _ | Reason.Op_case_capture _ ->
+          | Reason.Use_under_locks _ | Reason.Op_case_capture _
+          | Reason.Rec_capture _ ->
               use_labels p inner
           | _ -> labels_of_reason p inner
         in
@@ -689,7 +720,9 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Successor_pattern -> "the successor pattern"
     | Reason.Boxed_value -> "the box"
     | Reason.Unboxed { var; _ } -> "the unboxing of " ^ describe var
-    | Reason.Use_under_locks { var; _ } | Reason.Op_case_capture { var; _ } ->
+    | Reason.Use_under_locks { var; _ }
+    | Reason.Op_case_capture { var; _ }
+    | Reason.Rec_capture { var; _ } ->
         "the use of " ^ describe var
     | Reason.Instance_of { var; _ } -> "the type of " ^ describe var
     | Reason.Handler_case { op; _ } | Reason.Continuation_grade { op; _ } ->
@@ -719,7 +752,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Boxed_value | Reason.Default_of _ | Reason.Handler_case _
     | Reason.Continuation_grade _ | Reason.Perform_argument _
     | Reason.Perform_continuation _ | Reason.Unboxed _
-    | Reason.Use_under_locks _ | Reason.Op_case_capture _
+    | Reason.Use_under_locks _ | Reason.Op_case_capture _ | Reason.Rec_capture _
     | Reason.Variant_argument _ ->
         true
     | Reason.Application _ | Reason.Match_scrutinee _ | Reason.Match_branch
@@ -1233,7 +1266,8 @@ module Make (C : Inference.Constraint.S) = struct
           {
             why =
               ( Reason.Use_under_locks { var = x; _ }
-              | Reason.Op_case_capture { var = x; _ } );
+              | Reason.Op_case_capture { var = x; _ }
+              | Reason.Rec_capture { var = x; _ } );
             _;
           },
         Some t ) ->
@@ -1243,7 +1277,8 @@ module Make (C : Inference.Constraint.S) = struct
           {
             why =
               ( Reason.Use_under_locks { var = x; _ }
-              | Reason.Op_case_capture { var = x; _ } );
+              | Reason.Op_case_capture { var = x; _ }
+              | Reason.Rec_capture { var = x; _ } );
             _;
           },
         None ) ->
@@ -1262,19 +1297,30 @@ module Make (C : Inference.Constraint.S) = struct
     | _ -> []
 
   (* The case a capture crosses into runs with a grade the handler does not
-     fix. *)
-  let capture_message var clause t =
+     fix; the body of a recursive function may run at any later time. *)
+  let capture_message var into t =
+    let into =
+      match into with
+      | `Clause (clause : Reason.clause) ->
+          Printf.sprintf
+            "the case for %s: the case runs with a grade the handler does not \
+             fix"
+            (op_name clause.op)
+      | `Recursive f ->
+          Printf.sprintf
+            "the body of the recursive function %s, which may run at any later \
+             time"
+            (describe f)
+    in
     match t with
     | Some t ->
         Printf.sprintf
-          "%s has type %s, which is not eternal, so it cannot be used in the \
-           case for %s: the case runs with a grade the handler does not fix"
-          (subject var) t (op_name clause.Reason.op)
+          "%s has type %s, which is not eternal, so it cannot be used in %s"
+          (subject var) t into
     | None ->
         Printf.sprintf
-          "%s does not have an eternal type, so it cannot be used in the case \
-           for %s: the case runs with a grade the handler does not fix"
-          (subject var) (op_name clause.Reason.op)
+          "%s does not have an eternal type, so it cannot be used in %s"
+          (subject var) into
 
   let never_eternal source ty (reason : C.reason) =
     let p = printer source in
@@ -1287,7 +1333,9 @@ module Make (C : Inference.Constraint.S) = struct
              accumulated since it was bound that only an eternal type allows"
             (subject var) t
       | Reason.Op_case_capture { var; clause; _ } ->
-          capture_message var clause (Some t)
+          capture_message var (`Clause clause) (Some t)
+      | Reason.Rec_capture { var; f; _ } ->
+          capture_message var (`Recursive f) (Some t)
       | Reason.Instance_of { var; inner; _ } ->
           instance_eternal (Some t) var inner
       | _ -> Printf.sprintf "Type %s is not eternal" t
@@ -1308,8 +1356,8 @@ module Make (C : Inference.Constraint.S) = struct
   let specific (r : C.reason) =
     match r.why with
     | Reason.Unboxed _ | Reason.Use_under_locks _ | Reason.Op_case_capture _
-    | Reason.Instance_of _ | Reason.Continuation_grade _ | Reason.Default_of _
-      ->
+    | Reason.Rec_capture _ | Reason.Instance_of _ | Reason.Continuation_grade _
+    | Reason.Default_of _ ->
         true
     | Reason.Annotation -> r.path = [ Reason.Effect ]
     | _ -> false
@@ -1371,7 +1419,14 @@ module Make (C : Inference.Constraint.S) = struct
         in
         (reason.at, message, ineq_notes p f)
     | Reason.Op_case_capture { var; clause; _ }, _ ->
-        let message = capture_message var clause (Option.map (ty_code p) ty) in
+        let message =
+          capture_message var (`Clause clause) (Option.map (ty_code p) ty)
+        in
+        (reason.at, message, box_note ty @ ineq_notes p f)
+    | Reason.Rec_capture { var; f = g; _ }, _ ->
+        let message =
+          capture_message var (`Recursive g) (Option.map (ty_code p) ty)
+        in
         (reason.at, message, box_note ty @ ineq_notes p f)
     | Reason.Instance_of { var; inner; _ }, _ when Option.is_some (use_of inner)
       ->

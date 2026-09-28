@@ -339,6 +339,31 @@ module Small = struct
         ()
     | _ -> fail "variable in clause: expected a capture by the clause"
 
+  (* [rec f y. return (x, f, y)]: the body behind the lock of the recursive
+     function, [x] a capture by it, [y] used under no locks, and [f] owing no
+     obligation. *)
+  let recursive_body () =
+    let f = Ast.Variable.fresh "f" in
+    let body = return (at (Ast.Tuple [ var x; var f; var y ])) in
+    let e = at (Ast.RecLambda (f, (pvar y, body))) in
+    let obligations =
+      List.filter_map
+        (function
+          | C.Eternal_or_unit ({ why; _ }, _, _) -> Some why | _ -> None)
+        (atoms (Gen.generate_expression env_x e (expect alpha)))
+    in
+    match obligations with
+    | [
+     Reason.Rec_capture
+       { var; f = f'; locks = [ { kind = Reason.Recursive_lock _; _ } ]; _ };
+     Reason.Use_under_locks { var = var'; locks = []; _ };
+    ]
+      when Ast.Variable.compare var x = 0
+           && Ast.Variable.compare f f' = 0
+           && Ast.Variable.compare var' y = 0 ->
+        ()
+    | _ -> fail "recursive body: expected a capture of x by f and a use of y"
+
   (* [box 3 () as y in return y]: the payload under the lock [⟨3⟩], the
      binding at the boxed type. *)
   let box () =
@@ -539,6 +564,7 @@ module Small = struct
   let run () =
     variable ();
     variable_in_clause ();
+    recursive_body ();
     box ();
     sequencing ();
     unbox ();

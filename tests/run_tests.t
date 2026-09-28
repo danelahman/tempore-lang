@@ -59,6 +59,8 @@
   >     literals_reject_counts.tpe) ../tempore --grades counts-upper-bound $f;;
   >     mode_costs*.tpe) ../tempore --grades mode-costs $f;;
   >     literals_reject_modes.tpe) ../tempore --grades mode-costs $f;;
+  >     recursion_lock_lower.tpe) ../tempore $f;;
+  >     recursion_lock*.tpe) ../tempore --grades time-upper-bound $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -2793,6 +2795,105 @@
   return (3628800, 55, 120)
   State: []
   
+  ======================================================================
+  recursion_lock.tpe
+  ======================================================================
+  === Run 1 ===
+  return (12, 2, 3)
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Ask (_, k) ↦
+                       let b =
+                         (let b = (let b = (rec count ...) 1 in
+                                   (+) b) in
+                          b 1) in
+                       unbox k as unbox_var in
+                       unbox_var b
+        # 0,
+      resource_3 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Ask (_, k) ↦
+                       let b =
+                         (let b = (let b = (rec count ...) 0 in
+                                   (+) b) in
+                          b 1) in
+                       unbox k as unbox_var in
+                       unbox_var b
+        # 0,
+      resource_5 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Ask (_, k) ↦
+                       let b = (let b = (let b = (rec go ...) 2 in
+                                         (+) b) in
+                                b 1) in
+                       unbox k as unbox_var in
+                       unbox_var b
+        # 0,
+      resource_7 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Ask (_, k) ↦
+                       let b = (let b = (let b = (rec go ...) 1 in
+                                         (+) b) in
+                                b 1) in
+                       unbox k as unbox_var in
+                       unbox_var b
+        # 0,
+      resource_9 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Ask (_, k) ↦
+                       let b = (let b = (let b = (rec go ...) 0 in
+                                         (+) b) in
+                                b 1) in
+                       unbox k as unbox_var in
+                       unbox_var b
+        # 0
+    }
+  ]
+  
+  ======================================================================
+  recursion_lock_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return 6
+  State: []
+  
+  ======================================================================
+  recursion_lock_reject.tpe
+  ======================================================================
+  File "recursion_lock_reject.tpe", line 12, characters 15-16:
+  12 |     | j + 1 -> g (go j)
+                      ^
+  Typing error: Variable `g` has type `nat → nat`, which is not eternal, so it cannot be used in the body of the recursive function `go`, which may run at any later time
+    File "recursion_lock_reject.tpe", line 8, characters 16-17:
+    8 | let apply_times g n =
+                        ^
+    `g` is bound here
+    File "recursion_lock_reject.tpe", lines 9-12, characters 13-23:
+    9 |   let rec go m =
+                     ^^^
+    `go` is defined here, its body checked with the top grade `∞` accumulated
+    Note: the resource inequality `∞ <= 0` does not hold
   ======================================================================
   regex_costs_interval.tpe
   ======================================================================

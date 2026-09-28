@@ -1,0 +1,16 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/recursion_lock_reject.tpe *)
+
+(* Correctly rejected by the typechecker: the body of 'go' is typed under the
+   lock of the top grade ∞, and 'g', bound outside the body, has a function
+   type, which is never eternal. *)
+let apply_times g n =
+  let rec go m =
+    match m with
+    | 0 -> 0
+    | j + 1 -> g (go j)
+  in
+  go n
+
+run apply_times (fun x -> x + 2) 3
