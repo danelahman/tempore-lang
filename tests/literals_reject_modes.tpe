@@ -1,0 +1,3 @@
+(* Rejected: the modes of an entry are named. *)
+
+let claim () = box (On, _, 1) 1

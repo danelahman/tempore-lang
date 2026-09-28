@@ -1,0 +1,88 @@
+(* A sensor node whose energy costs depend on whether its radio is on.
+
+   Run this example with the 'mode-costs' grading monoid, e.g.
+
+     ./tempore --grades mode-costs examples/semidirect/mode_costs.tpe
+
+   Grades ((P, Q, n), ...): greatest cost n of the runs from mode P to mode Q;
+   sequencing is the max-plus product of these matrices. *)
+
+(* Switching the radio on costs 2, and switching it off nothing. No code
+   changes the mode, so these operations have no default implementation, and
+   neither have those performed only in some modes: a run stops at the first
+   of them. *)
+operation RadioOn : unit ~> unit # (Off, On, 2)
+operation RadioOff : unit ~> unit # (On, Off, 0)
+
+(* A sample costs 1 with the radio off and 3 with it on. *)
+operation Sample : unit ~> int # ((Off, Off, 1), (On, On, 3))
+
+(* A transmission is possible only with the radio on, and costs 4. *)
+operation Send : int ~> unit # (On, On, 4)
+
+(* Sleeping for ten ticks draws 10 with the radio off and 50 with it on. *)
+operation Sleep : unit ~> unit # ((Off, Off, 10), (On, On, 50))
+
+(* Averaging costs 1 whatever the mode, and keeps it. *)
+operation Average : int * int ~> int # 1
+default Average (x, y) = (x + y) / 2
+
+(* Correctly accepted by the typechecker: from the radio off back to it off,
+   sampling first and sleeping last costs 1 + 2 + 4 + 10. *)
+let report () : unit # (Off, Off, 17) =
+  let x = perform Sample () in
+  perform RadioOn ();
+  perform Send x;
+  perform RadioOff ();
+  perform Sleep ()
+
+(* Correctly accepted by the typechecker: averaging two samples keeps the mode,
+   costing 3 with the radio off and 7 with it on. *)
+let averaged () : int # ((Off, Off, 3), (On, On, 7)) =
+  let x = perform Sample () in
+  let y = perform Sample () in
+  perform Average (x, y)
+
+(* Correctly accepted by the typechecker: a branch takes the greater cost of
+   its arms between each pair of modes, here reporting or only sleeping. *)
+let maybe_report b : unit # ((Off, Off, 17), (On, On, 50)) =
+  if b then report () else perform Sleep ()
+
+(* Correctly accepted by the typechecker: averaging alone costs 1 in any
+   mode. *)
+let average_only () : int # 1 = perform Average (4, 6)
+
+(* Correctly rejected by the typechecker: sleeping with the radio still on
+   costs 50 instead of 10:
+
+     Typing error: This function's body has grade `(Off,Off,57)`, which does
+       not match its annotated grade `(Off,Off,17)`
+       Note: the effect inequality `(Off,Off,57) <= (Off,Off,17)` does not
+         hold
+*)
+(*
+let sleepy_report () : unit # (Off, Off, 17) =
+  let x = perform Sample () in
+  perform RadioOn ();
+  perform Send x;
+  perform Sleep ();
+  perform RadioOff ()
+*)
+
+(* Correctly rejected by the typechecker: a transmission needs the radio on,
+   so this report has no run from the radio off, which the annotation
+   demands, and its runs from the radio on cost more than it allows:
+
+     Typing error: This function's body has grade `(On,On,57)`, which does
+       not match its annotated grade `(Off,Off,17)`
+       Note: the effect inequality `(On,On,57) <= (Off,Off,17)` does not hold
+*)
+(*
+let silent_report () : unit # (Off, Off, 17) =
+  let x = perform Sample () in
+  perform Send x;
+  perform Sleep ()
+*)
+
+run average_only ()
+run report ()

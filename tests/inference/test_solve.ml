@@ -303,6 +303,7 @@ let expected_rejections =
     ("levels_time_lower_reject.tpe", [ 9; 16 ]);
     ("levels_time_upper_reject.tpe", [ 9; 16 ]);
     ("malformed_type_application.tpe", [ 4 ]);
+    ("mode_costs_reject.tpe", [ 9; 12; 19; 24; 31 ]);
     ("noneternal_reject_after_delay.tpe", [ 10 ]);
     ("noneternal_reject_alias.tpe", [ 5 ]);
     ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);

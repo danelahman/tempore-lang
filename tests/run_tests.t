@@ -48,6 +48,8 @@
   >     literals_reject_flow.tpe) ../tempore --grades flow-levels $f;;
   >     counts*.tpe) ../tempore --grades counts-upper-bound $f;;
   >     literals_reject_counts.tpe) ../tempore --grades counts-upper-bound $f;;
+  >     mode_costs*.tpe) ../tempore --grades mode-costs $f;;
+  >     literals_reject_modes.tpe) ../tempore --grades mode-costs $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -1096,7 +1098,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'time-windows' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1411,7 +1413,14 @@
   File "literals_reject_inf.tpe", line 3, characters 19-22:
   3 | let claim () = box ∞ 1
                          ^^^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  ======================================================================
+  literals_reject_modes.tpe
+  ======================================================================
+  File "literals_reject_modes.tpe", line 3, characters 19-29:
+  3 | let claim () = box (On, _, 1) 1
+                         ^^^^^^^^^^
+  Syntax error: in the 'mode-costs' grading monoid, modes are named, and '_' names none
   ======================================================================
   literals_reject_name.tpe
   ======================================================================
@@ -1569,6 +1578,53 @@
   4 | type bar = (int, int) foo
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Type `foo` expects 1 argument but is given 2
+  ======================================================================
+  mode_costs.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: []
+  
+  ======================================================================
+  mode_costs_reject.tpe
+  ======================================================================
+  File "mode_costs_reject.tpe", line 9, characters 14-52:
+  9 | let tx_off () : unit # (Off, Off, 2) = perform Tx ()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(On,On,2)`, which does not match its annotated grade `(Off,Off,2)`
+    Note: the effect inequality `(On,On,2) <= (Off,Off,2)` does not hold
+  
+  File "mode_costs_reject.tpe", lines 12-16, characters 11-16:
+  12 | let two () : unit # (Off, Off, 3) =
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Off,Off,5)`, which does not match its annotated grade `(Off,Off,3)`
+    Note: the effect inequality `(Off,Off,5) <= (Off,Off,3)` does not hold
+  
+  File "mode_costs_reject.tpe", lines 19-20, characters 17-46:
+  19 | let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `((On,On,2),(_,_,1))`, which does not match its annotated grade `((Off,Off,1),(On,On,2))`
+    Note: the effect inequality `((On,On,2),(_,_,1)) <= ((Off,Off,1),(On,On,2))` does not hold
+  
+  File "mode_costs_reject.tpe", line 28, characters 15-33:
+  28 |   | Tx () k -> continue k with ()
+                      ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with the unit grade `0` accumulated since it was bound, which is not below its box grade `(On,On,2)`
+    File "mode_costs_reject.tpe", line 28, characters 10-11:
+    28 |   | Tx () k -> continue k with ()
+                   ^
+    `k` is bound here
+    Note: the resource inequality `0 <= (On,On,2)` does not hold
+  
+  File "mode_costs_reject.tpe", line 31, characters 0-18:
+  31 | default On () = ()
+       ^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `On` has grade `0`, which does not match the declared grade `(Off,On,1)` of `On`
+    File "mode_costs_reject.tpe", line 3, characters 0-42:
+    3 | operation On : unit ~> unit # (Off, On, 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `On` is declared here
+    Note: the effect inequality `0 <= (Off,On,1)` does not hold
   ======================================================================
   nat.tpe
   ======================================================================
@@ -4852,6 +4908,7 @@ single-dash form of the help option is not accepted.
         Semidirect products:
           peak-usage                        Peak usage
           time-windows                      Time windows
+          mode-costs                        Mode costs
         Operation counts:
           counts-upper-bound                Upper bounds
     --help            Display this list of options

@@ -42,6 +42,7 @@ Security levels | Flow-sensitive outputs | flow-levels | levels/flow_levels.tpe 
 
 Semidirect products | Peak usage | peak-usage | semidirect/peak_usage.tpe | File copies and uploads graded by the net change and the peak of the files and connections they hold.
 Semidirect products | Time windows | time-windows | semidirect/time_windows.tpe | A sensor node whose transmissions are graded by the ticks of its frames at which they happen.
+Semidirect products | Mode costs | mode-costs | semidirect/mode_costs.tpe | A sensor node whose energy costs depend on whether its radio is on, as max-plus matrices over the modes.
 
 Operation counts | Upper bounds | counts-upper-bound | counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
 

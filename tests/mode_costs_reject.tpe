@@ -1,0 +1,31 @@
+(* Mode costs: rejected programs. *)
+
+operation On : unit ~> unit # (Off, On, 1)
+operation Off : unit ~> unit # (On, Off, 0)
+operation Tx : unit ~> unit # (On, On, 2)
+operation Idle : unit ~> unit # 1
+
+(* Rejected: a transmission has no run from the radio off. *)
+let tx_off () : unit # (Off, Off, 2) = perform Tx ()
+
+(* Rejected: two transmissions cost 4. *)
+let two () : unit # (Off, Off, 3) =
+  perform On ();
+  perform Tx ();
+  perform Tx ();
+  perform Off ()
+
+(* Rejected: idling may happen in any mode, not only those listed. *)
+let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
+  if b then perform Tx () else perform Idle ()
+
+(* Rejected: a handler may not drop a transmission, which keeps no mode but
+   the radio on. *)
+let dropped () =
+  handle perform Tx () with
+  handler
+  | x -> x
+  | Tx () k -> continue k with ()
+
+(* Rejected: no code switches the radio on. *)
+default On () = ()

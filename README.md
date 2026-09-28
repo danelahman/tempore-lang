@@ -222,12 +222,22 @@ componentwise.
   `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry `(_, E)`
   bounds every operation not listed. An operation `Send` taking a tick and
   happening at its start has grade `(1, (Send, {0}))`.
+- `mode-costs`: max-plus matrices of the greatest costs of the runs between
+  named modes, the completion under joins of a semidirect product of mode
+  changes and costs. Entries `(From, To, n)` give the runs, e.g.
+  `(Off, On, 2)` for switching a radio on; the product gives `(p, r)` the
+  greatest cost of a run from `p` to a mode `q` followed by one from `q` to
+  `r`. An operation has no run from the modes its grade does not name, so
+  `(On, On, 4)` is possible only with the radio on, and a plain `n` costs `n`
+  and keeps any mode. Delays cost nothing; an idle draw is charged by
+  operations such as `Sleep : unit ~> unit # ((Off, Off, 10), (On, On, 50))`.
 
 An operation whose grade no code meets, such as closing a file under
 `peak-usage`, has no default implementation, and a run stops at its first
 call. See
-[`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe) and
-[`examples/semidirect/time_windows.tpe`](examples/semidirect/time_windows.tpe).
+[`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe),
+[`examples/semidirect/time_windows.tpe`](examples/semidirect/time_windows.tpe)
+and [`examples/semidirect/mode_costs.tpe`](examples/semidirect/mode_costs.tpe).
 
 ### Operation counts
 

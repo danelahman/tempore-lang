@@ -1,0 +1,43 @@
+(* Mode costs: the greatest cost of the runs between each pair of modes. *)
+
+operation On : unit ~> unit # (Off, On, 1)
+operation Off : unit ~> unit # (On, Off, 0)
+operation Tx : unit ~> unit # (On, On, 2)
+operation Idle : unit ~> unit # 1
+
+default Idle () = ()
+
+(* Accepted: switching on, transmitting and switching off. *)
+let on_tx_off () : unit # (Off, Off, 3) =
+  perform On ();
+  perform Tx ();
+  perform Off ()
+
+(* Accepted: an operation of a plain cost keeps every mode, and a delay costs
+   nothing. *)
+let idle_twice () : unit # 2 =
+  perform Idle ();
+  delay 5;
+  perform Idle ()
+
+(* Accepted: a branch between a transmission and idling costs at most 2 in
+   every mode. *)
+let idle_or_tx b : unit # 2 = if b then perform Tx () else perform Idle ()
+
+(* Accepted: a box of grade (Off, On, 3) is unboxed after switching on and
+   transmitting. *)
+let boxed () =
+  box (Off, On, 3) 7 as x in
+  perform On ();
+  perform Tx ();
+  unbox x as n in
+  n
+
+(* Accepted: a handler may transmit in place of a transmission. *)
+let forwarding () =
+  handle on_tx_off () with
+  handler
+  | x -> x
+  | Tx () k -> perform Tx (); continue k with ()
+
+run idle_twice ()

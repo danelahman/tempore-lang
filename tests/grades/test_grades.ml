@@ -195,6 +195,7 @@ let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
 let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
 let flow_levels = (module LevelGrades.FlowLevels : Grade.S)
 let counts_upper = (module Grades.CountGrades.UpperBound : Grade.S)
+let mode_costs = (module Grades.ModeGrades.ModeCosts : Grade.S)
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
 
@@ -346,6 +347,32 @@ let literals =
       (Tuple [ Name "Send"; Int (-1) ])
       "in the entry of 'Send', grades must be non-negative";
     rejects "level" counts_upper (Name "Low") "not names such as 'Low'";
+    reads "cost in every mode" mode_costs (Int 3) "3";
+    reads "transition" mode_costs
+      (Tuple [ Name "Off"; Name "On"; Int 2 ])
+      "(Off,On,2)";
+    reads "transitions" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "On"; Name "On"; Int 3 ];
+           Tuple [ Name "Off"; Name "Off"; Inf ];
+         ])
+      "((Off,Off,∞),(On,On,3))";
+    reads "top" mode_costs Top "⊤";
+    rejects "negative cost" mode_costs
+      (Tuple [ Name "Off"; Name "On"; Int (-1) ])
+      "in the cost from 'Off' to 'On', costs must be non-negative";
+    rejects "pair listed twice" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "On"; Name "On"; Int 3 ];
+           Tuple [ Name "On"; Name "On"; Int 4 ];
+         ])
+      "listed twice";
+    rejects "unnamed mode" mode_costs
+      (Tuple [ Name "_"; Name "On"; Int 1 ])
+      "'_' names none";
+    rejects "pair" mode_costs (Tuple [ Int 1; Int 2 ]) "not pairs";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not '∞'";
@@ -699,6 +726,8 @@ let witnesses =
       (completeness (module Flow));
     expect "witnesses: counts complete" Fun.id ~expected:"complete"
       (completeness counts_upper);
+    expect "witnesses: mode costs partial" Fun.id ~expected:"partial"
+      (completeness mode_costs);
     check "counts: delays count nothing"
       Grades.CountGrades.UpperBound.(equal bounds (of_nat 5) one)
       "";
@@ -906,10 +935,32 @@ let indexed =
   @ algebra_laws (module RegexByName) ~context bounds regex_samples
   @ laws (module RegexByName) ~context bounds regex_samples
 
+(* The laws of the mode costs on grades over the modes [Off], [On] and [Idle]
+   and the modes not named. *)
+let mode_laws =
+  let module M = Grades.ModeGrades.ModeCosts in
+  let entry p q c = Grade.Tuple [ Grade.Name p; Grade.Name q; c ] in
+  let lits =
+    [
+      entry "Off" "On" (Grade.Int 2);
+      entry "On" "Off" (Grade.Int 0);
+      Grade.Tuple
+        [ entry "Off" "Off" (Grade.Int 1); entry "On" "On" (Grade.Int 3) ];
+      Grade.Int 1;
+      Grade.Tuple
+        [ entry "Idle" "On" Grade.Inf; entry "On" "Idle" (Grade.Int 1) ];
+    ]
+  in
+  let samples = indexed_samples (module M) lits in
+  let context = "mode costs" in
+  order_laws (module M) ~context bounds samples
+  @ algebra_laws (module M) ~context bounds samples
+  @ of_nat_laws (module M) bounds ()
+
 let () =
   let checks =
     levels @ products @ counterexamples @ witnesses @ literals @ tops @ registry
-    @ registered_laws @ indexed
+    @ registered_laws @ indexed @ mode_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

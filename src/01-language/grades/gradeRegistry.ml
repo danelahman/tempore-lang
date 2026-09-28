@@ -158,6 +158,11 @@ let entries =
       "Pairs (T, E) of the possible durations and the times at which windowed \
        operations happen; later times are shifted by the earlier durations.";
     entry
+      (module ModeGrades.ModeCosts)
+      "Semidirect products" "Mode costs"
+      "Max-plus matrices of the costs between named modes, such as (Off, On, \
+       2); an operation has no run from the modes its grade does not name.";
+    entry
       (module CountGrades.UpperBound)
       "Operation counts" "Upper bounds"
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
