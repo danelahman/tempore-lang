@@ -1,0 +1,30 @@
+(* Flow-sensitive levels: rejected programs. *)
+
+operation ReadSecret : unit ~> int # High
+operation Post : int ~> unit # (Low, (Board, Low))
+operation Log : int ~> unit # (Low, (Audit, Low))
+
+(* Rejected: the post follows the secret. *)
+let post_after () : unit # (High, (Board, Low)) =
+  let s = perform ReadSecret () in
+  perform Post s
+
+(* Rejected: the annotation allows no log. *)
+let unlisted () : unit # (Low, (Board, Low)) =
+  perform Post 1;
+  perform Log 2
+
+(* Rejected: the box allows the board written only before a secret. *)
+let boxed () =
+  box (High, (Board, Low)) 7 as x in
+  let s = perform ReadSecret () in
+  perform Post s;
+  unbox x as n in
+  n
+
+(* Rejected: a handler may not post a log entry. *)
+let redirect () =
+  handle perform Log 1 with
+  handler
+  | x -> x
+  | Log n k -> perform Post n; continue k with ()

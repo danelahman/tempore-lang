@@ -193,6 +193,7 @@ let traces_interval = (module TimedTraceGrades.Interval : Grade.S)
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
 let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
 let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
+let flow_levels = (module LevelGrades.FlowLevels : Grade.S)
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
 
@@ -241,6 +242,31 @@ let literals =
       (Braces (Inter (Tick 1, Tick 2)))
       "is empty";
     rejects "level" time_windows (Name "Low") "not names such as 'Low'";
+    reads "level" flow_levels (Name "High") "High";
+    reads "outputs" flow_levels
+      (Tuple
+         [
+           Name "High";
+           Tuple [ Name "Board"; Name "Low" ];
+           Tuple [ Name "Audit"; Name "High" ];
+         ])
+      "(High,(Audit,High),(Board,Low))";
+    reads "top" flow_levels Top "⊤";
+    rejects "sink listed twice" flow_levels
+      (Tuple
+         [
+           Name "High";
+           Tuple [ Name "Board"; Name "Low" ];
+           Tuple [ Name "Board"; Name "High" ];
+         ])
+      "listed twice";
+    rejects "unknown level of an output" flow_levels
+      (Tuple [ Name "Low"; Tuple [ Name "Board"; Name "Medium" ] ])
+      "unknown level 'Medium'";
+    rejects "output without a level" flow_levels
+      (Tuple [ Name "Low"; Name "Board" ])
+      "outputs are pairs";
+    rejects "integer" flow_levels (Int 3) "tuples '(l, (Sink, l1), ...)'";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not '∞'";
@@ -317,7 +343,7 @@ let registry =
       ~expected:"time-lower-bound"
       (fst (List.hd GradeRegistry.grade_modules));
     expect "registry: grades reading a level" show_names
-      ~expected:[ "security-levels" ]
+      ~expected:[ "security-levels"; "flow-levels" ]
       (GradeRegistry.accepting (Grade.Name "High"));
     expect "registry: grades reading a pair of a time and a level" show_names
       ~expected:[ "time-lower-bound-levels"; "time-upper-bound-levels" ]
@@ -496,6 +522,38 @@ module Levels_conditions =
           (up_to 60)
     end)
 
+module Flow = LevelGrades.FlowLevels
+
+(* The flow-sensitive grades over the sinks [sinks], each written at a level or
+   not at all, and the top. *)
+let flow_grades sinks =
+  let outputs =
+    List.fold_left
+      (fun outputs sink ->
+        List.concat_map
+          (fun ws ->
+            ws
+            :: List.map
+                 (fun level -> ws @ [ (sink, level) ])
+                 [ LevelGrades.Low; High ])
+          outputs)
+      [ [] ] sinks
+  in
+  Flow.top
+  :: List.concat_map
+       (fun level ->
+         List.map (fun ws -> (level, LevelGrades.Written ws)) outputs)
+       [ LevelGrades.Low; High ]
+
+module Flow_conditions =
+  Conditions
+    (Flow)
+    (struct
+      let named = Array.of_list (flow_grades [ "Audit"; "Board" ])
+      let constant st = named.(Random.State.int st (Array.length named))
+      let values = flow_grades [ "Audit"; "Board"; "Other" ]
+    end)
+
 let witnesses =
   let module L = TimeGrades.LowerBound in
   let lower n = L.of_lit (nat n) in
@@ -530,6 +588,12 @@ let witnesses =
     Upper_conditions.complete ~count:2000;
     Interval_conditions.complete ~count:1000;
     Levels_conditions.complete ~count:1000;
+    Flow_conditions.complete ~count:3000;
+    check "flow-levels: a failure at an unnamed sink shows at a witness"
+      (not
+         (Flow_conditions.at_witnesses
+            (Flow_conditions.Rigid, Const (Flow.of_lit (Grade.Name "High")))))
+      "j <= High";
     expect "witnesses: time grades complete" Fun.id ~expected:"complete"
       (completeness time_interval);
     expect "witnesses: levels complete" Fun.id ~expected:"complete"
@@ -546,6 +610,8 @@ let witnesses =
       (completeness peak_usage);
     expect "witnesses: time windows partial" Fun.id ~expected:"partial"
       (completeness time_windows);
+    expect "witnesses: flow-levels complete" Fun.id ~expected:"complete"
+      (completeness (module Flow));
   ]
 
 (* ------------------------------------------------------------------ *)

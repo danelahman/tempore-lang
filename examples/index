@@ -38,6 +38,7 @@ Regular traces with costs | Intervals | traces-regex-interval-symbolic | regular
 Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower_levels.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.
 Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_upper_levels.tpe | A box paired with a time upper bound and a level: a capability that expires and can be revoked by a taint.
+Security levels | Flow-sensitive outputs | flow-levels | levels/flow_levels.tpe | A report whose public post must come before the vault is read, each output graded by the level touched before it.
 
 Semidirect products | Peak usage | peak-usage | semidirect/peak_usage.tpe | File copies graded by the net change and the peak of the descriptors they hold.
 Semidirect products | Time windows | time-windows | semidirect/time_windows.tpe | A sensor node whose transmissions are graded by the ticks of its frames at which they happen.

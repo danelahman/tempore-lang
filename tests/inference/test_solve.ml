@@ -296,6 +296,7 @@ let expected_rejections =
     ("eternal_tyvars_reject_higher_order.tpe", [ 9 ]);
     ("eternal_tyvars_reject_noneternal.tpe", [ 11 ]);
     ("invalid_match_type.tpe", [ 4 ]);
+    ("flow_levels_reject.tpe", [ 8; 13; 18; 26 ]);
     ("iterative_unbox.tpe", [ 4 ]);
     ("levels_reject.tpe", [ 8 ]);
     ("levels_time_lower_reject.tpe", [ 9; 16 ]);

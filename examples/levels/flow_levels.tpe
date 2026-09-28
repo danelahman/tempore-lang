@@ -1,0 +1,81 @@
+(* Run this example with the 'flow-levels' grading monoid, e.g.
+
+     ./tempore --grades flow-levels examples/levels/flow_levels.tpe
+
+   Grades (l, (S, k), ...): level l touched and level k of each output S;
+   (l, W) · (l', W') = (l ⊔ l', W ⊔ W' raised to l). *)
+
+(* Reading the weather touches nothing secret, reading the vault does. *)
+operation ReadPublic : unit ~> string # Low
+default ReadPublic () = "weather: sunny"
+
+operation ReadSecret : unit ~> string # High
+default ReadSecret () = "launch code: 0000"
+
+(* Posting writes to the public board and logging to the audit trail, each at
+   the level touched before. *)
+operation Post : string ~> unit # (Low, (Board, Low))
+default Post msg = ()
+
+operation Log : string ~> unit # (Low, (Audit, Low))
+default Log msg = ()
+
+(* Correctly accepted by the typechecker: the weather is posted before the
+   vault is read, and only the audit trail is written after it. *)
+let report () : unit # (High, (Audit, High), (Board, Low)) =
+  let w = perform ReadPublic () in
+  perform Post w;
+  let s = perform ReadSecret () in
+  perform Log s
+
+(* Correctly accepted by the typechecker: a branch writes the board at the
+   join of the levels of its arms, here 'Low'. *)
+let maybe_report b : unit # (High, (Audit, High), (Board, Low)) =
+  if b then report () else perform Post "no report today"
+
+(* Correctly accepted by the typechecker: a draft boxed at '(Low, (Board,
+   Low))' is in reach after a public post. *)
+let draft () =
+  box (Low, (Board, Low)) "draft" as d in
+  perform Post "hello";
+  unbox d as text in
+  perform Post text
+
+(* Correctly rejected by the typechecker: the post comes after the vault has
+   been read, so the board is written at 'High'. Under 'security-levels' both
+   orders have the grade 'High':
+
+     Typing error: This function's body has grade
+       `(High,(Audit,High),(Board,High))`, which does not match its annotated
+       grade `(High,(Audit,High),(Board,Low))`
+       Note: the effect inequality
+         `(High,(Audit,High),(Board,High)) <= (High,(Audit,High),(Board,Low))`
+         does not hold
+*)
+(*
+let late_post () : unit # (High, (Audit, High), (Board, Low)) =
+  let w = perform ReadPublic () in
+  let s = perform ReadSecret () in
+  perform Log s;
+  perform Post w
+*)
+
+(* Correctly rejected by the typechecker: once the vault has been read, the
+   draft is out of reach:
+
+     Typing error: Variable `d` is unboxed with grade `High` accumulated since
+       it was bound, which is not below its box grade `(Low,(Board,Low))`
+       ...
+       Note: the resource inequality `High <= (Low,(Board,Low))` does not hold
+*)
+(*
+let leaky_draft () =
+  box (Low, (Board, Low)) "draft" as d in
+  let s = perform ReadSecret () in
+  unbox d as text in
+  perform Log s;
+  perform Post text
+*)
+
+run report ()
+run draft ()

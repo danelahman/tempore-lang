@@ -1,0 +1,52 @@
+(* Flow-sensitive levels: the level touched, and the level at which each output
+   is written. *)
+
+operation ReadSecret : unit ~> int # High
+operation Post : int ~> unit # (Low, (Board, Low))
+operation Log : int ~> unit # (Low, (Audit, Low))
+
+default ReadSecret () = 42
+default Post n = ()
+default Log n = ()
+
+(* Accepted: the post precedes the secret. *)
+let post_first () : unit # (High, (Board, Low)) =
+  perform Post 1;
+  let _ = perform ReadSecret () in
+  ()
+
+(* Accepted: the grade is inferred, the log raised to the secret read
+   before it. *)
+let log_after () =
+  let s = perform ReadSecret () in
+  perform Post 0;
+  perform Log s
+
+(* Accepted: an annotation may allow more outputs, at higher levels. *)
+let loose () : unit # (High, (Audit, High), (Board, High)) =
+  perform Post 1;
+  perform Log 2
+
+(* Accepted: a delay touches nothing and writes nothing. *)
+let wait () : unit # Low = delay 3
+
+(* Accepted: a handler may drop a post. *)
+let quiet () =
+  handle post_first () with
+  handler
+  | x -> x
+  | Post n k -> continue k with ()
+
+(* Accepted: a box of grade (High, (Board, Low)) is unboxed after a post and
+   a secret, in that order. *)
+let boxed () =
+  box (High, (Board, Low)) 7 as x in
+  perform Post 1;
+  let _ = perform ReadSecret () in
+  unbox x as n in
+  n
+
+run post_first ()
+run log_after ()
+run quiet ()
+run boxed ()

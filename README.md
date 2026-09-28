@@ -183,12 +183,19 @@ and
   above `l`; `(3, Low)` is an embargo with a taint check.
 - `time-upper-bound-levels`: pairs `(n, l)`, at most `n` steps and nothing
   above `l`; `(5, Low)` is an expiring capability.
+- `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l`
+  touched and each output `Sᵢ` written at most at the level `lᵢ` touched
+  before it; `l` alone writes no output. An output is a capitalised name, and
+  an operation writing it has a grade such as `(Low, (Board, Low))`; after one
+  of grade `High`, it is written at `High`. A semidirect product (see
+  [Semidirect products](#semidirect-products)).
 
-The pairs are compared, multiplied and joined componentwise. See
+The pairs of the products with the time grades are compared, multiplied and
+joined componentwise. See
 [`examples/levels/security_levels.tpe`](examples/levels/security_levels.tpe),
-[`examples/levels/time_lower_levels.tpe`](examples/levels/time_lower_levels.tpe)
-and
-[`examples/levels/time_upper_levels.tpe`](examples/levels/time_upper_levels.tpe).
+[`examples/levels/time_lower_levels.tpe`](examples/levels/time_lower_levels.tpe),
+[`examples/levels/time_upper_levels.tpe`](examples/levels/time_upper_levels.tpe)
+and [`examples/levels/flow_levels.tpe`](examples/levels/flow_levels.tpe).
 
 ### Semidirect products
 

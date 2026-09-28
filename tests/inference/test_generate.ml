@@ -90,6 +90,7 @@ let malformed =
     "literals_reject_complement.tpe";
     "literals_reject_component.tpe";
     "literals_reject_empty.tpe";
+    "literals_reject_flow.tpe";
     "literals_reject_inf.tpe";
     "literals_reject_name.tpe";
     "literals_reject_negative.tpe";

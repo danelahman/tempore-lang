@@ -143,6 +143,11 @@ let entries =
       "A time upper bound paired with a security level: at most n time steps, \
        touching nothing above the level.";
     entry
+      (module LevelGrades.FlowLevels)
+      "Security levels" "Flow-sensitive outputs"
+      "A security level paired with the level at which each output is written; \
+       later outputs are raised to the level touched before them.";
+    entry
       (module PeakGrades.PeakUsage)
       "Semidirect products" "Peak usage"
       "Pairs (d, h) of the net change and the peak of a resource held, such as \

@@ -1,4 +1,5 @@
-(** The security-level grades and their products with the time grades.
+(** The security-level grades, their products with the time grades, and the
+    flow-sensitive levels.
 
     The level of a computation is the highest level it touches; a box at level
     [ℓ] may be unboxed only while the level has not risen above [ℓ] since it was
@@ -22,3 +23,41 @@ module TimeUpperBoundLevels :
 (** The product of [time-upper-bound] and [security-levels],
     ["time-upper-bound-levels"]: [(n, ℓ)] is "at most [n] time steps, touching
     nothing above [ℓ]", an expiring untainted capability. *)
+
+(** The outputs a computation writes, each at the highest level touched before
+    writing it: [Written ws] lists the sinks written [ws], each with that level
+    and in increasing order of the sinks, the others being unwritten, and
+    [Anywhere] is every sink written at [High]. *)
+type outputs = Written of (string * level) list | Anywhere
+
+module Outputs : GradeConstructions.SEMILATTICE with type t = outputs
+(** The outputs, ["outputs"], ordered sinkwise, an unwritten sink being below
+    one written at [Low], below one written at [High]; the join is sinkwise. Its
+    literals are pairs [(Sink, l)] of a sink, a capitalised name, and a level.
+*)
+
+(** The action of a level [l] on the outputs, raising each written sink to at
+    least [l]. *)
+module Raise :
+  GradeConstructions.ACTION with type m = level and type n = outputs
+
+module FlowLevels : Grade.S with type t = level * outputs
+(** The flow-sensitive levels, ["flow-levels"]: the semidirect product
+    {!GradeConstructions.SemiDirect} [(SecurityLevels) (Outputs) (Raise)].
+    [(l, W)] is "touches nothing above [l], and writes each sink at most at the
+    level [W] gives it", and [(l, W) · (l', W') = (l ⊔ l', W ⊔ raise_l W')]: the
+    later outputs are written after [l] has been touched.
+
+    - The order is componentwise, the unit [(Low, ∅)] is least, and [mul] does
+      not commute.
+    - [of_nat] is constantly the unit.
+    - [of_lit] reads [⊤] as the top, a level [l] as [(l, ∅)] and a tuple
+      [(l, (S₁, l₁), …, (Sₖ, lₖ))] as [l] with the sinks [Sᵢ] written at [lᵢ],
+      each sink listed once; [show] prints alike, the sinks in increasing order.
+    - No counterexample is offered.
+    - The witnesses of the constants [cs] are complete: the pairs of a level
+      with no output or with one sink written at a level, the sinks being those
+      of [cs] and a sink ["_"] standing for the others. An ordering is the
+      conjunction of its projections [(l, W) ↦ (l, W(s))] on the sinks,
+      morphisms preserving the joins, so that it fails at a rigid iff it fails
+      at the witness of the level and one sink of the rigid. *)

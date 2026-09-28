@@ -1,0 +1,3 @@
+(* Rejected: a sink is listed twice. *)
+
+let claim () = box (High, (Board, Low), (Board, High)) 1

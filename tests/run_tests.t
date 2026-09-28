@@ -44,6 +44,8 @@
   >     literals_reject_peak.tpe) ../tempore --grades peak-usage $f;;
   >     windows*.tpe) ../tempore --grades time-windows $f;;
   >     literals_reject_windows.tpe) ../tempore --grades time-windows $f;;
+  >     flow_levels*.tpe) ../tempore --grades flow-levels $f;;
+  >     literals_reject_flow.tpe) ../tempore --grades flow-levels $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -832,6 +834,86 @@
     `x` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
+  flow_levels.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: []
+  
+  === Run 2 ===
+  return ()
+  State: []
+  
+  === Run 3 ===
+  return ()
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            perform ReadSecret () (op_var. return op_var);
+            return ()
+          with handler
+               | return x ↦ return x
+               | Post (n, k) ↦ unbox k as unbox_var in
+                               unbox_var ()
+        # (Low,(Board,Low))
+    }
+  ]
+  
+  === Run 4 ===
+  return 7
+  State: [
+    { resource_0 ↦ 7 # (High,(Board,Low)) }
+  ]
+  
+  ======================================================================
+  flow_levels_reject.tpe
+  ======================================================================
+  File "flow_levels_reject.tpe", lines 8-10, characters 18-16:
+  8 | let post_after () : unit # (High, (Board, Low)) =
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(High,(Board,High))`, which does not match its annotated grade `(High,(Board,Low))`
+    Note: the effect inequality `(High,(Board,High)) <= (High,(Board,Low))` does not hold
+  
+  File "flow_levels_reject.tpe", lines 13-15, characters 16-15:
+  13 | let unlisted () : unit # (Low, (Board, Low)) =
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Low,(Audit,Low),(Board,Low))`, which does not match its annotated grade `(Low,(Board,Low))`
+    Note: the effect inequality `(Low,(Audit,Low),(Board,Low)) <= (Low,(Board,Low))` does not hold
+  
+  File "flow_levels_reject.tpe", lines 22-23, characters 2-3:
+  22 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(High,(Board,High))` accumulated since it was bound, which is not below its box grade `(High,(Board,Low))`
+    File "flow_levels_reject.tpe", line 19, characters 32-33:
+    19 |   box (High, (Board, Low)) 7 as x in
+                                         ^
+    `x` is bound here
+    File "flow_levels_reject.tpe", line 20, characters 10-31:
+    20 |   let s = perform ReadSecret () in
+                   ^^^^^^^^^^^^^^^^^^^^^
+    grade `High` accumulates here (operation `ReadSecret`)
+    File "flow_levels_reject.tpe", line 21, characters 2-16:
+    21 |   perform Post s;
+           ^^^^^^^^^^^^^^
+    grade `(Low,(Board,Low))` accumulates here (operation `Post`)
+    Note: the resource inequality `(High,(Board,High)) <= (High,(Board,Low))` does not hold
+  
+  File "flow_levels_reject.tpe", line 30, characters 31-49:
+  30 |   | Log n k -> perform Post n; continue k with ()
+                                      ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `(Low,(Board,Low))` accumulated since it was bound, which is not below its box grade `(Low,(Audit,Low))`
+    File "flow_levels_reject.tpe", line 30, characters 10-11:
+    30 |   | Log n k -> perform Post n; continue k with ()
+                   ^
+    `k` is bound here
+    File "flow_levels_reject.tpe", line 30, characters 15-29:
+    30 |   | Log n k -> perform Post n; continue k with ()
+                        ^^^^^^^^^^^^^^
+    grade `(Low,(Board,Low))` accumulates here (operation `Post`)
+    Note: the resource inequality `(Low,(Board,Low)) <= (Low,(Audit,Low))` does not hold
+  ======================================================================
   invalid_match_type.tpe
   ======================================================================
   File "invalid_match_type.tpe", line 6, characters 6-7:
@@ -1209,6 +1291,13 @@
                          ^^^^^^^^^^^^^^
   Syntax error: in the 'traces-regex-symbolic' grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
+  literals_reject_flow.tpe
+  ======================================================================
+  File "literals_reject_flow.tpe", line 3, characters 19-54:
+  3 | let claim () = box (High, (Board, Low), (Board, High)) 1
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: in the 'flow-levels' grading monoid, the output 'Board' is listed twice
+  ======================================================================
   literals_reject_inf.tpe
   ======================================================================
   File "literals_reject_inf.tpe", line 3, characters 19-22:
@@ -1221,7 +1310,7 @@
   File "literals_reject_name.tpe", line 3, characters 19-22:
   3 | let claim () = box Low 1
                          ^^^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not names such as 'Low'; did you mean to use the 'security-levels' grading monoid?
+  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not names such as 'Low'; did you mean to use one of the 'security-levels' or 'flow-levels' grading monoids?
   ======================================================================
   literals_reject_negative.tpe
   ======================================================================
@@ -4610,6 +4699,7 @@ single-dash form of the help option is not accepted.
           security-levels                   Levels
           time-lower-bound-levels           Embargoes
           time-upper-bound-levels           Expiring capabilities
+          flow-levels                       Flow-sensitive outputs
         Semidirect products:
           peak-usage                        Peak usage
           time-windows                      Time windows
