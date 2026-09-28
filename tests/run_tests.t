@@ -165,6 +165,75 @@
     the inequality goes through the type of `run_fast` here
     Note: the effect inequality `2 <= 1` does not hold
   ======================================================================
+  annotation_recursion.tpe
+  ======================================================================
+  === Run 1 ===
+  return 120
+  State: []
+  
+  === Run 2 ===
+  return 120
+  State: []
+  
+  === Run 3 ===
+  return 4
+  State: []
+  
+  === Run 4 ===
+  return false
+  State: []
+  
+  === Run 5 ===
+  return 7
+  State: []
+  
+  === Run 6 ===
+  return 4
+  State: []
+  
+  === Run 7 ===
+  return 24
+  State: []
+  
+  === Run 8 ===
+  return (true, "4")
+  State: []
+  
+  ======================================================================
+  annotation_recursion_reject.tpe
+  ======================================================================
+  File "annotation_recursion_reject.tpe", line 4, characters 14-71:
+  4 | let rec count (n : int) : bool = if n = 0 then 0 else 1 + count (n - 1)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The body of the recursive function `count` has type `bool` but `count` is used as returning `int`
+    File "annotation_recursion_reject.tpe", line 4, characters 54-57:
+    4 | let rec count (n : int) : bool = if n = 0 then 0 else 1 + count (n - 1)
+                                                              ^^^
+    `int` was inferred here
+  
+  File "annotation_recursion_reject.tpe", line 8, characters 22-73:
+  8 | let rec pick (x : 'b) (y : 'b) : int = if y then x else pick (x + 1) true
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Type `int` is not compatible with type `bool`
+    File "annotation_recursion_reject.tpe", line 8, characters 39-73:
+    8 | let rec pick (x : 'b) (y : 'b) : int = if y then x else pick (x + 1) true
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `bool` was inferred here
+  ======================================================================
+  annotation_type_variables_reject.tpe
+  ======================================================================
+  File "annotation_type_variables_reject.tpe", line 6, characters 24-26:
+  6 | type opaque = Opaque of 'b
+                              ^^
+  Syntax error: Unknown name `b`
+  ======================================================================
+  annotation_type_variables_reject_operation.tpe
+  ======================================================================
+  File "annotation_type_variables_reject_operation.tpe", line 6, characters 17-19:
+  6 | operation Send : 'b ~> unit # 1
+                       ^^
+  Syntax error: Unknown name `b`
+  ======================================================================
   comp_type_annotation.tpe
   ======================================================================
   === Run 1 ===

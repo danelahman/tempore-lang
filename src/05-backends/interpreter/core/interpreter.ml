@@ -112,6 +112,25 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Error.runtime "Const expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
+  (* The argument [expr] of a primitive, its annotations dropped and its
+     top-level variables replaced by their values, through tuples and variants;
+     a replaced subexpression keeps the location of the one it replaces. *)
+  let rec eval_value (env : evaluation_environment) (expr : _ Ast.expression) :
+      _ Ast.expression =
+    match expr.it with
+    | Ast.Annotated (expr', _) -> { (eval_value env expr') with at = expr.at }
+    | Ast.Var x -> (
+        match ContextHolderModule.find_variable_opt x env.variables with
+        | Some expr' -> { (eval_value env expr') with at = expr.at }
+        | None -> expr)
+    | Ast.Tuple exprs ->
+        { expr with it = Ast.Tuple (List.map (eval_value env) exprs) }
+    | Ast.Variant (lbl, arg) ->
+        { expr with it = Ast.Variant (lbl, Option.map (eval_value env) arg) }
+    | Ast.Const _ | Ast.Lambda _ | Ast.PureLambda _ | Ast.RecLambda _
+    | Ast.Handler _ ->
+        expr
+
   let rec match_pattern_with_expression env (pat : _ Ast.pattern) expr =
     match pat.it with
     | Ast.PVar x -> Ast.VariableMap.singleton x expr
@@ -392,7 +411,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x -> (
         match ContextHolderModule.find_variable_opt x env.variables with
         | Some expr' -> eval_function env expr'
-        | None -> ContextHolderModule.find_variable x env.builtin_functions)
+        | None ->
+            let f = ContextHolderModule.find_variable x env.builtin_functions in
+            fun arg -> f (eval_value env arg))
     | _ ->
         Error.runtime "Function expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)

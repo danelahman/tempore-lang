@@ -1,0 +1,6 @@
+(* Correctly rejected by the desugarer: an operation signature binds no type
+   variables, and the parameter 'b of the type definition before it is bound
+   in that definition only. *)
+type 'b wrapper = Wrap of 'b
+
+operation Send : 'b ~> unit # 1

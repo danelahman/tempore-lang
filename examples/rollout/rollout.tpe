@@ -99,7 +99,7 @@ let plan (n : int) (items : 'a list) : 'a waves =
   | x :: rest -> Wave ([x], split 0 rest [])
 
 (* Correctly accepted by the typechecker: the number of items in a plan. *)
-let rec size (ws : 'a waves) =
+let rec size (ws : 'a waves) : int =
   match ws with
   | Last -> 0
   | Wave (items, rest) -> length items + size rest
@@ -111,8 +111,10 @@ let revert_all (hs : host list) =
   length hs
 
 (* Correctly accepted by the typechecker: deploying the hosts of a wave in
-   turn, stopping at the first that is degraded. *)
-let rec deploy_wave (r : release) (hosts : host list) (deployed : host list) =
+   turn, stopping at the first that is degraded. Its grade is the unit: a wave
+   of no hosts takes no time. *)
+let rec deploy_wave (r : release) (hosts : host list) (deployed : host list)
+    : progress # (0, Low) =
   match hosts with
   | [] -> Deployed deployed
   | h :: rest ->
@@ -124,9 +126,10 @@ let rec deploy_wave (r : release) (hosts : host list) (deployed : host list) =
    hosts 'live' already on the release. Each wave is preceded by watching the
    live hosts for ten ticks, which banks the ten ticks the approval 'go'
    demands, and boxes the approval of the next wave. Errors, or a degraded
-   host, revert every host deployed. *)
+   host, revert every host deployed. Its grade is the unit: a plan of no waves
+   takes no time. *)
 let rec roll (waves : host waves) (live : host list)
-    (go : [(10, Low)] release) =
+    (go : [(10, Low)] release) : outcome # (0, Low) =
   match waves with
   | Last -> Completed (length live)
   | Wave (hosts, rest) ->

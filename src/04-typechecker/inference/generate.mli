@@ -194,21 +194,22 @@ module Make (C : Constraint.S) : sig
     env -> loc:Location.t -> Ast.variable -> expression -> ty * C.t
   (** [generate_top_let env ~loc x e] is a fresh type unknown [α] and the
       constraint that the definition [let x = e] at [loc] has type [α], [α]
-      being free in it: the type to generalise. The grade variables of the
-      annotations of [e] are bound at the top of the constraint. *)
+      being free in it: the type to generalise. The type and grade variables of
+      the annotations of [e] are bound at the top of the constraint. *)
 
   val generate_run : env -> loc:Location.t -> computation -> comp_ty * C.t
   (** [generate_run env ~loc c] is a computation type [α ! ε] of fresh unknowns
       and the constraint that [c] at [loc] has it, [α] and [ε] being free in it
-      and the grade variables of the annotations of [c] bound at its top. *)
+      and the type and grade variables of the annotations of [c] bound at its
+      top. *)
 
   val generate_default :
     env -> loc:Location.t -> Ast.operation -> abstraction -> C.t
   (** [generate_default env ~loc op abs] is the constraint that [abs] at [loc]
       implements [op]: under the lock [⟨⊤⟩], a function from the operation's
       parameter to its result type, of effect below the grade of the runtime
-      bounds of [op] where it has any and its grade otherwise. The grade
-      variables of the annotations of [abs] are bound at its top.
+      bounds of [op] where it has any and its grade otherwise. The type and
+      grade variables of the annotations of [abs] are bound at its top.
       @raise Utils.Error.Error
         if [op] is unknown, has a default already, or is not atomic. *)
 end

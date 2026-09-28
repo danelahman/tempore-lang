@@ -1,0 +1,10 @@
+(* Correctly rejected by the typechecker: the result annotation of a
+   recursive function is checked against its body, which returns an int where
+   the annotation promises a bool. *)
+let rec count (n : int) : bool = if n = 0 then 0 else 1 + count (n - 1)
+
+(* Correctly rejected by the typechecker: the two uses of 'b in one definition
+   are one unknown, which cannot be both an int and a bool. *)
+let rec pick (x : 'b) (y : 'b) : int = if y then x else pick (x + 1) true
+
+run count 3

@@ -28,6 +28,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
   type state = {
     ty_names : Untyped.ty_name StringMap.t;
     ty_params : Untyped.ty_param StringMap.t;
+        (** those of the type definition or of the annotations of the definition
+            being desugared *)
     variables : Untyped.variable StringMap.t;
     labels : Untyped.label StringMap.t;
     operations : Untyped.operation StringMap.t;
@@ -68,69 +70,82 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let lookup_operation ~loc state = find_symbol ~loc state.operations
 
   (* ------------------------------------------------------------------ *)
-  (* Grade variables                                                     *)
+  (* Annotation variables                                                *)
   (* ------------------------------------------------------------------ *)
 
-  (* The names of grade variables in the annotations of a term, and those among
-     them with an occurrence in an effect position. The grade of [box] is not
-     an annotation. *)
-  type grade_names = { all : StringSet.t; effects : StringSet.t }
+  (* The names of type and grade variables in the annotations of a term, and
+     those among the grade variables with an occurrence in an effect position.
+     The grade of [box] is not an annotation. *)
+  type annotation_names = {
+    tys : StringSet.t;
+    grades : StringSet.t;
+    effects : StringSet.t;
+  }
 
-  let no_grade_names = { all = StringSet.empty; effects = StringSet.empty }
+  let no_annotation_names =
+    {
+      tys = StringSet.empty;
+      grades = StringSet.empty;
+      effects = StringSet.empty;
+    }
 
   let grade_name ~in_effect names { Sugared.it; _ } =
     match it with
     | Sugared.GradeLit _ -> names
     | Sugared.GradeParam p ->
         {
-          all = StringSet.add p names.all;
+          names with
+          grades = StringSet.add p names.grades;
           effects =
             (if in_effect then StringSet.add p names.effects else names.effects);
         }
 
-  let rec ty_grade_names names { Sugared.it = ty; _ } =
+  let rec ty_annotation_names names { Sugared.it = ty; _ } =
     match ty with
-    | Sugared.TyConst _ | Sugared.TyParam _ -> names
+    | Sugared.TyConst _ -> names
+    | Sugared.TyParam a -> { names with tys = StringSet.add a names.tys }
     | Sugared.TyApply (_, tys) | Sugared.TyTuple tys ->
-        List.fold_left ty_grade_names names tys
+        List.fold_left ty_annotation_names names tys
     | Sugared.TyArrow (ty, cty) ->
-        comp_ty_grade_names (ty_grade_names names ty) cty
+        comp_ty_annotation_names (ty_annotation_names names ty) cty
     | Sugared.TyBox (rho, ty) ->
-        ty_grade_names (grade_name ~in_effect:false names rho) ty
+        ty_annotation_names (grade_name ~in_effect:false names rho) ty
     | Sugared.TyHandler (cty, cty') ->
-        comp_ty_grade_names (comp_ty_grade_names names cty) cty'
+        comp_ty_annotation_names (comp_ty_annotation_names names cty) cty'
 
-  and comp_ty_grade_names names (Sugared.CompTy (ty, eps)) =
-    grade_name ~in_effect:true (ty_grade_names names ty) eps
+  and comp_ty_annotation_names names (Sugared.CompTy (ty, eps)) =
+    grade_name ~in_effect:true (ty_annotation_names names ty) eps
 
-  let rec pattern_grade_names names { Sugared.it = pat; _ } =
+  let rec pattern_annotation_names names { Sugared.it = pat; _ } =
     match pat with
     | Sugared.PAnnotated (pat, ty) ->
-        ty_grade_names (pattern_grade_names names pat) ty
+        ty_annotation_names (pattern_annotation_names names pat) ty
     | Sugared.PAs (pat, _) | Sugared.PVariant (_, Some pat) ->
-        pattern_grade_names names pat
-    | Sugared.PTuple pats -> List.fold_left pattern_grade_names names pats
+        pattern_annotation_names names pat
+    | Sugared.PTuple pats -> List.fold_left pattern_annotation_names names pats
     | Sugared.PVar _
     | Sugared.PVariant (_, None)
     | Sugared.PConst _ | Sugared.PNonbinding ->
         names
 
-  let rec term_grade_names names { Sugared.it = term; _ } =
-    let terms = List.fold_left term_grade_names in
-    let abstractions = List.fold_left abstraction_grade_names in
+  let rec term_annotation_names names { Sugared.it = term; _ } =
+    let terms = List.fold_left term_annotation_names in
+    let abstractions = List.fold_left abstraction_annotation_names in
     match term with
     | Sugared.Var _ | Sugared.Const _ | Sugared.Delay _
     | Sugared.Variant (_, None) ->
         names
-    | Sugared.Annotated (t, ty) -> ty_grade_names (term_grade_names names t) ty
+    | Sugared.Annotated (t, ty) ->
+        ty_annotation_names (term_annotation_names names t) ty
     | Sugared.AnnotatedComp (t, ty, eps) ->
-        comp_ty_grade_names (term_grade_names names t)
+        comp_ty_annotation_names
+          (term_annotation_names names t)
           (Sugared.CompTy (ty, eps))
     | Sugared.Variant (_, Some t)
     | Sugared.GenBox (_, t)
     | Sugared.GenUnbox t
     | Sugared.Perform (_, t) ->
-        term_grade_names names t
+        term_annotation_names names t
     | Sugared.Tuple ts -> terms names ts
     | Sugared.Apply (t1, t2)
     | Sugared.LetRec (_, t1, t2)
@@ -139,40 +154,48 @@ module Make (GS : Grades.GradeSystem.S) = struct
         terms names [ t1; t2 ]
     | Sugared.Conditional (t, t1, t2) -> terms names [ t; t1; t2 ]
     | Sugared.Let (pat, t1, t2) ->
-        terms (pattern_grade_names names pat) [ t1; t2 ]
+        terms (pattern_annotation_names names pat) [ t1; t2 ]
     | Sugared.Lambda abs | Sugared.PureLambda abs ->
-        abstraction_grade_names names abs
+        abstraction_annotation_names names abs
     | Sugared.Function cases -> abstractions names cases
-    | Sugared.Match (t, cases) -> abstractions (term_grade_names names t) cases
+    | Sugared.Match (t, cases) ->
+        abstractions (term_annotation_names names t) cases
     | Sugared.Box (_, t, abs) | Sugared.Unbox (t, abs) ->
-        abstraction_grade_names (term_grade_names names t) abs
+        abstraction_annotation_names (term_annotation_names names t) abs
     | Sugared.Handler (ret_case, op_cases) ->
         abstractions
-          (abstraction_grade_names names ret_case)
+          (abstraction_annotation_names names ret_case)
           (List.map snd op_cases)
 
-  and abstraction_grade_names names (pat, t) =
-    term_grade_names (pattern_grade_names names pat) t
+  and abstraction_annotation_names names (pat, t) =
+    term_annotation_names (pattern_annotation_names names pat) t
 
-  (* [state] within a definition whose annotations have the grade variables
-     [names], each a fresh variable of its sort. *)
+  (* [state] within a definition whose annotations have the type and grade
+     variables [names], each a fresh variable of its sort. *)
   let in_definition state names =
     let fresh fresh_var set =
       StringSet.fold
-        (fun p params -> StringMap.add p (fresh_var ()) params)
+        (fun p params -> StringMap.add p (fresh_var p) params)
         set StringMap.empty
     in
     let grade_params =
       {
-        effects = fresh Untyped.Eps_var.fresh_indexed names.effects;
+        effects =
+          fresh (fun _ -> Untyped.Eps_var.fresh_indexed ()) names.effects;
         resources =
-          fresh Untyped.Rho_var.fresh_indexed
-            (StringSet.diff names.all names.effects);
+          fresh
+            (fun _ -> Untyped.Rho_var.fresh_indexed ())
+            (StringSet.diff names.grades names.effects);
       }
     in
-    { state with grade_params = Some grade_params }
+    {
+      state with
+      ty_params = fresh Untyped.TyParamModule.fresh names.tys;
+      grade_params = Some grade_params;
+    }
 
-  let outside_definition state = { state with grade_params = None }
+  let outside_definition state =
+    { state with ty_params = StringMap.empty; grade_params = None }
 
   let misplaced_grade_param ~loc p =
     Error.syntax ~loc
@@ -587,7 +610,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
             in
             let state'' = add_fresh_ty_params state' params' in
             let state''', ty_def' = desugar_ty_def ~loc state'' ty_def in
-            (state''', (List.map snd params', ty_name', ty_def') :: defs)
+            ( { state''' with ty_params = state'.ty_params },
+              (List.map snd params', ty_name', ty_def') :: defs )
           in
           let state'', defs' =
             List.fold_right2 aux defs new_names (state', [])
@@ -603,26 +627,28 @@ module Make (GS : Grades.GradeSystem.S) = struct
       | Sugared.OpDefault (op_name, abs) ->
           let operation = lookup_operation ~loc state op_name in
           let scoped =
-            in_definition state (abstraction_grade_names no_grade_names abs)
+            in_definition state
+              (abstraction_annotation_names no_annotation_names abs)
           in
           (state, Untyped.OpDefault (operation, desugar_abstraction scoped abs))
       | Sugared.TopLet (x, term) ->
           let x' = Untyped.Variable.fresh x in
           let state' = add_fresh_variables state (StringMap.singleton x x') in
           let scoped =
-            in_definition state' (term_grade_names no_grade_names term)
+            in_definition state'
+              (term_annotation_names no_annotation_names term)
           in
           let expr = desugar_pure_expression scoped term in
           (state', Untyped.TopLet (x', expr))
       | Sugared.TopDo term ->
           let scoped =
-            in_definition state (term_grade_names no_grade_names term)
+            in_definition state (term_annotation_names no_annotation_names term)
           in
           let comp = desugar_computation scoped term in
           (state, Untyped.TopDo comp)
       | Sugared.TopLetRec (f, term) ->
           let scoped =
-            in_definition state (term_grade_names no_grade_names term)
+            in_definition state (term_annotation_names no_annotation_names term)
           in
           let state', f, expr = desugar_let_rec_def scoped (f, term) in
           (outside_definition state', Untyped.TopLet (f, expr))

@@ -1,0 +1,6 @@
+(* Correctly rejected by the desugarer: the parameter 'b of a type definition
+   is bound in that definition only, so the 'b of the definition after it is
+   unbound. *)
+type 'b wrapper = Wrap of 'b
+
+type opaque = Opaque of 'b

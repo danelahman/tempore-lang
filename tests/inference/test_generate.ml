@@ -68,6 +68,8 @@ let grades_of_test table name =
    with an error of their own rather than one of the solver. *)
 let malformed =
   [
+    "annotation_type_variables_reject.tpe";
+    "annotation_type_variables_reject_operation.tpe";
     "error_unbox_nonvariable.tpe";
     "error_variant_arity.tpe";
     "default_reject_duplicate.tpe";
@@ -138,17 +140,18 @@ module Program (G : Grade.S) = struct
     let a = Ast.TyParamModule.fresh "assumed" in
     { (C.monomorphic (Ast.TyParam a)) with C.ty_params = [ a ] }
 
-  (* The generated constraint is printable, and its grade unknowns are bound
-     but for those of [allowed]. *)
+  (* The generated constraint is printable, and its type and grade unknowns
+     are bound but for those of [allowed]. *)
   let check_scope name constr (allowed : C.free) =
     ignore (C.to_string constr);
     ignore (C.freshen C.empty_subst constr);
     let free = C.free_vars constr in
     if
       not
-        (X.Rho_var.Set.subset free.free_rhos allowed.free_rhos
+        (Ast.TyParamSet.subset free.free_tys allowed.free_tys
+        && X.Rho_var.Set.subset free.free_rhos allowed.free_rhos
         && X.Eps_var.Set.subset free.free_eps allowed.free_eps)
-    then fail "%s: a grade unknown escapes its scope" name
+    then fail "%s: an unknown escapes its scope" name
 
   let execute name env (cmd : _ Ast.command) =
     let loc = cmd.at in

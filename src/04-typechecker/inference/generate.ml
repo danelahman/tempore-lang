@@ -1061,15 +1061,16 @@ module Make (C : Constraint.S) = struct
   (* Top-level commands                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  (* [with_annotation_vars result c] is [c] in the scope of the grade
-     variables of the annotations of a command, the grade unknowns free in [c]
-     but not in [result]; like type parameters of annotations, they are
-     unknowns of the whole command. *)
+  (* [with_annotation_vars result c] is [c] in the scope of the type and
+     grade variables of the annotations of a command, the unknowns free in [c]
+     but not in [result]: they are unknowns of the whole command. *)
   let with_annotation_vars (result : C.free) c =
     let free = C.free_vars c in
     C.exists
       {
-        C.no_vars with
+        ty_vars =
+          Ast.TyParamSet.elements
+            (Ast.TyParamSet.diff free.free_tys result.free_tys);
         rho_vars =
           X.Rho_var.Set.elements
             (X.Rho_var.Set.diff free.free_rhos result.free_rhos);
@@ -1082,7 +1083,7 @@ module Make (C : Constraint.S) = struct
   let generate_top_let env ~loc x e =
     let a = Ast.TyParam (Ast.TyParamModule.fresh "ty") in
     ( a,
-      with_annotation_vars C.no_free
+      with_annotation_vars (C.free_vars_ty a)
         (generate_expression env e
            (expect a (Reason.because loc (Reason.Top_definition x)))) )
 

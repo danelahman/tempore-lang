@@ -270,6 +270,7 @@ let rec tpe_files dir =
 let expected_rejections =
   [
     ("annotation_grade_variables_reject.tpe", [ 10; 17 ]);
+    ("annotation_recursion_reject.tpe", [ 4; 8 ]);
     ("basic_unbox.tpe", [ 20; 30 ]);
     ("handlers_nested_reject.tpe", [ 18 ]);
     ("comp_type_annotation_reject.tpe", [ 3 ]);
