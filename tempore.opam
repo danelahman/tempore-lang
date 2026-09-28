@@ -12,7 +12,7 @@ homepage: "https://danel.ahman.ee/tempore-lang/"
 bug-reports: "https://github.com/danelahman/tempore-lang/issues"
 depends: [
   "dune" {>= "3.17"}
-  "ocaml" {>= "5.1"}
+  "ocaml" {>= "5.5"}
   "menhir" {>= "20231231"}
   "zarith" {>= "1.11"}
   "zarith_stubs_js"

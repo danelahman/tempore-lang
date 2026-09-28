@@ -26,7 +26,7 @@ ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 
 ### Building
 
-Tested with OCaml >= 5.0. Install the dependencies and build:
+Requires OCaml 5.5 or later. Install the dependencies and build:
 
     opam install --deps-only --with-dev-setup .
     make

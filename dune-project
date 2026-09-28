@@ -34,7 +34,7 @@
   "Tempore is a prototype programming language exploring how modal types and graded effect systems can be combined to specify and verify temporal properties of resources.")
  (depends
   (ocaml
-   (>= 5.1))
+   (>= 5.5))
   (menhir
    (>= 20231231))
   (zarith
