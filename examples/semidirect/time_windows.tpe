@@ -1,6 +1,11 @@
-(* Run this example with the 'time-windows' grading monoid, e.g.
+(* Sensor frames that transmit in a fixed slot of a repeating time window.
 
-     ./tempore --grades time-windows examples/semidirect/time_windows.tpe *)
+   Run this example with the 'time-windows' grading monoid, e.g.
+
+     ./tempore --grades time-windows examples/semidirect/time_windows.tpe
+
+   Grades (T, E): possible durations T and times E of windowed operations;
+   (T, E) · (T', E') = (T + T', E ∪ (T + E')). *)
 
 (* Sensing takes a tick, and is performed at any time. *)
 operation Sense : unit ~> int # 1

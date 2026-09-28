@@ -1,6 +1,11 @@
-(* Run this example with the 'traces-interval' grading monoid, e.g.
+(* The print, epoxy and message pipeline, its runs bounded above and below.
 
-     ./tempore --grades traces-interval examples/traces/traces_intervals.tpe *)
+   Run this example with the 'traces-interval' grading monoid, e.g.
+
+     ./tempore --grades traces-interval examples/traces/traces_intervals.tpe
+
+   Grades ({...}, {...}): a lower and an upper bound on the timed traces,
+   compared componentwise; sequencing concatenates. *)
 
 type model = Model of string
 type heated = Heated of model

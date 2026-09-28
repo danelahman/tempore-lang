@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Folding over a list of boxed values, nesting boxes over the accumulator.
 
-     ./tempore --grades time-lower-bound examples/basics/fold_over_boxes.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/basics/fold_over_boxes.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* Correctly accepted by the typechecker: building the list takes no time, so
    the function has grade 0, and each element is boxed with a demand of three

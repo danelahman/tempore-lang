@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Reading and writing a piece of state, each operation with its own grade.
 
-     ./tempore --grades time-lower-bound examples/basics/operations.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/basics/operations.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* Reading the state takes 3 ticks. *)
 operation Get : unit ~> int # 3

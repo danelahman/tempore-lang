@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Plain recursion: factorial, Fibonacci and Euclid's algorithm, all timeless.
 
-     ./tempore --grades time-lower-bound examples/basics/recursion.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/basics/recursion.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* Correctly accepted by the typechecker: plain recursion on integers, of
    grade 0 --- nothing in this file takes time. *)

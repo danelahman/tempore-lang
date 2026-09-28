@@ -1,4 +1,6 @@
-(* Run this example with the 'flow-levels' grading monoid, e.g.
+(* Publishing reports and posting to a board and an audit trail at their levels.
+
+   Run this example with the 'flow-levels' grading monoid, e.g.
 
      ./tempore --grades flow-levels examples/levels/flow_levels.tpe
 

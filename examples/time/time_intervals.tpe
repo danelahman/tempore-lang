@@ -1,6 +1,11 @@
-(* Run this example with the 'time-interval' grading monoid, e.g.
+(* Values boxed for a time interval, unboxed once the interval has elapsed.
 
-     ./tempore --grades time-interval examples/time/time_intervals.tpe *)
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/time/time_intervals.tpe
+
+   Grades (n, m): between n and m time steps, ordered by containment;
+   ⊤ = (0, ∞). *)
 
 (* Correctly accepted by the typechecker: the two delays accumulate (3, 3),
    which lies inside the (1, 4) the box demands. *)

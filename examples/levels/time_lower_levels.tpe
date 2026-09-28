@@ -1,6 +1,11 @@
-(* Run this example with the 'time-lower-bound-levels' grading monoid, e.g.
+(* An embargoed report, publishable once untainted and enough time has passed.
 
-     ./tempore --grades time-lower-bound-levels examples/levels/time_lower_levels.tpe *)
+   Run this example with the 'time-lower-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound-levels examples/levels/time_lower_levels.tpe
+
+   Grades (n, l): at least n time steps and nothing above level l, compared
+   componentwise; (3, Low) is an embargo with a taint check. *)
 
 type report = Report of string
 

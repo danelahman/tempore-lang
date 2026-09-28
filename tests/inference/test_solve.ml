@@ -269,8 +269,8 @@ let rec tpe_files dir =
    of the examples and the tests is accepted. *)
 let expected_rejections =
   [
-    ("basic_unbox.tpe", [ 13; 23 ]);
-    ("handlers_nested_reject.tpe", [ 11 ]);
+    ("basic_unbox.tpe", [ 17; 27 ]);
+    ("handlers_nested_reject.tpe", [ 15 ]);
     ("comp_type_annotation_reject.tpe", [ 3 ]);
     ("comp_type_annotation_upper_reject.tpe", [ 3 ]);
     ("continuation_discard_abort_reject_lower.tpe", [ 13 ]);

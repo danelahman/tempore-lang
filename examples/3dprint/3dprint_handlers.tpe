@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Printing and UV-curing resin models as operations, handled by delaying.
 
-     ./tempore --grades time-lower-bound examples/3dprint/3dprint_handlers.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/3dprint/3dprint_handlers.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* The stages a printed model goes through, from the model file to a
    finished print. *)

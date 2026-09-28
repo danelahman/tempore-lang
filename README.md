@@ -59,8 +59,7 @@ The [`examples/`](examples/) directory holds example programs by topic:
 `basics/`, `handlers/`, `time/`, `traces/`, `regular/`, `regular_costs/`,
 `levels/`, `semidirect/` and `3dprint/` (a 3D-printing case study). All but
 `basics/` are offered in the web interface
-([`examples/index`](examples/index)). Each example starts with the command
-that runs it.
+([`examples/index`](examples/index)).
 
 ## Grading monoids
 

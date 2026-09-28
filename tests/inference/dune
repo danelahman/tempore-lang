@@ -29,3 +29,9 @@
  (name test_report)
  (modules test_report)
  (libraries utils language grades parser desugarer loader inference))
+
+(test
+ (name test_headers)
+ (modules test_headers)
+ (deps
+  (glob_files_rec %{project_root}/examples/*.tpe)))

@@ -1,6 +1,11 @@
-(* Run this example with the 'traces-regex-lower-symbolic' grading monoid, e.g.
+(* A coating line: coat, bake and inspect, cured for at least so many ticks.
 
-     ./tempore --grades traces-regex-lower-symbolic examples/regular_costs/regular_costs_lower.tpe *)
+   Run this example with the 'traces-regex-lower-symbolic' grading monoid, e.g.
+
+     ./tempore --grades traces-regex-lower-symbolic examples/regular_costs/regular_costs_lower.tpe
+
+   Grades: regular languages of runs in the coverage order, operations costing
+   their lower runtime bounds; {0} is the top. *)
 
 type part = Part of string
 

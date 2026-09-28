@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Handler clauses for reading and writing state, delaying or forwarding grades.
 
-     ./tempore --grades time-lower-bound examples/handlers/handlers_lower_bound.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/handlers/handlers_lower_bound.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* Reading the state takes 71 ticks. *)
 operation Get : unit ~> int # 71

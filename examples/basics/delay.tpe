@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Delays, closures and box grades combining under sequencing and application.
 
-     ./tempore --grades time-lower-bound examples/basics/delay.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/basics/delay.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* Unary natural numbers, here only something to match on. *)
 type nat =

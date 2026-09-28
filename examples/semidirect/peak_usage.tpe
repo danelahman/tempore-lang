@@ -1,6 +1,11 @@
-(* Run this example with the 'peak-usage' grading monoid, e.g.
+(* File copies that open and close files, checked against their peak usage.
 
-     ./tempore --grades peak-usage examples/semidirect/peak_usage.tpe *)
+   Run this example with the 'peak-usage' grading monoid, e.g.
+
+     ./tempore --grades peak-usage examples/semidirect/peak_usage.tpe
+
+   Grades (d, h): net change d and peak h of the files held;
+   (d, h) · (d', h') = (d + d', max(h, d + h')). *)
 
 type file = File of string
 

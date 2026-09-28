@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* As the nested-handlers example, with the inner continuation never resumed.
 
-     ./tempore --grades time-lower-bound examples/handlers/handlers_nested_reject.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/handlers/handlers_nested_reject.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 operation Op1 : unit ~> unit # 2
 operation Op2 : unit ~> unit # 3

@@ -1,6 +1,11 @@
-(* Run this example with the 'traces-upper-bound' grading monoid, e.g.
+(* The print, epoxy and message pipeline, with its runs bounded from above.
 
-     ./tempore --grades traces-upper-bound examples/traces/traces_upper.tpe *)
+   Run this example with the 'traces-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-upper-bound examples/traces/traces_upper.tpe
+
+   Grades: timed traces a computation is allowed, in the allowance order;
+   sequencing concatenates, {0} is least and ⊤ the top. *)
 
 type model = Model of string
 type heated = Heated of model

@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Unboxing a pair before its box's grade has accumulated, correctly rejected.
 
-     ./tempore --grades time-lower-bound examples/basics/basic_unbox.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/basics/basic_unbox.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* Correctly rejected by the typechecker: unboxing demands the five ticks the
    box was given, and only four are delayed. The run is left uncommented, so

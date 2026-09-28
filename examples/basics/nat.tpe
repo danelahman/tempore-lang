@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* Unary natural numbers, with addition, multiplication and conversion to int.
 
-     ./tempore --grades time-lower-bound examples/basics/nat.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/basics/nat.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* Unary natural numbers. *)
 type nat =

@@ -1,6 +1,11 @@
-(* Run this example with the 'traces-interval' grading monoid, e.g.
+(* The full print pipeline: heating, extruding, cooling, epoxy and mounting.
 
-     ./tempore --grades traces-interval examples/3dprint/3dprint_traces.tpe *)
+   Run this example with the 'traces-interval' grading monoid, e.g.
+
+     ./tempore --grades traces-interval examples/3dprint/3dprint_traces.tpe
+
+   Grades ({...}, {...}): a lower and an upper bound on the timed traces,
+   compared componentwise; sequencing concatenates. *)
 
 type model = Model of string
 type heated = Heated of model

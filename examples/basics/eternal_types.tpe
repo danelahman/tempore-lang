@@ -1,6 +1,10 @@
-(* Run this example with the 'time-upper-bound' grading monoid, e.g.
+(* Eternal and non-eternal types, and the qualifiers they add to schemes.
 
-     ./tempore --grades time-upper-bound examples/basics/eternal_types.tpe *)
+   Run this example with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound examples/basics/eternal_types.tpe
+
+   Grades n: at most n time steps; sequencing adds, 0 is least, ∞ the top. *)
 
 (* Base types, tuples of eternal types, and algebraic types built from them
    are eternal. *)

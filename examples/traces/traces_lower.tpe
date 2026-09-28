@@ -1,6 +1,11 @@
-(* Run this example with the 'traces-lower-bound' grading monoid, e.g.
+(* The print, epoxy and message pipeline, with its runs covered from below.
 
-     ./tempore --grades traces-lower-bound examples/traces/traces_lower.tpe *)
+   Run this example with the 'traces-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-lower-bound examples/traces/traces_lower.tpe
+
+   Grades: timed traces a computation must cover, in the coverage order;
+   sequencing concatenates, {0} is the top. *)
 
 type model = Model of string
 type heated = Heated of model

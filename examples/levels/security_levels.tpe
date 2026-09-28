@@ -1,6 +1,11 @@
-(* Run this example with the 'security-levels' grading monoid, e.g.
+(* A public and a classified channel, forwarding public and secret readings.
 
-     ./tempore --grades security-levels examples/levels/security_levels.tpe *)
+   Run this example with the 'security-levels' grading monoid, e.g.
+
+     ./tempore --grades security-levels examples/levels/security_levels.tpe
+
+   Grades Low < High: the highest security level a computation touches; a box
+   at Low is out of reach once a High operation has run. *)
 
 type channel = Channel of string
 

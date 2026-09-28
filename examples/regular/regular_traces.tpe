@@ -1,6 +1,11 @@
-(* Run this example with the 'traces-regex-symbolic' grading monoid, e.g.
+(* A file-session protocol, an authentication token and a revocable capability.
 
-     ./tempore --grades traces-regex-symbolic examples/regular/regular_traces.tpe *)
+   Run this example with the 'traces-regex-symbolic' grading monoid, e.g.
+
+     ./tempore --grades traces-regex-symbolic examples/regular/regular_traces.tpe
+
+   Grades: regular languages of runs over ticks and operations, ordered by
+   inclusion; sequencing concatenates, ⊤ is all runs. *)
 
 type token = Token of string
 

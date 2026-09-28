@@ -1,6 +1,10 @@
-(* Run this example with the 'time-lower-bound' grading monoid, e.g.
+(* A top-level sum type, value and polymorphic fold, generalised over grades.
 
-     ./tempore --grades time-lower-bound examples/basics/toplevel.tpe *)
+   Run this example with the 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound examples/basics/toplevel.tpe
+
+   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
 
 (* A polymorphic sum type, with both parameters used. *)
 type ('l, 'r) either = Left of 'l | Right of 'r

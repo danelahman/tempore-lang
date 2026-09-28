@@ -1,6 +1,11 @@
-(* Run this example with the 'traces-regex-interval-symbolic' grading monoid, e.g.
+(* A coating line: coat, bake and seal, cured for an interval of ticks.
 
-     ./tempore --grades traces-regex-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe *)
+   Run this example with the 'traces-regex-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades traces-regex-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe
+
+   Grades (L, U): a lower and upper regular-language bound on the runs, at the
+   operations' runtime bounds, compared componentwise. *)
 
 type part = Part of string
 
