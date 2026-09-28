@@ -79,6 +79,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let rec rho_of_eps = function
     | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map c, at)
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
+    | Ast.EpsVar e -> Ast.RhoImage e
 
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with

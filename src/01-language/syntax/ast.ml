@@ -21,17 +21,88 @@ module OpNameSet = Set.Make (OpName)
 
 type operation = OpName.t
 
+(** Grade variables of one sort. *)
+module type GRADE_VAR = sig
+  include Symbol.S
+
+  val fresh_indexed : unit -> t
+  (** [fresh_indexed ()] is a fresh variable named by the sort's letter and the
+      next subscript of the sort, e.g. [ρ₀], [ρ₁]. *)
+
+  val equal : t -> t -> bool
+  (** [equal x y] is whether [x] and [y] are the same variable. *)
+
+  module Map : Map.S with type key = t
+  (** Finite maps from variables. *)
+
+  module Set : Set.S with type elt = t
+  (** Finite sets of variables. *)
+end
+
+module Make_grade_var
+    (Letter : sig
+      val letter : string
+    end)
+    () : GRADE_VAR = struct
+  include Symbol.Make ()
+
+  (* The subscript digits of a non-negative integer. *)
+  let subscript n =
+    let digits = [| "₀"; "₁"; "₂"; "₃"; "₄"; "₅"; "₆"; "₇"; "₈"; "₉" |] in
+    String.concat ""
+      (List.map
+         (fun d -> digits.(Char.code d - Char.code '0'))
+         (List.of_seq (String.to_seq (string_of_int n))))
+
+  (* The supply of subscripts. *)
+  let next = Atomic.make 0
+
+  let fresh_indexed () =
+    fresh (Letter.letter ^ subscript (Atomic.fetch_and_add next 1))
+
+  let equal x y = compare x y = 0
+
+  module Ordered = struct
+    type nonrec t = t
+
+    let compare = compare
+  end
+
+  module Map = Stdlib.Map.Make (Ordered)
+  module Set = Stdlib.Set.Make (Ordered)
+end
+
+(** Resource-grade variables, printed [ρ₀], [ρ₁], ... *)
+module Rho_var =
+  Make_grade_var
+    (struct
+      let letter = "ρ"
+    end)
+    ()
+
+(** Effect-grade variables, printed [ε₀], [ε₁], ... *)
+module Eps_var =
+  Make_grade_var
+    (struct
+      let letter = "ε"
+    end)
+    ()
+
 (** Resource grade expressions over the resource grades ['rho]. *)
 type 'rho rho =
   | RhoConst of 'rho * Location.t option
       (** a grade, with the location of the source it is read from, if any *)
   | RhoAdd of 'rho rho * 'rho rho  (** the product of two grades *)
+  | RhoVar of Rho_var.t  (** a resource variable of an annotation *)
+  | RhoImage of Eps_var.t
+      (** the image [∣ε∣] of an effect variable of an annotation *)
 
 (** Effect grade expressions over the effect grades ['eps]. *)
 type 'eps eps =
   | EpsConst of 'eps * Location.t option
       (** a grade, with the location of the source it is read from, if any *)
   | EpsAdd of 'eps eps * 'eps eps  (** the product of two grades *)
+  | EpsVar of Eps_var.t  (** an effect variable of an annotation *)
 
 (** Types, over the grades ['rho] of resources and ['eps] of effects: a box is
     graded by a resource grade, a computation by an effect grade. Nothing else

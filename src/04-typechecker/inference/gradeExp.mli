@@ -6,31 +6,16 @@
     under the grade morphism. Variables are named symbols, so substitutions are
     finite maps and no expression is ever reindexed. *)
 
+module type VAR = Language.Ast.GRADE_VAR
 (** Variables of one sort. *)
-module type VAR = sig
-  include Utils.Symbol.S
 
-  val fresh_indexed : unit -> t
-  (** [fresh_indexed ()] is a fresh variable named by the sort's letter and the
-      next subscript of the sort, e.g. [ρ₀], [ρ₁]. *)
-
-  val equal : t -> t -> bool
-  (** [equal x y] is whether [x] and [y] are the same variable. *)
-
-  module Map : Map.S with type key = t
-  (** Finite maps from variables. *)
-
-  module Set : Set.S with type elt = t
-  (** Finite sets of variables. *)
-end
-
-module Rho_var : VAR
+module Rho_var = Language.Ast.Rho_var
 (** Resource-grade variables, printed [ρ₀], [ρ₁], ..., shared by every grade
-    system. *)
+    system and by the annotations of programs. *)
 
-module Eps_var : VAR
+module Eps_var = Language.Ast.Eps_var
 (** Effect-grade variables, printed [ε₀], [ε₁], ..., shared by every grade
-    system. *)
+    system and by the annotations of programs. *)
 
 module type S = sig
   module GS : Grades.GradeSystem.S

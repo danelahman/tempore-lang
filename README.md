@@ -279,9 +279,8 @@ See [`examples/basics/basic_unbox.tpe`](examples/basics/basic_unbox.tpe).
 ### Delays
 
 `delay tau` advances the accumulated grade by `tau`; an operation call advances
-it by the operation's grade. A function's computation type may be annotated,
-`let f () : int # 3 = ...`; the body's grade must be a sub-grade of the
-annotation. See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
+it by the operation's grade. See
+[`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 ## Eternal types
 
@@ -417,6 +416,15 @@ takes at least the time of `Op` followed by `k`. A `run` must establish every su
 typechecker can neither derive nor refute rejects it. Under the time grades,
 the security levels and their products, a condition in the effect of a single
 continuation is always decided; under the trace grades it may not be.
+
+### Annotations
+
+A function's computation type may be annotated, `let f () : int # 3 = ...`; the
+body's grade must be a sub-grade of the annotation. Types may contain variables
+`'a`, and grades may be variables `'e` or `'r`: within a top-level definition,
+the same name is the same unknown, inferred and generalised with it. A name
+also written after `#` stands for the resource image `∣ε∣` of that effect in box
+grades. `let pass (f : unit -> int # 'e) : int # 'e = f ()` has the grade of `f`.
 
 ### Sub-effecting
 

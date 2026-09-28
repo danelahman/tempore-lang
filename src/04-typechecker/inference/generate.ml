@@ -165,17 +165,22 @@ module Make (C : Constraint.S) = struct
           "The grade `%s` permits no run of the declared operations" (show c)
     | Some _ | None -> ()
 
+  (* The grade variables of an annotation are unknowns of the command it
+     belongs to, bound by [with_annotation_vars]. *)
   let rec open_rho env = function
     | Ast.RhoConst (c, at) ->
         check_inhabited ~inhabited:GS.R.inhabited ~show:GS.R.show env c at;
         Rho.const c
     | Ast.RhoAdd (rho, rho') -> Rho.mul (open_rho env rho) (open_rho env rho')
+    | Ast.RhoVar r -> Rho.var r
+    | Ast.RhoImage e -> Rho.map (Eps.var e)
 
   let rec open_eps env = function
     | Ast.EpsConst (c, at) ->
         check_inhabited ~inhabited:GS.E.inhabited ~show:GS.E.show env c at;
         Eps.const c
     | Ast.EpsAdd (eps, eps') -> Eps.mul (open_eps env eps) (open_eps env eps')
+    | Ast.EpsVar e -> Eps.var e
 
   let open_ty env ty =
     Ast.map_ty ~on_rho:(open_rho env) ~on_eps:(open_eps env) ty
@@ -273,7 +278,7 @@ module Make (C : Constraint.S) = struct
            must not be declared under the `%s` grading monoid"
           GS.E.name
     | false, _, None -> env.op_bounds
-    | true, Ast.EpsAdd _, _ ->
+    | true, (Ast.EpsAdd _ | Ast.EpsVar _), _ ->
         Error.typing ~loc
           "the grade of operation `%s` must be a literal under the `%s` \
            grading monoid"
@@ -1056,18 +1061,40 @@ module Make (C : Constraint.S) = struct
   (* Top-level commands                                                  *)
   (* ------------------------------------------------------------------ *)
 
+  (* [with_annotation_vars result c] is [c] in the scope of the grade
+     variables of the annotations of a command, the grade unknowns free in [c]
+     but not in [result]; like type parameters of annotations, they are
+     unknowns of the whole command. *)
+  let with_annotation_vars (result : C.free) c =
+    let free = C.free_vars c in
+    C.exists
+      {
+        C.no_vars with
+        rho_vars =
+          X.Rho_var.Set.elements
+            (X.Rho_var.Set.diff free.free_rhos result.free_rhos);
+        eps_vars =
+          X.Eps_var.Set.elements
+            (X.Eps_var.Set.diff free.free_eps result.free_eps);
+      }
+      c
+
   let generate_top_let env ~loc x e =
     let a = Ast.TyParam (Ast.TyParamModule.fresh "ty") in
     ( a,
-      generate_expression env e
-        (expect a (Reason.because loc (Reason.Top_definition x))) )
+      with_annotation_vars C.no_free
+        (generate_expression env e
+           (expect a (Reason.because loc (Reason.Top_definition x)))) )
 
   let generate_run env ~loc c =
     let a = Ast.TyParam (Ast.TyParamModule.fresh "ty") in
     let eps = Eps.var (X.Eps_var.fresh_indexed ()) in
     let because = Reason.because loc Reason.Top_computation in
-    ( Ast.CompTy (a, eps),
-      generate_computation env c (expect a because) (expect eps because) )
+    let comp_ty = Ast.CompTy (a, eps) in
+    ( comp_ty,
+      with_annotation_vars
+        (C.free_vars_comp_ty comp_ty)
+        (generate_computation env c (expect a because) (expect eps because)) )
 
   let generate_default env ~loc op (pat, body) =
     let op_name = Ast.OpName.string_of op in
@@ -1103,10 +1130,11 @@ module Make (C : Constraint.S) = struct
         }
     in
     let default = Reason.because loc (Reason.Default_of { op; signature_at }) in
-    with_pattern env' pat
-      (expect param (Reason.step Reason.Argument default))
-      (fun env'' ->
-        generate_computation env'' body
-          (expect arity (Reason.step Reason.Result default))
-          (expect bound (Reason.step Reason.Effect default)))
+    with_annotation_vars C.no_free
+      (with_pattern env' pat
+         (expect param (Reason.step Reason.Argument default))
+         (fun env'' ->
+           generate_computation env'' body
+             (expect arity (Reason.step Reason.Result default))
+             (expect bound (Reason.step Reason.Effect default))))
 end

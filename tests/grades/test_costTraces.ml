@@ -218,8 +218,9 @@ module Reader (G : Grade.S) = struct
   let lit text =
     let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
     match Grammar.payload (Parser.Lexer.tokens ()) lexbuf with
-    | { it = SugaredAst.GenBox (rho, _); _ } -> rho.it
-    | _ -> invalid_arg ("not a box: " ^ text)
+    | { it = SugaredAst.GenBox ({ it = SugaredAst.GradeLit rho; _ }, _); _ } ->
+        rho
+    | _ -> invalid_arg ("not a box of a literal: " ^ text)
 end
 
 (* [A] costs 1 to 3, [B] exactly 2 and [C] up to 5. *)

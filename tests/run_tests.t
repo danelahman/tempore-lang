@@ -7,6 +7,7 @@
   >     time_intervals.tpe) ../tempore --grades time-interval $f;;
   >     time_upper.tpe) ../tempore --grades time-upper-bound $f;;
   >     comp_type_annotation_upper*.tpe) ../tempore --grades time-upper-bound $f;;
+  >     annotation_grade_variables*.tpe) ../tempore --grades time-upper-bound $f;;
   >     eternal_lower.tpe) ../tempore $f;;
   >     eternal_*.tpe) ../tempore --grades time-upper-bound $f;;
   >     noneternal_lower.tpe) ../tempore $f;;
@@ -119,6 +120,50 @@
   return Epoxy
   State: []
   
+  ======================================================================
+  annotation_grade_variables.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3
+  State: [
+    1,
+    2
+  ]
+  
+  === Run 2 ===
+  return 5
+  State: [
+    { resource_0 ↦ fun () ↦ delay 2 (return ());
+                            return 5 # 2 },
+    2
+  ]
+  
+  === Run 3 ===
+  return 2
+  State: []
+  
+  ======================================================================
+  annotation_grade_variables_reject.tpe
+  ======================================================================
+  File "annotation_grade_variables_reject.tpe", line 11, characters 37-69:
+  11 |   ((slow : (unit -> int # 'e) list), (fast : (unit -> int # 'e) list))
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This expression has type `(unit → int # 1) list` but is annotated with `(unit → int # 2) list`
+    File "annotation_grade_variables_reject.tpe", line 11, characters 3-35:
+    11 |   ((slow : (unit -> int # 'e) list), (fast : (unit -> int # 'e) list))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
+    Note: the effect inequality `2 <= 1` does not hold
+  
+  File "annotation_grade_variables_reject.tpe", line 17, characters 27-70:
+  17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> int # 'e)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
+    File "annotation_grade_variables_reject.tpe", line 17, characters 18-26:
+    17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> int # 'e)
+                           ^^^^^^^^
+    the inequality goes through the type of `run_fast` here
+    Note: the effect inequality `2 <= 1` does not hold
   ======================================================================
   comp_type_annotation.tpe
   ======================================================================

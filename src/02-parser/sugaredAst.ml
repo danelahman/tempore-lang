@@ -12,6 +12,12 @@ let empty_ty_name = "empty"
 
 type 'a annotated = 'a Location.located = { it : 'a; at : Location.t }
 type ty_param = string
+type grade_param = string
+
+(** A grade as written, over the grades ['g] a literal is read as. *)
+type 'g grade =
+  | GradeLit of 'g  (** a literal *)
+  | GradeParam of grade_param  (** ['e] *)
 
 type ('rho, 'eps) ty = ('rho, 'eps) plain_ty annotated
 

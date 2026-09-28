@@ -83,6 +83,8 @@ let print_rho (type a) (module R : Grades.Grade.S with type t = a) =
         Format.fprintf ppf "@[%t + %t@]"
           (fun ppf -> aux rho1 ppf)
           (fun ppf -> aux rho2 ppf)
+    | RhoVar r -> Rho_var.print r ppf
+    | RhoImage e -> Format.fprintf ppf "∣%t∣" (Eps_var.print e)
   in
   aux
 

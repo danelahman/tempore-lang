@@ -1,61 +1,9 @@
 (* Open grade expressions. *)
 
-module type VAR = sig
-  include Utils.Symbol.S
+module type VAR = Language.Ast.GRADE_VAR
 
-  val fresh_indexed : unit -> t
-  val equal : t -> t -> bool
-
-  module Map : Map.S with type key = t
-  module Set : Set.S with type elt = t
-end
-
-(* The subscript digits of a non-negative integer. *)
-let subscript n =
-  let digits = [| "₀"; "₁"; "₂"; "₃"; "₄"; "₅"; "₆"; "₇"; "₈"; "₉" |] in
-  String.concat ""
-    (List.map
-       (fun d -> digits.(Char.code d - Char.code '0'))
-       (List.of_seq (String.to_seq (string_of_int n))))
-
-module Make_var
-    (Letter : sig
-      val letter : string
-    end)
-    () : VAR = struct
-  include Utils.Symbol.Make ()
-
-  (* The supply of subscripts. *)
-  let next = Atomic.make 0
-
-  let fresh_indexed () =
-    fresh (Letter.letter ^ subscript (Atomic.fetch_and_add next 1))
-
-  let equal x y = compare x y = 0
-
-  module Ordered = struct
-    type nonrec t = t
-
-    let compare = compare
-  end
-
-  module Map = Stdlib.Map.Make (Ordered)
-  module Set = Stdlib.Set.Make (Ordered)
-end
-
-module Rho_var =
-  Make_var
-    (struct
-      let letter = "ρ"
-    end)
-    ()
-
-module Eps_var =
-  Make_var
-    (struct
-      let letter = "ε"
-    end)
-    ()
+module Rho_var = Language.Ast.Rho_var
+module Eps_var = Language.Ast.Eps_var
 
 module type S = sig
   module GS : Grades.GradeSystem.S

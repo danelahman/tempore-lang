@@ -75,8 +75,8 @@
 %left  INFIXOP3 STAR MOD LAND LOR LXOR
 %right INFIXOP4 LSL LSR ASR
 
-%start <(GS.R.t annotated, GS.E.t annotated) SugaredAst.term> payload
-%start <(GS.R.t annotated, GS.E.t annotated) SugaredAst.command list> commands
+%start <(GS.R.t grade annotated, GS.E.t grade annotated) SugaredAst.term> payload
+%start <(GS.R.t grade annotated, GS.E.t grade annotated) SugaredAst.command list> commands
 
 %%
 
@@ -451,7 +451,7 @@ plain_ty:
     { TyArrow (t1, CompTy (t2, eps)) }
   | t1 = ty_apply ARROW t2 = ty
     { let at = Location.of_lexing $startpos $endpos in
-      TyArrow (t1, CompTy (t2, { it = GS.E.one; at })) }
+      TyArrow (t1, CompTy (t2, { it = GradeLit GS.E.one; at })) }
   | t = plain_prod_ty
     { t }
 
@@ -495,19 +495,23 @@ op_bounds:
   | WITHIN n = INT { (n, n) }
   | WITHIN LPAREN n = INT COMMA m = INT RPAREN { (n, m) }
 
-(* A resource grade, read by the resource grades of the grade system, at the
-   location of its literal. *)
+(* A resource grade, a literal read by the resource grades of the grade system
+   or a grade variable, at its location. *)
 rho_grade:
   | lit = grade_lit
     { let at = Location.of_lexing $startpos $endpos in
-      { it = grade ~loc:at GS.R.name GS.R.of_lit lit; at } }
+      { it = GradeLit (grade ~loc:at GS.R.name GS.R.of_lit lit); at } }
+  | p = PARAM
+    { { it = GradeParam p; at = Location.of_lexing $startpos $endpos } }
 
-(* An effect grade, read by the effect grades of the grade system, at the
-   location of its literal. *)
+(* An effect grade, a literal read by the effect grades of the grade system or
+   a grade variable, at its location. *)
 eps_grade:
   | lit = grade_lit
     { let at = Location.of_lexing $startpos $endpos in
-      { it = grade ~loc:at GS.E.name GS.E.of_lit lit; at } }
+      { it = GradeLit (grade ~loc:at GS.E.name GS.E.of_lit lit); at } }
+  | p = PARAM
+    { { it = GradeParam p; at = Location.of_lexing $startpos $endpos } }
 
 (* A grade literal, shared by all grades; each grade reads the forms it
    understands. *)

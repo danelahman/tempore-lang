@@ -1,0 +1,17 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/annotation_grade_variables_reject.tpe
+
+   A grade variable of an annotation is one unknown throughout its top-level
+   definition, which inference may constrain but not split. *)
+
+(* Correctly rejected by the typechecker: type arguments are invariant, so the
+   first use of 'e makes it 2 and the second 1. *)
+let mismatch (slow : (unit -> int # 2) list) (fast : (unit -> int # 1) list) =
+  ((slow : (unit -> int # 'e) list), (fast : (unit -> int # 'e) list))
+
+let run_fast (f : unit -> int # 1) = f ()
+
+(* Correctly rejected by the typechecker: run_fast bounds 'e by 1, which the
+   body of the annotated function, taking 2 ticks, exceeds. *)
+let violated () = run_fast ((fun () -> delay 2; 0) : unit -> int # 'e)

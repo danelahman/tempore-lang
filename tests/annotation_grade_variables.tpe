@@ -1,0 +1,41 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/annotation_grade_variables.tpe
+
+   A grade in an annotation may be a variable 'e, like a type variable 'a: an
+   unknown of the top-level definition, the same name being the same unknown
+   throughout it, generalised with the definition. A variable with an
+   occurrence after a '#' is an effect variable, and its occurrences in a box
+   grade stand for its image as a resource grade; any other is a resource
+   variable. *)
+
+(* Correctly accepted by the typechecker: the effect of f passes through, so
+   pass gets the scheme ∀ ε₀. (unit → int # ε₀) → int # ε₀. *)
+let pass (f : unit -> int # 'e) : int # 'e = f ()
+
+(* Correctly accepted by the typechecker: the box grade is the image of the
+   effect of the boxed function, so release gets the scheme
+   ∀ ε₀. [∣ε₀∣](unit → int # ε₀) → int # ε₀. *)
+let release (policy : [ 'e ] (unit -> int # 'e)) = unbox policy as p in p ()
+
+(* Correctly accepted by the typechecker: type arguments are invariant, so the
+   two uses of 'e make the elements of both lists functions of one effect, and
+   append gets the scheme ∀ ε₀. (unit → int # ε₀) list →
+   (unit → int # ε₀) list → (unit → int # ε₀) list # 0 # 0. *)
+let append (xs : (unit -> int # 'e) list) (ys : (unit -> int # 'e) list) =
+  xs @ ys
+
+(* Correctly accepted by the typechecker: 'r occurs in box grades only, so it
+   is a resource variable, and rebox gets the scheme ∀ ρ₀. [ρ₀]int → [ρ₀]int. *)
+let rebox (x : [ 'r ] int) : [ 'r ] int = x
+
+(* Correctly accepted by the typechecker: pass is used at the effects 1 and
+   2, so both gets the type unit → int # 3. *)
+let both () =
+  let a = pass (fun () -> delay 1; 1) in
+  let b = pass (fun () -> delay 2; 2) in
+  a + b
+
+run both ()
+run release (box 2 (fun () -> delay 2; 5))
+run length (append [ (fun () -> delay 1; 1) ] [ (fun () -> 2) ])
