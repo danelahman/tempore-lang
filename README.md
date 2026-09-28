@@ -57,8 +57,8 @@ selects its monoid.
 
 The [`examples/`](examples/) directory holds example programs by topic:
 `basics/`, `handlers/`, `time/`, `traces/`, `regular/`, `regular_costs/`,
-`levels/`, `semidirect/`, `counts/` and `3dprint/` (a 3D-printing case
-study). All but `basics/` are offered in the web interface
+`levels/`, `semidirect/`, `counts/`, `3dprint/` (a 3D-printing case study)
+and `rollout/` (a staged software rollout). All but `basics/` are offered in the web interface
 ([`examples/index`](examples/index)).
 
 ## Grading monoids

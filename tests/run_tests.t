@@ -1796,6 +1796,42 @@
   ======================================================================
   orelse_andalso.tpe
   ======================================================================
+  === Run 1 ===
+  return false
+  State: []
+  
+  === Run 2 ===
+  return false
+  State: []
+  
+  === Run 3 ===
+  return false
+  State: []
+  
+  === Run 4 ===
+  return true
+  State: []
+  
+  === Run 5 ===
+  return false
+  State: []
+  
+  === Run 6 ===
+  return true
+  State: []
+  
+  === Run 7 ===
+  return true
+  State: []
+  
+  === Run 8 ===
+  return true
+  State: []
+  
+  === Run 9 ===
+  return true
+  State: []
+  
   ======================================================================
   patterns.tpe
   ======================================================================
@@ -4915,3 +4951,25 @@ single-dash form of the help option is not accepted.
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them
   [2]
+
+The staged-rollout case study runs to its values; the resource states are
+omitted.
+
+  $ ../tempore --grades time-lower-bound-levels ../examples/rollout/rollout.tpe | awk '/^State:/ { s = 1 } /^=== Run/ { s = 0 } !s'
+  === Run 1 ===
+  return (Wave ((Host "web-1")::[], 
+                Wave ((Host "web-2")::(Host "web-3")::[], 
+                      Wave ((Host "db-1")::(Host "db-2")::[], Last))))
+  === Run 2 ===
+  return 7
+  === Run 3 ===
+  return (Completed 5, 
+          (Built 7)::(Approved 7)::(Watched 0)::(Installed (Host "web-1"))::(Watched 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Watched 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Retried (Host "db-2"))::[])
+  === Run 4 ===
+  return (FailedAt (Host "db-2", 5), 
+          (Built 7)::(Approved 7)::(Watched 0)::(Installed (Host "web-1"))::(Watched 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Watched 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Reverted (Host "db-2"))::(Reverted (Host "db-1"))::(Reverted (Host "web-3"))::(Reverted (Host "web-2"))::(Reverted (Host "web-1"))::[])
+  === Run 5 ===
+  return (Unstable (1, 1), 
+          (Built 7)::(Approved 7)::(Watched 0)::(Installed (Host "cache-1"))::(Watched 1)::(Reverted (Host "cache-1"))::[])
+  === Run 6 ===
+  return (Completed 5)
