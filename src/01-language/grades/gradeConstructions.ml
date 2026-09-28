@@ -236,3 +236,236 @@ struct
     ( List.map (fun m -> (m, N.bottom)) ms @ fst (Grade.sampled mul cs),
       Grade.Partial )
 end
+
+(* Maps from names to elements, with a default for the other names. *)
+module Indexed = struct
+  type 'a t = { named : (string * 'a) list; others : 'a }
+
+  let fresh = "_"
+  let at m s = Option.value (List.assoc_opt s m.named) ~default:m.others
+
+  (* Drops the entries equal, by [compare], to the default. *)
+  let trim compare m =
+    {
+      m with
+      named = List.filter (fun (_, c) -> compare c m.others <> 0) m.named;
+    }
+
+  let by_name (s, _) (s', _) = String.compare s s'
+
+  let of_list ~compare ~others entries =
+    trim compare { named = List.sort_uniq by_name entries; others }
+
+  let everywhere c = { named = []; others = c }
+  let named m = m.named
+  let others m = m.others
+
+  let names ms =
+    List.sort_uniq String.compare
+      (fresh :: List.concat_map (fun m -> List.map fst m.named) ms)
+
+  (* The names given their own element by [m] or [m']. *)
+  let keys m m' =
+    List.sort_uniq String.compare (List.map fst m.named @ List.map fst m'.named)
+
+  let map compare f m =
+    trim compare
+      { named = List.map (fun (s, c) -> (s, f c)) m.named; others = f m.others }
+
+  let map2 compare f m m' =
+    trim compare
+      {
+        named = List.map (fun s -> (s, f (at m s) (at m' s))) (keys m m');
+        others = f m.others m'.others;
+      }
+
+  let for_all2 p m m' =
+    p m.others m'.others
+    && List.for_all (fun s -> p (at m s) (at m' s)) (keys m m')
+
+  let for_all p m = p m.others && List.for_all (fun (_, c) -> p c) m.named
+
+  let compare_with compare m m' =
+    match compare m.others m'.others with
+    | 0 ->
+        List.compare
+          (fun (s, c) (s', c') ->
+            match String.compare s s' with 0 -> compare c c' | d -> d)
+          m.named m'.named
+    | d -> d
+
+  let hash_with hash m =
+    Grade.combine (hash m.others)
+      (Grade.hash_list
+         (fun (s, c) -> Grade.combine (Hashtbl.hash s) (hash c))
+         m.named)
+
+  (* The text [text] without its outer parentheses, if they match. *)
+  let unparenthesised text =
+    let n = String.length text in
+    let rec closes_at depth i =
+      if i = n then false
+      else
+        match text.[i] with
+        | '(' -> closes_at (depth + 1) (i + 1)
+        | ')' when depth = 1 -> i = n - 1
+        | ')' -> closes_at (depth - 1) (i + 1)
+        | _ -> closes_at depth (i + 1)
+    in
+    if n >= 2 && text.[0] = '(' && closes_at 0 0 then String.sub text 1 (n - 2)
+    else text
+
+  let show_entry show (s, c) = "(" ^ s ^ "," ^ unparenthesised (show c) ^ ")"
+
+  let show_entries ~is_default show m =
+    String.concat ","
+      (List.map (show_entry show)
+         (m.named @ if is_default m.others then [] else [ (fresh, m.others) ]))
+
+  let show ~is_default show m =
+    match m with
+    | { named = []; others } -> show others
+    | { named = [ _ ]; others } when is_default others ->
+        show_entries ~is_default show m
+    | m -> "(" ^ show_entries ~is_default show m ^ ")"
+
+  let entry of_lit = function
+    | Grade.Tuple (Grade.Name s :: (_ :: _ as rest)) as lit ->
+        let component = match rest with [ l ] -> l | ls -> Grade.Tuple ls in
+        ( s,
+          Grade.component_of_lit lit
+            ~context:(Printf.sprintf "in the entry of '%s', " s)
+            of_lit component )
+    | lit ->
+        Grade.invalid_lit lit
+          "entries are tuples '(Name, ...)' of a name and its grade, not %s"
+          (Grade.describe_lit lit)
+
+  let of_entries ~compare ~others lit entries =
+    let sorted = List.sort by_name entries in
+    let rec check = function
+      | (s, _) :: ((s', _) :: _ as rest) ->
+          if String.equal s s' then
+            Grade.invalid_lit lit "the name '%s' is listed twice" s
+          else check rest
+      | [ _ ] | [] -> trim compare { named = sorted; others }
+    in
+    check sorted
+
+  (* The entries of the literal [lit]: itself if it is one, its components if
+     it is a tuple of them, and none otherwise. *)
+  let entries_of_lit = function
+    | Grade.Tuple (Grade.Name _ :: _ :: _) as lit -> Some [ lit ]
+    | Grade.Tuple (Grade.Tuple (Grade.Name _ :: _) :: _ as lits) -> Some lits
+    | _ -> None
+
+  let of_lit ~compare ~default ~everywhere:all of_lit lit =
+    match entries_of_lit lit with
+    | Some lits ->
+        of_entries ~compare ~others:default lit
+          (List.map
+             (Grade.component_of_lit lit ~context:"" (entry of_lit))
+             lits)
+    | None -> all (of_lit lit)
+
+  module OfSemilattice (C : SEMILATTICE) = struct
+    type nonrec t = C.t t
+
+    let name = C.name ^ " by name"
+    let bottom = everywhere C.bottom
+    let top = everywhere C.top
+    let join = map2 C.compare C.join
+    let leq = for_all2 C.leq
+    let compare = compare_with C.compare
+    let hash = hash_with C.hash
+    let is_bottom c = C.compare c C.bottom = 0
+
+    let of_lit = function
+      | Grade.Top -> top
+      | lit ->
+          of_lit ~compare:C.compare ~default:C.bottom ~everywhere C.of_lit lit
+
+    let show m =
+      if compare m top = 0 then "⊤" else show ~is_default:is_bottom C.show m
+  end
+
+  module Action (C : SEMILATTICE) (A : ACTION with type n = C.t) = struct
+    type m = A.m
+    type nonrec n = C.t t
+
+    let act a = map C.compare (A.act a)
+  end
+
+  module OfGrade (G : Grade.S) = struct
+    type nonrec t = G.t t
+
+    let name = G.name ^ " by name"
+    let one = everywhere G.one
+    let mul = map2 G.compare G.mul
+    let leq bounds = for_all2 (G.leq bounds)
+    let leq_symbol = G.leq_symbol
+    let top = everywhere G.top
+    let join = map2 G.compare G.join
+    let of_nat n = everywhere (G.of_nat n)
+    let equal bounds = for_all2 (G.equal bounds)
+    let is_top bounds = for_all (G.is_top bounds)
+    let compare = compare_with G.compare
+    let hash = hash_with G.hash
+
+    (* A witness at one name, the others keeping the lesser grade. *)
+    let counterexample bounds m m' =
+      List.find_map
+        (fun s ->
+          Option.map
+            (fun e ->
+              trim G.compare
+                (if s = fresh then { m with others = e }
+                 else
+                   {
+                     m with
+                     named =
+                       List.sort_uniq by_name
+                         ((s, e) :: List.remove_assoc s m.named);
+                   }))
+            (G.counterexample bounds (at m s) (at m' s)))
+        (names [ m; m' ])
+
+    let unit_least = G.unit_least
+    let commutative = G.commutative
+    let needs_op_bounds = G.needs_op_bounds
+    let implied_bounds _bounds _ = None
+    let inhabited bounds = for_all (G.inhabited bounds)
+
+    let events m =
+      List.sort_uniq String.compare
+        (List.concat_map G.events (m.others :: List.map snd m.named))
+
+    let of_lit = function
+      | Grade.Top -> top
+      | lit -> of_lit ~compare:G.compare ~default:G.one ~everywhere G.of_lit lit
+
+    let of_bounds b = everywhere (G.of_bounds b)
+    let is_atomic name = for_all (G.is_atomic name)
+    let is_one c = G.compare c G.one = 0
+    let show m = show ~is_default:is_one G.show m
+
+    (* An ordering fails iff it fails at one name, at a witness of the
+       component there when its list is complete; the names no constant
+       gives its own grade are alike, and [fresh] stands for them. *)
+    let witnesses bounds cs =
+      let at_name s =
+        let ws, completeness =
+          G.witnesses bounds (List.map (fun c -> at c s) cs)
+        in
+        ( List.map
+            (fun w -> trim G.compare { named = [ (s, w) ]; others = G.one })
+            ws,
+          completeness )
+      in
+      let per_name = List.map at_name (names cs) in
+      ( List.concat_map fst per_name,
+        if List.for_all (fun (_, c) -> c = Grade.Complete) per_name then
+          Grade.Complete
+        else Grade.Partial )
+  end
+end

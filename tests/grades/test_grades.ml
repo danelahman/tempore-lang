@@ -542,7 +542,13 @@ let flow_grades sinks =
   Flow.top
   :: List.concat_map
        (fun level ->
-         List.map (fun ws -> (level, LevelGrades.Written ws)) outputs)
+         List.map
+           (fun ws ->
+             ( level,
+               GradeConstructions.Indexed.of_list
+                 ~compare:LevelGrades.WrittenAt.compare ~others:None
+                 (List.map (fun (s, l) -> (s, Some l)) ws) ))
+           outputs)
        [ LevelGrades.Low; High ]
 
 module Flow_conditions =
@@ -687,10 +693,139 @@ let registered_laws =
       @ of_nat_laws (module G) costs ())
     GradeRegistry.grade_modules
 
+(* ------------------------------------------------------------------ *)
+(* Grades indexed by names                                             *)
+(* ------------------------------------------------------------------ *)
+
+module Indexed = GradeConstructions.Indexed
+module ByName = Indexed.OfGrade (TimeGrades.UpperBound)
+module IntervalsByName = Indexed.OfGrade (TimeGrades.Interval)
+module RegexByName = Indexed.OfGrade (Grades.RegularTraceGradeDerivative)
+
+(* The maps giving the name [s] the upper bound [v], the others [0]. *)
+let single s v =
+  Indexed.of_list ~compare:TimeGrades.UpperBound.compare
+    ~others:(TimeGrades.UpperBound.of_nat 0)
+    [ (s, v) ]
+
+let bound n = TimeGrades.UpperBound.of_nat n
+let bounds_up_to n = TimeGrades.UpperBound.top :: List.map bound (up_to n)
+
+module ByName_conditions =
+  Conditions
+    (ByName)
+    (struct
+      let constant st =
+        let v () =
+          if Random.State.int st 8 = 0 then TimeGrades.UpperBound.top
+          else bound (Random.State.int st 4)
+        in
+        match Random.State.int st 3 with
+        | 0 -> Indexed.everywhere (v ())
+        | 1 -> single (if Random.State.bool st then "A" else "B") (v ())
+        | _ ->
+            Indexed.of_list ~compare:TimeGrades.UpperBound.compare
+              ~others:(v ())
+              [ ("A", v ()); ("B", v ()) ]
+
+      let values =
+        List.map Indexed.everywhere (bounds_up_to 30)
+        @ List.concat_map
+            (fun s -> List.map (single s) (bounds_up_to 30))
+            [ "A"; "B"; "Other" ]
+        @ List.concat_map
+            (fun a ->
+              List.map
+                (fun b ->
+                  Indexed.of_list ~compare:TimeGrades.UpperBound.compare
+                    ~others:(bound 0)
+                    [ ("A", a); ("B", b) ])
+                (bounds_up_to 5))
+            (bounds_up_to 5)
+    end)
+
+(* [indexed_samples of_lit] is the grades read from a few literals of entries
+   of the names [A] and [B], and the products and joins of pairs of them. *)
+let indexed_samples (type a) (module G : Grade.S with type t = a) lits : a list
+    =
+  let base = G.one :: G.top :: List.map G.of_lit lits in
+  base
+  @ List.concat_map
+      (fun x -> List.concat_map (fun y -> [ G.mul x y; G.join x y ]) base)
+      (List.filteri (fun i _ -> i < 4) base)
+
+let indexed =
+  let open Grade in
+  let entry name component = Tuple [ Name name; component ] in
+  let by_name = (module ByName : Grade.S) in
+  let intervals = (module IntervalsByName : Grade.S) in
+  let upper_samples =
+    indexed_samples
+      (module ByName)
+      [
+        entry "A" (Int 3);
+        Tuple [ entry "A" (Int 1); entry "B" Inf ];
+        Int 2;
+        Tuple [ entry "B" (Int 4); entry "C" (Int 0) ];
+      ]
+  in
+  let regex_samples =
+    indexed_samples
+      (module RegexByName)
+      [
+        entry "A" (Braces (Seq (Letter "Send", Tick 1)));
+        Tuple [ entry "A" (Int 1); entry "B" (Braces (Star (Tick 2))) ];
+        Braces (Union (Tick 1, Letter "Recv"));
+      ]
+  in
+  let context = "no cost model" in
+  [
+    reads "entry" by_name (entry "A" (Int 3)) "(A,3)";
+    reads "entries" by_name
+      (Tuple [ entry "B" Inf; entry "A" (Int 3) ])
+      "((A,3),(B,∞))";
+    reads "everywhere" by_name (Int 4) "4";
+    reads "unit entries dropped" by_name
+      (Tuple [ entry "A" (Int 0); entry "B" (Int 2) ])
+      "(B,2)";
+    reads "top" by_name Top "∞";
+    reads "entry of a tuple" intervals
+      (Tuple [ Name "A"; Int 1; Int 2 ])
+      "(A,1,2)";
+    reads "entry of a nested tuple" intervals
+      (entry "A" (Tuple [ Int 1; Int 2 ]))
+      "(A,1,2)";
+    rejects "name listed twice" by_name
+      (Tuple [ entry "A" (Int 1); entry "A" (Int 2) ])
+      "listed twice";
+    rejects "component" by_name (entry "A" (Name "Low")) "in the entry of 'A'";
+    expect "default printed as an entry" Fun.id ~expected:"((A,1),(_,3))"
+      (ByName.show
+         (Indexed.of_list ~compare:TimeGrades.UpperBound.compare
+            ~others:(bound 3)
+            [ ("A", bound 1) ]));
+    ByName_conditions.complete ~count:1000;
+    expect "witnesses: complete over a complete grade" Fun.id
+      ~expected:"complete"
+      (match snd (ByName.witnesses bounds []) with
+      | Grade.Complete -> "complete"
+      | Grade.Partial -> "partial");
+    expect "witnesses: partial over a partial grade" Fun.id ~expected:"partial"
+      (match snd (RegexByName.witnesses bounds []) with
+      | Grade.Complete -> "complete"
+      | Grade.Partial -> "partial");
+  ]
+  @ order_laws (module ByName) ~context bounds upper_samples
+  @ algebra_laws (module ByName) ~context bounds upper_samples
+  @ of_nat_laws (module ByName) bounds ~monotone:true ()
+  @ order_laws (module RegexByName) ~context bounds regex_samples
+  @ algebra_laws (module RegexByName) ~context bounds regex_samples
+  @ laws (module RegexByName) ~context bounds regex_samples
+
 let () =
   let checks =
     levels @ products @ counterexamples @ witnesses @ literals @ tops @ registry
-    @ registered_laws
+    @ registered_laws @ indexed
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

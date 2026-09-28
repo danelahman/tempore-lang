@@ -24,24 +24,24 @@ module TimeUpperBoundLevels :
     ["time-upper-bound-levels"]: [(n, ℓ)] is "at most [n] time steps, touching
     nothing above [ℓ]", an expiring untainted capability. *)
 
-(** The outputs a computation writes, each at the highest level touched before
-    writing it: [Written ws] lists the sinks written [ws], each with that level
-    and in increasing order of the sinks, the others being unwritten, and
-    [Anywhere] is every sink written at [High]. *)
-type outputs = Written of (string * level) list | Anywhere
+module WrittenAt : GradeConstructions.SEMILATTICE with type t = level option
+(** The level at which a sink is written, ["written"]: [None] if it is not,
+    below [Some Low], below [Some High]. Its literals are the levels. *)
 
-module Outputs : GradeConstructions.SEMILATTICE with type t = outputs
-(** The outputs, ["outputs"], ordered sinkwise, an unwritten sink being below
-    one written at [Low], below one written at [High]; the join is sinkwise. Its
-    literals are pairs [(Sink, l)] of a sink, a capitalised name, and a level.
-*)
+module Outputs :
+  GradeConstructions.SEMILATTICE
+    with type t = level option GradeConstructions.Indexed.t
+(** The outputs a computation writes, each sink at the highest level touched
+    before writing it, the other sinks unwritten:
+    {!GradeConstructions.Indexed.OfSemilattice} [(WrittenAt)]. Its top writes
+    every sink at [High]. *)
 
 (** The action of a level [l] on the outputs, raising each written sink to at
-    least [l]. *)
+    least [l]: {!GradeConstructions.Indexed.Action}. *)
 module Raise :
-  GradeConstructions.ACTION with type m = level and type n = outputs
+  GradeConstructions.ACTION with type m = level and type n = Outputs.t
 
-module FlowLevels : Grade.S with type t = level * outputs
+module FlowLevels : Grade.S with type t = level * Outputs.t
 (** The flow-sensitive levels, ["flow-levels"]: the semidirect product
     {!GradeConstructions.SemiDirect} [(SecurityLevels) (Outputs) (Raise)].
     [(l, W)] is "touches nothing above [l], and writes each sink at most at the

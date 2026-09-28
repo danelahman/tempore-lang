@@ -165,3 +165,85 @@ module SemiDirect
     (N : SEMILATTICE)
     (Act : ACTION with type m = M.t and type n = N.t) :
   Grade.S with type t = M.t * N.t
+
+(** Maps from names, free capitalised names such as [Send] or [Files], to the
+    elements of a component, each name but finitely many being given a default
+    element, and their lifts of the semilattices, actions and grades of the
+    component, all pointwise.
+
+    {2 Literals}
+
+    An entry [(Name, c)] gives the name [Name] the element of the literal [c],
+    and [(Name, c1, …, ck)] that of the tuple [(c1, …, ck)]. A map is written as
+    one entry or as a tuple of entries [((A, a), (B, b))], each name listed
+    once, the other names having the default: the least element of a
+    semilattice, the unit of a grade. Any other literal [c] gives every name the
+    element of [c]. A map is printed alike, in increasing order of the names, an
+    element other than the default of the other names being printed as an entry
+    of the name ["_"].
+
+    {2 Witnesses}
+
+    An ordering of maps is the conjunction of its projections [m ↦ m(s)] on the
+    names [s], which are morphisms of the products, joins and actions, and the
+    names that no constant of the ordering gives its own element are all alike
+    to it. It thus fails at a map iff it fails, at one of the names of the
+    constants or at a fresh name ["_"] standing for the others, at the element
+    of the map there. The witnesses of {!OfGrade} are, for each such name, the
+    witnesses of the component for the elements of the constants there, each
+    given to that name alone: they are complete whenever those of the component
+    are. *)
+module Indexed : sig
+  type 'a t
+  (** The maps to ['a]. *)
+
+  val fresh : string
+  (** The name ["_"], standing for the names that are not given their own
+      element. *)
+
+  val everywhere : 'a -> 'a t
+  (** [everywhere c] gives every name [c]. *)
+
+  val of_list :
+    compare:('a -> 'a -> int) -> others:'a -> (string * 'a) list -> 'a t
+  (** [of_list ~compare ~others entries] gives the names of [entries] their
+      elements, the first listed for a name listed twice, and the other names
+      [others]; [compare] tells the elements equal to [others]. *)
+
+  val at : 'a t -> string -> 'a
+  (** [at m s] is the element of the name [s]. *)
+
+  val named : 'a t -> (string * 'a) list
+  (** [named m] is the names given an element other than the default, with their
+      elements, in increasing order of the names. *)
+
+  val others : 'a t -> 'a
+  (** [others m] is the default, the element of the other names. *)
+
+  val names : 'a t list -> string list
+  (** [names ms] is the names given their own element by some of [ms], and
+      {!fresh}, in increasing order. *)
+
+  val show_entries : is_default:('a -> bool) -> ('a -> string) -> 'a t -> string
+  (** [show_entries ~is_default show m] prints the entries of [m], separated by
+      commas, the default as an entry of {!fresh} unless [is_default]. *)
+
+  (** The maps to a semilattice [C], ordered and joined pointwise;
+      ["C.name by name"]. *)
+  module OfSemilattice (C : SEMILATTICE) : SEMILATTICE with type t = C.t t
+
+  (** The action [A] lifted pointwise to the maps to [C]. *)
+  module Action (C : SEMILATTICE) (A : ACTION with type n = C.t) :
+    ACTION with type m = A.m and type n = C.t t
+
+  (** The maps to a grade [G], with every operation pointwise and the default
+      the unit: [one], [top] and [of_nat n] give every name those of [G], [mul],
+      [join], [leq] and [equal] are taken name by name, and [is_top],
+      [inhabited] and [is_atomic] hold iff they hold at every name. The unit is
+      least and [mul] commutes iff they do so in [G]; [needs_op_bounds] is that
+      of [G], [implied_bounds] is [None] and [events] are those of every name.
+      [counterexample] gives the lesser map, at the first name where [G] offers
+      one, the witness of [G] there. The witnesses are described above, complete
+      iff those of [G] are. The name is ["G.name by name"]. *)
+  module OfGrade (G : Grade.S) : Grade.S with type t = G.t t
+end
