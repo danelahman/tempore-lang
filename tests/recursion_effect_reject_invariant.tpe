@@ -1,0 +1,14 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/recursion_effect_reject_invariant.tpe *)
+
+(* Correctly rejected by the typechecker: assuming the recursive call takes at
+   most 5, a round takes at most 6, which is not below 5. *)
+let rec wait n : unit # 5 =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      delay 1;
+      wait m
+
+run wait 2

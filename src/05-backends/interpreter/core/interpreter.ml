@@ -230,11 +230,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
         { expr with it = Ast.Lambda (refresh_abstraction vars abs) }
     | Ast.PureLambda abs ->
         { expr with it = Ast.PureLambda (refresh_abstraction vars abs) }
-    | Ast.RecLambda (x, abs) ->
+    | Ast.RecLambda (x, eps, abs) ->
         let x' = Ast.Variable.refresh x in
         {
           expr with
-          it = Ast.RecLambda (x', refresh_abstraction ((x, x') :: vars) abs);
+          it = Ast.RecLambda (x', eps, refresh_abstraction ((x, x') :: vars) abs);
         }
     | Ast.Handler (ret_case, op_cases) ->
         let ret_case' = refresh_abstraction vars ret_case in
@@ -317,8 +317,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
         { expr with it = Ast.Lambda (substitute_abstraction subst abs) }
     | Ast.PureLambda abs ->
         { expr with it = Ast.PureLambda (substitute_abstraction subst abs) }
-    | Ast.RecLambda (x, abs) ->
-        { expr with it = Ast.RecLambda (x, substitute_abstraction subst abs) }
+    | Ast.RecLambda (x, eps, abs) ->
+        {
+          expr with
+          it = Ast.RecLambda (x, eps, substitute_abstraction subst abs);
+        }
     | Ast.Handler (ret_case, op_cases) ->
         {
           expr with
@@ -411,7 +414,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         fun arg ->
           let subst = match_pattern_with_expression env pat arg in
           substitute subst comp
-    | Ast.RecLambda (f, (pat, comp)) ->
+    | Ast.RecLambda (f, _, (pat, comp)) ->
         fun arg ->
           let subst =
             match_pattern_with_expression env pat arg

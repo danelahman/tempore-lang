@@ -169,7 +169,7 @@ and print_expression resource_grade =
     | PureLambda (p, c) ->
         print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]" (print_pattern p)
           (print_computation resource_grade ?max_level:None c)
-    | RecLambda (f, _ty) -> print ~at_level:2 "rec %t ..." (Variable.print f)
+    | RecLambda (f, _, _) -> print ~at_level:2 "rec %t ..." (Variable.print f)
     | Handler (ret_case, op_cases) ->
         let print_op_cases ppf =
           List.iter

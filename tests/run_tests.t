@@ -61,6 +61,10 @@
   >     literals_reject_modes.tpe) ../tempore --grades mode-costs $f;;
   >     recursion_lock_lower.tpe) ../tempore $f;;
   >     recursion_lock*.tpe) ../tempore --grades time-upper-bound $f;;
+  >     recursion_effect_regular.tpe) ../tempore --grades traces-regex-symbolic $f;;
+  >     recursion_effect_levels.tpe) ../tempore --grades security-levels $f;;
+  >     recursion_effect_reject_lower.tpe) ../tempore $f;;
+  >     recursion_effect_*.tpe) ../tempore --grades time-upper-bound $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -2794,6 +2798,121 @@
   === Run 1 ===
   return (3628800, 55, 120)
   State: []
+  
+  ======================================================================
+  recursion_effect_levels.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3
+  State: [
+    { resource_0 ↦ 3 # High }
+  ]
+  
+  ======================================================================
+  recursion_effect_regular.tpe
+  ======================================================================
+  === Run 1 ===
+  return 0
+  State: []
+  
+  === Run 2 (unhandled operation) ===
+  perform Read () (op_var.
+    (let x =
+       (let x = return op_var in
+        let y = (rec read_all ...) 0 in
+        let b = (+) x in
+        b y) in
+     let y = read_all 1 in
+     let b = (+) x in
+     b y))
+  
+  ======================================================================
+  recursion_effect_reject_invariant.tpe
+  ======================================================================
+  File "recursion_effect_reject_invariant.tpe", lines 7-12, characters 15-12:
+  7 | let rec wait n : unit # 5 =
+                     ^^^^^^^^^^^^
+  Typing error: This function's body has grade `6`, which does not match its annotated grade `5`
+    Note: the effect inequality `6 <= 5` does not hold
+  ======================================================================
+  recursion_effect_reject_lower.tpe
+  ======================================================================
+  File "recursion_effect_reject_lower.tpe", lines 7-12, characters 15-12:
+  7 | let rec wait n : unit # 3 =
+                     ^^^^^^^^^^^^
+  Typing error: This function's body has grade `0`, which does not match its annotated grade `3`
+    Note: the effect inequality `0 >= 3` does not hold
+  ======================================================================
+  recursion_effect_reject_unannotated.tpe
+  ======================================================================
+  File "recursion_effect_reject_unannotated.tpe", line 14, characters 4-8:
+  14 | run wait 2
+           ^^^^
+  Typing error: The effect inequality `1 <= 0` does not hold
+    File "recursion_effect_reject_unannotated.tpe", lines 7-12, characters 0-12:
+    7 | let rec wait n =
+        ^^^^^^^^^^^^^^^^
+    `wait` is defined here
+  ======================================================================
+  recursion_effect_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    1,
+    1
+  ]
+  
+  === Run 2 ===
+  return 3
+  State: []
+  
+  === Run 3 ===
+  return 4
+  State: [
+    2,
+    2,
+    2,
+    2
+  ]
+  
+  === Run 4 ===
+  return 2
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Pause (_, k) ↦
+                         delay 1 (return ());
+                         let y = (rec pause_nested ...) 1 in
+                         let b = (let b = (+) y in
+                                  b 1) in
+                         unbox k as unbox_var in
+                         unbox_var b
+        # ∞
+    },
+    1,
+    { resource_3 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Pause (_, k) ↦
+                         delay 1 (return ());
+                         let y = (rec pause_nested ...) 0 in
+                         let b = (let b = (+) y in
+                                  b 1) in
+                         unbox k as unbox_var in
+                         unbox_var b
+        # ∞
+    },
+    1
+  ]
   
   ======================================================================
   recursion_lock.tpe

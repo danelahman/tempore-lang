@@ -239,6 +239,22 @@ module Make (GS : Grades.GradeSystem.S) = struct
   (* Types, patterns and terms                                           *)
   (* ------------------------------------------------------------------ *)
 
+  (* The effect annotated at the end of a chain of pure parameters. *)
+  let rec annotated_effect (term : _ Sugared.term) =
+    match term.it with
+    | Sugared.AnnotatedComp (_, _, eps) -> Some eps
+    | Sugared.PureLambda (_, t) -> annotated_effect t
+    | _ -> None
+
+  (* A chain of pure parameters with its innermost layer an ordinary
+     function. *)
+  let rec impure_innermost (term : _ Sugared.term) =
+    match term.it with
+    | Sugared.PureLambda (p, ({ it = Sugared.PureLambda _; _ } as t)) ->
+        { term with it = Sugared.PureLambda (p, impure_innermost t) }
+    | Sugared.PureLambda abs -> { term with it = Sugared.Lambda abs }
+    | _ -> term
+
   let rec desugar_ty state { Sugared.it = plain_ty; at = loc } =
     desugar_plain_ty ~loc state plain_ty
 
@@ -533,12 +549,20 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let comp = desugar_computation state' term in
     (pat', comp)
 
+  (* A recursive definition [let rec f p₁ … pₙ : ty # eps = t] has the effect
+     [eps] on its innermost arrow: the layer of [pₙ] is an ordinary function
+     and the rest of the chain stays pure. *)
   and desugar_let_rec_def state (f, { it = exp; at = loc }) =
     let f' = Untyped.Variable.fresh f in
     let state' = add_fresh_variables state (StringMap.singleton f f') in
-    let abs' =
+    let eps, abs' =
       match exp with
-      | Sugared.PureLambda a -> desugar_abstraction state' a
+      | Sugared.PureLambda (p, t) -> (
+          match annotated_effect t with
+          | Some eps ->
+              ( Some (eps_grade state' eps),
+                desugar_abstraction state' (p, impure_innermost t) )
+          | None -> (None, desugar_abstraction state' (p, t)))
       | Sugared.Function cs ->
           let x = Untyped.Variable.fresh_synthetic "rf" in
           let cs = List.map (desugar_abstraction state') cs in
@@ -546,12 +570,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
             Untyped.located loc
               (Untyped.Match (Untyped.located loc (Untyped.Var x), cs))
           in
-          (Untyped.located loc (Untyped.PVar x), new_match)
+          (None, (Untyped.located loc (Untyped.PVar x), new_match))
       | _ ->
           Error.syntax ~loc
             "This kind of expression is not allowed in a recursive definition"
     in
-    let expr = Untyped.located loc (Untyped.RecLambda (f', abs')) in
+    let expr = Untyped.located loc (Untyped.RecLambda (f', eps, abs')) in
     (state', f', expr)
 
   and desugar_expressions state = function

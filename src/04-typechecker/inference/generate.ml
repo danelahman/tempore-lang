@@ -968,7 +968,10 @@ module Make (C : Constraint.S) = struct
     | Ast.Variant (lbl, arg) -> variant env at lbl arg expected
     | Ast.Lambda abs -> function_ env at Impure abs expected
     | Ast.PureLambda abs -> function_ env at Pure abs expected
-    | Ast.RecLambda (f, abs) -> function_ env at (Recursive f) abs expected
+    | Ast.RecLambda (f, None, abs) ->
+        function_ env at (Recursive f) abs expected
+    | Ast.RecLambda (f, Some eps, abs) ->
+        annotated_recursive env at f (open_eps env eps) abs expected
     | Ast.Handler (ret_case, op_cases) ->
         handler env at ret_case op_cases expected
 
@@ -1013,16 +1016,7 @@ module Make (C : Constraint.S) = struct
                 in
                 let env_body =
                   match kind with
-                  | Recursive f ->
-                      bind_persistent
-                        (lock env
-                           {
-                             grade = Rho.top;
-                             at;
-                             kind = Reason.Recursive_lock f;
-                             declared = None;
-                           })
-                        f arrow ~bound_at:at
+                  | Recursive f -> recursive_env env at f arrow
                   | Impure | Pure -> env
                 in
                 C.conj_all
@@ -1038,6 +1032,50 @@ module Make (C : Constraint.S) = struct
                     | Impure -> C.True
                     | Pure | Recursive _ -> pure_body at eps);
                   ])))
+
+  (* The context of the body of the recursive function [f] of type [ty]: the
+     surrounding context behind the lock [⟨⊤⟩], then [f] bound persistently. *)
+  and recursive_env env at f ty =
+    bind_persistent
+      (lock env
+         {
+           grade = Rho.top;
+           at;
+           kind = Reason.Recursive_lock f;
+           declared = None;
+         })
+      f ty ~bound_at:at
+
+  (* A recursive function [rec f p₁ … pₙ] annotated with the effect [ε] of its
+     innermost arrow has the type [T = α₁ → (… (αₙ → β ! ε) ! 1 …) ! 1], a
+     subtype of the expected type. Its body is typed at the outermost arrow of
+     [T], with [f : T] as in [recursive_env], and its inner functions against
+     the inner arrows of [T]. *)
+  and annotated_recursive env at f eps ((pat, body) as abs) expected =
+    let inner_layers = List.length (fst (Ast.curried_layers abs)) - 1 in
+    exists_ty (fun param_ty ->
+        exists_tys inner_layers (fun inner_params ->
+            exists_ty (fun result_ty ->
+                let (Ast.CompTy (body_ty, body_eps) as body_comp_ty) =
+                  List.fold_right
+                    (fun a cty -> Ast.CompTy (Ast.TyArrow (a, cty), Eps.unit))
+                    inner_params
+                    (Ast.CompTy (result_ty, eps))
+                in
+                let arrow = Ast.TyArrow (param_ty, body_comp_ty) in
+                let because =
+                  Reason.because at (Reason.Recursive_definition f)
+                in
+                C.conj
+                  (sub_expected at arrow expected)
+                  (with_pattern
+                     (recursive_env env at f arrow)
+                     pat
+                     (expect param_ty
+                        (Reason.because pat.Ast.at Reason.Function_parameter))
+                     (fun env' ->
+                       generate_computation env' body (expect body_ty because)
+                         (expect body_eps because))))))
 
   (* A handler value of type [α ! ε_in ⇒ β ! ε_out]: the return clause under
      the lock [⟨∣ε_in∣⟩], each clause under [∀ε'']. *)

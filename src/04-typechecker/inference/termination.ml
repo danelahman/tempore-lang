@@ -91,7 +91,7 @@ let rec expression env (e : ('rho, 'eps) Ast.expression) acc =
       (Tuple vs, acc)
   | Ast.Variant (_, Some e) -> (Opaque, snd (consumed env e acc))
   | Ast.Lambda abs | Ast.PureLambda abs -> (Opaque, opaque env abs acc)
-  | Ast.RecLambda (_, abs) ->
+  | Ast.RecLambda (_, _, abs) ->
       let params, body = Ast.curried_layers abs in
       let env =
         List.fold_left (fun env p -> bind_env env p Opaque) env params
@@ -235,7 +235,7 @@ let rec check_expression (e : ('rho, 'eps) Ast.expression) =
   | Ast.Annotated (e, _) | Ast.Variant (_, Some e) -> check_expression e
   | Ast.Tuple es -> List.iter check_expression es
   | Ast.Lambda abs | Ast.PureLambda abs -> check_abstraction abs
-  | Ast.RecLambda (f, abs) ->
+  | Ast.RecLambda (f, _, abs) ->
       guard ~defined_at:e.at f abs;
       check_abstraction abs
   | Ast.Handler (ret, ops) ->

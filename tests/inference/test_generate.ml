@@ -345,7 +345,7 @@ module Small = struct
   let recursive_body () =
     let f = Ast.Variable.fresh "f" in
     let body = return (at (Ast.Tuple [ var x; var f; var y ])) in
-    let e = at (Ast.RecLambda (f, (pvar y, body))) in
+    let e = at (Ast.RecLambda (f, None, (pvar y, body))) in
     let obligations =
       List.filter_map
         (function

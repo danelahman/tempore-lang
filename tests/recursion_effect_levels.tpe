@@ -1,0 +1,30 @@
+(* Run this test with the 'security-levels' grading monoid, e.g.
+
+     ./tempore --grades security-levels tests/recursion_effect_levels.tpe
+
+   A loop whose rounds each touch the level High has the invariant effect
+   High. *)
+
+operation Send : nat ~> unit # High
+
+default Send x = ()
+
+(* Correctly accepted by the typechecker: each round sends at High before
+   the recursive call, and High · High = High. *)
+let rec broadcast n : unit # High =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      perform Send n;
+      broadcast m
+
+(* Correctly accepted by the typechecker: a box at High is claimed after the
+   loop. *)
+let broadcast_then_claim n =
+  box High n as r in
+  broadcast n;
+  unbox r as y in
+  y
+
+(* The run sends three times and returns 3. *)
+run broadcast_then_claim 3

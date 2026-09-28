@@ -30,7 +30,7 @@ let rec expression_into ~global (e : ('rho, 'eps) Ast.expression) acc =
       expression_into ~global e acc
   | Ast.Tuple es ->
       List.fold_left (fun acc e -> expression_into ~global e acc) acc es
-  | Ast.Lambda abs | Ast.PureLambda abs | Ast.RecLambda (_, abs) ->
+  | Ast.Lambda abs | Ast.PureLambda abs | Ast.RecLambda (_, _, abs) ->
       abstraction_into ~global abs acc
   | Ast.Handler (ret, ops) ->
       OpNameMap.fold

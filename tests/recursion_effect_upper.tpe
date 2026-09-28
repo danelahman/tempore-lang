@@ -1,0 +1,65 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/recursion_effect_upper.tpe
+
+   A recursive definition annotated with an effect has that effect at every
+   call, including the recursive calls in its own body. *)
+
+operation Ask : unit ~> nat # 0
+
+default Ask () = 1
+
+operation Pause : unit ~> nat # top
+
+default Pause () = 1
+
+(* Correctly accepted by the typechecker: each round takes a step before the
+   recursive call, and only the top grade ∞ bounds every number of rounds. *)
+let rec wait n : unit # top =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      delay 1;
+      wait m
+
+(* Correctly accepted by the typechecker: rounds that take no time have the
+   invariant effect 0. *)
+let rec ask_all n : nat # 0 =
+  match n with
+  | 0 -> 0
+  | m + 1 ->
+      let x = perform Ask () in
+      let y = ask_all m in
+      x + y
+
+(* Correctly accepted by the typechecker: the function is used after a delay
+   in its own body, with more parameters than one. *)
+let rec countdown k n : nat # top =
+  match n with
+  | 0 -> k
+  | m + 1 ->
+      delay 2;
+      countdown (k + 1) m
+
+(* Correctly accepted by the typechecker: the function is used in the case
+   for 'Pause' within its own body, whose continuation may be resumed after
+   any time. *)
+let rec pause_nested n : nat # top =
+  match n with
+  | 0 -> 0
+  | m + 1 ->
+      handle perform Pause () with handler
+      | x -> x
+      | Pause _ k ->
+          delay 1;
+          let y = pause_nested m in
+          continue k with (y + 1)
+
+(* The runs return (), 3, 4 and 2. *)
+run wait 3
+
+run ask_all 3
+
+run countdown 0 4
+
+run pause_nested 2

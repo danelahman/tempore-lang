@@ -282,7 +282,7 @@ let rec check_expression ~constructors (e : ('rho, 'eps) Ast.expression) =
   | Ast.Annotated (e, _) | Ast.Variant (_, Some e) ->
       check_expression ~constructors e
   | Ast.Tuple es -> List.iter (check_expression ~constructors) es
-  | Ast.Lambda abs | Ast.PureLambda abs | Ast.RecLambda (_, abs) ->
+  | Ast.Lambda abs | Ast.PureLambda abs | Ast.RecLambda (_, _, abs) ->
       check_abstraction ~constructors abs
   | Ast.Handler (ret, ops) ->
       check_abstraction ~constructors ret;

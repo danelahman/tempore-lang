@@ -404,6 +404,32 @@ under upper bounds, and `({lo}, {hi})` under intervals. Elsewhere it must be a
 sub-grade of the operation's grade.
 See [`examples/3dprint/3dprint_traces.tpe`](examples/3dprint/3dprint_traces.tpe).
 
+## Recursion
+
+`let rec f p₁ … pₙ = c` must be structurally recursive: for a fixed position
+`d`, every call of `f` in `c` has a `d`-th argument that is a variable bound
+by a constructor, `x :: xs` or `m + k` pattern in a match on `p_d` or on such
+a variable. Like an operation case, `c` is typed with the top grade `⊤`
+accumulated for the local variables bound outside it (see [Contexts of
+operation cases](#contexts-of-operation-cases)); `f` itself may be called
+anywhere in `c`, including after delays and in operation cases.
+
+A recursive function has the unit effect unless it is annotated
+`let rec f p₁ … pₙ : ty # ε = c`. Then
+`f : A₁ → … → Aₙ → ty # ε`, the outer arrows having the unit effect, and `ε`
+must bound the effect of `c` assuming every recursive call has effect `ε`.
+Under `traces-regex-symbolic`,
+
+```
+let rec read_all n : nat # {Read*} =
+  match n with
+  | 0 -> 0
+  | m + 1 -> let x = perform Read () in let y = read_all m in x + y
+```
+
+is accepted. Under `time-upper-bound`, a loop with `delay 1; wait m` in each
+round is bounded by `⊤` but by no `n`, as `1 · n ≾ n` fails.
+
 ## Type inference
 
 Types, grades and effects are inferred in the style of HM(X) (Odersky,

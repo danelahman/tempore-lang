@@ -175,7 +175,8 @@ and ('rho, 'eps) plain_expression =
   | Variant of label * ('rho, 'eps) expression option
   | Lambda of ('rho, 'eps) abstraction
   | PureLambda of ('rho, 'eps) abstraction
-  | RecLambda of variable * ('rho, 'eps) abstraction
+  | RecLambda of variable * 'eps option * ('rho, 'eps) abstraction
+      (** the effect annotated on the innermost arrow, if any *)
   | Handler of ('rho, 'eps) abstraction * ('rho, 'eps) abstraction OpNameMap.t
 
 and ('rho, 'eps) computation = ('rho, 'eps) plain_computation located

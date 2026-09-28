@@ -1,0 +1,31 @@
+(* Run this test with the 'traces-regex-symbolic' grading monoid, e.g.
+
+     ./tempore --grades traces-regex-symbolic tests/recursion_effect_regular.tpe
+
+   A recursive definition annotated with an effect has that effect at every
+   call, including the recursive calls in its own body. *)
+
+operation Read : unit ~> nat # {Read}
+
+(* Correctly accepted by the typechecker: the recursive call follows a read,
+   and the body has effect {1 | Read; Read*}, below {Read*}. *)
+let rec read_all n : nat # {Read*} =
+  match n with
+  | 0 -> 0
+  | m + 1 ->
+      let x = perform Read () in
+      let y = read_all m in
+      x + y
+
+(* Correctly accepted by the typechecker: a caller sees the annotated
+   effect. *)
+let read_twice () : nat # {Read*} =
+  let x = read_all 1 in
+  let y = read_all 1 in
+  x + y
+
+(* The first run reads nothing and returns 0; the second stops at the
+   first read, which no handler implements. *)
+run read_all 0
+
+run read_twice ()

@@ -1,0 +1,14 @@
+(* Run this test with the default 'time-lower-bound' grading monoid, e.g.
+
+     ./tempore tests/recursion_effect_reject_lower.tpe *)
+
+(* Correctly rejected by the typechecker: the annotation 3 demands that every
+   call takes at least 3, but the base case takes 0. *)
+let rec wait n : unit # 3 =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      delay 3;
+      wait m
+
+run wait 2
