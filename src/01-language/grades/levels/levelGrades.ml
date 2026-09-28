@@ -154,7 +154,7 @@ module FlowLevels = struct
      each sink, (l, W) ↦ (l, W(s)), morphisms preserving the joins: a failure
      at a rigid shows at the level and one sink of it, the sinks no constant
      names being alike. *)
-  let witnesses _bounds cs =
+  let witnesses ~degree:_ _bounds cs =
     let outputs =
       Outputs.bottom
       :: List.concat_map

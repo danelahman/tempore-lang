@@ -518,6 +518,11 @@ struct
     | Const c -> [ c ]
     | Mul (e, e') | Join (e, e') -> constants e @ constants e'
 
+  let rec occurrences = function
+    | Rigid -> 1
+    | Const _ -> 0
+    | Mul (e, e') | Join (e, e') -> occurrences e + occurrences e'
+
   let rec show = function
     | Rigid -> "j"
     | Const c -> G.show c
@@ -534,7 +539,8 @@ struct
   let holds (lhs, rhs) j = G.leq bounds (eval j lhs) (eval j rhs)
 
   let witnesses (lhs, rhs) =
-    fst (G.witnesses bounds (constants lhs @ constants rhs))
+    let degree = Int.max (occurrences lhs) (occurrences rhs) in
+    fst (G.witnesses ~degree bounds (constants lhs @ constants rhs))
 
   (* Whether [cond] holds at every witness. *)
   let at_witnesses cond = List.for_all (holds cond) (witnesses cond)
@@ -674,7 +680,7 @@ let witnesses =
       Lower_conditions.Mul (Const (lower 1), Rigid) )
   in
   let completeness (module G : Grade.S) =
-    match snd (G.witnesses bounds []) with
+    match snd (G.witnesses ~degree:1 bounds []) with
     | Grade.Complete -> "complete"
     | Grade.Partial -> "partial"
   in
@@ -920,11 +926,11 @@ let indexed =
     ByName_conditions.complete ~count:1000;
     expect "witnesses: complete over a complete grade" Fun.id
       ~expected:"complete"
-      (match snd (ByName.witnesses bounds []) with
+      (match snd (ByName.witnesses ~degree:1 bounds []) with
       | Grade.Complete -> "complete"
       | Grade.Partial -> "partial");
     expect "witnesses: partial over a partial grade" Fun.id ~expected:"partial"
-      (match snd (RegexByName.witnesses bounds []) with
+      (match snd (RegexByName.witnesses ~degree:1 bounds []) with
       | Grade.Complete -> "complete"
       | Grade.Partial -> "partial");
   ]

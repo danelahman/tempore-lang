@@ -64,12 +64,12 @@
     of the residual, the rigids being opaque. An ordering whose unknowns are
     rigids alone is otherwise evaluated at every assignment to the rigids it
     mentions of the unit, the top, one time step and the witnesses the grades
-    supply for its constants ({!Grades.GradeSystem.S.witnesses}): it refutes the
-    condition at the first assignment where it fails, and is dropped when it
-    holds at all of them and mentions no rigid, or a single one whose witnesses
-    are complete. An ordering in several rigids is thus refuted, never
-    discharged, by the grid of their witnesses. A condition left with no
-    ordering is dropped. *)
+    supply for its constants and the number of occurrences of the rigids on
+    either side ({!Grades.GradeSystem.S.witnesses}): it refutes the condition at
+    the first assignment where it fails, and is dropped when it holds at all of
+    them and mentions no rigid, or a single one whose witnesses are complete. An
+    ordering in several rigids is thus refuted, never discharged, by the grid of
+    their witnesses. A condition left with no ordering is dropped. *)
 
 module Make (C : Constraint.S) : sig
   type residual = Residual.Make(C).t

@@ -157,7 +157,7 @@ struct
 
   let canonical = canonical
   let show = show
-  let witnesses _bounds = Grade.sampled mul
+  let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
 
 include

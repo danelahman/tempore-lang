@@ -62,7 +62,7 @@ module NetChange = struct
   let of_bounds _ = one
   let is_atomic _name _ = true
   let show = show
-  let witnesses _bounds cs = Grade.sampled mul cs
+  let witnesses ~degree:_ _bounds cs = Grade.sampled mul cs
 end
 
 module Peak = struct
@@ -127,7 +127,7 @@ module OneResource = struct
 
   (* The grid of the net changes within one of the sum of the constants, each
      with a few peaks at and above its least one. *)
-  let witnesses _bounds cs =
+  let witnesses ~degree:_ _bounds cs =
     let magnitude = function Fin d -> Int.abs d | Minus_inf | Plus_inf -> 0 in
     let s =
       List.fold_left (fun s (d, h) -> s + magnitude d + magnitude h) 0 cs

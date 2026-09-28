@@ -183,4 +183,4 @@ let show rho =
     (Option.value (canonical rho)
        ~default:(LetterRegex.of_symbolic rho.expression))
 
-let witnesses _bounds = Grade.sampled mul
+let witnesses ~degree:_ _bounds = Grade.sampled mul

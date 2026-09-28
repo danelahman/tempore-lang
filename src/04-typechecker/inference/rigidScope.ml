@@ -853,7 +853,21 @@ module Make (C : Constraint.S) = struct
     rho_vars : 'e -> Rho_set.t;
     eps_vars : 'e -> Eps_set.t;
     constants : 'e -> X.GS.R.t list * X.GS.E.t list;
+    occurrences : Eps_set.t -> 'e -> int;
   }
+
+  (* The number of occurrences of the variables [ks] in an expression. *)
+  let rec eps_occurrences ks = function
+    | X.Eps_var k -> if Eps_set.mem k ks then 1 else 0
+    | X.Eps_const _ -> 0
+    | X.Eps_mul (eps, eps') | X.Eps_join (eps, eps') ->
+        eps_occurrences ks eps + eps_occurrences ks eps'
+
+  let rec rho_occurrences ks = function
+    | X.Rho_var _ | X.Rho_const _ -> 0
+    | X.Rho_map eps -> eps_occurrences ks eps
+    | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
+        rho_occurrences ks rho + rho_occurrences ks rho'
 
   let rho_sort bounds hyps =
     {
@@ -863,6 +877,7 @@ module Make (C : Constraint.S) = struct
       rho_vars = X.Rho.free_rho_vars;
       eps_vars = X.Rho.free_eps_vars;
       constants = X.Rho.constants;
+      occurrences = rho_occurrences;
     }
 
   let eps_sort bounds hyps =
@@ -873,12 +888,14 @@ module Make (C : Constraint.S) = struct
       rho_vars = (fun _ -> Rho_set.empty);
       eps_vars = X.Eps.free_vars;
       constants = (fun eps -> ([], X.Eps.constants eps));
+      occurrences = eps_occurrences;
     }
 
   (* The grades tried for a rigid of an ordering with the constants
-     [(rcs, ecs)]: the unit, the top and one time step, without repetition,
-     then the witnesses the grades supply, with their completeness. *)
-  let candidates context (rcs, ecs) =
+     [(rcs, ecs)] and at most [degree] occurrences of the rigids on either
+     side: the unit, the top and one time step, without repetition, then the
+     witnesses the grades supply, with their completeness. *)
+  let candidates context ~degree (rcs, ecs) =
     let bounds = context.Residual.bounds in
     let base =
       List.fold_left
@@ -887,7 +904,7 @@ module Make (C : Constraint.S) = struct
         []
         [ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
     in
-    let supplied, completeness = X.GS.witnesses bounds rcs ecs in
+    let supplied, completeness = X.GS.witnesses ~degree bounds rcs ecs in
     (base @ supplied, completeness)
 
   (* Every assignment of a candidate to each of [rigids], lazily. *)
@@ -942,8 +959,12 @@ module Make (C : Constraint.S) = struct
       let mentioned = List.filter (fun k -> Eps_set.mem k eps_vars) rigids in
       let rcs, ecs = sort.constants o.lhs
       and rcs', ecs' = sort.constants o.rhs in
+      let degree =
+        let ks = Eps_set.of_list rigids in
+        Int.max (sort.occurrences ks o.lhs) (sort.occurrences ks o.rhs)
+      in
       let candidates, completeness =
-        candidates context (rcs @ rcs', ecs @ ecs')
+        candidates context ~degree (rcs @ rcs', ecs @ ecs')
       in
       let holds_at a =
         let sigma = witness_subst a in

@@ -215,13 +215,14 @@ module type S = sig
   (** [show rho] prints [rho] in the literal syntax, the greatest grade as [⊤]
       and infinity as [∞] where they have no other literal. *)
 
-  val witnesses : bounds -> t list -> t list * completeness
-  (** [witnesses bounds cs] is a finite list of grades at which a closed
+  val witnesses : degree:int -> bounds -> t list -> t list * completeness
+  (** [witnesses ~degree bounds cs] is a finite list of grades at which a closed
       condition [∀j. O] whose constants are [cs] is evaluated, the rigid [j]
       ranging over the list, and its completeness: [Complete] when [O] holding
       at every witness implies [∀j. O]. A condition is an ordering between
-      expressions built from the constants, [j], products and joins. The solver
-      adds {!one}, {!top} and [of_nat 1] to the list. *)
+      expressions built from the constants, [j], products and joins, [j]
+      occurring at most [degree] times on either side. The solver adds {!one},
+      {!top} and [of_nat 1] to the list. *)
 end
 
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their

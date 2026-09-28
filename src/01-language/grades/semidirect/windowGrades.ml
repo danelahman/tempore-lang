@@ -103,7 +103,7 @@ module Durations = struct
           Printf.sprintf "(%d,%d)" lo hi
       | Some _ | None -> RegularTraceGradeDerivative.show rho
 
-  let witnesses _bounds = Grade.sampled mul
+  let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
 
 module Times = struct
