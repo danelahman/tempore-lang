@@ -4,8 +4,10 @@
 
      ./tempore --grades traces-regex-symbolic examples/regular/regular_traces.tpe
 
-   Grades: regular languages of runs over ticks and operations, ordered by
-   inclusion; sequencing concatenates, ⊤ is all runs. *)
+   Grades {...}: regular languages of runs over ticks and operations
+     - Unit {0}: the empty run
+     - Top ⊤: every run
+     - Product: concatenation of runs *)
 
 type token = Token of string
 

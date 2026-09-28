@@ -7,11 +7,14 @@
 
           ./tempore --grades <grade> examples/<dir>/<file>.tpe
 
-        <one or two description lines>. *)
+        Grades <form>: <meaning>
+          - Unit <literal>: <meaning>
+          - Top <literal>: <meaning>
+          - Product: <formula or a few words> *)
 
    naming what the example is about, its grading monoid, the command that
-   runs it, and a one- or two-line description of its grades. Silent on
-   success. *)
+   runs it, and its grades: what a grade denotes, and the unit, top and
+   product of the monoid. Silent on success. *)
 
 let failures = ref []
 let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
@@ -44,6 +47,8 @@ let strip_suffix ~suffix s =
     Some (String.sub s 0 (n - m))
   else None
 
+let ends_with ~suffix s = strip_suffix ~suffix s <> None
+
 (* The grade named between the first pair of single quotes in [line], the
    "Run this example ..." introduction. *)
 let grade_of_intro line =
@@ -57,11 +62,29 @@ let grade_of_intro line =
           let tail = String.sub rest i (String.length rest - i) in
           if tail = "' grading monoid, e.g." then Some grade else None)
 
-let missing_description name =
-  fail
-    "%s: the header comment needs one or two lines describing the grades after \
-     the run command"
-    name
+(* Checks that [line] is not [None], starts with [prefix], has non-empty
+   content after it, does not end with " *)" unless [closing], and does not
+   end with a period; [what] names the line in a failure. *)
+let check_line name ~what ~prefix ?(closing = false) line =
+  match line with
+  | None -> fail "%s: is missing its %s" name what
+  | Some line -> (
+      match strip_prefix ~prefix line with
+      | None -> fail "%s: expected %s to start with %S" name what prefix
+      | Some rest ->
+          let rest, is_closed =
+            match strip_suffix ~suffix:" *)" rest with
+            | Some rest -> (rest, true)
+            | None -> (rest, false)
+          in
+          if String.trim rest = "" then
+            fail "%s: its %s has no content after %S" name what prefix
+          else if is_closed && not closing then
+            fail "%s: its %s must not close the comment" name what
+          else if (not is_closed) && closing then
+            fail "%s: its %s must close the comment with \" *)\"" name what
+          else if ends_with ~suffix:"." rest then
+            fail "%s: its %s must not end with a period" name what)
 
 (* Checks the header of the file at [path], displayed as [name] (its path
    relative to the project root, also the path the run command must show). *)
@@ -99,7 +122,7 @@ let check_header name path =
             "%s: expected \"   Run this example with the '<grade>' grading \
              monoid, e.g.\" after the summary"
             name
-      | Some grade -> (
+      | Some grade ->
           (match nth 3 with
           | Some "" -> ()
           | _ ->
@@ -119,28 +142,32 @@ let check_header name path =
           | Some "" -> ()
           | Some _ ->
               fail "%s: expected a blank line before the grade description" name
-          | None -> missing_description name);
-          match nth 6 with
-          | None -> missing_description name
-          | Some "" -> missing_description name
+          | None -> fail "%s: is missing its grade description" name);
+          (match nth 6 with
+          | None -> fail "%s: is missing its \"Grades ...\" line" name
           | Some line7 -> (
-              match strip_suffix ~suffix:" *)" line7 with
-              | Some rest when String.trim rest <> "" ->
-                  (* A single description line, already closed. *)
-                  ()
-              | _ -> (
-                  (* The first of two description lines: not yet closed. *)
-                  match nth 7 with
-                  | None -> missing_description name
-                  | Some "" -> missing_description name
-                  | Some line8 -> (
-                      match strip_suffix ~suffix:" *)" line8 with
-                      | Some rest when String.trim rest <> "" -> ()
-                      | _ ->
-                          fail
-                            "%s: the header comment's description must close \
-                             with \" *)\" after at most two lines"
-                            name)))))
+              match strip_prefix ~prefix:"   Grades " line7 with
+              | None ->
+                  fail "%s: expected a \"   Grades <form>: ...\" line" name
+              | Some rest ->
+                  if not (String.length rest > 0 && String.contains rest ':')
+                  then
+                    fail
+                      "%s: the \"Grades\" line needs a form and a meaning, \
+                       separated by ':'"
+                      name
+                  else if ends_with ~suffix:" *)" rest then
+                    fail
+                      "%s: the \"Grades\" line must not close the comment; the \
+                       unit, top and product bullets still follow"
+                      name
+                  else if ends_with ~suffix:"." rest then
+                    fail "%s: the \"Grades\" line must not end with a period"
+                      name));
+          check_line name ~what:"'Unit' bullet" ~prefix:"     - Unit " (nth 7);
+          check_line name ~what:"'Top' bullet" ~prefix:"     - Top " (nth 8);
+          check_line name ~what:"'Product' bullet" ~prefix:"     - Product: "
+            ~closing:true (nth 9))
 
 let () =
   let root = "../.." in

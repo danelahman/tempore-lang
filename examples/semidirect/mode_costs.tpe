@@ -4,8 +4,10 @@
 
      ./tempore --grades mode-costs examples/semidirect/mode_costs.tpe
 
-   Grades ((P, Q, n), ...): greatest cost n of the runs from mode P to mode Q;
-   sequencing is the max-plus product of these matrices. *)
+   Grades ((P, Q, n), ...): greatest cost n of the runs from mode P to mode Q
+     - Unit 0: keeps every mode at cost 0
+     - Top ⊤: cost ∞ between any two modes
+     - Product: max-plus matrix product *)
 
 (* Switching the radio on costs 2, and switching it off nothing. No code
    changes the mode, so these operations have no default implementation, and

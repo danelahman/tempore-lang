@@ -4,8 +4,10 @@
 
      ./tempore --grades traces-regex-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe
 
-   Grades (L, U): a lower and upper regular-language bound on the runs, at the
-   operations' runtime bounds, compared componentwise. *)
+   Grades (L, U): a lower and upper regular-language bound on the runs
+     - Unit ({0}, {0}): nothing demanded, only the empty run allowed
+     - Top ({0}, ⊤): nothing demanded, every run allowed
+     - Product: concatenation of runs, componentwise *)
 
 type part = Part of string
 

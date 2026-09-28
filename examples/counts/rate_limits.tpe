@@ -4,8 +4,10 @@
 
      ./tempore --grades counts-upper-bound examples/counts/rate_limits.tpe
 
-   Grades ((A, n), ...): at most n calls of each operation A, delays counting
-   none; sequencing adds the calls of each operation. *)
+   Grades ((A, n), ...): at most n calls of each operation A
+     - Unit 0: no calls, the least grade
+     - Top ∞: unlimited calls of every operation
+     - Product: addition, name by name *)
 
 type token = Token of string
 

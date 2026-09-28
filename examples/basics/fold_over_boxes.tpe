@@ -4,7 +4,10 @@
 
      ./tempore --grades time-lower-bound examples/basics/fold_over_boxes.tpe
 
-   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
+   Grades n: at least n time steps
+     - Unit 0: no time needed
+     - Top 0: no time needed; the unit is the top
+     - Product: addition *)
 
 (* Correctly accepted by the typechecker: building the list takes no time, so
    the function has grade 0, and each element is boxed with a demand of three

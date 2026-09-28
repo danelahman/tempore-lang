@@ -4,8 +4,10 @@
 
      ./tempore --grades traces-lower-bound examples/traces/traces_lower.tpe
 
-   Grades: timed traces a computation must cover, in the coverage order;
-   sequencing concatenates, {0} is the top. *)
+   Grades {...}: timed traces a computation must cover
+     - Unit {0}: the empty run
+     - Top {0}: the empty run, demanding nothing; the unit is the top
+     - Product: concatenation of runs *)
 
 type model = Model of string
 type heated = Heated of model

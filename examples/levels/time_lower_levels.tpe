@@ -4,8 +4,10 @@
 
      ./tempore --grades time-lower-bound-levels examples/levels/time_lower_levels.tpe
 
-   Grades (n, l): at least n time steps and nothing above level l, compared
-   componentwise; (3, Low) is an embargo with a taint check. *)
+   Grades (n, l): at least n time steps, touching nothing above level l
+     - Unit (0, Low): no time needed, nothing secret touched
+     - Top (0, High): the same time bound, whatever is touched
+     - Product: addition and join, componentwise *)
 
 type report = Report of string
 

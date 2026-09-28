@@ -4,7 +4,10 @@
 
      ./tempore --grades time-upper-bound examples/basics/eternal_types.tpe
 
-   Grades n: at most n time steps; sequencing adds, 0 is least, ∞ the top. *)
+   Grades n: at most n time steps
+     - Unit 0: no time spent, the least grade
+     - Top ∞: unbounded time
+     - Product: addition *)
 
 (* Base types, tuples of eternal types, and algebraic types built from them
    are eternal. *)

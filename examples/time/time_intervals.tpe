@@ -4,8 +4,10 @@
 
      ./tempore --grades time-interval examples/time/time_intervals.tpe
 
-   Grades (n, m): between n and m time steps, ordered by containment;
-   ⊤ = (0, ∞). *)
+   Grades (n, m): between n and m time steps
+     - Unit (0, 0): no time spent
+     - Top (0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
 
 (* Correctly accepted by the typechecker: the two delays accumulate (3, 3),
    which lies inside the (1, 4) the box demands. *)

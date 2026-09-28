@@ -4,8 +4,10 @@
 
      ./tempore --grades security-levels examples/levels/security_levels.tpe
 
-   Grades Low < High: the highest security level a computation touches; a box
-   at Low is out of reach once a High operation has run. *)
+   Grades Low < High: the highest security level a computation touches
+     - Unit Low: touches nothing secret, the least grade
+     - Top High: touches a secret, absorbing
+     - Product: join of levels *)
 
 type channel = Channel of string
 

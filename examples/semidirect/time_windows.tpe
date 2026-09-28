@@ -4,8 +4,10 @@
 
      ./tempore --grades time-windows examples/semidirect/time_windows.tpe
 
-   Grades (T, (A, E_A), ...): possible durations T and times E_A of each
-   operation A; (T, E) · (T', E') = (T + T', E ∪ (T + E')). *)
+   Grades (T, (A, E_A), ...): durations T and times E_A of each operation A
+     - Unit 0: duration 0, no operation performed
+     - Top ⊤: every duration, with every operation at any time
+     - Product: (T, E) · (T', E') = (T + T', E ∪ (T + E')) *)
 
 (* Sensing takes a tick, and happens at its start. *)
 operation Sense : unit ~> int # (1, (Sense, {0}))

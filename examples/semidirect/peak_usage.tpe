@@ -4,8 +4,10 @@
 
      ./tempore --grades peak-usage examples/semidirect/peak_usage.tpe
 
-   Grades ((R, d, h), ...): net change d and peak h of each resource R held;
-   (d, h) · (d', h') = (d + d', max(h, d + h')), resource by resource. *)
+   Grades ((R, d, h), ...): net change d and peak h of each resource R held
+     - Unit (0, 0): no resource changed or held
+     - Top (∞, ∞): unbounded change and peak of every resource
+     - Product: (d, h) · (d', h') = (d + d', max(h, d + h')), per resource *)
 
 type file = File of string
 type socket = Socket of string

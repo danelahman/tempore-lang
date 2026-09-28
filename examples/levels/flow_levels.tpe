@@ -4,8 +4,10 @@
 
      ./tempore --grades flow-levels examples/levels/flow_levels.tpe
 
-   Grades (l, (S, k), ...): level l touched and level k of each output S;
-   (l, W) · (l', W') = (l ⊔ l', W ⊔ W' raised to l). *)
+   Grades (l, (S, k), ...): level l touched and level k of each output S
+     - Unit Low: touches and writes nothing
+     - Top ⊤: touches High, writes every output at High
+     - Product: (l, W) · (l', W') = (l ⊔ l', W ⊔ W' raised to l) *)
 
 (* Reading the weather touches nothing secret, reading the vault does. *)
 operation ReadPublic : unit ~> string # Low

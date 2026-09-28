@@ -4,8 +4,10 @@
 
      ./tempore --grades traces-regex-lower-symbolic examples/regular_costs/regular_costs_lower.tpe
 
-   Grades: regular languages of runs in the coverage order, operations costing
-   their lower runtime bounds; {0} is the top. *)
+   Grades {...}: regular languages of runs in the coverage order
+     - Unit {0}: the empty run
+     - Top {0}: the empty run, demanding nothing; the unit is the top
+     - Product: concatenation of runs *)
 
 type part = Part of string
 

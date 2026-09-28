@@ -4,7 +4,10 @@
 
      ./tempore --grades time-lower-bound examples/basics/nat.tpe
 
-   Grades n: at least n time steps; sequencing adds, the unit 0 is greatest. *)
+   Grades n: at least n time steps
+     - Unit 0: no time needed
+     - Top 0: no time needed; the unit is the top
+     - Product: addition *)
 
 (* Unary natural numbers. *)
 type nat =

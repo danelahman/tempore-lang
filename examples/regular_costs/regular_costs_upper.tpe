@@ -4,8 +4,10 @@
 
      ./tempore --grades traces-regex-upper-symbolic examples/regular_costs/regular_costs_upper.tpe
 
-   Grades: regular languages of runs in the allowance order, operations costing
-   their upper runtime bounds; {0} is least and ⊤ the top. *)
+   Grades {...}: regular languages of runs in the allowance order
+     - Unit {0}: the empty run, the least grade
+     - Top ⊤: every run permitted
+     - Product: concatenation of runs *)
 
 type reading = Reading of int
 

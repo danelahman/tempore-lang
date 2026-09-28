@@ -4,7 +4,10 @@
 
      ./tempore --grades time-upper-bound examples/time/time_upper.tpe
 
-   Grades n: at most n time steps; sequencing adds, 0 is least, ∞ the top. *)
+   Grades n: at most n time steps
+     - Unit 0: no time spent, the least grade
+     - Top ∞: unbounded time
+     - Product: addition *)
 
 (* Correctly accepted by the typechecker: delaying 1 and 2 ticks spends exactly
    the 3 ticks the box allows. *)

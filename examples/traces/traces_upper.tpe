@@ -4,8 +4,10 @@
 
      ./tempore --grades traces-upper-bound examples/traces/traces_upper.tpe
 
-   Grades: timed traces a computation is allowed, in the allowance order;
-   sequencing concatenates, {0} is least and ⊤ the top. *)
+   Grades {...}: timed traces a computation is allowed
+     - Unit {0}: the empty run, the least grade
+     - Top ⊤: every run permitted
+     - Product: concatenation of runs *)
 
 type model = Model of string
 type heated = Heated of model
