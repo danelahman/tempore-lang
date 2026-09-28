@@ -348,7 +348,12 @@ module Indexed = struct
           if String.equal s s' then
             Grade.invalid_lit lit "the name '%s' is listed twice" s
           else check rest
-      | [ _ ] | [] -> trim compare { named = sorted; others }
+      | [ _ ] | [] ->
+          let defaults, named =
+            List.partition (fun (s, _) -> String.equal s fresh) sorted
+          in
+          let others = match defaults with (_, c) :: _ -> c | [] -> others in
+          trim compare { named; others }
     in
     check sorted
 
@@ -359,13 +364,13 @@ module Indexed = struct
     | Grade.Tuple (Grade.Tuple (Grade.Name _ :: _) :: _ as lits) -> Some lits
     | _ -> None
 
+  let of_entries_lit ~compare ~default of_lit lit lits =
+    of_entries ~compare ~others:default lit
+      (List.map (Grade.component_of_lit lit ~context:"" (entry of_lit)) lits)
+
   let of_lit ~compare ~default ~everywhere:all of_lit lit =
     match entries_of_lit lit with
-    | Some lits ->
-        of_entries ~compare ~others:default lit
-          (List.map
-             (Grade.component_of_lit lit ~context:"" (entry of_lit))
-             lits)
+    | Some lits -> of_entries_lit ~compare ~default of_lit lit lits
     | None -> all (of_lit lit)
 
   module OfSemilattice (C : SEMILATTICE) = struct

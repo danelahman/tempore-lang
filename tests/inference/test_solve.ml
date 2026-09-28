@@ -330,7 +330,7 @@ let expected_rejections =
     ("traces_reject_self_retry.tpe", [ 6 ]);
     ("traces_reject_undecided_condition.tpe", [ 15 ]);
     ("traces_reject_unknown_event.tpe", [ 6 ]);
-    ("windows_reject.tpe", [ 7; 12; 17; 25 ]);
+    ("windows_reject.tpe", [ 7; 12; 17; 25; 32 ]);
   ]
 
 let slow = ref []

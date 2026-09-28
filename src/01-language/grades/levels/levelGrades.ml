@@ -108,8 +108,12 @@ let of_written lit ws =
           Grade.invalid_lit lit "the output '%s' is listed twice" s
         else check rest
     | [ _ ] | [] ->
-        Indexed.of_list ~compare:WrittenAt.compare ~others:None
-          (List.map (fun (s, l) -> (s, Some l)) sorted)
+        let defaults, named =
+          List.partition (fun (s, _) -> String.equal s Indexed.fresh) sorted
+        in
+        Indexed.of_list ~compare:WrittenAt.compare
+          ~others:(match defaults with (_, l) :: _ -> Some l | [] -> None)
+          (List.map (fun (s, l) -> (s, Some l)) named)
   in
   check sorted
 

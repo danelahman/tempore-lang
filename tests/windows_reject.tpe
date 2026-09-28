@@ -1,15 +1,15 @@
 (* Time windows: rejected programs. *)
 
-operation Send : unit ~> unit # (1, {0})
+operation Send : unit ~> unit # (1, (Send, {0}))
 operation Wait : unit ~> unit # (1, 3)
 
 (* Rejected: the transmission happens at tick 3, outside the window. *)
-let late_send () : unit # (4, {2}) =
+let late_send () : unit # (4, (Send, {2})) =
   delay 3;
   perform Send ()
 
 (* Rejected: waiting may take three ticks, beyond the interval. *)
-let slow () : unit # ((2, 3), {1 | 2}) =
+let slow () : unit # ((2, 3), (Send, {1 | 2})) =
   perform Wait ();
   perform Send ()
 
@@ -27,3 +27,6 @@ let twice () =
   handler
   | x -> x
   | Send () k -> perform Send (); perform Send (); continue k with ()
+
+(* Rejected: the annotation allows a transmission only under another name. *)
+let renamed () : unit # (1, (Recv, {0})) = perform Send ()

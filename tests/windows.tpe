@@ -1,37 +1,47 @@
-(* Time windows: the durations of a computation and the times at which its
-   windowed operations happen. *)
+(* Time windows: the durations of a computation and the times at which each of
+   its operations happens. *)
 
-operation Send : unit ~> unit # (1, {0})
+operation Send : unit ~> unit # (1, (Send, {0}))
 operation Wait : unit ~> unit # (1, 3)
 
 default Send () = delay 1
 default Wait () = delay 2
 
 (* Accepted: a transmission at tick 2 of three. *)
-let at_two () : unit # (3, {2}) =
+let at_two () : unit # (3, (Send, {2})) =
   delay 2;
   perform Send ()
 
 (* Accepted: waiting takes one to three ticks, so the transmission after it
    happens at tick 1, 2 or 3. *)
-let after_wait () : unit # ((2, 4), {1 | 2 | 3}) =
+let after_wait () : unit # ((2, 4), (Send, {1 | 2 | 3})) =
   perform Wait ();
   perform Send ()
 
 (* Accepted: a branch takes the union of the durations of its arms, not the
    interval between them. *)
-let either b : unit # ({1 | 5}, {0 | 4}) =
+let either b : unit # ({1 | 5}, (Send, {0 | 4})) =
   if b then perform Send () else (delay 4; perform Send ())
 
 (* Accepted: a transmission at an even tick, '_' being a single tick. *)
-let even () : unit # ((0, ∞), {(_; _)*}) =
+let even () : unit # ((0, ∞), (Send, {(_; _)*})) =
   delay 4;
   perform Send ()
 
 (* Accepted: a transmission at any tick but the first. *)
-let late () : unit # ((0, ∞), {~0}) =
+let late () : unit # ((0, ∞), (Send, {~0})) =
   delay 1;
   perform Send ()
+
+(* Accepted: an entry '(_, ...)' bounds every operation not listed. *)
+let any_operation () : unit # (4, (_, {1 | 3})) =
+  delay 1;
+  perform Send ();
+  delay 1;
+  perform Send ()
+
+(* Accepted: an annotation may list operations that do not happen. *)
+let unlisted () : unit # (2, (Recv, {0})) = delay 2
 
 (* Accepted: a handler may transmit by waiting a tick. *)
 let quiet () =

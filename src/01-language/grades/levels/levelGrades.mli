@@ -53,7 +53,8 @@ module FlowLevels : Grade.S with type t = level * Outputs.t
     - [of_nat] is constantly the unit.
     - [of_lit] reads [⊤] as the top, a level [l] as [(l, ∅)] and a tuple
       [(l, (S₁, l₁), …, (Sₖ, lₖ))] as [l] with the sinks [Sᵢ] written at [lᵢ],
-      each sink listed once; [show] prints alike, the sinks in increasing order.
+      each sink listed once, an entry [(_, l')] writing every other sink at
+      [l']; [show] prints alike, the sinks in increasing order.
     - No counterexample is offered.
     - The witnesses of the constants [cs] are complete: the pairs of a level
       with no output or with one sink written at a level, the sinks being those

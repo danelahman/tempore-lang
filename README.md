@@ -184,7 +184,8 @@ and
   above `l`; `(5, Low)` is an expiring capability.
 - `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l`
   touched and each output `Sᵢ` written at most at the level `lᵢ` touched
-  before it; `l` alone writes no output. An output is a capitalised name, and
+  before it; `l` alone writes no output, and an entry `(_, l')` bounds every
+  output not listed. An output is a capitalised name, and
   an operation writing it has a grade such as `(Low, (Board, Low))`; after one
   of grade `High`, it is written at `High`. A semidirect product (see
   [Semidirect products](#semidirect-products)).
@@ -209,14 +210,15 @@ componentwise.
   the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. An operation opening
   a file has grade `(1, 1)`, and one closing it `(-1, 0)`; two copies in
   sequence, each holding two files, have grade `(0, 2)`.
-- `time-windows`: pairs `(T, E)` of the possible durations `T` and the times
-  `E` at which windowed operations happen, both sets of numbers of ticks from
-  the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+` adding
-  elementwise, and the order is inclusion. `T` is written `n`, `(n, m)` (from
-  `n` to `m`, `m` possibly `∞`) or as a brace literal over ticks, `{0 | 10}`;
-  `E` as a brace literal, `{(4 | 5); 10*}` being ticks 4 and 5 of every ten.
-  A literal `T` alone has no windowed operation. An operation taking a tick and
-  happening at its start has grade `(1, {0})`.
+- `time-windows`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
+  the times `E_A` at which each operation `A` happens, all sets of numbers of
+  ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
+  adding elementwise, and the order is inclusion. `T` is written `n`, `(n, m)`
+  (from `n` to `m`, `m` possibly `∞`) or as a brace literal over ticks,
+  `{0 | 10}`, and `T` alone performs no operation; `E_A` is a brace literal,
+  `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry `(_, E)`
+  bounds every operation not listed. An operation `Send` taking a tick and
+  happening at its start has grade `(1, (Send, {0}))`.
 
 An operation whose grade no code meets, such as closing a file under
 `peak-usage`, has no default implementation, and a run stops at its first

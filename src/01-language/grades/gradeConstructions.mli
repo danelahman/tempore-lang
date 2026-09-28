@@ -177,10 +177,10 @@ module SemiDirect
     and [(Name, c1, …, ck)] that of the tuple [(c1, …, ck)]. A map is written as
     one entry or as a tuple of entries [((A, a), (B, b))], each name listed
     once, the other names having the default: the least element of a
-    semilattice, the unit of a grade. Any other literal [c] gives every name the
-    element of [c]. A map is printed alike, in increasing order of the names, an
-    element other than the default of the other names being printed as an entry
-    of the name ["_"].
+    semilattice, the unit of a grade, or the element of an entry [(_, c)]. Any
+    other literal [c] gives every name the element of [c]. A map is printed
+    alike, in increasing order of the names, an element other than the default
+    of the other names being printed as an entry of [_].
 
     {2 Witnesses}
 
@@ -223,6 +223,21 @@ module Indexed : sig
   val names : 'a t list -> string list
   (** [names ms] is the names given their own element by some of [ms], and
       {!fresh}, in increasing order. *)
+
+  val of_entries_lit :
+    compare:('a -> 'a -> int) ->
+    default:'a ->
+    (Grade.lit -> 'a) ->
+    Grade.lit ->
+    Grade.lit list ->
+    'a t
+  (** [of_entries_lit ~compare ~default of_lit lit entries] is the map of the
+      literals [entries] of entries in the literal [lit], each element read by
+      [of_lit], the other names having [default] or the element of an entry
+      [(_, c)]; [compare] tells the elements equal to the default.
+
+      @raise Grade.Invalid_literal
+        if an entry is malformed or a name is listed twice. *)
 
   val show_entries : is_default:('a -> bool) -> ('a -> string) -> 'a t -> string
   (** [show_entries ~is_default show m] prints the entries of [m], separated by

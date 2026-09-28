@@ -514,6 +514,7 @@ eps_grade:
 grade_lit:
   | n = INT { Grade.Int n }
   | MINUS n = INT { Grade.Int (-n) }
+  | UNDERSCORE { Grade.Name "_" }
   | name = UNAME { Grade.Name name }
   | TOP { Grade.Top }
   | INFINITY { Grade.Inf }

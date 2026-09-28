@@ -61,7 +61,7 @@ let regex_names r =
 (** Grade literals as they appear in source. *)
 type lit =
   | Int of int  (** An integer, e.g. [42] or [-1] *)
-  | Name of string  (** A capitalised name, e.g. [High] *)
+  | Name of string  (** A capitalised name, e.g. [High], or [_] *)
   | Top  (** The greatest grade, [⊤] or [top] *)
   | Inf  (** Infinity, [∞] or [inf] *)
   | Tuple of lit list

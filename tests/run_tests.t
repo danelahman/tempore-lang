@@ -1342,10 +1342,10 @@
   ======================================================================
   literals_reject_windows.tpe
   ======================================================================
-  File "literals_reject_windows.tpe", line 3, characters 19-30:
-  3 | let claim () = box (1, {Send}) 1
-                         ^^^^^^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, in the second component ('times'), time windows are sets of numbers of ticks, and name no operation such as 'Send'; did you mean to use one of the 'traces-interval', 'traces-regex-interval' or 'traces-regex-interval-symbolic' grading monoids?
+  File "literals_reject_windows.tpe", line 3, characters 19-27:
+  3 | let claim () = box (1, {0}) 1
+                         ^^^^^^^^
+  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-interval', 'traces-regex-interval' or 'traces-regex-interval-symbolic' grading monoids?
   ======================================================================
   literals_time_interval.tpe
   ======================================================================
@@ -3193,7 +3193,7 @@
                         delay 1 (return ());
                         unbox k as unbox_var in
                         unbox_var ()
-        # (1,{0})
+        # (1,(Send,{0}))
     },
     1
   ]
@@ -3210,21 +3210,21 @@
   windows_reject.tpe
   ======================================================================
   File "windows_reject.tpe", lines 7-9, characters 17-17:
-  7 | let late_send () : unit # (4, {2}) =
-                       ^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `(4,{3})`, which does not match its annotated grade `(4,{2})`
-    Note: the effect inequality `(4,{3}) <= (4,{2})` does not hold
+  7 | let late_send () : unit # (4, (Send, {2})) =
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(4,(Send,{3}))`, which does not match its annotated grade `(4,(Send,{2}))`
+    Note: the effect inequality `(4,(Send,{3})) <= (4,(Send,{2}))` does not hold
   
   File "windows_reject.tpe", lines 12-14, characters 12-17:
-  12 | let slow () : unit # ((2, 3), {1 | 2}) =
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `((2,4),{1; (0 | 1 | 2)})`, which does not match its annotated grade `((2,3),{1 | 2})`
-    Note: the effect inequality `((2,4),{1; (0 | 1 | 2)}) <= ((2,3),{1 | 2})` does not hold
+  12 | let slow () : unit # ((2, 3), (Send, {1 | 2})) =
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `((2,4),(Send,{1; (0 | 1 | 2)}))`, which does not match its annotated grade `((2,3),(Send,{1 | 2}))`
+    Note: the effect inequality `((2,4),(Send,{1; (0 | 1 | 2)})) <= ((2,3),(Send,{1 | 2}))` does not hold
   
   File "windows_reject.tpe", lines 21-22, characters 2-3:
   21 |   unbox x as n in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `x` is unboxed with grade `(2,{0})` accumulated since it was bound, which is not below its box grade `(2,4)`
+  Typing error: Variable `x` is unboxed with grade `(2,(Send,{0}))` accumulated since it was bound, which is not below its box grade `(2,4)`
     File "windows_reject.tpe", line 18, characters 18-19:
     18 |   box (2, 4) 7 as x in
                            ^
@@ -3232,17 +3232,17 @@
     File "windows_reject.tpe", line 19, characters 2-17:
     19 |   perform Send ();
            ^^^^^^^^^^^^^^^
-    grade `(1,{0})` accumulates here (operation `Send`)
+    grade `(1,(Send,{0}))` accumulates here (operation `Send`)
     File "windows_reject.tpe", line 20, characters 2-9:
     20 |   delay 1;
            ^^^^^^^
     grade `1` accumulates here (delay)
-    Note: the resource inequality `(2,{0}) <= (2,4)` does not hold
+    Note: the resource inequality `(2,(Send,{0})) <= (2,4)` does not hold
   
   File "windows_reject.tpe", line 29, characters 51-69:
   29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                                                           ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with grade `(2,{0 | 1})` accumulated since it was bound, which is not below its box grade `(1,{0})`
+  Typing error: Variable `k` is unboxed with grade `(2,(Send,{0 | 1}))` accumulated since it was bound, which is not below its box grade `(1,(Send,{0}))`
     File "windows_reject.tpe", line 29, characters 12-13:
     29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                      ^
@@ -3250,12 +3250,18 @@
     File "windows_reject.tpe", line 29, characters 17-32:
     29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                           ^^^^^^^^^^^^^^^
-    grade `(1,{0})` accumulates here (operation `Send`)
+    grade `(1,(Send,{0}))` accumulates here (operation `Send`)
     File "windows_reject.tpe", line 29, characters 34-49:
     29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                                            ^^^^^^^^^^^^^^^
-    grade `(1,{0})` accumulates here (operation `Send`)
-    Note: the resource inequality `(2,{0 | 1}) <= (1,{0})` does not hold
+    grade `(1,(Send,{0}))` accumulates here (operation `Send`)
+    Note: the resource inequality `(2,(Send,{0 | 1})) <= (1,(Send,{0}))` does not hold
+  
+  File "windows_reject.tpe", line 32, characters 15-58:
+  32 | let renamed () : unit # (1, (Recv, {0})) = perform Send ()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(1,(Send,{0}))`, which does not match its annotated grade `(1,(Recv,{0}))`
+    Note: the effect inequality `(1,(Send,{0})) <= (1,(Recv,{0}))` does not hold
 
 The programs of the regular trace grade, run above under its implementation
 by symbolic derivatives, 'traces-regex-symbolic', under its implementation by

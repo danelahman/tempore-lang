@@ -133,8 +133,47 @@ module Shift = struct
   let act = R.concat
 end
 
+module Indexed = GradeConstructions.Indexed
+module TimesByName = Indexed.OfSemilattice (Times)
+module ShiftByName = Indexed.Action (Times) (Shift)
+
 module TimeWindows = struct
-  include GradeConstructions.SemiDirect (Durations) (Times) (Shift)
+  include GradeConstructions.SemiDirect (Durations) (TimesByName) (ShiftByName)
 
   let name = "time-windows"
+
+  (* The literals of entries [(Name, ...)], the times of an operation. *)
+  let is_entry = function
+    | Grade.Tuple (Grade.Name _ :: _ :: _) -> true
+    | _ -> false
+
+  let of_lit = function
+    | Grade.Top -> top
+    | lit -> (
+        match Durations.of_lit lit with
+        | durations -> (durations, TimesByName.bottom)
+        | exception (Grade.Invalid_literal _ as rejection) -> (
+            match lit with
+            | Grade.Tuple (durations :: (_ :: _ as entries))
+              when List.for_all is_entry entries ->
+                ( Grade.component_of_lit lit ~context:"in the durations, "
+                    Durations.of_lit durations,
+                  Indexed.of_entries_lit ~compare:Times.compare
+                    ~default:Times.bottom Times.of_lit lit entries )
+            | Grade.Tuple [ _; Grade.Braces _ ] ->
+                Grade.invalid_lit lit
+                  "times are given by operation, e.g. '(1, (Send, {0}))' for \
+                   'Send' at the start, or '(1, (_, {0}))' for any operation"
+            | _ -> raise rejection))
+
+  let show ((durations, times) as c) =
+    if compare c top = 0 then "⊤"
+    else if TimesByName.leq times TimesByName.bottom then
+      Durations.show durations
+    else
+      "(" ^ Durations.show durations ^ ","
+      ^ Indexed.show_entries
+          ~is_default:(fun e -> Times.leq e Times.bottom)
+          Times.show times
+      ^ ")"
 end

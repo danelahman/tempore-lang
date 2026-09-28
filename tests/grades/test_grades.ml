@@ -225,15 +225,42 @@ let literals =
       (Braces (union (Tick 1) (Tick 3)))
       "{1 | 3}";
     reads "durations and times" time_windows
-      (Tuple [ Int 1; Braces (Tick 0) ])
-      "(1,{0})";
+      (Tuple [ Int 1; Tuple [ Name "Send"; Braces (Tick 0) ] ])
+      "(1,(Send,{0}))";
+    reads "times of two operations" time_windows
+      (Tuple
+         [
+           Int 10;
+           Tuple [ Name "Sense"; Braces (Tick 0) ];
+           Tuple [ Name "Send"; Braces (union (Tick 4) (Tick 5)) ];
+         ])
+      "(10,(Send,{4 | 5}),(Sense,{0}))";
+    reads "times of any operation" time_windows
+      (Tuple
+         [
+           Int 3;
+           Tuple [ Name "_"; Braces (Tick 2) ];
+           Tuple [ Name "Send"; Braces (Tick 0) ];
+         ])
+      "(3,(Send,{0}),(_,{2}))";
     reads "times by single ticks" time_windows
-      (Tuple [ Int 1; Braces (seq Any Any) ])
-      "(1,{2})";
+      (Tuple [ Int 1; Tuple [ Name "Send"; Braces (seq Any Any) ] ])
+      "(1,(Send,{2}))";
     reads "top" time_windows Top "⊤";
-    rejects "operation" time_windows
-      (Tuple [ Int 1; Braces send ])
+    rejects "operation in the times" time_windows
+      (Tuple [ Int 1; Tuple [ Name "Send"; Braces send ] ])
       "name no operation such as 'Send'";
+    rejects "unnamed times" time_windows
+      (Tuple [ Int 1; Braces (Tick 0) ])
+      "times are given by operation";
+    rejects "operation listed twice" time_windows
+      (Tuple
+         [
+           Int 1;
+           Tuple [ Name "Send"; Braces (Tick 0) ];
+           Tuple [ Name "Send"; Braces (Tick 1) ];
+         ])
+      "listed twice";
     rejects "reversed interval" time_windows
       (Tuple [ Int 7; Int 1 ])
       "must satisfy n <= m";
@@ -252,6 +279,14 @@ let literals =
          ])
       "(High,(Audit,High),(Board,Low))";
     reads "top" flow_levels Top "⊤";
+    reads "other outputs" flow_levels
+      (Tuple
+         [
+           Name "High";
+           Tuple [ Name "_"; Name "Low" ];
+           Tuple [ Name "Board"; Name "High" ];
+         ])
+      "(High,(Board,High),(_,Low))";
     rejects "sink listed twice" flow_levels
       (Tuple
          [

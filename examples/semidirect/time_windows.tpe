@@ -4,41 +4,42 @@
 
      ./tempore --grades time-windows examples/semidirect/time_windows.tpe
 
-   Grades (T, E): possible durations T and times E of windowed operations;
-   (T, E) · (T', E') = (T + T', E ∪ (T + E')). *)
+   Grades (T, (A, E_A), ...): possible durations T and times E_A of each
+   operation A; (T, E) · (T', E') = (T + T', E ∪ (T + E')). *)
 
-(* Sensing takes a tick, and is performed at any time. *)
-operation Sense : unit ~> int # 1
+(* Sensing takes a tick, and happens at its start. *)
+operation Sense : unit ~> int # (1, (Sense, {0}))
 default Sense () = delay 1; 21
 
 (* A transmission takes a tick, and happens at its start. *)
-operation Send : int ~> unit # (1, {0})
+operation Send : int ~> unit # (1, (Send, {0}))
 default Send x = delay 1
 
-(* Correctly accepted by the typechecker: a frame of ten ticks that transmits
-   in the node's slot, ticks 4 and 5 of the frame. *)
-let frame () : unit # (10, {4 | 5}) =
+(* Correctly accepted by the typechecker: a frame of ten ticks that senses at
+   its start and transmits in the node's slot, ticks 4 and 5 of the frame. *)
+let frame () : unit # (10, (Send, {4 | 5}), (Sense, {0})) =
   let x = perform Sense () in
   delay 3;
   perform Send (2 * x);
   delay 5
 
-(* Correctly accepted by the typechecker: three frames, each transmitting in
-   its own slot, and thus within the slots of every frame. *)
-let frames () : unit # (30, {(4 | 5); 10*}) =
+(* Correctly accepted by the typechecker: three frames, whose operations all
+   happen at ticks 0, 4 and 5 of every ten, '_' standing for any operation. *)
+let frames () : unit # (30, (_, {(0 | 4 | 5); 10*})) =
   frame ();
   frame ();
   frame ()
 
 (* Correctly accepted by the typechecker: an optional frame takes 0 or 10
-   ticks, so the slot of the frame after it is at ticks 4 and 5 or at ticks 14
-   and 15. *)
-let maybe_twice b : unit # ({10 | 20}, {4 | 5 | 14 | 15}) =
+   ticks, so the frame after it senses at tick 0 or 10 and transmits at ticks
+   4 and 5 or at ticks 14 and 15. *)
+let maybe_twice b :
+    unit # ({10 | 20}, (Send, {4 | 5 | 14 | 15}), (Sense, {0 | 10})) =
   if b then frame () else ();
   frame ()
 
 (* Correctly accepted by the typechecker: a reading stays fresh for three to
-   five ticks, provided nothing is transmitted meanwhile. *)
+   five ticks, provided no operation is performed meanwhile. *)
 let fresh () =
   let x = perform Sense () in
   box (3, 5) x as r in
@@ -47,14 +48,17 @@ let fresh () =
   perform Send y
 
 (* Correctly rejected by the typechecker: sensing twice and waiting four ticks
-   transmits at tick 6, after the slot:
+   transmits at tick 6, after the slot, and senses at tick 1:
 
-     Typing error: This function's body has grade `(10,{6})`, which does not
-       match its annotated grade `(10,{4 | 5})`
-       Note: the effect inequality `(10,{6}) <= (10,{4 | 5})` does not hold
+     Typing error: This function's body has grade
+       `(10,(Send,{6}),(Sense,{0 | 1}))`, which does not match its annotated
+       grade `(10,(Send,{4 | 5}),(Sense,{0}))`
+       Note: the effect inequality
+         `(10,(Send,{6}),(Sense,{0 | 1})) <= (10,(Send,{4 | 5}),(Sense,{0}))`
+         does not hold
 *)
 (*
-let late_frame () : unit # (10, {4 | 5}) =
+let late_frame () : unit # (10, (Send, {4 | 5}), (Sense, {0})) =
   let x = perform Sense () in
   let y = perform Sense () in
   delay 4;
@@ -65,10 +69,10 @@ let late_frame () : unit # (10, {4 | 5}) =
 (* Correctly rejected by the typechecker: a transmission between boxing and
    unboxing spoils the reading:
 
-     Typing error: Variable `r` is unboxed with grade `(3,{1})` accumulated
-       since it was bound, which is not below its box grade `(3,5)`
+     Typing error: Variable `r` is unboxed with grade `(3,(Send,{1}))`
+       accumulated since it was bound, which is not below its box grade `(3,5)`
        ...
-       Note: the resource inequality `(3,{1}) <= (3,5)` does not hold
+       Note: the resource inequality `(3,(Send,{1})) <= (3,5)` does not hold
 *)
 (*
 let stale () =
