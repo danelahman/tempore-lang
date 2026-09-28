@@ -75,6 +75,10 @@ and msg =
       (** The caret has been placed at the given offset of the editor, in UTF-16
           code units: the error whose span it lands in, if any, becomes the
           active one. *)
+  | OpenGallery  (** Show the example gallery, with an empty search. *)
+  | CloseGallery  (** Hide the example gallery without loading an example. *)
+  | SearchGallery of string
+      (** The text of the gallery's search field has changed. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -87,7 +91,7 @@ type edit_model = {
       (** Name of the currently selected grades (key in [grade_modules]). *)
   selected_example : (string * string) option;
       (** Group and title of the bundled example last loaded; editing it keeps
-          the selection, so the select box still says where the program came
+          the selection, so the example button still says where the program came
           from. *)
 }
 
@@ -210,6 +214,9 @@ type model = {
       (** Whether the source has been edited since the errors were reported, so
           that their spans point at bytes that have moved. *)
   page : page;
+  gallery : string option;
+      (** The search of the example gallery while it is open, [None] while it is
+          closed. *)
 }
 
 let init =
@@ -220,6 +227,7 @@ let init =
     hovered_error = None;
     stale_errors = false;
     page = Editor;
+    gallery = None;
   }
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
@@ -267,6 +275,10 @@ let update model = function
       let page =
         match edit_msg with LoadExample _ -> Editor | _ -> model.page
       in
+      (* An example picked in the gallery closes it. *)
+      let gallery =
+        match edit_msg with LoadExample _ -> None | _ -> model.gallery
+      in
       {
         edit_model = edit_update model.edit_model edit_msg;
         run_model;
@@ -274,6 +286,7 @@ let update model = function
         hovered_error = None;
         stale_errors;
         page;
+        gallery;
       }
   | RunMsg run_msg -> (
       match model.run_model with
@@ -395,6 +408,9 @@ let update model = function
       | Ok _ -> model)
   | ShowPage page -> { model with page }
   | HoverError hovered_error -> { model with hovered_error }
+  | OpenGallery -> { model with gallery = Some "" }
+  | CloseGallery -> { model with gallery = None }
+  | SearchGallery query -> { model with gallery = Some query }
   | CaretAt offset -> (
       (* Edited source: the spans no longer say where the caret is. *)
       match model.run_model with

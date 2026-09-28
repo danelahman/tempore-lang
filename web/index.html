@@ -303,6 +303,214 @@
       text-decoration: underline;
     }
 
+    /* The example button: the title of the example last loaded at the left,
+       an ellipsis at the right, since it opens the gallery. */
+    .example-button {
+      justify-content: space-between;
+      gap: 0.5em;
+      text-align: left;
+    }
+
+    /* The example gallery: a layer over the dimmed page, holding a panel
+       centred at the top that scrolls within the viewport. Bulma's navbar is
+       at z-index 30. */
+    .example-gallery {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 16px;
+      overflow: auto;
+      background: rgba(27, 31, 35, 0.45);
+    }
+
+    .example-gallery:focus {
+      outline: none;
+    }
+
+    /* Beside the panel and under it: a click here closes the gallery. */
+    .example-gallery-backdrop {
+      position: fixed;
+      inset: 0;
+    }
+
+    .example-gallery-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: min(980px, 100%);
+      max-height: calc(100vh - 80px);
+      border-radius: 10px;
+      background: #fff;
+      color: #24292e;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .example-gallery-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e1e4e8;
+    }
+
+    .example-gallery-head h2 {
+      flex: 1 1 auto;
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .example-gallery-search {
+      flex: 1 1 280px;
+      padding: 8px 10px;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .example-gallery-close {
+      border: none;
+      background: none;
+      font-size: 22px;
+      color: #6a737d;
+      cursor: pointer;
+    }
+
+    .example-gallery-body {
+      display: flex;
+      min-height: 0;
+    }
+
+    /* The groups, each a link to its section, with its number of examples. */
+    .example-gallery-toc {
+      flex: 0 0 200px;
+      padding: 12px 0;
+      border-right: 1px solid #e1e4e8;
+      overflow: auto;
+    }
+
+    .example-gallery-toc a {
+      display: block;
+      padding: 6px 18px;
+      font-size: 13px;
+      color: #24292e;
+    }
+
+    .example-gallery-toc a:hover {
+      background: #fafbfc;
+    }
+
+    .example-gallery-toc a span {
+      color: #6a737d;
+    }
+
+    /* Too narrow a page for both columns: the sections alone. */
+    @media (max-width: 700px) {
+      .example-gallery-toc {
+        display: none;
+      }
+    }
+
+    .example-gallery-list {
+      flex: 1;
+      padding: 8px 20px 20px;
+      overflow: auto;
+    }
+
+    .example-group header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin: 16px 0 8px;
+    }
+
+    .example-group h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .example-group header p {
+      margin: 0;
+      color: #6a737d;
+      font-size: 13px;
+    }
+
+    .example-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    /* An example: its title, description, grade and path. */
+    .example-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      background: #fff;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .example-card:hover {
+      border-color: #3298dc;
+      box-shadow: 0 0 0 2px #eef6fc;
+    }
+
+    /* the example last loaded */
+    .example-card.is-current {
+      border-color: #3298dc;
+    }
+
+    .example-card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .example-card-description {
+      font-size: 13px;
+      line-height: 1.35;
+      color: #444;
+    }
+
+    .example-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .example-card-grade,
+    .example-card-path {
+      font-family: 'SFMono-Regular', Menlo, monospace;
+      font-size: 11.5px;
+    }
+
+    .example-card-grade {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #eef6fc;
+      color: #1d6fa5;
+    }
+
+    .example-card-path {
+      color: #6a737d;
+    }
+
+    .example-gallery-empty {
+      padding: 20px 0;
+      color: #6a737d;
+    }
+
     /* The line numbers, right-aligned in the gutter. Absolute against the
        <pre> so that they cost the line no width. */
     .line-number {

@@ -1,4 +1,4 @@
-# Manifest of the examples shown in the web interface's selector, read by
+# Manifest of the examples shown in the web interface's gallery, read by
 # src/06-user-interface/web/gen_examples/gen_examples.ml to generate the
 # module Examples_tpe (see src/06-user-interface/web/dune).
 #
@@ -6,47 +6,67 @@
 #
 #   group | title | grade | path | description
 #
-# - group: the optgroup label the example is listed under in the selector.
-# - title: the option's text, without a prefix already given by the group.
+# - group: the heading of the gallery section the example is listed under.
+# - title: the heading of the example's card, without a prefix already given
+#   by the group.
 # - grade: the grading monoid the web interface switches to when the example
 #   is loaded (a key of Grades.GradeRegistry.grade_modules).
 # - path: the example's file, relative to this directory.
-# - description: one sentence, shown as the option's tooltip.
+# - description: one sentence, shown on the example's card.
 #
-# Examples are listed in the order they appear in the selector: groups in the
+# Each group is summarised by one line of three fields, the first the word
+# 'group', placed before the group's examples:
+#
+#   group | label | summary
+#
+# - label: the group, as its examples name it.
+# - summary: one line, shown beside the group's heading.
+#
+# A group without a summary, or a summary without examples, is an error.
+#
+# Examples are listed in the order they appear in the gallery: groups in the
 # order given here, and within a group from the simplest example to the most
 # advanced.
 
+group | Effect handlers | Operations handled by clauses that respect their grades.
 Effect handlers | Lower bounds | time-lower-bound | handlers/handlers_lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
 Effect handlers | Upper bounds | time-upper-bound | handlers/handlers_upper_bound.tpe | An operation case may resume its continuation at any point up to the operation's grade, or not at all.
 Effect handlers | Nested | time-lower-bound | handlers/handlers_nested.tpe | Nested handlers each resume their own continuation, quantifying over one rigid effect per level of nesting.
 Effect handlers | Nested (rejected) | time-lower-bound | handlers/handlers_nested_reject.tpe | The nested-handlers example with one inner continuation left unresumed, correctly rejected.
 
+group | Time grades | Boxes usable before or within a number of time steps, whole or fractional.
 Time grades | Upper bounds | time-upper-bound | time/time_upper.tpe | A box may be unboxed at any point up to its upper-bound grade.
 Time grades | Intervals | time-interval | time/time_intervals.tpe | A box grade pairs a lower and an upper time bound, unboxable only within that interval.
 Time grades | Intervals (dense) | dense-time-interval | time/dense_time_intervals.tpe | A medication schedule in hours, whose doses and reports are due within intervals with fractional endpoints.
 
+group | Timed traces | Finite sets of timed runs of operations.
 Timed traces | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3D-printing pipeline whose operations must be covered by the runs a box demands, waiting banking towards them.
 Timed traces | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
 Timed traces | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
 
+group | Regular traces | Regular languages of runs of operations and ticks.
 Regular traces | Upper bounds | traces-regex-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
 
+group | Regular traces with costs | Regular runs, operations costing their declared runtimes.
 Regular traces with costs | Lower bounds | traces-regex-lower-symbolic | regular_costs/regular_costs_lower.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower runtime bounds.
 Regular traces with costs | Upper bounds | traces-regex-upper-symbolic | regular_costs/regular_costs_upper.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.
 Regular traces with costs | Intervals | traces-regex-interval-symbolic | regular_costs/regular_costs_intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
 
+group | Security levels | Levels touched, alone or with time bounds and outputs.
 Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower_levels.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.
 Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_upper_levels.tpe | A box paired with a time upper bound and a level: a capability that expires and can be revoked by a taint.
 Security levels | Flow-sensitive outputs | flow-levels | levels/flow_levels.tpe | A report whose public post must come before the vault is read, each output graded by the level touched before it.
 
+group | Semidirect products | Grades whose second component is shifted by the first.
 Semidirect products | Peak usage | peak-usage | semidirect/peak_usage.tpe | File copies and uploads graded by the net change and the peak of the files and connections they hold.
 Semidirect products | Time windows | time-windows | semidirect/time_windows.tpe | A sensor node whose transmissions are graded by the ticks of its frames at which they happen.
 Semidirect products | Mode costs | mode-costs | semidirect/mode_costs.tpe | A sensor node whose energy costs depend on whether its radio is on, as max-plus matrices over the modes.
 
+group | Operation counts | How often each operation is called.
 Operation counts | Upper bounds | counts-upper-bound | counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
 
+group | Case study | Larger programs using many features together.
 Case study | 3D printing: time bounds | time-lower-bound | 3dprint/3dprint.tpe | The stages of a 3D print, boxed at the lower time bounds each stage demands.
 Case study | 3D printing: with effect handlers | time-lower-bound | 3dprint/3dprint_handlers.tpe | The same pipeline with each stage an operation, handled by clauses that respect its timing.
 Case study | 3D printing: with trace grades | traces-interval | 3dprint/3dprint_traces.tpe | The same pipeline graded by the traces of operations it may exhibit, bounds on runtime included.

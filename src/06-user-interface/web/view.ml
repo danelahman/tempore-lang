@@ -497,24 +497,26 @@ let view_compiler (model : Model.model) =
             div
               ~a:[ class_ "control is-expanded" ]
               [
-                (* The module Examples_tpe is generated from examples/index;
-                   check the dune file for details. Each choice is paired with
-                   its group's label, since two examples of different groups
-                   may share a title. *)
-                grouped_select
-                  ~a:[ class_ "select is-fullwidth" ]
-                  "Load example"
-                  (fun (group, (e : Examples_tpe.example)) ->
-                    Model.EditMsg
-                      (LoadExample (group, e.title, e.grade, e.source)))
-                  (fun (_, (e : Examples_tpe.example)) -> e.title)
-                  (fun (_, (e : Examples_tpe.example)) -> e.description)
-                  (fun (group, (e : Examples_tpe.example)) ->
-                    Some (group, e.title) = model.edit_model.selected_example)
-                  (List.map
-                     (fun (g : Examples_tpe.group) ->
-                       (g.label, List.map (fun e -> (g.label, e)) g.examples))
-                     Examples_tpe.examples);
+                (* opens the gallery, see [view_gallery] *)
+                elt "button"
+                  ~a:
+                    [
+                      class_ "button is-fullwidth example-button";
+                      type_button;
+                      onclick (fun _ -> Model.OpenGallery);
+                    ]
+                  [
+                    elt "span"
+                      [
+                        text
+                          (match model.edit_model.selected_example with
+                          | Some (_, title) -> title
+                          | None -> "Load example");
+                      ];
+                    elt "span"
+                      ~a:[ class_ "has-text-grey" ]
+                      [ text "\xE2\x80\xA6" ];
+                  ];
               ];
           ];
       ]
@@ -649,6 +651,174 @@ let edit_view (model : Model.model) =
              errors);
     ]
     [ view_compiler model ]
+
+(* Example gallery *)
+
+(* A layer over the page listing the examples of Examples_tpe, generated from
+   examples/index (see the dune file), by group, with a search over them. *)
+
+(* Whether [sub] occurs in [s]. *)
+let contains ~sub s =
+  let sub_len = String.length sub and s_len = String.length s in
+  let rec at i =
+    i + sub_len <= s_len && (String.sub s i sub_len = sub || at (i + 1))
+  in
+  at 0
+
+(* The path under examples/, the directory every example lives in. *)
+let example_path (e : Examples_tpe.example) =
+  let prefix = "examples/" in
+  if String.starts_with ~prefix e.path then
+    String.sub e.path (String.length prefix)
+      (String.length e.path - String.length prefix)
+  else e.path
+
+(* Whether [query], trimmed, occurs in the group, title, grade, description or
+   path under examples/ of an example, ignoring case. *)
+let matches query group (e : Examples_tpe.example) =
+  contains
+    ~sub:(String.lowercase_ascii (String.trim query))
+    (String.lowercase_ascii
+       (String.concat " "
+          [ group; e.title; e.grade; e.description; example_path e ]))
+
+let example_group_id k = Printf.sprintf "example-group-%d" k
+
+(* An example's card, which loads it; [current] marks the example last
+   loaded. *)
+let view_example_card ~current group (e : Examples_tpe.example) =
+  elt "button"
+    ~a:
+      [
+        class_ (if current then "example-card is-current" else "example-card");
+        type_button;
+        onclick (fun _ ->
+            Model.EditMsg
+              (Model.LoadExample (group, e.title, e.grade, e.source)));
+      ]
+    [
+      elt "span" ~a:[ class_ "example-card-title" ] [ text e.title ];
+      elt "span" ~a:[ class_ "example-card-description" ] [ text e.description ];
+      elt "span"
+        ~a:[ class_ "example-card-meta" ]
+        [
+          elt "span" ~a:[ class_ "example-card-grade" ] [ text e.grade ];
+          elt "span" ~a:[ class_ "example-card-path" ] [ text (example_path e) ];
+        ];
+    ]
+
+let onescape msg =
+  on "keydown"
+    Vdom.Decoder.(
+      map
+        (fun key -> if key = "Escape" then Some msg else None)
+        (field "key" String))
+
+(* The gallery with the search [query]: the groups with an example matching
+   it, each listed in the side column and as a section of cards. Esc closes
+   it, the layer taking the focus from a click inside the panel, and so does a
+   click on the backdrop beside the panel. *)
+let view_gallery ~selected query =
+  let groups =
+    List.filter_map
+      (fun (k, (g : Examples_tpe.group)) ->
+        match List.filter (matches query g.label) g.examples with
+        | [] -> None
+        | examples -> Some (k, g, examples))
+      (List.mapi (fun k g -> (k, g)) Examples_tpe.examples)
+  in
+  let view_toc_entry (k, (g : Examples_tpe.group), examples) =
+    elt "a"
+      ~a:[ attr "href" ("#" ^ example_group_id k) ]
+      [
+        text (g.label ^ " ");
+        elt "span" [ text (Printf.sprintf "(%d)" (List.length examples)) ];
+      ]
+  in
+  let view_group (k, (g : Examples_tpe.group), examples) =
+    elt "section"
+      ~a:[ class_ "example-group"; attr "id" (example_group_id k) ]
+      [
+        elt "header" [ elt "h3" [ text g.label ]; elt "p" [ text g.summary ] ];
+        div
+          ~a:[ class_ "example-cards" ]
+          (List.map
+             (fun (e : Examples_tpe.example) ->
+               view_example_card
+                 ~current:(selected = Some (g.label, e.title))
+                 g.label e)
+             examples);
+      ]
+  in
+  div
+    ~a:
+      [
+        class_ "example-gallery";
+        attr "tabindex" "-1";
+        onescape Model.CloseGallery;
+      ]
+    [
+      div
+        ~a:
+          [
+            class_ "example-gallery-backdrop";
+            onclick (fun _ -> Model.CloseGallery);
+          ]
+        [];
+      div
+        ~a:
+          [
+            class_ "example-gallery-panel";
+            attr "role" "dialog";
+            attr "aria-modal" "true";
+            attr "aria-label" "Examples";
+          ]
+        [
+          div
+            ~a:[ class_ "example-gallery-head" ]
+            [
+              elt "h2" [ text "Examples" ];
+              input
+                ~a:
+                  [
+                    class_ "example-gallery-search";
+                    attr "placeholder"
+                      "Search examples, e.g. rollout, levels, handlers, regex";
+                    attr "aria-label" "Search examples";
+                    str_prop "value" query;
+                    oninput (fun query -> Model.SearchGallery query);
+                    autofocus;
+                  ]
+                [];
+              elt "button"
+                ~a:
+                  [
+                    class_ "example-gallery-close";
+                    type_button;
+                    attr "aria-label" "Close";
+                    onclick (fun _ -> Model.CloseGallery);
+                  ]
+                [ text "\xC3\x97" ];
+            ];
+          div
+            ~a:[ class_ "example-gallery-body" ]
+            [
+              elt "nav"
+                ~a:[ class_ "example-gallery-toc" ]
+                (List.map view_toc_entry groups);
+              div
+                ~a:[ class_ "example-gallery-list" ]
+                (match groups with
+                | [] ->
+                    [
+                      elt "p"
+                        ~a:[ class_ "example-gallery-empty" ]
+                        [ text "No example matches." ];
+                    ]
+                | _ -> List.map view_group groups);
+            ];
+        ];
+    ]
 
 (* Run view *)
 
@@ -897,4 +1067,8 @@ let view (model : Model.model) =
           | Error _ -> edit_view model
           | Ok run_model -> run_view run_model));
       view_footer;
+      (match model.gallery with
+      | Some query ->
+          view_gallery ~selected:model.edit_model.selected_example query
+      | None -> nil);
     ]
