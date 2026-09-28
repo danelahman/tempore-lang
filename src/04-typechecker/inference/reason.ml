@@ -48,6 +48,7 @@ type ('rho, 'eps) why =
   | Annotation
   | Pattern_annotation
   | Variant_argument of Ast.label
+  | Successor_pattern
   | Boxed_value
   | Unboxed of {
       var : Ast.variable;
@@ -138,10 +139,10 @@ let rec map_grades on_rho on_eps reason =
     | Recursive_definition f -> Recursive_definition f
     | Continuation_effect kind -> Continuation_effect kind
     | Top_definition x -> Top_definition x
-    | ( Match_branch | Annotation | Pattern_annotation | Boxed_value
-      | Handle_with | Handled_computation | Return_clause | Function_body
-      | Function_parameter | Pure_body | Sequencing | Top_computation ) as why
-      ->
+    | ( Match_branch | Annotation | Pattern_annotation | Successor_pattern
+      | Boxed_value | Handle_with | Handled_computation | Return_clause
+      | Function_body | Function_parameter | Pure_body | Sequencing
+      | Top_computation ) as why ->
         why
   in
   let stated =
@@ -210,6 +211,7 @@ let print_why why ppf =
   | Pattern_annotation -> text "pattern annotation"
   | Variant_argument lbl ->
       Format.fprintf ppf "argument of %t" (Ast.Label.print lbl)
+  | Successor_pattern -> text "successor pattern"
   | Boxed_value -> text "boxed value"
   | Unboxed { var; _ } -> var_rule "unbox" var
   | Use_under_locks { var; _ } -> var_rule "use of" var

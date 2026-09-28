@@ -70,7 +70,9 @@ The type `nat` holds the natural numbers; values and literals are of arbitrary
 size. Subtraction is truncated, so `3 - 5` is `0`, and there is
 no negation: `-1` is a syntax error. Division and `mod` by zero are runtime
 errors. Grade literals keep their own signed integers (see [Grade
-literals](#grade-literals)).
+literals](#grade-literals)). A pattern `p + k`, for a literal `k ≥ 1`, matches
+a natural number `n ≥ k` and matches `p` against `n - k`, e.g.
+`match n with 0 -> 1 | m + 1 -> n * fact m`.
 
 ## Grading monoids
 

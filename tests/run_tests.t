@@ -1874,6 +1874,76 @@
           ^^^^^^^^^^^^^^
   Syntax error: Natural numbers have no negation
   ======================================================================
+  nat_reject_successor_pattern.tpe
+  ======================================================================
+  File "nat_reject_successor_pattern.tpe", line 3, characters 21-26:
+  3 | run match "one" with m + 1 -> m | _ -> 0
+                           ^^^^^
+  Typing error: This pattern matches values of type `nat` but the matched value has type `string`
+    File "nat_reject_successor_pattern.tpe", line 3, characters 14-15:
+    3 | run match "one" with m + 1 -> m | _ -> 0
+                      ^
+    the matched value has type `string`
+  
+  File "nat_reject_successor_pattern.tpe", line 5, characters 17-23:
+  5 | run match 3 with (a, b) + 1 -> a | _ -> 0
+                       ^^^^^^
+  Typing error: This pattern matches values of type `α × β` but, as the argument of a successor pattern, is given values of type `nat`
+  ======================================================================
+  nat_reject_successor_zero.tpe
+  ======================================================================
+  File "nat_reject_successor_zero.tpe", line 3, characters 21-22:
+  3 | run match 3 with m + 0 -> m
+                           ^
+  Syntax error: The number added in a successor pattern must be positive
+  ======================================================================
+  nat_successor_patterns.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3628800
+  State: []
+  
+  === Run 2 ===
+  return 610
+  State: []
+  
+  === Run 3 ===
+  return (true, false)
+  State: []
+  
+  === Run 4 ===
+  return (1::2::3::[])
+  State: []
+  
+  === Run 5 ===
+  return (3, 0::[])
+  State: []
+  
+  === Run 6 ===
+  return 3
+  State: []
+  
+  === Run 7 ===
+  return 2
+  State: []
+  
+  === Run 8 ===
+  return 7
+  State: []
+  
+  === Run 9 ===
+  return (2, 1)
+  State: []
+  
+  === Run 10 ===
+  return 99999999999999999998
+  State: []
+  
+  === Run 11 ===
+  return 1
+  State: []
+  
+  ======================================================================
   non_linear_pattern.tpe
   ======================================================================
   File "non_linear_pattern.tpe", line 3, characters 8-13:

@@ -153,6 +153,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
         | _, _ -> raise PatternMismatch)
     | Ast.PConst c when Const.equal c (eval_const env expr) ->
         Ast.VariableMap.empty
+    | Ast.PSucc (pat, k) -> (
+        match eval_const env expr with
+        | Const.Nat n when Z.geq n k ->
+            match_pattern_with_expression env pat
+              { expr with it = Ast.Const (Const.Nat (Z.sub n k)) }
+        | _ -> raise PatternMismatch)
     | Ast.PNonbinding -> Ast.VariableMap.empty
     | _ -> raise PatternMismatch
 
@@ -166,7 +172,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.PTuple pats ->
         List.fold_left remove_pattern_bound_variables subst pats
     | Ast.PVariant (_, None) -> subst
-    | Ast.PVariant (_, Some pat) -> remove_pattern_bound_variables subst pat
+    | Ast.PVariant (_, Some pat) | Ast.PSucc (pat, _) ->
+        remove_pattern_bound_variables subst pat
     | Ast.PConst _ -> subst
     | Ast.PNonbinding -> subst
 
@@ -192,6 +199,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.PVariant (lbl, Some pat') ->
         let pat'', vars = refresh_pattern pat' in
         ({ pat with it = Ast.PVariant (lbl, Some pat'') }, vars)
+    | Ast.PSucc (pat', k) ->
+        let pat'', vars = refresh_pattern pat' in
+        ({ pat with it = Ast.PSucc (pat'', k) }, vars)
     | Ast.PVariant (_, None) | Ast.PConst _ | Ast.PNonbinding -> (pat, [])
 
   (** | Ast.Handler ((y, ret_case), op_cases) -> let y' = Ast.Variable.refresh y

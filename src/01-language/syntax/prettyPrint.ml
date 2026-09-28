@@ -136,13 +136,16 @@ let rec print_pattern ?max_level p ppf =
   | PAs (p, x) -> print "%t as %t" (print_pattern p) (Variable.print x)
   | PAnnotated (p, _ty) -> print_pattern ?max_level p ppf
   | PConst c -> Const.print c ppf
+  | PSucc (p, k) ->
+      print ~at_level:2 "%t + %s" (print_pattern ~max_level:2 p) (Z.to_string k)
   | PTuple lst -> Print.print_tuple print_pattern lst ppf
   | PVariant (lbl, None) when lbl = nil_label -> print "[]"
   | PVariant (lbl, None) -> print "%t" (Label.print lbl)
   | PVariant (lbl, Some { it = PTuple [ v1; v2 ]; _ }) when lbl = cons_label ->
       print "%t::%t" (print_pattern v1) (print_pattern v2)
   | PVariant (lbl, Some p) ->
-      print ~at_level:1 "%t @[<hov>%t@]" (Label.print lbl) (print_pattern p)
+      print ~at_level:1 "%t @[<hov>%t@]" (Label.print lbl)
+        (print_pattern ~max_level:0 p)
   | PNonbinding -> print "_"
 
 and print_expression resource_grade =

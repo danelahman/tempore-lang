@@ -1,0 +1,5 @@
+(* Rejected: a successor pattern matches natural numbers only. *)
+
+run match "one" with m + 1 -> m | _ -> 0
+
+run match 3 with (a, b) + 1 -> a | _ -> 0

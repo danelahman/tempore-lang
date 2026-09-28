@@ -1,0 +1,3 @@
+(* Rejected: a successor pattern adds a positive number. *)
+
+run match 3 with m + 0 -> m

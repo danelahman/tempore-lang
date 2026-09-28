@@ -670,10 +670,11 @@ module Make (C : Inference.Constraint.S) = struct
         [ declared_label op signature_at ]
     | Reason.Application _ | Reason.Match_scrutinee _ | Reason.Match_branch
     | Reason.Annotation | Reason.Pattern_annotation | Reason.Variant_argument _
-    | Reason.Boxed_value | Reason.Handle_with | Reason.Handled_computation
-    | Reason.Return_clause | Reason.Recursive_definition _
-    | Reason.Function_body | Reason.Function_parameter | Reason.Pure_body
-    | Reason.Sequencing | Reason.Continuation_effect _ | Reason.Top_definition _
+    | Reason.Successor_pattern | Reason.Boxed_value | Reason.Handle_with
+    | Reason.Handled_computation | Reason.Return_clause
+    | Reason.Recursive_definition _ | Reason.Function_body
+    | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing
+    | Reason.Continuation_effect _ | Reason.Top_definition _
     | Reason.Top_computation ->
         []
 
@@ -685,6 +686,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Match_branch -> "the branch"
     | Reason.Annotation | Reason.Pattern_annotation -> "the annotation"
     | Reason.Variant_argument lbl -> "the argument of " ^ label_name lbl
+    | Reason.Successor_pattern -> "the successor pattern"
     | Reason.Boxed_value -> "the box"
     | Reason.Unboxed { var; _ } -> "the unboxing of " ^ describe var
     | Reason.Use_under_locks { var; _ } | Reason.Op_case_capture { var; _ } ->
@@ -720,10 +722,10 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Variant_argument _ ->
         true
     | Reason.Application _ | Reason.Match_scrutinee _ | Reason.Match_branch
-    | Reason.Handle_with | Reason.Handled_computation | Reason.Return_clause
-    | Reason.Recursive_definition _ | Reason.Function_body
-    | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing
-    | Reason.Continuation_effect _ | Reason.Top_definition _
+    | Reason.Successor_pattern | Reason.Handle_with | Reason.Handled_computation
+    | Reason.Return_clause | Reason.Recursive_definition _
+    | Reason.Function_body | Reason.Function_parameter | Reason.Pure_body
+    | Reason.Sequencing | Reason.Continuation_effect _ | Reason.Top_definition _
     | Reason.Top_computation ->
         false
 
@@ -956,6 +958,12 @@ module Make (C : Inference.Constraint.S) = struct
           Printf.sprintf
             "Constructor %s expects an argument of type %s but is given %s"
             (label_name lbl) e o )
+    | Reason.Successor_pattern, _ ->
+        ( at,
+          Printf.sprintf
+            "This pattern matches values of type %s but, as the argument of a \
+             successor pattern, is given values of type %s"
+            e o )
     | Reason.Boxed_value, _ ->
         (at, Printf.sprintf "The boxed value has type %s but is bound as %s" o e)
     | Reason.Unboxed { var; _ }, [] ->
@@ -1054,9 +1062,10 @@ module Make (C : Inference.Constraint.S) = struct
         true
     | ( ( Reason.Match_scrutinee _ | Reason.Match_branch | Reason.Annotation
         | Reason.Pattern_annotation | Reason.Variant_argument _
-        | Reason.Boxed_value | Reason.Unboxed _ | Reason.Perform_argument _
-        | Reason.Perform_continuation _ | Reason.Handled_computation
-        | Reason.Return_clause | Reason.Recursive_definition _ ),
+        | Reason.Successor_pattern | Reason.Boxed_value | Reason.Unboxed _
+        | Reason.Perform_argument _ | Reason.Perform_continuation _
+        | Reason.Handled_computation | Reason.Return_clause
+        | Reason.Recursive_definition _ ),
         _ ) ->
         true
     | _ -> false

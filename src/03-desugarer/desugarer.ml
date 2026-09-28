@@ -120,7 +120,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     match pat with
     | Sugared.PAnnotated (pat, ty) ->
         ty_annotation_names (pattern_annotation_names names pat) ty
-    | Sugared.PAs (pat, _) | Sugared.PVariant (_, Some pat) ->
+    | Sugared.PAs (pat, _)
+    | Sugared.PVariant (_, Some pat)
+    | Sugared.PSucc (pat, _) ->
         pattern_annotation_names names pat
     | Sugared.PTuple pats -> List.fold_left pattern_annotation_names names pats
     | Sugared.PVar _
@@ -298,6 +300,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let vars, pat' = desugar_pattern state vars pat in
         (vars, Untyped.PVariant (lbl', Some pat'))
     | Sugared.PConst c -> (StringMap.empty, Untyped.PConst c)
+    | Sugared.PSucc (pat, k) ->
+        let vars, pat' = desugar_pattern state vars pat in
+        (vars, Untyped.PSucc (pat', k))
     | Sugared.PNonbinding -> (StringMap.empty, Untyped.PNonbinding)
 
   let add_fresh_variables state vars =

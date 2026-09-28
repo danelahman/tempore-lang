@@ -324,11 +324,21 @@ plain_comma_pattern:
 
 cons_pattern: mark_position(plain_cons_pattern) { $1 }
 plain_cons_pattern:
-  | p = variant_pattern
+  | p = succ_pattern
     { p.it }
-  | p1 = variant_pattern CONS p2 = cons_pattern
+  | p1 = succ_pattern CONS p2 = cons_pattern
     { let ptuple = {it= PTuple [p1; p2]; at= Location.of_lexing $startpos $endpos} in
       PVariant (cons_label, Some ptuple) }
+
+succ_pattern: mark_position(plain_succ_pattern) { $1 }
+plain_succ_pattern:
+  | p = variant_pattern
+    { p.it }
+  | p = succ_pattern PLUS k = INT
+    { if Z.sign k > 0 then PSucc (p, k)
+      else
+        Error.syntax ~loc:(Location.of_lexing $startpos(k) $endpos(k))
+          "The number added in a successor pattern must be positive" }
 
 variant_pattern: mark_position(plain_variant_pattern) { $1 }
 plain_variant_pattern:

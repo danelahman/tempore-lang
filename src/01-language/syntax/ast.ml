@@ -162,6 +162,7 @@ and ('rho, 'eps) plain_pattern =
   | PTuple of ('rho, 'eps) pattern list
   | PVariant of label * ('rho, 'eps) pattern option
   | PConst of Const.t
+  | PSucc of ('rho, 'eps) pattern * Z.t
   | PNonbinding
 
 type ('rho, 'eps) expression = ('rho, 'eps) plain_expression located

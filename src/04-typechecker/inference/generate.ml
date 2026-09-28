@@ -526,6 +526,19 @@ module Make (C : Constraint.S) = struct
                 expected.bound,
                 Ast.TyConst (Const.infer_ty c) );
         }
+    | Ast.PSucc (pat', _) ->
+        let nat = Ast.TyConst Const.NatTy in
+        let p =
+          pattern env pat'
+            (expect nat (Reason.because pat'.Ast.at Reason.Successor_pattern))
+        in
+        {
+          p with
+          constr =
+            C.conj
+              (C.Sub (Reason.against at expected.because, expected.bound, nat))
+              p.constr;
+        }
     | Ast.PTuple pats -> tuple_pattern env at pats expected
     | Ast.PVariant (lbl, arg) -> variant_pattern env at lbl arg expected
 
@@ -601,7 +614,9 @@ module Make (C : Constraint.S) = struct
     | Ast.PVar x | Ast.PAs (_, x) ->
         if Ast.Variable.is_synthetic x then None else Some x
     | Ast.PAnnotated (pat, _) -> pattern_variable pat
-    | Ast.PNonbinding | Ast.PConst _ | Ast.PTuple _ | Ast.PVariant _ -> None
+    | Ast.PNonbinding | Ast.PConst _ | Ast.PSucc _ | Ast.PTuple _
+    | Ast.PVariant _ ->
+        None
 
   (* The clause a rigid continuation effect belongs to; the parser pairs the
      parameter and continuation patterns. *)

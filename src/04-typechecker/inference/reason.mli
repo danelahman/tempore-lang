@@ -75,6 +75,9 @@ type ('rho, 'eps) why =
   | Annotation  (** at = the annotated expression *)
   | Pattern_annotation  (** at = the annotated pattern *)
   | Variant_argument of Ast.label  (** at = the argument of a constructor *)
+  | Successor_pattern
+      (** at = the argument of a successor pattern, which matches natural
+          numbers *)
   | Boxed_value  (** at = the [box]; the payload's type is boxed *)
   | Unboxed of {
       var : Ast.variable;

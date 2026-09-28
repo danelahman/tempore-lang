@@ -1,0 +1,57 @@
+(* Successor patterns 'p + k' match a natural number n >= k and match 'p'
+   against n - k. *)
+
+let rec fact n =
+  match n with
+  | 0 -> 1
+  | m + 1 -> n * fact m
+
+run fact 10
+
+(* Two predecessors at once. *)
+let rec fib n =
+  match n with
+  | 0 -> 0
+  | 1 -> 1
+  | m + 2 -> fib (m + 1) + fib m
+
+run fib 15
+
+let rec even n =
+  match n with
+  | 0 -> true
+  | 1 -> false
+  | m + 2 -> even m
+
+run (even 10, even 7)
+
+(* Successor patterns nested in tuples and lists. *)
+let rec take xs n =
+  match (xs, n) with
+  | (x :: xs, m + 1) -> x :: take xs m
+  | _ -> []
+
+run take [1; 2; 3; 4; 5] 3
+
+(* 'x + 1 :: xs' matches as '(x + 1) :: xs'. *)
+run match [4; 0] with x + 1 :: xs -> (x, xs) | _ -> (7, [])
+
+(* Successor patterns nest, and 'n + 1 + 1' matches as '(n + 1) + 1'. *)
+run match 5 with n + 1 + 1 -> n
+
+run match 5 with (n + 1) + 2 -> n
+
+(* A function parameter. *)
+run (fun (m + 1) -> m) 8
+
+(* A number below k falls through to a later case. *)
+run
+  match 2 with
+  | m + 3 -> (1, m)
+  | m + 1 -> (2, m)
+  | _ -> (3, 0)
+
+(* Arbitrary-precision values. *)
+run match 99999999999999999999 with m + 1 -> m
+
+run match 18446744073709551616 with m + 18446744073709551615 -> m

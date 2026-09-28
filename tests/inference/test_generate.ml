@@ -102,6 +102,7 @@ let malformed =
     "literals_reject_peak.tpe";
     "literals_reject_windows.tpe";
     "nat_reject_negative.tpe";
+    "nat_reject_successor_zero.tpe";
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
     "literals_reject_rational_negative.tpe";
