@@ -23,3 +23,14 @@ the Bulma stylesheet the web interface uses, e.g. for its run button.
 
 All SVGs use a `0 0 200 200` view box and scale freely; the ring is 10 units
 wide, the brackets 9 and the ticks 7 (14, 12 and 9 in the favicon).
+
+The mark with the name *Tempore*, set in Inter SemiBold (SIL Open Font
+License) and converted to outlines, for use outside the web interface:
+
+- `tempore-wordmark.*`: the mark beside the name.
+- `tempore-wordmark-stacked.*`: the mark above the name.
+
+Each comes for light backgrounds (`.svg`, with `.pdf` and `.png` exports), for
+dark backgrounds (`-dark`, likewise) and in one colour (`-mono.svg`, drawn in
+`currentColor`). The PNG exports are 2780 px (beside) and 1600 px (stacked)
+wide, with transparent backgrounds.
