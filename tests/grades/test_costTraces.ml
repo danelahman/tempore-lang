@@ -8,8 +8,10 @@
    the finite timed-trace grades, and examples of the closed world, of zero
    costs, of the laws that hold up to equivalence, of the literals and of the
    grades without runs; the agreement of the implementations on random
-   grades and cost models, in their verdicts and their printing; and long runs
-   of ticks, taken at once by the implementations by derivatives. *)
+   grades and cost models, in their verdicts and their printing; long runs of
+   ticks, taken at once by the implementations by derivatives; and the
+   agreement of the implementations over cost models of many operations
+   sharing costs, in their counterexamples too. *)
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
@@ -732,19 +734,19 @@ let long_tables =
   ]
 
 (* Random expressions shaped as grades over delays of up to [longest] ticks:
-   alternatives of sequences of [A], [B], delays, [_] and repetitions of names,
-   ended by [_*] at times, and the intersections of such alternatives. The
-   complement of a delay has no run of ticks, every word but the delay being
-   in it, so that its closures explore each of its ticks; these leave it
-   out. *)
-let random_grade ~longest state =
+   alternatives of sequences of [letters], by default [A] and [B], delays, [_]
+   and repetitions of names, ended by [_*] at times, and the intersections of
+   such alternatives. The complement of a delay has no run of ticks, every word
+   but the delay being in it, so that its closures explore each of its ticks;
+   these leave it out. *)
+let random_grade ?(letters = [ "A"; "B" ]) ~longest state =
   let pick xs = List.nth xs (Random.State.int state (List.length xs)) in
   let atom () =
     match Random.State.int state 5 with
     | 0 | 1 -> Grade.Tick (Random.State.int state (longest + 1))
-    | 2 -> Grade.Letter (pick [ "A"; "B" ])
+    | 2 -> Grade.Letter (pick letters)
     | 3 -> Grade.Any
-    | _ -> Grade.Star (Grade.Letter (pick [ "A"; "B" ]))
+    | _ -> Grade.Star (Grade.Letter (pick letters))
   in
   let sequence () =
     let atoms = List.init (1 + Random.State.int state 3) (fun _ -> atom ()) in
@@ -1080,11 +1082,173 @@ let canonical =
   @ B.checks tables grades words
   @ P.checks tables grades words
 
+(* {1 (i) Many operations sharing costs} *)
+
+(* Cost models of [3 … 40] operations [Op01], [Op02], …, each of one of two or
+   three pairs of runtime bounds, with random lower ends in [0 … 2] and upper
+   ends up to three more. *)
+let shared_tables =
+  let state = Random.State.make [| 67 |] in
+  List.init 10 (fun _ ->
+      let classes =
+        List.init
+          (2 + Random.State.int state 2)
+          (fun _ ->
+            let lo = Random.State.int state 3 in
+            (lo, lo + Random.State.int state 4))
+      in
+      List.init
+        (3 + Random.State.int state 38)
+        (fun i ->
+          ( Printf.sprintf "Op%02d" (i + 1),
+            List.nth classes (Random.State.int state (List.length classes)) )))
+
+(* Random expressions of depth [depth] over up to four operations of [table],
+   delays of up to [longest] ticks, [_] and unions of two operations, the other
+   operations being left to the catch-all letter. *)
+let random_shared ~longest ~depth table state =
+  let pick xs = List.nth xs (Random.State.int state (List.length xs)) in
+  let mentioned = List.init 4 (fun _ -> fst (pick table)) in
+  let letter () = Grade.Letter (pick mentioned) in
+  let atom () =
+    match Random.State.int state 6 with
+    | 0 | 1 -> letter ()
+    | 2 -> Grade.Tick (Random.State.int state (longest + 1))
+    | 3 -> Grade.Tick 1
+    | 4 -> Grade.Union (letter (), letter ())
+    | _ -> Grade.Any
+  in
+  let rec go depth =
+    if depth = 0 then atom ()
+    else
+      match Random.State.int state 9 with
+      | 0 | 1 -> atom ()
+      | 2 | 3 -> Grade.Seq (go (depth - 1), go (depth - 1))
+      | 4 | 5 -> Grade.Union (go (depth - 1), go (depth - 1))
+      | 6 -> Grade.Inter (go (depth - 1), go (depth - 1))
+      | 7 -> Grade.Star (go (depth - 1))
+      | _ -> Grade.Compl (go (depth - 1))
+  in
+  go depth
+
+(* The verdicts of the implementation [I] over the operations of a cost model:
+   under each order, whether a grade is below another, whether they are equal,
+   and the word of the counterexample over the operations, with whether it is a
+   run of the lesser grade outside the closure of the greater; and the runtime
+   bounds implied by the grades and their inhabitation. *)
+module Shared (I : IMPLEMENTATION) = struct
+  include I
+
+  let grade r =
+    match L.of_lit (Grade.Braces r) with
+    | rho -> Some rho
+    | exception Grade.Invalid_literal _ -> None
+
+  (* [word names rho] is the shortest run of [rho] over [names], its ticks
+     written [τ]. *)
+  let word names rho =
+    Option.map
+      (List.map (fun a -> if a = 0 then "τ" else List.nth names (a - 1)))
+      (Dfa.counterexample (L.concrete names rho)
+         (Dfa.empty (List.length names + 1)))
+
+  let verdicts table (r, r') =
+    let bounds = bounds_of table and names = List.map fst table in
+    match (grade r, grade r') with
+    | Some rho, Some rho' ->
+        let verdict (type a) (module G : Grade.S with type t = a) words x y =
+          ( G.leq bounds x y,
+            G.equal bounds x y,
+            Option.map
+              (fun e -> (words e, G.leq bounds e x && not (G.leq bounds e y)))
+              (G.counterexample bounds x y) )
+        in
+        let single rho = [ word names rho ] in
+        let pair (lo, hi) = [ word names lo; word names hi ] in
+        Some
+          ( [
+              verdict (module Upper) single rho rho';
+              verdict (module Lower) single rho rho';
+              verdict (module Interval) pair (rho, rho') (rho', rho);
+            ],
+            [
+              Upper.implied_bounds bounds rho;
+              Lower.implied_bounds bounds rho;
+              Interval.implied_bounds bounds (rho, rho');
+            ],
+            [ Upper.inhabited bounds rho; Lower.inhabited bounds rho ] )
+    | _ -> None
+end
+
+module SharedAutomata = Shared (Automata)
+module SharedDerivatives = Shared (Derivatives)
+module SharedByLetters = Shared (ByLetters)
+module SharedPlain = Shared (Plain)
+
+(* The implementations agree over cost models of many operations sharing
+   costs, most of them left to the catch-all letter, in their verdicts, their
+   counterexamples, which are runs of the declared operations, and their
+   runtime bounds: on random grades against the automata, and with each other
+   on grades over delays of up to 120 ticks. *)
+let shared =
+  let state = Random.State.make [| 71 |] in
+  let show_table table =
+    Printf.sprintf "%d operations, %s" (List.length table)
+      (String.concat ", "
+         (List.sort_uniq compare
+            (List.map
+               (fun (_, (lo, hi)) -> Printf.sprintf "(%d,%d)" lo hi)
+               table)))
+  in
+  let show_regex r =
+    match SharedDerivatives.grade r with
+    | Some rho -> SharedDerivatives.L.show rho
+    | None -> "∅"
+  in
+  let sound = function
+    | Some (orders, _, _) ->
+        List.for_all
+          (fun (_, _, found) ->
+            match found with Some (_, valid) -> valid | None -> true)
+          orders
+    | None -> true
+  in
+  let agree name ~automata ~count random =
+    List.map
+      (fun table ->
+        let grades = List.init count (fun _ -> random table) in
+        all name
+          (fun (r, r') ->
+            show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
+          (fun pair ->
+            let verdicts = SharedDerivatives.verdicts table pair in
+            sound verdicts
+            && ((not automata) || SharedAutomata.verdicts table pair = verdicts)
+            && SharedByLetters.verdicts table pair = verdicts
+            && SharedPlain.verdicts table pair = verdicts)
+          (pairs grades))
+      shared_tables
+  in
+  let long table =
+    let pick () =
+      fst (List.nth table (Random.State.int state (List.length table)))
+    in
+    random_grade ~letters:[ pick (); pick () ] ~longest:120 state
+  in
+  let random table = random_shared ~longest:3 ~depth:4 table state in
+  let agreement =
+    agree "many operations sharing costs: the implementations agree"
+      ~automata:true ~count:12 random
+  in
+  agreement
+  @ agree "many operations sharing costs: agreement on long delays"
+      ~automata:false ~count:5 long
+
 let () =
   let checks =
     segments @ OfAutomata.checks @ OfDerivatives.checks @ OfByLetters.checks
     @ OfPlain.checks @ agreement @ printing @ plain_inhabited @ long_runs
-    @ canonical
+    @ canonical @ shared
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

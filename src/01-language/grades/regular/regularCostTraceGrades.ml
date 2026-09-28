@@ -6,6 +6,7 @@ module type LANGUAGE = sig
 
   val concrete : string list -> t -> Dfa.t
   val runs : string list -> t -> State.t Dfa.automaton
+  val representatives : t list -> (string * int) list -> (string * int) list
 end
 
 module Make
@@ -36,8 +37,8 @@ struct
     let costs = Array.of_list costs in
     fun a -> costs.(a - 1)
 
-  (** The arguments of a search: the names, the costs of their operations, and
-      the grades compared, by their representations. *)
+  (** The arguments of a search: the least names of the classes, their costs,
+      and the grades compared, by their representations. *)
   module Search = Hashtbl.Make (struct
     type t = string list * int list * L.t * L.t
 
@@ -65,7 +66,7 @@ struct
           Search.add table key word;
           word
 
-  (** The grades over given names, by their representations. *)
+  (** The grades over given least names, by their representations. *)
   module Tables = Hashtbl.Make (struct
     type t = string list * L.t
 
@@ -92,9 +93,9 @@ struct
     top : L.t;
   }
   (** An order on runs: the search for a shortest run of the lesser grade
-      outside the closure of the greater one, over given names at given costs of
-      their operations, the end of the runtime bounds it reads as the cost of an
-      operation, and the representation of its greatest grade. *)
+      outside the closure of the greater one, over the classes of given least
+      names at given costs, the end of the runtime bounds it reads as the cost
+      of an operation, and the representation of its greatest grade. *)
 
   let letters names = List.length names + 1
 
@@ -126,25 +127,35 @@ struct
     List.sort_uniq String.compare
       (bounds.operations @ List.concat_map L.events rhos)
 
-  (** [costs endpoint bounds names] is the cost of each of [names], the
+  (** [cost endpoint bounds name] is the cost of the operation [name], the
       [endpoint] of its runtime bounds. *)
-  let costs endpoint bounds names =
-    List.map (fun name -> endpoint (bounds.cost name)) names
+  let cost endpoint bounds name = endpoint (bounds.cost name)
+
+  (** [classes cost bounds rhos] is the least names of the classes of the names
+      of a comparison of the grades [rhos] at the costs [cost], in increasing
+      order, and their costs. *)
+  let classes cost bounds rhos =
+    let names = alphabet bounds rhos in
+    List.split
+      (L.representatives rhos (List.map (fun name -> (name, cost name)) names))
 
   (** [find order bounds rho rho'] is a shortest run of [rho] outside the
-      closure of [rho'] under [order], with the names its letters index; there
-      is none if [rho] and [rho'] are the same language or [rho'] is the top. *)
+      closure of [rho'] under [order], with the least names of the classes its
+      letters index; there is none if [rho] and [rho'] are the same language or
+      [rho'] is the top. *)
   let find order bounds rho rho' =
     if L.equal bounds rho rho' || L.compare rho' order.top = 0 then None
     else
-      let names = alphabet bounds [ rho; rho' ] in
-      order.search names (costs order.endpoint bounds names) rho rho'
+      let names, costs =
+        classes (cost order.endpoint bounds) bounds [ rho; rho' ]
+      in
+      order.search names costs rho rho'
       |> Option.map (fun word -> (names, word))
 
   (** [inhabited bounds rho] is whether [rho] has a run over the declared
-      operations and the names it mentions. *)
+      operations and the names it mentions, the costs aside. *)
   let inhabited bounds rho =
-    let names = alphabet bounds [ rho ] in
+    let names, _ = classes (Fun.const 0) bounds [ rho ] in
     not (Runs.is_empty (letters names) (runs names rho))
 
   (** [grade_of_word (names, word)] is the grade of the single run [word] over
@@ -167,10 +178,8 @@ struct
   (** [weight extreme endpoint bounds rho] is the [extreme] weight of a run of
       [rho], operations costing the [endpoint] of their runtime bounds. *)
   let weight extreme endpoint bounds rho =
-    let names = alphabet bounds [ rho ] in
-    extreme
-      ~cost:(letter_cost (costs endpoint bounds names))
-      ~letters:(letters names) (runs names rho)
+    let names, costs = classes (cost endpoint bounds) bounds [ rho ] in
+    extreme ~cost:(letter_cost costs) ~letters:(letters names) (runs names rho)
 
   let implied_bounds bounds lower upper =
     match
@@ -297,6 +306,9 @@ struct
   end
 end
 
+(** [every_name rhos letters] is [letters], every name a class of its own. *)
+let every_name _rhos letters = letters
+
 (** The regular trace grade by automata, its runs over given names explored in
     its table. *)
 module Automata = struct
@@ -304,6 +316,7 @@ module Automata = struct
   module State = Int
 
   let runs names rho = Dfa.automaton (concrete names rho)
+  let representatives = every_name
 end
 
 (** The regular trace grade by symbolic derivatives, its runs over given names
@@ -316,12 +329,79 @@ module Derivatives = struct
 
     let compare = SymbolicRegex.compare_form
   end
+
+  let by_name (name, _) (name', _) = String.compare name name'
+
+  (** The grades of a comparison, by the numbers of their normal forms. *)
+  module Roots = Hashtbl.Make (struct
+    type t = int list
+
+    let equal = List.equal Int.equal
+    let hash = Grade.hash_list Fun.id
+  end)
+
+  (** [blocks rhos] is the names listed by the finite minterms of the letter
+      sets of [rhos], each with the number of its minterm, in increasing order,
+      and the number of the one cofinite minterm, which holds the other names;
+      tabulated by the normal forms of [rhos] in a module-level table that only
+      ever grows. *)
+  let blocks =
+    let number (listed, cofinite) (i, (m : SymbolicRegex.Letters.t)) =
+      match m.names with
+      | Only names ->
+          ( List.merge by_name listed (List.map (fun name -> (name, i)) names),
+            cofinite )
+      | Except _ -> (listed, i)
+    in
+    let table = Roots.create 64 in
+    fun rhos ->
+      let key = List.map SymbolicRegex.hash rhos in
+      match Roots.find_opt table key with
+      | Some blocks -> blocks
+      | None ->
+          let blocks =
+            List.fold_left number ([], 0)
+              (List.mapi
+                 (fun i m -> (i, m))
+                 (SymbolicRegex.Minterms.blocks rhos))
+          in
+          Roots.add table key blocks;
+          blocks
+
+  (** [mem i cost classes] is whether the class of the minterm [i] and the cost
+      [cost] is among [classes]. *)
+  let rec mem i cost = function
+    | [] -> false
+    | (i', cost') :: classes ->
+        (Int.equal i i' && Int.equal cost cost') || mem i cost classes
+
+  (* The names are listed in increasing order, as those of [blocks], so that
+     merging the two finds the minterm of each, and the first name of a class
+     is its least. *)
+  let representatives rhos letters =
+    let listed, cofinite = blocks rhos in
+    let rec keep listed seen letters =
+      match (letters, listed) with
+      | [], _ -> []
+      | ((name, _) as letter) :: letters', (name', i) :: listed' -> (
+          match String.compare name name' with
+          | 0 -> classify i letter listed' seen letters'
+          | c when c > 0 -> keep listed' seen letters
+          | _ -> classify cofinite letter listed seen letters')
+      | letter :: letters', [] -> classify cofinite letter [] seen letters'
+    and classify i ((_, cost) as letter) listed seen letters =
+      if mem i cost seen then keep listed seen letters
+      else letter :: keep listed ((i, cost) :: seen) letters
+    in
+    keep listed [] letters
 end
 
 (** The regular trace grade by the derivatives by concrete letters. *)
 module ConcreteDerivatives = struct
   include RegularTraceGradeDerivative.Concrete
   module State = Derivatives.State
+
+  let representatives = every_name
 end
 
 (** The regular trace grade by plain derivatives, its runs over given names
@@ -334,6 +414,8 @@ module PlainDerivatives = struct
 
     let compare = Regex.compare_form
   end
+
+  let representatives = every_name
 end
 
 include

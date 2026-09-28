@@ -6,7 +6,10 @@
     A run is a word over the letters of a {!Dfa}: the letter [0] is a tick and
     every other letter [a] an operation of cost [cost a], a non-negative
     integer. The weight of a word is its number of ticks plus the costs of its
-    operations.
+    operations. A letter may stand for a class of operations of equal cost for
+    which the language closed is saturated, the closure then being saturated for
+    it too ({!RegularCostTraceGrades.Derivatives}): the closures step by one
+    letter per class.
 
     {2 Orders}
 
