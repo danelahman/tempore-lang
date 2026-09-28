@@ -16,10 +16,13 @@ test: default
 clean:
 	dune clean
 
+deps:
+	opam install --deps-only --with-dev-setup .
+
 vscode-extension:
 	cd editors/vscode && \
 	  rm -f vscode-tempore-*.vsix && \
 	  npx --yes @vscode/vsce package && \
 	  code --install-extension vscode-tempore-*.vsix --force
 
-.PHONY: default format check-format release test clean vscode-extension
+.PHONY: default format check-format release test clean deps vscode-extension

@@ -30,10 +30,11 @@ Requires OCaml 5.5 or later. The dense time grades use zarith, which needs the
 GMP library (opam installs it through `conf-gmp`). Install the dependencies
 and build:
 
-    opam install --deps-only --with-dev-setup .
+    make deps
     make
 
-`make test` runs the test suite; `make clean` removes the build.
+`make deps` runs `opam install --deps-only --with-dev-setup .`; `make test`
+runs the test suite; `make clean` removes the build.
 
 ### Command line
 
