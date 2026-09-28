@@ -41,8 +41,8 @@ let grid ~degree cs =
 include TimeGrades.Make (struct
   type t = Rational.t
 
-  let module_name = "DenseTimeGrades"
-  let prefix = "dense-"
+  let module_name = "RationalTimeGrades"
+  let suffix = "-rational"
   let zero = Rational.zero
   let add = Rational.add
   let compare = Rational.compare
@@ -51,7 +51,8 @@ include TimeGrades.Make (struct
 
   let of_duration q =
     if Rational.sign q < 0 then
-      invalid_arg "DenseTimeGrades.of_duration: expected non-negative duration"
+      invalid_arg
+        "RationalTimeGrades.of_duration: expected non-negative duration"
     else q
 
   let read = function

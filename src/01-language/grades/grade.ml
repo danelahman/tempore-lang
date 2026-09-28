@@ -1,7 +1,7 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
-    {!DenseTimeGrades}, {!TimedTraceGrades}, {!RegularTraceGrade},
+    {!RationalTimeGrades}, {!TimedTraceGrades}, {!RegularTraceGrade},
     {!RegularTraceGradeDerivative}, {!RegularTraceGradePlain},
     {!RegularCostTraceGrades}, {!LevelGrades}, {!PeakGrades}, {!WindowGrades},
     {!ModeGrades} and {!CountGrades}, built with the constructions of

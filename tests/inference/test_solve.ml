@@ -285,9 +285,9 @@ let expected_rejections =
     ("continuation_twice_reject_upper.tpe", [ 10 ]);
     ("counts_upper_reject.tpe", [ 7; 14; 19; 27 ]);
     ("default_reject_bounds.tpe", [ 7 ]);
-    ("dense_time_intervals_reject.tpe", [ 9 ]);
-    ("dense_time_lower_reject.tpe", [ 10; 14 ]);
-    ("dense_time_upper_reject.tpe", [ 7 ]);
+    ("rational_time_intervals_reject.tpe", [ 9 ]);
+    ("rational_time_lower_reject.tpe", [ 10; 14 ]);
+    ("rational_time_upper_reject.tpe", [ 7 ]);
     ("default_reject_duplicate.tpe", [ 8 ]);
     ("default_reject_type.tpe", [ 7 ]);
     ("error_apply_arg.tpe", [ 8 ]);

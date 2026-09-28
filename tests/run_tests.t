@@ -5,12 +5,12 @@
   >   echo "======================================================================"
   >   case $f in
   >     time_intervals.tpe) ../tempore --grades time-interval $f;;
-  >     dense_time_lower*.tpe) ../tempore --grades dense-time-lower-bound $f;;
-  >     dense_time_upper*.tpe) ../tempore --grades dense-time-upper-bound $f;;
-  >     dense_time_intervals*.tpe) ../tempore --grades dense-time-interval $f;;
-  >     literals_dense_upper.tpe) ../tempore --grades dense-time-upper-bound $f;;
-  >     literals_dense_interval.tpe) ../tempore --grades dense-time-interval $f;;
-  >     literals_reject_dense_negative.tpe) ../tempore --grades dense-time-upper-bound $f;;
+  >     rational_time_lower*.tpe) ../tempore --grades time-lower-bound-rational $f;;
+  >     rational_time_upper*.tpe) ../tempore --grades time-upper-bound-rational $f;;
+  >     rational_time_intervals*.tpe) ../tempore --grades time-interval-rational $f;;
+  >     literals_rational_upper.tpe) ../tempore --grades time-upper-bound-rational $f;;
+  >     literals_rational_interval.tpe) ../tempore --grades time-interval-rational $f;;
+  >     literals_reject_rational_negative.tpe) ../tempore --grades time-upper-bound-rational $f;;
   >     literals_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
   >     delay_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
   >     time_upper.tpe) ../tempore --grades time-upper-bound $f;;
@@ -703,171 +703,7 @@
   File "delay_reject_fraction.tpe", line 4, characters 20-23:
   4 | let wait () = delay 0.5
                           ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'dense-time-lower-bound', 'dense-time-upper-bound', 'dense-time-interval', 'security-levels' or 'flow-levels' grading monoids?
-  ======================================================================
-  dense_time_intervals.tpe
-  ======================================================================
-  === Run 1 ===
-  return "tea"
-  State: [
-    { resource_0 ↦ "tea" # (0.5,1.5) },
-    (0.25,0.25),
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # (0.5,0.75)
-    },
-    (0.625,0.625)
-  ]
-  
-  ======================================================================
-  dense_time_intervals_reject.tpe
-  ======================================================================
-  File "dense_time_intervals_reject.tpe", lines 13-14, characters 2-3:
-  13 |   unbox r as y in
-         ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed with grade `(1,1.5)` accumulated since it was bound, which is not below its box grade `(0.5,1.25)`
-    File "dense_time_intervals_reject.tpe", line 10, characters 27-28:
-    10 |   box (0.5, 1.25) "tea" as r in
-                                    ^
-    `r` is bound here
-    File "dense_time_intervals_reject.tpe", line 11, characters 2-17:
-    11 |   perform Pour ();
-           ^^^^^^^^^^^^^^^
-    grade `(0.5,0.75)` accumulates here (operation `Pour`)
-    File "dense_time_intervals_reject.tpe", line 12, characters 2-17:
-    12 |   perform Pour ();
-           ^^^^^^^^^^^^^^^
-    grade `(0.5,0.75)` accumulates here (operation `Pour`)
-    Note: the resource inequality `(1,1.5) <= (0.5,1.25)` does not hold
-  ======================================================================
-  dense_time_lower.tpe
-  ======================================================================
-  === Run 1 ===
-  return "ripe"
-  State: [
-    { resource_0 ↦ "ripe" # 2.25 },
-    0.5,
-    1.25,
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # 0.5
-    },
-    0.5
-  ]
-  
-  ======================================================================
-  dense_time_lower_reject.tpe
-  ======================================================================
-  File "dense_time_lower_reject.tpe", line 10, characters 27-48:
-  10 | let h = handler | x -> x | Op () k -> delay 5; 0
-                                  ^^^^^^^^^^^^^^^^^^^^^
-  Typing error: For every grade `ε₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε₀`, but its grade `5` does not
-    File "dense_time_lower_reject.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Op` is declared here
-    File "dense_time_lower_reject.tpe", line 10, characters 33-34:
-    10 | let h = handler | x -> x | Op () k -> delay 5; 0
-                                          ^
-    `k` may have any grade `ε₀`
-    Note: the effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold: for `ε₀ = 4.5` it becomes `5 >= 5.5`
-  
-  File "dense_time_lower_reject.tpe", lines 19-20, characters 2-3:
-  19 |   unbox r as y in
-         ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed with grade `1` accumulated since it was bound, which is not below its box grade `1.5`
-    File "dense_time_lower_reject.tpe", line 15, characters 22-23:
-    15 |   box 1.5 "unripe" as r in
-                               ^
-    `r` is bound here
-    File "dense_time_lower_reject.tpe", line 16, characters 2-11:
-    16 |   delay 1/3;
-           ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
-    File "dense_time_lower_reject.tpe", line 17, characters 2-11:
-    17 |   delay 1/3;
-           ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
-    File "dense_time_lower_reject.tpe", line 18, characters 2-11:
-    18 |   delay 1/3;
-           ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
-    Note: the resource inequality `1 >= 1.5` does not hold
-  ======================================================================
-  dense_time_upper.tpe
-  ======================================================================
-  === Run 1 ===
-  return "fresh"
-  State: [
-    { resource_0 ↦ "fresh" # 1 },
-    1/3,
-    1/3,
-    1/3
-  ]
-  
-  === Run 2 ===
-  return "fresh"
-  State: [
-    { resource_0 ↦ "fresh" # 0.5 },
-    0.375,
-    0.125
-  ]
-  
-  === Run 3 ===
-  return "fresh"
-  State: [
-    { resource_0 ↦ "fresh" # 0.5 },
-    0.375,
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # 0.125
-    },
-    0.0625
-  ]
-  
-  ======================================================================
-  dense_time_upper_reject.tpe
-  ======================================================================
-  File "dense_time_upper_reject.tpe", lines 13-14, characters 2-3:
-  13 |   unbox r as y in
-         ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed with grade `4/3` accumulated since it was bound, which is not below its box grade `1`
-    File "dense_time_upper_reject.tpe", line 8, characters 19-20:
-    8 |   box 1 "fresh" as r in
-                           ^
-    `r` is bound here
-    File "dense_time_upper_reject.tpe", line 9, characters 2-11:
-    9 |   delay 1/3;
-          ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
-    File "dense_time_upper_reject.tpe", line 10, characters 2-11:
-    10 |   delay 1/3;
-           ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
-    File "dense_time_upper_reject.tpe", line 11, characters 2-11:
-    11 |   delay 1/3;
-           ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
-    File "dense_time_upper_reject.tpe", line 12, characters 2-11:
-    12 |   delay 1/3;
-           ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
-    Note: the resource inequality `4/3 <= 1` does not hold
+  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'security-levels' or 'flow-levels' grading monoids?
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
@@ -1391,7 +1227,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'dense-time-lower-bound', 'dense-time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1591,7 +1427,7 @@
   State: []
   
   ======================================================================
-  literals_dense_interval.tpe
+  literals_rational_interval.tpe
   ======================================================================
   === Run 1 ===
   return "o"
@@ -1608,7 +1444,7 @@
   ]
   
   ======================================================================
-  literals_dense_upper.tpe
+  literals_rational_upper.tpe
   ======================================================================
   === Run 1 ===
   return "q"
@@ -1742,13 +1578,6 @@
                          ^^^^^^^^^^
   Syntax error: in the 'counts-upper-bound' grading monoid, in the entry of 'Send', grades must be non-negative
   ======================================================================
-  literals_reject_dense_negative.tpe
-  ======================================================================
-  File "literals_reject_dense_negative.tpe", line 3, characters 19-23:
-  3 | let claim () = box -0.5 1
-                         ^^^^
-  Syntax error: in the 'dense-time-upper-bound' grading monoid, grades must be non-negative
-  ======================================================================
   literals_reject_empty.tpe
   ======================================================================
   File "literals_reject_empty.tpe", line 4, characters 19-33:
@@ -1768,7 +1597,7 @@
   File "literals_reject_fraction.tpe", line 4, characters 19-22:
   4 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'dense-time-lower-bound' or 'dense-time-upper-bound' grading monoids?
+  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational' or 'time-upper-bound-rational' grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -1789,7 +1618,7 @@
   File "literals_reject_inf.tpe", line 3, characters 19-22:
   3 | let claim () = box ∞ 1
                          ^^^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'dense-time-upper-bound', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'time-upper-bound-rational', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   literals_reject_modes.tpe
   ======================================================================
@@ -1818,6 +1647,13 @@
   3 | let claim () = box (2, 1) 1
                          ^^^^^^
   Syntax error: in the 'peak-usage' grading monoid, the peak must be at least 0 and at least the net change
+  ======================================================================
+  literals_reject_rational_negative.tpe
+  ======================================================================
+  File "literals_reject_rational_negative.tpe", line 3, characters 19-23:
+  3 | let claim () = box -0.5 1
+                         ^^^^
+  Syntax error: in the 'time-upper-bound-rational' grading monoid, grades must be non-negative
   ======================================================================
   literals_reject_star.tpe
   ======================================================================
@@ -2415,6 +2251,170 @@
              ^^^^
     `int` was inferred here
     Note: while matching `int → int` against `string → α # ε₀`
+  ======================================================================
+  rational_time_intervals.tpe
+  ======================================================================
+  === Run 1 ===
+  return "tea"
+  State: [
+    { resource_0 ↦ "tea" # (0.5,1.5) },
+    (0.25,0.25),
+    { resource_2 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            unbox resource_0 as y in
+            return y
+          with h
+        # (0.5,0.75)
+    },
+    (0.625,0.625)
+  ]
+  
+  ======================================================================
+  rational_time_intervals_reject.tpe
+  ======================================================================
+  File "rational_time_intervals_reject.tpe", lines 13-14, characters 2-3:
+  13 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `(1,1.5)` accumulated since it was bound, which is not below its box grade `(0.5,1.25)`
+    File "rational_time_intervals_reject.tpe", line 10, characters 27-28:
+    10 |   box (0.5, 1.25) "tea" as r in
+                                    ^
+    `r` is bound here
+    File "rational_time_intervals_reject.tpe", line 11, characters 2-17:
+    11 |   perform Pour ();
+           ^^^^^^^^^^^^^^^
+    grade `(0.5,0.75)` accumulates here (operation `Pour`)
+    File "rational_time_intervals_reject.tpe", line 12, characters 2-17:
+    12 |   perform Pour ();
+           ^^^^^^^^^^^^^^^
+    grade `(0.5,0.75)` accumulates here (operation `Pour`)
+    Note: the resource inequality `(1,1.5) <= (0.5,1.25)` does not hold
+  ======================================================================
+  rational_time_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return "ripe"
+  State: [
+    { resource_0 ↦ "ripe" # 2.25 },
+    0.5,
+    1.25,
+    { resource_2 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            unbox resource_0 as y in
+            return y
+          with h
+        # 0.5
+    },
+    0.5
+  ]
+  
+  ======================================================================
+  rational_time_lower_reject.tpe
+  ======================================================================
+  File "rational_time_lower_reject.tpe", line 10, characters 27-48:
+  10 | let h = handler | x -> x | Op () k -> delay 5; 0
+                                  ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: For every grade `ε₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε₀`, but its grade `5` does not
+    File "rational_time_lower_reject.tpe", line 5, characters 0-31:
+    5 | operation Op : unit ~> unit # 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Op` is declared here
+    File "rational_time_lower_reject.tpe", line 10, characters 33-34:
+    10 | let h = handler | x -> x | Op () k -> delay 5; 0
+                                          ^
+    `k` may have any grade `ε₀`
+    Note: the effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold: for `ε₀ = 4.5` it becomes `5 >= 5.5`
+  
+  File "rational_time_lower_reject.tpe", lines 19-20, characters 2-3:
+  19 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `1` accumulated since it was bound, which is not below its box grade `1.5`
+    File "rational_time_lower_reject.tpe", line 15, characters 22-23:
+    15 |   box 1.5 "unripe" as r in
+                               ^
+    `r` is bound here
+    File "rational_time_lower_reject.tpe", line 16, characters 2-11:
+    16 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    File "rational_time_lower_reject.tpe", line 17, characters 2-11:
+    17 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    File "rational_time_lower_reject.tpe", line 18, characters 2-11:
+    18 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    Note: the resource inequality `1 >= 1.5` does not hold
+  ======================================================================
+  rational_time_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return "fresh"
+  State: [
+    { resource_0 ↦ "fresh" # 1 },
+    1/3,
+    1/3,
+    1/3
+  ]
+  
+  === Run 2 ===
+  return "fresh"
+  State: [
+    { resource_0 ↦ "fresh" # 0.5 },
+    0.375,
+    0.125
+  ]
+  
+  === Run 3 ===
+  return "fresh"
+  State: [
+    { resource_0 ↦ "fresh" # 0.5 },
+    0.375,
+    { resource_2 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            unbox resource_0 as y in
+            return y
+          with h
+        # 0.125
+    },
+    0.0625
+  ]
+  
+  ======================================================================
+  rational_time_upper_reject.tpe
+  ======================================================================
+  File "rational_time_upper_reject.tpe", lines 13-14, characters 2-3:
+  13 |   unbox r as y in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `4/3` accumulated since it was bound, which is not below its box grade `1`
+    File "rational_time_upper_reject.tpe", line 8, characters 19-20:
+    8 |   box 1 "fresh" as r in
+                           ^
+    `r` is bound here
+    File "rational_time_upper_reject.tpe", line 9, characters 2-11:
+    9 |   delay 1/3;
+          ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    File "rational_time_upper_reject.tpe", line 10, characters 2-11:
+    10 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    File "rational_time_upper_reject.tpe", line 11, characters 2-11:
+    11 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    File "rational_time_upper_reject.tpe", line 12, characters 2-11:
+    12 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    Note: the resource inequality `4/3 <= 1` does not hold
   ======================================================================
   recursion.tpe
   ======================================================================
@@ -5290,9 +5290,9 @@ single-dash form of the help option is not accepted.
           time-lower-bound                  Lower bounds
           time-upper-bound                  Upper bounds
           time-interval                     Intervals
-          dense-time-lower-bound            Lower bounds (dense)
-          dense-time-upper-bound            Upper bounds (dense)
-          dense-time-interval               Intervals (dense)
+          time-lower-bound-rational         Lower bounds (rational)
+          time-upper-bound-rational         Upper bounds (rational)
+          time-interval-rational            Intervals (rational)
         Timed traces:
           traces-lower-bound                Lower bounds
           traces-upper-bound                Upper bounds
@@ -5331,9 +5331,9 @@ single-dash form of the help option is not accepted.
     --typecheck-only  Typecheck the files without running them
   [2]
 
-The dense-time example runs to its values under its intervals of hours.
+The rational-time example runs to its values under its intervals of hours.
 
-  $ ../tempore --grades dense-time-interval ../examples/time/dense_time_intervals.tpe
+  $ ../tempore --grades time-interval-rational ../examples/time/rational_time_intervals.tpe
   === Run 1 ===
   return 500
   State: [

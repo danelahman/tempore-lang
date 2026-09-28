@@ -4,7 +4,7 @@ module type DOMAIN = sig
   type t
 
   val module_name : string
-  val prefix : string
+  val suffix : string
   val zero : t
   val add : t -> t -> t
   val compare : t -> t -> int
@@ -38,7 +38,7 @@ module Make (N : DOMAIN) = struct
   module LowerBound = struct
     type t = N.t
 
-    let name = N.prefix ^ "time-lower-bound"
+    let name = "time-lower-bound" ^ N.suffix
     let one = N.zero
     let mul = N.add
     let leq _bounds n m = N.compare n m >= 0
@@ -72,7 +72,7 @@ module Make (N : DOMAIN) = struct
   module UpperBound = struct
     type t = Ext.t
 
-    let name = N.prefix ^ "time-upper-bound"
+    let name = "time-upper-bound" ^ N.suffix
     let one = Ext.Fin N.zero
     let mul = Ext.add
     let leq _bounds = Ext.leq
@@ -110,7 +110,7 @@ module Make (N : DOMAIN) = struct
   module Interval = struct
     type t = N.t * Ext.t
 
-    let name = N.prefix ^ "time-interval"
+    let name = "time-interval" ^ N.suffix
     let one = (N.zero, Ext.Fin N.zero)
     let mul (n, m) (k, l) = (N.add n k, Ext.add m l)
     let leq _bounds (n, m) (k, l) = N.compare k n <= 0 && Ext.leq m l
@@ -198,7 +198,7 @@ include Make (struct
   type t = int
 
   let module_name = "TimeGrades"
-  let prefix = ""
+  let suffix = ""
   let zero = 0
   let add = ( + )
   let compare = Int.compare

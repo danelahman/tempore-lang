@@ -1,8 +1,8 @@
 (* A medication schedule in hours, with doses due within fractional windows.
 
-   Run this example with the 'dense-time-interval' grading monoid, e.g.
+   Run this example with the 'time-interval-rational' grading monoid, e.g.
 
-     ./tempore --grades dense-time-interval examples/time/dense_time_intervals.tpe
+     ./tempore --grades time-interval-rational examples/time/rational_time_intervals.tpe
 
    Grades (q, r): between q and r hours, q and r rationals
      - Unit (0, 0): no time spent

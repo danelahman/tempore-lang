@@ -1,6 +1,6 @@
-(* Run this test with the 'dense-time-lower-bound' grading monoid, e.g.
+(* Run this test with the 'time-lower-bound-rational' grading monoid, e.g.
 
-     ./tempore --grades dense-time-lower-bound tests/dense_time_lower_reject.tpe *)
+     ./tempore --grades time-lower-bound-rational tests/rational_time_lower_reject.tpe *)
 
 operation Op : unit ~> unit # 1
 

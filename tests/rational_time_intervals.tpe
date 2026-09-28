@@ -1,6 +1,6 @@
-(* Run this test with the 'dense-time-interval' grading monoid, e.g.
+(* Run this test with the 'time-interval-rational' grading monoid, e.g.
 
-     ./tempore --grades dense-time-interval tests/dense_time_intervals.tpe *)
+     ./tempore --grades time-interval-rational tests/rational_time_intervals.tpe *)
 
 operation Pour : unit ~> unit # (0.5, 3/4)
 

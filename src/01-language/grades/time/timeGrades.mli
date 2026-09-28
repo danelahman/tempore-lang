@@ -20,8 +20,8 @@ module type DOMAIN = sig
   val module_name : string
   (** The module of the grades, named in messages, e.g. ["TimeGrades"]. *)
 
-  val prefix : string
-  (** The prefix of the names of the grades, e.g. [""] or ["dense-"]. *)
+  val suffix : string
+  (** The suffix of the names of the grades, e.g. [""] or ["-rational"]. *)
 
   val zero : t
   (** The duration [0], the unit of {!add}. *)
@@ -69,15 +69,15 @@ end
 (** The time grades over the durations [N]. *)
 module Make (N : DOMAIN) : sig
   module LowerBound : Grade.S
-  (** Lower bounds, [N.prefix ^ "time-lower-bound"]: [n] is "at least [n]",
+  (** Lower bounds, ["time-lower-bound" ^ N.suffix]: [n] is "at least [n]",
       ordered by [≥], so the unit [0] is the top. *)
 
   module UpperBound : Grade.S
-  (** Upper bounds, [N.prefix ^ "time-upper-bound"]: [n] is "at most [n]", with
+  (** Upper bounds, ["time-upper-bound" ^ N.suffix]: [n] is "at most [n]", with
       [∞] imposing no bound, ordered by [≤]; [∞] is the top. *)
 
   module Interval : Grade.S
-  (** Intervals, [N.prefix ^ "time-interval"]: [(n, m)] is "between [n] and
+  (** Intervals, ["time-interval" ^ N.suffix]: [(n, m)] is "between [n] and
       [m]", with [m = ∞] imposing no upper bound, ordered by containment;
       [(0, ∞)] is the top. *)
 end

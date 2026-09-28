@@ -37,7 +37,7 @@ Effect handlers | Nested (rejected) | time-lower-bound | handlers/handlers_neste
 group | Time grades | Boxes usable before or within a number of time steps, whole or fractional.
 Time grades | Upper bounds | time-upper-bound | time/time_upper.tpe | A box may be unboxed at any point up to its upper-bound grade.
 Time grades | Intervals | time-interval | time/time_intervals.tpe | A box grade pairs a lower and an upper time bound, unboxable only within that interval.
-Time grades | Intervals (dense) | dense-time-interval | time/dense_time_intervals.tpe | A medication schedule in hours, whose doses and reports are due within intervals with fractional endpoints.
+Time grades | Intervals (rational) | time-interval-rational | time/rational_time_intervals.tpe | A medication schedule in hours, whose doses and reports are due within intervals with fractional endpoints.
 
 group | Timed traces | Finite sets of timed runs of operations.
 Timed traces | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3D-printing pipeline whose operations must be covered by the runs a box demands, waiting banking towards them.

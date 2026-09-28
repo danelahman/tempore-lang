@@ -102,7 +102,7 @@ let malformed =
     "literals_reject_windows.tpe";
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
-    "literals_reject_dense_negative.tpe";
+    "literals_reject_rational_negative.tpe";
     "literals_reject_fraction.tpe";
     "literals_reject_fraction_operator.tpe";
     "literals_reject_fraction_zero.tpe";

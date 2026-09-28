@@ -1,4 +1,4 @@
-(* Fractions under dense-time-upper-bound: quotients '3/2', decimals '1.5' and
+(* Fractions under time-upper-bound-rational: quotients '3/2', decimals '1.5' and
    '0.125', and '2.0', which is the integer 2. *)
 
 let quotient () = box 3/2 "q" as r in delay 1.5; unbox r as y in y

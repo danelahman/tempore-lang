@@ -116,7 +116,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ### zarith 1.14
 
-The OCaml modules of zarith, the arbitrary-precision rationals of the dense
+The OCaml modules of zarith, the arbitrary-precision rationals of the rational
 time grades; its C stubs and GMP are not linked into the bundle, where
 zarith_stubs_js stands in for them. By Antoine Miné, Xavier Leroy and Pascal
 Cuoq, Copyright (c) 2010-2011 Antoine Miné, Abstraction project. Licensed
