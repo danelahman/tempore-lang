@@ -153,8 +153,10 @@ end
 
     [of_lit] reads [⊤] as the top, a literal that [M] reads as [m] as [(m, ⊥)],
     and otherwise a pair [(l1, l2)] componentwise, [⊤] in the second component
-    being the top of [N]; [show] prints the top as [⊤], [(m, ⊥)] as [m] and
-    other grades as [(m,n)].
+    being the top of [N]. A literal that is not a pair is rejected as [M]
+    rejects it, and so is a pair whose second component [N] rejects but [M]
+    reads. [show] prints the top as [⊤], [(m, ⊥)] as [m] and other grades as
+    [(m,n)].
 
     [witnesses] are the witnesses of [M] paired with [⊥], and the constants and
     their pairwise products, and are partial. *)

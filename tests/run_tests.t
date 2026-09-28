@@ -42,6 +42,8 @@
   >     regex_costs_interval*.tpe) ../tempore --grades traces-regex-interval-symbolic $f;;
   >     peak_*.tpe) ../tempore --grades peak-usage $f;;
   >     literals_reject_peak.tpe) ../tempore --grades peak-usage $f;;
+  >     windows*.tpe) ../tempore --grades time-windows $f;;
+  >     literals_reject_windows.tpe) ../tempore --grades time-windows $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -911,7 +913,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic' or 'traces-regex-interval-symbolic' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic' or 'time-windows' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1248,6 +1250,13 @@
   3 | let claim () = box forever 1
                          ^^^^^^^
   Syntax error: 'forever' is no grade literal; grades are written as integers, names such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)' and brace literals '{...}'
+  ======================================================================
+  literals_reject_windows.tpe
+  ======================================================================
+  File "literals_reject_windows.tpe", line 3, characters 19-30:
+  3 | let claim () = box (1, {Send}) 1
+                         ^^^^^^^^^^^
+  Syntax error: in the 'time-windows' grading monoid, in the second component ('times'), time windows are sets of numbers of ticks, and name no operation such as 'Send'; did you mean to use one of the 'traces-interval', 'traces-regex-interval' or 'traces-regex-interval-symbolic' grading monoids?
   ======================================================================
   literals_time_interval.tpe
   ======================================================================
@@ -3071,6 +3080,93 @@
   1 | type foo = One of bar | Two of int
                         ^^^
   Syntax error: Unknown name `bar`
+  ======================================================================
+  windows.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    2,
+    1
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    2,
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Send ((), k) ↦
+                        delay 1 (return ());
+                        unbox k as unbox_var in
+                        unbox_var ()
+        # (1,{0})
+    },
+    1
+  ]
+  
+  === Run 3 ===
+  return 7
+  State: [
+    { resource_0 ↦ 7 # (2,4) },
+    2,
+    1
+  ]
+  
+  ======================================================================
+  windows_reject.tpe
+  ======================================================================
+  File "windows_reject.tpe", lines 7-9, characters 17-17:
+  7 | let late_send () : unit # (4, {2}) =
+                       ^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(4,{3})`, which does not match its annotated grade `(4,{2})`
+    Note: the effect inequality `(4,{3}) <= (4,{2})` does not hold
+  
+  File "windows_reject.tpe", lines 12-14, characters 12-17:
+  12 | let slow () : unit # ((2, 3), {1 | 2}) =
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `((2,4),{1; (0 | 1 | 2)})`, which does not match its annotated grade `((2,3),{1 | 2})`
+    Note: the effect inequality `((2,4),{1; (0 | 1 | 2)}) <= ((2,3),{1 | 2})` does not hold
+  
+  File "windows_reject.tpe", lines 21-22, characters 2-3:
+  21 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(2,{0})` accumulated since it was bound, which is not below its box grade `(2,4)`
+    File "windows_reject.tpe", line 18, characters 18-19:
+    18 |   box (2, 4) 7 as x in
+                           ^
+    `x` is bound here
+    File "windows_reject.tpe", line 19, characters 2-17:
+    19 |   perform Send ();
+           ^^^^^^^^^^^^^^^
+    grade `(1,{0})` accumulates here (operation `Send`)
+    File "windows_reject.tpe", line 20, characters 2-9:
+    20 |   delay 1;
+           ^^^^^^^
+    grade `1` accumulates here (delay)
+    Note: the resource inequality `(2,{0}) <= (2,4)` does not hold
+  
+  File "windows_reject.tpe", line 29, characters 51-69:
+  29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+                                                          ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `(2,{0 | 1})` accumulated since it was bound, which is not below its box grade `(1,{0})`
+    File "windows_reject.tpe", line 29, characters 12-13:
+    29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+                     ^
+    `k` is bound here
+    File "windows_reject.tpe", line 29, characters 17-32:
+    29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+                          ^^^^^^^^^^^^^^^
+    grade `(1,{0})` accumulates here (operation `Send`)
+    File "windows_reject.tpe", line 29, characters 34-49:
+    29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+                                           ^^^^^^^^^^^^^^^
+    grade `(1,{0})` accumulates here (operation `Send`)
+    Note: the resource inequality `(2,{0 | 1}) <= (1,{0})` does not hold
 
 The programs of the regular trace grade, run above under its implementation
 by symbolic derivatives, 'traces-regex-symbolic', under its implementation by
@@ -4516,6 +4612,7 @@ single-dash form of the help option is not accepted.
           time-upper-bound-levels           Expiring capabilities
         Semidirect products:
           peak-usage                        Peak usage
+          time-windows                      Time windows
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

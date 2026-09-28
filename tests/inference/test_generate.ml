@@ -94,6 +94,7 @@ let malformed =
     "literals_reject_name.tpe";
     "literals_reject_negative.tpe";
     "literals_reject_peak.tpe";
+    "literals_reject_windows.tpe";
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
     "regular_reject_bounds.tpe";

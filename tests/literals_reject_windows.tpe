@@ -1,0 +1,3 @@
+(* Rejected: time windows name no operation. *)
+
+let claim () = box (1, {Send}) 1

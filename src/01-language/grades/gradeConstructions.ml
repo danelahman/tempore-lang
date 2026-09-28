@@ -196,7 +196,7 @@ struct
     | lit -> (
         match M.of_lit lit with
         | m -> (m, N.bottom)
-        | exception Grade.Invalid_literal _ -> (
+        | exception (Grade.Invalid_literal _ as rejection) -> (
             match lit with
             | Grade.Tuple [ l1; l2 ] ->
                 let component ordinal name =
@@ -209,17 +209,19 @@ struct
                 let n =
                   match l2 with
                   | Grade.Top -> N.top
-                  | l2 ->
-                      Grade.component_of_lit lit
-                        ~context:(component "second" N.name)
-                        N.of_lit l2
+                  | l2 -> (
+                      match N.of_lit l2 with
+                      | n -> n
+                      | exception Grade.Invalid_literal (_, reason) -> (
+                          match M.of_lit l2 with
+                          | _ -> raise rejection
+                          | exception Grade.Invalid_literal _ ->
+                              Grade.invalid_lit lit "%s%s"
+                                (component "second" N.name)
+                                reason))
                 in
                 (m, n)
-            | lit ->
-                Grade.invalid_lit lit
-                  "grades are '%s' grades or pairs '(m, n)' of a '%s' grade \
-                   and a '%s' element, not %s"
-                  M.name M.name N.name (Grade.describe_lit lit)))
+            | _ -> raise rejection))
 
   let of_bounds b = (M.of_bounds b, N.bottom)
   let is_atomic name (m, _) = M.is_atomic name m

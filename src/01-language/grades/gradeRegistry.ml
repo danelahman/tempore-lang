@@ -147,6 +147,11 @@ let entries =
       "Semidirect products" "Peak usage"
       "Pairs (d, h) of the net change and the peak of a resource held, such as \
        open files; a later peak is shifted by the earlier change.";
+    entry
+      (module WindowGrades.TimeWindows)
+      "Semidirect products" "Time windows"
+      "Pairs (T, E) of the possible durations and the times at which windowed \
+       operations happen; later times are shifted by the earlier durations.";
   ]
 
 let grade_modules = List.map (fun e -> (e.name, e.grade)) entries

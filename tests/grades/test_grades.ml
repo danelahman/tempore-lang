@@ -192,6 +192,7 @@ let traces_upper = (module TimedTraceGrades.UpperBound : Grade.S)
 let traces_interval = (module TimedTraceGrades.Interval : Grade.S)
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
 let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
+let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
 
@@ -216,6 +217,30 @@ let literals =
     rejects "unbounded change" peak_usage (Tuple [ Inf; Int 3 ]) "needs a peak";
     rejects "integer" peak_usage (Int 3) "not plain integers";
     rejects "level" peak_usage (Tuple [ Int 1; Name "Low" ]) "in the peak";
+    reads "duration" time_windows (Int 3) "3";
+    reads "interval of durations" time_windows (Tuple [ Int 2; Int 5 ]) "(2,5)";
+    reads "unbounded durations" time_windows (Tuple [ Int 2; Inf ]) "(2,∞)";
+    reads "set of durations" time_windows
+      (Braces (union (Tick 1) (Tick 3)))
+      "{1 | 3}";
+    reads "durations and times" time_windows
+      (Tuple [ Int 1; Braces (Tick 0) ])
+      "(1,{0})";
+    reads "times by single ticks" time_windows
+      (Tuple [ Int 1; Braces (seq Any Any) ])
+      "(1,{2})";
+    reads "top" time_windows Top "⊤";
+    rejects "operation" time_windows
+      (Tuple [ Int 1; Braces send ])
+      "name no operation such as 'Send'";
+    rejects "reversed interval" time_windows
+      (Tuple [ Int 7; Int 1 ])
+      "must satisfy n <= m";
+    rejects "negative duration" time_windows (Int (-1)) "must be non-negative";
+    rejects "no durations" time_windows
+      (Braces (Inter (Tick 1, Tick 2)))
+      "is empty";
+    rejects "level" time_windows (Name "Low") "not names such as 'Low'";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not '∞'";
@@ -298,7 +323,7 @@ let registry =
       ~expected:[ "time-lower-bound-levels"; "time-upper-bound-levels" ]
       (GradeRegistry.accepting (lit_of_pair 3 "High"));
     expect "registry: grades reading an open interval" show_names
-      ~expected:[ "time-interval"; "peak-usage" ]
+      ~expected:[ "time-interval"; "peak-usage"; "time-windows" ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
     expect "registry: grades reading a repetition" show_names
       ~expected:
@@ -519,6 +544,8 @@ let witnesses =
       (completeness (module TraceLevels));
     expect "witnesses: peak usage partial" Fun.id ~expected:"partial"
       (completeness peak_usage);
+    expect "witnesses: time windows partial" Fun.id ~expected:"partial"
+      (completeness time_windows);
   ]
 
 (* ------------------------------------------------------------------ *)

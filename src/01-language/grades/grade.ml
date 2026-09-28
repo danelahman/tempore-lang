@@ -2,10 +2,10 @@
 
     The instances the prototype offers are defined in {!TimeGrades},
     {!TimedTraceGrades}, {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
-    {!RegularTraceGradePlain}, {!RegularCostTraceGrades}, {!LevelGrades} and
-    {!PeakGrades}, built with the constructions of {!GradeConstructions}, and
-    listed in {!GradeRegistry}; the regular trace grades are implementations of
-    the same grade.
+    {!RegularTraceGradePlain}, {!RegularCostTraceGrades}, {!LevelGrades},
+    {!PeakGrades} and {!WindowGrades}, built with the constructions of
+    {!GradeConstructions}, and listed in {!GradeRegistry}; the regular trace
+    grades are implementations of the same grade.
 
     {2 Laws}
 

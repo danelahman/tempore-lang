@@ -203,11 +203,20 @@ componentwise.
   the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. An operation opening
   a file has grade `(1, 1)`, and one closing it `(-1, 0)`; two copies in
   sequence, each holding two files, have grade `(0, 2)`.
+- `time-windows`: pairs `(T, E)` of the possible durations `T` and the times
+  `E` at which windowed operations happen, both sets of numbers of ticks from
+  the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+` adding
+  elementwise, and the order is inclusion. `T` is written `n`, `(n, m)` (from
+  `n` to `m`, `m` possibly `∞`) or as a brace literal over ticks, `{0 | 10}`;
+  `E` as a brace literal, `{(4 | 5); 10*}` being ticks 4 and 5 of every ten.
+  A literal `T` alone has no windowed operation. An operation taking a tick and
+  happening at its start has grade `(1, {0})`.
 
 An operation whose grade no code meets, such as closing a file under
 `peak-usage`, has no default implementation, and a run stops at its first
 call. See
-[`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe).
+[`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe) and
+[`examples/semidirect/time_windows.tpe`](examples/semidirect/time_windows.tpe).
 
 ## Temporal resources
 
