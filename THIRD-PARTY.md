@@ -114,6 +114,47 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
+### zarith 1.14
+
+The OCaml modules of zarith, the arbitrary-precision rationals of the dense
+time grades; its C stubs and GMP are not linked into the bundle, where
+zarith_stubs_js stands in for them. By Antoine Miné, Xavier Leroy and Pascal
+Cuoq, Copyright (c) 2010-2011 Antoine Miné, Abstraction project. Licensed
+under the GNU Library General Public License version 2.0 only, with the OCaml
+LGPL linking exception, which permits linking it into a program distributed
+under any license, including this project's MIT license. The full license
+text is not reproduced here; see
+<https://github.com/ocaml/Zarith/blob/master/LICENSE>.
+
+### zarith_stubs_js v0.17.0
+
+Jane Street's JavaScript implementation of the primitives of zarith. MIT
+licensed:
+
+```
+The MIT License
+
+Copyright (c) 2019--2024 Jane Street Group, LLC <opensource-contacts@janestreet.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ### GitHub Octicons
 
 Three SVG path datasets are copied into
@@ -182,11 +223,12 @@ THE SOFTWARE.
 
 ## The command-line interpreter
 
-The `tempore` executable links no third-party OCaml library beyond the
-OCaml runtime and standard library (`src/06-user-interface/cli/dune` lists
-only the project's own libraries). Unlike the web interface, it is not
-distributed in built form: users build it themselves with opam, which
-installs any dependencies as their own opam packages under their own
+The `tempore` executable links, beyond the OCaml runtime and standard
+library, only zarith (see above) and, dynamically, the system's GMP library,
+licensed under the GNU Lesser General Public License version 3 or later or
+the GNU General Public License version 2 or later. Unlike the web interface,
+it is not distributed in built form: users build it themselves with opam,
+which installs any dependencies as their own opam packages under their own
 licenses.
 
 ## Build-time tools

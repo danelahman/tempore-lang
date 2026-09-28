@@ -1,0 +1,8 @@
+(* Intervals with fractional endpoints under dense-time-interval, among them
+   '(1/3, ∞)' with no upper bound. *)
+
+let open_ended () = box (1/3, ∞) "o" as r in delay 1/3; unbox r as y in y
+let closed () = box (0.25, 2.0) "c" as r in delay 1.75; unbox r as y in y
+
+run open_ended ()
+run closed ()

@@ -1,0 +1,20 @@
+(* Run this test with the 'dense-time-lower-bound' grading monoid, e.g.
+
+     ./tempore --grades dense-time-lower-bound tests/dense_time_lower_reject.tpe *)
+
+operation Op : unit ~> unit # 1
+
+(* Correctly rejected by the typechecker: the case must have a grade matching
+   1 · ε for every effect ε of k, and 5 >= 1 · ε fails for every ε above 4,
+   first among the witnesses at the fraction 4.5. *)
+let h = handler | x -> x | Op () k -> delay 5; 0
+
+(* Correctly rejected by the typechecker: three delays of 1/3 accumulate 1, less
+   than the 1.5 the box demands. *)
+let early () =
+  box 1.5 "unripe" as r in
+  delay 1/3;
+  delay 1/3;
+  delay 1/3;
+  unbox r as y in
+  y

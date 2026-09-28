@@ -1,0 +1,4 @@
+(* Rejected: time-upper-bound counts whole time steps, and the hint names
+   the grades reading fractions. *)
+
+let claim () = box 3/2 1

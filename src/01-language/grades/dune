@@ -2,4 +2,4 @@
 
 (library
  (name grades)
- (libraries utils))
+ (libraries utils zarith))

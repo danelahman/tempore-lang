@@ -1,0 +1,14 @@
+(* Run this test with the 'dense-time-interval' grading monoid, e.g.
+
+     ./tempore --grades dense-time-interval tests/dense_time_intervals_reject.tpe *)
+
+operation Pour : unit ~> unit # (0.5, 3/4)
+
+(* Correctly rejected by the typechecker: two pours may take as long as 1.5,
+   beyond the (0.5, 1.25) the box demands. *)
+let oversteep () =
+  box (0.5, 1.25) "tea" as r in
+  perform Pour ();
+  perform Pour ();
+  unbox r as y in
+  y

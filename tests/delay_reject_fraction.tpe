@@ -1,0 +1,4 @@
+(* Rejected: delays under time-upper-bound are whole numbers of time steps,
+   and the hint names the grades with a delay of 0.5. *)
+
+let wait () = delay 0.5

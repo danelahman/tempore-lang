@@ -10,7 +10,7 @@ type clause = {
 }
 
 type lock_kind =
-  | Delayed of int
+  | Delayed of Grades.Rational.t
   | Performed of Ast.operation
   | Sequenced
   | Boxed
@@ -188,7 +188,7 @@ let print_step s ppf =
 
 let print_lock_kind kind ppf =
   match kind with
-  | Delayed n -> Format.fprintf ppf "delay %d" n
+  | Delayed q -> Format.fprintf ppf "delay %s" (Grades.Rational.show q)
   | Performed op -> Format.fprintf ppf "perform %t" (Ast.OpName.print op)
   | Sequenced -> Format.pp_print_string ppf "sequencing"
   | Boxed -> Format.pp_print_string ppf "box"

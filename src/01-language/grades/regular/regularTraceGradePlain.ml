@@ -115,6 +115,7 @@ let hash rho = combine (hash_list String.hash rho.names) (Regex.hash rho.regex)
 let of_nat n =
   { names = []; regex = ticks (check_nat "RegularTraceGradePlain" n) }
 
+let of_duration = whole ~who:"RegularTraceGradePlain" of_nat
 let unit_least = false
 let commutative = false
 let needs_op_bounds = false
@@ -187,7 +188,7 @@ let symbolic rho =
 let events rho = SymbolicRegex.names (symbolic rho)
 let canonical rho = RegularTraceGradeDerivative.canonical (symbolic rho)
 let show rho = RegularTraceGradeDerivative.show (symbolic rho)
-let witnesses _bounds = Grade.sampled mul
+let witnesses ~degree:_ _bounds = Grade.sampled mul
 
 (** {1 Runs over given names} *)
 

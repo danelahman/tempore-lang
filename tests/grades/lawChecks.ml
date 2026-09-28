@@ -171,3 +171,42 @@ let of_nat_laws (module G : Grade.S) bounds ?monotone () =
             = if monotone then m <= n else m >= n)
           ns;
       ]
+
+(* [of_duration_laws (module G) bounds] checks that the domain of [of_duration]
+   contains the naturals, on which it agrees with [of_nat], and, on sample
+   durations, that it is closed under sums, on which [of_duration] is a monoid
+   morphism under [bounds]. *)
+let of_duration_laws (module G : Grade.S) bounds =
+  let module Q = Grades.Rational in
+  let durations =
+    List.map
+      (fun (n, d) -> Q.make n d)
+      [ (0, 1); (1, 1); (2, 1); (1, 2); (1, 3); (3, 2); (5, 6); (7, 4) ]
+  in
+  let of_duration q =
+    match G.of_duration q with
+    | c -> Some c
+    | exception Grade.Invalid_literal _ -> None
+  in
+  let domain =
+    List.filter (fun q -> Option.is_some (of_duration q)) durations
+  in
+  let show (q, r) = Q.show q ^ ", " ^ Q.show r in
+  [
+    all
+      (G.name ^ ": of_duration agrees with of_nat")
+      string_of_int
+      (fun n ->
+        match of_duration (Q.of_int n) with
+        | Some c -> G.equal bounds c (G.of_nat n)
+        | None -> false)
+      (List.init 5 Fun.id);
+    all
+      (G.name ^ ": of_duration a homomorphism on its domain")
+      show
+      (fun (q, r) ->
+        match of_duration (Q.add q r) with
+        | Some c -> G.equal bounds c (G.mul (G.of_duration q) (G.of_duration r))
+        | None -> false)
+      (pairs domain);
+  ]

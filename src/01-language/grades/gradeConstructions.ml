@@ -29,6 +29,11 @@ module OfLattice (L : LATTICE) = struct
     let (_ : int) = Grade.check_nat L.name n in
     L.bottom
 
+  let of_duration q =
+    if Rational.sign q < 0 then
+      invalid_arg (L.name ^ ".of_duration: expected non-negative duration")
+    else L.bottom
+
   let equal _bounds l l' = L.leq l l' && L.leq l' l
   let is_top _bounds = L.leq L.top
   let compare = L.compare
@@ -44,7 +49,7 @@ module OfLattice (L : LATTICE) = struct
   let of_bounds _ = L.bottom
   let is_atomic _name _ = true
   let show = L.show
-  let witnesses _bounds _ = (L.elements, Grade.Complete)
+  let witnesses ~degree:_ _bounds _ = (L.elements, Grade.Complete)
 end
 
 (** [intersect b b'] is the intersection of the runtime bounds [b] and [b'],
@@ -67,6 +72,7 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
   let top = (G1.top, G2.top)
   let join (a, b) (a', b') = (G1.join a a', G2.join b b')
   let of_nat n = (G1.of_nat n, G2.of_nat n)
+  let of_duration q = (G1.of_duration q, G2.of_duration q)
 
   let equal bounds (a, b) (a', b') =
     G1.equal bounds a a' && G2.equal bounds b b'
@@ -121,9 +127,9 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
 
   (* An ordering fails iff it fails in one component, at a witness of that
      component when its list is complete, paired with any grade. *)
-  let witnesses bounds cs =
-    let ws1, complete1 = G1.witnesses bounds (List.map fst cs) in
-    let ws2, complete2 = G2.witnesses bounds (List.map snd cs) in
+  let witnesses ~degree bounds cs =
+    let ws1, complete1 = G1.witnesses ~degree bounds (List.map fst cs) in
+    let ws2, complete2 = G2.witnesses ~degree bounds (List.map snd cs) in
     let completeness =
       match (complete1, complete2) with
       | Grade.Complete, Grade.Complete -> Grade.Complete
@@ -170,6 +176,7 @@ struct
   let top = (M.top, N.top)
   let join (m, n) (m', n') = (M.join m m', N.join n n')
   let of_nat k = (M.of_nat k, N.bottom)
+  let of_duration q = (M.of_duration q, N.bottom)
 
   let equal bounds (m, n) (m', n') =
     M.equal bounds m m' && N.leq n n' && N.leq n' n
@@ -231,8 +238,8 @@ struct
     else if N.leq n N.bottom then M.show m
     else "(" ^ M.show m ^ "," ^ N.show n ^ ")"
 
-  let witnesses bounds cs =
-    let ms, _ = M.witnesses bounds (List.map fst cs) in
+  let witnesses ~degree bounds cs =
+    let ms, _ = M.witnesses ~degree bounds (List.map fst cs) in
     ( List.map (fun m -> (m, N.bottom)) ms @ fst (Grade.sampled mul cs),
       Grade.Partial )
 end
@@ -414,6 +421,7 @@ module Indexed = struct
     let top = everywhere G.top
     let join = map2 G.compare G.join
     let of_nat n = everywhere (G.of_nat n)
+    let of_duration q = everywhere (G.of_duration q)
     let equal bounds = for_all2 (G.equal bounds)
     let is_top bounds = for_all (G.is_top bounds)
     let compare = compare_with G.compare
@@ -459,10 +467,10 @@ module Indexed = struct
     (* An ordering fails iff it fails at one name, at a witness of the
        component there when its list is complete; the names no constant
        gives its own grade are alike, and [fresh] stands for them. *)
-    let witnesses bounds cs =
+    let witnesses ~degree bounds cs =
       let at_name s =
         let ws, completeness =
-          G.witnesses bounds (List.map (fun c -> at c s) cs)
+          G.witnesses ~degree bounds (List.map (fun c -> at c s) cs)
         in
         ( List.map
             (fun w -> of_list ~compare:G.compare ~others:G.one [ (s, w) ])

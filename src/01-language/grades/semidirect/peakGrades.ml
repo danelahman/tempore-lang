@@ -47,6 +47,7 @@ module NetChange = struct
     let (_ : int) = Grade.check_nat "PeakGrades.NetChange" n in
     one
 
+  let of_duration = Grade.whole ~who:"PeakGrades.NetChange" of_nat
   let equal _bounds b b' = compare b b' = 0
   let is_top _bounds b = compare b top = 0
   let compare = compare
@@ -62,7 +63,7 @@ module NetChange = struct
   let of_bounds _ = one
   let is_atomic _name _ = true
   let show = show
-  let witnesses _bounds cs = Grade.sampled mul cs
+  let witnesses ~degree:_ _bounds cs = Grade.sampled mul cs
 end
 
 module Peak = struct
@@ -98,6 +99,7 @@ module OneResource = struct
     let (_ : int) = Grade.check_nat "PeakGrades.OneResource" n in
     one
 
+  let of_duration = Grade.whole ~who:"PeakGrades.OneResource" of_nat
   let of_bounds _ = one
 
   let of_lit = function
@@ -127,7 +129,7 @@ module OneResource = struct
 
   (* The grid of the net changes within one of the sum of the constants, each
      with a few peaks at and above its least one. *)
-  let witnesses _bounds cs =
+  let witnesses ~degree:_ _bounds cs =
     let magnitude = function Fin d -> Int.abs d | Minus_inf | Plus_inf -> 0 in
     let s =
       List.fold_left (fun s (d, h) -> s + magnitude d + magnitude h) 0 cs

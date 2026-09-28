@@ -4,4 +4,5 @@
   (source_tree .)
   (source_tree ../examples/regular)
   (source_tree ../examples/regular_costs)
+  (source_tree ../examples/time)
   (source_tree ../examples/rollout)))

@@ -10,8 +10,12 @@
   ojs
   webBackend
   webInterpreter
-  loader)
+  loader
+  zarith_stubs_js)
  (modes js)
+ ;; zarith_stubs_js provides the JavaScript primitives of zarith, which the
+ ;; grades link. -no-check-prims hides a missing primitive: without the stubs
+ ;; the link succeeds and the bundle fails at load, on ml_z_init.
  (link_flags -no-check-prims)
  (promote
   (until-clean)

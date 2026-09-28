@@ -49,6 +49,7 @@ module Durations = struct
   let top = naturals
   let join rho rho' = R.union [ rho; rho' ]
   let of_nat n = R.ticks (Grade.check_nat "WindowGrades.Durations" n)
+  let of_duration = Grade.whole ~who:"WindowGrades.Durations" of_nat
   let equal _bounds = R.equal
   let is_top _bounds = R.subset top
   let compare = R.compare_form
@@ -103,7 +104,7 @@ module Durations = struct
           Printf.sprintf "(%d,%d)" lo hi
       | Some _ | None -> RegularTraceGradeDerivative.show rho
 
-  let witnesses _bounds = Grade.sampled mul
+  let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
 
 module Times = struct

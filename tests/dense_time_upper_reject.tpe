@@ -1,0 +1,14 @@
+(* Run this test with the 'dense-time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades dense-time-upper-bound tests/dense_time_upper_reject.tpe *)
+
+(* Correctly rejected by the typechecker: four delays of 1/3 overrun the 1 the
+   box allows. *)
+let stale () =
+  box 1 "fresh" as r in
+  delay 1/3;
+  delay 1/3;
+  delay 1/3;
+  delay 1/3;
+  unbox r as y in
+  y

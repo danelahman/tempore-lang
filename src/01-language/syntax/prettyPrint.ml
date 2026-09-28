@@ -206,8 +206,9 @@ and print_computation resource_grade =
         print ~at_level:1 "@[<hov 2>%t@ %t@]"
           (print_expression resource_grade ~max_level:1 e1)
           (print_expression resource_grade ~max_level:0 e2)
-    | Delay (n, c) ->
-        print ~at_level:1 "@[<hov 2>delay %d@ %t@]" n (aux ~max_level:0 c)
+    | Delay (q, c) ->
+        print ~at_level:1 "@[<hov 2>delay %s@ %t@]" (Grades.Rational.show q)
+          (aux ~max_level:0 c)
     | Box (rho, e, (p, c)) ->
         print ~at_level:2 "@[<v 0>box %t %t as %t in@,%t@]"
           (print_rho resource_grade rho)

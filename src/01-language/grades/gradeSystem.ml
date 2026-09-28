@@ -17,11 +17,15 @@ module type S = sig
       [e ≾ one]. *)
 
   val witnesses :
-    Grade.bounds -> R.t list -> E.t list -> E.t list * Grade.completeness
-  (** [witnesses bounds rcs ecs] is {!Grade.S.witnesses} for a condition over an
-      effect rigid [j] whose orderings are of either sort, [j] occurring under
-      images on the resource side, with resource constants [rcs] and effect
-      constants [ecs]. *)
+    degree:int ->
+    Grade.bounds ->
+    R.t list ->
+    E.t list ->
+    E.t list * Grade.completeness
+  (** [witnesses ~degree bounds rcs ecs] is {!Grade.S.witnesses} for a condition
+      over an effect rigid [j] whose orderings are of either sort, [j] occurring
+      under images on the resource side at most [degree] times on either side of
+      each, with resource constants [rcs] and effect constants [ecs]. *)
 end
 
 (** The grade system in which effects and resources are graded alike by [G],
@@ -32,5 +36,5 @@ module Identity (G : Grade.S) : S with module R = G and module E = G = struct
 
   let map c = c
   let unit_reflecting = true
-  let witnesses bounds rcs ecs = G.witnesses bounds (rcs @ ecs)
+  let witnesses ~degree bounds rcs ecs = G.witnesses ~degree bounds (rcs @ ecs)
 end

@@ -1,0 +1,3 @@
+(* Rejected: a fraction is written with '/', not '%'. *)
+
+let claim () = box 3%2 1

@@ -35,6 +35,7 @@ module type S = sig
     val unit : t
     val top : t
     val of_nat : int -> t
+    val of_duration : Grades.Rational.t -> t
     val mul : t -> t -> t
     val join : t -> t -> t
     val free_vars : t -> Eps_var.Set.t
@@ -59,6 +60,7 @@ module type S = sig
     val unit : t
     val top : t
     val of_nat : int -> t
+    val of_duration : Grades.Rational.t -> t
     val mul : t -> t -> t
     val join : t -> t -> t
     val map : eps -> t
@@ -123,6 +125,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let unit = Eps_const GS.E.one
     let top = Eps_const GS.E.top
     let of_nat n = Eps_const (GS.E.of_nat n)
+    let of_duration q = Eps_const (GS.E.of_duration q)
     let mul eps eps' = Eps_mul (eps, eps')
     let join eps eps' = Eps_join (eps, eps')
 
@@ -196,6 +199,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let unit = Rho_const GS.R.one
     let top = Rho_const GS.R.top
     let of_nat n = Rho_const (GS.R.of_nat n)
+    let of_duration q = Rho_const (GS.R.of_duration q)
     let mul rho rho' = Rho_mul (rho, rho')
     let join rho rho' = Rho_join (rho, rho')
 

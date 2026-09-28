@@ -74,7 +74,7 @@ and ('rho, 'eps) plain_term =
   | Conditional of ('rho, 'eps) term * ('rho, 'eps) term * ('rho, 'eps) term
       (** [if t then t1 else t2] *)
   | Apply of ('rho, 'eps) term * ('rho, 'eps) term  (** [t1 t2] *)
-  | Delay of int  (** [delay rho] **)
+  | Delay of Grades.Rational.t  (** [delay q] **)
   | Box of 'rho * ('rho, 'eps) term * ('rho, 'eps) abstraction
       (** [box rho expr as v in n] *)
   | GenBox of 'rho * ('rho, 'eps) term  (** [box rho expr] *)

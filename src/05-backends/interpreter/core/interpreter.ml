@@ -492,8 +492,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
             )
             :: comps1'
         | _ -> comps1')
-    | Ast.Delay (n, comp) ->
-        let rho = Ast.RhoConst (GS.R.of_nat n, None) in
+    | Ast.Delay (q, comp) ->
+        let rho = Ast.RhoConst (GS.R.of_duration q, None) in
         let env' =
           { env with state = ContextHolderModule.add_temp rho env.state }
         in

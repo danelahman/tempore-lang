@@ -1,0 +1,14 @@
+(* Fractions under dense-time-upper-bound: quotients '3/2', decimals '1.5' and
+   '0.125', and '2.0', which is the integer 2. *)
+
+let quotient () = box 3/2 "q" as r in delay 1.5; unbox r as y in y
+let decimal () = box 1.5 "d" as r in delay 3/2; unbox r as y in y
+let eighth () = box 0.125 "e" as r in delay 1/8; unbox r as y in y
+let whole () = box 2.0 "w" as r in delay 4/2; unbox r as y in y
+let wait : unit -> unit # 0.375 = fun () -> delay 1/4; delay 0.125
+
+run quotient ()
+run decimal ()
+run eighth ()
+run whole ()
+run wait ()

@@ -34,6 +34,20 @@ let entries =
       (module TimeGrades.Interval)
       "Time" "Intervals" "Between n and m time steps, ordered by containment.";
     entry
+      (module DenseTimeGrades.LowerBound)
+      "Time" "Lower bounds (dense)"
+      "At least q time units, q a non-negative rational; the unit 0 is \
+       greatest.";
+    entry
+      (module DenseTimeGrades.UpperBound)
+      "Time" "Upper bounds (dense)"
+      "At most q time units, q a non-negative rational or ∞; the unit 0 is \
+       least.";
+    entry
+      (module DenseTimeGrades.Interval)
+      "Time" "Intervals (dense)"
+      "Between q and r time units, rationals, ordered by containment.";
+    entry
       (module TimedTraceGrades.LowerBound)
       "Timed traces" "Lower bounds"
       "Sets of timed traces in the coverage order, operations costing their \
@@ -182,6 +196,16 @@ let accepting lit =
       if e.info.visibility = Everywhere && understands lit e.grade then
         Some e.name
       else None)
+    entries
+
+let accepting_delay q =
+  List.filter_map
+    (fun e ->
+      let (module G : Grade.S) = e.grade in
+      match G.of_duration q with
+      | _ when e.info.visibility = Everywhere -> Some e.name
+      | _ -> None
+      | exception Grade.Invalid_literal _ -> None)
     entries
 
 (* [entries] grouped by [group], preserving both the order groups first occur
