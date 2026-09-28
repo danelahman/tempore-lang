@@ -290,7 +290,10 @@ let expected_rejections =
     ("rational_time_intervals_reject.tpe", [ 9 ]);
     ("rational_time_lower_reject.tpe", [ 10; 14 ]);
     ("rational_time_upper_reject.tpe", [ 7 ]);
+    ("default_reject_cycle.tpe", [ 9 ]);
     ("default_reject_duplicate.tpe", [ 8 ]);
+    ("default_reject_global.tpe", [ 11 ]);
+    ("default_reject_loop.tpe", [ 6 ]);
     ("default_reject_type.tpe", [ 7 ]);
     ("error_apply_arg.tpe", [ 8 ]);
     ("error_earliest_failure.tpe", [ 11 ]);

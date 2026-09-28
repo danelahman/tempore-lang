@@ -1,0 +1,29 @@
+(* Correctly accepted by the typechecker, under the default 'time-lower-bound'
+   grading monoid: a default may perform operations whose defaults perform
+   others in turn, as long as no default can reach its own operation again.
+   The default of 'Ask' performs 'Load', whose default is declared later and
+   calls a top-level function performing 'Store'. The default of 'Report'
+   performs 'Warn', which has no default. *)
+
+operation Ask : nat ~> nat # 3
+operation Load : nat ~> nat # 2
+operation Store : nat ~> unit # 1
+operation Report : string ~> unit # 1
+operation Warn : string ~> unit # 1
+
+let store_both n = perform Store n; perform Store (n + 1)
+
+default Ask n = delay 1; perform Load n
+default Store n = delay 1
+default Load n = store_both n; n + 1
+default Report msg = perform Warn msg
+
+run perform Ask 1
+
+run
+  handle
+    perform Report "done"
+  with
+    handler
+    | x -> x
+    | Report msg k -> delay 1; continue k with ()

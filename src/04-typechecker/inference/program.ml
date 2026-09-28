@@ -65,7 +65,7 @@ module Make (C : Constraint.S) = struct
     | S.Stuck stuck -> Error (Stuck stuck)
 
   (* [terminating check result] is [result] once [check ()] has accepted the
-     recursive functions of a solved command. *)
+     recursive functions and the default of a solved command. *)
   let terminating check =
     Result.map (fun solution ->
         check ();
@@ -110,24 +110,42 @@ module Make (C : Constraint.S) = struct
         | Ok envs -> (envs, verdict Accepted, Continue)
         | Error e -> (envs, verdict (Rejected e), Stop))
     | Ast.OpDefault (op, abs) -> (
+        let performed =
+          DefaultGraph.abstraction ~global:(Gen.global_performs env) abs
+        in
         match
           attempt (fun () ->
               solved cmd env (Gen.generate_default env ~loc op abs)
-              |> terminating (fun () -> Termination.check_abstraction abs))
+              |> terminating (fun () ->
+                  Termination.check_abstraction abs;
+                  DefaultGraph.check_default
+                    ~default:(Gen.find_operation_default env)
+                    ~loc op performed))
         with
         | Ok _ ->
-            ( both (fun env -> Gen.add_operation_default env op) envs,
+            let default =
+              {
+                DefaultGraph.performs = DefaultGraph.operations performed;
+                default_at = loc;
+              }
+            in
+            ( both (fun env -> Gen.add_operation_default env op default) envs,
               verdict Accepted,
               Continue )
         | Error e -> (envs, verdict (Rejected e), Continue))
     | Ast.TopLet (x, e) -> (
+        let performs =
+          DefaultGraph.operations
+            (DefaultGraph.expression ~global:(Gen.global_performs env) e)
+        in
         let add reported unsimplified =
           {
             reported =
-              Gen.add_global envs.reported x ~defined_at:(Some loc) reported;
+              Gen.add_global envs.reported x ~defined_at:(Some loc) ~performs
+                reported;
             unsimplified =
               Gen.add_global envs.unsimplified x ~defined_at:(Some loc)
-                unsimplified;
+                ~performs unsimplified;
           }
         in
         match

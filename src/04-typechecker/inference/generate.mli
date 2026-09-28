@@ -78,8 +78,9 @@ module Make (C : Constraint.S) : sig
 
   type env
   (** An environment: the context, the schemes of top-level definitions and
-      primitives, the type definitions, the operation signatures and runtime
-      bounds, and the operations with a default implementation. *)
+      primitives with the operations each may perform, the type definitions, the
+      operation signatures and runtime bounds, and the default implementations
+      of operations. *)
 
   val initial_env : env
   (** The environment of the built-in types [bool], [nat], [unit], [string],
@@ -148,17 +149,33 @@ module Make (C : Constraint.S) : sig
         definitions of types being unfolded. *)
 
   val add_global :
-    env -> Ast.variable -> defined_at:Location.t option -> C.scheme -> env
-  (** [add_global env x ~defined_at scheme] adds the top-level definition or
-      primitive [x] of scheme [scheme]. *)
+    env ->
+    Ast.variable ->
+    defined_at:Location.t option ->
+    performs:Ast.OpNameSet.t ->
+    C.scheme ->
+    env
+  (** [add_global env x ~defined_at ~performs scheme] adds the top-level
+      definition or primitive [x] of scheme [scheme], which may perform the
+      operations [performs] ({!DefaultGraph.expression}). *)
 
   val load_primitive :
     env -> Ast.variable -> Language.Primitives.primitive -> env
   (** [load_primitive env x prim] adds the primitive [prim] as [x]. *)
 
-  val add_operation_default : env -> Ast.operation -> env
-  (** [add_operation_default env op] records that [op] has a default
-      implementation. *)
+  val add_operation_default :
+    env -> Ast.operation -> DefaultGraph.default -> env
+  (** [add_operation_default env op default] records [default] as the default
+      implementation of [op]. *)
+
+  val global_performs : env -> Ast.variable -> Ast.OpNameSet.t
+  (** [global_performs env x] is the operations the top-level definition [x] may
+      perform, none for a primitive or a variable not defined at the top level.
+  *)
+
+  val find_operation_default :
+    env -> Ast.operation -> DefaultGraph.default option
+  (** [find_operation_default env op] is the default implementation of [op]. *)
 
   val bind : env -> Ast.variable -> ty -> bound_at:Location.t -> env
   (** [bind env x ty ~bound_at] extends the context by [x : ty]. *)

@@ -177,10 +177,12 @@ module Program (G : Grade.S) = struct
     | Ast.OpDefault (op, abs) ->
         check_scope name (Gen.generate_default env ~loc op abs) C.no_free;
         Gen.add_operation_default env op
+          { performs = Ast.OpNameSet.empty; default_at = loc }
     | Ast.TopLet (x, e) ->
         let ty, constr = Gen.generate_top_let env ~loc x e in
         check_scope name constr (C.free_vars_ty ty);
-        Gen.add_global env x ~defined_at:(Some loc) (assumed ())
+        Gen.add_global env x ~defined_at:(Some loc)
+          ~performs:Ast.OpNameSet.empty (assumed ())
     | Ast.TopDo c ->
         let comp_ty, constr = Gen.generate_run env ~loc c in
         check_scope name constr (C.free_vars_comp_ty comp_ty);
@@ -202,8 +204,8 @@ module Program (G : Grade.S) = struct
             match cmd.it with
             | Ast.TopLet (x, _) ->
                 ( ( desugarer,
-                    Gen.add_global env x ~defined_at:(Some cmd.at) (assumed ())
-                  ),
+                    Gen.add_global env x ~defined_at:(Some cmd.at)
+                      ~performs:Ast.OpNameSet.empty (assumed ()) ),
                   errors + 1 )
             | _ -> ((desugarer, env), errors + 1)))
       ((desugarer, env), 0)
@@ -515,7 +517,10 @@ module Small = struct
       }
     in
     let f = Ast.Variable.fresh "f" in
-    let env = Gen.add_global Gen.initial_env f ~defined_at:(Some loc) scheme in
+    let env =
+      Gen.add_global Gen.initial_env f ~defined_at:(Some loc)
+        ~performs:Ast.OpNameSet.empty scheme
+    in
     let use () = Gen.generate_expression env (var f) (expect alpha) in
     let bound_of = function
       | C.And (_, C.Exists ({ eps_vars = [ v ]; _ }, C.Eps_leq (r, _, _))) ->

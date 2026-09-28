@@ -55,12 +55,13 @@ module Make (C : Constraint.S) = struct
   type env = {
     context : entry list;  (** newest first *)
     globals : global Ast.VariableMap.t;
+    global_performs : Ast.OpNameSet.t Ast.VariableMap.t;
     type_definitions : ty_definition Ast.TyNameMap.t;
     constructors : Ast.ty_name LabelMap.t;
     noneternal : Ast.TyNameSet.t;
     op_signatures : op_signature Ast.OpNameMap.t;
     op_bounds : (int * int) StringMap.t;
-    op_defaults : Ast.OpNameSet.t;
+    op_defaults : DefaultGraph.default Ast.OpNameMap.t;
     world : (int * int) StringMap.t;
         (** the operations the whole program declares with runtime bounds *)
   }
@@ -280,12 +281,13 @@ module Make (C : Constraint.S) = struct
     {
       context = [];
       globals = Ast.VariableMap.empty;
+      global_performs = Ast.VariableMap.empty;
       type_definitions = Ast.TyNameMap.empty;
       constructors = LabelMap.empty;
       noneternal = Ast.TyNameSet.empty;
       op_signatures = Ast.OpNameMap.empty;
       op_bounds = StringMap.empty;
-      op_defaults = Ast.OpNameSet.empty;
+      op_defaults = Ast.OpNameMap.empty;
       world = StringMap.empty;
     }
     |> add_type_definition Ast.bool_ty_name
@@ -560,17 +562,25 @@ module Make (C : Constraint.S) = struct
       op_bounds;
     }
 
-  let add_global env x ~defined_at scheme =
+  let add_global env x ~defined_at ~performs scheme =
     {
       env with
       globals = Ast.VariableMap.add x { scheme; defined_at } env.globals;
+      global_performs = Ast.VariableMap.add x performs env.global_performs;
     }
 
   let load_primitive env x prim =
-    add_global env x ~defined_at:None (Primitive_schemes.scheme prim)
+    add_global env x ~defined_at:None ~performs:Ast.OpNameSet.empty
+      (Primitive_schemes.scheme prim)
 
-  let add_operation_default env op =
-    { env with op_defaults = Ast.OpNameSet.add op env.op_defaults }
+  let add_operation_default env op default =
+    { env with op_defaults = Ast.OpNameMap.add op default env.op_defaults }
+
+  let global_performs env x =
+    Ast.VariableMap.find_opt x env.global_performs
+    |> Option.value ~default:Ast.OpNameSet.empty
+
+  let find_operation_default env op = Ast.OpNameMap.find_opt op env.op_defaults
 
   let bind env x ty ~bound_at =
     { env with context = Bound (x, ty, bound_at) :: env.context }
@@ -1346,7 +1356,7 @@ module Make (C : Constraint.S) = struct
       | Some signature -> signature
       | None -> Error.typing ~loc "unknown operation `%s`" op_name
     in
-    if Ast.OpNameSet.mem op env.op_defaults then
+    if Ast.OpNameMap.mem op env.op_defaults then
       Error.typing ~loc "operation `%s` already has a default implementation"
         op_name;
     (match op_grade with

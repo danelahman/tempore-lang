@@ -1,0 +1,6 @@
+(* Rejected: a default runs in place of an unhandled operation, so a default
+   that performs its own operation runs forever. *)
+
+operation Loop : nat ~> nat # 1
+
+default Loop x = perform Loop x

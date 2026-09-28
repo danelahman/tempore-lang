@@ -655,6 +655,35 @@
     grade `(Send,1)` accumulates here (operation `Send`)
     Note: the resource inequality `(Send,2) <= (Send,1)` does not hold
   ======================================================================
+  default_chain.tpe
+  ======================================================================
+  === Run 1 ===
+  return 2
+  State: [
+    1,
+    1,
+    1
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Report (msg, k) ↦
+                          delay 1 (return ());
+                          unbox k as unbox_var in
+                          unbox_var ()
+        # 1
+    },
+    1
+  ]
+  
+  ======================================================================
   default_ops.tpe
   ======================================================================
   === Run 1 ===
@@ -696,12 +725,56 @@
     operation `Get` is declared here
     Note: the effect inequality `2 >= 3` does not hold
   ======================================================================
+  default_reject_cycle.tpe
+  ======================================================================
+  File "default_reject_cycle.tpe", line 9, characters 0-31:
+  9 | default Pong x = perform Ping x
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default of `Pong` may perform `Pong` again, through the default of `Ping`
+    File "default_reject_cycle.tpe", line 9, characters 17-31:
+    9 | default Pong x = perform Ping x
+                         ^^^^^^^^^^^^^^
+    `Ping` is performed here
+    File "default_reject_cycle.tpe", line 8, characters 0-31:
+    8 | default Ping x = perform Pong x
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the default of `Ping`, which may perform `Pong`, is defined here
+    Note: a default runs in place of an unhandled operation, so a cycle through defaults does not terminate
+  ======================================================================
   default_reject_duplicate.tpe
   ======================================================================
   File "default_reject_duplicate.tpe", line 8, characters 0-25:
   8 | default Log msg = delay 2
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: operation `Log` already has a default implementation
+  ======================================================================
+  default_reject_global.tpe
+  ======================================================================
+  File "default_reject_global.tpe", line 11, characters 0-27:
+  11 | default Retry n = refetch n
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default of `Retry` may perform `Retry` again, through the default of `Fetch`
+    File "default_reject_global.tpe", line 11, characters 18-25:
+    11 | default Retry n = refetch n
+                           ^^^^^^^
+    `refetch`, which may perform `Fetch`, is used here
+    File "default_reject_global.tpe", line 10, characters 0-33:
+    10 | default Fetch n = perform Retry n
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the default of `Fetch`, which may perform `Retry`, is defined here
+    Note: a default runs in place of an unhandled operation, so a cycle through defaults does not terminate
+  ======================================================================
+  default_reject_loop.tpe
+  ======================================================================
+  File "default_reject_loop.tpe", line 6, characters 0-31:
+  6 | default Loop x = perform Loop x
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default of `Loop` may perform `Loop` again
+    File "default_reject_loop.tpe", line 6, characters 17-31:
+    6 | default Loop x = perform Loop x
+                         ^^^^^^^^^^^^^^
+    `Loop` is performed here
+    Note: a default runs in place of an unhandled operation, so a cycle through defaults does not terminate
   ======================================================================
   default_reject_type.tpe
   ======================================================================

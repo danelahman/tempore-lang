@@ -16,6 +16,12 @@
     be established: an obligation the search neither discharges nor refutes
     rejects it.
 
+    Once solved, the recursive functions of a command must pass the structural
+    termination check ({!Termination}), and a default must not perform its own
+    operation again, directly or through other defaults ({!DefaultGraph}). The
+    environment records the operations each top-level definition, accepted or
+    not, and each accepted default may perform.
+
     A rejected definition is assumed to have the scheme [∀α. α], so that its
     uses are checked; a rejected default leaves the operation without one; a
     rejected type definition or operation signature stops the program. *)

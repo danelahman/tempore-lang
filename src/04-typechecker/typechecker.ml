@@ -36,7 +36,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     {
       envs =
         P.both
-          (fun env -> Gen.add_global env x ~defined_at:None scheme)
+          (fun env ->
+            Gen.add_global env x ~defined_at:None ~performs:Ast.OpNameSet.empty
+              scheme)
           state.envs;
       definitions = (x, scheme) :: state.definitions;
     }

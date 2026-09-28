@@ -1,0 +1,11 @@
+(* Rejected: the default of 'Retry' calls a top-level function that calls
+   another, which performs 'Fetch', whose default performs 'Retry' again. *)
+
+operation Fetch : nat ~> nat # 1
+operation Retry : nat ~> nat # 1
+
+let fetch n = perform Fetch n
+let refetch n = fetch (fetch n)
+
+default Fetch n = perform Retry n
+default Retry n = refetch n
