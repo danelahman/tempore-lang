@@ -225,12 +225,6 @@ run min 1 2
 
 run max 1 2
 
-run "test gcd and lcm"
-
-run gcd 12 8
-
-run lcm 12 8
-
 run "test odd and even"
 
 run odd 42

@@ -1,11 +1,11 @@
 (* Correctly accepted by the typechecker and run to its values: a recursive
    function may be annotated with its result type, and its value flows into
    the primitives as the unannotated one's does. *)
-let rec fact (n : nat) : nat = if n = 0 then 1 else n * fact (n - 1)
+let rec fact (n : nat) : nat = match n with 0 -> 1 | m + 1 -> n * fact m
 
 (* Correctly accepted by the typechecker: the same with the result grade. *)
 let rec fact_graded (n : nat) : nat # 0 =
-  if n = 0 then 1 else n * fact_graded (n - 1)
+  match n with 0 -> 1 | m + 1 -> n * fact_graded m
 
 (* Correctly accepted by the typechecker: a type variable 'b of an annotation
    is an unknown of its definition, the same name being the same unknown

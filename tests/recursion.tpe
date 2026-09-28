@@ -2,23 +2,28 @@
 
      ./tempore --grades time-lower-bound examples/basics/recursion.tpe *)
 
-(* Correctly accepted by the typechecker: plain recursion on natural numbers, of
-   grade 0 --- nothing in this file takes time. *)
+(* Correctly accepted by the typechecker: structural recursion on natural numbers,
+   of grade 0 --- nothing in this file takes time. *)
 let rec fact n =
-  if n = 0 then 1 else n * fact (n - 1)
+  match n with
+  | 0 -> 1
+  | m + 1 -> n * fact m
 
 (* The Fibonacci numbers, by a tail-recursive local helper. *)
 let fib n =
   let rec aux n a b =
-    if n = 0 then a else aux (n - 1) b (a + b)
+    match n with
+    | 0 -> a
+    | m + 1 -> aux m b (a + b)
   in
   aux n 0 1
 
-(* Euclid's algorithm, recursing on the remainder. *)
-let rec gcd m n =
-  match n with
-  | 0 -> m
-  | _ -> gcd n (m mod n)
+(* Binomial coefficients, by Pascal's rule, recursing on both arguments. *)
+let rec choose n k =
+  match (n, k) with
+  | (_, 0) -> 1
+  | (0, _ + 1) -> 0
+  | (m + 1, j + 1) -> choose m j + choose m (j + 1)
 
 (* The run is arithmetic only, so it ends in an empty resource state. *)
-run (gcd (fib 10) (fact 10))
+run (fact 10, fib 10, choose 10 3)

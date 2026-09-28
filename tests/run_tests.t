@@ -2622,7 +2622,7 @@
   recursion.tpe
   ======================================================================
   === Run 1 ===
-  return 5
+  return (3628800, 55, 120)
   State: []
   
   ======================================================================
@@ -3474,62 +3474,50 @@
   State: []
   
   === Run 78 ===
-  return "test gcd and lcm"
-  State: []
-  
-  === Run 79 ===
-  return 4
-  State: []
-  
-  === Run 80 ===
-  return 24
-  State: []
-  
-  === Run 81 ===
   return "test odd and even"
   State: []
   
-  === Run 82 ===
+  === Run 79 ===
   return false
   State: []
   
-  === Run 83 ===
+  === Run 80 ===
   return true
   State: []
   
-  === Run 84 ===
+  === Run 81 ===
   return "test id"
   State: []
   
-  === Run 85 ===
+  === Run 82 ===
   return 5
   State: []
   
-  === Run 86 ===
+  === Run 83 ===
   return id
   State: []
   
-  === Run 87 ===
+  === Run 84 ===
   return "test compose and reverse apply"
   State: []
   
-  === Run 88 ===
+  === Run 85 ===
   return 196
   State: []
   
-  === Run 89 ===
+  === Run 86 ===
   return 7
   State: []
   
-  === Run 90 ===
+  === Run 87 ===
   return "test fst and snd"
   State: []
   
-  === Run 91 ===
+  === Run 88 ===
   return "foo"
   State: []
   
-  === Run 92 ===
+  === Run 89 ===
   return 4
   State: []
   

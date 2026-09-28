@@ -29,11 +29,13 @@ let rec assoc x = function
   | [] -> None
   | (key, v) :: lst -> if x = key then Some v else assoc x lst
 
-let rec range m n =
-  if m > n then
-    []
-  else
-    m :: range (m + 1) n
+let range m n =
+  let rec go m k =
+    match k with
+    | 0 -> []
+    | k' + 1 -> m :: go (m + 1) k'
+  in
+  go m (n + 1 - m)
 
 let reverse lst =
   let rec reverse_acc acc = function
@@ -117,13 +119,6 @@ let rec nth (x::xs) n =
 (* Basic functions *)
 let min x y = if x < y then x else y
 let max x y = if x < y then y else x
-let rec gcd m n =
-  match n with
-  | 0 -> m
-  | _ -> let g = gcd n in g (m mod n)
-
-let rec lcm m n =
-  let d = gcd m n in (m * n) / d
 
 let odd x = (x mod 2) = 1
 let even x = (x mod 2) = 0

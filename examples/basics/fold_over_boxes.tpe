@@ -13,9 +13,9 @@
    the function has grade 0, and each element is boxed with a demand of three
    ticks. *)
 let rec box_n_values n boxed =
-  if n = 0 
-  then boxed 
-  else box_n_values (n - 1) ((box 3 n*n) :: boxed)
+  match n with
+  | 0 -> boxed
+  | m + 1 -> box_n_values m ((box 3 n*n) :: boxed)
 
 (* Correctly accepted by the typechecker: each step of the fold wraps the
    accumulator in a box of ten ticks, and inside that box the grade has already
