@@ -1371,7 +1371,7 @@
   State: []
   
   === Run 5 ===
-  return -1000000000
+  return 42
   State: []
   
   === Run 6 ===
@@ -1379,50 +1379,42 @@
   State: []
   
   === Run 7 ===
-  return -42
+  return 42
   State: []
   
   === Run 8 ===
-  return 42
+  return 11259375
   State: []
   
   === Run 9 ===
-  return 42
+  return 11259375
   State: []
   
   === Run 10 ===
-  return 11259375
+  return 32072
   State: []
   
   === Run 11 ===
-  return 11259375
+  return 32072
   State: []
   
   === Run 12 ===
-  return 32072
-  State: []
-  
-  === Run 13 ===
-  return 32072
-  State: []
-  
-  === Run 14 ===
   return 3.141592
   State: []
   
-  === Run 15 ===
+  === Run 13 ===
   return 4.141592
   State: []
   
-  === Run 16 ===
+  === Run 14 ===
   return -5.1592
   State: []
   
-  === Run 17 ===
+  === Run 15 ===
   return 6.1592
   State: []
   
-  === Run 18 ===
+  === Run 16 ===
   return -3.14
   State: []
   
@@ -1619,6 +1611,13 @@
   3 | let claim () = box ∞ 1
                          ^^^
   Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'time-upper-bound-rational', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  ======================================================================
+  literals_reject_large.tpe
+  ======================================================================
+  File "literals_reject_large.tpe", line 3, characters 19-39:
+  3 | let claim () = box 99999999999999999999 1
+                         ^^^^^^^^^^^^^^^^^^^^
+  Syntax error: Grade literal 99999999999999999999 is too large
   ======================================================================
   literals_reject_modes.tpe
   ======================================================================
@@ -1844,6 +1843,36 @@
   return 42
   State: []
   
+  ======================================================================
+  nat_division_by_zero.tpe
+  ======================================================================
+  Runtime error: Division by zero
+  ======================================================================
+  nat_large_literals.tpe
+  ======================================================================
+  === Run 1 ===
+  return 99999999999999999999
+  State: []
+  
+  === Run 2 ===
+  return 18446744073709551615
+  State: []
+  
+  === Run 3 ===
+  return 99999999999999999998
+  State: []
+  
+  === Run 4 ===
+  return 18446744073709551616
+  State: []
+  
+  ======================================================================
+  nat_reject_negative.tpe
+  ======================================================================
+  File "nat_reject_negative.tpe", line 3, characters 4-18:
+  3 | run -1_000_000_000
+          ^^^^^^^^^^^^^^
+  Syntax error: Natural numbers have no negation
   ======================================================================
   non_linear_pattern.tpe
   ======================================================================
@@ -2995,19 +3024,19 @@
   State: []
   
   === Run 9 ===
-  return -1
-  State: []
-  
-  === Run 10 ===
   return -3.14159
   State: []
   
-  === Run 11 ===
+  === Run 10 ===
   return -1.
   State: []
   
-  === Run 12 ===
+  === Run 11 ===
   return "test natural number operations"
+  State: []
+  
+  === Run 12 ===
+  return 4
   State: []
   
   === Run 13 ===
@@ -3015,15 +3044,15 @@
   State: []
   
   === Run 14 ===
-  return 4
-  State: []
-  
-  === Run 15 ===
   return 19
   State: []
   
+  === Run 15 ===
+  return 0
+  State: []
+  
   === Run 16 ===
-  return 65
+  return 2
   State: []
   
   === Run 17 ===
@@ -3259,78 +3288,74 @@
   State: []
   
   === Run 75 ===
-  return "test abs, min and max"
+  return "test min and max"
   State: []
   
   === Run 76 ===
-  return (5, 5, 5)
-  State: []
-  
-  === Run 77 ===
   return 1
   State: []
   
-  === Run 78 ===
+  === Run 77 ===
   return 2
   State: []
   
-  === Run 79 ===
+  === Run 78 ===
   return "test gcd and lcm"
   State: []
   
-  === Run 80 ===
+  === Run 79 ===
   return 4
   State: []
   
-  === Run 81 ===
+  === Run 80 ===
   return 24
   State: []
   
-  === Run 82 ===
+  === Run 81 ===
   return "test odd and even"
   State: []
   
-  === Run 83 ===
+  === Run 82 ===
   return false
   State: []
   
-  === Run 84 ===
+  === Run 83 ===
   return true
   State: []
   
-  === Run 85 ===
+  === Run 84 ===
   return "test id"
   State: []
   
-  === Run 86 ===
+  === Run 85 ===
   return 5
   State: []
   
-  === Run 87 ===
+  === Run 86 ===
   return id
   State: []
   
-  === Run 88 ===
+  === Run 87 ===
   return "test compose and reverse apply"
   State: []
   
-  === Run 89 ===
+  === Run 88 ===
   return 196
   State: []
   
-  === Run 90 ===
+  === Run 89 ===
   return 7
   State: []
   
-  === Run 91 ===
+  === Run 90 ===
   return "test fst and snd"
   State: []
   
-  === Run 92 ===
+  === Run 91 ===
   return "foo"
   State: []
   
-  === Run 93 ===
+  === Run 92 ===
   return 4
   State: []
   

@@ -2,9 +2,9 @@ type t = Q.t
 
 let zero = Q.zero
 let of_int = Q.of_int
-
-let make n d =
-  if d = 0 then raise Division_by_zero else Q.make (Z.of_int n) (Z.of_int d)
+let of_z = Q.of_bigint
+let make_z n d = if Z.equal d Z.zero then raise Division_by_zero else Q.make n d
+let make n d = make_z (Z.of_int n) (Z.of_int d)
 
 let of_decimal s =
   let invalid () = invalid_arg ("Rational.of_decimal: " ^ s) in
@@ -22,6 +22,7 @@ let sign = Q.sign
 let compare = Q.compare
 let equal = Q.equal
 let hash q = (Z.hash (Q.num q) * 65599) + Z.hash (Q.den q)
+let is_integer q = Z.equal (Q.den q) Z.one
 
 let to_int q =
   if Z.equal (Q.den q) Z.one && Z.fits_int (Q.num q) then

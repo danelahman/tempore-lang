@@ -15,7 +15,7 @@ type token =
   | LNAME of string
   | UNDERSCORE
   | AS
-  | INT of int
+  | INT of Z.t
   | STRING of string
   | BOOL of bool
   | FLOAT of string

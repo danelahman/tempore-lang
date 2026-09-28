@@ -1,0 +1,3 @@
+(* Rejected: a grade literal too large for the grades. *)
+
+let claim () = box 99999999999999999999 1

@@ -275,11 +275,13 @@ let check_nat who n =
     [n], the {!S.of_duration} of a grade counting whole time steps by [of_nat].
 
     @raise Invalid_argument if [q] is negative, naming the function [who].
-    @raise Invalid_literal if [q] is not an integer. *)
+    @raise Invalid_literal if [q] is not an integer or not an [int]. *)
 let whole ~who of_nat q =
   if Rational.sign q < 0 then
     invalid_arg (who ^ ".of_duration: expected non-negative duration")
   else
     match Rational.to_int q with
     | Some n -> of_nat n
+    | None when Rational.is_integer q ->
+        invalid_lit (Rat q) "delays are at most %d time steps" max_int
     | None -> invalid_lit (Rat q) "delays are whole numbers of time steps"

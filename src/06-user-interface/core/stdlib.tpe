@@ -9,7 +9,6 @@ let ( * ) x y = __nat_mul__ (x, y)
 let ( - ) x y = __nat_sub__ (x, y)
 let ( / ) x y = __nat_div__ (x, y)
 let ( mod ) x y = __nat_mod__ (x, y)
-let ( ~- ) x = __nat_neg__ x
 let ( +. ) x y = __float_add__ (x, y)
 let ( *. ) x y = __float_mul__ (x, y)
 let ( -. ) x y = __float_sub__ (x, y)
@@ -116,7 +115,6 @@ let rec nth (x::xs) n =
   if n = 0 then x else nth xs (n - 1)
 
 (* Basic functions *)
-let abs x = if x < 0 then -x else x
 let min x y = if x < y then x else y
 let max x y = if x < y then y else x
 let rec gcd m n =

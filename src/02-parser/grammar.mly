@@ -38,6 +38,12 @@
     check GS.E.name GS.E.of_duration;
     q
 
+  (* [small ~loc what n] is the number [n] as an OCaml [int]; a syntax error
+     at [loc] naming [what] if [n] does not fit one. *)
+  let small ~loc what n =
+    if Z.fits_int n then Z.to_int n
+    else Error.syntax ~loc "%s %s is too large" what (Z.to_string n)
+
   (* The literals written as lowercase names. *)
   let named_lit ~loc = function
     | "top" -> Grade.Top
@@ -57,7 +63,7 @@
 %token BEGIN END
 %token <string> LNAME
 %token UNDERSCORE AS
-%token <int> INT
+%token <Z.t> INT
 %token <string> STRING
 %token <bool> BOOL
 %token <string> FLOAT
@@ -189,9 +195,9 @@ plain_binop_term:
 
 uminus_term: mark_position(plain_uminus_term) { $1 }
 plain_uminus_term:
-  | MINUS t = uminus_term
-    { let op_loc = Location.of_lexing $startpos($1) $endpos($1) in
-      Apply ({it= Var "(~-)"; at= op_loc}, t) }
+  | MINUS uminus_term
+    { Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+        "Natural numbers have no negation" }
   | MINUSDOT t = uminus_term
     { let op_loc = Location.of_lexing $startpos($1) $endpos($1) in
       Apply ({it= Var "(~-.)"; at= op_loc}, t) }
@@ -252,7 +258,7 @@ plain_simple_term:
 
 const:
   | n = INT
-    { Language.Const.of_nat (Z.of_int n) }
+    { Language.Const.of_nat n }
   | str = STRING
     { Language.Const.of_string str }
   | b = BOOL
@@ -507,8 +513,12 @@ sum_case:
 (* The runtime bounds an operation declares; [within n] is sugar for
    [within (n, n)]. Only the timed-trace grading monoids read them. *)
 op_bounds:
-  | WITHIN n = INT { (n, n) }
-  | WITHIN LPAREN n = INT COMMA m = INT RPAREN { (n, m) }
+  | WITHIN n = INT
+    { let n = small ~loc:(Location.of_lexing $startpos(n) $endpos(n)) "Bound" n in
+      (n, n) }
+  | WITHIN LPAREN n = INT COMMA m = INT RPAREN
+    { (small ~loc:(Location.of_lexing $startpos(n) $endpos(n)) "Bound" n,
+       small ~loc:(Location.of_lexing $startpos(m) $endpos(m)) "Bound" m) }
 
 (* A resource grade, a literal read by the resource grades of the grade system
    or a grade variable, at its location. *)
@@ -530,7 +540,7 @@ eps_grade:
 
 (* A non-negative duration: an integer or a fraction. *)
 duration:
-  | n = INT { Rational.of_int n }
+  | n = INT { Rational.of_z n }
   | q = fraction
     { if Rational.sign q < 0 then
         Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
@@ -544,17 +554,19 @@ fraction:
     { if op <> "/" then
         Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
           "unknown operator '%s' in a fraction" op
-      else if d = 0 then
+      else if Z.equal d Z.zero then
         Error.syntax ~loc:(Location.of_lexing $startpos(d) $endpos(d))
           "fractions have positive denominators"
-      else Rational.make n d }
+      else Rational.make_z n d }
 
 (* A grade literal, shared by all grades; each grade reads the forms it
    understands. *)
 grade_lit:
-  | n = INT { Grade.Int n }
+  | n = INT
+    { Grade.Int (small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
   | q = fraction { Grade.rational_lit q }
-  | MINUS n = INT { Grade.Int (-n) }
+  | MINUS n = INT
+    { Grade.Int (- small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
   | UNDERSCORE { Grade.Name "_" }
   | name = UNAME { Grade.Name name }
   | TOP { Grade.Top }
@@ -593,7 +605,8 @@ regex_postfix:
 
 regex_atom:
   | name = UNAME { Grade.Letter name }
-  | n = INT { Grade.Tick n }
+  | n = INT
+    { Grade.Tick (small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
   | UNDERSCORE { Grade.Any }
   | LPAREN r = regex RPAREN { r }
   | LBRACE r = regex RBRACE { r }

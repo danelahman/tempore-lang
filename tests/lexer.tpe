@@ -5,9 +5,7 @@ run let a' = 20 in a'
 run let a'b' = 30 in a'b'
 run let a''' = 40 in a'''
 
-run -1_000_000_000
 run 42
-run (-0b101010)
 run 0b101010
 run 0B101010
 run 0xabcdef

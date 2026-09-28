@@ -64,6 +64,14 @@ The [`examples/`](examples/) directory holds example programs by topic:
 and `rollout/` (a staged software rollout). All but `basics/` are offered in the web interface
 ([`examples/index`](examples/index)).
 
+## Natural numbers
+
+The type `nat` holds the natural numbers; values and literals are of arbitrary
+size. Subtraction is truncated, so `3 - 5` is `0`, and there is
+no negation: `-1` is a syntax error. Division and `mod` by zero are runtime
+errors. Grade literals keep their own signed integers (see [Grade
+literals](#grade-literals)).
+
 ## Grading monoids
 
 Resources and computations are graded by an ordered monoid, chosen at run time

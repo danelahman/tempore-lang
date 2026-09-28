@@ -31,10 +31,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Error.runtime "Float expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
-  let nat_to f expr =
-    let n = get_nat expr in
-    f n
-
   let nat_nat_to f expr =
     binary_function
       (fun expr1 expr2 ->
@@ -54,8 +50,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let n2 = get_float expr2 in
         f n1 n2)
       expr
-
-  let nat_to_nat f expr = return_const expr.Ast.at (Const.Nat (nat_to f expr))
 
   let nat_nat_to_nat f expr =
     return_const expr.Ast.at (Const.Nat (nat_nat_to f expr))
@@ -103,10 +97,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Primitives.CompareNe -> comparison ( <> )
     | Primitives.NatAdd -> nat_nat_to_nat Z.add
     | Primitives.NatMul -> nat_nat_to_nat Z.mul
-    | Primitives.NatSub -> nat_nat_to_nat Z.sub
-    | Primitives.NatDiv -> nat_nat_to_nat Z.div
-    | Primitives.NatMod -> nat_nat_to_nat Z.rem
-    | Primitives.NatNeg -> nat_to_nat Z.neg
+    | Primitives.NatSub -> nat_nat_to_nat (fun m n -> Z.max Z.zero (Z.sub m n))
+    | Primitives.NatDiv ->
+        nat_nat_to_nat (fun m n ->
+            if Z.equal n Z.zero then Error.runtime "Division by zero"
+            else Z.div m n)
+    | Primitives.NatMod ->
+        nat_nat_to_nat (fun m n ->
+            if Z.equal n Z.zero then Error.runtime "Modulo by zero"
+            else Z.rem m n)
     | Primitives.FloatAdd -> float_float_to_float ( +. )
     | Primitives.FloatMul -> float_float_to_float ( *. )
     | Primitives.FloatSub -> float_float_to_float ( -. )

@@ -12,8 +12,16 @@ val zero : t
 val of_int : int -> t
 (** [of_int n] is the integer [n]. *)
 
+val of_z : Z.t -> t
+(** [of_z n] is the integer [n]. *)
+
 val make : int -> int -> t
 (** [make n d] is the fraction [n/d].
+
+    @raise Division_by_zero if [d = 0]. *)
+
+val make_z : Z.t -> Z.t -> t
+(** [make_z n d] is the fraction [n/d].
 
     @raise Division_by_zero if [d = 0]. *)
 
@@ -45,6 +53,9 @@ val equal : t -> t -> bool
 
 val hash : t -> int
 (** A hash compatible with {!equal}. *)
+
+val is_integer : t -> bool
+(** [is_integer q] is whether [q] is an integer. *)
 
 val to_int : t -> int option
 (** [to_int q] is [Some n] if [q] is an integer [n] representable as an [int],

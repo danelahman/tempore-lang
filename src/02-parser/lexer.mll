@@ -90,11 +90,7 @@ rule token = parse
   | '\n'                { Lexing.new_line lexbuf; token lexbuf }
   | [' ' '\r' '\t']     { token lexbuf }
   | "(*"                { comment token 0 lexbuf }
-  | int                 { INT (int_of_string (Lexing.lexeme lexbuf)) }
-  | xxxint              { try
-                            INT (int_of_string (Lexing.lexeme lexbuf))
-                          with Failure _ -> Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Invalid integer constant"
-                        }
+  | int | xxxint        { INT (Z.of_string (Lexing.lexeme lexbuf)) }
   | float               { FLOAT (Lexing.lexeme lexbuf) }
   | '"'                 { STRING (string "" lexbuf) }
   | lname               { let s = Lexing.lexeme lexbuf in

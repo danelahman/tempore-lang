@@ -28,7 +28,6 @@ module Make (C : Constraint.S) = struct
     | Primitives.NatAdd | Primitives.NatMul | Primitives.NatSub
     | Primitives.NatDiv | Primitives.NatMod ->
         binary nat
-    | Primitives.NatNeg -> unary nat
     | Primitives.FloatAdd | Primitives.FloatMul | Primitives.FloatSub
     | Primitives.FloatDiv | Primitives.FloatPow ->
         binary float

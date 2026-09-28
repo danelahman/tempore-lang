@@ -33,8 +33,6 @@ run assert (0.0 /. 0.0 = nan);;
 
 run "test tilda_minus"
 
-run ~-1
-
 run ~-. 3.14159
 
 run ~-. 1.0
@@ -47,13 +45,15 @@ run 2 * 2
 
 run 42 - 23
 
-run 42 - ~-23
+run 3 - 5
+
+run 5 - 3
 
 run 100 / 3
 
-(* run 1 / 0 *) (* Raises Division_by_0. *)
+(* run 1 / 0 *) (* A runtime error. *)
 
-(* run 0 / 0 *) (* Raises Division_by_0. *)
+(* run 0 / 0 *) (* A runtime error. *)
 
 run 0 / 1
 
@@ -61,9 +61,9 @@ run 5 mod 3
 
 run 0 mod 1
 
-(* run 0 mod 0 *) (* Raises Division_by_0. *)
+(* run 0 mod 0 *) (* A runtime error. *)
 
-(* run 1 mod 0 *) (* Raises Division_by_0. *)
+(* run 1 mod 0 *) (* A runtime error. *)
 
 run "test float operations"
 
@@ -219,9 +219,7 @@ run tl [1;2;3;4]
 check (tl []);;
 *)
 
-run "test abs, min and max"
-
-run abs 5, abs (~-5), abs(-5)
+run "test min and max"
 
 run min 1 2
 

@@ -1,0 +1,3 @@
+(* Rejected: natural numbers have no negation. *)
+
+run -1_000_000_000

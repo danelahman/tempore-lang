@@ -95,11 +95,13 @@ let malformed =
     "literals_reject_empty.tpe";
     "literals_reject_flow.tpe";
     "literals_reject_inf.tpe";
+    "literals_reject_large.tpe";
     "literals_reject_modes.tpe";
     "literals_reject_name.tpe";
     "literals_reject_negative.tpe";
     "literals_reject_peak.tpe";
     "literals_reject_windows.tpe";
+    "nat_reject_negative.tpe";
     "literals_reject_star.tpe";
     "literals_reject_unknown.tpe";
     "literals_reject_rational_negative.tpe";

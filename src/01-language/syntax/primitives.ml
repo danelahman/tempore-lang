@@ -10,7 +10,6 @@ type primitive =
   | NatSub
   | NatDiv
   | NatMod
-  | NatNeg
   | FloatAdd
   | FloatMul
   | FloatSub
@@ -33,7 +32,6 @@ let primitives =
     NatSub;
     NatDiv;
     NatMod;
-    NatNeg;
     FloatAdd;
     FloatMul;
     FloatSub;
@@ -55,7 +53,6 @@ let primitive_name = function
   | NatSub -> "__nat_sub__"
   | NatDiv -> "__nat_div__"
   | NatMod -> "__nat_mod__"
-  | NatNeg -> "__nat_neg__"
   | FloatAdd -> "__float_add__"
   | FloatMul -> "__float_mul__"
   | FloatSub -> "__float_sub__"
