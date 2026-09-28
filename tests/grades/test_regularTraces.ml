@@ -6,8 +6,9 @@
    matcher of regular expressions and against the parser; and the agreement of
    the implementations on random expressions, on which equal grades have equal
    canonical automata and print alike unless the printing of one of them falls
-   back to its normal form; and the time and size of the printing, bounded by
-   the size of the normal form. *)
+   back to its normal form; the time and size of the printing, bounded by the
+   size of the normal form; and long runs of ticks, taken at once by the
+   derivatives. *)
 
 module Grade = Grades.Grade
 module SugaredAst = SugaredAst
@@ -31,13 +32,14 @@ let contains s sub =
   let rec from i = i + k <= n && (String.sub s i k = sub || from (i + 1)) in
   from 0
 
-(* Random regular expressions of depth [depth] over the names [names]. *)
-let random_regex ~names ~depth state =
+(* Random regular expressions of depth [depth] over the names [names], the
+   delays of up to [longest] ticks, [2] by default. *)
+let random_regex ?(longest = 2) ~names ~depth state =
   let count = List.length names in
   let atom () =
     match Random.State.int state (count + 3) with
     | i when i < count -> Grade.Letter (List.nth names i)
-    | i when i = count -> Grade.Tick (Random.State.int state 3)
+    | i when i = count -> Grade.Tick (Random.State.int state (longest + 1))
     | i when i = count + 1 -> Grade.Any
     | _ -> Grade.Tick 1
   in
@@ -54,6 +56,45 @@ let random_regex ~names ~depth state =
       | _ -> Grade.Union (go (depth - 1), atom ())
   in
   go depth
+
+(* Random expressions shaped as grades over long delays, of up to [longest]
+   ticks: alternatives of sequences of names, delays, [_] and repetitions of
+   names, ended by [_*] or [1*] at times, and the intersections and
+   complements of such alternatives. A delay after a repetition that can
+   repeat a tick, or within a complement within a sequence, gives unions of
+   the delays shortened by each number of ticks, which these leave out. *)
+let random_grade ~longest ~names state =
+  let pick xs = List.nth xs (Random.State.int state (List.length xs)) in
+  let atom () =
+    match Random.State.int state 5 with
+    | 0 | 1 -> Grade.Tick (Random.State.int state (longest + 1))
+    | 2 -> Grade.Letter (pick names)
+    | 3 -> Grade.Any
+    | _ -> Grade.Star (Grade.Letter (pick names))
+  in
+  let sequence () =
+    let atoms = List.init (1 + Random.State.int state 4) (fun _ -> atom ()) in
+    let ending =
+      match Random.State.int state 4 with
+      | 0 -> [ Grade.Star Grade.Any ]
+      | 1 -> [ Grade.Star (Grade.Tick 1) ]
+      | _ -> []
+    in
+    match atoms @ ending with
+    | r :: rs -> List.fold_left (fun r s -> Grade.Seq (r, s)) r rs
+    | [] -> Grade.Tick 0
+  in
+  let alternatives () =
+    let r = sequence () in
+    List.fold_left
+      (fun r s -> Grade.Union (r, s))
+      r
+      (List.init (Random.State.int state 3) (fun _ -> sequence ()))
+  in
+  match Random.State.int state 5 with
+  | 0 -> Grade.Inter (alternatives (), alternatives ())
+  | 1 -> Grade.Compl (alternatives ())
+  | _ -> alternatives ()
 
 (* Random expressions over the names [A], [B] and [C]. *)
 let samples =
@@ -762,10 +803,259 @@ module PlainAgreement =
       let length = Plain.length
     end)
 
+(* Long runs of ticks: the leaps of the expressions against their derivatives
+   letter by letter, the shortest words found with leaps against a search
+   letter by letter on delays of up to 3000 ticks, the implementations by
+   derivatives against each other on delays of up to 10⁴ ticks and against the
+   automata on delays of up to 30, and the time of decisions on long
+   delays. *)
+module Runs = struct
+  module R = Grades.SymbolicRegex
+  module A = Grades.RegularTraceGrade
+  module D = Grades.RegularTraceGradeDerivative
+  module C = Grades.RegularTraceGradeDerivative.Concrete
+  module P = Grades.RegularTraceGradePlain
+
+  let tick = R.Letters.tick
+
+  (* [steps k r] is the derivative of [r] by [tickᵏ], letter by letter. *)
+  let rec steps k r = if k = 0 then r else steps (k - 1) (R.derivative tick r)
+
+  let expressions ~seed ~count ~longest =
+    let state = Random.State.make [| seed |] in
+    List.init count (fun _ ->
+        D.of_regex (random_grade ~longest ~names:[ "A"; "B" ] state))
+
+  (* The leap by [k] denotes the language of [k] derivatives by [tick], on
+     random expressions with delays of up to 60 ticks and on grades with delays
+     of up to 10⁴, and is their normal form on runs, concatenations led by runs,
+     repetitions of runs and the complements of these. *)
+  let leaps =
+    let state = Random.State.make [| 29 |] in
+    let random n = Random.State.int state (n + 1) in
+    let short =
+      List.init 150 (fun _ ->
+          D.of_regex
+            (random_regex ~longest:60 ~names:[ "A"; "B" ] ~depth:4 state))
+    in
+    let long = expressions ~seed:31 ~count:40 ~longest:10000 in
+    let exact s =
+      let n = random 5000 and c = 1 + random 40 in
+      [
+        R.ticks n;
+        R.concat (R.ticks n) s;
+        R.star (R.ticks c);
+        R.concat (R.ticks n) (R.star (R.ticks c));
+        R.compl (R.concat (R.ticks n) s);
+      ]
+    in
+    let same equal k r =
+      check
+        (Printf.sprintf "runs: leap by %d of %s" k (D.show r))
+        (equal (R.leap k r) (steps k r))
+        ""
+    in
+    List.map (fun r -> same R.equal (random 150) r) short
+    @ List.map (fun r -> same R.equal (random 20000) r) long
+    @ List.concat_map
+        (fun s ->
+          List.map (fun r -> same R.equal_form (random 8000) r) (exact s))
+        (List.filteri (fun i _ -> i < 40) long)
+
+  (* [reference r] is the least of the shortest words of [r] in the order of
+     its minterms, by breadth-first search of its derivatives letter by
+     letter. *)
+  let reference r =
+    let ms = R.minterms r in
+    let seen = Hashtbl.create 64 in
+    let visit (d, rev_word) =
+      List.filter_map
+        (fun m ->
+          let d' = R.derivative m d in
+          if Hashtbl.mem seen (R.hash d') then None
+          else begin
+            Hashtbl.add seen (R.hash d') ();
+            Some (d', m :: rev_word)
+          end)
+        ms
+    in
+    let rec go = function
+      | [] -> None
+      | level -> (
+          match List.find_opt (fun (d, _) -> R.nullable d) level with
+          | Some (_, rev_word) -> Some (List.rev rev_word)
+          | None -> go (List.concat_map visit level))
+    in
+    Hashtbl.add seen (R.hash r) ();
+    go [ (r, []) ]
+
+  (* The pairs of each expression with the next. *)
+  let rec next = function
+    | r :: (s :: _ as rest) -> (r, s) :: next rest
+    | _ -> []
+
+  let shortest =
+    List.map
+      (fun (r, s) ->
+        let d = R.inter [ r; R.compl s ] in
+        check
+          ("runs: shortest word of " ^ D.show r ^ " not in " ^ D.show s)
+          (Option.equal
+             (List.equal R.Letters.equal)
+             (R.shortest d) (reference d))
+          "")
+      (next (expressions ~seed:37 ~count:60 ~longest:3000))
+
+  let grades r =
+    let read of_lit =
+      match of_lit (Grade.Braces r) with
+      | rho -> Some rho
+      | exception Grade.Invalid_literal _ -> None
+    in
+    (read D.of_lit, read C.of_lit, read P.of_lit)
+
+  let grade_regexes ~seed ~count ~longest =
+    let state = Random.State.make [| seed |] in
+    List.init count (fun _ ->
+        random_grade ~longest ~names:[ "A"; "B"; "C" ] state)
+
+  (* [printed_length text] is the length of the word of a grade printed as
+     [text], a sequence of letters and delays: a delay counts as its number of
+     ticks. *)
+  let printed_length text =
+    let inner = String.sub text 1 (String.length text - 2) in
+    List.fold_left
+      (fun n part ->
+        n + Option.value (int_of_string_opt (String.trim part)) ~default:1)
+      0
+      (String.split_on_char ';' inner)
+
+  (* The implementations by derivatives agree on long delays. *)
+  let derivatives =
+    List.concat
+    @@ List.mapi
+         (fun i (r, s) ->
+           match (grades r, grades s) with
+           | (Some d, Some c, Some p), (Some d', Some c', Some p') ->
+               let name what = Printf.sprintf "runs: %s of pair %d" what i in
+               let leq = D.leq bounds d d' and equal = D.equal bounds d d' in
+               let found =
+                 Option.map
+                   (fun w -> printed_length (D.show w))
+                   (D.counterexample bounds d d')
+               in
+               [
+                 check (name "inclusion")
+                   (C.leq bounds c c' = leq && P.leq bounds p p' = leq)
+                   (D.show d ^ " <= " ^ D.show d');
+                 check (name "equality")
+                   (C.equal bounds c c' = equal && P.equal bounds p p' = equal)
+                   (D.show d ^ " = " ^ D.show d');
+                 check (name "counterexample")
+                   (Option.map
+                      (fun w -> printed_length (C.show w))
+                      (C.counterexample bounds c c')
+                    = found
+                   && Option.map
+                        (fun w -> printed_length (P.show w))
+                        (P.counterexample bounds p p')
+                      = found)
+                   (D.show d ^ " <= " ^ D.show d');
+               ]
+           | (d, c, p), (d', c', p') ->
+               [
+                 check
+                   (Printf.sprintf "runs: emptiness of pair %d" i)
+                   (Option.is_some c = Option.is_some d
+                   && Option.is_some p = Option.is_some d
+                   && Option.is_some c' = Option.is_some d'
+                   && Option.is_some p' = Option.is_some d')
+                   "the implementations disagree";
+               ])
+         (next (grade_regexes ~seed:41 ~count:80 ~longest:10000))
+
+  (* The implementation by symbolic derivatives agrees with that by automata on
+     delays of up to 30 ticks. *)
+  let automata =
+    List.concat
+    @@ List.mapi
+         (fun i (r, s) ->
+           match (Cross.grades r, Cross.grades s) with
+           | (Some a, Some d), (Some a', Some d') ->
+               let name what = Printf.sprintf "runs: %s of pair %d" what i in
+               [
+                 check
+                   (name "inclusion by automata")
+                   (A.leq bounds a a' = D.leq bounds d d')
+                   (D.show d ^ " <= " ^ D.show d');
+                 check
+                   (name "equality by automata")
+                   (A.equal bounds a a' = D.equal bounds d d')
+                   (D.show d ^ " = " ^ D.show d');
+                 check
+                   (name "counterexample by automata")
+                   (Cross.same_length
+                      (A.counterexample bounds a a')
+                      (D.counterexample bounds d d'))
+                   (D.show d ^ " <= " ^ D.show d');
+               ]
+           | (a, d), (a', d') ->
+               [
+                 check
+                   (Printf.sprintf "runs: emptiness by automata of pair %d" i)
+                   (Option.is_some a = Option.is_some d
+                   && Option.is_some a' = Option.is_some d')
+                   "the implementations disagree";
+               ])
+         (next
+            (let state = Random.State.make [| 43 |] in
+             List.init 150 (fun i ->
+                 if i mod 2 = 0 then
+                   random_grade ~longest:30 ~names:[ "A"; "B"; "C" ] state
+                 else
+                   random_regex ~longest:30 ~names:[ "A"; "B"; "C" ] ~depth:4
+                     state)))
+
+  (* Long delays are decided and printed within a second, by each
+     implementation by derivatives. *)
+  let timing =
+    let quickly name decide =
+      let start = Sys.time () in
+      let holds = decide () in
+      let time = Sys.time () -. start in
+      check name (holds && time < 1.) (Printf.sprintf "in %.2f s" time)
+    in
+    let long (type a) (module G : PRINTED with type t = a) (lit : string -> a) =
+      let name what = "runs: " ^ G.name ^ ": " ^ what in
+      [
+        quickly (name "{10000; Ready} <= {9999; _; _*}") (fun () ->
+            G.leq bounds (lit "{10000; Ready}") (lit "{9999; _; _*}"));
+        quickly (name "{5000; 5000} = {10000}") (fun () ->
+            G.equal bounds (lit "{5000; 5000}") (lit "{10000}"));
+        quickly (name "{10000; Ready} ≠ {10000; Ready | 20000}") (fun () ->
+            not
+              (G.equal bounds (lit "{10000; Ready}")
+                 (lit "{10000; Ready | 20000}")));
+        quickly (name "counterexample of {9999; Ready} <= {10000; _; _*}")
+          (fun () ->
+            Option.map G.show
+              (G.counterexample bounds (lit "{9999; Ready}")
+                 (lit "{10000; _; _*}"))
+            = Some "{9999; Ready}");
+      ]
+    in
+    long (module D) Derivatives.lit
+    @ long (module C) ByLetters.lit
+    @ long (module P) Plain.lit
+
+  let checks = leaps @ shortest @ derivatives @ automata @ timing
+end
+
 let () =
   let checks =
     Automata.checks @ Derivatives.checks @ ByLetters.checks @ Plain.checks
     @ Cross.checks @ ByLettersAgreement.checks @ PlainAgreement.checks
+    @ Runs.checks
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

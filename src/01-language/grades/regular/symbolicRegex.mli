@@ -34,6 +34,23 @@
     over an effective Boolean algebra do (Zhuchko, Maarand, Veanes and Ebner,
     ITP 2025).
 
+    A word of [n ≥ 2] ticks is one expression, a {e run} [tickⁿ], and
+    concatenation joins adjacent runs: [tickᵐ; tickⁿ] is [tickᵐ⁺ⁿ] and
+    [tickᵐ; (tickⁿ; s)] is [tickᵐ⁺ⁿ; s], [tick¹] being the letter set [{tick}]
+    and [tick⁰] the empty word. A run stands for the concatenation of its
+    letters, associated to the right: the normal forms are those of the
+    expressions with letters for runs, one to one, with the same derivatives, so
+    that the finiteness above holds, the derivative of [tickⁿ] by a block
+    containing [tick] being [tickⁿ⁻¹].
+
+    {2 Runs of ticks}
+
+    The {e lead} of an expression ({!S.lead}) is a number [k] of ticks all its
+    words begin with, read off its form, and its {e leap} by [k] ({!S.leap}) is
+    its derivative by [tickᵏ]: a search from an expression of lead [k ≥ 1] has
+    no other way than [tickᵏ] to a nullable derivative, and takes it in one step
+    ({!S.Decide}).
+
     {2 Interning}
 
     Expressions are hash-consed: each normal form is built once and identified
@@ -116,7 +133,8 @@ type letters =
   | Atoms
       (** Single letters: [tick], a name, or a catch-all letter given as a set
           {!Letters.others}; a union of letters is a union of expressions, and
-          [Σ*] is [~∅]. *)
+          [Σ*] is [~∅], as is the repetition of a union of letters that holds
+          every letter. *)
 
 (** Extended regular expressions in normal form. *)
 module type S = sig
@@ -129,9 +147,11 @@ module type S = sig
     | Eps  (** The language of the empty word *)
     | Letters of Letters.t
         (** The one-letter words of a non-empty letter set *)
+    | Ticks of int  (** The word [tickⁿ], a run of [n ≥ 2] ticks *)
     | Concat of t * t
         (** Concatenation, the first operand neither a concatenation, the empty
-            word nor the empty language *)
+            word nor the empty language, and the second not led by a run of
+            ticks if the first is one *)
     | Union of t list  (** Union of at least two operands *)
     | Inter of t list  (** Intersection of at least two operands *)
     | Compl of t  (** Complement *)
@@ -167,6 +187,10 @@ module type S = sig
   val letters : Letters.t -> t
   (** [letters p] is the language of the one-letter words of [p]. *)
 
+  val ticks : int -> t
+  (** [ticks n] is the word [tickⁿ]: the empty word, the letter set [{tick}] or
+      a run of [n] ticks. *)
+
   val concat : t -> t -> t
   val union : t list -> t
   val inter : t list -> t
@@ -192,6 +216,29 @@ module type S = sig
   (** [derivative m r] is the derivative [a⁻¹r] of [r] by any letter [a] of [m],
       the words [w] such that [a w] is in [r], for [m] contained in a block of
       [minterms r]. *)
+
+  val lead : t -> int
+  (** [lead r] is a number [k] of ticks every word of [r] begins with, read off
+      its form: [n] for a run of [n] ticks, [n] plus the lead of [s] for
+      [tickⁿ; s], the lead of [r] for another concatenation [r; s], the least
+      lead of the operands of a union and the greatest of those of an
+      intersection, [Int.max_int] for the empty language and [0] otherwise. The
+      derivatives of [r] by the words of length at most [k] other than the runs
+      of ticks are thus empty, and those by [tickʲ] for [j < k] are not
+      nullable. *)
+
+  val leap : int -> t -> t
+  (** [leap k r] is the derivative [(tickᵏ)⁻¹r] of [r] by [tickᵏ], denoting the
+      language of [k] derivatives by [tick] in turn. It is taken at once where
+      the form of [r] tells it: [tickⁿ⁻ᵏ] for a run of [n ≥ k] ticks,
+      [tickⁿ⁻ᵏ; s] or [leap (k - n) s] for [tickⁿ; s], [leap k r; s] for another
+      concatenation [r; s] if [k] is at most the lead of [r],
+      [tickᶜ⁻ʲ; (tickᶜ)*] for the repetition [(tickᶜ)*] of a run,
+      [j = k mod c ≠ 0], and the complement, union or intersection of the leaps
+      of the operands; and otherwise by [k] derivatives, until a derivative is
+      its own. It is the normal form of [k] derivatives on runs, concatenations
+      led by runs, repetitions of runs and complements of these, and denotes the
+      same language elsewhere. *)
 
   (** {1 Alphabets} *)
 
@@ -220,7 +267,11 @@ module type S = sig
       the derivatives by minterms being those of RE#. Deciding the inclusion and
       equivalence of extended regular expressions by derivatives follows Keil
       and Thiemann (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits (CAV
-      2025). *)
+      2025). From an expression of lead [k ≥ 1] the only edges to expressions
+      that are not empty are those of the word [tickᵏ], none of whose proper
+      prefixes leads to a nullable expression: the explorations follow the word
+      at once, by the {!leap} by [k], and label it by [k] times the block
+      containing [tick]. *)
 
   module type DECISIONS = sig
     val is_empty : t -> bool
@@ -228,9 +279,12 @@ module type S = sig
         exploration, which stops at the first nullable derivative. *)
 
     val shortest : t -> Letters.t list option
-    (** [shortest r] is [None] if [r] is empty, and otherwise a shortest word of
-        [r], each letter given as the block of the alphabet it is taken from,
-        found by breadth-first exploration. *)
+    (** [shortest r] is [None] if [r] is empty, and otherwise the least of the
+        shortest words of [r] in the order of the blocks, each letter given as
+        the block of the alphabet it is taken from, found by breadth-first
+        exploration by depths: when all the expressions of a depth have a lead
+        of at least [k ≥ 1], it moves on [k] depths at once, by their leaps by
+        [k], the depths in between having no nullable expression. *)
 
     val subset : t -> t -> bool
     (** [subset r s] is whether [r ⊆ s], i.e. whether [r & ~s] is empty. *)
@@ -239,7 +293,9 @@ module type S = sig
     (** [equal r s] is whether [r] and [s] denote the same language, decided by
         a bisimulation up to the normal form (Hopcroft and Karp): the pairs of
         derivatives of [r] and [s] by the same words are explored breadth-first,
-        the classes of the expressions found equal being merged as they go. *)
+        the classes of the expressions found equal being merged as they go; a
+        pair of expressions of leads at least [k ≥ 1] is followed by their leaps
+        by [k] only, which denote the same language iff the pair does. *)
   end
 
   (** The decisions by the alphabet [A], with their own tables of the emptiness

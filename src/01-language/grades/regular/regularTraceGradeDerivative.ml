@@ -11,10 +11,7 @@ module type S = sig
   val canonical : t -> LetterRegex.t option
 end
 
-let tick = R.letters Letters.tick
-
-let ticks n =
-  List.fold_left (fun r _ -> R.concat tick r) R.eps (List.init n Fun.id)
+let ticks = R.ticks
 
 let rec of_regex = function
   | Letter name -> R.letters (Letters.name name)
@@ -93,11 +90,14 @@ struct
 
   let is_atomic name rho = D.equal rho (R.letters (Letters.name name))
 
+  (* The word is concatenated from its end, each run of ticks joining the
+     next letter [tick] to it. *)
   let counterexample _bounds rho rho' =
     Option.map
-      (List.fold_left
-         (fun r m -> R.concat r (R.letters (representative m)))
-         R.eps)
+      (fun word ->
+        List.fold_right
+          (fun m r -> R.concat (R.letters (representative m)) r)
+          word R.eps)
       (D.shortest (R.inter [ rho; R.compl rho' ]))
 
   let of_lit = function
@@ -130,6 +130,8 @@ struct
       step = (fun r a -> R.derivative letters.(a) r);
       accepts = R.nullable;
       dead = D.is_empty;
+      lead = R.lead;
+      leap = (fun r k -> R.leap k r);
     }
 
   module Tables = Dfa.Implicit (Int)
@@ -142,12 +144,15 @@ struct
         (SymbolicAutomaton.of_derivatives ~limit:Int.max_int
            ~blocks:(Alphabet.blocks [ rho ]) rho)
     in
+    let step q x = SymbolicAutomaton.next a q letters.(x) in
     Tables.canonical (Array.length letters)
       {
         start = 0;
-        step = (fun q x -> SymbolicAutomaton.next a q letters.(x));
+        step;
         accepts = SymbolicAutomaton.final a;
         dead = Fun.const false;
+        lead = Fun.const 0;
+        leap = Dfa.unrolled step;
       }
 
   let canonical = canonical

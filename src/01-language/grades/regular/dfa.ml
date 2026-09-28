@@ -220,19 +220,46 @@ let is_empty l = not (Array.mem true l.finals)
 let is_all l = not (Array.mem false l.finals)
 let alike l a b = Array.for_all (fun row -> row.(a) = row.(b)) l.rows
 
-(* [dead l q] is whether no final state is reachable from the state [q] of the
+(* [dead l] tells whether no final state is reachable from a state of the
    minimal automaton [l]: such a state is unique, and its own successor by
    every letter. *)
-let dead l q = (not (final l q)) && Array.for_all (Int.equal q) l.rows.(q)
+let dead l =
+  let is_dead q = (not (final l q)) && Array.for_all (Int.equal q) l.rows.(q) in
+  match List.find_opt is_dead (range (states l)) with
+  | Some d -> Int.equal d
+  | None -> Fun.const false
 
 type 'state automaton = {
   start : 'state;
   step : 'state -> int -> 'state;
   accepts : 'state -> bool;
   dead : 'state -> bool;
+  lead : 'state -> int;
+  leap : 'state -> int -> 'state;
 }
 
-let automaton l = { start = 0; step = next l; accepts = final l; dead = dead l }
+let rec unrolled step q k = if k = 0 then q else unrolled step (step q 0) (k - 1)
+
+let automaton l =
+  {
+    start = 0;
+    step = next l;
+    accepts = final l;
+    dead = dead l;
+    lead = Fun.const 0;
+    leap = unrolled (next l);
+  }
+
+(** The lead of a state accepting no word. *)
+let unbounded = Int.max_int
+
+(** [moves n a k q] is the successors of the state [q] of [a] a search explores,
+    each with the letters of the word it is reached by, reversed: by [0ᵏ] alone
+    if [k ≥ 1] is at most the lead of [q], and by each of the [n] letters if [k]
+    is [0]. *)
+let moves n a k q =
+  if k = 0 then List.map (fun c -> (a.step q c, [ c ])) (range n)
+  else [ (a.leap q k, List.init k (Fun.const 0)) ]
 
 module Implicit (State : Map.OrderedType) = struct
   module Table = Explore (State)
@@ -248,7 +275,11 @@ module Implicit (State : Map.OrderedType) = struct
       | q :: _ when a.accepts q -> false
       | q :: stack ->
           let fresh q = not (a.dead q || States.mem q seen) in
-          let next = List.filter fresh (List.map (a.step q) (range n)) in
+          let k = a.lead q in
+          let next =
+            if k = unbounded then []
+            else List.filter fresh (List.map fst (moves n a k q))
+          in
           go (List.fold_right States.add next seen) (next @ stack)
     in
     a.dead a.start || go (States.singleton a.start) [ a.start ]
@@ -263,28 +294,36 @@ module Product (Left : Map.OrderedType) (Right : Map.OrderedType) = struct
   end)
 
   (* Breadth-first search of the product of [a] and [b] for a pair of states
-     final in [a] only, the first found giving a shortest word. The pairs whose
-     state of [a] is dead are not explored, since they lead to no such pair. *)
+     final in [a] only, by depths, the first found giving a shortest word. The
+     pairs whose state of [a] is dead are not explored, since they lead to no
+     such pair. *)
   let counterexample n a b =
-    let rec go seen fifo =
-      match Fifo.pop fifo with
-      | None -> None
-      | Some (((p, q), rev_word), _) when a.accepts p && not (b.accepts q) ->
-          Some (List.rev rev_word)
-      | Some (((p, q), rev_word), fifo) ->
-          let visit (seen, fifo) c =
-            let p' = a.step p c in
-            if a.dead p' then (seen, fifo)
-            else
-              let s = (p', b.step q c) in
-              if Pairs.mem s seen then (seen, fifo)
-              else (Pairs.add s seen, Fifo.push (s, c :: rev_word) fifo)
+    let found ((p, q), _) = a.accepts p && not (b.accepts q) in
+    let visit k (seen, next) ((p, q), rev_word) =
+      let moves = List.combine (moves n a k p) (List.map fst (moves n b k q)) in
+      List.fold_left
+        (fun (seen, next) ((p', word), q') ->
+          let s = (p', q') in
+          if a.dead p' || Pairs.mem s seen then (seen, next)
+          else (Pairs.add s seen, (s, word @ rev_word) :: next))
+        (seen, next) moves
+    in
+    let rec go seen level =
+      match List.find_opt found level with
+      | Some (_, rev_word) -> Some (List.rev rev_word)
+      | None ->
+          let k =
+            List.fold_left
+              (fun k ((p, _), _) -> min k (a.lead p))
+              unbounded level
           in
-          let seen, fifo = List.fold_left visit (seen, fifo) (range n) in
-          go seen fifo
+          if k = unbounded then None
+          else
+            let seen, next = List.fold_left (visit k) (seen, []) level in
+            go seen (List.rev next)
     in
     let start = (a.start, b.start) in
-    go (Pairs.singleton start) (Fifo.push (start, []) Fifo.empty)
+    go (Pairs.singleton start) [ (start, []) ]
 end
 
 module Tables = Product (Int) (Int)

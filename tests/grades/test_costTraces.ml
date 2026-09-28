@@ -7,8 +7,9 @@
    the greater language, the laws of the orders on samples, the embedding of
    the finite timed-trace grades, and examples of the closed world, of zero
    costs, of the laws that hold up to equivalence, of the literals and of the
-   grades without runs; and the agreement of the implementations on random
-   grades and cost models, in their verdicts and their printing. *)
+   grades without runs; the agreement of the implementations on random
+   grades and cost models, in their verdicts and their printing; and long runs
+   of ticks, taken at once by the implementations by derivatives. *)
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
@@ -188,15 +189,15 @@ end)
 let letter_cost table endpoint a =
   endpoint (List.assoc (List.nth names (a - 1)) table)
 
-(* Random regular expressions of depth [depth] over [A], [B] and delays, [C]
-   being left to the catch-all letter; with [~finite], only sequences and
-   unions of letters and delays. *)
-let random_regex ?(finite = false) ~depth state =
+(* Random regular expressions of depth [depth] over [A], [B] and delays of up
+   to [longest] ticks, [2] by default, [C] being left to the catch-all letter;
+   with [~finite], only sequences and unions of letters and delays. *)
+let random_regex ?(finite = false) ?(longest = 2) ~depth state =
   let atom () =
     match Random.State.int state (if finite then 4 else 5) with
     | 0 -> Grade.Letter "A"
     | 1 -> Grade.Letter "B"
-    | 2 -> Grade.Tick (Random.State.int state 3)
+    | 2 -> Grade.Tick (Random.State.int state (longest + 1))
     | 3 -> Grade.Tick 1
     | _ -> Grade.Any
   in
@@ -326,6 +327,52 @@ let holds name b = check name b ""
 let fails name b = check name (not b) ""
 let show_option show = function Some x -> show x | None -> "none"
 let show_bounds = show_option (fun (lo, hi) -> Printf.sprintf "(%d, %d)" lo hi)
+
+(* [agree tables (module F) (module G) lits] checks that the grades [F] and [G]
+   order the literals [lits] alike and imply the same runtime bounds, under
+   each of [tables]. *)
+let agree tables (module F : Grade.S) (module G : Grade.S) lits =
+  List.concat_map
+    (fun table ->
+      let bounds = bounds_of table in
+      let show (l, l') =
+        G.show (G.of_lit l)
+        ^ ", "
+        ^ G.show (G.of_lit l')
+        ^ " at " ^ show_table table
+      in
+      [
+        all
+          (G.name ^ ": embeds " ^ F.name)
+          show
+          (fun (l, l') ->
+            F.leq bounds (F.of_lit l) (F.of_lit l')
+            = G.leq bounds (G.of_lit l) (G.of_lit l'))
+          (pairs lits);
+        all
+          (G.name ^ ": implied bounds as " ^ F.name)
+          (fun l -> G.show (G.of_lit l) ^ " at " ^ show_table table)
+          (fun l ->
+            F.implied_bounds bounds (F.of_lit l)
+            = G.implied_bounds bounds (G.of_lit l))
+          lits;
+      ])
+    tables
+
+(* [embeds (module Upper) (module Lower) (module Interval) tables lits] checks
+   that the cost-model grades embed the timed-trace grades on the finite
+   literals [lits], and on the pairs of them as intervals. *)
+let embeds (module Upper : Grade.S) (module Lower : Grade.S)
+    (module Interval : Grade.S) tables lits =
+  let pairs_of lits =
+    List.map2 (fun l l' -> Grade.Tuple [ l; l' ]) lits (List.rev lits)
+  in
+  agree tables (module TimedTraceGrades.UpperBound) (module Upper) lits
+  @ agree tables (module TimedTraceGrades.LowerBound) (module Lower) lits
+  @ agree tables
+      (module TimedTraceGrades.Interval)
+      (module Interval)
+      (pairs_of lits)
 
 (* {1 The implementations} *)
 
@@ -504,41 +551,11 @@ module Suite (I : IMPLEMENTATION) = struct
       List.init 30 (fun _ ->
           Grade.Braces (random_regex ~finite:true ~depth:3 state))
     in
-    let lits = Grade.Top :: finite in
-    let agree (module F : Grade.S) (module G : Grade.S) lits =
-      List.concat_map
-        (fun table ->
-          let bounds = bounds_of table in
-          let show (l, l') =
-            G.show (G.of_lit l)
-            ^ ", "
-            ^ G.show (G.of_lit l')
-            ^ " at " ^ show_table table
-          in
-          [
-            all
-              (G.name ^ ": embeds " ^ F.name)
-              show
-              (fun (l, l') ->
-                F.leq bounds (F.of_lit l) (F.of_lit l')
-                = G.leq bounds (G.of_lit l) (G.of_lit l'))
-              (pairs lits);
-            all
-              (G.name ^ ": implied bounds as " ^ F.name)
-              (fun l -> G.show (G.of_lit l) ^ " at " ^ show_table table)
-              (fun l ->
-                F.implied_bounds bounds (F.of_lit l)
-                = G.implied_bounds bounds (G.of_lit l))
-              lits;
-          ])
-        tables
-    in
-    let pairs_of lits =
-      List.map2 (fun l l' -> Grade.Tuple [ l; l' ]) lits (List.rev lits)
-    in
-    agree (module TimedTraceGrades.UpperBound) (module Upper) lits
-    @ agree (module TimedTraceGrades.LowerBound) (module Lower) lits
-    @ agree (module TimedTraceGrades.Interval) (module Interval) (pairs_of lits)
+    embeds
+      (module Upper)
+      (module Lower)
+      (module Interval)
+      tables (Grade.Top :: finite)
 
   (* {2 (e) Examples} *)
 
@@ -801,10 +818,370 @@ let plain_inhabited =
          (Grades.RegularTraceGradePlain.of_lit lit));
   ]
 
+(* {1 (g) Long runs of ticks} *)
+
+(* Cost models with small costs, unit costs, and a large upper cost. *)
+let long_tables =
+  [
+    List.hd tables;
+    List.map (fun o -> (o, (1, 1))) names;
+    [ ("A", (5, 5000)); ("B", (0, 3)); ("C", (2, 7)) ];
+  ]
+
+(* Random expressions shaped as grades over delays of up to [longest] ticks:
+   alternatives of sequences of [A], [B], delays, [_] and repetitions of names,
+   ended by [_*] at times, and the intersections of such alternatives. The
+   complement of a delay has no run of ticks, every word but the delay being
+   in it, so that its closures explore each of its ticks; these leave it
+   out. *)
+let random_grade ~longest state =
+  let pick xs = List.nth xs (Random.State.int state (List.length xs)) in
+  let atom () =
+    match Random.State.int state 5 with
+    | 0 | 1 -> Grade.Tick (Random.State.int state (longest + 1))
+    | 2 -> Grade.Letter (pick [ "A"; "B" ])
+    | 3 -> Grade.Any
+    | _ -> Grade.Star (Grade.Letter (pick [ "A"; "B" ]))
+  in
+  let sequence () =
+    let atoms = List.init (1 + Random.State.int state 3) (fun _ -> atom ()) in
+    let ending =
+      if Random.State.int state 3 = 0 then [ Grade.Star Grade.Any ] else []
+    in
+    match atoms @ ending with
+    | r :: rs -> List.fold_left (fun r s -> Grade.Seq (r, s)) r rs
+    | [] -> Grade.Tick 0
+  in
+  let alternatives () =
+    Grade.Union
+      ( sequence (),
+        if Random.State.bool state then sequence () else Grade.Tick 0 )
+  in
+  if Random.State.int state 4 = 0 then
+    Grade.Inter (alternatives (), alternatives ())
+  else alternatives ()
+
+(* [printed_length text] is the length of the run of a grade printed as
+   [text], a sequence of names and delays: a delay counts as its number of
+   ticks. *)
+let printed_length text =
+  let inner = String.sub text 1 (String.length text - 2) in
+  List.fold_left
+    (fun n part ->
+      n + Option.value (int_of_string_opt (String.trim part)) ~default:1)
+    0
+    (String.split_on_char ';' inner)
+
+(* The verdicts of the implementation [I] on long delays: under each order,
+   whether a grade is below another, whether they are equal, and the length of
+   the counterexample. *)
+module Long (I : IMPLEMENTATION) = struct
+  include I
+
+  let grade r =
+    match L.of_lit (Grade.Braces r) with
+    | rho -> Some rho
+    | exception Grade.Invalid_literal _ -> None
+
+  let verdicts bounds (r, r') =
+    match (grade r, grade r') with
+    | Some rho, Some rho' ->
+        let verdict (module G : Grade.S with type t = L.t) =
+          ( G.leq bounds rho rho',
+            G.equal bounds rho rho',
+            Option.map
+              (fun w -> printed_length (L.show w))
+              (G.counterexample bounds rho rho') )
+        in
+        Some
+          ( verdict (module Upper),
+            verdict (module Lower),
+            Interval.leq bounds (rho, rho') (rho', rho) )
+    | _ -> None
+end
+
+module LongDerivatives = Long (Derivatives)
+module LongByLetters = Long (ByLetters)
+module LongPlain = Long (Plain)
+
+(* The implementations by derivatives embed the finite timed-trace grades,
+   whose delays are numbers, on delays of up to 10⁴ ticks; they agree with each
+   other on random grades over delays of up to 300 ticks, in their verdicts and
+   the lengths of their counterexamples, and with the automata on delays of up
+   to 30 ticks; and they decide long delays within a second. A comparison
+   explores every tick of a delay that no run of ticks covers, as one within a
+   complement, and a search moves by one tick at a time while one of its pairs
+   has a lead of 0, as after a repetition before a delay: these grades keep
+   the random delays short. *)
+let long_runs =
+  let state = Random.State.make [| 47 |] in
+  let finite =
+    Grade.Top
+    :: List.init 16 (fun _ ->
+        Grade.Braces (random_regex ~finite:true ~longest:10000 ~depth:3 state))
+  in
+  let embedding =
+    List.concat_map
+      (fun (module I : IMPLEMENTATION) ->
+        embeds
+          (module I.Upper)
+          (module I.Lower)
+          (module I.Interval)
+          long_tables finite)
+      [ (module Derivatives); (module ByLetters); (module Plain) ]
+  in
+  let grades = List.init 14 (fun _ -> random_grade ~longest:300 state) in
+  let show_regex r =
+    match LongDerivatives.grade r with
+    | Some rho -> LongDerivatives.L.show rho
+    | None -> "∅"
+  in
+  let derivatives =
+    List.map
+      (fun table ->
+        let bounds = bounds_of table in
+        all "the implementations by derivatives agree on long delays"
+          (fun (r, r') ->
+            show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
+          (fun pair ->
+            let verdicts = LongDerivatives.verdicts bounds pair in
+            LongByLetters.verdicts bounds pair = verdicts
+            && LongPlain.verdicts bounds pair = verdicts)
+          (pairs grades))
+      long_tables
+  in
+  let moderate =
+    List.init 10 (fun i ->
+        if i mod 2 = 0 then random_grade ~longest:30 state
+        else random_regex ~longest:30 ~depth:3 state)
+  in
+  let automata =
+    List.map
+      (fun table ->
+        let bounds = bounds_of table in
+        all "the implementations agree on delays of up to 30 ticks"
+          (fun (r, r') ->
+            show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
+          (fun pair ->
+            let verdicts = OfAutomata.verdicts bounds pair in
+            OfDerivatives.verdicts bounds pair = verdicts
+            && OfByLetters.verdicts bounds pair = verdicts
+            && OfPlain.verdicts bounds pair = verdicts)
+          (pairs moderate))
+      long_tables
+  in
+  let quickly name decide =
+    let start = Sys.time () in
+    let holds = decide () in
+    let time = Sys.time () -. start in
+    check name (holds && time < 1.) (Printf.sprintf "in %.2f s" time)
+  in
+  let timing (module I : IMPLEMENTATION) =
+    let module U = Reader (I.Upper) in
+    let module Lo = Reader (I.Lower) in
+    let name what = I.name ^ ": " ^ what in
+    [
+      quickly (name "{9999; A} <= {10000; A} under the upper order") (fun () ->
+          I.Upper.leq costs (U.lit "{9999; A}") (U.lit "{10000; A}"));
+      quickly (name "{10001; A} </= {10000; A} under the upper order")
+        (fun () ->
+          not (I.Upper.leq costs (U.lit "{10001; A}") (U.lit "{10000; A}")));
+      quickly (name "{A; 10000} <= {10003} under the upper order") (fun () ->
+          I.Upper.leq costs (U.lit "{A; 10000}") (U.lit "{10003}"));
+      quickly (name "{A; 10000} </= {10002} under the upper order") (fun () ->
+          not (I.Upper.leq costs (U.lit "{A; 10000}") (U.lit "{10002}")));
+      quickly (name "{10000; A} <= {9999; A} under the lower order") (fun () ->
+          I.Lower.leq costs (Lo.lit "{10000; A}") (Lo.lit "{9999; A}"));
+      quickly (name "{9999; A} </= {10000; A} under the lower order") (fun () ->
+          not (I.Lower.leq costs (Lo.lit "{9999; A}") (Lo.lit "{10000; A}")));
+      quickly (name "{10000; A} implies (10001, 10003)") (fun () ->
+          I.Upper.implied_bounds costs (U.lit "{10000; A}") = Some (10001, 10003));
+      quickly (name "counterexample of {10001; A} <= {10000; A}") (fun () ->
+          Option.map I.Upper.show
+            (I.Upper.counterexample costs (U.lit "{10001; A}")
+               (U.lit "{10000; A}"))
+          = Some "{10001; A}");
+    ]
+  in
+  embedding @ derivatives @ automata
+  @ List.concat_map timing
+      [ (module Derivatives); (module ByLetters); (module Plain) ]
+
+(* {1 (h) Canonical closure states} *)
+
+(* The states of the closures over the runs of the implementation [I], along
+   random words, against the explicit sets of the constructions: for the
+   allowance, the set of the live states reachable, closed under reachability,
+   of which the state holds those not strictly within the run of ticks of
+   another; for the coverage, the subset of the states of the runs, of which
+   the state holds those on whose run of ticks, end included, no other lies.
+   The runs of ticks are followed letter by letter, so that equal explicit
+   sets give equal states, and the states denote the same sets. *)
+module Canonical (I : IMPLEMENTATION) = struct
+  include I
+  module States = Set.Make (L.State)
+  module Allowance = CostClosure.Allowance (L.State)
+  module Coverage = CostClosure.Coverage (L.State)
+  module Sets = Map.Make (States)
+
+  let letters = List.length names + 1
+  let live (m : _ Dfa.automaton) q = not (m.dead q)
+
+  let reach m s =
+    let rec visit seen q =
+      if States.mem q seen || not (live m q) then seen
+      else
+        List.fold_left visit (States.add q seen)
+          (List.init letters (m.Dfa.step q))
+    in
+    States.fold (fun q seen -> visit seen q) s States.empty
+
+  let image m a s = States.map (fun q -> m.Dfa.step q a) s
+
+  (* [run m y] is the successors of [y] by [0ʲ] for [1 ≤ j ≤ k], [k] the lead
+     of [y], letter by letter, and none if [y] accepts no word. *)
+  let run (m : _ Dfa.automaton) y =
+    let rec go j q =
+      if j = 0 then []
+      else
+        let q' = m.step q 0 in
+        q' :: go (j - 1) q'
+    in
+    if m.lead y = Int.max_int then [] else go (m.lead y) y
+
+  let weight cost a = if a = 0 then 1 else cost a
+
+  let allowed ~cost m =
+    let rec at_least n s =
+      if n = 0 then s
+      else
+        let s' = reach m (image m 0 s) in
+        if States.equal s' s then s else at_least (n - 1) s'
+    in
+    let final s = if States.exists m.Dfa.accepts s then s else States.empty in
+    let step s x =
+      final
+        (States.union
+           (at_least (weight cost x) s)
+           (if x = 0 then States.empty else reach m (image m x s)))
+    in
+    let interior s x =
+      States.exists
+        (fun y ->
+          match List.rev (run m y) with
+          | _ :: inner -> List.exists (fun q -> L.State.compare q x = 0) inner
+          | [] -> false)
+        s
+    in
+    let represent s = States.filter (fun x -> not (interior s x)) s in
+    (final (reach m (States.singleton m.start)), step, represent)
+
+  let covered ~cost m =
+    let delays n q =
+      let rec go seen j q =
+        if j > n || States.mem q seen then seen
+        else go (States.add q seen) (j + 1) (m.Dfa.step q 0)
+      in
+      go States.empty 0 q
+    in
+    let step s y =
+      if States.exists m.Dfa.accepts s then s
+      else
+        States.fold
+          (fun q t ->
+            States.union t
+              (States.union
+                 (delays (weight cost y) q)
+                 (if y = 0 then States.empty else States.singleton (m.step q y))))
+          s States.empty
+    in
+    let dominated s y =
+      List.exists
+        (fun q -> States.mem q s && L.State.compare q y <> 0)
+        (run m y)
+    in
+    let represent s = States.filter (fun y -> not (dominated s y)) s in
+    (States.singleton m.start, step, represent)
+
+  (* [walk name closure (start, step, represent) words] follows the [words] in
+     the closure and in the explicit construction, checking that each state is
+     the representation of the explicit set and that equal sets give equal
+     states. *)
+  let walk name (closure : L.State.t list Dfa.automaton)
+      (start, step, represent) words =
+    let wrong = ref 0 and states = ref Sets.empty in
+    List.iter
+      (fun word ->
+        ignore
+          (List.fold_left
+             (fun (c, e) x ->
+               let c = closure.step c x and e = step e x in
+               let expected = States.elements (represent e) in
+               if List.compare L.State.compare c expected <> 0 then incr wrong;
+               (match Sets.find_opt e !states with
+               | Some c' when List.compare L.State.compare c c' <> 0 ->
+                   incr wrong
+               | Some _ -> ()
+               | None -> states := Sets.add e c !states);
+               (c, e))
+             (closure.start, start) word))
+      words;
+    check name (!wrong = 0) (Printf.sprintf "%d states differ" !wrong)
+
+  let checks tables grades words =
+    List.concat_map
+      (fun table ->
+        let lo = letter_cost table fst and hi = letter_cost table snd in
+        List.concat_map
+          (fun r ->
+            match L.of_lit (Grade.Braces r) with
+            | exception Grade.Invalid_literal _ -> []
+            | rho ->
+                let m = L.runs names rho in
+                let name what =
+                  Printf.sprintf "%s: canonical %s states of %s at %s" I.name
+                    what (L.show rho) (show_table table)
+                in
+                [
+                  walk (name "allowance")
+                    (Allowance.closure ~cost:hi ~letters m)
+                    (allowed ~cost:hi m) words;
+                  walk (name "coverage")
+                    (Coverage.closure ~cost:lo m)
+                    (covered ~cost:lo m) words;
+                ])
+          grades)
+      tables
+end
+
+let canonical =
+  let state = Random.State.make [| 59 |] in
+  let grades =
+    List.init 12 (fun i ->
+        if i mod 3 = 0 then random_regex ~longest:40 ~depth:3 state
+        else random_grade ~longest:40 state)
+  in
+  let words =
+    List.init 30 (fun _ ->
+        List.init (Random.State.int state 150) (fun _ ->
+            if Random.State.int state 4 > 0 then 0
+            else 1 + Random.State.int state 3))
+  in
+  let tables =
+    [ List.hd tables; [ ("A", (5, 50)); ("B", (0, 3)); ("C", (2, 7)) ] ]
+  in
+  let module D = Canonical (Derivatives) in
+  let module B = Canonical (ByLetters) in
+  let module P = Canonical (Plain) in
+  D.checks tables grades words
+  @ B.checks tables grades words
+  @ P.checks tables grades words
+
 let () =
   let checks =
     segments @ OfAutomata.checks @ OfDerivatives.checks @ OfByLetters.checks
-    @ OfPlain.checks @ agreement @ printing @ plain_inhabited
+    @ OfPlain.checks @ agreement @ printing @ plain_inhabited @ long_runs
+    @ canonical
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

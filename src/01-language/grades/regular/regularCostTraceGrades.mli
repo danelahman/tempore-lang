@@ -80,7 +80,8 @@ module type LANGUAGE = sig
 
   val runs : string list -> t -> State.t Dfa.automaton
   (** [runs names rho] is an automaton of the same language over the same
-      letters, explored only as far as a search needs. *)
+      letters, explored only as far as a search needs, whose [dead] holds
+      exactly of the states from which no final state is reachable. *)
 end
 
 (** The three grades over the regular trace grade [L], named
@@ -88,20 +89,22 @@ end
     ["traces-regex-interval"], each followed by [Variant.suffix].
 
     [ρ ≾ ρ'] is decided by breadth-first search of the product of the automaton
-    {!LANGUAGE.runs} of [ρ] with an automaton of the closure of [ρ'], both
-    explored only as far as the search needs: under the upper order, the
-    automaton {!CostClosure.allowance} of the table {!LANGUAGE.concrete} of
-    [ρ'], and under the lower order, the automaton {!CostClosure.Coverage} of
-    the automaton {!LANGUAGE.runs} of [ρ']. The searches are tabulated by the
-    names, the costs of their operations and the representations of the grades
-    compared ({!Grade.S.compare} and {!Grade.S.hash} of [L]), and the tables
-    {!LANGUAGE.concrete} by the names and the representation of the grade, in
+    {!LANGUAGE.runs} of [ρ] with an automaton of the closure of the automaton
+    {!LANGUAGE.runs} of [ρ'], {!CostClosure.Allowance} under the upper order and
+    {!CostClosure.Coverage} under the lower order, both explored only as far as
+    the search needs. The searches are tabulated by the names, the costs of
+    their operations and the representations of the grades compared
+    ({!Grade.S.compare} and {!Grade.S.hash} of [L]), and the automata
+    {!LANGUAGE.runs} by the names and the representation of the grade, in
     module-level tables that only ever grow. A grade is the top if its
     representation is that of the top and otherwise iff the search decides
     [⊤ ≾ ρ], since grades of other representations may be equivalent to the top;
     [compare] and [hash] are those of [L], componentwise for the intervals. A
     grade is {!Grade.S.inhabited} iff {!LANGUAGE.runs} accepts some word, and
-    its runtime bounds are read off {!LANGUAGE.concrete}. *)
+    its runtime bounds are read off {!LANGUAGE.runs} ({!CostClosure.Weights}).
+    The searches, the closures and the weights take the runs of ticks of the
+    automata {!LANGUAGE.runs} of the derivatives in one step each
+    ({!Dfa.automaton}); over {!Automata}, every tick is a transition. *)
 module Make
     (L : LANGUAGE)
     (Variant : sig
@@ -122,7 +125,7 @@ end
 
 module Automata : LANGUAGE with type t = RegularTraceGrade.t
 (** {!RegularTraceGrade}, the automata {!LANGUAGE.runs} being the tables
-    {!LANGUAGE.concrete}. *)
+    {!LANGUAGE.concrete}, of leads [0]. *)
 
 module Derivatives : LANGUAGE with type t = RegularTraceGradeDerivative.t
 (** {!RegularTraceGradeDerivative}, the automata {!LANGUAGE.runs} being those of
@@ -152,9 +155,8 @@ module Interval :
 (** ["traces-regex-interval"], over {!Automata}. *)
 
 (** The grades over {!Derivatives}, named ["traces-regex-lower-symbolic"],
-    ["traces-regex-upper-symbolic"] and ["traces-regex-interval-symbolic"]: the
-    lesser grade of a comparison, and the greater one under the lower order, are
-    explored by derivatives. *)
+    ["traces-regex-upper-symbolic"] and ["traces-regex-interval-symbolic"]: both
+    grades of a comparison are explored by derivatives. *)
 module Symbolic : sig
   module Lower : Grade.S with type t = RegularTraceGradeDerivative.t
   module Upper : Grade.S with type t = RegularTraceGradeDerivative.t

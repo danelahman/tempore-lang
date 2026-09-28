@@ -24,8 +24,9 @@
 
     Inclusion, equality and counterexamples are decided as in
     {!RegularTraceGradeDerivative.Concrete}, by the derivatives by the concrete
-    letters of the expressions compared, {!SymbolicRegex.S.Concrete}; in a
-    counterexample, the catch-all letter stands for the names neither grade has.
+    letters of the expressions compared, {!SymbolicRegex.S.Concrete}, runs of
+    ticks taken in one step; in a counterexample, the catch-all letter stands
+    for the names neither grade has.
 
     {2 Printing}
 
@@ -51,8 +52,9 @@ val runs : string list -> t -> Regex.t Dfa.automaton
 (** [runs names rho] is the automaton of the same language over the same
     letters, explored lazily: its states are the normal forms of the derivatives
     of the expression of [rho] by these letters, each name not of [rho] acting
-    as its catch-all letter, the final ones the nullable ones and the dead ones
-    the empty ones. *)
+    as its catch-all letter, the final ones the nullable ones, the dead ones the
+    empty ones, and the leads and leaps those of {!SymbolicRegex.S.lead} and
+    {!SymbolicRegex.S.leap}. *)
 
 val canonical : t -> LetterRegex.t option
 (** [canonical rho] is the canonical expression printed for [rho], or [None] if

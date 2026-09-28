@@ -106,7 +106,12 @@ val subset : t -> t -> bool
 
     Deterministic automata given by their start state and transition and
     acceptance functions rather than by a table, their states being explored
-    only as needed. *)
+    only as needed. The letter [0] is a tick, and an automaton may tell the runs
+    of ticks its states begin with, so that a search takes a run of ticks at
+    once: from a state [q] of lead [k ≥ 1], every word accepted begins with
+    [0ᵏ], so that the words of length at most [k] other than [0ʲ] lead to states
+    that accept no word, and [q] and its successors by [0ʲ], [j < k], accept no
+    word. *)
 
 type 'state automaton = {
   start : 'state;  (** The start state. *)
@@ -116,25 +121,38 @@ type 'state automaton = {
   dead : 'state -> bool;
       (** [dead q] holds only if no final state is reachable from [q]; it need
           not hold of every such state. *)
+  lead : 'state -> int;
+      (** [lead q] is a number [k] such that every word accepted from [q] begins
+          with [0ᵏ], [Int.max_int] only if [q] accepts no word, e.g. [0] if
+          unknown. *)
+  leap : 'state -> int -> 'state;
+      (** [leap q k] is the successor of [q] by the word [0ᵏ], up to the
+          language accepted. *)
 }
 (** A deterministic automaton over the states ['state], which must be finitely
-    many from the start. *)
+    many from the start, the successors by [leap] included. *)
+
+val unrolled : ('state -> int -> 'state) -> 'state -> int -> 'state
+(** [unrolled step q k] is the successor of [q] by [0ᵏ], by [k] steps of [step]:
+    the [leap] of an automaton whose leads are [0]. *)
 
 val automaton : t -> int automaton
 (** [automaton l] is the automaton of [l] over the states of its table, [dead]
-    holding exactly of the state from which no final state is reachable. *)
+    holding exactly of the state from which no final state is reachable, every
+    lead being [0]. *)
 
 (** The implicit automata over states ordered by [State.compare], equal states
     being one state. *)
 module Implicit (State : Map.OrderedType) : sig
   val canonical : int -> State.t automaton -> t
   (** [canonical n a] is the language of [a] over [n] letters, by breadth-first
-      exploration of the states reachable from the start and minimisation. *)
+      exploration of the states reachable from the start by [step] and
+      minimisation; the leads are not read. *)
 
   val is_empty : int -> State.t automaton -> bool
   (** [is_empty n a] is whether [a] accepts no word over [n] letters, by
       depth-first exploration of the states reachable from the start that are
-      not dead. *)
+      not dead, a state of lead [k ≥ 1] followed by its [leap] by [k] alone. *)
 end
 
 (** The products of the implicit automata over states ordered by [Left.compare]
@@ -143,8 +161,13 @@ module Product (Left : Map.OrderedType) (Right : Map.OrderedType) : sig
   val counterexample :
     int -> Left.t automaton -> Right.t automaton -> int list option
   (** [counterexample n a b] is a shortest word over [n] letters accepted by [a]
-      and not by [b], found by breadth-first search of the product of [a] and
-      [b], which explores only the pairs of states reachable from the start
-      whose state of [a] is not dead; it is [None] iff every word over [n]
-      letters accepted by [a] is accepted by [b]. *)
+      and not by [b], the least of them in the order of the letters, found by
+      breadth-first search of the product of [a] and [b], which explores only
+      the pairs of states reachable from the start whose state of [a] is not
+      dead; it is [None] iff every word over [n] letters accepted by [a] is
+      accepted by [b]. The search proceeds by depths, and when the states of [a]
+      of all the pairs of a depth have a lead of at least [k ≥ 1], it moves on
+      to the depth [k] further by the [leap]s of both states by [k]: the depths
+      in between have no pair to find, and their words are those of the depth
+      extended by the letter [0] alike. *)
 end

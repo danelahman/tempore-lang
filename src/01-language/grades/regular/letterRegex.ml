@@ -225,6 +225,7 @@ let rec of_symbolic r =
   | SymbolicRegex.Empty -> empty
   | Eps -> eps
   | Letters p -> letters p
+  | Ticks n -> seq (List.init n (Fun.const (letters Letters.tick)))
   | Concat (r, s) -> seq [ of_symbolic r; of_symbolic s ]
   | Union rs -> union (List.map of_symbolic rs)
   | Inter rs -> inter (List.map of_symbolic rs)

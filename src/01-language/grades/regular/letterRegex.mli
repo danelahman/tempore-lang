@@ -66,7 +66,8 @@ val compl : t -> t
 val star : t -> t
 
 val of_symbolic : SymbolicRegex.t -> t
-(** [of_symbolic r] is the normal form of the expression [r]. *)
+(** [of_symbolic r] is the normal form of the expression [r], a run of [n] ticks
+    being the concatenation of [n] letters [tick]. *)
 
 val reverse : t -> t
 (** [reverse r] is the normal form of the reversal of [r], whose words are those

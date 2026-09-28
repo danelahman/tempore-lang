@@ -10,13 +10,14 @@
     A grade is an extended regular expression in the normal form of
     {!SymbolicRegex}: the product is concatenation, the join union, the unit
     [{0}] and the top [_*], each built by a smart constructor without any
-    automaton. The letters are [tick] and every operation name, a letter set
-    being finite or cofinite in the names, so that the names a grade does not
-    mention are all alike to it: this is the catch-all letter of
-    {!RegularTraceGrade}, and grades over different names need no alignment.
-    {!Grade.S.compare} and {!Grade.S.hash} read the number of the normal form,
-    in constant time; grades of different normal forms may denote the same
-    language, so {!Grade.S.is_top} is decided by inclusion.
+    automaton, and a delay of [n] time steps is one run of ticks [tickⁿ]. The
+    letters are [tick] and every operation name, a letter set being finite or
+    cofinite in the names, so that the names a grade does not mention are all
+    alike to it: this is the catch-all letter of {!RegularTraceGrade}, and
+    grades over different names need no alignment. {!Grade.S.compare} and
+    {!Grade.S.hash} read the number of the normal form, in constant time; grades
+    of different normal forms may denote the same language, so {!Grade.S.is_top}
+    is decided by inclusion.
 
     {2 Decisions}
 
@@ -29,7 +30,10 @@
     2025). {!Grade.S.counterexample} [bounds rho rho'] is the grade of a
     shortest word of [rho & ~rho'], found by breadth-first exploration, in which
     a letter is the least letter of its minterm: [tick], else its least name,
-    else the minterm itself, the names neither grade mentions.
+    else the minterm itself, the names neither grade mentions. The explorations
+    take the runs of ticks that all words of an expression begin with in one
+    step, by the leaps of {!SymbolicRegex.S.leap}, so that a delay costs one
+    step however long.
 
     {2 Printing}
 
@@ -84,8 +88,9 @@ module type S = sig
   val runs : string list -> t -> t Dfa.automaton
   (** [runs names rho] is the automaton of the same language over the same
       letters, explored lazily: its states are the normal forms of the
-      derivatives of [rho] by these letters, the final ones the nullable ones
-      and the dead ones the empty ones. *)
+      derivatives of [rho] by these letters, the final ones the nullable ones,
+      the dead ones the empty ones, and the leads and leaps those of
+      {!SymbolicRegex.S.lead} and {!SymbolicRegex.S.leap}. *)
 
   val canonical : t -> LetterRegex.t option
   (** [canonical rho] is the canonical expression printed for [rho], or [None]

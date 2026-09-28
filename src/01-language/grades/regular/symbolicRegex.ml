@@ -123,6 +123,7 @@ module type S = sig
     | Empty
     | Eps
     | Letters of Letters.t
+    | Ticks of int
     | Concat of t * t
     | Union of t list
     | Inter of t list
@@ -137,6 +138,7 @@ module type S = sig
   val eps : t
   val top : t
   val letters : Letters.t -> t
+  val ticks : int -> t
   val concat : t -> t -> t
   val union : t list -> t
   val inter : t list -> t
@@ -146,6 +148,8 @@ module type S = sig
   val nullable : t -> bool
   val minterms : t -> Letters.t list
   val derivative : Letters.t -> t -> t
+  val lead : t -> int
+  val leap : int -> t -> t
 
   module type ALPHABET = sig
     val blocks : t list -> Letters.t list
@@ -168,13 +172,16 @@ module Make (L : sig
   val letters : letters
 end) =
 struct
-  type t = { id : int; view : view; nullable : bool }
-  (* [id] numbers the normal forms in the order of their construction. *)
+  type t = { id : int; view : view; nullable : bool; lead : int }
+  (* [id] numbers the normal forms in the order of their construction, and
+     [lead] is the lead of the expression, {!unbounded} for the empty
+     language. *)
 
   and view =
     | Empty
     | Eps
     | Letters of Letters.t
+    | Ticks of int
     | Concat of t * t
     | Union of t list
     | Inter of t list
@@ -197,6 +204,7 @@ struct
       match (v, w) with
       | Empty, Empty | Eps, Eps -> true
       | Letters p, Letters q -> Letters.equal p q
+      | Ticks n, Ticks n' -> Int.equal n n'
       | Concat (r, s), Concat (r', s') -> equal_form r r' && equal_form s s'
       | Union rs, Union rs' | Inter rs, Inter rs' ->
           List.equal equal_form rs rs'
@@ -209,6 +217,7 @@ struct
       | Empty -> 0
       | Eps -> 1
       | Letters p -> Letters.hash p
+      | Ticks n -> Grade.combine 7 n
       | Concat (r, s) -> combine 2 [ r; s ]
       | Union rs -> combine 3 rs
       | Inter rs -> combine 4 rs
@@ -219,12 +228,40 @@ struct
   let forms = Forms.create 4096
 
   let nullable_view = function
-    | Empty | Letters _ -> false
+    | Empty | Letters _ | Ticks _ -> false
     | Eps | Star _ -> true
     | Concat (r, s) -> r.nullable && s.nullable
     | Union rs -> List.exists (fun r -> r.nullable) rs
     | Inter rs -> List.for_all (fun r -> r.nullable) rs
     | Compl r -> not r.nullable
+
+  (** [run_view view] is [Some n] if [view] is the word [tickⁿ], [n ≥ 1]: the
+      letter set [{tick}] or a run of ticks. *)
+  let run_view = function
+    | Letters p when Letters.equal p Letters.tick -> Some 1
+    | Ticks n -> Some n
+    | _ -> None
+
+  let run r = run_view r.view
+
+  (** The lead of the empty language, of which every word begins with any number
+      of ticks. *)
+  let unbounded = Int.max_int
+
+  (** [lead_view view] is the lead of [view], read off its form: a number [k]
+      such that every word of [view] begins with [tickᵏ]. *)
+  let lead_view view =
+    match (view, run_view view) with
+    | _, Some n -> n
+    | Empty, _ -> unbounded
+    | (Eps | Letters _ | Ticks _ | Star _ | Compl _), None -> 0
+    | Concat (r, s), None -> (
+        match run r with
+        | Some n when s.lead < unbounded -> n + s.lead
+        | Some _ -> unbounded
+        | None -> r.lead)
+    | Union rs, None -> List.fold_left (fun k r -> min k r.lead) unbounded rs
+    | Inter rs, None -> List.fold_left (fun k r -> max k r.lead) 0 rs
 
   (** [make view] is the normal form of [view], built on its first request: the
       expressions are hash-consed (Filliâtre and Conchon, ML Workshop 2006). *)
@@ -233,12 +270,18 @@ struct
     | Some r -> r
     | None ->
         let r =
-          { id = Forms.length forms; view; nullable = nullable_view view }
+          {
+            id = Forms.length forms;
+            view;
+            nullable = nullable_view view;
+            lead = lead_view view;
+          }
         in
         Forms.add forms view r;
         r
 
   let nullable r = r.nullable
+  let lead r = r.lead
 
   (** {1 Constructions}
 
@@ -253,11 +296,25 @@ struct
   let eps = make Eps
   let letters p = if Letters.is_empty p then empty else make (Letters p)
 
+  let ticks n =
+    match n with 0 -> eps | 1 -> letters Letters.tick | n -> make (Ticks n)
+
   let top =
     match L.letters with
     | Sets -> make (Star (letters Letters.any))
     | Atoms -> make (Compl empty)
 
+  (** [split_run r] is [(n, s)] such that [r] is [tickⁿ; s], [n] the length of
+      the run of ticks [r] begins with, [0] if none. *)
+  let split_run r =
+    match (run r, r.view) with
+    | Some n, _ -> (n, eps)
+    | None, Concat (r1, r2) -> (
+        match run r1 with Some n -> (n, r2) | None -> (0, r))
+    | None, _ -> (0, r)
+
+  (* A run of ticks followed by a run of ticks, alone or leading a
+     concatenation, is joined with it: [tickᵐ; tickⁿ = tickᵐ⁺ⁿ]. *)
   let rec concat r s =
     match (r.view, s.view) with
     | Empty, _ | _, Empty -> empty
@@ -266,7 +323,10 @@ struct
     | Concat (r1, r2), _ -> concat r1 (concat r2 s)
     | Star _, Star _ when equal_form r s -> r
     | Star _, Concat (s1, _) when equal_form r s1 -> s
-    | _ -> make (Concat (r, s))
+    | _ -> (
+        match (run r, split_run s) with
+        | Some m, (n, s') when n > 0 -> concat (ticks (m + n)) s'
+        | _ -> make (Concat (r, s)))
 
   (** [flatten split rs] is the operands of the n-ary operation of the operands
       [rs], by [split]: [Some rs'] to replace an operand by [rs']. *)
@@ -373,32 +433,58 @@ struct
     | _ when is_top r -> empty
     | _ -> make (Compl r)
 
+  (** [all_letters r] is whether [r] is a letter set, or a union of letters,
+      that holds every letter: the one-letter words [Σ], whose repetition is
+      [Σ*]. *)
+  let all_letters r =
+    let sets =
+      match r.view with
+      | Letters p -> Some [ p ]
+      | Union rs ->
+          List.fold_left
+            (fun acc r ->
+              Option.bind acc (fun ps ->
+                  Option.map (fun p -> p :: ps) (letter_set r)))
+            (Some []) rs
+      | _ -> None
+    in
+    match sets with
+    | Some (p :: ps) ->
+        Letters.equal (List.fold_left Letters.union p ps) Letters.any
+    | Some [] | None -> false
+
   let rec star r =
     match r.view with
     | Empty | Eps -> eps
     | Star _ -> r
     | Union rs when mem_form eps rs ->
         star (union (List.filter (fun r -> not (equal_form r eps)) rs))
+    | _ when all_letters r -> top
     | _ -> make (Star r)
 
   (** {1 Traversals} *)
 
   let children r =
     match r.view with
-    | Empty | Eps | Letters _ -> []
+    | Empty | Eps | Letters _ | Ticks _ -> []
     | Concat (r, s) -> [ r; s ]
     | Union rs | Inter rs -> rs
     | Compl r | Star r -> [ r ]
 
   (** [letter_sets roots] is the list of the letter sets occurring in [roots],
-      each once. *)
+      each once, a run of ticks being made of the letter set [{tick}]. *)
   let letter_sets roots =
     let seen = Hashtbl.create 64 in
     let rec visit acc r =
       if Hashtbl.mem seen r.id then acc
       else begin
         Hashtbl.add seen r.id ();
-        let acc = match r.view with Letters p -> p :: acc | _ -> acc in
+        let acc =
+          match r.view with
+          | Letters p -> p :: acc
+          | Ticks _ -> Letters.tick :: acc
+          | _ -> acc
+        in
         List.fold_left visit acc (children r)
       end
     in
@@ -450,6 +536,7 @@ struct
     | Empty | Eps -> empty
     | Letters p ->
         if Letters.is_empty (Letters.inter m.set p) then empty else eps
+    | Ticks n -> if m.set.tick then ticks (n - 1) else empty
     | Concat (r1, r2) ->
         let d = concat (derive m r1) r2 in
         if r1.nullable then union [ d; derive m r2 ] else d
@@ -459,6 +546,67 @@ struct
     | Star r' -> concat (derive m r') r
 
   let derivative set r = derive (minterm set) r
+
+  (** Tables by triples of numbers. *)
+  module Triples = Hashtbl.Make (struct
+    type t = int * int * int
+
+    let equal (i, j, k) (i', j', k') =
+      Int.equal i i' && Int.equal j j' && Int.equal k k'
+
+    let hash (i, j, k) = Grade.combine (Grade.combine i j) k
+  end)
+
+  (* The leaps computed, by the key of the block, the number of ticks and the
+     number of the expression. *)
+  let leaps : t Triples.t = Triples.create 1024
+
+  (* The derivative by [mᵏ], [m] the block of [tick], taken at once where the
+     form of the expression tells it and by [k] derivatives by [m] otherwise:
+     the derivative by a word is that by its letters in turn (Brzozowski, JACM
+     1964), and a run of ticks is a word of a unary alphabet, whose
+     derivatives are its shorter runs, as the derivatives of the counted
+     repetitions [r{n,m}] are (Moseley et al., PLDI 2023). Memoised by block,
+     number and expression. *)
+  let rec leap_by m k r =
+    if k = 0 then r
+    else
+      let key = (m.key, k, r.id) in
+      match Triples.find_opt leaps key with
+      | Some d -> d
+      | None ->
+          let d = leap_view m k r in
+          Triples.add leaps key d;
+          d
+
+  and leap_view m k r =
+    match r.view with
+    | Empty | Eps -> empty
+    | Letters _ -> if k = 1 then derive m r else empty
+    | Ticks n -> if k <= n then ticks (n - k) else empty
+    | Concat (r1, r2) -> (
+        match split_run r with
+        | n, s when n > 0 ->
+            if k <= n then concat (ticks (n - k)) s else leap_by m (k - n) s
+        | _ when k <= r1.lead -> concat (leap_by m k r1) r2
+        | _ -> steps m k r)
+    | Union rs -> union (List.map (leap_by m k) rs)
+    | Inter rs -> inter (List.map (leap_by m k) rs)
+    | Compl r -> compl (leap_by m k r)
+    | Star s -> (
+        match run s with
+        | Some c when k mod c = 0 -> r
+        | Some c -> concat (ticks (c - (k mod c))) r
+        | None -> steps m k r)
+
+  (** [steps m k r] is the derivative of [r] by [mᵏ] taken letter by letter,
+      until a derivative is its own derivative. *)
+  and steps m k r =
+    let d = derive m r in
+    if equal_form d r then r else leap_by m (k - 1) d
+
+  let tick = minterm Letters.tick
+  let leap k r = leap_by tick k r
 
   (** {1 Alphabets} *)
 
@@ -488,43 +636,77 @@ struct
   module Decide (A : ALPHABET) = struct
     let blocks roots = List.map minterm (A.blocks roots)
 
+    (** [tick_block ms] is the block of the partition [ms] that contains [tick].
+    *)
+    let tick_block ms = List.find (fun m -> m.set.Letters.tick) ms
+
     (* The emptiness of the expressions explored, by their numbers. *)
     let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
     let known_empty r = Hashtbl.find_opt emptiness r.id = Some true
 
+    (** [moves ms k d] is the derivatives of [d] a search explores, each with
+        the blocks of [ms] of the word it is taken by, reversed: by the word
+        [tickᵏ] alone if [k ≥ 1] is at most the lead of [d], the derivatives of
+        [d] by the words of that length being otherwise empty, and by each block
+        if [k] is [0]. *)
+    let moves ms k d =
+      if k = 0 then List.map (fun m -> (derive m d, [ m.set ])) ms
+      else
+        let tick = tick_block ms in
+        [ (leap_by tick k d, List.init k (Fun.const tick.set)) ]
+
+    (** The outcome of the exploration of one depth of a breadth-first search: a
+        word found, or the expressions of the next depth. *)
+    type 'a depth = Found of Letters.t list | Next of 'a list
+
     (** [search r] is a shortest word of [r], found by breadth-first exploration
         of its derivatives, and [None] if there is none; the derivatives known
         to be empty are not explored, and if no word is found every expression
-        explored is recorded as empty. [r] is not nullable. *)
+        explored is recorded as empty. [r] is not nullable.
+
+        The exploration proceeds by depths, the expressions of each depth in the
+        order of their words, and its first nullable expression gives the word,
+        the least of the shortest ones in the order of the blocks. When all the
+        expressions of a depth have a lead of at least [k ≥ 1], it moves on to
+        the depth [k] further, by the derivatives by [tickᵏ]: the depths in
+        between have no nullable expression, and their words are those of the
+        depth extended by [tick] alike. *)
     let search r =
       let ms = blocks [ r ] in
       let seen = Hashtbl.create 64 in
-      let fresh d = not (Hashtbl.mem seen d.id || known_empty d) in
-      let queue = Queue.create () in
-      let rec expand s rev_word = function
-        | [] -> None
-        | m :: ms ->
-            let d = derive m s in
-            if not (fresh d) then expand s rev_word ms
+      let fresh d =
+        not (Hashtbl.mem seen d.id || known_empty d || equal_form d empty)
+      in
+      let rec visit next = function
+        | [] -> Next next
+        | (d, rev_word) :: rest ->
+            if not (fresh d) then visit next rest
             else begin
               Hashtbl.add seen d.id ();
-              let rev_word' = m.set :: rev_word in
-              if d.nullable then Some (List.rev rev_word')
-              else begin
-                Queue.push (d, rev_word') queue;
-                expand s rev_word ms
-              end
+              if d.nullable then Found (List.rev rev_word)
+              else visit ((d, rev_word) :: next) rest
             end
       in
-      let rec go () =
-        match Queue.take_opt queue with
-        | None -> None
-        | Some (s, rev_word) -> (
-            match expand s rev_word ms with Some w -> Some w | None -> go ())
+      let rec expand k next = function
+        | [] -> Next (List.rev next)
+        | (s, rev_word) :: level -> (
+            let children =
+              List.map (fun (d, w) -> (d, w @ rev_word)) (moves ms k s)
+            in
+            match visit next children with
+            | Found word -> Found word
+            | Next next -> expand k next level)
+      in
+      let rec go level =
+        let k = List.fold_left (fun k (s, _) -> min k s.lead) unbounded level in
+        if k = unbounded then None
+        else
+          match expand k [] level with
+          | Found word -> Some word
+          | Next level -> go level
       in
       Hashtbl.add seen r.id ();
-      Queue.push (r, []) queue;
-      let found = go () in
+      let found = go [ (r, []) ] in
       if Option.is_none found then
         Hashtbl.iter (fun id () -> Hashtbl.replace emptiness id true) seen
       else Hashtbl.replace emptiness r.id false;
@@ -534,23 +716,26 @@ struct
       if r.nullable then Some [] else if known_empty r then None else search r
 
     (** [inhabited r] is whether some derivative of [r] is nullable, found by
-        depth-first exploration of its derivatives; the derivatives known to be
+        depth-first exploration of its derivatives, an expression of lead
+        [k ≥ 1] by its derivative by [tickᵏ] alone; the derivatives known to be
         empty are not explored, and if none is nullable every expression
         explored is recorded as empty. *)
     let inhabited r =
       let ms = blocks [ r ] in
       let seen = Hashtbl.create 64 in
-      let fresh d = not (Hashtbl.mem seen d.id || known_empty d) in
+      let fresh d =
+        not (Hashtbl.mem seen d.id || known_empty d || equal_form d empty)
+      in
       let rec go = function
         | [] -> false
         | d :: _ when d.nullable -> true
         | d :: stack ->
-            let next = List.filter fresh (List.map (fun m -> derive m d) ms) in
+            let next = List.filter fresh (List.map fst (moves ms d.lead d)) in
             List.iter (fun d -> Hashtbl.replace seen d.id ()) next;
             go (next @ stack)
       in
       Hashtbl.add seen r.id ();
-      let found = go [ r ] in
+      let found = (not (equal_form r empty)) && go [ r ] in
       if found then Hashtbl.replace emptiness r.id false
       else Hashtbl.iter (fun id () -> Hashtbl.replace emptiness id true) seen;
       found
@@ -571,7 +756,9 @@ struct
         until two expressions of a pair differ in nullability or no pair is
         left: Hopcroft and Karp's algorithm (Cornell TR 1971), a bisimulation up
         to equivalence, the classes kept in a union–find forest with path
-        compression. *)
+        compression. A pair whose expressions both have a lead of at least
+        [k ≥ 1] is followed by their derivatives by [tickᵏ] alone: they denote
+        the same language iff these do. *)
     let bisimilar r s =
       let ms = blocks [ r; s ] in
       let parent = Hashtbl.create 64 in
@@ -594,7 +781,10 @@ struct
             else if r.nullable <> s.nullable then false
             else begin
               Hashtbl.replace parent x y;
-              List.iter (fun m -> Queue.push (derive m r, derive m s) queue) ms;
+              let k = min r.lead s.lead in
+              List.iter2
+                (fun (d, _) (d', _) -> Queue.push (d, d') queue)
+                (moves ms k r) (moves ms k s);
               go ()
             end
       in

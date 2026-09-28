@@ -15,18 +15,13 @@ module Make
     end) =
 struct
   module Runs = Dfa.Implicit (L.State)
+  module Allowance = CostClosure.Allowance (L.State)
   module Coverage = CostClosure.Coverage (L.State)
+  module Weights = CostClosure.Weights (L.State)
 
-  module Allowed =
-    Dfa.Product
-      (L.State)
-      (struct
-        type t = int list
-
-        let compare = List.compare Int.compare
-      end)
-
-  module Covered =
+  (** The products of the automata of runs with those of closures, whose states
+      are sets of states of runs. *)
+  module Closed =
     Dfa.Product
       (L.State)
       (struct
@@ -80,17 +75,16 @@ struct
     let hash (names, rho) = combine (hash_list String.hash names) (L.hash rho)
   end)
 
-  (** [concrete names rho] is [L.concrete names rho], tabulated by its
-      arguments. *)
-  let concrete =
+  (** [runs names rho] is [L.runs names rho], tabulated by its arguments. *)
+  let runs =
     let table = Tables.create 16 in
     fun names rho ->
       match Tables.find_opt table (names, rho) with
-      | Some dfa -> dfa
+      | Some a -> a
       | None ->
-          let dfa = L.concrete names rho in
-          Tables.add table (names, rho) dfa;
-          dfa
+          let a = L.runs names rho in
+          Tables.add table (names, rho) a;
+          a
 
   type order = {
     search : string list -> int list -> L.t -> L.t -> int list option;
@@ -108,8 +102,9 @@ struct
     {
       search =
         tabulated (fun ~cost names rho rho' ->
-            Allowed.counterexample (letters names) (L.runs names rho)
-              (CostClosure.allowance ~cost (concrete names rho')));
+            let letters = letters names in
+            Closed.counterexample letters (runs names rho)
+              (Allowance.closure ~cost ~letters (runs names rho')));
       endpoint = snd;
       top = L.top;
     }
@@ -118,8 +113,8 @@ struct
     {
       search =
         tabulated (fun ~cost names rho rho' ->
-            Covered.counterexample (letters names) (L.runs names rho)
-              (Coverage.closure ~cost (L.runs names rho')));
+            Closed.counterexample (letters names) (runs names rho)
+              (Coverage.closure ~cost (runs names rho')));
       endpoint = fst;
       top = L.one;
     }
@@ -150,7 +145,7 @@ struct
       operations and the names it mentions. *)
   let inhabited bounds rho =
     let names = alphabet bounds [ rho ] in
-    not (Runs.is_empty (letters names) (L.runs names rho))
+    not (Runs.is_empty (letters names) (runs names rho))
 
   (** [grade_of_word (names, word)] is the grade of the single run [word] over
       [names]. *)
@@ -175,12 +170,12 @@ struct
     let names = alphabet bounds [ rho ] in
     extreme
       ~cost:(letter_cost (costs endpoint bounds names))
-      (concrete names rho)
+      ~letters:(letters names) (runs names rho)
 
   let implied_bounds bounds lower upper =
     match
-      ( weight CostClosure.min_weight fst bounds lower,
-        weight CostClosure.max_weight snd bounds upper )
+      ( weight Weights.min_weight fst bounds lower,
+        weight Weights.max_weight snd bounds upper )
     with
     | Some fastest, Some slowest -> Some (fastest, slowest)
     | _ -> None

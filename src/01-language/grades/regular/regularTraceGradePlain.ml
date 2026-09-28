@@ -15,9 +15,7 @@ let name = "traces-regex-plain"
 let merge names names' = List.sort_uniq String.compare (names @ names')
 let atom name = Regex.letters (Letters.name name)
 let tick = Regex.letters Letters.tick
-
-let ticks n =
-  List.fold_left (fun r _ -> Regex.concat tick r) Regex.eps (List.init n Fun.id)
+let ticks = Regex.ticks
 
 (** [any names] is the union of the letters over [names]. *)
 let any names =
@@ -42,7 +40,8 @@ let of_regex r =
 
 (** [Rebuild (T)] rebuilds the expressions by the smart constructors of [T]. *)
 module Rebuild (T : SymbolicRegex.S) = struct
-  (** [map letter r] is [r] with each letter [p] replaced by [letter p]; the
+  (** [map letter r] is [r] with each letter [p] replaced by [letter p], for a
+      [letter] that maps [tick] to itself, so that runs of ticks are kept; the
       shared subexpressions of [r] are rebuilt once. *)
   let map letter r =
     let table = Hashtbl.create 64 in
@@ -58,6 +57,7 @@ module Rebuild (T : SymbolicRegex.S) = struct
       | Empty -> T.empty
       | Eps -> T.eps
       | Letters p -> letter p
+      | Ticks n -> T.ticks n
       | Concat (r, s) -> T.concat (go r) (go s)
       | Union rs -> T.union (List.map go rs)
       | Inter rs -> T.inter (List.map go rs)
@@ -145,9 +145,9 @@ let counterexample _bounds rho rho' =
       {
         names;
         regex =
-          List.fold_left
-            (fun r p -> Regex.concat r (Regex.letters (letter names p)))
-            Regex.eps word;
+          List.fold_right
+            (fun p r -> Regex.concat (Regex.letters (letter names p)) r)
+            word Regex.eps;
       })
     (D.shortest
        (Regex.inter [ align names rho; Regex.compl (align names rho') ]))
@@ -206,6 +206,8 @@ let runs names rho =
     step = (fun r a -> Regex.derivative letters.(a) r);
     accepts = Regex.nullable;
     dead = D.is_empty;
+    lead = Regex.lead;
+    leap = (fun r k -> Regex.leap k r);
   }
 
 module Tables = Dfa.Implicit (struct
