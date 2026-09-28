@@ -1,0 +1,6 @@
+(* Rejected: only a wildcard covers every string. *)
+
+let code s =
+  match s with
+  | "a" -> 1
+  | "b" -> 2

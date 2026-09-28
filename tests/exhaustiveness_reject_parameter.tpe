@@ -1,0 +1,3 @@
+(* Rejected: the parameter pattern does not match the empty list. *)
+
+let head = fun (x :: _) -> x

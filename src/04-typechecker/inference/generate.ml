@@ -639,6 +639,16 @@ module Make (C : Constraint.S) = struct
             | None -> unknown ())
         | Some { definition = Ast.TyInline _; _ } | None -> unknown ())
 
+  let datatype_constructors env lbl =
+    match
+      Option.bind
+        (LabelMap.find_opt lbl env.constructors)
+        (find_type_definition env)
+    with
+    | Some { definition = Ast.TySum variants; _ } ->
+        List.map (fun (lbl, arg) -> (lbl, Option.is_some arg)) variants
+    | Some { definition = Ast.TyInline _; _ } | None -> []
+
   (* ------------------------------------------------------------------ *)
   (* Fresh unknowns                                                      *)
   (* ------------------------------------------------------------------ *)
@@ -1179,7 +1189,8 @@ module Make (C : Constraint.S) = struct
                   ])))
 
   (* [match e with …]: the scrutinee against a fresh type, each branch against
-     a shared type and effect below the expected ones. *)
+     a shared type and effect below the expected ones. A match without cases
+     has a scrutinee of type [empty]. *)
   and match_ env at e cases ty eps =
     exists_ty (fun scrutinee_ty ->
         exists_ty (fun branch_ty ->
@@ -1197,14 +1208,24 @@ module Make (C : Constraint.S) = struct
                       generate_computation env' body (expect branch_ty because)
                         (expect branch_eps because))
                 in
+                let because =
+                  Reason.because scrutinee_at
+                    (Reason.Match_scrutinee { scrutinee_at })
+                in
+                let empty =
+                  match cases with
+                  | [] ->
+                      [
+                        sub_expected scrutinee_at scrutinee_ty
+                          (expect (Ast.TyApply (Ast.empty_ty_name, [])) because);
+                      ]
+                  | _ :: _ -> []
+                in
                 C.conj_all
-                  (generate_expression env e
-                     (expect scrutinee_ty
-                        (Reason.because scrutinee_at
-                           (Reason.Match_scrutinee { scrutinee_at })))
+                  (generate_expression env e (expect scrutinee_ty because)
                   :: sub_expected at branch_ty ty
                   :: leq_expected at branch_eps eps
-                  :: List.map branch cases))))
+                  :: (empty @ List.map branch cases)))))
 
   (* [box ρ e as p in c]: the payload under the lock [⟨ρ⟩], the pattern
      against [[ρ] α]. *)

@@ -1,0 +1,8 @@
+(* Rejected: the constructor `Blue` has no case. *)
+
+type colour = Red | Green | Blue of nat
+
+let brightness c =
+  match c with
+  | Red -> 1
+  | Green -> 2

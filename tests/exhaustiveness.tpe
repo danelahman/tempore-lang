@@ -1,0 +1,75 @@
+(* Correctly accepted by the typechecker: every match has a case for every
+   value of its scrutinee's type, and every other pattern matches every value
+   of its type. *)
+
+(* Natural numbers as zero and successor. *)
+let rec half n =
+  match n with
+  | 0 -> 0
+  | 1 -> 0
+  | m + 2 -> half m + 1
+
+let pred = function 0 -> 0 | m + 1 -> m
+
+(* Lists. *)
+let describe xs =
+  match xs with
+  | [] -> "none"
+  | [_] -> "one"
+  | _ :: _ :: _ -> "many"
+
+(* Options in nested tuples. *)
+let add_options p =
+  match p with
+  | (Some x, (Some y, _)) -> x + y
+  | (None, _) -> 0
+  | (_, (None, z)) -> z
+
+(* Booleans. *)
+let xor b c =
+  match (b, c) with
+  | (true, false) -> true
+  | (false, true) -> true
+  | (true, true) -> false
+  | (false, false) -> false
+
+(* Strings, with a wildcard. *)
+let code s =
+  match s with
+  | "a" -> 1
+  | "b" -> 2
+  | _ -> 0
+
+(* A match without cases on the empty type. *)
+type 'a outcome = Done of 'a | Failed of empty
+
+let value o =
+  match o with
+  | Done x -> x
+  | Failed v -> absurd v
+
+let never (v : empty) = match v with
+
+(* Binding patterns of tuples and of the unit. *)
+let swap (x, y) = (y, x)
+let three () = 3
+
+run (half 9, pred 0, describe [1; 2], add_options (None, (Some 1, 2)))
+
+run (xor true false, code "b", value (Done 4), swap (1, 2), three ())
+
+(* The standard library is total. *)
+run (nth [1; 2; 3] 1, nth [1; 2; 3] 5, hd [1], tl [1], zip [1; 2; 3] ["a"])
+
+(* Handler clauses and defaults. *)
+operation Put : nat * bool ~> unit # 1
+
+default Put (n, _) = delay 1
+
+run
+  handle perform Put (1, true)
+  with (handler
+  | () -> 0
+  | Put (n, _) k -> delay 1; continue k with ())
+
+run perform Put (3, true)

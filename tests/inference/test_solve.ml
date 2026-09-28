@@ -296,6 +296,13 @@ let expected_rejections =
     ("default_reject_loop.tpe", [ 6 ]);
     ("default_reject_type.tpe", [ 7 ]);
     ("error_apply_arg.tpe", [ 8 ]);
+    ("exhaustiveness_reject_bool.tpe", [ 3 ]);
+    ("exhaustiveness_reject_constructor.tpe", [ 5 ]);
+    ("exhaustiveness_reject_let.tpe", [ 3 ]);
+    ("exhaustiveness_reject_nat.tpe", [ 3 ]);
+    ("exhaustiveness_reject_nil.tpe", [ 3 ]);
+    ("exhaustiveness_reject_parameter.tpe", [ 3 ]);
+    ("exhaustiveness_reject_string.tpe", [ 3 ]);
     ("error_earliest_failure.tpe", [ 11 ]);
     ("error_handler_case.tpe", [ 7 ]);
     ("error_unbox_nonvariable.tpe", [ 7 ]);

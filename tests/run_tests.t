@@ -1162,6 +1162,101 @@
     `x` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
+  exhaustiveness.tpe
+  ======================================================================
+  === Run 1 ===
+  return (4, 0, "many", 0)
+  State: []
+  
+  === Run 2 ===
+  return (true, 2, 4, (2, 1), 3)
+  State: []
+  
+  === Run 3 ===
+  return (Some 2, None, Some 1, Some [], (1, "a")::[])
+  State: []
+  
+  === Run 4 ===
+  return 0
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return () ↦ return 0
+               | Put ((n, _), k) ↦
+                       delay 1 (return ());
+                       unbox k as unbox_var in
+                       unbox_var ()
+        # 1
+    },
+    1
+  ]
+  
+  === Run 5 ===
+  return ()
+  State: [
+    1
+  ]
+  
+  ======================================================================
+  exhaustiveness_reject_bool.tpe
+  ======================================================================
+  File "exhaustiveness_reject_bool.tpe", lines 4-6, characters 2-18:
+  4 |   match p with
+        ^^^^^^^^^^^^
+  Typing error: This match is not exhaustive: `(false, false)` is not matched
+    Note: a value that no case matches would stop the run
+  ======================================================================
+  exhaustiveness_reject_constructor.tpe
+  ======================================================================
+  File "exhaustiveness_reject_constructor.tpe", lines 6-8, characters 2-14:
+  6 |   match c with
+        ^^^^^^^^^^^^
+  Typing error: This match is not exhaustive: `Blue _` is not matched
+    Note: a value that no case matches would stop the run
+  ======================================================================
+  exhaustiveness_reject_let.tpe
+  ======================================================================
+  File "exhaustiveness_reject_let.tpe", line 3, characters 8-16:
+  3 | run let (Some x) = Some 3 in x
+              ^^^^^^^^
+  Typing error: This pattern is not exhaustive: `None` is not matched
+    Note: a value that the pattern does not match would stop the run
+  ======================================================================
+  exhaustiveness_reject_nat.tpe
+  ======================================================================
+  File "exhaustiveness_reject_nat.tpe", lines 4-6, characters 2-23:
+  4 |   match n with
+        ^^^^^^^^^^^^
+  Typing error: This match is not exhaustive: `1` is not matched
+    Note: a value that no case matches would stop the run
+  ======================================================================
+  exhaustiveness_reject_nil.tpe
+  ======================================================================
+  File "exhaustiveness_reject_nil.tpe", lines 4-5, characters 2-15:
+  4 |   match xs with
+        ^^^^^^^^^^^^^
+  Typing error: This match is not exhaustive: `[]` is not matched
+    Note: a value that no case matches would stop the run
+  ======================================================================
+  exhaustiveness_reject_parameter.tpe
+  ======================================================================
+  File "exhaustiveness_reject_parameter.tpe", line 3, characters 15-23:
+  3 | let head = fun (x :: _) -> x
+                     ^^^^^^^^
+  Typing error: This pattern is not exhaustive: `[]` is not matched
+    Note: a value that the pattern does not match would stop the run
+  ======================================================================
+  exhaustiveness_reject_string.tpe
+  ======================================================================
+  File "exhaustiveness_reject_string.tpe", lines 4-6, characters 2-12:
+  4 |   match s with
+        ^^^^^^^^^^^^
+  Typing error: This match is not exhaustive: `""` is not matched
+    Note: a value that no case matches would stop the run
+  ======================================================================
   flow_levels.tpe
   ======================================================================
   === Run 1 ===
@@ -3650,11 +3745,11 @@
   State: []
   
   === Run 73 ===
-  return 1
+  return (Some 1)
   State: []
   
   === Run 74 ===
-  return (2::3::4::[])
+  return (Some (2::3::4::[]))
   State: []
   
   === Run 75 ===

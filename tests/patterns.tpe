@@ -1,7 +1,7 @@
 run let a = 5 in a
 run let (a,b) = (1,2) in (a,b)
-run let x :: y = [1;2;3;4] in (x,y)
-run let _ :: y = [1;2;3;4] in y
+run match [1;2;3;4] with x :: y -> (x,y) | [] -> (0, [])
+run match [1;2;3;4] with _ :: y -> y | [] -> []
 
 type 'a cow = Moo of 'a
 

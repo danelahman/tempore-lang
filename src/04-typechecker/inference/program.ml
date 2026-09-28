@@ -65,7 +65,7 @@ module Make (C : Constraint.S) = struct
     | S.Stuck stuck -> Error (Stuck stuck)
 
   (* [terminating check result] is [result] once [check ()] has accepted the
-     recursive functions and the default of a solved command. *)
+     recursive functions, the default and the matches of a solved command. *)
   let terminating check =
     Result.map (fun solution ->
         check ();
@@ -120,7 +120,10 @@ module Make (C : Constraint.S) = struct
                   Termination.check_abstraction abs;
                   DefaultGraph.check_default
                     ~default:(Gen.find_operation_default env)
-                    ~loc op performed))
+                    ~loc op performed;
+                  Exhaustiveness.check_abstraction
+                    ~constructors:(Gen.datatype_constructors env)
+                    abs))
         with
         | Ok _ ->
             let default =
@@ -155,7 +158,11 @@ module Make (C : Constraint.S) = struct
                 (fun solution ->
                   (S.generalise ty solution, S.unsimplified ty solution))
                 (solved cmd env constr
-                |> terminating (fun () -> Termination.check_expression e)))
+                |> terminating (fun () ->
+                    Termination.check_expression e;
+                    Exhaustiveness.check_expression
+                      ~constructors:(Gen.datatype_constructors env)
+                      e)))
         with
         | Ok (scheme, unsimplified) ->
             (add scheme unsimplified, verdict (Defined (x, scheme)), Continue)
@@ -167,7 +174,11 @@ module Make (C : Constraint.S) = struct
           attempt (fun () ->
               let _, constr = Gen.generate_run env ~loc c in
               solved cmd env constr
-              |> terminating (fun () -> Termination.check_computation c))
+              |> terminating (fun () ->
+                  Termination.check_computation c;
+                  Exhaustiveness.check_computation
+                    ~constructors:(Gen.datatype_constructors env)
+                    c))
         with
         | Ok _ -> (envs, verdict Accepted, Continue)
         | Error e -> (envs, verdict (Rejected e), Continue))

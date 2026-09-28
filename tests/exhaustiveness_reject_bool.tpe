@@ -1,0 +1,6 @@
+(* Rejected: the pair `(false, false)` has no case. *)
+
+let either p =
+  match p with
+  | (true, _) -> 1
+  | (_, true) -> 2

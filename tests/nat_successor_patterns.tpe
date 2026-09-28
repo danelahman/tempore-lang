@@ -37,12 +37,12 @@ run take [1; 2; 3; 4; 5] 3
 run match [4; 0] with x + 1 :: xs -> (x, xs) | _ -> (7, [])
 
 (* Successor patterns nest, and 'n + 1 + 1' matches as '(n + 1) + 1'. *)
-run match 5 with n + 1 + 1 -> n
+run match 5 with n + 1 + 1 -> n | _ -> 0
 
-run match 5 with (n + 1) + 2 -> n
+run match 5 with (n + 1) + 2 -> n | _ -> 0
 
-(* A function parameter. *)
-run (fun (m + 1) -> m) 8
+(* The cases of a function. *)
+run (function 0 -> 0 | m + 1 -> m) 8
 
 (* A number below k falls through to a later case. *)
 run
@@ -52,6 +52,6 @@ run
   | _ -> (3, 0)
 
 (* Arbitrary-precision values. *)
-run match 99999999999999999999 with m + 1 -> m
+run match 99999999999999999999 with 0 -> 0 | m + 1 -> m
 
-run match 18446744073709551616 with m + 18446744073709551615 -> m
+run match 18446744073709551616 with m + 18446744073709551615 -> m | _ -> 0

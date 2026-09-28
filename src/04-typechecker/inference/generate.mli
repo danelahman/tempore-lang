@@ -186,6 +186,11 @@ module Make (C : Constraint.S) : sig
   val find_type_definition : env -> Ast.ty_name -> ty_definition option
   (** [find_type_definition env name] is the definition of [name]. *)
 
+  val datatype_constructors : env -> Ast.label -> (Ast.label * bool) list
+  (** [datatype_constructors env lbl] is every constructor of the datatype of
+      [lbl], each with whether it takes an argument; none if [lbl] is unknown.
+  *)
+
   val is_noneternal : env -> Ast.ty_name -> bool
   (** [is_noneternal env name] is whether [name] is declared [noneternal]. *)
 

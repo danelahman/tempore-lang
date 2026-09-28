@@ -1,0 +1,3 @@
+(* Rejected: the pattern of the `let` does not match `None`. *)
+
+run let (Some x) = Some 3 in x

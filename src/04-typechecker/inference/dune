@@ -3,4 +3,4 @@
 
 (library
  (name inference)
- (libraries utils language grades))
+ (libraries utils language grades zarith))

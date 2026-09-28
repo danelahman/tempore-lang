@@ -301,8 +301,8 @@ let expected g =
     ("fst", typed (Printf.sprintf "α × β → α # %s" u));
     ("snd", typed (Printf.sprintf "α × β → β # %s" u));
     ("not", typed (Printf.sprintf "bool → bool # %s" u));
-    (* An empty match does not fix the type of its scrutinee. *)
-    ("absurd", typed "α → β # ε₀");
+    (* An empty match has a scrutinee of type [empty]. *)
+    ("absurd", typed "empty → α # ε₀");
     ("pipe", typed (Printf.sprintf "α → (α → β # ε₀) → β # ε₀ # %s" u));
     (* [g]'s effect, then [f]'s; [f] is used after [g x] has run, so [g]'s
        effect is bounded by the unit, and is the unit where the unit is

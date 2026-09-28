@@ -1,0 +1,6 @@
+(* Rejected: the cases match 0 and every number from 2, but not 1. *)
+
+let rec half n =
+  match n with
+  | 0 -> 0
+  | m + 2 -> half m + 1

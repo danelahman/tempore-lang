@@ -52,10 +52,12 @@ let rec map f = function
     y :: ys
 
 let hd = function
-  | x :: _ -> x
+  | [] -> None
+  | x :: _ -> Some x
 
 let tl = function
-  | x :: xs -> xs
+  | [] -> None
+  | x :: xs -> Some xs
 
 let take f k =
   let r = range 0 k in map f r
@@ -95,8 +97,8 @@ let complement xs ys = filter (fun x -> not (mem x ys)) xs
 let intersection xs ys = filter (fun x -> mem x ys) xs
 let rec zip xs ys =
   match (xs, ys) with
-  | ([], []) -> []
   | (x :: xs, y :: ys) -> (x, y) :: (zip xs ys)
+  | _ -> []
 
 let rec unzip = function
   | [] -> ([], [])
@@ -113,8 +115,10 @@ let rec length = function
   | [] -> 0
   | x :: xs -> length xs + 1
 
-let rec nth (x::xs) n =
-  if n = 0 then x else nth xs (n - 1)
+let rec nth xs n =
+  match xs with
+  | [] -> None
+  | x :: xs -> if n = 0 then Some x else nth xs (n - 1)
 
 (* Basic functions *)
 let min x y = if x < y then x else y
