@@ -1,0 +1,4 @@
+(* Rejected: `n - 1` is smaller than `n`, but not a structural part of it;
+   matching `m + 1` and passing `m` is accepted. *)
+
+let rec countdown n = if n = 0 then [] else n :: countdown (n - 1)

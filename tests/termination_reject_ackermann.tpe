@@ -1,0 +1,8 @@
+(* Rejected: the arguments decrease lexicographically, but no single argument
+   decreases in every recursive call. *)
+
+let rec ack m n =
+  match (m, n) with
+  | (0, n) -> n + 1
+  | (m + 1, 0) -> ack m 1
+  | (m + 1, n + 1) -> ack m (ack (m + 1) n)

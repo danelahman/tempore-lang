@@ -1,0 +1,4 @@
+(* Rejected: the function is passed on without its argument, so what it is
+   later applied to is not known. *)
+
+let rec loop n = n |> loop

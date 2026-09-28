@@ -1,0 +1,3 @@
+(* Rejected: a recursive call on the parameter itself loops forever. *)
+
+let rec spin n = spin n

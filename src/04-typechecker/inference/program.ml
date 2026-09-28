@@ -64,6 +64,13 @@ module Make (C : Constraint.S) = struct
     | S.Refuted failure -> Error (Refuted failure)
     | S.Stuck stuck -> Error (Stuck stuck)
 
+  (* [terminating check result] is [result] once [check ()] has accepted the
+     recursive functions of a solved command. *)
+  let terminating check =
+    Result.map (fun solution ->
+        check ();
+        solution)
+
   (* [attempt f] is [f ()], a typing error it raises being [Malformed]. *)
   let attempt f =
     match f () with
@@ -105,7 +112,8 @@ module Make (C : Constraint.S) = struct
     | Ast.OpDefault (op, abs) -> (
         match
           attempt (fun () ->
-              solved cmd env (Gen.generate_default env ~loc op abs))
+              solved cmd env (Gen.generate_default env ~loc op abs)
+              |> terminating (fun () -> Termination.check_abstraction abs))
         with
         | Ok _ ->
             ( both (fun env -> Gen.add_operation_default env op) envs,
@@ -128,7 +136,8 @@ module Make (C : Constraint.S) = struct
               Result.map
                 (fun solution ->
                   (S.generalise ty solution, S.unsimplified ty solution))
-                (solved cmd env constr))
+                (solved cmd env constr
+                |> terminating (fun () -> Termination.check_expression e)))
         with
         | Ok (scheme, unsimplified) ->
             (add scheme unsimplified, verdict (Defined (x, scheme)), Continue)
@@ -139,7 +148,8 @@ module Make (C : Constraint.S) = struct
         match
           attempt (fun () ->
               let _, constr = Gen.generate_run env ~loc c in
-              solved cmd env constr)
+              solved cmd env constr
+              |> terminating (fun () -> Termination.check_computation c))
         with
         | Ok _ -> (envs, verdict Accepted, Continue)
         | Error e -> (envs, verdict (Rejected e), Continue))

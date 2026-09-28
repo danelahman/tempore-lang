@@ -337,6 +337,12 @@ let expected_rejections =
     ("regular_reject_bounds.tpe", [ 4 ]);
     ("regular_reject_counterexample.tpe", [ 13; 21 ]);
     ("regular_reject_protocol.tpe", [ 9; 18 ]);
+    ("termination_reject_ackermann.tpe", [ 4 ]);
+    ("termination_reject_countdown.tpe", [ 4 ]);
+    ("termination_reject_escape.tpe", [ 4 ]);
+    ("termination_reject_increasing.tpe", [ 3 ]);
+    ("termination_reject_loop.tpe", [ 3 ]);
+    ("termination_reject_spin.tpe", [ 3 ]);
     ("time_reject_within.tpe", [ 6 ]);
     ("traces_intervals_default_bounds.tpe", [ 9 ]);
     ("traces_reject_allowance.tpe", [ 7 ]);

@@ -2974,6 +2974,129 @@
       ^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Type `cow` defined multiple times
   ======================================================================
+  termination.tpe
+  ======================================================================
+  === Run 1 ===
+  return (6, 3, 3::2::1::[])
+  State: []
+  
+  === Run 2 ===
+  return (8, 3)
+  State: []
+  
+  === Run 3 ===
+  return ((1, "a")::(2, "b")::[], 3)
+  State: []
+  
+  === Run 4 ===
+  return (1::3::2::4::[])
+  State: []
+  
+  === Run 5 ===
+  return (6, 3)
+  State: []
+  
+  === Run 6 ===
+  return (1::2::3::[], 89)
+  State: []
+  
+  ======================================================================
+  termination_reject_ackermann.tpe
+  ======================================================================
+  File "termination_reject_ackermann.tpe", line 8, characters 28-43:
+  8 |   | (m + 1, n + 1) -> ack m (ack (m + 1) n)
+                                  ^^^^^^^^^^^^^^^
+  Typing error: The recursive function `ack` might not terminate: no argument decreases structurally in every recursive call
+    File "termination_reject_ackermann.tpe", lines 4-8, characters 12-43:
+    4 | let rec ack m n =
+                    ^^^^^
+    `ack` is defined here
+    File "termination_reject_ackermann.tpe", line 8, characters 33-40:
+    8 |   | (m + 1, n + 1) -> ack m (ack (m + 1) n)
+                                         ^^^^^^^
+    argument 1 here is not a structural part of parameter 1
+    Note: match the parameter against a constructor, a list `x :: xs` or a successor `m + 1`, and pass the part in the recursive call
+  ======================================================================
+  termination_reject_countdown.tpe
+  ======================================================================
+  File "termination_reject_countdown.tpe", line 4, characters 49-66:
+  4 | let rec countdown n = if n = 0 then [] else n :: countdown (n - 1)
+                                                       ^^^^^^^^^^^^^^^^^
+  Typing error: The recursive function `countdown` might not terminate: no argument decreases structurally in every recursive call
+    File "termination_reject_countdown.tpe", line 4, characters 18-66:
+    4 | let rec countdown n = if n = 0 then [] else n :: countdown (n - 1)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `countdown` is defined here
+    File "termination_reject_countdown.tpe", line 4, characters 59-66:
+    4 | let rec countdown n = if n = 0 then [] else n :: countdown (n - 1)
+                                                                   ^^^^^^^
+    argument 1 here is not a structural part of parameter 1
+    Note: match the parameter against a constructor, a list `x :: xs` or a successor `m + 1`, and pass the part in the recursive call
+  ======================================================================
+  termination_reject_escape.tpe
+  ======================================================================
+  File "termination_reject_escape.tpe", line 4, characters 22-26:
+  4 | let rec loop n = n |> loop
+                            ^^^^
+  Typing error: The recursive function `loop` might not terminate: no argument decreases structurally in every recursive call
+    File "termination_reject_escape.tpe", line 4, characters 13-26:
+    4 | let rec loop n = n |> loop
+                     ^^^^^^^^^^^^^
+    `loop` is defined here
+    File "termination_reject_escape.tpe", line 4, characters 22-26:
+    4 | let rec loop n = n |> loop
+                              ^^^^
+    `loop` is used here without its argument 1
+    Note: match the parameter against a constructor, a list `x :: xs` or a successor `m + 1`, and pass the part in the recursive call
+  ======================================================================
+  termination_reject_increasing.tpe
+  ======================================================================
+  File "termination_reject_increasing.tpe", line 3, characters 36-46:
+  3 | let rec up n = if n = 0 then 0 else up (n + 1)
+                                          ^^^^^^^^^^
+  Typing error: The recursive function `up` might not terminate: no argument decreases structurally in every recursive call
+    File "termination_reject_increasing.tpe", line 3, characters 11-46:
+    3 | let rec up n = if n = 0 then 0 else up (n + 1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `up` is defined here
+    File "termination_reject_increasing.tpe", line 3, characters 39-46:
+    3 | let rec up n = if n = 0 then 0 else up (n + 1)
+                                               ^^^^^^^
+    argument 1 here is not a structural part of parameter 1
+    Note: match the parameter against a constructor, a list `x :: xs` or a successor `m + 1`, and pass the part in the recursive call
+  ======================================================================
+  termination_reject_loop.tpe
+  ======================================================================
+  File "termination_reject_loop.tpe", line 3, characters 14-17:
+  3 | let rec u x = u x
+                    ^^^
+  Typing error: The recursive function `u` might not terminate: no argument decreases structurally in every recursive call
+    File "termination_reject_loop.tpe", line 3, characters 10-17:
+    3 | let rec u x = u x
+                  ^^^^^^^
+    `u` is defined here
+    File "termination_reject_loop.tpe", line 3, characters 16-17:
+    3 | let rec u x = u x
+                        ^
+    argument 1 here is not a structural part of parameter 1
+    Note: match the parameter against a constructor, a list `x :: xs` or a successor `m + 1`, and pass the part in the recursive call
+  ======================================================================
+  termination_reject_spin.tpe
+  ======================================================================
+  File "termination_reject_spin.tpe", line 3, characters 17-23:
+  3 | let rec spin n = spin n
+                       ^^^^^^
+  Typing error: The recursive function `spin` might not terminate: no argument decreases structurally in every recursive call
+    File "termination_reject_spin.tpe", line 3, characters 13-23:
+    3 | let rec spin n = spin n
+                     ^^^^^^^^^^
+    `spin` is defined here
+    File "termination_reject_spin.tpe", line 3, characters 22-23:
+    3 | let rec spin n = spin n
+                              ^
+    argument 1 here is not a structural part of parameter 1
+    Note: match the parameter against a constructor, a list `x :: xs` or a successor `m + 1`, and pass the part in the recursive call
+  ======================================================================
   test_equality.tpe
   ======================================================================
   === Run 1 ===

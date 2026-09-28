@@ -193,6 +193,29 @@ and ('rho, 'eps) plain_computation =
 
 and ('rho, 'eps) abstraction = ('rho, 'eps) pattern * ('rho, 'eps) computation
 
+(** [curried_layers (p, c)] is the parameters [p; p₁; …; pₙ] of the curried
+    function [fun p -> fun p₁ -> … -> fun pₙ -> c'] and its innermost body [c']:
+    [c] is followed while it returns a function, looking through annotations. *)
+let rec curried_layers ((p, c) : ('rho, 'eps) abstraction) =
+  let rec function_of (e : ('rho, 'eps) expression) =
+    match e.it with
+    | Lambda abs | PureLambda abs -> Some abs
+    | Annotated (e, _) -> function_of e
+    | Var _ | Const _ | Tuple _ | Variant _ | RecLambda _ | Handler _ -> None
+  in
+  let next =
+    match c.it with
+    | Return e -> function_of e
+    | Do _ | Match _ | Apply _ | Delay _ | Box _ | Unbox _ | Perform _
+    | Handle _ ->
+        None
+  in
+  match next with
+  | Some abs ->
+      let ps, body = curried_layers abs in
+      (p :: ps, body)
+  | None -> ([ p ], c)
+
 (* A stable order on expressions built from different constructors.
    [Annotated] is looked through before a rank is ever taken. *)
 let expression_rank = function

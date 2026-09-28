@@ -1,0 +1,3 @@
+(* Rejected: a recursive call on the parameter itself. *)
+
+let rec u x = u x

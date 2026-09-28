@@ -28,5 +28,3 @@ run ([] :: v, [2] :: v)
 run (fun x -> let h t u = u in h x x)
 
 run (fun x -> let h t u = t in h x x)
-
-let rec u x = u x
