@@ -1672,6 +1672,41 @@
   State: []
   
   ======================================================================
+  peak_resources.tpe
+  ======================================================================
+  === Run 1 ===
+  return (File "a", File "b")
+  State: []
+  
+  ======================================================================
+  peak_resources_reject.tpe
+  ======================================================================
+  File "peak_resources_reject.tpe", lines 11-15, characters 14-19:
+  11 | let relock () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Locks,0,2)`, which does not match its annotated grade `((Files,0,2),(Locks,0,1))`
+    Note: the effect inequality `(Locks,0,2) <= ((Files,0,2),(Locks,0,1))` does not hold
+  
+  File "peak_resources_reject.tpe", lines 18-24, characters 19-17:
+  18 | let three_files () : unit # (0, 2) =
+                          ^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Files,0,3)`, which does not match its annotated grade `(0,2)`
+    Note: the effect inequality `(Files,0,3) <= (0,2)` does not hold
+  
+  File "peak_resources_reject.tpe", lines 31-32, characters 2-3:
+  31 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(Locks,1,1)` accumulated since it was bound, which is not below its box grade `(Files,0,1)`
+    File "peak_resources_reject.tpe", line 29, characters 25-26:
+    29 |   box (Files, 0, 1) 7 as x in
+                                  ^
+    `x` is bound here
+    File "peak_resources_reject.tpe", line 30, characters 2-17:
+    30 |   perform Lock ();
+           ^^^^^^^^^^^^^^^
+    grade `(Locks,1,1)` accumulates here (operation `Lock`)
+    Note: the resource inequality `(Locks,1,1) <= (Files,0,1)` does not hold
+  ======================================================================
   peak_usage.tpe
   ======================================================================
   === Run 1 ===

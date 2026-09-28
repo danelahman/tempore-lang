@@ -254,7 +254,9 @@ module Indexed = struct
   let by_name (s, _) (s', _) = String.compare s s'
 
   let of_list ~compare ~others entries =
-    trim compare { named = List.sort_uniq by_name entries; others }
+    let named = List.sort_uniq by_name entries in
+    let others = Option.value (List.assoc_opt fresh named) ~default:others in
+    trim compare { named = List.remove_assoc fresh named; others }
 
   let everywhere c = { named = []; others = c }
   let named m = m.named
@@ -463,7 +465,7 @@ module Indexed = struct
           G.witnesses bounds (List.map (fun c -> at c s) cs)
         in
         ( List.map
-            (fun w -> trim G.compare { named = [ (s, w) ]; others = G.one })
+            (fun w -> of_list ~compare:G.compare ~others:G.one [ (s, w) ])
             ws,
           completeness )
       in

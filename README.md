@@ -207,9 +207,12 @@ componentwise.
 - `peak-usage`: pairs `(d, h)` of the net change `d` and the peak `h` of a
   resource held, such as open files, with `h >= 0` and `h >= d`;
   `(d, h) · (d', h') = (d + d', max(h, d + h'))`. Delays change nothing, so
-  the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. An operation opening
-  a file has grade `(1, 1)`, and one closing it `(-1, 0)`; two copies in
-  sequence, each holding two files, have grade `(0, 2)`.
+  the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. Resources are named
+  by entries `(R, d, h)`, e.g. `((Files, 0, 2), (Sockets, 0, 1))`, each bounded
+  on its own; a resource not listed is bounded by `(0, 0)`, or by the entry
+  `(_, d, h)`, and a plain `(d, h)` bounds every resource. An operation opening
+  a file has grade `(Files, 1, 1)`, and one closing it `(Files, -1, 0)`; two
+  copies in sequence, each holding two files, have grade `(Files, 0, 2)`.
 - `time-windows`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
   the times `E_A` at which each operation `A` happens, all sets of numbers of
   ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`

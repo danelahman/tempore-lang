@@ -218,6 +218,36 @@ let literals =
     rejects "unbounded change" peak_usage (Tuple [ Inf; Int 3 ]) "needs a peak";
     rejects "integer" peak_usage (Int 3) "not plain integers";
     rejects "level" peak_usage (Tuple [ Int 1; Name "Low" ]) "in the peak";
+    reads "resource" peak_usage
+      (Tuple [ Name "Files"; Int 1; Int 1 ])
+      "(Files,1,1)";
+    reads "resources" peak_usage
+      (Tuple
+         [
+           Tuple [ Name "Sockets"; Int 0; Int 1 ];
+           Tuple [ Name "Files"; Int 0; Int 2 ];
+         ])
+      "((Files,0,2),(Sockets,0,1))";
+    reads "other resources" peak_usage
+      (Tuple
+         [
+           Tuple [ Name "Files"; Int 0; Int 2 ];
+           Tuple [ Name "_"; Int 0; Int 1 ];
+         ])
+      "((Files,0,2),(_,0,1))";
+    reads "resource at the unit" peak_usage
+      (Tuple [ Name "Files"; Int 0; Int 0 ])
+      "(0,0)";
+    rejects "resource peak below the change" peak_usage
+      (Tuple [ Name "Files"; Int 2; Int 1 ])
+      "in the entry of 'Files', the peak must be at least 0";
+    rejects "resource listed twice" peak_usage
+      (Tuple
+         [
+           Tuple [ Name "Files"; Int 1; Int 1 ];
+           Tuple [ Name "Files"; Int 0; Int 1 ];
+         ])
+      "listed twice";
     reads "duration" time_windows (Int 3) "3";
     reads "interval of durations" time_windows (Tuple [ Int 2; Int 5 ]) "(2,5)";
     reads "unbounded durations" time_windows (Tuple [ Int 2; Inf ]) "(2,∞)";

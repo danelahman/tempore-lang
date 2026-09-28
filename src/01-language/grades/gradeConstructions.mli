@@ -191,8 +191,8 @@ module SemiDirect
     constants or at a fresh name ["_"] standing for the others, at the element
     of the map there. The witnesses of {!OfGrade} are, for each such name, the
     witnesses of the component for the elements of the constants there, each
-    given to that name alone: they are complete whenever those of the component
-    are. *)
+    given to that name alone, or to all the others for ["_"]: they are complete
+    whenever those of the component are. *)
 module Indexed : sig
   type 'a t
   (** The maps to ['a]. *)
@@ -208,7 +208,8 @@ module Indexed : sig
     compare:('a -> 'a -> int) -> others:'a -> (string * 'a) list -> 'a t
   (** [of_list ~compare ~others entries] gives the names of [entries] their
       elements, the first listed for a name listed twice, and the other names
-      [others]; [compare] tells the elements equal to [others]. *)
+      [others], or the element of an entry of {!fresh}; [compare] tells the
+      elements equal to the default. *)
 
   val at : 'a t -> string -> 'a
   (** [at m s] is the element of the name [s]. *)

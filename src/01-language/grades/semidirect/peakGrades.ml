@@ -88,14 +88,14 @@ end
 
 module Product = GradeConstructions.SemiDirect (NetChange) (Peak) (Shift)
 
-module PeakUsage = struct
+module OneResource = struct
   include Product
 
-  let name = "peak-usage"
+  let name = "resource-peak"
   let one = (Fin 0, Fin 0)
 
   let of_nat n =
-    let (_ : int) = Grade.check_nat "PeakGrades.PeakUsage" n in
+    let (_ : int) = Grade.check_nat "PeakGrades.OneResource" n in
     one
 
   let of_bounds _ = one
@@ -140,4 +140,10 @@ module PeakUsage = struct
     in
     ( List.concat_map at (List.init ((2 * s) + 3) (fun i -> i - s - 1)),
       Grade.Partial )
+end
+
+module PeakUsage = struct
+  include GradeConstructions.Indexed.OfGrade (OneResource)
+
+  let name = "peak-usage"
 end

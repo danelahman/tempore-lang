@@ -1,0 +1,32 @@
+(* Peak usage by resource: rejected programs. *)
+
+type file = File of string
+
+operation Open : string ~> file # (Files, 1, 1)
+operation Close : file ~> unit # (Files, -1, 0)
+operation Lock : unit ~> unit # (Locks, 1, 1)
+operation Unlock : unit ~> unit # (Locks, -1, 0)
+
+(* Rejected: two locks are held at once. *)
+let relock () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
+  perform Lock ();
+  perform Lock ();
+  perform Unlock ();
+  perform Unlock ()
+
+(* Rejected: a plain pair bounds the files too. *)
+let three_files () : unit # (0, 2) =
+  let a = perform Open "a" in
+  let b = perform Open "b" in
+  let c = perform Open "c" in
+  perform Close c;
+  perform Close b;
+  perform Close a
+
+(* Rejected: the box allows one file and, listing no other resource, no lock
+   held since boxing. *)
+let locked () =
+  box (Files, 0, 1) 7 as x in
+  perform Lock ();
+  unbox x as n in
+  n

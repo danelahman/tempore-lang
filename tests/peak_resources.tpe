@@ -1,0 +1,45 @@
+(* Peak usage by resource: each resource named in an entry (R, d, h). *)
+
+type file = File of string
+
+operation Open : string ~> file # (Files, 1, 1)
+operation Close : file ~> unit # (Files, -1, 0)
+operation Lock : unit ~> unit # (Locks, 1, 1)
+operation Unlock : unit ~> unit # (Locks, -1, 0)
+
+default Open name = File name
+default Lock () = ()
+
+(* Accepted: each resource is bounded on its own. *)
+let locked_pair () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
+  perform Lock ();
+  let a = perform Open "a" in
+  let b = perform Open "b" in
+  perform Close b;
+  perform Close a;
+  perform Unlock ()
+
+(* Accepted: the grade is inferred by resource. *)
+let held () =
+  perform Lock ();
+  let a = perform Open "a" in
+  let b = perform Open "b" in
+  (a, b)
+
+(* Accepted: a plain pair bounds every resource. *)
+let within_two () : unit # (0, 2) = locked_pair ()
+
+(* Accepted: an entry '(_, d, h)' bounds every resource not listed. *)
+let others () : unit # ((Files, 0, 2), (_, 0, 1)) = locked_pair ()
+
+(* Accepted: a box of grade ((Files, 0, 1), (Locks, 1, 1)) survives opening and
+   closing a file and taking a lock. *)
+let boxed () =
+  box ((Files, 0, 1), (Locks, 1, 1)) 7 as x in
+  let a = perform Open "a" in
+  perform Close a;
+  perform Lock ();
+  unbox x as n in
+  n
+
+run held ()

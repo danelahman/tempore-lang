@@ -1,5 +1,5 @@
-(** The peak-usage grades: the net change of a resource held, such as the number
-    of open files, paired with its peak.
+(** The peak-usage grades: the net change of each resource held, such as the
+    number of open files, paired with its peak.
 
     A grade [(d, h)] is "the amount held changes by [d] and rises at most [h]
     above its level at the start"; [h ≥ max(0, d)], since the peak includes both
@@ -27,8 +27,8 @@ module Peak : GradeConstructions.SEMILATTICE with type t = bound
 module Shift :
   GradeConstructions.ACTION with type m = NetChange.t and type n = Peak.t
 
-module PeakUsage : Grade.S with type t = bound * bound
-(** The peak-usage grade, ["peak-usage"]: the semidirect product
+module OneResource : Grade.S with type t = bound * bound
+(** The peak usage of one resource, ["resource-peak"]: the semidirect product
     {!GradeConstructions.SemiDirect} [(NetChange) (Peak) (Shift)] on the pairs
     [(d, h)] with [h ≥ max(0, d)], whose unit is [(0, 0)].
 
@@ -47,3 +47,14 @@ module PeakUsage : Grade.S with type t = bound * bound
       [-s-1 ≤ d ≤ s+1] and [h] one of [max(0, d)], [max(0, d) + 1], [s+1] and
       [∞], where [s] is the sum of the absolute values of the finite components
       of [cs]. *)
+
+module PeakUsage :
+  Grade.S with type t = (bound * bound) GradeConstructions.Indexed.t
+(** The peak-usage grade, ["peak-usage"]: the peak usage of each resource, by
+    its name, {!GradeConstructions.Indexed.OfGrade} [(OneResource)].
+
+    An entry [(R, d, h)] bounds the resource [R], and a plain pair [(d, h)]
+    every resource, so that a program with a single resource need not name it:
+    [((Files, 0, 2), (Sockets, 0, 1))] holds at most two files and one socket at
+    a time, releasing them all, and [(1, 1)] holds one more of each resource.
+    The witnesses are partial, as those of {!OneResource} are. *)

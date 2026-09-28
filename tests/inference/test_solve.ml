@@ -306,6 +306,7 @@ let expected_rejections =
     ("noneternal_reject_alias.tpe", [ 5 ]);
     ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
     ("occurs_check.tpe", [ 1 ]);
+    ("peak_resources_reject.tpe", [ 11; 18; 28 ]);
     ("peak_usage_reject.tpe", [ 9; 18; 27; 30 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
     ("regex_costs_interval_reject.tpe", [ 10; 17 ]);

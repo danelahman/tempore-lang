@@ -1,31 +1,42 @@
-(* File copies that open and close files, checked against their peak usage.
+(* File copies and uploads, checked against the peak of each resource held.
 
    Run this example with the 'peak-usage' grading monoid, e.g.
 
      ./tempore --grades peak-usage examples/semidirect/peak_usage.tpe
 
-   Grades (d, h): net change d and peak h of the files held;
-   (d, h) · (d', h') = (d + d', max(h, d + h')). *)
+   Grades ((R, d, h), ...): net change d and peak h of each resource R held;
+   (d, h) · (d', h') = (d + d', max(h, d + h')), resource by resource. *)
 
 type file = File of string
+type socket = Socket of string
 
-(* Opening a file holds one more descriptor, closing one releases it, and
-   reading and writing hold none. No code releases a descriptor, so closing has
-   no default implementation, and a run stops at its first 'Close'. *)
-operation Open : string ~> file # (1, 1)
+(* Opening a file holds one more file, and closing one releases it. No code
+   releases a file, so closing has no default implementation, and a run stops
+   at its first 'Close'. *)
+operation Open : string ~> file # (Files, 1, 1)
 default Open name = File name
 
-operation Close : file ~> unit # (-1, 0)
+operation Close : file ~> unit # (Files, -1, 0)
 
+(* Connecting holds one more socket, and disconnecting releases it. *)
+operation Connect : string ~> socket # (Sockets, 1, 1)
+default Connect host = Socket host
+
+operation Disconnect : socket ~> unit # (Sockets, -1, 0)
+
+(* Reading, writing and sending hold nothing more, of any resource. *)
 operation Read : file ~> string # (0, 0)
 default Read f = "contents"
 
 operation Write : file * string ~> unit # (0, 0)
 default Write (f, s) = ()
 
-(* Correctly accepted by the typechecker: a copy holds two descriptors at its
-   peak and releases both. *)
-let copy (src, dst) : unit # (0, 2) =
+operation Send : socket * string ~> unit # (0, 0)
+default Send (c, s) = ()
+
+(* Correctly accepted by the typechecker: a copy holds two files at its peak
+   and releases both. *)
+let copy (src, dst) : unit # (Files, 0, 2) =
   let i = perform Open src in
   let o = perform Open dst in
   let s = perform Read i in
@@ -34,25 +45,42 @@ let copy (src, dst) : unit # (0, 2) =
   perform Close i
 
 (* Correctly accepted by the typechecker: two copies in sequence still hold at
-   most two descriptors at a time, although they open four. *)
-let backup () : unit # (0, 2) =
+   most two files at a time, although they open four. *)
+let backup () : unit # (Files, 0, 2) =
   copy ("a", "a.bak");
   copy ("b", "b.bak")
 
+(* Correctly accepted by the typechecker: an upload holds one file and one
+   socket at a time, each bounded on its own. *)
+let upload name : unit # ((Files, 0, 1), (Sockets, 0, 1)) =
+  let c = perform Connect "backup.example" in
+  let f = perform Open name in
+  let s = perform Read f in
+  perform Close f;
+  perform Send (c, s);
+  perform Disconnect c
+
+(* Correctly accepted by the typechecker: a backup followed by an upload holds
+   at most two files and one socket at a time, each peak reached at a
+   different time. *)
+let backup_and_upload () : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
+  backup ();
+  upload "a.bak"
+
 (* Correctly accepted by the typechecker: a branch holds the join of the peaks
-   of its arms. *)
-let maybe_backup b : unit # (0, 2) =
-  if b then backup () else ()
+   of its arms, resource by resource. *)
+let maybe_upload b : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
+  if b then upload "a" else backup ()
 
 (* Correctly rejected by the typechecker: the source is never closed, so one
-   descriptor is still held at the end:
+   file is still held at the end:
 
-     Typing error: This function's body has grade `(1,2)`, which does not
-       match its annotated grade `(0,2)`
-       Note: the effect inequality `(1,2) <= (0,2)` does not hold
+     Typing error: This function's body has grade `(Files,1,2)`, which does
+       not match its annotated grade `(Files,0,2)`
+       Note: the effect inequality `(Files,1,2) <= (Files,0,2)` does not hold
 *)
 (*
-let leaky_copy (src, dst) : unit # (0, 2) =
+let leaky_copy (src, dst) : unit # (Files, 0, 2) =
   let i = perform Open src in
   let o = perform Open dst in
   let s = perform Read i in
@@ -60,25 +88,24 @@ let leaky_copy (src, dst) : unit # (0, 2) =
   perform Close o
 *)
 
-(* Correctly rejected by the typechecker: merging opens both sources before the
-   destination, holding three descriptors at its peak:
+(* Correctly rejected by the typechecker: mirroring a copy to two hosts holds
+   two sockets at once, one more than the annotation allows, however few files
+   it holds:
 
-     Typing error: This function's body has grade `(0,3)`, which does not
-       match its annotated grade `(0,2)`
-       Note: the effect inequality `(0,3) <= (0,2)` does not hold
+     Typing error: This function's body has grade
+       `((Files,0,2),(Sockets,0,2))`, which does not match its annotated grade
+       `((Files,0,2),(Sockets,0,1))`
+       Note: the effect inequality
+         `((Files,0,2),(Sockets,0,2)) <= ((Files,0,2),(Sockets,0,1))` does not
+         hold
 *)
 (*
-let merge (a, b, dst) : unit # (0, 2) =
-  let i = perform Open a in
-  let j = perform Open b in
-  let o = perform Open dst in
-  let s = perform Read i in
-  let t = perform Read j in
-  perform Write (o, s);
-  perform Write (o, t);
-  perform Close o;
-  perform Close j;
-  perform Close i
+let mirror (src, dst) : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
+  let c = perform Connect "primary.example" in
+  let d = perform Connect "mirror.example" in
+  copy (src, dst);
+  perform Disconnect d;
+  perform Disconnect c
 *)
 
 run backup ()
