@@ -89,6 +89,7 @@ let malformed =
     "levels_reject_literal.tpe";
     "literals_reject_complement.tpe";
     "literals_reject_component.tpe";
+    "literals_reject_counts.tpe";
     "literals_reject_empty.tpe";
     "literals_reject_flow.tpe";
     "literals_reject_inf.tpe";

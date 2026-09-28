@@ -281,6 +281,7 @@ let expected_rejections =
     ("continuation_nested_escape_reject.tpe", [ 13 ]);
     ("continuation_nested_twice_reject_upper.tpe", [ 11 ]);
     ("continuation_twice_reject_upper.tpe", [ 10 ]);
+    ("counts_upper_reject.tpe", [ 7; 14; 19; 27 ]);
     ("default_reject_bounds.tpe", [ 7 ]);
     ("default_reject_duplicate.tpe", [ 8 ]);
     ("default_reject_type.tpe", [ 7 ]);

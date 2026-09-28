@@ -1,0 +1,47 @@
+(* Operation counts: at most n calls of each operation. *)
+
+operation Send : int ~> unit # (Send, 1)
+operation Auth : unit ~> unit # (Auth, 1)
+
+default Send n = ()
+default Auth () = ()
+
+(* Accepted: one authentication and three transmissions. *)
+let burst () : unit # ((Auth, 1), (Send, 3)) =
+  perform Auth ();
+  perform Send 1;
+  perform Send 2;
+  perform Send 3
+
+(* Accepted: the counts are inferred, delays counting nothing. *)
+let paced () =
+  perform Send 1;
+  delay 100;
+  perform Send 2
+
+(* Accepted: a plain number bounds every operation. *)
+let at_most_three () : unit # 3 = burst ()
+
+(* Accepted: an entry '(_, n)' bounds every operation not listed. *)
+let others () : unit # ((Send, ∞), (_, 1)) = burst ()
+
+(* Accepted: a handler may perform an operation fewer times. *)
+let silent () =
+  handle burst () with
+  handler
+  | x -> x
+  | Send n k -> continue k with ()
+
+(* Accepted: a box of grade (Send, 2) is unboxed after two transmissions and
+   any delay. *)
+let boxed () =
+  box (Send, 2) 7 as x in
+  perform Send 1;
+  delay 3;
+  perform Send 2;
+  unbox x as n in
+  n
+
+run burst ()
+run silent ()
+run boxed ()

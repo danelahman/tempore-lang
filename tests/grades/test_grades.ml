@@ -194,6 +194,7 @@ let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
 let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
 let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
 let flow_levels = (module LevelGrades.FlowLevels : Grade.S)
+let counts_upper = (module Grades.CountGrades.UpperBound : Grade.S)
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
 
@@ -332,6 +333,19 @@ let literals =
       (Tuple [ Name "Low"; Name "Board" ])
       "outputs are pairs";
     rejects "integer" flow_levels (Int 3) "tuples '(l, (Sink, l1), ...)'";
+    reads "count" counts_upper (Tuple [ Name "Send"; Int 3 ]) "(Send,3)";
+    reads "counts" counts_upper
+      (Tuple [ Tuple [ Name "Send"; Int 3 ]; Tuple [ Name "Auth"; Int 1 ] ])
+      "((Auth,1),(Send,3))";
+    reads "unbounded count" counts_upper
+      (Tuple [ Tuple [ Name "Send"; Inf ]; Tuple [ Name "_"; Int 1 ] ])
+      "((Send,∞),(_,1))";
+    reads "every operation" counts_upper (Int 2) "2";
+    reads "top" counts_upper Top "∞";
+    rejects "negative count" counts_upper
+      (Tuple [ Name "Send"; Int (-1) ])
+      "in the entry of 'Send', grades must be non-negative";
+    rejects "level" counts_upper (Name "Low") "not names such as 'Low'";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not '∞'";
@@ -683,6 +697,11 @@ let witnesses =
       (completeness time_windows);
     expect "witnesses: flow-levels complete" Fun.id ~expected:"complete"
       (completeness (module Flow));
+    expect "witnesses: counts complete" Fun.id ~expected:"complete"
+      (completeness counts_upper);
+    check "counts: delays count nothing"
+      Grades.CountGrades.UpperBound.(equal bounds (of_nat 5) one)
+      "";
   ]
 
 (* ------------------------------------------------------------------ *)

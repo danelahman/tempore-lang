@@ -1,0 +1,31 @@
+(* Operation counts: rejected programs. *)
+
+operation Send : int ~> unit # (Send, 1)
+operation Auth : unit ~> unit # (Auth, 1)
+
+(* Rejected: four transmissions. *)
+let four () : unit # (Send, 3) =
+  perform Send 1;
+  perform Send 2;
+  perform Send 3;
+  perform Send 4
+
+(* Rejected: an operation not listed is bounded by 0. *)
+let unlisted () : unit # (Send, 3) =
+  perform Auth ();
+  perform Send 1
+
+(* Rejected: the box allows one transmission since boxing. *)
+let boxed () =
+  box (Send, 1) 7 as x in
+  perform Send 1;
+  perform Send 2;
+  unbox x as n in
+  n
+
+(* Rejected: a handler may not transmit twice for one transmission. *)
+let twice () =
+  handle perform Send 1 with
+  handler
+  | x -> x
+  | Send n k -> perform Send n; perform Send n; continue k with ()

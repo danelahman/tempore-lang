@@ -1,0 +1,3 @@
+(* Rejected: a count is non-negative. *)
+
+let claim () = box (Send, -1) 1

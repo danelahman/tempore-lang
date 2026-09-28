@@ -57,8 +57,8 @@ selects its monoid.
 
 The [`examples/`](examples/) directory holds example programs by topic:
 `basics/`, `handlers/`, `time/`, `traces/`, `regular/`, `regular_costs/`,
-`levels/`, `semidirect/` and `3dprint/` (a 3D-printing case study). All but
-`basics/` are offered in the web interface
+`levels/`, `semidirect/`, `counts/` and `3dprint/` (a 3D-printing case
+study). All but `basics/` are offered in the web interface
 ([`examples/index`](examples/index)).
 
 ## Grading monoids
@@ -228,6 +228,16 @@ An operation whose grade no code meets, such as closing a file under
 call. See
 [`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe) and
 [`examples/semidirect/time_windows.tpe`](examples/semidirect/time_windows.tpe).
+
+### Operation counts
+
+- `counts-upper-bound`: entries `(A, n)`, at most `n` calls of the operation
+  `A`, `n` possibly `∞`; sequencing adds the calls of each operation, and
+  delays count none. An operation not listed is bounded by `0`, or by the entry
+  `(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
+  allows one `Auth`, three `Send` and nothing else. An operation counts itself,
+  e.g. `operation Send : int ~> unit # (Send, 1)`. See
+  [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
 ## Temporal resources
 

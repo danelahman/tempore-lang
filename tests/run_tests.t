@@ -46,6 +46,8 @@
   >     literals_reject_windows.tpe) ../tempore --grades time-windows $f;;
   >     flow_levels*.tpe) ../tempore --grades flow-levels $f;;
   >     literals_reject_flow.tpe) ../tempore --grades flow-levels $f;;
+  >     counts*.tpe) ../tempore --grades counts-upper-bound $f;;
+  >     literals_reject_counts.tpe) ../tempore --grades counts-upper-bound $f;;
   >     *) ../tempore $f;;
   >   esac
   >   :  # this command is here to suppress potential non-zero exit codes in the output
@@ -406,6 +408,105 @@
                                          ^
     `k` may have any grade `ε₀`
     Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for `ε₀ = ∞` it becomes `∞ <= 1`
+  ======================================================================
+  counts_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: []
+  
+  === Run 2 ===
+  return ()
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            perform Send 2 (op_var. return op_var);
+            perform Send 3 (op_var. return op_var)
+          with handler
+               | return x ↦ return x
+               | Send (n, k) ↦ unbox k as unbox_var in
+                               unbox_var ()
+        # (Send,1),
+      resource_3 ↦
+        fun op_var ↦
+          handle
+            return op_var;
+            perform Send 3 (op_var. return op_var)
+          with handler
+               | return x ↦ return x
+               | Send (n, k) ↦ unbox k as unbox_var in
+                               unbox_var ()
+        # (Send,1),
+      resource_5 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Send (n, k) ↦ unbox k as unbox_var in
+                               unbox_var ()
+        # (Send,1)
+    }
+  ]
+  
+  === Run 3 ===
+  return 7
+  State: [
+    { resource_0 ↦ 7 # (Send,2) }
+  ]
+  
+  ======================================================================
+  counts_upper_reject.tpe
+  ======================================================================
+  File "counts_upper_reject.tpe", lines 7-11, characters 12-16:
+  7 | let four () : unit # (Send, 3) =
+                  ^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Send,4)`, which does not match its annotated grade `(Send,3)`
+    Note: the effect inequality `(Send,4) <= (Send,3)` does not hold
+  
+  File "counts_upper_reject.tpe", lines 14-16, characters 16-16:
+  14 | let unlisted () : unit # (Send, 3) =
+                       ^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `((Auth,1),(Send,1))`, which does not match its annotated grade `(Send,3)`
+    Note: the effect inequality `((Auth,1),(Send,1)) <= (Send,3)` does not hold
+  
+  File "counts_upper_reject.tpe", lines 23-24, characters 2-3:
+  23 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(Send,2)` accumulated since it was bound, which is not below its box grade `(Send,1)`
+    File "counts_upper_reject.tpe", line 20, characters 21-22:
+    20 |   box (Send, 1) 7 as x in
+                              ^
+    `x` is bound here
+    File "counts_upper_reject.tpe", line 21, characters 2-16:
+    21 |   perform Send 1;
+           ^^^^^^^^^^^^^^
+    grade `(Send,1)` accumulates here (operation `Send`)
+    File "counts_upper_reject.tpe", line 22, characters 2-16:
+    22 |   perform Send 2;
+           ^^^^^^^^^^^^^^
+    grade `(Send,1)` accumulates here (operation `Send`)
+    Note: the resource inequality `(Send,2) <= (Send,1)` does not hold
+  
+  File "counts_upper_reject.tpe", line 31, characters 48-66:
+  31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+                                                       ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `(Send,2)` accumulated since it was bound, which is not below its box grade `(Send,1)`
+    File "counts_upper_reject.tpe", line 31, characters 11-12:
+    31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+                    ^
+    `k` is bound here
+    File "counts_upper_reject.tpe", line 31, characters 16-30:
+    31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+                         ^^^^^^^^^^^^^^
+    grade `(Send,1)` accumulates here (operation `Send`)
+    File "counts_upper_reject.tpe", line 31, characters 32-46:
+    31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+                                         ^^^^^^^^^^^^^^
+    grade `(Send,1)` accumulates here (operation `Send`)
+    Note: the resource inequality `(Send,2) <= (Send,1)` does not hold
   ======================================================================
   default_ops.tpe
   ======================================================================
@@ -995,7 +1096,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic' or 'time-windows' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'time-windows' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1284,6 +1385,13 @@
                          ^^^^^^^^^^^
   Syntax error: in the 'time-lower-bound-levels' grading monoid, in the second component ('security-levels'), unknown level 'Medium'; the levels are 'Low' and 'High'
   ======================================================================
+  literals_reject_counts.tpe
+  ======================================================================
+  File "literals_reject_counts.tpe", line 3, characters 19-29:
+  3 | let claim () = box (Send, -1) 1
+                         ^^^^^^^^^^
+  Syntax error: in the 'counts-upper-bound' grading monoid, in the entry of 'Send', grades must be non-negative
+  ======================================================================
   literals_reject_empty.tpe
   ======================================================================
   File "literals_reject_empty.tpe", line 4, characters 19-33:
@@ -1303,7 +1411,7 @@
   File "literals_reject_inf.tpe", line 3, characters 19-22:
   3 | let claim () = box ∞ 1
                          ^^^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use the 'time-upper-bound' grading monoid?
+  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound' or 'counts-upper-bound' grading monoids?
   ======================================================================
   literals_reject_name.tpe
   ======================================================================
@@ -4744,6 +4852,8 @@ single-dash form of the help option is not accepted.
         Semidirect products:
           peak-usage                        Peak usage
           time-windows                      Time windows
+        Operation counts:
+          counts-upper-bound                Upper bounds
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

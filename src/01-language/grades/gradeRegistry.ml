@@ -157,6 +157,11 @@ let entries =
       "Semidirect products" "Time windows"
       "Pairs (T, E) of the possible durations and the times at which windowed \
        operations happen; later times are shifted by the earlier durations.";
+    entry
+      (module CountGrades.UpperBound)
+      "Operation counts" "Upper bounds"
+      "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
+       3)); delays count nothing.";
   ]
 
 let grade_modules = List.map (fun e -> (e.name, e.grade)) entries

@@ -1,0 +1,90 @@
+(* Logins and requests of a client, checked against rate limits on each.
+
+   Run this example with the 'counts-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades counts-upper-bound examples/counts/rate_limits.tpe
+
+   Grades ((A, n), ...): at most n calls of each operation A, delays counting
+   none; sequencing adds the calls of each operation. *)
+
+type token = Token of string
+
+(* Each operation counts itself once. *)
+operation Login : string ~> token # (Login, 1)
+default Login user = Token user
+
+operation Request : token * string ~> string # (Request, 1)
+default Request (t, q) = "response"
+
+(* Correctly accepted by the typechecker: a session of one login and three
+   requests, however long it waits between them. *)
+let session () : unit # ((Login, 1), (Request, 3)) =
+  let t = perform Login "alice" in
+  let _ = perform Request (t, "a") in
+  delay 10;
+  let _ = perform Request (t, "b") in
+  let _ = perform Request (t, "c") in
+  ()
+
+(* Correctly accepted by the typechecker: a branch takes the greater count of
+   its arms, so up to three attempts at logging in count three. *)
+let login_with_retries user : bool # (Login, 3) =
+  let Token a = perform Login user in
+  if a = user then true
+  else
+    let Token b = perform Login user in
+    if b = user then true
+    else
+      let Token c = perform Login user in
+      c = user
+
+(* Correctly accepted by the typechecker: a token boxed at '(Request, 2)' is
+   in reach after two requests, and after no other operation. *)
+let two_requests () =
+  let t = perform Login "bob" in
+  box (Request, 2) t as limited in
+  let _ = perform Request (t, "a") in
+  let _ = perform Request (t, "b") in
+  delay 5;
+  unbox limited as t' in
+  t'
+
+(* Correctly rejected by the typechecker: a fourth request exceeds the limit:
+
+     Typing error: This function's body has grade `((Login,1),(Request,4))`,
+       which does not match its annotated grade `((Login,1),(Request,3))`
+       Note: the effect inequality
+         `((Login,1),(Request,4)) <= ((Login,1),(Request,3))` does not hold
+*)
+(*
+let greedy_session () : unit # ((Login, 1), (Request, 3)) =
+  let t = perform Login "alice" in
+  let _ = perform Request (t, "a") in
+  let _ = perform Request (t, "b") in
+  let _ = perform Request (t, "c") in
+  let _ = perform Request (t, "d") in
+  ()
+*)
+
+(* Correctly rejected by the typechecker: logging in again spends the boxed
+   token, whose grade allows requests only:
+
+     Typing error: Variable `limited` is unboxed with grade
+       `((Login,1),(Request,1))` accumulated since it was bound, which is not
+       below its box grade `(Request,2)`
+       ...
+       Note: the resource inequality
+         `((Login,1),(Request,1)) <= (Request,2)` does not hold
+*)
+(*
+let relogin () =
+  let t = perform Login "bob" in
+  box (Request, 2) t as limited in
+  let _ = perform Request (t, "a") in
+  let _ = perform Login "bob" in
+  unbox limited as t' in
+  t'
+*)
+
+run session ()
+run two_requests ()
