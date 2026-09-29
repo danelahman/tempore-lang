@@ -1,7 +1,9 @@
 (* Unit tests of the security-level grade, the product construction and its
    counterexamples, the witnesses of closed conditions, the interpretation of
-   literals by the grades of [GradeRegistry.grade_modules], and the laws of
-   these grades on samples. *)
+   literals by the grades of [GradeRegistry.grade_modules], the laws and the
+   declared flags of these grades on samples of each family of grades, the
+   laws of the components and actions of the semidirect products, and the
+   laws of the finite grades on all their elements. *)
 
 module Grade = Grades.Grade
 module TimeGrades = Grades.TimeGrades
@@ -1044,74 +1046,373 @@ let costs =
     operations = List.map fst table;
   }
 
-(* A random literal of any form, over the operations [A] and [B] and the
-   levels. *)
-let random_lit st =
-  let int () = Random.State.int st 9 - 2 in
-  let level () = Grade.Name (if Random.State.bool st then "Low" else "High") in
-  let rec regex depth =
-    match Random.State.int st (if depth = 0 then 3 else 6) with
-    | 0 -> Grade.Letter (if Random.State.bool st then "A" else "B")
-    | 1 -> Grade.Tick (Random.State.int st 3)
-    | 2 -> Grade.Any
-    | 3 -> Grade.Seq (regex (depth - 1), regex (depth - 1))
-    | 4 -> Grade.Union (regex (depth - 1), regex (depth - 1))
-    | _ -> Grade.Star (regex (depth - 1))
-  in
-  let rat () =
-    Grade.rational_lit
-      (Rational.make (Random.State.int st 9 - 2) (2 + Random.State.int st 3))
-  in
-  match Random.State.int st 9 with
-  | 0 -> Grade.Int (int ())
-  | 1 -> level ()
-  | 2 -> Grade.Tuple [ Grade.Int (int ()); Grade.Int (int ()) ]
-  | 3 -> Grade.Tuple [ Grade.Int (int ()); Grade.Inf ]
-  | 4 -> Grade.Tuple [ Grade.Int (int ()); level () ]
-  | 5 -> Grade.Braces (regex 2)
-  | 6 -> rat ()
-  | 7 ->
-      Grade.Tuple
-        [ rat (); (if Random.State.bool st then Grade.Inf else rat ()) ]
-  | _ -> Grade.Tuple [ Grade.Braces (regex 2); Grade.Braces (regex 2) ]
+(* The families of the registered grades, by the literals they read. *)
+type family =
+  | Time
+  | Traces
+  | Regex
+  | Levels
+  | Timed_levels
+  | Flow
+  | Peak
+  | Windows
+  | Modes
+  | Counts
 
-(* [samples (module G)] is [G]'s unit, top and grades of one and two time
-   steps, the first six distinct grades read from random literals, and
-   products and joins of pairs of these. *)
-let samples (type a) (module G : Grade.S with type t = a) : a list =
+(* [family name] is the family of the registered grade [name], if known. *)
+let family name =
+  let prefix p = String.starts_with ~prefix:p name in
+  match name with
+  | "security-levels" -> Some Levels
+  | "time-lower-bound-levels" | "time-upper-bound-levels" -> Some Timed_levels
+  | "flow-levels" -> Some Flow
+  | "peak-usage" -> Some Peak
+  | "time-windows" -> Some Windows
+  | "mode-costs" -> Some Modes
+  | "counts-upper-bound" -> Some Counts
+  | _ when prefix "regex-" -> Some Regex
+  | _ when prefix "traces-" -> Some Traces
+  | _ when prefix "time-" -> Some Time
+  | _ -> None
+
+let rat n d = Grade.rational_lit (Rational.make n d)
+let pair l l' = Grade.Tuple [ l; l' ]
+let entry name components = Grade.Tuple (Grade.Name name :: components)
+let pick st xs = List.nth xs (Random.State.int st (List.length xs))
+let letter_a = Grade.Letter "A"
+let letter_b = Grade.Letter "B"
+let letter_c = Grade.Letter "C"
+
+(* [cover family] is the literals of the cases [family] distinguishes: for the
+   time grades, integers, fractions, [∞] and intervals such as [(0, ∞)]; for
+   the trace and regular grades, the operations of [costs], delays, unions,
+   sequences and, for the regular grades, repetitions, the catch-all letter,
+   intersections and complements; the two levels; pairs of times and levels;
+   levels with outputs at named sinks and at the others; releases,
+   acquisitions, ranges of net changes, explicit and unbounded troughs and the
+   resources not named; durations with the times of named and other
+   operations; partial operations, changes of mode, runs stuck at a cost,
+   round trips and the modes not named; and counts of several operations, of
+   the others, [0] and [∞]. *)
+let cover =
+  let open Grade in
+  let level l = Name l in
+  function
+  | Time ->
+      [
+        Int 1;
+        Int 3;
+        rat 1 2;
+        rat 5 3;
+        Inf;
+        pair (Int 0) Inf;
+        pair (Int 0) (Int 0);
+        pair (Int 1) (Int 3);
+        pair (Int 2) Inf;
+        pair (rat 1 2) (rat 5 3);
+        pair (rat 1 3) Inf;
+        pair (Int 1) (rat 5 2);
+      ]
+  | Traces ->
+      [
+        Braces letter_a;
+        Braces (Seq (letter_b, Tick 1));
+        Braces (Union (letter_a, Tick 2));
+        Braces (Union (Tick 1, Tick 3));
+        Braces (Seq (letter_a, letter_b));
+        Braces (Union (Seq (letter_c, letter_a), letter_b));
+        pair (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
+        pair (Int 1) (Int 3);
+        pair (Braces (Tick 0)) Top;
+        Int 2;
+      ]
+  | Regex ->
+      [
+        Braces letter_a;
+        Braces (Seq (letter_b, Tick 1));
+        Braces (Union (letter_a, Tick 2));
+        Braces (Star (Seq (letter_a, Tick 1)));
+        Braces Any;
+        Braces (Seq (letter_a, Seq (Any, letter_b)));
+        Braces (Inter (Any, Compl letter_a));
+        Braces (Seq (Star (Union (letter_a, letter_b)), letter_c));
+        Braces (Star (Tick 1));
+        Braces (Union (letter_c, Tick 0));
+        pair (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
+        pair (Braces (Tick 1)) (Braces (Star Any));
+      ]
+  | Levels -> [ level "Low"; level "High" ]
+  | Timed_levels ->
+      [
+        pair (Int 3) (level "High");
+        pair (Int 1) (level "Low");
+        pair Inf (level "Low");
+        pair (Int 2) Top;
+        pair Top (level "Low");
+      ]
+  | Flow ->
+      [
+        level "High";
+        Tuple [ level "Low"; entry "Board" [ level "Low" ] ];
+        Tuple
+          [
+            level "Low";
+            entry "Board" [ level "High" ];
+            entry "_" [ level "Low" ];
+          ];
+        Tuple
+          [
+            level "High";
+            entry "Audit" [ level "High" ];
+            entry "Board" [ level "Low" ];
+          ];
+        Tuple [ level "Low"; entry "_" [ level "High" ] ];
+      ]
+  | Peak ->
+      [
+        pair (Int (-1)) (Int 0);
+        pair (Int 1) (Int 1);
+        pair (pair (Int 0) (Int 1)) (Int 1);
+        Tuple [ Int (-1); Int 0; Int 0 ];
+        Tuple [ Top; Int 0; Int 0 ];
+        pair (pair Top (Int 0)) (Int 0);
+        pair (Int (-3)) Inf;
+        entry "Files" [ Int (-1); Int 0 ];
+        entry "Files" [ Int 1; Int 1 ];
+        entry "Sockets" [ pair (Int 0) (Int 2); Int 3 ];
+        entry "Files" [ Int (-2); pair (Int (-1)) (Int 1); Int 2 ];
+        Tuple
+          [
+            entry "Files" [ Int 0; Int 2 ];
+            entry "_" [ pair (Int (-1)) Inf; Inf ];
+          ];
+      ]
+  | Windows ->
+      [
+        Int 1;
+        pair (Int 2) (Int 5);
+        pair (Int 2) Inf;
+        Braces (Union (Tick 1, Tick 3));
+        pair (Int 1) (entry "A" [ Braces (Tick 0) ]);
+        Tuple
+          [
+            Int 3; entry "A" [ Braces (Tick 0) ]; entry "_" [ Braces (Tick 2) ];
+          ];
+        Tuple
+          [
+            pair (Int 0) (Int 2);
+            entry "A" [ Braces (Union (Tick 0, Tick 1)) ];
+            entry "B" [ Braces (Star (Tick 2)) ];
+          ];
+        pair (Int 0) (entry "B" [ Braces (Tick 0) ]);
+      ]
+  | Modes ->
+      let mode p q c = entry p [ Name q; c ] in
+      [
+        mode "On" "On" (Int 4);
+        mode "Off" "On" (Int 2);
+        mode "On" "Off" (Int 1);
+        Tuple [ mode "Off" "Off" (Int 18); mode "On" "Stuck" (Int 6) ];
+        Tuple [ mode "On" "Off" (Int 1); mode "Off" "On" (Int 1) ];
+        Int 1;
+        Tuple [ mode "On" "On" (Int 2); mode "On" "Stuck" (Int 0) ];
+        mode "Stuck" "Stuck" (Int 0);
+        Tuple
+          [
+            mode "On" "On" (Int 2);
+            mode "_" "_" (Int 1);
+            mode "_" "Stuck" (Int 0);
+          ];
+        Tuple [ mode "On" "_" (Int 1); mode "_" "On" (Int 2); mode "_" "≠" Inf ];
+      ]
+  | Counts ->
+      [
+        entry "A" [ Int 3 ];
+        Tuple [ entry "A" [ Int 1 ]; entry "B" [ Int 3 ] ];
+        Tuple [ entry "B" [ Inf ]; entry "_" [ Int 1 ] ];
+        Int 2;
+        entry "C" [ Int 0 ];
+        Tuple [ entry "A" [ Int 1 ]; entry "B" [ Inf ]; entry "C" [ Int 0 ] ];
+      ]
+
+(* [random family st] is a random literal of the forms of [cover family], over
+   the operations [A], [B] and [C] of [costs]. *)
+let random family st =
+  let open Grade in
+  let int n = Random.State.int st n in
+  let tick () = Tick (int 4) in
+  let letter () = pick st [ letter_a; letter_b; letter_c ] in
+  let rec regex ~star depth =
+    match int (if depth = 0 then 2 else if star then 7 else 4) with
+    | 0 -> letter ()
+    | 1 -> tick ()
+    | 2 -> Seq (regex ~star (depth - 1), regex ~star (depth - 1))
+    | 3 -> Union (regex ~star (depth - 1), regex ~star (depth - 1))
+    | 4 -> Star (regex ~star (depth - 1))
+    | 5 -> Any
+    | _ -> Inter (Any, Compl (regex ~star (depth - 1)))
+  in
+  let braces ~star = Braces (regex ~star 2) in
+  let level () = Name (pick st [ "Low"; "High" ]) in
+  let entries names component =
+    match List.filter (fun _ -> Random.State.bool st) names with
+    | [] -> component ()
+    | [ name ] -> entry name [ component () ]
+    | names -> Tuple (List.map (fun name -> entry name [ component () ]) names)
+  in
+  match family with
+  | Time ->
+      let number () =
+        match int 3 with
+        | 0 -> Int (int 6)
+        | 1 -> rat (int 9) (2 + int 3)
+        | _ -> Inf
+      in
+      if Random.State.bool st then number () else pair (number ()) (number ())
+  | Traces ->
+      if Random.State.bool st then braces ~star:false
+      else pair (braces ~star:false) (braces ~star:false)
+  | Regex ->
+      if int 4 > 0 then braces ~star:true
+      else pair (braces ~star:true) (braces ~star:true)
+  | Levels -> level ()
+  | Timed_levels -> pair (pick st [ Int (int 5); Inf; Top ]) (level ())
+  | Flow -> (
+      match
+        List.filter_map
+          (fun sink ->
+            if Random.State.bool st then Some (entry sink [ level () ])
+            else None)
+          [ "Audit"; "Board"; "_" ]
+      with
+      | [] -> level ()
+      | outputs -> Tuple (level () :: outputs))
+  | Peak -> (
+      let lower () = pick st [ Top; Int (int 3 - 2) ] in
+      let change () =
+        if Random.State.bool st then Int (int 5 - 2)
+        else pair (lower ()) (pick st [ Int (int 3); Inf ])
+      in
+      let peak () = pick st [ Int (int 4); Inf ] in
+      let usage () =
+        if Random.State.bool st then [ change (); peak () ]
+        else [ lower (); change (); peak () ]
+      in
+      if int 3 = 0 then Tuple (usage ())
+      else
+        match List.filter (fun _ -> Random.State.bool st) [ "Files"; "_" ] with
+        | [] -> entry "Sockets" (usage ())
+        | names ->
+            Tuple
+              (List.map
+                 (fun name -> entry name (usage ()))
+                 ("Sockets" :: names)))
+  | Windows -> (
+      let durations () =
+        match int 3 with
+        | 0 -> Int (int 4)
+        | 1 ->
+            let n = int 3 in
+            pair (Int n) (if Random.State.bool st then Inf else Int (n + int 3))
+        | _ -> Braces (Union (tick (), tick ()))
+      in
+      let times () =
+        Braces
+          (match int 3 with
+          | 0 -> tick ()
+          | 1 -> Union (tick (), tick ())
+          | _ -> Seq (tick (), Star (tick ())))
+      in
+      match
+        List.filter_map
+          (fun name ->
+            if Random.State.bool st then Some (entry name [ times () ])
+            else None)
+          [ "A"; "B"; "_" ]
+      with
+      | [] -> durations ()
+      | windows -> Tuple (durations () :: windows))
+  | Modes ->
+      let mode () =
+        entry
+          (pick st [ "Off"; "On"; "_" ])
+          [
+            Name (pick st [ "Off"; "On"; "_"; "Stuck"; "≠" ]);
+            pick st [ Int (int 4); Inf ];
+          ]
+      in
+      if int 4 = 0 then Int (int 3)
+      else if Random.State.bool st then mode ()
+      else Tuple [ mode (); mode () ]
+  | Counts ->
+      entries [ "A"; "B"; "C"; "_" ] (fun () -> pick st [ Int (int 4); Inf ])
+
+(* [distinct compare xs] is [xs] without the elements equal under [compare]
+   to an earlier one. *)
+let distinct compare =
+  List.fold_left
+    (fun cs c ->
+      if List.exists (fun c' -> compare c c' = 0) cs then cs else cs @ [ c ])
+    []
+
+(* [samples (module G) family] is [G]'s unit, top and grades of one and two
+   time steps, the grades of [cover family], the first six further distinct
+   grades read from random literals of [family], and products and joins of
+   pairs of these, the grades being inhabited under [costs]. *)
+let samples (type a) (module G : Grade.S with type t = a) family : a list =
   let st = Random.State.make [| 11 |] in
   let read lit =
     match G.of_lit lit with
     | c when G.inhabited costs c -> Some c
     | _ | (exception Grade.Invalid_literal _) -> None
   in
-  let distinct =
-    List.fold_left
-      (fun cs c ->
-        if List.exists (fun c' -> G.compare c c' = 0) cs then cs else cs @ [ c ])
-      []
+  let covered =
+    distinct G.compare
+      ([ G.one; G.top; G.of_nat 1 ]
+      @ List.filter_map read (cover family)
+      @ [ G.of_nat 2 ])
   in
-  let read_back =
-    List.filteri
-      (fun i _ -> i < 6)
-      (distinct (List.filter_map read (List.init 400 (fun _ -> random_lit st))))
+  let base =
+    first
+      (List.length covered + 6)
+      (distinct G.compare
+         (covered
+         @ List.filter_map read (List.init 400 (fun _ -> random family st))))
   in
-  let base = [ G.one; G.top; G.of_nat 1; G.of_nat 2 ] @ read_back in
   let nth i = List.nth base (i mod List.length base) in
   base
   @ List.init 3 (fun i -> G.mul (nth (i + 4)) (nth (i + 5)))
   @ List.init 3 (fun i -> G.join (nth (i + 4)) (nth (i + 6)))
 
 let registered_laws =
+  let context = "A:(1,3), B:(2,2), C:(0,5)" in
+  all "registry: every grade has a family of samples" Fun.id
+    (fun name -> Option.is_some (family name))
+    (List.map fst GradeRegistry.grade_modules)
+  :: List.concat_map
+       (fun (name, (module G : Grade.S)) ->
+         match family name with
+         | None -> []
+         | Some family ->
+             let samples = samples (module G) family in
+             order_laws ~thirds:12 (module G) ~context costs samples
+             @ algebra_laws ~width:10 (module G) ~context costs samples
+             @ declared_laws (module G) ~context costs samples
+             @ counterexample_laws
+                 (module G)
+                 ~offered:false ~context costs samples
+             @ of_nat_laws (module G) costs ()
+             @ of_duration_laws (module G) costs)
+       GradeRegistry.grade_modules
+
+(* The declared flags of the registered grades that are false with no
+   refutation on the samples. *)
+let registered_notes =
   List.concat_map
-    (fun (_, (module G : Grade.S)) ->
-      let samples = samples (module G) in
-      let context = "A:(1,3), B:(2,2), C:(0,5)" in
-      order_laws (module G) ~context costs samples
-      @ algebra_laws (module G) ~context costs samples
-      @ counterexample_laws (module G) ~offered:false ~context costs samples
-      @ of_nat_laws (module G) costs ()
-      @ of_duration_laws (module G) costs)
+    (fun (name, (module G : Grade.S)) ->
+      match family name with
+      | None -> []
+      | Some family -> flag_notes (module G) costs (samples (module G) family))
     GradeRegistry.grade_modules
 
 (* ------------------------------------------------------------------ *)
@@ -1303,14 +1604,8 @@ let mode_laws =
         [ entry "On" "_" (Int 1); entry "_" "On" (Int 2); entry "_" "≠" Inf ];
     ]
   in
-  let distinct =
-    List.fold_left
-      (fun xs x ->
-        if List.exists (fun y -> M.compare x y = 0) xs then xs else xs @ [ x ])
-      []
-  in
   let samples =
-    distinct
+    distinct M.compare
       ((M.one :: M.top :: List.map M.of_lit lits)
       @ List.concat_map
           (fun x ->
@@ -1355,7 +1650,6 @@ let peak_laws =
   let module P = Grades.PeakGrades.PeakUsage in
   let module R = Reader (P) in
   let open Grade in
-  let entry name components = Tuple (Name name :: components) in
   let release = entry "Files" [ Int (-1); Int 0 ]
   and acquisition = entry "Files" [ Int 1; Int 1 ] in
   let lits =
@@ -1378,14 +1672,8 @@ let peak_laws =
   in
   let close = P.of_lit release and open_ = P.of_lit acquisition in
   let base = P.one :: P.top :: List.map P.of_lit lits in
-  let distinct =
-    List.fold_left
-      (fun xs x ->
-        if List.exists (fun y -> P.compare x y = 0) xs then xs else xs @ [ x ])
-      []
-  in
   let samples =
-    distinct
+    distinct P.compare
       (base
       @ List.concat_map
           (fun x ->
@@ -1419,12 +1707,223 @@ let peak_laws =
   @ order_laws (module P) ~context costs samples
   @ algebra_laws (module P) ~context costs samples
 
+(* ------------------------------------------------------------------ *)
+(* Constructions                                                       *)
+(* ------------------------------------------------------------------ *)
+
+module Peak = Grades.PeakGrades
+
+(* The bounds [-∞], [-2], ..., [2] and [∞]. *)
+let peak_bounds =
+  (Peak.Minus_inf :: List.init 5 (fun d -> Peak.Fin (d - 2)))
+  @ [ Peak.Plus_inf ]
+
+(* [half_laws (module H) changes] checks, on all the pairs of the net changes
+   [changes] and the extremes [peak_bounds], the laws of the half [H] of the
+   peak usage but the zero-product law, which it lacks; the laws of its
+   semilattice of extremes; and the laws A1-A5 of its action. *)
+let half_laws (module H : Grade.S with type t = Peak.bound * Peak.bound) changes
+    =
+  let elements =
+    List.concat_map (fun d -> List.map (fun e -> (d, e)) peak_bounds) changes
+  in
+  let width = List.length elements in
+  let context = "all pairs of bounds from -2 to 2" in
+  order_laws ~width ~zero_product:false (module H) ~context bounds elements
+  @ algebra_laws ~width (module H) ~context bounds elements
+  @ declared_laws (module H) ~context bounds elements
+  @ semilattice_laws ~width:(List.length peak_bounds)
+      (acted (module H) bounds)
+      peak_bounds
+  @ action_laws (action_of_semidirect (module H) bounds) changes peak_bounds
+
+(* The grades of one resource with bounds from [-1] to [1]: the troughs [t],
+   ranges [[d1, d2]] of net changes and peaks [h] with [t ≤ min(0, d1)],
+   [d1 ≤ d2] and [h ≥ max(0, d2)]. *)
+let one_resource_grades =
+  let open Peak in
+  let leq b b' =
+    match (b, b') with
+    | Minus_inf, _ | _, Plus_inf -> true
+    | _, Minus_inf | Plus_inf, _ -> false
+    | Fin d, Fin d' -> d <= d'
+  in
+  let range xs = List.map (fun d -> Fin d) xs in
+  List.concat_map
+    (fun t ->
+      List.concat_map
+        (fun d1 ->
+          List.concat_map
+            (fun d2 ->
+              List.filter_map
+                (fun h ->
+                  if leq t d1 && leq d1 d2 && leq d2 h then
+                    Some ((d1, t), (d2, h))
+                  else None)
+                (range [ 0; 1 ] @ [ Plus_inf ]))
+            (range [ -1; 0; 1 ] @ [ Plus_inf ]))
+        (Minus_inf :: range [ -1; 0; 1 ]))
+    (Minus_inf :: range [ -1; 0 ])
+
+module Windows = Grades.WindowGrades
+
+(* Durations: single numbers, intervals, finite and infinite sets, and all
+   numbers. *)
+let window_durations =
+  let open Grade in
+  List.map Windows.Durations.of_lit
+    [
+      Int 0;
+      Int 1;
+      Int 2;
+      pair (Int 1) (Int 3);
+      pair (Int 2) Inf;
+      Braces (Union (Tick 1, Tick 3));
+      Braces (Star (Tick 2));
+      Top;
+    ]
+
+(* Times: none, single times, finite and infinite sets, and all times. *)
+let window_times =
+  let open Grade in
+  Windows.Times.bottom :: Windows.Times.top
+  :: List.map Windows.Times.of_lit
+       [
+         Braces (Tick 0);
+         Braces (Union (Tick 1, Tick 3));
+         Braces (Seq (Tick 2, Star (Tick 1)));
+         Braces (Star (Tick 2));
+       ]
+
+(* The times of the operations [A] and [B] and of the others, and the top. *)
+let window_times_by_name =
+  let times = Array.of_list window_times in
+  Windows.TimesByName.top
+  :: List.concat_map
+       (fun others ->
+         List.concat_map
+           (fun a ->
+             List.map
+               (fun b ->
+                 Indexed.of_list ~compare:Windows.Times.compare ~others
+                   [ ("A", times.(a)); ("B", times.(b)) ])
+               [ 0; 5 ])
+           [ 0; 2; 3; 4 ])
+       [ times.(0); times.(2) ]
+
+let windows_laws =
+  let module D = Windows.Durations in
+  let context = "durations" in
+  let shift =
+    action_of_components
+      (module D)
+      (module Windows.TimesByName)
+      Windows.ShiftByName.act bounds
+  in
+  let windows =
+    List.concat_map
+      (fun d ->
+        List.map
+          (fun e -> (d, e))
+          (List.filteri (fun i _ -> i < 5) window_times_by_name))
+      (List.filteri (fun i _ -> i < 4) window_durations)
+  in
+  semilattice_laws ~width:(List.length window_times)
+    (module Windows.Times)
+    window_times
+  @ semilattice_laws
+      ~width:(List.length window_times_by_name)
+      (module Windows.TimesByName)
+      window_times_by_name
+  @ order_laws
+      ~width:(List.length window_durations)
+      (module D)
+      ~context bounds window_durations
+  @ algebra_laws
+      ~width:(List.length window_durations)
+      (module D)
+      ~context bounds window_durations
+  @ declared_laws (module D) ~context bounds window_durations
+  @ action_laws shift window_durations window_times_by_name
+  @ semidirect_laws (module Windows.TimeWindows) shift bounds windows
+
+let peak_construction_laws =
+  let changes = List.init 5 (fun d -> Peak.Fin (d - 2)) in
+  let context = "troughs, ranges and peaks from -1 to 1" in
+  half_laws (module Peak.Upper) (changes @ [ Peak.Plus_inf ])
+  @ half_laws (module Peak.Lower) (Peak.Minus_inf :: changes)
+  @ order_laws
+      ~width:(List.length one_resource_grades)
+      (module Peak.OneResource)
+      ~context bounds one_resource_grades
+  @ algebra_laws
+      ~width:(List.length one_resource_grades)
+      (module Peak.OneResource)
+      ~context bounds one_resource_grades
+  @ declared_laws (module Peak.OneResource) ~context bounds one_resource_grades
+
+(* ------------------------------------------------------------------ *)
+(* Finite grades, on all their elements                                *)
+(* ------------------------------------------------------------------ *)
+
+module Levels = LevelGrades.SecurityLevels
+
+let written_levels = [ None; Some LevelGrades.Low; Some LevelGrades.High ]
+
+(* The outputs to the sinks [Audit] and [Board] and the other sinks, each
+   unwritten or written at a level: every element over these sinks. *)
+let all_outputs =
+  List.concat_map
+    (fun others ->
+      List.concat_map
+        (fun audit ->
+          List.map
+            (fun board ->
+              Indexed.of_list ~compare:LevelGrades.WrittenAt.compare ~others
+                [ ("Audit", audit); ("Board", board) ])
+            written_levels)
+        written_levels)
+    written_levels
+
+let all_flow_levels =
+  List.concat_map
+    (fun level -> List.map (fun outputs -> (level, outputs)) all_outputs)
+    [ LevelGrades.Low; High ]
+
+let finite_laws =
+  let levels = [ LevelGrades.Low; High ] in
+  let raise =
+    action_of_components
+      (module Levels)
+      (module LevelGrades.Outputs)
+      LevelGrades.Raise.act bounds
+  in
+  let context = "all elements" in
+  let flow_context = "all elements over the sinks Audit, Board and _" in
+  let width = List.length all_flow_levels in
+  order_laws ~width:2 (module Levels) ~context bounds levels
+  @ algebra_laws ~width:2 (module Levels) ~context bounds levels
+  @ declared_laws (module Levels) ~context bounds levels
+  @ semilattice_laws ~width:3 (module LevelGrades.WrittenAt) written_levels
+  @ semilattice_laws ~width:(List.length all_outputs)
+      (module LevelGrades.Outputs)
+      all_outputs
+  @ order_laws ~width (module Flow) ~context:flow_context bounds all_flow_levels
+  @ algebra_laws ~width
+      (module Flow)
+      ~context:flow_context bounds all_flow_levels
+  @ declared_laws (module Flow) ~context:flow_context bounds all_flow_levels
+  @ action_laws raise levels all_outputs
+  @ semidirect_laws (module Flow) raise bounds all_flow_levels
+
 let () =
   let checks =
     levels @ products @ counterexamples @ witnesses @ literals @ tops @ registry
-    @ registered_laws @ indexed @ mode_laws @ peak_laws
+    @ registered_laws @ indexed @ mode_laws @ peak_laws @ windows_laws
+    @ peak_construction_laws @ finite_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
+  List.iter (Printf.printf "note: %s\n") registered_notes;
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
   Printf.printf "%d of %d checks passed\n"
     (List.length checks - List.length failures)

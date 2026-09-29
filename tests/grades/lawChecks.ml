@@ -1,5 +1,6 @@
-(* Named checks and the laws of the grades on samples, shared by the unit tests
-   of the grades. *)
+(* Named checks and the laws of the grades, of their declared flags, of
+   semilattices and of the actions of semidirect products, on samples, shared
+   by the unit tests of the grades. *)
 
 module Grade = Grades.Grade
 
@@ -24,12 +25,18 @@ let pairs xs = List.concat_map (fun x -> List.map (fun y -> (x, y)) xs) xs
 let triples xs =
   List.concat_map (fun (x, y) -> List.map (fun z -> (x, y, z)) xs) (pairs xs)
 
+(* [first width xs] is the first [width] elements of [xs]. *)
+let first width xs = List.filteri (fun i _ -> i < width) xs
+
 (* [order_laws (module G) ~context bounds samples] checks the laws of a
-   preorder with a monotone product, a join and a top, and the zero-product
-   law of the unit, on [samples] under [bounds], described by [context] in the
-   reports. *)
-let order_laws (type a) (module G : Grade.S with type t = a) ~context bounds
-    (samples : a list) =
+   preorder with a monotone product, a join and a top, and, unless
+   [zero_product] is false, the zero-product law of the unit, on [samples]
+   under [bounds], described by [context] in the reports; the leastness of the
+   join on the pairs of the first [width] samples, and transitivity and
+   monotonicity on the ordered pairs with a third among the first [thirds]
+   samples, all by default. *)
+let order_laws (type a) ?(width = 8) ?thirds ?(zero_product = true)
+    (module G : Grade.S with type t = a) ~context bounds (samples : a list) =
   let name law = G.name ^ ": " ^ law in
   let leq = G.leq bounds in
   let equal = G.equal bounds in
@@ -37,8 +44,11 @@ let order_laws (type a) (module G : Grade.S with type t = a) ~context bounds
   let show2 (x, y) = G.show x ^ ", " ^ G.show y ^ " at " ^ context in
   let show3 (x, y, z) = show2 (x, y) ^ ", " ^ G.show z in
   let below = List.filter (fun (x, y) -> leq x y) (pairs samples) in
+  let thirds =
+    match thirds with Some thirds -> first thirds samples | None -> samples
+  in
   let triples =
-    List.concat_map (fun (x, y) -> List.map (fun z -> (x, y, z)) samples) below
+    List.concat_map (fun (x, y) -> List.map (fun z -> (x, y, z)) thirds) below
   in
   [
     all (name "reflexive") show1 (fun x -> leq x x) samples;
@@ -58,18 +68,22 @@ let order_laws (type a) (module G : Grade.S with type t = a) ~context bounds
       (fun (x, y, z) -> implies (leq x z && leq y z) (leq (G.join x y) z))
       (List.concat_map
          (fun (x, y) -> List.map (fun z -> (x, y, z)) samples)
-         (pairs (List.filteri (fun i _ -> i < 8) samples)));
+         (pairs (first width samples)));
     all (name "top greatest") show1 (fun x -> leq x G.top) samples;
-    all (name "zero product") show2
-      (fun (x, y) ->
-        implies (leq (G.mul x y) G.one) (leq x G.one && leq y G.one))
-      (pairs samples);
     all
       (name "equal is mutual leq")
       show2
       (fun (x, y) -> equal x y = (leq x y && leq y x))
       (pairs samples);
   ]
+  @ (if zero_product then
+       [
+         all (name "zero product") show2
+           (fun (x, y) ->
+             implies (leq (G.mul x y) G.one) (leq x G.one && leq y G.one))
+           (pairs samples);
+       ]
+     else [])
   @
   if G.unit_least then
     [
@@ -110,17 +124,17 @@ let laws (type a) (module G : Grade.S with type t = a) ~context bounds
 
 (* [algebra_laws (module G) ~context bounds samples] checks, up to equality
    under [bounds], that the product is associative with its unit and
-   distributes over the join on both sides, on the first eight of
+   distributes over the join on both sides, on the first [width] of
    [samples]. *)
-let algebra_laws (type a) (module G : Grade.S with type t = a) ~context bounds
-    (samples : a list) =
+let algebra_laws (type a) ?(width = 8) (module G : Grade.S with type t = a)
+    ~context bounds (samples : a list) =
   let name law = G.name ^ ": " ^ law in
   let equal = G.equal bounds in
   let show1 x = G.show x ^ " at " ^ context in
   let show3 (x, y, z) =
     G.show x ^ ", " ^ G.show y ^ ", " ^ G.show z ^ " at " ^ context
   in
-  let some = List.filteri (fun i _ -> i < 8) samples in
+  let some = first width samples in
   [
     all (name "unit") show1
       (fun x -> equal (G.mul G.one x) x && equal (G.mul x G.one) x)
@@ -214,4 +228,266 @@ let of_duration_laws (module G : Grade.S) bounds =
         | Some c -> G.equal bounds c (G.mul (G.of_duration q) (G.of_duration r))
         | None -> false)
       (pairs domain);
+  ]
+
+(* [declared_laws (module G) ~context bounds samples] checks, on [samples]
+   under [bounds], the properties the declarations of [G] assert: that the
+   product commutes up to equality if [G.commutative]; that [is_top] decides
+   the equality with the top; and that equal representations under [compare]
+   are equal grades with equal hashes. *)
+let declared_laws (type a) (module G : Grade.S with type t = a) ~context bounds
+    (samples : a list) =
+  let name law = G.name ^ ": " ^ law in
+  let equal = G.equal bounds in
+  let show1 x = G.show x ^ " at " ^ context in
+  let show2 (x, y) = G.show x ^ ", " ^ G.show y ^ " at " ^ context in
+  [
+    all
+      (name "is_top decides the top")
+      show1
+      (fun x -> G.is_top bounds x = G.leq bounds G.top x)
+      samples;
+    all
+      (name "compare compatible with equal and hash")
+      show2
+      (fun (x, y) ->
+        implies (G.compare x y = 0) (equal x y && G.hash x = G.hash y))
+      (pairs samples);
+  ]
+  @
+  if G.commutative then
+    [
+      all
+        (name "declared commutative")
+        show2
+        (fun (x, y) -> equal (G.mul x y) (G.mul y x))
+        (pairs samples);
+    ]
+  else []
+
+(* [flag_notes (module G) bounds samples] is the declared flags of [G] that are
+   false while [samples] hold no refutation of the property under [bounds]: a
+   unit that is least, or a product that commutes, on the samples. A false flag
+   only withholds the use of the property, so these are notes, not
+   failures. *)
+let flag_notes (type a) (module G : Grade.S with type t = a) bounds
+    (samples : a list) =
+  let equal = G.equal bounds in
+  (if
+     (not G.unit_least)
+     && List.for_all
+          (fun x -> implies (G.inhabited bounds x) (G.leq bounds G.one x))
+          samples
+   then [ G.name ^ ": unit_least is false, and the unit is least on samples" ]
+   else [])
+  @
+  if
+    (not G.commutative)
+    && List.for_all
+         (fun (x, y) -> equal (G.mul x y) (G.mul y x))
+         (pairs samples)
+  then
+    [ G.name ^ ": commutative is false, and the product commutes on samples" ]
+  else []
+
+module Constructions = Grades.GradeConstructions
+
+(* [semilattice_laws (module N) ~width samples] checks the laws of a
+   join-semilattice with a least and a greatest element on [samples]: [leq] a
+   preorder, the join a least upper bound, [bottom] least and [top] greatest,
+   and equal representations under [compare] equal elements with equal
+   hashes; transitivity and leastness of the join on the pairs of the first
+   [width] samples. *)
+let semilattice_laws (type a) ?(width = 8)
+    (module N : Constructions.SEMILATTICE with type t = a) (samples : a list) =
+  let name law = N.name ^ ": " ^ law in
+  let show2 (x, y) = N.show x ^ ", " ^ N.show y in
+  let show3 (x, y, z) = show2 (x, y) ^ ", " ^ N.show z in
+  let some_triples =
+    List.concat_map
+      (fun (x, y) -> List.map (fun z -> (x, y, z)) samples)
+      (pairs (first width samples))
+  in
+  [
+    all (name "reflexive") N.show (fun x -> N.leq x x) samples;
+    all (name "transitive") show3
+      (fun (x, y, z) -> implies (N.leq x y && N.leq y z) (N.leq x z))
+      some_triples;
+    all (name "bottom least") N.show (fun x -> N.leq N.bottom x) samples;
+    all (name "top greatest") N.show (fun x -> N.leq x N.top) samples;
+    all
+      (name "join an upper bound")
+      show2
+      (fun (x, y) -> N.leq x (N.join x y) && N.leq y (N.join x y))
+      (pairs samples);
+    all (name "join least") show3
+      (fun (x, y, z) -> implies (N.leq x z && N.leq y z) (N.leq (N.join x y) z))
+      some_triples;
+    all
+      (name "compare compatible with the order and hash")
+      show2
+      (fun (x, y) ->
+        implies
+          (N.compare x y = 0)
+          (N.leq x y && N.leq y x && N.hash x = N.hash y))
+      (pairs samples);
+  ]
+
+(* An action of the grades ['m] on a join-semilattice ['n], with the
+   operations of both that the laws of an action involve. *)
+type ('m, 'n) action = {
+  label : string;
+  one : 'm;
+  mul : 'm -> 'm -> 'm;
+  join : 'm -> 'm -> 'm;
+  leq : 'm -> 'm -> bool;
+  bottom : 'n;
+  join_n : 'n -> 'n -> 'n;
+  leq_n : 'n -> 'n -> bool;
+  act : 'm -> 'n -> 'n;
+  show_m : 'm -> string;
+  show_n : 'n -> string;
+}
+
+(* [action_of_components (module M) (module N) act bounds] is the action [act]
+   of the grade [M] on the semilattice [N], [M] ordered under [bounds]. *)
+let action_of_components (type m n) (module M : Grade.S with type t = m)
+    (module N : Constructions.SEMILATTICE with type t = n) act bounds =
+  {
+    label = M.name ^ " on " ^ N.name;
+    one = M.one;
+    mul = M.mul;
+    join = M.join;
+    leq = M.leq bounds;
+    bottom = N.bottom;
+    join_n = N.join;
+    leq_n = N.leq;
+    act;
+    show_m = M.show;
+    show_n = N.show;
+  }
+
+(* [action_of_semidirect (module G) bounds] is the action of a semidirect
+   product [G] of a grade and a semilattice, read off its operations:
+   [act m n] is the second component of [(m, ⊥) · (1, n)], and the operations
+   of the components those of the pairs [(m, ⊥)] and [(1, n)]. *)
+let action_of_semidirect (type m n) (module G : Grade.S with type t = m * n)
+    bounds =
+  let one, bottom = G.one in
+  let first f m m' = fst (f (m, bottom) (m', bottom)) in
+  let second f n n' = snd (f (one, n) (one, n')) in
+  {
+    label = G.name;
+    one;
+    mul = first G.mul;
+    join = first G.join;
+    leq = (fun m m' -> G.leq bounds (m, bottom) (m', bottom));
+    bottom;
+    join_n = second G.join;
+    leq_n = (fun n n' -> G.leq bounds (one, n) (one, n'));
+    act = (fun m n -> snd (G.mul (m, bottom) (one, n)));
+    show_m = (fun m -> G.show (m, bottom));
+    show_n = (fun n -> G.show (one, n));
+  }
+
+(* [acted (module G) bounds] is the semilattice of the second components of a
+   semidirect product [G], ordered and joined as the pairs [(1, n)] under
+   [bounds]. *)
+let acted (type m n) (module G : Grade.S with type t = m * n) bounds =
+  let one, bottom = G.one in
+  (module struct
+    type t = n
+
+    let name = G.name ^ ": second component"
+    let bottom = bottom
+    let top = snd G.top
+    let join n n' = snd (G.join (one, n) (one, n'))
+    let leq n n' = G.leq bounds (one, n) (one, n')
+    let compare n n' = G.compare (one, n) (one, n')
+    let hash n = G.hash (one, n)
+    let of_lit lit = snd (G.of_lit lit)
+    let show n = G.show (one, n)
+  end : Constructions.SEMILATTICE
+    with type t = n)
+
+(* [action_laws a ms ns] checks the laws A1–A5 of the action [a] of the grades
+   [ms] on the elements [ns], equality on the elements being mutual order:
+   the unit acts trivially (A1), the action of a product is the composite of
+   the actions (A2), each action preserves the bottom and the joins (A3), the
+   action of a join is the join of the actions (A4), and the action is
+   monotone in both arguments (A5). *)
+let action_laws a ms ns =
+  let name law = a.label ^ ": " ^ law in
+  let equal n n' = a.leq_n n n' && a.leq_n n' n in
+  let show_mmn (m, m', n) =
+    a.show_m m ^ ", " ^ a.show_m m' ^ " on " ^ a.show_n n
+  in
+  let show_mnn (m, n, n') =
+    a.show_m m ^ " on " ^ a.show_n n ^ ", " ^ a.show_n n'
+  in
+  let mmn =
+    List.concat_map
+      (fun (m, m') -> List.map (fun n -> (m, m', n)) ns)
+      (pairs ms)
+  in
+  let mnn =
+    List.concat_map
+      (fun m -> List.map (fun (n, n') -> (m, n, n')) (pairs ns))
+      ms
+  in
+  [
+    all
+      (name "A1 unit acts trivially")
+      a.show_n
+      (fun n -> equal (a.act a.one n) n)
+      ns;
+    all
+      (name "A2 action of a product")
+      show_mmn
+      (fun (m, m', n) -> equal (a.act (a.mul m m') n) (a.act m (a.act m' n)))
+      mmn;
+    all
+      (name "A3 bottom preserved")
+      a.show_m
+      (fun m -> equal (a.act m a.bottom) a.bottom)
+      ms;
+    all
+      (name "A3 joins preserved")
+      show_mnn
+      (fun (m, n, n') ->
+        equal (a.act m (a.join_n n n')) (a.join_n (a.act m n) (a.act m n')))
+      mnn;
+    all
+      (name "A4 action of a join")
+      show_mmn
+      (fun (m, m', n) ->
+        equal (a.act (a.join m m') n) (a.join_n (a.act m n) (a.act m' n)))
+      mmn;
+    all
+      (name "A5 monotone in the grade")
+      show_mmn
+      (fun (m, m', n) ->
+        implies (a.leq m m') (a.leq_n (a.act m n) (a.act m' n)))
+      mmn;
+    all
+      (name "A5 monotone in the element")
+      show_mnn
+      (fun (m, n, n') ->
+        implies (a.leq_n n n') (a.leq_n (a.act m n) (a.act m n')))
+      mnn;
+  ]
+
+(* [semidirect_laws (module G) a bounds samples] checks that the product of
+   [G] is [(m, n) · (m', n') = (m · m', n ⊔ act m n')] for the action [a] of
+   its components, up to equality under [bounds], on the pairs of
+   [samples]. *)
+let semidirect_laws (type m n) (module G : Grade.S with type t = m * n)
+    (a : (m, n) action) bounds (samples : (m * n) list) =
+  [
+    all
+      (G.name ^ ": product of the semidirect product")
+      (fun (x, y) -> G.show x ^ ", " ^ G.show y)
+      (fun (((m, n) as x), ((m', n') as y)) ->
+        G.equal bounds (G.mul x y) (a.mul m m', a.join_n n (a.act m n')))
+      (pairs samples);
   ]
