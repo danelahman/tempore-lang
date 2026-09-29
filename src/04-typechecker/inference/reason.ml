@@ -43,7 +43,12 @@ type rigid_origin = {
 }
 
 type ('rho, 'eps) why =
-  | Application of { func_at : Location.t; arg_at : Location.t }
+  | Application of {
+      func_at : Location.t;
+      arg_at : Location.t;
+      func : Ast.variable option;
+      arg : Ast.variable option;
+    }
   | Match_scrutinee of { scrutinee_at : Location.t }
   | Match_branch
   | Annotation
@@ -90,7 +95,7 @@ type ('rho, 'eps) why =
   | Function_body
   | Function_parameter
   | Pure_body
-  | Sequencing
+  | Sequencing of Ast.variable option
   | Continuation_effect of lock_kind
   | Default_of of { op : Ast.operation; signature_at : Location.t }
   | Top_definition of Ast.variable
@@ -167,10 +172,11 @@ let rec map_grades on_rho on_eps reason =
     | Recursive_definition f -> Recursive_definition f
     | Continuation_effect kind -> Continuation_effect kind
     | Top_definition x -> Top_definition x
+    | Sequencing x -> Sequencing x
     | ( Match_branch | Annotation | Pattern_annotation | Successor_pattern
       | Boxed_value | Handle_with | Handled_computation | Return_clause
-      | Function_body | Function_parameter | Pure_body | Sequencing
-      | Top_computation | Compared_values ) as why ->
+      | Function_body | Function_parameter | Pure_body | Top_computation
+      | Compared_values ) as why ->
         why
   in
   let stated =
@@ -264,7 +270,7 @@ let print_why why ppf =
   | Function_body -> text "function body"
   | Function_parameter -> text "function parameter"
   | Pure_body -> text "pure body"
-  | Sequencing -> text "sequencing"
+  | Sequencing _ -> text "sequencing"
   | Continuation_effect kind ->
       Format.fprintf ppf "continuation of %t" (print_lock_kind kind)
   | Default_of { op; _ } -> op_rule "default of" op

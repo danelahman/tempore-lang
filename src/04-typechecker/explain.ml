@@ -716,7 +716,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Successor_pattern | Reason.Boxed_value | Reason.Handle_with
     | Reason.Handled_computation | Reason.Return_clause
     | Reason.Recursive_definition _ | Reason.Function_body
-    | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing
+    | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing _
     | Reason.Continuation_effect _ | Reason.Top_definition _
     | Reason.Top_computation | Reason.Compared_values ->
         []
@@ -748,7 +748,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Recursive_definition f -> "the definition of " ^ describe f
     | Reason.Function_body | Reason.Pure_body -> "the function body"
     | Reason.Function_parameter -> "the parameter"
-    | Reason.Sequencing | Reason.Continuation_effect _ -> "the computation"
+    | Reason.Sequencing _ | Reason.Continuation_effect _ -> "the computation"
     | Reason.Default_of { op; _ } ->
         "the default implementation of " ^ op_name op
     | Reason.Top_definition x -> "the definition of " ^ describe x
@@ -771,8 +771,9 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Successor_pattern | Reason.Handle_with | Reason.Handled_computation
     | Reason.Return_clause | Reason.Recursive_definition _
     | Reason.Function_body | Reason.Function_parameter | Reason.Pure_body
-    | Reason.Sequencing | Reason.Continuation_effect _ | Reason.Top_definition _
-    | Reason.Top_computation | Reason.Compared_values ->
+    | Reason.Sequencing _ | Reason.Continuation_effect _
+    | Reason.Top_definition _ | Reason.Top_computation | Reason.Compared_values
+      ->
         false
 
   (* The sources along a chain of orderings other than the places already
@@ -1162,11 +1163,146 @@ module Make (C : Inference.Constraint.S) = struct
     && outer.start.offset <= inner.start.offset
     && inner.stop.offset <= outer.stop.offset
 
-  (* A label at the place of each atom [related] names, with the part of the
-     mismatch it equates with another type, other than a place that encloses
-     or lies within the construct [at] of the failing atom or a place already
-     pointed at; of nested places of [related] the outermost is kept. The
-     labels are in the order of their places. *)
+  (* The [i]th component of [noun], counting from 1. *)
+  let component_of i noun =
+    let ordinals =
+      [
+        "first";
+        "second";
+        "third";
+        "fourth";
+        "fifth";
+        "sixth";
+        "seventh";
+        "eighth";
+        "ninth";
+        "tenth";
+      ]
+    in
+    match List.nth_opt ordinals (i - 1) with
+    | Some ordinal -> Printf.sprintf "the %s component of %s" ordinal noun
+    | None -> Printf.sprintf "component %d of %s" i noun
+
+  (* [noun], or its component at the first step of [path] when that step is
+     one. *)
+  let leading_part path noun =
+    match path with Reason.Component i :: _ -> component_of i noun | _ -> noun
+
+  (* A variable a message names, or [fallback]. *)
+  let named fallback x =
+    match Option.bind x var_name with Some name -> name | None -> fallback
+
+  (* What the atom of a related decision does at its place, from its
+     construct and the position [path] of the unknowns it relates; a use no
+     construct words is stated by the skeleton [joined] they stand for. *)
+  let use_text p (reason : C.reason) path joined =
+    let given what whose = Printf.sprintf "%s is given %s %s" what whose here in
+    match (reason.why, path) with
+    | Reason.Application { func; arg; _ }, Reason.Argument :: _ ->
+        let argument =
+          match Option.bind arg var_name with
+          | Some name -> "the argument " ^ name
+          | None -> "the argument"
+        in
+        given argument ("the parameter type of " ^ named "the function" func)
+    | Reason.Application { func; _ }, Reason.Result :: _ ->
+        given "the application"
+          ("the result type of " ^ named "the function" func)
+    | Reason.Application { func; _ }, _ ->
+        Printf.sprintf "%s is applied %s" (named "the function" func) here
+    | Reason.Match_scrutinee { scrutinee_at }, _
+      when Location.equal reason.at scrutinee_at ->
+        Printf.sprintf "this value is matched against the patterns %s" here
+    | Reason.Match_scrutinee _, Reason.Component i :: _ ->
+        Printf.sprintf "%s binds %s %s"
+          (component_of i "this pattern")
+          (component_of i "the matched value")
+          here
+    | Reason.Match_scrutinee _, _ ->
+        given "this pattern" "the type of the matched value"
+    | Reason.Match_branch, _ -> given "this branch" "the type of the match"
+    | Reason.Annotation, _ ->
+        given (leading_part path "this expression") "the annotated type"
+    | Reason.Pattern_annotation, _ ->
+        given (leading_part path "this pattern") "the annotated type"
+    | Reason.Variant_argument lbl, _
+      when Ast.Label.compare lbl Ast.cons_label = 0 ->
+        Printf.sprintf "the elements of this list are given one type %s" here
+    | Reason.Variant_argument lbl, _ ->
+        given "this argument"
+          ("the argument type of constructor " ^ label_name lbl)
+    | Reason.Successor_pattern, _ ->
+        Printf.sprintf "this pattern matches natural numbers %s" here
+    | Reason.Boxed_value, _ ->
+        given "the boxed value" "the content type of the box"
+    | Reason.Unboxed { var; _ }, _ ->
+        Printf.sprintf "the content of %s is bound %s" (describe var) here
+    | ( ( Reason.Use_under_locks { var; _ }
+        | Reason.Op_case_capture { var; _ }
+        | Reason.Rec_capture { var; _ } ),
+        _ ) ->
+        Printf.sprintf "%s is used %s" (describe var) here
+    | Reason.Instance_of { var; _ }, _ ->
+        Printf.sprintf "%s is used at an instance of its type %s" (describe var)
+          here
+    | Reason.Handler_case { op; _ }, Reason.Component 1 :: _ ->
+        Printf.sprintf "the case for %s binds the argument of %s %s"
+          (op_name op) (op_name op) here
+    | Reason.Handler_case { op; _ }, Reason.Component 2 :: _ ->
+        Printf.sprintf "the case for %s binds the continuation of %s %s"
+          (op_name op) (op_name op) here
+    | Reason.Handler_case { op; _ }, _ ->
+        given ("the case for " ^ op_name op) "the result type of the handler"
+    | Reason.Perform_argument { op; _ }, _ ->
+        given "this argument" ("the parameter type of operation " ^ op_name op)
+    | Reason.Perform_continuation { op; _ }, _ ->
+        given "this pattern" ("the result type of operation " ^ op_name op)
+    | Reason.Handle_with, Reason.Handler_input :: _ ->
+        given "the handled computation" "the input type of this handler"
+    | Reason.Handle_with, Reason.Handler_output :: _ ->
+        given "the result of the handling" "the output type of this handler"
+    | Reason.Handle_with, _ ->
+        Printf.sprintf "this expression is used as a handler %s" here
+    | Reason.Handled_computation, _ ->
+        given "the handled computation" "the input type of the handler"
+    | Reason.Return_clause, _ ->
+        given "the return clause" "the input and output types of the handler"
+    | Reason.Recursive_definition f, _ ->
+        given ("the body of " ^ describe f) ("the result type of " ^ describe f)
+    | Reason.Function_body, _ ->
+        given "the body" "the result type of the function"
+    | Reason.Function_parameter, _ ->
+        given "this parameter" "the parameter type of the function"
+    | Reason.Sequencing x, _ -> (
+        match Option.bind x var_name with
+        | Some name ->
+            Printf.sprintf "the value of this computation is bound to %s %s"
+              name here
+        | None ->
+            Printf.sprintf
+              "the value of this computation is matched against the pattern %s"
+              here)
+    | Reason.Default_of { op; _ }, Reason.Argument :: _ ->
+        given
+          ("the parameter of the default implementation of " ^ op_name op)
+          ("the parameter type of " ^ op_name op)
+    | Reason.Default_of { op; _ }, Reason.Result :: _ ->
+        given
+          ("the result of the default implementation of " ^ op_name op)
+          ("the result type of " ^ op_name op)
+    | Reason.Top_definition x, _ ->
+        Printf.sprintf "%s is defined %s" (describe x) here
+    | ( ( Reason.Continuation_grade _ | Reason.Default_of _ | Reason.Pure_body
+        | Reason.Continuation_effect _ | Reason.Top_computation
+        | Reason.Compared_values ),
+        _ ) ->
+        code (skeleton_raw p joined) ^ " is equated with another type " ^ here
+
+  (* A label at the place of each atom [related] names, stating what it does
+     there, other than a place that encloses or lies within the construct
+     [at] of the failing atom or a place already pointed at; of nested places
+     of [related] the outermost is kept. The labels are in the order of their
+     places. *)
   let related_labels p ~primary ~at ~labels related =
     let places = List.map (fun ((d : S.decision), _) -> d.reason.at) related in
     let pointed =
@@ -1190,8 +1326,9 @@ module Make (C : Inference.Constraint.S) = struct
           acc
           @ [
               label place
-                (code (skeleton_raw p joined)
-                ^ " is equated with another type " ^ here);
+                (use_text p d.reason
+                   (d.reason.path @ List.map Reason.of_ast_step d.path)
+                   joined);
             ])
       []
       (List.stable_sort

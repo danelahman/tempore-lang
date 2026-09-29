@@ -875,6 +875,12 @@ module Make (C : Constraint.S) = struct
     | Ast.PVariant _ ->
         None
 
+  (* The variable an expression is, if the programmer named it. *)
+  let expression_variable (e : expression) =
+    match e.Ast.it with
+    | Ast.Var x when not (Ast.Variable.is_synthetic x) -> Some x
+    | _ -> None
+
   (* The clause a rigid continuation effect belongs to; the parser pairs the
      parameter and continuation patterns. *)
   let rigid_origin clause ((pat, _) : abstraction) =
@@ -1200,7 +1206,10 @@ module Make (C : Constraint.S) = struct
         exists_eps (fun eps1 ->
             exists_eps (fun eps2 ->
                 let kind, declared = sequenced_kind env c1 in
-                let bound = Reason.because c1.Ast.at Reason.Sequencing in
+                let bound =
+                  Reason.because c1.Ast.at
+                    (Reason.Sequencing (pattern_variable pat))
+                in
                 let env' =
                   lock env
                     { grade = Rho.map eps1; at = c1.Ast.at; kind; declared }
@@ -1230,7 +1239,12 @@ module Make (C : Constraint.S) = struct
                 let because =
                   Reason.because at
                     (Reason.Application
-                       { func_at = e1.Ast.at; arg_at = e2.Ast.at })
+                       {
+                         func_at = e1.Ast.at;
+                         arg_at = e2.Ast.at;
+                         func = expression_variable e1;
+                         arg = expression_variable e2;
+                       })
                 in
                 C.conj_all
                   [

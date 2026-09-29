@@ -67,7 +67,12 @@ type rigid_origin = {
 (** The rule that generated an atom. Each constructor carries the places its
     messages point at. *)
 type ('rho, 'eps) why =
-  | Application of { func_at : Location.t; arg_at : Location.t }
+  | Application of {
+      func_at : Location.t;
+      arg_at : Location.t;
+      func : Ast.variable option;  (** the function, if it is a variable *)
+      arg : Ast.variable option;  (** the argument, if it is a variable *)
+    }
       (** at = the application; the function's type is an arrow from the
           argument's type (step [Argument]) *)
   | Match_scrutinee of { scrutinee_at : Location.t }
@@ -150,9 +155,10 @@ type ('rho, 'eps) why =
   | Function_parameter  (** at = the parameter pattern of a function *)
   | Pure_body
       (** at = a pure or recursive function; its body's effect is the unit *)
-  | Sequencing
+  | Sequencing of Ast.variable option
       (** at = the computation bound by [let] or [;]; its type is the pattern's
-          and its effect the lock of the continuation *)
+          and its effect the lock of the continuation; the variable the pattern
+          binds the whole value to, if any *)
   | Continuation_effect of lock_kind
       (** at = the computation under a lock of the given kind; its effect is
           composed after the lock's *)

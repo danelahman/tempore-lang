@@ -2356,11 +2356,11 @@
     File "occurs_check_related_annotation.tpe", line 7, characters 10-13:
     7 |   let u = f x in
                   ^^^
-    `α` is equated with another type here
+    the argument `x` is given the parameter type of `f` here
     File "occurs_check_related_annotation.tpe", line 8, characters 10-13:
     8 |   let v = f y in
                   ^^^
-    `α` is equated with another type here
+    the argument `y` is given the parameter type of `f` here
   ======================================================================
   occurs_check_related_application.tpe
   ======================================================================
@@ -2375,11 +2375,11 @@
     File "occurs_check_related_application.tpe", line 8, characters 10-13:
     8 |   let u = f x in
                   ^^^
-    `α` is equated with another type here
+    the argument `x` is given the parameter type of `f` here
     File "occurs_check_related_application.tpe", line 9, characters 10-50:
     9 |   let k = fun p -> match p with (g, b) -> (g b, b) in
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    `α` is equated with another type here
+    the value of this computation is bound to `k` here
   ======================================================================
   occurs_check_related_pattern.tpe
   ======================================================================
