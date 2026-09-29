@@ -373,6 +373,7 @@ let expected_rejections =
     ("traces_reject_allowance.tpe", [ 7 ]);
     ("traces_reject_bounds.tpe", [ 4 ]);
     ("traces_reject_bounds_declared.tpe", [ 6 ]);
+    ("traces_reject_bounds_zero.tpe", [ 4 ]);
     ("traces_reject_default_bounds.tpe", [ 8 ]);
     ("traces_reject_default_nonatomic.tpe", [ 14 ]);
     ("traces_reject_missing_within.tpe", [ 5 ]);

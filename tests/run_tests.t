@@ -3052,6 +3052,16 @@
     grade `{0.5}` accumulates here (delay)
     Note: the resource inequality `{Sample; 0.5} <= {1.75}` does not hold
   ======================================================================
+  rational_traces_upper_short.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {0.25},
+    {0.25}
+  ]
+  
+  ======================================================================
   recursion.tpe
   ======================================================================
   === Run 1 ===
@@ -4594,6 +4604,13 @@
   6 | operation Send : string ~> unit # {Tx | Tx; Tx} within (2, 6)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: operation `Send` is compound, so its runtime bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
+  ======================================================================
+  traces_reject_bounds_zero.tpe
+  ======================================================================
+  File "traces_reject_bounds_zero.tpe", line 4, characters 0-52:
+  4 | operation Heat : unit ~> unit # {Heat} within (0, 0)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: the upper runtime bound of operation `Heat` must be positive
   ======================================================================
   traces_reject_default_bounds.tpe
   ======================================================================

@@ -480,10 +480,9 @@ module Make (C : Constraint.S) = struct
             Error.typing ~loc
               "the runtime bounds of operation `%s` must satisfy `lo <= hi`"
               op_name
-        | Some (_, hi)
-          when Grades.Rational.compare hi (Grades.Rational.of_int 1) < 0 ->
+        | Some (_, hi) when Grades.Rational.sign hi <= 0 ->
             Error.typing ~loc
-              "the upper runtime bound of operation `%s` must be at least 1"
+              "the upper runtime bound of operation `%s` must be positive"
               op_name
         | Some bounds -> StringMap.add op_name bounds env.op_bounds)
     | true, Ast.EpsConst (c, _), Some _ ->

@@ -80,6 +80,7 @@ let malformed =
     "shadow_label.tpe";
     "traces_reject_bounds.tpe";
     "traces_reject_bounds_declared.tpe";
+    "traces_reject_bounds_zero.tpe";
     "traces_reject_fractional_bound.tpe";
     "traces_reject_default_nonatomic.tpe";
     "traces_reject_missing_within.tpe";

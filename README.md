@@ -388,7 +388,7 @@ operation Tx : string ~> unit # {Tx} within (2, 3)
 ```
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
-`lo <= hi` and `hi` at least 1, and each grade reads them as its delays. The
+`lo <= hi` and `hi` positive, and each grade reads them as its delays. The
 rational trace monoids accept fractional bounds such as `within (1/2, 3/2)`;
 the other monoids that read runtime bounds count whole time steps, so
 `within (1/2, 1)` is a syntax error under them. The other monoids reject
