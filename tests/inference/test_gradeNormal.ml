@@ -473,34 +473,32 @@ let variable_names =
   ]
 
 let reachability =
-  let closure =
-    Reach.closure ~equal:Int.equal [ 1; 2; 3; 4 ]
-      [ (1, 2, "a"); (2, 3, "b"); (3, 1, "c") ]
+  let cycle = Reach.graph 4 [ (0, 1, "a"); (1, 2, "b"); (2, 0, "c") ] in
+  let pivots =
+    Reach.graph 5
+      [ (0, 4, "a"); (4, 1, "b"); (0, 2, "c"); (2, 3, "d"); (3, 1, "e") ]
   in
   let show_chain = show_option (String.concat ",") in
   [
     expect "reach: a chain through a pivot" show_chain
       ~expected:(Some [ "a"; "b" ])
-      (Reach.reach closure 1 3);
+      (Reach.chain cycle 0 2);
     expect "reach: a chain round the cycle" show_chain
       ~expected:(Some [ "c"; "a" ])
-      (Reach.reach closure 3 2);
+      (Reach.chain cycle 2 1);
     expect "reach: the diagonal" show_chain ~expected:(Some [])
-      (Reach.reach closure 4 4);
+      (Reach.chain cycle 3 3);
     expect "reach: unreachable" show_chain ~expected:None
-      (Reach.reach closure 1 4);
-    expect "reach: not a vertex" show_chain ~expected:None
-      (Reach.reach closure 1 5);
-    expect "reach: on a cycle" show_bool ~expected:true
-      (Reach.on_cycle closure 1);
-    expect "reach: off every cycle" show_bool ~expected:false
-      (Reach.on_cycle closure 4);
-    expect "reach: representative"
-      (show_option (fun (r, there, back) ->
-           string_of_int r ^ " " ^ String.concat "," there ^ " "
-           ^ String.concat "," back))
-      ~expected:(Some (3, [ "a"; "b" ], [ "c" ]))
-      (Reach.representative closure [ 4; 3; 2; 1 ] 1);
+      (Reach.chain cycle 0 3);
+    expect "reach: the least pivot, not the shortest chain" show_chain
+      ~expected:(Some [ "c"; "d"; "e" ])
+      (Reach.chain pivots 0 1);
+    expect "reach: the vertices reached" (String.concat ",")
+      ~expected:[ "0"; "1"; "2" ]
+      (List.filter_map
+         (fun i ->
+           if Reach.reached cycle [ 1 ] i then Some (string_of_int i) else None)
+         [ 0; 1; 2; 3 ]);
   ]
 
 let () =

@@ -5,6 +5,7 @@ module Make (C : Constraint.S) = struct
   module X = C.X
   module R = Residual.Make (C)
   module N = GradeNormal.Make (X)
+  module E = Entail.Make (X)
   module Rho_set = X.Rho_var.Set
   module Eps_set = X.Eps_var.Set
 
@@ -98,22 +99,6 @@ module Make (C : Constraint.S) = struct
     not (List.exists (on_side side u) r.deferred)
 
   (* ------------------------------------------------------------------ *)
-  (* Decisions at no hypotheses                                          *)
-  (* ------------------------------------------------------------------ *)
-
-  let decided_rho context lhs rhs =
-    let bounds = context.Residual.bounds in
-    match N.Rho.closed_leq bounds lhs rhs with
-    | Some leq -> leq
-    | None -> Option.is_some (N.Rho.decide_leq bounds N.no_hyps lhs rhs)
-
-  let decided_eps context lhs rhs =
-    let bounds = context.Residual.bounds in
-    match N.Eps.closed_leq bounds lhs rhs with
-    | Some leq -> leq
-    | None -> Option.is_some (N.Eps.decide_leq bounds N.no_hyps lhs rhs)
-
-  (* ------------------------------------------------------------------ *)
   (* Bounds of one unknown                                               *)
   (* ------------------------------------------------------------------ *)
 
@@ -123,7 +108,7 @@ module Make (C : Constraint.S) = struct
       occurs = in_eps (Eps_unknown k);
       is_unknown =
         (function X.Eps_var k' -> X.Eps_var.equal k k' | _ -> false);
-      leq = decided_eps context;
+      valid = E.Eps.valid context.Residual.bounds;
       join = X.Eps.join;
     }
 
@@ -136,7 +121,7 @@ module Make (C : Constraint.S) = struct
           match (u, rho) with
           | Rho_unknown k, X.Rho_var k' -> X.Rho_var.equal k k'
           | (Rho_unknown _ | Eps_unknown _), _ -> false);
-      leq = decided_rho context;
+      valid = E.Rho.valid context.Residual.bounds;
       join = X.Rho.join;
     }
 
@@ -364,36 +349,30 @@ module Make (C : Constraint.S) = struct
           r.disjunctions;
     }
 
-  (* The orderings decided at no hypotheses dropped, and the disjunctions met
-     outright; a disjunction whose type is never eternal becomes its grade
-     below the unit. *)
+  (* The orderings decided at no hypotheses dropped, and the disjunctions
+     settled at no hypotheses ({!Residual.Make.settle}); a disjunction whose
+     type is never eternal becomes its grade below the unit. *)
   let settle context (r : residual) =
+    let bounds = context.Residual.bounds in
+    let decided_rho = E.Rho.decided bounds
+    and decided_eps = E.Eps.decided bounds in
     let rho_orderings =
       List.filter
-        (fun (o : R.rho_ordering) -> not (decided_rho context o.lhs o.rhs))
+        (fun (o : R.rho_ordering) -> not (decided_rho o.lhs o.rhs))
         r.rho_orderings
     and eps_orderings =
       List.filter
-        (fun (o : R.eps_ordering) -> not (decided_eps context o.lhs o.rhs))
+        (fun (o : R.eps_ordering) -> not (decided_eps o.lhs o.rhs))
         r.eps_orderings
     in
+    let settling = R.by_grade (fun rho -> decided_rho rho X.Rho.unit) in
     let kept, grades =
       List.fold_right
         (fun (d : R.disjunction) (kept, grades) ->
-          if decided_rho context d.disj_grade X.Rho.unit then (kept, grades)
-          else
-            match R.eternal_vars context d.disj_ty with
-            | Some [] -> (kept, grades)
-            | Some (_ :: _) -> (d :: kept, grades)
-            | None ->
-                ( kept,
-                  ({
-                     lhs = d.disj_grade;
-                     rhs = X.Rho.unit;
-                     info = d.disj_reason;
-                   }
-                    : R.rho_ordering)
-                  :: grades ))
+          match R.settle context settling d with
+          | Drop -> (kept, grades)
+          | Below_unit o -> (kept, o :: grades)
+          | Keep | Eternal _ -> (d :: kept, grades))
         r.disjunctions ([], [])
     in
     {
@@ -511,6 +490,8 @@ module Make (C : Constraint.S) = struct
      [x ≾ k] whose [x] is decided the top once the rigid and the members
      are. *)
   let find context scope ~ok members (r : residual) =
+    let decided_rho = E.Rho.decided context.Residual.bounds
+    and decided_eps = E.Eps.decided context.Residual.bounds in
     let reached = Eps_unknown scope.rigid :: members in
     let sigma = tops reached in
     let from_eps (o : R.eps_ordering) =
@@ -519,7 +500,7 @@ module Make (C : Constraint.S) = struct
         when ok (Eps_unknown k)
              && (not (is_member members (Eps_unknown k)))
              && hit_eps reached o.lhs
-             && decided_eps context X.Eps.top (X.Eps.subst sigma o.lhs) ->
+             && decided_eps X.Eps.top (X.Eps.subst sigma o.lhs) ->
           Some (Eps_unknown k)
       | _ -> None
     and from_rho (o : R.rho_ordering) =
@@ -528,7 +509,7 @@ module Make (C : Constraint.S) = struct
         when ok (Rho_unknown k)
              && (not (is_member members (Rho_unknown k)))
              && hit_rho reached o.lhs
-             && decided_rho context X.Rho.top (X.Rho.subst sigma o.lhs) ->
+             && decided_rho X.Rho.top (X.Rho.subst sigma o.lhs) ->
           Some (Rho_unknown k)
       | _ -> None
     in
@@ -548,13 +529,13 @@ module Make (C : Constraint.S) = struct
      than the rigid and no member. *)
   let up_rho context scope members sigma (o : R.rho_ordering) =
     (not (hit_rho members o.lhs))
-    || decided_rho context X.Rho.top (X.Rho.subst sigma o.rhs)
+    || E.Rho.decided context.Residual.bounds X.Rho.top (X.Rho.subst sigma o.rhs)
     || outer_rho scope ~rigids:Eps_set.empty o.rhs
        && not (hit_rho members o.rhs)
 
   let up_eps context scope members sigma (o : R.eps_ordering) =
     (not (hit_eps members o.lhs))
-    || decided_eps context X.Eps.top (X.Eps.subst sigma o.rhs)
+    || E.Eps.decided context.Residual.bounds X.Eps.top (X.Eps.subst sigma o.rhs)
     || outer_eps scope ~rigids:Eps_set.empty o.rhs
        && not (hit_eps members o.rhs)
 
@@ -696,7 +677,7 @@ module Make (C : Constraint.S) = struct
     let rigid = Eps_set.singleton scope.rigid in
     {
       mentions = in_rho (Eps_unknown scope.rigid);
-      decided = decided_rho context;
+      decided = E.Rho.decided context.Residual.bounds;
       at_unit = X.Rho.subst (at_rigid scope X.Eps.unit);
       at_top = X.Rho.subst (at_rigid scope X.Eps.top);
       outer_with_rigid = outer_rho scope ~rigids:rigid;
@@ -708,7 +689,7 @@ module Make (C : Constraint.S) = struct
     let rigid = Eps_set.singleton scope.rigid in
     {
       mentions = in_eps (Eps_unknown scope.rigid);
-      decided = decided_eps context;
+      decided = E.Eps.decided context.Residual.bounds;
       at_unit = X.Eps.subst (at_rigid scope X.Eps.unit);
       at_top = X.Eps.subst (at_rigid scope X.Eps.top);
       outer_with_rigid = outer_eps scope ~rigids:rigid;
@@ -869,10 +850,10 @@ module Make (C : Constraint.S) = struct
     | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
         rho_occurrences ks rho + rho_occurrences ks rho'
 
-  let rho_sort bounds hyps =
+  let rho_sort entail bounds =
     {
-      decide = (fun x y -> Option.is_some (N.Rho.decide_leq bounds hyps x y));
-      closed_leq = N.Rho.closed_leq bounds;
+      decide = (fun x y -> Option.is_some (E.Rho.derive entail x y));
+      closed_leq = E.Rho.closed bounds;
       subst = X.Rho.subst;
       rho_vars = X.Rho.free_rho_vars;
       eps_vars = X.Rho.free_eps_vars;
@@ -880,10 +861,10 @@ module Make (C : Constraint.S) = struct
       occurrences = rho_occurrences;
     }
 
-  let eps_sort bounds hyps =
+  let eps_sort entail bounds =
     {
-      decide = (fun x y -> Option.is_some (N.Eps.decide_leq bounds hyps x y));
-      closed_leq = N.Eps.closed_leq bounds;
+      decide = (fun x y -> Option.is_some (E.Eps.derive entail x y));
+      closed_leq = E.Eps.closed bounds;
       subst = X.Eps.subst;
       rho_vars = (fun _ -> Rho_set.empty);
       eps_vars = X.Eps.free_vars;
@@ -996,7 +977,7 @@ module Make (C : Constraint.S) = struct
             | Refuted_at witness -> Error (o, witness)))
       orderings (Ok [])
 
-  let retry_condition context (hyps : C.reason N.hyps) (d : R.deferred) =
+  let retry_condition context (entail : C.reason E.t) (d : R.deferred) =
     let open Result.Syntax in
     let bounds = context.Residual.bounds in
     let rigids = List.map fst d.rigids in
@@ -1007,26 +988,35 @@ module Make (C : Constraint.S) = struct
       Result.map_error
         (fun (o, witness) ->
           refuted { d with rho_conditions = [ o ]; eps_conditions = [] } witness)
-        (sift (verdict context (rho_sort bounds hyps) rigids) d.rho_conditions)
+        (sift
+           (verdict context (rho_sort entail bounds) rigids)
+           d.rho_conditions)
     in
     let* eps_conditions =
       Result.map_error
         (fun (o, witness) ->
           refuted { d with rho_conditions = []; eps_conditions = [ o ] } witness)
-        (sift (verdict context (eps_sort bounds hyps) rigids) d.eps_conditions)
+        (sift
+           (verdict context (eps_sort entail bounds) rigids)
+           d.eps_conditions)
     in
     match (rho_conditions, eps_conditions) with
     | [], [] -> Ok []
     | _, _ -> Ok [ { d with rho_conditions; eps_conditions } ]
 
   let retry context (r : residual) =
-    let hyps = { N.rho_hyps = r.rho_orderings; eps_hyps = r.eps_orderings } in
+    let entail =
+      E.make context.Residual.bounds
+        { rho_hyps = r.rho_orderings; eps_hyps = r.eps_orderings }
+    in
     Result.map
       (fun deferred -> { r with deferred = List.concat deferred })
       (List.fold_right
          (fun d acc ->
            Result.bind acc (fun kept ->
-               Result.map (fun d -> d :: kept) (retry_condition context hyps d)))
+               Result.map
+                 (fun d -> d :: kept)
+                 (retry_condition context entail d)))
          r.deferred (Ok []))
 
   (* ------------------------------------------------------------------ *)
@@ -1097,16 +1087,18 @@ module Make (C : Constraint.S) = struct
      retry at no hypotheses. *)
   let holds context sigma = function
     | Rho_item o ->
-        N.Rho.closed_leq context.Residual.bounds (X.Rho.subst sigma o.lhs)
+        E.Rho.closed context.Residual.bounds (X.Rho.subst sigma o.lhs)
           (X.Rho.subst sigma o.rhs)
         = Some true
     | Eps_item o ->
-        N.Eps.closed_leq context.Residual.bounds (X.Eps.subst sigma o.lhs)
+        E.Eps.closed context.Residual.bounds (X.Eps.subst sigma o.lhs)
           (X.Eps.subst sigma o.rhs)
         = Some true
     | Condition d -> (
         match (apply sigma { R.empty with deferred = [ d ] }).deferred with
-        | [ d ] -> retry_condition context N.no_hyps d = Ok []
+        | [ d ] ->
+            retry_condition context (E.make context.Residual.bounds N.no_hyps) d
+            = Ok []
         | _ -> false)
 
   let by_index (i, _) (j, _) = Int.compare i j

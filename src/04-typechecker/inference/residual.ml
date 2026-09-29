@@ -15,7 +15,7 @@ type ('rho, 'eps) types = {
 
 module Make (C : Constraint.S) = struct
   module X = C.X
-  module N = GradeNormal.Make (X)
+  module E = Entail.Make (X)
 
   type rho = C.rho
   type eps = C.eps
@@ -223,14 +223,14 @@ module Make (C : Constraint.S) = struct
 
   let push_rho context (o : rho_ordering) r =
     let bounds = context.bounds in
-    match N.Rho.closed_leq bounds o.lhs o.rhs with
+    match E.Rho.closed bounds o.lhs o.rhs with
     | Some true -> Ok r
     | Some false -> Error (Refuted_rho { o with info = [ o.info ] })
     | None -> Ok { r with rho_orderings = o :: r.rho_orderings }
 
   let push_eps context (o : eps_ordering) r =
     let bounds = context.bounds in
-    match N.Eps.closed_leq bounds o.lhs o.rhs with
+    match E.Eps.closed bounds o.lhs o.rhs with
     | Some true -> Ok r
     | Some false -> Error (Refuted_eps { o with info = [ o.info ] })
     | None -> Ok { r with eps_orderings = o :: r.eps_orderings }
@@ -260,26 +260,57 @@ module Make (C : Constraint.S) = struct
                 r.eternals vars;
           }
 
+  (* ------------------------------------------------------------------ *)
+  (* Disjunctions                                                        *)
+  (* ------------------------------------------------------------------ *)
+
+  type settling = {
+    below_unit : rho -> bool;
+    eternal : Ast.ty_param -> bool;
+    refute : bool;
+  }
+
+  type settled =
+    | Drop
+    | Below_unit of rho_ordering
+    | Eternal of eternal list
+    | Keep
+
+  let by_grade below_unit =
+    { below_unit; eternal = (fun _ -> false); refute = false }
+
+  let settle context s d =
+    if s.below_unit d.disj_grade then Drop
+    else
+      match eternal_vars context d.disj_ty with
+      | None ->
+          Below_unit
+            { lhs = d.disj_grade; rhs = X.Rho.unit; info = d.disj_reason }
+      | Some params when List.for_all s.eternal params -> Drop
+      | Some params
+        when s.refute && E.Rho.refute_leq_unit context.bounds d.disj_grade ->
+          Eternal
+            (List.map
+               (fun a ->
+                 { eternal_ty = Ast.TyParam a; eternal_reason = d.disj_reason })
+               params)
+      | Some _ -> Keep
+
+  (* A disjunction settled at no hypotheses with [below_unit], its grade below
+     the unit pushed as an ordering. *)
+  let push_settled context below_unit d r =
+    match settle context (by_grade below_unit) d with
+    | Drop -> Ok r
+    | Below_unit o -> push_rho context o r
+    | Keep | Eternal _ -> Ok { r with disjunctions = d :: r.disjunctions }
+
   (* The type side of a disjunction whose grade is not decided below the
      unit. *)
-  let disjunction_by_type context d r =
-    match eternal_vars context d.disj_ty with
-    | None ->
-        push_rho context
-          { lhs = d.disj_grade; rhs = X.Rho.unit; info = d.disj_reason }
-          r
-    | Some [] -> Ok r
-    | Some (_ :: _) -> Ok { r with disjunctions = d :: r.disjunctions }
+  let disjunction_by_type context = push_settled context (fun _ -> false)
 
-  let below_unit context rho =
-    let bounds = context.bounds in
-    match N.Rho.closed_leq bounds rho X.Rho.unit with
-    | Some leq -> leq
-    | None -> Option.is_some (N.Rho.decide_leq bounds N.no_hyps rho X.Rho.unit)
-
-  let push_disjunction context d r =
-    if below_unit context d.disj_grade then Ok r
-    else disjunction_by_type context d r
+  let push_disjunction context =
+    push_settled context (fun rho ->
+        E.Rho.decided context.bounds rho X.Rho.unit)
 
   let step s (o : _ GradeNormal.ordering) =
     { o with info = Reason.step s o.info }
@@ -432,22 +463,25 @@ module Make (C : Constraint.S) = struct
   (* A disjunction of a variable-free grade: dropped when the grade is below
      the unit, refuting when it is not and the type is never eternal. *)
   let check_disjunction context d kept =
-    match N.Rho.closed_leq context.bounds d.disj_grade X.Rho.unit with
-    | Some true -> Ok kept
-    | Some false when Option.is_none (eternal_vars context d.disj_ty) ->
-        Error
-          (Refuted_rho
-             { lhs = d.disj_grade; rhs = X.Rho.unit; info = [ d.disj_reason ] })
-    | Some false | None -> Ok (d :: kept)
+    let below_unit rho =
+      E.Rho.closed context.bounds rho X.Rho.unit = Some true
+    in
+    match settle context (by_grade below_unit) d with
+    | Drop -> Ok kept
+    | Below_unit o when E.Rho.closed context.bounds o.lhs o.rhs = Some false ->
+        Error (Refuted_rho { o with info = [ o.info ] })
+    | Below_unit _ | Keep | Eternal _ -> Ok (d :: kept)
 
   let check_closed ?factors context hyps =
     let open Result.Syntax in
-    let grades = { N.rho_hyps = hyps.rho_hyps; eps_hyps = hyps.eps_hyps } in
+    let grades : _ E.hyps =
+      { rho_hyps = hyps.rho_hyps; eps_hyps = hyps.eps_hyps }
+    in
     let* grades =
       Result.map_error
         (function
-          | N.Rho_failure o -> Refuted_rho o | N.Eps_failure o -> Refuted_eps o)
-        (N.check_closed_hyps ?factors context.bounds grades)
+          | E.Rho_failure o -> Refuted_rho o | E.Eps_failure o -> Refuted_eps o)
+        (E.check_closed ?factors context.bounds grades)
     in
     let* disjunctions =
       fold_result (check_disjunction context) hyps.disj_hyps []

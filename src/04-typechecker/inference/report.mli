@@ -25,8 +25,8 @@
     directions for eternality); a grade ordering is dropped when reflexive or
     repeated.
 
-    An ordering is entailed when it is one of the hypotheses or
-    {!GradeNormal.Make.SORT.decide_leq} derives it from them.
+    An ordering is entailed when it is one of the hypotheses or follows from
+    them ({!Entail.Make.SORT.entailed}).
 
     {2 Polarity}
 

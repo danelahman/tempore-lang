@@ -1,21 +1,21 @@
 (** Values for one grade unknown [v], read off the orderings of its sort.
 
-    An ordering is valid when it is reflexive or decided at no hypotheses
-    ([leq]): it holds at every instance and bounds [v] on neither side.
+    An ordering is valid when it holds at every instance ([valid]); it bounds
+    [v] on neither side.
 
     - Lowering: every ordering has [v] on no right side, is [x ≾ v] with [x]
       free of [v], a lower bound, or is valid; the value is the join of the
       lower bounds.
     - Raising: some ordering is [v ≾ U] with [U] free of [v], and every ordering
-      is reflexive, has [v] on no left side, is [v ≾ x'] with [x'] the bound [U]
-      or decided above it, or is valid; the value is [U], the first such bound.
-*)
+      is reflexive, has [v] on no left side, is [v ≾ x'] with [U ≾ x'] valid, or
+      is valid; the value is [U], the first such bound. *)
 
 type 'e sort = {
   equal : 'e -> 'e -> bool;  (** syntactic equality of expressions *)
   occurs : 'e -> bool;  (** whether [v] occurs in an expression *)
   is_unknown : 'e -> bool;  (** whether an expression is [v] itself *)
-  leq : 'e -> 'e -> bool;  (** an ordering decided at no hypotheses *)
+  valid : 'e -> 'e -> bool;
+      (** an ordering holding at every instance ({!Entail.Make.SORT.valid}) *)
   join : 'e -> 'e -> 'e;  (** the join of two expressions *)
 }
 (** How the expressions of one sort are read for the unknown [v]. *)

@@ -126,42 +126,42 @@ module Make (X : GradeExp.S) : sig
     (** [value e] is the grade a variable-free [e] evaluates to, and [None] when
         [e] has a variable. *)
 
+    val is_atom : exp -> bool
+    (** [is_atom e] is whether [e] is a single atom of {!decide_leq}: a
+        variable, a constant or, on the resource side, the image of an effect
+        variable. *)
+
     val closed_leq : Grades.Grade.bounds -> exp -> exp -> bool option
     (** [closed_leq bounds e e'] decides [e ≾ e'] by the grade's order when both
         sides are variable-free, and is [None] otherwise. *)
-
-    val chains :
-      ?factors:bool ->
-      Grades.Grade.bounds ->
-      (exp, 'a) ordering list ->
-      (exp, 'a list) ordering list
-    (** [chains ~factors bounds os] is, for each pair of variable-free
-        expressions joined by a chain of two or more steps, expressions compared
-        syntactically, the ordering between them carrying the payloads of the
-        orderings of [os] along the chain. A step is an ordering of [os] or,
-        when [factors] (the default), a step from a factor to a side of [os]
-        whose normal form is a single product of two or more atoms, the other
-        factors being above the unit: from each atom, and from the product of
-        the constants, in order, when there are two or more. An atom is above
-        the unit when it is a constant above it, or a variable where the unit is
-        least, the variables of a resource image where the effect grade's unit
-        is, or a variable that the steps reach from a variable-free side of [os]
-        above the unit, the steps being computed again with the variables so
-        found until none is added. This last evidence is drawn from [os] alone,
-        and is sound only where the orderings of [os] hold together. *)
 
     val check_closed :
       ?factors:bool ->
       Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       ((exp, 'a) ordering list, (exp, 'a list) ordering) result
-    (** [check_closed ~factors bounds os] decides the variable-free orderings of
-        [os] and of {!chains}[ ~factors bounds os] by the grade's order. It is
-        [Error o] for the first of them that fails, [o.info] being the payloads
-        of the orderings it follows from, and otherwise [Ok] of the orderings of
-        [os] that have a variable. A failure refutes the conjunction of [os],
-        which are therefore conjuncts of a qualifier, not atoms of a disjunction
-        or of a quantified condition. *)
+    (** [check_closed ~factors bounds os] decides by the grade's order the
+        variable-free orderings of [os], and then the orderings between
+        variable-free expressions, compared syntactically, joined by a chain of
+        two or more steps. A step is an ordering of [os] or, when [factors] (the
+        default), a step from a factor to a side of [os] whose normal form is a
+        single product of two or more atoms, the other factors being above the
+        unit: from each atom, and from the product of the constants, in order,
+        when there are two or more. An atom is above the unit when it is a
+        constant above it, or a variable where the unit is least, the variables
+        of a resource image where the effect grade's unit is, or a variable that
+        the steps reach from a variable-free side of [os] above the unit, the
+        steps being computed again with the variables so found until none is
+        added. This last evidence is drawn from [os] alone, and is sound only
+        where the orderings of [os] hold together.
+
+        It is [Error o] for the first ordering that fails, the orderings of [os]
+        first, then the chains in the order of the sides and, for each pair, the
+        chain of {!Reach.chain}; [o.info] is the payloads of the orderings it
+        follows from. It is otherwise [Ok] of the orderings of [os] that have a
+        variable. A failure refutes the conjunction of [os], which are therefore
+        conjuncts of a qualifier, not atoms of a disjunction or of a quantified
+        condition. *)
 
     val refute_leq_unit : Grades.Grade.bounds -> exp -> const option
     (** [refute_leq_unit bounds e] is [Some c] when some alternative of the

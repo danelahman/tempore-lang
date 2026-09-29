@@ -9,6 +9,7 @@ module Make (C : Constraint.S) = struct
   module X = C.X
   module R = Residual.Make (C)
   module N = GradeNormal.Make (X)
+  module E = Entail.Make (X)
   module Rho_set = X.Rho_var.Set
   module Eps_set = X.Eps_var.Set
 
@@ -95,7 +96,7 @@ module Make (C : Constraint.S) = struct
 
   let free_hyps hyps = C.free_vars (R.hyps_to_constraint hyps)
 
-  let grades_of (hyps : hyps) : R.reason N.hyps =
+  let grades_of (hyps : hyps) : R.reason E.hyps =
     { rho_hyps = hyps.rho_hyps; eps_hyps = hyps.eps_hyps }
 
   let mem equal lhs rhs orderings =
@@ -103,24 +104,8 @@ module Make (C : Constraint.S) = struct
       (fun (o : _ GradeNormal.ordering) -> equal o.lhs lhs && equal o.rhs rhs)
       orderings
 
-  (* An ordering entailed: one of the hypotheses, or derived from them. Applied
-     to [context] and [grades] alone, the decision procedure of the hypotheses
-     is shared by the orderings decided. *)
-  let entails_rho context (grades : R.reason N.hyps) =
-    let bounds = context.Residual.bounds in
-    let decide = N.Rho.decide_leq bounds grades in
-    fun lhs rhs ->
-      mem (X.Rho.equal bounds) lhs rhs grades.rho_hyps
-      || N.Rho.closed_leq bounds lhs rhs = Some true
-      || Option.is_some (decide lhs rhs)
-
-  let entails_eps context (grades : R.reason N.hyps) =
-    let bounds = context.Residual.bounds in
-    let decide = N.Eps.decide_leq bounds grades in
-    fun lhs rhs ->
-      mem (X.Eps.equal bounds) lhs rhs grades.eps_hyps
-      || N.Eps.closed_leq bounds lhs rhs = Some true
-      || Option.is_some (decide lhs rhs)
+  (* The entailment from the grade orderings of [hyps]. *)
+  let entailment context hyps = E.make context.Residual.bounds (grades_of hyps)
 
   let rec same_ty context (a : C.ty) (b : C.ty) =
     match (a, b) with
@@ -258,45 +243,45 @@ module Make (C : Constraint.S) = struct
   (* Disjunctions                                                        *)
   (* ------------------------------------------------------------------ *)
 
-  let below_unit (d : R.disjunction) : R.rho_ordering =
-    { lhs = d.disj_grade; rhs = X.Rho.unit; info = d.disj_reason }
-
-  (* The hypotheses [acc] with the disjunction [d] settled against them. *)
-  let settle context (d : R.disjunction) (acc : hyps) =
-    if entails_rho context (grades_of acc) d.disj_grade X.Rho.unit then acc
-    else
-      match R.eternal_vars context d.disj_ty with
-      | None -> { acc with rho_hyps = acc.rho_hyps @ [ below_unit d ] }
-      | Some params ->
-          let entailed = eternal acc in
-          if List.for_all (fun a -> TyParamSet.mem a entailed) params then acc
-          else if
-            Option.is_some
-              (N.Rho.refute_leq_unit context.Residual.bounds d.disj_grade)
-          then
-            let atom a : R.eternal =
-              { eternal_ty = Ast.TyParam a; eternal_reason = d.disj_reason }
-            in
-            { acc with eternal_hyps = List.map atom params @ acc.eternal_hyps }
-          else { acc with disj_hyps = d :: acc.disj_hyps }
+  (* The hypotheses [acc], with [entail] their entailment, with the
+     disjunction [d] settled against them ({!Residual.Make.settle}). *)
+  let settle context (d : R.disjunction) (acc, entail) =
+    let entailed = lazy (eternal acc) in
+    let settling : R.settling =
+      {
+        below_unit = (fun rho -> E.Rho.entailed entail rho X.Rho.unit);
+        eternal = (fun a -> TyParamSet.mem a (Lazy.force entailed));
+        refute = true;
+      }
+    in
+    match R.settle context settling d with
+    | Drop -> (acc, entail)
+    | Below_unit o ->
+        let acc = { acc with rho_hyps = acc.rho_hyps @ [ o ] } in
+        (acc, entailment context acc)
+    | Eternal atoms ->
+        ({ acc with eternal_hyps = atoms @ acc.eternal_hyps }, entail)
+    | Keep -> ({ acc with disj_hyps = d :: acc.disj_hyps }, entail)
 
   (* The disjunctions entailed by another dropped: one of the same type with
      a grade entailed above. *)
-  let walk_disjunctions context (hyps : hyps) =
-    let entails = entails_rho context (grades_of hyps) in
+  let walk_disjunctions context entail (hyps : hyps) =
     let entailed ~seen ~rest (d : R.disjunction) =
       List.exists
         (fun (d' : R.disjunction) ->
           same_ty context d.disj_ty d'.disj_ty
-          && entails d.disj_grade d'.disj_grade)
+          && E.Rho.entailed entail d.disj_grade d'.disj_grade)
         (seen @ rest)
     in
     { hyps with disj_hyps = walk entailed hyps.disj_hyps }
 
   let settle_all context (hyps : hyps) =
-    walk_disjunctions context
-      (List.fold_right (settle context) hyps.disj_hyps
-         { hyps with disj_hyps = [] })
+    let acc = { hyps with disj_hyps = [] } in
+    let acc, entail =
+      List.fold_right (settle context) hyps.disj_hyps
+        (acc, entailment context acc)
+    in
+    walk_disjunctions context entail acc
 
   (* ------------------------------------------------------------------ *)
   (* Pruning and trimming                                                *)
@@ -342,10 +327,33 @@ module Make (C : Constraint.S) = struct
   let simplify context hyps =
     prune context (settle_all context (canon_hyps context hyps))
 
+  (* The orderings entailed by the others dropped in turn, as by {!walk}:
+     an ordering is dropped when it is one of the others or follows from the
+     entailment [make] of the others. Only the orderings between two atoms
+     serve the derivations, whose success does not depend on the order of the
+     hypotheses; an ordering that is not between atoms is decided by the
+     entailment of every ordering not dropped, shared until an ordering between
+     atoms is dropped. *)
+  let walk_entailed ~is_atom ~equal ~make ~follows orderings =
+    let rec go seen shared = function
+      | [] -> List.rev seen
+      | (o : _ GradeNormal.ordering) :: rest ->
+          let others = seen @ rest in
+          let atomic = is_atom o.lhs && is_atom o.rhs in
+          let entail = if atomic then lazy (make others) else shared in
+          if
+            mem equal o.lhs o.rhs others
+            || follows (Lazy.force entail) o.lhs o.rhs
+          then go seen (if atomic then entail else shared) rest
+          else go (o :: seen) shared rest
+    in
+    go [] (lazy (make orderings)) orderings
+
   (* Each atom entailed by the others dropped in turn; on the subtyping atoms
      a greedy minimal equivalent graph, the transitive reduction where they
      are acyclic (Aho, Garey and Ullman, SIAM J. Comput. 1972). *)
   let trim context hyps =
+    let bounds = context.Residual.bounds in
     let hyps = settle_all context hyps in
     let reached ~seen ~rest s =
       match edge s with
@@ -354,18 +362,14 @@ module Make (C : Constraint.S) = struct
     in
     let sub_vars = walk reached hyps.sub_vars in
     let eps_hyps =
-      walk
-        (fun ~seen ~rest (o : R.eps_ordering) ->
-          entails_eps context
-            { rho_hyps = []; eps_hyps = seen @ rest }
-            o.lhs o.rhs)
-        hyps.eps_hyps
+      walk_entailed ~is_atom:E.Eps.is_atom ~equal:(X.Eps.equal bounds)
+        ~make:(fun eps_hyps -> E.make bounds { rho_hyps = []; eps_hyps })
+        ~follows:E.Eps.follows hyps.eps_hyps
     in
     let rho_hyps =
-      walk
-        (fun ~seen ~rest (o : R.rho_ordering) ->
-          entails_rho context { rho_hyps = seen @ rest; eps_hyps } o.lhs o.rhs)
-        hyps.rho_hyps
+      walk_entailed ~is_atom:E.Rho.is_atom ~equal:(X.Rho.equal bounds)
+        ~make:(fun rho_hyps -> E.make bounds { rho_hyps; eps_hyps })
+        ~follows:E.Rho.follows hyps.rho_hyps
     in
     {
       hyps with
@@ -802,16 +806,13 @@ module Make (C : Constraint.S) = struct
   (* Elimination: tests                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  let decided_rho context = entails_rho context N.no_hyps
-  let decided_eps context = entails_eps context N.no_hyps
-
   let eps_sort context k : _ Bounds.sort =
     {
       equal = X.Eps.equal context.Residual.bounds;
       occurs = in_eps (Eps_unknown k);
       is_unknown =
         (function X.Eps_var k' -> X.Eps_var.equal k k' | _ -> false);
-      leq = decided_eps context;
+      valid = E.Eps.valid context.Residual.bounds;
       join = X.Eps.join;
     }
 
@@ -821,7 +822,7 @@ module Make (C : Constraint.S) = struct
       occurs = in_rho (Rho_unknown k);
       is_unknown =
         (function X.Rho_var k' -> X.Rho_var.equal k k' | _ -> false);
-      leq = decided_rho context;
+      valid = E.Rho.valid context.Residual.bounds;
       join = X.Rho.join;
     }
 
@@ -851,8 +852,7 @@ module Make (C : Constraint.S) = struct
     earlier : 'e -> bool option;
         (* for a variable, whether it is created before the unknown *)
     assign : 'e -> C.subst;
-    atomic : 'e -> bool;
-        (* whether an expression is a single atom of the decision procedure *)
+    atomic : 'e -> bool; (* whether an expression is a single atom *)
     unit : 'e;
     at_unit : atom -> bool;
         (* whether an atom bounds the unknown, its left side written
@@ -869,7 +869,7 @@ module Make (C : Constraint.S) = struct
       earlier =
         (function X.Eps_var j -> Some (X.Eps_var.compare j k < 0) | _ -> None);
       assign = assign_eps k;
-      atomic = (function X.Eps_var _ | X.Eps_const _ -> true | _ -> false);
+      atomic = E.Eps.is_atom;
       unit = X.Eps.unit;
       at_unit =
         (function
@@ -878,14 +878,14 @@ module Make (C : Constraint.S) = struct
             &&
             match N.Eps.canon bounds o.lhs with
             | X.Eps_var k' ->
-                X.Eps_var.equal k k' && decided_eps context o.rhs X.Eps.unit
+                X.Eps_var.equal k k' && E.Eps.decided bounds o.rhs X.Eps.unit
             | _ -> false)
         | Rho_atom o -> (
             X.GS.E.unit_least && X.GS.unit_reflecting
             &&
             match N.Rho.canon bounds o.lhs with
             | X.Rho_map (X.Eps_var k') ->
-                X.Eps_var.equal k k' && decided_rho context o.rhs X.Rho.unit
+                X.Eps_var.equal k k' && E.Rho.decided bounds o.rhs X.Rho.unit
             | _ -> false)
         | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false);
     }
@@ -900,10 +900,7 @@ module Make (C : Constraint.S) = struct
       earlier =
         (function X.Rho_var j -> Some (X.Rho_var.compare j k < 0) | _ -> None);
       assign = assign_rho k;
-      atomic =
-        (function
-        | X.Rho_var _ | X.Rho_const _ | X.Rho_map (X.Eps_var _) -> true
-        | _ -> false);
+      atomic = E.Rho.is_atom;
       unit = X.Rho.unit;
       at_unit =
         (function
@@ -912,7 +909,7 @@ module Make (C : Constraint.S) = struct
             &&
             match N.Rho.canon bounds o.lhs with
             | X.Rho_var k' ->
-                X.Rho_var.equal k k' && decided_rho context o.rhs X.Rho.unit
+                X.Rho_var.equal k k' && E.Rho.decided bounds o.rhs X.Rho.unit
             | _ -> false)
         | Eps_atom _ | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false);
     }
@@ -931,15 +928,14 @@ module Make (C : Constraint.S) = struct
     Int_set.of_list
       (List.map (fun (o : _ GradeNormal.ordering) -> o.info) orderings)
 
-  (* Whether an atom holds at every instance: a reflexive one, or an ordering
-     decided at no hypotheses. *)
+  (* Whether an atom holds at every instance: a valid ordering, or a
+     reflexive subtyping atom. *)
   let valid context atom =
-    is_reflexive context atom
-    ||
+    let bounds = context.Residual.bounds in
     match atom with
-    | Rho_atom o -> decided_rho context o.lhs o.rhs
-    | Eps_atom o -> decided_eps context o.lhs o.rhs
-    | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false
+    | Rho_atom o -> E.Rho.valid bounds o.lhs o.rhs
+    | Eps_atom o -> E.Eps.valid bounds o.lhs o.rhs
+    | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> is_reflexive context atom
 
   (* Whether a value for [u] is blocked: [pick] holds of the polarity of [u]
      in the reported type or in an atom other than [dropped] that does not
@@ -1118,28 +1114,31 @@ module Make (C : Constraint.S) = struct
       vertices
 
   (* The grade hypotheses, in order. *)
-  let grades st : R.reason N.hyps =
+  let grades st : R.reason E.hyps =
     Seq.fold_left
-      (fun (grades : R.reason N.hyps) atom ->
+      (fun (grades : R.reason E.hyps) atom ->
         match atom with
         | Rho_atom o -> { grades with rho_hyps = o :: grades.rho_hyps }
         | Eps_atom o -> { grades with eps_hyps = o :: grades.eps_hyps }
         | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> grades)
-      N.no_hyps
+      { rho_hyps = []; eps_hyps = [] }
       (Seq.map (fun (_, e) -> e.atom) (Int_map.to_rev_seq st.atoms))
 
   (* The test of [kind] at an unknown; for equating, the decision procedure
      of the hypotheses is shared by the unknowns tested. *)
   let test env kind st =
     let context = env.context in
-    let entails make = lazy (make context (grades st)) in
-    let eps = entails entails_eps and rho = entails entails_rho in
+    let entail = lazy (E.make context.Residual.bounds (grades st)) in
     fun u ->
       match (kind, u) with
       | Equate_eps, Eps_unknown k ->
-          equate (eps_grade context k) (fun a b -> Lazy.force eps a b) st
+          equate (eps_grade context k)
+            (fun a b -> E.Eps.entailed (Lazy.force entail) a b)
+            st
       | Equate_rho, Rho_unknown k ->
-          equate (rho_grade context k) (fun a b -> Lazy.force rho a b) st
+          equate (rho_grade context k)
+            (fun a b -> E.Rho.entailed (Lazy.force entail) a b)
+            st
       | Lower_eps, Eps_unknown k -> lower context (eps_grade context k) st
       | Lower_rho, Rho_unknown k -> lower context (rho_grade context k) st
       | Raise_eps, Eps_unknown k ->
@@ -1314,7 +1313,7 @@ module Make (C : Constraint.S) = struct
      unknowns of the atoms a step changes, adds or drops and of its value. A
      test reads the atoms of its unknown and the type alone, but for
      equating, which reads the chains of atomic orderings too
-     ({!GradeNormal.Make.SORT.decide_leq}), decisions being monotone in them.
+     ({!Entail.Make.SORT.derive}), decisions being monotone in them.
      At an unknown [v], lowering turns [x ≾ v ≾ y] into [x ≾ y] or drops it,
      raising turns [x ≾ v ≾ U] into [x ≾ U], equating with [b] turns [x ≾ v]
      into [x ≾ b] and [v ≾ y] into [b ≾ y], and steps drop orderings: no step

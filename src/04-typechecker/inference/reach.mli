@@ -1,34 +1,33 @@
-(** Reachability in a finite graph: the reflexive–transitive closure of a list
-    of labelled edges over a list of vertices, by Warshall's algorithm.
+(** Reachability in a finite graph.
 
-    The closure holds, for each pair of vertices, perhaps a chain of edge labels
-    joining them: the empty chain on the diagonal, a single edge where one joins
-    them, and, for each vertex [k] in turn, the concatenation of a chain to [k]
-    and one from [k] where no chain is known yet. The chain found is some chain,
-    not necessarily a shortest one. Completeness is not claimed. *)
+    {2 Numbered graphs}
 
-type ('v, 'e) t
-(** The closure over vertices of type ['v] and edge labels of type ['e]. *)
+    The vertices of a numbered graph are [0, …, n-1], and its edges carry
+    labels. A chain joining two vertices is the list of the labels of the edges
+    of a path from the one to the other. *)
 
-val closure :
-  equal:('v -> 'v -> bool) -> 'v list -> ('v * 'v * 'e) list -> ('v, 'e) t
-(** [closure ~equal vertices edges] is the closure of the edges
-    [(source, target, label)] over [vertices], vertices being compared by
-    [equal]. Edges with an end outside [vertices] are never followed. *)
+type 'e graph
+(** A graph over numbered vertices with edges labelled by ['e]. *)
 
-val reach : ('v, 'e) t -> 'v -> 'v -> 'e list option
-(** [reach closure a b] is a chain of labels joining [a] to [b], if the closure
-    has one; [None] also when [a] or [b] is not a vertex. *)
+val graph : int -> (int * int * 'e) list -> 'e graph
+(** [graph n edges] is the graph over the vertices [0, …, n-1] with the edges
+    [(source, target, label)], in order. *)
 
-val on_cycle : ('v, 'e) t -> 'v -> bool
-(** [on_cycle closure a] is whether another vertex is joined to [a] in both
-    directions. *)
+val reached : 'e graph -> int list -> int -> bool
+(** [reached g starts] is whether a vertex is reached from [starts] along the
+    edges, the starts included. Applied to [g] and [starts] alone, the vertices
+    reached are computed once, in time linear in the edges. *)
 
-val representative :
-  ('v, 'e) t -> 'v list -> 'v -> ('v * 'e list * 'e list) option
-(** [representative closure order a] is the first vertex [r] of [order] joined
-    to [a] in both directions, with the chains from [a] to [r] and from [r] to
-    [a]. *)
+val chain : 'e graph -> int -> int -> 'e list option
+(** [chain g i j] is the chain from [i] to [j] that the reflexive–transitive
+    closure of Warshall's algorithm assigns to the pair, taking the vertices as
+    pivots in increasing order: the empty chain when [i = j], the label of the
+    first edge from [i] to [j] where there is one, and otherwise the chain to
+    and from the least pivot through which the pair is joined. It is [None] when
+    [j] is not reached from [i]. It is computed for the pair alone, without the
+    closure. *)
+
+(** {2 Strongly connected components} *)
 
 val representatives :
   compare:('v -> 'v -> int) -> ('v * 'v) list -> 'v list -> 'v -> 'v option

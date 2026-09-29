@@ -600,6 +600,7 @@ module Core (S : BASE) = struct
   (* Closed orderings and refutation *)
 
   let value = S.value
+  let is_atom e = Option.is_some (S.as_atom e)
 
   let closed_leq bounds e e' =
     match (S.value e, S.value e') with
@@ -647,32 +648,20 @@ module Core (S : BASE) = struct
     in
     List.concat_map (fun (side, s) -> from_factors side s) sides
 
-  (* The vertices, numbered, and the successors of each along the edges. *)
-  let successors bounds vertices edges =
+  (* The expressions, numbered in order, and the graph of the edges between
+     them. *)
+  let number bounds (vertices, edges) =
     let vertices = Array.of_list vertices in
     let index e =
       Option.get (Array.find_index (fun v -> S.equal_exp bounds e v) vertices)
     in
-    let edges = List.map (fun (a, b, _) -> (index a, index b)) edges in
     ( vertices,
-      Array.init (Array.length vertices) (fun i ->
-          List.filter_map (fun (a, b) -> if a = i then Some b else None) edges)
-    )
-
-  (* The vertices reached from [starts], the starts included, by depth-first
-     search. *)
-  let reached successors starts =
-    let rec visit seen = function
-      | [] -> seen
-      | i :: rest when Int_set.mem i seen -> visit seen rest
-      | i :: rest -> visit (Int_set.add i seen) (successors.(i) @ rest)
-    in
-    visit Int_set.empty starts
+      Reach.graph (Array.length vertices)
+        (List.map (fun (a, b, label) -> (index a, index b, label)) edges) )
 
   (* The variables that are vertices reached along the edges from a
      variable-free vertex above the unit. *)
-  let vars_reached bounds vertices edges =
-    let vertices, successors = successors bounds vertices edges in
+  let vars_reached bounds (vertices, graph) =
     let starts =
       Array.to_seqi vertices
       |> Seq.filter_map (fun (i, e) ->
@@ -681,22 +670,21 @@ module Core (S : BASE) = struct
           | Some _ | None -> None)
       |> List.of_seq
     in
-    Int_set.fold
-      (fun i vs ->
-        match S.as_atom vertices.(i) with
-        | Some (Var v) -> v :: vs
-        | Some (Const _) | None -> vs)
-      (reached successors starts)
-      []
+    let reached = Reach.reached graph starts in
+    Array.to_seqi vertices
+    |> Seq.filter_map (fun (i, e) ->
+        match S.as_atom e with
+        | Some (Var v) when reached i -> Some v
+        | Some (Var _ | Const _) | None -> None)
+    |> List.of_seq
 
-  (* The graph of the orderings, for the transitive closure over it. Its
-     vertices are the sides of the orderings and the sources of the factor
-     edges, each once, compared syntactically. Its edges are the orderings,
-     each labelled with its payload, followed, when [factors], by the
-     {!factor_edges} of the sides. A variable is taken to be above the unit
-     also when the graph reaches it from a variable-free vertex above the unit
-     ({!vars_reached}); the graph is built again with the variables so found
-     until no variable is added. *)
+  (* The graph of the orderings. Its vertices are the sides of the orderings
+     and the sources of the factor edges, each once, compared syntactically.
+     Its edges are the orderings, each labelled with its payload, followed,
+     when [factors], by the {!factor_edges} of the sides. A variable is taken
+     to be above the unit also when the graph reaches it from a variable-free
+     vertex above the unit ({!vars_reached}); the graph is built again with the
+     variables so found until no variable is added. *)
   let graph ~factors bounds orderings =
     let equal = S.equal_exp bounds in
     let insert e es = if List.exists (equal e) es then es else e :: es in
@@ -716,63 +704,53 @@ module Core (S : BASE) = struct
             if List.exists (equal a) vs then vs else vs @ [ a ])
           sides steps
       in
-      (vertices, hyps @ steps)
+      number bounds (vertices, hyps @ steps)
     in
     let rec grow above =
-      let ((vertices, edges) as graph) = build above in
-      let above' = vars_reached bounds vertices edges in
+      let graph = build above in
+      let above' = vars_reached bounds graph in
       if List.compare_lengths above' above > 0 then grow above' else graph
     in
     if factors && not S.unit_least then grow [] else build []
 
-  let chains ?(factors = true) bounds orderings =
-    let vertices, edges = graph ~factors bounds orderings in
-    let closure = Reach.closure ~equal:(S.equal_exp bounds) vertices edges in
-    let closed = List.filter (fun e -> Option.is_some (S.value e)) vertices in
-    List.concat_map
-      (fun lhs ->
-        List.filter_map
-          (fun rhs ->
-            match Reach.reach closure lhs rhs with
-            | Some (_ :: _ :: _ as labels) ->
-                Some { lhs; rhs; info = List.concat labels }
-            | Some ([] | [ _ ]) | None -> None)
+  (* The first ordering between two variable-free vertices of the {!graph},
+     in the order of the vertices of the left side and then of the right side,
+     that fails and joins them by a chain of two or more steps, the chain of
+     {!Reach.chain}, with the payloads along it. The vertices reached from
+     each variable-free vertex are found by one search. *)
+  let failing_chain ~factors bounds orderings =
+    let vertices, graph = graph ~factors bounds orderings in
+    let closed =
+      Array.to_seqi vertices
+      |> Seq.filter_map (fun (i, e) -> Option.map (fun c -> (i, c)) (S.value e))
+      |> List.of_seq
+    in
+    List.find_map
+      (fun (i, c) ->
+        let reached = Reach.reached graph [ i ] in
+        List.find_map
+          (fun (j, c') ->
+            if j <> i && reached j && not (S.leq bounds c c') then
+              match Reach.chain graph i j with
+              | Some (_ :: _ :: _ as labels) ->
+                  Some
+                    {
+                      lhs = vertices.(i);
+                      rhs = vertices.(j);
+                      info = List.concat labels;
+                    }
+              | Some ([] | [ _ ]) | None -> None
+            else None)
           closed)
       closed
-
-  (* Whether some variable-free vertex of the {!graph} of the orderings reaches
-     along its edges another that it is not below. Where no ordering between
-     variable-free sides fails, this is whether some chain of {!chains} fails,
-     decided by reachability alone. *)
-  let chain_fails ~factors bounds orderings =
-    let vertices, edges = graph ~factors bounds orderings in
-    let vertices, successors = successors bounds vertices edges in
-    let fails_from i c =
-      Int_set.exists
-        (fun j ->
-          j <> i
-          &&
-          match S.value vertices.(j) with
-          | Some c' -> not (S.leq bounds c c')
-          | None -> false)
-        (reached successors [ i ])
-    in
-    Seq.exists
-      (fun (i, v) ->
-        match S.value v with Some c -> fails_from i c | None -> false)
-      (Array.to_seqi vertices)
 
   let check_closed ?(factors = true) bounds orderings =
     let fails o = closed_leq bounds o.lhs o.rhs = Some false in
     let direct = List.map (fun o -> { o with info = [ o.info ] }) orderings in
-    let failure =
-      match List.find_opt fails direct with
-      | Some failure -> Some failure
-      | None when chain_fails ~factors bounds orderings ->
-          List.find_opt fails (chains ~factors bounds orderings)
-      | None -> None
-    in
-    match failure with
+    match
+      List.find_opt fails direct <|> fun () ->
+      failing_chain ~factors bounds orderings
+    with
     | Some failure -> Error failure
     | None ->
         Ok
@@ -825,13 +803,8 @@ module Make (X : GradeExp.S) = struct
       Grades.Grade.bounds -> (exp, 'a) ordering list -> (exp, 'a) ordering list
 
     val value : exp -> const option
+    val is_atom : exp -> bool
     val closed_leq : Grades.Grade.bounds -> exp -> exp -> bool option
-
-    val chains :
-      ?factors:bool ->
-      Grades.Grade.bounds ->
-      (exp, 'a) ordering list ->
-      (exp, 'a list) ordering list
 
     val check_closed :
       ?factors:bool ->

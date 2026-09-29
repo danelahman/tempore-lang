@@ -167,6 +167,40 @@ module Make (C : Constraint.S) : sig
       depends on, without repetition, and [None] when [ty] is eternal at no
       instance. *)
 
+  (** {1 Disjunctions} *)
+
+  type settling = {
+    below_unit : rho -> bool;
+        (** whether a grade is decided below the unit at this stage *)
+    eternal : Ast.ty_param -> bool;
+        (** whether a type unknown is entailed eternal at this stage *)
+    refute : bool;
+        (** whether a grade refuted below the unit by the zero-product law
+            ({!Entail.Make.SORT.refute_leq_unit}) settles the disjunction by
+            eternality *)
+  }
+  (** The evidence a stage of solving settles disjunctions with. *)
+
+  (** The outcome of settling a disjunction [Et(A) ∨ ρ ≾ 1]. *)
+  type settled =
+    | Drop  (** it holds *)
+    | Below_unit of rho_ordering  (** it is equivalent to [ρ ≾ 1] *)
+    | Eternal of eternal list
+        (** it is equivalent to the eternality of these type unknowns *)
+    | Keep  (** it is not settled *)
+
+  val by_grade : (rho -> bool) -> settling
+  (** [by_grade below_unit] settles by [below_unit] alone: no type unknown is
+      taken to be eternal, and no grade refuted below the unit. *)
+
+  val settle : context -> settling -> disjunction -> settled
+  (** [settle context s d] settles [d]: dropped when its grade is below the unit
+      by [s.below_unit]; its grade below the unit when its type is never
+      eternal; dropped when the type unknowns its type's eternality depends on
+      are all eternal by [s.eternal], in particular when there are none; their
+      eternality when [s.refute] and its grade is refuted below the unit; and
+      kept otherwise. *)
+
   val push_rho : context -> rho_ordering -> t -> (t, failure) result
   (** [push_rho context o r] adds [o] to [r]; when [o] is variable-free it is
       dropped when true and refuting when false. *)
@@ -220,9 +254,9 @@ module Make (C : Constraint.S) : sig
       chains run along the hypotheses and, when [factors] (the default), from a
       factor of a product to the product when the other factors are above the
       unit, by the grade or along the grade orderings of [hyps]
-      ({!GradeNormal.Make.SORT.chains}); the disjunctions of [hyps] do not serve
-      as evidence. It is the hypotheses less those decided true, or the failure
-      of the first decided false. *)
+      ({!Entail.Make.check_closed}); the disjunctions of [hyps] do not serve as
+      evidence. It is the hypotheses less those decided true, or the failure of
+      the first decided false. *)
 
   val hyps_to_constraint : hyps -> C.t
   (** [hyps_to_constraint hyps] is the conjunction of the atoms of [hyps]. *)

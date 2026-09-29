@@ -14,6 +14,7 @@ module Make (C : Inference.Constraint.S) = struct
   module RS = Inference.RigidScope.Make (C)
   module S = Inference.Solver.Make (C)
   module N = Inference.GradeNormal.Make (X)
+  module E = Inference.Entail.Make (X)
 
   type source = {
     context : S.context;
@@ -1395,7 +1396,7 @@ module Make (C : Inference.Constraint.S) = struct
   (* The failing ordering of a use or an unboxing, at the grade [total]
      accumulated since the binding where it alone fails. *)
   let at_accumulated p (f : C.rho refutation) total =
-    match (f.rigids, N.Rho.closed_leq p.bounds total (snd f.instance)) with
+    match (f.rigids, E.Rho.closed p.bounds total (snd f.instance)) with
     | [], Some false ->
         {
           f with
