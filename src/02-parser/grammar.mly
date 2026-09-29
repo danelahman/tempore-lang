@@ -521,7 +521,7 @@ sum_case:
     { (lbl, Some t) }
 
 (* The runtime bounds an operation declares; [within n] is sugar for
-   [within (n, n)]. Only the timed-trace grading monoids read them. *)
+   [within (n, n)]. Only the trace grading monoids read them. *)
 op_bounds:
   | WITHIN n = INT
     { let n = small ~loc:(Location.of_lexing $startpos(n) $endpos(n)) "Bound" n in

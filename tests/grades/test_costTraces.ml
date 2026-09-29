@@ -5,7 +5,7 @@
    derivatives by letters and by derivatives over single letters, the
    membership of short runs in the closures against a search of the runs of
    the greater language, the laws of the orders on samples, the embedding of
-   the finite timed-trace grades, and examples of the closed world, of zero
+   the finite trace grades, and examples of the closed world, of zero
    costs, of the laws that hold up to equivalence, of the literals and of the
    grades without runs; the agreement of the implementations on random
    grades and cost models, in their verdicts and their printing; long runs of
@@ -264,7 +264,7 @@ let agree tables (module F : Grade.S) (module G : Grade.S) lits =
     tables
 
 (* [embeds (module Upper) (module Lower) (module Interval) tables lits] checks
-   that the cost-model grades embed the timed-trace grades on the finite
+   that the cost-model grades embed the trace grades on the finite
    literals [lits], and on the pairs of them as intervals. *)
 let embeds (module Upper : Grade.S) (module Lower : Grade.S)
     (module Interval : Grade.S) tables lits =
@@ -448,7 +448,7 @@ module Suite (I : IMPLEMENTATION) = struct
           tables;
       ]
 
-  (* {2 (d) Embedding of the finite timed-trace grades} *)
+  (* {2 (d) Embedding of the finite trace grades} *)
 
   let embedding =
     let state = Random.State.make [| 13 |] in
@@ -709,16 +709,16 @@ let plain_inhabited =
     Grade.Braces (Grade.Inter (Grade.Any, Grade.Compl (Grade.Tick 1)))
   in
   [
-    holds "traces-regex: inhabited"
+    holds "regex-upper-bound: inhabited"
       (Grades.RegularTraceGrade.inhabited none
          (Grades.RegularTraceGrade.of_lit lit));
-    holds "traces-regex-symbolic: inhabited"
+    holds "regex-upper-bound-symbolic: inhabited"
       (Grades.RegularTraceGradeDerivative.inhabited none
          (Grades.RegularTraceGradeDerivative.of_lit lit));
-    holds "traces-regex-derivatives: inhabited"
+    holds "regex-upper-bound-derivatives: inhabited"
       (Grades.RegularTraceGradeDerivative.Concrete.inhabited none
          (Grades.RegularTraceGradeDerivative.Concrete.of_lit lit));
-    holds "traces-regex-plain: inhabited"
+    holds "regex-upper-bound-plain: inhabited"
       (Grades.RegularTraceGradePlain.inhabited none
          (Grades.RegularTraceGradePlain.of_lit lit));
   ]
@@ -809,7 +809,7 @@ module LongDerivatives = Long (Derivatives)
 module LongByLetters = Long (ByLetters)
 module LongPlain = Long (Plain)
 
-(* The implementations by derivatives embed the finite timed-trace grades,
+(* The implementations by derivatives embed the finite trace grades,
    whose delays are numbers, on delays of up to 10⁴ ticks; they agree with each
    other on random grades over delays of up to 300 ticks, in their verdicts and
    the lengths of their counterexamples, and with the automata on delays of up

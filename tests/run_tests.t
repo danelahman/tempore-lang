@@ -44,12 +44,12 @@
   >     literals_reject_star.tpe) ../tempore --grades traces-upper-bound $f;;
   >     literals_reject_component.tpe) ../tempore --grades time-lower-bound-levels $f;;
   >     literals_reject_complement.tpe) ../tempore --grades traces-upper-bound $f;;
-  >     literals_reject_empty.tpe) ../tempore --grades traces-regex-symbolic $f;;
-  >     literals_regular.tpe) ../tempore --grades traces-regex-symbolic $f;;
-  >     regular_*.tpe) ../tempore --grades traces-regex-symbolic $f;;
-  >     regex_costs_lower*.tpe) ../tempore --grades traces-regex-lower-symbolic $f;;
-  >     regex_costs_upper*.tpe) ../tempore --grades traces-regex-upper-symbolic $f;;
-  >     regex_costs_interval*.tpe) ../tempore --grades traces-regex-interval-symbolic $f;;
+  >     literals_reject_empty.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
+  >     literals_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
+  >     regular_*.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
+  >     regex_costs_lower*.tpe) ../tempore --grades regex-cost-lower-bound-symbolic $f;;
+  >     regex_costs_upper*.tpe) ../tempore --grades regex-cost-upper-bound-symbolic $f;;
+  >     regex_costs_interval*.tpe) ../tempore --grades regex-cost-interval-symbolic $f;;
   >     peak_*.tpe) ../tempore --grades peak-usage $f;;
   >     literals_reject_peak.tpe) ../tempore --grades peak-usage $f;;
   >     windows*.tpe) ../tempore --grades time-windows $f;;
@@ -62,7 +62,7 @@
   >     literals_reject_modes.tpe) ../tempore --grades mode-costs $f;;
   >     recursion_lock_lower.tpe) ../tempore $f;;
   >     recursion_lock*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     recursion_effect_regular.tpe) ../tempore --grades traces-regex-symbolic $f;;
+  >     recursion_effect_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
   >     recursion_effect_levels.tpe) ../tempore --grades security-levels $f;;
   >     recursion_effect_reject_lower.tpe) ../tempore $f;;
   >     recursion_effect_*.tpe) ../tempore --grades time-upper-bound $f;;
@@ -1505,7 +1505,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic', 'traces-regex-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1832,7 +1832,7 @@
   File "literals_reject_complement.tpe", line 4, characters 19-32:
   4 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic' or 'traces-regex-interval-symbolic' grading monoids?
+  Syntax error: in the 'traces-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -1853,7 +1853,7 @@
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'traces-regex-symbolic' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: in the 'regex-upper-bound-symbolic' grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_reject_flow.tpe
   ======================================================================
@@ -1937,7 +1937,7 @@
   File "literals_reject_star.tpe", line 3, characters 19-31:
   3 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of timed traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'traces-regex', 'traces-regex-symbolic', 'traces-regex-lower', 'traces-regex-upper', 'traces-regex-interval', 'traces-regex-lower-symbolic', 'traces-regex-upper-symbolic' or 'traces-regex-interval-symbolic' grading monoids?
+  Syntax error: in the 'traces-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -1951,7 +1951,7 @@
   File "literals_reject_windows.tpe", line 3, characters 19-27:
   3 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-interval', 'traces-regex-interval' or 'traces-regex-interval-symbolic' grading monoids?
+  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-interval', 'regex-cost-interval' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
   literals_time_interval.tpe
   ======================================================================
@@ -3362,7 +3362,7 @@
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `traces-regex-symbolic` grading monoid
+  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe
   ======================================================================
@@ -4240,7 +4240,7 @@
   File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `time-lower-bound` grading monoid
+  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `time-lower-bound` grading monoid
   ======================================================================
   time_upper.tpe
   ======================================================================
@@ -4643,26 +4643,26 @@
     Note: the effect inequality `(1,(Send,{0})) <= (1,(Recv,{0}))` does not hold
 
 The programs of the regular trace grade, run above under its implementation
-by symbolic derivatives, 'traces-regex-symbolic', under its implementation by
-automata, 'traces-regex':
+by symbolic derivatives, 'regex-upper-bound-symbolic', under its implementation by
+automata, 'regex-upper-bound':
 
   $ for f in literals_reject_empty.tpe literals_regular.tpe regular_*.tpe
   > do
   >   echo "======================================================================"
-  >   echo "$f (traces-regex)"
+  >   echo "$f (regex-upper-bound)"
   >   echo "======================================================================"
-  >   ../tempore --grades traces-regex $f
+  >   ../tempore --grades regex-upper-bound $f
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
-  literals_reject_empty.tpe (traces-regex)
+  literals_reject_empty.tpe (regex-upper-bound)
   ======================================================================
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'traces-regex' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: in the 'regex-upper-bound' grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
-  literals_regular.tpe (traces-regex)
+  literals_regular.tpe (regex-upper-bound)
   ======================================================================
   === Run 1 ===
   return 0
@@ -4737,7 +4737,7 @@ automata, 'traces-regex':
   ]
   
   ======================================================================
-  regular_auth.tpe (traces-regex)
+  regular_auth.tpe (regex-upper-bound)
   ======================================================================
   === Run 1 ===
   return 42
@@ -4747,10 +4747,10 @@ automata, 'traces-regex':
   ]
   
   ======================================================================
-  regular_protocol.tpe (traces-regex)
+  regular_protocol.tpe (regex-upper-bound)
   ======================================================================
   ======================================================================
-  regular_reject_auth.tpe (traces-regex)
+  regular_reject_auth.tpe (regex-upper-bound)
   ======================================================================
   File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
   15 |   unbox t as tok in
@@ -4798,14 +4798,14 @@ automata, 'traces-regex':
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
-  regular_reject_bounds.tpe (traces-regex)
+  regular_reject_bounds.tpe (regex-upper-bound)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `traces-regex` grading monoid
+  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound` grading monoid
   ======================================================================
-  regular_reject_counterexample.tpe (traces-regex)
+  regular_reject_counterexample.tpe (regex-upper-bound)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
   13 | let session (b : bool) : nat # {Open; Read*; Close} =
@@ -4829,7 +4829,7 @@ automata, 'traces-regex':
     Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
     Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
   ======================================================================
-  regular_reject_protocol.tpe (traces-regex)
+  regular_reject_protocol.tpe (regex-upper-bound)
   ======================================================================
   File "regular_reject_protocol.tpe", line 16, characters 6-23:
   16 |       continue k with x
@@ -4866,9 +4866,9 @@ automata:
   $ for f in regex_costs_*.tpe
   > do
   >   case $f in
-  >     regex_costs_lower*.tpe) grades=traces-regex-lower;;
-  >     regex_costs_upper*.tpe) grades=traces-regex-upper;;
-  >     regex_costs_interval*.tpe) grades=traces-regex-interval;;
+  >     regex_costs_lower*.tpe) grades=regex-cost-lower-bound;;
+  >     regex_costs_upper*.tpe) grades=regex-cost-upper-bound;;
+  >     regex_costs_interval*.tpe) grades=regex-cost-interval;;
   >   esac
   >   echo "======================================================================"
   >   echo "$f ($grades)"
@@ -4877,7 +4877,7 @@ automata:
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
-  regex_costs_interval.tpe (traces-regex-interval)
+  regex_costs_interval.tpe (regex-cost-interval)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -4887,7 +4887,7 @@ automata:
   ]
   
   ======================================================================
-  regex_costs_interval_reject.tpe (traces-regex-interval)
+  regex_costs_interval_reject.tpe (regex-cost-interval)
   ======================================================================
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
@@ -4917,7 +4917,7 @@ automata:
     grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
     Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
   ======================================================================
-  regex_costs_interval_runs_reject.tpe (traces-regex-interval)
+  regex_costs_interval_runs_reject.tpe (regex-cost-interval)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
@@ -4929,7 +4929,7 @@ automata:
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
   ======================================================================
-  regex_costs_lower.tpe (traces-regex-lower)
+  regex_costs_lower.tpe (regex-cost-lower-bound)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -4941,7 +4941,7 @@ automata:
   ]
   
   ======================================================================
-  regex_costs_lower_reject.tpe (traces-regex-lower)
+  regex_costs_lower_reject.tpe (regex-cost-lower-bound)
   ======================================================================
   File "regex_costs_lower_reject.tpe", lines 15-16, characters 2-5:
   15 |   unbox t as tok in
@@ -4990,14 +4990,14 @@ automata:
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
   ======================================================================
-  regex_costs_lower_runs_reject.tpe (traces-regex-lower)
+  regex_costs_lower_runs_reject.tpe (regex-cost-lower-bound)
   ======================================================================
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
   ======================================================================
-  regex_costs_upper.tpe (traces-regex-upper)
+  regex_costs_upper.tpe (regex-cost-upper-bound)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -5007,7 +5007,7 @@ automata:
   ]
   
   ======================================================================
-  regex_costs_upper_reject.tpe (traces-regex-upper)
+  regex_costs_upper_reject.tpe (regex-cost-upper-bound)
   ======================================================================
   File "regex_costs_upper_reject.tpe", lines 14-15, characters 2-5:
   14 |   unbox t as tok in
@@ -5062,7 +5062,7 @@ automata:
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
-  regex_costs_upper_runs.tpe (traces-regex-upper)
+  regex_costs_upper_runs.tpe (regex-cost-upper-bound)
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -5072,7 +5072,7 @@ automata:
   ]
   
   ======================================================================
-  regex_costs_upper_runs_reject.tpe (traces-regex-upper)
+  regex_costs_upper_runs_reject.tpe (regex-cost-upper-bound)
   ======================================================================
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
@@ -5099,10 +5099,10 @@ above:
   >   literals_reject_empty.tpe literals_regular.tpe regular_*.tpe regex_costs_*.tpe
   > do
   >   case $f in
-  >     *costs_lower*.tpe) grades=traces-regex-lower;;
-  >     *costs_upper*.tpe) grades=traces-regex-upper;;
-  >     *costs_interval*.tpe) grades=traces-regex-interval;;
-  >     *) grades=traces-regex;;
+  >     *costs_lower*.tpe) grades=regex-cost-lower-bound;;
+  >     *costs_upper*.tpe) grades=regex-cost-upper-bound;;
+  >     *costs_interval*.tpe) grades=regex-cost-interval;;
+  >     *) grades=regex-upper-bound;;
   >   esac
   >   for variant in derivatives plain
   >   do
@@ -5114,7 +5114,7 @@ above:
   >   done
   > done
   ======================================================================
-  ../examples/regular/regular_traces.tpe (traces-regex-derivatives)
+  ../examples/regular/regular_traces.tpe (regex-upper-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return "settled"
@@ -5124,7 +5124,7 @@ above:
   ]
   
   ======================================================================
-  ../examples/regular/regular_traces.tpe (traces-regex-plain)
+  ../examples/regular/regular_traces.tpe (regex-upper-bound-plain)
   ======================================================================
   === Run 1 ===
   return "settled"
@@ -5134,7 +5134,7 @@ above:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_intervals.tpe (traces-regex-interval-derivatives)
+  ../examples/regular_costs/regular_costs_intervals.tpe (regex-cost-interval-derivatives)
   ======================================================================
   === Run 1 ===
   return ()
@@ -5146,7 +5146,7 @@ above:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_intervals.tpe (traces-regex-interval-plain)
+  ../examples/regular_costs/regular_costs_intervals.tpe (regex-cost-interval-plain)
   ======================================================================
   === Run 1 ===
   return ()
@@ -5158,7 +5158,7 @@ above:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_lower.tpe (traces-regex-lower-derivatives)
+  ../examples/regular_costs/regular_costs_lower.tpe (regex-cost-lower-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return (Part "gear")
@@ -5170,7 +5170,7 @@ above:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_lower.tpe (traces-regex-lower-plain)
+  ../examples/regular_costs/regular_costs_lower.tpe (regex-cost-lower-bound-plain)
   ======================================================================
   === Run 1 ===
   return (Part "gear")
@@ -5182,7 +5182,7 @@ above:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_upper.tpe (traces-regex-upper-derivatives)
+  ../examples/regular_costs/regular_costs_upper.tpe (regex-cost-upper-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return (Reading 0)
@@ -5194,7 +5194,7 @@ above:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_upper.tpe (traces-regex-upper-plain)
+  ../examples/regular_costs/regular_costs_upper.tpe (regex-cost-upper-bound-plain)
   ======================================================================
   === Run 1 ===
   return (Reading 0)
@@ -5206,21 +5206,21 @@ above:
   ]
   
   ======================================================================
-  literals_reject_empty.tpe (traces-regex-derivatives)
+  literals_reject_empty.tpe (regex-upper-bound-derivatives)
   ======================================================================
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'traces-regex-derivatives' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: in the 'regex-upper-bound-derivatives' grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
-  literals_reject_empty.tpe (traces-regex-plain)
+  literals_reject_empty.tpe (regex-upper-bound-plain)
   ======================================================================
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'traces-regex-plain' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: in the 'regex-upper-bound-plain' grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
-  literals_regular.tpe (traces-regex-derivatives)
+  literals_regular.tpe (regex-upper-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return 0
@@ -5295,7 +5295,7 @@ above:
   ]
   
   ======================================================================
-  literals_regular.tpe (traces-regex-plain)
+  literals_regular.tpe (regex-upper-bound-plain)
   ======================================================================
   === Run 1 ===
   return 0
@@ -5370,7 +5370,7 @@ above:
   ]
   
   ======================================================================
-  regular_auth.tpe (traces-regex-derivatives)
+  regular_auth.tpe (regex-upper-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return 42
@@ -5380,7 +5380,7 @@ above:
   ]
   
   ======================================================================
-  regular_auth.tpe (traces-regex-plain)
+  regular_auth.tpe (regex-upper-bound-plain)
   ======================================================================
   === Run 1 ===
   return 42
@@ -5390,13 +5390,13 @@ above:
   ]
   
   ======================================================================
-  regular_protocol.tpe (traces-regex-derivatives)
+  regular_protocol.tpe (regex-upper-bound-derivatives)
   ======================================================================
   ======================================================================
-  regular_protocol.tpe (traces-regex-plain)
+  regular_protocol.tpe (regex-upper-bound-plain)
   ======================================================================
   ======================================================================
-  regular_reject_auth.tpe (traces-regex-derivatives)
+  regular_reject_auth.tpe (regex-upper-bound-derivatives)
   ======================================================================
   File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
   15 |   unbox t as tok in
@@ -5444,7 +5444,7 @@ above:
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
-  regular_reject_auth.tpe (traces-regex-plain)
+  regular_reject_auth.tpe (regex-upper-bound-plain)
   ======================================================================
   File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
   15 |   unbox t as tok in
@@ -5492,21 +5492,21 @@ above:
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
-  regular_reject_bounds.tpe (traces-regex-derivatives)
+  regular_reject_bounds.tpe (regex-upper-bound-derivatives)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `traces-regex-derivatives` grading monoid
+  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-derivatives` grading monoid
   ======================================================================
-  regular_reject_bounds.tpe (traces-regex-plain)
+  regular_reject_bounds.tpe (regex-upper-bound-plain)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the timed-trace grading monoids and must not be declared under the `traces-regex-plain` grading monoid
+  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-plain` grading monoid
   ======================================================================
-  regular_reject_counterexample.tpe (traces-regex-derivatives)
+  regular_reject_counterexample.tpe (regex-upper-bound-derivatives)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
   13 | let session (b : bool) : nat # {Open; Read*; Close} =
@@ -5530,7 +5530,7 @@ above:
     Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
     Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
   ======================================================================
-  regular_reject_counterexample.tpe (traces-regex-plain)
+  regular_reject_counterexample.tpe (regex-upper-bound-plain)
   ======================================================================
   File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
   13 | let session (b : bool) : nat # {Open; Read*; Close} =
@@ -5554,7 +5554,7 @@ above:
     Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
     Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
   ======================================================================
-  regular_reject_protocol.tpe (traces-regex-derivatives)
+  regular_reject_protocol.tpe (regex-upper-bound-derivatives)
   ======================================================================
   File "regular_reject_protocol.tpe", line 16, characters 6-23:
   16 |       continue k with x
@@ -5584,7 +5584,7 @@ above:
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
   ======================================================================
-  regular_reject_protocol.tpe (traces-regex-plain)
+  regular_reject_protocol.tpe (regex-upper-bound-plain)
   ======================================================================
   File "regular_reject_protocol.tpe", line 16, characters 6-23:
   16 |       continue k with x
@@ -5614,7 +5614,7 @@ above:
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
   ======================================================================
-  regex_costs_interval.tpe (traces-regex-interval-derivatives)
+  regex_costs_interval.tpe (regex-cost-interval-derivatives)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -5624,7 +5624,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_interval.tpe (traces-regex-interval-plain)
+  regex_costs_interval.tpe (regex-cost-interval-plain)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -5634,7 +5634,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_interval_reject.tpe (traces-regex-interval-derivatives)
+  regex_costs_interval_reject.tpe (regex-cost-interval-derivatives)
   ======================================================================
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
@@ -5664,7 +5664,7 @@ above:
     grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
     Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
   ======================================================================
-  regex_costs_interval_reject.tpe (traces-regex-interval-plain)
+  regex_costs_interval_reject.tpe (regex-cost-interval-plain)
   ======================================================================
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
@@ -5694,7 +5694,7 @@ above:
     grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
     Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
   ======================================================================
-  regex_costs_interval_runs_reject.tpe (traces-regex-interval-derivatives)
+  regex_costs_interval_runs_reject.tpe (regex-cost-interval-derivatives)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
@@ -5706,7 +5706,7 @@ above:
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
   ======================================================================
-  regex_costs_interval_runs_reject.tpe (traces-regex-interval-plain)
+  regex_costs_interval_runs_reject.tpe (regex-cost-interval-plain)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
@@ -5718,7 +5718,7 @@ above:
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
   ======================================================================
-  regex_costs_lower.tpe (traces-regex-lower-derivatives)
+  regex_costs_lower.tpe (regex-cost-lower-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -5730,7 +5730,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_lower.tpe (traces-regex-lower-plain)
+  regex_costs_lower.tpe (regex-cost-lower-bound-plain)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -5742,7 +5742,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_lower_reject.tpe (traces-regex-lower-derivatives)
+  regex_costs_lower_reject.tpe (regex-cost-lower-bound-derivatives)
   ======================================================================
   File "regex_costs_lower_reject.tpe", lines 15-16, characters 2-5:
   15 |   unbox t as tok in
@@ -5791,7 +5791,7 @@ above:
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
   ======================================================================
-  regex_costs_lower_reject.tpe (traces-regex-lower-plain)
+  regex_costs_lower_reject.tpe (regex-cost-lower-bound-plain)
   ======================================================================
   File "regex_costs_lower_reject.tpe", lines 15-16, characters 2-5:
   15 |   unbox t as tok in
@@ -5840,21 +5840,21 @@ above:
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
   ======================================================================
-  regex_costs_lower_runs_reject.tpe (traces-regex-lower-derivatives)
+  regex_costs_lower_runs_reject.tpe (regex-cost-lower-bound-derivatives)
   ======================================================================
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
   ======================================================================
-  regex_costs_lower_runs_reject.tpe (traces-regex-lower-plain)
+  regex_costs_lower_runs_reject.tpe (regex-cost-lower-bound-plain)
   ======================================================================
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
   ======================================================================
-  regex_costs_upper.tpe (traces-regex-upper-derivatives)
+  regex_costs_upper.tpe (regex-cost-upper-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -5864,7 +5864,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_upper.tpe (traces-regex-upper-plain)
+  regex_costs_upper.tpe (regex-cost-upper-bound-plain)
   ======================================================================
   === Run 1 ===
   return (Token "t")
@@ -5874,7 +5874,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_upper_reject.tpe (traces-regex-upper-derivatives)
+  regex_costs_upper_reject.tpe (regex-cost-upper-bound-derivatives)
   ======================================================================
   File "regex_costs_upper_reject.tpe", lines 14-15, characters 2-5:
   14 |   unbox t as tok in
@@ -5929,7 +5929,7 @@ above:
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
-  regex_costs_upper_reject.tpe (traces-regex-upper-plain)
+  regex_costs_upper_reject.tpe (regex-cost-upper-bound-plain)
   ======================================================================
   File "regex_costs_upper_reject.tpe", lines 14-15, characters 2-5:
   14 |   unbox t as tok in
@@ -5984,7 +5984,7 @@ above:
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
-  regex_costs_upper_runs.tpe (traces-regex-upper-derivatives)
+  regex_costs_upper_runs.tpe (regex-cost-upper-bound-derivatives)
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -5994,7 +5994,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_upper_runs.tpe (traces-regex-upper-plain)
+  regex_costs_upper_runs.tpe (regex-cost-upper-bound-plain)
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -6004,7 +6004,7 @@ above:
   ]
   
   ======================================================================
-  regex_costs_upper_runs_reject.tpe (traces-regex-upper-derivatives)
+  regex_costs_upper_runs_reject.tpe (regex-cost-upper-bound-derivatives)
   ======================================================================
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
@@ -6021,7 +6021,7 @@ above:
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
   ======================================================================
-  regex_costs_upper_runs_reject.tpe (traces-regex-upper-plain)
+  regex_costs_upper_runs_reject.tpe (regex-cost-upper-bound-plain)
   ======================================================================
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
@@ -6055,45 +6055,45 @@ single-dash form of the help option is not accepted.
     --debug           Show final internal state and top level typing results after execution
     --grades          Selects the grades (default: time-lower-bound); accepted:
         Time:
-          time-lower-bound                  Lower bounds
-          time-upper-bound                  Upper bounds
-          time-interval                     Intervals
-          time-lower-bound-rational         Lower bounds (rational)
-          time-upper-bound-rational         Upper bounds (rational)
-          time-interval-rational            Intervals (rational)
-        Timed traces:
-          traces-lower-bound                Lower bounds
-          traces-upper-bound                Upper bounds
-          traces-interval                   Intervals
-        Regular traces:
-          traces-regex                      Upper bounds
-          traces-regex-symbolic             Upper bounds (symbolic derivatives)
-          traces-regex-derivatives          Upper bounds (plain derivatives)
-          traces-regex-plain                Upper bounds (fully plain derivatives)
-        Regular traces with costs:
-          traces-regex-lower                Lower bounds
-          traces-regex-upper                Upper bounds
-          traces-regex-interval             Intervals
-          traces-regex-lower-symbolic       Lower bounds (symbolic derivatives)
-          traces-regex-upper-symbolic       Upper bounds (symbolic derivatives)
-          traces-regex-interval-symbolic    Intervals (symbolic derivatives)
-          traces-regex-lower-derivatives    Lower bounds (plain derivatives)
-          traces-regex-upper-derivatives    Upper bounds (plain derivatives)
-          traces-regex-interval-derivatives Intervals (plain derivatives)
-          traces-regex-lower-plain          Lower bounds (fully plain derivatives)
-          traces-regex-upper-plain          Upper bounds (fully plain derivatives)
-          traces-regex-interval-plain       Intervals (fully plain derivatives)
+          time-lower-bound                   Lower bounds
+          time-upper-bound                   Upper bounds
+          time-interval                      Intervals
+          time-lower-bound-rational          Lower bounds (rational)
+          time-upper-bound-rational          Upper bounds (rational)
+          time-interval-rational             Intervals (rational)
+        Traces:
+          traces-lower-bound                 Lower bounds
+          traces-upper-bound                 Upper bounds
+          traces-interval                    Intervals
+        Regular expressions:
+          regex-upper-bound                  Upper bounds
+          regex-upper-bound-symbolic         Upper bounds (symbolic derivatives)
+          regex-upper-bound-derivatives      Upper bounds (plain derivatives)
+          regex-upper-bound-plain            Upper bounds (fully plain derivatives)
+        Regular expressions with costs:
+          regex-cost-lower-bound             Lower bounds
+          regex-cost-upper-bound             Upper bounds
+          regex-cost-interval                Intervals
+          regex-cost-lower-bound-symbolic    Lower bounds (symbolic derivatives)
+          regex-cost-upper-bound-symbolic    Upper bounds (symbolic derivatives)
+          regex-cost-interval-symbolic       Intervals (symbolic derivatives)
+          regex-cost-lower-bound-derivatives Lower bounds (plain derivatives)
+          regex-cost-upper-bound-derivatives Upper bounds (plain derivatives)
+          regex-cost-interval-derivatives    Intervals (plain derivatives)
+          regex-cost-lower-bound-plain       Lower bounds (fully plain derivatives)
+          regex-cost-upper-bound-plain       Upper bounds (fully plain derivatives)
+          regex-cost-interval-plain          Intervals (fully plain derivatives)
         Security levels:
-          security-levels                   Levels
-          time-lower-bound-levels           Embargoes
-          time-upper-bound-levels           Expiring capabilities
-          flow-levels                       Flow-sensitive outputs
+          security-levels                    Levels
+          time-lower-bound-levels            Embargoes
+          time-upper-bound-levels            Expiring capabilities
+          flow-levels                        Flow-sensitive outputs
         Semidirect products:
-          peak-usage                        Peak usage
-          time-windows                      Time windows
-          mode-costs                        Mode costs
+          peak-usage                         Peak usage
+          time-windows                       Time windows
+          mode-costs                         Mode costs
         Operation counts:
-          counts-upper-bound                Upper bounds
+          counts-upper-bound                 Upper bounds
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

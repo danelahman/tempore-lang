@@ -49,96 +49,96 @@ let entries =
       "Between q and r time units, rationals, ordered by containment.";
     entry
       (module TimedTraceGrades.LowerBound)
-      "Timed traces" "Lower bounds"
-      "Sets of timed traces in the coverage order, operations costing their \
-       lower runtime bounds.";
+      "Traces" "Lower bounds"
+      "Sets of traces in the coverage order, operations costing their lower \
+       runtime bounds.";
     entry
       (module TimedTraceGrades.UpperBound)
-      "Timed traces" "Upper bounds"
-      "Sets of timed traces in the allowance order, operations costing their \
-       upper runtime bounds.";
+      "Traces" "Upper bounds"
+      "Sets of traces in the allowance order, operations costing their upper \
+       runtime bounds.";
     entry
       (module TimedTraceGrades.Interval)
-      "Timed traces" "Intervals"
-      "Pairs of a lower and an upper timed-trace bound, compared componentwise.";
+      "Traces" "Intervals"
+      "Pairs of a lower and an upper trace bound, compared componentwise.";
     entry
       (module RegularTraceGrade)
-      "Regular traces" "Upper bounds"
+      "Regular expressions" "Upper bounds"
       "Regular languages of runs over delays and operations, bounding the runs \
        permitted by inclusion; decided by automata.";
     entry
       (module RegularTraceGradeDerivative)
-      "Regular traces" "Upper bounds (symbolic derivatives)"
+      "Regular expressions" "Upper bounds (symbolic derivatives)"
       "The same grade as the automata version, decided by symbolic derivatives \
        instead of automata.";
     entry ~visibility:Cli_only
       (module RegularTraceGradeDerivative.Concrete)
-      "Regular traces" "Upper bounds (plain derivatives)"
+      "Regular expressions" "Upper bounds (plain derivatives)"
       "The same grade as the automata version, decided by derivatives by \
        single letters instead of minterms.";
     entry ~visibility:Cli_only
       (module RegularTraceGradePlain)
-      "Regular traces" "Upper bounds (fully plain derivatives)"
+      "Regular expressions" "Upper bounds (fully plain derivatives)"
       "The same grade as the automata version, over single letters instead of \
        letter sets, decided by derivatives by letters.";
     entry
       (module RegularCostTraceGrades.Lower)
-      "Regular traces with costs" "Lower bounds"
+      "Regular expressions with costs" "Lower bounds"
       "Regular languages of runs in the coverage order, operations costing \
        their lower runtime bounds, decided by automata.";
     entry
       (module RegularCostTraceGrades.Upper)
-      "Regular traces with costs" "Upper bounds"
+      "Regular expressions with costs" "Upper bounds"
       "Regular languages of runs in the allowance order, operations costing \
        their upper runtime bounds, decided by automata.";
     entry
       (module RegularCostTraceGrades.Interval)
-      "Regular traces with costs" "Intervals"
+      "Regular expressions with costs" "Intervals"
       "Pairs of a lower and an upper regular-language bound, compared \
        componentwise, decided by automata.";
     entry
       (module RegularCostTraceGrades.Symbolic.Lower)
-      "Regular traces with costs" "Lower bounds (symbolic derivatives)"
+      "Regular expressions with costs" "Lower bounds (symbolic derivatives)"
       "The lower-bound cost grade, decided by symbolic derivatives instead of \
        automata.";
     entry
       (module RegularCostTraceGrades.Symbolic.Upper)
-      "Regular traces with costs" "Upper bounds (symbolic derivatives)"
+      "Regular expressions with costs" "Upper bounds (symbolic derivatives)"
       "The upper-bound cost grade, decided by symbolic derivatives instead of \
        automata.";
     entry
       (module RegularCostTraceGrades.Symbolic.Interval)
-      "Regular traces with costs" "Intervals (symbolic derivatives)"
+      "Regular expressions with costs" "Intervals (symbolic derivatives)"
       "The interval cost grade, decided by symbolic derivatives instead of \
        automata.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Lower)
-      "Regular traces with costs" "Lower bounds (plain derivatives)"
+      "Regular expressions with costs" "Lower bounds (plain derivatives)"
       "The lower-bound cost grade, decided by derivatives by letters instead \
        of minterms.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Upper)
-      "Regular traces with costs" "Upper bounds (plain derivatives)"
+      "Regular expressions with costs" "Upper bounds (plain derivatives)"
       "The upper-bound cost grade, decided by derivatives by letters instead \
        of minterms.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Interval)
-      "Regular traces with costs" "Intervals (plain derivatives)"
+      "Regular expressions with costs" "Intervals (plain derivatives)"
       "The interval cost grade, decided by derivatives by letters instead of \
        minterms.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Plain.Lower)
-      "Regular traces with costs" "Lower bounds (fully plain derivatives)"
+      "Regular expressions with costs" "Lower bounds (fully plain derivatives)"
       "The lower-bound cost grade over single letters instead of letter sets, \
        decided by derivatives by letters.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Plain.Upper)
-      "Regular traces with costs" "Upper bounds (fully plain derivatives)"
+      "Regular expressions with costs" "Upper bounds (fully plain derivatives)"
       "The upper-bound cost grade over single letters instead of letter sets, \
        decided by derivatives by letters.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Plain.Interval)
-      "Regular traces with costs" "Intervals (fully plain derivatives)"
+      "Regular expressions with costs" "Intervals (fully plain derivatives)"
       "The interval cost grade over single letters instead of letter sets, \
        decided by derivatives by letters.";
     entry

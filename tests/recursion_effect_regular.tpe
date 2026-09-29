@@ -1,6 +1,6 @@
-(* Run this test with the 'traces-regex-symbolic' grading monoid, e.g.
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
 
-     ./tempore --grades traces-regex-symbolic tests/recursion_effect_regular.tpe
+     ./tempore --grades regex-upper-bound-symbolic tests/recursion_effect_regular.tpe
 
    A recursive definition annotated with an effect has that effect at every
    call, including the recursive calls in its own body. *)

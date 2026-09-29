@@ -1,4 +1,4 @@
-(* Accepted under the 'traces-regex-upper' grading monoid: the catch-all
+(* Accepted under the 'regex-cost-upper-bound' grading monoid: the catch-all
    letter ranges over the operations the whole program declares, before or
    after the grade, so that a grade whose runs perform an operation other than
    those it names is well formed if the program declares such an operation

@@ -1,11 +1,11 @@
 (* A benchmark of the four implementations of the regular trace grade, and of
    the cost-model regular trace grades over each: by automata
-   ([RegularTraceGrade], "traces-regex"), by plain derivatives of expressions
-   over single letters ([RegularTraceGradePlain], "traces-regex-plain"), by
+   ([RegularTraceGrade], "regex-upper-bound"), by plain derivatives of expressions
+   over single letters ([RegularTraceGradePlain], "regex-upper-bound-plain"), by
    derivatives by letters of expressions over letter sets
-   ([RegularTraceGradeDerivative.Concrete], "traces-regex-derivatives"), and by
+   ([RegularTraceGradeDerivative.Concrete], "regex-upper-bound-derivatives"), and by
    symbolic derivatives by minterms ([RegularTraceGradeDerivative],
-   "traces-regex-symbolic"); the cost-model grades are "traces-regex-upper"
+   "regex-upper-bound-symbolic"); the cost-model grades are "regex-cost-upper-bound"
    and the others, with the same suffixes. Consecutive implementations differ
    in one design choice each: the construction (automata or derivatives), the
    representation of letters (single letters or letter sets) and the letters

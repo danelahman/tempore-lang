@@ -1,4 +1,4 @@
-(* Rejected under the 'traces-regex-interval' grading monoid: each component of
+(* Rejected under the 'regex-cost-interval' grading monoid: each component of
    a grade must permit at least one run of the operations the program
    declares. *)
 

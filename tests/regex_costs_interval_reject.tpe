@@ -1,4 +1,4 @@
-(* Rejected under the 'traces-regex-interval' grading monoid: each component is
+(* Rejected under the 'regex-cost-interval' grading monoid: each component is
    checked at its own end of the runtime bounds. *)
 
 type token = Token of string

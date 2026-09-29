@@ -120,9 +120,9 @@ exactly `1`. A grade is printed as an integer, as a decimal if it has a
 finite one (`0.125`), and otherwise as a fraction (`1/3`). See
 [`examples/time/rational_time_intervals.tpe`](examples/time/rational_time_intervals.tpe).
 
-### Timed traces
+### Traces
 
-A grade is a non-empty finite set of *timed traces*, the runs a computation may
+A grade is a non-empty finite set of *traces*, the runs a computation may
 exhibit. A run alternates operations and delays: `Read; 3; Send` performs
 `Read`, waits three steps, and performs `Send`. Grades multiply by
 concatenation. Every atomic operation declares runtime bounds
@@ -142,15 +142,15 @@ Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
 [`examples/traces/traces_upper.tpe`](examples/traces/traces_upper.tpe) and
 [`examples/traces/traces_intervals.tpe`](examples/traces/traces_intervals.tpe).
 
-### Regular traces
+### Regular expressions
 
 A grade is a non-empty regular language of runs, read as words over the
 letter `tick` (one time step) and operation names. The order is inclusion,
 the product concatenation and the join union; the unit is `{0}` and the top
 `⊤` the language of all runs. Operations declare no runtime bounds.
 
-- `traces-regex-symbolic`: decided by symbolic derivatives (preferred);
-- `traces-regex`: decided by minimal automata.
+- `regex-upper-bound-symbolic`: decided by symbolic derivatives (preferred);
+- `regex-upper-bound`: decided by minimal automata.
 
 Literals are regular expressions, by increasing precedence: union `r | s`,
 intersection `r & s`, concatenation `r; s`, complement `~r` and repetition
@@ -173,23 +173,23 @@ two implementations, together with two intermediate ones that separate the
 effects of their design choices; see
 [`bench/regular/README.md`](bench/regular/README.md).
 
-### Regular traces with costs
+### Regular expressions with costs
 
-A grade is a regular language of runs, as under `traces-regex`, ordered as the
-timed-trace monoids order finite sets of runs, at the runtime bounds
+A grade is a regular language of runs, as under `regex-upper-bound`, ordered as the
+trace monoids order finite sets of runs, at the runtime bounds
 `within (lo, hi)` of the atomic operations. A grade stands for its closure:
 the runs that fit inside one of its runs (upper) or cover one of them (lower).
 
-- `traces-regex-upper`: allowance order at `hi`; `{0}` is least, `⊤` the top.
-- `traces-regex-lower`: coverage order at `lo`; `{0}` is the top.
-- `traces-regex-interval`: pairs of a lower and an upper bound, with the
+- `regex-cost-upper-bound`: allowance order at `hi`; `{0}` is least, `⊤` the top.
+- `regex-cost-lower-bound`: coverage order at `lo`; `{0}` is the top.
+- `regex-cost-interval`: pairs of a lower and an upper bound, with the
   abbreviations of `traces-interval`; the top is `({0}, ⊤)`.
 
 Each is also available with the suffix `-symbolic`, over
-`traces-regex-symbolic`. Literals are those of `traces-regex`. The alphabet is
+`regex-upper-bound-symbolic`. Literals are those of `regex-upper-bound`. The alphabet is
 the atomic operations of the whole program, declared anywhere in it, so `_`
 is any tick or atomic operation. A grade must denote at least one run of these
-operations. With `Read` declared `within (1, 3)`, under `traces-regex-upper`
+operations. With `Read` declared `within (1, 3)`, under `regex-cost-upper-bound`
 `{Read}` is a sub-grade of `{3}`, and `{Read | 3}` equals `{3}`. See
 [`examples/regular_costs/regular_costs_lower.tpe`](examples/regular_costs/regular_costs_lower.tpe),
 [`examples/regular_costs/regular_costs_upper.tpe`](examples/regular_costs/regular_costs_upper.tpe)
@@ -344,7 +344,7 @@ operation Read : unit ~> string # 2
 ```
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
-timed-trace and cost-model monoids, an *atomic* operation, graded by its own
+trace and cost-model monoids, an *atomic* operation, graded by its own
 name, also declares its runtime bounds (`within n` abbreviates
 `within (n, n)`):
 
@@ -418,7 +418,7 @@ A recursive function has the unit effect unless it is annotated
 `let rec f p₁ … pₙ : ty # ε = c`. Then
 `f : A₁ → … → Aₙ → ty # ε`, the outer arrows having the unit effect, and `ε`
 must bound the effect of `c` assuming every recursive call has effect `ε`.
-Under `traces-regex-symbolic`,
+Under `regex-upper-bound-symbolic`,
 
 ```
 let rec read_all n : nat # {Read*} =

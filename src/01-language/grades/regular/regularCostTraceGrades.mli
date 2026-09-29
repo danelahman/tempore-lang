@@ -1,7 +1,7 @@
 (** The cost-model regular trace grades: the regular languages of runs of
     {!RegularTraceGrade}, or of its implementations by derivatives
     {!RegularTraceGradeDerivative}, {!RegularTraceGradeDerivative.Concrete} and
-    {!RegularTraceGradePlain}, ordered as the timed-trace grades of
+    {!RegularTraceGradePlain}, ordered as the trace grades of
     {!TimedTraceGrades} order finite sets of runs, trading time against
     operations at their declared runtime bounds.
 
@@ -11,13 +11,13 @@
     and the orders on single runs are allowance and coverage, as characterised
     in {!CostClosure}. A grade is ordered below another through the closure of
     the greater one:
-    - upper bounds, ["traces-regex-upper"]: [ρ ≾ ρ'] iff every run of [ρ] is
+    - upper bounds, ["regex-cost-upper-bound"]: [ρ ≾ ρ'] iff every run of [ρ] is
       permitted by some run of [ρ'], i.e. [ρ ⊆ ↓ρ'], operations costing their
       upper runtime bound [hi];
-    - lower bounds, ["traces-regex-lower"]: [ρ ≾ ρ'] iff every run of [ρ] covers
-      some run of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations costing their lower runtime
-      bound [lo];
-    - intervals, ["traces-regex-interval"]: pairs of a lower and an upper bound,
+    - lower bounds, ["regex-cost-lower-bound"]: [ρ ≾ ρ'] iff every run of [ρ]
+      covers some run of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations costing their lower
+      runtime bound [lo];
+    - intervals, ["regex-cost-interval"]: pairs of a lower and an upper bound,
       compared componentwise.
 
     Both are preorders, the closures being closure operators; a grade denotes
@@ -92,8 +92,8 @@ module type LANGUAGE = sig
 end
 
 (** The three grades over the regular trace grade [L], named
-    ["traces-regex-lower"], ["traces-regex-upper"] and
-    ["traces-regex-interval"], each followed by [Variant.suffix].
+    ["regex-cost-lower-bound"], ["regex-cost-upper-bound"] and
+    ["regex-cost-interval"], each followed by [Variant.suffix].
 
     The letters of a comparison are [tick] and the classes of the names of its
     closed world, of equal costs, of {!LANGUAGE.representatives}, each class
@@ -178,19 +178,19 @@ module PlainDerivatives : LANGUAGE with type t = RegularTraceGradePlain.t
     their exploration in full, and every name a class of its own. *)
 
 module Lower : Grade.S with type t = RegularTraceGrade.t
-(** ["traces-regex-lower"], over {!Automata}. *)
+(** ["regex-cost-lower-bound"], over {!Automata}. *)
 
 module Upper : Grade.S with type t = RegularTraceGrade.t
-(** ["traces-regex-upper"], over {!Automata}. *)
+(** ["regex-cost-upper-bound"], over {!Automata}. *)
 
 module Interval :
   Grade.S with type t = RegularTraceGrade.t * RegularTraceGrade.t
-(** ["traces-regex-interval"], over {!Automata}. *)
+(** ["regex-cost-interval"], over {!Automata}. *)
 
-(** The grades over {!Derivatives}, named ["traces-regex-lower-symbolic"],
-    ["traces-regex-upper-symbolic"] and ["traces-regex-interval-symbolic"]: both
-    grades of a comparison are explored by derivatives, by the minterms of their
-    letter sets and costs. *)
+(** The grades over {!Derivatives}, named ["regex-cost-lower-bound-symbolic"],
+    ["regex-cost-upper-bound-symbolic"] and ["regex-cost-interval-symbolic"]:
+    both grades of a comparison are explored by derivatives, by the minterms of
+    their letter sets and costs. *)
 module Symbolic : sig
   module Lower : Grade.S with type t = RegularTraceGradeDerivative.t
   module Upper : Grade.S with type t = RegularTraceGradeDerivative.t
@@ -202,8 +202,9 @@ module Symbolic : sig
 end
 
 (** The grades over {!ConcreteDerivatives}, named
-    ["traces-regex-lower-derivatives"], ["traces-regex-upper-derivatives"] and
-    ["traces-regex-interval-derivatives"]: {!Symbolic} with derivatives and
+    ["regex-cost-lower-bound-derivatives"],
+    ["regex-cost-upper-bound-derivatives"] and
+    ["regex-cost-interval-derivatives"]: {!Symbolic} with derivatives and
     closures by letters in place of minterms. *)
 module Concrete : sig
   module Lower : Grade.S with type t = RegularTraceGradeDerivative.t
@@ -215,8 +216,8 @@ module Concrete : sig
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
 end
 
-(** The grades over {!PlainDerivatives}, named ["traces-regex-lower-plain"],
-    ["traces-regex-upper-plain"] and ["traces-regex-interval-plain"]:
+(** The grades over {!PlainDerivatives}, named ["regex-cost-lower-bound-plain"],
+    ["regex-cost-upper-bound-plain"] and ["regex-cost-interval-plain"]:
     {!Concrete} with single letters in place of letter sets. *)
 module Plain : sig
   module Lower : Grade.S with type t = RegularTraceGradePlain.t

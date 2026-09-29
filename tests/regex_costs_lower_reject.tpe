@@ -1,4 +1,4 @@
-(* Rejected under the 'traces-regex-lower' grading monoid: runs that do not
+(* Rejected under the 'regex-cost-lower-bound' grading monoid: runs that do not
    cover the regular lower bounds at the lower runtime bounds. *)
 
 type token = Token of string

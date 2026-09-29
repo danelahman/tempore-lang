@@ -4,7 +4,7 @@
 
      ./tempore --grades traces-lower-bound examples/traces/traces_lower.tpe
 
-   Grades {...}: timed traces a computation must cover
+   Grades {...}: traces a computation must cover
      - Unit {0}: the empty run
      - Top {0}: the empty run, demanding nothing; the unit is the top
      - Product: concatenation of runs *)

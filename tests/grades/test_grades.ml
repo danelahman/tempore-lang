@@ -519,27 +519,27 @@ let registry =
     expect "registry: grades reading a repetition" show_names
       ~expected:
         [
-          "traces-regex";
-          "traces-regex-symbolic";
-          "traces-regex-lower";
-          "traces-regex-upper";
-          "traces-regex-interval";
-          "traces-regex-lower-symbolic";
-          "traces-regex-upper-symbolic";
-          "traces-regex-interval-symbolic";
+          "regex-upper-bound";
+          "regex-upper-bound-symbolic";
+          "regex-cost-lower-bound";
+          "regex-cost-upper-bound";
+          "regex-cost-interval";
+          "regex-cost-lower-bound-symbolic";
+          "regex-cost-upper-bound-symbolic";
+          "regex-cost-interval-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
     expect "registry: grades offered by the CLI only" show_names
       ~expected:
         [
-          "traces-regex-derivatives";
-          "traces-regex-plain";
-          "traces-regex-lower-derivatives";
-          "traces-regex-upper-derivatives";
-          "traces-regex-interval-derivatives";
-          "traces-regex-lower-plain";
-          "traces-regex-upper-plain";
-          "traces-regex-interval-plain";
+          "regex-upper-bound-derivatives";
+          "regex-upper-bound-plain";
+          "regex-cost-lower-bound-derivatives";
+          "regex-cost-upper-bound-derivatives";
+          "regex-cost-interval-derivatives";
+          "regex-cost-lower-bound-plain";
+          "regex-cost-upper-bound-plain";
+          "regex-cost-interval-plain";
         ]
       (List.concat_map
          (fun (g : GradeRegistry.group) ->
@@ -884,7 +884,7 @@ let witnesses =
     expect "witnesses: product of complete grades complete" Fun.id
       ~expected:"complete"
       (completeness (module UpperLevels));
-    expect "witnesses: timed traces partial" Fun.id ~expected:"partial"
+    expect "witnesses: traces partial" Fun.id ~expected:"partial"
       (completeness traces_upper);
     expect "witnesses: product with a partial grade partial" Fun.id
       ~expected:"partial"

@@ -352,10 +352,10 @@ struct
       expect "name" Fun.id
         ~expected:
           (match I.implementation with
-          | Automata -> "traces-regex"
-          | Symbolic -> "traces-regex-symbolic"
-          | Concrete -> "traces-regex-derivatives"
-          | Plain -> "traces-regex-plain")
+          | Automata -> "regex-upper-bound"
+          | Symbolic -> "regex-upper-bound-symbolic"
+          | Concrete -> "regex-upper-bound-derivatives"
+          | Plain -> "regex-upper-bound-plain")
         G.name;
       expect_grade "unit" ~expected:(lit "{0}") G.one;
       expect_grade "of_nat" ~expected:(lit "{4}") (G.of_nat 4);
