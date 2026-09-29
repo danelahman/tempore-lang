@@ -165,9 +165,6 @@ module Make (C : Constraint.S) = struct
     in
     visit TyParamSet.empty [ a ]
 
-  (* Whether [b] is reached from [a] along [edges], in none or more steps. *)
-  let reaches edges a b = TyParamSet.mem b (reached (successors edges) a)
-
   (* The type unknowns joined to [seeds] by [edges] in either direction. *)
   let rec joined edges seeds =
     let grown =
@@ -288,15 +285,32 @@ module Make (C : Constraint.S) = struct
   (* Pruning and trimming                                                *)
   (* ------------------------------------------------------------------ *)
 
-  (* The subtyping atoms reached along those kept before them dropped. *)
-  let prune_subs subs =
+  (* [bs] less its first occurrence of [b]. *)
+  let rec without b = function
+    | [] -> []
+    | b' :: bs -> if same_param b b' then bs else b' :: without b bs
+
+  (* The subtyping atoms [a <: b] dropped in turn where [b] is reached from
+     [a] along the atoms kept before them and, where [later], the atoms after
+     them. The successors of the atoms considered are kept as the atoms are
+     examined. *)
+  let reduce_subs ~later subs =
     let keep (kept, succ) s =
       match edge s with
-      | Some (a, b) when TyParamSet.mem b (reached succ a) -> (kept, succ)
-      | Some (a, b) -> (s :: kept, TyParamMap.add a (b :: targets succ a) succ)
+      | Some (a, b) ->
+          let succ =
+            if later then TyParamMap.add a (without b (targets succ a)) succ
+            else succ
+          in
+          if TyParamSet.mem b (reached succ a) then (kept, succ)
+          else (s :: kept, TyParamMap.add a (b :: targets succ a) succ)
       | None -> (s :: kept, succ)
     in
-    List.rev (fst (List.fold_left keep ([], TyParamMap.empty) subs))
+    let succ = if later then successors (edges subs) else TyParamMap.empty in
+    List.rev (fst (List.fold_left keep ([], succ) subs))
+
+  (* The subtyping atoms reached along those kept before them dropped. *)
+  let prune_subs subs = reduce_subs ~later:false subs
 
   (* The eternality atoms joined to those kept before them dropped. *)
   let prune_eternals subs eternals =
@@ -343,12 +357,7 @@ module Make (C : Constraint.S) = struct
   let trim context hyps =
     let bounds = context.Residual.bounds in
     let hyps = settle_all context hyps in
-    let reached ~seen ~rest s =
-      match edge s with
-      | Some (a, b) -> reaches (edges (seen @ rest)) a b
-      | None -> false
-    in
-    let sub_vars = walk reached hyps.sub_vars in
+    let sub_vars = reduce_subs ~later:true hyps.sub_vars in
     let eps_hyps =
       walk_entailed
         ~make:(fun eps_hyps -> E.make bounds { rho_hyps = []; eps_hyps })
@@ -492,19 +501,7 @@ module Make (C : Constraint.S) = struct
      unknowns of none of the later ones to expressions free of the earlier
      ones: each unknown sent to its value under the later steps. *)
   let resolve steps =
-    List.fold_left
-      (fun (later : X.subst) (s : X.subst) : X.subst ->
-        {
-          rho_subst =
-            X.Rho_var.Map.fold
-              (fun k rho -> X.Rho_var.Map.add k (X.Rho.subst later rho))
-              s.rho_subst later.rho_subst;
-          eps_subst =
-            X.Eps_var.Map.fold
-              (fun k eps -> X.Eps_var.Map.add k (X.Eps.subst later eps))
-              s.eps_subst later.eps_subst;
-        })
-      X.empty_subst steps
+    List.fold_left (fun later s -> X.compose_subst s later) X.empty_subst steps
 
   (* ------------------------------------------------------------------ *)
   (* Elimination: steps                                                  *)

@@ -184,20 +184,6 @@ module Make (C : Constraint.S) = struct
   let apply (sigma : X.subst) r =
     R.subst { C.empty_subst with grade_subst = sigma } r
 
-  (* [compose sigma sigma'] is [sigma] followed by [sigma']. *)
-  let compose (sigma : X.subst) (sigma' : X.subst) : X.subst =
-    let union _ v _ = Some v in
-    {
-      rho_subst =
-        X.Rho_var.Map.union union
-          (X.Rho_var.Map.map (X.Rho.subst sigma') sigma.rho_subst)
-          sigma'.rho_subst;
-      eps_subst =
-        X.Eps_var.Map.union union
-          (X.Eps_var.Map.map (X.Eps.subst sigma') sigma.eps_subst)
-          sigma'.eps_subst;
-    }
-
   let assign_eps k eps : X.subst =
     { empty_grade_subst with eps_subst = X.Eps_var.Map.singleton k eps }
 
@@ -229,20 +215,25 @@ module Make (C : Constraint.S) = struct
     let r =
       match drops with Drop_greater -> drop_greater u r | Keep_all -> r
     in
-    (compose acc sigma, apply sigma r)
+    (X.compose_subst acc sigma, apply sigma r)
 
   (* ------------------------------------------------------------------ *)
   (* The local unknowns                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  let grades_of_rho rho (rhos, eps) =
-    ( Rho_set.union (X.Rho.free_rho_vars rho) rhos,
-      Eps_set.union (X.Rho.free_eps_vars rho) eps )
+  (* Sets of grade unknowns of the two sorts. *)
+  let no_grades = (Rho_set.empty, Eps_set.empty)
 
-  let grades_of_eps e (rhos, eps) = (rhos, Eps_set.union (X.Eps.free_vars e) eps)
+  let union_grades (rhos, eps) (rhos', eps') =
+    (Rho_set.union rhos rhos', Eps_set.union eps eps')
 
-  let grades_of_free (free : C.free) (rhos, eps) =
-    (Rho_set.union free.free_rhos rhos, Eps_set.union free.free_eps eps)
+  let grades_of_rho rho =
+    union_grades (X.Rho.free_rho_vars rho, X.Rho.free_eps_vars rho)
+
+  let grades_of_eps eps = union_grades (Rho_set.empty, X.Eps.free_vars eps)
+
+  let grades_of_free (free : C.free) =
+    union_grades (free.free_rhos, free.free_eps)
 
   (* The grade unknowns of the orderings, disjunction grades and deferred
      conditions of [r], the rigids of the conditions excepted. *)
@@ -252,7 +243,7 @@ module Make (C : Constraint.S) = struct
     and sides on_exp (o : _ GradeNormal.ordering) acc =
       on_exp o.rhs (on_exp o.lhs acc)
     in
-    (Rho_set.empty, Eps_set.empty)
+    no_grades
     |> over (sides grades_of_rho) r.rho_orderings
     |> over (sides grades_of_eps) r.eps_orderings
     |> over
@@ -417,8 +408,8 @@ module Make (C : Constraint.S) = struct
   let tops members =
     List.fold_left
       (fun sigma -> function
-        | Rho_unknown k -> compose sigma (assign_rho k X.Rho.top)
-        | Eps_unknown k -> compose sigma (assign_eps k X.Eps.top))
+        | Rho_unknown k -> X.compose_subst sigma (assign_rho k X.Rho.top)
+        | Eps_unknown k -> X.compose_subst sigma (assign_eps k X.Eps.top))
       empty_grade_subst members
 
   (* The first unknown [k] allowed by [ok], not a member, with an ordering
@@ -549,7 +540,7 @@ module Make (C : Constraint.S) = struct
       in
       let acc, r, changed =
         match collapse scope r with
-        | Some sigma -> (compose acc sigma, apply sigma r, true)
+        | Some sigma -> (X.compose_subst acc sigma, apply sigma r, true)
         | None -> (acc, r, false)
       in
       let rhos, eps = local_unknowns scope r in
@@ -568,7 +559,7 @@ module Make (C : Constraint.S) = struct
         match raise_set context scope r with
         | Some sigma ->
             rounds context scope (n - 1)
-              (compose acc sigma, settle context (apply sigma r))
+              (X.compose_subst acc sigma, settle context (apply sigma r))
         | None -> (acc, r)
 
   let localise context scope r =
@@ -785,21 +776,23 @@ module Make (C : Constraint.S) = struct
     rho_vars : 'e -> Rho_set.t;
     eps_vars : 'e -> Eps_set.t;
     constants : 'e -> X.GS.R.t list * X.GS.E.t list;
-    occurrences : Eps_set.t -> 'e -> int;
+    occurrences : Rho_set.t * Eps_set.t -> 'e -> int;
   }
 
-  (* The number of occurrences of the variables [ks] in an expression. *)
-  let rec eps_occurrences ks = function
-    | X.Eps_var k -> if Eps_set.mem k ks then 1 else 0
+  (* The number of occurrences of the unknowns [(rhos, eps)] in an
+     expression. *)
+  let rec eps_occurrences eps = function
+    | X.Eps_var k -> if Eps_set.mem k eps then 1 else 0
     | X.Eps_const _ -> 0
-    | X.Eps_mul (eps, eps') | X.Eps_join (eps, eps') ->
-        eps_occurrences ks eps + eps_occurrences ks eps'
+    | X.Eps_mul (e, e') | X.Eps_join (e, e') ->
+        eps_occurrences eps e + eps_occurrences eps e'
 
-  let rec rho_occurrences ks = function
-    | X.Rho_var _ | X.Rho_const _ -> 0
-    | X.Rho_map eps -> eps_occurrences ks eps
+  let rec rho_occurrences ((rhos, eps) as unknowns) = function
+    | X.Rho_var k -> if Rho_set.mem k rhos then 1 else 0
+    | X.Rho_const _ -> 0
+    | X.Rho_map e -> eps_occurrences eps e
     | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
-        rho_occurrences ks rho + rho_occurrences ks rho'
+        rho_occurrences unknowns rho + rho_occurrences unknowns rho'
 
   let rho_sort entail bounds =
     {
@@ -820,24 +813,28 @@ module Make (C : Constraint.S) = struct
       rho_vars = (fun _ -> Rho_set.empty);
       eps_vars = X.Eps.free_vars;
       constants = (fun eps -> ([], X.Eps.constants eps));
-      occurrences = eps_occurrences;
+      occurrences = (fun (_, eps) -> eps_occurrences eps);
     }
+
+  (* The grades of [cs] without repetition, in order. *)
+  let distinct equal cs =
+    List.fold_left
+      (fun kept c -> if List.exists (equal c) kept then kept else kept @ [ c ])
+      [] cs
+
+  (* The unit, the top and the grade of one delay step, of either sort. *)
+  let eps_base = [ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
+  let rho_base = [ X.GS.R.one; X.GS.R.top; X.GS.R.of_nat 1 ]
 
   (* The grades tried for a rigid of an ordering with the constants
      [(rcs, ecs)] and at most [degree] occurrences of the rigids on either
-     side: the unit, the top and the grade of one delay step, without repetition, then the
-     witnesses the grades supply, with their completeness. *)
+     side: the unit, the top and the grade of one delay step, without
+     repetition, then the witnesses the grades supply, with their
+     completeness. *)
   let candidates context ~degree (rcs, ecs) =
     let bounds = context.Residual.bounds in
-    let base =
-      List.fold_left
-        (fun cs c ->
-          if List.exists (X.GS.E.equal bounds c) cs then cs else cs @ [ c ])
-        []
-        [ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
-    in
     let supplied, completeness = X.GS.witnesses ~degree bounds rcs ecs in
-    (base @ supplied, completeness)
+    (distinct (X.GS.E.equal bounds) eps_base @ supplied, completeness)
 
   (* Every assignment of a candidate to each of [rigids], lazily. *)
   let assignments candidates rigids =
@@ -892,7 +889,7 @@ module Make (C : Constraint.S) = struct
       let rcs, ecs = sort.constants o.lhs
       and rcs', ecs' = sort.constants o.rhs in
       let degree =
-        let ks = Eps_set.of_list rigids in
+        let ks = (Rho_set.empty, Eps_set.of_list rigids) in
         Int.max (sort.occurrences ks o.lhs) (sort.occurrences ks o.rhs)
       in
       let candidates, completeness =
@@ -980,8 +977,6 @@ module Make (C : Constraint.S) = struct
     | Eps_item of R.eps_ordering
     | Condition of R.deferred
 
-  let no_grades = (Rho_set.empty, Eps_set.empty)
-
   (* The grade unknowns of an item, the rigids of a condition excepted. *)
   let item_unknowns = function
     | Rho_item o -> grades_of_rho o.rhs (grades_of_rho o.lhs no_grades)
@@ -990,9 +985,6 @@ module Make (C : Constraint.S) = struct
 
   let shares (rhos, eps) (rhos', eps') =
     not (Rho_set.disjoint rhos rhos' && Eps_set.disjoint eps eps')
-
-  let union_grades (rhos, eps) (rhos', eps') =
-    (Rho_set.union rhos rhos', Eps_set.union eps eps')
 
   (* The sides of the orderings of an item, each read by [on_rho] or
      [on_eps]. *)
@@ -1015,22 +1007,11 @@ module Make (C : Constraint.S) = struct
          ~on_eps:(fun eps -> ([], X.Eps.constants eps))
          item)
 
-  (* The number of occurrences of the unknowns [(rhos, eps)] in a resource
-     expression. *)
-  let rec rho_unknown_occurrences ((rhos, eps) as unknowns) = function
-    | X.Rho_var k -> if Rho_set.mem k rhos then 1 else 0
-    | X.Rho_const _ -> 0
-    | X.Rho_map e -> eps_occurrences eps e
-    | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
-        rho_unknown_occurrences unknowns rho
-        + rho_unknown_occurrences unknowns rho'
-
   (* The largest number of occurrences of the unknowns [(rhos, eps)] on one
      side of an ordering of the item. *)
   let item_degree ((_, eps) as unknowns) item =
     List.fold_left Int.max 0
-      (item_sides
-         ~on_rho:(rho_unknown_occurrences unknowns)
+      (item_sides ~on_rho:(rho_occurrences unknowns)
          ~on_eps:(eps_occurrences eps) item)
 
   (* Whether an item holds at the values [sigma] of its unknowns: an ordering
@@ -1082,31 +1063,21 @@ module Make (C : Constraint.S) = struct
         by_index (List.hd members) (List.hd members'))
     |> List.map (fun (unknowns, members) -> (unknowns, List.map snd members))
 
-  (* The grades of [cs] without repetition, in order. *)
-  let distinct equal cs =
-    List.fold_left
-      (fun kept c -> if List.exists (equal c) kept then kept else kept @ [ c ])
-      [] cs
-
   (* The grades tried for the unknowns of a component with the constants
      [(rcs, ecs)] and at most [degree] occurrences of its unknowns on one side
-     of an item: the unit, the top, the grade of one delay step and the constants of the
-     sort, the images of the effect constants for a resource, then the
-     witnesses the grades supply. *)
+     of an item: the unit, the top, the grade of one delay step and the
+     constants of the sort, the images of the effect constants for a resource,
+     then the witnesses the grades supply. *)
   let eps_candidates context ~degree (rcs, ecs) =
     let bounds = context.Residual.bounds in
     distinct (X.GS.E.equal bounds)
-      ([ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
-      @ ecs
-      @ fst (X.GS.witnesses ~degree bounds rcs ecs))
+      (eps_base @ ecs @ fst (X.GS.witnesses ~degree bounds rcs ecs))
 
   let rho_candidates context ~degree (rcs, ecs) =
     let bounds = context.Residual.bounds in
     let rcs = rcs @ List.map X.GS.map ecs in
     distinct (X.GS.R.equal bounds)
-      ([ X.GS.R.one; X.GS.R.top; X.GS.R.of_nat 1 ]
-      @ rcs
-      @ fst (X.GS.R.witnesses ~degree bounds rcs))
+      (rho_base @ rcs @ fst (X.GS.R.witnesses ~degree bounds rcs))
 
   (* The outcome of the search of one component. *)
   type found = Found of X.subst | Exhausted | Abandoned
@@ -1123,7 +1094,7 @@ module Make (C : Constraint.S) = struct
           | [] -> (Exhausted, budget)
           | _ :: _ when budget <= 0 -> (Abandoned, budget)
           | value :: values ->
-              let sigma' = compose sigma value in
+              let sigma' = X.compose_subst sigma value in
               if List.for_all (holds context sigma') checks then
                 match descend context levels sigma' (budget - 1) with
                 | Exhausted, budget -> try_each budget values
@@ -1203,41 +1174,36 @@ module Make (C : Constraint.S) = struct
         abandoned;
       }
 
-  (* The number of candidates tried by default, over all components. *)
+  (* The number of candidates tried by default in each component. *)
   let default_budget = 100_000
 
   (* A closed instance of the orderings and deferred conditions of [r]:
      backtracking search (Golomb and Baumert, JACM 1965) over a finite grid of
      candidates per unknown, a constraint satisfaction problem solved one
-     component of unknowns sharing items at a time. The type unknowns are left
-     out: after [atomise], the subtyping and eternality demands relate type
-     unknowns alone, and each disjunction kept has a type whose eternality
-     depends on type unknowns, so [unit] for every type unknown meets them
-     all. Where [r] is the residual of localisation, its values, the
-     assignment found and [unit] for the type unknowns form a closed instance
-     of the qualifier. An assignment found is an instance; an instance outside
-     the grid is not found. *)
+     component of unknowns sharing items at a time, each within [budget]
+     trials. The type unknowns are left out: after [atomise], the subtyping
+     and eternality demands relate type unknowns alone, and each disjunction
+     kept has a type whose eternality depends on type unknowns, so [unit] for
+     every type unknown meets them all. Where [r] is the residual of
+     localisation, its values, the assignment found and [unit] for the type
+     unknowns form a closed instance of the qualifier. An assignment found is
+     an instance; an instance outside the grid is not found. *)
   let instance ?(budget = default_budget) context (r : residual) =
     let items =
       List.map (fun o -> Rho_item o) r.rho_orderings
       @ List.map (fun o -> Eps_item o) r.eps_orderings
       @ List.map (fun d -> Condition d) r.deferred
     in
-    let search (found, budget) (unknowns, items) =
-      match found with
-      | Error _ -> (found, budget)
-      | Ok sigma -> (
+    let search found (unknowns, items) =
+      Result.bind found (fun sigma ->
           let levels, closed = levels context unknowns items in
           if not (List.for_all (holds context empty_grade_subst) closed) then
-            (Error (unestablished ~abandoned:false items), budget)
+            Error (unestablished ~abandoned:false items)
           else
-            match descend context levels empty_grade_subst budget with
-            | Found sigma', budget -> (Ok (compose sigma sigma'), budget)
-            | Exhausted, budget ->
-                (Error (unestablished ~abandoned:false items), budget)
-            | Abandoned, budget ->
-                (Error (unestablished ~abandoned:true items), budget))
+            match fst (descend context levels empty_grade_subst budget) with
+            | Found sigma' -> Ok (X.compose_subst sigma sigma')
+            | Exhausted -> Error (unestablished ~abandoned:false items)
+            | Abandoned -> Error (unestablished ~abandoned:true items))
     in
-    fst
-      (List.fold_left search (Ok empty_grade_subst, budget) (components items))
+    List.fold_left search (Ok empty_grade_subst) (components items)
 end

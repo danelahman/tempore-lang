@@ -79,6 +79,8 @@ module type S = sig
     val print : t -> Format.formatter -> unit
     val to_string : t -> string
   end
+
+  val compose_subst : subst -> subst -> subst
 end
 
 (* [lift2 f x y] is [f] applied under the options [x] and [y]. *)
@@ -287,4 +289,17 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let print rho ppf = print_at join_level rho ppf
     let to_string rho = Format.asprintf "%t" (print rho)
   end
+
+  let compose_subst sigma sigma' =
+    let union _ v _ = Some v in
+    {
+      rho_subst =
+        Rho_var.Map.union union
+          (Rho_var.Map.map (Rho.subst sigma') sigma.rho_subst)
+          sigma'.rho_subst;
+      eps_subst =
+        Eps_var.Map.union union
+          (Eps_var.Map.map (Eps.subst sigma') sigma.eps_subst)
+          sigma'.eps_subst;
+    }
 end

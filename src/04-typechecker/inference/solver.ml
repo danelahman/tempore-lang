@@ -63,19 +63,6 @@ module Make (C : Constraint.S) = struct
   (* Substitutions                                                       *)
   (* ------------------------------------------------------------------ *)
 
-  let compose_grades (sigma : X.subst) (sigma' : X.subst) : X.subst =
-    let union _ v _ = Some v in
-    {
-      rho_subst =
-        X.Rho_var.Map.union union
-          (X.Rho_var.Map.map (X.Rho.subst sigma') sigma.rho_subst)
-          sigma'.rho_subst;
-      eps_subst =
-        X.Eps_var.Map.union union
-          (X.Eps_var.Map.map (X.Eps.subst sigma') sigma.eps_subst)
-          sigma'.eps_subst;
-    }
-
   (* [compose theta sigma] is [theta] followed by [sigma]. *)
   let compose (theta : C.subst) (sigma : C.subst) : C.subst =
     {
@@ -84,7 +71,7 @@ module Make (C : Constraint.S) = struct
           (fun _ ty _ -> Some ty)
           (TyParamMap.map (C.subst_ty sigma) theta.ty_subst)
           sigma.ty_subst;
-      grade_subst = compose_grades theta.grade_subst sigma.grade_subst;
+      grade_subst = X.compose_subst theta.grade_subst sigma.grade_subst;
     }
 
   let free_of_rho rho : C.free =
@@ -157,19 +144,15 @@ module Make (C : Constraint.S) = struct
     | Skeleton.Left -> fst site.generated
     | Skeleton.Right -> snd site.generated
 
-  (* The part of [ty] at [step] of a skeleton path. *)
+  (* The part of [ty] at [step] of a skeleton path, read off the
+     decomposition of [ty] against itself ({!Former.decompose}). *)
   let child (ty : C.ty) (step : Ast.step) =
-    match (step, ty) with
-    | Ast.Argument, Ast.TyArrow (ty, _)
-    | Ast.Result, Ast.TyArrow (_, Ast.CompTy (ty, _))
-    | Ast.BoxContent, Ast.TyBox (_, ty)
-    | Ast.HandlerInput, Ast.TyHandler (Ast.CompTy (ty, _), _)
-    | Ast.HandlerOutput, Ast.TyHandler (_, Ast.CompTy (ty, _)) ->
-        Some ty
-    | Ast.Component i, Ast.TyTuple tys | Ast.TypeArgument i, Ast.TyApply (_, tys)
-      ->
-        List.nth_opt tys (i - 1)
-    | _ -> None
+    let former = Former.of_ty ty in
+    Option.bind
+      (Former.decompose former former)
+      (List.find_map (function
+        | Former.Ty (_, step', ty, _) when step' = step -> Some ty
+        | Former.Ty _ | Former.Rho _ | Former.Eps _ -> None))
 
   (* [decided context solved bindings] is where the part at a path of a type
      was decided: at the innermost unknown on the way to it, solved before or

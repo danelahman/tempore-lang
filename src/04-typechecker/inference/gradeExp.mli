@@ -173,6 +173,9 @@ module type S = sig
     val to_string : t -> string
     (** [to_string rho] is the text {!print} prints. *)
   end
+
+  val compose_subst : subst -> subst -> subst
+  (** [compose_subst sigma sigma'] is [sigma] followed by [sigma']. *)
 end
 
 (** [Make (GS)] is the expressions over [GS]. *)

@@ -77,16 +77,17 @@
 
     The orderings and deferred conditions of a residual are split into
     components sharing unknowns, and each component is searched depth first with
-    backtracking for a grade per unknown at which every one of its items holds:
-    an ordering decided true between variable-free sides, a condition discharged
-    by its retry. An effect unknown ranges over the unit, the top, the grade of
-    one delay step, the effect constants of the component and the witnesses the
-    grades supply for its constants; a resource unknown over the unit, the top,
-    one time step, the resource constants, the images of the effect constants
-    and the witnesses for them. The witnesses are those for the largest number
-    of occurrences of the component's unknowns on one side of an item. The
-    unknowns occurring in more items are assigned first, and an item is checked
-    once its last unknown is. The type unknowns are sent to [unit]. *)
+    backtracking, within a budget of trials of its own, for a grade per unknown
+    at which every one of its items holds: an ordering decided true between
+    variable-free sides, a condition discharged by its retry. An effect unknown
+    ranges over the unit, the top, the grade of one delay step, the effect
+    constants of the component and the witnesses the grades supply for its
+    constants; a resource unknown over the unit, the top, one time step, the
+    resource constants, the images of the effect constants and the witnesses for
+    them. The witnesses are those for the largest number of occurrences of the
+    component's unknowns on one side of an item. The unknowns occurring in more
+    items are assigned first, and an item is checked once its last unknown is.
+    The type unknowns are sent to [unit]. *)
 
 module Make (C : Constraint.S) : sig
   type residual = Residual.Make(C).t
@@ -140,7 +141,8 @@ module Make (C : Constraint.S) : sig
       orderings of [r]. *)
 
   val default_budget : int
-  (** The number of candidates {!instance} tries by default: 100 000. *)
+  (** The number of candidates {!instance} tries by default in each component:
+      100 000. *)
 
   val instance :
     ?budget:int ->
@@ -152,7 +154,7 @@ module Make (C : Constraint.S) : sig
       meeting its other atoms once [r] is decomposed ({!Residual.Make.atomise}).
       It is [Error (Unestablished _)] with the items of a component when no
       assignment of the grades tried meets them all, [abandoned] when [budget]
-      ({!default_budget} by default) candidates were tried, over all components,
-      before the search ended. An instance not found is no refutation: the
+      ({!default_budget} by default) candidates were tried in the component
+      before its search ended. An instance not found is no refutation: the
       grades tried are finitely many. *)
 end

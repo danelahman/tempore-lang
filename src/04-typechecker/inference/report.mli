@@ -92,19 +92,6 @@ module Make (C : Constraint.S) : sig
   }
   (** A report. *)
 
-  val simplify : context -> hyps -> hyps
-  (** [simplify context hyps] is [hyps] written canonically, its disjunctions
-      settled and the entailed ones dropped, and its type atoms and repeated
-      orderings pruned. *)
-
-  val eliminate : context -> fixed:C.free -> C.ty -> hyps -> C.ty * hyps
-  (** [eliminate context ~fixed ty hyps] is [ty] and [hyps] after the
-      elimination steps, none at an unknown of [fixed]. *)
-
-  val trim : context -> hyps -> hyps
-  (** [trim context hyps] is [hyps] with its disjunctions settled again and
-      every subtyping atom and grade ordering entailed by the others dropped. *)
-
   val report : context -> fixed:C.free -> C.ty -> hyps -> deferred list -> t
   (** [report context ~fixed ty hyps obligations] simplifies [hyps], eliminates
       the unknowns not in [fixed] nor in [obligations], writes the type and the
