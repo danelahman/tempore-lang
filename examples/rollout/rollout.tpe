@@ -1,4 +1,4 @@
-(* A staged rollout across waves of hosts, with observation and untrusted input.
+(* A staged release of software to hosts, with observation, retries and hotfixes.
 
    Run this example with the 'time-lower-bound-levels' grading monoid, e.g.
 
@@ -15,243 +15,361 @@ type host = Host of string
 type artefact = Artefact of string * nat
 type release = Release of artefact
 
-(* The health a probe reports. *)
+(* The health reported by a probe. *)
 type health = Healthy | Degraded
 
-(* A rollout plan: waves of items, deployed one wave after another. *)
-type 'a waves = Last | Wave of 'a list * 'a waves
+(* A deployment plan: a sequence of stages, each a list of items. *)
+type 'a stages = Empty | Stage of 'a list * 'a stages
 
-(* The progress of a wave: the hosts deployed, or the host that failed and
-   the hosts deployed up to and including it. *)
-type progress = Deployed of host list | Failed of host * host list
+(* The result of deploying a stage: the hosts deployed, or the host that
+   failed together with the hosts deployed up to and including it. *)
+type stage_result = StageDeployed of host list | StageFailed of host * host list
 
-(* The outcome of a rollout: the number of hosts on the release, or the host
-   that failed or the number of hosts reporting errors, and the number of
-   hosts reverted. *)
-type outcome =
+(* The result of a release: the number of hosts deployed; the host that
+   failed and the number of hosts reverted; or the number of hosts reporting
+   errors and the number of hosts reverted. *)
+type release_result =
   | Completed of nat
-  | FailedAt of host * nat
-  | Unstable of nat * nat
+  | HostFailed of host * nat
+  | ErrorsObserved of nat * nat
 
-(* The events of the audit trail. *)
+(* The events recorded during a release. *)
 type event =
   | Built of nat
   | Approved of nat
   | Installed of host
   | Retried of host
   | Reverted of host
-  | Watched of nat
+  | Observed of nat
+  | HotfixFetched of nat
 
-(* Building takes at least six ticks. *)
+(* Building takes at least six time steps. *)
 operation Build : string * nat ~> artefact # (6, Low)
-default Build (src, v) = delay 6; Artefact (src, v)
+default Build (source, version) = delay 6; Artefact (source, version)
 
-(* Approving takes a tick, and the release may be installed only after a
-   notice period of eight ticks, provided nothing untrusted is touched
-   meanwhile. *)
+(* Approving takes one time step. The approved release may be used after
+   eight further time steps during which nothing above Low is touched. *)
 operation Approve : artefact ~> [(8, Low)] release # (1, Low)
-default Approve a = delay 1; box (8, Low) (Release a)
+default Approve artefact = delay 1; box (8, Low) (Release artefact)
 
-(* Installing takes at least three ticks, reverting at least two. *)
+(* Installing takes at least three time steps, and reverting at least
+   two. *)
 operation Install : host * release ~> unit # (3, Low)
-default Install (h, r) = delay 3
+default Install (host, approved) = delay 3
 
 operation Revert : host ~> unit # (2, Low)
-default Revert h = delay 2
+default Revert host = delay 2
 
-(* A probe of a host at an attempt takes a tick; 'db-2' is degraded at its
-   first attempt. *)
-operation Probe : host * nat ~> health # (1, Low)
-default Probe (h, attempt) =
+(* A probe of a host running a release, at a given attempt, takes one time
+   step. The host 'db-2' is degraded at its first attempt; the host 'db-3'
+   is degraded at every attempt unless its release is built from the hotfix
+   source. *)
+operation Probe : host * release * nat ~> health # (1, Low)
+default Probe (host, Release (Artefact (source, _)), attempt) =
   delay 1;
-  if h = Host "db-2" && attempt = 0 then Degraded else Healthy
+  if host = Host "db-2" && attempt = 0 then Degraded
+  else if host = Host "db-3" && source <> "hotfix" then Degraded
+  else Healthy
 
-(* Watching hosts takes at least ten ticks, and returns the number of them
-   reporting errors; 'cache-1' reports errors. *)
-operation Watch : host list ~> nat # (10, Low)
-default Watch hs = delay 10; length (filter (fun h -> h = Host "cache-1") hs)
+(* Observing a list of hosts takes at least ten time steps and returns the
+   number of hosts reporting errors; the host 'cache-1' reports errors. *)
+operation Observe : host list ~> nat # (10, Low)
+default Observe hosts =
+  delay 10;
+  length (filter (fun host -> host = Host "cache-1") hosts)
 
-(* Deploying a host takes at least four ticks. It has no default
-   implementation, and is handled by a deployer. *)
+(* Deploying a host takes at least four time steps. The operation has no
+   default implementation and is implemented by a handler. *)
 operation Deploy : host * release ~> health # (4, Low)
 
-(* Logging an event takes no time. *)
-operation Log : event ~> unit # (0, Low)
-default Log e = ()
+(* Recording an event takes no time. *)
+operation Record : event ~> unit # (0, Low)
+default Record event = ()
 
-(* Fetching a patch from an upstream mirror takes at least two ticks and
-   touches untrusted input. *)
-operation FetchPatch : string ~> string # (2, High)
-default FetchPatch src = delay 2; "patched"
+(* Fetching a hotfix from an external source takes at least two time steps
+   and touches the level High. *)
+operation FetchHotfix : string ~> string # (2, High)
+default FetchHotfix source = delay 2; "hotfix"
 
-(* Correctly accepted by the typechecker: a plan of a first wave of one item
-   followed by waves of at most 'n' items. *)
-let plan (n : nat) (items : 'a list) : 'a waves =
-  let rec split k xs wave =
-    match xs with
-    | [] -> if wave = [] then Last else Wave (reverse wave, Last)
-    | x :: rest ->
-        if k = n then Wave (reverse wave, split 1 rest [x])
-        else split (k + 1) rest (x :: wave)
+(* Correctly accepted by the typechecker: a division of a list into a first
+   stage of one item followed by stages of at most 'size' items. *)
+let divide_into_stages (size : nat) (items : 'a list) : 'a stages =
+  let rec divide count remaining_items stage =
+    match remaining_items with
+    | [] -> if stage = [] then Empty else Stage (reverse stage, Empty)
+    | item :: rest ->
+        if count = size then Stage (reverse stage, divide 1 rest [item])
+        else divide (count + 1) rest (item :: stage)
   in
   match items with
-  | [] -> Last
-  | x :: rest -> Wave ([x], split 0 rest [])
+  | [] -> Empty
+  | item :: rest -> Stage ([item], divide 0 rest [])
 
 (* Correctly accepted by the typechecker: the number of items in a plan. *)
-let rec size (ws : 'a waves) : nat =
-  match ws with
-  | Last -> 0
-  | Wave (items, rest) -> length items + size rest
+let rec count_items (stages : 'a stages) : nat =
+  match stages with
+  | Empty -> 0
+  | Stage (items, rest) -> length items + count_items rest
 
-(* Correctly accepted by the typechecker: reverting hosts in turn, returning
-   their number. *)
-let revert_all (hs : host list) =
-  iter (fun h -> perform Revert h; perform Log (Reverted h)) hs;
-  length hs
+(* Correctly accepted by the typechecker: reverting hosts in order and
+   returning their number. *)
+let revert_hosts (hosts : host list) =
+  iter (fun host -> perform Revert host; perform Record (Reverted host)) hosts;
+  length hosts
 
-(* Correctly accepted by the typechecker: deploying the hosts of a wave in
-   turn, stopping at the first that is degraded. Its grade is the unit: a wave
-   of no hosts takes no time. *)
-let rec deploy_wave (r : release) (hosts : host list) (deployed : host list)
-    : progress # (0, Low) =
+(* Correctly accepted by the typechecker: deploying the hosts of a stage in
+   order, stopping at the first degraded host. The time component of the
+   grade is 0, since a stage may contain no hosts; the level component is Low
+   for every number of hosts. *)
+let rec deploy_stage (approved : release) (hosts : host list)
+    (deployed : host list) : stage_result # (0, Low) =
   match hosts with
-  | [] -> Deployed deployed
-  | h :: rest ->
-      (match perform Deploy (h, r) with
-       | Healthy -> deploy_wave r rest (h :: deployed)
-       | Degraded -> Failed (h, h :: deployed))
+  | [] -> StageDeployed deployed
+  | host :: rest ->
+      (match perform Deploy (host, approved) with
+       | Healthy -> deploy_stage approved rest (host :: deployed)
+       | Degraded -> StageFailed (host, host :: deployed))
 
-(* Correctly accepted by the typechecker: a rollout of the waves after the
-   hosts 'live' already on the release. Each wave is preceded by watching the
-   live hosts for ten ticks, which banks the ten ticks the approval 'go'
-   demands, and boxes the approval of the next wave. Errors, or a degraded
-   host, revert every host deployed. Its grade is the unit: a plan of no waves
-   takes no time. *)
-let rec roll (waves : host waves) (live : host list)
-    (go : [(10, Low)] release) : outcome # (0, Low) =
-  match waves with
-  | Last -> Completed (length live)
-  | Wave (hosts, rest) ->
-      let errors = perform Watch live in
-      perform Log (Watched errors);
-      if errors > 0 then Unstable (errors, revert_all live)
+(* Correctly accepted by the typechecker: observing hosts for one round and
+   then for at most 'additional_rounds' further rounds, stopping at the first
+   round that reports errors, and returning the number of errors. Every call
+   performs at least one observation, so the grade (10, Low) holds of both
+   the base case and the recursive case. *)
+let rec observe_hosts (hosts : host list) (additional_rounds : nat)
+    : nat # (10, Low) =
+  let error_count = perform Observe hosts in
+  perform Record (Observed error_count);
+  if error_count > 0 then error_count
+  else
+    match additional_rounds with
+    | 0 -> 0
+    | remaining + 1 -> observe_hosts hosts remaining
+
+(* Correctly accepted by the typechecker: deploying the stages in order after
+   the hosts 'deployed_hosts'. Each stage is preceded by one round of
+   observation, whose ten time steps precede the unboxing of 'approval', and
+   the last stage is followed by three rounds. Errors or a degraded host
+   revert every deployed host. Every call observes at least once, so the
+   grade is (10, Low). *)
+let rec deploy_stages (stages : host stages) (deployed_hosts : host list)
+    (approval : [(10, Low)] release) : release_result # (10, Low) =
+  match stages with
+  | Empty ->
+      let error_count = observe_hosts deployed_hosts 2 in
+      if error_count > 0 then
+        ErrorsObserved (error_count, revert_hosts deployed_hosts)
+      else Completed (length deployed_hosts)
+  | Stage (hosts, rest) ->
+      let error_count = observe_hosts deployed_hosts 0 in
+      if error_count > 0 then
+        ErrorsObserved (error_count, revert_hosts deployed_hosts)
       else
-        unbox go as r in
-        (match deploy_wave r hosts [] with
-         | Deployed ds -> roll rest (ds @ live) (box (10, Low) r)
-         | Failed (h, ds) -> FailedAt (h, revert_all (ds @ live)))
+        unbox approval as approved in
+        (match deploy_stage approved hosts [] with
+         | StageDeployed newly_deployed ->
+             deploy_stages rest (newly_deployed @ deployed_hosts)
+               (box (10, Low) approved)
+         | StageFailed (host, newly_deployed) ->
+             HostFailed (host, revert_hosts (newly_deployed @ deployed_hosts)))
 
-(* Correctly accepted by the typechecker: a probing policy that takes the
-   first probe as final. *)
-let probe_once (h : host) : health # (1, Low) = perform Probe (h, 0)
+(* Correctly accepted by the typechecker: a probing policy that returns the
+   result of the first probe. *)
+let probe_without_retries (host : host) (approved : release)
+    : health # (1, Low) =
+  perform Probe (host, approved, 0)
 
-(* Correctly accepted by the typechecker: a probing policy that retries a
-   degraded probe once, after a wait of three ticks, under a nested
-   handler. *)
-let probe_retrying (h : host) : health # (1, Low) =
-  handle perform Probe (h, 0)
+(* Correctly accepted by the typechecker: a probing policy that repeats a
+   degraded probe at most 'retries' times, three time steps apart. The probe
+   is performed under a handler whose case performs it and, if the result is
+   'Degraded', resumes 'k' with the result of 'probe_with_retries' at one
+   retry fewer. The case uses 'retries', 'attempt', 'host' and 'approved',
+   whose types are eternal. Every call performs at least one probe, so the
+   grade is (1, Low). *)
+let rec probe_with_retries (retries : nat) (attempt : nat) (host : host)
+    (approved : release) : health # (1, Low) =
+  handle perform Probe (host, approved, attempt)
   with
     (handler
-     | y -> y
-     | Probe (h', attempt) k ->
-         (match perform Probe (h', attempt) with
+     | health -> health
+     | Probe probe k ->
+         (match perform Probe probe with
           | Healthy -> continue k with Healthy
           | Degraded ->
-              perform Log (Retried h');
-              delay 3;
-              continue k with (perform Probe (h', attempt + 1))))
+              (match retries with
+               | 0 -> continue k with Degraded
+               | remaining + 1 ->
+                   perform Record (Retried host);
+                   delay 3;
+                   continue k with
+                     (probe_with_retries remaining (attempt + 1) host approved))))
 
-(* Correctly accepted by the typechecker: a deployer that installs a host and
-   probes it by the policy 'policy'. The case runs with the top grade
-   accumulated for 'policy', bound outside it, so the policy is a box, unboxed
-   with (3, High) accumulated: the top grade and the installation's three
-   ticks. A box type being contravariant in its grade, a policy boxed at '⊤'
-   (ASCII 'top') is accepted. The installation and the probe bank the four
-   ticks of 'Deploy' before 'k' is resumed. *)
-let deployer_with (policy : [(3, High)] (host -> health # 'e)) =
+(* Correctly accepted by the typechecker: the policy 'probe_with_retries'
+   with two retries, defined at the top level so that it may be boxed. *)
+let probe_with_two_retries (host : host) (approved : release) =
+  probe_with_retries 2 0 host approved
+
+(* Correctly accepted by the typechecker: a handler implementing 'Deploy' by
+   an installation followed by a probe by the policy 'policy'. The case is
+   typed with the top grade accumulated for 'policy', which is bound outside
+   it, so the policy is a box, unboxed with (3, High) accumulated: the top
+   grade followed by the three time steps of the installation. A box type
+   being contravariant in its grade, a policy boxed at '⊤' (ASCII 'top') is
+   accepted. The installation and the probe account for the four time steps
+   of 'Deploy' before 'k' is resumed. *)
+let handle_deployments
+    (policy : [(3, High)] (host -> release -> health # 'e)) =
   handler
-  | x -> x
-  | Deploy (h, r) k ->
-      perform Install (h, r);
-      perform Log (Installed h);
+  | result -> result
+  | Deploy (host, approved) k ->
+      perform Install (host, approved);
+      perform Record (Installed host);
       unbox policy as probe in
-      continue k with (probe h)
+      continue k with (probe host approved)
 
-(* Correctly accepted by the typechecker: collecting the audit trail, in the
-   order of the events, and pairing it with the result. *)
-let audit =
+(* Correctly accepted by the typechecker: a handler collecting the recorded
+   events in order and pairing them with the result. *)
+let record_events =
   handler
-  | x -> (x, [])
-  | Log e k ->
-      let (x, es) = continue k with () in
-      (x, e :: es)
+  | result -> (result, [])
+  | Record event k ->
+      let (result, events) = continue k with () in
+      (result, event :: events)
 
-(* Correctly accepted by the typechecker: a release is built, approved and
-   rolled out under the deployer of the given policy. The approval's
-   '[(8, Low)]' box is accepted where 'roll' expects a '[(10, Low)]' one. *)
-let release (policy : [(3, High)] (host -> health # 'e)) (src : string)
-    (v : nat) (hosts : host list) : outcome # (7, Low) =
-  let deployer = deployer_with policy in
+(* Correctly accepted by the typechecker: building, approving and deploying a
+   version under the handler of the given policy. The box '[(8, Low)]'
+   returned by 'Approve' is accepted where 'deploy_stages' expects a box
+   '[(10, Low)]'. The time component 17 is the sum of the building, the
+   approval and one round of observation. *)
+let release_version (policy : [(3, High)] (host -> release -> health # 'e))
+    (source : string) (version : nat) (hosts : host list)
+    : release_result # (17, Low) =
   handle
-    let a = perform Build (src, v) in
-    perform Log (Built v);
-    let go = perform Approve a in
-    perform Log (Approved v);
-    roll (plan 2 hosts) [] go
-  with deployer
+    let artefact = perform Build (source, version) in
+    perform Record (Built version);
+    let approval = perform Approve artefact in
+    perform Record (Approved version);
+    deploy_stages (divide_into_stages 2 hosts) [] approval
+  with handle_deployments policy
 
-(* Correctly accepted by the typechecker: a patched release is built from a
-   patch fetched before the release is approved, so the untrusted input is
-   touched before its notice period starts. *)
-let patched_release (src : string) (v : nat) (hosts : host list)
-    : outcome # (9, High) =
-  let patched = perform FetchPatch src in
-  release (box ⊤ probe_retrying) patched v hosts
+(* Correctly accepted by the typechecker: releasing a version and, if a host
+   fails, fetching a hotfix and releasing the next version, at most
+   'hotfixes' times. Each hotfix is fetched before the approval of the version
+   built from it. Every call releases once, so the time component is 17; the
+   fetch touches High, so the level component is High for every number of
+   hotfixes, including 0. *)
+let rec release_with_hotfixes (hotfixes : nat) (source : string)
+    (version : nat) (hosts : host list) : release_result # (17, High) =
+  match release_version (box ⊤ probe_with_two_retries) source version hosts with
+  | HostFailed (host, reverted) ->
+      (match hotfixes with
+       | 0 -> HostFailed (host, reverted)
+       | remaining + 1 ->
+           let fixed_source = perform FetchHotfix source in
+           perform Record (HotfixFetched (version + 1));
+           release_with_hotfixes remaining fixed_source (version + 1) hosts)
+  | result -> result
 
-(* Correctly rejected by the typechecker: the approval 'go' is unboxed
-   before the live hosts have been watched:
+(* Correctly accepted by the typechecker: release notes boxed at (17, Low)
+   before a release and unboxed after it. The grade of 'release_version'
+   accounts for the seventeen time steps and keeps the level at Low. *)
+let publish_after_release (source : string) (version : nat)
+    (hosts : host list) =
+  box (17, Low) "release notes" as notes in
+  let result =
+    release_version (box ⊤ probe_with_two_retries) source version hosts
+  in
+  unbox notes as published in
+  (result, published)
 
-     Typing error: Variable `go` is unboxed with the unit grade `(0,Low)`
-       accumulated since it was bound, which is not below its box grade
-       `(10,Low)`
+(* Correctly rejected by the typechecker: the approval is unboxed before the
+   deployed hosts have been observed:
+
+     Typing error: Variable `approval` is unboxed with the unit grade
+       `(0,Low)` accumulated since it was bound, which is not below its box
+       grade `(10,Low)`
        ...
        Note: the resource inequality `(0,Low) ≾ (10,Low)` does not hold
 *)
 (*
-let rec hasty_roll waves live go =
-  match waves with
-  | Last -> Completed (length live)
-  | Wave (hosts, rest) ->
-      unbox go as r in
-      (match deploy_wave r hosts [] with
-       | Deployed ds -> hasty_roll rest (ds @ live) (box (10, Low) r)
-       | Failed (h, ds) -> FailedAt (h, revert_all (ds @ live)))
+let rec deploy_stages_before_observation (stages : host stages)
+    (deployed_hosts : host list) (approval : [(10, Low)] release)
+    : release_result # (0, Low) =
+  match stages with
+  | Empty -> Completed (length deployed_hosts)
+  | Stage (hosts, rest) ->
+      unbox approval as approved in
+      (match deploy_stage approved hosts [] with
+       | StageDeployed newly_deployed ->
+           deploy_stages_before_observation rest
+             (newly_deployed @ deployed_hosts) (box (10, Low) approved)
+       | StageFailed (host, newly_deployed) ->
+           HostFailed (host, revert_hosts (newly_deployed @ deployed_hosts)))
 *)
 
-(* Correctly rejected by the typechecker: the patch is fetched after the
-   approval, which it revokes, although the watching before the first wave
-   would bank the notice period. Under 'time-lower-bound' the same function
-   is accepted:
+(* Correctly rejected by the typechecker: a loop that tests its bound before
+   the first observation may perform no observation, so its body does not
+   have the time component 10:
 
-     Typing error: Variable `go` is used with grade `(2,High)` accumulated
-       since it was bound, but its type `[(10,Low)]release` is not eternal
+     Typing error: This function's body has grade `(0,Low)`, which does not
+       match its annotated grade `(10,Low)`
+       Note: the effect inequality `(0,Low) ≾ (10,Low)` does not hold
+*)
+(*
+let rec observe_hosts_zero_or_more_times (hosts : host list) (rounds : nat)
+    : nat # (10, Low) =
+  match rounds with
+  | 0 -> 0
+  | remaining + 1 ->
+      let error_count = perform Observe hosts in
+      if error_count > 0 then error_count
+      else observe_hosts_zero_or_more_times hosts remaining
+*)
+
+(* Correctly rejected by the typechecker: a loop that fetches a hotfix before
+   each retry touches High, which its annotated level excludes:
+
+     Typing error: This function's body has grade `(1,High)`, which does not
+       match its annotated grade `(1,Low)`
+       Note: the effect inequality `(1,High) ≾ (1,Low)` does not hold
+*)
+(*
+let rec probe_with_retries_and_hotfixes (retries : nat) (attempt : nat)
+    (host : host) (approved : release) : health # (1, Low) =
+  match perform Probe (host, approved, attempt) with
+  | Healthy -> Healthy
+  | Degraded ->
+      (match retries with
+       | 0 -> Degraded
+       | remaining + 1 ->
+           let fixed_source = perform FetchHotfix "api" in
+           delay 3;
+           probe_with_retries_and_hotfixes remaining (attempt + 1) host approved)
+*)
+
+(* Correctly rejected by the typechecker: the hotfix is fetched after the
+   approval, and the approval is used afterwards. Under 'time-lower-bound'
+   the same function is accepted:
+
+     Typing error: Variable `approval` is used with grade `(2,High)`
+       accumulated since it was bound, but its type `[(10,Low)]release` is not
+       eternal
        ...
        Note: the resource inequality `(2,High) ≾ (0,Low)` does not hold
 *)
 (*
-let stale_patched_release src v hosts =
+let release_with_stale_approval (source : string) (version : nat)
+    (hosts : host list) =
   handle
-    let a = perform Build (src, v) in
-    let go = perform Approve a in
-    let patched = perform FetchPatch src in
-    roll (plan 2 hosts) [] go
-  with deployer_with (box ⊤ probe_retrying)
+    let artefact = perform Build (source, version) in
+    let approval = perform Approve artefact in
+    let fixed_source = perform FetchHotfix source in
+    deploy_stages (divide_into_stages 2 hosts) [] approval
+  with handle_deployments (box ⊤ probe_with_two_retries)
 *)
 
-(* Correctly rejected by the typechecker: a deployer that patches each host
-   touches untrusted input before it resumes 'k'. Under 'time-lower-bound'
-   the same handler is accepted:
+(* Correctly rejected by the typechecker: a handler that fetches a hotfix
+   for each host touches High before it resumes 'k'. Under
+   'time-lower-bound' the same handler is accepted:
 
      Typing error: Variable `k` is unboxed with grade `(6,High)` accumulated
        since it was bound, which is not below its box grade `(4,Low)`
@@ -259,37 +377,72 @@ let stale_patched_release src v hosts =
        Note: the resource inequality `(6,High) ≾ (4,Low)` does not hold
 *)
 (*
-let patching_deployer =
+let handle_deployments_with_hotfix =
   handler
-  | x -> x
-  | Deploy (h, r) k ->
-      let p = perform FetchPatch "api" in
-      perform Install (h, r);
-      continue k with (perform Probe (h, 0))
+  | result -> result
+  | Deploy (host, approved) k ->
+      let fixed_source = perform FetchHotfix "api" in
+      perform Install (host, approved);
+      continue k with (perform Probe (host, approved, 0))
+*)
+
+(* Correctly rejected by the typechecker: the release notes cannot be
+   unboxed after a release with hotfixes, whose level is High for every
+   number of hotfixes:
+
+     Typing error: Variable `notes` is unboxed with grade `(17,High)`
+       accumulated since it was bound, which is not below its box grade
+       `(17,Low)`
+       ...
+       Note: the resource inequality `(17,High) ≾ (17,Low)` does not hold
+*)
+(*
+let publish_after_release_with_hotfixes (source : string) (version : nat)
+    (hosts : host list) =
+  box (17, Low) "release notes" as notes in
+  let result = release_with_hotfixes 0 source version hosts in
+  unbox notes as published in
+  (result, published)
 *)
 
 let hosts =
   [Host "web-1"; Host "web-2"; Host "web-3"; Host "db-1"; Host "db-2"]
 
-(* The hosts, as a first wave of one host, then two waves of two hosts. *)
-run plan 2 hosts
+(* The hosts, divided into a first stage of one host and two stages of two
+   hosts. *)
+run divide_into_stages 2 hosts
 
-(* 'plan' and 'size' at a list of strings: seven items. *)
-run size (plan 3 ["a"; "b"; "c"; "d"; "e"; "f"; "g"])
+(* A division of seven strings into stages of at most three items: seven
+   items. *)
+run count_items (divide_into_stages 3 ["a"; "b"; "c"; "d"; "e"; "f"; "g"])
 
-(* The rollout completes on all five hosts, 'db-2' after one retry, with its
-   audit trail. *)
-run handle release (box ⊤ probe_retrying) "api" 7 hosts with audit
-
-(* Under the strict policy 'db-2' fails, and the five hosts deployed are
-   reverted. *)
-run handle release (box ⊤ probe_once) "api" 7 hosts with audit
-
-(* The host of the first wave, 'cache-1', reports errors while it is
-   watched, and is reverted. *)
+(* The release completes on the five hosts; 'db-2' is healthy after one
+   retry. *)
 run
-  handle release (box ⊤ probe_retrying) "api" 7 [Host "cache-1"; Host "web-1"]
-  with audit
+  handle release_version (box ⊤ probe_with_two_retries) "api" 7 hosts
+  with record_events
 
-(* The patched release completes on all five hosts. *)
-run patched_release "api" 8 hosts
+(* Without retries, 'db-2' fails, and the five deployed hosts are
+   reverted. *)
+run
+  handle release_version (box ⊤ probe_without_retries) "api" 7 hosts
+  with record_events
+
+(* The host 'cache-1' reports errors when observed, and is reverted. *)
+run
+  handle
+    release_version (box ⊤ probe_with_two_retries) "api" 7
+      [Host "cache-1"; Host "web-1"]
+  with record_events
+
+(* The release of version 7 fails at 'db-3' and is reverted; after one
+   hotfix, version 8 completes on both hosts. *)
+run
+  handle release_with_hotfixes 1 "api" 7 [Host "web-1"; Host "db-3"]
+  with record_events
+
+(* Without hotfixes, the release fails at 'db-3'. *)
+run release_with_hotfixes 0 "api" 7 [Host "web-1"; Host "db-3"]
+
+(* The release notes are published after the release. *)
+run publish_after_release "api" 7 hosts

@@ -6141,24 +6141,82 @@ The rational-time example runs to its values under its intervals of hours.
   ]
   
 
-The staged-rollout case study runs to its values; the resource states are
+The staged-release case study runs to its values; the resource states are
 omitted.
 
   $ ../tempore --grades time-lower-bound-levels ../examples/rollout/rollout.tpe | awk '/^State:/ { s = 1 } /^=== Run/ { s = 0 } !s'
   === Run 1 ===
-  return (Wave ((Host "web-1")::[], 
-                Wave ((Host "web-2")::(Host "web-3")::[], 
-                      Wave ((Host "db-1")::(Host "db-2")::[], Last))))
+  return (Stage ((Host "web-1")::[], 
+                 Stage ((Host "web-2")::(Host "web-3")::[], 
+                        Stage ((Host "db-1")::(Host "db-2")::[], Empty))))
   === Run 2 ===
   return 7
   === Run 3 ===
   return (Completed 5, 
-          (Built 7)::(Approved 7)::(Watched 0)::(Installed (Host "web-1"))::(Watched 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Watched 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Retried (Host "db-2"))::[])
+          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Retried (Host "db-2"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
   === Run 4 ===
-  return (FailedAt (Host "db-2", 5), 
-          (Built 7)::(Approved 7)::(Watched 0)::(Installed (Host "web-1"))::(Watched 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Watched 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Reverted (Host "db-2"))::(Reverted (Host "db-1"))::(Reverted (Host "web-3"))::(Reverted (Host "web-2"))::(Reverted (Host "web-1"))::[])
+  return (HostFailed (Host "db-2", 5), 
+          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Reverted (Host "db-2"))::(Reverted (Host "db-1"))::(Reverted (Host "web-3"))::(Reverted (Host "web-2"))::(Reverted (Host "web-1"))::[])
   === Run 5 ===
-  return (Unstable (1, 1), 
-          (Built 7)::(Approved 7)::(Watched 0)::(Installed (Host "cache-1"))::(Watched 1)::(Reverted (Host "cache-1"))::[])
+  return (ErrorsObserved (1, 1), 
+          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "cache-1"))::(Observed 1)::(Reverted (Host "cache-1"))::[])
   === Run 6 ===
-  return (Completed 5)
+  return (Completed 2, 
+          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Retried (Host "db-3"))::(Retried (Host "db-3"))::(Reverted (Host "db-3"))::(Reverted (Host "web-1"))::(HotfixFetched 8)::(Built 8)::(Approved 8)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
+  === Run 7 ===
+  return (HostFailed (Host "db-3", 2))
+  === Run 8 ===
+  return (Completed 5, "release notes")
+
+The mail-session case study performs its operations by their defaults.
+
+  $ ../tempore --grades regex-cost-upper-bound-symbolic ../examples/sessions/mail_session.tpe
+  === Run 1 ===
+  return (Checkpoint 5, 2)
+  State: [
+    { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
+    {2},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 2 ===
+  return (Message (1, "Agenda", false))
+  State: [
+    {2},
+    {1},
+    {1}
+  ]
+  
+  === Run 3 ===
+  return 3
+  State: [
+    { resource_1 ↦
+        fun op_var ↦ handle
+                       return op_var
+                     with fetch_then_flag
+        # {Login; (Fetch | Store)*; Logout}
+    },
+    {2},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 4 ===
+  return 1
+  State: [
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  

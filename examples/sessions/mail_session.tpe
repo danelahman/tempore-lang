@@ -1,0 +1,261 @@
+(* A mail session whose retrieval and flagging loops are graded by starred runs.
+
+   Run this example with the 'regex-cost-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-cost-upper-bound-symbolic examples/sessions/mail_session.tpe
+
+   Grades {...}: regular languages of runs in the allowance order
+     - Unit {0}: the empty run, the least grade
+     - Top ⊤: every run permitted
+     - Product: concatenation of runs *)
+
+(* Messages, given by a number, a subject and whether they have been seen;
+   the flags stored on messages; and the checkpoint of a mailbox, the number
+   of the next message to be fetched. *)
+type message = Message of nat * string * bool
+type flag = Seen | Flagged
+type checkpoint = Checkpoint of nat
+
+(* Correctly accepted by the typechecker: the subject of a message, by its
+   number. *)
+let select_subject (number : nat) : string =
+  match number with
+  | 1 -> "Agenda"
+  | 2 -> "Minutes"
+  | _ -> "Notice"
+
+(* The operations of a session: a login takes two to three ticks, a fetch one
+   to two, and a store and a logout one each. A message is seen if its number
+   is even. *)
+operation Login : string ~> unit # {Login} within (2, 3)
+default Login user = delay 2
+
+operation Fetch : nat ~> message # {Fetch} within (1, 2)
+default Fetch number =
+  delay 1;
+  Message (number, select_subject number, even number)
+
+operation Store : nat * flag ~> unit # {Store} within 1
+default Store (number, flag) = delay 1
+
+operation Logout : unit ~> unit # {Logout} within 1
+default Logout () = delay 1
+
+(* A whole session: a login, fetches and stores in any order, and a logout.
+   The operation has no default implementation and is implemented by a
+   handler. *)
+operation Session : nat ~> nat # {Login; (Fetch | Store)*; Logout}
+
+(* Correctly accepted by the typechecker: fetching 'count' messages from the
+   number 'first' on. Assuming that the recursive call has the grade
+   {Fetch*}, the body has the grade {0 | Fetch; Fetch*}, below {Fetch*}. *)
+let rec fetch_messages (first : nat) (count : nat) : message list # {Fetch*} =
+  match count with
+  | 0 -> []
+  | remaining + 1 ->
+      let message = perform Fetch first in
+      let rest = fetch_messages (first + 1) remaining in
+      message :: rest
+
+(* Correctly accepted by the typechecker: flagging the unseen messages of a
+   list as seen, with one store for each. *)
+let rec flag_unseen_messages (messages : message list) : unit # {Store*} =
+  match messages with
+  | [] -> ()
+  | Message (number, _, seen) :: rest ->
+      (if seen then () else perform Store (number, Seen));
+      flag_unseen_messages rest
+
+(* Correctly accepted by the typechecker: fetching 'count' messages from the
+   number 'first' on, flagging each unseen message as seen after fetching it,
+   and returning the number of messages flagged. Each round is a fetch
+   followed by at most one store. The result of the recursive call is bound
+   before the addition, which is not eternal. *)
+let rec synchronise_messages (first : nat) (count : nat)
+    : nat # {(Fetch; Store)*} =
+  match count with
+  | 0 -> 0
+  | remaining + 1 ->
+      let Message (_, _, seen) = perform Fetch first in
+      let flagged = if seen then 0 else (perform Store (first, Seen); 1) in
+      let flagged_later = synchronise_messages (first + 1) remaining in
+      flagged + flagged_later
+
+(* Correctly accepted by the typechecker: a session that synchronises the
+   first 'count' messages. The checkpoint is boxed at the grade of one
+   session, so it may be unboxed while at most one session has run since it
+   was created. The grade {(Fetch; Store)*} of the loop is below
+   {(Fetch | Store)*}. *)
+let synchronise_mailbox (user : string) (count : nat)
+    : checkpoint * nat # {Login; (Fetch | Store)*; Logout} =
+  box {Login; (Fetch | Store)*; Logout} (Checkpoint (count + 1)) as checkpoint in
+  perform Login user;
+  let flagged = synchronise_messages 1 count in
+  perform Logout ();
+  unbox checkpoint as committed in
+  (committed, flagged)
+
+(* Correctly accepted by the typechecker: a session that reads one message
+   within six ticks, which pay for a login, a fetch and a logout at their
+   upper runtime bounds, three, two and one. *)
+let read_first_message (user : string) : message # {6} =
+  perform Login user;
+  let message = perform Fetch 1 in
+  perform Logout ();
+  message
+
+(* Correctly accepted by the typechecker: a session without a login. An upper
+   bound admits every run with fewer operations, and so does not require a
+   login. *)
+let synchronise_without_login (count : nat)
+    : nat # {Login; (Fetch | Store)*; Logout} =
+  let flagged = synchronise_messages 1 count in
+  perform Logout ();
+  flagged
+
+(* Correctly accepted by the typechecker: a handler implementing 'Session'
+   by fetching all messages first and flagging the unseen ones afterwards.
+   The runs {Login; Fetch*; Store*; Logout} of the case are below the grade
+   of 'Session'. *)
+let fetch_then_flag =
+  handler
+  | result -> result
+  | Session count k ->
+      perform Login "ada";
+      let messages = fetch_messages 1 count in
+      flag_unseen_messages messages;
+      perform Logout ();
+      continue k with (length messages)
+
+(* Correctly rejected by the typechecker: a fetch after the logout is matched
+   by no operation of the session and paid for by no tick:
+
+     Typing error: This function's body has grade `{Login; Logout; Fetch*}`,
+       which does not match its annotated grade
+       `{Login; (Fetch | Store)*; Logout}`
+       Note: the effect inequality
+         `{Login; Logout; Fetch*} <= {Login; (Fetch | Store)*; Logout}` does
+         not hold
+       Note: the grade `{Login; Logout; Fetch}` is below
+         `{Login; Logout; Fetch*}` but not below
+         `{Login; (Fetch | Store)*; Logout}`
+*)
+(*
+let fetch_after_logout (user : string) (count : nat)
+    : message list # {Login; (Fetch | Store)*; Logout} =
+  perform Login user;
+  perform Logout ();
+  fetch_messages 1 count
+*)
+
+(* Correctly rejected by the typechecker: fetches before the login:
+
+     Typing error: This function's body has grade `{Fetch*; Login; Logout}`,
+       which does not match its annotated grade
+       `{Login; (Fetch | Store)*; Logout}`
+       Note: the effect inequality
+         `{Fetch*; Login; Logout} <= {Login; (Fetch | Store)*; Logout}` does
+         not hold
+       Note: the grade `{Fetch; Login; Logout}` is below
+         `{Fetch*; Login; Logout}` but not below
+         `{Login; (Fetch | Store)*; Logout}`
+*)
+(*
+let fetch_before_login (user : string) (count : nat)
+    : message list # {Login; (Fetch | Store)*; Logout} =
+  let messages = fetch_messages 1 count in
+  perform Login user;
+  perform Logout ();
+  messages
+*)
+
+(* Correctly rejected by the typechecker: the annotation places every fetch
+   before every store, and the rounds of the loop alternate them:
+
+     Typing error: This function's body has grade
+       `{Fetch; Store; Fetch*; Store*}`, which does not match its annotated
+       grade `{Fetch*; Store*}`
+       Note: the effect inequality
+         `{Fetch; Store; Fetch*; Store*} <= {Fetch*; Store*}` does not hold
+       Note: the grade `{Fetch; Store; Fetch}` is below
+         `{Fetch; Store; Fetch*; Store*}` but not below `{Fetch*; Store*}`
+*)
+(*
+let rec synchronise_messages_in_order (first : nat) (count : nat)
+    : nat # {Fetch*; Store*} =
+  match count with
+  | 0 -> 0
+  | remaining + 1 ->
+      let Message (_, _, seen) = perform Fetch first in
+      let flagged = if seen then 0 else (perform Store (first, Seen); 1) in
+      let flagged_later = synchronise_messages_in_order (first + 1) remaining in
+      flagged + flagged_later
+*)
+
+(* Correctly rejected by the typechecker: the grade {Fetch*} of the loop
+   bounds no number of fetches, so no number of ticks pays for it:
+
+     Typing error: The effect inequality `{Fetch*} <= {20}` does not hold
+       ...
+       Note: the grade `{Fetch; Fetch; Fetch; Fetch; Fetch; Fetch; Fetch;
+         Fetch; Fetch; Fetch; Fetch}` is below `{Fetch*}` but not below `{20}`
+*)
+(*
+let fetch_messages_within_budget (count : nat) : message list # {20} =
+  fetch_messages 1 count
+*)
+
+(* Correctly rejected by the typechecker: the checkpoint is unboxed after a
+   second login, when more than one session has run since it was created:
+
+     Typing error: Variable `checkpoint` is unboxed with grade
+       `{Login; (Fetch; Store)*; Logout; Login}` accumulated since it was
+       bound, which is not below its box grade
+       `{Login; (Fetch | Store)*; Logout}`
+       ...
+       Note: the resource inequality
+         `{Login; (Fetch; Store)*; Logout; Login} <=
+         {Login; (Fetch | Store)*; Logout}` does not hold
+       Note: the grade `{Login; Logout; Login}` is below
+         `{Login; (Fetch; Store)*; Logout; Login}` but not below
+         `{Login; (Fetch | Store)*; Logout}`
+*)
+(*
+let commit_after_second_session (user : string) (count : nat) =
+  box {Login; (Fetch | Store)*; Logout} (Checkpoint (count + 1)) as checkpoint in
+  perform Login user;
+  let flagged = synchronise_messages 1 count in
+  perform Logout ();
+  perform Login user;
+  unbox checkpoint as committed in
+  perform Logout ();
+  (committed, flagged)
+*)
+
+(* Correctly rejected by the typechecker: a login, a fetch and a logout may
+   take six ticks, more than the five the annotation allows:
+
+     Typing error: This function's body has grade `{Login; Fetch; Logout}`,
+       which does not match its annotated grade `{5}`
+       Note: the effect inequality `{Login; Fetch; Logout} <= {5}` does not
+         hold
+*)
+(*
+let read_first_message_within (user : string) : message # {5} =
+  perform Login user;
+  let message = perform Fetch 1 in
+  perform Logout ();
+  message
+*)
+
+(* A session synchronising four messages, two of them unseen. *)
+run synchronise_mailbox "ada" 4
+
+(* A session reading the first message. *)
+run read_first_message "ada"
+
+(* A session implemented by the handler, fetching three messages. *)
+run handle perform Session 3 with fetch_then_flag
+
+(* Two messages synchronised without a login. *)
+run synchronise_without_login 2
