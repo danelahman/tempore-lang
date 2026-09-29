@@ -25,8 +25,10 @@
     directions for eternality); a grade ordering is dropped when reflexive or
     repeated.
 
-    An ordering is entailed when it is one of the hypotheses or follows from
-    them ({!Entail.Make.SORT.entailed}).
+    An ordering is entailed when it follows from the hypotheses
+    ({!Entail.Make.SORT.follows}); for the equality of grades below, when it is
+    one of them or follows from them along the orderings between two atoms only
+    ({!Entail.Make.SORT.follows_atomic}).
 
     {2 Polarity}
 

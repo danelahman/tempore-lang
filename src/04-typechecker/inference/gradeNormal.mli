@@ -103,13 +103,29 @@ module Make (X : GradeExp.S) : sig
         below the unit, lets an atom above the top absorb a run of atoms, and
         multiplies constants on either side of an atom passed over; where the
         product commutes, as multisets. Atoms are compared by the grade's order,
-        by identity, and along chains of the hypotheses whose both sides are
-        single atoms; on the resource side also along the images of such effect
-        hypotheses. Other hypotheses are not used.
+        by identity, and along the chains between atoms of the graph of the
+        hypotheses of {!check_closed}, with its steps from factors to products,
+        whatever the sides the chains pass through; on the resource side also
+        along the images of such effect chains. Where [e] is a side of a
+        hypothesis, [e ≾ e'] is also derived along a chain of that graph from
+        [e] to a side that is [e'] or is so derived below it.
+
+        The steps from factors draw their evidence from [hyps], so the
+        derivations are sound where the hypotheses hold together: conjuncts of a
+        qualifier, not atoms of a disjunction or of a quantified condition.
 
         Applied to [bounds] and [hyps] alone, it is a decision procedure whose
-        chains along the hypotheses are computed once, when first needed, and
-        shared by the orderings it decides. *)
+        graph, with its chains through the sides that are not atoms, is built
+        once, and whose chains out of each atom are computed when first needed,
+        shared by the orderings it decides. At no hypotheses it is the embedding
+        alone. *)
+
+    val decide_leq_atomic :
+      Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
+    (** [decide_leq_atomic bounds hyps e e'] is the embedding of {!decide_leq}
+        with atoms compared along the chains of the hypotheses whose both sides
+        are single atoms only, on the resource side also along the images of
+        such effect hypotheses: a fragment of {!decide_leq}. *)
 
     val split :
       Grades.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
@@ -157,11 +173,11 @@ module Make (X : GradeExp.S) : sig
 
         It is [Error o] for the first ordering that fails, the orderings of [os]
         first, then the chains in the order of the sides and, for each pair, the
-        chain of {!Reach.chain}; [o.info] is the payloads of the orderings it
-        follows from. It is otherwise [Ok] of the orderings of [os] that have a
-        variable. A failure refutes the conjunction of [os], which are therefore
-        conjuncts of a qualifier, not atoms of a disjunction or of a quantified
-        condition. *)
+        shortest chain of {!Reach.chain}; [o.info] is the payloads of the
+        orderings it follows from. It is otherwise [Ok] of the orderings of [os]
+        that have a variable. A failure refutes the conjunction of [os], which
+        are therefore conjuncts of a qualifier, not atoms of a disjunction or of
+        a quantified condition. *)
 
     val refute_leq_unit : Grades.Grade.bounds -> exp -> const option
     (** [refute_leq_unit bounds e] is [Some c] when some alternative of the

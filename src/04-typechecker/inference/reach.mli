@@ -19,13 +19,12 @@ val reached : 'e graph -> int list -> int -> bool
     reached are computed once, in time linear in the edges. *)
 
 val chain : 'e graph -> int -> int -> 'e list option
-(** [chain g i j] is the chain from [i] to [j] that the reflexive–transitive
-    closure of Warshall's algorithm assigns to the pair, taking the vertices as
-    pivots in increasing order: the empty chain when [i = j], the label of the
-    first edge from [i] to [j] where there is one, and otherwise the chain to
-    and from the least pivot through which the pair is joined. It is [None] when
-    [j] is not reached from [i]. It is computed for the pair alone, without the
-    closure. *)
+(** [chain g i j] is a shortest chain from [i] to [j], found by breadth-first
+    search, and [None] when [j] is not reached from [i]; the chain from [i] to
+    itself is empty. Ties are broken by the order of the edges: the chain to [j]
+    is the chain to the first vertex found with an edge to [j], followed by the
+    first such edge. Applied to [g] and [i] alone, the search runs once, in time
+    linear in the edges, and serves every [j]. *)
 
 (** {2 Strongly connected components} *)
 

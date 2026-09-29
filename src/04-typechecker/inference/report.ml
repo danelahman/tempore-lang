@@ -250,7 +250,7 @@ module Make (C : Constraint.S) = struct
     let entailed = lazy (eternal acc) in
     let settling : R.settling =
       {
-        below_unit = (fun rho -> E.Rho.entailed entail rho X.Rho.unit);
+        below_unit = (fun rho -> E.Rho.follows entail rho X.Rho.unit);
         eternal = (fun a -> TyParamSet.mem a (Lazy.force entailed));
         refute = true;
       }
@@ -271,7 +271,7 @@ module Make (C : Constraint.S) = struct
       List.exists
         (fun (d' : R.disjunction) ->
           same_ty context d.disj_ty d'.disj_ty
-          && E.Rho.entailed entail d.disj_grade d'.disj_grade)
+          && E.Rho.follows entail d.disj_grade d'.disj_grade)
         (seen @ rest)
     in
     { hyps with disj_hyps = walk entailed hyps.disj_hyps }
@@ -328,27 +328,14 @@ module Make (C : Constraint.S) = struct
   let simplify context hyps =
     prune context (settle_all context (canon_hyps context hyps))
 
-  (* The orderings entailed by the others dropped in turn, as by {!walk}:
-     an ordering is dropped when it is one of the others or follows from the
-     entailment [make] of the others. Only the orderings between two atoms
-     serve the derivations, whose success does not depend on the order of the
-     hypotheses; an ordering that is not between atoms is decided by the
-     entailment of every ordering not dropped, shared until an ordering between
-     atoms is dropped. *)
-  let walk_entailed ~is_atom ~equal ~make ~follows orderings =
-    let rec go seen shared = function
-      | [] -> List.rev seen
-      | (o : _ GradeNormal.ordering) :: rest ->
-          let others = seen @ rest in
-          let atomic = is_atom o.lhs && is_atom o.rhs in
-          let entail = if atomic then lazy (make others) else shared in
-          if
-            mem equal o.lhs o.rhs others
-            || follows (Lazy.force entail) o.lhs o.rhs
-          then go seen (if atomic then entail else shared) rest
-          else go (o :: seen) shared rest
-    in
-    go [] (lazy (make orderings)) orderings
+  (* The orderings entailed by the others dropped in turn, as by {!walk}: an
+     ordering is dropped when it follows from the entailment [make] of the
+     others. *)
+  let walk_entailed ~make ~follows orderings =
+    walk
+      (fun ~seen ~rest (o : _ GradeNormal.ordering) ->
+        follows (make (seen @ rest)) o.lhs o.rhs)
+      orderings
 
   (* Each atom entailed by the others dropped in turn; on the subtyping atoms
      a greedy minimal equivalent graph, the transitive reduction where they
@@ -363,12 +350,12 @@ module Make (C : Constraint.S) = struct
     in
     let sub_vars = walk reached hyps.sub_vars in
     let eps_hyps =
-      walk_entailed ~is_atom:E.Eps.is_atom ~equal:(X.Eps.equal bounds)
+      walk_entailed
         ~make:(fun eps_hyps -> E.make bounds { rho_hyps = []; eps_hyps })
         ~follows:E.Eps.follows hyps.eps_hyps
     in
     let rho_hyps =
-      walk_entailed ~is_atom:E.Rho.is_atom ~equal:(X.Rho.equal bounds)
+      walk_entailed
         ~make:(fun rho_hyps -> E.make bounds { rho_hyps; eps_hyps })
         ~follows:E.Rho.follows hyps.rho_hyps
     in
@@ -1053,11 +1040,11 @@ module Make (C : Constraint.S) = struct
       match (kind, u) with
       | Equate_eps, Eps_unknown k ->
           equate (eps_grade context k)
-            (fun a b -> E.Eps.entailed (Lazy.force entail) a b)
+            (fun a b -> E.Eps.follows_atomic (Lazy.force entail) a b)
             st
       | Equate_rho, Rho_unknown k ->
           equate (rho_grade context k)
-            (fun a b -> E.Rho.entailed (Lazy.force entail) a b)
+            (fun a b -> E.Rho.follows_atomic (Lazy.force entail) a b)
             st
       | Lower_eps, Eps_unknown k -> lower context (eps_grade context k) st
       | Lower_rho, Rho_unknown k -> lower context (rho_grade context k) st
@@ -1233,7 +1220,7 @@ module Make (C : Constraint.S) = struct
      unknowns of the atoms a step changes, adds or drops and of its value. A
      test reads the atoms of its unknown and the type alone, but for
      equating, which reads the chains of atomic orderings too
-     ({!Entail.Make.SORT.derive}), decisions being monotone in them.
+     ({!Entail.Make.SORT.follows_atomic}), decisions being monotone in them.
      At an unknown [v], lowering turns [x ≾ v ≾ y] into [x ≾ y] or drops it,
      raising turns [x ≾ v ≾ U] into [x ≾ U], equating with [b] turns [x ≾ v]
      into [x ≾ b] and [v ≾ y] into [b ≾ y], and steps drop orderings: no step

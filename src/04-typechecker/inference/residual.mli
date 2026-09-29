@@ -250,13 +250,15 @@ module Make (C : Constraint.S) : sig
   val check_closed : ?factors:bool -> context -> hyps -> (hyps, failure) result
   (** [check_closed ~factors context hyps] decides by the grades' order every
       ordering between variable-free sides, of the hypotheses and of the chains
-      of two or more steps, and every disjunction of a variable-free grade. The
-      chains run along the hypotheses and, when [factors] (the default), from a
-      factor of a product to the product when the other factors are above the
-      unit, by the grade or along the grade orderings of [hyps]
-      ({!Entail.Make.check_closed}); the disjunctions of [hyps] do not serve as
-      evidence. It is the hypotheses less those decided true, or the failure of
-      the first decided false. *)
+      of two or more steps. The chains run along the hypotheses and, when
+      [factors] (the default), from a factor of a product to the product when
+      the other factors are above the unit, by the grade or along the grade
+      orderings of [hyps] ({!Entail.Make.check_closed}); the disjunctions of
+      [hyps] do not serve as evidence. A disjunction is then dropped when its
+      grade follows below the unit from the grade orderings left
+      ({!Entail.Make.SORT.follows}), and refutes when its grade is variable-free
+      and not below the unit and its type never eternal. It is the hypotheses
+      less those decided true, or the failure of the first decided false. *)
 
   val hyps_to_constraint : hyps -> C.t
   (** [hyps_to_constraint hyps] is the conjunction of the atoms of [hyps]. *)

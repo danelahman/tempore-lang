@@ -34,16 +34,17 @@
     and the members before it are; each ordering with a member on its left has
     on its right an expression decided to be the top once the members are, or
     one of outer unknowns other than [j] alone; no member occurs in a type or a
-    disjunction's grade. Around the rounds the atoms decided at no hypotheses
-    are dropped, and a disjunction whose type is never eternal becomes its grade
-    below the unit.
+    disjunction's grade. Around the rounds the orderings decided at no
+    hypotheses are dropped, a disjunction whose grade follows below the unit
+    from the orderings left ({!Entail.Make.SORT.follows}) is dropped, and a
+    disjunction whose type is never eternal becomes its grade below the unit.
 
     {2 Split}
 
     Then each atom of the scope is kept outside it, discharged, deferred or
     blocks the close:
     - an atom free of [j] is kept;
-    - an ordering decided at no hypotheses is discharged;
+    - an ordering that follows from the orderings free of [j] is discharged;
     - an ordering with [j] on its right side only is kept at [j] the unit, when
       the unit of the effect grades is least;
     - an ordering with [j] on its left side only is kept at [j] the top, when
@@ -60,17 +61,17 @@
 
     {2 Retry}
 
-    A deferred condition's ordering is dropped when decided from the orderings
-    of the residual, the rigids being opaque. An ordering whose unknowns are
-    rigids alone is otherwise evaluated at every assignment to the rigids it
-    mentions of the unit, the top, the grade of one delay step and the witnesses
-    the grades supply for its constants and the number of occurrences of the
-    rigids on either side ({!Grades.GradeSystem.S.witnesses}): it refutes the
-    condition at the first assignment where it fails, and is dropped when it
-    holds at all of them and mentions no rigid, or a single one whose witnesses
-    are complete. An ordering in several rigids is thus refuted, never
-    discharged, by the grid of their witnesses. A condition left with no
-    ordering is dropped.
+    A deferred condition's ordering is dropped when it follows from the
+    orderings of the residual ({!Entail.Make.SORT.follows}), the rigids being
+    opaque. An ordering whose unknowns are rigids alone is otherwise evaluated
+    at every assignment to the rigids it mentions of the unit, the top, the
+    grade of one delay step and the witnesses the grades supply for its
+    constants and the number of occurrences of the rigids on either side
+    ({!Grades.GradeSystem.S.witnesses}): it refutes the condition at the first
+    assignment where it fails, and is dropped when it holds at all of them and
+    mentions no rigid, or a single one whose witnesses are complete. An ordering
+    in several rigids is thus refuted, never discharged, by the grid of their
+    witnesses. A condition left with no ordering is dropped.
 
     {2 Closed instances}
 

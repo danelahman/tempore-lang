@@ -2,23 +2,26 @@
 
     An entailment is built once from the cost model and a set of hypotheses of
     both sorts, and answers every query on orderings [e ≾ e'] from them. The
-    queries come at explicit strengths:
+    hypotheses are to hold together: conjuncts of a qualifier or a residual, not
+    atoms of a disjunction or of a quantified condition. The queries come at
+    explicit strengths:
 
     - [closed]: the grade's order, where both sides are variable-free;
-    - [derive]: the embedding of normal forms of
-      {!GradeNormal.Make.SORT.decide_leq}, along the chains of the hypotheses
-      whose both sides are single atoms, on the resource side also along the
-      images of such effect hypotheses;
+    - [derive]: {!GradeNormal.Make.SORT.decide_leq}, the embedding of normal
+      forms along the graph of the hypotheses of {!check_closed}: its chains
+      between atoms through any sides, its steps from factors to products with
+      the evidence of the unit below them, and its chains from a side of a
+      hypothesis;
     - [follows]: [closed] where it holds, or [derive];
-    - [entailed]: one of the hypotheses, or [follows];
+    - [follows_atomic]: the fragment of [follows] whose chains pass along the
+      hypotheses between two atoms only, and a hypothesis itself;
     - [decided] and [valid] at no hypotheses: [closed] where both sides are
       variable-free and [derive] otherwise, and the latter also where the two
       sides are equal; an ordering [valid] holds at every instance.
 
     Every positive answer is backed by a derivation from the laws of the grades
     and the hypotheses: the decisions are sound. They are not complete: a
-    negative answer means only that no derivation was found, and hypotheses
-    other than atomic ones serve only by membership.
+    negative answer means only that no derivation was found.
 
     The refutation of a set of hypotheses by chains between variable-free sides
     is {!check_closed}. *)
@@ -51,9 +54,11 @@ module Make (X : GradeExp.S) : sig
     val follows : 'a t -> exp -> exp -> bool
     (** [follows t e e'] is whether [closed] holds or [derive t] succeeds. *)
 
-    val entailed : 'a t -> exp -> exp -> bool
-    (** [entailed t e e'] is whether [e ≾ e'] is one of the hypotheses of [t],
-        sides compared syntactically, or [follows t]. *)
+    val follows_atomic : 'a t -> exp -> exp -> bool
+    (** [follows_atomic t e e'] is whether [e ≾ e'] is one of the hypotheses of
+        [t], sides compared syntactically, [closed] holds, or
+        {!GradeNormal.Make.SORT.decide_leq_atomic} at the hypotheses of [t]
+        succeeds. It implies [follows t e e']. *)
 
     val decided : Grades.Grade.bounds -> exp -> exp -> bool
     (** [decided bounds e e'] is [closed] where it decides, and otherwise
@@ -66,7 +71,7 @@ module Make (X : GradeExp.S) : sig
 
     val is_atom : exp -> bool
     (** [is_atom e] is {!GradeNormal.Make.SORT.is_atom}: whether [e] is a single
-        atom, so that a hypothesis between two atoms serves [derive]. *)
+        atom, so that a hypothesis between two atoms serves [follows_atomic]. *)
 
     val refute_leq_unit : Grades.Grade.bounds -> exp -> bool
     (** [refute_leq_unit bounds e] is whether some alternative of the normal

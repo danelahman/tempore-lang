@@ -307,8 +307,9 @@ module Make (C : Constraint.S) = struct
     }
 
   (* The orderings decided at no hypotheses dropped, and the disjunctions
-     settled at no hypotheses ({!Residual.Make.settle}); a disjunction whose
-     type is never eternal becomes its grade below the unit. *)
+     settled against the orderings left ({!Residual.Make.settle}); a
+     disjunction whose type is never eternal becomes its grade below the
+     unit. *)
   let settle context (r : residual) =
     let bounds = context.Residual.bounds in
     let decided_rho = E.Rho.decided bounds
@@ -322,7 +323,13 @@ module Make (C : Constraint.S) = struct
         (fun (o : R.eps_ordering) -> not (decided_eps o.lhs o.rhs))
         r.eps_orderings
     in
-    let settling = R.by_grade (fun rho -> decided_rho rho X.Rho.unit) in
+    let entail =
+      lazy
+        (E.make bounds { rho_hyps = rho_orderings; eps_hyps = eps_orderings })
+    in
+    let settling =
+      R.by_grade (fun rho -> E.Rho.follows (Lazy.force entail) rho X.Rho.unit)
+    in
     let kept, grades =
       List.fold_right
         (fun (d : R.disjunction) (kept, grades) ->
@@ -593,7 +600,8 @@ module Make (C : Constraint.S) = struct
   (* How the orderings of one sort are split. *)
   type 'e splitting = {
     mentions : 'e -> bool;  (** whether the rigid occurs *)
-    decided : 'e -> 'e -> bool;  (** decided at no hypotheses *)
+    follows : 'e -> 'e -> bool;
+        (** following from the orderings free of the rigid *)
     at_unit : 'e -> 'e;  (** the rigid sent to the unit *)
     at_top : 'e -> 'e;  (** the rigid sent to the top *)
     outer_with_rigid : 'e -> bool;
@@ -601,11 +609,11 @@ module Make (C : Constraint.S) = struct
     stated : 'e -> 'e -> (C.rho, C.eps) Reason.stated;
   }
 
-  let rho_splitting context scope =
+  let rho_splitting scope entail =
     let rigid = Eps_set.singleton scope.rigid in
     {
       mentions = in_rho (Eps_unknown scope.rigid);
-      decided = E.Rho.decided context.Residual.bounds;
+      follows = E.Rho.follows entail;
       at_unit = X.Rho.subst (at_rigid scope X.Eps.unit);
       at_top = X.Rho.subst (at_rigid scope X.Eps.top);
       outer_with_rigid = outer_rho scope ~rigids:rigid;
@@ -613,11 +621,11 @@ module Make (C : Constraint.S) = struct
       stated = (fun lhs rhs -> Reason.Stated_rho (lhs, rhs));
     }
 
-  let eps_splitting context scope =
+  let eps_splitting scope entail =
     let rigid = Eps_set.singleton scope.rigid in
     {
       mentions = in_eps (Eps_unknown scope.rigid);
-      decided = E.Eps.decided context.Residual.bounds;
+      follows = E.Eps.follows entail;
       at_unit = X.Eps.subst (at_rigid scope X.Eps.unit);
       at_top = X.Eps.subst (at_rigid scope X.Eps.top);
       outer_with_rigid = outer_eps scope ~rigids:rigid;
@@ -638,7 +646,7 @@ module Make (C : Constraint.S) = struct
     in
     match (sp.mentions o.lhs, sp.mentions o.rhs) with
     | false, false -> Keep o
-    | _, _ when sp.decided o.lhs o.rhs -> Discharge
+    | _, _ when sp.follows o.lhs o.rhs -> Discharge
     | false, true ->
         if X.GS.E.unit_least then Keep (restated o.lhs (sp.at_unit o.rhs))
         else defer ()
@@ -706,15 +714,30 @@ module Make (C : Constraint.S) = struct
       then Error (Refused (R.Rigid_escape origin))
       else Ok ()
     in
+    let entail =
+      E.make context.Residual.bounds
+        {
+          rho_hyps =
+            List.filter
+              (fun (o : R.rho_ordering) ->
+                not (in_rho rigid o.lhs || in_rho rigid o.rhs))
+              r.rho_orderings;
+          eps_hyps =
+            List.filter
+              (fun (o : R.eps_ordering) ->
+                not (in_eps rigid o.lhs || in_eps rigid o.rhs))
+              r.eps_orderings;
+        }
+    in
     let* rho_kept, rho_deferred =
       Result.map_error
         (fun o -> stuck (Blocking_rho o))
-        (split_orderings (rho_splitting context scope) r.rho_orderings)
+        (split_orderings (rho_splitting scope entail) r.rho_orderings)
     in
     let* eps_kept, eps_deferred =
       Result.map_error
         (fun o -> stuck (Blocking_eps o))
-        (split_orderings (eps_splitting context scope) r.eps_orderings)
+        (split_orderings (eps_splitting scope entail) r.eps_orderings)
     in
     let* inner =
       match List.find_opt (fun d -> not (carried scope d)) r.deferred with
@@ -780,7 +803,7 @@ module Make (C : Constraint.S) = struct
 
   let rho_sort entail bounds =
     {
-      decide = (fun x y -> Option.is_some (E.Rho.derive entail x y));
+      decide = E.Rho.follows entail;
       closed_leq = E.Rho.closed bounds;
       subst = X.Rho.subst;
       rho_vars = X.Rho.free_rho_vars;
@@ -791,7 +814,7 @@ module Make (C : Constraint.S) = struct
 
   let eps_sort entail bounds =
     {
-      decide = (fun x y -> Option.is_some (E.Eps.derive entail x y));
+      decide = E.Eps.follows entail;
       closed_leq = E.Eps.closed bounds;
       subst = X.Eps.subst;
       rho_vars = (fun _ -> Rho_set.empty);
@@ -850,8 +873,8 @@ module Make (C : Constraint.S) = struct
   (* The verdict on one ordering of a condition. *)
   type verdict = Settled | Refuted_at of X.GS.E.t list | Undecided
 
-  (* An ordering decided from the hypotheses is settled. One whose unknowns
-     are rigids of [rigids] alone is evaluated at every assignment of
+  (* An ordering that follows from the hypotheses is settled. One whose
+     unknowns are rigids of [rigids] alone is evaluated at every assignment of
      candidates to the rigids it mentions: it is refuted at the first that
      fails, the other rigids at the unit, and settled when it holds at all of
      them and mentions no rigid, or one whose candidates are complete. *)

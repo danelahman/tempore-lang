@@ -476,7 +476,11 @@ let check_fixed () =
 
 (* Recursive definitions that call a boxed function after the recursive
    call. The effects of the calls are bounded below alone and occur in no
-   type, so they are sent to their lower bounds and leave no hypothesis. *)
+   type, so they are sent to their lower bounds and leave no hypothesis. A
+   right fold uses the accumulator after the partial application [f x]; the
+   var-rule disjunction on the effect of [f x] follows from the ordering that
+   bounds the product of the two effects of [f] by the unit, by the step from
+   a factor to the product, and is dropped. *)
 let recursive_programs =
   [
     "let rec iter_after (g : [top](unit -> unit # 1)) (n : nat) : unit # top = \
@@ -487,6 +491,8 @@ let recursive_programs =
     "let rec map_boxed (f : [top](nat -> nat # 1)) (xs : nat list) : nat list \
      # top = match xs with | [] -> [] | x :: rest -> let ys = map_boxed f rest \
      in unbox f as h in let y = h x in y :: ys";
+    "let rec fold_after f xs acc = match xs with | [] -> acc | x :: xs -> let \
+     acc2 = fold_after f xs acc in f x acc2";
   ]
 
 let check_recursive () =
@@ -499,6 +505,10 @@ let check_recursive () =
       ("iter_after", typed "[∞](unit → unit # 1) → nat → unit # ∞ # 0");
       ("iter_twice", typed "[∞](unit → unit # 1) → nat → unit # ∞ # 0");
       ("map_boxed", typed "[∞](nat → nat # 1) → nat list → nat list # ∞ # 0");
+      ( "fold_after",
+        typed
+          ~atoms:[ "γ <: β"; "δ <: β"; "ε₁ · ε₀ ≾ 0" ]
+          "(α → β → γ # ε₀ # ε₁) → α list → δ → β # 0 # 0 # 0" );
     ]
 
 let () =

@@ -213,9 +213,32 @@ module Suite (G : Grade.S) = struct
         (decide_rho
            { N.rho_hyps = [ hyp x (map a) 1 ]; eps_hyps = [ hyp a b 2 ] }
            x (map b));
-      check "a product hypothesis is not used"
-        (not (decided_rho (rho_hyps [ hyp (x * y) z 1 ]) (x * y) z))
+      check "a product hypothesis used"
+        (decided_rho (rho_hyps [ hyp (x * y) z 1 ]) (x * y) z)
+        "x · y ≾ z not decided from itself";
+      check "a product hypothesis not used by the atomic fragment"
+        (Option.is_none
+           (N.Rho.decide_leq_atomic bounds
+              (rho_hyps [ hyp (x * y) z 1 ])
+              (x * y) z))
         "x · y ≾ z decided from a non-atomic hypothesis";
+      expect "a chain through a product" show_used
+        ~expected:(Some [ 1; 2 ])
+        (decide_rho (rho_hyps [ hyp x (y * z) 1; hyp (y * z) w 2 ]) x w);
+      expect "a chain from a product" show_used
+        ~expected:(Some [ 1; 2 ])
+        (decide_rho (rho_hyps [ hyp (x * y) z 1; hyp z w 2 ]) (x * y) w);
+      expect "a factor below its product only when the unit is least" show_bool
+        ~expected:G.unit_least
+        (decided_rho (rho_hyps [ hyp (x * y) z 1 ]) x z);
+      check "a factor below its product, the unit below the other factor"
+        (decided_rho (rho_hyps [ hyp X.Rho.unit y 1; hyp (x * y) z 2 ]) x z)
+        "x ≾ z not decided from 1 ≾ y and x · y ≾ z";
+      expect "an effect chain through a product carried to the images" show_used
+        ~expected:(Some [ 1; 2 ])
+        (decide_rho
+           (eps_hyps [ hyp a (b *. c) 1; hyp (b *. c) d 2 ])
+           (map a) (map d));
     ]
     @
     if G.name = "time-upper-bound" then
@@ -474,13 +497,17 @@ let variable_names =
 
 let reachability =
   let cycle = Reach.graph 4 [ (0, 1, "a"); (1, 2, "b"); (2, 0, "c") ] in
-  let pivots =
+  let detour =
     Reach.graph 5
-      [ (0, 4, "a"); (4, 1, "b"); (0, 2, "c"); (2, 3, "d"); (3, 1, "e") ]
+      [ (0, 2, "a"); (2, 3, "b"); (3, 1, "c"); (0, 4, "d"); (4, 1, "e") ]
+  in
+  let ties =
+    Reach.graph 4
+      [ (0, 2, "a"); (0, 1, "b"); (1, 3, "c"); (2, 3, "d"); (1, 3, "e") ]
   in
   let show_chain = show_option (String.concat ",") in
   [
-    expect "reach: a chain through a pivot" show_chain
+    expect "reach: a chain of two edges" show_chain
       ~expected:(Some [ "a"; "b" ])
       (Reach.chain cycle 0 2);
     expect "reach: a chain round the cycle" show_chain
@@ -490,9 +517,19 @@ let reachability =
       (Reach.chain cycle 3 3);
     expect "reach: unreachable" show_chain ~expected:None
       (Reach.chain cycle 0 3);
-    expect "reach: the least pivot, not the shortest chain" show_chain
-      ~expected:(Some [ "c"; "d"; "e" ])
-      (Reach.chain pivots 0 1);
+    expect "reach: the shortest chain, not the one along the first edges"
+      show_chain
+      ~expected:(Some [ "d"; "e" ])
+      (Reach.chain detour 0 1);
+    expect "reach: ties broken by the order of the edges" show_chain
+      ~expected:(Some [ "a"; "d" ])
+      (Reach.chain ties 0 3);
+    expect "reach: one search for every target" (String.concat ";")
+      ~expected:[ ""; "b"; "a"; "a,d" ]
+      (let from = Reach.chain ties 0 in
+       List.map
+         (fun j -> String.concat "," (Option.get (from j)))
+         [ 0; 1; 2; 3 ]);
     expect "reach: the vertices reached" (String.concat ",")
       ~expected:[ "0"; "1"; "2" ]
       (List.filter_map

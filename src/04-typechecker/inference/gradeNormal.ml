@@ -540,8 +540,8 @@ module Core (S : BASE) = struct
     fun e e' ->
       sum_leq ctx (normal bounds e) (fold_sum bounds (normal bounds e'))
 
-  (* The atomic hypotheses among orderings, as edges. *)
-  let edges orderings =
+  (* The orderings between two atoms, as edges. *)
+  let atomic_edges orderings =
     List.filter_map
       (fun o ->
         match (S.as_atom o.lhs, S.as_atom o.rhs) with
@@ -597,7 +597,7 @@ module Core (S : BASE) = struct
     List.concat_map (split bounds) orderings
 
   (* ---------------------------------------------------------------------- *)
-  (* Closed orderings and refutation *)
+  (* The graph of the hypotheses: decisions along it, and refutation *)
 
   let value = S.value
   let is_atom e = Option.is_some (S.as_atom e)
@@ -648,20 +648,82 @@ module Core (S : BASE) = struct
     in
     List.concat_map (fun (side, s) -> from_factors side s) sides
 
-  (* The expressions, numbered in order, and the graph of the edges between
-     them. *)
-  let number bounds (vertices, edges) =
-    let vertices = Array.of_list vertices in
-    let index e =
-      Option.get (Array.find_index (fun v -> S.equal_exp bounds e v) vertices)
-    in
-    ( vertices,
-      Reach.graph (Array.length vertices)
-        (List.map (fun (a, b, label) -> (index a, index b, label)) edges) )
+  (* The shape of an expression: its structure with every constant alike. *)
+  type shape =
+    | Shape_const
+    | Shape_var of var
+    | Shape_mul of shape * shape
+    | Shape_join of shape * shape
+
+  let shape =
+    S.fold_exp
+      {
+        const = (fun _ -> Shape_const);
+        var = (fun v -> Shape_var v);
+        mul = (fun s s' -> Shape_mul (s, s'));
+        join = (fun s s' -> Shape_join (s, s'));
+      }
+
+  let rec compare_shape s s' =
+    match (s, s') with
+    | Shape_const, Shape_const -> 0
+    | Shape_var v, Shape_var w -> S.compare_var v w
+    | Shape_mul (a, b), Shape_mul (a', b')
+    | Shape_join (a, b), Shape_join (a', b') ->
+        let c = compare_shape a a' in
+        if c <> 0 then c else compare_shape b b'
+    | Shape_const, _ -> -1
+    | _, Shape_const -> 1
+    | Shape_var _, _ -> -1
+    | _, Shape_var _ -> 1
+    | Shape_mul _, _ -> -1
+    | _, Shape_mul _ -> 1
+
+  module Shape_map = Map.Make (struct
+    type t = shape
+
+    let compare = compare_shape
+  end)
+
+  (* Expressions numbered in the order they are added, each once up to
+     {!S.equal_exp}, found through their shapes. *)
+  type numbering = { count : int; by_shape : (exp * int) list Shape_map.t }
+
+  let no_numbers = { count = 0; by_shape = Shape_map.empty }
+
+  (* The number of an expression equal to [e], if one is numbered. *)
+  let number_of bounds numbering e =
+    Option.bind
+      (Shape_map.find_opt (shape e) numbering.by_shape)
+      (fun es ->
+        List.find_map
+          (fun (e', i) -> if S.equal_exp bounds e e' then Some i else None)
+          es)
+
+  (* [e] numbered next, unless an equal expression is numbered. *)
+  let add_number bounds numbering e =
+    match number_of bounds numbering e with
+    | Some _ -> numbering
+    | None ->
+        {
+          count = numbering.count + 1;
+          by_shape =
+            Shape_map.update (shape e)
+              (fun es ->
+                Some ((e, numbering.count) :: Option.value es ~default:[]))
+              numbering.by_shape;
+        }
+
+  (* Expressions numbered in order, and the edges between them. *)
+  type 'a numbered = {
+    vertices : exp array;
+    edges : (int * int * 'a list) list;
+    graph : 'a list Reach.graph;
+  }
 
   (* The variables that are vertices reached along the edges from a
      variable-free vertex above the unit. *)
-  let vars_reached bounds (vertices, graph) =
+  let vars_reached bounds { vertices; graph; _ } =
     let starts =
       Array.to_seqi vertices
       |> Seq.filter_map (fun (i, e) ->
@@ -678,33 +740,54 @@ module Core (S : BASE) = struct
         | Some (Var _ | Const _) | None -> None)
     |> List.of_seq
 
-  (* The graph of the orderings. Its vertices are the sides of the orderings
-     and the sources of the factor edges, each once, compared syntactically.
-     Its edges are the orderings, each labelled with its payload, followed,
-     when [factors], by the {!factor_edges} of the sides. A variable is taken
-     to be above the unit also when the graph reaches it from a variable-free
-     vertex above the unit ({!vars_reached}); the graph is built again with the
-     variables so found until no variable is added. *)
-  let graph ~factors bounds orderings =
-    let equal = S.equal_exp bounds in
-    let insert e es = if List.exists (equal e) es then es else e :: es in
-    let sides =
-      List.fold_right (fun o vs -> insert o.lhs (insert o.rhs vs)) orderings []
+  (* The graph of the orderings and of the [extra] edges between atoms. Its
+     vertices are the sides of the edges, in the order of their last
+     occurrences, the left side of an edge before its right side, and then
+     the sources of the factor edges, each once, compared syntactically
+     ({!numbering}). Its edges are the orderings, each labelled with its
+     payload, then [extra], followed, when [factors], by the {!factor_edges}
+     of the sides. A variable is taken to be above the unit also when the
+     graph reaches it from a variable-free vertex above the unit
+     ({!vars_reached}); the graph is built again with the variables so found
+     until no variable is added. *)
+  let graph ~factors ?(extra = []) bounds orderings =
+    let given =
+      List.map (fun o -> (o.lhs, o.rhs, [ o.info ])) orderings @ extra
     in
-    let hyps = List.map (fun o -> (o.lhs, o.rhs, [ o.info ])) orderings in
+    let add (numbering, order) e =
+      match number_of bounds numbering e with
+      | Some _ -> (numbering, order)
+      | None -> (add_number bounds numbering e, e :: order)
+    in
+    let _, sides =
+      List.fold_left
+        (fun acc (a, b, _) -> add (add acc b) a)
+        (no_numbers, []) (List.rev given)
+    in
+    let numbering = List.fold_left (add_number bounds) no_numbers sides in
+    let index numbering e = Option.get (number_of bounds numbering e) in
+    let given =
+      List.map
+        (fun (a, b, label) -> (index numbering a, index numbering b, label))
+        given
+    in
     let normals =
       if factors then List.map (fun side -> (side, normal bounds side)) sides
       else []
     in
     let build above =
       let steps = factor_edges bounds above normals in
-      let vertices =
-        List.fold_left
-          (fun vs (a, _, _) ->
-            if List.exists (equal a) vs then vs else vs @ [ a ])
-          sides steps
+      let numbering, added =
+        List.fold_left (fun acc (a, _, _) -> add acc a) (numbering, []) steps
       in
-      number bounds (vertices, hyps @ steps)
+      let vertices = Array.of_list (sides @ List.rev added) in
+      let edges =
+        given
+        @ List.map
+            (fun (a, b, label) -> (index numbering a, index numbering b, label))
+            steps
+      in
+      { vertices; edges; graph = Reach.graph (Array.length vertices) edges }
     in
     let rec grow above =
       let graph = build above in
@@ -713,13 +796,91 @@ module Core (S : BASE) = struct
     in
     if factors && not S.unit_least then grow [] else build []
 
+  (* The edges between atoms of a graph and, through each vertex that is not
+     an atom, from each atom with an edge to it to each atom it reaches along
+     vertices that are not atoms. *)
+  let atom_edges { vertices; edges; _ } =
+    let is_atom i = Option.is_some (S.as_atom vertices.(i)) in
+    let atom i = Option.get (S.as_atom vertices.(i)) in
+    let indices = List.init (Array.length vertices) Fun.id in
+    let within =
+      Reach.graph (Array.length vertices)
+        (List.filter (fun (i, _, _) -> not (is_atom i)) edges)
+    in
+    let through w =
+      let chain = Reach.chain within w in
+      let targets =
+        List.filter_map
+          (fun j ->
+            if is_atom j then Option.map (fun labels -> (j, labels)) (chain j)
+            else None)
+          indices
+      in
+      List.concat_map
+        (fun (i, j, label) ->
+          if j = w && is_atom i then
+            List.map
+              (fun (k, labels) -> (atom i, atom k, label @ List.concat labels))
+              targets
+          else [])
+        edges
+    in
+    List.filter_map
+      (fun (i, j, label) ->
+        if is_atom i && is_atom j then Some (atom i, atom j, label) else None)
+      edges
+    @ List.concat_map through (List.filter (fun w -> not (is_atom w)) indices)
+
+  (* Decides orderings [e ≾ e'] from [orderings] and the [extra] edges
+     between atoms, along the {!graph} with its factor edges: by {!decide}
+     along its {!atom_edges} and, where [e] is a vertex, along a chain of the
+     graph from [e] to a vertex that is [e'] or is so decided below it. Where
+     every side is an atom, the graph has no other edges and adds no chain to
+     {!decide}, and is not built. *)
+  let decide_graph bounds ~extra orderings =
+    let given =
+      List.map (fun o -> (o.lhs, o.rhs, [ o.info ])) orderings @ extra
+    in
+    let atomic =
+      List.filter_map
+        (fun (a, b, used) ->
+          match (S.as_atom a, S.as_atom b) with
+          | Some a, Some b -> Some (a, b, used)
+          | _ -> None)
+        given
+    in
+    if List.compare_lengths atomic given = 0 then decide bounds atomic
+    else
+      let numbered = graph ~factors:true ~extra bounds orderings in
+      let embed = decide bounds (atom_edges numbered) in
+      let leq e e' = if S.equal_exp bounds e e' then Some [] else embed e e' in
+      let along e e' =
+        Option.bind
+          (Array.find_index (S.equal_exp bounds e) numbered.vertices)
+          (fun u ->
+            let chain = Reach.chain numbered.graph u in
+            let via (v, ev) =
+              Option.bind (chain v) (fun labels ->
+                  Option.map (List.append (List.concat labels)) (leq ev e'))
+            in
+            Seq.find_map via (Array.to_seqi numbered.vertices))
+      in
+      fun e e' -> embed e e' <|> fun () -> along e e'
+
+  (* The edges between atoms of the {!graph} of [orderings], with its factor
+     edges: the orderings themselves where every side is an atom. *)
+  let chain_edges bounds orderings =
+    let atomic = atomic_edges orderings in
+    if List.compare_lengths atomic orderings = 0 then atomic
+    else atom_edges (graph ~factors:true bounds orderings)
+
   (* The first ordering between two variable-free vertices of the {!graph},
      in the order of the vertices of the left side and then of the right side,
-     that fails and joins them by a chain of two or more steps, the chain of
-     {!Reach.chain}, with the payloads along it. The vertices reached from
-     each variable-free vertex are found by one search. *)
+     that fails and joins them by a chain of two or more steps, the shortest
+     chain of {!Reach.chain}, with the payloads along it. The chains from each
+     variable-free vertex are found by one search. *)
   let failing_chain ~factors bounds orderings =
-    let vertices, graph = graph ~factors bounds orderings in
+    let { vertices; graph; _ } = graph ~factors bounds orderings in
     let closed =
       Array.to_seqi vertices
       |> Seq.filter_map (fun (i, e) -> Option.map (fun c -> (i, c)) (S.value e))
@@ -727,20 +888,18 @@ module Core (S : BASE) = struct
     in
     List.find_map
       (fun (i, c) ->
-        let reached = Reach.reached graph [ i ] in
+        let chain = Reach.chain graph i in
         List.find_map
           (fun (j, c') ->
-            if j <> i && reached j && not (S.leq bounds c c') then
-              match Reach.chain graph i j with
-              | Some (_ :: _ :: _ as labels) ->
-                  Some
-                    {
-                      lhs = vertices.(i);
-                      rhs = vertices.(j);
-                      info = List.concat labels;
-                    }
-              | Some ([] | [ _ ]) | None -> None
-            else None)
+            match chain j with
+            | Some (_ :: _ :: _ as labels) when not (S.leq bounds c c') ->
+                Some
+                  {
+                    lhs = vertices.(i);
+                    rhs = vertices.(j);
+                    info = List.concat labels;
+                  }
+            | Some _ | None -> None)
           closed)
       closed
 
@@ -794,6 +953,9 @@ module Make (X : GradeExp.S) = struct
     val canon : Grades.Grade.bounds -> exp -> exp
 
     val decide_leq :
+      Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
+
+    val decide_leq_atomic :
       Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
 
     val split :
@@ -922,7 +1084,10 @@ module Make (X : GradeExp.S) = struct
   module Eps = struct
     include Eps_core
 
-    let decide_leq bounds hyps = decide bounds (edges hyps.eps_hyps)
+    let decide_leq bounds hyps = decide_graph bounds ~extra:[] hyps.eps_hyps
+
+    let decide_leq_atomic bounds hyps =
+      decide bounds (atomic_edges hyps.eps_hyps)
   end
 
   module Rho = struct
@@ -933,14 +1098,28 @@ module Make (X : GradeExp.S) = struct
       | Const c -> Const (X.GS.map c)
       | Var v -> Var (Image v)
 
-    (* The resource hypotheses and the images of the effect ones. *)
+    (* The resource hypotheses and the images of the edges between atoms of
+       the effect ones. *)
     let decide_leq bounds hyps =
       let images =
         List.map
-          (fun (a, b, used) -> (image a, image b, used))
-          (Eps_core.edges hyps.eps_hyps)
+          (fun (a, b, used) ->
+            ( Rho_base.exp_of_atom (image a),
+              Rho_base.exp_of_atom (image b),
+              used ))
+          (Eps_core.chain_edges bounds hyps.eps_hyps)
       in
-      decide bounds (edges hyps.rho_hyps @ images)
+      decide_graph bounds ~extra:images hyps.rho_hyps
+
+    (* The resource hypotheses between atoms and the images of the effect
+       ones. *)
+    let decide_leq_atomic bounds hyps =
+      let images =
+        List.map
+          (fun (a, b, used) -> (image a, image b, used))
+          (Eps_core.atomic_edges hyps.eps_hyps)
+      in
+      decide bounds (atomic_edges hyps.rho_hyps @ images)
   end
 
   type 'a closed_failure =

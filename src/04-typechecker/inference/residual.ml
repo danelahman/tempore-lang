@@ -460,12 +460,11 @@ module Make (C : Constraint.S) = struct
         })
       (atomise context r)
 
-  (* A disjunction of a variable-free grade: dropped when the grade is below
-     the unit, refuting when it is not and the type is never eternal. *)
-  let check_disjunction context d kept =
-    let below_unit rho =
-      E.Rho.closed context.bounds rho X.Rho.unit = Some true
-    in
+  (* A disjunction whose grade follows below the unit from [entail] dropped,
+     one of a variable-free grade not below the unit and a type never eternal
+     refuting. *)
+  let check_disjunction context entail d kept =
+    let below_unit rho = E.Rho.follows entail rho X.Rho.unit in
     match settle context (by_grade below_unit) d with
     | Drop -> Ok kept
     | Below_unit o when E.Rho.closed context.bounds o.lhs o.rhs = Some false ->
@@ -484,7 +483,9 @@ module Make (C : Constraint.S) = struct
         (E.check_closed ?factors context.bounds grades)
     in
     let* disjunctions =
-      fold_result (check_disjunction context) hyps.disj_hyps []
+      fold_result
+        (check_disjunction context (E.make context.bounds grades))
+        hyps.disj_hyps []
     in
     Ok
       {

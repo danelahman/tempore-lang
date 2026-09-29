@@ -1,84 +1,50 @@
 module Int_set = Set.Make (Int)
 module Int_map = Map.Make (Int)
 
-type 'e graph = { successors : int list array; edges : (int * int * 'e) list }
+type 'e graph = (int * 'e) list array
 
 let graph n edges =
   let out =
     List.fold_right
-      (fun (a, b, _) out ->
+      (fun (a, b, label) out ->
         Int_map.add a
-          (b :: Option.value (Int_map.find_opt a out) ~default:[])
+          ((b, label) :: Option.value (Int_map.find_opt a out) ~default:[])
           out)
       edges Int_map.empty
   in
-  {
-    successors =
-      Array.init n (fun i -> Option.value (Int_map.find_opt i out) ~default:[]);
-    edges;
-  }
+  Array.init n (fun i -> Option.value (Int_map.find_opt i out) ~default:[])
 
 (* Depth-first search. *)
 let reached g starts =
   let rec visit seen = function
     | [] -> seen
     | i :: rest when Int_set.mem i seen -> visit seen rest
-    | i :: rest -> visit (Int_set.add i seen) (g.successors.(i) @ rest)
+    | i :: rest -> visit (Int_set.add i seen) (List.map fst g.(i) @ rest)
   in
   let seen = visit Int_set.empty starts in
   fun i -> Int_set.mem i seen
 
-(* The least [k] such that a path from [i] to [j] has its intermediate
-   vertices among [0, …, k], [-1] for an edge: a bottleneck path, by
-   Dijkstra's algorithm with the maximum in place of the sum (Pollack,
-   Operations Research 1960). The vertex [i] passed again costs nothing, a
-   path through it being no better than its part after it. *)
-let pivot g i j =
-  let module Q = Set.Make (struct
-    type t = int * int
-
-    let compare = compare
-  end) in
-  let rec go cost queue =
-    match Q.min_elt_opt queue with
-    | None -> None
-    | Some ((c, u) as least) ->
-        let queue = Q.remove least queue in
-        if u = j then Some c
-        else
-          let through = if u = i then -1 else Int.max c u in
-          let relax (cost, queue) v =
-            match Int_map.find_opt v cost with
-            | Some c' when c' <= through -> (cost, queue)
-            | Some c' ->
-                ( Int_map.add v through cost,
-                  Q.add (through, v) (Q.remove (c', v) queue) )
-            | None -> (Int_map.add v through cost, Q.add (through, v) queue)
-          in
-          let cost, queue =
-            List.fold_left relax (cost, queue) g.successors.(u)
-          in
-          go cost queue
+(* Breadth-first search (Moore, International Symposium on the Theory of
+   Switching, 1959), layer by layer: each vertex reached is recorded with the
+   reversed chain of the first path found to it, the vertices of a layer
+   taken in order and the edges out of each in order. *)
+let chain g i =
+  let rec layers chains = function
+    | [] -> chains
+    | layer ->
+        let visit (chains, next) u =
+          let to_u = Int_map.find u chains in
+          List.fold_left
+            (fun (chains, next) (v, label) ->
+              if Int_map.mem v chains then (chains, next)
+              else (Int_map.add v (label :: to_u) chains, v :: next))
+            (chains, next) g.(u)
+        in
+        let chains, next = List.fold_left visit (chains, []) layer in
+        layers chains (List.rev next)
   in
-  go (Int_map.singleton i (-1)) (Q.singleton (-1, i))
-
-(* The chain of Warshall's algorithm (Warshall, JACM 1962) with the vertices
-   as pivots in increasing order, for one pair: the empty chain on the
-   diagonal, else the label of the first edge joining the pair, else the
-   chains to and from the first pivot that joins the pair, which is the least
-   bound of {!pivot}. *)
-let chain g i j =
-  let rec between i j =
-    if i = j then []
-    else
-      match List.find_opt (fun (a, b, _) -> a = i && b = j) g.edges with
-      | Some (_, _, label) -> [ label ]
-      | None -> (
-          match pivot g i j with
-          | Some k when k >= 0 -> between i k @ between k j
-          | Some _ | None -> invalid_arg "Reach.chain: no path")
-  in
-  if reached g [ i ] j then Some (between i j) else None
+  let chains = layers (Int_map.singleton i []) [ i ] in
+  fun j -> Option.map List.rev (Int_map.find_opt j chains)
 
 (* Kosaraju's algorithm (Sharir, Computers & Mathematics with Applications,
    1981) on the vertices numbered: the vertices in decreasing order of the end
