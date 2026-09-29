@@ -1,7 +1,7 @@
 (* Tests of the reported schemes: small programs on the standard library,
    report simplification, annotations, boxes and handlers, whose schemes are
-   compared up to renaming with the expected ones at four grades. Silent on
-   success. *)
+   compared up to renaming with the expected ones at four grades, and
+   recursive definitions, compared at one. Silent on success. *)
 
 module Ast = Language.Ast
 module Grade = Grades.Grade
@@ -423,6 +423,20 @@ let print_expected ppf = function
   | Typed { ty; atoms } ->
       Format.fprintf ppf "%s ⇒ %s" (String.concat " ∧ " atoms) ty
 
+(* Each expected outcome compared with the scheme of its definition. *)
+let compare_schemes grades actual expected =
+  List.iter
+    (fun (name, expected) ->
+      let actual =
+        match List.assoc_opt name actual with
+        | Some (Some scheme) -> Typed scheme
+        | Some None | None -> Untypable
+      in
+      if actual <> expected then
+        fail "%s (%s): expected %a, got %a" name grades print_expected expected
+          print_expected actual)
+    expected
+
 let check grades =
   let (module G) = grade_module grades in
   let module T = Programs (G) in
@@ -444,18 +458,7 @@ let check grades =
   let source =
     String.concat "\n" (declarations ~traces ~upper:G.unit_least @ programs ~lit)
   in
-  let actual = T.schemes source in
-  List.iter
-    (fun (name, expected) ->
-      let actual =
-        match List.assoc_opt name actual with
-        | Some (Some scheme) -> Typed scheme
-        | Some None | None -> Untypable
-      in
-      if actual <> expected then
-        fail "%s (%s): expected %a, got %a" name grades print_expected expected
-          print_expected actual)
-    (expected g)
+  compare_schemes grades (T.schemes source) (expected g)
 
 (* Without fixed unknowns, the result is sent to its lower bound, the
    argument; a fixed argument is kept, the result sent to it; a fixed result
@@ -471,9 +474,37 @@ let check_fixed () =
     (List.combine (T.fixed_unknowns ())
        [ "∀ α. α → α # 0"; "α α → α # 0"; "α ∀ β. β <: α ⇒ β → α # 0" ])
 
+(* Recursive definitions that call a boxed function after the recursive
+   call. The effects of the calls are bounded below alone and occur in no
+   type, so they are sent to their lower bounds and leave no hypothesis. *)
+let recursive_programs =
+  [
+    "let rec iter_after (g : [top](unit -> unit # 1)) (n : nat) : unit # top = \
+     match n with | 0 -> () | m + 1 -> iter_after g m; unbox g as h in h ()";
+    "let rec iter_twice (g : [top](unit -> unit # 1)) (n : nat) : unit # top = \
+     match n with | 0 -> () | m + 1 -> iter_twice g m; unbox g as h in h (); \
+     unbox g as h2 in h2 ()";
+    "let rec map_boxed (f : [top](nat -> nat # 1)) (xs : nat list) : nat list \
+     # top = match xs with | [] -> [] | x :: rest -> let ys = map_boxed f rest \
+     in unbox f as h in let y = h x in y :: ys";
+  ]
+
+let check_recursive () =
+  let grades = "time-upper-bound" in
+  let (module G) = grade_module grades in
+  let module T = Programs (G) in
+  compare_schemes grades
+    (T.schemes (String.concat "\n" recursive_programs))
+    [
+      ("iter_after", typed "[∞](unit → unit # 1) → nat → unit # ∞ # 0");
+      ("iter_twice", typed "[∞](unit → unit # 1) → nat → unit # ∞ # 0");
+      ("map_boxed", typed "[∞](nat → nat # 1) → nat list → nat list # ∞ # 0");
+    ]
+
 let () =
   List.iter check four_grades;
   check_fixed ();
+  check_recursive ();
   match List.rev !failures with
   | [] -> ()
   | failures ->

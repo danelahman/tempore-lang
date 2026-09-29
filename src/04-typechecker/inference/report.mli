@@ -35,7 +35,9 @@
     and the arguments of a type application are invariant. In an ordering it is
     bounded above on the left side and below on the right side; in a subtyping
     atom likewise; the grade of a disjunction bounds it above; an eternality
-    atom and the type of a disjunction bound nothing.
+    atom and the type of a disjunction bound nothing. An atom that holds at
+    every instance, a reflexive one or an ordering decided at no hypotheses,
+    bounds nothing either; it blocks no lowering or raising and is kept.
 
     {2 Elimination}
 

@@ -931,13 +931,27 @@ module Make (C : Constraint.S) = struct
     Int_set.of_list
       (List.map (fun (o : _ GradeNormal.ordering) -> o.info) orderings)
 
+  (* Whether an atom holds at every instance: a reflexive one, or an ordering
+     decided at no hypotheses. *)
+  let valid context atom =
+    is_reflexive context atom
+    ||
+    match atom with
+    | Rho_atom o -> decided_rho context o.lhs o.rhs
+    | Eps_atom o -> decided_eps context o.lhs o.rhs
+    | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false
+
   (* Whether a value for [u] is blocked: [pick] holds of the polarity of [u]
-     in the atoms other than [dropped] or in the reported type. *)
-  let blocked pick u st dropped =
+     in the reported type or in an atom other than [dropped] that does not
+     hold at every instance. *)
+  let blocked context pick u st dropped =
     pick (in_ty u Plus st.ty)
     || Int_set.exists
          (fun id ->
-           (not (Int_set.mem id dropped)) && pick (in_atom u (atom_at st id)))
+           (not (Int_set.mem id dropped))
+           &&
+           let atom = atom_at st id in
+           pick (in_atom u atom) && not (valid context atom))
          (occurrences st u)
 
   (* The first expression facing the unknown, an earlier unknown or free of
@@ -1002,12 +1016,12 @@ module Make (C : Constraint.S) = struct
       (equal_value ~occurs:g.sort.occurs ~earlier:g.earlier ~entails facing
          g.self)
 
-  let lower g st =
+  let lower context g st =
     let os = orderings g st in
     match Bounds.lows g.sort os with
     | Some { lower = x :: xs; lower_rest } ->
         let dropped = Int_set.diff (positions os) (positions lower_rest) in
-        if blocked (fun p -> p.below) g.unknown st dropped then None
+        if blocked context (fun p -> p.below) g.unknown st dropped then None
         else
           Some
             {
@@ -1018,12 +1032,12 @@ module Make (C : Constraint.S) = struct
             }
     | Some { lower = []; _ } | None -> None
 
-  let raise_to_cap g st =
+  let raise_to_cap context g st =
     let os = orderings g st in
     match Bounds.ups g.sort os with
     | Some { cap; upper_rest } ->
         let dropped = Int_set.diff (positions os) (positions upper_rest) in
-        if blocked (fun p -> p.above) g.unknown st dropped then None
+        if blocked context (fun p -> p.above) g.unknown st dropped then None
         else
           Some { value = g.assign cap; dropped; apart = false; chains = false }
     | None -> None
@@ -1046,7 +1060,7 @@ module Make (C : Constraint.S) = struct
 
   (* The first subtyping atom [β <: a]: a type unknown with a lower bound
      sent to it. *)
-  let lower_ty a st =
+  let lower_ty context a st =
     let u = Ty_unknown a in
     let lower_bound id =
       match atom_at st id with
@@ -1059,7 +1073,7 @@ module Make (C : Constraint.S) = struct
     match List.find_map lower_bound (Int_set.elements (occurrences st u)) with
     | Some (id, b) when not (same_param a b) ->
         let dropped = Int_set.singleton id in
-        if blocked (fun p -> p.below) u st dropped then None
+        if blocked context (fun p -> p.below) u st dropped then None
         else
           Some { value = assign_ty a b; dropped; apart = true; chains = false }
     | Some _ | None -> None
@@ -1126,13 +1140,15 @@ module Make (C : Constraint.S) = struct
           equate (eps_grade context k) (fun a b -> Lazy.force eps a b) st
       | Equate_rho, Rho_unknown k ->
           equate (rho_grade context k) (fun a b -> Lazy.force rho a b) st
-      | Lower_eps, Eps_unknown k -> lower (eps_grade context k) st
-      | Lower_rho, Rho_unknown k -> lower (rho_grade context k) st
-      | Raise_eps, Eps_unknown k -> raise_to_cap (eps_grade context k) st
-      | Raise_rho, Rho_unknown k -> raise_to_cap (rho_grade context k) st
+      | Lower_eps, Eps_unknown k -> lower context (eps_grade context k) st
+      | Lower_rho, Rho_unknown k -> lower context (rho_grade context k) st
+      | Raise_eps, Eps_unknown k ->
+          raise_to_cap context (eps_grade context k) st
+      | Raise_rho, Rho_unknown k ->
+          raise_to_cap context (rho_grade context k) st
       | Unit_eps, Eps_unknown k -> to_unit (eps_grade context k) st
       | Unit_rho, Rho_unknown k -> to_unit (rho_grade context k) st
-      | Lower_ty, Ty_unknown a -> lower_ty a st
+      | Lower_ty, Ty_unknown a -> lower_ty context a st
       | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
           | Raise_rho | Unit_eps | Unit_rho | Collapse | Lower_ty ),
           _ ) ->

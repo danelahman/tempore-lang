@@ -1,11 +1,15 @@
 (** Values for one grade unknown [v], read off the orderings of its sort.
 
-    - Lowering: every ordering is reflexive, has [v] on no right side, or is
-      [x ≾ v] with [x] free of [v], a lower bound; the value is the join of the
+    An ordering is valid when it is reflexive or decided at no hypotheses
+    ([leq]): it holds at every instance and bounds [v] on neither side.
+
+    - Lowering: every ordering has [v] on no right side, is [x ≾ v] with [x]
+      free of [v], a lower bound, or is valid; the value is the join of the
       lower bounds.
     - Raising: some ordering is [v ≾ U] with [U] free of [v], and every ordering
-      is reflexive, has [v] on no left side, or is [v ≾ x'] with [x'] the bound
-      [U] or decided above it; the value is [U], the first such bound. *)
+      is reflexive, has [v] on no left side, is [v ≾ x'] with [x'] the bound [U]
+      or decided above it, or is valid; the value is [U], the first such bound.
+*)
 
 type 'e sort = {
   equal : 'e -> 'e -> bool;  (** syntactic equality of expressions *)
@@ -32,20 +36,20 @@ type ('e, 'a) ups = {
 
 val lows : 'e sort -> ('e, 'a) GradeNormal.ordering list -> ('e, 'a) lows option
 (** [lows sort os] is the lower bounds of [v] in [os], and [None] when some
-    ordering has [v] on its right side and is neither reflexive nor a lower
-    bound. *)
+    ordering has [v] on its right side and is neither valid nor a lower bound.
+*)
 
 val ups : 'e sort -> ('e, 'a) GradeNormal.ordering list -> ('e, 'a) ups option
 (** [ups sort os] is the first upper bound of [v] in [os] that caps the others,
     and [None] when there is none. *)
 
 val free_right : 'e sort -> ('e, 'a) GradeNormal.ordering list -> bool
-(** [free_right sort os] is whether each ordering of [os] is reflexive or has
-    [v] on no right side. *)
+(** [free_right sort os] is whether each ordering of [os] is valid or has [v] on
+    no right side. *)
 
 val free_left : 'e sort -> ('e, 'a) GradeNormal.ordering list -> bool
-(** [free_left sort os] is whether each ordering of [os] is reflexive or has [v]
-    on no left side. *)
+(** [free_left sort os] is whether each ordering of [os] is valid or has [v] on
+    no left side. *)
 
 val join_all : 'e sort -> 'e -> 'e list -> 'e
 (** [join_all sort x xs] is the join of [x] and [xs], from the left. *)
