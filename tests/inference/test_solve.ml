@@ -323,6 +323,7 @@ let expected_rejections =
     ("levels_reject.tpe", [ 8 ]);
     ("levels_time_lower_reject.tpe", [ 9; 16 ]);
     ("levels_time_upper_reject.tpe", [ 9; 16 ]);
+    ("list_constructor_reject.tpe", [ 3 ]);
     ("malformed_type_application.tpe", [ 4 ]);
     ("mode_costs_reject.tpe", [ 9; 12; 19; 24; 31 ]);
     ("nat_reject_successor_pattern.tpe", [ 3; 5 ]);

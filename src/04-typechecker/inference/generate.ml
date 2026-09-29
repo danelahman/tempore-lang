@@ -747,10 +747,10 @@ module Make (C : Constraint.S) = struct
   let arity_mismatch ~loc lbl = function
     | `Unexpected ->
         Error.typing ~loc "Constructor `%s` takes no argument but is given one"
-          (Ast.Label.string_of lbl)
+          (Ast.label_string_of lbl)
     | `Missing ->
         Error.typing ~loc "Constructor `%s` takes an argument but is given none"
-          (Ast.Label.string_of lbl)
+          (Ast.label_string_of lbl)
 
   (* A pattern consumes a value of type [expected.bound], a subtype of its
      shape. The components of a tuple type are passed to the components of a
