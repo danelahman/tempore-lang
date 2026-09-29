@@ -81,6 +81,13 @@ module type S = sig
   val to_string : t -> string
   val print_inline : ?names:names -> t -> Format.formatter -> unit
   val print_scheme : ?names:names -> scheme -> Format.formatter -> unit
+
+  val scheme_parts :
+    ?names:names ->
+    scheme ->
+    (Format.formatter -> unit) option
+    * (Format.formatter -> unit) option
+    * (Format.formatter -> unit)
 end
 
 module Make (X : GradeExp.S) = struct
@@ -599,7 +606,7 @@ module Make (X : GradeExp.S) = struct
     List.rev first
     @ List.filter (fun p -> not (List.exists (equal p) first)) params
 
-  let print_scheme ?names scheme ppf =
+  let scheme_parts ?names scheme =
     let names = names_or names in
     let occ =
       occurrences scheme.qualifier
@@ -615,15 +622,20 @@ module Make (X : GradeExp.S) = struct
         eps_vars = ordered X.Eps_var.equal scheme.eps_params occ.eps_occ;
       }
     in
-    let quantifier ppf =
+    let quantifier =
       match vs with
-      | { ty_vars = []; rho_vars = []; eps_vars = [] } -> ()
-      | _ -> Format.fprintf ppf "∀ %t.@ " (print_vars names vs)
-    and qualifier ppf =
+      | { ty_vars = []; rho_vars = []; eps_vars = [] } -> None
+      | _ -> Some (print_vars names vs)
+    and qualifier =
       match scheme.qualifier with
-      | True -> ()
-      | q -> Format.fprintf ppf "%t ⇒@ " (inline_with names q)
+      | True -> None
+      | q -> Some (inline_with names q)
     in
-    Format.fprintf ppf "@[<hov 2>%t%t%t@]" quantifier qualifier
-      (ty_with names scheme.ty)
+    (quantifier, qualifier, ty_with names scheme.ty)
+
+  let print_scheme ?names scheme ppf =
+    let quantifier, qualifier, ty = scheme_parts ?names scheme in
+    let quantifier ppf = Option.iter (Format.fprintf ppf "∀ %t.@ ") quantifier
+    and qualifier ppf = Option.iter (Format.fprintf ppf "%t ⇒@ ") qualifier in
+    Format.fprintf ppf "@[<hov 2>%t%t%t@]" quantifier qualifier ty
 end

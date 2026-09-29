@@ -105,23 +105,48 @@ module Loader (Backend : Backend.S) = struct
     with Error.Error ({ primary = None; _ } as d) ->
       raise (Error.Error { d with primary = Some cmd.at })
 
-  (** Execute [cmds] in order, returning the state they leave behind and the
-      diagnostics they produced. With [~recover:true] the typing errors the
+  type definition = {
+    variable : Ast.variable;
+    at : Location.t;  (** the location of the defining command *)
+    scheme : TC.scheme;
+  }
+  (** A top-level definition the typechecker has accepted. *)
+
+  (** Execute [cmds] in order, returning the state they leave behind, the
+      diagnostics they produced and the top-level definitions accepted before
+      the first of them, in order. With [~recover:true] the typing errors the
       loader can carry on from are collected, so that a program's independent
       errors are reported at once; otherwise the first escapes as an exception.
       Errors of any other kind are fatal either way. *)
   let execute_commands ~recover state cmds =
-    let step (state, diagnostics, stopped) cmd =
-      if stopped then (state, diagnostics, stopped)
+    let step (state, diagnostics, defined, stopped) (cmd : _ Ast.command) =
+      if stopped then (state, diagnostics, defined, stopped)
       else
         match execute_command state cmd with
-        | Ok state' -> (state', diagnostics, false)
+        | Ok state' ->
+            let defined =
+              match (cmd.it, diagnostics) with
+              | Ast.TopLet (x, _), [] -> (x, cmd.at) :: defined
+              | _ -> defined
+            in
+            (state', diagnostics, defined, false)
         | Error (d, _) when not recover -> raise (Error.Error d)
-        | Error (d, Some state') -> (state', d :: diagnostics, false)
-        | Error (d, None) -> (state, d :: diagnostics, true)
+        | Error (d, Some state') -> (state', d :: diagnostics, defined, false)
+        | Error (d, None) -> (state, d :: diagnostics, defined, true)
     in
-    let state', diagnostics, _ = List.fold_left step (state, [], false) cmds in
-    (state', List.rev diagnostics)
+    let state', diagnostics, defined, _ =
+      List.fold_left step (state, [], [], false) cmds
+    in
+    let schemes = TC.definitions state'.typechecker in
+    let definition (variable, at) =
+      List.find_map
+        (fun (x, scheme) ->
+          if Ast.Variable.compare x variable = 0 then
+            Some { variable; at; scheme }
+          else None)
+        schemes
+    in
+    (state', List.rev diagnostics, List.filter_map definition (List.rev defined))
 
   let desugar_commands state cmds =
     let desugarer_state', cmds' =
@@ -130,20 +155,26 @@ module Loader (Backend : Backend.S) = struct
     ({ state with desugarer = desugarer_state' }, cmds')
 
   (** Load the parsed source [cmds] of a program {!declare}d, reporting every
-      typing error it contains rather than only the first. Desugaring stays
+      typing error it contains rather than only the first, together with the
+      top-level definitions accepted before the first error. Desugaring stays
       fatal: an unknown name would only cascade. The standard library goes
       through {!load_commands}, an error in it being a bug. *)
-  let load_commands_all state cmds =
+  let load_commands_defining state cmds =
     let state', cmds' = desugar_commands state cmds in
     execute_commands ~recover:true state' cmds'
+
+  (** As {!load_commands_defining}, without the definitions. *)
+  let load_commands_all state cmds =
+    let state', diagnostics, _ = load_commands_defining state cmds in
+    (state', diagnostics)
 
   (* Without recovery the first error escapes as an exception and the
      diagnostic list is empty; re-raising covers the case all the same. *)
   let load_commands state cmds =
     let state', cmds' = desugar_commands state cmds in
     match execute_commands ~recover:false state' cmds' with
-    | state'', [] -> state''
-    | _, d :: _ -> raise (Error.Error d)
+    | state'', [], _ -> state''
+    | _, d :: _, _ -> raise (Error.Error d)
 
   let parse_source ?(filename = "") source =
     let lexbuf = Lexing.from_string source in

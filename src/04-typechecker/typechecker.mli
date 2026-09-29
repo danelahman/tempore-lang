@@ -60,4 +60,13 @@ module Make (GS : Grades.GradeSystem.S) : sig
 
   val print_scheme : scheme -> Format.formatter -> unit
   (** [print_scheme scheme ppf] prints [scheme] with its qualifier. *)
+
+  val scheme_parts :
+    scheme ->
+    (Format.formatter -> unit) option
+    * (Format.formatter -> unit) option
+    * (Format.formatter -> unit)
+  (** [scheme_parts scheme] is the parameters, the qualifier and the type that
+      {!print_scheme} prints, the first two when present, to be applied in this
+      order. *)
 end

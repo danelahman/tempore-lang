@@ -1,9 +1,14 @@
-(* Scrolling to an element is a side effect on the page, so it is a command:
-   the handler runs it once the view has been redrawn, when the element
-   exists. Only errors ask for it, see [update]. *)
+(* Side effects on the page are commands: scrolling to an element and placing
+   the caret, run once the view has been redrawn, when the element exists (see
+   [update]); timers; measurements of the redrawn page; and effects run at
+   once. *)
 type 'msg Vdom.Cmd.t +=
   | Scroll_to of string  (** the id of an element *)
   | Set_caret of int  (** where the editor's caret goes after a redraw *)
+  | Send_after of int * 'msg  (** send the message after so many milliseconds *)
+  | After_redraw of (unit -> 'msg option)
+        (** run after the next redraw, sending the message it yields *)
+  | Now of (unit -> unit)  (** run at once *)
 
 let scroll_to id =
   match Js_browser.Document.get_element_by_id Js_browser.document id with
@@ -45,11 +50,70 @@ let scroll_handler =
         | Set_caret position ->
             Vdom_blit.Cmd.after_redraw ctx (fun () -> set_caret position);
             true
+        | Send_after (delay, msg) ->
+            ignore
+              (Js_browser.Window.set_timeout Js_browser.window
+                 (fun () -> Vdom_blit.Cmd.send_msg ctx msg)
+                 delay);
+            true
+        | After_redraw f ->
+            Vdom_blit.Cmd.after_redraw ctx (fun () ->
+                Option.iter (Vdom_blit.Cmd.send_msg ctx) (f ()));
+            true
+        | Now f ->
+            f ();
+            true
         | _ -> false);
   }
 
+(* Settings the browser remembers, as "true" or "false" under a key. Storage
+   may be missing or refuse access, as in a private window: the default then
+   holds and nothing is remembered. *)
+let recall key default =
+  try
+    match Js_browser.Window.local_storage Js_browser.window with
+    | Some storage -> (
+        match Js_browser.Storage.get_item storage key with
+        | Some "true" -> true
+        | Some "false" -> false
+        | _ -> default)
+    | None -> default
+  with _ -> default
+
+let remember key value =
+  try
+    Option.iter
+      (fun storage ->
+        Js_browser.Storage.set_item storage key (string_of_bool value))
+      (Js_browser.Window.local_storage Js_browser.window)
+  with _ -> ()
+
+let command (model : Model.model) = function
+  | Model.After (delay, msg) -> Send_after (delay, msg)
+  | Model.Measure_popover ->
+      After_redraw
+        (fun () ->
+          Option.map
+            (fun ({ target; point; _ } : Model.popover) ->
+              Model.Place
+                ( target,
+                  EditorDom.placement ~key:(View.target_key target) ~point ))
+            model.popover)
+  | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
+  | Model.Remember (key, value) -> Now (fun () -> remember key value)
+  | Model.Copy text -> Now (fun () -> EditorDom.copy text)
+  | Model.Enter_editor (offset, line, top) ->
+      Vdom.Cmd.batch
+        [
+          Now (fun () -> EditorDom.focus_editor offset);
+          After_redraw
+            (fun () ->
+              EditorDom.keep_line line top;
+              Some (Model.CaretAt offset));
+        ]
+
 let update model msg =
-  let model' = Model.update model msg in
+  let model', side_effects = Model.update model msg in
   let cmd =
     match (msg, model'.Model.run_model) with
     | Model.RunCode, Error (error :: _) ->
@@ -58,10 +122,21 @@ let update model msg =
         Set_caret (start + String.length Model.indentation)
     | _ -> Vdom.Cmd.batch []
   in
-  (model', cmd)
+  (model', Vdom.Cmd.batch (cmd :: List.map (command model') side_effects))
 
-let app =
-  Vdom.app ~init:(Model.init, Vdom.Cmd.batch []) ~view:View.view ~update ()
+let init =
+  {
+    Model.init with
+    edit_model =
+      {
+        Model.init.edit_model with
+        use_stdlib =
+          recall Model.use_stdlib_key Model.init.edit_model.use_stdlib;
+      };
+    show_types = recall Model.show_types_key Model.init.show_types;
+  }
+
+let app = Vdom.app ~init:(init, Vdom.Cmd.batch []) ~view:View.view ~update ()
 
 let run () =
   Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app

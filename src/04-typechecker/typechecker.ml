@@ -189,4 +189,5 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let definitions state = List.rev state.definitions
   let print_scheme scheme ppf = C.print_scheme scheme ppf
+  let scheme_parts scheme = C.scheme_parts scheme
 end

@@ -196,6 +196,16 @@ module type S = sig
       [∀ α ρ₀ ε₀. Q ∧ R ⇒ A], the quantifier omitted when it binds nothing and
       the qualifier when it is [⊤]. The parameters are listed, and named, in the
       order of their first occurrence in [A] and then in [Q ∧ R]. *)
+
+  val scheme_parts :
+    ?names:names ->
+    scheme ->
+    (Format.formatter -> unit) option
+    * (Format.formatter -> unit) option
+    * (Format.formatter -> unit)
+  (** [scheme_parts ~names scheme] is the parameters [α ρ₀ ε₀], the qualifier
+      [Q ∧ R] and the type [A] that {!print_scheme} prints, the first two when
+      present. The printers share one naming and are applied in this order. *)
 end
 
 (** [Make (X)] is the constraints over the grade expressions [X]. *)

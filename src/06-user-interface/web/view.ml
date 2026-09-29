@@ -201,20 +201,78 @@ let load_error_summary (error : Model.load_error) =
       Printf.sprintf "%s at line %d" kind loc.start.line
   | Some _ -> kind ^ " in the standard library"
 
+(* The backticks a diagnostic marks its code fragments with are not shown, as
+   they are in a terminal; the fragments are set in a monospace font. *)
+let rendered message =
+  List.map
+    (function
+      | `Text prose -> text prose
+      | `Code fragment -> elt "code" ~a:[ class_ "diag-code" ] [ text fragment ])
+    (Diagnostic.segments message)
+
+(* Popovers *)
+
+(* The key of a popover target, which the spans it describes carry in their
+   classes, after [EditorDom.key_prefix], and a gutter marker in its
+   [data-popover] attribute. *)
+let target_key = function
+  | Model.Error_span i -> Printf.sprintf "e%d" i
+  | Model.Error_label (i, j) -> Printf.sprintf "l%d-%d" i j
+  | Model.Definition k -> Printf.sprintf "d%d" k
+
+let target_of_key key =
+  let parse fmt f = try Some (Scanf.sscanf key fmt f) with _ -> None in
+  match key.[0] with
+  | 'e' -> parse "e%d%!" (fun i -> Model.Error_span i)
+  | 'l' -> parse "l%d-%d%!" (fun i j -> Model.Error_label (i, j))
+  | 'd' -> parse "d%d%!" (fun k -> Model.Definition k)
+  | _ | (exception Invalid_argument _) -> None
+
+(* The classes of a span described by a popover. *)
+let popover_classes target =
+  "has-popover " ^ EditorDom.key_prefix ^ target_key target
+
+(* Of the spans at one point, a label is described before the error it belongs
+   to, and an error before the definition it lies in. *)
+let key_precedence =
+  List.map (fun prefix -> String.starts_with ~prefix) [ "l"; "e"; "d" ]
+
+let popover_id = "code-popover"
+
+(* The error a popover target belongs to. *)
+let target_error = function
+  | Model.Error_span i | Model.Error_label (i, _) -> Some i
+  | Model.Definition _ -> None
+
+let popover_target (model : Model.model) =
+  match model.popover with
+  | Some { target; shown = true; _ } -> Some target
+  | _ -> None
+
 (* The line numbers of one error are separate elements, so they are lit as a
    block through the model: each reports the pointer entering or leaving, and
-   wears [is-hover] while the model says this error is the one under it. *)
-let error_number_attrs ~hovered i =
+   wears [is-hover] while the model says this error is the one under it. They
+   open the error's popover as well, by the pointer or the keyboard focus, and
+   are described by it while it is open. *)
+let error_number_attrs ~hovered ~described i (error : Model.load_error) =
   (if hovered then [ class_ "is-hover" ] else [])
+  @ (if described then [ attr "aria-describedby" popover_id ] else [])
   @ [
+      attr "aria-label"
+        (Diagnostic.kind_to_string error.diagnostic.kind
+        ^ ": " ^ error.diagnostic.message);
+      attr "data-popover" (target_key (Model.Error_span i));
       onmouseenter (fun _ -> Model.HoverError (Some i));
       onmouseleave (fun _ -> Model.HoverError None);
+      onfocus (Model.Reveal (Model.Error_span i));
+      onblur Model.Conceal;
     ]
 
 (* What the [i]th error marks in the editor: its primary span, whose lines the
    gutter numbers in red, and, under [with_labels], each of its labels, the
-   hovered one brightened. Standard-library spans mark nothing. *)
-let marks_of_error ~hovered ~with_labels i (error : Model.load_error) =
+   hovered one brightened. Standard-library spans mark nothing. [popover] is
+   the target of the open popover. *)
+let marks_of_error ~hovered ~with_labels ~popover i (error : Model.load_error) =
   let mark ?marker mark_cls id (loc : Location.t) =
     if in_editor loc then
       [
@@ -231,13 +289,17 @@ let marks_of_error ~hovered ~with_labels i (error : Model.load_error) =
   (match error.diagnostic.primary with
     | Some loc ->
         mark
-          (if hovered then "error-primary is-hover" else "error-primary")
+          ((if hovered then "error-primary is-hover" else "error-primary")
+          ^ " "
+          ^ popover_classes (Model.Error_span i))
           (primary_id i) loc
           ~marker:
             {
               SyntaxHighlight.href = "#" ^ error_id i;
-              title = load_error_header error;
-              attrs = error_number_attrs ~hovered i;
+              attrs =
+                error_number_attrs ~hovered
+                  ~described:(popover = Some (Model.Error_span i))
+                  i error;
             }
     | None -> [])
   @
@@ -247,8 +309,13 @@ let marks_of_error ~hovered ~with_labels i (error : Model.load_error) =
       (List.mapi
          (fun j ({ span; _ } : Diagnostic.label) ->
            let mark_cls =
-             if error.hovered_label = Some j then "error-related error-hover"
-             else "error-related"
+             (if
+                error.hovered_label = Some j
+                || popover = Some (Model.Error_label (i, j))
+              then "error-related error-hover"
+              else "error-related")
+             ^ " "
+             ^ popover_classes (Model.Error_label (i, j))
            in
            mark mark_cls (label_id i j) span)
          error.diagnostic.labels)
@@ -263,16 +330,6 @@ let load_error_target i (error : Model.load_error) =
 (* One error's message. [active] is the error the caret sits in; under [stale]
    the editor marks nothing, so the links into it are left out. *)
 let view_load_error ~stale ~active i (error : Model.load_error) =
-  (* The backticks a diagnostic marks its code fragments with are not shown,
-     as they are in a terminal; the fragments are set in a monospace font. *)
-  let rendered message =
-    List.map
-      (function
-        | `Text prose -> text prose
-        | `Code fragment ->
-            elt "code" ~a:[ class_ "diag-code" ] [ text fragment ])
-      (Diagnostic.segments message)
-  in
   (* In the editor a label links to its span, which lights up while the
      pointer is on it; a standard-library span can only be named. *)
   let view_label j ({ span; text = label_text } : Diagnostic.label) =
@@ -405,9 +462,10 @@ let oninsert_indent =
           (app (const (fun k s -> (k, s))) (field "key" String))
           (field "shiftKey" Bool)))
 
-(* Clicking in the editor moves the caret; the error whose span it lands in
-   becomes the active one. Where the caret ends up is read off the event, the
-   model not tracking it. *)
+(* Clicking in the editor moves the caret, and so do the keys that move it
+   without editing; the error whose span it lands in becomes the active one,
+   and the popover of the span or name it lands in opens. Where the caret ends
+   up is read off the event, the model not tracking it. *)
 let oncaret_at =
   let open Vdom.Decoder in
   on "click"
@@ -415,14 +473,227 @@ let oncaret_at =
        (fun offset -> Some (Model.CaretAt offset))
        (field "target" (field "selectionStart" Int)))
 
-(* The editor proper: the highlighted text, with the errors' spans marked, and
-   the transparent textarea stretched over it. *)
-let view_editor ~marks (model : Model.edit_model) =
-  let lines = String.split_on_char '\n' model.unparsed_code |> List.length in
+let caret_keys =
+  [
+    "ArrowLeft";
+    "ArrowRight";
+    "ArrowUp";
+    "ArrowDown";
+    "Home";
+    "End";
+    "PageUp";
+    "PageDown";
+  ]
+
+let oncaret_keys =
+  let open Vdom.Decoder in
+  on "keyup"
+    (app
+       (app
+          (const (fun key offset ->
+               if List.mem key caret_keys then Some (Model.CaretAt offset)
+               else None))
+          (field "key" String))
+       (field "target" (field "selectionStart" Int)))
+
+(* A scheme as [name : ∀ α. Q ⇒ A], its quantifier and qualifier dimmed. *)
+let view_scheme (d : Model.definition) =
+  let qualified = Model.qualification d.scheme in
+  [ elt "span" ~a:[ class_ "scheme-name" ] [ text d.name ]; text " : " ]
+  @ (if qualified = "" then []
+     else [ elt "span" ~a:[ class_ "scheme-qualifier" ] [ text qualified ] ])
+  @ [ elt "span" ~a:[ class_ "scheme-type" ] [ text d.scheme.ty ] ]
+
+let px x = Printf.sprintf "%.2fpx" x
+
+(* The open popover: for an error's span, its kind and headline, the label of
+   the span when it is one of the error's labels, its first note and a link to
+   its message; for a definition's name, its scheme. It is drawn hidden until
+   measured, and then placed under or above its span. *)
+let view_popover (model : Model.model) errors =
+  let error_card i label =
+    Option.map
+      (fun (error : Model.load_error) ->
+        let d = error.diagnostic in
+        let label =
+          Option.bind label (List.nth_opt d.labels)
+          |> Option.map (fun (l : Diagnostic.label) ->
+              elt "p"
+                ~a:[ class_ "code-popover-label" ]
+                (rendered (Diagnostic.render_label_text ~place:"here" l.text)))
+        and note =
+          match d.notes with
+          | note :: _ ->
+              [ elt "p" ~a:[ class_ "code-popover-note" ] (rendered note) ]
+          | [] -> []
+        in
+        ( (if Option.is_some label then "is-label" else "is-error"),
+          [
+            elt "p"
+              ~a:[ class_ "code-popover-title" ]
+              (elt "span"
+                 ~a:[ class_ "code-popover-kind" ]
+                 [ text (Diagnostic.kind_to_string d.kind) ]
+              :: text " \xC2\xB7 " :: rendered d.message);
+          ]
+          @ Option.to_list label @ note
+          @ [
+              elt "a"
+                ~a:
+                  [
+                    class_ "code-popover-link";
+                    attr "href" ("#" ^ error_id i);
+                    onclick ~prevent_default:() (fun _ -> Model.ShowFullError i);
+                  ]
+                [ text "Show full error" ];
+            ] ))
+      (List.nth_opt errors i)
+  in
+  let card target =
+    match target with
+    | Model.Error_span i -> error_card i None
+    | Model.Error_label (i, j) -> error_card i (Some j)
+    | Model.Definition k ->
+        Option.map
+          (fun d ->
+            ( "is-type",
+              [ elt "p" ~a:[ class_ "code-popover-scheme" ] (view_scheme d) ] ))
+          (List.nth_opt model.definitions k)
+  in
+  match model.popover with
+  | Some ({ shown = true; _ } as popover) -> (
+      match card popover.target with
+      | None -> nil
+      | Some (kind, body) ->
+          let placed, arrow =
+            match popover.placement with
+            | None -> ([ class_ ("code-popover " ^ kind) ], [])
+            | Some p ->
+                ( [
+                    class_
+                      (String.concat " "
+                         ([ "code-popover"; kind; "is-placed" ]
+                         @ if p.above then [ "is-above" ] else []));
+                    style "left" (px p.left);
+                    style "top" (px p.top);
+                    style "width" (px p.width);
+                  ],
+                  [ style "left" (px p.arrow) ] )
+          in
+          div
+            ~a:(attr "id" popover_id :: attr "role" "tooltip" :: placed)
+            (elt "span"
+               ~a:
+                 (class_ "code-popover-arrow"
+                 :: attr "aria-hidden" "true" :: arrow)
+               []
+            :: body))
+  | _ -> nil
+
+(* The scheme of the [k]th definition, on a line of its own above it. *)
+let view_type_line ~copied k (d : Model.definition) =
+  elt "span"
+    ~key:("type-line-" ^ string_of_int k)
+    ~a:[ class_ "type-line"; attr "data-definition" (string_of_int k) ]
+    (view_scheme d
+    @
+    if copied then
+      [ elt "span" ~a:[ class_ "type-line-copied" ] [ text "Copied" ] ]
+    else [])
+
+(* What the pointer is over in the editor, reported when it changes. *)
+let onpointer (model : Model.model) =
+  on_js "mousemove" (function
+    | Vdom_blit.Ojs event ->
+        let pointer =
+          match EditorDom.under ~precedence:key_precedence event with
+          | `Popover -> Model.Over_popover
+          | `Key key -> (
+              match target_of_key key with
+              | Some target -> Model.Over_target target
+              | None -> Model.Nowhere)
+          | `Nothing -> Model.Nowhere
+        in
+        if pointer = model.pointer then None
+        else Some (Model.Point (pointer, EditorDom.point event))
+    | _ -> None)
+
+(* The pointer leaving the editor, rather than moving between its layers. *)
+let onpointer_leave (model : Model.model) =
+  on_js "mouseleave" (function
+    | Vdom_blit.Ojs event
+      when model.pointer <> Model.Nowhere
+           && not (EditorDom.moves_within ".code-editor" event) ->
+        Some (Model.Point (Model.Nowhere, EditorDom.point event))
+    | _ -> None)
+
+let onescape_popover (model : Model.model) =
+  on "keydown"
+    Vdom.Decoder.(
+      map
+        (fun key ->
+          if key = "Escape" && model.popover <> None then Some Model.Conceal
+          else None)
+        (field "key" String))
+
+(* While the schemes are shown, the displayed program takes the clicks the
+   textarea would, its layout no longer being the textarea's: a click on a
+   scheme copies it, a click on the program puts the caret where it points, a
+   click on a line number follows the link. *)
+let onreading_click =
+  let pass =
+    { Vdom.msg = None; prevent_default = false; stop_propagation = false }
+  in
+  on_js_with_options "mousedown" (function
+    | Vdom_blit.Ojs event -> (
+        let target = EditorDom.get event "target" in
+        let handled msg =
+          { Vdom.msg; prevent_default = true; stop_propagation = false }
+        in
+        match
+          ( EditorDom.closest target ".line-number",
+            EditorDom.closest target ".type-line" )
+        with
+        | Some _, _ -> pass
+        | None, Some line ->
+            handled
+              (int_of_string_opt
+                 (Ojs.string_of_js
+                    (EditorDom.call line "getAttribute"
+                       [ Ojs.string_to_js "data-definition" ]))
+              |> Option.map (fun k -> Model.CopyScheme k))
+        | None, None ->
+            handled
+              (Option.map
+                 (fun (offset, line, top) ->
+                   Model.EnterEditor (offset, line, top))
+                 (EditorDom.character_at (EditorDom.point event))))
+    | _ -> pass)
+
+(* The editor proper: the highlighted text, with the errors' spans and the
+   definitions' names marked, the definitions' schemes above them while the
+   editor is read rather than edited, the transparent textarea stretched over
+   it, and the open popover. *)
+let view_editor ~marks ~errors (model : Model.model) =
+  let source = model.edit_model.unparsed_code in
+  let lines = String.split_on_char '\n' source |> List.length in
   let rows = max 10 lines in
+  (* The schemes take lines the textarea has not got, so they are shown only
+     while it has not the focus. *)
+  let reading =
+    model.show_types && model.definitions <> [] && not model.editor_focused
+  in
+  let above =
+    if reading then
+      List.mapi
+        (fun k (d : Model.definition) ->
+          (d.line - 1, view_type_line ~copied:(model.copied = Some k) k d))
+        model.definitions
+    else []
+  in
   let highlighted =
-    SyntaxHighlight.highlight_with_marks ~line_numbers:true ~marks
-      (model.unparsed_code ^ "\n")
+    SyntaxHighlight.highlight_with_marks ~line_numbers:true ~above ~marks
+      (source ^ "\n")
   in
   (* The gutter is a small inset, the line numbers (0.558rem a digit at the
      editor's 0.9rem) and a gap; in rem so the marker's smaller font can use it. *)
@@ -430,29 +701,52 @@ let view_editor ~marks (model : Model.edit_model) =
     Printf.sprintf "calc(0.36rem + %d * 0.558rem + 0.63rem)"
       (String.length (string_of_int lines))
   in
+  let described =
+    match (popover_target model, model.caret_target) with
+    | Some target, Some target' when target = target' ->
+        [ attr "aria-describedby" popover_id ]
+    | _ -> []
+  in
   div
-    ~a:[ class_ "code-editor"; style "--gutter" gutter ]
+    ~a:
+      [
+        class_ (if reading then "code-editor is-reading" else "code-editor");
+        style "--gutter" gutter;
+        onpointer model;
+        onpointer_leave model;
+        onescape_popover model;
+      ]
     [
-      elt "pre" ~a:[ class_ "code-editor-display syn-ml" ] highlighted;
+      elt "pre"
+        ~a:
+          (class_ "code-editor-display syn-ml"
+          :: (if reading then [ onreading_click ] else []))
+        highlighted;
       elt "textarea"
         ~a:
-          [
-            class_ "code-editor-input";
-            (* bound as a property, so that loading an example replaces
-               what the user has typed; a text child would only set the
-               default value, which the browser ignores once the textarea
-               has been edited *)
-            str_prop "value" model.unparsed_code;
-            oninput (fun input -> Model.EditMsg (Model.ChangeSource input));
-            oninsert_indent;
-            oncaret_at;
-            int_prop "rows" rows;
-            attr "placeholder" "Type a program, or load an example";
-            attr "spellcheck" "false";
-            attr "autocapitalize" "off";
-            attr "autocorrect" "off";
-          ]
+          ([
+             class_ "code-editor-input";
+             (* bound as a property, so that loading an example replaces
+                what the user has typed; a text child would only set the
+                default value, which the browser ignores once the textarea
+                has been edited *)
+             str_prop "value" source;
+             oninput (fun input -> Model.EditMsg (Model.ChangeSource input));
+             oninsert_indent;
+             oncaret_at;
+             oncaret_keys;
+             onfocus (Model.FocusEditor true);
+             onblur (Model.FocusEditor false);
+             int_prop "rows" rows;
+             attr "placeholder" "Type a program, or load an example";
+             attr "aria-label" "Program";
+             attr "spellcheck" "false";
+             attr "autocapitalize" "off";
+             attr "autocorrect" "off";
+           ]
+          @ described)
         [];
+      view_popover model errors;
     ]
 
 (* let _view (model : Model.model) =
@@ -484,6 +778,20 @@ let view_compiler (model : Model.model) =
             ]
           [];
         text "Load standard library";
+      ]
+  and show_types =
+    elt "label"
+      ~a:[ class_ "panel-block" ]
+      [
+        input
+          ~a:
+            [
+              type_ "checkbox";
+              onchange_checked (fun show -> Model.ShowTypes show);
+              bool_prop "checked" model.show_types;
+            ]
+          [];
+        text "Show inferred types";
       ]
   in
   let load_example =
@@ -611,13 +919,19 @@ let view_compiler (model : Model.model) =
       ]
   in
   panel ~action:(page_link Model.Docs) "Code options"
-    [ use_stdlib; load_example; select_resource; run_process ]
+    [ use_stdlib; show_types; load_example; select_resource; run_process ]
 
 let edit_view (model : Model.model) =
   let errors =
     match model.run_model with Error errors -> errors | Ok _ -> []
   in
   let stale = model.stale_errors in
+  let popover = popover_target model in
+  let pointed =
+    match model.pointer with
+    | Model.Over_target target -> target_error target
+    | Model.Nowhere | Model.Over_popover -> None
+  in
   (* Edited source: the spans have moved, so only the messages remain. *)
   let marks =
     if stale then []
@@ -632,17 +946,40 @@ let edit_view (model : Model.model) =
                || model.hovered_error = Some i
                || model.active_error = Some i
                || error.hovered_label <> None
+               || pointed = Some i
+               || Option.bind popover target_error = Some i
              in
              marks_of_error
                ~hovered:(model.hovered_error = Some i)
-               ~with_labels i error)
+               ~with_labels ~popover i error)
            errors)
+      (* the names the definitions are given, each described by its scheme *)
+      @ List.concat
+          (List.mapi
+             (fun k (d : Model.definition) ->
+               match d.name_span with
+               | Some (from, until) ->
+                   [
+                     {
+                       SyntaxHighlight.from;
+                       until;
+                       mark_cls =
+                         (if popover = Some (Model.Definition k) then
+                            "def-name is-hover "
+                          else "def-name ")
+                         ^ popover_classes (Model.Definition k);
+                       id = None;
+                       marker = None;
+                     };
+                   ]
+               | None -> [])
+             model.definitions)
   in
   view_contents
     [
       div
         ~a:[ class_ "box editor-box" ]
-        (view_editor ~marks model.edit_model
+        (view_editor ~marks ~errors model
         :: List.mapi
              (fun i error ->
                view_load_error ~stale

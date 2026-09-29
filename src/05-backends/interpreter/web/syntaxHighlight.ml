@@ -232,7 +232,6 @@ let tokens s =
 
 type 'msg marker = {
   href : string;  (** where it links to, such as the message explaining it *)
-  title : string;  (** the headline shown on hovering it *)
   attrs : 'msg Vdom.attribute list;
       (** What else goes on every one of the numbers, such as the handlers and
           the class by which the view makes them light up as one block. A class
@@ -286,7 +285,7 @@ let line_number_node ?link n =
     (* A line an error covers: the number itself is the link to the message,
        which is why it must stay clickable through the textarea. The ends of
        the span are marked so that the gutter bar can be inset there. *)
-    | Some ({ href; title; attrs }, first, last) ->
+    | Some ({ href; attrs }, first, last) ->
         let classes =
           "line-number is-error"
           ^ (if first then " is-error-start" else "")
@@ -295,12 +294,15 @@ let line_number_node ?link n =
         (* [add_class] rather than a second class attribute, an element having
            but one: a class among [attrs] is merged into the ones above. *)
         Vdom.elt "a"
-          ~a:
-            (Vdom.add_class classes
-               (Vdom.attr "href" href :: Vdom.attr "title" title :: attrs))
+          ~a:(Vdom.add_class classes (Vdom.attr "href" href :: attrs))
           [ Vdom.text (string_of_int n) ]
   in
-  Vdom.elt "span" ~a:[ Vdom.class_ "line-number-anchor" ] [ number ]
+  (* Keyed by the line, so that a redraw keeps the number's element, and with
+     it the focus, when nodes are placed before it. *)
+  Vdom.elt "span"
+    ~key:("line-" ^ string_of_int n)
+    ~a:[ Vdom.class_ "line-number-anchor" ]
+    [ number ]
 
 let highlight_text s =
   List.map
@@ -337,8 +339,10 @@ let rec insert_active i = function
 (** [highlight_with_marks ~marks s] highlights [s] as [highlight_text] does and
     wraps each mark's range in its class. Cutting at every token and mark
     boundary makes each segment lie inside one token and wholly inside or
-    outside each mark, so it carries that token's class and every mark's. *)
-let highlight_with_marks ?(line_numbers = false) ~marks s =
+    outside each mark, so it carries that token's class and every mark's. Under
+    [line_numbers], the nodes [above] pairs with a line, counted from 0, are
+    placed at the start of that line, before its number. *)
+let highlight_with_marks ?(line_numbers = false) ?(above = []) ~marks s =
   let n = String.length s in
   let clamp i = max 0 (min n i) in
   let marks =
@@ -461,6 +465,7 @@ let highlight_with_marks ?(line_numbers = false) ~marks s =
           toks := List.tl !toks
         done;
         if line_numbers && !line < lines && starts.(!line) = start then begin
+          List.iter (fun (k, node) -> if k = !line then push node) above;
           push (line_number_node ?link:linked.(!line) (!line + 1));
           incr line
         end;
