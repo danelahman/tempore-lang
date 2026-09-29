@@ -62,9 +62,9 @@ module Make (C : Constraint.S) = struct
     constructors : Ast.ty_name LabelMap.t;
     noneternal : Ast.TyNameSet.t;
     op_signatures : op_signature Ast.OpNameMap.t;
-    op_bounds : (int * int) StringMap.t;
+    op_bounds : Grades.Grade.runtime StringMap.t;
     op_defaults : DefaultGraph.default Ast.OpNameMap.t;
-    world : (int * int) StringMap.t;
+    world : Grades.Grade.runtime StringMap.t;
         (** the operations the whole program declares with runtime bounds *)
   }
 
@@ -476,11 +476,12 @@ module Make (C : Constraint.S) = struct
               "atomic operation `%s` needs runtime bounds `within (lo, hi)` \
                under the `%s` grading monoid"
               op_name GS.E.name
-        | Some (lo, hi) when lo > hi ->
+        | Some (lo, hi) when Grades.Rational.compare lo hi > 0 ->
             Error.typing ~loc
               "the runtime bounds of operation `%s` must satisfy `lo <= hi`"
               op_name
-        | Some (_, hi) when hi < 1 ->
+        | Some (_, hi)
+          when Grades.Rational.compare hi (Grades.Rational.of_int 1) < 0 ->
             Error.typing ~loc
               "the upper runtime bound of operation `%s` must be at least 1"
               op_name
@@ -1469,7 +1470,9 @@ module Make (C : Constraint.S) = struct
     | X.Eps_const _ | X.Eps_var _ | X.Eps_mul _ | X.Eps_join _ -> ());
     let bound =
       match StringMap.find_opt op_name env.op_bounds with
-      | Some bounds -> Eps.const (GS.E.of_bounds bounds)
+      | Some (lo, hi) ->
+          let read = Grades.Grade.read_bound GS.E.Delay.read in
+          Eps.const (GS.E.of_bounds (read lo, read hi))
       | None -> op_grade
     in
     let clause = { Reason.op; signature_at; case_at = loc } in

@@ -218,6 +218,16 @@ let accepting_delay lit =
       | Some _ | None -> None)
     entries
 
+let accepting_bounds lit =
+  List.filter_map
+    (fun e ->
+      let (module G : Grade.S) = e.grade in
+      match G.Delay.read lit with
+      | Some _ when e.info.visibility = Everywhere && G.needs_op_bounds ->
+          Some e.name
+      | Some _ | None -> None)
+    entries
+
 (* [entries] grouped by [group], preserving both the order groups first occur
    in and the order of the grades within each, as {!grade_modules} lists
    them. *)

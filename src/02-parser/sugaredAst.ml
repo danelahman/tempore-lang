@@ -116,7 +116,7 @@ and ('rho, 'eps) plain_command =
       * ('rho, 'eps) ty
       * ('rho, 'eps) ty
       * 'eps
-      * (int * int) option)
+      * Grades.Grade.runtime option)
       (** [operation op : t1 -> t2 # rho within (lo, hi)]; the runtime bounds
           are optional and only the trace grading monoids use them *)
   | OpDefault of operation * ('rho, 'eps) abstraction

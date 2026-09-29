@@ -290,6 +290,7 @@ let expected_rejections =
     ("counts_upper_reject.tpe", [ 7; 14; 19; 27 ]);
     ("default_reject_bounds.tpe", [ 7 ]);
     ("rational_time_intervals_reject.tpe", [ 9 ]);
+    ("rational_time_intervals_reject_within.tpe", [ 5 ]);
     ("rational_time_lower_reject.tpe", [ 10; 14 ]);
     ("rational_time_upper_reject.tpe", [ 7 ]);
     ("default_reject_cycle.tpe", [ 9 ]);
@@ -454,7 +455,12 @@ module Small (G : Grade.S) = struct
   (* [delay k] is the grade of the delay of the literal [k]. *)
   let delay k = G.of_delay (Option.get (G.Delay.read (Grade.Int k)))
   let name = G.name
-  let no_bounds = { Grade.cost = (fun _ -> (0, 0)); operations = [] }
+
+  let no_bounds =
+    {
+      Grade.cost = (fun _ -> (Grades.Rational.zero, Grades.Rational.zero));
+      operations = [];
+    }
 
   (* A location per line: a failure names the atom it comes from by its
      line. *)

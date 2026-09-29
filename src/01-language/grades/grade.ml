@@ -33,6 +33,8 @@
     grade means the same throughout a program. The operations that depend on the
     order, [leq], [equal], [counterexample], [implied_bounds] and [inhabited],
     take both as an argument of type {!bounds}; the other grades ignore it.
+    Runtime bounds are kept as the non-negative rationals the source writes
+    ({!runtime}), and each grade reads them as its delays ({!read_bound}).
 
     {2 Literals}
 
@@ -42,9 +44,14 @@
 
 include GradeLiteral
 
+type runtime = Rational.t * Rational.t
+(** The runtime bounds [(lo, hi)] of an operation, [lo ≤ hi]: non-negative
+    rationals, independent of the grade. *)
+
 type bounds = {
-  cost : string -> int * int;
-      (** The runtime bounds [(lo, hi)] declared by each operation, by name. *)
+  cost : string -> runtime;
+      (** The runtime bounds declared by each operation, or implied by its
+          grade, by name. The delays of the grade read each of them. *)
   operations : string list;
       (** The names of the operations the program declares with runtime bounds.
       *)
@@ -124,7 +131,7 @@ module type S = sig
   (** Whether operation signatures must carry their runtime bounds
       [within (lo, hi)]. *)
 
-  val implied_bounds : bounds -> t -> (int * int) option
+  val implied_bounds : bounds -> t -> runtime option
   (** [implied_bounds bounds rho] is the pair of runtime bounds the grade [rho]
       itself implies: the duration of its fastest run, each event counted at the
       lower end of its [bounds], and the duration of its slowest run, each event
@@ -148,13 +155,14 @@ module type S = sig
 
       @raise Invalid_literal if the grade does not understand [lit]. *)
 
-  val of_bounds : int * int -> t
+  val of_bounds : Delay.t * Delay.t -> t
   (** [of_bounds (lo, hi)] is the "time shadow" of an operation declaring the
-      runtime bounds [within (lo, hi)]: the grade that records nothing but the
-      time such a call may take. It is the grade a default implementation of the
-      operation is checked against, since the operation's own grade can only be
-      realised by performing the operation itself. Each grade reads the end of
-      the bounds its order uses, the two-sided ones both. *)
+      runtime bounds [within (lo, hi)], read as delays: the grade that records
+      nothing but the time such a call may take. It is the grade a default
+      implementation of the operation is checked against, since the operation's
+      own grade can only be realised by performing the operation itself. Each
+      grade reads the end of the bounds its order uses, the two-sided ones both.
+  *)
 
   val is_atomic : string -> t -> bool
   (** [is_atomic name rho] is whether [rho] is the grade of an atomic operation
@@ -175,6 +183,16 @@ module type S = sig
       {!top} and, where the delays read the literal [1], its grade to the list.
   *)
 end
+
+(** [read_bound read q] is the delay [read] reads the runtime bound [q] as.
+
+    @raise Invalid_argument
+      if [read] reads none: the runtime bounds of a program are checked to be
+      delays of its grades where they are declared. *)
+let read_bound read q =
+  match read (rational_lit q) with
+  | Some d -> d
+  | None -> invalid_arg ("Grade.read_bound: " ^ Rational.show q)
 
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their
     pairwise products by [mul]. *)

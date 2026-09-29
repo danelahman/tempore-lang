@@ -34,14 +34,6 @@ module Make (D : Delay.ORDERED) (N : NAMES) = struct
     | None ->
         invalid_lit lit "grades are %s, not %s" expected (describe_lit lit)
 
-  (** [of_int n] is the delay of the integer [n], e.g. a runtime bound.
-
-      @raise Invalid_argument if no delay is [n]. *)
-  let of_int n =
-    match D.read (Int n) with
-    | Some d -> d
-    | None -> invalid_arg ("TimeGrades.of_int: " ^ string_of_int n)
-
   module LowerBound = struct
     type t = D.t
 
@@ -71,7 +63,7 @@ module Make (D : Delay.ORDERED) (N : NAMES) = struct
       | lit -> duration_of_lit ("plain " ^ N.numbers) lit
 
     let of_delay d = d
-    let of_bounds (lo, _hi) = of_int lo
+    let of_bounds (lo, _hi) = lo
     let is_atomic _name _ = true
     let show = D.show
     let witnesses ~degree _bounds cs = D.witnesses ~degree cs
@@ -106,7 +98,7 @@ module Make (D : Delay.ORDERED) (N : NAMES) = struct
       | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or '∞'") lit)
 
     let of_delay d = Ext.Fin d
-    let of_bounds (_lo, hi) = Ext.Fin (of_int hi)
+    let of_bounds (_lo, hi) = Ext.Fin hi
     let is_atomic _name _ = true
     let show = Ext.show
 
@@ -175,7 +167,7 @@ module Make (D : Delay.ORDERED) (N : NAMES) = struct
             (describe_lit lit)
 
     let of_delay d = (d, Ext.Fin d)
-    let of_bounds (lo, hi) = (of_int lo, Ext.Fin (of_int hi))
+    let of_bounds (lo, hi) = (lo, Ext.Fin hi)
     let is_atomic _name _ = true
     let show (n, m) = "(" ^ D.show n ^ "," ^ Ext.show m ^ ")"
 

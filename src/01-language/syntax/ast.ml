@@ -286,7 +286,7 @@ type ('rho, 'eps) plain_command =
       * ('rho, 'eps) ty
       * ('rho, 'eps) ty
       * 'eps
-      * (int * int) option)
+      * Grades.Grade.runtime option)
   | OpDefault of operation * ('rho, 'eps) abstraction
   | TopLet of variable * ('rho, 'eps) expression
   | TopDo of ('rho, 'eps) computation

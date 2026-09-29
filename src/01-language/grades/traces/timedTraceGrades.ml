@@ -1,7 +1,10 @@
 open Grade
 
-let lo_cost (bounds : bounds) op = fst (bounds.cost op)
-let hi_cost (bounds : bounds) op = snd (bounds.cost op)
+(** [steps q] is the number of time steps of the runtime bound [q]. *)
+let steps q = Delay.Nat.to_int (read_bound Delay.Nat.read q)
+
+let lo_cost (bounds : bounds) op = steps (fst (bounds.cost op))
+let hi_cost (bounds : bounds) op = steps (snd (bounds.cost op))
 
 (** [traces_of_regex lit r] is the set of traces the star-free regular
     expression [r], without [&], [~] or [_], denotes; [lit] is the literal it is
@@ -121,7 +124,9 @@ end
     upper-bound component [hi]. *)
 let implied_trace_bounds bounds lo hi =
   Option.map
-    (fun slowest -> (TimedTrace.min_duration (lo_cost bounds) lo, slowest))
+    (fun slowest ->
+      ( Rational.of_int (TimedTrace.min_duration (lo_cost bounds) lo),
+        Rational.of_int slowest ))
     (UpperTraces.max_duration bounds hi)
 
 let atomic_traces name = [ [ TimedTrace.Ev name ] ]
@@ -145,7 +150,7 @@ module LowerBound = struct
 
   let inhabited _bounds _ = true
   let of_delay d = TimedTrace.of_delay (Delay.to_int d)
-  let of_bounds (lo, _hi) = TimedTrace.of_delay lo
+  let of_bounds (lo, _hi) = TimedTrace.of_delay (Delay.to_int lo)
   let is_atomic name p = TimedTrace.equal p (atomic_traces name)
   let show = TimedTrace.show
   let witnesses ~degree:_ _bounds = sampled mul
@@ -170,7 +175,7 @@ module UpperBound = struct
 
   let inhabited _bounds _ = true
   let of_delay d = Within (TimedTrace.of_delay (Delay.to_int d))
-  let of_bounds (_lo, hi) = Within (TimedTrace.of_delay hi)
+  let of_bounds (_lo, hi) = Within (TimedTrace.of_delay (Delay.to_int hi))
   let is_atomic name p = compare p (Within (atomic_traces name)) = 0
   let witnesses ~degree:_ _bounds = sampled mul
 end
@@ -241,7 +246,8 @@ module Interval = struct
     (ts, UpperTraces.Within ts)
 
   let of_bounds (lo, hi) =
-    (TimedTrace.of_delay lo, UpperTraces.Within (TimedTrace.of_delay hi))
+    ( TimedTrace.of_delay (Delay.to_int lo),
+      UpperTraces.Within (TimedTrace.of_delay (Delay.to_int hi)) )
 
   let is_atomic name (lo, hi) =
     LowerBound.is_atomic name lo && UpperBound.is_atomic name hi

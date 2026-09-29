@@ -111,9 +111,12 @@ let tables =
       List.map (fun o -> (o, (0, 0))) names;
     ]
 
+(* [runtime (lo, hi)] is the runtime bounds of [lo] to [hi] time steps. *)
+let runtime (lo, hi) = (Grades.Rational.of_int lo, Grades.Rational.of_int hi)
+
 let bounds_of table =
   {
-    Grade.cost = (fun o -> List.assoc o table);
+    Grade.cost = (fun o -> runtime (List.assoc o table));
     operations = List.map fst table;
   }
 
@@ -230,7 +233,11 @@ let costs = bounds_of [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)) ]
 let holds name b = check name b ""
 let fails name b = check name (not b) ""
 let show_option show = function Some x -> show x | None -> "none"
-let show_bounds = show_option (fun (lo, hi) -> Printf.sprintf "(%d, %d)" lo hi)
+
+let show_bounds =
+  show_option (fun (lo, hi) ->
+      Printf.sprintf "(%s, %s)" (Grades.Rational.show lo)
+        (Grades.Rational.show hi))
 
 (* [agree tables (module F) (module G) lits] checks that the grades [F] and [G]
    order the literals [lits] alike and imply the same runtime bounds, under
@@ -284,9 +291,9 @@ module type IMPLEMENTATION = sig
   val name : string
 
   module L : Cost.LANGUAGE
-  module Upper : Grade.S with type t = L.t
-  module Lower : Grade.S with type t = L.t
-  module Interval : Grade.S with type t = L.t * L.t
+  module Upper : Grade.S with type t = L.t and type Delay.t = int
+  module Lower : Grade.S with type t = L.t and type Delay.t = int
+  module Interval : Grade.S with type t = L.t * L.t and type Delay.t = int
 end
 
 module Automata = struct
@@ -519,7 +526,7 @@ module Suite (I : IMPLEMENTATION) = struct
         (Option.map Upper.show
            (Upper.counterexample costs (U.lit "{A; 3 | 1}") (U.lit "{5}")));
       expect (name "implied bounds") show_bounds
-        ~expected:(Some (1, 3))
+        ~expected:(Some (runtime (1, 3)))
         (Upper.implied_bounds costs (U.lit "{A | B; 1}"));
       expect
         (name "no implied bounds when unbounded")
@@ -553,7 +560,7 @@ module Suite (I : IMPLEMENTATION) = struct
         (Option.map Lower.show
            (Lower.counterexample costs (Lo.lit "{A | 3}") (Lo.lit "{2}")));
       expect (name "implied bounds") show_bounds
-        ~expected:(Some (1, 3))
+        ~expected:(Some (runtime (1, 3)))
         (Lower.implied_bounds costs (Lo.lit "{A | B; 1}"));
       expect (name "time shadow") Fun.id ~expected:"{1}"
         (Lower.show (Lower.of_bounds (1, 3)));
@@ -581,7 +588,7 @@ module Suite (I : IMPLEMENTATION) = struct
       fails (name "the lower component") (leq "{A}" "(2, 3)");
       fails (name "the upper component") (leq "{A}" "(1, 2)");
       expect (name "implied bounds") show_bounds
-        ~expected:(Some (1, 2))
+        ~expected:(Some (runtime (1, 2)))
         (Interval.implied_bounds costs (In.lit "({A | B}, {B})"));
       expect (name "time shadow") Fun.id ~expected:"({1},{3})"
         (Interval.show (Interval.of_bounds (1, 3)));
@@ -906,7 +913,8 @@ let long_runs =
       quickly (name "{9999; A} </= {10000; A} under the lower order") (fun () ->
           not (I.Lower.leq costs (Lo.lit "{9999; A}") (Lo.lit "{10000; A}")));
       quickly (name "{10000; A} implies (10001, 10003)") (fun () ->
-          I.Upper.implied_bounds costs (U.lit "{10000; A}") = Some (10001, 10003));
+          I.Upper.implied_bounds costs (U.lit "{10000; A}")
+          = Some (runtime (10001, 10003)));
       quickly (name "counterexample of {10001; A} <= {10000; A}") (fun () ->
           Option.map I.Upper.show
             (I.Upper.counterexample costs (U.lit "{10001; A}")

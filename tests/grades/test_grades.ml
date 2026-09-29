@@ -18,7 +18,9 @@ open LawChecks
 
 let show_bool = string_of_bool
 let show_names names = "[" ^ String.concat "; " names ^ "]"
-let bounds = { Grade.cost = (fun _ -> (1, 2)); operations = [] }
+
+let bounds =
+  { Grade.cost = (fun _ -> Rational.(of_int 1, of_int 2)); operations = [] }
 
 (* [contains s sub] is whether [sub] occurs in [s]. *)
 let contains s sub =
@@ -64,7 +66,8 @@ let levels =
       (L.of_delay (Rational.of_int 5));
     expect "levels: no delay is the unit" show ~expected:L.one
       (L.of_delay Rational.zero);
-    expect "levels: time shadow" show ~expected:Low (L.of_bounds (1, 2));
+    expect "levels: time shadow" show ~expected:Low
+      (L.of_bounds Rational.(of_int 1, of_int 2));
     check "levels: equal" (L.equal bounds High High) "High = High";
     expect "levels: unit least" show_bool ~expected:true L.unit_least;
     expect "levels: commutative" show_bool ~expected:true L.commutative;
@@ -187,8 +190,10 @@ let products =
       (TraceLevels.is_atomic "Send" send_then_tick);
     expect "product: implied bounds"
       (function
-        | Some (lo, hi) -> Printf.sprintf "(%d, %d)" lo hi | None -> "None")
-      ~expected:(Some (1, 2))
+        | Some (lo, hi) ->
+            Printf.sprintf "(%s, %s)" (Rational.show lo) (Rational.show hi)
+        | None -> "None")
+      ~expected:(Some Rational.(of_int 1, of_int 2))
       (TraceLevels.implied_bounds bounds send_low);
     expect "product: level component" Fun.id ~expected:"(3,High)"
       (show (p 3 "High"));
@@ -1060,7 +1065,10 @@ let witnesses =
 let costs =
   let table = [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)) ] in
   {
-    Grade.cost = (fun o -> List.assoc o table);
+    Grade.cost =
+      (fun o ->
+        let lo, hi = List.assoc o table in
+        (Rational.of_int lo, Rational.of_int hi));
     operations = List.map fst table;
   }
 
@@ -1422,7 +1430,8 @@ let registered_laws =
              @ counterexample_laws
                  (module G)
                  ~offered:false ~context costs samples
-             @ of_delay_laws (module G) costs ())
+             @ of_delay_laws (module G) costs ()
+             @ of_bounds_laws (module G) costs)
        GradeRegistry.grade_modules
 
 (* The declared flags of the registered grades that are false with no

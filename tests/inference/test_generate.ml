@@ -80,6 +80,7 @@ let malformed =
     "shadow_label.tpe";
     "traces_reject_bounds.tpe";
     "traces_reject_bounds_declared.tpe";
+    "traces_reject_fractional_bound.tpe";
     "traces_reject_default_nonatomic.tpe";
     "traces_reject_missing_within.tpe";
     "traces_reject_self_retry.tpe";
@@ -88,6 +89,7 @@ let malformed =
     "non_linear_pattern.tpe";
     "shadow_type.tpe";
     "time_reject_within.tpe";
+    "rational_time_intervals_reject_within.tpe";
     "levels_reject_literal.tpe";
     "literals_reject_complement.tpe";
     "literals_reject_component.tpe";
@@ -492,7 +494,11 @@ module Small = struct
                     _,
                     _ ) ->
                   G.equal
-                    { cost = (fun _ -> (0, 0)); operations = [] }
+                    {
+                      cost =
+                        (fun _ -> (Grades.Rational.zero, Grades.Rational.zero));
+                      operations = [];
+                    }
                     top G.top
               | _ -> false)
             (atoms body)

@@ -88,7 +88,8 @@ module Make (C : Constraint.S) : sig
       [float], [empty] and [list], and nothing else, in a program that declares
       no operations. *)
 
-  val declare_operations : (string * (int * int) option) list -> env -> env
+  val declare_operations :
+    (string * Grades.Grade.runtime option) list -> env -> env
   (** [declare_operations declarations env] is [env] in a program whose
       operation declarations are [declarations], each an operation name with its
       runtime bounds if it declares them, the first declaration of a name
@@ -139,7 +140,11 @@ module Make (C : Constraint.S) : sig
   val add_operation_signature :
     loc:Location.t ->
     env ->
-    Ast.operation * program_ty * program_ty * program_eps * (int * int) option ->
+    Ast.operation
+    * program_ty
+    * program_ty
+    * program_eps
+    * Grades.Grade.runtime option ->
     env
   (** [add_operation_signature ~loc env (op, param, arity, grade, bounds)] adds
       the signature of [op] and its runtime bounds, declared or implied by its
@@ -202,7 +207,7 @@ module Make (C : Constraint.S) : sig
   val find_op_signature : env -> Ast.operation -> op_signature option
   (** [find_op_signature env op] is the signature of [op]. *)
 
-  val op_bounds : env -> (int * int) Utils.StringMap.t
+  val op_bounds : env -> Grades.Grade.runtime Utils.StringMap.t
   (** [op_bounds env] is the runtime bounds of the operations, by surface name:
       the cost model of the grades' order. *)
 

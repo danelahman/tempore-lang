@@ -49,7 +49,8 @@ end
     either possibly absent. *)
 let intersect b b' =
   match (b, b') with
-  | Some (lo, hi), Some (lo', hi') -> Some (Int.max lo lo', Int.min hi hi')
+  | Some (lo, hi), Some (lo', hi') ->
+      Some (Delay.Rational.max lo lo', Delay.Rational.min hi hi')
   | Some b, None | None, Some b -> Some b
   | None, None -> None
 

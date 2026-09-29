@@ -2856,6 +2856,13 @@
     grade `(0.5,0.75)` accumulates here (operation `Pour`)
     Note: the resource inequality `(1,1.5) <= (0.5,1.25)` does not hold
   ======================================================================
+  rational_time_intervals_reject_within.tpe
+  ======================================================================
+  File "rational_time_intervals_reject_within.tpe", line 5, characters 0-60:
+  5 | operation Dose : unit ~> unit # (0.5, 1.5) within (1/2, 3/2)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `time-interval-rational` grading monoid
+  ======================================================================
   rational_time_lower.tpe
   ======================================================================
   === Run 1 ===
@@ -4541,6 +4548,13 @@
   14 | default PrintModel m = delay 6; Fresh m
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: a default implementation may only be given for an atomic operation, but the grade of `PrintModel` is `{Heat; Extrude; Cool}`; handle it with a handler in terms of the operations it names
+  ======================================================================
+  traces_reject_fractional_bound.tpe
+  ======================================================================
+  File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
+  5 | operation Heat : unit ~> unit # {Heat} within (1/2, 1)
+                                                     ^^^
+  Syntax error: in the 'traces-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================

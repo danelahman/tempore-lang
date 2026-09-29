@@ -14,6 +14,11 @@ val accepting_delay : Grade.lit -> string list
     whose delays read the literal [lit] ({!Delay.S.read}), in the order of
     {!grade_modules}. *)
 
+val accepting_bounds : Grade.lit -> string list
+(** [accepting_bounds lit] lists the names of the grades shown {!Everywhere}
+    that read runtime bounds ({!Grade.S.needs_op_bounds}) and whose delays read
+    the literal [lit], in the order of {!grade_modules}. *)
+
 (** Where a grade is offered. *)
 type visibility =
   | Everywhere  (** By the CLI and the web interface's selector *)

@@ -1,0 +1,5 @@
+(* Correctly rejected by the typechecker, under the 'time-interval-rational'
+   grading monoid: its delays read the fractional runtime bounds, but runtime
+   bounds are only declared under the grading monoids that read them. *)
+
+operation Dose : unit ~> unit # (0.5, 1.5) within (1/2, 3/2)

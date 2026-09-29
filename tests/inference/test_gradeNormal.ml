@@ -23,7 +23,11 @@ let expect name show ~expected actual =
   check name (expected = actual)
     ("expected " ^ show expected ^ ", got " ^ show actual)
 
-let bounds = { Grade.cost = (fun _ -> (1, 2)); operations = [] }
+let bounds =
+  {
+    Grade.cost = (fun _ -> Grades.Rational.(of_int 1, of_int 2));
+    operations = [];
+  }
 
 module Suite (G : Grade.S) = struct
   module GS = GradeSystem.Identity (G)

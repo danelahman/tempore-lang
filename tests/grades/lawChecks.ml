@@ -372,6 +372,35 @@ let of_delay_laws (module G : Grade.S) bounds ?monotone () =
           (pairs samples);
       ]
 
+(* [of_bounds_laws (module G) bounds] checks the time shadow on the sample
+   delays of [G] under [bounds]: the shadow of exact bounds [(d, d)] is the
+   grade of [delay d], and the grade of a delay [d] with [lo ≤ d ≤ hi] is below
+   the shadow of [(lo, hi)]. *)
+let of_bounds_laws (module G : Grade.S) bounds =
+  let samples = delays (module G.Delay) in
+  let le (q, _) (r, _) = Rational.compare (value q) (value r) <= 0 in
+  let within =
+    List.filter
+      (fun (lo, d, hi) -> le lo d && le d hi)
+      (List.concat_map
+         (fun (lo, hi) -> List.map (fun d -> (lo, d, hi)) samples)
+         (pairs samples))
+  in
+  let show_bounds ((lo, _), (hi, _)) = show_lit lo ^ ", " ^ show_lit hi in
+  [
+    all
+      (G.name ^ ": of_bounds of exact bounds is of_delay")
+      (fun (q, _) -> show_lit q)
+      (fun (_, d) -> G.equal bounds (G.of_bounds (d, d)) (G.of_delay d))
+      samples;
+    all
+      (G.name ^ ": a delay within the bounds is below of_bounds")
+      (fun (lo, (q, _), hi) -> show_lit q ^ " within " ^ show_bounds (lo, hi))
+      (fun ((_, lo), (_, d), (_, hi)) ->
+        G.leq bounds (G.of_delay d) (G.of_bounds (lo, hi)))
+      within;
+  ]
+
 (* [declared_laws (module G) ~context bounds samples] checks, on [samples]
    under [bounds], the properties the declarations of [G] assert: that the
    product commutes up to equality if [G.commutative]; that [is_top] decides

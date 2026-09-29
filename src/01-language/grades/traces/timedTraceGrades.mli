@@ -5,7 +5,8 @@
 
     An operation declares a pair of runtime bounds [within (lo, hi)], and the
     two orders read different endpoints: [lo] feeds the coverage (lower-bound)
-    order and [hi] the allowance (upper-bound) order.
+    order and [hi] the allowance (upper-bound) order. The delays are whole time
+    steps, and so are the runtime bounds.
 
     {2 Representations}
 

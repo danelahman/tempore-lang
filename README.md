@@ -379,6 +379,11 @@ name, also declares its runtime bounds (`within n` abbreviates
 operation Tx : string ~> unit # {Tx} within (2, 3)
 ```
 
+The bounds are durations, written as for `delay` (see [Delays](#delays)), with
+`lo <= hi` and `hi` at least 1, and each grade reads them as its delays. The
+monoids that read runtime bounds count whole time steps, so `within (1/2, 1)` is
+a syntax error under them. The other monoids reject runtime bounds altogether.
+
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `(2, 6)`.
 

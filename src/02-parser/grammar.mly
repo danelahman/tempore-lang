@@ -36,6 +36,22 @@
           (GS.R.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_delay lit))
 
+  (* [runtime_bound ~loc q] is the runtime bound [q] if the delays of the
+     grade system read it or its effect grades read no runtime bounds;
+     otherwise a syntax error at [loc] naming the grades that read runtime
+     bounds and [q]. *)
+  let runtime_bound ~loc q =
+    let lit = Grade.rational_lit q in
+    match GS.E.Delay.read lit with
+    | Some _ -> q
+    | None when not GS.E.needs_op_bounds -> q
+    | None ->
+        Error.syntax ~loc
+          "in the '%s' grading monoid, runtime bounds are delays, and %s%s"
+          GS.E.name
+          (GS.E.Delay.rejection lit)
+          (suggestion (Grades.GradeRegistry.accepting_bounds lit))
+
   (* [small ~loc what n] is the number [n] as an OCaml [int]; a syntax error
      at [loc] naming [what] if [n] does not fit one. *)
   let small ~loc what n =
@@ -531,15 +547,18 @@ sum_case:
   | lbl = mark_position(UNAME) OF t = ty
     { (lbl, Some t) }
 
-(* The runtime bounds an operation declares; [within n] is sugar for
-   [within (n, n)]. Only the trace grading monoids read them. *)
+(* The runtime bounds an operation declares, durations; [within n] is sugar
+   for [within (n, n)]. Only the trace grading monoids read them. *)
 op_bounds:
-  | WITHIN n = INT
-    { let n = small ~loc:(Location.of_lexing $startpos(n) $endpos(n)) "Bound" n in
-      (n, n) }
-  | WITHIN LPAREN n = INT COMMA m = INT RPAREN
-    { (small ~loc:(Location.of_lexing $startpos(n) $endpos(n)) "Bound" n,
-       small ~loc:(Location.of_lexing $startpos(m) $endpos(m)) "Bound" m) }
+  | WITHIN n = runtime_bound
+    { (n, n) }
+  | WITHIN LPAREN n = runtime_bound COMMA m = runtime_bound RPAREN
+    { (n, m) }
+
+(* A runtime bound, a duration read as a delay. *)
+runtime_bound:
+  | q = duration
+    { runtime_bound ~loc:(Location.of_lexing $startpos $endpos) q }
 
 (* A resource grade, a literal read by the resource grades of the grade system
    or a grade variable, at its location. *)

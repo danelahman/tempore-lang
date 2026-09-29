@@ -33,7 +33,8 @@ module Make (GS : Grades.GradeSystem.S) : sig
     state -> Ast.variable -> Language.Primitives.primitive -> state
   (** [load_primitive state x prim] adds the primitive [prim] as [x]. *)
 
-  val declare_operations : (string * (int * int) option) list -> state -> state
+  val declare_operations :
+    (string * Grades.Grade.runtime option) list -> state -> state
   (** [declare_operations declarations state] is [state] in a program whose
       operation declarations, in all its sources, are [declarations], each an
       operation name with its runtime bounds if it declares them. The grades of

@@ -1,0 +1,5 @@
+(* Rejected: runtime bounds are delays, and those of traces-upper-bound are
+   whole numbers of time steps; no grade that reads runtime bounds has a delay
+   of 1/2, so the error names none. *)
+
+operation Heat : unit ~> unit # {Heat} within (1/2, 1)
