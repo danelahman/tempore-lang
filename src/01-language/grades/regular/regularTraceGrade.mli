@@ -1,12 +1,13 @@
-(** The regular trace grade decided by automata, ["traces-regex"]: non-empty
-    regular languages of words over delays and operations, multiplied by
-    concatenation.
+(** The regular trace grade decided by automata, ["regex-upper-bound"]:
+    non-empty regular languages of words over delays and operations, multiplied
+    by concatenation.
 
-    {!RegularTraceGradeDerivative}, ["traces-regex-symbolic"], implements the
-    same grade by symbolic derivatives; {!RegularTraceGradeDerivative.Concrete},
-    ["traces-regex-derivatives"], by derivatives by letters, and
-    {!RegularTraceGradePlain}, ["traces-regex-plain"], by derivatives of
-    expressions over single letters.
+    {!RegularTraceGradeDerivative}, ["regex-upper-bound-symbolic"], implements
+    the same grade by symbolic derivatives;
+    {!RegularTraceGradeDerivative.Concrete}, ["regex-upper-bound-derivatives"],
+    by derivatives by letters, and {!RegularTraceGradePlain},
+    ["regex-upper-bound-plain"], by derivatives of expressions over single
+    letters.
 
     {2 Runs as words}
 

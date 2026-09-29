@@ -1,4 +1,4 @@
-(* Accepted under the 'traces-regex-lower' grading monoid: regular lower bounds
+(* Accepted under the 'regex-cost-lower-bound' grading monoid: regular lower bounds
    covered by runs whose operations bank their lower runtime bounds. *)
 
 type token = Token of string

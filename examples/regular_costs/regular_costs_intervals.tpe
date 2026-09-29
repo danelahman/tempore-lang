@@ -1,8 +1,8 @@
 (* A coating line: coat, bake and seal, cured for an interval of ticks.
 
-   Run this example with the 'traces-regex-interval-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-cost-interval-symbolic' grading monoid, e.g.
 
-     ./tempore --grades traces-regex-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe
+     ./tempore --grades regex-cost-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe
 
    Grades (L, U): a lower and upper regular-language bound on the runs
      - Unit ({0}, {0}): nothing demanded, only the empty run allowed
@@ -143,11 +143,11 @@ run sealed ()
 (* A grade with large intermediate automata: both bounds of the box grade are
    the runs of one or more cycles of a coating, a bake and a sealing whose
    12th-last step, if any, is neither a coating nor a bake, that is, the runs of
-   one to three cycles. Under 'traces-regex-interval', reading the literal
+   one to three cycles. Under 'regex-cost-interval', reading the literal
    builds the minimal automata of the two complements and of their intersection
    before the cycles restrict it: the example, with this program uncommented,
    takes about 3.5 s, and about 11 s with the 13th-last step. Under
-   'traces-regex-interval-symbolic', the literal is kept as a normalised
+   'regex-cost-interval-symbolic', the literal is kept as a normalised
    expression, whose derivatives are few: the example takes about 0.09 s at both
    sizes, as without the program. *)
 (*

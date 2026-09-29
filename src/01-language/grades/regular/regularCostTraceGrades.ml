@@ -214,7 +214,7 @@ struct
   module Lower = struct
     include Common
 
-    let name = "traces-regex-lower" ^ Variant.suffix
+    let name = "regex-cost-lower-bound" ^ Variant.suffix
     let leq = leq coverage
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample coverage
@@ -231,7 +231,7 @@ struct
   module Upper = struct
     include Common
 
-    let name = "traces-regex-upper" ^ Variant.suffix
+    let name = "regex-cost-upper-bound" ^ Variant.suffix
     let leq = leq allowance
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample allowance
@@ -245,7 +245,7 @@ struct
   module Interval = struct
     type t = L.t * L.t
 
-    let name = "traces-regex-interval" ^ Variant.suffix
+    let name = "regex-cost-interval" ^ Variant.suffix
     let one = (Lower.one, Upper.one)
     let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
 

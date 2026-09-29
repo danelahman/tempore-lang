@@ -1,8 +1,8 @@
 (* A file-session protocol, an authentication token and a revocable capability.
 
-   Run this example with the 'traces-regex-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-upper-bound-symbolic' grading monoid, e.g.
 
-     ./tempore --grades traces-regex-symbolic examples/regular/regular_traces.tpe
+     ./tempore --grades regex-upper-bound-symbolic examples/regular/regular_traces.tpe
 
    Grades {...}: regular languages of runs over ticks and operations
      - Unit {0}: the empty run
@@ -199,11 +199,11 @@ let maybe_write (b : bool) : nat # {Open; Read*; Close} =
 *)
 
 (* A grade whose automaton is large: the box grade permits the runs whose
-   13th-last step, if any, is neither an 'A' nor a 'B'. Under 'traces-regex',
+   13th-last step, if any, is neither an 'A' nor a 'B'. Under 'regex-upper-bound',
    reading the literal builds the minimal automata of the two complements, of
    2^13 states each by the subset construction, and of their intersection,
    which dominates: the program takes about 10 s. Under
-   'traces-regex-symbolic', the literal is kept as a normalised expression, and
+   'regex-upper-bound-symbolic', the literal is kept as a normalised expression, and
    the inclusions the typechecker decides explore only the derivatives along
    one run: the program takes about 0.04 s. *)
 (*

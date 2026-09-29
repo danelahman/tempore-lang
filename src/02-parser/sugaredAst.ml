@@ -117,7 +117,7 @@ and ('rho, 'eps) plain_command =
       * 'eps
       * (int * int) option)
       (** [operation op : t1 -> t2 # rho within (lo, hi)]; the runtime bounds
-          are optional and only the timed-trace grading monoids use them *)
+          are optional and only the trace grading monoids use them *)
   | OpDefault of operation * ('rho, 'eps) abstraction
       (** [default Op p = t]; the implementation the operation falls back on
           when it reaches the top level unhandled *)

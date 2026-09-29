@@ -1,5 +1,5 @@
-(** The timed-trace grades: finite sets of timed traces (see {!TimedTrace}),
-    multiplied by the language product.
+(** The trace grades: finite sets of traces (see {!TimedTrace}), multiplied by
+    the language product.
 
     {2 Cost model}
 
@@ -9,7 +9,7 @@
 
     {2 Representations}
 
-    A set of timed traces is kept sorted and duplicate-free, not reduced to the
+    A set of traces is kept sorted and duplicate-free, not reduced to the
     antichain of its extremal members, since that reduction depends on the order
     and hence on the cost model. So [mul] and [join] need no cost model, but a
     grade may have several representations; [equal] is mutual [leq], which is
@@ -20,12 +20,12 @@
 
     {2 Literals}
 
-    A set of timed traces is written as a brace literal, a union with [|] of
-    sequences with [;] of operation names and delays, e.g.
-    [{Read; 3; Send | Send; Send}]; parentheses group, and a concatenation of
-    unions denotes the set of the concatenations of their members. An integer
-    [n] abbreviates [{n}], and [⊤] (ASCII [top]) is the greatest grade. The
-    other regular-expression forms, [*], [&], [~] and [_], are rejected.
+    A set of traces is written as a brace literal, a union with [|] of sequences
+    with [;] of operation names and delays, e.g. [{Read; 3; Send | Send; Send}];
+    parentheses group, and a concatenation of unions denotes the set of the
+    concatenations of their members. An integer [n] abbreviates [{n}], and [⊤]
+    (ASCII [top]) is the greatest grade. The other regular-expression forms,
+    [*], [&], [~] and [_], are rejected.
 
     {2 Witnesses}
 
@@ -33,11 +33,11 @@
     products ({!Grade.sampled}), which are not complete. *)
 
 module LowerBound : Grade.S
-(** Sets of timed traces read as lower bounds, ["traces-lower-bound"], in the
-    coverage order; the unit [{0}] is the top. *)
+(** Sets of traces read as lower bounds, ["traces-lower-bound"], in the coverage
+    order; the unit [{0}] is the top. *)
 
 module UpperBound : Grade.S
-(** Sets of timed traces read as upper bounds, ["traces-upper-bound"], in the
+(** Sets of traces read as upper bounds, ["traces-upper-bound"], in the
     allowance order, with a separate greatest point [⊤] permitting any run. *)
 
 module Interval : Grade.S

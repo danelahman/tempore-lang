@@ -1,4 +1,4 @@
-(* Rejected under the 'traces-regex-lower' grading monoid: a grade must demand
+(* Rejected under the 'regex-cost-lower-bound' grading monoid: a grade must demand
    at least one run of the operations the program declares. *)
 
 type token = Token of string

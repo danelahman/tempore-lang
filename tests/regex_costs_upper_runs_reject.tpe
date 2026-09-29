@@ -1,4 +1,4 @@
-(* Rejected under the 'traces-regex-upper' grading monoid: a grade must permit
+(* Rejected under the 'regex-cost-upper-bound' grading monoid: a grade must permit
    at least one run of the operations the program declares, wherever it is
    written. *)
 

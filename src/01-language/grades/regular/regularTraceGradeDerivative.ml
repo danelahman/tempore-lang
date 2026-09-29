@@ -165,12 +165,12 @@ include
   Make
     (R.Minterms)
     (struct
-      let name = "traces-regex-symbolic"
+      let name = "regex-upper-bound-symbolic"
     end)
 
 module Concrete =
   Make
     (R.Concrete)
     (struct
-      let name = "traces-regex-derivatives"
+      let name = "regex-upper-bound-derivatives"
     end)

@@ -1,5 +1,5 @@
 (** The regular trace grade decided by symbolic derivatives,
-    ["traces-regex-symbolic"].
+    ["regex-upper-bound-symbolic"].
 
     The grade is that of {!RegularTraceGrade}, with the same runs, alphabet,
     order, operations, literals and runtime bounds; only the representation and
@@ -63,8 +63,8 @@
 
     {2 Derivatives by letters}
 
-    {!Concrete}, ["traces-regex-derivatives"], is the same grade decided by the
-    derivatives by the concrete letters of the grades compared,
+    {!Concrete}, ["regex-upper-bound-derivatives"], is the same grade decided by
+    the derivatives by the concrete letters of the grades compared,
     {!SymbolicRegex.S.Concrete}, rather than by their minterms, and otherwise
     alike. *)
 
@@ -109,4 +109,4 @@ include S
 (** @inline *)
 
 module Concrete : S
-(** ["traces-regex-derivatives"], by {!SymbolicRegex.S.Concrete}. *)
+(** ["regex-upper-bound-derivatives"], by {!SymbolicRegex.S.Concrete}. *)

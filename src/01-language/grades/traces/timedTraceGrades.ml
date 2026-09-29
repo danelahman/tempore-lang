@@ -3,7 +3,7 @@ open Grade
 let lo_cost (bounds : bounds) op = fst (bounds.cost op)
 let hi_cost (bounds : bounds) op = snd (bounds.cost op)
 
-(** [traces_of_regex lit r] is the set of timed traces the star-free regular
+(** [traces_of_regex lit r] is the set of traces the star-free regular
     expression [r], without [&], [~] or [_], denotes; [lit] is the literal it is
     part of. *)
 let rec traces_of_regex lit = function
@@ -25,11 +25,11 @@ and binary lit combine r s =
 
 and unsupported lit form =
   invalid_lit lit
-    "sets of timed traces are built from operation names and delays with ';' \
-     and '|' only, without %s"
+    "sets of traces are built from operation names and delays with ';' and '|' \
+     only, without %s"
     form
 
-(** [traces_of_lit lit] is the set of timed traces the one-sided literal [lit]
+(** [traces_of_lit lit] is the set of traces the one-sided literal [lit]
     denotes. *)
 let traces_of_lit = function
   | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
@@ -37,11 +37,10 @@ let traces_of_lit = function
   | Braces r as lit -> traces_of_regex lit r
   | lit ->
       invalid_lit lit
-        "grades are a single set of timed traces '{...}' or a plain integer, \
-         not %s"
+        "grades are a single set of traces '{...}' or a plain integer, not %s"
         (describe_lit lit)
 
-(** Sets of timed traces read as lower bounds, in the coverage order. *)
+(** Sets of traces read as lower bounds, in the coverage order. *)
 module LowerTraces = struct
   type t = TimedTrace.traces
 
@@ -65,8 +64,8 @@ module LowerTraces = struct
   let of_lit = function Top -> top | lit -> traces_of_lit lit
 end
 
-(** Sets of timed traces read as upper bounds, in the allowance order, with a
-    separate greatest point [Unbounded]. *)
+(** Sets of traces read as upper bounds, in the allowance order, with a separate
+    greatest point [Unbounded]. *)
 module UpperTraces = struct
   type t =
     | Within of TimedTrace.traces  (** every run stays within a listed bound *)
@@ -230,7 +229,7 @@ module Interval = struct
         (lo, hi)
     | lit ->
         invalid_lit lit
-          "grades are pairs '({...}, {...})' of sets of timed traces, or \
+          "grades are pairs '({...}, {...})' of sets of traces, or \
            abbreviations of them, not %s"
           (describe_lit lit)
 

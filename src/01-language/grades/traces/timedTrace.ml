@@ -1,7 +1,7 @@
-(** Timed traces and non-empty finite sets of them, the carrier of the
-    timed-trace grading monoids.
+(** Traces and non-empty finite sets of them, the carrier of the trace grading
+    monoids.
 
-    A timed trace is one run of a computation as it is observed from outside: an
+    A trace is one run of a computation as it is observed from outside: an
     alternation of operation events and positive delays. A grade is a set of
     such runs, read disjunctively, multiplied by the language product. The two
     orders below are allowance (an upper bound: "every run fits inside the

@@ -1,4 +1,4 @@
-(* Accepted under the 'traces-regex-interval' grading monoid: pairs of a
+(* Accepted under the 'regex-cost-interval' grading monoid: pairs of a
    regular lower bound, at the lower runtime bounds, and a regular upper bound,
    at the upper ones. *)
 

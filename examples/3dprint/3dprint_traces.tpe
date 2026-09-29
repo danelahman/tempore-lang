@@ -4,7 +4,7 @@
 
      ./tempore --grades traces-interval examples/3dprint/3dprint_traces.tpe
 
-   Grades ({...}, {...}): a lower and an upper bound on the timed traces
+   Grades ({...}, {...}): a lower and an upper bound on the traces
      - Unit ({0}, {0}): nothing demanded, only the empty run allowed
      - Top ({0}, ⊤): nothing demanded, every run allowed
      - Product: concatenation of runs, componentwise *)

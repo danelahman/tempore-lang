@@ -458,8 +458,9 @@ module Make (C : Constraint.S) = struct
     match (GS.E.needs_op_bounds, grade, bounds) with
     | false, _, Some _ ->
         Error.typing ~loc
-          "runtime bounds are only used by the timed-trace grading monoids and \
-           must not be declared under the `%s` grading monoid"
+          "runtime bounds are only used by the trace grading monoids and the \
+           regular expression grading monoids with costs, and must not be \
+           declared under the `%s` grading monoid"
           GS.E.name
     | false, _, None -> env.op_bounds
     | true, (Ast.EpsAdd _ | Ast.EpsVar _), _ ->
