@@ -56,12 +56,35 @@ let select ?(a = []) empty_description msg describe_choice selected choices =
         :: List.map view_choice choices);
     ]
 
-(* As [select], but the choices are laid out under labelled <optgroup>s;
-   [describe_title] fills the option's hover tooltip. The change handler still
-   indexes into the flat list of choices, since a browser counts every
+(* The one-line label of a choice listed under [heading]: the heading and the
+   choice, separated by a dot. The heading and the dot are kept whole, so
+   that distinct headings always read differently; the choice ends in an
+   ellipsis where the line is too short for it. *)
+let view_choice_label ?(a = []) ?heading choice =
+  elt "span"
+    ~a:(class_ "choice-label" :: a)
+    ((match heading with
+       | None -> []
+       | Some heading ->
+           [
+             elt "span" ~a:[ class_ "choice-heading" ] [ text heading ];
+             elt "span"
+               ~a:[ class_ "choice-separator"; attr "aria-hidden" "true" ]
+               [ text "\xC2\xB7" ];
+           ])
+    @ [ elt "span" ~a:[ class_ "choice-name" ] [ text choice ] ])
+
+(* As [select], but the choices are laid out under labelled <optgroup>s,
+   each group given as its label, the label's short form and its choices;
+   [describe_title] fills the option's hover tooltip. The closed control
+   shows the selected choice after the short form of its group's label: the
+   select's own text is transparent, and a [view_choice_label] is laid over
+   it, hidden from assistive technology, which reads the select itself; the
+   select's tooltip gives the full label. The change handler
+   still indexes into the flat list of choices, since a browser counts every
    <option> of a <select> in document order for "selectedIndex" whatever
    <optgroup>s it is laid out under. *)
-let grouped_select ?(a = []) empty_description msg describe_choice
+let grouped_select ?(a = []) ?id empty_description msg describe_choice
     describe_title selected groups =
   let view_choice choice =
     elt "option"
@@ -72,22 +95,38 @@ let grouped_select ?(a = []) empty_description msg describe_choice
         ]
       [ text (describe_choice choice) ]
   in
-  let view_group (label, choices) =
+  let view_group (label, _, choices) =
     elt "optgroup" ~a:[ attr "label" label ] (List.map view_choice choices)
   in
-  let choices = List.concat_map snd groups in
+  let choices = List.concat_map (fun (_, _, choices) -> choices) groups in
+  let current =
+    List.find_map
+      (fun (label, short, choices) ->
+        Option.map
+          (fun choice -> (label, short, describe_choice choice))
+          (List.find_opt selected choices))
+      groups
+  in
+  let (label, short), name =
+    match current with
+    | Some (label, short, name) -> ((Some label, Some short), name)
+    | None -> ((None, None), empty_description)
+  in
   div ~a
     [
       (* index 0 is the placeholder below, and a browser may report it *)
       elt "select"
         ~a:
-          [
-            on "change"
-              Vdom.Decoder.(
-                map
-                  (fun i -> Option.map msg (List.nth_opt choices (i - 1)))
-                  (field "target.selectedIndex" Int));
-          ]
+          ((match id with None -> [] | Some id -> [ attr "id" id ])
+          @ [
+              attr "title"
+                (String.concat " \xC2\xB7 " (Option.to_list label @ [ name ]));
+              on "change"
+                Vdom.Decoder.(
+                  map
+                    (fun i -> Option.map msg (List.nth_opt choices (i - 1)))
+                    (field "target.selectedIndex" Int));
+            ])
         (elt "option"
            ~a:
              [
@@ -97,11 +136,11 @@ let grouped_select ?(a = []) empty_description msg describe_choice
                   selected, since it stays index 0 of the same <select>. *)
                bool_prop "hidden" true;
                value "";
-               bool_prop "selected"
-                 (List.for_all (fun choice -> not (selected choice)) choices);
+               bool_prop "selected" (current = None);
              ]
            [ text empty_description ]
         :: List.map view_group groups);
+      view_choice_label ~a:[ attr "aria-hidden" "true" ] ?heading:short name;
     ]
 
 let nil = text ""
@@ -1030,22 +1069,37 @@ let view_compiler (model : Model.model) =
             div
               ~a:[ class_ "control is-expanded" ]
               [
-                (* opens the gallery, see [view_gallery] *)
+                (* opens the gallery, see [view_gallery]; labelled by the
+                   example last loaded, after the short form of the label of
+                   the group it is listed under, the tooltip and the
+                   accessible name giving the full label *)
                 elt "button"
                   ~a:
-                    [
-                      class_ "button is-fullwidth example-button";
-                      type_button;
-                      onclick (fun _ -> Model.OpenGallery);
-                    ]
+                    ([
+                       class_ "button is-fullwidth example-button";
+                       type_button;
+                       onclick (fun _ -> Model.OpenGallery);
+                     ]
+                    @
+                    match model.edit_model.selected_example with
+                    | Some (group, title) ->
+                        [
+                          attr "title" (group ^ " \xC2\xB7 " ^ title);
+                          attr "aria-label" ("Example: " ^ group ^ ", " ^ title);
+                        ]
+                    | None -> [])
                   [
-                    elt "span"
-                      [
-                        text
-                          (match model.edit_model.selected_example with
-                          | Some (_, title) -> title
-                          | None -> "Load example");
-                      ];
+                    (match model.edit_model.selected_example with
+                    | Some (group, title) ->
+                        view_choice_label
+                          ~heading:
+                            (List.find_map
+                               (fun (g : Examples_tpe.group) ->
+                                 if g.label = group then Some g.short else None)
+                               Examples_tpe.examples
+                            |> Option.value ~default:group)
+                          title
+                    | None -> view_choice_label "Load example");
                     elt "span"
                       ~a:[ class_ "has-text-grey" ]
                       [ text "\xE2\x80\xA6" ];
@@ -1060,7 +1114,9 @@ let view_compiler (model : Model.model) =
         div
           ~a:[ class_ "field" ]
           [
-            elt "label" ~a:[ class_ "label" ] [ text "Grades" ];
+            elt "label"
+              ~a:[ class_ "label"; attr "for" "grades-select" ]
+              [ text "Grades" ];
             div
               ~a:[ class_ "control is-expanded" ]
               [
@@ -1068,8 +1124,8 @@ let view_compiler (model : Model.model) =
                    without the grades offered by the CLI only, the option text
                    its title and the tooltip its description. *)
                 grouped_select
-                  ~a:[ class_ "select is-fullwidth" ]
-                  "Select grades"
+                  ~a:[ class_ "select is-fullwidth choice-select" ]
+                  ~id:"grades-select" "Select grades"
                   (fun (name, _) -> Model.EditMsg (Model.SelectResource name))
                   (fun (_, (info : Grades.GradeRegistry.info)) -> info.title)
                   (fun (_, (info : Grades.GradeRegistry.info)) ->
@@ -1078,6 +1134,7 @@ let view_compiler (model : Model.model) =
                   (List.map
                      (fun (g : Grades.GradeRegistry.group) ->
                        ( g.label,
+                         g.short,
                          List.filter
                            (fun (_, (info : Grades.GradeRegistry.info)) ->
                              info.visibility = Everywhere)
@@ -1307,16 +1364,24 @@ let example_group_id k = Printf.sprintf "example-group-%d" k
 
 (* An example's card, which loads it; [current] marks the example last
    loaded. *)
+(* The id of the card of the example last loaded, which the page focuses
+   when the gallery opens. *)
+let current_example_id = "current-example"
+
 let view_example_card ~current group (e : Examples_tpe.example) =
   elt "button"
     ~a:
-      [
-        class_ (if current then "example-card is-current" else "example-card");
-        type_button;
-        onclick (fun _ ->
-            Model.EditMsg
-              (Model.LoadExample (group, e.title, e.grade, e.source)));
-      ]
+      ([
+         class_ (if current then "example-card is-current" else "example-card");
+         type_button;
+         onclick (fun _ ->
+             Model.EditMsg
+               (Model.LoadExample (group, e.title, e.grade, e.source)));
+       ]
+      @
+      if current then
+        [ attr "id" current_example_id; attr "aria-current" "true" ]
+      else [])
     [
       elt "span" ~a:[ class_ "example-card-title" ] [ text e.title ];
       elt "span" ~a:[ class_ "example-card-description" ] [ text e.description ];
@@ -1338,7 +1403,9 @@ let onescape msg =
 (* The gallery with the search [query]: the groups with an example matching
    it, each listed in the side column and as a section of cards. Esc closes
    it, the layer taking the focus from a click inside the panel, and so does a
-   click on the backdrop beside the panel. *)
+   click on the backdrop beside the panel. The search field takes the focus
+   when the gallery opens with no example loaded; otherwise the page focuses
+   the card of the example last loaded. *)
 let view_gallery ~selected query =
   let groups =
     List.filter_map
@@ -1401,15 +1468,15 @@ let view_gallery ~selected query =
               elt "h2" [ text "Examples" ];
               input
                 ~a:
-                  [
-                    class_ "example-gallery-search";
-                    attr "placeholder"
-                      "Search examples, e.g. rollout, levels, handlers, regex";
-                    attr "aria-label" "Search examples";
-                    str_prop "value" query;
-                    oninput (fun query -> Model.SearchGallery query);
-                    autofocus;
-                  ]
+                  ([
+                     class_ "example-gallery-search";
+                     attr "placeholder"
+                       "Search examples, e.g. rollout, levels, handlers, regex";
+                     attr "aria-label" "Search examples";
+                     str_prop "value" query;
+                     oninput (fun query -> Model.SearchGallery query);
+                   ]
+                  @ if selected = None then [ autofocus ] else [])
                 [];
               elt "button"
                 ~a:

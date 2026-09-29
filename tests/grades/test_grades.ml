@@ -678,6 +678,16 @@ let registry =
                if info.visibility = Cli_only then Some name else None)
              g.grades)
          GradeRegistry.groups);
+    expect "registry: distinct groups have distinct short forms" show_names
+      ~expected:
+        (List.sort_uniq String.compare
+           (List.map
+              (fun (g : GradeRegistry.group) -> g.short)
+              GradeRegistry.groups))
+      (List.sort String.compare
+         (List.map
+            (fun (g : GradeRegistry.group) -> g.short)
+            GradeRegistry.groups));
   ]
 
 (* ------------------------------------------------------------------ *)

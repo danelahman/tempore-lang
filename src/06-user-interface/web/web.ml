@@ -40,6 +40,30 @@ let scroll_to id =
            |])
   | None -> ()
 
+(* The card of the example last loaded, in the gallery just opened: focused
+   without the browser's own scrolling, and centred at once in the gallery's
+   list by scrolling the list alone, which leaves the page behind the gallery
+   in place. *)
+let focus_current_example () =
+  let card =
+    EditorDom.call EditorDom.document "getElementById"
+      [ Ojs.string_to_js View.current_example_id ]
+  in
+  if not (EditorDom.is_nothing card) then begin
+    ignore
+      (EditorDom.call card "focus"
+         [ Ojs.obj [| ("preventScroll", Ojs.bool_to_js true) |] ]);
+    Option.iter
+      (fun list ->
+        let middle (r : EditorDom.rect) = (r.top +. r.bottom) /. 2. in
+        let offset =
+          middle (EditorDom.bounding card) -. middle (EditorDom.bounding list)
+        in
+        Ojs.set_prop_ascii list "scrollTop"
+          (Ojs.float_to_js (EditorDom.number list "scrollTop" +. offset)))
+      (EditorDom.closest card ".example-gallery-list")
+  end
+
 (* Setting the editor's value from the model leaves the caret at the end; put
    it back where the edit happened. The position is counted in the browser's
    own UTF-16 code units, as the selection it sets is. *)
@@ -183,6 +207,11 @@ let command (model : Model.model) = function
   | Model.Scroll_to_span i -> Scroll_to (View.primary_id i)
   | Model.Perform_after_paint action -> After_paint (Model.Perform action)
   | Model.Remember (key, value) -> Now (fun () -> remember key value)
+  | Model.Focus_current_example ->
+      After_redraw
+        (fun () ->
+          focus_current_example ();
+          None)
   | Model.Jump offset ->
       After_redraw
         (fun () ->

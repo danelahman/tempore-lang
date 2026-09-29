@@ -3,8 +3,9 @@
    [examples/index] and the source of each example it names, and prints an
    OCaml module of the groups and examples it describes, in the manifest's
    order; invoked by a dune rule, see src/06-user-interface/web/dune. It fails
-   on a grade the registry does not list, and on a group without exactly one
-   summary or a summary without a group. *)
+   on a grade the registry does not list, on a group without exactly one
+   summary or a summary without a group, and on two groups of one short
+   form. *)
 
 (* One example: its group, title, the grading monoid the web interface
    switches to when it is loaded, its path relative to the project root, and
@@ -17,19 +18,24 @@ type entry = {
   description : string;
 }
 
-(* A line of the manifest: an example, or the one-line summary of a group. *)
-type line = Example of entry | Summary of string * string
+(* A group's summary line: its label, the label's short form and the
+   one-line summary. *)
+type summary = { label : string; short : string; summary : string }
+
+(* A line of the manifest: an example, or the summary line of a group. *)
+type line = Example of entry | Summary of summary
 
 (* A manifest line split into its fields, trimmed of surrounding space: five
-   fields "group | title | grade | path | description" for an example, three
-   fields "group | label | summary" for a group's summary; [None] for a line
-   that is neither (blank, or a comment starting with '#'). *)
+   fields "group | title | grade | path | description" for an example, four
+   fields "group | label | short | summary" for a group's summary; [None] for
+   a line that is neither (blank, or a comment starting with '#'). *)
 let line_of_string line =
   let trimmed = String.trim line in
   if trimmed = "" || trimmed.[0] = '#' then None
   else
     match List.map String.trim (String.split_on_char '|' line) with
-    | [ "group"; label; summary ] -> Some (Summary (label, summary))
+    | [ "group"; label; short; summary ] ->
+        Some (Summary { label; short; summary })
     | [ group; title; grade; path; description ] ->
         Some
           (Example
@@ -52,7 +58,7 @@ let read_manifest manifest_path =
     |> List.filter_map line_of_string
   in
   ( List.filter_map
-      (function Summary (label, summary) -> Some (label, summary) | _ -> None)
+      (function Summary summary -> Some summary | _ -> None)
       lines,
     List.filter_map
       (function Example entry -> Some (checked entry) | _ -> None)
@@ -73,20 +79,29 @@ let group_entries entries =
   in
   List.rev_map (fun (label, front) -> (label, List.rev front)) groups
 
-(* Each group of [groups] paired with its summary; fails unless every group
-   has exactly one summary and every summary names a group. *)
+(* Each group of [groups] paired with its summary line; fails unless every
+   group has exactly one summary, every summary names a group and no two
+   summaries give one short form. *)
 let summarised summaries groups =
   List.iter
-    (fun (label, _) ->
+    (fun { label; short; _ } ->
       if not (List.mem_assoc label groups) then
         failwith
           (Printf.sprintf "the manifest summarises the group '%s' of no example"
-             label))
+             label);
+      if
+        List.exists
+          (fun (s : summary) -> s.short = short && s.label <> label)
+          summaries
+      then
+        failwith
+          (Printf.sprintf "the manifest gives the short form '%s' to two groups"
+             short))
     summaries;
   List.map
     (fun (label, entries) ->
-      match List.filter (fun (label', _) -> label' = label) summaries with
-      | [ (_, summary) ] -> (label, summary, entries)
+      match List.filter (fun (s : summary) -> s.label = label) summaries with
+      | [ summary ] -> (summary, entries)
       | [] ->
           failwith
             (Printf.sprintf "the manifest gives no summary of the group '%s'"
@@ -141,10 +156,10 @@ let print_example buf root (entry : entry) =
        (quoted entry.title) (quoted entry.grade) (quoted source)
        (quoted entry.description) (quoted entry.path))
 
-let print_group buf root (label, summary, entries) =
+let print_group buf root ({ label; short; summary }, entries) =
   Buffer.add_string buf
-    (Printf.sprintf "    { label = %s; summary = %s; examples = [\n"
-       (quoted label) (quoted summary));
+    (Printf.sprintf "    { label = %s; short = %s; summary = %s; examples = [\n"
+       (quoted label) (quoted short) (quoted summary));
   List.iter (print_example buf root) entries;
   Buffer.add_string buf "    ] };\n"
 
@@ -162,6 +177,8 @@ let preamble =
    }\n\n\
    type group = {\n\
   \  label : string;\n\
+  \  short : string;  (** the label's short form, distinct for distinct groups \
+   *)\n\
   \  summary : string;  (** one line, shown beside the label *)\n\
   \  examples : example list;\n\
    }\n\n"

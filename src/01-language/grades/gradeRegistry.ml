@@ -1,6 +1,6 @@
 type visibility = Everywhere | Cli_only
 type info = { title : string; description : string; visibility : visibility }
-type group = { label : string; grades : (string * info) list }
+type group = { label : string; short : string; grades : (string * info) list }
 
 (* One registered grade: its module, named by [Grade.S.name], grouped and
    described for the web selector and the CLI's [--help]. The single list
@@ -9,9 +9,18 @@ type group = { label : string; grades : (string * info) list }
 type entry = {
   name : string;
   grade : (module Grade.S);
-  group : string;
+  group : string * string;
   info : info;
 }
+
+(* The groups of the grades, each its label and the label's short form. *)
+let time = ("Time", "Time")
+let traces = ("Traces", "Traces")
+let regex = ("Regular expressions", "Regex")
+let regex_costs = ("Regular expressions with costs", "Regex (costs)")
+let security = ("Security levels", "Security")
+let semidirect = ("Semidirect products", "Semidirect")
+let counts = ("Operation counts", "Counts")
 
 let entry ?(visibility = Everywhere) (module G : Grade.S) group title
     description =
@@ -26,161 +35,161 @@ let entries =
   [
     entry
       (module TimeGrades.LowerBound)
-      "Time" "Lower bounds" "At least n time steps; the unit 0 is greatest.";
+      time "Lower bounds" "At least n time steps; the unit 0 is greatest.";
     entry
       (module TimeGrades.UpperBound)
-      "Time" "Upper bounds" "At most n time steps; the unit 0 is least.";
+      time "Upper bounds" "At most n time steps; the unit 0 is least.";
     entry
       (module TimeGrades.Interval)
-      "Time" "Intervals" "Between n and m time steps, ordered by containment.";
+      time "Intervals" "Between n and m time steps, ordered by containment.";
     entry
       (module RationalTimeGrades.LowerBound)
-      "Time" "Lower bounds (rational)"
+      time "Lower bounds (rational)"
       "At least q time units, q a non-negative rational; the unit 0 is \
        greatest.";
     entry
       (module RationalTimeGrades.UpperBound)
-      "Time" "Upper bounds (rational)"
+      time "Upper bounds (rational)"
       "At most q time units, q a non-negative rational or ∞; the unit 0 is \
        least.";
     entry
       (module RationalTimeGrades.Interval)
-      "Time" "Intervals (rational)"
+      time "Intervals (rational)"
       "Between q and r time units, rationals, ordered by containment.";
     entry
       (module TimedTraceGrades.LowerBound)
-      "Traces" "Lower bounds"
+      traces "Lower bounds"
       "Sets of traces in the coverage order, operations costing their lower \
        runtime bounds.";
     entry
       (module TimedTraceGrades.UpperBound)
-      "Traces" "Upper bounds"
+      traces "Upper bounds"
       "Sets of traces in the allowance order, operations costing their upper \
        runtime bounds.";
     entry
       (module TimedTraceGrades.Interval)
-      "Traces" "Intervals"
+      traces "Intervals"
       "Pairs of a lower and an upper trace bound, compared componentwise.";
     entry
       (module RegularTraceGrade)
-      "Regular expressions" "Upper bounds"
+      regex "Upper bounds"
       "Regular languages of runs over delays and operations, bounding the runs \
        permitted by inclusion; decided by automata.";
     entry
       (module RegularTraceGradeDerivative)
-      "Regular expressions" "Upper bounds (symbolic derivatives)"
+      regex "Upper bounds (symbolic derivatives)"
       "The same grade as the automata version, decided by symbolic derivatives \
        instead of automata.";
     entry ~visibility:Cli_only
       (module RegularTraceGradeDerivative.Concrete)
-      "Regular expressions" "Upper bounds (plain derivatives)"
+      regex "Upper bounds (plain derivatives)"
       "The same grade as the automata version, decided by derivatives by \
        single letters instead of minterms.";
     entry ~visibility:Cli_only
       (module RegularTraceGradePlain)
-      "Regular expressions" "Upper bounds (fully plain derivatives)"
+      regex "Upper bounds (fully plain derivatives)"
       "The same grade as the automata version, over single letters instead of \
        letter sets, decided by derivatives by letters.";
     entry
       (module RegularCostTraceGrades.Lower)
-      "Regular expressions with costs" "Lower bounds"
+      regex_costs "Lower bounds"
       "Regular languages of runs in the coverage order, operations costing \
        their lower runtime bounds, decided by automata.";
     entry
       (module RegularCostTraceGrades.Upper)
-      "Regular expressions with costs" "Upper bounds"
+      regex_costs "Upper bounds"
       "Regular languages of runs in the allowance order, operations costing \
        their upper runtime bounds, decided by automata.";
     entry
       (module RegularCostTraceGrades.Interval)
-      "Regular expressions with costs" "Intervals"
+      regex_costs "Intervals"
       "Pairs of a lower and an upper regular-language bound, compared \
        componentwise, decided by automata.";
     entry
       (module RegularCostTraceGrades.Symbolic.Lower)
-      "Regular expressions with costs" "Lower bounds (symbolic derivatives)"
+      regex_costs "Lower bounds (symbolic derivatives)"
       "The lower-bound cost grade, decided by symbolic derivatives instead of \
        automata.";
     entry
       (module RegularCostTraceGrades.Symbolic.Upper)
-      "Regular expressions with costs" "Upper bounds (symbolic derivatives)"
+      regex_costs "Upper bounds (symbolic derivatives)"
       "The upper-bound cost grade, decided by symbolic derivatives instead of \
        automata.";
     entry
       (module RegularCostTraceGrades.Symbolic.Interval)
-      "Regular expressions with costs" "Intervals (symbolic derivatives)"
+      regex_costs "Intervals (symbolic derivatives)"
       "The interval cost grade, decided by symbolic derivatives instead of \
        automata.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Lower)
-      "Regular expressions with costs" "Lower bounds (plain derivatives)"
+      regex_costs "Lower bounds (plain derivatives)"
       "The lower-bound cost grade, decided by derivatives by letters instead \
        of minterms.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Upper)
-      "Regular expressions with costs" "Upper bounds (plain derivatives)"
+      regex_costs "Upper bounds (plain derivatives)"
       "The upper-bound cost grade, decided by derivatives by letters instead \
        of minterms.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Interval)
-      "Regular expressions with costs" "Intervals (plain derivatives)"
+      regex_costs "Intervals (plain derivatives)"
       "The interval cost grade, decided by derivatives by letters instead of \
        minterms.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Plain.Lower)
-      "Regular expressions with costs" "Lower bounds (fully plain derivatives)"
+      regex_costs "Lower bounds (fully plain derivatives)"
       "The lower-bound cost grade over single letters instead of letter sets, \
        decided by derivatives by letters.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Plain.Upper)
-      "Regular expressions with costs" "Upper bounds (fully plain derivatives)"
+      regex_costs "Upper bounds (fully plain derivatives)"
       "The upper-bound cost grade over single letters instead of letter sets, \
        decided by derivatives by letters.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Plain.Interval)
-      "Regular expressions with costs" "Intervals (fully plain derivatives)"
+      regex_costs "Intervals (fully plain derivatives)"
       "The interval cost grade over single letters instead of letter sets, \
        decided by derivatives by letters.";
     entry
       (module LevelGrades.SecurityLevels)
-      "Security levels" "Levels"
+      security "Levels"
       "The two-point security lattice Low < High; a box is out of reach once a \
        higher level has been touched.";
     entry
       (module LevelGrades.TimeLowerBoundLevels)
-      "Security levels" "Embargoes"
+      security "Embargoes"
       "A time lower bound paired with a security level: at least n time steps, \
        touching nothing above the level.";
     entry
       (module LevelGrades.TimeUpperBoundLevels)
-      "Security levels" "Expiring capabilities"
+      security "Expiring capabilities"
       "A time upper bound paired with a security level: at most n time steps, \
        touching nothing above the level.";
     entry
       (module LevelGrades.FlowLevels)
-      "Security levels" "Flow-sensitive outputs"
+      security "Flow-sensitive outputs"
       "A security level paired with the level at which each output is written; \
        later outputs are raised to the level touched before them.";
     entry
       (module PeakGrades.PeakUsage)
-      "Semidirect products" "Peak usage"
+      semidirect "Peak usage"
       "Triples (t, d, h) of the trough, the net change and the peak of a \
        resource held, such as open files; later levels are shifted by the \
        earlier change.";
     entry
       (module WindowGrades.TimeWindows)
-      "Semidirect products" "Time windows"
+      semidirect "Time windows"
       "Pairs (T, E) of the possible durations and the times at which windowed \
        operations happen; later times are shifted by the earlier durations.";
     entry
       (module ModeGrades.ModeCosts)
-      "Semidirect products" "Mode costs"
+      semidirect "Mode costs"
       "Max-plus matrices of the costs between named modes, such as (Off, On, \
        2); an operation gets stuck from the modes its grade does not start \
        from, and a change of mode costs at least 1.";
     entry
       (module CountGrades.UpperBound)
-      "Operation counts" "Upper bounds"
+      counts "Upper bounds"
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
        3)); delays count nothing.";
   ]
@@ -218,9 +227,11 @@ let groups =
     List.fold_left
       (fun groups (e : entry) ->
         match groups with
-        | (label, front) :: rest when label = e.group ->
-            (label, (e.name, e.info) :: front) :: rest
+        | (group, front) :: rest when group = e.group ->
+            (group, (e.name, e.info) :: front) :: rest
         | _ -> (e.group, [ (e.name, e.info) ]) :: groups)
       [] entries
   in
-  List.rev_map (fun (label, front) -> { label; grades = List.rev front }) groups
+  List.rev_map
+    (fun ((label, short), front) -> { label; short; grades = List.rev front })
+    groups

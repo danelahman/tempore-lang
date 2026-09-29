@@ -36,6 +36,10 @@ type info = {
 
 type group = {
   label : string;  (** The web selector's optgroup label, e.g. ["Time"]. *)
+  short : string;
+      (** The label's short form, e.g. ["Regex"] for ["Regular expressions"];
+          shown with the selected grade by the web selector's closed control.
+          The short forms of distinct groups are distinct. *)
   grades : (string * info) list;
       (** The group's grades, each by its CLI name, in the order
           {!grade_modules} lists them. *)

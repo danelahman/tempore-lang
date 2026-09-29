@@ -415,6 +415,9 @@ type side_effect =
   | Perform_after_paint of action
       (** send [Perform] once the page has been drawn *)
   | Remember of string * bool  (** keep a setting in the browser *)
+  | Focus_current_example
+      (** focus the card of the example last loaded in the gallery and centre it
+          in the gallery's list *)
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
@@ -1051,4 +1054,6 @@ let update model msg =
       | _ -> (model, []))
   | EditMsg (UseStdlib use_stdlib) ->
       (update_model model msg, [ Remember (use_stdlib_key, use_stdlib) ])
+  | OpenGallery when model.edit_model.selected_example <> None ->
+      (update_model model msg, [ Focus_current_example ])
   | _ -> (update_model model msg, [])
