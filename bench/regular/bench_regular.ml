@@ -652,8 +652,11 @@ let columns =
     "sym. warm";
   ]
 
+(* The text [s] as a Markdown table cell, its column separators escaped. *)
+let cell s = String.concat "\\|" (String.split_on_char '|' s)
+
 let print_row name cells =
-  Printf.printf "| %-40s |%s\n%!" name
+  Printf.printf "| %-40s |%s\n%!" (cell name)
     (String.concat "" (List.map (Printf.sprintf " %10s |") cells))
 
 (* The row of the workload [a] and its counterparts [p], [l] and [s] in the
