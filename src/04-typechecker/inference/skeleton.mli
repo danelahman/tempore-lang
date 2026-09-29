@@ -116,6 +116,34 @@ val unify_traced :
 (** [unify_traced unfold equations] is {!unify} with the bindings made, those
     made before the failure when there is one. *)
 
+(** {1 Alignment} *)
+
+val aligned :
+  t -> t -> (Language.Ast.ty_param * Language.Ast.ty_param) list option
+(** [aligned t u] is, when [t] and [u] have one shape as they stand, each
+    unknown of one facing an unknown of the other, the pairs of unknowns at the
+    same positions, left to right along {!Former.decompose}; [None] otherwise,
+    aliases not unfolded. The unification of two aligned skeletons instantiates
+    no unknown. *)
+
+(** {1 Classes} *)
+
+type classes
+(** A partition of type unknowns into classes, persistent. *)
+
+val no_classes : classes
+(** [no_classes] is the partition into singletons. *)
+
+val find : classes -> Language.Ast.ty_param -> Language.Ast.ty_param
+(** [find classes a] is the representative of the class of [a]. *)
+
+val join : classes -> Language.Ast.ty_param -> Language.Ast.ty_param -> classes
+(** [join classes a b] merges the classes of [a] and [b]. *)
+
+val join_all :
+  classes -> (Language.Ast.ty_param * Language.Ast.ty_param) list -> classes
+(** [join_all classes pairs] joins the two unknowns of each pair. *)
+
 (** {1 Decoration and expansion} *)
 
 (** [Make (X)] decorates and expands with the open grade expressions of [X]. *)
@@ -154,8 +182,17 @@ module Make (X : GradeExp.S) : sig
 
   val expand_traced :
     unfold ->
+    classes ->
     (ty, 'info) GradeNormal.ordering list ->
-    (ty_subst * 'info bindings, 'info failure * 'info bindings) result
-  (** [expand_traced unfold demands] is {!expand} with the bindings of the
-      unification of the skeletons ({!unify_traced}). *)
+    (ty_subst * classes * 'info bindings, 'info failure * 'info bindings) result
+  (** [expand_traced unfold classes demands] is {!expand} with the bindings of
+      the unification of the skeletons ({!unify_traced}), given [classes] in
+      which the two unknowns of each demand between two unknowns are in one
+      class. Only the demands not between two unknowns, and those between two
+      unknowns in the class of an unknown of the former, are unified, in order:
+      the others instantiate no unknown and bind none of the unknowns the former
+      meet, so that the instantiation, the failure and the bindings of those
+      unknowns are those of the unification of all the demands. The classes
+      returned keep the property for the demands between two unknowns that the
+      demands decompose into under the instantiation. *)
 end

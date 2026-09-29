@@ -4,27 +4,31 @@
     unknowns, the set of unknowns in play, and a residual of undecided atoms
     ({!Residual}).
 
-    - A subtyping atom is expanded together with the pending subtyping demands:
-      the type unknowns are instantiated so that the two sides of every demand
-      have the same shape ({!Skeleton.Make.expand}); the residual is decomposed
-      again under the instantiation, and the atom is decomposed.
+    - A subtyping atom whose two sides have one shape is decomposed. Otherwise
+      it is expanded together with the pending subtyping demands in the classes
+      of its type unknowns, two unknowns being in one class when pending demands
+      relate them: the type unknowns are instantiated so that the two sides of
+      every demand have the same shape ({!Skeleton.Make.expand_traced}); the
+      residual is decomposed again under the instantiation, and the atom is
+      decomposed.
     - A grade ordering, an eternality demand and a var-rule disjunction are
       added to the residual ({!Residual}): the variable-free orderings and the
       disjunctions decided are dropped.
     - An existential scope brings its unknowns into play.
-    - A rigid scope is solved with a residual of its own, expanded again, and
-      closed ({!RigidScope}): its local unknowns receive values, its atoms are
-      kept outside it or deferred as conditions on its rigid variable; the rigid
-      may not occur in the value of an unknown outside the scope. Every deferred
-      condition is retried after the close.
+    - A rigid scope is solved with a residual of its own and closed
+      ({!RigidScope}): its local unknowns receive values, its atoms are kept
+      outside it or deferred as conditions on its rigid variable; the rigid may
+      not occur in the value of an unknown outside the scope. When the scope
+      instantiated type unknowns, the pending demands are expanded and
+      decomposed again. Every deferred condition is retried after the close.
 
-    After the whole constraint the deferred conditions are retried, the pending
-    demands expanded and decomposed a last time, and the residual read as
-    hypotheses; the orderings between variable-free sides, directly or through
-    chains of hypotheses, are decided by the grades' order. The search for a
-    closed instance of the qualifier ({!satisfiable}) decides them also through
-    chains that pass from a factor of a product to the product when the other
-    factors are above the unit, by the grade or along the hypotheses. *)
+    After the whole constraint the deferred conditions are retried and the
+    residual read as hypotheses; the orderings between variable-free sides,
+    directly or through chains of hypotheses, are decided by the grades' order.
+    The search for a closed instance of the qualifier ({!satisfiable}) decides
+    them also through chains that pass from a factor of a product to the product
+    when the other factors are above the unit, by the grade or along the
+    hypotheses. *)
 
 module Make (C : Constraint.S) : sig
   type context = Residual.Make(C).context

@@ -41,12 +41,14 @@ module Make (C : Constraint.S) = struct
 
   (* The state of the traversal: the values of the unknowns solved, an
      idempotent substitution; the unknowns in play, none solved; the residual;
-     and each type unknown solved. *)
+     each type unknown solved; and classes of type unknowns, the two unknowns
+     of each subtyping demand of the residual in one class. *)
   type state = {
     theta : C.subst;
     live : C.free;
     residual : R.t;
     solved : solved TyParamMap.t;
+    classes : Skeleton.classes;
   }
 
   (* The failures of [result], none of them a mismatch. *)
@@ -238,29 +240,12 @@ module Make (C : Constraint.S) = struct
     | Skeleton.Clash -> R.Shape_mismatch f
     | Skeleton.Occurs _ -> R.Occurs_check f
 
-  (* Whether two skeletons have one shape, each unknown of one facing an
-     unknown of the other: their unification instantiates no unknown. *)
-  let rec aligned (t : Skeleton.t) (u : Skeleton.t) =
-    match (t, u) with
-    | Var _, Var _ -> true
-    | Const c, Const c' -> c = c'
-    | Apply (name, ts), Apply (name', us) ->
-        Ast.TyName.compare name name' = 0 && aligned_all ts us
-    | Tuple ts, Tuple us -> aligned_all ts us
-    | Arrow (t1, t2), Arrow (u1, u2) | Handler (t1, t2), Handler (u1, u2) ->
-        aligned t1 u1 && aligned t2 u2
-    | Box t, Box u -> aligned t u
-    | (Var _ | Const _ | Apply _ | Tuple _ | Arrow _ | Handler _ | Box _), _ ->
-        false
-
-  and aligned_all ts us =
-    List.compare_lengths ts us = 0 && List.for_all2 aligned ts us
-
   (* The failures of [result], without provenance. *)
   let untraced result = Result.map_error (fun f -> (f, None)) result
 
-  (* The pending demands and [extra], each with its sides as generated,
-     expanded, and the residual decomposed again under the instantiation. *)
+  (* [extra], each with its sides as generated, expanded together with the
+     pending demands in the classes of its unknowns, and the residual
+     decomposed again under the instantiation. *)
   let expand context st extra =
     let open Result.Syntax in
     let demand generated (s : R.sub) : (C.ty, site) GradeNormal.ordering =
@@ -270,38 +255,44 @@ module Make (C : Constraint.S) = struct
       List.map (fun (s, generated) -> demand generated s) extra
       @ List.map (fun (s : R.sub) -> demand (s.lhs, s.rhs) s) st.residual.subs
     in
-    match Sk.expand_traced (R.skeleton_unfold context) demands with
+    match Sk.expand_traced (R.skeleton_unfold context) st.classes demands with
     | Error (f, bindings) ->
         Error
           ( shape_failure { f with info = f.info.site_reason },
             Some (mismatch_of context st bindings f) )
-    | Ok (delta, _) when TyParamMap.is_empty delta -> Ok (st, C.empty_subst)
-    | Ok (delta, bindings) ->
+    | Ok (delta, classes, _) when TyParamMap.is_empty delta ->
+        Ok ({ st with classes }, C.empty_subst)
+    | Ok (delta, classes, bindings) ->
         let sigma = { C.empty_subst with ty_subst = delta } in
         let solved = solved_by context st.solved bindings delta in
-        let st = moved { st with solved } sigma in
+        let st = moved { st with solved; classes } sigma in
         let* residual = untraced (R.atomise context st.residual) in
         Ok ({ st with residual }, sigma)
 
+  (* The residual, some of whose type unknowns have received values, expanded
+     and decomposed again. *)
   let reexpand context st =
     let open Result.Syntax in
-    let* st, _ = expand context st [] in
-    let* residual = untraced (R.atomise context st.residual) in
-    Ok { st with residual }
+    let* st, sigma = expand context st [] in
+    if TyParamMap.is_empty sigma.ty_subst then
+      let* residual = untraced (R.atomise context st.residual) in
+      Ok { st with residual }
+    else Ok st
 
   (* The subtyping atom [s], whose sides as generated are [generated]. *)
   let sub_atom context st (s : R.sub) generated =
     let open Result.Syntax in
-    if aligned (Skeleton.of_ty s.lhs) (Skeleton.of_ty s.rhs) then
-      let* residual = untraced (R.push_sub context s st.residual) in
-      Ok { st with residual }
-    else
-      let* st, sigma = expand context st [ (s, generated) ] in
-      let s =
-        { s with lhs = C.subst_ty sigma s.lhs; rhs = C.subst_ty sigma s.rhs }
-      in
-      let* residual = untraced (R.push_sub context s st.residual) in
-      Ok { st with residual }
+    match Skeleton.aligned (Skeleton.of_ty s.lhs) (Skeleton.of_ty s.rhs) with
+    | Some pairs ->
+        let* residual = untraced (R.push_sub context s st.residual) in
+        Ok { st with residual; classes = Skeleton.join_all st.classes pairs }
+    | None ->
+        let* st, sigma = expand context st [ (s, generated) ] in
+        let s =
+          { s with lhs = C.subst_ty sigma s.lhs; rhs = C.subst_ty sigma s.rhs }
+        in
+        let* residual = untraced (R.push_sub context s st.residual) in
+        Ok { st with residual }
 
   (* ------------------------------------------------------------------ *)
   (* Rigid scopes                                                        *)
@@ -414,7 +405,6 @@ module Make (C : Constraint.S) = struct
       }
     in
     let* inner = solve_in context inner body in
-    let* inner = expansion_refused (reexpand context inner) in
     let outer = images inner.theta entered in
     let scope =
       {
@@ -434,6 +424,11 @@ module Make (C : Constraint.S) = struct
         refused (Error (R.Rigid_escape origin))
       else Ok ()
     in
+    (* Whether the scope instantiated type unknowns. *)
+    let instantiated =
+      TyParamMap.cardinal inner.theta.ty_subst
+      > TyParamMap.cardinal st.theta.ty_subst
+    in
     let* kept = failed (RS.split context scope origin residual) in
     let outside = R.subst inner.theta st.residual in
     let* residual = refused (merge context outside kept) in
@@ -448,7 +443,9 @@ module Make (C : Constraint.S) = struct
         residual;
       }
     in
-    let* st = expansion_refused (reexpand context st) in
+    let* st =
+      if instantiated then expansion_refused (reexpand context st) else Ok st
+    in
     let* residual = refused (RS.retry context st.residual) in
     Ok { st with residual }
 
@@ -459,10 +456,9 @@ module Make (C : Constraint.S) = struct
   let finish context st =
     let open Result.Syntax in
     let* residual = refused (RS.retry context st.residual) in
-    let* st = expansion_refused (reexpand context { st with residual }) in
-    let* hyps = refused (R.to_hyps context st.residual) in
+    let* hyps = refused (R.to_hyps context residual) in
     let* hyps = refused (R.check_closed ~factors:false context hyps) in
-    Ok { subst = st.theta; hyps; obligations = st.residual.deferred; context }
+    Ok { subst = st.theta; hyps; obligations = residual.deferred; context }
 
   let solve_traced context c =
     let st =
@@ -471,6 +467,7 @@ module Make (C : Constraint.S) = struct
         live = C.free_vars c;
         residual = R.empty;
         solved = TyParamMap.empty;
+        classes = Skeleton.no_classes;
       }
     in
     let result = Result.bind (solve_in context st c) (finish context) in

@@ -933,15 +933,6 @@ module Make (C : Inference.Constraint.S) = struct
   (* Type mismatches                                                     *)
   (* ------------------------------------------------------------------ *)
 
-  let step_of_skeleton : Ast.step -> Reason.step = function
-    | Ast.Argument -> Reason.Argument
-    | Ast.Result -> Reason.Result
-    | Ast.Component i -> Reason.Component i
-    | Ast.TypeArgument i -> Reason.Type_argument i
-    | Ast.BoxContent -> Reason.Box_content
-    | Ast.HandlerInput -> Reason.Handler_input
-    | Ast.HandlerOutput -> Reason.Handler_output
-
   (* The steps of a path the solver took, after those the generation took. *)
   let solver_steps (reason : C.reason) path =
     match (reason.why, path) with
@@ -1176,7 +1167,7 @@ module Make (C : Inference.Constraint.S) = struct
   let mismatch source (f : C.reason Skeleton.failure) =
     let p = printer source in
     let reason = f.info in
-    let path = reason.path @ List.map step_of_skeleton f.path in
+    let path = reason.path @ List.map Reason.of_ast_step f.path in
     let root = root source reason in
     let flipped = flipped reason path in
     let lhs, rhs = if flipped then (f.rhs, f.lhs) else (f.lhs, f.rhs) in

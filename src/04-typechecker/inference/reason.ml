@@ -110,6 +110,16 @@ and ('rho, 'eps) t = {
 }
 
 let because at why = { at; why; path = []; subject = None; stated = None }
+
+let of_ast_step : Ast.step -> step = function
+  | Ast.Argument -> Argument
+  | Ast.Result -> Result
+  | Ast.Component i -> Component i
+  | Ast.TypeArgument i -> Type_argument i
+  | Ast.BoxContent -> Box_content
+  | Ast.HandlerInput -> Handler_input
+  | Ast.HandlerOutput -> Handler_output
+
 let step s reason = { reason with path = reason.path @ [ s ] }
 let against subject reason = { reason with subject = Some subject }
 

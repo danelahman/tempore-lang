@@ -223,7 +223,8 @@ module Make (C : Constraint.S) : sig
   val push_sub : context -> sub -> t -> (t, failure) result
   (** [push_sub context s r] adds to [r] the atoms of the subtyping demand [s],
       whose two sides have the same shape: demands between type unknowns and
-      grade orderings, each reason extended by the position it comes from.
+      grade orderings along {!Former.decompose}, each reason extended by the
+      position it comes from.
 
       [Error (Shape_mismatch _)] when the shapes differ. *)
 

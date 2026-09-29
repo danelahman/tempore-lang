@@ -10,18 +10,11 @@
 
     {2 Subtyping}
 
-    [Sub] is shape-preserving subtyping, decomposed by the solver as follows:
-    - constants and tuples: equal constants, componentwise (step [Component i]);
-    - functions [A → B ! ε <: A' → B' ! ε']: [A' <: A] (contravariant, step
-      [Argument]), [B <: B'] (step [Result]), [ε ≾ ε'] (step [Effect]);
-    - boxes [[ρ]A <: [ρ']A']: [ρ' ≾ ρ] (contravariant, step [Box_grade]),
-      [A <: A'] (step [Box_content]);
-    - type applications [T Ā <: T B̄] of the same name: [Aᵢ ≐ Bᵢ] (invariant,
-      step [Type_argument i]); an application of an alias is unfolded first;
-    - handlers [(A ! ε ⇒ B ! δ) <: (A' ! ε' ⇒ B' ! δ')]: the input is invariant,
-      [A ≐ A'] and [ε ≾ ε' ∧ ε' ≾ ε] (step [Handler_input]), the output
-      covariant, [B <: B'] and [δ ≾ δ'] (step [Handler_output]);
-    - distinct formers: unsatisfiable.
+    [Sub] is shape-preserving subtyping. The solver decomposes a demand between
+    two types of one former into demands between their value parts and orderings
+    between their grades, each in the direction of its variance, as
+    {!Former.decompose} states; an application of an alias is unfolded first,
+    and a demand between distinct formers is unsatisfiable.
 
     A type equation is mutual subtyping ({!S.equal_ty}).
 

@@ -190,6 +190,10 @@ val because : Location.t -> ('rho, 'eps) why -> ('rho, 'eps) t
 (** [because at why] is the reason of an atom generated for the construct at
     [at] by [why], undecomposed. *)
 
+val of_ast_step : Ast.step -> step
+(** [of_ast_step s] is the step of a decomposed atom at the position [s] within
+    a type. *)
+
 val step : step -> ('rho, 'eps) t -> ('rho, 'eps) t
 (** [step s reason] is [reason] with [s] appended to its path. *)
 

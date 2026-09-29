@@ -312,18 +312,23 @@ module Make (C : Constraint.S) = struct
     push_settled context (fun rho ->
         E.Rho.decided context.bounds rho X.Rho.unit)
 
-  let step s (o : _ GradeNormal.ordering) =
-    { o with info = Reason.step s o.info }
+  let fold_result f items r =
+    List.fold_left (fun r item -> Result.bind r (f item)) (Ok r) items
 
-  (* How the arguments of two types of one former are related. *)
-  type variance = Covariant | Invariant
+  (* The demands between [lhs] and [rhs] of [variance], each pushed by
+     [push]. *)
+  let related push variance info lhs rhs r =
+    let ordering lhs rhs : _ GradeNormal.ordering = { lhs; rhs; info } in
+    match variance with
+    | Former.Covariant -> push (ordering lhs rhs) r
+    | Former.Contravariant -> push (ordering rhs lhs) r
+    | Former.Invariant ->
+        Result.bind (push (ordering lhs rhs) r) (push (ordering rhs lhs))
 
   (* The structural decomposition of a subtyping demand between types of one
-     shape into atomic demands and grade orderings (Mitchell, JFP 1991; Fuh
-     and Mishra, ESOP 1988). *)
+     shape into atomic demands and grade orderings along {!Former.decompose}
+     (Mitchell, JFP 1991; Fuh and Mishra, ESOP 1988). *)
   let rec push_sub context (s : sub) r =
-    let open Result.Syntax in
-    let ordering lhs rhs info : _ GradeNormal.ordering = { lhs; rhs; info } in
     match (s.lhs, s.rhs) with
     | Ast.TyParam a, Ast.TyParam b ->
         if TyParam.compare a b = 0 then Ok r
@@ -338,77 +343,31 @@ module Make (C : Constraint.S) = struct
         push_sub context
           { s with rhs = Option.get (unfold_alias context name args) }
           r
-    | Ast.TyApply (name, args), Ast.TyApply (name', args')
-      when Ast.TyName.compare name name' = 0
-           && List.compare_lengths args args' = 0 ->
-        push_pairs context
-          (fun i -> Reason.Type_argument i)
-          Invariant s.info args args' r
-    | Ast.TyConst c, Ast.TyConst c' when c = c' -> Ok r
-    | Ast.TyTuple tys, Ast.TyTuple tys' when List.compare_lengths tys tys' = 0
-      ->
-        push_pairs context
-          (fun i -> Reason.Component i)
-          Covariant s.info tys tys' r
-    | ( Ast.TyArrow (dom, Ast.CompTy (cod, eps)),
-        Ast.TyArrow (dom', Ast.CompTy (cod', eps')) ) ->
-        let* r =
-          push_sub context (step Reason.Argument (ordering dom' dom s.info)) r
-        in
-        let* r =
-          push_sub context (step Reason.Result (ordering cod cod' s.info)) r
-        in
-        push_eps context (step Reason.Effect (ordering eps eps' s.info)) r
-    | Ast.TyBox (rho, ty), Ast.TyBox (rho', ty') ->
-        let* r =
-          push_rho context (step Reason.Box_grade (ordering rho' rho s.info)) r
-        in
-        push_sub context (step Reason.Box_content (ordering ty ty' s.info)) r
-    | ( Ast.TyHandler (Ast.CompTy (input, eps_in), Ast.CompTy (output, eps_out)),
-        Ast.TyHandler
-          (Ast.CompTy (input', eps_in'), Ast.CompTy (output', eps_out')) ) ->
-        let at_input = Reason.step Reason.Handler_input s.info
-        and at_output = Reason.step Reason.Handler_output s.info in
-        let* r = push_sub context (ordering input input' at_input) r in
-        let* r = push_sub context (ordering input' input at_input) r in
-        let* r =
-          push_eps context
-            (step Reason.Effect (ordering eps_in eps_in' at_input))
-            r
-        in
-        let* r =
-          push_eps context
-            (step Reason.Effect (ordering eps_in' eps_in at_input))
-            r
-        in
-        let* r = push_sub context (ordering output output' at_output) r in
-        push_eps context
-          (step Reason.Effect (ordering eps_out eps_out' at_output))
-          r
-    | ( ( Ast.TyParam _ | Ast.TyApply _ | Ast.TyConst _ | Ast.TyTuple _
-        | Ast.TyArrow _ | Ast.TyBox _ | Ast.TyHandler _ ),
-        _ ) ->
-        Error (mismatch s)
+    | lhs, rhs -> (
+        match Former.decompose (Former.of_ty lhs) (Former.of_ty rhs) with
+        | Some parts -> fold_result (push_part context s.info) parts r
+        | None -> Error (mismatch s))
 
-  (* The pairs of [tys] and [tys'], the [i]-th at [step i] counted from 1,
-     related by subtyping or by equations. *)
-  and push_pairs context step_at variance info tys tys' r =
-    let open Result.Syntax in
-    let push_pair (i, r) ty ty' =
-      let info = Reason.step (step_at i) info in
-      let r =
-        let* r = r in
-        let* r = push_sub context { lhs = ty; rhs = ty'; info } r in
-        match variance with
-        | Invariant -> push_sub context { lhs = ty'; rhs = ty; info } r
-        | Covariant -> Ok r
-      in
-      (i + 1, r)
-    in
-    snd (List.fold_left2 push_pair (1, Ok r) tys tys')
-
-  let fold_result f items r =
-    List.fold_left (fun r item -> Result.bind r (f item)) (Ok r) items
+  (* The demands of a pair of parts, the reason extended by their position. *)
+  and push_part context info part r =
+    match part with
+    | Former.Ty (variance, step, ty, ty') ->
+        related (push_sub context) variance
+          (Reason.step (Reason.of_ast_step step) info)
+          ty ty' r
+    | Former.Rho (variance, rho, rho') ->
+        related (push_rho context) variance
+          (Reason.step Reason.Box_grade info)
+          rho rho' r
+    | Former.Eps (variance, at, eps, eps') ->
+        let info =
+          Option.fold ~none:info
+            ~some:(fun step -> Reason.step (Reason.of_ast_step step) info)
+            at
+        in
+        related (push_eps context) variance
+          (Reason.step Reason.Effect info)
+          eps eps' r
 
   let is_atomic_sub (s : sub) =
     match (s.lhs, s.rhs) with
