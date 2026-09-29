@@ -37,11 +37,11 @@ let del n =
 
 (* Correctly accepted by the typechecker: returning the closure costs nothing
    and its five ticks are paid on application, so the grade sits on the inner
-   arrow: nat -> nat -> nat # 5. *)
+   arrow: nat -> (nat -> nat # 5). *)
 let higher n = fun m -> delay 5; n + m
 
 (* Correctly accepted by the typechecker: ten ticks are paid before the closure
-   is returned and five more when it is applied: nat -> nat -> nat # 5 # 10. *)
+   is returned and five more when it is applied: nat -> (nat -> nat # 5) # 10. *)
 let higher2 n = 
   delay 10; 
   fun m -> delay 5; n + m

@@ -21,7 +21,7 @@ let release (policy : [ 'e ] (unit -> nat # 'e)) = unbox policy as p in p ()
 (* Correctly accepted by the typechecker: type arguments are invariant, so the
    two uses of 'e make the elements of both lists functions of one effect, and
    append gets the scheme ∀ ε₀. (unit → nat # ε₀) list →
-   (unit → nat # ε₀) list → (unit → nat # ε₀) list # 0 # 0. *)
+   (unit → nat # ε₀) list → (unit → nat # ε₀) list. *)
 let append (xs : (unit -> nat # 'e) list) (ys : (unit -> nat # 'e) list) =
   xs @ ys
 

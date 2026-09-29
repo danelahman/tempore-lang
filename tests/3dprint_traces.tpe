@@ -73,7 +73,7 @@ run print_sword ()
    that is not. *)
 
 (* The tag is kept across the print, so it must be eternal. Inferred scheme:
-   ∀ α. Et(α) ⇒ α → model → α × print # ... *)
+   ∀ α. Et(α) ⇒ α → (model → α × print # ...) *)
 let label_print tag m =
   let printed = perform PrintModel m in
   delay 2;
@@ -94,7 +94,7 @@ run handle label_print Epoxy (Model "Sword") with printer
 
 (* The item is kept across a step of unknown effect ε₀, so either its type is
    eternal or ∣ε₀∣ is zero. Inferred scheme: ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ ({0},{0})
-   ⇒ (unit → α # ε₀) → β → β # ε₀ # ({0},{0}) *)
+   ⇒ (unit → α # ε₀) → (β → β # ε₀) *)
 let after_preparing prepare item = prepare (); item
 
 (* Correctly accepted by the typechecker: a model is eternal. *)

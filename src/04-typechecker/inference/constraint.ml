@@ -14,7 +14,7 @@ type conjunct =
 type layout = {
   parameters : part option;
   conjuncts : conjunct list;
-  arrows : part list;
+  arrows : part PrettyPrint.arrows;
 }
 
 module type S = sig
@@ -86,7 +86,8 @@ module type S = sig
 
   type names
 
-  val names : unit -> names
+  val is_unit_eps : Grades.Grade.bounds -> eps -> bool
+  val names : ?bounds:Grades.Grade.bounds -> unit -> names
   val print_rho : ?names:names -> rho -> Format.formatter -> unit
   val print_eps : ?names:names -> eps -> Format.formatter -> unit
   val print_ty : ?names:names -> ty -> Format.formatter -> unit
@@ -445,12 +446,35 @@ module Make (X : GradeExp.S) = struct
     rigid_ops : string X.Eps_var.Map.t ref;
         (** the operations of the clauses of the rigid variables whose binders
             have been printed *)
+    unit_eps : eps -> bool;  (** whether an effect is the unit *)
   }
 
+  module N = GradeNormal.Make (X)
+
+  let is_unit_eps bounds eps =
+    let canonical =
+      match N.Eps.canon bounds eps with
+      | eps -> eps
+      | exception Utils.Error.Error _ -> eps
+    in
+    match X.Eps.value canonical with
+    | Some c -> (
+        try X.GS.E.equal bounds c X.GS.E.one with Utils.Error.Error _ -> false)
+    | None -> false
+
+  (* The cost model of a program that declares no operations. *)
+  let no_operations =
+    {
+      Grades.Grade.cost =
+        (fun event -> Utils.Error.typing "Unknown event `%s`" event);
+      operations = [];
+    }
+
   (* A rigid variable is named after the operation of its clause. *)
-  let names () =
+  let names ?(bounds = no_operations) () =
     let rigid_ops = ref X.Eps_var.Map.empty in
     {
+      unit_eps = is_unit_eps bounds;
       ty_name = Ty_names.create ();
       rho_name = Rho_names.create ();
       eps_name =
@@ -508,7 +532,7 @@ module Make (X : GradeExp.S) = struct
     {
       PrettyPrint.rho = rho_at names 0;
       eps = eps_at names 0;
-      pure = (fun _ -> false);
+      pure = names.unit_eps;
     }
 
   let ty_with names ty ppf =
@@ -699,7 +723,7 @@ module Make (X : GradeExp.S) = struct
         | True -> []
         | q -> List.map conjunct (conjuncts q));
       arrows =
-        List.map horizontal
+        PrettyPrint.map_arrows horizontal
           (PrettyPrint.arrow_parts (grades names) names.ty_name scheme.ty);
     }
 

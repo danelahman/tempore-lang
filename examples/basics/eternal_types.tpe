@@ -87,7 +87,7 @@ run keep (Tag : (unit -> unit) tag)
 
 (* When the grade is unknown as well, both ways to satisfy the constraint are
    kept: x is used after g has run, so after gets the scheme
-   ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → β → β # ε₀ # 0. *)
+   ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → (β → β # ε₀). *)
 let after g x = g (); x
 
 (* Correctly accepted by the typechecker: 5 is eternal, whatever g takes. *)

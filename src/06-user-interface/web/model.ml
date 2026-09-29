@@ -12,8 +12,8 @@ type conjunct_text =
 type scheme_text = {
   parameters : string option;  (** [α ρ₀ ε₀], bound by the quantifier *)
   conjuncts : conjunct_text list;  (** those of the qualifier [Q ∧ R] *)
-  arrows : string list;
-      (** the parts of the type between its outermost arrows *)
+  arrows : string Language.PrettyPrint.arrows;
+      (** the type, in parts around its arrows *)
 }
 (** The text of an inferred scheme [∀ α ρ₀ ε₀. Q ∧ R ⇒ A], by parts, each on one
     line. *)
@@ -578,7 +578,7 @@ let scheme_text ~scheme_layout scheme =
             Ordering { binder; left; right })
       conjuncts
   in
-  let arrows = List.map one_line arrows in
+  let arrows = Language.PrettyPrint.map_arrows one_line arrows in
   { parameters; conjuncts; arrows }
 
 (* The definitions of the editor's program among [definitions], each a
@@ -763,12 +763,14 @@ let update_model model = function
               let definitions =
                 defined ~source:model.edit_model.unparsed_code
                   ~name:Language.Ast.Variable.string_of
-                  ~scheme_layout:L.TC.scheme_layout (List.map triple accepted)
+                  ~scheme_layout:(L.TC.scheme_layout state.typechecker)
+                  (List.map triple accepted)
               and links =
                 linked ~library:L.stdlib_source
                   ~library_definitions:(List.map triple library_definitions)
                   ~name:Language.Ast.Variable.string_of
-                  ~scheme_layout:L.TC.scheme_layout references
+                  ~scheme_layout:(L.TC.scheme_layout state.typechecker)
+                  references
               in
               (* Build a run_model_state from a B.run_state, capturing all
                  resource-grade-specific types in closures so the rest of the

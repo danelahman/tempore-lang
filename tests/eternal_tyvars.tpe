@@ -19,7 +19,7 @@ let keep x = delay 1; x
 
 (* Correctly accepted by the typechecker: x is used after g has run, whose
    effect ε₀ is unknown here, so after gets the scheme ∀ α β ε₀. Et(β) ∨
-   ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → β → β # ε₀ # 0, and either side of the
+   ∣ε₀∣ ≾ 0 ⇒ (unit → α # ε₀) → (β → β # ε₀), and either side of the
    disjunction may discharge the constraint at a use. *)
 let after g x = g (); x
 

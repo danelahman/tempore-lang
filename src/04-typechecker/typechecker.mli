@@ -58,12 +58,13 @@ module Make (GS : Grades.GradeSystem.S) : sig
   (** [definitions state] is the primitives and top-level definitions of [state]
       with their schemes, oldest first. *)
 
-  val print_scheme : scheme -> Format.formatter -> unit
-  (** [print_scheme scheme ppf] prints [scheme] with its qualifier. *)
+  val print_scheme : state -> scheme -> Format.formatter -> unit
+  (** [print_scheme state scheme ppf] prints [scheme] with its qualifier, an
+      effect of the unit under the cost model of [state] not shown. *)
 
-  val scheme_layout : scheme -> Inference.Constraint.layout
-  (** [scheme_layout scheme] is the parts of the scheme that {!print_scheme}
-      prints, laid out apart: the parameters, the conjuncts of the qualifier and
-      the parts of the type between its outermost arrows, to be applied in this
-      order. *)
+  val scheme_layout : state -> scheme -> Inference.Constraint.layout
+  (** [scheme_layout state scheme] is the parts of the scheme that
+      {!print_scheme} prints, laid out apart: the parameters, the conjuncts of
+      the qualifier and the type in parts around its arrows, to be applied in
+      this order. *)
 end

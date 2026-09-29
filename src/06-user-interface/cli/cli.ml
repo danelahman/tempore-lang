@@ -154,18 +154,18 @@ let run_with (module G : Grades.Grade.S) config =
       let definitions (state : Loader.state) =
         Loader.TC.definitions state.typechecker
       in
-      let print_definitions =
-        print_definitions ~print_scheme:Loader.TC.print_scheme
+      let print_definitions ?skip (state : Loader.state) =
+        print_definitions
+          ~print_scheme:(Loader.TC.print_scheme state.typechecker)
+          ?skip (definitions state)
       in
       if config.use_stdlib then begin
         print_endline "=== Standard library ===";
-        print_definitions (definitions stdlib_state);
+        print_definitions stdlib_state;
         print_newline ()
       end;
       print_endline "=== Top-level definitions ===";
-      print_definitions
-        ~skip:(List.length (definitions stdlib_state))
-        (definitions state');
+      print_definitions ~skip:(List.length (definitions stdlib_state)) state';
       print_newline ()
     end;
     (* loading the files has typechecked every command, the [run]s included *)

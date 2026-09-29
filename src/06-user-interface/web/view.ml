@@ -609,8 +609,8 @@ let oncaret_keys =
 (* A scheme as [name : ∀ α. Q ⇒ A], on one line where it fits and otherwise
    the name, the quantifier, each conjunct of the qualifier and the type on
    lines of their own, aligned; an ordering too long for its line is broken
-   before [≾], and a type before its outermost arrows. Text is annotated by
-   its class. *)
+   before [≾], and a type before the arrows of a chain, a parenthesised
+   codomain within its parentheses. Text is annotated by its class. *)
 let scheme_doc (d : Model.definition) =
   let open Layout in
   let name t = Text ("scheme-name", t)
@@ -625,15 +625,27 @@ let scheme_doc (d : Model.definition) =
         | None -> Group sides
         | Some b -> Group (Cat [ dim ("(∀" ^ b ^ ". "); sides; dim ")" ]))
   in
-  let arrows =
-    match d.scheme.arrows with
-    | [] -> Cat []
+  let rec arrows
+      ({ domains; codomain; grade } : string Language.PrettyPrint.arrows) =
+    let codomain =
+      match codomain with
+      | Plain part -> ty part
+      | Parenthesised inner -> Cat [ ty "("; arrows inner; ty ")" ]
+    in
+    let result =
+      match grade with
+      | None -> codomain
+      | Some grade -> Cat [ codomain; ty (" # " ^ grade) ]
+    in
+    match domains with
+    | [] -> result
     | first :: rest ->
         Group
           (Align
              (Cat
                 (ty first
-                :: List.map (fun a -> Cat [ Line; ty ("→ " ^ a) ]) rest)))
+                 :: List.map (fun a -> Cat [ Line; ty ("→ " ^ a) ]) rest
+                @ [ Line; ty "→ "; result ])))
   in
   let quantifier =
     Option.map
@@ -647,7 +659,14 @@ let scheme_doc (d : Model.definition) =
         :: List.map (fun c -> Nest (4, Cat [ Line; dim "∧ "; conjunct c ])) cs
   in
   let typed =
-    Nest (4, Cat [ Line; (if qualifier = [] then Cat [] else dim "⇒ "); arrows ])
+    Nest
+      ( 4,
+        Cat
+          [
+            Line;
+            (if qualifier = [] then Cat [] else dim "⇒ ");
+            arrows d.scheme.arrows;
+          ] )
   in
   Group
     (Cat

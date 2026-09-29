@@ -439,7 +439,7 @@ anywhere in `c`, including after delays and in operation cases.
 
 A recursive function has the unit effect unless it is annotated
 `let rec f p₁ … pₙ : ty # ε = c`. Then
-`f : A₁ → … → Aₙ → ty # ε`, the outer arrows having the unit effect, and `ε`
+`f : A₁ → … → (Aₙ → ty # ε)`, the outer arrows having the unit effect, and `ε`
 must bound the effect of `c` assuming every recursive call has effect `ε`.
 Under `regex-upper-bound-symbolic`,
 
@@ -472,11 +472,12 @@ accumulated while `ε` runs. `--debug` prints the
 schemes. Under `time-upper-bound`, the standard library's
 `compose f g x = f (g x)` has
 
-    ∀ α β γ ε₀. (α → β # ε₀) → (γ → α # 0) → γ → β # ε₀ # 0 # 0
+    ∀ α β γ ε₀. (α → β # ε₀) → (γ → α) → (γ → β # ε₀)
 
 where `g` takes no time, since the non-eternal `f` is used after it: the
 qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` leaves `ε₁` no value but the
-least, `0`, which the scheme puts in its place. A qualifier is checked at
+least, `0`, which the scheme puts in its place; an effect of the unit is not
+printed. A qualifier is checked at
 every use of the definition.
 
 Under `time-lower-bound`, with `operation Op : unit ~> unit # 1`, the handler
@@ -485,7 +486,7 @@ Under `time-lower-bound`, with `operation Op : unit ~> unit # 1`, the handler
 
 has
 
-    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α # ε₀) → β # ε₁ ⇒ β # 0 # 0
+    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α # ε₀) → (β # ε₁ ⇒ β)
 
 where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, is the condition of the case for `Op`
 that must hold for every effect `ε_Op` of `k`: the case, `f` followed by `k`,
@@ -504,6 +505,16 @@ body's grade must be a sub-grade of the annotation. Types may contain variables
 the same name is the same unknown, inferred and generalised with it. A name
 also written after `#` stands for the resource image `∣ε∣` of that effect in box
 grades. `let pass (f : unit -> nat # 'e) : nat # 'e = f ()` has the grade of `f`.
+
+Type-constructor application binds tightest, then the box `[rho]`, then
+products `a * b`, which are n-ary and non-associative, and last arrows
+`a -> b # e`, which are right-associative: `[2]nat list * bool -> nat` takes
+a pair of a `[2](nat list)` and a `bool`, and a box of a function is written
+`[2](nat -> nat)`. An effect `# e` belongs to the innermost arrow, so
+`nat -> nat -> nat # 1` is `nat -> (nat -> nat # 1)`, and an arrow without
+one has the unit effect. Printed types use the same precedences and leave out
+an effect of the unit; a result that is a function type is printed in
+parentheses where either arrow shows its effect, `nat → (nat → nat # 1)`.
 
 ### Sub-effecting
 

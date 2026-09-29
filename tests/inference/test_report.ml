@@ -1,7 +1,8 @@
 (* Tests of the reported schemes: small programs on the standard library,
    report simplification, annotations, boxes and handlers, whose schemes are
-   compared up to renaming with the expected ones at four grades, and
-   recursive definitions, compared at one. Silent on success. *)
+   compared up to renaming with the expected ones at four grades, recursive
+   definitions, compared at one, and annotated function types, printed as they
+   are written. Silent on success. *)
 
 module Ast = Language.Ast
 module Grade = Grades.Grade
@@ -99,6 +100,18 @@ module Programs (G : Grade.S) = struct
                 scheme;
             (name, Some (canonical scheme))
         | P.Accepted | P.Rejected _ -> (name, None))
+      outcomes
+
+  (* The printed argument type of each function defined in [source], or [None]
+     where the definition is rejected or not a function. *)
+  let argument_types source =
+    let _, outcomes = execute initial (parse ~name:"annotations" source) in
+    List.rev_map
+      (fun (name, outcome) ->
+        match outcome with
+        | P.Defined (_, { C.ty = Ast.TyArrow (argument, _); _ }) ->
+            (name, Some (Format.asprintf "%t" (C.print_ty argument)))
+        | P.Defined _ | P.Accepted | P.Rejected _ -> (name, None))
       outcomes
 
   module S = Inference.Solver.Make (C)
@@ -296,25 +309,21 @@ let expected g =
      grade where the unit is the top. *)
   let after_call atoms = if g.least then atoms else [] in
   [
-    ("id", typed (Printf.sprintf "α → α # %s" u));
-    ("ignore", typed (Printf.sprintf "α → unit # %s" u));
-    ("fst", typed (Printf.sprintf "α × β → α # %s" u));
-    ("snd", typed (Printf.sprintf "α × β → β # %s" u));
-    ("not", typed (Printf.sprintf "bool → bool # %s" u));
+    ("id", typed "α → α");
+    ("ignore", typed "α → unit");
+    ("fst", typed "α × β → α");
+    ("snd", typed "α × β → β");
+    ("not", typed "bool → bool");
     (* An empty match has a scrutinee of type [empty]. *)
     ("absurd", typed "empty → α # ε₀");
-    ("pipe", typed (Printf.sprintf "α → (α → β # ε₀) → β # ε₀ # %s" u));
+    ("pipe", typed "α → ((α → β # ε₀) → β # ε₀)");
     (* [g]'s effect, then [f]'s; [f] is used after [g x] has run, so [g]'s
        effect is bounded by the unit, and is the unit where the unit is
        least. *)
     ( "compose",
       typed
-        (if g.least then
-           Printf.sprintf "(α → β # ε₀) → (γ → α # %s) → γ → β # ε₀ # %s # %s" u
-             u u
-         else
-           Printf.sprintf
-             "(α → β # ε₀) → (γ → α # ε₁) → γ → β # ε₁ · ε₀ # %s # %s" u u) );
+        (if g.least then "(α → β # ε₀) → (γ → α) → (γ → β # ε₀)"
+         else "(α → β # ε₀) → (γ → α # ε₁) → (γ → β # ε₁ · ε₀)") );
     ( "min",
       typed
         ~atoms:
@@ -324,31 +333,24 @@ let expected g =
                 Printf.sprintf "Et(α) ∨ ∣ε₀∣ ≾ %s" u;
                 Printf.sprintf "Et(β) ∨ ∣ε₀∣ ≾ %s" u;
               ])
-        (Printf.sprintf "(α × β → bool # ε₀) → α → β → γ # ε₀ # %s # %s" u u) );
+        "(α × β → bool # ε₀) → α → (β → γ # ε₀)" );
     (* Of the two disjunctions owed by [a], after [f] and after [f] and [g],
        the second entails the first where the unit is least. *)
     ( "reused_around_claim",
       typed
         ~atoms:(after_call [ Printf.sprintf "Et(α) ∨ ∣ε₀∣ · ∣ε₁∣ ≾ %s" u ])
-        (Printf.sprintf
-           "α → (unit → β # ε₀) → [∣ε₀∣](α → γ # ε₁) → α # ε₀ · ε₁ # %s # %s" u
-           u) );
+        "α → (unit → β # ε₀) → ([∣ε₀∣](α → γ # ε₁) → α # ε₀ · ε₁)" );
     (* The box is claimed after [f] and behind the clause's lock: its grade
        [∣ε₀∣ · ⊤] is the top where the unit is least, the top absorbing the
        product, and [∣ε₀∣] where the unit is the top. *)
     ( "claimed_after_call",
       typed
         (Printf.sprintf
-           "(unit → α # ε₀) → [%s]β → (unit → γ # ε₁) → unit # ε₁ # ε₀ # %s"
-           (if g.least then g.top else "∣ε₀∣")
-           u) );
-    ("id_bool", typed (Printf.sprintf "bool → bool # %s" u));
-    ("id_unit", typed (Printf.sprintf "unit → unit # %s" u));
-    ( "compose_g",
-      typed
-        (Printf.sprintf
-           "(unit → α # ε₀) → (unit → unit # %s) → unit → α # ε₀ # %s # %s" u u
-           u) );
+           "(unit → α # ε₀) → ([%s]β → ((unit → γ # ε₁) → unit # ε₁) # ε₀)"
+           (if g.least then g.top else "∣ε₀∣")) );
+    ("id_bool", typed "bool → bool");
+    ("id_unit", typed "unit → unit");
+    ("compose_g", typed "(unit → α # ε₀) → (unit → unit) → (unit → α # ε₀)");
     ( "stale_call",
       where_top (typed (Printf.sprintf "(unit → α # ε₀) → α # %s · ε₀" (lit 1)))
     );
@@ -361,23 +363,22 @@ let expected g =
     ( "boxing_an_argument",
       typed
         ~atoms:(if g.least then [ "Et(α)" ] else [])
-        (Printf.sprintf "α → [%s]α # %s" (lit 1) u) );
+        (Printf.sprintf "α → [%s]α" (lit 1)) );
     (* A lease is claimable up to its grade, a promise from it on. *)
     ("claim_early", where_least (typed (Printf.sprintf "α → unit # %s" (lit 2))));
     ("claim_on_time", typed (Printf.sprintf "α → unit # %s" (lit 3)));
     ("claim_late", where_top (typed (Printf.sprintf "α → unit # %s" (lit 4))));
     ("inferred_grade", typed (Printf.sprintf "[%s]α → α # %s" (lit 2) (lit 2)));
     ( "kept_and_claimed",
-      typed
-        (Printf.sprintf "[%s ⊔ ρ₀]α → [ρ₀]α × (β → α # %s) # %s" (lit 2) (lit 2)
-           u) );
+      typed (Printf.sprintf "[%s ⊔ ρ₀]α → [ρ₀]α × (β → α # %s)" (lit 2) (lit 2))
+    );
     ( "escaping_early",
       where_least (typed (Printf.sprintf "α → unit # %s" (lit 1))) );
     ("escaping_on_time", typed (Printf.sprintf "α → unit # %s" (lit 2)));
     ("escaping_late", where_top (typed (Printf.sprintf "α → unit # %s" (lit 4))));
     ( "branches",
       typed ~atoms:[ "α <: β" ]
-        (Printf.sprintf "bool → [%s]α → β # %s # %s" g.join_1_3 g.join_1_3 u) );
+        (Printf.sprintf "bool → ([%s]α → β # %s)" g.join_1_3 g.join_1_3) );
     (* A promise of two steps is due after [Write] or [Send], a lease of two
        steps covers [Read] only. *)
     ( "read_licensed",
@@ -389,14 +390,13 @@ let expected g =
     ( "send_licensed",
       where_top (typed (Printf.sprintf "unit → unit # %s" (g.op "Send" 4 6))) );
     ( "nested",
-      typed (Printf.sprintf "[%s]([%s]α) → α # %s" (lit 1) (lit 2) (lit 3)) );
+      typed (Printf.sprintf "[%s][%s]α → α # %s" (lit 1) (lit 2) (lit 3)) );
     ("nesting", where_top (typed (Printf.sprintf "α → unit # %s" (lit 3))));
     (* A clause sees the context behind the lock of the top. *)
     ("claimed_in_clause_unit", where_top (typed "(unit → α # ε₀) → unit # ε₀"));
     ("claimed_in_clause_one", Untypable);
     ( "handed_to_clause",
-      typed (Printf.sprintf "(unit → α # ε₀) → [%s]β → unit # ε₀ # %s" g.top u)
-    );
+      typed (Printf.sprintf "(unit → α # ε₀) → ([%s]β → unit # ε₀)" g.top) );
     ("relay", typed "(unit → α # ε₀) → unit # ε₀");
     ("relay_boxed", typed "(unit → α # ε₀) → unit # ε₀");
     (* Dropping the continuation needs the unit least, resuming it twice the
@@ -472,7 +472,7 @@ let check_fixed () =
       if actual <> expected then
         fail "fixed %s: expected %s, got %s" label expected actual)
     (List.combine (T.fixed_unknowns ())
-       [ "∀ α. α → α # 0"; "α α → α # 0"; "α ∀ β. β <: α ⇒ β → α # 0" ])
+       [ "∀ α. α → α"; "α α → α"; "α ∀ β. β <: α ⇒ β → α" ])
 
 (* Recursive definitions that call a boxed function after the recursive
    call. The effects of the calls are bounded below alone and occur in no
@@ -502,19 +502,67 @@ let check_recursive () =
   compare_schemes grades
     (T.schemes (String.concat "\n" recursive_programs))
     [
-      ("iter_after", typed "[∞](unit → unit # 1) → nat → unit # ∞ # 0");
-      ("iter_twice", typed "[∞](unit → unit # 1) → nat → unit # ∞ # 0");
-      ("map_boxed", typed "[∞](nat → nat # 1) → nat list → nat list # ∞ # 0");
+      ("iter_after", typed "[∞](unit → unit # 1) → (nat → unit # ∞)");
+      ("iter_twice", typed "[∞](unit → unit # 1) → (nat → unit # ∞)");
+      ("map_boxed", typed "[∞](nat → nat # 1) → (nat list → nat list # ∞)");
       ( "fold_after",
         typed
           ~atoms:[ "γ <: β"; "δ <: β"; "ε₁ · ε₀ ≾ 0" ]
-          "(α → β → γ # ε₀ # ε₁) → α list → δ → β # 0 # 0 # 0" );
+          "(α → (β → γ # ε₀) # ε₁) → α list → δ → β" );
     ]
+
+(* Annotated types, each with its type as printed. The precedences are, by
+   decreasing strength, type-constructor application, the box, products and
+   arrows; an arrow's effect grade belongs to the innermost arrow, and an
+   arrow without one has the unit, which is not printed. A codomain that is a
+   function type is parenthesised where either arrow shows its effect. *)
+let annotations =
+  [
+    ("nat -> (nat -> nat # 1) # 2", "nat → (nat → nat # 1) # 2");
+    ( "(nat -> nat # 1) -> (nat -> (bool -> nat # 2)) # 3",
+      "(nat → nat # 1) → (nat → (bool → nat # 2)) # 3" );
+    ("nat -> nat -> nat # 1", "nat → (nat → nat # 1)");
+    ("nat -> (nat -> nat) # 1", "nat → (nat → nat) # 1");
+    ("(nat -> nat) -> nat -> nat", "(nat → nat) → nat → nat");
+    ("[2]nat -> nat", "[2]nat → nat");
+    ("[2](nat -> nat)", "[2](nat → nat)");
+    ( "nat -> [2](nat -> (nat -> bool # 1)) # 1",
+      "nat → [2](nat → (nat → bool # 1)) # 1" );
+    ("[2]nat list", "[2]nat list");
+    ("([2]nat) list", "([2]nat) list");
+    ("[2][3]nat", "[2][3]nat");
+    ("[2]nat * bool -> nat", "[2]nat × bool → nat");
+    ("[2](nat * bool)", "[2](nat × bool)");
+    ("(nat * nat) * nat", "(nat × nat) × nat");
+    ("nat * nat -> (nat * nat -> nat # 1)", "nat × nat → (nat × nat → nat # 1)");
+  ]
+
+let check_round_trip () =
+  let (module G) = grade_module "time-upper-bound" in
+  let module T = Programs (G) in
+  let name i = Printf.sprintf "annotated_%d" i in
+  let actual =
+    T.argument_types
+      (String.concat "\n"
+         (List.mapi
+            (fun i (annotation, _) ->
+              Printf.sprintf "let %s (g : %s) = g" (name i) annotation)
+            annotations))
+  in
+  List.iteri
+    (fun i (annotation, expected) ->
+      match List.assoc_opt (name i) actual with
+      | Some (Some printed) when printed = expected -> ()
+      | Some (Some printed) ->
+          fail "annotation %s: expected %s, got %s" annotation expected printed
+      | Some None | None -> fail "annotation %s: rejected" annotation)
+    annotations
 
 let () =
   List.iter check four_grades;
   check_fixed ();
   check_recursive ();
+  check_round_trip ();
   match List.rev !failures with
   | [] -> ()
   | failures ->

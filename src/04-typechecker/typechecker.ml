@@ -188,6 +188,16 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Error (diagnostic state.envs cmd error, recovery)
 
   let definitions state = List.rev state.definitions
-  let print_scheme scheme ppf = C.print_scheme scheme ppf
-  let scheme_layout scheme = C.scheme_layout scheme
+
+  (* The names of a scheme, the unit effect decided under the cost model of the
+     operations the program declares. *)
+  let names state =
+    let pos = { Location.line = 1; column = 1; offset = 0 } in
+    let loc = { Location.filename = ""; start = pos; stop = pos } in
+    C.names ~bounds:(Gen.cost_model ~loc state.envs.reported) ()
+
+  let print_scheme state scheme ppf =
+    C.print_scheme ~names:(names state) scheme ppf
+
+  let scheme_layout state scheme = C.scheme_layout ~names:(names state) scheme
 end

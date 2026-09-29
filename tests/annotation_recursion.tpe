@@ -11,19 +11,19 @@ let rec fact_graded (n : nat) : nat # 0 =
    is an unknown of its definition, the same name being the same unknown
    throughout it, generalised with the definition; a parameter's type is a
    subtype of its annotation, so last gets the scheme
-   ∀ α β. α <: β ⇒ α → β list → β # 0 # 0. *)
+   ∀ α β. α <: β ⇒ α → β list → β. *)
 let rec last (x : 'b) (xs : 'b list) : 'b =
   match xs with
   | [] -> x
   | y :: ys -> last y ys
 
 (* Correctly accepted by the typechecker: the unknown 'b of each definition is
-   its own, here nat, so succ gets the type nat → nat # 0. *)
+   its own, here nat, so succ gets the type nat → nat. *)
 let succ (x : 'b) : 'b = x + 1
 
 (* Correctly accepted by the typechecker: a type definition's parameters are
    its own, so the 'b of an annotation after it is still flexible, and size
-   gets the scheme ∀ α. α tree → nat # 0. *)
+   gets the scheme ∀ α. α tree → nat. *)
 type 'b tree = Leaf | Node of 'b tree * 'b * 'b tree
 
 let rec size (t : 'b tree) : nat =

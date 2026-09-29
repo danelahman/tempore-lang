@@ -85,6 +85,7 @@
 %token EOF
 
 %nonassoc ARROW IN
+%nonassoc HASH
 %right SEMI
 %nonassoc ELSE
 %right OR BARBAR
@@ -478,24 +479,36 @@ defined_ty:
   | t = ty
     { TyInline t }
 
+(* Types, by decreasing precedence: application of a type constructor
+   [α list], the box [[ρ]α], products [α * β], n-ary and non-associative, and
+   arrows [α -> β # ε], right-associative, an effect [# ε] belonging to the
+   innermost arrow. *)
 ty: mark_position(plain_ty) { $1 }
 plain_ty:
-  | t1 = ty_apply ARROW t2 = ty HASH eps = eps_grade
+  | t1 = prod_ty ARROW t2 = ty HASH eps = eps_grade
     { TyArrow (t1, CompTy (t2, eps)) }
-  | t1 = ty_apply ARROW t2 = ty
+  | t1 = prod_ty ARROW t2 = ty
     { let at = Location.of_lexing $startpos $endpos in
       TyArrow (t1, CompTy (t2, { it = GradeLit GS.E.one; at })) }
-  | t = plain_prod_ty
-    { t }
+  | t = prod_ty
+    { t.it }
 
+prod_ty: mark_position(plain_prod_ty) { $1 }
 plain_prod_ty:
-  | ts = separated_nonempty_list(STAR, ty_apply)
+  | ts = separated_nonempty_list(STAR, box_ty)
     {
       match ts with
       | [] -> assert false
       | [t] -> t.it
       | _ -> TyTuple ts
      }
+
+box_ty: mark_position(plain_box_ty) { $1 }
+plain_box_ty:
+  | LBRACK rho = rho_grade RBRACK ty = box_ty
+    { TyBox (rho, ty) }
+  | t = plain_ty_apply
+    { t }
 
 ty_apply: mark_position(plain_ty_apply) { $1 }
 plain_ty_apply:
@@ -511,8 +524,6 @@ plain_simple_ty:
     { TyApply (t, []) }
   | t = PARAM
     { TyParam t }
-  | LBRACK rho = rho_grade RBRACK ty = ty
-    { TyBox (rho, ty) }
   | LPAREN t = ty RPAREN
     { t.it }
 

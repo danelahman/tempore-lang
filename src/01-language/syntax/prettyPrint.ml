@@ -115,62 +115,112 @@ type ('rho, 'eps) grade_printer = {
   pure : 'eps -> bool;
 }
 (** How the grades of a type are printed: its resource grades by [rho] and its
-    effect grades by [eps]. An arrow whose effect grade is [pure] is printed
-    without it. *)
+    effect grades by [eps]. A computation type whose effect grade is [pure], the
+    unit, is printed without it. *)
 
-(** [print_ty grades ty_print_param ty] prints [ty], its grades by [grades]. *)
-let print_ty ?max_level grades ty_print_param =
-  let rec aux ?max_level p ppf =
-    let print ?at_level = Print.print ?max_level ?at_level ppf in
-    match p with
-    | TyConst c -> print "%t" (Const.print_ty c)
-    | TyApply (ty_name, []) -> print "%t" (TyName.print ty_name)
-    | TyApply (ty_name, [ ty ]) ->
-        print ~at_level:1 "%t %t" (aux ~max_level:1 ty) (TyName.print ty_name)
-    | TyApply (ty_name, tys) ->
-        print ~at_level:1 "%t %t"
-          (Print.print_tuple aux tys)
-          (TyName.print ty_name)
-    | TyParam a -> print "%t" (ty_print_param a)
-    | TyArrow (ty1, CompTy (ty2, eps)) when grades.pure eps ->
-        print ~at_level:3 "%t → %t" (aux ~max_level:2 ty1)
-          (aux ~max_level:3 ty2)
-    | TyArrow (ty1, CompTy (ty2, eps)) ->
-        print ~at_level:3 "%t → %t # %t" (aux ~max_level:2 ty1)
-          (aux ~max_level:3 ty2) (grades.eps eps)
-    | TyTuple [] -> print "unit"
-    | TyTuple tys ->
-        print ~at_level:2 "%t"
-          (Print.print_sequence " × " (aux ~max_level:1) tys)
-    | TyBox (rho, ty) ->
-        print ~at_level:1 "[%t]%t" (grades.rho rho) (aux ~max_level:0 ty)
-    | TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
-        print ~at_level:3 "%t # %t ⇒ %t # %t" (aux ~max_level:2 ty1)
-          (grades.eps eps1) (aux ~max_level:3 ty2) (grades.eps eps2)
+type 'a arrows = {
+  domains : 'a list;
+  codomain : 'a codomain;
+  grade : 'a option;
+}
+(** A type as printed, in parts around its arrows: the [domains] of its
+    outermost chain of arrows, in order, the [codomain] of the last arrow, and
+    the effect grade of the last arrow where it is printed; the other arrows of
+    a chain are printed without one. A type other than a function type has no
+    domains and no grade. *)
+
+(** A codomain, printed as it is or, where it is a function or handler type that
+    {!parenthesised_codomain} selects, in parentheses. *)
+and 'a codomain = Plain of 'a | Parenthesised of 'a arrows
+
+(** [map_arrows f arrows] applies [f] to the parts of [arrows] in the order they
+    are printed. *)
+let rec map_arrows f { domains; codomain; grade } =
+  let domains = List.map f domains in
+  let codomain =
+    match codomain with
+    | Plain part -> Plain (f part)
+    | Parenthesised arrows -> Parenthesised (map_arrows f arrows)
   in
-  aux ?max_level
+  let grade = Option.map f grade in
+  { domains; codomain; grade }
 
-(** [arrow_parts grades ty_print_param ty] is the parts of [ty] that
-    [print_ty grades ty_print_param ty] prints between its outermost arrows, in
-    order: the domains, and last the final codomain followed by the effect
-    grades of the arrows, innermost first. *)
-let arrow_parts grades ty_print_param ty =
+(** [print_arrows arrows ppf] prints [arrows], the domains followed by [→] and
+    the effect grade preceded by [#]. *)
+let rec print_arrows { domains; codomain; grade } ppf =
+  List.iter (fun domain -> Format.fprintf ppf "%t → " domain) domains;
+  (match codomain with
+  | Plain part -> part ppf
+  | Parenthesised arrows -> Format.fprintf ppf "(%t)" (print_arrows arrows));
+  Option.iter (fun grade -> Format.fprintf ppf " # %t" grade) grade
+
+(** [parenthesised_codomain grades eps ty] is whether the codomain [ty] of an
+    arrow of effect grade [eps] is printed in parentheses: where it is a handler
+    type, or a function type and one of the two arrows is printed with its
+    effect grade. Each grade then follows its own arrow. *)
+let parenthesised_codomain grades eps = function
+  | TyArrow (_, CompTy (_, eps')) -> not (grades.pure eps && grades.pure eps')
+  | TyHandler _ -> true
+  | TyConst _ | TyApply _ | TyParam _ | TyTuple _ | TyBox _ -> false
+
+(** [print_ty grades ty_print_param ty] prints [ty], its grades by [grades],
+    with the parentheses the precedences of the types require: by decreasing
+    precedence, application of a type constructor (level 1), the box (2),
+    products (3), and arrows and handler types (4). *)
+let rec print_ty ?max_level grades ty_print_param ty ppf =
+  let aux ?max_level ty = print_ty ?max_level grades ty_print_param ty in
+  let print ?at_level = Print.print ?max_level ?at_level ppf in
+  match ty with
+  | TyConst c -> print "%t" (Const.print_ty c)
+  | TyApply (ty_name, []) -> print "%t" (TyName.print ty_name)
+  | TyApply (ty_name, [ ty ]) ->
+      print ~at_level:1 "%t %t" (aux ~max_level:1 ty) (TyName.print ty_name)
+  | TyApply (ty_name, tys) ->
+      print ~at_level:1 "%t %t"
+        (Print.print_tuple aux tys)
+        (TyName.print ty_name)
+  | TyParam a -> print "%t" (ty_print_param a)
+  | TyArrow _ ->
+      print ~at_level:4 "%t"
+        (print_arrows (arrow_parts grades ty_print_param ty))
+  | TyTuple [] -> print "unit"
+  | TyTuple tys ->
+      print ~at_level:3 "%t" (Print.print_sequence " × " (aux ~max_level:2) tys)
+  | TyBox (rho, ty) ->
+      print ~at_level:2 "[%t]%t" (grades.rho rho) (aux ~max_level:2 ty)
+  | TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
+      let computation ty eps ppf =
+        if grades.pure eps then aux ~max_level:3 ty ppf
+        else Format.fprintf ppf "%t # %t" (aux ~max_level:3 ty) (grades.eps eps)
+      in
+      print ~at_level:4 "%t ⇒ %t" (computation ty1 eps1) (computation ty2 eps2)
+
+(** [arrow_parts grades ty_print_param ty] is [ty] as
+    [print_ty grades ty_print_param ty] prints it, in parts around its arrows.
+*)
+and arrow_parts grades ty_print_param ty =
   let print ?max_level = print_ty ?max_level grades ty_print_param in
-  let rec parts ty effects =
-    match ty with
-    | TyArrow (ty1, CompTy (ty2, eps)) ->
-        print ~max_level:2 ty1
-        :: parts ty2 (if grades.pure eps then effects else eps :: effects)
-    | _ ->
-        [
-          (fun ppf ->
-            print ~max_level:3 ty ppf;
-            List.iter
-              (fun eps -> Format.fprintf ppf " # %t" (grades.eps eps))
-              effects);
-        ]
-  in
-  match ty with TyArrow _ -> parts ty [] | _ -> [ print ty ]
+  match ty with
+  | TyArrow (ty1, CompTy (ty2, eps)) -> (
+      let domain = print ~max_level:3 ty1 in
+      let grade = if grades.pure eps then None else Some (grades.eps eps) in
+      match ty2 with
+      | _ when parenthesised_codomain grades eps ty2 ->
+          {
+            domains = [ domain ];
+            codomain = Parenthesised (arrow_parts grades ty_print_param ty2);
+            grade;
+          }
+      | TyArrow _ ->
+          let arrows = arrow_parts grades ty_print_param ty2 in
+          { arrows with domains = domain :: arrows.domains }
+      | _ ->
+          {
+            domains = [ domain ];
+            codomain = Plain (print ~max_level:3 ty2);
+            grade;
+          })
+  | _ -> { domains = []; codomain = Plain (print ty); grade = None }
 
 let rec print_pattern ?max_level p ppf =
   let print ?at_level = Print.print ?max_level ?at_level ppf in
