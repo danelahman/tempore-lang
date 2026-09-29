@@ -508,12 +508,69 @@
       text-decoration: underline;
     }
 
-    /* The example button: the title of the example last loaded at the left,
-       an ellipsis at the right, since it opens the gallery. */
+    /* The example button: the example last loaded, after the short form of
+       its group, at the left, an ellipsis at the right, since it opens the
+       gallery. */
     .example-button {
       justify-content: space-between;
       gap: 0.5em;
       text-align: left;
+    }
+
+    .example-button > .choice-label {
+      flex: 1 1 auto;
+    }
+
+    /* The one-line label of a choice made under a heading: the heading in
+       grey, a dot, and the choice. The heading and the dot are kept whole;
+       the choice takes the remaining width, ending in an ellipsis where it
+       does not fit. */
+    .choice-label {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .choice-heading,
+    .choice-separator {
+      flex: none;
+      color: #7a7a7a;
+    }
+
+    .choice-separator {
+      padding: 0 0.4em;
+    }
+
+    .choice-name {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* A select whose closed control shows its choice as a choice label: the
+       select's own text is transparent, and the label is laid over it within
+       the select's padding, letting clicks and keys through. The options keep
+       Bulma's text colour where the browser draws the list. */
+    .choice-select select {
+      color: transparent;
+    }
+
+    .choice-select select optgroup,
+    .choice-select select option {
+      color: #363636;
+    }
+
+    .choice-select > .choice-label {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0.75em;
+      right: 2.5em;
+      pointer-events: none;
+      color: #363636;
     }
 
     /* The example gallery: a layer over the dimmed page, holding a panel
@@ -674,6 +731,13 @@
     /* the example last loaded */
     .example-card.is-current {
       border-color: #3298dc;
+      background: #f5fafe;
+      box-shadow: inset 0 0 0 1px #3298dc;
+    }
+
+    .example-card:focus-visible {
+      outline: 2px solid #3298dc;
+      outline-offset: 2px;
     }
 
     .example-card-title {
