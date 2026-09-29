@@ -135,6 +135,14 @@ let nil_label = Label.fresh nil_label_string
 let cons_label_string = "$cons$"
 let cons_label = Label.fresh cons_label_string
 
+(* The name a label reads as in user-facing text: the surface syntax for the
+   list constructors, the label's own name otherwise. The internal strings
+   above stay unparsable; only this rendering is user-facing. *)
+let label_string_of lbl =
+  if lbl = nil_label then "[]"
+  else if lbl = cons_label then "::"
+  else Label.string_of lbl
+
 (** A position within a type, where the unification of two types fails. *)
 type step =
   | Argument

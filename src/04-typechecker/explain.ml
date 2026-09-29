@@ -323,7 +323,7 @@ module Make (C : Inference.Constraint.S) = struct
     else Some (code (Ast.Variable.string_of x))
 
   let op_name op = code (Ast.OpName.string_of op)
-  let label_name lbl = code (Ast.Label.string_of lbl)
+  let label_name lbl = code (Ast.label_string_of lbl)
 
   (* "Variable x" or "This expression"; both start a sentence. *)
   let subject x =

@@ -1718,6 +1718,13 @@
   State: []
   
   ======================================================================
+  list_constructor_reject.tpe
+  ======================================================================
+  File "list_constructor_reject.tpe", line 3, characters 23-33:
+  3 | let f l = match l with x :: n + 1 -> x | _ -> 0
+                             ^^^^^^^^^^
+  Typing error: Constructor `::` expects an argument of type `nat` but is given `α list`
+  ======================================================================
   literals_rational_interval.tpe
   ======================================================================
   === Run 1 ===

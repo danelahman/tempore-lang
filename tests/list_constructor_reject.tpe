@@ -1,0 +1,3 @@
+(* Rejected: the tail of a cons pattern is a list, not a nat. *)
+
+let f l = match l with x :: n + 1 -> x | _ -> 0
