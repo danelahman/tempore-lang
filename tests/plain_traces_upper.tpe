@@ -1,0 +1,29 @@
+(* Correctly accepted by the typechecker, under the 'traces-upper-bound'
+   grading monoid, whose order is the inclusion of sets of runs: the
+   operations declare no runtime bounds, the runs of the branches of a
+   conditional are joined, and adjacent delays are merged. *)
+
+operation Read : unit ~> nat # {Read}
+operation Send : nat ~> unit # {Send}
+
+(* A reading sent at once or after two pauses of one time step, which make
+   the run listed with a pause of two. *)
+let relay (urgent : bool) : unit # {Read; Send | Read; 2; Send} =
+  let x = perform Read () in
+  if urgent then perform Send x else (delay 1; delay 1; perform Send x)
+
+(* A box whose grade lists more runs than are exhibited before it is
+   unboxed. *)
+let report () =
+  box {Read; Send | Read; 2; Send | Send} () as due in
+  relay false;
+  unbox due as u in
+  u
+
+(* The greatest grade permits any run. *)
+let anything () =
+  box top () as due in
+  relay true;
+  delay 3;
+  unbox due as u in
+  u

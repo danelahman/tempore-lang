@@ -125,15 +125,34 @@ finite one (`0.125`), and otherwise as a fraction (`1/3`). See
 
 A grade is a non-empty finite set of *traces*, the runs a computation may
 exhibit. A run alternates operations and delays: `Read; 3; Send` performs
-`Read`, waits three steps, and performs `Send`. Grades multiply by
-concatenation. Every atomic operation declares runtime bounds
-`within (lo, hi)`, at which the orders trade time against operations.
+`Read`, waits three steps, and performs `Send`; adjacent delays are merged, so
+`Read; 1; 2; Send` is the same run. Grades multiply by concatenation and join
+by union. Operations declare no runtime bounds.
 
-- `traces-lower-bound`: the runs a computation must *cover*; an operation
+- `traces-upper-bound`: the runs a computation is *allowed*, ordered by
+  inclusion; a delay pays for no operation, and `{Read}` is not below `{3}`.
+  The unit `{0}` is not least, and `⊤`, any run, is the top.
+
+Runs are compared by equality, so lower bounds and intervals would again be
+inclusion, and only upper bounds are provided. The rational variant
+`traces-upper-bound-rational` has delays that are non-negative rationals.
+Literals are those of the trace grades with costs, below. When an ordering
+fails, a note names a run of the lesser grade that the greater one does not
+list. The name `traces-upper-bound` formerly denoted the grade now named
+`traces-cost-upper-bound`. See
+[`examples/traces/plain_traces_upper.tpe`](examples/traces/plain_traces_upper.tpe).
+
+### Traces with costs
+
+The grades are finite sets of traces as above, and every atomic operation
+declares runtime bounds `within (lo, hi)`, at which the orders trade time
+against operations.
+
+- `traces-cost-lower-bound`: the runs a computation must *cover*; an operation
   performed counts as `lo` steps towards a demanded delay. `{0}` is the top.
-- `traces-upper-bound`: the runs a computation is *allowed*; a delay pays for
-  operations at their `hi`. `{0}` is least and `⊤` the top.
-- `traces-interval`: pairs `({...}, {...})` of a lower and an upper bound,
+- `traces-cost-upper-bound`: the runs a computation is *allowed*; a delay pays
+  for operations at their `hi`. `{0}` is least and `⊤` the top.
+- `traces-cost-interval`: pairs `({...}, {...})` of a lower and an upper bound,
   compared componentwise; `{...}` abbreviates `({...}, {...})`, `n` is
   `({n}, {n})` and `(n, m)` is `({n}, {m})`.
 
@@ -143,12 +162,12 @@ Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
 [`examples/traces/traces_upper.tpe`](examples/traces/traces_upper.tpe) and
 [`examples/traces/traces_intervals.tpe`](examples/traces/traces_intervals.tpe).
 
-The rational variants `traces-lower-bound-rational`,
-`traces-upper-bound-rational` and `traces-interval-rational` have the same
-orders, units and tops, with delays and runtime bounds that are non-negative
-rationals: `{Sample; 1/2; Send}` waits half a unit between the two operations,
-a fraction `q` abbreviates `{q}`, and an operation may declare fractional
-runtime bounds such as `within (1/2, 3/2)`. See
+The rational variants `traces-cost-lower-bound-rational`,
+`traces-cost-upper-bound-rational` and `traces-cost-interval-rational` have the
+same orders, units and tops, with delays and runtime bounds that are
+non-negative rationals: `{Sample; 1/2; Send}` waits half a unit between the two
+operations, a fraction `q` abbreviates `{q}`, and an operation may declare
+fractional runtime bounds such as `within (1/2, 3/2)`. See
 [`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
 
 ### Regular expressions
@@ -184,15 +203,15 @@ effects of their design choices; see
 
 ### Regular expressions with costs
 
-A grade is a regular language of runs, as under `regex-upper-bound`, ordered as the
-trace monoids order finite sets of runs, at the runtime bounds
+A grade is a regular language of runs, as under `regex-upper-bound`, ordered as
+the trace monoids with costs order finite sets of runs, at the runtime bounds
 `within (lo, hi)` of the atomic operations. A grade stands for its closure:
 the runs that fit inside one of its runs (upper) or cover one of them (lower).
 
 - `regex-cost-upper-bound`: allowance order at `hi`; `{0}` is least, `⊤` the top.
 - `regex-cost-lower-bound`: coverage order at `lo`; `{0}` is the top.
 - `regex-cost-interval`: pairs of a lower and an upper bound, with the
-  abbreviations of `traces-interval`; the top is `({0}, ⊤)`.
+  abbreviations of `traces-cost-interval`; the top is `({0}, ⊤)`.
 
 Each is also available with the suffix `-symbolic`, over
 `regex-upper-bound-symbolic`. Literals are those of `regex-upper-bound`. The alphabet is
@@ -349,9 +368,9 @@ A type is *eternal* if its values stay valid however much grade accumulates.
 Base types, and tuples and algebraic types built from eternal types, are
 eternal; function, handler and box types are not. A local variable of a
 non-eternal type may be used only while the grade accumulated since its binding
-is a sub-grade of the unit. Under `time-lower-bound` and `traces-lower-bound`
-this always holds; under the other monoids such a variable must be used before
-any delay or operation call.
+is a sub-grade of the unit. Under `time-lower-bound` and
+`traces-cost-lower-bound` this always holds; under the other monoids such a
+variable must be used before any delay or operation call.
 
 ### Schemes and qualifiers
 
@@ -379,8 +398,8 @@ operation Read : unit ~> string # 2
 ```
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
-trace and cost-model monoids, an *atomic* operation, graded by its own
-name, also declares its runtime bounds (`within n` abbreviates
+trace and regular-expression monoids with costs, an *atomic* operation, graded
+by its own name, also declares its runtime bounds (`within n` abbreviates
 `within (n, n)`):
 
 ```
@@ -389,10 +408,10 @@ operation Tx : string ~> unit # {Tx} within (2, 3)
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 `lo <= hi` and `hi` positive, and each grade reads them as its delays. The
-rational trace monoids accept fractional bounds such as `within (1/2, 3/2)`;
-the other monoids that read runtime bounds count whole time steps, so
-`within (1/2, 1)` is a syntax error under them. The other monoids reject
-runtime bounds altogether.
+rational trace monoids with costs accept fractional bounds such as
+`within (1/2, 3/2)`; the other monoids that read runtime bounds count whole
+time steps, so `within (1/2, 1)` is a syntax error under them. The other
+monoids reject runtime bounds altogether.
 
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `(2, 6)`.
@@ -424,11 +443,12 @@ and [`examples/3dprint/3dprint_handlers.tpe`](examples/3dprint/3dprint_handlers.
 ### Contexts of operation cases
 
 An operation case is typed with the top grade `⊤` accumulated for the
-variables bound outside it. Under `time-lower-bound` and `traces-lower-bound`
-the top is the unit, which restricts nothing. Under the other monoids an outer
-variable of non-eternal type, including an outer continuation, cannot be used
-in the case, and an outer box can be unboxed only if `⊤` is below its grade. The
-case's own `p` and `k`, and top-level definitions, are unaffected. See
+variables bound outside it. Under `time-lower-bound` and
+`traces-cost-lower-bound` the top is the unit, which restricts nothing. Under
+the other monoids an outer variable of non-eternal type, including an outer
+continuation, cannot be used in the case, and an outer box can be unboxed only
+if `⊤` is below its grade. The case's own `p` and `k`, and top-level
+definitions, are unaffected. See
 [`examples/handlers/handlers_nested.tpe`](examples/handlers/handlers_nested.tpe)
 and
 [`examples/handlers/handlers_nested_reject.tpe`](examples/handlers/handlers_nested_reject.tpe).

@@ -1,8 +1,8 @@
 (* The print, epoxy and message pipeline, its runs bounded above and below.
 
-   Run this example with the 'traces-interval' grading monoid, e.g.
+   Run this example with the 'traces-cost-interval' grading monoid, e.g.
 
-     ./tempore --grades traces-interval examples/traces/traces_intervals.tpe
+     ./tempore --grades traces-cost-interval examples/traces/traces_intervals.tpe
 
    Grades ({...}, {...}): a lower and an upper bound on the traces
      - Unit ({0}, {0}): nothing demanded, only the empty run allowed

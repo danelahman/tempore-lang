@@ -1,8 +1,8 @@
 (* The print, epoxy and message pipeline, with its runs bounded from above.
 
-   Run this example with the 'traces-upper-bound' grading monoid, e.g.
+   Run this example with the 'traces-cost-upper-bound' grading monoid, e.g.
 
-     ./tempore --grades traces-upper-bound examples/traces/traces_upper.tpe
+     ./tempore --grades traces-cost-upper-bound examples/traces/traces_upper.tpe
 
    Grades {...}: traces a computation is allowed
      - Unit {0}: the empty run, the least grade

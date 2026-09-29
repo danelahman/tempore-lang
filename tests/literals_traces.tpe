@@ -1,5 +1,5 @@
-(* The top '⊤' (ASCII 'top') under traces-interval is '({0}, ⊤)', and either
-   component of a pair may be the top of its own order. *)
+(* The top '⊤' (ASCII 'top') under traces-cost-interval is '({0}, ⊤)', and
+   either component of a pair may be the top of its own order. *)
 
 operation Send : unit ~> unit # {Send} within (1, 2)
 

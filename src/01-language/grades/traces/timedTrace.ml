@@ -3,13 +3,15 @@
 
     A trace is one run of a computation as it is observed from outside: an
     alternation of operation events and positive delays. A grade is a set of
-    such runs, read disjunctively, multiplied by the language product. The two
-    orders below are allowance (an upper bound: "every run fits inside the
-    bound") and coverage (a lower bound: "the run covers the guarantee"), each
-    defined on single runs and then lifted to sets.
+    such runs, read disjunctively, multiplied by the language product. The sets
+    over a monoid of delays ({!Delay.S}) are ordered by inclusion ({!Base}). The
+    two orders with costs ({!Make}) are allowance (an upper bound: "every run
+    fits inside the bound") and coverage (a lower bound: "the run covers the
+    guarantee"), each defined on single runs and then lifted to sets.
 
-    The delays are those of an ordered monoid with monus ({!Delay.MONUS}): the
-    orders bank delays in a budget with [add] and spend them with [monus].
+    The delays of the orders with costs are those of an ordered monoid with
+    monus ({!Delay.MONUS}): the orders bank delays in a budget with [add] and
+    spend them with [monus].
 
     {2 Canonical representation}
 
@@ -19,8 +21,9 @@
     Anything building a value of these types outside this module must go through
     {!normalise} and {!of_list}. *)
 
-(** The traces over the delays [D]. *)
-module Make (D : Delay.MONUS) = struct
+(** The traces over the delays [D], their product, union, inclusion and
+    literals. *)
+module Base (D : Delay.S) = struct
   type event =
     | Ev of string  (** an operation event, named by its surface name *)
     | Wait of D.t  (** a delay; in normal form its duration is not [zero] *)
@@ -92,6 +95,110 @@ module Make (D : Delay.MONUS) = struct
   (** [of_delay n] is the singleton set containing the pure delay of duration
       [n]; [of_delay zero] is the unit [{ε}]. *)
   let of_delay n = [ normalise [ Wait n ] ]
+
+  (** [missing p q] is the least run of [p] that [q] does not list, if any,
+      found by a merge of the two sorted sets. *)
+  let rec missing p q =
+    match (p, q) with
+    | [], _ -> None
+    | s :: _, [] -> Some s
+    | s :: p', t :: q' -> (
+        match compare_trace s t with
+        | 0 -> missing p' q'
+        | c when c > 0 -> missing p q'
+        | _ -> Some s)
+
+  (** [subset p q] decides the inclusion of the set of runs [p] in [q]. *)
+  let subset p q = Option.is_none (missing p q)
+
+  (** [events p] lists, sorted and without repetitions, the operation names
+      mentioned anywhere in [p]. *)
+  let events p =
+    List.sort_uniq String.compare
+      (List.concat_map
+         (List.filter_map (function Ev o -> Some o | Wait _ -> None))
+         p)
+
+  let show_event = function Ev o -> o | Wait n -> D.show n
+
+  (** [show_trace t] prints a run as [Read; 3; Send]; the empty run prints as
+      [0], the delay [zero] it denotes. *)
+  let show_trace = function
+    | [] -> D.show D.zero
+    | t -> String.concat "; " (List.map show_event t)
+
+  (** [show p] prints a set of runs as [{Read; 3; Send | Send; Send}]. *)
+  let show p = "{" ^ String.concat " | " (List.map show_trace p) ^ "}"
+
+  (** {2 Literals} *)
+
+  open GradeLiteral
+
+  (** [delay_of_lit lit tick] is the delay the numeric literal [tick], part of
+      the literal [lit], denotes. *)
+  let delay_of_lit lit tick =
+    match D.read tick with
+    | Some d -> d
+    | None -> invalid_lit lit "%s" (D.rejection tick)
+
+  (** [of_regex lit r] is the set of traces the star-free regular expression
+      [r], without [&], [~] or [_], denotes; [lit] is the literal it is part of.
+  *)
+  let rec of_regex lit = function
+    | Letter name -> [ [ Ev name ] ]
+    | Tick n -> of_delay (delay_of_lit lit (Int n))
+    | Frac q -> of_delay (delay_of_lit lit (Rat q))
+    | Seq (r, s) -> binary lit product r s
+    | Union (r, s) -> binary lit union r s
+    | Star _ -> unsupported lit "repetition '*'"
+    | Inter _ -> unsupported lit "intersection '&'"
+    | Compl _ -> unsupported lit "complement '~'"
+    | Any -> unsupported lit "the wildcard '_'"
+
+  (* The operands are read left to right, so the leftmost unsupported form is
+     the one reported. *)
+  and binary lit combine r s =
+    let p = of_regex lit r in
+    let q = of_regex lit s in
+    combine p q
+
+  and unsupported lit form =
+    invalid_lit lit
+      "sets of traces are built from operation names and delays with ';' and \
+       '|' only, without %s"
+      form
+
+  (** [number lit] is the value of the numeric literal [lit] if it or its
+      negation is a delay. *)
+  let number lit =
+    let value = function
+      | Int n -> Some (Rational.of_int n)
+      | Rat q -> Some q
+      | _ -> None
+    in
+    let delay q = Option.is_some (D.read (rational_lit q)) in
+    Option.bind (value lit) (fun q ->
+        if delay q || delay (Rational.neg q) then Some q else None)
+
+  (** [of_lit ~number:n lit] is the set of traces the one-sided literal [lit]
+      denotes, [n] naming the literals of the delays in the singular. A negative
+      number is rejected as such where its absolute value is a delay. *)
+  let of_lit ~number:n = function
+    | Braces r as lit -> of_regex lit r
+    | lit -> (
+        match D.read lit with
+        | Some d -> of_delay d
+        | None when Option.is_some (number lit) ->
+            invalid_lit lit "grades must be non-negative"
+        | None ->
+            invalid_lit lit
+              "grades are a single set of traces '{...}' or a plain %s, not %s"
+              n (describe_lit lit))
+end
+
+(** The traces over the delays [D] with the orders with costs. *)
+module Make (D : Delay.MONUS) = struct
+  include Base (D)
 
   (** [allowance cost k s t] decides the allowance order at budget [k]: the
       bound [t] permits the run [s], given [k] units of budget already banked.
@@ -180,23 +287,4 @@ module Make (D : Delay.MONUS) = struct
         List.fold_left
           (fun d t -> D.max d (duration cost t))
           (duration cost t) p
-
-  (** [events p] lists, sorted and without repetitions, the operation names
-      mentioned anywhere in [p]. *)
-  let events p =
-    List.sort_uniq String.compare
-      (List.concat_map
-         (List.filter_map (function Ev o -> Some o | Wait _ -> None))
-         p)
-
-  let show_event = function Ev o -> o | Wait n -> D.show n
-
-  (** [show_trace t] prints a run as [Read; 3; Send]; the empty run prints as
-      [0], the delay [zero] it denotes. *)
-  let show_trace = function
-    | [] -> D.show D.zero
-    | t -> String.concat "; " (List.map show_event t)
-
-  (** [show p] prints a set of runs as [{Read; 3; Send | Send; Send}]. *)
-  let show p = "{" ^ String.concat " | " (List.map show_trace p) ^ "}"
 end

@@ -1,7 +1,7 @@
-(* Correctly accepted by the typechecker, under the 'traces-interval-rational'
-   grading monoid: the delays and the runtime bounds are non-negative
-   rationals; the coverage order banks operations at their lower runtime
-   bounds, and the allowance order buys them at their upper ones. *)
+(* Correctly accepted by the typechecker, under the
+   'traces-cost-interval-rational' grading monoid: the delays and the runtime
+   bounds are non-negative rationals; the coverage order banks operations at
+   their lower runtime bounds and the allowance order buys them at the upper. *)
 
 (* A reading of the sensor takes between half a time unit and one and a
    half. *)

@@ -16,6 +16,7 @@ type entry = {
 (* The groups of the grades, each its label and the label's short form. *)
 let time = ("Time", "Time")
 let traces = ("Traces", "Traces")
+let traces_costs = ("Traces with costs", "Traces (costs)")
 let regex = ("Regular expressions", "Regex")
 let regex_costs = ("Regular expressions with costs", "Regex (costs)")
 let security = ("Security levels", "Security")
@@ -57,32 +58,42 @@ let entries =
       time "Intervals (rational)"
       "Between q and r time units, rationals, ordered by containment.";
     entry
+      (module TraceInclusionGrades.UpperBound)
+      traces "Upper bounds"
+      "Sets of traces ordered by inclusion; operations declare no runtime \
+       bounds.";
+    entry
+      (module TraceInclusionGrades.Rational.UpperBound)
+      traces "Upper bounds (rational)"
+      "Sets of traces with rational delays ordered by inclusion; operations \
+       declare no runtime bounds.";
+    entry
       (module TimedTraceGrades.LowerBound)
-      traces "Lower bounds"
+      traces_costs "Lower bounds"
       "Sets of traces in the coverage order, operations costing their lower \
        runtime bounds.";
     entry
       (module TimedTraceGrades.UpperBound)
-      traces "Upper bounds"
+      traces_costs "Upper bounds"
       "Sets of traces in the allowance order, operations costing their upper \
        runtime bounds.";
     entry
       (module TimedTraceGrades.Interval)
-      traces "Intervals"
+      traces_costs "Intervals"
       "Pairs of a lower and an upper trace bound, compared componentwise.";
     entry
       (module TimedTraceGrades.Rational.LowerBound)
-      traces "Lower bounds (rational)"
+      traces_costs "Lower bounds (rational)"
       "Sets of traces with rational delays in the coverage order, operations \
        costing their lower runtime bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.UpperBound)
-      traces "Upper bounds (rational)"
+      traces_costs "Upper bounds (rational)"
       "Sets of traces with rational delays in the allowance order, operations \
        costing their upper runtime bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.Interval)
-      traces "Intervals (rational)"
+      traces_costs "Intervals (rational)"
       "Pairs of a lower and an upper trace bound with rational delays, \
        compared componentwise.";
     entry

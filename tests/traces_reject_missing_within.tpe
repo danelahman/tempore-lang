@@ -1,4 +1,4 @@
-(* Correctly rejected by the typechecker, under the 'traces-upper-bound'
+(* Correctly rejected by the typechecker, under the 'traces-cost-upper-bound'
    grading monoid: the runtime bounds of an operation must be declared under the
    trace grading monoids. *)
 

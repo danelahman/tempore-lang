@@ -1,12 +1,12 @@
 (** Grades: partially ordered monoids with a greatest element and binary joins.
 
     The instances the prototype offers are defined in {!TimeGrades},
-    {!RationalTimeGrades}, {!TimedTraceGrades}, {!RegularTraceGrade},
-    {!RegularTraceGradeDerivative}, {!RegularTraceGradePlain},
-    {!RegularCostTraceGrades}, {!LevelGrades}, {!PeakGrades}, {!WindowGrades},
-    {!ModeGrades} and {!CountGrades}, built with the constructions of
-    {!GradeConstructions}, and listed in {!GradeRegistry}; the regular trace
-    grades are implementations of the same grade.
+    {!RationalTimeGrades}, {!TraceInclusionGrades}, {!TimedTraceGrades},
+    {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
+    {!RegularTraceGradePlain}, {!RegularCostTraceGrades}, {!LevelGrades},
+    {!PeakGrades}, {!WindowGrades}, {!ModeGrades} and {!CountGrades}, built with
+    the constructions of {!GradeConstructions}, and listed in {!GradeRegistry};
+    the regular trace grades are implementations of the same grade.
 
     {2 Laws}
 
@@ -26,15 +26,16 @@
 
     {2 Cost model}
 
-    The orders of the trace grades read the runtime bounds [within (lo, hi)]
-    that operations declare, and those of the cost-model regular trace grades
-    also the set of the operations the program declares, over which their
-    catch-all letter ranges: all of them, before or after the grade, so that a
-    grade means the same throughout a program. The operations that depend on the
-    order, [leq], [equal], [counterexample], [implied_bounds] and [inhabited],
-    take both as an argument of type {!bounds}; the other grades ignore it.
-    Runtime bounds are kept as the non-negative rationals the source writes
-    ({!runtime}), and each grade reads them as its delays ({!read_bound}).
+    The orders of the trace grades with costs read the runtime bounds
+    [within (lo, hi)] that operations declare, and those of the cost-model
+    regular trace grades also the set of the operations the program declares,
+    over which their catch-all letter ranges: all of them, before or after the
+    grade, so that a grade means the same throughout a program. The operations
+    that depend on the order, [leq], [equal], [counterexample], [implied_bounds]
+    and [inhabited], take both as an argument of type {!bounds}; the other
+    grades ignore it. Runtime bounds are kept as the non-negative rationals the
+    source writes ({!runtime}), and each grade reads them as its delays
+    ({!read_bound}).
 
     {2 Literals}
 
@@ -137,9 +138,10 @@ module type S = sig
       lower end of its [bounds], and the duration of its slowest run, each event
       counted at the upper end. The fastest run is taken over the lower-bound
       component of the grade and the slowest over its upper-bound component,
-      which coincide for the one-sided trace grades. The time grades imply
-      nothing, since there the grade of an operation already is its runtime
-      bound, and return [None]; so does an unbounded upper-bound component. *)
+      which coincide for the one-sided trace grades with costs. The time grades
+      imply nothing, since there the grade of an operation already is its
+      runtime bound, and return [None]; so does an unbounded upper-bound
+      component. *)
 
   val inhabited : bounds -> t -> bool
   (** [inhabited bounds rho] is whether the grade [rho] denotes at least one run

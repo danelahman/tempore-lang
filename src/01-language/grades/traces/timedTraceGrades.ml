@@ -11,66 +11,9 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
   let lo_cost (bounds : bounds) op = read_bound D.read (fst (bounds.cost op))
   let hi_cost (bounds : bounds) op = read_bound D.read (snd (bounds.cost op))
 
-  (** [delay_of_lit lit tick] is the delay the numeric literal [tick], part of
-      the literal [lit], denotes. *)
-  let delay_of_lit lit tick =
-    match D.read tick with
-    | Some d -> d
-    | None -> invalid_lit lit "%s" (D.rejection tick)
-
-  (** [traces_of_regex lit r] is the set of traces the star-free regular
-      expression [r], without [&], [~] or [_], denotes; [lit] is the literal it
-      is part of. *)
-  let rec traces_of_regex lit = function
-    | Letter name -> [ [ Trace.Ev name ] ]
-    | Tick n -> Trace.of_delay (delay_of_lit lit (Int n))
-    | Frac q -> Trace.of_delay (delay_of_lit lit (Rat q))
-    | Seq (r, s) -> binary lit Trace.product r s
-    | Union (r, s) -> binary lit Trace.union r s
-    | Star _ -> unsupported lit "repetition '*'"
-    | Inter _ -> unsupported lit "intersection '&'"
-    | Compl _ -> unsupported lit "complement '~'"
-    | Any -> unsupported lit "the wildcard '_'"
-
-  (* The operands are read left to right, so the leftmost unsupported form is
-     the one reported. *)
-  and binary lit combine r s =
-    let p = traces_of_regex lit r in
-    let q = traces_of_regex lit s in
-    combine p q
-
-  and unsupported lit form =
-    invalid_lit lit
-      "sets of traces are built from operation names and delays with ';' and \
-       '|' only, without %s"
-      form
-
-  (** [number lit] is the value of the numeric literal [lit] if it or its
-      negation is a delay. *)
-  let number lit =
-    let value = function
-      | Int n -> Some (Rational.of_int n)
-      | Rat q -> Some q
-      | _ -> None
-    in
-    let delay q = Option.is_some (D.read (rational_lit q)) in
-    Option.bind (value lit) (fun q ->
-        if delay q || delay (Rational.neg q) then Some q else None)
-
   (** [traces_of_lit lit] is the set of traces the one-sided literal [lit]
-      denotes. A negative number is rejected as such where its absolute value is
-      a delay. *)
-  let traces_of_lit = function
-    | Braces r as lit -> traces_of_regex lit r
-    | lit -> (
-        match D.read lit with
-        | Some d -> Trace.of_delay d
-        | None when Option.is_some (number lit) ->
-            invalid_lit lit "grades must be non-negative"
-        | None ->
-            invalid_lit lit
-              "grades are a single set of traces '{...}' or a plain %s, not %s"
-              N.number (describe_lit lit))
+      denotes. *)
+  let traces_of_lit = Trace.of_lit ~number:N.number
 
   (** Sets of traces read as lower bounds, in the coverage order. *)
   module LowerTraces = struct
@@ -160,7 +103,7 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
     include LowerTraces
     module Delay = D
 
-    let name = "traces-lower-bound" ^ N.suffix
+    let name = "traces-cost-lower-bound" ^ N.suffix
     let mul = Trace.product
     let leq_symbol = "<="
     let equal bounds p q = leq bounds p q && leq bounds q p
@@ -185,7 +128,7 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
     include UpperTraces
     module Delay = D
 
-    let name = "traces-upper-bound" ^ N.suffix
+    let name = "traces-cost-upper-bound" ^ N.suffix
     let leq_symbol = "<="
     let top = Unbounded
     let equal bounds p q = leq bounds p q && leq bounds q p
@@ -210,7 +153,7 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
 
     module Delay = D
 
-    let name = "traces-interval" ^ N.suffix
+    let name = "traces-cost-interval" ^ N.suffix
     let one = (LowerTraces.one, UpperTraces.one)
     let mul (lo, hi) (lo', hi') = (Trace.product lo lo', UpperTraces.mul hi hi')
 
@@ -256,9 +199,9 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
     let of_lit = function
       | Top -> top
       | Braces _ as lit -> diagonal lit
-      | lit when Option.is_some (number lit) -> diagonal lit
+      | lit when Option.is_some (Trace.number lit) -> diagonal lit
       | Tuple [ l; r ] as lit -> (
-          match (number l, number r) with
+          match (Trace.number l, Trace.number r) with
           | Some n, Some m when Rational.compare n m > 0 ->
               invalid_lit lit "interval endpoints must satisfy n <= m"
           | _ ->

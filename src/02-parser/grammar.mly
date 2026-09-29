@@ -548,7 +548,7 @@ sum_case:
     { (lbl, Some t) }
 
 (* The runtime bounds an operation declares, durations; [within n] is sugar
-   for [within (n, n)]. Only the trace grading monoids read them. *)
+   for [within (n, n)]. Only the grading monoids with costs read them. *)
 op_bounds:
   | WITHIN n = runtime_bound
     { (n, n) }

@@ -8,8 +8,10 @@
   >     rational_time_lower*.tpe) ../tempore --grades time-lower-bound-rational $f;;
   >     rational_time_upper*.tpe) ../tempore --grades time-upper-bound-rational $f;;
   >     rational_time_intervals*.tpe) ../tempore --grades time-interval-rational $f;;
-  >     rational_traces_upper*.tpe) ../tempore --grades traces-upper-bound-rational $f;;
-  >     rational_traces_intervals*.tpe) ../tempore --grades traces-interval-rational $f;;
+  >     rational_traces_upper*.tpe) ../tempore --grades traces-cost-upper-bound-rational $f;;
+  >     rational_traces_intervals*.tpe) ../tempore --grades traces-cost-interval-rational $f;;
+  >     plain_traces_upper*.tpe) ../tempore --grades traces-upper-bound $f;;
+  >     plain_rational_traces_upper*.tpe) ../tempore --grades traces-upper-bound-rational $f;;
   >     literals_rational_upper.tpe) ../tempore --grades time-upper-bound-rational $f;;
   >     literals_rational_interval.tpe) ../tempore --grades time-interval-rational $f;;
   >     literals_reject_rational_negative.tpe) ../tempore --grades time-upper-bound-rational $f;;
@@ -32,21 +34,21 @@
   >     continuation_twice_lower.tpe) ../tempore $f;;
   >     continuation_*.tpe) ../tempore --grades time-upper-bound $f;;
   >     error_use_after_delay.tpe) ../tempore --grades time-upper-bound $f;;
-  >     traces_lower.tpe) ../tempore --grades traces-lower-bound $f;;
-  >     3dprint_traces.tpe) ../tempore --grades traces-interval $f;;
-  >     traces_intervals.tpe) ../tempore --grades traces-interval $f;;
-  >     traces_intervals_bounds.tpe) ../tempore --grades traces-interval $f;;
-  >     traces_intervals_default_bounds.tpe) ../tempore --grades traces-interval $f;;
-  >     traces_*.tpe) ../tempore --grades traces-upper-bound $f;;
+  >     traces_lower.tpe) ../tempore --grades traces-cost-lower-bound $f;;
+  >     3dprint_traces.tpe) ../tempore --grades traces-cost-interval $f;;
+  >     traces_intervals.tpe) ../tempore --grades traces-cost-interval $f;;
+  >     traces_intervals_bounds.tpe) ../tempore --grades traces-cost-interval $f;;
+  >     traces_intervals_default_bounds.tpe) ../tempore --grades traces-cost-interval $f;;
+  >     traces_*.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     levels_time_lower*.tpe) ../tempore --grades time-lower-bound-levels $f;;
   >     levels_time_upper*.tpe) ../tempore --grades time-upper-bound-levels $f;;
   >     levels*.tpe) ../tempore --grades security-levels $f;;
   >     literals_time_upper.tpe) ../tempore --grades time-upper-bound $f;;
   >     literals_time_interval.tpe) ../tempore --grades time-interval $f;;
-  >     literals_traces.tpe) ../tempore --grades traces-interval $f;;
-  >     literals_reject_star.tpe) ../tempore --grades traces-upper-bound $f;;
+  >     literals_traces.tpe) ../tempore --grades traces-cost-interval $f;;
+  >     literals_reject_star.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     literals_reject_component.tpe) ../tempore --grades time-lower-bound-levels $f;;
-  >     literals_reject_complement.tpe) ../tempore --grades traces-upper-bound $f;;
+  >     literals_reject_complement.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     literals_reject_empty.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
   >     literals_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
   >     regular_*.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
@@ -902,7 +904,7 @@
   File "delay_reject_fraction.tpe", line 4, characters 20-23:
   4 | let wait () = delay 0.5
                           ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-lower-bound-rational', 'traces-upper-bound-rational', 'traces-interval-rational', 'security-levels' or 'flow-levels' grading monoids?
+  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-upper-bound-rational', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'security-levels' or 'flow-levels' grading monoids?
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
@@ -1528,7 +1530,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-lower-bound-rational', 'traces-upper-bound-rational', 'traces-interval-rational', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-cost-lower-bound', 'traces-cost-upper-bound', 'traces-cost-interval', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1862,7 +1864,7 @@
   File "literals_reject_complement.tpe", line 4, characters 19-32:
   4 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -1897,7 +1899,7 @@
   File "literals_reject_fraction.tpe", line 4, characters 19-22:
   4 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound-rational', 'traces-upper-bound-rational' or 'traces-interval-rational' grading monoids?
+  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound-rational', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational' or 'traces-cost-interval-rational' grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -1967,7 +1969,7 @@
   File "literals_reject_star.tpe", line 3, characters 19-31:
   3 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -1981,7 +1983,7 @@
   File "literals_reject_windows.tpe", line 3, characters 19-27:
   3 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-interval', 'traces-interval-rational', 'regex-cost-interval' or 'regex-cost-interval-symbolic' grading monoids?
+  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
   literals_time_interval.tpe
   ======================================================================
@@ -2718,6 +2720,35 @@
   Typing error: This function's body has grade `(0,1)`, which does not match its annotated grade `(-1,0,0)`
     Note: the effect inequality `(0,1) <= (-1,0,0)` does not hold
   ======================================================================
+  plain_rational_traces_upper.tpe
+  ======================================================================
+  ======================================================================
+  plain_traces_upper.tpe
+  ======================================================================
+  ======================================================================
+  plain_traces_upper_reject.tpe
+  ======================================================================
+  File "plain_traces_upper_reject.tpe", lines 15-16, characters 2-3:
+  15 |   unbox r as x in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `r` is unboxed with grade `{Heat}` accumulated since it was bound, which is not below its box grade `{1}`
+    File "plain_traces_upper_reject.tpe", line 13, characters 14-15:
+    13 |   box 1 42 as r in
+                       ^
+    `r` is bound here
+    File "plain_traces_upper_reject.tpe", line 14, characters 2-17:
+    14 |   perform Heat ();
+           ^^^^^^^^^^^^^^^
+    grade `{Heat}` accumulates here (operation `Heat`)
+    Note: the resource inequality `{Heat} <= {1}` does not hold
+  
+  File "plain_traces_upper_reject.tpe", lines 18-19, characters 32-67:
+  18 | let read_or_send (fresh : bool) : unit # {Read} =
+                                       ^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{Read | Send}`, which does not match its annotated grade `{Read}`
+    Note: the effect inequality `{Read | Send} <= {Read}` does not hold
+    Note: the grade `{Send}` is below `{Read | Send}` but not below `{Read}`
+  ======================================================================
   polymorphism.tpe
   ======================================================================
   === Run 1 ===
@@ -2863,7 +2894,7 @@
   File "rational_time_intervals_reject_within.tpe", line 5, characters 0-60:
   5 | operation Dose : unit ~> unit # (0.5, 1.5) within (1/2, 3/2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `time-interval-rational` grading monoid
+  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-interval-rational` grading monoid
   ======================================================================
   rational_time_lower.tpe
   ======================================================================
@@ -3564,7 +3595,7 @@
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
+  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe
   ======================================================================
@@ -4442,7 +4473,7 @@
   File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `time-lower-bound` grading monoid
+  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-lower-bound` grading monoid
   ======================================================================
   time_upper.tpe
   ======================================================================
@@ -4636,14 +4667,14 @@
   File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
   5 | operation Heat : unit ~> unit # {Heat} within (1/2, 1)
                                                      ^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-lower-bound-rational', 'traces-upper-bound-rational' or 'traces-interval-rational' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational' or 'traces-cost-interval-rational' grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
   File "traces_reject_missing_within.tpe", line 5, characters 0-38:
   5 | operation Heat : unit ~> unit # {Heat}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: atomic operation `Heat` needs runtime bounds `within (lo, hi)` under the `traces-upper-bound` grading monoid
+  Typing error: atomic operation `Heat` needs runtime bounds `within (lo, hi)` under the `traces-cost-upper-bound` grading monoid
   ======================================================================
   traces_reject_order.tpe
   ======================================================================
@@ -5019,7 +5050,7 @@ automata, 'regex-upper-bound':
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound` grading monoid
+  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound)
   ======================================================================
@@ -5713,14 +5744,14 @@ above:
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-derivatives` grading monoid
+  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-derivatives` grading monoid
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-plain)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace grading monoids and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-plain` grading monoid
+  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-plain` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-derivatives)
   ======================================================================
@@ -6278,12 +6309,15 @@ single-dash form of the help option is not accepted.
           time-upper-bound-rational          Upper bounds (rational)
           time-interval-rational             Intervals (rational)
         Traces:
-          traces-lower-bound                 Lower bounds
           traces-upper-bound                 Upper bounds
-          traces-interval                    Intervals
-          traces-lower-bound-rational        Lower bounds (rational)
           traces-upper-bound-rational        Upper bounds (rational)
-          traces-interval-rational           Intervals (rational)
+        Traces with costs:
+          traces-cost-lower-bound            Lower bounds
+          traces-cost-upper-bound            Upper bounds
+          traces-cost-interval               Intervals
+          traces-cost-lower-bound-rational   Lower bounds (rational)
+          traces-cost-upper-bound-rational   Upper bounds (rational)
+          traces-cost-interval-rational      Intervals (rational)
         Regular expressions:
           regex-upper-bound                  Upper bounds
           regex-upper-bound-symbolic         Upper bounds (symbolic derivatives)
@@ -6416,5 +6450,17 @@ The mail-session case study performs its operations by their defaults.
     {1},
     {1},
     {1}
+  ]
+  
+
+The example of the trace grades without costs runs to its value under a
+grade whose adjacent delays are merged.
+
+  $ ../tempore --grades traces-upper-bound ../examples/traces/plain_traces_upper.tpe
+  === Run 1 ===
+  return "closed"
+  State: [
+    { resource_0 ↦ "closed" # {3 | 4} },
+    {3}
   ]
   

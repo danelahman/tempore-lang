@@ -1,0 +1,16 @@
+(* Correctly accepted by the typechecker, under the
+   'traces-upper-bound-rational' grading monoid: the delays of the runs are
+   non-negative rationals, and adjacent delays are merged, so that two pauses
+   of a quarter make the run listed with a pause of a half. *)
+
+operation Sample : unit ~> nat # {Sample}
+operation Send : nat ~> unit # {Send}
+
+let report () =
+  box {Sample; 1/2; Send | 3/2} () as due in
+  let v = perform Sample () in
+  delay 1/4;
+  delay 0.25;
+  perform Send v;
+  unbox due as u in
+  u

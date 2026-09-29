@@ -1,0 +1,87 @@
+(* A door controller whose runs are listed exactly and compared by inclusion.
+
+   Run this example with the 'traces-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-upper-bound examples/traces/plain_traces_upper.tpe
+
+   Grades {...}: the runs a computation is allowed, compared by inclusion
+     - Unit {0}: the empty run
+     - Top ⊤: every run permitted
+     - Product: concatenation of runs *)
+
+type badge = Badge of string
+
+(* The operations declare no runtime bounds: a run records the operations and
+   the delays between them, and a delay pays for no operation. *)
+operation Scan : unit ~> badge # {Scan}
+operation Unlock : unit ~> unit # {Unlock}
+operation Lock : unit ~> unit # {Lock}
+operation Alarm : unit ~> unit # {Alarm}
+
+(* A visit, a compound operation: a known badge opens the door for three time
+   steps, an unknown one raises the alarm. *)
+operation Visit : unit ~> badge # {Scan; Unlock; 3; Lock | Scan; Alarm}
+
+(* Correctly accepted by the typechecker: the runs of the two branches are
+   joined into the set of both. *)
+let visit (known : bool) : badge # {Scan; Unlock; 3; Lock | Scan; Alarm} =
+  let b = perform Scan () in
+  if known then (
+    perform Unlock ();
+    delay 3;
+    perform Lock ();
+    b)
+  else (
+    perform Alarm ();
+    b)
+
+(* Correctly accepted by the typechecker: the door is held open in two waits,
+   whose delays are merged into the one the grade lists. *)
+let visit_in_steps () : badge # {Scan; Unlock; 3; Lock} =
+  let b = perform Scan () in
+  perform Unlock ();
+  delay 1;
+  delay 2;
+  perform Lock ();
+  b
+
+(* Correctly accepted by the typechecker: the clause realises a visit by an
+   admission, one of the runs 'Visit' permits. *)
+let admit =
+  handler
+  | x -> x
+  | Visit () k ->
+      let b = visit_in_steps () in
+      continue k with b
+
+(* Correctly accepted by the typechecker: an audit record boxed at the start
+   of a visit may be used once the visit is over, the runs exhibited since
+   boxing being among those its grade lists. *)
+let audited () =
+  box {Scan; Unlock; 3; Lock | Scan; Alarm} "entry" as record in
+  let b = perform Visit () in
+  unbox record as r in
+  (r, b)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run uses delays alone. *)
+run box {1; 2 | 4} "closed" as s in delay 3; unbox s as msg in msg
+
+(* Correctly rejected by the typechecker: a door held open for two time steps,
+   where the grade lists three. The runs are compared exactly, whereas under
+   'traces-cost-upper-bound' the delay of a bound is an allowance, which the
+   shorter wait stays within:
+
+     Typing error: This function's body has grade `{Scan; Unlock; 2; Lock}`,
+       which does not match its annotated grade `{Scan; Unlock; 3; Lock}`
+       Note: the effect inequality
+         `{Scan; Unlock; 2; Lock} <= {Scan; Unlock; 3; Lock}` does not hold
+*)
+(*
+let visit_brief () : badge # {Scan; Unlock; 3; Lock} =
+  let b = perform Scan () in
+  perform Unlock ();
+  delay 2;
+  perform Lock ();
+  b
+*)

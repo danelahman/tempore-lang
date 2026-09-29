@@ -341,6 +341,7 @@ let expected_rejections =
     ("operation_reject_higher_order.tpe", [ 8 ]);
     ("peak_resources_reject.tpe", [ 11; 18; 28 ]);
     ("peak_usage_reject.tpe", [ 9; 18; 27; 30; 38; 41; 49 ]);
+    ("plain_traces_upper_reject.tpe", [ 12; 18 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
     ("positivity_reject_list.tpe", [ 3 ]);
     ("positivity_reject_mutual.tpe", [ 3 ]);
@@ -1058,8 +1059,8 @@ let four_grades =
   [
     "time-lower-bound";
     "time-upper-bound";
-    "traces-lower-bound";
-    "traces-upper-bound";
+    "traces-cost-lower-bound";
+    "traces-cost-upper-bound";
   ]
 
 let () =

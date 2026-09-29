@@ -1,8 +1,8 @@
 (* A weather station timed in seconds, its runs bounded above and below.
 
-   Run this example with the 'traces-interval-rational' grading monoid, e.g.
+   Run this example with the 'traces-cost-interval-rational' grading monoid, e.g.
 
-     ./tempore --grades traces-interval-rational examples/traces/rational_traces_intervals.tpe
+     ./tempore --grades traces-cost-interval-rational examples/traces/rational_traces_intervals.tpe
 
    Grades ({...}, {...}): lower and upper bounds on traces with rational delays
      - Unit ({0}, {0}): nothing demanded, only the empty run allowed

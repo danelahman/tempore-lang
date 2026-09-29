@@ -1,7 +1,7 @@
-(* Correctly rejected by the typechecker, under the 'traces-interval-rational'
-   grading monoid: a reading is not ready after 3/4 of a time unit, since a
-   sample banks only its lower runtime bound of 1/2 and the rest of 1/8 falls
-   short of the remaining quarter. *)
+(* Correctly rejected by the typechecker, under the
+   'traces-cost-interval-rational' grading monoid: a reading is not ready after
+   3/4 of a time unit, since a sample banks only its lower runtime bound of 1/2
+   and the rest of 1/8 falls short of the remaining quarter. *)
 
 operation Sample : unit ~> nat # ({Sample}, {Sample}) within (1/2, 3/2)
 default Sample () = delay 3/4; 3

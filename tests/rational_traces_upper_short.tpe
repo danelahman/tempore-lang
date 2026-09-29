@@ -1,5 +1,5 @@
 (* Correctly accepted by the typechecker, under the
-   'traces-upper-bound-rational' grading monoid: an operation may take less
+   'traces-cost-upper-bound-rational' grading monoid: an operation may take less
    than one time unit, its upper runtime bound being positive. *)
 
 (* A tap takes between a quarter and a half of a time unit. *)

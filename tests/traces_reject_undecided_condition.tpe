@@ -1,4 +1,4 @@
-(* Correctly rejected by the typechecker, under the 'traces-upper-bound'
+(* Correctly rejected by the typechecker, under the 'traces-cost-upper-bound'
    grading monoid: the case for Op resumes k and then waits, so its grade must
    match {1} · ε for every effect ε of k, that is ε · {1} <= {1} · ε. This
    fails for ε = {Tick}, a grade the typechecker does not try: those it tries

@@ -1,4 +1,4 @@
-(* Correctly accepted by the typechecker, under 'traces-upper-bound': the
+(* Correctly accepted by the typechecker, under 'traces-cost-upper-bound': the
    annotation allows a single transmission or a retry, and the body transmits
    once, which fits inside either run. *)
 operation Tx : string ~> unit # {Tx} within (2, 3)
