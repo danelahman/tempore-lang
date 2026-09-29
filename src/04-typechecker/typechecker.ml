@@ -96,9 +96,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
         found :: rest
     | Some found -> [ found ]
 
-  let diagnose source = function
+  (* The command whose conditions a diagnostic names. *)
+  let subject (cmd : command) =
+    match cmd.it with
+    | Ast.OpDefault _ -> Some "this default implementation"
+    | Ast.TopDo _ | Ast.TopLet _ | Ast.TyDef _ | Ast.OpSig _ -> None
+
+  let diagnose cmd source = function
     | P.Malformed d -> d
-    | P.Refuted failure -> E.refuted source failure
+    | P.Refuted failure -> E.refuted ?subject:(subject cmd) source failure
     | P.Stuck stuck -> E.stuck source stuck
 
   (* The point at which a failing requirement is met in reading order: for
@@ -123,9 +129,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   (* The diagnostic of the failing requirement met first, the first found
      among those met at one point. *)
-  let first_met found =
+  let first_met cmd found =
     let met (source, error) =
-      let d = diagnose source error in
+      let d = diagnose cmd source error in
       (met_at error d, d)
     in
     let earlier ((point, _) as first) ((point', _) as next) =
@@ -149,10 +155,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
       | None -> []
       | exception Error.Error _ -> []
     in
-    match first_met found with
+    match first_met cmd found with
     | Some d -> d
     | None ->
-        diagnose
+        diagnose cmd
           { E.context; constr = None; solution = None; mismatch = None }
           error
 

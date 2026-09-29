@@ -24,8 +24,13 @@ module Make (C : Inference.Constraint.S) : sig
   (** What a failure is explained against. *)
 
   val refuted :
-    source -> Inference.Residual.Make(C).failure -> Utils.Diagnostic.t
-  (** [refuted source failure] is the diagnostic of [failure]. *)
+    ?subject:string ->
+    source ->
+    Inference.Residual.Make(C).failure ->
+    Utils.Diagnostic.t
+  (** [refuted ~subject source failure] is the diagnostic of [failure];
+      [subject] (by default ["this run"]) names the command whose conditions
+      could not be established. *)
 
   val stuck : source -> Inference.RigidScope.Make(C).stuck -> Utils.Diagnostic.t
   (** [stuck source s] is the diagnostic of a handler clause whose rigid scope

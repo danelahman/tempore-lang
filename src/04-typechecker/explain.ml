@@ -1825,7 +1825,7 @@ module Make (C : Inference.Constraint.S) = struct
           ~labels:(dedup (with_rigid_labels p rs labels))
           ~notes message
 
-  let refuted source = function
+  let refuted ?subject source = function
     | R.Shape_mismatch f | R.Occurs_check f -> mismatch source f
     | R.Refuted_rho o -> refuted_orderings source rho_sort o
     | R.Refuted_eps o -> refuted_orderings source eps_sort o
@@ -1834,7 +1834,7 @@ module Make (C : Inference.Constraint.S) = struct
         refuted_condition source condition witness
     | R.Undecided_condition condition -> undecided_condition source condition
     | R.Unestablished { rho_orderings; eps_orderings; conditions; abandoned } ->
-        unestablished source ~rho_orderings ~eps_orderings ~conditions
+        unestablished ?subject source ~rho_orderings ~eps_orderings ~conditions
           ~abandoned
     | R.Rigid_escape origin -> rigid_escape source origin
 

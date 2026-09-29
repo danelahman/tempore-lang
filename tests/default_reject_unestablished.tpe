@@ -1,0 +1,20 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/default_reject_unestablished.tpe
+
+   A default implementation is executed code, so its conditions are
+   established as those of a run. *)
+
+(* The body of loop has the grade of the recursive call followed by one tick,
+   which the annotation bounds by the same 'e. *)
+let rec loop (n : nat) : unit # 'e =
+  match n with 0 -> () | m + 1 -> (loop m; delay 1)
+
+operation Op : unit ~> unit # 3
+
+(* Correctly rejected by the typechecker: the default requires a grade ε₀
+   with 1 · ε₀ below both ε₀ and 3, and there is none; loop 20 takes 20
+   ticks. *)
+default Op () = loop 20
+
+run perform Op ()

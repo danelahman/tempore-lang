@@ -48,9 +48,8 @@ module Make (C : Constraint.S) = struct
 
   let check (cmd : command) =
     match cmd.it with
-    | Ast.TopDo _ -> S.established
-    | Ast.TyDef _ | Ast.OpSig _ | Ast.OpDefault _ | Ast.TopLet _ ->
-        S.satisfiable
+    | Ast.TopDo _ | Ast.OpDefault _ -> S.established
+    | Ast.TyDef _ | Ast.OpSig _ | Ast.TopLet _ -> S.satisfiable
 
   (* The constraint of a command [cmd] solved and its qualifier checked: its
      solution, or why it has none. *)

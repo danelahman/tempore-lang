@@ -297,6 +297,7 @@ let expected_rejections =
     ("default_reject_global.tpe", [ 11 ]);
     ("default_reject_loop.tpe", [ 6 ]);
     ("default_reject_type.tpe", [ 7 ]);
+    ("default_reject_unestablished.tpe", [ 18 ]);
     ("error_apply_arg.tpe", [ 8 ]);
     ("exhaustiveness_reject_bool.tpe", [ 3 ]);
     ("exhaustiveness_reject_constructor.tpe", [ 5 ]);

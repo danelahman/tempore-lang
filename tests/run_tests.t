@@ -13,6 +13,7 @@
   >     literals_reject_rational_negative.tpe) ../tempore --grades time-upper-bound-rational $f;;
   >     literals_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
   >     delay_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
+  >     default_reject_unestablished.tpe) ../tempore --grades time-upper-bound $f;;
   >     time_upper.tpe) ../tempore --grades time-upper-bound $f;;
   >     comp_type_annotation_upper*.tpe) ../tempore --grades time-upper-bound $f;;
   >     annotation_grade_variables_interval_reject.tpe) ../tempore --grades time-interval $f;;
@@ -866,6 +867,26 @@
     5 | operation Get : unit ~> nat # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Get` is declared here
+  ======================================================================
+  default_reject_unestablished.tpe
+  ======================================================================
+  File "default_reject_unestablished.tpe", line 18, characters 0-23:
+  18 | default Op () = loop 20
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The conditions of this default implementation could not be established: `1 · ε₀ <= 3` and `1 · ε₀ <= ε₀`
+    File "default_reject_unestablished.tpe", line 13, characters 0-31:
+    13 | operation Op : unit ~> unit # 3
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Op` is declared here
+    File "default_reject_unestablished.tpe", lines 10-11, characters 0-51:
+    10 | let rec loop (n : nat) : unit # 'e =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `loop` is defined here
+    File "default_reject_unestablished.tpe", line 18, characters 16-20:
+    18 | default Op () = loop 20
+                         ^^^^
+    the inequality goes through the type of `loop` here
+    Note: this default implementation requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
   ======================================================================
   default_reject_unknown.tpe
   ======================================================================
