@@ -117,6 +117,35 @@ let on_both_ends ~compare edges =
   in
   inter (ends fst) (ends snd)
 
+(* Depth-first search from the target of each edge of [fresh] for its
+   source. *)
+let closes_cycle (type v) ~(compare : v -> v -> int) edges fresh =
+  let module M = Map.Make (struct
+    type t = v
+
+    let compare = compare
+  end) in
+  let successors =
+    List.fold_right
+      (fun (a, b) succ ->
+        M.add a (b :: Option.value (M.find_opt a succ) ~default:[]) succ)
+      edges M.empty
+  in
+  let reaches target =
+    let rec visit seen = function
+      | [] -> false
+      | v :: rest ->
+          compare v target = 0
+          ||
+          if M.mem v seen then visit seen rest
+          else
+            visit (M.add v () seen)
+              (Option.value (M.find_opt v successors) ~default:[] @ rest)
+    in
+    visit M.empty
+  in
+  List.exists (fun (a, b) -> reaches a [ b ]) fresh
+
 (* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998). *)
 let collapse ~compare ~preferred ~movable edges =
   let vertices = on_both_ends ~compare edges in

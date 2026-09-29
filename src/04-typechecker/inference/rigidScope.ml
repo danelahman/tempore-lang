@@ -191,31 +191,23 @@ module Make (C : Constraint.S) = struct
     { empty_grade_subst with rho_subst = X.Rho_var.Map.singleton k rho }
 
   (* The residual less the orderings of the unknown's sort with it on the
-     greater side. *)
+     greater side, and those orderings. *)
   let drop_greater u (r : residual) =
     match u with
     | Eps_unknown _ ->
-        {
-          r with
-          eps_orderings =
-            List.filter
-              (fun (o : R.eps_ordering) -> not (in_eps u o.rhs))
-              r.eps_orderings;
-        }
+        let dropped, eps_orderings =
+          List.partition
+            (fun (o : R.eps_ordering) -> in_eps u o.rhs)
+            r.eps_orderings
+        in
+        ({ r with eps_orderings }, { R.empty with eps_orderings = dropped })
     | Rho_unknown _ ->
-        {
-          r with
-          rho_orderings =
-            List.filter
-              (fun (o : R.rho_ordering) -> not (in_rho u o.rhs))
-              r.rho_orderings;
-        }
-
-  let assigned u sigma drops (acc, r) =
-    let r =
-      match drops with Drop_greater -> drop_greater u r | Keep_all -> r
-    in
-    (X.compose_subst acc sigma, apply sigma r)
+        let dropped, rho_orderings =
+          List.partition
+            (fun (o : R.rho_ordering) -> in_rho u o.rhs)
+            r.rho_orderings
+        in
+        ({ r with rho_orderings }, { R.empty with rho_orderings = dropped })
 
   (* ------------------------------------------------------------------ *)
   (* The local unknowns                                                  *)
@@ -235,21 +227,24 @@ module Make (C : Constraint.S) = struct
   let grades_of_free (free : C.free) =
     union_grades (free.free_rhos, free.free_eps)
 
+  (* The grade unknowns of an atom, the rigids of a condition excepted. *)
+  let sides on_exp (o : _ GradeNormal.ordering) acc =
+    on_exp o.rhs (on_exp o.lhs acc)
+
+  let disjunction_grades (d : R.disjunction) = grades_of_rho d.disj_grade
+  let deferred_grades d = grades_of_free (R.free_vars_deferred d)
+
   (* The grade unknowns of the orderings, disjunction grades and deferred
-     conditions of [r], the rigids of the conditions excepted. *)
+     conditions of [r]. *)
   let grade_unknowns (r : residual) =
     let over on_item items acc =
       List.fold_left (fun acc item -> on_item item acc) acc items
-    and sides on_exp (o : _ GradeNormal.ordering) acc =
-      on_exp o.rhs (on_exp o.lhs acc)
     in
     no_grades
     |> over (sides grades_of_rho) r.rho_orderings
     |> over (sides grades_of_eps) r.eps_orderings
-    |> over
-         (fun (d : R.disjunction) -> grades_of_rho d.disj_grade)
-         r.disjunctions
-    |> over (fun d -> grades_of_free (R.free_vars_deferred d)) r.deferred
+    |> over disjunction_grades r.disjunctions
+    |> over deferred_grades r.deferred
 
   let local_unknowns scope r =
     let rhos, eps = grade_unknowns r in
@@ -261,85 +256,131 @@ module Make (C : Constraint.S) = struct
         (Eps_set.elements eps) )
 
   (* ------------------------------------------------------------------ *)
-  (* Normal forms and settled atoms                                      *)
+  (* Canonical and settled atoms                                         *)
   (* ------------------------------------------------------------------ *)
 
-  let rec eps_has_join = function
-    | X.Eps_var _ | X.Eps_const _ -> false
-    | X.Eps_mul (eps, eps') -> eps_has_join eps || eps_has_join eps'
-    | X.Eps_join _ -> true
+  (* The canonical forms of atoms: an ordering with the sides marked
+     [~lhs] and [~rhs] written canonically, the others being so already,
+     split into one ordering per alternative of its left side, less those
+     decided at no hypotheses; a disjunction's grade canonical. *)
+  type canon = {
+    rho_ordering :
+      lhs:bool -> rhs:bool -> R.rho_ordering -> R.rho_ordering list;
+    eps_ordering :
+      lhs:bool -> rhs:bool -> R.eps_ordering -> R.eps_ordering list;
+    grade : X.rho -> X.rho;
+  }
 
-  let rec rho_has_join = function
-    | X.Rho_var _ | X.Rho_const _ -> false
-    | X.Rho_mul (rho, rho') -> rho_has_join rho || rho_has_join rho'
-    | X.Rho_join _ -> true
-    | X.Rho_map eps -> eps_has_join eps
+  let canon_ordering ~alternatives ~canon ~decided ~lhs ~rhs
+      (o : _ GradeNormal.ordering) =
+    let rhs = if rhs then canon o.rhs else o.rhs in
+    List.filter_map
+      (fun lhs ->
+        if decided lhs rhs then None else Some { o with GradeNormal.lhs; rhs })
+      (if lhs then alternatives o.lhs else [ o.lhs ])
 
-  (* Whether a left side has a join. *)
-  let joined (r : residual) =
-    List.exists (fun (o : R.rho_ordering) -> rho_has_join o.lhs) r.rho_orderings
-    || List.exists
-         (fun (o : R.eps_ordering) -> eps_has_join o.lhs)
-         r.eps_orderings
-
-  (* Both sides of each ordering canonical, one ordering per alternative of
-     its left side; each disjunction's grade canonical. *)
-  let normal context (r : residual) =
+  let canon context =
     let bounds = context.Residual.bounds in
     {
+      rho_ordering =
+        canon_ordering
+          ~alternatives:(fun e ->
+            List.map N.Rho.read_back_product
+              (N.Rho.canon_sum bounds (N.Rho.normal bounds e)))
+          ~canon:(N.Rho.canon bounds) ~decided:(E.Rho.decided bounds);
+      eps_ordering =
+        canon_ordering
+          ~alternatives:(fun e ->
+            List.map N.Eps.read_back_product
+              (N.Eps.canon_sum bounds (N.Eps.normal bounds e)))
+          ~canon:(N.Eps.canon bounds) ~decided:(E.Eps.decided bounds);
+      grade = N.Rho.canon bounds;
+    }
+
+  let normal canon (r : residual) =
+    {
       r with
-      rho_orderings = N.Rho.canon_orderings bounds r.rho_orderings;
-      eps_orderings = N.Eps.canon_orderings bounds r.eps_orderings;
+      rho_orderings =
+        List.concat_map (canon.rho_ordering ~lhs:true ~rhs:true) r.rho_orderings;
+      eps_orderings =
+        List.concat_map (canon.eps_ordering ~lhs:true ~rhs:true) r.eps_orderings;
       disjunctions =
         List.map
           (fun (d : R.disjunction) ->
-            { d with disj_grade = N.Rho.canon bounds d.disj_grade })
+            { d with disj_grade = canon.grade d.disj_grade })
           r.disjunctions;
     }
 
-  (* The orderings decided at no hypotheses dropped, and the disjunctions
-     settled against the orderings left ({!Residual.Make.settle}); a
-     disjunction whose type is never eternal becomes its grade below the
-     unit. *)
-  let settle context (r : residual) =
-    let bounds = context.Residual.bounds in
-    let decided_rho = E.Rho.decided bounds
-    and decided_eps = E.Eps.decided bounds in
-    let rho_orderings =
-      List.filter
-        (fun (o : R.rho_ordering) -> not (decided_rho o.lhs o.rhs))
-        r.rho_orderings
-    and eps_orderings =
-      List.filter
-        (fun (o : R.eps_ordering) -> not (decided_eps o.lhs o.rhs))
-        r.eps_orderings
-    in
-    let entail =
-      lazy
-        (E.make bounds { rho_hyps = rho_orderings; eps_hyps = eps_orderings })
-    in
-    let settling =
-      R.by_grade (fun rho -> E.Rho.follows (Lazy.force entail) rho X.Rho.unit)
-    in
-    let kept, grades =
-      List.fold_right
-        (fun (d : R.disjunction) (kept, grades) ->
-          match R.settle context settling d with
-          | Drop -> (kept, grades)
-          | Below_unit o -> (kept, o :: grades)
-          | Keep | Eternal _ -> (d :: kept, grades))
-        r.disjunctions ([], [])
-    in
-    {
-      r with
-      rho_orderings = rho_orderings @ grades;
-      eps_orderings;
-      disjunctions = kept;
-    }
+  (* The disjunctions settled against the orderings ({!Residual.Make.settle})
+     until none is: one whose grade follows below the unit from the orderings
+     is dropped, and one whose type is never eternal becomes its grade below
+     the unit, in canonical form. With the disjunctions removed. *)
+  let rec settle context canon (r : residual) =
+    match r.disjunctions with
+    | [] -> (r, [])
+    | disjunctions -> (
+        let entail =
+          lazy
+            (E.make context.Residual.bounds
+               { rho_hyps = r.rho_orderings; eps_hyps = r.eps_orderings })
+        in
+        let settling =
+          R.by_grade (fun rho ->
+              E.Rho.follows (Lazy.force entail) rho X.Rho.unit)
+        in
+        let kept, grades, removed =
+          List.fold_right
+            (fun (d : R.disjunction) (kept, grades, removed) ->
+              match R.settle context settling d with
+              | Drop -> (kept, grades, d :: removed)
+              | Below_unit o -> (kept, o :: grades, d :: removed)
+              | Keep | Eternal _ -> (d :: kept, grades, removed))
+            disjunctions ([], [], [])
+        in
+        let r =
+          {
+            r with
+            rho_orderings =
+              r.rho_orderings
+              @ List.concat_map (canon.rho_ordering ~lhs:true ~rhs:true) grades;
+            disjunctions = kept;
+          }
+        in
+        match grades with
+        | [] -> (r, removed)
+        | _ :: _ ->
+            let r, removed' = settle context canon r in
+            (r, removed @ removed'))
 
   (* ------------------------------------------------------------------ *)
   (* Cycles of whole unknowns                                            *)
   (* ------------------------------------------------------------------ *)
+
+  (* The orderings between whole unknowns, as edges. *)
+  let eps_edges (r : residual) =
+    List.filter_map
+      (fun (o : R.eps_ordering) ->
+        match (o.lhs, o.rhs) with
+        | X.Eps_var a, X.Eps_var b -> Some (a, b)
+        | _, _ -> None)
+      r.eps_orderings
+
+  let rho_edges (r : residual) =
+    List.filter_map
+      (fun (o : R.rho_ordering) ->
+        match (o.lhs, o.rhs) with
+        | X.Rho_var a, X.Rho_var b -> Some (a, b)
+        | _, _ -> None)
+      r.rho_orderings
+
+  (* Whether an ordering between whole unknowns of [fresh], among those of
+     [r], lies on a cycle of them. *)
+  let cyclic (r : residual) fresh =
+    let closes compare edges fresh =
+      fresh <> [] && Reach.closes_cycle ~compare (edges r) fresh
+    in
+    closes X.Eps_var.compare eps_edges (eps_edges fresh)
+    || closes X.Rho_var.compare rho_edges (rho_edges fresh)
 
   (* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998;
      {!Reach.collapse}): the local members occurring in no
@@ -347,32 +388,17 @@ module Make (C : Constraint.S) = struct
      unknowns sent to its representative, the first member in the order outer,
      then fixed, then movable, each by creation. *)
   let collapse scope (r : residual) =
-    let eps_edges =
-      List.filter_map
-        (fun (o : R.eps_ordering) ->
-          match (o.lhs, o.rhs) with
-          | X.Eps_var a, X.Eps_var b -> Some (a, b)
-          | _, _ -> None)
-        r.eps_orderings
-    and rho_edges =
-      List.filter_map
-        (fun (o : R.rho_ordering) ->
-          match (o.lhs, o.rhs) with
-          | X.Rho_var a, X.Rho_var b -> Some (a, b)
-          | _, _ -> None)
-        r.rho_orderings
-    in
     let movable u = is_local scope u && clean u r in
     let eps_moves =
       Reach.collapse ~compare:X.Eps_var.compare
         ~preferred:(fun k -> not (is_local scope (Eps_unknown k)))
         ~movable:(fun k -> movable (Eps_unknown k))
-        eps_edges
+        (eps_edges r)
     and rho_moves =
       Reach.collapse ~compare:X.Rho_var.compare
         ~preferred:(fun k -> not (is_local scope (Rho_unknown k)))
         ~movable:(fun k -> movable (Rho_unknown k))
-        rho_edges
+        (rho_edges r)
     in
     match (eps_moves, rho_moves) with
     | [], [] -> None
@@ -513,61 +539,238 @@ module Make (C : Constraint.S) = struct
     select (fuel + 1) []
 
   (* ------------------------------------------------------------------ *)
-  (* Rounds                                                              *)
+  (* Rewriting the atoms an assignment changes                           *)
   (* ------------------------------------------------------------------ *)
 
-  (* Each unknown of [unknowns] in turn given the value of the first rule
-     that applies to it, if any. *)
-  let pass value assign unknowns (acc, r, changed) =
-    List.fold_left
-      (fun (acc, r, changed) k ->
-        match value k r with
-        | Some (b, drops) ->
-            let acc, r = assign k b drops (acc, r) in
-            (acc, r, true)
-        | None -> (acc, r, changed))
-      (acc, r, changed) unknowns
+  let mentions_rho moved (o : R.rho_ordering) =
+    hit_rho moved o.lhs || hit_rho moved o.rhs
 
-  (* Rounds of localisation, until no unknown receives a value, at most [n] of
-     them. Each value is a least or a greatest solution for its unknown, chosen
-     by the sides it occurs on, as the elimination of {!Report} chooses by
-     polarity. *)
-  let rec rounds context scope n (acc, r) =
-    if n <= 0 then (acc, r)
-    else
-      let r =
-        if joined r then settle context (normal context r) else normal context r
-      in
-      let acc, r, changed =
-        match collapse scope r with
-        | Some sigma -> (X.compose_subst acc sigma, apply sigma r, true)
-        | None -> (acc, r, false)
-      in
-      let rhos, eps = local_unknowns scope r in
-      let acc, r, changed =
-        pass (eps_value context)
-          (fun k b drops -> assigned (Eps_unknown k) (assign_eps k b) drops)
-          eps (acc, r, changed)
-      in
-      let acc, r, changed =
-        pass (rho_value context)
-          (fun k b drops -> assigned (Rho_unknown k) (assign_rho k b) drops)
-          rhos (acc, r, changed)
-      in
-      if changed then rounds context scope (n - 1) (acc, settle context r)
-      else
-        match raise_set context scope r with
-        | Some sigma ->
-            rounds context scope (n - 1)
-              (X.compose_subst acc sigma, settle context (apply sigma r))
-        | None -> (acc, r)
+  let mentions_eps moved (o : R.eps_ordering) =
+    hit_eps moved o.lhs || hit_eps moved o.rhs
 
+  let mentions_grade moved (d : R.disjunction) = hit_rho moved d.disj_grade
+
+  let mentions_deferred moved (d : R.deferred) =
+    List.exists (mentions_rho moved) d.rho_conditions
+    || List.exists (mentions_eps moved) d.eps_conditions
+
+  (* The substitution [sigma] on the grades and reasons of an atom whose type,
+     if any, it leaves as it is. *)
+  let on_reason sigma =
+    C.subst_reason { C.empty_subst with grade_subst = sigma }
+
+  let on_ordering on_exp sigma (o : _ GradeNormal.ordering) :
+      _ GradeNormal.ordering =
+    {
+      lhs = on_exp sigma o.lhs;
+      rhs = on_exp sigma o.rhs;
+      info = on_reason sigma o.info;
+    }
+
+  let on_disjunction sigma (d : R.disjunction) =
+    {
+      d with
+      disj_grade = X.Rho.subst sigma d.disj_grade;
+      disj_reason = on_reason sigma d.disj_reason;
+    }
+
+  let on_deferred sigma (d : R.deferred) =
+    {
+      d with
+      rho_conditions = List.map (on_ordering X.Rho.subst sigma) d.rho_conditions;
+      eps_conditions = List.map (on_ordering X.Eps.subst sigma) d.eps_conditions;
+    }
+
+  (* The items of [items], each satisfying [mentions] replaced by [rewrite]
+     of it, in order; with the grade unknowns, by [grades], of the items
+     replaced and of their replacements, and the replacements. *)
+  let rewritten mentions grades rewrite items =
+    List.fold_right
+      (fun item (items, changed, fresh) ->
+        if mentions item then
+          let items' = rewrite item in
+          ( items' @ items,
+            List.fold_right grades (item :: items') changed,
+            items' @ fresh )
+        else (item :: items, changed, fresh))
+      items ([], no_grades, [])
+
+  (* [r] with the atoms mentioning one of [moved], the domain of [sigma],
+     under [sigma] and in canonical form, and the others as they are; with
+     the grade unknowns of those atoms, before and after, and the orderings
+     rewritten. No type mentions one of [moved]. *)
+  let rewrite canon moved sigma (r : residual) =
+    let rho_orderings, rho_changed, fresh_rho =
+      rewritten (mentions_rho moved) (sides grades_of_rho)
+        (fun (o : R.rho_ordering) ->
+          canon.rho_ordering ~lhs:(hit_rho moved o.lhs)
+            ~rhs:(hit_rho moved o.rhs)
+            (on_ordering X.Rho.subst sigma o))
+        r.rho_orderings
+    and eps_orderings, eps_changed, fresh_eps =
+      rewritten (mentions_eps moved) (sides grades_of_eps)
+        (fun (o : R.eps_ordering) ->
+          canon.eps_ordering ~lhs:(hit_eps moved o.lhs)
+            ~rhs:(hit_eps moved o.rhs)
+            (on_ordering X.Eps.subst sigma o))
+        r.eps_orderings
+    and disjunctions, disjunctions_changed, _ =
+      rewritten (mentions_grade moved) disjunction_grades
+        (fun d ->
+          let d = on_disjunction sigma d in
+          [ { d with disj_grade = canon.grade d.disj_grade } ])
+        r.disjunctions
+    and deferred, deferred_changed, _ =
+      rewritten (mentions_deferred moved) deferred_grades
+        (fun d -> [ on_deferred sigma d ])
+        r.deferred
+    in
+    ( { r with rho_orderings; eps_orderings; disjunctions; deferred },
+      List.fold_left union_grades rho_changed
+        [ eps_changed; disjunctions_changed; deferred_changed ],
+      { R.empty with rho_orderings = fresh_rho; eps_orderings = fresh_eps } )
+
+  (* ------------------------------------------------------------------ *)
+  (* The worklist                                                        *)
+  (* ------------------------------------------------------------------ *)
+
+  (* The local unknowns of [(rhos, eps)], other than [moved] and those of
+     [worklist], added to the end of [worklist], a queue without repetition:
+     the effect unknowns first, each sort in decreasing order of creation. The
+     unknowns of a term are created before those of its subterms, mostly its
+     lower bounds, which thus receive their values first. *)
+  let push scope ?(moved = []) (rhos, eps) worklist =
+    let latest_first elements set wrap = List.rev_map wrap (elements set) in
+    worklist
+    @ List.filter
+        (fun u ->
+          is_local scope u
+          && (not (is_member moved u))
+          && not (is_member worklist u))
+        (latest_first Eps_set.elements eps (fun k -> Eps_unknown k)
+        @ latest_first Rho_set.elements rhos (fun k -> Rho_unknown k))
+
+  (* ------------------------------------------------------------------ *)
+  (* Localisation                                                        *)
+  (* ------------------------------------------------------------------ *)
+
+  (* The values given, the residual and the local unknowns whose atoms
+     changed since a rule was last tried on them. Invariant: every atom of the
+     residual is canonical ({!canon}); an atom is rewritten exactly when a
+     value changes it. *)
+  type state = {
+    values : X.subst;
+    residual : residual;
+    worklist : unknown list;
+  }
+
+  (* The unknowns [sigma] gives values. *)
+  let domain (sigma : X.subst) =
+    X.Rho_var.Map.fold
+      (fun k _ us -> Rho_unknown k :: us)
+      sigma.rho_subst
+      (X.Eps_var.Map.fold
+         (fun k _ us -> Eps_unknown k :: us)
+         sigma.eps_subst [])
+
+  (* The values [sigma] given, [dropped] being the orderings they settle:
+     the atoms mentioning an unknown moved are rewritten canonically, and the
+     local unknowns of the atoms changed or dropped, before and after, are
+     added to the worklist. Where an ordering between whole unknowns results
+     on a cycle, the cycles are collapsed. *)
+  let rec step canon scope sigma ?(dropped = R.empty) st =
+    let moved = domain sigma in
+    let r, changed, fresh = rewrite canon moved sigma st.residual in
+    let st =
+      {
+        values = X.compose_subst st.values sigma;
+        residual = r;
+        worklist =
+          push scope ~moved
+            (union_grades (grade_unknowns dropped) changed)
+            st.worklist;
+      }
+    in
+    if cyclic r fresh then
+      match collapse scope r with
+      | Some sigma -> step canon scope sigma st
+      | None -> st
+    else st
+
+  (* The disjunctions settled ({!settle}), the unknowns of those removed
+     added to the worklist; [None] where none is. *)
+  let settled context canon scope st =
+    match settle context canon st.residual with
+    | _, [] -> None
+    | residual, removed ->
+        let grades = List.fold_right disjunction_grades removed no_grades in
+        Some { st with residual; worklist = push scope grades st.worklist }
+
+  let value_of context u r =
+    match u with
+    | Eps_unknown k ->
+        Option.map
+          (fun (b, drops) -> (assign_eps k b, drops))
+          (eps_value context k r)
+    | Rho_unknown k ->
+        Option.map
+          (fun (b, drops) -> (assign_rho k b, drops))
+          (rho_value context k r)
+
+  (* Chaotic iteration with a worklist (Cousot and Cousot, POPL 1977): an
+     unknown taken from the worklist is given the value of the first rule of
+     {!value} that applies to it, which reads only the atoms mentioning it.
+     Where the worklist is empty, the disjunctions, which depend on every
+     ordering, are settled; where none is, a set of unknowns is raised to the
+     top at once. Each value is a least or a greatest solution for its
+     unknown, chosen by the sides it occurs on, as the elimination of
+     {!Report} chooses by polarity. Each step sends at least one local
+     unknown of the residual to an expression free of it and brings in none,
+     a settling removes at least one disjunction, and an unknown given no
+     value leaves the worklist: the number of local unknowns of the residual,
+     then the number of disjunctions, then the length of the worklist,
+     decreases. *)
+  let rec fixpoint context canon scope st =
+    match st.worklist with
+    | u :: worklist -> (
+        let st = { st with worklist } in
+        match value_of context u st.residual with
+        | Some (sigma, Drop_greater) ->
+            let residual, dropped = drop_greater u st.residual in
+            fixpoint context canon scope
+              (step canon scope sigma ~dropped { st with residual })
+        | Some (sigma, Keep_all) ->
+            fixpoint context canon scope (step canon scope sigma st)
+        | None -> fixpoint context canon scope st)
+    | [] -> (
+        match settled context canon scope st with
+        | Some st -> fixpoint context canon scope st
+        | None -> (
+            match raise_set context scope st.residual with
+            | Some sigma ->
+                fixpoint context canon scope (step canon scope sigma st)
+            | None -> (st.values, st.residual)))
+
+  (* The atoms written canonically and the disjunctions settled, the cycles
+     collapsed, then {!fixpoint} from every local unknown; the reasons of the
+     atoms no value changed receive the values at the end. *)
   let localise context scope r =
-    let r = settle context r in
-    let rhos, eps = local_unknowns scope r in
-    let n = List.length rhos + List.length eps + 1 in
-    let acc, r = rounds context scope n (empty_grade_subst, r) in
-    (acc, settle context r)
+    let canon = canon context in
+    let r, _ = settle context canon (normal canon r) in
+    let st =
+      {
+        values = empty_grade_subst;
+        residual = r;
+        worklist = push scope (grade_unknowns r) [];
+      }
+    in
+    let st =
+      match collapse scope r with
+      | Some sigma -> step canon scope sigma st
+      | None -> st
+    in
+    let values, r = fixpoint context canon scope st in
+    (values, apply values r)
 
   (* Every unknown local, the rigid a fresh variable occurring nowhere. *)
   let localise_all context r =
@@ -979,9 +1182,9 @@ module Make (C : Constraint.S) = struct
 
   (* The grade unknowns of an item, the rigids of a condition excepted. *)
   let item_unknowns = function
-    | Rho_item o -> grades_of_rho o.rhs (grades_of_rho o.lhs no_grades)
-    | Eps_item o -> grades_of_eps o.rhs (grades_of_eps o.lhs no_grades)
-    | Condition d -> grades_of_free (R.free_vars_deferred d) no_grades
+    | Rho_item o -> sides grades_of_rho o no_grades
+    | Eps_item o -> sides grades_of_eps o no_grades
+    | Condition d -> deferred_grades d no_grades
 
   let shares (rhos, eps) (rhos', eps') =
     not (Rho_set.disjoint rhos rhos' && Eps_set.disjoint eps eps')

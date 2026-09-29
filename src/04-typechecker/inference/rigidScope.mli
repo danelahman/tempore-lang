@@ -10,14 +10,18 @@
 
     {2 Localisation}
 
-    Before the scope closes, its local grade unknowns receive values, in rounds.
-    Each round writes both sides of every ordering and every disjunction's grade
-    canonically, one ordering per alternative of a left side, then sends each
-    local member of a cycle of orderings between whole unknowns to a
-    representative of the cycle: an outer member where there is one, else one
-    that may not move, else the least, each by creation. Then each local unknown
-    that occurs in no type receives the value of the first of these rules that
-    applies:
+    Before the scope closes, its local grade unknowns receive values by chaotic
+    iteration with a worklist (Cousot and Cousot, POPL 1977). The atoms are kept
+    in canonical form: both sides of every ordering and every disjunction's
+    grade written canonically, one ordering per alternative of a left side, the
+    orderings decided at no hypotheses dropped; an atom is rewritten when a
+    value changes it. Each local member of a cycle of orderings between whole
+    unknowns is sent to a representative of the cycle: an outer member where
+    there is one, else one that may not move, else the least, each by creation;
+    this is done at the start and whenever a rewritten ordering closes a cycle.
+    The worklist starts with every local unknown, the effect unknowns first,
+    each sort latest created first. A local unknown taken from it that occurs in
+    no type receives the value of the first of these rules that applies:
     - lowering: the join of its lower bounds, where it occurs on a right side
       only as the whole side; the orderings with it on the right are dropped;
     - raising: an upper bound decided at no hypotheses below its other upper
@@ -28,16 +32,17 @@
 
     A value keeps the deferred conditions of inner scopes: lowering, and the
     unit, where the unknown is on no greater side of a condition; raising, and
-    the top, where it is on no smaller side. Where no rule applies to any local
-    unknown, a set of local unknowns reached from [j] is sent to the top at
-    once: each is bounded below by an expression decided to be the top once [j]
-    and the members before it are; each ordering with a member on its left has
-    on its right an expression decided to be the top once the members are, or
-    one of outer unknowns other than [j] alone; no member occurs in a type or a
-    disjunction's grade. Around the rounds the orderings decided at no
-    hypotheses are dropped, a disjunction whose grade follows below the unit
-    from the orderings left ({!Entail.Make.SORT.follows}) is dropped, and a
-    disjunction whose type is never eternal becomes its grade below the unit.
+    the top, where it is on no smaller side. The local unknowns of the atoms a
+    value changes or drops are added to the worklist. Where the worklist is
+    empty, a disjunction whose grade follows below the unit from the orderings
+    ({!Entail.Make.SORT.follows}) is dropped, and a disjunction whose type is
+    never eternal becomes its grade below the unit, the unknowns of each added
+    to the worklist. Where no disjunction is so settled, a set of local unknowns
+    reached from [j] is sent to the top at once: each is bounded below by an
+    expression decided to be the top once [j] and the members before it are;
+    each ordering with a member on its left has on its right an expression
+    decided to be the top once the members are, or one of outer unknowns other
+    than [j] alone; no member occurs in a type or a disjunction's grade.
 
     {2 Split}
 

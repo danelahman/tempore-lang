@@ -873,7 +873,7 @@
   File "default_reject_unestablished.tpe", line 18, characters 0-23:
   18 | default Op () = loop 20
        ^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The conditions of this default implementation could not be established: `1 · ε₀ <= 3` and `1 · ε₀ <= ε₀`
+  Typing error: The conditions of this default implementation could not be established: `ε₀ <= 3` and `1 · ε₀ <= ε₀`
     File "default_reject_unestablished.tpe", line 13, characters 0-31:
     13 | operation Op : unit ~> unit # 3
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1164,7 +1164,7 @@
   File "eternal_tyvars_reject_function.tpe", line 9, characters 4-8:
   9 | run keep (fun () -> ())
           ^^^^
-  Typing error: `unit → unit` is not eternal, but `keep` needs the type of `x` to be eternal
+  Typing error: `unit → unit # ε₀` is not eternal, but `keep` needs the type of `x` to be eternal
     File "eternal_tyvars_reject_function.tpe", line 5, characters 0-23:
     5 | let keep x = delay 1; x
         ^^^^^^^^^^^^^^^^^^^^^^^
@@ -1188,7 +1188,7 @@
   File "eternal_tyvars_reject_handler.tpe", line 12, characters 48-49:
   12 | run handle (perform Op (); (fun () -> ())) with h (fun () -> ())
                                                        ^
-  Typing error: `unit → unit` is not eternal, but `h` needs the type of `x` to be eternal
+  Typing error: `unit → unit # ε₀` is not eternal, but `h` needs the type of `x` to be eternal
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 0-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1208,7 +1208,7 @@
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 47-65:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                        ^^^^^^^^^^^^^^^^^^
-    grade `ε₀` accumulates here (this computation)
+    grade `ε₁` accumulates here (this computation)
     File "eternal_tyvars_reject_handler.tpe", line 9, characters 69-70:
     9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
                                                                              ^
@@ -1220,7 +1220,7 @@
   File "eternal_tyvars_reject_higher_order.tpe", line 9, characters 4-9:
   9 | run after (fun () -> delay 2) (fun () -> ())
           ^^^^^
-  Typing error: `unit → unit` is not eternal, but `after` needs the type of `x` to be eternal
+  Typing error: `unit → unit # ε₀` is not eternal, but `after` needs the type of `x` to be eternal
     File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 0-23:
     5 | let after g x = g (); x
         ^^^^^^^^^^^^^^^^^^^^^^^

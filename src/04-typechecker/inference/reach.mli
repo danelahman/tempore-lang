@@ -37,6 +37,13 @@ val representatives :
     components are computed once, in time linear in the edges up to the cost of
     the comparisons. *)
 
+val closes_cycle :
+  compare:('v -> 'v -> int) -> ('v * 'v) list -> ('v * 'v) list -> bool
+(** [closes_cycle ~compare edges fresh] is whether an edge of [fresh], which
+    [edges] contain, lies on a cycle of [edges]: its source is reached from its
+    target. The search from each target takes time linear in the edges up to the
+    cost of the comparisons. *)
+
 val collapse :
   compare:('v -> 'v -> int) ->
   preferred:('v -> bool) ->
