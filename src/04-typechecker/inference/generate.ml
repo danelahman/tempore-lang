@@ -209,7 +209,8 @@ module Make (C : Constraint.S) = struct
           (Ast.TyName.print name)
 
   (* Every type of the definitions [group], defined together, occurs only
-     strictly positively in each of them. *)
+     strictly positively in each of them: the positivity condition of
+     inductive types (Coquand and Paulin, COLOG-88, 1990). *)
   let check_strictly_positive ~loc env group =
     let grouped name =
       List.exists (fun (name', _) -> Ast.TyName.compare name name' = 0) group

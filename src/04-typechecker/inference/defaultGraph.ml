@@ -71,8 +71,8 @@ let operations performed =
     performed OpNameSet.empty
 
 (* A shortest path [B₀; …; Bₖ] of the graph from an operation [B₀] of
-   [performed] to [target = Bₖ], by breadth-first search; each queued
-   operation carries the path before it, newest first. *)
+   [performed] to [target = Bₖ], by breadth-first search (Moore, 1959); each
+   queued operation carries the path before it, newest first. *)
 let path ~default performed target =
   let rec search visited = function
     | [] -> None

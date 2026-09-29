@@ -1308,7 +1308,8 @@ module Make (C : Constraint.S) = struct
 
   (* The levels of a component: its unknowns, those occurring in more items
      first, each with its candidates and the items whose last unknown it is;
-     and the items without unknowns. *)
+     and the items without unknowns. The order by degree follows the
+     fail-first principle (Haralick and Elliott, AIJ 1980). *)
   let levels context ((rhos, eps) as unknowns) items =
     let tagged = List.map (fun item -> (item_unknowns item, item)) items in
     let count u =

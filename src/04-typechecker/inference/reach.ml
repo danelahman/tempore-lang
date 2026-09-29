@@ -14,7 +14,7 @@ let graph n edges =
   in
   Array.init n (fun i -> Option.value (Int_map.find_opt i out) ~default:[])
 
-(* Depth-first search. *)
+(* Depth-first search (Tarjan, SIAM J. Comput. 1972). *)
 let reached g starts =
   let rec visit seen = function
     | [] -> seen
