@@ -258,9 +258,10 @@
     }
 
     /* Secondary text under a control: the note that a run has terminated,
-       and the CLI command equivalent to the grades selector's current
-       value. */
+       the note that a typecheck has found no errors, and the CLI command
+       equivalent to the grades selector's current value. */
     .terminated-note,
+    .check-note,
     .grades-command {
       width: 100%;
       margin-top: 0.6rem;
@@ -632,8 +633,41 @@
       border-radius: 2px;
     }
 
-    /* The name of a definition while its popover is open. */
-    pre.syn-ml .def-name.is-hover {
+    /* While ⌘ (Ctrl) is held, the name under the pointer whose definition is
+       known: a link, in the colour of the page's links. */
+    pre.syn-ml .name-ref.is-link {
+      color: #485fc7;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .code-editor.is-linking .code-editor-input {
+      cursor: pointer;
+    }
+
+    /* The name of a definition just gone to, lit briefly. */
+    pre.syn-ml .goto-flash {
+      border-radius: 2px;
+      animation: goto-flash 800ms ease-out forwards;
+    }
+
+    @keyframes goto-flash {
+      from {
+        background-color: #c9d6f7;
+        box-shadow: 0 0 0 2px #c9d6f7;
+      }
+
+      to {
+        background-color: rgba(201, 214, 247, 0);
+        box-shadow: 0 0 0 2px rgba(201, 214, 247, 0);
+      }
+    }
+
+    /* The name of a definition, or of one in the standard library, while its
+       popover is open. */
+    pre.syn-ml .def-name.is-hover,
+    pre.syn-ml .name-ref.is-hover {
       background: #e3effa;
       border-radius: 2px;
       box-shadow: 0 0 0 1px #c3dcf2;
@@ -770,6 +804,16 @@
       font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
       font-size: 0.8rem;
       line-height: 1.5;
+      /* laid out in lines by the page, which the card keeps */
+      white-space: pre-wrap;
+    }
+
+    /* A rigid variable, [ε] with the operation of its clause as a subscript;
+       the subscript leaves the height of the line alone. */
+    .rigid sub {
+      font-size: 0.72em;
+      line-height: 0;
+      vertical-align: -0.3em;
     }
 
     .scheme-name {
@@ -780,10 +824,40 @@
       color: #6a737d;
     }
 
+    /* A definition of the standard library: where it is, and its line as the
+       editor shows it. */
+    .code-popover-place {
+      font-size: 0.8rem;
+      color: #5f6873;
+    }
+
+    .code-popover pre.code-popover-source {
+      margin: 0.3rem 0 0;
+      padding: 0.35rem 0.5rem;
+      border-radius: 4px;
+      background: #f6f8fa;
+      color: #24292e;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .code-popover-source + .code-popover-scheme {
+      margin-top: 0.4rem !important;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .code-popover.is-placed,
       .editor-error.is-active {
         animation: none;
+      }
+
+      /* lit without fading, for as long */
+      pre.syn-ml .goto-flash {
+        animation: none;
+        background-color: #dde6fb;
       }
     }
 
