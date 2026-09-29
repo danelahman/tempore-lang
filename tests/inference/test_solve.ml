@@ -269,7 +269,8 @@ let rec tpe_files dir =
    of the examples and the tests is accepted. *)
 let expected_rejections =
   [
-    ("annotation_grade_variables_cyclic_reject.tpe", [ 14 ]);
+    ("annotation_grade_variables_cyclic_reject.tpe", [ 14; 27 ]);
+    ("annotation_grade_variables_interval_reject.tpe", [ 23 ]);
     ("annotation_grade_variables_reject.tpe", [ 10; 17 ]);
     ("annotation_recursion_reject.tpe", [ 4; 8 ]);
     ("basic_unbox.tpe", [ 20; 30 ]);
@@ -442,6 +443,7 @@ module Small (G : Grade.S) = struct
   module P = Inference.Program.Make (C)
   module S = Inference.Solver.Make (C)
   module R = Inference.Residual.Make (C)
+  module RS = Inference.RigidScope.Make (C)
 
   let name = G.name
   let no_bounds = { Grade.cost = (fun _ -> (0, 0)); operations = [] }
@@ -838,6 +840,41 @@ module Small (G : Grade.S) = struct
         ()
     | outcome -> fail "stuck (%s): got %t" name (S.print_outcome outcome)
 
+  (* [∃ε. ε · 1 ≾ ε ∧ ε ≾ 3] under time-upper-bound: satisfiable is not
+     refuted, established finds no closed instance, and the search at a budget
+     of one trial is abandoned. *)
+  let unestablished () =
+    let e = eps_var () in
+    let constr =
+      C.Exists
+        ( vars ~eps:[ e ] (),
+          C.And
+            (leq 1 (v e * X.Eps.of_nat 1) (v e), leq 2 (v e) (X.Eps.of_nat 3))
+        )
+    in
+    let context = P.context ~loc:(at 0) Gen.initial_env in
+    Option.iter
+      (fun (s : S.solution) ->
+        (match (S.satisfiable context s, S.established context s) with
+        | Ok (), Error (R.Unestablished { eps_orderings; abandoned = false; _ })
+          when List.length eps_orderings = 2 ->
+            ()
+        | _, Error f ->
+            fail "unestablished (%s): got %t" name (R.print_failure f)
+        | _, Ok () -> fail "unestablished (%s): established" name);
+        let residual =
+          {
+            R.empty with
+            rho_orderings = s.hyps.rho_hyps;
+            eps_orderings = s.hyps.eps_hyps;
+          }
+        in
+        match RS.instance ~budget:1 context residual with
+        | Error (R.Unestablished { abandoned = true; _ }) -> ()
+        | Error f -> fail "abandoned (%s): got %t" name (R.print_failure f)
+        | Ok _ -> fail "abandoned (%s): an instance found" name)
+      (solved "unestablished" constr)
+
   let run () =
     decomposition ();
     handler_decomposition ();
@@ -853,7 +890,8 @@ module Small (G : Grade.S) = struct
       deferral ();
       retry ();
       retry_after_close ();
-      stuck ())
+      stuck ());
+    if G.name = "time-upper-bound" then unestablished ()
 end
 
 (* ------------------------------------------------------------------ *)

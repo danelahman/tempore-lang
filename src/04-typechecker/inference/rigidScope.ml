@@ -893,7 +893,7 @@ module Make (C : Constraint.S) = struct
 
   (* The grades tried for a rigid of an ordering with the constants
      [(rcs, ecs)] and at most [degree] occurrences of the rigids on either
-     side: the unit, the top and one time step, without repetition, then the
+     side: the unit, the top and the grade of one delay step, without repetition, then the
      witnesses the grades supply, with their completeness. *)
   let candidates context ~degree (rcs, ecs) =
     let bounds = context.Residual.bounds in
@@ -1028,4 +1028,273 @@ module Make (C : Constraint.S) = struct
            Result.bind acc (fun kept ->
                Result.map (fun d -> d :: kept) (retry_condition context hyps d)))
          r.deferred (Ok []))
+
+  (* ------------------------------------------------------------------ *)
+  (* Closed instances                                                    *)
+  (* ------------------------------------------------------------------ *)
+
+  (* An atom a closed instance must meet. *)
+  type item =
+    | Rho_item of R.rho_ordering
+    | Eps_item of R.eps_ordering
+    | Condition of R.deferred
+
+  let no_grades = (Rho_set.empty, Eps_set.empty)
+
+  (* The grade unknowns of an item, the rigids of a condition excepted. *)
+  let item_unknowns = function
+    | Rho_item o -> grades_of_rho o.rhs (grades_of_rho o.lhs no_grades)
+    | Eps_item o -> grades_of_eps o.rhs (grades_of_eps o.lhs no_grades)
+    | Condition d -> grades_of_free (R.free_vars_deferred d) no_grades
+
+  let shares (rhos, eps) (rhos', eps') =
+    not (Rho_set.disjoint rhos rhos' && Eps_set.disjoint eps eps')
+
+  let union_grades (rhos, eps) (rhos', eps') =
+    (Rho_set.union rhos rhos', Eps_set.union eps eps')
+
+  (* The sides of the orderings of an item, each read by [on_rho] or
+     [on_eps]. *)
+  let item_sides ~on_rho ~on_eps = function
+    | Rho_item o -> [ on_rho o.lhs; on_rho o.rhs ]
+    | Eps_item o -> [ on_eps o.lhs; on_eps o.rhs ]
+    | Condition d ->
+        List.concat_map
+          (fun (o : R.rho_ordering) -> [ on_rho o.lhs; on_rho o.rhs ])
+          d.rho_conditions
+        @ List.concat_map
+            (fun (o : R.eps_ordering) -> [ on_eps o.lhs; on_eps o.rhs ])
+            d.eps_conditions
+
+  let item_constants item =
+    List.fold_left
+      (fun (rcs, ecs) (rcs', ecs') -> (rcs @ rcs', ecs @ ecs'))
+      ([], [])
+      (item_sides ~on_rho:X.Rho.constants
+         ~on_eps:(fun eps -> ([], X.Eps.constants eps))
+         item)
+
+  (* The number of occurrences of the unknowns [(rhos, eps)] in a resource
+     expression. *)
+  let rec rho_unknown_occurrences ((rhos, eps) as unknowns) = function
+    | X.Rho_var k -> if Rho_set.mem k rhos then 1 else 0
+    | X.Rho_const _ -> 0
+    | X.Rho_map e -> eps_occurrences eps e
+    | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
+        rho_unknown_occurrences unknowns rho
+        + rho_unknown_occurrences unknowns rho'
+
+  (* The largest number of occurrences of the unknowns [(rhos, eps)] on one
+     side of an ordering of the item. *)
+  let item_degree ((_, eps) as unknowns) item =
+    List.fold_left Int.max 0
+      (item_sides
+         ~on_rho:(rho_unknown_occurrences unknowns)
+         ~on_eps:(eps_occurrences eps) item)
+
+  (* Whether an item holds at the values [sigma] of its unknowns: an ordering
+     decided true between variable-free sides, a condition discharged by its
+     retry at no hypotheses. *)
+  let holds context sigma = function
+    | Rho_item o ->
+        N.Rho.closed_leq context.Residual.bounds (X.Rho.subst sigma o.lhs)
+          (X.Rho.subst sigma o.rhs)
+        = Some true
+    | Eps_item o ->
+        N.Eps.closed_leq context.Residual.bounds (X.Eps.subst sigma o.lhs)
+          (X.Eps.subst sigma o.rhs)
+        = Some true
+    | Condition d -> (
+        match (apply sigma { R.empty with deferred = [ d ] }).deferred with
+        | [ d ] -> retry_condition context N.no_hyps d = Ok []
+        | _ -> false)
+
+  let by_index (i, _) (j, _) = Int.compare i j
+
+  (* The items in classes sharing unknowns, each in the order of the items,
+     the classes in the order of their first items. *)
+  let components items =
+    let classes =
+      List.fold_left
+        (fun classes (i, item) ->
+          let unknowns = item_unknowns item in
+          let joined, apart =
+            List.partition
+              (fun (unknowns', _) -> shares unknowns unknowns')
+              classes
+          in
+          List.fold_left
+            (fun (unknowns, members) (unknowns', members') ->
+              (union_grades unknowns unknowns', members' @ members))
+            (unknowns, [ (i, item) ])
+            joined
+          :: apart)
+        []
+        (List.mapi (fun i item -> (i, item)) items)
+    in
+    List.map
+      (fun (unknowns, members) -> (unknowns, List.sort by_index members))
+      classes
+    |> List.sort (fun (_, members) (_, members') ->
+        by_index (List.hd members) (List.hd members'))
+    |> List.map (fun (unknowns, members) -> (unknowns, List.map snd members))
+
+  (* The grades of [cs] without repetition, in order. *)
+  let distinct equal cs =
+    List.fold_left
+      (fun kept c -> if List.exists (equal c) kept then kept else kept @ [ c ])
+      [] cs
+
+  (* The grades tried for the unknowns of a component with the constants
+     [(rcs, ecs)] and at most [degree] occurrences of its unknowns on one side
+     of an item: the unit, the top, the grade of one delay step and the constants of the
+     sort, the images of the effect constants for a resource, then the
+     witnesses the grades supply. *)
+  let eps_candidates context ~degree (rcs, ecs) =
+    let bounds = context.Residual.bounds in
+    distinct (X.GS.E.equal bounds)
+      ([ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
+      @ ecs
+      @ fst (X.GS.witnesses ~degree bounds rcs ecs))
+
+  let rho_candidates context ~degree (rcs, ecs) =
+    let bounds = context.Residual.bounds in
+    let rcs = rcs @ List.map X.GS.map ecs in
+    distinct (X.GS.R.equal bounds)
+      ([ X.GS.R.one; X.GS.R.top; X.GS.R.of_nat 1 ]
+      @ rcs
+      @ fst (X.GS.R.witnesses ~degree bounds rcs))
+
+  (* The outcome of the search of one component. *)
+  type found = Found of X.subst | Exhausted | Abandoned
+
+  (* Depth-first backtracking over the candidates of each unknown in turn,
+     each level the candidates of an unknown and the items whose last unknown
+     it is, checked as soon as it is assigned. Each candidate tried spends one
+     trial of [budget]. *)
+  let rec descend context levels sigma budget =
+    match levels with
+    | [] -> (Found sigma, budget)
+    | (candidates, checks) :: levels ->
+        let rec try_each budget = function
+          | [] -> (Exhausted, budget)
+          | _ :: _ when budget <= 0 -> (Abandoned, budget)
+          | value :: values ->
+              let sigma' = compose sigma value in
+              if List.for_all (holds context sigma') checks then
+                match descend context levels sigma' (budget - 1) with
+                | Exhausted, budget -> try_each budget values
+                | ((Found _ | Abandoned), _) as outcome -> outcome
+              else try_each (budget - 1) values
+        in
+        try_each budget candidates
+
+  (* The levels of a component: its unknowns, those occurring in more items
+     first, each with its candidates and the items whose last unknown it is;
+     and the items without unknowns. *)
+  let levels context ((rhos, eps) as unknowns) items =
+    let tagged = List.map (fun item -> (item_unknowns item, item)) items in
+    let count u =
+      List.length (List.filter (fun ((rhos, eps), _) -> u rhos eps) tagged)
+    in
+    let order =
+      List.map
+        (fun k -> (Eps_unknown k, count (fun _ eps -> Eps_set.mem k eps)))
+        (Eps_set.elements eps)
+      @ List.map
+          (fun k -> (Rho_unknown k, count (fun rhos _ -> Rho_set.mem k rhos)))
+          (Rho_set.elements rhos)
+      |> List.stable_sort (fun (_, n) (_, n') -> Int.compare n' n)
+      |> List.map fst
+    in
+    let degree =
+      List.fold_left Int.max 0 (List.map (item_degree unknowns) items)
+    and constants =
+      List.fold_left
+        (fun (rcs, ecs) item ->
+          let rcs', ecs' = item_constants item in
+          (rcs @ rcs', ecs @ ecs'))
+        ([], []) items
+    in
+    let eps_values =
+      lazy (List.map X.Eps.const (eps_candidates context ~degree constants))
+    and rho_values =
+      lazy (List.map X.Rho.const (rho_candidates context ~degree constants))
+    in
+    let position (rhos, eps) =
+      List.fold_left Int.max (-1)
+        (List.mapi
+           (fun i u ->
+             match u with
+             | Eps_unknown k when Eps_set.mem k eps -> i
+             | Rho_unknown k when Rho_set.mem k rhos -> i
+             | Eps_unknown _ | Rho_unknown _ -> -1)
+           order)
+    in
+    let at i =
+      List.filter_map
+        (fun (unknowns, item) ->
+          if position unknowns = i then Some item else None)
+        tagged
+    in
+    ( List.mapi
+        (fun i u ->
+          let values =
+            match u with
+            | Eps_unknown k -> List.map (assign_eps k) (Lazy.force eps_values)
+            | Rho_unknown k -> List.map (assign_rho k) (Lazy.force rho_values)
+          in
+          (values, at i))
+        order,
+      at (-1) )
+
+  let unestablished ~abandoned items =
+    R.Unestablished
+      {
+        rho_orderings =
+          List.filter_map (function Rho_item o -> Some o | _ -> None) items;
+        eps_orderings =
+          List.filter_map (function Eps_item o -> Some o | _ -> None) items;
+        conditions =
+          List.filter_map (function Condition d -> Some d | _ -> None) items;
+        abandoned;
+      }
+
+  (* The number of candidates tried by default, over all components. *)
+  let default_budget = 100_000
+
+  (* A closed instance of the orderings and deferred conditions of [r]:
+     backtracking search (Golomb and Baumert, JACM 1965) over a finite grid of
+     candidates per unknown, a constraint satisfaction problem solved one
+     component of unknowns sharing items at a time. The type unknowns are left
+     out: after [atomise], the subtyping and eternality demands relate type
+     unknowns alone, and each disjunction kept has a type whose eternality
+     depends on type unknowns, so [unit] for every type unknown meets them
+     all. Where [r] is the residual of localisation, its values, the
+     assignment found and [unit] for the type unknowns form a closed instance
+     of the qualifier. An assignment found is an instance; an instance outside
+     the grid is not found. *)
+  let instance ?(budget = default_budget) context (r : residual) =
+    let items =
+      List.map (fun o -> Rho_item o) r.rho_orderings
+      @ List.map (fun o -> Eps_item o) r.eps_orderings
+      @ List.map (fun d -> Condition d) r.deferred
+    in
+    let search (found, budget) (unknowns, items) =
+      match found with
+      | Error _ -> (found, budget)
+      | Ok sigma -> (
+          let levels, closed = levels context unknowns items in
+          if not (List.for_all (holds context empty_grade_subst) closed) then
+            (Error (unestablished ~abandoned:false items), budget)
+          else
+            match descend context levels empty_grade_subst budget with
+            | Found sigma', budget -> (Ok (compose sigma sigma'), budget)
+            | Exhausted, budget ->
+                (Error (unestablished ~abandoned:false items), budget)
+            | Abandoned, budget ->
+                (Error (unestablished ~abandoned:true items), budget))
+    in
+    fst
+      (List.fold_left search (Ok empty_grade_subst, budget) (components items))
 end

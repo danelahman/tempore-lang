@@ -15,6 +15,7 @@
   >     delay_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
   >     time_upper.tpe) ../tempore --grades time-upper-bound $f;;
   >     comp_type_annotation_upper*.tpe) ../tempore --grades time-upper-bound $f;;
+  >     annotation_grade_variables_interval_reject.tpe) ../tempore --grades time-interval $f;;
   >     annotation_grade_variables*.tpe) ../tempore --grades time-upper-bound $f;;
   >     eternal_lower.tpe) ../tempore $f;;
   >     eternal_*.tpe) ../tempore --grades time-upper-bound $f;;
@@ -157,6 +158,34 @@
   State: []
   
   ======================================================================
+  annotation_grade_variables_cyclic.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    1,
+    1
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    1,
+    1
+  ]
+  
+  === Run 3 ===
+  return 5
+  State: []
+  
+  === Run 4 ===
+  return ()
+  State: [
+    10
+  ]
+  
+  ======================================================================
   annotation_grade_variables_cyclic_reject.tpe
   ======================================================================
   File "annotation_grade_variables_cyclic_reject.tpe", line 14, characters 22-23:
@@ -171,6 +200,36 @@
     14 | let h () : unit # 5 = f (fun () -> ())
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
+  
+  File "annotation_grade_variables_cyclic_reject.tpe", line 27, characters 4-7:
+  27 | run bad ()
+           ^^^
+  Typing error: The conditions of this run could not be established: `1 · ε₀ <= 3` and `1 · ε₀ <= ε₀`
+    File "annotation_grade_variables_cyclic_reject.tpe", line 23, characters 0-31:
+    23 | let bad () : unit # 3 = loop 20
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `bad` is defined here
+    File "annotation_grade_variables_cyclic_reject.tpe", lines 18-19, characters 0-51:
+    18 | let rec loop (n : nat) : unit # 'e =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `loop` is defined here
+    Note: this run requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
+  ======================================================================
+  annotation_grade_variables_interval_reject.tpe
+  ======================================================================
+  File "annotation_grade_variables_interval_reject.tpe", line 23, characters 4-5:
+  23 | run h ()
+           ^
+  Typing error: The conditions of this run could not be established: `(10,10) · ε₀ <= (0,5)`, `(10,10) · ε₀ <= ε₀` and `(0,0) <= ε₀`
+    File "annotation_grade_variables_interval_reject.tpe", line 15, characters 0-43:
+    15 | let h () : unit # (0, 5) = f (fun () -> ())
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `h` is defined here
+    File "annotation_grade_variables_interval_reject.tpe", line 12, characters 0-58:
+    12 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `f` is defined here
+    Note: this run requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
   ======================================================================
   annotation_grade_variables_reject.tpe
   ======================================================================

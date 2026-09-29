@@ -503,11 +503,16 @@ module Make (C : Constraint.S) = struct
 
   let satisfiable context solution = Result.map ignore (search context solution)
 
+  (* Whether a deferred condition mentions no unknown besides its rigids. *)
+  let closed (d : R.deferred) =
+    let free = R.free_vars_deferred d in
+    Rho_set.is_empty free.free_rhos && Eps_set.is_empty free.free_eps
+
   let established context solution =
     Result.bind (search context solution) (fun (residual : R.t) ->
-        match residual.deferred with
-        | [] -> Ok ()
-        | d :: _ -> Error (R.Undecided_condition d))
+        match List.find_opt closed residual.deferred with
+        | Some d -> Error (R.Undecided_condition d)
+        | None -> Result.map ignore (RS.instance context residual))
 
   (* ------------------------------------------------------------------ *)
   (* Generalisation                                                      *)

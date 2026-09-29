@@ -102,10 +102,15 @@ module Make (C : Constraint.S) : sig
       definition, not at the definition itself. *)
 
   val established : context -> solution -> (unit, failure) result
-  (** [established context solution] is {!satisfiable}, and moreover
+  (** [established context solution] finds a closed instance of the whole
+      qualifier [Q ∧ R] of [solution]. It is {!satisfiable}, then
       [Error (Undecided_condition d)] when the search leaves a deferred
-      condition [d] neither discharged nor refuted. It is the check of a run,
-      whose program is closed: there no later use may refute an obligation. *)
+      condition [d] without unknowns neither discharged nor refuted, and
+      otherwise the search for grades of the unknowns left at which the
+      remaining orderings and conditions hold ({!RigidScope.Make.instance}):
+      [Error (Unestablished _)] when none of the grades tried meets them. It is
+      the check of a run, whose program is closed: there no later use may refute
+      an obligation. *)
 
   val qualifier : solution -> C.t
   (** [qualifier solution] is [Q ∧ R] as a constraint, each obligation under the

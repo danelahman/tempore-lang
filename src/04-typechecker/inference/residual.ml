@@ -127,6 +127,12 @@ module Make (C : Constraint.S) = struct
     | Never_eternal of { ty : ty; reason : reason }
     | Refuted_condition of { condition : deferred; witness : X.GS.E.t list }
     | Undecided_condition of deferred
+    | Unestablished of {
+        rho_orderings : rho_ordering list;
+        eps_orderings : eps_ordering list;
+        conditions : deferred list;
+        abandoned : bool;
+      }
     | Rigid_escape of Reason.rigid_origin
 
   (* The mismatch of the two sides of [s], whose formers differ. *)
@@ -506,5 +512,13 @@ module Make (C : Constraint.S) = struct
     | Undecided_condition condition ->
         Format.fprintf ppf "undecided deferred condition %t"
           (C.print (deferred_to_constraint condition))
+    | Unestablished { rho_orderings; eps_orderings; conditions; abandoned } ->
+        Format.fprintf ppf "no closed instance%s of %t"
+          (if abandoned then " found before the search was abandoned" else "")
+          (C.print
+             (C.conj_all
+                (List.map rho_atom rho_orderings
+                @ List.map eps_atom eps_orderings
+                @ List.map deferred_to_constraint conditions)))
     | Rigid_escape _ -> Format.pp_print_string ppf "rigid variable escapes"
 end

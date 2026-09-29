@@ -139,6 +139,16 @@ module Make (C : Constraint.S) : sig
     | Undecided_condition of deferred
         (** a deferred condition of a run, closed, that is neither discharged
             nor refuted; its first ordering is reported *)
+    | Unestablished of {
+        rho_orderings : rho_ordering list;
+            (** the resource orderings of a component of unknowns *)
+        eps_orderings : eps_ordering list;  (** its effect orderings *)
+        conditions : deferred list;  (** its deferred conditions *)
+        abandoned : bool;
+            (** whether the trials ran out before every candidate was tried *)
+      }
+        (** a run's qualifier has no closed instance among the grades tried: the
+            atoms of a component hold together at none of them *)
     | Rigid_escape of Reason.rigid_origin
         (** the rigid variable of the clause occurs in the value of an unknown
             outside it *)

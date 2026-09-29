@@ -464,10 +464,12 @@ has
 
 where `R`, `∀ε₂ (Op). ε₂ · ε₀ ≾ 1 · ε₂`, is the condition of the case for `Op`
 that must hold for every effect `ε₂` of `k`: the case, `f` followed by `k`,
-takes at least the time of `Op` followed by `k`. A `run` must establish every such condition: one that the
-typechecker can neither derive nor refute rejects it. Under the time grades,
-the security levels and their products, a condition in the effect of a single
-continuation is always decided; under the trace grades it may not be.
+takes at least the time of `Op` followed by `k`. A `run` must establish every
+such condition: one without unknowns that the typechecker can neither derive
+nor refute rejects it, and one with unknowns must hold together with `Q` at a
+closed instance of the unknowns. Under the time grades, the security levels and
+their products, a condition in the effect of a single continuation is always
+decided; under the trace grades it may not be.
 
 ### Annotations
 
@@ -504,8 +506,10 @@ Limits:
 - the continuation effect of an operation case is rigid (see
   [Handlers and continuations](#handlers-and-continuations));
 - satisfiability of a qualifier is decided provisionally: a definition is
-  rejected only when its qualifier is refuted, and each use checks it; a `run`
-  must establish its conditions `R`.
+  rejected only when its qualifier is refuted, including through the factors
+  of a product when the unit is the least grade, and each use checks it; a
+  `run` must have a closed instance of its whole qualifier `Q ∧ R` among
+  finitely many grades per unknown.
 
 ## Editor support
 <!-- web-skip -->

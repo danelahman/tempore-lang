@@ -1744,6 +1744,87 @@ module Make (C : Inference.Constraint.S) = struct
              (op_name origin.clause.op)
              (continuation_phrase origin))
 
+  (* The conditions of a run that share unknowns and hold together at none of
+     the grades tried, in reading order. *)
+  let unestablished ?(subject = "this run") source ~rho_orderings ~eps_orderings
+      ~conditions ~abandoned =
+    let p = printer source in
+    let ordering (type e) (sort : e sort) rigids
+        (o : (e, C.reason) Inference.GradeNormal.ordering) =
+      let mentioned =
+        X.Eps_var.Set.union (sort.eps_vars o.lhs) (sort.eps_vars o.rhs)
+      in
+      let rs =
+        List.filter_map
+          (fun (var, origin) ->
+            if X.Eps_var.Set.mem var mentioned then
+              Some { var; origin; value = GS.E.top }
+            else None)
+          rigids
+      in
+      (o.info, rs, fun () -> quantified p rs (ineq_text p sort (o.lhs, o.rhs)))
+    in
+    let items =
+      List.map (ordering rho_sort []) rho_orderings
+      @ List.map (ordering eps_sort []) eps_orderings
+      @ List.concat_map
+          (fun (d : R.deferred) ->
+            List.map (ordering rho_sort d.rigids) d.rho_conditions
+            @ List.map (ordering eps_sort d.rigids) d.eps_conditions)
+          conditions
+      |> List.stable_sort (fun ((r : C.reason), _, _) ((r' : C.reason), _, _) ->
+          Location.compare r.at r'.at)
+    in
+    let texts = List.map (fun (_, _, text) -> text ()) items in
+    let shown = List.take 4 texts and hidden = List.length texts - 4 in
+    let listed =
+      match (List.rev shown, hidden > 0) with
+      | [], _ -> ""
+      | [ text ], false -> text
+      | last :: rest, false ->
+          String.concat ", " (List.rev rest) ^ " and " ^ last
+      | _, true ->
+          Printf.sprintf "%s and %d more" (String.concat ", " shown) hidden
+    in
+    let reasons = List.map (fun (r, _, _) -> r) items in
+    let rs =
+      List.fold_left (fun acc (_, rs, _) -> union_rigids acc rs) [] items
+    in
+    let message =
+      Printf.sprintf "The conditions of %s could not be established: %s" subject
+        listed
+    and notes =
+      Printf.sprintf
+        "%s requires grades for its unknowns at which every one of these \
+         holds; none of the grades tried does, although the definitions they \
+         come from were accepted"
+        subject
+      ::
+      (if abandoned then
+         [
+           Printf.sprintf
+             "the search for such grades was abandoned after %d trials"
+             RS.default_budget;
+         ]
+       else [])
+    in
+    match reasons with
+    | [] ->
+        {
+          Diagnostic.kind = Diagnostic.Typing;
+          primary = None;
+          message;
+          labels = [];
+          notes;
+        }
+    | (first : C.reason) :: _ ->
+        let primary = first.at in
+        let labels = List.concat_map (labels_of_reason p) reasons in
+        let labels = labels @ chain_labels ~primary ~labels reasons in
+        diagnostic ~primary
+          ~labels:(dedup (with_rigid_labels p rs labels))
+          ~notes message
+
   let refuted source = function
     | R.Shape_mismatch f | R.Occurs_check f -> mismatch source f
     | R.Refuted_rho o -> refuted_orderings source rho_sort o
@@ -1752,6 +1833,9 @@ module Make (C : Inference.Constraint.S) = struct
     | R.Refuted_condition { condition; witness } ->
         refuted_condition source condition witness
     | R.Undecided_condition condition -> undecided_condition source condition
+    | R.Unestablished { rho_orderings; eps_orderings; conditions; abandoned } ->
+        unestablished source ~rho_orderings ~eps_orderings ~conditions
+          ~abandoned
     | R.Rigid_escape origin -> rigid_escape source origin
 
   (* ------------------------------------------------------------------ *)
@@ -1832,7 +1916,7 @@ module Make (C : Inference.Constraint.S) = struct
         | o :: _, _ -> Some o.info
         | [], o :: _ -> Some o.info
         | [], [] -> None)
-    | R.Rigid_escape _ -> None
+    | R.Unestablished _ | R.Rigid_escape _ -> None
 
   let refutes_effect = function
     | R.Refuted_eps _ -> true
@@ -1840,8 +1924,8 @@ module Make (C : Inference.Constraint.S) = struct
     | R.Undecided_condition { rho_conditions = []; _ } ->
         true
     | R.Refuted_condition _ | R.Undecided_condition _ | R.Shape_mismatch _
-    | R.Occurs_check _ | R.Refuted_rho _ | R.Never_eternal _ | R.Rigid_escape _
-      ->
+    | R.Occurs_check _ | R.Refuted_rho _ | R.Never_eternal _ | R.Unestablished _
+    | R.Rigid_escape _ ->
         false
 
   let reason_of_atom = function

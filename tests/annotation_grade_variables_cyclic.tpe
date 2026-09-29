@@ -1,0 +1,35 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/annotation_grade_variables_cyclic.tpe
+
+   A grade variable of an annotation shared between positions bounds a product
+   of grades by one of its own factors. A run of such a definition is accepted
+   at a closed instance of its grade variables. *)
+
+(* Correctly accepted by the typechecker: the grade of the body of wait is one
+   tick followed by the grade of the recursive call, bounded by the same 'e;
+   the top is a closed instance of 'e. *)
+let rec wait (n : nat) : unit # 'e =
+  match n with 0 -> () | m + 1 -> (delay 1; wait m)
+
+(* Correctly accepted by the typechecker: the top bounds the grade of wait. *)
+let wait_top (n : nat) : unit # top = wait n
+
+(* Correctly accepted by the typechecker: count takes no time, and the unit is
+   a closed instance of 'e. *)
+let rec count (n : nat) : nat # 'e =
+  match n with 0 -> 0 | m + 1 -> count m + 1
+
+let c () : nat # 0 = count 5
+
+(* The body of f has the grade of g followed by 10 ticks, which the annotation
+   bounds by the same 'e. *)
+let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+
+(* Correctly accepted by the typechecker: the top bounds the grade of f. *)
+let k () : unit # top = f (fun () -> ())
+
+run wait 3
+run wait_top 2
+run c ()
+run k ()

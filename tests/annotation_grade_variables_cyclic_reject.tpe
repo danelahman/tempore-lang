@@ -12,3 +12,16 @@ let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
 (* Correctly rejected by the typechecker: the 10 ticks are a factor of the
    grade of f's body, which h's annotation bounds by 5. *)
 let h () : unit # 5 = f (fun () -> ())
+
+(* The body of loop has the grade of the recursive call followed by one tick,
+   which the annotation bounds by the same 'e. *)
+let rec loop (n : nat) : unit # 'e =
+  match n with 0 -> () | m + 1 -> (loop m; delay 1)
+
+(* Accepted at its definition, where its qualifier 1 · ε₀ ≾ ε₀ ∧ 1 · ε₀ ≾ 3
+   is not refuted. *)
+let bad () : unit # 3 = loop 20
+
+(* Correctly rejected by the typechecker: the run requires a grade ε₀ with
+   1 · ε₀ below both ε₀ and 3, and there is none; loop 20 takes 20 ticks. *)
+run bad ()

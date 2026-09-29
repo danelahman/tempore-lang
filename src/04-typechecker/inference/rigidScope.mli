@@ -63,13 +63,29 @@
     A deferred condition's ordering is dropped when decided from the orderings
     of the residual, the rigids being opaque. An ordering whose unknowns are
     rigids alone is otherwise evaluated at every assignment to the rigids it
-    mentions of the unit, the top, one time step and the witnesses the grades
-    supply for its constants and the number of occurrences of the rigids on
-    either side ({!Grades.GradeSystem.S.witnesses}): it refutes the condition at
-    the first assignment where it fails, and is dropped when it holds at all of
-    them and mentions no rigid, or a single one whose witnesses are complete. An
-    ordering in several rigids is thus refuted, never discharged, by the grid of
-    their witnesses. A condition left with no ordering is dropped. *)
+    mentions of the unit, the top, the grade of one delay step and the witnesses
+    the grades supply for its constants and the number of occurrences of the
+    rigids on either side ({!Grades.GradeSystem.S.witnesses}): it refutes the
+    condition at the first assignment where it fails, and is dropped when it
+    holds at all of them and mentions no rigid, or a single one whose witnesses
+    are complete. An ordering in several rigids is thus refuted, never
+    discharged, by the grid of their witnesses. A condition left with no
+    ordering is dropped.
+
+    {2 Closed instances}
+
+    The orderings and deferred conditions of a residual are split into
+    components sharing unknowns, and each component is searched depth first with
+    backtracking for a grade per unknown at which every one of its items holds:
+    an ordering decided true between variable-free sides, a condition discharged
+    by its retry. An effect unknown ranges over the unit, the top, the grade of
+    one delay step, the effect constants of the component and the witnesses the
+    grades supply for its constants; a resource unknown over the unit, the top,
+    one time step, the resource constants, the images of the effect constants
+    and the witnesses for them. The witnesses are those for the largest number
+    of occurrences of the component's unknowns on one side of an item. The
+    unknowns occurring in more items are assigned first, and an item is checked
+    once its last unknown is. The type unknowns are sent to [unit]. *)
 
 module Make (C : Constraint.S) : sig
   type residual = Residual.Make(C).t
@@ -121,4 +137,21 @@ module Make (C : Constraint.S) : sig
     (residual, Residual.Make(C).failure) result
   (** [retry context r] is [r] with each deferred condition retried against the
       orderings of [r]. *)
+
+  val default_budget : int
+  (** The number of candidates {!instance} tries by default: 100 000. *)
+
+  val instance :
+    ?budget:int ->
+    Residual.Make(C).context ->
+    residual ->
+    (C.X.subst, Residual.Make(C).failure) result
+  (** [instance ~budget context r] is the grades of a closed instance of the
+      orderings and deferred conditions of [r], [unit] for its type unknowns
+      meeting its other atoms once [r] is decomposed ({!Residual.Make.atomise}).
+      It is [Error (Unestablished _)] with the items of a component when no
+      assignment of the grades tried meets them all, [abandoned] when [budget]
+      ({!default_budget} by default) candidates were tried, over all components,
+      before the search ended. An instance not found is no refutation: the
+      grades tried are finitely many. *)
 end
