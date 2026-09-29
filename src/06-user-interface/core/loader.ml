@@ -24,7 +24,7 @@ let declared_operations commands =
   List.filter_map
     (fun (cmd : _ SugaredAst.command) ->
       match cmd.it with
-      | SugaredAst.OpSig (name, _, _, _, bounds) -> Some (name, bounds)
+      | SugaredAst.OpSig (name, _, _, _, bounds) -> Some (name.it, bounds)
       | SugaredAst.TyDef _ | SugaredAst.OpDefault _ | SugaredAst.TopLet _
       | SugaredAst.TopLetRec _ | SugaredAst.TopDo _ ->
           None)
@@ -37,6 +37,7 @@ module Loader (Backend : Backend.S) = struct
 
   type state = {
     desugarer : D.state;
+    references : Desugarer.References.env;
     backend : Backend.load_state;
     typechecker : TC.state;
   }
@@ -57,6 +58,7 @@ module Loader (Backend : Backend.S) = struct
   let load_primitive state prim =
     let x = Ast.Variable.fresh (Language.Primitives.primitive_name prim) in
     {
+      state with
       desugarer = D.load_primitive state.desugarer x prim;
       typechecker = TC.load_primitive state.typechecker x prim;
       backend = Backend.load_primitive state.backend x prim;
@@ -66,6 +68,7 @@ module Loader (Backend : Backend.S) = struct
     List.fold_left load_primitive
       {
         desugarer = D.initial_state;
+        references = Desugarer.References.empty;
         typechecker = TC.initial_state;
         backend = Backend.initial_load_state;
       }
@@ -148,30 +151,40 @@ module Loader (Backend : Backend.S) = struct
     in
     (state', List.rev diagnostics, List.filter_map definition (List.rev defined))
 
+  (* The desugared commands, and the links of the names they use to their
+     definitions. *)
   let desugar_commands state cmds =
     let desugarer_state', cmds' =
       List.fold_map D.desugar_command state.desugarer cmds
     in
-    ({ state with desugarer = desugarer_state' }, cmds')
+    let references', links =
+      List.fold_map Desugarer.References.command state.references cmds
+    in
+    ( { state with desugarer = desugarer_state'; references = references' },
+      cmds',
+      List.concat links )
 
   (** Load the parsed source [cmds] of a program {!declare}d, reporting every
       typing error it contains rather than only the first, together with the
-      top-level definitions accepted before the first error. Desugaring stays
-      fatal: an unknown name would only cascade. The standard library goes
-      through {!load_commands}, an error in it being a bug. *)
+      top-level definitions accepted before the first error and the links of the
+      names of [cmds] to their definitions ({!Desugarer.References.command}).
+      Desugaring stays fatal: an unknown name would only cascade. *)
   let load_commands_defining state cmds =
-    let state', cmds' = desugar_commands state cmds in
-    execute_commands ~recover:true state' cmds'
+    let state', cmds', links = desugar_commands state cmds in
+    let state'', diagnostics, defined =
+      execute_commands ~recover:true state' cmds'
+    in
+    (state'', diagnostics, defined, links)
 
-  (** As {!load_commands_defining}, without the definitions. *)
+  (** As {!load_commands_defining}, without the definitions and links. *)
   let load_commands_all state cmds =
-    let state', diagnostics, _ = load_commands_defining state cmds in
+    let state', diagnostics, _, _ = load_commands_defining state cmds in
     (state', diagnostics)
 
   (* Without recovery the first error escapes as an exception and the
      diagnostic list is empty; re-raising covers the case all the same. *)
   let load_commands state cmds =
-    let state', cmds' = desugar_commands state cmds in
+    let state', cmds', _ = desugar_commands state cmds in
     match execute_commands ~recover:false state' cmds' with
     | state'', [], _ -> state''
     | _, d :: _, _ -> raise (Error.Error d)

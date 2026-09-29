@@ -53,26 +53,47 @@ let type_symbol n =
 let rho_symbol n = "ρ" ^ subscript n
 let eps_symbol n = "ε" ^ subscript n
 
+(** [rigid_symbol op] is the name of an effect variable bound by a handler case
+    for the operation [op], [ε_op]. *)
+let rigid_symbol op = "ε_" ^ op
+
 module MakeParamPrinter
     (ParamMap : Map.S)
     (SymbolGen : sig
       val symbol_for_index : int -> string
     end) =
 struct
-  let create () =
+  (** [create_with ~named ()] names the parameters in the order they are first
+      printed: by the next index, or by [base] where [named] gives [base], with
+      as many primes [′] as parameters named [base] before it. *)
+  let create_with ~named () =
     let names = ref ParamMap.empty in
     let counter = ref 0 in
+    let bases = ref [] in
     fun param ppf ->
       let symbol =
         match ParamMap.find_opt param !names with
         | Some sym -> sym
         | None ->
-            let sym = SymbolGen.symbol_for_index !counter in
-            incr counter;
+            let sym =
+              match named param with
+              | Some base ->
+                  let taken =
+                    List.length (List.filter (String.equal base) !bases)
+                  in
+                  bases := base :: !bases;
+                  base ^ String.concat "" (List.init taken (fun _ -> "′"))
+              | None ->
+                  let sym = SymbolGen.symbol_for_index !counter in
+                  incr counter;
+                  sym
+            in
             names := ParamMap.add param sym !names;
             sym
       in
       Format.fprintf ppf "%s" symbol
+
+  let create () = create_with ~named:(fun _ -> None) ()
 end
 
 let print_rho (type a) (module R : Grades.Grade.S with type t = a) =
@@ -128,6 +149,28 @@ let print_ty ?max_level grades ty_print_param =
           (grades.eps eps1) (aux ~max_level:3 ty2) (grades.eps eps2)
   in
   aux ?max_level
+
+(** [arrow_parts grades ty_print_param ty] is the parts of [ty] that
+    [print_ty grades ty_print_param ty] prints between its outermost arrows, in
+    order: the domains, and last the final codomain followed by the effect
+    grades of the arrows, innermost first. *)
+let arrow_parts grades ty_print_param ty =
+  let print ?max_level = print_ty ?max_level grades ty_print_param in
+  let rec parts ty effects =
+    match ty with
+    | TyArrow (ty1, CompTy (ty2, eps)) ->
+        print ~max_level:2 ty1
+        :: parts ty2 (if grades.pure eps then effects else eps :: effects)
+    | _ ->
+        [
+          (fun ppf ->
+            print ~max_level:3 ty ppf;
+            List.iter
+              (fun eps -> Format.fprintf ppf " # %t" (grades.eps eps))
+              effects);
+        ]
+  in
+  match ty with TyArrow _ -> parts ty [] | _ -> [ print ty ]
 
 let rec print_pattern ?max_level p ppf =
   let print ?at_level = Print.print ?max_level ?at_level ppf in

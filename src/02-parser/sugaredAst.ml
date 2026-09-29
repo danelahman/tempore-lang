@@ -23,7 +23,7 @@ type ('rho, 'eps) ty = ('rho, 'eps) plain_ty annotated
 
 and ('rho, 'eps) plain_ty =
   | TyConst of Language.Const.ty
-  | TyApply of ty_name * ('rho, 'eps) ty list
+  | TyApply of ty_name annotated * ('rho, 'eps) ty list
       (** [(ty1, ty2, ..., tyn) type_name] *)
   | TyParam of ty_param  (** ['a] *)
   | TyArrow of ('rho, 'eps) ty * ('rho, 'eps) plain_comp_ty
@@ -47,9 +47,9 @@ type ('rho, 'eps) pattern = ('rho, 'eps) plain_pattern annotated
 and ('rho, 'eps) plain_pattern =
   | PVar of variable
   | PAnnotated of ('rho, 'eps) pattern * ('rho, 'eps) ty
-  | PAs of ('rho, 'eps) pattern * variable
+  | PAs of ('rho, 'eps) pattern * variable annotated
   | PTuple of ('rho, 'eps) pattern list
-  | PVariant of label * ('rho, 'eps) pattern option
+  | PVariant of label annotated * ('rho, 'eps) pattern option
   | PConst of Language.Const.t
   | PSucc of ('rho, 'eps) pattern * Z.t
   | PNonbinding
@@ -61,14 +61,15 @@ and ('rho, 'eps) plain_term =
   | Const of Language.Const.t  (** integers, strings, booleans, and floats *)
   | Annotated of ('rho, 'eps) term * ('rho, 'eps) ty
   | Tuple of ('rho, 'eps) term list  (** [(t1, t2, ..., tn)] *)
-  | Variant of label * ('rho, 'eps) term option  (** [Label] or [Label t] *)
+  | Variant of label annotated * ('rho, 'eps) term option
+      (** [Label] or [Label t] *)
   | Lambda of ('rho, 'eps) abstraction  (** [fun p1 p2 ... pn -> t] *)
   | PureLambda of ('rho, 'eps) abstraction  (** [fun p1 p2 ... pn -> t] *)
   | Function of ('rho, 'eps) abstraction list
       (** [function p1 -> t1 | ... | pn -> tn] *)
   | Let of ('rho, 'eps) pattern * ('rho, 'eps) term * ('rho, 'eps) term
       (** [let p = t1 in t2] *)
-  | LetRec of variable * ('rho, 'eps) term * ('rho, 'eps) term
+  | LetRec of variable annotated * ('rho, 'eps) term * ('rho, 'eps) term
       (** [let rec f = t1 in t2] *)
   | Match of ('rho, 'eps) term * ('rho, 'eps) abstraction list
       (** [match t with p1 -> t1 | ... | pn -> tn] *)
@@ -82,7 +83,7 @@ and ('rho, 'eps) plain_term =
   | Unbox of ('rho, 'eps) term * ('rho, 'eps) abstraction
       (** [unbox expr as v in n] *)
   | GenUnbox of ('rho, 'eps) term  (** [unbox expr] *)
-  | Perform of operation * ('rho, 'eps) term  (** [perform op expr] *)
+  | Perform of operation annotated * ('rho, 'eps) term  (** [perform op expr] *)
   | Handler of
       ('rho, 'eps) abstraction * (operation * ('rho, 'eps) abstraction) list
   | Continue of ('rho, 'eps) term * ('rho, 'eps) term
@@ -97,7 +98,7 @@ and ('rho, 'eps) guarded_abstraction =
   ('rho, 'eps) pattern * ('rho, 'eps) term option * ('rho, 'eps) term
 
 type ('rho, 'eps) ty_def =
-  | TySum of (label * ('rho, 'eps) ty option) list
+  | TySum of (label annotated * ('rho, 'eps) ty option) list
       (** [Label1 of ty1 | Label2 of ty2 | ... | Labeln of tyn | Label' |
            Label''] *)
   | TyInline of ('rho, 'eps) ty  (** [ty] *)
@@ -107,11 +108,11 @@ type ('rho, 'eps) command = ('rho, 'eps) plain_command annotated
 and ('rho, 'eps) plain_command =
   | TyDef of
       Language.Ast.eternality
-      * (ty_param list * ty_name * ('rho, 'eps) ty_def) list
+      * (ty_param list * ty_name annotated * ('rho, 'eps) ty_def) list
       (** [type ('a...1) t1 = def1 and ... and ('a...n) tn = defn], optionally
           prefixed by [noneternal] *)
   | OpSig of
-      (operation
+      (operation annotated
       * ('rho, 'eps) ty
       * ('rho, 'eps) ty
       * 'eps
@@ -121,6 +122,6 @@ and ('rho, 'eps) plain_command =
   | OpDefault of operation * ('rho, 'eps) abstraction
       (** [default Op p = t]; the implementation the operation falls back on
           when it reaches the top level unhandled *)
-  | TopLet of variable * ('rho, 'eps) term  (** [let x = t] *)
-  | TopLetRec of variable * ('rho, 'eps) term  (** [let rec f = t] *)
+  | TopLet of variable annotated * ('rho, 'eps) term  (** [let x = t] *)
+  | TopLetRec of variable annotated * ('rho, 'eps) term  (** [let rec f = t] *)
   | TopDo of ('rho, 'eps) term  (** [do t] *)

@@ -403,7 +403,7 @@
   File "continuation_discard_abort_reject_lower.tpe", line 13, characters 52-57:
   13 | let g () = handle (perform Op (); delay 10; 3) with abort (fun () -> delay 5; 0)
                                                            ^^^^^
-  Typing error: The effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold
+  Typing error: The effect inequality `∀ε_Op. 5 >= 1 · ε_Op` does not hold
     File "continuation_discard_abort_reject_lower.tpe", line 9, characters 0-48:
     9 | let abort f = handler | x -> x | Op () k -> f ()
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -415,15 +415,15 @@
     File "continuation_discard_abort_reject_lower.tpe", line 9, characters 39-40:
     9 | let abort f = handler | x -> x | Op () k -> f ()
                                                ^
-    `k` may have any grade `ε₀`
-    Note: the effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold: for `ε₀ = 5` it becomes `5 >= 6`
+    `k` may have any grade `ε_Op`
+    Note: the effect inequality `∀ε_Op. 5 >= 1 · ε_Op` does not hold: for `ε_Op = 5` it becomes `5 >= 6`
   ======================================================================
   continuation_discard_delay_reject_lower.tpe
   ======================================================================
   File "continuation_discard_delay_reject_lower.tpe", line 11, characters 27-48:
   11 | let h = handler | x -> x | Op () k -> delay 5; 0
                                   ^^^^^^^^^^^^^^^^^^^^^
-  Typing error: For every grade `ε₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε₀`, but its grade `5` does not
+  Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `5` does not
     File "continuation_discard_delay_reject_lower.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -431,15 +431,15 @@
     File "continuation_discard_delay_reject_lower.tpe", line 11, characters 33-34:
     11 | let h = handler | x -> x | Op () k -> delay 5; 0
                                           ^
-    `k` may have any grade `ε₀`
-    Note: the effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold: for `ε₀ = 5` it becomes `5 >= 6`
+    `k` may have any grade `ε_Op`
+    Note: the effect inequality `∀ε_Op. 5 >= 1 · ε_Op` does not hold: for `ε_Op = 5` it becomes `5 >= 6`
   ======================================================================
   continuation_discard_reject_lower.tpe
   ======================================================================
   File "continuation_discard_reject_lower.tpe", line 10, characters 27-38:
   10 | let h = handler | x -> x | Op p k -> 5
                                   ^^^^^^^^^^^
-  Typing error: For every grade `ε₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε₀`, but its grade `0` does not
+  Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `0` does not
     File "continuation_discard_reject_lower.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -447,8 +447,8 @@
     File "continuation_discard_reject_lower.tpe", line 10, characters 32-33:
     10 | let h = handler | x -> x | Op p k -> 5
                                          ^
-    `k` may have any grade `ε₀`
-    Note: the effect inequality `∀ε₀. 0 >= 1 · ε₀` does not hold: for `ε₀ = 0` it becomes `0 >= 1`
+    `k` may have any grade `ε_Op`
+    Note: the effect inequality `∀ε_Op. 0 >= 1 · ε_Op` does not hold: for `ε_Op = 0` it becomes `0 >= 1`
   ======================================================================
   continuation_discard_upper.tpe
   ======================================================================
@@ -506,7 +506,7 @@
   File "continuation_nested_discard_reject_lower.tpe", line 21, characters 13-43:
   21 |            | Op2 q k' -> delay 3; return ())
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: For every grade `ε₀` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε₀`, but its grade `3` does not
+  Typing error: For every grade `ε_Op2` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε_Op2`, but its grade `3` does not
     File "continuation_nested_discard_reject_lower.tpe", line 6, characters 0-32:
     6 | operation Op2 : unit ~> unit # 3
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -514,8 +514,8 @@
     File "continuation_nested_discard_reject_lower.tpe", line 21, characters 19-21:
     21 |            | Op2 q k' -> delay 3; return ())
                             ^^
-    `k'` may have any grade `ε₀`
-    Note: the effect inequality `∀ε₀. 3 >= 3 · ε₀` does not hold: for `ε₀ = 1` it becomes `3 >= 4`
+    `k'` may have any grade `ε_Op2`
+    Note: the effect inequality `∀ε_Op2. 3 >= 3 · ε_Op2` does not hold: for `ε_Op2 = 1` it becomes `3 >= 4`
   ======================================================================
   continuation_nested_escape_reject.tpe
   ======================================================================
@@ -576,16 +576,16 @@
   File "continuation_nested_twice_reject_upper.tpe", line 24, characters 15-34:
   24 |                continue k' with ())
                       ^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k'` is unboxed with grade `∣ε₀∣` accumulated since it was bound, which is not below its box grade `1`
+  Typing error: Variable `k'` is unboxed with grade `∣ε_Op2∣` accumulated since it was bound, which is not below its box grade `1`
     File "continuation_nested_twice_reject_upper.tpe", line 23, characters 23-42:
     23 |                let b = continue k' with () in
                                 ^^^^^^^^^^^^^^^^^^^
-    grade `ε₀` accumulates here (this computation)
+    grade `ε_Op2` accumulates here (this computation)
     File "continuation_nested_twice_reject_upper.tpe", line 22, characters 19-21:
     22 |            | Op2 q k' ->
                             ^^
-    `k'` may have any grade `ε₀`
-    Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for `ε₀ = ∞` it becomes `∞ <= 1`
+    `k'` may have any grade `ε_Op2`
+    Note: the resource inequality `∀ε_Op2. ∣ε_Op2∣ <= 1` does not hold: for `ε_Op2 = ∞` it becomes `∞ <= 1`
   ======================================================================
   continuation_obligation_lower.tpe
   ======================================================================
@@ -626,16 +626,16 @@
   File "continuation_twice_reject_upper.tpe", line 10, characters 67-85:
   10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                                                           ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with grade `∣ε₀∣` accumulated since it was bound, which is not below its box grade `1`
+  Typing error: Variable `k` is unboxed with grade `∣ε_Op∣` accumulated since it was bound, which is not below its box grade `1`
     File "continuation_twice_reject_upper.tpe", line 10, characters 45-63:
     10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                                       ^^^^^^^^^^^^^^^^^^
-    grade `ε₀` accumulates here (this computation)
+    grade `ε_Op` accumulates here (this computation)
     File "continuation_twice_reject_upper.tpe", line 10, characters 32-33:
     10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                          ^
-    `k` may have any grade `ε₀`
-    Note: the resource inequality `∀ε₀. ∣ε₀∣ <= 1` does not hold: for `ε₀ = ∞` it becomes `∞ <= 1`
+    `k` may have any grade `ε_Op`
+    Note: the resource inequality `∀ε_Op. ∣ε_Op∣ <= 1` does not hold: for `ε_Op = ∞` it becomes `∞ <= 1`
   ======================================================================
   counts_upper.tpe
   ======================================================================
@@ -2797,7 +2797,7 @@
   File "rational_time_lower_reject.tpe", line 10, characters 27-48:
   10 | let h = handler | x -> x | Op () k -> delay 5; 0
                                   ^^^^^^^^^^^^^^^^^^^^^
-  Typing error: For every grade `ε₀` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε₀`, but its grade `5` does not
+  Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `5` does not
     File "rational_time_lower_reject.tpe", line 5, characters 0-31:
     5 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2805,8 +2805,8 @@
     File "rational_time_lower_reject.tpe", line 10, characters 33-34:
     10 | let h = handler | x -> x | Op () k -> delay 5; 0
                                           ^
-    `k` may have any grade `ε₀`
-    Note: the effect inequality `∀ε₀. 5 >= 1 · ε₀` does not hold: for `ε₀ = 4.5` it becomes `5 >= 5.5`
+    `k` may have any grade `ε_Op`
+    Note: the effect inequality `∀ε_Op. 5 >= 1 · ε_Op` does not hold: for `ε_Op = 4.5` it becomes `5 >= 5.5`
   
   File "rational_time_lower_reject.tpe", lines 19-20, characters 2-3:
   19 |   unbox r as y in
@@ -4493,7 +4493,7 @@
   File "traces_reject_undecided_condition.tpe", line 15, characters 49-50:
   15 | run handle (perform Op (); perform Tick ()) with h
                                                         ^
-  Typing error: The condition `∀ε₀. ε₀ · {1} <= {1} · ε₀` of the case for `Op` cannot be established
+  Typing error: The condition `∀ε_Op. ε_Op · {1} <= {1} · ε_Op` of the case for `Op` cannot be established
     File "traces_reject_undecided_condition.tpe", line 13, characters 0-78:
     13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -4505,7 +4505,7 @@
     File "traces_reject_undecided_condition.tpe", line 13, characters 33-34:
     13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
                                           ^
-    `k` may have any grade `ε₀`
+    `k` may have any grade `ε_Op`
     File "traces_reject_undecided_condition.tpe", line 13, characters 27-78:
     13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -118,12 +118,12 @@ plain_command:
     { TyDef (Language.Ast.Derived, defs) }
   | NONETERNAL TYPE defs = separated_nonempty_list(AND, ty_def)
     { TyDef (Language.Ast.Noneternal, defs) }
-  | OPERATION op = UNAME COLON ty1 = ty SIGARROW ty2 = ty HASH eps = eps_grade
+  | OPERATION op = mark_position(UNAME) COLON ty1 = ty SIGARROW ty2 = ty HASH eps = eps_grade
     bounds = option(op_bounds)
     { OpSig (op, ty1, ty2, eps, bounds) }
   | DEFAULT op = UNAME p = simple_pattern EQUAL t = term
     { OpDefault (op, (p, t)) }
-  | LET x = ident t = lambdas0(EQUAL)
+  | LET x = mark_position(ident) t = lambdas0(EQUAL)
     { TopLet (x, t) }
   | LET REC def = let_rec_def
     { let (f, t) = def in TopLetRec (f, t) }
@@ -162,7 +162,7 @@ plain_term:
     { Unbox (e, (p, c)) }
   | UNBOX e = term
     { GenUnbox (e) }
-  | PERFORM op = UNAME e = comma_term
+  | PERFORM op = mark_position(UNAME) e = comma_term
     { Perform (op, e) }
   | HANDLER BAR? ret_case = case
     { Handler (ret_case, []) }
@@ -189,7 +189,7 @@ plain_binop_term:
       Apply ({it= Apply ({it= Var op; at= op_loc}, t1); at= Location.merge op_loc t1.at}, t2) }
   | t1 = binop_term CONS t2 = binop_term
     { let tuple = {it= Tuple [t1; t2]; at= Location.of_lexing $startpos $endpos} in
-      Variant (cons_label, Some tuple) }
+      Variant ({it= cons_label; at= Location.of_lexing $startpos($2) $endpos($2)}, Some tuple) }
   | t = plain_uminus_term
     { t }
 
@@ -209,7 +209,7 @@ plain_app_term:
     {
       match t.it, ts with
       | Variant (lbl, None), [t] -> Variant (lbl, Some t)
-      | Variant (lbl, _), _ -> Error.syntax ~loc:(t.at) "Label %s applied to too many arguments" lbl
+      | Variant (lbl, _), _ -> Error.syntax ~loc:(t.at) "Label %s applied to too many arguments" lbl.it
       | _, _ ->
         let apply t1 t2 = {it= Apply(t1, t2); at= Location.merge t1.at t2.at} in
         (List.fold_left apply t ts).it
@@ -231,17 +231,18 @@ simple_term: mark_position(plain_simple_term) { $1 }
 plain_simple_term:
   | x = ident
     { Var x }
-  | lbl = UNAME
+  | lbl = mark_position(UNAME)
     { Variant (lbl, None) }
   | cst = const
     { Const cst }
   | LBRACK ts = separated_list(SEMI, comma_term) RBRACK
     {
-      let nil = {it= Variant (nil_label, None); at= Location.of_lexing $endpos $endpos} in
+      let nil_at = Location.of_lexing $endpos $endpos in
+      let nil = {it= Variant ({it= nil_label; at= nil_at}, None); at= nil_at} in
       let cons t ts =
         let loc = Location.merge t.at ts.at in
         let tuple = {it= Tuple [t; ts];at= loc} in
-        {it= Variant (cons_label, Some tuple); at= loc}
+        {it= Variant ({it= cons_label; at= loc}, Some tuple); at= loc}
       in
       (List.fold_right cons ts nil).it
     }
@@ -307,14 +308,14 @@ let_def:
     { ({it= PVar x.it; at= x.at}, t) }
 
 let_rec_def:
-  | f = ident t = pure_lambdas(EQUAL)
+  | f = mark_position(ident) t = pure_lambdas(EQUAL)
     { (f, t) }
 
 pattern: mark_position(plain_pattern) { $1 }
 plain_pattern:
   | p = comma_pattern
     { p.it }
-  | p = pattern AS x = lname
+  | p = pattern AS x = mark_position(lname)
     { PAs (p, x) }
 
 comma_pattern: mark_position(plain_comma_pattern) { $1 }
@@ -328,7 +329,7 @@ plain_cons_pattern:
     { p.it }
   | p1 = succ_pattern CONS p2 = cons_pattern
     { let ptuple = {it= PTuple [p1; p2]; at= Location.of_lexing $startpos $endpos} in
-      PVariant (cons_label, Some ptuple) }
+      PVariant ({it= cons_label; at= Location.of_lexing $startpos($2) $endpos($2)}, Some ptuple) }
 
 succ_pattern: mark_position(plain_succ_pattern) { $1 }
 plain_succ_pattern:
@@ -342,7 +343,7 @@ plain_succ_pattern:
 
 variant_pattern: mark_position(plain_variant_pattern) { $1 }
 plain_variant_pattern:
-  | lbl = UNAME p = simple_pattern
+  | lbl = mark_position(UNAME) p = simple_pattern
     { PVariant (lbl, Some p) }
   | p = simple_pattern
     { p.it }
@@ -351,7 +352,7 @@ simple_pattern: mark_position(plain_simple_pattern) { $1 }
 plain_simple_pattern:
   | x = ident
     { PVar x }
-  | lbl = UNAME
+  | lbl = mark_position(UNAME)
     { PVariant (lbl, None) }
   | UNDERSCORE
     { PNonbinding }
@@ -359,11 +360,12 @@ plain_simple_pattern:
     { PConst cst }
   | LBRACK ts = separated_list(SEMI, pattern) RBRACK
     {
-      let nil = {it= PVariant (nil_label, None);at= Location.of_lexing $endpos $endpos} in
+      let nil_at = Location.of_lexing $endpos $endpos in
+      let nil = {it= PVariant ({it= nil_label; at= nil_at}, None); at= nil_at} in
       let cons t ts =
         let loc = Location.merge t.at ts.at in
         let tuple = {it= PTuple [t; ts]; at= loc} in
-        {it= PVariant (cons_label, Some tuple); at= loc}
+        {it= PVariant ({it= cons_label; at= loc}, Some tuple); at= loc}
       in
       (List.fold_right cons ts nil).it
     }
@@ -467,7 +469,7 @@ params:
     { ps }
 
 ty_def:
-  | ps = params t = tyname EQUAL x = defined_ty
+  | ps = params t = mark_position(tyname) EQUAL x = defined_ty
     { (ps, t, x) }
 
 defined_ty:
@@ -497,15 +499,15 @@ plain_prod_ty:
 
 ty_apply: mark_position(plain_ty_apply) { $1 }
 plain_ty_apply:
-  | LPAREN t = ty COMMA ts = separated_nonempty_list(COMMA, ty) RPAREN t2 = tyname
+  | LPAREN t = ty COMMA ts = separated_nonempty_list(COMMA, ty) RPAREN t2 = mark_position(tyname)
     { TyApply (t2, (t :: ts)) }
-  | t = ty_apply t2 = tyname
+  | t = ty_apply t2 = mark_position(tyname)
     { TyApply (t2, [t]) }
   | t = plain_simple_ty
     { t }
 
 plain_simple_ty:
-  | t = tyname
+  | t = mark_position(tyname)
     { TyApply (t, []) }
   | t = PARAM
     { TyParam t }
@@ -515,9 +517,9 @@ plain_simple_ty:
     { t.it }
 
 sum_case:
-  | lbl = UNAME
+  | lbl = mark_position(UNAME)
     { (lbl, None) }
-  | lbl = UNAME OF t = ty
+  | lbl = mark_position(UNAME) OF t = ty
     { (lbl, Some t) }
 
 (* The runtime bounds an operation declares; [within n] is sugar for

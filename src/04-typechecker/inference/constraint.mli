@@ -34,6 +34,22 @@
 
 module Ast = Language.Ast
 
+type part = Format.formatter -> unit
+
+(** A conjunct of the qualifier of a scheme. *)
+type conjunct =
+  | Formula of part  (** printed on one line, as a conjunct of a formula *)
+  | Ordering of { binder : part option; left : part; right : part }
+      (** [left ≾ right], or [(∀ε_Op. left ≾ right)] with the [binder] [ε_Op] of
+          a rigid variable *)
+
+type layout = {
+  parameters : part option;  (** [α ρ₀ ε₀], when present *)
+  conjuncts : conjunct list;  (** those of the qualifier [Q ∧ R] *)
+  arrows : part list;  (** the parts of the type between its outermost arrows *)
+}
+(** The parts of a scheme, for a layout of its own. *)
+
 module type S = sig
   module X : GradeExp.S
   (** The grade expressions. *)
@@ -180,8 +196,9 @@ module type S = sig
 
   val print : ?names:names -> t -> Format.formatter -> unit
   (** [print ~names c ppf] prints [c], one atom per line, binders indented:
-      [A <: B], [ρ ≾ ρ'], [Et(A)], [Et(A) ∨ ρ ≾ 1], [∃α ρ₀ ε₀.], [∀ε₀ (Op).].
-      Without [names], unknowns are numbered afresh. *)
+      [A <: B], [ρ ≾ ρ'], [Et(A)], [Et(A) ∨ ρ ≾ 1], [∃α ρ₀ ε₀.], [∀ε_Op.], a
+      rigid variable named after the operation of its clause. Without [names],
+      unknowns are numbered afresh. *)
 
   val to_string : t -> string
   (** [to_string c] is the text {!print} prints. *)
@@ -206,6 +223,11 @@ module type S = sig
   (** [scheme_parts ~names scheme] is the parameters [α ρ₀ ε₀], the qualifier
       [Q ∧ R] and the type [A] that {!print_scheme} prints, the first two when
       present. The printers share one naming and are applied in this order. *)
+
+  val scheme_layout : ?names:names -> scheme -> layout
+  (** [scheme_layout ~names scheme] is the parts of [scheme] that
+      {!print_scheme} prints. The printers share one naming and are applied in
+      the order of the fields, the binder of an ordering before its sides. *)
 end
 
 (** [Make (X)] is the constraints over the grade expressions [X]. *)

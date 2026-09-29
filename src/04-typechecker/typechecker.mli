@@ -61,12 +61,9 @@ module Make (GS : Grades.GradeSystem.S) : sig
   val print_scheme : scheme -> Format.formatter -> unit
   (** [print_scheme scheme ppf] prints [scheme] with its qualifier. *)
 
-  val scheme_parts :
-    scheme ->
-    (Format.formatter -> unit) option
-    * (Format.formatter -> unit) option
-    * (Format.formatter -> unit)
-  (** [scheme_parts scheme] is the parameters, the qualifier and the type that
-      {!print_scheme} prints, the first two when present, to be applied in this
+  val scheme_layout : scheme -> Inference.Constraint.layout
+  (** [scheme_layout scheme] is the parts of the scheme that {!print_scheme}
+      prints, laid out apart: the parameters, the conjuncts of the qualifier and
+      the parts of the type between its outermost arrows, to be applied in this
       order. *)
 end

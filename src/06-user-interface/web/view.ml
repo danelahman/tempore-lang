@@ -201,13 +201,52 @@ let load_error_summary (error : Model.load_error) =
       Printf.sprintf "%s at line %d" kind loc.start.line
   | Some _ -> kind ^ " in the standard library"
 
+(* Text with each rigid variable [ε_Op] set as [ε] with the operation [Op] as
+   a subscript, followed by its primes. *)
+let with_rigids s =
+  let n = String.length s in
+  let at i w = i + String.length w <= n && String.sub s i (String.length w) = w
+  and is_name i =
+    i < n
+    &&
+    match s.[i] with
+    | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' -> true
+    | _ -> false
+  in
+  let rec names i = if is_name i then names (i + 1) else i in
+  let rec primes i = if at i "′" then primes (i + String.length "′") else i in
+  let piece start stop acc =
+    if stop > start then text (String.sub s start (stop - start)) :: acc
+    else acc
+  in
+  let rec go start i acc =
+    if i >= n then List.rev (piece start n acc)
+    else if at i "ε_" && is_name (i + String.length "ε_") then
+      let first = i + String.length "ε_" in
+      let stop = names first in
+      let stop' = primes stop in
+      let rigid =
+        elt "span"
+          ~a:[ class_ "rigid" ]
+          [
+            text "ε";
+            elt "sub" [ text (String.sub s first (stop - first)) ];
+            text (String.sub s stop (stop' - stop));
+          ]
+      in
+      go stop' stop' (rigid :: piece start i acc)
+    else go start (i + 1) acc
+  in
+  go 0 0 []
+
 (* The backticks a diagnostic marks its code fragments with are not shown, as
    they are in a terminal; the fragments are set in a monospace font. *)
 let rendered message =
-  List.map
+  List.concat_map
     (function
-      | `Text prose -> text prose
-      | `Code fragment -> elt "code" ~a:[ class_ "diag-code" ] [ text fragment ])
+      | `Text prose -> with_rigids prose
+      | `Code fragment ->
+          [ elt "code" ~a:[ class_ "diag-code" ] (with_rigids fragment) ])
     (Diagnostic.segments message)
 
 (* Popovers *)
@@ -219,6 +258,7 @@ let target_key = function
   | Model.Error_span i -> Printf.sprintf "e%d" i
   | Model.Error_label (i, j) -> Printf.sprintf "l%d-%d" i j
   | Model.Definition k -> Printf.sprintf "d%d" k
+  | Model.Reference k -> Printf.sprintf "r%d" k
 
 let target_of_key key =
   let parse fmt f = try Some (Scanf.sscanf key fmt f) with _ -> None in
@@ -226,6 +266,7 @@ let target_of_key key =
   | 'e' -> parse "e%d%!" (fun i -> Model.Error_span i)
   | 'l' -> parse "l%d-%d%!" (fun i j -> Model.Error_label (i, j))
   | 'd' -> parse "d%d%!" (fun k -> Model.Definition k)
+  | 'r' -> parse "r%d%!" (fun k -> Model.Reference k)
   | _ | (exception Invalid_argument _) -> None
 
 (* The classes of a span described by a popover. *)
@@ -233,16 +274,16 @@ let popover_classes target =
   "has-popover " ^ EditorDom.key_prefix ^ target_key target
 
 (* Of the spans at one point, a label is described before the error it belongs
-   to, and an error before the definition it lies in. *)
+   to, and an error before the definition or name it lies in. *)
 let key_precedence =
-  List.map (fun prefix -> String.starts_with ~prefix) [ "l"; "e"; "d" ]
+  List.map (fun prefix -> String.starts_with ~prefix) [ "l"; "e"; "d"; "r" ]
 
 let popover_id = "code-popover"
 
 (* The error a popover target belongs to. *)
 let target_error = function
   | Model.Error_span i | Model.Error_label (i, _) -> Some i
-  | Model.Definition _ -> None
+  | Model.Definition _ | Model.Reference _ -> None
 
 let popover_target (model : Model.model) =
   match model.popover with
@@ -425,17 +466,43 @@ let view_load_error ~stale ~active i (error : Model.load_error) =
         ((elt "p" (rendered error.diagnostic.message) :: labels) @ notes);
     ]
 
+(* The link whose name is under the pointer of a mouse [event], while the
+   modifier of links is held. *)
+let link_under (model : Model.model) event =
+  if model.links <> [] && EditorDom.modifier_held event then
+    EditorDom.link_at (EditorDom.point event)
+  else None
+
 (* Tab inside the editor inserts an indentation instead of moving the focus
    to the next control; Shift+Tab is left alone, so the keyboard can still
    leave the editor backwards. The browser's own value and selection are read
-   off the event, since the model may lag behind a fast typist. *)
-let oninsert_indent =
+   off the event, since the model may lag behind a fast typist. F12 goes to
+   the definition of the name at the caret, when it has a known one. *)
+let oneditor_keys (model : Model.model) =
   let open Vdom.Decoder in
   let target d = field "target" d in
+  let ignored =
+    { Vdom.msg = None; prevent_default = false; stop_propagation = false }
+  in
   on_with_options "keydown"
     (bind
        (fun (key, shift) ->
-         if key = "Tab" && not shift then
+         if key = "F12" && model.links <> [] && not model.stale_errors then
+           map
+             (fun offset ->
+               match
+                 Model.link_at model.links
+                   (Model.byte_offset model.edit_model.unparsed_code offset)
+               with
+               | Some _ ->
+                   {
+                     Vdom.msg = Some (Model.FollowAt offset);
+                     prevent_default = true;
+                     stop_propagation = false;
+                   }
+               | None -> ignored)
+             (target (field "selectionStart" Int))
+         else if key = "Tab" && not shift then
            app
              (app
                 (app
@@ -451,13 +518,7 @@ let oninsert_indent =
                    (target (field "value" String)))
                 (target (field "selectionStart" Int)))
              (target (field "selectionEnd" Int))
-         else
-           const
-             {
-               Vdom.msg = None;
-               prevent_default = false;
-               stop_propagation = false;
-             })
+         else const ignored)
        (app
           (app (const (fun k s -> (k, s))) (field "key" String))
           (field "shiftKey" Bool)))
@@ -465,13 +526,21 @@ let oninsert_indent =
 (* Clicking in the editor moves the caret, and so do the keys that move it
    without editing; the error whose span it lands in becomes the active one,
    and the popover of the span or name it lands in opens. Where the caret ends
-   up is read off the event, the model not tracking it. *)
-let oncaret_at =
-  let open Vdom.Decoder in
-  on "click"
-    (map
-       (fun offset -> Some (Model.CaretAt offset))
-       (field "target" (field "selectionStart" Int)))
+   up is read off the event, the model not tracking it. A click with the
+   modifier of links held on the name of a link goes to its definition. *)
+let oncaret_at (model : Model.model) =
+  on_js "click" (function
+    | Vdom_blit.Ojs event -> (
+        match link_under model event with
+        | Some k -> Some (Model.Follow k)
+        | None ->
+            Some
+              (Model.CaretAt
+                 (Ojs.int_of_js
+                    (Ojs.get_prop_ascii
+                       (Ojs.get_prop_ascii event "target")
+                       "selectionStart"))))
+    | _ -> None)
 
 let caret_keys =
   [
@@ -496,22 +565,98 @@ let oncaret_keys =
           (field "key" String))
        (field "target" (field "selectionStart" Int)))
 
-(* A scheme as [name : ∀ α. Q ⇒ A], its quantifier and qualifier dimmed. *)
-let view_scheme (d : Model.definition) =
-  let qualified = Model.qualification d.scheme in
-  [ elt "span" ~a:[ class_ "scheme-name" ] [ text d.name ]; text " : " ]
-  @ (if qualified = "" then []
-     else [ elt "span" ~a:[ class_ "scheme-qualifier" ] [ text qualified ] ])
-  @ [ elt "span" ~a:[ class_ "scheme-type" ] [ text d.scheme.ty ] ]
+(* A scheme as [name : ∀ α. Q ⇒ A], on one line where it fits and otherwise
+   the name, the quantifier, each conjunct of the qualifier and the type on
+   lines of their own, aligned; an ordering too long for its line is broken
+   before [≾], and a type before its outermost arrows. Text is annotated by
+   its class. *)
+let scheme_doc (d : Model.definition) =
+  let open Layout in
+  let name t = Text ("scheme-name", t)
+  and plain t = Text ("", t)
+  and dim t = Text ("scheme-qualifier", t)
+  and ty t = Text ("scheme-type", t) in
+  let conjunct = function
+    | Model.Formula f -> dim f
+    | Model.Ordering { binder; left; right } -> (
+        let sides = Align (Cat [ dim left; Line; dim ("≾ " ^ right) ]) in
+        match binder with
+        | None -> Group sides
+        | Some b -> Group (Cat [ dim ("(∀" ^ b ^ ". "); sides; dim ")" ]))
+  in
+  let arrows =
+    match d.scheme.arrows with
+    | [] -> Cat []
+    | first :: rest ->
+        Group
+          (Align
+             (Cat
+                (ty first
+                :: List.map (fun a -> Cat [ Line; ty ("→ " ^ a) ]) rest)))
+  in
+  let quantifier =
+    Option.map
+      (fun p -> Nest (2, Cat [ Line; dim ("∀ " ^ p ^ ".") ]))
+      d.scheme.parameters
+  and qualifier =
+    match d.scheme.conjuncts with
+    | [] -> []
+    | c :: cs ->
+        Nest (6, Cat [ Line; conjunct c ])
+        :: List.map (fun c -> Nest (4, Cat [ Line; dim "∧ "; conjunct c ])) cs
+  in
+  let typed =
+    Nest (4, Cat [ Line; (if qualifier = [] then Cat [] else dim "⇒ "); arrows ])
+  in
+  Group
+    (Cat
+       ([ name d.name; plain " :" ]
+       @ Option.to_list quantifier @ qualifier @ [ typed ]))
+
+(* The width a scheme is laid out in before its card is measured. *)
+let default_columns = 100
+
+(* A scheme laid out in [columns] characters, its quantifier and qualifier
+   dimmed. *)
+let view_scheme ~columns (d : Model.definition) =
+  let run (cls, s) =
+    match cls with
+    | None | Some "" -> [ text s ]
+    | Some cls -> [ elt "span" ~a:[ class_ cls ] (with_rigids s) ]
+  in
+  List.concat
+    (List.mapi
+       (fun k line ->
+         (if k > 0 then [ text "\n" ] else []) @ List.concat_map run line)
+       (Layout.layout ~width:columns (scheme_doc d)))
 
 let px x = Printf.sprintf "%.2fpx" x
+
+(* A definition of the standard library: where it is, its line, highlighted as
+   the editor highlights, and the scheme of a value. *)
+let view_library_entry ~columns (entry : Model.library_entry) =
+  [
+    elt "p"
+      ~a:[ class_ "code-popover-place" ]
+      [ text (Printf.sprintf "Standard library, line %d" entry.line) ];
+    elt "pre"
+      ~a:[ class_ "code-popover-source syn-ml" ]
+      (SyntaxHighlight.highlight_text (String.trim entry.text));
+  ]
+  @
+  match entry.value with
+  | Some d ->
+      [ elt "p" ~a:[ class_ "code-popover-scheme" ] (view_scheme ~columns d) ]
+  | None -> []
 
 (* The open popover: for an error's span, its kind and headline, then the
    label of the span when it is one of the error's labels and otherwise the
    error's first note, and a link to its message; for a definition's name, its
-   scheme. It is drawn hidden until
-   measured, and then placed under or above its span. *)
+   scheme; for a name defined in the standard library, its definition. It is
+   drawn hidden until measured, and then placed under or above its span, a
+   scheme laid out again first when the measured width differs. *)
 let view_popover (model : Model.model) errors =
+  let columns = Option.value ~default:default_columns model.columns in
   let error_card i label =
     Option.map
       (fun (error : Model.load_error) ->
@@ -559,8 +704,17 @@ let view_popover (model : Model.model) errors =
         Option.map
           (fun d ->
             ( "is-type",
-              [ elt "p" ~a:[ class_ "code-popover-scheme" ] (view_scheme d) ] ))
+              [
+                elt "p"
+                  ~a:[ class_ "code-popover-scheme" ]
+                  (view_scheme ~columns d);
+              ] ))
           (List.nth_opt model.definitions k)
+    | Model.Reference k -> (
+        match List.nth_opt model.links k with
+        | Some { destination = Model.In_library entry; _ } ->
+            Some ("is-type", view_library_entry ~columns entry)
+        | Some { destination = Model.In_editor _; _ } | None -> None)
   in
   match model.popover with
   | Some ({ shown = true; _ } as popover) -> (
@@ -604,18 +758,18 @@ let onpointer (model : Model.model) =
               | Some target -> Model.Over_target target
               | None -> Model.Nowhere)
           | `Nothing -> Model.Nowhere
-        in
-        if pointer = model.pointer then None
-        else Some (Model.Point (pointer, EditorDom.point event))
+        and link = link_under model event in
+        if pointer = model.pointer && link = model.link then None
+        else Some (Model.Point (pointer, link, EditorDom.point event))
     | _ -> None)
 
 (* The pointer leaving the editor, rather than moving between its layers. *)
 let onpointer_leave (model : Model.model) =
   on_js "mouseleave" (function
     | Vdom_blit.Ojs event
-      when model.pointer <> Model.Nowhere
+      when (model.pointer <> Model.Nowhere || model.link <> None)
            && not (EditorDom.moves_within ".code-editor" event) ->
-        Some (Model.Point (Model.Nowhere, EditorDom.point event))
+        Some (Model.Point (Model.Nowhere, None, EditorDom.point event))
     | _ -> None)
 
 let onescape_popover (model : Model.model) =
@@ -653,7 +807,9 @@ let view_editor ~marks ~errors (model : Model.model) =
   div
     ~a:
       [
-        class_ "code-editor";
+        class_
+          (if model.link <> None then "code-editor is-linking"
+           else "code-editor");
         style "--gutter" gutter;
         onpointer model;
         onpointer_leave model;
@@ -671,8 +827,8 @@ let view_editor ~marks ~errors (model : Model.model) =
                 has been edited *)
              str_prop "value" source;
              oninput (fun input -> Model.EditMsg (Model.ChangeSource input));
-             oninsert_indent;
-             oncaret_at;
+             oneditor_keys model;
+             oncaret_at model;
              oncaret_keys;
              int_prop "rows" rows;
              attr "placeholder" "Type a program, or load an example";
@@ -794,16 +950,29 @@ let view_compiler (model : Model.model) =
           ];
       ]
   and run_process =
+    (* Typecheck stays in the editor; Run typechecks and, without errors, runs
+       the program. *)
+    let action cls label msg =
+      div
+        ~a:[ class_ "field" ]
+        [
+          elt "button"
+            ~a:
+              [
+                class_ ("button is-info is-fullwidth " ^ cls);
+                type_button;
+                onclick (fun _ -> msg);
+              ]
+            [ text label ];
+        ]
+    in
     panel_block
       [
-        elt "button"
-          ~a:
-            [
-              class_ "button is-info is-fullwidth";
-              onclick (fun _ -> Model.RunCode);
-              (* disabled (Result.is_error model.loaded_code); *)
-            ]
-          [ text "Typecheck & run" ];
+        action "is-outlined" "Typecheck" Model.CheckCode;
+        action "" "Run" Model.RunCode;
+        (if model.checked then
+           elt "p" ~a:[ class_ "check-note" ] [ text "No errors found" ]
+         else nil);
         (* every error shown under the editor, which may be far below when the
            program is long; clicking one scrolls to its message *)
         (match model.run_model with
@@ -897,6 +1066,37 @@ let edit_view (model : Model.model) =
                    ]
                | None -> [])
              model.definitions)
+      (* the names of the links, one of them underlined while the modifier of
+         links is held with the pointer on it *)
+      @ List.mapi
+          (fun k ({ use = from, until; _ } : Model.link) ->
+            {
+              SyntaxHighlight.from;
+              until;
+              mark_cls =
+                String.concat " "
+                  ([ "name-ref"; EditorDom.link_prefix ^ string_of_int k ]
+                  @ (if model.link = Some k then [ "is-link" ] else [])
+                  @
+                  if popover = Some (Model.Reference k) then
+                    [ "is-hover"; popover_classes (Model.Reference k) ]
+                  else []);
+              id = None;
+              marker = None;
+            })
+          model.links
+      @ Option.fold ~none:[]
+          ~some:(fun (from, until) ->
+            [
+              {
+                SyntaxHighlight.from;
+                until;
+                mark_cls = "goto-flash";
+                id = Some EditorDom.flash_id;
+                marker = None;
+              };
+            ])
+          model.flash
   in
   view_contents
     [

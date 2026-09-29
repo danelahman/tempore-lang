@@ -5,6 +5,8 @@
     [desugar_pattern], etc.) are intentionally hidden — only the command-level
     entry points are part of the public API. *)
 
+module References = References
+
 module Make (GS : Grades.GradeSystem.S) : sig
   type state
 

@@ -100,6 +100,31 @@ let margin = 8.
 let inset = 24.
 let arrow_inset = 14.
 
+(* The number of probe characters, enough to widen any card to its maximum
+   width. *)
+let probe_length = 400
+
+(** [scheme_columns card] is the characters of the monospace font of the scheme
+    [card] shows, if any, that a line of the card holds at its widest: a line of
+    probe characters, kept on one line, widens the card to its maximum width,
+    and is removed once measured. The scheme has no padding of its own. *)
+let scheme_columns card =
+  let scheme =
+    call card "querySelector" [ Ojs.string_to_js ".code-popover-scheme" ]
+  in
+  if is_nothing scheme then None
+  else
+    let probe = call document "createElement" [ Ojs.string_to_js "span" ] in
+    Ojs.set_prop_ascii probe "textContent"
+      (Ojs.string_to_js (String.make probe_length '0'));
+    Ojs.set_prop_ascii (get probe "style") "whiteSpace" (Ojs.string_to_js "pre");
+    ignore (call scheme "appendChild" [ probe ]);
+    let line = bounding probe in
+    let character = (line.right -. line.left) /. float_of_int probe_length in
+    let content = number scheme "clientWidth" in
+    ignore (call scheme "removeChild" [ probe ]);
+    if character <= 0. then None else Some (int_of_float (content /. character))
+
 (** [placement ~key ~point] places the drawn popover by the first line of the
     span of target [key], or its line at [point] when there is one: centred
     under it, within the editor and away from its sides, and above it when the
@@ -111,6 +136,7 @@ let placement ~key ~point : Model.placement option =
   in
   if is_nothing card then None
   else
+    let columns = scheme_columns card in
     let editor = bounding (get card "parentElement") in
     let rects =
       List.concat_map line_rects
@@ -122,8 +148,11 @@ let placement ~key ~point : Model.placement option =
     match (at_point, rects) with
     | None, [] -> None
     | Some anchor, _ | None, anchor :: _ ->
-        let width = number card "offsetWidth"
-        and height = number card "offsetHeight"
+        (* the width unrounded, rounded up: a card set to a width rounded
+           down breaks its widest line *)
+        let box = bounding card in
+        let width = Float.ceil (box.right -. box.left)
+        and height = box.bottom -. box.top
         and editor_width = editor.right -. editor.left
         and viewport = number window "innerHeight" in
         let centre = ((anchor.left +. anchor.right) /. 2.) -. editor.left in
@@ -144,4 +173,90 @@ let placement ~key ~point : Model.placement option =
           if above then anchor.top -. editor.top -. gap -. height
           else anchor.bottom -. editor.top +. gap
         in
-        Some { left; top; width; arrow; above }
+        Some { left; top; width; arrow; above; columns }
+
+(* Going to definitions *)
+
+(* Whether the platform is Apple's, where the modifier of links is ⌘ rather
+   than Ctrl, Ctrl with a click opening the context menu there. *)
+let apple =
+  lazy
+    (let platform = get (get Ojs.global "navigator") "platform" in
+     (not (is_nothing platform))
+     && List.exists
+          (fun prefix -> String.starts_with ~prefix (Ojs.string_of_js platform))
+          [ "Mac"; "iPhone"; "iPad"; "iPod" ])
+
+(** Whether the modifier that turns names into links, ⌘ on Apple's platforms and
+    Ctrl elsewhere, is held in the mouse or keyboard [event]. *)
+let modifier_held event =
+  Ojs.bool_of_js (get event (if Lazy.force apple then "metaKey" else "ctrlKey"))
+
+(** Whether [key], the key of a keyboard event, is that modifier. *)
+let is_modifier key = key = if Lazy.force apple then "Meta" else "Control"
+
+(** The prefix of the class naming the link of a name. *)
+let link_prefix = "ref-"
+
+(** The id of the definition flashed after going to it. *)
+let flash_id = "goto-flash"
+
+(** [link_at point] is the link whose name lies at [point] of the viewport, by
+    its index. *)
+let link_at point =
+  List.find_map
+    (fun element ->
+      if List.exists (contains point) (line_rects element) then
+        List.find_map int_of_string_opt (keys_of ~prefix:link_prefix element)
+      else None)
+    (query_all document ".code-editor-display .name-ref")
+
+(* The part of the viewport a definition gone to is left in, as fractions of
+   its height, and the height it is scrolled to otherwise. *)
+let comfortable_top = 0.15
+let comfortable_bottom = 0.85
+let scrolled_top = 0.25
+
+(** [jump offset] places the caret of the editor at [offset], in UTF-16 code
+    units, without scrolling, and scrolls the flashed definition to the upper
+    part of the viewport when it lies outside its middle part; smoothly unless
+    reduced motion is preferred. *)
+let jump offset =
+  let editor =
+    call document "querySelector" [ Ojs.string_to_js ".code-editor-input" ]
+  in
+  if not (is_nothing editor) then begin
+    ignore
+      (call editor "focus"
+         [ Ojs.obj [| ("preventScroll", Ojs.bool_to_js true) |] ]);
+    ignore
+      (call editor "setSelectionRange"
+         [ Ojs.int_to_js offset; Ojs.int_to_js offset ])
+  end;
+  let flash = call document "getElementById" [ Ojs.string_to_js flash_id ] in
+  if not (is_nothing flash) then
+    let r = bounding flash and height = number window "innerHeight" in
+    if
+      r.top < comfortable_top *. height
+      || r.bottom > comfortable_bottom *. height
+    then
+      let reduced =
+        Ojs.bool_of_js
+          (get
+             (call window "matchMedia"
+                [ Ojs.string_to_js "(prefers-reduced-motion: reduce)" ])
+             "matches")
+      in
+      ignore
+        (call window "scrollTo"
+           [
+             Ojs.obj
+               [|
+                 ( "top",
+                   Ojs.float_to_js
+                     (number window "scrollY" +. r.top
+                    -. (scrolled_top *. height)) );
+                 ( "behavior",
+                   Ojs.string_to_js (if reduced then "instant" else "smooth") );
+               |];
+           ])

@@ -100,7 +100,20 @@ module Make (C : Inference.Constraint.S) = struct
           values.eps_subst;
     }
 
+  (* The rigid effect variables of a constraint, each with its clause. *)
+  let rec rigid_origins = function
+    | C.Forall_eps (rigid, origin, c) -> (rigid, origin) :: rigid_origins c
+    | C.And (c, d) -> rigid_origins c @ rigid_origins d
+    | C.Exists (_, c) -> rigid_origins c
+    | C.True | C.Sub _ | C.Rho_leq _ | C.Eps_leq _ | C.Eternal _
+    | C.Eternal_or_unit _ ->
+        []
+
+  (* A rigid variable is named after the operation of its clause. *)
   let printer (source : source) =
+    let origins =
+      match source.constr with Some c -> rigid_origins c | None -> []
+    in
     {
       bounds = source.context.bounds;
       values =
@@ -109,7 +122,14 @@ module Make (C : Inference.Constraint.S) = struct
           source.solution;
       ty_name = Ty_names.create ();
       rho_name = Rho_names.create ();
-      eps_name = Eps_names.create ();
+      eps_name =
+        Eps_names.create_with
+          ~named:(fun e ->
+            Option.map
+              (fun (origin : Reason.rigid_origin) ->
+                PrettyPrint.rigid_symbol (Ast.OpName.string_of origin.clause.op))
+              (List.assoc_opt e origins))
+          ();
     }
 
   (* A diagnostic's text is one line; its layout is the renderer's. *)
@@ -347,15 +367,6 @@ module Make (C : Inference.Constraint.S) = struct
   (* ------------------------------------------------------------------ *)
   (* Continuation grades                                                 *)
   (* ------------------------------------------------------------------ *)
-
-  (* The rigid effect variables of a constraint, each with its clause. *)
-  let rec rigid_origins = function
-    | C.Forall_eps (rigid, origin, c) -> (rigid, origin) :: rigid_origins c
-    | C.And (c, d) -> rigid_origins c @ rigid_origins d
-    | C.Exists (_, c) -> rigid_origins c
-    | C.True | C.Sub _ | C.Rho_leq _ | C.Eps_leq _ | C.Eternal _
-    | C.Eternal_or_unit _ ->
-        []
 
   (* The continuation of a clause, as the subject of a sentence and as a noun
      phrase; it is named only when the clause binds it to a variable. *)

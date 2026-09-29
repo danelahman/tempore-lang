@@ -4,6 +4,19 @@
 module Ast = Language.Ast
 module PrettyPrint = Language.PrettyPrint
 
+(* The parts of a scheme for a layout of its own. *)
+type part = Format.formatter -> unit
+
+type conjunct =
+  | Formula of part
+  | Ordering of { binder : part option; left : part; right : part }
+
+type layout = {
+  parameters : part option;
+  conjuncts : conjunct list;
+  arrows : part list;
+}
+
 module type S = sig
   module X : GradeExp.S
 
@@ -88,6 +101,8 @@ module type S = sig
     (Format.formatter -> unit) option
     * (Format.formatter -> unit) option
     * (Format.formatter -> unit)
+
+  val scheme_layout : ?names:names -> scheme -> layout
 end
 
 module Make (X : GradeExp.S) = struct
@@ -427,14 +442,33 @@ module Make (X : GradeExp.S) = struct
     ty_name : Ast.ty_param -> Format.formatter -> unit;
     rho_name : X.Rho_var.t -> Format.formatter -> unit;
     eps_name : X.Eps_var.t -> Format.formatter -> unit;
+    rigid_ops : string X.Eps_var.Map.t ref;
+        (** the operations of the clauses of the rigid variables whose binders
+            have been printed *)
   }
 
+  (* A rigid variable is named after the operation of its clause. *)
   let names () =
+    let rigid_ops = ref X.Eps_var.Map.empty in
     {
       ty_name = Ty_names.create ();
       rho_name = Rho_names.create ();
-      eps_name = Eps_names.create ();
+      eps_name =
+        Eps_names.create_with
+          ~named:(fun e ->
+            Option.map PrettyPrint.rigid_symbol
+              (X.Eps_var.Map.find_opt e !rigid_ops))
+          ();
+      rigid_ops;
     }
+
+  (* The binder of the rigid variable [e] of the clause of [origin]. *)
+  let rigid_binder names e (origin : Reason.rigid_origin) ppf =
+    names.rigid_ops :=
+      X.Eps_var.Map.add e
+        (Ast.OpName.string_of origin.clause.op)
+        !(names.rigid_ops);
+    names.eps_name e ppf
 
   let names_or = function Some names -> names | None -> names ()
 
@@ -470,16 +504,16 @@ module Make (X : GradeExp.S) = struct
   let print_rho ?names rho = rho_at (names_or names) 0 rho
   let print_eps ?names eps = eps_at (names_or names) 0 eps
 
+  let grades names =
+    {
+      PrettyPrint.rho = rho_at names 0;
+      eps = eps_at names 0;
+      pure = (fun _ -> false);
+    }
+
   let ty_with names ty ppf =
-    let grades =
-      {
-        PrettyPrint.rho = rho_at names 0;
-        eps = eps_at names 0;
-        pure = (fun _ -> false);
-      }
-    in
     Format.fprintf ppf "@[<h>%t@]"
-      (PrettyPrint.print_ty grades names.ty_name ty)
+      (PrettyPrint.print_ty (grades names) names.ty_name ty)
 
   let print_ty ?names ty = ty_with (names_or names) ty
 
@@ -517,8 +551,8 @@ module Make (X : GradeExp.S) = struct
         Format.fprintf ppf "@[<v 2>∃%t.@,%t@]" (print_vars names vs)
           (print_with names c)
     | Forall_eps (e, origin, c) ->
-        Format.fprintf ppf "@[<v 2>∀%t (%t).@,%t@]" (names.eps_name e)
-          (Ast.OpName.print origin.Reason.clause.op)
+        Format.fprintf ppf "@[<v 2>∀%t.@,%t@]"
+          (rigid_binder names e origin)
           (print_with names c)
 
   let print ?names c = print_with (names_or names) c
@@ -537,8 +571,8 @@ module Make (X : GradeExp.S) = struct
         Format.fprintf ppf "∃%t.@ %t" (print_vars names vs)
           (inline_with names c)
     | Forall_eps (e, origin, c) ->
-        Format.fprintf ppf "∀%t (%t).@ %t" (names.eps_name e)
-          (Ast.OpName.print origin.Reason.clause.op)
+        Format.fprintf ppf "∀%t.@ %t"
+          (rigid_binder names e origin)
           (inline_with names c)
     | True | Sub _ | Rho_leq _ | Eps_leq _ | Eternal _ | Eternal_or_unit _ ->
         print_with names c ppf
@@ -606,8 +640,9 @@ module Make (X : GradeExp.S) = struct
     List.rev first
     @ List.filter (fun p -> not (List.exists (equal p) first)) params
 
-  let scheme_parts ?names scheme =
-    let names = names_or names in
+  (* The parameters of [scheme], ordered by their first occurrences in its type
+     and then in its qualifier. *)
+  let scheme_parameters names scheme =
     let occ =
       occurrences scheme.qualifier
         (ty_occurrences scheme.ty { ty_occ = []; rho_occ = []; eps_occ = [] })
@@ -622,16 +657,51 @@ module Make (X : GradeExp.S) = struct
         eps_vars = ordered X.Eps_var.equal scheme.eps_params occ.eps_occ;
       }
     in
-    let quantifier =
-      match vs with
-      | { ty_vars = []; rho_vars = []; eps_vars = [] } -> None
-      | _ -> Some (print_vars names vs)
-    and qualifier =
+    match vs with
+    | { ty_vars = []; rho_vars = []; eps_vars = [] } -> None
+    | _ -> Some (print_vars names vs)
+
+  let scheme_parts ?names scheme =
+    let names = names_or names in
+    let qualifier =
       match scheme.qualifier with
       | True -> None
       | q -> Some (inline_with names q)
     in
-    (quantifier, qualifier, ty_with names scheme.ty)
+    (scheme_parameters names scheme, qualifier, ty_with names scheme.ty)
+
+  let scheme_layout ?names scheme =
+    let names = names_or names in
+    let horizontal part ppf = Format.fprintf ppf "@[<h>%t@]" part in
+    let ordering binder (left, right) =
+      Ordering { binder; left = horizontal left; right = horizontal right }
+    in
+    let sides = function
+      | Rho_leq (_, r, r') -> Some (rho_at names 0 r, rho_at names 0 r')
+      | Eps_leq (_, e, e') -> Some (eps_at names 0 e, eps_at names 0 e')
+      | True | And _ | Sub _ | Eternal _ | Eternal_or_unit _ | Exists _
+      | Forall_eps _ ->
+          None
+    in
+    let conjunct c =
+      match (c, sides c) with
+      | _, Some sides -> ordering None sides
+      | Forall_eps (e, origin, body), None -> (
+          match sides body with
+          | Some sides -> ordering (Some (rigid_binder names e origin)) sides
+          | None -> Formula (conjunct_with names c))
+      | _, None -> Formula (conjunct_with names c)
+    in
+    {
+      parameters = scheme_parameters names scheme;
+      conjuncts =
+        (match scheme.qualifier with
+        | True -> []
+        | q -> List.map conjunct (conjuncts q));
+      arrows =
+        List.map horizontal
+          (PrettyPrint.arrow_parts (grades names) names.ty_name scheme.ty);
+    }
 
   let print_scheme ?names scheme ppf =
     let quantifier, qualifier, ty = scheme_parts ?names scheme in

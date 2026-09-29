@@ -443,7 +443,9 @@ covariant in the result and effect, and a box `[rho]a` is contravariant in
 
 where `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables, `R`
 lists the conditions of operation cases that must hold for every effect of
-their continuations (printed as `∀ε. …`), and `∣ε∣` is the resource grade
+their continuations (printed as `∀ε_Op. …`, the effect of the continuation of
+a case for `Op` named after it and primed, `ε_Op′`, to tell it from that of
+another case for `Op`), and `∣ε∣` is the resource grade
 accumulated while `ε` runs. `--debug` prints the
 schemes. Under `time-upper-bound`, the standard library's
 `compose f g x = f (g x)` has
@@ -461,10 +463,10 @@ Under `time-lower-bound`, with `operation Op : unit ~> unit # 1`, the handler
 
 has
 
-    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε₂ (Op). ε₂ · ε₀ ≾ 1 · ε₂) ⇒ (unit → α # ε₀) → β # ε₁ ⇒ β # 0 # 0
+    ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α # ε₀) → β # ε₁ ⇒ β # 0 # 0
 
-where `R`, `∀ε₂ (Op). ε₂ · ε₀ ≾ 1 · ε₂`, is the condition of the case for `Op`
-that must hold for every effect `ε₂` of `k`: the case, `f` followed by `k`,
+where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, is the condition of the case for `Op`
+that must hold for every effect `ε_Op` of `k`: the case, `f` followed by `k`,
 takes at least the time of `Op` followed by `k`. A `run` must establish every
 such condition: one without unknowns that the typechecker can neither derive
 nor refute rejects it, and one with unknowns must hold together with `Q` at a

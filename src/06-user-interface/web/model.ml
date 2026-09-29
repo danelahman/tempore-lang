@@ -2,10 +2,18 @@ module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
 module Location = Utils.Location
 
+(** A conjunct of the qualifier of a scheme, as text. *)
+type conjunct_text =
+  | Formula of string
+  | Ordering of { binder : string option; left : string; right : string }
+      (** [left ≾ right], or [(∀ε_Op. left ≾ right)] with the rigid variable
+          [binder] *)
+
 type scheme_text = {
   parameters : string option;  (** [α ρ₀ ε₀], bound by the quantifier *)
-  qualifier : string option;  (** [Q ∧ R] *)
-  ty : string;
+  conjuncts : conjunct_text list;  (** those of the qualifier [Q ∧ R] *)
+  arrows : string list;
+      (** the parts of the type between its outermost arrows *)
 }
 (** The text of an inferred scheme [∀ α ρ₀ ε₀. Q ∧ R ⇒ A], by parts, each on one
     line. *)
@@ -19,11 +27,31 @@ type definition = {
 (** A top-level definition of the program in the editor, with its inferred
     scheme. *)
 
+(** Where a name is defined. *)
+type destination =
+  | In_editor of int * int  (** the bytes of the editor's text naming it *)
+  | In_library of library_entry
+
+and library_entry = {
+  line : int;  (** the line of the standard library naming it, from 1 *)
+  text : string;  (** the text of that line *)
+  value : definition option;  (** the definition, when the name is a value's *)
+}
+(** A definition of the standard library, which the editor does not show. *)
+
+type link = {
+  use : int * int;  (** the bytes of the editor's text where the name occurs *)
+  destination : destination;
+}
+(** An occurrence of a name in the editor and its definition. *)
+
 (** What a popover describes. *)
 type popover_target =
   | Error_span of int  (** the primary span of the [i]th error *)
   | Error_label of int * int  (** the span of label [j] of the [i]th error *)
   | Definition of int  (** the name of the [k]th definition *)
+  | Reference of int
+      (** the name of the [k]th link, defined in the standard library *)
 
 (** What the pointer is over in the editor. *)
 type pointer = Nowhere | Over_target of popover_target | Over_popover
@@ -34,6 +62,8 @@ type placement = {
   width : float;
   arrow : float;  (** the arrow's offset from the left edge of the card *)
   above : bool;  (** whether the card is above its span rather than under it *)
+  columns : int option;
+      (** the characters a line of the scheme the card shows holds at most *)
 }
 (** Where a popover is drawn, in pixels from the top-left corner of the editor.
 *)
@@ -93,7 +123,8 @@ and run_msg =
 
 and msg =
   | EditMsg of edit_msg
-  | RunCode
+  | CheckCode  (** Typecheck the program, staying in the editor. *)
+  | RunCode  (** Typecheck the program and, if it has no errors, run it. *)
   | RunMsg of run_msg
   | EditCode
   | ShowPage of page
@@ -115,9 +146,18 @@ and msg =
   | CloseGallery  (** Hide the example gallery without loading an example. *)
   | SearchGallery of string
       (** The text of the gallery's search field has changed. *)
-  | Point of pointer * (float * float)
+  | Point of pointer * int option * (float * float)
       (** The pointer, at the given position of the viewport, has moved onto a
-          popover target, onto the popover or off both. *)
+          popover target, onto the popover or off both, or onto or off the name
+          of a link while ⌘ (Ctrl) is held. *)
+  | OverLink of int option
+      (** ⌘ (Ctrl) has been pressed with the pointer on the name of the given
+          link, or released. *)
+  | Follow of int  (** Go to the definition of the given link. *)
+  | FollowAt of int
+      (** Go to the definition of the name at the given offset of the editor, in
+          UTF-16 code units. *)
+  | Unflash of int  (** The flash of the given serial has run its course. *)
   | Reveal of popover_target
       (** Open the popover without delay, a marker having the keyboard focus. *)
   | Conceal  (** Close the popover without delay. *)
@@ -281,7 +321,23 @@ type model = {
   definitions : definition list;
       (** The definitions of the program as last checked, those accepted before
           its first error; none once the source or the options change. *)
+  links : link list;
+      (** The names of the program as last checked with the definitions they
+          refer to; none once the source or the options change. *)
+  link : int option;
+      (** The link whose name is under the pointer while ⌘ (Ctrl) is held. *)
+  flash : (int * int) option;
+      (** The bytes of the definition just gone to, highlighted briefly. *)
+  flash_serial : int;
+      (** The serial of the latest flash; the end of an earlier one is ignored.
+      *)
+  checked : bool;
+      (** Whether the program has been typechecked without errors and not edited
+          since. *)
   popover : popover option;
+  columns : int option;
+      (** the characters a line of the scheme a card shows holds at most, as
+          last measured *)
   pointer : pointer;
       (** What the pointer is over, so that only a change is reported. *)
   caret_target : popover_target option;  (** the target the caret is in *)
@@ -301,7 +357,13 @@ let init =
     page = Editor;
     gallery = None;
     definitions = [];
+    links = [];
+    link = None;
+    flash = None;
+    flash_serial = 0;
+    checked = false;
     popover = None;
+    columns = None;
     pointer = Nowhere;
     caret_target = None;
     timer = 0;
@@ -314,6 +376,9 @@ type side_effect =
   | Measure_popover  (** measure the drawn popover and send [Place] *)
   | Scroll_to_error of int  (** scroll to the message of the given error *)
   | Remember of string * bool  (** keep a setting in the browser *)
+  | Jump of int
+      (** place the editor's caret at the given offset, in UTF-16 code units,
+          and scroll the flashed definition into view *)
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
    the interpreter: there is nothing to point at, only what went wrong. *)
@@ -453,33 +518,115 @@ let without_popover model =
     closing = false;
   }
 
+(* The text of [scheme], split into its parts by [scheme_layout]. The printers
+   name the unknowns as they meet them, so they are applied in order. *)
+let scheme_text ~scheme_layout scheme =
+  let ({ parameters; conjuncts; arrows } : Inference.Constraint.layout) =
+    scheme_layout scheme
+  in
+  let parameters = Option.map one_line parameters in
+  let conjuncts =
+    List.map
+      (function
+        | Inference.Constraint.Formula part -> Formula (one_line part)
+        | Inference.Constraint.Ordering { binder; left; right } ->
+            let binder = Option.map one_line binder in
+            let left = one_line left in
+            let right = one_line right in
+            Ordering { binder; left; right })
+      conjuncts
+  in
+  let arrows = List.map one_line arrows in
+  { parameters; conjuncts; arrows }
+
 (* The definitions of the editor's program among [definitions], each a
    variable, the location of its command and its scheme, with the text of the
    scheme and the place in [source] the command names it at. *)
-let defined ~source ~name ~scheme_parts definitions =
+let defined ~source ~name ~scheme_layout definitions =
   List.filter_map
     (fun (variable, (at : Location.t), scheme) ->
       if at.filename <> "" then None
       else
         let name = name variable in
-        (* The printers name the unknowns as they meet them, in this order. *)
-        let parameters, qualifier, ty = scheme_parts scheme in
-        let parameters = Option.map one_line parameters in
-        let qualifier = Option.map one_line qualifier in
-        let ty = one_line ty in
         Some
           {
             name;
-            scheme = { parameters; qualifier; ty };
+            scheme = scheme_text ~scheme_layout scheme;
             name_span = defined_name source at.start.offset name;
           })
     definitions
 
-(** [qualification scheme] is the quantifier and the qualifier of [scheme],
-    [∀ α ρ₀ ε₀. Q ∧ R ⇒ ], each when present. *)
-let qualification scheme =
-  Option.fold ~none:"" ~some:(fun p -> "∀ " ^ p ^ ". ") scheme.parameters
-  ^ Option.fold ~none:"" ~some:(fun q -> q ^ " ⇒ ") scheme.qualifier
+(* [within_span span loc] is whether the span [loc] lies in the span [span]. *)
+let within_span (span : Location.t) (loc : Location.t) =
+  span.filename = loc.filename
+  && span.start.offset <= loc.start.offset
+  && loc.stop.offset <= span.stop.offset
+
+(* The links of the names of the editor's program among [links], each to a
+   definition in the editor or in the standard library, whose source is
+   [library] and whose top-level definitions are [library_definitions], each
+   a variable, the location of its command and its scheme. *)
+let linked ~library ~library_definitions ~name ~scheme_layout
+    (links : Desugarer.References.link list) =
+  let lines = lazy (String.split_on_char '\n' library) in
+  let entry (definition : Location.t) sort =
+    let line = definition.start.line in
+    let value =
+      match (sort : Desugarer.References.sort) with
+      | Value ->
+          List.find_map
+            (fun (variable, at, scheme) ->
+              if within_span at definition then
+                Some
+                  {
+                    name = name variable;
+                    scheme = scheme_text ~scheme_layout scheme;
+                    name_span = None;
+                  }
+              else None)
+            library_definitions
+      | Constructor | Type | Operation -> None
+    in
+    Option.map
+      (fun text -> In_library { line; text; value })
+      (List.nth_opt (Lazy.force lines) (line - 1))
+  in
+  List.filter_map
+    (fun ({ use; definition; sort } : Desugarer.References.link) ->
+      let destination =
+        if use.filename <> "" then None
+        else if definition.filename = "" then
+          Some (In_editor (definition.start.offset, definition.stop.offset))
+        else if definition.filename = Loader.stdlib_filename then
+          entry definition sort
+        else None
+      in
+      Option.map
+        (fun destination ->
+          { use = (use.start.offset, use.stop.offset); destination })
+        destination)
+    links
+
+(** [link_at links offset] is the first of [links] whose name covers the byte
+    [offset] of the editor's text, its end included. *)
+let link_at links offset =
+  List.find_index
+    (fun { use = start, stop; _ } -> start <= offset && offset <= stop)
+    links
+
+(** [utf16_offset source byte] is the offset of the browser's UTF-16 code units
+    at the byte [byte] of [source], the inverse of [byte_offset]. *)
+let utf16_offset source byte =
+  let rec go i units =
+    if i >= byte || i >= String.length source then units
+    else
+      let lead = Char.code source.[i] in
+      if lead < 0x80 then go (i + 1) (units + 1)
+      else if lead < 0xE0 then go (i + 2) (units + 1)
+      else if lead < 0xF0 then go (i + 3) (units + 1)
+      else go (i + 4) (units + 2)
+  in
+  go 0 0
 
 (* The update of the model proper; [update] adds the effects. *)
 let update_model model = function
@@ -512,14 +659,19 @@ let update_model model = function
         page;
         gallery;
         definitions = [];
+        links = [];
+        link = None;
+        flash = None;
+        checked = false;
       }
   | RunMsg run_msg -> (
       match model.run_model with
       | Ok run_model ->
           { model with run_model = Ok (run_update run_model run_msg) }
       | Error _ -> model)
-  | RunCode ->
-      let run_model, definitions =
+  | (CheckCode | RunCode) as msg ->
+      let run = match msg with RunCode -> true | _ -> false in
+      let run_model, definitions, links =
         try
           match
             List.assoc_opt model.edit_model.selected_resource
@@ -532,6 +684,7 @@ let update_model model = function
                       (Printf.sprintf "Unknown grades '%s'"
                          model.edit_model.selected_resource);
                   ],
+                [],
                 [] )
           | Some (module G : Grades.Grade.S) ->
               let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
@@ -545,21 +698,29 @@ let update_model model = function
                 else []
               in
               let code = L.parse_source model.edit_model.unparsed_code in
-              let state =
-                L.load_commands
-                  (L.declare [ stdlib; code ] L.initial_state)
-                  stdlib
+              (* An error in the standard library is a bug, and fatal. *)
+              let state, library_definitions =
+                match
+                  L.load_commands_defining
+                    (L.declare [ stdlib; code ] L.initial_state)
+                    stdlib
+                with
+                | state, [], accepted, _ -> (state, accepted)
+                | _, d :: _, _, _ -> raise (Error.Error d)
               in
-              let state, diagnostics, accepted =
+              let state, diagnostics, accepted, references =
                 L.load_commands_defining state code
               in
+              let triple (d : L.definition) = (d.variable, d.at, d.scheme) in
               let definitions =
                 defined ~source:model.edit_model.unparsed_code
                   ~name:Language.Ast.Variable.string_of
-                  ~scheme_parts:L.TC.scheme_parts
-                  (List.map
-                     (fun (d : L.definition) -> (d.variable, d.at, d.scheme))
-                     accepted)
+                  ~scheme_layout:L.TC.scheme_layout (List.map triple accepted)
+              and links =
+                linked ~library:L.stdlib_source
+                  ~library_definitions:(List.map triple library_definitions)
+                  ~name:Language.Ast.Variable.string_of
+                  ~scheme_layout:L.TC.scheme_layout references
               in
               (* Build a run_model_state from a B.run_state, capturing all
                  resource-grade-specific types in closures so the rest of the
@@ -602,17 +763,20 @@ let update_model model = function
                     (List.map
                        (fun diagnostic -> { diagnostic; hovered_label = None })
                        diagnostics),
-                  definitions )
-              else
+                  definitions,
+                  links )
+              else if run then
                 ( Ok
                     (run_init
                        (make_run_state ~completed_runs:[] (B.run state.backend))),
-                  definitions )
+                  definitions,
+                  links )
+              else (Error [], definitions, links)
         with
         | Error.Error d ->
-            (Error [ { diagnostic = d; hovered_label = None } ], [])
-        | Invalid_argument message -> (Error [ fatal message ], [])
-        | exn -> (Error [ fatal (Printexc.to_string exn) ], [])
+            (Error [ { diagnostic = d; hovered_label = None } ], [], [])
+        | Invalid_argument message -> (Error [ fatal message ], [], [])
+        | exn -> (Error [ fatal (Printexc.to_string exn) ], [], [])
       in
       {
         (without_popover model) with
@@ -621,6 +785,10 @@ let update_model model = function
         hovered_error = None;
         stale_errors = false;
         definitions;
+        links;
+        link = None;
+        flash = None;
+        checked = (match run_model with Error [] -> true | _ -> false);
       }
   | EditCode ->
       {
@@ -651,8 +819,11 @@ let update_model model = function
   | OpenGallery -> { (without_popover model) with gallery = Some "" }
   | CloseGallery -> { model with gallery = None }
   | SearchGallery query -> { model with gallery = Some query }
+  | OverLink link -> { model with link }
+  | Unflash serial when serial = model.flash_serial ->
+      { model with flash = None }
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
-  | ShowFullError _ ->
+  | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ ->
       model
 
 (* How long the pointer rests on a span before its popover opens, and how long
@@ -679,11 +850,39 @@ let show ?point target model =
 
 let close model = { (disarm model) with popover = None }
 
+(* How long a definition gone to stays highlighted, in milliseconds. *)
+let flash_duration = 800
+
+(* The definition of the [k]th link gone to: the caret placed at a definition
+   in the editor, which flashes, or the popover of a definition in the
+   standard library opened at the name, the caret being there too. *)
+let follow model k =
+  match List.nth_opt model.links k with
+  | Some { destination = In_editor (start, stop); _ } ->
+      let flash_serial = model.flash_serial + 1 in
+      ( {
+          (close model) with
+          link = None;
+          caret_target = None;
+          flash = Some (start, stop);
+          flash_serial;
+        },
+        [
+          Jump (utf16_offset model.edit_model.unparsed_code start);
+          After (flash_duration, Unflash flash_serial);
+        ] )
+  | Some { destination = In_library _; _ } ->
+      let target = Reference k in
+      show target { model with link = None; caret_target = Some target }
+  | None -> (model, [])
+
 (** [update model msg] is the model after [msg] and the effects it asks for. *)
 let update model msg =
   match msg with
-  | Point (pointer, point) -> (
-      let model = { model with pointer } in
+  | Point (pointer, link, _) when pointer = model.pointer ->
+      ({ model with link }, [])
+  | Point (pointer, link, point) -> (
+      let model = { model with pointer; link } in
       match (pointer, model.popover) with
       | Over_popover, _ -> ((if model.closing then disarm model else model), [])
       | Over_target t, Some p when p.target = t ->
@@ -721,6 +920,10 @@ let update model msg =
   | Elapsed _ -> (model, [])
   | Place (target, placement) -> (
       match (model.popover, placement) with
+      (* a scheme laid out for another width is laid out again first *)
+      | Some p, Some { columns = Some _ as columns; _ }
+        when p.shown && p.target = target && columns <> model.columns ->
+          ({ model with columns }, [ Measure_popover ])
       | Some p, Some _ when p.shown && p.target = target ->
           ({ model with popover = Some { p with placement } }, [])
       | Some p, None when p.target = target -> (close model, [])
@@ -744,6 +947,13 @@ let update model msg =
             | Some t, _ -> show t model
             | None, Some { point = None; _ } -> (close model, [])
             | None, _ -> (model, []))
+      | _ -> (model, []))
+  | Follow k -> follow model k
+  | FollowAt offset -> (
+      match
+        link_at model.links (byte_offset model.edit_model.unparsed_code offset)
+      with
+      | Some k when not model.stale_errors -> follow model k
       | _ -> (model, []))
   | EditMsg (UseStdlib use_stdlib) ->
       (update_model model msg, [ Remember (use_stdlib_key, use_stdlib) ])

@@ -8,6 +8,7 @@ module Context = Language.Context
 module Const = Language.Const
 module StringMap = Map.Make (String)
 module StringSet = Set.Make (String)
+module References = References
 
 module Make (GS : Grades.GradeSystem.S) = struct
   let add_unique ~loc kind str symb string_map =
@@ -260,7 +261,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   and desugar_plain_ty ~loc state = function
     | Sugared.TyApply (ty_name, tys) ->
-        let ty_name' = lookup_ty_name ~loc state ty_name in
+        let ty_name' = lookup_ty_name ~loc state ty_name.it in
         let tys' = List.map (desugar_ty state) tys in
         Untyped.TyApply (ty_name', tys')
     | Sugared.TyParam ty_param ->
@@ -297,7 +298,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let vars, pat' = desugar_pattern state vars pat
         and ty' = desugar_ty state ty in
         (vars, Untyped.PAnnotated (pat', ty'))
-    | Sugared.PAs (pat, x) ->
+    | Sugared.PAs (pat, { it = x; _ }) ->
         let vars, pat' = desugar_pattern state vars pat in
         let x' = Untyped.Variable.fresh x in
         (add_unique ~loc "Variable" x x' vars, Untyped.PAs (pat', x'))
@@ -309,10 +310,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let vars, ps' = List.fold_right aux ps (StringMap.empty, []) in
         (vars, Untyped.PTuple ps')
     | Sugared.PVariant (lbl, None) ->
-        let lbl' = lookup_label ~loc state lbl in
+        let lbl' = lookup_label ~loc state lbl.it in
         (StringMap.empty, Untyped.PVariant (lbl', None))
     | Sugared.PVariant (lbl, Some pat) ->
-        let lbl' = lookup_label ~loc state lbl in
+        let lbl' = lookup_label ~loc state lbl.it in
         let vars, pat' = desugar_pattern state vars pat in
         (vars, Untyped.PVariant (lbl', Some pat'))
     | Sugared.PConst c -> (StringMap.empty, Untyped.PConst c)
@@ -360,10 +361,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let binds, es = desugar_expressions state ts in
         (binds, Untyped.Tuple es)
     | Sugared.Variant (lbl, None) ->
-        let lbl' = lookup_label ~loc state lbl in
+        let lbl' = lookup_label ~loc state lbl.it in
         ([], Untyped.Variant (lbl', None))
     | Sugared.Variant (lbl, Some term) ->
-        let lbl' = lookup_label ~loc state lbl in
+        let lbl' = lookup_label ~loc state lbl.it in
         let binds, expr = desugar_expression state term in
         (binds, Untyped.Variant (lbl', Some expr))
     | Sugared.Handler (ret_case, op_cases) ->
@@ -489,7 +490,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
                   (Untyped.Return (Untyped.located loc (Untyped.Var var))) ) )
         )
     | Sugared.Perform (op, e) ->
-        let operation = lookup_operation ~loc state op in
+        let operation = lookup_operation ~loc state op.it in
         let binds, expr = desugar_expression state e in
         let var = Untyped.Variable.fresh_synthetic "op_var" in
         ( binds,
@@ -552,7 +553,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
   (* A recursive definition [let rec f p₁ … pₙ : ty # eps = t] has the effect
      [eps] on its innermost arrow: the layer of [pₙ] is an ordinary function
      and the rest of the chain stays pure. *)
-  and desugar_let_rec_def state (f, { it = exp; at = loc }) =
+  and desugar_let_rec_def state ({ Sugared.it = f; _ }, { it = exp; at = loc })
+      =
     let f' = Untyped.Variable.fresh f in
     let state' = add_fresh_variables state (StringMap.singleton f f') in
     let eps, abs' =
@@ -614,7 +616,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let desugar_ty_def ~loc state = function
     | Sugared.TyInline ty -> (state, Untyped.TyInline (desugar_ty state ty))
     | Sugared.TySum variants ->
-        let aux state (label, ty) =
+        let aux state ({ Sugared.it = label; _ }, ty) =
           let label' = Untyped.Label.fresh label in
           let ty' = Option.map (desugar_ty state) ty in
           let state' = add_label ~loc state label label' in
@@ -627,7 +629,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let state', cmd' =
       match cmd with
       | Sugared.TyDef (eternality, defs) ->
-          let def_name (_, ty_name, _) =
+          let def_name (_, { Sugared.it = ty_name; _ }, _) =
             let ty_name' = Untyped.TyName.fresh ty_name in
             (ty_name, ty_name')
           in
@@ -646,7 +648,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
             List.fold_right2 aux defs new_names (state', [])
           in
           (state'', Untyped.TyDef (eternality, defs'))
-      | Sugared.OpSig (op_name, ty1_name, ty2_name, eps_val, bounds) ->
+      | Sugared.OpSig ({ it = op_name; _ }, ty1_name, ty2_name, eps_val, bounds)
+        ->
           let operation = Untyped.OpName.fresh op_name in
           let ty1 = desugar_ty state ty1_name in
           let ty2 = desugar_ty state ty2_name in
@@ -660,7 +663,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
               (abstraction_annotation_names no_annotation_names abs)
           in
           (state, Untyped.OpDefault (operation, desugar_abstraction scoped abs))
-      | Sugared.TopLet (x, term) ->
+      | Sugared.TopLet ({ it = x; _ }, term) ->
           let x' = Untyped.Variable.fresh x in
           let state' = add_fresh_variables state (StringMap.singleton x x') in
           let scoped =

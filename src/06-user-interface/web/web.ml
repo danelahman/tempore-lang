@@ -101,12 +101,17 @@ let command (model : Model.model) = function
             model.popover)
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
   | Model.Remember (key, value) -> Now (fun () -> remember key value)
+  | Model.Jump offset ->
+      After_redraw
+        (fun () ->
+          EditorDom.jump offset;
+          None)
 
 let update model msg =
   let model', side_effects = Model.update model msg in
   let cmd =
     match (msg, model'.Model.run_model) with
-    | Model.RunCode, Error (error :: _) ->
+    | (Model.CheckCode | Model.RunCode), Error (error :: _) ->
         Scroll_to (View.load_error_target 0 error)
     | Model.EditMsg (Model.InsertIndent (_, start, _)), _ ->
         Set_caret (start + String.length Model.indentation)
@@ -127,9 +132,40 @@ let init =
 
 let app = Vdom.app ~init:(init, Vdom.Cmd.batch []) ~view:View.view ~update ()
 
+(* The modifier of links is watched on the whole page, the pointer resting on
+   a name as it is pressed or released: its position is kept from the last
+   move of the pointer. Leaving the window counts as releasing it, the release
+   being reported to the window left. *)
+let watch_modifier app =
+  let point = ref None in
+  let report link =
+    if (Vdom_blit.get app).Model.link <> link then
+      Vdom_blit.process app (Model.OverLink link)
+  in
+  let listen kind f =
+    Js_browser.Window.add_event_listener Js_browser.window kind
+      (fun event -> f (Js_browser.Event.t_to_js event))
+      false
+  in
+  listen Js_browser.Event.Mousemove (fun event ->
+      point := Some (EditorDom.point event));
+  listen Js_browser.Event.Keydown (fun event ->
+      if
+        EditorDom.is_modifier
+          (Ojs.string_of_js (Ojs.get_prop_ascii event "key"))
+        && (Vdom_blit.get app).Model.links <> []
+      then report (Option.bind !point EditorDom.link_at));
+  listen Js_browser.Event.Keyup (fun event ->
+      if
+        EditorDom.is_modifier
+          (Ojs.string_of_js (Ojs.get_prop_ascii event "key"))
+      then report None);
+  listen Js_browser.Event.Blur (fun _ -> report None)
+
 let run () =
-  Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app
-  |> Vdom_blit.dom
+  let app = Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app in
+  watch_modifier app;
+  Vdom_blit.dom app
   |> Js_browser.Element.append_child
        (match
           Js_browser.Document.get_element_by_id Js_browser.document "container"

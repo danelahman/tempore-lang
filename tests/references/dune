@@ -1,0 +1,5 @@
+; Unit test of the links of names to their definitions.
+
+(test
+ (name test_references)
+ (libraries utils grades parser desugarer loader))
