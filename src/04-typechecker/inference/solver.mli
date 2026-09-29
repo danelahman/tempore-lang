@@ -18,9 +18,10 @@
     - A rigid scope is solved with a residual of its own and closed
       ({!RigidScope}): its local unknowns receive values, its atoms are kept
       outside it or deferred as conditions on its rigid variable; the rigid may
-      not occur in the value of an unknown outside the scope. When the scope
-      instantiated type unknowns, the pending demands are decomposed again.
-      Every deferred condition is retried after the close.
+      not occur in the value of an unknown outside the scope, the escape check
+      of skolem constants (Peyton Jones, Vytiniotis, Weirich and Shields, JFP
+      2007). When the scope instantiated type unknowns, the pending demands are
+      decomposed again. Every deferred condition is retried after the close.
 
     After the whole constraint the deferred conditions are retried and the
     residual read as hypotheses; the orderings between variable-free sides,

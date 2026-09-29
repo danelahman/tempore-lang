@@ -4,6 +4,8 @@
     [v] on neither side. A value is given where an occurrence oracle allows it:
     whether [v] may decrease, or increase, without changing the meaning of the
     atoms other than the orderings of its sort that the value discharges.
+    Lowering and raising follow the elimination of variables by polarity
+    (Pottier, ICFP 1996; Trifonov and Smith, SAS 1996).
 
     - Lowering: every ordering has [v] on no right side, is [x ≾ v] with [x]
       free of [v], a lower bound, or is valid; some ordering is a lower bound,
