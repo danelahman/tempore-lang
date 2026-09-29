@@ -108,49 +108,238 @@ type side = Left | Right
 type source = Side of side | Through of Ast.ty_param
 type 'info binding = { site : 'info; at : Ast.step list; source : source }
 type 'info bindings = 'info binding TyParamMap.t
+type 'info link = { joined_by : 'info; joined_at : Ast.step list; joined : t }
+type 'info trace = { bindings : 'info bindings; related : 'info link list }
 
-(* One equation of the problem being solved: its payload and the reversed path
-   of the sub-skeletons being unified. *)
-type 'info site = { info : 'info; rev_path : Ast.step list }
+(* The binding of a class: the skeleton it is bound to, how, and the unknown
+   whose unification bound it. *)
+type 'info bound = { shape : t; binding : 'info binding; binder : Ast.ty_param }
 
-(* The unifier so far, idempotent, and the bindings that made it. *)
-type 'info unifier = { sigma : subst; bindings : 'info bindings }
+(* A union-find forest on type unknowns with union by rank (Tarjan, JACM
+   1975), persistent as finite maps: the parent of each unknown other than a
+   root, the rank of each root above 0, and the members of each class of more
+   than one unknown, at its root. A class is a multi-equation (Pottier and
+   Rémy, "The Essence of ML Type Inference", 2005): the root of a class whose
+   unknowns are bound to a skeleton other than an unknown maps to its binding.
+   Beside it, an explanation forest with the same trees as the classes, each
+   edge labelled with the payload and the position of the equation whose
+   unification joined its two unknowns, and of those that equation depends on
+   (Nieuwenhuis and Oliveras, "Proof-producing congruence closure", RTA
+   2005). *)
+type 'info unifier = {
+  parent : Ast.ty_param TyParamMap.t;
+  rank : int TyParamMap.t;
+  members : TyParamSet.t TyParamMap.t;
+  shapes : 'info bound TyParamMap.t;
+  edges : (Ast.ty_param * ('info * Ast.step list) list) TyParamMap.t;
+}
+
+let empty =
+  {
+    parent = TyParamMap.empty;
+    rank = TyParamMap.empty;
+    members = TyParamMap.empty;
+    shapes = TyParamMap.empty;
+    edges = TyParamMap.empty;
+  }
+
+let rec find u a =
+  match TyParamMap.find_opt a u.parent with Some b -> find u b | None -> a
+
+let rank u a = Option.value (TyParamMap.find_opt a u.rank) ~default:0
+
+let members u a =
+  Option.value
+    (TyParamMap.find_opt a u.members)
+    ~default:(TyParamSet.singleton a)
+
+(* The explanation tree of [a] re-rooted at [a], its edges reversed along the
+   path from [a] to the former root. *)
+let rec reroot edges a =
+  match TyParamMap.find_opt a edges with
+  | None -> edges
+  | Some (b, label) ->
+      TyParamMap.add b (a, label) (TyParamMap.remove a (reroot edges b))
+
+(* The union of the classes of the distinct roots [a] and [b], neither bound,
+   by an equation between their members [x] and [y] with the labels [labels];
+   at equal ranks [a] is placed under [b]. *)
+let union u (x, a) (y, b) labels =
+  let under child root =
+    {
+      u with
+      parent = TyParamMap.add child root u.parent;
+      members =
+        TyParamMap.add root
+          (TyParamSet.union (members u child) (members u root))
+          (TyParamMap.remove child u.members);
+      edges = TyParamMap.add x (y, labels) (reroot u.edges x);
+    }
+  in
+  let rank_a = rank u a and rank_b = rank u b in
+  if rank_a < rank_b then under a b
+  else if rank_a > rank_b then under b a
+  else { (under a b) with rank = TyParamMap.add b (rank_b + 1) u.rank }
+
+(* The labels of the path between [a] and [b] in their explanation tree, from
+   [a] to [b]. *)
+let explanation u a b =
+  let rec ancestry a =
+    match TyParamMap.find_opt a u.edges with
+    | Some (c, label) -> (a, Some label) :: ancestry c
+    | None -> [ (a, None) ]
+  in
+  let up = ancestry a and up' = ancestry b in
+  let set up = TyParamSet.of_list (List.map fst up) in
+  let rec below common = function
+    | (c, Some labels) :: rest when not (TyParamSet.mem c common) ->
+        labels @ below common rest
+    | _ -> []
+  in
+  below (set up') up @ List.rev (below (set up) up')
+
+(* The head of [t] under [u]: for an unknown, the skeleton its class is bound
+   to, or the root of its class when the class is not bound. *)
+let resolve u = function
+  | Var a -> (
+      let root = find u a in
+      match TyParamMap.find_opt root u.shapes with
+      | Some { shape; _ } -> shape
+      | None -> Var root)
+  | t -> t
+
+(* The immediate sub-skeletons of a skeleton. *)
+let parts = function
+  | Var _ | Const _ -> []
+  | Apply (_, ts) | Tuple ts -> ts
+  | Arrow (t, t') | Handler (t, t') -> [ t; t' ]
+  | Box t -> [ t ]
+
+(* [t] under [u], resolved throughout. *)
+let rec value u t =
+  match resolve u t with
+  | (Var _ | Const _) as t -> t
+  | Apply (name, ts) -> Apply (name, List.map (value u) ts)
+  | Tuple ts -> Tuple (List.map (value u) ts)
+  | Arrow (t, t') -> Arrow (value u t, value u t')
+  | Box t -> Box (value u t)
+  | Handler (t, t') -> Handler (value u t, value u t')
+
+(* An unknown of [t] in the class of the root [a], found through the classes
+   bound, with the pairs of each unknown of a bound class passed and the
+   binder of its class. *)
+let rec occurrence u a = function
+  | Var b -> (
+      let root = find u b in
+      if TyParam.compare root a = 0 then Some (b, [])
+      else
+        match TyParamMap.find_opt root u.shapes with
+        | Some { shape; binder; _ } ->
+            Option.map
+              (fun (c, pairs) -> (c, (b, binder) :: pairs))
+              (occurrence u a shape)
+        | None -> None)
+  | t -> List.find_map (occurrence u a) (parts t)
+
+let substitution u =
+  let add a _ sigma =
+    match value u (Var a) with
+    | Var b when TyParam.compare a b = 0 -> sigma
+    | t -> TyParamMap.add a t sigma
+  in
+  TyParamMap.empty
+  |> TyParamMap.fold add u.parent
+  |> TyParamMap.fold add u.shapes
+
+(* One equation being solved: its payload, the reversed path of the
+   sub-skeletons being unified, the labels of the equations it depends on, and
+   the pairs of each unknown of a bound class met on the way and the binder of
+   its class. *)
+type 'info site = {
+  info : 'info;
+  rev_path : Ast.step list;
+  because : ('info * Ast.step list) list;
+  entered : (Ast.ty_param * Ast.ty_param) list;
+}
+
+(* A unification in progress: the unifier so far and the roots of the classes
+   it has bound, latest first. *)
+type 'info progress = { unifier : 'info unifier; bound : Ast.ty_param list }
+
+(* The binding of each unknown of the classes bound in [st]. *)
+let bindings st =
+  List.fold_left
+    (fun acc root ->
+      let { binding; _ } = TyParamMap.find root st.unifier.shapes in
+      TyParamSet.fold
+        (fun a acc -> TyParamMap.add a binding acc)
+        (members st.unifier root) acc)
+    TyParamMap.empty st.bound
 
 let descend site step = { site with rev_path = step :: site.rev_path }
 
-let fail site mismatch st lhs rhs =
+(* [site] with the pair of [t] and the binder of its class, when [t] is an
+   unknown of a bound class other than its binder. *)
+let enter u site = function
+  | Var a -> (
+      match TyParamMap.find_opt (find u a) u.shapes with
+      | Some { binder; _ } when TyParam.compare a binder <> 0 ->
+          { site with entered = (a, binder) :: site.entered }
+      | Some _ | None -> site)
+  | _ -> site
+
+(* The failure at [site], with the links on the explanations of [pairs] and of
+   the pairs entered at [site], each with the skeleton its unknowns stand
+   for. *)
+let fail ?(pairs = []) site mismatch st lhs rhs =
+  let u = st.unifier in
+  let related (a, b) =
+    List.map
+      (fun (info, at) ->
+        { joined_by = info; joined_at = at; joined = value u (Var a) })
+      (explanation u a b)
+  in
   Error
     ( {
         info = site.info;
         mismatch;
-        lhs = apply st.sigma lhs;
-        rhs = apply st.sigma rhs;
+        lhs = value u lhs;
+        rhs = value u rhs;
         path = List.rev site.rev_path;
       },
-      st.bindings )
+      {
+        bindings = bindings st;
+        related = List.concat_map related (pairs @ List.rev site.entered);
+      } )
 
 (* Where the value of an unknown facing the sub-skeleton [other], on side
    [side], comes from. *)
 let source_of side = function Var b -> Through b | _ -> Side side
 
-(* The binding of [a] to [t], composed with the idempotent unifier so that the
-   result is idempotent. *)
-let bind site st a t ~source ~lhs ~rhs =
-  let t = apply st.sigma t in
-  if occurs a t then fail site (Occurs a) st lhs rhs
-  else
-    let single = TyParamMap.singleton a t in
-    let binding = { site = site.info; at = List.rev site.rev_path; source } in
-    Ok
-      {
-        sigma = TyParamMap.add a t (TyParamMap.map (apply single) st.sigma);
-        bindings = TyParamMap.add a binding st.bindings;
-      }
+(* The unknown [t] is, or [a]. *)
+let unknown_or a = function Var x -> x | _ -> a
 
-(* The head of [t] under [sigma]. *)
-let resolve sigma = function
-  | Var a as t -> Option.value (TyParamMap.find_opt a sigma) ~default:t
-  | t -> t
+(* The class of the unbound root [a], that of the unknown [var], bound to
+   [t], the head of [other], with occurs check. *)
+let bind site st a t ~var ~other ~source ~lhs ~rhs =
+  let binder = unknown_or a var in
+  match occurrence st.unifier a other with
+  | Some (c, pairs) ->
+      fail ~pairs:((binder, c) :: pairs) site (Occurs a) st lhs rhs
+  | None ->
+      let binding = { site = site.info; at = List.rev site.rev_path; source } in
+      Ok
+        {
+          unifier =
+            {
+              st.unifier with
+              shapes =
+                TyParamMap.add a
+                  { shape = t; binding; binder }
+                  st.unifier.shapes;
+            };
+          bound = a :: st.bound;
+        }
 
 (* The outermost former of a skeleton and its parts. *)
 let former : t -> (t, unit, unit) Former.t = function
@@ -162,16 +351,29 @@ let former : t -> (t, unit, unit) Former.t = function
   | Box t -> Former.Box ((), t)
   | Handler (t, u) -> Former.Handler ((t, ()), (u, ()))
 
-(* [unify_at unfold site st lhs rhs] extends the unifier [st] to a most general
-   unifier of [lhs] and [rhs], both the rigid-rigid and the flexible cases. It
-   is Robinson's first-order unification with occurs check (Robinson, JACM
-   1965), by recursion on the two skeletons along {!Former.decompose}, the
-   unifier an idempotent substitution. *)
+(* [unify_at unfold site st lhs rhs] extends the unifier of [st] to a most
+   general unifier of [lhs] and [rhs]. It is first-order unification with
+   occurs check (Robinson, JACM 1965) on the union-find representation of the
+   unifier (Huet, thesis 1976), by recursion on the two skeletons along
+   {!Former.decompose}. *)
 let rec unify_at unfold site st lhs rhs =
-  match (resolve st.sigma lhs, resolve st.sigma rhs) with
+  let site = enter st.unifier (enter st.unifier site lhs) rhs in
+  match (resolve st.unifier lhs, resolve st.unifier rhs) with
   | Var a, Var b when TyParam.compare a b = 0 -> Ok st
-  | Var a, t -> bind site st a t ~source:(source_of Right rhs) ~lhs ~rhs
-  | t, Var a -> bind site st a t ~source:(source_of Left lhs) ~lhs ~rhs
+  | Var a, Var b ->
+      let labels = (site.info, List.rev site.rev_path) :: site.because in
+      Ok
+        {
+          st with
+          unifier =
+            union st.unifier (unknown_or a lhs, a) (unknown_or b rhs, b) labels;
+        }
+  | Var a, t ->
+      bind site st a t ~var:lhs ~other:rhs ~source:(source_of Right rhs) ~lhs
+        ~rhs
+  | t, Var a ->
+      bind site st a t ~var:rhs ~other:lhs ~source:(source_of Left lhs) ~lhs
+        ~rhs
   | Apply (name, ts), Apply (name', us) ->
       unify_applications unfold site st (name, ts) (name', us)
   | Apply (name, ts), u -> unfold_left unfold site st (name, ts) u
@@ -213,68 +415,25 @@ and unify_formers unfold site st t u ~lhs ~rhs =
         (Ok st) parts
   | None -> fail site Clash st lhs rhs
 
-(* The equations solved left to right under one growing unifier. *)
-let unify_traced unfold equations =
-  let unify_equation st ({ lhs; rhs; info } : _ equation) =
-    Result.bind st (fun st ->
-        unify_at unfold { info; rev_path = [] } st lhs rhs)
-  in
-  Result.map
-    (fun st -> (st.sigma, st.bindings))
-    (List.fold_left unify_equation
-       (Ok { sigma = TyParamMap.empty; bindings = TyParamMap.empty })
-       equations)
+(* The equation [lhs = rhs] with payload [info] solved from [st], at the
+   position [at], depending on the equations of [because]. *)
+let unify_from ?(because = []) unfold st ~at ({ lhs; rhs; info } : _ equation) =
+  unify_at unfold
+    { info; rev_path = List.rev at; because; entered = [] }
+    st lhs rhs
+
+(* The equations solved left to right from [st]. *)
+let solve unfold st equations =
+  List.fold_left
+    (fun st equation ->
+      Result.bind st (fun st -> unify_from unfold st ~at:[] equation))
+    (Ok st) equations
 
 let unify unfold equations =
-  Result.map fst (Result.map_error fst (unify_traced unfold equations))
-
-(* The pairs of unknowns at the same positions of [t] and [u], in reverse
-   order onto [acc], when the two have one shape as they stand. *)
-let rec aligned_onto acc t u =
-  match (t, u) with
-  | Var a, Var b -> Some ((a, b) :: acc)
-  | t, u ->
-      Option.bind
-        (Former.decompose (former t) (former u))
-        (fun parts ->
-          List.fold_left
-            (fun acc part ->
-              match part with
-              | Former.Ty (_, _, t, u) ->
-                  Option.bind acc (fun acc -> aligned_onto acc t u)
-              | Former.Rho _ | Former.Eps _ -> acc)
-            (Some acc) parts)
-
-let aligned t u = Option.map List.rev (aligned_onto [] t u)
-
-(* A union-find forest on type unknowns with union by rank (Tarjan, JACM
-   1975), persistent as a pair of finite maps: the parent of each unknown
-   other than a root and the rank of each root above 0. *)
-type classes = { parent : Ast.ty_param TyParamMap.t; rank : int TyParamMap.t }
-
-let no_classes = { parent = TyParamMap.empty; rank = TyParamMap.empty }
-
-let rec find classes a =
-  match TyParamMap.find_opt a classes.parent with
-  | Some b -> find classes b
-  | None -> a
-
-let rank classes a =
-  Option.value (TyParamMap.find_opt a classes.rank) ~default:0
-
-let join classes a b =
-  let a = find classes a and b = find classes b in
-  let under child root =
-    { classes with parent = TyParamMap.add child root classes.parent }
-  in
-  let rank_a = rank classes a and rank_b = rank classes b in
-  if TyParam.compare a b = 0 then classes
-  else if rank_a < rank_b then under a b
-  else if rank_a > rank_b then under b a
-  else { (under b a) with rank = TyParamMap.add a (rank_a + 1) classes.rank }
-
-let join_all classes pairs =
-  List.fold_left (fun classes (a, b) -> join classes a b) classes pairs
+  Result.map
+    (fun st -> substitution st.unifier)
+    (Result.map_error fst
+       (solve unfold { unifier = empty; bound = [] } equations))
 
 module Make (X : GradeExp.S) = struct
   type ty = (X.rho, X.eps) Ast.ty
@@ -308,73 +467,54 @@ module Make (X : GradeExp.S) = struct
   let substitute theta ty =
     Ast.substitute_ty theta ~on_rho:Fun.id ~on_eps:Fun.id ty
 
-  (* The left unknown of a demand between two unknowns. *)
-  let between ({ lhs; rhs; _ } : (ty, _) GradeNormal.ordering) =
-    match (lhs, rhs) with Ast.TyParam a, Ast.TyParam _ -> Some a | _ -> None
-
-  (* The demands to unify, in order: those not between two unknowns, and those
-     between two unknowns in the class of an unknown of the former. *)
-  let select classes demands =
-    let add_classes ty acc =
-      Ast.fold_ty
-        ~on_param:(fun a acc -> TyParamSet.add (find classes a) acc)
-        ~on_rho:(fun _ acc -> acc)
-        ~on_eps:(fun _ acc -> acc)
-        ty acc
-    in
-    let touched =
+  (* Each unknown of the classes bound in [st] instantiated by a decoration of
+     the skeleton its class is bound to, in the order of the unknowns; each
+     decoration is unified with that skeleton, under the payload and at the
+     position of the binding of the class, and depending on the equations
+     that placed the unknown in the class of its binder, so that its unknowns
+     join the classes at the same positions. *)
+  let instantiate unfold st =
+    let u = st.unifier in
+    let unknowns =
       List.fold_left
-        (fun acc (d : (ty, _) GradeNormal.ordering) ->
-          match between d with
-          | Some _ -> acc
-          | None -> add_classes d.rhs (add_classes d.lhs acc))
-        TyParamSet.empty demands
+        (fun acc root -> TyParamSet.union (members u root) acc)
+        TyParamSet.empty st.bound
     in
-    List.filter
-      (fun d ->
-        match between d with
-        | Some a -> TyParamSet.mem (find classes a) touched
-        | None -> true)
-      demands
+    let theta =
+      TyParamSet.fold
+        (fun a -> TyParamMap.add a (decorate (value u (Var a))))
+        unknowns TyParamMap.empty
+    in
+    let join st (a, ty) =
+      let { binding; binder; _ } = TyParamMap.find (find u a) u.shapes in
+      Result.bind st (fun st ->
+          unify_from unfold st ~at:binding.at ~because:(explanation u a binder)
+            { lhs = of_ty ty; rhs = Var a; info = binding.site })
+    in
+    Result.map
+      (fun st -> (theta, st.unifier))
+      (List.fold_left join
+         (Ok { unifier = u; bound = [] })
+         (TyParamMap.bindings theta))
 
-  (* Unifies the skeletons of the demands selected and instantiates the
-     unknowns the unifier sends to a non-variable skeleton, by a decoration of
-     it: the shape matching and expansion that reduce subtyping to atomic
-     constraints (Fuh and Mishra, ESOP 1988; Mitchell, JFP 1991). Each unknown
-     the unifier binds is joined with the unknowns its value has at the same
-     positions, those of its decoration when it is instantiated. *)
-  let expand_traced unfold classes demands =
+  (* The skeletons of the demands unified under [u], and the unknowns of the
+     classes they bind instantiated: the shape matching and expansion that
+     reduce subtyping to atomic constraints (Fuh and Mishra, ESOP 1988;
+     Mitchell, JFP 1991). *)
+  let expand_traced unfold u demands =
     let equation ({ lhs; rhs; info } : (ty, _) GradeNormal.ordering) =
       { lhs = of_ty lhs; rhs = of_ty rhs; info }
     in
-    let instantiate _ = function Var _ -> None | t -> Some (decorate t) in
-    let join_aligned classes t u =
-      Option.fold ~none:classes ~some:(join_all classes) (aligned t u)
-    in
-    Result.map
-      (fun (sigma, bindings) ->
-        let theta = TyParamMap.filter_map instantiate sigma in
-        let value a =
-          Option.value (TyParamMap.find_opt a theta) ~default:(Ast.TyParam a)
-        in
-        let classes =
-          TyParamMap.fold
-            (fun a t classes -> join_aligned classes t (of_ty (value a)))
-            sigma classes
-        in
-        (theta, classes, bindings))
-      (unify_traced unfold (List.map equation (select classes demands)))
+    Result.bind
+      (solve unfold { unifier = u; bound = [] } (List.map equation demands))
+      (fun st ->
+        let bindings = bindings st in
+        Result.map
+          (fun (theta, u) -> (theta, u, bindings))
+          (instantiate unfold st))
 
   let expand unfold demands =
-    let classes =
-      List.fold_left
-        (fun classes ({ lhs; rhs; _ } : (ty, _) GradeNormal.ordering) ->
-          match (lhs, rhs) with
-          | Ast.TyParam a, Ast.TyParam b -> join classes a b
-          | _ -> classes)
-        no_classes demands
-    in
     Result.map
       (fun (theta, _, _) -> theta)
-      (Result.map_error fst (expand_traced unfold classes demands))
+      (Result.map_error fst (expand_traced unfold empty demands))
 end

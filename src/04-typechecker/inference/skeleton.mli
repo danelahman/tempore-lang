@@ -84,7 +84,7 @@ val unify : unfold -> 'info equation list -> (subst, 'info failure) result
     an alias may ignore its arguments. An unknown is bound to a skeleton without
     unfolding. *)
 
-(** {1 Traced unification} *)
+(** {1 Bindings} *)
 
 (** A side of an equation. *)
 type side = Left | Right
@@ -104,45 +104,46 @@ type 'info binding = {
           after the unfolding of aliases *)
   source : source;
 }
-(** How an unknown came to be bound in a unification. *)
+(** How the class of an unknown came to be bound to a skeleton other than an
+    unknown. *)
 
 type 'info bindings = 'info binding Language.Ast.TyParamMap.t
-(** The binding of each unknown of the domain of a unifier. *)
+(** The binding of each unknown of the classes bound. *)
 
-val unify_traced :
-  unfold ->
-  'info equation list ->
-  (subst * 'info bindings, 'info failure * 'info bindings) result
-(** [unify_traced unfold equations] is {!unify} with the bindings made, those
-    made before the failure when there is one. *)
+type 'info link = {
+  joined_by : 'info;
+      (** the payload of the equation whose unification joined two classes *)
+  joined_at : Language.Ast.step list;
+      (** the position of the two unknowns joined within the equation, outermost
+          first, after the unfolding of aliases *)
+  joined : t;  (** the skeleton the unknowns joined stand for at the failure *)
+}
+(** An equation that placed two unknowns in one class. *)
 
-(** {1 Alignment} *)
+type 'info trace = {
+  bindings : 'info bindings;  (** the bindings made before the failure *)
+  related : 'info link list;
+      (** the equations whose unification related the unknowns of the failure,
+          along the path between two unknowns in the explanation forest: for an
+          occurs check, the unknown bound and the unknown of its class in the
+          skeleton it faces; for each unknown of a bound class met on the way to
+          the failure, that unknown and the unknown whose unification bound the
+          class *)
+}
+(** What a failed unification records. *)
 
-val aligned :
-  t -> t -> (Language.Ast.ty_param * Language.Ast.ty_param) list option
-(** [aligned t u] is, when [t] and [u] have one shape as they stand, each
-    unknown of one facing an unknown of the other, the pairs of unknowns at the
-    same positions, left to right along {!Former.decompose}; [None] otherwise,
-    aliases not unfolded. The unification of two aligned skeletons instantiates
-    no unknown. *)
+(** {1 Unifiers} *)
 
-(** {1 Classes} *)
+type 'info unifier
+(** A most general unifier, persistent: a partition of type unknowns into
+    classes, each unbound or bound to a skeleton other than an unknown with the
+    binding that bound it. An unknown stands for the skeleton its class is bound
+    to, or for its class when the class is unbound. Each class is also a tree
+    whose edges are labelled with the equations that joined their two unknowns
+    (an explanation forest). *)
 
-type classes
-(** A partition of type unknowns into classes, persistent. *)
-
-val no_classes : classes
-(** [no_classes] is the partition into singletons. *)
-
-val find : classes -> Language.Ast.ty_param -> Language.Ast.ty_param
-(** [find classes a] is the representative of the class of [a]. *)
-
-val join : classes -> Language.Ast.ty_param -> Language.Ast.ty_param -> classes
-(** [join classes a b] merges the classes of [a] and [b]. *)
-
-val join_all :
-  classes -> (Language.Ast.ty_param * Language.Ast.ty_param) list -> classes
-(** [join_all classes pairs] joins the two unknowns of each pair. *)
+val empty : 'info unifier
+(** [empty] is the unifier of no equations: every class a singleton, unbound. *)
 
 (** {1 Decoration and expansion} *)
 
@@ -172,27 +173,25 @@ module Make (X : GradeExp.S) : sig
     unfold ->
     (ty, 'info) GradeNormal.ordering list ->
     (ty_subst, 'info failure) result
-  (** [expand unfold demands] unifies the skeletons of the two sides of every
-      subtyping demand, and instantiates each unknown the unifier sends to a
-      skeleton other than a variable by a decoration of that skeleton; the other
-      unknowns are kept. Under the result the two sides of every demand have the
-      same shape, their skeletons with all unknowns identified. A failure names
-      the payload of the first demand whose shapes are incompatible with those
-      before it. *)
+  (** [expand unfold demands] is the instantiation of {!expand_traced} from
+      {!empty}. *)
 
   val expand_traced :
     unfold ->
-    classes ->
+    'info unifier ->
     (ty, 'info) GradeNormal.ordering list ->
-    (ty_subst * classes * 'info bindings, 'info failure * 'info bindings) result
-  (** [expand_traced unfold classes demands] is {!expand} with the bindings of
-      the unification of the skeletons ({!unify_traced}), given [classes] in
-      which the two unknowns of each demand between two unknowns are in one
-      class. Only the demands not between two unknowns, and those between two
-      unknowns in the class of an unknown of the former, are unified, in order:
-      the others instantiate no unknown and bind none of the unknowns the former
-      meet, so that the instantiation, the failure and the bindings of those
-      unknowns are those of the unification of all the demands. The classes
-      returned keep the property for the demands between two unknowns that the
-      demands decompose into under the instantiation. *)
+    ( ty_subst * 'info unifier * 'info bindings,
+      'info failure * 'info trace )
+    result
+  (** [expand_traced unfold u demands] unifies the skeletons of the two sides of
+      each demand under [u], in order, each once, and instantiates each unknown
+      of the classes this binds by a decoration of the skeleton its class is
+      bound to; the other unknowns are kept. Under the instantiation the two
+      sides of every demand have the same shape, their skeletons with all
+      unknowns identified. The result is the instantiation, the unifier extended
+      by the demands, in which the unknowns of each decoration are in the
+      classes at their positions in the skeleton, and the bindings made. A
+      failure names the payload of the first demand whose shapes are
+      incompatible with the unifier and the demands before it, with its trace.
+  *)
 end

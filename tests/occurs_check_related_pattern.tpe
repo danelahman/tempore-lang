@@ -1,0 +1,10 @@
+(* Correctly rejected by the typechecker: the application 'f x' gives the
+   argument of 'f' the type of 'x', and 'k' applies its second component to a
+   list of its first, so 'k (x, f)' makes the type of 'x' that of a list of
+   itself. The error points at the application, at the type of 'k', and at the
+   places the two types were inferred. *)
+
+let h f x =
+  let u = f x in
+  let k = fun p -> match p with (b, g) -> g [b] in
+  k (x, f)

@@ -331,6 +331,9 @@ let expected_rejections =
     ("noneternal_reject_alias.tpe", [ 5 ]);
     ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
     ("occurs_check.tpe", [ 1 ]);
+    ("occurs_check_related_annotation.tpe", [ 6 ]);
+    ("occurs_check_related_application.tpe", [ 7 ]);
+    ("occurs_check_related_pattern.tpe", [ 7 ]);
     ("operation_reject_datatype.tpe", [ 5 ]);
     ("operation_reject_higher_order.tpe", [ 8 ]);
     ("peak_resources_reject.tpe", [ 11; 18; 28 ]);

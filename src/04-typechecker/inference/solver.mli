@@ -1,15 +1,15 @@
 (** The constraint solver.
 
     The solver traverses a constraint threading a state: a substitution on the
-    unknowns, the set of unknowns in play, and a residual of undecided atoms
-    ({!Residual}).
+    unknowns, the set of unknowns in play, a residual of undecided atoms
+    ({!Residual}), and the unifier of the skeletons of the subtyping atoms met
+    ({!Skeleton.unifier}).
 
-    - A subtyping atom whose two sides have one shape is decomposed. Otherwise
-      it is expanded together with the pending subtyping demands in the classes
-      of its type unknowns, two unknowns being in one class when pending demands
-      relate them: the type unknowns are instantiated so that the two sides of
-      every demand have the same shape ({!Skeleton.Make.expand_traced}); the
-      residual is decomposed again under the instantiation, and the atom is
+    - The skeletons of the two sides of a subtyping atom are unified under the
+      unifier, once. The type unknowns of the classes this binds to a skeleton
+      other than an unknown are instantiated so that the two sides of every
+      demand have the same shape ({!Skeleton.Make.expand_traced}), and the
+      residual is decomposed again under the instantiation. The atom is then
       decomposed.
     - A grade ordering, an eternality demand and a var-rule disjunction are
       added to the residual ({!Residual}): the variable-free orderings and the
@@ -19,8 +19,8 @@
       ({!RigidScope}): its local unknowns receive values, its atoms are kept
       outside it or deferred as conditions on its rigid variable; the rigid may
       not occur in the value of an unknown outside the scope. When the scope
-      instantiated type unknowns, the pending demands are expanded and
-      decomposed again. Every deferred condition is retried after the close.
+      instantiated type unknowns, the pending demands are decomposed again.
+      Every deferred condition is retried after the close.
 
     After the whole constraint the deferred conditions are retried and the
     residual read as hypotheses; the orderings between variable-free sides,
@@ -68,10 +68,12 @@ module Make (C : Constraint.S) : sig
         (** the position within the atom, outermost first, after the unfolding
             of aliases *)
   }
-  (** Where a type unknown was decided. An unknown bound facing an unknown
-      decided before, or facing the part of an atom's side that such an unknown
-      stands for, inherits its decision; the part of a type at a path was
-      decided where the innermost unknown on the way to it was. *)
+  (** Where a type unknown was decided: the atom, and the position within it,
+      whose unification bound the class of the unknown to a skeleton other than
+      an unknown. A class bound facing an unknown decided before, or facing the
+      part of an atom's side that such an unknown stands for, inherits its
+      decision; the part of a type at a path was decided where the innermost
+      unknown on the way to it was. *)
 
   type mismatch = {
     atom : Residual.Make(C).sub;
@@ -82,6 +84,10 @@ module Make (C : Constraint.S) : sig
         (** where the part of its left side that fails was decided, when an
             unknown decided before stands for it or for a part enclosing it *)
     rhs_decided : decision option;  (** likewise for its right side *)
+    related : (decision * Skeleton.t) list;
+        (** the atoms other than [atom], each once, whose unification placed the
+            unknowns of the failure in one class, each with the skeleton the
+            class stands for ({!Skeleton.trace}) *)
   }
   (** The provenance of a shape mismatch or an occurs check. *)
 

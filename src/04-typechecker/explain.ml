@@ -1156,6 +1156,49 @@ module Make (C : Inference.Constraint.S) = struct
         | Some _ | None -> acc)
       [] sides
 
+  (* Whether the span [outer] encloses the span [inner]. *)
+  let encloses (outer : Location.t) (inner : Location.t) =
+    String.equal outer.filename inner.filename
+    && outer.start.offset <= inner.start.offset
+    && inner.stop.offset <= outer.stop.offset
+
+  (* A label at the place of each atom [related] names, with the part of the
+     mismatch it equates with another type, other than a place that encloses
+     or lies within the construct [at] of the failing atom or a place already
+     pointed at; of nested places of [related] the outermost is kept. The
+     labels are in the order of their places. *)
+  let related_labels p ~primary ~at ~labels related =
+    let places = List.map (fun ((d : S.decision), _) -> d.reason.at) related in
+    let pointed =
+      primary :: at :: List.map (fun (l : Diagnostic.label) -> l.span) labels
+    in
+    let nested place place' = encloses place place' || encloses place' place in
+    List.fold_left
+      (fun acc ((d : S.decision), joined) ->
+        let place = d.reason.at in
+        if
+          List.exists (nested place) pointed
+          || List.exists
+               (fun place' ->
+                 encloses place' place && not (Location.equal place' place))
+               places
+          || List.exists
+               (fun (l : Diagnostic.label) -> Location.equal l.span place)
+               acc
+        then acc
+        else
+          acc
+          @ [
+              label place
+                (code (skeleton_raw p joined)
+                ^ " is equated with another type " ^ here);
+            ])
+      []
+      (List.stable_sort
+         (fun ((d : S.decision), _) ((d' : S.decision), _) ->
+           Location.compare d.reason.at d'.reason.at)
+         related)
+
   (* The application of a function to an argument as one subtyping: the
      function's type against the argument's type to the result. *)
   let application_root source resolve (reason : C.reason) ~func_at arg_ty =
@@ -1177,6 +1220,9 @@ module Make (C : Inference.Constraint.S) = struct
       | Some m when flipped -> (m.rhs_decided, m.lhs_decided)
       | Some m -> (m.lhs_decided, m.rhs_decided)
       | None -> (None, None)
+    in
+    let related =
+      Option.fold ~none:[] ~some:(fun (m : S.mismatch) -> m.related) recorded
     in
     let message =
       match f.mismatch with
@@ -1232,6 +1278,9 @@ module Make (C : Inference.Constraint.S) = struct
             (code (skeleton_raw p lhs), lhs_decided);
             (code (skeleton_raw p rhs), rhs_decided);
           ]
+    in
+    let labels =
+      labels @ related_labels p ~primary ~at:reason.at ~labels related
     in
     let matching (a, b) =
       [

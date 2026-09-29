@@ -33,22 +33,28 @@ module Make (C : Constraint.S) = struct
     atom : R.sub;
     lhs_decided : decision option;
     rhs_decided : decision option;
+    related : (decision * Skeleton.t) list;
   }
 
   (* A type unknown solved: where it was decided, and the value it was given,
      before the values given later were substituted into it. *)
   type solved = { decision : decision; value : C.ty }
 
+  (* A subtyping atom unified: its reason and its two sides before the values
+     of the unknowns solved were substituted. *)
+  type site = { site_reason : C.reason; generated : C.ty * C.ty }
+
   (* The state of the traversal: the values of the unknowns solved, an
      idempotent substitution; the unknowns in play, none solved; the residual;
-     each type unknown solved; and classes of type unknowns, the two unknowns
-     of each subtyping demand of the residual in one class. *)
+     each type unknown solved; and the unifier of the skeletons of the
+     subtyping demands met, in which the class of each unknown in play is
+     unbound. *)
   type state = {
     theta : C.subst;
     live : C.free;
     residual : R.t;
     solved : solved TyParamMap.t;
-    classes : Skeleton.classes;
+    unifier : site Skeleton.unifier;
   }
 
   (* The failures of [result], none of them a mismatch. *)
@@ -136,10 +142,6 @@ module Make (C : Constraint.S) = struct
   (* Provenance                                                          *)
   (* ------------------------------------------------------------------ *)
 
-  (* An atom unified by an expansion: its reason and its two sides before the
-     values of the unknowns solved were substituted. *)
-  type site = { site_reason : C.reason; generated : C.ty * C.ty }
-
   let side_of (site : site) = function
     | Skeleton.Left -> fst site.generated
     | Skeleton.Right -> snd site.generated
@@ -199,9 +201,27 @@ module Make (C : Constraint.S) = struct
         | None -> solved)
       delta solved
 
+  (* The atoms of [links] other than [site], each once, with the skeleton
+     each relates. *)
+  let related site (links : site Skeleton.link list) =
+    List.fold_left
+      (fun acc (l : site Skeleton.link) ->
+        if
+          l.joined_by == site
+          || List.exists (fun (d, _) -> d.reason == l.joined_by.site_reason) acc
+        then acc
+        else
+          acc
+          @ [
+              ( { reason = l.joined_by.site_reason; path = l.joined_at },
+                l.joined );
+            ])
+      [] links
+
   (* The mismatch of a failed expansion at the state [st]. *)
-  let mismatch_of context st bindings (f : site Skeleton.failure) =
-    let decided = decided context st.solved bindings in
+  let mismatch_of context st (trace : site Skeleton.trace)
+      (f : site Skeleton.failure) =
+    let decided = decided context st.solved trace.bindings in
     let lhs, rhs = f.info.generated in
     {
       atom =
@@ -212,6 +232,7 @@ module Make (C : Constraint.S) = struct
         };
       lhs_decided = decided lhs f.path;
       rhs_decided = decided rhs f.path;
+      related = related f.info trace.related;
     }
 
   (* ------------------------------------------------------------------ *)
@@ -226,55 +247,32 @@ module Make (C : Constraint.S) = struct
   (* The failures of [result], without provenance. *)
   let untraced result = Result.map_error (fun f -> (f, None)) result
 
-  (* [extra], each with its sides as generated, expanded together with the
-     pending demands in the classes of its unknowns, and the residual
-     decomposed again under the instantiation. *)
-  let expand context st extra =
-    let open Result.Syntax in
-    let demand generated (s : R.sub) : (C.ty, site) GradeNormal.ordering =
-      { s with info = { site_reason = s.info; generated } }
-    in
-    let demands =
-      List.map (fun (s, generated) -> demand generated s) extra
-      @ List.map (fun (s : R.sub) -> demand (s.lhs, s.rhs) s) st.residual.subs
-    in
-    match Sk.expand_traced (R.skeleton_unfold context) st.classes demands with
-    | Error (f, bindings) ->
-        Error
-          ( shape_failure { f with info = f.info.site_reason },
-            Some (mismatch_of context st bindings f) )
-    | Ok (delta, classes, _) when TyParamMap.is_empty delta ->
-        Ok ({ st with classes }, C.empty_subst)
-    | Ok (delta, classes, bindings) ->
-        let sigma = { C.empty_subst with ty_subst = delta } in
-        let solved = solved_by context st.solved bindings delta in
-        let st = moved { st with solved; classes } sigma in
-        let* residual = untraced (R.atomise context st.residual) in
-        Ok ({ st with residual }, sigma)
-
-  (* The residual, some of whose type unknowns have received values, expanded
-     and decomposed again. *)
-  let reexpand context st =
-    let open Result.Syntax in
-    let* st, sigma = expand context st [] in
-    if TyParamMap.is_empty sigma.ty_subst then
-      let* residual = untraced (R.atomise context st.residual) in
-      Ok { st with residual }
-    else Ok st
-
-  (* The subtyping atom [s], whose sides as generated are [generated]. *)
+  (* The subtyping atom [s], whose sides as generated are [generated], unified
+     under the unifier of the state; the unknowns of the classes it binds are
+     instantiated, the residual is decomposed again under the instantiation,
+     and [s] is decomposed. *)
   let sub_atom context st (s : R.sub) generated =
     let open Result.Syntax in
-    match Skeleton.aligned (Skeleton.of_ty s.lhs) (Skeleton.of_ty s.rhs) with
-    | Some pairs ->
+    let demand = { s with info = { site_reason = s.info; generated } } in
+    match
+      Sk.expand_traced (R.skeleton_unfold context) st.unifier [ demand ]
+    with
+    | Error (f, trace) ->
+        Error
+          ( shape_failure { f with info = f.info.site_reason },
+            Some (mismatch_of context st trace f) )
+    | Ok (delta, unifier, _) when TyParamMap.is_empty delta ->
         let* residual = untraced (R.push_sub context s st.residual) in
-        Ok { st with residual; classes = Skeleton.join_all st.classes pairs }
-    | None ->
-        let* st, sigma = expand context st [ (s, generated) ] in
+        Ok { st with residual; unifier }
+    | Ok (delta, unifier, bindings) ->
+        let sigma = { C.empty_subst with ty_subst = delta } in
+        let solved = solved_by context st.solved bindings delta in
+        let st = moved { st with solved; unifier } sigma in
+        let* residual = untraced (R.atomise context st.residual) in
         let s =
           { s with lhs = C.subst_ty sigma s.lhs; rhs = C.subst_ty sigma s.rhs }
         in
-        let* residual = untraced (R.push_sub context s st.residual) in
+        let* residual = untraced (R.push_sub context s residual) in
         Ok { st with residual }
 
   (* ------------------------------------------------------------------ *)
@@ -427,7 +425,11 @@ module Make (C : Constraint.S) = struct
       }
     in
     let* st =
-      if instantiated then expansion_refused (reexpand context st) else Ok st
+      if instantiated then
+        Result.map
+          (fun residual -> { st with residual })
+          (refused (R.atomise context st.residual))
+      else Ok st
     in
     let* residual = refused (RS.retry context st.residual) in
     Ok { st with residual }
@@ -450,7 +452,7 @@ module Make (C : Constraint.S) = struct
         live = C.free_vars c;
         residual = R.empty;
         solved = TyParamMap.empty;
-        classes = Skeleton.no_classes;
+        unifier = Skeleton.empty;
       }
     in
     let result = Result.bind (solve_in context st c) (finish context) in

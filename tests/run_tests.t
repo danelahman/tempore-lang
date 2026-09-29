@@ -2347,6 +2347,60 @@
                     ^^^^^
   Typing error: Cannot construct the infinite type `α = β → α`
   ======================================================================
+  occurs_check_related_annotation.tpe
+  ======================================================================
+  File "occurs_check_related_annotation.tpe", line 9, characters 6-31:
+  9 |   let p : 'a * 'a list = (x, y) in
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Cannot construct the infinite type `α = α list`
+    File "occurs_check_related_annotation.tpe", line 7, characters 10-13:
+    7 |   let u = f x in
+                  ^^^
+    `α` is equated with another type here
+    File "occurs_check_related_annotation.tpe", line 8, characters 10-13:
+    8 |   let v = f y in
+                  ^^^
+    `α` is equated with another type here
+  ======================================================================
+  occurs_check_related_application.tpe
+  ======================================================================
+  File "occurs_check_related_application.tpe", line 10, characters 9-11:
+  10 |   k (f, [x])
+                ^^
+  Typing error: Cannot construct the infinite type `α = α list`
+    File "occurs_check_related_application.tpe", line 10, characters 2-12:
+    10 |   k (f, [x])
+           ^^^^^^^^^^
+    `α list` was inferred here
+    File "occurs_check_related_application.tpe", line 8, characters 10-13:
+    8 |   let u = f x in
+                  ^^^
+    `α` is equated with another type here
+    File "occurs_check_related_application.tpe", line 9, characters 10-50:
+    9 |   let k = fun p -> match p with (g, b) -> (g b, b) in
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `α` is equated with another type here
+  ======================================================================
+  occurs_check_related_pattern.tpe
+  ======================================================================
+  File "occurs_check_related_pattern.tpe", line 10, characters 2-10:
+  10 |   k (x, f)
+         ^^^^^^^^
+  Typing error: Cannot construct the infinite type `α = α list`
+    File "occurs_check_related_pattern.tpe", line 10, characters 2-3:
+    10 |   k (x, f)
+           ^
+    the function has type `β × (γ list → δ # ε₀) → ζ # ε₀`
+    File "occurs_check_related_pattern.tpe", line 9, characters 32-38:
+    9 |   let k = fun p -> match p with (b, g) -> g [b] in
+                                        ^^^^^^
+    `α list` was inferred here
+    File "occurs_check_related_pattern.tpe", line 8, characters 10-13:
+    8 |   let u = f x in
+                  ^^^
+    `α` was inferred here
+    Note: while matching `β × (γ list → δ # ε₀) → ζ # ε₀` against `(η → θ # ε₁) → ι # ε₂`
+  ======================================================================
   op_case_context.tpe
   ======================================================================
   === Run 1 ===

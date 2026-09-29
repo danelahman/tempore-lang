@@ -1,0 +1,10 @@
+(* Correctly rejected by the typechecker: the applications 'f x' and 'f y'
+   give 'x' and 'y' one type, which the annotation requires to be that of a
+   list of itself. The error points at the annotation and at the two
+   applications. *)
+
+let h f x y =
+  let u = f x in
+  let v = f y in
+  let p : 'a * 'a list = (x, y) in
+  p
