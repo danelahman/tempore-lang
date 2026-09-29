@@ -609,6 +609,184 @@
       text-decoration-style: solid;
     }
 
+    /* The first line of an error's span carries a dot on its gutter bar; the
+       number it marks opens the error's popover. */
+    .line-number.is-error-start::after {
+      content: "";
+      position: absolute;
+      left: calc(-0.24rem - 2px);
+      top: calc(0.75em - 3px);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f14668;
+    }
+
+    .line-number.is-error.is-hover::after {
+      background: #cc0f35;
+    }
+
+    .line-number.is-error:focus-visible {
+      outline: 2px solid #485fc7;
+      outline-offset: 1px;
+      border-radius: 2px;
+    }
+
+    /* The name of a definition while its popover is open. */
+    pre.syn-ml .def-name.is-hover {
+      background: #e3effa;
+      border-radius: 2px;
+      box-shadow: 0 0 0 1px #c3dcf2;
+    }
+
+    /* The popover of an error's span or a definition's name: a card under
+       the span, or above it where the viewport has no room below, its arrow
+       pointing at the span. It is laid out hidden, measured, and then placed.
+       The editor sets its text in a monospace font; the card is prose. */
+    .code-popover {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 5;
+      box-sizing: border-box;
+      width: max-content;
+      max-width: min(46rem, calc(100% - 3rem));
+      padding: 0.55rem 0.75rem 0.5rem;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      background: #fff;
+      color: #24292e;
+      box-shadow: 0 6px 18px rgba(27, 31, 35, 0.12), 0 1px 3px rgba(27, 31, 35, 0.08);
+      font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      visibility: hidden;
+    }
+
+    .code-popover.is-type {
+      max-width: min(50rem, calc(100% - 3rem));
+    }
+
+    .code-popover.is-placed {
+      visibility: visible;
+      animation: popover-in 120ms ease-out;
+    }
+
+    .code-popover.is-placed.is-above {
+      animation-name: popover-in-above;
+    }
+
+    @keyframes popover-in {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+    }
+
+    @keyframes popover-in-above {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+    }
+
+    /* A square turned on its corner, half of it showing past the card's
+       edge, in the card's colours. */
+    .code-popover-arrow {
+      position: absolute;
+      top: -6px;
+      width: 10px;
+      height: 10px;
+      margin-left: -5px;
+      background: #fff;
+      border-top: 1px solid #e1e4e8;
+      border-left: 1px solid #e1e4e8;
+      border-top-left-radius: 2px;
+      transform: rotate(45deg);
+    }
+
+    .code-popover.is-above .code-popover-arrow {
+      top: auto;
+      bottom: -6px;
+      border: none;
+      border-bottom: 1px solid #e1e4e8;
+      border-right: 1px solid #e1e4e8;
+      border-radius: 0 0 2px 0;
+    }
+
+    .code-popover p {
+      margin: 0;
+    }
+
+    .code-popover-title {
+      font-weight: 600;
+    }
+
+    .code-popover-kind {
+      color: #cc0f35;
+    }
+
+    /* The span's own label, marked as the span is, in amber. */
+    .code-popover-label {
+      margin-top: 0.35rem !important;
+      padding-left: 0.5rem;
+      border-left: 2px solid #d4a017;
+    }
+
+    /* The first note, cut to three lines. */
+    .code-popover-note {
+      margin-top: 0.35rem !important;
+      color: #5f6873;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+    }
+
+    .code-popover code.diag-code {
+      white-space: pre-wrap;
+    }
+
+    .code-popover-link {
+      display: inline-block;
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+      color: #5f6873;
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
+
+    .code-popover-link:hover,
+    .code-popover-link:focus-visible {
+      color: #cc0f35;
+    }
+
+    /* A scheme in the popover: the quantifier and qualifier dimmer than the
+       type. */
+    .code-popover-scheme {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .scheme-name {
+      font-weight: 600;
+    }
+
+    .scheme-qualifier {
+      color: #6a737d;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .code-popover.is-placed,
+      .editor-error.is-active {
+        animation: none;
+      }
+    }
+
     .error-labels,
     .error-notes {
       margin-top: 0.6em;
@@ -690,6 +868,17 @@
     .editor-error.is-active {
       border-left: 4px solid #f14668;
       border-radius: 4px;
+      animation: error-flash 900ms ease-out;
+    }
+
+    @keyframes error-flash {
+      from {
+        box-shadow: 0 0 0 4px rgba(241, 70, 104, 0.35);
+      }
+
+      to {
+        box-shadow: 0 0 0 4px rgba(241, 70, 104, 0);
+      }
     }
 
     /* Reported before the source was edited: greyed until it is run again. */
