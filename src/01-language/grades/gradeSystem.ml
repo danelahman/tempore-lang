@@ -5,12 +5,12 @@ module type S = sig
   module R : Grade.S
   (** The resource grades. *)
 
-  module E : Grade.S
-  (** The effect grades. *)
+  module E : Grade.S with type Delay.t = R.Delay.t
+  (** The effect grades, over the delays of the resource grades. *)
 
   val map : E.t -> R.t
   (** The grade morphism [∣_∣]: monotone, and preserving the unit, the product,
-      the top, joins and [of_nat]. *)
+      the top, joins and delays: [map (E.of_delay d) = R.of_delay d]. *)
 
   val unit_reflecting : bool
   (** Whether [map] reflects the order at the unit: [∣e∣ ≾ one] implies

@@ -3,7 +3,7 @@ module R = SymbolicRegex
 module Letters = SymbolicRegex.Letters
 
 module type S = sig
-  include Grade.S with type t = SymbolicRegex.t
+  include Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
 
   val of_regex : Grade.regex -> t
   val concrete : string list -> t -> Dfa.t
@@ -76,8 +76,11 @@ struct
   let is_top _bounds = D.subset top
   let compare = R.compare_form
   let hash = R.hash
-  let of_nat n = ticks (check_nat "RegularTraceGradeDerivative" n)
-  let of_duration = whole ~who:"RegularTraceGradeDerivative" of_nat
+
+  (* Delays in whole time steps: [n] steps are the word [tickⁿ]. *)
+  module Delay : Delay.STEPPED with type t = int = Delay.Nat
+
+  let of_delay d = ticks (Delay.to_int d)
   let unit_least = false
   let commutative = false
   let needs_op_bounds = false
@@ -103,7 +106,7 @@ struct
 
   let of_lit = function
     | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-    | Int n -> of_nat n
+    | Int n -> ticks n
     | Top -> top
     | Braces r as lit ->
         let rho = of_regex r in

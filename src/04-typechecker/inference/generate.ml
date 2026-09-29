@@ -893,13 +893,19 @@ module Make (C : Constraint.S) = struct
         (match k with Some k -> k.Ast.at | None -> clause.Reason.case_at);
     }
 
+  (* The delay of the literal [q], which the parser has read. *)
+  let delay q =
+    match GS.E.Delay.read (Grades.Grade.rational_lit q) with
+    | Some d -> d
+    | None -> invalid_arg ("Generate.delay: " ^ Grades.Rational.show q)
+
   (* The kind of the lock a [Do] puts in the context and the grade its bound
      computation declares: the desugarer turns [delay q; c] and
      [perform Op e; c] into [Do]s bound to exactly these. *)
   let sequenced_kind env (comp : computation) =
     match comp.Ast.it with
     | Ast.Delay (q, { it = Ast.Return _; _ }) ->
-        (Reason.Delayed q, Some (Rho.of_duration q))
+        (Reason.Delayed q, Some (Rho.of_delay (delay q)))
     | Ast.Perform (op, _, (_, { it = Ast.Return _; _ })) ->
         ( Reason.Performed op,
           Option.map
@@ -1184,16 +1190,17 @@ module Make (C : Constraint.S) = struct
     | Ast.Delay (q, c') ->
         (* [delay q c]: [c] under the lock [⟨q⟩], the effect [q · ε] below the
            expected one *)
+        let d = delay q in
         exists_eps (fun eps' ->
             let kind = Reason.Delayed q in
             C.conj
               (generate_computation
                  (lock env
-                    { grade = Rho.of_duration q; at; kind; declared = None })
+                    { grade = Rho.of_delay d; at; kind; declared = None })
                  c' ty
                  (expect eps'
                     (Reason.because c'.Ast.at (Reason.Continuation_effect kind))))
-              (leq_expected at (Eps.mul (Eps.of_duration q) eps') eps))
+              (leq_expected at (Eps.mul (Eps.of_delay d) eps') eps))
     | Ast.Box (rho, e, (pat, c')) ->
         box env at (open_rho env rho) e pat c' ty eps
     | Ast.Unbox (e, (pat, c')) -> unbox env at e pat c' ty eps

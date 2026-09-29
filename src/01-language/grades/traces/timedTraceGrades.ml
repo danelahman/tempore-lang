@@ -8,7 +8,7 @@ let hi_cost (bounds : bounds) op = snd (bounds.cost op)
     part of. *)
 let rec traces_of_regex lit = function
   | Letter name -> [ [ TimedTrace.Ev name ] ]
-  | Tick n -> TimedTrace.of_nat n
+  | Tick n -> TimedTrace.of_delay n
   | Seq (r, s) -> binary lit TimedTrace.product r s
   | Union (r, s) -> binary lit TimedTrace.union r s
   | Star _ -> unsupported lit "repetition '*'"
@@ -33,18 +33,22 @@ and unsupported lit form =
     denotes. *)
 let traces_of_lit = function
   | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-  | Int n -> TimedTrace.of_nat n
+  | Int n -> TimedTrace.of_delay n
   | Braces r as lit -> traces_of_regex lit r
   | lit ->
       invalid_lit lit
         "grades are a single set of traces '{...}' or a plain integer, not %s"
         (describe_lit lit)
 
+(* The delays are whole time steps: the coverage and
+   allowance orders subtract them from the budget, which {!Delay.ORDERED}
+   does not offer. *)
+
 (** Sets of traces read as lower bounds, in the coverage order. *)
 module LowerTraces = struct
   type t = TimedTrace.traces
 
-  let one = TimedTrace.of_nat 0
+  let one = TimedTrace.of_delay 0
 
   (** Coverage order lifted to sets: every guarantee listed on the left has an
       easier one listed on the right. An operation's [lo] bound is what its
@@ -71,7 +75,7 @@ module UpperTraces = struct
     | Within of TimedTrace.traces  (** every run stays within a listed bound *)
     | Unbounded  (** any run; printed as [⊤] *)
 
-  let one = Within (TimedTrace.of_nat 0)
+  let one = Within (TimedTrace.of_delay 0)
 
   let mul p q =
     match (p, q) with
@@ -124,6 +128,7 @@ let atomic_traces name = [ [ TimedTrace.Ev name ] ]
 
 module LowerBound = struct
   include LowerTraces
+  module Delay : Delay.STEPPED with type t = int = Delay.Nat
 
   let name = "traces-lower-bound"
   let mul = TimedTrace.product
@@ -139,9 +144,8 @@ module LowerBound = struct
     implied_trace_bounds bounds p (UpperTraces.Within p)
 
   let inhabited _bounds _ = true
-  let of_nat n = TimedTrace.of_nat (check_nat "TimedTraceGrades.LowerBound" n)
-  let of_duration = whole ~who:"TimedTraceGrades.LowerBound" of_nat
-  let of_bounds (lo, _hi) = TimedTrace.of_nat lo
+  let of_delay d = TimedTrace.of_delay (Delay.to_int d)
+  let of_bounds (lo, _hi) = TimedTrace.of_delay lo
   let is_atomic name p = TimedTrace.equal p (atomic_traces name)
   let show = TimedTrace.show
   let witnesses ~degree:_ _bounds = sampled mul
@@ -149,6 +153,7 @@ end
 
 module UpperBound = struct
   include UpperTraces
+  module Delay : Delay.STEPPED with type t = int = Delay.Nat
 
   let name = "traces-upper-bound"
   let leq_symbol = "<="
@@ -164,18 +169,16 @@ module UpperBound = struct
     | Unbounded -> None
 
   let inhabited _bounds _ = true
-
-  let of_nat n =
-    Within (TimedTrace.of_nat (check_nat "TimedTraceGrades.UpperBound" n))
-
-  let of_duration = whole ~who:"TimedTraceGrades.UpperBound" of_nat
-  let of_bounds (_lo, hi) = Within (TimedTrace.of_nat hi)
+  let of_delay d = Within (TimedTrace.of_delay (Delay.to_int d))
+  let of_bounds (_lo, hi) = Within (TimedTrace.of_delay hi)
   let is_atomic name p = compare p (Within (atomic_traces name)) = 0
   let witnesses ~degree:_ _bounds = sampled mul
 end
 
 module Interval = struct
   type t = LowerTraces.t * UpperTraces.t
+
+  module Delay : Delay.STEPPED with type t = int = Delay.Nat
 
   let name = "traces-interval"
   let one = (LowerTraces.one, UpperTraces.one)
@@ -233,14 +236,12 @@ module Interval = struct
            abbreviations of them, not %s"
           (describe_lit lit)
 
-  let of_nat n =
-    let n = TimedTrace.of_nat (check_nat "TimedTraceGrades.Interval" n) in
-    (n, UpperTraces.Within n)
-
-  let of_duration = whole ~who:"TimedTraceGrades.Interval" of_nat
+  let of_delay d =
+    let ts = TimedTrace.of_delay (Delay.to_int d) in
+    (ts, UpperTraces.Within ts)
 
   let of_bounds (lo, hi) =
-    (TimedTrace.of_nat lo, UpperTraces.Within (TimedTrace.of_nat hi))
+    (TimedTrace.of_delay lo, UpperTraces.Within (TimedTrace.of_delay hi))
 
   let is_atomic name (lo, hi) =
     LowerBound.is_atomic name lo && UpperBound.is_atomic name hi

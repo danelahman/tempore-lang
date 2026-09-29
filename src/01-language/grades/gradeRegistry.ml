@@ -209,14 +209,13 @@ let accepting lit =
       else None)
     entries
 
-let accepting_delay q =
+let accepting_delay lit =
   List.filter_map
     (fun e ->
       let (module G : Grade.S) = e.grade in
-      match G.of_duration q with
-      | _ when e.info.visibility = Everywhere -> Some e.name
-      | _ -> None
-      | exception Grade.Invalid_literal _ -> None)
+      match G.Delay.read lit with
+      | Some _ when e.info.visibility = Everywhere -> Some e.name
+      | Some _ | None -> None)
     entries
 
 (* [entries] grouped by [group], preserving both the order groups first occur

@@ -27,20 +27,6 @@ module LowHigh = struct
   let show = function Low -> "Low" | High -> "High"
 end
 
-module SecurityLevels = GradeConstructions.OfLattice (LowHigh)
-
-module TimeLowerBoundLevels = struct
-  include GradeConstructions.Product (TimeGrades.LowerBound) (SecurityLevels)
-
-  let name = "time-lower-bound-levels"
-end
-
-module TimeUpperBoundLevels = struct
-  include GradeConstructions.Product (TimeGrades.UpperBound) (SecurityLevels)
-
-  let name = "time-upper-bound-levels"
-end
-
 (** [join_level l l'] is the join of the levels [l] and [l']. *)
 let join_level = LowHigh.join
 
@@ -117,57 +103,78 @@ let of_written lit ws =
   in
   check sorted
 
-module FlowLevels = struct
-  include GradeConstructions.SemiDirect (SecurityLevels) (Outputs) (Raise)
+module Make (D : Delay.S) = struct
+  module SecurityLevels = GradeConstructions.OfLattice (D) (LowHigh)
 
-  let name = "flow-levels"
+  module FlowLevels = struct
+    include GradeConstructions.SemiDirect (SecurityLevels) (Outputs) (Raise)
 
-  let of_lit = function
-    | Grade.Top -> top
-    | Grade.Tuple (level :: (_ :: _ as outputs)) as lit ->
-        let l =
-          Grade.component_of_lit lit ~context:"in the level, "
-            SecurityLevels.of_lit level
-        in
-        let ws =
-          List.map (Grade.component_of_lit lit ~context:"" written) outputs
-        in
-        (l, of_written lit ws)
-    | lit -> (
-        match SecurityLevels.of_lit lit with
-        | l -> (l, Outputs.bottom)
-        | exception Grade.Invalid_literal (_, reason) ->
-            Grade.invalid_lit lit
-              "%s, or tuples '(l, (Sink, l1), ...)' of a level and the outputs \
-               written"
-              reason)
+    let name = "flow-levels"
 
-  let show (l, o) =
-    if Outputs.compare o Outputs.top = 0 then "⊤"
-    else if Outputs.compare o Outputs.bottom = 0 then LowHigh.show l
-    else
-      "(" ^ LowHigh.show l ^ ","
-      ^ Indexed.show_entries ~is_default:Option.is_none WrittenAt.show o
-      ^ ")"
+    let of_lit = function
+      | Grade.Top -> top
+      | Grade.Tuple (level :: (_ :: _ as outputs)) as lit ->
+          let l =
+            Grade.component_of_lit lit ~context:"in the level, "
+              SecurityLevels.of_lit level
+          in
+          let ws =
+            List.map (Grade.component_of_lit lit ~context:"" written) outputs
+          in
+          (l, of_written lit ws)
+      | lit -> (
+          match SecurityLevels.of_lit lit with
+          | l -> (l, Outputs.bottom)
+          | exception Grade.Invalid_literal (_, reason) ->
+              Grade.invalid_lit lit
+                "%s, or tuples '(l, (Sink, l1), ...)' of a level and the \
+                 outputs written"
+                reason)
 
-  (* Each ordering is the conjunction of its projections on the level and on
-     each sink, (l, W) ↦ (l, W(s)), morphisms preserving the joins: a failure
-     at a rigid shows at the level and one sink of it, the sinks no constant
-     names being alike. *)
-  let witnesses ~degree:_ _bounds cs =
-    let outputs =
-      Outputs.bottom
-      :: List.concat_map
-           (fun s ->
-             List.map
-               (fun l ->
-                 Indexed.of_list ~compare:WrittenAt.compare ~others:None
-                   [ (s, Some l) ])
-               LowHigh.elements)
-           (Indexed.names (List.map snd cs))
-    in
-    ( List.concat_map
-        (fun l -> List.map (fun o -> (l, o)) outputs)
-        LowHigh.elements,
-      Grade.Complete )
+    let show (l, o) =
+      if Outputs.compare o Outputs.top = 0 then "⊤"
+      else if Outputs.compare o Outputs.bottom = 0 then LowHigh.show l
+      else
+        "(" ^ LowHigh.show l ^ ","
+        ^ Indexed.show_entries ~is_default:Option.is_none WrittenAt.show o
+        ^ ")"
+
+    (* Each ordering is the conjunction of its projections on the level and on
+       each sink, (l, W) ↦ (l, W(s)), morphisms preserving the joins: a failure
+       at a rigid shows at the level and one sink of it, the sinks no constant
+       names being alike. *)
+    let witnesses ~degree:_ _bounds cs =
+      let outputs =
+        Outputs.bottom
+        :: List.concat_map
+             (fun s ->
+               List.map
+                 (fun l ->
+                   Indexed.of_list ~compare:WrittenAt.compare ~others:None
+                     [ (s, Some l) ])
+                 LowHigh.elements)
+             (Indexed.names (List.map snd cs))
+      in
+      ( List.concat_map
+          (fun l -> List.map (fun o -> (l, o)) outputs)
+          LowHigh.elements,
+        Grade.Complete )
+  end
+end
+
+include Make (Delay.Rational)
+
+module SteppedLevels = GradeConstructions.OfLattice (Delay.Nat) (LowHigh)
+(** The security levels over the whole-step delays of the time grades. *)
+
+module TimeLowerBoundLevels = struct
+  include GradeConstructions.Product (TimeGrades.LowerBound) (SteppedLevels)
+
+  let name = "time-lower-bound-levels"
+end
+
+module TimeUpperBoundLevels = struct
+  include GradeConstructions.Product (TimeGrades.UpperBound) (SteppedLevels)
+
+  let name = "time-upper-bound-levels"
 end

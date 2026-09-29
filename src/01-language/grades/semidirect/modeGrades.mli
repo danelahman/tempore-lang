@@ -26,13 +26,16 @@
 (** The costs: no run, below the natural numbers, below [∞]. *)
 type cost = No_run | Cost of int | Unbounded
 
-module ModeCosts : Grade.S
-(** The mode-cost grade, ["mode-costs"].
+(** The mode-cost grade over any delays [D], as {!ModeCosts}. *)
+module Make (D : Delay.S) : Grade.S with type Delay.t = D.t
+
+module ModeCosts : Grade.S with type Delay.t = Delay.Nat.t
+(** The mode-cost grade, ["mode-costs"], over {!Delay.Nat}.
 
     - The unit keeps every mode at cost [0], and the top costs [∞] between any
       two modes and into [Stuck]. The unit is not least, and [mul] does not
       commute.
-    - [of_nat] and [of_bounds] are constantly the unit.
+    - [of_delay] and [of_bounds] are constantly the unit.
     - [of_lit] reads [⊤] as the top, a cost [n] or [∞] as keeping every mode at
       that cost, an entry [(From, To, n)] as the runs from [From] to [To] at
       cost [n], and a tuple of entries, each pair of modes listed once, as their

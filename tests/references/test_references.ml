@@ -5,11 +5,8 @@
 
 module Location = Utils.Location
 module References = Desugarer.References
-
-module GS =
-  Grades.GradeSystem.Identity
-    ((val snd (List.hd Grades.GradeRegistry.grade_modules)))
-
+module G = (val snd (List.hd Grades.GradeRegistry.grade_modules))
+module GS = Grades.GradeSystem.Identity (G)
 module Grammar = Parser.Grammar.Make (GS)
 
 let program =

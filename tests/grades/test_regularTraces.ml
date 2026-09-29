@@ -141,7 +141,7 @@ let take n l = List.filteri (fun i _ -> i < n) l
 (* An implementation of the regular trace grade, whose [canonical] tells
    whether the printing of a grade falls back. *)
 module type PRINTED = sig
-  include Grade.S
+  include Grade.S with type Delay.t = Grades.Delay.Nat.t
 
   val canonical : t -> Grades.LetterRegex.t option
 end
@@ -358,7 +358,7 @@ struct
           | Plain -> "regex-upper-bound-plain")
         G.name;
       expect_grade "unit" ~expected:(lit "{0}") G.one;
-      expect_grade "of_nat" ~expected:(lit "{4}") (G.of_nat 4);
+      expect_grade "of_delay" ~expected:(lit "{4}") (G.of_delay 4);
       expect "unit least" show_bool ~expected:false G.unit_least;
       expect "commutative" show_bool ~expected:false G.commutative;
       expect "no runtime bounds" show_bool ~expected:false G.needs_op_bounds;
@@ -473,10 +473,10 @@ struct
       check "join is an upper bound"
         (for_all2 (fun x y -> G.leq bounds x (G.join x y)))
         "";
-      check "of_nat additive"
+      check "of_delay additive"
         (List.for_all
            (fun (m, n) ->
-             eq (G.of_nat (m + n)) (G.mul (G.of_nat m) (G.of_nat n)))
+             eq (G.of_delay (m + n)) (G.mul (G.of_delay m) (G.of_delay n)))
            [ (0, 0); (0, 3); (2, 5); (7, 1) ])
         "";
     ]

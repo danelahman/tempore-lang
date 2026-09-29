@@ -370,7 +370,9 @@ module Small = struct
     let c =
       at
         (Ast.Box
-           (Ast.RhoConst (G.of_nat 3, None), unit_expr, (pvar y, return (var y))))
+           ( Ast.RhoConst (G.of_delay 3, None),
+             unit_expr,
+             (pvar y, return (var y)) ))
     in
     expect_text "box"
       ~expected:
@@ -381,7 +383,7 @@ module Small = struct
         \  Et([3]α) ∨ 0 ≾ 0\n\
         \  0 ≾ 0"
       (Gen.generate_computation Gen.initial_env c
-         (expect (Ast.TyBox (X.Rho.of_nat 3, Ast.TyTuple [])))
+         (expect (Ast.TyBox (X.Rho.of_delay 3, Ast.TyTuple [])))
          unit_eps)
 
   (* [let y = delay 2 (return ()) in return x]: [x] is used under the lock of
@@ -409,12 +411,14 @@ module Small = struct
   (* [unbox x as y in return y] for [x : [3]nat] bound before [delay 2]: the
      box type is pinned and the accumulated grade below its grade. *)
   let unbox () =
-    let boxed = Ast.TyBox (X.Rho.of_nat 3, Ast.TyConst Language.Const.NatTy) in
+    let boxed =
+      Ast.TyBox (X.Rho.of_delay 3, Ast.TyConst Language.Const.NatTy)
+    in
     let env =
       Gen.lock
         (Gen.bind Gen.initial_env x boxed ~bound_at:loc)
         {
-          grade = X.Rho.of_nat 2;
+          grade = X.Rho.of_delay 2;
           at = loc;
           kind = Reason.Delayed (Grades.Rational.of_int 2);
           declared = None;
@@ -442,7 +446,7 @@ module Small = struct
         ( op,
           Ast.TyTuple [],
           Ast.TyTuple [],
-          Ast.EpsConst (G.of_nat 2, None),
+          Ast.EpsConst (G.of_delay 2, None),
           None )
     in
     let k = Ast.Variable.fresh "k" in

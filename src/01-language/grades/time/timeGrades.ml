@@ -1,54 +1,63 @@
 open Grade
 
-module type DOMAIN = sig
-  type t
-
-  val module_name : string
+module type NAMES = sig
   val suffix : string
-  val zero : t
-  val add : t -> t -> t
-  val compare : t -> t -> int
-  val hash : t -> int
-  val of_int : int -> t
-  val of_duration : Rational.t -> t
-  val read : Grade.lit -> t option
   val numbers : string
-  val show : t -> string
-  val witnesses : degree:int -> t list -> t list
 end
 
-module Make (N : DOMAIN) = struct
-  module Ext = Extended.Make (N)
+module Make (D : Delay.ORDERED) (N : NAMES) = struct
+  module Ext = Extended.Make (D)
 
-  (** [duration_of_lit expected lit] is the non-negative duration the literal
-      [lit] denotes; any other form is rejected as not the [expected] one. *)
+  (** [negate lit] is the literal of the negation of the number [lit]. *)
+  let negate = function
+    | Int n -> Some (rational_lit (Rational.neg (Rational.of_int n)))
+    | Rat q -> Some (rational_lit (Rational.neg q))
+    | _ -> None
+
+  (** [signed lit] is [Some (false, d)] if the literal [lit] denotes the delay
+      [d], [Some (true, d)] if it denotes the negation of a positive delay [d],
+      and [None] otherwise. *)
+  let signed lit =
+    match D.read lit with
+    | Some d -> Some (false, d)
+    | None -> (
+        match Option.bind (negate lit) D.read with
+        | Some d when not (D.leq d D.zero) -> Some (true, d)
+        | _ -> None)
+
+  (** [duration_of_lit expected lit] is the delay the literal [lit] denotes; any
+      other form is rejected as not the [expected] one. *)
   let duration_of_lit expected lit =
-    match N.read lit with
-    | Some n when N.compare n N.zero < 0 ->
-        invalid_lit lit "grades must be non-negative"
-    | Some n -> n
+    match signed lit with
+    | Some (false, d) -> d
+    | Some (true, _) -> invalid_lit lit "grades must be non-negative"
     | None ->
         invalid_lit lit "grades are %s, not %s" expected (describe_lit lit)
 
-  (** [of_nat who n] is the duration of [n] time steps, checked for [who]. *)
-  let of_nat who n = N.of_int (check_nat (N.module_name ^ "." ^ who) n)
+  (** [of_int n] is the delay of the integer [n], e.g. a runtime bound.
 
-  let min n m = if N.compare n m <= 0 then n else m
+      @raise Invalid_argument if no delay is [n]. *)
+  let of_int n =
+    match D.read (Int n) with
+    | Some d -> d
+    | None -> invalid_arg ("TimeGrades.of_int: " ^ string_of_int n)
 
   module LowerBound = struct
-    type t = N.t
+    type t = D.t
+
+    module Delay = D
 
     let name = "time-lower-bound" ^ N.suffix
-    let one = N.zero
-    let mul = N.add
-    let leq _bounds n m = N.compare n m >= 0
+    let one = D.zero
+    let mul = D.add
+    let leq _bounds n m = D.leq m n
     let leq_symbol = ">="
-    let top = N.zero
-    let join = min
-    let equal _bounds n m = N.compare n m = 0
-    let is_top _bounds n = N.compare top n = 0
-    let compare = N.compare
-    let hash = N.hash
+    let top = D.zero
+    let join = D.min
+    let equal _bounds = D.equal
+    let is_top _bounds n = D.equal top n
+    let compare = D.compare
+    let hash = D.hash
     let counterexample _bounds _ _ = None
     let unit_least = false
     let commutative = true
@@ -61,19 +70,20 @@ module Make (N : DOMAIN) = struct
       | Top -> top
       | lit -> duration_of_lit ("plain " ^ N.numbers) lit
 
-    let of_nat = of_nat "LowerBound"
-    let of_duration = N.of_duration
-    let of_bounds (lo, _hi) = N.of_int lo
+    let of_delay d = d
+    let of_bounds (lo, _hi) = of_int lo
     let is_atomic _name _ = true
-    let show = N.show
-    let witnesses ~degree _bounds cs = (N.witnesses ~degree cs, Complete)
+    let show = D.show
+    let witnesses ~degree _bounds cs = D.witnesses ~degree cs
   end
 
   module UpperBound = struct
     type t = Ext.t
 
+    module Delay = D
+
     let name = "time-upper-bound" ^ N.suffix
-    let one = Ext.Fin N.zero
+    let one = Ext.Fin D.zero
     let mul = Ext.add
     let leq _bounds = Ext.leq
     let leq_symbol = "<="
@@ -95,35 +105,40 @@ module Make (N : DOMAIN) = struct
       | Top | Inf -> top
       | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or '∞'") lit)
 
-    let of_nat n = Ext.Fin (of_nat "UpperBound" n)
-    let of_duration q = Ext.Fin (N.of_duration q)
-    let of_bounds (_lo, hi) = Ext.Fin (N.of_int hi)
+    let of_delay d = Ext.Fin d
+    let of_bounds (_lo, hi) = Ext.Fin (of_int hi)
     let is_atomic _name _ = true
     let show = Ext.show
 
+    (* A piece of an expression with an infinite constant is constantly [∞],
+       so the witnesses of the finite constants decide the finite rigids, and
+       [∞] the infinite one. *)
     let witnesses ~degree _bounds cs =
-      let finite = List.filter_map Ext.to_fin cs in
-      ( List.map (fun n -> Ext.Fin n) (N.witnesses ~degree finite) @ [ top ],
-        Complete )
+      let finite, completeness =
+        D.witnesses ~degree (List.filter_map Ext.to_fin cs)
+      in
+      (List.map (fun n -> Ext.Fin n) finite @ [ top ], completeness)
   end
 
   module Interval = struct
-    type t = N.t * Ext.t
+    type t = D.t * Ext.t
+
+    module Delay = D
 
     let name = "time-interval" ^ N.suffix
-    let one = (N.zero, Ext.Fin N.zero)
-    let mul (n, m) (k, l) = (N.add n k, Ext.add m l)
-    let leq _bounds (n, m) (k, l) = N.compare k n <= 0 && Ext.leq m l
+    let one = (D.zero, Ext.Fin D.zero)
+    let mul (n, m) (k, l) = (D.add n k, Ext.add m l)
+    let leq _bounds (n, m) (k, l) = D.leq k n && Ext.leq m l
     let leq_symbol = "<="
-    let top = (N.zero, Ext.Inf)
-    let join (n, m) (k, l) = (min n k, Ext.max m l)
+    let top = (D.zero, Ext.Inf)
+    let join (n, m) (k, l) = (D.min n k, Ext.max m l)
 
     let compare (n, m) (k, l) =
-      match N.compare n k with 0 -> Ext.compare m l | c -> c
+      match D.compare n k with 0 -> Ext.compare m l | c -> c
 
-    let equal _bounds p q = compare p q = 0
-    let is_top _bounds p = compare p top = 0
-    let hash (n, m) = combine (N.hash n) (Ext.hash m)
+    let equal _bounds (n, m) (k, l) = D.equal n k && Ext.equal m l
+    let is_top _bounds (n, m) = D.equal n D.zero && Ext.equal m Ext.Inf
+    let hash (n, m) = combine (D.hash n) (Ext.hash m)
     let counterexample _bounds _ _ = None
     let unit_least = false
     let commutative = true
@@ -132,24 +147,25 @@ module Make (N : DOMAIN) = struct
     let implied_bounds _bounds _ = None
     let inhabited _bounds _ = true
 
-    (** [interval lit n m] is the interval from [n] to [m], checked. *)
-    let interval lit n m =
-      if N.compare n N.zero < 0 then
-        invalid_lit lit "interval endpoints must be non-negative"
-      else if not (Ext.leq (Ext.Fin n) m) then
-        invalid_lit lit "interval endpoints must satisfy n <= m"
-      else (n, m)
+    (** [interval lit l r] is the interval from the signed delay [l] to the
+        signed delay or [∞] [r], checked. *)
+    let interval lit l r =
+      match (l, r) with
+      | (true, _), _ ->
+          invalid_lit lit "interval endpoints must be non-negative"
+      | (false, n), (false, m) when Ext.leq (Ext.Fin n) m -> (n, m)
+      | _ -> invalid_lit lit "interval endpoints must satisfy n <= m"
 
     let of_lit = function
       | Top -> top
       | Tuple [ l; r ] as lit -> (
           let upper =
             match r with
-            | Inf -> Some Ext.Inf
-            | r -> Option.map (fun m -> Ext.Fin m) (N.read r)
+            | Inf -> Some (false, Ext.Inf)
+            | r -> Option.map (fun (s, m) -> (s, Ext.Fin m)) (signed r)
           in
-          match (N.read l, upper) with
-          | Some n, Some m -> interval lit n m
+          match (signed l, upper) with
+          | Some l, Some r -> interval lit l r
           | _ ->
               invalid_lit lit
                 "interval endpoints are %s, the upper one possibly '∞'"
@@ -158,57 +174,30 @@ module Make (N : DOMAIN) = struct
           invalid_lit lit "grades are intervals '(n, m)', not %s"
             (describe_lit lit)
 
-    let of_nat n =
-      let n = of_nat "Interval" n in
-      (n, Ext.Fin n)
-
-    let of_duration q =
-      let d = N.of_duration q in
-      (d, Ext.Fin d)
-
-    let of_bounds (lo, hi) = (N.of_int lo, Ext.Fin (N.of_int hi))
+    let of_delay d = (d, Ext.Fin d)
+    let of_bounds (lo, hi) = (of_int lo, Ext.Fin (of_int hi))
     let is_atomic _name _ = true
-    let show (n, m) = "(" ^ N.show n ^ "," ^ Ext.show m ^ ")"
+    let show (n, m) = "(" ^ D.show n ^ "," ^ Ext.show m ^ ")"
 
     (* The endpoints are compared, multiplied and joined separately, so an
        ordering fails iff it fails at the lower endpoints, at the lower-bound
        witnesses paired with [∞], or at the upper ones, at [0] paired with the
        upper-bound witnesses. *)
     let witnesses ~degree bounds cs =
-      let lower, _ = LowerBound.witnesses ~degree bounds (List.map fst cs) in
+      let lower, completeness =
+        LowerBound.witnesses ~degree bounds (List.map fst cs)
+      in
       let upper, _ = UpperBound.witnesses ~degree bounds (List.map snd cs) in
       ( List.map (fun n -> (n, Ext.Inf)) lower
-        @ List.map (fun m -> (N.zero, m)) upper,
-        Complete )
+        @ List.map (fun m -> (D.zero, m)) upper,
+        completeness )
   end
 end
 
-(* Completeness of the witnesses. Products being sums and joins minima
-   (lower bounds) or maxima (upper bounds), an expression over the constants
-   [cs] and a rigid [j] is, at a finite [j], the minimum or maximum of affine
-   pieces [c + a·j], [a ∈ ℕ] and [c] a sum of some of the constants, so that
-   [c ≤ s] for [s] the sum of the finite ones; a piece with an infinite
-   constant is constantly [∞]. Two pieces of different slopes cross at
-   [j = (c' - c) / (a - a') ≤ s], so beyond [s] each side of an ordering is
-   one piece and their difference keeps its sign: the ordering fails at some
-   [j] iff it fails at some [j ≤ s+1] or, for upper bounds, at [j = ∞]. The
-   argument is for one rigid; for several no grid is complete, e.g.
-   [j₂ ≥ min(j₁, 2·j₂)] fails at [(2, 1)] but nowhere in [{0, 1}²]. *)
-include Make (struct
-  type t = int
-
-  let module_name = "TimeGrades"
-  let suffix = ""
-  let zero = 0
-  let add = ( + )
-  let compare = Int.compare
-  let hash = Int.hash
-  let of_int n = n
-  let of_duration = whole ~who:module_name Fun.id
-  let read = function Int n -> Some n | _ -> None
-  let numbers = "integers"
-  let show = string_of_int
-
-  (** [0, ..., s+1], [s] the sum of [cs]. *)
-  let witnesses ~degree:_ cs = List.init (List.fold_left ( + ) 0 cs + 2) Fun.id
-end)
+include
+  Make
+    (Delay.Nat)
+    (struct
+      let suffix = ""
+      let numbers = "integers"
+    end)

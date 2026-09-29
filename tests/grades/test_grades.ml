@@ -1,9 +1,10 @@
-(* Unit tests of the security-level grade, the product construction and its
-   counterexamples, the witnesses of closed conditions, the interpretation of
-   literals by the grades of [GradeRegistry.grade_modules], the laws and the
-   declared flags of these grades on samples of each family of grades, the
-   laws of the components and actions of the semidirect products, and the
-   laws of the finite grades on all their elements. *)
+(* Unit tests of the laws of the delays, the security-level grade, the product
+   construction and its counterexamples, the witnesses of closed conditions,
+   the interpretation of literals by the grades of
+   [GradeRegistry.grade_modules], the laws and the declared flags of these
+   grades on samples of each family of grades, the laws of the components and
+   actions of the semidirect products, and the laws of the finite grades on
+   all their elements. *)
 
 module Grade = Grades.Grade
 module TimeGrades = Grades.TimeGrades
@@ -59,8 +60,10 @@ let levels =
     expect "levels: product is the join" show ~expected:High (L.mul High Low);
     expect "levels: unit" show ~expected:Low L.one;
     expect "levels: top" show ~expected:High L.top;
-    expect "levels: ticks touch no level" show ~expected:Low (L.of_nat 5);
-    expect "levels: no ticks is the unit" show ~expected:L.one (L.of_nat 0);
+    expect "levels: delays touch no level" show ~expected:Low
+      (L.of_delay (Rational.of_int 5));
+    expect "levels: no delay is the unit" show ~expected:L.one
+      (L.of_delay Rational.zero);
     expect "levels: time shadow" show ~expected:Low (L.of_bounds (1, 2));
     check "levels: equal" (L.equal bounds High High) "High = High";
     expect "levels: unit least" show_bool ~expected:true L.unit_least;
@@ -74,15 +77,18 @@ let levels =
 module TimeLevels = LevelGrades.TimeLowerBoundLevels
 module UpperLevels = LevelGrades.TimeUpperBoundLevels
 
+(* The levels over the whole-step delays of the trace grades. *)
+module NatLevels = LevelGrades.Make (Grades.Delay.Nat)
+
 module TraceLevels =
   GradeConstructions.Product
     (TimedTraceGrades.UpperBound)
-    (LevelGrades.SecurityLevels)
+    (NatLevels.SecurityLevels)
 
 module RegexLevels =
   GradeConstructions.Product
     (Grades.RegularTraceGradeDerivative)
-    (LevelGrades.SecurityLevels)
+    (NatLevels.SecurityLevels)
 
 let lit_of_pair n level = Grade.Tuple [ Grade.Int n; Grade.Name level ]
 
@@ -150,7 +156,7 @@ let products =
     expect "product: unit" Fun.id ~expected:"(0,Low)" (show TimeLevels.one);
     expect "product: top" Fun.id ~expected:"(0,High)" (show TimeLevels.top);
     expect "product: ticks" Fun.id ~expected:"(4,Low)"
-      (show (TimeLevels.of_nat 4));
+      (show (TimeLevels.of_delay 4));
     expect "product: time shadow" Fun.id ~expected:"(1,Low)"
       (show (TimeLevels.of_bounds (1, 2)));
     check "product: equal"
@@ -212,10 +218,10 @@ let literals =
   let send = Letter "Send" in
   [
     rejects "negative integer" time_lower (Int (-1)) "must be non-negative";
-    rejects "fraction, discrete" time_upper
+    rejects "fraction, whole steps" time_upper
       (Rat (Rational.make 3 2))
       "not fractions such as '3/2'";
-    rejects "fractional endpoint, discrete" time_interval
+    rejects "fractional endpoint, whole steps" time_interval
       (Tuple [ Rat (Rational.make 1 3); Inf ])
       "endpoints are integers";
     reads "fraction, decimal" rational_upper (Rat (Rational.make 3 2)) "1.5";
@@ -635,7 +641,7 @@ let registry =
           "security-levels";
           "flow-levels";
         ]
-      (GradeRegistry.accepting_delay (Rational.make 1 2));
+      (GradeRegistry.accepting_delay (Grade.Rat (Rational.make 1 2)));
     expect "registry: every grade has a whole delay" show_names
       ~expected:
         (List.concat_map
@@ -645,7 +651,7 @@ let registry =
                  if info.visibility = Everywhere then Some name else None)
                g.grades)
            GradeRegistry.groups)
-      (GradeRegistry.accepting_delay (Rational.of_int 2));
+      (GradeRegistry.accepting_delay (Grade.Int 2));
     expect "registry: grades reading a repetition" show_names
       ~expected:
         [
@@ -770,7 +776,7 @@ module Lower_conditions =
       let constant st =
         TimeGrades.LowerBound.of_lit (nat (Random.State.int st 5))
 
-      let values = List.map TimeGrades.LowerBound.of_nat (up_to 60)
+      let values = List.map TimeGrades.LowerBound.of_delay (up_to 60)
     end)
 
 module Upper_conditions =
@@ -784,7 +790,7 @@ module Upper_conditions =
 
       let values =
         TimeGrades.UpperBound.top
-        :: List.map TimeGrades.UpperBound.of_nat (up_to 60)
+        :: List.map TimeGrades.UpperBound.of_delay (up_to 60)
     end)
 
 (* The intervals [(n, m)] with [n ≤ m ≤ bound] or [m = ∞]. *)
@@ -891,7 +897,7 @@ module Rational_lower_conditions =
       let constant st = RationalTimeGrades.LowerBound.of_lit (rational_lit st)
 
       let values =
-        List.map RationalTimeGrades.LowerBound.of_duration rational_values
+        List.map RationalTimeGrades.LowerBound.of_delay rational_values
     end)
 
 module Rational_upper_conditions =
@@ -904,7 +910,7 @@ module Rational_upper_conditions =
 
       let values =
         RationalTimeGrades.UpperBound.top
-        :: List.map RationalTimeGrades.UpperBound.of_duration rational_values
+        :: List.map RationalTimeGrades.UpperBound.of_delay rational_values
     end)
 
 (* The rational interval [(q, r)], [r] possibly [∞]. *)
@@ -952,7 +958,9 @@ module Rational_interval_conditions =
 (* [1·j ≾ 1 ⊔ jᵏ], which fails exactly for [j] in [(0, 1/(k-1))]. *)
 let power_condition k =
   let open Rational_upper_conditions in
-  let one = Const (RationalTimeGrades.UpperBound.of_nat 1) in
+  let one =
+    Const (RationalTimeGrades.UpperBound.of_delay (Rational.of_int 1))
+  in
   let rec power k = if k = 1 then Rigid else Mul (Rigid, power (k - 1)) in
   (Mul (one, Rigid), Join (one, power k))
 
@@ -1040,7 +1048,7 @@ let witnesses =
     expect "witnesses: mode costs partial" Fun.id ~expected:"partial"
       (completeness mode_costs);
     check "counts: delays count nothing"
-      Grades.CountGrades.UpperBound.(equal bounds (of_nat 5) one)
+      Grades.CountGrades.UpperBound.(equal bounds (of_delay 5) one)
       "";
   ]
 
@@ -1376,11 +1384,14 @@ let samples (type a) (module G : Grade.S with type t = a) family : a list =
     | c when G.inhabited costs c -> Some c
     | _ | (exception Grade.Invalid_literal _) -> None
   in
+  let delay n =
+    Option.to_list (Option.map G.of_delay (G.Delay.read (Grade.Int n)))
+  in
   let covered =
     distinct G.compare
-      ([ G.one; G.top; G.of_nat 1 ]
+      ([ G.one; G.top ] @ delay 1
       @ List.filter_map read (cover family)
-      @ [ G.of_nat 2 ])
+      @ delay 2)
   in
   let base =
     first
@@ -1411,8 +1422,7 @@ let registered_laws =
              @ counterexample_laws
                  (module G)
                  ~offered:false ~context costs samples
-             @ of_nat_laws (module G) costs ()
-             @ of_duration_laws (module G) costs)
+             @ of_delay_laws (module G) costs ())
        GradeRegistry.grade_modules
 
 (* The declared flags of the registered grades that are false with no
@@ -1437,10 +1447,10 @@ module RegexByName = Indexed.OfGrade (Grades.RegularTraceGradeDerivative)
 (* The maps giving the name [s] the upper bound [v], the others [0]. *)
 let single s v =
   Indexed.of_list ~compare:TimeGrades.UpperBound.compare
-    ~others:(TimeGrades.UpperBound.of_nat 0)
+    ~others:(TimeGrades.UpperBound.of_delay 0)
     [ (s, v) ]
 
-let bound n = TimeGrades.UpperBound.of_nat n
+let bound n = TimeGrades.UpperBound.of_delay n
 let bounds_up_to n = TimeGrades.UpperBound.top :: List.map bound (up_to n)
 
 module ByName_conditions =
@@ -1549,7 +1559,7 @@ let indexed =
   ]
   @ order_laws (module ByName) ~context bounds upper_samples
   @ algebra_laws (module ByName) ~context bounds upper_samples
-  @ of_nat_laws (module ByName) bounds ~monotone:true ()
+  @ of_delay_laws (module ByName) bounds ~monotone:true ()
   @ order_laws (module RegexByName) ~context bounds regex_samples
   @ algebra_laws (module RegexByName) ~context bounds regex_samples
   @ laws (module RegexByName) ~context bounds regex_samples
@@ -1648,7 +1658,7 @@ let mode_laws =
   ]
   @ order_laws (module M) ~context bounds samples
   @ algebra_laws (module M) ~context bounds samples
-  @ of_nat_laws (module M) bounds ()
+  @ of_delay_laws (module M) bounds ()
 
 (* The laws of the peak usage on grades acquiring and releasing the resources
    [Files] and [Sockets], with ranges of net changes, explicit and unbounded
@@ -1926,11 +1936,16 @@ let finite_laws =
   @ action_laws raise levels all_outputs
   @ semidirect_laws (module Flow) raise bounds all_flow_levels
 
+(* The laws of the instances of the delays. *)
+let delay_laws =
+  stepped_delay_laws ~name:"natural delays" (module Grades.Delay.Nat)
+  @ ordered_delay_laws ~name:"rational delays" (module Grades.Delay.Rational)
+
 let () =
   let checks =
-    levels @ products @ counterexamples @ witnesses @ literals @ tops @ registry
-    @ registered_laws @ indexed @ mode_laws @ peak_laws @ windows_laws
-    @ peak_construction_laws @ finite_laws
+    delay_laws @ levels @ products @ counterexamples @ witnesses @ literals
+    @ tops @ registry @ registered_laws @ indexed @ mode_laws @ peak_laws
+    @ windows_laws @ peak_construction_laws @ finite_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

@@ -112,10 +112,10 @@ let compare rho rho' =
 
 let hash rho = combine (hash_list String.hash rho.names) (Regex.hash rho.regex)
 
-let of_nat n =
-  { names = []; regex = ticks (check_nat "RegularTraceGradePlain" n) }
+(* Delays in whole time steps: [n] steps are the word [tickⁿ]. *)
+module Delay : Delay.STEPPED with type t = int = Delay.Nat
 
-let of_duration = whole ~who:"RegularTraceGradePlain" of_nat
+let of_delay d = { names = []; regex = ticks (Delay.to_int d) }
 let unit_least = false
 let commutative = false
 let needs_op_bounds = false
@@ -155,7 +155,7 @@ let counterexample _bounds rho rho' =
 
 let of_lit = function
   | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-  | Int n -> of_nat n
+  | Int n -> { names = []; regex = ticks n }
   | Top -> top
   | Braces r as lit ->
       let rho = of_regex r in

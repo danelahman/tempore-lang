@@ -96,8 +96,11 @@ let compare rho rho' =
   | c -> c
 
 let hash rho = combine (hash_list String.hash rho.names) (Dfa.hash rho.dfa)
-let of_nat n = of_regex (Tick (check_nat "RegularTraceGrade" n))
-let of_duration = whole ~who:"RegularTraceGrade" of_nat
+
+(* Delays in whole time steps: [n] steps are the word [tickⁿ]. *)
+module Delay : Delay.STEPPED with type t = int = Delay.Nat
+
+let of_delay d = of_regex (Tick (Delay.to_int d))
 let unit_least = false
 let commutative = false
 let needs_op_bounds = false
@@ -146,7 +149,7 @@ let counterexample _bounds rho rho' =
 
 let of_lit = function
   | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-  | Int n -> of_nat n
+  | Int n -> of_regex (Tick n)
   | Top -> top
   | Braces r as lit ->
       let rho = of_regex r in

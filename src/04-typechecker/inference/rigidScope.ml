@@ -1025,9 +1025,17 @@ module Make (C : Constraint.S) = struct
       (fun kept c -> if List.exists (equal c) kept then kept else kept @ [ c ])
       [] cs
 
-  (* The unit, the top and the grade of one delay step, of either sort. *)
-  let eps_base = [ X.GS.E.one; X.GS.E.top; X.GS.E.of_nat 1 ]
-  let rho_base = [ X.GS.R.one; X.GS.R.top; X.GS.R.of_nat 1 ]
+  (* The unit, the top and, if the delays have one, the grade of the delay
+     [1], of either sort. *)
+  let eps_base =
+    X.GS.E.one :: X.GS.E.top
+    :: Option.to_list
+         (Option.map X.GS.E.of_delay (X.GS.E.Delay.read (Grades.Grade.Int 1)))
+
+  let rho_base =
+    X.GS.R.one :: X.GS.R.top
+    :: Option.to_list
+         (Option.map X.GS.R.of_delay (X.GS.R.Delay.read (Grades.Grade.Int 1)))
 
   (* The grades tried for a rigid of an ordering with the constants
      [(rcs, ecs)] and at most [degree] occurrences of the rigids on either

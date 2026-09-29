@@ -438,8 +438,14 @@ module Suite (I : IMPLEMENTATION) = struct
         @ laws (module Lower) ~context bounds samples
         @ laws (module Interval) ~context bounds intervals)
       some_tables
-    @ of_nat_laws (module Upper) (bounds_of (List.hd tables)) ~monotone:true ()
-    @ of_nat_laws (module Lower) (bounds_of (List.hd tables)) ~monotone:false ()
+    @ of_delay_laws
+        (module Upper)
+        (bounds_of (List.hd tables))
+        ~monotone:true ()
+    @ of_delay_laws
+        (module Lower)
+        (bounds_of (List.hd tables))
+        ~monotone:false ()
     @ [
         all
           (Lower.name ^ ": the unit is the top")

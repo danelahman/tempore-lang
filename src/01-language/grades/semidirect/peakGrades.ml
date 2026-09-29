@@ -41,11 +41,13 @@ end
 
 (* The bounds of the net change on one side paired with the extremes there, a
    net change shifting a later extreme. *)
-module Side (O : ORIENTATION) = struct
+module Side (D : Delay.S) (O : ORIENTATION) = struct
   let join b b' = if O.leq b b' then b' else b
 
   module Net = struct
     type t = bound
+
+    module Delay = D
 
     let name = O.name ^ "-net-change"
     let one = Fin 0
@@ -54,12 +56,7 @@ module Side (O : ORIENTATION) = struct
     let leq_symbol = O.leq_symbol
     let top = O.unbounded
     let join = join
-
-    let of_nat n =
-      let (_ : int) = Grade.check_nat "PeakGrades.Net" n in
-      one
-
-    let of_duration = Grade.whole ~who:"PeakGrades.Net" of_nat
+    let of_delay _ = one
     let equal _bounds b b' = compare_bound b b' = 0
     let is_top _bounds b = compare_bound b top = 0
     let compare = compare_bound
@@ -102,7 +99,8 @@ module Side (O : ORIENTATION) = struct
   include GradeConstructions.SemiDirect (Net) (Extreme) (Shift)
 end
 
-module Upper = Side (struct
+(* The levels reached upward, bounded by the peaks. *)
+module Upward = struct
   let name = "upper"
   let extreme = "peak"
   let leq b b' = compare_bound b b' <= 0
@@ -121,9 +119,10 @@ module Upper = Side (struct
     | Minus_inf -> "-∞"
     | Fin d -> string_of_int d
     | Plus_inf -> "∞"
-end)
+end
 
-module Lower = Side (struct
+(* The levels reached downward, bounded by the troughs. *)
+module Downward = struct
   let name = "lower"
   let extreme = "trough"
   let leq b b' = compare_bound b' b <= 0
@@ -142,133 +141,138 @@ module Lower = Side (struct
     | Minus_inf -> "⊤"
     | Fin d -> string_of_int d
     | Plus_inf -> "∞"
-end)
+end
 
-module OneResource = struct
-  include GradeConstructions.Product (Lower) (Upper)
+module Make (D : Delay.S) = struct
+  module Upper = Side (D) (Upward)
+  module Lower = Side (D) (Downward)
 
-  let name = "resource-peak"
-  let one = ((Fin 0, Fin 0), (Fin 0, Fin 0))
-  let leq_symbol = "<="
+  module OneResource = struct
+    include GradeConstructions.Product (Lower) (Upper)
 
-  let of_nat n =
-    let (_ : int) = Grade.check_nat "PeakGrades.OneResource" n in
-    one
+    let name = "resource-peak"
+    let one = ((Fin 0, Fin 0), (Fin 0, Fin 0))
+    let leq_symbol = "<="
+    let of_delay _ = one
+    let of_bounds _ = one
 
-  let of_duration = Grade.whole ~who:"PeakGrades.OneResource" of_nat
-  let of_bounds _ = one
-
-  (* The grade of the trough [t], the net change from [low] to [high] and the
+    (* The grade of the trough [t], the net change from [low] to [high] and the
      peak [h], if they satisfy [t ≤ min(0, low)], [low ≤ high] and
      [max(0, high) ≤ h]. *)
-  let grade lit t (low, high) h =
-    if compare_bound low high > 0 then
-      Grade.invalid_lit lit
-        "the least net change must be at most the greatest net change"
-    else if compare_bound t (min_bound (Fin 0) low) > 0 then
-      Grade.invalid_lit lit
-        "the trough must be at most 0 and at most the net change"
-    else if compare_bound (max_bound (Fin 0) high) h > 0 then
-      Grade.invalid_lit lit
-        "the peak must be at least 0 and at least the net change"
-    else ((low, t), (high, h))
-
-  let net_of_lit = function
-    | Grade.Int d -> (Fin d, Fin d)
-    | Grade.Tuple [ l1; l2 ] -> (Lower.Net.of_lit l1, Upper.Net.of_lit l2)
-    | lit ->
+    let grade lit t (low, high) h =
+      if compare_bound low high > 0 then
         Grade.invalid_lit lit
-          "net changes are integers or ranges '(d1, d2)', not %s"
-          (Grade.describe_lit lit)
+          "the least net change must be at most the greatest net change"
+      else if compare_bound t (min_bound (Fin 0) low) > 0 then
+        Grade.invalid_lit lit
+          "the trough must be at most 0 and at most the net change"
+      else if compare_bound (max_bound (Fin 0) high) h > 0 then
+        Grade.invalid_lit lit
+          "the peak must be at least 0 and at least the net change"
+      else ((low, t), (high, h))
 
-  (* The grade of the literal [lit] of the trough [t], if given, the net change
+    let net_of_lit = function
+      | Grade.Int d -> (Fin d, Fin d)
+      | Grade.Tuple [ l1; l2 ] -> (Lower.Net.of_lit l1, Upper.Net.of_lit l2)
+      | lit ->
+          Grade.invalid_lit lit
+            "net changes are integers or ranges '(d1, d2)', not %s"
+            (Grade.describe_lit lit)
+
+    (* The grade of the literal [lit] of the trough [t], if given, the net change
      [l1] and the peak [l2]. *)
-  let of_components lit t l1 l2 =
-    let ((low, _) as net) =
-      Grade.component_of_lit lit ~context:"in the net change, " net_of_lit l1
-    in
-    let h =
-      Grade.component_of_lit lit ~context:"in the peak, " Upper.Extreme.of_lit
-        l2
-    in
-    grade lit (Option.value t ~default:(min_bound (Fin 0) low)) net h
-
-  let of_lit = function
-    | Grade.Top -> top
-    | Grade.Tuple [ (Grade.Inf | Grade.Top); l ] as lit -> (
-        match
-          Grade.component_of_lit lit ~context:"in the peak, "
-            Upper.Extreme.of_lit l
-        with
-        | Plus_inf -> top
-        | _ -> Grade.invalid_lit lit "a net change '∞' needs a peak '∞'")
-    | Grade.Tuple [ l1; l2 ] as lit -> of_components lit None l1 l2
-    | Grade.Tuple [ l0; l1; l2 ] as lit ->
-        let t =
-          Grade.component_of_lit lit ~context:"in the trough, "
-            Lower.Extreme.of_lit l0
-        in
-        of_components lit (Some t) l1 l2
-    | lit ->
-        Grade.invalid_lit lit
-          "grades are tuples '(d, h)' or '(t, d, h)' of a trough, a net change \
-           and a peak, not %s"
-          (Grade.describe_lit lit)
-
-  (* The shortest literal: the trough is omitted where it is [min(0, low)],
-     and an exact net change is written as a single integer. *)
-  let show (((low, t), (high, h)) as c) =
-    if compare c top = 0 then "(∞,∞)"
-    else
-      let net =
-        if compare_bound low high = 0 then Upper.Net.show high
-        else "(" ^ Lower.Net.show low ^ "," ^ Upper.Net.show high ^ ")"
+    let of_components lit t l1 l2 =
+      let ((low, _) as net) =
+        Grade.component_of_lit lit ~context:"in the net change, " net_of_lit l1
       in
-      if compare_bound t (min_bound (Fin 0) low) = 0 then
-        "(" ^ net ^ "," ^ Upper.Net.show h ^ ")"
-      else "(" ^ Lower.Net.show t ^ "," ^ net ^ "," ^ Upper.Net.show h ^ ")"
+      let h =
+        Grade.component_of_lit lit ~context:"in the peak, " Upper.Extreme.of_lit
+          l2
+      in
+      grade lit (Option.value t ~default:(min_bound (Fin 0) low)) net h
 
-  (* The exact net changes within one of the sum [s] of the magnitudes of the
+    let of_lit = function
+      | Grade.Top -> top
+      | Grade.Tuple [ (Grade.Inf | Grade.Top); l ] as lit -> (
+          match
+            Grade.component_of_lit lit ~context:"in the peak, "
+              Upper.Extreme.of_lit l
+          with
+          | Plus_inf -> top
+          | _ -> Grade.invalid_lit lit "a net change '∞' needs a peak '∞'")
+      | Grade.Tuple [ l1; l2 ] as lit -> of_components lit None l1 l2
+      | Grade.Tuple [ l0; l1; l2 ] as lit ->
+          let t =
+            Grade.component_of_lit lit ~context:"in the trough, "
+              Lower.Extreme.of_lit l0
+          in
+          of_components lit (Some t) l1 l2
+      | lit ->
+          Grade.invalid_lit lit
+            "grades are tuples '(d, h)' or '(t, d, h)' of a trough, a net \
+             change and a peak, not %s"
+            (Grade.describe_lit lit)
+
+    (* The shortest literal: the trough is omitted where it is [min(0, low)],
+     and an exact net change is written as a single integer. *)
+    let show (((low, t), (high, h)) as c) =
+      if compare c top = 0 then "(∞,∞)"
+      else
+        let net =
+          if compare_bound low high = 0 then Upper.Net.show high
+          else "(" ^ Lower.Net.show low ^ "," ^ Upper.Net.show high ^ ")"
+        in
+        if compare_bound t (min_bound (Fin 0) low) = 0 then
+          "(" ^ net ^ "," ^ Upper.Net.show h ^ ")"
+        else "(" ^ Lower.Net.show t ^ "," ^ net ^ "," ^ Upper.Net.show h ^ ")"
+
+    (* The exact net changes within one of the sum [s] of the magnitudes of the
      finite components of the constants, each with its greatest trough and a
      few troughs below it, and with its least peak and a few peaks above it;
      and the ranges of net changes from or to each of them, the other end
      being the least or the greatest of them or unbounded, with their greatest
      trough and least peak. *)
-  let witnesses ~degree:_ _bounds cs =
-    let magnitude = function Fin d -> Int.abs d | Minus_inf | Plus_inf -> 0 in
-    let s =
-      List.fold_left
-        (fun s ((low, t), (high, h)) ->
-          s + magnitude low + magnitude t + magnitude high + magnitude h)
-        0 cs
-    in
-    let grid = List.init ((2 * s) + 3) (fun i -> i - s - 1) in
-    let range low high =
-      ((low, min_bound (Fin 0) low), (high, max_bound (Fin 0) high))
-    in
-    let at d =
-      let trough = Int.min 0 d and peak = Int.max 0 d in
-      List.map
-        (fun t -> ((Fin d, t), (Fin d, Fin peak)))
-        [ Fin trough; Fin (trough - 1); Fin (-s - 1); Minus_inf ]
-      @ List.map
-          (fun h -> ((Fin d, Fin trough), (Fin d, h)))
-          [ Fin (peak + 1); Fin (Int.max peak (s + 1)); Plus_inf ]
-      @ List.filter_map
-          (fun (low, high) ->
-            if compare_bound low high < 0 then Some (range low high) else None)
-          [
-            (Fin d, Fin (s + 1));
-            (Fin d, Plus_inf);
-            (Fin (-s - 1), Fin d);
-            (Minus_inf, Fin d);
-          ]
-    in
-    (List.sort_uniq compare (List.concat_map at grid), Grade.Partial)
+    let witnesses ~degree:_ _bounds cs =
+      let magnitude = function
+        | Fin d -> Int.abs d
+        | Minus_inf | Plus_inf -> 0
+      in
+      let s =
+        List.fold_left
+          (fun s ((low, t), (high, h)) ->
+            s + magnitude low + magnitude t + magnitude high + magnitude h)
+          0 cs
+      in
+      let grid = List.init ((2 * s) + 3) (fun i -> i - s - 1) in
+      let range low high =
+        ((low, min_bound (Fin 0) low), (high, max_bound (Fin 0) high))
+      in
+      let at d =
+        let trough = Int.min 0 d and peak = Int.max 0 d in
+        List.map
+          (fun t -> ((Fin d, t), (Fin d, Fin peak)))
+          [ Fin trough; Fin (trough - 1); Fin (-s - 1); Minus_inf ]
+        @ List.map
+            (fun h -> ((Fin d, Fin trough), (Fin d, h)))
+            [ Fin (peak + 1); Fin (Int.max peak (s + 1)); Plus_inf ]
+        @ List.filter_map
+            (fun (low, high) ->
+              if compare_bound low high < 0 then Some (range low high) else None)
+            [
+              (Fin d, Fin (s + 1));
+              (Fin d, Plus_inf);
+              (Fin (-s - 1), Fin d);
+              (Minus_inf, Fin d);
+            ]
+      in
+      (List.sort_uniq compare (List.concat_map at grid), Grade.Partial)
+  end
+
+  module PeakUsage = struct
+    include GradeConstructions.Indexed.OfGrade (OneResource)
+
+    let name = "peak-usage"
+  end
 end
 
-module PeakUsage = struct
-  include GradeConstructions.Indexed.OfGrade (OneResource)
-
-  let name = "peak-usage"
-end
+include Make (Delay.Nat)

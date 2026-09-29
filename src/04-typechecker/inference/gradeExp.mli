@@ -65,11 +65,8 @@ module type S = sig
     val top : t
     (** The top constant. *)
 
-    val of_nat : int -> t
-    (** [of_nat n] is the constant of [n] time steps. *)
-
-    val of_duration : Grades.Rational.t -> t
-    (** [of_duration q] is the constant of a delay of [q] time steps. *)
+    val of_delay : GS.E.Delay.t -> t
+    (** [of_delay d] is the constant of the delay [d]. *)
 
     val mul : t -> t -> t
     (** [mul eps eps'] is the product [eps · eps']. *)
@@ -122,11 +119,8 @@ module type S = sig
     val top : t
     (** The top constant. *)
 
-    val of_nat : int -> t
-    (** [of_nat n] is the constant of [n] time steps. *)
-
-    val of_duration : Grades.Rational.t -> t
-    (** [of_duration q] is the constant of a delay of [q] time steps. *)
+    val of_delay : GS.R.Delay.t -> t
+    (** [of_delay d] is the constant of the delay [d]. *)
 
     val mul : t -> t -> t
     (** [mul rho rho'] is the product [rho · rho']. *)

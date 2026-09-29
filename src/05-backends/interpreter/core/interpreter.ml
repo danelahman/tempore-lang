@@ -3,6 +3,8 @@ module Ast = Language.Ast
 module Const = Language.Const
 module Context = Language.Context
 module PrettyPrint = Language.PrettyPrint
+module Grade = Grades.Grade
+module Rational = Grades.Rational
 
 module Types = struct
   type computation_redex =
@@ -48,6 +50,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   module P = Primitives.Make (GS)
   include Types
+
+  (* The delay of the literal [q], which the parser has read. *)
+  let delay q =
+    match GS.R.Delay.read (Grade.rational_lit q) with
+    | Some d -> d
+    | None -> invalid_arg ("Interpreter.delay: " ^ Rational.show q)
 
   (* The state holds each resource with the resource grade it was boxed at,
      interleaved with the resource grades that have passed; operations are
@@ -506,7 +514,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
             :: comps1'
         | _ -> comps1')
     | Ast.Delay (q, comp) ->
-        let rho = Ast.RhoConst (GS.R.of_duration q, None) in
+        let rho = Ast.RhoConst (GS.R.of_delay (delay q), None) in
         let env' =
           { env with state = ContextHolderModule.add_temp rho env.state }
         in

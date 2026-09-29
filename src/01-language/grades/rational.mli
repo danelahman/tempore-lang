@@ -34,6 +34,9 @@ val of_decimal : string -> t
 val add : t -> t -> t
 (** [add p q] is [p + q]. *)
 
+val neg : t -> t
+(** [neg q] is [-q]. *)
+
 val mul : t -> t -> t
 (** [mul p q] is [p · q]. *)
 

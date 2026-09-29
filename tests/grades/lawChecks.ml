@@ -158,24 +158,204 @@ let algebra_laws (type a) ?(width = 8) (module G : Grade.S with type t = a)
       (triples some);
   ]
 
-(* [of_nat_laws (module G) bounds ?monotone] checks that [of_nat] is a monoid
-   morphism under [bounds] and, if [monotone] is given, that it is monotone,
-   or antitone if [monotone] is false. *)
-let of_nat_laws (module G : Grade.S) bounds ?monotone () =
-  let ns = pairs (List.init 5 Fun.id) in
-  let show (m, n) = Printf.sprintf "%d, %d" m n in
+module Delay = Grades.Delay
+module Rational = Grades.Rational
+
+(* The literals of the sample delays: the integers [0] to [4] and fractions. *)
+let delay_lits =
+  List.init 5 (fun n -> Grade.Int n)
+  @ List.map
+      (fun (n, d) -> Grade.Rat (Rational.make n d))
+      [ (1, 2); (1, 3); (3, 2); (5, 6); (7, 4) ]
+
+(* [value lit] is the number of the numeric literal [lit]. *)
+let value = function
+  | Grade.Int n -> Rational.of_int n
+  | Grade.Rat q -> q
+  | _ -> invalid_arg "LawChecks.value"
+
+let show_lit lit = Rational.show (value lit)
+
+(* [delays (module D)] is the sample literals that [D] reads, with their
+   delays. *)
+let delays (type d) (module D : Delay.S with type t = d) =
+  List.filter_map
+    (fun lit -> Option.map (fun d -> (lit, d)) (D.read lit))
+    delay_lits
+
+(* [delay_laws ~name (module D)] checks the laws of {!Delay.S} on the sample
+   literals and their delays: the monoid laws, [read] a partial monoid
+   morphism on a submonoid, an integral fraction read as its integer and a
+   negative literal as none, and [equal] agreeing with [compare] and [hash]. *)
+let delay_laws (type d) ~name (module D : Delay.S with type t = d) =
+  let name law = name ^ ": " ^ law in
+  let samples = delays (module D) in
+  let ds = List.map snd samples in
+  let show_d = D.show in
+  let show2 (d, e) = D.show d ^ ", " ^ D.show e in
+  let show3 (d, e, f) = show2 (d, e) ^ ", " ^ D.show f in
+  let same d e =
+    match (d, e) with
+    | Some d, Some e -> D.equal d e
+    | None, None -> true
+    | _ -> false
+  in
   [
+    check (name "0 reads as zero")
+      (same (D.read (Grade.Int 0)) (Some D.zero))
+      "read 0";
+    all (name "zero a unit") show_d
+      (fun d -> D.equal (D.add D.zero d) d && D.equal (D.add d D.zero) d)
+      ds;
+    all (name "add associative") show3
+      (fun (d, e, f) -> D.equal (D.add d (D.add e f)) (D.add (D.add d e) f))
+      (triples ds);
     all
-      (G.name ^ ": of_nat a homomorphism")
-      show
-      (fun (m, n) ->
-        G.equal bounds (G.of_nat (m + n)) (G.mul (G.of_nat m) (G.of_nat n)))
-      ns;
+      (name "read a homomorphism on its domain")
+      (fun ((q, _), (r, _)) -> show_lit q ^ ", " ^ show_lit r)
+      (fun ((q, d), (r, e)) ->
+        same
+          (D.read (Grade.rational_lit (Rational.add (value q) (value r))))
+          (Some (D.add d e)))
+      (pairs samples);
     all
-      (G.name ^ ": of_nat is the unit at 0")
+      (name "an integral fraction reads as its integer")
       string_of_int
-      (fun n -> G.equal bounds (G.of_nat n) G.one)
-      [ 0 ];
+      (fun n ->
+        same (D.read (Grade.Rat (Rational.of_int n))) (D.read (Grade.Int n)))
+      (List.init 5 Fun.id);
+    all
+      (name "a negative literal reads as none")
+      show_lit
+      (fun lit -> Option.is_none (D.read lit))
+      [ Grade.Int (-1); Grade.Rat (Rational.make (-1) 2) ];
+    all
+      (name "equal agrees with compare and hash")
+      show2
+      (fun (d, e) ->
+        D.equal d e = (D.compare d e = 0)
+        && implies (D.equal d e) (D.hash d = D.hash e))
+      (pairs ds);
+  ]
+
+(* [ordered_delay_laws ~name (module D)] checks, besides {!delay_laws}, the
+   laws of {!Delay.ORDERED} on the sample delays: [leq] a total preorder, [add]
+   monotone, [zero] least and some witness above it, [read] monotone, and [min]
+   and [max] the lesser and the greater. *)
+let ordered_delay_laws (type d) ~name (module D : Delay.ORDERED with type t = d)
+    =
+  let law l = name ^ ": " ^ l in
+  let samples = delays (module D) in
+  let ds = List.map snd samples in
+  let show2 (d, e) = D.show d ^ ", " ^ D.show e in
+  let show3 (d, e, f) = show2 (d, e) ^ ", " ^ D.show f in
+  let same d e = D.leq d e && D.leq e d in
+  delay_laws ~name (module D)
+  @ [
+      all (law "leq total") show2
+        (fun (d, e) -> D.leq d e || D.leq e d)
+        (pairs ds);
+      all
+        (law "equal is mutual leq")
+        show2
+        (fun (d, e) -> D.equal d e = (D.leq d e && D.leq e d))
+        (pairs ds);
+      all (law "leq transitive") show3
+        (fun (d, e, f) -> implies (D.leq d e && D.leq e f) (D.leq d f))
+        (triples ds);
+      all (law "add monotone") show3
+        (fun (d, e, f) ->
+          implies (D.leq d e)
+            (D.leq (D.add d f) (D.add e f) && D.leq (D.add f d) (D.add f e)))
+        (triples ds);
+      all (law "zero least") D.show (fun d -> D.leq D.zero d) ds;
+      all
+        (law "a witness above zero")
+        (fun cs -> String.concat ", " (List.map D.show cs))
+        (fun cs ->
+          List.exists
+            (fun w -> not (D.leq w D.zero))
+            (fst (D.witnesses ~degree:1 cs)))
+        [ []; ds ];
+      all (law "read monotone")
+        (fun ((q, _), (r, _)) -> show_lit q ^ ", " ^ show_lit r)
+        (fun ((q, d), (r, e)) ->
+          implies (Rational.compare (value q) (value r) <= 0) (D.leq d e))
+        (pairs samples);
+      all (law "min and max") show2
+        (fun (d, e) ->
+          let lo = D.min d e and hi = D.max d e in
+          (D.equal lo d || D.equal lo e)
+          && (D.equal hi d || D.equal hi e)
+          && D.leq lo d && D.leq lo e && D.leq d hi && D.leq e hi
+          && same lo (if D.leq d e then d else e))
+        (pairs ds);
+    ]
+
+(* [stepped_delay_laws ~name (module D)] checks, besides
+   {!ordered_delay_laws}, the laws of {!Delay.STEPPED}: [steps] the monoid
+   morphism from the natural numbers sending [1] to [step], with inverse
+   [to_int], [read] defined exactly on the natural numbers, where it agrees
+   with [steps], and the order that of the natural numbers. *)
+let stepped_delay_laws (type d) ~name (module D : Delay.STEPPED with type t = d)
+    =
+  let law l = name ^ ": " ^ l in
+  let ns = List.init 5 Fun.id in
+  let show2 (m, n) = Printf.sprintf "%d, %d" m n in
+  ordered_delay_laws ~name (module D)
+  @ [
+      check (law "steps 0 is zero") (D.equal (D.steps 0) D.zero) "steps 0";
+      check (law "steps 1 is step") (D.equal (D.steps 1) D.step) "steps 1";
+      all
+        (law "steps a homomorphism")
+        show2
+        (fun (m, n) ->
+          D.equal (D.steps (m + n)) (D.add (D.steps m) (D.steps n)))
+        (pairs ns);
+      all
+        (law "to_int inverse to steps")
+        string_of_int
+        (fun n ->
+          D.to_int (D.steps n) = n
+          && D.equal (D.steps (D.to_int (D.steps n))) (D.steps n))
+        ns;
+      all
+        (law "the order of the natural numbers")
+        show2
+        (fun (m, n) -> D.leq (D.steps m) (D.steps n) = (m <= n))
+        (pairs ns);
+      all
+        (law "read exactly the natural numbers")
+        show_lit
+        (fun lit ->
+          match (D.read lit, Rational.to_int (value lit)) with
+          | Some d, Some n -> n >= 0 && D.equal d (D.steps n)
+          | None, Some n -> n < 0
+          | Some _, None -> false
+          | None, None -> true)
+        (Grade.Int (-1) :: delay_lits);
+    ]
+
+(* [of_delay_laws (module G) bounds ?monotone] checks that [of_delay] is a
+   monoid morphism under [bounds] on the sample delays of [G] and, if
+   [monotone] is given, that it is monotone in the value of their literals, or
+   antitone if [monotone] is false. *)
+let of_delay_laws (module G : Grade.S) bounds ?monotone () =
+  let samples = delays (module G.Delay) in
+  let show ((q, _), (r, _)) = show_lit q ^ ", " ^ show_lit r in
+  [
+    check
+      (G.name ^ ": of_delay is the unit at zero")
+      (G.equal bounds (G.of_delay G.Delay.zero) G.one)
+      "of_delay zero";
+    all
+      (G.name ^ ": of_delay a homomorphism")
+      show
+      (fun ((_, d), (_, e)) ->
+        G.equal bounds
+          (G.of_delay (G.Delay.add d e))
+          (G.mul (G.of_delay d) (G.of_delay e)))
+      (pairs samples);
   ]
   @
   match monotone with
@@ -183,52 +363,14 @@ let of_nat_laws (module G : Grade.S) bounds ?monotone () =
   | Some monotone ->
       [
         all
-          (G.name ^ ": of_nat ordered")
+          (G.name ^ ": of_delay ordered")
           show
-          (fun (m, n) ->
-            G.leq bounds (G.of_nat m) (G.of_nat n)
-            = if monotone then m <= n else m >= n)
-          ns;
+          (fun ((q, d), (r, e)) ->
+            let c = Rational.compare (value q) (value r) in
+            G.leq bounds (G.of_delay d) (G.of_delay e)
+            = if monotone then c <= 0 else c >= 0)
+          (pairs samples);
       ]
-
-(* [of_duration_laws (module G) bounds] checks that the domain of [of_duration]
-   contains the naturals, on which it agrees with [of_nat], and, on sample
-   durations, that it is closed under sums, on which [of_duration] is a monoid
-   morphism under [bounds]. *)
-let of_duration_laws (module G : Grade.S) bounds =
-  let module Q = Grades.Rational in
-  let durations =
-    List.map
-      (fun (n, d) -> Q.make n d)
-      [ (0, 1); (1, 1); (2, 1); (1, 2); (1, 3); (3, 2); (5, 6); (7, 4) ]
-  in
-  let of_duration q =
-    match G.of_duration q with
-    | c -> Some c
-    | exception Grade.Invalid_literal _ -> None
-  in
-  let domain =
-    List.filter (fun q -> Option.is_some (of_duration q)) durations
-  in
-  let show (q, r) = Q.show q ^ ", " ^ Q.show r in
-  [
-    all
-      (G.name ^ ": of_duration agrees with of_nat")
-      string_of_int
-      (fun n ->
-        match of_duration (Q.of_int n) with
-        | Some c -> G.equal bounds c (G.of_nat n)
-        | None -> false)
-      (List.init 5 Fun.id);
-    all
-      (G.name ^ ": of_duration a homomorphism on its domain")
-      show
-      (fun (q, r) ->
-        match of_duration (Q.add q r) with
-        | Some c -> G.equal bounds c (G.mul (G.of_duration q) (G.of_duration r))
-        | None -> false)
-      (pairs domain);
-  ]
 
 (* [declared_laws (module G) ~context bounds samples] checks, on [samples]
    under [bounds], the properties the declarations of [G] assert: that the

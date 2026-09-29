@@ -451,6 +451,8 @@ module Small (G : Grade.S) = struct
   module R = Inference.Residual.Make (C)
   module RS = Inference.RigidScope.Make (C)
 
+  (* [delay k] is the grade of the delay of the literal [k]. *)
+  let delay k = G.of_delay (Option.get (G.Delay.read (Grade.Int k)))
   let name = G.name
   let no_bounds = { Grade.cost = (fun _ -> (0, 0)); operations = [] }
 
@@ -700,7 +702,7 @@ module Small (G : Grade.S) = struct
       (fun (s : S.solution) ->
         expect "disjunction at the unit grade" (s.hyps.rho_hyps = []))
       (solved "disjunction at the unit grade" (disj unit_arrow X.Rho.unit));
-    match solve (disj unit_arrow (X.Rho.of_nat 3)) with
+    match solve (disj unit_arrow (X.Rho.const (delay 3))) with
     | S.Refuted (R.Refuted_rho { info = [ reason ]; _ })
       when unit_least && line_of reason = 5 ->
         ()
@@ -713,21 +715,21 @@ module Small (G : Grade.S) = struct
      the reasons of both atoms. *)
   let chain () =
     let hi, lo =
-      if G.leq no_bounds (G.of_nat 3) (G.of_nat 2) then (2, 3) else (3, 2)
+      if G.leq no_bounds (delay 3) (delay 2) then (2, 3) else (3, 2)
     in
     let r = rho_var () in
     let constr =
       C.Exists
         ( vars ~rhos:[ r ] (),
           C.And
-            ( C.Rho_leq (because 1, X.Rho.of_nat hi, X.Rho.var r),
-              C.Rho_leq (because 2, X.Rho.var r, X.Rho.of_nat lo) ) )
+            ( C.Rho_leq (because 1, X.Rho.const (delay hi), X.Rho.var r),
+              C.Rho_leq (because 2, X.Rho.var r, X.Rho.const (delay lo)) ) )
     in
     match solve constr with
     | S.Refuted (R.Refuted_rho { lhs; rhs; info })
       when List.map line_of info = [ 1; 2 ]
-           && X.Rho.equal no_bounds lhs (X.Rho.of_nat hi)
-           && X.Rho.equal no_bounds rhs (X.Rho.of_nat lo) ->
+           && X.Rho.equal no_bounds lhs (X.Rho.const (delay hi))
+           && X.Rho.equal no_bounds rhs (X.Rho.const (delay lo)) ->
         ()
     | outcome -> fail "chain (%s): got %t" name (S.print_outcome outcome)
 
@@ -804,7 +806,7 @@ module Small (G : Grade.S) = struct
     let j = eps_var () in
     match solve (forall 1 j (leq 2 (v j * v j) (v j))) with
     | S.Refuted (R.Refuted_condition { condition; witness = [ w ] })
-      when G.equal no_bounds w (G.of_nat 1)
+      when G.equal no_bounds w (delay 1)
            && List.length condition.eps_conditions = 1 ->
         ()
     | outcome -> fail "retry (%s): got %t" name (S.print_outcome outcome)
@@ -818,7 +820,7 @@ module Small (G : Grade.S) = struct
         (C.Exists
            ( vars ~eps:[ a ] (),
              C.And
-               ( leq 2 (X.Eps.of_nat 1) (v a),
+               ( leq 2 (X.Eps.const (delay 1)) (v a),
                  forall 3 j2 (leq 4 (v a * v j2) (v j2)) ) ))
     in
     match solve constr with
@@ -855,8 +857,8 @@ module Small (G : Grade.S) = struct
       C.Exists
         ( vars ~eps:[ e ] (),
           C.And
-            (leq 1 (v e * X.Eps.of_nat 1) (v e), leq 2 (v e) (X.Eps.of_nat 3))
-        )
+            ( leq 1 (v e * X.Eps.const (delay 1)) (v e),
+              leq 2 (v e) (X.Eps.const (delay 3)) ) )
     in
     let context = P.context ~loc:(at 0) Gen.initial_env in
     Option.iter

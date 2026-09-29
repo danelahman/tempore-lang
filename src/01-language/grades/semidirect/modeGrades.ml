@@ -337,8 +337,10 @@ let show m =
 
 let is_top m = equal top m
 
-module ModeCosts = struct
+module Make (D : Delay.S) = struct
   type nonrec t = t
+
+  module Delay = D
 
   let name = "mode-costs"
   let one = one
@@ -347,12 +349,7 @@ module ModeCosts = struct
   let leq_symbol = "<="
   let top = top
   let join = join
-
-  let of_nat n =
-    let (_ : int) = Grade.check_nat "ModeGrades.ModeCosts" n in
-    one
-
-  let of_duration = Grade.whole ~who:"ModeGrades.ModeCosts" of_nat
+  let of_delay _ = one
   let equal _bounds = equal
   let is_top _bounds = is_top
   let compare = compare
@@ -370,3 +367,5 @@ module ModeCosts = struct
   let show = show
   let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
+
+module ModeCosts = Make (Delay.Nat)

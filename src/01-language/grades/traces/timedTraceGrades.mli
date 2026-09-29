@@ -30,17 +30,23 @@
     {2 Witnesses}
 
     The witnesses of a closed condition are its constants and their pairwise
-    products ({!Grade.sampled}), which are not complete. *)
+    products ({!Grade.sampled}), which are not complete.
 
-module LowerBound : Grade.S
+    {2 Delays}
+
+    The delays are the natural numbers of time steps ({!Delay.Nat}), a delay of
+    [n] being the trace [n], whose duration the orders subtract from their
+    budget. *)
+
+module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as lower bounds, ["traces-lower-bound"], in the coverage
     order; the unit [{0}] is the top. *)
 
-module UpperBound : Grade.S
+module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as upper bounds, ["traces-upper-bound"], in the
     allowance order, with a separate greatest point [⊤] permitting any run. *)
 
-module Interval : Grade.S
+module Interval : Grade.S with type Delay.t = Delay.Nat.t
 (** Pairs of a lower and an upper bound, ["traces-interval"], compared
     componentwise, written [({...}, {...})]. A brace literal [{...}] abbreviates
     the pair of a set with itself, [n] the pair [({n}, {n})] and [(n, m)] the

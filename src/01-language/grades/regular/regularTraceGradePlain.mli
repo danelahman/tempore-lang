@@ -38,7 +38,7 @@
     {!RegularTraceGradeDerivative}: the two print a grade alike unless the
     printing of one of them falls back. *)
 
-include Grade.S
+include Grade.S with type Delay.t = Delay.Nat.t
 
 module Regex : SymbolicRegex.S
 (** The expressions over single letters. *)

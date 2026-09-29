@@ -14,8 +14,10 @@ module type LATTICE = sig
 end
 
 (* A bounded join-semilattice as a grading monoid, its join the product. *)
-module OfLattice (L : LATTICE) = struct
+module OfLattice (D : Delay.S) (L : LATTICE) = struct
   type t = L.t
+
+  module Delay = D
 
   let name = L.name
   let one = L.bottom
@@ -24,16 +26,7 @@ module OfLattice (L : LATTICE) = struct
   let leq_symbol = "<="
   let top = L.top
   let join = L.join
-
-  let of_nat n =
-    let (_ : int) = Grade.check_nat L.name n in
-    L.bottom
-
-  let of_duration q =
-    if Rational.sign q < 0 then
-      invalid_arg (L.name ^ ".of_duration: expected non-negative duration")
-    else L.bottom
-
+  let of_delay _ = L.bottom
   let equal _bounds l l' = L.leq l l' && L.leq l' l
   let is_top _bounds = L.leq L.top
   let compare = L.compare
@@ -61,8 +54,11 @@ let intersect b b' =
   | None, None -> None
 
 (* The product of two grading monoids, ordered componentwise. *)
-module Product (G1 : Grade.S) (G2 : Grade.S) = struct
+module Product (G1 : Grade.S) (G2 : Grade.S with type Delay.t = G1.Delay.t) =
+struct
   type t = G1.t * G2.t
+
+  module Delay = G1.Delay
 
   let name = G1.name ^ "×" ^ G2.name
   let one = (G1.one, G2.one)
@@ -71,8 +67,7 @@ module Product (G1 : Grade.S) (G2 : Grade.S) = struct
   let leq_symbol = if G1.leq_symbol = G2.leq_symbol then G1.leq_symbol else "≾"
   let top = (G1.top, G2.top)
   let join (a, b) (a', b') = (G1.join a a', G2.join b b')
-  let of_nat n = (G1.of_nat n, G2.of_nat n)
-  let of_duration q = (G1.of_duration q, G2.of_duration q)
+  let of_delay d = (G1.of_delay d, G2.of_delay d)
 
   let equal bounds (a, b) (a', b') =
     G1.equal bounds a a' && G2.equal bounds b b'
@@ -168,6 +163,8 @@ module SemiDirect
 struct
   type t = M.t * N.t
 
+  module Delay = M.Delay
+
   let name = M.name ^ "⋉" ^ N.name
   let one = (M.one, N.bottom)
   let mul (m, n) (m', n') = (M.mul m m', N.join n (Act.act m n'))
@@ -175,8 +172,7 @@ struct
   let leq_symbol = if M.leq_symbol = "<=" then "<=" else "≾"
   let top = (M.top, N.top)
   let join (m, n) (m', n') = (M.join m m', N.join n n')
-  let of_nat k = (M.of_nat k, N.bottom)
-  let of_duration q = (M.of_duration q, N.bottom)
+  let of_delay d = (M.of_delay d, N.bottom)
 
   let equal bounds (m, n) (m', n') =
     M.equal bounds m m' && N.leq n n' && N.leq n' n
@@ -413,6 +409,8 @@ module Indexed = struct
   module OfGrade (G : Grade.S) = struct
     type nonrec t = G.t t
 
+    module Delay = G.Delay
+
     let name = G.name ^ " by name"
     let one = everywhere G.one
     let mul = map2 G.compare G.mul
@@ -420,8 +418,7 @@ module Indexed = struct
     let leq_symbol = G.leq_symbol
     let top = everywhere G.top
     let join = map2 G.compare G.join
-    let of_nat n = everywhere (G.of_nat n)
-    let of_duration q = everywhere (G.of_duration q)
+    let of_delay d = everywhere (G.of_delay d)
     let equal bounds = for_all2 (G.equal bounds)
     let is_top bounds = for_all (G.is_top bounds)
     let compare = compare_with G.compare

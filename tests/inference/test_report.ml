@@ -442,13 +442,14 @@ let check grades =
   let module T = Programs (G) in
   let traces = String.starts_with ~prefix:"traces" grades in
   let lit n = if traces then Printf.sprintf "{%d}" n else string_of_int n in
+  let delay k = G.of_delay (Option.get (G.Delay.read (Grade.Int k))) in
   let g =
     {
       least = G.unit_least;
       u = G.show G.one;
       top = G.show G.top;
       lit;
-      join_1_3 = G.show (G.join (G.of_nat 1) (G.of_nat 3));
+      join_1_3 = G.show (G.join (delay 1) (delay 3));
       op =
         (fun name lo hi ->
           if traces then Printf.sprintf "{%s}" name

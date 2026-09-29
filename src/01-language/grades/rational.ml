@@ -16,6 +16,7 @@ let of_decimal s =
     | exception (Invalid_argument _ | Failure _) -> invalid ()
 
 let add = Q.add
+let neg = Q.neg
 let mul = Q.mul
 let div p q = if Q.sign q = 0 then raise Division_by_zero else Q.div p q
 let sign = Q.sign

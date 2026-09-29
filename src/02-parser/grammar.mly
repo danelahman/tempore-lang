@@ -25,18 +25,16 @@
       Error.syntax ~loc "in the '%s' grading monoid, %s%s" name reason
         (suggestion (Grades.GradeRegistry.accepting lit))
 
-  (* [delay ~loc q] is [q] if both grades of the grade system have a delay of
-     [q]; otherwise a syntax error at [loc] naming the grades that have one. *)
+  (* [delay ~loc q] is [q] if the delays of the grade system read it;
+     otherwise a syntax error at [loc] naming the grades whose delays do. *)
   let delay ~loc q =
-    let check name of_duration =
-      try ignore (of_duration q)
-      with Grade.Invalid_literal (_, reason) ->
-        Error.syntax ~loc "in the '%s' grading monoid, %s%s" name reason
-          (suggestion (Grades.GradeRegistry.accepting_delay q))
-    in
-    check GS.R.name GS.R.of_duration;
-    check GS.E.name GS.E.of_duration;
-    q
+    let lit = Grade.rational_lit q in
+    match GS.R.Delay.read lit with
+    | Some _ -> q
+    | None ->
+        Error.syntax ~loc "in the '%s' grading monoid, %s%s" GS.R.name
+          (GS.R.Delay.rejection lit)
+          (suggestion (Grades.GradeRegistry.accepting_delay lit))
 
   (* [small ~loc what n] is the number [n] as an OCaml [int]; a syntax error
      at [loc] naming [what] if [n] does not fit one. *)

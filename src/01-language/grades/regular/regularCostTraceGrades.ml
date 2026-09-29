@@ -1,7 +1,7 @@
 open Grade
 
 module type LANGUAGE = sig
-  include Grade.S
+  include Grade.S with type Delay.t = Delay.Nat.t
   module State : Map.OrderedType
 
   val concrete : string list -> t -> Dfa.t
@@ -189,15 +189,19 @@ struct
     | Some fastest, Some slowest -> Some (fastest, slowest)
     | _ -> None
 
+  (** [ticks n] is the grade of a delay of [n] time steps. *)
+  let ticks n = L.of_delay (Delay.Nat.steps n)
+
   (** The fields the grades share with the regular trace grade. *)
   module Common = struct
     type t = L.t
 
+    module Delay = L.Delay
+
     let one = L.one
     let mul = L.mul
     let join = L.join
-    let of_nat = L.of_nat
-    let of_duration = L.of_duration
+    let of_delay = L.of_delay
     let leq_symbol = "<="
     let commutative = false
     let needs_op_bounds = true
@@ -225,7 +229,7 @@ struct
     let is_top = is_top coverage
     let unit_least = false
     let of_lit = function Top -> top | lit -> L.of_lit lit
-    let of_bounds (lo, _hi) = of_nat lo
+    let of_bounds (lo, _hi) = ticks lo
   end
 
   module Upper = struct
@@ -239,11 +243,13 @@ struct
     let is_top = is_top allowance
     let unit_least = true
     let of_lit = L.of_lit
-    let of_bounds (_lo, hi) = of_nat hi
+    let of_bounds (_lo, hi) = ticks hi
   end
 
   module Interval = struct
     type t = L.t * L.t
+
+    module Delay = L.Delay
 
     let name = "regex-cost-interval" ^ Variant.suffix
     let one = (Lower.one, Upper.one)
@@ -297,9 +303,8 @@ struct
              abbreviations of them, not %s"
             (describe_lit lit)
 
-    let of_nat n = (L.of_nat n, L.of_nat n)
-    let of_duration q = (L.of_duration q, L.of_duration q)
-    let of_bounds (lo, hi) = (L.of_nat lo, L.of_nat hi)
+    let of_delay d = (L.of_delay d, L.of_delay d)
+    let of_bounds (lo, hi) = (ticks lo, ticks hi)
     let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
     let show (lo, hi) = "(" ^ Lower.show lo ^ "," ^ Upper.show hi ^ ")"
     let witnesses ~degree:_ _bounds = sampled mul

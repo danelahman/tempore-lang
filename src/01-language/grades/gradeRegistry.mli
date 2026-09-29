@@ -9,9 +9,9 @@ val accepting : Grade.lit -> string list
 (** [accepting lit] lists the names of the grades shown {!Everywhere} that
     understand the literal [lit], in the order of {!grade_modules}. *)
 
-val accepting_delay : Rational.t -> string list
-(** [accepting_delay q] lists the names of the grades shown {!Everywhere} that
-    have a delay of [q ≥ 0] time steps ({!Grade.S.of_duration}), in the order of
+val accepting_delay : Grade.lit -> string list
+(** [accepting_delay lit] lists the names of the grades shown {!Everywhere}
+    whose delays read the literal [lit] ({!Delay.S.read}), in the order of
     {!grade_modules}. *)
 
 (** Where a grade is offered. *)

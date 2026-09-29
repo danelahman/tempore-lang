@@ -30,6 +30,8 @@ module Suite (G : Grade.S) = struct
   module X = GradeExp.Make (GS)
   module N = GradeNormal.Make (X)
 
+  (* [delay k] is the grade of the delay of the literal [k]. *)
+  let delay k = G.of_delay (Option.get (G.Delay.read (Grade.Int k)))
   let hyp lhs rhs info = { GradeNormal.lhs; rhs; info }
   let rho_hyps rho_hyps = { N.no_hyps with rho_hyps }
   let eps_hyps eps_hyps = { N.no_hyps with eps_hyps }
@@ -47,8 +49,8 @@ module Suite (G : Grade.S) = struct
   let ( + ) = X.Rho.join
   let ( *. ) = X.Eps.mul
   let ( +. ) = X.Eps.join
-  let n = X.Rho.of_nat
-  let en = X.Eps.of_nat
+  let n k = X.Rho.const (delay k)
+  let en k = X.Eps.const (delay k)
   let top = X.Rho.top
   let map = X.Rho.map
   let rho_name = GradeExp.Rho_var.string_of
@@ -57,8 +59,8 @@ module Suite (G : Grade.S) = struct
   let show_eps = X.Eps.to_string
   let unit_is_top = G.equal bounds G.one G.top
 
-  (* Whether ticks are graded by the unit, as for the security levels. *)
-  let ticks_are_unit = G.equal bounds (G.of_nat 1) G.one
+  (* Whether delays are graded by the unit, as for the security levels. *)
+  let ticks_are_unit = G.equal bounds (delay 1) G.one
 
   (* [same name expected actual] compares resource expressions syntactically. *)
   let same name ~expected actual =
@@ -76,13 +78,13 @@ module Suite (G : Grade.S) = struct
   let expressions =
     [
       expect "value of a closed expression" (show_option G.show)
-        ~expected:(Some (G.join (G.mul (G.of_nat 2) (G.of_nat 3)) (G.of_nat 1)))
+        ~expected:(Some (G.join (G.mul (delay 2) (delay 3)) (delay 1)))
         (X.Rho.value ((n 2 * n 3) + n 1));
       expect "value of an open expression" (show_option G.show) ~expected:None
         (X.Rho.value (x * n 1));
       check "value of an image"
         (match X.Rho.value (X.Rho_map (X.Eps.mul (en 1) (en 2))) with
-        | Some v -> G.equal bounds v (G.of_nat 3)
+        | Some v -> G.equal bounds v (delay 3)
         | None -> false)
         "expected the value 3";
       check "free resource variables"
@@ -150,7 +152,7 @@ module Suite (G : Grade.S) = struct
       same "fold_sum joins the varying slot"
         ~expected:
           (if ticks_are_unit then x
-           else X.Rho.const (G.join (G.of_nat 1) (G.of_nat 2)) * x)
+           else X.Rho.const (G.join (delay 1) (delay 2)) * x)
         (N.Rho.read_back
            (N.Rho.fold_sum bounds (N.Rho.normal bounds ((n 1 * x) + (n 2 * x)))));
     ]
@@ -180,7 +182,7 @@ module Suite (G : Grade.S) = struct
         ~expected:G.unit_least
         (decided_rho N.no_hyps x (x * y));
       expect "constants compared by the grade" show_bool
-        ~expected:(G.leq bounds (G.of_nat 2) (G.of_nat 3))
+        ~expected:(G.leq bounds (delay 2) (delay 3))
         (decided_rho N.no_hyps (n 2) (n 3));
       expect "hypotheses chained" show_used
         ~expected:(Some [ 1; 2 ])
@@ -284,7 +286,7 @@ module Suite (G : Grade.S) = struct
           (if G.unit_least then x * y else if unit_is_top then x else x + (x * y))
         (canon (x + (x * y)));
       same "constants joined"
-        ~expected:(X.Rho.const (G.join (G.of_nat 1) (G.of_nat 2)))
+        ~expected:(X.Rho.const (G.join (delay 1) (delay 2)))
         (canon (n 1 + n 2));
     ]
     @
@@ -332,8 +334,8 @@ module Suite (G : Grade.S) = struct
     ]
 
   let closed_checks =
-    let fails lhs rhs = not (G.leq bounds (G.of_nat lhs) (G.of_nat rhs)) in
-    let above_unit = G.join G.one (G.of_nat 1) in
+    let fails lhs rhs = not (G.leq bounds (delay lhs) (delay rhs)) in
+    let above_unit = G.join G.one (delay 1) in
     let failure_info = function
       | Ok _ -> None
       | Error (failure : (_, int list) GradeNormal.ordering) ->
@@ -362,10 +364,7 @@ module Suite (G : Grade.S) = struct
           (if
              G.unit_least
              && (fails 2 5 || fails 3 5
-                || not
-                     (G.leq bounds
-                        (G.mul (G.of_nat 2) (G.of_nat 3))
-                        (G.of_nat 5)))
+                || not (G.leq bounds (G.mul (delay 2) (delay 3)) (delay 5)))
            then Some [ 1 ]
            else None)
         (failure_info
@@ -388,8 +387,8 @@ module Suite (G : Grade.S) = struct
       expect "a factor above the unit by a chain through a constant" show_bool
         ~expected:
           (fails 3 2
-          || G.leq bounds G.one (G.of_nat 3)
-             && not (G.leq bounds above_unit (G.of_nat 2)))
+          || G.leq bounds G.one (delay 3)
+             && not (G.leq bounds above_unit (delay 2)))
         (Result.is_error
            (N.Eps.check_closed bounds
               [
@@ -414,7 +413,7 @@ module Suite (G : Grade.S) = struct
               [ hyp a X.Eps.unit 1; hyp (en 3 *. a) (en 2) 2 ]));
       expect "a factor is below its product only where the unit is least"
         show_bool
-        ~expected:(not (G.unit_least && not (G.leq bounds G.top (G.of_nat 1))))
+        ~expected:(not (G.unit_least && not (G.leq bounds G.top (delay 1))))
         (Result.is_ok
            (N.Eps.check_closed bounds
               [ hyp X.Eps.top b 1; hyp (a *. b) (en 1) 2 ]));
@@ -429,7 +428,7 @@ module Suite (G : Grade.S) = struct
         | Ok kept -> List.length kept
         | Error _ -> -1);
       expect "a closed ordering that fails" show_used
-        ~expected:(if G.leq bounds G.top (G.of_nat 1) then None else Some [ 4 ])
+        ~expected:(if G.leq bounds G.top (delay 1) then None else Some [ 4 ])
         (failure_info
            (N.Rho.check_closed bounds [ hyp x y 3; hyp top (n 1) 4 ]));
       expect "an open ordering is not closed" (show_option show_bool)
@@ -449,8 +448,7 @@ module Suite (G : Grade.S) = struct
   let refutations =
     let refuted_by rho = Option.map G.show (N.Rho.refute_leq_unit bounds rho) in
     let three =
-      if G.leq bounds (G.of_nat 3) G.one then None
-      else Some (G.show (G.of_nat 3))
+      if G.leq bounds (delay 3) G.one then None else Some (G.show (delay 3))
     in
     [
       expect "a constant factor above the unit" (show_option Fun.id)

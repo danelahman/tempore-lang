@@ -19,9 +19,10 @@
     - [join] is a least upper bound and [top] a greatest element;
     - [mul] distributes over [join] on both sides: [c · (d ⊔ e) = c · d ⊔ c · e]
       and [(d ⊔ e) · c = d · c ⊔ e · c];
-    - [of_nat] is a monoid morphism from [(ℕ, +, 0)];
-    - [of_duration] is a monoid morphism from [(ℚ≥0, +, 0)] on its domain, a
-      submonoid containing [ℕ], on which it agrees with [of_nat].
+    - [of_delay] is a monoid morphism from the delays: [of_delay zero = one] and
+      [of_delay (add d e) = of_delay d · of_delay e]. It need not be monotone:
+      the time upper bounds are monotone in the delay, the lower bounds
+      antitone, and the intervals neither.
 
     {2 Cost model}
 
@@ -35,77 +36,11 @@
 
     {2 Literals}
 
-    All grade positions of the source share one literal syntax, {!lit}; each
-    grade interprets the literals it understands with [of_lit] and rejects the
-    others with {!Invalid_literal}. *)
+    All grade positions of the source share one literal syntax,
+    {!GradeLiteral.lit}; each grade interprets the literals it understands with
+    [of_lit] and rejects the others with {!Invalid_literal}. *)
 
-(** Regular expressions over operation names and delays, the contents of a brace
-    literal [{...}]. *)
-type regex =
-  | Letter of string  (** An operation name, e.g. [Send] *)
-  | Tick of int  (** A delay of [n] time steps, e.g. [3] *)
-  | Any  (** Any single operation or time step, [_] *)
-  | Seq of regex * regex  (** Concatenation, [r; s] *)
-  | Union of regex * regex  (** Union, [r | s] *)
-  | Star of regex  (** Repetition, [r*] *)
-  | Inter of regex * regex  (** Intersection, [r & s] *)
-  | Compl of regex  (** Complement, [~r] *)
-
-(** [regex_names r] is the list of the operation names [r] mentions, in
-    increasing order. *)
-let regex_names r =
-  let rec go = function
-    | Letter name -> [ name ]
-    | Tick _ | Any -> []
-    | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
-    | Star r | Compl r -> go r
-  in
-  List.sort_uniq String.compare (go r)
-
-(** Grade literals as they appear in source. *)
-type lit =
-  | Int of int  (** An integer, e.g. [42] or [-1] *)
-  | Rat of Rational.t
-      (** A rational that is not an [int], e.g. [3/2] or [1.5] *)
-  | Name of string  (** A capitalised name, e.g. [High], or [_] *)
-  | Top  (** The greatest grade, [⊤] or [top] *)
-  | Inf  (** Infinity, [∞] or [inf] *)
-  | Tuple of lit list
-      (** A parenthesised tuple of at least two literals, e.g. [(3, High)] *)
-  | Braces of regex  (** A brace literal, e.g. [{Read; 3; Send | Send}] *)
-
-exception Invalid_literal of lit * string
-(** [Invalid_literal (lit, reason)] is raised by [of_lit] on a literal [lit] the
-    grade does not understand, [reason] saying why. *)
-
-(** [invalid_lit lit fmt] raises {!Invalid_literal} on [lit] with the reason
-    formatted by [fmt]. *)
-let invalid_lit lit fmt =
-  Printf.ksprintf (fun reason -> raise (Invalid_literal (lit, reason))) fmt
-
-(** [component_of_lit lit ~context of_lit component] is [of_lit component], a
-    rejection being reported against the enclosing literal [lit], its reason
-    prefixed by [context]. *)
-let component_of_lit lit ~context of_lit component =
-  try of_lit component
-  with Invalid_literal (_, reason) -> invalid_lit lit "%s%s" context reason
-
-(** [rational_lit q] is the literal of the rational [q]: [Int n] if [q] is an
-    [int] [n], and [Rat q] otherwise. *)
-let rational_lit q =
-  match Rational.to_int q with Some n -> Int n | None -> Rat q
-
-(** [describe_lit lit] names the form of [lit] in the plural, for messages such
-    as "grades are plain integers, not pairs". *)
-let describe_lit = function
-  | Int _ -> "plain integers"
-  | Rat _ -> "fractions such as '3/2'"
-  | Name name -> "names such as '" ^ name ^ "'"
-  | Top -> "'⊤'"
-  | Inf -> "'∞'"
-  | Tuple [ _; _ ] -> "pairs"
-  | Tuple _ -> "tuples"
-  | Braces _ -> "brace literals '{...}'"
+include GradeLiteral
 
 type bounds = {
   cost : string -> int * int;
@@ -118,7 +53,7 @@ type bounds = {
 
 (** Whether a list of witnesses decides the conditions it is given for
     ({!S.witnesses}). *)
-type completeness =
+type completeness = Delay.completeness =
   | Complete
       (** a condition in one rigid that holds at every witness holds at every
           grade *)
@@ -150,14 +85,11 @@ module type S = sig
   val join : t -> t -> t
   (** The binary join [_⊔_]. *)
 
-  val of_nat : int -> t
-  (** [of_nat n] is the grade of [n] time steps; [of_nat 0] is {!one}. *)
+  module Delay : Delay.S
+  (** The delays. *)
 
-  val of_duration : Rational.t -> t
-  (** [of_duration q] is the grade of a delay of [q ≥ 0] time steps; it agrees
-      with {!of_nat} on the natural numbers.
-
-      @raise Invalid_literal if the grade has no delay of [q]. *)
+  val of_delay : Delay.t -> t
+  (** [of_delay d] is the grade of the computation [delay d]. *)
 
   val equal : bounds -> t -> t -> bool
   (** [equal bounds c d] decides [c = d] under the cost model [bounds]. *)
@@ -240,7 +172,8 @@ module type S = sig
       at every witness implies [∀j. O]. A condition is an ordering between
       expressions built from the constants, [j], products and joins, [j]
       occurring at most [degree] times on either side. The solver adds {!one},
-      {!top} and [of_nat 1] to the list. *)
+      {!top} and, where the delays read the literal [1], its grade to the list.
+  *)
 end
 
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their
@@ -264,25 +197,3 @@ let combine h h' = (h * 65599) + h'
 (** [hash_list hash xs] is a hash of the list [xs] whose elements hash by
     [hash]. *)
 let hash_list hash xs = List.fold_left (fun h x -> combine h (hash x)) 0 xs
-
-(** [check_nat who n] is [n] if it is non-negative.
-
-    @raise Invalid_argument otherwise, naming the function [who]. *)
-let check_nat who n =
-  if n < 0 then invalid_arg (who ^ ".of_nat: expected non-negative integer")
-  else n
-
-(** [whole ~who of_nat q] is [of_nat n] if the duration [q] is a natural number
-    [n], the {!S.of_duration} of a grade counting whole time steps by [of_nat].
-
-    @raise Invalid_argument if [q] is negative, naming the function [who].
-    @raise Invalid_literal if [q] is not an integer or not an [int]. *)
-let whole ~who of_nat q =
-  if Rational.sign q < 0 then
-    invalid_arg (who ^ ".of_duration: expected non-negative duration")
-  else
-    match Rational.to_int q with
-    | Some n -> of_nat n
-    | None when Rational.is_integer q ->
-        invalid_lit (Rat q) "delays are at most %d time steps" max_int
-    | None -> invalid_lit (Rat q) "delays are whole numbers of time steps"

@@ -39,21 +39,21 @@ module type LATTICE = sig
   (** [show l] prints [l] in the literal syntax. *)
 end
 
-(** The grade of a lattice [L]: [mul] and [join] are both the join of [L], [one]
-    its bottom, [top] its top and [leq] its order. A tick touches no level of
-    the lattice, so [of_nat] is constantly the bottom, and so are [of_bounds]
-    and [of_duration], defined on every duration. The unit is least and [mul]
-    commutes. No operation needs runtime bounds, every grade is atomic, and no
-    counterexample is offered. The witnesses are all the elements, and complete.
-    [is_top] is decided by the order, and [compare] and [hash] are those of [L].
-*)
-module OfLattice (L : LATTICE) : Grade.S with type t = L.t
+(** The grade of a lattice [L] over the delays [D]: [mul] and [join] are both
+    the join of [L], [one] its bottom, [top] its top and [leq] its order. A
+    delay touches no level of the lattice, so [of_delay] is constantly the
+    bottom, and so is [of_bounds]. The unit is least and [mul] commutes. No
+    operation needs runtime bounds, every grade is atomic, and no counterexample
+    is offered. The witnesses are all the elements, and complete. [is_top] is
+    decided by the order, and [compare] and [hash] are those of [L]. *)
+module OfLattice (D : Delay.S) (L : LATTICE) :
+  Grade.S with type t = L.t and type Delay.t = D.t
 
-(** The product of the grades [G1] and [G2]: pairs [(g1, g2)], written as such
-    in literals, with [one], [mul], [top], [join], [of_nat] and [of_bounds]
-    componentwise, and so [of_duration], defined where it is in both; the order
-    is the conjunction of the componentwise orders. The unit is least and [mul]
-    commutes iff they do so in both components.
+(** The product of the grades [G1] and [G2] over the same delays: pairs
+    [(g1, g2)], written as such in literals, with [one], [mul], [top], [join],
+    [of_delay] and [of_bounds] componentwise; the order is the conjunction of
+    the componentwise orders. The unit is least and [mul] commutes iff they do
+    so in both components.
 
     The remaining fields combine those of the components as follows:
     - [name] is [G1.name ^ "×" ^ G2.name];
@@ -77,7 +77,8 @@ module OfLattice (L : LATTICE) : Grade.S with type t = L.t
     - [of_lit] reads [⊤] as the top and a pair [(l1, l2)] componentwise, a
       rejection naming the component;
     - [show] prints [(g1,g2)]. *)
-module Product (G1 : Grade.S) (G2 : Grade.S) : Grade.S with type t = G1.t * G2.t
+module Product (G1 : Grade.S) (G2 : Grade.S with type Delay.t = G1.Delay.t) :
+  Grade.S with type t = G1.t * G2.t and type Delay.t = G1.Delay.t
 
 (** Decidable join-semilattices with a least and a greatest element. *)
 module type SEMILATTICE = sig
@@ -132,7 +133,7 @@ end
     action [Act]: pairs [(m, n)] with
     - [one = (M.one, ⊥)] and [(m, n) · (m', n') = (m · m', n ⊔ act m n')];
     - [top], [join] and the order componentwise;
-    - [of_nat k = (M.of_nat k, ⊥)], [of_duration q = (M.of_duration q, ⊥)] and
+    - the delays of [M], [of_delay d = (M.of_delay d, ⊥)] and
       [of_bounds b = (M.of_bounds b, ⊥)].
 
     The construction satisfies the laws of {!Grade} if [M] does and, for all
@@ -167,7 +168,7 @@ module SemiDirect
     (M : Grade.S)
     (N : SEMILATTICE)
     (Act : ACTION with type m = M.t and type n = N.t) :
-  Grade.S with type t = M.t * N.t
+  Grade.S with type t = M.t * N.t and type Delay.t = M.Delay.t
 
 (** Maps from names, free capitalised names such as [Send] or [Files], to the
     elements of a component, each name but finitely many being given a default
@@ -255,8 +256,8 @@ module Indexed : sig
   module Action (C : SEMILATTICE) (A : ACTION with type n = C.t) :
     ACTION with type m = A.m and type n = C.t t
 
-  (** The maps to a grade [G], with every operation pointwise and the default
-      the unit: [one], [top], [of_nat n] and [of_duration q] give every name
+  (** The maps to a grade [G], over its delays, with every operation pointwise
+      and the default the unit: [one], [top] and [of_delay d] give every name
       those of [G], [mul], [join], [leq] and [equal] are taken name by name, and
       [is_top], [inhabited] and [is_atomic] hold iff they hold at every name.
       The unit is least and [mul] commutes iff they do so in [G];
@@ -265,5 +266,6 @@ module Indexed : sig
       first name where [G] offers one, the witness of [G] there. The witnesses
       are described above, complete iff those of [G] are. The name is
       ["G.name by name"]. *)
-  module OfGrade (G : Grade.S) : Grade.S with type t = G.t t
+  module OfGrade (G : Grade.S) :
+    Grade.S with type t = G.t t and type Delay.t = G.Delay.t
 end

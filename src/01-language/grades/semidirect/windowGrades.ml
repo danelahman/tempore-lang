@@ -41,6 +41,9 @@ let bounded_by = 64
 module Durations = struct
   type t = R.t
 
+  (* Delays in whole time steps: [n] steps are the word of [n] ticks. *)
+  module Delay : Delay.STEPPED with type t = int = Delay.Nat
+
   let name = "durations"
   let one = R.eps
   let mul = R.concat
@@ -48,8 +51,7 @@ module Durations = struct
   let leq_symbol = "<="
   let top = naturals
   let join rho rho' = R.union [ rho; rho' ]
-  let of_nat n = R.ticks (Grade.check_nat "WindowGrades.Durations" n)
-  let of_duration = Grade.whole ~who:"WindowGrades.Durations" of_nat
+  let of_delay d = R.ticks (Delay.to_int d)
   let equal _bounds = R.equal
   let is_top _bounds = R.subset top
   let compare = R.compare_form

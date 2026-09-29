@@ -10,7 +10,7 @@
     (t, [d1, d2], h) · (t', [d1', d2'], h')
       = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h'))
     v}
-    Ticks change nothing. *)
+    Delays change nothing. *)
 
 (** Integers with a least element [-∞] and a greatest element [∞]. *)
 type bound =
@@ -18,25 +18,47 @@ type bound =
   | Fin of int  (** an integer *)
   | Plus_inf  (** the greatest element [∞] *)
 
-module Upper : Grade.S with type t = bound * bound
+(** The peak-usage grades over any delays [D], which change nothing. *)
+module Make (D : Delay.S) : sig
+  (** {!PeakGrades.Upper} over [D]. *)
+  module Upper : Grade.S with type t = bound * bound and type Delay.t = D.t
+
+  (** {!PeakGrades.Lower} over [D]. *)
+  module Lower : Grade.S with type t = bound * bound and type Delay.t = D.t
+
+  (** {!PeakGrades.OneResource} over [D]. *)
+  module OneResource :
+    Grade.S
+      with type t = (bound * bound) * (bound * bound)
+       and type Delay.t = D.t
+
+  (** {!PeakGrades.PeakUsage} over [D]. *)
+  module PeakUsage :
+    Grade.S
+      with type t = OneResource.t GradeConstructions.Indexed.t
+       and type Delay.t = D.t
+end
+
 (** The upper bounds of the net change paired with the peaks,
     ["upper-net-change⋉peak"]: the semidirect product
     {!GradeConstructions.SemiDirect} of the grade of the integers and [∞] under
     addition, ordered by [≤], and the semilattice of [-∞], the integers and [∞]
     under the maximum, a net change [d] acting on a peak [h] as [d + h], fixing
-    [-∞]: [(d2, h) · (d2', h') = (d2 + d2', max(h, d2 + h'))]. Ticks change
+    [-∞]: [(d2, h) · (d2', h') = (d2 + d2', max(h, d2 + h'))]. Delays change
     nothing. Its literals are integers and [∞]. It is a component of
     {!OneResource}, and its unit lacks the zero-product property. *)
+module Upper :
+  Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
 
-module Lower : Grade.S with type t = bound * bound
 (** The lower bounds of the net change paired with the troughs,
     ["lower-net-change⋉trough"]: the mirror image of {!Upper}, the integers and
     [-∞] under addition, ordered by [≥], acting on [-∞], the integers and [∞]
     under the minimum: [(d1, t) · (d1', t') = (d1 + d1', min(t, d1 + t'))]. Its
     literals are integers and [⊤], standing for [-∞]. It is a component of
     {!OneResource}, and its unit lacks the zero-product property. *)
+module Lower :
+  Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
 
-module OneResource : Grade.S with type t = (bound * bound) * (bound * bound)
 (** The usage of one resource, ["resource-peak"]: the product
     {!GradeConstructions.Product} [(Lower) (Upper)] on the pairs
     [((d1, t), (d2, h))] of the grades [(t, [d1, d2], h)] above, whose unit is
@@ -50,7 +72,7 @@ module OneResource : Grade.S with type t = (bound * bound) * (bound * bound)
       is componentwise the minimum or maximum accordingly. The unit is not
       least, and [mul] does not commute: closing a file and then opening one has
       the grade [(-1, [0, 0], 0)], the converse [(0, [0, 0], 1)].
-    - [of_nat] and [of_bounds] are constantly the unit.
+    - [of_delay] and [of_bounds] are constantly the unit.
     - [of_lit] reads [⊤], pairs [(d, h)] of an exact net change [d] and a peak
       [h], pairs [((d1, d2), h)] of a range of net changes and a peak, the
       trough being [min(0, d1)] in both, and the triples [(t, d, h)] and
@@ -70,9 +92,11 @@ module OneResource : Grade.S with type t = (bound * bound) * (bound * bound)
       [-∞]; and the grades whose net change ranges from [d] to [s+1] or [∞], or
       from [-s-1] or [-∞] to [d], with the trough [min(0, d1)] and the peak
       [max(0, d2)] of their range [[d1, d2]]. *)
+module OneResource :
+  Grade.S
+    with type t = (bound * bound) * (bound * bound)
+     and type Delay.t = Delay.Nat.t
 
-module PeakUsage :
-  Grade.S with type t = OneResource.t GradeConstructions.Indexed.t
 (** The peak-usage grade, ["peak-usage"]: the usage of each resource, by its
     name, {!GradeConstructions.Indexed.OfGrade} [(OneResource)].
 
@@ -83,3 +107,7 @@ module PeakUsage :
     one socket at a time, releasing them all, [(Files, -1, 0, 0)] releases a
     file before acquiring one, and [(1, 1)] holds one more of each resource. The
     witnesses are partial, as those of {!OneResource} are. *)
+module PeakUsage :
+  Grade.S
+    with type t = OneResource.t GradeConstructions.Indexed.t
+     and type Delay.t = Delay.Nat.t

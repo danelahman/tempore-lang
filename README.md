@@ -325,11 +325,15 @@ See [`examples/basics/basic_unbox.tpe`](examples/basics/basic_unbox.tpe).
 ### Delays
 
 `delay tau` advances the accumulated grade by `tau`; an operation call advances
-it by the operation's grade. `tau` is a non-negative integer or fraction: the
-rational time grades accept any, such as `delay 1/3` or `delay 0.25`, and the
-monoids counting whole time steps only integers, a fraction being a syntax
-error naming the monoids that accept it. See
-[`examples/basics/delay.tpe`](examples/basics/delay.tpe).
+it by the operation's grade. Each grading monoid has a monoid of delays, which
+it maps to grades by a monoid morphism, so that `delay 0` has the unit grade
+and `delay tau; delay tau'` the grade of `delay (tau + tau')`
+([`delay.mli`](src/01-language/grades/delay.mli)). `tau` is a non-negative
+integer or fraction: the rational time grades, `security-levels` and
+`flow-levels`, whose delays are the non-negative rationals, accept any, such as
+`delay 1/3` or `delay 0.25`; the other monoids, whose delays are whole numbers
+of time steps, accept only integers, a fraction being a syntax error naming the
+monoids that accept it. See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 ## Eternal types
 

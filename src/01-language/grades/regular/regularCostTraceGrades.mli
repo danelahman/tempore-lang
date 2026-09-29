@@ -52,7 +52,7 @@
 
     {2 Grades}
 
-    The literals, the unit [{0}], the product, the join, [of_nat] and the
+    The literals, the unit [{0}], the product, the join, [of_delay] and the
     printing are those of the underlying regular trace grade. The upper order
     has the language [⊤] of all runs as its top, absorbing up to [≡], and its
     unit is least; the lower order has the unit as its top. The runtime bounds
@@ -65,9 +65,10 @@
     its constants and their pairwise products ({!Grade.sampled}), which are not
     complete. *)
 
-(** A regular trace grade with the languages of its grades over given names. *)
+(** A regular trace grade with the languages of its grades over given names; its
+    delays are whole time steps, a delay of [n] steps being the word [tickⁿ]. *)
 module type LANGUAGE = sig
-  include Grade.S
+  include Grade.S with type Delay.t = Delay.Nat.t
 
   module State : Map.OrderedType
   (** The states of the automata of {!runs}. *)
@@ -121,17 +122,18 @@ module Make
     (Variant : sig
       val suffix : string
     end) : sig
-  module Lower : Grade.S with type t = L.t
   (** Lower bounds, in the coverage order at [lo]. *)
+  module Lower : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
 
-  module Upper : Grade.S with type t = L.t
   (** Upper bounds, in the allowance order at [hi]. *)
+  module Upper : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
 
-  module Interval : Grade.S with type t = L.t * L.t
   (** Pairs of a lower and an upper bound, compared componentwise, written
       [({...}, {...})]; a brace literal [{...}] abbreviates the pair of a
       language with itself, [n] the pair [({n}, {n})] and [(n, m)] the pair
       [({n}, {m})]. *)
+  module Interval :
+    Grade.S with type t = L.t * L.t and type Delay.t = Delay.Nat.t
 end
 
 module Automata : LANGUAGE with type t = RegularTraceGrade.t
@@ -177,28 +179,40 @@ module PlainDerivatives : LANGUAGE with type t = RegularTraceGradePlain.t
     derivatives {!RegularTraceGradePlain.runs}, the tables {!LANGUAGE.concrete}
     their exploration in full, and every name a class of its own. *)
 
-module Lower : Grade.S with type t = RegularTraceGrade.t
 (** ["regex-cost-lower-bound"], over {!Automata}. *)
+module Lower :
+  Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
 
-module Upper : Grade.S with type t = RegularTraceGrade.t
 (** ["regex-cost-upper-bound"], over {!Automata}. *)
+module Upper :
+  Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
 
-module Interval :
-  Grade.S with type t = RegularTraceGrade.t * RegularTraceGrade.t
 (** ["regex-cost-interval"], over {!Automata}. *)
+module Interval :
+  Grade.S
+    with type t = RegularTraceGrade.t * RegularTraceGrade.t
+     and type Delay.t = Delay.Nat.t
 
 (** The grades over {!Derivatives}, named ["regex-cost-lower-bound-symbolic"],
     ["regex-cost-upper-bound-symbolic"] and ["regex-cost-interval-symbolic"]:
     both grades of a comparison are explored by derivatives, by the minterms of
     their letter sets and costs. *)
 module Symbolic : sig
-  module Lower : Grade.S with type t = RegularTraceGradeDerivative.t
-  module Upper : Grade.S with type t = RegularTraceGradeDerivative.t
+  module Lower :
+    Grade.S
+      with type t = RegularTraceGradeDerivative.t
+       and type Delay.t = Delay.Nat.t
+
+  module Upper :
+    Grade.S
+      with type t = RegularTraceGradeDerivative.t
+       and type Delay.t = Delay.Nat.t
 
   module Interval :
     Grade.S
       with type t =
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
+       and type Delay.t = Delay.Nat.t
 end
 
 (** The grades over {!ConcreteDerivatives}, named
@@ -207,22 +221,39 @@ end
     ["regex-cost-interval-derivatives"]: {!Symbolic} with derivatives and
     closures by letters in place of minterms. *)
 module Concrete : sig
-  module Lower : Grade.S with type t = RegularTraceGradeDerivative.t
-  module Upper : Grade.S with type t = RegularTraceGradeDerivative.t
+  module Lower :
+    Grade.S
+      with type t = RegularTraceGradeDerivative.t
+       and type Delay.t = Delay.Nat.t
+
+  module Upper :
+    Grade.S
+      with type t = RegularTraceGradeDerivative.t
+       and type Delay.t = Delay.Nat.t
 
   module Interval :
     Grade.S
       with type t =
         RegularTraceGradeDerivative.t * RegularTraceGradeDerivative.t
+       and type Delay.t = Delay.Nat.t
 end
 
 (** The grades over {!PlainDerivatives}, named ["regex-cost-lower-bound-plain"],
     ["regex-cost-upper-bound-plain"] and ["regex-cost-interval-plain"]:
     {!Concrete} with single letters in place of letter sets. *)
 module Plain : sig
-  module Lower : Grade.S with type t = RegularTraceGradePlain.t
-  module Upper : Grade.S with type t = RegularTraceGradePlain.t
+  module Lower :
+    Grade.S
+      with type t = RegularTraceGradePlain.t
+       and type Delay.t = Delay.Nat.t
+
+  module Upper :
+    Grade.S
+      with type t = RegularTraceGradePlain.t
+       and type Delay.t = Delay.Nat.t
 
   module Interval :
-    Grade.S with type t = RegularTraceGradePlain.t * RegularTraceGradePlain.t
+    Grade.S
+      with type t = RegularTraceGradePlain.t * RegularTraceGradePlain.t
+       and type Delay.t = Delay.Nat.t
 end

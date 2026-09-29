@@ -83,7 +83,7 @@
     events of a grade are its names; and a grade is atomic for [name] iff it is
     the language [{name}]. *)
 
-include Grade.S
+include Grade.S with type Delay.t = Delay.Nat.t
 
 val concrete : string list -> t -> Dfa.t
 (** [concrete names rho] is the language of the runs of [rho] that perform only

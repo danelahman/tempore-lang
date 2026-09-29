@@ -53,8 +53,8 @@ let hash = Grade.hash_list hash_trace
 
 (** [normalise evs] is the trace denoted by the raw event sequence [evs]: zero
     delays are dropped and adjacent delays are merged. This invariant is what
-    makes [of_nat (m + n)] equal to the product of [of_nat m] and [of_nat n] on
-    the nose. *)
+    makes [of_delay (m + n)] equal to the product of [of_delay m] and
+    [of_delay n] on the nose. *)
 let normalise evs =
   let rec go acc = function
     | [] -> List.rev acc
@@ -83,9 +83,9 @@ let product p q =
 (** [union p q] is the set of the runs of [p] and of [q]. *)
 let union p q = List.sort_uniq compare_trace (p @ q)
 
-(** [of_nat n] is the singleton set containing the pure delay of duration [n];
-    [of_nat 0] is the unit [{ε}]. *)
-let of_nat n = [ normalise [ Wait n ] ]
+(** [of_delay n] is the singleton set containing the pure delay of duration [n];
+    [of_delay 0] is the unit [{ε}]. *)
+let of_delay n = [ normalise [ Wait n ] ]
 
 (** [allowance cost k s t] decides the allowance order at budget [k]: the bound
     [t] permits the run [s], given [k] units of budget already banked. Budget

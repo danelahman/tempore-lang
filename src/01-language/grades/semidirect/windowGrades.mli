@@ -14,14 +14,16 @@
     [n] being the word of [n] ticks, in the representation of
     {!RegularTraceGradeDerivative}: [+] is concatenation and [∪] union. *)
 
-module Durations : Grade.S with type t = SymbolicRegex.t
 (** The durations, ["durations"]: non-empty sets of natural numbers under
     elementwise addition, ordered by inclusion, the join being the union; the
-    unit is [{0}], [of_nat n] is [{n}], and the top all natural numbers. Its
-    literals are [n] for [{n}], [(n, m)] for the numbers from [n] to [m], [m]
-    possibly [∞], and brace literals over ticks, [{3 | 5}] being [{3, 5}]; a set
-    is printed in the first of these forms that denotes it. The witnesses are
-    the constants and their pairwise products, and partial. *)
+    delays are whole time steps, the unit is [{0}], [of_delay n] is [{n}], and
+    the top all natural numbers. Its literals are [n] for [{n}], [(n, m)] for
+    the numbers from [n] to [m], [m] possibly [∞], and brace literals over
+    ticks, [{3 | 5}] being [{3, 5}]; a set is printed in the first of these
+    forms that denotes it. The witnesses are the constants and their pairwise
+    products, and partial. *)
+module Durations :
+  Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
 
 module Times : GradeConstructions.SEMILATTICE with type t = SymbolicRegex.t
 (** The times, ["times"]: sets of natural numbers ordered by inclusion, the join
@@ -42,13 +44,12 @@ module TimesByName :
 module ShiftByName :
   GradeConstructions.ACTION with type m = Durations.t and type n = TimesByName.t
 
-module TimeWindows : Grade.S with type t = Durations.t * TimesByName.t
 (** The time-window grade, ["time-windows"]: the semidirect product
     {!GradeConstructions.SemiDirect} [(Durations) (TimesByName) (ShiftByName)].
 
     - The order is componentwise inclusion, so the unit [({0}, ∅)] is not least.
       [mul] does not commute.
-    - [of_nat n] is [({n}, ∅)].
+    - [of_delay n] is [({n}, ∅)].
     - [of_lit] reads a literal of the durations [T] as [T] with no operation,
       and a tuple [(T, (A, {E_A}), …)] of the durations and entries of
       {!GradeConstructions.Indexed} as [T] with each operation [A] at the times
@@ -56,3 +57,7 @@ module TimeWindows : Grade.S with type t = Durations.t * TimesByName.t
       brace literals name no operation, [_] being a single tick. [show] prints
       alike, and the top as [⊤].
     - No counterexample is offered, and the witnesses are partial. *)
+module TimeWindows :
+  Grade.S
+    with type t = Durations.t * TimesByName.t
+     and type Delay.t = Delay.Nat.t

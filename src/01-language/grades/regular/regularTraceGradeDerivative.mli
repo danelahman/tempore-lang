@@ -70,7 +70,7 @@
 
 (** A regular trace grade by derivatives. *)
 module type S = sig
-  include Grade.S with type t = SymbolicRegex.t
+  include Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
 
   val of_regex : Grade.regex -> t
   (** [of_regex r] is the normal form of the expression [r], which may denote
