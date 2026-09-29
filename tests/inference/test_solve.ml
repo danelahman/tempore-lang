@@ -269,6 +269,7 @@ let rec tpe_files dir =
    of the examples and the tests is accepted. *)
 let expected_rejections =
   [
+    ("annotation_grade_variables_cyclic_reject.tpe", [ 14 ]);
     ("annotation_grade_variables_reject.tpe", [ 10; 17 ]);
     ("annotation_recursion_reject.tpe", [ 4; 8 ]);
     ("basic_unbox.tpe", [ 20; 30 ]);
@@ -339,7 +340,7 @@ let expected_rejections =
     ("positivity_reject_parameter.tpe", [ 5 ]);
     ("recursion_effect_reject_invariant.tpe", [ 7 ]);
     ("recursion_effect_reject_lower.tpe", [ 7 ]);
-    ("recursion_effect_reject_unannotated.tpe", [ 14 ]);
+    ("recursion_effect_reject_unannotated.tpe", [ 7 ]);
     ("recursion_lock_reject.tpe", [ 8 ]);
     ("regex_costs_interval_reject.tpe", [ 10; 17 ]);
     ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);

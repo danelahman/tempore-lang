@@ -434,14 +434,14 @@ module Make (C : Constraint.S) = struct
              { lhs = d.disj_grade; rhs = X.Rho.unit; info = [ d.disj_reason ] })
     | Some false | None -> Ok (d :: kept)
 
-  let check_closed context hyps =
+  let check_closed ?factors context hyps =
     let open Result.Syntax in
     let grades = { N.rho_hyps = hyps.rho_hyps; eps_hyps = hyps.eps_hyps } in
     let* grades =
       Result.map_error
         (function
           | N.Rho_failure o -> Refuted_rho o | N.Eps_failure o -> Refuted_eps o)
-        (N.check_closed_hyps context.bounds grades)
+        (N.check_closed_hyps ?factors context.bounds grades)
     in
     let* disjunctions =
       fold_result (check_disjunction context) hyps.disj_hyps []

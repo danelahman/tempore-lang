@@ -1,0 +1,14 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/annotation_grade_variables_cyclic_reject.tpe
+
+   A grade variable of an annotation shared between an argument and the
+   result bounds a product of grades by one of its own factors. *)
+
+(* The body of f has the grade of g followed by 10 ticks, which the annotation
+   bounds by the same 'e. *)
+let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+
+(* Correctly rejected by the typechecker: the 10 ticks are a factor of the
+   grade of f's body, which h's annotation bounds by 5. *)
+let h () : unit # 5 = f (fun () -> ())

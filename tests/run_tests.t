@@ -157,6 +157,21 @@
   State: []
   
   ======================================================================
+  annotation_grade_variables_cyclic_reject.tpe
+  ======================================================================
+  File "annotation_grade_variables_cyclic_reject.tpe", line 14, characters 22-23:
+  14 | let h () : unit # 5 = f (fun () -> ())
+                             ^
+  Typing error: The effect inequality `10 <= 5` does not hold
+    File "annotation_grade_variables_cyclic_reject.tpe", line 10, characters 0-58:
+    10 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `f` is defined here
+    File "annotation_grade_variables_cyclic_reject.tpe", line 14, characters 9-38:
+    14 | let h () : unit # 5 = f (fun () -> ())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
+  ======================================================================
   annotation_grade_variables_reject.tpe
   ======================================================================
   File "annotation_grade_variables_reject.tpe", line 11, characters 37-69:
@@ -2845,14 +2860,10 @@
   ======================================================================
   recursion_effect_reject_unannotated.tpe
   ======================================================================
-  File "recursion_effect_reject_unannotated.tpe", line 14, characters 4-8:
-  14 | run wait 2
-           ^^^^
+  File "recursion_effect_reject_unannotated.tpe", lines 7-12, characters 13-12:
+  7 | let rec wait n =
+                   ^^^
   Typing error: The effect inequality `1 <= 0` does not hold
-    File "recursion_effect_reject_unannotated.tpe", lines 7-12, characters 0-12:
-    7 | let rec wait n =
-        ^^^^^^^^^^^^^^^^
-    `wait` is defined here
   ======================================================================
   recursion_effect_upper.tpe
   ======================================================================

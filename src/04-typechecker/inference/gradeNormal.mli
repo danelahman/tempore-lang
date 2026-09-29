@@ -131,23 +131,32 @@ module Make (X : GradeExp.S) : sig
         sides are variable-free, and is [None] otherwise. *)
 
     val chains :
+      ?factors:bool ->
       Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       (exp, 'a list) ordering list
-    (** [chains bounds os] is, for each pair of variable-free sides of [os]
-        joined by a chain of two or more orderings of [os], sides compared
-        syntactically, the ordering between them carrying the payloads along the
-        chain. *)
+    (** [chains ~factors bounds os] is, for each pair of variable-free
+        expressions joined by a chain of two or more steps, expressions compared
+        syntactically, the ordering between them carrying the payloads of the
+        orderings of [os] along the chain. A step is an ordering of [os] or,
+        when [factors] (the default), a step from a factor to a side of [os]
+        whose normal form is a single product of two or more atoms, the other
+        factors being above the unit: from each atom, and from the product of
+        the constants, in order, when there are two or more. An atom is above
+        the unit when it is a constant above it, or a variable where the unit is
+        least, the variables of a resource image where the effect grade's unit
+        is. *)
 
     val check_closed :
+      ?factors:bool ->
       Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       ((exp, 'a) ordering list, (exp, 'a list) ordering) result
-    (** [check_closed bounds os] decides the variable-free orderings of [os] and
-        of {!chains}[ bounds os] by the grade's order. It is [Error o] for the
-        first of them that fails, [o.info] being the payloads of the orderings
-        it follows from, and otherwise [Ok] of the orderings of [os] that have a
-        variable. *)
+    (** [check_closed ~factors bounds os] decides the variable-free orderings of
+        [os] and of {!chains}[ ~factors bounds os] by the grade's order. It is
+        [Error o] for the first of them that fails, [o.info] being the payloads
+        of the orderings it follows from, and otherwise [Ok] of the orderings of
+        [os] that have a variable. *)
 
     val refute_leq_unit : Grades.Grade.bounds -> exp -> const option
     (** [refute_leq_unit bounds e] is [Some c] when some alternative of the
@@ -178,7 +187,10 @@ module Make (X : GradeExp.S) : sig
       applied to the orderings of both grade sorts. *)
 
   val check_closed_hyps :
-    Grades.Grade.bounds -> 'a hyps -> ('a hyps, 'a closed_failure) result
-  (** [check_closed_hyps bounds hyps] is {!SORT.check_closed} on each sort, the
-      resource orderings first. *)
+    ?factors:bool ->
+    Grades.Grade.bounds ->
+    'a hyps ->
+    ('a hyps, 'a closed_failure) result
+  (** [check_closed_hyps ~factors bounds hyps] is {!SORT.check_closed} on each
+      sort, the resource orderings first. *)
 end

@@ -325,6 +325,43 @@ module Suite (G : Grade.S) = struct
         (failure_info
            (N.Eps.check_closed bounds
               [ hyp (en 5) a 1; hyp b (en 4) 2; hyp a c 3; hyp c b 4 ]));
+      expect "a chain from a factor to its product" show_used
+        ~expected:(if G.unit_least && fails 10 5 then Some [ 1; 2 ] else None)
+        (failure_info
+           (N.Eps.check_closed bounds
+              [ hyp (en 10) b 1; hyp (a *. b) (en 5) 2 ]));
+      expect "a chain from a constant factor" show_used
+        ~expected:(if G.unit_least && fails 3 2 then Some [ 1 ] else None)
+        (failure_info (N.Eps.check_closed bounds [ hyp (en 3 *. a) (en 2) 1 ]));
+      expect "a chain from the constants around a variable" show_used
+        ~expected:
+          (if
+             G.unit_least
+             && (fails 2 5 || fails 3 5
+                || not
+                     (G.leq bounds
+                        (G.mul (G.of_nat 2) (G.of_nat 3))
+                        (G.of_nat 5)))
+           then Some [ 1 ]
+           else None)
+        (failure_info
+           (N.Eps.check_closed bounds [ hyp (en 2 *. a *. en 3) (en 5) 1 ]));
+      expect "a chain from a resource factor" show_used
+        ~expected:(if G.unit_least && fails 10 5 then Some [ 1; 2 ] else None)
+        (failure_info
+           (N.Rho.check_closed bounds
+              [ hyp (n 10) (map b) 1; hyp (x * map b) (n 5) 2 ]));
+      expect "a chain from a factor of an image" show_used
+        ~expected:(if G.unit_least && fails 10 5 then Some [ 1; 2 ] else None)
+        (failure_info
+           (N.Rho.check_closed bounds
+              [ hyp (n 10) (map b) 1; hyp (map (a *. b)) (n 5) 2 ]));
+      expect "a factor is below its product only where the unit is least"
+        show_bool
+        ~expected:(not (G.unit_least && not (G.leq bounds G.top (G.of_nat 1))))
+        (Result.is_ok
+           (N.Eps.check_closed bounds
+              [ hyp X.Eps.top b 1; hyp (a *. b) (en 1) 2 ]));
       expect "a chain that holds keeps the set" string_of_int ~expected:2
         (match N.Rho.check_closed bounds [ hyp (n 2) x 1; hyp x (n 2) 2 ] with
         | Ok kept -> List.length kept

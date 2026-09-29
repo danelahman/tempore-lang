@@ -203,12 +203,14 @@ module Make (C : Constraint.S) : sig
   (** [to_hyps context r] reads the atoms of [r] other than its deferred
       conditions as hypotheses, decomposing them first. *)
 
-  val check_closed : context -> hyps -> (hyps, failure) result
-  (** [check_closed context hyps] decides by the grades' order every ordering
-      between variable-free sides, of the hypotheses and of the chains of two or
-      more of them, and every disjunction of a variable-free grade. It is the
-      hypotheses less those decided true, or the failure of the first decided
-      false. *)
+  val check_closed : ?factors:bool -> context -> hyps -> (hyps, failure) result
+  (** [check_closed ~factors context hyps] decides by the grades' order every
+      ordering between variable-free sides, of the hypotheses and of the chains
+      of two or more steps, and every disjunction of a variable-free grade. The
+      chains run along the hypotheses and, when [factors] (the default), from a
+      factor of a product to the product when the other factors are above the
+      unit ({!GradeNormal.Make.SORT.chains}). It is the hypotheses less those
+      decided true, or the failure of the first decided false. *)
 
   val hyps_to_constraint : hyps -> C.t
   (** [hyps_to_constraint hyps] is the conjunction of the atoms of [hyps]. *)

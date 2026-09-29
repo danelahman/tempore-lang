@@ -606,40 +606,88 @@ module Core (S : BASE) = struct
     | Some c, Some c' -> Some (S.leq bounds c c')
     | _ -> None
 
-  (* The sides of the orderings, each once, sides compared syntactically. *)
-  let sides bounds orderings =
+  (* An atom that the unit is below. *)
+  let unit_below bounds = function
+    | Const c -> S.leq bounds S.one c
+    | Var v -> S.unit_least || S.unit_below_var v
+
+  (* The edges from the factors of each side that is a single product of two
+     or more atoms, unlabelled: from each atom whose co-factors are all above
+     the unit, and from the product of the constants, in order, when there are
+     two or more and every variable is above the unit. *)
+  let factor_edges bounds sides =
+    let from_factors side = function
+      | [ (_ :: _ :: _ as p) ] ->
+          let atoms =
+            List.filteri
+              (fun i _ -> List.for_all (unit_below bounds) (remove_at i p))
+              p
+          in
+          let consts =
+            List.filter_map (function Const c -> Some c | Var _ -> None) p
+          in
+          let vars_above =
+            List.for_all
+              (function Var _ as a -> unit_below bounds a | Const _ -> true)
+              p
+          in
+          let product =
+            match consts with
+            | c :: (_ :: _ as cs) when vars_above ->
+                [ Const (List.fold_left S.mul c cs) ]
+            | _ -> []
+          in
+          List.map (fun a -> (S.exp_of_atom a, side, [])) (atoms @ product)
+      | _ -> []
+    in
+    List.concat_map (fun side -> from_factors side (normal bounds side)) sides
+
+  (* The graph of the orderings, for the transitive closure over it. Its
+     vertices are the sides of the orderings and the sources of the factor
+     edges, each once, compared syntactically. Its edges are the orderings,
+     each labelled with its payload, followed, when [factors], by the
+     {!factor_edges} of the sides. *)
+  let graph ~factors bounds orderings =
     let equal = S.equal_exp bounds in
     let insert e es = if List.exists (equal e) es then es else e :: es in
-    List.fold_right (fun o vs -> insert o.lhs (insert o.rhs vs)) orderings []
-
-  let chains bounds orderings =
-    let equal = S.equal_exp bounds in
-    let vertices = sides bounds orderings in
-    let closure =
-      Reach.closure ~equal vertices
-        (List.map (fun o -> (o.lhs, o.rhs, o.info)) orderings)
+    let sides =
+      List.fold_right (fun o vs -> insert o.lhs (insert o.rhs vs)) orderings []
     in
+    let steps = if factors then factor_edges bounds sides else [] in
+    let vertices =
+      List.fold_left
+        (fun vs (a, _, _) ->
+          if List.exists (equal a) vs then vs else vs @ [ a ])
+        sides steps
+    in
+    (vertices, List.map (fun o -> (o.lhs, o.rhs, [ o.info ])) orderings @ steps)
+
+  let chains ?(factors = true) bounds orderings =
+    let vertices, edges = graph ~factors bounds orderings in
+    let closure = Reach.closure ~equal:(S.equal_exp bounds) vertices edges in
     let closed = List.filter (fun e -> Option.is_some (S.value e)) vertices in
     List.concat_map
       (fun lhs ->
         List.filter_map
           (fun rhs ->
             match Reach.reach closure lhs rhs with
-            | Some (_ :: _ :: _ as info) -> Some { lhs; rhs; info }
+            | Some (_ :: _ :: _ as labels) ->
+                Some { lhs; rhs; info = List.concat labels }
             | Some ([] | [ _ ]) | None -> None)
           closed)
       closed
 
-  (* Whether some variable-free side of the orderings reaches along them
-     another that it is not below. Where no ordering between variable-free
-     sides fails, this is whether some chain of {!chains} fails, decided by
-     reachability alone. *)
-  let chain_fails bounds orderings =
-    let vertices = Array.of_list (sides bounds orderings) in
+  (* Whether some variable-free vertex of the {!graph} of the orderings reaches
+     along its edges another that it is not below. Where no ordering between
+     variable-free sides fails, this is whether some chain of {!chains} fails,
+     decided by reachability alone. *)
+  let chain_fails ~factors bounds orderings =
+    let vertices, edges = graph ~factors bounds orderings in
+    let vertices = Array.of_list vertices in
     let index e =
       Option.get (Array.find_index (fun v -> S.equal_exp bounds e v) vertices)
     in
-    let edges = List.map (fun o -> (index o.lhs, index o.rhs)) orderings in
+    let edges = List.map (fun (a, b, _) -> (index a, index b)) edges in
     let successors =
       Array.init (Array.length vertices) (fun i ->
           List.filter_map (fun (a, b) -> if a = i then Some b else None) edges)
@@ -664,14 +712,14 @@ module Core (S : BASE) = struct
         match S.value v with Some c -> fails_from i c | None -> false)
       (Array.to_seqi vertices)
 
-  let check_closed bounds orderings =
+  let check_closed ?(factors = true) bounds orderings =
     let fails o = closed_leq bounds o.lhs o.rhs = Some false in
     let direct = List.map (fun o -> { o with info = [ o.info ] }) orderings in
     let failure =
       match List.find_opt fails direct with
       | Some failure -> Some failure
-      | None when chain_fails bounds orderings ->
-          List.find_opt fails (chains bounds orderings)
+      | None when chain_fails ~factors bounds orderings ->
+          List.find_opt fails (chains ~factors bounds orderings)
       | None -> None
     in
     match failure with
@@ -730,11 +778,13 @@ module Make (X : GradeExp.S) = struct
     val closed_leq : Grades.Grade.bounds -> exp -> exp -> bool option
 
     val chains :
+      ?factors:bool ->
       Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       (exp, 'a list) ordering list
 
     val check_closed :
+      ?factors:bool ->
       Grades.Grade.bounds ->
       (exp, 'a) ordering list ->
       ((exp, 'a) ordering list, (exp, 'a list) ordering) result
@@ -880,11 +930,11 @@ module Make (X : GradeExp.S) = struct
       eps_hyps = Eps.canon_orderings bounds hyps.eps_hyps;
     }
 
-  let check_closed_hyps bounds hyps =
-    match Rho.check_closed bounds hyps.rho_hyps with
+  let check_closed_hyps ?factors bounds hyps =
+    match Rho.check_closed ?factors bounds hyps.rho_hyps with
     | Error failure -> Error (Rho_failure failure)
     | Ok rho_hyps -> (
-        match Eps.check_closed bounds hyps.eps_hyps with
+        match Eps.check_closed ?factors bounds hyps.eps_hyps with
         | Error failure -> Error (Eps_failure failure)
         | Ok eps_hyps -> Ok { rho_hyps; eps_hyps })
 end

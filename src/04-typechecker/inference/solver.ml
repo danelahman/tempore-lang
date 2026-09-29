@@ -461,7 +461,7 @@ module Make (C : Constraint.S) = struct
     let* residual = refused (RS.retry context st.residual) in
     let* st = expansion_refused (reexpand context { st with residual }) in
     let* hyps = refused (R.to_hyps context st.residual) in
-    let* hyps = refused (R.check_closed context hyps) in
+    let* hyps = refused (R.check_closed ~factors:false context hyps) in
     Ok { subst = st.theta; hyps; obligations = st.residual.deferred; context }
 
   let solve_traced context c =
