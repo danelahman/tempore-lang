@@ -201,6 +201,12 @@
       scroll-behavior: smooth;
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+    }
+
     /* Bulma adds 1.5rem under a message; the top margin alone is the gap. */
     .editor-error,
     .editor-error:not(:last-child) {
@@ -257,17 +263,215 @@
       font-size: 0.875rem;
     }
 
-    /* Secondary text under a control: the note that a run has terminated,
-       the note that a typecheck has found no errors, and the CLI command
-       equivalent to the grades selector's current value. */
+    /* Secondary text under a control: the note that a run has terminated
+       and the CLI command equivalent to the grades selector's current
+       value. */
     .terminated-note,
-    .check-note,
     .grades-command {
       width: 100%;
       margin-top: 0.6rem;
       text-align: center;
       color: #7a7a7a;
       font-size: 0.9rem;
+    }
+
+    /* While a check is under way, the pressed button shows a spinner and the
+       other is dimmed. The check blocks the page's scripts, so the delay is
+       left to CSS animations of opacity and rotation, which the browser runs
+       on its own: a check done within 150ms changes nothing on the screen. */
+    @keyframes check-spin {
+      to {
+        transform: rotate(1turn);
+      }
+    }
+
+    @keyframes check-appear {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes check-disappear {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+      }
+    }
+
+    @keyframes check-dim {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0.5;
+      }
+    }
+
+    .check-action.is-checking,
+    .check-action.is-waiting {
+      cursor: progress;
+    }
+
+    .check-action.is-waiting {
+      pointer-events: none;
+      animation: check-dim 0.1s ease-out 150ms both;
+    }
+
+    .check-action.is-checking > span {
+      animation: check-disappear 0.1s ease-out 150ms both;
+    }
+
+    /* the spinner, in the button's text colour, as Bulma's is-loading */
+    .check-action.is-checking::after {
+      content: "";
+      position: absolute;
+      left: calc(50% - 0.5em);
+      top: calc(50% - 0.5em);
+      width: 1em;
+      height: 1em;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: check-spin 0.5s linear infinite,
+        check-appear 0.1s ease-out 150ms both;
+    }
+
+    /* Under the buttons: the outcome of the last check and, laid over it
+       while a check is under way, the note saying so, on one line. */
+    .check-status {
+      display: grid;
+      white-space: nowrap;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #7a7a7a;
+    }
+
+    /* empty before the first check */
+    .check-status:not(:empty) {
+      margin-top: 0.6rem;
+    }
+
+    .check-status-outcome,
+    .check-status-progress {
+      grid-area: 1 / 1;
+      display: flex;
+      align-items: flex-start;
+      column-gap: 0.4em;
+      min-width: 0;
+    }
+
+    .check-status-outcome.is-superseded {
+      animation: check-disappear 0.1s ease-out 150ms both;
+    }
+
+    .check-status-progress {
+      animation: check-appear 0.1s ease-out 150ms both;
+    }
+
+    .check-status-text {
+      min-width: 0;
+    }
+
+    .check-status-text.is-clipped {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .check-status-abbreviated {
+      display: none;
+    }
+
+    /* The number of definitions abbreviated, the page having measured that
+       the line cannot hold it in full, except while it measures the line
+       anew. The full text stays, visually hidden, for assistive
+       technology. */
+    .check-status.is-abbreviated:not([data-measuring]) .check-status-full {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    .check-status.is-abbreviated:not([data-measuring]) .check-status-abbreviated {
+      display: inline;
+    }
+
+    /* A mark as tall as a line of text, centred on it. */
+    .check-status-mark,
+    .check-spinner {
+      flex: none;
+      width: 1em;
+      height: 1em;
+      margin-top: 0.25em;
+    }
+
+    .check-status-mark.is-success {
+      color: #257942;
+    }
+
+    .check-status-mark.is-danger {
+      color: #cc0f35;
+    }
+
+    .check-status-mark.is-dimmed {
+      opacity: 0.45;
+    }
+
+    .check-spinner {
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: check-spin 0.6s linear infinite;
+    }
+
+    .check-status-errors {
+      color: #cc0f35;
+      font-weight: 600;
+      text-decoration: underline dotted;
+      text-underline-offset: 0.15em;
+    }
+
+    .check-status-errors:hover {
+      color: #cc0f35;
+      text-decoration: underline;
+    }
+
+    .check-status-errors:focus-visible {
+      outline: 2px solid #485fc7;
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* Without rotation, the pressed button keeps its label and the note its
+       spinner as a still ring. */
+    @media (prefers-reduced-motion: reduce) {
+      .check-action.is-checking > span {
+        animation: none;
+      }
+
+      .check-action.is-checking::after {
+        content: none;
+      }
+
+      .check-spinner {
+        animation: none;
+        border-color: currentColor;
+        opacity: 0.6;
+      }
     }
 
     /* Under the run button: every error reported, numbered as the messages
@@ -854,6 +1058,12 @@
         animation: none;
       }
 
+      /* ringed without fading, for as long */
+      .editor-error.is-flashed {
+        animation: none;
+        box-shadow: 0 0 0 4px rgba(241, 70, 104, 0.35);
+      }
+
       /* lit without fading, for as long */
       pre.syn-ml .goto-flash {
         animation: none;
@@ -941,6 +1151,12 @@
     /* The error the caret sits in, singled out among the messages. */
     .editor-error.is-active {
       border-left: 4px solid #f14668;
+      border-radius: 4px;
+      animation: error-flash 900ms ease-out;
+    }
+
+    /* The error just gone to, highlighted briefly. */
+    .editor-error.is-flashed {
       border-radius: 4px;
       animation: error-flash 900ms ease-out;
     }

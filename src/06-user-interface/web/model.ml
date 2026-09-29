@@ -53,6 +53,17 @@ type popover_target =
   | Reference of int
       (** the name of the [k]th link, defined in the standard library *)
 
+(** What a button of the code options asks for. *)
+type action =
+  | Check  (** typecheck the program *)
+  | Run  (** typecheck the program and, without errors, run it *)
+
+(** What is highlighted briefly, having just been gone to. *)
+type flash =
+  | Span of int * int
+      (** the bytes of the editor's text from a start up to a stop *)
+  | Message of int  (** the message of the [i]th error *)
+
 (** What the pointer is over in the editor. *)
 type pointer = Nowhere | Over_target of popover_target | Over_popover
 
@@ -125,6 +136,15 @@ and msg =
   | EditMsg of edit_msg
   | CheckCode  (** Typecheck the program, staying in the editor. *)
   | RunCode  (** Typecheck the program and, if it has no errors, run it. *)
+  | Perform of action
+      (** Perform the check asked for, the page having been drawn since. *)
+  | GoToError of int
+      (** Scroll to the given error, its span in the editor or, when it has none
+          there or the source has been edited since, its message, and highlight
+          what is scrolled to briefly. *)
+  | Abbreviate of bool
+      (** The status line has been measured to hold the number of definitions in
+          full, or not. *)
   | RunMsg of run_msg
   | EditCode
   | ShowPage of page
@@ -166,7 +186,7 @@ and msg =
       (** The drawn popover of the target has been measured against its span, or
           the span has not been found. *)
   | ShowFullError of int
-      (** Scroll to the message of the given error and single it out. *)
+      (** Scroll to the message of the given error and highlight it briefly. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -291,6 +311,14 @@ type load_error = {
 }
 (** An error the edit view reports, with the state of showing it. *)
 
+type check = {
+  errors : int;  (** the number of errors reported *)
+  definitions : int;  (** the number of top-level definitions of the program *)
+  current : bool;
+      (** whether neither the program nor the options have changed since *)
+}
+(** The outcome of a check of the program. *)
+
 type popover = {
   target : popover_target;
   point : (float * float) option;
@@ -326,14 +354,19 @@ type model = {
           refer to; none once the source or the options change. *)
   link : int option;
       (** The link whose name is under the pointer while ⌘ (Ctrl) is held. *)
-  flash : (int * int) option;
-      (** The bytes of the definition just gone to, highlighted briefly. *)
+  flash : flash option;  (** What has just been gone to, highlighted briefly. *)
   flash_serial : int;
-      (** The serial of the latest flash; the end of an earlier one is ignored.
-      *)
-  checked : bool;
-      (** Whether the program has been typechecked without errors and not edited
-          since. *)
+      (** The serial of the latest flash, which replaces any earlier one; the
+          end of an earlier one is ignored. *)
+  checking : action option;
+      (** The check asked for and not yet performed, which awaits the drawing of
+          the page. *)
+  last_check : check option;
+      (** The outcome of the last check, [None] before any and once an example
+          is loaded. *)
+  abbreviated : bool;
+      (** Whether the status line abbreviates the number of definitions, not
+          holding it in full. *)
   popover : popover option;
   columns : int option;
       (** the characters a line of the scheme a card shows holds at most, as
@@ -361,7 +394,9 @@ let init =
     link = None;
     flash = None;
     flash_serial = 0;
-    checked = false;
+    checking = None;
+    last_check = None;
+    abbreviated = false;
     popover = None;
     columns = None;
     pointer = Nowhere;
@@ -375,6 +410,10 @@ type side_effect =
   | After of int * msg  (** send the message after so many milliseconds *)
   | Measure_popover  (** measure the drawn popover and send [Place] *)
   | Scroll_to_error of int  (** scroll to the message of the given error *)
+  | Scroll_to_span of int
+      (** scroll to the primary span of the given error in the editor *)
+  | Perform_after_paint of action
+      (** send [Perform] once the page has been drawn *)
   | Remember of string * bool  (** keep a setting in the browser *)
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
@@ -662,15 +701,21 @@ let update_model model = function
         links = [];
         link = None;
         flash = None;
-        checked = false;
+        last_check =
+          (match edit_msg with
+          | LoadExample _ -> None
+          | _ ->
+              Option.map
+                (fun check -> { check with current = false })
+                model.last_check);
       }
   | RunMsg run_msg -> (
       match model.run_model with
       | Ok run_model ->
           { model with run_model = Ok (run_update run_model run_msg) }
       | Error _ -> model)
-  | (CheckCode | RunCode) as msg ->
-      let run = match msg with RunCode -> true | _ -> false in
+  | Perform action ->
+      let run = action = Run in
       let run_model, definitions, links =
         try
           match
@@ -788,7 +833,17 @@ let update_model model = function
         links;
         link = None;
         flash = None;
-        checked = (match run_model with Error [] -> true | _ -> false);
+        checking = None;
+        last_check =
+          Some
+            {
+              errors =
+                (match run_model with
+                | Error errors -> List.length errors
+                | Ok _ -> 0);
+              definitions = List.length definitions;
+              current = true;
+            };
       }
   | EditCode ->
       {
@@ -820,10 +875,12 @@ let update_model model = function
   | CloseGallery -> { model with gallery = None }
   | SearchGallery query -> { model with gallery = Some query }
   | OverLink link -> { model with link }
+  | Abbreviate abbreviated -> { model with abbreviated }
   | Unflash serial when serial = model.flash_serial ->
       { model with flash = None }
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
-  | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ ->
+  | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
+  | GoToError _ ->
       model
 
 (* How long the pointer rests on a span before its popover opens, and how long
@@ -850,8 +907,16 @@ let show ?point target model =
 
 let close model = { (disarm model) with popover = None }
 
-(* How long a definition gone to stays highlighted, in milliseconds. *)
-let flash_duration = 800
+(* How long what has been gone to stays highlighted, in milliseconds, as long
+   as the page's highlight fades: a span of the editor, or an error's
+   message. *)
+let flash_duration = function Span _ -> 800 | Message _ -> 900
+
+(* [target] highlighted briefly, replacing any earlier flash. *)
+let flash target model =
+  let flash_serial = model.flash_serial + 1 in
+  ( { model with flash = Some target; flash_serial },
+    [ After (flash_duration target, Unflash flash_serial) ] )
 
 (* The definition of the [k]th link gone to: the caret placed at a definition
    in the editor, which flashes, or the popover of a definition in the
@@ -859,22 +924,43 @@ let flash_duration = 800
 let follow model k =
   match List.nth_opt model.links k with
   | Some { destination = In_editor (start, stop); _ } ->
-      let flash_serial = model.flash_serial + 1 in
-      ( {
-          (close model) with
-          link = None;
-          caret_target = None;
-          flash = Some (start, stop);
-          flash_serial;
-        },
-        [
-          Jump (utf16_offset model.edit_model.unparsed_code start);
-          After (flash_duration, Unflash flash_serial);
-        ] )
+      let model, effects =
+        flash
+          (Span (start, stop))
+          { (close model) with link = None; caret_target = None }
+      in
+      ( model,
+        Jump (utf16_offset model.edit_model.unparsed_code start) :: effects )
   | Some { destination = In_library _; _ } ->
       let target = Reference k in
       show target { model with link = None; caret_target = Some target }
   | None -> (model, [])
+
+(* The [i]th error gone to: its primary span in the editor while the errors
+   hold of the source, or otherwise its message, highlighted briefly. A point
+   span is widened to the byte it points at, as the editor marks it. *)
+let go_to_error model i =
+  let model = close model in
+  let span =
+    match model.run_model with
+    | Error errors when not model.stale_errors -> (
+        match List.nth_opt errors i with
+        | Some
+            {
+              diagnostic = { primary = Some { filename = ""; start; stop }; _ };
+              _;
+            } ->
+            Some (start.offset, max stop.offset (start.offset + 1))
+        | _ -> None)
+    | _ -> None
+  in
+  let target, scroll =
+    match span with
+    | Some (start, stop) -> (Span (start, stop), Scroll_to_span i)
+    | None -> (Message i, Scroll_to_error i)
+  in
+  let model, effects = flash target model in
+  (model, scroll :: effects)
 
 (** [update model msg] is the model after [msg] and the effects it asks for. *)
 let update model msg =
@@ -929,7 +1015,15 @@ let update model msg =
       | Some p, None when p.target = target -> (close model, [])
       | _ -> (model, []))
   | ShowFullError i ->
-      ({ (close model) with active_error = Some i }, [ Scroll_to_error i ])
+      let model, effects = flash (Message i) (close model) in
+      (model, Scroll_to_error i :: effects)
+  | GoToError i -> go_to_error model i
+  (* The check is performed once the page shows it under way; a press while
+     one is under way is ignored. *)
+  | (CheckCode | RunCode) when model.checking <> None -> (model, [])
+  | CheckCode | RunCode ->
+      let action = match msg with RunCode -> Run | _ -> Check in
+      ({ model with checking = Some action }, [ Perform_after_paint action ])
   | CaretAt offset -> (
       (* Edited source: the spans no longer say where the caret is. The popover
          of the target the caret enters opens, and one it opened closes as the

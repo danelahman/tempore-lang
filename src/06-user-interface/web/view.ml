@@ -368,9 +368,10 @@ let load_error_target i (error : Model.load_error) =
   | Some loc when in_editor loc -> primary_id i
   | _ -> error_id i
 
-(* One error's message. [active] is the error the caret sits in; under [stale]
-   the editor marks nothing, so the links into it are left out. *)
-let view_load_error ~stale ~active i (error : Model.load_error) =
+(* One error's message. [active] is the error the caret sits in and [flashed]
+   the error just gone to; under [stale] the editor marks nothing, so the
+   links into it are left out. *)
+let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
   (* In the editor a label links to its span, which lights up while the
      pointer is on it; a standard-library span can only be named. *)
   let view_label j ({ span; text = label_text } : Diagnostic.label) =
@@ -440,6 +441,7 @@ let view_load_error ~stale ~active i (error : Model.load_error) =
     String.concat " "
       ([ "message"; "is-danger"; "editor-error" ]
       @ (if active then [ "is-active" ] else [])
+      @ (if flashed then [ "is-flashed" ] else [])
       @ if stale then [ "is-stale" ] else [])
   in
   elt "article"
@@ -856,6 +858,150 @@ let view_editor ~marks ~errors (model : Model.model) =
          ]
    | Error msg -> div [ editor model; text msg ] *)
 
+(* The mark of the outcome of a check, a stroke drawn in the current text
+   colour. *)
+let check_mark cls path =
+  svg_elt "svg"
+    ~a:
+      [
+        class_ ("check-status-mark " ^ cls);
+        attr "viewBox" "0 0 16 16";
+        attr "aria-hidden" "true";
+      ]
+    [
+      svg_elt "path"
+        ~a:
+          [
+            attr "d" path;
+            attr "fill" "none";
+            attr "stroke" "currentColor";
+            attr "stroke-width" "2.2";
+            attr "stroke-linecap" "round";
+            attr "stroke-linejoin" "round";
+          ]
+        [];
+    ]
+
+let tick cls = check_mark cls "M3 8.6l3.3 3.2L13 4.6"
+let cross cls = check_mark cls "M4.5 4.5l7 7M11.5 4.5l-7 7"
+
+(* [count n noun] is [n] followed by [noun], in the plural unless [n] is 1. *)
+let count n noun = Printf.sprintf "%d %s%s" n noun (if n = 1 then "" else "s")
+
+(* The parts of the text of the status, separated by dots. Under [clipped],
+   text that overflows the line ends in an ellipsis. *)
+let view_status_text ~clipped parts =
+  elt "span"
+    ~a:
+      [
+        class_
+          (if clipped then "check-status-text is-clipped"
+           else "check-status-text");
+      ]
+    (List.concat
+       (List.mapi
+          (fun k part -> if k = 0 then part else text " \xC2\xB7 " :: part)
+          parts))
+
+(* The number of definitions, in full and abbreviated; the page shows the
+   abbreviation where it has measured that the line cannot hold the full
+   text, which assistive technology reads throughout. *)
+let view_definitions n =
+  [
+    elt "span" ~a:[ class_ "check-status-full" ] [ text (count n "definition") ];
+    elt "span"
+      ~a:[ class_ "check-status-abbreviated"; attr "aria-hidden" "true" ]
+      [ text (Printf.sprintf "%d %s" n (if n = 1 then "def." else "defs.")) ];
+  ]
+
+let status_id = "check-status"
+
+(* The line under the buttons stating the outcome of the last check, empty
+   before any. While a check is under way, a note saying so takes its place
+   once the check has lasted a moment (see the page's style). The line is a
+   live region, present throughout so that its changes are announced. *)
+let view_check_status (model : Model.model) =
+  let outcome ?(clipped = true) mark parts =
+    elt "span"
+      ~a:
+        [
+          class_
+            (if model.checking <> None then "check-status-outcome is-superseded"
+             else "check-status-outcome");
+        ]
+      [ mark; view_status_text ~clipped parts ]
+  in
+  let outcome =
+    match model.last_check with
+    | None -> []
+    | Some { current = false; errors; _ } ->
+        [
+          outcome
+            (if errors = 0 then tick "is-success is-dimmed"
+             else cross "is-danger is-dimmed")
+            [ [ text "Edited since the last check" ] ];
+        ]
+    | Some { errors = 0; definitions; _ } ->
+        [
+          outcome (tick "is-success")
+            [
+              [ text "Checked \xE2\x80\x94 no errors" ];
+              view_definitions definitions;
+            ];
+        ]
+    | Some { errors; _ } ->
+        let target =
+          match model.run_model with
+          | Error (error :: _) -> load_error_target 0 error
+          | _ -> error_id 0
+        in
+        [
+          outcome ~clipped:false (cross "is-danger")
+            [
+              [
+                elt "a"
+                  ~a:
+                    [
+                      class_ "check-status-errors";
+                      attr "href" ("#" ^ target);
+                      attr "title" "Go to the first error";
+                      onclick ~prevent_default:() (fun _ -> Model.GoToError 0);
+                    ]
+                  [
+                    text (count errors "error");
+                    elt "span"
+                      ~a:[ class_ "is-sr-only" ]
+                      [ text ", go to the first" ];
+                  ];
+              ];
+            ];
+        ]
+  and progress =
+    if model.checking = None then []
+    else
+      [
+        elt "span"
+          ~a:[ class_ "check-status-progress" ]
+          [
+            elt "span"
+              ~a:[ class_ "check-spinner"; attr "aria-hidden" "true" ]
+              [];
+            text "Checking\xE2\x80\xA6";
+          ];
+      ]
+  in
+  div
+    ~a:
+      [
+        class_
+          (if model.abbreviated then "check-status is-abbreviated"
+           else "check-status");
+        attr "id" status_id;
+        attr "role" "status";
+        attr "aria-live" "polite";
+      ]
+    (outcome @ progress)
+
 let view_compiler (model : Model.model) =
   let use_stdlib =
     elt "label"
@@ -951,28 +1097,40 @@ let view_compiler (model : Model.model) =
       ]
   and run_process =
     (* Typecheck stays in the editor; Run typechecks and, without errors, runs
-       the program. *)
-    let action cls label msg =
+       the program. While a check is under way, the button pressed shows a
+       spinner and neither takes a press; they are marked disabled for
+       assistive technology only, so that the focus stays on them. *)
+    let action cls label pressed msg =
+      let state =
+        match model.checking with
+        | None -> []
+        | Some action when action = pressed -> [ "is-checking" ]
+        | Some _ -> [ "is-waiting" ]
+      in
       div
         ~a:[ class_ "field" ]
         [
           elt "button"
             ~a:
-              [
-                class_ ("button is-info is-fullwidth " ^ cls);
-                type_button;
-                onclick (fun _ -> msg);
-              ]
-            [ text label ];
+              ([
+                 class_
+                   (String.concat " "
+                      ([ "button"; "is-info"; "is-fullwidth"; "check-action" ]
+                      @ cls @ state));
+                 type_button;
+                 onclick (fun _ -> msg);
+               ]
+              @
+              if model.checking = None then []
+              else [ attr "aria-disabled" "true" ])
+            [ elt "span" [ text label ] ];
         ]
     in
     panel_block
       [
-        action "is-outlined" "Typecheck" Model.CheckCode;
-        action "" "Run" Model.RunCode;
-        (if model.checked then
-           elt "p" ~a:[ class_ "check-note" ] [ text "No errors found" ]
-         else nil);
+        action [ "is-outlined" ] "Typecheck" Model.Check Model.CheckCode;
+        action [] "Run" Model.Run Model.RunCode;
+        view_check_status model;
         (* every error shown under the editor, which may be far below when the
            program is long; clicking one scrolls to its message *)
         (match model.run_model with
@@ -995,6 +1153,7 @@ let view_compiler (model : Model.model) =
                           ^
                           if model.stale_errors then error_id i
                           else load_error_target i error);
+                        onclick ~prevent_default:() (fun _ -> Model.GoToError i);
                       ]
                     [ text (load_error_summary error) ];
                 ]
@@ -1085,18 +1244,19 @@ let edit_view (model : Model.model) =
               marker = None;
             })
           model.links
-      @ Option.fold ~none:[]
-          ~some:(fun (from, until) ->
-            [
-              {
-                SyntaxHighlight.from;
-                until;
-                mark_cls = "goto-flash";
-                id = Some EditorDom.flash_id;
-                marker = None;
-              };
-            ])
-          model.flash
+      @
+      match model.flash with
+      | Some (Model.Span (from, until)) ->
+          [
+            {
+              SyntaxHighlight.from;
+              until;
+              mark_cls = "goto-flash";
+              id = Some EditorDom.flash_id;
+              marker = None;
+            };
+          ]
+      | Some (Model.Message _) | None -> []
   in
   view_contents
     [
@@ -1107,6 +1267,7 @@ let edit_view (model : Model.model) =
              (fun i error ->
                view_load_error ~stale
                  ~active:(model.active_error = Some i)
+                 ~flashed:(model.flash = Some (Model.Message i))
                  i error)
              errors);
     ]

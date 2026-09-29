@@ -1,14 +1,26 @@
 (* Side effects on the page are commands: scrolling to an element and placing
    the caret, run once the view has been redrawn, when the element exists (see
-   [update]); timers; measurements of the redrawn page; and effects run at
-   once. *)
+   [update]); timers; measurements of the redrawn page; messages sent once the
+   redrawn page has been painted; and effects run at once. *)
 type 'msg Vdom.Cmd.t +=
   | Scroll_to of string  (** the id of an element *)
   | Set_caret of int  (** where the editor's caret goes after a redraw *)
   | Send_after of int * 'msg  (** send the message after so many milliseconds *)
   | After_redraw of (unit -> 'msg option)
         (** run after the next redraw, sending the message it yields *)
+  | After_paint of 'msg
+        (** send the message once the next redraw has been painted *)
   | Now of (unit -> unit)  (** run at once *)
+
+(* Whether the reader has asked for reduced motion, which scrolls at once. *)
+let reduced_motion () =
+  let match_media = EditorDom.get Ojs.global "matchMedia" in
+  (not (EditorDom.is_nothing match_media))
+  && Ojs.bool_of_js
+       (EditorDom.get
+          (EditorDom.call Ojs.global "matchMedia"
+             [ Ojs.string_to_js "(prefers-reduced-motion: reduce)" ])
+          "matches")
 
 let scroll_to id =
   match Js_browser.Document.get_element_by_id Js_browser.document id with
@@ -20,7 +32,9 @@ let scroll_to id =
            [|
              Ojs.obj
                [|
-                 ("behavior", Ojs.string_to_js "smooth");
+                 ( "behavior",
+                   Ojs.string_to_js
+                     (if reduced_motion () then "auto" else "smooth") );
                  ("block", Ojs.string_to_js "center");
                |];
            |])
@@ -60,6 +74,15 @@ let scroll_handler =
             Vdom_blit.Cmd.after_redraw ctx (fun () ->
                 Option.iter (Vdom_blit.Cmd.send_msg ctx) (f ()));
             true
+        (* The redraw runs in an animation frame, which is painted before the
+           tasks queued during it are run. *)
+        | After_paint msg ->
+            Vdom_blit.Cmd.after_redraw ctx (fun () ->
+                ignore
+                  (Js_browser.Window.set_timeout Js_browser.window
+                     (fun () -> Vdom_blit.Cmd.send_msg ctx msg)
+                     0));
+            true
         | Now f ->
             f ();
             true
@@ -88,6 +111,63 @@ let remember key value =
       (Js_browser.Window.local_storage Js_browser.window)
   with _ -> ()
 
+(* The status line abbreviates the number of definitions where it cannot hold
+   it in full. The width the line needs in full is measured on each change of
+   its content, and compared with the line's width then and whenever that
+   changes, as an observer set up by [run] reports. *)
+let status_needed = ref None
+let status_observer = ref None
+
+let status_line () =
+  Option.map Js_browser.Element.t_to_js
+    (Js_browser.Document.get_element_by_id Js_browser.document View.status_id)
+
+let abbreviates line =
+  match !status_needed with
+  | Some needed ->
+      let { EditorDom.left; right; _ } = EditorDom.bounding line in
+      needed > right -. left
+  | None -> false
+
+(* The width from the left edge of the line to the end of its text in full,
+   the abbreviation undone while it is measured; [None] without a number of
+   definitions. *)
+let measure_status line =
+  let select selector =
+    let found =
+      EditorDom.call line "querySelector" [ Ojs.string_to_js selector ]
+    in
+    if EditorDom.is_nothing found then None else Some found
+  in
+  match (select ".check-status-full", select ".check-status-text") with
+  | Some _, Some text ->
+      let measuring = Ojs.string_to_js "data-measuring" in
+      ignore
+        (EditorDom.call line "setAttribute" [ measuring; Ojs.string_to_js "" ]);
+      let range = EditorDom.call EditorDom.document "createRange" [] in
+      ignore (EditorDom.call range "selectNodeContents" [ text ]);
+      let needed =
+        (EditorDom.bounding range).right -. (EditorDom.bounding line).left
+      in
+      ignore (EditorDom.call line "removeAttribute" [ measuring ]);
+      Some needed
+  | _ -> None
+
+(* The line measured anew and observed, and the message setting whether it
+   abbreviates, when that changes. *)
+let fit_status (model : Model.model) () =
+  Option.bind (status_line ()) (fun line ->
+      Option.iter
+        (fun observer ->
+          ignore (EditorDom.call observer "disconnect" []);
+          ignore (EditorDom.call observer "observe" [ line ]))
+        !status_observer;
+      status_needed := measure_status line;
+      let abbreviated = abbreviates line in
+      if abbreviated <> model.abbreviated then
+        Some (Model.Abbreviate abbreviated)
+      else None)
+
 let command (model : Model.model) = function
   | Model.After (delay, msg) -> Send_after (delay, msg)
   | Model.Measure_popover ->
@@ -100,6 +180,8 @@ let command (model : Model.model) = function
                   EditorDom.placement ~key:(View.target_key target) ~point ))
             model.popover)
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
+  | Model.Scroll_to_span i -> Scroll_to (View.primary_id i)
+  | Model.Perform_after_paint action -> After_paint (Model.Perform action)
   | Model.Remember (key, value) -> Now (fun () -> remember key value)
   | Model.Jump offset ->
       After_redraw
@@ -111,13 +193,23 @@ let update model msg =
   let model', side_effects = Model.update model msg in
   let cmd =
     match (msg, model'.Model.run_model) with
-    | (Model.CheckCode | Model.RunCode), Error (error :: _) ->
+    | Model.Perform _, Error (error :: _) ->
         Scroll_to (View.load_error_target 0 error)
     | Model.EditMsg (Model.InsertIndent (_, start, _)), _ ->
         Set_caret (start + String.length Model.indentation)
     | _ -> Vdom.Cmd.batch []
   in
-  (model', Vdom.Cmd.batch (cmd :: List.map (command model') side_effects))
+  (* the content of the status line changed, or the line drawn anew *)
+  let status =
+    if
+      model.Model.last_check <> model'.last_check
+      || model.page <> model'.page
+      || Result.is_ok model.run_model <> Result.is_ok model'.run_model
+    then [ After_redraw (fit_status model') ]
+    else []
+  in
+  ( model',
+    Vdom.Cmd.batch ((cmd :: status) @ List.map (command model') side_effects) )
 
 let init =
   {
@@ -162,9 +254,27 @@ let watch_modifier app =
       then report None);
   listen Js_browser.Event.Blur (fun _ -> report None)
 
+(* The observer of the width of the status line, where the browser has one. *)
+let observe_status app =
+  let constructor = EditorDom.get Ojs.global "ResizeObserver" in
+  if not (EditorDom.is_nothing constructor) then
+    status_observer :=
+      Some
+        (Ojs.new_obj constructor
+           [|
+             Ojs.fun_to_js 1 (fun _ ->
+                 Option.iter
+                   (fun line ->
+                     let abbreviated = abbreviates line in
+                     if abbreviated <> (Vdom_blit.get app).Model.abbreviated
+                     then Vdom_blit.process app (Model.Abbreviate abbreviated))
+                   (status_line ()));
+           |])
+
 let run () =
   let app = Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app in
   watch_modifier app;
+  observe_status app;
   Vdom_blit.dom app
   |> Js_browser.Element.append_child
        (match
