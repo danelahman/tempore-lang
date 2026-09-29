@@ -71,6 +71,21 @@ let entries =
       traces "Intervals"
       "Pairs of a lower and an upper trace bound, compared componentwise.";
     entry
+      (module TimedTraceGrades.Rational.LowerBound)
+      traces "Lower bounds (rational)"
+      "Sets of traces with rational delays in the coverage order, operations \
+       costing their lower runtime bounds, which may be fractional.";
+    entry
+      (module TimedTraceGrades.Rational.UpperBound)
+      traces "Upper bounds (rational)"
+      "Sets of traces with rational delays in the allowance order, operations \
+       costing their upper runtime bounds, which may be fractional.";
+    entry
+      (module TimedTraceGrades.Rational.Interval)
+      traces "Intervals (rational)"
+      "Pairs of a lower and an upper trace bound with rational delays, \
+       compared componentwise.";
+    entry
       (module RegularTraceGrade)
       regex "Upper bounds"
       "Regular languages of runs over delays and operations, bounding the runs \

@@ -1,0 +1,62 @@
+(* Correctly accepted by the typechecker, under the 'traces-interval-rational'
+   grading monoid: the delays and the runtime bounds are non-negative
+   rationals; the coverage order banks operations at their lower runtime
+   bounds, and the allowance order buys them at their upper ones. *)
+
+(* A reading of the sensor takes between half a time unit and one and a
+   half. *)
+operation Sample : unit ~> nat # ({Sample}, {Sample}) within (1/2, 3/2)
+default Sample () = delay 3/4; 3
+
+(* Two readings with a pause of a quarter between them. *)
+operation Pair : unit ~> nat
+  # ({Sample; 1/4; Sample}, {Sample; 1/4; Sample})
+
+(* A pair followed by a third reading. The runtime bounds of 'Pair' follow
+   from its grade, 1/2 + 1/4 + 1/2 = 5/4 at the fastest and
+   3/2 + 1/4 + 3/2 = 13/4 at the slowest, and so do those of 'Batch':
+   5/4 + 1/2 = 7/4 and 13/4 + 3/2 = 19/4. *)
+operation Batch : unit ~> nat # ({Pair; Sample}, {Pair; Sample})
+
+(* A reading is ready after half a time unit and due within two: the sample
+   banks its lower bound of 1/2, and at its upper bound of 3/2 it leaves 1/2
+   of the allowance for the rest. *)
+let sample_then_rest () =
+  box (1/2, 2) () as due in
+  let v = perform Sample () in
+  delay 1/2;
+  unbox due as u in
+  v
+
+(* The window of a batch, from the runtime bounds implied by its grade: ready
+   after 7/4 and due within 19/4. *)
+let batch_window () =
+  box (7/4, 19/4) () as due in
+  let v = perform Batch () in
+  unbox due as u in
+  v
+
+(* The window of a pair, compared with the grade of 'Pair' itself: ready after
+   5/4 and due within 13/4. *)
+let pair_window () =
+  box (5/4, 13/4) () as due in
+  let v = perform Pair () in
+  unbox due as u in
+  v
+
+(* The same window written with traces: the guarantee demands the first sample
+   and the pause, and the allowance permits the pair followed by a rest. *)
+let pair_by_events () =
+  box ({Sample; 0.25}, {Sample; 1/4; Sample; 1/2}) () as due in
+  let v = perform Pair () in
+  unbox due as u in
+  v
+
+(* The pair performed by hand, which realises the grade of 'Pair'. *)
+let pair_by_hand () =
+  let v = perform Sample () in
+  delay 1/4;
+  let w = perform Sample () in
+  v + w
+
+run pair_by_hand ()

@@ -292,8 +292,79 @@ let ordered_delay_laws (type d) ~name (module D : Delay.ORDERED with type t = d)
         (pairs ds);
     ]
 
+(* [monus_delay_laws ~name (module D)] checks, besides {!ordered_delay_laws},
+   the laws of {!Delay.MONUS} on the sample delays: [add] commutative, the
+   residuation [d ≤ e + f ⇔ d ∸ e ≤ f], and the natural order,
+   [e ≤ d ⇒ e + (d ∸ e) = d]. *)
+let monus_delay_laws (type d) ~name (module D : Delay.MONUS with type t = d) =
+  let law l = name ^ ": " ^ l in
+  let ds = List.map snd (delays (module D)) in
+  let show2 (d, e) = D.show d ^ ", " ^ D.show e in
+  let show3 (d, e, f) = show2 (d, e) ^ ", " ^ D.show f in
+  ordered_delay_laws ~name (module D)
+  @ [
+      all (law "add commutative") show2
+        (fun (d, e) -> D.equal (D.add d e) (D.add e d))
+        (pairs ds);
+      all (law "monus residuated") show3
+        (fun (d, e, f) -> D.leq d (D.add e f) = D.leq (D.monus d e) f)
+        (triples ds);
+      all (law "the natural order") show2
+        (fun (d, e) -> implies (D.leq e d) (D.equal (D.add e (D.monus d e)) d))
+        (pairs ds);
+    ]
+
+(* [measured_delay_laws ~name (module D)] checks, besides {!monus_delay_laws},
+   the laws of {!Delay.MEASURED} on the sample delays: [to_rational] a monoid
+   morphism into the non-negative rationals, an order embedding and inverse to
+   [read], and the monus the truncated difference of the measures. *)
+let measured_delay_laws (type d) ~name
+    (module D : Delay.MEASURED with type t = d) =
+  let law l = name ^ ": " ^ l in
+  let ds = List.map snd (delays (module D)) in
+  let show2 (d, e) = D.show d ^ ", " ^ D.show e in
+  let measure = D.to_rational in
+  monus_delay_laws ~name (module D)
+  @ [
+      check
+        (law "to_rational zero is 0")
+        (Rational.equal (measure D.zero) Rational.zero)
+        "to_rational zero";
+      all
+        (law "to_rational a homomorphism")
+        show2
+        (fun (d, e) ->
+          Rational.equal
+            (measure (D.add d e))
+            (Rational.add (measure d) (measure e)))
+        (pairs ds);
+      all
+        (law "to_rational an order embedding")
+        show2
+        (fun (d, e) ->
+          D.leq d e = (Rational.compare (measure d) (measure e) <= 0))
+        (pairs ds);
+      all
+        (law "to_rational inverse to read")
+        D.show
+        (fun d ->
+          match D.read (Grade.rational_lit (measure d)) with
+          | Some d' -> D.equal d d'
+          | None -> false)
+        ds;
+      all
+        (law "monus the truncated difference")
+        show2
+        (fun (d, e) ->
+          let q = Rational.add (measure d) (Rational.neg (measure e)) in
+          Rational.equal
+            (measure (D.monus d e))
+            (if Rational.sign q < 0 then Rational.zero else q))
+        (pairs ds);
+    ]
+
 (* [stepped_delay_laws ~name (module D)] checks, besides
-   {!ordered_delay_laws}, the laws of {!Delay.STEPPED}: [steps] the monoid
+   {!measured_delay_laws}, the laws of {!Delay.STEPPED}: [steps] the monoid
    morphism from the natural numbers sending [1] to [step], with inverse
    [to_int], [read] defined exactly on the natural numbers, where it agrees
    with [steps], and the order that of the natural numbers. *)
@@ -302,7 +373,7 @@ let stepped_delay_laws (type d) ~name (module D : Delay.STEPPED with type t = d)
   let law l = name ^ ": " ^ l in
   let ns = List.init 5 Fun.id in
   let show2 (m, n) = Printf.sprintf "%d, %d" m n in
-  ordered_delay_laws ~name (module D)
+  measured_delay_laws ~name (module D)
   @ [
       check (law "steps 0 is zero") (D.equal (D.steps 0) D.zero) "steps 0";
       check (law "steps 1 is step") (D.equal (D.steps 1) D.step) "steps 1";

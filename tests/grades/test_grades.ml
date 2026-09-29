@@ -208,6 +208,17 @@ let rational_interval = (module RationalTimeGrades.Interval : Grade.S)
 let traces_lower = (module TimedTraceGrades.LowerBound : Grade.S)
 let traces_upper = (module TimedTraceGrades.UpperBound : Grade.S)
 let traces_interval = (module TimedTraceGrades.Interval : Grade.S)
+
+let rational_traces_lower =
+  (module TimedTraceGrades.Rational.LowerBound : Grade.S)
+
+let rational_traces_upper =
+  (module TimedTraceGrades.Rational.UpperBound : Grade.S)
+
+let rational_traces_interval =
+  (module TimedTraceGrades.Rational.Interval : Grade.S)
+
+let regex_upper = (module Grades.RegularTraceGradeDerivative : Grade.S)
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
 let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
 let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
@@ -579,6 +590,44 @@ let literals =
       "({1},{2})";
     reads "integer" traces_interval (Int 2) "({2},{2})";
     rejects "reversed pair" traces_interval (Tuple [ Int 5; Int 3 ]) "n <= m";
+    rejects "fractional delay" traces_upper
+      (Braces (seq send (Frac (Rational.make 1 2))))
+      "whole numbers of time steps";
+    rejects "fraction" traces_lower (Rat (Rational.make 1 2)) "not fractions";
+    rejects "fraction" traces_interval
+      (Rat (Rational.make 1 2))
+      "grades are pairs";
+    rejects "fractional delay" regex_upper
+      (Braces (Star (Frac (Rational.make 1 2))))
+      "whole numbers of time steps";
+    rejects "fractional delay" time_windows
+      (Braces (Frac (Rational.make 1 2)))
+      "whole numbers of time steps";
+    reads "fractional delays" rational_traces_lower
+      (Braces
+         (union
+            (seq send (Frac (Rational.make 1 2)))
+            (seq (Frac (Rational.make 1 3)) (Tick 1))))
+      "{Send; 0.5 | 4/3}";
+    reads "fraction" rational_traces_upper (Rat (Rational.make 3 2)) "{1.5}";
+    reads "top" rational_traces_upper Top "⊤";
+    reads "adjacent delays merged" rational_traces_upper
+      (Braces (seq (Frac (Rational.make 1 2)) (Frac (Rational.make 1 2))))
+      "{1}";
+    rejects "negative fraction" rational_traces_upper
+      (Rat (Rational.make (-1) 2))
+      "must be non-negative";
+    rejects "repetition" rational_traces_upper (Braces (Star send))
+      "repetition '*'";
+    reads "pair of fractions" rational_traces_interval
+      (Tuple [ Rat (Rational.make 1 2); Rat (Rational.make 3 2) ])
+      "({0.5},{1.5})";
+    reads "fraction" rational_traces_interval
+      (Rat (Rational.make 1 4))
+      "({0.25},{0.25})";
+    rejects "reversed pair of fractions" rational_traces_interval
+      (Tuple [ Rat (Rational.make 3 2); Int 1 ])
+      "n <= m";
     reads "Low" security_levels (Name "Low") "Low";
     reads "High" security_levels (Name "High") "High";
     reads "top" security_levels Top "High";
@@ -635,14 +684,40 @@ let registry =
         ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
     expect "registry: grades reading a fraction" show_names
-      ~expected:[ "time-lower-bound-rational"; "time-upper-bound-rational" ]
+      ~expected:
+        [
+          "time-lower-bound-rational";
+          "time-upper-bound-rational";
+          "traces-lower-bound-rational";
+          "traces-upper-bound-rational";
+          "traces-interval-rational";
+        ]
       (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
+    expect "registry: grades reading a fractional delay in braces" show_names
+      ~expected:
+        [
+          "traces-lower-bound-rational";
+          "traces-upper-bound-rational";
+          "traces-interval-rational";
+        ]
+      (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
+    expect "registry: grades reading fractional runtime bounds" show_names
+      ~expected:
+        [
+          "traces-lower-bound-rational";
+          "traces-upper-bound-rational";
+          "traces-interval-rational";
+        ]
+      (GradeRegistry.accepting_bounds (Grade.Rat (Rational.make 1 2)));
     expect "registry: grades with a fractional delay" show_names
       ~expected:
         [
           "time-lower-bound-rational";
           "time-upper-bound-rational";
           "time-interval-rational";
+          "traces-lower-bound-rational";
+          "traces-upper-bound-rational";
+          "traces-interval-rational";
           "security-levels";
           "flow-levels";
         ]
@@ -1039,6 +1114,8 @@ let witnesses =
       (completeness (module UpperLevels));
     expect "witnesses: traces partial" Fun.id ~expected:"partial"
       (completeness traces_upper);
+    expect "witnesses: rational traces partial" Fun.id ~expected:"partial"
+      (completeness rational_traces_interval);
     expect "witnesses: product with a partial grade partial" Fun.id
       ~expected:"partial"
       (completeness (module TraceLevels));
@@ -1076,6 +1153,7 @@ let costs =
 type family =
   | Time
   | Traces
+  | Rational_traces
   | Regex
   | Levels
   | Timed_levels
@@ -1097,6 +1175,8 @@ let family name =
   | "mode-costs" -> Some Modes
   | "counts-upper-bound" -> Some Counts
   | _ when prefix "regex-" -> Some Regex
+  | _ when prefix "traces-" && String.ends_with ~suffix:"-rational" name ->
+      Some Rational_traces
   | _ when prefix "traces-" -> Some Traces
   | _ when prefix "time-" -> Some Time
   | _ -> None
@@ -1151,6 +1231,20 @@ let cover =
         pair (Int 1) (Int 3);
         pair (Braces (Tick 0)) Top;
         Int 2;
+      ]
+  | Rational_traces ->
+      let frac n d = Frac (Rational.make n d) in
+      [
+        Braces letter_a;
+        Braces (Seq (letter_b, frac 1 2));
+        Braces (Union (letter_a, frac 5 2));
+        Braces (Union (frac 1 3, Tick 1));
+        Braces (Seq (letter_a, Seq (frac 1 4, letter_b)));
+        Braces (Union (Seq (letter_c, letter_a), frac 3 4));
+        pair (Braces letter_a) (Braces (Union (letter_a, frac 7 2)));
+        pair (rat 1 2) (rat 3 2);
+        pair (Braces (Tick 0)) Top;
+        rat 5 4;
       ]
   | Regex ->
       [
@@ -1298,6 +1392,16 @@ let random family st =
   | Traces ->
       if Random.State.bool st then braces ~star:false
       else pair (braces ~star:false) (braces ~star:false)
+  | Rational_traces ->
+      let rec fractional depth =
+        match int (if depth = 0 then 2 else 4) with
+        | 0 -> letter ()
+        | 1 -> rational_tick (Rational.make (int 7) (1 + int 4))
+        | 2 -> Seq (fractional (depth - 1), fractional (depth - 1))
+        | _ -> Union (fractional (depth - 1), fractional (depth - 1))
+      in
+      if Random.State.bool st then Braces (fractional 2)
+      else pair (Braces (fractional 2)) (Braces (fractional 2))
   | Regex ->
       if int 4 > 0 then braces ~star:true
       else pair (braces ~star:true) (braces ~star:true)
@@ -1433,6 +1537,36 @@ let registered_laws =
              @ of_delay_laws (module G) costs ()
              @ of_bounds_laws (module G) costs)
        GradeRegistry.grade_modules
+
+(* A cost model of fractional runtime bounds over the operations [A], [B] and
+   [C]. *)
+let fractional_costs =
+  let table =
+    [
+      ("A", ((1, 2), (3, 2))); ("B", ((2, 3), (2, 3))); ("C", ((0, 1), (5, 2)));
+    ]
+  in
+  {
+    Grade.cost =
+      (fun o ->
+        let (n, d), (n', d') = List.assoc o table in
+        (Rational.make n d, Rational.make n' d'));
+    operations = List.map fst table;
+  }
+
+(* The laws of the trace grades over rational delays under
+   [fractional_costs]. *)
+let fractional_laws =
+  let context = "A:(1/2,3/2), B:(2/3,2/3), C:(0,5/2)" in
+  List.concat_map
+    (fun (module G : Grade.S) ->
+      let samples = samples (module G) Rational_traces in
+      order_laws ~thirds:12 (module G) ~context fractional_costs samples
+      @ algebra_laws ~width:10 (module G) ~context fractional_costs samples
+      @ declared_laws (module G) ~context fractional_costs samples
+      @ of_delay_laws (module G) fractional_costs ()
+      @ of_bounds_laws (module G) fractional_costs)
+    [ rational_traces_lower; rational_traces_upper; rational_traces_interval ]
 
 (* The declared flags of the registered grades that are false with no
    refutation on the samples. *)
@@ -1948,13 +2082,13 @@ let finite_laws =
 (* The laws of the instances of the delays. *)
 let delay_laws =
   stepped_delay_laws ~name:"natural delays" (module Grades.Delay.Nat)
-  @ ordered_delay_laws ~name:"rational delays" (module Grades.Delay.Rational)
+  @ measured_delay_laws ~name:"rational delays" (module Grades.Delay.Rational)
 
 let () =
   let checks =
     delay_laws @ levels @ products @ counterexamples @ witnesses @ literals
-    @ tops @ registry @ registered_laws @ indexed @ mode_laws @ peak_laws
-    @ windows_laws @ peak_construction_laws @ finite_laws
+    @ tops @ registry @ registered_laws @ fractional_laws @ indexed @ mode_laws
+    @ peak_laws @ windows_laws @ peak_construction_laws @ finite_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

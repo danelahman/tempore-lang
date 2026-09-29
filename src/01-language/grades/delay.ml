@@ -24,8 +24,20 @@ module type ORDERED = sig
   val witnesses : degree:int -> t list -> t list * completeness
 end
 
-module type STEPPED = sig
+module type MONUS = sig
   include ORDERED
+
+  val monus : t -> t -> t
+end
+
+module type MEASURED = sig
+  include MONUS
+
+  val to_rational : t -> Rational.t
+end
+
+module type STEPPED = sig
+  include MEASURED
 
   val step : t
   val steps : int -> t
@@ -81,6 +93,8 @@ module Nat = struct
   let witnesses ~degree:_ cs =
     (List.init (List.fold_left ( + ) 0 cs + 2) Fun.id, Complete)
 
+  let monus d e = Int.max 0 (d - e)
+  let to_rational = Rational.of_int
   let to_int d = d
 end
 
@@ -145,4 +159,10 @@ module Rational = struct
   let min p q = if Rational.compare p q <= 0 then p else q
   let max p q = if Rational.compare p q >= 0 then p else q
   let witnesses ~degree cs = (grid ~degree cs, Complete)
+
+  let monus p q =
+    if Rational.compare p q <= 0 then Rational.zero
+    else Rational.add p (Rational.neg q)
+
+  let to_rational q = q
 end

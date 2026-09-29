@@ -29,6 +29,7 @@ let of_regex r =
   let rec go = function
     | Letter name -> atom name
     | Tick n -> ticks n
+    | Frac q -> fractional_tick q
     | Any -> any names
     | Seq (r, s) -> Regex.concat (go r) (go s)
     | Union (r, s) -> Regex.union [ go r; go s ]
@@ -158,7 +159,7 @@ let of_lit = function
   | Int n -> { names = []; regex = ticks n }
   | Top -> top
   | Braces r as lit ->
-      let rho = of_regex r in
+      let rho = component_of_lit lit ~context:"" of_regex r in
       if D.is_empty rho.regex then
         invalid_lit lit
           "this regular expression denotes the empty language, but grades are \

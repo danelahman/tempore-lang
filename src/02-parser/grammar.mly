@@ -648,6 +648,7 @@ regex_atom:
   | name = UNAME { Grade.Letter name }
   | n = INT
     { Grade.Tick (small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
+  | q = fraction { Grade.rational_tick q }
   | UNDERSCORE { Grade.Any }
   | LPAREN r = regex RPAREN { r }
   | LBRACE r = regex RBRACE { r }

@@ -1,0 +1,44 @@
+(* Correctly accepted by the typechecker, under the
+   'traces-upper-bound-rational' grading monoid: the delays and the runtime
+   bounds are non-negative rationals, and the allowance order buys operations
+   at their upper runtime bounds with the delays a bound banks. *)
+
+(* A reading of the sensor takes between half a time unit and one and a
+   half. *)
+operation Sample : unit ~> nat # {Sample} within (1/2, 3/2)
+default Sample () = delay 1/2; 3
+
+(* A transmission takes between a quarter of a time unit and one. *)
+operation Send : nat ~> unit # {Send} within (1/4, 1)
+default Send n = delay 0.25
+
+(* A reading is due within two time units: the sample, at its upper bound of
+   3/2, and the rest of 1/2 fill the allowance exactly. *)
+let sample_then_rest () =
+  box 2 () as due in
+  let v = perform Sample () in
+  delay 1/2;
+  unbox due as u in
+  v
+
+(* The same bound written as a trace with a fractional delay: the sample
+   matches its event, and the rest spends the delay of 1/2 after it. *)
+let sample_by_events () =
+  box {Sample; 1/2} () as due in
+  let v = perform Sample () in
+  delay 0.5;
+  unbox due as u in
+  v
+
+(* A report samples and sends within an allowance of 11/4 time units, of which
+   the sample and the send take at most 3/2 + 1 and a pause the remaining
+   quarter. *)
+let report () =
+  box {11/4} () as due in
+  let v = perform Sample () in
+  delay 1/4;
+  perform Send v;
+  unbox due as u in
+  v
+
+run report ()

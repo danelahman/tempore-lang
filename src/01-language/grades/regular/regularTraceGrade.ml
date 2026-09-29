@@ -56,6 +56,7 @@ let dfa_of_regex names =
   let rec go = function
     | Letter name -> Dfa.word n [ letter names name ]
     | Tick k -> Dfa.word n (List.init k (Fun.const tick))
+    | Frac q -> fractional_tick q
     | Any -> Dfa.letter_set n (List.init n Fun.id)
     | Seq (r, s) -> Dfa.concat (go r) (go s)
     | Union (r, s) -> Dfa.union (go r) (go s)
@@ -152,7 +153,7 @@ let of_lit = function
   | Int n -> of_regex (Tick n)
   | Top -> top
   | Braces r as lit ->
-      let rho = of_regex r in
+      let rho = component_of_lit lit ~context:"" of_regex r in
       if Dfa.is_empty rho.dfa then
         invalid_lit lit
           "this regular expression denotes the empty language, but grades are \

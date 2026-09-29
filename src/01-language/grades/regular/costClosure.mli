@@ -13,9 +13,9 @@
 
     {2 Orders}
 
-    The two orders are those of {!TimedTrace.allowance} and
-    {!TimedTrace.coverage} at budget [0], read on words, a delay of [n] time
-    steps being [n] ticks. By their segment characterisation, a run [s] is
+    The two orders are those of {!TimedTrace.Make.allowance} and
+    {!TimedTrace.Make.coverage} at budget [0], read on words, a delay of [n]
+    time steps being [n] ticks. By their segment characterisation, a run [s] is
     permitted by a bound [t], [s ≼ᵃ t], iff they factor as
     [s = s₀ o₁ s₁ ⋯ oₙ sₙ] and [t = t₀ o₁ t₁ ⋯ oₙ tₙ], the operations [oᵢ]
     matched, such that the weight of each [sᵢ] is at most the number of ticks of

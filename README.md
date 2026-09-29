@@ -143,6 +143,14 @@ Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
 [`examples/traces/traces_upper.tpe`](examples/traces/traces_upper.tpe) and
 [`examples/traces/traces_intervals.tpe`](examples/traces/traces_intervals.tpe).
 
+The rational variants `traces-lower-bound-rational`,
+`traces-upper-bound-rational` and `traces-interval-rational` have the same
+orders, units and tops, with delays and runtime bounds that are non-negative
+rationals: `{Sample; 1/2; Send}` waits half a unit between the two operations,
+a fraction `q` abbreviates `{q}`, and an operation may declare fractional
+runtime bounds such as `within (1/2, 3/2)`. See
+[`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
+
 ### Regular expressions
 
 A grade is a non-empty regular language of runs, read as words over the
@@ -329,7 +337,7 @@ it by the operation's grade. Each grading monoid has a monoid of delays, which
 it maps to grades by a monoid morphism, so that `delay 0` has the unit grade
 and `delay tau; delay tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)). `tau` is a non-negative
-integer or fraction: the rational time grades, `security-levels` and
+integer or fraction: the rational time and trace grades, `security-levels` and
 `flow-levels`, whose delays are the non-negative rationals, accept any, such as
 `delay 1/3` or `delay 0.25`; the other monoids, whose delays are whole numbers
 of time steps, accept only integers, a fraction being a syntax error naming the
@@ -381,8 +389,10 @@ operation Tx : string ~> unit # {Tx} within (2, 3)
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 `lo <= hi` and `hi` at least 1, and each grade reads them as its delays. The
-monoids that read runtime bounds count whole time steps, so `within (1/2, 1)` is
-a syntax error under them. The other monoids reject runtime bounds altogether.
+rational trace monoids accept fractional bounds such as `within (1/2, 3/2)`;
+the other monoids that read runtime bounds count whole time steps, so
+`within (1/2, 1)` is a syntax error under them. The other monoids reject
+runtime bounds altogether.
 
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `(2, 6)`.

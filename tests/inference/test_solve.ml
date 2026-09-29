@@ -293,6 +293,8 @@ let expected_rejections =
     ("rational_time_intervals_reject_within.tpe", [ 5 ]);
     ("rational_time_lower_reject.tpe", [ 10; 14 ]);
     ("rational_time_upper_reject.tpe", [ 7 ]);
+    ("rational_traces_intervals_reject.tpe", [ 9 ]);
+    ("rational_traces_upper_reject.tpe", [ 9 ]);
     ("default_reject_cycle.tpe", [ 9 ]);
     ("default_reject_duplicate.tpe", [ 8 ]);
     ("default_reject_global.tpe", [ 11 ]);

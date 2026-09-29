@@ -41,10 +41,11 @@ Time grades | Upper bounds | time-upper-bound | time/time_upper.tpe | A box may 
 Time grades | Intervals | time-interval | time/time_intervals.tpe | A box grade pairs a lower and an upper time bound, unboxable only within that interval.
 Time grades | Intervals (rational) | time-interval-rational | time/rational_time_intervals.tpe | A medication schedule in hours, whose doses and reports are due within intervals with fractional endpoints.
 
-group | Traces | Traces | Finite sets of timed runs of operations.
+group | Traces | Traces | Finite sets of timed runs of operations, in whole or fractional time.
 Traces | Lower bounds | traces-lower-bound | traces/traces_lower.tpe | A 3D-printing pipeline whose operations must be covered by the runs a box demands, waiting banking towards them.
 Traces | Upper bounds | traces-upper-bound | traces/traces_upper.tpe | The same pipeline under the allowance order, where a delay pays for operations at their upper runtime bound.
 Traces | Intervals | traces-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
+Traces | Intervals (rational) | traces-interval-rational | traces/rational_traces_intervals.tpe | A weather station timed in seconds, whose operations declare fractional runtime bounds and whose windows are traces with fractional delays.
 
 group | Regular expressions | Regex | Regular languages of runs of operations and ticks.
 Regular expressions | Upper bounds | regex-upper-bound-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.

@@ -8,6 +8,7 @@
 type regex =
   | Letter of string  (** An operation name, e.g. [Send] *)
   | Tick of int  (** A delay of [n] time steps, e.g. [3] *)
+  | Frac of Rational.t  (** A delay that is not an [int], e.g. [1/2] or [1.5] *)
   | Any  (** Any single operation or time step, [_] *)
   | Seq of regex * regex  (** Concatenation, [r; s] *)
   | Union of regex * regex  (** Union, [r | s] *)
@@ -20,7 +21,7 @@ type regex =
 let regex_names r =
   let rec go = function
     | Letter name -> [ name ]
-    | Tick _ | Any -> []
+    | Tick _ | Frac _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
     | Star r | Compl r -> go r
   in
@@ -58,6 +59,11 @@ let component_of_lit lit ~context of_lit component =
     [int] [n], and [Rat q] otherwise. *)
 let rational_lit q =
   match Rational.to_int q with Some n -> Int n | None -> Rat q
+
+(** [rational_tick q] is the delay [q] of a brace literal: [Tick n] if [q] is an
+    [int] [n], and [Frac q] otherwise. *)
+let rational_tick q =
+  match Rational.to_int q with Some n -> Tick n | None -> Frac q
 
 (** [describe_lit lit] names the form of [lit] in the plural, for messages such
     as "grades are plain integers, not pairs". *)

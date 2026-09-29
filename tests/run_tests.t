@@ -8,6 +8,8 @@
   >     rational_time_lower*.tpe) ../tempore --grades time-lower-bound-rational $f;;
   >     rational_time_upper*.tpe) ../tempore --grades time-upper-bound-rational $f;;
   >     rational_time_intervals*.tpe) ../tempore --grades time-interval-rational $f;;
+  >     rational_traces_upper*.tpe) ../tempore --grades traces-upper-bound-rational $f;;
+  >     rational_traces_intervals*.tpe) ../tempore --grades traces-interval-rational $f;;
   >     literals_rational_upper.tpe) ../tempore --grades time-upper-bound-rational $f;;
   >     literals_rational_interval.tpe) ../tempore --grades time-interval-rational $f;;
   >     literals_reject_rational_negative.tpe) ../tempore --grades time-upper-bound-rational $f;;
@@ -900,7 +902,7 @@
   File "delay_reject_fraction.tpe", line 4, characters 20-23:
   4 | let wait () = delay 0.5
                           ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'security-levels' or 'flow-levels' grading monoids?
+  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-lower-bound-rational', 'traces-upper-bound-rational', 'traces-interval-rational', 'security-levels' or 'flow-levels' grading monoids?
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
@@ -1526,7 +1528,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound', 'traces-upper-bound', 'traces-interval', 'traces-lower-bound-rational', 'traces-upper-bound-rational', 'traces-interval-rational', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1895,7 +1897,7 @@
   File "literals_reject_fraction.tpe", line 4, characters 19-22:
   4 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational' or 'time-upper-bound-rational' grading monoids?
+  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-lower-bound-rational', 'traces-upper-bound-rational' or 'traces-interval-rational' grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -1979,7 +1981,7 @@
   File "literals_reject_windows.tpe", line 3, characters 19-27:
   3 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-interval', 'regex-cost-interval' or 'regex-cost-interval-symbolic' grading monoids?
+  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-interval', 'traces-interval-rational', 'regex-cost-interval' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
   literals_time_interval.tpe
   ======================================================================
@@ -2986,6 +2988,69 @@
            ^^^^^^^^^
     grade `1/3` accumulates here (delay)
     Note: the resource inequality `4/3 <= 1` does not hold
+  ======================================================================
+  rational_traces_intervals.tpe
+  ======================================================================
+  === Run 1 ===
+  return 6
+  State: [
+    ({0.75},{0.75}),
+    ({0.25},{0.25}),
+    ({0.75},{0.75})
+  ]
+  
+  ======================================================================
+  rational_traces_intervals_reject.tpe
+  ======================================================================
+  File "rational_traces_intervals_reject.tpe", lines 13-14, characters 2-3:
+  13 |   unbox due as u in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `due` is unboxed with grade `({Sample; 0.125},{Sample; 0.125})` accumulated since it was bound, which is not below its box grade `({0.75},{2})`
+    File "rational_traces_intervals_reject.tpe", line 10, characters 21-24:
+    10 |   box (3/4, 2) () as due in
+                              ^^^
+    `due` is bound here
+    File "rational_traces_intervals_reject.tpe", line 11, characters 10-27:
+    11 |   let v = perform Sample () in
+                   ^^^^^^^^^^^^^^^^^
+    grade `({Sample},{Sample})` accumulates here (operation `Sample`)
+    File "rational_traces_intervals_reject.tpe", line 12, characters 2-11:
+    12 |   delay 1/8;
+           ^^^^^^^^^
+    grade `({0.125},{0.125})` accumulates here (delay)
+    Note: the resource inequality `({Sample; 0.125},{Sample; 0.125}) <= ({0.75},{2})` does not hold
+  ======================================================================
+  rational_traces_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3
+  State: [
+    { resource_0 ↦ () # {2.75} },
+    {0.5},
+    {0.25},
+    {0.25}
+  ]
+  
+  ======================================================================
+  rational_traces_upper_reject.tpe
+  ======================================================================
+  File "rational_traces_upper_reject.tpe", lines 13-14, characters 2-3:
+  13 |   unbox due as u in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `due` is unboxed with grade `{Sample; 0.5}` accumulated since it was bound, which is not below its box grade `{1.75}`
+    File "rational_traces_upper_reject.tpe", line 10, characters 18-21:
+    10 |   box {7/4} () as due in
+                           ^^^
+    `due` is bound here
+    File "rational_traces_upper_reject.tpe", line 11, characters 10-27:
+    11 |   let v = perform Sample () in
+                   ^^^^^^^^^^^^^^^^^
+    grade `{Sample}` accumulates here (operation `Sample`)
+    File "rational_traces_upper_reject.tpe", line 12, characters 2-11:
+    12 |   delay 1/2;
+           ^^^^^^^^^
+    grade `{0.5}` accumulates here (delay)
+    Note: the resource inequality `{Sample; 0.5} <= {1.75}` does not hold
   ======================================================================
   recursion.tpe
   ======================================================================
@@ -4554,7 +4619,7 @@
   File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
   5 | operation Heat : unit ~> unit # {Heat} within (1/2, 1)
                                                      ^^^
-  Syntax error: in the 'traces-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps
+  Syntax error: in the 'traces-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-lower-bound-rational', 'traces-upper-bound-rational' or 'traces-interval-rational' grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
@@ -6199,6 +6264,9 @@ single-dash form of the help option is not accepted.
           traces-lower-bound                 Lower bounds
           traces-upper-bound                 Upper bounds
           traces-interval                    Intervals
+          traces-lower-bound-rational        Lower bounds (rational)
+          traces-upper-bound-rational        Upper bounds (rational)
+          traces-interval-rational           Intervals (rational)
         Regular expressions:
           regex-upper-bound                  Upper bounds
           regex-upper-bound-symbolic         Upper bounds (symbolic derivatives)

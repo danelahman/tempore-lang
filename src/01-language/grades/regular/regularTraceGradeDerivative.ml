@@ -16,6 +16,7 @@ let ticks = R.ticks
 let rec of_regex = function
   | Letter name -> R.letters (Letters.name name)
   | Tick n -> ticks n
+  | Frac q -> fractional_tick q
   | Any -> R.letters Letters.any
   | Seq (r, s) -> R.concat (of_regex r) (of_regex s)
   | Union (r, s) -> R.union [ of_regex r; of_regex s ]
@@ -109,7 +110,7 @@ struct
     | Int n -> ticks n
     | Top -> top
     | Braces r as lit ->
-        let rho = of_regex r in
+        let rho = component_of_lit lit ~context:"" of_regex r in
         if D.is_empty rho then
           invalid_lit lit
             "this regular expression denotes the empty language, but grades \

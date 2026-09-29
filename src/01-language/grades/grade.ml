@@ -194,6 +194,14 @@ let read_bound read q =
   | Some d -> d
   | None -> invalid_arg ("Grade.read_bound: " ^ Rational.show q)
 
+(** [fractional_tick q] rejects the delay [q] of a brace literal, a fraction, in
+    the grades whose delays are whole numbers of time steps ({!Delay.Nat}).
+
+    @raise Invalid_literal
+      on the literal [Rat q], which the grade reports against the brace literal
+      with {!component_of_lit}. *)
+let fractional_tick q = invalid_lit (Rat q) "%s" (Delay.Nat.rejection (Rat q))
+
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their
     pairwise products by [mul]. *)
 let sampled mul cs =

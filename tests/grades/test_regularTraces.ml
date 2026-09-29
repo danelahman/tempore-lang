@@ -119,6 +119,7 @@ let rec matches r w =
   match r with
   | Grade.Letter name -> w = [ Op name ]
   | Grade.Tick n -> w = List.init n (fun _ -> T)
+  | Grade.Frac _ -> false
   | Grade.Any -> List.length w = 1
   | Grade.Seq (r, s) ->
       List.exists (fun (u, v) -> matches r u && matches s v) (splits w)
