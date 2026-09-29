@@ -6,6 +6,7 @@ module Make (C : Constraint.S) = struct
   module R = Residual.Make (C)
   module N = GradeNormal.Make (X)
   module E = Entail.Make (X)
+  module V = Values.Make (X)
   module Rho_set = X.Rho_var.Set
   module Eps_set = X.Eps_var.Set
 
@@ -99,39 +100,6 @@ module Make (C : Constraint.S) = struct
     not (List.exists (on_side side u) r.deferred)
 
   (* ------------------------------------------------------------------ *)
-  (* Bounds of one unknown                                               *)
-  (* ------------------------------------------------------------------ *)
-
-  let eps_sort context k : _ Bounds.sort =
-    {
-      equal = X.Eps.equal context.Residual.bounds;
-      occurs = in_eps (Eps_unknown k);
-      is_unknown =
-        (function X.Eps_var k' -> X.Eps_var.equal k k' | _ -> false);
-      valid = E.Eps.valid context.Residual.bounds;
-      join = X.Eps.join;
-    }
-
-  let rho_sort context u : _ Bounds.sort =
-    {
-      equal = X.Rho.equal context.Residual.bounds;
-      occurs = in_rho u;
-      is_unknown =
-        (fun rho ->
-          match (u, rho) with
-          | Rho_unknown k, X.Rho_var k' -> X.Rho_var.equal k k'
-          | (Rho_unknown _ | Eps_unknown _), _ -> false);
-      valid = E.Rho.valid context.Residual.bounds;
-      join = X.Rho.join;
-    }
-
-  let lows sort orderings =
-    Option.map (fun (l : _ Bounds.lows) -> l.lower) (Bounds.lows sort orderings)
-
-  let ups sort orderings =
-    Option.map (fun (u : _ Bounds.ups) -> u.cap) (Bounds.ups sort orderings)
-
-  (* ------------------------------------------------------------------ *)
   (* The value of one unknown                                            *)
   (* ------------------------------------------------------------------ *)
 
@@ -157,66 +125,55 @@ module Make (C : Constraint.S) = struct
     || List.exists (fun (o : R.rho_ordering) -> in_rho u o.rhs) r.rho_orderings
     || List.exists (on_side Greater u) r.deferred
 
-  let eps_value context k (r : residual) =
-    let u = Eps_unknown k in
-    let es = eps_sort context k and rs = rho_sort context u in
-    let lows = lows es r.eps_orderings in
-    let free_right_rs = Bounds.free_right rs r.rho_orderings in
-    let lower () =
-      match lows with
-      | Some (x :: xs) when free_right_rs && still Greater u r ->
-          Some (Bounds.join_all es x xs, Drop_greater)
-      | Some _ | None -> None
-    and raise () =
-      if
-        Bounds.free_left rs r.rho_orderings
-        && disj_free u r && still Smaller u r
-      then Option.map (fun cap -> (cap, Keep_all)) (ups es r.eps_orderings)
-      else None
-    and unit () =
-      match lows with
-      | Some []
-        when X.GS.E.unit_least && free_right_rs && occurs_below u r
-             && still Greater u r ->
-          Some (X.Eps.unit, Drop_greater)
-      | Some _ | None -> None
-    and top () =
-      if
-        Bounds.free_left es r.eps_orderings
-        && Bounds.free_left rs r.rho_orderings
-        && disj_free u r && occurs_above u r && still Smaller u r
-      then Some (X.Eps.top, Keep_all)
-      else None
+  (* The occurrence oracle of [u], [image] reading the resource orderings for
+     an effect unknown: [u] may decrease where it is on no right side of a
+     resource ordering not valid and no greater side of a deferred condition,
+     and increase where it is on no left side of a resource ordering not
+     valid, in no disjunction's grade and on no smaller side of a deferred
+     condition. *)
+  let oracle u ?image (r : residual) : _ Values.oracle =
+    let resource free =
+      Option.fold ~none:true
+        ~some:(fun image -> free image r.rho_orderings)
+        image
     in
-    if clean u r then first [ lower; raise; unit; top ] else None
+    {
+      may_lower = (fun _ -> resource Values.free_right && still Greater u r);
+      may_raise =
+        (fun _ ->
+          resource Values.free_left && disj_free u r && still Smaller u r);
+    }
+
+  (* The value of [u] occurring in no type by the first rule of {!Values}
+     that applies, in the order lowering, raising, least and top, the least
+     only where [occurs_below] holds and the top only where [occurs_above]
+     does; a lowering and the least drop the orderings with [u] on the greater
+     side. *)
+  let value sort oracle u (r : residual) orderings =
+    let rule apply drops () =
+      Option.map
+        (fun (v : _ Values.value) -> (v.value, drops))
+        (apply sort oracle orderings)
+    and where occurs rule () = if occurs u r then rule () else None in
+    if clean u r then
+      first
+        [
+          rule Values.lower Drop_greater;
+          rule Values.raise Keep_all;
+          where occurs_below (rule Values.least Drop_greater);
+          where occurs_above (rule Values.top Keep_all);
+        ]
+    else None
+
+  let eps_value context k (r : residual) =
+    let u = Eps_unknown k and bounds = context.Residual.bounds in
+    value (V.eps bounds k)
+      (oracle u ~image:(V.image bounds k) r)
+      u r r.eps_orderings
 
   let rho_value context k (r : residual) =
     let u = Rho_unknown k in
-    let rs = rho_sort context u in
-    let lows = lows rs r.rho_orderings in
-    let lower () =
-      match lows with
-      | Some (x :: xs) when still Greater u r ->
-          Some (Bounds.join_all rs x xs, Drop_greater)
-      | Some _ | None -> None
-    and raise () =
-      if disj_free u r && still Smaller u r then
-        Option.map (fun cap -> (cap, Keep_all)) (ups rs r.rho_orderings)
-      else None
-    and unit () =
-      match lows with
-      | Some [] when X.GS.R.unit_least && occurs_below u r && still Greater u r
-        ->
-          Some (X.Rho.unit, Drop_greater)
-      | Some _ | None -> None
-    and top () =
-      if
-        Bounds.free_left rs r.rho_orderings
-        && disj_free u r && occurs_above u r && still Smaller u r
-      then Some (X.Rho.top, Keep_all)
-      else None
-    in
-    if clean u r then first [ lower; raise; unit; top ] else None
+    value (V.rho context.Residual.bounds k) (oracle u r) u r r.rho_orderings
 
   (* ------------------------------------------------------------------ *)
   (* Assignments                                                         *)
@@ -386,65 +343,36 @@ module Make (C : Constraint.S) = struct
   (* Cycles of whole unknowns                                            *)
   (* ------------------------------------------------------------------ *)
 
-  (* The moves of the members of cycles of [edges] that may move to the
-     representative of their component: the first member in the order outer,
+  (* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998;
+     {!Reach.collapse}): the local members occurring in no
+     type of each strongly connected component of the orderings between whole
+     unknowns sent to its representative, the first member in the order outer,
      then fixed, then movable, each by creation. *)
-  let moves ~compare ~outer ~movable edges =
-    let ends pick = List.sort_uniq compare (List.map pick edges) in
-    let targets = ends (fun (_, b, ()) -> b) in
-    let vertices =
-      List.filter
-        (fun v -> List.exists (fun w -> compare v w = 0) targets)
-        (ends (fun (a, _, ()) -> a))
-    in
-    let order =
-      List.filter outer vertices
-      @ List.filter (fun v -> not (outer v || movable v)) vertices
-      @ List.filter movable vertices
-    in
-    let representative =
-      Reach.representatives ~compare
-        (List.map (fun (a, b, ()) -> (a, b)) edges)
-        order
-    in
-    List.filter_map
-      (fun v ->
-        if movable v then
-          match representative v with
-          | Some rep when compare rep v <> 0 -> Some (v, rep)
-          | Some _ | None -> None
-        else None)
-      vertices
-
-  (* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998): the
-     local members occurring in no type of each strongly connected component
-     of the orderings between whole unknowns sent to its representative, the
-     components computed by Kosaraju's algorithm ({!Reach.representatives}). *)
   let collapse scope (r : residual) =
     let eps_edges =
       List.filter_map
         (fun (o : R.eps_ordering) ->
           match (o.lhs, o.rhs) with
-          | X.Eps_var a, X.Eps_var b -> Some (a, b, ())
+          | X.Eps_var a, X.Eps_var b -> Some (a, b)
           | _, _ -> None)
         r.eps_orderings
     and rho_edges =
       List.filter_map
         (fun (o : R.rho_ordering) ->
           match (o.lhs, o.rhs) with
-          | X.Rho_var a, X.Rho_var b -> Some (a, b, ())
+          | X.Rho_var a, X.Rho_var b -> Some (a, b)
           | _, _ -> None)
         r.rho_orderings
     in
     let movable u = is_local scope u && clean u r in
     let eps_moves =
-      moves ~compare:X.Eps_var.compare
-        ~outer:(fun k -> not (is_local scope (Eps_unknown k)))
+      Reach.collapse ~compare:X.Eps_var.compare
+        ~preferred:(fun k -> not (is_local scope (Eps_unknown k)))
         ~movable:(fun k -> movable (Eps_unknown k))
         eps_edges
     and rho_moves =
-      moves ~compare:X.Rho_var.compare
-        ~outer:(fun k -> not (is_local scope (Rho_unknown k)))
+      Reach.collapse ~compare:X.Rho_var.compare
+        ~preferred:(fun k -> not (is_local scope (Rho_unknown k)))
         ~movable:(fun k -> movable (Rho_unknown k))
         rho_edges
     in

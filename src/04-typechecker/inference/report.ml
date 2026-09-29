@@ -10,6 +10,7 @@ module Make (C : Constraint.S) = struct
   module R = Residual.Make (C)
   module N = GradeNormal.Make (X)
   module E = Entail.Make (X)
+  module V = Values.Make (X)
   module Rho_set = X.Rho_var.Set
   module Eps_set = X.Eps_var.Set
 
@@ -806,26 +807,6 @@ module Make (C : Constraint.S) = struct
   (* Elimination: tests                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  let eps_sort context k : _ Bounds.sort =
-    {
-      equal = X.Eps.equal context.Residual.bounds;
-      occurs = in_eps (Eps_unknown k);
-      is_unknown =
-        (function X.Eps_var k' -> X.Eps_var.equal k k' | _ -> false);
-      valid = E.Eps.valid context.Residual.bounds;
-      join = X.Eps.join;
-    }
-
-  let rho_sort context k : _ Bounds.sort =
-    {
-      equal = X.Rho.equal context.Residual.bounds;
-      occurs = in_rho (Rho_unknown k);
-      is_unknown =
-        (function X.Rho_var k' -> X.Rho_var.equal k k' | _ -> false);
-      valid = E.Rho.valid context.Residual.bounds;
-      join = X.Rho.join;
-    }
-
   let assign_eps k eps : C.subst =
     {
       C.empty_subst with
@@ -846,71 +827,43 @@ module Make (C : Constraint.S) = struct
   (* A grade unknown and how the orderings of its sort are read for it. *)
   type 'e grade = {
     unknown : unknown;
-    self : 'e; (* the unknown as an expression *)
-    sort : 'e Bounds.sort;
+    sort : 'e Values.sort;
     ordering : atom -> ('e, R.reason) GradeNormal.ordering option;
-    earlier : 'e -> bool option;
-        (* for a variable, whether it is created before the unknown *)
     assign : 'e -> C.subst;
     atomic : 'e -> bool; (* whether an expression is a single atom *)
-    unit : 'e;
-    at_unit : atom -> bool;
-        (* whether an atom bounds the unknown, its left side written
-           canonically, by the unit, the unit being least *)
+    at_unit : atom -> bool; (* whether an atom forces the unknown to the unit *)
   }
 
+  (* An effect unknown is also forced to the unit by an image [∣ε∣] bounded
+     by the resource unit, where the map reflects the unit
+     ({!Grades.GradeSystem.S.unit_reflecting}). *)
   let eps_grade context k =
     let bounds = context.Residual.bounds in
+    let sort = V.eps bounds k in
     {
       unknown = Eps_unknown k;
-      self = X.Eps.var k;
-      sort = eps_sort context k;
+      sort;
       ordering = (function Eps_atom o -> Some o | _ -> None);
-      earlier =
-        (function X.Eps_var j -> Some (X.Eps_var.compare j k < 0) | _ -> None);
       assign = assign_eps k;
       atomic = E.Eps.is_atom;
-      unit = X.Eps.unit;
       at_unit =
         (function
-        | Eps_atom o -> (
-            X.GS.E.unit_least
-            &&
-            match N.Eps.canon bounds o.lhs with
-            | X.Eps_var k' ->
-                X.Eps_var.equal k k' && E.Eps.decided bounds o.rhs X.Eps.unit
-            | _ -> false)
-        | Rho_atom o -> (
-            X.GS.E.unit_least && X.GS.unit_reflecting
-            &&
-            match N.Rho.canon bounds o.lhs with
-            | X.Rho_map (X.Eps_var k') ->
-                X.Eps_var.equal k k' && E.Rho.decided bounds o.rhs X.Rho.unit
-            | _ -> false)
+        | Eps_atom o -> Values.forces_unit sort o
+        | Rho_atom o -> Values.forces_unit (V.image bounds k) o
         | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false);
     }
 
   let rho_grade context k =
-    let bounds = context.Residual.bounds in
+    let sort = V.rho context.Residual.bounds k in
     {
       unknown = Rho_unknown k;
-      self = X.Rho.var k;
-      sort = rho_sort context k;
+      sort;
       ordering = (function Rho_atom o -> Some o | _ -> None);
-      earlier =
-        (function X.Rho_var j -> Some (X.Rho_var.compare j k < 0) | _ -> None);
       assign = assign_rho k;
       atomic = E.Rho.is_atom;
-      unit = X.Rho.unit;
       at_unit =
         (function
-        | Rho_atom o -> (
-            X.GS.R.unit_least
-            &&
-            match N.Rho.canon bounds o.lhs with
-            | X.Rho_var k' ->
-                X.Rho_var.equal k k' && E.Rho.decided bounds o.rhs X.Rho.unit
-            | _ -> false)
+        | Rho_atom o -> Values.forces_unit sort o
         | Eps_atom _ | Sub_atom _ | Eternal_atom _ | Disj_atom _ -> false);
     }
 
@@ -950,17 +903,6 @@ module Make (C : Constraint.S) = struct
            pick (in_atom u atom) && not (valid context atom))
          (occurrences st u)
 
-  (* The first expression facing the unknown, an earlier unknown or free of
-     it, that the hypotheses equate with it. *)
-  let equal_value ~occurs ~earlier ~entails facing unknown =
-    List.find_opt
-      (fun b ->
-        (match earlier b with
-          | Some earlier -> earlier
-          | None -> not (occurs b))
-        && entails unknown b && entails b unknown)
-      facing
-
   (* Whether an ordering [lhs ≾ rhs] of the sort of [g] is [atom]. *)
   let is_ordering g lhs rhs atom =
     match g.ordering atom with
@@ -987,20 +929,23 @@ module Make (C : Constraint.S) = struct
         atoms
     in
     g.atomic b
-    && ((bounded (fun p -> p.below) b g.self && not (assumed g.self b))
-       || (bounded (fun p -> p.above) g.self b && not (assumed b g.self)))
+    && ((bounded (fun p -> p.below) b g.sort.self && not (assumed g.sort.self b))
+       || bounded (fun p -> p.above) g.sort.self b
+          && not (assumed b g.sort.self))
 
-  (* The expressions the orderings set against the unknown, in order: the
-     right side where it is the left side, else the left side where it is the
-     right side. *)
-  let equate g entails st =
-    let face id facing =
-      match g.ordering (atom_at st id) with
-      | Some o when g.sort.is_unknown o.lhs -> o.rhs :: facing
-      | Some o when g.sort.is_unknown o.rhs -> o.lhs :: facing
-      | Some _ | None -> facing
+  (* The occurrence oracle of the unknown of [g]: it may decrease, or
+     increase, where it is bounded below, or above, in the reported type and
+     in no atom other than the discharged orderings that does not hold at
+     every instance. *)
+  let oracle context g st : _ Values.oracle =
+    let may pick discharged =
+      not (blocked context pick g.unknown st (positions discharged))
     in
-    let facing = List.rev (Int_set.fold face (occurrences st g.unknown) []) in
+    { may_lower = may (fun p -> p.below); may_raise = may (fun p -> p.above) }
+
+  (* An equating step ({!Values.equate}), the atoms made reflexive dropped
+     after it. *)
+  let equate g entails st =
     Option.map
       (fun b ->
         {
@@ -1009,34 +954,22 @@ module Make (C : Constraint.S) = struct
           apart = true;
           chains = adds_chains g st b;
         })
-      (equal_value ~occurs:g.sort.occurs ~earlier:g.earlier ~entails facing
-         g.self)
+      (Values.equate g.sort ~entails (orderings g st))
 
-  let lower context g st =
-    let os = orderings g st in
-    match Bounds.lows g.sort os with
-    | Some { lower = x :: xs; lower_rest } ->
-        let dropped = Int_set.diff (positions os) (positions lower_rest) in
-        if blocked context (fun p -> p.below) g.unknown st dropped then None
-        else
-          Some
-            {
-              value = g.assign (Bounds.join_all g.sort x xs);
-              dropped;
-              apart = false;
-              chains = false;
-            }
-    | Some { lower = []; _ } | None -> None
+  (* A lowering or a raising step, the orderings it discharges dropped. *)
+  let move rule context g st =
+    Option.map
+      (fun (v : _ Values.value) ->
+        {
+          value = g.assign v.value;
+          dropped = positions v.discharged;
+          apart = false;
+          chains = false;
+        })
+      (rule g.sort (oracle context g st) (orderings g st))
 
-  let raise_to_cap context g st =
-    let os = orderings g st in
-    match Bounds.ups g.sort os with
-    | Some { cap; upper_rest } ->
-        let dropped = Int_set.diff (positions os) (positions upper_rest) in
-        if blocked context (fun p -> p.above) g.unknown st dropped then None
-        else
-          Some { value = g.assign cap; dropped; apart = false; chains = false }
-    | None -> None
+  let lower context g st = move Values.lower context g st
+  let raise_to_cap context g st = move Values.raise context g st
 
   (* The unknown sent to the unit where the unit is least and bounds it
      above, the atoms bounding it dropped and those it occurs in written
@@ -1052,7 +985,9 @@ module Make (C : Constraint.S) = struct
         (occurrences st g.unknown)
     in
     if Int_set.is_empty dropped then None
-    else Some { value = g.assign g.unit; dropped; apart = true; chains = true }
+    else
+      Some
+        { value = g.assign g.sort.unit; dropped; apart = true; chains = true }
 
   (* The first subtyping atom [β <: a]: a type unknown with a lower bound
      sent to it. *)
@@ -1076,42 +1011,27 @@ module Make (C : Constraint.S) = struct
 
   (* Each type unknown on a cycle of subtyping atoms, in order, sent to the
      representative of its component: a fixed member where there is one, else
-     the earliest. This is cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998),
-     the components by Kosaraju's algorithm ({!Reach.representatives}). *)
+     the earliest. This is cycle elimination (Fähndrich, Foster, Su and Aiken,
+     PLDI 1998; {!Reach.collapse}). *)
   let collapse (fixed : C.free) st =
     let edges =
       List.filter_map
         (function Sub_atom s -> edge s | _ -> None)
         (List.map (fun (_, e) -> e.atom) (Int_map.bindings st.atoms))
     in
-    let ends pick = TyParamSet.of_list (List.map pick edges) in
-    let vertices =
-      TyParamSet.elements (TyParamSet.inter (ends fst) (ends snd))
-    in
     let is_fixed a = TyParamSet.mem a fixed.free_tys in
-    let order =
-      List.filter is_fixed vertices
-      @ List.filter (fun a -> not (is_fixed a)) vertices
-    in
-    let representative =
-      Reach.representatives ~compare:TyParam.compare edges order
-    in
-    List.filter_map
-      (fun a ->
-        if is_fixed a then None
-        else
-          match representative a with
-          | Some r when not (same_param a r) ->
-              Some
-                ( Ty_unknown a,
-                  {
-                    value = assign_ty a r;
-                    dropped = Int_set.empty;
-                    apart = true;
-                    chains = false;
-                  } )
-          | Some _ | None -> None)
-      vertices
+    List.map
+      (fun (a, r) ->
+        ( Ty_unknown a,
+          {
+            value = assign_ty a r;
+            dropped = Int_set.empty;
+            apart = true;
+            chains = false;
+          } ))
+      (Reach.collapse ~compare:TyParam.compare ~preferred:is_fixed
+         ~movable:(fun a -> not (is_fixed a))
+         edges)
 
   (* The grade hypotheses, in order. *)
   let grades st : R.reason E.hyps =

@@ -37,3 +37,17 @@ val representatives :
     are compared by [compare]. Applied to [edges] and [order] alone, the
     components are computed once, in time linear in the edges up to the cost of
     the comparisons. *)
+
+val collapse :
+  compare:('v -> 'v -> int) ->
+  preferred:('v -> bool) ->
+  movable:('v -> bool) ->
+  ('v * 'v) list ->
+  ('v * 'v) list
+(** [collapse ~compare ~preferred ~movable edges] is cycle elimination
+    (Fähndrich, Foster, Su and Aiken, PLDI 1998): each [movable] vertex of a
+    cycle of [edges], in increasing order, paired with the representative of its
+    strongly connected component where that is another vertex. The
+    representative is the first member of the component ({!representatives}) in
+    the order: the [preferred] vertices, then those neither preferred nor
+    movable, then the movable ones, each in increasing order. *)

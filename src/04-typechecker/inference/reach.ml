@@ -135,3 +135,36 @@ let representatives (type v) ~(compare : v -> v -> int) edges =
       match M.find_opt v index with
       | Some i -> first.(component.(i))
       | None -> List.find_opt (fun r -> compare r v = 0) order
+
+(* The members of both a source and a target of [edges], in increasing
+   order. *)
+let on_both_ends ~compare edges =
+  let ends pick = List.sort_uniq compare (List.map pick edges) in
+  let rec inter xs ys =
+    match (xs, ys) with
+    | x :: xs', y :: ys' ->
+        let c = compare x y in
+        if c = 0 then x :: inter xs' ys'
+        else if c < 0 then inter xs' ys
+        else inter xs ys'
+    | [], _ | _, [] -> []
+  in
+  inter (ends fst) (ends snd)
+
+(* Cycle elimination (Fähndrich, Foster, Su and Aiken, PLDI 1998). *)
+let collapse ~compare ~preferred ~movable edges =
+  let vertices = on_both_ends ~compare edges in
+  let order =
+    List.filter preferred vertices
+    @ List.filter (fun v -> not (preferred v || movable v)) vertices
+    @ List.filter movable vertices
+  in
+  let representative = representatives ~compare edges order in
+  List.filter_map
+    (fun v ->
+      if movable v then
+        match representative v with
+        | Some rep when compare rep v <> 0 -> Some (v, rep)
+        | Some _ | None -> None
+      else None)
+    vertices

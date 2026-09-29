@@ -48,12 +48,12 @@
       that is an earlier unknown or free of it, and the hypotheses entail both
       directions; the unknown is replaced by the expression, and the orderings
       made reflexive are dropped (effect unknowns first, then resource ones);
-    + lowering: the unknown has lower bounds ({!Bounds.lows}), is bounded below
+    + lowering: the unknown has lower bounds ({!Values.lower}), is bounded below
       by no other hypothesis, and occurs in the type at no contravariant
       position; it is replaced by the join of its lower bounds, and the
       orderings bounding it below are dropped;
     + raising: the unknown has an upper bound capping the others
-      ({!Bounds.ups}), is bounded above by no other hypothesis, and occurs in
+      ({!Values.raise}), is bounded above by no other hypothesis, and occurs in
       the type at no covariant position; it is replaced by the bound, and the
       orderings bounding it above are dropped;
     + cycle elimination: a type unknown on a cycle of subtyping atoms is
