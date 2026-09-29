@@ -506,9 +506,10 @@ let view_scheme (d : Model.definition) =
 
 let px x = Printf.sprintf "%.2fpx" x
 
-(* The open popover: for an error's span, its kind and headline, the label of
-   the span when it is one of the error's labels, its first note and a link to
-   its message; for a definition's name, its scheme. It is drawn hidden until
+(* The open popover: for an error's span, its kind and headline, then the
+   label of the span when it is one of the error's labels and otherwise the
+   error's first note, and a link to its message; for a definition's name, its
+   scheme. It is drawn hidden until
    measured, and then placed under or above its span. *)
 let view_popover (model : Model.model) errors =
   let error_card i label =
@@ -521,11 +522,12 @@ let view_popover (model : Model.model) errors =
               elt "p"
                 ~a:[ class_ "code-popover-label" ]
                 (rendered (Diagnostic.render_label_text ~place:"here" l.text)))
-        and note =
-          match d.notes with
-          | note :: _ ->
+        in
+        let note =
+          match (label, d.notes) with
+          | None, note :: _ ->
               [ elt "p" ~a:[ class_ "code-popover-note" ] (rendered note) ]
-          | [] -> []
+          | Some _, _ | None, [] -> []
         in
         ( (if Option.is_some label then "is-label" else "is-error"),
           [
@@ -533,8 +535,8 @@ let view_popover (model : Model.model) errors =
               ~a:[ class_ "code-popover-title" ]
               (elt "span"
                  ~a:[ class_ "code-popover-kind" ]
-                 [ text (Diagnostic.kind_to_string d.kind) ]
-              :: text " \xC2\xB7 " :: rendered d.message);
+                 [ text (Diagnostic.kind_to_string d.kind ^ ":") ]
+              :: text " " :: rendered d.message);
           ]
           @ Option.to_list label @ note
           @ [

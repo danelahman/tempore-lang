@@ -93,15 +93,18 @@ let moves_within selector event =
   Option.is_some (closest (get event "relatedTarget") selector)
 
 (* The gap between a span and its card, the margin kept from the viewport's
-   edges, and the least distance of the arrow from the card's corners. *)
+   edges, the least distance of the card from the editor's sides, and the
+   least distance of the arrow from the card's corners. *)
 let gap = 8.
 let margin = 8.
+let inset = 24.
 let arrow_inset = 14.
 
 (** [placement ~key ~point] places the drawn popover by the first line of the
     span of target [key], or its line at [point] when there is one: centred
-    under it, within the editor, and above it when the viewport has no room
-    below and more above. [None] when the card or the span is not drawn. *)
+    under it, within the editor and away from its sides, and above it when the
+    viewport has no room below and more above. [None] when the card or the span
+    is not drawn. *)
 let placement ~key ~point : Model.placement option =
   let card =
     call document "getElementById" [ Ojs.string_to_js "code-popover" ]
@@ -125,8 +128,10 @@ let placement ~key ~point : Model.placement option =
         and viewport = number window "innerHeight" in
         let centre = ((anchor.left +. anchor.right) /. 2.) -. editor.left in
         let left =
-          Float.max 0.
-            (Float.min (centre -. (width /. 2.)) (editor_width -. width))
+          Float.max inset
+            (Float.min
+               (centre -. (width /. 2.))
+               (editor_width -. width -. inset))
         in
         let arrow =
           Float.max arrow_inset
