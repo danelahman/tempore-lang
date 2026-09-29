@@ -101,16 +101,6 @@ let command (model : Model.model) = function
             model.popover)
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
   | Model.Remember (key, value) -> Now (fun () -> remember key value)
-  | Model.Copy text -> Now (fun () -> EditorDom.copy text)
-  | Model.Enter_editor (offset, line, top) ->
-      Vdom.Cmd.batch
-        [
-          Now (fun () -> EditorDom.focus_editor offset);
-          After_redraw
-            (fun () ->
-              EditorDom.keep_line line top;
-              Some (Model.CaretAt offset));
-        ]
 
 let update model msg =
   let model', side_effects = Model.update model msg in
@@ -133,7 +123,6 @@ let init =
         use_stdlib =
           recall Model.use_stdlib_key Model.init.edit_model.use_stdlib;
       };
-    show_types = recall Model.show_types_key Model.init.show_types;
   }
 
 let app = Vdom.app ~init:(init, Vdom.Cmd.batch []) ~view:View.view ~update ()

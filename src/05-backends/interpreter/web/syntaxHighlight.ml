@@ -297,12 +297,7 @@ let line_number_node ?link n =
           ~a:(Vdom.add_class classes (Vdom.attr "href" href :: attrs))
           [ Vdom.text (string_of_int n) ]
   in
-  (* Keyed by the line, so that a redraw keeps the number's element, and with
-     it the focus, when nodes are placed before it. *)
-  Vdom.elt "span"
-    ~key:("line-" ^ string_of_int n)
-    ~a:[ Vdom.class_ "line-number-anchor" ]
-    [ number ]
+  Vdom.elt "span" ~a:[ Vdom.class_ "line-number-anchor" ] [ number ]
 
 let highlight_text s =
   List.map
@@ -339,10 +334,8 @@ let rec insert_active i = function
 (** [highlight_with_marks ~marks s] highlights [s] as [highlight_text] does and
     wraps each mark's range in its class. Cutting at every token and mark
     boundary makes each segment lie inside one token and wholly inside or
-    outside each mark, so it carries that token's class and every mark's. Under
-    [line_numbers], the nodes [above] pairs with a line, counted from 0, are
-    placed at the start of that line, before its number. *)
-let highlight_with_marks ?(line_numbers = false) ?(above = []) ~marks s =
+    outside each mark, so it carries that token's class and every mark's. *)
+let highlight_with_marks ?(line_numbers = false) ~marks s =
   let n = String.length s in
   let clamp i = max 0 (min n i) in
   let marks =
@@ -465,7 +458,6 @@ let highlight_with_marks ?(line_numbers = false) ?(above = []) ~marks s =
           toks := List.tl !toks
         done;
         if line_numbers && !line < lines && starts.(!line) = start then begin
-          List.iter (fun (k, node) -> if k = !line then push node) above;
           push (line_number_node ?link:linked.(!line) (!line + 1));
           incr line
         end;

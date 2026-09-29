@@ -590,17 +590,6 @@ let view_popover (model : Model.model) errors =
             :: body))
   | _ -> nil
 
-(* The scheme of the [k]th definition, on a line of its own above it. *)
-let view_type_line ~copied k (d : Model.definition) =
-  elt "span"
-    ~key:("type-line-" ^ string_of_int k)
-    ~a:[ class_ "type-line"; attr "data-definition" (string_of_int k) ]
-    (view_scheme d
-    @
-    if copied then
-      [ elt "span" ~a:[ class_ "type-line-copied" ] [ text "Copied" ] ]
-    else [])
-
 (* What the pointer is over in the editor, reported when it changes. *)
 let onpointer (model : Model.model) =
   on_js "mousemove" (function
@@ -636,63 +625,15 @@ let onescape_popover (model : Model.model) =
           else None)
         (field "key" String))
 
-(* While the schemes are shown, the displayed program takes the clicks the
-   textarea would, its layout no longer being the textarea's: a click on a
-   scheme copies it, a click on the program puts the caret where it points, a
-   click on a line number follows the link. *)
-let onreading_click =
-  let pass =
-    { Vdom.msg = None; prevent_default = false; stop_propagation = false }
-  in
-  on_js_with_options "mousedown" (function
-    | Vdom_blit.Ojs event -> (
-        let target = EditorDom.get event "target" in
-        let handled msg =
-          { Vdom.msg; prevent_default = true; stop_propagation = false }
-        in
-        match
-          ( EditorDom.closest target ".line-number",
-            EditorDom.closest target ".type-line" )
-        with
-        | Some _, _ -> pass
-        | None, Some line ->
-            handled
-              (int_of_string_opt
-                 (Ojs.string_of_js
-                    (EditorDom.call line "getAttribute"
-                       [ Ojs.string_to_js "data-definition" ]))
-              |> Option.map (fun k -> Model.CopyScheme k))
-        | None, None ->
-            handled
-              (Option.map
-                 (fun (offset, line, top) ->
-                   Model.EnterEditor (offset, line, top))
-                 (EditorDom.character_at (EditorDom.point event))))
-    | _ -> pass)
-
 (* The editor proper: the highlighted text, with the errors' spans and the
-   definitions' names marked, the definitions' schemes above them while the
-   editor is read rather than edited, the transparent textarea stretched over
-   it, and the open popover. *)
+   definitions' names marked, the transparent textarea stretched over it, and
+   the open popover. *)
 let view_editor ~marks ~errors (model : Model.model) =
   let source = model.edit_model.unparsed_code in
   let lines = String.split_on_char '\n' source |> List.length in
   let rows = max 10 lines in
-  (* The schemes take lines the textarea has not got, so they are shown only
-     while it has not the focus. *)
-  let reading =
-    model.show_types && model.definitions <> [] && not model.editor_focused
-  in
-  let above =
-    if reading then
-      List.mapi
-        (fun k (d : Model.definition) ->
-          (d.line - 1, view_type_line ~copied:(model.copied = Some k) k d))
-        model.definitions
-    else []
-  in
   let highlighted =
-    SyntaxHighlight.highlight_with_marks ~line_numbers:true ~above ~marks
+    SyntaxHighlight.highlight_with_marks ~line_numbers:true ~marks
       (source ^ "\n")
   in
   (* The gutter is a small inset, the line numbers (0.558rem a digit at the
@@ -710,18 +651,14 @@ let view_editor ~marks ~errors (model : Model.model) =
   div
     ~a:
       [
-        class_ (if reading then "code-editor is-reading" else "code-editor");
+        class_ "code-editor";
         style "--gutter" gutter;
         onpointer model;
         onpointer_leave model;
         onescape_popover model;
       ]
     [
-      elt "pre"
-        ~a:
-          (class_ "code-editor-display syn-ml"
-          :: (if reading then [ onreading_click ] else []))
-        highlighted;
+      elt "pre" ~a:[ class_ "code-editor-display syn-ml" ] highlighted;
       elt "textarea"
         ~a:
           ([
@@ -735,8 +672,6 @@ let view_editor ~marks ~errors (model : Model.model) =
              oninsert_indent;
              oncaret_at;
              oncaret_keys;
-             onfocus (Model.FocusEditor true);
-             onblur (Model.FocusEditor false);
              int_prop "rows" rows;
              attr "placeholder" "Type a program, or load an example";
              attr "aria-label" "Program";
@@ -778,20 +713,6 @@ let view_compiler (model : Model.model) =
             ]
           [];
         text "Load standard library";
-      ]
-  and show_types =
-    elt "label"
-      ~a:[ class_ "panel-block" ]
-      [
-        input
-          ~a:
-            [
-              type_ "checkbox";
-              onchange_checked (fun show -> Model.ShowTypes show);
-              bool_prop "checked" model.show_types;
-            ]
-          [];
-        text "Show inferred types";
       ]
   in
   let load_example =
@@ -919,7 +840,7 @@ let view_compiler (model : Model.model) =
       ]
   in
   panel ~action:(page_link Model.Docs) "Code options"
-    [ use_stdlib; show_types; load_example; select_resource; run_process ]
+    [ use_stdlib; load_example; select_resource; run_process ]
 
 let edit_view (model : Model.model) =
   let errors =

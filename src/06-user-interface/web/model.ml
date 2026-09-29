@@ -13,7 +13,6 @@ type scheme_text = {
 type definition = {
   name : string;
   scheme : scheme_text;
-  line : int;  (** the line its command starts on *)
   name_span : (int * int) option;
       (** the bytes of the source where the command names the definition *)
 }
@@ -128,16 +127,6 @@ and msg =
           the span has not been found. *)
   | ShowFullError of int
       (** Scroll to the message of the given error and single it out. *)
-  | FocusEditor of bool  (** The editor has gained or lost the focus. *)
-  | ShowTypes of bool
-      (** Show or hide the inferred schemes above the definitions. *)
-  | EnterEditor of int * int * float
-      (** A click on the displayed program while the schemes are shown: the
-          offset it points at in UTF-16 code units, the index of its line, and
-          the position of that line in the viewport. *)
-  | CopyScheme of int
-      (** Copy the scheme of the given definition to the clipboard. *)
-  | Uncopied of int  (** The confirmation of a copy has run its time. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -154,10 +143,9 @@ type edit_model = {
           from. *)
 }
 
-(** The keys the browser remembers settings under. *)
+(** The key the browser remembers whether to load the standard library under. *)
 let use_stdlib_key = "tempore.use-stdlib"
 
-let show_types_key = "tempore.show-types"
 let default_resource_name = fst (List.hd Grades.GradeRegistry.grade_modules)
 
 let edit_init =
@@ -293,8 +281,6 @@ type model = {
   definitions : definition list;
       (** The definitions of the program as last checked, those accepted before
           its first error; none once the source or the options change. *)
-  show_types : bool;  (** whether their schemes are shown in the editor *)
-  editor_focused : bool;
   popover : popover option;
   pointer : pointer;
       (** What the pointer is over, so that only a change is reported. *)
@@ -303,7 +289,6 @@ type model = {
       (** The serial of the timer the popover awaits; a timer of another serial
           has been superseded. *)
   closing : bool;  (** whether that timer closes the popover *)
-  copied : int option;  (** the definition whose scheme was just copied *)
 }
 
 let init =
@@ -316,14 +301,11 @@ let init =
     page = Editor;
     gallery = None;
     definitions = [];
-    show_types = false;
-    editor_focused = false;
     popover = None;
     pointer = Nowhere;
     caret_target = None;
     timer = 0;
     closing = false;
-    copied = None;
   }
 
 (** A side effect the update asks for, performed by the page. *)
@@ -332,8 +314,6 @@ type side_effect =
   | Measure_popover  (** measure the drawn popover and send [Place] *)
   | Scroll_to_error of int  (** scroll to the message of the given error *)
   | Remember of string * bool  (** keep a setting in the browser *)
-  | Copy of string  (** put the text on the clipboard *)
-  | Enter_editor of int * int * float  (** as [EnterEditor] asks *)
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
    the interpreter: there is nothing to point at, only what went wrong. *)
@@ -491,7 +471,6 @@ let defined ~source ~name ~scheme_parts definitions =
           {
             name;
             scheme = { parameters; qualifier; ty };
-            line = at.start.line;
             name_span = defined_name source at.start.offset name;
           })
     definitions
@@ -501,10 +480,6 @@ let defined ~source ~name ~scheme_parts definitions =
 let qualification scheme =
   Option.fold ~none:"" ~some:(fun p -> "∀ " ^ p ^ ". ") scheme.parameters
   ^ Option.fold ~none:"" ~some:(fun q -> q ^ " ⇒ ") scheme.qualifier
-
-(** [scheme_string scheme] is [scheme] as the typechecker prints it, on one
-    line. *)
-let scheme_string scheme = qualification scheme ^ scheme.ty
 
 (* The update of the model proper; [update] adds the effects. *)
 let update_model model = function
@@ -537,7 +512,6 @@ let update_model model = function
         page;
         gallery;
         definitions = [];
-        copied = None;
       }
   | RunMsg run_msg -> (
       match model.run_model with
@@ -647,7 +621,6 @@ let update_model model = function
         hovered_error = None;
         stale_errors = false;
         definitions;
-        copied = None;
       }
   | EditCode ->
       {
@@ -678,12 +651,8 @@ let update_model model = function
   | OpenGallery -> { (without_popover model) with gallery = Some "" }
   | CloseGallery -> { model with gallery = None }
   | SearchGallery query -> { model with gallery = Some query }
-  | FocusEditor editor_focused -> { model with editor_focused }
-  | ShowTypes show_types -> { model with show_types }
-  | Uncopied k ->
-      if model.copied = Some k then { model with copied = None } else model
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
-  | ShowFullError _ | EnterEditor _ | CopyScheme _ ->
+  | ShowFullError _ ->
       model
 
 (* How long the pointer rests on a span before its popover opens, and how long
@@ -758,16 +727,6 @@ let update model msg =
       | _ -> (model, []))
   | ShowFullError i ->
       ({ (close model) with active_error = Some i }, [ Scroll_to_error i ])
-  | EnterEditor (offset, line, y) -> (model, [ Enter_editor (offset, line, y) ])
-  | CopyScheme k -> (
-      match List.nth_opt model.definitions k with
-      | Some d ->
-          ( { model with copied = Some k },
-            [
-              Copy (d.name ^ " : " ^ scheme_string d.scheme);
-              After (1500, Uncopied k);
-            ] )
-      | None -> (model, []))
   | CaretAt offset -> (
       (* Edited source: the spans no longer say where the caret is. The popover
          of the target the caret enters opens, and one it opened closes as the
@@ -786,8 +745,6 @@ let update model msg =
             | None, Some { point = None; _ } -> (close model, [])
             | None, _ -> (model, []))
       | _ -> (model, []))
-  | ShowTypes show_types ->
-      (update_model model msg, [ Remember (show_types_key, show_types) ])
   | EditMsg (UseStdlib use_stdlib) ->
       (update_model model msg, [ Remember (use_stdlib_key, use_stdlib) ])
   | _ -> (update_model model msg, [])

@@ -764,8 +764,8 @@
       color: #cc0f35;
     }
 
-    /* A scheme, in the popover and above its definition: the quantifier and
-       qualifier dimmer than the type. */
+    /* A scheme in the popover: the quantifier and qualifier dimmer than the
+       type. */
     .code-popover-scheme {
       font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
       font-size: 0.8rem;
@@ -785,46 +785,6 @@
       .editor-error.is-active {
         animation: none;
       }
-    }
-
-    /* The scheme of a definition, on a line of its own above it, shown while
-       the editor is not being edited; a click copies it. */
-    pre.syn-ml .type-line {
-      display: block;
-      margin: 0.1rem 0 0.05rem;
-      font-size: 0.75rem;
-      line-height: 1.4;
-      color: #57606a;
-      overflow-wrap: anywhere;
-      cursor: copy;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-
-    pre.syn-ml .type-line .scheme-qualifier {
-      color: #6a737d;
-    }
-
-    pre.syn-ml .type-line:hover .scheme-type,
-    pre.syn-ml .type-line:hover .scheme-name {
-      color: #24292e;
-    }
-
-    .type-line-copied {
-      margin-left: 0.75em;
-      font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #1d6fa5;
-    }
-
-    /* While the schemes are shown the display is laid out apart from the
-       textarea, so it takes the clicks itself. */
-    .code-editor.is-reading pre.code-editor-display {
-      pointer-events: auto;
-      cursor: text;
-    }
-
-    .code-editor.is-reading .code-editor-input {
-      pointer-events: none;
     }
 
     .error-labels,
