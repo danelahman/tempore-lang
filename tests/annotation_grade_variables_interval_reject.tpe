@@ -4,23 +4,21 @@
 
    A grade variable of an annotation shared between an argument and the result
    bounds a product of grades by one of its own factors. The unit is not the
-   least interval, so a definition bounding such a product is not refuted at
-   its definition; a run of it requires a closed instance of its qualifier. *)
+   least interval, but the qualifier places the unit below the variable, so the
+   product is bounded below by its other factor, and a definition bounding the
+   product by a smaller interval is refuted at its definition. *)
 
 (* The body of f has the grade of g followed by 10 ticks, which the annotation
    bounds by the same 'e. *)
 let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
 
-(* Accepted at its definition, where its qualifier is not refuted. *)
-let h () : unit # (0, 5) = f (fun () -> ())
-
 (* Correctly accepted by the typechecker: the top bounds the grade of f. *)
 let k () : unit # (0, inf) = f (fun () -> ())
 
-(* Correctly rejected by the typechecker: the run requires an interval ε₀ with
-   (10, 10) · ε₀ below both ε₀ and (0, 5), and there is none; h takes 10
-   ticks. *)
-run h ()
-
 (* Correctly accepted by the typechecker. *)
 run k ()
+
+(* Correctly rejected by the typechecker: the qualifier places the unit below
+   ε₀ and bounds (10, 10) · ε₀ by (0, 5), so (10, 10) would be below (0, 5);
+   h takes 10 ticks. *)
+let h () : unit # (0, 5) = f (fun () -> ())

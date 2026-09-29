@@ -1,0 +1,22 @@
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-symbolic tests/recursion_effect_reject_unannotated_regular.tpe
+
+   The unit is not the least regular grade, but the qualifier of an
+   unannotated recursive definition places it below the effect of the
+   recursive call. *)
+
+operation Read : unit ~> nat # {Read}
+
+(* Correctly rejected by the typechecker: without an annotation, the body of
+   a recursive function has the unit effect, but a round reads before the
+   recursive call, whose effect ε₀ the unit is below; the round has effect
+   {Read} · ε₀, above {Read}, which is not below the unit. *)
+let rec unannotated (n : nat) =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      perform Read ();
+      unannotated m
+
+run unannotated 2

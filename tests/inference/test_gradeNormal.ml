@@ -310,6 +310,7 @@ module Suite (G : Grade.S) = struct
 
   let closed_checks =
     let fails lhs rhs = not (G.leq bounds (G.of_nat lhs) (G.of_nat rhs)) in
+    let above_unit = G.join G.one (G.of_nat 1) in
     let failure_info = function
       | Ok _ -> None
       | Error (failure : (_, int list) GradeNormal.ordering) ->
@@ -356,6 +357,38 @@ module Suite (G : Grade.S) = struct
         (failure_info
            (N.Rho.check_closed bounds
               [ hyp (n 10) (map b) 1; hyp (map (a *. b)) (n 5) 2 ]));
+      expect "a factor above the unit by a hypothesis" show_bool
+        ~expected:(fails 3 2)
+        (Result.is_error
+           (N.Eps.check_closed bounds
+              [ hyp X.Eps.unit a 1; hyp (en 3 *. a) (en 2) 2 ]));
+      expect "a factor above the unit by a chain through a constant" show_bool
+        ~expected:
+          (fails 3 2
+          || G.leq bounds G.one (G.of_nat 3)
+             && not (G.leq bounds above_unit (G.of_nat 2)))
+        (Result.is_error
+           (N.Eps.check_closed bounds
+              [
+                hyp X.Eps.unit (X.Eps.const above_unit) 1;
+                hyp (X.Eps.const above_unit) a 2;
+                hyp (en 3 *. a) (en 2) 3;
+              ]));
+      expect "a factor above the unit through the product of two" show_bool
+        ~expected:(fails 3 2)
+        (Result.is_error
+           (N.Eps.check_closed bounds
+              [
+                hyp X.Eps.unit a 1;
+                hyp X.Eps.unit d 2;
+                hyp (a *. d) b 3;
+                hyp (en 3 *. b) (en 2) 4;
+              ]));
+      expect "a factor below the unit is not above it" show_bool
+        ~expected:(G.unit_least && fails 3 2)
+        (Result.is_error
+           (N.Eps.check_closed bounds
+              [ hyp a X.Eps.unit 1; hyp (en 3 *. a) (en 2) 2 ]));
       expect "a factor is below its product only where the unit is least"
         show_bool
         ~expected:(not (G.unit_least && not (G.leq bounds G.top (G.of_nat 1))))

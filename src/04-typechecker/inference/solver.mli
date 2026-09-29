@@ -24,7 +24,7 @@
     chains of hypotheses, are decided by the grades' order. The search for a
     closed instance of the qualifier ({!satisfiable}) decides them also through
     chains that pass from a factor of a product to the product when the other
-    factors are above the unit. *)
+    factors are above the unit, by the grade or along the hypotheses. *)
 
 module Make (C : Constraint.S) : sig
   type context = Residual.Make(C).context
@@ -91,9 +91,9 @@ module Make (C : Constraint.S) : sig
       localisation that applies to it ({!RigidScope}), the deferred conditions
       are retried, and the orderings between variable-free sides decided,
       directly or through chains that run along the hypotheses and from a factor
-      of a product to the product when the other factors are above the unit. It
-      is [Error] only when the search refutes the qualifier; an instance not
-      found is no refutation.
+      of a product to the product when the other factors are above the unit, by
+      the grade or along the hypotheses. It is [Error] only when the search
+      refutes the qualifier; an instance not found is no refutation.
 
       This is a provisional choice for top-level definitions: a definition is
       accepted unless the search refutes its qualifier, and each use of it

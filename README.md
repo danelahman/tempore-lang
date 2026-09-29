@@ -510,9 +510,10 @@ Limits:
   [Handlers and continuations](#handlers-and-continuations));
 - satisfiability of a qualifier is decided provisionally: a definition is
   rejected only when its qualifier is refuted, including through the factors
-  of a product when the unit is the least grade, and each use checks it; a
-  `run` must have a closed instance of its whole qualifier `Q ∧ R` among
-  finitely many grades per unknown.
+  of a product whose other factors are above the unit, because the unit is the
+  least grade or the hypotheses of the qualifier entail it, and each use
+  checks it; a `run` must have a closed instance of its whole qualifier
+  `Q ∧ R` among finitely many grades per unknown.
 
 ## Editor support
 <!-- web-skip -->

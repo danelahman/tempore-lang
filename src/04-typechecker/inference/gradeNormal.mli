@@ -145,7 +145,10 @@ module Make (X : GradeExp.S) : sig
         the constants, in order, when there are two or more. An atom is above
         the unit when it is a constant above it, or a variable where the unit is
         least, the variables of a resource image where the effect grade's unit
-        is. *)
+        is, or a variable that the steps reach from a variable-free side of [os]
+        above the unit, the steps being computed again with the variables so
+        found until none is added. This last evidence is drawn from [os] alone,
+        and is sound only where the orderings of [os] hold together. *)
 
     val check_closed :
       ?factors:bool ->
@@ -156,7 +159,9 @@ module Make (X : GradeExp.S) : sig
         [os] and of {!chains}[ ~factors bounds os] by the grade's order. It is
         [Error o] for the first of them that fails, [o.info] being the payloads
         of the orderings it follows from, and otherwise [Ok] of the orderings of
-        [os] that have a variable. *)
+        [os] that have a variable. A failure refutes the conjunction of [os],
+        which are therefore conjuncts of a qualifier, not atoms of a disjunction
+        or of a quantified condition. *)
 
     val refute_leq_unit : Grades.Grade.bounds -> exp -> const option
     (** [refute_leq_unit bounds e] is [Some c] when some alternative of the

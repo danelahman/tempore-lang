@@ -606,21 +606,25 @@ module Core (S : BASE) = struct
     | Some c, Some c' -> Some (S.leq bounds c c')
     | _ -> None
 
-  (* An atom that the unit is below. *)
-  let unit_below bounds = function
+  (* An atom that the unit is below: a constant above it, or a variable where
+     the unit is least, where {!S.unit_below_var} holds, or among [above]. *)
+  let unit_below bounds above = function
     | Const c -> S.leq bounds S.one c
-    | Var v -> S.unit_least || S.unit_below_var v
+    | Var v ->
+        S.unit_least || S.unit_below_var v || List.exists (equal_var v) above
 
-  (* The edges from the factors of each side that is a single product of two
-     or more atoms, unlabelled: from each atom whose co-factors are all above
-     the unit, and from the product of the constants, in order, when there are
-     two or more and every variable is above the unit. *)
-  let factor_edges bounds sides =
+  (* The edges from the factors of each side, given with its normal form, that
+     is a single product of two or more atoms, unlabelled: from each atom whose
+     co-factors are all above the unit, and from the product of the constants,
+     in order, when there are two or more and every variable is above the unit.
+     The variables [above] are taken to be above the unit. *)
+  let factor_edges bounds above sides =
     let from_factors side = function
       | [ (_ :: _ :: _ as p) ] ->
           let atoms =
             List.filteri
-              (fun i _ -> List.for_all (unit_below bounds) (remove_at i p))
+              (fun i _ ->
+                List.for_all (unit_below bounds above) (remove_at i p))
               p
           in
           let consts =
@@ -628,7 +632,8 @@ module Core (S : BASE) = struct
           in
           let vars_above =
             List.for_all
-              (function Var _ as a -> unit_below bounds a | Const _ -> true)
+              (function
+                | Var _ as a -> unit_below bounds above a | Const _ -> true)
               p
           in
           let product =
@@ -640,27 +645,85 @@ module Core (S : BASE) = struct
           List.map (fun a -> (S.exp_of_atom a, side, [])) (atoms @ product)
       | _ -> []
     in
-    List.concat_map (fun side -> from_factors side (normal bounds side)) sides
+    List.concat_map (fun (side, s) -> from_factors side s) sides
+
+  (* The vertices, numbered, and the successors of each along the edges. *)
+  let successors bounds vertices edges =
+    let vertices = Array.of_list vertices in
+    let index e =
+      Option.get (Array.find_index (fun v -> S.equal_exp bounds e v) vertices)
+    in
+    let edges = List.map (fun (a, b, _) -> (index a, index b)) edges in
+    ( vertices,
+      Array.init (Array.length vertices) (fun i ->
+          List.filter_map (fun (a, b) -> if a = i then Some b else None) edges)
+    )
+
+  (* The vertices reached from [starts], the starts included, by depth-first
+     search. *)
+  let reached successors starts =
+    let rec visit seen = function
+      | [] -> seen
+      | i :: rest when Int_set.mem i seen -> visit seen rest
+      | i :: rest -> visit (Int_set.add i seen) (successors.(i) @ rest)
+    in
+    visit Int_set.empty starts
+
+  (* The variables that are vertices reached along the edges from a
+     variable-free vertex above the unit. *)
+  let vars_reached bounds vertices edges =
+    let vertices, successors = successors bounds vertices edges in
+    let starts =
+      Array.to_seqi vertices
+      |> Seq.filter_map (fun (i, e) ->
+          match S.value e with
+          | Some c when S.leq bounds S.one c -> Some i
+          | Some _ | None -> None)
+      |> List.of_seq
+    in
+    Int_set.fold
+      (fun i vs ->
+        match S.as_atom vertices.(i) with
+        | Some (Var v) -> v :: vs
+        | Some (Const _) | None -> vs)
+      (reached successors starts)
+      []
 
   (* The graph of the orderings, for the transitive closure over it. Its
      vertices are the sides of the orderings and the sources of the factor
      edges, each once, compared syntactically. Its edges are the orderings,
      each labelled with its payload, followed, when [factors], by the
-     {!factor_edges} of the sides. *)
+     {!factor_edges} of the sides. A variable is taken to be above the unit
+     also when the graph reaches it from a variable-free vertex above the unit
+     ({!vars_reached}); the graph is built again with the variables so found
+     until no variable is added. *)
   let graph ~factors bounds orderings =
     let equal = S.equal_exp bounds in
     let insert e es = if List.exists (equal e) es then es else e :: es in
     let sides =
       List.fold_right (fun o vs -> insert o.lhs (insert o.rhs vs)) orderings []
     in
-    let steps = if factors then factor_edges bounds sides else [] in
-    let vertices =
-      List.fold_left
-        (fun vs (a, _, _) ->
-          if List.exists (equal a) vs then vs else vs @ [ a ])
-        sides steps
+    let hyps = List.map (fun o -> (o.lhs, o.rhs, [ o.info ])) orderings in
+    let normals =
+      if factors then List.map (fun side -> (side, normal bounds side)) sides
+      else []
     in
-    (vertices, List.map (fun o -> (o.lhs, o.rhs, [ o.info ])) orderings @ steps)
+    let build above =
+      let steps = factor_edges bounds above normals in
+      let vertices =
+        List.fold_left
+          (fun vs (a, _, _) ->
+            if List.exists (equal a) vs then vs else vs @ [ a ])
+          sides steps
+      in
+      (vertices, hyps @ steps)
+    in
+    let rec grow above =
+      let ((vertices, edges) as graph) = build above in
+      let above' = vars_reached bounds vertices edges in
+      if List.compare_lengths above' above > 0 then grow above' else graph
+    in
+    if factors && not S.unit_least then grow [] else build []
 
   let chains ?(factors = true) bounds orderings =
     let vertices, edges = graph ~factors bounds orderings in
@@ -683,20 +746,7 @@ module Core (S : BASE) = struct
      decided by reachability alone. *)
   let chain_fails ~factors bounds orderings =
     let vertices, edges = graph ~factors bounds orderings in
-    let vertices = Array.of_list vertices in
-    let index e =
-      Option.get (Array.find_index (fun v -> S.equal_exp bounds e v) vertices)
-    in
-    let edges = List.map (fun (a, b, _) -> (index a, index b)) edges in
-    let successors =
-      Array.init (Array.length vertices) (fun i ->
-          List.filter_map (fun (a, b) -> if a = i then Some b else None) edges)
-    in
-    let rec visit seen = function
-      | [] -> seen
-      | i :: rest when Int_set.mem i seen -> visit seen rest
-      | i :: rest -> visit (Int_set.add i seen) (successors.(i) @ rest)
-    in
+    let vertices, successors = successors bounds vertices edges in
     let fails_from i c =
       Int_set.exists
         (fun j ->
@@ -705,7 +755,7 @@ module Core (S : BASE) = struct
           match S.value vertices.(j) with
           | Some c' -> not (S.leq bounds c c')
           | None -> false)
-        (visit Int_set.empty [ i ])
+        (reached successors [ i ])
     in
     Seq.exists
       (fun (i, v) ->

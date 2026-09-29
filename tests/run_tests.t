@@ -64,6 +64,7 @@
   >     recursion_lock_lower.tpe) ../tempore $f;;
   >     recursion_lock*.tpe) ../tempore --grades time-upper-bound $f;;
   >     recursion_effect_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
+  >     recursion_effect_reject_unannotated_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
   >     recursion_effect_levels.tpe) ../tempore --grades security-levels $f;;
   >     recursion_effect_reject_lower.tpe) ../tempore $f;;
   >     recursion_effect_*.tpe) ../tempore --grades time-upper-bound $f;;
@@ -218,19 +219,18 @@
   ======================================================================
   annotation_grade_variables_interval_reject.tpe
   ======================================================================
-  File "annotation_grade_variables_interval_reject.tpe", line 23, characters 4-5:
-  23 | run h ()
-           ^
-  Typing error: The conditions of this run could not be established: `(10,10) · ε₀ <= (0,5)`, `(10,10) · ε₀ <= ε₀` and `(0,0) <= ε₀`
-    File "annotation_grade_variables_interval_reject.tpe", line 15, characters 0-43:
-    15 | let h () : unit # (0, 5) = f (fun () -> ())
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    `h` is defined here
-    File "annotation_grade_variables_interval_reject.tpe", line 12, characters 0-58:
-    12 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+  File "annotation_grade_variables_interval_reject.tpe", line 24, characters 27-28:
+  24 | let h () : unit # (0, 5) = f (fun () -> ())
+                                  ^
+  Typing error: The effect inequality `(10,10) <= (0,5)` does not hold
+    File "annotation_grade_variables_interval_reject.tpe", line 13, characters 0-58:
+    13 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `f` is defined here
-    Note: this run requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
+    File "annotation_grade_variables_interval_reject.tpe", line 24, characters 9-43:
+    24 | let h () : unit # (0, 5) = f (fun () -> ())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
   ======================================================================
   annotation_grade_variables_reject.tpe
   ======================================================================
@@ -2951,6 +2951,13 @@
   7 | let rec wait n =
                    ^^^
   Typing error: The effect inequality `1 <= 0` does not hold
+  ======================================================================
+  recursion_effect_reject_unannotated_regular.tpe
+  ======================================================================
+  File "recursion_effect_reject_unannotated_regular.tpe", lines 15-20, characters 20-19:
+  15 | let rec unannotated (n : nat) =
+                           ^^^^^^^^^^^
+  Typing error: The effect inequality `{Read} <= {0}` does not hold
   ======================================================================
   recursion_effect_upper.tpe
   ======================================================================

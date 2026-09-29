@@ -219,8 +219,10 @@ module Make (C : Constraint.S) : sig
       of two or more steps, and every disjunction of a variable-free grade. The
       chains run along the hypotheses and, when [factors] (the default), from a
       factor of a product to the product when the other factors are above the
-      unit ({!GradeNormal.Make.SORT.chains}). It is the hypotheses less those
-      decided true, or the failure of the first decided false. *)
+      unit, by the grade or along the grade orderings of [hyps]
+      ({!GradeNormal.Make.SORT.chains}); the disjunctions of [hyps] do not serve
+      as evidence. It is the hypotheses less those decided true, or the failure
+      of the first decided false. *)
 
   val hyps_to_constraint : hyps -> C.t
   (** [hyps_to_constraint hyps] is the conjunction of the atoms of [hyps]. *)
