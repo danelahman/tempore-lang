@@ -334,7 +334,7 @@ let expected_rejections =
     ("operation_reject_datatype.tpe", [ 5 ]);
     ("operation_reject_higher_order.tpe", [ 8 ]);
     ("peak_resources_reject.tpe", [ 11; 18; 28 ]);
-    ("peak_usage_reject.tpe", [ 9; 18; 27; 30 ]);
+    ("peak_usage_reject.tpe", [ 9; 18; 27; 30; 38; 41; 49 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
     ("positivity_reject_list.tpe", [ 3 ]);
     ("positivity_reject_mutual.tpe", [ 3 ]);

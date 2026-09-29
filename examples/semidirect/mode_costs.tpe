@@ -6,15 +6,21 @@
 
    Grades ((P, Q, n), ...): greatest cost n of the runs from mode P to mode Q
      - Unit 0: keeps every mode at cost 0
-     - Top ⊤: cost ∞ between any two modes
+     - Top ⊤: cost ∞ between any two modes, and into Stuck
      - Product: max-plus matrix product *)
 
-(* Switching the radio on costs 2, and switching it off nothing. No code
-   changes the mode, so these operations have no default implementation, and
-   neither have those performed only in some modes: a run stops at the first
-   of them. *)
+(* Besides the modes named there is the mode Stuck, which no run leaves: from
+   a mode in which it is not performed, an operation gets stuck. An entry
+   (P, Stuck, n) permits getting stuck from P after cost n, and a mode from
+   which a grade lists no run gets stuck at cost 0. A change between two
+   distinct modes other than Stuck costs at least 1. *)
+
+(* Switching the radio on costs 2, and switching it off 1. No code changes
+   the mode, so these operations have no default implementation, and neither
+   have those performed only in some modes: a run stops at the first of
+   them. *)
 operation RadioOn : unit ~> unit # (Off, On, 2)
-operation RadioOff : unit ~> unit # (On, Off, 0)
+operation RadioOff : unit ~> unit # (On, Off, 1)
 
 (* A sample costs 1 with the radio off and 3 with it on. *)
 operation Sample : unit ~> nat # ((Off, Off, 1), (On, On, 3))
@@ -30,8 +36,9 @@ operation Average : nat * nat ~> nat # 1
 default Average (x, y) = (x + y) / 2
 
 (* Correctly accepted by the typechecker: from the radio off back to it off,
-   sampling first and sleeping last costs 1 + 2 + 4 + 10. *)
-let report () : unit # (Off, Off, 17) =
+   sampling first and sleeping last costs 1 + 2 + 4 + 1 + 10; from the radio
+   on, the run gets stuck at switching it on, after sampling at cost 3. *)
+let report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
   let x = perform Sample () in
   perform RadioOn ();
   perform Send x;
@@ -46,24 +53,42 @@ let averaged () : nat # ((Off, Off, 3), (On, On, 7)) =
   perform Average (x, y)
 
 (* Correctly accepted by the typechecker: a branch takes the greater cost of
-   its arms between each pair of modes, here reporting or only sleeping. *)
-let maybe_report b : unit # ((Off, Off, 17), (On, On, 50)) =
+   its arms between each pair of modes, here reporting or only sleeping, and
+   from the radio on either gets stuck or keeps it on. *)
+let maybe_report b : unit # ((Off, Off, 18), (On, Stuck, 3), (On, On, 50)) =
   if b then report () else perform Sleep ()
 
 (* Correctly accepted by the typechecker: averaging alone costs 1 in any
    mode. *)
 let average_only () : nat # 1 = perform Average (4, 6)
 
+(* Correctly rejected by the typechecker: started with the radio on, a report
+   gets stuck at switching it on after cost 3, which the annotation, listing
+   only (On, On, 50) from the radio on, does not permit:
+
+     Typing error: The effect inequality
+       `((Off,Off,18),(On,Stuck,3)) <= ((Off,Off,18),(On,On,50))` does not
+       hold
+       `report` is defined here
+       the inequality goes through the annotation here
+*)
+(*
+let maybe_report_on b : unit # ((Off, Off, 18), (On, On, 50)) =
+  if b then report () else perform Sleep ()
+*)
+
 (* Correctly rejected by the typechecker: sleeping with the radio still on
    costs 50 instead of 10:
 
-     Typing error: This function's body has grade `(Off,Off,57)`, which does
-       not match its annotated grade `(Off,Off,17)`
-       Note: the effect inequality `(Off,Off,57) <= (Off,Off,17)` does not
-         hold
+     Typing error: This function's body has grade
+       `((Off,Off,58),(On,Stuck,3))`, which does not match its annotated grade
+       `((Off,Off,18),(On,Stuck,3))`
+       Note: the effect inequality
+         `((Off,Off,58),(On,Stuck,3)) <= ((Off,Off,18),(On,Stuck,3))` does
+         not hold
 *)
 (*
-let sleepy_report () : unit # (Off, Off, 17) =
+let sleepy_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
   let x = perform Sample () in
   perform RadioOn ();
   perform Send x;
@@ -72,15 +97,18 @@ let sleepy_report () : unit # (Off, Off, 17) =
 *)
 
 (* Correctly rejected by the typechecker: a transmission needs the radio on,
-   so this report has no run from the radio off, which the annotation
-   demands, and its runs from the radio on cost more than it allows:
+   so from the radio off this report gets stuck at it after sampling, which
+   the annotation does not permit, and from the radio on it keeps the radio
+   on, which the annotation does not permit either:
 
-     Typing error: This function's body has grade `(On,On,57)`, which does
-       not match its annotated grade `(Off,Off,17)`
-       Note: the effect inequality `(On,On,57) <= (Off,Off,17)` does not hold
+     Typing error: This function's body has grade `((Off,Stuck,1),(On,On,57))`,
+       which does not match its annotated grade `((Off,Off,18),(On,Stuck,3))`
+       Note: the effect inequality
+         `((Off,Stuck,1),(On,On,57)) <= ((Off,Off,18),(On,Stuck,3))` does not
+         hold
 *)
 (*
-let silent_report () : unit # (Off, Off, 17) =
+let silent_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
   let x = perform Sample () in
   perform Send x;
   perform Sleep ()

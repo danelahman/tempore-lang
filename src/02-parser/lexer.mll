@@ -104,6 +104,7 @@ rule token = parse
   | '_'                 { UNDERSCORE }
   | "⊤"                 { TOP }
   | "∞"                 { INFINITY }
+  | "≠"                 { NEQ }
   | '('                 { LPAREN }
   | ')'                 { RPAREN }
   | '['                 { LBRACK }

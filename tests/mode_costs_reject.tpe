@@ -1,21 +1,21 @@
 (* Mode costs: rejected programs. *)
 
 operation On : unit ~> unit # (Off, On, 1)
-operation Off : unit ~> unit # (On, Off, 0)
+operation Off : unit ~> unit # (On, Off, 1)
 operation Tx : unit ~> unit # (On, On, 2)
 operation Idle : unit ~> unit # 1
 
 (* Rejected: a transmission has no run from the radio off. *)
 let tx_off () : unit # (Off, Off, 2) = perform Tx ()
 
-(* Rejected: two transmissions cost 4. *)
-let two () : unit # (Off, Off, 3) =
+(* Rejected: two transmissions cost 4, and with the changes of mode 6. *)
+let two () : unit # (Off, Off, 4) =
   perform On ();
   perform Tx ();
   perform Tx ();
   perform Off ()
 
-(* Rejected: idling may happen in any mode, not only those listed. *)
+(* Rejected: idling may happen in any mode, and a transmission gets stuck. *)
 let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
   if b then perform Tx () else perform Idle ()
 

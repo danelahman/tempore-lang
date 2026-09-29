@@ -81,7 +81,7 @@
 %token AMPER AMPERAMPER
 %token LAND LOR LXOR
 %token <string> PREFIXOP INFIXOP0 INFIXOP1 INFIXOP2 INFIXOP3 INFIXOP4
-%token TOP INFINITY
+%token TOP INFINITY NEQ
 %token EOF
 
 %nonassoc ARROW IN
@@ -583,6 +583,7 @@ grade_lit:
   | name = UNAME { Grade.Name name }
   | TOP { Grade.Top }
   | INFINITY { Grade.Inf }
+  | NEQ { Grade.Name "≠" }
   | name = LNAME { named_lit ~loc:(Location.of_lexing $startpos $endpos) name }
   | LPAREN lit = grade_lit COMMA lits = separated_nonempty_list(COMMA, grade_lit) RPAREN
     { Grade.Tuple (lit :: lits) }

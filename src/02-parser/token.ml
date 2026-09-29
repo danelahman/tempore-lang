@@ -73,4 +73,5 @@ type token =
   | INFIXOP4 of string
   | TOP
   | INFINITY
+  | NEQ
   | EOF

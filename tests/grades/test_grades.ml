@@ -267,6 +267,69 @@ let literals =
            Tuple [ Name "_"; Int 0; Int 1 ];
          ])
       "((Files,0,2),(_,0,1))";
+    reads "infinite net change" peak_usage (Tuple [ Inf; Inf ]) "(∞,∞)";
+    reads "explicit trough" peak_usage
+      (Tuple [ Int (-1); Int 0; Int 0 ])
+      "(-1,0,0)";
+    reads "implied trough" peak_usage
+      (Tuple [ Int (-1); Int (-1); Int 0 ])
+      "(-1,0)";
+    reads "range" peak_usage
+      (Tuple [ Tuple [ Int 0; Int 1 ]; Int 1 ])
+      "((0,1),1)";
+    reads "range with a trough" peak_usage
+      (Tuple [ Int (-2); Tuple [ Int (-1); Int 1 ]; Int 2 ])
+      "(-2,(-1,1),2)";
+    reads "range unbounded above" peak_usage
+      (Tuple [ Tuple [ Int 0; Inf ]; Inf ])
+      "((0,∞),∞)";
+    reads "range unbounded below" peak_usage
+      (Tuple [ Tuple [ Top; Int 0 ]; Int 0 ])
+      "((⊤,0),0)";
+    reads "unbounded trough" peak_usage (Tuple [ Top; Int 0; Int 0 ]) "(⊤,0,0)";
+    reads "unbounded everywhere" peak_usage
+      (Tuple [ Tuple [ Top; Inf ]; Inf ])
+      "(∞,∞)";
+    rejects "trough above 0" peak_usage
+      (Tuple [ Int 1; Int 1; Int 1 ])
+      "the trough must be at most 0";
+    rejects "trough above the net change" peak_usage
+      (Tuple [ Int (-1); Int (-2); Int 0 ])
+      "at most the net change";
+    rejects "reversed range" peak_usage
+      (Tuple [ Tuple [ Int 2; Int 1 ]; Int 2 ])
+      "the least net change must be at most the greatest";
+    rejects "peak below the range" peak_usage
+      (Tuple [ Tuple [ Int 0; Int 2 ]; Int 1 ])
+      "the peak must be at least 0 and at least the net change";
+    rejects "infinite trough" peak_usage
+      (Tuple [ Inf; Int 0; Int 0 ])
+      "in the trough, troughs are integers or '⊤', not '∞'";
+    rejects "infinite least net change" peak_usage
+      (Tuple [ Tuple [ Inf; Int 1 ]; Int 1 ])
+      "in the net change, net changes are integers or '⊤', not '∞'";
+    rejects "infinite exact net change with a trough" peak_usage
+      (Tuple [ Int 0; Inf; Inf ])
+      "in the net change, net changes are integers or ranges";
+    rejects "four components" peak_usage
+      (Tuple [ Int 0; Int 0; Int 0; Int 0 ])
+      "not tuples";
+    reads "resource with a trough" peak_usage
+      (Tuple [ Name "Files"; Int (-1); Int 0; Int 0 ])
+      "(Files,-1,0,0)";
+    reads "resource with a range" peak_usage
+      (Tuple [ Name "Files"; Tuple [ Int 0; Int 1 ]; Int 1 ])
+      "(Files,(0,1),1)";
+    reads "other resources with a trough" peak_usage
+      (Tuple
+         [
+           Tuple [ Name "Files"; Int 0; Int 2 ];
+           Tuple [ Name "_"; Int (-1); Int 0; Int 0 ];
+         ])
+      "((Files,0,2),(_,-1,0,0))";
+    rejects "resource trough above 0" peak_usage
+      (Tuple [ Name "Files"; Int 1; Int 1; Int 1 ])
+      "in the entry of 'Files', the trough must be at most 0";
     reads "resource at the unit" peak_usage
       (Tuple [ Name "Files"; Int 0; Int 0 ])
       "(0,0)";
@@ -388,7 +451,50 @@ let literals =
            Tuple [ Name "Off"; Name "Off"; Inf ];
          ])
       "((Off,Off,∞),(On,On,3))";
+    reads "stuck from a mode" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "Off"; Name "Off"; Int 18 ];
+           Tuple [ Name "On"; Name "Stuck"; Int 6 ];
+         ])
+      "((Off,Off,18),(On,Stuck,6))";
+    reads "stuck at no cost left implicit" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "Off"; Name "On"; Int 2 ];
+           Tuple [ Name "On"; Name "Stuck"; Int 0 ];
+         ])
+      "(Off,On,2)";
+    reads "stuck besides another run" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "On"; Name "On"; Int 2 ];
+           Tuple [ Name "On"; Name "Stuck"; Int 0 ];
+         ])
+      "((On,On,2),(On,Stuck,0))";
+    reads "stuck everywhere" mode_costs
+      (Tuple [ Name "Stuck"; Name "Stuck"; Int 0 ])
+      "(Stuck,Stuck,0)";
+    reads "stuck in every mode named" mode_costs
+      (Tuple [ Name "On"; Name "Stuck"; Int 0 ])
+      "(Stuck,Stuck,0)";
+    reads "the stuck row" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "Off"; Name "Off"; Int 1 ];
+           Tuple [ Name "Stuck"; Name "Stuck"; Int 0 ];
+         ])
+      "(Off,Off,1)";
     reads "top" mode_costs Top "⊤";
+    rejects "change of mode at no cost" mode_costs
+      (Tuple [ Name "On"; Name "Off"; Int 0 ])
+      "in the cost from 'On' to 'Off', a change of mode costs at least 1";
+    rejects "leaving the stuck mode" mode_costs
+      (Tuple [ Name "Stuck"; Name "On"; Int 1 ])
+      "no run leaves the mode 'Stuck'";
+    rejects "staying stuck at a cost" mode_costs
+      (Tuple [ Name "Stuck"; Name "Stuck"; Int 1 ])
+      "which it keeps at cost 0";
     rejects "negative cost" mode_costs
       (Tuple [ Name "Off"; Name "On"; Int (-1) ])
       "in the cost from 'Off' to 'On', costs must be non-negative";
@@ -399,9 +505,31 @@ let literals =
            Tuple [ Name "On"; Name "On"; Int 4 ];
          ])
       "listed twice";
-    rejects "unnamed mode" mode_costs
-      (Tuple [ Name "_"; Name "On"; Int 1 ])
-      "'_' names none";
+    reads "modes not named" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "On"; Name "On"; Int 2 ];
+           Tuple [ Name "_"; Name "_"; Int 1 ];
+           Tuple [ Name "_"; Name "Stuck"; Int 0 ];
+         ])
+      "((On,On,2),(_,_,1),(_,Stuck,0))";
+    reads "to and from the modes not named" mode_costs
+      (Tuple
+         [
+           Tuple [ Name "On"; Name "_"; Int 1 ];
+           Tuple [ Name "_"; Name "On"; Int 2 ];
+           Tuple [ Name "_"; Name "≠"; Inf ];
+         ])
+      "((On,_,1),(_,On,2),(_,≠,∞))";
+    rejects "change to a mode not named at no cost" mode_costs
+      (Tuple [ Name "On"; Name "_"; Int 0 ])
+      "in the cost from 'On' to '_', a change of mode costs at least 1";
+    rejects "change between modes not named at no cost" mode_costs
+      (Tuple [ Name "_"; Name "≠"; Int 0 ])
+      "a change of mode costs at least 1";
+    rejects "another mode not named after a mode named" mode_costs
+      (Tuple [ Name "On"; Name "≠"; Int 1 ])
+      "only an entry from '_' ends in '≠'";
     rejects "pair" mode_costs (Tuple [ Int 1; Int 2 ]) "not pairs";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
@@ -1115,32 +1243,186 @@ let indexed =
   @ algebra_laws (module RegexByName) ~context bounds regex_samples
   @ laws (module RegexByName) ~context bounds regex_samples
 
-(* The laws of the mode costs on grades over the modes [Off], [On] and [Idle]
-   and the modes not named. *)
+(* [Reader (G)] reads the literals of [G] by the parser, in the grade position
+   of a box. *)
+module Reader (G : Grade.S) = struct
+  module Grammar = Parser.Grammar.Make (Grades.GradeSystem.Identity (G))
+
+  let parse text =
+    let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
+    match Grammar.payload (Parser.Lexer.tokens ()) lexbuf with
+    | { it = SugaredAst.GenBox ({ it = SugaredAst.GradeLit rho; _ }, _); _ } ->
+        Ok rho
+    | _ -> Error "not a box of a literal"
+    | exception Grammar.Error -> Error "parser error"
+    | exception Utils.Error.Error d -> Error d.Utils.Diagnostic.message
+end
+
+(* The laws of the mode costs on grades over the modes [Off], [On] and [Idle],
+   the modes not named and [Stuck]: changes of mode, operations performed only
+   in some modes, runs stuck at a cost, entries of the modes not named, the
+   unit and the top, and the products and joins of the partial operations and
+   changes of mode. Besides, the product of two partial operations; the
+   totality of the products, a grade [x] having a run from every mode iff
+   [(Stuck,Stuck,0) ≾ x · (Stuck,Stuck,0)]; and the reading back of the
+   printed grades. *)
 let mode_laws =
   let module M = Grades.ModeGrades.ModeCosts in
-  let entry p q c = Grade.Tuple [ Grade.Name p; Grade.Name q; c ] in
+  let open Grade in
+  let entry p q c = Tuple [ Name p; Name q; c ] in
+  let send = entry "On" "On" (Int 4)
+  and radio_on = entry "Off" "On" (Int 2)
+  and radio_off = entry "On" "Off" (Int 1)
+  and stuck_after =
+    Tuple [ entry "Off" "Off" (Int 18); entry "On" "Stuck" (Int 6) ]
+  and round_trip =
+    Tuple [ entry "On" "Off" (Int 1); entry "Off" "On" (Int 1) ]
+  in
+  let partial =
+    List.map M.of_lit [ send; radio_on; radio_off; stuck_after; round_trip ]
+  in
   let lits =
     [
-      entry "Off" "On" (Grade.Int 2);
-      entry "On" "Off" (Grade.Int 0);
-      Grade.Tuple
-        [ entry "Off" "Off" (Grade.Int 1); entry "On" "On" (Grade.Int 3) ];
-      Grade.Int 1;
-      Grade.Tuple
-        [ entry "Idle" "On" Grade.Inf; entry "On" "Idle" (Grade.Int 1) ];
+      send;
+      radio_on;
+      radio_off;
+      stuck_after;
+      round_trip;
+      Tuple [ entry "Off" "Off" (Int 1); entry "On" "On" (Int 3) ];
+      Int 1;
+      Tuple [ entry "Idle" "On" Inf; entry "On" "Idle" (Int 1) ];
+      Tuple [ entry "On" "On" (Int 2); entry "On" "Stuck" (Int 0) ];
+      entry "Stuck" "Stuck" (Int 0);
+      Tuple
+        [
+          entry "On" "On" (Int 2);
+          entry "_" "_" (Int 1);
+          entry "_" "Stuck" (Int 0);
+        ];
+      Tuple
+        [ entry "On" "_" (Int 1); entry "_" "On" (Int 2); entry "_" "≠" Inf ];
     ]
   in
-  let samples = indexed_samples (module M) lits in
+  let distinct =
+    List.fold_left
+      (fun xs x ->
+        if List.exists (fun y -> M.compare x y = 0) xs then xs else xs @ [ x ])
+      []
+  in
+  let samples =
+    distinct
+      ((M.one :: M.top :: List.map M.of_lit lits)
+      @ List.concat_map
+          (fun x ->
+            List.concat_map (fun y -> [ M.mul x y; M.join x y ]) partial)
+          (M.top :: M.of_lit (Int 1) :: partial))
+  in
+  let stuck = M.of_lit (entry "Stuck" "Stuck" (Int 0)) in
+  let total x = M.leq bounds stuck (M.mul x stuck) in
+  let send = M.of_lit send and radio_on = M.of_lit radio_on in
+  let reads_back x =
+    let module R = Reader (M) in
+    match R.parse (M.show x) with
+    | Ok x' -> M.compare x x' = 0
+    | Error _ -> false
+  in
   let context = "mode costs" in
-  order_laws (module M) ~context bounds samples
+  [
+    expect "mode-costs: a partial operation, then another" Fun.id
+      ~expected:"(On,Stuck,4)"
+      (M.show (M.mul send radio_on));
+    expect "mode-costs: a partial operation, then another, not the unit"
+      show_bool ~expected:false
+      (M.leq bounds (M.mul send radio_on) M.one);
+    all "mode-costs: products total"
+      (fun (x, y) -> M.show x ^ ", " ^ M.show y)
+      (fun (x, y) -> total (M.mul x y))
+      (pairs samples);
+    all "mode-costs: printed grades read back" M.show reads_back
+      (samples @ List.concat_map (fun x -> List.map (M.mul x) samples) samples);
+  ]
+  @ order_laws (module M) ~context bounds samples
   @ algebra_laws (module M) ~context bounds samples
   @ of_nat_laws (module M) bounds ()
+
+(* The laws of the peak usage on grades acquiring and releasing the resources
+   [Files] and [Sockets], with ranges of net changes, explicit and unbounded
+   troughs and an entry of the resources not named, the unit and the top; and
+   the products and joins of a release and an acquisition with these. Besides,
+   the order of a release and an acquisition, and the reading back of the
+   printed grades. *)
+let peak_laws =
+  let module P = Grades.PeakGrades.PeakUsage in
+  let module R = Reader (P) in
+  let open Grade in
+  let entry name components = Tuple (Name name :: components) in
+  let release = entry "Files" [ Int (-1); Int 0 ]
+  and acquisition = entry "Files" [ Int 1; Int 1 ] in
+  let lits =
+    [
+      release;
+      acquisition;
+      entry "Sockets" [ Tuple [ Int 0; Int 2 ]; Int 3 ];
+      entry "Files" [ Int (-1); Int 0; Int 0 ];
+      entry "Files" [ Int (-2); Tuple [ Int (-1); Int 1 ]; Int 2 ];
+      entry "Sockets" [ Int 1; Int 2 ];
+      entry "Files" [ Top; Int 0; Int 0 ];
+      Tuple
+        [ entry "Files" [ Int (-1); Int 0 ]; entry "Sockets" [ Int 1; Int 1 ] ];
+      Tuple
+        [
+          entry "Files" [ Int 0; Int 2 ];
+          entry "_" [ Tuple [ Int (-1); Inf ]; Inf ];
+        ];
+    ]
+  in
+  let close = P.of_lit release and open_ = P.of_lit acquisition in
+  let base = P.one :: P.top :: List.map P.of_lit lits in
+  let distinct =
+    List.fold_left
+      (fun xs x ->
+        if List.exists (fun y -> P.compare x y = 0) xs then xs else xs @ [ x ])
+      []
+  in
+  let samples =
+    distinct
+      (base
+      @ List.concat_map
+          (fun x ->
+            [
+              P.mul x close;
+              P.mul close x;
+              P.mul x open_;
+              P.mul open_ x;
+              P.join x close;
+              P.join x open_;
+            ])
+          base)
+  in
+  let reads_back x =
+    match R.parse (P.show x) with
+    | Ok x' -> P.compare x x' = 0
+    | Error _ -> false
+  in
+  let context = "peak usage" in
+  [
+    expect "peak-usage: not commutative" show_bool ~expected:false P.commutative;
+    expect "peak-usage: unit not least" show_bool ~expected:false P.unit_least;
+    expect "peak-usage: a release, then an acquisition" Fun.id
+      ~expected:"(Files,-1,0,0)"
+      (P.show (P.mul close open_));
+    expect "peak-usage: an acquisition, then a release" Fun.id
+      ~expected:"(Files,0,1)"
+      (P.show (P.mul open_ close));
+    all "peak-usage: printed grades read back" P.show reads_back samples;
+  ]
+  @ order_laws (module P) ~context costs samples
+  @ algebra_laws (module P) ~context costs samples
 
 let () =
   let checks =
     levels @ products @ counterexamples @ witnesses @ literals @ tops @ registry
-    @ registered_laws @ indexed @ mode_laws
+    @ registered_laws @ indexed @ mode_laws @ peak_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

@@ -1927,10 +1927,10 @@
   ======================================================================
   literals_reject_modes.tpe
   ======================================================================
-  File "literals_reject_modes.tpe", line 3, characters 19-29:
-  3 | let claim () = box (On, _, 1) 1
-                         ^^^^^^^^^^
-  Syntax error: in the 'mode-costs' grading monoid, modes are named, and '_' names none
+  File "literals_reject_modes.tpe", line 3, characters 19-31:
+  3 | let claim () = box (On, Off, 0) 1
+                         ^^^^^^^^^^^^
+  Syntax error: in the 'mode-costs' grading monoid, in the cost from 'On' to 'Off', a change of mode costs at least 1
   ======================================================================
   literals_reject_name.tpe
   ======================================================================
@@ -2112,16 +2112,16 @@
     Note: the effect inequality `(On,On,2) <= (Off,Off,2)` does not hold
   
   File "mode_costs_reject.tpe", lines 12-16, characters 11-16:
-  12 | let two () : unit # (Off, Off, 3) =
+  12 | let two () : unit # (Off, Off, 4) =
                   ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `(Off,Off,5)`, which does not match its annotated grade `(Off,Off,3)`
-    Note: the effect inequality `(Off,Off,5) <= (Off,Off,3)` does not hold
+  Typing error: This function's body has grade `(Off,Off,6)`, which does not match its annotated grade `(Off,Off,4)`
+    Note: the effect inequality `(Off,Off,6) <= (Off,Off,4)` does not hold
   
   File "mode_costs_reject.tpe", lines 19-20, characters 17-46:
   19 | let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `((On,On,2),(_,_,1))`, which does not match its annotated grade `((Off,Off,1),(On,On,2))`
-    Note: the effect inequality `((On,On,2),(_,_,1)) <= ((Off,Off,1),(On,On,2))` does not hold
+  Typing error: This function's body has grade `((On,On,2),(_,_,1),(_,Stuck,0))`, which does not match its annotated grade `((Off,Off,1),(On,On,2))`
+    Note: the effect inequality `((On,On,2),(_,_,1),(_,Stuck,0)) <= ((Off,Off,1),(On,On,2))` does not hold
   
   File "mode_costs_reject.tpe", line 28, characters 15-33:
   28 |   | Tx () k -> continue k with ()
@@ -2514,9 +2514,12 @@
   ======================================================================
   peak_resources.tpe
   ======================================================================
-  === Run 1 ===
-  return (File "a", File "b")
-  State: []
+  === Run 1 (unhandled operation) ===
+  perform Lock () (op_var.
+    (return op_var;
+     let a = perform Open "a" (op_var. return op_var) in
+     let b = perform Open "b" (op_var. return op_var) in
+     return (a, b)))
   
   ======================================================================
   peak_resources_reject.tpe
@@ -2560,13 +2563,14 @@
         fun op_var ↦
           handle
             let a = return op_var in
-            let b = perform Open "b" (op_var. return op_var) in
+            let b = perform Reserve "b" (op_var. return op_var) in
             return (a, b)
           with handler
                | return x ↦ return x
-               | Open (name, k) ↦ unbox k as unbox_var in
-                                  unbox_var (File name)
-        # (1,1),
+               | Reserve (name, k) ↦
+                           unbox k as unbox_var in
+                           unbox_var (File name)
+        # ((0,1),1),
       resource_3 ↦
         fun op_var ↦
           handle
@@ -2574,9 +2578,10 @@
             return (File "a", b)
           with handler
                | return x ↦ return x
-               | Open (name, k) ↦ unbox k as unbox_var in
-                                  unbox_var (File name)
-        # (1,1)
+               | Reserve (name, k) ↦
+                           unbox k as unbox_var in
+                           unbox_var (File name)
+        # ((0,1),1)
     }
   ]
   
@@ -2630,6 +2635,32 @@
                      ^
     `k` is bound here
     Note: the resource inequality `(0,0) <= (-1,0)` does not hold
+  
+  File "peak_usage_reject.tpe", line 38, characters 0-29:
+  38 | default Open name = File name
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Open` has grade `(0,0)`, which does not match the declared grade `(1,1)` of `Open`
+    File "peak_usage_reject.tpe", line 5, characters 0-40:
+    5 | operation Open : string ~> file # (1, 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Open` is declared here
+    Note: the effect inequality `(0,0) <= (1,1)` does not hold
+  
+  File "peak_usage_reject.tpe", line 45, characters 19-44:
+  45 |   | Open name k -> continue k with File name
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with the unit grade `(0,0)` accumulated since it was bound, which is not below its box grade `(1,1)`
+    File "peak_usage_reject.tpe", line 45, characters 14-15:
+    45 |   | Open name k -> continue k with File name
+                       ^
+    `k` is bound here
+    Note: the resource inequality `(0,0) <= (1,1)` does not hold
+  
+  File "peak_usage_reject.tpe", lines 49-52, characters 18-3:
+  49 | let rotate_late f : file # (-1, 0, 0) =
+                         ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(0,1)`, which does not match its annotated grade `(-1,0,0)`
+    Note: the effect inequality `(0,1) <= (-1,0,0)` does not hold
   ======================================================================
   polymorphism.tpe
   ======================================================================

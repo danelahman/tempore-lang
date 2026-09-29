@@ -14,6 +14,8 @@
     - [mul] is associative, with unit [one];
     - [leq] is a preorder, whose equivalence is [equal];
     - [mul] is monotone in both arguments;
+    - the unit has the zero-product property: [c · d ≾ one] implies [c ≾ one]
+      and [d ≾ one];
     - [join] is a least upper bound and [top] a greatest element;
     - [mul] distributes over [join] on both sides: [c · (d ⊔ e) = c · d ⊔ c · e]
       and [(d ⊔ e) · c = d · c ⊔ e · c];

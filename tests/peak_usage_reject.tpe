@@ -32,3 +32,21 @@ let released () =
   handler
   | x -> x
   | Close f k -> continue k with ()
+
+(* Rejected: opening has no default implementation, since no code meets its
+   grade. *)
+default Open name = File name
+
+(* Rejected: a handler cannot give an open without holding a descriptor. *)
+let unheld () =
+  handle perform Open "f" with
+  handler
+  | x -> x
+  | Open name k -> continue k with File name
+
+(* Rejected: opening a descriptor before closing the given one rises to one
+   above the start. *)
+let rotate_late f : file # (-1, 0, 0) =
+  let g = perform Open "g" in
+  perform Close f;
+  g

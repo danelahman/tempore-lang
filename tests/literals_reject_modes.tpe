@@ -1,3 +1,3 @@
-(* Rejected: the modes of an entry are named. *)
+(* Rejected: a change of mode costs at least 1. *)
 
-let claim () = box (On, _, 1) 1
+let claim () = box (On, Off, 0) 1

@@ -59,7 +59,7 @@ Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_
 Security levels | Flow-sensitive outputs | flow-levels | levels/flow_levels.tpe | A report whose public post must come before the vault is read, each output graded by the level touched before it.
 
 group | Semidirect products | Grades whose second component is shifted by the first.
-Semidirect products | Peak usage | peak-usage | semidirect/peak_usage.tpe | File copies and uploads graded by the net change and the peak of the files and connections they hold.
+Semidirect products | Peak usage | peak-usage | semidirect/peak_usage.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
 Semidirect products | Time windows | time-windows | semidirect/time_windows.tpe | A sensor node whose transmissions are graded by the ticks of its frames at which they happen.
 Semidirect products | Mode costs | mode-costs | semidirect/mode_costs.tpe | A sensor node whose energy costs depend on whether its radio is on, as max-plus matrices over the modes.
 

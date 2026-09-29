@@ -1,4 +1,6 @@
-(* Peak usage by resource: each resource named in an entry (R, d, h). *)
+(* Peak usage by resource: each resource named in an entry (R, d, h). No code
+   meets the grades of the operations, so none has a default implementation,
+   and a run stops at its first operation. *)
 
 type file = File of string
 
@@ -6,9 +8,6 @@ operation Open : string ~> file # (Files, 1, 1)
 operation Close : file ~> unit # (Files, -1, 0)
 operation Lock : unit ~> unit # (Locks, 1, 1)
 operation Unlock : unit ~> unit # (Locks, -1, 0)
-
-default Open name = File name
-default Lock () = ()
 
 (* Accepted: each resource is bounded on its own. *)
 let locked_pair () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
@@ -31,6 +30,17 @@ let within_two () : unit # (0, 2) = locked_pair ()
 
 (* Accepted: an entry '(_, d, h)' bounds every resource not listed. *)
 let others () : unit # ((Files, 0, 2), (_, 0, 1)) = locked_pair ()
+
+(* Accepted: an entry '(R, (d1, d2), h)' bounds the net change of a resource
+   within a range. *)
+let maybe_open b : unit # (Files, (0, 1), 1) =
+  if b then (let f = perform Open "a" in ()) else ()
+
+(* Accepted: an entry '(R, t, d, h)' also bounds the trough of a resource, here
+   a lock released before it is taken again. *)
+let relock () : unit # (Locks, -1, 0, 0) =
+  perform Unlock ();
+  perform Lock ()
 
 (* Accepted: a box of grade ((Files, 0, 1), (Locks, 1, 1)) survives opening and
    closing a file and taking a lock. *)

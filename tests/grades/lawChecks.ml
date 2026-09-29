@@ -25,8 +25,9 @@ let triples xs =
   List.concat_map (fun (x, y) -> List.map (fun z -> (x, y, z)) xs) (pairs xs)
 
 (* [order_laws (module G) ~context bounds samples] checks the laws of a
-   preorder with a monotone product, a join and a top on [samples] under
-   [bounds], described by [context] in the reports. *)
+   preorder with a monotone product, a join and a top, and the zero-product
+   law of the unit, on [samples] under [bounds], described by [context] in the
+   reports. *)
 let order_laws (type a) (module G : Grade.S with type t = a) ~context bounds
     (samples : a list) =
   let name law = G.name ^ ": " ^ law in
@@ -59,6 +60,10 @@ let order_laws (type a) (module G : Grade.S with type t = a) ~context bounds
          (fun (x, y) -> List.map (fun z -> (x, y, z)) samples)
          (pairs (List.filteri (fun i _ -> i < 8) samples)));
     all (name "top greatest") show1 (fun x -> leq x G.top) samples;
+    all (name "zero product") show2
+      (fun (x, y) ->
+        implies (leq (G.mul x y) G.one) (leq x G.one && leq y G.one))
+      (pairs samples);
     all
       (name "equal is mutual leq")
       show2

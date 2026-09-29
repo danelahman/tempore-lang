@@ -1,28 +1,32 @@
-(* File copies and uploads, checked against the peak of each resource held.
+(* File copies and uploads, checked against the levels of each resource held.
 
    Run this example with the 'peak-usage' grading monoid, e.g.
 
      ./tempore --grades peak-usage examples/semidirect/peak_usage.tpe
 
-   Grades ((R, d, h), ...): net change d and peak h of each resource R held
+   Grades ((R, t, d, h), ...): trough t, net change d, peak h of resource R
      - Unit (0, 0): no resource changed or held
-     - Top (∞, ∞): unbounded change and peak of every resource
-     - Product: (d, h) · (d', h') = (d + d', max(h, d + h')), per resource *)
+     - Top (∞, ∞): unbounded trough, net change and peak of every resource
+     - Product: net changes added, later levels shifted by earlier changes *)
+
+(* The levels are relative to the level at the start. An entry (R, d, h) has
+   the trough min(0, d), and a net change (d1, d2) ranges from d1 to d2:
+   (t, [d1, d2], h) · (t', [d1', d2'], h')
+     = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h')). *)
 
 type file = File of string
 type socket = Socket of string
 
-(* Opening a file holds one more file, and closing one releases it. No code
-   releases a file, so closing has no default implementation, and a run stops
-   at its first 'Close'. *)
+(* Opening a file holds exactly one more file, and closing one releases it.
+   No code acquires or releases a file, so neither has a default
+   implementation, and a run stops at its first 'Open'. *)
 operation Open : string ~> file # (Files, 1, 1)
-default Open name = File name
 
 operation Close : file ~> unit # (Files, -1, 0)
 
-(* Connecting holds one more socket, and disconnecting releases it. *)
+(* Connecting holds exactly one more socket, and disconnecting releases it;
+   neither has a default implementation either. *)
 operation Connect : string ~> socket # (Sockets, 1, 1)
-default Connect host = Socket host
 
 operation Disconnect : socket ~> unit # (Sockets, -1, 0)
 
@@ -74,6 +78,13 @@ let backup_and_upload () : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
 let maybe_upload b : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
   if b then upload "a" else backup ()
 
+(* Correctly accepted by the typechecker: rotating a log closes the file it is
+   given before opening the next one, falling one file below the level at the
+   start and never rising above it. *)
+let rotate log : file # (Files, -1, 0, 0) =
+  perform Close log;
+  perform Open "log.1"
+
 (* Correctly rejected by the typechecker: the source is never closed, so one
    file is still held at the end:
 
@@ -108,6 +119,21 @@ let mirror (src, dst) : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
   copy (src, dst);
   perform Disconnect d;
   perform Disconnect c
+*)
+
+(* Correctly rejected by the typechecker: opening the next log before closing
+   the one given holds one more file than the annotation allows:
+
+     Typing error: This function's body has grade `(Files,0,1)`, which does
+       not match its annotated grade `(Files,-1,0,0)`
+       Note: the effect inequality `(Files,0,1) <= (Files,-1,0,0)` does not
+         hold
+*)
+(*
+let rotate_early log : file # (Files, -1, 0, 0) =
+  let next = perform Open "log.1" in
+  perform Close log;
+  next
 *)
 
 run backup ()

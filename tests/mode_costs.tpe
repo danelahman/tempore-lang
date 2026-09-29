@@ -1,14 +1,14 @@
 (* Mode costs: the greatest cost of the runs between each pair of modes. *)
 
 operation On : unit ~> unit # (Off, On, 1)
-operation Off : unit ~> unit # (On, Off, 0)
+operation Off : unit ~> unit # (On, Off, 1)
 operation Tx : unit ~> unit # (On, On, 2)
 operation Idle : unit ~> unit # 1
 
 default Idle () = ()
 
 (* Accepted: switching on, transmitting and switching off. *)
-let on_tx_off () : unit # (Off, Off, 3) =
+let on_tx_off () : unit # (Off, Off, 4) =
   perform On ();
   perform Tx ();
   perform Off ()
@@ -20,9 +20,15 @@ let idle_twice () : unit # 2 =
   delay 5;
   perform Idle ()
 
-(* Accepted: a branch between a transmission and idling costs at most 2 in
-   every mode. *)
-let idle_or_tx b : unit # 2 = if b then perform Tx () else perform Idle ()
+(* Accepted: a branch between a transmission and switching the radio off and
+   on again costs at most 2 with the radio on, and is stuck otherwise. *)
+let tx_or_cycle b : unit # (On, On, 2) =
+  if b then perform Tx () else (perform Off (); perform On ())
+
+(* Accepted: a branch between a transmission and idling costs 2 with the
+   radio on, and in any other mode either keeps it at cost 1 or is stuck. *)
+let idle_or_tx b : unit # ((On, On, 2), (_, _, 1), (_, Stuck, 0)) =
+  if b then perform Tx () else perform Idle ()
 
 (* Accepted: a box of grade (Off, On, 3) is unboxed after switching on and
    transmitting. *)

@@ -12,7 +12,7 @@
 (test
  (name test_grades)
  (modules test_grades)
- (libraries language grades lawChecks))
+ (libraries utils language grades lawChecks parser sugaredAst))
 
 (test
  (name test_regularTraces)

@@ -164,8 +164,9 @@ let entries =
     entry
       (module PeakGrades.PeakUsage)
       "Semidirect products" "Peak usage"
-      "Pairs (d, h) of the net change and the peak of a resource held, such as \
-       open files; a later peak is shifted by the earlier change.";
+      "Triples (t, d, h) of the trough, the net change and the peak of a \
+       resource held, such as open files; later levels are shifted by the \
+       earlier change.";
     entry
       (module WindowGrades.TimeWindows)
       "Semidirect products" "Time windows"
@@ -175,7 +176,8 @@ let entries =
       (module ModeGrades.ModeCosts)
       "Semidirect products" "Mode costs"
       "Max-plus matrices of the costs between named modes, such as (Off, On, \
-       2); an operation has no run from the modes its grade does not name.";
+       2); an operation gets stuck from the modes its grade does not start \
+       from, and a change of mode costs at least 1.";
     entry
       (module CountGrades.UpperBound)
       "Operation counts" "Upper bounds"

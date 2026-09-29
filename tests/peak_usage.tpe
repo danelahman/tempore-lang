@@ -1,11 +1,13 @@
-(* Peak usage: the net change of the descriptors held and their peak. *)
+(* Peak usage: the trough, the net change of the descriptors held and their
+   peak. *)
 
 type file = File of string
 
 operation Open : string ~> file # (1, 1)
 operation Close : file ~> unit # (-1, 0)
+operation Reserve : string ~> file # ((0, 1), 1)
 
-default Open name = File name
+default Reserve name = File name
 
 (* Accepted: the peak is two, and both descriptors are released. *)
 let pair () : unit # (0, 2) =
@@ -14,11 +16,11 @@ let pair () : unit # (0, 2) =
   perform Close b;
   perform Close a
 
-(* Accepted: the grade is inferred, the peak of the second open shifted by
-   the first. *)
+(* Accepted: the grade is inferred, the range of the net change and the peak
+   of the second reservation shifted by the first. *)
 let twice () =
-  let a = perform Open "a" in
-  let b = perform Open "b" in
+  let a = perform Reserve "a" in
+  let b = perform Reserve "b" in
   (a, b)
 
 (* Accepted: a box of grade (0, 1) is unboxed after an open and a close. *)
@@ -29,12 +31,18 @@ let reopen () =
   unbox x as n in
   n
 
-(* Accepted: a handler may give an open without holding a descriptor. *)
+(* Accepted: a handler may give a reservation without holding a descriptor. *)
 let unheld () =
   handle twice () with
   handler
   | x -> x
-  | Open name k -> continue k with File name
+  | Reserve name k -> continue k with File name
+
+(* Accepted: closing a descriptor before opening one falls to one below the
+   start. *)
+let rotate f : file # (-1, 0, 0) =
+  perform Close f;
+  perform Open "g"
 
 (* Accepted: a delay changes nothing. *)
 let wait () : unit # (0, 0) = delay 5

@@ -228,15 +228,28 @@ components of the grades before it: `(m, n) · (m', n') = (m · m', n ⊔ m ▷ 
 `m ▷ n'` being the action of `m` on `n'`. The pairs are compared and joined
 componentwise.
 
-- `peak-usage`: pairs `(d, h)` of the net change `d` and the peak `h` of a
-  resource held, such as open files, with `h >= 0` and `h >= d`;
-  `(d, h) · (d', h') = (d + d', max(h, d + h'))`. Delays change nothing, so
-  the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. Resources are named
-  by entries `(R, d, h)`, e.g. `((Files, 0, 2), (Sockets, 0, 1))`, each bounded
-  on its own; a resource not listed is bounded by `(0, 0)`, or by the entry
-  `(_, d, h)`, and a plain `(d, h)` bounds every resource. An operation opening
-  a file has grade `(Files, 1, 1)`, and one closing it `(Files, -1, 0)`; two
-  copies in sequence, each holding two files, have grade `(Files, 0, 2)`.
+- `peak-usage`: triples `(t, [d1, d2], h)` of the trough `t`, the range
+  `[d1, d2]` of the net change and the peak `h` of a resource held, such as
+  open files: the lowest level, the level at the end and the highest level,
+  relative to the level at the start, with `t <= d1 <= d2 <= h` and
+  `t <= 0 <= h`: the semidirect product of the upper bounds of the net change
+  and the peaks paired with its mirror image, of the lower bounds and the
+  troughs. The product is
+  `(t, [d1, d2], h) · (t', [d1', d2'], h') = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h'))`,
+  and `x <= y` holds iff `x` has a trough at least that of `y`, a range of net
+  changes within that of `y` and a peak at most that of `y`. Delays change
+  nothing, so the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. A grade
+  is written `(d, h)` for an exact net change `d`, `((d1, d2), h)` for a range,
+  both with the trough `min(0, d1)`, or `(t, d, h)` and `(t, (d1, d2), h)`
+  with an explicit trough; troughs and lower ends of ranges may be `⊤`,
+  unbounded below, and peaks and upper ends `∞`. Resources are named by
+  entries such as `(R, d, h)` or `(R, t, d, h)`, e.g.
+  `((Files, 0, 2), (Sockets, 0, 1))`, each bounded on its own; a resource not
+  listed is bounded by `(0, 0)`, or by the entry `(_, d, h)`, and a plain
+  `(d, h)` bounds every resource. An operation opening a file has grade
+  `(Files, 1, 1)`, and one closing it `(Files, -1, 0)`; two copies in sequence,
+  each holding two files, have grade `(Files, 0, 2)`, and closing a file before
+  opening one has grade `(Files, -1, 0, 0)`.
 - `time-windows`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
   the times `E_A` at which each operation `A` happens, all sets of numbers of
   ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
@@ -251,14 +264,23 @@ componentwise.
   changes and costs. Entries `(From, To, n)` give the runs, e.g.
   `(Off, On, 2)` for switching a radio on; the product gives `(p, r)` the
   greatest cost of a run from `p` to a mode `q` followed by one from `q` to
-  `r`. An operation has no run from the modes its grade does not name, so
-  `(On, On, 4)` is possible only with the radio on, and a plain `n` costs `n`
-  and keeps any mode. Delays cost nothing; an idle draw is charged by
-  operations such as `Sleep : unit ~> unit # ((Off, Off, 10), (On, On, 50))`.
+  `r`. The reserved mode `Stuck` is never left, and an operation gets stuck
+  in it at cost 0 from the modes its grade does not start from, so
+  `(On, On, 4)` is possible only with the radio on, and an entry
+  `(On, Stuck, 3)` permits getting stuck from `On` after cost 3. A change
+  between two distinct modes other than `Stuck` costs at least 1. A plain `n`
+  costs `n` and keeps any mode. The modes not named are written `_`:
+  `(p, _, n)` from `p` to a mode not named, `(_, q, n)` from a mode not named
+  to `q`, `(_, _, n)` keeping a mode not named, `(_, ≠, n)` between two modes
+  not named and `(_, Stuck, n)` from a mode not named into `Stuck`; a branch
+  between a transmission and an operation of cost 1 in every mode has grade
+  `((On, On, 4), (_, _, 1), (_, Stuck, 0))`. Delays cost nothing; an idle
+  draw is charged by operations such as
+  `Sleep : unit ~> unit # ((Off, Off, 10), (On, On, 50))`.
 
-An operation whose grade no code meets, such as closing a file under
-`peak-usage`, has no default implementation, and a run stops at its first
-call. See
+An operation whose grade no code meets, such as opening or closing a file
+under `peak-usage`, has no default implementation, and a run stops at its
+first call. See
 [`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe),
 [`examples/semidirect/time_windows.tpe`](examples/semidirect/time_windows.tpe)
 and [`examples/semidirect/mode_costs.tpe`](examples/semidirect/mode_costs.tpe).
