@@ -2,10 +2,10 @@
 
 Tempore (as in *in tempore*, Latin for "in good time") is a prototype
 programming language that combines graded modal types with graded effects to
-specify and verify temporal properties of resources that programs manipulate, in
-particular allowing one to statically verify that resources are used only when
-their type-based specifications deem it safe to do so. These properties are
-checked automatically by Hindley–Milner style type and grade inference.
+specify and statically verify temporal properties of the resources that
+programs manipulate, such as that a resource is used only when its type-based
+specification deems it safe. These properties are checked automatically by
+Hindley–Milner style type and grade inference.
 
 Tempore grew out of Temporal Millet, which was implemented in [Joosep
 Tavits](https://github.com/joosepgit)'s Master's thesis at the University of
@@ -13,10 +13,10 @@ Tartu ([code](https://github.com/joosepgit/temporal-millet),
 [thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). Tempore
 (currently) adds (i) temporal algebraic effects and effect handlers that are
 guaranteed to respect the temporal specifications of operations, and (ii)
-general resource grades in place of natural-number time grades, which only
-modelled left-sided time intervals expressing lower time bounds of programs.
+general resource grades in place of natural-number time grades, which modelled
+only lower time bounds of programs.
 
-Tempore (and Temporal Millet that preceded it) is built on Matija Pretnar's
+Tempore and Temporal Millet are built on Matija Pretnar's
 [Millet Language](https://github.com/matijapretnar/millet) and follows the
 ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 Žajdela](https://msfp-workshop.github.io/msfp2024/submissions/ahman+%c5%beajdela.pdf).
@@ -91,15 +91,14 @@ implementation is documented in the modules under
 
 All monoids share one literal syntax: integers (`3`), fractions (`3/2`, or
 exact decimals such as `1.5`), tuples (`(3, High)`), intervals and brace
-expressions (`{...}`). An interval is closed at its finite endpoints, which are
-literals such as numbers or brace expressions, and open at its infinite ones:
-`[1, 4]`, `[1, ∞)`, `(-∞, 4]`, `(-∞, ∞)` (ASCII `inf` and `-inf`) or
-`[{A}, {A; B}]`; any other bracketing, such as `[1, ∞]` or `[1, 4)`, is a
-syntax error, and a pair `(1, 4)` is a tuple, not an interval. Each monoid
-accepts the literals it understands; any other literal is a syntax error naming
-the monoids that accept it. The greatest grade is `⊤` (ASCII `top`). Integers
-may be negative (`-1`); only `peak-usage` accepts negative ones. A fraction
-equal to an integer, such as `4/2` or `2.0`, is that integer.
+expressions (`{...}`). An interval is closed at its finite endpoints and open
+at its infinite ones: `[1, 4]`, `[1, ∞)`, `(-∞, 4]`, `(-∞, ∞)` (ASCII `inf`
+and `-inf`) or `[{A}, {A; B}]`; other bracketings, such as `[1, ∞]` or
+`[1, 4)`, are syntax errors, and `(1, 4)` is a tuple. Each monoid accepts the
+literals it understands; any other literal is a syntax error naming the
+monoids that accept it. The greatest grade is `⊤` (ASCII `top`). Negative
+integers (`-1`) are accepted only by `peak-usage`. A fraction equal to an
+integer, such as `4/2` or `2.0`, is that integer.
 
 ### Time
 
@@ -118,11 +117,11 @@ Example: `box [2, 5] x` may be unboxed after two to five steps. See
 [`examples/time/time_intervals.tpe`](examples/time/time_intervals.tpe).
 
 The rational variants `time-lower-bound-rational`, `time-upper-bound-rational` and
-`time-interval-rational` measure time by non-negative rationals, with the same
-orders, units and tops: `box [0.5, 4/3] x` may be unboxed after half a unit
-and before four thirds. Arithmetic is exact, so three delays of `1/3` spend
-exactly `1`. A grade is printed as an integer, as a decimal if it has a
-finite one (`0.125`), and otherwise as a fraction (`1/3`). See
+`time-interval-rational` measure time exactly by non-negative rationals, with
+the same orders, units and tops: `box [0.5, 4/3] x` may be unboxed after half a
+unit and before four thirds, and three delays of `1/3` spend exactly `1`. A
+grade is printed as an integer, as a finite decimal if one exists (`0.125`),
+and otherwise as a fraction (`1/3`). See
 [`examples/time/rational_time_intervals.tpe`](examples/time/rational_time_intervals.tpe).
 
 ### Traces
@@ -137,13 +136,11 @@ by union. Operations declare no runtime bounds.
   inclusion; a delay pays for no operation, and `{Read}` is not below `{3}`.
   The unit `{0}` is not least, and `⊤`, any run, is the top.
 
-Runs are compared by equality, so lower bounds and intervals would again be
-inclusion, and only upper bounds are provided. The rational variant
-`traces-upper-bound-rational` has delays that are non-negative rationals.
+Runs are compared by equality, so only upper bounds are provided. The rational
+variant `traces-upper-bound-rational` has non-negative rational delays.
 Literals are those of the trace grades with costs, below. When an ordering
 fails, a note names a run of the lesser grade that the greater one does not
-list. The name `traces-upper-bound` formerly denoted the grade now named
-`traces-cost-upper-bound`. See
+list. See
 [`examples/traces/plain_traces_upper.tpe`](examples/traces/plain_traces_upper.tpe).
 
 ### Traces with costs
@@ -170,16 +167,15 @@ Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
 
 The rational variants `traces-cost-lower-bound-rational`,
 `traces-cost-upper-bound-rational` and `traces-cost-interval-rational` have the
-same orders, units and tops, with delays and runtime bounds that are
-non-negative rationals: `{Sample; 1/2; Send}` waits half a unit between the two
-operations, a fraction `q` abbreviates `{q}`, and an operation may declare
-fractional runtime bounds such as `within [1/2, 3/2]`. See
+same orders, units and tops, with non-negative rational delays and runtime
+bounds: `{Sample; 1/2; Send}` waits half a unit between the two operations, a
+fraction `q` abbreviates `{q}`, and an operation may declare bounds such as
+`within [1/2, 3/2]`. See
 [`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
 
 ### Regular expressions
 
-A grade is a non-empty regular language of runs, read as words over the
-letter `tick` (one time step) and operation names. The order is inclusion,
+A grade is a non-empty regular language of runs, words over the letter `tick` (one time step) and operation names. The order is inclusion,
 the product concatenation and the join union; the unit is `{0}` and the top
 `⊤` the language of all runs. Operations declare no runtime bounds.
 
@@ -189,8 +185,8 @@ the product concatenation and the join union; the unit is `{0}` and the top
 Literals are regular expressions, by increasing precedence: union `r | s`,
 intersection `r & s`, concatenation `r; s`, complement `~r` and repetition
 `r*`. An operation name is that letter, an integer `n` is `n` ticks, `_` is
-any single letter (including one catch-all letter for the operations the
-grade does not name), and parentheses or braces group. For example,
+any single letter, including operations the grade does not name, and
+parentheses or braces group. For example,
 `{Open; (Read | Write)*; Close}` is a file session and `{~{_*; Revoke; _*}}`
 the runs that never revoke. When an ordering fails, a note names a shortest
 run of the lesser grade not in the greater one:
@@ -203,29 +199,23 @@ Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated si
 
 See [`examples/regular/regular_traces.tpe`](examples/regular/regular_traces.tpe).
 `dune exec --profile release bench/regular/bench_regular.exe` benchmarks the
-two implementations, together with two intermediate ones that separate the
-effects of their design choices; see
+two implementations and two intermediate ones; see
 [`bench/regular/README.md`](bench/regular/README.md).
 
 The rational variant `regex-upper-bound-rational` reads runs as *timed words*:
-operations and delays that are non-negative rationals, adjacent delays added,
-so that `{1/2; 1/2}` is `{1}`. A delay is a single letter however long or
-fine, and the order is exact over the rationals: it depends on no time step
-or resolution of the program's delays. Besides operation names and delays
+operations and non-negative rational delays, adjacent delays added, so that
+`{1/2; 1/2}` is `{1}`. A delay is a single letter, and the order is exact over
+the rationals, independent of any time step. Besides operation names and delays
 such as `3`, `1/2` or `1.5`, literals have comparisons `<q`, `<=q` (`≤q`), `>q`
 and `>=q` (`≥q`), the delays below, up to, above or from `q`; an interval is
 an intersection, as in `{>0 & <1}`. `_` is any single operation or any
 positive delay, and the complement is taken over all timed words: `{~1}`
 permits every run but a pause of exactly `1`, and `{_ & ~Read}` any single
-operation but `Read` or any positive pause. As consecutive delays are added,
-a repetition of delays is their sums, the empty sum `0` included: `{(1/2)*}`
-is the sums of any number of halves, `0`, `1/2`, `1`, …, so that
-`delay 1/2; delay 1/2` is below it as `delay 1` is, and `{(>=1 & <=2)*}`, the
-sums of any number of delays from `1` to `2`, is the delay `0` and every delay
-from `1`. A plain number `q` abbreviates `{q}`. The unit is `{0}` and the top
-`⊤`, `{_*}`. A grade is kept as a canonical automaton whose delay transitions
-are labelled by sets of delays, and printed as it is
-written, with adjacent delays added. See
+operation but `Read` or any positive pause. A repetition of delays is their
+sums, the empty sum `0` included: `{(1/2)*}` is the sums of any number of halves, `0`, `1/2`, `1`, …, and
+`{(>=1 & <=2)*}` is the delay `0` and every delay from `1`. A plain number `q`
+abbreviates `{q}`. The unit is `{0}` and the top `⊤`, `{_*}`. A grade is
+printed as it is written, with adjacent delays added. See
 [`examples/regular/regular_rational.tpe`](examples/regular/regular_rational.tpe).
 
 A set of delays is kept as a finite part followed by a periodic tail. The
@@ -247,11 +237,11 @@ the runs that fit inside one of its runs (upper) or cover one of them (lower).
   top is `[{0}, ∞)`.
 
 Each is also available with the suffix `-symbolic`, over
-`regex-upper-bound-symbolic`. Literals are those of `regex-upper-bound`. The alphabet is
-the atomic operations of the whole program, declared anywhere in it, so `_`
-is any tick or atomic operation. A grade must denote at least one run of these
-operations. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound`
-`{Read}` is a sub-grade of `{3}`, and `{Read | 3}` equals `{3}`. See
+`regex-upper-bound-symbolic`, and has the literals of `regex-upper-bound`. The
+alphabet is the atomic operations declared anywhere in the program, so `_` is
+any tick or atomic operation, and a grade must denote at least one run over
+it. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound`
+`{Read}` is below `{3}` and `{Read | 3}` equals `{3}`. See
 [`examples/regular_costs/regular_costs_lower.tpe`](examples/regular_costs/regular_costs_lower.tpe),
 [`examples/regular_costs/regular_costs_upper.tpe`](examples/regular_costs/regular_costs_upper.tpe)
 and
@@ -259,16 +249,15 @@ and
 
 The rational variants `regex-cost-lower-bound-rational`,
 `regex-cost-upper-bound-rational` and `regex-cost-interval-rational` order the
-timed words of `regex-upper-bound-rational` in the same way, with its literals,
-and read fractional runtime bounds such as `within [1/2, 3/2]`. The orders are
+timed words of `regex-upper-bound-rational` in the same way, with its literals
+and fractional runtime bounds such as `within [1/2, 3/2]`. The orders are
 exact over the rationals: with `A` declared `within [1, 1]`, under
 `regex-cost-upper-bound-rational` the runs `{>0 & <1; A; >0 & <1}` are below
-`{3}` but below no `{q}` with `q < 3`, the sums of their pauses coming
+`{3}` but below no `{q}` with `q < 3`, as the sums of their pauses come
 arbitrarily close to `2`. A complement is taken over all timed words, and a
 grade still stands for its closure: `{~1}` equals `⊤` under the upper order,
-the longer pauses it keeps permitting the one it excludes. The closures are
-not themselves regular, so a comparison is decided relative to the lesser
-grade, each of its sets of delays read through its supremum (upper) or
+as the longer pauses it permits cover the one it excludes. A comparison reads
+each set of delays of the lesser grade through its supremum (upper) or
 infimum (lower), and a grade is printed as it is written. The implied runtime
 bounds of a compound operation are the least and greatest weights of the runs
 of its grade: `{Sample; <1/2; Send}` gets `(3/4, 3)` if `Sample` is declared
@@ -306,34 +295,32 @@ components of the grades before it: `(m, n) · (m', n') = (m · m', n ⊔ m ▷ 
 `m ▷ n'` being the action of `m` on `n'`. The pairs are compared and joined
 componentwise.
 
-- `peak-usage`: triples `(t, [d1, d2], h)` of the trough `t`, the range
-  `[d1, d2]` of the net change and the peak `h` of a resource held, such as
-  open files: the lowest level, the level at the end and the highest level,
-  relative to the level at the start, with `t <= d1 <= d2 <= h` and
-  `t <= 0 <= h`: the semidirect product of the upper bounds of the net change
-  and the peaks paired with its mirror image, of the lower bounds and the
-  troughs. The product is
+- `peak-usage`: triples `(t, [d1, d2], h)` bounding a resource held, such as
+  open files, relative to its level at the start: the trough `t` is the lowest
+  level, the range `[d1, d2]` the net change and the peak `h` the highest
+  level, with `t <= d1 <= d2 <= h` and `t <= 0 <= h`. It is the semidirect
+  product of the upper bounds of the net change and the peaks, paired with its
+  mirror image of the lower bounds and the troughs. The product is
   `(t, [d1, d2], h) · (t', [d1', d2'], h') = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h'))`,
-  and `x <= y` holds iff `x` has a trough at least that of `y`, a range of net
-  changes within that of `y` and a peak at most that of `y`. Delays change
-  nothing, so the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. A grade
-  is written `(d, h)` for an exact net change `d`, `([d1, d2], h)` for a range,
-  both with the trough `min(0, d1)`, or `(t, d, h)` and `(t, [d1, d2], h)`
-  with an explicit trough; troughs may be `⊤`, unbounded below, and peaks `∞`,
-  and a range unbounded below or above is written `(-∞, d2]` or `[d1, ∞)`.
-  Resources are named by entries such as `(R, d, h)` or `(R, t, d, h)`, e.g.
-  `((Files, 0, 2), (Sockets, 0, 1))`, each bounded on its own; a resource not
-  listed is bounded by `(0, 0)`, or by the entry `(_, d, h)`, and a plain
-  `(d, h)` bounds every resource. An operation opening a file has grade
-  `(Files, 1, 1)`, and one closing it `(Files, -1, 0)`; two copies in sequence,
-  each holding two files, have grade `(Files, 0, 2)`, and closing a file before
-  opening one has grade `(Files, -1, 0, 0)`.
+  and `x <= y` holds iff `x` has a trough at least, a range within and a peak
+  at most those of `y`. Delays have the unit grade `(0, 0)`; `(∞, ∞)` is the
+  top. A grade is written `(d, h)` for an exact net change `d` or
+  `([d1, d2], h)` for a range, both with the trough `min(0, d1)`, or
+  `(t, d, h)` and `(t, [d1, d2], h)` with an explicit trough; troughs may be
+  `⊤`, unbounded below, and peaks `∞`, and a range unbounded below or above is
+  written `(-∞, d2]` or `[d1, ∞)`. Resources are named by entries such as
+  `(R, d, h)` or `(R, t, d, h)`, e.g. `((Files, 0, 2), (Sockets, 0, 1))`, each
+  bounded on its own; a resource not listed is bounded by `(0, 0)`, or by the
+  entry `(_, d, h)`, and a plain `(d, h)` bounds every resource. Opening a file
+  has grade `(Files, 1, 1)` and closing one `(Files, -1, 0)`; two copies in
+  sequence, each holding two files, have grade `(Files, 0, 2)`, and closing a
+  file before opening one has grade `(Files, -1, 0, 0)`.
 - `time-windows`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
   the times `E_A` at which each operation `A` happens, all sets of numbers of
   ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
-  adding elementwise, and the order is inclusion. `T` is written `n`, `[n, m]`
-  (from `n` to `m`), `[n, ∞)` (from `n` on) or as a brace literal over ticks,
-  `{0 | 10}`, and `T` alone performs no operation; `E_A` is a brace literal,
+  adding elementwise, and the order is inclusion. `T` is written `n`, `[n, m]`,
+  `[n, ∞)` or as a brace literal over ticks, `{0 | 10}`, and `T` alone
+  performs no operation; `E_A` is a brace literal,
   `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry `(_, E)`
   bounds every operation not listed. An operation `Send` taking a tick and
   happening at its start has grade `(1, (Send, {0}))`.
@@ -344,16 +331,15 @@ componentwise.
   greatest cost of a run from `p` to a mode `q` followed by one from `q` to
   `r`. The reserved mode `Stuck` is never left, and an operation gets stuck
   in it at cost 0 from the modes its grade does not start from, so
-  `(On, On, 4)` is possible only with the radio on, and an entry
-  `(On, Stuck, 3)` permits getting stuck from `On` after cost 3. A change
-  between two distinct modes other than `Stuck` costs at least 1. A plain `n`
-  costs `n` and keeps any mode. The modes not named are written `_`:
-  `(p, _, n)` from `p` to a mode not named, `(_, q, n)` from a mode not named
-  to `q`, `(_, _, n)` keeping a mode not named, `(_, ≠, n)` between two modes
-  not named and `(_, Stuck, n)` from a mode not named into `Stuck`; a branch
-  between a transmission and an operation of cost 1 in every mode has grade
-  `((On, On, 4), (_, _, 1), (_, Stuck, 0))`. Delays cost nothing; an idle
-  draw is charged by operations such as
+  `(On, On, 4)` is possible only with the radio on, and `(On, Stuck, 3)`
+  permits getting stuck from `On` after cost 3. A change between two distinct
+  modes other than `Stuck` costs at least 1. A plain `n` costs `n` and keeps
+  any mode. Modes not named are written `_`: `(p, _, n)` from `p` to one,
+  `(_, q, n)` from one to `q`, `(_, _, n)` keeping one, `(_, ≠, n)` from one
+  to another and `(_, Stuck, n)` from one into `Stuck`; a branch between a
+  transmission and an operation of cost 1 in every mode has grade
+  `((On, On, 4), (_, _, 1), (_, Stuck, 0))`. Delays cost nothing; idle draw
+  is charged by operations such as
   `Sleep : unit ~> unit # ((Off, Off, 10), (On, On, 50))`.
 
 An operation whose grade no code meets, such as opening or closing a file
@@ -402,16 +388,16 @@ See [`examples/basics/basic_unbox.tpe`](examples/basics/basic_unbox.tpe).
 
 ### Delays
 
-`delay tau` advances the accumulated grade by `tau`; an operation call advances
-it by the operation's grade. Each grading monoid has a monoid of delays, which
-it maps to grades by a monoid morphism, so that `delay 0` has the unit grade
-and `delay tau; delay tau'` the grade of `delay (tau + tau')`
+`delay tau` advances the accumulated grade by `tau`, and an operation call by
+the operation's grade. Each grading monoid maps its monoid of delays to grades
+by a monoid morphism, so `delay 0` has the unit grade and
+`delay tau; delay tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)). `tau` is a non-negative
-integer or fraction: the rational time and trace grades, `security-levels` and
-`flow-levels`, whose delays are the non-negative rationals, accept any, such as
-`delay 1/3` or `delay 0.25`; the other monoids, whose delays are whole numbers
-of time steps, accept only integers, a fraction being a syntax error naming the
-monoids that accept it. See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
+integer or fraction. The rational time and trace grades, `security-levels` and
+`flow-levels` have the non-negative rationals as delays and accept any, such
+as `delay 1/3` or `delay 0.25`; the other monoids count whole time steps and
+accept only integers, a fraction being a syntax error naming the monoids that
+accept it. See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 ## Eternal types
 
@@ -457,12 +443,11 @@ by its own name, also declares its runtime bounds (`within n` abbreviates
 operation Tx : string ~> unit # {Tx} within [2, 3]
 ```
 
-The bounds are durations, written as for `delay` (see [Delays](#delays)), with
-`lo <= hi` and `hi` positive, and each grade reads them as its delays. The
-rational trace and regular-expression monoids with costs accept fractional
-bounds such as `within [1/2, 3/2]`; the other monoids that read runtime bounds
-count whole time steps, so `within [1/2, 1]` is a syntax error under them. The other
-monoids reject runtime bounds altogether.
+The bounds are durations, written as for `delay` (see [Delays](#delays)) and
+read as delays, with `lo <= hi` and `hi` positive. The rational monoids with
+costs accept fractional bounds such as `within [1/2, 3/2]`; under the other
+monoids with costs, which count whole time steps, `within [1/2, 1]` is a
+syntax error. All other monoids reject runtime bounds.
 
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `[2, 6]`.
@@ -478,8 +463,8 @@ handle e with
 
 An operation case receives the argument `p` and the continuation `k`, resumed
 with `continue k with v`. Unhandled operations are forwarded. The continuation
-is a resource of the operation's grade: resuming it is allowed only once the
-case has accumulated a sub-grade of that grade. So under `time-lower-bound`,
+is a resource of the operation's grade, resumed only once the case has
+accumulated a sub-grade of that grade: under `time-lower-bound`,
 `Get () k -> delay 71; continue k with 42` handles `Get # 71`. A case is
 checked for every effect its continuation may have; a failure names the
 instance:
@@ -546,29 +531,25 @@ round is bounded by `⊤` but by no `n`, as `1 · n ≾ n` fails.
 ## Type inference
 
 Types, grades and effects are inferred in the style of HM(X) (Odersky,
-Sulzmann and Wehr, TAPOS 1999). Types are
-compared by subtyping: functions are contravariant in the argument and
-covariant in the result and effect, and a box `[rho]a` is contravariant in
-`rho`. Top-level `let` definitions are generalised to qualified schemes,
+Sulzmann and Wehr, TAPOS 1999). Types are compared by subtyping: functions are
+contravariant in the argument and covariant in the result and effect, and a
+box `[rho]a` is contravariant in `rho`. Top-level `let` definitions are generalised to qualified schemes,
 
     ∀ α ρ₀ ε₀. Q ∧ R ⇒ A
 
 where `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables, `R`
 lists the conditions of operation cases that must hold for every effect of
-their continuations (printed as `∀ε_Op. …`, the effect of the continuation of
-a case for `Op` named after it and primed, `ε_Op′`, to tell it from that of
-another case for `Op`), and `∣ε∣` is the resource grade
-accumulated while `ε` runs. `--debug` prints the
-schemes. Under `time-upper-bound`, the standard library's
+their continuations, and `∣ε∣` is the resource grade accumulated while `ε`
+runs. A condition is printed `∀ε_Op. …`, `ε_Op` being the effect of the
+continuation of a case for `Op`, primed (`ε_Op′`) for another case for `Op`.
+`--debug` prints the schemes. Under `time-upper-bound`, the standard library's
 `compose f g x = f (g x)` has
 
     ∀ α β γ ε₀. (α → β # ε₀) → (γ → α) → (γ → β # ε₀)
 
 where `g` takes no time, since the non-eternal `f` is used after it: the
-qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` leaves `ε₁` no value but the
-least, `0`, which the scheme puts in its place; an effect of the unit is not
-printed. A qualifier is checked at
-every use of the definition.
+qualifier `∣ε₁∣ ≾ 0` on the effect `ε₁` of `g` admits only the least value
+`0`, which the scheme substitutes; an effect of the unit is not printed.
 
 Under `time-lower-bound`, with `operation Op : unit ~> unit # 1`, the handler
 
@@ -578,14 +559,14 @@ has
 
     ∀ α β ε₀ ε₁. ∣ε₀∣ ≾ 1 ∧ (∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op) ⇒ (unit → α # ε₀) → (β # ε₁ ⇒ β)
 
-where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, is the condition of the case for `Op`
-that must hold for every effect `ε_Op` of `k`: the case, `f` followed by `k`,
-takes at least the time of `Op` followed by `k`. A `run` must establish every
-such condition: one without unknowns that the typechecker can neither derive
-nor refute rejects it, and one with unknowns must hold together with `Q` at a
-closed instance of the unknowns. Under the time grades, the security levels and
-their products, a condition in the effect of a single continuation is always
-decided; under the trace grades it may not be.
+where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op`
+of `k` the case, `f` followed by `k`, takes at least the time of `Op` followed
+by `k`. A `run` must establish every such condition: one without unknowns that
+the typechecker can neither derive nor refute rejects it, and one with
+unknowns must hold together with `Q` at a closed instance of the unknowns.
+Under the time grades, the security levels and their products, a condition in
+the effect of a single continuation is always decided; under the trace grades
+it may not be.
 
 ### Annotations
 
@@ -608,8 +589,8 @@ parentheses where either arrow shows its effect, `nat → (nat → nat # 1)`.
 
 ### Sub-effecting
 
-A computation may be used where one of a super-grade is expected, and an
-annotation is an upper bound. Under `time-upper-bound`,
+A computation may be used where one of a super-grade is expected. Under
+`time-upper-bound`,
 
 ```
 let apply (f : unit -> nat # 2) = f ()
