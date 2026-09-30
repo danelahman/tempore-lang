@@ -465,3 +465,12 @@ warm: mean of repeated runs; ratios of the cold times: automata / plain
 | leq (B \| C)* <= E                        |    3.99 ms |    8.34 ms |    8.66 ms |    6.58 ms |       0.48 |       0.96 |       1.32 |    34.7 us |     6.7 us |     1.9 us |     2.0 us |
 | counterexample (B \| C)*; A; (B \| C)^n, E |    4.17 ms |    8.36 ms |    8.83 ms |    6.33 ms |       0.50 |       0.95 |       1.40 |    35.3 us |     6.3 us |     2.8 us |     2.9 us |
 | leq C* <= E2                             |    3.80 ms |  453.38 ms |  454.84 ms |  458.89 ms |       0.01 |       1.00 |       0.99 |    40.0 us |     8.0 us |     2.2 us |     2.4 us |
+
+## Slow delay sets of the rational grade
+
+The benchmark ends with a table timing `regex-upper-bound-rational` on grades
+whose sets of delays have long finite parts before their periodic tails
+(sums and repetitions of large nearly coprime constants, and a point with a
+narrow interval), with a limit of 60 s per measurement. No results are recorded
+yet; the single-run timings are in the repository's README, section "Regular
+expressions".

@@ -11,7 +11,9 @@
    representation of letters (single letters or letter sets) and the letters
    derived by (letters or minterms). The workloads are the grade operations on
    families of grades of increasing size, and the typechecking of the programs
-   that use the grades, the standard library included.
+   that use the grades, the standard library included. A last table times the
+   rational grade "regex-upper-bound-rational" on grades whose sets of delays
+   have long finite parts.
 
    Each measurement runs in a fresh child process, so that the tables of the
    derivatives start empty: it prepares its inputs untimed, then times the
@@ -65,8 +67,8 @@ let read_sample line =
 
 (* The sample of the thunk [prepare ()] in a child process: timed once, and
    again repeatedly if the first run took less than a second. *)
-let measure_in_child output prepare =
-  ignore (Unix.alarm time_limit);
+let measure_in_child ~limit output prepare =
+  ignore (Unix.alarm limit);
   let thunk = prepare () in
   let start = now () in
   thunk ();
@@ -77,13 +79,13 @@ let measure_in_child output prepare =
   close_out channel;
   Unix._exit 0
 
-let in_child prepare =
+let in_child ~limit prepare =
   flush_all ();
   let input, output = Unix.pipe ~cloexec:true () in
   match Unix.fork () with
   | 0 ->
       Unix.close input;
-      measure_in_child output prepare
+      measure_in_child ~limit output prepare
   | pid -> (
       Unix.close output;
       let channel = Unix.in_channel_of_descr input in
@@ -98,10 +100,11 @@ let median xs =
   let xs = List.sort Float.compare xs in
   List.nth xs (List.length xs / 2)
 
-(* The medians of the samples of [prepare] over [processes] processes, or
-   fewer once [patience] seconds have been spent in them; the first timeout or
+(* The medians of the samples of [prepare] over [processes] processes, each
+   stopped after [limit] seconds, or fewer once [patience] seconds have been
+   spent in them; the first timeout or
    failure ends the measurement. *)
-let measure prepare =
+let measure ?(limit = time_limit) prepare =
   let result samples =
     let warms = List.filter_map (fun s -> s.warm) samples in
     Sample
@@ -113,7 +116,7 @@ let measure prepare =
   let rec go samples spent n =
     if n = 0 || spent > patience then result samples
     else
-      match in_child prepare with
+      match in_child ~limit prepare with
       | Sample s -> go (s :: samples) (spent +. s.cold) (n - 1)
       | outcome -> outcome
   in
@@ -691,6 +694,65 @@ let rec tables = function
       tables (a', p', l', s')
   | _ -> invalid_arg "the families differ"
 
+(** {1 Slow delay sets of the rational grade} *)
+
+(* The grades of "regex-upper-bound-rational" whose sets of delays have long
+   finite parts before their periodic tails (see the README of the repository,
+   section "Regular expressions"): sums and repetitions of large nearly coprime
+   constants, and a point with a narrow interval; and grades of the same shape
+   that stay fast. Each workload reads the grade and decides whether a delay is
+   below it. *)
+module Rational = struct
+  module G = Grades.RegularTraceGradeRational
+  module Grammar = Parser.Grammar.Make (Grades.GradeSystem.Identity (G))
+
+  let lit text =
+    let lexbuf = Lexing.from_string ("box " ^ text ^ " ()") in
+    match Grammar.payload (Parser.Lexer.tokens ()) lexbuf with
+    | { it = SugaredAst.GenBox ({ it = SugaredAst.GradeLit rho; _ }, _); _ } ->
+        rho
+    | _ -> invalid_arg ("not a grade: " ^ text)
+
+  (* Grades and delays below them. *)
+  let cases =
+    [
+      ("(100 | 101)*", "201");
+      ("(300 | 301)*", "601");
+      ("(1000 | 1001)*", "2001");
+      ("97*; 89*", "186");
+      ("997*; 991*", "1988");
+      ("(1 | (>10 & <10.001))*", "1");
+      ("(1/97 | 1/89)*", "1");
+      ("~((300 | 301)*)", "1/2");
+      ("(>=1 & <=1.001)*", "500");
+    ]
+
+  (* The grade is read, and so constructed, within the timed run. *)
+  let workload (grade, delay) =
+    let prepare () =
+      let text = "{" ^ grade ^ "}" and d = lit delay in
+      fun () -> ignore (Sys.opaque_identity (G.leq bounds d (lit text)))
+    in
+    ("leq " ^ delay ^ " <= {" ^ grade ^ "}", prepare)
+
+  (* The time limit of one measurement: the slowest cases take about 20
+     seconds. *)
+  let limit = 60
+
+  let table () =
+    Printf.printf
+      "\nSlow delay sets of regex-upper-bound-rational (limit %d s):\n\n" limit;
+    print_row "workload" [ "cold"; "warm" ];
+    Printf.printf "|%s|%s\n" (String.make 42 '-')
+      (String.concat "" (List.map (Fun.const "------------|") [ (); () ]));
+    List.iter
+      (fun case ->
+        let name, prepare = workload case in
+        let outcome = measure ~limit prepare in
+        print_row name [ show_cold outcome; show_warm outcome ])
+      cases
+end
+
 let () =
   (match Sys.argv with [| _; root |] -> Sys.chdir root | _ -> ());
   Printf.printf
@@ -703,4 +765,5 @@ let () =
   Printf.printf "|%s|%s\n" (String.make 42 '-')
     (String.concat "" (List.map (Fun.const "------------|") columns));
   tables
-    (Automata.workloads, Plain.workloads, Letters.workloads, Symbolic.workloads)
+    (Automata.workloads, Plain.workloads, Letters.workloads, Symbolic.workloads);
+  Rational.table ()
