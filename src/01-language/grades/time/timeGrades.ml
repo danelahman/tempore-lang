@@ -66,7 +66,7 @@ module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
       | lit -> duration_of_lit ("plain " ^ N.numbers) lit
 
     let of_delay d = d
-    let of_bounds (lo, _hi) = lo
+    let of_bounds b = fst (hull b)
     let is_atomic _name _ = true
     let show = D.show
     let witnesses ~degree _bounds cs = D.witnesses ~degree cs
@@ -101,7 +101,7 @@ module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
       | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or '∞'") lit)
 
     let of_delay d = Ext.Fin d
-    let of_bounds (_lo, hi) = Ext.Fin hi
+    let of_bounds b = Ext.Fin (snd (hull b))
     let is_atomic _name _ = true
     let show = Ext.show
 
@@ -242,7 +242,16 @@ module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
             (describe_lit lit)
 
     let of_delay d = closed d (Ext.Fin d)
-    let of_bounds (lo, hi) = closed lo (Ext.Fin hi)
+
+    let of_bounds (lo, hi) =
+      let closed_end = function Closed _ -> true | _ -> false in
+      {
+        lo = end_value lo;
+        lo_closed = closed_end lo;
+        hi = Ext.Fin (end_value hi);
+        hi_closed = closed_end hi;
+      }
+
     let is_atomic _name _ = true
 
     let show c =

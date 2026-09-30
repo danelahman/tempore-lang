@@ -21,7 +21,11 @@ let show_bool = string_of_bool
 let show_names names = "[" ^ String.concat "; " names ^ "]"
 
 let bounds =
-  { Grade.cost = (fun _ -> Rational.(of_int 1, of_int 2)); operations = [] }
+  {
+    Grade.cost =
+      (fun _ -> Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
+    operations = [];
+  }
 
 (* [contains s sub] is whether [sub] occurs in [s]. *)
 let contains s sub =
@@ -68,7 +72,7 @@ let levels =
     expect "levels: no delay is the unit" show ~expected:L.one
       (L.of_delay Rational.zero);
     expect "levels: time shadow" show ~expected:Low
-      (L.of_bounds Rational.(of_int 1, of_int 2));
+      (L.of_bounds Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
     check "levels: equal" (L.equal bounds High High) "High = High";
     expect "levels: unit least" show_bool ~expected:true L.unit_least;
     expect "levels: commutative" show_bool ~expected:true L.commutative;
@@ -169,7 +173,7 @@ let products =
     expect "product: ticks" Fun.id ~expected:"(4, Low)"
       (show (TimeLevels.of_delay 4));
     expect "product: time shadow" Fun.id ~expected:"(1, Low)"
-      (show (TimeLevels.of_bounds (1, 2)));
+      (show (TimeLevels.of_bounds (Grade.Closed 1, Grade.Closed 2)));
     check "product: equal"
       (TimeLevels.equal bounds (p 3 "Low")
          (TimeLevels.of_lit (lit_of_pair 3 "Low")))
@@ -198,10 +202,10 @@ let products =
       (TraceLevels.is_atomic "Send" send_then_tick);
     expect "product: implied bounds"
       (function
-        | Some (lo, hi) ->
-            Printf.sprintf "(%s, %s)" (Rational.show lo) (Rational.show hi)
+        | Some (lo, hi) -> Grade.show_interval Rational.show lo hi
         | None -> "None")
-      ~expected:(Some Rational.(of_int 1, of_int 2))
+      ~expected:
+        (Some Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)))
       (TraceLevels.implied_bounds bounds send_low);
     expect "product: level component" Fun.id ~expected:"(3, High)"
       (show (p 3 "High"));
@@ -1435,7 +1439,7 @@ let costs =
     Grade.cost =
       (fun o ->
         let lo, hi = List.assoc o table in
-        (Rational.of_int lo, Rational.of_int hi));
+        (Grade.Closed (Rational.of_int lo), Grade.Closed (Rational.of_int hi)));
     operations = List.map fst table;
   }
 
@@ -1975,7 +1979,7 @@ let fractional_costs =
     Grade.cost =
       (fun o ->
         let (n, d), (n', d') = List.assoc o table in
-        (Rational.make n d, Rational.make n' d'));
+        (Grade.Closed (Rational.make n d), Grade.Closed (Rational.make n' d')));
     operations = List.map fst table;
   }
 

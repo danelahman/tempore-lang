@@ -13,6 +13,7 @@ module type S = sig
   val compare : t -> t -> int
   val hash : t -> int
   val show : t -> string
+  val adjacent : lower:bool -> Rational.t -> Rational.t option
 end
 
 module type ORDERED = sig
@@ -96,6 +97,10 @@ module Nat = struct
   let monus d e = Int.max 0 (d - e)
   let to_rational = Rational.of_int
   let to_int d = d
+
+  let adjacent ~lower q =
+    let q' = Rational.add q (Rational.of_int (if lower then 1 else -1)) in
+    if Rational.sign q' < 0 then None else Some q'
 end
 
 (* Completeness of the witnesses. As for the natural numbers, each side of an
@@ -165,4 +170,5 @@ module Rational = struct
     else Rational.add p (Rational.neg q)
 
   let to_rational q = q
+  let adjacent ~lower:_ _ = None
 end

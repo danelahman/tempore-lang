@@ -91,7 +91,8 @@ struct
   let events = R.names
 
   (* The delays of [lo] to [hi] time steps. *)
-  let of_bounds (lo, hi) =
+  let of_bounds b =
+    let lo, hi = hull b in
     R.union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)))
 
   let is_atomic name rho = D.equal rho (R.letters (Letters.name name))

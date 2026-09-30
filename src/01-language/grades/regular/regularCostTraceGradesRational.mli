@@ -24,7 +24,11 @@
     joins are those of languages, monotone in the orders. The orders are exact
     over the rationals: if [A] costs [1] under the upper order,
     [{(0, 1); A; (0, 1)}] is below [{3}] and below no [{q}] with [q < 3], its
-    delays coming arbitrarily close to [1]. The closures are not timed regular
+    delays coming arbitrarily close to [1]. A cost is the extremal value of an
+    end of the runtime bounds, attained iff the end is closed, and a run is
+    permitted, or covers, iff it does at every duration of its operations: if
+    [A] declares [within [1, 2)], then [{A} ≾ {\[0, 2)}] under the upper order,
+    which fails for [within [1, 2]]. The closures are not timed regular
     languages, and a grade is printed as it was written, not as its closure.
 
     {2 Closed world}
@@ -46,14 +50,15 @@
     unit [{0}] under the lower order. The upper order has [⊤] as its top and its
     unit least; the lower order has the unit as its top. The runtime bounds
     implied by a grade are the infimum of the weights of its lower-bound runs,
-    at [lo], and the supremum of those of its upper-bound runs, at [hi], [None]
-    if the latter is unbounded; an operation's time shadow [of_bounds (lo, hi)]
-    is [{lo}] under the lower order and [{hi}] under the upper. A counterexample
-    to [ρ ≾ ρ'] is the grade of a run of [ρ] outside the closure of [ρ'] with
-    the fewest operations, each delay close to the extremal delay of its set, in
-    which a name stands for itself. The witnesses of a closed condition are its
-    constants and their pairwise products ({!Grade.sampled}), which are not
-    complete.
+    at [lo], and the supremum of those of its upper-bound runs, at [hi], each
+    attained or not, [None] if the latter is unbounded; an operation's time
+    shadow [of_bounds (lo, hi)] is [{lo}], or [{(lo, ∞)}] if [lo] is open, under
+    the lower order, and [{hi}], or [{\[0, hi)}] if [hi] is open, under the
+    upper. A counterexample to [ρ ≾ ρ'] is the grade of a run of [ρ] outside the
+    closure of [ρ'] with the fewest operations, each delay close to the extremal
+    delay of its set, in which a name stands for itself. The witnesses of a
+    closed condition are its constants and their pairwise products
+    ({!Grade.sampled}), which are not complete.
 
     {2 Decisions}
 

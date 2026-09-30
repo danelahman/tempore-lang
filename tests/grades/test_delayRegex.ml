@@ -36,7 +36,13 @@ let contains s sub =
 
 let q = Rational.make
 let qi = Rational.of_int
-let bounds = { Grade.cost = (fun _ -> (qi 1, qi 2)); operations = [] }
+
+let bounds =
+  {
+    Grade.cost = (fun _ -> (Grade.Closed (qi 1), Grade.Closed (qi 2)));
+    operations = [];
+  }
+
 let show_regex r = "{" ^ Grade.show_regex r ^ "}"
 
 (* {1 Literals} *)
@@ -94,9 +100,8 @@ let literals =
     reads "{_*}" ~expected:"⊤";
     reads "3/2" ~expected:"{1.5}";
     reads "top" ~expected:"⊤";
-    rejects "{<-1}" "unknown operator '<-'";
-    rejects "{<1}" "an interval, e.g. '[0, 1)' for '<1'";
-    rejects "{>=1/2}" "an interval, e.g. '[0.5, ∞)' for '>=0.5'";
+    rejects "{<1}" "parser error";
+    rejects "{>0 & <1}" "parser error";
     rejects "{[2, 1]}" "interval endpoints must satisfy n <= m";
     rejects "{(1, 1)}"
       "interval endpoints must satisfy n < m at an open endpoint";
@@ -105,7 +110,7 @@ let literals =
     rejects "{[1, ∞]}"
       "an infinite endpoint of an interval is written with a parenthesis";
     rejects "{Read & [0, 1)}" "denotes the empty language";
-    rejects "{Read; < -0.5}" "durations must be non-negative";
+    rejects "{Read; [-0.5, 1]}" "durations must be non-negative";
   ]
 
 (* The intervals of delays with fractional endpoints, or without a whole number

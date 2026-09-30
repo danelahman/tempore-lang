@@ -1,0 +1,4 @@
+(* Rejected: runtime bounds open at an end have ends lo < hi, and
+   'within [2, 2)' is empty. *)
+
+operation Send : unit ~> unit # {Send} within [2, 2)

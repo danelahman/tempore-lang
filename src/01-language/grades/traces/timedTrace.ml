@@ -263,31 +263,4 @@ module Make (D : Delay.MONUS) = struct
       This is the sub-grade order of the lower-bound (left-sided) grade. *)
   let lower_bound_le cost p q =
     List.for_all (fun s -> List.exists (fun t -> coverage cost D.zero t s) q) p
-
-  (** [duration cost t] is the time the run [t] takes: every delay counts its
-      length and every operation event counts [cost]. Reading [cost] as the
-      lower end of the runtime bounds gives the fastest the run can be, and as
-      the upper end the slowest. *)
-  let duration cost =
-    List.fold_left
-      (fun d -> function Ev o -> D.add d (cost o) | Wait n -> D.add d n)
-      D.zero
-
-  (** [min_duration cost p] is the duration of the fastest run of the
-      (non-empty) set [p]. *)
-  let min_duration cost = function
-    | [] -> invalid_arg "TimedTrace.min_duration: empty set of traces"
-    | t :: p ->
-        List.fold_left
-          (fun d t -> D.min d (duration cost t))
-          (duration cost t) p
-
-  (** [max_duration cost p] is the duration of the slowest run of the
-      (non-empty) set [p]. *)
-  let max_duration cost = function
-    | [] -> invalid_arg "TimedTrace.max_duration: empty set of traces"
-    | t :: p ->
-        List.fold_left
-          (fun d t -> D.max d (duration cost t))
-          (duration cost t) p
 end

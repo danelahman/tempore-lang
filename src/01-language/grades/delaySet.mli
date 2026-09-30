@@ -125,6 +125,12 @@ type extremum =
       (** [Finite (q, attained)]: [q], a member of the set iff [attained] *)
   | Infinite  (** An unbounded set's supremum *)
 
+val equal_extremum : extremum -> extremum -> bool
+(** The equality of extremal values. *)
+
+val hash_extremum : extremum -> int
+(** A hash compatible with {!equal_extremum}. *)
+
 val inf : t -> extremum option
 (** [inf s] is the infimum of [s], [None] if [s] is empty; it is finite. *)
 

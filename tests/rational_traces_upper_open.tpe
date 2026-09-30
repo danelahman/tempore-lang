@@ -1,0 +1,20 @@
+(* Correctly accepted by the typechecker, under the
+   'traces-cost-upper-bound-rational' grading monoid: a sample within
+   [1/2, 3/2) takes less than 3/2 time units, so it fits a box of 3/2, and the
+   compound 'Poll', a sample and a pause of 1/2, has the runtime bounds
+   [1, 2), which fit a box of 2. *)
+
+operation Sample : unit ~> unit # {Sample} within [1/2, 3/2)
+operation Poll : unit ~> unit # {Sample; 1/2}
+
+let sample () =
+  box {3/2} 1 as slot in
+  perform Sample ();
+  unbox slot as r in
+  r
+
+let poll () =
+  box {2} 1 as slot in
+  perform Poll ();
+  unbox slot as r in
+  r

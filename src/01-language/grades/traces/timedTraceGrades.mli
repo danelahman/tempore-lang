@@ -9,7 +9,15 @@
     two orders read different endpoints: [lo] feeds the coverage (lower-bound)
     order and [hi] the allowance (upper-bound) order. The runtime bounds are
     read as delays ({!Grade.read_bound}), and the runtime bounds a compound
-    operation's grade implies are measured by {!Delay.MEASURED.to_rational}.
+    operation's grade implies are measured by {!Delay.MEASURED.to_rational}. The
+    orders read the value of an end, open or closed: the delays of a bound are
+    exact, so a run is permitted at every duration of an operation below [hi]
+    iff at [hi], and covers at every duration above [lo] iff at [lo]. The
+    implied runtime bounds are the infimum and the supremum of the durations of
+    the runs, an end of a run being open iff one of its operations is at an open
+    end, and the time shadow {!Grade.S.of_bounds} is that of the closed hull
+    [[lo, hi]], a finite set of traces expressing no strict end. Over whole time
+    steps the ends are closed ({!Grade.close_runtime}).
 
     {2 Representations}
 

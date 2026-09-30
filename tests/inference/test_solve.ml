@@ -294,6 +294,7 @@ let expected_rejections =
     ("rational_time_lower_reject.tpe", [ 10; 14 ]);
     ("rational_time_upper_reject.tpe", [ 7 ]);
     ("rational_traces_intervals_reject.tpe", [ 9 ]);
+    ("rational_traces_upper_open_reject.tpe", [ 8 ]);
     ("rational_traces_upper_reject.tpe", [ 9 ]);
     ("default_reject_cycle.tpe", [ 9 ]);
     ("default_reject_duplicate.tpe", [ 8 ]);
@@ -357,9 +358,12 @@ let expected_rejections =
     ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);
     ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);
     ("regex_costs_lower_runs_reject.tpe", [ 10 ]);
+    ("regex_costs_rational_interval_open_reject.tpe", [ 7 ]);
     ("regex_costs_rational_interval_reject.tpe", [ 10; 18 ]);
     ("regex_costs_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
+    ("regex_costs_rational_upper_open_reject.tpe", [ 9; 15 ]);
     ("regex_costs_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
+    ("regex_costs_upper_open_reject.tpe", [ 9; 15 ]);
     ("regex_costs_upper_reject.tpe", [ 11; 19; 27; 34 ]);
     ("regex_costs_upper_runs_reject.tpe", [ 11; 17; 20 ]);
     ("regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);
@@ -375,6 +379,7 @@ let expected_rejections =
     ("termination_reject_spin.tpe", [ 3 ]);
     ("time_reject_within.tpe", [ 6 ]);
     ("traces_intervals_default_bounds.tpe", [ 9 ]);
+    ("traces_open_bounds_reject.tpe", [ 9; 15 ]);
     ("traces_reject_allowance.tpe", [ 7 ]);
     ("traces_reject_bounds.tpe", [ 4 ]);
     ("traces_reject_bounds_declared.tpe", [ 6 ]);
@@ -466,7 +471,9 @@ module Small (G : Grade.S) = struct
 
   let no_bounds =
     {
-      Grade.cost = (fun _ -> (Grades.Rational.zero, Grades.Rational.zero));
+      Grade.cost =
+        (fun _ ->
+          (Grade.Closed Grades.Rational.zero, Grade.Closed Grades.Rational.zero));
       operations = [];
     }
 

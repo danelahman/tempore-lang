@@ -3,15 +3,26 @@ module L = RegularTraceGradeRational
 module A = DelayAutomaton
 module Closure = DelayCostClosure
 
+(* [extremum b] is the extremal value of the finite end [b] of runtime bounds,
+   attained iff [b] is closed. *)
+let extremum = function
+  | Closed q -> DelaySet.Finite (q, true)
+  | Open q -> DelaySet.Finite (q, false)
+  | Unbounded -> DelaySet.Infinite
+
+(* [end_of_extremum (q, attained)] is the end of runtime bounds of value [q],
+   closed iff [attained]. *)
+let end_of_extremum (q, attained) = if attained then Closed q else Open q
+
 (* [world endpoint bounds rhos] is the operations of a comparison of the grades
-   [rhos], each with the [endpoint] of its runtime bounds as its cost: the
-   names [rhos] mention, and of the other declared operations, which [rhos] do
-   not tell apart, the least name of each cost. *)
+   [rhos], each with the extremal value of the [endpoint] of its runtime bounds
+   as its cost: the names [rhos] mention, and of the other declared operations,
+   which [rhos] do not tell apart, the least name of each cost. *)
 let world endpoint bounds rhos =
   let mentioned =
     List.sort_uniq String.compare (List.concat_map L.events rhos)
   in
-  let cost name = endpoint (bounds.cost name) in
+  let cost name = extremum (endpoint (bounds.cost name)) in
   let others =
     List.filter
       (fun name -> not (List.mem name mentioned))
@@ -21,7 +32,8 @@ let world endpoint bounds rhos =
     List.fold_left
       (fun reps name ->
         let c = cost name in
-        if List.exists (fun (_, c') -> Rational.equal c c') reps then reps
+        if List.exists (fun (_, c') -> DelaySet.equal_extremum c c') reps then
+          reps
         else (name, c) :: reps)
       [] others
   in
@@ -31,7 +43,7 @@ let world endpoint bounds rhos =
 
 type order = {
   decide : Closure.world -> A.t -> A.t -> A.symbol list option;
-  endpoint : runtime -> Rational.t;
+  endpoint : runtime -> Rational.t bound;
   top : L.t;
 }
 (* An order on runs: the search for a word of the lesser grade outside the
@@ -63,7 +75,7 @@ let counterexample order bounds rho rho' =
 
 let inhabited bounds rho =
   Closure.inhabited
-    (world (Fun.const Rational.zero) bounds [ rho ])
+    (world (Fun.const (Closed Rational.zero)) bounds [ rho ])
     (L.automaton rho)
 
 let implied_bounds bounds lower upper =
@@ -71,8 +83,23 @@ let implied_bounds bounds lower upper =
     ( Closure.min_weight (world fst bounds [ lower ]) (L.automaton lower),
       Closure.max_weight (world snd bounds [ upper ]) (L.automaton upper) )
   with
-  | Some fastest, Some slowest -> Some (fastest, slowest)
+  | Some fastest, Some slowest ->
+      Some (end_of_extremum fastest, end_of_extremum slowest)
   | _ -> None
+
+(* [lower_shadow lo] is the lower time shadow of the lower end [lo] of runtime
+   bounds: [{lo}] if it is closed, and [{(lo, ∞)}], covered by the runs longer
+   than [lo], if it is open. *)
+let lower_shadow = function
+  | Open q -> L.of_lit (Braces (Delays (Open q, Unbounded)))
+  | lo -> L.of_delay (end_value lo)
+
+(* [upper_shadow hi] is the upper time shadow of the upper end [hi] of runtime
+   bounds: [{hi}] if it is closed, and [{[0, hi)}], permitting the runs shorter
+   than [hi], if it is open. *)
+let upper_shadow = function
+  | Open q -> L.of_lit (Braces (Delays (Closed Rational.zero, Open q)))
+  | hi -> L.of_delay (end_value hi)
 
 (* The fields the grades share with the regular trace grade over rational
    delays. *)
@@ -109,7 +136,7 @@ module Lower = struct
   let is_top = is_top coverage
   let unit_least = false
   let of_lit = function Top -> top | lit -> L.of_lit lit
-  let of_bounds (lo, _hi) = L.of_delay lo
+  let of_bounds (lo, _hi) = lower_shadow lo
 end
 
 module Upper = struct
@@ -123,7 +150,7 @@ module Upper = struct
   let is_top = is_top allowance
   let unit_least = true
   let of_lit = L.of_lit
-  let of_bounds (_lo, hi) = L.of_delay hi
+  let of_bounds (_lo, hi) = upper_shadow hi
 end
 
 module Interval = struct
@@ -182,7 +209,7 @@ module Interval = struct
           ~upper:Upper.of_lit ~unbounded:Upper.top ~bounds:"regular expressions"
 
   let of_delay d = (L.of_delay d, L.of_delay d)
-  let of_bounds (lo, hi) = (L.of_delay lo, L.of_delay hi)
+  let of_bounds (lo, hi) = (lower_shadow lo, upper_shadow hi)
   let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
 
   let show (lo, hi) =

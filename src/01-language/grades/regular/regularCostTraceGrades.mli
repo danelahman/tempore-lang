@@ -59,11 +59,12 @@
     implied by a grade are the least weight of its lower-bound runs, at [lo],
     and the greatest weight of its upper-bound runs, at [hi], [None] if the
     latter is unbounded; an operation's time shadow [of_bounds (lo, hi)] is
-    [{lo}] under the lower order and [{hi}] under the upper. A counterexample to
-    [ρ ≾ ρ'] is the grade of a shortest run of [ρ] outside the closure of [ρ'],
-    in which a name stands for itself. The witnesses of a closed condition are
-    its constants and their pairwise products ({!Grade.sampled}), which are not
-    complete. *)
+    [{lo}] under the lower order and [{hi}] under the upper. Over whole time
+    steps the ends of runtime bounds are closed ({!Grade.close_runtime}). A
+    counterexample to [ρ ≾ ρ'] is the grade of a shortest run of [ρ] outside the
+    closure of [ρ'], in which a name stands for itself. The witnesses of a
+    closed condition are its constants and their pairwise products
+    ({!Grade.sampled}), which are not complete. *)
 
 (** A regular trace grade with the languages of its grades over given names; its
     delays are whole time steps, a delay of [n] steps being the word [tickⁿ]. *)

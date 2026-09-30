@@ -28,15 +28,15 @@
     {2 Cost model}
 
     The orders of the trace grades with costs read the runtime bounds
-    [within [lo, hi]] that operations declare, and those of the cost-model
-    regular trace grades also the set of the operations the program declares,
-    over which their catch-all letter ranges: all of them, before or after the
-    grade, so that a grade means the same throughout a program. The operations
-    that depend on the order, [leq], [equal], [counterexample], [implied_bounds]
-    and [inhabited], take both as an argument of type {!bounds}; the other
-    grades ignore it. Runtime bounds are kept as the non-negative rationals the
-    source writes ({!runtime}), and each grade reads them as its delays
-    ({!read_bound}).
+    [within [lo, hi]] that operations declare, each end closed or open, and
+    those of the cost-model regular trace grades also the set of the operations
+    the program declares, over which their catch-all letter ranges: all of them,
+    before or after the grade, so that a grade means the same throughout a
+    program. The operations that depend on the order, [leq], [equal],
+    [counterexample], [implied_bounds] and [inhabited], take both as an argument
+    of type {!bounds}; the other grades ignore it. Runtime bounds are kept as
+    the non-negative rationals the source writes ({!runtime}), and each grade
+    reads them as its delays ({!read_bound}).
 
     {2 Literals}
 
@@ -46,9 +46,60 @@
 
 include GradeLiteral
 
-type runtime = Rational.t * Rational.t
-(** The runtime bounds [(lo, hi)] of an operation, [lo ≤ hi]: non-negative
-    rationals, independent of the grade. *)
+type runtime = Rational.t bound * Rational.t bound
+(** The runtime bounds [(lo, hi)] of an operation: a non-empty interval of
+    non-negative rationals with finite ends, each closed or open, independent of
+    the grade. A closed end is attained by the durations of the operation, an
+    open one is their strict infimum or supremum. *)
+
+(** [end_value b] is the value of the finite end [b] of an interval.
+
+    @raise Invalid_argument if [b] is infinite. *)
+let end_value = function
+  | Closed q | Open q -> q
+  | Unbounded -> invalid_arg "Grade.end_value: an infinite end"
+
+(** [map_end f b] is the end [b] with its value mapped by [f]. *)
+let map_end f = function
+  | Closed q -> Closed (f q)
+  | Open q -> Open (f q)
+  | Unbounded -> Unbounded
+
+(** [hull (lo, hi)] is the pair of the values of the ends of the runtime bounds
+    [(lo, hi)], the ends of their closure [[lo, hi]]. *)
+let hull (lo, hi) = (end_value lo, end_value hi)
+
+(** [add_ends b b'] is the sum of the finite ends [b] and [b'], attained iff
+    both are. *)
+let add_ends b b' =
+  match (b, b') with
+  | Closed a, Closed a' -> Closed (Rational.add a a')
+  | (Closed a | Open a), (Closed a' | Open a') -> Open (Rational.add a a')
+  | Unbounded, _ | _, Unbounded -> Unbounded
+
+(** [compare_ends ~lower b b'] orders the finite ends [b] and [b'] of intervals
+    by value, and at equal values by the sets they bound: a closed lower end
+    before an open one, and an open upper end before a closed one. *)
+let compare_ends ~lower b b' =
+  let rank = function
+    | Closed _ -> Bool.to_int (not lower)
+    | _ -> Bool.to_int lower
+  in
+  match Rational.compare (end_value b) (end_value b') with
+  | 0 -> Int.compare (rank b) (rank b')
+  | c -> c
+
+(** [close_runtime adjacent (lo, hi)] is the runtime bounds [(lo, hi)] with each
+    open end [q] replaced by the closed end [adjacent ~lower q], [lower] being
+    whether it is the lower end, where there is one: over whole time steps,
+    [(1, 4)] is [[2, 3]]. *)
+let close_runtime adjacent (lo, hi) =
+  let close ~lower = function
+    | Open q -> (
+        match adjacent ~lower q with Some q' -> Closed q' | None -> Open q)
+    | b -> b
+  in
+  (close ~lower:true lo, close ~lower:false hi)
 
 type bounds = {
   cost : string -> runtime;
@@ -135,14 +186,14 @@ module type S = sig
 
   val implied_bounds : bounds -> t -> runtime option
   (** [implied_bounds bounds rho] is the pair of runtime bounds the grade [rho]
-      itself implies: the duration of its fastest run, each event counted at the
-      lower end of its [bounds], and the duration of its slowest run, each event
-      counted at the upper end. The fastest run is taken over the lower-bound
-      component of the grade and the slowest over its upper-bound component,
-      which coincide for the one-sided trace grades with costs. The time grades
-      imply nothing, since there the grade of an operation already is its
-      runtime bound, and return [None]; so does an unbounded upper-bound
-      component. *)
+      itself implies: the infimum of the durations of its runs, each event
+      counted at the lower end of its [bounds], and their supremum, each event
+      counted at the upper end, each attained or not. The fastest run is taken
+      over the lower-bound component of the grade and the slowest over its
+      upper-bound component, which coincide for the one-sided trace grades with
+      costs. The time grades imply nothing, since there the grade of an
+      operation already is its runtime bound, and return [None]; so does an
+      unbounded upper-bound component. *)
 
   val inhabited : bounds -> t -> bool
   (** [inhabited bounds rho] is whether the grade [rho] denotes at least one run
@@ -158,14 +209,14 @@ module type S = sig
 
       @raise Invalid_literal if the grade does not understand [lit]. *)
 
-  val of_bounds : Delay.t * Delay.t -> t
+  val of_bounds : Delay.t bound * Delay.t bound -> t
   (** [of_bounds (lo, hi)] is the "time shadow" of an operation declaring the
-      runtime bounds [within [lo, hi]], read as delays: the grade that records
-      nothing but the time such a call may take. It is the grade a default
+      runtime bounds [(lo, hi)], read as delays: the grade that records nothing
+      but the time such a call may take. It is the grade a default
       implementation of the operation is checked against, since the operation's
       own grade can only be realised by performing the operation itself. Each
-      grade reads the end of the bounds its order uses, the two-sided ones both.
-  *)
+      grade reads the end of the bounds its order uses, the two-sided ones both;
+      a grade that expresses no strict ends reads the closed hull ({!hull}). *)
 
   val is_atomic : string -> t -> bool
   (** [is_atomic name rho] is whether [rho] is the grade of an atomic operation

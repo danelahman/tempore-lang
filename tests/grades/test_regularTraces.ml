@@ -24,7 +24,9 @@ let expect name show ~expected actual =
 
 let bounds =
   {
-    Grade.cost = (fun _ -> Grades.Rational.(of_int 1, of_int 2));
+    Grade.cost =
+      (fun _ ->
+        Grades.Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
     operations = [];
   }
 
@@ -279,7 +281,7 @@ struct
       rejects "{(1, 2)}" "'(1, 2)' contains no whole number of time steps";
       rejects "{[1/2, 2]}" "whole numbers of time steps";
       rejects "{(1, 1]}" "n < m at an open endpoint";
-      rejects "{<1}" "'[0, 1)' for '<1'";
+      rejects "{<1}" "parser error";
     ]
 
   (* Interval atoms abbreviate sets of numbers of ticks. *)
@@ -406,7 +408,7 @@ struct
       expect "not atomic" show_bool ~expected:false
         (G.is_atomic "Send" (lit "{Send | Read}"));
       expect_grade "time shadow" ~expected:(lit "{1 | 2 | 3}")
-        (G.of_bounds (1, 3));
+        (G.of_bounds (Grade.Closed 1, Grade.Closed 3));
       check "no implied bounds"
         (G.implied_bounds bounds (lit "{Send}") = None)
         "";

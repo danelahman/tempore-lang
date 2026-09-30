@@ -3,13 +3,13 @@ module IntMap = Map.Make (Int)
 module IntSet = Set.Make (Int)
 module Fifo = Dfa.Fifo
 
-type world = (string * Rational.t) list
-
 (* {1 Extremal values} *)
 
 type value = DelaySet.extremum = Finite of Rational.t * bool | Infinite
 (* [Finite (a, true)] is [a]; [Finite (a, false)] is [a] approached from below
    in the allowance domain and from above in the coverage domain. *)
+
+type world = (string * value) list
 
 let exact q = Finite (q, true)
 let zero = exact Rational.zero
@@ -173,7 +173,7 @@ let longest =
     ~better:(fun x y -> down.compare x y > 0)
     ~cycle:(Fun.const Infinite) zero
 
-let rational_part = function Finite (q, _) -> Some q | Infinite -> None
+let finite_part = function Finite (q, f) -> Some (q, f) | Infinite -> None
 let cost_of world name = List.assoc name world
 
 let max_weight world l =
@@ -185,8 +185,7 @@ let max_weight world l =
       longest
         (edges
            ~gap:(fun s -> Option.value (DelaySet.sup s) ~default:zero)
-           ~op:(fun name -> exact (cost_of world name))
-           a)
+           ~op:(cost_of world) a)
         0
     in
     Array.to_list a.final
@@ -198,7 +197,7 @@ let max_weight world l =
            | None, x -> x
            | Some b, Some x -> Some (greater down b x))
          None
-    |> Fun.flip Option.bind rational_part
+    |> Fun.flip Option.bind finite_part
 
 let min_weight world l =
   let a = graph (List.map fst world) l in
@@ -207,27 +206,25 @@ let min_weight world l =
     let ng = Array.length a.gaps in
     let edges =
       edges
-        ~gap:(fun s ->
-          match DelaySet.inf s with
-          | Some (Finite (q, _)) -> q
-          | Some Infinite | None -> Rational.zero)
+        ~gap:(fun s -> Option.value (DelaySet.inf s) ~default:zero)
         ~op:(cost_of world) a
     in
     let pick best x =
       match (best, x) with
       | best, None -> best
       | None, x -> x
-      | Some b, Some x -> Some (if Rational.compare x b < 0 then x else b)
+      | Some b, Some x -> Some (lesser up b x)
     in
     let d =
-      paths ~add:Rational.add
-        ~better:(fun x y -> Rational.compare x y < 0)
-        ~cycle:Fun.id Rational.zero edges 0
+      paths ~add
+        ~better:(fun x y -> up.compare x y < 0)
+        ~cycle:Fun.id zero edges 0
     in
     List.fold_left pick None
       (List.mapi
          (fun o f -> if f then d.(ng + o) else None)
          (Array.to_list a.final))
+    |> Fun.flip Option.bind finite_part
 
 let inhabited world l = (graph (List.map fst world) l).live
 
@@ -334,7 +331,7 @@ let allowance_reader world m =
   in
   let delay v config = normalise (IntMap.map (add v) config) in
   let operation name config =
-    let bought = IntMap.map (add (exact (cost_of world name))) config in
+    let bought = IntMap.map (add (cost_of world name)) config in
     let matched =
       IntMap.fold
         (fun p x targets ->
@@ -389,7 +386,7 @@ let coverage_reader world m =
   in
   let delay v config = normalise (IntMap.map (add v) config) in
   let operation name config =
-    let banked = IntMap.map (add (exact (cost_of world name))) config in
+    let banked = IntMap.map (add (cost_of world name)) config in
     let matched =
       IntMap.fold
         (fun q x targets ->
@@ -569,14 +566,15 @@ module Arguments = Hashtbl.Make (struct
 
   let equal (world, l, m) (world', l', m') =
     List.equal
-      (fun (n, c) (n', c') -> String.equal n n' && Rational.equal c c')
+      (fun (n, c) (n', c') -> String.equal n n' && DelaySet.equal_extremum c c')
       world world'
     && A.equal l l' && A.equal m m'
 
   let hash (world, l, m) =
     Grade.combine
       (Grade.hash_list
-         (fun (n, c) -> Grade.combine (String.hash n) (Rational.hash c))
+         (fun (n, c) ->
+           Grade.combine (String.hash n) (DelaySet.hash_extremum c))
          world)
       (Grade.combine (A.hash l) (A.hash m))
 end)

@@ -46,7 +46,7 @@
   >     literals_time_upper.tpe) ../tempore --grades time-upper-bound $f;;
   >     literals_time_interval.tpe) ../tempore --grades time-interval $f;;
   >     literals_reject_interval_*.tpe) ../tempore --grades time-interval $f;;
-  >     literals_reject_within_pair.tpe) ../tempore --grades traces-cost-upper-bound $f;;
+  >     literals_reject_within_*.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     literals_traces.tpe) ../tempore --grades traces-cost-interval $f;;
   >     literals_reject_star.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     literals_reject_component.tpe) ../tempore --grades time-lower-bound-levels $f;;
@@ -2101,12 +2101,19 @@
                          ^^^^^^
   Syntax error: in the 'time-windows' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
   ======================================================================
-  literals_reject_within_pair.tpe
+  literals_reject_within_empty.tpe
   ======================================================================
-  File "literals_reject_within_pair.tpe", line 4, characters 46-52:
+  File "literals_reject_within_empty.tpe", line 4, characters 46-52:
+  4 | operation Send : unit ~> unit # {Send} within [2, 2)
+                                                    ^^^^^^
+  Syntax error: interval endpoints must satisfy n < m at an open endpoint
+  ======================================================================
+  literals_reject_within_no_step.tpe
+  ======================================================================
+  File "literals_reject_within_no_step.tpe", line 4, characters 46-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
                                                     ^^^^^^
-  Syntax error: runtime bounds are written 'within n' or 'within [n, m]'
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, the interval '(1, 2)' contains no whole number of time steps
   ======================================================================
   literals_time_interval.tpe
   ======================================================================
@@ -3249,6 +3256,25 @@
   ]
   
   ======================================================================
+  rational_traces_upper_open.tpe
+  ======================================================================
+  ======================================================================
+  rational_traces_upper_open_reject.tpe
+  ======================================================================
+  File "rational_traces_upper_open_reject.tpe", lines 11-12, characters 2-3:
+  11 |   unbox slot as r in
+         ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `slot` is unboxed with grade `{Sample}` accumulated since it was bound, which is not below its box grade `{1.4}`
+    File "rational_traces_upper_open_reject.tpe", line 9, characters 17-21:
+    9 |   box {1.4} 1 as slot in
+                         ^^^^
+    `slot` is bound here
+    File "rational_traces_upper_open_reject.tpe", line 10, characters 2-19:
+    10 |   perform Sample ();
+           ^^^^^^^^^^^^^^^^^
+    grade `{Sample}` accumulates here (operation `Sample`)
+    Note: the resource inequality `{Sample} <= {1.4}` does not hold
+  ======================================================================
   rational_traces_upper_reject.tpe
   ======================================================================
   File "rational_traces_upper_reject.tpe", lines 13-14, characters 2-3:
@@ -3633,6 +3659,18 @@
   ]
   
   ======================================================================
+  regex_costs_rational_interval_open_reject.tpe
+  ======================================================================
+  File "regex_costs_rational_interval_open_reject.tpe", line 7, characters 0-25:
+  7 | default Beep () = delay 1
+      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
+    File "regex_costs_rational_interval_open_reject.tpe", line 5, characters 0-62:
+    5 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
+  ======================================================================
   regex_costs_rational_interval_reject.tpe
   ======================================================================
   File "regex_costs_rational_interval_reject.tpe", lines 13-14, characters 2-5:
@@ -3739,6 +3777,42 @@
   ]
   
   ======================================================================
+  regex_costs_rational_upper_open.tpe
+  ======================================================================
+  === Run 1 ===
+  return 1
+  State: [
+    { resource_0 ↦ 1 # {[0, 2)} },
+    {1.9}
+  ]
+  
+  ======================================================================
+  regex_costs_rational_upper_open_reject.tpe
+  ======================================================================
+  File "regex_costs_rational_upper_open_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox slot as r in
+         ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `slot` is unboxed with grade `{Sample}` accumulated since it was bound, which is not below its box grade `{[0, 2)}`
+    File "regex_costs_rational_upper_open_reject.tpe", line 10, characters 20-24:
+    10 |   box {[0, 2)} 1 as slot in
+                             ^^^^
+    `slot` is bound here
+    File "regex_costs_rational_upper_open_reject.tpe", line 11, characters 2-19:
+    11 |   perform Sample ();
+           ^^^^^^^^^^^^^^^^^
+    grade `{Sample}` accumulates here (operation `Sample`)
+    Note: the resource inequality `{Sample} <= {[0, 2)}` does not hold
+  
+  File "regex_costs_rational_upper_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 2
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
+    File "regex_costs_rational_upper_open_reject.tpe", line 7, characters 0-54:
+    7 | operation Beep : unit ~> unit # {Beep} within [1/2, 2)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `{2} <= {[0, 2)}` does not hold
+  ======================================================================
   regex_costs_rational_upper_reject.tpe
   ======================================================================
   File "regex_costs_rational_upper_reject.tpe", lines 16-17, characters 2-5:
@@ -3833,6 +3907,41 @@
     {3}
   ]
   
+  ======================================================================
+  regex_costs_upper_open.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {2}
+  ]
+  
+  ======================================================================
+  regex_costs_upper_open_reject.tpe
+  ======================================================================
+  File "regex_costs_upper_open_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox slot as r in
+         ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
+    File "regex_costs_upper_open_reject.tpe", line 10, characters 15-19:
+    10 |   box {2} 1 as slot in
+                        ^^^^
+    `slot` is bound here
+    File "regex_costs_upper_open_reject.tpe", line 11, characters 2-15:
+    11 |   perform Tx ();
+           ^^^^^^^^^^^^^
+    grade `{Tx}` accumulates here (operation `Tx`)
+    Note: the resource inequality `{Tx} <= {2}` does not hold
+  
+  File "regex_costs_upper_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 3
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+    File "regex_costs_upper_open_reject.tpe", line 7, characters 0-52:
+    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   regex_costs_upper_reject.tpe
   ======================================================================
@@ -5063,6 +5172,41 @@
   ]
   
   ======================================================================
+  traces_open_bounds.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {2}
+  ]
+  
+  ======================================================================
+  traces_open_bounds_reject.tpe
+  ======================================================================
+  File "traces_open_bounds_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox slot as r in
+         ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
+    File "traces_open_bounds_reject.tpe", line 10, characters 15-19:
+    10 |   box {2} 1 as slot in
+                        ^^^^
+    `slot` is bound here
+    File "traces_open_bounds_reject.tpe", line 11, characters 2-15:
+    11 |   perform Tx ();
+           ^^^^^^^^^^^^^
+    grade `{Tx}` accumulates here (operation `Tx`)
+    Note: the resource inequality `{Tx} <= {2}` does not hold
+  
+  File "traces_open_bounds_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 3
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+    File "traces_open_bounds_reject.tpe", line 7, characters 0-52:
+    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `{3} <= {2}` does not hold
+  ======================================================================
   traces_reject_allowance.tpe
   ======================================================================
   File "traces_reject_allowance.tpe", lines 10-11, characters 2-3:
@@ -5735,6 +5879,41 @@ automata, the programs over rational delays excepted:
     {3}
   ]
   
+  ======================================================================
+  regex_costs_upper_open.tpe (regex-cost-upper-bound)
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {2}
+  ]
+  
+  ======================================================================
+  regex_costs_upper_open_reject.tpe (regex-cost-upper-bound)
+  ======================================================================
+  File "regex_costs_upper_open_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox slot as r in
+         ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
+    File "regex_costs_upper_open_reject.tpe", line 10, characters 15-19:
+    10 |   box {2} 1 as slot in
+                        ^^^^
+    `slot` is bound here
+    File "regex_costs_upper_open_reject.tpe", line 11, characters 2-15:
+    11 |   perform Tx ();
+           ^^^^^^^^^^^^^
+    grade `{Tx}` accumulates here (operation `Tx`)
+    Note: the resource inequality `{Tx} <= {2}` does not hold
+  
+  File "regex_costs_upper_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 3
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+    File "regex_costs_upper_open_reject.tpe", line 7, characters 0-52:
+    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   regex_costs_upper_reject.tpe (regex-cost-upper-bound)
   ======================================================================
@@ -6652,6 +6831,76 @@ above, the examples over rational delays excepted:
     {3}
   ]
   
+  ======================================================================
+  regex_costs_upper_open.tpe (regex-cost-upper-bound-derivatives)
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {2}
+  ]
+  
+  ======================================================================
+  regex_costs_upper_open.tpe (regex-cost-upper-bound-plain)
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {2}
+  ]
+  
+  ======================================================================
+  regex_costs_upper_open_reject.tpe (regex-cost-upper-bound-derivatives)
+  ======================================================================
+  File "regex_costs_upper_open_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox slot as r in
+         ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
+    File "regex_costs_upper_open_reject.tpe", line 10, characters 15-19:
+    10 |   box {2} 1 as slot in
+                        ^^^^
+    `slot` is bound here
+    File "regex_costs_upper_open_reject.tpe", line 11, characters 2-15:
+    11 |   perform Tx ();
+           ^^^^^^^^^^^^^
+    grade `{Tx}` accumulates here (operation `Tx`)
+    Note: the resource inequality `{Tx} <= {2}` does not hold
+  
+  File "regex_costs_upper_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 3
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+    File "regex_costs_upper_open_reject.tpe", line 7, characters 0-52:
+    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `{3} <= {2}` does not hold
+  ======================================================================
+  regex_costs_upper_open_reject.tpe (regex-cost-upper-bound-plain)
+  ======================================================================
+  File "regex_costs_upper_open_reject.tpe", lines 12-13, characters 2-3:
+  12 |   unbox slot as r in
+         ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
+    File "regex_costs_upper_open_reject.tpe", line 10, characters 15-19:
+    10 |   box {2} 1 as slot in
+                        ^^^^
+    `slot` is bound here
+    File "regex_costs_upper_open_reject.tpe", line 11, characters 2-15:
+    11 |   perform Tx ();
+           ^^^^^^^^^^^^^
+    grade `{Tx}` accumulates here (operation `Tx`)
+    Note: the resource inequality `{Tx} <= {2}` does not hold
+  
+  File "regex_costs_upper_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 3
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
+    File "regex_costs_upper_open_reject.tpe", line 7, characters 0-52:
+    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   regex_costs_upper_reject.tpe (regex-cost-upper-bound-derivatives)
   ======================================================================

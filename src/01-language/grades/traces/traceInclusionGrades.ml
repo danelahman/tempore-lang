@@ -63,7 +63,9 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
     (** The time shadow of exact bounds is their delay, and that of other bounds
         [⊤], which is above every delay between them. The operations declare no
         runtime bounds under these grades, so it is not used. *)
-    let of_bounds (lo, hi) = if D.equal lo hi then of_delay lo else Unbounded
+    let of_bounds b =
+      let lo, hi = hull b in
+      if D.equal lo hi then of_delay lo else Unbounded
 
     let of_lit = function
       | Top -> Unbounded

@@ -53,21 +53,35 @@ let lit text =
 
 let automaton text = Plain.automaton (lit text)
 
-(* A cost model of fractional runtime bounds. *)
+(* A cost model of fractional runtime bounds, the runtime bounds of each
+   operation given by their ends. *)
 let bounds_of table =
   {
     Grade.cost = (fun o -> List.assoc o table);
     operations = List.map fst table;
   }
 
+(* [closed (lo, hi)] is the closed runtime bounds [[lo, hi]]. *)
+let closed (lo, hi) = (Grade.Closed lo, Grade.Closed hi)
+
+(* [exact world] is the world of the costs [world], each attained. *)
+let exact world =
+  List.map (fun (name, c) -> (name, DelaySet.Finite (c, true))) world
+
+(* [strict world] is the world of the costs [world], none attained. *)
+let strict world =
+  List.map (fun (name, c) -> (name, DelaySet.Finite (c, false))) world
+
 let bounds =
   bounds_of
-    [
-      ("A", (q 1 2, qi 1));
-      ("B", (qi 0, q 1 2));
-      ("S", (q 1 2, q 3 2));
-      ("T", (q 1 4, qi 1));
-    ]
+    (List.map
+       (fun (name, b) -> (name, closed b))
+       [
+         ("A", (q 1 2, qi 1));
+         ("B", (qi 0, q 1 2));
+         ("S", (q 1 2, q 3 2));
+         ("T", (q 1 4, qi 1));
+       ])
 
 let upper a b = G.Upper.leq bounds (lit a) (lit b)
 let lower a b = G.Lower.leq bounds (lit a) (lit b)
@@ -138,7 +152,7 @@ let examples =
    of cost [1] weigh less than [2k - 1], and approach it: they are below
    [{2k - 1}] and not below [{2k - 2}], also with delays [(0, 1]]. *)
 let open_delays =
-  let world = [ ("A", qi 1) ] in
+  let world = exact [ ("A", qi 1) ] in
   let runs k gap =
     automaton ("{" ^ String.concat "; A; " (List.init k (Fun.const gap)) ^ "}")
   in
@@ -167,23 +181,24 @@ let open_delays =
 (* {1 Implied runtime bounds and the closed world} *)
 
 let show_bounds = function
-  | Some (lo, hi) -> Rational.show lo ^ ", " ^ Rational.show hi
+  | Some (lo, hi) -> Grade.show_interval Rational.show lo hi
   | None -> "none"
 
 let implied =
   let implied text = show_bounds (G.Upper.implied_bounds bounds (lit text)) in
   [
-    expect "implied: a compound operation" Fun.id ~expected:"1, 2.75"
+    expect "implied: a compound operation" Fun.id ~expected:"[1, 2.75]"
       (implied "{S; 1/4; T}");
-    expect "implied: an open delay" Fun.id ~expected:"0.75, 3"
+    expect "implied: an open delay" Fun.id ~expected:"(0.75, 3)"
       (implied "{S; (0, 1/2); T}");
-    expect "implied: a choice" Fun.id ~expected:"0.25, 1.5" (implied "{S | T}");
+    expect "implied: a choice" Fun.id ~expected:"[0.25, 1.5]"
+      (implied "{S | T}");
     expect "implied: unbounded" Fun.id ~expected:"none" (implied "{S*}");
     expect "implied: unbounded delays" Fun.id ~expected:"none"
       (implied "{S; (1, ∞)}");
-    expect "implied: a catch-all" Fun.id ~expected:"0, 1.5"
+    expect "implied: a catch-all" Fun.id ~expected:"[0, 1.5]"
       (implied "{_ & ~(0, ∞)}");
-    expect "implied: an interval" Fun.id ~expected:"0.5, 1"
+    expect "implied: an interval" Fun.id ~expected:"[0.5, 1]"
       (show_bounds
          (G.Interval.implied_bounds bounds
             (G.Interval.of_lit
@@ -192,8 +207,92 @@ let implied =
                     Grade.Closed (Grade.Braces (Grade.Letter "T")) )))));
   ]
 
+(* {1 Runtime bounds with open ends} *)
+
+let open_costs =
+  let bounds_for x = bounds_of [ ("X", x) ] in
+  let half_open = bounds_for (Grade.Closed (qi 1), Grade.Open (qi 2))
+  and closed_x = bounds_for (closed (qi 1, qi 2))
+  and open_below = bounds_for (Grade.Open (qi 1), Grade.Closed (qi 2)) in
+  let shows (type a) (module M : Grade.S with type t = a) name b expected =
+    expect ("open costs: " ^ name) Fun.id ~expected (M.show (M.of_bounds b))
+  in
+  [
+    is "open costs: within [1, 2) is below {[0, 2)}"
+      (G.Upper.leq half_open (lit "{X}") (lit "{[0, 2)}"));
+    is "open costs: within [1, 2] is not below {[0, 2)}"
+      (not (G.Upper.leq closed_x (lit "{X}") (lit "{[0, 2)}")));
+    is "open costs: within [1, 2) is below {2}"
+      (G.Upper.leq half_open (lit "{X}") (lit "{2}"));
+    is "open costs: within [1, 2) is not below {1.99}"
+      (not (G.Upper.leq half_open (lit "{X}") (lit "{1.99}")));
+    is "open costs: a strict cost and a delay below a strict sum"
+      (G.Upper.leq half_open (lit "{X; 1/2}") (lit "{[0, 5/2)}"));
+    is "open costs: within (1, 2] covers {(1, ∞)}"
+      (G.Lower.leq open_below (lit "{X}") (lit "{(1, ∞)}"));
+    is "open costs: within [1, 2] does not cover {(1, ∞)}"
+      (not (G.Lower.leq closed_x (lit "{X}") (lit "{(1, ∞)}")));
+    is "open costs: within (1, 2] covers {1}"
+      (G.Lower.leq open_below (lit "{X}") (lit "{1}"));
+    is "open costs: the allowance closure reads a strict cost"
+      (Option.is_none
+         (C.allowance
+            [ ("X", DelaySet.Finite (qi 2, false)) ]
+            (automaton "{X}") (automaton "{[0, 2)}")));
+    is "open costs: and an attained one"
+      (Option.is_some
+         (C.allowance
+            (exact [ ("X", qi 2) ])
+            (automaton "{X}") (automaton "{[0, 2)}")));
+    expect "open costs: counterexample of a strict cost" Fun.id
+      ~expected:"{X; 0.5}"
+      (show_counterexample G.Upper.show
+         (G.Upper.counterexample half_open (lit "{X; 1/2}") (lit "{2}")));
+    expect "open costs: implied bounds" Fun.id ~expected:"[2, 3)"
+      (show_bounds (G.Upper.implied_bounds half_open (lit "{X; 1}")));
+    expect "open costs: implied bounds of a choice" Fun.id ~expected:"[1, 2]"
+      (show_bounds (G.Upper.implied_bounds half_open (lit "{X | 2}")));
+    expect "open costs: implied bounds of an interval" Fun.id
+      ~expected:"(1.5, 2.5]"
+      (show_bounds
+         (G.Interval.implied_bounds open_below
+            (G.Interval.of_lit
+               (Grade.Interval
+                  ( Grade.Closed
+                      (Grade.Braces
+                         (Grade.Seq (Grade.Letter "X", Grade.Frac (q 1 2)))),
+                    Grade.Closed (Grade.Braces (Grade.Frac (q 5 2))) )))));
+    shows
+      (module G.Upper)
+      "upper shadow"
+      (Grade.Closed (qi 1), Grade.Open (qi 2))
+      "{[0, 2)}";
+    shows (module G.Upper) "closed upper shadow" (closed (qi 1, qi 2)) "{2}";
+    shows
+      (module G.Lower)
+      "lower shadow"
+      (Grade.Open (qi 1), Grade.Closed (qi 2))
+      "{(1, ∞)}";
+    shows
+      (module G.Interval)
+      "interval shadow"
+      (Grade.Open (qi 1), Grade.Open (qi 2))
+      "[{(1, ∞)}, {[0, 2)}]";
+    is "open costs: a default of exactly 2 is not below the upper shadow"
+      (not
+         (G.Upper.leq half_open (lit "{2}")
+            (G.Upper.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2)))));
+    is "open costs: a default of 1.9 is"
+      (G.Upper.leq half_open (lit "{1.9}")
+         (G.Upper.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2))));
+    is "open costs: a default of exactly 1 does not cover the lower shadow"
+      (not
+         (G.Lower.leq open_below (lit "{1}")
+            (G.Lower.of_bounds (Grade.Open (qi 1), Grade.Closed (qi 2)))));
+  ]
+
 let closed_world =
-  let only_a = bounds_of [ ("A", (qi 1, qi 1)) ] in
+  let only_a = bounds_of [ ("A", closed (qi 1, qi 1)) ] in
   [
     is "closed world: an operation other than A and a delay"
       (G.Upper.inhabited only_a (lit "{_ & ~A}"));
@@ -511,11 +610,20 @@ let against_recursions name ~seed ~closed_top ~world ~decide ~reads ~member =
          (List.length verdicts));
   ]
 
+(* The costs not attained agree with the recursions at their values: against
+   a bound closed at the top, a word is permitted at every cost below a
+   supremum iff at the supremum, and against one closed at the bottom it
+   covers at every cost above an infimum iff at the infimum. *)
 let recursions =
-  against_recursions "allowance" ~seed:5 ~closed_top:true ~world:costs_hi
-    ~decide:C.allowance ~reads:C.permits ~member:in_down
-  @ against_recursions "coverage" ~seed:7 ~closed_top:false ~world:costs_lo
-      ~decide:C.coverage ~reads:C.covers ~member:in_up
+  against_recursions "allowance" ~seed:5 ~closed_top:true
+    ~world:(exact costs_hi) ~decide:C.allowance ~reads:C.permits ~member:in_down
+  @ against_recursions "coverage" ~seed:7 ~closed_top:false
+      ~world:(exact costs_lo) ~decide:C.coverage ~reads:C.covers ~member:in_up
+  @ against_recursions "allowance, open costs" ~seed:17 ~closed_top:true
+      ~world:(strict costs_hi) ~decide:C.allowance ~reads:C.permits
+      ~member:in_down
+  @ against_recursions "coverage, open costs" ~seed:19 ~closed_top:false
+      ~world:(strict costs_lo) ~decide:C.coverage ~reads:C.covers ~member:in_up
 
 (* The orders on single runs are preorders compatible with concatenation, on
    random runs over [A], [B] and delays of halves. *)
@@ -590,7 +698,9 @@ let whole_costs = [ ("A", (1, 3)); ("B", (0, 2)); ("C", (2, 2)) ]
 
 let scaled_bounds n =
   bounds_of
-    (List.map (fun (name, (lo, hi)) -> (name, (q lo n, q hi n))) whole_costs)
+    (List.map
+       (fun (name, (lo, hi)) -> (name, closed (q lo n, q hi n)))
+       whole_costs)
 
 let whole_steps =
   let st = Random.State.make [| 43 |] in
@@ -656,7 +766,7 @@ let timing =
     let time = Sys.time () -. start in
     check name (holds && time < 5.) (Printf.sprintf "in %.2f s" time)
   in
-  let world = [ ("A", q 1 100); ("B", qi 1) ] in
+  let world = exact [ ("A", q 1 100); ("B", qi 1) ] in
   [
     quickly "a cycle of small weight against a large bound" (fun () ->
         Option.is_some
@@ -677,8 +787,8 @@ let timing =
 
 let () =
   let checks =
-    examples @ open_delays @ implied @ closed_world @ literals @ recursions
-    @ preorders @ whole_steps @ timing
+    examples @ open_delays @ implied @ open_costs @ closed_world @ literals
+    @ recursions @ preorders @ whole_steps @ timing
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

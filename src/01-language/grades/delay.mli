@@ -58,6 +58,14 @@ module type S = sig
 
   val show : t -> string
   (** [show d] prints [d] as a literal that {!read} reads as [d]. *)
+
+  val adjacent : lower:bool -> Rational.t -> Rational.t option
+  (** [adjacent ~lower q] is, for a non-negative rational [q] that {!read}
+      reads, the value of the least delay above [q] if [lower], and of the
+      greatest delay below [q] otherwise, if there is one: [q + 1] and [q - 1]
+      over whole time steps, and none over the rationals, which are dense. An
+      open end of runtime bounds is the closed end it gives
+      ({!Grade.close_runtime}). *)
 end
 
 (** Totally ordered monoids of delays, for time bounds and intervals.

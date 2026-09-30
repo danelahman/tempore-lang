@@ -104,7 +104,10 @@ module Durations = struct
            '{...}', not %s"
           Grade.interval_forms (Grade.describe_lit lit)
 
-  let of_bounds (lo, hi) = interval lo hi
+  let of_bounds b =
+    let lo, hi = Grade.hull b in
+    interval lo hi
+
   let is_atomic _name _ = true
 
   (* The upper end of an interval from [lo] containing [rho], if it is at

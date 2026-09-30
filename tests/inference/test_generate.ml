@@ -110,7 +110,8 @@ let malformed =
     "literals_reject_interval_reversed.tpe";
     "literals_reject_peak_range_empty.tpe";
     "literals_reject_windows_empty.tpe";
-    "literals_reject_within_pair.tpe";
+    "literals_reject_within_empty.tpe";
+    "literals_reject_within_no_step.tpe";
     "nat_reject_negative.tpe";
     "nat_reject_successor_zero.tpe";
     "operation_reject_datatype.tpe";
@@ -505,7 +506,9 @@ module Small = struct
                   G.equal
                     {
                       cost =
-                        (fun _ -> (Grades.Rational.zero, Grades.Rational.zero));
+                        (fun _ ->
+                          ( Grade.Closed Grades.Rational.zero,
+                            Grade.Closed Grades.Rational.zero ));
                       operations = [];
                     }
                     top G.top

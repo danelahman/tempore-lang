@@ -52,6 +52,26 @@
           (GS.E.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_bounds lit))
 
+  (* [open_runtime ~loc lo hi] is the runtime bounds at [loc] from [lo] to
+     [hi], an end open: a syntax error if the interval is empty. Where the
+     effect grades read runtime bounds, an open end is the closed one it
+     abbreviates over their delays ({!Grades.Grade.close_runtime}), and an
+     interval without a delay a syntax error. *)
+  let open_runtime ~loc lo hi =
+    match Grade.emptiness lo hi with
+    | Some reason -> Error.syntax ~loc "%s" reason
+    | None when not GS.E.needs_op_bounds -> (lo, hi)
+    | None -> (
+        let lo', hi' = Grade.close_runtime GS.E.Delay.adjacent (lo, hi) in
+        match Grade.emptiness lo' hi' with
+        | Some _ ->
+            Error.syntax ~loc
+              "in the '%s' grading monoid, the interval '%s' contains no \
+               whole number of time steps"
+              GS.E.name
+              (Grade.show_interval Rational.show lo hi)
+        | None -> (lo', hi'))
+
   (* [small ~loc what n] is the number [n] as an OCaml [int]; a syntax error
      at [loc] naming [what] if [n] does not fit one. *)
   let small ~loc what n =
@@ -115,25 +135,6 @@
     match Grade.emptiness lower upper with
     | Some reason -> Error.syntax ~loc "%s" reason
     | None -> Grade.Delays (lower, upper)
-
-  (* [comparison ~loc op q] is the syntax error at [loc] of the comparison
-     [op] with [q] in a brace literal, naming the interval it abbreviates. *)
-  let comparison ~loc op q =
-    let q' = Rational.show q in
-    let interval =
-      match op with
-      | "<" -> Some ("[0, " ^ q' ^ ")")
-      | "<=" -> Some ("[0, " ^ q' ^ "]")
-      | ">" -> Some ("(" ^ q' ^ ", ∞)")
-      | ">=" -> Some ("[" ^ q' ^ ", ∞)")
-      | _ -> None
-    in
-    match interval with
-    | Some interval ->
-        Error.syntax ~loc
-          "a set of delays in a brace literal is an interval, e.g. '%s' for \
-           '%s%s'" interval op q'
-    | None -> Error.syntax ~loc "unknown operator '%s' in a brace literal" op
 
   (* The literals written as lowercase names. *)
   let named_lit ~loc = function
@@ -624,16 +625,23 @@ sum_case:
   | lbl = mark_position(UNAME) OF t = ty
     { (lbl, Some t) }
 
-(* The runtime bounds an operation declares, durations; [within n] is sugar
-   for [within [n, n]]. Only the grading monoids with costs read them. *)
+(* The runtime bounds an operation declares, an interval of durations with
+   finite ends, each closed or open; [within n] is sugar for [within [n, n]].
+   Only the grading monoids with costs read them. *)
 op_bounds:
   | WITHIN n = runtime_bound
-    { (n, n) }
+    { (Grade.Closed n, Grade.Closed n) }
   | WITHIN LBRACK n = runtime_bound COMMA m = runtime_bound RBRACK
-    { (n, m) }
-  | WITHIN LPAREN duration COMMA duration RPAREN
-    { Error.syntax ~loc:(Location.of_lexing $startpos($2) $endpos)
-        "runtime bounds are written 'within n' or 'within [n, m]'" }
+    { (Grade.Closed n, Grade.Closed m) }
+  | WITHIN LBRACK n = runtime_bound COMMA m = runtime_bound RPAREN
+    { open_runtime ~loc:(Location.of_lexing $startpos($2) $endpos)
+        (Grade.Closed n) (Grade.Open m) }
+  | WITHIN LPAREN n = runtime_bound COMMA m = runtime_bound RBRACK
+    { open_runtime ~loc:(Location.of_lexing $startpos($2) $endpos)
+        (Grade.Open n) (Grade.Closed m) }
+  | WITHIN LPAREN n = runtime_bound COMMA m = runtime_bound RPAREN
+    { open_runtime ~loc:(Location.of_lexing $startpos($2) $endpos)
+        (Grade.Open n) (Grade.Open m) }
 
 (* A runtime bound, a duration read as a delay. *)
 runtime_bound:
@@ -781,8 +789,6 @@ regex_atom:
   | LPAREN lo = duration COMMA hi = delay_end RPAREN
     { delays ~loc:(Location.of_lexing $startpos $endpos)
         ~lower_open:true lo hi ~upper_open:true }
-  | op = INFIXOP0 q = duration
-    { comparison ~loc:(Location.of_lexing $startpos $endpos) op q }
   | UNDERSCORE { Grade.Any }
   | LPAREN r = regex RPAREN { r }
   | LBRACE r = regex RBRACE { r }

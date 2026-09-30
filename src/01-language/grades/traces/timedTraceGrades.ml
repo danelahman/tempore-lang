@@ -14,8 +14,17 @@ end
 module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
   module Trace = TimedTrace.Make (D)
 
-  let lo_cost (bounds : bounds) op = read_bound D.read (fst (bounds.cost op))
-  let hi_cost (bounds : bounds) op = read_bound D.read (snd (bounds.cost op))
+  (* The costs of an operation in the coverage and the allowance orders: the
+     values of the ends of its runtime bounds. The delays of a bound are exact,
+     so the costs a run is permitted or covered at form a closed set, monotone
+     in each cost: a run is permitted at every duration below a supremum iff
+     at its value, and covers at every duration above an infimum iff at its
+     value. Whether an end is attained is therefore not read. *)
+  let lo_cost (bounds : bounds) op =
+    read_bound D.read (end_value (fst (bounds.cost op)))
+
+  let hi_cost (bounds : bounds) op =
+    read_bound D.read (end_value (snd (bounds.cost op)))
 
   (** [traces_of_lit lit] is the set of traces the one-sided literal [lit]
       denotes. *)
@@ -85,25 +94,47 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
 
     let hash = function Within p -> Trace.hash p | Unbounded -> -1
     let events = function Within p -> Trace.events p | Unbounded -> []
-
-    let max_duration bounds = function
-      | Within p -> Some (Trace.max_duration (hi_cost bounds) p)
-      | Unbounded -> None
-
     let of_lit = function Top -> Unbounded | lit -> Within (traces_of_lit lit)
     let show = function Within p -> Trace.show p | Unbounded -> "⊤"
   end
 
+  (** [extremal_duration ~lower cost p] is the infimum of the durations of the
+      runs of [p] if [lower], and their supremum otherwise, each operation
+      lasting the end [cost] of its runtime bounds, measured by
+      {!Delay.MEASURED.to_rational}: the end of a run is the sum of those of its
+      events, attained iff each of them is, and of the runs the least, or the
+      greatest, by {!Grade.compare_ends}. *)
+  let extremal_duration ~lower cost p =
+    let run =
+      List.fold_left
+        (fun d -> function
+          | Trace.Ev o -> add_ends d (cost o)
+          | Trace.Wait n -> add_ends d (Closed (D.to_rational n)))
+        (Closed Rational.zero)
+    in
+    let pick d d' =
+      let c = compare_ends ~lower d d' in
+      if if lower then c <= 0 else c >= 0 then d else d'
+    in
+    match List.map run p with
+    | [] -> invalid_arg "TimedTraceGrades.extremal_duration: no runs"
+    | d :: ds -> List.fold_left pick d ds
+
   (** The runtime bounds implied by a lower-bound component [lo] and an
-      upper-bound component [hi], measured by {!Delay.MEASURED.to_rational}. *)
-  let implied_trace_bounds bounds lo hi =
-    Option.map
-      (fun slowest ->
-        ( D.to_rational (Trace.min_duration (lo_cost bounds) lo),
-          D.to_rational slowest ))
-      (UpperTraces.max_duration bounds hi)
+      upper-bound component [hi]. *)
+  let implied_trace_bounds bounds lo = function
+    | UpperTraces.Within hi ->
+        let cost end_ op = end_ (bounds.cost op) in
+        Some
+          ( extremal_duration ~lower:true (cost fst) lo,
+            extremal_duration ~lower:false (cost snd) hi )
+    | UpperTraces.Unbounded -> None
 
   let atomic_traces name = [ [ Trace.Ev name ] ]
+
+  (* The time shadows [of_bounds] are those of the closed hull of the runtime
+     bounds ({!Grade.hull}): a finite set of traces has exact delays, and
+     expresses no strict end. *)
 
   module LowerBound = struct
     include LowerTraces
@@ -124,7 +155,7 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
 
     let inhabited _bounds _ = true
     let of_delay = Trace.of_delay
-    let of_bounds (lo, _hi) = Trace.of_delay lo
+    let of_bounds b = Trace.of_delay (fst (hull b))
     let is_atomic name p = Trace.equal p (atomic_traces name)
     let show = Trace.show
     let witnesses ~degree:_ _bounds = sampled mul
@@ -149,7 +180,7 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
 
     let inhabited _bounds _ = true
     let of_delay d = Within (Trace.of_delay d)
-    let of_bounds (_lo, hi) = Within (Trace.of_delay hi)
+    let of_bounds b = Within (Trace.of_delay (snd (hull b)))
     let is_atomic name p = compare p (Within (atomic_traces name)) = 0
     let witnesses ~degree:_ _bounds = sampled mul
   end
@@ -215,7 +246,8 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
       let ts = Trace.of_delay d in
       (ts, UpperTraces.Within ts)
 
-    let of_bounds (lo, hi) =
+    let of_bounds b =
+      let lo, hi = hull b in
       (Trace.of_delay lo, UpperTraces.Within (Trace.of_delay hi))
 
     let is_atomic name (lo, hi) =

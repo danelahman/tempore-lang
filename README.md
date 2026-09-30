@@ -464,10 +464,18 @@ operation Tx : string ~> unit # {Tx} within [2, 3]
 ```
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)) and
-read as delays, with `lo <= hi` and `hi` positive. The rational monoids with
-costs accept fractional bounds such as `within [1/2, 3/2]`; under the other
-monoids with costs, which count whole time steps, `within [1/2, 1]` is a
-syntax error. All other monoids reject runtime bounds.
+read as delays, with `lo <= hi` and `hi` positive. Either end may be open, as
+in `within (lo, hi)`, `within [lo, hi)` or `within (lo, hi]`, the interval
+being non-empty. The rational monoids with costs accept fractional bounds such
+as `within [1/2, 3/2)`; under the other monoids with costs, which count whole
+time steps, `within [1/2, 1]` is a syntax error and an open end abbreviates a
+closed one, `within (1, 4)` being `within [2, 3]`. The rational trace monoids
+compare runs with exact delays and read the value of each end; their default
+implementations are checked against the closed bounds `[lo, hi]`. The
+rational regular-expression monoids read whether each end is attained: with
+`A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}` under
+`regex-cost-upper-bound-rational`, and a default implementation of `A` takes
+less than `2`. All other monoids reject runtime bounds.
 
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `[2, 6]`.

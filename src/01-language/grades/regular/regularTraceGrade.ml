@@ -110,8 +110,9 @@ let implied_bounds _bounds _rho = None
 let inhabited _bounds _rho = true
 let events rho = rho.names
 
-(* [lo] ticks followed by up to [hi - lo] more. *)
-let of_bounds (lo, hi) =
+(* [lo] ticks followed by up to [hi - lo] more, the ends of the closed hull. *)
+let of_bounds b =
+  let lo, hi = hull b in
   let tick_or_not = Union (Tick 0, Tick 1) in
   let rho =
     of_regex
@@ -120,7 +121,7 @@ let of_bounds (lo, hi) =
          (Tick lo)
          (List.init (max 0 (hi - lo)) Fun.id))
   in
-  { rho with expression = Expression.of_bounds (lo, hi) }
+  { rho with expression = Expression.of_bounds b }
 
 let is_atomic name rho = same rho (of_regex (Letter name))
 

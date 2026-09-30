@@ -46,11 +46,16 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
 end
 
 (** [intersect b b'] is the intersection of the runtime bounds [b] and [b'],
-    either possibly absent. *)
+    either possibly absent: the greater of the lower ends and the lesser of the
+    upper ends ({!Grade.compare_ends}). *)
 let intersect b b' =
   match (b, b') with
   | Some (lo, hi), Some (lo', hi') ->
-      Some (Delay.Rational.max lo lo', Delay.Rational.min hi hi')
+      let lo = if Grade.compare_ends ~lower:true lo lo' >= 0 then lo else lo' in
+      let hi =
+        if Grade.compare_ends ~lower:false hi hi' <= 0 then hi else hi'
+      in
+      Some (lo, hi)
   | Some b, None | None, Some b -> Some b
   | None, None -> None
 

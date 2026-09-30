@@ -112,7 +112,9 @@ let tables =
     ]
 
 (* [runtime (lo, hi)] is the runtime bounds of [lo] to [hi] time steps. *)
-let runtime (lo, hi) = (Grades.Rational.of_int lo, Grades.Rational.of_int hi)
+let runtime (lo, hi) =
+  ( Grade.Closed (Grades.Rational.of_int lo),
+    Grade.Closed (Grades.Rational.of_int hi) )
 
 let bounds_of table =
   {
@@ -236,9 +238,7 @@ let fails name b = check name (not b) ""
 let show_option show = function Some x -> show x | None -> "none"
 
 let show_bounds =
-  show_option (fun (lo, hi) ->
-      Printf.sprintf "(%s, %s)" (Grades.Rational.show lo)
-        (Grades.Rational.show hi))
+  show_option (fun (lo, hi) -> Grade.show_interval Grades.Rational.show lo hi)
 
 (* [agree tables (module F) (module G) lits] checks that the grades [F] and [G]
    order the literals [lits] alike and imply the same runtime bounds, under
@@ -536,7 +536,7 @@ module Suite (I : IMPLEMENTATION) = struct
         show_bounds ~expected:None
         (Upper.implied_bounds costs (U.lit "{A; B*}"));
       expect (name "time shadow") Fun.id ~expected:"{3}"
-        (Upper.show (Upper.of_bounds (1, 3)));
+        (Upper.show (Upper.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       holds (name "atomic") (Upper.is_atomic "A" (U.lit "{A}"));
       holds (name "needs runtime bounds") Upper.needs_op_bounds;
       holds (name "unit least") Upper.unit_least;
@@ -566,7 +566,7 @@ module Suite (I : IMPLEMENTATION) = struct
         ~expected:(Some (runtime (1, 3)))
         (Lower.implied_bounds costs (Lo.lit "{A | B; 1}"));
       expect (name "time shadow") Fun.id ~expected:"{1}"
-        (Lower.show (Lower.of_bounds (1, 3)));
+        (Lower.show (Lower.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Lower.unit_least;
       expect (name "top") Fun.id ~expected:"{0}" (Lower.show (Lo.lit "⊤"));
     ]
@@ -595,7 +595,7 @@ module Suite (I : IMPLEMENTATION) = struct
         ~expected:(Some (runtime (1, 2)))
         (Interval.implied_bounds costs (In.lit "[{A | B}, {B}]"));
       expect (name "time shadow") Fun.id ~expected:"[{1}, {3}]"
-        (Interval.show (Interval.of_bounds (1, 3)));
+        (Interval.show (Interval.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Interval.unit_least;
     ]
 

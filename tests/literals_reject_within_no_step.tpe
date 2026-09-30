@@ -1,0 +1,4 @@
+(* Rejected: over whole time steps an open end of runtime bounds abbreviates a
+   closed one, and 'within (1, 2)' contains no whole number of time steps. *)
+
+operation Send : unit ~> unit # {Send} within (1, 2)

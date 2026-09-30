@@ -669,6 +669,16 @@ let star =
 
 type extremum = Finite of Rational.t * bool | Infinite
 
+let equal_extremum x y =
+  match (x, y) with
+  | Finite (a, f), Finite (b, g) -> Rational.equal a b && Bool.equal f g
+  | Infinite, Infinite -> true
+  | Finite _, Infinite | Infinite, Finite _ -> false
+
+let hash_extremum = function
+  | Finite (a, f) -> Grade.combine (Rational.hash a) (Bool.to_int f)
+  | Infinite -> -1
+
 let inf s =
   match components_of s with
   | i :: _ -> Some (Finite (i.lo, i.lo_closed))

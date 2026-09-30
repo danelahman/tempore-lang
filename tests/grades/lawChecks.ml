@@ -462,13 +462,17 @@ let of_bounds_laws (module G : Grade.S) bounds =
     all
       (G.name ^ ": of_bounds of exact bounds is of_delay")
       (fun (q, _) -> show_lit q)
-      (fun (_, d) -> G.equal bounds (G.of_bounds (d, d)) (G.of_delay d))
+      (fun (_, d) ->
+        G.equal bounds
+          (G.of_bounds (Grade.Closed d, Grade.Closed d))
+          (G.of_delay d))
       samples;
     all
       (G.name ^ ": a delay within the bounds is below of_bounds")
       (fun (lo, (q, _), hi) -> show_lit q ^ " within " ^ show_bounds (lo, hi))
       (fun ((_, lo), (_, d), (_, hi)) ->
-        G.leq bounds (G.of_delay d) (G.of_bounds (lo, hi)))
+        G.leq bounds (G.of_delay d)
+          (G.of_bounds (Grade.Closed lo, Grade.Closed hi)))
       within;
   ]
 

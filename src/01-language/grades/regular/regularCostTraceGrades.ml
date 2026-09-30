@@ -89,7 +89,7 @@ struct
 
   type order = {
     search : string list -> int list -> L.t -> L.t -> int list option;
-    endpoint : runtime -> Rational.t;
+    endpoint : runtime -> Rational.t bound;
     top : L.t;
   }
   (** An order on runs: the search for a shortest run of the lesser grade
@@ -127,10 +127,13 @@ struct
     List.sort_uniq String.compare
       (bounds.operations @ List.concat_map L.events rhos)
 
-  (** [cost endpoint bounds name] is the cost of the operation [name], the
-      [endpoint] of its runtime bounds, in time steps. *)
+  (** [cost endpoint bounds name] is the cost of the operation [name], the value
+      of the [endpoint] of its runtime bounds, in time steps; over whole time
+      steps, the ends are closed where the bounds are declared
+      ({!Grade.close_runtime}). *)
   let cost endpoint bounds name =
-    Delay.Nat.to_int (read_bound L.Delay.read (endpoint (bounds.cost name)))
+    Delay.Nat.to_int
+      (read_bound L.Delay.read (end_value (endpoint (bounds.cost name))))
 
   (** [classes cost bounds rhos] is the least names of the classes of the names
       of a comparison of the grades [rhos] at the costs [cost], in increasing
@@ -188,7 +191,7 @@ struct
         weight Weights.max_weight snd bounds upper )
     with
     | Some fastest, Some slowest ->
-        Some (Rational.of_int fastest, Rational.of_int slowest)
+        Some (Closed (Rational.of_int fastest), Closed (Rational.of_int slowest))
     | _ -> None
 
   (** The fields the grades share with the regular trace grade. *)
@@ -228,7 +231,7 @@ struct
     let is_top = is_top coverage
     let unit_least = false
     let of_lit = function Top -> top | lit -> L.of_lit lit
-    let of_bounds (lo, _hi) = L.of_delay lo
+    let of_bounds b = L.of_delay (fst (hull b))
   end
 
   module Upper = struct
@@ -242,7 +245,7 @@ struct
     let is_top = is_top allowance
     let unit_least = true
     let of_lit = L.of_lit
-    let of_bounds (_lo, hi) = L.of_delay hi
+    let of_bounds b = L.of_delay (snd (hull b))
   end
 
   module Interval = struct
@@ -299,7 +302,11 @@ struct
             ~bounds:"regular expressions"
 
     let of_delay d = (L.of_delay d, L.of_delay d)
-    let of_bounds (lo, hi) = (L.of_delay lo, L.of_delay hi)
+
+    let of_bounds b =
+      let lo, hi = hull b in
+      (L.of_delay lo, L.of_delay hi)
+
     let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
 
     let show (lo, hi) =

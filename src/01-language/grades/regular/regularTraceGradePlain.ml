@@ -125,7 +125,8 @@ let implied_bounds _bounds _rho = None
 let inhabited _bounds _rho = true
 
 (* The delays of [lo] to [hi] time steps. *)
-let of_bounds (lo, hi) =
+let of_bounds b =
+  let lo, hi = hull b in
   {
     names = [];
     regex =

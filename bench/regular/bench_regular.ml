@@ -28,7 +28,11 @@
 module Grade = Grades.Grade
 
 let bounds =
-  { Grade.cost = (fun _ -> Grades.Rational.(zero, zero)); operations = [] }
+  {
+    Grade.cost =
+      (fun _ -> Grades.Rational.(Grade.Closed zero, Grade.Closed zero));
+    operations = [];
+  }
 
 (** {1 Measurement} *)
 
@@ -385,7 +389,7 @@ end
 let cost_model operations =
   let cost name =
     let lo = 1 + (String.length name mod 3) in
-    Grades.Rational.(of_int lo, of_int (lo + 1))
+    Grades.Rational.(Grade.Closed (of_int lo), Grade.Closed (of_int (lo + 1)))
   in
   { Grade.cost; operations }
 

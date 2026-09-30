@@ -23,6 +23,11 @@ default Send x = delay 1.5
 operation Calibrate : unit ~> unit # {Calibrate} within [4, 11/2]
 default Calibrate () = delay 5
 
+(* A blink of the status light takes at least a quarter of a second and less
+   than half a second: its runtime bounds are open above. *)
+operation Blink : unit ~> unit # {Blink} within [1/4, 1/2)
+default Blink () = delay 1/4
+
 (* Correctly accepted by the typechecker: five and a half seconds pay for a
    calibration, which takes at most as long. *)
 let calibrated () =
@@ -69,6 +74,14 @@ let send_then_rest () =
   box {Send; [0, 2)} (Reading 0) as r in
   perform Send 1;
   delay 1.5;
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: a blink takes less than half a
+   second, so the delays below half a second permit it. *)
+let blink () =
+  box {[0, 1/2)} (Reading 0) as r in
+  perform Blink ();
   unbox r as x in
   x
 
@@ -166,16 +179,33 @@ let send_then_sample () =
   x
 *)
 
+(* Correctly rejected by the typechecker: a transmission may take two and a
+   half seconds, which no delay below two and a half seconds permits:
+
+     Typing error: Variable `r` is unboxed with grade `{Send}` accumulated
+       since it was bound, which is not below its box grade `{[0, 2.5)}`
+       ...
+       Note: the resource inequality `{Send} <= {[0, 2.5)}` does not hold
+*)
+(*
+let send_briefly () =
+  box {[0, 5/2)} (Reading 0) as r in
+  perform Send 1;
+  unbox r as x in
+  x
+*)
+
 (* Correctly rejected by the typechecker: a grade must permit at least one run
    of the operations the program declares, and a single operation other than
-   the three declared is none:
+   the four declared is none:
 
-     Typing error: The grade `{_ & ~((0, ∞) | Sample | Send | Calibrate)}`
-       permits no run of the declared operations
+     Typing error: The grade
+       `{_ & ~((0, ∞) | Sample | Send | Calibrate | Blink)}` permits no run of
+       the declared operations
 *)
 (*
 let undeclared () =
-  box {_ & ~((0, ∞) | Sample | Send | Calibrate)} (Reading 0) as r in
+  box {_ & ~((0, ∞) | Sample | Send | Calibrate | Blink)} (Reading 0) as r in
   unbox r as x in
   x
 *)

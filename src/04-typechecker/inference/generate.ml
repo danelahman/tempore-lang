@@ -476,11 +476,16 @@ module Make (C : Constraint.S) = struct
               "atomic operation `%s` needs runtime bounds `within [lo, hi]` \
                under the `%s` grading monoid"
               op_name GS.E.name
-        | Some (lo, hi) when Grades.Rational.compare lo hi > 0 ->
+        | Some (lo, hi)
+          when Grades.Rational.compare
+                 (Grades.Grade.end_value lo)
+                 (Grades.Grade.end_value hi)
+               > 0 ->
             Error.typing ~loc
               "the runtime bounds of operation `%s` must satisfy `lo <= hi`"
               op_name
-        | Some (_, hi) when Grades.Rational.sign hi <= 0 ->
+        | Some (_, hi)
+          when Grades.Rational.sign (Grades.Grade.end_value hi) <= 0 ->
             Error.typing ~loc
               "the upper runtime bound of operation `%s` must be positive"
               op_name
@@ -1470,7 +1475,9 @@ module Make (C : Constraint.S) = struct
     let bound =
       match StringMap.find_opt op_name env.op_bounds with
       | Some (lo, hi) ->
-          let read = Grades.Grade.read_bound GS.E.Delay.read in
+          let read =
+            Grades.Grade.map_end (Grades.Grade.read_bound GS.E.Delay.read)
+          in
           Eps.const (GS.E.of_bounds (read lo, read hi))
       | None -> op_grade
     in

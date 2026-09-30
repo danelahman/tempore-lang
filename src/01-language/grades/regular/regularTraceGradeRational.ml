@@ -79,9 +79,9 @@ let implied_bounds _bounds _rho = None
 let inhabited _bounds _rho = true
 let events rho = DelayAutomaton.names rho.automaton
 
-let of_bounds (lo, hi) =
-  if Rational.equal lo hi then of_delay lo
-  else of_regex (Delays (Closed lo, Closed hi))
+let of_bounds = function
+  | Closed lo, Closed hi when Rational.equal lo hi -> of_delay lo
+  | lo, hi -> of_regex (Delays (lo, hi))
 
 let is_atomic name rho =
   DelayAutomaton.equal rho.automaton (of_regex (Letter name)).automaton
