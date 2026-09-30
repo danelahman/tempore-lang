@@ -24,6 +24,15 @@
        runtime bound, its runs are among those of U: the computation performs
        only what U allows *)
 
+(* The stages of the coffee, as in 'coffee.tpe', and grinding, of type
+   beans -> ground. *)
+type beans = Beans of string
+type ground = Ground of beans
+type brewed = Brewed of ground
+type cup = Cup of brewed
+
+let grind beans = Ground beans
+
 (* Paying takes between half a minute and one; unhandled, half a minute. *)
 operation Pay : unit ~> unit # {Pay} within [1/2, 1]
 default Pay () = delay 1/2
@@ -44,7 +53,8 @@ default Sugar () = delay 1/4
 operation Refund : unit ~> unit # {Refund} within [1/2, 1]
 default Refund () = delay 1/2
 
-(* Correctly accepted by the typechecker: at their lower runtime bounds the
+(* Correctly accepted by the typechecker: the brewing coffee is boxed, as the
+   pot, and is served in a cup once unboxed. At their lower runtime bounds the
    operations take 1/2 + 4 + 1/4 + 1/4 = 5, a pause of at least 5, and the run
    'Pay; Brew; Milk; Sugar' is among those that pay, brew and then add any
    number of milk and sugar.
@@ -54,19 +64,20 @@ default Refund () = delay 1/2
    operation at its upper runtime bound, and '_' also matches pauses, so that
    bound would admit the refund. *)
 let sweet_serving beans =
-  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] beans as cup in
+  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]
+    (Brewed (grind beans)) as pot in
   perform Pay ();
   perform Brew ();
   perform Milk ();
   perform Sugar ();
-  unbox cup as c in
-  c
+  unbox pot as coffee in
+  Cup coffee
 
 (* Correctly rejected by the typechecker: without the sugar, the operations
    take 1/2 + 4 + 1/4 = 4.75 at their lower runtime bounds, less than the 5
    the lower bound demands:
 
-     Typing error: Variable `cup` is unboxed with grade
+     Typing error: Variable `pot` is unboxed with grade
        `[{Pay; Brew; Milk}, {Pay; Brew; Milk}]` accumulated since it was
        bound, which is not below its box grade
        `[{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]`
@@ -77,19 +88,20 @@ let sweet_serving beans =
 *)
 (*
 let rushed_serving beans =
-  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] beans as cup in
+  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]
+    (Brewed (grind beans)) as pot in
   perform Pay ();
   perform Brew ();
   perform Milk ();
-  unbox cup as c in
-  c
+  unbox pot as coffee in
+  Cup coffee
 *)
 
 (* Correctly rejected by the typechecker: the refund makes up the time, 5.25
    at the lower runtime bounds, but the run 'Pay; Brew; Refund; Milk' is not
    among those the upper bound allows:
 
-     Typing error: Variable `cup` is unboxed with grade
+     Typing error: Variable `pot` is unboxed with grade
        `[{Pay; Brew; Refund; Milk}, {Pay; Brew; Refund; Milk}]` accumulated
        since it was bound, which is not below its box grade
        `[{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]`
@@ -100,15 +112,16 @@ let rushed_serving beans =
 *)
 (*
 let refunded_serving beans =
-  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] beans as cup in
+  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]
+    (Brewed (grind beans)) as pot in
   perform Pay ();
   perform Brew ();
   perform Refund ();
   perform Milk ();
-  unbox cup as c in
-  c
+  unbox pot as coffee in
+  Cup coffee
 *)
 
 (* The operations are not handled and run their defaults, so the serving
    takes 1/2 + 5 + 1/4 + 1/4 = 6 minutes. *)
-run sweet_serving "arabica"
+run sweet_serving (Beans "arabica")

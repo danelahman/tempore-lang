@@ -35,36 +35,45 @@ operation Milk : unit ~> unit # {Milk}
 operation Sugar : unit ~> unit # {Sugar}
 operation Refund : unit ~> unit # {Refund}
 
-(* Brewing, a pure function of the beans. *)
-let brew beans = beans
+(* The stages of the coffee, each an inductive type whose single constructor
+   wraps the preceding stage: the beans, the ground beans, the brewed coffee
+   and the served cup. *)
+type beans = Beans of string
+type ground = Ground of beans
+type brewed = Brewed of ground
+type cup = Cup of brewed
 
-(* Correctly accepted by the typechecker: the cup is boxed at the runs
-   consisting of one pause of at least 5. The delays of 3 and 2 add up to the
-   run '5', which is among them. *)
+(* Grinding, a pure function of type beans -> ground. *)
+let grind beans = Ground beans
+
+(* Correctly accepted by the typechecker: the brewing coffee is boxed, as the
+   pot, at the runs consisting of one pause of at least 5, and is served in a
+   cup once unboxed. The delays of 3 and 2 add up to the run '5', which is
+   among them, and the function has type beans -> cup # {5}. *)
 let timely_serving beans =
-  box {[5, ∞)} (brew beans) as cup in
+  box {[5, ∞)} (Brewed (grind beans)) as pot in
   delay 3;
   delay 2;
-  unbox cup as c in
-  c
+  unbox pot as coffee in
+  Cup coffee
 
 (* Correctly rejected by the typechecker: the run '3' is not a pause of at
    least 5:
 
-     Typing error: Variable `cup` is unboxed with grade `{3}` accumulated
+     Typing error: Variable `pot` is unboxed with grade `{3}` accumulated
        since it was bound, which is not below its box grade `{[5, ∞)}`
        ...
        Note: the resource inequality `{3} <= {[5, ∞)}` does not hold
 *)
 (*
 let rushed_serving beans =
-  box {[5, ∞)} (brew beans) as cup in
+  box {[5, ∞)} (Brewed (grind beans)) as pot in
   delay 3;
-  unbox cup as c in
-  c
+  unbox pot as coffee in
+  Cup coffee
 *)
 
-(* Correctly accepted by the typechecker: the cup is boxed at the runs that
+(* Correctly accepted by the typechecker: the pot is boxed at the runs that
    pay, perform no refund, pause for at least 5, still perform no refund, and
    end with any number of additions of milk and sugar. The run
    'Pay; 5; Milk' is among them, each '(_ & ~Refund)*' matching the empty
@@ -72,19 +81,19 @@ let rushed_serving beans =
 let paid_serving beans =
   box {Pay; (_ & ~Refund)*; [5, ∞);
        (_ & ~Refund)*; (Milk | Sugar)*}
-    (brew beans) as cup in
+    (Brewed (grind beans)) as pot in
   perform Pay ();
   delay 3;
   delay 2;
   perform Milk ();
-  unbox cup as c in
-  c
+  unbox pot as coffee in
+  Cup coffee
 
 (* Correctly rejected by the typechecker: no part of the grade matches the
    refund in the run 'Pay; 3; Refund; 2; Milk', since '_ & ~Refund' excludes
    it and '(Milk | Sugar)*' does not contain it:
 
-     Typing error: Variable `cup` is unboxed with grade
+     Typing error: Variable `pot` is unboxed with grade
        `{Pay; 3; Refund; 2; Milk}` accumulated since it was bound, which is
        not below its box grade
        `{Pay; (_ & ~Refund)*; [5, ∞); (_ & ~Refund)*; (Milk | Sugar)*}`
@@ -98,17 +107,17 @@ let paid_serving beans =
 let refunded_serving beans =
   box {Pay; (_ & ~Refund)*; [5, ∞);
        (_ & ~Refund)*; (Milk | Sugar)*}
-    (brew beans) as cup in
+    (Brewed (grind beans)) as pot in
   perform Pay ();
   delay 3;
   perform Refund ();
   delay 2;
   perform Milk ();
-  unbox cup as c in
-  c
+  unbox pot as coffee in
+  Cup coffee
 *)
 
 (* 'run' executes a computation and prints its value and final state. An
    operation without a default implementation stops a run, so the run
    executes the first definition, which uses delays alone. *)
-run timely_serving "arabica"
+run timely_serving (Beans "arabica")

@@ -7365,18 +7365,21 @@ second by the defaults of its operations.
 
   $ ../tempore --grades regex-upper-bound-rational ../examples/basics/coffee.tpe
   === Run 1 ===
-  return "arabica"
+  return (Cup (Brewed (Ground (Beans "arabica"))))
   State: [
-    { resource_0 ↦ "arabica" # {[5, ∞)} },
+    { resource_0 ↦ Brewed (Ground (Beans "arabica")) # {[5, ∞)} },
     {3},
     {2}
   ]
   
   $ ../tempore --grades regex-cost-interval-rational ../examples/basics/coffee_costs.tpe
   === Run 1 ===
-  return "arabica"
+  return (Cup (Brewed (Ground (Beans "arabica"))))
   State: [
-    { resource_0 ↦ "arabica" # [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] },
+    { resource_0 ↦
+        Brewed (Ground (Beans "arabica"))
+        # [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]
+    },
     [{0.5}, {0.5}],
     [{5}, {5}],
     [{0.25}, {0.25}],
