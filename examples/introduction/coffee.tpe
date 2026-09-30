@@ -9,35 +9,35 @@
      - Top ⊤: every run
      - Product: concatenation of runs, adjacent delays added *)
 
-(* A resource is a value placed in a box. The computation 'box ρ v as x in c'
-   boxes the value v at the grade ρ and continues with c; within c, the value
-   may be used, by 'unbox x as y in ...', only once the computation since the
-   box has a grade below ρ.
+(* In Tempore, resources are placed boxes that guard when they can be used. 
 
-   The grade of a computation is the set of its runs. A run is a sequence of
-   operations and pauses; 'delay q' is a pause of q minutes, and adjacent
-   pauses add. A grade is written as a regular expression in braces:
+   The computation 'box ρ v as x in c' boxes the value v at the grade ρ and
+   continues with c; within c, the value may be used, by 'unbox x as y in ...',
+   only once the computation since the box has accumulated a grade below ρ.
+
+   In this example, the grade of a computation is the set of its runs. A run is
+   a sequence of operations and pauses; 'delay q' is a pause of q minutes, and
+   adjacent pauses add. A grade is written as a regular expression in braces:
      - 'r; s' is the sequence of r and s, 'r | s' the choice between them
      - 'r*' is any number of repetitions of r
      - '_' is any single operation or positive pause
      - '~r' is the complement of r, 'r & s' the intersection of r and s
-     - an interval such as '[5, ∞)' is a pause of at least 5
-   A grade is below another if its set of runs is included in the other's.
+     - an interval such as '[5, ∞)' is a pause of at least 5 A grade is below
+       another if its set of runs is included in the other's.
 
-   The typechecker infers the grade of every computation and checks each
-   unboxing before the program is run. *)
+   The typechecker infers the type and grade of every defined computation and
+   checks the validity of each unboxing before the program is run. *)
 
 (* An operation declaration gives the operation's name, its argument and
-   result types, and the grade of performing it; 'perform Pay ()' performs
-   Pay, a computation with the single run 'Pay'. *)
+   result types, and the grade specifying what performing it means; 
+   'perform Pay ()' performs Pay, a computation with the single run 'Pay'. *)
 operation Pay : unit ~> unit # {Pay}
 operation Milk : unit ~> unit # {Milk}
 operation Sugar : unit ~> unit # {Sugar}
 operation Refund : unit ~> unit # {Refund}
 
-(* The stages of the coffee, each an inductive type whose single constructor
-   wraps the preceding stage: the beans, the ground beans, the brewed coffee
-   and the served cup. *)
+(* The stages of cup of coffee, each an inductive type whose constructor wraps
+   the preceding stage: beans, ground beans, brewed coffee and served cup. *)
 type beans = Beans of string
 type ground = Ground of beans
 type brewed = Brewed of ground
@@ -57,11 +57,10 @@ let timely_serving beans =
   unbox pot as coffee in
   Cup coffee
 
-(* Correctly rejected by the typechecker: the run '3' is not a pause of at
-   least 5:
+(* Correctly rejected by the typechecker: the delay 3 is not a pause of at least 5.
 
-     Typing error: Variable `pot` is unboxed with grade `{3}` accumulated
-       since it was bound, which is not below its box grade `{[5, ∞)}`
+     Typing error: Variable `pot` is unboxed with grade `{3}` accumulated since
+       it was bound, which is not below its box grade `{[5, ∞)}`
        ...
        Note: the resource inequality `{3} <= {[5, ∞)}` does not hold
 *)
@@ -73,11 +72,12 @@ let rushed_serving beans =
   Cup coffee
 *)
 
-(* Correctly accepted by the typechecker: the pot is boxed at the runs that
-   pay, perform no refund, pause for at least 5, still perform no refund, and
-   end with any number of additions of milk and sugar. The run
-   'Pay; 5; Milk' is among them, each '(_ & ~Refund)*' matching the empty
-   run. *)
+(* Correctly accepted by the typechecker: the pot is boxed at the runs that pay,
+   perform no refund, pause for at least 5, still perform no refund, and end
+   with any number of additions of milk and sugar. 
+
+   The run 'Pay; 5; Milk' is among them, each '(_ & ~Refund)*' matching the
+   empty run. *)
 let paid_serving beans =
   box {Pay; (_ & ~Refund)*; [5, ∞);
        (_ & ~Refund)*; (Milk | Sugar)*}
@@ -91,7 +91,7 @@ let paid_serving beans =
 
 (* Correctly rejected by the typechecker: no part of the grade matches the
    refund in the run 'Pay; 3; Refund; 2; Milk', since '_ & ~Refund' excludes
-   it and '(Milk | Sugar)*' does not contain it:
+   it and '(Milk | Sugar)*' does not contain it.
 
      Typing error: Variable `pot` is unboxed with grade
        `{Pay; 3; Refund; 2; Milk}` accumulated since it was bound, which is
@@ -117,7 +117,8 @@ let refunded_serving beans =
   Cup coffee
 *)
 
-(* 'run' executes a computation and prints its value and final state. An
-   operation without a default implementation stops a run, so the run
-   executes the first definition, which uses delays alone. *)
+(* 'run' executes a computation and prints its value and final state. 
+
+   In this prototype, an operation without a default implementation stops a 
+   run, so the run executes the first definition, which uses delays alone. *)
 run timely_serving (Beans "arabica")

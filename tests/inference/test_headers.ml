@@ -1,7 +1,7 @@
 (* Checks that every example under [examples/] opens with a header comment of
    the fixed shape:
 
-     (* <one-line summary of the example>
+     (* <summary of the example, on one or more lines>
 
         Run this example with the '<grade>' grading monoid, e.g.
 
@@ -90,15 +90,30 @@ let check_line name ~what ~prefix ?(closing = false) line =
    relative to the project root, also the path the run command must show). *)
 let check_header name path =
   let lines = In_channel.with_open_text path In_channel.input_lines in
-  let nth n = List.nth_opt lines n in
+  (* The number of lines continuing the line at [n], up to a blank line or a
+     line satisfying [stop]. *)
+  let rec continuation ?(stop = fun _ -> false) n =
+    match List.nth_opt lines (n + 1) with
+    | Some line when line <> "" && not (stop line) ->
+        1 + continuation ~stop (n + 1)
+    | _ -> 0
+  in
+  let summary = continuation 0 in
+  let grades =
+    continuation (6 + summary) ~stop:(String.starts_with ~prefix:"     - ")
+  in
+  let nth n =
+    List.nth_opt lines
+      (if n = 0 then 0 else if n <= 6 then n + summary else n + summary + grades)
+  in
   (match nth 0 with
   | None -> fail "%s: is empty" name
   | Some line1 -> (
       match strip_prefix ~prefix:"(* " line1 with
       | None ->
           fail
-            "%s: the header must start with \"(* \" followed by a one-line \
-             summary of the example"
+            "%s: the header must start with \"(* \" followed by a summary of \
+             the example"
             name
       | Some about when String.trim about = "" ->
           fail "%s: the header's opening line is missing its summary" name

@@ -1,31 +1,34 @@
-(* A café whose operations take time, timed in minutes.
+(* A café whose coffee is served once it has been paid for, hasn't been
+   refunded, has had time to brew, and has optionally had milk or sugar added.
 
    Run this example with the 'regex-cost-interval-rational' grading monoid, e.g.
 
      ./tempore --grades regex-cost-interval-rational examples/introduction/coffee_costs.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the runs with rational delays
+   Grades [L, U]: a lower and upper regular-language bound on the runs with
+   rational delays
      - Unit [{0}, {0}]: nothing demanded, only the empty run allowed
      - Top [{0}, ∞): nothing demanded, every run allowed
      - Product: concatenation of runs, componentwise *)
 
-(* The preceding example, 'coffee.tpe', introduces boxes, runs and their
-   regular expressions. Here operations take time: a declaration
-   'within [lo, hi]' bounds the runtime of the operation between lo and hi
-   minutes, and 'default Op () = ...' gives the implementation that a run
-   executes when the operation is not handled.
+(* The preceding example, 'coffee.tpe', introduces boxes, runs and their regular
+   expressions.
 
-   A grade is an interval '[L, U]' of two regular expressions of runs. The
-   grade of a computation is below '[L, U]' if
-     - with each operation counted as a pause of its lower runtime bound, its
-       runs are among those of L: the computation takes at least what L
-       demands
-     - with each operation counted as itself or as a pause of its upper
-       runtime bound, its runs are among those of U: the computation performs
-       only what U allows *)
+   New in this example is that operations take time: 
+     - a declaration 'within [lo, hi]' bounds the runtime of the operation
+       between lo and hi minutes, and 'default Op () = ...' gives the
+       implementation that a run executes when the operation is not handled.
 
-(* The stages of the coffee, as in 'coffee.tpe', and grinding, of type
-   beans -> ground. *)
+   In this example, a grade is an interval '[L, U]' of two regular expressions
+   of runs. The grade of a computation is below '[L, U]' if
+     - with each operation counted as itself or as a pause of its lower runtime
+       bound, its runs are among those of L: the computation takes at least what
+       L demands
+     - with each operation counted as itself or as a pause of its upper runtime
+       bound, its runs are among those of U: the computation performs only what
+       U allows *)
+
+(* The stages of a cup of coffee, as in 'coffee.tpe', and grinding. *)
 type beans = Beans of string
 type ground = Ground of beans
 type brewed = Brewed of ground
@@ -33,9 +36,9 @@ type cup = Cup of brewed
 
 let grind beans = Ground beans
 
-(* Paying takes between half a minute and one; unhandled, half a minute. *)
+(* Paying takes between half and one minute; unhandled, three quarters of a minute. *)
 operation Pay : unit ~> unit # {Pay} within [1/2, 1]
-default Pay () = delay 1/2
+default Pay () = delay 3/4
 
 (* Brewing takes between four and six minutes; unhandled, five. *)
 operation Brew : unit ~> unit # {Brew} within [4, 6]
@@ -54,15 +57,16 @@ operation Refund : unit ~> unit # {Refund} within [1/2, 1]
 default Refund () = delay 1/2
 
 (* Correctly accepted by the typechecker: the brewing coffee is boxed, as the
-   pot, and is served in a cup once unboxed. At their lower runtime bounds the
-   operations take 1/2 + 4 + 1/4 + 1/4 = 5, a pause of at least 5, and the run
-   'Pay; Brew; Milk; Sugar' is among those that pay, brew and then add any
-   number of milk and sugar.
+   pot, and is served in a cup once unboxed.
+
+   At their lower runtime bounds the operations take 1/2 + 4 + 1/4 + 1/4 = 5,
+   a pause of at least 5, and the run 'Pay; Brew; Milk; Sugar' is among those
+   that pay, brew and then add any number of milk and sugar.
 
    The upper bound lists the permitted operations rather than excluding the
    refund by '(_ & ~Refund)*': in the upper component a pause may stand for an
    operation at its upper runtime bound, and '_' also matches pauses, so that
-   bound would admit the refund. *)
+   bound would admit the refund we want to rule out. *)
 let sweet_serving beans =
   box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]
     (Brewed (grind beans)) as pot in
@@ -75,7 +79,7 @@ let sweet_serving beans =
 
 (* Correctly rejected by the typechecker: without the sugar, the operations
    take 1/2 + 4 + 1/4 = 4.75 at their lower runtime bounds, less than the 5
-   the lower bound demands:
+   the lower bound demands.
 
      Typing error: Variable `pot` is unboxed with grade
        `[{Pay; Brew; Milk}, {Pay; Brew; Milk}]` accumulated since it was
@@ -99,7 +103,7 @@ let rushed_serving beans =
 
 (* Correctly rejected by the typechecker: the refund makes up the time, 5.25
    at the lower runtime bounds, but the run 'Pay; Brew; Refund; Milk' is not
-   among those the upper bound allows:
+   among those the upper bound allows.
 
      Typing error: Variable `pot` is unboxed with grade
        `[{Pay; Brew; Refund; Milk}, {Pay; Brew; Refund; Milk}]` accumulated
@@ -122,6 +126,8 @@ let refunded_serving beans =
   Cup coffee
 *)
 
-(* The operations are not handled and run their defaults, so the serving
-   takes 1/2 + 5 + 1/4 + 1/4 = 6 minutes. *)
+(* 'run' executes a computation and prints its value and final state.
+
+   Here the operations are not handled, so the run executes their default
+   implementations, and the serving takes 1/2 + 5 + 1/4 + 1/4 = 6 minutes. *)
 run sweet_serving (Beans "arabica")
