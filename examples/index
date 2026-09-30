@@ -43,6 +43,7 @@ Time grades | Intervals (rational) | time-interval-rational | time/rational_time
 
 group | Traces | Traces | Finite sets of timed runs of operations, compared by inclusion.
 Traces | Upper bounds | traces-upper-bound | traces/plain_traces_upper.tpe | A door controller whose visits are graded by the exact runs they may exhibit, a delay paying for no operation.
+Traces | Upper bounds (rational) | traces-upper-bound-rational | traces/plain_rational_traces_upper.tpe | A heart-rate monitor timed in fractions of a second, whose cycles are graded by the exact runs they may exhibit.
 
 group | Traces with costs | Traces (costs) | Finite sets of timed runs, operations costing their declared runtimes.
 Traces with costs | Lower bounds | traces-cost-lower-bound | traces/traces_lower.tpe | A 3D-printing pipeline whose operations must be covered by the runs a box demands, waiting banking towards them.

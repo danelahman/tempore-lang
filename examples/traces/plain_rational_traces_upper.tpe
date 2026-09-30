@@ -1,0 +1,93 @@
+(* A heart-rate monitor timed in fractions of a second, graded by its exact runs.
+
+   Run this example with the 'traces-upper-bound-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-upper-bound-rational examples/traces/plain_rational_traces_upper.tpe
+
+   Grades {...}: the runs a computation is allowed, compared by inclusion
+     - Unit {0}: the empty run
+     - Top ⊤: every run permitted
+     - Product: concatenation of runs *)
+
+type sample = Sample of nat
+
+(* The operations declare no runtime bounds: a run records the operations and
+   the delays between them, and a delay pays for no operation. *)
+operation Read : unit ~> sample # {Read}
+operation Beep : unit ~> unit # {Beep}
+operation Flag : unit ~> unit # {Flag}
+
+(* A cycle, a compound operation: a steady heartbeat reads then beeps after
+   half a second, an irregular one reads and flags at once. *)
+operation Cycle : unit ~> sample # {Read; 1/2; Beep | Read; Flag}
+
+(* Correctly accepted by the typechecker: the runs of the two branches are
+   joined into the set of both. *)
+let cycle (steady : bool) : sample # {Read; 1/2; Beep | Read; Flag} =
+  let s = perform Read () in
+  if steady then (
+    delay 1/2;
+    perform Beep ();
+    s)
+  else (
+    perform Flag ();
+    s)
+
+(* Correctly accepted by the typechecker: the half-second pause is held in
+   two quarter-second waits, merged into the one the grade lists. *)
+let cycle_in_steps () : sample # {Read; 1/2; Beep} =
+  let s = perform Read () in
+  delay 0.25;
+  delay 0.25;
+  perform Beep ();
+  s
+
+(* Correctly accepted by the typechecker: the clause realises a cycle by a
+   steady reading, one of the runs 'Cycle' permits. *)
+let admit =
+  handler
+  | x -> x
+  | Cycle () k ->
+      let s = cycle_in_steps () in
+      continue k with s
+
+(* Correctly accepted by the typechecker: a log entry boxed at the start of a
+   cycle may be read once the cycle is over, the runs exhibited since boxing
+   being among those its grade lists. *)
+let logged () =
+  box {Read; 1/2; Beep | Read; Flag} "entry" as record in
+  let s = perform Cycle () in
+  unbox record as r in
+  (r, s)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run uses delays alone. *)
+run box {1/2; 1 | 5/2} "ready" as s in delay 3/2; unbox s as msg in msg
+
+(* Correctly rejected by the typechecker: a cycle beeping after a quarter
+   second, where the grade lists a half. The runs are compared exactly:
+
+     Typing error: This function's body has grade `{Read; 0.25; Beep}`,
+       which does not match its annotated grade `{Read; 0.5; Beep}`
+       Note: the effect inequality
+         `{Read; 0.25; Beep} <= {Read; 0.5; Beep}` does not hold
+*)
+(*
+let cycle_brief () : sample # {Read; 1/2; Beep} =
+  let s = perform Read () in
+  delay 1/4;
+  perform Beep ();
+  s
+*)
+
+(* Correctly rejected by the typechecker: a runtime bound declared on an
+   operation, which these grades, unlike the trace grades with costs, do not
+   admit:
+
+     Typing error: runtime bounds are only used by the trace and the
+       regular expression grading monoids with costs, and must not be
+       declared under the `traces-upper-bound-rational` grading monoid
+*)
+(*
+operation ReadBounded : unit ~> sample # {Read} within (0, 1)
+*)

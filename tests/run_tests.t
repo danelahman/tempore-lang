@@ -6464,3 +6464,17 @@ grade whose adjacent delays are merged.
     {3}
   ]
   
+
+
+The example of the trace grades without costs over rational delays runs to
+its value under a grade whose adjacent delays are merged.
+
+  $ ../tempore --grades traces-upper-bound-rational ../examples/traces/plain_rational_traces_upper.tpe
+  === Run 1 ===
+  return "ready"
+  State: [
+    { resource_0 ↦ "ready" # {1.5 | 2.5} },
+    {1.5}
+  ]
+  
+
