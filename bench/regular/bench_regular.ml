@@ -701,8 +701,8 @@ let rec tables = function
 (** {1 Slow delay sets of the rational grade} *)
 
 (* The grades of "regex-upper-bound-rational" whose sets of delays have long
-   finite parts before their periodic tails (see the README of the repository,
-   section "Regular expressions"): sums and repetitions of large nearly coprime
+   finite parts before their periodic tails (see the costs stated in the
+   interface of [DelaySet]): sums and repetitions of large nearly coprime
    constants, and a point with a narrow interval; and grades of the same shape
    that stay fast. Each workload reads the grade and decides whether a delay is
    below it. *)
@@ -739,8 +739,8 @@ module Rational = struct
     in
     ("leq " ^ delay ^ " <= {" ^ grade ^ "}", prepare)
 
-  (* The time limit of one measurement: the slowest cases take about 20
-     seconds. *)
+  (* The time limit of one measurement, well above the slowest cases, which
+     take about a second. *)
   let limit = 60
 
   let table () =

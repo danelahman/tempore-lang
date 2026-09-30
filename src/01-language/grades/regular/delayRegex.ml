@@ -6,18 +6,6 @@ let any = A.union (A.delays DelaySet.positive) (A.operations A.Class.all)
 (* [factors r] is the factors of the concatenations [r] is made of, in turn. *)
 let rec factors = function Seq (r, s) -> factors r @ factors s | r -> [ r ]
 
-let rec automaton = function
-  | Letter name -> A.operations (A.Class.name name)
-  | Tick n -> A.delays (DelaySet.point (Rational.of_int n))
-  | Frac q -> A.delays (DelaySet.point q)
-  | Delays (lo, hi) -> A.delays (DelaySet.between lo hi)
-  | Any -> any
-  | Seq _ as r -> A.concat_list (List.map automaton (factors r))
-  | Union (r, s) -> A.union (automaton r) (automaton s)
-  | Inter (r, s) -> A.inter (automaton r) (automaton s)
-  | Compl r -> A.compl (automaton r)
-  | Star r -> A.star (automaton r)
-
 let rec delays = function
   | Letter _ -> DelaySet.empty
   | Tick n -> DelaySet.point (Rational.of_int n)
@@ -29,6 +17,26 @@ let rec delays = function
   | Inter (r, s) -> DelaySet.inter (delays r) (delays s)
   | Compl r -> DelaySet.compl (delays r)
   | Star r -> DelaySet.star (delays r)
+
+(* [letterless r] is whether [r] has no name, [_] or complement: its words are
+   then single delays, those of [delays r]. *)
+let rec letterless = function
+  | Tick _ | Frac _ | Delays _ -> true
+  | Seq (r, s) | Union (r, s) | Inter (r, s) -> letterless r && letterless s
+  | Star r -> letterless r
+  | Letter _ | Any | Compl _ -> false
+
+(* A letterless expression is the single transition on its delays. *)
+let rec automaton = function
+  | Letter name -> A.operations (A.Class.name name)
+  | Any -> any
+  | (Tick _ | Frac _ | Delays _) as r -> A.delays (delays r)
+  | Compl r -> A.compl (automaton r)
+  | r when letterless r -> A.delays (delays r)
+  | Seq _ as r -> A.concat_list (List.map automaton (factors r))
+  | Union (r, s) -> A.union (automaton r) (automaton s)
+  | Inter (r, s) -> A.inter (automaton r) (automaton s)
+  | Star r -> A.star (automaton r)
 
 let unions = function
   | [] -> None

@@ -472,5 +472,5 @@ The benchmark ends with a table timing `regex-upper-bound-rational` on grades
 whose sets of delays have long finite parts before their periodic tails
 (sums and repetitions of large nearly coprime constants, and a point with a
 narrow interval), with a limit of 60 s per measurement. No results are recorded
-yet; the single-run timings are in the repository's README, section "Regular
-expressions".
+yet; the costs of the operations on sets of delays are stated in
+[`src/01-language/grades/delaySet.mli`](../../src/01-language/grades/delaySet.mli).

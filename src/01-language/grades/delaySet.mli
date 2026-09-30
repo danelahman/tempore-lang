@@ -1,8 +1,8 @@
 (** Sets of delays: the ultimately periodic finite unions of intervals of
     non-negative rationals.
 
-    A set [S ⊆ ℚ≥0] belongs to the class iff there are a threshold [T ≥ 0] and
-    a period [p > 0] such that [S ∩ [0, T + p]] is a finite union of intervals
+    A set [S ⊆ ℚ≥0] belongs to the class iff there are a threshold [T ≥ 0] and a
+    period [p > 0] such that [S ∩ [0, T + p]] is a finite union of intervals
     with rational ends, each open or closed, and [x ∈ S ⇔ x + p ∈ S] for every
     [x > T]. Equivalently, [S] is a finite union of sets [I + pℕ], [I] an
     interval and [p ≥ 0]. The class is closed under the Boolean operations
@@ -11,24 +11,32 @@
 
     {2 Canonical form}
 
-    A set is kept as [(T, p, B, P)] with
-    [S = B ∪ ⋃ₙ (T + np + P)], [B = S ∩ [0, T]] and [P ⊆ (0, p]] sorted lists
-    of disjoint intervals no two of which touch. A set that is eventually empty
-    or eventually full has [p = 1]; otherwise [p] is its least eventual period.
-    [T] is the least threshold, the supremum of the points below which [S]
-    differs from the [p]-periodic extension of its tail. The representation of
-    a set is thus unique, and {!equal}, {!compare} and {!hash} read it.
+    A set is kept as [(T, p, B, P)] with [S = B ∪ ⋃ₙ (T + np + P)],
+    [B = S ∩ [0, T]] and [P ⊆ (0, p\]] sorted lists of disjoint intervals no two
+    of which touch. A set that is eventually empty or eventually full has
+    [p = 1]; otherwise [p] is its least eventual period. [T] is the least
+    threshold, the supremum of the points below which [S] differs from the
+    [p]-periodic extension of its tail. The representation of a set is thus
+    unique, and {!equal}, {!compare} and {!hash} read it.
 
     {2 Costs}
 
     The Boolean operations align both operands to a common threshold and the
-    least common multiple of their periods; the sum aligns the periods only.
-    Both are linear, respectively quadratic, in the sizes after alignment. The
-    repetition is pseudo-polynomial in the constants: its result may have a
-    number of intervals proportional to the ratio of its constants. Examples:
-    the sums of [997] and [991] are listed point by point up to about their
-    product, and [(1 | (10, 10.001))*] has about [10⁴] intervals before its
-    tail; see the README for timings. *)
+    least common multiple of their periods, an intersection with a bounded set
+    reading the other operand only up to its supremum; the sum aligns the
+    periods only, and the sum [pℕ + qℕ] of two progressions is the repetition of
+    [{p, q}]. Both are linear, respectively quadratic, in the sizes after
+    alignment. The canonical form of a result takes a linear time: its least
+    period is found by the failure function of Knuth, Morris and Pratt ("Fast
+    pattern matching in strings", SIAM J. Comput. 6, 1977), and its least
+    threshold by comparing it with its translate by that period. The repetition
+    is pseudo-polynomial in the constants: its result may have a number of
+    intervals proportional to the ratio of its constants, and it takes a time
+    linear in that number up to a logarithmic factor. Examples: [997ℕ + 991ℕ] is
+    listed point by point up to about the product of [997] and [991], and
+    [(1 | (10, 10.001))*] has about [10⁴] intervals before its tail. The hash of
+    a set is computed once, when it is formed, and {!intersects} and {!subset}
+    stop at the first common element found. *)
 
 type t
 (** A set of delays, in canonical form. *)
@@ -99,6 +107,12 @@ type interval = {
 }
 (** The interval from [lo] to [hi], containing each end iff it is closed. *)
 
+val threshold : t -> Rational.t
+(** [threshold s] is the threshold [T] of the canonical form of [s]. *)
+
+val period : t -> Rational.t
+(** [period s] is the period [p] of the canonical form of [s]. *)
+
 val intervals_upto : Rational.t -> t -> interval list
 (** [intervals_upto x s] is the list of the maximal intervals of [s ∩ [0, x]],
     in increasing order. *)
@@ -107,6 +121,11 @@ val mem : Rational.t -> t -> bool
 (** [mem x s] is whether [x ∈ s]. *)
 
 val is_empty : t -> bool
+
+val intersects : t -> t -> bool
+(** [intersects s r] is whether [s ∩ r] is non-empty, decided by a sweep over
+    the intervals of both, without forming the intersection. *)
+
 val subset : t -> t -> bool
 
 val equal : t -> t -> bool

@@ -2,10 +2,12 @@
    regular trace grade over rational delays: the reading and printing of the
    literals by the parser, worked examples, laws of the expressions decided by
    the automata, the delays of an expression computed on the expression and on
-   its automaton, the printing of sets of delays read back, membership against
-   a direct matcher over timed words that splits delays on a grid, inclusion
-   and its counterexamples against that matcher, and the agreement with the
-   regular trace grade over whole time steps on integer instances. *)
+   its automaton, the automata of the expressions without names, [_] or
+   complements against the constructions on their atoms, the printing of sets
+   of delays read back, membership against a direct matcher over timed words
+   that splits delays on a grid, inclusion and its counterexamples against
+   that matcher, and the agreement with the regular trace grade over whole
+   time steps on integer instances. *)
 
 module Grade = Grades.Grade
 module Rational = Grades.Rational
@@ -308,6 +310,33 @@ let canonical_forms =
       some;
   ]
 
+(* The expressions without names, [_] or complements, whose automata are
+   single delay transitions, against the constructions on their atoms. *)
+let letterless =
+  let st = Random.State.make [| 23 |] in
+  let rec random depth =
+    let sub () = random (depth - 1) in
+    match Random.State.int st (if depth = 0 then 2 else 6) with
+    | 0 -> Grade.rational_tick (halves st ())
+    | 1 -> interval_atom (1 + Random.State.int st 3) (halves st ())
+    | 2 -> Grade.Seq (sub (), sub ())
+    | 3 -> Grade.Union (sub (), sub ())
+    | 4 -> Grade.Inter (sub (), sub ())
+    | _ -> Grade.Star (sub ())
+  in
+  let rec constructed = function
+    | Grade.Seq (r, s) -> A.concat (constructed r) (constructed s)
+    | Grade.Union (r, s) -> A.union (constructed r) (constructed s)
+    | Grade.Inter (r, s) -> A.inter (constructed r) (constructed s)
+    | Grade.Star r -> A.star (constructed r)
+    | r -> A.delays (R.delays r)
+  in
+  [
+    every "letterless expressions against the constructions" show_regex
+      (fun r -> A.equal (R.automaton r) (constructed r))
+      (List.init 150 (fun _ -> random 3));
+  ]
+
 (* Sets of delays printed and read back. *)
 let delay_printing =
   let st = Random.State.make [| 5 |] in
@@ -601,8 +630,8 @@ let timing =
 let () =
   let checks =
     literals @ whole_step_rejections @ examples @ laws @ delay_parts
-    @ canonical_forms @ delay_printing @ grade_printing @ membership @ inclusion
-    @ whole_steps @ timing
+    @ canonical_forms @ letterless @ delay_printing @ grade_printing
+    @ membership @ inclusion @ whole_steps @ timing
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

@@ -2,7 +2,11 @@
    against a bounded-window oracle that uses no periodicity, the laws of the
    Boolean algebra, of the sum and of the repetition decided on the canonical
    forms, worked cases of the repetition, extremal values, simplest elements,
-   minterms and printing. *)
+   minterms and printing; the intersection test, the inclusion, the
+   intersection with a bounded set and the simplest element against their
+   definitions; families with long finite parts at small sizes against the
+   oracle; and the least threshold and least period of the canonical forms
+   against their definitions. *)
 
 module DelaySet = Grades.DelaySet
 module Rational = Grades.Rational
@@ -426,8 +430,183 @@ let timing =
         && not (mem (q 121 2) s));
   ]
 
+(* {1 Operations against their definitions} *)
+
+(* Bounded sets: finite unions of points and intervals. *)
+let bounded =
+  let st = Random.State.make [| 17 |] in
+  let atom () =
+    let a = random_rational st in
+    if Random.State.bool st then Point a
+    else
+      Interval
+        ( a,
+          Random.State.bool st,
+          Some (Rational.add a (q (1 + Random.State.int st 6) 5)),
+          Random.State.bool st )
+  in
+  List.init 80 (fun _ ->
+      List.fold_left
+        (fun e _ -> Union (e, atom ()))
+        (atom ())
+        (List.init (Random.State.int st 4) Fun.id))
+
+(* [least_multiple d i] is the least fraction of denominator dividing [d] in
+   the interval [i], if any. *)
+let least_multiple d ((a, ac, b, bc) : iv) =
+  let x = Rational.mul a (qi d) in
+  let f = Z.fdiv (Rational.num x) (Rational.den x) in
+  let n = if ac && Rational.is_integer x then f else Z.succ f in
+  let y = Rational.div (Rational.of_z n) (qi d) in
+  match Rational.compare y b with
+  | c when c < 0 || (c = 0 && bc) -> Some y
+  | _ -> None
+
+(* The simplest rational of a list of intervals by its definition: the least
+   rational of the least denominator, the denominators tried in turn. *)
+let simplest_of ivs =
+  let rec from d =
+    match List.filter_map (least_multiple d) ivs with
+    | [] -> from (d + 1)
+    | x :: xs ->
+        List.fold_left
+          (fun m y -> if Rational.compare y m < 0 then y else m)
+          x xs
+  in
+  from 1
+
+let bounded_sets = List.map (fun e -> (e, build e)) bounded
+let mixed = List.map snd (firsts 40 bounded_sets) @ firsts 40 samples
+
+let definitions =
+  let open DelaySet in
+  [
+    every "intersects is a non-empty intersection" show2
+      (fun (s, r) -> intersects s r = not (is_empty (inter s r)))
+      (pairs mixed);
+    every "intersection by De Morgan" show2
+      (fun (s, r) -> inter s r === compl (union (compl s) (compl r)))
+      (pairs mixed);
+    every "subset is an empty difference" show2
+      (fun (s, r) -> subset s r = is_empty (diff s r))
+      (pairs mixed);
+    every "intersection with a bounded set against the oracle"
+      (fun ((e, _), (f, _)) -> show_expr e ^ " ∩ " ^ show_expr f)
+      (fun ((e, s), (f, r)) ->
+        let x = qi 60 in
+        window x (inter s r) = oracle x (Inter (e, f)))
+      (List.concat_map
+         (fun b -> List.map (fun s -> (b, s)) (firsts 40 sets))
+         (firsts 40 bounded_sets));
+    every "choose is the simplest element of a bounded set"
+      (fun (e, _) -> show_expr e)
+      (fun (_, s) ->
+        match sup s with
+        | Some (Finite (x, _)) -> choose s = Some (simplest_of (window x s))
+        | _ -> false)
+      bounded_sets;
+    every "choose is an element" show1
+      (fun s -> match choose s with Some x -> mem x s | None -> is_empty s)
+      (List.map snd sets);
+  ]
+
+(* The canonical form by the definitions of its threshold and period: [T] is
+   the supremum of the [x ∈ [0, T]] with [x ∈ S ⇎ x + p ∈ S], [0] if there are
+   none, and no [p/j], [j ≥ 2], is a period above [T]; [p = 1] if the set is
+   eventually empty or full. *)
+let least_threshold s =
+  let t = DelaySet.threshold s and p = DelaySet.period s in
+  let upto = [ (Rational.zero, true, t, true) ] in
+  let x = window t s
+  and y =
+    inter upto
+      (List.map
+         (fun (a, ac, b, bc) -> (Rational.sub a p, ac, Rational.sub b p, bc))
+         (window (Rational.add t p) s))
+  in
+  let d = norm (inter x (complement t y) @ inter y (complement t x)) in
+  let sup =
+    match List.rev d with (_, _, b, _) :: _ -> b | [] -> Rational.zero
+  in
+  Rational.equal sup t
+
+let least_period s =
+  let t = DelaySet.threshold s and p = DelaySet.period s in
+  let period_from o q =
+    List.map
+      (fun (a, ac, b, bc) -> (Rational.sub a o, ac, Rational.sub b o, bc))
+      (inter
+         [ (o, false, Rational.add o q, true) ]
+         (window (Rational.add o q) s))
+  in
+  match period_from t p with
+  | [] -> Rational.equal p (qi 1)
+  | [ (a, false, b, true) ] when Rational.sign a = 0 && Rational.equal b p ->
+      Rational.equal p (qi 1)
+  | tail ->
+      List.for_all
+        (fun j ->
+          let q = Rational.div p (qi j) in
+          period_from (Rational.add t q) p <> tail)
+        (List.init (List.length tail) (fun i -> i + 2))
+
+(* {1 Families with long finite parts, at small sizes} *)
+
+let families =
+  let point n = Point (qi n) in
+  List.map
+    (fun n -> (Star (Union (point n, point (n + 1))), qi ((n * n) + n)))
+    [ 2; 3; 5; 8; 11 ]
+  @ List.map
+      (fun (a, b) ->
+        ( Sum (Star (Point a), Star (Point b)),
+          Rational.add (Rational.mul a b) (Rational.add a b) ))
+      [
+        (qi 3, qi 5);
+        (qi 7, qi 5);
+        (qi 9, qi 7);
+        (qi 4, qi 6);
+        (q 1 2, q 1 3);
+        (q 2 3, q 3 4);
+        (qi 3, q 5 2);
+      ]
+  @ List.map
+      (fun w ->
+        ( Star
+            (Union
+               ( point 1,
+                 Interval (qi 10, false, Some (Rational.add (qi 10) w), false)
+               )),
+          qi 60 ))
+      [ q 1 2; q 1 5; q 1 10 ]
+
+let family_checks =
+  let show_family (e, _) = show_expr e in
+  let open DelaySet in
+  [
+    every "families against the oracle" show_family
+      (fun (e, x) -> window x (build e) = oracle x e)
+      families;
+    every "sums of progressions by the general sum" show_family
+      (fun (e, _) ->
+        match e with
+        | Sum ((Star a as e'), (Star b as f)) ->
+            build e
+            === union (build e') (sum (build e') (sum (build b) (build f)))
+            && build e === star (union (build a) (build b))
+        | _ -> true)
+      families;
+    every "least threshold" show1 least_threshold
+      (List.map (fun (e, _) -> build e) families @ List.map snd sets);
+    every "least period" show1 least_period
+      (List.map (fun (e, _) -> build e) families @ List.map snd sets);
+  ]
+
 let () =
-  let checks = [ windows; membership ] @ laws @ cases @ timing in
+  let checks =
+    [ windows; membership ] @ laws @ cases @ timing @ definitions
+    @ family_checks
+  in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
   Printf.printf "%d of %d checks passed\n"

@@ -29,12 +29,30 @@ type t = {
   gaps : (DelaySet.t * int) array array;
   ops : (Class.t * int) array array;
   final : bool array;
+  hash : int;
 }
 (* Row [g] of [gaps] lists the transitions of gap state [g] to operation
    states, and row [o] of [ops] those of operation state [o] to gap states;
    gap state [0] is the start, and [final] marks the final operation states.
    The labels of the transitions of a state partition the delays, respectively
-   the names. The arrays are not mutated after construction. *)
+   the names. The arrays are not mutated after construction; [hash] is the
+   hash of the other fields, computed once, when the automaton is formed. *)
+
+let automaton ~gaps ~ops ~final =
+  let row hash_label r =
+    Array.fold_left
+      (fun h (label, t) -> Grade.combine h (Grade.combine (hash_label label) t))
+      0 r
+  in
+  let table hash_label t =
+    Array.fold_left (fun h r -> Grade.combine h (row hash_label r)) 0 t
+  in
+  let hash =
+    Grade.combine (table DelaySet.hash gaps)
+      (Grade.combine (table Class.hash ops)
+         (Array.fold_left (fun h b -> Grade.combine h (Bool.to_int b)) 0 final))
+  in
+  { gaps; ops; final; hash }
 
 (* The breadth-first exploration of the deterministic automata whose gap states
    are ordered by [G.compare] and operation states by [O.compare]. *)
@@ -57,11 +75,10 @@ module Explore (G : Map.OrderedType) (O : Map.OrderedType) = struct
     let rec go (gids, gn, oids, on, fifo) gaps ops finals =
       match Fifo.pop fifo with
       | None ->
-          {
-            gaps = Array.of_list (List.rev gaps);
-            ops = Array.of_list (List.rev ops);
-            final = Array.of_list (List.rev finals);
-          }
+          automaton
+            ~gaps:(Array.of_list (List.rev gaps))
+            ~ops:(Array.of_list (List.rev ops))
+            ~final:(Array.of_list (List.rev finals))
       | Some (`Gap g, fifo) ->
           let (oids, on, fifo), row =
             List.fold_left_map
@@ -200,30 +217,19 @@ let compare_rows compare_label =
       match compare_label l l' with 0 -> Int.compare t t' | c -> c)
 
 let compare l m =
-  match Grade.compare_array Bool.compare l.final m.final with
-  | 0 -> (
-      match
-        Grade.compare_array (compare_rows DelaySet.compare) l.gaps m.gaps
-      with
-      | 0 -> Grade.compare_array (compare_rows Class.compare) l.ops m.ops
-      | c -> c)
-  | c -> c
+  if l == m then 0
+  else
+    match Grade.compare_array Bool.compare l.final m.final with
+    | 0 -> (
+        match
+          Grade.compare_array (compare_rows DelaySet.compare) l.gaps m.gaps
+        with
+        | 0 -> Grade.compare_array (compare_rows Class.compare) l.ops m.ops
+        | c -> c)
+    | c -> c
 
 let equal l m = compare l m = 0
-
-let hash l =
-  let row hash_label r =
-    Array.fold_left
-      (fun h (label, t) -> Grade.combine h (Grade.combine (hash_label label) t))
-      0 r
-  in
-  let table hash_label t =
-    Array.fold_left (fun h r -> Grade.combine h (row hash_label r)) 0 t
-  in
-  Grade.combine
-    (table DelaySet.hash l.gaps)
-    (Grade.combine (table Class.hash l.ops)
-       (Array.fold_left (fun h b -> Grade.combine h (Bool.to_int b)) 0 l.final))
+let hash l = l.hash
 
 (* {2 Tables}
 
@@ -523,6 +529,16 @@ let pairs inter is_empty row row' =
         (Array.to_list row'))
     (Array.to_list row)
 
+(* [meeting meets row row'] is the pairs of the labels of the transitions
+   [row] and [row'] related by [meets], with the pairs of their targets. *)
+let meeting meets row row' =
+  List.concat_map
+    (fun (s, x) ->
+      List.filter_map
+        (fun (s', y) -> if meets s s' then Some ((s, s'), (x, y)) else None)
+        (Array.to_list row'))
+    (Array.to_list row)
+
 (* The product construction (Rabin and Scott, IBM J. Res. Dev. 1959) over the
    reachable pairs, an operation state final iff [combine] holds of the
    finality of its components. *)
@@ -539,7 +555,7 @@ let inter = tabulated (product ( && ))
 
 (* Flipping the final states of a canonical automaton keeps it minimal and its
    numbering breadth-first. *)
-let compl l = { l with final = Array.map not l.final }
+let compl l = automaton ~gaps:l.gaps ~ops:l.ops ~final:(Array.map not l.final)
 let universal = compl empty
 
 (* {1 Decisions} *)
@@ -561,13 +577,19 @@ end)
 
 (* The breadth-first search of the pairs of states of [l] and [m] for an
    operation state final in [l] and not in [m], each pair recording the pair it
-   was reached from and the symbol read. *)
+   was reached from and the two labels that meet on the way; the symbol read,
+   an element of their intersection, is chosen along the path found only. *)
 let counterexample =
   tabulated @@ fun l m ->
+  let symbol = function
+    | `Delays (s, s') ->
+        Delay (Option.get (DelaySet.choose (DelaySet.inter s s')))
+    | `Operations (c, c') -> Operation (Class.inter c c')
+  in
   let rec path parent key acc =
     match Visited.find key parent with
     | None -> acc
-    | Some (key', symbol) -> path parent key' (symbol :: acc)
+    | Some (key', labels) -> path parent key' (symbol labels :: acc)
   in
   let visit (parent, fifo) (key, from) =
     if Visited.mem key parent then (parent, fifo)
@@ -582,15 +604,16 @@ let counterexample =
         search
           (List.fold_left visit (parent, fifo)
              (List.map
-                (fun (s, pair) ->
-                  (`Op pair, (key, Delay (Option.get (DelaySet.choose s)))))
-                (pairs DelaySet.inter DelaySet.is_empty l.gaps.(x) m.gaps.(y))))
+                (fun (labels, pair) -> (`Op pair, (key, `Delays labels)))
+                (meeting DelaySet.intersects l.gaps.(x) m.gaps.(y))))
     | Some ((`Op (x, y) as key), fifo) ->
         search
           (List.fold_left visit (parent, fifo)
              (List.map
-                (fun (c, pair) -> (`Gap pair, (key, Operation c)))
-                (pairs Class.inter Class.is_empty l.ops.(x) m.ops.(y))))
+                (fun (labels, pair) -> (`Gap pair, (key, `Operations labels)))
+                (meeting
+                   (fun c c' -> not (Class.is_empty (Class.inter c c')))
+                   l.ops.(x) m.ops.(y))))
   in
   if equal l m then None
   else
