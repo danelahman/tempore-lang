@@ -70,7 +70,8 @@ study). All but the `basics/` examples are offered in the web interface.
 ## Temporal resources
 
 A value of the modal type `[rho]a` is an `a`-typed resource that may be used
-only once the grade `rho` (see [Grading monoids](#grading-monoids) below) has accumulated since it was created.
+only once the grade `rho` (see [Grading monoids](#grading-monoids) below) has
+accumulated since it was created.
 
 ### Boxes and unboxing
 
@@ -89,7 +90,7 @@ run
   unbox b as (l, r) in l + r
 ```
 
-is rejected, since four steps is not a sub-grade of five:
+is rejected, since four ticks is not a sub-grade of five:
 
     Variable `b` is unboxed with grade `4` accumulated since it was bound,
     which is not below its box grade `5`
@@ -138,25 +139,25 @@ equal to an integer, such as `4/2` or `2.0`, is that integer.
 
 ### Time
 
-A grade bounds the number of time steps a computation takes.
+A grade bounds the number of time steps, or ticks, a computation takes.
 
-- `time-lower-bound`: `n` is at least `n` steps; ordered by `>=`, so `0` is
+- `time-lower-bound`: `n` is at least `n` ticks; ordered by `>=`, so `0` is
   the top.
-- `time-upper-bound`: `n` is at most `n` steps, `∞` (ASCII `inf`) no bound;
+- `time-upper-bound`: `n` is at most `n` ticks, `∞` (ASCII `inf`) no bound;
   ordered by `<=`, so `0` is least and `∞` the top.
-- `time-interval`: `[n, m]` is between `n` and `m` steps, and `[n, ∞)` at
-  least `n` steps; ordered by containment, with top `[0, ∞)`. An open endpoint
+- `time-interval`: `[n, m]` is between `n` and `m` ticks, and `[n, ∞)` at
+  least `n` ticks; ordered by containment, with top `[0, ∞)`. An open endpoint
   abbreviates a closed one, `(n, m)` being `[n + 1, m - 1]`.
 
-Example: `box [2, 5] x` may be unboxed after two to five steps. See
+Example: `box [2, 5] v` may be unboxed after two to five ticks. See
 [`examples/time/time_upper.tpe`](examples/time/time_upper.tpe) and
 [`examples/time/time_intervals.tpe`](examples/time/time_intervals.tpe).
 
 The rational variants `time-lower-bound-rational`, `time-upper-bound-rational` and
 `time-interval-rational` measure time exactly by non-negative rationals, with
-the same orders, units and tops: `box [0.5, 4/3] x` may be unboxed after half a
+the same orders, units and tops: `box [0.5, 4/3] v` may be unboxed after half a
 unit and before four thirds, and three delays of `1/3` take exactly `1` unit. The
-intervals of `time-interval-rational` may be open or half-open: `box (4, 6] x`
+intervals of `time-interval-rational` may be open or half-open: `box (4, 6] v`
 may be unboxed strictly after four units and at most six. A sum of intervals
 is open at an endpoint if either summand is, so `[1, 2) · [1, 1]` is `[2, 3)`. A
 grade is printed as an integer, as a finite decimal if one exists (`0.125`),
@@ -167,7 +168,7 @@ and otherwise as a fraction (`1/3`). See
 
 A grade is a non-empty finite set of *traces*, the sequences of operations and
 delays a computation may exhibit: `Read; 3; Send` performs `Read`, waits three
-steps, and performs `Send`; adjacent delays are merged, so `Read; 1; 2; Send` is
+ticks, and performs `Send`; adjacent delays are merged, so `Read; 1; 2; Send` is
 the same trace as `Read; 3; Send`. Grades multiply by concatenation and join by
 union. Operations declare no running-time bounds.
 
@@ -189,7 +190,7 @@ declares running-time bounds `within [lo, hi]`, which the orders use to trade
 time against operations.
 
 - `traces-cost-lower-bound`: the traces a computation must *cover*; an operation
-  performed counts as `lo` steps towards a demanded duration. `{0}` is the top.
+  performed counts as `lo` ticks towards a demanded duration. `{0}` is the top.
 - `traces-cost-upper-bound`: the traces a computation is *allowed*; a duration
   pays for operations at their `hi`. `{0}` is least and `⊤` the top.
 - `traces-cost-interval`: closed intervals `[{...}, {...}]` of a lower and an
@@ -214,7 +215,7 @@ declare bounds such as `within [1/2, 3/2]`.
 
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
 infinitely many traces and is rejected; the regular expressions of
-`regex-cost-interval-rational` can be used express such cases. See
+`regex-cost-interval-rational` can be used to express such cases. See
 [`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
 
 ### Regular expressions
@@ -329,10 +330,10 @@ and
 - `security-levels`: the levels `Low < High`; a computation's grade is the
   highest level it touches, and delays touch none. A box at `Low` is out of
   reach once an operation of grade `High` has run.
-- `time-lower-bound-levels`: pairs `(n, l)`, at least `n` steps and nothing
+- `time-lower-bound-levels`: pairs `(n, l)`, at least `n` ticks and nothing
   above `l`; `(3, Low)` is an embargo with a taint check. This is a direct
   product of the time lower bounds and security levels grades.
-- `time-upper-bound-levels`: pairs `(n, l)`, at most `n` steps and nothing
+- `time-upper-bound-levels`: pairs `(n, l)`, at most `n` ticks and nothing
   above `l`; `(5, Low)` is an expiring capability. This is a direct
   product of the time lower bounds and security levels grades.
 - `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
@@ -365,9 +366,9 @@ componentwise. The `flow-levels` monoid from above is an example, as are:
   mirror image of the lower bounds and the troughs. 
   
   The monoid operation is 
-  `(t, [d1, d2], h) · (t', [d1', d2'], h') = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h'))`, and `x <= y` holds iff `x` has
-  a trough at least, a range within and a peak at most those of `y`. Delays have
-  the unit grade `(0, 0)`; `(∞, ∞)` is the top. 
+  `(t, [d1, d2], h) · (t', [d1', d2'], h') = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h'))`, 
+  and `x <= y` holds iff `x` has a trough at least, a range within and a peak at 
+  most those of `y`. Delays have the unit grade `(0, 0)`; `(∞, ∞)` is the top. 
   
   A grade is written `(d, h)` for an exact net change `d` or `([d1, d2], h)` for
   a range, both with the trough `min(0, d1)`, or `(t, d, h)` and `(t, [d1, d2],
@@ -579,10 +580,11 @@ by `⊤` but by no `n`, as `1 · n ≾ n` fails.
 
 ## Type inference
 
-Types, grades and effects are inferred in the style of HM(X) (Odersky,
-Sulzmann and Wehr, TAPOS 1999). Types are compared by subtyping: functions are
-contravariant in the argument and covariant in the result and effect, and a
-box `[rho]a` is contravariant in `rho`. Top-level `let` definitions are generalised to qualified schemes,
+Types, grades and effects are inferred in the style of HM(X) (Odersky, Sulzmann
+and Wehr, TAPOS 1999). Types are compared by subtyping: functions are
+contravariant in the argument and covariant in the result and effect, and a box
+`[rho]a` is contravariant in `rho`. Top-level `let` definitions are generalised
+to qualified schemes,
 
     ∀ α ρ₀ ε₀. Q ∧ R ⇒ A
 
