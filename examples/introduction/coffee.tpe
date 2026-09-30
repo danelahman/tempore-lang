@@ -2,7 +2,7 @@
 
    Run this example with the 'regex-upper-bound-rational' grading monoid, e.g.
 
-     ./tempore --grades regex-upper-bound-rational examples/basics/coffee.tpe
+     ./tempore --grades regex-upper-bound-rational examples/introduction/coffee.tpe
 
    Grades {...}: regular languages of runs over operations and rational delays
      - Unit {0}: the empty run

@@ -7363,7 +7363,7 @@ its value under a grade whose adjacent delays are merged.
 The coffee examples run to their values, the first by delays alone, the
 second by the defaults of its operations.
 
-  $ ../tempore --grades regex-upper-bound-rational ../examples/basics/coffee.tpe
+  $ ../tempore --grades regex-upper-bound-rational ../examples/introduction/coffee.tpe
   === Run 1 ===
   return (Cup (Brewed (Ground (Beans "arabica"))))
   State: [
@@ -7372,7 +7372,7 @@ second by the defaults of its operations.
     {2}
   ]
   
-  $ ../tempore --grades regex-cost-interval-rational ../examples/basics/coffee_costs.tpe
+  $ ../tempore --grades regex-cost-interval-rational ../examples/introduction/coffee_costs.tpe
   === Run 1 ===
   return (Cup (Brewed (Ground (Beans "arabica"))))
   State: [

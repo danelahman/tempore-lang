@@ -38,11 +38,11 @@
 # order given here, and within a group from the simplest example to the most
 # advanced.
 
-default | basics/coffee.tpe
+default | introduction/coffee.tpe
 
 group | Introduction | Introduction | Boxes graded by regular languages of runs, first with delays alone, then with operations taking time.
-Introduction | Coffee | regex-upper-bound-rational | basics/coffee.tpe | A cup boxed at a regular language of runs, served after a pause of at least five minutes and a payment not refunded.
-Introduction | Coffee with costs | regex-cost-interval-rational | basics/coffee_costs.tpe | The same café whose payment, brewing and additions are operations taking time, the cup served once they have taken at least five minutes and never refunded.
+Introduction | Coffee | regex-upper-bound-rational | introduction/coffee.tpe | A cup boxed at a regular language of runs, served after a pause of at least five minutes and a payment not refunded.
+Introduction | Coffee with costs | regex-cost-interval-rational | introduction/coffee_costs.tpe | The same café whose payment, brewing and additions are operations taking time, the cup served once they have taken at least five minutes and never refunded.
 
 group | Effect handlers | Handlers | Operations handled by clauses that respect their grades.
 Effect handlers | Lower bounds | time-lower-bound | handlers/handlers_lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
