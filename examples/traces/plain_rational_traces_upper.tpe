@@ -89,5 +89,5 @@ let cycle_brief () : sample # {Read; 1/2; Beep} =
        declared under the `traces-upper-bound-rational` grading monoid
 *)
 (*
-operation ReadBounded : unit ~> sample # {Read} within (0, 1)
+operation ReadBounded : unit ~> sample # {Read} within [0, 1]
 *)

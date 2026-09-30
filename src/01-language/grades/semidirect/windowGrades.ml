@@ -71,12 +71,18 @@ module Durations = struct
     | Grade.Int n when n < 0 ->
         Grade.invalid_lit (Grade.Int n) "durations must be non-negative"
     | Grade.Int n -> R.ticks n
-    | Grade.Tuple [ Grade.Int n; _ ] as lit when n < 0 ->
+    | Grade.Interval (Some (Grade.Int n), _) as lit when n < 0 ->
         Grade.invalid_lit lit "durations must be non-negative"
-    | Grade.Tuple [ Grade.Int n; Grade.Int m ] as lit when m < n ->
+    | Grade.Interval (None, _) as lit ->
+        Grade.invalid_lit lit "durations must be non-negative"
+    | Grade.Interval (Some (Grade.Int n), Some (Grade.Int m)) as lit when m < n
+      ->
         Grade.invalid_lit lit "interval endpoints must satisfy n <= m"
-    | Grade.Tuple [ Grade.Int n; Grade.Int m ] -> interval n m
-    | Grade.Tuple [ Grade.Int n; Grade.Inf ] -> from n
+    | Grade.Interval (Some (Grade.Int n), Some (Grade.Int m)) -> interval n m
+    | Grade.Interval (Some (Grade.Int n), None) -> from n
+    | Grade.Interval _ as lit ->
+        Grade.invalid_lit lit "interval endpoints are integers"
+    | lit when Grade.is_pair_interval lit -> Grade.reject_pair_interval lit
     | Grade.Braces r as lit ->
         let rho = of_braces lit r in
         if R.is_empty rho then
@@ -84,9 +90,9 @@ module Durations = struct
         else rho
     | lit ->
         Grade.invalid_lit lit
-          "durations are plain integers, intervals '(n, m)' or brace literals \
+          "durations are plain integers, intervals %s or brace literals \
            '{...}', not %s"
-          (Grade.describe_lit lit)
+          Grade.interval_forms (Grade.describe_lit lit)
 
   let of_bounds (lo, hi) = interval lo hi
   let is_atomic _name _ = true
@@ -101,11 +107,11 @@ module Durations = struct
   let show rho =
     let lo = least rho in
     if R.equal rho (R.ticks lo) then string_of_int lo
-    else if R.equal rho (from lo) then Printf.sprintf "(%d,∞)" lo
+    else if R.equal rho (from lo) then Printf.sprintf "[%d,∞)" lo
     else
       match upper_end lo rho with
       | Some hi when R.equal rho (interval lo hi) ->
-          Printf.sprintf "(%d,%d)" lo hi
+          Printf.sprintf "[%d,%d]" lo hi
       | Some _ | None -> RegularTraceGradeDerivative.show rho
 
   let witnesses ~degree:_ _bounds = Grade.sampled mul

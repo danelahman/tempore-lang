@@ -4,31 +4,31 @@
 
      ./tempore --grades time-interval-rational examples/time/rational_time_intervals.tpe
 
-   Grades (q, r): between q and r hours, q and r rationals
-     - Unit (0, 0): no time spent
-     - Top (0, ∞): no bound, the widest interval
+   Grades [q, r]: between q and r hours, q and r rationals
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
 (* A nurse's check-in with the patient takes between a quarter and half an
    hour; unhandled, it takes a quarter of an hour. *)
-operation CheckIn : unit ~> unit # (0.25, 0.5)
+operation CheckIn : unit ~> unit # [0.25, 0.5]
 
 default CheckIn () = delay 0.25
 
 (* Correctly accepted by the typechecker: the next dose is released between
    four and six hours after the last, and waiting 3.75 hours and checking in
-   accumulates (4, 4.25), which lies inside (4, 6). *)
+   accumulates [4, 4.25], which lies inside [4, 6]. *)
 let next_dose dose =
-  box (4, 6) dose as d in
+  box [4, 6] dose as d in
   delay 3.75;
   perform CheckIn ();
   unbox d as x in
   x
 
 (* Correctly accepted by the typechecker: a report is filed hourly, and three
-   readings twenty minutes apart accumulate exactly (1, 1), with no rounding. *)
+   readings twenty minutes apart accumulate exactly [1, 1], with no rounding. *)
 let hourly_report reading =
-  box (1, 1) reading as r in
+  box [1, 1] reading as r in
   delay 1/3;
   delay 1/3;
   delay 1/3;
@@ -38,13 +38,13 @@ let hourly_report reading =
 (* Correctly rejected by the typechecker: waiting three hours and checking in
    twice may take as little as 3.5 hours, before the dose is due:
 
-     Typing error: Variable `d` is unboxed with grade `(3.5,4)` accumulated
-       since it was bound, which is not below its box grade `(4,6)`
-       Note: the resource inequality `(3.5,4) <= (4,6)` does not hold
+     Typing error: Variable `d` is unboxed with grade `[3.5,4]` accumulated
+       since it was bound, which is not below its box grade `[4,6]`
+       Note: the resource inequality `[3.5,4] <= [4,6]` does not hold
 *)
 (*
 let early_dose dose =
-  box (4, 6) dose as d in
+  box [4, 6] dose as d in
   delay 3;
   perform CheckIn ();
   perform CheckIn ();
@@ -55,13 +55,13 @@ let early_dose dose =
 (* Correctly rejected by the typechecker: two readings twenty minutes apart
    accumulate only 2/3 of the hour the report is due after:
 
-     Typing error: Variable `r` is unboxed with grade `(2/3,2/3)` accumulated
-       since it was bound, which is not below its box grade `(1,1)`
-       Note: the resource inequality `(2/3,2/3) <= (1,1)` does not hold
+     Typing error: Variable `r` is unboxed with grade `[2/3,2/3]` accumulated
+       since it was bound, which is not below its box grade `[1,1]`
+       Note: the resource inequality `[2/3,2/3] <= [1,1]` does not hold
 *)
 (*
 let early_report reading =
-  box (1, 1) reading as r in
+  box [1, 1] reading as r in
   delay 1/3;
   delay 1/3;
   unbox r as x in

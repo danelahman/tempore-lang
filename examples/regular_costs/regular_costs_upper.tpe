@@ -13,13 +13,13 @@ type reading = Reading of nat
 
 (* The operations of a sensor station: a sample takes one to two ticks, a
    transmission two to three and a calibration four to six. *)
-operation Sample : unit ~> nat # {Sample} within (1, 2)
+operation Sample : unit ~> nat # {Sample} within [1, 2]
 default Sample () = delay 1; 7
 
-operation Send : nat ~> unit # {Send} within (2, 3)
+operation Send : nat ~> unit # {Send} within [2, 3]
 default Send x = delay 2
 
-operation Calibrate : unit ~> unit # {Calibrate} within (4, 6)
+operation Calibrate : unit ~> unit # {Calibrate} within [4, 6]
 default Calibrate () = delay 5
 
 (* Correctly accepted by the typechecker: six ticks pay for a calibration,

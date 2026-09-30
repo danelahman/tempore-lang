@@ -3,7 +3,7 @@
 
 type token = Token of string
 
-operation Ping : unit ~> unit # {Ping} within (1, 2)
+operation Ping : unit ~> unit # {Ping} within [1, 2]
 
 (* A lower bound whose runs perform an operation other than a ping, when a ping
    is the only operation the program declares. *)

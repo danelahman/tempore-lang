@@ -1031,7 +1031,7 @@ let check_small_programs grades =
   let traces = String.starts_with ~prefix:"traces" grades in
   let lit n = if traces then Printf.sprintf "{%d}" n else string_of_int n in
   let read =
-    if traces then "operation Read : unit ~> reading # {Read} within (1, 1)"
+    if traces then "operation Read : unit ~> reading # {Read} within [1, 1]"
     else "operation Read : unit ~> reading # 1"
   in
   let verdicts = P.definitions (small_programs ~lit ~read) in

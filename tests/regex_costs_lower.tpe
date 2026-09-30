@@ -3,11 +3,11 @@
 
 type token = Token of string
 
-operation Ping : unit ~> unit # {Ping} within (1, 2)
+operation Ping : unit ~> unit # {Ping} within [1, 2]
 default Ping () = delay 1
-operation Log : unit ~> unit # {Log} within (1, 1)
+operation Log : unit ~> unit # {Log} within [1, 1]
 default Log () = delay 1
-operation Fetch : unit ~> unit # {Fetch} within (2, 4)
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
 default Fetch () = delay 3
 
 (* A ping, then three ticks' worth of delays and operations. *)

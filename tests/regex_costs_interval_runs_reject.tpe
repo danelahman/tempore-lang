@@ -4,7 +4,7 @@
 
 type token = Token of string
 
-operation Fetch : unit ~> unit # {Fetch} within (2, 4)
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
 
 (* An upper bound whose runs perform an operation other than a fetch, when a
    fetch is the only operation the program declares. *)

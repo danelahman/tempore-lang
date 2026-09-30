@@ -1,0 +1,4 @@
+(* Rejected: an interval of durations is bracketed, '[2, 5]', not written as a
+   pair '(2, 5)'. *)
+
+let claim () = box (2, 5) 1

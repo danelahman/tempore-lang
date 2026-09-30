@@ -1,8 +1,9 @@
 (** The time grades: bounds on the time a computation takes, over a totally
     ordered monoid of delays, the durations.
 
-    Their literals are the delays, pairs of them for the intervals, [∞] for no
-    upper bound, and [⊤] (ASCII [top]) for the greatest grade.
+    Their literals are the delays, [∞] for no upper bound, the intervals
+    [[n, m]] between two delays and [\[n, ∞)] from a delay on, and [⊤] (ASCII
+    [top]) for the greatest grade.
 
     The witnesses of a closed condition are those the delays supply for its
     finite constants, with [∞] for the upper bounds, and for the intervals the
@@ -31,9 +32,9 @@ module Make (D : Delay.ORDERED) (N : NAMES) : sig
       [∞] imposing no bound, ordered by [≤]; [∞] is the top. *)
 
   module Interval : Grade.S with type Delay.t = D.t
-  (** Intervals, ["time-interval" ^ N.suffix]: [(n, m)] is "between [n] and
-      [m]", with [m = ∞] imposing no upper bound, ordered by containment;
-      [(0, ∞)] is the top. *)
+  (** Intervals, ["time-interval" ^ N.suffix]: [[n, m]] is "between [n] and
+      [m]", and [\[n, ∞)] imposes no upper bound; ordered by containment, with
+      top [\[0, ∞)]. *)
 end
 
 (** {1 Time in whole steps}
@@ -50,6 +51,6 @@ module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
     [∞] imposing no bound, ordered by [≤]; [∞] is the top. *)
 
 module Interval : Grade.S with type Delay.t = Delay.Nat.t
-(** Intervals, ["time-interval"]: [(n, m)] is "between [n] and [m] time steps",
-    with [m = ∞] imposing no upper bound, ordered by containment; [(0, ∞)] is
-    the top. *)
+(** Intervals, ["time-interval"]: [[n, m]] is "between [n] and [m] time steps",
+    and [\[n, ∞)] imposes no upper bound; ordered by containment, with top
+    [\[0, ∞)]. *)

@@ -2,11 +2,11 @@
     by non-negative rationals.
 
     Their literals are integers and fractions, written as decimals such as [1.5]
-    or quotients such as [1/3], pairs of them for the intervals, [∞] for no
-    upper bound, and [⊤] (ASCII [top]) for the greatest grade. A grade is
-    printed as an integer, as a decimal if its expansion terminates, and
-    otherwise as a quotient. Delays are rationals too: the grades are
-    {!TimeGrades.Make} over {!Delay.Rational}.
+    or quotients such as [1/3], [∞] for no upper bound, the intervals [[q, r]]
+    between two of them and [\[q, ∞)] from one on, and [⊤] (ASCII [top]) for the
+    greatest grade. A grade is printed as an integer, as a decimal if its
+    expansion terminates, and otherwise as a quotient. Delays are rationals too:
+    the grades are {!TimeGrades.Make} over {!Delay.Rational}.
 
     {2 Witnesses}
 
@@ -24,6 +24,6 @@ module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
     imposing no bound, ordered by [≤]; [∞] is the top. *)
 
 module Interval : Grade.S with type Delay.t = Delay.Rational.t
-(** Intervals, ["time-interval-rational"]: [(q, r)] is "between [q] and [r]",
-    with [r = ∞] imposing no upper bound, ordered by containment; [(0, ∞)] is
-    the top. *)
+(** Intervals, ["time-interval-rational"]: [[q, r]] is "between [q] and [r]",
+    and [\[q, ∞)] imposes no upper bound; ordered by containment, with top
+    [\[0, ∞)]. *)

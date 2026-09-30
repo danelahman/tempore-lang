@@ -150,26 +150,30 @@ module Make (D : Delay.ORDERED) (N : NAMES) = struct
 
     let of_lit = function
       | Top -> top
-      | Tuple [ l; r ] as lit -> (
+      | Interval (None, _) as lit ->
+          invalid_lit lit "interval endpoints must be non-negative"
+      | Interval (Some l, r) as lit -> (
           let upper =
             match r with
-            | Inf -> Some (false, Ext.Inf)
-            | r -> Option.map (fun (s, m) -> (s, Ext.Fin m)) (signed r)
+            | None -> Some (false, Ext.Inf)
+            | Some r -> Option.map (fun (s, m) -> (s, Ext.Fin m)) (signed r)
           in
           match (signed l, upper) with
           | Some l, Some r -> interval lit l r
-          | _ ->
-              invalid_lit lit
-                "interval endpoints are %s, the upper one possibly '∞'"
-                N.numbers)
+          | _ -> invalid_lit lit "interval endpoints are %s" N.numbers)
+      | lit when is_pair_interval lit -> reject_pair_interval lit
       | lit ->
-          invalid_lit lit "grades are intervals '(n, m)', not %s"
+          invalid_lit lit "grades are intervals %s, not %s" interval_forms
             (describe_lit lit)
 
     let of_delay d = (d, Ext.Fin d)
     let of_bounds (lo, hi) = (lo, Ext.Fin hi)
     let is_atomic _name _ = true
-    let show (n, m) = "(" ^ D.show n ^ "," ^ Ext.show m ^ ")"
+
+    let show (n, m) =
+      match m with
+      | Ext.Fin m -> "[" ^ D.show n ^ "," ^ D.show m ^ "]"
+      | Ext.Inf -> "[" ^ D.show n ^ ",∞)"
 
     (* The endpoints are compared, multiplied and joined separately, so an
        ordering fails iff it fails at the lower endpoints, at the lower-bound

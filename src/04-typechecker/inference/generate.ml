@@ -473,7 +473,7 @@ module Make (C : Constraint.S) = struct
         match bounds with
         | None ->
             Error.typing ~loc
-              "atomic operation `%s` needs runtime bounds `within (lo, hi)` \
+              "atomic operation `%s` needs runtime bounds `within [lo, hi]` \
                under the `%s` grading monoid"
               op_name GS.E.name
         | Some (lo, hi) when Grades.Rational.compare lo hi > 0 ->

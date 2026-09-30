@@ -3,4 +3,4 @@
    grading monoids, where the grade of an operation does not already give
    them. *)
 
-operation Heat : unit ~> unit # 2 within (1, 2)
+operation Heat : unit ~> unit # 2 within [1, 2]

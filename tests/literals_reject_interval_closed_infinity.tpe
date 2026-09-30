@@ -1,0 +1,4 @@
+(* Rejected: an interval with no upper bound is open at '∞', '[2, ∞)', not
+   closed. *)
+
+let claim () = box [2, ∞] 1

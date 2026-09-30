@@ -306,19 +306,21 @@ module Indexed = struct
          (fun (s, c) -> Grade.combine (Hashtbl.hash s) (hash c))
          m.named)
 
-  (* The text [text] without its outer parentheses, if they match. *)
+  (* The text [text] without its outer parentheses, if they match; brackets
+     nest as parentheses do, an interval such as [(-∞,0]] mixing the two. *)
   let unparenthesised text =
     let n = String.length text in
     let rec closes_at depth i =
       if i = n then false
       else
         match text.[i] with
-        | '(' -> closes_at (depth + 1) (i + 1)
-        | ')' when depth = 1 -> i = n - 1
-        | ')' -> closes_at (depth - 1) (i + 1)
+        | '(' | '[' -> closes_at (depth + 1) (i + 1)
+        | (')' | ']') when depth = 1 -> i = n - 1
+        | ')' | ']' -> closes_at (depth - 1) (i + 1)
         | _ -> closes_at depth (i + 1)
     in
-    if n >= 2 && text.[0] = '(' && closes_at 0 0 then String.sub text 1 (n - 2)
+    if n >= 2 && text.[0] = '(' && text.[n - 1] = ')' && closes_at 0 0 then
+      String.sub text 1 (n - 2)
     else text
 
   let show_entry show (s, c) = "(" ^ s ^ "," ^ unparenthesised (show c) ^ ")"

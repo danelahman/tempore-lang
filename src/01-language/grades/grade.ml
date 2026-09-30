@@ -27,7 +27,7 @@
     {2 Cost model}
 
     The orders of the trace grades with costs read the runtime bounds
-    [within (lo, hi)] that operations declare, and those of the cost-model
+    [within [lo, hi]] that operations declare, and those of the cost-model
     regular trace grades also the set of the operations the program declares,
     over which their catch-all letter ranges: all of them, before or after the
     grade, so that a grade means the same throughout a program. The operations
@@ -130,7 +130,7 @@ module type S = sig
 
   val needs_op_bounds : bool
   (** Whether operation signatures must carry their runtime bounds
-      [within (lo, hi)]. *)
+      [within [lo, hi]]. *)
 
   val implied_bounds : bounds -> t -> runtime option
   (** [implied_bounds bounds rho] is the pair of runtime bounds the grade [rho]
@@ -159,7 +159,7 @@ module type S = sig
 
   val of_bounds : Delay.t * Delay.t -> t
   (** [of_bounds (lo, hi)] is the "time shadow" of an operation declaring the
-      runtime bounds [within (lo, hi)], read as delays: the grade that records
+      runtime bounds [within [lo, hi]], read as delays: the grade that records
       nothing but the time such a call may take. It is the grade a default
       implementation of the operation is checked against, since the operation's
       own grade can only be realised by performing the operation itself. Each

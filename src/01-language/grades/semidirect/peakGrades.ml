@@ -171,12 +171,24 @@ module Make (D : Delay.S) = struct
           "the peak must be at least 0 and at least the net change"
       else ((low, t), (high, h))
 
+    (* An endpoint of a range of net changes, [infinite] if absent. *)
+    let net_end infinite = function
+      | None -> infinite
+      | Some (Grade.Int d) -> Fin d
+      | Some lit ->
+          Grade.invalid_lit lit "the ends of net changes are integers, not %s"
+            (Grade.describe_lit lit)
+
     let net_of_lit = function
       | Grade.Int d -> (Fin d, Fin d)
-      | Grade.Tuple [ l1; l2 ] -> (Lower.Net.of_lit l1, Upper.Net.of_lit l2)
+      | Grade.Interval (lo, hi) -> (net_end Minus_inf lo, net_end Plus_inf hi)
+      | Grade.Tuple [ _; _ ] as lit ->
+          Grade.invalid_lit lit
+            "ranges are written '[d1, d2]', '[d1, ∞)', '(-∞, d2]' or '(-∞, \
+             ∞)', not as pairs '(d1, d2)'"
       | lit ->
           Grade.invalid_lit lit
-            "net changes are integers or ranges '(d1, d2)', not %s"
+            "net changes are integers or ranges '[d1, d2]', not %s"
             (Grade.describe_lit lit)
 
     (* The grade of the literal [lit] of the trough [t], if given, the net change
@@ -214,13 +226,17 @@ module Make (D : Delay.S) = struct
             (Grade.describe_lit lit)
 
     (* The shortest literal: the trough is omitted where it is [min(0, low)],
-     and an exact net change is written as a single integer. *)
+     and an exact net change is written as a single integer; a range is
+     closed at its finite ends. *)
     let show (((low, t), (high, h)) as c) =
       if compare c top = 0 then "(∞,∞)"
       else
         let net =
           if compare_bound low high = 0 then Upper.Net.show high
-          else "(" ^ Lower.Net.show low ^ "," ^ Upper.Net.show high ^ ")"
+          else
+            (if compare_bound low Minus_inf = 0 then "(" else "[")
+            ^ Upper.Net.show low ^ "," ^ Upper.Net.show high
+            ^ if compare_bound high Plus_inf = 0 then ")" else "]"
         in
         if compare_bound t (min_bound (Fin 0) low) = 0 then
           "(" ^ net ^ "," ^ Upper.Net.show h ^ ")"

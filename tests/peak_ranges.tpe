@@ -1,0 +1,44 @@
+(* Peak usage: ranges of net changes, closed at their finite ends and open at
+   their infinite ones. *)
+
+type file = File of string
+
+operation Open : string ~> file # (1, 1)
+operation Close : file ~> unit # (-1, 0)
+operation Reserve : string ~> file # ([0, 1], 1)
+operation Lease : string ~> file # (Files, [0, 1], 1)
+operation Drain : unit ~> unit # ((-∞, 0], 0)
+operation Flood : unit ~> unit # ([0, ∞), ∞)
+
+default Reserve name = File name
+default Lease name = File name
+
+(* Accepted: an explicit trough with a range, and a range in a resource
+   entry. *)
+let reserve_after_close f : file # (-1, [-1, 0], 0) =
+  perform Close f;
+  perform Reserve "g"
+
+let lease () : file # (Files, [0, 1], 1) = perform Lease "a"
+
+(* Accepted: a range unbounded below, in ASCII, bounds any release. *)
+let drain f : unit # ((-inf, 0], 0) =
+  perform Close f;
+  perform Drain ()
+
+(* Accepted: a range unbounded above, in ASCII, and the range unbounded on
+   both sides, of the top. *)
+let flood () : unit # ([0, inf), ∞) =
+  let f = perform Open "a" in
+  perform Flood ()
+
+let anything () : unit # ((-∞, ∞), ∞) = perform Flood ()
+
+(* Accepted: a box whose range is unbounded above is unboxed after an open. *)
+let boxed () =
+  box ([0, ∞), ∞) 7 as x in
+  let f = perform Open "f" in
+  unbox x as n in
+  n
+
+run lease ()

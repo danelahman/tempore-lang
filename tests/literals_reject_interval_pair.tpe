@@ -1,0 +1,4 @@
+(* Rejected: an interval of time-interval is bracketed, '[1, 4]', not written
+   as a pair '(1, 4)'. *)
+
+let claim () = box (1, 4) 1

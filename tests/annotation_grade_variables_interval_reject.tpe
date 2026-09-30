@@ -13,12 +13,12 @@
 let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
 
 (* Correctly accepted by the typechecker: the top bounds the grade of f. *)
-let k () : unit # (0, inf) = f (fun () -> ())
+let k () : unit # [0, inf) = f (fun () -> ())
 
 (* Correctly accepted by the typechecker. *)
 run k ()
 
 (* Correctly rejected by the typechecker: the qualifier places the unit below
-   ε₀ and bounds (10, 10) · ε₀ by (0, 5), so (10, 10) would be below (0, 5);
+   ε₀ and bounds [10, 10] · ε₀ by [0, 5], so [10, 10] would be below [0, 5];
    h takes 10 ticks. *)
-let h () : unit # (0, 5) = f (fun () -> ())
+let h () : unit # [0, 5] = f (fun () -> ())

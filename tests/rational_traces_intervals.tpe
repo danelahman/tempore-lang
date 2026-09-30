@@ -5,7 +5,7 @@
 
 (* A reading of the sensor takes between half a time unit and one and a
    half. *)
-operation Sample : unit ~> nat # ({Sample}, {Sample}) within (1/2, 3/2)
+operation Sample : unit ~> nat # ({Sample}, {Sample}) within [1/2, 3/2]
 default Sample () = delay 3/4; 3
 
 (* Two readings with a pause of a quarter between them. *)

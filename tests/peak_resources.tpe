@@ -31,9 +31,9 @@ let within_two () : unit # (0, 2) = locked_pair ()
 (* Accepted: an entry '(_, d, h)' bounds every resource not listed. *)
 let others () : unit # ((Files, 0, 2), (_, 0, 1)) = locked_pair ()
 
-(* Accepted: an entry '(R, (d1, d2), h)' bounds the net change of a resource
+(* Accepted: an entry '(R, [d1, d2], h)' bounds the net change of a resource
    within a range. *)
-let maybe_open b : unit # (Files, (0, 1), 1) =
+let maybe_open b : unit # (Files, [0, 1], 1) =
   if b then (let f = perform Open "a" in ()) else ()
 
 (* Accepted: an entry '(R, t, d, h)' also bounds the trough of a resource, here

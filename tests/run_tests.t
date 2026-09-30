@@ -45,6 +45,8 @@
   >     levels*.tpe) ../tempore --grades security-levels $f;;
   >     literals_time_upper.tpe) ../tempore --grades time-upper-bound $f;;
   >     literals_time_interval.tpe) ../tempore --grades time-interval $f;;
+  >     literals_reject_interval_*.tpe) ../tempore --grades time-interval $f;;
+  >     literals_reject_within_pair.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     literals_traces.tpe) ../tempore --grades traces-cost-interval $f;;
   >     literals_reject_star.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     literals_reject_component.tpe) ../tempore --grades time-lower-bound-levels $f;;
@@ -57,8 +59,10 @@
   >     regex_costs_interval*.tpe) ../tempore --grades regex-cost-interval-symbolic $f;;
   >     peak_*.tpe) ../tempore --grades peak-usage $f;;
   >     literals_reject_peak.tpe) ../tempore --grades peak-usage $f;;
+  >     literals_reject_peak_range_pair.tpe) ../tempore --grades peak-usage $f;;
   >     windows*.tpe) ../tempore --grades time-windows $f;;
   >     literals_reject_windows.tpe) ../tempore --grades time-windows $f;;
+  >     literals_reject_windows_pair.tpe) ../tempore --grades time-windows $f;;
   >     flow_levels*.tpe) ../tempore --grades flow-levels $f;;
   >     literals_reject_flow.tpe) ../tempore --grades flow-levels $f;;
   >     counts*.tpe) ../tempore --grades counts-upper-bound $f;;
@@ -224,15 +228,15 @@
   annotation_grade_variables_interval_reject.tpe
   ======================================================================
   File "annotation_grade_variables_interval_reject.tpe", line 24, characters 27-28:
-  24 | let h () : unit # (0, 5) = f (fun () -> ())
+  24 | let h () : unit # [0, 5] = f (fun () -> ())
                                   ^
-  Typing error: The effect inequality `(10,10) <= (0,5)` does not hold
+  Typing error: The effect inequality `[10,10] <= [0,5]` does not hold
     File "annotation_grade_variables_interval_reject.tpe", line 13, characters 0-58:
     13 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `f` is defined here
     File "annotation_grade_variables_interval_reject.tpe", line 24, characters 9-43:
-    24 | let h () : unit # (0, 5) = f (fun () -> ())
+    24 | let h () : unit # [0, 5] = f (fun () -> ())
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   ======================================================================
@@ -1734,15 +1738,22 @@
   === Run 1 ===
   return "o"
   State: [
-    { resource_0 ↦ "o" # (1/3,∞) },
-    (1/3,1/3)
+    { resource_0 ↦ "o" # [1/3,∞) },
+    [1/3,1/3]
   ]
   
   === Run 2 ===
   return "c"
   State: [
-    { resource_0 ↦ "c" # (0.25,2) },
-    (1.75,1.75)
+    { resource_0 ↦ "c" # [0.25,2] },
+    [1.75,1.75]
+  ]
+  
+  === Run 3 ===
+  return "q"
+  State: [
+    { resource_0 ↦ "q" # [0.5,4/3] },
+    [2/3,2/3]
   ]
   
   ======================================================================
@@ -1922,6 +1933,34 @@
                          ^^^
   Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'time-upper-bound-rational', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
+  literals_reject_interval_closed_infinity.tpe
+  ======================================================================
+  File "literals_reject_interval_closed_infinity.tpe", line 4, characters 19-27:
+  4 | let claim () = box [2, ∞] 1
+                         ^^^^^^^^
+  Syntax error: an infinite endpoint of an interval is written with a parenthesis, as in '[n, ∞)'
+  ======================================================================
+  literals_reject_interval_half_open.tpe
+  ======================================================================
+  File "literals_reject_interval_half_open.tpe", line 3, characters 19-25:
+  3 | let claim () = box [2, 5) 1
+                         ^^^^^^
+  Syntax error: intervals are written '[n, m]', '[n, ∞)', '(-∞, m]' or '(-∞, ∞)'
+  ======================================================================
+  literals_reject_interval_pair.tpe
+  ======================================================================
+  File "literals_reject_interval_pair.tpe", line 4, characters 19-25:
+  4 | let claim () = box (1, 4) 1
+                         ^^^^^^
+  Syntax error: in the 'time-interval' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic' or 'peak-usage' grading monoids?
+  ======================================================================
+  literals_reject_interval_reversed.tpe
+  ======================================================================
+  File "literals_reject_interval_reversed.tpe", line 3, characters 19-25:
+  3 | let claim () = box [5, 2] 1
+                         ^^^^^^
+  Syntax error: in the 'time-interval' grading monoid, interval endpoints must satisfy n <= m
+  ======================================================================
   literals_reject_large.tpe
   ======================================================================
   File "literals_reject_large.tpe", line 3, characters 19-39:
@@ -1957,6 +1996,13 @@
                          ^^^^^^
   Syntax error: in the 'peak-usage' grading monoid, the peak must be at least 0 and at least the net change
   ======================================================================
+  literals_reject_peak_range_pair.tpe
+  ======================================================================
+  File "literals_reject_peak_range_pair.tpe", line 4, characters 19-30:
+  4 | let claim () = box ((0, 1), 1) 1
+                         ^^^^^^^^^^^
+  Syntax error: in the 'peak-usage' grading monoid, in the net change, ranges are written '[d1, d2]', '[d1, ∞)', '(-∞, d2]' or '(-∞, ∞)', not as pairs '(d1, d2)'
+  ======================================================================
   literals_reject_rational_negative.tpe
   ======================================================================
   File "literals_reject_rational_negative.tpe", line 3, characters 19-23:
@@ -1976,7 +2022,7 @@
   File "literals_reject_unknown.tpe", line 3, characters 19-26:
   3 | let claim () = box forever 1
                          ^^^^^^^
-  Syntax error: 'forever' is no grade literal; grades are written as integers, fractions such as '3/2' or '1.5', names such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)' and brace literals '{...}'
+  Syntax error: 'forever' is no grade literal; grades are written as integers, fractions such as '3/2' or '1.5', names such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)', intervals '[...]' and brace literals '{...}'
   ======================================================================
   literals_reject_windows.tpe
   ======================================================================
@@ -1985,33 +2031,61 @@
                          ^^^^^^^^
   Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval' or 'regex-cost-interval-symbolic' grading monoids?
   ======================================================================
+  literals_reject_windows_pair.tpe
+  ======================================================================
+  File "literals_reject_windows_pair.tpe", line 4, characters 19-25:
+  4 | let claim () = box (2, 5) 1
+                         ^^^^^^
+  Syntax error: in the 'time-windows' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic' or 'peak-usage' grading monoids?
+  ======================================================================
+  literals_reject_within_pair.tpe
+  ======================================================================
+  File "literals_reject_within_pair.tpe", line 4, characters 46-52:
+  4 | operation Send : unit ~> unit # {Send} within (1, 2)
+                                                    ^^^^^^
+  Syntax error: runtime bounds are written 'within n' or 'within [n, m]'
+  ======================================================================
   literals_time_interval.tpe
   ======================================================================
   === Run 1 ===
   return "open-ended"
   State: [
-    { resource_0 ↦ "open-ended" # (3,∞) },
-    (100,100)
+    { resource_0 ↦ "open-ended" # [3,∞) },
+    [100,100]
   ]
   
   === Run 2 ===
   return "open-ended"
   State: [
-    { resource_0 ↦ "open-ended" # (3,∞) },
-    (3,3)
+    { resource_0 ↦ "open-ended" # [3,∞) },
+    [3,3]
   ]
   
   === Run 3 ===
   return "any time"
   State: [
-    { resource_0 ↦ "any time" # (0,∞) },
-    (5,5)
+    { resource_0 ↦ "any time" # [0,∞) },
+    [5,5]
   ]
   
   === Run 4 ===
   return ()
   State: [
-    (7,7)
+    [7,7]
+  ]
+  
+  === Run 5 ===
+  return (3::[])
+  State: [
+    { resource_0 ↦ 3::4::[] # [1,2] },
+    [1,1]
+  ]
+  
+  === Run 6 ===
+  return 5
+  State: [
+    { resource_0 ↦ 5 # [1,∞) },
+    [2,2]
   ]
   
   ======================================================================
@@ -2570,6 +2644,13 @@
   State: []
   
   ======================================================================
+  peak_ranges.tpe
+  ======================================================================
+  === Run 1 ===
+  return (File "a")
+  State: []
+  
+  ======================================================================
   peak_resources.tpe
   ======================================================================
   === Run 1 (unhandled operation) ===
@@ -2628,7 +2709,7 @@
                | Reserve (name, k) ↦
                            unbox k as unbox_var in
                            unbox_var (File name)
-        # ((0,1),1),
+        # ([0,1],1),
       resource_3 ↦
         fun op_var ↦
           handle
@@ -2639,7 +2720,7 @@
                | Reserve (name, k) ↦
                            unbox k as unbox_var in
                            unbox_var (File name)
-        # ((0,1),1)
+        # ([0,1],1)
     }
   ]
   
@@ -2854,8 +2935,8 @@
   === Run 1 ===
   return "tea"
   State: [
-    { resource_0 ↦ "tea" # (0.5,1.5) },
-    (0.25,0.25),
+    { resource_0 ↦ "tea" # [0.5,1.5] },
+    [0.25,0.25],
     { resource_2 ↦
         fun op_var ↦
           handle
@@ -2863,9 +2944,9 @@
             unbox resource_0 as y in
             return y
           with h
-        # (0.5,0.75)
+        # [0.5,0.75]
     },
-    (0.625,0.625)
+    [0.625,0.625]
   ]
   
   ======================================================================
@@ -2874,25 +2955,25 @@
   File "rational_time_intervals_reject.tpe", lines 13-14, characters 2-3:
   13 |   unbox r as y in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `r` is unboxed with grade `(1,1.5)` accumulated since it was bound, which is not below its box grade `(0.5,1.25)`
+  Typing error: Variable `r` is unboxed with grade `[1,1.5]` accumulated since it was bound, which is not below its box grade `[0.5,1.25]`
     File "rational_time_intervals_reject.tpe", line 10, characters 27-28:
-    10 |   box (0.5, 1.25) "tea" as r in
+    10 |   box [0.5, 1.25] "tea" as r in
                                     ^
     `r` is bound here
     File "rational_time_intervals_reject.tpe", line 11, characters 2-17:
     11 |   perform Pour ();
            ^^^^^^^^^^^^^^^
-    grade `(0.5,0.75)` accumulates here (operation `Pour`)
+    grade `[0.5,0.75]` accumulates here (operation `Pour`)
     File "rational_time_intervals_reject.tpe", line 12, characters 2-17:
     12 |   perform Pour ();
            ^^^^^^^^^^^^^^^
-    grade `(0.5,0.75)` accumulates here (operation `Pour`)
-    Note: the resource inequality `(1,1.5) <= (0.5,1.25)` does not hold
+    grade `[0.5,0.75]` accumulates here (operation `Pour`)
+    Note: the resource inequality `[1,1.5] <= [0.5,1.25]` does not hold
   ======================================================================
   rational_time_intervals_reject_within.tpe
   ======================================================================
   File "rational_time_intervals_reject_within.tpe", line 5, characters 0-60:
-  5 | operation Dose : unit ~> unit # (0.5, 1.5) within (1/2, 3/2)
+  5 | operation Dose : unit ~> unit # [0.5, 1.5] within [1/2, 3/2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-interval-rational` grading monoid
   ======================================================================
@@ -3593,7 +3674,7 @@
   regular_reject_bounds.tpe
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within (1, 2)
+  4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
   ======================================================================
@@ -4430,48 +4511,48 @@
   === Run 1 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # (1,4) },
-    (1,1),
-    (2,2)
+    { resource_0 ↦ 1 # [1,4] },
+    [1,1],
+    [2,2]
   ]
   
   === Run 2 ===
   return 1
   State: [
-    { resource_0 ↦ 1 # (1,4) },
-    (1,1),
-    (2,2)
+    { resource_0 ↦ 1 # [1,4] },
+    [1,1],
+    [2,2]
   ]
   
   === Run 3 ===
   return 4
   State: [
-    { resource_0 ↦ 1 # (1,4) },
-    (1,1),
-    (2,2)
+    { resource_0 ↦ 1 # [1,4] },
+    [1,1],
+    [2,2]
   ]
   
   === Run 4 ===
   return 8
   State: [
-    { resource_0 ↦ 1 # (1,4) },
-    (1,1),
-    (2,2)
+    { resource_0 ↦ 1 # [1,4] },
+    [1,1],
+    [2,2]
   ]
   
   === Run 5 ===
   return 15
   State: [
-    { resource_0 ↦ 7 # (2,5), resource_1 ↦ 1 # (1,4) },
-    (1,1),
-    (2,2)
+    { resource_0 ↦ 7 # [2,5], resource_1 ↦ 1 # [1,4] },
+    [1,1],
+    [2,2]
   ]
   
   ======================================================================
   time_reject_within.tpe
   ======================================================================
   File "time_reject_within.tpe", line 6, characters 0-47:
-  6 | operation Heat : unit ~> unit # 2 within (1, 2)
+  6 | operation Heat : unit ~> unit # 2 within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-lower-bound` grading monoid
   ======================================================================
@@ -4564,7 +4645,7 @@
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `({1},{1})`, which does not match the declared grade `({3},{5})` of `Extrude`
     File "traces_intervals_default_bounds.tpe", line 7, characters 0-71:
-    7 | operation Extrude : unit ~> unit # ({Extrude}, {Extrude}) within (3, 5)
+    7 | operation Extrude : unit ~> unit # ({Extrude}, {Extrude}) within [3, 5]
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `({1},{1}) <= ({3},{5})` does not hold
@@ -4625,21 +4706,21 @@
   traces_reject_bounds.tpe
   ======================================================================
   File "traces_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Heat : unit ~> unit # {Heat} within (3, 0)
+  4 | operation Heat : unit ~> unit # {Heat} within [3, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: the runtime bounds of operation `Heat` must satisfy `lo <= hi`
   ======================================================================
   traces_reject_bounds_declared.tpe
   ======================================================================
   File "traces_reject_bounds_declared.tpe", line 6, characters 0-61:
-  6 | operation Send : string ~> unit # {Tx | Tx; Tx} within (2, 6)
+  6 | operation Send : string ~> unit # {Tx | Tx; Tx} within [2, 6]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: operation `Send` is compound, so its runtime bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
   ======================================================================
   traces_reject_bounds_zero.tpe
   ======================================================================
   File "traces_reject_bounds_zero.tpe", line 4, characters 0-52:
-  4 | operation Heat : unit ~> unit # {Heat} within (0, 0)
+  4 | operation Heat : unit ~> unit # {Heat} within [0, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: the upper runtime bound of operation `Heat` must be positive
   ======================================================================
@@ -4650,7 +4731,7 @@
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `{6}`, which does not match the declared grade `{5}` of `Extrude`
     File "traces_reject_default_bounds.tpe", line 6, characters 0-58:
-    6 | operation Extrude : unit ~> unit # {Extrude} within (3, 5)
+    6 | operation Extrude : unit ~> unit # {Extrude} within [3, 5]
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `{6} <= {5}` does not hold
@@ -4665,7 +4746,7 @@
   traces_reject_fractional_bound.tpe
   ======================================================================
   File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
-  5 | operation Heat : unit ~> unit # {Heat} within (1/2, 1)
+  5 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
                                                      ^^^
   Syntax error: in the 'traces-cost-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational' or 'traces-cost-interval-rational' grading monoids?
   ======================================================================
@@ -4674,7 +4755,7 @@
   File "traces_reject_missing_within.tpe", line 5, characters 0-38:
   5 | operation Heat : unit ~> unit # {Heat}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: atomic operation `Heat` needs runtime bounds `within (lo, hi)` under the `traces-cost-upper-bound` grading monoid
+  Typing error: atomic operation `Heat` needs runtime bounds `within [lo, hi]` under the `traces-cost-upper-bound` grading monoid
   ======================================================================
   traces_reject_order.tpe
   ======================================================================
@@ -4827,7 +4908,7 @@
   === Run 3 ===
   return 7
   State: [
-    { resource_0 ↦ 7 # (2,4) },
+    { resource_0 ↦ 7 # [2,4] },
     2,
     1
   ]
@@ -4842,17 +4923,17 @@
     Note: the effect inequality `(4,(Send,{3})) <= (4,(Send,{2}))` does not hold
   
   File "windows_reject.tpe", lines 12-14, characters 12-17:
-  12 | let slow () : unit # ((2, 3), (Send, {1 | 2})) =
+  12 | let slow () : unit # ([2, 3], (Send, {1 | 2})) =
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `((2,4),(Send,{1; (0 | 1 | 2)}))`, which does not match its annotated grade `((2,3),(Send,{1 | 2}))`
-    Note: the effect inequality `((2,4),(Send,{1; (0 | 1 | 2)})) <= ((2,3),(Send,{1 | 2}))` does not hold
+  Typing error: This function's body has grade `([2,4],(Send,{1; (0 | 1 | 2)}))`, which does not match its annotated grade `([2,3],(Send,{1 | 2}))`
+    Note: the effect inequality `([2,4],(Send,{1; (0 | 1 | 2)})) <= ([2,3],(Send,{1 | 2}))` does not hold
   
   File "windows_reject.tpe", lines 21-22, characters 2-3:
   21 |   unbox x as n in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `x` is unboxed with grade `(2,(Send,{0}))` accumulated since it was bound, which is not below its box grade `(2,4)`
+  Typing error: Variable `x` is unboxed with grade `(2,(Send,{0}))` accumulated since it was bound, which is not below its box grade `[2,4]`
     File "windows_reject.tpe", line 18, characters 18-19:
-    18 |   box (2, 4) 7 as x in
+    18 |   box [2, 4] 7 as x in
                            ^
     `x` is bound here
     File "windows_reject.tpe", line 19, characters 2-17:
@@ -4863,7 +4944,7 @@
     20 |   delay 1;
            ^^^^^^^
     grade `1` accumulates here (delay)
-    Note: the resource inequality `(2,(Send,{0})) <= (2,4)` does not hold
+    Note: the resource inequality `(2,(Send,{0})) <= [2,4]` does not hold
   
   File "windows_reject.tpe", line 29, characters 51-69:
   29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
@@ -5048,7 +5129,7 @@ automata, 'regex-upper-bound':
   regular_reject_bounds.tpe (regex-upper-bound)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within (1, 2)
+  4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound` grading monoid
   ======================================================================
@@ -5742,14 +5823,14 @@ above:
   regular_reject_bounds.tpe (regex-upper-bound-derivatives)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within (1, 2)
+  4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-derivatives` grading monoid
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-plain)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within (1, 2)
+  4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-plain` grading monoid
   ======================================================================
@@ -6358,18 +6439,18 @@ The rational-time example runs to its values under its intervals of hours.
   === Run 1 ===
   return 500
   State: [
-    { resource_0 ↦ 500 # (4,6) },
-    (3.75,3.75),
-    (0.25,0.25)
+    { resource_0 ↦ 500 # [4,6] },
+    [3.75,3.75],
+    [0.25,0.25]
   ]
   
   === Run 2 ===
   return 72
   State: [
-    { resource_0 ↦ 72 # (1,1) },
-    (1/3,1/3),
-    (1/3,1/3),
-    (1/3,1/3)
+    { resource_0 ↦ 72 # [1,1] },
+    [1/3,1/3],
+    [1/3,1/3],
+    [1/3,1/3]
   ]
   
 

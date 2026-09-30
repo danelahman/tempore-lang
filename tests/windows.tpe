@@ -2,7 +2,7 @@
    its operations happens. *)
 
 operation Send : unit ~> unit # (1, (Send, {0}))
-operation Wait : unit ~> unit # (1, 3)
+operation Wait : unit ~> unit # [1, 3]
 
 default Send () = delay 1
 default Wait () = delay 2
@@ -14,7 +14,7 @@ let at_two () : unit # (3, (Send, {2})) =
 
 (* Accepted: waiting takes one to three ticks, so the transmission after it
    happens at tick 1, 2 or 3. *)
-let after_wait () : unit # ((2, 4), (Send, {1 | 2 | 3})) =
+let after_wait () : unit # ([2, 4], (Send, {1 | 2 | 3})) =
   perform Wait ();
   perform Send ()
 
@@ -24,12 +24,12 @@ let either b : unit # ({1 | 5}, (Send, {0 | 4})) =
   if b then perform Send () else (delay 4; perform Send ())
 
 (* Accepted: a transmission at an even tick, '_' being a single tick. *)
-let even () : unit # ((0, ∞), (Send, {(_; _)*})) =
+let even () : unit # ([0, ∞), (Send, {(_; _)*})) =
   delay 4;
   perform Send ()
 
 (* Accepted: a transmission at any tick but the first. *)
-let late () : unit # ((0, ∞), (Send, {~0})) =
+let late () : unit # ([0, ∞), (Send, {~0})) =
   delay 1;
   perform Send ()
 
@@ -50,10 +50,10 @@ let quiet () =
   | x -> x
   | Send () k -> delay 1; continue k with ()
 
-(* Accepted: a box of grade (2, 4) is unboxed after two to four ticks without
+(* Accepted: a box of grade [2, 4] is unboxed after two to four ticks without
    a transmission. *)
 let boxed () =
-  box (2, 4) 7 as x in
+  box [2, 4] 7 as x in
   perform Wait ();
   delay 1;
   unbox x as n in

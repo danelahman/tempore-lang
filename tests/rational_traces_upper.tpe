@@ -5,11 +5,11 @@
 
 (* A reading of the sensor takes between half a time unit and one and a
    half. *)
-operation Sample : unit ~> nat # {Sample} within (1/2, 3/2)
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
 default Sample () = delay 1/2; 3
 
 (* A transmission takes between a quarter of a time unit and one. *)
-operation Send : nat ~> unit # {Send} within (1/4, 1)
+operation Send : nat ~> unit # {Send} within [1/4, 1]
 default Send n = delay 0.25
 
 (* A reading is due within two time units: the sample, at its upper bound of

@@ -37,6 +37,9 @@ type lit =
   | Inf  (** Infinity, [∞] or [inf] *)
   | Tuple of lit list
       (** A parenthesised tuple of at least two literals, e.g. [(3, High)] *)
+  | Interval of lit option * lit option
+      (** An interval of numbers, closed at its finite endpoints, [None] being
+          an infinite one: [[1, 4]], [\[1/2, ∞)], [(-∞, 3\]] or [(-∞, ∞)] *)
   | Braces of regex  (** A brace literal, e.g. [{Read; 3; Send | Send}] *)
 
 exception Invalid_literal of lit * string
@@ -75,4 +78,20 @@ let describe_lit = function
   | Inf -> "'∞'"
   | Tuple [ _; _ ] -> "pairs"
   | Tuple _ -> "tuples"
+  | Interval _ -> "intervals '[...]'"
   | Braces _ -> "brace literals '{...}'"
+
+(** The interval literals of the grades whose intervals are bounded below. *)
+let interval_forms = "'[n, m]' or '[n, ∞)'"
+
+(** [is_pair_interval lit] holds iff [lit] is a pair of numbers, the second
+    possibly [∞], which denotes no interval. *)
+let is_pair_interval = function
+  | Tuple [ (Int _ | Rat _); (Int _ | Rat _ | Inf) ] -> true
+  | _ -> false
+
+(** [reject_pair_interval lit] rejects the pair [lit] of numbers in place of an
+    interval, naming the interval literals. *)
+let reject_pair_interval lit =
+  invalid_lit lit "intervals are written %s, not as pairs '(n, m)'"
+    interval_forms

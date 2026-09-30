@@ -104,6 +104,13 @@ let malformed =
     "literals_reject_negative.tpe";
     "literals_reject_peak.tpe";
     "literals_reject_windows.tpe";
+    "literals_reject_interval_closed_infinity.tpe";
+    "literals_reject_interval_half_open.tpe";
+    "literals_reject_interval_pair.tpe";
+    "literals_reject_interval_reversed.tpe";
+    "literals_reject_peak_range_pair.tpe";
+    "literals_reject_windows_pair.tpe";
+    "literals_reject_within_pair.tpe";
     "nat_reject_negative.tpe";
     "nat_reject_successor_zero.tpe";
     "operation_reject_datatype.tpe";

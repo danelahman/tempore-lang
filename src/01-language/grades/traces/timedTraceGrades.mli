@@ -5,7 +5,7 @@
 
     {2 Cost model}
 
-    An operation declares a pair of runtime bounds [within (lo, hi)], and the
+    An operation declares a pair of runtime bounds [within [lo, hi]], and the
     two orders read different endpoints: [lo] feeds the coverage (lower-bound)
     order and [hi] the allowance (upper-bound) order. The runtime bounds are
     read as delays ({!Grade.read_bound}), and the runtime bounds a compound
@@ -98,7 +98,7 @@ module Interval : Grade.S with type Delay.t = Delay.Nat.t
 
     The delays are the non-negative rationals, written as integers and
     fractions, e.g. [{Read; 1/2; Send}] or [(0.5, 3/2)], and so are the runtime
-    bounds, e.g. [within (1/2, 3/2)]: {!Make} over {!Delay.Rational}. *)
+    bounds, e.g. [within [1/2, 3/2]]: {!Make} over {!Delay.Rational}. *)
 module Rational : sig
   module LowerBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces read as lower bounds, ["traces-cost-lower-bound-rational"],

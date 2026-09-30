@@ -1,0 +1,4 @@
+(* Rejected: runtime bounds are written 'within [1, 2]', not as a pair
+   'within (1, 2)'. *)
+
+operation Send : unit ~> unit # {Send} within (1, 2)

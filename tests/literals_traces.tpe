@@ -1,7 +1,7 @@
 (* The top '⊤' (ASCII 'top') under traces-cost-interval is '({0}, ⊤)', and
    either component of a pair may be the top of its own order. *)
 
-operation Send : unit ~> unit # {Send} within (1, 2)
+operation Send : unit ~> unit # {Send} within [1, 2]
 
 default Send () = delay 1
 

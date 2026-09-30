@@ -90,12 +90,15 @@ implementation is documented in the modules under
 ### Grade literals
 
 All monoids share one literal syntax: integers (`3`), fractions (`3/2`, or
-exact decimals such as `1.5`), pairs (`(1, 4)`) and brace expressions
-(`{...}`). Each monoid accepts the literals it understands; any other literal
-is a syntax error naming the monoids that accept it. The greatest grade is `⊤`
-(ASCII `top`). Integers may be negative (`-1`); only `peak-usage` accepts
-negative ones. A fraction equal to an integer, such as `4/2` or `2.0`, is that
-integer.
+exact decimals such as `1.5`), tuples (`(3, High)`), intervals of numbers and
+brace expressions (`{...}`). An interval is closed at its finite endpoints and
+open at its infinite ones: `[1, 4]`, `[1, ∞)`, `(-∞, 4]` or `(-∞, ∞)` (ASCII
+`inf` and `-inf`); any other bracketing, such as `[1, ∞]` or `[1, 4)`, is a
+syntax error, and a pair `(1, 4)` is a tuple, not an interval. Each monoid
+accepts the literals it understands; any other literal is a syntax error naming
+the monoids that accept it. The greatest grade is `⊤` (ASCII `top`). Integers
+may be negative (`-1`); only `peak-usage` accepts negative ones. A fraction
+equal to an integer, such as `4/2` or `2.0`, is that integer.
 
 ### Time
 
@@ -106,16 +109,16 @@ inclusive.
   the top.
 - `time-upper-bound`: `n` is at most `n` steps, `∞` (ASCII `inf`) no bound;
   ordered by `<=`, so `0` is least and `∞` the top.
-- `time-interval`: `(n, m)` is between `n` and `m` steps; ordered by
-  containment, with top `(0, ∞)`.
+- `time-interval`: `[n, m]` is between `n` and `m` steps, and `[n, ∞)` at
+  least `n` steps; ordered by containment, with top `[0, ∞)`.
 
-Example: `box (2, 5) x` may be unboxed after two to five steps. See
+Example: `box [2, 5] x` may be unboxed after two to five steps. See
 [`examples/time/time_upper.tpe`](examples/time/time_upper.tpe) and
 [`examples/time/time_intervals.tpe`](examples/time/time_intervals.tpe).
 
 The rational variants `time-lower-bound-rational`, `time-upper-bound-rational` and
 `time-interval-rational` measure time by non-negative rationals, with the same
-orders, units and tops: `box (0.5, 4/3) x` may be unboxed after half a unit
+orders, units and tops: `box [0.5, 4/3] x` may be unboxed after half a unit
 and before four thirds. Arithmetic is exact, so three delays of `1/3` spend
 exactly `1`. A grade is printed as an integer, as a decimal if it has a
 finite one (`0.125`), and otherwise as a fraction (`1/3`). See
@@ -145,7 +148,7 @@ list. The name `traces-upper-bound` formerly denoted the grade now named
 ### Traces with costs
 
 The grades are finite sets of traces as above, and every atomic operation
-declares runtime bounds `within (lo, hi)`, at which the orders trade time
+declares runtime bounds `within [lo, hi]`, at which the orders trade time
 against operations.
 
 - `traces-cost-lower-bound`: the runs a computation must *cover*; an operation
@@ -167,7 +170,7 @@ The rational variants `traces-cost-lower-bound-rational`,
 same orders, units and tops, with delays and runtime bounds that are
 non-negative rationals: `{Sample; 1/2; Send}` waits half a unit between the two
 operations, a fraction `q` abbreviates `{q}`, and an operation may declare
-fractional runtime bounds such as `within (1/2, 3/2)`. See
+fractional runtime bounds such as `within [1/2, 3/2]`. See
 [`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
 
 ### Regular expressions
@@ -205,7 +208,7 @@ effects of their design choices; see
 
 A grade is a regular language of runs, as under `regex-upper-bound`, ordered as
 the trace monoids with costs order finite sets of runs, at the runtime bounds
-`within (lo, hi)` of the atomic operations. A grade stands for its closure:
+`within [lo, hi]` of the atomic operations. A grade stands for its closure:
 the runs that fit inside one of its runs (upper) or cover one of them (lower).
 
 - `regex-cost-upper-bound`: allowance order at `hi`; `{0}` is least, `⊤` the top.
@@ -217,7 +220,7 @@ Each is also available with the suffix `-symbolic`, over
 `regex-upper-bound-symbolic`. Literals are those of `regex-upper-bound`. The alphabet is
 the atomic operations of the whole program, declared anywhere in it, so `_`
 is any tick or atomic operation. A grade must denote at least one run of these
-operations. With `Read` declared `within (1, 3)`, under `regex-cost-upper-bound`
+operations. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound`
 `{Read}` is a sub-grade of `{3}`, and `{Read | 3}` equals `{3}`. See
 [`examples/regular_costs/regular_costs_lower.tpe`](examples/regular_costs/regular_costs_lower.tpe),
 [`examples/regular_costs/regular_costs_upper.tpe`](examples/regular_costs/regular_costs_upper.tpe)
@@ -266,11 +269,11 @@ componentwise.
   and `x <= y` holds iff `x` has a trough at least that of `y`, a range of net
   changes within that of `y` and a peak at most that of `y`. Delays change
   nothing, so the unit `(0, 0)` is their grade; `(∞, ∞)` is the top. A grade
-  is written `(d, h)` for an exact net change `d`, `((d1, d2), h)` for a range,
-  both with the trough `min(0, d1)`, or `(t, d, h)` and `(t, (d1, d2), h)`
-  with an explicit trough; troughs and lower ends of ranges may be `⊤`,
-  unbounded below, and peaks and upper ends `∞`. Resources are named by
-  entries such as `(R, d, h)` or `(R, t, d, h)`, e.g.
+  is written `(d, h)` for an exact net change `d`, `([d1, d2], h)` for a range,
+  both with the trough `min(0, d1)`, or `(t, d, h)` and `(t, [d1, d2], h)`
+  with an explicit trough; troughs may be `⊤`, unbounded below, and peaks `∞`,
+  and a range unbounded below or above is written `(-∞, d2]` or `[d1, ∞)`.
+  Resources are named by entries such as `(R, d, h)` or `(R, t, d, h)`, e.g.
   `((Files, 0, 2), (Sockets, 0, 1))`, each bounded on its own; a resource not
   listed is bounded by `(0, 0)`, or by the entry `(_, d, h)`, and a plain
   `(d, h)` bounds every resource. An operation opening a file has grade
@@ -280,8 +283,8 @@ componentwise.
 - `time-windows`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
   the times `E_A` at which each operation `A` happens, all sets of numbers of
   ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
-  adding elementwise, and the order is inclusion. `T` is written `n`, `(n, m)`
-  (from `n` to `m`, `m` possibly `∞`) or as a brace literal over ticks,
+  adding elementwise, and the order is inclusion. `T` is written `n`, `[n, m]`
+  (from `n` to `m`), `[n, ∞)` (from `n` on) or as a brace literal over ticks,
   `{0 | 10}`, and `T` alone performs no operation; `E_A` is a brace literal,
   `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry `(_, E)`
   bounds every operation not listed. An operation `Send` taking a tick and
@@ -400,21 +403,21 @@ operation Read : unit ~> string # 2
 declares an operation whose call `perform Read ()` has grade `2`. Under the
 trace and regular-expression monoids with costs, an *atomic* operation, graded
 by its own name, also declares its runtime bounds (`within n` abbreviates
-`within (n, n)`):
+`within [n, n]`):
 
 ```
-operation Tx : string ~> unit # {Tx} within (2, 3)
+operation Tx : string ~> unit # {Tx} within [2, 3]
 ```
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 `lo <= hi` and `hi` positive, and each grade reads them as its delays. The
 rational trace monoids with costs accept fractional bounds such as
-`within (1/2, 3/2)`; the other monoids that read runtime bounds count whole
-time steps, so `within (1/2, 1)` is a syntax error under them. The other
+`within [1/2, 3/2]`; the other monoids that read runtime bounds count whole
+time steps, so `within [1/2, 1]` is a syntax error under them. The other
 monoids reject runtime bounds altogether.
 
 A *compound* operation names other operations in its grade, and its bounds are
-computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `(2, 6)`.
+computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `[2, 6]`.
 
 ### Handlers and continuations
 

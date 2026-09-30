@@ -3,7 +3,7 @@
    units does not pay for a sample, which may take up to 3/2, followed by a
    rest of 1/2. *)
 
-operation Sample : unit ~> nat # {Sample} within (1/2, 3/2)
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
 default Sample () = delay 1/2; 3
 
 let late () =

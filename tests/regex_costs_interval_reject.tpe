@@ -3,8 +3,8 @@
 
 type token = Token of string
 
-operation Ping : unit ~> unit # {Ping} within (1, 2)
-operation Fetch : unit ~> unit # {Fetch} within (2, 4)
+operation Ping : unit ~> unit # {Ping} within [1, 2]
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
 
 (* A fetch may take only two ticks, short of the lower bound of three. *)
 let too_quick () =

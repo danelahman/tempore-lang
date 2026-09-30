@@ -5,7 +5,7 @@ type file = File of string
 
 operation Open : string ~> file # (1, 1)
 operation Close : file ~> unit # (-1, 0)
-operation Reserve : string ~> file # ((0, 1), 1)
+operation Reserve : string ~> file # ([0, 1], 1)
 
 default Reserve name = File name
 

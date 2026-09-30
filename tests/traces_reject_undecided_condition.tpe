@@ -7,7 +7,7 @@
    handled computation would have the grade {0}, yet it performs Tick and then
    waits. *)
 
-operation Tick : unit ~> unit # {Tick} within (1, 1)
+operation Tick : unit ~> unit # {Tick} within [1, 1]
 operation Op : unit ~> unit # 1
 
 let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r

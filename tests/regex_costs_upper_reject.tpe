@@ -3,9 +3,9 @@
 
 type token = Token of string
 
-operation Ping : unit ~> unit # {Ping} within (1, 2)
-operation Log : unit ~> unit # {Log} within (1, 1)
-operation Fetch : unit ~> unit # {Fetch} within (2, 4)
+operation Ping : unit ~> unit # {Ping} within [1, 2]
+operation Log : unit ~> unit # {Log} within [1, 1]
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
 
 (* A fetch may take four ticks, more than the three the bound allows. *)
 let too_expensive () =

@@ -24,29 +24,29 @@ type mounted = Mounted of print
 type receipt = Receipt of string
 
 (* The heater warms a model up, so that it can be extruded. *)
-operation Heat : model ~> heated # {Heat} within (1, 2)
+operation Heat : model ~> heated # {Heat} within [1, 2]
 default Heat m = delay 1; Heated m
 
 (* A freshly extruded model is still hot: it may be handed to the cooler, but
    not touched otherwise until it has rested for two ticks. *)
-operation Extrude : heated ~> [2] extruded # {Extrude} within (3, 5)
+operation Extrude : heated ~> [2] extruded # {Extrude} within [3, 5]
 default Extrude h = delay 3; box 2 (Extruded h)
 
 (* The cooler takes the hot extruded model, once it has rested, and cools it
    down to something that can be handled. *)
-operation Cool : [2] extruded ~> cooled # {Cool} within (2, 2)
+operation Cool : [2] extruded ~> cooled # {Cool} within [2, 2]
 default Cool p = delay 2; unbox p as e in Cooled e
 
 (* Mounting glues a finished print onto its base; the glue is used up. *)
-operation Mount : print * epoxy ~> mounted # {Mount} within (1, 1)
+operation Mount : print * epoxy ~> mounted # {Mount} within [1, 1]
 default Mount (p, g) = delay 1; Mounted p
 
 (* Mixing two-part epoxy takes a tick; the mix then needs eight ticks to set. *)
-operation MixEpoxy : unit ~> [8] epoxy # {MixEpoxy} within (1, 1)
+operation MixEpoxy : unit ~> [8] epoxy # {MixEpoxy} within [1, 1]
 default MixEpoxy () = delay 1; box 8 Epoxy
 
 (* A quick-setting epoxy for small parts. *)
-operation MixQuickEpoxy : unit ~> [3] epoxy # {MixQuickEpoxy} within (1, 1)
+operation MixQuickEpoxy : unit ~> [3] epoxy # {MixQuickEpoxy} within [1, 1]
 default MixQuickEpoxy () = delay 1; box 3 Epoxy
 
 (* A print is the three steps, in that order, and the finished print has to set
@@ -58,7 +58,7 @@ operation Print : model ~> [2] print
   # {Heat; Extrude; Cool | Heat; Cool}
 
 (* A single transmission of a message. *)
-operation Tx : string ~> unit # {Tx} within (2, 3)
+operation Tx : string ~> unit # {Tx} within [2, 3]
 default Tx msg = delay 2
 
 (* A delivery is one or two transmissions. *)
@@ -280,7 +280,7 @@ let sloppy_printer =
    default implementation rather than a handler: an operation case is checked
    against the grade of the operation, and waiting never realises the demanded
    event '{MixEpoxy}' --- only performing 'MixEpoxy' itself would, which is
-   circular. A default is checked against the 'within (1, 1)' bounds instead,
+   circular. A default is checked against the 'within [1, 1]' bounds instead,
    which the very same tick of mixing meets exactly:
 
      Typing error: Variable `k` is unboxed with grade `{1}` accumulated since it

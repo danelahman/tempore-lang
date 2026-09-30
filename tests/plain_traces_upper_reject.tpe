@@ -2,7 +2,7 @@
    grading monoid, whose order is the inclusion of sets of runs: a delay pays
    for no operation, so a heating is not below the one time step a box allows,
    whereas under 'traces-cost-upper-bound', with 'Heat' declared
-   'within (1, 1)', that time step pays for it. A run not listed by the greater
+   'within [1, 1]', that time step pays for it. A run not listed by the greater
    grade is named as a counterexample. *)
 
 operation Heat : unit ~> unit # {Heat}

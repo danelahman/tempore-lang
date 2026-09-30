@@ -22,7 +22,7 @@
 
     Both are preorders, the closures being closure operators; a grade denotes
     its closure, and [equal] is mutual [≾], coarser than the equality of
-    languages: if [Read] declares [within (1, 3)], then [{Read} ≾ {3}] but not
+    languages: if [Read] declares [within [1, 3]], then [{Read} ≾ {3}] but not
     conversely and [{Read | 3} ≡ {3}] under the upper order, and
     [{Read | 1} ≡ {1}] and [⊤ ≡ {0}] under the lower order. Products and joins
     are those of languages, monotone in the orders, and [≡] is a congruence for

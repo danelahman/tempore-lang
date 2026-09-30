@@ -58,6 +58,42 @@
     if Z.fits_int n then Z.to_int n
     else Error.syntax ~loc "%s %s is too large" what (Z.to_string n)
 
+  (* An endpoint of an interval literal: a grade literal, or [-∞]. *)
+  type endpoint = Lit of Grade.lit | Minus_infinity
+
+  (* [interval ~loc ~lower_open ends ~upper_open] is the interval literal at
+     [loc] with the endpoints [ends], open below iff [lower_open] and above iff
+     [upper_open]. An interval is closed at its finite endpoints, which are
+     numbers, and open at its infinite ones. *)
+  let interval ~loc ~lower_open ends ~upper_open =
+    let forms () =
+      Error.syntax ~loc
+        "intervals are written '[n, m]', '[n, ∞)', '(-∞, m]' or '(-∞, ∞)'"
+    in
+    let infinite () =
+      Error.syntax ~loc
+        "an infinite endpoint of an interval is written with a parenthesis, \
+         as in '[n, ∞)'"
+    in
+    match ends with
+    | [ lo; hi ] ->
+        let lower =
+          match (lo, lower_open) with
+          | Minus_infinity, true -> None
+          | Minus_infinity, false -> infinite ()
+          | Lit ((Grade.Int _ | Grade.Rat _) as lit), false -> Some lit
+          | _ -> forms ()
+        in
+        let upper =
+          match (hi, upper_open) with
+          | Lit Grade.Inf, true -> None
+          | Lit Grade.Inf, false -> infinite ()
+          | Lit ((Grade.Int _ | Grade.Rat _) as lit), false -> Some lit
+          | _ -> forms ()
+        in
+        Grade.Interval (lower, upper)
+    | _ -> forms ()
+
   (* The literals written as lowercase names. *)
   let named_lit ~loc = function
     | "top" -> Grade.Top
@@ -66,8 +102,8 @@
         Error.syntax ~loc
           "'%s' is no grade literal; grades are written as integers, \
            fractions such as '3/2' or '1.5', names such as 'High', '⊤' (ASCII \
-           'top'), '∞' (ASCII 'inf'), tuples '(...)' and brace literals \
-           '{...}'" name
+           'top'), '∞' (ASCII 'inf'), tuples '(...)', intervals '[...]' and \
+           brace literals '{...}'" name
 %}
 
 %parameter<GS : Grades.GradeSystem.S>
@@ -548,12 +584,15 @@ sum_case:
     { (lbl, Some t) }
 
 (* The runtime bounds an operation declares, durations; [within n] is sugar
-   for [within (n, n)]. Only the grading monoids with costs read them. *)
+   for [within [n, n]]. Only the grading monoids with costs read them. *)
 op_bounds:
   | WITHIN n = runtime_bound
     { (n, n) }
-  | WITHIN LPAREN n = runtime_bound COMMA m = runtime_bound RPAREN
+  | WITHIN LBRACK n = runtime_bound COMMA m = runtime_bound RBRACK
     { (n, m) }
+  | WITHIN LPAREN duration COMMA duration RPAREN
+    { Error.syntax ~loc:(Location.of_lexing $startpos($2) $endpos)
+        "runtime bounds are written 'within n' or 'within [n, m]'" }
 
 (* A runtime bound, a duration read as a delay. *)
 runtime_bound:
@@ -615,7 +654,42 @@ grade_lit:
   | name = LNAME { named_lit ~loc:(Location.of_lexing $startpos $endpos) name }
   | LPAREN lit = grade_lit COMMA lits = separated_nonempty_list(COMMA, grade_lit) RPAREN
     { Grade.Tuple (lit :: lits) }
+  | lit = interval_lit { lit }
   | LBRACE r = regex RBRACE { Grade.Braces r }
+
+(* An interval of numbers, closed at its finite endpoints and open at its
+   infinite ones: [[n, m]], [[n, ∞)], [(-∞, m]] or [(-∞, ∞)]. Any other
+   bracketing of two endpoints is a syntax error. *)
+interval_lit:
+  | LBRACK ends = separated_nonempty_list(COMMA, endpoint) RBRACK
+    { interval ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:false ends ~upper_open:false }
+  | LBRACK ends = separated_nonempty_list(COMMA, endpoint) RPAREN
+    { interval ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:false ends ~upper_open:true }
+  | LPAREN lo = minus_infinity COMMA ends = separated_nonempty_list(COMMA, endpoint) RBRACK
+    { interval ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:true (lo :: ends) ~upper_open:false }
+  | LPAREN lo = minus_infinity COMMA ends = separated_nonempty_list(COMMA, endpoint) RPAREN
+    { interval ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:true (lo :: ends) ~upper_open:true }
+  | LPAREN lit = grade_lit COMMA lits = separated_nonempty_list(COMMA, grade_lit) RBRACK
+    { interval ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:true (List.map (fun lit -> Lit lit) (lit :: lits))
+        ~upper_open:false }
+
+endpoint:
+  | lit = grade_lit { Lit lit }
+  | e = minus_infinity { e }
+
+(* The endpoint [-∞] (ASCII [-inf]). *)
+minus_infinity:
+  | MINUS INFINITY { Minus_infinity }
+  | MINUS name = LNAME
+    { if name = "inf" then Minus_infinity
+      else
+        Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+          "'-%s' is no grade literal" name }
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition

@@ -14,19 +14,19 @@ type packet = Packet of reading
 
 (* A reading of the sensors takes between half a second and one and a half;
    unhandled, it takes three quarters. *)
-operation Sample : unit ~> reading # ({Sample}, {Sample}) within (1/2, 3/2)
+operation Sample : unit ~> reading # ({Sample}, {Sample}) within [1/2, 3/2]
 default Sample () = delay 0.75; Reading 12
 
 (* Compressing a reading takes between a quarter of a second and one. *)
 operation Compress : reading ~> packet
   # ({Compress}, {Compress})
-  within (1/4, 1)
+  within [1/4, 1]
 default Compress r = delay 1/4; Packet r
 
 (* A transmission takes between one second and two and a half. *)
 operation Transmit : packet ~> unit
   # ({Transmit}, {Transmit})
-  within (1, 5/2)
+  within [1, 5/2]
 default Transmit p = delay 1
 
 (* A report samples, compresses and transmits, in that order. *)

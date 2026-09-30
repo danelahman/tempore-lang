@@ -62,7 +62,7 @@ module Lower :
 (** The usage of one resource, ["resource-peak"]: the product
     {!GradeConstructions.Product} [(Lower) (Upper)] on the pairs
     [((d1, t), (d2, h))] of the grades [(t, [d1, d2], h)] above, whose unit is
-    [(0, [0, 0], 0)] and top [(-∞, [-∞, ∞], ∞)].
+    [(0, [0, 0], 0)] and top [(-∞, (-∞, ∞), ∞)].
 
     These pairs are closed under the product, the join and the top, and the unit
     is the only grade below the unit: [x · y ≾ 1] forces the trough and the peak
@@ -74,13 +74,13 @@ module Lower :
       the grade [(-1, [0, 0], 0)], the converse [(0, [0, 0], 1)].
     - [of_delay] and [of_bounds] are constantly the unit.
     - [of_lit] reads [⊤], pairs [(d, h)] of an exact net change [d] and a peak
-      [h], pairs [((d1, d2), h)] of a range of net changes and a peak, the
+      [h], pairs [([d1, d2], h)] of a range of net changes and a peak, the
       trough being [min(0, d1)] in both, and the triples [(t, d, h)] and
-      [(t, (d1, d2), h)] with an explicit trough [t]. Troughs and lower ends of
-      ranges are integers or [⊤], standing for [-∞]; peaks and upper ends are
-      integers or [∞]; exact net changes are integers, [(∞, ∞)] being the top.
-      The components must satisfy [t ≤ min(0, d1)], [d1 ≤ d2] and
-      [h ≥ max(0, d2)].
+      [(t, [d1, d2], h)] with an explicit trough [t]. Troughs are integers or
+      [⊤], standing for [-∞]; peaks are integers or [∞]; exact net changes and
+      the finite ends of ranges are integers, a range unbounded below or above
+      being written [(-∞, d2\]] or [\[d1, ∞)], and [(∞, ∞)] is the top. The
+      components must satisfy [t ≤ min(0, d1)], [d1 ≤ d2] and [h ≥ max(0, d2)].
     - [show] prints the top as [(∞,∞)] and any other grade in the shortest of
       these forms, omitting the trough when it is [min(0, d1)].
     - No counterexample is offered.
@@ -100,8 +100,8 @@ module OneResource :
 (** The peak-usage grade, ["peak-usage"]: the usage of each resource, by its
     name, {!GradeConstructions.Indexed.OfGrade} [(OneResource)].
 
-    An entry [(R, d, h)], [(R, (d1, d2), h)], [(R, t, d, h)] or
-    [(R, t, (d1, d2), h)] bounds the resource [R], and a plain grade of
+    An entry [(R, d, h)], [(R, [d1, d2], h)], [(R, t, d, h)] or
+    [(R, t, [d1, d2], h)] bounds the resource [R], and a plain grade of
     {!OneResource} every resource, so that a program with a single resource need
     not name it: [((Files, 0, 2), (Sockets, 0, 1))] holds at most two files and
     one socket at a time, releasing them all, [(Files, -1, 0, 0)] releases a

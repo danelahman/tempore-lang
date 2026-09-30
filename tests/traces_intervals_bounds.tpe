@@ -3,9 +3,9 @@
    its grade, each component at its own end of the bounds of 'Tx'. The lower
    bound promises a single transmission, whose fastest run takes two ticks, and
    the upper bound permits a retry, whose slowest run takes six, so 'Send' gets
-   the bounds (2, 6), which the box in 'telemetry' relies on. *)
+   the bounds [2, 6], which the box in 'telemetry' relies on. *)
 
-operation Tx : string ~> unit # ({Tx}, {Tx}) within (2, 3)
+operation Tx : string ~> unit # ({Tx}, {Tx}) within [2, 3]
 operation Send : string ~> unit # ({Tx}, {Tx | Tx; Tx})
 
 let telemetry () =

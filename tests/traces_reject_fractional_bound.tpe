@@ -2,4 +2,4 @@
    are whole numbers of time steps; the error names the trace grades with
    costs whose delays are rationals. *)
 
-operation Heat : unit ~> unit # {Heat} within (1/2, 1)
+operation Heat : unit ~> unit # {Heat} within [1/2, 1]

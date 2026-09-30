@@ -17,11 +17,11 @@
 (** The durations, ["durations"]: non-empty sets of natural numbers under
     elementwise addition, ordered by inclusion, the join being the union; the
     delays are whole time steps, the unit is [{0}], [of_delay n] is [{n}], and
-    the top all natural numbers. Its literals are [n] for [{n}], [(n, m)] for
-    the numbers from [n] to [m], [m] possibly [∞], and brace literals over
-    ticks, [{3 | 5}] being [{3, 5}]; a set is printed in the first of these
-    forms that denotes it. The witnesses are the constants and their pairwise
-    products, and partial. *)
+    the top all natural numbers. Its literals are [n] for [{n}], [[n, m]] for
+    the numbers from [n] to [m], [\[n, ∞)] for those from [n] on, and brace
+    literals over ticks, [{3 | 5}] being [{3, 5}]; a set is printed in the first
+    of these forms that denotes it. The witnesses are the constants and their
+    pairwise products, and partial. *)
 module Durations :
   Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
 

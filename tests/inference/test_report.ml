@@ -170,7 +170,7 @@ let grade_module name =
 let declarations ~traces ~upper =
   let op name result lo hi =
     if traces then
-      Printf.sprintf "operation %s : unit ~> %s # {%s} within (%d, %d)" name
+      Printf.sprintf "operation %s : unit ~> %s # {%s} within [%d, %d]" name
         result name lo hi
     else
       Printf.sprintf "operation %s : unit ~> %s # %d" name result

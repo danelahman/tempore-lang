@@ -3,6 +3,6 @@
    bounds of its operation, and 'Extrude' promises to be done within five
    ticks. *)
 
-operation Extrude : unit ~> unit # {Extrude} within (3, 5)
+operation Extrude : unit ~> unit # {Extrude} within [3, 5]
 
 default Extrude () = delay 6

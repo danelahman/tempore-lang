@@ -2,5 +2,5 @@
    grading monoid: the events of a grade must be operations that have already
    been declared. *)
 
-operation Heat : unit ~> unit # {Heat} within (1, 2)
+operation Heat : unit ~> unit # {Heat} within [1, 2]
 operation PrintModel : unit ~> unit # {Heat; Extrude}

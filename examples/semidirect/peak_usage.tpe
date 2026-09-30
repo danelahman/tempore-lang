@@ -10,7 +10,7 @@
      - Product: net changes added, later levels shifted by earlier changes *)
 
 (* The levels are relative to the level at the start. An entry (R, d, h) has
-   the trough min(0, d), and a net change (d1, d2) ranges from d1 to d2:
+   the trough min(0, d), and a net change [d1, d2] ranges from d1 to d2:
    (t, [d1, d2], h) · (t', [d1', d2'], h')
      = (min(t, d1 + t'), [d1 + d1', d2 + d2'], max(h, d2 + h')). *)
 
