@@ -25,7 +25,10 @@
     least common multiple of their periods; the sum aligns the periods only.
     Both are linear, respectively quadratic, in the sizes after alignment. The
     repetition is pseudo-polynomial in the constants: its result may have a
-    number of intervals proportional to the ratio of its constants. *)
+    number of intervals proportional to the ratio of its constants. Examples:
+    the sums of [997] and [991] are listed point by point up to about their
+    product, and [(1 | (10, 10.001))*] has about [10⁴] intervals before its
+    tail; see the README for timings. *)
 
 type t
 (** A set of delays, in canonical form. *)

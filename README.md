@@ -222,6 +222,25 @@ whose delay transitions are labelled by sets of delays, and printed as it is
 written, with adjacent delays added. See
 [`examples/regular/regular_rational.tpe`](examples/regular/regular_rational.tpe).
 
+A set of delays is kept as a finite part followed by a periodic tail. The
+finite part can be long when a repetition or a sum combines large constants
+that are nearly coprime, or a point and a narrow interval, and the cost of
+deciding grades grows with it. Checking a single annotated function takes:
+
+| Grade | Time |
+|---|---|
+| `{(100 \| 101)*}` | 0.4 s |
+| `{(300 \| 301)*}` | 1.6 s |
+| `{997*; 991*}` | 17 s |
+| `{(1 \| (>10 & <10.001))*}` | 18 s |
+
+In the first three rows the sums of the two constants leave gaps up to about
+their product, which the finite part lists point by point. In the last, the
+multiples of the narrow interval merge into a continuous tail only after about
+the ratio of `10` to its width. Small periods, including rational ones such
+as `{(1/97 | 1/89)*}`, and intervals that widen as they repeat, such as
+`{(>=1 & <=1.001)*}`, stay fast.
+
 ### Regular expressions with costs
 
 A grade is a regular language of runs, as under `regex-upper-bound`, ordered as
