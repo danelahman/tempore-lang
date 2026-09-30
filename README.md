@@ -232,10 +232,10 @@ deciding grades grows with it. Checking a single annotated function takes:
 
 | Grade | Time |
 |---|---|
-| `{(100 \| 101)*}` | 0.4 s |
-| `{(300 \| 301)*}` | 1.6 s |
-| `{997*; 991*}` | 17 s |
-| `{(1 \| (>10 & <10.001))*}` | 18 s |
+| <code>{(100 &#124; 101)*}</code> | 0.4 s |
+| <code>{(300 &#124; 301)*}</code> | 1.6 s |
+| <code>{997*; 991*}</code> | 17 s |
+| <code>{(1 &#124; (&gt;10 &amp; &lt;10.001))*}</code> | 18 s |
 
 In the first three rows the sums of the two constants leave gaps up to about
 their product, which the finite part lists point by point. In the last, the
