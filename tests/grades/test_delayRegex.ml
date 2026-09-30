@@ -233,10 +233,10 @@ let names = [ "A"; "B"; "C" ]
 
 (* [random_regex st ~depth ~constant] is a random expression over [names],
    the delays and bounds drawn by [constant]. *)
-(* [comparison k q] is the interval atom of the delays below, up to, above or
-   from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the empty
-   language is written [~_*]. *)
-let comparison k q =
+(* [interval_atom k q] is the interval atom of the delays below, up to,
+   above or from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the
+   empty language is written [~_*]. *)
+let interval_atom k q =
   let zero = Grade.Closed Rational.zero in
   if k = 0 && Rational.sign q = 0 then Grade.Compl (Grade.Star Grade.Any)
   else
@@ -256,7 +256,7 @@ let rec random_regex st ~depth ~constant =
   match int (if depth = 0 then 4 else 10) with
   | 0 -> Grade.Letter (pick names)
   | 1 -> Grade.rational_tick (constant ())
-  | 2 -> comparison (pick [ 0; 1; 2; 3 ]) (constant ())
+  | 2 -> interval_atom (pick [ 0; 1; 2; 3 ]) (constant ())
   | 3 -> Grade.Any
   | 4 | 5 -> Grade.Seq (sub (), sub ())
   | 6 -> Grade.Union (sub (), sub ())

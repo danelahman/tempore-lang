@@ -1000,7 +1000,7 @@ let registry =
           "regex-cost-interval-rational";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
-    expect "registry: grades reading a comparison of delays" show_names
+    expect "registry: grades reading an interval of delays" show_names
       ~expected:
         [
           "regex-upper-bound-rational";
@@ -1741,10 +1741,10 @@ let cover =
         Tuple [ entry "A" [ Int 1 ]; entry "B" [ Inf ]; entry "C" [ Int 0 ] ];
       ]
 
-(* [comparison k q] is the interval atom of the delays below, up to, above or
-   from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the empty
-   language is written [~_*]. *)
-let comparison k q =
+(* [interval_atom k q] is the interval atom of the delays below, up to,
+   above or from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the
+   empty language is written [~_*]. *)
+let interval_atom k q =
   let zero = Grade.Closed Rational.zero in
   if k = 0 && Rational.sign q = 0 then Grade.Compl (Grade.Star Grade.Any)
   else
@@ -1780,7 +1780,9 @@ let random family st =
     | 0 -> letter ()
     | 1 -> rational_tick (Rational.make (int 7) (1 + int 4))
     | 2 ->
-        comparison (pick st [ 0; 1; 2; 3 ]) (Rational.make (int 7) (1 + int 4))
+        interval_atom
+          (pick st [ 0; 1; 2; 3 ])
+          (Rational.make (int 7) (1 + int 4))
     | 3 -> Any
     | 4 -> Seq (timed (depth - 1), timed (depth - 1))
     | 5 -> Union (timed (depth - 1), timed (depth - 1))

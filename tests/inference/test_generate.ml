@@ -127,7 +127,9 @@ let malformed =
     "literals_reject_fraction.tpe";
     "literals_reject_fraction_operator.tpe";
     "literals_reject_fraction_zero.tpe";
+    "delay_reject_expression.tpe";
     "delay_reject_fraction.tpe";
+    "delay_reject_variable.tpe";
     "regular_reject_bounds.tpe";
     "regex_costs_interval_runs_reject.tpe";
     "regex_costs_lower_runs_reject.tpe";

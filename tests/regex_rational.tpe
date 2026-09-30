@@ -1,6 +1,6 @@
 (* Correctly accepted by the typechecker, under the
    'regex-upper-bound-rational' grading monoid: timed regular expressions over
-   rational delays, adjacent delays being added, with comparisons of delays,
+   rational delays, adjacent delays being added, with intervals of delays,
    complements over all runs and repetitions of fractional delays. *)
 
 operation Sample : unit ~> nat # {Sample}

@@ -293,6 +293,7 @@ let expected_rejections =
     ("rational_time_intervals_reject_within.tpe", [ 5 ]);
     ("rational_time_lower_reject.tpe", [ 10; 14 ]);
     ("rational_time_upper_reject.tpe", [ 7 ]);
+    ("rational_traces_intervals_default_open_reject.tpe", [ 10; 11 ]);
     ("rational_traces_intervals_reject.tpe", [ 9 ]);
     ("rational_traces_upper_open_reject.tpe", [ 8 ]);
     ("rational_traces_upper_reject.tpe", [ 9 ]);
@@ -358,6 +359,7 @@ let expected_rejections =
     ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);
     ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);
     ("regex_costs_lower_runs_reject.tpe", [ 10 ]);
+    ("regex_costs_rational_interval_default_open_reject.tpe", [ 9; 10 ]);
     ("regex_costs_rational_interval_open_reject.tpe", [ 7 ]);
     ("regex_costs_rational_interval_reject.tpe", [ 10; 18 ]);
     ("regex_costs_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
@@ -379,6 +381,7 @@ let expected_rejections =
     ("termination_reject_spin.tpe", [ 3 ]);
     ("time_reject_within.tpe", [ 6 ]);
     ("traces_intervals_default_bounds.tpe", [ 9 ]);
+    ("traces_intervals_default_open_reject.tpe", [ 9; 10 ]);
     ("traces_open_bounds_reject.tpe", [ 9; 15 ]);
     ("traces_reject_allowance.tpe", [ 7 ]);
     ("traces_reject_bounds.tpe", [ 4 ]);

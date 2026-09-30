@@ -247,6 +247,12 @@ plain_term:
     { Conditional (t_cond, t_true, t_false) }
   | DELAY q = duration
     { Delay (delay ~loc:(Location.of_lexing $startpos(q) $endpos(q)) q) }
+  (* Any other argument of [delay], read up to the token that ends the
+     duration. *)
+  | DELAY error
+    { Error.syntax ~loc:(Location.of_lexing $startpos($2) $endpos($2))
+        "the argument of 'delay' is a duration literal, such as '2', '1/2' \
+         or '0.25'" }
   | BOX rho = rho_grade e = term AS p = pattern IN c = term
     { Box (rho, e, (p, c)) }
   | BOX rho = rho_grade e = term

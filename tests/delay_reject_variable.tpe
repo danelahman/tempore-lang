@@ -1,0 +1,6 @@
+(* Rejected: the argument of 'delay' is a duration literal, and a variable
+   bound to a number is a syntax error. *)
+
+let wait () =
+  let n = 2 in
+  delay n

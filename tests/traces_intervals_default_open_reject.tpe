@@ -1,0 +1,10 @@
+(* Correctly rejected by the typechecker, under the 'traces-cost-interval'
+   grading monoid: over whole time steps the runtime bounds [1, 3) are [1, 2]
+   and (1, 3] are [2, 3], so a default implementation taking exactly the open
+   end is rejected by the grades of these bounds. *)
+
+operation Send : unit ~> unit # [{Send}, {Send}] within [1, 3)
+operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 3]
+
+default Send () = delay 3
+default Beep () = delay 1

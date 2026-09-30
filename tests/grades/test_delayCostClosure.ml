@@ -112,7 +112,7 @@ let examples =
       (not (upper "{[0, 1); A; [0, 1)}" "{2.9}"));
     is "upper: a closed delay at the bound" (upper "{[0, 1]; A; [0, 1]}" "{3}");
     is "upper: an unbounded delay" (not (upper "{(1, ∞); A}" "{A; 100}"));
-    is "upper: comparison atoms as bounds" (upper "{A; 1/2}" "{A; [0, 1/2]}");
+    is "upper: interval atoms as bounds" (upper "{A; 1/2}" "{A; [0, 1/2]}");
     is "upper: an open bound admits no delay at it"
       (not (upper "{A; 1/2}" "{A; [0, 1/2)}"));
     is "upper: an open bound admits every delay below it"
@@ -454,10 +454,10 @@ let random_bound st ~closed_top =
              (if i > 0 || int 2 = 0 then [ Op (List.nth names (int 2)) ] else [])
              @ List.init (int 3) (fun _ -> Gap (gap ())))))
 
-(* [comparison k q] is the interval atom of the delays below, up to, above or
-   from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the empty
-   language is written [~_*]. *)
-let comparison k q =
+(* [interval_atom k q] is the interval atom of the delays below, up to,
+   above or from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the
+   empty language is written [~_*]. *)
+let interval_atom k q =
   let zero = Grade.Closed Rational.zero in
   if k = 0 && Rational.sign q = 0 then Grade.Compl (Grade.Star Grade.Any)
   else
@@ -477,7 +477,7 @@ let rec random_regex st depth =
   match int (if depth = 0 then 4 else 10) with
   | 0 -> Grade.Letter (List.nth names (int 2))
   | 1 -> Grade.rational_tick (value ())
-  | 2 -> comparison (int 4) (value ())
+  | 2 -> interval_atom (int 4) (value ())
   | 3 -> Grade.Any
   | 4 | 5 -> Grade.Seq (sub (), sub ())
   | 6 -> Grade.Union (sub (), sub ())

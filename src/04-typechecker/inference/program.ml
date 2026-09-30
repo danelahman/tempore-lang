@@ -63,6 +63,21 @@ module Make (C : Constraint.S) = struct
     | S.Refuted failure -> Error (Refuted failure)
     | S.Stuck stuck -> Error (Stuck stuck)
 
+  (* [check_duration ~loc env op abs] checks the duration of the default
+     implementation [abs] of [op] at [loc] against the runtime bounds of [op],
+     by the effect of its reported scheme; it is skipped where that effect is
+     not a constant or the constraint has no solution. *)
+  let check_duration ~loc env op abs =
+    if C.X.GS.E.needs_op_bounds then
+      let ty, constr = Gen.generate_default_effect env ~loc op abs in
+      match S.solve (context ~loc env) constr with
+      | S.Solved solution -> (
+          match (S.generalise ty solution).C.ty with
+          | Ast.TyArrow (_, Ast.CompTy (_, C.X.Eps_const grade)) ->
+              Gen.check_default_duration env ~loc op grade
+          | _ -> ())
+      | S.Refuted _ | S.Stuck _ -> ()
+
   (* [terminating check result] is [result] once [check ()] has accepted the
      recursive functions, the default and the matches of a solved command. *)
   let terminating check =
@@ -122,7 +137,8 @@ module Make (C : Constraint.S) = struct
                     ~loc op performed;
                   Exhaustiveness.check_abstraction
                     ~constructors:(Gen.datatype_constructors env)
-                    abs))
+                    abs;
+                  check_duration ~loc env op abs))
         with
         | Ok _ ->
             let default =

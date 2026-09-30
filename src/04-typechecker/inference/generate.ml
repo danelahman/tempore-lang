@@ -1454,17 +1454,47 @@ module Make (C : Constraint.S) = struct
         (C.free_vars_comp_ty comp_ty)
         (generate_computation env c (expect a because) (expect eps because)) )
 
-  let generate_default env ~loc op (pat, body) =
-    let op_name = Ast.OpName.string_of op in
-    let { param; arity; op_grade; signature_at } =
-      match find_op_signature env op with
-      | Some signature -> signature
-      | None -> Error.typing ~loc "unknown operation `%s`" op_name
+  (* The constraint that [(pat, body)] at [loc] is a function from the
+     parameter of the operation [op] of signature [signature] to its result
+     type, of effect below [eps], under the lock [⟨⊤⟩]. *)
+  let default_constraint env ~loc op signature (pat, body) eps =
+    let clause =
+      { Reason.op; signature_at = signature.signature_at; case_at = loc }
     in
+    let env' =
+      lock env
+        {
+          grade = Rho.top;
+          at = loc;
+          kind = Reason.Clause_lock clause;
+          declared = None;
+        }
+    in
+    let default =
+      Reason.because loc
+        (Reason.Default_of { op; signature_at = signature.signature_at })
+    in
+    with_pattern env' pat
+      (expect signature.param (Reason.step Reason.Argument default))
+      (fun env'' ->
+        generate_computation env'' body
+          (expect signature.arity (Reason.step Reason.Result default))
+          (expect eps (Reason.step Reason.Effect default)))
+
+  (* The signature of the operation [op] of a default implementation at [loc]. *)
+  let signature_of_default env ~loc op =
+    match find_op_signature env op with
+    | Some signature -> signature
+    | None ->
+        Error.typing ~loc "unknown operation `%s`" (Ast.OpName.string_of op)
+
+  let generate_default env ~loc op abs =
+    let op_name = Ast.OpName.string_of op in
+    let signature = signature_of_default env ~loc op in
     if Ast.OpNameMap.mem op env.op_defaults then
       Error.typing ~loc "operation `%s` already has a default implementation"
         op_name;
-    (match op_grade with
+    (match signature.op_grade with
     | X.Eps_const c when not (GS.E.is_atomic op_name c) ->
         Error.typing ~loc
           "a default implementation may only be given for an atomic operation, \
@@ -1479,24 +1509,49 @@ module Make (C : Constraint.S) = struct
             Grades.Grade.map_end (Grades.Grade.read_bound GS.E.Delay.read)
           in
           Eps.const (GS.E.of_bounds (read lo, read hi))
-      | None -> op_grade
+      | None -> signature.op_grade
     in
-    let clause = { Reason.op; signature_at; case_at = loc } in
-    let env' =
-      lock env
-        {
-          grade = Rho.top;
-          at = loc;
-          kind = Reason.Clause_lock clause;
-          declared = None;
-        }
-    in
-    let default = Reason.because loc (Reason.Default_of { op; signature_at }) in
     with_annotation_vars C.no_free
-      (with_pattern env' pat
-         (expect param (Reason.step Reason.Argument default))
-         (fun env'' ->
-           generate_computation env'' body
-             (expect arity (Reason.step Reason.Result default))
-             (expect bound (Reason.step Reason.Effect default))))
+      (default_constraint env ~loc op signature abs bound)
+
+  let generate_default_effect env ~loc op abs =
+    let signature = signature_of_default env ~loc op in
+    let eps = Eps.var (X.Eps_var.fresh_indexed ()) in
+    let ty = Ast.TyArrow (signature.param, Ast.CompTy (signature.arity, eps)) in
+    ( ty,
+      with_annotation_vars (C.free_vars_ty ty)
+        (default_constraint env ~loc op signature abs eps) )
+
+  let check_default_duration env ~loc op grade =
+    let op_name = Ast.OpName.string_of op in
+    match
+      ( StringMap.find_opt op_name env.op_bounds,
+        GS.E.implied_bounds (cost_model ~loc env) grade )
+    with
+    | Some (lo, hi), Some (lo', hi')
+      when Grades.Grade.compare_ends ~lower:true lo lo' > 0
+           || Grades.Grade.compare_ends ~lower:false hi' hi > 0 ->
+        let show (lo, hi) =
+          Grades.Grade.show_interval Grades.Rational.show lo hi
+        in
+        let labels =
+          Option.to_list
+            (Option.map
+               (fun { signature_at; _ } ->
+                 {
+                   Utils.Diagnostic.span = signature_at;
+                   text =
+                     "operation `" ^ op_name ^ "` is declared "
+                     ^ Utils.Diagnostic.place;
+                 })
+               (find_op_signature env op))
+        in
+        Error.typing ~loc ~labels
+          "The default implementation of `%s` takes a duration in `%s`, which \
+           is not within the runtime bounds `%s` of `%s`"
+          op_name
+          (show (lo', hi'))
+          (show (lo, hi))
+          op_name
+    | Some _, Some _ | None, _ | _, None -> ()
 end

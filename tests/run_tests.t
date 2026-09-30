@@ -39,6 +39,7 @@
   >     traces_intervals.tpe) ../tempore --grades traces-cost-interval $f;;
   >     traces_intervals_bounds.tpe) ../tempore --grades traces-cost-interval $f;;
   >     traces_intervals_default_bounds.tpe) ../tempore --grades traces-cost-interval $f;;
+  >     traces_intervals_default_open_reject.tpe) ../tempore --grades traces-cost-interval $f;;
   >     traces_*.tpe) ../tempore --grades traces-cost-upper-bound $f;;
   >     levels_time_lower*.tpe) ../tempore --grades time-lower-bound-levels $f;;
   >     levels_time_upper*.tpe) ../tempore --grades time-upper-bound-levels $f;;
@@ -907,12 +908,26 @@
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Unknown name `Log`
   ======================================================================
+  delay_reject_expression.tpe
+  ======================================================================
+  File "delay_reject_expression.tpe", line 4, characters 20-21:
+  4 | let wait () = delay (1 + 1)
+                          ^
+  Syntax error: the argument of 'delay' is a duration literal, such as '2', '1/2' or '0.25'
+  ======================================================================
   delay_reject_fraction.tpe
   ======================================================================
   File "delay_reject_fraction.tpe", line 4, characters 20-23:
   4 | let wait () = delay 0.5
                           ^^^
   Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-upper-bound-rational', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound-rational', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational', 'regex-cost-interval-rational', 'security-levels' or 'flow-levels' grading monoids?
+  ======================================================================
+  delay_reject_variable.tpe
+  ======================================================================
+  File "delay_reject_variable.tpe", line 6, characters 8-9:
+  6 |   delay n
+              ^
+  Syntax error: the argument of 'delay' is a duration literal, such as '2', '1/2' or '0.25'
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
@@ -3217,6 +3232,36 @@
   ]
   
   ======================================================================
+  rational_traces_intervals_default_open.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    [{1.5}, {1.5}],
+    [{2}, {2}]
+  ]
+  
+  ======================================================================
+  rational_traces_intervals_default_open_reject.tpe
+  ======================================================================
+  File "rational_traces_intervals_default_open_reject.tpe", line 10, characters 0-25:
+  10 | default Send () = delay 2
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Send` takes a duration in `[2, 2]`, which is not within the runtime bounds `[1, 2)` of `Send`
+    File "rational_traces_intervals_default_open_reject.tpe", line 7, characters 0-62:
+    7 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Send` is declared here
+  
+  File "rational_traces_intervals_default_open_reject.tpe", line 11, characters 0-25:
+  11 | default Beep () = delay 1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` takes a duration in `[1, 1]`, which is not within the runtime bounds `(1, 2]` of `Beep`
+    File "rational_traces_intervals_default_open_reject.tpe", line 8, characters 0-62:
+    8 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+  ======================================================================
   rational_traces_intervals_reject.tpe
   ======================================================================
   File "rational_traces_intervals_reject.tpe", lines 13-14, characters 2-3:
@@ -3658,6 +3703,28 @@
     [{0.5}, {0.5}]
   ]
   
+  ======================================================================
+  regex_costs_rational_interval_default_open_reject.tpe
+  ======================================================================
+  File "regex_costs_rational_interval_default_open_reject.tpe", line 9, characters 0-25:
+  9 | default Send () = delay 2
+      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
+    File "regex_costs_rational_interval_default_open_reject.tpe", line 6, characters 0-62:
+    6 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Send` is declared here
+    Note: the effect inequality `[{2}, {2}] <= [{1}, {[0, 2)}]` does not hold
+  
+  File "regex_costs_rational_interval_default_open_reject.tpe", line 10, characters 0-25:
+  10 | default Beep () = delay 1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
+    File "regex_costs_rational_interval_default_open_reject.tpe", line 7, characters 0-62:
+    7 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
   ======================================================================
   regex_costs_rational_interval_open_reject.tpe
   ======================================================================
@@ -5134,6 +5201,28 @@
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{3}, {5}]` does not hold
+  ======================================================================
+  traces_intervals_default_open_reject.tpe
+  ======================================================================
+  File "traces_intervals_default_open_reject.tpe", line 9, characters 0-25:
+  9 | default Send () = delay 3
+      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Send` has grade `[{3}, {3}]`, which does not match the declared grade `[{1}, {2}]` of `Send`
+    File "traces_intervals_default_open_reject.tpe", line 6, characters 0-62:
+    6 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 3)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Send` is declared here
+    Note: the effect inequality `[{3}, {3}] <= [{1}, {2}]` does not hold
+  
+  File "traces_intervals_default_open_reject.tpe", line 10, characters 0-25:
+  10 | default Beep () = delay 1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{2}, {3}]` of `Beep`
+    File "traces_intervals_default_open_reject.tpe", line 7, characters 0-62:
+    7 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 3]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Beep` is declared here
+    Note: the effect inequality `[{1}, {1}] <= [{2}, {3}]` does not hold
   ======================================================================
   traces_lower.tpe
   ======================================================================
@@ -7281,5 +7370,18 @@ under a grade permitting the pauses of more than a second that are not whole.
     { resource_0 ↦ "settled" # {(1, ∞) & ~1*} },
     {0.5},
     {1.25}
+  ]
+  
+
+The example of the regular cost grades over rational delays, graded by
+intervals, runs to its value, its operations performed by their defaults.
+
+  $ ../tempore --grades regex-cost-interval-rational ../examples/regular_costs/regular_costs_intervals_rational.tpe
+  === Run 1 ===
+  return ()
+  State: [
+    [{0.75}, {0.75}],
+    [{0.25}, {0.25}],
+    [{0.75}, {0.75}]
   ]
   

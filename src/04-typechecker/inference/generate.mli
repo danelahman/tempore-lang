@@ -252,4 +252,21 @@ module Make (C : Constraint.S) : sig
       grade variables of the annotations of [abs] are bound at its top.
       @raise Utils.Error.Error
         if [op] is unknown, has a default already, or is not atomic. *)
+
+  val generate_default_effect :
+    env -> loc:Location.t -> Ast.operation -> abstraction -> ty * C.t
+  (** [generate_default_effect env ~loc op abs] is the type [param → arity # ε]
+      of [abs] at [loc] as a default implementation of [op], [ε] a fresh
+      unknown, and the constraint of {!generate_default} with [ε] in place of
+      the bound on its effect.
+      @raise Utils.Error.Error if [op] is unknown. *)
+
+  val check_default_duration :
+    env -> loc:Location.t -> Ast.operation -> C.X.GS.E.t -> unit
+  (** [check_default_duration env ~loc op grade] checks that the runtime bounds
+      implied by the effect [grade] of the default implementation of [op] at
+      [loc] lie within the runtime bounds [op] declares, each end compared with
+      its strictness. It holds where [op] declares no runtime bounds or [grade]
+      implies none ({!Grades.Grade.S.implied_bounds}).
+      @raise Utils.Error.Error if it does not hold. *)
 end

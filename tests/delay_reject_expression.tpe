@@ -1,0 +1,4 @@
+(* Rejected: the argument of 'delay' is a duration literal, and a sum of
+   durations is a syntax error. *)
+
+let wait () = delay (1 + 1)

@@ -280,7 +280,9 @@ of its grade: `{Sample; [0, 1/2); Send}` gets `(3/4, 3)` if `Sample` is declared
 `within [1/2, 3/2]` and `Send` `within [1/4, 1]`. Under
 `regex-cost-interval-rational` an open numeric endpoint of an interval is a set
 of delays: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
-[`examples/regular_costs/regular_costs_rational.tpe`](examples/regular_costs/regular_costs_rational.tpe).
+[`examples/regular_costs/regular_costs_rational.tpe`](examples/regular_costs/regular_costs_rational.tpe)
+and
+[`examples/regular_costs/regular_costs_intervals_rational.tpe`](examples/regular_costs/regular_costs_intervals_rational.tpe).
 
 ### Security levels and products
 
@@ -470,8 +472,7 @@ being non-empty. The rational monoids with costs accept fractional bounds such
 as `within [1/2, 3/2)`; under the other monoids with costs, which count whole
 time steps, `within [1/2, 1]` is a syntax error and an open end abbreviates a
 closed one, `within (1, 4)` being `within [2, 3]`. The rational trace monoids
-compare runs with exact delays and read the value of each end; their default
-implementations are checked against the closed bounds `[lo, hi]`. The
+compare runs with exact delays and read the value of each end. The
 rational regular-expression monoids read whether each end is attained: with
 `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}` under
 `regex-cost-upper-bound-rational`, and a default implementation of `A` takes
@@ -526,8 +527,11 @@ default Heat () = delay 1
 gives `Heat` a default, run only when a call reaches the top level unhandled.
 Where operations declare runtime bounds, only atomic operations have defaults,
 and a default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}`
-under upper bounds, and `[{lo}, {hi}]` under intervals. Elsewhere it must be a
-sub-grade of the operation's grade.
+under upper bounds, and `[{lo}, {hi}]` under intervals; the runtime bounds its
+grade implies must moreover lie within the declared ones, an open end
+excluded, so that with `A` declared `within [1, 2)` the default
+`default A () = delay 2` is rejected under every monoid with costs. Elsewhere a default's
+grade must be a sub-grade of the operation's grade.
 See [`examples/3dprint/3dprint_traces.tpe`](examples/3dprint/3dprint_traces.tpe).
 
 ## Recursion
