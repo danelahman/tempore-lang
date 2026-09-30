@@ -40,9 +40,9 @@
 
 default | basics/coffee.tpe
 
-group | Temporal resources 101 | Basics | Boxes graded by regular languages of runs, first with delays alone, then with operations taking time.
-Temporal resources 101 | Coffee | regex-upper-bound-rational | basics/coffee.tpe | A cup boxed at a regular language of runs, served after a pause of at least five minutes and a payment not refunded.
-Temporal resources 101 | Coffee with costs | regex-cost-interval-rational | basics/coffee_costs.tpe | The same café whose payment, brewing and additions are operations taking time, the cup served once they have taken at least five minutes and never refunded.
+group | Basics | Basics | Boxes graded by regular languages of runs, first with delays alone, then with operations taking time.
+Basics | Coffee | regex-upper-bound-rational | basics/coffee.tpe | A cup boxed at a regular language of runs, served after a pause of at least five minutes and a payment not refunded.
+Basics | Coffee with costs | regex-cost-interval-rational | basics/coffee_costs.tpe | The same café whose payment, brewing and additions are operations taking time, the cup served once they have taken at least five minutes and never refunded.
 
 group | Effect handlers | Handlers | Operations handled by clauses that respect their grades.
 Effect handlers | Lower bounds | time-lower-bound | handlers/handlers_lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
