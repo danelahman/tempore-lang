@@ -8,14 +8,14 @@ operation Fetch : unit ~> unit # {Fetch} within [2, 4]
 
 (* A fetch may take only two ticks, short of the lower bound of three. *)
 let too_quick () =
-  box (3, 4) (Token "t") as t in
+  box [3, 4] (Token "t") as t in
   perform Fetch ();
   unbox t as tok in
   tok
 
 (* A fetch may take four ticks, past the upper bound of three. *)
 let too_slow () =
-  box (2, 3) (Token "t") as t in
+  box [2, 3] (Token "t") as t in
   perform Fetch ();
   unbox t as tok in
   tok

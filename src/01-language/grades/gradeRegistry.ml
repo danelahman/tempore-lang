@@ -82,7 +82,8 @@ let entries =
     entry
       (module TimedTraceGrades.Interval)
       traces_costs "Intervals"
-      "Pairs of a lower and an upper trace bound, compared componentwise.";
+      "Closed intervals [L, U] of a lower and an upper trace bound, compared \
+       componentwise.";
     entry
       (module TimedTraceGrades.Rational.LowerBound)
       traces_costs "Lower bounds (rational)"
@@ -96,8 +97,8 @@ let entries =
     entry
       (module TimedTraceGrades.Rational.Interval)
       traces_costs "Intervals (rational)"
-      "Pairs of a lower and an upper trace bound with rational delays, \
-       compared componentwise.";
+      "Closed intervals [L, U] of a lower and an upper trace bound with \
+       rational delays, compared componentwise.";
     entry
       (module RegularTraceGrade)
       regex "Upper bounds"
@@ -137,8 +138,8 @@ let entries =
     entry
       (module RegularCostTraceGrades.Interval)
       regex_costs "Intervals"
-      "Pairs of a lower and an upper regular-language bound, compared \
-       componentwise, decided by automata.";
+      "Closed intervals [L, U] of a lower and an upper regular-language bound, \
+       compared componentwise, decided by automata.";
     entry
       (module RegularCostTraceGrades.Symbolic.Lower)
       regex_costs "Lower bounds (symbolic derivatives)"
@@ -169,8 +170,8 @@ let entries =
     entry
       (module RegularCostTraceGradesRational.Interval)
       regex_costs "Intervals (rational)"
-      "Pairs of a lower and an upper regular-language bound over rational \
-       delays, compared componentwise.";
+      "Closed intervals [L, U] of a lower and an upper regular-language bound \
+       over rational delays, compared componentwise.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Lower)
       regex_costs "Lower bounds (plain derivatives)"

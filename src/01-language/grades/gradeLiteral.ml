@@ -108,8 +108,9 @@ type lit =
   | Tuple of lit list
       (** A parenthesised tuple of at least two literals, e.g. [(3, High)] *)
   | Interval of lit option * lit option
-      (** An interval of numbers, closed at its finite endpoints, [None] being
-          an infinite one: [[1, 4]], [\[1/2, ∞)], [(-∞, 3\]] or [(-∞, ∞)] *)
+      (** An interval, closed at its finite endpoints, [None] being an infinite
+          one: [[1, 4]], [\[1/2, ∞)], [(-∞, 3\]], [(-∞, ∞)] or [[{A}, {A; B}]]
+      *)
   | Braces of regex  (** A brace literal, e.g. [{Read; 3; Send | Send}] *)
 
 exception Invalid_literal of lit * string
@@ -165,3 +166,43 @@ let is_pair_interval = function
 let reject_pair_interval lit =
   invalid_lit lit "intervals are written %s, not as pairs '(n, m)'"
     interval_forms
+
+(** The interval literals of the grades whose intervals are bounded below by a
+    grade and above by a grade or [∞]. *)
+let bound_forms = "'[L, U]' or '[L, ∞)'"
+
+(** [bounds_of_lit lit ~number ~lower ~upper ~unbounded ~bounds] is the pair of
+    the lower bound [lower l] and the upper bound [upper u] the interval literal
+    [lit] = [[l, u]] denotes, the upper bound being [unbounded] in [\[l, ∞)];
+    endpoints that both have a numeric value by [number] must be ordered.
+    [bounds] names the bounds in the rejection of a literal of another form. *)
+let bounds_of_lit lit ~number ~lower ~upper ~unbounded ~bounds =
+  match lit with
+  | Interval (Some l, u) ->
+      (match (number l, Option.bind u number) with
+      | Some n, Some m when Rational.compare n m > 0 ->
+          invalid_lit lit "interval endpoints must satisfy n <= m"
+      | _ -> ());
+      let lo = component_of_lit lit ~context:"" lower l in
+      let hi =
+        match u with
+        | None -> unbounded
+        | Some u -> component_of_lit lit ~context:"" upper u
+      in
+      (lo, hi)
+  | Interval (None, _) ->
+      invalid_lit lit "intervals are bounded below, written %s" bound_forms
+  | Tuple [ _; _ ] ->
+      invalid_lit lit "intervals are written %s, not as pairs '(L, U)'"
+        bound_forms
+  | _ ->
+      invalid_lit lit
+        "grades are intervals '[{...}, {...}]' of %s, or abbreviations of \
+         them, not %s"
+        bounds (describe_lit lit)
+
+(** [show_bounds lo hi] prints the interval of the printed lower bound [lo] and
+    the printed upper bound [hi], [None] being unbounded. *)
+let show_bounds lo = function
+  | Some hi -> "[" ^ lo ^ ", " ^ hi ^ "]"
+  | None -> "[" ^ lo ^ ", ∞)"

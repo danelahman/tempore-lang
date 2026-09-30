@@ -285,27 +285,27 @@ struct
     let events (lo, hi) =
       List.sort_uniq String.compare (L.events lo @ L.events hi)
 
+    (** [integer lit] is the value of the integer literal [lit]. *)
+    let integer = function Int n -> Some (Rational.of_int n) | _ -> None
+
     let of_lit = function
       | Top -> top
       | (Int _ | Braces _) as lit ->
           let rho = L.of_lit lit in
           (rho, rho)
-      | Tuple [ Int n; Int m ] as lit when n > m ->
-          invalid_lit lit "interval endpoints must satisfy n <= m"
-      | Tuple [ lo; hi ] as lit ->
-          let lo = component_of_lit lit ~context:"" Lower.of_lit lo in
-          let hi = component_of_lit lit ~context:"" Upper.of_lit hi in
-          (lo, hi)
       | lit ->
-          invalid_lit lit
-            "grades are pairs '({...}, {...})' of regular expressions, or \
-             abbreviations of them, not %s"
-            (describe_lit lit)
+          bounds_of_lit lit ~number:integer ~lower:Lower.of_lit
+            ~upper:Upper.of_lit ~unbounded:Upper.top
+            ~bounds:"regular expressions"
 
     let of_delay d = (L.of_delay d, L.of_delay d)
     let of_bounds (lo, hi) = (L.of_delay lo, L.of_delay hi)
     let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
-    let show (lo, hi) = "(" ^ Lower.show lo ^ "," ^ Upper.show hi ^ ")"
+
+    let show (lo, hi) =
+      show_bounds (Lower.show lo)
+        (if L.compare hi Upper.top = 0 then None else Some (Upper.show hi))
+
     let witnesses ~degree:_ _bounds = sampled mul
   end
 end

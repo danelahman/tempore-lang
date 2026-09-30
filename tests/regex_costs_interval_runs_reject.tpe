@@ -9,11 +9,11 @@ operation Fetch : unit ~> unit # {Fetch} within [2, 4]
 (* An upper bound whose runs perform an operation other than a fetch, when a
    fetch is the only operation the program declares. *)
 let other_than_fetch () =
-  box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
+  box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
   perform Fetch ();
   unbox o as tok in
   tok
 
 (* The same grade in the signature of an operation, which ends the
    typechecking. *)
-operation Other : unit ~> unit # ({Fetch}, {_ & ~1 & ~Fetch})
+operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]

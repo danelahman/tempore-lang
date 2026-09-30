@@ -166,23 +166,17 @@ module Interval = struct
     | (Int _ | Rat _ | Braces _) as lit ->
         let rho = L.of_lit lit in
         (rho, rho)
-    | Tuple [ lo; hi ] as lit -> (
-        match (Delay.read lo, Delay.read hi) with
-        | Some n, Some m when Rational.compare n m > 0 ->
-            invalid_lit lit "interval endpoints must satisfy n <= m"
-        | _ ->
-            let lo = component_of_lit lit ~context:"" Lower.of_lit lo in
-            let hi = component_of_lit lit ~context:"" Upper.of_lit hi in
-            (lo, hi))
     | lit ->
-        invalid_lit lit
-          "grades are pairs '({...}, {...})' of regular expressions, or \
-           abbreviations of them, not %s"
-          (describe_lit lit)
+        bounds_of_lit lit ~number:Delay.read ~lower:Lower.of_lit
+          ~upper:Upper.of_lit ~unbounded:Upper.top ~bounds:"regular expressions"
 
   let of_delay d = (L.of_delay d, L.of_delay d)
   let of_bounds (lo, hi) = (L.of_delay lo, L.of_delay hi)
   let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
-  let show (lo, hi) = "(" ^ Lower.show lo ^ "," ^ Upper.show hi ^ ")"
+
+  let show (lo, hi) =
+    show_bounds (Lower.show lo)
+      (if L.compare hi Upper.top = 0 then None else Some (Upper.show hi))
+
   let witnesses ~degree:_ _bounds = sampled mul
 end

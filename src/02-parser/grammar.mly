@@ -64,7 +64,7 @@
   (* [interval ~loc ~lower_open ends ~upper_open] is the interval literal at
      [loc] with the endpoints [ends], open below iff [lower_open] and above iff
      [upper_open]. An interval is closed at its finite endpoints, which are
-     numbers, and open at its infinite ones. *)
+     grade literals other than [∞], and open at its infinite ones. *)
   let interval ~loc ~lower_open ends ~upper_open =
     let forms () =
       Error.syntax ~loc
@@ -81,15 +81,15 @@
           match (lo, lower_open) with
           | Minus_infinity, true -> None
           | Minus_infinity, false -> infinite ()
-          | Lit ((Grade.Int _ | Grade.Rat _) as lit), false -> Some lit
-          | _ -> forms ()
+          | Lit Grade.Inf, _ | Lit _, true -> forms ()
+          | Lit lit, false -> Some lit
         in
         let upper =
           match (hi, upper_open) with
           | Lit Grade.Inf, true -> None
           | Lit Grade.Inf, false -> infinite ()
-          | Lit ((Grade.Int _ | Grade.Rat _) as lit), false -> Some lit
-          | _ -> forms ()
+          | Minus_infinity, _ | Lit _, true -> forms ()
+          | Lit lit, false -> Some lit
         in
         Grade.Interval (lower, upper)
     | _ -> forms ()
@@ -657,8 +657,8 @@ grade_lit:
   | lit = interval_lit { lit }
   | LBRACE r = regex RBRACE { Grade.Braces r }
 
-(* An interval of numbers, closed at its finite endpoints and open at its
-   infinite ones: [[n, m]], [[n, ∞)], [(-∞, m]] or [(-∞, ∞)]. Any other
+(* An interval of grade literals, closed at its finite endpoints and open at
+   its infinite ones: [[n, m]], [[n, ∞)], [(-∞, m]] or [(-∞, ∞)]. Any other
    bracketing of two endpoints is a syntax error. *)
 interval_lit:
   | LBRACK ends = separated_nonempty_list(COMMA, endpoint) RBRACK

@@ -1,4 +1,4 @@
-(* Accepted under the 'regex-cost-interval' grading monoid: pairs of a
+(* Accepted under the 'regex-cost-interval' grading monoid: intervals of a
    regular lower bound, at the lower runtime bounds, and a regular upper bound,
    at the upper ones. *)
 
@@ -11,14 +11,14 @@ default Fetch () = delay 3
 
 (* A fetch takes between two and four ticks. *)
 let fetched () =
-  box (2, 4) (Token "t") as t in
+  box [2, 4] (Token "t") as t in
   perform Fetch ();
   unbox t as tok in
   tok
 
 (* At least a ping, and at most pings and ticks. *)
 let pinged () =
-  box ({Ping}, {(Ping | 1)*}) (Token "p") as p in
+  box [{Ping}, {(Ping | 1)*}] (Token "p") as p in
   perform Ping ();
   delay 1;
   perform Ping ();

@@ -200,19 +200,10 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
       | Top -> top
       | Braces _ as lit -> diagonal lit
       | lit when Option.is_some (Trace.number lit) -> diagonal lit
-      | Tuple [ l; r ] as lit -> (
-          match (Trace.number l, Trace.number r) with
-          | Some n, Some m when Rational.compare n m > 0 ->
-              invalid_lit lit "interval endpoints must satisfy n <= m"
-          | _ ->
-              let lo = component_of_lit lit ~context:"" LowerTraces.of_lit l in
-              let hi = component_of_lit lit ~context:"" UpperTraces.of_lit r in
-              (lo, hi))
       | lit ->
-          invalid_lit lit
-            "grades are pairs '({...}, {...})' of sets of traces, or \
-             abbreviations of them, not %s"
-            (describe_lit lit)
+          bounds_of_lit lit ~number:Trace.number ~lower:LowerTraces.of_lit
+            ~upper:UpperTraces.of_lit ~unbounded:UpperTraces.Unbounded
+            ~bounds:"sets of traces"
 
     let of_delay d =
       let ts = Trace.of_delay d in
@@ -224,7 +215,12 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
     let is_atomic name (lo, hi) =
       LowerBound.is_atomic name lo && UpperBound.is_atomic name hi
 
-    let show (lo, hi) = "(" ^ Trace.show lo ^ "," ^ UpperTraces.show hi ^ ")"
+    let show (lo, hi) =
+      show_bounds (Trace.show lo)
+        (match hi with
+        | UpperTraces.Within p -> Some (Trace.show p)
+        | UpperTraces.Unbounded -> None)
+
     let witnesses ~degree:_ _bounds = sampled mul
   end
 end

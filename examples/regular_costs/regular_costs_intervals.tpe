@@ -4,9 +4,9 @@
 
      ./tempore --grades regex-cost-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe
 
-   Grades (L, U): a lower and upper regular-language bound on the runs
-     - Unit ({0}, {0}): nothing demanded, only the empty run allowed
-     - Top ({0}, ⊤): nothing demanded, every run allowed
+   Grades [L, U]: a lower and upper regular-language bound on the runs
+     - Unit [{0}, {0}]: nothing demanded, only the empty run allowed
+     - Top [{0}, ∞): nothing demanded, every run allowed
      - Product: concatenation of runs, componentwise *)
 
 type part = Part of string
@@ -28,7 +28,7 @@ default Seal () = delay 1
 (* Correctly accepted by the typechecker: the part cures for at least four and
    at most eight ticks; a bake and an inspection take between four and six. *)
 let cured () =
-  box (4, 8) (Part "gear") as p in
+  box [4, 8] (Part "gear") as p in
   perform Bake ();
   perform Inspect ();
   unbox p as x in
@@ -46,7 +46,7 @@ let coated_exactly () =
 (* Correctly accepted by the typechecker: a bake is demanded, and it may be
    followed by any number of inspections and ticks. *)
 let baked_and_inspected () =
-  box ({Bake}, {Bake; (Inspect | 1)*}) (Part "gear") as p in
+  box [{Bake}, {Bake; (Inspect | 1)*}] (Part "gear") as p in
   perform Bake ();
   perform Inspect ();
   delay 1;
@@ -56,7 +56,7 @@ let baked_and_inspected () =
 
 (* Correctly accepted by the typechecker: the function coats, cures for four
    to eight ticks, and seals. *)
-let sealed () : unit # ({Coat; 4; Seal}, {Coat; 8; Seal}) =
+let sealed () : unit # [{Coat; 4; Seal}, {Coat; 8; Seal}] =
   perform Coat ();
   perform Bake ();
   perform Inspect ();
@@ -65,16 +65,16 @@ let sealed () : unit # ({Coat; 4; Seal}, {Coat; 8; Seal}) =
 (* Correctly rejected by the typechecker: a bake may take only three ticks,
    short of the lower bound of four:
 
-     Typing error: Variable `p` is unboxed with grade `({Bake},{Bake})`
+     Typing error: Variable `p` is unboxed with grade `[{Bake}, {Bake}]`
        accumulated since it was bound, which is not below its box grade
-       `({4},{8})`
+       `[{4}, {8}]`
        ...
-       Note: the resource inequality `({Bake},{Bake}) <= ({4},{8})` does not
+       Note: the resource inequality `[{Bake}, {Bake}] <= [{4}, {8}]` does not
          hold
 *)
 (*
 let undercured () =
-  box (4, 8) (Part "gear") as p in
+  box [4, 8] (Part "gear") as p in
   perform Bake ();
   unbox p as x in
   x
@@ -84,15 +84,15 @@ let undercured () =
    the upper bound of eight:
 
      Typing error: Variable `p` is unboxed with grade
-       `({Bake; Bake},{Bake; Bake})` accumulated since it was bound, which is
-       not below its box grade `({4},{8})`
+       `[{Bake; Bake}, {Bake; Bake}]` accumulated since it was bound, which is
+       not below its box grade `[{4}, {8}]`
        ...
        Note: the resource inequality
-         `({Bake; Bake},{Bake; Bake}) <= ({4},{8})` does not hold
+         `[{Bake; Bake}, {Bake; Bake}] <= [{4}, {8}]` does not hold
 *)
 (*
 let overcured () =
-  box (4, 8) (Part "gear") as p in
+  box [4, 8] (Part "gear") as p in
   perform Bake ();
   perform Bake ();
   unbox p as x in
@@ -102,16 +102,16 @@ let overcured () =
 (* Correctly rejected by the typechecker: the upper bound allows only
    inspections after the bake, and a tick of waiting is not one:
 
-     Typing error: Variable `p` is unboxed with grade `({Bake; 1},{Bake; 1})`
+     Typing error: Variable `p` is unboxed with grade `[{Bake; 1}, {Bake; 1}]`
        accumulated since it was bound, which is not below its box grade
-       `({Bake},{Bake; Inspect*})`
+       `[{Bake}, {Bake; Inspect*}]`
        ...
        Note: the resource inequality
-         `({Bake; 1},{Bake; 1}) <= ({Bake},{Bake; Inspect*})` does not hold
+         `[{Bake; 1}, {Bake; 1}] <= [{Bake}, {Bake; Inspect*}]` does not hold
 *)
 (*
 let baked_and_idle () =
-  box ({Bake}, {Bake; Inspect*}) (Part "gear") as p in
+  box [{Bake}, {Bake; Inspect*}] (Part "gear") as p in
   perform Bake ();
   delay 1;
   unbox p as x in
@@ -123,11 +123,11 @@ let baked_and_idle () =
    lower bound demands:
 
      Typing error: Variable `p` is unboxed with grade
-       `({Coat; Coat},{Coat; Coat})` accumulated since it was bound, which is
-       not below its box grade `({Coat; 2},{Coat; 2})`
+       `[{Coat; Coat}, {Coat; Coat}]` accumulated since it was bound, which is
+       not below its box grade `[{Coat; 2}, {Coat; 2}]`
        ...
        Note: the resource inequality
-         `({Coat; Coat},{Coat; Coat}) <= ({Coat; 2},{Coat; 2})` does not hold
+         `[{Coat; Coat}, {Coat; Coat}] <= [{Coat; 2}, {Coat; 2}]` does not hold
 *)
 (*
 let coated_twice () =

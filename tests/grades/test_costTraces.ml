@@ -273,11 +273,13 @@ let agree tables (module F : Grade.S) (module G : Grade.S) lits =
 
 (* [embeds (module Upper) (module Lower) (module Interval) tables lits] checks
    that the cost-model grades embed the trace grades on the finite
-   literals [lits], and on the pairs of them as intervals. *)
+   literals [lits], and on the intervals between them. *)
 let embeds (module Upper : Grade.S) (module Lower : Grade.S)
     (module Interval : Grade.S) tables lits =
   let pairs_of lits =
-    List.map2 (fun l l' -> Grade.Tuple [ l; l' ]) lits (List.rev lits)
+    List.map2
+      (fun l l' -> Grade.Interval (Some l, Some l'))
+      lits (List.rev lits)
   in
   agree tables (module TimedTraceGrades.UpperBound) (module Upper) lits
   @ agree tables (module TimedTraceGrades.LowerBound) (module Lower) lits
@@ -579,19 +581,20 @@ module Suite (I : IMPLEMENTATION) = struct
         (Interval.show (In.lit text))
     in
     [
-      reads "({A}, {3})" "({A},{3})";
-      reads "{A | B}" "({A | B},{A | B})";
-      reads "2" "({2},{2})";
-      reads "(1, 3)" "({1},{3})";
-      reads "({A}, ⊤)" "({A},⊤)";
-      reads "⊤" "({0},⊤)";
-      holds (name "componentwise") (leq "{A}" "(1, 3)");
-      fails (name "the lower component") (leq "{A}" "(2, 3)");
-      fails (name "the upper component") (leq "{A}" "(1, 2)");
+      reads "[{A}, {3}]" "[{A}, {3}]";
+      reads "{A | B}" "[{A | B}, {A | B}]";
+      reads "2" "[{2}, {2}]";
+      reads "[1, 3]" "[{1}, {3}]";
+      reads "[{A}, ∞)" "[{A}, ∞)";
+      reads "[{A}, ⊤]" "[{A}, ∞)";
+      reads "⊤" "[{0}, ∞)";
+      holds (name "componentwise") (leq "{A}" "[1, 3]");
+      fails (name "the lower component") (leq "{A}" "[2, 3]");
+      fails (name "the upper component") (leq "{A}" "[1, 2]");
       expect (name "implied bounds") show_bounds
         ~expected:(Some (runtime (1, 2)))
-        (Interval.implied_bounds costs (In.lit "({A | B}, {B})"));
-      expect (name "time shadow") Fun.id ~expected:"({1},{3})"
+        (Interval.implied_bounds costs (In.lit "[{A | B}, {B}]"));
+      expect (name "time shadow") Fun.id ~expected:"[{1}, {3}]"
         (Interval.show (Interval.of_bounds (1, 3)));
       fails (name "unit least") Interval.unit_least;
     ]
@@ -619,12 +622,12 @@ module Suite (I : IMPLEMENTATION) = struct
       holds (name "ticks") (Lower.inhabited none (Lo.lit "{_*}"));
       fails
         (name "the lower component")
-        (Interval.inhabited only_a (In.lit "({_ & ~1 & ~A}, {A})"));
+        (Interval.inhabited only_a (In.lit "[{_ & ~1 & ~A}, {A}]"));
       fails
         (name "the upper component")
-        (Interval.inhabited only_a (In.lit "({A}, {_ & ~1 & ~A})"));
+        (Interval.inhabited only_a (In.lit "[{A}, {_ & ~1 & ~A}]"));
       holds (name "both components")
-        (Interval.inhabited only_a (In.lit "({A}, {1})"));
+        (Interval.inhabited only_a (In.lit "[{A}, {1}]"));
     ]
 
   let examples =

@@ -434,11 +434,11 @@ let cost_corpus =
 *)
 let interval_cost_corpus =
   [
-    "(4, 8)";
-    "({Bake}, {Bake; (Inspect | 1)*})";
-    "({Coat; 4; Seal}, {Coat; 8; Seal})";
-    "({Ping}, {(Ping | 1)*})";
-    "({Fetch}, {_ & ~1 & ~Fetch})";
+    "[4, 8]";
+    "[{Bake}, {Bake; (Inspect | 1)*}]";
+    "[{Coat; 4; Seal}, {Coat; 8; Seal}]";
+    "[{Ping}, {(Ping | 1)*}]";
+    "[{Fetch}, {_ & ~1 & ~Fetch}]";
   ]
 
 (* Whether [name] contains [infix], to tell the interval grade, whose name

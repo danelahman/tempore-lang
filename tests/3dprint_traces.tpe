@@ -11,31 +11,31 @@ noneternal type epoxy = Epoxy
 type mounted = Mounted of print
 
 (* The heater warms a model up, so that it can be extruded. *)
-operation Heat : model ~> heated # ({Heat}, {Heat}) within [1, 2]
+operation Heat : model ~> heated # [{Heat}, {Heat}] within [1, 2]
 default Heat m = delay 1; Heated m
 
 (* A freshly extruded model is still hot: it may be handed to the cooler, but
    not touched otherwise until it has rested for two ticks. *)
-operation Extrude : heated ~> [2] extruded # ({Extrude}, {Extrude}) within [3, 5]
+operation Extrude : heated ~> [2] extruded # [{Extrude}, {Extrude}] within [3, 5]
 default Extrude h = delay 3; box 2 (Extruded h)
 
 (* The cooler takes the hot extruded model, once it has rested, and cools it
    down to something that can be handled. *)
-operation Cool : [2] extruded ~> cooled # ({Cool}, {Cool}) within [2, 2]
+operation Cool : [2] extruded ~> cooled # [{Cool}, {Cool}] within [2, 2]
 default Cool p = delay 2; unbox p as e in Cooled e
 
 (* Mounting glues a finished print onto its base; the glue is used up. *)
-operation Mount : print * epoxy ~> mounted # ({Mount}, {Mount}) within [1, 1]
+operation Mount : print * epoxy ~> mounted # [{Mount}, {Mount}] within [1, 1]
 default Mount (p, g) = delay 1; Mounted p
 
 (* Mixing two-part epoxy takes a tick; the mix then needs eight ticks to set,
    and it has hardened after eleven. *)
-operation MixEpoxy : unit ~> [(8, 11)] epoxy # ({MixEpoxy}, {MixEpoxy}) within [1, 1]
-default MixEpoxy () = delay 1; box (8, 11) Epoxy
+operation MixEpoxy : unit ~> [[8, 11]] epoxy # [{MixEpoxy}, {MixEpoxy}] within [1, 1]
+default MixEpoxy () = delay 1; box [8, 11] Epoxy
 
-(* A print is the three steps, in that order, on both sides of the pair. The
+(* A print is the three steps, in that order, at both ends of the interval. The
    finished print has to set for two ticks and be collected within eight. *)
-operation PrintModel : model ~> [(2, 8)] print # ({Heat; Extrude; Cool}, {Heat; Extrude; Cool})
+operation PrintModel : model ~> [[2, 8]] print # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
 
 (* Correctly accepted by the typechecker: the clause performs exactly the three
    steps 'PrintModel' promises, in the promised order, which covers the lower
@@ -47,10 +47,10 @@ let printer =
       let h = perform Heat m in
       let p = perform Extrude h in
       let c = perform Cool p in
-      continue k with (box (2, 8) (Printed c))
+      continue k with (box [2, 8] (Printed c))
 
 (* Correctly accepted by the typechecker: the rest banks the two ticks the
-   print's '[(2, 8)]' box demands, and the print plus the rest bank exactly
+   print's '[[2, 8]]' box demands, and the print plus the rest bank exactly
    the eight the epoxy needs to set (1 + 3 + 2 + 2) while staying within its
    pot life of eleven (2 + 5 + 2 + 2). *)
 let print_sword () =
@@ -86,14 +86,14 @@ run handle label_print "Sword #1" (Model "Sword") with printer
 (* Correctly rejected by the typechecker: epoxy is not,
      Typing error: `epoxy` is not eternal, but `label_print` needs the type
        of `tag` to be eternal
-       Note: the resource inequality `({Heat; Extrude; Cool; 2},{Heat; Extrude; Cool; 2}) <= ({0},{0})` does not hold
+       Note: the resource inequality `[{Heat; Extrude; Cool; 2}, {Heat; Extrude; Cool; 2}] <= [{0}, {0}]` does not hold
 *)
 (*
 run handle label_print Epoxy (Model "Sword") with printer
 *)
 
 (* The item is kept across a step of unknown effect ε₀, so either its type is
-   eternal or ∣ε₀∣ is zero. Inferred scheme: ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ ({0},{0})
+   eternal or ∣ε₀∣ is zero. Inferred scheme: ∀ α β ε₀. Et(β) ∨ ∣ε₀∣ ≾ [{0}, {0}]
    ⇒ (unit → α # ε₀) → (β → β # ε₀) *)
 let after_preparing prepare item = prepare (); item
 
@@ -107,7 +107,7 @@ run after_preparing (fun () -> ()) Epoxy
 
      Typing error: `epoxy` is not eternal, but `after_preparing` needs the
        type of `item` to be eternal
-       Note: the resource inequality `({Heat},{Heat}) <= ({0},{0})` does not
+       Note: the resource inequality `[{Heat}, {Heat}] <= [{0}, {0}]` does not
          hold
 *)
 (*

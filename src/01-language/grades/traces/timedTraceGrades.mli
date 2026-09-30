@@ -68,11 +68,12 @@ module Make (D : Delay.MEASURED) (N : NAMES) : sig
       separate greatest point [⊤] permitting any run. *)
 
   module Interval : Grade.S with type Delay.t = D.t
-  (** Pairs of a lower and an upper bound, ["traces-cost-interval" ^ N.suffix],
-      compared componentwise, written [({...}, {...})]. A brace literal [{...}]
-      abbreviates the pair of a set with itself, a delay [d] the pair
-      [({d}, {d})] and [(d, e)] the pair [({d}, {e})]; either component may be
-      [⊤], its top. *)
+  (** Closed intervals of a lower and an upper bound,
+      ["traces-cost-interval" ^ N.suffix], compared componentwise, written
+      [[{...}, {...}]], and [\[{...}, ∞)] without an upper bound. A brace
+      literal [{...}] abbreviates the interval of a set with itself, a delay [d]
+      the interval [[{d}, {d}]] and [[d, e]] the interval [[{d}, {e}]]; either
+      end may be [⊤], the top of its order. *)
 end
 
 (** {1 Traces over whole time steps}
@@ -89,10 +90,11 @@ module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
     allowance order, with a separate greatest point [⊤] permitting any run. *)
 
 module Interval : Grade.S with type Delay.t = Delay.Nat.t
-(** Pairs of a lower and an upper bound, ["traces-cost-interval"], compared
-    componentwise, written [({...}, {...})]. A brace literal [{...}] abbreviates
-    the pair of a set with itself, [n] the pair [({n}, {n})] and [(n, m)] the
-    pair [({n}, {m})]; either component may be [⊤], its top. *)
+(** Closed intervals of a lower and an upper bound, ["traces-cost-interval"],
+    compared componentwise, written [[{...}, {...}]], and [\[{...}, ∞)] without
+    an upper bound. A brace literal [{...}] abbreviates the interval of a set
+    with itself, [n] the interval [[{n}, {n}]] and [[n, m]] the interval
+    [[{n}, {m}]]; either end may be [⊤], the top of its order. *)
 
 (** {1 Traces over rational delays}
 
@@ -109,6 +111,6 @@ module Rational : sig
       in the allowance order. *)
 
   module Interval : Grade.S with type Delay.t = Delay.Rational.t
-  (** Pairs of a lower and an upper bound, ["traces-cost-interval-rational"],
-      compared componentwise. *)
+  (** Closed intervals of a lower and an upper bound,
+      ["traces-cost-interval-rational"], compared componentwise. *)
 end

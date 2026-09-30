@@ -15,8 +15,8 @@
     - lower bounds, ["regex-cost-lower-bound-rational"]: [ρ ≾ ρ'] iff every run
       of [ρ] covers some run of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations costing their
       lower runtime bound [lo];
-    - intervals, ["regex-cost-interval-rational"]: pairs of a lower and an upper
-      bound, compared componentwise.
+    - intervals, ["regex-cost-interval-rational"]: closed intervals of a lower
+      and an upper bound, compared componentwise.
 
     Both are preorders, [equal] being mutual [≾]: if [Read] declares
     [within (1/2, 3/2)], then [{Read} ≾ {3/2}] but not conversely under the
@@ -78,10 +78,11 @@ module Upper :
     with type t = RegularTraceGradeRational.t
      and type Delay.t = Delay.Rational.t
 
-(** Pairs of a lower and an upper bound, compared componentwise, written
-    [({...}, {...})]; a brace literal [{...}] abbreviates the pair of a language
-    with itself, a number [q] the pair [({q}, {q})] and [(q, r)] the pair
-    [({q}, {r})]. *)
+(** Closed intervals of a lower and an upper bound, compared componentwise,
+    written [[{...}, {...}]], and [\[{...}, ∞)] with the upper bound [⊤]; a
+    brace literal [{...}] abbreviates the interval of a language with itself, a
+    number [q] the interval [[{q}, {q}]] and [[q, r]] the interval [[{q}, {r}]].
+*)
 module Interval :
   Grade.S
     with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t

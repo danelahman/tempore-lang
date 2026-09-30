@@ -90,10 +90,11 @@ implementation is documented in the modules under
 ### Grade literals
 
 All monoids share one literal syntax: integers (`3`), fractions (`3/2`, or
-exact decimals such as `1.5`), tuples (`(3, High)`), intervals of numbers and
-brace expressions (`{...}`). An interval is closed at its finite endpoints and
-open at its infinite ones: `[1, 4]`, `[1, ∞)`, `(-∞, 4]` or `(-∞, ∞)` (ASCII
-`inf` and `-inf`); any other bracketing, such as `[1, ∞]` or `[1, 4)`, is a
+exact decimals such as `1.5`), tuples (`(3, High)`), intervals and brace
+expressions (`{...}`). An interval is closed at its finite endpoints, which are
+literals such as numbers or brace expressions, and open at its infinite ones:
+`[1, 4]`, `[1, ∞)`, `(-∞, 4]`, `(-∞, ∞)` (ASCII `inf` and `-inf`) or
+`[{A}, {A; B}]`; any other bracketing, such as `[1, ∞]` or `[1, 4)`, is a
 syntax error, and a pair `(1, 4)` is a tuple, not an interval. Each monoid
 accepts the literals it understands; any other literal is a syntax error naming
 the monoids that accept it. The greatest grade is `⊤` (ASCII `top`). Integers
@@ -155,9 +156,11 @@ against operations.
   performed counts as `lo` steps towards a demanded delay. `{0}` is the top.
 - `traces-cost-upper-bound`: the runs a computation is *allowed*; a delay pays
   for operations at their `hi`. `{0}` is least and `⊤` the top.
-- `traces-cost-interval`: pairs `({...}, {...})` of a lower and an upper bound,
-  compared componentwise; `{...}` abbreviates `({...}, {...})`, `n` is
-  `({n}, {n})` and `(n, m)` is `({n}, {m})`.
+- `traces-cost-interval`: closed intervals `[{...}, {...}]` of a lower and an
+  upper bound, the runs at or above the one and at or below the other,
+  compared componentwise; `[{...}, ∞)` has no upper bound, `{...}` abbreviates
+  `[{...}, {...}]`, `n` is `[{n}, {n}]` and `[n, m]` is `[{n}, {m}]`. The top
+  is `[{0}, ∞)`.
 
 Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
 Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
@@ -253,8 +256,9 @@ the runs that fit inside one of its runs (upper) or cover one of them (lower).
 
 - `regex-cost-upper-bound`: allowance order at `hi`; `{0}` is least, `⊤` the top.
 - `regex-cost-lower-bound`: coverage order at `lo`; `{0}` is the top.
-- `regex-cost-interval`: pairs of a lower and an upper bound, with the
-  abbreviations of `traces-cost-interval`; the top is `({0}, ⊤)`.
+- `regex-cost-interval`: closed intervals `[{...}, {...}]` of a lower and an
+  upper bound, with the forms and abbreviations of `traces-cost-interval`; the
+  top is `[{0}, ∞)`.
 
 Each is also available with the suffix `-symbolic`, over
 `regex-upper-bound-symbolic`. Literals are those of `regex-upper-bound`. The alphabet is
@@ -523,7 +527,7 @@ default Heat () = delay 1
 gives `Heat` a default, run only when a call reaches the top level unhandled.
 Where operations declare runtime bounds, only atomic operations have defaults,
 and a default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}`
-under upper bounds, and `({lo}, {hi})` under intervals. Elsewhere it must be a
+under upper bounds, and `[{lo}, {hi}]` under intervals. Elsewhere it must be a
 sub-grade of the operation's grade.
 See [`examples/3dprint/3dprint_traces.tpe`](examples/3dprint/3dprint_traces.tpe).
 

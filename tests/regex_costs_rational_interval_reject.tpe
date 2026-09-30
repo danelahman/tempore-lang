@@ -8,7 +8,7 @@ operation Send : nat ~> unit # {Send} within [1/4, 1]
 
 (* A sample may take only a half, short of the lower bound of 3/4. *)
 let too_quick () =
-  box (3/4, 2) (Token "t") as t in
+  box [3/4, 2] (Token "t") as t in
   let v = perform Sample () in
   unbox t as tok in
   tok
@@ -16,7 +16,7 @@ let too_quick () =
 (* A pause of a half and a sample may take two time units, past an upper bound
    of pauses under one. *)
 let too_slow () =
-  box ({1/2}, {<1}) (Token "t") as t in
+  box [{1/2}, {<1}] (Token "t") as t in
   delay 1/2;
   let v = perform Sample () in
   unbox t as tok in

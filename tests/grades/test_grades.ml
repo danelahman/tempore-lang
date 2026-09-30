@@ -648,22 +648,28 @@ let literals =
     rejects "complement" traces_upper (Braces (Compl send)) "'~'";
     rejects "wildcard" traces_upper (Braces (seq Any send)) "'_'";
     rejects "pair" traces_upper (Tuple [ Int 1; Int 2 ]) "not pairs";
-    reads "top" traces_interval Top "({0},⊤)";
-    reads "unbounded upper component" traces_interval
-      (Tuple [ Braces send; Top ])
-      "({Send},⊤)";
-    reads "pair of integers" traces_interval
-      (Tuple [ Int 1; Int 2 ])
-      "({1},{2})";
-    reads "integer" traces_interval (Int 2) "({2},{2})";
-    rejects "reversed pair" traces_interval (Tuple [ Int 5; Int 3 ]) "n <= m";
+    reads "top" traces_interval Top "[{0}, ∞)";
+    reads "unbounded upper component" traces_interval (span (Braces send) Inf)
+      "[{Send}, ∞)";
+    reads "top upper component" traces_interval
+      (Interval (Some (Braces send), Some Top))
+      "[{Send}, ∞)";
+    reads "interval of integers" traces_interval (span (Int 1) (Int 2))
+      "[{1}, {2}]";
+    reads "integer" traces_interval (Int 2) "[{2}, {2}]";
+    rejects "reversed interval" traces_interval (span (Int 5) (Int 3)) "n <= m";
+    rejects "pair" traces_interval
+      (Tuple [ Braces send; Braces send ])
+      "intervals are written '[L, U]' or '[L, ∞)', not as pairs '(L, U)'";
+    rejects "interval unbounded below" traces_interval (span Top (Braces send))
+      "intervals are bounded below, written '[L, U]' or '[L, ∞)'";
     rejects "fractional delay" traces_upper
       (Braces (seq send (Frac (Rational.make 1 2))))
       "whole numbers of time steps";
     rejects "fraction" traces_lower (Rat (Rational.make 1 2)) "not fractions";
-    rejects "fraction" traces_interval
-      (Rat (Rational.make 1 2))
-      "grades are pairs";
+    rejects "fraction" traces_interval (Rat (Rational.make 1 2)) "not fractions";
+    rejects "name" traces_interval (Name "Send")
+      "grades are intervals '[{...}, {...}]' of sets of traces";
     rejects "fractional delay" regex_upper
       (Braces (Star (Frac (Rational.make 1 2))))
       "whole numbers of time steps";
@@ -720,15 +726,18 @@ let literals =
       "must be non-negative";
     rejects "repetition" rational_traces_upper (Braces (Star send))
       "repetition '*'";
-    reads "pair of fractions" rational_traces_interval
-      (Tuple [ Rat (Rational.make 1 2); Rat (Rational.make 3 2) ])
-      "({0.5},{1.5})";
+    reads "interval of fractions" rational_traces_interval
+      (span (Rat (Rational.make 1 2)) (Rat (Rational.make 3 2)))
+      "[{0.5}, {1.5}]";
     reads "fraction" rational_traces_interval
       (Rat (Rational.make 1 4))
-      "({0.25},{0.25})";
-    rejects "reversed pair of fractions" rational_traces_interval
-      (Tuple [ Rat (Rational.make 3 2); Int 1 ])
+      "[{0.25}, {0.25}]";
+    rejects "reversed interval of fractions" rational_traces_interval
+      (span (Rat (Rational.make 3 2)) (Int 1))
       "n <= m";
+    rejects "pair of fractions" rational_traces_interval
+      (Tuple [ Rat (Rational.make 1 2); Rat (Rational.make 3 2) ])
+      "not as pairs '(L, U)'";
     reads "top" inclusion_upper Top "⊤";
     reads "concatenation of a union" inclusion_upper
       (Braces (seq (union send (Tick 2)) (Tick 1)))
@@ -789,8 +798,35 @@ let registry =
       ~expected:[ "time-lower-bound-levels"; "time-upper-bound-levels" ]
       (GradeRegistry.accepting (lit_of_pair 3 "High"));
     expect "registry: grades reading an open interval" show_names
-      ~expected:[ "time-interval"; "time-interval-rational"; "time-windows" ]
+      ~expected:
+        [
+          "time-interval";
+          "time-interval-rational";
+          "traces-cost-interval";
+          "traces-cost-interval-rational";
+          "regex-cost-interval";
+          "regex-cost-interval-symbolic";
+          "regex-cost-interval-rational";
+          "time-windows";
+        ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
+    expect "registry: grades reading an interval of brace literals" show_names
+      ~expected:
+        [
+          "traces-cost-interval";
+          "traces-cost-interval-rational";
+          "regex-cost-interval";
+          "regex-cost-interval-symbolic";
+          "regex-cost-interval-rational";
+        ]
+      (GradeRegistry.accepting
+         (span (Grade.Braces (Grade.Letter "A"))
+            (Grade.Braces (Grade.Letter "B"))));
+    expect "registry: grades reading a pair of brace literals" show_names
+      ~expected:[]
+      (GradeRegistry.accepting
+         (Grade.Tuple
+            [ Grade.Braces (Grade.Letter "A"); Grade.Braces (Grade.Letter "B") ]));
     expect "registry: grades reading a pair of a number and '∞'" show_names
       ~expected:[ "peak-usage" ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
@@ -1340,6 +1376,7 @@ let family name =
 
 let rat n d = Grade.rational_lit (Rational.make n d)
 let pair l l' = Grade.Tuple [ l; l' ]
+let closed l l' = Grade.Interval (Some l, Some l')
 let entry name components = Grade.Tuple (Grade.Name name :: components)
 let pick st xs = List.nth xs (Random.State.int st (List.length xs))
 let letter_a = Grade.Letter "A"
@@ -1385,9 +1422,9 @@ let cover =
         Braces (Union (Tick 1, Tick 3));
         Braces (Seq (letter_a, letter_b));
         Braces (Union (Seq (letter_c, letter_a), letter_b));
-        pair (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
-        pair (Int 1) (Int 3);
-        pair (Braces (Tick 0)) Top;
+        closed (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
+        closed (Int 1) (Int 3);
+        span (Braces (Tick 0)) Inf;
         Int 2;
       ]
   | Inclusion_traces ->
@@ -1423,9 +1460,9 @@ let cover =
         Braces (Union (frac 1 3, Tick 1));
         Braces (Seq (letter_a, Seq (frac 1 4, letter_b)));
         Braces (Union (Seq (letter_c, letter_a), frac 3 4));
-        pair (Braces letter_a) (Braces (Union (letter_a, frac 7 2)));
-        pair (rat 1 2) (rat 3 2);
-        pair (Braces (Tick 0)) Top;
+        closed (Braces letter_a) (Braces (Union (letter_a, frac 7 2)));
+        closed (rat 1 2) (rat 3 2);
+        span (Braces (Tick 0)) Inf;
         rat 5 4;
       ]
   | Regex ->
@@ -1440,8 +1477,8 @@ let cover =
         Braces (Seq (Star (Union (letter_a, letter_b)), letter_c));
         Braces (Star (Tick 1));
         Braces (Union (letter_c, Tick 0));
-        pair (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
-        pair (Braces (Tick 1)) (Braces (Star Any));
+        closed (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
+        closed (Braces (Tick 1)) (Braces (Star Any));
       ]
   | (Rational_regex | Rational_regex_costs) as family ->
       let frac n d = Frac (Rational.make n d) in
@@ -1466,9 +1503,9 @@ let cover =
       @
       if family = Rational_regex_costs then
         [
-          pair (Braces letter_a) (Braces (Union (letter_a, compare Lt 5 2)));
-          pair (rat 1 2) (rat 3 2);
-          pair (Braces (Tick 0)) Top;
+          closed (Braces letter_a) (Braces (Union (letter_a, compare Lt 5 2)));
+          closed (rat 1 2) (rat 3 2);
+          span (Braces (Tick 0)) Inf;
         ]
       else []
   | Levels -> [ level "Low"; level "High" ]
@@ -1622,18 +1659,18 @@ let random family st =
   | Inclusion_traces -> braces ~star:false
   | Traces ->
       if Random.State.bool st then braces ~star:false
-      else pair (braces ~star:false) (braces ~star:false)
+      else closed (braces ~star:false) (braces ~star:false)
   | Rational_inclusion_traces -> Braces (fractional 2)
   | Rational_traces ->
       if Random.State.bool st then Braces (fractional 2)
-      else pair (Braces (fractional 2)) (Braces (fractional 2))
+      else closed (Braces (fractional 2)) (Braces (fractional 2))
   | Regex ->
       if int 4 > 0 then braces ~star:true
-      else pair (braces ~star:true) (braces ~star:true)
+      else closed (braces ~star:true) (braces ~star:true)
   | Rational_regex -> Braces (timed 2)
   | Rational_regex_costs ->
       if int 4 > 0 then Braces (timed 2)
-      else pair (Braces (timed 2)) (Braces (timed 2))
+      else closed (Braces (timed 2)) (Braces (timed 2))
   | Levels -> level ()
   | Timed_levels -> pair (pick st [ Int (int 5); Inf; Top ]) (level ())
   | Flow -> (
@@ -2153,6 +2190,29 @@ let peak_laws =
   @ order_laws (module P) ~context costs samples
   @ algebra_laws (module P) ~context costs samples
 
+(* The printed grades of the interval grades with costs, on their samples,
+   read back as equal grades: a lower bound of all runs prints as '⊤' and reads
+   back as the top '{0}' of the lower order, equal to it. *)
+let interval_read_back =
+  List.concat_map
+    (fun (name, (module G : Grade.S)) ->
+      match family name with
+      | Some family when contains name "cost-interval" ->
+          let module R = Reader (G) in
+          let reads_back x =
+            match R.parse (G.show x) with
+            | Ok x' -> G.equal costs x x'
+            | Error _ -> false
+          in
+          [
+            all
+              (name ^ ": printed grades read back")
+              G.show reads_back
+              (samples (module G) family);
+          ]
+      | _ -> [])
+    GradeRegistry.grade_modules
+
 (* ------------------------------------------------------------------ *)
 (* Constructions                                                       *)
 (* ------------------------------------------------------------------ *)
@@ -2371,8 +2431,8 @@ let () =
   let checks =
     delay_laws @ levels @ products @ counterexamples @ witnesses @ literals
     @ tops @ registry @ registered_laws @ fractional_laws @ inclusion_laws
-    @ indexed @ mode_laws @ peak_laws @ windows_laws @ peak_construction_laws
-    @ finite_laws
+    @ indexed @ mode_laws @ peak_laws @ interval_read_back @ windows_laws
+    @ peak_construction_laws @ finite_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

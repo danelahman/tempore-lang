@@ -181,15 +181,13 @@ let implied =
       (implied "{S; >1}");
     expect "implied: a catch-all" Fun.id ~expected:"0, 1.5"
       (implied "{_ & ~(>0)}");
-    expect "implied: the pair of an interval" Fun.id ~expected:"0.5, 1"
+    expect "implied: an interval" Fun.id ~expected:"0.5, 1"
       (show_bounds
          (G.Interval.implied_bounds bounds
             (G.Interval.of_lit
-               (Grade.Tuple
-                  [
-                    Grade.Braces (Grade.Letter "S");
-                    Grade.Braces (Grade.Letter "T");
-                  ]))));
+               (Grade.Interval
+                  ( Some (Grade.Braces (Grade.Letter "S")),
+                    Some (Grade.Braces (Grade.Letter "T")) )))));
   ]
 
 let closed_world =
@@ -225,17 +223,18 @@ let literals =
     reads (module G.Lower) Grade.Top "{0}";
     reads
       (module G.Interval)
-      (Grade.Tuple [ frac 1 2; frac 3 2 ])
-      "({0.5},{1.5})";
-    reads (module G.Interval) (frac 1 3) "({1/3},{1/3})";
+      (Grade.Interval (Some (frac 1 2), Some (frac 3 2)))
+      "[{0.5}, {1.5}]";
+    reads (module G.Interval) (frac 1 3) "[{1/3}, {1/3}]";
     reads
       (module G.Interval)
       (Grade.Braces (Grade.Compare (Grade.Lt, qi 1)))
-      "({<1},{<1})";
+      "[{<1}, {<1}]";
     rejects
       (module G.Interval)
-      "reversed pair"
-      (Grade.Tuple [ frac 3 2; frac 1 2 ]);
+      "reversed interval"
+      (Grade.Interval (Some (frac 3 2), Some (frac 1 2)));
+    rejects (module G.Interval) "pair" (Grade.Tuple [ frac 1 2; frac 3 2 ]);
     rejects (module G.Upper) "negative delay" (frac (-1) 2);
     rejects
       (module G.Upper)

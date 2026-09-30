@@ -4,9 +4,9 @@
 
      ./tempore --grades traces-cost-interval examples/traces/traces_intervals.tpe
 
-   Grades ({...}, {...}): a lower and an upper bound on the traces
-     - Unit ({0}, {0}): nothing demanded, only the empty run allowed
-     - Top ({0}, ⊤): nothing demanded, every run allowed
+   Grades [{...}, {...}]: a lower and an upper bound on the traces
+     - Unit [{0}, {0}]: nothing demanded, only the empty run allowed
+     - Top [{0}, ∞): nothing demanded, every run allowed
      - Product: concatenation of runs, componentwise *)
 
 type model = Model of string
@@ -24,59 +24,59 @@ type mounted = Mounted of print
 type receipt = Receipt of string
 
 (* The heater warms a model up, so that it can be extruded. *)
-operation Heat : model ~> heated # ({Heat}, {Heat}) within [1, 2]
+operation Heat : model ~> heated # [{Heat}, {Heat}] within [1, 2]
 default Heat m = delay 1; Heated m
 
 (* A freshly extruded model is still hot: it may be handed to the cooler, but
    not touched otherwise until it has rested for two ticks. *)
 operation Extrude : heated ~> [2] extruded
-  # ({Extrude}, {Extrude})
+  # [{Extrude}, {Extrude}]
   within [3, 5]
 default Extrude h = delay 3; box 2 (Extruded h)
 
 (* The cooler takes the hot extruded model, once it has rested, and cools it
    down to something that can be handled. *)
-operation Cool : [2] extruded ~> cooled # ({Cool}, {Cool}) within [2, 2]
+operation Cool : [2] extruded ~> cooled # [{Cool}, {Cool}] within [2, 2]
 default Cool p = delay 2; unbox p as e in Cooled e
 
 (* Mounting glues a finished print onto its base; the glue is used up. *)
-operation Mount : print * epoxy ~> mounted # ({Mount}, {Mount}) within [1, 1]
+operation Mount : print * epoxy ~> mounted # [{Mount}, {Mount}] within [1, 1]
 default Mount (p, g) = delay 1; Mounted p
 
 (* Mixing two-part epoxy takes a tick; the mix then needs eight ticks to set,
    and it has hardened after eleven. *)
-operation MixEpoxy : unit ~> [(8, 11)] epoxy
-  # ({MixEpoxy}, {MixEpoxy})
+operation MixEpoxy : unit ~> [[8, 11]] epoxy
+  # [{MixEpoxy}, {MixEpoxy}]
   within [1, 1]
-default MixEpoxy () = delay 1; box (8, 11) Epoxy
+default MixEpoxy () = delay 1; box [8, 11] Epoxy
 
 (* A quick-setting epoxy for small parts. *)
-operation MixQuickEpoxy : unit ~> [(3, 7)] epoxy
-  # ({MixQuickEpoxy}, {MixQuickEpoxy})
+operation MixQuickEpoxy : unit ~> [[3, 7]] epoxy
+  # [{MixQuickEpoxy}, {MixQuickEpoxy}]
   within [1, 1]
-default MixQuickEpoxy () = delay 1; box (3, 7) Epoxy
+default MixQuickEpoxy () = delay 1; box [3, 7] Epoxy
 
-(* A print is the three steps, in that order, on both sides of the pair. The
+(* A print is the three steps, in that order, at both ends of the interval. The
    finished print has to set for two ticks and be collected within eight. *)
-operation PrintModel : model ~> [(2, 8)] print
-  # ({Heat; Extrude; Cool}, {Heat; Extrude; Cool})
+operation PrintModel : model ~> [[2, 8]] print
+  # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
 
 (* A print job either prints the model in full or is a quick reheat, again on
    both sides of the pair. *)
-operation Print : model ~> [(2, 8)] print
-  # ({Heat; Extrude; Cool | Heat; Cool}, {Heat; Extrude; Cool | Heat; Cool})
+operation Print : model ~> [[2, 8]] print
+  # [{Heat; Extrude; Cool | Heat; Cool}, {Heat; Extrude; Cool | Heat; Cool}]
 
 (* An asymmetric job: the lower bound guarantees at least a reheat, while the
    upper bound allows a full print. *)
-operation Print2 : model ~> [(2, 8)] print
-  # ({Heat; Cool}, {Heat; Extrude; Cool | Heat; Cool})
+operation Print2 : model ~> [[2, 8]] print
+  # [{Heat; Cool}, {Heat; Extrude; Cool | Heat; Cool}]
 
 (* A single transmission of a message. *)
-operation Tx : string ~> unit # ({Tx}, {Tx}) within [2, 3]
+operation Tx : string ~> unit # [{Tx}, {Tx}] within [2, 3]
 default Tx msg = delay 2
 
-(* A send is one or two transmissions, on both sides of the pair. *)
-operation Send : string ~> unit # ({Tx | Tx; Tx}, {Tx | Tx; Tx})
+(* A send is one or two transmissions, at both ends of the interval. *)
+operation Send : string ~> unit # [{Tx | Tx; Tx}, {Tx | Tx; Tx}]
 
 (* Correctly accepted by the typechecker: the clause performs exactly the three
    steps 'PrintModel' promises, in the promised order, which covers the lower
@@ -88,10 +88,10 @@ let printer =
       let h = perform Heat m in
       let p = perform Extrude h in
       let c = perform Cool p in
-      continue k with (box (2, 8) (Printed c))
+      continue k with (box [2, 8] (Printed c))
 
 (* Correctly accepted by the typechecker: the rest banks the two ticks the
-   print's '[(2, 8)]' box demands, and the print plus the rest bank exactly
+   print's '[[2, 8]]' box demands, and the print plus the rest bank exactly
    the eight the epoxy needs to set (1 + 3 + 2 + 2) while staying within its
    pot life of eleven (2 + 5 + 2 + 2). *)
 let print_sword () =
@@ -127,7 +127,7 @@ let full_printer =
       let h = perform Heat m in
       let p = perform Extrude h in
       let c = perform Cool p in
-      continue k with (box (2, 8) (Printed c))
+      continue k with (box [2, 8] (Printed c))
 
 (* Correctly accepted by the typechecker: the clause realises the other run, a
    reheat that skips the extrusion --- the model was extruded in an earlier
@@ -138,7 +138,7 @@ let quick_printer =
   | Print m k ->
       let h = perform Heat m in
       perform Cool (box 2 (Extruded h));
-      continue k with (box (2, 8) (Reheated h))
+      continue k with (box [2, 8] (Reheated h))
 
 (* Correctly accepted by the typechecker: a reheat is exactly what the lower
    bound of 'Print2' guarantees, and it fits inside the second run of its
@@ -149,7 +149,7 @@ let reheater =
   | Print2 m k ->
       let h = perform Heat m in
       perform Cool (box 2 (Extruded h));
-      continue k with (box (2, 8) (Reheated h))
+      continue k with (box [2, 8] (Reheated h))
 
 (* Correctly accepted by the typechecker: the upper bound of 'Print2' also
    allows a full print, and the extrusion in the middle does not stop the
@@ -161,7 +161,7 @@ let deluxe_printer =
       let h = perform Heat m in
       let p = perform Extrude h in
       let c = perform Cool p in
-      continue k with (box (2, 8) (Printed c))
+      continue k with (box [2, 8] (Printed c))
 
 (* Correctly accepted by the typechecker: transmitting once covers the first
    trace of the lower bound and fits inside the first trace of the upper
@@ -172,7 +172,7 @@ let send_once =
   | Send msg k -> perform Tx msg; continue k with ()
 
 (* Correctly accepted by the typechecker: the retry likewise covers and fits
-   inside the two-transmission trace on either side of the pair. *)
+   inside the two-transmission trace at either end of the interval. *)
 let send_retry =
   handler
   | x -> x
@@ -184,7 +184,7 @@ let send_retry =
    bound, which a retried send costs at most. *)
 let send_telemetry () =
   handle
-    box (2, 6) (Receipt "telemetry") as slot in
+    box [2, 6] (Receipt "telemetry") as slot in
     perform Send "telemetry";
     unbox slot as r in
     r
@@ -195,22 +195,22 @@ let send_telemetry () =
    be read, and the upper bound allows either two transmissions or six ticks of
    waiting. *)
 let send_by_events () =
-  box ({Tx}, {Tx; Tx | 6}) (Receipt "telemetry") as slot in
+  box [{Tx}, {Tx; Tx | 6}] (Receipt "telemetry") as slot in
   perform Send "telemetry";
   unbox slot as r in
   r
 
 (* Correctly rejected by the typechecker: the order of the events is part of
-   both sides of the pair, and this clause sends the model to the cooler before
-   it has been through the extruder. The types alone no longer allow a print to
-   be run backwards, so only the grade can catch this:
+   both ends of the interval, and this clause sends the model to the cooler
+   before it has been through the extruder. The types alone no longer allow a
+   print to be run backwards, so only the grade can catch this:
 
      Typing error: Variable `k` is unboxed with grade
-       `({Heat; Cool; Extrude},{Heat; Cool; Extrude})` accumulated since it was
+       `[{Heat; Cool; Extrude}, {Heat; Cool; Extrude}]` accumulated since it was
        bound, which is not below its box grade
-       `({Heat; Extrude; Cool},{Heat; Extrude; Cool})`
+       `[{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]`
        Note: the resource inequality
-         `({Heat; Cool; Extrude},{Heat; Cool; Extrude}) <= ({Heat; Extrude; Cool},{Heat; Extrude; Cool})`
+         `[{Heat; Cool; Extrude}, {Heat; Cool; Extrude}] <= [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]`
          does not hold
 *)
 (*
@@ -221,7 +221,7 @@ let early_cooler =
       let h = perform Heat m in
       perform Cool (box 2 (Extruded h));
       perform Extrude h;
-      continue k with (box (2, 8) (Reheated h))
+      continue k with (box [2, 8] (Reheated h))
 *)
 
 (* Correctly rejected by the typechecker: neither run of 'Print' begins with a
@@ -229,11 +229,11 @@ let early_cooler =
    is handed to the cooler came to be:
 
      Typing error: Variable `k` is unboxed with grade
-       `({Cool; Heat},{Cool; Heat})` accumulated since it was bound, which is
+       `[{Cool; Heat}, {Cool; Heat}]` accumulated since it was bound, which is
        not below its box grade
-       `({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+       `[{Heat; Cool | Heat; Extrude; Cool}, {Heat; Cool | Heat; Extrude; Cool}]`
        Note: the resource inequality
-         `({Cool; Heat},{Cool; Heat}) <= ({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+         `[{Cool; Heat}, {Cool; Heat}] <= [{Heat; Cool | Heat; Extrude; Cool}, {Heat; Cool | Heat; Extrude; Cool}]`
          does not hold
 *)
 (*
@@ -243,7 +243,7 @@ let twisted_printer =
   | Print m k ->
       perform Cool (box 2 (Extruded (Heated m)));
       let h = perform Heat m in
-      continue k with (box (2, 8) (Reheated h))
+      continue k with (box [2, 8] (Reheated h))
 *)
 
 (* Correctly rejected by the typechecker on the lower bound, which demands the
@@ -252,11 +252,11 @@ let twisted_printer =
    happily allow it:
 
      Typing error: Variable `k` is unboxed with grade
-       `({Heat; Extrude},{Heat; Extrude})` accumulated since it was bound, which
-       is not below its box grade
-       `({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+       `[{Heat; Extrude}, {Heat; Extrude}]` accumulated since it was bound,
+       which is not below its box grade
+       `[{Heat; Cool | Heat; Extrude; Cool}, {Heat; Cool | Heat; Extrude; Cool}]`
        Note: the resource inequality
-         `({Heat; Extrude},{Heat; Extrude}) <= ({Heat; Cool | Heat; Extrude; Cool},{Heat; Cool | Heat; Extrude; Cool})`
+         `[{Heat; Extrude}, {Heat; Extrude}] <= [{Heat; Cool | Heat; Extrude; Cool}, {Heat; Cool | Heat; Extrude; Cool}]`
          does not hold
 *)
 (*
@@ -266,7 +266,7 @@ let sloppy_printer =
   | Print m k ->
       let h = perform Heat m in
       perform Extrude h;
-      continue k with (box (2, 8) (Reheated h))
+      continue k with (box [2, 8] (Reheated h))
 *)
 
 (* Correctly rejected by the typechecker, and the reason the mixing has to be a
@@ -276,26 +276,27 @@ let sloppy_printer =
    A default is checked against the 'within [1, 1]' bounds instead, which the
    very same tick of mixing meets exactly:
 
-     Typing error: Variable `k` is unboxed with grade `({1},{1})` accumulated
+     Typing error: Variable `k` is unboxed with grade `[{1}, {1}]` accumulated
        since it was bound, which is not below its box grade
-       `({MixEpoxy},{MixEpoxy})`
-       Note: the resource inequality `({1},{1}) <= ({MixEpoxy},{MixEpoxy})`
+       `[{MixEpoxy}, {MixEpoxy}]`
+       Note: the resource inequality `[{1}, {1}] <= [{MixEpoxy}, {MixEpoxy}]`
          does not hold
 *)
 (*
 let mixer =
   handler
   | x -> x
-  | MixEpoxy () k -> delay 1; continue k with (box (8, 11) Epoxy)
+  | MixEpoxy () k -> delay 1; continue k with (box [8, 11] Epoxy)
 *)
 
 (* Correctly rejected by the typechecker: the epoxy is mixed after the print
    instead of before it, so only the two ticks of the closing rest are banked
    towards the eight it needs to set:
 
-     Typing error: Variable `glue` is unboxed with grade `({2},{2})` accumulated
-       since it was bound, which is not below its box grade `({8},{11})`
-       Note: the resource inequality `({2},{2}) <= ({8},{11})` does not hold
+     Typing error: Variable `glue` is unboxed with grade `[{2}, {2}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{8}, {11}]`
+       Note: the resource inequality `[{2}, {2}] <= [{8}, {11}]` does not hold
 *)
 (*
 let print_sword_lazy () =
@@ -310,15 +311,15 @@ let print_sword_lazy () =
 *)
 
 (* Correctly rejected by the typechecker: the print is left to rest for five
-   ticks instead of two, which its own '[(2, 8)]' box still allows, but by then
+   ticks instead of two, which its own '[[2, 8]]' box still allows, but by then
    the epoxy may have hardened, since 2 + 5 + 2 + 5 = 14 is past its pot life
    of eleven:
 
      Typing error: Variable `glue` is unboxed with grade
-       `({Heat; Extrude; Cool; 5},{Heat; Extrude; Cool; 5})` accumulated since
-       it was bound, which is not below its box grade `({8},{11})`
+       `[{Heat; Extrude; Cool; 5}, {Heat; Extrude; Cool; 5}]` accumulated since
+       it was bound, which is not below its box grade `[{8}, {11}]`
        Note: the resource inequality
-         `({Heat; Extrude; Cool; 5},{Heat; Extrude; Cool; 5}) <= ({8},{11})`
+         `[{Heat; Extrude; Cool; 5}, {Heat; Extrude; Cool; 5}] <= [{8}, {11}]`
          does not hold
 *)
 (*
@@ -338,9 +339,9 @@ let print_sword_impatient () =
    and mixed epoxy does not keep, since 'epoxy' is declared 'noneternal', so
    the unboxed glue does not survive that tick:
 
-     Typing error: Variable `g` is used with grade `({1},{1})` accumulated since
-       it was bound, but its type `epoxy` is not eternal
-       Note: the resource inequality `({1},{1}) <= ({0},{0})` does not hold
+     Typing error: Variable `g` is used with grade `[{1}, {1}]` accumulated
+       since it was bound, but its type `epoxy` is not eternal
+       Note: the resource inequality `[{1}, {1}] <= [{0}, {0}]` does not hold
 *)
 (*
 let print_sword_hasty () =
@@ -360,10 +361,10 @@ let print_sword_hasty () =
    reached, since 2 + 1 + 5 = 8 is past the seven ticks of its pot life:
 
      Typing error: Variable `glue` is unboxed with grade
-       `({Heat; 1; Extrude},{Heat; 1; Extrude})` accumulated since it was
-       bound, which is not below its box grade `({3},{7})`
+       `[{Heat; 1; Extrude}, {Heat; 1; Extrude}]` accumulated since it was
+       bound, which is not below its box grade `[{3}, {7}]`
        Note: the resource inequality
-         `({Heat; 1; Extrude},{Heat; 1; Extrude}) <= ({3},{7})` does not hold
+         `[{Heat; 1; Extrude}, {Heat; 1; Extrude}] <= [{3}, {7}]` does not hold
 *)
 (*
 let make_cog_impatient () =
@@ -380,9 +381,10 @@ let make_cog_impatient () =
    the extrusion, so nothing at all is banked towards the three ticks it needs
    to set by the time it is unboxed:
 
-     Typing error: Variable `glue` is unboxed with the unit grade `({0},{0})`
-       accumulated since it was bound, which is not below its box grade `({3},{7})`
-       Note: the resource inequality `({0},{0}) <= ({3},{7})` does not hold
+     Typing error: Variable `glue` is unboxed with the unit grade `[{0}, {0}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{3}, {7}]`
+       Note: the resource inequality `[{0}, {0}] <= [{3}, {7}]` does not hold
 *)
 (*
 let make_cog_lazy () =
@@ -398,10 +400,10 @@ let make_cog_lazy () =
    most two transmissions, so a clause that retries twice does not fit:
 
      Typing error: Variable `k` is unboxed with grade
-       `({Tx; Tx; Tx},{Tx; Tx; Tx})` accumulated since it was bound, which is
-       not below its box grade `({Tx | Tx; Tx},{Tx | Tx; Tx})`
+       `[{Tx; Tx; Tx}, {Tx; Tx; Tx}]` accumulated since it was bound, which is
+       not below its box grade `[{Tx | Tx; Tx}, {Tx | Tx; Tx}]`
        Note: the resource inequality
-         `({Tx; Tx; Tx},{Tx; Tx; Tx}) <= ({Tx | Tx; Tx},{Tx | Tx; Tx})` does
+         `[{Tx; Tx; Tx}, {Tx; Tx; Tx}] <= [{Tx | Tx; Tx}, {Tx | Tx; Tx}]` does
          not hold
 *)
 (*
@@ -419,11 +421,11 @@ let send_thrice =
    delays, so there is no allowance left to pay for a tick of waiting, even
    though the lower bound would be happy with it:
 
-     Typing error: Variable `k` is unboxed with grade `({Tx; 1},{Tx; 1})`
+     Typing error: Variable `k` is unboxed with grade `[{Tx; 1}, {Tx; 1}]`
        accumulated since it was bound, which is not below its box grade
-       `({Tx | Tx; Tx},{Tx | Tx; Tx})`
+       `[{Tx | Tx; Tx}, {Tx | Tx; Tx}]`
        Note: the resource inequality
-         `({Tx; 1},{Tx; 1}) <= ({Tx | Tx; Tx},{Tx | Tx; Tx})` does not hold
+         `[{Tx; 1}, {Tx; 1}] <= [{Tx | Tx; Tx}, {Tx | Tx; Tx}]` does not hold
 *)
 (*
 let send_lazy =
@@ -436,15 +438,15 @@ let send_lazy =
    ticks, which does not pay for a retried send, which costs 3 + 3:
 
      Typing error: Variable `slot` is unboxed with grade
-       `({Tx | Tx; Tx},{Tx | Tx; Tx})` accumulated since it was bound, which is
-       not below its box grade `({2},{5})`
+       `[{Tx | Tx; Tx}, {Tx | Tx; Tx}]` accumulated since it was bound, which is
+       not below its box grade `[{2}, {5}]`
        Note: the resource inequality
-         `({Tx | Tx; Tx},{Tx | Tx; Tx}) <= ({2},{5})` does not hold
+         `[{Tx | Tx; Tx}, {Tx | Tx; Tx}] <= [{2}, {5}]` does not hold
 *)
 (*
 let send_telemetry_impatient () =
   handle
-    box (2, 5) (Receipt "telemetry") as slot in
+    box [2, 5] (Receipt "telemetry") as slot in
     perform Send "telemetry";
     unbox slot as r in
     r
@@ -455,15 +457,15 @@ let send_telemetry_impatient () =
    ticks if the send consists of a single transmission, which banks only two:
 
      Typing error: Variable `slot` is unboxed with grade
-       `({Tx | Tx; Tx},{Tx | Tx; Tx})` accumulated since it was bound, which is
-       not below its box grade `({4},{6})`
+       `[{Tx | Tx; Tx}, {Tx | Tx; Tx}]` accumulated since it was bound, which is
+       not below its box grade `[{4}, {6}]`
        Note: the resource inequality
-         `({Tx | Tx; Tx},{Tx | Tx; Tx}) <= ({4},{6})` does not hold
+         `[{Tx | Tx; Tx}, {Tx | Tx; Tx}] <= [{4}, {6}]` does not hold
 *)
 (*
 let send_telemetry_lazy () =
   handle
-    box (4, 6) (Receipt "telemetry") as slot in
+    box [4, 6] (Receipt "telemetry") as slot in
     perform Send "telemetry";
     unbox slot as r in
     r

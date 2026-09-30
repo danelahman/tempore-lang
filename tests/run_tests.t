@@ -90,8 +90,8 @@
   === Run 1 ===
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   State: [
-    ({1},{1}),
-    { resource_0 ↦ Epoxy # ({8},{11}),
+    [{1}, {1}],
+    { resource_0 ↦ Epoxy # [{8}, {11}],
       resource_2 ↦
         fun op_var ↦
           handle
@@ -101,18 +101,18 @@
             unbox resource_0 as g in
             perform Mount (p, g) (op_var. return op_var)
           with printer
-        # ({Heat; Extrude; Cool},{Heat; Extrude; Cool})
+        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
-    ({1},{1}),
-    ({3},{3}),
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # ({2},{2}) },
-    ({2},{2}),
+    [{1}, {1}],
+    [{3}, {3}],
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
+    [{2}, {2}],
     { resource_4 ↦
         Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # ({2},{8})
+        # [{2}, {8}]
     },
-    ({2},{2}),
-    ({1},{1})
+    [{2}, {2}],
+    [{1}, {1}]
   ]
   
   === Run 2 ===
@@ -126,23 +126,23 @@
             unbox printed as p in
             return ("Sword #1", p)
           with printer
-        # ({Heat; Extrude; Cool},{Heat; Extrude; Cool})
+        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
-    ({1},{1}),
-    ({3},{3}),
-    { resource_2 ↦ Extruded (Heated (Model "Sword")) # ({2},{2}) },
-    ({2},{2}),
+    [{1}, {1}],
+    [{3}, {3}],
+    { resource_2 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
+    [{2}, {2}],
     { resource_3 ↦
         Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # ({2},{8})
+        # [{2}, {8}]
     },
-    ({2},{2})
+    [{2}, {2}]
   ]
   
   === Run 3 ===
   return (Model "Sword")
   State: [
-    ({1},{1})
+    [{1}, {1}]
   ]
   
   === Run 4 ===
@@ -1956,7 +1956,7 @@
   File "literals_reject_interval_pair.tpe", line 4, characters 19-25:
   4 | let claim () = box (1, 4) 1
                          ^^^^^^
-  Syntax error: in the 'time-interval' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
+  Syntax error: in the 'time-interval' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use the 'peak-usage' grading monoid?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
@@ -2033,14 +2033,14 @@
   File "literals_reject_windows.tpe", line 3, characters 19-27:
   3 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic' or 'regex-cost-interval-rational' grading monoids?
+  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation
   ======================================================================
   literals_reject_windows_pair.tpe
   ======================================================================
   File "literals_reject_windows_pair.tpe", line 4, characters 19-25:
   4 | let claim () = box (2, 5) 1
                          ^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
+  Syntax error: in the 'time-windows' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use the 'peak-usage' grading monoid?
   ======================================================================
   literals_reject_within_pair.tpe
   ======================================================================
@@ -2149,25 +2149,25 @@
   === Run 1 ===
   return "any run"
   State: [
-    { resource_0 ↦ "any run" # ({0},⊤) },
-    ({1},{1}),
-    ({3},{3})
+    { resource_0 ↦ "any run" # [{0}, ∞) },
+    [{1}, {1}],
+    [{3}, {3}]
   ]
   
   === Run 2 ===
   return "after a send"
   State: [
-    { resource_0 ↦ "after a send" # ({Send},⊤) },
-    ({1},{1}),
-    ({1},{1})
+    { resource_0 ↦ "after a send" # [{Send}, ∞) },
+    [{1}, {1}],
+    [{1}, {1}]
   ]
   
   === Run 3 ===
   return "a send or a wait"
   State: [
-    { resource_0 ↦ "a send or a wait" # ({1},{Send; 1 | 3}) },
-    ({1},{1}),
-    ({1},{1})
+    { resource_0 ↦ "a send or a wait" # [{1}, {Send; 1 | 3}] },
+    [{1}, {1}],
+    [{1}, {1}]
   ]
   
   ======================================================================
@@ -3110,9 +3110,9 @@
   === Run 1 ===
   return 6
   State: [
-    ({0.75},{0.75}),
-    ({0.25},{0.25}),
-    ({0.75},{0.75})
+    [{0.75}, {0.75}],
+    [{0.25}, {0.25}],
+    [{0.75}, {0.75}]
   ]
   
   ======================================================================
@@ -3121,20 +3121,20 @@
   File "rational_traces_intervals_reject.tpe", lines 13-14, characters 2-3:
   13 |   unbox due as u in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `due` is unboxed with grade `({Sample; 0.125},{Sample; 0.125})` accumulated since it was bound, which is not below its box grade `({0.75},{2})`
+  Typing error: Variable `due` is unboxed with grade `[{Sample; 0.125}, {Sample; 0.125}]` accumulated since it was bound, which is not below its box grade `[{0.75}, {2}]`
     File "rational_traces_intervals_reject.tpe", line 10, characters 21-24:
-    10 |   box (3/4, 2) () as due in
+    10 |   box [3/4, 2] () as due in
                               ^^^
     `due` is bound here
     File "rational_traces_intervals_reject.tpe", line 11, characters 10-27:
     11 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
-    grade `({Sample},{Sample})` accumulates here (operation `Sample`)
+    grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
     File "rational_traces_intervals_reject.tpe", line 12, characters 2-11:
     12 |   delay 1/8;
            ^^^^^^^^^
-    grade `({0.125},{0.125})` accumulates here (delay)
-    Note: the resource inequality `({Sample; 0.125},{Sample; 0.125}) <= ({0.75},{2})` does not hold
+    grade `[{0.125}, {0.125}]` accumulates here (delay)
+    Note: the resource inequality `[{Sample; 0.125}, {Sample; 0.125}] <= [{0.75}, {2}]` does not hold
   ======================================================================
   rational_traces_upper.tpe
   ======================================================================
@@ -3407,8 +3407,8 @@
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # ({2},{4}) },
-    ({3},{3})
+    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    [{3}, {3}]
   ]
   
   ======================================================================
@@ -3417,42 +3417,42 @@
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({3},{4})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
     File "regex_costs_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box (3, 4) (Token "t") as t in
+    11 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 12, characters 2-18:
     12 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({3},{4})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
   File "regex_costs_interval_reject.tpe", lines 20-21, characters 2-5:
   20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({2},{3})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
     File "regex_costs_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box (2, 3) (Token "t") as t in
+    18 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 19, characters 2-18:
     19 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_costs_interval_runs_reject.tpe
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
-  12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
+  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # ({Fetch}, {_ & ~1 & ~Fetch})
+  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   ======================================================================
   regex_costs_lower.tpe
   ======================================================================
@@ -3527,8 +3527,8 @@
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # ({0.5},{1.5}) },
-    ({0.5},{0.5})
+    { resource_0 ↦ Token "t" # [{0.5}, {1.5}] },
+    [{0.5}, {0.5}]
   ]
   
   ======================================================================
@@ -3537,34 +3537,34 @@
   File "regex_costs_rational_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Sample},{Sample})` accumulated since it was bound, which is not below its box grade `({0.75},{2})`
+  Typing error: Variable `t` is unboxed with grade `[{Sample}, {Sample}]` accumulated since it was bound, which is not below its box grade `[{0.75}, {2}]`
     File "regex_costs_rational_interval_reject.tpe", line 11, characters 30-31:
-    11 |   box (3/4, 2) (Token "t") as t in
+    11 |   box [3/4, 2] (Token "t") as t in
                                        ^
     `t` is bound here
     File "regex_costs_rational_interval_reject.tpe", line 12, characters 10-27:
     12 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
-    grade `({Sample},{Sample})` accumulates here (operation `Sample`)
-    Note: the resource inequality `({Sample},{Sample}) <= ({0.75},{2})` does not hold
+    grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
+    Note: the resource inequality `[{Sample}, {Sample}] <= [{0.75}, {2}]` does not hold
   
   File "regex_costs_rational_interval_reject.tpe", lines 22-23, characters 2-5:
   22 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({0.5; Sample},{0.5; Sample})` accumulated since it was bound, which is not below its box grade `({0.5},{<1})`
+  Typing error: Variable `t` is unboxed with grade `[{0.5; Sample}, {0.5; Sample}]` accumulated since it was bound, which is not below its box grade `[{0.5}, {<1}]`
     File "regex_costs_rational_interval_reject.tpe", line 19, characters 35-36:
-    19 |   box ({1/2}, {<1}) (Token "t") as t in
+    19 |   box [{1/2}, {<1}] (Token "t") as t in
                                             ^
     `t` is bound here
     File "regex_costs_rational_interval_reject.tpe", line 20, characters 2-11:
     20 |   delay 1/2;
            ^^^^^^^^^
-    grade `({0.5},{0.5})` accumulates here (delay)
+    grade `[{0.5}, {0.5}]` accumulates here (delay)
     File "regex_costs_rational_interval_reject.tpe", line 21, characters 10-27:
     21 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
-    grade `({Sample},{Sample})` accumulates here (operation `Sample`)
-    Note: the resource inequality `({0.5; Sample},{0.5; Sample}) <= ({0.5},{<1})` does not hold
+    grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
+    Note: the resource inequality `[{0.5; Sample}, {0.5; Sample}] <= [{0.5}, {<1}]` does not hold
   ======================================================================
   regex_costs_rational_lower.tpe
   ======================================================================
@@ -4880,8 +4880,8 @@
   === Run 1 ===
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   State: [
-    ({1},{1}),
-    { resource_0 ↦ Epoxy # ({8},{11}),
+    [{1}, {1}],
+    { resource_0 ↦ Epoxy # [{8}, {11}],
       resource_2 ↦
         fun op_var ↦
           handle
@@ -4891,18 +4891,18 @@
             unbox resource_0 as g in
             perform Mount (p, g) (op_var. return op_var)
           with printer
-        # ({Heat; Extrude; Cool},{Heat; Extrude; Cool})
+        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
-    ({1},{1}),
-    ({3},{3}),
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # ({2},{2}) },
-    ({2},{2}),
+    [{1}, {1}],
+    [{3}, {3}],
+    { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
+    [{2}, {2}],
     { resource_4 ↦
         Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # ({2},{8})
+        # [{2}, {8}]
     },
-    ({2},{2}),
-    ({1},{1})
+    [{2}, {2}],
+    [{1}, {1}]
   ]
   
   ======================================================================
@@ -4918,12 +4918,12 @@
   File "traces_intervals_default_bounds.tpe", line 9, characters 0-28:
   9 | default Extrude () = delay 1
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Extrude` has grade `({1},{1})`, which does not match the declared grade `({3},{5})` of `Extrude`
+  Typing error: The default implementation of `Extrude` has grade `[{1}, {1}]`, which does not match the declared grade `[{3}, {5}]` of `Extrude`
     File "traces_intervals_default_bounds.tpe", line 7, characters 0-71:
-    7 | operation Extrude : unit ~> unit # ({Extrude}, {Extrude}) within [3, 5]
+    7 | operation Extrude : unit ~> unit # [{Extrude}, {Extrude}] within [3, 5]
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
-    Note: the effect inequality `({1},{1}) <= ({3},{5})` does not hold
+    Note: the effect inequality `[{1}, {1}] <= [{3}, {5}]` does not hold
   ======================================================================
   traces_lower.tpe
   ======================================================================
@@ -5486,8 +5486,8 @@ automata, the programs over rational delays excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # ({2},{4}) },
-    ({3},{3})
+    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    [{3}, {3}]
   ]
   
   ======================================================================
@@ -5496,42 +5496,42 @@ automata, the programs over rational delays excepted:
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({3},{4})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
     File "regex_costs_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box (3, 4) (Token "t") as t in
+    11 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 12, characters 2-18:
     12 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({3},{4})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
   File "regex_costs_interval_reject.tpe", lines 20-21, characters 2-5:
   20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({2},{3})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
     File "regex_costs_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box (2, 3) (Token "t") as t in
+    18 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 19, characters 2-18:
     19 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_costs_interval_runs_reject.tpe (regex-cost-interval)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
-  12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
+  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # ({Fetch}, {_ & ~1 & ~Fetch})
+  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   ======================================================================
   regex_costs_lower.tpe (regex-cost-lower-bound)
   ======================================================================
@@ -5745,10 +5745,10 @@ above, the examples over rational delays excepted:
   === Run 1 ===
   return ()
   State: [
-    ({1},{1}),
-    ({4},{4}),
-    ({1},{1}),
-    ({1},{1})
+    [{1}, {1}],
+    [{4}, {4}],
+    [{1}, {1}],
+    [{1}, {1}]
   ]
   
   ======================================================================
@@ -5757,10 +5757,10 @@ above, the examples over rational delays excepted:
   === Run 1 ===
   return ()
   State: [
-    ({1},{1}),
-    ({4},{4}),
-    ({1},{1}),
-    ({1},{1})
+    [{1}, {1}],
+    [{4}, {4}],
+    [{1}, {1}],
+    [{1}, {1}]
   ]
   
   ======================================================================
@@ -6225,8 +6225,8 @@ above, the examples over rational delays excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # ({2},{4}) },
-    ({3},{3})
+    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    [{3}, {3}]
   ]
   
   ======================================================================
@@ -6235,8 +6235,8 @@ above, the examples over rational delays excepted:
   === Run 1 ===
   return (Token "t")
   State: [
-    { resource_0 ↦ Token "t" # ({2},{4}) },
-    ({3},{3})
+    { resource_0 ↦ Token "t" # [{2}, {4}] },
+    [{3}, {3}]
   ]
   
   ======================================================================
@@ -6245,84 +6245,84 @@ above, the examples over rational delays excepted:
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({3},{4})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
     File "regex_costs_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box (3, 4) (Token "t") as t in
+    11 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 12, characters 2-18:
     12 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({3},{4})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
   File "regex_costs_interval_reject.tpe", lines 20-21, characters 2-5:
   20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({2},{3})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
     File "regex_costs_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box (2, 3) (Token "t") as t in
+    18 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 19, characters 2-18:
     19 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_costs_interval_reject.tpe (regex-cost-interval-plain)
   ======================================================================
   File "regex_costs_interval_reject.tpe", lines 13-14, characters 2-5:
   13 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({3},{4})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
     File "regex_costs_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box (3, 4) (Token "t") as t in
+    11 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 12, characters 2-18:
     12 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({3},{4})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
   File "regex_costs_interval_reject.tpe", lines 20-21, characters 2-5:
   20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `({Fetch},{Fetch})` accumulated since it was bound, which is not below its box grade `({2},{3})`
+  Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
     File "regex_costs_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box (2, 3) (Token "t") as t in
+    18 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
     File "regex_costs_interval_reject.tpe", line 19, characters 2-18:
     19 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
-    grade `({Fetch},{Fetch})` accumulates here (operation `Fetch`)
-    Note: the resource inequality `({Fetch},{Fetch}) <= ({2},{3})` does not hold
+    grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
+    Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_costs_interval_runs_reject.tpe (regex-cost-interval-derivatives)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
-  12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
+  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # ({Fetch}, {_ & ~1 & ~Fetch})
+  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   ======================================================================
   regex_costs_interval_runs_reject.tpe (regex-cost-interval-plain)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
-  12 |   box ({Fetch}, {_ & ~1 & ~Fetch}) (Token "o") as o in
+  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # ({Fetch}, {_ & ~1 & ~Fetch})
+  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `({Fetch},{_ & ~(1 | Fetch)})` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
   ======================================================================
   regex_costs_lower.tpe (regex-cost-lower-bound-derivatives)
   ======================================================================

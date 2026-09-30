@@ -17,8 +17,8 @@
     - lower bounds, ["regex-cost-lower-bound"]: [ρ ≾ ρ'] iff every run of [ρ]
       covers some run of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations costing their lower
       runtime bound [lo];
-    - intervals, ["regex-cost-interval"]: pairs of a lower and an upper bound,
-      compared componentwise.
+    - intervals, ["regex-cost-interval"]: closed intervals of a lower and an
+      upper bound, compared componentwise.
 
     Both are preorders, the closures being closure operators; a grade denotes
     its closure, and [equal] is mutual [≾], coarser than the equality of
@@ -128,10 +128,10 @@ module Make
   (** Upper bounds, in the allowance order at [hi]. *)
   module Upper : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
 
-  (** Pairs of a lower and an upper bound, compared componentwise, written
-      [({...}, {...})]; a brace literal [{...}] abbreviates the pair of a
-      language with itself, [n] the pair [({n}, {n})] and [(n, m)] the pair
-      [({n}, {m})]. *)
+  (** Closed intervals of a lower and an upper bound, compared componentwise,
+      written [[{...}, {...}]], and [\[{...}, ∞)] with the upper bound [⊤]; a
+      brace literal [{...}] abbreviates the interval of a language with itself,
+      [n] the interval [[{n}, {n}]] and [[n, m]] the interval [[{n}, {m}]]. *)
   module Interval :
     Grade.S with type t = L.t * L.t and type Delay.t = Delay.Nat.t
 end
