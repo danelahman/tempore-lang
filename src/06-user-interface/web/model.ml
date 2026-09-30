@@ -208,14 +208,6 @@ let use_stdlib_key = "tempore.use-stdlib"
 
 let default_resource_name = fst (List.hd Grades.GradeRegistry.grade_modules)
 
-let edit_init =
-  {
-    use_stdlib = true;
-    unparsed_code = "";
-    selected_resource = default_resource_name;
-    selected_example = None;
-  }
-
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)
 let indentation = "  "
 
@@ -257,6 +249,34 @@ let edit_update edit_model = function
         selected_example = Some (group, title);
       }
   | SelectResource name -> { edit_model with selected_resource = name }
+
+(** [example_of_path path] is the group label and the bundled example at [path],
+    relative to the project root, if there is one. *)
+let example_of_path path =
+  List.find_map
+    (fun (g : Examples_tpe.group) ->
+      Option.map
+        (fun (e : Examples_tpe.example) -> (g.label, e))
+        (List.find_opt
+           (fun (e : Examples_tpe.example) -> e.path = path)
+           g.examples))
+    Examples_tpe.examples
+
+(** The editor as the page opens: the manifest's default example loaded, its
+    grades selected. *)
+let edit_init =
+  let empty =
+    {
+      use_stdlib = true;
+      unparsed_code = "";
+      selected_resource = default_resource_name;
+      selected_example = None;
+    }
+  in
+  match example_of_path Examples_tpe.default with
+  | Some (group, e) ->
+      edit_update empty (LoadExample (group, e.title, e.grade, e.source))
+  | None -> empty
 
 type run_model = {
   current : run_model_state;

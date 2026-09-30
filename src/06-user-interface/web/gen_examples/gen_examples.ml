@@ -2,10 +2,11 @@
    examples the web interface's gallery offers. Reads the manifest
    [examples/index] and the source of each example it names, and prints an
    OCaml module of the groups and examples it describes, in the manifest's
-   order; invoked by a dune rule, see src/06-user-interface/web/dune. It fails
-   on a grade the registry does not list, on a group without exactly one
-   summary or a summary without a group, and on two groups of one short
-   form. *)
+   order, and the example loaded when the page is opened; invoked by a dune
+   rule, see src/06-user-interface/web/dune. It fails on a grade the registry
+   does not list, on a group without exactly one summary or a summary without a
+   group, on two groups of one short form, and unless exactly one default line
+   names a listed example. *)
 
 (* One example: its group, title, the grading monoid the web interface
    switches to when it is loaded, its path relative to the project root, and
@@ -22,18 +23,21 @@ type entry = {
    one-line summary. *)
 type summary = { label : string; short : string; summary : string }
 
-(* A line of the manifest: an example, or the summary line of a group. *)
-type line = Example of entry | Summary of summary
+(* A line of the manifest: an example, the summary line of a group, or the
+   path of the default example. *)
+type line = Example of entry | Summary of summary | Default of string
 
 (* A manifest line split into its fields, trimmed of surrounding space: five
    fields "group | title | grade | path | description" for an example, four
    fields "group | label | short | summary" for a group's summary; [None] for
-   a line that is neither (blank, or a comment starting with '#'). *)
+   two fields "default | path" for the default example; [None] for a line that
+   is none of these (blank, or a comment starting with '#'). *)
 let line_of_string line =
   let trimmed = String.trim line in
   if trimmed = "" || trimmed.[0] = '#' then None
   else
     match List.map String.trim (String.split_on_char '|' line) with
+    | [ "default"; path ] -> Some (Default ("examples/" ^ path))
     | [ "group"; label; short; summary ] ->
         Some (Summary { label; short; summary })
     | [ group; title; grade; path; description ] ->
@@ -50,8 +54,8 @@ let checked (entry : entry) =
       (Printf.sprintf "the manifest names the unknown grade '%s' for %s"
          entry.grade entry.path)
 
-(* The summaries and the examples of the manifest, each in the manifest's
-   order. *)
+(* The summaries, the examples and the default paths of the manifest, each in
+   the manifest's order. *)
 let read_manifest manifest_path =
   let lines =
     In_channel.with_open_text manifest_path In_channel.input_lines
@@ -62,7 +66,8 @@ let read_manifest manifest_path =
       lines,
     List.filter_map
       (function Example entry -> Some (checked entry) | _ -> None)
-      lines )
+      lines,
+    List.filter_map (function Default path -> Some path | _ -> None) lines )
 
 (* [entries] grouped by [group], preserving the manifest's order of both the
    groups and the examples within them; entries of one group are expected to
@@ -139,6 +144,17 @@ let quoted content =
   let tag = quoting_tag content in
   "{" ^ tag ^ "|" ^ content ^ "|" ^ tag ^ "}"
 
+(* The one default path, which names a listed example; fails otherwise. *)
+let default_path entries = function
+  | [ path ] ->
+      if List.exists (fun (entry : entry) -> entry.path = path) entries then
+        path
+      else
+        failwith
+          (Printf.sprintf "the manifest's default %s is not a listed example"
+             path)
+  | _ -> failwith "the manifest does not give exactly one default example"
+
 let read_source root path =
   In_channel.with_open_text (Filename.concat root path) In_channel.input_all
 
@@ -166,7 +182,8 @@ let print_group buf root ({ label; short; summary }, entries) =
 let preamble =
   "(* Generated from examples/index by gen_examples; see \
    src/06-user-interface/web/dune. [examples] lists the groups of the web \
-   interface's gallery, in order, each with its examples. *)\n\n\
+   interface's gallery, in order, each with its examples; [default] is the \
+   path of the example loaded when the page is opened, one of theirs. *)\n\n\
    type example = {\n\
   \  title : string;  (** shown on its card, without the group's prefix *)\n\
   \  grade : string;  (** the grading monoid the web interface switches to *)\n\
@@ -186,13 +203,16 @@ let preamble =
 let () =
   match Sys.argv with
   | [| _; manifest_path; root |] ->
-      let summaries, entries = read_manifest manifest_path in
+      let summaries, entries, defaults = read_manifest manifest_path in
       let groups = summarised summaries (group_entries entries) in
+      let default = default_path entries defaults in
       let buf = Buffer.create 4096 in
       Buffer.add_string buf preamble;
       Buffer.add_string buf "let examples : group list =\n  [\n";
       List.iter (print_group buf root) groups;
       Buffer.add_string buf "  ]\n";
+      Buffer.add_string buf
+        (Printf.sprintf "\nlet default : string = %s\n" (quoted default));
       print_string (Buffer.contents buf)
   | _ ->
       prerr_endline "usage: gen_examples <manifest path> <project root>";

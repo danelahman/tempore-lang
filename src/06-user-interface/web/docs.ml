@@ -74,22 +74,12 @@ let heading_id h =
   | Some (`Auto s | `Id s) -> Some s
   | None -> None
 
-let example_of_path dest =
-  List.find_map
-    (fun (g : Examples_tpe.group) ->
-      Option.map
-        (fun (e : Examples_tpe.example) -> (g.label, e))
-        (List.find_opt
-           (fun (e : Examples_tpe.example) -> e.path = dest)
-           g.examples))
-    Examples_tpe.examples
-
 (* Three kinds of destination: a bundled example, which is loaded into the
    editor instead of being followed; another path in the repository, which is
    resolved against GitHub; and an absolute URL, which is left alone. Every one
    of them is an <a>, so that the page stays navigable by keyboard. *)
 let link_to dest content =
-  match example_of_path dest with
+  match Model.example_of_path dest with
   | Some (group, (e : Examples_tpe.example)) ->
       elt "a"
         ~a:

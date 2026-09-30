@@ -1,0 +1,94 @@
+(* A café whose operations take time, timed in minutes, its runs bounded below and above by regular languages.
+
+   Run this example with the 'regex-cost-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades regex-cost-interval-rational examples/basics/coffee_costs.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the runs with rational delays
+     - Unit [{0}, {0}]: nothing demanded, only the empty run allowed
+     - Top [{0}, ∞): nothing demanded, every run allowed
+     - Product: concatenation of runs, componentwise *)
+
+(* Paying takes between half a minute and one; unhandled, half a minute. *)
+operation Pay : unit ~> unit # {Pay} within [1/2, 1]
+default Pay () = delay 1/2
+
+(* Brewing takes between four and six minutes; unhandled, five. *)
+operation Brew : unit ~> unit # {Brew} within [4, 6]
+default Brew () = delay 5
+
+(* Adding milk or sugar takes between a quarter and half a minute;
+   unhandled, a quarter. *)
+operation Milk : unit ~> unit # {Milk} within [1/4, 1/2]
+default Milk () = delay 1/4
+
+operation Sugar : unit ~> unit # {Sugar} within [1/4, 1/2]
+default Sugar () = delay 1/4
+
+(* A refund takes between half a minute and one; unhandled, half a minute. *)
+operation Refund : unit ~> unit # {Refund} within [1/2, 1]
+default Refund () = delay 1/2
+
+(* Correctly accepted by the typechecker: the cup is boxed at the grade whose
+   lower bound '[5, ∞)' demands a pause of at least 5, each operation counted
+   at its lower runtime bound, and whose upper bound allows the runs that pay,
+   brew and then add any number of milk and sugar. The operations take at
+   least 1/2 + 4 + 1/4 + 1/4 = 5. *)
+let sweet_serving beans =
+  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] beans as cup in
+  perform Pay ();
+  perform Brew ();
+  perform Milk ();
+  perform Sugar ();
+  unbox cup as c in
+  c
+
+(* Correctly rejected by the typechecker: without the sugar, the operations
+   may take 1/2 + 4 + 1/4 = 4.75 only, less than the 5 the lower bound
+   demands:
+
+     Typing error: Variable `cup` is unboxed with grade
+       `[{Pay; Brew; Milk}, {Pay; Brew; Milk}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]`
+       ...
+       Note: the resource inequality
+         `[{Pay; Brew; Milk}, {Pay; Brew; Milk}] <= [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]`
+         does not hold
+*)
+(*
+let rushed_serving beans =
+  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] beans as cup in
+  perform Pay ();
+  perform Brew ();
+  perform Milk ();
+  unbox cup as c in
+  c
+*)
+
+(* Correctly rejected by the typechecker: the refund, although it makes up the
+   time, is not among the runs the upper bound allows:
+
+     Typing error: Variable `cup` is unboxed with grade
+       `[{Pay; Brew; Refund; Milk}, {Pay; Brew; Refund; Milk}]` accumulated
+       since it was bound, which is not below its box grade
+       `[{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]`
+       ...
+       Note: the resource inequality
+         `[{Pay; Brew; Refund; Milk}, {Pay; Brew; Refund; Milk}] <= [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]`
+         does not hold
+*)
+(*
+let refunded_serving beans =
+  box [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] beans as cup in
+  perform Pay ();
+  perform Brew ();
+  perform Refund ();
+  perform Milk ();
+  unbox cup as c in
+  c
+*)
+
+(* The operations are atomic and run their defaults, so the serving takes
+   1/2 + 5 + 1/4 + 1/4 = 6 minutes. *)
+run sweet_serving "arabica"

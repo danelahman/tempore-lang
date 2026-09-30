@@ -7360,6 +7360,30 @@ its value under a grade whose adjacent delays are merged.
   ]
   
 
+The coffee examples run to their values, the first by delays alone, the
+second by the defaults of its operations.
+
+  $ ../tempore --grades regex-upper-bound-rational ../examples/basics/coffee.tpe
+  === Run 1 ===
+  return "arabica"
+  State: [
+    { resource_0 ↦ "arabica" # {[5, ∞)} },
+    {3},
+    {2}
+  ]
+  
+  $ ../tempore --grades regex-cost-interval-rational ../examples/basics/coffee_costs.tpe
+  === Run 1 ===
+  return "arabica"
+  State: [
+    { resource_0 ↦ "arabica" # [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}] },
+    [{0.5}, {0.5}],
+    [{5}, {5}],
+    [{0.25}, {0.25}],
+    [{0.25}, {0.25}]
+  ]
+  
+
 The example of the regular trace grade over rational delays runs to its value
 under a grade permitting the pauses of more than a second that are not whole.
 

@@ -26,9 +26,23 @@
 #
 # A group without a summary, or a summary without examples, is an error.
 #
+# One line of two fields, the first the word 'default', names the example the
+# web interface loads when the page is opened:
+#
+#   default | path
+#
+# - path: the example's file, relative to this directory, as an example line
+#   gives it.
+#
 # Examples are listed in the order they appear in the gallery: groups in the
 # order given here, and within a group from the simplest example to the most
 # advanced.
+
+default | basics/coffee.tpe
+
+group | Temporal resources 101 | Basics | Boxes graded by regular languages of runs, first with delays alone, then with operations taking time.
+Temporal resources 101 | Coffee | regex-upper-bound-rational | basics/coffee.tpe | A cup boxed at a regular language of runs, served after a pause of at least five minutes and a payment not refunded.
+Temporal resources 101 | Coffee with costs | regex-cost-interval-rational | basics/coffee_costs.tpe | The same café whose payment, brewing and additions are operations taking time, the cup served once they have taken at least five minutes and never refunded.
 
 group | Effect handlers | Handlers | Operations handled by clauses that respect their grades.
 Effect handlers | Lower bounds | time-lower-bound | handlers/handlers_lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.

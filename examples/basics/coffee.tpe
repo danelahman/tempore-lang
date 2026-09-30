@@ -1,0 +1,91 @@
+(* A café whose coffee is served once it has brewed, timed in minutes.
+
+   Run this example with the 'regex-upper-bound-rational' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-rational examples/basics/coffee.tpe
+
+   Grades {...}: regular languages of runs over operations and rational delays
+     - Unit {0}: the empty run
+     - Top ⊤: every run
+     - Product: concatenation of runs, adjacent delays added *)
+
+(* The operations of the café. *)
+operation Pay : unit ~> unit # {Pay}
+operation Milk : unit ~> unit # {Milk}
+operation Sugar : unit ~> unit # {Sugar}
+operation Refund : unit ~> unit # {Refund}
+
+(* Brewing, a pure function of the beans. *)
+let brew beans = beans
+
+(* Correctly accepted by the typechecker: the cup is boxed at the runs
+   consisting of one pause of at least 5, '[5, ∞)', and unboxed after the
+   delays of 3 and 2, adjacent delays adding up to a pause of 5. *)
+let timely_serving beans =
+  box {[5, ∞)} (brew beans) as cup in
+  delay 3;
+  delay 2;
+  unbox cup as c in
+  c
+
+(* Correctly rejected by the typechecker: the cup is unboxed after a pause of
+   3 only:
+
+     Typing error: Variable `cup` is unboxed with grade `{3}` accumulated
+       since it was bound, which is not below its box grade `{[5, ∞)}`
+       ...
+       Note: the resource inequality `{3} <= {[5, ∞)}` does not hold
+*)
+(*
+let rushed_serving beans =
+  box {[5, ∞)} (brew beans) as cup in
+  delay 3;
+  unbox cup as c in
+  c
+*)
+
+(* Correctly accepted by the typechecker: the cup is boxed at the runs that
+   pay, perform no refund, pause for at least 5, still perform no refund, and
+   end with any number of additions of milk and sugar. *)
+let paid_serving beans =
+  box {Pay; (_ & ~Refund)*; [5, ∞);
+       (_ & ~Refund)*; (Milk | Sugar)*}
+    (brew beans) as cup in
+  perform Pay ();
+  delay 3;
+  delay 2;
+  perform Milk ();
+  unbox cup as c in
+  c
+
+(* Correctly rejected by the typechecker: the payment is refunded before the
+   cup is unboxed:
+
+     Typing error: Variable `cup` is unboxed with grade
+       `{Pay; 3; Refund; 2; Milk}` accumulated since it was bound, which is
+       not below its box grade
+       `{Pay; (_ & ~Refund)*; [5, ∞); (_ & ~Refund)*; (Milk | Sugar)*}`
+       ...
+       Note: the resource inequality
+         `{Pay; 3; Refund; 2; Milk} <=
+            {Pay; (_ & ~Refund)*; [5, ∞); (_ & ~Refund)*; (Milk | Sugar)*}`
+         does not hold
+*)
+(*
+let refunded_serving beans =
+  box {Pay; (_ & ~Refund)*; [5, ∞);
+       (_ & ~Refund)*; (Milk | Sugar)*}
+    (brew beans) as cup in
+  perform Pay ();
+  delay 3;
+  perform Refund ();
+  delay 2;
+  perform Milk ();
+  unbox cup as c in
+  c
+*)
+
+(* The operations have no default implementations, since only performing an
+   operation realises its grade; the run serves the cup of the first
+   definition, which uses delays alone. *)
+run timely_serving "arabica"
