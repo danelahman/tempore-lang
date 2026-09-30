@@ -108,6 +108,12 @@ let entries =
       regex "Upper bounds (symbolic derivatives)"
       "The same grade as the automata version, decided by symbolic derivatives \
        instead of automata.";
+    entry
+      (module RegularTraceGradeRational)
+      regex "Upper bounds (rational)"
+      "Regular languages of runs over rational delays and operations, bounding \
+       the runs permitted by inclusion; exact, decided by automata over sets \
+       of delays.";
     entry ~visibility:Cli_only
       (module RegularTraceGradeDerivative.Concrete)
       regex "Upper bounds (plain derivatives)"

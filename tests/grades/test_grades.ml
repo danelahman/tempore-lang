@@ -232,6 +232,7 @@ let rational_inclusion_upper =
   (module TraceInclusionGrades.Rational.UpperBound : Grade.S)
 
 let regex_upper = (module Grades.RegularTraceGradeDerivative : Grade.S)
+let rational_regex_upper = (module Grades.RegularTraceGradeRational : Grade.S)
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
 let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
 let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
@@ -659,6 +660,40 @@ let literals =
     rejects "fractional delay" time_windows
       (Braces (Frac (Rational.make 1 2)))
       "whole numbers of time steps";
+    rejects "comparison" regex_upper
+      (Braces (Seq (send, Compare (Lt, Rational.of_int 1))))
+      "the comparison '<1' denotes a set of rational delays";
+    rejects "comparison" time_windows
+      (Braces (Compare (Ge, Rational.of_int 2)))
+      "the comparison '>=2' denotes a set of rational delays";
+    rejects "comparison" rational_traces_upper
+      (Braces (Compare (Le, Rational.make 1 2)))
+      "without the comparison '<=0.5'";
+    reads "comparisons" rational_regex_upper
+      (Braces
+         (Seq
+            ( send,
+              Inter
+                (Compare (Gt, Rational.zero), Compare (Le, Rational.make 1 2))
+            )))
+      "{Send; (>0 & <=0.5)}";
+    reads "fraction" rational_regex_upper (Rat (Rational.make 3 2)) "{1.5}";
+    reads "top" rational_regex_upper Top "⊤";
+    reads "all timed words" rational_regex_upper (Braces (Star Any)) "⊤";
+    reads "complement of a delay" rational_regex_upper (Braces (Compl (Tick 1)))
+      "{~1}";
+    reads "repeated fraction" rational_regex_upper
+      (Braces (Star (Frac (Rational.make 1 2))))
+      "{(0.5)*}";
+    rejects "empty language" rational_regex_upper
+      (Braces (Inter (send, Compare (Ge, Rational.zero))))
+      "denotes the empty language";
+    rejects "negative delay" rational_regex_upper
+      (Braces (Frac (Rational.make (-1) 2)))
+      "delays are non-negative";
+    rejects "negative fraction" rational_regex_upper
+      (Rat (Rational.make (-1) 2))
+      "must be non-negative";
     reads "fractional delays" rational_traces_lower
       (Braces
          (union
@@ -761,6 +796,7 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
+          "regex-upper-bound-rational";
         ]
       (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
     expect "registry: grades reading a fractional delay in braces" show_names
@@ -770,6 +806,7 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
+          "regex-upper-bound-rational";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
     expect "registry: grades reading fractional runtime bounds" show_names
@@ -790,6 +827,7 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
+          "regex-upper-bound-rational";
           "security-levels";
           "flow-levels";
         ]
@@ -809,6 +847,7 @@ let registry =
         [
           "regex-upper-bound";
           "regex-upper-bound-symbolic";
+          "regex-upper-bound-rational";
           "regex-cost-lower-bound";
           "regex-cost-upper-bound";
           "regex-cost-interval";
@@ -817,6 +856,13 @@ let registry =
           "regex-cost-interval-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
+    expect "registry: grades reading a comparison of delays" show_names
+      ~expected:[ "regex-upper-bound-rational" ]
+      (GradeRegistry.accepting
+         (Grade.Braces
+            (Grade.Inter
+               ( Grade.Compare (Grade.Gt, Rational.zero),
+                 Grade.Compare (Grade.Lt, Rational.of_int 1) ))));
     expect "registry: grades offered by the CLI only" show_names
       ~expected:
         [
@@ -1228,6 +1274,7 @@ type family =
   | Traces
   | Rational_traces
   | Regex
+  | Rational_regex
   | Levels
   | Timed_levels
   | Flow
@@ -1249,6 +1296,7 @@ let family name =
   | "counts-upper-bound" -> Some Counts
   | "traces-upper-bound" -> Some Inclusion_traces
   | "traces-upper-bound-rational" -> Some Rational_inclusion_traces
+  | "regex-upper-bound-rational" -> Some Rational_regex
   | _ when prefix "regex-" -> Some Regex
   | _ when prefix "traces-" && String.ends_with ~suffix:"-rational" name ->
       Some Rational_traces
@@ -1360,6 +1408,26 @@ let cover =
         Braces (Union (letter_c, Tick 0));
         pair (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
         pair (Braces (Tick 1)) (Braces (Star Any));
+      ]
+  | Rational_regex ->
+      let frac n d = Frac (Rational.make n d) in
+      let compare c n d = Compare (c, Rational.make n d) in
+      [
+        Braces letter_a;
+        Braces (Seq (letter_b, frac 1 2));
+        Braces (Union (letter_a, compare Lt 1 1));
+        Braces (Star (Seq (letter_a, frac 1 2)));
+        Braces Any;
+        Braces (Seq (letter_a, Seq (Any, letter_b)));
+        Braces (Inter (Any, Compl letter_a));
+        Braces (Compl (Tick 1));
+        Braces (Inter (compare Gt 0 1, compare Lt 1 1));
+        Braces (Star (frac 1 2));
+        Braces (Star (Inter (compare Ge 1 1, compare Le 2 1)));
+        Braces (Seq (Star (Union (letter_a, letter_b)), letter_c));
+        Braces (Union (letter_c, Tick 0));
+        Braces (Seq (compare Ge 3 2, Seq (letter_a, Star Any)));
+        rat 3 2;
       ]
   | Levels -> [ level "Low"; level "High" ]
   | Timed_levels ->
@@ -1473,6 +1541,19 @@ let random family st =
     | _ -> Inter (Any, Compl (regex ~star (depth - 1)))
   in
   let braces ~star = Braces (regex ~star 2) in
+  let rec timed depth =
+    match int (if depth = 0 then 4 else 9) with
+    | 0 -> letter ()
+    | 1 -> rational_tick (Rational.make (int 7) (1 + int 4))
+    | 2 ->
+        Compare (pick st [ Lt; Le; Gt; Ge ], Rational.make (int 7) (1 + int 4))
+    | 3 -> Any
+    | 4 -> Seq (timed (depth - 1), timed (depth - 1))
+    | 5 -> Union (timed (depth - 1), timed (depth - 1))
+    | 6 -> Star (timed (depth - 1))
+    | 7 -> Inter (timed (depth - 1), timed (depth - 1))
+    | _ -> Compl (timed (depth - 1))
+  in
   let rec fractional depth =
     match int (if depth = 0 then 2 else 4) with
     | 0 -> letter ()
@@ -1507,6 +1588,7 @@ let random family st =
   | Regex ->
       if int 4 > 0 then braces ~star:true
       else pair (braces ~star:true) (braces ~star:true)
+  | Rational_regex -> Braces (timed 2)
   | Levels -> level ()
   | Timed_levels -> pair (pick st [ Int (int 5); Inf; Top ]) (level ())
   | Flow -> (
@@ -1716,6 +1798,7 @@ let inclusion_laws =
       [
         (inclusion_upper, Inclusion_traces);
         (rational_inclusion_upper, Rational_inclusion_traces);
+        (rational_regex_upper, Rational_regex);
       ]
 
 (* The declared flags of the registered grades that are false with no

@@ -51,8 +51,9 @@ Traces with costs | Upper bounds | traces-cost-upper-bound | traces/traces_upper
 Traces with costs | Intervals | traces-cost-interval | traces/traces_intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
 Traces with costs | Intervals (rational) | traces-cost-interval-rational | traces/rational_traces_intervals.tpe | A weather station timed in seconds, whose operations declare fractional runtime bounds and whose windows are traces with fractional delays.
 
-group | Regular expressions | Regex | Regular languages of runs of operations and ticks.
+group | Regular expressions | Regex | Regular languages of runs of operations and delays.
 Regular expressions | Upper bounds | regex-upper-bound-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
+Regular expressions | Upper bounds (rational) | regex-upper-bound-rational | regular/regular_rational.tpe | A heart-rate monitor graded by regular languages of operations and rational delays, with comparisons of delays and complements.
 
 group | Regular expressions with costs | Regex (costs) | Regular runs, operations costing their declared runtimes.
 Regular expressions with costs | Lower bounds | regex-cost-lower-bound-symbolic | regular_costs/regular_costs_lower.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower runtime bounds.

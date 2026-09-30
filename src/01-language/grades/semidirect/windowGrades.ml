@@ -25,6 +25,8 @@ let of_braces lit r =
     | Grade.Tick n -> R.ticks n
     | Grade.Frac q ->
         Grade.component_of_lit lit ~context:"" Grade.fractional_tick q
+    | Grade.Compare (c, q) ->
+        Grade.component_of_lit lit ~context:"" (Grade.delay_comparison c) q
     | Grade.Any -> R.ticks 1
     | Grade.Seq (r, s) -> R.concat (go r) (go s)
     | Grade.Union (r, s) -> R.union [ go r; go s ]

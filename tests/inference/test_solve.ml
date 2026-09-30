@@ -359,6 +359,7 @@ let expected_rejections =
     ("regex_costs_lower_runs_reject.tpe", [ 10 ]);
     ("regex_costs_upper_reject.tpe", [ 11; 19; 27; 34 ]);
     ("regex_costs_upper_runs_reject.tpe", [ 11; 17; 20 ]);
+    ("regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);
     ("regular_reject_auth.tpe", [ 12; 19; 25 ]);
     ("regular_reject_bounds.tpe", [ 4 ]);
     ("regular_reject_counterexample.tpe", [ 13; 21 ]);

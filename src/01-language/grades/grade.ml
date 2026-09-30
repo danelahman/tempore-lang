@@ -3,10 +3,11 @@
     The instances the prototype offers are defined in {!TimeGrades},
     {!RationalTimeGrades}, {!TraceInclusionGrades}, {!TimedTraceGrades},
     {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
-    {!RegularTraceGradePlain}, {!RegularCostTraceGrades}, {!LevelGrades},
-    {!PeakGrades}, {!WindowGrades}, {!ModeGrades} and {!CountGrades}, built with
-    the constructions of {!GradeConstructions}, and listed in {!GradeRegistry};
-    the regular trace grades are implementations of the same grade.
+    {!RegularTraceGradePlain}, {!RegularTraceGradeRational},
+    {!RegularCostTraceGrades}, {!LevelGrades}, {!PeakGrades}, {!WindowGrades},
+    {!ModeGrades} and {!CountGrades}, built with the constructions of
+    {!GradeConstructions}, and listed in {!GradeRegistry}; the regular trace
+    grades are implementations of the same grade.
 
     {2 Laws}
 
@@ -203,6 +204,20 @@ let read_bound read q =
       on the literal [Rat q], which the grade reports against the brace literal
       with {!component_of_lit}. *)
 let fractional_tick q = invalid_lit (Rat q) "%s" (Delay.Nat.rejection (Rat q))
+
+(** [delay_comparison c q] rejects the comparison [c] with the bound [q] of a
+    brace literal, a set of delays, in the grades whose delays are whole numbers
+    of time steps.
+
+    @raise Invalid_literal
+      on the brace literal of the comparison alone, which the grade reports
+      against the enclosing literal with {!component_of_lit}. *)
+let delay_comparison c q =
+  invalid_lit
+    (Braces (Compare (c, q)))
+    "delays are whole numbers of time steps, and the comparison '%s' denotes a \
+     set of rational delays"
+    (show_comparison c q)
 
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their
     pairwise products by [mul]. *)

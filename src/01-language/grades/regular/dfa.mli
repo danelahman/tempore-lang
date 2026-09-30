@@ -102,6 +102,18 @@ val counterexample : t -> t -> int list option
 val subset : t -> t -> bool
 (** [subset l m] is whether [l ⊆ m]. *)
 
+(** First-in first-out queues, as a front list and a reversed back list, with
+    amortised constant-time operations (Burton, IPL 1982). *)
+module Fifo : sig
+  type 'a t
+
+  val empty : 'a t
+  val push : 'a -> 'a t -> 'a t
+
+  val pop : 'a t -> ('a * 'a t) option
+  (** [pop q] is the first element of [q] and the rest, if any. *)
+end
+
 (** {1 Implicit automata}
 
     Deterministic automata given by their start state and transition and

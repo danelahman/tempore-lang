@@ -1,0 +1,47 @@
+(* Correctly accepted by the typechecker, under the
+   'regex-upper-bound-rational' grading monoid: timed regular expressions over
+   rational delays, adjacent delays being added, with comparisons of delays,
+   complements over all runs and repetitions of fractional delays. *)
+
+operation Sample : unit ~> nat # {Sample}
+operation Send : nat ~> unit # {Send}
+operation Reset : unit ~> unit # {Reset}
+
+(* A reading sent within less than one time unit. *)
+let prompt () =
+  box {Sample; <1; Send} () as due in
+  let v = perform Sample () in
+  delay 1/4;
+  delay 0.5;
+  perform Send v;
+  unbox due as u in
+  u
+
+(* A token usable after any run but a pause of exactly one time unit. *)
+let offbeat () =
+  box {~1} 7 as t in
+  delay 1/2;
+  delay 1/3;
+  unbox t as n in
+  n
+
+(* A timer ticking in half time units. *)
+let halves () =
+  box {(1/2)*} () as tick in
+  delay 0.5;
+  delay 1;
+  unbox tick as u in
+  u
+
+(* Samples each followed by a pause of at most half a time unit. *)
+let poll () : nat # {(Sample; (>0 & <=1/2))*} =
+  let v = perform Sample () in
+  delay 1/4;
+  v
+
+(* Any single operation other than a reset, or a positive pause. *)
+let quiet () =
+  box {_ & ~Reset} () as q in
+  delay 3/2;
+  unbox q as u in
+  u

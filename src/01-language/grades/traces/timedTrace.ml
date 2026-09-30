@@ -154,6 +154,8 @@ module Base (D : Delay.S) = struct
     | Inter _ -> unsupported lit "intersection '&'"
     | Compl _ -> unsupported lit "complement '~'"
     | Any -> unsupported lit "the wildcard '_'"
+    | Compare (c, q) ->
+        unsupported lit ("the comparison '" ^ show_comparison c q ^ "'")
 
   (* The operands are read left to right, so the leftmost unsupported form is
      the one reported. *)

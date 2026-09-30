@@ -204,6 +204,24 @@ two implementations, together with two intermediate ones that separate the
 effects of their design choices; see
 [`bench/regular/README.md`](bench/regular/README.md).
 
+The rational variant `regex-upper-bound-rational` reads runs as *timed words*:
+operations and delays that are non-negative rationals, adjacent delays added,
+so that `{1/2; 1/2}` is `{1}`. A delay is a single letter however long or
+fine, and the order is exact over the rationals: it depends on no time step
+or resolution of the program's delays. Besides operation names and delays
+such as `3`, `1/2` or `1.5`, literals have comparisons `<q`, `<=q` (`≤q`), `>q`
+and `>=q` (`≥q`), the delays below, up to, above or from `q`; an interval is
+an intersection, as in `{>0 & <1}`. `_` is any single operation or any
+positive delay, and the complement is taken over all timed words: `{~1}`
+permits every run but a pause of exactly `1`, and `{_ & ~Read}` any single
+operation but `Read` or any positive pause. A repetition of delays is their
+multiples: `{(1/2)*}` is the multiples of a half, `{(>=1 & <=2)*}` the delay
+`0` and every delay from `1`. A plain number `q` abbreviates `{q}`. The unit
+is `{0}` and the top `⊤`, `{_*}`. A grade is kept as a canonical automaton
+whose delay transitions are labelled by sets of delays, and printed as it is
+written, with adjacent delays added. See
+[`examples/regular/regular_rational.tpe`](examples/regular/regular_rational.tpe).
+
 ### Regular expressions with costs
 
 A grade is a regular language of runs, as under `regex-upper-bound`, ordered as

@@ -37,6 +37,9 @@ val add : t -> t -> t
 val neg : t -> t
 (** [neg q] is [-q]. *)
 
+val sub : t -> t -> t
+(** [sub p q] is [p - q]. *)
+
 val mul : t -> t -> t
 (** [mul p q] is [p · q]. *)
 
@@ -63,6 +66,12 @@ val is_integer : t -> bool
 val to_int : t -> int option
 (** [to_int q] is [Some n] if [q] is an integer [n] representable as an [int],
     and [None] otherwise. *)
+
+val num : t -> Z.t
+(** [num q] is the numerator of [q] in lowest terms. *)
+
+val den : t -> Z.t
+(** [den q] is the denominator of [q] in lowest terms, positive. *)
 
 val denominator : t -> int
 (** [denominator q] is the denominator of [q] in lowest terms.

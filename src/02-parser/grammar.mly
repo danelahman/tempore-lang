@@ -693,7 +693,9 @@ minus_infinity:
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
-   [*]. Braces group as parentheses do. *)
+   [*]. Braces group as parentheses do. An atom is an operation name, a delay,
+   the wildcard [_], or a comparison [<q], [<=q], [>q] or [>=q] denoting a set
+   of delays. *)
 regex:
   | r = regex_inter { r }
   | r = regex BAR s = regex_inter { Grade.Union (r, s) }
@@ -723,6 +725,18 @@ regex_atom:
   | n = INT
     { Grade.Tick (small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
   | q = fraction { Grade.rational_tick q }
+  | op = INFIXOP0 q = duration
+    { let comparison =
+        match op with
+        | "<" -> Grade.Lt
+        | "<=" -> Grade.Le
+        | ">" -> Grade.Gt
+        | ">=" -> Grade.Ge
+        | _ ->
+            Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
+              "unknown comparison '%s' in a brace literal" op
+      in
+      Grade.Compare (comparison, q) }
   | UNDERSCORE { Grade.Any }
   | LPAREN r = regex RPAREN { r }
   | LBRACE r = regex RBRACE { r }

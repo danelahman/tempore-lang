@@ -1,0 +1,32 @@
+(* Correctly rejected by the typechecker, under the
+   'regex-upper-bound-rational' grading monoid: two pauses adding up to the one
+   delay a complement excludes, a reading sent too late, a pause off the
+   period of a timer, and a run too short for a lower bound on its pause, which
+   a note refutes by one of its runs. *)
+
+operation Sample : unit ~> nat # {Sample}
+operation Send : nat ~> unit # {Send}
+
+let offbeat () =
+  box {~1} 7 as t in
+  delay 1/2;
+  delay 0.5;
+  unbox t as n in
+  n
+
+let late () =
+  box {Sample; <1; Send} () as due in
+  let v = perform Sample () in
+  delay 1/2;
+  delay 1/2;
+  perform Send v;
+  unbox due as u in
+  u
+
+let thirds () : unit # {(1/2)*} = delay 1/3
+
+let wait (b : bool) =
+  box {>=1} () as w in
+  if b then delay 1/2 else delay 2;
+  unbox w as u in
+  u

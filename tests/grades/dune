@@ -1,8 +1,9 @@
 ; Unit tests of the grades: the security levels, the products of grades, the
 ; literals of every grade, the four implementations of the regular trace grade,
-; by automata and by three kinds of derivatives, and the cost-model regular
-; trace grades with their closures; the laws of every registered grade, on
-; samples, by the checks the tests share.
+; by automata and by three kinds of derivatives, the cost-model regular trace
+; grades with their closures, the sets of delays, and the timed regular
+; expressions with the regular trace grade over rational delays; the laws of
+; every registered grade, on samples, by the checks the tests share.
 
 (library
  (name lawChecks)
@@ -23,3 +24,13 @@
  (name test_costTraces)
  (modules test_costTraces)
  (libraries grades parser sugaredAst lawChecks))
+
+(test
+ (name test_delaySet)
+ (modules test_delaySet)
+ (libraries grades zarith))
+
+(test
+ (name test_timedRegex)
+ (modules test_timedRegex)
+ (libraries utils grades parser sugaredAst))

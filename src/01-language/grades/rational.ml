@@ -17,10 +17,17 @@ let of_decimal s =
 
 let add = Q.add
 let neg = Q.neg
+let sub = Q.sub
 let mul = Q.mul
 let div p q = if Q.sign q = 0 then raise Division_by_zero else Q.div p q
 let sign = Q.sign
-let compare = Q.compare
+
+(* The rationals kept are finite, with positive denominators, so that equal
+   denominators compare by the numerators alone. *)
+let compare p q =
+  if Z.equal (Q.den p) (Q.den q) then Z.compare (Q.num p) (Q.num q)
+  else Q.compare p q
+
 let equal = Q.equal
 let hash q = (Z.hash (Q.num q) * 65599) + Z.hash (Q.den q)
 let is_integer q = Z.equal (Q.den q) Z.one
@@ -29,6 +36,9 @@ let to_int q =
   if Z.equal (Q.den q) Z.one && Z.fits_int (Q.num q) then
     Some (Z.to_int (Q.num q))
   else None
+
+let num = Q.num
+let den = Q.den
 
 let denominator q =
   if Z.fits_int (Q.den q) then Z.to_int (Q.den q)

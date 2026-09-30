@@ -3,13 +3,24 @@
     ({!Grade.S.of_lit}) and rejects the others with {!Invalid_literal}; delays
     read the numeric ones ({!Delay.S.read}). *)
 
+(** The comparisons of a delay with a bound. *)
+type comparison =
+  | Lt  (** [<q] *)
+  | Le  (** [<=q], also [≤q] *)
+  | Gt  (** [>q] *)
+  | Ge  (** [>=q], also [≥q] *)
+
 (** Regular expressions over operation names and delays, the contents of a brace
     literal [{...}]. *)
 type regex =
   | Letter of string  (** An operation name, e.g. [Send] *)
   | Tick of int  (** A delay of [n] time steps, e.g. [3] *)
   | Frac of Rational.t  (** A delay that is not an [int], e.g. [1/2] or [1.5] *)
-  | Any  (** Any single operation or time step, [_] *)
+  | Compare of comparison * Rational.t
+      (** The delays in a comparison with a bound, e.g. [<1] or [>=1/2] *)
+  | Any
+      (** Any single operation or time step, [_]; over rational delays, any
+          single operation or positive delay *)
   | Seq of regex * regex  (** Concatenation, [r; s] *)
   | Union of regex * regex  (** Union, [r | s] *)
   | Star of regex  (** Repetition, [r*] *)
@@ -21,11 +32,70 @@ type regex =
 let regex_names r =
   let rec go = function
     | Letter name -> [ name ]
-    | Tick _ | Frac _ | Any -> []
+    | Tick _ | Frac _ | Compare _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
     | Star r | Compl r -> go r
   in
   List.sort_uniq String.compare (go r)
+
+(** [show_comparison c q] prints the comparison [c] with the bound [q], e.g.
+    [<=1.5]. *)
+let show_comparison c q =
+  (match c with Lt -> "<" | Le -> "<=" | Gt -> ">" | Ge -> ">=")
+  ^ Rational.show q
+
+(** [show_regex r] prints [r] as the contents of a brace literal, with the
+    parentheses the precedences require: union [|], intersection [&],
+    concatenation [;], complement [~] and repetition [*], by increasing
+    precedence. The three binary operators are printed as associative, and a
+    comparison or a fraction under a repetition is parenthesised. *)
+let show_regex r =
+  let buffer = Buffer.create 64 in
+  let add = Buffer.add_string buffer in
+  let wrap ctx prec print =
+    if prec < ctx then (
+      add "(";
+      print ();
+      add ")")
+    else print ()
+  in
+  (* The operands of the chain [r] of an associative binary operator, read off
+     by [split], nested on either side. *)
+  let rec operands split r acc =
+    match split r with
+    | Some (l, x) -> operands split l (operands split x acc)
+    | None -> r :: acc
+  in
+  let rec go ctx = function
+    | Letter name -> add name
+    | Tick n -> add (string_of_int n)
+    | Frac q -> wrap ctx 4 (fun () -> add (Rational.show q))
+    | Compare (c, q) -> wrap ctx 4 (fun () -> add (show_comparison c q))
+    | Any -> add "_"
+    | Union _ as r ->
+        chain ctx 0 " | " (function Union (l, x) -> Some (l, x) | _ -> None) r
+    | Inter _ as r ->
+        chain ctx 1 " & " (function Inter (l, x) -> Some (l, x) | _ -> None) r
+    | Seq _ as r ->
+        chain ctx 2 "; " (function Seq (l, x) -> Some (l, x) | _ -> None) r
+    | Compl r ->
+        wrap ctx 3 (fun () ->
+            add "~";
+            go 3 r)
+    | Star r ->
+        wrap ctx 4 (fun () ->
+            go 5 r;
+            add "*")
+  and chain ctx prec separator split r =
+    wrap ctx prec (fun () ->
+        List.iteri
+          (fun i x ->
+            if i > 0 then add separator;
+            go (if i = 0 then prec else prec + 1) x)
+          (operands split r []))
+  in
+  go 0 r;
+  Buffer.contents buffer
 
 (** Grade literals as they appear in source. *)
 type lit =

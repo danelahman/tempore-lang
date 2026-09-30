@@ -138,8 +138,9 @@ rule token = parse
   | eof                 { EOF }
 
 (* Inside a brace literal each of the regular-expression operators [*], [|], [&]
-   and [~] is a token of its own, so that, e.g., [A*|~B] needs no spaces; any
-   other input is lexed as outside. *)
+   and [~] is a token of its own, so that, e.g., [A*|~B] needs no spaces, and
+   the comparisons [≤] and [≥] are read as [<=] and [>=]; any other input is
+   lexed as outside. *)
 and brace_token = parse
   | '\n'                { Lexing.new_line lexbuf; brace_token lexbuf }
   | [' ' '\r' '\t']     { brace_token lexbuf }
@@ -148,6 +149,8 @@ and brace_token = parse
   | '|'                 { BAR }
   | '&'                 { AMPER }
   | '~'                 { PREFIXOP "~" }
+  | "≤"                 { INFIXOP0 "<=" }
+  | "≥"                 { INFIXOP0 ">=" }
   | ""                  { token lexbuf }
 
 (* A comment nested [n] deep, after which lexing resumes with [continue]. *)
