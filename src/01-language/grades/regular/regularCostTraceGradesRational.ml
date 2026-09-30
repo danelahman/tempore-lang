@@ -1,7 +1,7 @@
 open Grade
 module L = RegularTraceGradeRational
-module A = TimedAutomaton
-module Closure = TimedCostClosure
+module A = DelayAutomaton
+module Closure = DelayCostClosure
 
 (* [world endpoint bounds rhos] is the operations of a comparison of the grades
    [rhos], each with the [endpoint] of its runtime bounds as its cost: the
@@ -58,7 +58,7 @@ let is_top order bounds rho =
 
 let counterexample order bounds rho rho' =
   Option.map
-    (fun word -> L.of_lit (Braces (TimedRegex.of_word word)))
+    (fun word -> L.of_lit (Braces (DelayRegex.of_word word)))
     (find order bounds rho rho')
 
 let inhabited bounds rho =

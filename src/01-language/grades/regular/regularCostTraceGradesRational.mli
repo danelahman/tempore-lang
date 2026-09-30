@@ -5,9 +5,9 @@
 
     {2 Orders}
 
-    A run is a timed word ({!TimedAutomaton}): operations and non-negative
+    A run is a timed word ({!DelayAutomaton}): operations and non-negative
     rational delays, adjacent delays added. The orders on single runs are
-    allowance and coverage, as characterised in {!TimedCostClosure}. A grade is
+    allowance and coverage, as characterised in {!DelayCostClosure}. A grade is
     ordered below another through the closure of the greater one:
     - upper bounds, ["regex-cost-upper-bound-rational"]: [ρ ≾ ρ'] iff every run
       of [ρ] is permitted by some run of [ρ'], i.e. [ρ ⊆ ↓ρ'], operations
@@ -60,8 +60,8 @@
     The operations of a comparison are the names the grades mention and, of the
     declared operations the grades do not name, the least of each cost, which
     stands for the others of its cost: no grade tells them apart. [ρ ≾ ρ'] is
-    decided by {!TimedCostClosure.allowance} under the upper order and
-    {!TimedCostClosure.coverage} under the lower order, on the automata of the
+    decided by {!DelayCostClosure.allowance} under the upper order and
+    {!DelayCostClosure.coverage} under the lower order, on the automata of the
     grades; there is nothing to decide if the grades are the same language or
     [ρ'] is the top. A grade is the top if its representation is that of the top
     and otherwise iff the order decides [⊤ ≾ ρ]. *)

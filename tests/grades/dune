@@ -32,11 +32,11 @@
  (libraries grades zarith))
 
 (test
- (name test_timedRegex)
- (modules test_timedRegex)
+ (name test_delayRegex)
+ (modules test_delayRegex)
  (libraries utils grades parser sugaredAst))
 
 (test
- (name test_timedCostClosure)
- (modules test_timedCostClosure)
+ (name test_delayCostClosure)
+ (modules test_delayCostClosure)
  (libraries grades parser sugaredAst))

@@ -10,8 +10,8 @@
 module Grade = Grades.Grade
 module Rational = Grades.Rational
 module DelaySet = Grades.DelaySet
-module A = Grades.TimedAutomaton
-module R = Grades.TimedRegex
+module A = Grades.DelayAutomaton
+module R = Grades.DelayRegex
 module G = Grades.RegularTraceGradeRational
 module W = Grades.RegularTraceGrade
 

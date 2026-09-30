@@ -4,7 +4,7 @@
 
     {2 Runs as timed words}
 
-    A run is read as a timed word ({!TimedAutomaton}): its operations, and its
+    A run is read as a timed word ({!DelayAutomaton}): its operations, and its
     delays as non-negative rationals, adjacent delays added. A grade bounds the
     runs permitted from above: a run is permitted iff its timed word is in the
     language. The order is inclusion, the product concatenation, which adds the
@@ -20,7 +20,7 @@
     {2 Literals}
 
     A grade is written as a brace literal holding a timed regular expression
-    ({!TimedRegex}): an operation name [Read], a delay such as [3], [1/2] or
+    ({!DelayRegex}): an operation name [Read], a delay such as [3], [1/2] or
     [1.5], a comparison [<q], [<=q] ([≤q]), [>q] or [>=q] ([≥q]) denoting the
     delays below, up to, above or from [q], and [_], every operation and every
     positive delay, combined with [;], [|], [&], [~] and [*], e.g.
@@ -37,7 +37,7 @@
     joins, which the printing reads. Inclusion is decided on the product of the
     automata, and {!Grade.S.counterexample} [bounds rho rho'] is the grade of a
     word of [rho] not in [rho'] with the fewest operations
-    ({!TimedAutomaton.counterexample}), its delays the simplest rationals of the
+    ({!DelayAutomaton.counterexample}), its delays the simplest rationals of the
     sets of delays they are chosen from, and an operation no grade names written
     as [_ & ~(>0 | …)].
 
@@ -65,5 +65,5 @@
 
 include Grade.S with type Delay.t = Delay.Rational.t
 
-val automaton : t -> TimedAutomaton.t
+val automaton : t -> DelayAutomaton.t
 (** [automaton rho] is the language of [rho]. *)

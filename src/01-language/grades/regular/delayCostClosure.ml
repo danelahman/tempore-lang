@@ -1,4 +1,4 @@
-module A = TimedAutomaton
+module A = DelayAutomaton
 module IntMap = Map.Make (Int)
 module IntSet = Set.Make (Int)
 module Fifo = Dfa.Fifo
@@ -503,7 +503,7 @@ let half = Rational.make 1 2
 let choose s =
   match DelaySet.choose s with
   | Some d -> d
-  | None -> invalid_arg "TimedCostClosure.choose: an empty set of delays"
+  | None -> invalid_arg "DelayCostClosure.choose: an empty set of delays"
 
 let open_interval lo hi =
   DelaySet.interval ~lo ~lo_closed:false ~hi:(Some hi) ~hi_closed:false
@@ -527,7 +527,7 @@ let highest ~above eps s =
         (DelaySet.inter s
            (DelaySet.interval ~lo:above ~lo_closed:true ~hi:None
               ~hi_closed:false))
-  | None -> invalid_arg "TimedCostClosure.highest: an empty set of delays"
+  | None -> invalid_arg "DelayCostClosure.highest: an empty set of delays"
 
 (* [lowest eps s] is a delay of [s] close to its infimum: the minimum if
    attained, and otherwise the simplest delay of [s] within [eps] above it. *)
@@ -541,7 +541,7 @@ let lowest eps s =
         (open_interval q
            (if Rational.compare bottom.hi hi < 0 then bottom.hi else hi))
   | Some Infinite | None ->
-      invalid_arg "TimedCostClosure.lowest: an empty set of delays"
+      invalid_arg "DelayCostClosure.lowest: an empty set of delays"
 
 (* [concretise delay rejects steps] is the word of the path [steps], each set
    of delays read as the delay [delay eps] chooses from it, for the first [eps]

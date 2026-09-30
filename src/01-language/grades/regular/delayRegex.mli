@@ -1,5 +1,5 @@
 (** The timed regular expressions of the brace literals, over rational delays:
-    their denotations as timed regular languages ({!TimedAutomaton}), the delays
+    their denotations as timed regular languages ({!DelayAutomaton}), the delays
     they denote, and the expressions of classes of operations and of words.
 
     {2 Denotation}
@@ -18,9 +18,9 @@
     Thus [_*] denotes all timed words, [~1] every timed word but the delay [1],
     and [_ & ~Read] every operation but [Read] and every positive delay. *)
 
-val automaton : GradeLiteral.regex -> TimedAutomaton.t
+val automaton : GradeLiteral.regex -> DelayAutomaton.t
 (** [automaton r] is the language [r] denotes, built by recursion on [r] with
-    the constructions of {!TimedAutomaton}. *)
+    the constructions of {!DelayAutomaton}. *)
 
 val delays : GradeLiteral.regex -> DelaySet.t
 (** [delays r] is the set [ν(r)] of the delays that [r] denotes, computed by
@@ -29,10 +29,10 @@ val delays : GradeLiteral.regex -> DelaySet.t
     operations relative to [ℚ≥0] for [|], [&] and [~], and the repetition for
     [*]. *)
 
-val of_class : TimedAutomaton.Class.t -> GradeLiteral.regex
+val of_class : DelayAutomaton.Class.t -> GradeLiteral.regex
 (** [of_class c] is an expression of the one-operation words of [c]: a name, a
     union of names, or [_ & ~(>0 | A | …)] for the names other than [A], …. *)
 
-val of_word : TimedAutomaton.symbol list -> GradeLiteral.regex
+val of_word : DelayAutomaton.symbol list -> GradeLiteral.regex
 (** [of_word w] is the expression of the timed word [w], a concatenation of its
     non-zero delays and its classes, or [0] if it has neither. *)

@@ -1,5 +1,5 @@
 open GradeLiteral
-module A = TimedAutomaton
+module A = DelayAutomaton
 
 let any = A.union (A.delays DelaySet.positive) (A.operations A.Class.all)
 

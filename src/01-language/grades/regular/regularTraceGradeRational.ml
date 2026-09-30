@@ -1,6 +1,6 @@
 open Grade
 
-type t = { automaton : TimedAutomaton.t; expression : regex }
+type t = { automaton : DelayAutomaton.t; expression : regex }
 (* The [expression] denotes the language [automaton]; it is read only by the
    printing. *)
 
@@ -8,16 +8,16 @@ let name = "regex-upper-bound-rational"
 let automaton rho = rho.automaton
 
 let of_regex expression =
-  { automaton = TimedRegex.automaton expression; expression }
+  { automaton = DelayRegex.automaton expression; expression }
 
 let one = of_regex (Tick 0)
 let top = of_regex (Star Any)
-let equal _bounds rho rho' = TimedAutomaton.equal rho.automaton rho'.automaton
-let is_top _bounds rho = TimedAutomaton.equal rho.automaton top.automaton
-let leq _bounds rho rho' = TimedAutomaton.subset rho.automaton rho'.automaton
+let equal _bounds rho rho' = DelayAutomaton.equal rho.automaton rho'.automaton
+let is_top _bounds rho = DelayAutomaton.equal rho.automaton top.automaton
+let leq _bounds rho rho' = DelayAutomaton.subset rho.automaton rho'.automaton
 let leq_symbol = "<="
-let compare rho rho' = TimedAutomaton.compare rho.automaton rho'.automaton
-let hash rho = TimedAutomaton.hash rho.automaton
+let compare rho rho' = DelayAutomaton.compare rho.automaton rho'.automaton
+let hash rho = DelayAutomaton.hash rho.automaton
 
 (* [concatenation r s] is the expression [r; s], the factors of both
    concatenations listed in turn, the delays [0] left out and adjacent delays
@@ -52,20 +52,20 @@ let concatenation r s =
    operand, and the expression of a product is a {!concatenation}, which keeps
    the expressions printed short. *)
 let mul rho rho' =
-  if TimedAutomaton.equal rho.automaton one.automaton then rho'
-  else if TimedAutomaton.equal rho'.automaton one.automaton then rho
+  if DelayAutomaton.equal rho.automaton one.automaton then rho'
+  else if DelayAutomaton.equal rho'.automaton one.automaton then rho
   else
     {
-      automaton = TimedAutomaton.concat rho.automaton rho'.automaton;
+      automaton = DelayAutomaton.concat rho.automaton rho'.automaton;
       expression = concatenation rho.expression rho'.expression;
     }
 
 let join rho rho' =
-  if TimedAutomaton.subset rho'.automaton rho.automaton then rho
-  else if TimedAutomaton.subset rho.automaton rho'.automaton then rho'
+  if DelayAutomaton.subset rho'.automaton rho.automaton then rho
+  else if DelayAutomaton.subset rho.automaton rho'.automaton then rho'
   else
     {
-      automaton = TimedAutomaton.union rho.automaton rho'.automaton;
+      automaton = DelayAutomaton.union rho.automaton rho'.automaton;
       expression = Union (rho.expression, rho'.expression);
     }
 
@@ -77,7 +77,7 @@ let commutative = false
 let needs_op_bounds = false
 let implied_bounds _bounds _rho = None
 let inhabited _bounds _rho = true
-let events rho = TimedAutomaton.names rho.automaton
+let events rho = DelayAutomaton.names rho.automaton
 
 let of_bounds (lo, hi) =
   if Rational.equal lo hi then of_delay lo
@@ -85,12 +85,12 @@ let of_bounds (lo, hi) =
   else of_regex (Inter (Compare (Ge, lo), Compare (Le, hi)))
 
 let is_atomic name rho =
-  TimedAutomaton.equal rho.automaton (of_regex (Letter name)).automaton
+  DelayAutomaton.equal rho.automaton (of_regex (Letter name)).automaton
 
 let counterexample _bounds rho rho' =
   Option.map
-    (fun word -> of_regex (TimedRegex.of_word word))
-    (TimedAutomaton.counterexample rho.automaton rho'.automaton)
+    (fun word -> of_regex (DelayRegex.of_word word))
+    (DelayAutomaton.counterexample rho.automaton rho'.automaton)
 
 (* [negative_delay r] is a negative delay [r] holds, if any. *)
 let rec negative_delay = function
@@ -113,7 +113,7 @@ let of_lit = function
           invalid_lit lit "delays are non-negative, not %s" (Rational.show q)
       | None ->
           let rho = of_regex r in
-          if TimedAutomaton.is_empty rho.automaton then
+          if DelayAutomaton.is_empty rho.automaton then
             invalid_lit lit
               "this regular expression denotes the empty language, but grades \
                are non-empty"
@@ -125,7 +125,7 @@ let of_lit = function
         (describe_lit lit)
 
 let show rho =
-  if TimedAutomaton.equal rho.automaton top.automaton then "⊤"
+  if DelayAutomaton.equal rho.automaton top.automaton then "⊤"
   else "{" ^ show_regex rho.expression ^ "}"
 
 let witnesses ~degree:_ _bounds = Grade.sampled mul

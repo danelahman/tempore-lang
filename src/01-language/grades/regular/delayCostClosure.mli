@@ -3,7 +3,7 @@
 
     {2 Orders}
 
-    A timed word ({!TimedAutomaton}) is written in gap form [d₀ a₁ d₁ ⋯ aₙ dₙ].
+    A timed word ({!DelayAutomaton}) is written in gap form [d₀ a₁ d₁ ⋯ aₙ dₙ].
     Every operation [a] has a cost [c(a) ≥ 0]; the duration of a word is the sum
     of its delays, and its weight the sum of its delays and of the costs of its
     operations. As in {!CostClosure}, over whole time steps, a run [s] is
@@ -76,9 +76,9 @@ type world = (string * Rational.t) list
 
 val allowance :
   world ->
-  TimedAutomaton.t ->
-  TimedAutomaton.t ->
-  TimedAutomaton.symbol list option
+  DelayAutomaton.t ->
+  DelayAutomaton.t ->
+  DelayAutomaton.symbol list option
 (** [allowance world l m] is [None] if every word of [l] over [world] is in
     [↓m], and otherwise such a word outside [↓m], in gap form, its operations
     single names of [world], shortest in its number of symbols. The results are
@@ -86,30 +86,30 @@ val allowance :
 
 val coverage :
   world ->
-  TimedAutomaton.t ->
-  TimedAutomaton.t ->
-  TimedAutomaton.symbol list option
+  DelayAutomaton.t ->
+  DelayAutomaton.t ->
+  DelayAutomaton.symbol list option
 (** [coverage world l m] is [None] if every word of [l] over [world] is in [↑m],
     and otherwise such a word outside [↑m], as {!allowance}. *)
 
-val permits : world -> TimedAutomaton.t -> TimedAutomaton.symbol list -> bool
+val permits : world -> DelayAutomaton.t -> DelayAutomaton.symbol list -> bool
 (** [permits world m w] is whether the word [w], its operations single names of
     [world], is in [↓m], by the reader of [↓m] in exact arithmetic. *)
 
-val covers : world -> TimedAutomaton.t -> TimedAutomaton.symbol list -> bool
+val covers : world -> DelayAutomaton.t -> DelayAutomaton.symbol list -> bool
 (** [covers world m w] is whether the word [w], its operations single names of
     [world], is in [↑m], by the reader of [↑m] in exact arithmetic. *)
 
-val max_weight : world -> TimedAutomaton.t -> Rational.t option
+val max_weight : world -> DelayAutomaton.t -> Rational.t option
 (** [max_weight world l] is the supremum of the weights of the words of [l] over
     [world], [None] if [l] has none or their weights are unbounded; a longest
     path from the start to a final state over the suprema of the sets of delays
     and the greatest cost of the names of each class, by Bellman–Ford. *)
 
-val min_weight : world -> TimedAutomaton.t -> Rational.t option
+val min_weight : world -> DelayAutomaton.t -> Rational.t option
 (** [min_weight world l] is the infimum of the weights of the words of [l] over
     [world], [None] if [l] has none; a shortest path over the infima of the sets
     of delays and the least cost of the names of each class, by Bellman–Ford. *)
 
-val inhabited : world -> TimedAutomaton.t -> bool
+val inhabited : world -> DelayAutomaton.t -> bool
 (** [inhabited world l] is whether [l] has a word over [world]. *)

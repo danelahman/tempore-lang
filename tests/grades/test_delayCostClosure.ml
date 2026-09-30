@@ -12,8 +12,8 @@
 module Grade = Grades.Grade
 module Rational = Grades.Rational
 module DelaySet = Grades.DelaySet
-module A = Grades.TimedAutomaton
-module C = Grades.TimedCostClosure
+module A = Grades.DelayAutomaton
+module C = Grades.DelayCostClosure
 module Plain = Grades.RegularTraceGradeRational
 module G = Grades.RegularCostTraceGradesRational
 module W = Grades.RegularCostTraceGrades.Symbolic
@@ -528,7 +528,7 @@ let preorders =
 
    On integer instances the orders agree with those of the cost-model regular
    trace grades over whole time steps through the translation [ι] of
-   [test_timedRegex]: [ι(_) = 1 | ops] and [ι(~r) = ~ι(r) & (ops | 1)*],
+   [test_delayRegex]: [ι(_) = 1 | ops] and [ι(~r) = ~ι(r) & (ops | 1)*],
    [ops] the operations [_ & ~(>0)], the identity elsewhere. Scaling every
    delay and every cost by [1/N] keeps the verdicts: the grades over whole
    steps of a program resolution [N] read a delay [q] as [qN] steps of [1/N],
