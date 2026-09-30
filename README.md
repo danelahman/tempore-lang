@@ -231,21 +231,7 @@ written, with adjacent delays added. See
 A set of delays is kept as a finite part followed by a periodic tail. The
 finite part can be long when a repetition or a sum combines large constants
 that are nearly coprime, or a point and a narrow interval, and the cost of
-deciding grades grows with it. Checking a single annotated function takes:
-
-| Grade | Time |
-|---|---|
-| <code>{(100 &#124; 101)*}</code> | 0.4 s |
-| <code>{(300 &#124; 301)*}</code> | 1.6 s |
-| <code>{997*; 991*}</code> | 17 s |
-| <code>{(1 &#124; (&gt;10 &amp; &lt;10.001))*}</code> | 18 s |
-
-In the first three rows the sums of the two constants leave gaps up to about
-their product, which the finite part lists point by point. In the last, the
-sums of copies of the narrow interval merge into a continuous tail only after about
-the ratio of `10` to its width. Small periods, including rational ones such
-as `{(1/97 | 1/89)*}`, and intervals that widen as they repeat, such as
-`{(>=1 & <=1.001)*}`, stay fast.
+deciding grades grows with it.
 
 ### Regular expressions with costs
 
