@@ -10,7 +10,7 @@ let rec automaton = function
   | Letter name -> A.operations (A.Class.name name)
   | Tick n -> A.delays (DelaySet.point (Rational.of_int n))
   | Frac q -> A.delays (DelaySet.point q)
-  | Compare (c, q) -> A.delays (DelaySet.compare_with c q)
+  | Delays (lo, hi) -> A.delays (DelaySet.between lo hi)
   | Any -> any
   | Seq _ as r -> A.concat_list (List.map automaton (factors r))
   | Union (r, s) -> A.union (automaton r) (automaton s)
@@ -22,7 +22,7 @@ let rec delays = function
   | Letter _ -> DelaySet.empty
   | Tick n -> DelaySet.point (Rational.of_int n)
   | Frac q -> DelaySet.point q
-  | Compare (c, q) -> DelaySet.compare_with c q
+  | Delays (lo, hi) -> DelaySet.between lo hi
   | Any -> DelaySet.positive
   | Seq (r, s) -> DelaySet.sum (delays r) (delays s)
   | Union (r, s) -> DelaySet.union (delays r) (delays s)
@@ -46,7 +46,7 @@ let of_class (c : A.Class.t) =
           Compl
             (Option.get
                (unions
-                  (Compare (Gt, Rational.zero)
+                  (Delays (Open Rational.zero, Unbounded)
                   :: List.map (fun n -> Letter n) names))) )
 
 let of_word word =

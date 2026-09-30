@@ -35,7 +35,7 @@ let calibrated () =
    grade's own, a pause of up to one and a half seconds before it pays for the
    sample, and the five and a half seconds after it for the calibration. *)
 let send_then_calibrate () =
-  box {<=3/2; Send; 11/2} (Reading 0) as r in
+  box {[0, 3/2]; Send; 11/2} (Reading 0) as r in
   let x = perform Sample () in
   perform Send x;
   perform Calibrate ();
@@ -45,7 +45,7 @@ let send_then_calibrate () =
 (* Correctly accepted by the typechecker: samples, each followed by a pause of
    at most a third of a second. *)
 let paced () =
-  box {(Sample; <=1/3)*} (Reading 0) as r in
+  box {(Sample; [0, 1/3])*} (Reading 0) as r in
   let x = perform Sample () in
   delay 1/4;
   let y = perform Sample () in
@@ -56,7 +56,7 @@ let paced () =
 (* Correctly accepted by the typechecker: a pause of less than half a second,
    however close to a half it comes, and a sample of at most one and a half
    take less than two seconds. *)
-let settle () : unit # {<1/2} = delay 0.4
+let settle () : unit # {[0, 1/2)} = delay 0.4
 
 let sample_and_settle () : nat # {2} =
   let x = perform Sample () in
@@ -64,10 +64,9 @@ let sample_and_settle () : nat # {2} =
   x
 
 (* Correctly accepted by the typechecker: a transmission followed by less than
-   two seconds, written with a complement that removes the end of an
-   interval. *)
+   two seconds, the half-open interval [0, 2). *)
 let send_then_rest () =
-  box {Send; (<=2 & ~2)} (Reading 0) as r in
+  box {Send; [0, 2)} (Reading 0) as r in
   perform Send 1;
   delay 1.5;
   unbox r as x in
@@ -115,14 +114,14 @@ let slow_calibration () =
 
      Typing error: Variable `r` is unboxed with grade `{Calibrate; Send}`
        accumulated since it was bound, which is not below its box grade
-       `{<=1.5; Send; 5.5}`
+       `{[0, 1.5]; Send; 5.5}`
        ...
-       Note: the resource inequality `{Calibrate; Send} <= {<=1.5; Send; 5.5}`
-         does not hold
+       Note: the resource inequality
+         `{Calibrate; Send} <= {[0, 1.5]; Send; 5.5}` does not hold
 *)
 (*
 let calibrate_first () =
-  box {<=3/2; Send; 11/2} (Reading 0) as r in
+  box {[0, 3/2]; Send; 11/2} (Reading 0) as r in
   perform Calibrate ();
   perform Send 1;
   unbox r as x in
@@ -133,11 +132,11 @@ let calibrate_first () =
    comes arbitrarily close to it, so that a sample and the pause may take more
    than 1.9 seconds, as a pause of 4/9 of a second does:
 
-     Typing error: This function's body has grade `{Sample; <0.5}`, which does
-       not match its annotated grade `{1.9}`
-       Note: the effect inequality `{Sample; <0.5} <= {1.9}` does not hold
-       Note: the grade `{Sample; 4/9}` is below `{Sample; <0.5}` but not below
-         `{1.9}`
+     Typing error: This function's body has grade `{Sample; [0, 0.5)}`, which
+       does not match its annotated grade `{1.9}`
+       Note: the effect inequality `{Sample; [0, 0.5)} <= {1.9}` does not hold
+       Note: the grade `{Sample; 4/9}` is below `{Sample; [0, 0.5)}` but not
+         below `{1.9}`
 *)
 (*
 let sample_and_settle_early () : nat # {1.9} =
@@ -148,18 +147,18 @@ let sample_and_settle_early () : nat # {1.9} =
 
 (* Correctly rejected by the typechecker: a sample may take one and a half
    seconds, and with the pause of half a second after it reaches the two
-   seconds the complement excludes:
+   seconds the interval excludes:
 
      Typing error: Variable `r` is unboxed with grade `{Send; Sample; 0.5}`
        accumulated since it was bound, which is not below its box grade
-       `{Send; (<=2 & ~2)}`
+       `{Send; [0, 2)}`
        ...
-       Note: the resource inequality
-         `{Send; Sample; 0.5} <= {Send; (<=2 & ~2)}` does not hold
+       Note: the resource inequality `{Send; Sample; 0.5} <= {Send; [0, 2)}`
+         does not hold
 *)
 (*
 let send_then_sample () =
-  box {Send; (<=2 & ~2)} (Reading 0) as r in
+  box {Send; [0, 2)} (Reading 0) as r in
   perform Send 1;
   let x = perform Sample () in
   delay 1/2;
@@ -171,12 +170,12 @@ let send_then_sample () =
    of the operations the program declares, and a single operation other than
    the three declared is none:
 
-     Typing error: The grade `{_ & ~(>0 | Sample | Send | Calibrate)}` permits
-       no run of the declared operations
+     Typing error: The grade `{_ & ~((0, ∞) | Sample | Send | Calibrate)}`
+       permits no run of the declared operations
 *)
 (*
 let undeclared () =
-  box {_ & ~(>0 | Sample | Send | Calibrate)} (Reading 0) as r in
+  box {_ & ~((0, ∞) | Sample | Send | Calibrate)} (Reading 0) as r in
   unbox r as x in
   x
 *)

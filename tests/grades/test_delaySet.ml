@@ -333,29 +333,29 @@ let cases =
   [
     printed "{q}* = qℕ" (star (point (q 1 2))) "(0.5)*";
     printed "2ℕ" (star (point (qi 2))) "2*";
-    printed "(0, e)* = [0, ∞)" (star (open_interval (qi 0) (q 1 3))) ">=0";
+    printed "(0, e)* = [0, ∞)" (star (open_interval (qi 0) (q 1 3))) "[0, ∞)";
     printed "(1, 1.1)*"
       (star (open_interval (qi 1) (q 11 10)))
-      "0 | >1 & <1.1 | >2 & <2.2 | >3 & <3.3 | >4 & <4.4 | >5 & <5.5 | >6 & \
-       <6.6 | >7 & <7.7 | >8 & <8.8 | >9 & <9.9 | >10 & <11 | >11";
+      "0 | (1, 1.1) | (2, 2.2) | (3, 3.3) | (4, 4.4) | (5, 5.5) | (6, 6.6) | \
+       (7, 7.7) | (8, 8.8) | (9, 9.9) | (10, 11) | (11, ∞)";
     printed "{7/3, 5/2}* eventually (1/6)ℕ"
       (inter
          (star (union (point (q 7 3)) (point (q 5 2))))
          (span ~lo_closed:false (qi 30) None))
       "91/3; (1/6)*";
-    printed "[1, 2]*" (star (span (qi 1) (Some (qi 2)))) "0 | >=1";
+    printed "[1, 2]*" (star (span (qi 1) (Some (qi 2)))) "0 | [1, ∞)";
     printed "{0} ∪ [5, 6) + 3ℕ"
       (union zero
          (sum
             (span ~hi_closed:false (qi 5) (Some (qi 6)))
             (star (point (qi 3)))))
-      "0 | (>=5 & <6); 3*";
-    printed "complement of {1}" (compl (point (qi 1))) "<1 | >1";
-    printed "positive" positive ">0";
-    printed "all" all ">=0";
+      "0 | [5, 6); 3*";
+    printed "complement of {1}" (compl (point (qi 1))) "[0, 1) | (1, ∞)";
+    printed "positive" positive "(0, ∞)";
+    printed "all" all "[0, ∞)";
     printed "empty" empty "~_*";
     printed "zero" zero "0";
-    printed "[0, 1)" (span ~hi_closed:false (qi 0) (Some (qi 1))) "<1";
+    printed "[0, 1)" (span ~hi_closed:false (qi 0) (Some (qi 1))) "[0, 1)";
     expect "sup of (1, 2)"
       (function
         | Some (DelaySet.Finite (x, a)) -> Rational.show x ^ string_of_bool a
@@ -391,7 +391,7 @@ let cases =
       ~expected:(Some (q 1 2))
       (choose (open_interval (qi 0) (qi 1)));
     expect "minterms of [0, 2] and (1, 3)" Fun.id
-      ~expected:"<=1; >1 & <=2; >2 & <=3; >3"
+      ~expected:"(1, 2]; (2, 3]; (3, ∞); [0, 1]"
       (String.concat "; "
          (List.sort String.compare
             (List.map show

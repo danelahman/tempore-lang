@@ -8,8 +8,8 @@
     with [(ℚ≥0, +)]:
     - an operation name [A] denotes [{A}];
     - a delay [q] denotes [{q}], [0] the empty word;
-    - a comparison [<q], [<=q], [>q] or [>=q] denotes the delays [d] with
-      [d < q], and so on, the delay [0] being the empty word;
+    - an interval [[q, r]], [(q, r)], [\[q, r)], [(q, r\]], [\[q, ∞)] or
+      [(q, ∞)] denotes the delays in it, the delay [0] being the empty word;
     - [_] denotes every operation and every positive delay;
     - [r; s], [r | s], [r & s], [~r] and [r*] denote concatenation, which adds
       the delays that meet, union, intersection, the complement relative to all
@@ -31,7 +31,8 @@ val delays : GradeLiteral.regex -> DelaySet.t
 
 val of_class : DelayAutomaton.Class.t -> GradeLiteral.regex
 (** [of_class c] is an expression of the one-operation words of [c]: a name, a
-    union of names, or [_ & ~(>0 | A | …)] for the names other than [A], …. *)
+    union of names, or [_ & ~((0, ∞) | A | …)] for the names other than [A], ….
+*)
 
 val of_word : DelayAutomaton.symbol list -> GradeLiteral.regex
 (** [of_word w] is the expression of the timed word [w], a concatenation of its

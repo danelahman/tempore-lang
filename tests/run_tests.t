@@ -63,10 +63,10 @@
   >     regex_costs_interval*.tpe) ../tempore --grades regex-cost-interval-symbolic $f;;
   >     peak_*.tpe) ../tempore --grades peak-usage $f;;
   >     literals_reject_peak.tpe) ../tempore --grades peak-usage $f;;
-  >     literals_reject_peak_range_pair.tpe) ../tempore --grades peak-usage $f;;
+  >     literals_reject_peak_range_empty.tpe) ../tempore --grades peak-usage $f;;
   >     windows*.tpe) ../tempore --grades time-windows $f;;
   >     literals_reject_windows.tpe) ../tempore --grades time-windows $f;;
-  >     literals_reject_windows_pair.tpe) ../tempore --grades time-windows $f;;
+  >     literals_reject_windows_empty.tpe) ../tempore --grades time-windows $f;;
   >     flow_levels*.tpe) ../tempore --grades flow-levels $f;;
   >     literals_reject_flow.tpe) ../tempore --grades flow-levels $f;;
   >     counts*.tpe) ../tempore --grades counts-upper-bound $f;;
@@ -1760,6 +1760,41 @@
     [2/3, 2/3]
   ]
   
+  === Run 4 ===
+  return "p"
+  State: [
+    { resource_0 ↦ "p" # (0, 1) },
+    [0.999, 0.999]
+  ]
+  
+  === Run 5 ===
+  return "b"
+  State: [
+    { resource_0 ↦ "b" # (0.5, 1.5] },
+    [1.5, 1.5]
+  ]
+  
+  === Run 6 ===
+  return "a"
+  State: [
+    { resource_0 ↦ "a" # [0, 0.5) },
+    [0.25, 0.25]
+  ]
+  
+  === Run 7 ===
+  return "l"
+  State: [
+    { resource_0 ↦ "l" # (1/3, ∞) },
+    [1/3, 1/3],
+    [0.01, 0.01]
+  ]
+  
+  === Run 8 ===
+  return ()
+  State: [
+    [0.5, 0.5]
+  ]
+  
   ======================================================================
   literals_rational_upper.tpe
   ======================================================================
@@ -1870,6 +1905,30 @@
   === Run 12 ===
   return 0
   State: [
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+  ]
+  
+  === Run 13 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+  ]
+  
+  === Run 14 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; 1*} }
+  ]
+  
+  === Run 15 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+  ]
+  
+  === Run 16 ===
+  return 0
+  State: [
     { resource_0 ↦ 1 # ⊤ }
   ]
   
@@ -1944,19 +2003,19 @@
                          ^^^^^^^^
   Syntax error: an infinite endpoint of an interval is written with a parenthesis, as in '[n, ∞)'
   ======================================================================
-  literals_reject_interval_half_open.tpe
+  literals_reject_interval_empty.tpe
   ======================================================================
-  File "literals_reject_interval_half_open.tpe", line 3, characters 19-25:
-  3 | let claim () = box [2, 5) 1
+  File "literals_reject_interval_empty.tpe", line 4, characters 19-25:
+  4 | let claim () = box [2, 2) 1
                          ^^^^^^
-  Syntax error: intervals are written '[n, m]', '[n, ∞)', '(-∞, m]' or '(-∞, ∞)'
+  Syntax error: in the 'time-interval' grading monoid, interval endpoints must satisfy n < m at an open endpoint
   ======================================================================
-  literals_reject_interval_pair.tpe
+  literals_reject_interval_no_step.tpe
   ======================================================================
-  File "literals_reject_interval_pair.tpe", line 4, characters 19-25:
-  4 | let claim () = box (1, 4) 1
+  File "literals_reject_interval_no_step.tpe", line 4, characters 19-25:
+  4 | let claim () = box (1, 2) 1
                          ^^^^^^
-  Syntax error: in the 'time-interval' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use the 'peak-usage' grading monoid?
+  Syntax error: in the 'time-interval' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
@@ -2000,12 +2059,12 @@
                          ^^^^^^
   Syntax error: in the 'peak-usage' grading monoid, the peak must be at least 0 and at least the net change
   ======================================================================
-  literals_reject_peak_range_pair.tpe
+  literals_reject_peak_range_empty.tpe
   ======================================================================
-  File "literals_reject_peak_range_pair.tpe", line 4, characters 19-30:
-  4 | let claim () = box ((0, 1), 1) 1
+  File "literals_reject_peak_range_empty.tpe", line 3, characters 19-30:
+  3 | let claim () = box ((0, 1), 1) 1
                          ^^^^^^^^^^^
-  Syntax error: in the 'peak-usage' grading monoid, in the net change, ranges are written '[d1, d2]', '[d1, ∞)', '(-∞, d2]' or '(-∞, ∞)', not as pairs '(d1, d2)'
+  Syntax error: in the 'peak-usage' grading monoid, in the net change, the interval contains no integer
   ======================================================================
   literals_reject_rational_negative.tpe
   ======================================================================
@@ -2035,12 +2094,12 @@
                          ^^^^^^^^
   Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation
   ======================================================================
-  literals_reject_windows_pair.tpe
+  literals_reject_windows_empty.tpe
   ======================================================================
-  File "literals_reject_windows_pair.tpe", line 4, characters 19-25:
-  4 | let claim () = box (2, 5) 1
+  File "literals_reject_windows_empty.tpe", line 4, characters 19-25:
+  4 | let claim () = box (2, 3) 1
                          ^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use the 'peak-usage' grading monoid?
+  Syntax error: in the 'time-windows' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
   ======================================================================
   literals_reject_within_pair.tpe
   ======================================================================
@@ -2090,6 +2149,41 @@
   State: [
     { resource_0 ↦ 5 # [1, ∞) },
     [2, 2]
+  ]
+  
+  === Run 7 ===
+  return "open"
+  State: [
+    { resource_0 ↦ "open" # [2, 4] },
+    [4, 4]
+  ]
+  
+  === Run 8 ===
+  return "half"
+  State: [
+    { resource_0 ↦ "half" # [2, 4] },
+    [2, 2]
+  ]
+  
+  === Run 9 ===
+  return "below"
+  State: [
+    { resource_0 ↦ "below" # [3, 5] },
+    [5, 5]
+  ]
+  
+  === Run 10 ===
+  return "late"
+  State: [
+    { resource_0 ↦ "late" # [3, ∞) },
+    [3, 3]
+  ]
+  
+  === Run 11 ===
+  return 6
+  State: [
+    { resource_0 ↦ 6 # [1, 2] },
+    [1, 1]
   ]
   
   ======================================================================
@@ -3136,6 +3230,13 @@
     grade `[{0.125}, {0.125}]` accumulates here (delay)
     Note: the resource inequality `[{Sample; 0.125}, {Sample; 0.125}] <= [{0.75}, {2}]` does not hold
   ======================================================================
+  rational_traces_intervals_reject_open.tpe
+  ======================================================================
+  File "rational_traces_intervals_reject_open.tpe", line 5, characters 19-27:
+  5 | let claim () = box (1/2, 2] 1
+                         ^^^^^^^^
+  Syntax error: in the 'traces-cost-interval-rational' grading monoid, an open endpoint denotes an infinite set of runs, which these grades do not express; did you mean to use one of the 'time-interval-rational' or 'regex-cost-interval-rational' grading monoids?
+  ======================================================================
   rational_traces_upper.tpe
   ======================================================================
   === Run 1 ===
@@ -3551,10 +3652,10 @@
   File "regex_costs_rational_interval_reject.tpe", lines 22-23, characters 2-5:
   22 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `t` is unboxed with grade `[{0.5; Sample}, {0.5; Sample}]` accumulated since it was bound, which is not below its box grade `[{0.5}, {<1}]`
-    File "regex_costs_rational_interval_reject.tpe", line 19, characters 35-36:
-    19 |   box [{1/2}, {<1}] (Token "t") as t in
-                                            ^
+  Typing error: Variable `t` is unboxed with grade `[{0.5; Sample}, {0.5; Sample}]` accumulated since it was bound, which is not below its box grade `[{0.5}, {[0, 1)}]`
+    File "regex_costs_rational_interval_reject.tpe", line 19, characters 39-40:
+    19 |   box [{1/2}, {[0, 1)}] (Token "t") as t in
+                                                ^
     `t` is bound here
     File "regex_costs_rational_interval_reject.tpe", line 20, characters 2-11:
     20 |   delay 1/2;
@@ -3564,7 +3665,7 @@
     21 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
-    Note: the resource inequality `[{0.5; Sample}, {0.5; Sample}] <= [{0.5}, {<1}]` does not hold
+    Note: the resource inequality `[{0.5; Sample}, {0.5; Sample}] <= [{0.5}, {[0, 1)}]` does not hold
   ======================================================================
   regex_costs_rational_lower.tpe
   ======================================================================
@@ -3609,7 +3710,7 @@
   File "regex_costs_rational_lower_reject.tpe", lines 31-32, characters 2-5:
   31 |   unbox p as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `p` is unboxed with grade `{>0 & <1}` accumulated since it was bound, which is not below its box grade `{0.5}`
+  Typing error: Variable `p` is unboxed with grade `{(0, 1)}` accumulated since it was bound, which is not below its box grade `{0.5}`
     File "regex_costs_rational_lower_reject.tpe", line 29, characters 27-28:
     29 |   box {1/2} (Token "p") as p in
                                     ^
@@ -3617,9 +3718,9 @@
     File "regex_costs_rational_lower_reject.tpe", line 30, characters 2-15:
     30 |   some_pause ();
            ^^^^^^^^^^^^^
-    grade `{>0 & <1}` accumulates here (this computation)
-    Note: the resource inequality `{>0 & <1} <= {0.5}` does not hold
-    Note: the grade `{1/3}` is below `{>0 & <1}` but not below `{0.5}`
+    grade `{(0, 1)}` accumulates here (this computation)
+    Note: the resource inequality `{(0, 1)} <= {0.5}` does not hold
+    Note: the grade `{1/3}` is below `{(0, 1)}` but not below `{0.5}`
   
   File "regex_costs_rational_lower_reject.tpe", line 35, characters 13-44:
   35 | let quick () : nat # {1} = perform Sample ()
@@ -3679,7 +3780,7 @@
   File "regex_costs_rational_upper_reject.tpe", lines 37-38, characters 2-5:
   37 |   unbox b as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `b` is unboxed with grade `{<0.5; Send; <0.5}` accumulated since it was bound, which is not below its box grade `{1.99}`
+  Typing error: Variable `b` is unboxed with grade `{[0, 0.5); Send; [0, 0.5)}` accumulated since it was bound, which is not below its box grade `{1.99}`
     File "regex_costs_rational_upper_reject.tpe", line 33, characters 28-29:
     33 |   box {1.99} (Token "b") as b in
                                      ^
@@ -3687,7 +3788,7 @@
     File "regex_costs_rational_upper_reject.tpe", line 34, characters 2-16:
     34 |   short_pause ();
            ^^^^^^^^^^^^^^
-    grade `{<0.5}` accumulates here (this computation)
+    grade `{[0, 0.5)}` accumulates here (this computation)
     File "regex_costs_rational_upper_reject.tpe", line 35, characters 2-16:
     35 |   perform Send n;
            ^^^^^^^^^^^^^^
@@ -3695,17 +3796,17 @@
     File "regex_costs_rational_upper_reject.tpe", line 36, characters 2-16:
     36 |   short_pause ();
            ^^^^^^^^^^^^^^
-    grade `{<0.5}` accumulates here (this computation)
-    Note: the resource inequality `{<0.5; Send; <0.5} <= {1.99}` does not hold
-    Note: the grade `{64/129; Send; 64/129}` is below `{<0.5; Send; <0.5}` but not below `{1.99}`
+    grade `{[0, 0.5)}` accumulates here (this computation)
+    Note: the resource inequality `{[0, 0.5); Send; [0, 0.5)} <= {1.99}` does not hold
+    Note: the grade `{64/129; Send; 64/129}` is below `{[0, 0.5); Send; [0, 0.5)}` but not below `{1.99}`
   
   File "regex_costs_rational_upper_reject.tpe", lines 46-47, characters 2-5:
   46 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `l` is unboxed with grade `{Send; 1}` accumulated since it was bound, which is not below its box grade `{Send; (<=1 & ~1)}`
-    File "regex_costs_rational_upper_reject.tpe", line 43, characters 40-41:
-    43 |   box {Send; (<=1 & ~1)} (Token "l") as l in
-                                                 ^
+  Typing error: Variable `l` is unboxed with grade `{Send; 1}` accumulated since it was bound, which is not below its box grade `{Send; ([0, 1] & ~1)}`
+    File "regex_costs_rational_upper_reject.tpe", line 43, characters 43-44:
+    43 |   box {Send; ([0, 1] & ~1)} (Token "l") as l in
+                                                    ^
     `l` is bound here
     File "regex_costs_rational_upper_reject.tpe", line 44, characters 2-16:
     44 |   perform Send n;
@@ -3715,7 +3816,7 @@
     45 |   delay 1;
            ^^^^^^^
     grade `{1}` accumulates here (delay)
-    Note: the resource inequality `{Send; 1} <= {Send; (<=1 & ~1)}` does not hold
+    Note: the resource inequality `{Send; 1} <= {Send; ([0, 1] & ~1)}` does not hold
   
   File "regex_costs_rational_upper_reject.tpe", lines 51-53, characters 19-19:
   51 | let two_samples () : nat # {5/2} =
@@ -3841,10 +3942,10 @@
   File "regex_rational_reject.tpe", lines 23-24, characters 2-3:
   23 |   unbox due as u in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `due` is unboxed with grade `{Sample; 1; Send}` accumulated since it was bound, which is not below its box grade `{Sample; <1; Send}`
-    File "regex_rational_reject.tpe", line 18, characters 31-34:
-    18 |   box {Sample; <1; Send} () as due in
-                                        ^^^
+  Typing error: Variable `due` is unboxed with grade `{Sample; 1; Send}` accumulated since it was bound, which is not below its box grade `{Sample; [0, 1); Send}`
+    File "regex_rational_reject.tpe", line 18, characters 35-38:
+    18 |   box {Sample; [0, 1); Send} () as due in
+                                            ^^^
     `due` is bound here
     File "regex_rational_reject.tpe", line 19, characters 10-27:
     19 |   let v = perform Sample () in
@@ -3862,7 +3963,7 @@
     22 |   perform Send v;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
-    Note: the resource inequality `{Sample; 1; Send} <= {Sample; <1; Send}` does not hold
+    Note: the resource inequality `{Sample; 1; Send} <= {Sample; [0, 1); Send}` does not hold
   
   File "regex_rational_reject.tpe", line 26, characters 14-43:
   26 | let thirds () : unit # {(1/2)*} = delay 1/3
@@ -3873,17 +3974,17 @@
   File "regex_rational_reject.tpe", lines 31-32, characters 2-3:
   31 |   unbox w as u in
          ^^^^^^^^^^^^^^^
-  Typing error: Variable `w` is unboxed with grade `{2 | 0.5}` accumulated since it was bound, which is not below its box grade `{>=1}`
-    File "regex_rational_reject.tpe", line 29, characters 18-19:
-    29 |   box {>=1} () as w in
-                           ^
+  Typing error: Variable `w` is unboxed with grade `{2 | 0.5}` accumulated since it was bound, which is not below its box grade `{[1, ∞)}`
+    File "regex_rational_reject.tpe", line 29, characters 23-24:
+    29 |   box {[1, ∞)} () as w in
+                                ^
     `w` is bound here
     File "regex_rational_reject.tpe", line 30, characters 2-34:
     30 |   if b then delay 1/2 else delay 2;
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{2 | 0.5}` accumulates here (this computation)
-    Note: the resource inequality `{2 | 0.5} <= {>=1}` does not hold
-    Note: the grade `{0.5}` is below `{2 | 0.5}` but not below `{>=1}`
+    Note: the resource inequality `{2 | 0.5} <= {[1, ∞)}` does not hold
+    Note: the grade `{0.5}` is below `{2 | 0.5}` but not below `{[1, ∞)}`
   ======================================================================
   regular_auth.tpe
   ======================================================================
@@ -5336,6 +5437,30 @@ automata, 'regex-upper-bound':
   === Run 12 ===
   return 0
   State: [
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+  ]
+  
+  === Run 13 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+  ]
+  
+  === Run 14 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; 1*} }
+  ]
+  
+  === Run 15 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+  ]
+  
+  === Run 16 ===
+  return 0
+  State: [
     { resource_0 ↦ 1 # ⊤ }
   ]
   
@@ -5897,6 +6022,30 @@ above, the examples over rational delays excepted:
   === Run 12 ===
   return 0
   State: [
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+  ]
+  
+  === Run 13 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+  ]
+  
+  === Run 14 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; 1*} }
+  ]
+  
+  === Run 15 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+  ]
+  
+  === Run 16 ===
+  return 0
+  State: [
     { resource_0 ↦ 1 # ⊤ }
   ]
   
@@ -5970,6 +6119,30 @@ above, the examples over rational delays excepted:
   ]
   
   === Run 12 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 1; (0 | 1; (0 | 1)); Send} }
+  ]
+  
+  === Run 13 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; (0 | 1); Send} }
+  ]
+  
+  === Run 14 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {Read; 2; 1*} }
+  ]
+  
+  === Run 15 ===
+  return 0
+  State: [
+    { resource_0 ↦ 1 # {2; (0 | 1; (0 | 1))} }
+  ]
+  
+  === Run 16 ===
   return 0
   State: [
     { resource_0 ↦ 1 # ⊤ }
@@ -6727,6 +6900,14 @@ The rational-time example runs to its values under its intervals of hours.
   ]
   
   === Run 2 ===
+  return 25
+  State: [
+    { resource_0 ↦ 25 # (4, 6] },
+    [4, 4],
+    [0.25, 0.25]
+  ]
+  
+  === Run 3 ===
   return 72
   State: [
     { resource_0 ↦ 72 # [1, 1] },
@@ -6848,7 +7029,7 @@ under a grade permitting the pauses of more than a second that are not whole.
   === Run 1 ===
   return "settled"
   State: [
-    { resource_0 ↦ "settled" # {>1 & ~1*} },
+    { resource_0 ↦ "settled" # {(1, ∞) & ~1*} },
     {0.5},
     {1.25}
   ]

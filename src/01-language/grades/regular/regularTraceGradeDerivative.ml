@@ -17,7 +17,7 @@ let rec of_regex = function
   | Letter name -> R.letters (Letters.name name)
   | Tick n -> ticks n
   | Frac q -> fractional_tick q
-  | Compare (c, q) -> delay_comparison c q
+  | Delays (lo, hi) -> of_regex (tick_delays lo hi)
   | Any -> R.letters Letters.any
   | Seq (r, s) -> R.concat (of_regex r) (of_regex s)
   | Union (r, s) -> R.union [ of_regex r; of_regex s ]

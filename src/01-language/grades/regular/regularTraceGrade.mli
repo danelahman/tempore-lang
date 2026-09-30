@@ -69,8 +69,10 @@
 
     A grade is written as a brace literal holding a regular expression: an
     operation name [Read] is that letter, an integer [n] is [n] ticks ([0] the
-    empty word), [_] is any single letter, [;] concatenates, [|] is union, [&]
-    intersection, [~] complement and a postfix [*] repetition, e.g.
+    empty word), an interval [[n, m]] any number of ticks from [n] to [m] and
+    [\[n, ∞)] at least [n], an open endpoint abbreviating a closed one
+    ({!Grade.tick_delays}), [_] is any single letter, [;] concatenates, [|] is
+    union, [&] intersection, [~] complement and a postfix [*] repetition, e.g.
     [{Read; 3; (Send | Write)* & ~{_; Read}}]. A plain integer [n] abbreviates
     [{n}], and [⊤] (ASCII [top]) is [Σ*]. A literal denoting the empty language
     is rejected, since grades are non-empty.

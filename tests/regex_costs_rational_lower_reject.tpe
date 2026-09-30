@@ -23,7 +23,7 @@ let waiting () =
 
 (* Pauses between none and a time unit may be arbitrarily short, and cover no
    guarantee of a half. *)
-let some_pause () : unit # {>0 & <1} = delay 1/2
+let some_pause () : unit # {(0, 1)} = delay 1/2
 
 let paused () =
   box {1/2} (Token "p") as p in

@@ -76,7 +76,9 @@ module type S = sig
   (** [of_regex r] is the normal form of the expression [r], which may denote
       the empty language.
 
-      @raise Grade.Invalid_literal if [r] has a delay that is not an integer. *)
+      @raise Grade.Invalid_literal
+        if [r] has a delay that is not an integer, or an interval of delays with
+        no whole number of time steps. *)
 
   val concrete : string list -> t -> Dfa.t
   (** [concrete names rho] is the language of the runs of [rho] that perform

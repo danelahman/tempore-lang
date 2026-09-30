@@ -91,27 +91,29 @@ let examples =
       (G.Upper.is_top bounds (lit "{~1}"));
     is "upper: a bound without delays buys none"
       (not (G.Upper.is_top bounds (lit "{(A | B | S)*}")));
-    is "upper: open delays approach their sum" (not (upper "{<1; <1}" "{1.99}"));
-    is "upper: open delays stay below it" (upper "{<1; A; <1}" "{3}");
-    is "upper: open delays pay for no more" (not (upper "{<1; A; <1}" "{2.9}"));
-    is "upper: a closed delay at the bound" (upper "{<=1; A; <=1}" "{3}");
-    is "upper: an unbounded delay" (not (upper "{>1; A}" "{A; 100}"));
-    is "upper: comparison atoms as bounds" (upper "{A; 1/2}" "{A; <=1/2}");
+    is "upper: open delays approach their sum"
+      (not (upper "{[0, 1); [0, 1)}" "{1.99}"));
+    is "upper: open delays stay below it" (upper "{[0, 1); A; [0, 1)}" "{3}");
+    is "upper: open delays pay for no more"
+      (not (upper "{[0, 1); A; [0, 1)}" "{2.9}"));
+    is "upper: a closed delay at the bound" (upper "{[0, 1]; A; [0, 1]}" "{3}");
+    is "upper: an unbounded delay" (not (upper "{(1, ∞); A}" "{A; 100}"));
+    is "upper: comparison atoms as bounds" (upper "{A; 1/2}" "{A; [0, 1/2]}");
     is "upper: an open bound admits no delay at it"
-      (not (upper "{A; 1/2}" "{A; <1/2}"));
+      (not (upper "{A; 1/2}" "{A; [0, 1/2)}"));
     is "upper: an open bound admits every delay below it"
-      (upper "{A; <1/2}" "{A; <1/2 | B}");
+      (upper "{A; [0, 1/2)}" "{A; [0, 1/2) | B}");
     is "upper: a complement of a delay admits every delay but it"
       (upper "{A; 1/3}" "{A; ~(1/2)}");
     is "upper: a complement admits delays nearby"
-      (upper "{A; 1/2}" "{A; (>1/2 & <1)}");
+      (upper "{A; 1/2}" "{A; (1/2, 1)}");
     is "lower: a longer delay covers a shorter one" (lower "{A; 1}" "{A; 1/2}");
     is "lower: not conversely" (not (lower "{A; 1/2}" "{A; 1}"));
     is "lower: an operation banks its lower bound" (lower "{S}" "{1/2}");
     is "lower: not more" (not (lower "{S}" "{3/4}"));
     is "lower: a demanded operation is performed" (not (lower "{1}" "{S}"));
-    is "lower: open delays above a bound cover it" (lower "{>1/2}" "{1/2}");
-    is "lower: open delays near 0 cover none" (not (lower "{>0 & <1}" "{1/2}"));
+    is "lower: open delays above a bound cover it" (lower "{(1/2, ∞)}" "{1/2}");
+    is "lower: open delays near 0 cover none" (not (lower "{(0, 1)}" "{1/2}"));
     is "lower: the unit is the top" (G.Lower.is_top bounds (lit "{0}"));
     is "lower: all runs are the top" (G.Lower.is_top bounds (lit "⊤"));
     is "lower: A; _* is not the top"
@@ -119,14 +121,14 @@ let examples =
     expect "upper: counterexample of open delays" Fun.id
       ~expected:"{2/3; A; 2/3}"
       (show_counterexample G.Upper.show
-         (G.Upper.counterexample bounds (lit "{<1; A; <1}") (lit "{2}")));
+         (G.Upper.counterexample bounds (lit "{[0, 1); A; [0, 1)}") (lit "{2}")));
     expect "upper: counterexample of an unbounded delay" Fun.id
       ~expected:"{A; 10}"
       (show_counterexample G.Upper.show
-         (G.Upper.counterexample bounds (lit "{A; >=1/2}") (lit "{A; 5 | 9}")));
+         (G.Upper.counterexample bounds (lit "{A; [1/2, ∞)}") (lit "{A; 5 | 9}")));
     expect "lower: counterexample of an open delay" Fun.id ~expected:"{0.5}"
       (show_counterexample G.Lower.show
-         (G.Lower.counterexample bounds (lit "{>0 & <1}") (lit "{3/4}")));
+         (G.Lower.counterexample bounds (lit "{(0, 1)}") (lit "{3/4}")));
     expect "lower: counterexample of a missed operation" Fun.id ~expected:"{B}"
       (show_counterexample G.Lower.show
          (G.Lower.counterexample bounds (lit "{B | S}") (lit "{S | 1/2}")));
@@ -149,16 +151,16 @@ let open_delays =
       [
         is
           (Printf.sprintf "open delays: %d below %d" k ((2 * k) - 1))
-          (within "(>0 & <1)" ((2 * k) - 1));
+          (within "(0, 1)" ((2 * k) - 1));
         is
           (Printf.sprintf "open delays: %d not below %d" k ((2 * k) - 2))
-          (k = 1 || not (within "(>0 & <1)" ((2 * k) - 2)));
+          (k = 1 || not (within "(0, 1)" ((2 * k) - 2)));
         is
           (Printf.sprintf "half-open delays: %d below %d" k ((2 * k) - 1))
-          (within "(>0 & <=1)" ((2 * k) - 1));
+          (within "(0, 1]" ((2 * k) - 1));
         is
           (Printf.sprintf "half-open delays: %d not below %d" k ((2 * k) - 2))
-          (k = 1 || not (within "(>0 & <=1)" ((2 * k) - 2)));
+          (k = 1 || not (within "(0, 1]" ((2 * k) - 2)));
       ])
     [ 1; 2; 3; 4; 5; 6; 7; 8 ]
 
@@ -174,20 +176,20 @@ let implied =
     expect "implied: a compound operation" Fun.id ~expected:"1, 2.75"
       (implied "{S; 1/4; T}");
     expect "implied: an open delay" Fun.id ~expected:"0.75, 3"
-      (implied "{S; (>0 & <1/2); T}");
+      (implied "{S; (0, 1/2); T}");
     expect "implied: a choice" Fun.id ~expected:"0.25, 1.5" (implied "{S | T}");
     expect "implied: unbounded" Fun.id ~expected:"none" (implied "{S*}");
     expect "implied: unbounded delays" Fun.id ~expected:"none"
-      (implied "{S; >1}");
+      (implied "{S; (1, ∞)}");
     expect "implied: a catch-all" Fun.id ~expected:"0, 1.5"
-      (implied "{_ & ~(>0)}");
+      (implied "{_ & ~(0, ∞)}");
     expect "implied: an interval" Fun.id ~expected:"0.5, 1"
       (show_bounds
          (G.Interval.implied_bounds bounds
             (G.Interval.of_lit
                (Grade.Interval
-                  ( Some (Grade.Braces (Grade.Letter "S")),
-                    Some (Grade.Braces (Grade.Letter "T")) )))));
+                  ( Grade.Closed (Grade.Braces (Grade.Letter "S")),
+                    Grade.Closed (Grade.Braces (Grade.Letter "T")) )))));
   ]
 
 let closed_world =
@@ -196,13 +198,13 @@ let closed_world =
     is "closed world: an operation other than A and a delay"
       (G.Upper.inhabited only_a (lit "{_ & ~A}"));
     is "closed world: no operation other than A"
-      (not (G.Upper.inhabited only_a (lit "{_ & ~(>0) & ~A}")));
+      (not (G.Upper.inhabited only_a (lit "{_ & ~(0, ∞) & ~A}")));
     is "closed world: the catch-all matches A"
-      (G.Upper.leq only_a (lit "{A}") (lit "{(_ & ~(>0))*}"));
+      (G.Upper.leq only_a (lit "{A}") (lit "{(_ & ~(0, ∞))*}"));
     is "closed world: a declared operation bought"
-      (upper "{T}" "{(_ & ~(>0) & ~S)*}");
+      (upper "{T}" "{(_ & ~(0, ∞) & ~S)*}");
     is "closed world: a declared operation not bought"
-      (not (upper "{S}" "{(_ & ~(>0) & ~S)*}"));
+      (not (upper "{S}" "{(_ & ~(0, ∞) & ~S)*}"));
   ]
 
 let literals =
@@ -223,18 +225,34 @@ let literals =
     reads (module G.Lower) Grade.Top "{0}";
     reads
       (module G.Interval)
-      (Grade.Interval (Some (frac 1 2), Some (frac 3 2)))
+      (Grade.Interval (Grade.Closed (frac 1 2), Grade.Closed (frac 3 2)))
       "[{0.5}, {1.5}]";
     reads (module G.Interval) (frac 1 3) "[{1/3}, {1/3}]";
     reads
       (module G.Interval)
-      (Grade.Braces (Grade.Compare (Grade.Lt, qi 1)))
-      "[{<1}, {<1}]";
+      (Grade.Braces
+         (Grade.Delays (Grade.Closed Rational.zero, Grade.Open (qi 1))))
+      "[{[0, 1)}, {[0, 1)}]";
     rejects
       (module G.Interval)
       "reversed interval"
-      (Grade.Interval (Some (frac 3 2), Some (frac 1 2)));
-    rejects (module G.Interval) "pair" (Grade.Tuple [ frac 1 2; frac 3 2 ]);
+      (Grade.Interval (Grade.Closed (frac 3 2), Grade.Closed (frac 1 2)));
+    reads
+      (module G.Interval)
+      (Grade.Tuple [ frac 1 2; frac 3 2 ])
+      "[{(0.5, ∞)}, {[0, 1.5)}]";
+    reads
+      (module G.Interval)
+      (Grade.Interval (Grade.Closed (frac 1 2), Grade.Open (frac 3 2)))
+      "[{0.5}, {[0, 1.5)}]";
+    reads
+      (module G.Interval)
+      (Grade.Interval (Grade.Open (frac 1 2), Grade.Unbounded))
+      "[{(0.5, ∞)}, ∞)";
+    rejects
+      (module G.Interval)
+      "empty open interval"
+      (Grade.Tuple [ frac 1 2; frac 1 2 ]);
     rejects (module G.Upper) "negative delay" (frac (-1) 2);
     rejects
       (module G.Upper)
@@ -337,6 +355,22 @@ let random_bound st ~closed_top =
              (if i > 0 || int 2 = 0 then [ Op (List.nth names (int 2)) ] else [])
              @ List.init (int 3) (fun _ -> Gap (gap ())))))
 
+(* [comparison k q] is the interval atom of the delays below, up to, above or
+   from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the empty
+   language is written [~_*]. *)
+let comparison k q =
+  let zero = Grade.Closed Rational.zero in
+  if k = 0 && Rational.sign q = 0 then Grade.Compl (Grade.Star Grade.Any)
+  else
+    let lo, hi =
+      match k with
+      | 0 -> (zero, Grade.Open q)
+      | 1 -> (zero, Grade.Closed q)
+      | 2 -> (Grade.Open q, Grade.Unbounded)
+      | _ -> (Grade.Closed q, Grade.Unbounded)
+    in
+    Grade.Delays (lo, hi)
+
 let rec random_regex st depth =
   let int = Random.State.int st in
   let sub () = random_regex st (depth - 1) in
@@ -344,7 +378,7 @@ let rec random_regex st depth =
   match int (if depth = 0 then 4 else 10) with
   | 0 -> Grade.Letter (List.nth names (int 2))
   | 1 -> Grade.rational_tick (value ())
-  | 2 -> Grade.Compare (List.nth Grade.[ Lt; Le; Gt; Ge ] (int 4), value ())
+  | 2 -> comparison (int 4) (value ())
   | 3 -> Grade.Any
   | 4 | 5 -> Grade.Seq (sub (), sub ())
   | 6 -> Grade.Union (sub (), sub ())
@@ -534,7 +568,9 @@ let preorders =
    [_] as [1/N | ops] and complements among the runs of steps of [1/N]. *)
 
 let ops =
-  Grade.Inter (Grade.Any, Grade.Compl (Grade.Compare (Grade.Gt, Rational.zero)))
+  Grade.Inter
+    ( Grade.Any,
+      Grade.Compl (Grade.Delays (Grade.Open Rational.zero, Grade.Unbounded)) )
 
 let rec iota n = function
   | Grade.Any -> Grade.Union (Grade.rational_tick (q 1 n), ops)
@@ -547,7 +583,7 @@ let rec iota n = function
   | Grade.Inter (r, s) -> Grade.Inter (iota n r, iota n s)
   | Grade.Star r -> Grade.Star (iota n r)
   | Grade.Tick k -> Grade.rational_tick (q k n)
-  | (Grade.Letter _ | Grade.Frac _ | Grade.Compare _) as r -> r
+  | (Grade.Letter _ | Grade.Frac _ | Grade.Delays _) as r -> r
 
 let whole_names = [ "A"; "B"; "C" ]
 let whole_costs = [ ("A", (1, 3)); ("B", (0, 2)); ("C", (2, 2)) ]

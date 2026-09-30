@@ -119,7 +119,19 @@ let rec matches r w =
   match r with
   | Grade.Letter name -> w = [ Op name ]
   | Grade.Tick n -> w = List.init n (fun _ -> T)
-  | Grade.Frac _ | Grade.Compare _ -> false
+  | Grade.Frac _ -> false
+  | Grade.Delays (lo, hi) ->
+      let n = Grades.Rational.of_int (List.length w) in
+      let above = function
+        | Grade.Closed a -> Grades.Rational.compare a n <= 0
+        | Grade.Open a -> Grades.Rational.compare a n < 0
+        | Grade.Unbounded -> true
+      and below = function
+        | Grade.Closed b -> Grades.Rational.compare n b <= 0
+        | Grade.Open b -> Grades.Rational.compare n b < 0
+        | Grade.Unbounded -> true
+      in
+      List.for_all (( = ) T) w && above lo && below hi
   | Grade.Any -> List.length w = 1
   | Grade.Seq (r, s) ->
       List.exists (fun (u, v) -> matches r u && matches s v) (splits w)
@@ -264,6 +276,27 @@ struct
       rejects "Read" "not names such as 'Read'";
       rejects "∞" "not '∞'";
       rejects "(1, 2)" "not pairs";
+      rejects "{(1, 2)}" "'(1, 2)' contains no whole number of time steps";
+      rejects "{[1/2, 2]}" "whole numbers of time steps";
+      rejects "{(1, 1]}" "n < m at an open endpoint";
+      rejects "{<1}" "'[0, 1)' for '<1'";
+    ]
+
+  (* Interval atoms abbreviate sets of numbers of ticks. *)
+  let intervals =
+    let same_lit a b =
+      let rho = lit a and rho' = lit b in
+      check (a ^ " = " ^ b) (same rho rho') (G.show rho ^ " vs " ^ G.show rho')
+    in
+    [
+      same_lit "{[1, 3]}" "{1 | 2 | 3}";
+      same_lit "{(1, 4)}" "{2 | 3}";
+      same_lit "{[1, 4)}" "{1 | 2 | 3}";
+      same_lit "{(1, 3]}" "{2 | 3}";
+      same_lit "{[2, 2]}" "{2}";
+      same_lit "{[2, ∞)}" "{2; 1*}";
+      same_lit "{(1, inf)}" "{2; 1*}";
+      same_lit "{A; [0, 1]; B}" "{A; B | A; 1; B}";
     ]
 
   let canonicity =
@@ -517,8 +550,8 @@ struct
       texts
 
   let checks =
-    printing @ lexing @ errors @ canonicity @ inclusion @ alignment @ properties
-    @ semantics @ canonical_samples @ laws @ bounded_printing
+    printing @ lexing @ errors @ intervals @ canonicity @ inclusion @ alignment
+    @ properties @ semantics @ canonical_samples @ laws @ bounded_printing
 end
 
 module Automata =

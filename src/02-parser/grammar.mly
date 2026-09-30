@@ -61,38 +61,79 @@
   (* An endpoint of an interval literal: a grade literal, or [-∞]. *)
   type endpoint = Lit of Grade.lit | Minus_infinity
 
+  (* [infinite_endpoint ~loc] is the syntax error at [loc] of an infinite
+     endpoint written with a bracket. *)
+  let infinite_endpoint ~loc =
+    Error.syntax ~loc
+      "an infinite endpoint of an interval is written with a parenthesis, \
+       as in '[n, ∞)'"
+
   (* [interval ~loc ~lower_open ends ~upper_open] is the interval literal at
      [loc] with the endpoints [ends], open below iff [lower_open] and above iff
-     [upper_open]. An interval is closed at its finite endpoints, which are
-     grade literals other than [∞], and open at its infinite ones. *)
+     [upper_open]. A finite endpoint is a grade literal other than [∞], and an
+     infinite one is open. *)
   let interval ~loc ~lower_open ends ~upper_open =
     let forms () =
       Error.syntax ~loc
-        "intervals are written '[n, m]', '[n, ∞)', '(-∞, m]' or '(-∞, ∞)'"
-    in
-    let infinite () =
-      Error.syntax ~loc
-        "an infinite endpoint of an interval is written with a parenthesis, \
-         as in '[n, ∞)'"
+        "intervals are written '[n, m]', '(n, m)', '[n, m)' or '(n, m]', \
+         with an infinite endpoint as in '[n, ∞)' or '(-∞, m]'"
     in
     match ends with
     | [ lo; hi ] ->
         let lower =
           match (lo, lower_open) with
-          | Minus_infinity, true -> None
-          | Minus_infinity, false -> infinite ()
-          | Lit Grade.Inf, _ | Lit _, true -> forms ()
-          | Lit lit, false -> Some lit
+          | Minus_infinity, true -> Grade.Unbounded
+          | Minus_infinity, false -> infinite_endpoint ~loc
+          | Lit Grade.Inf, _ -> forms ()
+          | Lit lit, true -> Grade.Open lit
+          | Lit lit, false -> Grade.Closed lit
         in
         let upper =
           match (hi, upper_open) with
-          | Lit Grade.Inf, true -> None
-          | Lit Grade.Inf, false -> infinite ()
-          | Minus_infinity, _ | Lit _, true -> forms ()
-          | Lit lit, false -> Some lit
+          | Lit Grade.Inf, true -> Grade.Unbounded
+          | Lit Grade.Inf, false -> infinite_endpoint ~loc
+          | Minus_infinity, _ -> forms ()
+          | Lit lit, true -> Grade.Open lit
+          | Lit lit, false -> Grade.Closed lit
         in
         Grade.Interval (lower, upper)
     | _ -> forms ()
+
+  (* [delays ~loc ~lower_open lo hi ~upper_open] is the interval atom at [loc]
+     of a brace literal from the delay [lo] to the delay [hi], [None] being
+     infinite, open below iff [lower_open] and above iff [upper_open]; a syntax
+     error if it is empty. *)
+  let delays ~loc ~lower_open lo hi ~upper_open =
+    let lower = if lower_open then Grade.Open lo else Grade.Closed lo in
+    let upper =
+      match (hi, upper_open) with
+      | None, true -> Grade.Unbounded
+      | None, false -> infinite_endpoint ~loc
+      | Some hi, true -> Grade.Open hi
+      | Some hi, false -> Grade.Closed hi
+    in
+    match Grade.emptiness lower upper with
+    | Some reason -> Error.syntax ~loc "%s" reason
+    | None -> Grade.Delays (lower, upper)
+
+  (* [comparison ~loc op q] is the syntax error at [loc] of the comparison
+     [op] with [q] in a brace literal, naming the interval it abbreviates. *)
+  let comparison ~loc op q =
+    let q' = Rational.show q in
+    let interval =
+      match op with
+      | "<" -> Some ("[0, " ^ q' ^ ")")
+      | "<=" -> Some ("[0, " ^ q' ^ "]")
+      | ">" -> Some ("(" ^ q' ^ ", ∞)")
+      | ">=" -> Some ("[" ^ q' ^ ", ∞)")
+      | _ -> None
+    in
+    match interval with
+    | Some interval ->
+        Error.syntax ~loc
+          "a set of delays in a brace literal is an interval, e.g. '%s' for \
+           '%s%s'" interval op q'
+    | None -> Error.syntax ~loc "unknown operator '%s' in a brace literal" op
 
   (* The literals written as lowercase names. *)
   let named_lit ~loc = function
@@ -657,9 +698,11 @@ grade_lit:
   | lit = interval_lit { lit }
   | LBRACE r = regex RBRACE { Grade.Braces r }
 
-(* An interval of grade literals, closed at its finite endpoints and open at
-   its infinite ones: [[n, m]], [[n, ∞)], [(-∞, m]] or [(-∞, ∞)]. Any other
-   bracketing of two endpoints is a syntax error. *)
+(* An interval of grade literals, each finite endpoint closed or open and each
+   infinite one open: [[n, m]], [[n, m)], [(n, m]], [[n, ∞)], [(-∞, m]],
+   [(-∞, m)] or [(-∞, ∞)]. An open interval [(n, m)] of finite endpoints is
+   the tuple [(n, m)], which the grades that read intervals of numbers read as
+   such. Any other bracketing of two endpoints is a syntax error. *)
 interval_lit:
   | LBRACK ends = separated_nonempty_list(COMMA, endpoint) RBRACK
     { interval ~loc:(Location.of_lexing $startpos $endpos)
@@ -694,8 +737,9 @@ minus_infinity:
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
    [*]. Braces group as parentheses do. An atom is an operation name, a delay,
-   the wildcard [_], or a comparison [<q], [<=q], [>q] or [>=q] denoting a set
-   of delays. *)
+   the wildcard [_], or an interval of delays [[a, b]], [(a, b)], [[a, b)],
+   [(a, b]], [[a, ∞)] or [(a, ∞)]; a parenthesis followed by a delay and a
+   comma opens an interval, and otherwise a group. *)
 regex:
   | r = regex_inter { r }
   | r = regex BAR s = regex_inter { Grade.Union (r, s) }
@@ -725,20 +769,33 @@ regex_atom:
   | n = INT
     { Grade.Tick (small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
   | q = fraction { Grade.rational_tick q }
+  | LBRACK lo = duration COMMA hi = delay_end RBRACK
+    { delays ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:false lo hi ~upper_open:false }
+  | LBRACK lo = duration COMMA hi = delay_end RPAREN
+    { delays ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:false lo hi ~upper_open:true }
+  | LPAREN lo = duration COMMA hi = delay_end RBRACK
+    { delays ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:true lo hi ~upper_open:false }
+  | LPAREN lo = duration COMMA hi = delay_end RPAREN
+    { delays ~loc:(Location.of_lexing $startpos $endpos)
+        ~lower_open:true lo hi ~upper_open:true }
   | op = INFIXOP0 q = duration
-    { let comparison =
-        match op with
-        | "<" -> Grade.Lt
-        | "<=" -> Grade.Le
-        | ">" -> Grade.Gt
-        | ">=" -> Grade.Ge
-        | _ ->
-            Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
-              "unknown comparison '%s' in a brace literal" op
-      in
-      Grade.Compare (comparison, q) }
+    { comparison ~loc:(Location.of_lexing $startpos $endpos) op q }
   | UNDERSCORE { Grade.Any }
   | LPAREN r = regex RPAREN { r }
   | LBRACE r = regex RBRACE { r }
+
+(* The upper endpoint of an interval of delays: a delay, or [∞] (ASCII
+   [inf]), [None]. *)
+delay_end:
+  | q = duration { Some q }
+  | INFINITY { None }
+  | name = LNAME
+    { if name = "inf" then None
+      else
+        Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+          "'%s' is no delay" name }
 
 %%

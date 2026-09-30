@@ -79,8 +79,10 @@ module Lower :
       [(t, [d1, d2], h)] with an explicit trough [t]. Troughs are integers or
       [⊤], standing for [-∞]; peaks are integers or [∞]; exact net changes and
       the finite ends of ranges are integers, a range unbounded below or above
-      being written [(-∞, d2\]] or [\[d1, ∞)], and [(∞, ∞)] is the top. The
-      components must satisfy [t ≤ min(0, d1)], [d1 ≤ d2] and [h ≥ max(0, d2)].
+      being written [(-∞, d2\]] or [\[d1, ∞)], and [(∞, ∞)] is the top. An open
+      end abbreviates a closed one, the range [(d1, d2)] being
+      [[d1 + 1, d2 - 1]], and must leave the range non-empty. The components
+      must satisfy [t ≤ min(0, d1)], [d1 ≤ d2] and [h ≥ max(0, d2)].
     - [show] prints the top as [(∞, ∞)] and any other grade in the shortest of
       these forms, omitting the trough when it is [min(0, d1)].
     - No counterexample is offered.

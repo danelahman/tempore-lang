@@ -25,8 +25,11 @@ let of_braces lit r =
     | Grade.Tick n -> R.ticks n
     | Grade.Frac q ->
         Grade.component_of_lit lit ~context:"" Grade.fractional_tick q
-    | Grade.Compare (c, q) ->
-        Grade.component_of_lit lit ~context:"" (Grade.delay_comparison c) q
+    | Grade.Delays (lo, hi) ->
+        go
+          (Grade.component_of_lit lit ~context:""
+             (fun (lo, hi) -> Grade.tick_delays lo hi)
+             (lo, hi))
     | Grade.Any -> R.ticks 1
     | Grade.Seq (r, s) -> R.concat (go r) (go s)
     | Grade.Union (r, s) -> R.union [ go r; go s ]
@@ -68,24 +71,29 @@ module Durations = struct
   let inhabited _bounds _ = true
   let events _ = []
 
-  let of_lit = function
+  (** [of_interval lit lo hi] is the set of the durations in the interval
+      literal [lit] from [lo] to [hi], an open endpoint abbreviating a closed
+      one by {!Grade.integer_ends}. *)
+  let of_interval lit lo hi =
+    match (lo, hi) with
+    | (Grade.Closed (Grade.Int n) | Grade.Open (Grade.Int n)), _ when n < 0 ->
+        Grade.invalid_lit lit "durations must be non-negative"
+    | Grade.Unbounded, _ ->
+        Grade.invalid_lit lit "durations must be non-negative"
+    | _ -> (
+        match Grade.integer_ends lit lo hi with
+        | Grade.Closed (Grade.Int n), Grade.Closed (Grade.Int m) -> interval n m
+        | Grade.Closed (Grade.Int n), Grade.Unbounded -> from n
+        | _ -> Grade.invalid_lit lit "interval endpoints are integers")
+
+  let of_lit lit =
+    match Grade.open_pair lit with
     | Grade.Top -> top
     | Grade.Int n when n < 0 ->
         Grade.invalid_lit (Grade.Int n) "durations must be non-negative"
     | Grade.Int n -> R.ticks n
-    | Grade.Interval (Some (Grade.Int n), _) as lit when n < 0 ->
-        Grade.invalid_lit lit "durations must be non-negative"
-    | Grade.Interval (None, _) as lit ->
-        Grade.invalid_lit lit "durations must be non-negative"
-    | Grade.Interval (Some (Grade.Int n), Some (Grade.Int m)) as lit when m < n
-      ->
-        Grade.invalid_lit lit "interval endpoints must satisfy n <= m"
-    | Grade.Interval (Some (Grade.Int n), Some (Grade.Int m)) -> interval n m
-    | Grade.Interval (Some (Grade.Int n), None) -> from n
-    | Grade.Interval _ as lit ->
-        Grade.invalid_lit lit "interval endpoints are integers"
-    | lit when Grade.is_pair_interval lit -> Grade.reject_pair_interval lit
-    | Grade.Braces r as lit ->
+    | Grade.Interval (lo, hi) -> of_interval lit lo hi
+    | Grade.Braces r ->
         let rho = of_braces lit r in
         if R.is_empty rho then
           Grade.invalid_lit lit "this set of durations is empty"

@@ -294,8 +294,8 @@ struct
           let rho = L.of_lit lit in
           (rho, rho)
       | lit ->
-          bounds_of_lit lit ~number:integer ~lower:Lower.of_lit
-            ~upper:Upper.of_lit ~unbounded:Upper.top
+          bounds_of_lit lit ~number:integer ~close:close_integer
+            ~lower:Lower.of_lit ~upper:Upper.of_lit ~unbounded:Upper.top
             ~bounds:"regular expressions"
 
     let of_delay d = (L.of_delay d, L.of_delay d)

@@ -100,8 +100,8 @@ let lit_of_pair n level = Grade.Tuple [ Grade.Int n; Grade.Name level ]
    or [∞] above standing for an infinite one. *)
 let span l h =
   Grade.Interval
-    ( (match l with Grade.Top -> None | l -> Some l),
-      match h with Grade.Inf -> None | h -> Some h )
+    ( (match l with Grade.Top -> Grade.Unbounded | l -> Grade.Closed l),
+      match h with Grade.Inf -> Grade.Unbounded | h -> Grade.Closed h )
 
 (* Counterexamples: in the component where the order fails, with the other
    component of the lesser grade, and none from grades that offer none. *)
@@ -262,39 +262,66 @@ let literals =
       (Rat (Rational.make 3 2))
       "not fractions such as '3/2'";
     rejects "fractional endpoint, whole steps" time_interval
-      (Interval (Some (Rat (Rational.make 1 3)), None))
+      (Interval (Closed (Rat (Rational.make 1 3)), Unbounded))
       "endpoints are integers";
     reads "fraction, decimal" rational_upper (Rat (Rational.make 3 2)) "1.5";
     reads "fraction, quotient" rational_lower (Rat (Rational.make 1 3)) "1/3";
     reads "integer, rational" rational_upper (Int 2) "2";
     reads "infinity, rational" rational_upper Inf "∞";
     reads "open interval, rational" rational_interval
-      (Interval (Some (Rat (Rational.make 1 3)), None))
+      (Interval (Closed (Rat (Rational.make 1 3)), Unbounded))
       "[1/3, ∞)";
     reads "interval, rational" rational_interval
-      (Interval (Some (Rat (Rational.make 1 8)), Some (Int 2)))
+      (Interval (Closed (Rat (Rational.make 1 8)), Closed (Int 2)))
       "[0.125, 2]";
     rejects "negative fraction" rational_upper
       (Rat (Rational.make (-1) 2))
       "must be non-negative";
     rejects "reversed interval, rational" rational_interval
-      (Interval (Some (Rat (Rational.make 3 2)), Some (Int 1)))
+      (Interval (Closed (Rat (Rational.make 3 2)), Closed (Int 1)))
       "must satisfy n <= m";
     rejects "pair, rational" rational_upper
       (Tuple [ Int 1; Int 2 ])
       "grades are plain numbers or '∞', not pairs";
     rejects "negative interval endpoint" time_interval
-      (Interval (Some (Int (-1)), Some (Int 5)))
+      (Interval (Closed (Int (-1)), Closed (Int 5)))
       "must be non-negative";
     rejects "interval unbounded below" time_interval
-      (Interval (None, Some (Int 5)))
+      (Interval (Unbounded, Closed (Int 5)))
       "must be non-negative";
-    rejects "pair for an interval" time_interval
+    reads "pair for an open interval" time_interval
       (Tuple [ Int 1; Int 5 ])
-      "intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'";
-    rejects "pair for an interval, rational" rational_interval
+      "[2, 4]";
+    reads "half-open interval" time_interval
+      (Interval (Closed (Int 1), Open (Int 5)))
+      "[1, 4]";
+    reads "interval open below" time_interval
+      (Interval (Open (Int 1), Unbounded))
+      "[2, ∞)";
+    rejects "open interval of no step" time_interval
+      (Tuple [ Int 1; Int 2 ])
+      "the interval contains no integer";
+    rejects "empty open interval" time_interval
+      (Interval (Closed (Int 2), Open (Int 2)))
+      "n < m at an open endpoint";
+    reads "pair for an open interval, rational" rational_interval
       (Tuple [ Rat (Rational.make 1 2); Inf ])
-      "intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'";
+      "(0.5, ∞)";
+    reads "open interval, rational" rational_interval
+      (Tuple [ Rat (Rational.make 1 2); Int 3 ])
+      "(0.5, 3)";
+    reads "half-open interval, rational" rational_interval
+      (Interval (Open (Rat (Rational.make 1 2)), Closed (Int 3)))
+      "(0.5, 3]";
+    reads "interval open above, rational" rational_interval
+      (Interval (Closed (Int 0), Open (Rat (Rational.make 1 3))))
+      "[0, 1/3)";
+    rejects "empty open interval, rational" rational_interval
+      (Tuple [ Rat (Rational.make 1 2); Rat (Rational.make 1 2) ])
+      "n < m at an open endpoint";
+    rejects "empty half-open interval, rational" rational_interval
+      (Interval (Open (Int 1), Closed (Int 1)))
+      "n < m at an open endpoint";
     reads "release" peak_usage (Tuple [ Int (-1); Int 0 ]) "(-1, 0)";
     reads "unbounded peak" peak_usage (Tuple [ Int (-3); Inf ]) "(-3, ∞)";
     reads "top" peak_usage Top "(∞, ∞)";
@@ -332,29 +359,35 @@ let literals =
       (Tuple [ Int (-1); Int (-1); Int 0 ])
       "(-1, 0)";
     reads "range" peak_usage
-      (Tuple [ Interval (Some (Int 0), Some (Int 1)); Int 1 ])
+      (Tuple [ Interval (Closed (Int 0), Closed (Int 1)); Int 1 ])
       "([0, 1], 1)";
     reads "range with a trough" peak_usage
-      (Tuple [ Int (-2); Interval (Some (Int (-1)), Some (Int 1)); Int 2 ])
+      (Tuple [ Int (-2); Interval (Closed (Int (-1)), Closed (Int 1)); Int 2 ])
       "(-2, [-1, 1], 2)";
     reads "range unbounded above" peak_usage
-      (Tuple [ Interval (Some (Int 0), None); Inf ])
+      (Tuple [ Interval (Closed (Int 0), Unbounded); Inf ])
       "([0, ∞), ∞)";
     reads "range unbounded below" peak_usage
-      (Tuple [ Interval (None, Some (Int 0)); Int 0 ])
+      (Tuple [ Interval (Unbounded, Closed (Int 0)); Int 0 ])
       "((-∞, 0], 0)";
     reads "unbounded trough" peak_usage
       (Tuple [ Top; Int 0; Int 0 ])
       "(⊤, 0, 0)";
     reads "unbounded everywhere" peak_usage
-      (Tuple [ Interval (None, None); Inf ])
+      (Tuple [ Interval (Unbounded, Unbounded); Inf ])
       "(∞, ∞)";
-    rejects "pair for a range" peak_usage
+    reads "pair for an open range" peak_usage
+      (Tuple [ Tuple [ Int (-1); Int 2 ]; Int 1 ])
+      "([0, 1], 1)";
+    reads "half-open range" peak_usage
+      (Tuple [ Interval (Unbounded, Open (Int 1)); Int 0 ])
+      "((-∞, 0], 0)";
+    rejects "open range of no integer" peak_usage
       (Tuple [ Tuple [ Int 0; Int 1 ]; Int 1 ])
-      "in the net change, ranges are written '[d1, d2]', '[d1, ∞)', '(-∞, d2]' \
-       or '(-∞, ∞)', not as pairs '(d1, d2)'";
+      "in the net change, the interval contains no integer";
     rejects "fractional end of a range" peak_usage
-      (Tuple [ Interval (Some (Rat (Rational.make 1 2)), Some (Int 1)); Int 1 ])
+      (Tuple
+         [ Interval (Closed (Rat (Rational.make 1 2)), Closed (Int 1)); Int 1 ])
       "the ends of net changes are integers";
     rejects "trough above 0" peak_usage
       (Tuple [ Int 1; Int 1; Int 1 ])
@@ -363,16 +396,16 @@ let literals =
       (Tuple [ Int (-1); Int (-2); Int 0 ])
       "at most the net change";
     rejects "reversed range" peak_usage
-      (Tuple [ Interval (Some (Int 2), Some (Int 1)); Int 2 ])
-      "the least net change must be at most the greatest";
+      (Tuple [ Interval (Closed (Int 2), Closed (Int 1)); Int 2 ])
+      "in the net change, interval endpoints must satisfy n <= m";
     rejects "peak below the range" peak_usage
-      (Tuple [ Interval (Some (Int 0), Some (Int 2)); Int 1 ])
+      (Tuple [ Interval (Closed (Int 0), Closed (Int 2)); Int 1 ])
       "the peak must be at least 0 and at least the net change";
     rejects "infinite trough" peak_usage
       (Tuple [ Inf; Int 0; Int 0 ])
       "in the trough, troughs are integers or '⊤', not '∞'";
     rejects "infinite least net change" peak_usage
-      (Tuple [ Interval (Some Inf, Some (Int 1)); Int 1 ])
+      (Tuple [ Interval (Closed Inf, Closed (Int 1)); Int 1 ])
       "in the net change, the ends of net changes are integers, not '∞'";
     rejects "infinite exact net change with a trough" peak_usage
       (Tuple [ Int 0; Inf; Inf ])
@@ -384,10 +417,10 @@ let literals =
       (Tuple [ Name "Files"; Int (-1); Int 0; Int 0 ])
       "(Files, -1, 0, 0)";
     reads "resource with a range" peak_usage
-      (Tuple [ Name "Files"; Interval (Some (Int 0), Some (Int 1)); Int 1 ])
+      (Tuple [ Name "Files"; Interval (Closed (Int 0), Closed (Int 1)); Int 1 ])
       "(Files, [0, 1], 1)";
     reads "resource with a range unbounded below" peak_usage
-      (Tuple [ Name "Files"; Interval (None, Some (Int 0)); Int 0 ])
+      (Tuple [ Name "Files"; Interval (Unbounded, Closed (Int 0)); Int 0 ])
       "(Files, (-∞, 0], 0)";
     reads "other resources with a trough" peak_usage
       (Tuple
@@ -414,23 +447,29 @@ let literals =
       "listed twice";
     reads "duration" time_windows (Int 3) "3";
     reads "interval of durations" time_windows
-      (Interval (Some (Int 2), Some (Int 5)))
+      (Interval (Closed (Int 2), Closed (Int 5)))
       "[2, 5]";
     reads "unbounded durations" time_windows
-      (Interval (Some (Int 2), None))
+      (Interval (Closed (Int 2), Unbounded))
       "[2, ∞)";
     reads "interval of durations and times" time_windows
       (Tuple
          [
-           Interval (Some (Int 0), Some (Int 2));
+           Interval (Closed (Int 0), Closed (Int 2));
            Tuple [ Name "Send"; Braces (Tick 0) ];
          ])
       "([0, 2], (Send, {0}))";
-    rejects "pair for an interval of durations" time_windows
+    reads "pair for an open interval of durations" time_windows
       (Tuple [ Int 2; Int 5 ])
-      "intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'";
+      "[3, 4]";
+    reads "durations open below" time_windows
+      (Interval (Open (Int 2), Unbounded))
+      "[3, ∞)";
+    rejects "open interval of no durations" time_windows
+      (Tuple [ Int 2; Int 3 ])
+      "the interval contains no integer";
     rejects "fractional end of durations" time_windows
-      (Interval (Some (Int 0), Some (Rat (Rational.make 1 2))))
+      (Interval (Closed (Int 0), Closed (Rat (Rational.make 1 2))))
       "interval endpoints are integers";
     reads "set of durations" time_windows
       (Braces (union (Tick 1) (Tick 3)))
@@ -473,7 +512,7 @@ let literals =
          ])
       "listed twice";
     rejects "reversed interval" time_windows
-      (Interval (Some (Int 7), Some (Int 1)))
+      (Interval (Closed (Int 7), Closed (Int 1)))
       "must satisfy n <= m";
     rejects "negative duration" time_windows (Int (-1)) "must be non-negative";
     rejects "no durations" time_windows
@@ -625,17 +664,22 @@ let literals =
     reads "top" time_upper Top "∞";
     rejects "name" time_upper (Name "Low") "not names such as 'Low'";
     reads "interval" time_interval
-      (Interval (Some (Int 1), Some (Int 5)))
+      (Interval (Closed (Int 1), Closed (Int 5)))
       "[1, 5]";
-    reads "open interval" time_interval (Interval (Some (Int 3), None)) "[3, ∞)";
+    reads "open interval" time_interval
+      (Interval (Closed (Int 3), Unbounded))
+      "[3, ∞)";
     reads "top" time_interval Top "[0, ∞)";
     rejects "reversed interval" time_interval
-      (Interval (Some (Int 5), Some (Int 3)))
+      (Interval (Closed (Int 5), Closed (Int 3)))
       "n <= m";
     rejects "infinite lower end" time_interval
-      (Interval (Some Inf, None))
+      (Interval (Closed Inf, Unbounded))
       "endpoints";
-    rejects "pair" time_interval (Tuple [ Int 3; Inf ]) "not as pairs";
+    reads "pair" time_interval (Tuple [ Int 3; Inf ]) "[4, ∞)";
+    rejects "pair of a name" time_interval
+      (Tuple [ Name "Low"; Int 3 ])
+      "not pairs";
     rejects "integer" time_interval (Int 3) "not plain integers";
     reads "top" traces_lower Top "{0}";
     reads "sequences" traces_lower
@@ -654,12 +698,24 @@ let literals =
     reads "unbounded upper component" traces_interval (span (Braces send) Inf)
       "[{Send}, ∞)";
     reads "top upper component" traces_interval
-      (Interval (Some (Braces send), Some Top))
+      (Interval (Closed (Braces send), Closed Top))
       "[{Send}, ∞)";
     reads "interval of integers" traces_interval (span (Int 1) (Int 2))
       "[{1}, {2}]";
     reads "integer" traces_interval (Int 2) "[{2}, {2}]";
     rejects "reversed interval" traces_interval (span (Int 5) (Int 3)) "n <= m";
+    reads "open interval of integers" traces_interval
+      (Tuple [ Int 1; Int 4 ])
+      "[{2}, {3}]";
+    reads "interval of integers open below" traces_interval
+      (Interval (Open (Int 1), Unbounded))
+      "[{2}, ∞)";
+    rejects "open interval of no integer" traces_interval
+      (Tuple [ Int 1; Int 2 ])
+      "the interval contains no integer";
+    rejects "open endpoint of a set of runs" traces_interval
+      (Interval (Open (Braces send), Closed (Braces send)))
+      "an endpoint that is not a number is closed";
     rejects "pair" traces_interval
       (Tuple [ Braces send; Braces send ])
       "intervals are written '[L, U]' or '[L, ∞)', not as pairs '(L, U)'";
@@ -678,23 +734,30 @@ let literals =
     rejects "fractional delay" time_windows
       (Braces (Frac (Rational.make 1 2)))
       "whole numbers of time steps";
-    rejects "comparison" regex_upper
-      (Braces (Seq (send, Compare (Lt, Rational.of_int 1))))
-      "the comparison '<1' denotes a set of rational delays";
-    rejects "comparison" time_windows
-      (Braces (Compare (Ge, Rational.of_int 2)))
-      "the comparison '>=2' denotes a set of rational delays";
-    rejects "comparison" rational_traces_upper
-      (Braces (Compare (Le, Rational.make 1 2)))
-      "without the comparison '<=0.5'";
-    reads "comparisons" rational_regex_upper
+    rejects "fractional interval of delays" regex_upper
       (Braces
-         (Seq
-            ( send,
-              Inter
-                (Compare (Gt, Rational.zero), Compare (Le, Rational.make 1 2))
-            )))
-      "{Send; (>0 & <=0.5)}";
+         (Seq (send, Delays (Closed Rational.zero, Open (Rational.make 1 2)))))
+      "whole numbers of time steps";
+    rejects "interval of no whole delay" regex_upper
+      (Braces
+         (Seq (send, Delays (Open Rational.zero, Open (Rational.of_int 1)))))
+      "the interval '(0, 1)' contains no whole number of time steps";
+    reads "interval of ticks" time_windows
+      (Braces (Delays (Open (Rational.of_int 1), Unbounded)))
+      "[2, ∞)";
+    reads "bounded interval of ticks" time_windows
+      (Braces (Delays (Open (Rational.of_int 1), Open (Rational.of_int 5))))
+      "[2, 4]";
+    rejects "interval of delays" rational_traces_upper
+      (Braces (Delays (Closed Rational.zero, Closed (Rational.make 1 2))))
+      "without the interval of delays '[0, 0.5]'";
+    reads "interval of delays" rational_regex_upper
+      (Braces
+         (Seq (send, Delays (Open Rational.zero, Closed (Rational.make 1 2)))))
+      "{Send; (0, 0.5]}";
+    reads "open interval of delays" rational_regex_upper
+      (Braces (Delays (Open (Rational.make 1 2), Open (Rational.of_int 3))))
+      "{(0.5, 3)}";
     reads "fraction" rational_regex_upper (Rat (Rational.make 3 2)) "{1.5}";
     reads "top" rational_regex_upper Top "⊤";
     reads "all timed words" rational_regex_upper (Braces (Star Any)) "⊤";
@@ -704,7 +767,7 @@ let literals =
       (Braces (Star (Frac (Rational.make 1 2))))
       "{(0.5)*}";
     rejects "empty language" rational_regex_upper
-      (Braces (Inter (send, Compare (Ge, Rational.zero))))
+      (Braces (Inter (send, Delays (Closed Rational.zero, Unbounded))))
       "denotes the empty language";
     rejects "negative delay" rational_regex_upper
       (Braces (Frac (Rational.make (-1) 2)))
@@ -739,7 +802,11 @@ let literals =
       "n <= m";
     rejects "pair of fractions" rational_traces_interval
       (Tuple [ Rat (Rational.make 1 2); Rat (Rational.make 3 2) ])
-      "not as pairs '(L, U)'";
+      "an open endpoint denotes an infinite set of runs, which these grades do \
+       not express";
+    rejects "half-open interval of fractions" rational_traces_interval
+      (Interval (Closed (Rat (Rational.make 1 2)), Open (Int 2)))
+      "an open endpoint denotes an infinite set of runs";
     reads "top" inclusion_upper Top "⊤";
     reads "concatenation of a union" inclusion_upper
       (Braces (seq (union send (Tick 2)) (Tick 1)))
@@ -830,7 +897,17 @@ let registry =
          (Grade.Tuple
             [ Grade.Braces (Grade.Letter "A"); Grade.Braces (Grade.Letter "B") ]));
     expect "registry: grades reading a pair of a number and '∞'" show_names
-      ~expected:[ "peak-usage" ]
+      ~expected:
+        [
+          "time-interval";
+          "time-interval-rational";
+          "traces-cost-interval";
+          "regex-cost-interval";
+          "regex-cost-interval-symbolic";
+          "regex-cost-interval-rational";
+          "peak-usage";
+          "time-windows";
+        ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
     expect "registry: grades reading an interval unbounded below" show_names
       ~expected:[]
@@ -929,9 +1006,8 @@ let registry =
         ]
       (GradeRegistry.accepting
          (Grade.Braces
-            (Grade.Inter
-               ( Grade.Compare (Grade.Gt, Rational.zero),
-                 Grade.Compare (Grade.Lt, Rational.of_int 1) ))));
+            (Grade.Delays
+               (Grade.Open Rational.zero, Grade.Open (Rational.of_int 1)))));
     expect "registry: grades offered by the CLI only" show_names
       ~expected:
         [
@@ -1177,9 +1253,16 @@ module Rational_upper_conditions =
         :: List.map RationalTimeGrades.UpperBound.of_delay rational_values
     end)
 
-(* The rational interval from [q] to [r], [r] possibly [∞]. *)
-let interval_of q r =
-  RationalTimeGrades.Interval.of_lit (span (Grade.rational_lit q) r)
+(* The rational interval from [q] to [r], [r] possibly [∞], closed at its
+   finite endpoints, or open at those where [lo_open] and [hi_open] hold. *)
+let interval_of ?(lo_open = false) ?(hi_open = false) q r =
+  let lo = Grade.rational_lit q in
+  RationalTimeGrades.Interval.of_lit
+    (Grade.Interval
+       ( (if lo_open then Grade.Open lo else Grade.Closed lo),
+         match r with
+         | Grade.Inf -> Grade.Unbounded
+         | r -> if hi_open then Grade.Open r else Grade.Closed r ))
 
 module Rational_interval_conditions =
   Conditions
@@ -1187,15 +1270,17 @@ module Rational_interval_conditions =
     (struct
       let constant st =
         let q = random_rational st in
-        interval_of q
+        let width = Random.State.int st 3 in
+        let lo_open = width > 0 && Random.State.bool st
+        and hi_open = width > 0 && Random.State.bool st in
+        interval_of ~lo_open ~hi_open q
           (if Random.State.int st 6 = 0 then Grade.Inf
-           else
-             Grade.rational_lit
-               (Rational.add q (Rational.make (Random.State.int st 3) 2)))
+           else Grade.rational_lit (Rational.add q (Rational.make width 2)))
 
       (* The endpoints of an ordering are compared separately: the intervals
-         [(q, ∞)] and [(0, r)], and the intervals between the rationals with
-         denominators up to 6 in [[0, 6]]. *)
+         [[q, ∞)], [(q, ∞)], [[0, r]] and [[0, r)], and the intervals
+         between the rationals with denominators up to 6 in [[0, 6]], closed
+         or open at either endpoint. *)
       let values =
         let coarse =
           List.filter
@@ -1204,17 +1289,36 @@ module Rational_interval_conditions =
                (fun q -> 6 mod Rational.denominator q = 0)
                rational_values)
         in
-        List.map (fun q -> interval_of q Grade.Inf) rational_values
-        @ List.map
-            (fun r -> interval_of Rational.zero (Grade.rational_lit r))
+        let flags =
+          [ (false, false); (true, false); (false, true); (true, true) ]
+        in
+        List.concat_map
+          (fun q ->
+            [ interval_of q Grade.Inf; interval_of ~lo_open:true q Grade.Inf ])
+          rational_values
+        @ List.concat_map
+            (fun r ->
+              interval_of Rational.zero (Grade.rational_lit r)
+              ::
+              (if Rational.sign r > 0 then
+                 [
+                   interval_of ~hi_open:true Rational.zero
+                     (Grade.rational_lit r);
+                 ]
+               else []))
             rational_values
         @ List.concat_map
             (fun q ->
-              List.filter_map
+              List.concat_map
                 (fun r ->
-                  if Rational.compare q r <= 0 then
-                    Some (interval_of q (Grade.rational_lit r))
-                  else None)
+                  match Rational.compare q r with
+                  | 0 -> [ interval_of q (Grade.rational_lit r) ]
+                  | c when c < 0 ->
+                      List.map
+                        (fun (lo_open, hi_open) ->
+                          interval_of ~lo_open ~hi_open q (Grade.rational_lit r))
+                        flags
+                  | _ -> [])
                 coarse)
             coarse
     end)
@@ -1378,7 +1482,7 @@ let family name =
 
 let rat n d = Grade.rational_lit (Rational.make n d)
 let pair l l' = Grade.Tuple [ l; l' ]
-let closed l l' = Grade.Interval (Some l, Some l')
+let closed l l' = Grade.Interval (Grade.Closed l, Grade.Closed l')
 let entry name components = Grade.Tuple (Grade.Name name :: components)
 let pick st xs = List.nth xs (Random.State.int st (List.length xs))
 let letter_a = Grade.Letter "A"
@@ -1415,6 +1519,12 @@ let cover =
         span (rat 1 2) (rat 5 3);
         span (rat 1 3) Inf;
         span (Int 1) (rat 5 2);
+        Interval (Open (rat 1 2), Closed (rat 5 3));
+        Interval (Closed (Int 1), Open (Int 3));
+        Interval (Open (Int 0), Open (rat 1 2));
+        Interval (Open (rat 1 3), Unbounded);
+        Tuple [ rat 1 3; Int 2 ];
+        Tuple [ Int 1; Inf ];
       ]
   | Traces ->
       [
@@ -1481,31 +1591,54 @@ let cover =
         Braces (Union (letter_c, Tick 0));
         closed (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
         closed (Braces (Tick 1)) (Braces (Star Any));
+        Braces
+          (Seq
+             (letter_a, Delays (Open Rational.zero, Closed (Rational.of_int 2))));
+        Braces (Seq (Delays (Closed (Rational.of_int 1), Unbounded), letter_b));
+        Tuple [ Int 1; Int 4 ];
+        Interval (Open (Int 0), Closed (Braces letter_a));
       ]
   | (Rational_regex | Rational_regex_costs) as family ->
       let frac n d = Frac (Rational.make n d) in
-      let compare c n d = Compare (c, Rational.make n d) in
+
       [
         Braces letter_a;
         Braces (Seq (letter_b, frac 1 2));
-        Braces (Union (letter_a, compare Lt 1 1));
+        Braces
+          (Union
+             (letter_a, Delays (Closed Rational.zero, Open (Rational.of_int 1))));
+        Braces
+          (Seq
+             ( letter_b,
+               Delays (Open (Rational.make 1 2), Closed (Rational.of_int 2)) ));
         Braces (Star (Seq (letter_a, frac 1 2)));
         Braces Any;
         Braces (Seq (letter_a, Seq (Any, letter_b)));
         Braces (Inter (Any, Compl letter_a));
         Braces (Compl (Tick 1));
-        Braces (Inter (compare Gt 0 1, compare Lt 1 1));
+        Braces (Delays (Open Rational.zero, Open (Rational.of_int 1)));
         Braces (Star (frac 1 2));
-        Braces (Star (Inter (compare Ge 1 1, compare Le 2 1)));
+        Braces
+          (Star
+             (Delays (Closed (Rational.of_int 1), Closed (Rational.of_int 2))));
         Braces (Seq (Star (Union (letter_a, letter_b)), letter_c));
         Braces (Union (letter_c, Tick 0));
-        Braces (Seq (compare Ge 3 2, Seq (letter_a, Star Any)));
+        Braces
+          (Seq
+             ( Delays (Closed (Rational.make 3 2), Unbounded),
+               Seq (letter_a, Star Any) ));
         rat 3 2;
       ]
       @
       if family = Rational_regex_costs then
         [
-          closed (Braces letter_a) (Braces (Union (letter_a, compare Lt 5 2)));
+          closed (Braces letter_a)
+            (Braces
+               (Union
+                  ( letter_a,
+                    Delays (Closed Rational.zero, Open (Rational.make 5 2)) )));
+          Tuple [ rat 4 5; Int 3 ];
+          Interval (Open (rat 1 2), Closed (rat 3 2));
           closed (rat 1 2) (rat 3 2);
           span (Braces (Tick 0)) Inf;
         ]
@@ -1604,6 +1737,22 @@ let cover =
         Tuple [ entry "A" [ Int 1 ]; entry "B" [ Inf ]; entry "C" [ Int 0 ] ];
       ]
 
+(* [comparison k q] is the interval atom of the delays below, up to, above or
+   from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the empty
+   language is written [~_*]. *)
+let comparison k q =
+  let zero = Grade.Closed Rational.zero in
+  if k = 0 && Rational.sign q = 0 then Grade.Compl (Grade.Star Grade.Any)
+  else
+    let lo, hi =
+      match k with
+      | 0 -> (zero, Grade.Open q)
+      | 1 -> (zero, Grade.Closed q)
+      | 2 -> (Grade.Open q, Grade.Unbounded)
+      | _ -> (Grade.Closed q, Grade.Unbounded)
+    in
+    Grade.Delays (lo, hi)
+
 (* [random family st] is a random literal of the forms of [cover family], over
    the operations [A], [B] and [C] of [costs]. *)
 let random family st =
@@ -1627,7 +1776,7 @@ let random family st =
     | 0 -> letter ()
     | 1 -> rational_tick (Rational.make (int 7) (1 + int 4))
     | 2 ->
-        Compare (pick st [ Lt; Le; Gt; Ge ], Rational.make (int 7) (1 + int 4))
+        comparison (pick st [ 0; 1; 2; 3 ]) (Rational.make (int 7) (1 + int 4))
     | 3 -> Any
     | 4 -> Seq (timed (depth - 1), timed (depth - 1))
     | 5 -> Union (timed (depth - 1), timed (depth - 1))
@@ -1650,14 +1799,22 @@ let random family st =
     | names -> Tuple (List.map (fun name -> entry name [ component () ]) names)
   in
   match family with
-  | Time ->
+  | Time -> (
       let number () =
         match int 3 with
         | 0 -> Int (int 6)
         | 1 -> rat (int 9) (2 + int 3)
         | _ -> Inf
       in
-      if Random.State.bool st then number () else span (number ()) (number ())
+      let open_end = function
+        | Closed a when Random.State.bool st -> Open a
+        | b -> b
+      in
+      if Random.State.bool st then number ()
+      else
+        match span (number ()) (number ()) with
+        | Interval (lo, hi) -> Interval (open_end lo, open_end hi)
+        | lit -> lit)
   | Inclusion_traces -> braces ~star:false
   | Traces ->
       if Random.State.bool st then braces ~star:false
@@ -2000,9 +2157,12 @@ let indexed =
     reads "entry of an unbounded interval" intervals
       (entry "A" (span (Int 1) Inf))
       "(A, [1, ∞))";
-    rejects "entry of a pair" intervals
+    reads "entry of a pair" intervals
+      (Tuple [ Name "A"; Int 1; Int 4 ])
+      "(A, [2, 3])";
+    rejects "entry of an empty pair" intervals
       (Tuple [ Name "A"; Int 1; Int 2 ])
-      "in the entry of 'A', intervals are written";
+      "in the entry of 'A', the interval contains no integer";
     rejects "name listed twice" by_name
       (Tuple [ entry "A" (Int 1); entry "A" (Int 2) ])
       "listed twice";

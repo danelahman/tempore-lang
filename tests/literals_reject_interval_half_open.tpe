@@ -1,3 +1,0 @@
-(* Rejected: an interval is closed at its finite endpoints. *)
-
-let claim () = box [2, 5) 1

@@ -1,0 +1,3 @@
+(* Rejected: the open range of net changes '(0, 1)' contains no integer. *)
+
+let claim () = box ((0, 1), 1) 1

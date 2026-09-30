@@ -74,24 +74,42 @@ let literals =
   [
     reads "{~1}" ~expected:"{~1}";
     reads "{_ & ~Read}" ~expected:"{_ & ~Read}";
-    reads "{>0 & <1}" ~expected:"{>0 & <1}";
+    reads "{(0, 1)}" ~expected:"{(0, 1)}";
     reads "{(1/2)*}" ~expected:"{(0.5)*}";
-    reads "{(>=1 & <=2)*}" ~expected:"{(>=1 & <=2)*}";
-    reads "{≤1/3 | ≥2}" ~expected:"{<=1/3 | >=2}";
-    reads "{>=1&<=2}" ~expected:"{>=1 & <=2}";
-    reads "{~<1}" ~expected:"{~<1}";
-    reads "{Read; <0.5; (Send | Write)}"
-      ~expected:"{Read; <0.5; (Send | Write)}";
+    reads "{[1, 2]*}" ~expected:"{[1, 2]*}";
+    reads "{[0, 1/3] | [2, ∞)}" ~expected:"{[0, 1/3] | [2, ∞)}";
+    reads "{[1, 2]}" ~expected:"{[1, 2]}";
+    reads "{(1/2, 3)}" ~expected:"{(0.5, 3)}";
+    reads "{[1/2, 3)}" ~expected:"{[0.5, 3)}";
+    reads "{(1/2, 3]}" ~expected:"{(0.5, 3]}";
+    reads "{(1/2, ∞)}" ~expected:"{(0.5, ∞)}";
+    reads "{(1/2, inf)}" ~expected:"{(0.5, ∞)}";
+    reads "{(1 | 2); (1, 2)}" ~expected:"{(1 | 2); (1, 2)}";
+    reads "{(1, 2)*}" ~expected:"{(1, 2)*}";
+    reads "{([1, 2])}" ~expected:"{[1, 2]}";
+    reads "{~[0, 1)}" ~expected:"{~[0, 1)}";
+    reads "{Read; [0, 0.5); (Send | Write)}"
+      ~expected:"{Read; [0, 0.5); (Send | Write)}";
     reads "{A; (B; C)}" ~expected:"{A; B; C}";
     reads "{_*}" ~expected:"⊤";
     reads "3/2" ~expected:"{1.5}";
     reads "top" ~expected:"⊤";
-    rejects "{<-1}" "unknown comparison '<-'";
-    rejects "{Read & <1}" "denotes the empty language";
+    rejects "{<-1}" "unknown operator '<-'";
+    rejects "{<1}" "an interval, e.g. '[0, 1)' for '<1'";
+    rejects "{>=1/2}" "an interval, e.g. '[0.5, ∞)' for '>=0.5'";
+    rejects "{[2, 1]}" "interval endpoints must satisfy n <= m";
+    rejects "{(1, 1)}"
+      "interval endpoints must satisfy n < m at an open endpoint";
+    rejects "{[1, 1)}"
+      "interval endpoints must satisfy n < m at an open endpoint";
+    rejects "{[1, ∞]}"
+      "an infinite endpoint of an interval is written with a parenthesis";
+    rejects "{Read & [0, 1)}" "denotes the empty language";
     rejects "{Read; < -0.5}" "durations must be non-negative";
   ]
 
-(* The comparisons are rejected by the grades of whole time steps. *)
+(* The intervals of delays with fractional endpoints, or without a whole number
+   of time steps, are rejected by the grades of whole time steps. *)
 let whole_step_rejections =
   let module WS =
     Grades.GradeSystem.Identity (Grades.RegularTraceGradeDerivative) in
@@ -105,15 +123,24 @@ let whole_step_rejections =
   in
   [
     (let reason =
-       match parse "{Read; <1}" with Error reason -> reason | Ok () -> ""
+       match parse "{Read; [0, 1/2)}" with
+       | Error reason -> reason
+       | Ok () -> ""
      in
-     check "whole steps: a comparison rejected"
+     check "whole steps: a fractional endpoint rejected"
        (contains reason
-          "the comparison '<1' denotes a set of rational delays; did you mean \
-           to use one of the 'regex-upper-bound-rational', \
+          "delays are whole numbers of time steps; did you mean to use one of \
+           the 'regex-upper-bound-rational', \
            'regex-cost-lower-bound-rational', \
            'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' \
            grading monoids?")
+       reason);
+    (let reason =
+       match parse "{Read; (0, 1)}" with Error reason -> reason | Ok () -> ""
+     in
+     check "whole steps: an interval of no whole delay rejected"
+       (contains reason
+          "the interval '(0, 1)' contains no whole number of time steps")
        reason);
   ]
 
@@ -148,25 +175,25 @@ let examples =
     is "~1 does not hold 1" (not (member "1" "{~1}"));
     is "~1 does not hold 1/2 1/2" (not (member "1/2 1/2" "{~1}"));
     is "~1 holds 1 Read" (member "1 Read" "{~1}");
-    expect "delays of ~1" Fun.id ~expected:"<1 | >1" (delays "{~1}");
+    expect "delays of ~1" Fun.id ~expected:"[0, 1) | (1, ∞)" (delays "{~1}");
     is "_ & ~Read holds Write" (member "Write" "{_ & ~Read}");
     is "_ & ~Read holds 1/3" (member "1/3" "{_ & ~Read}");
     is "_ & ~Read does not hold Read" (not (member "Read" "{_ & ~Read}"));
     is "_ & ~Read does not hold the empty word" (not (member "" "{_ & ~Read}"));
     is "_ & ~Read does not hold Write Write"
       (not (member "Write Write" "{_ & ~Read}"));
-    expect "delays of >0 & <1" Fun.id ~expected:">0 & <1" (delays "{>0 & <1}");
-    is ">0 & <1 does not hold 1" (not (member "1" "{>0 & <1}"));
+    expect "delays of (0, 1)" Fun.id ~expected:"(0, 1)" (delays "{(0, 1)}");
+    is "(0, 1) does not hold 1" (not (member "1" "{(0, 1)}"));
     expect "delays of (1/2)*" Fun.id ~expected:"(0.5)*" (delays "{(1/2)*}");
     is "(1/2)* holds 3/2" (member "3/2" "{(1/2)*}");
     is "(1/2)* does not hold 5/4" (not (member "5/4" "{(1/2)*}"));
-    expect "delays of (>=1 & <=2)*" Fun.id ~expected:"0 | >=1"
-      (delays "{(>=1 & <=2)*}");
-    expect "delays of _; _" Fun.id ~expected:">0" (delays "{_; _}");
-    is "Read; <1; Send holds Read 1/4 1/4 Send"
-      (member "Read 1/4 1/4 Send" "{Read; <1; Send}");
-    is "Read; <1; Send does not hold Read 1/2 1/2 Send"
-      (not (member "Read 1/2 1/2 Send" "{Read; <1; Send}"));
+    expect "delays of [1, 2]*" Fun.id ~expected:"0 | [1, ∞)"
+      (delays "{[1, 2]*}");
+    expect "delays of _; _" Fun.id ~expected:"(0, ∞)" (delays "{_; _}");
+    is "Read; [0, 1); Send holds Read 1/4 1/4 Send"
+      (member "Read 1/4 1/4 Send" "{Read; [0, 1); Send}");
+    is "Read; [0, 1); Send does not hold Read 1/2 1/2 Send"
+      (not (member "Read 1/2 1/2 Send" "{Read; [0, 1); Send}"));
   ]
 
 (* {1 Laws of the expressions} *)
@@ -179,15 +206,16 @@ let laws =
     is "_* is the top" (G.is_top bounds (lit "{_*}"));
     is "1; 1 = 2" (same "{1; 1}" "{2}");
     is "1/2; 1/2 = 1" (same "{1/2; 1/2}" "{1}");
-    is "~1 & >=0 = <1 | >1" (same "{~1 & >=0}" "{<1 | >1}");
-    is "_ & (_; _) = >0" (same "{_ & (_; _)}" "{>0}");
-    is "(_ & (_; _))* & ~(1; _*) = <1"
-      (same "{(_ & (_; _))* & ~(1; _*)}" "{<1}");
-    is "(>0)* = >=0" (same "{(>0)*}" "{>=0}");
+    is "~1 & [0, ∞) = [0, 1) | (1, ∞)"
+      (same "{~1 & [0, ∞)}" "{[0, 1) | (1, ∞)}");
+    is "_ & (_; _) = (0, ∞)" (same "{_ & (_; _)}" "{(0, ∞)}");
+    is "(_ & (_; _))* & ~(1; _*) = [0, 1)"
+      (same "{(_ & (_; _))* & ~(1; _*)}" "{[0, 1)}");
+    is "(0, ∞)* = [0, ∞)" (same "{(0, ∞)*}" "{[0, ∞)}");
     is "2* & 3* = 6*" (same "{2* & 3*}" "{6*}");
-    is "the unit is 0" (same "{0}" "{<=0}");
-    is "~~(A; <1) = A; <1" (same "{~~(A; <1)}" "{A; <1}");
-    is "De Morgan" (same "{~(A | >2)}" "{~A & ~(>2)}");
+    is "the unit is 0" (same "{0}" "{[0, 0]}");
+    is "~~(A; [0, 1)) = A; [0, 1)" (same "{~~(A; [0, 1))}" "{A; [0, 1)}");
+    is "De Morgan" (same "{~(A | (2, ∞))}" "{~A & ~(2, ∞)}");
     is "_* ; A ; _* holds every word with an A"
       (member "1/2 B 3 A 1/3" "{_*; A; _*}");
     is "A* = A* ; A*" (same "{A*}" "{A*; A*}");
@@ -200,6 +228,22 @@ let names = [ "A"; "B"; "C" ]
 
 (* [random_regex st ~depth ~constant] is a random expression over [names],
    the delays and bounds drawn by [constant]. *)
+(* [comparison k q] is the interval atom of the delays below, up to, above or
+   from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the empty
+   language is written [~_*]. *)
+let comparison k q =
+  let zero = Grade.Closed Rational.zero in
+  if k = 0 && Rational.sign q = 0 then Grade.Compl (Grade.Star Grade.Any)
+  else
+    let lo, hi =
+      match k with
+      | 0 -> (zero, Grade.Open q)
+      | 1 -> (zero, Grade.Closed q)
+      | 2 -> (Grade.Open q, Grade.Unbounded)
+      | _ -> (Grade.Closed q, Grade.Unbounded)
+    in
+    Grade.Delays (lo, hi)
+
 let rec random_regex st ~depth ~constant =
   let int = Random.State.int st in
   let sub () = random_regex st ~depth:(depth - 1) ~constant in
@@ -207,7 +251,7 @@ let rec random_regex st ~depth ~constant =
   match int (if depth = 0 then 4 else 10) with
   | 0 -> Grade.Letter (pick names)
   | 1 -> Grade.rational_tick (constant ())
-  | 2 -> Grade.Compare (pick Grade.[ Lt; Le; Gt; Ge ], constant ())
+  | 2 -> comparison (pick [ 0; 1; 2; 3 ]) (constant ())
   | 3 -> Grade.Any
   | 4 | 5 -> Grade.Seq (sub (), sub ())
   | 6 -> Grade.Union (sub (), sub ())
@@ -377,9 +421,9 @@ let matches r w =
     | Grade.Letter a -> operation () = Some a
     | Grade.Tick m -> delay () = Some (qi m)
     | Grade.Frac p -> delay () = Some p
-    | Grade.Compare (c, p) -> (
+    | Grade.Delays (lo, hi) -> (
         match delay () with
-        | Some d -> DelaySet.mem d (DelaySet.compare_with c p)
+        | Some d -> DelaySet.mem d (DelaySet.between lo hi)
         | None -> false)
     | Grade.Any -> (
         match delay () with
@@ -460,12 +504,14 @@ let inclusion =
 
    On integer instances the order agrees with that of the regular trace grade
    over whole time steps through the translation [ι]: [ι(_) = 1 | ops] and
-   [ι(~r) = ~ι(r) & (ops | 1)*], [ops] the operations [_ & ~(>0)], the identity
+   [ι(~r) = ~ι(r) & (ops | 1)*], [ops] the operations [_ & ~(0, ∞)], the identity
    elsewhere: the timed words with whole delays are the words over ticks and
    operations, adjacent ticks merged. *)
 
 let ops =
-  Grade.Inter (Grade.Any, Grade.Compl (Grade.Compare (Grade.Gt, Rational.zero)))
+  Grade.Inter
+    ( Grade.Any,
+      Grade.Compl (Grade.Delays (Grade.Open Rational.zero, Grade.Unbounded)) )
 
 let rec iota = function
   | Grade.Any -> Grade.Union (Grade.Tick 1, ops)
@@ -476,7 +522,7 @@ let rec iota = function
   | Grade.Union (r, s) -> Grade.Union (iota r, iota s)
   | Grade.Inter (r, s) -> Grade.Inter (iota r, iota s)
   | Grade.Star r -> Grade.Star (iota r)
-  | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Compare _) as r -> r
+  | (Grade.Letter _ | Grade.Tick _ | Grade.Frac _ | Grade.Delays _) as r -> r
 
 let whole_steps =
   let st = Random.State.make [| 43 |] in
@@ -537,12 +583,14 @@ let timing =
     check name (holds && time < 2.) (Printf.sprintf "in %.2f s" time)
   in
   [
-    quickly "({1} | (>10 & <10.01))* is eventually every delay" (fun () ->
-        let rho = lit "{A; ({1} | (>10 & <10.01))*; B}" in
-        G.leq bounds (lit "{A; >=10010; B}") rho
+    quickly "({1} | (10, 10.01))* is eventually every delay" (fun () ->
+        let rho = lit "{A; ({1} | (10, 10.01))*; B}" in
+        G.leq bounds (lit "{A; [10010, ∞); B}") rho
         && not (G.leq bounds (lit "{A; 10.5; B}") rho));
     quickly "~(1/1000) is two intervals" (fun () ->
-        G.equal bounds (lit "{~(1/1000) & >=0}") (lit "{<1/1000 | >1/1000}"));
+        G.equal bounds
+          (lit "{~(1/1000) & [0, ∞)}")
+          (lit "{[0, 1/1000) | (1/1000, ∞)}"));
   ]
 
 let () =

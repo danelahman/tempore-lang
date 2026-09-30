@@ -91,14 +91,19 @@ implementation is documented in the modules under
 
 All monoids share one literal syntax: integers (`3`), fractions (`3/2`, or
 exact decimals such as `1.5`), tuples (`(3, High)`), intervals and brace
-expressions (`{...}`). An interval is closed at its finite endpoints and open
-at its infinite ones: `[1, 4]`, `[1, ∞)`, `(-∞, 4]`, `(-∞, ∞)` (ASCII `inf`
-and `-inf`) or `[{A}, {A; B}]`; other bracketings, such as `[1, ∞]` or
-`[1, 4)`, are syntax errors, and `(1, 4)` is a tuple. Each monoid accepts the
-literals it understands; any other literal is a syntax error naming the
-monoids that accept it. The greatest grade is `⊤` (ASCII `top`). Negative
-integers (`-1`) are accepted only by `peak-usage`. A fraction equal to an
-integer, such as `4/2` or `2.0`, is that integer.
+expressions (`{...}`). An interval has the standard mathematical meaning: a
+bracket includes its finite endpoint and a parenthesis excludes it, as in
+`[1, 4]`, `(1, 4)`, `[1, 4)`, `(1/2, 4]`, `[1, ∞)`, `(1, ∞)`, `(-∞, 4]`,
+`(-∞, ∞)` (ASCII `inf` and `-inf`) or `[{A}, {A; B}]`; an infinite endpoint is
+always open, so `[1, ∞]` is a syntax error, and an empty interval, such as
+`(1, 1)`, `[1, 1)` or `[4, 1]`, is rejected. `(1, 4)` is also a pair, read as
+the open interval by the monoids that read intervals of numbers and give pairs
+of numbers no other meaning. Over whole time steps an open endpoint
+abbreviates a closed one: `(1, 4)` is `[2, 3]` and `(1, ∞)` is `[2, ∞)`. Each
+monoid accepts the literals it understands; any other literal is a syntax
+error naming the monoids that accept it. The greatest grade is `⊤` (ASCII
+`top`). Negative integers (`-1`) are accepted only by `peak-usage`. A fraction
+equal to an integer, such as `4/2` or `2.0`, is that integer.
 
 ### Time
 
@@ -110,7 +115,8 @@ inclusive.
 - `time-upper-bound`: `n` is at most `n` steps, `∞` (ASCII `inf`) no bound;
   ordered by `<=`, so `0` is least and `∞` the top.
 - `time-interval`: `[n, m]` is between `n` and `m` steps, and `[n, ∞)` at
-  least `n` steps; ordered by containment, with top `[0, ∞)`.
+  least `n` steps; ordered by containment, with top `[0, ∞)`. An open endpoint
+  abbreviates a closed one, `(n, m)` being `[n + 1, m - 1]`.
 
 Example: `box [2, 5] x` may be unboxed after two to five steps. See
 [`examples/time/time_upper.tpe`](examples/time/time_upper.tpe) and
@@ -119,7 +125,10 @@ Example: `box [2, 5] x` may be unboxed after two to five steps. See
 The rational variants `time-lower-bound-rational`, `time-upper-bound-rational` and
 `time-interval-rational` measure time exactly by non-negative rationals, with
 the same orders, units and tops: `box [0.5, 4/3] x` may be unboxed after half a
-unit and before four thirds, and three delays of `1/3` spend exactly `1`. A
+unit and before four thirds, and three delays of `1/3` spend exactly `1`. The
+intervals of `time-interval-rational` may be open or half-open: `box (4, 6] x`
+may be unboxed strictly after four units and at most six. A sum of intervals
+is open at an endpoint if either summand is, so `[1, 2) · [1, 1]` is `[2, 3)`. A
 grade is printed as an integer, as a finite decimal if one exists (`0.125`),
 and otherwise as a fraction (`1/3`). See
 [`examples/time/rational_time_intervals.tpe`](examples/time/rational_time_intervals.tpe).
@@ -156,8 +165,9 @@ against operations.
 - `traces-cost-interval`: closed intervals `[{...}, {...}]` of a lower and an
   upper bound, the runs at or above the one and at or below the other,
   compared componentwise; `[{...}, ∞)` has no upper bound, `{...}` abbreviates
-  `[{...}, {...}]`, `n` is `[{n}, {n}]` and `[n, m]` is `[{n}, {m}]`. The top
-  is `[{0}, ∞)`.
+  `[{...}, {...}]`, `n` is `[{n}, {n}]`, `[n, m]` is `[{n}, {m}]`, and an open
+  endpoint abbreviates a closed one, `(n, m)` being `[{n + 1}, {m - 1}]`. The
+  top is `[{0}, ∞)`.
 
 Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
 Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
@@ -170,7 +180,9 @@ The rational variants `traces-cost-lower-bound-rational`,
 same orders, units and tops, with non-negative rational delays and runtime
 bounds: `{Sample; 1/2; Send}` waits half a unit between the two operations, a
 fraction `q` abbreviates `{q}`, and an operation may declare bounds such as
-`within [1/2, 3/2]`. See
+`within [1/2, 3/2]`. An interval with an open numeric endpoint, such as
+`(1/2, 2]`, denotes infinitely many runs and is rejected; the regular
+expressions of `regex-cost-interval-rational` express it. See
 [`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
 
 ### Regular expressions
@@ -184,7 +196,9 @@ the product concatenation and the join union; the unit is `{0}` and the top
 
 Literals are regular expressions, by increasing precedence: union `r | s`,
 intersection `r & s`, concatenation `r; s`, complement `~r` and repetition
-`r*`. An operation name is that letter, an integer `n` is `n` ticks, `_` is
+`r*`. An operation name is that letter, an integer `n` is `n` ticks, an
+interval `[n, m]` any number of ticks from `n` to `m` and `[n, ∞)` at least
+`n`, an open endpoint abbreviating a closed one (`(1, 4)` is `2 | 3`), `_` is
 any single letter, including operations the grade does not name, and
 parentheses or braces group. For example,
 `{Open; (Read | Write)*; Close}` is a file session and `{~{_*; Revoke; _*}}`
@@ -206,14 +220,16 @@ The rational variant `regex-upper-bound-rational` reads runs as *timed words*:
 operations and non-negative rational delays, adjacent delays added, so that
 `{1/2; 1/2}` is `{1}`. A delay is a single letter, and the order is exact over
 the rationals, independent of any time step. Besides operation names and delays
-such as `3`, `1/2` or `1.5`, literals have comparisons `<q`, `<=q` (`≤q`), `>q`
-and `>=q` (`≥q`), the delays below, up to, above or from `q`; an interval is
-an intersection, as in `{>0 & <1}`. `_` is any single operation or any
-positive delay, and the complement is taken over all timed words: `{~1}`
+such as `3`, `1/2` or `1.5`, literals have intervals of delays `[q, r]`,
+`(q, r)`, `[q, r)`, `(q, r]`, `[q, ∞)` and `(q, ∞)`: `{[0, 1/2)}` is the set
+of the delays below `1/2` and `{(1, ∞)}` that of those above `1`. A
+parenthesis followed by a delay and a comma opens an interval, and otherwise a
+group: `{(1 | 2); (1, 2)}` is a delay `1` or `2` followed by one strictly
+between `1` and `2`. `_` is any single operation or any positive delay, and the complement is taken over all timed words: `{~1}`
 permits every run but a pause of exactly `1`, and `{_ & ~Read}` any single
 operation but `Read` or any positive pause. A repetition of delays is their
 sums, the empty sum `0` included: `{(1/2)*}` is the sums of any number of halves, `0`, `1/2`, `1`, …, and
-`{(>=1 & <=2)*}` is the delay `0` and every delay from `1`. A plain number `q`
+`{[1, 2]*}` is the delay `0` and every delay from `1`. A plain number `q`
 abbreviates `{q}`. The unit is `{0}` and the top `⊤`, `{_*}`. A grade is
 printed as it is written, with adjacent delays added. See
 [`examples/regular/regular_rational.tpe`](examples/regular/regular_rational.tpe).
@@ -252,7 +268,7 @@ The rational variants `regex-cost-lower-bound-rational`,
 timed words of `regex-upper-bound-rational` in the same way, with its literals
 and fractional runtime bounds such as `within [1/2, 3/2]`. The orders are
 exact over the rationals: with `A` declared `within [1, 1]`, under
-`regex-cost-upper-bound-rational` the runs `{>0 & <1; A; >0 & <1}` are below
+`regex-cost-upper-bound-rational` the runs `{(0, 1); A; (0, 1)}` are below
 `{3}` but below no `{q}` with `q < 3`, as the sums of their pauses come
 arbitrarily close to `2`. A complement is taken over all timed words, and a
 grade still stands for its closure: `{~1}` equals `⊤` under the upper order,
@@ -260,8 +276,10 @@ as the longer pauses it permits cover the one it excludes. A comparison reads
 each set of delays of the lesser grade through its supremum (upper) or
 infimum (lower), and a grade is printed as it is written. The implied runtime
 bounds of a compound operation are the least and greatest weights of the runs
-of its grade: `{Sample; <1/2; Send}` gets `(3/4, 3)` if `Sample` is declared
-`within [1/2, 3/2]` and `Send` `within [1/4, 1]`. See
+of its grade: `{Sample; [0, 1/2); Send}` gets `(3/4, 3)` if `Sample` is declared
+`within [1/2, 3/2]` and `Send` `within [1/4, 1]`. Under
+`regex-cost-interval-rational` an open numeric endpoint of an interval is a set
+of delays: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
 [`examples/regular_costs/regular_costs_rational.tpe`](examples/regular_costs/regular_costs_rational.tpe).
 
 ### Security levels and products
@@ -308,7 +326,8 @@ componentwise.
   `([d1, d2], h)` for a range, both with the trough `min(0, d1)`, or
   `(t, d, h)` and `(t, [d1, d2], h)` with an explicit trough; troughs may be
   `⊤`, unbounded below, and peaks `∞`, and a range unbounded below or above is
-  written `(-∞, d2]` or `[d1, ∞)`. Resources are named by entries such as
+  written `(-∞, d2]` or `[d1, ∞)`, and an open end abbreviates a closed one.
+  Resources are named by entries such as
   `(R, d, h)` or `(R, t, d, h)`, e.g. `((Files, 0, 2), (Sockets, 0, 1))`, each
   bounded on its own; a resource not listed is bounded by `(0, 0)`, or by the
   entry `(_, d, h)`, and a plain `(d, h)` bounds every resource. Opening a file
@@ -319,7 +338,8 @@ componentwise.
   the times `E_A` at which each operation `A` happens, all sets of numbers of
   ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
   adding elementwise, and the order is inclusion. `T` is written `n`, `[n, m]`,
-  `[n, ∞)` or as a brace literal over ticks, `{0 | 10}`, and `T` alone
+  `[n, ∞)`, with open endpoints as for `time-interval`, or as a brace literal
+  over ticks, `{0 | 10}`, and `T` alone
   performs no operation; `E_A` is a brace literal,
   `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry `(_, E)`
   bounds every operation not listed. An operation `Send` taking a tick and

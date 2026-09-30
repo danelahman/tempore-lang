@@ -1,6 +1,7 @@
 (* The regular expressions of the regular trace grading monoids, their
-   operators written with and without spaces and braces grouping as
-   parentheses do, printed back in the state of a run. *)
+   operators written with and without spaces, braces grouping as parentheses
+   do, and intervals of delays abbreviating sets of numbers of ticks, printed
+   back in the state of a run. *)
 
 run box {Read*|Send} 1 as x in 0
 run box {Read*&~Send} 1 as x in 0
@@ -13,4 +14,8 @@ run box {Open; (Read | Write)*; Close | Open; Close} 1 as x in 0
 run box {(1; 1)* | 1; 1; 1} 1 as x in 0
 run box 3 1 as x in 0
 run box {0} 1 as x in 0
+run box {Read; [1, 3]; Send} 1 as x in 0
+run box {Read; (1, 4); Send} 1 as x in 0
+run box {Read; [2, ∞)} 1 as x in 0
+run box {(1 | 2); (0, 2]} 1 as x in 0
 run box top 1 as x in 0

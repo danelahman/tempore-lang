@@ -105,11 +105,11 @@ let malformed =
     "literals_reject_peak.tpe";
     "literals_reject_windows.tpe";
     "literals_reject_interval_closed_infinity.tpe";
-    "literals_reject_interval_half_open.tpe";
-    "literals_reject_interval_pair.tpe";
+    "literals_reject_interval_empty.tpe";
+    "literals_reject_interval_no_step.tpe";
     "literals_reject_interval_reversed.tpe";
-    "literals_reject_peak_range_pair.tpe";
-    "literals_reject_windows_pair.tpe";
+    "literals_reject_peak_range_empty.tpe";
+    "literals_reject_windows_empty.tpe";
     "literals_reject_within_pair.tpe";
     "nat_reject_negative.tpe";
     "nat_reject_successor_zero.tpe";
@@ -131,6 +131,7 @@ let malformed =
     "regex_costs_interval_runs_reject.tpe";
     "regex_costs_lower_runs_reject.tpe";
     "regex_costs_upper_runs_reject.tpe";
+    "rational_traces_intervals_reject_open.tpe";
   ]
 
 (* ------------------------------------------------------------------ *)

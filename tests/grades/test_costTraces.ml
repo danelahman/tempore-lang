@@ -212,7 +212,7 @@ let rec finite_words = function
         (fun u -> List.map (fun v -> u @ v) (finite_words s))
         (finite_words r)
   | Grade.Union (r, s) -> finite_words r @ finite_words s
-  | Grade.Frac _ | Grade.Compare _ | Grade.Any | Grade.Star _ | Grade.Inter _
+  | Grade.Frac _ | Grade.Delays _ | Grade.Any | Grade.Star _ | Grade.Inter _
   | Grade.Compl _ ->
       invalid_arg "finite_words"
 
@@ -278,7 +278,7 @@ let embeds (module Upper : Grade.S) (module Lower : Grade.S)
     (module Interval : Grade.S) tables lits =
   let pairs_of lits =
     List.map2
-      (fun l l' -> Grade.Interval (Some l, Some l'))
+      (fun l l' -> Grade.Interval (Grade.Closed l, Grade.Closed l'))
       lits (List.rev lits)
   in
   agree tables (module TimedTraceGrades.UpperBound) (module Upper) lits

@@ -57,7 +57,7 @@ let dfa_of_regex names =
     | Letter name -> Dfa.word n [ letter names name ]
     | Tick k -> Dfa.word n (List.init k (Fun.const tick))
     | Frac q -> fractional_tick q
-    | Compare (c, q) -> delay_comparison c q
+    | Delays (lo, hi) -> go (tick_delays lo hi)
     | Any -> Dfa.letter_set n (List.init n Fun.id)
     | Seq (r, s) -> Dfa.concat (go r) (go s)
     | Union (r, s) -> Dfa.union (go r) (go s)

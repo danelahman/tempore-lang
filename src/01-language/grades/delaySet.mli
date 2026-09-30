@@ -58,9 +58,10 @@ val interval :
     closed at each end as the flags say, unbounded if [hi] is [None]; it is
     intersected with [ℚ≥0]. *)
 
-val compare_with : GradeLiteral.comparison -> Rational.t -> t
-(** [compare_with c q] is the set of the delays [d] with [d c q], e.g. [d < q]
-    for {!GradeLiteral.Lt}. *)
+val between :
+  Rational.t GradeLiteral.bound -> Rational.t GradeLiteral.bound -> t
+(** [between lo hi] is the interval from [lo] to [hi], each endpoint closed or
+    open, an infinite lower endpoint being [0]; it is intersected with [ℚ≥0]. *)
 
 val union : t -> t -> t
 val inter : t -> t -> t
@@ -145,10 +146,10 @@ val minterms : t list -> t list
 
 val to_regex : t -> GradeLiteral.regex
 (** [to_regex s] is an expression of the brace literals whose delays are [s]:
-    the union of its maximal intervals below the periodic part, each a delay, a
-    comparison or an intersection of two comparisons, and of the periodic part
+    the union of its maximal intervals below the periodic part, each a delay or
+    an interval atom such as [\[5, 6)] or [(0, ∞)], and of the periodic part
     [X + pℕ] written [X; p*], [X] shifted as far down as [s] allows. The empty
     set is [~_*]. *)
 
 val show : t -> string
-(** [show s] prints {!to_regex}[ s], e.g. [0 | (>=5 & <6); 3*]. *)
+(** [show s] prints {!to_regex}[ s], e.g. [0 | \[5, 6); 3*]. *)

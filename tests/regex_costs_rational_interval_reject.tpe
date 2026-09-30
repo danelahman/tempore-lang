@@ -16,7 +16,7 @@ let too_quick () =
 (* A pause of a half and a sample may take two time units, past an upper bound
    of pauses under one. *)
 let too_slow () =
-  box [{1/2}, {<1}] (Token "t") as t in
+  box [{1/2}, {[0, 1)}] (Token "t") as t in
   delay 1/2;
   let v = perform Sample () in
   unbox t as tok in

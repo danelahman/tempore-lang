@@ -333,12 +333,21 @@ let interval ~lo ~lo_closed ~hi ~hi_closed =
         (clip (upto (qmax hi rzero)) [ { lo; lo_closed; hi; hi_closed } ])
   | None -> from lo lo_closed
 
-let compare_with (c : GradeLiteral.comparison) q =
-  match c with
-  | Lt -> interval ~lo:rzero ~lo_closed:true ~hi:(Some q) ~hi_closed:false
-  | Le -> interval ~lo:rzero ~lo_closed:true ~hi:(Some q) ~hi_closed:true
-  | Gt -> interval ~lo:q ~lo_closed:false ~hi:None ~hi_closed:false
-  | Ge -> interval ~lo:q ~lo_closed:true ~hi:None ~hi_closed:false
+let between (lo : Rational.t GradeLiteral.bound)
+    (hi : Rational.t GradeLiteral.bound) =
+  let lo, lo_closed =
+    match lo with
+    | Closed a -> (a, true)
+    | Open a -> (a, false)
+    | Unbounded -> (rzero, true)
+  in
+  let hi, hi_closed =
+    match hi with
+    | Closed b -> (Some b, true)
+    | Open b -> (Some b, false)
+    | Unbounded -> (None, false)
+  in
+  interval ~lo ~lo_closed ~hi ~hi_closed
 
 (* {2 Alignment} *)
 
@@ -721,16 +730,18 @@ let minterms sets =
 (* {1 Printing} *)
 
 (* [interval_regex (lo, lo_closed, hi)] is the expression of the interval from
-   [lo] to [hi], [None] if unbounded. *)
+   [lo] to [hi], [None] if unbounded: a delay if it is a single point, and an
+   interval atom otherwise. *)
 let interval_regex (lo, lo_closed, hi) : GradeLiteral.regex =
-  let lower = if lo_closed then GradeLiteral.Ge else Gt in
   match hi with
   | Some (h, _) when Rational.equal lo h -> GradeLiteral.rational_tick lo
-  | None -> Compare (lower, lo)
-  | Some (h, h_closed) ->
-      let upper = if h_closed then GradeLiteral.Le else Lt in
-      if Rational.sign lo = 0 && lo_closed then Compare (upper, h)
-      else Inter (Compare (lower, lo), Compare (upper, h))
+  | _ ->
+      Delays
+        ( (if lo_closed then Closed lo else Open lo),
+          match hi with
+          | None -> Unbounded
+          | Some (h, true) -> Closed h
+          | Some (h, false) -> Open h )
 
 let union_regex = function
   | [] -> None

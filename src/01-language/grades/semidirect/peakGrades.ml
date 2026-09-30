@@ -156,14 +156,11 @@ module Make (D : Delay.S) = struct
     let of_delay _ = one
     let of_bounds _ = one
 
-    (* The grade of the trough [t], the net change from [low] to [high] and the
-     peak [h], if they satisfy [t ≤ min(0, low)], [low ≤ high] and
+    (* The grade of the trough [t], the net change from [low] to [high],
+     [low ≤ high], and the peak [h], if they satisfy [t ≤ min(0, low)] and
      [max(0, high) ≤ h]. *)
     let grade lit t (low, high) h =
-      if compare_bound low high > 0 then
-        Grade.invalid_lit lit
-          "the least net change must be at most the greatest net change"
-      else if compare_bound t (min_bound (Fin 0) low) > 0 then
+      if compare_bound t (min_bound (Fin 0) low) > 0 then
         Grade.invalid_lit lit
           "the trough must be at most 0 and at most the net change"
       else if compare_bound (max_bound (Fin 0) high) h > 0 then
@@ -171,21 +168,22 @@ module Make (D : Delay.S) = struct
           "the peak must be at least 0 and at least the net change"
       else ((low, t), (high, h))
 
-    (* An endpoint of a range of net changes, [infinite] if absent. *)
+    (* An endpoint of a range of net changes, closed or [infinite]. *)
     let net_end infinite = function
-      | None -> infinite
-      | Some (Grade.Int d) -> Fin d
-      | Some lit ->
+      | Grade.Unbounded -> infinite
+      | Grade.Closed (Grade.Int d) -> Fin d
+      | Grade.Closed lit | Grade.Open lit ->
           Grade.invalid_lit lit "the ends of net changes are integers, not %s"
             (Grade.describe_lit lit)
 
-    let net_of_lit = function
+    (* A range of net changes; an open endpoint abbreviates a closed one by
+       [Grade.integer_ends], and a pair of integers is an open range. *)
+    let net_of_lit lit =
+      match Grade.open_pair lit with
       | Grade.Int d -> (Fin d, Fin d)
-      | Grade.Interval (lo, hi) -> (net_end Minus_inf lo, net_end Plus_inf hi)
-      | Grade.Tuple [ _; _ ] as lit ->
-          Grade.invalid_lit lit
-            "ranges are written '[d1, d2]', '[d1, ∞)', '(-∞, d2]' or '(-∞, \
-             ∞)', not as pairs '(d1, d2)'"
+      | Grade.Interval (lo, hi) ->
+          let lo, hi = Grade.integer_ends lit lo hi in
+          (net_end Minus_inf lo, net_end Plus_inf hi)
       | lit ->
           Grade.invalid_lit lit
             "net changes are integers or ranges '[d1, d2]', not %s"

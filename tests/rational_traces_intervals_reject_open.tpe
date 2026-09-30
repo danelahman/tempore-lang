@@ -1,0 +1,5 @@
+(* Rejected: an open endpoint of an interval of sets of runs denotes infinitely
+   many runs, which the finite sets of runs of 'traces-cost-interval-rational'
+   do not express. *)
+
+let claim () = box (1/2, 2] 1

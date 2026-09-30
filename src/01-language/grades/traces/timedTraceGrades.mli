@@ -55,8 +55,19 @@ module type NAMES = sig
   (** The literals of the delays, in the singular, e.g. ["integer"]. *)
 end
 
+(** The presentation of trace grades with costs over a kind of delays. *)
+module type COST_NAMES = sig
+  include NAMES
+
+  val close : lower:bool -> GradeLiteral.lit -> GradeLiteral.lit
+  (** [close ~lower a] is the closed endpoint that abbreviates the open numeric
+      endpoint [a] of an interval, [lower] being whether it is the lower one.
+
+      @raise Grade.Invalid_literal if no closed endpoint does. *)
+end
+
 (** The trace grades with costs over the delays [D], named by [N]. *)
-module Make (D : Delay.MEASURED) (N : NAMES) : sig
+module Make (D : Delay.MEASURED) (N : COST_NAMES) : sig
   module LowerBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as lower bounds,
       ["traces-cost-lower-bound" ^ N.suffix], in the coverage order; the unit
@@ -72,8 +83,9 @@ module Make (D : Delay.MEASURED) (N : NAMES) : sig
       ["traces-cost-interval" ^ N.suffix], compared componentwise, written
       [[{...}, {...}]], and [\[{...}, ∞)] without an upper bound. A brace
       literal [{...}] abbreviates the interval of a set with itself, a delay [d]
-      the interval [[{d}, {d}]] and [[d, e]] the interval [[{d}, {e}]]; either
-      end may be [⊤], the top of its order. *)
+      the interval [[{d}, {d}]] and [[d, e]] the interval [[{d}, {e}]]; an open
+      numeric endpoint is read by [N.close]. Either end may be [⊤], the top of
+      its order. *)
 end
 
 (** {1 Traces over whole time steps}
@@ -94,12 +106,13 @@ module Interval : Grade.S with type Delay.t = Delay.Nat.t
     compared componentwise, written [[{...}, {...}]], and [\[{...}, ∞)] without
     an upper bound. A brace literal [{...}] abbreviates the interval of a set
     with itself, [n] the interval [[{n}, {n}]] and [[n, m]] the interval
-    [[{n}, {m}]]; either end may be [⊤], the top of its order. *)
+    [[{n}, {m}]]; an open endpoint abbreviates a closed one, [(n, m)] being
+    [[n + 1, m - 1]]. Either end may be [⊤], the top of its order. *)
 
 (** {1 Traces over rational delays}
 
     The delays are the non-negative rationals, written as integers and
-    fractions, e.g. [{Read; 1/2; Send}] or [(0.5, 3/2)], and so are the runtime
+    fractions, e.g. [{Read; 1/2; Send}] or [[0.5, 3/2]], and so are the runtime
     bounds, e.g. [within [1/2, 3/2]]: {!Make} over {!Delay.Rational}. *)
 module Rational : sig
   module LowerBound : Grade.S with type Delay.t = Delay.Rational.t
@@ -112,5 +125,6 @@ module Rational : sig
 
   module Interval : Grade.S with type Delay.t = Delay.Rational.t
   (** Closed intervals of a lower and an upper bound,
-      ["traces-cost-interval-rational"], compared componentwise. *)
+      ["traces-cost-interval-rational"], compared componentwise. An open
+      endpoint, a set of delays, is no finite set of runs, and is rejected. *)
 end

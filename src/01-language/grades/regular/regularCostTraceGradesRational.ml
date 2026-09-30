@@ -161,13 +161,24 @@ module Interval = struct
   let inhabited bounds (lo, hi) = inhabited bounds lo && inhabited bounds hi
   let events (lo, hi) = List.sort_uniq String.compare (L.events lo @ L.events hi)
 
+  (** [close ~lower a] is the bound of the open endpoint [a], a delay [q]: the
+      delays above [q] for a lower endpoint, and those below [q] for an upper
+      one. *)
+  let close ~lower a =
+    match Delay.read a with
+    | Some q ->
+        Braces
+          (if lower then Delays (Open q, Unbounded)
+           else Delays (Closed Rational.zero, Open q))
+    | None -> a
+
   let of_lit = function
     | Top -> top
     | (Int _ | Rat _ | Braces _) as lit ->
         let rho = L.of_lit lit in
         (rho, rho)
     | lit ->
-        bounds_of_lit lit ~number:Delay.read ~lower:Lower.of_lit
+        bounds_of_lit lit ~number:Delay.read ~close ~lower:Lower.of_lit
           ~upper:Upper.of_lit ~unbounded:Upper.top ~bounds:"regular expressions"
 
   let of_delay d = (L.of_delay d, L.of_delay d)

@@ -19,11 +19,11 @@
       and an upper bound, compared componentwise.
 
     Both are preorders, [equal] being mutual [≾]: if [Read] declares
-    [within (1/2, 3/2)], then [{Read} ≾ {3/2}] but not conversely under the
+    [within [1/2, 3/2]], then [{Read} ≾ {3/2}] but not conversely under the
     upper order, and [{Read | 1/2} ≡ {1/2}] under the lower order. Products and
     joins are those of languages, monotone in the orders. The orders are exact
     over the rationals: if [A] costs [1] under the upper order,
-    [{>0 & <1; A; >0 & <1}] is below [{3}] and below no [{q}] with [q < 3], its
+    [{(0, 1); A; (0, 1)}] is below [{3}] and below no [{q}] with [q < 3], its
     delays coming arbitrarily close to [1]. The closures are not timed regular
     languages, and a grade is printed as it was written, not as its closure.
 
@@ -40,17 +40,17 @@
 
     The literals, the unit [{0}], the product, the join, [of_delay] and the
     printing are those of {!RegularTraceGradeRational}: timed regular
-    expressions with rational delays, the comparisons [<q], [<=q], [>q] and
-    [>=q], [_], intersection and complement over all timed words, a number [q]
-    abbreviating [{q}] and [⊤] the language of all runs, which is the unit [{0}]
-    under the lower order. The upper order has [⊤] as its top and its unit
-    least; the lower order has the unit as its top. The runtime bounds implied
-    by a grade are the infimum of the weights of its lower-bound runs, at [lo],
-    and the supremum of those of its upper-bound runs, at [hi], [None] if the
-    latter is unbounded; an operation's time shadow [of_bounds (lo, hi)] is
-    [{lo}] under the lower order and [{hi}] under the upper. A counterexample to
-    [ρ ≾ ρ'] is the grade of a run of [ρ] outside the closure of [ρ'] with the
-    fewest operations, each delay close to the extremal delay of its set, in
+    expressions with rational delays, the intervals of delays such as [\[0, q)]
+    and [(q, ∞)], [_], intersection and complement over all timed words, a
+    number [q] abbreviating [{q}] and [⊤] the language of all runs, which is the
+    unit [{0}] under the lower order. The upper order has [⊤] as its top and its
+    unit least; the lower order has the unit as its top. The runtime bounds
+    implied by a grade are the infimum of the weights of its lower-bound runs,
+    at [lo], and the supremum of those of its upper-bound runs, at [hi], [None]
+    if the latter is unbounded; an operation's time shadow [of_bounds (lo, hi)]
+    is [{lo}] under the lower order and [{hi}] under the upper. A counterexample
+    to [ρ ≾ ρ'] is the grade of a run of [ρ] outside the closure of [ρ'] with
+    the fewest operations, each delay close to the extremal delay of its set, in
     which a name stands for itself. The witnesses of a closed condition are its
     constants and their pairwise products ({!Grade.sampled}), which are not
     complete.
@@ -82,7 +82,8 @@ module Upper :
     written [[{...}, {...}]], and [\[{...}, ∞)] with the upper bound [⊤]; a
     brace literal [{...}] abbreviates the interval of a language with itself, a
     number [q] the interval [[{q}, {q}]] and [[q, r]] the interval [[{q}, {r}]].
-*)
+    An open numeric endpoint is a set of delays: [(q, r)], also written as a
+    pair, is [\[{(q, ∞)}, {[0, r)}]], and so on for the half-open intervals. *)
 module Interval :
   Grade.S
     with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t

@@ -21,10 +21,10 @@
 
     A grade is written as a brace literal holding a timed regular expression
     ({!DelayRegex}): an operation name [Read], a delay such as [3], [1/2] or
-    [1.5], a comparison [<q], [<=q] ([≤q]), [>q] or [>=q] ([≥q]) denoting the
-    delays below, up to, above or from [q], and [_], every operation and every
-    positive delay, combined with [;], [|], [&], [~] and [*], e.g.
-    [{Read; (>0 & <1/2); Send | ~Write}]. The complement is taken over all timed
+    [1.5], an interval of delays [[q, r]], [(q, r)], [\[q, r)], [(q, r\]],
+    [\[q, ∞)] or [(q, ∞)], and [_], every operation and every positive delay,
+    combined with [;], [|], [&], [~] and [*], e.g.
+    [{Read; (0, 1/2); Send | ~Write}]. The complement is taken over all timed
     words: [~1] permits every run but the delay [1]. A plain number [q]
     abbreviates [{q}], and [⊤] (ASCII [top]) is [_*]. A literal denoting the
     empty language, or a negative delay, is rejected.
@@ -39,7 +39,7 @@
     word of [rho] not in [rho'] with the fewest operations
     ({!DelayAutomaton.counterexample}), its delays the simplest rationals of the
     sets of delays they are chosen from, and an operation no grade names written
-    as [_ & ~(>0 | …)].
+    as [_ & ~((0, ∞) | …)].
 
     {2 Printing}
 

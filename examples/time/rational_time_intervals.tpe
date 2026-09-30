@@ -4,10 +4,10 @@
 
      ./tempore --grades time-interval-rational examples/time/rational_time_intervals.tpe
 
-   Grades [q, r]: between q and r hours, q and r rationals
+   Grades [q, r] or (q, r): between q and r hours, a parenthesised end excluded
      - Unit [0, 0]: no time spent
      - Top [0, ∞): no bound, the widest interval
-     - Product: componentwise addition *)
+     - Product: componentwise addition, an end open if either end added is *)
 
 (* A nurse's check-in with the patient takes between a quarter and half an
    hour; unhandled, it takes a quarter of an hour. *)
@@ -21,6 +21,16 @@ default CheckIn () = delay 0.25
 let next_dose dose =
   box [4, 6] dose as d in
   delay 3.75;
+  perform CheckIn ();
+  unbox d as x in
+  x
+
+(* Correctly accepted by the typechecker: a sedative is given strictly more
+   than four hours after the last dose, and at most six; waiting four hours
+   and checking in accumulates [4.25, 4.5], which lies inside (4, 6]. *)
+let next_sedative dose =
+  box (4, 6] dose as d in
+  delay 4;
   perform CheckIn ();
   unbox d as x in
   x
@@ -52,6 +62,22 @@ let early_dose dose =
   x
 *)
 
+(* Correctly rejected by the typechecker: waiting 3.75 hours and checking in
+   may take exactly four hours, which (4, 6] excludes:
+
+     Typing error: Variable `d` is unboxed with grade `[4, 4.25]` accumulated
+       since it was bound, which is not below its box grade `(4, 6]`
+       Note: the resource inequality `[4, 4.25] <= (4, 6]` does not hold
+*)
+(*
+let early_sedative dose =
+  box (4, 6] dose as d in
+  delay 3.75;
+  perform CheckIn ();
+  unbox d as x in
+  x
+*)
+
 (* Correctly rejected by the typechecker: two readings twenty minutes apart
    accumulate only 2/3 of the hour the report is due after:
 
@@ -69,4 +95,5 @@ let early_report reading =
 *)
 
 run next_dose 500
+run next_sedative 25
 run hourly_report 72

@@ -5,7 +5,13 @@ module type NAMES = sig
   val number : string
 end
 
-module Make (D : Delay.MEASURED) (N : NAMES) = struct
+module type COST_NAMES = sig
+  include NAMES
+
+  val close : lower:bool -> lit -> lit
+end
+
+module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
   module Trace = TimedTrace.Make (D)
 
   let lo_cost (bounds : bounds) op = read_bound D.read (fst (bounds.cost op))
@@ -201,9 +207,9 @@ module Make (D : Delay.MEASURED) (N : NAMES) = struct
       | Braces _ as lit -> diagonal lit
       | lit when Option.is_some (Trace.number lit) -> diagonal lit
       | lit ->
-          bounds_of_lit lit ~number:Trace.number ~lower:LowerTraces.of_lit
-            ~upper:UpperTraces.of_lit ~unbounded:UpperTraces.Unbounded
-            ~bounds:"sets of traces"
+          bounds_of_lit lit ~number:Trace.number ~close:N.close
+            ~lower:LowerTraces.of_lit ~upper:UpperTraces.of_lit
+            ~unbounded:UpperTraces.Unbounded ~bounds:"sets of traces"
 
     let of_delay d =
       let ts = Trace.of_delay d in
@@ -231,6 +237,7 @@ include
     (struct
       let suffix = ""
       let number = "integer"
+      let close = close_integer
     end)
 
 module Rational =
@@ -239,4 +246,9 @@ module Rational =
     (struct
       let suffix = "-rational"
       let number = "number"
+
+      let close ~lower:_ a =
+        invalid_lit a
+          "an open endpoint denotes an infinite set of runs, which these \
+           grades do not express"
     end)

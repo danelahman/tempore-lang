@@ -1,0 +1,4 @@
+(* Rejected: an interval open at an endpoint has endpoints n < m, and '[2, 2)'
+   is empty. *)
+
+let claim () = box [2, 2) 1

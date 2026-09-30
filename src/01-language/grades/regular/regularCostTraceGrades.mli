@@ -131,7 +131,9 @@ module Make
   (** Closed intervals of a lower and an upper bound, compared componentwise,
       written [[{...}, {...}]], and [\[{...}, ∞)] with the upper bound [⊤]; a
       brace literal [{...}] abbreviates the interval of a language with itself,
-      [n] the interval [[{n}, {n}]] and [[n, m]] the interval [[{n}, {m}]]. *)
+      [n] the interval [[{n}, {n}]] and [[n, m]] the interval [[{n}, {m}]], an
+      open endpoint abbreviating a closed one, [(n, m)] being
+      [[{n + 1}, {m - 1}]]. *)
   module Interval :
     Grade.S with type t = L.t * L.t and type Delay.t = Delay.Nat.t
 end

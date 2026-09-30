@@ -12,7 +12,7 @@ default Send n = delay 0.25
 (* A sample, then at least half a time unit of pauses and operations: a
    transmission banks a quarter and a pause adds another. *)
 let sample_then_wait () =
-  box {Sample; >=1/2} (Token "t") as t in
+  box {Sample; [1/2, ∞)} (Token "t") as t in
   let v = perform Sample () in
   perform Send v;
   delay 1/4;
@@ -21,14 +21,14 @@ let sample_then_wait () =
 
 (* A transmission after any pause. *)
 let eventually_send (n : nat) =
-  box {>=0; Send} (Token "s") as s in
+  box {[0, ∞); Send} (Token "s") as s in
   delay 1/3;
   perform Send n;
   unbox s as tok in
   tok
 
 (* Pauses of more than a quarter cover a guarantee of a quarter. *)
-let long_pause () : unit # {>1/4} = delay 1/3
+let long_pause () : unit # {(1/4, ∞)} = delay 1/3
 
 let paused () =
   box {1/4} (Token "p") as p in
@@ -39,7 +39,7 @@ let paused () =
 (* The delays from a half to one time unit, written with a complement, are
    covered by a pause of a quarter and a transmission. *)
 let covered (n : nat) =
-  box {~(<1/2) & <=1} (Token "c") as c in
+  box {~[0, 1/2) & [0, 1]} (Token "c") as c in
   delay 1/4;
   perform Send n;
   unbox c as tok in

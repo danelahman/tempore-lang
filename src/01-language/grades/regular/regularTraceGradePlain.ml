@@ -30,7 +30,7 @@ let of_regex r =
     | Letter name -> atom name
     | Tick n -> ticks n
     | Frac q -> fractional_tick q
-    | Compare (c, q) -> delay_comparison c q
+    | Delays (lo, hi) -> go (tick_delays lo hi)
     | Any -> any names
     | Seq (r, s) -> Regex.concat (go r) (go s)
     | Union (r, s) -> Regex.union [ go r; go s ]

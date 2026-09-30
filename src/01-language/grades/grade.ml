@@ -205,19 +205,40 @@ let read_bound read q =
       with {!component_of_lit}. *)
 let fractional_tick q = invalid_lit (Rat q) "%s" (Delay.Nat.rejection (Rat q))
 
-(** [delay_comparison c q] rejects the comparison [c] with the bound [q] of a
-    brace literal, a set of delays, in the grades whose delays are whole numbers
-    of time steps.
+(** [tick_delays lo hi] is the expression over whole time steps of the interval
+    atom from [lo] to [hi] of a brace literal: [[a, b]] is [a] ticks followed by
+    up to [b - a] more, [\[a, ∞)] is [a] ticks followed by any number, and an
+    open endpoint is shifted by one tick.
 
     @raise Invalid_literal
-      on the brace literal of the comparison alone, which the grade reports
-      against the enclosing literal with {!component_of_lit}. *)
-let delay_comparison c q =
-  invalid_lit
-    (Braces (Compare (c, q)))
-    "delays are whole numbers of time steps, and the comparison '%s' denotes a \
-     set of rational delays"
-    (show_comparison c q)
+      on a fractional endpoint, by {!fractional_tick}, and on the brace literal
+      of the atom alone if it contains no whole number of time steps, which the
+      grade reports against the enclosing literal with {!component_of_lit}. *)
+let tick_delays lo hi =
+  let whole q =
+    match Rational.to_int q with Some n -> n | None -> fractional_tick q
+  in
+  let a =
+    match lo with Closed a -> whole a | Open a -> whole a + 1 | Unbounded -> 0
+  in
+  let b =
+    match hi with
+    | Closed b -> Some (whole b)
+    | Open b -> Some (whole b - 1)
+    | Unbounded -> None
+  in
+  match b with
+  | None -> Seq (Tick a, Star (Tick 1))
+  | Some b when b < a ->
+      invalid_lit
+        (Braces (Delays (lo, hi)))
+        "the interval '%s' contains no whole number of time steps"
+        (show_interval Rational.show lo hi)
+  | Some b ->
+      List.fold_left
+        (fun r _ -> Seq (r, Union (Tick 0, Tick 1)))
+        (Tick a)
+        (List.init (b - a) Fun.id)
 
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their
     pairwise products by [mul]. *)

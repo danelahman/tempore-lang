@@ -1,5 +1,6 @@
-(* Intervals with no upper bound, '[n, ∞)' (ASCII '[n, inf)'), and the top '⊤'
-   (ASCII 'top'), which is '[0, ∞)', under time-interval. *)
+(* Intervals with no upper bound, '[n, ∞)' (ASCII '[n, inf)'), intervals open
+   at an endpoint, which abbreviate closed ones over whole time steps, and the
+   top '⊤' (ASCII 'top'), which is '[0, ∞)', under time-interval. *)
 
 let claim_late () =
   box [3, ∞) "open-ended" as r in
@@ -21,6 +22,19 @@ let claim_top () =
 
 let wait : unit -> unit # top = fun () -> delay 7
 
+(* '(1, 5)' is '[2, 4]', '[2, 5)' is '[2, 4]', '(2, 5]' is '[3, 5]' and
+   '(2, ∞)' is '[3, ∞)'. *)
+let claim_open () =
+  box (1, 5) "open" as r in
+  delay 4;
+  unbox r as y in
+  y
+
+let claim_half_open () = box [2, 5) "half" as r in delay 2; unbox r as y in y
+let claim_open_below () = box (2, 5] "below" as r in delay 5; unbox r as y in y
+let claim_open_late () = box (2, ∞) "late" as r in delay 3; unbox r as y in y
+let open_type (x : [(0, 3)]nat) : nat # [1, 1] = delay 1; unbox x as y in y
+
 (* Intervals in box types and effect annotations, beside list literals and
    list patterns. *)
 let unbox_later (x : [[1, 2]]nat list) : nat list # [1, 1] =
@@ -39,3 +53,8 @@ run claim_top ()
 run wait ()
 run unbox_later (box [1, 2] [3; 4])
 run open_ended (box [1, ∞) 5)
+run claim_open ()
+run claim_half_open ()
+run claim_open_below ()
+run claim_open_late ()
+run open_type (box [1, 2] 6)

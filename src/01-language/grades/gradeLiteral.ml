@@ -3,12 +3,25 @@
     ({!Grade.S.of_lit}) and rejects the others with {!Invalid_literal}; delays
     read the numeric ones ({!Delay.S.read}). *)
 
-(** The comparisons of a delay with a bound. *)
-type comparison =
-  | Lt  (** [<q] *)
-  | Le  (** [<=q], also [≤q] *)
-  | Gt  (** [>q] *)
-  | Ge  (** [>=q], also [≥q] *)
+(** An endpoint of an interval. *)
+type 'a bound =
+  | Closed of 'a  (** A finite endpoint the interval contains *)
+  | Open of 'a  (** A finite endpoint the interval excludes *)
+  | Unbounded  (** An infinite endpoint *)
+
+(** [show_interval show lo hi] prints the interval from [lo] to [hi], its finite
+    endpoints printed by [show], e.g. [\[1, 2)] or [(1/2, ∞)]. *)
+let show_interval show lo hi =
+  (match lo with
+    | Closed a -> "[" ^ show a
+    | Open a -> "(" ^ show a
+    | Unbounded -> "(-∞")
+  ^ ", "
+  ^
+  match hi with
+  | Closed b -> show b ^ "]"
+  | Open b -> show b ^ ")"
+  | Unbounded -> "∞)"
 
 (** Regular expressions over operation names and delays, the contents of a brace
     literal [{...}]. *)
@@ -16,8 +29,9 @@ type regex =
   | Letter of string  (** An operation name, e.g. [Send] *)
   | Tick of int  (** A delay of [n] time steps, e.g. [3] *)
   | Frac of Rational.t  (** A delay that is not an [int], e.g. [1/2] or [1.5] *)
-  | Compare of comparison * Rational.t
-      (** The delays in a comparison with a bound, e.g. [<1] or [>=1/2] *)
+  | Delays of Rational.t bound * Rational.t bound
+      (** The delays in an interval with a finite lower endpoint, e.g. [\[0, 1)]
+          or [(1/2, ∞)] *)
   | Any
       (** Any single operation or time step, [_]; over rational delays, any
           single operation or positive delay *)
@@ -32,23 +46,17 @@ type regex =
 let regex_names r =
   let rec go = function
     | Letter name -> [ name ]
-    | Tick _ | Frac _ | Compare _ | Any -> []
+    | Tick _ | Frac _ | Delays _ | Any -> []
     | Seq (r, s) | Union (r, s) | Inter (r, s) -> go r @ go s
     | Star r | Compl r -> go r
   in
   List.sort_uniq String.compare (go r)
 
-(** [show_comparison c q] prints the comparison [c] with the bound [q], e.g.
-    [<=1.5]. *)
-let show_comparison c q =
-  (match c with Lt -> "<" | Le -> "<=" | Gt -> ">" | Ge -> ">=")
-  ^ Rational.show q
-
 (** [show_regex r] prints [r] as the contents of a brace literal, with the
     parentheses the precedences require: union [|], intersection [&],
     concatenation [;], complement [~] and repetition [*], by increasing
     precedence. The three binary operators are printed as associative, and a
-    comparison or a fraction under a repetition is parenthesised. *)
+    fraction under a repetition is parenthesised. *)
 let show_regex r =
   let buffer = Buffer.create 64 in
   let add = Buffer.add_string buffer in
@@ -70,7 +78,7 @@ let show_regex r =
     | Letter name -> add name
     | Tick n -> add (string_of_int n)
     | Frac q -> wrap ctx 4 (fun () -> add (Rational.show q))
-    | Compare (c, q) -> wrap ctx 4 (fun () -> add (show_comparison c q))
+    | Delays (lo, hi) -> add (show_interval Rational.show lo hi)
     | Any -> add "_"
     | Union _ as r ->
         chain ctx 0 " | " (function Union (l, x) -> Some (l, x) | _ -> None) r
@@ -107,10 +115,11 @@ type lit =
   | Inf  (** Infinity, [∞] or [inf] *)
   | Tuple of lit list
       (** A parenthesised tuple of at least two literals, e.g. [(3, High)] *)
-  | Interval of lit option * lit option
-      (** An interval, closed at its finite endpoints, [None] being an infinite
-          one: [[1, 4]], [\[1/2, ∞)], [(-∞, 3\]], [(-∞, ∞)] or [[{A}, {A; B}]]
-      *)
+  | Interval of lit bound * lit bound
+      (** An interval with bracketed endpoints: [[1, 4]], [\[1/2, 3)],
+          [(1, 4\]], [\[1/2, ∞)], [(-∞, 3\]], [(-∞, ∞)] or [[{A}, {A; B}]]. A
+          pair of numbers [(1, 4)] is a {!Tuple}, which the grades that read
+          intervals of numbers read as an open interval ({!open_pair}). *)
   | Braces of regex  (** A brace literal, e.g. [{Read; 3; Send | Send}] *)
 
 exception Invalid_literal of lit * string
@@ -153,35 +162,114 @@ let describe_lit = function
   | Braces _ -> "brace literals '{...}'"
 
 (** The interval literals of the grades whose intervals are bounded below. *)
-let interval_forms = "'[n, m]' or '[n, ∞)'"
+let interval_forms =
+  "'[n, m]', '(n, m)', '[n, m)', '(n, m]', '[n, ∞)' or '(n, ∞)'"
 
-(** [is_pair_interval lit] holds iff [lit] is a pair of numbers, the second
-    possibly [∞], which denotes no interval. *)
-let is_pair_interval = function
-  | Tuple [ (Int _ | Rat _); (Int _ | Rat _ | Inf) ] -> true
-  | _ -> false
+(** [numeric lit] is the value of the numeric literal [lit]. *)
+let numeric = function
+  | Int n -> Some (Rational.of_int n)
+  | Rat q -> Some q
+  | _ -> None
 
-(** [reject_pair_interval lit] rejects the pair [lit] of numbers in place of an
-    interval, naming the interval literals. *)
-let reject_pair_interval lit =
-  invalid_lit lit "intervals are written %s, not as pairs '(n, m)'"
-    interval_forms
+(** [open_pair lit] is the open interval [(a, b)] if [lit] is a pair of numbers
+    [a] and [b], [b] possibly [∞], and [lit] otherwise. *)
+let open_pair = function
+  | Tuple [ ((Int _ | Rat _) as a); ((Int _ | Rat _) as b) ] ->
+      Interval (Open a, Open b)
+  | Tuple [ ((Int _ | Rat _) as a); Inf ] -> Interval (Open a, Unbounded)
+  | lit -> lit
+
+(** [emptiness lo hi] is the reason the interval of the rational endpoints [lo]
+    and [hi] is empty, if it is. *)
+let emptiness lo hi =
+  let value = function
+    | Closed a -> Some (a, true)
+    | Open a -> Some (a, false)
+    | Unbounded -> None
+  in
+  match (value lo, value hi) with
+  | Some (a, a_closed), Some (b, b_closed) ->
+      let c = Rational.compare a b in
+      if c > 0 then Some "interval endpoints must satisfy n <= m"
+      else if c = 0 && not (a_closed && b_closed) then
+        Some "interval endpoints must satisfy n < m at an open endpoint"
+      else None
+  | _ -> None
+
+(** [check_nonempty ~number lit lo hi] rejects the interval literal [lit] with
+    the endpoints [lo] and [hi] if their values by [number] denote an empty
+    interval; endpoints without a value are not compared. *)
+let check_nonempty ~number lit lo hi =
+  let value = function
+    | Closed a -> Option.map (fun q -> Closed q) (number a)
+    | Open a -> Option.map (fun q -> Open q) (number a)
+    | Unbounded -> Some Unbounded
+  in
+  match (value lo, value hi) with
+  | Some lo, Some hi ->
+      Option.iter (fun reason -> invalid_lit lit "%s" reason) (emptiness lo hi)
+  | _ -> ()
+
+(** [close_integer ~lower lit] is the closed endpoint that abbreviates the open
+    endpoint [lit] over the integers: [n + 1] for a lower and [n - 1] for an
+    upper endpoint [n], and [lit] itself if it is no integer. *)
+let close_integer ~lower = function
+  | Int n -> Int (if lower then n + 1 else n - 1)
+  | lit -> lit
+
+(** [integer_ends lit lo hi] is the pair of the endpoints [lo] and [hi] of the
+    interval literal [lit] over the integers, closed at its finite endpoints by
+    {!close_integer}.
+
+    @raise Invalid_literal if the interval is empty, or contains no integer. *)
+let integer_ends lit lo hi =
+  check_nonempty ~number:numeric lit lo hi;
+  let close ~lower = function
+    | Open a -> Closed (close_integer ~lower a)
+    | b -> b
+  in
+  let lo = close ~lower:true lo and hi = close ~lower:false hi in
+  (match (lo, hi) with
+  | Closed (Int n), Closed (Int m) when m < n ->
+      invalid_lit lit "the interval contains no integer"
+  | _ -> ());
+  (lo, hi)
 
 (** The interval literals of the grades whose intervals are bounded below by a
     grade and above by a grade or [∞]. *)
 let bound_forms = "'[L, U]' or '[L, ∞)'"
 
-(** [bounds_of_lit lit ~number ~lower ~upper ~unbounded ~bounds] is the pair of
-    the lower bound [lower l] and the upper bound [upper u] the interval literal
-    [lit] = [[l, u]] denotes, the upper bound being [unbounded] in [\[l, ∞)];
-    endpoints that both have a numeric value by [number] must be ordered.
-    [bounds] names the bounds in the rejection of a literal of another form. *)
-let bounds_of_lit lit ~number ~lower ~upper ~unbounded ~bounds =
-  match lit with
-  | Interval (Some l, u) ->
+(** [bounds_of_lit lit ~number ~close ~lower ~upper ~unbounded ~bounds] is the
+    pair of the lower bound [lower l] and the upper bound [upper u] the interval
+    literal [lit] = [[l, u]] denotes, the upper bound being [unbounded] in
+    [\[l, ∞)]. A pair of numbers is the open interval ({!open_pair}), and an
+    open numeric endpoint [a] is the closed one [close ~lower a], [lower] being
+    whether it is the lower endpoint. Endpoints that both have a numeric value
+    by [number] must denote a non-empty interval. [bounds] names the bounds in
+    the rejection of a literal of another form. *)
+let bounds_of_lit lit ~number ~close ~lower ~upper ~unbounded ~bounds =
+  match open_pair lit with
+  | Interval (Unbounded, _) ->
+      invalid_lit lit "intervals are bounded below, written %s" bound_forms
+  | Interval (((Closed l | Open l) as lo), hi) ->
+      check_nonempty ~number lit lo hi;
+      let close_end ~lower a = function
+        | Closed _ -> a
+        | Open _ when Option.is_some (numeric a) ->
+            component_of_lit lit ~context:"" (close ~lower) a
+        | Open _ | Unbounded ->
+            invalid_lit lit
+              "an endpoint that is not a number is closed, as in %s" bound_forms
+      in
+      let l = close_end ~lower:true l lo in
+      let u =
+        match hi with
+        | Closed u | Open u -> Some (close_end ~lower:false u hi)
+        | Unbounded -> None
+      in
       (match (number l, Option.bind u number) with
       | Some n, Some m when Rational.compare n m > 0 ->
-          invalid_lit lit "interval endpoints must satisfy n <= m"
+          invalid_lit lit "the interval contains no integer"
       | _ -> ());
       let lo = component_of_lit lit ~context:"" lower l in
       let hi =
@@ -190,8 +278,6 @@ let bounds_of_lit lit ~number ~lower ~upper ~unbounded ~bounds =
         | Some u -> component_of_lit lit ~context:"" upper u
       in
       (lo, hi)
-  | Interval (None, _) ->
-      invalid_lit lit "intervals are bounded below, written %s" bound_forms
   | Tuple [ _; _ ] ->
       invalid_lit lit "intervals are written %s, not as pairs '(L, U)'"
         bound_forms

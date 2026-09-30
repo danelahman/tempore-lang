@@ -1,0 +1,4 @@
+(* Rejected: the open interval of durations '(2, 3)' contains no whole number
+   of ticks. *)
+
+let claim () = box (2, 3) 1

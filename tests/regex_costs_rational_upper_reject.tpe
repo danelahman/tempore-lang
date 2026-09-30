@@ -27,7 +27,7 @@ let budget_reset () =
 
 (* Pauses under a half on either side of a transmission come arbitrarily close
    to 1/2 + 1 + 1/2 = 2 time units, more than 1.99. *)
-let short_pause () : unit # {<1/2} = delay 0.49
+let short_pause () : unit # {[0, 1/2)} = delay 0.49
 
 let bursts (n : nat) =
   box {1.99} (Token "b") as b in
@@ -40,7 +40,7 @@ let bursts (n : nat) =
 (* The complement removes the end of the interval: a pause after the
    transmission stays under one time unit. *)
 let late (n : nat) =
-  box {Send; (<=1 & ~1)} (Token "l") as l in
+  box {Send; ([0, 1] & ~1)} (Token "l") as l in
   perform Send n;
   delay 1;
   unbox l as tok in

@@ -14,9 +14,10 @@ operation Read : unit ~> nat # {Read}
 operation Report : nat ~> unit # {Report}
 operation Alarm : unit ~> unit # {Alarm}
 
-(* Correctly accepted by the typechecker: a reading is reported within less
-   than half a second, here after two pauses adding up to 0.35. *)
-let report () : unit # {Read; <1/2; Report} =
+(* Correctly accepted by the typechecker: a reading is reported after a
+   positive pause shorter than half a second, the open interval (0, 1/2), here
+   after two pauses adding up to 0.35. *)
+let report () : unit # {Read; (0, 1/2); Report} =
   let v = perform Read () in
   delay 0.25;
   delay 1/10;
@@ -24,7 +25,7 @@ let report () : unit # {Read; <1/2; Report} =
 
 (* Correctly accepted by the typechecker: readings each followed by a pause of
    more than a quarter and at most half a second, any number of times. *)
-let sample_twice () : nat # {(Read; (>1/4 & <=1/2))*} =
+let sample_twice () : nat # {(Read; (1/4, 1/2])*} =
   let x = perform Read () in
   delay 1/2;
   let y = perform Read () in
@@ -71,12 +72,12 @@ let late_alarm () =
    the reading, which the grade excludes by a strict bound:
 
      Typing error: This function's body has grade `{Read; 0.5; Report}`, which
-       does not match its annotated grade `{Read; <0.5; Report}`
-       Note: the effect inequality `{Read; 0.5; Report} <= {Read; <0.5; Report}`
-         does not hold
+       does not match its annotated grade `{Read; (0, 0.5); Report}`
+       Note: the effect inequality
+         `{Read; 0.5; Report} <= {Read; (0, 0.5); Report}` does not hold
 *)
 (*
-let slow_report () : unit # {Read; <1/2; Report} =
+let slow_report () : unit # {Read; (0, 1/2); Report} =
   let v = perform Read () in
   delay 1/2;
   perform Report v
@@ -86,7 +87,7 @@ let slow_report () : unit # {Read; <1/2; Report} =
    operation realises its grade; the run uses delays alone, the grade of the
    box permitting the pauses of more than a second that are not whole. *)
 run
-  box {>1 & ~1*} "settled" as s in
+  box {(1, ∞) & ~1*} "settled" as s in
   delay 1/2;
   delay 1.25;
   unbox s as msg in

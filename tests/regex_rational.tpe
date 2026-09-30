@@ -9,7 +9,7 @@ operation Reset : unit ~> unit # {Reset}
 
 (* A reading sent within less than one time unit. *)
 let prompt () =
-  box {Sample; <1; Send} () as due in
+  box {Sample; [0, 1); Send} () as due in
   let v = perform Sample () in
   delay 1/4;
   delay 0.5;
@@ -34,7 +34,7 @@ let halves () =
   u
 
 (* Samples each followed by a pause of at most half a time unit. *)
-let poll () : nat # {(Sample; (>0 & <=1/2))*} =
+let poll () : nat # {(Sample; (0, 1/2])*} =
   let v = perform Sample () in
   delay 1/4;
   v

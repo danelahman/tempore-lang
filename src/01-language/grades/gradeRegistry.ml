@@ -43,7 +43,8 @@ let entries =
     entry
       (module TimeGrades.Interval)
       time "Intervals"
-      "Intervals [n, m] and [n, ∞) of time steps, ordered by containment.";
+      "Intervals [n, m] and [n, ∞) of time steps, ordered by containment; (n, \
+       m) is [n + 1, m - 1].";
     entry
       (module RationalTimeGrades.LowerBound)
       time "Lower bounds (rational)"
@@ -57,8 +58,9 @@ let entries =
     entry
       (module RationalTimeGrades.Interval)
       time "Intervals (rational)"
-      "Intervals [q, r] and [q, ∞) of time units, q and r non-negative \
-       rationals, ordered by containment.";
+      "Intervals [q, r] and [q, ∞) of time units, each finite endpoint closed \
+       or open, as in (q, r] or (q, ∞), q and r non-negative rationals, \
+       ordered by containment.";
     entry
       (module TraceInclusionGrades.UpperBound)
       traces "Upper bounds"

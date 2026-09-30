@@ -81,8 +81,7 @@ let events rho = DelayAutomaton.names rho.automaton
 
 let of_bounds (lo, hi) =
   if Rational.equal lo hi then of_delay lo
-  else if Rational.sign lo = 0 then of_regex (Compare (Le, hi))
-  else of_regex (Inter (Compare (Ge, lo), Compare (Le, hi)))
+  else of_regex (Delays (Closed lo, Closed hi))
 
 let is_atomic name rho =
   DelayAutomaton.equal rho.automaton (of_regex (Letter name)).automaton
@@ -96,7 +95,7 @@ let counterexample _bounds rho rho' =
 let rec negative_delay = function
   | Tick n when n < 0 -> Some (Rational.of_int n)
   | Frac q when Rational.sign q < 0 -> Some q
-  | Letter _ | Tick _ | Frac _ | Compare _ | Any -> None
+  | Letter _ | Tick _ | Frac _ | Delays _ | Any -> None
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> (
       match negative_delay r with Some q -> Some q | None -> negative_delay s)
   | Star r | Compl r -> negative_delay r

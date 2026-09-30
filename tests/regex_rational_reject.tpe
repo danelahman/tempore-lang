@@ -15,7 +15,7 @@ let offbeat () =
   n
 
 let late () =
-  box {Sample; <1; Send} () as due in
+  box {Sample; [0, 1); Send} () as due in
   let v = perform Sample () in
   delay 1/2;
   delay 1/2;
@@ -26,7 +26,7 @@ let late () =
 let thirds () : unit # {(1/2)*} = delay 1/3
 
 let wait (b : bool) =
-  box {>=1} () as w in
+  box {[1, ∞)} () as w in
   if b then delay 1/2 else delay 2;
   unbox w as u in
   u
