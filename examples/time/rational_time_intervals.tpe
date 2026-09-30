@@ -10,7 +10,7 @@
      - Product: componentwise addition, an end open if either end added is *)
 
 (* A nurse's check-in with the patient takes between a quarter and half an
-   hour; unhandled, it takes a quarter of an hour. *)
+   hour; its default takes a quarter of an hour. *)
 operation CheckIn : unit ~> unit # [0.25, 0.5]
 
 default CheckIn () = delay 0.25

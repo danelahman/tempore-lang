@@ -1,13 +1,13 @@
-(* The print, epoxy and message pipeline, its runs bounded above and below.
+(* The print, epoxy and message pipeline, its traces bounded above and below.
 
    Run this example with the 'traces-cost-interval' grading monoid, e.g.
 
      ./tempore --grades traces-cost-interval examples/traces/traces_intervals.tpe
 
    Grades [{...}, {...}]: a lower and an upper bound on the traces
-     - Unit [{0}, {0}]: nothing demanded, only the empty run allowed
-     - Top [{0}, ∞): nothing demanded, every run allowed
-     - Product: concatenation of runs, componentwise *)
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
 
 type model = Model of string
 type heated = Heated of model
@@ -15,7 +15,7 @@ type extruded = Extruded of heated
 type cooled = Cooled of extruded
 type print = Printed of cooled | Reheated of heated
 (* Mixed epoxy does not keep: 'noneternal' annotation means the glue has to be
-   used in the very step in which it is unboxed. *)
+   used in the very tick in which it is unboxed. *)
 noneternal type epoxy = Epoxy
 
 (* Mounting uses the glue up, so a mounted print holds no epoxy and is
@@ -118,7 +118,7 @@ let print_cog () =
   perform Mount (Printed c, g)
 
 (* Correctly accepted by the typechecker: the clause realises the first of the
-   two runs 'Print' allows, covering it on the lower bound and fitting inside
+   two traces 'Print' allows, covering it on the lower bound and fitting inside
    it on the upper bound. *)
 let full_printer =
   handler
@@ -129,7 +129,7 @@ let full_printer =
       let c = perform Cool p in
       continue k with (box [2, 8] (Printed c))
 
-(* Correctly accepted by the typechecker: the clause realises the other run, a
+(* Correctly accepted by the typechecker: the clause realises the other trace, a
    reheat that skips the extrusion --- the model was extruded in an earlier
    job, so it goes straight from the heater to the cooler. *)
 let quick_printer =
@@ -141,7 +141,7 @@ let quick_printer =
       continue k with (box [2, 8] (Reheated h))
 
 (* Correctly accepted by the typechecker: a reheat is exactly what the lower
-   bound of 'Print2' guarantees, and it fits inside the second run of its
+   bound of 'Print2' guarantees, and it fits inside the second trace of its
    upper bound. *)
 let reheater =
   handler
@@ -192,8 +192,8 @@ let send_telemetry () =
 
 (* Correctly accepted by the typechecker: a non-exact bound on both sides ---
    the lower bound demands only the first transmission before the receipt may
-   be read, and the upper bound allows either two transmissions or six ticks of
-   waiting. *)
+   be read, and the upper bound allows either two transmissions or a duration
+   of six ticks. *)
 let send_by_events () =
   box [{Tx}, {Tx; Tx | 6}] (Receipt "telemetry") as slot in
   perform Send "telemetry";
@@ -224,7 +224,7 @@ let early_cooler =
       continue k with (box [2, 8] (Reheated h))
 *)
 
-(* Correctly rejected by the typechecker: neither run of 'Print' begins with a
+(* Correctly rejected by the typechecker: neither trace of 'Print' begins with a
    'Cool', and the order of a bound is not negotiable, however the model that
    is handed to the cooler came to be:
 
@@ -247,8 +247,8 @@ let twisted_printer =
 *)
 
 (* Correctly rejected by the typechecker on the lower bound, which demands the
-   whole run it promises: a clause that stops after the extrusion covers
-   neither run of 'Print', even though the upper bound of 'Print' would
+   whole trace it promises: a clause that stops after the extrusion covers
+   neither trace of 'Print', even though the upper bound of 'Print' would
    happily allow it:
 
      Typing error: Variable `k` is unboxed with grade
@@ -273,8 +273,8 @@ let sloppy_printer =
    default implementation rather than a handler: an operation case is checked
    against the grade of the operation, and a delay never realises the event
    '{MixEpoxy}' --- only performing 'MixEpoxy' itself would, which is circular.
-   A default is checked against the 'within [1, 1]' bounds instead, which the
-   very same tick of mixing meets exactly:
+   A default is checked against the running-time bounds 'within [1, 1]'
+   instead, which the very same tick of mixing meets exactly:
 
      Typing error: Variable `k` is unboxed with grade `[{1}, {1}]` accumulated
        since it was bound, which is not below its box grade

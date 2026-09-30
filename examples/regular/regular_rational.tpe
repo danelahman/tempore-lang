@@ -4,10 +4,10 @@
 
      ./tempore --grades regex-upper-bound-rational examples/regular/regular_rational.tpe
 
-   Grades {...}: regular languages of runs over operations and rational delays
-     - Unit {0}: the empty run
-     - Top ⊤: every run
-     - Product: concatenation of runs, adjacent delays added *)
+   Grades {...}: regular languages of traces over operations and rational delays
+     - Unit {0}: the empty trace
+     - Top ⊤: every trace
+     - Product: concatenation of traces, adjacent delays added *)
 
 (* The operations of the monitor. *)
 operation Read : unit ~> nat # {Read}
@@ -15,15 +15,15 @@ operation Report : nat ~> unit # {Report}
 operation Alarm : unit ~> unit # {Alarm}
 
 (* Correctly accepted by the typechecker: a reading is reported after a
-   positive pause shorter than half a second, the open interval (0, 1/2), here
-   after two pauses adding up to 0.35. *)
+   positive delay shorter than half a second, the open interval (0, 1/2), here
+   after two delays adding up to 0.35. *)
 let report () : unit # {Read; (0, 1/2); Report} =
   let v = perform Read () in
   delay 0.25;
   delay 1/10;
   perform Report v
 
-(* Correctly accepted by the typechecker: readings each followed by a pause of
+(* Correctly accepted by the typechecker: readings each followed by a delay of
    more than a quarter and at most half a second, any number of times. *)
 let sample_twice () : nat # {(Read; (1/4, 1/2])*} =
   let x = perform Read () in
@@ -32,9 +32,9 @@ let sample_twice () : nat # {(Read; (1/4, 1/2])*} =
   delay 0.3;
   x + y
 
-(* Correctly accepted by the typechecker: the alarm may sound after any run but
-   a pause of exactly one second, the delay that the complement '~1' excludes;
-   here the pauses add up to 0.9. *)
+(* Correctly accepted by the typechecker: the alarm may sound after any trace
+   but a delay of exactly one second, which the complement '~1' excludes; here
+   the delays add up to 0.9. *)
 let alarm () =
   box {~1} () as a in
   delay 0.6;
@@ -51,7 +51,7 @@ let timer () =
   unbox t as msg in
   msg
 
-(* Correctly rejected by the typechecker: the pauses add up to one second,
+(* Correctly rejected by the typechecker: the delays add up to one second,
    the one delay the complement excludes:
 
      Typing error: Variable `a` is unboxed with grade `{1}` accumulated since
@@ -85,7 +85,7 @@ let slow_report () : unit # {Read; (0, 1/2); Report} =
 
 (* The operations have no default implementations, since only performing an
    operation realises its grade; the run uses delays alone, the grade of the
-   box permitting the pauses of more than a second that are not whole. *)
+   box permitting the delays of more than a second that are not whole. *)
 run
   box {(1, ∞) & ~1*} "settled" as s in
   delay 1/2;

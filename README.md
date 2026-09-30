@@ -165,35 +165,35 @@ and otherwise as a fraction (`1/3`). See
 
 ### Traces
 
-A grade is a non-empty finite set of *traces*, the runs a computation may
-exhibit. A run alternates operations and delays: `Read; 3; Send` performs
-`Read`, waits three steps, and performs `Send`; adjacent delays are merged, so
-`Read; 1; 2; Send` is the same run as `Read; 3; Send`. Grades multiply by 
-concatenation and join by union. Operations declare no runtime bounds.
+A grade is a non-empty finite set of *traces*, the sequences of operations and
+delays a computation may exhibit: `Read; 3; Send` performs `Read`, waits three
+steps, and performs `Send`; adjacent delays are merged, so `Read; 1; 2; Send` is
+the same trace as `Read; 3; Send`. Grades multiply by concatenation and join by
+union. Operations declare no running-time bounds.
 
-In `traces-upper-bound`, the runs a computation is *allowed*, ordered by set
+In `traces-upper-bound`, the traces a computation is *allowed*, ordered by set
 inclusion; a delay pays for no operation, and `{Read}` is not below `{3}`. The
-unit `{0}` is not least, and `⊤`, any run, is the top. Runs are compared by
+unit `{0}` is not least, and `⊤`, any trace, is the top. Traces are compared by
 equality, so only upper bounds are provided. The rational variant
 `traces-upper-bound-rational` has non-negative rational delays. 
 
 Literals are those of the trace grades with costs, below. When an ordering
-fails, a note names a run of the lesser grade that the greater one does not
+fails, a note names a trace of the lesser grade that the greater one does not
 list. See
 [`examples/traces/plain_traces_upper.tpe`](examples/traces/plain_traces_upper.tpe).
 
 ### Traces with costs
 
 The grades are finite sets of traces as above, and every atomic operation
-declares runtime bounds `within [lo, hi]`, which the orders use to trade time
-against operations.
+declares running-time bounds `within [lo, hi]`, which the orders use to trade
+time against operations.
 
-- `traces-cost-lower-bound`: the runs a computation must *cover*; an operation
-  performed counts as `lo` steps towards a demanded delay. `{0}` is the top.
-- `traces-cost-upper-bound`: the runs a computation is *allowed*; a delay pays
-  for operations at their `hi`. `{0}` is least and `⊤` the top.
+- `traces-cost-lower-bound`: the traces a computation must *cover*; an operation
+  performed counts as `lo` steps towards a demanded duration. `{0}` is the top.
+- `traces-cost-upper-bound`: the traces a computation is *allowed*; a duration
+  pays for operations at their `hi`. `{0}` is least and `⊤` the top.
 - `traces-cost-interval`: closed intervals `[{...}, {...}]` of a lower and an
-  upper bound, the runs at or above the one and at or below the other,
+  upper bound, the traces at or above the one and at or below the other,
   compared componentwise; `[{...}, ∞)` has no upper bound, `{...}` abbreviates
   `[{...}, {...}]`, `n` is `[{n}, {n}]`, `[n, m]` is `[{n}, {m}]`, and an open
   endpoint abbreviates a closed one, `(n, m)` being `[{n + 1}, {m - 1}]`. The
@@ -207,22 +207,22 @@ Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
 
 The rational variants `traces-cost-lower-bound-rational`,
 `traces-cost-upper-bound-rational` and `traces-cost-interval-rational` have the
-same orders, units and tops, with non-negative rational delays and runtime
-bounds: `{Sample; 1/2; Send}` waits half a unit between the two operations, a
-fraction `q` abbreviates `{q}`, and an operation may declare bounds such as
-`within [1/2, 3/2]`. 
+same orders, units and tops, with non-negative rational durations and
+running-time bounds: `{Sample; 1/2; Send}` has a duration of half a unit between
+the two operations, a fraction `q` abbreviates `{q}`, and an operation may
+declare bounds such as `within [1/2, 3/2]`. 
 
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
-infinitely many runs and is rejected; the regular expressions of
+infinitely many traces and is rejected; the regular expressions of
 `regex-cost-interval-rational` can be used express such cases. See
 [`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
 
 ### Regular expressions
 
-A grade is a non-empty regular language of runs, words over the letter `tick`
+A grade is a non-empty regular language of traces, words over the letter `tick`
 (one time step) and declared operation names. The order is inclusion,
 the product concatenation and the join union; the unit is `{0}` and the top
-`⊤` the language of all runs. Operations declare no runtime bounds.
+`⊤` the language of all traces. Operations declare no running-time bounds.
 
 - `regex-upper-bound-symbolic`: decided by symbolic derivatives (preferred);
 - `regex-upper-bound`: decided by minimal automata.
@@ -236,8 +236,8 @@ An operation name is a letter, an integer `n` denotes `n` ticks, an interval
 endpoint abbreviating a closed one (`(1, 4)` is `2 | 3`), `_` is any single
 letter, including operations the grade does not name, and parentheses or braces
 group. For example, `{Open; (Read | Write)*; Close}` is a file session and
-`{~{_*; Revoke; _*}}` the runs that never revoke. When an ordering fails, a note
-names the shortest run of the lesser grade not in the greater one:
+`{~{_*; Revoke; _*}}` the traces that never revoke. When an ordering fails, a
+note names the shortest trace of the lesser grade not in the greater one:
 
 ```
 Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated 
@@ -253,7 +253,7 @@ to symbolic automata and symbolic derivatives) with
 `dune exec --profile release bench/regular/bench_regular.exe`; see
 [`bench/regular/README.md`](bench/regular/README.md) for more information.
 
-The rational variant `regex-upper-bound-rational` reads runs as *timed words*:
+The rational variant `regex-upper-bound-rational` reads traces as *timed words*:
 operations and non-negative rational delays, adjacent delays added, so that
 `{1/2; 1/2}` is `{1}`. A delay is a single letter, and the order is exact over
 the rationals, independent of any time step. Besides operation names and delays
@@ -263,8 +263,8 @@ delays below `1/2` and `{(1, ∞)}` that of those above `1`. A parenthesis
 followed by a delay and a comma opens an interval, and otherwise a group: `{(1 |
 2); (1, 2)}` is a delay `1` or `2` followed by one strictly between `1` and `2`.
 `_` is any single operation or any positive delay, and the complement is taken
-over all timed words: `{~1}` permits every run but a pause of exactly `1`, and
-`{_ & ~Read}` any single operation but `Read` or any positive pause. A
+over all timed words: `{~1}` permits every trace but a delay of exactly `1`, and
+`{_ & ~Read}` any single operation but `Read` or any positive delay. A
 repetition of delays is their sums, the empty sum `0` included: `{(1/2)*}` is
 the sums of any number of halves, `0`, `1/2`, `1`, …, and `{[1, 2]*}` is the
 delay `0` and every delay from `1`. A plain number `q` abbreviates `{q}`. The
@@ -274,10 +274,11 @@ adjacent delays added. See
 
 ### Regular expressions with costs
 
-A grade is a regular language of runs, as under `regex-upper-bound`, ordered as
-the trace monoids with costs order finite sets of runs, at the runtime bounds
-`within [lo, hi]` of the atomic operations. A grade stands for its closure:
-the runs that fit inside one of its runs (upper) or cover one of them (lower).
+A grade is a regular language of traces, as under `regex-upper-bound`, ordered
+as the trace monoids with costs order finite sets of traces, at the running-time
+bounds `within [lo, hi]` of the atomic operations. A grade stands for its
+closure: the traces that fit inside one of its traces (upper) or cover one of
+them (lower).
 
 - `regex-cost-upper-bound`: allowance order at `hi`; `{0}` is least, `⊤` the top.
 - `regex-cost-lower-bound`: coverage order at `lo`; `{0}` is the top.
@@ -289,8 +290,8 @@ Each of the above is also available with the suffix `-symbolic`, in which
 ordering of regexes is decided using symbolic automata and symbolic derivatives.
 
 The alphabet is the atomic operations declared anywhere in the program, so `_`
-is any tick or atomic operation, and a grade must denote at least one run over
-it. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound`
+is any tick or atomic operation, and a grade must denote at least one trace
+over it. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound`
 `{Read}` is below `{3}` and `{Read | 3}` equals `{3}`. See
 [`examples/regular_costs/regular_costs_lower.tpe`](examples/regular_costs/regular_costs_lower.tpe),
 [`examples/regular_costs/regular_costs_upper.tpe`](examples/regular_costs/regular_costs_upper.tpe)
@@ -300,24 +301,25 @@ and
 The rational variants `regex-cost-lower-bound-rational`,
 `regex-cost-upper-bound-rational` and `regex-cost-interval-rational` order the
 timed words of `regex-upper-bound-rational` in the same way, with its literals
-and fractional runtime bounds such as `within [1/2, 3/2]`. The orders are
+and fractional running-time bounds such as `within [1/2, 3/2]`. The orders are
 exact over the rationals: with operation `A` declared `within [1, 1]`, under
-`regex-cost-upper-bound-rational` the runs `{(0, 1); A; (0, 1)}` are below
-`{3}` but below no `{q}` with `q < 3`, as the sums of their pauses come
+`regex-cost-upper-bound-rational` the traces `{(0, 1); A; (0, 1)}` are below
+`{3}` but below no `{q}` with `q < 3`, as the sums of their durations come
 arbitrarily close to `2`. 
 
 A complement is taken over all timed words, and a grade still stands for its
-closure: `{~1}` equals `⊤` under the upper order, as the longer pauses it
-permits cover the one it excludes. A comparison reads each set of delays of the
-lesser grade through its supremum (upper) or infimum (lower), and a grade is
+closure: `{~1}` equals `⊤` under the upper order, as the longer durations it
+permits cover the one it excludes. A comparison reads each set of durations of
+the lesser grade through its supremum (upper) or infimum (lower), and a grade is
 printed as it is written. 
 
-The implied runtime bounds of a compound operation are the least and greatest
-weights of the runs of its grade: `{Sample; [0, 1/2); Send}` gets `(3/4, 3)` if
-`Sample` is declared `within [1/2, 3/2]` and `Send` `within [1/4, 1]`. 
+The implied running-time bounds of a compound operation are the least and
+greatest weights of the traces of its grade: `{Sample; [0, 1/2); Send}` gets
+`(3/4, 3)` if `Sample` is declared `within [1/2, 3/2]` and `Send`
+`within [1/4, 1]`. 
 
 Under `regex-cost-interval-rational` an open numeric endpoint of an interval is
-a set of delays: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
+a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
 [`examples/regular_costs/regular_costs_rational.tpe`](examples/regular_costs/regular_costs_rational.tpe)
 and
 [`examples/regular_costs/regular_costs_intervals_rational.tpe`](examples/regular_costs/regular_costs_intervals_rational.tpe).
@@ -468,27 +470,26 @@ operation Read : unit ~> string # 2
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
 trace and regular-expression monoids with costs, an *atomic* operation, graded
-by its own name, also declares its runtime bounds (`within [n, m]`):
+by its own name, also declares its running-time bounds (`within [n, m]`):
 
 ```
 operation Tx : string ~> unit # {Tx} within [2, 3]
 ```
 
-The bounds are durations, written as for `delay` (see [Delays](#delays)) and
-read as delays, with `lo <= hi` and `hi` positive. Either end may be open, as
-in `within (lo, hi)`, `within [lo, hi)` or `within (lo, hi]`, the interval
-being non-empty. 
+The bounds are durations, written as for `delay` (see [Delays](#delays)), with
+`lo <= hi` and `hi` positive. Either end may be open, as in `within (lo, hi)`,
+`within [lo, hi)` or `within (lo, hi]`, the interval being non-empty. 
 
 The rational monoids with costs accept fractional bounds such as `within [1/2,
 3/2)`; under the other monoids with costs, which count whole time steps, `within
 [1/2, 1]` is a syntax error and an open end abbreviates a closed one, `within
 (1, 4)` being `within [2, 3]`. 
 
-The rational trace monoids compare runs with exact delays and read the value of
-each end. The rational regular-expression monoids read whether each end is
-attained: with `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}` under
-`regex-cost-upper-bound-rational`, and a default implementation of `A` takes
-less than `2`.
+The rational trace monoids compare traces with exact durations and read the
+value of each end. The rational regular-expression monoids read whether each
+end is attained: with `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}`
+under `regex-cost-upper-bound-rational`, and a default implementation of `A`
+takes less than `2`.
 
 A *compound* operation names other operations in its grade, and its bounds are
 computed from theirs: `Send : string ~> unit # {Tx | Tx; Tx}` gets `[2, 6]`.
@@ -537,11 +538,12 @@ and
 default Heat () = delay 1
 ```
 
-gives `Heat` a default, run only when a call reaches the top level unhandled.
-Where operations declare runtime bounds, only atomic operations have defaults,
+gives `Heat` a default, run only when a call reaches the top level unhandled;
+here it simulates the running time of `Heat` by a delay. Where operations
+declare running-time bounds, only atomic operations have defaults,
 and a default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}`
-under upper bounds, and `[{lo}, {hi}]` under intervals; the runtime bounds its
-grade implies must moreover lie within the declared ones, an open end
+under upper bounds, and `[{lo}, {hi}]` under intervals; the running-time bounds
+its grade implies must moreover lie within the declared ones, an open end
 excluded, so that with `A` declared `within [1, 2)` the default
 `default A () = delay 2` is rejected under every monoid with costs. Elsewhere a default's
 grade must be a sub-grade of the operation's grade.

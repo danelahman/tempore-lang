@@ -4,7 +4,7 @@
 
      ./tempore --grades time-lower-bound examples/basics/delay.tpe
 
-   Grades n: at least n time steps
+   Grades n: at least n ticks (time steps)
      - Unit 0: no time needed
      - Top 0: no time needed; the unit is the top
      - Product: addition *)

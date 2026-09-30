@@ -1,13 +1,13 @@
-(* The print, epoxy and message pipeline, with its runs covered from below.
+(* The print, epoxy and message pipeline, with its traces covered from below.
 
    Run this example with the 'traces-cost-lower-bound' grading monoid, e.g.
 
      ./tempore --grades traces-cost-lower-bound examples/traces/traces_lower.tpe
 
    Grades {...}: traces a computation must cover
-     - Unit {0}: the empty run
-     - Top {0}: the empty run, demanding nothing; the unit is the top
-     - Product: concatenation of runs *)
+     - Unit {0}: the empty trace
+     - Top {0}: the empty trace, demanding nothing; the unit is the top
+     - Product: concatenation of traces *)
 
 type model = Model of string
 type heated = Heated of model
@@ -15,7 +15,7 @@ type extruded = Extruded of heated
 type cooled = Cooled of extruded
 type print = Printed of cooled | Reheated of heated
 (* Mixed epoxy does not keep: 'noneternal' annotation means the glue has to be
-   used in the very step in which it is unboxed. *)
+   used in the very tick in which it is unboxed. *)
 noneternal type epoxy = Epoxy
 
 (* Mounting uses the glue up, so a mounted print holds no epoxy and is
@@ -64,9 +64,9 @@ default Tx msg = delay 2
 (* A delivery is one or two transmissions. *)
 operation Deliver : string ~> unit # {Tx | Tx; Tx}
 
-(* Correctly accepted by the typechecker: running 'Extrude' banks the lower end
-   of its runtime bounds, three ticks, which covers the three ticks the epoxy
-   of 'MixQuickEpoxy' needs to set --- the boxing is done by the default
+(* Correctly accepted by the typechecker: performing 'Extrude' banks its lower
+   running-time bound, three ticks, which covers the three ticks the epoxy of
+   'MixQuickEpoxy' needs to set --- the boxing is done by the default
    implementation of that operation, not by hand. *)
 let extrude_layer h =
   let glue = perform MixQuickEpoxy () in
@@ -112,7 +112,7 @@ let print_cog () =
   perform Mount (Printed c, g)
 
 (* Correctly accepted by the typechecker: the clause covers the first of the two
-   runs 'Print' promises. *)
+   traces 'Print' promises. *)
 let full_printer =
   handler
   | x -> x
@@ -122,7 +122,7 @@ let full_printer =
       let c = perform Cool p in
       continue k with (box 2 (Printed c))
 
-(* Correctly accepted by the typechecker: the clause covers the other run, a
+(* Correctly accepted by the typechecker: the clause covers the other trace, a
    reheat that skips the extrusion --- the model was extruded in an earlier
    job, so it goes straight from the heater to the cooler. *)
 let quick_printer =
@@ -147,7 +147,7 @@ let thorough_printer =
       continue k with (box 2 (Printed c))
 
 (* Correctly accepted by the typechecker for the same reason: a full print
-   followed by a tick of waiting still covers the run it realises. *)
+   followed by a tick of waiting still covers the trace it realises. *)
 let slow_printer =
   handler
   | x -> x
@@ -192,8 +192,8 @@ let deliver_slow =
   | Deliver msg k -> perform Tx msg; delay 1; continue k with ()
 
 (* Correctly accepted by the typechecker: whichever way the retrying handler
-   delivers, at least two ticks --- the lower end of the bounds of 'Tx' --- have
-   been banked by the time the receipt is read. *)
+   delivers, at least two ticks --- the lower running-time bound of 'Tx' ---
+   have been banked by the time the receipt is read. *)
 let deliver_ping () =
   handle
     box 2 (Receipt "ping") as slot in
@@ -233,7 +233,7 @@ let early_cooler =
       continue k with (box 2 (Reheated h))
 *)
 
-(* Correctly rejected by the typechecker: neither run of 'Print' begins with a
+(* Correctly rejected by the typechecker: neither trace of 'Print' begins with a
    'Cool', and the order of a demand is not negotiable, however the model that
    is handed to the cooler came to be:
 
@@ -254,8 +254,8 @@ let twisted_printer =
 *)
 
 (* Correctly rejected by the typechecker: a clause that stops after the
-   extrusion covers neither run of 'Print', since a lower bound demands the
-   whole run it promises. This is the mirror image of the upper-bound file,
+   extrusion covers neither trace of 'Print', since a lower bound demands the
+   whole trace it promises. This is the mirror image of the upper-bound file,
    where the very same clause is accepted, because an upper bound only forbids
    doing more:
 
@@ -280,8 +280,8 @@ let sloppy_printer =
    default implementation rather than a handler: an operation case is checked
    against the grade of the operation, and waiting never realises the demanded
    event '{MixEpoxy}' --- only performing 'MixEpoxy' itself would, which is
-   circular. A default is checked against the 'within [1, 1]' bounds instead,
-   which the very same tick of mixing meets exactly:
+   circular. A default is checked against the running-time bounds
+   'within [1, 1]' instead, which the very same tick of mixing meets exactly:
 
      Typing error: Variable `k` is unboxed with grade `{1}` accumulated since it
        was bound, which is not below its box grade `{MixEpoxy}`

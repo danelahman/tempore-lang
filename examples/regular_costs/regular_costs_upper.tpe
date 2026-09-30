@@ -4,15 +4,16 @@
 
      ./tempore --grades regex-cost-upper-bound-symbolic examples/regular_costs/regular_costs_upper.tpe
 
-   Grades {...}: regular languages of runs in the allowance order
-     - Unit {0}: the empty run, the least grade
-     - Top ⊤: every run permitted
-     - Product: concatenation of runs *)
+   Grades {...}: regular languages of traces in the allowance order
+     - Unit {0}: the empty trace, the least grade
+     - Top ⊤: every trace permitted
+     - Product: concatenation of traces *)
 
 type reading = Reading of nat
 
-(* The operations of a sensor station: a sample takes one to two ticks, a
-   transmission two to three and a calibration four to six. *)
+(* The operations of a sensor station: a sample has a running time of one to
+   two ticks, a transmission of two to three and a calibration of four to
+   six. *)
 operation Sample : unit ~> nat # {Sample} within [1, 2]
 default Sample () = delay 1; 7
 
@@ -151,9 +152,9 @@ let batch_calibrated (b : bool) : nat # {Sample*; Send} =
   x
 *)
 
-(* Correctly rejected by the typechecker: a grade must permit at least one run
-   of the operations the program declares, and a single letter other than a
-   tick and the three declared operations is none:
+(* Correctly rejected by the typechecker: a grade must permit at least one
+   trace over the operations the program declares, and a single letter other
+   than a tick and the three declared operations is none:
 
      Typing error: The grade `{_ & ~(1 | Calibrate | Sample | Send)}` permits
        no run of the declared operations
@@ -167,16 +168,16 @@ let undeclared () =
 
 run send_then_calibrate ()
 
-(* A grade with large intermediate automata: the box grade permits the runs of
-   one or more cycles of a sample, a transmission and a calibration whose
-   12th-last step, if any, is neither a sample nor a transmission, that is, the
-   runs of one to three cycles. Under 'regex-cost-upper-bound', reading the literal
-   builds the minimal automata of the two complements and of their intersection
-   before the cycles restrict it: the example, with this program uncommented,
-   takes about 3.5 s, and about 11 s with the 13th-last step. Under
-   'regex-cost-upper-bound-symbolic', the literal is kept as a normalised
-   expression, whose derivatives are few: the example takes about 0.09 s at both
-   sizes, as without the program. *)
+(* A grade with large intermediate automata: the box grade permits the traces
+   of one or more cycles of a sample, a transmission and a calibration whose
+   12th-last element, if any, is neither a sample nor a transmission, that is,
+   the traces of one to three cycles. Under 'regex-cost-upper-bound', reading
+   the literal builds the minimal automata of the two complements and of their
+   intersection before the cycles restrict it: the example, with this program
+   uncommented, takes about 3.5 s, and about 11 s with the 13th-last element.
+   Under 'regex-cost-upper-bound-symbolic', the literal is kept as a normalised
+   expression, whose derivatives are few: the example takes about 0.09 s at
+   both sizes, as without the program. *)
 (*
 let cycles () =
   box {~(_*; Sample; _; _; _; _; _; _; _; _; _; _; _)

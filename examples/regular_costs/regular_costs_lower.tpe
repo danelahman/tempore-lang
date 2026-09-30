@@ -4,15 +4,15 @@
 
      ./tempore --grades regex-cost-lower-bound-symbolic examples/regular_costs/regular_costs_lower.tpe
 
-   Grades {...}: regular languages of runs in the coverage order
-     - Unit {0}: the empty run
-     - Top {0}: the empty run, demanding nothing; the unit is the top
-     - Product: concatenation of runs *)
+   Grades {...}: regular languages of traces in the coverage order
+     - Unit {0}: the empty trace
+     - Top {0}: the empty trace, demanding nothing; the unit is the top
+     - Product: concatenation of traces *)
 
 type part = Part of string
 
-(* The operations of a coating line: a coating takes one to two ticks, a bake
-   three to five and an inspection one. *)
+(* The operations of a coating line: a coating has a running time of one to
+   two ticks, a bake of three to five and an inspection of one. *)
 operation Coat : unit ~> unit # {Coat} within [1, 2]
 default Coat () = delay 1
 
@@ -58,7 +58,7 @@ let finish () : unit # {Coat; 4} =
   perform Inspect ()
 
 (* Correctly accepted by the typechecker, which may be surprising: the grade
-   contains the empty run, which every run covers, so '{(Bake; Inspect)*}'
+   contains the empty trace, which every trace covers, so '{(Bake; Inspect)*}'
    equals '{0}', the top of the order, and demands nothing. *)
 let undemanding () =
   box {(Bake; Inspect)*} (Part "gear") as p in
@@ -117,8 +117,8 @@ let baked_first () =
   x
 *)
 
-(* Correctly rejected by the typechecker: every run must cover the grade, and
-   the run that only inspects banks a single tick of the three demanded:
+(* Correctly rejected by the typechecker: every trace must cover the grade, and
+   the trace that only inspects banks a single tick of the three demanded:
 
      Typing error: Variable `p` is unboxed with grade `{Bake | Inspect}`
        accumulated since it was bound, which is not below its box grade `{3}`
@@ -152,13 +152,13 @@ let hasty_finish () : unit # {Coat; 4} =
 
 run coated_then_cured ()
 
-(* A grade with large intermediate automata: the box grade permits the runs of
+(* A grade with large intermediate automata: the box grade permits the traces of
    one or more cycles of a coating, a bake and an inspection whose 12th-last
-   step, if any, is neither a coating nor a bake, that is, the runs of one to
-   three cycles. Under 'regex-cost-lower-bound', reading the literal builds the
-   minimal automata of the two complements and of their intersection before the
-   cycles restrict it: the example, with this program uncommented, takes about
-   3.5 s, and about 11 s with the 13th-last step. Under
+   element, if any, is neither a coating nor a bake, that is, the traces of one
+   to three cycles. Under 'regex-cost-lower-bound', reading the literal builds
+   the minimal automata of the two complements and of their intersection before
+   the cycles restrict it: the example, with this program uncommented, takes
+   about 3.5 s, and about 11 s with the 13th-last element. Under
    'regex-cost-lower-bound-symbolic', the literal is kept as a normalised
    expression, whose derivatives are few: the example takes about 0.06 s at both
    sizes, as without the program. *)

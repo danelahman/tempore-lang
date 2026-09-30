@@ -1,13 +1,13 @@
-(* The print, epoxy and message pipeline, with its runs bounded from above.
+(* The print, epoxy and message pipeline, with its traces bounded from above.
 
    Run this example with the 'traces-cost-upper-bound' grading monoid, e.g.
 
      ./tempore --grades traces-cost-upper-bound examples/traces/traces_upper.tpe
 
    Grades {...}: traces a computation is allowed
-     - Unit {0}: the empty run, the least grade
-     - Top ⊤: every run permitted
-     - Product: concatenation of runs *)
+     - Unit {0}: the empty trace, the least grade
+     - Top ⊤: every trace permitted
+     - Product: concatenation of traces *)
 
 type model = Model of string
 type heated = Heated of model
@@ -15,7 +15,7 @@ type extruded = Extruded of heated
 type cooled = Cooled of extruded
 type print = Printed of cooled | Reheated of heated
 (* Mixed epoxy does not keep: 'noneternal' annotation means the glue has to be
-   used in the very step in which it is unboxed. *)
+   used in the very tick in which it is unboxed. *)
 noneternal type epoxy = Epoxy
 
 (* Mounting uses the glue up, so a mounted print holds no epoxy and is
@@ -166,7 +166,7 @@ let send_telemetry () =
 
 (* Correctly accepted by the typechecker: a strict super-grade of what the send
    costs, spelled out as events instead of ticks --- each alternative of 'Send'
-   fits inside one of the two runs the receipt allows. *)
+   fits inside one of the two traces the receipt allows. *)
 let send_by_events () =
   box {Tx; Tx | 10} (Receipt "telemetry") as slot in
   perform Send "telemetry";
@@ -227,8 +227,8 @@ let twisted_printer =
    default implementation rather than a handler: an operation case is checked
    against the grade of the operation, and a delay never realises the event
    '{MixEpoxy}' --- only performing 'MixEpoxy' itself would, which is circular.
-   A default is checked against the 'within [1, 1]' bounds instead, which the
-   very same tick of mixing meets exactly:
+   A default is checked against the running-time bounds 'within [1, 1]'
+   instead, which the very same tick of mixing meets exactly:
 
      Typing error: Variable `k` is unboxed with grade `{1}` accumulated since it
        was bound, which is not below its box grade `{MixEpoxy}`

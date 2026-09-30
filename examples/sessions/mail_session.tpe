@@ -1,13 +1,14 @@
-(* A mail session whose retrieval and flagging loops are graded by starred runs.
+(* A mail session whose retrieval and flagging loops are graded by Kleene stars
+   of traces.
 
    Run this example with the 'regex-cost-upper-bound-symbolic' grading monoid, e.g.
 
      ./tempore --grades regex-cost-upper-bound-symbolic examples/sessions/mail_session.tpe
 
-   Grades {...}: regular languages of runs in the allowance order
-     - Unit {0}: the empty run, the least grade
-     - Top ⊤: every run permitted
-     - Product: concatenation of runs *)
+   Grades {...}: regular languages of traces in the allowance order
+     - Unit {0}: the empty trace, the least grade
+     - Top ⊤: every trace permitted
+     - Product: concatenation of traces *)
 
 (* Messages, given by a number, a subject and whether they have been seen;
    the flags stored on messages; and the checkpoint of a mailbox, the number
@@ -24,9 +25,9 @@ let select_subject (number : nat) : string =
   | 2 -> "Minutes"
   | _ -> "Notice"
 
-(* The operations of a session: a login takes two to three ticks, a fetch one
-   to two, and a store and a logout one each. A message is seen if its number
-   is even. *)
+(* The operations of a session: a login has a running time of two to three
+   ticks, a fetch of one to two, and a store and a logout of one each. A
+   message is seen if its number is even. *)
 operation Login : string ~> unit # {Login} within [2, 3]
 default Login user = delay 2
 
@@ -97,7 +98,7 @@ let synchronise_mailbox (user : string) (count : nat)
 
 (* Correctly accepted by the typechecker: a session that reads one message
    within six ticks, which pay for a login, a fetch and a logout at their
-   upper runtime bounds, three, two and one. *)
+   upper running-time bounds, three, two and one. *)
 let read_first_message (user : string) : message # {6} =
   perform Login user;
   let message = perform Fetch 1 in
@@ -105,7 +106,7 @@ let read_first_message (user : string) : message # {6} =
   message
 
 (* Correctly accepted by the typechecker: a session without a login. An upper
-   bound admits every run with fewer operations, and so does not require a
+   bound admits every trace with fewer operations, and so does not require a
    login. *)
 let synchronise_without_login (count : nat)
     : nat # {Login; (Fetch | Store)*; Logout} =
@@ -115,7 +116,7 @@ let synchronise_without_login (count : nat)
 
 (* Correctly accepted by the typechecker: a handler implementing 'Session'
    by fetching all messages first and flagging the unseen ones afterwards.
-   The runs {Login; Fetch*; Store*; Logout} of the case are below the grade
+   The traces {Login; Fetch*; Store*; Logout} of the case are below the grade
    of 'Session'. *)
 let fetch_then_flag =
   handler

@@ -4,7 +4,8 @@
 
      ./tempore --grades time-interval examples/time/time_intervals.tpe
 
-   Grades [n, m]: between n and m time steps, (n, m) being [n + 1, m - 1]
+   Grades [n, m]: between n and m ticks (time steps),
+   (n, m) being [n + 1, m - 1]
      - Unit [0, 0]: no time spent
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
@@ -64,8 +65,8 @@ let foo5 () =
   y + x + x''
 
 (* Correctly accepted by the typechecker: the open interval (0, 5) excludes its
-   ends, and over whole time steps is the interval [1, 4]; the delays
-   accumulate [4, 4]. *)
+   ends, and over whole ticks is the interval [1, 4]; the delays accumulate
+   [4, 4]. *)
 let foo_open () =
   box (0, 5) 1 as r in
   delay 4;

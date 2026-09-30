@@ -4,7 +4,7 @@
 
      ./tempore --grades time-lower-bound-levels examples/rollout/rollout.tpe
 
-   Grades (n, l): at least n time steps and nothing touched above level l
+   Grades (n, l): at least n ticks (time steps), nothing touched above level l
      - Unit (0, Low): no time demanded and nothing touched above Low
      - Top (0, High): no time demanded and any level touched
      - Product: componentwise, adding times and joining levels *)
@@ -43,26 +43,25 @@ type event =
   | Observed of nat
   | HotfixFetched of nat
 
-(* Building takes at least six time steps. *)
+(* Building takes at least six ticks. *)
 operation Build : string * nat ~> artefact # (6, Low)
 default Build (source, version) = delay 6; Artefact (source, version)
 
-(* Approving takes one time step. The approved release may be used after
-   eight further time steps during which nothing above Low is touched. *)
+(* Approving takes one tick. The approved release may be used after eight
+   further ticks during which nothing above Low is touched. *)
 operation Approve : artefact ~> [(8, Low)] release # (1, Low)
 default Approve artefact = delay 1; box (8, Low) (Release artefact)
 
-(* Installing takes at least three time steps, and reverting at least
-   two. *)
+(* Installing takes at least three ticks, and reverting at least two. *)
 operation Install : host * release ~> unit # (3, Low)
 default Install (host, approved) = delay 3
 
 operation Revert : host ~> unit # (2, Low)
 default Revert host = delay 2
 
-(* A probe of a host running a release, at a given attempt, takes one time
-   step. The host 'db-2' is degraded at its first attempt; the host 'db-3'
-   is degraded at every attempt unless its release is built from the hotfix
+(* A probe of a host running a release, at a given attempt, takes one tick.
+   The host 'db-2' is degraded at its first attempt; the host 'db-3' is
+   degraded at every attempt unless its release is built from the hotfix
    source. *)
 operation Probe : host * release * nat ~> health # (1, Low)
 default Probe (host, Release (Artefact (source, _)), attempt) =
@@ -71,23 +70,23 @@ default Probe (host, Release (Artefact (source, _)), attempt) =
   else if host = Host "db-3" && source <> "hotfix" then Degraded
   else Healthy
 
-(* Observing a list of hosts takes at least ten time steps and returns the
-   number of hosts reporting errors; the host 'cache-1' reports errors. *)
+(* Observing a list of hosts takes at least ten ticks and returns the number
+   of hosts reporting errors; the host 'cache-1' reports errors. *)
 operation Observe : host list ~> nat # (10, Low)
 default Observe hosts =
   delay 10;
   length (filter (fun host -> host = Host "cache-1") hosts)
 
-(* Deploying a host takes at least four time steps. The operation has no
-   default implementation and is implemented by a handler. *)
+(* Deploying a host takes at least four ticks. The operation has no default
+   implementation and is implemented by a handler. *)
 operation Deploy : host * release ~> health # (4, Low)
 
 (* Recording an event takes no time. *)
 operation Record : event ~> unit # (0, Low)
 default Record event = ()
 
-(* Fetching a hotfix from an external source takes at least two time steps
-   and touches the level High. *)
+(* Fetching a hotfix from an external source takes at least two ticks and
+   touches the level High. *)
 operation FetchHotfix : string ~> string # (2, High)
 default FetchHotfix source = delay 2; "hotfix"
 
@@ -147,10 +146,10 @@ let rec observe_hosts (hosts : host list) (additional_rounds : nat)
 
 (* Correctly accepted by the typechecker: deploying the stages in order after
    the hosts 'deployed_hosts'. Each stage is preceded by one round of
-   observation, whose ten time steps precede the unboxing of 'approval', and
-   the last stage is followed by three rounds. Errors or a degraded host
-   revert every deployed host. Every call observes at least once, so the
-   grade is (10, Low). *)
+   observation, whose ten ticks precede the unboxing of 'approval', and the
+   last stage is followed by three rounds. Errors or a degraded host revert
+   every deployed host. Every call observes at least once, so the grade is
+   (10, Low). *)
 let rec deploy_stages (stages : host stages) (deployed_hosts : host list)
     (approval : [(10, Low)] release) : release_result # (10, Low) =
   match stages with
@@ -179,8 +178,8 @@ let probe_without_retries (host : host) (approved : release)
   perform Probe (host, approved, 0)
 
 (* Correctly accepted by the typechecker: a probing policy that repeats a
-   degraded probe at most 'retries' times, three time steps apart. The probe
-   is performed under a handler whose case performs it and, if the result is
+   degraded probe at most 'retries' times, three ticks apart. The probe is
+   performed under a handler whose case performs it and, if the result is
    'Degraded', resumes 'k' with the result of 'probe_with_retries' at one
    retry fewer. The case uses 'retries', 'attempt', 'host' and 'approved',
    whose types are eternal. Every call performs at least one probe, so the
@@ -212,10 +211,10 @@ let probe_with_two_retries (host : host) (approved : release) =
    an installation followed by a probe by the policy 'policy'. The case is
    typed with the top grade accumulated for 'policy', which is bound outside
    it, so the policy is a box, unboxed with (3, High) accumulated: the top
-   grade followed by the three time steps of the installation. A box type
-   being contravariant in its grade, a policy boxed at '⊤' (ASCII 'top') is
-   accepted. The installation and the probe account for the four time steps
-   of 'Deploy' before 'k' is resumed. *)
+   grade followed by the three ticks of the installation. A box type being
+   contravariant in its grade, a policy boxed at '⊤' (ASCII 'top') is
+   accepted. The installation and the probe account for the four ticks of
+   'Deploy' before 'k' is resumed. *)
 let handle_deployments
     (policy : [(3, High)] (host -> release -> health # 'e)) =
   handler
@@ -271,7 +270,7 @@ let rec release_with_hotfixes (hotfixes : nat) (source : string)
 
 (* Correctly accepted by the typechecker: release notes boxed at (17, Low)
    before a release and unboxed after it. The grade of 'release_version'
-   accounts for the seventeen time steps and keeps the level at Low. *)
+   accounts for the seventeen ticks and keeps the level at Low. *)
 let publish_after_release (source : string) (version : nat)
     (hosts : host list) =
   box (17, Low) "release notes" as notes in

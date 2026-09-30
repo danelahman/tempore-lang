@@ -4,10 +4,10 @@
 
      ./tempore --grades regex-upper-bound-symbolic examples/regular/regular_traces.tpe
 
-   Grades {...}: regular languages of runs over ticks and operations
-     - Unit {0}: the empty run
-     - Top ⊤: every run
-     - Product: concatenation of runs *)
+   Grades {...}: regular languages of traces over ticks and operations
+     - Unit {0}: the empty trace
+     - Top ⊤: every trace
+     - Product: concatenation of traces *)
 
 type token = Token of string
 
@@ -37,7 +37,7 @@ let copy_twice () : nat # {Open; (Read | Write)*; Close} =
   x + y
 
 (* Correctly accepted by the typechecker: the clause realises a session by a
-   single read, one of the runs 'Session' permits. *)
+   single read, one of the traces 'Session' permits. *)
 let one_read =
   handler
   | x -> x
@@ -57,7 +57,7 @@ let two_sessions () : nat # {(Open; (Read | Write)*; Close | 1)*} =
 
 (* Correctly accepted by the typechecker: the token may be used once the
    session has authenticated, whatever happened before and since. Its grade is
-   printed as '{~(_ & ~Auth)*}', all runs but those avoiding 'Auth'. *)
+   printed as '{~(_ & ~Auth)*}', all traces but those avoiding 'Auth'. *)
 let after_auth () =
   box {_*; Auth; _*} (Token "t") as t in
   perform Fetch ();
@@ -76,7 +76,7 @@ let before_revoke () =
   perform Revoke ();
   cap
 
-(* Correctly accepted by the typechecker: the grade permits the runs that
+(* Correctly accepted by the typechecker: the grade permits the traces that
    begin with three ticks, whatever follows. This is '{3}' followed by '⊤',
    which is not '⊤': the top grade is not absorbing. *)
 let settle () =
@@ -177,7 +177,7 @@ let settle_early () =
 run box {3; _*} "settled" as s in delay 4; unbox s as msg in msg
 
 (* Correctly rejected by the typechecker: a session that may write, annotated
-   as one that only reads; the second note names a run the body may exhibit
+   as one that only reads; the second note names a trace the body may exhibit
    that the annotated grade does not contain:
 
      Typing error: This function's body has grade
@@ -198,14 +198,14 @@ let maybe_write (b : bool) : nat # {Open; Read*; Close} =
   x
 *)
 
-(* A grade whose automaton is large: the box grade permits the runs whose
-   13th-last step, if any, is neither an 'A' nor a 'B'. Under 'regex-upper-bound',
-   reading the literal builds the minimal automata of the two complements, of
-   2^13 states each by the subset construction, and of their intersection,
-   which dominates: the program takes about 10 s. Under
-   'regex-upper-bound-symbolic', the literal is kept as a normalised expression, and
-   the inclusions the typechecker decides explore only the derivatives along
-   one run: the program takes about 0.04 s. *)
+(* A grade whose automaton is large: the box grade permits the traces whose
+   13th-last element, if any, is neither an 'A' nor a 'B'. Under
+   'regex-upper-bound', reading the literal builds the minimal automata of the
+   two complements, of 2^13 states each by the subset construction, and of
+   their intersection, which dominates: the program takes about 10 s. Under
+   'regex-upper-bound-symbolic', the literal is kept as a normalised
+   expression, and the inclusions the typechecker decides explore only the
+   derivatives along one trace: the program takes about 0.04 s. *)
 (*
 operation A : unit ~> unit # {A}
 operation B : unit ~> unit # {B}

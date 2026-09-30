@@ -4,7 +4,7 @@
 
      ./tempore --grades time-upper-bound examples/handlers/handlers_upper_bound.tpe
 
-   Grades n: at most n time steps
+   Grades n: at most n ticks (time steps)
      - Unit 0: no time spent, the least grade
      - Top ∞: unbounded time
      - Product: addition *)

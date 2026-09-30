@@ -1,29 +1,32 @@
-(* A weather station timed in seconds, its runs bounded above and below.
+(* A weather station timed in seconds, its traces bounded above and below.
 
    Run this example with the 'traces-cost-interval-rational' grading monoid, e.g.
 
      ./tempore --grades traces-cost-interval-rational examples/traces/rational_traces_intervals.tpe
 
-   Grades [{...}, {...}]: lower and upper bounds on traces with rational delays
-     - Unit [{0}, {0}]: nothing demanded, only the empty run allowed
-     - Top [{0}, ∞): nothing demanded, every run allowed
-     - Product: concatenation of runs, componentwise *)
+   Grades [{...}, {...}]: lower and upper bounds on traces with rational
+   durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
 
 type reading = Reading of nat
 type packet = Packet of reading
 
-(* A reading of the sensors takes between half a second and one and a half;
-   unhandled, it takes three quarters. *)
+(* A reading of the sensors has a running time between half a second and one
+   and a half; its default takes three quarters of a second. *)
 operation Sample : unit ~> reading # [{Sample}, {Sample}] within [1/2, 3/2]
 default Sample () = delay 0.75; Reading 12
 
-(* Compressing a reading takes between a quarter of a second and one. *)
+(* Compressing a reading has a running time between a quarter of a second and
+   one second; its default takes a quarter of a second. *)
 operation Compress : reading ~> packet
   # [{Compress}, {Compress}]
   within [1/4, 1]
 default Compress r = delay 1/4; Packet r
 
-(* A transmission takes between one second and two and a half. *)
+(* A transmission has a running time between one second and two and a half;
+   its default takes one second. *)
 operation Transmit : packet ~> unit
   # [{Transmit}, {Transmit}]
   within [1, 5/2]
@@ -34,9 +37,9 @@ operation Report : unit ~> unit
   # [{Sample; Compress; Transmit}, {Sample; Compress; Transmit}]
 
 (* Correctly accepted by the typechecker: the reading is compressed after a
-   pause of a fifth of a second, which lets the sensors settle. The packet may
-   be used after 0.8 seconds, which the sample, the pause and the compression
-   bank at their lower runtime bounds, 1/2 + 0.2 + 1/4 = 0.95, and must be
+   delay of a fifth of a second, which lets the sensors settle. The packet may
+   be used after 0.8 seconds, which the sample, the delay and the compression
+   bank at their lower running-time bounds, 1/2 + 0.2 + 1/4 = 0.95, and must be
    used within three, which they take at most, 3/2 + 0.2 + 1 = 2.7. *)
 let settled_packet () =
   box [0.8, 3] () as window in
@@ -47,7 +50,7 @@ let settled_packet () =
   p
 
 (* Correctly accepted by the typechecker: a window written as traces, demanding
-   the sample and the pause and allowing the sample, the pause and the
+   the sample and the delay and allowing the sample, the delay and the
    compression. *)
 let settled_by_events () =
   box [{Sample; 0.2}, {Sample; 1/5; Compress}] () as window in
@@ -65,17 +68,17 @@ let report_by_hand () =
   perform Transmit p
 
 (* Correctly accepted by the typechecker: a report fits a radio slot that opens
-   after 7/4 seconds and closes after 5, since its run banks at least
-   1/2 + 1/4 + 1 = 7/4 and takes at most 3/2 + 1 + 5/2 = 5. *)
+   after 7/4 seconds and closes after 5, since its operations bank at least
+   1/2 + 1/4 + 1 = 7/4 and take at most 3/2 + 1 + 5/2 = 5. *)
 let report_in_slot () =
   box [7/4, 5] () as slot in
   perform Report ();
   unbox slot as s in
   s
 
-(* Correctly rejected by the typechecker: without the pause, the packet is not
+(* Correctly rejected by the typechecker: without the delay, the packet is not
    ready after 0.8 seconds, since the sample and the compression bank only
-   their lower runtime bounds, 1/2 + 1/4 = 0.75:
+   their lower running-time bounds, 1/2 + 1/4 = 0.75:
 
      Typing error: Variable `window` is unboxed with grade
        `[{Sample; Compress}, {Sample; Compress}]` accumulated since it was
@@ -93,9 +96,9 @@ let hasty_packet () =
   p
 *)
 
-(* Correctly rejected by the typechecker: a pause of a second instead of a
-   fifth leaves the slow run of the sample and the compression past the three
-   seconds allowed, since 3/2 + 1 + 1 = 3.5:
+(* Correctly rejected by the typechecker: a delay of a second instead of a
+   fifth leaves the sample and the compression, at their upper running-time
+   bounds, past the three seconds allowed, since 3/2 + 1 + 1 = 3.5:
 
      Typing error: Variable `window` is unboxed with grade
        `[{Sample; 1; Compress}, {Sample; 1; Compress}]` accumulated since it

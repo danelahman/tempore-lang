@@ -1,29 +1,32 @@
-(* A weather station timed in seconds, its runs bounded below and above by regular languages.
+(* A weather station timed in seconds, its traces bounded below and above by
+   regular languages.
 
    Run this example with the 'regex-cost-interval-rational' grading monoid, e.g.
 
      ./tempore --grades regex-cost-interval-rational examples/regular_costs/regular_costs_intervals_rational.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the runs with rational delays
-     - Unit [{0}, {0}]: nothing demanded, only the empty run allowed
-     - Top [{0}, ∞): nothing demanded, every run allowed
-     - Product: concatenation of runs, componentwise *)
+   Grades [L, U]: a lower and upper regular-language bound on the traces with
+   rational durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
 
 type reading = Reading of nat
 type packet = Packet of reading
 
-(* A reading of the sensors takes between half a second and one and a half;
-   unhandled, it takes three quarters. *)
+(* A reading of the sensors has a running time between half a second and one
+   and a half; its default takes three quarters of a second. *)
 operation Sample : unit ~> reading # {Sample} within [1/2, 3/2]
 default Sample () = delay 0.75; Reading 12
 
-(* Compressing a reading takes between a quarter of a second and one. *)
+(* Compressing a reading has a running time between a quarter of a second and
+   one second; its default takes a quarter of a second. *)
 operation Compress : reading ~> packet # {Compress} within [1/4, 1]
 default Compress r = delay 1/4; Packet r
 
-(* A transmission takes more than half a second and at most one and a half:
-   its runtime bounds are open below. Unhandled, it takes three quarters,
-   within these bounds. *)
+(* A transmission has a running time of more than half a second and at most
+   one and a half: its running-time bounds are open below. Its default takes
+   three quarters of a second, within these bounds. *)
 operation Transmit : packet ~> unit # {Transmit} within (1/2, 3/2]
 default Transmit p = delay 3/4
 
@@ -32,7 +35,7 @@ operation Report : unit ~> unit # {Sample; Compress; Transmit}
 
 (* Correctly accepted by the typechecker: the packet may be used after more
    than 0.8 seconds and must be used within less than three, the interval
-   (0.8, 3), that is, [{(0.8, ∞)}, {[0, 3)}]. The sample, the pause and the
+   (0.8, 3), that is, [{(0.8, ∞)}, {[0, 3)}]. The sample, the delay and the
    compression take at least 1/2 + 1/5 + 1/4 = 0.95 and at most
    3/2 + 1/5 + 1 = 2.7. *)
 let settled_packet () =
@@ -44,8 +47,8 @@ let settled_packet () =
   p
 
 (* Correctly accepted by the typechecker: a window written with regular
-   expressions, demanding the sample and a pause of a fifth, and allowing the
-   sample, a pause of more than nothing and at most a quarter, and the
+   expressions, demanding the sample and a duration of a fifth, and allowing
+   the sample, a duration of more than nothing and at most a quarter, and the
    compression. *)
 let settled_by_events () =
   box [{Sample; 1/5}, {Sample; (0, 1/4]; Compress}] () as window in
@@ -56,7 +59,7 @@ let settled_by_events () =
   p
 
 (* Correctly accepted by the typechecker: at least one sample, and at most
-   samples each followed by a pause of at most a third. *)
+   samples each followed by a duration of at most a third. *)
 let polling () =
   box [{Sample}, {(Sample; [0, 1/3])*}] () as window in
   let r = perform Sample () in
@@ -67,8 +70,8 @@ let polling () =
   s
 
 (* Correctly accepted by the typechecker: the upper bound excludes the single
-   pause of one second, but a grade stands for its closure, and the longer
-   pauses the complement keeps permit it. *)
+   duration of one second, but a grade stands for its closure, and the longer
+   durations the complement keeps permit it. *)
 let offbeat () =
   box [{1}, {~1}] () as window in
   delay 1/2;
@@ -93,7 +96,7 @@ let report_in_slot () =
   unbox slot as s in
   s
 
-(* Correctly rejected by the typechecker: without the pause, the sample and
+(* Correctly rejected by the typechecker: without the delay, the sample and
    the compression may take exactly 1/2 + 1/4 = 3/4 seconds, which the window
    open at 3/4 excludes; the closed window [3/4, 3] would permit it:
 
@@ -114,7 +117,7 @@ let hasty_packet () =
   p
 *)
 
-(* Correctly rejected by the typechecker: a pause of half a second exceeds
+(* Correctly rejected by the typechecker: a delay of half a second exceeds
    the quarter the upper bound allows between the sample and the compression:
 
      Typing error: Variable `window` is unboxed with grade
