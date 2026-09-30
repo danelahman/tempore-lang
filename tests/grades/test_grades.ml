@@ -233,6 +233,16 @@ let rational_inclusion_upper =
 
 let regex_upper = (module Grades.RegularTraceGradeDerivative : Grade.S)
 let rational_regex_upper = (module Grades.RegularTraceGradeRational : Grade.S)
+
+let rational_regex_costs_lower =
+  (module Grades.RegularCostTraceGradesRational.Lower : Grade.S)
+
+let rational_regex_costs_upper =
+  (module Grades.RegularCostTraceGradesRational.Upper : Grade.S)
+
+let rational_regex_costs_interval =
+  (module Grades.RegularCostTraceGradesRational.Interval : Grade.S)
+
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
 let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
 let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
@@ -797,6 +807,9 @@ let registry =
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
           "regex-upper-bound-rational";
+          "regex-cost-lower-bound-rational";
+          "regex-cost-upper-bound-rational";
+          "regex-cost-interval-rational";
         ]
       (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
     expect "registry: grades reading a fractional delay in braces" show_names
@@ -807,6 +820,9 @@ let registry =
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
           "regex-upper-bound-rational";
+          "regex-cost-lower-bound-rational";
+          "regex-cost-upper-bound-rational";
+          "regex-cost-interval-rational";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
     expect "registry: grades reading fractional runtime bounds" show_names
@@ -815,6 +831,9 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
+          "regex-cost-lower-bound-rational";
+          "regex-cost-upper-bound-rational";
+          "regex-cost-interval-rational";
         ]
       (GradeRegistry.accepting_bounds (Grade.Rat (Rational.make 1 2)));
     expect "registry: grades with a fractional delay" show_names
@@ -828,6 +847,9 @@ let registry =
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
           "regex-upper-bound-rational";
+          "regex-cost-lower-bound-rational";
+          "regex-cost-upper-bound-rational";
+          "regex-cost-interval-rational";
           "security-levels";
           "flow-levels";
         ]
@@ -854,10 +876,19 @@ let registry =
           "regex-cost-lower-bound-symbolic";
           "regex-cost-upper-bound-symbolic";
           "regex-cost-interval-symbolic";
+          "regex-cost-lower-bound-rational";
+          "regex-cost-upper-bound-rational";
+          "regex-cost-interval-rational";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
     expect "registry: grades reading a comparison of delays" show_names
-      ~expected:[ "regex-upper-bound-rational" ]
+      ~expected:
+        [
+          "regex-upper-bound-rational";
+          "regex-cost-lower-bound-rational";
+          "regex-cost-upper-bound-rational";
+          "regex-cost-interval-rational";
+        ]
       (GradeRegistry.accepting
          (Grade.Braces
             (Grade.Inter
@@ -1275,6 +1306,7 @@ type family =
   | Rational_traces
   | Regex
   | Rational_regex
+  | Rational_regex_costs
   | Levels
   | Timed_levels
   | Flow
@@ -1297,6 +1329,8 @@ let family name =
   | "traces-upper-bound" -> Some Inclusion_traces
   | "traces-upper-bound-rational" -> Some Rational_inclusion_traces
   | "regex-upper-bound-rational" -> Some Rational_regex
+  | _ when prefix "regex-cost-" && String.ends_with ~suffix:"-rational" name ->
+      Some Rational_regex_costs
   | _ when prefix "regex-" -> Some Regex
   | _ when prefix "traces-" && String.ends_with ~suffix:"-rational" name ->
       Some Rational_traces
@@ -1409,7 +1443,7 @@ let cover =
         pair (Braces letter_a) (Braces (Union (letter_a, Tick 3)));
         pair (Braces (Tick 1)) (Braces (Star Any));
       ]
-  | Rational_regex ->
+  | (Rational_regex | Rational_regex_costs) as family ->
       let frac n d = Frac (Rational.make n d) in
       let compare c n d = Compare (c, Rational.make n d) in
       [
@@ -1429,6 +1463,14 @@ let cover =
         Braces (Seq (compare Ge 3 2, Seq (letter_a, Star Any)));
         rat 3 2;
       ]
+      @
+      if family = Rational_regex_costs then
+        [
+          pair (Braces letter_a) (Braces (Union (letter_a, compare Lt 5 2)));
+          pair (rat 1 2) (rat 3 2);
+          pair (Braces (Tick 0)) Top;
+        ]
+      else []
   | Levels -> [ level "Low"; level "High" ]
   | Timed_levels ->
       [
@@ -1589,6 +1631,9 @@ let random family st =
       if int 4 > 0 then braces ~star:true
       else pair (braces ~star:true) (braces ~star:true)
   | Rational_regex -> Braces (timed 2)
+  | Rational_regex_costs ->
+      if int 4 > 0 then Braces (timed 2)
+      else pair (Braces (timed 2)) (Braces (timed 2))
   | Levels -> level ()
   | Timed_levels -> pair (pick st [ Int (int 5); Inf; Top ]) (level ())
   | Flow -> (
@@ -1799,6 +1844,9 @@ let inclusion_laws =
         (inclusion_upper, Inclusion_traces);
         (rational_inclusion_upper, Rational_inclusion_traces);
         (rational_regex_upper, Rational_regex);
+        (rational_regex_costs_lower, Rational_regex_costs);
+        (rational_regex_costs_upper, Rational_regex_costs);
+        (rational_regex_costs_interval, Rational_regex_costs);
       ]
 
 (* The declared flags of the registered grades that are false with no

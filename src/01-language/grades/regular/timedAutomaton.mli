@@ -95,6 +95,11 @@ val operations : Class.t -> t
 (** [operations c] is the language of the one-operation words of [c]. *)
 
 val concat : t -> t -> t
+
+val concat_list : t list -> t
+(** [concat_list ls] is the concatenation of the languages [ls] in turn, [{ε}]
+    if there are none, built by a single determinisation. *)
+
 val union : t -> t -> t
 val inter : t -> t -> t
 
@@ -149,3 +154,26 @@ val names : t -> string list
 val states : t -> int
 (** [states l] is the number of states of the automaton of [l], of both kinds.
 *)
+
+(** {1 Transitions}
+
+    The canonical automaton of a language, read state by state: gap state [0] is
+    the start, the labels of the transitions of a state partition the delays,
+    respectively the names, and the final states are operation states. *)
+
+val gap_states : t -> int
+(** [gap_states l] is the number of gap states of [l]. *)
+
+val operation_states : t -> int
+(** [operation_states l] is the number of operation states of [l]. *)
+
+val gap_transitions : t -> int -> (DelaySet.t * int) list
+(** [gap_transitions l g] is the transitions of the gap state [g] of [l], each
+    its set of delays and the operation state it leads to. *)
+
+val operation_transitions : t -> int -> (Class.t * int) list
+(** [operation_transitions l o] is the transitions of the operation state [o] of
+    [l], each its class of names and the gap state it leads to. *)
+
+val final : t -> int -> bool
+(** [final l o] is whether the operation state [o] of [l] is final. *)

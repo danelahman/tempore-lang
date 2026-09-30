@@ -458,24 +458,31 @@ let operations c = single_move ~delay:None ~op:(Some c)
 let empty = delays DelaySet.empty
 let epsilon = delays DelaySet.zero
 
-(* Thompson's construction: the accepting states of [l] move to the start of
-   [m] on the delay [0], and the gap closure adds the delays that meet. *)
-let concat =
-  tabulated @@ fun l m ->
-  let a = to_raw l in
-  let b = shift_raw a.size (to_raw m) in
-  determinise
-    {
-      size = a.size + b.size;
-      starts = a.starts;
-      accepts = b.accepts;
-      delay_moves =
-        a.delay_moves @ b.delay_moves
-        @ List.concat_map
-            (fun f -> List.map (fun s -> (f, DelaySet.zero, s)) b.starts)
-            a.accepts;
-      op_moves = a.op_moves @ b.op_moves;
-    }
+(* [link a b] is the raw automaton of the concatenation of [a] and of [b],
+   whose states follow those of [a], by Thompson's construction: the accepting
+   states of [a] move to the starts of [b] on the delay [0], and the gap closure
+   adds the delays that meet. *)
+let link a b =
+  let b = shift_raw a.size b in
+  {
+    size = a.size + b.size;
+    starts = a.starts;
+    accepts = b.accepts;
+    delay_moves =
+      a.delay_moves @ b.delay_moves
+      @ List.concat_map
+          (fun f -> List.map (fun s -> (f, DelaySet.zero, s)) b.starts)
+          a.accepts;
+    op_moves = a.op_moves @ b.op_moves;
+  }
+
+let concat = tabulated @@ fun l m -> determinise (link (to_raw l) (to_raw m))
+
+let concat_list = function
+  | [] -> epsilon
+  | [ l ] -> l
+  | l :: ls ->
+      determinise (List.fold_left (fun a m -> link a (to_raw m)) (to_raw l) ls)
 
 (* Thompson's construction: a new start, also accepting, moves to the start of
    [l], and the accepting states of [l] back to it, on the delay [0]. *)
@@ -637,3 +644,11 @@ let names l =
        (Array.to_list l.ops))
 
 let states l = Array.length l.gaps + Array.length l.ops
+
+(* {1 Transitions} *)
+
+let gap_states l = Array.length l.gaps
+let operation_states l = Array.length l.ops
+let gap_transitions l g = Array.to_list l.gaps.(g)
+let operation_transitions l o = Array.to_list l.ops.(o)
+let final l o = l.final.(o)

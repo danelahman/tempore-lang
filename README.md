@@ -267,6 +267,24 @@ operations. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound`
 and
 [`examples/regular_costs/regular_costs_intervals.tpe`](examples/regular_costs/regular_costs_intervals.tpe).
 
+The rational variants `regex-cost-lower-bound-rational`,
+`regex-cost-upper-bound-rational` and `regex-cost-interval-rational` order the
+timed words of `regex-upper-bound-rational` in the same way, with its literals,
+and read fractional runtime bounds such as `within [1/2, 3/2]`. The orders are
+exact over the rationals: with `A` declared `within [1, 1]`, under
+`regex-cost-upper-bound-rational` the runs `{>0 & <1; A; >0 & <1}` are below
+`{3}` but below no `{q}` with `q < 3`, the sums of their pauses coming
+arbitrarily close to `2`. A complement is taken over all timed words, and a
+grade still stands for its closure: `{~1}` equals `⊤` under the upper order,
+the longer pauses it keeps permitting the one it excludes. The closures are
+not themselves regular, so a comparison is decided relative to the lesser
+grade, each of its sets of delays read through its supremum (upper) or
+infimum (lower), and a grade is printed as it is written. The implied runtime
+bounds of a compound operation are the least and greatest weights of the runs
+of its grade: `{Sample; <1/2; Send}` gets `(3/4, 3)` if `Sample` is declared
+`within [1/2, 3/2]` and `Send` `within [1/4, 1]`. See
+[`examples/regular_costs/regular_costs_rational.tpe`](examples/regular_costs/regular_costs_rational.tpe).
+
 ### Security levels and products
 
 - `security-levels`: the levels `Low < High`; a computation's grade is the
@@ -451,9 +469,9 @@ operation Tx : string ~> unit # {Tx} within [2, 3]
 
 The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 `lo <= hi` and `hi` positive, and each grade reads them as its delays. The
-rational trace monoids with costs accept fractional bounds such as
-`within [1/2, 3/2]`; the other monoids that read runtime bounds count whole
-time steps, so `within [1/2, 1]` is a syntax error under them. The other
+rational trace and regular-expression monoids with costs accept fractional
+bounds such as `within [1/2, 3/2]`; the other monoids that read runtime bounds
+count whole time steps, so `within [1/2, 1]` is a syntax error under them. The other
 monoids reject runtime bounds altogether.
 
 A *compound* operation names other operations in its grade, and its bounds are

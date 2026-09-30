@@ -59,6 +59,7 @@ group | Regular expressions with costs | Regex (costs) | Regular runs, operation
 Regular expressions with costs | Lower bounds | regex-cost-lower-bound-symbolic | regular_costs/regular_costs_lower.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower runtime bounds.
 Regular expressions with costs | Upper bounds | regex-cost-upper-bound-symbolic | regular_costs/regular_costs_upper.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper runtime bounds.
 Regular expressions with costs | Intervals | regex-cost-interval-symbolic | regular_costs/regular_costs_intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
+Regular expressions with costs | Upper bounds (rational) | regex-cost-upper-bound-rational | regular_costs/regular_costs_rational.tpe | A sensor station timed in seconds, whose operations declare fractional runtime bounds and whose grades bound runs of rational delays with comparisons of delays and complements.
 
 group | Security levels | Security | Levels touched, alone or with time bounds and outputs.
 Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.

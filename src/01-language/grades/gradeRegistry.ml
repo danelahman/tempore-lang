@@ -154,6 +154,23 @@ let entries =
       regex_costs "Intervals (symbolic derivatives)"
       "The interval cost grade, decided by symbolic derivatives instead of \
        automata.";
+    entry
+      (module RegularCostTraceGradesRational.Lower)
+      regex_costs "Lower bounds (rational)"
+      "Regular languages of runs over rational delays in the coverage order, \
+       operations costing their lower runtime bounds, which may be fractional; \
+       exact, decided relative to the language bounded.";
+    entry
+      (module RegularCostTraceGradesRational.Upper)
+      regex_costs "Upper bounds (rational)"
+      "Regular languages of runs over rational delays in the allowance order, \
+       operations costing their upper runtime bounds, which may be fractional; \
+       exact, decided relative to the language bounded.";
+    entry
+      (module RegularCostTraceGradesRational.Interval)
+      regex_costs "Intervals (rational)"
+      "Pairs of a lower and an upper regular-language bound over rational \
+       delays, compared componentwise.";
     entry ~visibility:Cli_only
       (module RegularCostTraceGrades.Concrete.Lower)
       regex_costs "Lower bounds (plain derivatives)"

@@ -357,6 +357,9 @@ let expected_rejections =
     ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);
     ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);
     ("regex_costs_lower_runs_reject.tpe", [ 10 ]);
+    ("regex_costs_rational_interval_reject.tpe", [ 10; 18 ]);
+    ("regex_costs_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
+    ("regex_costs_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
     ("regex_costs_upper_reject.tpe", [ 11; 19; 27; 34 ]);
     ("regex_costs_upper_runs_reject.tpe", [ 11; 17; 20 ]);
     ("regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);

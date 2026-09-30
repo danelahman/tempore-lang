@@ -55,6 +55,9 @@
   >     literals_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
   >     regular_*.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
   >     regex_rational*.tpe) ../tempore --grades regex-upper-bound-rational $f;;
+  >     regex_costs_rational_lower*.tpe) ../tempore --grades regex-cost-lower-bound-rational $f;;
+  >     regex_costs_rational_upper*.tpe) ../tempore --grades regex-cost-upper-bound-rational $f;;
+  >     regex_costs_rational_interval*.tpe) ../tempore --grades regex-cost-interval-rational $f;;
   >     regex_costs_lower*.tpe) ../tempore --grades regex-cost-lower-bound-symbolic $f;;
   >     regex_costs_upper*.tpe) ../tempore --grades regex-cost-upper-bound-symbolic $f;;
   >     regex_costs_interval*.tpe) ../tempore --grades regex-cost-interval-symbolic $f;;
@@ -909,7 +912,7 @@
   File "delay_reject_fraction.tpe", line 4, characters 20-23:
   4 | let wait () = delay 0.5
                           ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-upper-bound-rational', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound-rational', 'security-levels' or 'flow-levels' grading monoids?
+  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-upper-bound-rational', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound-rational', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational', 'regex-cost-interval-rational', 'security-levels' or 'flow-levels' grading monoids?
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
@@ -1535,7 +1538,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-cost-lower-bound', 'traces-cost-upper-bound', 'traces-cost-interval', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-cost-lower-bound', 'traces-cost-upper-bound', 'traces-cost-interval', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational', 'regex-cost-interval-rational', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1876,7 +1879,7 @@
   File "literals_reject_complement.tpe", line 4, characters 19-32:
   4 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -1911,7 +1914,7 @@
   File "literals_reject_fraction.tpe", line 4, characters 19-22:
   4 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound-rational', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational' or 'regex-upper-bound-rational' grading monoids?
+  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound-rational', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound-rational', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -1953,7 +1956,7 @@
   File "literals_reject_interval_pair.tpe", line 4, characters 19-25:
   4 | let claim () = box (1, 4) 1
                          ^^^^^^
-  Syntax error: in the 'time-interval' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic' or 'peak-usage' grading monoids?
+  Syntax error: in the 'time-interval' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
@@ -2016,7 +2019,7 @@
   File "literals_reject_star.tpe", line 3, characters 19-31:
   3 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic' or 'regex-cost-interval-symbolic' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' grading monoids?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -2030,14 +2033,14 @@
   File "literals_reject_windows.tpe", line 3, characters 19-27:
   3 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval' or 'regex-cost-interval-symbolic' grading monoids?
+  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic' or 'regex-cost-interval-rational' grading monoids?
   ======================================================================
   literals_reject_windows_pair.tpe
   ======================================================================
   File "literals_reject_windows_pair.tpe", line 4, characters 19-25:
   4 | let claim () = box (2, 5) 1
                          ^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic' or 'peak-usage' grading monoids?
+  Syntax error: in the 'time-windows' grading monoid, intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'; did you mean to use one of the 'traces-cost-interval', 'traces-cost-interval-rational', 'regex-cost-interval', 'regex-cost-interval-symbolic', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
   ======================================================================
   literals_reject_within_pair.tpe
   ======================================================================
@@ -3519,6 +3522,207 @@
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
   ======================================================================
+  regex_costs_rational_interval.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Token "t")
+  State: [
+    { resource_0 ↦ Token "t" # ({0.5},{1.5}) },
+    ({0.5},{0.5})
+  ]
+  
+  ======================================================================
+  regex_costs_rational_interval_reject.tpe
+  ======================================================================
+  File "regex_costs_rational_interval_reject.tpe", lines 13-14, characters 2-5:
+  13 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `({Sample},{Sample})` accumulated since it was bound, which is not below its box grade `({0.75},{2})`
+    File "regex_costs_rational_interval_reject.tpe", line 11, characters 30-31:
+    11 |   box (3/4, 2) (Token "t") as t in
+                                       ^
+    `t` is bound here
+    File "regex_costs_rational_interval_reject.tpe", line 12, characters 10-27:
+    12 |   let v = perform Sample () in
+                   ^^^^^^^^^^^^^^^^^
+    grade `({Sample},{Sample})` accumulates here (operation `Sample`)
+    Note: the resource inequality `({Sample},{Sample}) <= ({0.75},{2})` does not hold
+  
+  File "regex_costs_rational_interval_reject.tpe", lines 22-23, characters 2-5:
+  22 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `({0.5; Sample},{0.5; Sample})` accumulated since it was bound, which is not below its box grade `({0.5},{<1})`
+    File "regex_costs_rational_interval_reject.tpe", line 19, characters 35-36:
+    19 |   box ({1/2}, {<1}) (Token "t") as t in
+                                            ^
+    `t` is bound here
+    File "regex_costs_rational_interval_reject.tpe", line 20, characters 2-11:
+    20 |   delay 1/2;
+           ^^^^^^^^^
+    grade `({0.5},{0.5})` accumulates here (delay)
+    File "regex_costs_rational_interval_reject.tpe", line 21, characters 10-27:
+    21 |   let v = perform Sample () in
+                   ^^^^^^^^^^^^^^^^^
+    grade `({Sample},{Sample})` accumulates here (operation `Sample`)
+    Note: the resource inequality `({0.5; Sample},{0.5; Sample}) <= ({0.5},{<1})` does not hold
+  ======================================================================
+  regex_costs_rational_lower.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {0.5},
+    {0.25}
+  ]
+  
+  ======================================================================
+  regex_costs_rational_lower_reject.tpe
+  ======================================================================
+  File "regex_costs_rational_lower_reject.tpe", lines 14-15, characters 2-5:
+  14 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{0.25}` accumulated since it was bound, which is not below its box grade `{0.5}`
+    File "regex_costs_rational_lower_reject.tpe", line 12, characters 27-28:
+    12 |   box {1/2} (Token "t") as t in
+                                    ^
+    `t` is bound here
+    File "regex_costs_rational_lower_reject.tpe", line 13, characters 2-11:
+    13 |   delay 1/4;
+           ^^^^^^^^^
+    grade `{0.25}` accumulates here (delay)
+    Note: the resource inequality `{0.25} <= {0.5}` does not hold
+  
+  File "regex_costs_rational_lower_reject.tpe", lines 21-22, characters 2-5:
+  21 |   unbox s as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `s` is unboxed with grade `{3}` accumulated since it was bound, which is not below its box grade `{Send}`
+    File "regex_costs_rational_lower_reject.tpe", line 19, characters 28-29:
+    19 |   box {Send} (Token "s") as s in
+                                     ^
+    `s` is bound here
+    File "regex_costs_rational_lower_reject.tpe", line 20, characters 2-9:
+    20 |   delay 3;
+           ^^^^^^^
+    grade `{3}` accumulates here (delay)
+    Note: the resource inequality `{3} <= {Send}` does not hold
+  
+  File "regex_costs_rational_lower_reject.tpe", lines 31-32, characters 2-5:
+  31 |   unbox p as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `p` is unboxed with grade `{>0 & <1}` accumulated since it was bound, which is not below its box grade `{0.5}`
+    File "regex_costs_rational_lower_reject.tpe", line 29, characters 27-28:
+    29 |   box {1/2} (Token "p") as p in
+                                    ^
+    `p` is bound here
+    File "regex_costs_rational_lower_reject.tpe", line 30, characters 2-15:
+    30 |   some_pause ();
+           ^^^^^^^^^^^^^
+    grade `{>0 & <1}` accumulates here (this computation)
+    Note: the resource inequality `{>0 & <1} <= {0.5}` does not hold
+    Note: the grade `{1/3}` is below `{>0 & <1}` but not below `{0.5}`
+  
+  File "regex_costs_rational_lower_reject.tpe", line 35, characters 13-44:
+  35 | let quick () : nat # {1} = perform Sample ()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{Sample}`, which does not match its annotated grade `{1}`
+    Note: the effect inequality `{Sample} <= {1}` does not hold
+  ======================================================================
+  regex_costs_rational_upper.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    {0.5},
+    {0.25},
+    {0.25}
+  ]
+  
+  ======================================================================
+  regex_costs_rational_upper_reject.tpe
+  ======================================================================
+  File "regex_costs_rational_upper_reject.tpe", lines 16-17, characters 2-5:
+  16 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{Sample; 1/3}` accumulated since it was bound, which is not below its box grade `{1.75}`
+    File "regex_costs_rational_upper_reject.tpe", line 13, characters 27-28:
+    13 |   box {7/4} (Token "t") as t in
+                                    ^
+    `t` is bound here
+    File "regex_costs_rational_upper_reject.tpe", line 14, characters 10-27:
+    14 |   let v = perform Sample () in
+                   ^^^^^^^^^^^^^^^^^
+    grade `{Sample}` accumulates here (operation `Sample`)
+    File "regex_costs_rational_upper_reject.tpe", line 15, characters 2-11:
+    15 |   delay 1/3;
+           ^^^^^^^^^
+    grade `{1/3}` accumulates here (delay)
+    Note: the resource inequality `{Sample; 1/3} <= {1.75}` does not hold
+  
+  File "regex_costs_rational_upper_reject.tpe", lines 25-26, characters 2-5:
+  25 |   unbox t as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `t` is unboxed with grade `{Sample; Send}` accumulated since it was bound, which is not below its box grade `{Send; 2}`
+    File "regex_costs_rational_upper_reject.tpe", line 22, characters 31-32:
+    22 |   box {Send; 2} (Token "t") as t in
+                                        ^
+    `t` is bound here
+    File "regex_costs_rational_upper_reject.tpe", line 23, characters 10-27:
+    23 |   let v = perform Sample () in
+                   ^^^^^^^^^^^^^^^^^
+    grade `{Sample}` accumulates here (operation `Sample`)
+    File "regex_costs_rational_upper_reject.tpe", line 24, characters 2-16:
+    24 |   perform Send v;
+           ^^^^^^^^^^^^^^
+    grade `{Send}` accumulates here (operation `Send`)
+    Note: the resource inequality `{Sample; Send} <= {Send; 2}` does not hold
+  
+  File "regex_costs_rational_upper_reject.tpe", lines 37-38, characters 2-5:
+  37 |   unbox b as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `b` is unboxed with grade `{<0.5; Send; <0.5}` accumulated since it was bound, which is not below its box grade `{1.99}`
+    File "regex_costs_rational_upper_reject.tpe", line 33, characters 28-29:
+    33 |   box {1.99} (Token "b") as b in
+                                     ^
+    `b` is bound here
+    File "regex_costs_rational_upper_reject.tpe", line 34, characters 2-16:
+    34 |   short_pause ();
+           ^^^^^^^^^^^^^^
+    grade `{<0.5}` accumulates here (this computation)
+    File "regex_costs_rational_upper_reject.tpe", line 35, characters 2-16:
+    35 |   perform Send n;
+           ^^^^^^^^^^^^^^
+    grade `{Send}` accumulates here (operation `Send`)
+    File "regex_costs_rational_upper_reject.tpe", line 36, characters 2-16:
+    36 |   short_pause ();
+           ^^^^^^^^^^^^^^
+    grade `{<0.5}` accumulates here (this computation)
+    Note: the resource inequality `{<0.5; Send; <0.5} <= {1.99}` does not hold
+    Note: the grade `{64/129; Send; 64/129}` is below `{<0.5; Send; <0.5}` but not below `{1.99}`
+  
+  File "regex_costs_rational_upper_reject.tpe", lines 46-47, characters 2-5:
+  46 |   unbox l as tok in
+         ^^^^^^^^^^^^^^^^^
+  Typing error: Variable `l` is unboxed with grade `{Send; 1}` accumulated since it was bound, which is not below its box grade `{Send; (<=1 & ~1)}`
+    File "regex_costs_rational_upper_reject.tpe", line 43, characters 40-41:
+    43 |   box {Send; (<=1 & ~1)} (Token "l") as l in
+                                                 ^
+    `l` is bound here
+    File "regex_costs_rational_upper_reject.tpe", line 44, characters 2-16:
+    44 |   perform Send n;
+           ^^^^^^^^^^^^^^
+    grade `{Send}` accumulates here (operation `Send`)
+    File "regex_costs_rational_upper_reject.tpe", line 45, characters 2-9:
+    45 |   delay 1;
+           ^^^^^^^
+    grade `{1}` accumulates here (delay)
+    Note: the resource inequality `{Send; 1} <= {Send; (<=1 & ~1)}` does not hold
+  
+  File "regex_costs_rational_upper_reject.tpe", lines 51-53, characters 19-19:
+  51 | let two_samples () : nat # {5/2} =
+                          ^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{Sample; Sample}`, which does not match its annotated grade `{2.5}`
+    Note: the effect inequality `{Sample; Sample} <= {2.5}` does not hold
+  ======================================================================
   regex_costs_upper.tpe
   ======================================================================
   === Run 1 ===
@@ -4819,7 +5023,7 @@
   File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
   5 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
                                                      ^^^
-  Syntax error: in the 'traces-cost-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational' or 'traces-cost-interval-rational' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
@@ -5260,11 +5464,12 @@ automata, 'regex-upper-bound':
 
 The programs of the cost-model regular trace grades, run above under their
 implementations by symbolic derivatives, under their implementations by
-automata:
+automata, the programs over rational delays excepted:
 
   $ for f in regex_costs_*.tpe
   > do
   >   case $f in
+  >     regex_costs_rational_*.tpe) continue;;
   >     regex_costs_lower*.tpe) grades=regex-cost-lower-bound;;
   >     regex_costs_upper*.tpe) grades=regex-cost-upper-bound;;
   >     regex_costs_interval*.tpe) grades=regex-cost-interval;;
@@ -5499,6 +5704,7 @@ above, the examples over rational delays excepted:
   > do
   >   case $f in
   >     *_rational.tpe) continue;;
+  >     regex_costs_rational_*.tpe) continue;;
   >     *costs_lower*.tpe) grades=regex-cost-lower-bound;;
   >     *costs_upper*.tpe) grades=regex-cost-upper-bound;;
   >     *costs_interval*.tpe) grades=regex-cost-interval;;
@@ -6484,6 +6690,9 @@ single-dash form of the help option is not accepted.
           regex-cost-lower-bound-symbolic    Lower bounds (symbolic derivatives)
           regex-cost-upper-bound-symbolic    Upper bounds (symbolic derivatives)
           regex-cost-interval-symbolic       Intervals (symbolic derivatives)
+          regex-cost-lower-bound-rational    Lower bounds (rational)
+          regex-cost-upper-bound-rational    Upper bounds (rational)
+          regex-cost-interval-rational       Intervals (rational)
           regex-cost-lower-bound-derivatives Lower bounds (plain derivatives)
           regex-cost-upper-bound-derivatives Upper bounds (plain derivatives)
           regex-cost-interval-derivatives    Intervals (plain derivatives)

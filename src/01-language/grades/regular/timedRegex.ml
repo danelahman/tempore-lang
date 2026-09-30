@@ -3,13 +3,16 @@ module A = TimedAutomaton
 
 let any = A.union (A.delays DelaySet.positive) (A.operations A.Class.all)
 
+(* [factors r] is the factors of the concatenations [r] is made of, in turn. *)
+let rec factors = function Seq (r, s) -> factors r @ factors s | r -> [ r ]
+
 let rec automaton = function
   | Letter name -> A.operations (A.Class.name name)
   | Tick n -> A.delays (DelaySet.point (Rational.of_int n))
   | Frac q -> A.delays (DelaySet.point q)
   | Compare (c, q) -> A.delays (DelaySet.compare_with c q)
   | Any -> any
-  | Seq (r, s) -> A.concat (automaton r) (automaton s)
+  | Seq _ as r -> A.concat_list (List.map automaton (factors r))
   | Union (r, s) -> A.union (automaton r) (automaton s)
   | Inter (r, s) -> A.inter (automaton r) (automaton s)
   | Compl r -> A.compl (automaton r)

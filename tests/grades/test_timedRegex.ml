@@ -110,7 +110,10 @@ let whole_step_rejections =
      check "whole steps: a comparison rejected"
        (contains reason
           "the comparison '<1' denotes a set of rational delays; did you mean \
-           to use the 'regex-upper-bound-rational' grading monoid?")
+           to use one of the 'regex-upper-bound-rational', \
+           'regex-cost-lower-bound-rational', \
+           'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' \
+           grading monoids?")
        reason);
   ]
 
