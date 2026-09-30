@@ -41,8 +41,8 @@ let alarm () =
   unbox a as u in
   perform Alarm u
 
-(* Correctly accepted by the typechecker: a timer that fires on the multiples
-   of three quarters of a second, here at 1.5. *)
+(* Correctly accepted by the typechecker: a timer that fires after any number
+   of delays of three quarters of a second, here two, 1.5 in all. *)
 let timer () =
   box {(3/4)*} "fired" as t in
   delay 3/4;

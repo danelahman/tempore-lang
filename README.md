@@ -214,11 +214,14 @@ and `>=q` (`≥q`), the delays below, up to, above or from `q`; an interval is
 an intersection, as in `{>0 & <1}`. `_` is any single operation or any
 positive delay, and the complement is taken over all timed words: `{~1}`
 permits every run but a pause of exactly `1`, and `{_ & ~Read}` any single
-operation but `Read` or any positive pause. A repetition of delays is their
-multiples: `{(1/2)*}` is the multiples of a half, `{(>=1 & <=2)*}` the delay
-`0` and every delay from `1`. A plain number `q` abbreviates `{q}`. The unit
-is `{0}` and the top `⊤`, `{_*}`. A grade is kept as a canonical automaton
-whose delay transitions are labelled by sets of delays, and printed as it is
+operation but `Read` or any positive pause. As consecutive delays are added,
+a repetition of delays is their sums, the empty sum `0` included: `{(1/2)*}`
+is the sums of any number of halves, `0`, `1/2`, `1`, …, so that
+`delay 1/2; delay 1/2` is below it as `delay 1` is, and `{(>=1 & <=2)*}`, the
+sums of any number of delays from `1` to `2`, is the delay `0` and every delay
+from `1`. A plain number `q` abbreviates `{q}`. The unit is `{0}` and the top
+`⊤`, `{_*}`. A grade is kept as a canonical automaton whose delay transitions
+are labelled by sets of delays, and printed as it is
 written, with adjacent delays added. See
 [`examples/regular/regular_rational.tpe`](examples/regular/regular_rational.tpe).
 
@@ -236,7 +239,7 @@ deciding grades grows with it. Checking a single annotated function takes:
 
 In the first three rows the sums of the two constants leave gaps up to about
 their product, which the finite part lists point by point. In the last, the
-multiples of the narrow interval merge into a continuous tail only after about
+sums of copies of the narrow interval merge into a continuous tail only after about
 the ratio of `10` to its width. Small periods, including rational ones such
 as `{(1/97 | 1/89)*}`, and intervals that widen as they repeat, such as
 `{(>=1 & <=1.001)*}`, stay fast.
