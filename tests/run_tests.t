@@ -7380,7 +7380,7 @@ second by the defaults of its operations.
         Brewed (Ground (Beans "arabica"))
         # [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]
     },
-    [{0.5}, {0.5}],
+    [{0.75}, {0.75}],
     [{5}, {5}],
     [{0.25}, {0.25}],
     [{0.25}, {0.25}]
