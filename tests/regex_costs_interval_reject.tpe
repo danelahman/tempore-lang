@@ -1,5 +1,5 @@
 (* Rejected under the 'regex-cost-interval' grading monoid: each component is
-   checked at its own end of the runtime bounds. *)
+   checked at its own end of the running-time bounds. *)
 
 type token = Token of string
 

@@ -202,8 +202,8 @@ let send_briefly () =
    other than the four declared is none:
 
      Typing error: The grade
-       `{_ & ~((0, ∞) | Sample | Send | Calibrate | Blink)}` permits no run of
-       the declared operations
+       `{_ & ~((0, ∞) | Sample | Send | Calibrate | Blink)}` permits no trace
+       over the declared operations
 *)
 (*
 let undeclared () =

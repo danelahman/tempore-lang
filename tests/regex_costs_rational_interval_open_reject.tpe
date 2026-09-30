@@ -1,6 +1,6 @@
 (* Correctly rejected by the typechecker, under the
    'regex-cost-interval-rational' grading monoid: a default of exactly 1 time
-   unit is faster than the runtime bounds (1, 2] of its operation. *)
+   unit is faster than the running-time bounds (1, 2] of its operation. *)
 
 operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
 

@@ -1,8 +1,8 @@
 (* Correctly rejected by the typechecker, under the
-   'regex-upper-bound-rational' grading monoid: two pauses adding up to the one
-   delay a complement excludes, a reading sent too late, a pause off the
-   period of a timer, and a run too short for a lower bound on its pause, which
-   a note refutes by one of its runs. *)
+   'regex-upper-bound-rational' grading monoid: two delays adding up to the one
+   delay a complement excludes, a reading sent too late, a delay off the period
+   of a timer, and a trace too short for a lower bound on its delay, which a
+   note refutes by one of its traces. *)
 
 operation Sample : unit ~> nat # {Sample}
 operation Send : nat ~> unit # {Send}

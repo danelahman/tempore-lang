@@ -1,4 +1,4 @@
 (* Correctly rejected by the typechecker, under the 'traces-cost-upper-bound'
-   grading monoid: the upper runtime bound of an operation must be positive. *)
+   grading monoid: an operation's upper running-time bound must be positive. *)
 
 operation Heat : unit ~> unit # {Heat} within [0, 0]

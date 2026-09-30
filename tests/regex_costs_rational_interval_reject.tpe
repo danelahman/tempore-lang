@@ -1,5 +1,5 @@
 (* Rejected under the 'regex-cost-interval-rational' grading monoid: each
-   component is checked at its own end of the fractional runtime bounds. *)
+   component is checked at its own end of the fractional running-time bounds. *)
 
 type token = Token of string
 
@@ -13,8 +13,8 @@ let too_quick () =
   unbox t as tok in
   tok
 
-(* A pause of a half and a sample may take two time units, past an upper bound
-   of pauses under one. *)
+(* A delay of a half and a sample may take two time units, past an upper bound
+   of delays under one. *)
 let too_slow () =
   box [{1/2}, {[0, 1)}] (Token "t") as t in
   delay 1/2;

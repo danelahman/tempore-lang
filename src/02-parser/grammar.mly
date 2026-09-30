@@ -47,7 +47,7 @@
     | None when not GS.E.needs_op_bounds -> q
     | None ->
         Error.syntax ~loc
-          "in the '%s' grading monoid, runtime bounds are delays, and %s%s"
+          "in the '%s' grading monoid, running-time bounds are delays, and %s%s"
           GS.E.name
           (GS.E.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_bounds lit))

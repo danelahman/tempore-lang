@@ -111,7 +111,7 @@ let print_cog () =
   perform Mount (Printed c, g)
 
 (* Correctly accepted by the typechecker: the clause realises the first of the
-   two runs 'Print' allows, covering it on the lower bound and fitting inside
+   two traces 'Print' allows, covering it on the lower bound and fitting inside
    it on the upper bound. *)
 let full_printer =
   handler
@@ -122,8 +122,8 @@ let full_printer =
       let c = perform Cool p in
       continue k with (box [2, 8] (Printed c))
 
-(* Correctly accepted by the typechecker: the clause realises the other run, a
-   reheat that skips the extrusion --- the model was extruded in an earlier
+(* Correctly accepted by the typechecker: the clause realises the other trace,
+   a reheat that skips the extrusion --- the model was extruded in an earlier
    job, so it goes straight from the heater to the cooler. *)
 let quick_printer =
   handler
@@ -134,7 +134,7 @@ let quick_printer =
       continue k with (box [2, 8] (Reheated h))
 
 (* Correctly accepted by the typechecker: a reheat is exactly what the lower
-   bound of 'Print2' guarantees, and it fits inside the second run of its
+   bound of 'Print2' guarantees, and it fits inside the second trace of its
    upper bound. *)
 let reheater =
   handler
@@ -217,8 +217,8 @@ let early_cooler =
       continue k with (box [2, 8] (Reheated h))
 *)
 
-(* Correctly rejected by the typechecker: neither run of 'Print' begins with a
-   'Cool', and the order of a bound is not negotiable, however the model that
+(* Correctly rejected by the typechecker: neither trace of 'Print' begins with
+   a 'Cool', and the order of a bound is not negotiable, however the model that
    is handed to the cooler came to be:
 
      Typing error: Variable `k` is unboxed with grade
@@ -240,8 +240,8 @@ let twisted_printer =
 *)
 
 (* Correctly rejected by the typechecker on the lower bound, which demands the
-   whole run it promises: a clause that stops after the extrusion covers
-   neither run of 'Print', even though the upper bound of 'Print' would
+   whole trace it promises: a clause that stops after the extrusion covers
+   neither trace of 'Print', even though the upper bound of 'Print' would
    happily allow it:
 
      Typing error: Variable `k` is unboxed with grade

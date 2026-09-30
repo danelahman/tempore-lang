@@ -64,23 +64,23 @@ let entries =
     entry
       (module TraceInclusionGrades.UpperBound)
       traces "Upper bounds"
-      "Sets of traces ordered by inclusion; operations declare no runtime \
+      "Sets of traces ordered by inclusion; operations declare no running-time \
        bounds.";
     entry
       (module TraceInclusionGrades.Rational.UpperBound)
       traces "Upper bounds (rational)"
       "Sets of traces with rational delays ordered by inclusion; operations \
-       declare no runtime bounds.";
+       declare no running-time bounds.";
     entry
       (module TimedTraceGrades.LowerBound)
       traces_costs "Lower bounds"
       "Sets of traces in the coverage order, operations costing their lower \
-       runtime bounds.";
+       running-time bounds.";
     entry
       (module TimedTraceGrades.UpperBound)
       traces_costs "Upper bounds"
       "Sets of traces in the allowance order, operations costing their upper \
-       runtime bounds.";
+       running-time bounds.";
     entry
       (module TimedTraceGrades.Interval)
       traces_costs "Intervals"
@@ -90,12 +90,12 @@ let entries =
       (module TimedTraceGrades.Rational.LowerBound)
       traces_costs "Lower bounds (rational)"
       "Sets of traces with rational delays in the coverage order, operations \
-       costing their lower runtime bounds, which may be fractional.";
+       costing their lower running-time bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.UpperBound)
       traces_costs "Upper bounds (rational)"
       "Sets of traces with rational delays in the allowance order, operations \
-       costing their upper runtime bounds, which may be fractional.";
+       costing their upper running-time bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.Interval)
       traces_costs "Intervals (rational)"
@@ -104,8 +104,8 @@ let entries =
     entry
       (module RegularTraceGrade)
       regex "Upper bounds"
-      "Regular languages of runs over delays and operations, bounding the runs \
-       permitted by inclusion; decided by automata.";
+      "Regular languages of traces over delays and operations, bounding the \
+       traces permitted by inclusion; decided by automata.";
     entry
       (module RegularTraceGradeDerivative)
       regex "Upper bounds (symbolic derivatives)"
@@ -114,9 +114,9 @@ let entries =
     entry
       (module RegularTraceGradeRational)
       regex "Upper bounds (rational)"
-      "Regular languages of runs over rational delays and operations, bounding \
-       the runs permitted by inclusion; exact, decided by automata over sets \
-       of delays.";
+      "Regular languages of traces over rational delays and operations, \
+       bounding the traces permitted by inclusion; exact, decided by automata \
+       over sets of delays.";
     entry ~visibility:Cli_only
       (module RegularTraceGradeDerivative.Concrete)
       regex "Upper bounds (plain derivatives)"
@@ -130,13 +130,13 @@ let entries =
     entry
       (module RegularCostTraceGrades.Lower)
       regex_costs "Lower bounds"
-      "Regular languages of runs in the coverage order, operations costing \
-       their lower runtime bounds, decided by automata.";
+      "Regular languages of traces in the coverage order, operations costing \
+       their lower running-time bounds, decided by automata.";
     entry
       (module RegularCostTraceGrades.Upper)
       regex_costs "Upper bounds"
-      "Regular languages of runs in the allowance order, operations costing \
-       their upper runtime bounds, decided by automata.";
+      "Regular languages of traces in the allowance order, operations costing \
+       their upper running-time bounds, decided by automata.";
     entry
       (module RegularCostTraceGrades.Interval)
       regex_costs "Intervals"
@@ -160,15 +160,15 @@ let entries =
     entry
       (module RegularCostTraceGradesRational.Lower)
       regex_costs "Lower bounds (rational)"
-      "Regular languages of runs over rational delays in the coverage order, \
-       operations costing their lower runtime bounds, which may be fractional; \
-       exact, decided relative to the language bounded.";
+      "Regular languages of traces over rational delays in the coverage order, \
+       operations costing their lower running-time bounds, which may be \
+       fractional; exact, decided relative to the language bounded.";
     entry
       (module RegularCostTraceGradesRational.Upper)
       regex_costs "Upper bounds (rational)"
-      "Regular languages of runs over rational delays in the allowance order, \
-       operations costing their upper runtime bounds, which may be fractional; \
-       exact, decided relative to the language bounded.";
+      "Regular languages of traces over rational delays in the allowance \
+       order, operations costing their upper running-time bounds, which may be \
+       fractional; exact, decided relative to the language bounded.";
     entry
       (module RegularCostTraceGradesRational.Interval)
       regex_costs "Intervals (rational)"

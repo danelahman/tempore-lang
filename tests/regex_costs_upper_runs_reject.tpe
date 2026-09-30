@@ -1,12 +1,12 @@
-(* Rejected under the 'regex-cost-upper-bound' grading monoid: a grade must permit
-   at least one run of the operations the program declares, wherever it is
-   written. *)
+(* Rejected under the 'regex-cost-upper-bound' grading monoid: a grade must
+   permit at least one trace of the operations the program declares, wherever
+   it is written. *)
 
 type token = Token of string
 
 operation Fetch : unit ~> unit # {Fetch} within [2, 4]
 
-(* A box grade whose runs perform an operation other than a fetch, when a
+(* A box grade whose traces perform an operation other than a fetch, when a
    fetch is the only operation the program declares. *)
 let other_than_fetch () =
   box {_ & ~1 & ~Fetch} (Token "o") as o in

@@ -1,5 +1,5 @@
 (* Accepted under the regular trace grading monoids: resources guarded by the
-   runs that may occur before they are used. *)
+   traces that may occur before they are used. *)
 
 type token = Token of string
 
@@ -25,7 +25,7 @@ let before_revoke () =
   perform Revoke ();
   cap
 
-(* The top grade permits every run. *)
+(* The top grade permits every trace. *)
 let anytime () =
   box ⊤ (Token "a") as a in
   perform Revoke ();
@@ -33,7 +33,7 @@ let anytime () =
   unbox a as tok in
   tok
 
-(* A grade that permits only the runs beginning with three time steps. *)
+(* A grade that permits only the traces beginning with three ticks. *)
 let embargo () =
   box {3; _*} 42 as x in
   delay 3;

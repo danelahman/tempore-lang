@@ -1,5 +1,5 @@
-(* Rejected: runtime bounds are delays, and those of traces-cost-upper-bound
-   are whole numbers of time steps; the error names the trace grades with
-   costs whose delays are rationals. *)
+(* Rejected: running-time bounds are delays, and those of
+   traces-cost-upper-bound are whole numbers of ticks; the error names the
+   trace grades with costs whose delays are rationals. *)
 
 operation Heat : unit ~> unit # {Heat} within [1/2, 1]

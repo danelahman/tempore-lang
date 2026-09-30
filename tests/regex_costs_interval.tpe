@@ -1,6 +1,6 @@
 (* Accepted under the 'regex-cost-interval' grading monoid: intervals of a
-   regular lower bound, at the lower runtime bounds, and a regular upper bound,
-   at the upper ones. *)
+   regular lower bound, at the lower running-time bounds, and a regular upper
+   bound, at the upper ones. *)
 
 type token = Token of string
 

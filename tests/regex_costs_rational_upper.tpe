@@ -1,6 +1,6 @@
 (* Accepted under the 'regex-cost-upper-bound-rational' grading monoid: regular
    upper bounds over rational delays whose delays pay for operations at their
-   fractional upper runtime bounds, with intervals of delays and
+   fractional upper running-time bounds, with intervals of delays and
    complements. *)
 
 type token = Token of string
@@ -13,7 +13,7 @@ default Sample () = delay 1/2; 3
 operation Send : nat ~> unit # {Send} within [1/4, 1]
 default Send n = delay 0.25
 
-(* A sample, at its upper bound of 3/2, and a pause of 1/2 fill an allowance
+(* A sample, at its upper bound of 3/2, and a delay of 1/2 fill an allowance
    of two time units exactly. *)
 let sample_then_rest () =
   box {2} (Token "t") as t in
@@ -22,7 +22,7 @@ let sample_then_rest () =
   unbox t as tok in
   tok
 
-(* A pause under a time unit before a matched transmission, and one of at most
+(* A delay under a time unit before a matched transmission, and one of at most
    a quarter after it. *)
 let paced (n : nat) =
   box {[0, 1); Send; [0, 1/4]} (Token "p") as p in
@@ -32,8 +32,8 @@ let paced (n : nat) =
   unbox p as tok in
   tok
 
-(* A pause of one time unit, which the complement excludes, is permitted by
-   the longer pauses it keeps. *)
+(* A delay of one time unit, which the complement excludes, is permitted by
+   the longer delays it keeps. *)
 let offbeat () =
   box {~1} (Token "o") as o in
   delay 1/2;
@@ -41,7 +41,7 @@ let offbeat () =
   unbox o as tok in
   tok
 
-(* Pauses under a half on either side of a transmission take less than
+(* Delays under a half on either side of a transmission take less than
    1/2 + 1 + 1/2 = 2 time units, however close to a half they come. *)
 let short_pause () : unit # {[0, 1/2)} = delay 0.49
 
@@ -53,7 +53,7 @@ let bursts (n : nat) =
   unbox b as tok in
   tok
 
-(* Samples, each followed by a pause of a third. *)
+(* Samples, each followed by a delay of a third. *)
 let polling () =
   box {(Sample; 1/3)*} (Token "t") as t in
   let v = perform Sample () in
@@ -63,7 +63,7 @@ let polling () =
   unbox t as tok in
   tok
 
-(* The annotated grade pays for a sample, a pause of a quarter and a
+(* The annotated grade pays for a sample, a delay of a quarter and a
    transmission: 3/2 + 1/4 + 1 = 11/4. *)
 let report () : unit # {11/4} =
   let v = perform Sample () in

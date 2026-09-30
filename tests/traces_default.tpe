@@ -1,9 +1,9 @@
 (* Correctly accepted by the typechecker, under the 'traces-cost-upper-bound'
    grading monoid: the three atomic operations of a print are given default
-   implementations, checked against their runtime bounds rather than against
-   their grades, and the compound operation 'PrintModel' is handled by a
-   handler in terms of them. The run therefore completes instead of stopping at
-   the first unhandled operation. *)
+   implementations, checked against their running-time bounds rather than
+   against their grades, and the compound operation 'PrintModel' is handled by
+   a handler in terms of them. The run therefore completes instead of stopping
+   at the first unhandled operation. *)
 
 type model = Model of string
 type fresh = Fresh of model

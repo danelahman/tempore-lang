@@ -1,4 +1,4 @@
-(* Mode-switch costs: the greatest cost of the runs between each pair of
+(* Mode-switch costs: the greatest cost of the traces between each pair of
    modes. *)
 
 operation On : unit ~> unit # (Off, On, 1)

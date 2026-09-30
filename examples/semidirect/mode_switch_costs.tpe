@@ -4,15 +4,15 @@
 
      ./tempore --grades mode-switch-costs examples/semidirect/mode_switch_costs.tpe
 
-   Grades ((P, Q, n), ...): greatest cost n of the runs from mode P to mode Q
+   Grades ((P, Q, n), ...): greatest cost n of the traces from mode P to mode Q
      - Unit 0: keeps every mode at cost 0
      - Top ⊤: cost ∞ between any two modes, and into Stuck
      - Product: max-plus matrix product *)
 
-(* Besides the modes named there is the mode Stuck, which no run leaves: from
+(* Besides the modes named there is the mode Stuck, which no trace leaves: from
    a mode in which it is not performed, an operation gets stuck. An entry
    (P, Stuck, n) permits getting stuck from P after cost n, and a mode from
-   which a grade lists no run gets stuck at cost 0. A change between two
+   which a grade lists no trace gets stuck at cost 0. A change between two
    distinct modes other than Stuck costs at least 1. *)
 
 (* Switching the radio on costs 2, and switching it off 1. No code changes
@@ -37,7 +37,7 @@ default Average (x, y) = (x + y) / 2
 
 (* Correctly accepted by the typechecker: from the radio off back to it off,
    sampling first and sleeping last costs 1 + 2 + 4 + 1 + 10; from the radio
-   on, the run gets stuck at switching it on, after sampling at cost 3. *)
+   on, the trace gets stuck at switching it on, after sampling at cost 3. *)
 let report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
   let x = perform Sample () in
   perform RadioOn ();

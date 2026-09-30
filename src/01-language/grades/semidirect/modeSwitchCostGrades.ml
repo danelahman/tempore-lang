@@ -24,7 +24,7 @@ let show_cost = function
   | Cost n -> string_of_int n
   | Unbounded -> "∞"
 
-(** The absorbing mode, in which a run is stuck. *)
+(** The absorbing mode, in which a trace is stuck. *)
 let stuck = "Stuck"
 
 (* The costs between the modes named, from a mode named to the others, from
@@ -48,7 +48,7 @@ let other = "_x"
 let another = "_y"
 let yet_another = "_z"
 
-(** [cost m p q] is the cost of the runs from the mode [p] to the mode [q]. *)
+(** [cost m p q] is the cost of the traces from the mode [p] to the mode [q]. *)
 let cost m p q =
   let named p = List.mem p m.modes in
   let find key entries =
@@ -143,7 +143,7 @@ let one = everywhere (Cost 0)
 let top =
   { (everywhere Unbounded) with moving = Unbounded; other_to_stuck = Unbounded }
 
-(* The max-plus matrix product. A run from [p] to [r] passes through a mode
+(* The max-plus matrix product. A trace from [p] to [r] passes through a mode
    named, [p], [r], [stuck] or another mode, the modes not named all alike. *)
 let mul m m' =
   let modes = modes_of m m' in
@@ -200,7 +200,7 @@ let unnamed_other = "≠"
 
 (** [entry lit] is the entry [(From, To, cost)] the literal [lit] denotes, of
     modes named, [stuck], [unnamed] or, as its target after [unnamed],
-    [unnamed_other]: no run leaves [stuck], and a change between two ordinary
+    [unnamed_other]: no trace leaves [stuck], and a change between two ordinary
     modes costs at least [1]. *)
 let entry = function
   | Grade.Tuple [ Grade.Name p; Grade.Name q; c ] as lit ->
@@ -223,7 +223,7 @@ let entry = function
       else if String.equal p stuck && not (String.equal q stuck && c = Cost 0)
       then
         Grade.invalid_lit lit
-          "no run leaves the mode '%s', which it keeps at cost 0" stuck
+          "no trace leaves the mode '%s', which it keeps at cost 0" stuck
       else if change && c = Cost 0 then
         Grade.invalid_lit lit
           "in the cost from '%s' to '%s', a change of mode costs at least 1" p q
@@ -233,10 +233,10 @@ let entry = function
         "entries are triples '(From, To, n)' of two modes and a cost, not %s"
         (Grade.describe_lit lit)
 
-(** [of_entries lit entries] is the grade whose runs are those of [entries],
-    each pair of modes listed once in the literal [lit]; a run from a mode that
-    [entries] do not start from, the modes not named starting from [unnamed], is
-    stuck at cost [0]. *)
+(** [of_entries lit entries] is the grade whose traces are those of [entries],
+    each pair of modes listed once in the literal [lit]; a trace from a mode
+    that [entries] do not start from, the modes not named starting from
+    [unnamed], is stuck at cost [0]. *)
 let of_entries lit entries =
   let sorted = List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') entries in
   let rec check = function
@@ -285,7 +285,7 @@ let of_lit = function
          cost, or tuples of entries, not %s"
         (Grade.describe_lit lit)
 
-(* The entry into [stuck] of a mode from which it is the only run, at cost
+(* The entry into [stuck] of a mode from which it is the only trace, at cost
    [0], is left implicit where another entry names the mode, and the grade
    stuck at cost [0] from every mode is printed [(Stuck, Stuck, 0)]. *)
 let show m =

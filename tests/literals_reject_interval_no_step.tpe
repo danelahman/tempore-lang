@@ -1,4 +1,4 @@
-(* Rejected: over whole time steps, the open interval '(1, 2)' contains no
+(* Rejected: in whole ticks, the open interval '(1, 2)' contains no
    delay. *)
 
 let claim () = box (1, 2) 1

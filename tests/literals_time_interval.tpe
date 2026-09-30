@@ -1,5 +1,5 @@
 (* Intervals with no upper bound, '[n, ∞)' (ASCII '[n, inf)'), intervals open
-   at an endpoint, which abbreviate closed ones over whole time steps, and the
+   at an endpoint, which abbreviate closed ones in whole ticks, and the
    top '⊤' (ASCII 'top'), which is '[0, ∞)', under time-interval. *)
 
 let claim_late () =

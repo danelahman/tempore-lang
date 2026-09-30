@@ -1,7 +1,7 @@
 (* Correctly accepted by the typechecker, under the
-   'traces-cost-upper-bound-rational' grading monoid: the delays and the runtime
+   'traces-cost-upper-bound-rational' grading monoid: delays and running-time
    bounds are non-negative rationals, and the allowance order buys operations
-   at their upper runtime bounds with the delays a bound banks. *)
+   at their upper running-time bounds with the delays a bound banks. *)
 
 (* A reading of the sensor takes between half a time unit and one and a
    half. *)
@@ -31,7 +31,7 @@ let sample_by_events () =
   v
 
 (* A report samples and sends within an allowance of 11/4 time units, of which
-   the sample and the send take at most 3/2 + 1 and a pause the remaining
+   the sample and the send take at most 3/2 + 1 and a delay the remaining
    quarter. *)
 let report () =
   box {11/4} () as due in

@@ -1,6 +1,6 @@
 (* Accepted under the 'regex-cost-interval-rational' grading monoid:
    intervals of a regular lower bound over rational delays, at the fractional
-   lower runtime bounds, and a regular upper bound, at the upper ones. *)
+   lower running-time bounds, and a regular upper bound, at the upper ones. *)
 
 type token = Token of string
 
@@ -16,7 +16,7 @@ let sampled () =
   unbox t as tok in
   tok
 
-(* At least a transmission, and at most transmissions and pauses of up to a
+(* At least a transmission, and at most transmissions and delays of up to a
    quarter. *)
 let paced (n : nat) =
   box [{Send}, {(Send | [0, 1/4])*}] (Token "p") as p in

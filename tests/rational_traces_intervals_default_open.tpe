@@ -1,7 +1,7 @@
 (* Correctly accepted by the typechecker, under the
    'traces-cost-interval-rational' grading monoid: each default implementation
-   takes a duration within the runtime bounds of its operation, strictly inside
-   an open end and at most at a closed one. *)
+   takes a duration within the running-time bounds of its operation, strictly
+   inside an open end and at most at a closed one. *)
 
 operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
 operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]

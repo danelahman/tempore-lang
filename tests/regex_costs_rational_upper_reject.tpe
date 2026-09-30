@@ -1,13 +1,13 @@
-(* Rejected under the 'regex-cost-upper-bound-rational' grading monoid: runs
-   that the regular upper bounds over rational delays do not permit at the
-   fractional upper runtime bounds. *)
+(* Rejected under the 'regex-cost-upper-bound-rational' grading monoid:
+   traces that the regular upper bounds over rational delays do not permit at
+   the fractional upper running-time bounds. *)
 
 type token = Token of string
 
 operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
 operation Send : nat ~> unit # {Send} within [1/4, 1]
 
-(* A sample and a pause of a third may take 3/2 + 1/3 = 11/6, more than the
+(* A sample and a delay of a third may take 3/2 + 1/3 = 11/6, more than the
    7/4 the bound allows. *)
 let too_slow () =
   box {7/4} (Token "t") as t in
@@ -25,7 +25,7 @@ let budget_reset () =
   unbox t as tok in
   tok
 
-(* Pauses under a half on either side of a transmission come arbitrarily close
+(* Delays under a half on either side of a transmission come arbitrarily close
    to 1/2 + 1 + 1/2 = 2 time units, more than 1.99. *)
 let short_pause () : unit # {[0, 1/2)} = delay 0.49
 
@@ -37,7 +37,7 @@ let bursts (n : nat) =
   unbox b as tok in
   tok
 
-(* The complement removes the end of the interval: a pause after the
+(* The complement removes the end of the interval: a delay after the
    transmission stays under one time unit. *)
 let late (n : nat) =
   box {Send; ([0, 1] & ~1)} (Token "l") as l in

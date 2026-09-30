@@ -1,7 +1,7 @@
 (* Correctly accepted by the typechecker, under the
-   'traces-upper-bound-rational' grading monoid: the delays of the runs are
-   non-negative rationals, and adjacent delays are merged, so that two pauses
-   of a quarter make the run listed with a pause of a half. *)
+   'traces-upper-bound-rational' grading monoid: the delays of the traces are
+   non-negative rationals, and adjacent delays are merged, so that two delays
+   of a quarter make the trace listed with a delay of a half. *)
 
 operation Sample : unit ~> nat # {Sample}
 operation Send : nat ~> unit # {Send}

@@ -2938,7 +2938,7 @@
   File "rational_time_intervals_reject_within.tpe", line 5, characters 0-60:
   5 | operation Dose : unit ~> unit # [0.5, 1.5] within [1/2, 3/2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-interval-rational` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-interval-rational` grading monoid
   ======================================================================
   rational_time_lower.tpe
   ======================================================================
@@ -3090,7 +3090,7 @@
   File "rational_traces_intervals_default_open_reject.tpe", line 10, characters 0-25:
   10 | default Send () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Send` takes a duration in `[2, 2]`, which is not within the runtime bounds `[1, 2)` of `Send`
+  Typing error: The default implementation of `Send` takes a duration in `[2, 2]`, which is not within the running-time bounds `[1, 2)` of `Send`
     File "rational_traces_intervals_default_open_reject.tpe", line 7, characters 0-62:
     7 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3099,7 +3099,7 @@
   File "rational_traces_intervals_default_open_reject.tpe", line 11, characters 0-25:
   11 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Beep` takes a duration in `[1, 1]`, which is not within the runtime bounds `(1, 2]` of `Beep`
+  Typing error: The default implementation of `Beep` takes a duration in `[1, 1]`, which is not within the running-time bounds `(1, 2]` of `Beep`
     File "rational_traces_intervals_default_open_reject.tpe", line 8, characters 0-62:
     8 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3130,7 +3130,7 @@
   File "rational_traces_intervals_reject_open.tpe", line 5, characters 19-27:
   5 | let claim () = box (1/2, 2] 1
                          ^^^^^^^^
-  Syntax error: in the 'traces-cost-interval-rational' grading monoid, an open endpoint denotes an infinite set of runs, which these grades do not express; did you mean to use one of the 'time-interval-rational' or 'regex-cost-interval-rational' grading monoids?
+  Syntax error: in the 'traces-cost-interval-rational' grading monoid, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the 'time-interval-rational' or 'regex-cost-interval-rational' grading monoids?
   ======================================================================
   rational_traces_upper.tpe
   ======================================================================
@@ -3462,12 +3462,12 @@
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
   regex_costs_lower.tpe
   ======================================================================
@@ -3535,7 +3535,7 @@
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
+  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
   regex_costs_rational_interval.tpe
   ======================================================================
@@ -3923,17 +3923,17 @@
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   ======================================================================
   regex_rational.tpe
   ======================================================================
@@ -4071,7 +4071,7 @@
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe
   ======================================================================
@@ -5106,7 +5106,7 @@
   File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-lower-bound` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-lower-bound` grading monoid
   ======================================================================
   time_upper.tpe
   ======================================================================
@@ -5317,21 +5317,21 @@
   File "traces_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Heat : unit ~> unit # {Heat} within [3, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: the runtime bounds of operation `Heat` must satisfy `lo <= hi`
+  Typing error: the running-time bounds of operation `Heat` must satisfy `lo <= hi`
   ======================================================================
   traces_reject_bounds_declared.tpe
   ======================================================================
   File "traces_reject_bounds_declared.tpe", line 6, characters 0-61:
   6 | operation Send : string ~> unit # {Tx | Tx; Tx} within [2, 6]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: operation `Send` is compound, so its runtime bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
+  Typing error: operation `Send` is compound, so its running-time bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
   ======================================================================
   traces_reject_bounds_zero.tpe
   ======================================================================
   File "traces_reject_bounds_zero.tpe", line 4, characters 0-52:
   4 | operation Heat : unit ~> unit # {Heat} within [0, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: the upper runtime bound of operation `Heat` must be positive
+  Typing error: the upper running-time bound of operation `Heat` must be positive
   ======================================================================
   traces_reject_default_bounds.tpe
   ======================================================================
@@ -5357,14 +5357,14 @@
   File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
   5 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
                                                      ^^^
-  Syntax error: in the 'traces-cost-upper-bound' grading monoid, runtime bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
   File "traces_reject_missing_within.tpe", line 5, characters 0-38:
   5 | operation Heat : unit ~> unit # {Heat}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: atomic operation `Heat` needs runtime bounds `within [lo, hi]` under the `traces-cost-upper-bound` grading monoid
+  Typing error: atomic operation `Heat` needs running-time bounds `within [lo, hi]` under the `traces-cost-upper-bound` grading monoid
   ======================================================================
   traces_reject_order.tpe
   ======================================================================
@@ -5764,7 +5764,7 @@ automata, 'regex-upper-bound':
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound)
   ======================================================================
@@ -5884,12 +5884,12 @@ automata, the programs over rational delays excepted:
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
   regex_costs_lower.tpe (regex-cost-lower-bound)
   ======================================================================
@@ -5957,7 +5957,7 @@ automata, the programs over rational delays excepted:
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
+  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
   regex_costs_upper.tpe (regex-cost-upper-bound)
   ======================================================================
@@ -6074,17 +6074,17 @@ automata, the programs over rational delays excepted:
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
 
 The examples and programs of the regular trace grades under two further
 implementations, by derivatives by letters instead of minterms
@@ -6544,14 +6544,14 @@ above, the examples over rational delays excepted:
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-derivatives` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-derivatives` grading monoid
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-plain)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: runtime bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-plain` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-plain` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-derivatives)
   ======================================================================
@@ -6746,24 +6746,24 @@ above, the examples over rational delays excepted:
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
   regex_costs_interval_runs_reject.tpe (regex-cost-interval-plain)
   ======================================================================
   File "regex_costs_interval_runs_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
   File "regex_costs_interval_runs_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no run of the declared operations
+  Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
   regex_costs_lower.tpe (regex-cost-lower-bound-derivatives)
   ======================================================================
@@ -6892,14 +6892,14 @@ above, the examples over rational delays excepted:
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
+  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
   regex_costs_lower_runs_reject.tpe (regex-cost-lower-bound-plain)
   ======================================================================
   File "regex_costs_lower_runs_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no run of the declared operations
+  Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
   regex_costs_upper.tpe (regex-cost-upper-bound-derivatives)
   ======================================================================
@@ -7126,34 +7126,34 @@ above, the examples over rational delays excepted:
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   ======================================================================
   regex_costs_upper_runs_reject.tpe (regex-cost-upper-bound-plain)
   ======================================================================
   File "regex_costs_upper_runs_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
   File "regex_costs_upper_runs_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
-  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no run of the declared operations
+  Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
 
 The options: typechecking only reports errors and runs nothing, and the
 single-dash form of the help option is not accepted.

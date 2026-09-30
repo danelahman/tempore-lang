@@ -157,7 +157,7 @@ let batch_calibrated (b : bool) : nat # {Sample*; Send} =
    than a tick and the three declared operations is none:
 
      Typing error: The grade `{_ & ~(1 | Calibrate | Sample | Send)}` permits
-       no run of the declared operations
+       no trace over the declared operations
 *)
 (*
 let undeclared () =

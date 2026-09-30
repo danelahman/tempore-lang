@@ -17,7 +17,7 @@ let session (b : bool) : nat # {Open; Read*; Close} =
   perform Close ();
   x
 
-(* A token used after a run that may or may not authenticate. *)
+(* A token used after a computation that may or may not authenticate. *)
 let maybe_auth (b : bool) =
   box {Auth; _*} 42 as t in
   if b then perform Auth () else perform Fetch ();

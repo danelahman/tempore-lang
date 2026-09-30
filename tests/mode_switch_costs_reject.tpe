@@ -5,7 +5,7 @@ operation Off : unit ~> unit # (On, Off, 1)
 operation Tx : unit ~> unit # (On, On, 2)
 operation Idle : unit ~> unit # 1
 
-(* Rejected: a transmission has no run from the radio off. *)
+(* Rejected: a transmission has no trace from the radio off. *)
 let tx_off () : unit # (Off, Off, 2) = perform Tx ()
 
 (* Rejected: two transmissions cost 4, and with the changes of mode 6. *)

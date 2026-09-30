@@ -58,8 +58,8 @@ default Tx msg = delay 2
 operation Deliver : string ~> unit # {Tx | Tx; Tx}
 
 (* Correctly accepted by the typechecker: running 'Extrude' banks the lower end
-   of its runtime bounds, three ticks, which covers the three ticks the epoxy
-   of 'MixQuickEpoxy' needs to set --- the boxing is done by the default
+   of its running-time bounds, three ticks, which covers the three ticks the
+   epoxy of 'MixQuickEpoxy' needs to set --- the boxing is done by the default
    implementation of that operation, not by hand. *)
 let extrude_layer h =
   let glue = perform MixQuickEpoxy () in
@@ -105,7 +105,7 @@ let print_cog () =
   perform Mount (Printed c, g)
 
 (* Correctly accepted by the typechecker: the clause covers the first of the two
-   runs 'Print' promises. *)
+   traces 'Print' promises. *)
 let full_printer =
   handler
   | x -> x
@@ -115,7 +115,7 @@ let full_printer =
       let c = perform Cool p in
       continue k with (box 2 (Printed c))
 
-(* Correctly accepted by the typechecker: the clause covers the other run, a
+(* Correctly accepted by the typechecker: the clause covers the other trace, a
    reheat that skips the extrusion --- the model was extruded in an earlier
    job, so it goes straight from the heater to the cooler. *)
 let quick_printer =
@@ -140,7 +140,7 @@ let thorough_printer =
       continue k with (box 2 (Printed c))
 
 (* Correctly accepted by the typechecker for the same reason: a full print
-   followed by a tick of waiting still covers the run it realises. *)
+   followed by a tick of waiting still covers the trace it realises. *)
 let slow_printer =
   handler
   | x -> x
@@ -226,8 +226,8 @@ let early_cooler =
       continue k with (box 2 (Reheated h))
 *)
 
-(* Correctly rejected by the typechecker: neither run of 'Print' begins with a
-   'Cool', and the order of a demand is not negotiable, however the model that
+(* Correctly rejected by the typechecker: neither trace of 'Print' begins with
+   a 'Cool', and the order of a demand is not negotiable, however the model that
    is handed to the cooler came to be:
 
      Typing error: Variable `k` is unboxed with grade `{Cool; Heat}` accumulated
@@ -247,8 +247,8 @@ let twisted_printer =
 *)
 
 (* Correctly rejected by the typechecker: a clause that stops after the
-   extrusion covers neither run of 'Print', since a lower bound demands the
-   whole run it promises. This is the mirror image of the upper-bound file,
+   extrusion covers neither trace of 'Print', since a lower bound demands the
+   whole trace it promises. This is the mirror image of the upper-bound file,
    where the very same clause is accepted, because an upper bound only forbids
    doing more:
 

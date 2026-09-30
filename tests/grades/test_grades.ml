@@ -631,7 +631,7 @@ let literals =
       "in the cost from 'On' to 'Off', a change of mode costs at least 1";
     rejects "leaving the stuck mode" mode_switch_costs
       (Tuple [ Name "Stuck"; Name "On"; Int 1 ])
-      "no run leaves the mode 'Stuck'";
+      "no trace leaves the mode 'Stuck'";
     rejects "staying stuck at a cost" mode_switch_costs
       (Tuple [ Name "Stuck"; Name "Stuck"; Int 1 ])
       "which it keeps at cost 0";
@@ -817,11 +817,11 @@ let literals =
       "n <= m";
     rejects "pair of fractions" rational_traces_interval
       (Tuple [ Rat (Rational.make 1 2); Rat (Rational.make 3 2) ])
-      "an open endpoint denotes an infinite set of runs, which these grades do \
-       not express";
+      "an open endpoint denotes an infinite set of traces, which these grades \
+       do not express";
     rejects "half-open interval of fractions" rational_traces_interval
       (Interval (Closed (Rat (Rational.make 1 2)), Open (Int 2)))
-      "an open endpoint denotes an infinite set of runs";
+      "an open endpoint denotes an infinite set of traces";
     reads "top" inclusion_upper Top "⊤";
     reads "concatenation of a union" inclusion_upper
       (Braces (seq (union send (Tick 2)) (Tick 1)))

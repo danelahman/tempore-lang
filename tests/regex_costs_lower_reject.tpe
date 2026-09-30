@@ -1,5 +1,5 @@
-(* Rejected under the 'regex-cost-lower-bound' grading monoid: runs that do not
-   cover the regular lower bounds at the lower runtime bounds. *)
+(* Rejected under the 'regex-cost-lower-bound' grading monoid: traces that do
+   not cover the regular lower bounds at the lower running-time bounds. *)
 
 type token = Token of string
 

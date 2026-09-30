@@ -346,7 +346,8 @@ module Make (C : Constraint.S) = struct
   let check_inhabited ~inhabited ~show env c = function
     | Some loc when not (inhabited (cost_model ~loc env) c) ->
         Error.typing ~loc
-          "The grade `%s` permits no run of the declared operations" (show c)
+          "The grade `%s` permits no trace over the declared operations"
+          (show c)
     | Some _ | None -> ()
 
   (* The grade variables of an annotation are unknowns of the command it
@@ -459,7 +460,7 @@ module Make (C : Constraint.S) = struct
     match (GS.E.needs_op_bounds, grade, bounds) with
     | false, _, Some _ ->
         Error.typing ~loc
-          "runtime bounds are only used by the trace and the regular \
+          "running-time bounds are only used by the trace and the regular \
            expression grading monoids with costs, and must not be declared \
            under the `%s` grading monoid"
           GS.E.name
@@ -473,8 +474,8 @@ module Make (C : Constraint.S) = struct
         match bounds with
         | None ->
             Error.typing ~loc
-              "atomic operation `%s` needs runtime bounds `within [lo, hi]` \
-               under the `%s` grading monoid"
+              "atomic operation `%s` needs running-time bounds `within [lo, \
+               hi]` under the `%s` grading monoid"
               op_name GS.E.name
         | Some (lo, hi)
           when Grades.Rational.compare
@@ -482,18 +483,19 @@ module Make (C : Constraint.S) = struct
                  (Grades.Grade.end_value hi)
                > 0 ->
             Error.typing ~loc
-              "the runtime bounds of operation `%s` must satisfy `lo <= hi`"
+              "the running-time bounds of operation `%s` must satisfy `lo <= \
+               hi`"
               op_name
         | Some (_, hi)
           when Grades.Rational.sign (Grades.Grade.end_value hi) <= 0 ->
             Error.typing ~loc
-              "the upper runtime bound of operation `%s` must be positive"
+              "the upper running-time bound of operation `%s` must be positive"
               op_name
         | Some bounds -> StringMap.add op_name bounds env.op_bounds)
     | true, Ast.EpsConst (c, _), Some _ ->
         Error.typing ~loc
-          "operation `%s` is compound, so its runtime bounds follow from its \
-           grade `%s` and must not be declared"
+          "operation `%s` is compound, so its running-time bounds follow from \
+           its grade `%s` and must not be declared"
           op_name (GS.E.show c)
     | true, Ast.EpsConst (c, _), None -> (
         if List.mem op_name (GS.E.events c) then
@@ -1548,7 +1550,7 @@ module Make (C : Constraint.S) = struct
         in
         Error.typing ~loc ~labels
           "The default implementation of `%s` takes a duration in `%s`, which \
-           is not within the runtime bounds `%s` of `%s`"
+           is not within the running-time bounds `%s` of `%s`"
           op_name
           (show (lo', hi'))
           (show (lo, hi))

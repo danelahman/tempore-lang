@@ -281,6 +281,6 @@ module Rational =
 
       let close ~lower:_ a =
         invalid_lit a
-          "an open endpoint denotes an infinite set of runs, which these \
+          "an open endpoint denotes an infinite set of traces, which these \
            grades do not express"
     end)

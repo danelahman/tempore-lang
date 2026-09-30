@@ -1,8 +1,8 @@
 (* Correctly accepted by the typechecker, under the
    'regex-cost-upper-bound-rational' grading monoid: a sample within [1/2, 2)
    takes less than 2 time units, so it is permitted by the delays of [0, 2),
-   and so is a default of 1.9; the compound 'Poll', a sample and a pause of
-   1/2, has the runtime bounds [1, 5/2). *)
+   and so is a default of 1.9; the compound 'Poll', a sample and a delay of
+   1/2, has the running-time bounds [1, 5/2). *)
 
 operation Sample : unit ~> unit # {Sample} within [1/2, 2)
 operation Poll : unit ~> unit # {Sample; 1/2}

@@ -159,7 +159,7 @@ let send_telemetry () =
 
 (* Correctly accepted by the typechecker: a strict super-grade of what the send
    costs, spelled out as events instead of ticks --- each alternative of 'Send'
-   fits inside one of the two runs the receipt allows. *)
+   fits inside one of the two traces the receipt allows. *)
 let send_by_events () =
   box {Tx; Tx | 10} (Receipt "telemetry") as slot in
   perform Send "telemetry";

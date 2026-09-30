@@ -1,6 +1,6 @@
 (* Correctly rejected by the typechecker, under the 'traces-cost-upper-bound'
-   grading monoid: 'Tx' within (1, 4) takes up to three time steps, more than
-   the two the box allows, and a default of three time steps exceeds
+   grading monoid: 'Tx' within (1, 4) takes up to three ticks, more than
+   the two the box allows, and a default of three ticks exceeds
    [1, 3). *)
 
 operation Tx : unit ~> unit # {Tx} within (1, 4)

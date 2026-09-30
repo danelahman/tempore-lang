@@ -395,12 +395,12 @@ componentwise. The `flow-levels` monoid from above is an example, as are:
   bounds every operation not listed. An operation `Send` taking a tick and
   happening at its start has grade `(1, (Send, {0}))`.
 
-- `mode-switch-costs`: max-plus matrices of the greatest costs of the runs between
+- `mode-switch-costs`: max-plus matrices of the greatest costs of the traces between
   named modes, the completion under joins of a semidirect product of mode
   changes and costs. 
 
-  Entries `(From, To, n)` give the runs, e.g. `(Off, On, 2)` for switching a
-  radio on; the product gives `(p, r)` the greatest cost of a run from `p` to a
+  Entries `(From, To, n)` give the traces, e.g. `(Off, On, 2)` for switching a
+  radio on; the product gives `(p, r)` the greatest cost of a trace from `p` to a
   mode `q` followed by one from `q` to `r`. 
   
   The reserved mode `Stuck` is never left, and an operation gets stuck in it at
