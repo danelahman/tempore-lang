@@ -109,11 +109,11 @@ module Durations = struct
   let show rho =
     let lo = least rho in
     if R.equal rho (R.ticks lo) then string_of_int lo
-    else if R.equal rho (from lo) then Printf.sprintf "[%d,∞)" lo
+    else if R.equal rho (from lo) then Printf.sprintf "[%d, ∞)" lo
     else
       match upper_end lo rho with
       | Some hi when R.equal rho (interval lo hi) ->
-          Printf.sprintf "[%d,%d]" lo hi
+          Printf.sprintf "[%d, %d]" lo hi
       | Some _ | None -> RegularTraceGradeDerivative.show rho
 
   let witnesses ~degree:_ _bounds = Grade.sampled mul
@@ -184,7 +184,7 @@ module TimeWindows = struct
     else if TimesByName.leq times TimesByName.bottom then
       Durations.show durations
     else
-      "(" ^ Durations.show durations ^ ","
+      "(" ^ Durations.show durations ^ ", "
       ^ Indexed.show_entries
           ~is_default:(fun e -> Times.leq e Times.bottom)
           Times.show times

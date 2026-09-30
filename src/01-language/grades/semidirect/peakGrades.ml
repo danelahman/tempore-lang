@@ -229,18 +229,18 @@ module Make (D : Delay.S) = struct
      and an exact net change is written as a single integer; a range is
      closed at its finite ends. *)
     let show (((low, t), (high, h)) as c) =
-      if compare c top = 0 then "(∞,∞)"
+      if compare c top = 0 then "(∞, ∞)"
       else
         let net =
           if compare_bound low high = 0 then Upper.Net.show high
           else
             (if compare_bound low Minus_inf = 0 then "(" else "[")
-            ^ Upper.Net.show low ^ "," ^ Upper.Net.show high
+            ^ Upper.Net.show low ^ ", " ^ Upper.Net.show high
             ^ if compare_bound high Plus_inf = 0 then ")" else "]"
         in
         if compare_bound t (min_bound (Fin 0) low) = 0 then
-          "(" ^ net ^ "," ^ Upper.Net.show h ^ ")"
-        else "(" ^ Lower.Net.show t ^ "," ^ net ^ "," ^ Upper.Net.show h ^ ")"
+          "(" ^ net ^ ", " ^ Upper.Net.show h ^ ")"
+        else "(" ^ Lower.Net.show t ^ ", " ^ net ^ ", " ^ Upper.Net.show h ^ ")"
 
     (* The exact net changes within one of the sum [s] of the magnitudes of the
      finite components of the constants, each with its greatest trough and a

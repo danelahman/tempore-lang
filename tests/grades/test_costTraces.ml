@@ -122,7 +122,7 @@ let bounds_of table =
 
 let show_table table =
   String.concat ", "
-    (List.map (fun (o, (lo, hi)) -> Printf.sprintf "%s:(%d,%d)" o lo hi) table)
+    (List.map (fun (o, (lo, hi)) -> Printf.sprintf "%s:(%d, %d)" o lo hi) table)
 
 let lo_of table o = fst (List.assoc o table)
 let hi_of table o = snd (List.assoc o table)
@@ -1215,7 +1215,7 @@ let shared =
       (String.concat ", "
          (List.sort_uniq compare
             (List.map
-               (fun (_, (lo, hi)) -> Printf.sprintf "(%d,%d)" lo hi)
+               (fun (_, (lo, hi)) -> Printf.sprintf "(%d, %d)" lo hi)
                table)))
   in
   let show_regex r =

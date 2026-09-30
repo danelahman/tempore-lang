@@ -5,7 +5,7 @@
 (* Correctly accepted by the typechecker: the two delays accumulate [3, 3],
    which lies inside the [1, 4] the box demands. *)
 let foo1 () = 
-  box [1,4] 1 as r in
+  box [1, 4] 1 as r in
   let _ = delay 1 in
   let _ = delay 2 in
   unbox r as y in
@@ -14,7 +14,7 @@ let foo1 () =
 (* Correctly accepted by the typechecker: as 'foo1', and the unboxed value may
    be returned since the box has been opened. *)
 let foo2 () = 
-  box [1,4] 1 as r in
+  box [1, 4] 1 as r in
   let _ = delay 1 in
   let _ = delay 2 in
   unbox r as y in
@@ -24,7 +24,7 @@ let foo2 () =
    grade has accumulated since it was bound. *)
 let foo3 () = 
   let x = 7 in
-  box [1,4] 1 as r in
+  box [1, 4] 1 as r in
   let _ = delay 1 in
   let _ = delay 2 in
   let z = 3 in
@@ -35,7 +35,7 @@ let foo3 () =
    bound, which is fine because 'nat' is an eternal type. *)
 let foo4 () = 
   let x = 7 in
-  box [1,4] 1 as r in
+  box [1, 4] 1 as r in
   let _ = delay 1 in
   let _ = delay 2 in
   let z = 3 in
@@ -47,8 +47,8 @@ let foo4 () =
    [3, 3] lies inside both [1, 4] and [2, 5]. *)
 let foo5 () = 
   let x = 7 in
-  box [2,5] x as x' in
-  box [1,4] 1 as r in
+  box [2, 5] x as x' in
+  box [1, 4] 1 as r in
   let _ = delay 1 in
   let _ = delay 2 in
   let z = 3 in
@@ -59,13 +59,13 @@ let foo5 () =
 (* Correctly rejected by the typechecker: five ticks overshoot the upper end of
    the [1, 4] interval the box demands:
 
-     Typing error: Variable `r` is unboxed with grade `[5,5]` accumulated since
-       it was bound, which is not below its box grade `[1,4]`
-       Note: the resource inequality `[5,5] <= [1,4]` does not hold
+     Typing error: Variable `r` is unboxed with grade `[5, 5]` accumulated since
+       it was bound, which is not below its box grade `[1, 4]`
+       Note: the resource inequality `[5, 5] <= [1, 4]` does not hold
 *)
 (*
 let foo6 () = 
-  let r = box [1,4] 1 in
+  let r = box [1, 4] 1 in
   delay 5;
   unbox r as y in
   y + 1
@@ -75,13 +75,13 @@ let foo6 () =
    not eternal, so it cannot be used after the three ticks that follow its
    binding:
 
-     Typing error: Variable `r` is used with grade `[3,3]` accumulated since it
-       was bound, but its type `[[3,3]]nat` is not eternal
-       Note: the resource inequality `[3,3] <= [0,0]` does not hold
+     Typing error: Variable `r` is used with grade `[3, 3]` accumulated since it
+       was bound, but its type `[[3, 3]]nat` is not eternal
+       Note: the resource inequality `[3, 3] <= [0, 0]` does not hold
 *)
 (*
 let foo7 () =
-  let r = box [1,4] 1 in
+  let r = box [1, 4] 1 in
   delay 3;
   let r' = r in
   delay 3;

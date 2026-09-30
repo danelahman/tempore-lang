@@ -81,7 +81,7 @@ module Lower :
       the finite ends of ranges are integers, a range unbounded below or above
       being written [(-∞, d2\]] or [\[d1, ∞)], and [(∞, ∞)] is the top. The
       components must satisfy [t ≤ min(0, d1)], [d1 ≤ d2] and [h ≥ max(0, d2)].
-    - [show] prints the top as [(∞,∞)] and any other grade in the shortest of
+    - [show] prints the top as [(∞, ∞)] and any other grade in the shortest of
       these forms, omitting the trough when it is [min(0, d1)].
     - No counterexample is offered.
     - The witnesses of the constants [cs] are partial: with [s] the sum of the

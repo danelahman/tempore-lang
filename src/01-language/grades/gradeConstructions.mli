@@ -76,7 +76,7 @@ module OfLattice (D : Delay.S) (L : LATTICE) :
       one component;
     - [of_lit] reads [⊤] as the top and a pair [(l1, l2)] componentwise, a
       rejection naming the component;
-    - [show] prints [(g1,g2)]. *)
+    - [show] prints [(g1, g2)]. *)
 module Product (G1 : Grade.S) (G2 : Grade.S with type Delay.t = G1.Delay.t) :
   Grade.S with type t = G1.t * G2.t and type Delay.t = G1.Delay.t
 
@@ -160,7 +160,7 @@ end
     being the top of [N]. A literal that is not a pair is rejected as [M]
     rejects it, and so is a pair whose second component [N] rejects but [M]
     reads. [show] prints the top as [⊤], [(m, ⊥)] as [m] and other grades as
-    [(m,n)].
+    [(m, n)].
 
     [witnesses] are the witnesses of [M] paired with [⊥], and the constants and
     their pairwise products, and are partial. *)

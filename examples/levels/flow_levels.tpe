@@ -50,11 +50,11 @@ let draft () =
    orders have the grade 'High':
 
      Typing error: This function's body has grade
-       `(High,(Audit,High),(Board,High))`, which does not match its annotated
-       grade `(High,(Audit,High),(Board,Low))`
+       `(High, (Audit, High), (Board, High))`, which does not match its
+       annotated grade `(High, (Audit, High), (Board, Low))`
        Note: the effect inequality
-         `(High,(Audit,High),(Board,High)) <= (High,(Audit,High),(Board,Low))`
-         does not hold
+         `(High, (Audit, High), (Board, High)) <=
+         (High, (Audit, High), (Board, Low))` does not hold
 *)
 (*
 let late_post () : unit # (High, (Audit, High), (Board, Low)) =
@@ -68,9 +68,9 @@ let late_post () : unit # (High, (Audit, High), (Board, Low)) =
    draft is out of reach:
 
      Typing error: Variable `d` is unboxed with grade `High` accumulated since
-       it was bound, which is not below its box grade `(Low,(Board,Low))`
+       it was bound, which is not below its box grade `(Low, (Board, Low))`
        ...
-       Note: the resource inequality `High <= (Low,(Board,Low))` does not hold
+       Note: the resource inequality `High <= (Low, (Board, Low))` does not hold
 *)
 (*
 let leaky_draft () =

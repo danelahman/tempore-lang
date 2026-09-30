@@ -38,9 +38,9 @@ let hourly_report reading =
 (* Correctly rejected by the typechecker: waiting three hours and checking in
    twice may take as little as 3.5 hours, before the dose is due:
 
-     Typing error: Variable `d` is unboxed with grade `[3.5,4]` accumulated
-       since it was bound, which is not below its box grade `[4,6]`
-       Note: the resource inequality `[3.5,4] <= [4,6]` does not hold
+     Typing error: Variable `d` is unboxed with grade `[3.5, 4]` accumulated
+       since it was bound, which is not below its box grade `[4, 6]`
+       Note: the resource inequality `[3.5, 4] <= [4, 6]` does not hold
 *)
 (*
 let early_dose dose =
@@ -55,9 +55,9 @@ let early_dose dose =
 (* Correctly rejected by the typechecker: two readings twenty minutes apart
    accumulate only 2/3 of the hour the report is due after:
 
-     Typing error: Variable `r` is unboxed with grade `[2/3,2/3]` accumulated
-       since it was bound, which is not below its box grade `[1,1]`
-       Note: the resource inequality `[2/3,2/3] <= [1,1]` does not hold
+     Typing error: Variable `r` is unboxed with grade `[2/3, 2/3]` accumulated
+       since it was bound, which is not below its box grade `[1, 1]`
+       Note: the resource inequality `[2/3, 2/3] <= [1, 1]` does not hold
 *)
 (*
 let early_report reading =

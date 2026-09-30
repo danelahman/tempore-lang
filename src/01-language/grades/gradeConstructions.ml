@@ -119,7 +119,7 @@ struct
 
   let of_bounds b = (G1.of_bounds b, G2.of_bounds b)
   let is_atomic name (a, b) = G1.is_atomic name a && G2.is_atomic name b
-  let show (a, b) = "(" ^ G1.show a ^ "," ^ G2.show b ^ ")"
+  let show (a, b) = "(" ^ G1.show a ^ ", " ^ G2.show b ^ ")"
 
   (* An ordering fails iff it fails in one component, at a witness of that
      component when its list is complete, paired with any grade. *)
@@ -233,7 +233,7 @@ struct
   let show ((m, n) as c) =
     if compare c top = 0 then "⊤"
     else if N.leq n N.bottom then M.show m
-    else "(" ^ M.show m ^ "," ^ N.show n ^ ")"
+    else "(" ^ M.show m ^ ", " ^ N.show n ^ ")"
 
   let witnesses ~degree bounds cs =
     let ms, _ = M.witnesses ~degree bounds (List.map fst cs) in
@@ -307,7 +307,7 @@ module Indexed = struct
          m.named)
 
   (* The text [text] without its outer parentheses, if they match; brackets
-     nest as parentheses do, an interval such as [(-∞,0]] mixing the two. *)
+     nest as parentheses do, an interval such as [(-∞, 0]] mixing the two. *)
   let unparenthesised text =
     let n = String.length text in
     let rec closes_at depth i =
@@ -323,10 +323,10 @@ module Indexed = struct
       String.sub text 1 (n - 2)
     else text
 
-  let show_entry show (s, c) = "(" ^ s ^ "," ^ unparenthesised (show c) ^ ")"
+  let show_entry show (s, c) = "(" ^ s ^ ", " ^ unparenthesised (show c) ^ ")"
 
   let show_entries ~is_default show m =
-    String.concat ","
+    String.concat ", "
       (List.map (show_entry show)
          (m.named @ if is_default m.others then [] else [ (fresh, m.others) ]))
 

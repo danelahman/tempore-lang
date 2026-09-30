@@ -67,8 +67,8 @@ let average_only () : nat # 1 = perform Average (4, 6)
    only (On, On, 50) from the radio on, does not permit:
 
      Typing error: The effect inequality
-       `((Off,Off,18),(On,Stuck,3)) <= ((Off,Off,18),(On,On,50))` does not
-       hold
+       `((Off, Off, 18), (On, Stuck, 3)) <= ((Off, Off, 18), (On, On, 50))`
+       does not hold
        `report` is defined here
        the inequality goes through the annotation here
 *)
@@ -81,11 +81,11 @@ let maybe_report_on b : unit # ((Off, Off, 18), (On, On, 50)) =
    costs 50 instead of 10:
 
      Typing error: This function's body has grade
-       `((Off,Off,58),(On,Stuck,3))`, which does not match its annotated grade
-       `((Off,Off,18),(On,Stuck,3))`
+       `((Off, Off, 58), (On, Stuck, 3))`, which does not match its
+       annotated grade `((Off, Off, 18), (On, Stuck, 3))`
        Note: the effect inequality
-         `((Off,Off,58),(On,Stuck,3)) <= ((Off,Off,18),(On,Stuck,3))` does
-         not hold
+         `((Off, Off, 58), (On, Stuck, 3)) <= ((Off, Off, 18), (On, Stuck, 3))`
+         does not hold
 *)
 (*
 let sleepy_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
@@ -101,11 +101,12 @@ let sleepy_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =
    the annotation does not permit, and from the radio on it keeps the radio
    on, which the annotation does not permit either:
 
-     Typing error: This function's body has grade `((Off,Stuck,1),(On,On,57))`,
-       which does not match its annotated grade `((Off,Off,18),(On,Stuck,3))`
+     Typing error: This function's body has grade
+       `((Off, Stuck, 1), (On, On, 57))`, which does not match its
+       annotated grade `((Off, Off, 18), (On, Stuck, 3))`
        Note: the effect inequality
-         `((Off,Stuck,1),(On,On,57)) <= ((Off,Off,18),(On,Stuck,3))` does not
-         hold
+         `((Off, Stuck, 1), (On, On, 57)) <= ((Off, Off, 18), (On, Stuck, 3))`
+         does not hold
 *)
 (*
 let silent_report () : unit # ((Off, Off, 18), (On, Stuck, 3)) =

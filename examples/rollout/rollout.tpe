@@ -285,10 +285,10 @@ let publish_after_release (source : string) (version : nat)
    deployed hosts have been observed:
 
      Typing error: Variable `approval` is unboxed with the unit grade
-       `(0,Low)` accumulated since it was bound, which is not below its box
-       grade `(10,Low)`
+       `(0, Low)` accumulated since it was bound, which is not below its box
+       grade `(10, Low)`
        ...
-       Note: the resource inequality `(0,Low) ≾ (10,Low)` does not hold
+       Note: the resource inequality `(0, Low) ≾ (10, Low)` does not hold
 *)
 (*
 let rec deploy_stages_before_observation (stages : host stages)
@@ -310,9 +310,9 @@ let rec deploy_stages_before_observation (stages : host stages)
    the first observation may perform no observation, so its body does not
    have the time component 10:
 
-     Typing error: This function's body has grade `(0,Low)`, which does not
-       match its annotated grade `(10,Low)`
-       Note: the effect inequality `(0,Low) ≾ (10,Low)` does not hold
+     Typing error: This function's body has grade `(0, Low)`, which does not
+       match its annotated grade `(10, Low)`
+       Note: the effect inequality `(0, Low) ≾ (10, Low)` does not hold
 *)
 (*
 let rec observe_hosts_zero_or_more_times (hosts : host list) (rounds : nat)
@@ -328,9 +328,9 @@ let rec observe_hosts_zero_or_more_times (hosts : host list) (rounds : nat)
 (* Correctly rejected by the typechecker: a loop that fetches a hotfix before
    each retry touches High, which its annotated level excludes:
 
-     Typing error: This function's body has grade `(1,High)`, which does not
-       match its annotated grade `(1,Low)`
-       Note: the effect inequality `(1,High) ≾ (1,Low)` does not hold
+     Typing error: This function's body has grade `(1, High)`, which does not
+       match its annotated grade `(1, Low)`
+       Note: the effect inequality `(1, High) ≾ (1, Low)` does not hold
 *)
 (*
 let rec probe_with_retries_and_hotfixes (retries : nat) (attempt : nat)
@@ -350,11 +350,11 @@ let rec probe_with_retries_and_hotfixes (retries : nat) (attempt : nat)
    approval, and the approval is used afterwards. Under 'time-lower-bound'
    the same function is accepted:
 
-     Typing error: Variable `approval` is used with grade `(2,High)`
-       accumulated since it was bound, but its type `[(10,Low)]release` is not
+     Typing error: Variable `approval` is used with grade `(2, High)`
+       accumulated since it was bound, but its type `[(10, Low)]release` is not
        eternal
        ...
-       Note: the resource inequality `(2,High) ≾ (0,Low)` does not hold
+       Note: the resource inequality `(2, High) ≾ (0, Low)` does not hold
 *)
 (*
 let release_with_stale_approval (source : string) (version : nat)
@@ -371,10 +371,10 @@ let release_with_stale_approval (source : string) (version : nat)
    for each host touches High before it resumes 'k'. Under
    'time-lower-bound' the same handler is accepted:
 
-     Typing error: Variable `k` is unboxed with grade `(6,High)` accumulated
-       since it was bound, which is not below its box grade `(4,Low)`
+     Typing error: Variable `k` is unboxed with grade `(6, High)` accumulated
+       since it was bound, which is not below its box grade `(4, Low)`
        ...
-       Note: the resource inequality `(6,High) ≾ (4,Low)` does not hold
+       Note: the resource inequality `(6, High) ≾ (4, Low)` does not hold
 *)
 (*
 let handle_deployments_with_hotfix =
@@ -390,11 +390,11 @@ let handle_deployments_with_hotfix =
    unboxed after a release with hotfixes, whose level is High for every
    number of hotfixes:
 
-     Typing error: Variable `notes` is unboxed with grade `(17,High)`
+     Typing error: Variable `notes` is unboxed with grade `(17, High)`
        accumulated since it was bound, which is not below its box grade
-       `(17,Low)`
+       `(17, Low)`
        ...
-       Note: the resource inequality `(17,High) ≾ (17,Low)` does not hold
+       Note: the resource inequality `(17, High) ≾ (17, Low)` does not hold
 *)
 (*
 let publish_after_release_with_hotfixes (source : string) (version : nat)

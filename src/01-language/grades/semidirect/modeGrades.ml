@@ -287,11 +287,11 @@ let of_lit = function
 
 (* The entry into [stuck] of a mode from which it is the only run, at cost
    [0], is left implicit where another entry names the mode, and the grade
-   stuck at cost [0] from every mode is printed [(Stuck,Stuck,0)]. *)
+   stuck at cost [0] from every mode is printed [(Stuck, Stuck, 0)]. *)
 let show m =
   if equal m top then "⊤"
   else
-    let entry p q c = "(" ^ p ^ "," ^ q ^ "," ^ show_cost c ^ ")" in
+    let entry p q c = "(" ^ p ^ ", " ^ q ^ ", " ^ show_cost c ^ ")" in
     let starts p =
       List.exists (fun ((p', _), _) -> String.equal p p') m.within
       || List.mem_assoc p m.leaving
@@ -333,7 +333,7 @@ let show m =
     | [], No_run, No_run, _ -> show_cost m.staying
     | _, _, _, [] -> entry stuck stuck (Cost 0)
     | _, _, _, [ e ] -> e
-    | _ -> "(" ^ String.concat "," entries ^ ")"
+    | _ -> "(" ^ String.concat ", " entries ^ ")"
 
 let is_top m = equal top m
 

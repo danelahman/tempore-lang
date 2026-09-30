@@ -53,10 +53,11 @@ let two_requests () =
 
 (* Correctly rejected by the typechecker: a fourth request exceeds the limit:
 
-     Typing error: This function's body has grade `((Login,1),(Request,4))`,
-       which does not match its annotated grade `((Login,1),(Request,3))`
+     Typing error: This function's body has grade `((Login, 1), (Request, 4))`,
+       which does not match its annotated grade `((Login, 1), (Request, 3))`
        Note: the effect inequality
-         `((Login,1),(Request,4)) <= ((Login,1),(Request,3))` does not hold
+         `((Login, 1), (Request, 4)) <= ((Login, 1), (Request, 3))` does not
+         hold
 *)
 (*
 let greedy_session () : unit # ((Login, 1), (Request, 3)) =
@@ -72,11 +73,11 @@ let greedy_session () : unit # ((Login, 1), (Request, 3)) =
    token, whose grade allows requests only:
 
      Typing error: Variable `limited` is unboxed with grade
-       `((Login,1),(Request,1))` accumulated since it was bound, which is not
-       below its box grade `(Request,2)`
+       `((Login, 1), (Request, 1))` accumulated since it was bound, which is
+       not below its box grade `(Request, 2)`
        ...
        Note: the resource inequality
-         `((Login,1),(Request,1)) <= (Request,2)` does not hold
+         `((Login, 1), (Request, 1)) <= (Request, 2)` does not hold
 *)
 (*
 let relogin () =

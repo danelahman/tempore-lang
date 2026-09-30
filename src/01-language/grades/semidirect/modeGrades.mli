@@ -39,17 +39,17 @@ module ModeCosts : Grade.S with type Delay.t = Delay.Nat.t
     - [of_lit] reads [⊤] as the top, a cost [n] or [∞] as keeping every mode at
       that cost, an entry [(From, To, n)] as the runs from [From] to [To] at
       cost [n], and a tuple of entries, each pair of modes listed once, as their
-      runs. The modes not named are written [_]: [(p,_,n)] from [p] to a mode
-      not named, [(_,q,n)] from a mode not named to [q], [(_,_,n)] keeping a
-      mode not named, [(_,≠,n)] from a mode not named to another and
-      [(_,Stuck,n)] from a mode not named into [Stuck]. The runs the entries do
-      not give are none, and a mode from which no entry starts, the modes not
+      runs. The modes not named are written [_]: [(p, _, n)] from [p] to a mode
+      not named, [(_, q, n)] from a mode not named to [q], [(_, _, n)] keeping a
+      mode not named, [(_, ≠, n)] from a mode not named to another and
+      [(_, Stuck, n)] from a mode not named into [Stuck]. The runs the entries
+      do not give are none, and a mode from which no entry starts, the modes not
       named starting from [_], is stuck at cost [0]. A change between two
       distinct ordinary modes costs at least [1], and the only entry from
       [Stuck] is [(Stuck, Stuck, 0)], which the grade holds in any case.
     - [show] prints alike, leaving implicit the entry [(From, Stuck, 0)] of a
       mode from which it is the only run, where another entry names the mode;
-      the grade stuck at cost [0] from every mode is printed [(Stuck,Stuck,0)].
-      Every printed grade reads back as itself.
+      the grade stuck at cost [0] from every mode is printed
+      [(Stuck, Stuck, 0)]. Every printed grade reads back as itself.
     - No counterexample is offered, and the witnesses are the constants and
       their pairwise products, and partial. *)

@@ -135,7 +135,7 @@ module Make (D : Delay.S) = struct
       if Outputs.compare o Outputs.top = 0 then "⊤"
       else if Outputs.compare o Outputs.bottom = 0 then LowHigh.show l
       else
-        "(" ^ LowHigh.show l ^ ","
+        "(" ^ LowHigh.show l ^ ", "
         ^ Indexed.show_entries ~is_default:Option.is_none WrittenAt.show o
         ^ ")"
 

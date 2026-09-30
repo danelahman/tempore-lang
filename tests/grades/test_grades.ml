@@ -114,7 +114,7 @@ let counterexamples =
   let time n level = TimeLevels.of_lit (lit_of_pair n level) in
   [
     expect "counterexample: in the first component" Fun.id
-      ~expected:"({Write},Low)"
+      ~expected:"({Write}, Low)"
       (show
          (RegexLevels.counterexample bounds
             (regex (Grade.Union (read, write)) "Low")
@@ -153,27 +153,27 @@ let products =
       ~expected:"traces-cost-upper-bound×security-levels" TraceLevels.name;
     check "product: at least as long and as low"
       (TimeLevels.leq bounds (p 3 "Low") (p 2 "High"))
-      "(3,Low) ≾ (2,High)";
+      "(3, Low) ≾ (2, High)";
     check "product: too short"
       (not (TimeLevels.leq bounds (p 2 "Low") (p 3 "Low")))
-      "(2,Low) ≾ (3,Low)";
+      "(2, Low) ≾ (3, Low)";
     check "product: too high"
       (not (TimeLevels.leq bounds (p 3 "High") (p 3 "Low")))
-      "(3,High) ≾ (3,Low)";
-    expect "product: join" Fun.id ~expected:"(3,High)"
+      "(3, High) ≾ (3, Low)";
+    expect "product: join" Fun.id ~expected:"(3, High)"
       (show (TimeLevels.join (p 3 "Low") (p 5 "High")));
-    expect "product: product" Fun.id ~expected:"(8,High)"
+    expect "product: product" Fun.id ~expected:"(8, High)"
       (show (TimeLevels.mul (p 3 "Low") (p 5 "High")));
-    expect "product: unit" Fun.id ~expected:"(0,Low)" (show TimeLevels.one);
-    expect "product: top" Fun.id ~expected:"(0,High)" (show TimeLevels.top);
-    expect "product: ticks" Fun.id ~expected:"(4,Low)"
+    expect "product: unit" Fun.id ~expected:"(0, Low)" (show TimeLevels.one);
+    expect "product: top" Fun.id ~expected:"(0, High)" (show TimeLevels.top);
+    expect "product: ticks" Fun.id ~expected:"(4, Low)"
       (show (TimeLevels.of_delay 4));
-    expect "product: time shadow" Fun.id ~expected:"(1,Low)"
+    expect "product: time shadow" Fun.id ~expected:"(1, Low)"
       (show (TimeLevels.of_bounds (1, 2)));
     check "product: equal"
       (TimeLevels.equal bounds (p 3 "Low")
          (TimeLevels.of_lit (lit_of_pair 3 "Low")))
-      "(3,Low) = (3,Low)";
+      "(3, Low) = (3, Low)";
     expect "product: unit least iff in both" show_bool ~expected:false
       TimeLevels.unit_least;
     expect "product: unit least in both" show_bool ~expected:true
@@ -203,7 +203,7 @@ let products =
         | None -> "None")
       ~expected:(Some Rational.(of_int 1, of_int 2))
       (TraceLevels.implied_bounds bounds send_low);
-    expect "product: level component" Fun.id ~expected:"(3,High)"
+    expect "product: level component" Fun.id ~expected:"(3, High)"
       (show (p 3 "High"));
   ]
 
@@ -270,10 +270,10 @@ let literals =
     reads "infinity, rational" rational_upper Inf "∞";
     reads "open interval, rational" rational_interval
       (Interval (Some (Rat (Rational.make 1 3)), None))
-      "[1/3,∞)";
+      "[1/3, ∞)";
     reads "interval, rational" rational_interval
       (Interval (Some (Rat (Rational.make 1 8)), Some (Int 2)))
-      "[0.125,2]";
+      "[0.125, 2]";
     rejects "negative fraction" rational_upper
       (Rat (Rational.make (-1) 2))
       "must be non-negative";
@@ -295,9 +295,9 @@ let literals =
     rejects "pair for an interval, rational" rational_interval
       (Tuple [ Rat (Rational.make 1 2); Inf ])
       "intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'";
-    reads "release" peak_usage (Tuple [ Int (-1); Int 0 ]) "(-1,0)";
-    reads "unbounded peak" peak_usage (Tuple [ Int (-3); Inf ]) "(-3,∞)";
-    reads "top" peak_usage Top "(∞,∞)";
+    reads "release" peak_usage (Tuple [ Int (-1); Int 0 ]) "(-1, 0)";
+    reads "unbounded peak" peak_usage (Tuple [ Int (-3); Inf ]) "(-3, ∞)";
+    reads "top" peak_usage Top "(∞, ∞)";
     rejects "peak below the change" peak_usage
       (Tuple [ Int 2; Int 1 ])
       "at least the net change";
@@ -309,44 +309,46 @@ let literals =
     rejects "level" peak_usage (Tuple [ Int 1; Name "Low" ]) "in the peak";
     reads "resource" peak_usage
       (Tuple [ Name "Files"; Int 1; Int 1 ])
-      "(Files,1,1)";
+      "(Files, 1, 1)";
     reads "resources" peak_usage
       (Tuple
          [
            Tuple [ Name "Sockets"; Int 0; Int 1 ];
            Tuple [ Name "Files"; Int 0; Int 2 ];
          ])
-      "((Files,0,2),(Sockets,0,1))";
+      "((Files, 0, 2), (Sockets, 0, 1))";
     reads "other resources" peak_usage
       (Tuple
          [
            Tuple [ Name "Files"; Int 0; Int 2 ];
            Tuple [ Name "_"; Int 0; Int 1 ];
          ])
-      "((Files,0,2),(_,0,1))";
-    reads "infinite net change" peak_usage (Tuple [ Inf; Inf ]) "(∞,∞)";
+      "((Files, 0, 2), (_, 0, 1))";
+    reads "infinite net change" peak_usage (Tuple [ Inf; Inf ]) "(∞, ∞)";
     reads "explicit trough" peak_usage
       (Tuple [ Int (-1); Int 0; Int 0 ])
-      "(-1,0,0)";
+      "(-1, 0, 0)";
     reads "implied trough" peak_usage
       (Tuple [ Int (-1); Int (-1); Int 0 ])
-      "(-1,0)";
+      "(-1, 0)";
     reads "range" peak_usage
       (Tuple [ Interval (Some (Int 0), Some (Int 1)); Int 1 ])
-      "([0,1],1)";
+      "([0, 1], 1)";
     reads "range with a trough" peak_usage
       (Tuple [ Int (-2); Interval (Some (Int (-1)), Some (Int 1)); Int 2 ])
-      "(-2,[-1,1],2)";
+      "(-2, [-1, 1], 2)";
     reads "range unbounded above" peak_usage
       (Tuple [ Interval (Some (Int 0), None); Inf ])
-      "([0,∞),∞)";
+      "([0, ∞), ∞)";
     reads "range unbounded below" peak_usage
       (Tuple [ Interval (None, Some (Int 0)); Int 0 ])
-      "((-∞,0],0)";
-    reads "unbounded trough" peak_usage (Tuple [ Top; Int 0; Int 0 ]) "(⊤,0,0)";
+      "((-∞, 0], 0)";
+    reads "unbounded trough" peak_usage
+      (Tuple [ Top; Int 0; Int 0 ])
+      "(⊤, 0, 0)";
     reads "unbounded everywhere" peak_usage
       (Tuple [ Interval (None, None); Inf ])
-      "(∞,∞)";
+      "(∞, ∞)";
     rejects "pair for a range" peak_usage
       (Tuple [ Tuple [ Int 0; Int 1 ]; Int 1 ])
       "in the net change, ranges are written '[d1, d2]', '[d1, ∞)', '(-∞, d2]' \
@@ -380,26 +382,26 @@ let literals =
       "not tuples";
     reads "resource with a trough" peak_usage
       (Tuple [ Name "Files"; Int (-1); Int 0; Int 0 ])
-      "(Files,-1,0,0)";
+      "(Files, -1, 0, 0)";
     reads "resource with a range" peak_usage
       (Tuple [ Name "Files"; Interval (Some (Int 0), Some (Int 1)); Int 1 ])
-      "(Files,[0,1],1)";
+      "(Files, [0, 1], 1)";
     reads "resource with a range unbounded below" peak_usage
       (Tuple [ Name "Files"; Interval (None, Some (Int 0)); Int 0 ])
-      "(Files,(-∞,0],0)";
+      "(Files, (-∞, 0], 0)";
     reads "other resources with a trough" peak_usage
       (Tuple
          [
            Tuple [ Name "Files"; Int 0; Int 2 ];
            Tuple [ Name "_"; Int (-1); Int 0; Int 0 ];
          ])
-      "((Files,0,2),(_,-1,0,0))";
+      "((Files, 0, 2), (_, -1, 0, 0))";
     rejects "resource trough above 0" peak_usage
       (Tuple [ Name "Files"; Int 1; Int 1; Int 1 ])
       "in the entry of 'Files', the trough must be at most 0";
     reads "resource at the unit" peak_usage
       (Tuple [ Name "Files"; Int 0; Int 0 ])
-      "(0,0)";
+      "(0, 0)";
     rejects "resource peak below the change" peak_usage
       (Tuple [ Name "Files"; Int 2; Int 1 ])
       "in the entry of 'Files', the peak must be at least 0";
@@ -413,17 +415,17 @@ let literals =
     reads "duration" time_windows (Int 3) "3";
     reads "interval of durations" time_windows
       (Interval (Some (Int 2), Some (Int 5)))
-      "[2,5]";
+      "[2, 5]";
     reads "unbounded durations" time_windows
       (Interval (Some (Int 2), None))
-      "[2,∞)";
+      "[2, ∞)";
     reads "interval of durations and times" time_windows
       (Tuple
          [
            Interval (Some (Int 0), Some (Int 2));
            Tuple [ Name "Send"; Braces (Tick 0) ];
          ])
-      "([0,2],(Send,{0}))";
+      "([0, 2], (Send, {0}))";
     rejects "pair for an interval of durations" time_windows
       (Tuple [ Int 2; Int 5 ])
       "intervals are written '[n, m]' or '[n, ∞)', not as pairs '(n, m)'";
@@ -435,7 +437,7 @@ let literals =
       "{1 | 3}";
     reads "durations and times" time_windows
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces (Tick 0) ] ])
-      "(1,(Send,{0}))";
+      "(1, (Send, {0}))";
     reads "times of two operations" time_windows
       (Tuple
          [
@@ -443,7 +445,7 @@ let literals =
            Tuple [ Name "Sense"; Braces (Tick 0) ];
            Tuple [ Name "Send"; Braces (union (Tick 4) (Tick 5)) ];
          ])
-      "(10,(Send,{4 | 5}),(Sense,{0}))";
+      "(10, (Send, {4 | 5}), (Sense, {0}))";
     reads "times of any operation" time_windows
       (Tuple
          [
@@ -451,10 +453,10 @@ let literals =
            Tuple [ Name "_"; Braces (Tick 2) ];
            Tuple [ Name "Send"; Braces (Tick 0) ];
          ])
-      "(3,(Send,{0}),(_,{2}))";
+      "(3, (Send, {0}), (_, {2}))";
     reads "times by single ticks" time_windows
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces (seq Any Any) ] ])
-      "(1,(Send,{2}))";
+      "(1, (Send, {2}))";
     reads "top" time_windows Top "⊤";
     rejects "operation in the times" time_windows
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces send ] ])
@@ -486,7 +488,7 @@ let literals =
            Tuple [ Name "Board"; Name "Low" ];
            Tuple [ Name "Audit"; Name "High" ];
          ])
-      "(High,(Audit,High),(Board,Low))";
+      "(High, (Audit, High), (Board, Low))";
     reads "top" flow_levels Top "⊤";
     reads "other outputs" flow_levels
       (Tuple
@@ -495,7 +497,7 @@ let literals =
            Tuple [ Name "_"; Name "Low" ];
            Tuple [ Name "Board"; Name "High" ];
          ])
-      "(High,(Board,High),(_,Low))";
+      "(High, (Board, High), (_, Low))";
     rejects "sink listed twice" flow_levels
       (Tuple
          [
@@ -511,13 +513,13 @@ let literals =
       (Tuple [ Name "Low"; Name "Board" ])
       "outputs are pairs";
     rejects "integer" flow_levels (Int 3) "tuples '(l, (Sink, l1), ...)'";
-    reads "count" counts_upper (Tuple [ Name "Send"; Int 3 ]) "(Send,3)";
+    reads "count" counts_upper (Tuple [ Name "Send"; Int 3 ]) "(Send, 3)";
     reads "counts" counts_upper
       (Tuple [ Tuple [ Name "Send"; Int 3 ]; Tuple [ Name "Auth"; Int 1 ] ])
-      "((Auth,1),(Send,3))";
+      "((Auth, 1), (Send, 3))";
     reads "unbounded count" counts_upper
       (Tuple [ Tuple [ Name "Send"; Inf ]; Tuple [ Name "_"; Int 1 ] ])
-      "((Send,∞),(_,1))";
+      "((Send, ∞), (_, 1))";
     reads "every operation" counts_upper (Int 2) "2";
     reads "top" counts_upper Top "∞";
     rejects "negative count" counts_upper
@@ -527,48 +529,48 @@ let literals =
     reads "cost in every mode" mode_costs (Int 3) "3";
     reads "transition" mode_costs
       (Tuple [ Name "Off"; Name "On"; Int 2 ])
-      "(Off,On,2)";
+      "(Off, On, 2)";
     reads "transitions" mode_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "On"; Int 3 ];
            Tuple [ Name "Off"; Name "Off"; Inf ];
          ])
-      "((Off,Off,∞),(On,On,3))";
+      "((Off, Off, ∞), (On, On, 3))";
     reads "stuck from a mode" mode_costs
       (Tuple
          [
            Tuple [ Name "Off"; Name "Off"; Int 18 ];
            Tuple [ Name "On"; Name "Stuck"; Int 6 ];
          ])
-      "((Off,Off,18),(On,Stuck,6))";
+      "((Off, Off, 18), (On, Stuck, 6))";
     reads "stuck at no cost left implicit" mode_costs
       (Tuple
          [
            Tuple [ Name "Off"; Name "On"; Int 2 ];
            Tuple [ Name "On"; Name "Stuck"; Int 0 ];
          ])
-      "(Off,On,2)";
+      "(Off, On, 2)";
     reads "stuck besides another run" mode_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "On"; Int 2 ];
            Tuple [ Name "On"; Name "Stuck"; Int 0 ];
          ])
-      "((On,On,2),(On,Stuck,0))";
+      "((On, On, 2), (On, Stuck, 0))";
     reads "stuck everywhere" mode_costs
       (Tuple [ Name "Stuck"; Name "Stuck"; Int 0 ])
-      "(Stuck,Stuck,0)";
+      "(Stuck, Stuck, 0)";
     reads "stuck in every mode named" mode_costs
       (Tuple [ Name "On"; Name "Stuck"; Int 0 ])
-      "(Stuck,Stuck,0)";
+      "(Stuck, Stuck, 0)";
     reads "the stuck row" mode_costs
       (Tuple
          [
            Tuple [ Name "Off"; Name "Off"; Int 1 ];
            Tuple [ Name "Stuck"; Name "Stuck"; Int 0 ];
          ])
-      "(Off,Off,1)";
+      "(Off, Off, 1)";
     reads "top" mode_costs Top "⊤";
     rejects "change of mode at no cost" mode_costs
       (Tuple [ Name "On"; Name "Off"; Int 0 ])
@@ -596,7 +598,7 @@ let literals =
            Tuple [ Name "_"; Name "_"; Int 1 ];
            Tuple [ Name "_"; Name "Stuck"; Int 0 ];
          ])
-      "((On,On,2),(_,_,1),(_,Stuck,0))";
+      "((On, On, 2), (_, _, 1), (_, Stuck, 0))";
     reads "to and from the modes not named" mode_costs
       (Tuple
          [
@@ -604,7 +606,7 @@ let literals =
            Tuple [ Name "_"; Name "On"; Int 2 ];
            Tuple [ Name "_"; Name "≠"; Inf ];
          ])
-      "((On,_,1),(_,On,2),(_,≠,∞))";
+      "((On, _, 1), (_, On, 2), (_, ≠, ∞))";
     rejects "change to a mode not named at no cost" mode_costs
       (Tuple [ Name "On"; Name "_"; Int 0 ])
       "in the cost from 'On' to '_', a change of mode costs at least 1";
@@ -624,9 +626,9 @@ let literals =
     rejects "name" time_upper (Name "Low") "not names such as 'Low'";
     reads "interval" time_interval
       (Interval (Some (Int 1), Some (Int 5)))
-      "[1,5]";
-    reads "open interval" time_interval (Interval (Some (Int 3), None)) "[3,∞)";
-    reads "top" time_interval Top "[0,∞)";
+      "[1, 5]";
+    reads "open interval" time_interval (Interval (Some (Int 3), None)) "[3, ∞)";
+    reads "top" time_interval Top "[0, ∞)";
     rejects "reversed interval" time_interval
       (Interval (Some (Int 5), Some (Int 3)))
       "n <= m";
@@ -757,11 +759,11 @@ let literals =
     rejects "unknown level" security_levels (Name "Medium")
       "unknown level 'Medium'";
     rejects "integer" security_levels (Int 0) "not plain integers";
-    reads "pair" time_lower_levels (lit_of_pair 3 "High") "(3,High)";
-    reads "top" time_lower_levels Top "(0,High)";
-    reads "component tops" time_lower_levels (Tuple [ Top; Top ]) "(0,High)";
-    reads "pair" time_upper_levels (Tuple [ Inf; Name "Low" ]) "(∞,Low)";
-    reads "top" time_upper_levels Top "(∞,High)";
+    reads "pair" time_lower_levels (lit_of_pair 3 "High") "(3, High)";
+    reads "top" time_lower_levels Top "(0, High)";
+    reads "component tops" time_lower_levels (Tuple [ Top; Top ]) "(0, High)";
+    reads "pair" time_upper_levels (Tuple [ Inf; Name "Low" ]) "(∞, Low)";
+    reads "top" time_upper_levels Top "(∞, High)";
     rejects "first component" time_lower_levels
       (Tuple [ Name "Low"; Name "Low" ])
       "in the first component ('time-lower-bound')";
@@ -1784,7 +1786,7 @@ let samples (type a) (module G : Grade.S with type t = a) family : a list =
   @ List.init 3 (fun i -> G.join (nth (i + 4)) (nth (i + 6)))
 
 let registered_laws =
-  let context = "A:(1,3), B:(2,2), C:(0,5)" in
+  let context = "A:(1, 3), B:(2, 2), C:(0, 5)" in
   all "registry: every grade has a family of samples" Fun.id
     (fun name -> Option.is_some (family name))
     (List.map fst GradeRegistry.grade_modules)
@@ -1823,7 +1825,7 @@ let fractional_costs =
 (* The laws of the trace grades over rational delays under
    [fractional_costs]. *)
 let fractional_laws =
-  let context = "A:(1/2,3/2), B:(2/3,2/3), C:(0,5/2)" in
+  let context = "A:(1/2, 3/2), B:(2/3, 2/3), C:(0, 5/2)" in
   List.concat_map
     (fun (module G : Grade.S) ->
       let samples = samples (module G) Rational_traces in
@@ -1869,7 +1871,7 @@ let inclusion_laws =
   @ List.concat_map
       (fun ((module G : Grade.S), family) ->
         let samples = samples (module G) family in
-        let context = "A:(1,3), B:(2,2), C:(0,5)" in
+        let context = "A:(1, 3), B:(2, 2), C:(0, 5)" in
         counterexample_laws (module G) ~offered:true ~context costs samples
         @ order_laws ~thirds:12
             (module G)
@@ -1983,21 +1985,21 @@ let indexed =
   in
   let context = "no cost model" in
   [
-    reads "entry" by_name (entry "A" (Int 3)) "(A,3)";
+    reads "entry" by_name (entry "A" (Int 3)) "(A, 3)";
     reads "entries" by_name
       (Tuple [ entry "B" Inf; entry "A" (Int 3) ])
-      "((A,3),(B,∞))";
+      "((A, 3), (B, ∞))";
     reads "everywhere" by_name (Int 4) "4";
     reads "unit entries dropped" by_name
       (Tuple [ entry "A" (Int 0); entry "B" (Int 2) ])
-      "(B,2)";
+      "(B, 2)";
     reads "top" by_name Top "∞";
     reads "entry of an interval" intervals
       (entry "A" (span (Int 1) (Int 2)))
-      "(A,[1,2])";
+      "(A, [1, 2])";
     reads "entry of an unbounded interval" intervals
       (entry "A" (span (Int 1) Inf))
-      "(A,[1,∞))";
+      "(A, [1, ∞))";
     rejects "entry of a pair" intervals
       (Tuple [ Name "A"; Int 1; Int 2 ])
       "in the entry of 'A', intervals are written";
@@ -2005,7 +2007,7 @@ let indexed =
       (Tuple [ entry "A" (Int 1); entry "A" (Int 2) ])
       "listed twice";
     rejects "component" by_name (entry "A" (Name "Low")) "in the entry of 'A'";
-    expect "default printed as an entry" Fun.id ~expected:"((A,1),(_,3))"
+    expect "default printed as an entry" Fun.id ~expected:"((A, 1), (_, 3))"
       (ByName.show
          (Indexed.of_list ~compare:TimeGrades.UpperBound.compare
             ~others:(bound 3)
@@ -2049,7 +2051,7 @@ end
    unit and the top, and the products and joins of the partial operations and
    changes of mode. Besides, the product of two partial operations; the
    totality of the products, a grade [x] having a run from every mode iff
-   [(Stuck,Stuck,0) ≾ x · (Stuck,Stuck,0)]; and the reading back of the
+   [(Stuck, Stuck, 0) ≾ x · (Stuck, Stuck, 0)]; and the reading back of the
    printed grades. *)
 let mode_laws =
   let module M = Grades.ModeGrades.ModeCosts in
@@ -2108,7 +2110,7 @@ let mode_laws =
   let context = "mode costs" in
   [
     expect "mode-costs: a partial operation, then another" Fun.id
-      ~expected:"(On,Stuck,4)"
+      ~expected:"(On, Stuck, 4)"
       (M.show (M.mul send radio_on));
     expect "mode-costs: a partial operation, then another, not the unit"
       show_bool ~expected:false
@@ -2180,10 +2182,10 @@ let peak_laws =
     expect "peak-usage: not commutative" show_bool ~expected:false P.commutative;
     expect "peak-usage: unit not least" show_bool ~expected:false P.unit_least;
     expect "peak-usage: a release, then an acquisition" Fun.id
-      ~expected:"(Files,-1,0,0)"
+      ~expected:"(Files, -1, 0, 0)"
       (P.show (P.mul close open_));
     expect "peak-usage: an acquisition, then a release" Fun.id
-      ~expected:"(Files,0,1)"
+      ~expected:"(Files, 0, 1)"
       (P.show (P.mul open_ close));
     all "peak-usage: printed grades read back" P.show reads_back samples;
   ]

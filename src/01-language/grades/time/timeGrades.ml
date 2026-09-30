@@ -172,8 +172,8 @@ module Make (D : Delay.ORDERED) (N : NAMES) = struct
 
     let show (n, m) =
       match m with
-      | Ext.Fin m -> "[" ^ D.show n ^ "," ^ D.show m ^ "]"
-      | Ext.Inf -> "[" ^ D.show n ^ ",∞)"
+      | Ext.Fin m -> "[" ^ D.show n ^ ", " ^ D.show m ^ "]"
+      | Ext.Inf -> "[" ^ D.show n ^ ", ∞)"
 
     (* The endpoints are compared, multiplied and joined separately, so an
        ordering fails iff it fails at the lower endpoints, at the lower-bound

@@ -88,9 +88,10 @@ let rotate log : file # (Files, -1, 0, 0) =
 (* Correctly rejected by the typechecker: the source is never closed, so one
    file is still held at the end:
 
-     Typing error: This function's body has grade `(Files,1,2)`, which does
-       not match its annotated grade `(Files,0,2)`
-       Note: the effect inequality `(Files,1,2) <= (Files,0,2)` does not hold
+     Typing error: This function's body has grade `(Files, 1, 2)`, which does
+       not match its annotated grade `(Files, 0, 2)`
+       Note: the effect inequality `(Files, 1, 2) <= (Files, 0, 2)` does not
+       hold
 *)
 (*
 let leaky_copy (src, dst) : unit # (Files, 0, 2) =
@@ -106,11 +107,11 @@ let leaky_copy (src, dst) : unit # (Files, 0, 2) =
    it holds:
 
      Typing error: This function's body has grade
-       `((Files,0,2),(Sockets,0,2))`, which does not match its annotated grade
-       `((Files,0,2),(Sockets,0,1))`
+       `((Files, 0, 2), (Sockets, 0, 2))`, which does not match its annotated
+       grade `((Files, 0, 2), (Sockets, 0, 1))`
        Note: the effect inequality
-         `((Files,0,2),(Sockets,0,2)) <= ((Files,0,2),(Sockets,0,1))` does not
-         hold
+         `((Files, 0, 2), (Sockets, 0, 2)) <=
+         ((Files, 0, 2), (Sockets, 0, 1))` does not hold
 *)
 (*
 let mirror (src, dst) : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
@@ -124,10 +125,10 @@ let mirror (src, dst) : unit # ((Files, 0, 2), (Sockets, 0, 1)) =
 (* Correctly rejected by the typechecker: opening the next log before closing
    the one given holds one more file than the annotation allows:
 
-     Typing error: This function's body has grade `(Files,0,1)`, which does
-       not match its annotated grade `(Files,-1,0,0)`
-       Note: the effect inequality `(Files,0,1) <= (Files,-1,0,0)` does not
-         hold
+     Typing error: This function's body has grade `(Files, 0, 1)`, which does
+       not match its annotated grade `(Files, -1, 0, 0)`
+       Note: the effect inequality `(Files, 0, 1) <= (Files, -1, 0, 0)` does
+         not hold
 *)
 (*
 let rotate_early log : file # (Files, -1, 0, 0) =
