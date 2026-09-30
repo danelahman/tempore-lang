@@ -1,5 +1,5 @@
-(** The mode-cost grades: the costs of a computation between the modes of a
-    device, such as a radio switched on and off, as max-plus matrices.
+(** The mode-switch-cost grades: the costs of a computation between the modes of
+    a device, such as a radio switched on and off, as max-plus matrices.
 
     A grade gives each pair of modes [(p, q)] the greatest cost of the runs that
     start in the mode [p] and end in the mode [q], or none if there is no such
@@ -26,11 +26,11 @@
 (** The costs: no run, below the natural numbers, below [∞]. *)
 type cost = No_run | Cost of int | Unbounded
 
-(** The mode-cost grade over any delays [D], as {!ModeCosts}. *)
+(** The mode-switch-cost grade over any delays [D], as {!ModeSwitchCosts}. *)
 module Make (D : Delay.S) : Grade.S with type Delay.t = D.t
 
-module ModeCosts : Grade.S with type Delay.t = Delay.Nat.t
-(** The mode-cost grade, ["mode-costs"], over {!Delay.Nat}.
+module ModeSwitchCosts : Grade.S with type Delay.t = Delay.Nat.t
+(** The mode-switch-cost grade, ["mode-switch-costs"], over {!Delay.Nat}.
 
     - The unit keeps every mode at cost [0], and the top costs [∞] between any
       two modes and into [Stuck]. The unit is not least, and [mul] does not

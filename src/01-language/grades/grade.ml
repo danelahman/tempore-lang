@@ -4,10 +4,11 @@
     {!RationalTimeGrades}, {!TraceInclusionGrades}, {!TimedTraceGrades},
     {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
     {!RegularTraceGradePlain}, {!RegularTraceGradeRational},
-    {!RegularCostTraceGrades}, {!LevelGrades}, {!PeakGrades}, {!WindowGrades},
-    {!ModeGrades} and {!CountGrades}, built with the constructions of
-    {!GradeConstructions}, and listed in {!GradeRegistry}; the regular trace
-    grades are implementations of the same grade.
+    {!RegularCostTraceGrades}, {!LevelGrades}, {!ResourceLevelGrades},
+    {!WindowedScheduleGrades}, {!ModeSwitchCostGrades} and {!CountGrades}, built
+    with the constructions of {!GradeConstructions}, and listed in
+    {!GradeRegistry}; the regular trace grades are implementations of the same
+    grade.
 
     {2 Laws}
 

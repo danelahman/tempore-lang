@@ -1,8 +1,8 @@
 (* A sensor node whose energy costs depend on whether its radio is on.
 
-   Run this example with the 'mode-costs' grading monoid, e.g.
+   Run this example with the 'mode-switch-costs' grading monoid, e.g.
 
-     ./tempore --grades mode-costs examples/semidirect/mode_costs.tpe
+     ./tempore --grades mode-switch-costs examples/semidirect/mode_switch_costs.tpe
 
    Grades ((P, Q, n), ...): greatest cost n of the runs from mode P to mode Q
      - Unit 0: keeps every mode at cost 0

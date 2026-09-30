@@ -1,9 +1,9 @@
-(* Time windows: rejected programs. *)
+(* Windowed schedules: rejected programs. *)
 
 operation Send : unit ~> unit # (1, (Send, {0}))
 operation Wait : unit ~> unit # [1, 3]
 
-(* Rejected: the transmission happens at tick 3, outside the window. *)
+(* Rejected: the transmission happens at tick 3, not at the scheduled tick 2. *)
 let late_send () : unit # (4, (Send, {2})) =
   delay 3;
   perform Send ()

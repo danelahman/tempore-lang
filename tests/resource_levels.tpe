@@ -1,5 +1,5 @@
-(* Peak usage: the trough, the net change of the descriptors held and their
-   peak. *)
+(* Resource levels: the trough, the net change of the descriptors held and
+   their peak. *)
 
 type file = File of string
 

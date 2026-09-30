@@ -1,5 +1,5 @@
-(* Peak usage: ranges of net changes, closed at their finite ends and open at
-   their infinite ones. *)
+(* Resource levels: ranges of net changes, closed at their finite ends and open
+   at their infinite ones. *)
 
 type file = File of string
 

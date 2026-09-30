@@ -103,13 +103,13 @@ let malformed =
     "literals_reject_name.tpe";
     "literals_reject_negative.tpe";
     "literals_reject_peak.tpe";
-    "literals_reject_windows.tpe";
+    "literals_reject_windowed_schedules.tpe";
     "literals_reject_interval_closed_infinity.tpe";
     "literals_reject_interval_empty.tpe";
     "literals_reject_interval_no_step.tpe";
     "literals_reject_interval_reversed.tpe";
-    "literals_reject_peak_range_empty.tpe";
-    "literals_reject_windows_empty.tpe";
+    "literals_reject_resource_levels_range_empty.tpe";
+    "literals_reject_windowed_schedules_empty.tpe";
     "literals_reject_within_empty.tpe";
     "literals_reject_within_no_step.tpe";
     "nat_reject_negative.tpe";

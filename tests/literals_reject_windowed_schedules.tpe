@@ -1,0 +1,3 @@
+(* Rejected: the times of windowed schedules are given by operation. *)
+
+let claim () = box (1, {0}) 1

@@ -342,7 +342,7 @@ module Make (D : Delay.S) = struct
 
   module Delay = D
 
-  let name = "mode-costs"
+  let name = "mode-switch-costs"
   let one = one
   let mul = mul
   let leq _bounds = leq
@@ -368,4 +368,4 @@ module Make (D : Delay.S) = struct
   let witnesses ~degree:_ _bounds = Grade.sampled mul
 end
 
-module ModeCosts = Make (Delay.Nat)
+module ModeSwitchCosts = Make (Delay.Nat)

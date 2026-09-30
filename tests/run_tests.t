@@ -62,18 +62,18 @@
   >     regex_costs_lower*.tpe) ../tempore --grades regex-cost-lower-bound-symbolic $f;;
   >     regex_costs_upper*.tpe) ../tempore --grades regex-cost-upper-bound-symbolic $f;;
   >     regex_costs_interval*.tpe) ../tempore --grades regex-cost-interval-symbolic $f;;
-  >     peak_*.tpe) ../tempore --grades peak-usage $f;;
-  >     literals_reject_peak.tpe) ../tempore --grades peak-usage $f;;
-  >     literals_reject_peak_range_empty.tpe) ../tempore --grades peak-usage $f;;
-  >     windows*.tpe) ../tempore --grades time-windows $f;;
-  >     literals_reject_windows.tpe) ../tempore --grades time-windows $f;;
-  >     literals_reject_windows_empty.tpe) ../tempore --grades time-windows $f;;
+  >     resource_levels*.tpe) ../tempore --grades resource-levels $f;;
+  >     literals_reject_peak.tpe) ../tempore --grades resource-levels $f;;
+  >     literals_reject_resource_levels_range_empty.tpe) ../tempore --grades resource-levels $f;;
+  >     windowed_schedules*.tpe) ../tempore --grades windowed-schedules $f;;
+  >     literals_reject_windowed_schedules.tpe) ../tempore --grades windowed-schedules $f;;
+  >     literals_reject_windowed_schedules_empty.tpe) ../tempore --grades windowed-schedules $f;;
   >     flow_levels*.tpe) ../tempore --grades flow-levels $f;;
   >     literals_reject_flow.tpe) ../tempore --grades flow-levels $f;;
   >     counts*.tpe) ../tempore --grades counts-upper-bound $f;;
   >     literals_reject_counts.tpe) ../tempore --grades counts-upper-bound $f;;
-  >     mode_costs*.tpe) ../tempore --grades mode-costs $f;;
-  >     literals_reject_modes.tpe) ../tempore --grades mode-costs $f;;
+  >     mode_switch_costs*.tpe) ../tempore --grades mode-switch-costs $f;;
+  >     literals_reject_modes.tpe) ../tempore --grades mode-switch-costs $f;;
   >     recursion_lock_lower.tpe) ../tempore $f;;
   >     recursion_lock*.tpe) ../tempore --grades time-upper-bound $f;;
   >     recursion_effect_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
@@ -1553,7 +1553,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-cost-lower-bound', 'traces-cost-upper-bound', 'traces-cost-interval', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational', 'regex-cost-interval-rational', 'time-windows', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-cost-lower-bound', 'traces-cost-upper-bound', 'traces-cost-interval', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational', 'regex-cost-lower-bound', 'regex-cost-upper-bound', 'regex-cost-interval', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational', 'regex-cost-upper-bound-rational', 'regex-cost-interval-rational', 'windowed-schedules', 'mode-switch-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -2009,7 +2009,7 @@
   File "literals_reject_inf.tpe", line 3, characters 19-22:
   3 | let claim () = box ∞ 1
                          ^^^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'time-upper-bound-rational', 'mode-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'time-upper-bound-rational', 'mode-switch-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   literals_reject_interval_closed_infinity.tpe
   ======================================================================
@@ -2030,7 +2030,7 @@
   File "literals_reject_interval_no_step.tpe", line 4, characters 19-25:
   4 | let claim () = box (1, 2) 1
                          ^^^^^^
-  Syntax error: in the 'time-interval' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
+  Syntax error: in the 'time-interval' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-cost-interval-rational' or 'resource-levels' grading monoids?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
@@ -2051,7 +2051,7 @@
   File "literals_reject_modes.tpe", line 3, characters 19-31:
   3 | let claim () = box (On, Off, 0) 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'mode-costs' grading monoid, in the cost from 'On' to 'Off', a change of mode costs at least 1
+  Syntax error: in the 'mode-switch-costs' grading monoid, in the cost from 'On' to 'Off', a change of mode costs at least 1
   ======================================================================
   literals_reject_name.tpe
   ======================================================================
@@ -2072,14 +2072,7 @@
   File "literals_reject_peak.tpe", line 3, characters 19-25:
   3 | let claim () = box (2, 1) 1
                          ^^^^^^
-  Syntax error: in the 'peak-usage' grading monoid, the peak must be at least 0 and at least the net change
-  ======================================================================
-  literals_reject_peak_range_empty.tpe
-  ======================================================================
-  File "literals_reject_peak_range_empty.tpe", line 3, characters 19-30:
-  3 | let claim () = box ((0, 1), 1) 1
-                         ^^^^^^^^^^^
-  Syntax error: in the 'peak-usage' grading monoid, in the net change, the interval contains no integer
+  Syntax error: in the 'resource-levels' grading monoid, the peak must be at least 0 and at least the net change
   ======================================================================
   literals_reject_rational_negative.tpe
   ======================================================================
@@ -2087,6 +2080,13 @@
   3 | let claim () = box -0.5 1
                          ^^^^
   Syntax error: in the 'time-upper-bound-rational' grading monoid, grades must be non-negative
+  ======================================================================
+  literals_reject_resource_levels_range_empty.tpe
+  ======================================================================
+  File "literals_reject_resource_levels_range_empty.tpe", line 3, characters 19-30:
+  3 | let claim () = box ((0, 1), 1) 1
+                         ^^^^^^^^^^^
+  Syntax error: in the 'resource-levels' grading monoid, in the net change, the interval contains no integer
   ======================================================================
   literals_reject_star.tpe
   ======================================================================
@@ -2102,19 +2102,19 @@
                          ^^^^^^^
   Syntax error: 'forever' is no grade literal; grades are written as integers, fractions such as '3/2' or '1.5', names such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)', intervals '[...]' and brace literals '{...}'
   ======================================================================
-  literals_reject_windows.tpe
+  literals_reject_windowed_schedules.tpe
   ======================================================================
-  File "literals_reject_windows.tpe", line 3, characters 19-27:
+  File "literals_reject_windowed_schedules.tpe", line 3, characters 19-27:
   3 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation
+  Syntax error: in the 'windowed-schedules' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation
   ======================================================================
-  literals_reject_windows_empty.tpe
+  literals_reject_windowed_schedules_empty.tpe
   ======================================================================
-  File "literals_reject_windows_empty.tpe", line 4, characters 19-25:
+  File "literals_reject_windowed_schedules_empty.tpe", line 4, characters 19-25:
   4 | let claim () = box (2, 3) 1
                          ^^^^^^
-  Syntax error: in the 'time-windows' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-cost-interval-rational' or 'peak-usage' grading monoids?
+  Syntax error: in the 'windowed-schedules' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-cost-interval-rational' or 'resource-levels' grading monoids?
   ======================================================================
   literals_reject_within_empty.tpe
   ======================================================================
@@ -2294,48 +2294,48 @@
       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Type `foo` expects 1 argument but is given 2
   ======================================================================
-  mode_costs.tpe
+  mode_switch_costs.tpe
   ======================================================================
   === Run 1 ===
   return ()
   State: []
   
   ======================================================================
-  mode_costs_reject.tpe
+  mode_switch_costs_reject.tpe
   ======================================================================
-  File "mode_costs_reject.tpe", line 9, characters 14-52:
+  File "mode_switch_costs_reject.tpe", line 9, characters 14-52:
   9 | let tx_off () : unit # (Off, Off, 2) = perform Tx ()
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(On, On, 2)`, which does not match its annotated grade `(Off, Off, 2)`
     Note: the effect inequality `(On, On, 2) <= (Off, Off, 2)` does not hold
   
-  File "mode_costs_reject.tpe", lines 12-16, characters 11-16:
+  File "mode_switch_costs_reject.tpe", lines 12-16, characters 11-16:
   12 | let two () : unit # (Off, Off, 4) =
                   ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Off, Off, 6)`, which does not match its annotated grade `(Off, Off, 4)`
     Note: the effect inequality `(Off, Off, 6) <= (Off, Off, 4)` does not hold
   
-  File "mode_costs_reject.tpe", lines 19-20, characters 17-46:
+  File "mode_switch_costs_reject.tpe", lines 19-20, characters 17-46:
   19 | let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `((On, On, 2), (_, _, 1), (_, Stuck, 0))`, which does not match its annotated grade `((Off, Off, 1), (On, On, 2))`
     Note: the effect inequality `((On, On, 2), (_, _, 1), (_, Stuck, 0)) <= ((Off, Off, 1), (On, On, 2))` does not hold
   
-  File "mode_costs_reject.tpe", line 28, characters 15-33:
+  File "mode_switch_costs_reject.tpe", line 28, characters 15-33:
   28 |   | Tx () k -> continue k with ()
                       ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with the unit grade `0` accumulated since it was bound, which is not below its box grade `(On, On, 2)`
-    File "mode_costs_reject.tpe", line 28, characters 10-11:
+    File "mode_switch_costs_reject.tpe", line 28, characters 10-11:
     28 |   | Tx () k -> continue k with ()
                    ^
     `k` is bound here
     Note: the resource inequality `0 <= (On, On, 2)` does not hold
   
-  File "mode_costs_reject.tpe", line 31, characters 0-18:
+  File "mode_switch_costs_reject.tpe", line 31, characters 0-18:
   31 | default On () = ()
        ^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `On` has grade `0`, which does not match the declared grade `(Off, On, 1)` of `On`
-    File "mode_costs_reject.tpe", line 3, characters 0-42:
+    File "mode_switch_costs_reject.tpe", line 3, characters 0-42:
     3 | operation On : unit ~> unit # (Off, On, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `On` is declared here
@@ -2763,163 +2763,6 @@
   return ("foo", "foo", "bar")
   State: []
   
-  ======================================================================
-  peak_ranges.tpe
-  ======================================================================
-  === Run 1 ===
-  return (File "a")
-  State: []
-  
-  ======================================================================
-  peak_resources.tpe
-  ======================================================================
-  === Run 1 (unhandled operation) ===
-  perform Lock () (op_var.
-    (return op_var;
-     let a = perform Open "a" (op_var. return op_var) in
-     let b = perform Open "b" (op_var. return op_var) in
-     return (a, b)))
-  
-  ======================================================================
-  peak_resources_reject.tpe
-  ======================================================================
-  File "peak_resources_reject.tpe", lines 11-15, characters 14-19:
-  11 | let relock () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `(Locks, 0, 2)`, which does not match its annotated grade `((Files, 0, 2), (Locks, 0, 1))`
-    Note: the effect inequality `(Locks, 0, 2) <= ((Files, 0, 2), (Locks, 0, 1))` does not hold
-  
-  File "peak_resources_reject.tpe", lines 18-24, characters 19-17:
-  18 | let three_files () : unit # (0, 2) =
-                          ^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `(Files, 0, 3)`, which does not match its annotated grade `(0, 2)`
-    Note: the effect inequality `(Files, 0, 3) <= (0, 2)` does not hold
-  
-  File "peak_resources_reject.tpe", lines 31-32, characters 2-3:
-  31 |   unbox x as n in
-         ^^^^^^^^^^^^^^^
-  Typing error: Variable `x` is unboxed with grade `(Locks, 1, 1)` accumulated since it was bound, which is not below its box grade `(Files, 0, 1)`
-    File "peak_resources_reject.tpe", line 29, characters 25-26:
-    29 |   box (Files, 0, 1) 7 as x in
-                                  ^
-    `x` is bound here
-    File "peak_resources_reject.tpe", line 30, characters 2-17:
-    30 |   perform Lock ();
-           ^^^^^^^^^^^^^^^
-    grade `(Locks, 1, 1)` accumulates here (operation `Lock`)
-    Note: the resource inequality `(Locks, 1, 1) <= (Files, 0, 1)` does not hold
-  ======================================================================
-  peak_usage.tpe
-  ======================================================================
-  === Run 1 ===
-  return (File "a", File "b")
-  State: []
-  
-  === Run 2 ===
-  return (File "a", File "b")
-  State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let a = return op_var in
-            let b = perform Reserve "b" (op_var. return op_var) in
-            return (a, b)
-          with handler
-               | return x ↦ return x
-               | Reserve (name, k) ↦
-                           unbox k as unbox_var in
-                           unbox_var (File name)
-        # ([0, 1], 1),
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            let b = return op_var in
-            return (File "a", b)
-          with handler
-               | return x ↦ return x
-               | Reserve (name, k) ↦
-                           unbox k as unbox_var in
-                           unbox_var (File name)
-        # ([0, 1], 1)
-    }
-  ]
-  
-  === Run 3 ===
-  return ()
-  State: []
-  
-  ======================================================================
-  peak_usage_reject.tpe
-  ======================================================================
-  File "peak_usage_reject.tpe", lines 9-15, characters 13-17:
-  9 | let three () : unit # (0, 2) =
-                   ^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `(0, 3)`, which does not match its annotated grade `(0, 2)`
-    Note: the effect inequality `(0, 3) <= (0, 2)` does not hold
-  
-  File "peak_usage_reject.tpe", lines 22-23, characters 2-3:
-  22 |   unbox x as n in
-         ^^^^^^^^^^^^^^^
-  Typing error: Variable `x` is unboxed with grade `(0, 1)` accumulated since it was bound, which is not below its box grade `(0, 0)`
-    File "peak_usage_reject.tpe", line 19, characters 18-19:
-    19 |   box (0, 0) 7 as x in
-                           ^
-    `x` is bound here
-    File "peak_usage_reject.tpe", line 20, characters 10-26:
-    20 |   let f = perform Open "f" in
-                   ^^^^^^^^^^^^^^^^
-    grade `(1, 1)` accumulates here (operation `Open`)
-    File "peak_usage_reject.tpe", line 21, characters 2-17:
-    21 |   perform Close f;
-           ^^^^^^^^^^^^^^^
-    grade `(-1, 0)` accumulates here (operation `Close`)
-    Note: the resource inequality `(0, 1) <= (0, 0)` does not hold
-  
-  File "peak_usage_reject.tpe", line 27, characters 0-20:
-  27 | default Close f = ()
-       ^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Close` has grade `(0, 0)`, which does not match the declared grade `(-1, 0)` of `Close`
-    File "peak_usage_reject.tpe", line 6, characters 0-40:
-    6 | operation Close : file ~> unit # (-1, 0)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Close` is declared here
-    Note: the effect inequality `(0, 0) <= (-1, 0)` does not hold
-  
-  File "peak_usage_reject.tpe", line 34, characters 17-35:
-  34 |   | Close f k -> continue k with ()
-                        ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with the unit grade `(0, 0)` accumulated since it was bound, which is not below its box grade `(-1, 0)`
-    File "peak_usage_reject.tpe", line 34, characters 12-13:
-    34 |   | Close f k -> continue k with ()
-                     ^
-    `k` is bound here
-    Note: the resource inequality `(0, 0) <= (-1, 0)` does not hold
-  
-  File "peak_usage_reject.tpe", line 38, characters 0-29:
-  38 | default Open name = File name
-       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: The default implementation of `Open` has grade `(0, 0)`, which does not match the declared grade `(1, 1)` of `Open`
-    File "peak_usage_reject.tpe", line 5, characters 0-40:
-    5 | operation Open : string ~> file # (1, 1)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Open` is declared here
-    Note: the effect inequality `(0, 0) <= (1, 1)` does not hold
-  
-  File "peak_usage_reject.tpe", line 45, characters 19-44:
-  45 |   | Open name k -> continue k with File name
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with the unit grade `(0, 0)` accumulated since it was bound, which is not below its box grade `(1, 1)`
-    File "peak_usage_reject.tpe", line 45, characters 14-15:
-    45 |   | Open name k -> continue k with File name
-                       ^
-    `k` is bound here
-    Note: the resource inequality `(0, 0) <= (1, 1)` does not hold
-  
-  File "peak_usage_reject.tpe", lines 49-52, characters 18-3:
-  49 | let rotate_late f : file # (-1, 0, 0) =
-                         ^^^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `(0, 1)`, which does not match its annotated grade `(-1, 0, 0)`
-    Note: the effect inequality `(0, 1) <= (-1, 0, 0)` does not hold
   ======================================================================
   plain_rational_traces_upper.tpe
   ======================================================================
@@ -4284,6 +4127,163 @@
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
   ======================================================================
+  resource_levels.tpe
+  ======================================================================
+  === Run 1 ===
+  return (File "a", File "b")
+  State: []
+  
+  === Run 2 ===
+  return (File "a", File "b")
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            let a = return op_var in
+            let b = perform Reserve "b" (op_var. return op_var) in
+            return (a, b)
+          with handler
+               | return x ↦ return x
+               | Reserve (name, k) ↦
+                           unbox k as unbox_var in
+                           unbox_var (File name)
+        # ([0, 1], 1),
+      resource_3 ↦
+        fun op_var ↦
+          handle
+            let b = return op_var in
+            return (File "a", b)
+          with handler
+               | return x ↦ return x
+               | Reserve (name, k) ↦
+                           unbox k as unbox_var in
+                           unbox_var (File name)
+        # ([0, 1], 1)
+    }
+  ]
+  
+  === Run 3 ===
+  return ()
+  State: []
+  
+  ======================================================================
+  resource_levels_by_resource.tpe
+  ======================================================================
+  === Run 1 (unhandled operation) ===
+  perform Lock () (op_var.
+    (return op_var;
+     let a = perform Open "a" (op_var. return op_var) in
+     let b = perform Open "b" (op_var. return op_var) in
+     return (a, b)))
+  
+  ======================================================================
+  resource_levels_by_resource_reject.tpe
+  ======================================================================
+  File "resource_levels_by_resource_reject.tpe", lines 11-15, characters 14-19:
+  11 | let relock () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Locks, 0, 2)`, which does not match its annotated grade `((Files, 0, 2), (Locks, 0, 1))`
+    Note: the effect inequality `(Locks, 0, 2) <= ((Files, 0, 2), (Locks, 0, 1))` does not hold
+  
+  File "resource_levels_by_resource_reject.tpe", lines 18-24, characters 19-17:
+  18 | let three_files () : unit # (0, 2) =
+                          ^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(Files, 0, 3)`, which does not match its annotated grade `(0, 2)`
+    Note: the effect inequality `(Files, 0, 3) <= (0, 2)` does not hold
+  
+  File "resource_levels_by_resource_reject.tpe", lines 31-32, characters 2-3:
+  31 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(Locks, 1, 1)` accumulated since it was bound, which is not below its box grade `(Files, 0, 1)`
+    File "resource_levels_by_resource_reject.tpe", line 29, characters 25-26:
+    29 |   box (Files, 0, 1) 7 as x in
+                                  ^
+    `x` is bound here
+    File "resource_levels_by_resource_reject.tpe", line 30, characters 2-17:
+    30 |   perform Lock ();
+           ^^^^^^^^^^^^^^^
+    grade `(Locks, 1, 1)` accumulates here (operation `Lock`)
+    Note: the resource inequality `(Locks, 1, 1) <= (Files, 0, 1)` does not hold
+  ======================================================================
+  resource_levels_ranges.tpe
+  ======================================================================
+  === Run 1 ===
+  return (File "a")
+  State: []
+  
+  ======================================================================
+  resource_levels_reject.tpe
+  ======================================================================
+  File "resource_levels_reject.tpe", lines 9-15, characters 13-17:
+  9 | let three () : unit # (0, 2) =
+                   ^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(0, 3)`, which does not match its annotated grade `(0, 2)`
+    Note: the effect inequality `(0, 3) <= (0, 2)` does not hold
+  
+  File "resource_levels_reject.tpe", lines 22-23, characters 2-3:
+  22 |   unbox x as n in
+         ^^^^^^^^^^^^^^^
+  Typing error: Variable `x` is unboxed with grade `(0, 1)` accumulated since it was bound, which is not below its box grade `(0, 0)`
+    File "resource_levels_reject.tpe", line 19, characters 18-19:
+    19 |   box (0, 0) 7 as x in
+                           ^
+    `x` is bound here
+    File "resource_levels_reject.tpe", line 20, characters 10-26:
+    20 |   let f = perform Open "f" in
+                   ^^^^^^^^^^^^^^^^
+    grade `(1, 1)` accumulates here (operation `Open`)
+    File "resource_levels_reject.tpe", line 21, characters 2-17:
+    21 |   perform Close f;
+           ^^^^^^^^^^^^^^^
+    grade `(-1, 0)` accumulates here (operation `Close`)
+    Note: the resource inequality `(0, 1) <= (0, 0)` does not hold
+  
+  File "resource_levels_reject.tpe", line 27, characters 0-20:
+  27 | default Close f = ()
+       ^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Close` has grade `(0, 0)`, which does not match the declared grade `(-1, 0)` of `Close`
+    File "resource_levels_reject.tpe", line 6, characters 0-40:
+    6 | operation Close : file ~> unit # (-1, 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Close` is declared here
+    Note: the effect inequality `(0, 0) <= (-1, 0)` does not hold
+  
+  File "resource_levels_reject.tpe", line 34, characters 17-35:
+  34 |   | Close f k -> continue k with ()
+                        ^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with the unit grade `(0, 0)` accumulated since it was bound, which is not below its box grade `(-1, 0)`
+    File "resource_levels_reject.tpe", line 34, characters 12-13:
+    34 |   | Close f k -> continue k with ()
+                     ^
+    `k` is bound here
+    Note: the resource inequality `(0, 0) <= (-1, 0)` does not hold
+  
+  File "resource_levels_reject.tpe", line 38, characters 0-29:
+  38 | default Open name = File name
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The default implementation of `Open` has grade `(0, 0)`, which does not match the declared grade `(1, 1)` of `Open`
+    File "resource_levels_reject.tpe", line 5, characters 0-40:
+    5 | operation Open : string ~> file # (1, 1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    operation `Open` is declared here
+    Note: the effect inequality `(0, 0) <= (1, 1)` does not hold
+  
+  File "resource_levels_reject.tpe", line 45, characters 19-44:
+  45 |   | Open name k -> continue k with File name
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with the unit grade `(0, 0)` accumulated since it was bound, which is not below its box grade `(1, 1)`
+    File "resource_levels_reject.tpe", line 45, characters 14-15:
+    45 |   | Open name k -> continue k with File name
+                       ^
+    `k` is bound here
+    Note: the resource inequality `(0, 0) <= (1, 1)` does not hold
+  
+  File "resource_levels_reject.tpe", lines 49-52, characters 18-3:
+  49 | let rotate_late f : file # (-1, 0, 0) =
+                         ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `(0, 1)`, which does not match its annotated grade `(-1, 0, 0)`
+    Note: the effect inequality `(0, 1) <= (-1, 0, 0)` does not hold
+  ======================================================================
   shadow_label.tpe
   ======================================================================
   File "shadow_label.tpe", line 2, characters 0-41:
@@ -5486,7 +5486,7 @@
                         ^^^
   Syntax error: Unknown name `bar`
   ======================================================================
-  windows.tpe
+  windowed_schedules.tpe
   ======================================================================
   === Run 1 ===
   return ()
@@ -5523,57 +5523,57 @@
   ]
   
   ======================================================================
-  windows_reject.tpe
+  windowed_schedules_reject.tpe
   ======================================================================
-  File "windows_reject.tpe", lines 7-9, characters 17-17:
+  File "windowed_schedules_reject.tpe", lines 7-9, characters 17-17:
   7 | let late_send () : unit # (4, (Send, {2})) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(4, (Send, {3}))`, which does not match its annotated grade `(4, (Send, {2}))`
     Note: the effect inequality `(4, (Send, {3})) <= (4, (Send, {2}))` does not hold
   
-  File "windows_reject.tpe", lines 12-14, characters 12-17:
+  File "windowed_schedules_reject.tpe", lines 12-14, characters 12-17:
   12 | let slow () : unit # ([2, 3], (Send, {1 | 2})) =
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `([2, 4], (Send, {1; (0 | 1 | 2)}))`, which does not match its annotated grade `([2, 3], (Send, {1 | 2}))`
     Note: the effect inequality `([2, 4], (Send, {1; (0 | 1 | 2)})) <= ([2, 3], (Send, {1 | 2}))` does not hold
   
-  File "windows_reject.tpe", lines 21-22, characters 2-3:
+  File "windowed_schedules_reject.tpe", lines 21-22, characters 2-3:
   21 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `(2, (Send, {0}))` accumulated since it was bound, which is not below its box grade `[2, 4]`
-    File "windows_reject.tpe", line 18, characters 18-19:
+    File "windowed_schedules_reject.tpe", line 18, characters 18-19:
     18 |   box [2, 4] 7 as x in
                            ^
     `x` is bound here
-    File "windows_reject.tpe", line 19, characters 2-17:
+    File "windowed_schedules_reject.tpe", line 19, characters 2-17:
     19 |   perform Send ();
            ^^^^^^^^^^^^^^^
     grade `(1, (Send, {0}))` accumulates here (operation `Send`)
-    File "windows_reject.tpe", line 20, characters 2-9:
+    File "windowed_schedules_reject.tpe", line 20, characters 2-9:
     20 |   delay 1;
            ^^^^^^^
     grade `1` accumulates here (delay)
     Note: the resource inequality `(2, (Send, {0})) <= [2, 4]` does not hold
   
-  File "windows_reject.tpe", line 29, characters 51-69:
+  File "windowed_schedules_reject.tpe", line 29, characters 51-69:
   29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                                                           ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `(2, (Send, {0 | 1}))` accumulated since it was bound, which is not below its box grade `(1, (Send, {0}))`
-    File "windows_reject.tpe", line 29, characters 12-13:
+    File "windowed_schedules_reject.tpe", line 29, characters 12-13:
     29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                      ^
     `k` is bound here
-    File "windows_reject.tpe", line 29, characters 17-32:
+    File "windowed_schedules_reject.tpe", line 29, characters 17-32:
     29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                           ^^^^^^^^^^^^^^^
     grade `(1, (Send, {0}))` accumulates here (operation `Send`)
-    File "windows_reject.tpe", line 29, characters 34-49:
+    File "windowed_schedules_reject.tpe", line 29, characters 34-49:
     29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                                            ^^^^^^^^^^^^^^^
     grade `(1, (Send, {0}))` accumulates here (operation `Send`)
     Note: the resource inequality `(2, (Send, {0 | 1})) <= (1, (Send, {0}))` does not hold
   
-  File "windows_reject.tpe", line 32, characters 15-58:
+  File "windowed_schedules_reject.tpe", line 32, characters 15-58:
   32 | let renamed () : unit # (1, (Recv, {0})) = perform Send ()
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(1, (Send, {0}))`, which does not match its annotated grade `(1, (Recv, {0}))`
@@ -7216,9 +7216,9 @@ single-dash form of the help option is not accepted.
           time-upper-bound-levels            Expiring capabilities
           flow-levels                        Flow-sensitive outputs
         Semidirect products:
-          peak-usage                         Peak usage
-          time-windows                       Time windows
-          mode-costs                         Mode costs
+          resource-levels                    Resource levels
+          windowed-schedules                 Windowed schedules
+          mode-switch-costs                  Mode-switch costs
         Operation counts:
           counts-upper-bound                 Upper bounds
     --help            Display this list of options

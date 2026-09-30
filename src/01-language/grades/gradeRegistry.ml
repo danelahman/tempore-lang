@@ -225,19 +225,19 @@ let entries =
       "A security level paired with the level at which each output is written; \
        later outputs are raised to the level touched before them.";
     entry
-      (module PeakGrades.PeakUsage)
-      semidirect "Peak usage"
+      (module ResourceLevelGrades.ResourceLevels)
+      semidirect "Resource levels"
       "Triples (t, d, h) of the trough, the net change and the peak of a \
        resource held, such as open files; later levels are shifted by the \
        earlier change.";
     entry
-      (module WindowGrades.TimeWindows)
-      semidirect "Time windows"
-      "Pairs (T, E) of the possible durations and the times at which windowed \
-       operations happen; later times are shifted by the earlier durations.";
+      (module WindowedScheduleGrades.WindowedSchedules)
+      semidirect "Windowed schedules"
+      "Pairs (T, E) of the possible durations and the times at which each \
+       operation happens; later times are shifted by the earlier durations.";
     entry
-      (module ModeGrades.ModeCosts)
-      semidirect "Mode costs"
+      (module ModeSwitchCostGrades.ModeSwitchCosts)
+      semidirect "Mode-switch costs"
       "Max-plus matrices of the costs between named modes, such as (Off, On, \
        2); an operation gets stuck from the modes its grade does not start \
        from, and a change of mode costs at least 1.";

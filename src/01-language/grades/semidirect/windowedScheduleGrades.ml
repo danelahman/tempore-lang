@@ -19,8 +19,8 @@ let of_braces lit r =
   let rec go = function
     | Grade.Letter name ->
         Grade.invalid_lit lit
-          "time windows are sets of numbers of ticks, and name no operation \
-           such as '%s'"
+          "the times of windowed schedules are sets of numbers of ticks, and \
+           name no operation such as '%s'"
           name
     | Grade.Tick n -> R.ticks n
     | Grade.Frac q ->
@@ -161,10 +161,10 @@ module Indexed = GradeConstructions.Indexed
 module TimesByName = Indexed.OfSemilattice (Times)
 module ShiftByName = Indexed.Action (Times) (Shift)
 
-module TimeWindows = struct
+module WindowedSchedules = struct
   include GradeConstructions.SemiDirect (Durations) (TimesByName) (ShiftByName)
 
-  let name = "time-windows"
+  let name = "windowed-schedules"
 
   (* The literals of entries [(Name, ...)], the times of an operation. *)
   let is_entry = function

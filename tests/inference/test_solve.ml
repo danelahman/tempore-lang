@@ -330,7 +330,7 @@ let expected_rejections =
     ("levels_time_upper_reject.tpe", [ 9; 16 ]);
     ("list_constructor_reject.tpe", [ 3 ]);
     ("malformed_type_application.tpe", [ 4 ]);
-    ("mode_costs_reject.tpe", [ 9; 12; 19; 24; 31 ]);
+    ("mode_switch_costs_reject.tpe", [ 9; 12; 19; 24; 31 ]);
     ("nat_reject_successor_pattern.tpe", [ 3; 5 ]);
     ("noneternal_reject_after_delay.tpe", [ 10 ]);
     ("noneternal_reject_alias.tpe", [ 5 ]);
@@ -341,8 +341,6 @@ let expected_rejections =
     ("occurs_check_related_pattern.tpe", [ 7 ]);
     ("operation_reject_datatype.tpe", [ 5 ]);
     ("operation_reject_higher_order.tpe", [ 8 ]);
-    ("peak_resources_reject.tpe", [ 11; 18; 28 ]);
-    ("peak_usage_reject.tpe", [ 9; 18; 27; 30; 38; 41; 49 ]);
     ("plain_traces_upper_reject.tpe", [ 12; 18 ]);
     ("polymorphism_id_id.tpe", [ 2 ]);
     ("positivity_reject_list.tpe", [ 3 ]);
@@ -373,6 +371,8 @@ let expected_rejections =
     ("regular_reject_bounds.tpe", [ 4 ]);
     ("regular_reject_counterexample.tpe", [ 13; 21 ]);
     ("regular_reject_protocol.tpe", [ 9; 18 ]);
+    ("resource_levels_by_resource_reject.tpe", [ 11; 18; 28 ]);
+    ("resource_levels_reject.tpe", [ 9; 18; 27; 30; 38; 41; 49 ]);
     ("termination_reject_ackermann.tpe", [ 4 ]);
     ("termination_reject_countdown.tpe", [ 4 ]);
     ("termination_reject_escape.tpe", [ 4 ]);
@@ -394,7 +394,7 @@ let expected_rejections =
     ("traces_reject_self_retry.tpe", [ 6 ]);
     ("traces_reject_undecided_condition.tpe", [ 15 ]);
     ("traces_reject_unknown_event.tpe", [ 6 ]);
-    ("windows_reject.tpe", [ 7; 12; 17; 25; 32 ]);
+    ("windowed_schedules_reject.tpe", [ 7; 12; 17; 25; 32 ]);
   ]
 
 let slow = ref []

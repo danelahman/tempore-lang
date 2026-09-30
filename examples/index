@@ -82,9 +82,9 @@ Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_
 Security levels | Flow-sensitive outputs | flow-levels | levels/flow_levels.tpe | A report whose public post must come before the vault is read, each output graded by the level touched before it.
 
 group | Semidirect products | Semidirect | Grades whose second component is shifted by the first.
-Semidirect products | Peak usage | peak-usage | semidirect/peak_usage.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
-Semidirect products | Time windows | time-windows | semidirect/time_windows.tpe | A sensor node whose transmissions are graded by the ticks of its frames at which they happen.
-Semidirect products | Mode costs | mode-costs | semidirect/mode_costs.tpe | A sensor node whose energy costs depend on whether its radio is on, as max-plus matrices over the modes.
+Semidirect products | Resource levels | resource-levels | semidirect/resource_levels.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
+Semidirect products | Windowed schedules | windowed-schedules | semidirect/windowed_schedules.tpe | A sensor node whose transmissions are graded by the ticks of its frames at which they happen.
+Semidirect products | Mode-switch costs | mode-switch-costs | semidirect/mode_switch_costs.tpe | A sensor node whose energy costs depend on whether its radio is on, as max-plus matrices over the modes.
 
 group | Operation counts | Counts | How often each operation is called.
 Operation counts | Upper bounds | counts-upper-bound | counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.

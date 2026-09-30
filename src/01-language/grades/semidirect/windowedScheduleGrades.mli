@@ -1,5 +1,5 @@
-(** The time-window grades: the durations of a computation paired with the times
-    at which each operation happens.
+(** The windowed-schedule grades: the durations of a computation paired with the
+    times at which each operation happens.
 
     A grade [(T, E)] is "takes a number of time steps in [T], and performs each
     operation [A] only at times in [E(A)]", all sets of natural numbers counted
@@ -46,7 +46,7 @@ module TimesByName :
 module ShiftByName :
   GradeConstructions.ACTION with type m = Durations.t and type n = TimesByName.t
 
-(** The time-window grade, ["time-windows"]: the semidirect product
+(** The windowed-schedule grade, ["windowed-schedules"]: the semidirect product
     {!GradeConstructions.SemiDirect} [(Durations) (TimesByName) (ShiftByName)].
 
     - The order is componentwise inclusion, so the unit [({0}, ∅)] is not least.
@@ -59,7 +59,7 @@ module ShiftByName :
       brace literals name no operation, [_] being a single tick. [show] prints
       alike, and the top as [⊤].
     - No counterexample is offered, and the witnesses are partial. *)
-module TimeWindows :
+module WindowedSchedules :
   Grade.S
     with type t = Durations.t * TimesByName.t
      and type Delay.t = Delay.Nat.t

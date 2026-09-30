@@ -1,8 +1,8 @@
 (* File copies and uploads, checked against the levels of each resource held.
 
-   Run this example with the 'peak-usage' grading monoid, e.g.
+   Run this example with the 'resource-levels' grading monoid, e.g.
 
-     ./tempore --grades peak-usage examples/semidirect/peak_usage.tpe
+     ./tempore --grades resource-levels examples/semidirect/resource_levels.tpe
 
    Grades ((R, t, d, h), ...): trough t, net change d, peak h of resource R
      - Unit (0, 0): no resource changed or held

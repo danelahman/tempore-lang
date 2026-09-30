@@ -282,10 +282,10 @@ module Make (D : Delay.S) = struct
       (List.sort_uniq compare (List.concat_map at grid), Grade.Partial)
   end
 
-  module PeakUsage = struct
+  module ResourceLevels = struct
     include GradeConstructions.Indexed.OfGrade (OneResource)
 
-    let name = "peak-usage"
+    let name = "resource-levels"
   end
 end
 

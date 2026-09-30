@@ -134,7 +134,7 @@ is `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
 
 Each monoid accepts the literals it understands; any other literal is a syntax
 error naming the monoids that accept it. The greatest grade is `⊤` (ASCII
-`top`). Negative integers (`-1`) are accepted only by `peak-usage`. A fraction
+`top`). Negative integers (`-1`) are accepted only by `resource-levels`. A fraction
 equal to an integer, such as `4/2` or `2.0`, is that integer.
 
 ### Time
@@ -358,7 +358,7 @@ components of the grades before it: `(m, n) · (m', n') = (m · m', n ⊔ m ▷ 
 `m ▷ n'` being the action of `m` on `n'`. The pairs are compared and joined
 componentwise. The `flow-levels` monoid from above is an example, as are:
 
-- `peak-usage`: triples `(t, [d1, d2], h)` bounding a resource held, such as
+- `resource-levels`: triples `(t, [d1, d2], h)` bounding a resource held, such as
   open files, relative to its level at the start: the trough `t` is the lowest
   level, the range `[d1, d2]` the net change and the peak `h` the highest
   level, with `t <= d1 <= d2 <= h` and `t <= 0 <= h`. It is the semidirect
@@ -384,7 +384,7 @@ componentwise. The `flow-levels` monoid from above is an example, as are:
   have grade `(Files, 0, 2)`, and closing a file before opening one has grade
   `(Files, -1, 0, 0)`.
 
-- `time-windows`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
+- `windowed-schedules`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
   the times `E_A` at which each operation `A` happens, all sets of numbers of
   ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
   adding elementwise, and the order is inclusion. `T` is written `n`, `[n, m]`,
@@ -395,7 +395,7 @@ componentwise. The `flow-levels` monoid from above is an example, as are:
   bounds every operation not listed. An operation `Send` taking a tick and
   happening at its start has grade `(1, (Send, {0}))`.
 
-- `mode-costs`: max-plus matrices of the greatest costs of the runs between
+- `mode-switch-costs`: max-plus matrices of the greatest costs of the runs between
   named modes, the completion under joins of a semidirect product of mode
   changes and costs. 
 
@@ -418,11 +418,11 @@ componentwise. The `flow-levels` monoid from above is an example, as are:
   10), (On, On, 50))`.
 
 An (external) operation whose grade no code inside Tempore can meet, such as
-opening or closing a file under `peak-usage`, has no default implementation, and
+opening or closing a file under `resource-levels`, has no default implementation, and
 a run stops at its first call. See
-[`examples/semidirect/peak_usage.tpe`](examples/semidirect/peak_usage.tpe),
-[`examples/semidirect/time_windows.tpe`](examples/semidirect/time_windows.tpe)
-and [`examples/semidirect/mode_costs.tpe`](examples/semidirect/mode_costs.tpe).
+[`examples/semidirect/resource_levels.tpe`](examples/semidirect/resource_levels.tpe),
+[`examples/semidirect/windowed_schedules.tpe`](examples/semidirect/windowed_schedules.tpe)
+and [`examples/semidirect/mode_switch_costs.tpe`](examples/semidirect/mode_switch_costs.tpe).
 
 ### Operation counts
 

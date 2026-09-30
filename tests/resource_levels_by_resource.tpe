@@ -1,6 +1,6 @@
-(* Peak usage by resource: each resource named in an entry (R, d, h). No code
-   meets the grades of the operations, so none has a default implementation,
-   and a run stops at its first operation. *)
+(* Resource levels by resource: each resource named in an entry (R, d, h). No
+   code meets the grades of the operations, so none has a default
+   implementation, and a run stops at its first operation. *)
 
 type file = File of string
 

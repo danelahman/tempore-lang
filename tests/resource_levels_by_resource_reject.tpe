@@ -1,4 +1,4 @@
-(* Peak usage by resource: rejected programs. *)
+(* Resource levels by resource: rejected programs. *)
 
 type file = File of string
 

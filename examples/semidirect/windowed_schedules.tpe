@@ -1,8 +1,8 @@
 (* Sensor frames that transmit in a fixed slot of a repeating time window.
 
-   Run this example with the 'time-windows' grading monoid, e.g.
+   Run this example with the 'windowed-schedules' grading monoid, e.g.
 
-     ./tempore --grades time-windows examples/semidirect/time_windows.tpe
+     ./tempore --grades windowed-schedules examples/semidirect/windowed_schedules.tpe
 
    Grades (T, (A, E_A), ...): durations T and times E_A of each operation A
      - Unit 0: duration 0, no operation performed

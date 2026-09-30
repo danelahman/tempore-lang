@@ -248,11 +248,19 @@ let rational_regex_costs_interval =
   (module Grades.RegularCostTraceGradesRational.Interval : Grade.S)
 
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
-let peak_usage = (module Grades.PeakGrades.PeakUsage : Grade.S)
-let time_windows = (module Grades.WindowGrades.TimeWindows : Grade.S)
+
+let resource_levels =
+  (module Grades.ResourceLevelGrades.ResourceLevels : Grade.S)
+
+let windowed_schedules =
+  (module Grades.WindowedScheduleGrades.WindowedSchedules : Grade.S)
+
 let flow_levels = (module LevelGrades.FlowLevels : Grade.S)
 let counts_upper = (module Grades.CountGrades.UpperBound : Grade.S)
-let mode_costs = (module Grades.ModeGrades.ModeCosts : Grade.S)
+
+let mode_switch_costs =
+  (module Grades.ModeSwitchCostGrades.ModeSwitchCosts : Grade.S)
+
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
 
@@ -326,162 +334,164 @@ let literals =
     rejects "empty half-open interval, rational" rational_interval
       (Interval (Open (Int 1), Closed (Int 1)))
       "n < m at an open endpoint";
-    reads "release" peak_usage (Tuple [ Int (-1); Int 0 ]) "(-1, 0)";
-    reads "unbounded peak" peak_usage (Tuple [ Int (-3); Inf ]) "(-3, ∞)";
-    reads "top" peak_usage Top "(∞, ∞)";
-    rejects "peak below the change" peak_usage
+    reads "release" resource_levels (Tuple [ Int (-1); Int 0 ]) "(-1, 0)";
+    reads "unbounded peak" resource_levels (Tuple [ Int (-3); Inf ]) "(-3, ∞)";
+    reads "top" resource_levels Top "(∞, ∞)";
+    rejects "peak below the change" resource_levels
       (Tuple [ Int 2; Int 1 ])
       "at least the net change";
-    rejects "negative peak" peak_usage
+    rejects "negative peak" resource_levels
       (Tuple [ Int (-2); Int (-1) ])
       "at least 0";
-    rejects "unbounded change" peak_usage (Tuple [ Inf; Int 3 ]) "needs a peak";
-    rejects "integer" peak_usage (Int 3) "not plain integers";
-    rejects "level" peak_usage (Tuple [ Int 1; Name "Low" ]) "in the peak";
-    reads "resource" peak_usage
+    rejects "unbounded change" resource_levels
+      (Tuple [ Inf; Int 3 ])
+      "needs a peak";
+    rejects "integer" resource_levels (Int 3) "not plain integers";
+    rejects "level" resource_levels (Tuple [ Int 1; Name "Low" ]) "in the peak";
+    reads "resource" resource_levels
       (Tuple [ Name "Files"; Int 1; Int 1 ])
       "(Files, 1, 1)";
-    reads "resources" peak_usage
+    reads "resources" resource_levels
       (Tuple
          [
            Tuple [ Name "Sockets"; Int 0; Int 1 ];
            Tuple [ Name "Files"; Int 0; Int 2 ];
          ])
       "((Files, 0, 2), (Sockets, 0, 1))";
-    reads "other resources" peak_usage
+    reads "other resources" resource_levels
       (Tuple
          [
            Tuple [ Name "Files"; Int 0; Int 2 ];
            Tuple [ Name "_"; Int 0; Int 1 ];
          ])
       "((Files, 0, 2), (_, 0, 1))";
-    reads "infinite net change" peak_usage (Tuple [ Inf; Inf ]) "(∞, ∞)";
-    reads "explicit trough" peak_usage
+    reads "infinite net change" resource_levels (Tuple [ Inf; Inf ]) "(∞, ∞)";
+    reads "explicit trough" resource_levels
       (Tuple [ Int (-1); Int 0; Int 0 ])
       "(-1, 0, 0)";
-    reads "implied trough" peak_usage
+    reads "implied trough" resource_levels
       (Tuple [ Int (-1); Int (-1); Int 0 ])
       "(-1, 0)";
-    reads "range" peak_usage
+    reads "range" resource_levels
       (Tuple [ Interval (Closed (Int 0), Closed (Int 1)); Int 1 ])
       "([0, 1], 1)";
-    reads "range with a trough" peak_usage
+    reads "range with a trough" resource_levels
       (Tuple [ Int (-2); Interval (Closed (Int (-1)), Closed (Int 1)); Int 2 ])
       "(-2, [-1, 1], 2)";
-    reads "range unbounded above" peak_usage
+    reads "range unbounded above" resource_levels
       (Tuple [ Interval (Closed (Int 0), Unbounded); Inf ])
       "([0, ∞), ∞)";
-    reads "range unbounded below" peak_usage
+    reads "range unbounded below" resource_levels
       (Tuple [ Interval (Unbounded, Closed (Int 0)); Int 0 ])
       "((-∞, 0], 0)";
-    reads "unbounded trough" peak_usage
+    reads "unbounded trough" resource_levels
       (Tuple [ Top; Int 0; Int 0 ])
       "(⊤, 0, 0)";
-    reads "unbounded everywhere" peak_usage
+    reads "unbounded everywhere" resource_levels
       (Tuple [ Interval (Unbounded, Unbounded); Inf ])
       "(∞, ∞)";
-    reads "pair for an open range" peak_usage
+    reads "pair for an open range" resource_levels
       (Tuple [ Tuple [ Int (-1); Int 2 ]; Int 1 ])
       "([0, 1], 1)";
-    reads "half-open range" peak_usage
+    reads "half-open range" resource_levels
       (Tuple [ Interval (Unbounded, Open (Int 1)); Int 0 ])
       "((-∞, 0], 0)";
-    rejects "open range of no integer" peak_usage
+    rejects "open range of no integer" resource_levels
       (Tuple [ Tuple [ Int 0; Int 1 ]; Int 1 ])
       "in the net change, the interval contains no integer";
-    rejects "fractional end of a range" peak_usage
+    rejects "fractional end of a range" resource_levels
       (Tuple
          [ Interval (Closed (Rat (Rational.make 1 2)), Closed (Int 1)); Int 1 ])
       "the ends of net changes are integers";
-    rejects "trough above 0" peak_usage
+    rejects "trough above 0" resource_levels
       (Tuple [ Int 1; Int 1; Int 1 ])
       "the trough must be at most 0";
-    rejects "trough above the net change" peak_usage
+    rejects "trough above the net change" resource_levels
       (Tuple [ Int (-1); Int (-2); Int 0 ])
       "at most the net change";
-    rejects "reversed range" peak_usage
+    rejects "reversed range" resource_levels
       (Tuple [ Interval (Closed (Int 2), Closed (Int 1)); Int 2 ])
       "in the net change, interval endpoints must satisfy n <= m";
-    rejects "peak below the range" peak_usage
+    rejects "peak below the range" resource_levels
       (Tuple [ Interval (Closed (Int 0), Closed (Int 2)); Int 1 ])
       "the peak must be at least 0 and at least the net change";
-    rejects "infinite trough" peak_usage
+    rejects "infinite trough" resource_levels
       (Tuple [ Inf; Int 0; Int 0 ])
       "in the trough, troughs are integers or '⊤', not '∞'";
-    rejects "infinite least net change" peak_usage
+    rejects "infinite least net change" resource_levels
       (Tuple [ Interval (Closed Inf, Closed (Int 1)); Int 1 ])
       "in the net change, the ends of net changes are integers, not '∞'";
-    rejects "infinite exact net change with a trough" peak_usage
+    rejects "infinite exact net change with a trough" resource_levels
       (Tuple [ Int 0; Inf; Inf ])
       "in the net change, net changes are integers or ranges";
-    rejects "four components" peak_usage
+    rejects "four components" resource_levels
       (Tuple [ Int 0; Int 0; Int 0; Int 0 ])
       "not tuples";
-    reads "resource with a trough" peak_usage
+    reads "resource with a trough" resource_levels
       (Tuple [ Name "Files"; Int (-1); Int 0; Int 0 ])
       "(Files, -1, 0, 0)";
-    reads "resource with a range" peak_usage
+    reads "resource with a range" resource_levels
       (Tuple [ Name "Files"; Interval (Closed (Int 0), Closed (Int 1)); Int 1 ])
       "(Files, [0, 1], 1)";
-    reads "resource with a range unbounded below" peak_usage
+    reads "resource with a range unbounded below" resource_levels
       (Tuple [ Name "Files"; Interval (Unbounded, Closed (Int 0)); Int 0 ])
       "(Files, (-∞, 0], 0)";
-    reads "other resources with a trough" peak_usage
+    reads "other resources with a trough" resource_levels
       (Tuple
          [
            Tuple [ Name "Files"; Int 0; Int 2 ];
            Tuple [ Name "_"; Int (-1); Int 0; Int 0 ];
          ])
       "((Files, 0, 2), (_, -1, 0, 0))";
-    rejects "resource trough above 0" peak_usage
+    rejects "resource trough above 0" resource_levels
       (Tuple [ Name "Files"; Int 1; Int 1; Int 1 ])
       "in the entry of 'Files', the trough must be at most 0";
-    reads "resource at the unit" peak_usage
+    reads "resource at the unit" resource_levels
       (Tuple [ Name "Files"; Int 0; Int 0 ])
       "(0, 0)";
-    rejects "resource peak below the change" peak_usage
+    rejects "resource peak below the change" resource_levels
       (Tuple [ Name "Files"; Int 2; Int 1 ])
       "in the entry of 'Files', the peak must be at least 0";
-    rejects "resource listed twice" peak_usage
+    rejects "resource listed twice" resource_levels
       (Tuple
          [
            Tuple [ Name "Files"; Int 1; Int 1 ];
            Tuple [ Name "Files"; Int 0; Int 1 ];
          ])
       "listed twice";
-    reads "duration" time_windows (Int 3) "3";
-    reads "interval of durations" time_windows
+    reads "duration" windowed_schedules (Int 3) "3";
+    reads "interval of durations" windowed_schedules
       (Interval (Closed (Int 2), Closed (Int 5)))
       "[2, 5]";
-    reads "unbounded durations" time_windows
+    reads "unbounded durations" windowed_schedules
       (Interval (Closed (Int 2), Unbounded))
       "[2, ∞)";
-    reads "interval of durations and times" time_windows
+    reads "interval of durations and times" windowed_schedules
       (Tuple
          [
            Interval (Closed (Int 0), Closed (Int 2));
            Tuple [ Name "Send"; Braces (Tick 0) ];
          ])
       "([0, 2], (Send, {0}))";
-    reads "pair for an open interval of durations" time_windows
+    reads "pair for an open interval of durations" windowed_schedules
       (Tuple [ Int 2; Int 5 ])
       "[3, 4]";
-    reads "durations open below" time_windows
+    reads "durations open below" windowed_schedules
       (Interval (Open (Int 2), Unbounded))
       "[3, ∞)";
-    rejects "open interval of no durations" time_windows
+    rejects "open interval of no durations" windowed_schedules
       (Tuple [ Int 2; Int 3 ])
       "the interval contains no integer";
-    rejects "fractional end of durations" time_windows
+    rejects "fractional end of durations" windowed_schedules
       (Interval (Closed (Int 0), Closed (Rat (Rational.make 1 2))))
       "interval endpoints are integers";
-    reads "set of durations" time_windows
+    reads "set of durations" windowed_schedules
       (Braces (union (Tick 1) (Tick 3)))
       "{1 | 3}";
-    reads "durations and times" time_windows
+    reads "durations and times" windowed_schedules
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces (Tick 0) ] ])
       "(1, (Send, {0}))";
-    reads "times of two operations" time_windows
+    reads "times of two operations" windowed_schedules
       (Tuple
          [
            Int 10;
@@ -489,7 +499,7 @@ let literals =
            Tuple [ Name "Send"; Braces (union (Tick 4) (Tick 5)) ];
          ])
       "(10, (Send, {4 | 5}), (Sense, {0}))";
-    reads "times of any operation" time_windows
+    reads "times of any operation" windowed_schedules
       (Tuple
          [
            Int 3;
@@ -497,17 +507,17 @@ let literals =
            Tuple [ Name "Send"; Braces (Tick 0) ];
          ])
       "(3, (Send, {0}), (_, {2}))";
-    reads "times by single ticks" time_windows
+    reads "times by single ticks" windowed_schedules
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces (seq Any Any) ] ])
       "(1, (Send, {2}))";
-    reads "top" time_windows Top "⊤";
-    rejects "operation in the times" time_windows
+    reads "top" windowed_schedules Top "⊤";
+    rejects "operation in the times" windowed_schedules
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces send ] ])
       "name no operation such as 'Send'";
-    rejects "unnamed times" time_windows
+    rejects "unnamed times" windowed_schedules
       (Tuple [ Int 1; Braces (Tick 0) ])
       "times are given by operation";
-    rejects "operation listed twice" time_windows
+    rejects "operation listed twice" windowed_schedules
       (Tuple
          [
            Int 1;
@@ -515,14 +525,15 @@ let literals =
            Tuple [ Name "Send"; Braces (Tick 1) ];
          ])
       "listed twice";
-    rejects "reversed interval" time_windows
+    rejects "reversed interval" windowed_schedules
       (Interval (Closed (Int 7), Closed (Int 1)))
       "must satisfy n <= m";
-    rejects "negative duration" time_windows (Int (-1)) "must be non-negative";
-    rejects "no durations" time_windows
+    rejects "negative duration" windowed_schedules (Int (-1))
+      "must be non-negative";
+    rejects "no durations" windowed_schedules
       (Braces (Inter (Tick 1, Tick 2)))
       "is empty";
-    rejects "level" time_windows (Name "Low") "not names such as 'Low'";
+    rejects "level" windowed_schedules (Name "Low") "not names such as 'Low'";
     reads "level" flow_levels (Name "High") "High";
     reads "outputs" flow_levels
       (Tuple
@@ -569,72 +580,72 @@ let literals =
       (Tuple [ Name "Send"; Int (-1) ])
       "in the entry of 'Send', grades must be non-negative";
     rejects "level" counts_upper (Name "Low") "not names such as 'Low'";
-    reads "cost in every mode" mode_costs (Int 3) "3";
-    reads "transition" mode_costs
+    reads "cost in every mode" mode_switch_costs (Int 3) "3";
+    reads "transition" mode_switch_costs
       (Tuple [ Name "Off"; Name "On"; Int 2 ])
       "(Off, On, 2)";
-    reads "transitions" mode_costs
+    reads "transitions" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "On"; Int 3 ];
            Tuple [ Name "Off"; Name "Off"; Inf ];
          ])
       "((Off, Off, ∞), (On, On, 3))";
-    reads "stuck from a mode" mode_costs
+    reads "stuck from a mode" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "Off"; Name "Off"; Int 18 ];
            Tuple [ Name "On"; Name "Stuck"; Int 6 ];
          ])
       "((Off, Off, 18), (On, Stuck, 6))";
-    reads "stuck at no cost left implicit" mode_costs
+    reads "stuck at no cost left implicit" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "Off"; Name "On"; Int 2 ];
            Tuple [ Name "On"; Name "Stuck"; Int 0 ];
          ])
       "(Off, On, 2)";
-    reads "stuck besides another run" mode_costs
+    reads "stuck besides another run" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "On"; Int 2 ];
            Tuple [ Name "On"; Name "Stuck"; Int 0 ];
          ])
       "((On, On, 2), (On, Stuck, 0))";
-    reads "stuck everywhere" mode_costs
+    reads "stuck everywhere" mode_switch_costs
       (Tuple [ Name "Stuck"; Name "Stuck"; Int 0 ])
       "(Stuck, Stuck, 0)";
-    reads "stuck in every mode named" mode_costs
+    reads "stuck in every mode named" mode_switch_costs
       (Tuple [ Name "On"; Name "Stuck"; Int 0 ])
       "(Stuck, Stuck, 0)";
-    reads "the stuck row" mode_costs
+    reads "the stuck row" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "Off"; Name "Off"; Int 1 ];
            Tuple [ Name "Stuck"; Name "Stuck"; Int 0 ];
          ])
       "(Off, Off, 1)";
-    reads "top" mode_costs Top "⊤";
-    rejects "change of mode at no cost" mode_costs
+    reads "top" mode_switch_costs Top "⊤";
+    rejects "change of mode at no cost" mode_switch_costs
       (Tuple [ Name "On"; Name "Off"; Int 0 ])
       "in the cost from 'On' to 'Off', a change of mode costs at least 1";
-    rejects "leaving the stuck mode" mode_costs
+    rejects "leaving the stuck mode" mode_switch_costs
       (Tuple [ Name "Stuck"; Name "On"; Int 1 ])
       "no run leaves the mode 'Stuck'";
-    rejects "staying stuck at a cost" mode_costs
+    rejects "staying stuck at a cost" mode_switch_costs
       (Tuple [ Name "Stuck"; Name "Stuck"; Int 1 ])
       "which it keeps at cost 0";
-    rejects "negative cost" mode_costs
+    rejects "negative cost" mode_switch_costs
       (Tuple [ Name "Off"; Name "On"; Int (-1) ])
       "in the cost from 'Off' to 'On', costs must be non-negative";
-    rejects "pair listed twice" mode_costs
+    rejects "pair listed twice" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "On"; Int 3 ];
            Tuple [ Name "On"; Name "On"; Int 4 ];
          ])
       "listed twice";
-    reads "modes not named" mode_costs
+    reads "modes not named" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "On"; Int 2 ];
@@ -642,7 +653,7 @@ let literals =
            Tuple [ Name "_"; Name "Stuck"; Int 0 ];
          ])
       "((On, On, 2), (_, _, 1), (_, Stuck, 0))";
-    reads "to and from the modes not named" mode_costs
+    reads "to and from the modes not named" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "_"; Int 1 ];
@@ -650,16 +661,16 @@ let literals =
            Tuple [ Name "_"; Name "≠"; Inf ];
          ])
       "((On, _, 1), (_, On, 2), (_, ≠, ∞))";
-    rejects "change to a mode not named at no cost" mode_costs
+    rejects "change to a mode not named at no cost" mode_switch_costs
       (Tuple [ Name "On"; Name "_"; Int 0 ])
       "in the cost from 'On' to '_', a change of mode costs at least 1";
-    rejects "change between modes not named at no cost" mode_costs
+    rejects "change between modes not named at no cost" mode_switch_costs
       (Tuple [ Name "_"; Name "≠"; Int 0 ])
       "a change of mode costs at least 1";
-    rejects "another mode not named after a mode named" mode_costs
+    rejects "another mode not named after a mode named" mode_switch_costs
       (Tuple [ Name "On"; Name "≠"; Int 1 ])
       "only an entry from '_' ends in '≠'";
-    rejects "pair" mode_costs (Tuple [ Int 1; Int 2 ]) "not pairs";
+    rejects "pair" mode_switch_costs (Tuple [ Int 1; Int 2 ]) "not pairs";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not '∞'";
@@ -735,7 +746,7 @@ let literals =
     rejects "fractional delay" regex_upper
       (Braces (Star (Frac (Rational.make 1 2))))
       "whole numbers of time steps";
-    rejects "fractional delay" time_windows
+    rejects "fractional delay" windowed_schedules
       (Braces (Frac (Rational.make 1 2)))
       "whole numbers of time steps";
     rejects "fractional interval of delays" regex_upper
@@ -746,10 +757,10 @@ let literals =
       (Braces
          (Seq (send, Delays (Open Rational.zero, Open (Rational.of_int 1)))))
       "the interval '(0, 1)' contains no whole number of time steps";
-    reads "interval of ticks" time_windows
+    reads "interval of ticks" windowed_schedules
       (Braces (Delays (Open (Rational.of_int 1), Unbounded)))
       "[2, ∞)";
-    reads "bounded interval of ticks" time_windows
+    reads "bounded interval of ticks" windowed_schedules
       (Braces (Delays (Open (Rational.of_int 1), Open (Rational.of_int 5))))
       "[2, 4]";
     rejects "interval of delays" rational_traces_upper
@@ -880,7 +891,7 @@ let registry =
           "regex-cost-interval";
           "regex-cost-interval-symbolic";
           "regex-cost-interval-rational";
-          "time-windows";
+          "windowed-schedules";
         ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
     expect "registry: grades reading an interval of brace literals" show_names
@@ -909,8 +920,8 @@ let registry =
           "regex-cost-interval";
           "regex-cost-interval-symbolic";
           "regex-cost-interval-rational";
-          "peak-usage";
-          "time-windows";
+          "resource-levels";
+          "windowed-schedules";
         ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
     expect "registry: grades reading an interval unbounded below" show_names
@@ -1413,16 +1424,16 @@ let witnesses =
     expect "witnesses: product with a partial grade partial" Fun.id
       ~expected:"partial"
       (completeness (module TraceLevels));
-    expect "witnesses: peak usage partial" Fun.id ~expected:"partial"
-      (completeness peak_usage);
-    expect "witnesses: time windows partial" Fun.id ~expected:"partial"
-      (completeness time_windows);
+    expect "witnesses: resource levels partial" Fun.id ~expected:"partial"
+      (completeness resource_levels);
+    expect "witnesses: windowed schedules partial" Fun.id ~expected:"partial"
+      (completeness windowed_schedules);
     expect "witnesses: flow-levels complete" Fun.id ~expected:"complete"
       (completeness (module Flow));
     expect "witnesses: counts complete" Fun.id ~expected:"complete"
       (completeness counts_upper);
-    expect "witnesses: mode costs partial" Fun.id ~expected:"partial"
-      (completeness mode_costs);
+    expect "witnesses: mode-switch costs partial" Fun.id ~expected:"partial"
+      (completeness mode_switch_costs);
     check "counts: delays count nothing"
       Grades.CountGrades.UpperBound.(equal bounds (of_delay 5) one)
       "";
@@ -1456,8 +1467,8 @@ type family =
   | Levels
   | Timed_levels
   | Flow
-  | Peak
-  | Windows
+  | Resources
+  | Schedules
   | Modes
   | Counts
 
@@ -1468,9 +1479,9 @@ let family name =
   | "security-levels" -> Some Levels
   | "time-lower-bound-levels" | "time-upper-bound-levels" -> Some Timed_levels
   | "flow-levels" -> Some Flow
-  | "peak-usage" -> Some Peak
-  | "time-windows" -> Some Windows
-  | "mode-costs" -> Some Modes
+  | "resource-levels" -> Some Resources
+  | "windowed-schedules" -> Some Schedules
+  | "mode-switch-costs" -> Some Modes
   | "counts-upper-bound" -> Some Counts
   | "traces-upper-bound" -> Some Inclusion_traces
   | "traces-upper-bound-rational" -> Some Rational_inclusion_traces
@@ -1674,7 +1685,7 @@ let cover =
           ];
         Tuple [ level "Low"; entry "_" [ level "High" ] ];
       ]
-  | Peak ->
+  | Resources ->
       [
         pair (Int (-1)) (Int 0);
         pair (Int 1) (Int 1);
@@ -1693,7 +1704,7 @@ let cover =
             entry "_" [ span (Int (-1)) Inf; Inf ];
           ];
       ]
-  | Windows ->
+  | Schedules ->
       [
         Int 1;
         span (Int 2) (Int 5);
@@ -1848,7 +1859,7 @@ let random family st =
       with
       | [] -> level ()
       | outputs -> Tuple (level () :: outputs))
-  | Peak -> (
+  | Resources -> (
       let lower () = pick st [ Top; Int (int 3 - 2) ] in
       let change () =
         if Random.State.bool st then Int (int 5 - 2)
@@ -1868,7 +1879,7 @@ let random family st =
               (List.map
                  (fun name -> entry name (usage ()))
                  ("Sockets" :: names)))
-  | Windows -> (
+  | Schedules -> (
       let durations () =
         match int 3 with
         | 0 -> Int (int 4)
@@ -1892,7 +1903,7 @@ let random family st =
           [ "A"; "B"; "_" ]
       with
       | [] -> durations ()
-      | windows -> Tuple (durations () :: windows))
+      | entries -> Tuple (durations () :: entries))
   | Modes ->
       let mode () =
         entry
@@ -2211,7 +2222,7 @@ module Reader (G : Grade.S) = struct
     | exception Utils.Error.Error d -> Error d.Utils.Diagnostic.message
 end
 
-(* The laws of the mode costs on grades over the modes [Off], [On] and [Idle],
+(* The laws of the mode-switch costs on grades over the modes [Off], [On] and [Idle],
    the modes not named and [Stuck]: changes of mode, operations performed only
    in some modes, runs stuck at a cost, entries of the modes not named, the
    unit and the top, and the products and joins of the partial operations and
@@ -2220,7 +2231,7 @@ end
    [(Stuck, Stuck, 0) ≾ x · (Stuck, Stuck, 0)]; and the reading back of the
    printed grades. *)
 let mode_laws =
-  let module M = Grades.ModeGrades.ModeCosts in
+  let module M = Grades.ModeSwitchCostGrades.ModeSwitchCosts in
   let open Grade in
   let entry p q c = Tuple [ Name p; Name q; c ] in
   let send = entry "On" "On" (Int 4)
@@ -2273,33 +2284,33 @@ let mode_laws =
     | Ok x' -> M.compare x x' = 0
     | Error _ -> false
   in
-  let context = "mode costs" in
+  let context = "mode-switch costs" in
   [
-    expect "mode-costs: a partial operation, then another" Fun.id
+    expect "mode-switch-costs: a partial operation, then another" Fun.id
       ~expected:"(On, Stuck, 4)"
       (M.show (M.mul send radio_on));
-    expect "mode-costs: a partial operation, then another, not the unit"
+    expect "mode-switch-costs: a partial operation, then another, not the unit"
       show_bool ~expected:false
       (M.leq bounds (M.mul send radio_on) M.one);
-    all "mode-costs: products total"
+    all "mode-switch-costs: products total"
       (fun (x, y) -> M.show x ^ ", " ^ M.show y)
       (fun (x, y) -> total (M.mul x y))
       (pairs samples);
-    all "mode-costs: printed grades read back" M.show reads_back
+    all "mode-switch-costs: printed grades read back" M.show reads_back
       (samples @ List.concat_map (fun x -> List.map (M.mul x) samples) samples);
   ]
   @ order_laws (module M) ~context bounds samples
   @ algebra_laws (module M) ~context bounds samples
   @ of_delay_laws (module M) bounds ()
 
-(* The laws of the peak usage on grades acquiring and releasing the resources
+(* The laws of the resource levels on grades acquiring and releasing the resources
    [Files] and [Sockets], with ranges of net changes, explicit and unbounded
    troughs and an entry of the resources not named, the unit and the top; and
    the products and joins of a release and an acquisition with these. Besides,
    the order of a release and an acquisition, and the reading back of the
    printed grades. *)
-let peak_laws =
-  let module P = Grades.PeakGrades.PeakUsage in
+let resource_laws =
+  let module P = Grades.ResourceLevelGrades.ResourceLevels in
   let module R = Reader (P) in
   let open Grade in
   let release = entry "Files" [ Int (-1); Int 0 ]
@@ -2343,17 +2354,19 @@ let peak_laws =
     | Ok x' -> P.compare x x' = 0
     | Error _ -> false
   in
-  let context = "peak usage" in
+  let context = "resource levels" in
   [
-    expect "peak-usage: not commutative" show_bool ~expected:false P.commutative;
-    expect "peak-usage: unit not least" show_bool ~expected:false P.unit_least;
-    expect "peak-usage: a release, then an acquisition" Fun.id
+    expect "resource-levels: not commutative" show_bool ~expected:false
+      P.commutative;
+    expect "resource-levels: unit not least" show_bool ~expected:false
+      P.unit_least;
+    expect "resource-levels: a release, then an acquisition" Fun.id
       ~expected:"(Files, -1, 0, 0)"
       (P.show (P.mul close open_));
-    expect "peak-usage: an acquisition, then a release" Fun.id
+    expect "resource-levels: an acquisition, then a release" Fun.id
       ~expected:"(Files, 0, 1)"
       (P.show (P.mul open_ close));
-    all "peak-usage: printed grades read back" P.show reads_back samples;
+    all "resource-levels: printed grades read back" P.show reads_back samples;
   ]
   @ order_laws (module P) ~context costs samples
   @ algebra_laws (module P) ~context costs samples
@@ -2385,18 +2398,19 @@ let interval_read_back =
 (* Constructions                                                       *)
 (* ------------------------------------------------------------------ *)
 
-module Peak = Grades.PeakGrades
+module Resources = Grades.ResourceLevelGrades
 
 (* The bounds [-∞], [-2], ..., [2] and [∞]. *)
 let peak_bounds =
-  (Peak.Minus_inf :: List.init 5 (fun d -> Peak.Fin (d - 2)))
-  @ [ Peak.Plus_inf ]
+  (Resources.Minus_inf :: List.init 5 (fun d -> Resources.Fin (d - 2)))
+  @ [ Resources.Plus_inf ]
 
 (* [half_laws (module H) changes] checks, on all the pairs of the net changes
    [changes] and the extremes [peak_bounds], the laws of the half [H] of the
-   peak usage but the zero-product law, which it lacks; the laws of its
+   resource levels but the zero-product law, which it lacks; the laws of its
    semilattice of extremes; and the laws A1-A5 of its action. *)
-let half_laws (module H : Grade.S with type t = Peak.bound * Peak.bound) changes
+let half_laws
+    (module H : Grade.S with type t = Resources.bound * Resources.bound) changes
     =
   let elements =
     List.concat_map (fun d -> List.map (fun e -> (d, e)) peak_bounds) changes
@@ -2415,7 +2429,7 @@ let half_laws (module H : Grade.S with type t = Peak.bound * Peak.bound) changes
    ranges [[d1, d2]] of net changes and peaks [h] with [t ≤ min(0, d1)],
    [d1 ≤ d2] and [h ≥ max(0, d2)]. *)
 let one_resource_grades =
-  let open Peak in
+  let open Resources in
   let leq b b' =
     match (b, b') with
     | Minus_inf, _ | _, Plus_inf -> true
@@ -2439,13 +2453,13 @@ let one_resource_grades =
         (Minus_inf :: range [ -1; 0; 1 ]))
     (Minus_inf :: range [ -1; 0 ])
 
-module Windows = Grades.WindowGrades
+module Schedules = Grades.WindowedScheduleGrades
 
 (* Durations: single numbers, intervals, finite and infinite sets, and all
    numbers. *)
-let window_durations =
+let schedule_durations =
   let open Grade in
-  List.map Windows.Durations.of_lit
+  List.map Schedules.Durations.of_lit
     [
       Int 0;
       Int 1;
@@ -2458,10 +2472,10 @@ let window_durations =
     ]
 
 (* Times: none, single times, finite and infinite sets, and all times. *)
-let window_times =
+let schedule_times =
   let open Grade in
-  Windows.Times.bottom :: Windows.Times.top
-  :: List.map Windows.Times.of_lit
+  Schedules.Times.bottom :: Schedules.Times.top
+  :: List.map Schedules.Times.of_lit
        [
          Braces (Tick 0);
          Braces (Union (Tick 1, Tick 3));
@@ -2470,71 +2484,74 @@ let window_times =
        ]
 
 (* The times of the operations [A] and [B] and of the others, and the top. *)
-let window_times_by_name =
-  let times = Array.of_list window_times in
-  Windows.TimesByName.top
+let schedule_times_by_name =
+  let times = Array.of_list schedule_times in
+  Schedules.TimesByName.top
   :: List.concat_map
        (fun others ->
          List.concat_map
            (fun a ->
              List.map
                (fun b ->
-                 Indexed.of_list ~compare:Windows.Times.compare ~others
+                 Indexed.of_list ~compare:Schedules.Times.compare ~others
                    [ ("A", times.(a)); ("B", times.(b)) ])
                [ 0; 5 ])
            [ 0; 2; 3; 4 ])
        [ times.(0); times.(2) ]
 
-let windows_laws =
-  let module D = Windows.Durations in
+let schedule_laws =
+  let module D = Schedules.Durations in
   let context = "durations" in
   let shift =
     action_of_components
       (module D)
-      (module Windows.TimesByName)
-      Windows.ShiftByName.act bounds
+      (module Schedules.TimesByName)
+      Schedules.ShiftByName.act bounds
   in
-  let windows =
+  let schedules =
     List.concat_map
       (fun d ->
         List.map
           (fun e -> (d, e))
-          (List.filteri (fun i _ -> i < 5) window_times_by_name))
-      (List.filteri (fun i _ -> i < 4) window_durations)
+          (List.filteri (fun i _ -> i < 5) schedule_times_by_name))
+      (List.filteri (fun i _ -> i < 4) schedule_durations)
   in
-  semilattice_laws ~width:(List.length window_times)
-    (module Windows.Times)
-    window_times
+  semilattice_laws
+    ~width:(List.length schedule_times)
+    (module Schedules.Times)
+    schedule_times
   @ semilattice_laws
-      ~width:(List.length window_times_by_name)
-      (module Windows.TimesByName)
-      window_times_by_name
+      ~width:(List.length schedule_times_by_name)
+      (module Schedules.TimesByName)
+      schedule_times_by_name
   @ order_laws
-      ~width:(List.length window_durations)
+      ~width:(List.length schedule_durations)
       (module D)
-      ~context bounds window_durations
+      ~context bounds schedule_durations
   @ algebra_laws
-      ~width:(List.length window_durations)
+      ~width:(List.length schedule_durations)
       (module D)
-      ~context bounds window_durations
-  @ declared_laws (module D) ~context bounds window_durations
-  @ action_laws shift window_durations window_times_by_name
-  @ semidirect_laws (module Windows.TimeWindows) shift bounds windows
+      ~context bounds schedule_durations
+  @ declared_laws (module D) ~context bounds schedule_durations
+  @ action_laws shift schedule_durations schedule_times_by_name
+  @ semidirect_laws (module Schedules.WindowedSchedules) shift bounds schedules
 
-let peak_construction_laws =
-  let changes = List.init 5 (fun d -> Peak.Fin (d - 2)) in
+let resource_construction_laws =
+  let changes = List.init 5 (fun d -> Resources.Fin (d - 2)) in
   let context = "troughs, ranges and peaks from -1 to 1" in
-  half_laws (module Peak.Upper) (changes @ [ Peak.Plus_inf ])
-  @ half_laws (module Peak.Lower) (Peak.Minus_inf :: changes)
+  half_laws (module Resources.Upper) (changes @ [ Resources.Plus_inf ])
+  @ half_laws (module Resources.Lower) (Resources.Minus_inf :: changes)
   @ order_laws
       ~width:(List.length one_resource_grades)
-      (module Peak.OneResource)
+      (module Resources.OneResource)
       ~context bounds one_resource_grades
   @ algebra_laws
       ~width:(List.length one_resource_grades)
-      (module Peak.OneResource)
+      (module Resources.OneResource)
       ~context bounds one_resource_grades
-  @ declared_laws (module Peak.OneResource) ~context bounds one_resource_grades
+  @ declared_laws
+      (module Resources.OneResource)
+      ~context bounds one_resource_grades
 
 (* ------------------------------------------------------------------ *)
 (* Finite grades, on all their elements                                *)
@@ -2599,8 +2616,8 @@ let () =
   let checks =
     delay_laws @ levels @ products @ counterexamples @ witnesses @ literals
     @ tops @ registry @ registered_laws @ fractional_laws @ inclusion_laws
-    @ indexed @ mode_laws @ peak_laws @ interval_read_back @ windows_laws
-    @ peak_construction_laws @ finite_laws
+    @ indexed @ mode_laws @ resource_laws @ interval_read_back @ schedule_laws
+    @ resource_construction_laws @ finite_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;
