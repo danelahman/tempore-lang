@@ -67,3 +67,11 @@ include Grade.S with type Delay.t = Delay.Rational.t
 
 val automaton : t -> DelayAutomaton.t
 (** [automaton rho] is the language of [rho]. *)
+
+(** The same grade, named ["regex-upper-bound-rational-automata"]. *)
+module Automata : sig
+  include Grade.S with type t = t and type Delay.t = Delay.t
+
+  val automaton : t -> DelayAutomaton.t
+  (** [automaton rho] is the language of [rho]. *)
+end

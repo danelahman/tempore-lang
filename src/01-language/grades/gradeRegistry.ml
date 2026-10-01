@@ -70,11 +70,11 @@ let letter_automata_representation =
 let letter_automata_representation_short =
   "minimal automata over single letters"
 
-let rational_symbolic_representation =
+let rational_automata_representation =
   "minimal deterministic symbolic automata over letter sets and sets of \
    rational delays, built with the grade"
 
-let rational_symbolic_representation_short =
+let rational_automata_representation_short =
   "minimal symbolic automata over letter and delay sets"
 
 (* How inclusion is decided for the regular grades without running times, full
@@ -113,10 +113,10 @@ let letter_automata =
     inclusion_short = product_inclusion_short;
   }
 
-let rational_symbolic =
+let rational_automata =
   {
-    representation = rational_symbolic_representation;
-    representation_short = rational_symbolic_representation_short;
+    representation = rational_automata_representation;
+    representation_short = rational_automata_representation_short;
     inclusion = product_inclusion;
     inclusion_short = product_inclusion_short;
   }
@@ -183,9 +183,9 @@ let timed_letter_automata =
     inclusion_short = timed_product_inclusion_short;
   }
 
-let timed_rational_symbolic =
+let timed_rational_automata =
   {
-    rational_symbolic with
+    rational_automata with
     inclusion = timed_rational_inclusion;
     inclusion_short = timed_rational_inclusion_short;
   }
@@ -220,6 +220,24 @@ let timed_upper =
 let timed_interval =
   "Closed intervals [L, U] of a lower and an upper regular-language bound, \
    compared componentwise."
+
+let rational_languages =
+  "Regular languages of traces over rational delays and operations, ordered by \
+   inclusion; exact."
+
+let timed_lower_rational =
+  "Regular languages of traces over rational delays in the coverage order, \
+   operations counting at their lower running-time bounds, which may be \
+   fractional; exact."
+
+let timed_upper_rational =
+  "Regular languages of traces over rational delays in the allowance order, \
+   operations counting at their upper running-time bounds, which may be \
+   fractional; exact."
+
+let timed_interval_rational =
+  "Closed intervals [L, U] of a lower and an upper regular-language bound over \
+   rational delays, compared componentwise; exact."
 
 let entries =
   [
@@ -296,11 +314,12 @@ let entries =
     entry ~visibility:Hidden ~implementation:letter_automata
       (module RegularTraceGrade)
       regex "Upper bounds (letter automata)" regular_languages;
-    entry ~implementation:rational_symbolic
+    entry ~implementation:rational_automata
       (module RegularTraceGradeRational)
-      regex "Upper bounds (rational, symbolic)"
-      "Regular languages of traces over rational delays and operations, \
-       ordered by inclusion; exact.";
+      regex "Upper bounds (rational, symbolic)" rational_languages;
+    entry ~visibility:Hidden ~implementation:rational_automata
+      (module RegularTraceGradeRational.Automata)
+      regex "Upper bounds (rational, automata)" rational_languages;
     entry ~visibility:Hidden ~implementation:symbolic_by_letters
       (module RegularTraceGradeDerivative.Concrete)
       regex "Upper bounds (symbolic by letters)" regular_languages;
@@ -325,23 +344,24 @@ let entries =
     entry ~visibility:Hidden ~implementation:timed_letter_automata
       (module RegularTimedTraceGrades.Interval)
       regex_timed "Intervals (letter automata)" timed_interval;
-    entry ~implementation:timed_rational_symbolic
+    entry ~implementation:timed_rational_automata
       (module RegularTimedTraceGradesRational.Lower)
-      regex_timed "Lower bounds (rational, symbolic)"
-      "Regular languages of traces over rational delays in the coverage order, \
-       operations counting at their lower running-time bounds, which may be \
-       fractional; exact.";
-    entry ~implementation:timed_rational_symbolic
+      regex_timed "Lower bounds (rational, symbolic)" timed_lower_rational;
+    entry ~implementation:timed_rational_automata
       (module RegularTimedTraceGradesRational.Upper)
-      regex_timed "Upper bounds (rational, symbolic)"
-      "Regular languages of traces over rational delays in the allowance \
-       order, operations counting at their upper running-time bounds, which \
-       may be fractional; exact.";
-    entry ~implementation:timed_rational_symbolic
+      regex_timed "Upper bounds (rational, symbolic)" timed_upper_rational;
+    entry ~implementation:timed_rational_automata
       (module RegularTimedTraceGradesRational.Interval)
-      regex_timed "Intervals (rational, symbolic)"
-      "Closed intervals [L, U] of a lower and an upper regular-language bound \
-       over rational delays, compared componentwise; exact.";
+      regex_timed "Intervals (rational, symbolic)" timed_interval_rational;
+    entry ~visibility:Hidden ~implementation:timed_rational_automata
+      (module RegularTimedTraceGradesRational.Automata.Lower)
+      regex_timed "Lower bounds (rational, automata)" timed_lower_rational;
+    entry ~visibility:Hidden ~implementation:timed_rational_automata
+      (module RegularTimedTraceGradesRational.Automata.Upper)
+      regex_timed "Upper bounds (rational, automata)" timed_upper_rational;
+    entry ~visibility:Hidden ~implementation:timed_rational_automata
+      (module RegularTimedTraceGradesRational.Automata.Interval)
+      regex_timed "Intervals (rational, automata)" timed_interval_rational;
     entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
       (module RegularTimedTraceGrades.Concrete.Lower)
       regex_timed "Lower bounds (symbolic by letters)" timed_lower;

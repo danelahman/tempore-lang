@@ -1020,11 +1020,15 @@ let registry =
       ~expected:
         [
           "regex-upper-bound-letter-automata";
+          "regex-upper-bound-rational-automata";
           "regex-upper-bound-symbolic-by-letters";
           "regex-upper-bound-letter-derivatives";
           "regex-timed-lower-bound-letter-automata";
           "regex-timed-upper-bound-letter-automata";
           "regex-timed-interval-letter-automata";
+          "regex-timed-lower-bound-rational-automata";
+          "regex-timed-upper-bound-rational-automata";
+          "regex-timed-interval-rational-automata";
           "regex-timed-lower-bound-symbolic-by-letters";
           "regex-timed-upper-bound-symbolic-by-letters";
           "regex-timed-interval-symbolic-by-letters";

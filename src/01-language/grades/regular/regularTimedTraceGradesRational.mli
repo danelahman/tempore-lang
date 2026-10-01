@@ -95,3 +95,26 @@ module Interval :
   Grade.S
     with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t
      and type Delay.t = Delay.Rational.t
+
+(** The same grades over {!RegularTraceGradeRational.Automata}, named
+    ["regex-timed-lower-bound-rational-automata"],
+    ["regex-timed-upper-bound-rational-automata"] and
+    ["regex-timed-interval-rational-automata"]. *)
+module Automata : sig
+  module Lower :
+    Grade.S
+      with type t = RegularTraceGradeRational.Automata.t
+       and type Delay.t = Delay.Rational.t
+
+  module Upper :
+    Grade.S
+      with type t = RegularTraceGradeRational.Automata.t
+       and type Delay.t = Delay.Rational.t
+
+  module Interval :
+    Grade.S
+      with type t =
+        RegularTraceGradeRational.Automata.t
+        * RegularTraceGradeRational.Automata.t
+       and type Delay.t = Delay.Rational.t
+end
