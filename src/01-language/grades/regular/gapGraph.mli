@@ -12,7 +12,30 @@
     a transition by [N(r)] to a final operation state without transitions. The
     graph thus recognises the traces of [ρ] over the names, and has finitely
     many states, by the finiteness of the derivatives, whatever the delays of
-    [ρ]. *)
+    [ρ]. The construction reads the expressions only through {!EXPRESSION}. *)
+
+(** The expressions of a graph: their numbers, delays and gap derivatives. *)
+module type EXPRESSION = sig
+  type t
+
+  val hash : t -> int
+  (** [hash r] is the number of the normal form [r]. *)
+
+  val delays : t -> DelaySet.t
+  (** [delays r] is the set [N(r)] of the delays [d] such that the word [d] is
+      in [r]. *)
+
+  val gap_derivative : string -> t -> t GapMap.t
+  (** [gap_derivative a r] maps each delay [d] to the derivative of [r] by [d]
+      followed by the name [a]. *)
+end
+
+(** The graphs of the expressions of [R]. *)
+module Make (R : EXPRESSION) : sig
+  val graph : string list -> R.t -> DelayTimedClosure.graph
+  (** [graph names rho] is the graph of [rho] over [names], explored in full,
+      breadth-first from [rho]. *)
+end
 
 val graph : string list -> SymbolicRegex.t -> DelayTimedClosure.graph
 (** [graph names rho] is the graph of [rho] over [names], explored in full,

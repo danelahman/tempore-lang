@@ -675,60 +675,17 @@ struct
 
   type gaps = (DelaySet.t * t) list
 
-  (** [normalise entries] is the map of the pairs [entries], whose sets are
-      pairwise disjoint: the pairs of an empty set or of the empty language left
-      out, those of one expression merged. *)
-  let normalise entries =
-    let entries =
-      List.filter
-        (fun (n, e) -> not (DelaySet.is_empty n || is_empty_form e))
-        entries
-    in
-    let merge acc (n, e) =
-      match acc with
-      | (n', e') :: rest when equal_form e e' ->
-          (DelaySet.union n' n, e) :: rest
-      | _ -> (n, e) :: acc
-    in
-    List.rev
-      (List.fold_left merge []
-         (List.stable_sort (fun (_, e) (_, e') -> by_id e e') entries))
+  include GapMap.Make (struct
+    type nonrec t = t
 
-  let support f =
-    List.fold_left (fun acc (n, _) -> DelaySet.union acc n) DelaySet.empty f
-
-  (** [join f g] is the pointwise union of the maps [f] and [g]. *)
-  let join f g =
-    let sf = support f and sg = support g in
-    normalise
-      (List.concat_map
-         (fun (n, e) ->
-           List.map (fun (n', e') -> (DelaySet.inter n n', union [ e; e' ])) g)
-         f
-      @ List.map (fun (n, e) -> (DelaySet.diff n sg, e)) f
-      @ List.map (fun (n, e) -> (DelaySet.diff n sf, e)) g)
-
-  (** [meet f g] is the pointwise intersection of the maps [f] and [g]. *)
-  let meet f g =
-    normalise
-      (List.concat_map
-         (fun (n, e) ->
-           List.map (fun (n', e') -> (DelaySet.inter n n', inter [ e; e' ])) g)
-         f)
-
-  (** [complement f] is the pointwise complement of the map [f], an absent delay
-      being mapped to [Σ*]. *)
-  let complement f =
-    normalise
-      ((DelaySet.diff DelaySet.naturals (support f), top)
-      :: List.map (fun (n, e) -> (n, compl e)) f)
-
-  (** [shift n f] is the map of [f] with its sets of delays summed with [n], the
-      expressions of a delay reached from several entries joined by union. *)
-  let shift n f =
-    List.fold_left
-      (fun acc (n', e) -> join acc (normalise [ (DelaySet.sum n n', e) ]))
-      [] f
+    let universe = DelaySet.naturals
+    let empty = empty
+    let top = top
+    let union = union
+    let inter = inter
+    let compl = compl
+    let compare_form = compare_form
+  end)
 
   (* The gap derivatives computed, by the key of the block and the number of
      the expression. *)
@@ -760,11 +717,7 @@ struct
           (normalise (List.map (fun (n, e) -> (n, concat e r2)) (gap m r1)))
           (shift (delays r1) (gap m r2))
     | Union rs -> List.fold_left (fun f r -> join f (gap m r)) [] rs
-    | Inter rs ->
-        List.fold_left
-          (fun f r -> meet f (gap m r))
-          [ (DelaySet.naturals, top) ]
-          rs
+    | Inter rs -> List.fold_left (fun f r -> meet f (gap m r)) full rs
     | Compl r -> complement (gap m r)
     | Star r' ->
         shift
@@ -1017,57 +970,24 @@ struct
   module GapDecide (A : ALPHABET) = struct
     let blocks roots = List.map minterm (name_blocks (A.blocks roots))
 
-    (** [edges ms r] is the gap derivatives of [r] by the blocks of names [ms],
-        as triples of a set of delays, a block and an expression. *)
-    let edges ms r =
-      List.concat_map (fun m -> List.map (fun (n, e) -> (n, m, e)) (gap m r)) ms
+    include GapDecisions.Make (struct
+      type nonrec t = t
+      type block = minterm
+
+      let hash = hash
+      let empty = empty
+      let is_top = is_top
+      let inter = inter
+      let compl = compl
+      let nullable = nullable
+      let delays = delays
+      let gap = gap
+      let blocks = blocks
+    end)
 
     (** [weight n] is the number of letters of the shortest words [tickᵈ a],
         [d ∈ n]. *)
     let weight n = Option.get (least n) + 1
-
-    (* The emptiness of the expressions explored, by their numbers. *)
-    let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
-    let known_empty r = Hashtbl.find_opt emptiness r.id = Some true
-
-    (** [record r seen found] records [r] as not empty if [found], and otherwise
-        every expression of [seen] as empty. *)
-    let record r seen found =
-      if found then Hashtbl.replace emptiness r.id false
-      else Hashtbl.iter (fun id _ -> Hashtbl.replace emptiness id true) seen
-
-    (** [inhabited r] is whether some gap derivative of [r] has a delay, found
-        by depth-first exploration; the expressions known to be empty are not
-        explored. *)
-    let inhabited r =
-      let ms = blocks [ r ] in
-      let seen = Hashtbl.create 64 in
-      let push stack (_, _, e) =
-        if Hashtbl.mem seen e.id || known_empty e then stack
-        else begin
-          Hashtbl.add seen e.id ();
-          e :: stack
-        end
-      in
-      let rec go = function
-        | [] -> false
-        | d :: stack ->
-            d.nullable
-            || (not (DelaySet.is_empty (delays d)))
-            || go (List.fold_left push stack (edges ms d))
-      in
-      Hashtbl.add seen r.id ();
-      let found = (not (is_empty_form r)) && go [ r ] in
-      record r seen found;
-      found
-
-    let is_empty r =
-      match Hashtbl.find_opt emptiness r.id with
-      | Some e -> e
-      | None -> not (inhabited r)
-
-    let subset r s =
-      equal_form r s || is_top s || is_empty (inter [ r; compl s ])
 
     (** [forward ms r] explores the gap derivatives of [r] by Dijkstra's
         algorithm (Numer. Math. 1, 1959), a word [tickᵈ a] costing [d + 1]
@@ -1200,83 +1120,6 @@ struct
       if r.nullable then Some ([], 0)
       else if known_empty r then None
       else search r
-
-    (* The pairs of expressions compared, by their numbers, the lesser first. *)
-    let equalities : bool Pairs.t = Pairs.create 1024
-
-    (** [targets f g] is the pairs of the expressions that the maps [f] and [g]
-        map some delay to, an absent delay being mapped to the empty language.
-    *)
-    let targets f g =
-      let sf = support f and sg = support g in
-      let alone sg (n, e) =
-        if DelaySet.subset n sg then None else Some (e, empty)
-      in
-      List.concat_map
-        (fun (n, e) ->
-          List.filter_map
-            (fun (n', e') ->
-              if DelaySet.intersects n n' then Some (e, e') else None)
-            g)
-        f
-      @ List.filter_map (alone sg) f
-      @ List.filter_map
-          (fun entry -> Option.map (fun (e, e') -> (e', e)) (alone sf entry))
-          g
-
-    (** [bisimilar r s] is Hopcroft and Karp's algorithm (Cornell TR 1971) on
-        the gap derivatives: the pairs of gap derivatives of [r] and [s] by the
-        same words are explored breadth-first, the classes of the two
-        expressions of each pair merged in a union–find forest with path
-        compression, until two expressions of a pair differ in their delays or
-        no pair is left. *)
-    let bisimilar r s =
-      let ms = blocks [ r; s ] in
-      let parent = Hashtbl.create 64 in
-      let rec find x =
-        match Hashtbl.find_opt parent x with
-        | Some p ->
-            let root = find p in
-            Hashtbl.replace parent x root;
-            root
-        | None -> x
-      in
-      let queue = Queue.create () in
-      Queue.push (r, s) queue;
-      let rec go () =
-        match Queue.take_opt queue with
-        | None -> true
-        | Some (r, s) ->
-            let x = find r.id and y = find s.id in
-            if x = y then go ()
-            else if
-              r.nullable <> s.nullable
-              || not (DelaySet.equal (delays r) (delays s))
-            then false
-            else begin
-              Hashtbl.replace parent x y;
-              List.iter
-                (fun m ->
-                  List.iter
-                    (fun pair -> Queue.push pair queue)
-                    (targets (gap m r) (gap m s)))
-                ms;
-              go ()
-            end
-      in
-      go ()
-
-    let equal r s =
-      equal_form r s
-      || r.nullable = s.nullable
-         &&
-         let key = if r.id < s.id then (r.id, s.id) else (s.id, r.id) in
-         match Pairs.find_opt equalities key with
-         | Some e -> e
-         | None ->
-             let e = bisimilar r s in
-             Pairs.add equalities key e;
-             e
   end
 end
 
