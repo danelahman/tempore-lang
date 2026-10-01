@@ -2,7 +2,7 @@
   "name": "vscode-tempore",
   "displayName": "Tempore Language",
   "description": "Syntax highlighting for Tempore (.tpe) source files.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "tempore",
   "engines": {
     "vscode": "^1.60.0"
@@ -33,7 +33,11 @@
       {
         "language": "tempore",
         "scopeName": "source.tempore",
-        "path": "./syntaxes/tempore.tmLanguage.json"
+        "path": "./syntaxes/tempore.tmLanguage.json",
+        "tokenTypes": {
+          "punctuation.definition.interval.begin.tempore": "string",
+          "punctuation.definition.interval.end.tempore": "string"
+        }
       }
     ]
   }

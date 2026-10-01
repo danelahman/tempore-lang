@@ -6,10 +6,12 @@
   "patterns": [
     { "include": "#comment" },
     { "include": "#string" },
+    { "include": "#grade-literal" },
     { "include": "#operation-decl" },
     { "include": "#default-decl" },
     { "include": "#perform-call" },
     { "include": "#handler-block" },
+    { "include": "#interval" },
     { "include": "#number" },
     { "include": "#grade-constant" },
     { "include": "#keyword" },
@@ -66,7 +68,7 @@
     },
     "grade-constant": {
       "name": "constant.language.grade.tempore",
-      "match": "⊤|∞"
+      "match": "⊤|∞|≠"
     },
     "keyword": {
       "patterns": [
@@ -76,7 +78,11 @@
         },
         {
           "name": "keyword.other.tempore",
-          "match": "\\b(let|in|and|rec|fun|function|as|of|type|noneternal|operation|handler|box|unbox|delay|begin|end|if|then|else|match|with|run|handle|return|perform|continue|within|default)\\b"
+          "match": "\\b(let|in|and|rec|fun|function|as|of|type|noneternal|operation|handler|box|unbox|delay|begin|end|if|then|else|match|with|run|handle|perform|continue|within|default)\\b"
+        },
+        {
+          "name": "keyword.operator.word.tempore",
+          "match": "\\b(mod|or|land|lor|lxor|lsl|lsr|asr)\\b"
         }
       ]
     },
@@ -112,6 +118,8 @@
       },
       "end": "(?=^(let|run|operation|default|type|noneternal|and)\\b)",
       "patterns": [
+        { "include": "#comment" },
+        { "include": "#grade-literal" },
         {
           "match": "(\\|)\\s+([A-Z][A-Za-z0-9_']*)",
           "captures": {
@@ -124,6 +132,37 @@
     "type-param": {
       "name": "variable.other.generic-type.tempore",
       "match": "'[a-z_][a-zA-Z0-9_']*\\b"
+    },
+    "interval": {
+      "match": "([\\[(])(\\s*(?:[0-9][0-9_]*(?:\\.[0-9_]*)?(?:\\s*/\\s*[0-9][0-9_]*)?|∞)\\s*,\\s*(?:[0-9][0-9_]*(?:\\.[0-9_]*)?(?:\\s*/\\s*[0-9][0-9_]*)?|∞)\\s*)([\\])])",
+      "captures": {
+        "1": { "name": "punctuation.definition.interval.begin.tempore" },
+        "2": {
+          "patterns": [
+            { "include": "#number" },
+            { "include": "#grade-constant" }
+          ]
+        },
+        "3": { "name": "punctuation.definition.interval.end.tempore" }
+      }
+    },
+    "grade-literal": {
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.grade.begin.tempore" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.grade.end.tempore" }
+      },
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#grade-literal" },
+        { "include": "#interval" },
+        { "include": "#number" },
+        { "include": "#grade-constant" },
+        { "include": "#constructor" }
+      ]
     }
   }
 }
