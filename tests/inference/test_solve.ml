@@ -265,136 +265,137 @@ let rec tpe_files dir =
       else if Filename.check_suffix name ".tpe" then [ path ]
       else [])
 
-(* The lines of the commands the solver rejects, by file: every other command
-   of the examples and the tests is accepted. *)
+(* The lines of the commands the solver rejects, by file, a path relative to
+   the project root: every other command of the examples and the tests is
+   accepted. *)
 let expected_rejections =
   [
-    ("annotation_grade_variables_cyclic_reject.tpe", [ 14; 27 ]);
-    ("annotation_grade_variables_interval_reject.tpe", [ 24 ]);
-    ("annotation_grade_variables_reject.tpe", [ 10; 17 ]);
-    ("annotation_recursion_reject.tpe", [ 4; 8 ]);
-    ("basic_unbox.tpe", [ 20; 30 ]);
-    ("nested_reject.tpe", [ 18 ]);
-    ("comp_type_annotation_reject.tpe", [ 3 ]);
-    ("comparison_reject_box.tpe", [ 3 ]);
-    ("comparison_reject_function.tpe", [ 5 ]);
-    ("comp_type_annotation_upper_reject.tpe", [ 3 ]);
-    ("continuation_discard_abort_reject_lower.tpe", [ 13 ]);
-    ("continuation_discard_delay_reject_lower.tpe", [ 11 ]);
-    ("continuation_discard_reject_lower.tpe", [ 10 ]);
-    ("continuation_escape_reject.tpe", [ 11 ]);
-    ("continuation_nested_discard_reject_lower.tpe", [ 10 ]);
-    ("continuation_nested_escape_reject.tpe", [ 13 ]);
-    ("continuation_nested_twice_reject_upper.tpe", [ 11 ]);
-    ("continuation_twice_reject_upper.tpe", [ 10 ]);
-    ("counts_upper_reject.tpe", [ 7; 14; 19; 27 ]);
-    ("default_reject_bounds.tpe", [ 7 ]);
-    ("rational_time_intervals_reject.tpe", [ 9 ]);
-    ("rational_time_intervals_reject_within.tpe", [ 5 ]);
-    ("rational_time_lower_reject.tpe", [ 10; 14 ]);
-    ("rational_time_upper_reject.tpe", [ 7 ]);
-    ("rational_traces_intervals_default_open_reject.tpe", [ 10; 11 ]);
-    ("rational_traces_intervals_reject.tpe", [ 9 ]);
-    ("rational_traces_upper_open_reject.tpe", [ 8 ]);
-    ("rational_traces_upper_reject.tpe", [ 9 ]);
-    ("default_reject_cycle.tpe", [ 9 ]);
-    ("default_reject_duplicate.tpe", [ 8 ]);
-    ("default_reject_global.tpe", [ 11 ]);
-    ("default_reject_loop.tpe", [ 6 ]);
-    ("default_reject_type.tpe", [ 7 ]);
-    ("default_reject_unestablished.tpe", [ 18 ]);
-    ("error_apply_arg.tpe", [ 8 ]);
-    ("exhaustiveness_reject_bool.tpe", [ 3 ]);
-    ("exhaustiveness_reject_constructor.tpe", [ 5 ]);
-    ("exhaustiveness_reject_let.tpe", [ 3 ]);
-    ("exhaustiveness_reject_nat.tpe", [ 3 ]);
-    ("exhaustiveness_reject_nil.tpe", [ 3 ]);
-    ("exhaustiveness_reject_parameter.tpe", [ 3 ]);
-    ("exhaustiveness_reject_string.tpe", [ 3 ]);
-    ("error_earliest_failure.tpe", [ 11 ]);
-    ("error_handler_case.tpe", [ 7 ]);
-    ("error_unbox_nonvariable.tpe", [ 7 ]);
-    ("error_use_after_delay.tpe", [ 15 ]);
-    ("error_variant_arity.tpe", [ 12; 14; 16; 20 ]);
-    ("errors_multiple.tpe", [ 12; 14; 18 ]);
-    ("eternal_tyvars_reject_function.tpe", [ 9 ]);
-    ("eternal_tyvars_reject_handler.tpe", [ 12 ]);
-    ("eternal_tyvars_reject_higher_order.tpe", [ 9 ]);
-    ("eternal_tyvars_reject_noneternal.tpe", [ 11 ]);
-    ("invalid_match_type.tpe", [ 4 ]);
-    ("flow_levels_reject.tpe", [ 8; 13; 18; 26 ]);
-    ("iterative_unbox.tpe", [ 4 ]);
-    ("less_than_function.tpe", [ 1 ]);
-    ("levels_reject.tpe", [ 8 ]);
-    ("levels_time_lower_reject.tpe", [ 9; 16 ]);
-    ("levels_time_upper_reject.tpe", [ 9; 16 ]);
-    ("list_constructor_reject.tpe", [ 3 ]);
-    ("malformed_type_application.tpe", [ 4 ]);
-    ("mode_switch_costs_reject.tpe", [ 9; 12; 19; 24; 31 ]);
-    ("nat_reject_successor_pattern.tpe", [ 3; 5 ]);
-    ("noneternal_reject_after_delay.tpe", [ 10 ]);
-    ("noneternal_reject_alias.tpe", [ 5 ]);
-    ("noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
-    ("occurs_check.tpe", [ 1 ]);
-    ("occurs_check_related_annotation.tpe", [ 6 ]);
-    ("occurs_check_related_application.tpe", [ 7 ]);
-    ("occurs_check_related_pattern.tpe", [ 7 ]);
-    ("operation_reject_datatype.tpe", [ 5 ]);
-    ("operation_reject_higher_order.tpe", [ 8 ]);
-    ("plain_traces_upper_reject.tpe", [ 12; 18 ]);
-    ("polymorphism_id_id.tpe", [ 2 ]);
-    ("positivity_reject_list.tpe", [ 3 ]);
-    ("positivity_reject_mutual.tpe", [ 3 ]);
-    ("positivity_reject_nested.tpe", [ 3 ]);
-    ("positivity_reject_omega.tpe", [ 7 ]);
-    ("positivity_reject_parameter.tpe", [ 5 ]);
-    ("recursion_effect_reject_invariant.tpe", [ 7 ]);
-    ("recursion_effect_reject_lower.tpe", [ 7 ]);
-    ("recursion_effect_reject_unannotated.tpe", [ 7 ]);
-    ("recursion_effect_reject_unannotated_regular.tpe", [ 15 ]);
-    ("recursion_lock_reject.tpe", [ 8 ]);
-    ("regex_timed_interval_reject.tpe", [ 10; 17 ]);
-    ("regex_timed_interval_runs_reject.tpe", [ 11; 19 ]);
-    ("regex_timed_lower_reject.tpe", [ 11; 19; 26 ]);
-    ("regex_timed_lower_runs_reject.tpe", [ 10 ]);
-    ("regex_timed_rational_interval_default_open_reject.tpe", [ 9; 10 ]);
-    ("regex_timed_rational_interval_open_reject.tpe", [ 7 ]);
-    ("regex_timed_rational_interval_reject.tpe", [ 10; 18 ]);
-    ("regex_timed_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
-    ("regex_timed_rational_upper_open_reject.tpe", [ 9; 15 ]);
-    ("regex_timed_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
-    ("regex_timed_upper_open_reject.tpe", [ 9; 15 ]);
-    ("regex_timed_upper_reject.tpe", [ 11; 19; 27; 34 ]);
-    ("regex_timed_upper_runs_reject.tpe", [ 11; 17; 20 ]);
-    ("regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);
-    ("regular_reject_auth.tpe", [ 12; 19; 25 ]);
-    ("regular_reject_bounds.tpe", [ 4 ]);
-    ("regular_reject_counterexample.tpe", [ 13; 21 ]);
-    ("regular_reject_protocol.tpe", [ 9; 18 ]);
-    ("resource_levels_by_resource_reject.tpe", [ 11; 18; 28 ]);
-    ("resource_levels_reject.tpe", [ 9; 18; 27; 30; 38; 41; 49 ]);
-    ("termination_reject_ackermann.tpe", [ 4 ]);
-    ("termination_reject_countdown.tpe", [ 4 ]);
-    ("termination_reject_escape.tpe", [ 4 ]);
-    ("termination_reject_increasing.tpe", [ 3 ]);
-    ("termination_reject_loop.tpe", [ 3 ]);
-    ("termination_reject_spin.tpe", [ 3 ]);
-    ("time_reject_within.tpe", [ 6 ]);
-    ("traces_intervals_default_bounds.tpe", [ 9 ]);
-    ("traces_intervals_default_open_reject.tpe", [ 9; 10 ]);
-    ("traces_open_bounds_reject.tpe", [ 9; 15 ]);
-    ("traces_reject_allowance.tpe", [ 7 ]);
-    ("traces_reject_bounds.tpe", [ 4 ]);
-    ("traces_reject_bounds_declared.tpe", [ 6 ]);
-    ("traces_reject_bounds_zero.tpe", [ 4 ]);
-    ("traces_reject_default_bounds.tpe", [ 8 ]);
-    ("traces_reject_default_nonatomic.tpe", [ 14 ]);
-    ("traces_reject_missing_within.tpe", [ 5 ]);
-    ("traces_reject_order.tpe", [ 13 ]);
-    ("traces_reject_self_retry.tpe", [ 6 ]);
-    ("traces_reject_undecided_condition.tpe", [ 15 ]);
-    ("traces_reject_unknown_event.tpe", [ 6 ]);
-    ("windowed_schedules_reject.tpe", [ 7; 12; 17; 25; 32 ]);
+    ("tests/annotation_grade_variables_cyclic_reject.tpe", [ 14; 27 ]);
+    ("tests/annotation_grade_variables_interval_reject.tpe", [ 24 ]);
+    ("tests/annotation_grade_variables_reject.tpe", [ 10; 17 ]);
+    ("tests/annotation_recursion_reject.tpe", [ 4; 8 ]);
+    ("examples/basics/basic_unbox.tpe", [ 20; 30 ]);
+    ("examples/handlers/nested_reject.tpe", [ 18 ]);
+    ("tests/comp_type_annotation_reject.tpe", [ 3 ]);
+    ("tests/comparison_reject_box.tpe", [ 3 ]);
+    ("tests/comparison_reject_function.tpe", [ 5 ]);
+    ("tests/comp_type_annotation_upper_reject.tpe", [ 3 ]);
+    ("tests/continuation_discard_abort_reject_lower.tpe", [ 13 ]);
+    ("tests/continuation_discard_delay_reject_lower.tpe", [ 11 ]);
+    ("tests/continuation_discard_reject_lower.tpe", [ 10 ]);
+    ("tests/continuation_escape_reject.tpe", [ 11 ]);
+    ("tests/continuation_nested_discard_reject_lower.tpe", [ 10 ]);
+    ("tests/continuation_nested_escape_reject.tpe", [ 13 ]);
+    ("tests/continuation_nested_twice_reject_upper.tpe", [ 11 ]);
+    ("tests/continuation_twice_reject_upper.tpe", [ 10 ]);
+    ("tests/counts_upper_reject.tpe", [ 7; 14; 19; 27 ]);
+    ("tests/default_reject_bounds.tpe", [ 7 ]);
+    ("tests/rational_time_intervals_reject.tpe", [ 9 ]);
+    ("tests/rational_time_intervals_reject_within.tpe", [ 5 ]);
+    ("tests/rational_time_lower_reject.tpe", [ 10; 14 ]);
+    ("tests/rational_time_upper_reject.tpe", [ 7 ]);
+    ("tests/rational_traces_intervals_default_open_reject.tpe", [ 10; 11 ]);
+    ("tests/rational_traces_intervals_reject.tpe", [ 9 ]);
+    ("tests/rational_traces_upper_open_reject.tpe", [ 8 ]);
+    ("tests/rational_traces_upper_reject.tpe", [ 9 ]);
+    ("tests/default_reject_cycle.tpe", [ 9 ]);
+    ("tests/default_reject_duplicate.tpe", [ 8 ]);
+    ("tests/default_reject_global.tpe", [ 11 ]);
+    ("tests/default_reject_loop.tpe", [ 6 ]);
+    ("tests/default_reject_type.tpe", [ 7 ]);
+    ("tests/default_reject_unestablished.tpe", [ 18 ]);
+    ("tests/error_apply_arg.tpe", [ 8 ]);
+    ("tests/exhaustiveness_reject_bool.tpe", [ 3 ]);
+    ("tests/exhaustiveness_reject_constructor.tpe", [ 5 ]);
+    ("tests/exhaustiveness_reject_let.tpe", [ 3 ]);
+    ("tests/exhaustiveness_reject_nat.tpe", [ 3 ]);
+    ("tests/exhaustiveness_reject_nil.tpe", [ 3 ]);
+    ("tests/exhaustiveness_reject_parameter.tpe", [ 3 ]);
+    ("tests/exhaustiveness_reject_string.tpe", [ 3 ]);
+    ("tests/error_earliest_failure.tpe", [ 11 ]);
+    ("tests/error_handler_case.tpe", [ 7 ]);
+    ("tests/error_unbox_nonvariable.tpe", [ 7 ]);
+    ("tests/error_use_after_delay.tpe", [ 15 ]);
+    ("tests/error_variant_arity.tpe", [ 12; 14; 16; 20 ]);
+    ("tests/errors_multiple.tpe", [ 12; 14; 18 ]);
+    ("tests/eternal_tyvars_reject_function.tpe", [ 9 ]);
+    ("tests/eternal_tyvars_reject_handler.tpe", [ 12 ]);
+    ("tests/eternal_tyvars_reject_higher_order.tpe", [ 9 ]);
+    ("tests/eternal_tyvars_reject_noneternal.tpe", [ 11 ]);
+    ("tests/invalid_match_type.tpe", [ 4 ]);
+    ("tests/flow_levels_reject.tpe", [ 8; 13; 18; 26 ]);
+    ("tests/iterative_unbox.tpe", [ 4 ]);
+    ("tests/less_than_function.tpe", [ 1 ]);
+    ("tests/levels_reject.tpe", [ 8 ]);
+    ("tests/levels_time_lower_reject.tpe", [ 9; 16 ]);
+    ("tests/levels_time_upper_reject.tpe", [ 9; 16 ]);
+    ("tests/list_constructor_reject.tpe", [ 3 ]);
+    ("tests/malformed_type_application.tpe", [ 4 ]);
+    ("tests/mode_switch_costs_reject.tpe", [ 9; 12; 19; 24; 31 ]);
+    ("tests/nat_reject_successor_pattern.tpe", [ 3; 5 ]);
+    ("tests/noneternal_reject_after_delay.tpe", [ 10 ]);
+    ("tests/noneternal_reject_alias.tpe", [ 5 ]);
+    ("tests/noneternal_reject_unknown_grade.tpe", [ 17; 34 ]);
+    ("tests/occurs_check.tpe", [ 1 ]);
+    ("tests/occurs_check_related_annotation.tpe", [ 6 ]);
+    ("tests/occurs_check_related_application.tpe", [ 7 ]);
+    ("tests/occurs_check_related_pattern.tpe", [ 7 ]);
+    ("tests/operation_reject_datatype.tpe", [ 5 ]);
+    ("tests/operation_reject_higher_order.tpe", [ 8 ]);
+    ("tests/plain_traces_upper_reject.tpe", [ 12; 18 ]);
+    ("tests/polymorphism_id_id.tpe", [ 2 ]);
+    ("tests/positivity_reject_list.tpe", [ 3 ]);
+    ("tests/positivity_reject_mutual.tpe", [ 3 ]);
+    ("tests/positivity_reject_nested.tpe", [ 3 ]);
+    ("tests/positivity_reject_omega.tpe", [ 7 ]);
+    ("tests/positivity_reject_parameter.tpe", [ 5 ]);
+    ("tests/recursion_effect_reject_invariant.tpe", [ 7 ]);
+    ("tests/recursion_effect_reject_lower.tpe", [ 7 ]);
+    ("tests/recursion_effect_reject_unannotated.tpe", [ 7 ]);
+    ("tests/recursion_effect_reject_unannotated_regular.tpe", [ 15 ]);
+    ("tests/recursion_lock_reject.tpe", [ 8 ]);
+    ("tests/regex_timed_interval_reject.tpe", [ 10; 17 ]);
+    ("tests/regex_timed_interval_runs_reject.tpe", [ 11; 19 ]);
+    ("tests/regex_timed_lower_reject.tpe", [ 11; 19; 26 ]);
+    ("tests/regex_timed_lower_runs_reject.tpe", [ 10 ]);
+    ("tests/regex_timed_rational_interval_default_open_reject.tpe", [ 9; 10 ]);
+    ("tests/regex_timed_rational_interval_open_reject.tpe", [ 7 ]);
+    ("tests/regex_timed_rational_interval_reject.tpe", [ 10; 18 ]);
+    ("tests/regex_timed_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
+    ("tests/regex_timed_rational_upper_open_reject.tpe", [ 9; 15 ]);
+    ("tests/regex_timed_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
+    ("tests/regex_timed_upper_open_reject.tpe", [ 9; 15 ]);
+    ("tests/regex_timed_upper_reject.tpe", [ 11; 19; 27; 34 ]);
+    ("tests/regex_timed_upper_runs_reject.tpe", [ 11; 17; 20 ]);
+    ("tests/regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);
+    ("tests/regular_reject_auth.tpe", [ 12; 19; 25 ]);
+    ("tests/regular_reject_bounds.tpe", [ 4 ]);
+    ("tests/regular_reject_counterexample.tpe", [ 13; 21 ]);
+    ("tests/regular_reject_protocol.tpe", [ 9; 18 ]);
+    ("tests/resource_levels_by_resource_reject.tpe", [ 11; 18; 28 ]);
+    ("tests/resource_levels_reject.tpe", [ 9; 18; 27; 30; 38; 41; 49 ]);
+    ("tests/termination_reject_ackermann.tpe", [ 4 ]);
+    ("tests/termination_reject_countdown.tpe", [ 4 ]);
+    ("tests/termination_reject_escape.tpe", [ 4 ]);
+    ("tests/termination_reject_increasing.tpe", [ 3 ]);
+    ("tests/termination_reject_loop.tpe", [ 3 ]);
+    ("tests/termination_reject_spin.tpe", [ 3 ]);
+    ("tests/time_reject_within.tpe", [ 6 ]);
+    ("tests/traces_intervals_default_bounds.tpe", [ 9 ]);
+    ("tests/traces_intervals_default_open_reject.tpe", [ 9; 10 ]);
+    ("tests/traces_open_bounds_reject.tpe", [ 9; 15 ]);
+    ("tests/traces_reject_allowance.tpe", [ 7 ]);
+    ("tests/traces_reject_bounds.tpe", [ 4 ]);
+    ("tests/traces_reject_bounds_declared.tpe", [ 6 ]);
+    ("tests/traces_reject_bounds_zero.tpe", [ 4 ]);
+    ("tests/traces_reject_default_bounds.tpe", [ 8 ]);
+    ("tests/traces_reject_default_nonatomic.tpe", [ 14 ]);
+    ("tests/traces_reject_missing_within.tpe", [ 5 ]);
+    ("tests/traces_reject_order.tpe", [ 13 ]);
+    ("tests/traces_reject_self_retry.tpe", [ 6 ]);
+    ("tests/traces_reject_undecided_condition.tpe", [ 15 ]);
+    ("tests/traces_reject_unknown_event.tpe", [ 6 ]);
+    ("tests/windowed_schedules_reject.tpe", [ 7; 12; 17; 25; 32 ]);
   ]
 
 let slow = ref []
@@ -403,6 +404,13 @@ let slow = ref []
    [None] when it does not parse or desugar. *)
 let check path grades =
   let name = Filename.basename path in
+  let root = "../../" in
+  let key =
+    if String.starts_with ~prefix:root path then
+      String.sub path (String.length root)
+        (String.length path - String.length root)
+    else path
+  in
   match file_verdicts path grades with
   | None, _ -> None
   | Some verdicts, time ->
@@ -419,10 +427,10 @@ let check path grades =
         List.filter_map (fun v -> if v.ok then None else Some v.line) verdicts
       in
       let expected =
-        Option.value (List.assoc_opt name expected_rejections) ~default:[]
+        Option.value (List.assoc_opt key expected_rejections) ~default:[]
       in
       if rejected <> expected then
-        fail "%s: rejects lines [%s], expected [%s]" name
+        fail "%s: rejects lines [%s], expected [%s]" key
           (String.concat "; " (List.map string_of_int rejected))
           (String.concat "; " (List.map string_of_int expected));
       Some verdicts
