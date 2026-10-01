@@ -70,13 +70,15 @@ module Explore (State : Map.OrderedType) = struct
     k > k' && State.compare (m.leap y (k - k')) x = 0
 
   (** [reachable next s] is the set of the states reachable from the set [s] by
-      [next], by depth-first search. *)
+      [next], by depth-first search with an explicit stack, in a constant depth
+      of the call stack. *)
   let reachable next s =
-    let rec visit seen q =
-      if States.mem q seen then seen
-      else List.fold_left visit (States.add q seen) (next q)
+    let rec visit seen = function
+      | [] -> seen
+      | q :: stack when States.mem q seen -> visit seen stack
+      | q :: stack -> visit (States.add q seen) (List.rev_append (next q) stack)
     in
-    States.fold (fun q seen -> visit seen q) s States.empty
+    visit States.empty (States.elements s)
 end
 
 module Allowance (State : Map.OrderedType) = struct
