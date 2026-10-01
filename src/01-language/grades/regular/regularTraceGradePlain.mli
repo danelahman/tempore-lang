@@ -1,6 +1,7 @@
 (** The regular trace grade decided by plain derivatives,
-    ["regex-upper-bound-plain"]: {!RegularTraceGradeDerivative.Concrete} with
-    single letters in place of letter sets.
+    ["regex-upper-bound-letter-derivatives"]:
+    {!RegularTraceGradeDerivative.Concrete} with single letters in place of
+    letter sets.
 
     The grade is that of {!RegularTraceGrade}, with the same runs, alphabet,
     order, operations, literals, runtime bounds and printing; only the

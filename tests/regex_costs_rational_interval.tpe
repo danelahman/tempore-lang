@@ -1,4 +1,4 @@
-(* Accepted under the 'regex-cost-interval-rational' grading monoid:
+(* Accepted under the 'regex-cost-interval-rational-symbolic' grading monoid:
    intervals of a regular lower bound over rational delays, at the fractional
    lower running-time bounds, and a regular upper bound, at the upper ones. *)
 

@@ -1,5 +1,5 @@
 (* Correctly rejected by the typechecker, under the
-   'regex-cost-interval-rational' grading monoid: the grades of the
+   'regex-cost-interval-rational-symbolic' grading monoid: the grades of the
    running-time bounds [1, 2) and (1, 2] have open ends, so a default
    implementation taking exactly the open end is rejected by them. *)
 

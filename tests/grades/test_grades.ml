@@ -888,9 +888,9 @@ let registry =
           "time-interval-rational";
           "traces-cost-interval";
           "traces-cost-interval-rational";
-          "regex-cost-interval";
           "regex-cost-interval-symbolic";
-          "regex-cost-interval-rational";
+          "regex-cost-interval-letter-automata";
+          "regex-cost-interval-rational-symbolic";
           "windowed-schedules";
         ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
@@ -899,9 +899,9 @@ let registry =
         [
           "traces-cost-interval";
           "traces-cost-interval-rational";
-          "regex-cost-interval";
           "regex-cost-interval-symbolic";
-          "regex-cost-interval-rational";
+          "regex-cost-interval-letter-automata";
+          "regex-cost-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting
          (span (Grade.Braces (Grade.Letter "A"))
@@ -917,9 +917,9 @@ let registry =
           "time-interval";
           "time-interval-rational";
           "traces-cost-interval";
-          "regex-cost-interval";
           "regex-cost-interval-symbolic";
-          "regex-cost-interval-rational";
+          "regex-cost-interval-letter-automata";
+          "regex-cost-interval-rational-symbolic";
           "resource-levels";
           "windowed-schedules";
         ]
@@ -936,10 +936,10 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
-          "regex-upper-bound-rational";
-          "regex-cost-lower-bound-rational";
-          "regex-cost-upper-bound-rational";
-          "regex-cost-interval-rational";
+          "regex-upper-bound-rational-symbolic";
+          "regex-cost-lower-bound-rational-symbolic";
+          "regex-cost-upper-bound-rational-symbolic";
+          "regex-cost-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
     expect "registry: grades reading a fractional delay in braces" show_names
@@ -949,10 +949,10 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
-          "regex-upper-bound-rational";
-          "regex-cost-lower-bound-rational";
-          "regex-cost-upper-bound-rational";
-          "regex-cost-interval-rational";
+          "regex-upper-bound-rational-symbolic";
+          "regex-cost-lower-bound-rational-symbolic";
+          "regex-cost-upper-bound-rational-symbolic";
+          "regex-cost-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
     expect "registry: grades reading fractional runtime bounds" show_names
@@ -961,9 +961,9 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
-          "regex-cost-lower-bound-rational";
-          "regex-cost-upper-bound-rational";
-          "regex-cost-interval-rational";
+          "regex-cost-lower-bound-rational-symbolic";
+          "regex-cost-upper-bound-rational-symbolic";
+          "regex-cost-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting_bounds (Grade.Rat (Rational.make 1 2)));
     expect "registry: grades with a fractional delay" show_names
@@ -976,10 +976,10 @@ let registry =
           "traces-cost-lower-bound-rational";
           "traces-cost-upper-bound-rational";
           "traces-cost-interval-rational";
-          "regex-upper-bound-rational";
-          "regex-cost-lower-bound-rational";
-          "regex-cost-upper-bound-rational";
-          "regex-cost-interval-rational";
+          "regex-upper-bound-rational-symbolic";
+          "regex-cost-lower-bound-rational-symbolic";
+          "regex-cost-upper-bound-rational-symbolic";
+          "regex-cost-interval-rational-symbolic";
           "security-levels";
           "flow-levels";
         ]
@@ -997,27 +997,27 @@ let registry =
     expect "registry: grades reading a repetition" show_names
       ~expected:
         [
-          "regex-upper-bound";
           "regex-upper-bound-symbolic";
-          "regex-upper-bound-rational";
-          "regex-cost-lower-bound";
-          "regex-cost-upper-bound";
-          "regex-cost-interval";
+          "regex-upper-bound-letter-automata";
+          "regex-upper-bound-rational-symbolic";
           "regex-cost-lower-bound-symbolic";
           "regex-cost-upper-bound-symbolic";
           "regex-cost-interval-symbolic";
-          "regex-cost-lower-bound-rational";
-          "regex-cost-upper-bound-rational";
-          "regex-cost-interval-rational";
+          "regex-cost-lower-bound-letter-automata";
+          "regex-cost-upper-bound-letter-automata";
+          "regex-cost-interval-letter-automata";
+          "regex-cost-lower-bound-rational-symbolic";
+          "regex-cost-upper-bound-rational-symbolic";
+          "regex-cost-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
     expect "registry: grades reading an interval of delays" show_names
       ~expected:
         [
-          "regex-upper-bound-rational";
-          "regex-cost-lower-bound-rational";
-          "regex-cost-upper-bound-rational";
-          "regex-cost-interval-rational";
+          "regex-upper-bound-rational-symbolic";
+          "regex-cost-lower-bound-rational-symbolic";
+          "regex-cost-upper-bound-rational-symbolic";
+          "regex-cost-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting
          (Grade.Braces
@@ -1026,20 +1026,33 @@ let registry =
     expect "registry: grades offered by the CLI only" show_names
       ~expected:
         [
-          "regex-upper-bound-derivatives";
-          "regex-upper-bound-plain";
-          "regex-cost-lower-bound-derivatives";
-          "regex-cost-upper-bound-derivatives";
-          "regex-cost-interval-derivatives";
-          "regex-cost-lower-bound-plain";
-          "regex-cost-upper-bound-plain";
-          "regex-cost-interval-plain";
+          "regex-upper-bound-symbolic-by-letters";
+          "regex-upper-bound-letter-derivatives";
+          "regex-cost-lower-bound-symbolic-by-letters";
+          "regex-cost-upper-bound-symbolic-by-letters";
+          "regex-cost-interval-symbolic-by-letters";
+          "regex-cost-lower-bound-letter-derivatives";
+          "regex-cost-upper-bound-letter-derivatives";
+          "regex-cost-interval-letter-derivatives";
         ]
       (List.concat_map
          (fun (g : GradeRegistry.group) ->
            List.filter_map
              (fun (name, (info : GradeRegistry.info)) ->
                if info.visibility = Cli_only then Some name else None)
+             g.grades)
+         GradeRegistry.groups);
+    expect "registry: the regular grades describe their implementations"
+      show_names
+      ~expected:
+        (List.filter
+           (fun name -> String.starts_with ~prefix:"regex-" name)
+           (List.map fst GradeRegistry.grade_modules))
+      (List.concat_map
+         (fun (g : GradeRegistry.group) ->
+           List.filter_map
+             (fun (name, (info : GradeRegistry.info)) ->
+               Option.map (fun _ -> name) info.implementation)
              g.grades)
          GradeRegistry.groups);
     expect "registry: distinct groups have distinct short forms" show_names
@@ -1485,8 +1498,10 @@ let family name =
   | "counts-upper-bound" -> Some Counts
   | "traces-upper-bound" -> Some Inclusion_traces
   | "traces-upper-bound-rational" -> Some Rational_inclusion_traces
-  | "regex-upper-bound-rational" -> Some Rational_regex
-  | _ when prefix "regex-cost-" && String.ends_with ~suffix:"-rational" name ->
+  | "regex-upper-bound-rational-symbolic" -> Some Rational_regex
+  | _
+    when prefix "regex-cost-"
+         && String.ends_with ~suffix:"-rational-symbolic" name ->
       Some Rational_regex_costs
   | _ when prefix "regex-" -> Some Regex
   | _ when prefix "traces-" && String.ends_with ~suffix:"-rational" name ->

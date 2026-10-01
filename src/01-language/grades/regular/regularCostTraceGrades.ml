@@ -433,7 +433,7 @@ include
   Make
     (Automata)
     (struct
-      let suffix = ""
+      let suffix = "-letter-automata"
     end)
 
 module Symbolic =
@@ -447,12 +447,12 @@ module Concrete =
   Make
     (ConcreteDerivatives)
     (struct
-      let suffix = "-derivatives"
+      let suffix = "-symbolic-by-letters"
     end)
 
 module Plain =
   Make
     (PlainDerivatives)
     (struct
-      let suffix = "-plain"
+      let suffix = "-letter-derivatives"
     end)

@@ -1,7 +1,7 @@
 (* Correctly rejected by the typechecker, under the
-   'regex-cost-upper-bound-rational' grading monoid: a sample within [1/2, 2]
-   may take 2 time units, which no delay of [0, 2) permits, and a default of
-   exactly 2 exceeds [1/2, 2). *)
+   'regex-cost-upper-bound-rational-symbolic' grading monoid: a sample within
+   [1/2, 2] may take 2 time units, which no delay of [0, 2) permits, and a
+   default of exactly 2 exceeds [1/2, 2). *)
 
 operation Sample : unit ~> unit # {Sample} within [1/2, 2]
 operation Beep : unit ~> unit # {Beep} within [1/2, 2)

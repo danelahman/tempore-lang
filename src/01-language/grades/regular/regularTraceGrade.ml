@@ -9,7 +9,7 @@ type t = { names : string list; dfa : Dfa.t; expression : SymbolicRegex.t }
    denotes the same language: it is built alongside [dfa] by the operations of
    {!RegularTraceGradeDerivative}, and read only by the printing. *)
 
-let name = "regex-upper-bound"
+let name = "regex-upper-bound-letter-automata"
 let tick = 0
 let other names = List.length names + 1
 let size names = List.length names + 2

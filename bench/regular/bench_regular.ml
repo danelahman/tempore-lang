@@ -1,19 +1,20 @@
 (* A benchmark of the four implementations of the regular trace grade, and of
    the cost-model regular trace grades over each: by automata
-   ([RegularTraceGrade], "regex-upper-bound"), by plain derivatives of expressions
-   over single letters ([RegularTraceGradePlain], "regex-upper-bound-plain"), by
-   derivatives by letters of expressions over letter sets
-   ([RegularTraceGradeDerivative.Concrete], "regex-upper-bound-derivatives"), and by
-   symbolic derivatives by minterms ([RegularTraceGradeDerivative],
-   "regex-upper-bound-symbolic"); the cost-model grades are "regex-cost-upper-bound"
-   and the others, with the same suffixes. Consecutive implementations differ
-   in one design choice each: the construction (automata or derivatives), the
-   representation of letters (single letters or letter sets) and the letters
-   derived by (letters or minterms). The workloads are the grade operations on
-   families of grades of increasing size, and the typechecking of the programs
-   that use the grades, the standard library included. A last table times the
-   rational grade "regex-upper-bound-rational" on grades whose sets of delays
-   have long finite parts.
+   ([RegularTraceGrade], "regex-upper-bound-letter-automata"), by plain
+   derivatives of expressions over single letters ([RegularTraceGradePlain],
+   "regex-upper-bound-letter-derivatives"), by derivatives by letters of
+   expressions over letter sets ([RegularTraceGradeDerivative.Concrete],
+   "regex-upper-bound-symbolic-by-letters"), and by symbolic derivatives by
+   minterms ([RegularTraceGradeDerivative], "regex-upper-bound-symbolic"); the
+   cost-model grades are "regex-cost-upper-bound" and the others, with the same
+   suffixes. Consecutive implementations differ in one design choice each: the
+   construction (automata or derivatives), the representation of letters (single
+   letters or letter sets) and the letters derived by (letters or minterms). The
+   workloads are the grade operations on families of grades of increasing size,
+   and the typechecking of the programs that use the grades, the standard
+   library included. A last table times the rational grade
+   "regex-upper-bound-rational-symbolic" on grades whose sets of delays have
+   long finite parts.
 
    Each measurement runs in a fresh child process, so that the tables of the
    derivatives start empty: it prepares its inputs untimed, then times the
@@ -700,8 +701,8 @@ let rec tables = function
 
 (** {1 Slow delay sets of the rational grade} *)
 
-(* The grades of "regex-upper-bound-rational" whose sets of delays have long
-   finite parts before their periodic tails (see the costs stated in the
+(* The grades of "regex-upper-bound-rational-symbolic" whose sets of delays have
+   long finite parts before their periodic tails (see the costs stated in the
    interface of [DelaySet]): sums and repetitions of large nearly coprime
    constants, and a point with a narrow interval; and grades of the same shape
    that stay fast. Each workload reads the grade and decides whether a delay is
@@ -745,7 +746,9 @@ module Rational = struct
 
   let table () =
     Printf.printf
-      "\nSlow delay sets of regex-upper-bound-rational (limit %d s):\n\n" limit;
+      "\n\
+       Slow delay sets of regex-upper-bound-rational-symbolic (limit %d s):\n\n"
+      limit;
     print_row "workload" [ "cold"; "warm" ];
     Printf.printf "|%s|%s\n" (String.make 42 '-')
       (String.concat "" (List.map (Fun.const "------------|") [ (); () ]));

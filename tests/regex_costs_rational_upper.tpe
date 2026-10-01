@@ -1,6 +1,6 @@
-(* Accepted under the 'regex-cost-upper-bound-rational' grading monoid: regular
-   upper bounds over rational delays whose delays pay for operations at their
-   fractional upper running-time bounds, with intervals of delays and
+(* Accepted under the 'regex-cost-upper-bound-rational-symbolic' grading monoid:
+   regular upper bounds over rational delays whose delays pay for operations at
+   their fractional upper running-time bounds, with intervals of delays and
    complements. *)
 
 type token = Token of string

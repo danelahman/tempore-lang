@@ -1,5 +1,6 @@
-(* Accepted under the 'regex-cost-upper-bound' grading monoid: regular upper bounds
-   whose delays pay for operations at their upper running-time bounds. *)
+(* Accepted under the 'regex-cost-upper-bound-letter-automata' grading monoid:
+   regular upper bounds whose delays pay for operations at their upper
+   running-time bounds. *)
 
 type token = Token of string
 

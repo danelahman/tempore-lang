@@ -178,5 +178,5 @@ module Concrete =
   Make
     (R.Concrete)
     (struct
-      let name = "regex-upper-bound-derivatives"
+      let name = "regex-upper-bound-symbolic-by-letters"
     end)

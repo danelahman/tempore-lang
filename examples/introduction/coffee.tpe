@@ -1,8 +1,8 @@
 (* A café whose coffee is served once it has brewed, timed in minutes.
 
-   Run this example with the 'regex-upper-bound-rational' grading monoid, e.g.
+   Run this example with the 'regex-upper-bound-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-upper-bound-rational examples/introduction/coffee.tpe
+     ./tempore --grades regex-upper-bound-rational-symbolic examples/introduction/coffee.tpe
 
    Grades {...}: regular languages of traces over operations and rational delays
      - Unit {0}: the empty trace

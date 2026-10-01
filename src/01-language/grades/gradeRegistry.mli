@@ -25,15 +25,40 @@ type visibility =
   | Cli_only
       (** By the CLI only, e.g. the implementations kept for comparison *)
 
+type implementation = {
+  structure : string;
+      (** The data structure representing a grade, e.g. ["derivatives"]. *)
+  labels : string;  (** What labels the structure, e.g. ["single letters"]. *)
+  inclusion : string;
+      (** How the structure is explored and inclusion decided, e.g.
+          ["inclusion by breadth-first search of the product with the
+           complement"]. *)
+  summary : string;
+      (** A short form of the three fields above, e.g.
+          ["minimal automata over single letters; inclusion by product search"];
+          shown below the grade's title by [--help]. *)
+}
+(** How a regular grade is decided. *)
+
+val decided_by : implementation -> string
+(** [decided_by i] is the sentence ["Decided by "] followed by the fields
+    [structure], [labels] and [inclusion] of [i], e.g.
+    ["Decided by minimal deterministic automata over single letters, inclusion
+     by breadth-first search of the product with the complement."]. *)
+
 type info = {
   title : string;
       (** A short descriptive name, e.g. ["Upper bounds"]; shown as the web
           selector's option text and, alongside the CLI name, by [--help]. *)
   description : string;
-      (** One line describing the grade, e.g.
+      (** One line saying what the grades are, e.g.
           ["At most n time steps; the unit 0 is least."]; shown as the web
           selector's option tooltip. *)
   visibility : visibility;  (** Where the grade is offered. *)
+  implementation : implementation option;
+      (** How the grade is decided, for the regular grades, and [None] for the
+          others; shown by [--help] as its [summary] and by the web selector's
+          option tooltip, after the description, as {!decided_by}. *)
 }
 (** Descriptive metadata about a grade, shown next to its CLI name (a key of
     {!grade_modules}) by the web interface's selector and the CLI's [--help], in

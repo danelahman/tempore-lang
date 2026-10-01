@@ -9,13 +9,13 @@
     rational delays, adjacent delays added. The orders on single runs are
     allowance and coverage, as characterised in {!DelayCostClosure}. A grade is
     ordered below another through the closure of the greater one:
-    - upper bounds, ["regex-cost-upper-bound-rational"]: [ρ ≾ ρ'] iff every run
+    - upper bounds, ["regex-cost-upper-bound-rational-symbolic"]: [ρ ≾ ρ'] iff every run
       of [ρ] is permitted by some run of [ρ'], i.e. [ρ ⊆ ↓ρ'], operations
       costing their upper runtime bound [hi];
-    - lower bounds, ["regex-cost-lower-bound-rational"]: [ρ ≾ ρ'] iff every run
+    - lower bounds, ["regex-cost-lower-bound-rational-symbolic"]: [ρ ≾ ρ'] iff every run
       of [ρ] covers some run of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations costing their
       lower runtime bound [lo];
-    - intervals, ["regex-cost-interval-rational"]: closed intervals of a lower
+    - intervals, ["regex-cost-interval-rational-symbolic"]: closed intervals of a lower
       and an upper bound, compared componentwise.
 
     Both are preorders, [equal] being mutual [≾]: if [Read] declares

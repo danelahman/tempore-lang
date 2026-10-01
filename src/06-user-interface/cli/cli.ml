@@ -37,14 +37,19 @@ let accepted_resource_names = List.map fst Grades.GradeRegistry.grade_modules
 let default_resource_name = List.hd accepted_resource_names
 
 (* The accepted grades, one per line and grouped as the web selector groups
-   them, each with its title in a column after the longest name; indented to
-   align under the "--grades" entry of [Arg]'s aligned option list. *)
+   them, each with its title in a column after the longest name and, for a
+   regular grade, the summary of its implementation on an indented line below;
+   indented to align under the "--grades" entry of [Arg]'s aligned option
+   list. *)
 let accepted_grades_help =
   let width =
     List.fold_left max 0 (List.map String.length accepted_resource_names)
   in
   let line (name, (info : Grades.GradeRegistry.info)) =
-    Printf.sprintf "\n        %-*s %s" width name info.title
+    Printf.sprintf "\n        %-*s %s%s" width name info.title
+      (match info.implementation with
+      | Some i -> "\n            " ^ i.summary
+      | None -> "")
   in
   let group (g : Grades.GradeRegistry.group) =
     Printf.sprintf "\n      %s:%s" g.label

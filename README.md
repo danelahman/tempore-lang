@@ -215,7 +215,7 @@ declare bounds such as `within [1/2, 3/2]`.
 
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
 infinitely many traces and is rejected; the regular expressions of
-`regex-cost-interval-rational` can be used to express such cases. See
+`regex-cost-interval-rational-symbolic` can be used to express such cases. See
 [`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
 
 ### Regular expressions
@@ -226,7 +226,7 @@ the product concatenation and the join union; the unit is `{0}` and the top
 `⊤` the language of all traces. Operations declare no running-time bounds.
 
 - `regex-upper-bound-symbolic`: decided by symbolic derivatives (preferred);
-- `regex-upper-bound`: decided by minimal automata.
+- `regex-upper-bound-letter-automata`: decided by minimal automata.
 
 Literals are regular expressions, by increasing precedence: union `r | s`,
 intersection `r & s`, concatenation `r; s`, complement `~r` and Kleene star
@@ -254,7 +254,7 @@ to symbolic automata and symbolic derivatives) with
 `dune exec --profile release bench/regular/bench_regular.exe`; see
 [`bench/regular/README.md`](bench/regular/README.md) for more information.
 
-The rational variant `regex-upper-bound-rational` reads traces as *timed words*:
+The rational variant `regex-upper-bound-rational-symbolic` reads traces as *timed words*:
 operations and non-negative rational delays, adjacent delays added, so that
 `{1/2; 1/2}` is `{1}`. A delay is a single letter, and the order is exact over
 the rationals, independent of any time step. Besides operation names and delays
@@ -275,36 +275,36 @@ adjacent delays added. See
 
 ### Regular expressions with costs
 
-A grade is a regular language of traces, as under `regex-upper-bound`, ordered
+A grade is a regular language of traces, as under `regex-upper-bound-symbolic`, ordered
 as the trace monoids with costs order finite sets of traces, at the running-time
 bounds `within [lo, hi]` of the atomic operations. A grade stands for its
 closure: the traces that fit inside one of its traces (upper) or cover one of
 them (lower).
 
-- `regex-cost-upper-bound`: allowance order at `hi`; `{0}` is least, `⊤` the top.
-- `regex-cost-lower-bound`: coverage order at `lo`; `{0}` is the top.
-- `regex-cost-interval`: closed intervals `[{...}, {...}]` of a lower and an
+- `regex-cost-upper-bound-symbolic`: allowance order at `hi`; `{0}` is least, `⊤` the top.
+- `regex-cost-lower-bound-symbolic`: coverage order at `lo`; `{0}` is the top.
+- `regex-cost-interval-symbolic`: closed intervals `[{...}, {...}]` of a lower and an
   upper bound, with the forms and abbreviations of `traces-cost-interval`; the
   top is `[{0}, ∞)`.
 
-Each of the above is also available with the suffix `-symbolic`, in which 
-ordering of regexes is decided using symbolic automata and symbolic derivatives.
+Each of the above is also available with the suffix `-letter-automata` in place of `-symbolic`, in which 
+ordering of regexes is decided using minimal automata.
 
 The alphabet is the atomic operations declared anywhere in the program, so `_`
 is any tick or atomic operation, and a grade must denote at least one trace
-over it. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound`
+over it. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound-symbolic`
 `{Read}` is below `{3}` and `{Read | 3}` equals `{3}`. See
 [`examples/regular_costs/regular_costs_lower.tpe`](examples/regular_costs/regular_costs_lower.tpe),
 [`examples/regular_costs/regular_costs_upper.tpe`](examples/regular_costs/regular_costs_upper.tpe)
 and
 [`examples/regular_costs/regular_costs_intervals.tpe`](examples/regular_costs/regular_costs_intervals.tpe).
 
-The rational variants `regex-cost-lower-bound-rational`,
-`regex-cost-upper-bound-rational` and `regex-cost-interval-rational` order the
-timed words of `regex-upper-bound-rational` in the same way, with its literals
+The rational variants `regex-cost-lower-bound-rational-symbolic`,
+`regex-cost-upper-bound-rational-symbolic` and `regex-cost-interval-rational-symbolic` order the
+timed words of `regex-upper-bound-rational-symbolic` in the same way, with its literals
 and fractional running-time bounds such as `within [1/2, 3/2]`. The orders are
 exact over the rationals: with operation `A` declared `within [1, 1]`, under
-`regex-cost-upper-bound-rational` the traces `{(0, 1); A; (0, 1)}` are below
+`regex-cost-upper-bound-rational-symbolic` the traces `{(0, 1); A; (0, 1)}` are below
 `{3}` but below no `{q}` with `q < 3`, as the sums of their durations come
 arbitrarily close to `2`. 
 
@@ -319,7 +319,7 @@ greatest weights of the traces of its grade: `{Sample; [0, 1/2); Send}` gets
 `(3/4, 3)` if `Sample` is declared `within [1/2, 3/2]` and `Send`
 `within [1/4, 1]`. 
 
-Under `regex-cost-interval-rational` an open numeric endpoint of an interval is
+Under `regex-cost-interval-rational-symbolic` an open numeric endpoint of an interval is
 a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
 [`examples/regular_costs/regular_costs_rational.tpe`](examples/regular_costs/regular_costs_rational.tpe)
 and
@@ -489,7 +489,7 @@ The rational monoids with costs accept fractional bounds such as `within [1/2,
 The rational trace monoids compare traces with exact durations and read the
 value of each end. The rational regular-expression monoids read whether each
 end is attained: with `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}`
-under `regex-cost-upper-bound-rational`, and a default implementation of `A`
+under `regex-cost-upper-bound-rational-symbolic`, and a default implementation of `A`
 takes less than `2`.
 
 A *compound* operation names other operations in its grade, and its bounds are

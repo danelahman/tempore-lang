@@ -41,8 +41,8 @@
 default | introduction/coffee.tpe
 
 group | Introduction | Introduction | Boxes graded by regular languages of traces, first with delays alone, then with operations taking time.
-Introduction | Coffee | regex-upper-bound-rational | introduction/coffee.tpe | A cup boxed at a regular language of traces, served after a delay of at least five minutes and a payment not refunded.
-Introduction | Coffee with costs | regex-cost-interval-rational | introduction/coffee_costs.tpe | The same café whose payment, brewing and additions are operations taking time, the cup served once they have taken at least five minutes and never refunded.
+Introduction | Coffee | regex-upper-bound-rational-symbolic | introduction/coffee.tpe | A cup boxed at a regular language of traces, served after a delay of at least five minutes and a payment not refunded.
+Introduction | Coffee with costs | regex-cost-interval-rational-symbolic | introduction/coffee_costs.tpe | The same café whose payment, brewing and additions are operations taking time, the cup served once they have taken at least five minutes and never refunded.
 
 group | Effect handlers | Handlers | Operations handled by clauses that respect their grades.
 Effect handlers | Lower bounds | time-lower-bound | handlers/handlers_lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.
@@ -66,14 +66,14 @@ Traces with costs | Intervals | traces-cost-interval | traces/traces_intervals.t
 Traces with costs | Intervals (rational) | traces-cost-interval-rational | traces/rational_traces_intervals.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds and whose windows are traces with fractional durations.
 
 group | Regular expressions | Regex | Regular languages of traces of operations and delays.
-Regular expressions | Upper bounds | regex-upper-bound-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
-Regular expressions | Upper bounds (rational) | regex-upper-bound-rational | regular/regular_rational.tpe | A heart-rate monitor graded by regular languages of operations and rational delays, with intervals of delays and complements.
+Regular expressions | Upper bounds (symbolic) | regex-upper-bound-symbolic | regular/regular_traces.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
+Regular expressions | Upper bounds (rational, symbolic) | regex-upper-bound-rational-symbolic | regular/regular_rational.tpe | A heart-rate monitor graded by regular languages of operations and rational delays, with intervals of delays and complements.
 
 group | Regular expressions with costs | Regex (costs) | Regular languages of traces, operations costing their declared running times.
-Regular expressions with costs | Lower bounds | regex-cost-lower-bound-symbolic | regular_costs/regular_costs_lower.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower running-time bounds.
-Regular expressions with costs | Upper bounds | regex-cost-upper-bound-symbolic | regular_costs/regular_costs_upper.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
-Regular expressions with costs | Intervals | regex-cost-interval-symbolic | regular_costs/regular_costs_intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
-Regular expressions with costs | Intervals (rational) | regex-cost-interval-rational | regular_costs/regular_costs_intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
+Regular expressions with costs | Lower bounds (symbolic) | regex-cost-lower-bound-symbolic | regular_costs/regular_costs_lower.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower running-time bounds.
+Regular expressions with costs | Upper bounds (symbolic) | regex-cost-upper-bound-symbolic | regular_costs/regular_costs_upper.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
+Regular expressions with costs | Intervals (symbolic) | regex-cost-interval-symbolic | regular_costs/regular_costs_intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
+Regular expressions with costs | Intervals (rational, symbolic) | regex-cost-interval-rational-symbolic | regular_costs/regular_costs_intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
 
 group | Security levels | Security | Levels touched, alone or with time bounds and outputs.
 Security levels | Levels | security-levels | levels/security_levels.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.

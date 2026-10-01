@@ -393,10 +393,10 @@ struct
       expect "name" Fun.id
         ~expected:
           (match I.implementation with
-          | Automata -> "regex-upper-bound"
+          | Automata -> "regex-upper-bound-letter-automata"
           | Symbolic -> "regex-upper-bound-symbolic"
-          | Concrete -> "regex-upper-bound-derivatives"
-          | Plain -> "regex-upper-bound-plain")
+          | Concrete -> "regex-upper-bound-symbolic-by-letters"
+          | Plain -> "regex-upper-bound-letter-derivatives")
         G.name;
       expect_grade "unit" ~expected:(lit "{0}") G.one;
       expect_grade "of_delay" ~expected:(lit "{4}") (G.of_delay 4);

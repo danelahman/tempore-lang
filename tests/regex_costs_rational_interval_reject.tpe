@@ -1,4 +1,4 @@
-(* Rejected under the 'regex-cost-interval-rational' grading monoid: each
+(* Rejected under the 'regex-cost-interval-rational-symbolic' grading monoid: each
    component is checked at its own end of the fractional running-time bounds. *)
 
 type token = Token of string

@@ -1,4 +1,4 @@
-(* Rejected under the 'regex-cost-upper-bound-rational' grading monoid:
+(* Rejected under the 'regex-cost-upper-bound-rational-symbolic' grading monoid:
    traces that the regular upper bounds over rational delays do not permit at
    the fractional upper running-time bounds. *)
 

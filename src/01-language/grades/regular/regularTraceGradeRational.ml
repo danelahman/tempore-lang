@@ -4,7 +4,7 @@ type t = { automaton : DelayAutomaton.t; expression : regex }
 (* The [expression] denotes the language [automaton]; it is read only by the
    printing. *)
 
-let name = "regex-upper-bound-rational"
+let name = "regex-upper-bound-rational-symbolic"
 let automaton rho = rho.automaton
 
 let of_regex expression =

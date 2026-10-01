@@ -1,5 +1,6 @@
-(* Accepted under the 'regex-cost-lower-bound' grading monoid: regular lower bounds
-   covered by traces whose operations bank their lower running-time bounds. *)
+(* Accepted under the 'regex-cost-lower-bound-letter-automata' grading monoid:
+   regular lower bounds covered by traces whose operations bank their lower
+   running-time bounds. *)
 
 type token = Token of string
 

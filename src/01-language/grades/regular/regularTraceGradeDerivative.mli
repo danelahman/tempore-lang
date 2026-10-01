@@ -63,8 +63,8 @@
 
     {2 Derivatives by letters}
 
-    {!Concrete}, ["regex-upper-bound-derivatives"], is the same grade decided by
-    the derivatives by the concrete letters of the grades compared,
+    {!Concrete}, ["regex-upper-bound-symbolic-by-letters"], is the same grade
+    decided by the derivatives by the concrete letters of the grades compared,
     {!SymbolicRegex.S.Concrete}, rather than by their minterms, and otherwise
     alike. *)
 
@@ -113,4 +113,5 @@ include S
 (** @inline *)
 
 module Concrete : S
-(** ["regex-upper-bound-derivatives"], by {!SymbolicRegex.S.Concrete}. *)
+(** ["regex-upper-bound-symbolic-by-letters"], by {!SymbolicRegex.S.Concrete}.
+*)

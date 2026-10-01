@@ -1,5 +1,19 @@
 type visibility = Everywhere | Cli_only
-type info = { title : string; description : string; visibility : visibility }
+
+type implementation = {
+  structure : string;
+  labels : string;
+  inclusion : string;
+  summary : string;
+}
+
+type info = {
+  title : string;
+  description : string;
+  visibility : visibility;
+  implementation : implementation option;
+}
+
 type group = { label : string; short : string; grades : (string * info) list }
 
 (* One registered grade: its module, named by [Grade.S.name], grouped and
@@ -23,14 +37,156 @@ let security = ("Security levels", "Security")
 let semidirect = ("Semidirect products", "Semidirect")
 let counts = ("Operation counts", "Counts")
 
-let entry ?(visibility = Everywhere) (module G : Grade.S) group title
-    description =
+let entry ?(visibility = Everywhere) ?implementation (module G : Grade.S) group
+    title description =
   {
     name = G.name;
     grade = (module G : Grade.S);
     group;
-    info = { title; description; visibility };
+    info = { title; description; visibility; implementation };
   }
+
+(* The data structures of the regular grades and the expressions or letters
+   that label them. *)
+let derivatives = "derivatives"
+let automata = "minimal deterministic automata"
+let symbolic_automata = "minimal deterministic symbolic automata"
+let letter_set_expressions = "symbolic expressions over letter sets"
+let letter_expressions = "expressions over single letters"
+let single_letters = "single letters"
+let delay_sets = "letter sets and sets of rational delays"
+
+(* Derivatives are taken of expressions, automata run over letters. *)
+let decided_by i =
+  Printf.sprintf "Decided by %s %s %s, %s." i.structure
+    (if i.structure = derivatives then "of" else "over")
+    i.labels i.inclusion
+
+(* The implementations of the regular grades. *)
+let symbolic =
+  {
+    structure = derivatives;
+    labels = letter_set_expressions;
+    inclusion =
+      "derivatives by minterms; inclusion by depth-first search of the \
+       derivatives of ρ & ~ρ′";
+    summary =
+      "derivatives over letter sets by minterms; inclusion by derivative search";
+  }
+
+let letter_automata =
+  {
+    structure = automata;
+    labels = single_letters;
+    inclusion =
+      "inclusion by breadth-first search of the product with the complement";
+    summary =
+      "minimal automata over single letters; inclusion by product search";
+  }
+
+let rational_symbolic =
+  {
+    structure = symbolic_automata;
+    labels = delay_sets;
+    inclusion =
+      "determinised by minterms; inclusion by breadth-first search of the \
+       product with the complement";
+    summary =
+      "minimal symbolic automata over letter and delay sets; inclusion by \
+       product search";
+  }
+
+let symbolic_by_letters =
+  {
+    structure = derivatives;
+    labels = letter_set_expressions;
+    inclusion =
+      "derivatives by single letters; inclusion as for \
+       regex-upper-bound-symbolic";
+    summary =
+      "derivatives over letter sets by single letters; inclusion by derivative \
+       search";
+  }
+
+let letter_derivatives =
+  {
+    structure = derivatives;
+    labels = letter_expressions;
+    inclusion =
+      "derivatives by single letters; inclusion as for \
+       regex-upper-bound-symbolic";
+    summary = "derivatives over single letters; inclusion by derivative search";
+  }
+
+(* The implementations of the regular grades with costs. *)
+let closure_search =
+  "inclusion by depth-first search of the derivatives, the closure of the \
+   greater grade stepped alongside"
+
+let closure_search_summary = "inclusion by derivative search with closures"
+
+let cost_symbolic =
+  {
+    symbolic with
+    inclusion = "derivatives by minterms; " ^ closure_search;
+    summary =
+      "derivatives over letter sets by minterms; " ^ closure_search_summary;
+  }
+
+let cost_letter_automata =
+  {
+    letter_automata with
+    inclusion =
+      "inclusion by breadth-first search of the product with the automaton of \
+       the closure";
+    summary =
+      "minimal automata over single letters; inclusion by closure product \
+       search";
+  }
+
+let cost_rational_symbolic =
+  {
+    rational_symbolic with
+    inclusion =
+      "inclusion by breadth-first search of the product with a reader of the \
+       closure";
+    summary =
+      "minimal symbolic automata over letter and delay sets; inclusion by \
+       closure-reader search";
+  }
+
+let cost_symbolic_by_letters =
+  {
+    symbolic_by_letters with
+    inclusion = "derivatives by single letters; " ^ closure_search;
+    summary =
+      "derivatives over letter sets by single letters; "
+      ^ closure_search_summary;
+  }
+
+let cost_letter_derivatives =
+  {
+    letter_derivatives with
+    inclusion = "derivatives by single letters; " ^ closure_search;
+    summary = "derivatives over single letters; " ^ closure_search_summary;
+  }
+
+(* The descriptions shared by the implementations of a regular grade. *)
+let regular_languages =
+  "Regular languages of traces over delays and operations, ordered by \
+   inclusion."
+
+let cost_lower =
+  "Regular languages of traces in the coverage order, operations costing their \
+   lower running-time bounds."
+
+let cost_upper =
+  "Regular languages of traces in the allowance order, operations costing \
+   their upper running-time bounds."
+
+let cost_interval =
+  "Closed intervals [L, U] of a lower and an upper regular-language bound, \
+   compared componentwise."
 
 let entries =
   [
@@ -101,109 +257,76 @@ let entries =
       traces_costs "Intervals (rational)"
       "Closed intervals [L, U] of a lower and an upper trace bound with \
        rational delays, compared componentwise.";
-    entry
-      (module RegularTraceGrade)
-      regex "Upper bounds"
-      "Regular languages of traces over delays and operations, bounding the \
-       traces permitted by inclusion; decided by automata.";
-    entry
+    entry ~implementation:symbolic
       (module RegularTraceGradeDerivative)
-      regex "Upper bounds (symbolic derivatives)"
-      "The same grade as the automata version, decided by symbolic derivatives \
-       instead of automata.";
-    entry
+      regex "Upper bounds (symbolic)" regular_languages;
+    entry ~implementation:letter_automata
+      (module RegularTraceGrade)
+      regex "Upper bounds (letter automata)" regular_languages;
+    entry ~implementation:rational_symbolic
       (module RegularTraceGradeRational)
-      regex "Upper bounds (rational)"
+      regex "Upper bounds (rational, symbolic)"
       "Regular languages of traces over rational delays and operations, \
-       bounding the traces permitted by inclusion; exact, decided by automata \
-       over sets of delays.";
-    entry ~visibility:Cli_only
+       ordered by inclusion; exact.";
+    entry ~visibility:Cli_only ~implementation:symbolic_by_letters
       (module RegularTraceGradeDerivative.Concrete)
-      regex "Upper bounds (plain derivatives)"
-      "The same grade as the automata version, decided by derivatives by \
-       single letters instead of minterms.";
-    entry ~visibility:Cli_only
+      regex "Upper bounds (symbolic by letters)" regular_languages;
+    entry ~visibility:Cli_only ~implementation:letter_derivatives
       (module RegularTraceGradePlain)
-      regex "Upper bounds (fully plain derivatives)"
-      "The same grade as the automata version, over single letters instead of \
-       letter sets, decided by derivatives by letters.";
-    entry
-      (module RegularCostTraceGrades.Lower)
-      regex_costs "Lower bounds"
-      "Regular languages of traces in the coverage order, operations costing \
-       their lower running-time bounds, decided by automata.";
-    entry
-      (module RegularCostTraceGrades.Upper)
-      regex_costs "Upper bounds"
-      "Regular languages of traces in the allowance order, operations costing \
-       their upper running-time bounds, decided by automata.";
-    entry
-      (module RegularCostTraceGrades.Interval)
-      regex_costs "Intervals"
-      "Closed intervals [L, U] of a lower and an upper regular-language bound, \
-       compared componentwise, decided by automata.";
-    entry
+      regex "Upper bounds (letter derivatives)" regular_languages;
+    entry ~implementation:cost_symbolic
       (module RegularCostTraceGrades.Symbolic.Lower)
-      regex_costs "Lower bounds (symbolic derivatives)"
-      "The lower-bound cost grade, decided by symbolic derivatives instead of \
-       automata.";
-    entry
+      regex_costs "Lower bounds (symbolic)" cost_lower;
+    entry ~implementation:cost_symbolic
       (module RegularCostTraceGrades.Symbolic.Upper)
-      regex_costs "Upper bounds (symbolic derivatives)"
-      "The upper-bound cost grade, decided by symbolic derivatives instead of \
-       automata.";
-    entry
+      regex_costs "Upper bounds (symbolic)" cost_upper;
+    entry ~implementation:cost_symbolic
       (module RegularCostTraceGrades.Symbolic.Interval)
-      regex_costs "Intervals (symbolic derivatives)"
-      "The interval cost grade, decided by symbolic derivatives instead of \
-       automata.";
-    entry
+      regex_costs "Intervals (symbolic)" cost_interval;
+    entry ~implementation:cost_letter_automata
+      (module RegularCostTraceGrades.Lower)
+      regex_costs "Lower bounds (letter automata)" cost_lower;
+    entry ~implementation:cost_letter_automata
+      (module RegularCostTraceGrades.Upper)
+      regex_costs "Upper bounds (letter automata)" cost_upper;
+    entry ~implementation:cost_letter_automata
+      (module RegularCostTraceGrades.Interval)
+      regex_costs "Intervals (letter automata)" cost_interval;
+    entry ~implementation:cost_rational_symbolic
       (module RegularCostTraceGradesRational.Lower)
-      regex_costs "Lower bounds (rational)"
+      regex_costs "Lower bounds (rational, symbolic)"
       "Regular languages of traces over rational delays in the coverage order, \
        operations costing their lower running-time bounds, which may be \
-       fractional; exact, decided relative to the language bounded.";
-    entry
+       fractional; exact.";
+    entry ~implementation:cost_rational_symbolic
       (module RegularCostTraceGradesRational.Upper)
-      regex_costs "Upper bounds (rational)"
+      regex_costs "Upper bounds (rational, symbolic)"
       "Regular languages of traces over rational delays in the allowance \
        order, operations costing their upper running-time bounds, which may be \
-       fractional; exact, decided relative to the language bounded.";
-    entry
+       fractional; exact.";
+    entry ~implementation:cost_rational_symbolic
       (module RegularCostTraceGradesRational.Interval)
-      regex_costs "Intervals (rational)"
+      regex_costs "Intervals (rational, symbolic)"
       "Closed intervals [L, U] of a lower and an upper regular-language bound \
-       over rational delays, compared componentwise.";
-    entry ~visibility:Cli_only
+       over rational delays, compared componentwise; exact.";
+    entry ~visibility:Cli_only ~implementation:cost_symbolic_by_letters
       (module RegularCostTraceGrades.Concrete.Lower)
-      regex_costs "Lower bounds (plain derivatives)"
-      "The lower-bound cost grade, decided by derivatives by letters instead \
-       of minterms.";
-    entry ~visibility:Cli_only
+      regex_costs "Lower bounds (symbolic by letters)" cost_lower;
+    entry ~visibility:Cli_only ~implementation:cost_symbolic_by_letters
       (module RegularCostTraceGrades.Concrete.Upper)
-      regex_costs "Upper bounds (plain derivatives)"
-      "The upper-bound cost grade, decided by derivatives by letters instead \
-       of minterms.";
-    entry ~visibility:Cli_only
+      regex_costs "Upper bounds (symbolic by letters)" cost_upper;
+    entry ~visibility:Cli_only ~implementation:cost_symbolic_by_letters
       (module RegularCostTraceGrades.Concrete.Interval)
-      regex_costs "Intervals (plain derivatives)"
-      "The interval cost grade, decided by derivatives by letters instead of \
-       minterms.";
-    entry ~visibility:Cli_only
+      regex_costs "Intervals (symbolic by letters)" cost_interval;
+    entry ~visibility:Cli_only ~implementation:cost_letter_derivatives
       (module RegularCostTraceGrades.Plain.Lower)
-      regex_costs "Lower bounds (fully plain derivatives)"
-      "The lower-bound cost grade over single letters instead of letter sets, \
-       decided by derivatives by letters.";
-    entry ~visibility:Cli_only
+      regex_costs "Lower bounds (letter derivatives)" cost_lower;
+    entry ~visibility:Cli_only ~implementation:cost_letter_derivatives
       (module RegularCostTraceGrades.Plain.Upper)
-      regex_costs "Upper bounds (fully plain derivatives)"
-      "The upper-bound cost grade over single letters instead of letter sets, \
-       decided by derivatives by letters.";
-    entry ~visibility:Cli_only
+      regex_costs "Upper bounds (letter derivatives)" cost_upper;
+    entry ~visibility:Cli_only ~implementation:cost_letter_derivatives
       (module RegularCostTraceGrades.Plain.Interval)
-      regex_costs "Intervals (fully plain derivatives)"
-      "The interval cost grade over single letters instead of letter sets, \
-       decided by derivatives by letters.";
+      regex_costs "Intervals (letter derivatives)" cost_interval;
     entry
       (module LevelGrades.SecurityLevels)
       security "Levels"

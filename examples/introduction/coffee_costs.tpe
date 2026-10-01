@@ -1,9 +1,9 @@
 (* A café whose coffee is served once it has been paid for, hasn't been
    refunded, has had time to brew, and has optionally had milk or sugar added.
 
-   Run this example with the 'regex-cost-interval-rational' grading monoid, e.g.
+   Run this example with the 'regex-cost-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-cost-interval-rational examples/introduction/coffee_costs.tpe
+     ./tempore --grades regex-cost-interval-rational-symbolic examples/introduction/coffee_costs.tpe
 
    Grades [L, U]: a lower and upper bound on the traces with rational durations, 
    expresssed as regular expressions (as explained in 'coffee.tpe')

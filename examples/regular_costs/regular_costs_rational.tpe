@@ -1,8 +1,8 @@
 (* A sensor station timed in seconds: sample, transmit and calibrate, paced by fractional budgets.
 
-   Run this example with the 'regex-cost-upper-bound-rational' grading monoid, e.g.
+   Run this example with the 'regex-cost-upper-bound-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-cost-upper-bound-rational examples/regular_costs/regular_costs_rational.tpe
+     ./tempore --grades regex-cost-upper-bound-rational-symbolic examples/regular_costs/regular_costs_rational.tpe
 
    Grades {...}: regular languages of traces with rational durations in the
    allowance order

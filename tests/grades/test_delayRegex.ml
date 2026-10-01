@@ -137,10 +137,10 @@ let whole_step_rejections =
      check "whole steps: a fractional endpoint rejected"
        (contains reason
           "delays are whole numbers of time steps; did you mean to use one of \
-           the 'regex-upper-bound-rational', \
-           'regex-cost-lower-bound-rational', \
-           'regex-cost-upper-bound-rational' or 'regex-cost-interval-rational' \
-           grading monoids?")
+           the 'regex-upper-bound-rational-symbolic', \
+           'regex-cost-lower-bound-rational-symbolic', \
+           'regex-cost-upper-bound-rational-symbolic' or \
+           'regex-cost-interval-rational-symbolic' grading monoids?")
        reason);
     (let reason =
        match parse "{Read; (0, 1)}" with Error reason -> reason | Ok () -> ""

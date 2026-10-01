@@ -1,9 +1,9 @@
 (* A weather station timed in seconds, its traces bounded below and above by
    regular languages.
 
-   Run this example with the 'regex-cost-interval-rational' grading monoid, e.g.
+   Run this example with the 'regex-cost-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-cost-interval-rational examples/regular_costs/regular_costs_intervals_rational.tpe
+     ./tempore --grades regex-cost-interval-rational-symbolic examples/regular_costs/regular_costs_intervals_rational.tpe
 
    Grades [L, U]: a lower and upper regular-language bound on the traces with
    rational durations

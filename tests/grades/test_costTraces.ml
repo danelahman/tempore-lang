@@ -726,16 +726,16 @@ let plain_inhabited =
     Grade.Braces (Grade.Inter (Grade.Any, Grade.Compl (Grade.Tick 1)))
   in
   [
-    holds "regex-upper-bound: inhabited"
+    holds "regex-upper-bound-letter-automata: inhabited"
       (Grades.RegularTraceGrade.inhabited none
          (Grades.RegularTraceGrade.of_lit lit));
     holds "regex-upper-bound-symbolic: inhabited"
       (Grades.RegularTraceGradeDerivative.inhabited none
          (Grades.RegularTraceGradeDerivative.of_lit lit));
-    holds "regex-upper-bound-derivatives: inhabited"
+    holds "regex-upper-bound-symbolic-by-letters: inhabited"
       (Grades.RegularTraceGradeDerivative.Concrete.inhabited none
          (Grades.RegularTraceGradeDerivative.Concrete.of_lit lit));
-    holds "regex-upper-bound-plain: inhabited"
+    holds "regex-upper-bound-letter-derivatives: inhabited"
       (Grades.RegularTraceGradePlain.inhabited none
          (Grades.RegularTraceGradePlain.of_lit lit));
   ]

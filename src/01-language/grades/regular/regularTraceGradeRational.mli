@@ -1,6 +1,6 @@
 (** The regular trace grade over rational delays,
-    ["regex-upper-bound-rational"]: non-empty timed regular languages, ordered
-    by inclusion and multiplied by concatenation.
+    ["regex-upper-bound-rational-symbolic"]: non-empty timed regular languages,
+    ordered by inclusion and multiplied by concatenation.
 
     {2 Runs as timed words}
 

@@ -1,5 +1,5 @@
-(* Rejected under the 'regex-cost-lower-bound' grading monoid: a grade must
-   demand at least one trace of the operations the program declares. *)
+(* Rejected under the 'regex-cost-lower-bound-letter-automata' grading monoid: a
+   grade must demand at least one trace of the operations the program declares. *)
 
 type token = Token of string
 

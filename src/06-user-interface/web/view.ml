@@ -1141,14 +1141,19 @@ let view_compiler (model : Model.model) =
               [
                 (* Grouped as {!Grades.GradeRegistry.groups} groups them,
                    without the grades offered by the CLI only, the option text
-                   its title and the tooltip its description. *)
+                   its title and the tooltip its description, followed by how
+                   it is decided for a regular grade. *)
                 grouped_select
                   ~a:[ class_ "select is-fullwidth choice-select" ]
                   ~id:"grades-select" "Select grades"
                   (fun (name, _) -> Model.EditMsg (Model.SelectResource name))
                   (fun (_, (info : Grades.GradeRegistry.info)) -> info.title)
                   (fun (_, (info : Grades.GradeRegistry.info)) ->
-                    info.description)
+                    match info.implementation with
+                    | Some i ->
+                        info.description ^ " "
+                        ^ Grades.GradeRegistry.decided_by i
+                    | None -> info.description)
                   (fun (name, _) -> name = model.edit_model.selected_resource)
                   (List.map
                      (fun (g : Grades.GradeRegistry.group) ->

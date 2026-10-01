@@ -11,7 +11,7 @@ type t = { names : string list; regex : Regex.t }
 (* The letters of [regex] are [tick], the operation [names] in increasing
    order, and the catch-all letter [Letters.others names]. *)
 
-let name = "regex-upper-bound-plain"
+let name = "regex-upper-bound-letter-derivatives"
 let merge names names' = List.sort_uniq String.compare (names @ names')
 let atom name = Regex.letters (Letters.name name)
 let tick = Regex.letters Letters.tick

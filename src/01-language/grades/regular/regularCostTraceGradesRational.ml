@@ -128,7 +128,7 @@ end
 module Lower = struct
   include Common
 
-  let name = "regex-cost-lower-bound-rational"
+  let name = "regex-cost-lower-bound-rational-symbolic"
   let leq = leq coverage
   let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
   let counterexample = counterexample coverage
@@ -142,7 +142,7 @@ end
 module Upper = struct
   include Common
 
-  let name = "regex-cost-upper-bound-rational"
+  let name = "regex-cost-upper-bound-rational-symbolic"
   let leq = leq allowance
   let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
   let counterexample = counterexample allowance
@@ -158,7 +158,7 @@ module Interval = struct
 
   module Delay = L.Delay
 
-  let name = "regex-cost-interval-rational"
+  let name = "regex-cost-interval-rational-symbolic"
   let one = (Lower.one, Upper.one)
   let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
 
