@@ -1,7 +1,8 @@
-(** The cost-model regular trace grades over rational delays: the timed regular
-    languages of {!RegularTraceGradeRational}, ordered as the trace grades of
-    {!TimedTraceGrades} order finite sets of runs, trading time against
-    operations at their declared runtime bounds, which may be fractional.
+(** The regular trace grades of timed operations over rational delays: the
+    timed regular languages of {!RegularTraceGradeRational}, ordered as the
+    trace grades of {!TimedTraceGrades} order finite sets of runs, trading time
+    against operations at their declared runtime bounds, which may be
+    fractional.
 
     {2 Orders}
 
@@ -9,14 +10,14 @@
     rational delays, adjacent delays added. The orders on single runs are
     allowance and coverage, as characterised in {!DelayCostClosure}. A grade is
     ordered below another through the closure of the greater one:
-    - upper bounds, ["regex-cost-upper-bound-rational-symbolic"]: [ρ ≾ ρ'] iff every run
-      of [ρ] is permitted by some run of [ρ'], i.e. [ρ ⊆ ↓ρ'], operations
-      costing their upper runtime bound [hi];
-    - lower bounds, ["regex-cost-lower-bound-rational-symbolic"]: [ρ ≾ ρ'] iff every run
-      of [ρ] covers some run of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations costing their
-      lower runtime bound [lo];
-    - intervals, ["regex-cost-interval-rational-symbolic"]: closed intervals of a lower
-      and an upper bound, compared componentwise.
+    - upper bounds, ["regex-timed-upper-bound-rational-symbolic"]: [ρ ≾ ρ']
+      iff every run of [ρ] is permitted by some run of [ρ'], i.e. [ρ ⊆ ↓ρ'],
+      operations counting at their upper running-time bound [hi];
+    - lower bounds, ["regex-timed-lower-bound-rational-symbolic"]: [ρ ≾ ρ']
+      iff every run of [ρ] covers some run of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations
+      counting at their lower running-time bound [lo];
+    - intervals, ["regex-timed-interval-rational-symbolic"]: closed intervals
+      of a lower and an upper bound, compared componentwise.
 
     Both are preorders, [equal] being mutual [≾]: if [Read] declares
     [within [1/2, 3/2]], then [{Read} ≾ {3/2}] but not conversely under the

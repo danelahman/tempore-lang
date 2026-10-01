@@ -1,0 +1,35 @@
+(* Rejected under the 'regex-timed-lower-bound-rational-symbolic' grading monoid:
+   traces that do not cover the regular lower bounds over rational delays at
+   the fractional lower running-time bounds. *)
+
+type token = Token of string
+
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit # {Send} within [1/4, 1]
+
+(* A delay of a quarter is short of the half demanded. *)
+let too_early () =
+  box {1/2} (Token "t") as t in
+  delay 1/4;
+  unbox t as tok in
+  tok
+
+(* Waiting never performs a demanded transmission. *)
+let waiting () =
+  box {Send} (Token "s") as s in
+  delay 3;
+  unbox s as tok in
+  tok
+
+(* Delays between none and a time unit may be arbitrarily short, and cover no
+   guarantee of a half. *)
+let some_pause () : unit # {(0, 1)} = delay 1/2
+
+let paused () =
+  box {1/2} (Token "p") as p in
+  some_pause ();
+  unbox p as tok in
+  tok
+
+(* A sample may take only half a time unit, short of the one annotated. *)
+let quick () : nat # {1} = perform Sample ()

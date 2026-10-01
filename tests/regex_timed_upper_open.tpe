@@ -1,0 +1,20 @@
+(* Correctly accepted by the typechecker, under the
+   'regex-timed-upper-bound-symbolic' grading monoid: in whole ticks, an open
+   end of running-time bounds abbreviates the closed one a tick inside it, so
+   'Tx' within (1, 4) takes two or three ticks, and a default of two ticks
+   stays within [1, 3). *)
+
+operation Tx : unit ~> unit # {Tx} within (1, 4)
+operation Beep : unit ~> unit # {Beep} within [1, 3)
+
+default Beep () = delay 2
+
+let telemetry () =
+  box {3} 1 as slot in
+  perform Tx ();
+  unbox slot as r in
+  r
+
+let beep () = perform Beep ()
+
+run beep ()

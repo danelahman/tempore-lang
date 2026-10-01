@@ -1,5 +1,5 @@
-(** The cost-model regular trace grades: the regular languages of runs of
-    {!RegularTraceGrade}, or of its implementations by derivatives
+(** The regular trace grades of timed operations: the regular languages of runs
+    of {!RegularTraceGrade}, or of its implementations by derivatives
     {!RegularTraceGradeDerivative}, {!RegularTraceGradeDerivative.Concrete} and
     {!RegularTraceGradePlain}, ordered as the trace grades of
     {!TimedTraceGrades} order finite sets of runs, trading time against
@@ -12,9 +12,10 @@
     in {!CostClosure}. A grade is ordered below another through the closure of
     the greater one:
     - upper bounds: [ρ ≾ ρ'] iff every run of [ρ] is permitted by some run of
-      [ρ'], i.e. [ρ ⊆ ↓ρ'], operations costing their upper runtime bound [hi];
+      [ρ'], i.e. [ρ ⊆ ↓ρ'], operations counting at their upper running-time
+      bound [hi];
     - lower bounds: [ρ ≾ ρ'] iff every run of [ρ] covers some run of [ρ'], i.e.
-      [ρ ⊆ ↑ρ'], operations costing their lower runtime bound [lo];
+      [ρ ⊆ ↑ρ'], operations counting at their lower running-time bound [lo];
     - intervals: closed intervals of a lower and an upper bound, compared
       componentwise.
 
@@ -92,8 +93,8 @@ module type LANGUAGE = sig
 end
 
 (** The three grades over the regular trace grade [L], named
-    ["regex-cost-lower-bound"], ["regex-cost-upper-bound"] and
-    ["regex-cost-interval"], each followed by [Variant.suffix].
+    ["regex-timed-lower-bound"], ["regex-timed-upper-bound"] and
+    ["regex-timed-interval"], each followed by [Variant.suffix].
 
     The letters of a comparison are [tick] and the classes of the names of its
     closed world, of equal costs, of {!LANGUAGE.representatives}, each class
@@ -180,22 +181,22 @@ module PlainDerivatives : LANGUAGE with type t = RegularTraceGradePlain.t
     derivatives {!RegularTraceGradePlain.runs}, the tables {!LANGUAGE.concrete}
     their exploration in full, and every name a class of its own. *)
 
-(** ["regex-cost-lower-bound-letter-automata"], over {!Automata}. *)
+(** ["regex-timed-lower-bound-letter-automata"], over {!Automata}. *)
 module Lower :
   Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
 
-(** ["regex-cost-upper-bound-letter-automata"], over {!Automata}. *)
+(** ["regex-timed-upper-bound-letter-automata"], over {!Automata}. *)
 module Upper :
   Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
 
-(** ["regex-cost-interval-letter-automata"], over {!Automata}. *)
+(** ["regex-timed-interval-letter-automata"], over {!Automata}. *)
 module Interval :
   Grade.S
     with type t = RegularTraceGrade.t * RegularTraceGrade.t
      and type Delay.t = Delay.Nat.t
 
-(** The grades over {!Derivatives}, named ["regex-cost-lower-bound-symbolic"],
-    ["regex-cost-upper-bound-symbolic"] and ["regex-cost-interval-symbolic"]:
+(** The grades over {!Derivatives}, named ["regex-timed-lower-bound-symbolic"],
+    ["regex-timed-upper-bound-symbolic"] and ["regex-timed-interval-symbolic"]:
     both grades of a comparison are explored by derivatives, by the minterms of
     their letter sets and costs. *)
 module Symbolic : sig
@@ -217,9 +218,9 @@ module Symbolic : sig
 end
 
 (** The grades over {!ConcreteDerivatives}, named
-    ["regex-cost-lower-bound-symbolic-by-letters"],
-    ["regex-cost-upper-bound-symbolic-by-letters"] and
-    ["regex-cost-interval-symbolic-by-letters"]: {!Symbolic} with derivatives
+    ["regex-timed-lower-bound-symbolic-by-letters"],
+    ["regex-timed-upper-bound-symbolic-by-letters"] and
+    ["regex-timed-interval-symbolic-by-letters"]: {!Symbolic} with derivatives
     and closures by letters in place of minterms. *)
 module Concrete : sig
   module Lower :
@@ -240,9 +241,9 @@ module Concrete : sig
 end
 
 (** The grades over {!PlainDerivatives}, named
-    ["regex-cost-lower-bound-letter-derivatives"],
-    ["regex-cost-upper-bound-letter-derivatives"] and
-    ["regex-cost-interval-letter-derivatives"]: {!Concrete} with single letters
+    ["regex-timed-lower-bound-letter-derivatives"],
+    ["regex-timed-upper-bound-letter-derivatives"] and
+    ["regex-timed-interval-letter-derivatives"]: {!Concrete} with single letters
     in place of letter sets. *)
 module Plain : sig
   module Lower :

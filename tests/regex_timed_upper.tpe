@@ -1,0 +1,53 @@
+(* Accepted under the 'regex-timed-upper-bound-letter-automata' grading monoid:
+   regular upper bounds whose delays pay for operations at their upper
+   running-time bounds. *)
+
+type token = Token of string
+
+operation Ping : unit ~> unit # {Ping} within [1, 2]
+default Ping () = delay 1
+operation Log : unit ~> unit # {Log} within [1, 1]
+default Log () = delay 1
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
+default Fetch () = delay 3
+
+(* An operation within a delay's budget: a fetch takes at most four ticks. *)
+let within_budget () =
+  box {4} (Token "t") as t in
+  perform Fetch ();
+  unbox t as tok in
+  tok
+
+(* A function whose annotated grade pays for a ping and a log. *)
+let ping_and_log () : unit # {3} =
+  perform Ping ();
+  perform Log ()
+
+(* Any number of pings and logs, but nothing else and no waiting. *)
+let chatter () =
+  box {(Ping | Log)*} (Token "c") as c in
+  perform Ping ();
+  perform Log ();
+  perform Ping ();
+  unbox c as tok in
+  tok
+
+(* A log matched by the bound's own, and a ping and a tick paid for by the
+   ticks after it. *)
+let after_log () =
+  box {Log; 2*} (Token "l") as l in
+  perform Log ();
+  perform Ping ();
+  delay 1;
+  unbox l as tok in
+  tok
+
+(* An operation cannot be excluded while unbounded time is allowed: the ticks
+   of the bound buy the fetch. *)
+let unexcluded () =
+  box {(_ & ~Fetch)*} (Token "u") as u in
+  perform Fetch ();
+  unbox u as tok in
+  tok
+
+run within_budget ()

@@ -69,7 +69,7 @@ run box {1; 2 | 4} "closed" as s in delay 3; unbox s as msg in msg
 
 (* Correctly rejected by the typechecker: a door held open for two ticks,
    where the grade lists three. The traces are compared exactly, whereas under
-   'traces-cost-upper-bound' the delay of a bound is an allowance, which the
+   'traces-timed-upper-bound' the delay of a bound is an allowance, which the
    shorter delay stays within:
 
      Typing error: This function's body has grade `{Scan; Unlock; 2; Lock}`,

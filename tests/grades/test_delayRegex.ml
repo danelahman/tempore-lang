@@ -138,9 +138,9 @@ let whole_step_rejections =
        (contains reason
           "delays are whole numbers of time steps; did you mean to use one of \
            the 'regex-upper-bound-rational-symbolic', \
-           'regex-cost-lower-bound-rational-symbolic', \
-           'regex-cost-upper-bound-rational-symbolic' or \
-           'regex-cost-interval-rational-symbolic' grading monoids?")
+           'regex-timed-lower-bound-rational-symbolic', \
+           'regex-timed-upper-bound-rational-symbolic' or \
+           'regex-timed-interval-rational-symbolic' grading monoids?")
        reason);
     (let reason =
        match parse "{Read; (0, 1)}" with Error reason -> reason | Ok () -> ""

@@ -1,4 +1,4 @@
-(* Correctly accepted by the typechecker, under the 'traces-cost-interval'
+(* Correctly accepted by the typechecker, under the 'traces-timed-interval'
    grading monoid: the running-time bounds of the compound 'Send' are computed
    from its grade, each component at its own end of the bounds of 'Tx'. The
    lower bound promises a single transmission, which takes at least two ticks,

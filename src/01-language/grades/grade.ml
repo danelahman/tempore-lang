@@ -28,16 +28,16 @@
 
     {2 Cost model}
 
-    The orders of the trace grades with costs read the runtime bounds
+    The orders of the trace grades of timed operations read the runtime bounds
     [within [lo, hi]] that operations declare, each end closed or open, and
-    those of the cost-model regular trace grades also the set of the operations
-    the program declares, over which their catch-all letter ranges: all of them,
-    before or after the grade, so that a grade means the same throughout a
-    program. The operations that depend on the order, [leq], [equal],
-    [counterexample], [implied_bounds] and [inhabited], take both as an argument
-    of type {!bounds}; the other grades ignore it. Runtime bounds are kept as
-    the non-negative rationals the source writes ({!runtime}), and each grade
-    reads them as its delays ({!read_bound}).
+    those of the regular trace grades of timed operations also the set of the
+    operations the program declares, over which their catch-all letter ranges:
+    all of them, before or after the grade, so that a grade means the same
+    throughout a program. The operations that depend on the order, [leq],
+    [equal], [counterexample], [implied_bounds] and [inhabited], take both as an
+    argument of type {!bounds}; the other grades ignore it. Runtime bounds are
+    kept as the non-negative rationals the source writes ({!runtime}), and each
+    grade reads them as its delays ({!read_bound}).
 
     {2 Literals}
 

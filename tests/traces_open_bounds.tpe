@@ -1,4 +1,4 @@
-(* Correctly accepted by the typechecker, under the 'traces-cost-upper-bound'
+(* Correctly accepted by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: in whole ticks, an open end of running-time bounds
    abbreviates the closed one a tick inside it, so 'Tx' within (1, 4)
    takes two or three ticks, and a default of two ticks stays

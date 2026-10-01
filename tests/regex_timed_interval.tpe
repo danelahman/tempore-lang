@@ -1,0 +1,28 @@
+(* Accepted under the 'regex-timed-interval-letter-automata' grading monoid:
+   intervals of a regular lower bound, at the lower running-time bounds, and a
+   regular upper bound, at the upper ones. *)
+
+type token = Token of string
+
+operation Ping : unit ~> unit # {Ping} within [1, 2]
+default Ping () = delay 1
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
+default Fetch () = delay 3
+
+(* A fetch takes between two and four ticks. *)
+let fetched () =
+  box [2, 4] (Token "t") as t in
+  perform Fetch ();
+  unbox t as tok in
+  tok
+
+(* At least a ping, and at most pings and ticks. *)
+let pinged () =
+  box [{Ping}, {(Ping | 1)*}] (Token "p") as p in
+  perform Ping ();
+  delay 1;
+  perform Ping ();
+  unbox p as tok in
+  tok
+
+run fetched ()

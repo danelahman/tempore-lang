@@ -5,13 +5,13 @@
     alternation of operation events and positive delays. A grade is a set of
     such runs, read disjunctively, multiplied by the language product. The sets
     over a monoid of delays ({!Delay.S}) are ordered by inclusion ({!Base}). The
-    two orders with costs ({!Make}) are allowance (an upper bound: "every run
-    fits inside the bound") and coverage (a lower bound: "the run covers the
-    guarantee"), each defined on single runs and then lifted to sets.
+    two orders of timed operations ({!Make}) are allowance (an upper bound:
+    "every run fits inside the bound") and coverage (a lower bound: "the run
+    covers the guarantee"), each defined on single runs and then lifted to sets.
 
-    The delays of the orders with costs are those of an ordered monoid with
-    monus ({!Delay.MONUS}): the orders bank delays in a budget with [add] and
-    spend them with [monus].
+    The delays of the orders of timed operations are those of an ordered monoid
+    with monus ({!Delay.MONUS}): the orders bank delays in a budget with [add]
+    and spend them with [monus].
 
     {2 Canonical representation}
 
@@ -199,7 +199,7 @@ module Base (D : Delay.S) = struct
               n (describe_lit lit))
 end
 
-(** The traces over the delays [D] with the orders with costs. *)
+(** The traces over the delays [D] with the orders of timed operations. *)
 module Make (D : Delay.MONUS) = struct
   include Base (D)
 

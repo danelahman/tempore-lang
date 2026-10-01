@@ -1,4 +1,4 @@
-(* Correctly rejected by the typechecker, under the 'traces-cost-upper-bound'
+(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: a default implementation is checked against the
    running-time bounds of its operation, and 'Extrude' promises to be done
    within five ticks. *)

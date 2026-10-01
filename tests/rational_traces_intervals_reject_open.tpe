@@ -1,5 +1,5 @@
 (* Rejected: an open endpoint of an interval of sets of traces denotes
    infinitely many traces, which the finite sets of traces of
-   'traces-cost-interval-rational' do not express. *)
+   'traces-timed-interval-rational' do not express. *)
 
 let claim () = box (1/2, 2] 1

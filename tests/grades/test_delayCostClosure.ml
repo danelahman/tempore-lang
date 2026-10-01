@@ -1,13 +1,14 @@
 (* Unit tests of the closures of timed regular languages under allowance and
-   coverage over rational delays and costs, and of the cost-model regular trace
-   grades over rational delays: worked examples of the orders, including runs
-   of open delays whose sums approach a bound; the readers of the closures and
-   the inclusion decisions with their counterexamples against the recursions
-   of the timed traces over rational delays, on bounds with finitely many
-   paths; the implied runtime bounds, the closed world and the literals; and
-   the agreement with the cost-model regular trace grades over whole time
-   steps on integer instances, scaled to a resolution of fractions of a time
-   step as the grades over whole steps of a program resolution read them. *)
+   coverage over rational delays and running times, and of the regular trace
+   grades of timed operations over rational delays: worked examples of the
+   orders, including runs of open delays whose sums approach a bound; the
+   readers of the closures and the inclusion decisions with their
+   counterexamples against the recursions of the timed traces over rational
+   delays, on bounds with finitely many paths; the implied runtime bounds, the
+   closed world and the literals; and the agreement with the regular trace
+   grades of timed operations over whole time steps on integer instances, scaled
+   to a resolution of fractions of a time step as the grades over whole steps of
+   a program resolution read them. *)
 
 module Grade = Grades.Grade
 module Rational = Grades.Rational
@@ -667,8 +668,8 @@ let preorders =
 
 (* {1 Whole time steps}
 
-   On integer instances the orders agree with those of the cost-model regular
-   trace grades over whole time steps through the translation [ι] of
+   On integer instances the orders agree with those of the regular trace
+   grades of timed operations over whole time steps through the translation [ι] of
    [test_delayRegex]: [ι(_) = 1 | ops] and [ι(~r) = ~ι(r) & (ops | 1)*],
    [ops] the operations [_ & ~(>0)], the identity elsewhere. Scaling every
    delay and every cost by [1/N] keeps the verdicts: the grades over whole

@@ -1,0 +1,36 @@
+(* Rejected under the 'regex-timed-upper-bound-letter-automata' grading monoid: traces
+   that the regular upper bounds do not permit at the upper running-time bounds. *)
+
+type token = Token of string
+
+operation Ping : unit ~> unit # {Ping} within [1, 2]
+operation Log : unit ~> unit # {Log} within [1, 1]
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
+
+(* A fetch may take four ticks, more than the three the bound allows. *)
+let too_expensive () =
+  box {3} (Token "t") as t in
+  perform Fetch ();
+  unbox t as tok in
+  tok
+
+(* The four ticks follow the log, and a match resets the budget: they cannot
+   pay for a fetch before the log. *)
+let budget_reset () =
+  box {Log; 4} (Token "l") as l in
+  perform Fetch ();
+  perform Log ();
+  unbox l as tok in
+  tok
+
+(* Without ticks in the bound, a fetch cannot be bought. *)
+let excluded (b : bool) =
+  box {(Ping | Log)*} (Token "c") as c in
+  if b then perform Ping () else perform Fetch ();
+  unbox c as tok in
+  tok
+
+(* The annotated grade does not pay for a second ping. *)
+let two_pings () : unit # {3} =
+  perform Ping ();
+  perform Ping ()

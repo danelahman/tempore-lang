@@ -180,7 +180,7 @@ struct
     Option.map grade_of_word (find order bounds rho rho')
 
   (** [weight extreme endpoint bounds rho] is the [extreme] weight of a run of
-      [rho], operations costing the [endpoint] of their runtime bounds. *)
+      [rho], operations counting at the [endpoint] of their runtime bounds. *)
   let weight extreme endpoint bounds rho =
     let names, costs = classes (cost endpoint bounds) bounds [ rho ] in
     extreme ~cost:(letter_cost costs) ~letters:(letters names) (runs names rho)
@@ -220,7 +220,7 @@ struct
   module Lower = struct
     include Common
 
-    let name = "regex-cost-lower-bound" ^ Variant.suffix
+    let name = "regex-timed-lower-bound" ^ Variant.suffix
     let leq = leq coverage
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample coverage
@@ -237,7 +237,7 @@ struct
   module Upper = struct
     include Common
 
-    let name = "regex-cost-upper-bound" ^ Variant.suffix
+    let name = "regex-timed-upper-bound" ^ Variant.suffix
     let leq = leq allowance
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample allowance
@@ -253,7 +253,7 @@ struct
 
     module Delay = L.Delay
 
-    let name = "regex-cost-interval" ^ Variant.suffix
+    let name = "regex-timed-interval" ^ Variant.suffix
     let one = (Lower.one, Upper.one)
     let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
 

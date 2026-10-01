@@ -77,8 +77,8 @@ let rational_symbolic_representation =
 let rational_symbolic_representation_short =
   "minimal symbolic automata over letter and delay sets"
 
-(* How inclusion is decided for the regular grades without costs, full and
-   short. *)
+(* How inclusion is decided for the regular grades without running times, full
+   and short. *)
 let symbolic_inclusion =
   "emptiness of ρ & ~ρ′, by depth-first search of its derivatives by minterms, \
    an automaton built on the fly"
@@ -137,8 +137,8 @@ let letter_derivatives =
     inclusion_short = letter_inclusion_short;
   }
 
-(* How inclusion is decided for the regular grades with costs, full and
-   short. *)
+(* How inclusion is decided for the regular grades of timed operations, full
+   and short. *)
 let cost_symbolic_inclusion =
   "emptiness relative to the closure of the greater grade, by depth-first \
    search of the derivatives by minterms with the closure stepped alongside, \
@@ -168,7 +168,7 @@ let cost_rational_inclusion =
 let cost_rational_inclusion_short =
   "product with a closure reader, breadth-first"
 
-(* The implementations of the regular grades with costs. *)
+(* The implementations of the regular grades of timed operations. *)
 let cost_symbolic =
   {
     symbolic with
@@ -210,11 +210,11 @@ let regular_languages =
    inclusion."
 
 let cost_lower =
-  "Regular languages of traces in the coverage order, operations costing their \
-   lower running-time bounds."
+  "Regular languages of traces in the coverage order, operations counting at \
+   their lower running-time bounds."
 
 let cost_upper =
-  "Regular languages of traces in the allowance order, operations costing \
+  "Regular languages of traces in the allowance order, operations counting at \
    their upper running-time bounds."
 
 let cost_interval =
@@ -263,13 +263,13 @@ let entries =
     entry
       (module TimedTraceGrades.LowerBound)
       traces_costs "Lower bounds"
-      "Sets of traces in the coverage order, operations costing their lower \
-       running-time bounds.";
+      "Sets of traces in the coverage order, operations counting at their \
+       lower running-time bounds.";
     entry
       (module TimedTraceGrades.UpperBound)
       traces_costs "Upper bounds"
-      "Sets of traces in the allowance order, operations costing their upper \
-       running-time bounds.";
+      "Sets of traces in the allowance order, operations counting at their \
+       upper running-time bounds.";
     entry
       (module TimedTraceGrades.Interval)
       traces_costs "Intervals"
@@ -279,12 +279,12 @@ let entries =
       (module TimedTraceGrades.Rational.LowerBound)
       traces_costs "Lower bounds (rational)"
       "Sets of traces with rational delays in the coverage order, operations \
-       costing their lower running-time bounds, which may be fractional.";
+       counting at their lower running-time bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.UpperBound)
       traces_costs "Upper bounds (rational)"
       "Sets of traces with rational delays in the allowance order, operations \
-       costing their upper running-time bounds, which may be fractional.";
+       counting at their upper running-time bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.Interval)
       traces_costs "Intervals (rational)"
@@ -329,14 +329,14 @@ let entries =
       (module RegularCostTraceGradesRational.Lower)
       regex_costs "Lower bounds (rational, symbolic)"
       "Regular languages of traces over rational delays in the coverage order, \
-       operations costing their lower running-time bounds, which may be \
+       operations counting at their lower running-time bounds, which may be \
        fractional; exact.";
     entry ~implementation:cost_rational_symbolic
       (module RegularCostTraceGradesRational.Upper)
       regex_costs "Upper bounds (rational, symbolic)"
       "Regular languages of traces over rational delays in the allowance \
-       order, operations costing their upper running-time bounds, which may be \
-       fractional; exact.";
+       order, operations counting at their upper running-time bounds, which \
+       may be fractional; exact.";
     entry ~implementation:cost_rational_symbolic
       (module RegularCostTraceGradesRational.Interval)
       regex_costs "Intervals (rational, symbolic)"

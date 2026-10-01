@@ -1,5 +1,5 @@
 (* Correctly rejected by the typechecker, under the
-   'traces-cost-upper-bound-rational' grading monoid: an allowance of 7/4 time
+   'traces-timed-upper-bound-rational' grading monoid: an allowance of 7/4 time
    units does not pay for a sample, which may take up to 3/2, followed by a
    rest of 1/2. *)
 

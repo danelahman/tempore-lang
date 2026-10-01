@@ -140,7 +140,7 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
     include LowerTraces
     module Delay = D
 
-    let name = "traces-cost-lower-bound" ^ N.suffix
+    let name = "traces-timed-lower-bound" ^ N.suffix
     let mul = Trace.product
     let leq_symbol = "<="
     let equal bounds p q = leq bounds p q && leq bounds q p
@@ -165,7 +165,7 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
     include UpperTraces
     module Delay = D
 
-    let name = "traces-cost-upper-bound" ^ N.suffix
+    let name = "traces-timed-upper-bound" ^ N.suffix
     let leq_symbol = "<="
     let top = Unbounded
     let equal bounds p q = leq bounds p q && leq bounds q p
@@ -190,7 +190,7 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) = struct
 
     module Delay = D
 
-    let name = "traces-cost-interval" ^ N.suffix
+    let name = "traces-timed-interval" ^ N.suffix
     let one = (LowerTraces.one, UpperTraces.one)
     let mul (lo, hi) (lo', hi') = (Trace.product lo lo', UpperTraces.mul hi hi')
 

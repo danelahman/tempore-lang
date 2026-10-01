@@ -1,5 +1,5 @@
 (* Correctly accepted by the typechecker, under the
-   'traces-cost-interval-rational' grading monoid: delays and running-time
+   'traces-timed-interval-rational' grading monoid: delays and running-time
    bounds are non-negative rationals; the coverage order banks operations at
    their lower bounds and the allowance order buys them at the upper. *)
 

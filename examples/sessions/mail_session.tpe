@@ -1,9 +1,9 @@
 (* A mail session whose retrieval and flagging loops are graded by Kleene stars
    of traces.
 
-   Run this example with the 'regex-cost-upper-bound-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-upper-bound-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-cost-upper-bound-symbolic examples/sessions/mail_session.tpe
+     ./tempore --grades regex-timed-upper-bound-symbolic examples/sessions/mail_session.tpe
 
    Grades {...}: regular languages of traces in the allowance order
      - Unit {0}: the empty trace, the least grade

@@ -1,5 +1,5 @@
-(** The trace grades without costs: finite sets of traces (see {!TimedTrace}),
-    multiplied by the language product and ordered by inclusion.
+(** The trace grades without running times: finite sets of traces (see
+    {!TimedTrace}), multiplied by the language product and ordered by inclusion.
 
     {2 Order}
 
@@ -20,9 +20,10 @@
 
     {2 Literals}
 
-    Those of the upper-bound trace grades with costs ({!TimedTraceGrades}): a
-    brace literal such as [{Read; 3; Send | Send; Send}], a delay [d]
-    abbreviating [{d}], and [⊤] (ASCII [top]).
+    Those of the upper-bound trace grades of timed operations
+    ({!TimedTraceGrades}): a brace literal such as
+    [{Read; 3; Send | Send; Send}], a delay [d] abbreviating [{d}], and [⊤]
+    (ASCII [top]).
 
     {2 Counterexamples and witnesses}
 
@@ -38,7 +39,7 @@
     steps ({!Delay.Nat}) and over the non-negative rationals
     ({!Delay.Rational}). *)
 
-(** The trace grades without costs over the delays [D], named by [N]. *)
+(** The trace grades without running times over the delays [D], named by [N]. *)
 module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) : sig
   module UpperBound : Grade.S with type Delay.t = D.t
   (** Sets of traces ordered by inclusion, ["traces-upper-bound" ^ N.suffix],
@@ -49,7 +50,7 @@ module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces over whole time steps ordered by inclusion,
     ["traces-upper-bound"]: {!Make} over {!Delay.Nat}. *)
 
-(** The trace grades without costs over rational delays. *)
+(** The trace grades without running times over rational delays. *)
 module Rational : sig
   module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces with rational delays ordered by inclusion,

@@ -33,9 +33,9 @@
     letter, with the minimal automaton over them in the canonical form of
     {!Dfa}. A delay of [n] time steps is unrolled into [n] transitions: the
     minimal automaton of [tickⁿ] has [n + 2] states, and every construction and
-    comparison explores them, as do the closures of the cost-model grades over
-    it ({!RegularCostTraceGrades.Automata}). Grades denoting the same language
-    thus have equal names and automata, which {!Grade.S.equal},
+    comparison explores them, as do the closures of the grades of timed
+    operations over it ({!RegularCostTraceGrades.Automata}). Grades denoting the
+    same language thus have equal names and automata, which {!Grade.S.equal},
     {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top} read. A grade also
     keeps the normal form of the expression it was built from, by the operations
     of {!RegularTraceGradeDerivative}, for its printing only.

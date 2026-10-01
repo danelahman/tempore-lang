@@ -1,0 +1,19 @@
+(* Rejected under the 'regex-timed-interval-letter-automata' grading monoid: each
+   component of a grade must permit at least one trace of the operations the
+   program declares. *)
+
+type token = Token of string
+
+operation Fetch : unit ~> unit # {Fetch} within [2, 4]
+
+(* An upper bound whose traces perform an operation other than a fetch, when
+   a fetch is the only operation the program declares. *)
+let other_than_fetch () =
+  box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
+  perform Fetch ();
+  unbox o as tok in
+  tok
+
+(* The same grade in the signature of an operation, which ends the
+   typechecking. *)
+operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]

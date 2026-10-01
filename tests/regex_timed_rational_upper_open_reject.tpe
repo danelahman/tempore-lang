@@ -1,0 +1,15 @@
+(* Correctly rejected by the typechecker, under the
+   'regex-timed-upper-bound-rational-symbolic' grading monoid: a sample within
+   [1/2, 2] may take 2 time units, which no delay of [0, 2) permits, and a
+   default of exactly 2 exceeds [1/2, 2). *)
+
+operation Sample : unit ~> unit # {Sample} within [1/2, 2]
+operation Beep : unit ~> unit # {Beep} within [1/2, 2)
+
+let sample () =
+  box {[0, 2)} 1 as slot in
+  perform Sample ();
+  unbox slot as r in
+  r
+
+default Beep () = delay 2

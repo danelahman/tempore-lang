@@ -1,11 +1,11 @@
 ; Unit tests of the grades: the security levels, the products of grades, the
 ; literals of every grade, the four implementations of the regular trace grade,
-; by automata and by three kinds of derivatives, the cost-model regular trace
-; grades with their closures, the sets of delays, the timed regular expressions
-; with the regular trace grade over rational delays, and the cost-model regular
-; trace grades over rational delays with their closures; the sets of delays
-; against an implementation by lists of intervals; the laws of every registered
-; grade, on samples, by the checks the tests share.
+; by automata and by three kinds of derivatives, the regular trace grades of
+; timed operations with their closures, the sets of delays, the timed regular
+; expressions with the regular trace grade over rational delays, and the regular
+; trace grades of timed operations over rational delays with their closures; the
+; sets of delays against an implementation by lists of intervals; the laws of
+; every registered grade, on samples, by the checks the tests share.
 
 (library
  (name lawChecks)

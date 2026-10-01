@@ -353,19 +353,19 @@ let expected_rejections =
     ("recursion_effect_reject_unannotated.tpe", [ 7 ]);
     ("recursion_effect_reject_unannotated_regular.tpe", [ 15 ]);
     ("recursion_lock_reject.tpe", [ 8 ]);
-    ("regex_costs_interval_reject.tpe", [ 10; 17 ]);
-    ("regex_costs_interval_runs_reject.tpe", [ 11; 19 ]);
-    ("regex_costs_lower_reject.tpe", [ 11; 19; 26 ]);
-    ("regex_costs_lower_runs_reject.tpe", [ 10 ]);
-    ("regex_costs_rational_interval_default_open_reject.tpe", [ 9; 10 ]);
-    ("regex_costs_rational_interval_open_reject.tpe", [ 7 ]);
-    ("regex_costs_rational_interval_reject.tpe", [ 10; 18 ]);
-    ("regex_costs_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
-    ("regex_costs_rational_upper_open_reject.tpe", [ 9; 15 ]);
-    ("regex_costs_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
-    ("regex_costs_upper_open_reject.tpe", [ 9; 15 ]);
-    ("regex_costs_upper_reject.tpe", [ 11; 19; 27; 34 ]);
-    ("regex_costs_upper_runs_reject.tpe", [ 11; 17; 20 ]);
+    ("regex_timed_interval_reject.tpe", [ 10; 17 ]);
+    ("regex_timed_interval_runs_reject.tpe", [ 11; 19 ]);
+    ("regex_timed_lower_reject.tpe", [ 11; 19; 26 ]);
+    ("regex_timed_lower_runs_reject.tpe", [ 10 ]);
+    ("regex_timed_rational_interval_default_open_reject.tpe", [ 9; 10 ]);
+    ("regex_timed_rational_interval_open_reject.tpe", [ 7 ]);
+    ("regex_timed_rational_interval_reject.tpe", [ 10; 18 ]);
+    ("regex_timed_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
+    ("regex_timed_rational_upper_open_reject.tpe", [ 9; 15 ]);
+    ("regex_timed_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
+    ("regex_timed_upper_open_reject.tpe", [ 9; 15 ]);
+    ("regex_timed_upper_reject.tpe", [ 11; 19; 27; 34 ]);
+    ("regex_timed_upper_runs_reject.tpe", [ 11; 17; 20 ]);
     ("regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);
     ("regular_reject_auth.tpe", [ 12; 19; 25 ]);
     ("regular_reject_bounds.tpe", [ 4 ]);
@@ -1073,8 +1073,8 @@ let four_grades =
   [
     "time-lower-bound";
     "time-upper-bound";
-    "traces-cost-lower-bound";
-    "traces-cost-upper-bound";
+    "traces-timed-lower-bound";
+    "traces-timed-upper-bound";
   ]
 
 let () =

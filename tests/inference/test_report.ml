@@ -413,8 +413,8 @@ let four_grades =
   [
     "time-lower-bound";
     "time-upper-bound";
-    "traces-cost-lower-bound";
-    "traces-cost-upper-bound";
+    "traces-timed-lower-bound";
+    "traces-timed-upper-bound";
   ]
 
 let print_expected ppf = function

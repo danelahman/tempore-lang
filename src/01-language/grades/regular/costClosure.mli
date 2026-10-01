@@ -1,5 +1,5 @@
-(** Closures of regular languages of runs under the cost-aware orders of timed
-    traces.
+(** Closures of regular languages of runs under the allowance and coverage
+    orders of timed traces.
 
     {2 Runs and costs}
 

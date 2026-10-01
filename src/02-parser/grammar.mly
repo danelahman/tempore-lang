@@ -633,7 +633,7 @@ sum_case:
 
 (* The runtime bounds an operation declares, an interval of durations with
    finite ends, each closed or open; [within n] is sugar for [within [n, n]].
-   Only the grading monoids with costs read them. *)
+   Only the grading monoids of timed operations read them. *)
 op_bounds:
   | WITHIN n = runtime_bound
     { (Grade.Closed n, Grade.Closed n) }

@@ -1,15 +1,16 @@
 (* A benchmark of the four implementations of the regular trace grade, and of
-   the cost-model regular trace grades over each: by automata
+   the regular trace grades of timed operations over each: by automata
    ([RegularTraceGrade], "regex-upper-bound-letter-automata"), by plain
    derivatives of expressions over single letters ([RegularTraceGradePlain],
    "regex-upper-bound-letter-derivatives"), by derivatives by letters of
    expressions over letter sets ([RegularTraceGradeDerivative.Concrete],
    "regex-upper-bound-symbolic-by-letters"), and by symbolic derivatives by
    minterms ([RegularTraceGradeDerivative], "regex-upper-bound-symbolic"); the
-   cost-model grades are "regex-cost-upper-bound" and the others, with the same
-   suffixes. Consecutive implementations differ in one design choice each: the
-   construction (automata or derivatives), the representation of letters (single
-   letters or letter sets) and the letters derived by (letters or minterms). The
+   grades of timed operations are "regex-timed-upper-bound" and the others,
+   with the same suffixes. Consecutive implementations differ in one design
+   choice each: the construction (automata or derivatives), the representation
+   of letters (single letters or letter sets) and the letters derived by
+   (letters or minterms). The
    workloads are the grade operations on families of grades of increasing size,
    and the typechecking of the programs that use the grades, the standard
    library included. A last table times the rational grade
@@ -383,7 +384,7 @@ module Programs (G : Grade.S) = struct
     workload None :: List.map (fun f -> workload (Some f)) programs
 end
 
-(** {1 Cost-model workloads} *)
+(** {1 Workloads of the grades of timed operations} *)
 
 (* The cost model declaring [operations], whose runtime bounds are [(1, 2)],
    [(2, 3)] or [(3, 4)] by the length of their names. *)
@@ -398,7 +399,7 @@ let corpus_names =
   [ "Open"; "Read"; "Write"; "Close"; "Auth"; "Fetch"; "Revoke"; "Send" ]
 
 (* The operations named by [cost_corpus], the runtime-bound declarations of
-   examples/regular_costs/*.tpe and tests/regex_costs_*.tpe. *)
+   examples/regular_timed_ops/*.tpe and tests/regex_timed_*.tpe. *)
 let cost_corpus_names =
   [
     "Coat";
@@ -413,8 +414,9 @@ let cost_corpus_names =
     "Fetch";
   ]
 
-(* The one-sided box grades of examples/regular_costs/{lower,upper}_bounds.tpe
-   and of tests/regex_costs_*.tpe, understood by every cost-model grade. *)
+(* The one-sided box grades of
+   examples/regular_timed_ops/{lower,upper}_bounds.tpe and of
+   tests/regex_timed_*.tpe, understood by every grade of timed operations. *)
 let cost_corpus =
   [
     "{Coat; 4}";
@@ -434,8 +436,8 @@ let cost_corpus =
     "top";
   ]
 
-(* The two-sided box grades of examples/regular_costs/intervals.tpe
-   and tests/regex_costs_interval*.tpe, understood only by the interval grade.
+(* The two-sided box grades of examples/regular_timed_ops/intervals.tpe
+   and tests/regex_timed_interval*.tpe, understood only by the interval grade.
 *)
 let interval_cost_corpus =
   [
@@ -463,7 +465,8 @@ module CostWorkloads (G : Grade.S) = struct
     in
     let bounds = cost_model cost_corpus_names in
     let family =
-      Printf.sprintf "%s: cost corpus (%d literals)" G.name (List.length corpus)
+      Printf.sprintf "%s: timed corpus (%d literals)" G.name
+        (List.length corpus)
     in
     let grades () = List.map lit corpus in
     let on_pairs f rhos = List.map (fun (x, y) -> f bounds x y) (pairs rhos) in
@@ -542,7 +545,8 @@ module CostWorkloads (G : Grade.S) = struct
   (* [n] stops at 8: automata already take seconds to elaborate [E2] there,
      and 12 pushes the interval grade's symbolic derivatives past 20 s. The
      delays of 1024 ticks exercise the runs of ticks as counters, and the 512
-     declared names, of three costs, the classes of names of equal cost. *)
+     declared names, of three running times, the classes of names of equal
+     running time. *)
   let operations =
     costs
     @ List.concat_map delays [ 8; 32; 128; 1024 ]
@@ -550,20 +554,20 @@ module CostWorkloads (G : Grade.S) = struct
     @ List.concat_map nth_from_end [ 4; 8 ]
 end
 
-(* The programs typechecked under the cost-model regular trace grades: the
-   example, and the tests of each grade. *)
+(* The programs typechecked under the regular trace grades of timed
+   operations: the example, and the tests of each grade. *)
 let cost_programs grade =
   List.filter Sys.file_exists
     (List.map
-       (fun name -> "tests/regex_costs_" ^ grade ^ name ^ ".tpe")
+       (fun name -> "tests/regex_timed_" ^ grade ^ name ^ ".tpe")
        [ ""; "_reject"; "_runs"; "_runs_reject" ])
 
 module Cost = Grades.RegularCostTraceGrades
 
-(* The programs typechecked under the cost-model grade [grade], the example
-   first. *)
+(* The programs typechecked under the grade of timed operations [grade], the
+   example first. *)
 let cost_files example grade =
-  ("examples/regular_costs/" ^ example ^ ".tpe") :: cost_programs grade
+  ("examples/regular_timed_ops/" ^ example ^ ".tpe") :: cost_programs grade
 
 (** The workloads of one implementation, over its grades [G], [Upper], [Lower]
     and [Interval], by family, in the order of the table. *)

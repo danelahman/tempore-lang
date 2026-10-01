@@ -1,7 +1,7 @@
 (* Correctly rejected by the typechecker, under the 'traces-upper-bound'
    grading monoid, whose order is the inclusion of sets of traces: a delay
    pays for no operation, so a heating is not below the one tick a box allows,
-   whereas under 'traces-cost-upper-bound', with 'Heat' declared
+   whereas under 'traces-timed-upper-bound', with 'Heat' declared
    'within [1, 1]', that tick pays for it. A trace not listed by the greater
    grade is named as a counterexample. *)
 

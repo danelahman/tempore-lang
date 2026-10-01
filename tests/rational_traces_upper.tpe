@@ -1,5 +1,5 @@
 (* Correctly accepted by the typechecker, under the
-   'traces-cost-upper-bound-rational' grading monoid: delays and running-time
+   'traces-timed-upper-bound-rational' grading monoid: delays and running-time
    bounds are non-negative rationals, and the allowance order buys operations
    at their upper running-time bounds with the delays a bound banks. *)
 

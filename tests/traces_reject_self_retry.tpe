@@ -1,4 +1,4 @@
-(* Correctly rejected by the typechecker, under the 'traces-cost-upper-bound'
+(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: a compound operation may not name itself, since its
    running-time bounds are computed from those of the operations its grade
    names. A retry has to be expressed through a smaller operation instead. *)

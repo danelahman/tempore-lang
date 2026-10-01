@@ -1,0 +1,29 @@
+(* Accepted under the 'regex-timed-interval-rational-symbolic' grading monoid:
+   intervals of a regular lower bound over rational delays, at the fractional
+   lower running-time bounds, and a regular upper bound, at the upper ones. *)
+
+type token = Token of string
+
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+default Sample () = delay 1/2; 3
+operation Send : nat ~> unit # {Send} within [1/4, 1]
+default Send n = delay 0.25
+
+(* A sample takes between a half and one and a half time units. *)
+let sampled () =
+  box [1/2, 3/2] (Token "t") as t in
+  let v = perform Sample () in
+  unbox t as tok in
+  tok
+
+(* At least a transmission, and at most transmissions and delays of up to a
+   quarter. *)
+let paced (n : nat) =
+  box [{Send}, {(Send | [0, 1/4])*}] (Token "p") as p in
+  perform Send n;
+  delay 1/4;
+  perform Send n;
+  unbox p as tok in
+  tok
+
+run sampled ()

@@ -1,17 +1,16 @@
-(* Property tests of the cost-model regular trace grades and of the closures
-   that decide them: the segment characterisations of allowance and coverage
-   against [TimedTrace.allowance] and [TimedTrace.coverage]; then, for each of
-   the four implementations, by automata, by symbolic derivatives, by
-   derivatives by letters and by derivatives over single letters, the
-   membership of short runs in the closures against a search of the runs of
-   the greater language, the laws of the orders on samples, the embedding of
-   the finite trace grades, and examples of the closed world, of zero
-   costs, of the laws that hold up to equivalence, of the literals and of the
-   grades without runs; the agreement of the implementations on random
-   grades and cost models, in their verdicts and their printing; long runs of
-   ticks, taken at once by the implementations by derivatives; and the
-   agreement of the implementations over cost models of many operations
-   sharing costs, in their counterexamples too. *)
+(* Property tests of the regular trace grades of timed operations and of the
+   closures that decide them: the segment characterisations of allowance and
+   coverage against [TimedTrace.allowance] and [TimedTrace.coverage]; then, for
+   each of the four implementations, by automata, by symbolic derivatives, by
+   derivatives by letters and by derivatives over single letters, the membership
+   of short runs in the closures against a search of the runs of the greater
+   language, the laws of the orders on samples, the embedding of the finite
+   trace grades, and examples of the closed world, of zero costs, of the laws
+   that hold up to equivalence, of the literals and of the grades without runs;
+   the agreement of the implementations on random grades and cost models, in
+   their verdicts and their printing; long runs of ticks, taken at once by the
+   implementations by derivatives; and the agreement of the implementations over
+   cost models of many operations sharing costs, in their counterexamples too. *)
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
@@ -272,7 +271,7 @@ let agree tables (module F : Grade.S) (module G : Grade.S) lits =
     tables
 
 (* [embeds (module Upper) (module Lower) (module Interval) tables lits] checks
-   that the cost-model grades embed the trace grades on the finite
+   that the grades of timed operations embed the trace grades on the finite
    literals [lits], and on the intervals between them. *)
 let embeds (module Upper : Grade.S) (module Lower : Grade.S)
     (module Interval : Grade.S) tables lits =
@@ -398,9 +397,9 @@ module Suite (I : IMPLEMENTATION) = struct
     ]
 
   (* Finite languages, whose members are all known, and regular languages,
-     whose members are searched among the runs of length at most 6: with costs
-     at most 2, these include a member above each run of length at most 2 in
-     the closure, for the samples. *)
+     whose members are searched among the runs of length at most 6: with
+     running times at most 2, these include a member above each run of length
+     at most 2 in the closure, for the samples. *)
   let closures =
     let state = Random.State.make [| 3 |] in
     let finite =

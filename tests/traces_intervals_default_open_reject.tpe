@@ -1,4 +1,4 @@
-(* Correctly rejected by the typechecker, under the 'traces-cost-interval'
+(* Correctly rejected by the typechecker, under the 'traces-timed-interval'
    grading monoid: in whole ticks, the running-time bounds [1, 3) are [1, 2]
    and (1, 3] are [2, 3], so a default implementation taking exactly the open
    end is rejected by the grades of these bounds. *)

@@ -1,5 +1,6 @@
 (** Inclusion of timed regular languages in the closures of others under the
-    cost-aware orders of timed traces, over rational delays and rational costs.
+    allowance and coverage orders of timed traces, over rational delays and
+    rational costs.
 
     {2 Orders}
 

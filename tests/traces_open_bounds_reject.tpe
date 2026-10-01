@@ -1,4 +1,4 @@
-(* Correctly rejected by the typechecker, under the 'traces-cost-upper-bound'
+(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: 'Tx' within (1, 4) takes up to three ticks, more than
    the two the box allows, and a default of three ticks exceeds
    [1, 3). *)

@@ -62,7 +62,7 @@ The **Grades** selector chooses the grading monoid; loading an example selects
 its respective grading monoid automatically.
 
 The [`examples/`](examples/) directory holds example programs by topic:
-`basics/`, `handlers/`, `time/`, `traces/`, `regular/`, `regular_costs/`,
+`basics/`, `handlers/`, `time/`, `traces/`, `regular/`, `regular_timed_ops/`,
 `levels/`, `semidirect/`, `counts/`, `3dprint/` (a 3D-printing case study),
 `rollout/` (a staged software release) and `sessions/` (a mail-session case
 study). All but the `basics/` examples are offered in the web interface.
@@ -178,22 +178,22 @@ unit `{0}` is not least, and `⊤`, any trace, is the top. Traces are compared b
 equality, so only upper bounds are provided. The rational variant
 `traces-upper-bound-rational` has non-negative rational delays. 
 
-Literals are those of the trace grades with costs, below. When an ordering
+Literals are those of the trace grades of timed operations, below. When an ordering
 fails, a note names a trace of the lesser grade that the greater one does not
 list. See
 [`examples/traces/upper_bounds.tpe`](examples/traces/upper_bounds.tpe).
 
-### Traces with costs
+### Traces of timed operations
 
 The grades are finite sets of traces as above, and every atomic operation
 declares running-time bounds `within [lo, hi]`, which the orders use to trade
 time against operations.
 
-- `traces-cost-lower-bound`: the traces a computation must *cover*; an operation
+- `traces-timed-lower-bound`: the traces a computation must *cover*; an operation
   performed counts as `lo` ticks towards a demanded duration. `{0}` is the top.
-- `traces-cost-upper-bound`: the traces a computation is *allowed*; a duration
+- `traces-timed-upper-bound`: the traces a computation is *allowed*; a duration
   pays for operations at their `hi`. `{0}` is least and `⊤` the top.
-- `traces-cost-interval`: closed intervals `[{...}, {...}]` of a lower and an
+- `traces-timed-interval`: closed intervals `[{...}, {...}]` of a lower and an
   upper bound, the traces at or above the one and at or below the other,
   compared componentwise; `[{...}, ∞)` has no upper bound, `{...}` abbreviates
   `[{...}, {...}]`, `n` is `[{n}, {n}]`, `[n, m]` is `[{n}, {m}]`, and an open
@@ -202,12 +202,12 @@ time against operations.
 
 Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
 Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
-[`examples/traces_costs/lower_bounds.tpe`](examples/traces_costs/lower_bounds.tpe),
-[`examples/traces_costs/upper_bounds.tpe`](examples/traces_costs/upper_bounds.tpe) and
-[`examples/traces_costs/intervals.tpe`](examples/traces_costs/intervals.tpe).
+[`examples/traces_timed_ops/lower_bounds.tpe`](examples/traces_timed_ops/lower_bounds.tpe),
+[`examples/traces_timed_ops/upper_bounds.tpe`](examples/traces_timed_ops/upper_bounds.tpe) and
+[`examples/traces_timed_ops/intervals.tpe`](examples/traces_timed_ops/intervals.tpe).
 
-The rational variants `traces-cost-lower-bound-rational`,
-`traces-cost-upper-bound-rational` and `traces-cost-interval-rational` have the
+The rational variants `traces-timed-lower-bound-rational`,
+`traces-timed-upper-bound-rational` and `traces-timed-interval-rational` have the
 same orders, units and tops, with non-negative rational durations and
 running-time bounds: `{Sample; 1/2; Send}` has a duration of half a unit between
 the two operations, a fraction `q` abbreviates `{q}`, and an operation may
@@ -215,8 +215,8 @@ declare bounds such as `within [1/2, 3/2]`.
 
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
 infinitely many traces and is rejected; the regular expressions of
-`regex-cost-interval-rational-symbolic` can be used to express such cases. See
-[`examples/traces_costs/intervals_rational.tpe`](examples/traces_costs/intervals_rational.tpe).
+`regex-timed-interval-rational-symbolic` can be used to express such cases. See
+[`examples/traces_timed_ops/intervals_rational.tpe`](examples/traces_timed_ops/intervals_rational.tpe).
 
 ### Regular expressions
 
@@ -273,18 +273,18 @@ unit is `{0}` and the top `⊤`, `{_*}`. A grade is printed as it is written, wi
 adjacent delays added. See
 [`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
 
-### Regular expressions with costs
+### Regular expressions of timed operations
 
 A grade is a regular language of traces, as under `regex-upper-bound-symbolic`, ordered
-as the trace monoids with costs order finite sets of traces, at the running-time
+as the trace monoids of timed operations order finite sets of traces, at the running-time
 bounds `within [lo, hi]` of the atomic operations. A grade stands for its
 closure: the traces that fit inside one of its traces (upper) or cover one of
 them (lower).
 
-- `regex-cost-upper-bound-symbolic`: allowance order at `hi`; `{0}` is least, `⊤` the top.
-- `regex-cost-lower-bound-symbolic`: coverage order at `lo`; `{0}` is the top.
-- `regex-cost-interval-symbolic`: closed intervals `[{...}, {...}]` of a lower and an
-  upper bound, with the forms and abbreviations of `traces-cost-interval`; the
+- `regex-timed-upper-bound-symbolic`: allowance order at `hi`; `{0}` is least, `⊤` the top.
+- `regex-timed-lower-bound-symbolic`: coverage order at `lo`; `{0}` is the top.
+- `regex-timed-interval-symbolic`: closed intervals `[{...}, {...}]` of a lower and an
+  upper bound, with the forms and abbreviations of `traces-timed-interval`; the
   top is `[{0}, ∞)`.
 
 Each of the above is also available with the suffix `-letter-automata` in place of `-symbolic`, in which 
@@ -292,19 +292,19 @@ ordering of regexes is decided using minimal automata.
 
 The alphabet is the atomic operations declared anywhere in the program, so `_`
 is any tick or atomic operation, and a grade must denote at least one trace
-over it. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound-symbolic`
+over it. With `Read` declared `within [1, 3]`, under `regex-timed-upper-bound-symbolic`
 `{Read}` is below `{3}` and `{Read | 3}` equals `{3}`. See
-[`examples/regular_costs/lower_bounds.tpe`](examples/regular_costs/lower_bounds.tpe),
-[`examples/regular_costs/upper_bounds.tpe`](examples/regular_costs/upper_bounds.tpe)
+[`examples/regular_timed_ops/lower_bounds.tpe`](examples/regular_timed_ops/lower_bounds.tpe),
+[`examples/regular_timed_ops/upper_bounds.tpe`](examples/regular_timed_ops/upper_bounds.tpe)
 and
-[`examples/regular_costs/intervals.tpe`](examples/regular_costs/intervals.tpe).
+[`examples/regular_timed_ops/intervals.tpe`](examples/regular_timed_ops/intervals.tpe).
 
-The rational variants `regex-cost-lower-bound-rational-symbolic`,
-`regex-cost-upper-bound-rational-symbolic` and `regex-cost-interval-rational-symbolic` order the
+The rational variants `regex-timed-lower-bound-rational-symbolic`,
+`regex-timed-upper-bound-rational-symbolic` and `regex-timed-interval-rational-symbolic` order the
 timed words of `regex-upper-bound-rational-symbolic` in the same way, with its literals
 and fractional running-time bounds such as `within [1/2, 3/2]`. The orders are
 exact over the rationals: with operation `A` declared `within [1, 1]`, under
-`regex-cost-upper-bound-rational-symbolic` the traces `{(0, 1); A; (0, 1)}` are below
+`regex-timed-upper-bound-rational-symbolic` the traces `{(0, 1); A; (0, 1)}` are below
 `{3}` but below no `{q}` with `q < 3`, as the sums of their durations come
 arbitrarily close to `2`. 
 
@@ -319,11 +319,11 @@ greatest weights of the traces of its grade: `{Sample; [0, 1/2); Send}` gets
 `(3/4, 3)` if `Sample` is declared `within [1/2, 3/2]` and `Send`
 `within [1/4, 1]`. 
 
-Under `regex-cost-interval-rational-symbolic` an open numeric endpoint of an interval is
+Under `regex-timed-interval-rational-symbolic` an open numeric endpoint of an interval is
 a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
-[`examples/regular_costs/upper_bounds_rational.tpe`](examples/regular_costs/upper_bounds_rational.tpe)
+[`examples/regular_timed_ops/upper_bounds_rational.tpe`](examples/regular_timed_ops/upper_bounds_rational.tpe)
 and
-[`examples/regular_costs/intervals_rational.tpe`](examples/regular_costs/intervals_rational.tpe).
+[`examples/regular_timed_ops/intervals_rational.tpe`](examples/regular_timed_ops/intervals_rational.tpe).
 
 ### Security levels and products
 
@@ -441,7 +441,7 @@ Base types, and tuples and algebraic types built from eternal types, are
 eternal; function, handler and box types are not. A local variable of a
 non-eternal type may be used only while the grade accumulated since its binding
 is a sub-grade of the unit. Under `time-lower-bound` and
-`traces-cost-lower-bound` this always holds; under the other monoids such a
+`traces-timed-lower-bound` this always holds; under the other monoids such a
 variable must be used before any nontrivial delay or operation call.
 
 ### Schemes and qualifiers
@@ -470,7 +470,7 @@ operation Read : unit ~> string # 2
 ```
 
 declares an operation whose call `perform Read ()` has grade `2`. Under the
-trace and regular-expression monoids with costs, an *atomic* operation, graded
+trace and regular-expression monoids of timed operations, an *atomic* operation, graded
 by its own name, also declares its running-time bounds (`within [n, m]`):
 
 ```
@@ -481,15 +481,15 @@ The bounds are durations, written as for `delay` (see [Delays](#delays)), with
 `lo <= hi` and `hi` positive. Either end may be open, as in `within (lo, hi)`,
 `within [lo, hi)` or `within (lo, hi]`, the interval being non-empty. 
 
-The rational monoids with costs accept fractional bounds such as `within [1/2,
-3/2)`; under the other monoids with costs, which count whole time steps, `within
+The rational monoids of timed operations accept fractional bounds such as `within [1/2,
+3/2)`; under the other monoids of timed operations, which count whole time steps, `within
 [1/2, 1]` is a syntax error and an open end abbreviates a closed one, `within
 (1, 4)` being `within [2, 3]`. 
 
 The rational trace monoids compare traces with exact durations and read the
 value of each end. The rational regular-expression monoids read whether each
 end is attained: with `A` declared `within [1, 2)`, `{A}` is below `{[0, 2)}`
-under `regex-cost-upper-bound-rational-symbolic`, and a default implementation of `A`
+under `regex-timed-upper-bound-rational-symbolic`, and a default implementation of `A`
 takes less than `2`.
 
 A *compound* operation names other operations in its grade, and its bounds are
@@ -522,7 +522,7 @@ and [`examples/3dprint/handlers.tpe`](examples/3dprint/handlers.tpe).
 ### Contexts of operation cases
 
 An operation case is typed with the top grade `⊤` accumulated for the variables
-bound outside it. Under `time-lower-bound` and `traces-cost-lower-bound` the top
+bound outside it. Under `time-lower-bound` and `traces-timed-lower-bound` the top
 is the unit, which restricts nothing. Under the other monoids an outer variable
 of non-eternal type, including an outer continuation, cannot be used in the
 case, and an outer box can be unboxed only if `⊤` is below its grade. This is
@@ -546,7 +546,7 @@ and a default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}`
 under upper bounds, and `[{lo}, {hi}]` under intervals; the running-time bounds
 its grade implies must moreover lie within the declared ones, an open end
 excluded, so that with `A` declared `within [1, 2)` the default
-`default A () = delay 2` is rejected under every monoid with costs. Elsewhere a default's
+`default A () = delay 2` is rejected under every monoid of timed operations. Elsewhere a default's
 grade must be a sub-grade of the operation's grade.
 See [`examples/3dprint/traces.tpe`](examples/3dprint/traces.tpe).
 

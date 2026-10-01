@@ -1,4 +1,4 @@
-(* Correctly accepted by the typechecker, under the 'traces-cost-upper-bound'
+(* Correctly accepted by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: the three atomic operations of a print are given default
    implementations, checked against their running-time bounds rather than
    against their grades, and the compound operation 'PrintModel' is handled by

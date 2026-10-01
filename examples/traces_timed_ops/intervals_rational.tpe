@@ -1,0 +1,122 @@
+(* A weather station timed in seconds, its traces bounded above and below.
+
+   Run this example with the 'traces-timed-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-interval-rational examples/traces_timed_ops/intervals_rational.tpe
+
+   Grades [{...}, {...}]: lower and upper bounds on traces with rational
+   durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+type reading = Reading of nat
+type packet = Packet of reading
+
+(* A reading of the sensors has a running time between half a second and one
+   and a half; its default takes three quarters of a second. *)
+operation Sample : unit ~> reading # [{Sample}, {Sample}] within [1/2, 3/2]
+default Sample () = delay 0.75; Reading 12
+
+(* Compressing a reading has a running time between a quarter of a second and
+   one second; its default takes a quarter of a second. *)
+operation Compress : reading ~> packet
+  # [{Compress}, {Compress}]
+  within [1/4, 1]
+default Compress r = delay 1/4; Packet r
+
+(* A transmission has a running time between one second and two and a half;
+   its default takes one second. *)
+operation Transmit : packet ~> unit
+  # [{Transmit}, {Transmit}]
+  within [1, 5/2]
+default Transmit p = delay 1
+
+(* A report samples, compresses and transmits, in that order. *)
+operation Report : unit ~> unit
+  # [{Sample; Compress; Transmit}, {Sample; Compress; Transmit}]
+
+(* Correctly accepted by the typechecker: the reading is compressed after a
+   delay of a fifth of a second, which lets the sensors settle. The packet may
+   be used after 0.8 seconds, which the sample, the delay and the compression
+   bank at their lower running-time bounds, 1/2 + 0.2 + 1/4 = 0.95, and must be
+   used within three, which they take at most, 3/2 + 0.2 + 1 = 2.7. *)
+let settled_packet () =
+  box [0.8, 3] () as window in
+  let r = perform Sample () in
+  delay 1/5;
+  let p = perform Compress r in
+  unbox window as w in
+  p
+
+(* Correctly accepted by the typechecker: a window written as traces, demanding
+   the sample and the delay and allowing the sample, the delay and the
+   compression. *)
+let settled_by_events () =
+  box [{Sample; 0.2}, {Sample; 1/5; Compress}] () as window in
+  let r = perform Sample () in
+  delay 1/5;
+  let p = perform Compress r in
+  unbox window as w in
+  p
+
+(* Correctly accepted by the typechecker: the report itself, performed by
+   hand, realises the grade of 'Report'. *)
+let report_by_hand () =
+  let r = perform Sample () in
+  let p = perform Compress r in
+  perform Transmit p
+
+(* Correctly accepted by the typechecker: a report fits a radio slot that opens
+   after 7/4 seconds and closes after 5, since its operations bank at least
+   1/2 + 1/4 + 1 = 7/4 and take at most 3/2 + 1 + 5/2 = 5. *)
+let report_in_slot () =
+  box [7/4, 5] () as slot in
+  perform Report ();
+  unbox slot as s in
+  s
+
+(* Correctly rejected by the typechecker: without the delay, the packet is not
+   ready after 0.8 seconds, since the sample and the compression bank only
+   their lower running-time bounds, 1/2 + 1/4 = 0.75:
+
+     Typing error: Variable `window` is unboxed with grade
+       `[{Sample; Compress}, {Sample; Compress}]` accumulated since it was
+       bound, which is not below its box grade `[{0.8}, {3}]`
+       Note: the resource inequality
+         `[{Sample; Compress}, {Sample; Compress}] <= [{0.8}, {3}]` does not
+         hold
+*)
+(*
+let hasty_packet () =
+  box [0.8, 3] () as window in
+  let r = perform Sample () in
+  let p = perform Compress r in
+  unbox window as w in
+  p
+*)
+
+(* Correctly rejected by the typechecker: a delay of a second instead of a
+   fifth leaves the sample and the compression, at their upper running-time
+   bounds, past the three seconds allowed, since 3/2 + 1 + 1 = 3.5:
+
+     Typing error: Variable `window` is unboxed with grade
+       `[{Sample; 1; Compress}, {Sample; 1; Compress}]` accumulated since it
+       was bound, which is not below its box grade `[{0.8}, {3}]`
+       Note: the resource inequality
+         `[{Sample; 1; Compress}, {Sample; 1; Compress}] <= [{0.8}, {3}]` does
+         not hold
+*)
+(*
+let idle_packet () =
+  box [0.8, 3] () as window in
+  let r = perform Sample () in
+  delay 1;
+  let p = perform Compress r in
+  unbox window as w in
+  p
+*)
+
+(* The operations are atomic and run their defaults, so the report takes
+   0.75 + 0.25 + 1 = 2 seconds. *)
+run report_by_hand ()

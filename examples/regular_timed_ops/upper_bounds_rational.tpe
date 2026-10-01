@@ -1,0 +1,215 @@
+(* A sensor station timed in seconds: sample, transmit and calibrate, paced by fractional budgets.
+
+   Run this example with the 'regex-timed-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-rational-symbolic examples/regular_timed_ops/upper_bounds_rational.tpe
+
+   Grades {...}: regular languages of traces with rational durations in the
+   allowance order
+     - Unit {0}: the empty trace, the least grade
+     - Top ⊤: every trace permitted
+     - Product: concatenation of traces *)
+
+type reading = Reading of nat
+
+(* The operations of a sensor station: a sample has a running time between
+   half a second and one and a half, a transmission between one second and two
+   and a half, and a calibration between four seconds and five and a half. *)
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+default Sample () = delay 1/2; 7
+
+operation Send : nat ~> unit # {Send} within [1, 5/2]
+default Send x = delay 1.5
+
+operation Calibrate : unit ~> unit # {Calibrate} within [4, 11/2]
+default Calibrate () = delay 5
+
+(* A blink of the status light has a running time of at least a quarter of a
+   second and less than half a second: its running-time bounds are open
+   above. *)
+operation Blink : unit ~> unit # {Blink} within [1/4, 1/2)
+default Blink () = delay 1/4
+
+(* Correctly accepted by the typechecker: five and a half seconds pay for a
+   calibration, which takes at most as long. *)
+let calibrated () =
+  box {11/2} (Reading 0) as r in
+  perform Calibrate ();
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: the transmission is matched by the
+   grade's own, a duration of up to one and a half seconds before it pays for
+   the sample, and the five and a half seconds after it for the calibration. *)
+let send_then_calibrate () =
+  box {[0, 3/2]; Send; 11/2} (Reading 0) as r in
+  let x = perform Sample () in
+  perform Send x;
+  perform Calibrate ();
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: samples, each followed by a duration
+   of at most a third of a second. *)
+let paced () =
+  box {(Sample; [0, 1/3])*} (Reading 0) as r in
+  let x = perform Sample () in
+  delay 1/4;
+  let y = perform Sample () in
+  delay 1/3;
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: a delay of less than half a second,
+   however close to a half it comes, and a sample of at most one and a half
+   take less than two seconds. *)
+let settle () : unit # {[0, 1/2)} = delay 0.4
+
+let sample_and_settle () : nat # {2} =
+  let x = perform Sample () in
+  settle ();
+  x
+
+(* Correctly accepted by the typechecker: a transmission followed by less than
+   two seconds, the half-open interval [0, 2). *)
+let send_then_rest () =
+  box {Send; [0, 2)} (Reading 0) as r in
+  perform Send 1;
+  delay 1.5;
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: a blink takes less than half a
+   second, so the durations below half a second permit it. *)
+let blink () =
+  box {[0, 1/2)} (Reading 0) as r in
+  perform Blink ();
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker: the complement excludes the single
+   duration of one second, but grades are compared up to their closures, and
+   the longer durations it keeps permit it. *)
+let offbeat () =
+  box {~1} (Reading 0) as r in
+  delay 1/2;
+  delay 1/2;
+  unbox r as x in
+  x
+
+(* Correctly accepted by the typechecker, which may be surprising: the grade
+   excludes calibrations, but it also allows durations of any length, which
+   pay for one. An operation cannot be forbidden while unbounded time is
+   allowed. *)
+let unexcluded () =
+  box {(_ & ~Calibrate)*} (Reading 0) as r in
+  perform Calibrate ();
+  unbox r as x in
+  x
+
+(* Correctly rejected by the typechecker: a calibration may take five and a
+   half seconds, more than the five the grade allows:
+
+     Typing error: Variable `r` is unboxed with grade `{Calibrate}` accumulated
+       since it was bound, which is not below its box grade `{5}`
+       ...
+       Note: the resource inequality `{Calibrate} <= {5}` does not hold
+*)
+(*
+let slow_calibration () =
+  box {5} (Reading 0) as r in
+  perform Calibrate ();
+  unbox r as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: the five and a half seconds come
+   after the transmission, and the match resets the budget, so they cannot pay
+   for a calibration before it:
+
+     Typing error: Variable `r` is unboxed with grade `{Calibrate; Send}`
+       accumulated since it was bound, which is not below its box grade
+       `{[0, 1.5]; Send; 5.5}`
+       ...
+       Note: the resource inequality
+         `{Calibrate; Send} <= {[0, 1.5]; Send; 5.5}` does not hold
+*)
+(*
+let calibrate_first () =
+  box {[0, 3/2]; Send; 11/2} (Reading 0) as r in
+  perform Calibrate ();
+  perform Send 1;
+  unbox r as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: the delay of less than half a second
+   comes arbitrarily close to it, so that a sample and the delay may take more
+   than 1.9 seconds, as a delay of 4/9 of a second does:
+
+     Typing error: This function's body has grade `{Sample; [0, 0.5)}`, which
+       does not match its annotated grade `{1.9}`
+       Note: the effect inequality `{Sample; [0, 0.5)} <= {1.9}` does not hold
+       Note: the grade `{Sample; 4/9}` is below `{Sample; [0, 0.5)}` but not
+         below `{1.9}`
+*)
+(*
+let sample_and_settle_early () : nat # {1.9} =
+  let x = perform Sample () in
+  settle ();
+  x
+*)
+
+(* Correctly rejected by the typechecker: a sample may take one and a half
+   seconds, and with the delay of half a second after it reaches the two
+   seconds the interval excludes:
+
+     Typing error: Variable `r` is unboxed with grade `{Send; Sample; 0.5}`
+       accumulated since it was bound, which is not below its box grade
+       `{Send; [0, 2)}`
+       ...
+       Note: the resource inequality `{Send; Sample; 0.5} <= {Send; [0, 2)}`
+         does not hold
+*)
+(*
+let send_then_sample () =
+  box {Send; [0, 2)} (Reading 0) as r in
+  perform Send 1;
+  let x = perform Sample () in
+  delay 1/2;
+  unbox r as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: a transmission may take two and a
+   half seconds, which no duration below two and a half seconds permits:
+
+     Typing error: Variable `r` is unboxed with grade `{Send}` accumulated
+       since it was bound, which is not below its box grade `{[0, 2.5)}`
+       ...
+       Note: the resource inequality `{Send} <= {[0, 2.5)}` does not hold
+*)
+(*
+let send_briefly () =
+  box {[0, 5/2)} (Reading 0) as r in
+  perform Send 1;
+  unbox r as x in
+  x
+*)
+
+(* Correctly rejected by the typechecker: a grade must permit at least one
+   trace over the operations the program declares, and a single operation
+   other than the four declared is none:
+
+     Typing error: The grade
+       `{_ & ~((0, ∞) | Sample | Send | Calibrate | Blink)}` permits no trace
+       over the declared operations
+*)
+(*
+let undeclared () =
+  box {_ & ~((0, ∞) | Sample | Send | Calibrate | Blink)} (Reading 0) as r in
+  unbox r as x in
+  x
+*)
+
+run send_then_calibrate ()

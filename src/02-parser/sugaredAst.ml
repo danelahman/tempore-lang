@@ -118,7 +118,7 @@ and ('rho, 'eps) plain_command =
       * 'eps
       * Grades.Grade.runtime option)
       (** [operation op : t1 -> t2 # rho within [lo, hi]]; the runtime bounds
-          are optional and only the grading monoids with costs use them *)
+          are optional, read only by the grading monoids of timed operations *)
   | OpDefault of operation * ('rho, 'eps) abstraction
       (** [default Op p = t]; the implementation the operation falls back on
           when it reaches the top level unhandled *)

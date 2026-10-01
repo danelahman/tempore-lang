@@ -1,5 +1,5 @@
 (* Correctly rejected by the typechecker, under the
-   'traces-cost-interval-rational' grading monoid: a default implementation
+   'traces-timed-interval-rational' grading monoid: a default implementation
    taking exactly the open upper end 2 of [1, 2), or the open lower end 1 of
    (1, 2], lies outside the running-time bounds of its operation, although the
    finite sets of traces of the grade express only their closed hull [1, 2]. *)

@@ -154,7 +154,7 @@ let products =
     expect "product: name" Fun.id ~expected:"time-lower-bound-levels"
       TimeLevels.name;
     expect "product: generic name" Fun.id
-      ~expected:"traces-cost-upper-bound×security-levels" TraceLevels.name;
+      ~expected:"traces-timed-upper-bound×security-levels" TraceLevels.name;
     check "product: at least as long and as low"
       (TimeLevels.leq bounds (p 3 "Low") (p 2 "High"))
       "(3, Low) ≾ (2, High)";
@@ -886,20 +886,20 @@ let registry =
         [
           "time-interval";
           "time-interval-rational";
-          "traces-cost-interval";
-          "traces-cost-interval-rational";
-          "regex-cost-interval-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "traces-timed-interval";
+          "traces-timed-interval-rational";
+          "regex-timed-interval-symbolic";
+          "regex-timed-interval-rational-symbolic";
           "windowed-schedules";
         ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
     expect "registry: grades reading an interval of brace literals" show_names
       ~expected:
         [
-          "traces-cost-interval";
-          "traces-cost-interval-rational";
-          "regex-cost-interval-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "traces-timed-interval";
+          "traces-timed-interval-rational";
+          "regex-timed-interval-symbolic";
+          "regex-timed-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting
          (span (Grade.Braces (Grade.Letter "A"))
@@ -914,9 +914,9 @@ let registry =
         [
           "time-interval";
           "time-interval-rational";
-          "traces-cost-interval";
-          "regex-cost-interval-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "traces-timed-interval";
+          "regex-timed-interval-symbolic";
+          "regex-timed-interval-rational-symbolic";
           "resource-levels";
           "windowed-schedules";
         ]
@@ -930,37 +930,37 @@ let registry =
           "time-lower-bound-rational";
           "time-upper-bound-rational";
           "traces-upper-bound-rational";
-          "traces-cost-lower-bound-rational";
-          "traces-cost-upper-bound-rational";
-          "traces-cost-interval-rational";
+          "traces-timed-lower-bound-rational";
+          "traces-timed-upper-bound-rational";
+          "traces-timed-interval-rational";
           "regex-upper-bound-rational-symbolic";
-          "regex-cost-lower-bound-rational-symbolic";
-          "regex-cost-upper-bound-rational-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "regex-timed-lower-bound-rational-symbolic";
+          "regex-timed-upper-bound-rational-symbolic";
+          "regex-timed-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
     expect "registry: grades reading a fractional delay in braces" show_names
       ~expected:
         [
           "traces-upper-bound-rational";
-          "traces-cost-lower-bound-rational";
-          "traces-cost-upper-bound-rational";
-          "traces-cost-interval-rational";
+          "traces-timed-lower-bound-rational";
+          "traces-timed-upper-bound-rational";
+          "traces-timed-interval-rational";
           "regex-upper-bound-rational-symbolic";
-          "regex-cost-lower-bound-rational-symbolic";
-          "regex-cost-upper-bound-rational-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "regex-timed-lower-bound-rational-symbolic";
+          "regex-timed-upper-bound-rational-symbolic";
+          "regex-timed-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
     expect "registry: grades reading fractional runtime bounds" show_names
       ~expected:
         [
-          "traces-cost-lower-bound-rational";
-          "traces-cost-upper-bound-rational";
-          "traces-cost-interval-rational";
-          "regex-cost-lower-bound-rational-symbolic";
-          "regex-cost-upper-bound-rational-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "traces-timed-lower-bound-rational";
+          "traces-timed-upper-bound-rational";
+          "traces-timed-interval-rational";
+          "regex-timed-lower-bound-rational-symbolic";
+          "regex-timed-upper-bound-rational-symbolic";
+          "regex-timed-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting_bounds (Grade.Rat (Rational.make 1 2)));
     expect "registry: grades with a fractional delay" show_names
@@ -970,13 +970,13 @@ let registry =
           "time-upper-bound-rational";
           "time-interval-rational";
           "traces-upper-bound-rational";
-          "traces-cost-lower-bound-rational";
-          "traces-cost-upper-bound-rational";
-          "traces-cost-interval-rational";
+          "traces-timed-lower-bound-rational";
+          "traces-timed-upper-bound-rational";
+          "traces-timed-interval-rational";
           "regex-upper-bound-rational-symbolic";
-          "regex-cost-lower-bound-rational-symbolic";
-          "regex-cost-upper-bound-rational-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "regex-timed-lower-bound-rational-symbolic";
+          "regex-timed-upper-bound-rational-symbolic";
+          "regex-timed-interval-rational-symbolic";
           "security-levels";
           "flow-levels";
         ]
@@ -996,21 +996,21 @@ let registry =
         [
           "regex-upper-bound-symbolic";
           "regex-upper-bound-rational-symbolic";
-          "regex-cost-lower-bound-symbolic";
-          "regex-cost-upper-bound-symbolic";
-          "regex-cost-interval-symbolic";
-          "regex-cost-lower-bound-rational-symbolic";
-          "regex-cost-upper-bound-rational-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "regex-timed-lower-bound-symbolic";
+          "regex-timed-upper-bound-symbolic";
+          "regex-timed-interval-symbolic";
+          "regex-timed-lower-bound-rational-symbolic";
+          "regex-timed-upper-bound-rational-symbolic";
+          "regex-timed-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Star (Grade.Letter "A"))));
     expect "registry: grades reading an interval of delays" show_names
       ~expected:
         [
           "regex-upper-bound-rational-symbolic";
-          "regex-cost-lower-bound-rational-symbolic";
-          "regex-cost-upper-bound-rational-symbolic";
-          "regex-cost-interval-rational-symbolic";
+          "regex-timed-lower-bound-rational-symbolic";
+          "regex-timed-upper-bound-rational-symbolic";
+          "regex-timed-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting
          (Grade.Braces
@@ -1022,15 +1022,15 @@ let registry =
           "regex-upper-bound-letter-automata";
           "regex-upper-bound-symbolic-by-letters";
           "regex-upper-bound-letter-derivatives";
-          "regex-cost-lower-bound-letter-automata";
-          "regex-cost-upper-bound-letter-automata";
-          "regex-cost-interval-letter-automata";
-          "regex-cost-lower-bound-symbolic-by-letters";
-          "regex-cost-upper-bound-symbolic-by-letters";
-          "regex-cost-interval-symbolic-by-letters";
-          "regex-cost-lower-bound-letter-derivatives";
-          "regex-cost-upper-bound-letter-derivatives";
-          "regex-cost-interval-letter-derivatives";
+          "regex-timed-lower-bound-letter-automata";
+          "regex-timed-upper-bound-letter-automata";
+          "regex-timed-interval-letter-automata";
+          "regex-timed-lower-bound-symbolic-by-letters";
+          "regex-timed-upper-bound-symbolic-by-letters";
+          "regex-timed-interval-symbolic-by-letters";
+          "regex-timed-lower-bound-letter-derivatives";
+          "regex-timed-upper-bound-letter-derivatives";
+          "regex-timed-interval-letter-derivatives";
         ]
       (List.concat_map
          (fun (g : GradeRegistry.group) ->
@@ -1497,7 +1497,7 @@ let family name =
   | "traces-upper-bound-rational" -> Some Rational_inclusion_traces
   | "regex-upper-bound-rational-symbolic" -> Some Rational_regex
   | _
-    when prefix "regex-cost-"
+    when prefix "regex-timed-"
          && String.ends_with ~suffix:"-rational-symbolic" name ->
       Some Rational_regex_costs
   | _ when prefix "regex-" -> Some Regex
@@ -1517,17 +1517,17 @@ let letter_b = Grade.Letter "B"
 let letter_c = Grade.Letter "C"
 
 (* [cover family] is the literals of the cases [family] distinguishes: for the
-   time grades, integers, fractions, [∞] and intervals such as '[0, ∞)'; for
-   the trace grades without costs, sets of runs of which some include others;
-   for the trace and regular grades, the operations of [costs], delays, unions,
-   sequences and, for the regular grades, repetitions, the catch-all letter,
-   intersections and complements; the two levels; pairs of times and levels;
-   levels with outputs at named sinks and at the others; releases,
+   time grades, integers, fractions, [∞] and intervals such as '[0, ∞)'; for the
+   trace grades without running times, sets of runs of which some include
+   others; for the trace and regular grades, the operations of [costs], delays,
+   unions, sequences and, for the regular grades, repetitions, the catch-all
+   letter, intersections and complements; the two levels; pairs of times and
+   levels; levels with outputs at named sinks and at the others; releases,
    acquisitions, ranges of net changes, explicit and unbounded troughs and the
-   resources not named; durations with the times of named and other
-   operations; partial operations, changes of mode, runs stuck at a cost,
-   round trips and the modes not named; and counts of several operations, of
-   the others, [0] and [∞]. *)
+   resources not named; durations with the times of named and other operations;
+   partial operations, changes of mode, runs stuck at a cost, round trips and
+   the modes not named; and counts of several operations, of the others, [0] and
+   [∞]. *)
 let cover =
   let open Grade in
   let level l = Name l in
@@ -2022,9 +2022,9 @@ let fractional_laws =
       @ of_bounds_laws (module G) fractional_costs)
     [ rational_traces_lower; rational_traces_upper; rational_traces_interval ]
 
-(* The trace grades without costs: inclusion of the normal forms, ignoring the
-   runtime bounds of [costs], a counterexample to every failure, and the laws
-   under [fractional_costs]. *)
+(* The trace grades without running times: inclusion of the normal forms,
+   ignoring the runtime bounds of [costs], a counterexample to every failure,
+   and the laws under [fractional_costs]. *)
 let inclusion_laws =
   let module U = TraceInclusionGrades.UpperBound in
   let read r = U.of_lit (Grade.Braces r) in
@@ -2383,9 +2383,9 @@ let resource_laws =
   @ order_laws (module P) ~context costs samples
   @ algebra_laws (module P) ~context costs samples
 
-(* The printed grades of the interval grades with costs, on their samples,
-   read back as equal grades: a lower bound of all runs prints as '⊤' and reads
-   back as the top '{0}' of the lower order, equal to it. *)
+(* The printed grades of the interval grades of timed operations, on their
+   samples, read back as equal grades: a lower bound of all runs prints as '⊤'
+   and reads back as the top '{0}' of the lower order, equal to it. *)
 let interval_read_back =
   List.concat_map
     (fun (name, (module G : Grade.S)) ->

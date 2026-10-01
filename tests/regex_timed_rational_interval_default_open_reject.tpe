@@ -1,0 +1,10 @@
+(* Correctly rejected by the typechecker, under the
+   'regex-timed-interval-rational-symbolic' grading monoid: the grades of the
+   running-time bounds [1, 2) and (1, 2] have open ends, so a default
+   implementation taking exactly the open end is rejected by them. *)
+
+operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+
+default Send () = delay 2
+default Beep () = delay 1
