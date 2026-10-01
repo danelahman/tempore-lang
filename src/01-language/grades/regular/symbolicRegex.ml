@@ -172,6 +172,17 @@ module type S = sig
   end
 
   module Decide (_ : ALPHABET) : DECISIONS
+
+  type gap_word = (int * Letters.t) list * int
+
+  module type GAP_DECISIONS = sig
+    val is_empty : t -> bool
+    val shortest : t -> gap_word option
+    val subset : t -> t -> bool
+    val equal : t -> t -> bool
+  end
+
+  module GapDecide (_ : ALPHABET) : GAP_DECISIONS
 end
 
 module Make (L : sig
@@ -643,7 +654,22 @@ struct
     | Ticks n -> DelaySet.point (Rational.of_int n)
     | Concat (r1, r2) -> DelaySet.sum (delays r1) (delays r2)
     | Union rs -> fold DelaySet.union rs
-    | Inter rs -> fold DelaySet.inter rs
+    | Inter rs -> (
+        (* [N(r & ~s) = N(r) ∖ N(s)], a difference from a bounded set reading
+           [N(s)] only up to its supremum. *)
+        let complemented, others =
+          List.partition_map
+            (fun r -> match r.view with Compl s -> Left s | _ -> Right r)
+            rs
+        in
+        match others with
+        | [] ->
+            DelaySet.diff DelaySet.naturals (fold DelaySet.union complemented)
+        | others ->
+            List.fold_left
+              (fun n s -> DelaySet.diff n (delays s))
+              (fold DelaySet.inter others)
+              complemented)
     | Compl r -> DelaySet.diff DelaySet.naturals (delays r)
     | Star r -> DelaySet.star (delays r)
 
@@ -750,14 +776,21 @@ struct
       invalid_arg "SymbolicRegex.gap_derivative: a block containing tick"
     else gap (minterm set) r
 
-  let gaps r =
+  (** [name_blocks blocks] is the blocks of names of the partition [blocks]: its
+      blocks without [tick], those left non-empty, listed by {!Letters.order}.
+  *)
+  let name_blocks blocks =
     List.filter_map
       (fun b ->
         let names = Letters.inter b (Letters.compl Letters.tick) in
-        if Letters.is_empty names then None
-        else Some (names, gap (minterm names) r))
-      (minterms r)
-    |> List.sort (fun (b, _) (b', _) -> Letters.order b b')
+        if Letters.is_empty names then None else Some names)
+      blocks
+    |> List.sort Letters.order
+
+  let gaps r =
+    List.map
+      (fun names -> (names, gap (minterm names) r))
+      (name_blocks (minterms r))
 
   (** {1 Alphabets} *)
 
@@ -936,6 +969,298 @@ struct
               List.iter2
                 (fun (d, _) (d', _) -> Queue.push (d, d') queue)
                 (moves ms k r) (moves ms k s);
+              go ()
+            end
+      in
+      go ()
+
+    let equal r s =
+      equal_form r s
+      || r.nullable = s.nullable
+         &&
+         let key = if r.id < s.id then (r.id, s.id) else (s.id, r.id) in
+         match Pairs.find_opt equalities key with
+         | Some e -> e
+         | None ->
+             let e = bisimilar r s in
+             Pairs.add equalities key e;
+             e
+  end
+
+  (** {1 Decisions in gap form} *)
+
+  type gap_word = (int * Letters.t) list * int
+
+  module type GAP_DECISIONS = sig
+    val is_empty : t -> bool
+    val shortest : t -> gap_word option
+    val subset : t -> t -> bool
+    val equal : t -> t -> bool
+  end
+
+  (** [least s] is the least element of the set of integers [s], [None] if [s]
+      is empty. *)
+  let least s =
+    match DelaySet.inf s with
+    | Some (DelaySet.Finite (q, _)) -> Rational.to_int q
+    | Some DelaySet.Infinite | None -> None
+
+  (** The frontiers of Dijkstra's algorithm: sets of pairs of a distance and the
+      number of an expression. *)
+  module Frontier = Set.Make (struct
+    type t = int * int
+
+    let compare (a, i) (b, j) =
+      match Int.compare a b with 0 -> Int.compare i j | c -> c
+  end)
+
+  module GapDecide (A : ALPHABET) = struct
+    let blocks roots = List.map minterm (name_blocks (A.blocks roots))
+
+    (** [edges ms r] is the gap derivatives of [r] by the blocks of names [ms],
+        as triples of a set of delays, a block and an expression. *)
+    let edges ms r =
+      List.concat_map (fun m -> List.map (fun (n, e) -> (n, m, e)) (gap m r)) ms
+
+    (** [weight n] is the number of letters of the shortest words [tickᵈ a],
+        [d ∈ n]. *)
+    let weight n = Option.get (least n) + 1
+
+    (* The emptiness of the expressions explored, by their numbers. *)
+    let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
+    let known_empty r = Hashtbl.find_opt emptiness r.id = Some true
+
+    (** [record r seen found] records [r] as not empty if [found], and otherwise
+        every expression of [seen] as empty. *)
+    let record r seen found =
+      if found then Hashtbl.replace emptiness r.id false
+      else Hashtbl.iter (fun id _ -> Hashtbl.replace emptiness id true) seen
+
+    (** [inhabited r] is whether some gap derivative of [r] has a delay, found
+        by depth-first exploration; the expressions known to be empty are not
+        explored. *)
+    let inhabited r =
+      let ms = blocks [ r ] in
+      let seen = Hashtbl.create 64 in
+      let push stack (_, _, e) =
+        if Hashtbl.mem seen e.id || known_empty e then stack
+        else begin
+          Hashtbl.add seen e.id ();
+          e :: stack
+        end
+      in
+      let rec go = function
+        | [] -> false
+        | d :: stack ->
+            d.nullable
+            || (not (DelaySet.is_empty (delays d)))
+            || go (List.fold_left push stack (edges ms d))
+      in
+      Hashtbl.add seen r.id ();
+      let found = (not (is_empty_form r)) && go [ r ] in
+      record r seen found;
+      found
+
+    let is_empty r =
+      match Hashtbl.find_opt emptiness r.id with
+      | Some e -> e
+      | None -> not (inhabited r)
+
+    let subset r s =
+      equal_form r s || is_top s || is_empty (inter [ r; compl s ])
+
+    (** [forward ms r] explores the gap derivatives of [r] by Dijkstra's
+        algorithm (Numer. Math. 1, 1959), a word [tickᵈ a] costing [d + 1]
+        letters and a final delay [d] costing [d], until the least distance left
+        is the length [L] of the shortest words of [r]. It returns [L]
+        ([unbounded] if [r] is empty), the expressions reached within [L], by
+        their numbers, and the gap derivatives of those within less than [L],
+        which are all the expressions on the shortest words but their last. *)
+    let forward ms r =
+      let reached = Hashtbl.create 64 and expanded = Hashtbl.create 64 in
+      let rec go frontier best =
+        match Frontier.min_elt_opt frontier with
+        | Some ((g, id) as next) when g < best ->
+            let d = fst (Hashtbl.find reached id) in
+            let best =
+              Option.fold ~none:best
+                ~some:(fun k -> min best (g + k))
+                (least (delays d))
+            in
+            let es = edges ms d in
+            Hashtbl.replace expanded id es;
+            let relax frontier (n, _, e) =
+              let g' = g + weight n in
+              match Hashtbl.find_opt reached e.id with
+              | _ when g' > best || known_empty e -> frontier
+              | Some (_, g0) when g0 <= g' -> frontier
+              | found ->
+                  Hashtbl.replace reached e.id (e, g');
+                  Frontier.add (g', e.id)
+                    (Option.fold ~none:frontier
+                       ~some:(fun (_, g0) ->
+                         Frontier.remove (g0, e.id) frontier)
+                       found)
+            in
+            go (List.fold_left relax (Frontier.remove next frontier) es) best
+        | _ -> best
+      in
+      Hashtbl.add reached r.id (r, 0);
+      let best = go (Frontier.singleton (0, r.id)) unbounded in
+      (best, reached, expanded)
+
+    (** [backward reached expanded] is the length of the shortest words of each
+        expression of [reached] within the gap derivatives [expanded], by
+        Dijkstra's algorithm on the reversed edges from the expressions with a
+        delay. *)
+    let backward reached expanded =
+      let into = Hashtbl.create 64 in
+      Hashtbl.iter
+        (fun id es ->
+          List.iter
+            (fun (n, _, e) ->
+              if Hashtbl.mem reached e.id then
+                Hashtbl.replace into e.id
+                  ((id, weight n)
+                  :: Option.value (Hashtbl.find_opt into e.id) ~default:[]))
+            es)
+        expanded;
+      let delta = Hashtbl.create 64 in
+      let rec go frontier =
+        match Frontier.min_elt_opt frontier with
+        | None -> ()
+        | Some ((k, id) as next) ->
+            let frontier = Frontier.remove next frontier in
+            if Hashtbl.mem delta id then go frontier
+            else begin
+              Hashtbl.add delta id k;
+              go
+                (List.fold_left
+                   (fun frontier (id', w) ->
+                     if Hashtbl.mem delta id' then frontier
+                     else Frontier.add (k + w, id') frontier)
+                   frontier
+                   (Option.value (Hashtbl.find_opt into id) ~default:[]))
+            end
+      in
+      go
+        (Hashtbl.fold
+           (fun id (e, _) frontier ->
+             Option.fold ~none:frontier
+               ~some:(fun k -> Frontier.add (k, id) frontier)
+               (least (delays e)))
+           reached Frontier.empty);
+      delta
+
+    (** [build delta expanded r budget] is the least word of [r] of [budget]
+        letters, [budget] the length of its shortest words, in the order of the
+        blocks, built greedily: at each expression the final delay [budget] if
+        it is one, and otherwise the word [tickᵈ a] of greatest [d], then least
+        block, that leaves a shortest word of the rest. On words of equal
+        length, with [tick] least, this order is the lexicographic order of the
+        gap forms, the delays descending and the blocks ascending. *)
+    let build delta expanded r budget =
+      let rec go r budget acc =
+        if DelaySet.mem (Rational.of_int budget) (delays r) then
+          (List.rev acc, budget)
+        else
+          let option (n, m, e) =
+            match Hashtbl.find_opt delta e.id with
+            | Some k
+              when budget - 1 - k >= 0
+                   && DelaySet.mem (Rational.of_int (budget - 1 - k)) n ->
+                Some (budget - 1 - k, m, e, k)
+            | _ -> None
+          in
+          let better (d, m, _, _) (d', m', _, _) =
+            d > d' || (d = d' && Letters.order m.set m'.set < 0)
+          in
+          match List.filter_map option (Hashtbl.find expanded r.id) with
+          | [] -> invalid_arg "SymbolicRegex.GapDecide.build"
+          | o :: os ->
+              let d, m, e, k =
+                List.fold_left (fun o o' -> if better o' o then o' else o) o os
+              in
+              go e k ((d, m.set) :: acc)
+      in
+      go r budget []
+
+    let search r =
+      let best, reached, expanded = forward (blocks [ r ]) r in
+      if best = unbounded then begin
+        record r reached false;
+        None
+      end
+      else begin
+        record r reached true;
+        Some (build (backward reached expanded) expanded r best)
+      end
+
+    let shortest r =
+      if r.nullable then Some ([], 0)
+      else if known_empty r then None
+      else search r
+
+    (* The pairs of expressions compared, by their numbers, the lesser first. *)
+    let equalities : bool Pairs.t = Pairs.create 1024
+
+    (** [targets f g] is the pairs of the expressions that the maps [f] and [g]
+        map some delay to, an absent delay being mapped to the empty language.
+    *)
+    let targets f g =
+      let sf = support f and sg = support g in
+      let alone sg (n, e) =
+        if DelaySet.subset n sg then None else Some (e, empty)
+      in
+      List.concat_map
+        (fun (n, e) ->
+          List.filter_map
+            (fun (n', e') ->
+              if DelaySet.intersects n n' then Some (e, e') else None)
+            g)
+        f
+      @ List.filter_map (alone sg) f
+      @ List.filter_map
+          (fun entry -> Option.map (fun (e, e') -> (e', e)) (alone sf entry))
+          g
+
+    (** [bisimilar r s] is Hopcroft and Karp's algorithm (Cornell TR 1971) on
+        the gap derivatives: the pairs of gap derivatives of [r] and [s] by the
+        same words are explored breadth-first, the classes of the two
+        expressions of each pair merged in a union–find forest with path
+        compression, until two expressions of a pair differ in their delays or
+        no pair is left. *)
+    let bisimilar r s =
+      let ms = blocks [ r; s ] in
+      let parent = Hashtbl.create 64 in
+      let rec find x =
+        match Hashtbl.find_opt parent x with
+        | Some p ->
+            let root = find p in
+            Hashtbl.replace parent x root;
+            root
+        | None -> x
+      in
+      let queue = Queue.create () in
+      Queue.push (r, s) queue;
+      let rec go () =
+        match Queue.take_opt queue with
+        | None -> true
+        | Some (r, s) ->
+            let x = find r.id and y = find s.id in
+            if x = y then go ()
+            else if
+              r.nullable <> s.nullable
+              || not (DelaySet.equal (delays r) (delays s))
+            then false
+            else begin
+              Hashtbl.replace parent x y;
+              List.iter
+                (fun m ->
+                  List.iter
+                    (fun pair -> Queue.push pair queue)
+                    (targets (gap m r) (gap m s)))
+                ms;
               go ()
             end
       in

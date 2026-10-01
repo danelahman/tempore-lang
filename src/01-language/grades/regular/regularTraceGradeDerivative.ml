@@ -56,14 +56,47 @@ let show rho =
       Hashtbl.add printed (R.hash rho) text;
       text
 
+module type DECISIONS = sig
+  val is_empty : R.t -> bool
+  val subset : R.t -> R.t -> bool
+  val equal : R.t -> R.t -> bool
+  val shortest : R.t -> R.t option
+end
+
+module ByLetters (Alphabet : SymbolicRegex.ALPHABET) = struct
+  include R.Decide (Alphabet)
+
+  (* The word is concatenated from its end, each run of ticks joining the
+     next letter [tick] to it. *)
+  let shortest r =
+    Option.map
+      (fun word ->
+        List.fold_right
+          (fun m r -> R.concat (R.letters (representative m)) r)
+          word R.eps)
+      (shortest r)
+end
+
+module ByGaps (Alphabet : SymbolicRegex.ALPHABET) = struct
+  include R.GapDecide (Alphabet)
+
+  let shortest r =
+    Option.map
+      (fun (steps, last) ->
+        List.fold_right
+          (fun (d, m) r ->
+            R.concat (ticks d) (R.concat (R.letters (representative m)) r))
+          steps (ticks last))
+      (shortest r)
+end
+
 module Make
     (Alphabet : SymbolicRegex.ALPHABET)
+    (D : DECISIONS)
     (Name : sig
       val name : string
     end) =
 struct
-  module D = R.Decide (Alphabet)
-
   type t = R.t
 
   let name = Name.name
@@ -97,15 +130,8 @@ struct
 
   let is_atomic name rho = D.equal rho (R.letters (Letters.name name))
 
-  (* The word is concatenated from its end, each run of ticks joining the
-     next letter [tick] to it. *)
   let counterexample _bounds rho rho' =
-    Option.map
-      (fun word ->
-        List.fold_right
-          (fun m r -> R.concat (R.letters (representative m)) r)
-          word R.eps)
-      (D.shortest (R.inter [ rho; R.compl rho' ]))
+    D.shortest (R.inter [ rho; R.compl rho' ])
 
   let of_lit = function
     | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
@@ -130,13 +156,17 @@ struct
       numbered [0], and the names, numbered from [1] in their order. *)
   let letters names = Array.of_list (Letters.tick :: List.map Letters.name names)
 
+  (* The emptiness of the states of the automaton of traces, decided by
+     derivatives by letters, as the automaton is explored. *)
+  module Letterwise = R.Decide (Alphabet)
+
   let traces names rho =
     let letters = letters names in
     {
       Dfa.start = rho;
       step = (fun r a -> R.derivative letters.(a) r);
       accepts = R.nullable;
-      dead = D.is_empty;
+      dead = Letterwise.is_empty;
       lead = R.lead;
       leap = (fun r k -> R.leap k r);
     }
@@ -168,15 +198,13 @@ struct
 end
 
 include
-  Make
-    (R.Minterms)
+  Make (R.Minterms) (ByGaps (R.Minterms))
     (struct
       let name = "regex-upper-bound-symbolic"
     end)
 
 module Concrete =
-  Make
-    (R.Concrete)
+  Make (R.Concrete) (ByLetters (R.Concrete))
     (struct
       let name = "regex-upper-bound-symbolic-by-letters"
     end)

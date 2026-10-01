@@ -259,7 +259,8 @@ module type S = sig
       structural recursion: [N(∅) = ∅], [N(ε) = {0}], [N(p)] is [{1}] if
       [tick ∈ p] and [∅] otherwise, [N(tickⁿ) = {n}], [N(r; s) = N(r) + N(s)],
       [N(r* ) = N(r)*], [N] commutes with union and intersection, and
-      [N(~r) = ℕ ∖ N(r)]. Memoised by expression. *)
+      [N(~r) = ℕ ∖ N(r)], an intersection with complements being taken as a
+      difference, [N(r & ~s) = N(r) ∖ N(s)]. Memoised by expression. *)
 
   type gaps = (DelaySet.t * t) list
   (** A map from delays to expressions: pairs [(S, e)], the sets [S] non-empty
@@ -346,6 +347,56 @@ module type S = sig
   (** The decisions by the alphabet [A], with their own tables of the emptiness
       and equality of the expressions explored. *)
   module Decide (A : ALPHABET) : DECISIONS
+
+  (** {1 Decisions in gap form}
+
+      The decisions in gap form explore the graph of gap derivatives, the states
+      being normal forms, the edges those of {!gap_derivative} by the blocks of
+      names of an alphabet of the start (its blocks without [tick]), labelled by
+      sets of delays, and the final delays of a state its {!delays}. The graph
+      has one state for every derivative by a word ending in a name, whatever
+      the delays of the expression, and is finite by the finiteness of the
+      derivatives. *)
+
+  type gap_word = (int * Letters.t) list * int
+  (** A word in gap form [tickᵈ⁰ a₁ ⋯ tickᵈᵏ⁻¹ aₖ tickᵈᵏ]: the pairs
+      [(dᵢ₋₁, aᵢ)], each name given as the block of names it is taken from, and
+      the final delay [dₖ]. *)
+
+  module type GAP_DECISIONS = sig
+    val is_empty : t -> bool
+    (** [is_empty r] is whether [r] has no words, decided by depth-first
+        exploration of its gap derivatives, which stops at the first expression
+        with a delay. *)
+
+    val shortest : t -> gap_word option
+    (** [shortest r] is [None] if [r] is empty, and otherwise the least of the
+        shortest words of [r] in the order of the blocks, in gap form: the word
+        of {!DECISIONS.shortest} by the same alphabet, its blocks containing
+        [tick] read as [tick] and its other blocks as names. A word [tickᵈ a]
+        has [d + 1] letters and a final delay [d] has [d]; the length [L] of the
+        shortest words is found by Dijkstra's algorithm from [r], stopped at
+        [L], the length of the shortest words of each expression reached by
+        Dijkstra's algorithm on the reversed edges, and the word is built from
+        [r] by taking at each expression the final delay if it is the length
+        left, and otherwise the word [tickᵈ a] of greatest [d], then least
+        block, that leaves a shortest word of the rest. *)
+
+    val subset : t -> t -> bool
+    (** [subset r s] is whether [r ⊆ s], i.e. whether [r & ~s] is empty. *)
+
+    val equal : t -> t -> bool
+    (** [equal r s] is whether [r] and [s] denote the same language, decided by
+        a bisimulation up to the normal form (Hopcroft and Karp) of the gap
+        derivatives: two expressions are related only if they have the same
+        delays, and their gap derivatives by each block of names are paired on
+        the common refinement of their sets of delays. *)
+  end
+
+  (** The decisions in gap form by the blocks of names of the alphabet [A], with
+      their own tables of the emptiness and equality of the expressions
+      explored. *)
+  module GapDecide (A : ALPHABET) : GAP_DECISIONS
 end
 
 (** The expressions over the letters [L.letters], in a normal form of their own,

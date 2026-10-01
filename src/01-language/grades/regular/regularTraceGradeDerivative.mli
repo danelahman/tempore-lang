@@ -22,18 +22,18 @@
     {2 Decisions}
 
     Inclusion [rho ⊆ rho'] is the emptiness of [rho & ~rho'], decided by
-    depth-first exploration of its derivatives by the minterms of its letter
-    sets, the symbolic derivatives of RE# (Varatalu, Veanes and Ernits, POPL
-    2025); equality is decided by a bisimulation of the derivatives of both
-    grades. Deciding extended regular expressions by derivatives follows Keil
-    and Thiemann (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits (CAV
-    2025). {!Grade.S.counterexample} [bounds rho rho'] is the grade of a
-    shortest word of [rho & ~rho'], found by breadth-first exploration, in which
-    a letter is the least letter of its minterm: [tick], else its least name,
-    else the minterm itself, the names neither grade mentions. The explorations
-    take the runs of ticks that all words of an expression begin with in one
-    step, by the leaps of {!SymbolicRegex.S.leap}, so that a delay costs one
-    step however long.
+    depth-first exploration of its gap derivatives ({!SymbolicRegex.S.GapDecide}
+    by {!SymbolicRegex.S.Minterms}): its derivatives by the words [tickⁿ a] of a
+    delay and a name, symbolic in both, by the products of sets of delays and
+    blocks of names, a delay of any length and any set of delays thus costing
+    one step; equality is decided by a bisimulation of the gap derivatives of
+    both grades. Deciding extended regular expressions by derivatives follows
+    Keil and Thiemann (FSTTCS 2014) and Varatalu, Veanes, Zhuchko and Ernits
+    (CAV 2025). {!Grade.S.counterexample} [bounds rho rho'] is the grade of the
+    least of the shortest words of [rho & ~rho'] in the order of the minterms of
+    its letter sets, found by Dijkstra's algorithm over the gap derivatives, in
+    which a letter is the least letter of its minterm: [tick], else its least
+    name, else the minterm itself, the names neither grade mentions.
 
     {2 Printing}
 
@@ -65,8 +65,11 @@
 
     {!Concrete}, ["regex-upper-bound-symbolic-by-letters"], is the same grade
     decided by the derivatives by the concrete letters of the grades compared,
-    {!SymbolicRegex.S.Concrete}, rather than by their minterms, and otherwise
-    alike. *)
+    {!SymbolicRegex.S.Concrete}, one letter at a time
+    ({!SymbolicRegex.S.Decide}), rather than by gap derivatives by minterms: its
+    counterexamples are found by breadth-first exploration, and the runs of
+    ticks that all words of an expression begin with are taken in one step, by
+    the leaps of {!SymbolicRegex.S.leap}. *)
 
 (** A regular trace grade by derivatives. *)
 module type S = sig
@@ -93,18 +96,45 @@ module type S = sig
   (** [traces names rho] is the automaton of the same language over the same
       letters, explored lazily: its states are the normal forms of the
       derivatives of [rho] by these letters, the final ones the nullable ones,
-      the dead ones the empty ones, and the leads and leaps those of
-      {!SymbolicRegex.S.lead} and {!SymbolicRegex.S.leap}. *)
+      the dead ones the empty ones, found by {!SymbolicRegex.S.Decide}
+      [(Alphabet)], and the leads and leaps those of {!SymbolicRegex.S.lead} and
+      {!SymbolicRegex.S.leap}. *)
 
   val canonical : t -> LetterRegex.t option
   (** [canonical rho] is the canonical expression printed for [rho], or [None]
       if the printing of [rho] falls back to its normal form. *)
 end
 
-(** The grade decided by the derivatives by the blocks of [Alphabet], named
-    [Name.name]. *)
+(** The decisions of a grade by derivatives. *)
+module type DECISIONS = sig
+  val is_empty : SymbolicRegex.t -> bool
+  (** [is_empty r] is whether [r] denotes the empty language. *)
+
+  val subset : SymbolicRegex.t -> SymbolicRegex.t -> bool
+  (** [subset r s] is whether [r ⊆ s]. *)
+
+  val equal : SymbolicRegex.t -> SymbolicRegex.t -> bool
+  (** [equal r s] is whether [r] and [s] denote the same language. *)
+
+  val shortest : SymbolicRegex.t -> SymbolicRegex.t option
+  (** [shortest r] is the least of the shortest words of [r] in the order of the
+      blocks, as an expression whose letters are the least letters of their
+      blocks, and [None] if [r] is empty. *)
+end
+
+(** The decisions {!SymbolicRegex.S.Decide} [(Alphabet)] by derivatives by
+    letters. *)
+module ByLetters (Alphabet : SymbolicRegex.ALPHABET) : DECISIONS
+
+(** The decisions {!SymbolicRegex.S.GapDecide} [(Alphabet)] by gap derivatives.
+*)
+module ByGaps (Alphabet : SymbolicRegex.ALPHABET) : DECISIONS
+
+(** The grade decided by [D], its finite automata by the derivatives by the
+    blocks of [Alphabet], named [Name.name]. *)
 module Make
     (Alphabet : SymbolicRegex.ALPHABET)
+    (D : DECISIONS)
     (Name : sig
       val name : string
     end) : S
