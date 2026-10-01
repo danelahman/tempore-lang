@@ -85,21 +85,8 @@ type graph = {
    [live] is whether the start is live, i.e. whether the language has a word
    over the names. *)
 
-let member name c = not (A.Class.is_empty (A.Class.inter (A.Class.name name) c))
-
-let graph names l =
-  let ng = A.gap_states l and no = A.operation_states l in
-  let gaps = Array.init ng (A.gap_transitions l) in
-  let ops =
-    Array.init no (fun o ->
-        List.filter_map
-          (fun name ->
-            List.find_map
-              (fun (c, g) -> if member name c then Some (name, g) else None)
-              (A.operation_transitions l o))
-          names)
-  in
-  let final = Array.init no (A.final l) in
+let graph ~gaps ~ops ~final =
+  let ng = Array.length gaps in
   (* The least fixpoint of liveness from the final states. *)
   let step (live_gap, live_op) =
     ( Array.map (List.exists (fun (_, o) -> live_op.(o))) gaps,
@@ -121,6 +108,23 @@ let graph names l =
     final = Array.mapi (fun o f -> f && live_op.(o)) final;
     live = ng > 0 && live_gap.(0);
   }
+
+let member name c = not (A.Class.is_empty (A.Class.inter (A.Class.name name) c))
+
+let of_automaton names l =
+  let ops =
+    Array.init (A.operation_states l) (fun o ->
+        List.filter_map
+          (fun name ->
+            List.find_map
+              (fun (c, g) -> if member name c then Some (name, g) else None)
+              (A.operation_transitions l o))
+          names)
+  in
+  graph
+    ~gaps:(Array.init (A.gap_states l) (A.gap_transitions l))
+    ~ops
+    ~final:(Array.init (A.operation_states l) (A.final l))
 
 (* {1 Longest and shortest paths} *)
 
@@ -176,8 +180,7 @@ let longest =
 let finite_part = function Finite (q, f) -> Some (q, f) | Infinite -> None
 let running_time_of world name = List.assoc name world
 
-let max_weight world l =
-  let a = graph (List.map fst world) l in
+let max_weight world (a : graph) =
   if not a.live then None
   else
     let ng = Array.length a.gaps in
@@ -199,8 +202,7 @@ let max_weight world l =
          None
     |> Fun.flip Option.bind finite_part
 
-let min_weight world l =
-  let a = graph (List.map fst world) l in
+let min_weight world (a : graph) =
   if not a.live then None
   else
     let ng = Array.length a.gaps in
@@ -226,7 +228,7 @@ let min_weight world l =
          (Array.to_list a.final))
     |> Fun.flip Option.bind finite_part
 
-let inhabited world l = (graph (List.map fst world) l).live
+let inhabited (a : graph) = a.live
 
 (* {1 Readers} *)
 
@@ -262,9 +264,7 @@ let largest values =
    weight with: the thresholds of a gap state [q] are the suprema [τ(q, o)] of
    the durations of the paths of [m] from [q] to each live operation state
    [o], operation transitions lasting [0]. *)
-let allowance_reader world m =
-  let names = List.map fst world in
-  let a = graph names m in
+let allowance_reader world (a : graph) =
   let ng = Array.length a.gaps in
   let edges =
     edges
@@ -365,9 +365,7 @@ let allowance_reader world m =
 (* The reader of [↑m]: the thresholds of a gap state [q] are the infima of the
    sets of delays of its transitions, a segment of a guarantee being a single
    delay of [m]. *)
-let coverage_reader world m =
-  let names = List.map fst world in
-  let a = graph names m in
+let coverage_reader world (a : graph) =
   let gaps =
     Array.map
       (List.filter_map (fun (s, o) ->
@@ -449,13 +447,12 @@ end)
 
 type step = Read of DelaySet.t | Perform of string
 
-(* [search world domain reader l] is a shortest path of the automaton [l] over
-   the names of [world] to a final state at which [reader] rejects, the delays
+(* [search domain reader l] is a shortest path of the graph [l] to a final
+   state at which [reader] rejects, the delays
    of [l] read as their extremal values in [domain]: breadth-first search of the
    pairs of a state of [l] and a configuration, each recording the pair it was
    reached from and the step taken. *)
-let search world domain reader l =
-  let a = graph (List.map fst world) l in
+let search domain reader (a : graph) =
   let rec path parent node acc =
     match Visited.find node parent with
     | None -> acc
@@ -561,6 +558,36 @@ let concretise delay rejects steps =
 
 (* {1 Decisions} *)
 
+module Graph = struct
+  let allowance world l m =
+    let reader, above = allowance_reader world m in
+    Option.map
+      (concretise (highest ~above) (fun w -> not (reads reader w)))
+      (search down reader l)
+
+  let coverage world l m =
+    let reader = coverage_reader world m in
+    Option.map
+      (concretise lowest (fun w -> not (reads reader w)))
+      (search up reader l)
+
+  let permits = permits
+  let covers = covers
+  let max_weight = max_weight
+  let min_weight = min_weight
+  let inhabited = inhabited
+end
+
+(* {2 On automata} *)
+
+let names world = List.map fst world
+let on_automaton f world l = f world (of_automaton (names world) l)
+let max_weight = on_automaton Graph.max_weight
+let min_weight = on_automaton Graph.min_weight
+let inhabited world l = Graph.inhabited (of_automaton (names world) l)
+let permits world m = on_automaton Graph.permits world m
+let covers world m = on_automaton Graph.covers world m
+
 module Arguments = Hashtbl.Make (struct
   type t = world * A.t * A.t
 
@@ -579,26 +606,18 @@ module Arguments = Hashtbl.Make (struct
       (Grade.combine (A.hash l) (A.hash m))
 end)
 
-let tabulated f =
+(* [tabulated decide] is [decide] on the graphs of the automata compared over
+   the names of the comparison, tabulated by its arguments. *)
+let tabulated decide =
   let table = Arguments.create 64 in
   fun world l m ->
     match Arguments.find_opt table (world, l, m) with
     | Some r -> r
     | None ->
-        let r = f world l m in
+        let names = names world in
+        let r = decide world (of_automaton names l) (of_automaton names m) in
         Arguments.add table (world, l, m) r;
         r
 
-let allowance =
-  tabulated @@ fun world l m ->
-  let reader, above = allowance_reader world m in
-  Option.map
-    (concretise (highest ~above) (fun w -> not (reads reader w)))
-    (search world down reader l)
-
-let coverage =
-  tabulated @@ fun world l m ->
-  let reader = coverage_reader world m in
-  Option.map
-    (concretise lowest (fun w -> not (reads reader w)))
-    (search world up reader l)
+let allowance = tabulated Graph.allowance
+let coverage = tabulated Graph.coverage

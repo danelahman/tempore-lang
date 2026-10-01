@@ -125,3 +125,48 @@ val min_weight : world -> DelayAutomaton.t -> (Rational.t * bool) option
 
 val inhabited : world -> DelayAutomaton.t -> bool
 (** [inhabited world l] is whether [l] has a word over [world]. *)
+
+(** {1 Graphs}
+
+    The decisions above, on languages given as graphs in gap form rather than as
+    automata. *)
+
+type graph
+(** A language in gap form over the names of a comparison: gap states
+    [0, …, g - 1], the start [0], each with transitions by sets of delays to
+    operation states, and operation states [0, …, o - 1], each final or not,
+    with transitions by names to gap states; several transitions of a state may
+    read a common delay or name. It is restricted to its live states, from which
+    a final state is reachable. *)
+
+val graph :
+  gaps:(DelaySet.t * int) list array ->
+  ops:(string * int) list array ->
+  final:bool array ->
+  graph
+(** [graph ~gaps ~ops ~final] is the graph whose gap state [g] has the
+    transitions [gaps.(g)] and operation state [o] the transitions [ops.(o)],
+    final iff [final.(o)], restricted to its live states by a least fixpoint
+    from the final states. *)
+
+val of_automaton : string list -> DelayAutomaton.t -> graph
+(** [of_automaton names l] is the graph of [l] over [names]: the states of [l],
+    an operation state reading each name of [names] its class contains. *)
+
+(** The decisions on graphs over the names of [world], each as the function of
+    the same name on the graphs of the automata. *)
+module Graph : sig
+  val allowance : world -> graph -> graph -> DelayAutomaton.symbol list option
+  (** As {!allowance}, untabulated. *)
+
+  val coverage : world -> graph -> graph -> DelayAutomaton.symbol list option
+  (** As {!coverage}, untabulated. *)
+
+  val permits : world -> graph -> DelayAutomaton.symbol list -> bool
+  val covers : world -> graph -> DelayAutomaton.symbol list -> bool
+  val max_weight : world -> graph -> (Rational.t * bool) option
+  val min_weight : world -> graph -> (Rational.t * bool) option
+
+  val inhabited : graph -> bool
+  (** [inhabited l] is whether [l] has a word. *)
+end

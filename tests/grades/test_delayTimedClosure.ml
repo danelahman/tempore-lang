@@ -8,7 +8,8 @@
    the closed world and the literals; and the agreement with the regular trace
    grades of timed operations over whole time steps on integer instances, scaled
    to a resolution of fractions of a time step as the grades over whole steps of
-   a program resolution read them. *)
+   a program resolution read them; and the decisions on graphs given by their
+   rows against those on automata. *)
 
 module Grade = Grades.Grade
 module Rational = Grades.Rational
@@ -800,10 +801,59 @@ let timing =
                 (automaton "{39.99}")));
   ]
 
+(* {1 Graphs} *)
+
+(* A graph given by its rows, nondeterministic in its delays and with a state
+   from which no final state is reachable, decides as the automaton of the
+   same language: [(1 | 2); A], the delays read by distinct transitions
+   followed by distinct operation states. *)
+let graphs =
+  let world = exact [ ("A", q 1 2) ] in
+  let names = List.map fst world in
+  let point x = DelaySet.point x in
+  let m =
+    C.graph
+      ~gaps:
+        [|
+          [ (point (qi 1), 0); (point (qi 2), 1); (point (qi 3), 3) ];
+          [ (DelaySet.zero, 2) ];
+        |]
+      ~ops:[| [ ("A", 1) ]; [ ("A", 1) ]; []; [] |]
+      ~final:[| false; false; true; false |]
+  in
+  let m' = automaton "{(1 | 2); A}" in
+  let dead =
+    C.graph ~gaps:[| [ (DelaySet.all, 0) ] |] ~ops:[| [] |] ~final:[| false |]
+  in
+  let cases =
+    [ "{1/2; A}"; "{2; A}"; "{5/2; A}"; "{3; A}"; "{1; A; 1}"; "{A}" ]
+  in
+  let same name decide decide' =
+    every name Fun.id
+      (fun text ->
+        let l = automaton text in
+        Option.map List.length (decide (C.of_automaton names l))
+        = Option.map List.length (decide' l))
+      cases
+  in
+  [
+    same "graphs: allowance"
+      (fun l -> C.Graph.allowance world l m)
+      (fun l -> C.allowance world l m');
+    same "graphs: coverage"
+      (fun l -> C.Graph.coverage world l m)
+      (fun l -> C.coverage world l m');
+    is "graphs: weights"
+      (C.Graph.max_weight world m = C.max_weight world m'
+      && C.Graph.min_weight world m = C.min_weight world m');
+    is "graphs: a graph without a final state is empty"
+      ((not (C.Graph.inhabited dead)) && C.Graph.inhabited m);
+  ]
+
 let () =
   let checks =
     examples @ open_delays @ implied @ open_running_times @ closed_world
-    @ literals @ recursions @ preorders @ whole_steps @ timing
+    @ literals @ recursions @ preorders @ whole_steps @ timing @ graphs
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
