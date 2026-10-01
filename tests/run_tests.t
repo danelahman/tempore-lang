@@ -2938,7 +2938,7 @@
   File "rational_time_intervals_reject_within.tpe", line 5, characters 0-60:
   5 | operation Dose : unit ~> unit # [0.5, 1.5] within [1/2, 3/2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-interval-rational` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `time-interval-rational` grading monoid
   ======================================================================
   rational_time_lower.tpe
   ======================================================================
@@ -4071,7 +4071,7 @@
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe
   ======================================================================
@@ -5106,7 +5106,7 @@
   File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `time-lower-bound` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `time-lower-bound` grading monoid
   ======================================================================
   time_upper.tpe
   ======================================================================
@@ -5764,7 +5764,7 @@ automata, 'regex-upper-bound-letter-automata':
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-letter-automata` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-letter-automata` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-letter-automata)
   ======================================================================
@@ -6544,14 +6544,14 @@ implementations above, the examples over rational delays excepted:
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-symbolic-by-letters` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-symbolic-by-letters` grading monoid
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids with costs, and must not be declared under the `regex-upper-bound-letter-derivatives` grading monoid
+  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-letter-derivatives` grading monoid
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
@@ -7181,7 +7181,7 @@ single-dash form of the help option is not accepted.
         Traces:
           traces-upper-bound                       Upper bounds
           traces-upper-bound-rational              Upper bounds (rational)
-        Traces with costs:
+        Traces of timed operations:
           traces-cost-lower-bound                  Lower bounds
           traces-cost-upper-bound                  Upper bounds
           traces-cost-interval                     Intervals
@@ -7193,7 +7193,7 @@ single-dash form of the help option is not accepted.
               symbolic expressions over letter sets; inclusion by derivatives by minterms, depth-first
           regex-upper-bound-rational-symbolic      Upper bounds (rational, symbolic)
               minimal symbolic automata over letter and delay sets; inclusion by product with the complement, breadth-first
-        Regular expressions with costs:
+        Regular expressions of timed operations:
           regex-cost-lower-bound-symbolic          Lower bounds (symbolic)
               symbolic expressions over letter sets; inclusion by derivatives by minterms with closures, depth-first
           regex-cost-upper-bound-symbolic          Upper bounds (symbolic)

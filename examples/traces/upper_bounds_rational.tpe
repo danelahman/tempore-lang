@@ -82,12 +82,12 @@ let cycle_brief () : sample # {Read; 1/2; Beep} =
 *)
 
 (* Correctly rejected by the typechecker: a running-time bound declared on an
-   operation, which these grades, unlike the trace grades with costs, do not
-   admit:
+   operation, which these grades, unlike the trace grades of timed operations,
+   do not admit:
 
      Typing error: running-time bounds are only used by the trace and the
-       regular expression grading monoids with costs, and must not be
-       declared under the `traces-upper-bound-rational` grading monoid
+       regular expression grading monoids of timed operations, and must not
+       be declared under the `traces-upper-bound-rational` grading monoid
 *)
 (*
 operation ReadBounded : unit ~> sample # {Read} within [0, 1]

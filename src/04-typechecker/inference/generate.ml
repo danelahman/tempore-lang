@@ -461,8 +461,8 @@ module Make (C : Constraint.S) = struct
     | false, _, Some _ ->
         Error.typing ~loc
           "running-time bounds are only used by the trace and the regular \
-           expression grading monoids with costs, and must not be declared \
-           under the `%s` grading monoid"
+           expression grading monoids of timed operations, and must not be \
+           declared under the `%s` grading monoid"
           GS.E.name
     | false, _, None -> env.op_bounds
     | true, (Ast.EpsAdd _ | Ast.EpsVar _), _ ->

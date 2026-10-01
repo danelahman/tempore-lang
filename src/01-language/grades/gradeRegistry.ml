@@ -30,9 +30,12 @@ type entry = {
 (* The groups of the grades, each its label and the label's short form. *)
 let time = ("Time", "Time")
 let traces = ("Traces", "Traces")
-let traces_costs = ("Traces with costs", "Traces (costs)")
+let traces_costs = ("Traces of timed operations", "Traces (timed ops)")
 let regex = ("Regular expressions", "Regex")
-let regex_costs = ("Regular expressions with costs", "Regex (costs)")
+
+let regex_costs =
+  ("Regular expressions of timed operations", "Regex (timed ops)")
+
 let security = ("Security levels", "Security")
 let semidirect = ("Semidirect products", "Semidirect")
 let counts = ("Operation counts", "Counts")

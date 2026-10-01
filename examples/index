@@ -59,21 +59,21 @@ group | Traces | Traces | Finite sets of traces of operations and delays, compar
 Traces | Upper bounds | traces-upper-bound | traces/upper_bounds.tpe | A door controller whose visits are graded by the exact traces they may exhibit, a delay paying for no operation.
 Traces | Upper bounds (rational) | traces-upper-bound-rational | traces/upper_bounds_rational.tpe | A heart-rate monitor timed in fractions of a second, whose cycles are graded by the exact traces they may exhibit.
 
-group | Traces with costs | Traces (costs) | Finite sets of traces, operations costing their declared running times.
-Traces with costs | Lower bounds | traces-cost-lower-bound | traces_costs/lower_bounds.tpe | A 3D-printing pipeline whose operations must be covered by the traces a box demands, delays banking towards them.
-Traces with costs | Upper bounds | traces-cost-upper-bound | traces_costs/upper_bounds.tpe | The same pipeline under the allowance order, where a duration pays for operations at their upper running-time bounds.
-Traces with costs | Intervals | traces-cost-interval | traces_costs/intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
-Traces with costs | Intervals (rational) | traces-cost-interval-rational | traces_costs/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds and whose windows are traces with fractional durations.
+group | Traces of timed operations | Traces (timed ops) | Finite sets of traces, operations taking their declared running times.
+Traces of timed operations | Lower bounds | traces-cost-lower-bound | traces_costs/lower_bounds.tpe | A 3D-printing pipeline whose operations must be covered by the traces a box demands, delays banking towards them.
+Traces of timed operations | Upper bounds | traces-cost-upper-bound | traces_costs/upper_bounds.tpe | The same pipeline under the allowance order, where a duration pays for operations at their upper running-time bounds.
+Traces of timed operations | Intervals | traces-cost-interval | traces_costs/intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
+Traces of timed operations | Intervals (rational) | traces-cost-interval-rational | traces_costs/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds and whose windows are traces with fractional durations.
 
 group | Regular expressions | Regex | Regular languages of traces of operations and delays.
 Regular expressions | Upper bounds (symbolic) | regex-upper-bound-symbolic | regular/upper_bounds.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
 Regular expressions | Upper bounds (rational, symbolic) | regex-upper-bound-rational-symbolic | regular/upper_bounds_rational.tpe | A heart-rate monitor graded by regular languages of operations and rational delays, with intervals of delays and complements.
 
-group | Regular expressions with costs | Regex (costs) | Regular languages of traces, operations costing their declared running times.
-Regular expressions with costs | Lower bounds (symbolic) | regex-cost-lower-bound-symbolic | regular_costs/lower_bounds.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower running-time bounds.
-Regular expressions with costs | Upper bounds (symbolic) | regex-cost-upper-bound-symbolic | regular_costs/upper_bounds.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
-Regular expressions with costs | Intervals (symbolic) | regex-cost-interval-symbolic | regular_costs/intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
-Regular expressions with costs | Intervals (rational, symbolic) | regex-cost-interval-rational-symbolic | regular_costs/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
+group | Regular expressions of timed operations | Regex (timed ops) | Regular languages of traces, operations taking their declared running times.
+Regular expressions of timed operations | Lower bounds (symbolic) | regex-cost-lower-bound-symbolic | regular_costs/lower_bounds.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower running-time bounds.
+Regular expressions of timed operations | Upper bounds (symbolic) | regex-cost-upper-bound-symbolic | regular_costs/upper_bounds.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
+Regular expressions of timed operations | Intervals (symbolic) | regex-cost-interval-symbolic | regular_costs/intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
+Regular expressions of timed operations | Intervals (rational, symbolic) | regex-cost-interval-rational-symbolic | regular_costs/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
 
 group | Security levels | Security | Levels touched, alone or with time bounds and outputs.
 Security levels | Levels | security-levels | levels/security.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
@@ -94,4 +94,4 @@ Case studies | 3D printing: time bounds | time-lower-bound | 3dprint/time.tpe | 
 Case studies | 3D printing: with effect handlers | time-lower-bound | 3dprint/handlers.tpe | The same pipeline with each stage an operation, handled by clauses that respect its timing.
 Case studies | 3D printing: with trace grades | traces-cost-interval | 3dprint/traces.tpe | The same pipeline graded by the traces of operations it may exhibit, running-time bounds included.
 Case studies | Staged release | time-lower-bound-levels | rollout/rollout.tpe | A release deployed in stages, each stage unboxing its approval only after the deployed hosts have been observed and only if nothing untrusted has been touched since the approval, with probes repeated within a budget and hotfixes fetched at the level High.
-Case studies | Mail session | regex-cost-upper-bound-symbolic | sessions/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations costing their declared running times.
+Case studies | Mail session | regex-cost-upper-bound-symbolic | sessions/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations taking their declared running times.
