@@ -3,8 +3,9 @@
 ; by automata and by three kinds of derivatives, the cost-model regular trace
 ; grades with their closures, the sets of delays, the timed regular expressions
 ; with the regular trace grade over rational delays, and the cost-model regular
-; trace grades over rational delays with their closures; the laws of every
-; registered grade, on samples, by the checks the tests share.
+; trace grades over rational delays with their closures; the sets of delays
+; against an implementation by lists of intervals; the laws of every registered
+; grade, on samples, by the checks the tests share.
 
 (library
  (name lawChecks)
@@ -29,6 +30,11 @@
 (test
  (name test_delaySet)
  (modules test_delaySet)
+ (libraries grades zarith))
+
+(test
+ (name test_delaySetReference)
+ (modules test_delaySetReference delaySetReference)
  (libraries grades zarith))
 
 (test

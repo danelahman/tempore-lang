@@ -60,6 +60,10 @@ val equal : t -> t -> bool
 val hash : t -> int
 (** A hash compatible with {!equal}. *)
 
+val hash_fraction : Z.t -> Z.t -> int
+(** [hash_fraction n d] is [hash (make_z n d)] for [d > 0], computed without
+    forming the fraction. *)
+
 val is_integer : t -> bool
 (** [is_integer q] is whether [q] is an integer. *)
 

@@ -19,24 +19,39 @@
     [p]-periodic extension of its tail. The representation of a set is thus
     unique, and {!equal}, {!compare} and {!hash} read it.
 
+    {2 Representation}
+
+    The grid of a set is [1/g], [g] the least common denominator of [T], [p] and
+    the ends of the intervals of [B] and [P]. It divides [ℚ≥0] into atoms, the
+    points [k/g] and the open cells between consecutive points, and the set is
+    an ultimately periodic word over the atoms, whose least lasso, run-length
+    encoded, is [(T, p, B, P)]: [B] and [P] are arrays of the integer bounds of
+    their runs of atoms, of arbitrary precision and immediate values when small.
+
     {2 Costs}
 
-    The Boolean operations align both operands to a common threshold and the
-    least common multiple of their periods, an intersection with a bounded set
-    reading the other operand only up to its supremum; the sum aligns the
+    The Boolean operations align both operands to the least common multiple of
+    their grids, a common threshold and the least common multiple of their
+    periods, an intersection with, or a difference from, a bounded set reading
+    the other operand only up to its supremum; the sum aligns the grids and the
     periods only, and the sum [pℕ + qℕ] of two progressions is the repetition of
     [{p, q}]. Both are linear, respectively quadratic, in the sizes after
-    alignment. The canonical form of a result takes a linear time: its least
-    period is found by the failure function of Knuth, Morris and Pratt ("Fast
-    pattern matching in strings", SIAM J. Comput. 6, 1977), and its least
-    threshold by comparing it with its translate by that period. The repetition
-    is pseudo-polynomial in the constants: its result may have a number of
-    intervals proportional to the ratio of its constants, and it takes a time
-    linear in that number up to a logarithmic factor. Examples: [997ℕ + 991ℕ] is
-    listed point by point up to about the product of [997] and [991], and
-    [(1 | (10, 10.001))*] has about [10⁴] intervals before its tail. The hash of
-    a set is computed once, when it is formed, and {!intersects} and {!subset}
-    stop at the first common element found. *)
+    alignment. The union and the intersection are adaptive merges: the runs of
+    one operand between two runs of the other are found by an exponential search
+    and copied at once, so that an operation with a set of few intervals reads
+    the other in a time logarithmic in its size, besides the copy of the result.
+    The canonical form of a result takes a linear time: its least period is
+    found by the failure function of Knuth, Morris and Pratt ("Fast pattern
+    matching in strings", SIAM J. Comput. 6, 1977), its least threshold by
+    comparing it with its translate by that period, and its grid by a greatest
+    common divisor of its bounds. The repetition is pseudo-polynomial in the
+    constants: its result may have a number of intervals proportional to the
+    ratio of its constants, and it takes a time linear in that number up to a
+    logarithmic factor. Examples: [997ℕ + 991ℕ] is listed point by point up to
+    about the product of [997] and [991], and [(1 | (10, 10.001))*] has about
+    [10⁴] intervals before its tail. The hash of a set is computed once, when it
+    is first needed, and {!intersects} and {!subset} stop at the first common
+    element found. *)
 
 type t
 (** A set of delays, in canonical form. *)

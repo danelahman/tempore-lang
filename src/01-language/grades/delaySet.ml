@@ -1,31 +1,594 @@
 (* Rationals. *)
 
-let rat = Rational.of_int
 let rzero = Rational.zero
 let add = Rational.add
 let sub = Rational.sub
-let mul = Rational.mul
 let div = Rational.div
 let cmp = Rational.compare
 let lt a b = cmp a b < 0
-let le a b = cmp a b <= 0
-let qmax a b = if lt a b then b else a
+let rat = Rational.of_int
 let of_z = Rational.of_z
-let one = Rational.of_int 1
 let floor x = Z.fdiv (Rational.num x) (Rational.den x)
-let ceil x = Z.cdiv (Rational.num x) (Rational.den x)
 
 module IntMap = Map.Make (Int)
 
-(* The least common multiple and the greatest common divisor of positive
-   rationals in lowest terms: [lcm (a/b) (c/d) = lcm a c / gcd b d] and
-   [gcd (a/b) (c/d) = gcd a c / lcm b d]. *)
-let lcm p q =
-  Rational.make_z
-    (Z.lcm (Rational.num p) (Rational.num q))
-    (Z.gcd (Rational.den p) (Rational.den q))
+(* {1 Runs of atoms}
 
-(* {1 Intervals} *)
+   For a positive integer [g], the grid [1/g] partitions [ℚ≥0] into atoms: the
+   point [k/g], atom [2k], and the open cell [(k/g, (k + 1)/g)], atom [2k + 1].
+   A run [[s, e)], [s < e], is the union of the atoms [a] with [s ≤ a < e]: the
+   interval from [⌊s/2⌋/g] to [⌊e/2⌋/g], closed below iff [s] is even and
+   closed above iff [e] is odd. Two runs [[s, e)] and [[s', e')] with [s ≤ s']
+   meet or touch iff [s' ≤ e]. A list of intervals whose ends are multiples of
+   [1/g], sorted, disjoint and no two of which touch, is the array
+   [[|s₀; e₀; s₁; e₁; …|]] of the bounds of its runs, [sᵢ < eᵢ < sᵢ₊₁]; the
+   order of intervals by their lower ends, then by their upper ends, is that
+   of the pairs [(sᵢ, eᵢ)]. Bounds are integers of arbitrary precision, which
+   are immediate values when small. *)
+
+type runs = Z.t array
+
+let twice k = Z.shift_left k 1
+let half a = Z.shift_right a 1
+let count (r : runs) = Array.length r / 2
+let last (r : runs) = r.(Array.length r - 1)
+let point_run k : runs = [| twice k; Z.succ (twice k) |]
+
+(* [full p] is the run of the interval [(0, p]]. *)
+let full p : runs = [| Z.one; Z.succ (twice p) |]
+
+let is_full p (r : runs) =
+  Array.length r = 2 && Z.equal r.(0) Z.one && Z.equal r.(1) (Z.succ (twice p))
+
+(* [translate d r] is [r] shifted by [d] atoms. *)
+let translate d (r : runs) =
+  if Z.equal d Z.zero then r else Array.map (Z.add d) r
+
+(* [fold_runs f acc r] folds [f] over the runs [[s, e)] of [r] in increasing
+   order. *)
+let fold_runs f acc (r : runs) =
+  let rec go acc i =
+    if i >= Array.length r then acc else go (f acc r.(i) r.(i + 1)) (i + 2)
+  in
+  go acc 0
+
+let of_pairs pairs : runs =
+  Array.of_list (List.concat_map (fun (s, e) -> [ s; e ]) pairs)
+
+(* [search_from lo hi p] is the least [k] with [lo ≤ k < hi] and [p k], and
+   [hi] if there is none, for a predicate [p] false and then true on
+   [lo, …, hi - 1]: a binary search. *)
+let search_from lo hi p =
+  let rec go lo hi =
+    if lo >= hi then lo
+    else
+      let mid = (lo + hi) / 2 in
+      if p mid then go lo mid else go (mid + 1) hi
+  in
+  go lo hi
+
+let search n p = search_from 0 n p
+
+(* [gallop n p i] is [search_from i n p], found by an exponential search from
+   [i] (Bentley and Yao, "An almost optimal algorithm for unbounded
+   searching", Inform. Process. Lett. 5, 1976), in a time logarithmic in the
+   distance to the result. *)
+let gallop n p i =
+  let rec expand lo step =
+    let hi = lo + step in
+    if hi >= n then search_from (lo + 1) n p
+    else if p hi then search_from (lo + 1) hi p
+    else expand hi (2 * step)
+  in
+  if i >= n || p i then i else expand i 1
+
+(* [member r a] is whether the atom [a] lies in a run of [r]. *)
+let member r a =
+  let k = search (count r) (fun k -> Z.gt r.(2 * k) a) in
+  k > 0 && Z.lt a r.((2 * k) - 1)
+
+(* {2 Building arrays of runs}
+
+   An array of runs is written into a fresh array long enough for it, the
+   number of bounds written threaded through, and then cut to that number. *)
+
+let fresh n : runs = Array.make n Z.zero
+
+(* [emit out n s e] writes the run [[s, e)], whose lower bound is not below
+   those of the runs written, after the first [n] bounds of [out], joined with
+   the last run if the two meet or touch, and is the new number of bounds. *)
+let emit out n s e =
+  if n > 0 && Z.leq s out.(n - 1) then (
+    if Z.gt e out.(n - 1) then out.(n - 1) <- e;
+    n)
+  else (
+    out.(n) <- s;
+    out.(n + 1) <- e;
+    n + 2)
+
+(* [write out n s e] writes the run [[s, e)], if non-empty, after the first [n]
+   bounds of [out], above them and not touching them. *)
+let write out n s e =
+  if Z.lt s e then (
+    out.(n) <- s;
+    out.(n + 1) <- e;
+    n + 2)
+  else n
+
+let finish out n = if n = Array.length out then out else Array.sub out 0 n
+
+(* [coalesce r] joins the runs of [r], sorted by their lower bounds, that meet
+   or touch. *)
+let coalesce r =
+  let out = fresh (Array.length r) in
+  finish out (fold_runs (emit out) 0 r)
+
+(* [append xs ys] is the union of [xs] and [ys], every run of [ys] beginning at
+   or above the upper bound of the last run of [xs]. *)
+let append xs ys =
+  let n = Array.length xs and m = Array.length ys in
+  if n = 0 then ys
+  else if m = 0 then xs
+  else if Z.equal ys.(0) xs.(n - 1) then
+    Array.concat [ Array.sub xs 0 (n - 1); Array.sub ys 1 (m - 1) ]
+  else Array.append xs ys
+
+(* [clip lo hi r] is the intersection of [r] with the run [[lo, hi)], found by
+   binary search; [r] itself if it lies within. *)
+let clip lo hi r =
+  let n = count r in
+  let i = search n (fun k -> Z.gt r.((2 * k) + 1) lo)
+  and j = search n (fun k -> Z.geq r.(2 * k) hi) in
+  if i >= j then [||]
+  else if i = 0 && j = n && Z.geq r.(0) lo && Z.leq (last r) hi then r
+  else
+    let out = Array.sub r (2 * i) (2 * (j - i)) in
+    out.(0) <- Z.max out.(0) lo;
+    out.(Array.length out - 1) <- Z.min (last out) hi;
+    out
+
+(* [blit_runs r i i' out k] copies the runs [i, …, i' - 1] of [r] after the
+   first [k] bounds of [out], and is the new number of bounds. *)
+let blit_runs (r : runs) i i' out k =
+  if i' <= i then k
+  else
+    let n = 2 * (i' - i) in
+    Array.blit r (2 * i) out k n;
+    k + n
+
+(* [ends_below r a b] is whether the run [a] of [r] ends below [b]. *)
+let ends_below (r : runs) a b = Z.lt r.((2 * a) + 1) b
+
+(* [clear_of r i nr other j no out k] is the index past the successors of the
+   run [i] of [r], the last written of the [k] bounds of [out], that neither
+   meet the output nor touch the run [j] of [other], of which there are
+   [no]. *)
+let clear_of r i nr other j no out k =
+  let free a = j >= no || ends_below r a other.(2 * j) in
+  if i + 1 < nr && free (i + 1) && Z.gt r.(2 * (i + 1)) out.(k - 1) then
+    gallop nr (fun a -> not (free a)) (i + 2)
+  else i + 1
+
+(* The union by a merge sweep over both arrays, adaptive: when a run is taken
+   from the same array as the one before, the runs following it that begin
+   above the output and end below the next run of the other array are found
+   by an exponential search and copied at once. *)
+let union_runs xs ys =
+  let n = Array.length xs and m = Array.length ys in
+  if n = 0 then ys
+  else if m = 0 then xs
+  else
+    let out = fresh (n + m) and nx = n / 2 and ny = m / 2 in
+    let rec go i j k from_x =
+      if i < nx && (j >= ny || Z.leq xs.(2 * i) ys.(2 * j)) then
+        let k = emit out k xs.(2 * i) xs.((2 * i) + 1) in
+        if from_x then
+          let i' = clear_of xs i nx ys j ny out k in
+          go i' j (blit_runs xs (i + 1) i' out k) true
+        else go (i + 1) j k true
+      else if j < ny then
+        let k = emit out k ys.(2 * j) ys.((2 * j) + 1) in
+        if from_x then go i (j + 1) k false
+        else
+          let j' = clear_of ys j ny xs i nx out k in
+          go i j' (blit_runs ys (j + 1) j' out k) false
+      else k
+    in
+    finish out (go 0 0 0 false)
+
+(* [within_run r i nr e] is the index past the successors of the run [i] of
+   [r] that end at most at [e]. *)
+let within_run r i nr e =
+  if
+    i + 1 < nr && not (ends_below r (i + 1) e || Z.equal r.((2 * (i + 1)) + 1) e)
+  then i + 1
+  else gallop nr (fun a -> Z.gt r.((2 * a) + 1) e) (i + 1)
+
+(* [skip r i nr x] is the index of the first run of [r] from [i] ending above
+   [x]. *)
+let skip r i nr x =
+  if i >= nr || Z.gt r.((2 * i) + 1) x then i
+  else gallop nr (fun a -> Z.gt r.((2 * a) + 1) x) (i + 1)
+
+(* The intersection by a sweep over both arrays: the meet of two runs, then
+   the one ending first left behind; adaptive, the runs of one array lying
+   before the current run of the other skipped, and those lying within it
+   copied at once, both found by an exponential search. *)
+let inter_runs xs ys =
+  let nx = count xs and ny = count ys in
+  let out = fresh (Array.length xs + Array.length ys) in
+  let rec go i j k =
+    if i >= nx || j >= ny then k
+    else
+      let a = xs.(2 * i)
+      and b = xs.((2 * i) + 1)
+      and c = ys.(2 * j)
+      and d = ys.((2 * j) + 1) in
+      if Z.leq b c then go (skip xs (i + 1) nx c) j k
+      else if Z.leq d a then go i (skip ys (j + 1) ny a) k
+      else if Z.leq b d then
+        let k = write out k (Z.max a c) b in
+        let i' = within_run xs i nx d in
+        go i' j (blit_runs xs (i + 1) i' out k)
+      else
+        let k = write out k (Z.max a c) d in
+        let j' = within_run ys j ny b in
+        go i j' (blit_runs ys (j + 1) j' out k)
+  in
+  finish out (go 0 0 0)
+
+(* [within lo hi r] is the complement of [r], an array within the run
+   [[lo, hi)], relative to [[lo, hi)]: the gaps between its runs. *)
+let within lo hi r =
+  let n = Array.length r in
+  let out = fresh (n + 2) in
+  let rec go i s k =
+    if i >= n then write out k s hi
+    else go (i + 2) r.(i + 1) (write out k s r.(i))
+  in
+  finish out (go 0 lo 0)
+
+(* [merge xs ys] merges two arrays of runs sorted by their lower bounds, the
+   runs not joined. *)
+let merge xs ys =
+  let n = Array.length xs and m = Array.length ys in
+  if n = 0 then ys
+  else if m = 0 then xs
+  else
+    let out = fresh (n + m) in
+    let copy (r : runs) i k =
+      out.(k) <- r.(i);
+      out.(k + 1) <- r.(i + 1)
+    in
+    let rec go i j k =
+      if i < n && (j >= m || Z.leq xs.(i) ys.(j)) then (
+        copy xs i k;
+        go (i + 2) j (k + 2))
+      else if j < m then (
+        copy ys j k;
+        go i (j + 2) (k + 2))
+      else out
+    in
+    go 0 0 0
+
+(* [merge_all arrays] merges the arrays sorted by their lower bounds in
+   [arrays], by balanced pairwise merges. *)
+let rec merge_all = function
+  | [] -> [||]
+  | [ xs ] -> xs
+  | arrays ->
+      let rec pairs acc = function
+        | xs :: ys :: rest -> pairs (merge xs ys :: acc) rest
+        | [ xs ] -> List.rev (xs :: acc)
+        | [] -> List.rev acc
+      in
+      merge_all (pairs [] arrays)
+
+(* The Minkowski sum: [⟨a, b⟩ + ⟨c, d⟩ = ⟨a + c, b + d⟩], an end closed iff
+   both are, which for runs [[s, e)] and [[s', e')] is the run from
+   [s + s' - 1] if [s] and [s'] are odd, and [s + s'] otherwise, to
+   [e + e' - 1] if [e] or [e'] is odd, and [e + e'] otherwise. The translates
+   of the longer array by each run of the shorter are sorted, since its lower
+   bounds increase, and are merged. *)
+let sum_runs xs ys =
+  let xs, ys =
+    if Array.length xs >= Array.length ys then (xs, ys) else (ys, xs)
+  in
+  let lower s s' =
+    if Z.is_odd s && Z.is_odd s' then Z.pred (Z.add s s') else Z.add s s'
+  and upper e e' =
+    if Z.is_odd e || Z.is_odd e' then Z.pred (Z.add e e') else Z.add e e'
+  in
+  coalesce
+    (merge_all
+       (List.rev
+          (fold_runs
+             (fun acc s' e' ->
+               Array.mapi
+                 (fun i a -> if i land 1 = 0 then lower a s' else upper a e')
+                 xs
+               :: acc)
+             [] ys)))
+
+(* {1 Sets} *)
+
+type t = {
+  grid : Z.t;
+  threshold : Z.t;
+  period : Z.t;
+  base : runs;
+  tail : runs;
+  hash : int Lazy.t;
+}
+(* [S = base ∪ ⋃ₙ (threshold + n·period + tail)] on the grid [1/grid], its
+   threshold and period counted in steps of the grid: [base] within the atoms
+   [[0, 2·threshold]], and [tail], relative to the atom [2·threshold], within
+   [[1, 2·period]]. The grid of a canonical form is the least common
+   denominator of its threshold, its period and the ends of its intervals, so
+   that the representation of a set is unique; within an operation a set may
+   be refined to a finer grid. [hash] is the hash of the canonical form,
+   computed once, when first needed. *)
+
+let rational g k =
+  if Z.equal g Z.one then Rational.of_z k else Rational.make_z k g
+
+(* [hash_runs g r] is the hash of the list of the intervals of [r] on the grid
+   [1/g], each by its ends and their closures. *)
+let hash_runs g r =
+  let hash k = Rational.hash_fraction k g in
+  fold_runs
+    (fun h s e ->
+      Grade.combine h
+        (Grade.combine
+           (Grade.combine (hash (half s)) (Bool.to_int (Z.is_even s)))
+           (Grade.combine (hash (half e)) (Bool.to_int (Z.is_odd e)))))
+    0 r
+
+let form ~grid ~threshold ~period ~base ~tail =
+  let hash =
+    lazy
+      (Grade.combine
+         (Grade.combine
+            (Rational.hash_fraction threshold grid)
+            (Rational.hash_fraction period grid))
+         (Grade.combine (hash_runs grid base) (hash_runs grid tail)))
+  in
+  { grid; threshold; period; base; tail; hash }
+
+(* [coarsest ~grid ~threshold ~period ~base ~tail] is the set on the coarsest
+   grid its bounds lie on, [1/(grid/d)] for [d] the greatest common divisor of
+   [grid], [threshold], [period] and the values of the bounds, computed until it
+   is [1]. *)
+let coarsest ~grid ~threshold ~period ~base ~tail =
+  let rec divisor d r i =
+    if Z.equal d Z.one || i >= Array.length r then d
+    else divisor (Z.gcd d (half r.(i))) r (i + 1)
+  in
+  let d =
+    divisor (divisor (Z.gcd grid (Z.gcd threshold period)) base 0) tail 0
+  in
+  if Z.equal d Z.one then form ~grid ~threshold ~period ~base ~tail
+  else
+    let coarse a =
+      let k = twice (Z.divexact (half a) d) in
+      if Z.is_odd a then Z.succ k else k
+    in
+    form ~grid:(Z.divexact grid d) ~threshold:(Z.divexact threshold d)
+      ~period:(Z.divexact period d) ~base:(Array.map coarse base)
+      ~tail:(Array.map coarse tail)
+
+(* [refine g s] is [s] on the grid [1/g], [g] a multiple of its grid [h]: the
+   point [k/h] is the point [km/g] and the cell after it the atoms up to the
+   point [(k + 1)m/g], [m = g/h], so that a bound [a] becomes [ma] if even and
+   [m(a - 1) + 1] if odd. *)
+let refine_bound m a =
+  if Z.equal m Z.one then a
+  else if Z.is_odd a then Z.succ (Z.mul m (Z.pred a))
+  else Z.mul m a
+
+let refine g s =
+  if Z.equal g s.grid then s
+  else
+    let m = Z.divexact g s.grid in
+    {
+      s with
+      grid = g;
+      threshold = Z.mul m s.threshold;
+      period = Z.mul m s.period;
+      base = Array.map (refine_bound m) s.base;
+      tail = Array.map (refine_bound m) s.tail;
+    }
+
+let common_grid s r =
+  if Z.equal s.grid r.grid then s.grid else Z.lcm s.grid r.grid
+
+(* [copies ~origin ~step ~from tail ~lo ~hi] is the union of the copies
+   [origin + n·step + tail], [n ≥ from] an integer, intersected with the run
+   [[lo, hi)]: that of a full tail is the run from [origin + from·step + 1]. *)
+let copies ~origin ~step ~from tail ~lo ~hi =
+  if Array.length tail = 0 then [||]
+  else if is_full (half step) tail then
+    let s = Z.max lo (Z.succ (Z.add origin (Z.mul from step))) in
+    if Z.lt s hi then [| s; hi |] else [||]
+  else
+    (* The copies from the one before that containing [lo], to the last one
+       beginning below [hi], [origin + n·step + 1 < hi]. *)
+    let first = Z.max from (Z.pred (Z.fdiv (Z.sub lo origin) step)) in
+    let n =
+      Int.max 0
+        (Z.to_int (Z.sub (Z.cdiv (Z.sub (Z.pred hi) origin) step) first))
+    in
+    let out = fresh (n * Array.length tail) in
+    let rec go o c i k =
+      if c >= n then k
+      else if i >= Array.length tail then go (Z.add o step) (c + 1) 0 k
+      else
+        let s = Z.max lo (Z.add o tail.(i))
+        and e = Z.min hi (Z.add o tail.(i + 1)) in
+        go o c (i + 2) (if Z.lt s e then emit out k s e else k)
+    in
+    finish out (go (Z.add origin (Z.mul first step)) 0 0 0)
+
+(* [window s ~lo ~hi] is [s ∩ [lo, hi)]. *)
+let window s ~lo ~hi =
+  let origin = twice s.threshold in
+  append
+    (if Z.gt lo origin then [||] else clip lo hi s.base)
+    (copies ~origin ~step:(twice s.period) ~from:Z.zero s.tail ~lo ~hi)
+
+(* [border equal k] is the length of the longest proper border of the word of
+   the letters [0, …, k - 1], [k > 0], compared by [equal]: its longest proper
+   prefix that is also a suffix, by the failure function of Knuth, Morris and
+   Pratt ("Fast pattern matching in strings", SIAM J. Comput. 6, 1977), entry
+   [i] of which is the longest proper border of the prefix of length
+   [i + 1]. *)
+let border equal k =
+  let f = Array.make k 0 in
+  let rec extend b i =
+    if equal i b then b + 1 else if b = 0 then 0 else extend f.(b - 1) i
+  in
+  for i = 1 to k - 1 do
+    f.(i) <- extend f.(i - 1) i
+  done;
+  f.(k - 1)
+
+(* [least_period p tail] is the least period of the periodic extension of the
+   tail [tail] of period [p], neither empty nor full. Its [k] components on the
+   circle of [2p] atoms, the last and the first joined if they meet across [p],
+   each read as the parity of its lower bound, its length and the gap to the
+   next, form a circular word whose rotations are the translations leaving the
+   tail invariant: the least period is [p·m/k], [m] the length of the
+   primitive root of the word, which is [k - f] if that divides [k] and [k]
+   otherwise, [f] the length of its longest proper border. *)
+let least_period p tail =
+  let n = count tail and wrap = twice p in
+  let joined =
+    n >= 2 && Z.equal tail.(0) Z.one && Z.equal (last tail) (Z.succ wrap)
+  in
+  let k = if joined then n - 1 else n and first = if joined then 1 else 0 in
+  let lo i = tail.(2 * (first + i)) in
+  let hi i =
+    if joined && i = k - 1 then Z.add wrap tail.(1)
+    else tail.((2 * (first + i)) + 1)
+  in
+  let next i = if i = k - 1 then Z.add wrap (lo 0) else lo (i + 1) in
+  let odd = Array.init k (fun i -> Z.is_odd (lo i))
+  and length = Array.init k (fun i -> Z.sub (hi i) (lo i))
+  and gap = Array.init k (fun i -> Z.sub (next i) (hi i)) in
+  let equal i j =
+    Bool.equal odd.(i) odd.(j)
+    && Z.equal length.(i) length.(j)
+    && Z.equal gap.(i) gap.(j)
+  in
+  let m = k - border equal k in
+  Z.divexact p (Z.of_int (if k mod m = 0 then k / m else 1))
+
+(* [least_threshold t p base tail] is the least threshold of the set [S] of
+   threshold [t], least period [p], base [base] and tail [tail]: the supremum
+   of the points [x ∈ [0, t]] with [x ∈ S ⇎ x + p ∈ S], [0] if there are none.
+   The runs of [S ∩ [0, t]] and of [(S - p) ∩ [0, t]] are compared downwards
+   from [t], and the supremum is that of the highest atom in one and not the
+   other, read off the first two runs that differ. *)
+let least_threshold t p base tail =
+  let step = twice p and o = twice t in
+  let nb = count base and nt = count tail in
+  (* The runs of [S ∩ [0, t + p]]: those of the base, then those of the tail
+     from [t], the last of the one and the first of the other joined if they
+     touch. *)
+  let joined =
+    nb > 0 && Z.equal (last base) (Z.succ o) && Z.equal tail.(0) Z.one
+  in
+  let na = nb + nt - if joined then 1 else 0 in
+  let first_tail = na - nt in
+  let lower j =
+    if j < nb then base.(2 * j) else Z.add o tail.(2 * (j - first_tail))
+  and upper j =
+    if j < first_tail then base.((2 * j) + 1)
+    else Z.add o tail.((2 * (j - first_tail)) + 1)
+  in
+  let rec down i j =
+    let x = i >= 0 and y = j >= 0 && Z.gt (upper j) step in
+    if not (x || y) then Z.zero
+    else if not y then half base.((2 * i) + 1)
+    else
+      let e' = Z.sub (upper j) step in
+      if not x then half e'
+      else
+        let e = base.((2 * i) + 1) in
+        if not (Z.equal e e') then half (Z.max e e')
+        else
+          let s = base.(2 * i) and s' = Z.max Z.zero (Z.sub (lower j) step) in
+          if not (Z.equal s s') then half (Z.max s s') else down (i - 1) (j - 1)
+  in
+  down (nb - 1) (na - 1)
+
+(* [make ~grid ~threshold ~period ~base ~tail] is the canonical form of the set
+   [base ∪ ⋃ₙ (threshold + n·period + tail)] on the grid [1/grid], [base] an
+   array within [[0, threshold]] and [tail] one within [(0, period]]. *)
+let make ~grid ~threshold ~period ~base ~tail =
+  if Array.length tail = 0 then
+    coarsest ~grid
+      ~threshold:(if Array.length base = 0 then Z.zero else half (last base))
+      ~period:grid ~base ~tail
+  else if is_full period tail then
+    (* The least threshold is the supremum of [[0, threshold] ∖ base]: the
+       lower end of the last interval of [base] if that contains [threshold],
+       and [threshold] otherwise. *)
+    let n = Array.length base in
+    if n > 0 && Z.equal (last base) (Z.succ (twice threshold)) then
+      let s = base.(n - 2) in
+      coarsest ~grid ~threshold:(half s) ~period:grid
+        ~base:
+          (Array.append
+             (Array.sub base 0 (n - 2))
+             (if Z.is_even s then [| s; Z.succ s |] else [||]))
+        ~tail:(full grid)
+    else coarsest ~grid ~threshold ~period:grid ~base ~tail:(full grid)
+  else
+    let p = least_period period tail in
+    let pattern =
+      if Z.equal p period then tail else clip Z.one (Z.succ (twice p)) tail
+    in
+    let t = least_threshold threshold p base pattern in
+    if Z.equal t threshold then
+      coarsest ~grid ~threshold ~period:p ~base ~tail:pattern
+    else
+      let o = twice t and origin = twice threshold and step = twice p in
+      coarsest ~grid ~threshold:t ~period:p
+        ~base:(clip Z.zero (Z.succ o) base)
+        ~tail:
+          (translate (Z.neg o)
+             (copies ~origin ~step
+                ~from:(Z.pred (Z.fdiv (Z.sub o origin) step))
+                pattern ~lo:(Z.succ o)
+                ~hi:(Z.succ (Z.add o step))))
+
+let empty =
+  form ~grid:Z.one ~threshold:Z.zero ~period:Z.one ~base:[||] ~tail:[||]
+
+let zero =
+  form ~grid:Z.one ~threshold:Z.zero ~period:Z.one ~base:(point_run Z.zero)
+    ~tail:[||]
+
+let all =
+  form ~grid:Z.one ~threshold:Z.zero ~period:Z.one ~base:(point_run Z.zero)
+    ~tail:(full Z.one)
+
+let positive =
+  form ~grid:Z.one ~threshold:Z.zero ~period:Z.one ~base:[||] ~tail:(full Z.one)
+
+(* [of_runs grid runs] is the bounded set of the array [runs] on the grid
+   [1/grid]. *)
+let of_runs grid runs =
+  make ~grid ~threshold:Z.zero ~period:grid ~base:runs ~tail:[||]
+
+(* [from ~grid lo lo_closed] is the unbounded interval from [lo/grid]. *)
+let from ~grid lo lo_closed =
+  make ~grid ~threshold:lo ~period:grid
+    ~base:(if lo_closed then point_run lo else [||])
+    ~tail:(full grid)
+
+(* {2 Intervals of rationals} *)
 
 type interval = {
   lo : Rational.t;
@@ -34,394 +597,58 @@ type interval = {
   hi_closed : bool;
 }
 
-let closed lo hi = { lo; lo_closed = true; hi; hi_closed = true }
-let singleton x = closed x x
+(* [units g q] is [q·g], for [q] of denominator dividing [g]. *)
+let units g q = Z.mul (Rational.num q) (Z.divexact g (Rational.den q))
 
-let nonempty i =
-  match cmp i.lo i.hi with 0 -> i.lo_closed && i.hi_closed | c -> c < 0
+(* [atom g x] is the atom of the grid [1/g] containing [x ≥ 0]. *)
+let atom g x =
+  let y = Rational.mul x (Rational.of_z g) in
+  let k = twice (floor y) in
+  if Rational.is_integer y then k else Z.succ k
 
-(* Lower ends ordered by value, a closed end first; upper ends by value, an
-   open end first. *)
-let compare_lo i j =
-  match cmp i.lo j.lo with 0 -> Bool.compare j.lo_closed i.lo_closed | c -> c
+let interval_of g s e =
+  {
+    lo = rational g (half s);
+    lo_closed = Z.is_even s;
+    hi = rational g (half e);
+    hi_closed = Z.is_odd e;
+  }
 
-let compare_hi i j =
-  match cmp i.hi j.hi with 0 -> Bool.compare i.hi_closed j.hi_closed | c -> c
+let intervals_of g r =
+  List.rev (fold_runs (fun acc s e -> interval_of g s e :: acc) [] r)
 
-let compare_interval i j =
-  match compare_lo i j with 0 -> compare_hi i j | c -> c
-
-let equal_intervals = List.equal (fun i j -> compare_interval i j = 0)
-let shift d i = { i with lo = add i.lo d; hi = add i.hi d }
-
-let mem_interval x i =
-  (lt i.lo x || (i.lo_closed && Rational.equal i.lo x))
-  && (lt x i.hi || (i.hi_closed && Rational.equal x i.hi))
-
-(* {2 Interval lists}
-
-   A list is sorted by [compare_lo], its intervals non-empty, disjoint and not
-   touching: two intervals meeting at a point that one of them contains are
-   one. *)
-
-(* [touches last i] is whether the interval [i], whose lower end is not below
-   that of [last], meets or touches [last], and [join last i] is then their
-   union. *)
-let touches last i =
-  match cmp i.lo last.hi with 0 -> last.hi_closed || i.lo_closed | c -> c < 0
-
-let join last i =
-  if compare_hi i last > 0 then { last with hi = i.hi; hi_closed = i.hi_closed }
-  else last
-
-(* [push acc i] adds the interval [i], whose lower end is not below those of
-   the intervals of the reversed list [acc], to it. *)
-let push acc i =
-  match acc with
-  | last :: acc' when touches last i -> join last i :: acc'
-  | _ -> i :: acc
-
-(* [drain acc ivs] is the reversed list [acc] followed by the list [ivs],
-   whose lower ends are not below those of [acc]: the intervals of [ivs] are
-   pushed while they touch the last one, and the others shared. *)
-let rec drain acc ivs =
-  match (acc, ivs) with
-  | last :: _, i :: rest when touches last i -> drain (push acc i) rest
-  | _ -> List.rev_append acc ivs
-
-(* [coalesce ivs] merges the overlapping and touching intervals of [ivs],
-   sorted by [compare_lo] and non-empty. *)
-let coalesce ivs = List.rev (List.fold_left push [] ivs)
-
-(* [append xs ys] is the list of the union of the lists [xs] and [ys], every
-   interval of [ys] lying above those of [xs]. *)
-let append xs ys = if ys = [] then xs else drain (List.rev xs) ys
-
-let normalize ivs =
-  coalesce (List.stable_sort compare_lo (List.filter nonempty ivs))
-
-(* [merge xs ys] merges two lists sorted by [compare_lo], tail-recursively. *)
-let merge xs ys =
-  let rec go acc xs ys =
-    match (xs, ys) with
-    | [], rest | rest, [] -> List.rev_append acc rest
-    | x :: xs', y :: ys' ->
-        if compare_lo x y <= 0 then go (x :: acc) xs' ys
-        else go (y :: acc) xs ys'
+(* [of_intervals ivs] is the bounded set of the intervals [ivs], on the grid of
+   the least common denominator of their ends. *)
+let of_intervals ivs =
+  let g =
+    List.fold_left
+      (fun g i -> Z.lcm g (Z.lcm (Rational.den i.lo) (Rational.den i.hi)))
+      Z.one ivs
   in
-  go [] xs ys
-
-(* The union by a merge sweep over both lists. *)
-let union_list xs ys =
-  let rec go acc xs ys =
-    match (xs, ys) with
-    | [], rest | rest, [] -> drain acc rest
-    | x :: xs', y :: ys' ->
-        if compare_lo x y <= 0 then go (push acc x) xs' ys
-        else go (push acc y) xs ys'
+  let run i =
+    let s = twice (units g i.lo) and e = twice (units g i.hi) in
+    ((if i.lo_closed then s else Z.succ s), if i.hi_closed then Z.succ e else e)
   in
-  go [] xs ys
-
-(* [meet i j] is the intersection of the intervals [i] and [j], empty unless
-   [nonempty] holds of it: one of them if it has the greater lower end and the
-   lesser upper end. *)
-let meet i j =
-  let l = if compare_lo i j >= 0 then i else j
-  and h = if compare_hi i j <= 0 then i else j in
-  if l == h then l
-  else
-    { lo = l.lo; lo_closed = l.lo_closed; hi = h.hi; hi_closed = h.hi_closed }
-
-(* The intersection by a sweep over both lists. *)
-let inter_list xs ys =
-  let rec go acc xs ys =
-    match (xs, ys) with
-    | [], _ | _, [] -> List.rev acc
-    | x :: xs', y :: ys' ->
-        let i = meet x y in
-        let acc = if nonempty i then i :: acc else acc in
-        if compare_hi x y <= 0 then go acc xs' ys else go acc xs ys'
-  in
-  go [] xs ys
-
-(* [within w ivs] is the complement of [ivs], a list included in the
-   interval [w], relative to [w]. *)
-let within w ivs =
-  let gap acc lo lo_closed hi hi_closed =
-    let g = { lo; lo_closed; hi; hi_closed } in
-    if nonempty g then g :: acc else acc
-  in
-  let rec go acc lo lo_closed = function
-    | [] -> List.rev (gap acc lo lo_closed w.hi w.hi_closed)
-    | i :: rest ->
-        go
-          (gap acc lo lo_closed i.lo (not i.lo_closed))
-          i.hi (not i.hi_closed) rest
-  in
-  go [] w.lo w.lo_closed ivs
-
-let clip w ivs = inter_list ivs [ w ]
-
-(* [merge_all lists] merges the lists sorted by [compare_lo] in [lists], by
-   balanced pairwise merges. *)
-let rec merge_all = function
-  | [] -> []
-  | [ xs ] -> xs
-  | lists ->
-      let rec pairs acc = function
-        | xs :: ys :: rest -> pairs (merge xs ys :: acc) rest
-        | [ xs ] -> List.rev (xs :: acc)
-        | [] -> List.rev acc
-      in
-      merge_all (pairs [] lists)
-
-(* The Minkowski sum: [⟨a, b⟩ + ⟨c, d⟩ = ⟨a + c, b + d⟩], an end closed iff
-   both are. The translates of the longer list by each interval of the shorter
-   are sorted, since the lower ends of a list increase strictly, and are
-   merged. *)
-let sum_list xs ys =
-  let xs, ys =
-    if List.length xs >= List.length ys then (xs, ys) else (ys, xs)
-  in
-  coalesce
-    (merge_all
-       (List.map
-          (fun y ->
-            List.map
-              (fun x ->
-                {
-                  lo = add x.lo y.lo;
-                  lo_closed = x.lo_closed && y.lo_closed;
-                  hi = add x.hi y.hi;
-                  hi_closed = x.hi_closed && y.hi_closed;
-                })
-              xs)
-          ys))
-
-let last_hi ivs = List.fold_left (fun _ i -> Some i) None ivs
-
-(* {1 Sets} *)
-
-type t = {
-  threshold : Rational.t;
-  period : Rational.t;
-  base : interval list;
-  tail : interval list;
-  hash : int;
-}
-(* [S = base ∪ ⋃ₙ (threshold + n·period + tail)], with [base ⊆ [0, threshold]]
-   and [tail ⊆ (0, period]]; [hash] is the hash of the other fields, computed
-   once, when the set is formed. *)
-
-let form ~threshold ~period ~base ~tail =
-  let h i =
-    Grade.combine
-      (Grade.combine (Rational.hash i.lo) (Bool.to_int i.lo_closed))
-      (Grade.combine (Rational.hash i.hi) (Bool.to_int i.hi_closed))
-  in
-  let hash =
-    Grade.combine
-      (Grade.combine (Rational.hash threshold) (Rational.hash period))
-      (Grade.combine (Grade.hash_list h base) (Grade.hash_list h tail))
-  in
-  { threshold; period; base; tail; hash }
-
-(* The window [(0, p]] of a tail and the window [(o, o + p]] of a copy. *)
-let period_window o p =
-  { lo = o; lo_closed = false; hi = add o p; hi_closed = true }
-
-let full p = [ period_window rzero p ]
-let is_full p tail = equal_intervals tail (full p)
-
-(* [copies ~origin ~period ~from tail w] is the union of the copies
-   [origin + n·period + tail], [n ≥ from] an integer, intersected with the
-   interval [w]: that of a full tail is [(origin + from·period, ∞) ∩ w]. *)
-let copies ~origin ~period ~from tail w =
-  if tail = [] then []
-  else if is_full period tail then
-    clip w
-      [
-        {
-          lo = add origin (mul (of_z from) period);
-          lo_closed = false;
-          hi = w.hi;
-          hi_closed = w.hi_closed;
-        };
-      ]
-  else
-    let first = Z.max from (Z.pred (floor (div (sub w.lo origin) period))) in
-    let rec go acc n =
-      let o = add origin (mul (of_z n) period) in
-      if le w.hi o then List.rev acc
-      else
-        go (List.rev_append (clip w (List.map (shift o) tail)) acc) (Z.succ n)
-    in
-    coalesce (go [] first)
-
-(* [window s w] is [s ∩ w], a list. *)
-let window s w =
-  let base = if lt s.threshold w.lo then [] else clip w s.base in
-  append base
-    (copies ~origin:s.threshold ~period:s.period ~from:Z.zero s.tail w)
-
-let upto t = closed rzero t
-
-(* [arcs p tail] is the array of the connected components of the tail
-   [tail ⊆ (0, p]] on the circle of length [p], in increasing order: its
-   intervals, the last and the first joined across [p] if they meet there, the
-   joined one then ending beyond [p]. *)
-let arcs p tail =
-  match tail with
-  | first :: (_ :: _ as rest) when Rational.sign first.lo = 0 -> (
-      match List.rev rest with
-      | last :: middle when last.hi_closed && Rational.equal last.hi p ->
-          Array.of_list
-            (List.rev_append middle
-               [
-                 { last with hi = add first.hi p; hi_closed = first.hi_closed };
-               ])
-      | _ -> Array.of_list tail)
-  | _ -> Array.of_list tail
-
-(* [border equal w] is the length of the longest proper border of the
-   non-empty array [w], its longest proper prefix that is also a suffix, by
-   the failure function of Knuth, Morris and Pratt ("Fast pattern matching in
-   strings", SIAM J. Comput. 6, 1977): entry [i] is the longest proper border
-   of the prefix of length [i + 1]. *)
-let border equal w =
-  let k = Array.length w in
-  let f = Array.make k 0 in
-  let rec extend b i =
-    if equal w.(i) w.(b) then b + 1 else if b = 0 then 0 else extend f.(b - 1) i
-  in
-  for i = 1 to k - 1 do
-    f.(i) <- extend f.(i - 1) i
-  done;
-  f.(k - 1)
-
-(* [least_period p tail] is the least period of the periodic extension of the
-   tail [tail ⊆ (0, p]], neither empty nor full. Its [k] components on the
-   circle of length [p], each read as its ends, its length and the gap to the
-   next, form a circular word whose rotations are the translations leaving the
-   tail invariant: the least period is [p·m/k], [m] the length of the
-   primitive root of the word, which is [k - f] if that divides [k] and [k]
-   otherwise, [f] the length of its longest proper border. *)
-let least_period p tail =
-  let arcs = arcs p tail in
-  let k = Array.length arcs in
-  let letter i =
-    let a = arcs.(i) in
-    let next = if i = k - 1 then add arcs.(0).lo p else arcs.(i + 1).lo in
-    (a.lo_closed, sub a.hi a.lo, a.hi_closed, sub next a.hi)
-  in
-  let equal_letter (c, l, c', g) (d, m, d', h) =
-    Bool.equal c d && Rational.equal l m && Bool.equal c' d'
-    && Rational.equal g h
-  in
-  let m = k - border equal_letter (Array.init k letter) in
-  div p (rat (if k mod m = 0 then k / m else 1))
-
-(* [least_threshold t p base tail] is the least threshold of the set [S] of
-   threshold [t], least period [p], base [base] and tail [tail ⊆ (0, p]]: the
-   supremum of the points [x ∈ [0, t]] with [x ∈ S ⇎ x + p ∈ S], [0] if there
-   are none. The maximal intervals of [S ∩ [0, t]] and of [(S - p) ∩ [0, t]]
-   are compared downwards from [t], and the supremum is read off the first two
-   that differ. *)
-let least_threshold t p base tail =
-  let down =
-    (* The maximal intervals of [S ∩ [0, t + p]] in decreasing order. *)
-    match (List.rev base, List.map (shift t) tail) with
-    | b :: bs, u :: us when touches b u -> List.rev_append (join b u :: us) bs
-    | bs, us -> List.rev_append us bs
-  in
-  let upto_threshold ivs =
-    Seq.filter_map
-      (fun i ->
-        let j = meet i (upto t) in
-        if nonempty j then Some j else None)
-      ivs
-  in
-  let rec first_difference xs ys =
-    match (xs (), ys ()) with
-    | Seq.Nil, Seq.Nil -> rzero
-    | Seq.Cons (x, _), Seq.Nil | Seq.Nil, Seq.Cons (x, _) -> x.hi
-    | Seq.Cons (x, xs), Seq.Cons (y, ys) ->
-        if compare_interval x y = 0 then first_difference xs ys
-        else if compare_hi x y <> 0 then qmax x.hi y.hi
-        else qmax x.lo y.lo
-  in
-  first_difference
-    (upto_threshold (List.to_seq down))
-    (upto_threshold (Seq.map (shift (Rational.neg p)) (List.to_seq down)))
-
-(* [make ~threshold ~period ~base ~tail] is the canonical form of the set
-   [base ∪ ⋃ₙ (threshold + n·period + tail)], [base] a list within
-   [[0, threshold]] and [tail] one within [(0, period]]. *)
-let make ~threshold ~period ~base ~tail =
-  if tail = [] then
-    form
-      ~threshold:(match last_hi base with Some i -> i.hi | None -> rzero)
-      ~period:one ~base ~tail
-  else if is_full period tail then
-    (* The least threshold is the supremum of [[0, threshold] ∖ base]: the
-       lower end of the last interval of [base] if that contains [threshold],
-       and [threshold] otherwise. *)
-    match last_hi base with
-    | Some i when i.hi_closed && Rational.equal i.hi threshold ->
-        form ~threshold:i.lo ~period:one
-          ~base:(clip (upto i.lo) base)
-          ~tail:(full one)
-    | _ -> form ~threshold ~period:one ~base ~tail:(full one)
-  else
-    let p = least_period period tail in
-    let pattern =
-      if Rational.equal p period then tail
-      else clip (period_window rzero p) tail
-    in
-    let t = least_threshold threshold p base pattern in
-    if Rational.equal t threshold then
-      form ~threshold ~period:p ~base ~tail:pattern
-    else
-      form ~threshold:t ~period:p
-        ~base:(clip (upto t) base)
-        ~tail:
-          (List.map
-             (shift (Rational.neg t))
-             (copies ~origin:threshold ~period:p
-                ~from:(Z.pred (floor (div (sub t threshold) p)))
-                pattern (period_window t p)))
-
-let empty = form ~threshold:rzero ~period:one ~base:[] ~tail:[]
-let zero = form ~threshold:rzero ~period:one ~base:[ singleton rzero ] ~tail:[]
-
-let all =
-  form ~threshold:rzero ~period:one ~base:[ singleton rzero ] ~tail:(full one)
-
-let positive = form ~threshold:rzero ~period:one ~base:[] ~tail:(full one)
-
-(* [from lo lo_closed] is the unbounded interval from [lo]. *)
-let from lo lo_closed =
-  make ~threshold:lo ~period:one
-    ~base:(if lo_closed then [ singleton lo ] else [])
-    ~tail:(full one)
-
-(* [of_list ivs] is the bounded set of the list [ivs]. *)
-let of_list ivs = make ~threshold:rzero ~period:one ~base:ivs ~tail:[]
-let of_intervals ivs = of_list (normalize ivs)
+  of_runs g
+    (coalesce
+       (of_pairs
+          (List.stable_sort
+             (fun (s, _) (s', _) -> Z.compare s s')
+             (List.filter (fun (s, e) -> Z.lt s e) (List.map run ivs)))))
 
 let point q =
   if Rational.sign q < 0 then invalid_arg "DelaySet.point"
-  else of_intervals [ singleton q ]
+  else of_intervals [ { lo = q; lo_closed = true; hi = q; hi_closed = true } ]
 
 let interval ~lo ~lo_closed ~hi ~hi_closed =
   let lo, lo_closed =
     if Rational.sign lo < 0 then (rzero, true) else (lo, lo_closed)
   in
   match hi with
-  | Some hi ->
-      of_intervals
-        (clip (upto (qmax hi rzero)) [ { lo; lo_closed; hi; hi_closed } ])
-  | None -> from lo lo_closed
+  | Some hi -> of_intervals [ { lo; lo_closed; hi; hi_closed } ]
+  | None ->
+      let g = Rational.den lo in
+      from ~grid:g (units g lo) lo_closed
 
 let between (lo : Rational.t GradeLiteral.bound)
     (hi : Rational.t GradeLiteral.bound) =
@@ -441,53 +668,92 @@ let between (lo : Rational.t GradeLiteral.bound)
 
 (* {2 Alignment} *)
 
-let constant s = s.tail = [] || is_full s.period s.tail
+let constant s = Array.length s.tail = 0 || is_full s.period s.tail
 
 (* [align s t p] is the base and the tail of the representation of [s] with
    threshold [t ≥ s.threshold] and period [p], a multiple of [s.period] unless
-   the tail of [s] is empty or full: those of [s] if [t] and [p] are its
-   own. *)
+   the tail of [s] is empty or full, on the grid of [s]: those of [s] if [t]
+   and [p] are its own. *)
 let align s t p =
-  if Rational.equal t s.threshold && Rational.equal p s.period then
-    (s.base, s.tail)
+  if Z.equal t s.threshold && Z.equal p s.period then (s.base, s.tail)
   else
-    ( window s (upto t),
-      if s.tail = [] then []
+    let o = twice t in
+    ( window s ~lo:Z.zero ~hi:(Z.succ o),
+      if Array.length s.tail = 0 then [||]
       else if constant s then full p
-      else List.map (shift (Rational.neg t)) (window s (period_window t p)) )
+      else
+        translate (Z.neg o)
+          (window s ~lo:(Z.succ o) ~hi:(Z.succ (Z.add o (twice p)))) )
 
-(* [common_period s r] is a period both [s] and [r] may be aligned to. *)
+(* [common_period s r] is a period both [s] and [r], on a common grid, may be
+   aligned to. *)
 let common_period s r =
   match (constant s, constant r) with
-  | true, true -> one
+  | true, true -> s.grid
   | true, false -> r.period
   | false, true -> s.period
-  | false, false -> lcm s.period r.period
+  | false, false -> Z.lcm s.period r.period
 
-let compare_list = List.compare compare_interval
+(* The order of two bounds on the grids [1/g] and [1/h]: by the values of
+   their ends, then an even bound first. *)
+let compare_bounds g h a b =
+  match cmp (rational g (half a)) (rational h (half b)) with
+  | 0 -> Bool.compare (Z.is_odd a) (Z.is_odd b)
+  | c -> c
+
+(* The lexicographic order of arrays, a proper prefix first. *)
+let compare_runs compare_bound xs ys =
+  let n = Array.length xs and m = Array.length ys in
+  let rec go i =
+    if i >= n || i >= m then Int.compare n m
+    else match compare_bound xs.(i) ys.(i) with 0 -> go (i + 1) | c -> c
+  in
+  go 0
 
 let compare s r =
   if s == r then 0
   else
-    match cmp s.threshold r.threshold with
+    let same = Z.equal s.grid r.grid in
+    let value a b =
+      if same then Z.compare a b
+      else cmp (rational s.grid a) (rational r.grid b)
+    and bound = if same then Z.compare else compare_bounds s.grid r.grid in
+    match value s.threshold r.threshold with
     | 0 -> (
-        match cmp s.period r.period with
+        match value s.period r.period with
         | 0 -> (
-            match compare_list s.base r.base with
-            | 0 -> compare_list s.tail r.tail
+            match compare_runs bound s.base r.base with
+            | 0 -> compare_runs bound s.tail r.tail
             | c -> c)
         | c -> c)
     | c -> c
 
-let equal s r = compare s r = 0
-let hash s = s.hash
+let equal_runs xs ys =
+  Array.length xs = Array.length ys
+  &&
+  let rec go i = i < 0 || (Z.equal xs.(i) ys.(i) && go (i - 1)) in
+  go (Array.length xs - 1)
 
+let equal s r =
+  s == r
+  || Z.equal s.grid r.grid
+     && Z.equal s.threshold r.threshold
+     && Z.equal s.period r.period && equal_runs s.base r.base
+     && equal_runs s.tail r.tail
+
+let hash s = Lazy.force s.hash
+
+(* [binary op s r] applies [op] to the bases and to the tails of [s] and [r]
+   aligned to a common grid, the greater threshold and a common period. *)
 let binary op s r =
-  let t = qmax s.threshold r.threshold and p = common_period s r in
+  let g = common_grid s r in
+  let s = refine g s and r = refine g r in
+  let t = Z.max s.threshold r.threshold and p = common_period s r in
   let base, tail = align s t p and base', tail' = align r t p in
-  make ~threshold:t ~period:p ~base:(op base base') ~tail:(op tail tail')
+  make ~grid:g ~threshold:t ~period:p ~base:(op base base')
+    ~tail:(op tail tail')
 
-let is_empty s = s.base = [] && s.tail = []
+let is_empty s = Array.length s.base = 0 && Array.length s.tail = 0
 
 (* The operations below return an operand where the laws of the Boolean
    algebra and of the sum determine the result from it. *)
@@ -495,188 +761,220 @@ let is_empty s = s.base = [] && s.tail = []
 let union s r =
   if is_empty s || equal r all then r
   else if is_empty r || equal s all || equal s r then s
-  else binary union_list s r
+  else binary union_runs s r
 
 (* [inter_bounded s r] is [s ∩ r] for a bounded [r], whose threshold is its
    supremum: [(s ∩ [0, sup r]) ∩ r], which reads [s] only up to [sup r]. *)
 let inter_bounded s r =
-  of_list (inter_list (window s (upto r.threshold)) r.base)
+  let g = common_grid s r in
+  let s = refine g s and r = refine g r in
+  of_runs g
+    (inter_runs (window s ~lo:Z.zero ~hi:(Z.succ (twice r.threshold))) r.base)
 
 let inter s r =
   if is_empty s || equal r all || equal s r then s
   else if is_empty r || equal s all then r
-  else if r.tail = [] then inter_bounded s r
-  else if s.tail = [] then inter_bounded r s
-  else binary inter_list s r
+  else if Array.length r.tail = 0 then inter_bounded s r
+  else if Array.length s.tail = 0 then inter_bounded r s
+  else binary inter_runs s r
 
 (* The complement of a canonical form is canonical: [x ∈ S ⇎ x + p ∈ S] holds
-   of the same points for [S] and its complement, and the tail of one is empty
-   iff that of the other is full. *)
+   of the same points for [S] and its complement, the tail of one is empty iff
+   that of the other is full, and both have the same ends. *)
 let compl s =
-  form ~threshold:s.threshold ~period:s.period
-    ~base:(within (upto s.threshold) s.base)
-    ~tail:(within (period_window rzero s.period) s.tail)
+  form ~grid:s.grid ~threshold:s.threshold ~period:s.period
+    ~base:(within Z.zero (Z.succ (twice s.threshold)) s.base)
+    ~tail:(within Z.one (Z.succ (twice s.period)) s.tail)
 
-let diff s r = inter s (compl r)
-let threshold s = s.threshold
-let period s = s.period
-let intervals_upto x s = window s (upto x)
+(* A difference from a bounded set reads the other operand only up to its
+   supremum. *)
+let diff s r =
+  if Array.length s.tail = 0 && not (is_empty s || is_empty r) then
+    let g = common_grid s r in
+    let s = refine g s and r = refine g r in
+    let top = Z.succ (twice s.threshold) in
+    of_runs g
+      (inter_runs s.base (within Z.zero top (window r ~lo:Z.zero ~hi:top)))
+  else inter s (compl r)
 
-(* [pieces s] is the sequence of the intervals of [s] in increasing order:
-   those of its base, then the copies of its tail, one period after another,
-   not joined where they touch. *)
-let pieces s =
-  let copy n =
-    Seq.map
-      (shift (add s.threshold (mul (of_z n) s.period)))
-      (List.to_seq s.tail)
-  in
-  Seq.append (List.to_seq s.base)
-    (if s.tail = [] then Seq.empty
-     else Seq.flat_map copy (Seq.iterate Z.succ Z.zero))
+let threshold s = rational s.grid s.threshold
+let period s = rational s.grid s.period
 
-(* [intersects s r] sweeps the pieces of [s] and of [r] in increasing order
-   until two of them meet, or until one lies above the greater threshold plus
-   a common period: both sets are periodic with that period above the greater
-   threshold, so a common element above it has a translate below. *)
+let intervals_upto x s =
+  if Rational.sign x < 0 then []
+  else
+    let a = atom s.grid x in
+    let r = window s ~lo:Z.zero ~hi:(Z.succ a) in
+    let ivs = intervals_of s.grid r in
+    (* An end [x] off the grid lies in the cell [a]. *)
+    if Z.is_odd a && Array.length r > 0 && Z.equal (last r) (Z.succ a) then
+      match List.rev ivs with
+      | i :: rest ->
+          List.rev_append rest [ { i with hi = x; hi_closed = true } ]
+      | [] -> ivs
+    else ivs
+
+(* [piece m s i] is the [i]-th interval of [s] in increasing order, refined by
+   [m]: those of its base, then the copies of its tail, one period after
+   another, not joined where they touch; [None] past the last one of a bounded
+   set. *)
+let piece m s i =
+  let nb = count s.base in
+  if i < nb then
+    Some (refine_bound m s.base.(2 * i), refine_bound m s.base.((2 * i) + 1))
+  else
+    let nt = count s.tail in
+    if nt = 0 then None
+    else
+      let c = (i - nb) / nt and j = (i - nb) mod nt in
+      let o =
+        Z.mul m (twice (Z.add s.threshold (Z.mul (Z.of_int c) s.period)))
+      in
+      Some
+        ( Z.add o (refine_bound m s.tail.(2 * j)),
+          Z.add o (refine_bound m s.tail.((2 * j) + 1)) )
+
+(* [intersects s r] sweeps the pieces of [s] and of [r] on a common grid in
+   increasing order until two of them meet, or until one lies above the greater
+   threshold plus a common period: both sets are periodic with that period
+   above the greater threshold, so a common element above it has a translate
+   below. *)
 let intersects s r =
-  let bound = add (qmax s.threshold r.threshold) (common_period s r) in
-  let rec sweep xs ys =
-    match (xs, ys) with
-    | Seq.Nil, _ | _, Seq.Nil -> false
-    | Seq.Cons (x, xs'), Seq.Cons (y, ys') ->
-        nonempty (meet x y)
-        || le x.lo bound && le y.lo bound
-           &&
-           if compare_hi x y <= 0 then sweep (xs' ()) ys else sweep xs (ys' ())
+  let g = common_grid s r in
+  let ms = Z.divexact g s.grid and mr = Z.divexact g r.grid in
+  let p =
+    match (constant s, constant r) with
+    | true, true -> g
+    | true, false -> Z.mul mr r.period
+    | false, true -> Z.mul ms s.period
+    | false, false -> Z.lcm (Z.mul ms s.period) (Z.mul mr r.period)
   in
-  sweep (pieces s ()) (pieces r ())
+  let limit =
+    Z.succ
+      (twice (Z.add (Z.max (Z.mul ms s.threshold) (Z.mul mr r.threshold)) p))
+  in
+  let rec sweep i j =
+    match (piece ms s i, piece mr r j) with
+    | None, _ | _, None -> false
+    | Some (a, b), Some (c, d) ->
+        Z.lt (Z.max a c) (Z.min b d)
+        || Z.leq a limit && Z.leq c limit
+           && if Z.leq b d then sweep (i + 1) j else sweep i (j + 1)
+  in
+  sweep 0 0
 
 let subset s r = not (intersects s (compl r))
 
 let mem x s =
   if Rational.sign x < 0 then false
-  else if le x s.threshold then List.exists (mem_interval x) s.base
   else
-    let y = sub x s.threshold in
-    let r = sub y (mul (of_z (Z.pred (ceil (div y s.period)))) s.period) in
-    List.exists (mem_interval r) s.tail
+    let a = atom s.grid x and o = twice s.threshold in
+    if Z.leq a o then member s.base a
+    else member s.tail (Z.succ (Z.erem (Z.sub a (Z.succ o)) (twice s.period)))
 
 (* {2 Repetition} *)
 
 (* The sums and repetitions computed, recorded in module-level tables by their
-   arguments, which only ever grow: they are the costliest operations, and the
-   gap closures of automata take them of the same sets repeatedly. *)
-module Sets = Hashtbl.Make (struct
+   arguments: they are the costliest operations, and the gap closures of
+   automata take them of the same sets repeatedly. The tables hold their
+   arguments weakly, an entry lasting while its arguments are reachable. *)
+module Key = struct
   type nonrec t = t
 
   let equal = equal
   let hash = hash
-end)
+end
 
-module Pairs = Hashtbl.Make (struct
-  type nonrec t = t * t
+module Sets = Ephemeron.K1.Make (Key)
+module Pairs = Ephemeron.K2.Make (Key) (Key)
 
-  let equal (s, r) (s', r') = equal s s' && equal r r'
-  let hash (s, r) = Grade.combine (hash s) (hash r)
-end)
-
-(* [components_of s] is the sequence of the intervals of [s] below its
-   threshold and in its first period above it, in increasing order. *)
-let components_of s =
-  Seq.append (List.to_seq s.base)
-    (Seq.map (shift s.threshold) (List.to_seq s.tail))
-
-(* [multiples_from i] is the least [c = n₀a] such that the multiples
-   [n⟨a, b⟩], [n ≥ n₀], cover [(c, ∞)]: [n₀] is the least [n ≥ 1] with
-   [n(b - a) > a], or [n(b - a) ≥ a] if both ends are closed, so that
-   [n⟨a, b⟩] and [(n+1)⟨a, b⟩] meet. *)
-let multiples_from i =
-  let w = sub i.hi i.lo in
-  let ratio = div i.lo w in
+(* [multiples_from s e] is, for the interval [⟨a, b⟩] of the run [[s, e)], the
+   least [c = n₀a] such that the multiples [n⟨a, b⟩], [n ≥ n₀], cover
+   [(c, ∞)]: [n₀] is the least [n ≥ 1] with [n(b - a) > a], or
+   [n(b - a) ≥ a] if both ends are closed, so that [n⟨a, b⟩] and
+   [(n+1)⟨a, b⟩] meet. *)
+let multiples_from s e =
+  let a = half s and w = Z.sub (half e) (half s) in
   let n =
-    if i.lo_closed && i.hi_closed && Rational.is_integer ratio then
-      Z.max Z.one (floor ratio)
-    else Z.succ (floor ratio)
+    if Z.is_even s && Z.is_odd e && Z.equal (Z.rem a w) Z.zero then
+      Z.max Z.one (Z.divexact a w)
+    else Z.succ (Z.fdiv a w)
   in
-  mul (of_z n) i.lo
+  Z.mul n a
 
 (* [star_dense s c] is [s* = R ∪ (c, ∞)], [R] the least fixpoint of
    [R = {0} ∪ (R + s_c) ∩ [0, c]] for [s_c = s ∩ (0, c]], all of whose elements
    are positive, by semi-naive iteration: each round adds to [R] the sums of the
    elements it added last with [s_c]. [R] is kept as a balanced search tree of
-   its intervals, so that a round costs a logarithmic time in [|R|] for each
-   interval of those sums. *)
+   its runs, so that a round costs a logarithmic time in [|R|] for each run of
+   those sums. *)
 let star_dense s c =
   let module R = Set.Make (struct
-    type t = interval
+    type t = Z.t * Z.t
 
-    let compare = compare_lo
+    let compare (a, _) (b, _) = Z.compare a b
   end) in
-  let w = upto c in
-  let sc =
-    window s { lo = rzero; lo_closed = false; hi = c; hi_closed = true }
-  in
-  (* The intervals of [r] that meet or touch the closure of [i]: from the last
-     one starting below [i], up to the last one starting at most at its upper
-     end. *)
-  let near r i =
-    let start =
-      match R.find_last_opt (fun k -> lt k.lo i.lo) r with
-      | Some k -> k
-      | None -> { i with lo_closed = true }
+  let top = Z.succ (twice c) in
+  let sc = window s ~lo:Z.one ~hi:top in
+  (* The runs of [r] that meet or touch the run [[a, b)]: the last one
+     beginning below [a] if it reaches [a], and those beginning from [a] up to
+     [b]. *)
+  let near r a b =
+    let below =
+      match R.find_last_opt (fun (a', _) -> Z.lt a' a) r with
+      | Some ((_, b') as k) when Z.geq b' a -> [ k ]
+      | _ -> []
     in
-    List.of_seq
-      (Seq.filter
-         (fun k -> le i.lo k.hi)
-         (Seq.take_while (fun k -> le k.lo i.hi) (R.to_seq_from start r)))
+    below
+    @ List.of_seq
+        (Seq.take_while (fun (a', _) -> Z.leq a' b) (R.to_seq_from (a, a) r))
   in
-  (* [add (r, fresh) i] adds to [r] the part of [i] outside it, and to the
-     reversed list [fresh] its intervals. *)
-  let add (r, fresh) i =
-    let ks = near r i in
-    match within i (clip i ks) with
-    | [] -> (r, fresh)
+  (* [add (r, fresh) a b] adds to [r] the part of [[a, b)] outside it, and its
+     runs to the reversed list [fresh]. *)
+  let add (r, fresh) a b =
+    let ks = near r a b in
+    let covered = of_pairs ks in
+    match within a b (clip a b covered) with
+    | [||] -> (r, fresh)
     | gaps ->
-        ( List.fold_left
-            (fun r k -> R.add k r)
+        ( fold_runs
+            (fun r s e -> R.add (s, e) r)
             (List.fold_left (fun r k -> R.remove k r) r ks)
-            (union_list ks gaps),
-          List.rev_append gaps fresh )
+            (union_runs covered gaps),
+          fold_runs (fun fresh s e -> (s, e) :: fresh) fresh gaps )
   in
   let rec go r delta =
-    match List.fold_left add (r, []) (clip w (sum_list delta sc)) with
+    match fold_runs add (r, []) (clip Z.zero top (sum_runs delta sc)) with
     | r, [] -> r
-    | r, fresh -> go r (List.rev fresh)
+    | r, fresh -> go r (of_pairs (List.rev fresh))
   in
-  let z = singleton rzero in
-  union (of_list (R.elements (go (R.singleton z) [ z ]))) (from c false)
+  let z = point_run Z.zero in
+  union
+    (of_runs s.grid (of_pairs (R.elements (go (R.singleton (z.(0), z.(1))) z))))
+    (from ~grid:s.grid c false)
 
-(* [star_discrete s] is [s*] for a set [s] of positive points [F ∪ (G + pℕ)]:
-   scaled by a common denominator [D], its multiples form the numerical
-   semigroup [A] generated by [DF ∪ (DG + Dpℕ)]. With [μ = D·min s ∈ A],
-   [x ∈ A] iff [x ≥ w(x mod μ)], [w(r)] the least element of [A] congruent to
-   [r], the Apéry set, which is the shortest-path distance from [0] over the
-   residues modulo [μ], each residue class of generators contributing an edge
-   weighted by its least generator (Nijenhuis 1979). The least generator of a
-   class is among [DF] and [Dg + jDp] for [j < μ / gcd(μ, Dp)]. *)
+(* [star_discrete s] is [s*] for a set [s] of positive points [F ∪ (G + pℕ)] on
+   the grid [1/D]: scaled by [D], its multiples form the numerical semigroup
+   [A] generated by [DF ∪ (DG + Dpℕ)]. With [μ = D·min s ∈ A], [x ∈ A] iff
+   [x ≥ w(x mod μ)], [w(r)] the least element of [A] congruent to [r], the
+   Apéry set, which is the shortest-path distance from [0] over the residues
+   modulo [μ], each residue class of generators contributing an edge weighted
+   by its least generator (Nijenhuis, "A minimal-path algorithm for the money
+   changing problem", Amer. Math. Monthly 86, 1979), by Dijkstra's algorithm.
+   The least generator of a class is among [DF] and [Dg + jDp] for
+   [j < μ / gcd(μ, Dp)]. *)
 let star_discrete s =
-  let points = List.map (fun i -> i.lo) s.base in
-  let families = List.map (fun i -> add s.threshold i.lo) s.tail in
-  let d =
-    List.fold_left
-      (fun d x -> Z.lcm d (Rational.den x))
-      (Rational.den s.period) (points @ families)
+  let scale a = Z.to_int (half a) and t = Z.to_int s.threshold in
+  let points = List.rev (fold_runs (fun acc a _ -> scale a :: acc) [] s.base)
+  and families =
+    List.rev (fold_runs (fun acc a _ -> (t + scale a) :: acc) [] s.tail)
   in
-  let scale x = Z.to_int (Rational.num (mul x (of_z d))) in
-  let mu = List.fold_left min max_int (List.map scale (points @ families)) in
-  let dp = scale s.period in
+  let mu = List.fold_left min max_int (points @ families) in
+  let dp = Z.to_int s.period in
   let span = mu / Z.to_int (Z.gcd (Z.of_int mu) (Z.of_int dp)) in
   let generators =
-    List.map scale points
-    @ List.concat_map
-        (fun g -> List.init span (fun j -> scale g + (j * dp)))
-        families
+    points
+    @ List.concat_map (fun g -> List.init span (fun j -> g + (j * dp))) families
   in
   (* The least generator of each residue class modulo [μ]. *)
   let edges =
@@ -714,40 +1012,51 @@ let star_discrete s =
   in
   let dist = dijkstra (IntMap.singleton 0 0) (Queue.singleton (0, 0)) in
   let w = IntMap.fold (fun _ d w -> max d w) dist 0 in
-  let at x = Rational.make_z (Z.of_int x) d in
-  let member x =
-    match IntMap.find_opt (x mod mu) dist with
-    | Some least -> least <= x
-    | None -> false
+  (* The Apéry set indexed by residues, [max_int] for the residues outside
+     the group generated. *)
+  let apery =
+    Array.init mu (fun r ->
+        Option.value (IntMap.find_opt r dist) ~default:max_int)
   in
-  let points_among xs =
-    List.filter_map (fun x -> if member x then Some x else None) xs
+  let member x = apery.(x mod mu) <= x in
+  (* [points_among ~origin lo hi] is the array of the runs of the points
+     [x - origin] for the elements [x] of [A] with [lo ≤ x ≤ hi]. *)
+  let points_among ~origin lo hi =
+    let rec size x n =
+      if x > hi then n else size (x + 1) (if member x then n + 1 else n)
+    in
+    let out = fresh (2 * size lo 0) in
+    let rec fill x k =
+      if x > hi then out
+      else if member x then (
+        let a = twice (Z.of_int (x - origin)) in
+        out.(k) <- a;
+        out.(k + 1) <- Z.succ a;
+        fill (x + 1) (k + 2))
+      else fill (x + 1) k
+    in
+    fill lo 0
   in
-  make ~threshold:(at w) ~period:(at mu)
-    ~base:
-      (List.map
-         (fun x -> singleton (at x))
-         (points_among (List.init (w + 1) Fun.id)))
-    ~tail:
-      (List.map
-         (fun x -> singleton (at (x - w)))
-         (points_among (List.init mu (fun k -> w + k + 1))))
+  make ~grid:s.grid ~threshold:(Z.of_int w) ~period:(Z.of_int mu)
+    ~base:(points_among ~origin:0 0 w)
+    ~tail:(points_among ~origin:w (w + 1) (w + mu))
 
 let repetition s =
   let s = diff s zero in
-  match List.of_seq (components_of s) with
-  | [] -> zero
-  | first :: _ when Rational.sign first.lo = 0 -> all
-  | ivs -> (
-      match List.filter (fun i -> lt i.lo i.hi) ivs with
-      | [] -> star_discrete s
-      | i :: rest ->
-          star_dense s
-            (List.fold_left
-               (fun c i ->
-                 let c' = multiples_from i in
-                 if lt c' c then c' else c)
-               (multiples_from i) rest))
+  let components = Array.append s.base (translate (twice s.threshold) s.tail) in
+  if Array.length components = 0 then zero
+  else if Z.equal (half components.(0)) Z.zero then all
+  else
+    let least =
+      fold_runs
+        (fun c a b ->
+          if Z.lt (half a) (half b) then
+            let c' = multiples_from a b in
+            match c with Some c when Z.leq c c' -> Some c | _ -> Some c'
+          else c)
+        None components
+    in
+    match least with None -> star_discrete s | Some c -> star_dense s c
 
 let star =
   let table = Sets.create 16 in
@@ -756,54 +1065,63 @@ let star =
     | Some r -> r
     | None ->
         let r = repetition s in
-        Sets.add table s r;
+        Sets.replace table s r;
         r
 
 (* {2 Sums} *)
 
-(* [plus_multiples xs p] is the set [X + pℕ] for the non-empty list [X]:
-   eventually full from the least lower end [a] of an interval [⟨a, b⟩] of [X]
-   whose consecutive translates meet, and otherwise of threshold [sup X] and
-   period [p], since for [x ≥ sup X], [x + p ∈ X + pℕ] iff [x ∈ X + pℕ]. *)
-let plus_multiples xs p =
-  let covering i =
-    let a' = add i.lo p in
-    match cmp a' i.hi with 0 -> i.hi_closed || i.lo_closed | c -> c < 0
-  in
+(* [plus_multiples g xs p] is the set [X + pℕ] for the non-empty array [X] on
+   the grid [1/g]: eventually full from the least lower end [a] of an interval
+   [⟨a, b⟩] of [X] whose consecutive translates meet, and otherwise of threshold
+   [sup X] and period [p], since for [x ≥ sup X], [x + p ∈ X + pℕ] iff
+   [x ∈ X + pℕ]. *)
+let plus_multiples g xs p =
+  let step = twice p in
   let unroll limit =
-    let low = (List.hd xs).lo in
-    let rec go acc n =
-      let o = mul (rat n) p in
-      if lt limit (add low o) then acc
-      else go (List.rev_append (List.map (shift o) xs) acc) (n + 1)
+    (* The translates [X + np] with [inf X + np ≤ limit]. *)
+    let low = half xs.(0) in
+    let n =
+      if Z.lt limit low then 0
+      else Z.to_int (Z.succ (Z.fdiv (Z.sub limit low) p))
     in
-    normalize (go [] 0)
+    coalesce
+      (merge_all
+         (List.init n (fun k -> translate (Z.mul (Z.of_int k) step) xs)))
   in
-  match List.filter covering xs with
-  | i :: _ ->
-      union (of_list (clip (upto i.lo) (unroll i.lo))) (from i.lo i.lo_closed)
-  | [] ->
-      let t = match last_hi xs with Some i -> i.hi | None -> rzero in
-      let ivs = unroll (add t p) in
-      make ~threshold:t ~period:p
-        ~base:(clip (upto t) ivs)
-        ~tail:(List.map (shift (Rational.neg t)) (clip (period_window t p) ivs))
+  match
+    List.find_opt
+      (fun k -> Z.leq (Z.add xs.(2 * k) step) xs.((2 * k) + 1))
+      (List.init (count xs) Fun.id)
+  with
+  | Some k ->
+      let s = xs.(2 * k) in
+      let lo = half s in
+      union
+        (of_runs g (clip Z.zero (Z.succ (twice lo)) (unroll lo)))
+        (from ~grid:g lo (Z.is_even s))
+  | None ->
+      let t = half (last xs) in
+      let ivs = unroll (Z.add t p) and o = twice t in
+      make ~grid:g ~threshold:t ~period:p
+        ~base:(clip Z.zero (Z.succ o) ivs)
+        ~tail:
+          (translate (Z.neg o) (clip (Z.succ o) (Z.succ (Z.add o step)) ivs))
 
 (* [progression s] is [Some p] if [s] is [pℕ], of canonical form
    [(0, p, {0}, {p})], and [None] otherwise. *)
 let progression s =
+  let p = twice s.period in
   match (s.base, s.tail) with
-  | [ _ ], [ i ]
-    when Rational.sign s.threshold = 0
-         && Rational.equal i.lo s.period
-         && Rational.equal i.hi s.period ->
-      Some s.period
+  | [| _; _ |], [| a; b |]
+    when Z.equal s.threshold Z.zero && Z.equal a p && Z.equal b (Z.succ p) ->
+      Some (rational s.grid s.period)
   | _ -> None
 
 (* The sum of two progressions is the numerical semigroup
    [pℕ + qℕ = {p, q}*], by its Apéry set. Otherwise the sum distributes over
    union, and [pℕ + pℕ = pℕ]: with [S = B ∪ (Q + pℕ)] and [S' = B' ∪ (Q' + pℕ)],
-   [S + S' = (B + B') ∪ (B + Q' + pℕ) ∪ (Q + B' + pℕ) ∪ (Q + Q' + pℕ)]. *)
+   [S + S' = (B + B') ∪ (B + Q' + pℕ) ∪ (Q + B' + pℕ) ∪ (Q + Q' + pℕ)], on a
+   common grid. *)
 let minkowski s r =
   if is_empty s || is_empty r then empty
   else if equal s zero then r
@@ -812,18 +1130,22 @@ let minkowski s r =
     match (progression s, progression r) with
     | Some p, Some q -> star (union (point p) (point q))
     | _ ->
+        let g = common_grid s r in
+        let s = refine g s and r = refine g r in
         let p = common_period s r in
         let base, tail = align s s.threshold p
         and base', tail' = align r r.threshold p in
-        let q = List.map (shift s.threshold) tail
-        and q' = List.map (shift r.threshold) tail' in
-        let periodic xs = if xs = [] then empty else plus_multiples xs p in
+        let q = translate (twice s.threshold) tail
+        and q' = translate (twice r.threshold) tail' in
+        let periodic xs =
+          if Array.length xs = 0 then empty else plus_multiples g xs p
+        in
         List.fold_left union
-          (of_list (sum_list base base'))
+          (of_runs g (sum_runs base base'))
           [
-            periodic (sum_list base q');
-            periodic (sum_list q base');
-            periodic (sum_list q q');
+            periodic (sum_runs base q');
+            periodic (sum_runs q base');
+            periodic (sum_runs q q');
           ]
 
 let sum =
@@ -833,7 +1155,7 @@ let sum =
     | Some u -> u
     | None ->
         let u = minkowski s r in
-        Pairs.add table (s, r) u;
+        Pairs.replace table (s, r) u;
         u
 
 (* {1 Queries} *)
@@ -850,14 +1172,30 @@ let hash_extremum = function
   | Finite (a, f) -> Grade.combine (Rational.hash a) (Bool.to_int f)
   | Infinite -> -1
 
+(* [components s] is the number of the intervals of [s] below its threshold
+   and in its first period above it, and [component s i] the run of the [i]-th
+   of them in increasing order. *)
+let components s = count s.base + count s.tail
+
+let component s i =
+  let nb = count s.base in
+  if i < nb then (s.base.(2 * i), s.base.((2 * i) + 1))
+  else
+    let o = twice s.threshold and j = i - nb in
+    (Z.add o s.tail.(2 * j), Z.add o s.tail.((2 * j) + 1))
+
 let inf s =
-  match components_of s () with
-  | Seq.Cons (i, _) -> Some (Finite (i.lo, i.lo_closed))
-  | Seq.Nil -> None
+  if components s = 0 then None
+  else
+    let a, _ = component s 0 in
+    Some (Finite (rational s.grid (half a), Z.is_even a))
 
 let sup s =
-  if s.tail <> [] then Some Infinite
-  else Option.map (fun i -> Finite (i.hi, i.hi_closed)) (last_hi s.base)
+  if Array.length s.tail > 0 then Some Infinite
+  else if Array.length s.base = 0 then None
+  else
+    let e = last s.base in
+    Some (Finite (rational s.grid (half e), Z.is_odd e))
 
 (* [least_integer lo lo_closed hi] is the least integer of the interval from
    [lo] to [hi], unbounded if [hi] is [None], if it has one. *)
@@ -890,26 +1228,38 @@ let rec simplest lo lo_closed hi =
       add f (inv y)
 
 (* An integer has the least denominator, and the components increase: the
-   least integer of the first component having one is the simplest element. *)
+   least integer of the first component having one is the simplest element,
+   the least integer [n] with [2ng ≥ s] for a run [[s, e)] if [2ng < e]. *)
 let choose s =
-  let hi i = Some (i.hi, i.hi_closed) in
-  match
-    Seq.find_map
-      (fun i -> least_integer i.lo i.lo_closed (hi i))
-      (components_of s)
-  with
-  | Some n -> Some n
+  let n = components s and step = twice s.grid in
+  let rec first i =
+    if i >= n then None
+    else
+      let a, e = component s i in
+      let k = Z.cdiv a step in
+      if Z.lt (Z.mul k step) e then Some (of_z k) else first (i + 1)
+  in
+  match first 0 with
+  | Some x -> Some x
   | None ->
       let simpler x y =
         match Z.compare (Rational.den x) (Rational.den y) with
         | 0 -> lt x y
         | c -> c < 0
       in
-      Seq.fold_left
-        (fun best i ->
-          let x = simplest i.lo i.lo_closed (hi i) in
-          match best with Some b when not (simpler x b) -> best | _ -> Some x)
-        None (components_of s)
+      let rec best acc i =
+        if i >= n then acc
+        else
+          let a, e = component s i in
+          let i' = interval_of s.grid a e in
+          let x = simplest i'.lo i'.lo_closed (Some (i'.hi, i'.hi_closed)) in
+          best
+            (match acc with
+            | Some b when not (simpler x b) -> acc
+            | _ -> Some x)
+            (i + 1)
+      in
+      best None 0
 
 let minterms sets =
   let split block s =
@@ -940,14 +1290,19 @@ let union_regex = function
   | r :: rs -> Some (List.fold_left (fun r s -> GradeLiteral.Union (r, s)) r rs)
 
 let to_regex s =
-  let bounded =
-    List.map (fun i ->
-        interval_regex (i.lo, i.lo_closed, Some (i.hi, i.hi_closed)))
+  let bounded g r =
+    List.map
+      (fun i -> interval_regex (i.lo, i.lo_closed, Some (i.hi, i.hi_closed)))
+      (intervals_of g r)
   in
+  let g = s.grid and o = twice s.threshold in
   let parts =
-    if s.tail = [] then bounded s.base
+    if Array.length s.tail = 0 then bounded g s.base
     else if is_full s.period s.tail then
-      let ivs = coalesce (s.base @ [ period_window s.threshold one ]) in
+      let ivs =
+        intervals_of g
+          (append s.base [| Z.succ o; Z.succ (Z.add o (twice g)) |])
+      in
       let n = List.length ivs in
       List.mapi
         (fun k i ->
@@ -959,38 +1314,31 @@ let to_regex s =
     else
       (* The periodic part [Q + pℕ], [Q] the first period above the
          threshold, shifted down by [p] while it stays within the base. *)
-      let base = Array.of_list s.base in
-      let contained i =
-        (* The interval of the base containing [i], if any, is the last one
-           whose lower end is not above that of [i]. *)
-        let rec search lo hi =
-          if hi - lo <= 1 then lo
-          else
-            let mid = (lo + hi) / 2 in
-            if compare_lo base.(mid) i <= 0 then search mid hi
-            else search lo mid
-        in
-        Array.length base > 0
-        && compare_lo base.(0) i <= 0
-        &&
-        let k = search 0 (Array.length base) in
-        compare_hi i base.(k) <= 0
+      let base = s.base and step = twice s.period in
+      let contained a e =
+        (* The run of the base containing [[a, e)], if any, is the last one
+           whose lower bound is not above [a]. *)
+        let k = search (count base) (fun k -> Z.gt base.(2 * k) a) in
+        k > 0 && Z.leq e base.((2 * k) - 1)
       in
       let rec lower q =
-        let q' = List.map (shift (Rational.neg s.period)) q in
-        match q' with
-        | i :: _ when Rational.sign i.lo >= 0 && List.for_all contained q' ->
-            lower q'
-        | _ -> q
+        let q' = translate (Z.neg step) q in
+        if
+          Z.sign q'.(0) >= 0
+          && fold_runs (fun inside a e -> inside && contained a e) true q'
+        then lower q'
+        else q
       in
-      let q = lower (List.map (shift s.threshold) s.tail) in
-      let rest = diff (of_intervals s.base) (plus_multiples q s.period) in
-      let multiples = GradeLiteral.Star (GradeLiteral.rational_tick s.period) in
-      bounded rest.base
+      let q = lower (translate o s.tail) in
+      let rest = diff (of_runs g base) (plus_multiples g q s.period) in
+      let multiples =
+        GradeLiteral.Star (GradeLiteral.rational_tick (period s))
+      in
+      bounded rest.grid rest.base
       @ [
           (match q with
-          | [ i ] when Rational.sign i.hi = 0 -> multiples
-          | _ -> Seq (Option.get (union_regex (bounded q)), multiples));
+          | [| _; e |] when Z.equal (half e) Z.zero -> multiples
+          | _ -> Seq (Option.get (union_regex (bounded g q)), multiples));
         ]
   in
   Option.value (union_regex parts) ~default:(GradeLiteral.Compl (Star Any))
