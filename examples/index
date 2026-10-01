@@ -59,7 +59,7 @@ group | Traces | Traces | Finite sets of traces of operations and delays, compar
 Traces | Upper bounds | traces-upper-bound | traces/upper_bounds.tpe | A door controller whose visits are graded by the exact traces they may exhibit, a delay paying for no operation.
 Traces | Upper bounds (rational) | traces-upper-bound-rational | traces/upper_bounds_rational.tpe | A heart-rate monitor timed in fractions of a second, whose cycles are graded by the exact traces they may exhibit.
 
-group | Traces of timed operations | Traces (timed ops) | Finite sets of traces, operations taking their declared running times.
+group | Traces of timed operations | Traces (timed ops) | Finite sets of traces whose operations take time.
 Traces of timed operations | Lower bounds | traces-timed-lower-bound | traces_timed_ops/lower_bounds.tpe | A 3D-printing pipeline whose operations must be covered by the traces a box demands, delays banking towards them.
 Traces of timed operations | Upper bounds | traces-timed-upper-bound | traces_timed_ops/upper_bounds.tpe | The same pipeline under the allowance order, where a duration pays for operations at their upper running-time bounds.
 Traces of timed operations | Intervals | traces-timed-interval | traces_timed_ops/intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
@@ -69,7 +69,7 @@ group | Regular expressions | Regex | Regular languages of traces of operations 
 Regular expressions | Upper bounds (symbolic) | regex-upper-bound-symbolic | regular/upper_bounds.tpe | A file-session and an authentication protocol, each graded by a regular language of operations and ticks.
 Regular expressions | Upper bounds (rational, symbolic) | regex-upper-bound-rational-symbolic | regular/upper_bounds_rational.tpe | A heart-rate monitor graded by regular languages of operations and rational delays, with intervals of delays and complements.
 
-group | Regular expressions of timed operations | Regex (timed ops) | Regular languages of traces, operations taking their declared running times.
+group | Regular expressions of timed operations | Regex (timed ops) | Regular languages of traces whose operations take time.
 Regular expressions of timed operations | Lower bounds (symbolic) | regex-timed-lower-bound-symbolic | regular_timed_ops/lower_bounds.tpe | A coating line graded by regular lower bounds whose ticks are banked by operations at their lower running-time bounds.
 Regular expressions of timed operations | Upper bounds (symbolic) | regex-timed-upper-bound-symbolic | regular_timed_ops/upper_bounds.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
 Regular expressions of timed operations | Intervals (symbolic) | regex-timed-interval-symbolic | regular_timed_ops/intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
