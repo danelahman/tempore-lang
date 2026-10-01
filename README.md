@@ -237,13 +237,17 @@ language of all traces. Operations declare no running-time bounds.
   holds if the product of `ρ` with the complement of `ρ′` accepts nothing, found
   by a breadth-first search.
 
-Literals are regular expressions, by increasing precedence: union `r | s`,
-intersection `r & s`, concatenation `r; s`, complement `~r` and Kleene star
-`r*`. An operation name is a letter, and parentheses or braces group. For
-example, `{Open; (Read | Write)*; Close}` is a file session and
-`{~{_*; Revoke; _*}}` the traces that never revoke. A grade is printed as it is
-written. When an ordering fails, a note names the shortest trace of the lesser
-grade not in the greater one:
+Under both:
+
+- literals are regular expressions, by increasing precedence: union `r | s`,
+  intersection `r & s`, concatenation `r; s`, complement `~r` and Kleene star
+  `r*`;
+- an operation name is a letter, and parentheses or braces group:
+  `{Open; (Read | Write)*; Close}` is a file session and `{~{_*; Revoke; _*}}`
+  the traces that never revoke;
+- a grade is printed as it is written;
+- when an ordering fails, a note names the shortest trace of the lesser grade
+  not in the greater one:
 
 ```
 Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated 
@@ -252,11 +256,14 @@ Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated
   Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
 ```
 
-Under `regex-upper-bound-symbolic`, an integer `n` denotes `n` ticks, an interval
-`[n, m]` any number of ticks from `n` to `m` and `[n, ∞)` at least `n`, an open
-endpoint abbreviating a closed one (`(1, 4)` is `2 | 3`), and `_` is any single
-letter, including operations the grade does not name. See
-[`examples/regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe).
+Under `regex-upper-bound-symbolic`:
+
+- an integer `n` denotes `n` ticks, an interval `[n, m]` any number of ticks
+  from `n` to `m` and `[n, ∞)` at least `n`;
+- an open endpoint abbreviates a closed one: `(1, 4)` is `2 | 3`;
+- `_` is any single letter, including operations the grade does not name.
+
+See [`examples/regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe).
 
 Under `regex-upper-bound-rational-symbolic`:
 
@@ -279,11 +286,17 @@ Under `regex-upper-bound-rational-symbolic`:
 See
 [`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
 
-Further implementations, kept for benchmarking, are accepted by `--grades` with
-the suffixes `-letter-automata` (minimal automata over single letters, inclusion
-by a breadth-first search of the product with the complement),
-`-symbolic-by-letters` and `-letter-derivatives` (derivatives by single letters)
-in place of `-symbolic` in `regex-upper-bound-symbolic`, and compared with
+Further implementations of `regex-upper-bound-symbolic`, kept for benchmarking,
+are accepted by `--grades` with one of these suffixes in place of `-symbolic`:
+
+- `-letter-automata`: minimal automata over single letters; inclusion by a
+  breadth-first search of the product with the complement;
+- `-symbolic-by-letters`: symbolic expressions as under `-symbolic`; inclusion
+  by derivatives by single letters;
+- `-letter-derivatives`: expressions over single letters; inclusion by
+  derivatives by single letters.
+
+They are compared by
 `dune exec --profile release bench/regular/bench_regular.exe`; see
 [`bench/regular/README.md`](bench/regular/README.md) for more information.
 
@@ -303,17 +316,22 @@ bounds, an operation taking `lo`).
   and an upper bound, compared componentwise, with the forms and abbreviations
   of `traces-timed-interval`; the top is `[{0}, ∞)`.
 
-Delays are whole ticks, as under `regex-upper-bound-symbolic`, and grades are
-represented in the same way. An ordering `ρ ≾ ρ′` holds if no trace of `ρ` lies
-outside the closure of `ρ′`, found by a depth-first search of the symbolic
-derivatives of `ρ` by minterms, reading the closure of `ρ′` alongside and a run
-of ticks in one step.
+Under these:
 
-The alphabet is the atomic operations declared anywhere in the program, so `_`
-is any tick or atomic operation, and a grade must denote at least one trace
-over it. With `Read` declared `within [1, 3]`, under
-`regex-timed-upper-bound-symbolic` `{Read}` is below `{3}`, as three ticks allow
-for `Read`, and `{Read | 3}` equals `{3}`. See
+- delays are whole ticks, and grades are represented as under
+  `regex-upper-bound-symbolic`;
+- an ordering `ρ ≾ ρ′` holds if no trace of `ρ` lies outside the closure of
+  `ρ′`, found by a depth-first search of the symbolic derivatives of `ρ` by
+  minterms, reading the closure of `ρ′` alongside and a run of ticks in one
+  step;
+- the alphabet is the atomic operations declared anywhere in the program, so
+  `_` is any tick or atomic operation, and a grade must denote at least one
+  trace over it;
+- with `Read` declared `within [1, 3]`, under `regex-timed-upper-bound-symbolic`
+  `{Read}` is below `{3}`, as three ticks allow for `Read`, and `{Read | 3}`
+  equals `{3}`.
+
+See
 [`examples/regular_timed_ops/lower_bounds.tpe`](examples/regular_timed_ops/lower_bounds.tpe),
 [`examples/regular_timed_ops/upper_bounds.tpe`](examples/regular_timed_ops/upper_bounds.tpe)
 and
@@ -322,31 +340,33 @@ and
 The rational variants `regex-timed-lower-bound-rational-symbolic`,
 `regex-timed-upper-bound-rational-symbolic` and
 `regex-timed-interval-rational-symbolic` have the same orders over the timed
-words of `regex-upper-bound-rational-symbolic`, with its literals and with
-fractional running-time bounds such as `within [1/2, 3/2]`. Durations are
-compared as rationals, not rounded to whole ticks: with `A` declared
-`within [1, 1]`, under `regex-timed-upper-bound-rational-symbolic` the grade
-`{(0, 1); A; (0, 1)}` is below `{3}` but below no `{q}` with `q < 3`, since the
-durations of its traces come arbitrarily close to `3` without reaching it.
+words of `regex-upper-bound-rational-symbolic`. Under these:
 
-Grades are the automata of `regex-upper-bound-rational-symbolic`. The closures
-are not regular, so an ordering `ρ ≾ ρ′` is decided by a breadth-first search
-of the product of `ρ` with a reader of the closure of `ρ′`, which keeps the
-longest (upper) or shortest (lower) durations of the traces read so far.
+- literals are those of `regex-upper-bound-rational-symbolic`, and running-time
+  bounds may be fractional, such as `within [1/2, 3/2]`;
+- durations are compared as rationals, not rounded to whole ticks: with `A`
+  declared `within [1, 1]`, under `regex-timed-upper-bound-rational-symbolic`
+  the grade `{(0, 1); A; (0, 1)}` is below `{3}` but below no `{q}` with
+  `q < 3`, since the durations of its traces come arbitrarily close to `3`
+  without reaching it;
+- grades are the automata of `regex-upper-bound-rational-symbolic`; the
+  closures are not regular, so an ordering `ρ ≾ ρ′` is decided by a
+  breadth-first search of the product of `ρ` with a reader of the closure of
+  `ρ′`, which keeps the longest (upper) or shortest (lower) durations of the
+  traces read so far;
+- a complement is taken over all timed words, and a grade still stands for its
+  closure: `{~1}` equals `⊤` under the upper order, since it contains the
+  delays longer than `1`, which allow for the delay `1` it excludes;
+- a set of delays in the lesser grade counts by its supremum (upper) or infimum
+  (lower), attained or not: `{[0, 1)}` is below `{1}` but not below `{1/2}`;
+- the implied running-time bounds of a compound operation are the least and
+  greatest durations of the traces of its grade: with `Sample` declared
+  `within [1/2, 3/2]` and `Send` `within [1/4, 1]`, `{Sample; [0, 1/2); Send}`
+  takes `[3/4, 3)`;
+- under `regex-timed-interval-rational-symbolic` an open numeric endpoint of an
+  interval is a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`.
 
-A complement is taken over all timed words, and a grade still stands for its
-closure: `{~1}` equals `⊤` under the upper order, since it contains the delays
-longer than `1`, which allow for the delay `1` it excludes. A set of delays in
-the lesser grade counts by its supremum (upper) or infimum (lower), attained or
-not: `{[0, 1)}` is below `{1}` but not below `{1/2}`.
-
-The implied running-time bounds of a compound operation are the least and
-greatest durations of the traces of its grade: with `Sample` declared
-`within [1/2, 3/2]` and `Send` `within [1/4, 1]`, `{Sample; [0, 1/2); Send}`
-takes `[3/4, 3)`.
-
-Under `regex-timed-interval-rational-symbolic` an open numeric endpoint of an
-interval is a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
+See
 [`examples/regular_timed_ops/upper_bounds_rational.tpe`](examples/regular_timed_ops/upper_bounds_rational.tpe)
 and
 [`examples/regular_timed_ops/intervals_rational.tpe`](examples/regular_timed_ops/intervals_rational.tpe).
