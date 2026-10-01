@@ -4,7 +4,7 @@
     {!RationalTimeGrades}, {!TraceInclusionGrades}, {!TimedTraceGrades},
     {!RegularTraceGrade}, {!RegularTraceGradeDerivative},
     {!RegularTraceGradePlain}, {!RegularTraceGradeRational},
-    {!RegularCostTraceGrades}, {!LevelGrades}, {!ResourceLevelGrades},
+    {!RegularTimedTraceGrades}, {!LevelGrades}, {!ResourceLevelGrades},
     {!WindowedScheduleGrades}, {!ModeSwitchCostGrades} and {!CountGrades}, built
     with the constructions of {!GradeConstructions}, and listed in
     {!GradeRegistry}; the regular trace grades are implementations of the same
@@ -12,7 +12,7 @@
 
     {2 Laws}
 
-    Under every cost model, an instance satisfies, [=] being {!S.equal}:
+    Under all running times, an instance satisfies, [=] being {!S.equal}:
     - [mul] is associative, with unit [one];
     - [leq] is a preorder, whose equivalence is [equal];
     - [mul] is monotone in both arguments;
@@ -26,18 +26,18 @@
       the time upper bounds are monotone in the delay, the lower bounds
       antitone, and the intervals neither.
 
-    {2 Cost model}
+    {2 Running times}
 
-    The orders of the trace grades of timed operations read the runtime bounds
-    [within [lo, hi]] that operations declare, each end closed or open, and
-    those of the regular trace grades of timed operations also the set of the
-    operations the program declares, over which their catch-all letter ranges:
-    all of them, before or after the grade, so that a grade means the same
-    throughout a program. The operations that depend on the order, [leq],
+    The orders of the trace grades of timed operations read the running-time
+    bounds [within [lo, hi]] that operations declare, each end closed or open,
+    and those of the regular trace grades of timed operations also the set of
+    the operations the program declares, over which their catch-all letter
+    ranges: all of them, before or after the grade, so that a grade means the
+    same throughout a program. The operations that depend on the order, [leq],
     [equal], [counterexample], [implied_bounds] and [inhabited], take both as an
-    argument of type {!bounds}; the other grades ignore it. Runtime bounds are
-    kept as the non-negative rationals the source writes ({!runtime}), and each
-    grade reads them as its delays ({!read_bound}).
+    argument of type {!bounds}; the other grades ignore it. Running-time bounds
+    are kept as the non-negative rationals the source writes ({!running_time}),
+    and each grade reads them as its delays ({!read_bound}).
 
     {2 Literals}
 
@@ -47,8 +47,8 @@
 
 include GradeLiteral
 
-type runtime = Rational.t bound * Rational.t bound
-(** The runtime bounds [(lo, hi)] of an operation: a non-empty interval of
+type running_time = Rational.t bound * Rational.t bound
+(** The running-time bounds [(lo, hi)] of an operation: a non-empty interval of
     non-negative rationals with finite ends, each closed or open, independent of
     the grade. A closed end is attained by the durations of the operation, an
     open one is their strict infimum or supremum. *)
@@ -66,8 +66,8 @@ let map_end f = function
   | Open q -> Open (f q)
   | Unbounded -> Unbounded
 
-(** [hull (lo, hi)] is the pair of the values of the ends of the runtime bounds
-    [(lo, hi)], the ends of their closure [[lo, hi]]. *)
+(** [hull (lo, hi)] is the pair of the values of the ends of the running-time
+    bounds [(lo, hi)], the ends of their closure [[lo, hi]]. *)
 let hull (lo, hi) = (end_value lo, end_value hi)
 
 (** [add_ends b b'] is the sum of the finite ends [b] and [b'], attained iff
@@ -90,11 +90,11 @@ let compare_ends ~lower b b' =
   | 0 -> Int.compare (rank b) (rank b')
   | c -> c
 
-(** [close_runtime adjacent (lo, hi)] is the runtime bounds [(lo, hi)] with each
-    open end [q] replaced by the closed end [adjacent ~lower q], [lower] being
-    whether it is the lower end, where there is one: over whole time steps,
-    [(1, 4)] is [[2, 3]]. *)
-let close_runtime adjacent (lo, hi) =
+(** [close_running_time adjacent (lo, hi)] is the running-time bounds [(lo, hi)]
+    with each open end [q] replaced by the closed end [adjacent ~lower q],
+    [lower] being whether it is the lower end, where there is one: over whole
+    time steps, [(1, 4)] is [[2, 3]]. *)
+let close_running_time adjacent (lo, hi) =
   let close ~lower = function
     | Open q -> (
         match adjacent ~lower q with Some q' -> Closed q' | None -> Open q)
@@ -103,14 +103,14 @@ let close_runtime adjacent (lo, hi) =
   (close ~lower:true lo, close ~lower:false hi)
 
 type bounds = {
-  cost : string -> runtime;
-      (** The runtime bounds declared by each operation, or implied by its
+  running_time : string -> running_time;
+      (** The running-time bounds declared by each operation, or implied by its
           grade, by name. The delays of the grade read each of them. *)
   operations : string list;
-      (** The names of the operations the program declares with runtime bounds.
-      *)
+      (** The names of the operations the program declares with running-time
+          bounds. *)
 }
-(** A cost model. *)
+(** The running times of the operations of a program. *)
 
 (** Whether a list of witnesses decides the conditions it is given for
     ({!S.witnesses}). *)
@@ -134,7 +134,7 @@ module type S = sig
   (** The monoid product [_·_]. *)
 
   val leq : bounds -> t -> t -> bool
-  (** [leq bounds c d] decides the partial order [c ≾ d] under the cost model
+  (** [leq bounds c d] decides the partial order [c ≾ d] under the running times
       [bounds]. *)
 
   val leq_symbol : string
@@ -153,24 +153,24 @@ module type S = sig
   (** [of_delay d] is the grade of the computation [delay d]. *)
 
   val equal : bounds -> t -> t -> bool
-  (** [equal bounds c d] decides [c = d] under the cost model [bounds]. *)
+  (** [equal bounds c d] decides [c = d] under the running times [bounds]. *)
 
   val is_top : bounds -> t -> bool
   (** [is_top bounds c] decides [⊤ ≾ c], equivalently [equal bounds c top],
-      under the cost model [bounds]: from the representation of [c] where that
-      decides it, and otherwise by the order once the representation is found
-      not to be that of the top. *)
+      under the running times [bounds]: from the representation of [c] where
+      that decides it, and otherwise by the order once the representation is
+      found not to be that of the top. *)
 
   val compare : t -> t -> int
   (** A total order on the representations of the grades: [compare c d = 0]
-      implies [equal bounds c d] under every cost model [bounds], and the
+      implies [equal bounds c d] under all running times [bounds], and the
       converse holds where the representation is canonical. *)
 
   val hash : t -> int
   (** A hash of the representation of a grade, compatible with {!compare}. *)
 
   val counterexample : bounds -> t -> t -> t option
-  (** [counterexample bounds c d] is [None] if [c ≾ d] under the cost model
+  (** [counterexample bounds c d] is [None] if [c ≾ d] under the running times
       [bounds], and otherwise either a grade [e] such that [e ≾ c] but not
       [e ≾ d], a witness of the failure, or [None] for grades that offer no
       witness. *)
@@ -182,25 +182,25 @@ module type S = sig
   (** Whether {!mul} is commutative. *)
 
   val needs_op_bounds : bool
-  (** Whether operation signatures must carry their runtime bounds
+  (** Whether operation signatures must carry their running-time bounds
       [within [lo, hi]]. *)
 
-  val implied_bounds : bounds -> t -> runtime option
-  (** [implied_bounds bounds rho] is the pair of runtime bounds the grade [rho]
-      itself implies: the infimum of the durations of its runs, each event
-      counted at the lower end of its [bounds], and their supremum, each event
-      counted at the upper end, each attained or not. The fastest run is taken
-      over the lower-bound component of the grade and the slowest over its
-      upper-bound component, which coincide for the one-sided trace grades with
-      costs. The time grades imply nothing, since there the grade of an
-      operation already is its runtime bound, and return [None]; so does an
-      unbounded upper-bound component. *)
+  val implied_bounds : bounds -> t -> running_time option
+  (** [implied_bounds bounds rho] is the pair of running-time bounds the grade
+      [rho] itself implies: the infimum of the durations of its traces, each
+      event counted at the lower end of its [bounds], and their supremum, each
+      event counted at the upper end, each attained or not. The fastest trace is
+      taken over the lower-bound component of the grade and the slowest over its
+      upper-bound component, which coincide for the one-sided trace grades of
+      timed operations. The time grades imply nothing, since there the grade of
+      an operation already is its running-time bound, and return [None]; so does
+      an unbounded upper-bound component. *)
 
   val inhabited : bounds -> t -> bool
-  (** [inhabited bounds rho] is whether the grade [rho] denotes at least one run
-      of the operations of the cost model [bounds]; the typechecker rejects the
-      grades of a program that do not. It holds of every grade whose meaning
-      does not depend on the declared operations. *)
+  (** [inhabited bounds rho] is whether the grade [rho] denotes at least one
+      trace of the operations of [bounds]; the typechecker rejects the grades of
+      a program that do not. It holds of every grade whose meaning does not
+      depend on the declared operations. *)
 
   val events : t -> string list
   (** The operation names mentioned by a grade; empty for the time grades. *)
@@ -212,8 +212,8 @@ module type S = sig
 
   val of_bounds : Delay.t bound * Delay.t bound -> t
   (** [of_bounds (lo, hi)] is the "time shadow" of an operation declaring the
-      runtime bounds [(lo, hi)], read as delays: the grade that records nothing
-      but the time such a call may take. It is the grade a default
+      running-time bounds [(lo, hi)], read as delays: the grade that records
+      nothing but the time such a call may take. It is the grade a default
       implementation of the operation is checked against, since the operation's
       own grade can only be realised by performing the operation itself. Each
       grade reads the end of the bounds its order uses, the two-sided ones both;
@@ -221,7 +221,7 @@ module type S = sig
 
   val is_atomic : string -> t -> bool
   (** [is_atomic name rho] is whether [rho] is the grade of an atomic operation
-      named [name], i.e. the single run consisting of [name] alone. The time
+      named [name], i.e. the single trace consisting of [name] alone. The time
       grades name no operations and are all atomic. *)
 
   val show : t -> string
@@ -239,11 +239,11 @@ module type S = sig
   *)
 end
 
-(** [read_bound read q] is the delay [read] reads the runtime bound [q] as.
+(** [read_bound read q] is the delay [read] reads the running-time bound [q] as.
 
     @raise Invalid_argument
-      if [read] reads none: the runtime bounds of a program are checked to be
-      delays of its grades where they are declared. *)
+      if [read] reads none: the running-time bounds of a program are checked to
+      be delays of its grades where they are declared. *)
 let read_bound read q =
   match read (rational_lit q) with
   | Some d -> d

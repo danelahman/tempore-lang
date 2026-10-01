@@ -10,7 +10,7 @@
 module Make (C : Inference.Constraint.S) : sig
   type source = {
     context : Inference.Solver.Make(C).context;
-        (** the cost model and type definitions *)
+        (** the running times and type definitions *)
     constr : C.t option;
         (** the constraint of the command, whose unknowns the failure mentions,
             when known *)

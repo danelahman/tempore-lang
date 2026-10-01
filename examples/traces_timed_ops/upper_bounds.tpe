@@ -358,25 +358,25 @@ let send_by_one () =
    the top level and runs its default, so the run completes with the receipt. *)
 run send_telemetry ()
 
-(* Correctly rejected by the typechecker: the case for 'Pause' resumes 'k' and
+(* Correctly rejected by the typechecker: the case for 'Wait' resumes 'k' and
    then waits, so its grade must match {1} · ε for every effect ε of 'k',
    i.e. ε · {1} <= {1} · ε. This fails for ε = {Blink}, a grade outside the
    finite sample of grades the typechecker tries for traces; the
    ordering is neither derived nor refuted, and a run requires it established:
 
      Typing error: The condition `∀ε₀. ε₀ · {1} <= {1} · ε₀` of the case for
-       `Pause` cannot be established
+       `Wait` cannot be established
        Note: a run requires the effect inequality to hold for every grade the
          continuation `k` may have, and it is neither derived nor refuted
 *)
 (*
 operation Blink : unit ~> unit # {Blink} within [1, 1]
-operation Pause : unit ~> unit # 1
+operation Wait : unit ~> unit # 1
 
 let wait_after =
   handler
   | x -> x
-  | Pause () k -> let r = continue k with () in delay 1; r
+  | Wait () k -> let r = continue k with () in delay 1; r
 
-run handle (perform Pause (); perform Blink ()) with wait_after
+run handle (perform Wait (); perform Blink ()) with wait_after
 *)

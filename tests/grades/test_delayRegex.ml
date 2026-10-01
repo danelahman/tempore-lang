@@ -41,7 +41,7 @@ let qi = Rational.of_int
 
 let bounds =
   {
-    Grade.cost = (fun _ -> (Grade.Closed (qi 1), Grade.Closed (qi 2)));
+    Grade.running_time = (fun _ -> (Grade.Closed (qi 1), Grade.Closed (qi 2)));
     operations = [];
   }
 

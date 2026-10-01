@@ -77,7 +77,7 @@
 
 module Make (C : Constraint.S) : sig
   type context = Residual.Make(C).context
-  (** The cost model and the type definitions. *)
+  (** The running times and the type definitions. *)
 
   type hyps = Residual.Make(C).hyps
   (** Hypotheses. *)

@@ -5,7 +5,7 @@ module type LANGUAGE = sig
   module State : Map.OrderedType
 
   val concrete : string list -> t -> Dfa.t
-  val runs : string list -> t -> State.t Dfa.automaton
+  val traces : string list -> t -> State.t Dfa.automaton
   val representatives : t list -> (string * int) list -> (string * int) list
 end
 
@@ -15,13 +15,13 @@ module Make
       val suffix : string
     end) =
 struct
-  module Runs = Dfa.Implicit (L.State)
-  module Allowance = CostClosure.Allowance (L.State)
-  module Coverage = CostClosure.Coverage (L.State)
-  module Weights = CostClosure.Weights (L.State)
+  module Traces = Dfa.Implicit (L.State)
+  module Allowance = TimedClosure.Allowance (L.State)
+  module Coverage = TimedClosure.Coverage (L.State)
+  module Weights = TimedClosure.Weights (L.State)
 
-  (** The products of the automata of runs with those of closures, whose states
-      are sets of states of runs. *)
+  (** The products of the automata of traces with those of closures, whose
+      states are sets of states of the automata of traces. *)
   module Closed =
     Dfa.Product
       (L.State)
@@ -31,38 +31,45 @@ struct
         let compare = List.compare L.State.compare
       end)
 
-  (** [letter_cost costs] is the cost of each letter of an operation, the [a]-th
-      of [costs] for the letter [a]. *)
-  let letter_cost costs =
-    let costs = Array.of_list costs in
-    fun a -> costs.(a - 1)
+  (** [letter_running_time running_times] is the running time of each letter of
+      an operation, the [a]-th of [running_times] for the letter [a]. *)
+  let letter_running_time running_times =
+    let running_times = Array.of_list running_times in
+    fun a -> running_times.(a - 1)
 
-  (** The arguments of a search: the least names of the classes, their costs,
-      and the grades compared, by their representations. *)
+  (** The arguments of a search: the least names of the classes, their running
+      times, and the grades compared, by their representations. *)
   module Search = Hashtbl.Make (struct
     type t = string list * int list * L.t * L.t
 
-    let equal (names, costs, rho, sigma) (names', costs', rho', sigma') =
+    let equal (names, running_times, rho, sigma)
+        (names', running_times', rho', sigma') =
       List.equal String.equal names names'
-      && List.equal Int.equal costs costs'
+      && List.equal Int.equal running_times running_times'
       && L.compare rho rho' = 0
       && L.compare sigma sigma' = 0
 
-    let hash (names, costs, rho, sigma) =
+    let hash (names, running_times, rho, sigma) =
       combine
-        (combine (hash_list String.hash names) (hash_list Int.hash costs))
+        (combine
+           (hash_list String.hash names)
+           (hash_list Int.hash running_times))
         (combine (L.hash rho) (L.hash sigma))
   end)
 
   (** [tabulated search] is [search], its results tabulated by its arguments. *)
   let tabulated search =
     let table = Search.create 64 in
-    fun names costs rho rho' ->
-      let key = (names, costs, rho, rho') in
+    fun names running_times rho rho' ->
+      let key = (names, running_times, rho, rho') in
       match Search.find_opt table key with
       | Some word -> word
       | None ->
-          let word = search ~cost:(letter_cost costs) names rho rho' in
+          let word =
+            search
+              ~running_time:(letter_running_time running_times)
+              names rho rho'
+          in
           Search.add table key word;
           word
 
@@ -76,36 +83,37 @@ struct
     let hash (names, rho) = combine (hash_list String.hash names) (L.hash rho)
   end)
 
-  (** [runs names rho] is [L.runs names rho], tabulated by its arguments. *)
-  let runs =
+  (** [traces names rho] is [L.traces names rho], tabulated by its arguments. *)
+  let traces =
     let table = Tables.create 16 in
     fun names rho ->
       match Tables.find_opt table (names, rho) with
       | Some a -> a
       | None ->
-          let a = L.runs names rho in
+          let a = L.traces names rho in
           Tables.add table (names, rho) a;
           a
 
   type order = {
     search : string list -> int list -> L.t -> L.t -> int list option;
-    endpoint : runtime -> Rational.t bound;
+    endpoint : running_time -> Rational.t bound;
     top : L.t;
   }
-  (** An order on runs: the search for a shortest run of the lesser grade
+  (** An order on traces: the search for a shortest trace of the lesser grade
       outside the closure of the greater one, over the classes of given least
-      names at given costs, the end of the runtime bounds it reads as the cost
-      of an operation, and the representation of its greatest grade. *)
+      names at given running times, the end of the running-time bounds it reads
+      as the running time of an operation, and the representation of its
+      greatest grade. *)
 
   let letters names = List.length names + 1
 
   let allowance =
     {
       search =
-        tabulated (fun ~cost names rho rho' ->
+        tabulated (fun ~running_time names rho rho' ->
             let letters = letters names in
-            Closed.counterexample letters (runs names rho)
-              (Allowance.closure ~cost ~letters (runs names rho')));
+            Closed.counterexample letters (traces names rho)
+              (Allowance.closure ~running_time ~letters (traces names rho')));
       endpoint = snd;
       top = L.top;
     }
@@ -113,9 +121,9 @@ struct
   let coverage =
     {
       search =
-        tabulated (fun ~cost names rho rho' ->
-            Closed.counterexample (letters names) (runs names rho)
-              (Coverage.closure ~cost (runs names rho')));
+        tabulated (fun ~running_time names rho rho' ->
+            Closed.counterexample (letters names) (traces names rho)
+              (Coverage.closure ~running_time (traces names rho')));
       endpoint = fst;
       top = L.one;
     }
@@ -127,42 +135,44 @@ struct
     List.sort_uniq String.compare
       (bounds.operations @ List.concat_map L.events rhos)
 
-  (** [cost endpoint bounds name] is the cost of the operation [name], the value
-      of the [endpoint] of its runtime bounds, in time steps; over whole time
-      steps, the ends are closed where the bounds are declared
-      ({!Grade.close_runtime}). *)
-  let cost endpoint bounds name =
+  (** [running_time endpoint bounds name] is the running time of the operation
+      [name], the value of the [endpoint] of its running-time bounds, in time
+      steps; over whole time steps, the ends are closed where the bounds are
+      declared ({!Grade.close_running_time}). *)
+  let running_time endpoint bounds name =
     Delay.Nat.to_int
-      (read_bound L.Delay.read (end_value (endpoint (bounds.cost name))))
+      (read_bound L.Delay.read
+         (end_value (endpoint (bounds.running_time name))))
 
-  (** [classes cost bounds rhos] is the least names of the classes of the names
-      of a comparison of the grades [rhos] at the costs [cost], in increasing
-      order, and their costs. *)
-  let classes cost bounds rhos =
+  (** [classes running_time bounds rhos] is the least names of the classes of
+      the names of a comparison of the grades [rhos] at the running times
+      [running_time], in increasing order, and their running times. *)
+  let classes running_time bounds rhos =
     let names = alphabet bounds rhos in
     List.split
-      (L.representatives rhos (List.map (fun name -> (name, cost name)) names))
+      (L.representatives rhos
+         (List.map (fun name -> (name, running_time name)) names))
 
-  (** [find order bounds rho rho'] is a shortest run of [rho] outside the
+  (** [find order bounds rho rho'] is a shortest trace of [rho] outside the
       closure of [rho'] under [order], with the least names of the classes its
       letters index; there is none if [rho] and [rho'] are the same language or
       [rho'] is the top. *)
   let find order bounds rho rho' =
     if L.equal bounds rho rho' || L.compare rho' order.top = 0 then None
     else
-      let names, costs =
-        classes (cost order.endpoint bounds) bounds [ rho; rho' ]
+      let names, running_times =
+        classes (running_time order.endpoint bounds) bounds [ rho; rho' ]
       in
-      order.search names costs rho rho'
+      order.search names running_times rho rho'
       |> Option.map (fun word -> (names, word))
 
-  (** [inhabited bounds rho] is whether [rho] has a run over the declared
-      operations and the names it mentions, the costs aside. *)
+  (** [inhabited bounds rho] is whether [rho] has a trace over the declared
+      operations and the names it mentions, the running times aside. *)
   let inhabited bounds rho =
     let names, _ = classes (Fun.const 0) bounds [ rho ] in
-    not (Runs.is_empty (letters names) (runs names rho))
+    not (Traces.is_empty (letters names) (traces names rho))
 
-  (** [grade_of_word (names, word)] is the grade of the single run [word] over
+  (** [grade_of_word (names, word)] is the grade of the single trace [word] over
       [names]. *)
   let grade_of_word (names, word) =
     let letter a = if a = 0 then Tick 1 else Letter (List.nth names (a - 1)) in
@@ -179,11 +189,16 @@ struct
   let counterexample order bounds rho rho' =
     Option.map grade_of_word (find order bounds rho rho')
 
-  (** [weight extreme endpoint bounds rho] is the [extreme] weight of a run of
-      [rho], operations counting at the [endpoint] of their runtime bounds. *)
+  (** [weight extreme endpoint bounds rho] is the [extreme] weight of a trace of
+      [rho], operations counting at the [endpoint] of their running-time bounds.
+  *)
   let weight extreme endpoint bounds rho =
-    let names, costs = classes (cost endpoint bounds) bounds [ rho ] in
-    extreme ~cost:(letter_cost costs) ~letters:(letters names) (runs names rho)
+    let names, running_times =
+      classes (running_time endpoint bounds) bounds [ rho ]
+    in
+    extreme
+      ~running_time:(letter_running_time running_times)
+      ~letters:(letters names) (traces names rho)
 
   let implied_bounds bounds lower upper =
     match
@@ -225,7 +240,7 @@ struct
     let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
     let counterexample = counterexample coverage
 
-    (** The unit [{0}], covered by every run. *)
+    (** The unit [{0}], covered by every trace. *)
     let top = coverage.top
 
     let is_top = is_top coverage
@@ -320,17 +335,17 @@ end
 (** [every_name rhos letters] is [letters], every name a class of its own. *)
 let every_name _rhos letters = letters
 
-(** The regular trace grade by automata, its runs over given names explored in
+(** The regular trace grade by automata, its traces over given names explored in
     its table. *)
 module Automata = struct
   include RegularTraceGrade
   module State = Int
 
-  let runs names rho = Dfa.automaton (concrete names rho)
+  let traces names rho = Dfa.automaton (concrete names rho)
   let representatives = every_name
 end
 
-(** The regular trace grade by symbolic derivatives, its runs over given names
+(** The regular trace grade by symbolic derivatives, its traces over given names
     explored by their derivatives. *)
 module Derivatives = struct
   include RegularTraceGradeDerivative
@@ -379,12 +394,13 @@ module Derivatives = struct
           Roots.add table key blocks;
           blocks
 
-  (** [mem i cost classes] is whether the class of the minterm [i] and the cost
-      [cost] is among [classes]. *)
-  let rec mem i cost = function
+  (** [mem i running_time classes] is whether the class of the minterm [i] and
+      the running time [running_time] is among [classes]. *)
+  let rec mem i running_time = function
     | [] -> false
-    | (i', cost') :: classes ->
-        (Int.equal i i' && Int.equal cost cost') || mem i cost classes
+    | (i', running_time') :: classes ->
+        (Int.equal i i' && Int.equal running_time running_time')
+        || mem i running_time classes
 
   (* The names are listed in increasing order, as those of [blocks], so that
      merging the two finds the minterm of each, and the first name of a class
@@ -400,9 +416,9 @@ module Derivatives = struct
           | c when c > 0 -> keep listed' seen letters
           | _ -> classify cofinite letter listed seen letters')
       | letter :: letters', [] -> classify cofinite letter [] seen letters'
-    and classify i ((_, cost) as letter) listed seen letters =
-      if mem i cost seen then keep listed seen letters
-      else letter :: keep listed ((i, cost) :: seen) letters
+    and classify i ((_, running_time) as letter) listed seen letters =
+      if mem i running_time seen then keep listed seen letters
+      else letter :: keep listed ((i, running_time) :: seen) letters
     in
     keep listed [] letters
 end
@@ -415,7 +431,7 @@ module ConcreteDerivatives = struct
   let representatives = every_name
 end
 
-(** The regular trace grade by plain derivatives, its runs over given names
+(** The regular trace grade by plain derivatives, its traces over given names
     explored by their derivatives. *)
 module PlainDerivatives = struct
   include RegularTraceGradePlain

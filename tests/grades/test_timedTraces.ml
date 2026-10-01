@@ -3,24 +3,25 @@
    coverage against [TimedTrace.allowance] and [TimedTrace.coverage]; then, for
    each of the four implementations, by automata, by symbolic derivatives, by
    derivatives by letters and by derivatives over single letters, the membership
-   of short runs in the closures against a search of the runs of the greater
+   of short traces in the closures against a search of the traces of the greater
    language, the laws of the orders on samples, the embedding of the finite
-   trace grades, and examples of the closed world, of zero costs, of the laws
-   that hold up to equivalence, of the literals and of the grades without runs;
-   the agreement of the implementations on random grades and cost models, in
-   their verdicts and their printing; long runs of ticks, taken at once by the
-   implementations by derivatives; and the agreement of the implementations over
-   cost models of many operations sharing costs, in their counterexamples too. *)
+   trace grades, and examples of the closed world, of zero running times, of the
+   laws that hold up to equivalence, of the literals and of the grades without
+   traces; the agreement of the implementations on random grades and running
+   times, in their verdicts and their printing; long runs of ticks, taken at
+   once by the implementations by derivatives; and the agreement of the
+   implementations over running times of many operations sharing running times,
+   in their counterexamples too. *)
 
 module Grade = Grades.Grade
 module Dfa = Grades.Dfa
-module CostClosure = Grades.CostClosure
+module TimedClosure = Grades.TimedClosure
 module TimedTrace = Grades.TimedTrace.Make (Grades.Delay.Nat)
 module TimedTraceGrades = Grades.TimedTraceGrades
-module Cost = Grades.RegularCostTraceGrades
+module Timed = Grades.RegularTimedTraceGrades
 open LawChecks
 
-(* {1 Runs} *)
+(* {1 Traces} *)
 
 type symbol = T | Op of string
 
@@ -55,8 +56,8 @@ let splits w =
     (fun i ->
       (List.filteri (fun j _ -> j < i) w, List.filteri (fun j _ -> j >= i) w))
 
-let weight cost =
-  List.fold_left (fun n -> function T -> n + 1 | Op o -> n + cost o) 0
+let weight running_time =
+  List.fold_left (fun n -> function T -> n + 1 | Op o -> n + running_time o) 0
 
 let ticks w = List.length (List.filter (( = ) T) w)
 let only_ticks = List.for_all (( = ) T)
@@ -77,23 +78,27 @@ let matched segment ok s t =
       | _ -> false)
     (splits s)
 
-(* [segments_allow cost s t] is the segment characterisation of [s ≼ᵃ t]: [s]
+(* [segments_allow running_time s t] is the segment characterisation of [s ≼ᵃ
+t]: [s]
    and [t] factor with matched operations, the weight of each segment of [s]
    at most the number of ticks of that of [t]. *)
-let rec segments_allow cost s t =
-  let segment s0 t0 = weight cost s0 <= ticks t0 in
-  segment s t || matched segment (segments_allow cost) s t
+let rec segments_allow running_time s t =
+  let segment s0 t0 = weight running_time s0 <= ticks t0 in
+  segment s t || matched segment (segments_allow running_time) s t
 
-(* [segments_cover cost s t] is the segment characterisation of [s ≼ᶜ t]: the
-   guarantee [s] and the run [t] factor with matched operations, each segment
+(* [segments_cover running_time s t] is the segment characterisation of [s ≼ᶜ
+t]: the
+   guarantee [s] and the trace [t] factor with matched operations, each segment
    of [s] a word of ticks no longer than the weight of that of [t]. *)
-let rec segments_cover cost s t =
-  let segment s0 t0 = only_ticks s0 && List.length s0 <= weight cost t0 in
-  segment s t || matched segment (segments_cover cost) s t
+let rec segments_cover running_time s t =
+  let segment s0 t0 =
+    only_ticks s0 && List.length s0 <= weight running_time t0
+  in
+  segment s t || matched segment (segments_cover running_time) s t
 
-(* {1 Cost models} *)
+(* {1 Running times} *)
 
-(* Cost models over [names]: random lower ends in [0 … 2] and upper ends up to
+(* Running times of [names]: random lower ends in [0 … 2] and upper ends up to
    two more, then all ones and all zeros. *)
 let tables =
   let state = Random.State.make [| 7 |] in
@@ -110,14 +115,15 @@ let tables =
       List.map (fun o -> (o, (0, 0))) names;
     ]
 
-(* [runtime (lo, hi)] is the runtime bounds of [lo] to [hi] time steps. *)
-let runtime (lo, hi) =
+(* [running_time (lo, hi)] is the running-time bounds of [lo] to [hi] time
+steps. *)
+let running_time (lo, hi) =
   ( Grade.Closed (Grades.Rational.of_int lo),
     Grade.Closed (Grades.Rational.of_int hi) )
 
 let bounds_of table =
   {
-    Grade.cost = (fun o -> runtime (List.assoc o table));
+    Grade.running_time = (fun o -> running_time (List.assoc o table));
     operations = List.map fst table;
   }
 
@@ -175,7 +181,7 @@ module Subsets = Dfa.Implicit (struct
   let compare = compare
 end)
 
-let letter_cost table endpoint a =
+let letter_running_time table endpoint a =
   endpoint (List.assoc (List.nth names (a - 1)) table)
 
 (* Random regular expressions of depth [depth] over [A], [B] and delays of up
@@ -230,8 +236,8 @@ module Reader (G : Grade.S) = struct
     | _ -> invalid_arg ("not a box of a literal: " ^ text)
 end
 
-(* [A] costs 1 to 3, [B] exactly 2 and [C] up to 5. *)
-let costs = bounds_of [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)) ]
+(* [A] takes 1 to 3, [B] exactly 2 and [C] up to 5. *)
+let running_times = bounds_of [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)) ]
 let holds name b = check name b ""
 let fails name b = check name (not b) ""
 let show_option show = function Some x -> show x | None -> "none"
@@ -240,7 +246,7 @@ let show_bounds =
   show_option (fun (lo, hi) -> Grade.show_interval Grades.Rational.show lo hi)
 
 (* [agree tables (module F) (module G) lits] checks that the grades [F] and [G]
-   order the literals [lits] alike and imply the same runtime bounds, under
+   order the literals [lits] alike and imply the same running-time bounds, under
    each of [tables]. *)
 let agree tables (module F : Grade.S) (module G : Grade.S) lits =
   List.concat_map
@@ -292,7 +298,7 @@ let embeds (module Upper : Grade.S) (module Lower : Grade.S)
 module type IMPLEMENTATION = sig
   val name : string
 
-  module L : Cost.LANGUAGE
+  module L : Timed.LANGUAGE
   module Upper : Grade.S with type t = L.t and type Delay.t = int
   module Lower : Grade.S with type t = L.t and type Delay.t = int
   module Interval : Grade.S with type t = L.t * L.t and type Delay.t = int
@@ -301,37 +307,37 @@ end
 module Automata = struct
   let name = "automata"
 
-  module L = Cost.Automata
-  module Upper = Cost.Upper
-  module Lower = Cost.Lower
-  module Interval = Cost.Interval
+  module L = Timed.Automata
+  module Upper = Timed.Upper
+  module Lower = Timed.Lower
+  module Interval = Timed.Interval
 end
 
 module Derivatives = struct
   let name = "derivatives"
 
-  module L = Cost.Derivatives
-  include Cost.Symbolic
+  module L = Timed.Derivatives
+  include Timed.Symbolic
 end
 
 module ByLetters = struct
   let name = "derivatives by letters"
 
-  module L = Cost.ConcreteDerivatives
-  include Cost.Concrete
+  module L = Timed.ConcreteDerivatives
+  include Timed.Concrete
 end
 
 module Plain = struct
   let name = "plain derivatives"
 
-  module L = Cost.PlainDerivatives
-  include Cost.Plain
+  module L = Timed.PlainDerivatives
+  include Timed.Plain
 end
 
 (* The checks of the implementation [I]. *)
 module Suite (I : IMPLEMENTATION) = struct
   include I
-  module Coverage = CostClosure.Coverage (L.State)
+  module Coverage = TimedClosure.Coverage (L.State)
 
   module Covering = Dfa.Implicit (struct
     type t = L.State.t list
@@ -346,17 +352,21 @@ module Suite (I : IMPLEMENTATION) = struct
 
   (* {2 (b) Closure membership} *)
 
-  (* [membership name table short (rho, members)] checks that a run of [short]
+  (* [membership name table short (rho, members)] checks that a trace of [short]
      is in a closure of [rho] under [table] iff it is below one of the
      [members] of [rho] in the order of [TimedTrace], that the closures of the
      table of [rho] are closure operators, and that the upward closure of the
-     runs of [rho] is that of its table. *)
+     traces of [rho] is that of its table. *)
   let membership name table short (rho, members) =
     let name = I.name ^ ": " ^ name in
     let dfa = L.concrete names rho in
-    let down = CostClosure.allowance ~cost:(letter_cost table snd) dfa in
+    let down =
+      TimedClosure.allowance ~running_time:(letter_running_time table snd) dfa
+    in
     let up =
-      Coverage.closure ~cost:(letter_cost table fst) (L.runs names rho)
+      Coverage.closure
+        ~running_time:(letter_running_time table fst)
+        (L.traces names rho)
     in
     let lo = lo_of table and hi = hi_of table in
     let show w =
@@ -383,22 +393,28 @@ module Suite (I : IMPLEMENTATION) = struct
         short;
       check
         (name ^ ": allowance closure extensive and idempotent")
-        (operator (CostClosure.allowance ~cost:(letter_cost table snd)))
+        (operator
+           (TimedClosure.allowance
+              ~running_time:(letter_running_time table snd)))
         show_rho;
       check
         (name ^ ": coverage closure extensive and idempotent")
-        (operator (CostClosure.coverage ~cost:(letter_cost table fst)))
+        (operator
+           (TimedClosure.coverage ~running_time:(letter_running_time table fst)))
         show_rho;
       check
-        (name ^ ": coverage closure of the runs")
+        (name ^ ": coverage closure of the traces")
         (Dfa.equal (Covering.canonical n up)
-           (closed (CostClosure.coverage ~cost:(letter_cost table fst) dfa)))
+           (closed
+              (TimedClosure.coverage
+                 ~running_time:(letter_running_time table fst)
+                 dfa)))
         show_rho;
     ]
 
   (* Finite languages, whose members are all known, and regular languages,
-     whose members are searched among the runs of length at most 6: with
-     running times at most 2, these include a member above each run of length
+     whose members are searched among the traces of length at most 6: with
+     running times at most 2, these include a member above each trace of length
      at most 2 in the closure, for the samples. *)
   let closures =
     let state = Random.State.make [| 3 |] in
@@ -484,8 +500,8 @@ module Suite (I : IMPLEMENTATION) = struct
   module In = Reader (Interval)
 
   let upper_examples =
-    let leq a b = Upper.leq costs (U.lit a) (U.lit b) in
-    let equal a b = Upper.equal costs (U.lit a) (U.lit b) in
+    let leq a b = Upper.leq running_times (U.lit a) (U.lit b) in
+    let equal a b = Upper.equal running_times (U.lit a) (U.lit b) in
     let name = ( ^ ) (Upper.name ^ ": ") in
     [
       holds (name "a delay pays for an operation at hi") (leq "{A}" "{3}");
@@ -500,12 +516,17 @@ module Suite (I : IMPLEMENTATION) = struct
       fails (name "a match resets the budget") (leq "{A; B}" "{B; 3}");
       holds
         (name "the closure of a product is larger")
-        (Upper.leq costs (U.lit "{A}") (Upper.mul (U.lit "{2}") (U.lit "{2}")));
+        (Upper.leq running_times (U.lit "{A}")
+           (Upper.mul (U.lit "{2}") (U.lit "{2}")));
       holds
         (name "the catch-all letter stands for C")
         (leq "{C}" "{_ & ~1 & ~A & ~B}");
-      holds (name "any letter within the dearest cost") (leq "{_}" "{5}");
-      fails (name "any letter beyond the dearest cost") (leq "{_}" "{4}");
+      holds
+        (name "any letter within the longest running time")
+        (leq "{_}" "{5}");
+      fails
+        (name "any letter beyond the longest running time")
+        (leq "{_}" "{4}");
       fails
         (name "a further declared operation")
         (Upper.leq
@@ -518,33 +539,36 @@ module Suite (I : IMPLEMENTATION) = struct
         (equal "{(_ & ~A)*}" "⊤");
       holds
         (name "the top absorbs a product")
-        (Upper.equal costs (Upper.mul (U.lit "{3}") Upper.top) Upper.top);
+        (Upper.equal running_times
+           (Upper.mul (U.lit "{3}") Upper.top)
+           Upper.top);
       holds (name "the top absorbs up to equality") (equal "{3; _*}" "⊤");
       holds
-        (name "a zero cost is invisible")
+        (name "a zero running time is invisible")
         (Upper.equal (bounds_of [ ("A", (0, 0)) ]) (U.lit "{A*}") (U.lit "{0}"));
       expect (name "counterexample") (show_option Fun.id)
         ~expected:(Some "{A; 3}")
         (Option.map Upper.show
-           (Upper.counterexample costs (U.lit "{A; 3 | 1}") (U.lit "{5}")));
+           (Upper.counterexample running_times (U.lit "{A; 3 | 1}")
+              (U.lit "{5}")));
       expect (name "implied bounds") show_bounds
-        ~expected:(Some (runtime (1, 3)))
-        (Upper.implied_bounds costs (U.lit "{A | B; 1}"));
+        ~expected:(Some (running_time (1, 3)))
+        (Upper.implied_bounds running_times (U.lit "{A | B; 1}"));
       expect
         (name "no implied bounds when unbounded")
         show_bounds ~expected:None
-        (Upper.implied_bounds costs (U.lit "{A; B*}"));
+        (Upper.implied_bounds running_times (U.lit "{A; B*}"));
       expect (name "time shadow") Fun.id ~expected:"{3}"
         (Upper.show (Upper.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       holds (name "atomic") (Upper.is_atomic "A" (U.lit "{A}"));
-      holds (name "needs runtime bounds") Upper.needs_op_bounds;
+      holds (name "needs running-time bounds") Upper.needs_op_bounds;
       holds (name "unit least") Upper.unit_least;
       expect (name "top") Fun.id ~expected:"⊤" (Upper.show (U.lit "⊤"));
     ]
 
   let lower_examples =
-    let leq a b = Lower.leq costs (Lo.lit a) (Lo.lit b) in
-    let equal a b = Lower.equal costs (Lo.lit a) (Lo.lit b) in
+    let leq a b = Lower.leq running_times (Lo.lit a) (Lo.lit b) in
+    let equal a b = Lower.equal running_times (Lo.lit a) (Lo.lit b) in
     let name = ( ^ ) (Lower.name ^ ": ") in
     [
       holds (name "an operation covers a delay at lo") (leq "{A}" "{1}");
@@ -560,10 +584,10 @@ module Suite (I : IMPLEMENTATION) = struct
       fails (name "the unit is not least") (leq "{0}" "{A}");
       expect (name "counterexample") (show_option Fun.id) ~expected:(Some "{A}")
         (Option.map Lower.show
-           (Lower.counterexample costs (Lo.lit "{A | 3}") (Lo.lit "{2}")));
+           (Lower.counterexample running_times (Lo.lit "{A | 3}") (Lo.lit "{2}")));
       expect (name "implied bounds") show_bounds
-        ~expected:(Some (runtime (1, 3)))
-        (Lower.implied_bounds costs (Lo.lit "{A | B; 1}"));
+        ~expected:(Some (running_time (1, 3)))
+        (Lower.implied_bounds running_times (Lo.lit "{A | B; 1}"));
       expect (name "time shadow") Fun.id ~expected:"{1}"
         (Lower.show (Lower.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Lower.unit_least;
@@ -571,7 +595,7 @@ module Suite (I : IMPLEMENTATION) = struct
     ]
 
   let interval_examples =
-    let leq a b = Interval.leq costs (In.lit a) (In.lit b) in
+    let leq a b = Interval.leq running_times (In.lit a) (In.lit b) in
     let name = ( ^ ) (Interval.name ^ ": ") in
     let reads text expected =
       expect
@@ -591,14 +615,14 @@ module Suite (I : IMPLEMENTATION) = struct
       fails (name "the lower component") (leq "{A}" "[2, 3]");
       fails (name "the upper component") (leq "{A}" "[1, 2]");
       expect (name "implied bounds") show_bounds
-        ~expected:(Some (runtime (1, 2)))
-        (Interval.implied_bounds costs (In.lit "[{A | B}, {B}]"));
+        ~expected:(Some (running_time (1, 2)))
+        (Interval.implied_bounds running_times (In.lit "[{A | B}, {B}]"));
       expect (name "time shadow") Fun.id ~expected:"[{1}, {3}]"
         (Interval.show (Interval.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Interval.unit_least;
     ]
 
-  (* Grades without runs of the declared operations. *)
+  (* Grades without traces of the declared operations. *)
   let inhabitation_examples =
     let only_a = bounds_of [ ("A", (1, 3)) ] in
     let a_and_b = bounds_of [ ("A", (1, 3)); ("B", (2, 2)) ] in
@@ -612,7 +636,7 @@ module Suite (I : IMPLEMENTATION) = struct
         (name "a further declared operation")
         (Upper.inhabited a_and_b (U.lit "{_ & ~1 & ~A}"));
       holds
-        (name "the catch-all letter besides the runs")
+        (name "the catch-all letter besides the traces")
         (Upper.inhabited only_a (U.lit "{_ & ~1 & ~A | 2}"));
       holds (name "a mentioned name") (Lower.inhabited none (Lo.lit "{B}"));
       fails
@@ -636,14 +660,14 @@ module Suite (I : IMPLEMENTATION) = struct
 
   (* {2 Verdicts} *)
 
-  (* [length rho] is the length of a shortest run of [rho] over [names]. *)
+  (* [length rho] is the length of a shortest trace of [rho] over [names]. *)
   let length rho =
     Option.map List.length
       (Dfa.counterexample (L.concrete names rho)
          (Dfa.empty (List.length names + 1)))
 
   (* [verdicts bounds (r, r')] is, for each grade, whether [r] is below [r'],
-     whether they are equal, and the lengths of the shortest runs of the
+     whether they are equal, and the lengths of the shortest traces of the
      components of the counterexample, [r] and [r'] read as grades. *)
   let verdicts bounds (r, r') =
     match (grade r, grade r') with
@@ -718,7 +742,7 @@ let printing =
       alike regexes;
   ]
 
-(* The plain regular trace grades have a run whatever the operations. *)
+(* The plain regular trace grades have a trace whatever the operations. *)
 let plain_inhabited =
   let none = bounds_of [] in
   let lit =
@@ -741,7 +765,7 @@ let plain_inhabited =
 
 (* {1 (g) Long runs of ticks} *)
 
-(* Cost models with small costs, unit costs, and a large upper cost. *)
+(* Running times that are small, unit, and with one large upper end. *)
 let long_tables =
   [
     List.hd tables;
@@ -782,7 +806,7 @@ let random_grade ?(letters = [ "A"; "B" ]) ~longest state =
     Grade.Inter (alternatives (), alternatives ())
   else alternatives ()
 
-(* [printed_length text] is the length of the run of a grade printed as
+(* [printed_length text] is the length of the trace of a grade printed as
    [text], a sequence of names and delays: a delay counts as its number of
    ticks. *)
 let printed_length text =
@@ -903,24 +927,27 @@ let long_runs =
     let name what = I.name ^ ": " ^ what in
     [
       quickly (name "{9999; A} <= {10000; A} under the upper order") (fun () ->
-          I.Upper.leq costs (U.lit "{9999; A}") (U.lit "{10000; A}"));
+          I.Upper.leq running_times (U.lit "{9999; A}") (U.lit "{10000; A}"));
       quickly (name "{10001; A} </= {10000; A} under the upper order")
         (fun () ->
-          not (I.Upper.leq costs (U.lit "{10001; A}") (U.lit "{10000; A}")));
+          not
+            (I.Upper.leq running_times (U.lit "{10001; A}") (U.lit "{10000; A}")));
       quickly (name "{A; 10000} <= {10003} under the upper order") (fun () ->
-          I.Upper.leq costs (U.lit "{A; 10000}") (U.lit "{10003}"));
+          I.Upper.leq running_times (U.lit "{A; 10000}") (U.lit "{10003}"));
       quickly (name "{A; 10000} </= {10002} under the upper order") (fun () ->
-          not (I.Upper.leq costs (U.lit "{A; 10000}") (U.lit "{10002}")));
+          not (I.Upper.leq running_times (U.lit "{A; 10000}") (U.lit "{10002}")));
       quickly (name "{10000; A} <= {9999; A} under the lower order") (fun () ->
-          I.Lower.leq costs (Lo.lit "{10000; A}") (Lo.lit "{9999; A}"));
+          I.Lower.leq running_times (Lo.lit "{10000; A}") (Lo.lit "{9999; A}"));
       quickly (name "{9999; A} </= {10000; A} under the lower order") (fun () ->
-          not (I.Lower.leq costs (Lo.lit "{9999; A}") (Lo.lit "{10000; A}")));
+          not
+            (I.Lower.leq running_times (Lo.lit "{9999; A}")
+               (Lo.lit "{10000; A}")));
       quickly (name "{10000; A} implies (10001, 10003)") (fun () ->
-          I.Upper.implied_bounds costs (U.lit "{10000; A}")
-          = Some (runtime (10001, 10003)));
+          I.Upper.implied_bounds running_times (U.lit "{10000; A}")
+          = Some (running_time (10001, 10003)));
       quickly (name "counterexample of {10001; A} <= {10000; A}") (fun () ->
           Option.map I.Upper.show
-            (I.Upper.counterexample costs (U.lit "{10001; A}")
+            (I.Upper.counterexample running_times (U.lit "{10001; A}")
                (U.lit "{10000; A}"))
           = Some "{10001; A}");
     ]
@@ -931,19 +958,19 @@ let long_runs =
 
 (* {1 (h) Canonical closure states} *)
 
-(* The states of the closures over the runs of the implementation [I], along
+(* The states of the closures over the traces of the implementation [I], along
    random words, against the explicit sets of the constructions: for the
    allowance, the set of the live states reachable, closed under reachability,
    of which the state holds those not strictly within the run of ticks of
-   another; for the coverage, the subset of the states of the runs, of which
-   the state holds those on whose run of ticks, end included, no other lies.
-   The runs of ticks are followed letter by letter, so that equal explicit
-   sets give equal states, and the states denote the same sets. *)
+   another; for the coverage, the subset of the states of the automaton of
+   traces, of which the state holds those on whose run of ticks, end included,
+   no other lies. The runs of ticks are followed letter by letter, so that equal
+   explicit sets give equal states, and the states denote the same sets. *)
 module Canonical (I : IMPLEMENTATION) = struct
   include I
   module States = Set.Make (L.State)
-  module Allowance = CostClosure.Allowance (L.State)
-  module Coverage = CostClosure.Coverage (L.State)
+  module Allowance = TimedClosure.Allowance (L.State)
+  module Coverage = TimedClosure.Coverage (L.State)
   module Sets = Map.Make (States)
 
   let letters = List.length names + 1
@@ -971,9 +998,9 @@ module Canonical (I : IMPLEMENTATION) = struct
     in
     if m.lead y = Int.max_int then [] else go (m.lead y) y
 
-  let weight cost a = if a = 0 then 1 else cost a
+  let weight running_time a = if a = 0 then 1 else running_time a
 
-  let allowed ~cost m =
+  let allowed ~running_time m =
     let rec at_least n s =
       if n = 0 then s
       else
@@ -984,7 +1011,7 @@ module Canonical (I : IMPLEMENTATION) = struct
     let step s x =
       final
         (States.union
-           (at_least (weight cost x) s)
+           (at_least (weight running_time x) s)
            (if x = 0 then States.empty else reach m (image m x s)))
     in
     let interior s x =
@@ -998,7 +1025,7 @@ module Canonical (I : IMPLEMENTATION) = struct
     let represent s = States.filter (fun x -> not (interior s x)) s in
     (final (reach m (States.singleton m.start)), step, represent)
 
-  let covered ~cost m =
+  let covered ~running_time m =
     let delays n q =
       let rec go seen j q =
         if j > n || States.mem q seen then seen
@@ -1013,7 +1040,7 @@ module Canonical (I : IMPLEMENTATION) = struct
           (fun q t ->
             States.union t
               (States.union
-                 (delays (weight cost y) q)
+                 (delays (weight running_time y) q)
                  (if y = 0 then States.empty else States.singleton (m.step q y))))
           s States.empty
     in
@@ -1053,24 +1080,27 @@ module Canonical (I : IMPLEMENTATION) = struct
   let checks tables grades words =
     List.concat_map
       (fun table ->
-        let lo = letter_cost table fst and hi = letter_cost table snd in
+        let lo = letter_running_time table fst
+        and hi = letter_running_time table snd in
         List.concat_map
           (fun r ->
             match L.of_lit (Grade.Braces r) with
             | exception Grade.Invalid_literal _ -> []
             | rho ->
-                let m = L.runs names rho in
+                let m = L.traces names rho in
                 let name what =
                   Printf.sprintf "%s: canonical %s states of %s at %s" I.name
                     what (L.show rho) (show_table table)
                 in
                 [
                   walk (name "allowance")
-                    (Allowance.closure ~cost:hi ~letters m)
-                    (allowed ~cost:hi m) words;
+                    (Allowance.closure ~running_time:hi ~letters m)
+                    (allowed ~running_time:hi m)
+                    words;
                   walk (name "coverage")
-                    (Coverage.closure ~cost:lo m)
-                    (covered ~cost:lo m) words;
+                    (Coverage.closure ~running_time:lo m)
+                    (covered ~running_time:lo m)
+                    words;
                 ])
           grades)
       tables
@@ -1099,11 +1129,11 @@ let canonical =
   @ B.checks tables grades words
   @ P.checks tables grades words
 
-(* {1 (i) Many operations sharing costs} *)
+(* {1 (i) Many operations sharing running times} *)
 
-(* Cost models of [3 … 40] operations [Op01], [Op02], …, each of one of two or
-   three pairs of runtime bounds, with random lower ends in [0 … 2] and upper
-   ends up to three more. *)
+(* Running times of [3 … 40] operations [Op01], [Op02], …, each of one of two or
+   three pairs of running-time bounds, with random lower ends in [0 … 2] and
+   upper ends up to three more. *)
 let shared_tables =
   let state = Random.State.make [| 67 |] in
   List.init 10 (fun _ ->
@@ -1148,11 +1178,11 @@ let random_shared ~longest ~depth table state =
   in
   go depth
 
-(* The verdicts of the implementation [I] over the operations of a cost model:
-   under each order, whether a grade is below another, whether they are equal,
-   and the word of the counterexample over the operations, with whether it is a
-   run of the lesser grade outside the closure of the greater; and the runtime
-   bounds implied by the grades and their inhabitation. *)
+(* The verdicts of the implementation [I] over the operations of given running
+   times: under each order, whether a grade is below another, whether they are
+   equal, and the word of the counterexample over the operations, with whether
+   it is a trace of the lesser grade outside the closure of the greater; and the
+   running-time bounds implied by the grades and their inhabitation. *)
 module Shared (I : IMPLEMENTATION) = struct
   include I
 
@@ -1161,7 +1191,7 @@ module Shared (I : IMPLEMENTATION) = struct
     | rho -> Some rho
     | exception Grade.Invalid_literal _ -> None
 
-  (* [word names rho] is the shortest run of [rho] over [names], its ticks
+  (* [word names rho] is the shortest trace of [rho] over [names], its ticks
      written [τ]. *)
   let word names rho =
     Option.map
@@ -1202,11 +1232,11 @@ module SharedDerivatives = Shared (Derivatives)
 module SharedByLetters = Shared (ByLetters)
 module SharedPlain = Shared (Plain)
 
-(* The implementations agree over cost models of many operations sharing
-   costs, most of them left to the catch-all letter, in their verdicts, their
-   counterexamples, which are runs of the declared operations, and their
-   runtime bounds: on random grades against the automata, and with each other
-   on grades over delays of up to 120 ticks. *)
+(* The implementations agree over the running times of many operations sharing
+   running times, most of them left to the catch-all letter, in their verdicts,
+   their counterexamples, which are traces of the declared operations, and their
+   running-time bounds: on random grades against the automata, and with each
+   other on grades over delays of up to 120 ticks. *)
 let shared =
   let state = Random.State.make [| 71 |] in
   let show_table table =
@@ -1254,11 +1284,11 @@ let shared =
   in
   let random table = random_shared ~longest:3 ~depth:4 table state in
   let agreement =
-    agree "many operations sharing costs: the implementations agree"
+    agree "many operations sharing running times: the implementations agree"
       ~automata:true ~count:12 random
   in
   agreement
-  @ agree "many operations sharing costs: agreement on long delays"
+  @ agree "many operations sharing running times: agreement on long delays"
       ~automata:false ~count:5 long
 
 let () =

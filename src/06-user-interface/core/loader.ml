@@ -3,7 +3,7 @@
 
     A program is loaded in two passes. First all its sources, the standard
     library included, are parsed, and the operation declarations are collected
-    from them, the name and runtime bounds of each operation only
+    from them, the name and running-time bounds of each operation only
     ([Loader.declare]); the grades of every command are read over these
     operations, whether declared before or after the command. Then the sources
     are desugared, typechecked and run command by command, in order, so that an
@@ -17,7 +17,7 @@ module Ast = Language.Ast
 open Backend
 
 (** [declared_operations commands] is the operation declarations of [commands],
-    in order, each the name of the operation with its runtime bounds if it
+    in order, each the name of the operation with its running-time bounds if it
     declares them. Only these are read, so that an operation declared with a
     malformed or ill-typed signature is listed all the same. *)
 let declared_operations commands =

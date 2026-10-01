@@ -263,20 +263,20 @@ warm: mean of repeated runs; ratios of the cold times: automata / plain
 | examples/regular_timed_ops/upper_bounds.tpe |   39.03 ms |   38.77 ms |   35.91 ms |   36.49 ms |       1.01 |       1.08 |       0.98 |   38.82 ms |   35.05 ms |   33.40 ms |   34.58 ms |
 | tests/regex_timed_upper.tpe              |   34.88 ms |   35.25 ms |   34.28 ms |   35.98 ms |       0.99 |       1.03 |       0.95 |   33.78 ms |   32.15 ms |   31.62 ms |   32.75 ms |
 | tests/regex_timed_upper_reject.tpe       |   34.81 ms |   33.96 ms |   32.40 ms |   33.04 ms |       1.02 |       1.05 |       0.98 |   32.90 ms |   30.72 ms |   29.56 ms |   30.32 ms |
-| tests/regex_timed_upper_runs.tpe         |   31.97 ms |   32.96 ms |   31.31 ms |   32.21 ms |       0.97 |       1.05 |       0.97 |   29.59 ms |   29.25 ms |   28.00 ms |   29.08 ms |
-| tests/regex_timed_upper_runs_reject.tpe  |   31.01 ms |   30.94 ms |   29.53 ms |   30.18 ms |       1.00 |       1.05 |       0.98 |   27.79 ms |   27.38 ms |   26.30 ms |   26.86 ms |
+| tests/regex_timed_upper_ticks.tpe         |   31.97 ms |   32.96 ms |   31.31 ms |   32.21 ms |       0.97 |       1.05 |       0.97 |   29.59 ms |   29.25 ms |   28.00 ms |   29.08 ms |
+| tests/regex_timed_upper_ticks_reject.tpe  |   31.01 ms |   30.94 ms |   29.53 ms |   30.18 ms |       1.00 |       1.05 |       0.98 |   27.79 ms |   27.38 ms |   26.30 ms |   26.86 ms |
 | **typechecking, regex-timed-lower-bound-letter-automata** |            |            |            |            |            |            |            |            |            |            |            |
 | standard library alone                   |   23.42 ms |   21.78 ms |   21.69 ms |   21.67 ms |       1.08 |       1.00 |       1.00 |   21.33 ms |   20.13 ms |   19.39 ms |   19.39 ms |
 | examples/regular_timed_ops/lower_bounds.tpe |   26.40 ms |   25.56 ms |   23.87 ms |   23.85 ms |       1.03 |       1.07 |       1.00 |   24.33 ms |   22.82 ms |   21.69 ms |   21.40 ms |
 | tests/regex_timed_lower.tpe              |   25.83 ms |   24.14 ms |   23.12 ms |   23.29 ms |       1.07 |       1.04 |       0.99 |   23.52 ms |   22.04 ms |   20.85 ms |   20.96 ms |
 | tests/regex_timed_lower_reject.tpe       |   27.83 ms |   24.56 ms |   23.59 ms |   22.69 ms |       1.13 |       1.04 |       1.04 |   24.57 ms |   21.87 ms |   20.70 ms |   20.66 ms |
-| tests/regex_timed_lower_runs_reject.tpe  |   22.81 ms |   21.59 ms |   21.12 ms |   22.52 ms |       1.06 |       1.02 |       0.94 |   21.15 ms |   19.64 ms |   19.17 ms |   20.73 ms |
+| tests/regex_timed_lower_ticks_reject.tpe  |   22.81 ms |   21.59 ms |   21.12 ms |   22.52 ms |       1.06 |       1.02 |       0.94 |   21.15 ms |   19.64 ms |   19.17 ms |   20.73 ms |
 | **typechecking, regex-timed-interval-letter-automata**    |            |            |            |            |            |            |            |            |            |            |            |
 | standard library alone                   |   34.24 ms |   32.28 ms |   30.07 ms |   30.76 ms |       1.06 |       1.07 |       0.98 |   31.94 ms |   29.61 ms |   27.54 ms |   28.43 ms |
 | examples/regular_timed_ops/intervals.tpe |   45.14 ms |   41.20 ms |   37.50 ms |   38.65 ms |       1.10 |       1.10 |       0.97 |   41.96 ms |   38.69 ms |   34.56 ms |   35.39 ms |
 | tests/regex_timed_interval.tpe           |   38.19 ms |   35.79 ms |   32.80 ms |   33.95 ms |       1.07 |       1.09 |       0.97 |   35.94 ms |   32.46 ms |   30.37 ms |   31.11 ms |
 | tests/regex_timed_interval_reject.tpe    |   37.79 ms |   34.98 ms |   32.15 ms |   33.31 ms |       1.08 |       1.09 |       0.97 |   35.01 ms |   31.69 ms |   29.53 ms |   30.19 ms |
-| tests/regex_timed_interval_runs_reject.tpe |   35.31 ms |   33.03 ms |   30.69 ms |   31.11 ms |       1.07 |       1.08 |       0.99 |   32.87 ms |   30.39 ms |   28.35 ms |   28.89 ms |
+| tests/regex_timed_interval_ticks_reject.tpe |   35.31 ms |   33.03 ms |   30.69 ms |   31.11 ms |       1.07 |       1.08 |       0.99 |   32.87 ms |   30.39 ms |   28.35 ms |   28.89 ms |
 | **regex-timed-upper-bound-letter-automata: timed corpus (15 literals)** |            |            |            |            |            |            |            |            |            |            |            |
 | elaborate                                |   464.2 us |   149.0 us |   136.9 us |   129.9 us |       3.12 |       1.09 |       1.05 |   186.9 us |    13.3 us |    12.4 us |    12.4 us |
 | leq, all pairs                           |    9.77 ms |   10.44 ms |   10.04 ms |    5.49 ms |       0.94 |       1.04 |       1.83 |   274.7 us |   525.3 us |   241.2 us |   255.8 us |

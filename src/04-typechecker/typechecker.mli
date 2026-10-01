@@ -34,14 +34,14 @@ module Make (GS : Grades.GradeSystem.S) : sig
   (** [load_primitive state x prim] adds the primitive [prim] as [x]. *)
 
   val declare_operations :
-    (string * Grades.Grade.runtime option) list -> state -> state
+    (string * Grades.Grade.running_time option) list -> state -> state
   (** [declare_operations declarations state] is [state] in a program whose
       operation declarations, in all its sources, are [declarations], each an
-      operation name with its runtime bounds if it declares them. The grades of
-      every command are read over the operations the program declares with
-      runtime bounds ({!Inference.Generate.Make.declare_operations}), whether
-      declared before or after the command; an operation is still performed only
-      after its declaration. *)
+      operation name with its running-time bounds if it declares them. The
+      grades of every command are read over the operations the program declares
+      with running-time bounds ({!Inference.Generate.Make.declare_operations}),
+      whether declared before or after the command; an operation is still
+      performed only after its declaration. *)
 
   (** How checking goes on after a rejected command. *)
   type recovery =
@@ -61,7 +61,7 @@ module Make (GS : Grades.GradeSystem.S) : sig
 
   val print_scheme : state -> scheme -> Format.formatter -> unit
   (** [print_scheme state scheme ppf] prints [scheme] with its qualifier, an
-      effect of the unit under the cost model of [state] not shown. *)
+      effect of the unit under the running times of [state] not shown. *)
 
   val scheme_layout : state -> scheme -> Inference.Constraint.layout
   (** [scheme_layout state scheme] is the parts of the scheme that

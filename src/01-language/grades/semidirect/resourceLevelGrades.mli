@@ -59,7 +59,7 @@ module Upper :
 module Lower :
   Grade.S with type t = bound * bound and type Delay.t = Delay.Nat.t
 
-(** The levels of one resource, ["resource-peak"]: the product
+(** The levels of one resource, ["one-resource-levels"]: the product
     {!GradeConstructions.Product} [(Lower) (Upper)] on the pairs
     [((d1, t), (d2, h))] of the grades [(t, [d1, d2], h)] above, whose unit is
     [(0, [0, 0], 0)] and top [(-∞, (-∞, ∞), ∞)].

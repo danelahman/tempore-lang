@@ -3,8 +3,8 @@
     {!RegularTraceGradeDerivative.Concrete} with single letters in place of
     letter sets.
 
-    The grade is that of {!RegularTraceGrade}, with the same runs, alphabet,
-    order, operations, literals, runtime bounds and printing; only the
+    The grade is that of {!RegularTraceGrade}, with the same traces, alphabet,
+    order, operations, literals, running-time bounds and printing; only the
     representation and the decision procedures differ.
 
     {2 Representation}
@@ -45,12 +45,12 @@ module Regex : SymbolicRegex.S
 (** The expressions over single letters. *)
 
 val concrete : string list -> t -> Dfa.t
-(** [concrete names rho] is the language of the runs of [rho] that perform only
-    operations among [names], as {!RegularTraceGrade.concrete}: the automaton
-    {!runs}, explored in full. *)
+(** [concrete names rho] is the language of the traces of [rho] that perform
+    only operations among [names], as {!RegularTraceGrade.concrete}: the
+    automaton {!traces}, explored in full. *)
 
-val runs : string list -> t -> Regex.t Dfa.automaton
-(** [runs names rho] is the automaton of the same language over the same
+val traces : string list -> t -> Regex.t Dfa.automaton
+(** [traces names rho] is the automaton of the same language over the same
     letters, explored lazily: its states are the normal forms of the derivatives
     of the expression of [rho] by these letters, each name not of [rho] acting
     as its catch-all letter, the final ones the nullable ones, the dead ones the

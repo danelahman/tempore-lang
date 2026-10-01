@@ -24,7 +24,7 @@ let expect name show ~expected actual =
 
 let bounds =
   {
-    Grade.cost =
+    Grade.running_time =
       (fun _ ->
         Grades.Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
     operations = [];
@@ -402,7 +402,8 @@ struct
       expect_grade "of_delay" ~expected:(lit "{4}") (G.of_delay 4);
       expect "unit least" show_bool ~expected:false G.unit_least;
       expect "commutative" show_bool ~expected:false G.commutative;
-      expect "no runtime bounds" show_bool ~expected:false G.needs_op_bounds;
+      expect "no running-time bounds" show_bool ~expected:false
+        G.needs_op_bounds;
       expect "atomic" show_bool ~expected:true
         (G.is_atomic "Send" (lit "{Send}"));
       expect "not atomic" show_bool ~expected:false
@@ -528,6 +529,7 @@ struct
      printed as its normal form. Reading the larger of these grades as automata
      takes seconds, by the subset construction; the automata are checked up to
      [n = 12] only. *)
+
   let bounded_printing =
     let from_end a n =
       String.concat "; " ("_*" :: a :: List.init n (Fun.const "_"))

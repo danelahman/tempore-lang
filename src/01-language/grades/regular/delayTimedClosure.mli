@@ -1,21 +1,22 @@
 (** Inclusion of timed regular languages in the closures of others under the
     allowance and coverage orders of timed traces, over rational delays and
-    rational costs.
+    rational running times.
 
     {2 Orders}
 
     A timed word ({!DelayAutomaton}) is written in gap form [d₀ a₁ d₁ ⋯ aₙ dₙ].
-    Every operation [a] has a cost [c(a) ≥ 0]; the duration of a word is the sum
-    of its delays, and its weight the sum of its delays and of the costs of its
-    operations. A cost is an extremal value (see below): the supremum of the
-    durations of the operation under the allowance order and their infimum under
-    the coverage order, attained or not; a word is permitted, or covers, iff it
-    does at every duration of each of its operations. As in {!CostClosure}, over
-    whole time steps, a run [s] is permitted by a bound [t], [s ≼ᵃ t], iff they
-    factor as [s = s₀ o₁ s₁ ⋯ oₙ sₙ] and [t = t₀ o₁ t₁ ⋯ oₙ tₙ], the operations
-    [oᵢ] matched, such that the weight of each [sᵢ] is at most the duration of
-    [tᵢ]; and a run [t] covers a guarantee [s], [s ≼ᶜ t], iff they so factor
-    with each [sᵢ] a delay at most the weight of [tᵢ]. The downward closure of a
+    Every operation [a] has a running time [c(a) ≥ 0]; the duration of a word is
+    the sum of its delays, and its weight the sum of its delays and of the
+    running times of its operations. A running time is an extremal value (see
+    below): the supremum of the durations of the operation under the allowance
+    order and their infimum under the coverage order, attained or not; a word is
+    permitted, or covers, iff it does at every duration of each of its
+    operations. As in {!TimedClosure}, over whole time steps, a trace [s] is
+    permitted by a bound [t], [s ≼ᵃ t], iff they factor as
+    [s = s₀ o₁ s₁ ⋯ oₙ sₙ] and [t = t₀ o₁ t₁ ⋯ oₙ tₙ], the operations [oᵢ]
+    matched, such that the weight of each [sᵢ] is at most the duration of [tᵢ];
+    and a trace [t] covers a guarantee [s], [s ≼ᶜ t], iff they so factor with
+    each [sᵢ] a delay at most the weight of [tᵢ]. The downward closure of a
     language [M] is [↓M = {s | s ≼ᵃ t for some t ∈ M}] and its upward closure
     [↑M = {s | t ≼ᶜ s for some t ∈ M}]. Neither is in general a timed regular
     language: with [c(A) = 1], the words [d A e] of [↓{3}] are those with
@@ -32,13 +33,13 @@
     dually for [↑M] with the infima. A supremum is kept as an extremal value: a
     rational, attained or approached from below only, or infinity
     ({!DelaySet.extremum}); a sum of values is approached from below iff one of
-    its summands is. The costs of the operations of a word of [L] enter the
-    weights as the delays of [L] do, since [↓M] is closed under decreasing a
-    cost as well, and [↑M] under increasing one. The value [a] approached from
-    below stands for [a - kε], [ε] an infinitesimal, and the flag records
-    [k ≥ 1] alone: for every comparison made along a path, a small enough [ε]
-    makes the comparisons of the words [a - kε] agree with those of the flags.
-    Dually for infima, approached from above.
+    its summands is. The running times of the operations of a word of [L] enter
+    the weights as the delays of [L] do, since [↓M] is closed under decreasing a
+    running time as well, and [↑M] under increasing one. The value [a]
+    approached from below stands for [a - kε], [ε] an infinitesimal, and the
+    flag records [k ≥ 1] alone: for every comparison made along a path, a small
+    enough [ε] makes the comparisons of the words [a - kε] agree with those of
+    the flags. Dually for infima, approached from above.
 
     {2 Readers}
 
@@ -73,12 +74,13 @@
     {2 Closed world}
 
     The operations of a comparison are given as a list of names with their
-    costs; a name may stand for a class of names of equal cost that the
-    languages compared do not tell apart, as in {!RegularCostTraceGrades}. The
-    words considered, of [L] and of [M], perform only these operations. *)
+    running times; a name may stand for a class of names of equal running time
+    that the languages compared do not tell apart, as in
+    {!RegularTimedTraceGrades}. The words considered, of [L] and of [M], perform
+    only these operations. *)
 
 type world = (string * DelaySet.extremum) list
-(** The operations of a comparison, each name with its cost, finite and
+(** The operations of a comparison, each name with its running time, finite and
     non-negative: the supremum of its durations in {!allowance}, {!permits} and
     {!max_weight}, and their infimum in {!coverage}, {!covers} and
     {!min_weight}. *)
@@ -113,12 +115,13 @@ val max_weight : world -> DelayAutomaton.t -> (Rational.t * bool) option
 (** [max_weight world l] is the supremum of the weights of the words of [l] over
     [world] and whether it is attained, [None] if [l] has none or their weights
     are unbounded; a longest path from the start to a final state over the
-    suprema of the sets of delays and the costs, by Bellman–Ford. *)
+    suprema of the sets of delays and the running times, by Bellman–Ford. *)
 
 val min_weight : world -> DelayAutomaton.t -> (Rational.t * bool) option
 (** [min_weight world l] is the infimum of the weights of the words of [l] over
     [world] and whether it is attained, [None] if [l] has none; a shortest path
-    over the infima of the sets of delays and the costs, by Bellman–Ford. *)
+    over the infima of the sets of delays and the running times, by
+    Bellman–Ford. *)
 
 val inhabited : world -> DelayAutomaton.t -> bool
 (** [inhabited world l] is whether [l] has a word over [world]. *)

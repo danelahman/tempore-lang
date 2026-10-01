@@ -178,12 +178,12 @@ module type S = sig
 
   val is_unit_eps : Grades.Grade.bounds -> eps -> bool
   (** [is_unit_eps bounds eps] decides whether the canonical form of [eps] is a
-      constant equal to the unit under the cost model [bounds]. *)
+      constant equal to the unit under the running times [bounds]. *)
 
   val names : ?bounds:Grades.Grade.bounds -> unit -> names
   (** [names ~bounds ()] is a fresh naming. A computation type whose effect is
-      the unit ({!is_unit_eps} under [bounds], by default the cost model of no
-      operations) is printed without its effect. *)
+      the unit ({!is_unit_eps} under [bounds], by default the running times of
+      no operations) is printed without its effect. *)
 
   val print_rho : ?names:names -> rho -> Format.formatter -> unit
   (** [print_rho ~names rho ppf] prints [rho]. *)

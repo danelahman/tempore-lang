@@ -23,11 +23,11 @@ let waiting () =
 
 (* Delays between none and a time unit may be arbitrarily short, and cover no
    guarantee of a half. *)
-let some_pause () : unit # {(0, 1)} = delay 1/2
+let some_delay () : unit # {(0, 1)} = delay 1/2
 
-let paused () =
+let delayed () =
   box {1/2} (Token "p") as p in
-  some_pause ();
+  some_delay ();
   unbox p as tok in
   tok
 

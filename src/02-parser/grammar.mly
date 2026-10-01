@@ -36,11 +36,11 @@
           (GS.R.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_delay lit))
 
-  (* [runtime_bound ~loc q] is the runtime bound [q] if the delays of the
-     grade system read it or its effect grades read no runtime bounds;
-     otherwise a syntax error at [loc] naming the grades that read runtime
+  (* [running_time_bound ~loc q] is the running-time bound [q] if the delays of
+     the grade system read it or its effect grades read no running-time bounds;
+     otherwise a syntax error at [loc] naming the grades that read running-time
      bounds and [q]. *)
-  let runtime_bound ~loc q =
+  let running_time_bound ~loc q =
     let lit = Grade.rational_lit q in
     match GS.E.Delay.read lit with
     | Some _ -> q
@@ -52,17 +52,17 @@
           (GS.E.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_bounds lit))
 
-  (* [open_runtime ~loc lo hi] is the runtime bounds at [loc] from [lo] to
-     [hi], an end open: a syntax error if the interval is empty. Where the
-     effect grades read runtime bounds, an open end is the closed one it
-     abbreviates over their delays ({!Grades.Grade.close_runtime}), and an
-     interval without a delay a syntax error. *)
-  let open_runtime ~loc lo hi =
+  (* [open_running_time ~loc lo hi] is the running-time bounds at [loc] from
+     [lo] to [hi], an end open: a syntax error if the interval is empty. Where
+     the effect grades read running-time bounds, an open end is the closed one
+     it abbreviates over their delays ({!Grades.Grade.close_running_time}), and
+     an interval without a delay a syntax error. *)
+  let open_running_time ~loc lo hi =
     match Grade.emptiness lo hi with
     | Some reason -> Error.syntax ~loc "%s" reason
     | None when not GS.E.needs_op_bounds -> (lo, hi)
     | None -> (
-        let lo', hi' = Grade.close_runtime GS.E.Delay.adjacent (lo, hi) in
+        let lo', hi' = Grade.close_running_time GS.E.Delay.adjacent (lo, hi) in
         match Grade.emptiness lo' hi' with
         | Some _ ->
             Error.syntax ~loc
@@ -631,28 +631,28 @@ sum_case:
   | lbl = mark_position(UNAME) OF t = ty
     { (lbl, Some t) }
 
-(* The runtime bounds an operation declares, an interval of durations with
+(* The running-time bounds an operation declares, an interval of durations with
    finite ends, each closed or open; [within n] is sugar for [within [n, n]].
    Only the grading monoids of timed operations read them. *)
 op_bounds:
-  | WITHIN n = runtime_bound
+  | WITHIN n = running_time_bound
     { (Grade.Closed n, Grade.Closed n) }
-  | WITHIN LBRACK n = runtime_bound COMMA m = runtime_bound RBRACK
+  | WITHIN LBRACK n = running_time_bound COMMA m = running_time_bound RBRACK
     { (Grade.Closed n, Grade.Closed m) }
-  | WITHIN LBRACK n = runtime_bound COMMA m = runtime_bound RPAREN
-    { open_runtime ~loc:(Location.of_lexing $startpos($2) $endpos)
+  | WITHIN LBRACK n = running_time_bound COMMA m = running_time_bound RPAREN
+    { open_running_time ~loc:(Location.of_lexing $startpos($2) $endpos)
         (Grade.Closed n) (Grade.Open m) }
-  | WITHIN LPAREN n = runtime_bound COMMA m = runtime_bound RBRACK
-    { open_runtime ~loc:(Location.of_lexing $startpos($2) $endpos)
+  | WITHIN LPAREN n = running_time_bound COMMA m = running_time_bound RBRACK
+    { open_running_time ~loc:(Location.of_lexing $startpos($2) $endpos)
         (Grade.Open n) (Grade.Closed m) }
-  | WITHIN LPAREN n = runtime_bound COMMA m = runtime_bound RPAREN
-    { open_runtime ~loc:(Location.of_lexing $startpos($2) $endpos)
+  | WITHIN LPAREN n = running_time_bound COMMA m = running_time_bound RPAREN
+    { open_running_time ~loc:(Location.of_lexing $startpos($2) $endpos)
         (Grade.Open n) (Grade.Open m) }
 
-(* A runtime bound, a duration read as a delay. *)
-runtime_bound:
+(* A running-time bound, a duration read as a delay. *)
+running_time_bound:
   | q = duration
-    { runtime_bound ~loc:(Location.of_lexing $startpos $endpos) q }
+    { running_time_bound ~loc:(Location.of_lexing $startpos $endpos) q }
 
 (* A resource grade, a literal read by the resource grades of the grade system
    or a grade variable, at its location. *)

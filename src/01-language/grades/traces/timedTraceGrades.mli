@@ -1,34 +1,35 @@
 (** The trace grades of timed operations: finite sets of traces (see
     {!TimedTrace}), multiplied by the language product and ordered by the
-    runtime bounds of the operations. The trace grades ordered by inclusion,
-    without running times, are those of {!TraceInclusionGrades}.
+    running-time bounds of the operations. The trace grades ordered by
+    inclusion, without running times, are those of {!TraceInclusionGrades}.
 
-    {2 Cost model}
+    {2 Running times}
 
-    An operation declares a pair of runtime bounds [within [lo, hi]], and the
-    two orders read different endpoints: [lo] feeds the coverage (lower-bound)
-    order and [hi] the allowance (upper-bound) order. The runtime bounds are
-    read as delays ({!Grade.read_bound}), and the runtime bounds a compound
-    operation's grade implies are measured by {!Delay.MEASURED.to_rational}. The
-    orders read the value of an end, open or closed: the delays of a bound are
-    exact, so a run is permitted at every duration of an operation below [hi]
-    iff at [hi], and covers at every duration above [lo] iff at [lo]. The
-    implied runtime bounds are the infimum and the supremum of the durations of
-    the runs, an end of a run being open iff one of its operations is at an open
-    end, and the time shadow {!Grade.S.of_bounds} is that of the closed hull
-    [[lo, hi]], a finite set of traces expressing no strict end. Over whole time
-    steps the ends are closed ({!Grade.close_runtime}).
+    An operation declares a pair of running-time bounds [within [lo, hi]], and
+    the two orders read different endpoints: [lo] feeds the coverage
+    (lower-bound) order and [hi] the allowance (upper-bound) order. The
+    running-time bounds are read as delays ({!Grade.read_bound}), and the
+    running-time bounds a compound operation's grade implies are measured by
+    {!Delay.MEASURED.to_rational}. The orders read the value of an end, open or
+    closed: the delays of a bound are exact, so a trace is permitted at every
+    duration of an operation below [hi] iff at [hi], and covers at every
+    duration above [lo] iff at [lo]. The implied running-time bounds are the
+    infimum and the supremum of the durations of the traces, an end of a trace
+    being open iff one of its operations is at an open end, and the time shadow
+    {!Grade.S.of_bounds} is that of the closed hull [[lo, hi]], a finite set of
+    traces expressing no strict end. Over whole time steps the ends are closed
+    ({!Grade.close_running_time}).
 
     {2 Representations}
 
     A set of traces is kept sorted and duplicate-free, not reduced to the
     antichain of its extremal members, since that reduction depends on the order
-    and hence on the cost model. So [mul] and [join] need no cost model, but a
-    grade may have several representations; [equal] is mutual [leq], which is
-    equality of the reduced antichains, and [compare] and [hash] are those of
+    and hence on the running times. So [mul] and [join] need no running times,
+    but a grade may have several representations; [equal] is mutual [leq], which
+    is equality of the reduced antichains, and [compare] and [hash] are those of
     the representations. The top alone is decided from the representation: a
-    lower bound is the top iff it lists the empty run, and an upper bound iff it
-    is [⊤].
+    lower bound is the top iff it lists the empty trace, and an upper bound iff
+    it is [⊤].
 
     {2 Literals}
 
@@ -50,7 +51,7 @@
 
     The grades are defined over an ordered monoid of delays with monus
     ({!Delay.MEASURED}), a delay [d] being the trace [d]: the orders add the
-    delays of a bound to a budget and subtract those of a run from it with the
+    delays of a bound to a budget and subtract those of a trace from it with the
     monus. They are instantiated over the natural numbers of time steps
     ({!Delay.Nat}) and over the non-negative rationals ({!Delay.Rational}). *)
 
@@ -64,7 +65,7 @@ module type NAMES = sig
 end
 
 (** The presentation of timed trace grades over a kind of delays. *)
-module type COST_NAMES = sig
+module type TIMED_NAMES = sig
   include NAMES
 
   val close : lower:bool -> GradeLiteral.lit -> GradeLiteral.lit
@@ -75,7 +76,7 @@ module type COST_NAMES = sig
 end
 
 (** The trace grades of timed operations over the delays [D], named by [N]. *)
-module Make (D : Delay.MEASURED) (N : COST_NAMES) : sig
+module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
   module LowerBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as lower bounds,
       ["traces-timed-lower-bound" ^ N.suffix], in the coverage order; the unit
@@ -84,7 +85,7 @@ module Make (D : Delay.MEASURED) (N : COST_NAMES) : sig
   module UpperBound : Grade.S with type Delay.t = D.t
   (** Sets of traces read as upper bounds,
       ["traces-timed-upper-bound" ^ N.suffix], in the allowance order, with a
-      separate greatest point [⊤] permitting any run. *)
+      separate greatest point [⊤] permitting any trace. *)
 
   module Interval : Grade.S with type Delay.t = D.t
   (** Closed intervals of a lower and an upper bound,
@@ -99,7 +100,7 @@ end
 (** {1 Traces over whole time steps}
 
     The delays are the natural numbers of time steps, written as integers, and
-    so are the runtime bounds: {!Make} over {!Delay.Nat}. *)
+    so are the running-time bounds: {!Make} over {!Delay.Nat}. *)
 
 module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as lower bounds, ["traces-timed-lower-bound"], in the
@@ -107,7 +108,7 @@ module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
 
 module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
 (** Sets of traces read as upper bounds, ["traces-timed-upper-bound"], in the
-    allowance order, with a separate greatest point [⊤] permitting any run. *)
+    allowance order, with a separate greatest point [⊤] permitting any trace. *)
 
 module Interval : Grade.S with type Delay.t = Delay.Nat.t
 (** Closed intervals of a lower and an upper bound, ["traces-timed-interval"],
@@ -120,8 +121,9 @@ module Interval : Grade.S with type Delay.t = Delay.Nat.t
 (** {1 Traces over rational delays}
 
     The delays are the non-negative rationals, written as integers and
-    fractions, e.g. [{Read; 1/2; Send}] or [[0.5, 3/2]], and so are the runtime
-    bounds, e.g. [within [1/2, 3/2]]: {!Make} over {!Delay.Rational}. *)
+    fractions, e.g. [{Read; 1/2; Send}] or [[0.5, 3/2]], and so are the
+    running-time bounds, e.g. [within [1/2, 3/2]]: {!Make} over
+    {!Delay.Rational}. *)
 module Rational : sig
   module LowerBound : Grade.S with type Delay.t = Delay.Rational.t
   (** Sets of traces read as lower bounds,
@@ -134,5 +136,5 @@ module Rational : sig
   module Interval : Grade.S with type Delay.t = Delay.Rational.t
   (** Closed intervals of a lower and an upper bound,
       ["traces-timed-interval-rational"], compared componentwise. An open
-      endpoint, a set of delays, is no finite set of runs, and is rejected. *)
+      endpoint, a set of delays, is no finite set of traces, and is rejected. *)
 end

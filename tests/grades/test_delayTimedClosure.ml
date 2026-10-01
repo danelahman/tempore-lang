@@ -1,11 +1,11 @@
 (* Unit tests of the closures of timed regular languages under allowance and
    coverage over rational delays and running times, and of the regular trace
    grades of timed operations over rational delays: worked examples of the
-   orders, including runs of open delays whose sums approach a bound; the
+   orders, including traces of open delays whose sums approach a bound; the
    readers of the closures and the inclusion decisions with their
    counterexamples against the recursions of the timed traces over rational
-   delays, on bounds with finitely many paths; the implied runtime bounds, the
-   closed world and the literals; and the agreement with the regular trace
+   delays, on bounds with finitely many paths; the implied running-time bounds,
+   the closed world and the literals; and the agreement with the regular trace
    grades of timed operations over whole time steps on integer instances, scaled
    to a resolution of fractions of a time step as the grades over whole steps of
    a program resolution read them. *)
@@ -14,10 +14,10 @@ module Grade = Grades.Grade
 module Rational = Grades.Rational
 module DelaySet = Grades.DelaySet
 module A = Grades.DelayAutomaton
-module C = Grades.DelayCostClosure
+module C = Grades.DelayTimedClosure
 module Plain = Grades.RegularTraceGradeRational
-module G = Grades.RegularCostTraceGradesRational
-module W = Grades.RegularCostTraceGrades.Symbolic
+module G = Grades.RegularTimedTraceGradesRational
+module W = Grades.RegularTimedTraceGrades.Symbolic
 module Trace = Grades.TimedTrace.Make (Grades.Delay.Rational)
 
 type check = { name : string; passed : bool; detail : string }
@@ -54,22 +54,22 @@ let lit text =
 
 let automaton text = Plain.automaton (lit text)
 
-(* A cost model of fractional runtime bounds, the runtime bounds of each
-   operation given by their ends. *)
+(* The running times of operations with fractional running-time bounds, given
+   by their ends. *)
 let bounds_of table =
   {
-    Grade.cost = (fun o -> List.assoc o table);
+    Grade.running_time = (fun o -> List.assoc o table);
     operations = List.map fst table;
   }
 
-(* [closed (lo, hi)] is the closed runtime bounds [[lo, hi]]. *)
+(* [closed (lo, hi)] is the closed running-time bounds [[lo, hi]]. *)
 let closed (lo, hi) = (Grade.Closed lo, Grade.Closed hi)
 
-(* [exact world] is the world of the costs [world], each attained. *)
+(* [exact world] is the world of the running times [world], each attained. *)
 let exact world =
   List.map (fun (name, c) -> (name, DelaySet.Finite (c, true))) world
 
-(* [strict world] is the world of the costs [world], none attained. *)
+(* [strict world] is the world of the running times [world], none attained. *)
 let strict world =
   List.map (fun (name, c) -> (name, DelaySet.Finite (c, false))) world
 
@@ -130,7 +130,7 @@ let examples =
     is "lower: open delays above a bound cover it" (lower "{(1/2, ∞)}" "{1/2}");
     is "lower: open delays near 0 cover none" (not (lower "{(0, 1)}" "{1/2}"));
     is "lower: the unit is the top" (G.Lower.is_top bounds (lit "{0}"));
-    is "lower: all runs are the top" (G.Lower.is_top bounds (lit "⊤"));
+    is "lower: all traces are the top" (G.Lower.is_top bounds (lit "⊤"));
     is "lower: A; _* is not the top"
       (not (G.Lower.is_top bounds (lit "{A; _*}")));
     expect "upper: counterexample of open delays" Fun.id
@@ -149,19 +149,19 @@ let examples =
          (G.Lower.counterexample bounds (lit "{B | S}") (lit "{S | 1/2}")));
   ]
 
-(* The runs [(0, 1); A; (0, 1); ⋯] of [k] open delays and [k - 1] operations
-   of cost [1] weigh less than [2k - 1], and approach it: they are below
+(* The traces [(0, 1); A; (0, 1); ⋯] of [k] open delays and [k - 1] operations
+   of running time [1] weigh less than [2k - 1], and approach it: they are below
    [{2k - 1}] and not below [{2k - 2}], also with delays [(0, 1]]. *)
 let open_delays =
   let world = exact [ ("A", qi 1) ] in
-  let runs k gap =
+  let traces k gap =
     automaton ("{" ^ String.concat "; A; " (List.init k (Fun.const gap)) ^ "}")
   in
   let delay n = A.delays (DelaySet.point (qi n)) in
   List.concat_map
     (fun k ->
       let within gap n =
-        Option.is_none (C.allowance world (runs k gap) (delay n))
+        Option.is_none (C.allowance world (traces k gap) (delay n))
       in
       [
         is
@@ -179,7 +179,7 @@ let open_delays =
       ])
     [ 1; 2; 3; 4; 5; 6; 7; 8 ]
 
-(* {1 Implied runtime bounds and the closed world} *)
+(* {1 Implied running-time bounds and the closed world} *)
 
 let show_bounds = function
   | Some (lo, hi) -> Grade.show_interval Rational.show lo hi
@@ -208,52 +208,57 @@ let implied =
                     Grade.Closed (Grade.Braces (Grade.Letter "T")) )))));
   ]
 
-(* {1 Runtime bounds with open ends} *)
+(* {1 Running-time bounds with open ends} *)
 
-let open_costs =
+let open_running_times =
   let bounds_for x = bounds_of [ ("X", x) ] in
   let half_open = bounds_for (Grade.Closed (qi 1), Grade.Open (qi 2))
   and closed_x = bounds_for (closed (qi 1, qi 2))
   and open_below = bounds_for (Grade.Open (qi 1), Grade.Closed (qi 2)) in
   let shows (type a) (module M : Grade.S with type t = a) name b expected =
-    expect ("open costs: " ^ name) Fun.id ~expected (M.show (M.of_bounds b))
+    expect
+      ("open running times: " ^ name)
+      Fun.id ~expected
+      (M.show (M.of_bounds b))
   in
   [
-    is "open costs: within [1, 2) is below {[0, 2)}"
+    is "open running times: within [1, 2) is below {[0, 2)}"
       (G.Upper.leq half_open (lit "{X}") (lit "{[0, 2)}"));
-    is "open costs: within [1, 2] is not below {[0, 2)}"
+    is "open running times: within [1, 2] is not below {[0, 2)}"
       (not (G.Upper.leq closed_x (lit "{X}") (lit "{[0, 2)}")));
-    is "open costs: within [1, 2) is below {2}"
+    is "open running times: within [1, 2) is below {2}"
       (G.Upper.leq half_open (lit "{X}") (lit "{2}"));
-    is "open costs: within [1, 2) is not below {1.99}"
+    is "open running times: within [1, 2) is not below {1.99}"
       (not (G.Upper.leq half_open (lit "{X}") (lit "{1.99}")));
-    is "open costs: a strict cost and a delay below a strict sum"
+    is
+      "open running times: a strict running time and a delay below a strict sum"
       (G.Upper.leq half_open (lit "{X; 1/2}") (lit "{[0, 5/2)}"));
-    is "open costs: within (1, 2] covers {(1, ∞)}"
+    is "open running times: within (1, 2] covers {(1, ∞)}"
       (G.Lower.leq open_below (lit "{X}") (lit "{(1, ∞)}"));
-    is "open costs: within [1, 2] does not cover {(1, ∞)}"
+    is "open running times: within [1, 2] does not cover {(1, ∞)}"
       (not (G.Lower.leq closed_x (lit "{X}") (lit "{(1, ∞)}")));
-    is "open costs: within (1, 2] covers {1}"
+    is "open running times: within (1, 2] covers {1}"
       (G.Lower.leq open_below (lit "{X}") (lit "{1}"));
-    is "open costs: the allowance closure reads a strict cost"
+    is "open running times: the allowance closure reads a strict running time"
       (Option.is_none
          (C.allowance
             [ ("X", DelaySet.Finite (qi 2, false)) ]
             (automaton "{X}") (automaton "{[0, 2)}")));
-    is "open costs: and an attained one"
+    is "open running times: and an attained one"
       (Option.is_some
          (C.allowance
             (exact [ ("X", qi 2) ])
             (automaton "{X}") (automaton "{[0, 2)}")));
-    expect "open costs: counterexample of a strict cost" Fun.id
+    expect "open running times: counterexample of a strict running time" Fun.id
       ~expected:"{X; 0.5}"
       (show_counterexample G.Upper.show
          (G.Upper.counterexample half_open (lit "{X; 1/2}") (lit "{2}")));
-    expect "open costs: implied bounds" Fun.id ~expected:"[2, 3)"
+    expect "open running times: implied bounds" Fun.id ~expected:"[2, 3)"
       (show_bounds (G.Upper.implied_bounds half_open (lit "{X; 1}")));
-    expect "open costs: implied bounds of a choice" Fun.id ~expected:"[1, 2]"
+    expect "open running times: implied bounds of a choice" Fun.id
+      ~expected:"[1, 2]"
       (show_bounds (G.Upper.implied_bounds half_open (lit "{X | 2}")));
-    expect "open costs: implied bounds of an interval" Fun.id
+    expect "open running times: implied bounds of an interval" Fun.id
       ~expected:"(1.5, 2.5]"
       (show_bounds
          (G.Interval.implied_bounds open_below
@@ -279,14 +284,17 @@ let open_costs =
       "interval shadow"
       (Grade.Open (qi 1), Grade.Open (qi 2))
       "[{(1, ∞)}, {[0, 2)}]";
-    is "open costs: a default of exactly 2 is not below the upper shadow"
+    is
+      "open running times: a default of exactly 2 is not below the upper shadow"
       (not
          (G.Upper.leq half_open (lit "{2}")
             (G.Upper.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2)))));
-    is "open costs: a default of 1.9 is"
+    is "open running times: a default of 1.9 is"
       (G.Upper.leq half_open (lit "{1.9}")
          (G.Upper.of_bounds (Grade.Closed (qi 1), Grade.Open (qi 2))));
-    is "open costs: a default of exactly 1 does not cover the lower shadow"
+    is
+      "open running times: a default of exactly 1 does not cover the lower \
+       shadow"
       (not
          (G.Lower.leq open_below (lit "{1}")
             (G.Lower.of_bounds (Grade.Open (qi 1), Grade.Closed (qi 2)))));
@@ -371,8 +379,8 @@ let literals =
 type item = Gap of DelaySet.t | Op of string
 
 let names = [ "A"; "B" ]
-let costs_hi = [ ("A", qi 1); ("B", q 1 2) ]
-let costs_lo = [ ("A", q 1 2); ("B", qi 0) ]
+let running_times_hi = [ ("A", qi 1); ("B", q 1 2) ]
+let running_times_lo = [ ("A", q 1 2); ("B", qi 0) ]
 
 let trace_of_word word =
   Trace.normalise
@@ -404,7 +412,7 @@ let in_down bound word =
   List.exists
     (fun items ->
       Trace.allowance
-        (fun o -> List.assoc o costs_hi)
+        (fun o -> List.assoc o running_times_hi)
         Rational.zero (trace_of_word word)
         (extreme_word greatest items))
     bound
@@ -413,7 +421,7 @@ let in_up bound word =
   List.exists
     (fun items ->
       Trace.coverage
-        (fun o -> List.assoc o costs_lo)
+        (fun o -> List.assoc o running_times_lo)
         Rational.zero (extreme_word least items) (trace_of_word word))
     bound
 
@@ -611,42 +619,48 @@ let against_recursions name ~seed ~closed_top ~world ~decide ~reads ~member =
          (List.length verdicts));
   ]
 
-(* The costs not attained agree with the recursions at their values: against
-   a bound closed at the top, a word is permitted at every cost below a
-   supremum iff at the supremum, and against one closed at the bottom it
-   covers at every cost above an infimum iff at the infimum. *)
+(* The running times not attained agree with the recursions at their values:
+   against a bound closed at the top, a word is permitted at every running time
+   below a supremum iff at the supremum, and against one closed at the bottom it
+   covers at every running time above an infimum iff at the infimum. *)
 let recursions =
   against_recursions "allowance" ~seed:5 ~closed_top:true
-    ~world:(exact costs_hi) ~decide:C.allowance ~reads:C.permits ~member:in_down
+    ~world:(exact running_times_hi) ~decide:C.allowance ~reads:C.permits
+    ~member:in_down
   @ against_recursions "coverage" ~seed:7 ~closed_top:false
-      ~world:(exact costs_lo) ~decide:C.coverage ~reads:C.covers ~member:in_up
-  @ against_recursions "allowance, open costs" ~seed:17 ~closed_top:true
-      ~world:(strict costs_hi) ~decide:C.allowance ~reads:C.permits
+      ~world:(exact running_times_lo) ~decide:C.coverage ~reads:C.covers
+      ~member:in_up
+  @ against_recursions "allowance, open running times" ~seed:17 ~closed_top:true
+      ~world:(strict running_times_hi) ~decide:C.allowance ~reads:C.permits
       ~member:in_down
-  @ against_recursions "coverage, open costs" ~seed:19 ~closed_top:false
-      ~world:(strict costs_lo) ~decide:C.coverage ~reads:C.covers ~member:in_up
+  @ against_recursions "coverage, open running times" ~seed:19 ~closed_top:false
+      ~world:(strict running_times_lo) ~decide:C.coverage ~reads:C.covers
+      ~member:in_up
 
-(* The orders on single runs are preorders compatible with concatenation, on
-   random runs over [A], [B] and delays of halves. *)
+(* The orders on single traces are preorders compatible with concatenation, on
+   random traces over [A], [B] and delays of halves. *)
 let preorders =
   let st = Random.State.make [| 13 |] in
   let symbols =
     [ Trace.Ev "A"; Trace.Ev "B"; Trace.Wait (q 1 2); Trace.Wait (qi 1) ]
   in
-  let run () =
+  let trace () =
     Trace.normalise
       (List.init (Random.State.int st 4) (fun _ ->
            List.nth symbols (Random.State.int st 4)))
   in
-  let hi o = List.assoc o costs_hi and lo o = List.assoc o costs_lo in
+  let hi o = List.assoc o running_times_hi
+  and lo o = List.assoc o running_times_lo in
   let orders =
     [
       ("allowance", fun s t -> Trace.allowance hi Rational.zero s t);
       ("coverage", fun s t -> Trace.coverage lo Rational.zero s t);
     ]
   in
-  let triples = List.init 3000 (fun _ -> (run (), run (), run ())) in
-  let quadruples = List.init 3000 (fun _ -> (run (), run (), run (), run ())) in
+  let triples = List.init 3000 (fun _ -> (trace (), trace (), trace ())) in
+  let quadruples =
+    List.init 3000 (fun _ -> (trace (), trace (), trace (), trace ()))
+  in
   List.concat_map
     (fun (name, le) ->
       [
@@ -668,13 +682,13 @@ let preorders =
 
 (* {1 Whole time steps}
 
-   On integer instances the orders agree with those of the regular trace
-   grades of timed operations over whole time steps through the translation [ι] of
-   [test_delayRegex]: [ι(_) = 1 | ops] and [ι(~r) = ~ι(r) & (ops | 1)*],
-   [ops] the operations [_ & ~(>0)], the identity elsewhere. Scaling every
-   delay and every cost by [1/N] keeps the verdicts: the grades over whole
-   steps of a program resolution [N] read a delay [q] as [qN] steps of [1/N],
-   [_] as [1/N | ops] and complements among the runs of steps of [1/N]. *)
+   On integer instances the orders agree with those of the regular trace grades
+   of timed operations over whole time steps through the translation [ι] of
+   [test_delayRegex]: [ι(_) = 1 | ops] and [ι(~r) = ~ι(r) & (ops | 1)*], [ops]
+   the operations [_ & ~(>0)], the identity elsewhere. Scaling every delay and
+   every running time by [1/N] keeps the verdicts: the grades over whole steps
+   of a program resolution [N] read a delay [q] as [qN] steps of [1/N], [_] as
+   [1/N | ops] and complements among the traces of steps of [1/N]. *)
 
 let ops =
   Grade.Inter
@@ -695,13 +709,13 @@ let rec iota n = function
   | (Grade.Letter _ | Grade.Frac _ | Grade.Delays _) as r -> r
 
 let whole_names = [ "A"; "B"; "C" ]
-let whole_costs = [ ("A", (1, 3)); ("B", (0, 2)); ("C", (2, 2)) ]
+let whole_running_times = [ ("A", (1, 3)); ("B", (0, 2)); ("C", (2, 2)) ]
 
 let scaled_bounds n =
   bounds_of
     (List.map
        (fun (name, (lo, hi)) -> (name, closed (q lo n, q hi n)))
-       whole_costs)
+       whole_running_times)
 
 let whole_steps =
   let st = Random.State.make [| 43 |] in
@@ -777,19 +791,19 @@ let timing =
           (C.allowance world (automaton "{(A; B)*; B}")
              (automaton "{(A | B | 1)*}")));
     quickly "a long sum of thirds" (fun () ->
-        let run = String.concat "; " (List.init 30 (Fun.const "B; 1/3")) in
+        let trace = String.concat "; " (List.init 30 (Fun.const "B; 1/3")) in
         Option.is_none
-          (C.allowance world (automaton ("{" ^ run ^ "}")) (automaton "{40}"))
+          (C.allowance world (automaton ("{" ^ trace ^ "}")) (automaton "{40}"))
         && Option.is_some
              (C.allowance world
-                (automaton ("{" ^ run ^ "}"))
+                (automaton ("{" ^ trace ^ "}"))
                 (automaton "{39.99}")));
   ]
 
 let () =
   let checks =
-    examples @ open_delays @ implied @ open_costs @ closed_world @ literals
-    @ recursions @ preorders @ whole_steps @ timing
+    examples @ open_delays @ implied @ open_running_times @ closed_world
+    @ literals @ recursions @ preorders @ whole_steps @ timing
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

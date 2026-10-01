@@ -1,14 +1,14 @@
-type cost = No_run | Cost of int | Unbounded
+type cost = No_trace | Cost of int | Unbounded
 
-(** [add c c'] is the cost of [c] followed by [c']; [No_run] is absorbing, and
+(** [add c c'] is the cost of [c] followed by [c']; [No_trace] is absorbing, and
     then [Unbounded]. *)
 let add c c' =
   match (c, c') with
-  | No_run, _ | _, No_run -> No_run
+  | No_trace, _ | _, No_trace -> No_trace
   | Unbounded, _ | _, Unbounded -> Unbounded
   | Cost n, Cost n' -> Cost (n + n')
 
-let rank = function No_run -> 0 | Cost _ -> 1 | Unbounded -> 2
+let rank = function No_trace -> 0 | Cost _ -> 1 | Unbounded -> 2
 
 let compare_cost c c' =
   match (c, c') with
@@ -17,10 +17,10 @@ let compare_cost c c' =
 
 let leq_cost c c' = compare_cost c c' <= 0
 let max_cost c c' = if leq_cost c c' then c' else c
-let maximum = List.fold_left max_cost No_run
+let maximum = List.fold_left max_cost No_trace
 
 let show_cost = function
-  | No_run -> "⊥"
+  | No_trace -> "⊥"
   | Cost n -> string_of_int n
   | Unbounded -> "∞"
 
@@ -29,7 +29,7 @@ let stuck = "Stuck"
 
 (* The costs between the modes named, from a mode named to the others, from
    the others to a mode named, keeping a mode not named, between two modes not
-   named, and into [stuck] from a mode named and from the others; [No_run]
+   named, and into [stuck] from a mode named and from the others; [No_trace]
    entries are omitted. *)
 type t = {
   modes : string list;
@@ -52,9 +52,9 @@ let yet_another = "_z"
 let cost m p q =
   let named p = List.mem p m.modes in
   let find key entries =
-    Option.value (List.assoc_opt key entries) ~default:No_run
+    Option.value (List.assoc_opt key entries) ~default:No_trace
   in
-  if String.equal p stuck then if String.equal q stuck then Cost 0 else No_run
+  if String.equal p stuck then if String.equal q stuck then Cost 0 else No_trace
   else if String.equal q stuck then
     if named p then find p m.to_stuck else m.other_to_stuck
   else
@@ -95,7 +95,7 @@ let make modes f =
   let modes = List.sort_uniq String.compare modes in
   let costs pairs =
     List.filter_map
-      (fun (key, c) -> if c = No_run then None else Some (key, c))
+      (fun (key, c) -> if c = No_trace then None else Some (key, c))
       pairs
   in
   trim
@@ -133,9 +133,9 @@ let everywhere c =
     leaving = [];
     entering = [];
     staying = c;
-    moving = No_run;
+    moving = No_trace;
     to_stuck = [];
-    other_to_stuck = No_run;
+    other_to_stuck = No_trace;
   }
 
 let one = everywhere (Cost 0)
@@ -266,7 +266,7 @@ let of_entries lit entries =
       | Some c -> c
       | None ->
           if String.equal q stuck && not (starts (fst key)) then Cost 0
-          else No_run)
+          else No_trace)
 
 let is_entry = function
   | Grade.Tuple [ Grade.Name _; Grade.Name _; _ ] -> true
@@ -301,7 +301,7 @@ let show m =
       || List.mem_assoc p m.entering
     in
     let others_start =
-      m.entering <> [] || m.staying <> No_run || m.moving <> No_run
+      m.entering <> [] || m.staying <> No_trace || m.moving <> No_trace
     in
     let explicit start c = start || c <> Cost 0 in
     let named =
@@ -319,18 +319,19 @@ let show m =
       List.map (fun ((p, q), c) -> entry p q c) named
       @ List.map (fun (p, c) -> entry p unnamed c) m.leaving
       @ List.map (fun (q, c) -> entry unnamed q c) m.entering
-      @ (if m.staying = No_run then [] else [ entry unnamed unnamed m.staying ])
-      @ (if m.moving = No_run then []
+      @ (if m.staying = No_trace then []
+         else [ entry unnamed unnamed m.staying ])
+      @ (if m.moving = No_trace then []
          else [ entry unnamed unnamed_other m.moving ])
       @
       if
-        m.other_to_stuck = No_run
+        m.other_to_stuck = No_trace
         || not (explicit others_start m.other_to_stuck)
       then []
       else [ entry unnamed stuck m.other_to_stuck ]
     in
     match (m.modes, m.moving, m.other_to_stuck, entries) with
-    | [], No_run, No_run, _ -> show_cost m.staying
+    | [], No_trace, No_trace, _ -> show_cost m.staying
     | _, _, _, [] -> entry stuck stuck (Cost 0)
     | _, _, _, [ e ] -> e
     | _ -> "(" ^ String.concat ", " entries ^ ")"

@@ -1,28 +1,29 @@
 open Grade
 module L = RegularTraceGradeRational
 module A = DelayAutomaton
-module Closure = DelayCostClosure
+module Closure = DelayTimedClosure
 
-(* [extremum b] is the extremal value of the finite end [b] of runtime bounds,
-   attained iff [b] is closed. *)
+(* [extremum b] is the extremal value of the finite end [b] of running-time
+   bounds, attained iff [b] is closed. *)
 let extremum = function
   | Closed q -> DelaySet.Finite (q, true)
   | Open q -> DelaySet.Finite (q, false)
   | Unbounded -> DelaySet.Infinite
 
-(* [end_of_extremum (q, attained)] is the end of runtime bounds of value [q],
-   closed iff [attained]. *)
+(* [end_of_extremum (q, attained)] is the end of running-time bounds of value
+   [q], closed iff [attained]. *)
 let end_of_extremum (q, attained) = if attained then Closed q else Open q
 
 (* [world endpoint bounds rhos] is the operations of a comparison of the grades
-   [rhos], each with the extremal value of the [endpoint] of its runtime bounds
-   as its cost: the names [rhos] mention, and of the other declared operations,
-   which [rhos] do not tell apart, the least name of each cost. *)
+   [rhos], each with the extremal value of the [endpoint] of its running-time
+   bounds as its running time: the names [rhos] mention, and of the other
+   declared operations, which [rhos] do not tell apart, the least name of each
+   running time. *)
 let world endpoint bounds rhos =
   let mentioned =
     List.sort_uniq String.compare (List.concat_map L.events rhos)
   in
-  let cost name = extremum (endpoint (bounds.cost name)) in
+  let running_time name = extremum (endpoint (bounds.running_time name)) in
   let others =
     List.filter
       (fun name -> not (List.mem name mentioned))
@@ -31,7 +32,7 @@ let world endpoint bounds rhos =
   let representatives =
     List.fold_left
       (fun reps name ->
-        let c = cost name in
+        let c = running_time name in
         if List.exists (fun (_, c') -> DelaySet.equal_extremum c c') reps then
           reps
         else (name, c) :: reps)
@@ -39,16 +40,18 @@ let world endpoint bounds rhos =
   in
   List.sort
     (fun (n, _) (n', _) -> String.compare n n')
-    (List.map (fun name -> (name, cost name)) mentioned @ representatives)
+    (List.map (fun name -> (name, running_time name)) mentioned
+    @ representatives)
 
 type order = {
   decide : Closure.world -> A.t -> A.t -> A.symbol list option;
-  endpoint : runtime -> Rational.t bound;
+  endpoint : running_time -> Rational.t bound;
   top : L.t;
 }
-(* An order on runs: the search for a word of the lesser grade outside the
-   closure of the greater one, the end of the runtime bounds it reads as the
-   cost of an operation, and the representation of its greatest grade. *)
+(* An order on traces: the search for a word of the lesser grade outside the
+   closure of the greater one, the end of the running-time bounds it reads as
+   the running time of an operation, and the representation of its greatest
+   grade. *)
 
 let allowance = { decide = Closure.allowance; endpoint = snd; top = L.top }
 let coverage = { decide = Closure.coverage; endpoint = fst; top = L.one }
@@ -87,16 +90,16 @@ let implied_bounds bounds lower upper =
       Some (end_of_extremum fastest, end_of_extremum slowest)
   | _ -> None
 
-(* [lower_shadow lo] is the lower time shadow of the lower end [lo] of runtime
-   bounds: [{lo}] if it is closed, and [{(lo, ∞)}], covered by the runs longer
-   than [lo], if it is open. *)
+(* [lower_shadow lo] is the lower time shadow of the lower end [lo] of
+   running-time bounds: [{lo}] if it is closed, and [{(lo, ∞)}], covered by the
+   traces longer than [lo], if it is open. *)
 let lower_shadow = function
   | Open q -> L.of_lit (Braces (Delays (Open q, Unbounded)))
   | lo -> L.of_delay (end_value lo)
 
-(* [upper_shadow hi] is the upper time shadow of the upper end [hi] of runtime
-   bounds: [{hi}] if it is closed, and [{[0, hi)}], permitting the runs shorter
-   than [hi], if it is open. *)
+(* [upper_shadow hi] is the upper time shadow of the upper end [hi] of
+   running-time bounds: [{hi}] if it is closed, and [{[0, hi)}], permitting the
+   traces shorter than [hi], if it is open. *)
 let upper_shadow = function
   | Open q -> L.of_lit (Braces (Delays (Closed Rational.zero, Open q)))
   | hi -> L.of_delay (end_value hi)

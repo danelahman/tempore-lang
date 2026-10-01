@@ -1,25 +1,26 @@
-(** Closures of regular languages of runs under the allowance and coverage
+(** Closures of regular languages of traces under the allowance and coverage
     orders of timed traces.
 
-    {2 Runs and costs}
+    {2 Traces and running times}
 
-    A run is a word over the letters of a {!Dfa}: the letter [0] is a tick and
-    every other letter [a] an operation of cost [cost a], a non-negative
-    integer. The weight of a word is its number of ticks plus the costs of its
-    operations. A letter may stand for a class of operations of equal cost for
-    which the language closed is saturated, the closure then being saturated for
-    it too ({!RegularCostTraceGrades.Derivatives}): the closures step by one
-    letter per class.
+    A trace is a word over the letters of a {!Dfa}: the letter [0] is a tick and
+    every other letter [a] an operation of running time [running_time a], a
+    non-negative integer. The weight of a word is its number of ticks plus the
+    running times of its operations. A letter may stand for a class of
+    operations of equal running time for which the language closed is saturated,
+    the closure then being saturated for it too
+    ({!RegularTimedTraceGrades.Derivatives}): the closures step by one letter
+    per class.
 
     {2 Orders}
 
     The two orders are those of {!TimedTrace.Make.allowance} and
     {!TimedTrace.Make.coverage} at budget [0], read on words, a delay of [n]
-    time steps being [n] ticks. By their segment characterisation, a run [s] is
-    permitted by a bound [t], [s ≼ᵃ t], iff they factor as
+    time steps being [n] ticks. By their segment characterisation, a trace [s]
+    is permitted by a bound [t], [s ≼ᵃ t], iff they factor as
     [s = s₀ o₁ s₁ ⋯ oₙ sₙ] and [t = t₀ o₁ t₁ ⋯ oₙ tₙ], the operations [oᵢ]
     matched, such that the weight of each [sᵢ] is at most the number of ticks of
-    [tᵢ]; and a run [t] covers a guarantee [s], [s ≼ᶜ t], iff they so factor
+    [tᵢ]; and a trace [t] covers a guarantee [s], [s ≼ᶜ t], iff they so factor
     with each [sᵢ] a word of ticks whose length is at most the weight of [tᵢ].
 
     {2 Closures}
@@ -45,19 +46,19 @@
     letters, over sets of their states ordered by [State.compare]. *)
 module Allowance (State : Map.OrderedType) : sig
   val closure :
-    cost:(int -> int) ->
+    running_time:(int -> int) ->
     letters:int ->
     State.t Dfa.automaton ->
     State.t list Dfa.automaton
-  (** [closure ~cost ~letters m] is the automaton of the downward closure [↓m],
-      by the construction [D↓]: its states are the sets [S] of states of [m]
-      closed under reachability, [S] is final iff it holds a final state of [m],
-      and the letter [x] of weight [w] leads from [S] to the states reachable
-      from [S] by a word with at least [w] ticks (buying [x]), together with, if
-      [x] is an operation, the states reachable from the successors of [S] by
-      [x] (matching [x]). The closure is prefix-closed, and all sets without a
-      final state, which reject every word, are the empty set, the one dead
-      state.
+  (** [closure ~running_time ~letters m] is the automaton of the downward
+      closure [↓m], by the construction [D↓]: its states are the sets [S] of
+      states of [m] closed under reachability, [S] is final iff it holds a final
+      state of [m], and the letter [x] of weight [w] leads from [S] to the
+      states reachable from [S] by a word with at least [w] ticks (buying [x]),
+      together with, if [x] is an operation, the states reachable from the
+      successors of [S] by [x] (matching [x]). The closure is prefix-closed, and
+      all sets without a final state, which reject every word, are the empty
+      set, the one dead state.
 
       The sets hold only live states: [dead] must hold exactly of the states of
       [m] from which no final state is reachable. A set [S] is represented by
@@ -70,28 +71,31 @@ module Allowance (State : Map.OrderedType) : sig
 
       Buying [x] follows the descending chain of the sets reached with at least
       [0, 1, 2, …] ticks, each reached from the successors by [0] of the last,
-      until [w] or until it is stationary, so that large costs are cheap. The
-      states of the representation without a live successor by [0] leave the
-      chain, those that are their own successor by [0] stay, and where the
-      others all have leads of at least [k ≥ 1] the chain moves on [min w k]
+      until [w] or until it is stationary, so that large running times are
+      cheap. The states of the representation without a live successor by [0]
+      leave the chain, those that are their own successor by [0] stay, and where
+      the others all have leads of at least [k ≥ 1] the chain moves on [min w k]
       ticks at once, by their [leap]s. Matching [x] takes the successors by [x]
       of the states of lead [0] of the representation, the others having no live
       successor by [x]. *)
 end
 
-val allowance : cost:(int -> int) -> Dfa.t -> int list Dfa.automaton
-(** [allowance ~cost m] is {!Allowance.closure} over the table of [m]. *)
+val allowance : running_time:(int -> int) -> Dfa.t -> int list Dfa.automaton
+(** [allowance ~running_time m] is {!Allowance.closure} over the table of [m].
+*)
 
 (** The upward closures of the languages of implicit automata, over sets of
     their states ordered by [State.compare]. *)
 module Coverage (State : Map.OrderedType) : sig
   val closure :
-    cost:(int -> int) -> State.t Dfa.automaton -> State.t list Dfa.automaton
-  (** [closure ~cost m] is the automaton of the upward closure [↑m], by the
-      subset construction of the non-deterministic automaton over the states of
-      [m] in which the letter [y] of weight [w] leads from [q] to the successors
-      of [q] by [j] ticks for every [j ≤ w] (banking [y] towards a delay of
-      [m]), and, if [y] is an operation, to the successor of [q] by [y]
+    running_time:(int -> int) ->
+    State.t Dfa.automaton ->
+    State.t list Dfa.automaton
+  (** [closure ~running_time m] is the automaton of the upward closure [↑m], by
+      the subset construction of the non-deterministic automaton over the states
+      of [m] in which the letter [y] of weight [w] leads from [q] to the
+      successors of [q] by [j] ticks for every [j ≤ w] (banking [y] towards a
+      delay of [m]), and, if [y] is an operation, to the successor of [q] by [y]
       (matching [y]). The states of [m] are explored only as far as the closure
       is. The closure is a right ideal, and a set with a final state, which
       accepts every word, is its own successor; a set is dead if all its states
@@ -111,8 +115,8 @@ module Coverage (State : Map.OrderedType) : sig
       [min w k] alone, taken by the [leap] of [q]. *)
 end
 
-val coverage : cost:(int -> int) -> Dfa.t -> int list Dfa.automaton
-(** [coverage ~cost m] is {!Coverage.closure} over the table of [m]. *)
+val coverage : running_time:(int -> int) -> Dfa.t -> int list Dfa.automaton
+(** [coverage ~running_time m] is {!Coverage.closure} over the table of [m]. *)
 
 (** The least and greatest weights of the words of implicit automata over
     [letters] letters, over their states ordered by [State.compare], by
@@ -121,21 +125,29 @@ val coverage : cost:(int -> int) -> Dfa.t -> int list Dfa.automaton
     [leap] by [k]. *)
 module Weights (State : Map.OrderedType) : sig
   val min_weight :
-    cost:(int -> int) -> letters:int -> State.t Dfa.automaton -> int option
-  (** [min_weight ~cost ~letters m] is the least weight of a word of [m], or
-      [None] if [m] is empty. *)
+    running_time:(int -> int) ->
+    letters:int ->
+    State.t Dfa.automaton ->
+    int option
+  (** [min_weight ~running_time ~letters m] is the least weight of a word of
+      [m], or [None] if [m] is empty. *)
 
   val max_weight :
-    cost:(int -> int) -> letters:int -> State.t Dfa.automaton -> int option
-  (** [max_weight ~cost ~letters m] is the greatest weight of a word of [m], or
-      [None] if [m] is empty or its words have unbounded weights, i.e. a cycle
-      of positive weight lies on a path to a final state, the weights of the
-      words of [m] being unbounded iff the relaxation has not stabilised after
-      as many rounds as the graph has states. *)
+    running_time:(int -> int) ->
+    letters:int ->
+    State.t Dfa.automaton ->
+    int option
+  (** [max_weight ~running_time ~letters m] is the greatest weight of a word of
+      [m], or [None] if [m] is empty or its words have unbounded weights, i.e. a
+      cycle of positive weight lies on a path to a final state, the weights of
+      the words of [m] being unbounded iff the relaxation has not stabilised
+      after as many rounds as the graph has states. *)
 end
 
-val min_weight : cost:(int -> int) -> Dfa.t -> int option
-(** [min_weight ~cost m] is {!Weights.min_weight} over the table of [m]. *)
+val min_weight : running_time:(int -> int) -> Dfa.t -> int option
+(** [min_weight ~running_time m] is {!Weights.min_weight} over the table of [m].
+*)
 
-val max_weight : cost:(int -> int) -> Dfa.t -> int option
-(** [max_weight ~cost m] is {!Weights.max_weight} over the table of [m]. *)
+val max_weight : running_time:(int -> int) -> Dfa.t -> int option
+(** [max_weight ~running_time m] is {!Weights.max_weight} over the table of [m].
+*)

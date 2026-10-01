@@ -45,9 +45,9 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let witnesses ~degree:_ _bounds _ = (L.elements, Grade.Complete)
 end
 
-(** [intersect b b'] is the intersection of the runtime bounds [b] and [b'],
-    either possibly absent: the greater of the lower ends and the lesser of the
-    upper ends ({!Grade.compare_ends}). *)
+(** [intersect b b'] is the intersection of the running-time bounds [b] and
+    [b'], either possibly absent: the greater of the lower ends and the lesser
+    of the upper ends ({!Grade.compare_ends}). *)
 let intersect b b' =
   match (b, b') with
   | Some (lo, hi), Some (lo', hi') ->

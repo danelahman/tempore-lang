@@ -34,14 +34,15 @@
 module Ast = Language.Ast
 
 type ('rho, 'eps) types = {
-  bounds : Grades.Grade.bounds;  (** the cost model of the grades' order *)
+  bounds : Grades.Grade.bounds;
+      (** the running times the grades' order reads *)
   find_definition :
     Ast.ty_name -> (Ast.ty_param list * ('rho, 'eps) Ast.ty_def) option;
       (** the parameters and definition of a type name *)
   is_noneternal : Ast.ty_name -> bool;
       (** whether a type name is declared [noneternal] *)
 }
-(** What decomposition reads of the program: the cost model and the type
+(** What decomposition reads of the program: the running times and the type
     definitions. *)
 
 module Make (C : Constraint.S) : sig
@@ -58,7 +59,7 @@ module Make (C : Constraint.S) : sig
   (** Reasons. *)
 
   type context = (rho, eps) types
-  (** The cost model and type definitions at open grades. *)
+  (** The running times and type definitions at open grades. *)
 
   (** {1 Atoms} *)
 

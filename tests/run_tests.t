@@ -2350,7 +2350,7 @@
   ======================================================================
   nat_division_by_zero.tpe
   ======================================================================
-  Runtime error: Division by zero
+  Run-time error: Division by zero
   ======================================================================
   nat_large_literals.tpe
   ======================================================================
@@ -3527,14 +3527,14 @@
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
-  regex_timed_interval_runs_reject.tpe
+  regex_timed_interval_ticks_reject.tpe
   ======================================================================
-  File "regex_timed_interval_runs_reject.tpe", line 12, characters 6-34:
+  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_runs_reject.tpe", line 19, characters 33-61:
+  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
@@ -3600,9 +3600,9 @@
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
   ======================================================================
-  regex_timed_lower_runs_reject.tpe
+  regex_timed_lower_ticks_reject.tpe
   ======================================================================
-  File "regex_timed_lower_runs_reject.tpe", line 11, characters 6-30:
+  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
@@ -3734,7 +3734,7 @@
                                     ^
     `p` is bound here
     File "regex_timed_rational_lower_reject.tpe", line 30, characters 2-15:
-    30 |   some_pause ();
+    30 |   some_delay ();
            ^^^^^^^^^^^^^
     grade `{(0, 1)}` accumulates here (this computation)
     Note: the resource inequality `{(0, 1)} <= {0.5}` does not hold
@@ -3840,7 +3840,7 @@
                                      ^
     `b` is bound here
     File "regex_timed_rational_upper_reject.tpe", line 34, characters 2-16:
-    34 |   short_pause ();
+    34 |   short_delay ();
            ^^^^^^^^^^^^^^
     grade `{[0, 0.5)}` accumulates here (this computation)
     File "regex_timed_rational_upper_reject.tpe", line 35, characters 2-16:
@@ -3848,7 +3848,7 @@
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
     File "regex_timed_rational_upper_reject.tpe", line 36, characters 2-16:
-    36 |   short_pause ();
+    36 |   short_delay ();
            ^^^^^^^^^^^^^^
     grade `{[0, 0.5)}` accumulates here (this computation)
     Note: the resource inequality `{[0, 0.5); Send; [0, 0.5)} <= {1.99}` does not hold
@@ -3978,7 +3978,7 @@
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
-  regex_timed_upper_runs.tpe
+  regex_timed_upper_ticks.tpe
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -3988,19 +3988,19 @@
   ]
   
   ======================================================================
-  regex_timed_upper_runs_reject.tpe
+  regex_timed_upper_ticks_reject.tpe
   ======================================================================
-  File "regex_timed_upper_runs_reject.tpe", line 12, characters 6-23:
+  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 17, characters 26-43:
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 20, characters 27-44:
+  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
@@ -5879,14 +5879,14 @@ automata, the programs over rational delays excepted:
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
-  regex_timed_interval_runs_reject.tpe (regex-timed-interval-letter-automata)
+  regex_timed_interval_ticks_reject.tpe (regex-timed-interval-letter-automata)
   ======================================================================
-  File "regex_timed_interval_runs_reject.tpe", line 12, characters 6-34:
+  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_runs_reject.tpe", line 19, characters 33-61:
+  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
@@ -5952,9 +5952,9 @@ automata, the programs over rational delays excepted:
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
   ======================================================================
-  regex_timed_lower_runs_reject.tpe (regex-timed-lower-bound-letter-automata)
+  regex_timed_lower_ticks_reject.tpe (regex-timed-lower-bound-letter-automata)
   ======================================================================
-  File "regex_timed_lower_runs_reject.tpe", line 11, characters 6-30:
+  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
@@ -6059,7 +6059,7 @@ automata, the programs over rational delays excepted:
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
-  regex_timed_upper_runs.tpe (regex-timed-upper-bound-letter-automata)
+  regex_timed_upper_ticks.tpe (regex-timed-upper-bound-letter-automata)
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -6069,19 +6069,19 @@ automata, the programs over rational delays excepted:
   ]
   
   ======================================================================
-  regex_timed_upper_runs_reject.tpe (regex-timed-upper-bound-letter-automata)
+  regex_timed_upper_ticks_reject.tpe (regex-timed-upper-bound-letter-automata)
   ======================================================================
-  File "regex_timed_upper_runs_reject.tpe", line 12, characters 6-23:
+  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 17, characters 26-43:
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 20, characters 27-44:
+  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
@@ -6741,26 +6741,26 @@ implementations above, the examples over rational delays excepted:
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
-  regex_timed_interval_runs_reject.tpe (regex-timed-interval-symbolic-by-letters)
+  regex_timed_interval_ticks_reject.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_interval_runs_reject.tpe", line 12, characters 6-34:
+  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_runs_reject.tpe", line 19, characters 33-61:
+  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
-  regex_timed_interval_runs_reject.tpe (regex-timed-interval-letter-derivatives)
+  regex_timed_interval_ticks_reject.tpe (regex-timed-interval-letter-derivatives)
   ======================================================================
-  File "regex_timed_interval_runs_reject.tpe", line 12, characters 6-34:
+  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
   12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_runs_reject.tpe", line 19, characters 33-61:
+  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
   19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
@@ -6887,16 +6887,16 @@ implementations above, the examples over rational delays excepted:
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
     Note: the grade `{Ping}` is below `{Ping | Fetch; 1}` but not below `{3}`
   ======================================================================
-  regex_timed_lower_runs_reject.tpe (regex-timed-lower-bound-symbolic-by-letters)
+  regex_timed_lower_ticks_reject.tpe (regex-timed-lower-bound-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_lower_runs_reject.tpe", line 11, characters 6-30:
+  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
-  regex_timed_lower_runs_reject.tpe (regex-timed-lower-bound-letter-derivatives)
+  regex_timed_lower_ticks_reject.tpe (regex-timed-lower-bound-letter-derivatives)
   ======================================================================
-  File "regex_timed_lower_runs_reject.tpe", line 11, characters 6-30:
+  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
   11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
@@ -7101,7 +7101,7 @@ implementations above, the examples over rational delays excepted:
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
-  regex_timed_upper_runs.tpe (regex-timed-upper-bound-symbolic-by-letters)
+  regex_timed_upper_ticks.tpe (regex-timed-upper-bound-symbolic-by-letters)
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -7111,7 +7111,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  regex_timed_upper_runs.tpe (regex-timed-upper-bound-letter-derivatives)
+  regex_timed_upper_ticks.tpe (regex-timed-upper-bound-letter-derivatives)
   ======================================================================
   === Run 1 ===
   return (Token "l")
@@ -7121,36 +7121,36 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  regex_timed_upper_runs_reject.tpe (regex-timed-upper-bound-symbolic-by-letters)
+  regex_timed_upper_ticks_reject.tpe (regex-timed-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_upper_runs_reject.tpe", line 12, characters 6-23:
+  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 17, characters 26-43:
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 20, characters 27-44:
+  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   ======================================================================
-  regex_timed_upper_runs_reject.tpe (regex-timed-upper-bound-letter-derivatives)
+  regex_timed_upper_ticks_reject.tpe (regex-timed-upper-bound-letter-derivatives)
   ======================================================================
-  File "regex_timed_upper_runs_reject.tpe", line 12, characters 6-23:
+  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
   12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 17, characters 26-43:
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
   17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_runs_reject.tpe", line 20, characters 27-44:
+  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
   20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
@@ -7385,7 +7385,7 @@ second by the defaults of its operations.
   
 
 The example of the regular trace grade over rational delays runs to its value
-under a grade permitting the pauses of more than a second that are not whole.
+under a grade permitting the delays of more than a second that are not whole.
 
   $ ../tempore --grades regex-upper-bound-rational-symbolic ../examples/regular/upper_bounds_rational.tpe
   === Run 1 ===

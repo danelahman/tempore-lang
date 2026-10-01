@@ -62,10 +62,11 @@ module Make (C : Constraint.S) = struct
     constructors : Ast.ty_name LabelMap.t;
     noneternal : Ast.TyNameSet.t;
     op_signatures : op_signature Ast.OpNameMap.t;
-    op_bounds : Grades.Grade.runtime StringMap.t;
+    op_bounds : Grades.Grade.running_time StringMap.t;
     op_defaults : DefaultGraph.default Ast.OpNameMap.t;
-    world : Grades.Grade.runtime StringMap.t;
-        (** the operations the whole program declares with runtime bounds *)
+    world : Grades.Grade.running_time StringMap.t;
+        (** the operations the whole program declares with running-time bounds
+        *)
   }
 
   let set_type_definition name def env =
@@ -322,14 +323,14 @@ module Make (C : Constraint.S) = struct
   (* Program syntax                                                      *)
   (* ------------------------------------------------------------------ *)
 
-  let cost_model ~loc env =
+  let running_times ~loc env =
     let bounds event =
       match StringMap.find_opt event env.world with
       | Some bounds -> Some bounds
       | None -> StringMap.find_opt event env.op_bounds
     in
     {
-      Grades.Grade.cost =
+      Grades.Grade.running_time =
         (fun event ->
           match bounds event with
           | Some bounds -> bounds
@@ -341,10 +342,10 @@ module Make (C : Constraint.S) = struct
       operations = List.map fst (StringMap.bindings env.world);
     }
 
-  (* A grade constant read from the source at [at] must denote a run of the
+  (* A grade constant read from the source at [at] must denote a trace of the
      operations declared in [env]. *)
   let check_inhabited ~inhabited ~show env c = function
-    | Some loc when not (inhabited (cost_model ~loc env) c) ->
+    | Some loc when not (inhabited (running_times ~loc env) c) ->
         Error.typing ~loc
           "The grade `%s` permits no trace over the declared operations"
           (show c)
@@ -447,7 +448,7 @@ module Make (C : Constraint.S) = struct
     check_strictly_positive ~loc env' group;
     settle_polarities env' group
 
-  (* The runtime bounds of the operations, extended by those of [op_name],
+  (* The running-time bounds of the operations, extended by those of [op_name],
      declared or implied by its grade. *)
   let checked_op_bounds ~loc env op_name grade bounds =
     let event_bounds ev =
@@ -504,7 +505,7 @@ module Make (C : Constraint.S) = struct
             op_name (GS.E.show c);
         match
           GS.E.implied_bounds
-            { (cost_model ~loc env) with cost = event_bounds }
+            { (running_times ~loc env) with running_time = event_bounds }
             c
         with
         | Some bounds -> StringMap.add op_name bounds env.op_bounds
@@ -1528,7 +1529,7 @@ module Make (C : Constraint.S) = struct
     let op_name = Ast.OpName.string_of op in
     match
       ( StringMap.find_opt op_name env.op_bounds,
-        GS.E.implied_bounds (cost_model ~loc env) grade )
+        GS.E.implied_bounds (running_times ~loc env) grade )
     with
     | Some (lo, hi), Some (lo', hi')
       when Grades.Grade.compare_ends ~lower:true lo lo' > 0

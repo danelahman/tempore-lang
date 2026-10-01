@@ -28,11 +28,11 @@ let eventually_send (n : nat) =
   tok
 
 (* Delays of more than a quarter cover a guarantee of a quarter. *)
-let long_pause () : unit # {(1/4, ∞)} = delay 1/3
+let long_delay () : unit # {(1/4, ∞)} = delay 1/3
 
-let paused () =
+let delayed () =
   box {1/4} (Token "p") as p in
-  long_pause ();
+  long_delay ();
   unbox p as tok in
   tok
 

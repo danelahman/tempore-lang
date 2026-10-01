@@ -5,8 +5,8 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
 
   module UpperBound = struct
     type t =
-      | Within of Trace.traces  (** every run is a listed one *)
-      | Unbounded  (** any run; printed as [⊤] *)
+      | Within of Trace.traces  (** every trace is a listed one *)
+      | Unbounded  (** any trace; printed as [⊤] *)
 
     module Delay = D
 
@@ -43,8 +43,8 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
     let is_top _bounds = function Unbounded -> true | Within _ -> false
     let hash = function Within p -> Trace.hash p | Unbounded -> -1
 
-    (** The least run of the left side not listed by the right side; [⊤] itself
-        where the right side alone is a set of runs. *)
+    (** The least trace of the left side not listed by the right side; [⊤]
+        itself where the right side alone is a set of traces. *)
     let counterexample _bounds p q =
       match (p, q) with
       | _, Unbounded -> None
@@ -62,7 +62,7 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
 
     (** The time shadow of exact bounds is their delay, and that of other bounds
         [⊤], which is above every delay between them. The operations declare no
-        runtime bounds under these grades, so it is not used. *)
+        running-time bounds under these grades, so it is not used. *)
     let of_bounds b =
       let lo, hi = hull b in
       if D.equal lo hi then of_delay lo else Unbounded

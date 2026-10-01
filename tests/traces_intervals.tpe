@@ -174,7 +174,7 @@ let send_retry =
 (* Correctly accepted by the typechecker: the receipt may be read only once a
    transmission has gone out, which banks at least the two ticks the lower
    bound demands, and the session expires after the six ticks of the upper
-   bound, which a retried send costs at most. *)
+   bound, which a retried send takes at most. *)
 let send_telemetry () =
   handle
     box [2, 6] (Receipt "telemetry") as slot in
@@ -428,7 +428,7 @@ let send_lazy =
 *)
 
 (* Correctly rejected by the typechecker: the session expires after five
-   ticks, which does not pay for a retried send, which costs 3 + 3:
+   ticks, which does not pay for a retried send, which takes 3 + 3:
 
      Typing error: Variable `slot` is unboxed with grade
        `[{Tx | Tx; Tx}, {Tx | Tx; Tx}]` accumulated since it was bound, which is

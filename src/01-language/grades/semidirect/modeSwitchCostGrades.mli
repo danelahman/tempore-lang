@@ -24,7 +24,7 @@
     alike. *)
 
 (** The costs: no trace, below the natural numbers, below [∞]. *)
-type cost = No_run | Cost of int | Unbounded
+type cost = No_trace | Cost of int | Unbounded
 
 (** The mode-switch-cost grade over any delays [D], as {!ModeSwitchCosts}. *)
 module Make (D : Delay.S) : Grade.S with type Delay.t = D.t

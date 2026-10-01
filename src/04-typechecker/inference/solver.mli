@@ -33,7 +33,7 @@
 
 module Make (C : Constraint.S) : sig
   type context = Residual.Make(C).context
-  (** The cost model and the type definitions. *)
+  (** The running times and the type definitions. *)
 
   type failure = Residual.Make(C).failure
   (** Why a constraint has no solution. *)
@@ -47,7 +47,8 @@ module Make (C : Constraint.S) : sig
         (** the atoms left on the unknowns, the hypotheses [Q] *)
     obligations : Residual.Make(C).deferred list;
         (** the deferred rigid conditions, the obligations [R] *)
-    context : context;  (** the cost model and type definitions solved under *)
+    context : context;
+        (** the running times and type definitions solved under *)
   }
   (** A solution: every instance of the unknowns satisfying [Q] and [R]
       satisfies the constraint through [subst]. *)

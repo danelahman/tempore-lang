@@ -94,7 +94,7 @@ module type S = sig
 
     val equal : Grades.Grade.bounds -> t -> t -> bool
     (** [equal bounds eps eps'] is syntactic equality, constants compared by the
-        grade's [equal] under the cost model [bounds]. *)
+        grade's [equal] under the running times [bounds]. *)
 
     val print : t -> Format.formatter -> unit
     (** [print eps ppf] prints [eps], products binding tighter than joins. *)
@@ -159,7 +159,7 @@ module type S = sig
 
     val equal : Grades.Grade.bounds -> t -> t -> bool
     (** [equal bounds rho rho'] is syntactic equality, constants compared by the
-        grades' [equal] under the cost model [bounds]. *)
+        grades' [equal] under the running times [bounds]. *)
 
     val print : t -> Format.formatter -> unit
     (** [print rho ppf] prints [rho], products binding tighter than joins. *)

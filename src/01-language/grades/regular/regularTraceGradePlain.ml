@@ -193,9 +193,9 @@ let canonical rho = RegularTraceGradeDerivative.canonical (symbolic rho)
 let show rho = RegularTraceGradeDerivative.show (symbolic rho)
 let witnesses ~degree:_ _bounds = Grade.sampled mul
 
-(** {1 Runs over given names} *)
+(** {1 Traces over given names} *)
 
-let runs names rho =
+let traces names rho =
   let letters =
     Array.of_list
       (Letters.tick
@@ -221,4 +221,4 @@ module Tables = Dfa.Implicit (struct
 end)
 
 let concrete names rho =
-  Tables.canonical (List.length names + 1) (runs names rho)
+  Tables.canonical (List.length names + 1) (traces names rho)

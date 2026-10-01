@@ -19,8 +19,8 @@
     payloads of the hypotheses it uses, and a failed closed check the payloads
     of the hypotheses whose chain it refutes.
 
-    Every operation depending on the grades' order or equality takes the cost
-    model {!Grades.Grade.bounds}. *)
+    Every operation depending on the grades' order or equality takes the running
+    times {!Grades.Grade.bounds}. *)
 
 type ('c, 'v) atom =
   | Const of 'c  (** a closed grade *)

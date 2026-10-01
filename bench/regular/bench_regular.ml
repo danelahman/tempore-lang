@@ -31,7 +31,7 @@ module Grade = Grades.Grade
 
 let bounds =
   {
-    Grade.cost =
+    Grade.running_time =
       (fun _ -> Grades.Rational.(Grade.Closed zero, Grade.Closed zero));
     operations = [];
   }
@@ -386,14 +386,14 @@ end
 
 (** {1 Workloads of the grades of timed operations} *)
 
-(* The cost model declaring [operations], whose runtime bounds are [(1, 2)],
+(* The running times of [operations]: their running-time bounds are [(1, 2)],
    [(2, 3)] or [(3, 4)] by the length of their names. *)
 let cost_model operations =
-  let cost name =
+  let running_time name =
     let lo = 1 + (String.length name mod 3) in
     Grades.Rational.(Grade.Closed (of_int lo), Grade.Closed (of_int (lo + 1)))
   in
-  { Grade.cost; operations }
+  { Grade.running_time; operations }
 
 let corpus_names =
   [ "Open"; "Read"; "Write"; "Close"; "Auth"; "Fetch"; "Revoke"; "Send" ]
@@ -560,9 +560,9 @@ let cost_programs grade =
   List.filter Sys.file_exists
     (List.map
        (fun name -> "tests/regex_timed_" ^ grade ^ name ^ ".tpe")
-       [ ""; "_reject"; "_runs"; "_runs_reject" ])
+       [ ""; "_reject"; "_ticks"; "_ticks_reject" ])
 
-module Cost = Grades.RegularCostTraceGrades
+module Cost = Grades.RegularTimedTraceGrades
 
 (* The programs typechecked under the grade of timed operations [grade], the
    example first. *)

@@ -7,7 +7,7 @@ module type S = sig
 
   val of_regex : Grade.regex -> t
   val concrete : string list -> t -> Dfa.t
-  val runs : string list -> t -> t Dfa.automaton
+  val traces : string list -> t -> t Dfa.automaton
   val canonical : t -> LetterRegex.t option
 end
 
@@ -124,13 +124,13 @@ struct
            %s"
           (describe_lit lit)
 
-  (** {1 Runs over given names} *)
+  (** {1 Traces over given names} *)
 
   (** [letters names] is the letter set of each letter over [names]: [tick],
       numbered [0], and the names, numbered from [1] in their order. *)
   let letters names = Array.of_list (Letters.tick :: List.map Letters.name names)
 
-  let runs names rho =
+  let traces names rho =
     let letters = letters names in
     {
       Dfa.start = rho;

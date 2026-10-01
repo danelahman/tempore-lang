@@ -86,7 +86,7 @@ let print_sword () =
   with printer
 
 (* Correctly accepted by the typechecker: the same bound realised by hand,
-   without the handler --- the three steps and the closing rest cost at most
+   without the handler --- the three steps and the closing rest take at most
    2 + 5 + 2 + 2 = 11, which is exactly what the epoxy of 'MixEpoxy' allows. *)
 let print_cog () =
   let glue = perform MixEpoxy () in
@@ -147,7 +147,7 @@ let send_retry =
   | Send msg k -> perform Tx msg; perform Tx msg; continue k with ()
 
 (* Correctly accepted by the typechecker: the receipt must be collected within
-   six ticks, which pays for the costlier alternative of 'Send', because
+   six ticks, which pays for the slower alternative of 'Send', because
    3 + 3 = 6. *)
 let send_telemetry () =
   handle
@@ -158,7 +158,7 @@ let send_telemetry () =
   with send_retry
 
 (* Correctly accepted by the typechecker: a strict super-grade of what the send
-   costs, spelled out as events instead of ticks --- each alternative of 'Send'
+   takes, spelled out as events instead of ticks --- each alternative of 'Send'
    fits inside one of the two traces the receipt allows. *)
 let send_by_events () =
   box {Tx; Tx | 10} (Receipt "telemetry") as slot in
@@ -316,7 +316,7 @@ let send_lazy =
 
 (* Correctly rejected by the typechecker: the session expires after five
    ticks, which does not pay for the two-transmission alternative of 'Send',
-   which costs 3 + 3:
+   which takes 3 + 3:
 
      Typing error: Variable `slot` is unboxed with grade `{Tx | Tx; Tx}`
        accumulated since it was bound, which is not below its box grade `{5}`

@@ -3,15 +3,15 @@
 
     {2 Order}
 
-    A grade [p] is below [q] iff every run of [p] is a run of [q], the runs
-    compared in their normal form, so that adjacent delays are merged. The
-    operations declare no runtime bounds, and a delay pays for nothing. The
-    greatest grade [⊤] is a separate point, permitting any run, and absorbs
-    products and joins.
+    A grade [p] is below [q] iff every trace of [p] is a trace of [q], the
+    traces compared in their normal form, so that adjacent delays are merged.
+    The operations declare no running-time bounds, and a delay pays for nothing.
+    The greatest grade [⊤] is a separate point, permitting any trace, and
+    absorbs products and joins.
 
-    The runs of a grade are compared by equality, so an upper and a lower bound
-    both reduce to inclusion, and an interval to a pair of equal inclusions:
-    only the upper-bound grades are provided.
+    The traces of a grade are compared by equality, so an upper and a lower
+    bound both reduce to inclusion, and an interval to a pair of equal
+    inclusions: only the upper-bound grades are provided.
 
     {2 Representations}
 
@@ -27,8 +27,8 @@
 
     {2 Counterexamples and witnesses}
 
-    A failure of [p ≾ q] between sets of runs is witnessed by the least run of
-    [p] that [q] does not list. The witnesses of a closed condition are its
+    A failure of [p ≾ q] between sets of traces is witnessed by the least trace
+    of [p] that [q] does not list. The witnesses of a closed condition are its
     constants and their pairwise products ({!Grade.sampled}), which are not
     complete.
 

@@ -23,8 +23,8 @@
  (libraries utils language grades parser sugaredAst))
 
 (test
- (name test_costTraces)
- (modules test_costTraces)
+ (name test_timedTraces)
+ (modules test_timedTraces)
  (libraries grades parser sugaredAst lawChecks))
 
 (test
@@ -43,6 +43,6 @@
  (libraries utils grades parser sugaredAst))
 
 (test
- (name test_delayCostClosure)
- (modules test_delayCostClosure)
+ (name test_delayTimedClosure)
+ (modules test_delayTimedClosure)
  (libraries grades parser sugaredAst))

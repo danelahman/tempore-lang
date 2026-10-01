@@ -150,7 +150,7 @@ module Make (D : Delay.S) = struct
   module OneResource = struct
     include GradeConstructions.Product (Lower) (Upper)
 
-    let name = "resource-peak"
+    let name = "one-resource-levels"
     let one = ((Fin 0, Fin 0), (Fin 0, Fin 0))
     let leq_symbol = "<="
     let of_delay _ = one

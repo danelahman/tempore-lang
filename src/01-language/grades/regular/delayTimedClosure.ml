@@ -174,7 +174,7 @@ let longest =
     ~cycle:(Fun.const Infinite) zero
 
 let finite_part = function Finite (q, f) -> Some (q, f) | Infinite -> None
-let cost_of world name = List.assoc name world
+let running_time_of world name = List.assoc name world
 
 let max_weight world l =
   let a = graph (List.map fst world) l in
@@ -185,7 +185,7 @@ let max_weight world l =
       longest
         (edges
            ~gap:(fun s -> Option.value (DelaySet.sup s) ~default:zero)
-           ~op:(cost_of world) a)
+           ~op:(running_time_of world) a)
         0
     in
     Array.to_list a.final
@@ -207,7 +207,7 @@ let min_weight world l =
     let edges =
       edges
         ~gap:(fun s -> Option.value (DelaySet.inf s) ~default:zero)
-        ~op:(cost_of world) a
+        ~op:(running_time_of world) a
     in
     let pick best x =
       match (best, x) with
@@ -331,7 +331,7 @@ let allowance_reader world m =
   in
   let delay v config = normalise (IntMap.map (add v) config) in
   let operation name config =
-    let bought = IntMap.map (add (cost_of world name)) config in
+    let bought = IntMap.map (add (running_time_of world name)) config in
     let matched =
       IntMap.fold
         (fun p x targets ->
@@ -386,7 +386,7 @@ let coverage_reader world m =
   in
   let delay v config = normalise (IntMap.map (add v) config) in
   let operation name config =
-    let banked = IntMap.map (add (cost_of world name)) config in
+    let banked = IntMap.map (add (running_time_of world name)) config in
     let matched =
       IntMap.fold
         (fun q x targets ->
@@ -500,7 +500,7 @@ let half = Rational.make 1 2
 let choose s =
   match DelaySet.choose s with
   | Some d -> d
-  | None -> invalid_arg "DelayCostClosure.choose: an empty set of delays"
+  | None -> invalid_arg "DelayTimedClosure.choose: an empty set of delays"
 
 let open_interval lo hi =
   DelaySet.interval ~lo ~lo_closed:false ~hi:(Some hi) ~hi_closed:false
@@ -524,7 +524,7 @@ let highest ~above eps s =
         (DelaySet.inter s
            (DelaySet.interval ~lo:above ~lo_closed:true ~hi:None
               ~hi_closed:false))
-  | None -> invalid_arg "DelayCostClosure.highest: an empty set of delays"
+  | None -> invalid_arg "DelayTimedClosure.highest: an empty set of delays"
 
 (* [lowest eps s] is a delay of [s] close to its infimum: the minimum if
    attained, and otherwise the simplest delay of [s] within [eps] above it. *)
@@ -538,7 +538,7 @@ let lowest eps s =
         (open_interval q
            (if Rational.compare bottom.hi hi < 0 then bottom.hi else hi))
   | Some Infinite | None ->
-      invalid_arg "DelayCostClosure.lowest: an empty set of delays"
+      invalid_arg "DelayTimedClosure.lowest: an empty set of delays"
 
 (* [concretise delay rejects steps] is the word of the path [steps], each set
    of delays read as the delay [delay eps] chooses from it, for the first [eps]

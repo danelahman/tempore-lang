@@ -12,7 +12,7 @@ type t = {
 let kind_to_string = function
   | Syntax -> "Syntax error"
   | Typing -> "Typing error"
-  | Runtime -> "Runtime error"
+  | Runtime -> "Run-time error"
   | Fatal -> "Fatal error"
 
 let lines text = String.split_on_char '\n' text

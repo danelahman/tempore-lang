@@ -64,8 +64,8 @@ module type S = sig
       reads, the value of the least delay above [q] if [lower], and of the
       greatest delay below [q] otherwise, if there is one: [q + 1] and [q - 1]
       over whole time steps, and none over the rationals, which are dense. An
-      open end of runtime bounds is the closed end it gives
-      ({!Grade.close_runtime}). *)
+      open end of running-time bounds is the closed end it gives
+      ({!Grade.close_running_time}). *)
 end
 
 (** Totally ordered monoids of delays, for time bounds and intervals.
@@ -118,7 +118,7 @@ module type MONUS = sig
 end
 
 (** Ordered monoids of delays with a monus, measured by the non-negative
-    rationals, which are also the runtime bounds of the cost model.
+    rationals, which are also the running-time bounds of the operations.
 
     Laws, in addition to those of {!MONUS}:
     - [to_rational] is a monoid morphism into [(ℚ≥0, +, 0)] and an order

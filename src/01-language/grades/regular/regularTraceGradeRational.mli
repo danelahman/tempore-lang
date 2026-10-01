@@ -2,16 +2,16 @@
     ["regex-upper-bound-rational-symbolic"]: non-empty timed regular languages,
     ordered by inclusion and multiplied by concatenation.
 
-    {2 Runs as timed words}
+    {2 Traces as timed words}
 
-    A run is read as a timed word ({!DelayAutomaton}): its operations, and its
+    A trace is read as a timed word ({!DelayAutomaton}): its operations, and its
     delays as non-negative rationals, adjacent delays added. A grade bounds the
-    runs permitted from above: a run is permitted iff its timed word is in the
-    language. The order is inclusion, the product concatenation, which adds the
-    delays that meet, the join union, the unit the language [{ε}] of the empty
-    word, i.e. of the delay [0], and the top the language of all timed words.
-    The top is not absorbing: [{3}] multiplied by [⊤] permits only the runs that
-    begin with a delay of at least [3].
+    traces permitted from above: a trace is permitted iff its timed word is in
+    the language. The order is inclusion, the product concatenation, which adds
+    the delays that meet, the join union, the unit the language [{ε}] of the
+    empty word, i.e. of the delay [0], and the top the language of all timed
+    words. The top is not absorbing: [{3}] multiplied by [⊤] permits only the
+    traces that begin with a delay of at least [3].
 
     Unlike {!RegularTraceGrade}, a delay is a single letter however long or
     fine: no delay is unrolled into time steps, and no resolution of the
@@ -25,7 +25,7 @@
     [\[q, ∞)] or [(q, ∞)], and [_], every operation and every positive delay,
     combined with [;], [|], [&], [~] and [*], e.g.
     [{Read; (0, 1/2); Send | ~Write}]. The complement is taken over all timed
-    words: [~1] permits every run but the delay [1]. A plain number [q]
+    words: [~1] permits every trace but the delay [1]. A plain number [q]
     abbreviates [{q}], and [⊤] (ASCII [top]) is [_*]. A literal denoting the
     empty language, or a negative delay, is rejected.
 
@@ -55,13 +55,13 @@
     The witnesses of a closed condition are its constants and their pairwise
     products ({!Grade.sampled}), which are not complete.
 
-    {2 Runtime bounds}
+    {2 Running-time bounds}
 
-    The order does not read the runtime bounds of operations, which therefore
-    declare none. {!Grade.S.implied_bounds} is [None]; {!Grade.S.of_bounds}
-    [(lo, hi)] is the language of the delays from [lo] to [hi]; the events of a
-    grade are the names its automaton tells apart from the others; and a grade
-    is atomic for [name] iff it is the language [{name}]. *)
+    The order does not read the running-time bounds of operations, which
+    therefore declare none. {!Grade.S.implied_bounds} is [None];
+    {!Grade.S.of_bounds} [(lo, hi)] is the language of the delays from [lo] to
+    [hi]; the events of a grade are the names its automaton tells apart from the
+    others; and a grade is atomic for [name] iff it is the language [{name}]. *)
 
 include Grade.S with type Delay.t = Delay.Rational.t
 

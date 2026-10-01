@@ -22,7 +22,7 @@ let show_names names = "[" ^ String.concat "; " names ^ "]"
 
 let bounds =
   {
-    Grade.cost =
+    Grade.running_time =
       (fun _ -> Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
     operations = [];
   }
@@ -76,7 +76,7 @@ let levels =
     check "levels: equal" (L.equal bounds High High) "High = High";
     expect "levels: unit least" show_bool ~expected:true L.unit_least;
     expect "levels: commutative" show_bool ~expected:true L.commutative;
-    expect "levels: no runtime bounds" show_bool ~expected:false
+    expect "levels: no running-time bounds" show_bool ~expected:false
       L.needs_op_bounds;
     expect "levels: atomic" show_bool ~expected:true (L.is_atomic "Send" High);
     expect "levels: no events" show_names ~expected:[] (L.events High);
@@ -190,10 +190,10 @@ let products =
       TimeLevels.leq_symbol;
     expect "product: shared order symbol" Fun.id ~expected:"<="
       UpperLevels.leq_symbol;
-    expect "product: runtime bounds from either component" show_bool
+    expect "product: running-time bounds from either component" show_bool
       ~expected:true TraceLevels.needs_op_bounds;
-    expect "product: no runtime bounds in neither" show_bool ~expected:false
-      TimeLevels.needs_op_bounds;
+    expect "product: no running-time bounds in neither" show_bool
+      ~expected:false TimeLevels.needs_op_bounds;
     expect "product: events of either component" show_names ~expected:[ "Send" ]
       (TraceLevels.events send_top);
     expect "product: atomic in both" show_bool ~expected:true
@@ -238,14 +238,14 @@ let rational_inclusion_upper =
 let regex_upper = (module Grades.RegularTraceGradeDerivative : Grade.S)
 let rational_regex_upper = (module Grades.RegularTraceGradeRational : Grade.S)
 
-let rational_regex_costs_lower =
-  (module Grades.RegularCostTraceGradesRational.Lower : Grade.S)
+let rational_regex_timed_lower =
+  (module Grades.RegularTimedTraceGradesRational.Lower : Grade.S)
 
-let rational_regex_costs_upper =
-  (module Grades.RegularCostTraceGradesRational.Upper : Grade.S)
+let rational_regex_timed_upper =
+  (module Grades.RegularTimedTraceGradesRational.Upper : Grade.S)
 
-let rational_regex_costs_interval =
-  (module Grades.RegularCostTraceGradesRational.Interval : Grade.S)
+let rational_regex_timed_interval =
+  (module Grades.RegularTimedTraceGradesRational.Interval : Grade.S)
 
 let security_levels = (module LevelGrades.SecurityLevels : Grade.S)
 
@@ -605,7 +605,7 @@ let literals =
            Tuple [ Name "On"; Name "Stuck"; Int 0 ];
          ])
       "(Off, On, 2)";
-    reads "stuck besides another run" mode_switch_costs
+    reads "stuck besides another trace" mode_switch_costs
       (Tuple
          [
            Tuple [ Name "On"; Name "On"; Int 2 ];
@@ -728,7 +728,7 @@ let literals =
     rejects "open interval of no integer" traces_interval
       (Tuple [ Int 1; Int 2 ])
       "the interval contains no integer";
-    rejects "open endpoint of a set of runs" traces_interval
+    rejects "open endpoint of a set of traces" traces_interval
       (Interval (Open (Braces send), Closed (Braces send)))
       "an endpoint that is not a number is closed";
     rejects "pair" traces_interval
@@ -952,7 +952,7 @@ let registry =
           "regex-timed-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
-    expect "registry: grades reading fractional runtime bounds" show_names
+    expect "registry: grades reading fractional running-time bounds" show_names
       ~expected:
         [
           "traces-timed-lower-bound-rational";
@@ -1453,11 +1453,11 @@ let witnesses =
 (* Laws of the registered grades                                       *)
 (* ------------------------------------------------------------------ *)
 
-(* A cost model over the operations [A], [B] and [C]. *)
-let costs =
+(* The running times of the operations [A], [B] and [C]. *)
+let running_times =
   let table = [ ("A", (1, 3)); ("B", (2, 2)); ("C", (0, 5)) ] in
   {
-    Grade.cost =
+    Grade.running_time =
       (fun o ->
         let lo, hi = List.assoc o table in
         (Grade.Closed (Rational.of_int lo), Grade.Closed (Rational.of_int hi)));
@@ -1473,7 +1473,7 @@ type family =
   | Rational_traces
   | Regex
   | Rational_regex
-  | Rational_regex_costs
+  | Rational_regex_timed
   | Levels
   | Timed_levels
   | Flow
@@ -1499,7 +1499,7 @@ let family name =
   | _
     when prefix "regex-timed-"
          && String.ends_with ~suffix:"-rational-symbolic" name ->
-      Some Rational_regex_costs
+      Some Rational_regex_timed
   | _ when prefix "regex-" -> Some Regex
   | _ when prefix "traces-" && String.ends_with ~suffix:"-rational" name ->
       Some Rational_traces
@@ -1518,16 +1518,16 @@ let letter_c = Grade.Letter "C"
 
 (* [cover family] is the literals of the cases [family] distinguishes: for the
    time grades, integers, fractions, [∞] and intervals such as '[0, ∞)'; for the
-   trace grades without running times, sets of runs of which some include
-   others; for the trace and regular grades, the operations of [costs], delays,
-   unions, sequences and, for the regular grades, repetitions, the catch-all
-   letter, intersections and complements; the two levels; pairs of times and
-   levels; levels with outputs at named sinks and at the others; releases,
-   acquisitions, ranges of net changes, explicit and unbounded troughs and the
-   resources not named; durations with the times of named and other operations;
-   partial operations, changes of mode, runs stuck at a cost, round trips and
-   the modes not named; and counts of several operations, of the others, [0] and
-   [∞]. *)
+   trace grades without running times, sets of traces of which some include
+   others; for the trace and regular grades, the operations of [running_times],
+   delays, unions, sequences and, for the regular grades, repetitions, the
+   catch-all letter, intersections and complements; the two levels; pairs of
+   times and levels; levels with outputs at named sinks and at the others;
+   releases, acquisitions, ranges of net changes, explicit and unbounded troughs
+   and the resources not named; durations with the times of named and other
+   operations; partial operations, changes of mode, traces stuck at a cost,
+   round trips and the modes not named; and counts of several operations, of the
+   others, [0] and [∞]. *)
 let cover =
   let open Grade in
   let level l = Name l in
@@ -1625,7 +1625,7 @@ let cover =
         Tuple [ Int 1; Int 4 ];
         Interval (Open (Int 0), Closed (Braces letter_a));
       ]
-  | (Rational_regex | Rational_regex_costs) as family ->
+  | (Rational_regex | Rational_regex_timed) as family ->
       let frac n d = Frac (Rational.make n d) in
 
       [
@@ -1657,7 +1657,7 @@ let cover =
         rat 3 2;
       ]
       @
-      if family = Rational_regex_costs then
+      if family = Rational_regex_timed then
         [
           closed (Braces letter_a)
             (Braces
@@ -1781,7 +1781,7 @@ let interval_atom k q =
     Grade.Delays (lo, hi)
 
 (* [random family st] is a random literal of the forms of [cover family], over
-   the operations [A], [B] and [C] of [costs]. *)
+   the operations [A], [B] and [C] of [running_times]. *)
 let random family st =
   let open Grade in
   let int n = Random.State.int st n in
@@ -1856,7 +1856,7 @@ let random family st =
       if int 4 > 0 then braces ~star:true
       else closed (braces ~star:true) (braces ~star:true)
   | Rational_regex -> Braces (timed 2)
-  | Rational_regex_costs ->
+  | Rational_regex_timed ->
       if int 4 > 0 then Braces (timed 2)
       else closed (Braces (timed 2)) (Braces (timed 2))
   | Levels -> level ()
@@ -1942,12 +1942,12 @@ let distinct compare =
 (* [samples (module G) family] is [G]'s unit, top and grades of one and two
    time steps, the grades of [cover family], the first six further distinct
    grades read from random literals of [family], and products and joins of
-   pairs of these, the grades being inhabited under [costs]. *)
+   pairs of these, the grades being inhabited under [running_times]. *)
 let samples (type a) (module G : Grade.S with type t = a) family : a list =
   let st = Random.State.make [| 11 |] in
   let read lit =
     match G.of_lit lit with
-    | c when G.inhabited costs c -> Some c
+    | c when G.inhabited running_times c -> Some c
     | _ | (exception Grade.Invalid_literal _) -> None
   in
   let delay n =
@@ -1982,26 +1982,26 @@ let registered_laws =
          | None -> []
          | Some family ->
              let samples = samples (module G) family in
-             order_laws ~thirds:12 (module G) ~context costs samples
-             @ algebra_laws ~width:10 (module G) ~context costs samples
-             @ declared_laws (module G) ~context costs samples
+             order_laws ~thirds:12 (module G) ~context running_times samples
+             @ algebra_laws ~width:10 (module G) ~context running_times samples
+             @ declared_laws (module G) ~context running_times samples
              @ counterexample_laws
                  (module G)
-                 ~offered:false ~context costs samples
-             @ of_delay_laws (module G) costs ()
-             @ of_bounds_laws (module G) costs)
+                 ~offered:false ~context running_times samples
+             @ of_delay_laws (module G) running_times ()
+             @ of_bounds_laws (module G) running_times)
        GradeRegistry.grade_modules
 
-(* A cost model of fractional runtime bounds over the operations [A], [B] and
-   [C]. *)
-let fractional_costs =
+(* The running times of the operations [A], [B] and [C], with fractional
+   running-time bounds. *)
+let fractional_running_times =
   let table =
     [
       ("A", ((1, 2), (3, 2))); ("B", ((2, 3), (2, 3))); ("C", ((0, 1), (5, 2)));
     ]
   in
   {
-    Grade.cost =
+    Grade.running_time =
       (fun o ->
         let (n, d), (n', d') = List.assoc o table in
         (Grade.Closed (Rational.make n d), Grade.Closed (Rational.make n' d')));
@@ -2009,22 +2009,24 @@ let fractional_costs =
   }
 
 (* The laws of the trace grades over rational delays under
-   [fractional_costs]. *)
+   [fractional_running_times]. *)
 let fractional_laws =
   let context = "A:(1/2, 3/2), B:(2/3, 2/3), C:(0, 5/2)" in
   List.concat_map
     (fun (module G : Grade.S) ->
       let samples = samples (module G) Rational_traces in
-      order_laws ~thirds:12 (module G) ~context fractional_costs samples
-      @ algebra_laws ~width:10 (module G) ~context fractional_costs samples
-      @ declared_laws (module G) ~context fractional_costs samples
-      @ of_delay_laws (module G) fractional_costs ()
-      @ of_bounds_laws (module G) fractional_costs)
+      order_laws ~thirds:12 (module G) ~context fractional_running_times samples
+      @ algebra_laws ~width:10
+          (module G)
+          ~context fractional_running_times samples
+      @ declared_laws (module G) ~context fractional_running_times samples
+      @ of_delay_laws (module G) fractional_running_times ()
+      @ of_bounds_laws (module G) fractional_running_times)
     [ rational_traces_lower; rational_traces_upper; rational_traces_interval ]
 
 (* The trace grades without running times: inclusion of the normal forms,
-   ignoring the runtime bounds of [costs], a counterexample to every failure,
-   and the laws under [fractional_costs]. *)
+   ignoring the running-time bounds of [running_times], a counterexample to
+   every failure, and the laws under [fractional_running_times]. *)
 let inclusion_laws =
   let module U = TraceInclusionGrades.UpperBound in
   let read r = U.of_lit (Grade.Braces r) in
@@ -2032,46 +2034,50 @@ let inclusion_laws =
   let show = function Some e -> U.show e | None -> "none" in
   [
     check "traces by inclusion: a subset below"
-      (U.leq costs (read a) (read (Grade.Union (a, b))))
+      (U.leq running_times (read a) (read (Grade.Union (a, b))))
       "{A} <= {A | B}";
     check "traces by inclusion: a superset not below"
-      (not (U.leq costs (read (Grade.Union (a, b))) (read a)))
+      (not (U.leq running_times (read (Grade.Union (a, b))) (read a)))
       "{A | B} <= {A}";
     check "traces by inclusion: delays paying for no operation"
-      (not (U.leq costs (read a) (read (Grade.Tick 3))))
+      (not (U.leq running_times (read a) (read (Grade.Tick 3))))
       "{A} <= {3}";
     check "traces by inclusion: delays merged"
-      (U.equal costs
+      (U.equal running_times
          (read (Grade.Seq (Grade.Tick 1, Grade.Tick 1)))
          (read (Grade.Tick 2)))
       "{1; 1} = {2}";
     check "traces by inclusion: top absorbing"
-      (U.is_top costs (U.mul (read a) U.top))
+      (U.is_top running_times (U.mul (read a) U.top))
       "{A} · ⊤ = ⊤";
     expect "traces by inclusion: counterexample" Fun.id ~expected:"{B}"
-      (show (U.counterexample costs (read (Grade.Union (a, b))) (read a)));
+      (show
+         (U.counterexample running_times (read (Grade.Union (a, b))) (read a)));
     expect "traces by inclusion: no counterexample where the order holds" Fun.id
       ~expected:"none"
-      (show (U.counterexample costs (read a) (read (Grade.Union (a, b)))));
+      (show
+         (U.counterexample running_times (read a) (read (Grade.Union (a, b)))));
   ]
   @ List.concat_map
       (fun ((module G : Grade.S), family) ->
         let samples = samples (module G) family in
         let context = "A:(1, 3), B:(2, 2), C:(0, 5)" in
-        counterexample_laws (module G) ~offered:true ~context costs samples
+        counterexample_laws
+          (module G)
+          ~offered:true ~context running_times samples
         @ order_laws ~thirds:12
             (module G)
-            ~context:"fractional bounds" fractional_costs samples
+            ~context:"fractional bounds" fractional_running_times samples
         @ algebra_laws ~width:10
             (module G)
-            ~context:"fractional bounds" fractional_costs samples)
+            ~context:"fractional bounds" fractional_running_times samples)
       [
         (inclusion_upper, Inclusion_traces);
         (rational_inclusion_upper, Rational_inclusion_traces);
         (rational_regex_upper, Rational_regex);
-        (rational_regex_costs_lower, Rational_regex_costs);
-        (rational_regex_costs_upper, Rational_regex_costs);
-        (rational_regex_costs_interval, Rational_regex_costs);
+        (rational_regex_timed_lower, Rational_regex_timed);
+        (rational_regex_timed_upper, Rational_regex_timed);
+        (rational_regex_timed_interval, Rational_regex_timed);
       ]
 
 (* The declared flags of the registered grades that are false with no
@@ -2081,7 +2087,8 @@ let registered_notes =
     (fun (name, (module G : Grade.S)) ->
       match family name with
       | None -> []
-      | Some family -> flag_notes (module G) costs (samples (module G) family))
+      | Some family ->
+          flag_notes (module G) running_times (samples (module G) family))
     GradeRegistry.grade_modules
 
 (* ------------------------------------------------------------------ *)
@@ -2169,7 +2176,7 @@ let indexed =
         Braces (Union (Tick 1, Letter "Recv"));
       ]
   in
-  let context = "no cost model" in
+  let context = "no running times" in
   [
     reads "entry" by_name (entry "A" (Int 3)) "(A, 3)";
     reads "entries" by_name
@@ -2234,14 +2241,14 @@ module Reader (G : Grade.S) = struct
     | exception Utils.Error.Error d -> Error d.Utils.Diagnostic.message
 end
 
-(* The laws of the mode-switch costs on grades over the modes [Off], [On] and [Idle],
-   the modes not named and [Stuck]: changes of mode, operations performed only
-   in some modes, runs stuck at a cost, entries of the modes not named, the
-   unit and the top, and the products and joins of the partial operations and
-   changes of mode. Besides, the product of two partial operations; the
-   totality of the products, a grade [x] having a run from every mode iff
-   [(Stuck, Stuck, 0) ≾ x · (Stuck, Stuck, 0)]; and the reading back of the
-   printed grades. *)
+(* The laws of the mode-switch costs on grades over the modes [Off], [On] and
+   [Idle], the modes not named and [Stuck]: changes of mode, operations
+   performed only in some modes, traces stuck at a cost, entries of the modes
+   not named, the unit and the top, and the products and joins of the partial
+   operations and changes of mode. Besides, the product of two partial
+   operations; the totality of the products, a grade [x] having a trace from
+   every mode iff [(Stuck, Stuck, 0) ≾ x · (Stuck, Stuck, 0)]; and the reading
+   back of the printed grades. *)
 let mode_laws =
   let module M = Grades.ModeSwitchCostGrades.ModeSwitchCosts in
   let open Grade in
@@ -2321,6 +2328,7 @@ let mode_laws =
    the products and joins of a release and an acquisition with these. Besides,
    the order of a release and an acquisition, and the reading back of the
    printed grades. *)
+
 let resource_laws =
   let module P = Grades.ResourceLevelGrades.ResourceLevels in
   let module R = Reader (P) in
@@ -2380,21 +2388,21 @@ let resource_laws =
       (P.show (P.mul open_ close));
     all "resource-levels: printed grades read back" P.show reads_back samples;
   ]
-  @ order_laws (module P) ~context costs samples
-  @ algebra_laws (module P) ~context costs samples
+  @ order_laws (module P) ~context running_times samples
+  @ algebra_laws (module P) ~context running_times samples
 
 (* The printed grades of the interval grades of timed operations, on their
-   samples, read back as equal grades: a lower bound of all runs prints as '⊤'
+   samples, read back as equal grades: a lower bound of all traces prints as '⊤'
    and reads back as the top '{0}' of the lower order, equal to it. *)
 let interval_read_back =
   List.concat_map
     (fun (name, (module G : Grade.S)) ->
       match family name with
-      | Some family when contains name "cost-interval" ->
+      | Some family when contains name "timed-interval" ->
           let module R = Reader (G) in
           let reads_back x =
             match R.parse (G.show x) with
-            | Ok x' -> G.equal costs x x'
+            | Ok x' -> G.equal running_times x x'
             | Error _ -> false
           in
           [

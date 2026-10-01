@@ -30,10 +30,10 @@ type entry = {
 (* The groups of the grades, each its label and the label's short form. *)
 let time = ("Time", "Time")
 let traces = ("Traces", "Traces")
-let traces_costs = ("Traces of timed operations", "Traces (timed ops)")
+let traces_timed = ("Traces of timed operations", "Traces (timed ops)")
 let regex = ("Regular expressions", "Regex")
 
-let regex_costs =
+let regex_timed =
   ("Regular expressions of timed operations", "Regex (timed ops)")
 
 let security = ("Security levels", "Security")
@@ -139,69 +139,69 @@ let letter_derivatives =
 
 (* How inclusion is decided for the regular grades of timed operations, full
    and short. *)
-let cost_symbolic_inclusion =
+let timed_symbolic_inclusion =
   "emptiness relative to the closure of the greater grade, by depth-first \
    search of the derivatives by minterms with the closure stepped alongside, \
    an automaton built on the fly"
 
-let cost_symbolic_inclusion_short =
+let timed_symbolic_inclusion_short =
   "derivatives by minterms with closures, depth-first"
 
-let cost_letter_inclusion =
+let timed_letter_inclusion =
   "emptiness relative to the closure of the greater grade, by depth-first \
    search of the derivatives by single letters with the closure stepped \
    alongside, an automaton built on the fly"
 
-let cost_letter_inclusion_short =
+let timed_letter_inclusion_short =
   "derivatives by single letters with closures, depth-first"
 
-let cost_product_inclusion =
+let timed_product_inclusion =
   "emptiness of the product with the automaton of the closure of the greater \
    grade, by breadth-first search"
 
-let cost_product_inclusion_short = "product with the closure, breadth-first"
+let timed_product_inclusion_short = "product with the closure, breadth-first"
 
-let cost_rational_inclusion =
+let timed_rational_inclusion =
   "emptiness of the product with a reader of the closure of the greater grade, \
    by breadth-first search"
 
-let cost_rational_inclusion_short =
+let timed_rational_inclusion_short =
   "product with a closure reader, breadth-first"
 
 (* The implementations of the regular grades of timed operations. *)
-let cost_symbolic =
+let timed_symbolic =
   {
     symbolic with
-    inclusion = cost_symbolic_inclusion;
-    inclusion_short = cost_symbolic_inclusion_short;
+    inclusion = timed_symbolic_inclusion;
+    inclusion_short = timed_symbolic_inclusion_short;
   }
 
-let cost_letter_automata =
+let timed_letter_automata =
   {
     letter_automata with
-    inclusion = cost_product_inclusion;
-    inclusion_short = cost_product_inclusion_short;
+    inclusion = timed_product_inclusion;
+    inclusion_short = timed_product_inclusion_short;
   }
 
-let cost_rational_symbolic =
+let timed_rational_symbolic =
   {
     rational_symbolic with
-    inclusion = cost_rational_inclusion;
-    inclusion_short = cost_rational_inclusion_short;
+    inclusion = timed_rational_inclusion;
+    inclusion_short = timed_rational_inclusion_short;
   }
 
-let cost_symbolic_by_letters =
+let timed_symbolic_by_letters =
   {
     symbolic_by_letters with
-    inclusion = cost_letter_inclusion;
-    inclusion_short = cost_letter_inclusion_short;
+    inclusion = timed_letter_inclusion;
+    inclusion_short = timed_letter_inclusion_short;
   }
 
-let cost_letter_derivatives =
+let timed_letter_derivatives =
   {
     letter_derivatives with
-    inclusion = cost_letter_inclusion;
-    inclusion_short = cost_letter_inclusion_short;
+    inclusion = timed_letter_inclusion;
+    inclusion_short = timed_letter_inclusion_short;
   }
 
 (* The descriptions shared by the implementations of a regular grade. *)
@@ -209,15 +209,15 @@ let regular_languages =
   "Regular languages of traces over delays and operations, ordered by \
    inclusion."
 
-let cost_lower =
+let timed_lower =
   "Regular languages of traces in the coverage order, operations counting at \
    their lower running-time bounds."
 
-let cost_upper =
+let timed_upper =
   "Regular languages of traces in the allowance order, operations counting at \
    their upper running-time bounds."
 
-let cost_interval =
+let timed_interval =
   "Closed intervals [L, U] of a lower and an upper regular-language bound, \
    compared componentwise."
 
@@ -262,32 +262,32 @@ let entries =
        declare no running-time bounds.";
     entry
       (module TimedTraceGrades.LowerBound)
-      traces_costs "Lower bounds"
+      traces_timed "Lower bounds"
       "Sets of traces in the coverage order, operations counting at their \
        lower running-time bounds.";
     entry
       (module TimedTraceGrades.UpperBound)
-      traces_costs "Upper bounds"
+      traces_timed "Upper bounds"
       "Sets of traces in the allowance order, operations counting at their \
        upper running-time bounds.";
     entry
       (module TimedTraceGrades.Interval)
-      traces_costs "Intervals"
+      traces_timed "Intervals"
       "Closed intervals [L, U] of a lower and an upper trace bound, compared \
        componentwise.";
     entry
       (module TimedTraceGrades.Rational.LowerBound)
-      traces_costs "Lower bounds (rational)"
+      traces_timed "Lower bounds (rational)"
       "Sets of traces with rational delays in the coverage order, operations \
        counting at their lower running-time bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.UpperBound)
-      traces_costs "Upper bounds (rational)"
+      traces_timed "Upper bounds (rational)"
       "Sets of traces with rational delays in the allowance order, operations \
        counting at their upper running-time bounds, which may be fractional.";
     entry
       (module TimedTraceGrades.Rational.Interval)
-      traces_costs "Intervals (rational)"
+      traces_timed "Intervals (rational)"
       "Closed intervals [L, U] of a lower and an upper trace bound with \
        rational delays, compared componentwise.";
     entry ~implementation:symbolic
@@ -307,59 +307,59 @@ let entries =
     entry ~visibility:Hidden ~implementation:letter_derivatives
       (module RegularTraceGradePlain)
       regex "Upper bounds (letter derivatives)" regular_languages;
-    entry ~implementation:cost_symbolic
-      (module RegularCostTraceGrades.Symbolic.Lower)
-      regex_costs "Lower bounds (symbolic)" cost_lower;
-    entry ~implementation:cost_symbolic
-      (module RegularCostTraceGrades.Symbolic.Upper)
-      regex_costs "Upper bounds (symbolic)" cost_upper;
-    entry ~implementation:cost_symbolic
-      (module RegularCostTraceGrades.Symbolic.Interval)
-      regex_costs "Intervals (symbolic)" cost_interval;
-    entry ~visibility:Hidden ~implementation:cost_letter_automata
-      (module RegularCostTraceGrades.Lower)
-      regex_costs "Lower bounds (letter automata)" cost_lower;
-    entry ~visibility:Hidden ~implementation:cost_letter_automata
-      (module RegularCostTraceGrades.Upper)
-      regex_costs "Upper bounds (letter automata)" cost_upper;
-    entry ~visibility:Hidden ~implementation:cost_letter_automata
-      (module RegularCostTraceGrades.Interval)
-      regex_costs "Intervals (letter automata)" cost_interval;
-    entry ~implementation:cost_rational_symbolic
-      (module RegularCostTraceGradesRational.Lower)
-      regex_costs "Lower bounds (rational, symbolic)"
+    entry ~implementation:timed_symbolic
+      (module RegularTimedTraceGrades.Symbolic.Lower)
+      regex_timed "Lower bounds (symbolic)" timed_lower;
+    entry ~implementation:timed_symbolic
+      (module RegularTimedTraceGrades.Symbolic.Upper)
+      regex_timed "Upper bounds (symbolic)" timed_upper;
+    entry ~implementation:timed_symbolic
+      (module RegularTimedTraceGrades.Symbolic.Interval)
+      regex_timed "Intervals (symbolic)" timed_interval;
+    entry ~visibility:Hidden ~implementation:timed_letter_automata
+      (module RegularTimedTraceGrades.Lower)
+      regex_timed "Lower bounds (letter automata)" timed_lower;
+    entry ~visibility:Hidden ~implementation:timed_letter_automata
+      (module RegularTimedTraceGrades.Upper)
+      regex_timed "Upper bounds (letter automata)" timed_upper;
+    entry ~visibility:Hidden ~implementation:timed_letter_automata
+      (module RegularTimedTraceGrades.Interval)
+      regex_timed "Intervals (letter automata)" timed_interval;
+    entry ~implementation:timed_rational_symbolic
+      (module RegularTimedTraceGradesRational.Lower)
+      regex_timed "Lower bounds (rational, symbolic)"
       "Regular languages of traces over rational delays in the coverage order, \
        operations counting at their lower running-time bounds, which may be \
        fractional; exact.";
-    entry ~implementation:cost_rational_symbolic
-      (module RegularCostTraceGradesRational.Upper)
-      regex_costs "Upper bounds (rational, symbolic)"
+    entry ~implementation:timed_rational_symbolic
+      (module RegularTimedTraceGradesRational.Upper)
+      regex_timed "Upper bounds (rational, symbolic)"
       "Regular languages of traces over rational delays in the allowance \
        order, operations counting at their upper running-time bounds, which \
        may be fractional; exact.";
-    entry ~implementation:cost_rational_symbolic
-      (module RegularCostTraceGradesRational.Interval)
-      regex_costs "Intervals (rational, symbolic)"
+    entry ~implementation:timed_rational_symbolic
+      (module RegularTimedTraceGradesRational.Interval)
+      regex_timed "Intervals (rational, symbolic)"
       "Closed intervals [L, U] of a lower and an upper regular-language bound \
        over rational delays, compared componentwise; exact.";
-    entry ~visibility:Hidden ~implementation:cost_symbolic_by_letters
-      (module RegularCostTraceGrades.Concrete.Lower)
-      regex_costs "Lower bounds (symbolic by letters)" cost_lower;
-    entry ~visibility:Hidden ~implementation:cost_symbolic_by_letters
-      (module RegularCostTraceGrades.Concrete.Upper)
-      regex_costs "Upper bounds (symbolic by letters)" cost_upper;
-    entry ~visibility:Hidden ~implementation:cost_symbolic_by_letters
-      (module RegularCostTraceGrades.Concrete.Interval)
-      regex_costs "Intervals (symbolic by letters)" cost_interval;
-    entry ~visibility:Hidden ~implementation:cost_letter_derivatives
-      (module RegularCostTraceGrades.Plain.Lower)
-      regex_costs "Lower bounds (letter derivatives)" cost_lower;
-    entry ~visibility:Hidden ~implementation:cost_letter_derivatives
-      (module RegularCostTraceGrades.Plain.Upper)
-      regex_costs "Upper bounds (letter derivatives)" cost_upper;
-    entry ~visibility:Hidden ~implementation:cost_letter_derivatives
-      (module RegularCostTraceGrades.Plain.Interval)
-      regex_costs "Intervals (letter derivatives)" cost_interval;
+    entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
+      (module RegularTimedTraceGrades.Concrete.Lower)
+      regex_timed "Lower bounds (symbolic by letters)" timed_lower;
+    entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
+      (module RegularTimedTraceGrades.Concrete.Upper)
+      regex_timed "Upper bounds (symbolic by letters)" timed_upper;
+    entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
+      (module RegularTimedTraceGrades.Concrete.Interval)
+      regex_timed "Intervals (symbolic by letters)" timed_interval;
+    entry ~visibility:Hidden ~implementation:timed_letter_derivatives
+      (module RegularTimedTraceGrades.Plain.Lower)
+      regex_timed "Lower bounds (letter derivatives)" timed_lower;
+    entry ~visibility:Hidden ~implementation:timed_letter_derivatives
+      (module RegularTimedTraceGrades.Plain.Upper)
+      regex_timed "Upper bounds (letter derivatives)" timed_upper;
+    entry ~visibility:Hidden ~implementation:timed_letter_derivatives
+      (module RegularTimedTraceGrades.Plain.Interval)
+      regex_timed "Intervals (letter derivatives)" timed_interval;
     entry
       (module LevelGrades.SecurityLevels)
       security "Levels"

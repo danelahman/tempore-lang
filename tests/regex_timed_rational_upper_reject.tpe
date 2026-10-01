@@ -27,13 +27,13 @@ let budget_reset () =
 
 (* Delays under a half on either side of a transmission come arbitrarily close
    to 1/2 + 1 + 1/2 = 2 time units, more than 1.99. *)
-let short_pause () : unit # {[0, 1/2)} = delay 0.49
+let short_delay () : unit # {[0, 1/2)} = delay 0.49
 
 let bursts (n : nat) =
   box {1.99} (Token "b") as b in
-  short_pause ();
+  short_delay ();
   perform Send n;
-  short_pause ();
+  short_delay ();
   unbox b as tok in
   tok
 

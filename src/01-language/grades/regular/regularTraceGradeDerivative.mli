@@ -1,9 +1,9 @@
 (** The regular trace grade decided by symbolic derivatives,
     ["regex-upper-bound-symbolic"].
 
-    The grade is that of {!RegularTraceGrade}, with the same runs, alphabet,
-    order, operations, literals and runtime bounds; only the representation and
-    the decision procedures differ.
+    The grade is that of {!RegularTraceGrade}, with the same traces, alphabet,
+    order, operations, literals and running-time bounds; only the representation
+    and the decision procedures differ.
 
     {2 Representation}
 
@@ -81,7 +81,7 @@ module type S = sig
         no whole number of time steps. *)
 
   val concrete : string list -> t -> Dfa.t
-  (** [concrete names rho] is the language of the runs of [rho] that perform
+  (** [concrete names rho] is the language of the traces of [rho] that perform
       only operations among [names], over the letters [tick], numbered [0], and
       [names], numbered from [1] in their order, as
       {!RegularTraceGrade.concrete}: the automaton
@@ -89,8 +89,8 @@ module type S = sig
       blocks of its alphabet, explored in full, each letter following the edge
       whose label contains it. *)
 
-  val runs : string list -> t -> t Dfa.automaton
-  (** [runs names rho] is the automaton of the same language over the same
+  val traces : string list -> t -> t Dfa.automaton
+  (** [traces names rho] is the automaton of the same language over the same
       letters, explored lazily: its states are the normal forms of the
       derivatives of [rho] by these letters, the final ones the nullable ones,
       the dead ones the empty ones, and the leads and leaps those of

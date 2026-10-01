@@ -1,7 +1,7 @@
 (** Entailment of grade orderings from hypotheses.
 
-    An entailment is built once from the cost model and a set of hypotheses of
-    both sorts, and answers every query on orderings [e ≾ e'] from them. The
+    An entailment is built once from the running times and a set of hypotheses
+    of both sorts, and answers every query on orderings [e ≾ e'] from them. The
     hypotheses are to hold together: conjuncts of a qualifier or a residual, not
     atoms of a disjunction or of a quantified condition. The queries come at
     explicit strengths:

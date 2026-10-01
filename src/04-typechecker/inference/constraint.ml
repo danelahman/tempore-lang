@@ -462,10 +462,10 @@ module Make (X : GradeExp.S) = struct
         try X.GS.E.equal bounds c X.GS.E.one with Utils.Error.Error _ -> false)
     | None -> false
 
-  (* The cost model of a program that declares no operations. *)
+  (* The running times of a program that declares no operations. *)
   let no_operations =
     {
-      Grades.Grade.cost =
+      Grades.Grade.running_time =
         (fun event -> Utils.Error.typing "Unknown event `%s`" event);
       operations = [];
     }

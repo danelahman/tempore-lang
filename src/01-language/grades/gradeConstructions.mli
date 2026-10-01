@@ -43,9 +43,10 @@ end
     the join of [L], [one] its bottom, [top] its top and [leq] its order. A
     delay touches no level of the lattice, so [of_delay] is constantly the
     bottom, and so is [of_bounds]. The unit is least and [mul] commutes. No
-    operation needs runtime bounds, every grade is atomic, and no counterexample
-    is offered. The witnesses are all the elements, and complete. [is_top] is
-    decided by the order, and [compare] and [hash] are those of [L]. *)
+    operation needs running-time bounds, every grade is atomic, and no
+    counterexample is offered. The witnesses are all the elements, and complete.
+    [is_top] is decided by the order, and [compare] and [hash] are those of [L].
+*)
 module OfLattice (D : Delay.S) (L : LATTICE) :
   Grade.S with type t = L.t and type Delay.t = D.t
 

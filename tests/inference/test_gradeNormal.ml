@@ -25,7 +25,7 @@ let expect name show ~expected actual =
 
 let bounds =
   {
-    Grade.cost =
+    Grade.running_time =
       (fun _ ->
         Grades.Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)));
     operations = [];

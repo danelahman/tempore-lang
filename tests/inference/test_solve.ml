@@ -355,9 +355,9 @@ let expected_rejections =
     ("tests/recursion_effect_reject_unannotated_regular.tpe", [ 15 ]);
     ("tests/recursion_lock_reject.tpe", [ 8 ]);
     ("tests/regex_timed_interval_reject.tpe", [ 10; 17 ]);
-    ("tests/regex_timed_interval_runs_reject.tpe", [ 11; 19 ]);
+    ("tests/regex_timed_interval_ticks_reject.tpe", [ 11; 19 ]);
     ("tests/regex_timed_lower_reject.tpe", [ 11; 19; 26 ]);
-    ("tests/regex_timed_lower_runs_reject.tpe", [ 10 ]);
+    ("tests/regex_timed_lower_ticks_reject.tpe", [ 10 ]);
     ("tests/regex_timed_rational_interval_default_open_reject.tpe", [ 9; 10 ]);
     ("tests/regex_timed_rational_interval_open_reject.tpe", [ 7 ]);
     ("tests/regex_timed_rational_interval_reject.tpe", [ 10; 18 ]);
@@ -366,7 +366,7 @@ let expected_rejections =
     ("tests/regex_timed_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
     ("tests/regex_timed_upper_open_reject.tpe", [ 9; 15 ]);
     ("tests/regex_timed_upper_reject.tpe", [ 11; 19; 27; 34 ]);
-    ("tests/regex_timed_upper_runs_reject.tpe", [ 11; 17; 20 ]);
+    ("tests/regex_timed_upper_ticks_reject.tpe", [ 11; 17; 20 ]);
     ("tests/regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);
     ("tests/regular_reject_auth.tpe", [ 12; 19; 25 ]);
     ("tests/regular_reject_bounds.tpe", [ 4 ]);
@@ -482,7 +482,7 @@ module Small (G : Grade.S) = struct
 
   let no_bounds =
     {
-      Grade.cost =
+      Grade.running_time =
         (fun _ ->
           (Grade.Closed Grades.Rational.zero, Grade.Closed Grades.Rational.zero));
       operations = [];

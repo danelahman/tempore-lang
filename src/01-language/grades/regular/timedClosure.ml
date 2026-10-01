@@ -1,5 +1,5 @@
 let tick = 0
-let weight ~cost a = if a = tick then 1 else cost a
+let weight ~running_time a = if a = tick then 1 else running_time a
 
 (** The lead of a state accepting no word. *)
 let unbounded = Int.max_int
@@ -28,7 +28,9 @@ end
 (** The label of an edge explored: a letter, or a run of [k] ticks. *)
 type label = Letter of int | Run of int
 
-let label_weight ~cost = function Letter a -> weight ~cost a | Run k -> k
+let label_weight ~running_time = function
+  | Letter a -> weight ~running_time a
+  | Run k -> k
 
 (** Explorations of the implicit automata over states ordered by
     [State.compare], over [letters] letters, the dead states left out. *)
@@ -105,11 +107,11 @@ module Allowance (State : Map.OrderedType) = struct
       the set represented by [s] by a word with at least [n] ticks: the chain of
       the sets reached with at least [0, 1, 2, …] ticks, each that reached from
       the successors by [tick] of the last, is descending, and followed until
-      [n] or until it is stationary, so that large costs are cheap. The states
-      without a live successor by [tick] leave the chain at once, and those that
-      are their own successor by [tick] stay in it; where the others all have
-      leads of at least [k ≥ 1], it moves [min n k] ticks at once by their
-      [leap]s. *)
+      [n] or until it is stationary, so that large running times are cheap. The
+      states without a live successor by [tick] leave the chain at once, and
+      those that are their own successor by [tick] stay in it; where the others
+      all have leads of at least [k ≥ 1], it moves [min n k] ticks at once by
+      their [leap]s. *)
   let at_least ~letters m n s =
     let fixed q = State.compare (m.Dfa.step q tick) q = 0 in
     let rec go n s =
@@ -139,13 +141,13 @@ module Allowance (State : Map.OrderedType) = struct
   (* The downward closure is prefix-closed, so that a set without a final
      state rejects every word, and all such sets are the empty set. The states
      within the run of ticks of another are not final. *)
-  let closure ~cost ~letters m =
+  let closure ~running_time ~letters m =
     let final s =
       if States.exists m.Dfa.accepts s then States.elements s else []
     in
     let step s x =
       let s = States.of_list s in
-      let bought = at_least ~letters m (weight ~cost x) s in
+      let bought = at_least ~letters m (weight ~running_time x) s in
       let matched = if x = tick then States.empty else matched ~letters m x s in
       final (prune m (States.union bought matched))
     in
@@ -200,10 +202,10 @@ module Coverage (State : Map.OrderedType) = struct
 
   (* The upward closure is a right ideal, so that a set with a final state
      accepts every word, and is kept. *)
-  let closure ~cost m =
+  let closure ~running_time m =
     let accepts = List.exists m.Dfa.accepts in
     let targets y q =
-      let banked = delays m (weight ~cost y) q in
+      let banked = delays m (weight ~running_time y) q in
       if y = tick then banked else States.add (m.step q y) banked
     in
     let union targets s =
@@ -227,20 +229,21 @@ end
 module Int_allowance = Allowance (Int)
 module Int_coverage = Coverage (Int)
 
-let allowance ~cost m =
-  Int_allowance.closure ~cost ~letters:(Dfa.letters m) (Dfa.automaton m)
+let allowance ~running_time m =
+  Int_allowance.closure ~running_time ~letters:(Dfa.letters m) (Dfa.automaton m)
 
-let coverage ~cost m = Int_coverage.closure ~cost (Dfa.automaton m)
+let coverage ~running_time m =
+  Int_coverage.closure ~running_time (Dfa.automaton m)
 
 module Weights (State : Map.OrderedType) = struct
   include Explore (State)
   module Ids = Map.Make (State)
 
-  (** [graph ~cost ~letters m] is the array of the finality and the weighted
-      edges of the live states reachable from the start of [m], numbered from
-      [0], the start, a state of lead [k ≥ 1] having one edge, of weight [k], to
-      its [leap] by [k]. *)
-  let graph ~cost ~letters m =
+  (** [graph ~running_time ~letters m] is the array of the finality and the
+      weighted edges of the live states reachable from the start of [m],
+      numbered from [0], the start, a state of lead [k ≥ 1] having one edge, of
+      weight [k], to its [leap] by [k]. *)
+  let graph ~running_time ~letters m =
     let states =
       if live m m.Dfa.start then
         reachable (successors ~letters m) (States.singleton m.start)
@@ -258,7 +261,7 @@ module Weights (State : Map.OrderedType) = struct
     in
     let edges q =
       List.map
-        (fun (label, q') -> (label_weight ~cost label, Ids.find q' ids))
+        (fun (label, q') -> (label_weight ~running_time label, Ids.find q' ids))
         (moves ~letters m q)
     in
     Array.of_list (List.map (fun q -> (m.accepts q, edges q)) order)
@@ -285,16 +288,16 @@ module Weights (State : Map.OrderedType) = struct
 
   let at_start d = if Array.length d = 0 then None else d.(0)
 
-  let min_weight ~cost ~letters m =
-    let graph = graph ~cost ~letters m in
+  let min_weight ~running_time ~letters m =
+    let graph = graph ~running_time ~letters m in
     let rec go d =
       let d' = relax graph min d in
       if d' = d then at_start d else go d'
     in
     go (finals graph)
 
-  let max_weight ~cost ~letters m =
-    let graph = graph ~cost ~letters m in
+  let max_weight ~running_time ~letters m =
+    let graph = graph ~running_time ~letters m in
     let rec go rounds d =
       let d' = relax graph max d in
       if d' = d then at_start d
@@ -306,8 +309,10 @@ end
 
 module Int_weights = Weights (Int)
 
-let min_weight ~cost m =
-  Int_weights.min_weight ~cost ~letters:(Dfa.letters m) (Dfa.automaton m)
+let min_weight ~running_time m =
+  Int_weights.min_weight ~running_time ~letters:(Dfa.letters m)
+    (Dfa.automaton m)
 
-let max_weight ~cost m =
-  Int_weights.max_weight ~cost ~letters:(Dfa.letters m) (Dfa.automaton m)
+let max_weight ~running_time m =
+  Int_weights.max_weight ~running_time ~letters:(Dfa.letters m)
+    (Dfa.automaton m)

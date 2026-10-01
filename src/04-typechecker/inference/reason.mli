@@ -165,7 +165,7 @@ type ('rho, 'eps) why =
   | Default_of of { op : Ast.operation; signature_at : Location.t }
       (** at = the default implementation; its parameter, result (steps
           [Argument], [Result]) and effect (step [Effect]) are bounded by the
-          operation's signature and runtime bounds *)
+          operation's signature and running-time bounds *)
   | Top_definition of Ast.variable
       (** at = a top-level definition; its type is the one generalised *)
   | Top_computation  (** at = a top-level computation *)

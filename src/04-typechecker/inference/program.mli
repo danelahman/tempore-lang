@@ -55,9 +55,9 @@ module Make (C : Constraint.S) : sig
   (** The outcome of the command at [at]. *)
 
   val context : loc:Utils.Location.t -> env -> Solver.Make(C).context
-  (** [context ~loc env] is the cost model ({!Generate.Make.cost_model}) and the
-      type definitions of [env]; the cost of an undeclared event is a typing
-      error at [loc]. *)
+  (** [context ~loc env] is the pair of the running times
+      ({!Generate.Make.running_times}) and the type definitions of [env]; the
+      running time of an undeclared event is a typing error at [loc]. *)
 
   val check :
     command ->

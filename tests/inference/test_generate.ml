@@ -131,9 +131,9 @@ let malformed =
     "delay_reject_fraction.tpe";
     "delay_reject_variable.tpe";
     "regular_reject_bounds.tpe";
-    "regex_timed_interval_runs_reject.tpe";
-    "regex_timed_lower_runs_reject.tpe";
-    "regex_timed_upper_runs_reject.tpe";
+    "regex_timed_interval_ticks_reject.tpe";
+    "regex_timed_lower_ticks_reject.tpe";
+    "regex_timed_upper_ticks_reject.tpe";
     "rational_traces_intervals_reject_open.tpe";
   ]
 
@@ -507,7 +507,7 @@ module Small = struct
                     _ ) ->
                   G.equal
                     {
-                      cost =
+                      running_time =
                         (fun _ ->
                           ( Grade.Closed Grades.Rational.zero,
                             Grade.Closed Grades.Rational.zero ));

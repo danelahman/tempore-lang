@@ -51,9 +51,9 @@ run 5 - 3
 
 run 100 / 3
 
-(* run 1 / 0 *) (* A runtime error. *)
+(* run 1 / 0 *) (* A run-time error. *)
 
-(* run 0 / 0 *) (* A runtime error. *)
+(* run 0 / 0 *) (* A run-time error. *)
 
 run 0 / 1
 
@@ -61,9 +61,9 @@ run 5 mod 3
 
 run 0 mod 1
 
-(* run 0 mod 0 *) (* A runtime error. *)
+(* run 0 mod 0 *) (* A run-time error. *)
 
-(* run 1 mod 0 *) (* A runtime error. *)
+(* run 1 mod 0 *) (* A run-time error. *)
 
 run "test float operations"
 

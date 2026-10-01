@@ -32,7 +32,7 @@ module Make (C : Constraint.S) = struct
 
   let context ~loc env : S.context =
     {
-      bounds = Gen.cost_model ~loc env;
+      bounds = Gen.running_times ~loc env;
       find_definition =
         (fun name ->
           Option.map
@@ -64,9 +64,9 @@ module Make (C : Constraint.S) = struct
     | S.Stuck stuck -> Error (Stuck stuck)
 
   (* [check_duration ~loc env op abs] checks the duration of the default
-     implementation [abs] of [op] at [loc] against the runtime bounds of [op],
-     by the effect of its reported scheme; it is skipped where that effect is
-     not a constant or the constraint has no solution. *)
+     implementation [abs] of [op] at [loc] against the running-time bounds of
+     [op], by the effect of its reported scheme; it is skipped where that effect
+     is not a constant or the constraint has no solution. *)
   let check_duration ~loc env op abs =
     if C.X.GS.E.needs_op_bounds then
       let ty, constr = Gen.generate_default_effect env ~loc op abs in

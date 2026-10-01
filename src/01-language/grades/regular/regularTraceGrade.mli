@@ -9,15 +9,15 @@
     {!RegularTraceGradePlain}, ["regex-upper-bound-letter-derivatives"], by
     derivatives of expressions over single letters.
 
-    {2 Runs as words}
+    {2 Traces as words}
 
-    A run is read as a word: an operation [o] is the letter [o], and a delay of
-    [n] time steps is [n] copies of the letter [tick]. A grade bounds the runs
-    permitted from above: a run is permitted iff its word is in the language.
-    The order is inclusion, the product concatenation, the join union, the unit
-    the language [{ε}] of the empty word and the top the language [Σ*] of all
-    words. The top is not absorbing: [{3}] multiplied by [⊤] permits only the
-    runs that begin with three time steps.
+    A trace is read as a word: an operation [o] is the letter [o], and a delay
+    of [n] time steps is [n] copies of the letter [tick]. A grade bounds the
+    traces permitted from above: a trace is permitted iff its word is in the
+    language. The order is inclusion, the product concatenation, the join union,
+    the unit the language [{ε}] of the empty word and the top the language [Σ*]
+    of all words. The top is not absorbing: [{3}] multiplied by [⊤] permits only
+    the traces that begin with three time steps.
 
     {2 Alphabet}
 
@@ -34,11 +34,12 @@
     {!Dfa}. A delay of [n] time steps is unrolled into [n] transitions: the
     minimal automaton of [tickⁿ] has [n + 2] states, and every construction and
     comparison explores them, as do the closures of the grades of timed
-    operations over it ({!RegularCostTraceGrades.Automata}). Grades denoting the
-    same language thus have equal names and automata, which {!Grade.S.equal},
-    {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top} read. A grade also
-    keeps the normal form of the expression it was built from, by the operations
-    of {!RegularTraceGradeDerivative}, for its printing only.
+    operations over it ({!RegularTimedTraceGrades.Automata}). Grades denoting
+    the same language thus have equal names and automata, which
+    {!Grade.S.equal}, {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top}
+    read. A grade also keeps the normal form of the expression it was built
+    from, by the operations of {!RegularTraceGradeDerivative}, for its printing
+    only.
 
     {2 Counterexamples and printing}
 
@@ -77,19 +78,19 @@
     [{n}], and [⊤] (ASCII [top]) is [Σ*]. A literal denoting the empty language
     is rejected, since grades are non-empty.
 
-    {2 Runtime bounds}
+    {2 Running-time bounds}
 
-    The order does not read the runtime bounds of operations, which therefore
-    declare none. {!Grade.S.implied_bounds} is [None]; {!Grade.S.of_bounds}
-    [(lo, hi)] is the language of the delays of [lo] to [hi] time steps; the
-    events of a grade are its names; and a grade is atomic for [name] iff it is
-    the language [{name}]. *)
+    The order does not read the running-time bounds of operations, which
+    therefore declare none. {!Grade.S.implied_bounds} is [None];
+    {!Grade.S.of_bounds} [(lo, hi)] is the language of the delays of [lo] to
+    [hi] time steps; the events of a grade are its names; and a grade is atomic
+    for [name] iff it is the language [{name}]. *)
 
 include Grade.S with type Delay.t = Delay.Nat.t
 
 val concrete : string list -> t -> Dfa.t
-(** [concrete names rho] is the language of the runs of [rho] that perform only
-    operations among [names], over the letters [tick], numbered [0], and
+(** [concrete names rho] is the language of the traces of [rho] that perform
+    only operations among [names], over the letters [tick], numbered [0], and
     [names], numbered from [1] in their order, with no catch-all letter: the
     catch-all letter of [rho] stands for each of [names] that [rho] does not
     mention. *)

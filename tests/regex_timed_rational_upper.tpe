@@ -43,13 +43,13 @@ let offbeat () =
 
 (* Delays under a half on either side of a transmission take less than
    1/2 + 1 + 1/2 = 2 time units, however close to a half they come. *)
-let short_pause () : unit # {[0, 1/2)} = delay 0.49
+let short_delay () : unit # {[0, 1/2)} = delay 0.49
 
 let bursts (n : nat) =
   box {2} (Token "b") as b in
-  short_pause ();
+  short_delay ();
   perform Send n;
-  short_pause ();
+  short_delay ();
   unbox b as tok in
   tok
 

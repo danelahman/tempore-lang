@@ -80,8 +80,8 @@ module Make (C : Constraint.S) : sig
   type env
   (** An environment: the context, the schemes of top-level definitions and
       primitives with the operations each may perform, the type definitions, the
-      operation signatures and runtime bounds, and the default implementations
-      of operations. *)
+      operation signatures and running-time bounds, and the default
+      implementations of operations. *)
 
   val initial_env : env
   (** The environment of the built-in types [bool], [nat], [unit], [string],
@@ -89,21 +89,21 @@ module Make (C : Constraint.S) : sig
       no operations. *)
 
   val declare_operations :
-    (string * Grades.Grade.runtime option) list -> env -> env
+    (string * Grades.Grade.running_time option) list -> env -> env
   (** [declare_operations declarations env] is [env] in a program whose
       operation declarations are [declarations], each an operation name with its
-      runtime bounds if it declares them, the first declaration of a name
-      counting. The operations it declares with runtime bounds, its atomic
+      running-time bounds if it declares them, the first declaration of a name
+      counting. The operations it declares with running-time bounds, its atomic
       operations under the grades that read them, are the closed world of
-      {!cost_model}, whichever command is checked. *)
+      {!running_times}, whichever command is checked. *)
 
-  val cost_model : loc:Location.t -> env -> Grades.Grade.bounds
-  (** [cost_model ~loc env] is the cost model of the program of [env]: its
-      operations are those the program declares with runtime bounds
-      ({!declare_operations}), and the cost of an event is its declared runtime
-      bounds, or else those implied by the grade of a compound operation
-      declared so far; the cost of any other event is a typing error at [loc].
-  *)
+  val running_times : loc:Location.t -> env -> Grades.Grade.bounds
+  (** [running_times ~loc env] are the running times of the program of [env]:
+      its operations are those the program declares with running-time bounds
+      ({!declare_operations}), and the running time of an event is its declared
+      running-time bounds, or else those implied by the grade of a compound
+      operation declared so far; the running time of any other event is a typing
+      error at [loc]. *)
 
   val open_rho : env -> program_rho -> rho
   (** [open_rho env rho] is the program grade [rho] as an open expression.
@@ -144,11 +144,11 @@ module Make (C : Constraint.S) : sig
     * program_ty
     * program_ty
     * program_eps
-    * Grades.Grade.runtime option ->
+    * Grades.Grade.running_time option ->
     env
   (** [add_operation_signature ~loc env (op, param, arity, grade, bounds)] adds
-      the signature of [op] and its runtime bounds, declared or implied by its
-      grade.
+      the signature of [op] and its running-time bounds, declared or implied by
+      its grade.
       @raise Utils.Error.Error
         if the bounds are missing, superfluous or malformed for the grade, or
         the parameter or result type contains a function or handler type, the
@@ -207,9 +207,9 @@ module Make (C : Constraint.S) : sig
   val find_op_signature : env -> Ast.operation -> op_signature option
   (** [find_op_signature env op] is the signature of [op]. *)
 
-  val op_bounds : env -> Grades.Grade.runtime Utils.StringMap.t
-  (** [op_bounds env] is the runtime bounds of the operations, by surface name:
-      the cost model of the grades' order. *)
+  val op_bounds : env -> Grades.Grade.running_time Utils.StringMap.t
+  (** [op_bounds env] is the running-time bounds of the operations, by surface
+      name: the running times the grades' order reads. *)
 
   (** {2 Generation} *)
 
@@ -247,9 +247,9 @@ module Make (C : Constraint.S) : sig
     env -> loc:Location.t -> Ast.operation -> abstraction -> C.t
   (** [generate_default env ~loc op abs] is the constraint that [abs] at [loc]
       implements [op]: under the lock [⟨⊤⟩], a function from the operation's
-      parameter to its result type, of effect below the grade of the runtime
-      bounds of [op] where it has any and its grade otherwise. The type and
-      grade variables of the annotations of [abs] are bound at its top.
+      parameter to its result type, of effect below the grade of the
+      running-time bounds of [op] where it has any and its grade otherwise. The
+      type and grade variables of the annotations of [abs] are bound at its top.
       @raise Utils.Error.Error
         if [op] is unknown, has a default already, or is not atomic. *)
 
@@ -263,10 +263,10 @@ module Make (C : Constraint.S) : sig
 
   val check_default_duration :
     env -> loc:Location.t -> Ast.operation -> C.X.GS.E.t -> unit
-  (** [check_default_duration env ~loc op grade] checks that the runtime bounds
-      implied by the effect [grade] of the default implementation of [op] at
-      [loc] lie within the runtime bounds [op] declares, each end compared with
-      its strictness. It holds where [op] declares no runtime bounds or [grade]
-      implies none ({!Grades.Grade.S.implied_bounds}).
+  (** [check_default_duration env ~loc op grade] checks that the running-time
+      bounds implied by the effect [grade] of the default implementation of [op]
+      at [loc] lie within the running-time bounds [op] declares, each end
+      compared with its strictness. It holds where [op] declares no running-time
+      bounds or [grade] implies none ({!Grades.Grade.S.implied_bounds}).
       @raise Utils.Error.Error if it does not hold. *)
 end
