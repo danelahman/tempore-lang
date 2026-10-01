@@ -245,6 +245,31 @@ let show_option show = function Some x -> show x | None -> "none"
 let show_bounds =
   show_option (fun (lo, hi) -> Grade.show_interval Grades.Rational.show lo hi)
 
+(* [close reference found] is whether the verdicts [found] of the
+   implementation by gap derivatives agree with the verdicts [reference] of an
+   implementation by letters, given for each comparison as whether it holds,
+   whether the grades are equal, and the counterexample, as the numbers of
+   operations of its components with any other measure, and whether it is a
+   trace of the lesser grade outside the closure of the greater: the verdicts
+   agree, and a counterexample is found by both or neither, valid and with no
+   more operations in each component, a trace shortest in symbols. *)
+let close reference found =
+  List.length reference = List.length found
+  && List.for_all2
+       (fun (leq, equal, e) (leq', equal', e') ->
+         leq = leq' && equal = equal'
+         &&
+         match (e, e') with
+         | None, None -> true
+         | Some (components, _), Some (components', valid') ->
+             valid'
+             && List.for_all2
+                  (fun (operations, _) (operations', _) ->
+                    operations' <= operations)
+                  components components'
+         | Some _, None | None, Some _ -> false)
+       reference found
+
 (* [agree tables (module F) (module G) lits] checks that the grades [F] and [G]
    order the literals [lits] alike and imply the same running-time bounds, under
    each of [tables]. *)
@@ -660,25 +685,33 @@ module Suite (I : IMPLEMENTATION) = struct
 
   (* {2 Verdicts} *)
 
-  (* [length rho] is the length of a shortest trace of [rho] over [names]. *)
-  let length rho =
-    Option.map List.length
-      (Dfa.counterexample (L.concrete names rho)
-         (Dfa.empty (List.length names + 1)))
+  (* [measure rho] is the number of operations and the length of a shortest
+     trace of [rho] over [names]. *)
+  let measure rho =
+    match
+      Dfa.counterexample (L.concrete names rho)
+        (Dfa.empty (List.length names + 1))
+    with
+    | Some w -> (List.length (List.filter (( <> ) 0) w), Some (List.length w))
+    | None -> (0, None)
 
   (* [verdicts bounds (r, r')] is, for each grade, whether [r] is below [r'],
-     whether they are equal, and the lengths of the shortest traces of the
-     components of the counterexample, [r] and [r'] read as grades. *)
+     whether they are equal, and the measures of the shortest traces of the
+     components of the counterexample with whether it is valid, [r] and [r']
+     read as grades. *)
   let verdicts bounds (r, r') =
     match (grade r, grade r') with
     | Some rho, Some rho' ->
-        let verdict (type a) (module G : Grade.S with type t = a) lengths x y =
+        let verdict (type a) (module G : Grade.S with type t = a) measures x y =
           ( G.leq bounds x y,
             G.equal bounds x y,
-            Option.map lengths (G.counterexample bounds x y) )
+            Option.map
+              (fun e ->
+                (measures e, G.leq bounds e x && not (G.leq bounds e y)))
+              (G.counterexample bounds x y) )
         in
-        let single rho = [ length rho ] in
-        let pair (lo, hi) = [ length lo; length hi ] in
+        let single rho = [ measure rho ] in
+        let pair (lo, hi) = [ measure lo; measure hi ] in
         Some
           [
             verdict (module Upper) single rho rho';
@@ -711,9 +744,9 @@ let agreement =
           show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
         (fun pair ->
           let verdicts = OfAutomata.verdicts bounds pair in
-          OfDerivatives.verdicts bounds pair = verdicts
-          && OfByLetters.verdicts bounds pair = verdicts
-          && OfPlain.verdicts bounds pair = verdicts)
+          OfByLetters.verdicts bounds pair = verdicts
+          && OfPlain.verdicts bounds pair = verdicts
+          && Option.equal close verdicts (OfDerivatives.verdicts bounds pair))
         (pairs regexes))
     tables
 
@@ -817,9 +850,19 @@ let printed_length text =
     0
     (String.split_on_char ';' inner)
 
+(* [printed_operations text] is the number of operations of the trace of a
+   grade printed as [text]. *)
+let printed_operations text =
+  let inner = String.sub text 1 (String.length text - 2) in
+  List.length
+    (List.filter
+       (fun part -> Option.is_none (int_of_string_opt (String.trim part)))
+       (String.split_on_char ';' inner))
+
 (* The verdicts of the implementation [I] on long delays: under each order,
-   whether a grade is below another, whether they are equal, and the length of
-   the counterexample. *)
+   whether a grade is below another, whether they are equal, and the number of
+   operations and length of the counterexample with whether it is valid; and
+   whether the interval of the grades is below its converse. *)
 module Long (I : IMPLEMENTATION) = struct
   include I
 
@@ -835,12 +878,14 @@ module Long (I : IMPLEMENTATION) = struct
           ( G.leq bounds rho rho',
             G.equal bounds rho rho',
             Option.map
-              (fun w -> printed_length (L.show w))
+              (fun w ->
+                let text = L.show w in
+                ( [ (printed_operations text, printed_length text) ],
+                  G.leq bounds w rho && not (G.leq bounds w rho') ))
               (G.counterexample bounds rho rho') )
         in
         Some
-          ( verdict (module Upper),
-            verdict (module Lower),
+          ( [ verdict (module Upper); verdict (module Lower) ],
             Interval.leq bounds (rho, rho') (rho', rho) )
     | _ -> None
 end
@@ -889,9 +934,13 @@ let long_runs =
           (fun (r, r') ->
             show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
           (fun pair ->
-            let verdicts = LongDerivatives.verdicts bounds pair in
-            LongByLetters.verdicts bounds pair = verdicts
-            && LongPlain.verdicts bounds pair = verdicts)
+            let verdicts = LongByLetters.verdicts bounds pair in
+            LongPlain.verdicts bounds pair = verdicts
+            && Option.equal
+                 (fun (orders, interval) (orders', interval') ->
+                   close orders orders' && interval = interval')
+                 verdicts
+                 (LongDerivatives.verdicts bounds pair))
           (pairs grades))
       long_tables
   in
@@ -909,9 +958,9 @@ let long_runs =
             show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
           (fun pair ->
             let verdicts = OfAutomata.verdicts bounds pair in
-            OfDerivatives.verdicts bounds pair = verdicts
-            && OfByLetters.verdicts bounds pair = verdicts
-            && OfPlain.verdicts bounds pair = verdicts)
+            OfByLetters.verdicts bounds pair = verdicts
+            && OfPlain.verdicts bounds pair = verdicts
+            && Option.equal close verdicts (OfDerivatives.verdicts bounds pair))
           (pairs moderate))
       long_tables
   in
@@ -955,6 +1004,74 @@ let long_runs =
   embedding @ derivatives @ automata
   @ List.concat_map timing
       [ (module Derivatives); (module ByLetters); (module Plain) ]
+
+(* Delays over the numerical semigroup generated by [1000] and [1001], of
+   Frobenius number [998999], under the grades by gap derivatives: verdicts,
+   and counterexamples that are traces of the lesser grade outside the closure
+   of the greater, each decided within a generous bound of time. *)
+let semigroups =
+  let module U = Reader (Derivatives.Upper) in
+  let module Lo = Reader (Derivatives.Lower) in
+  let module In = Reader (Derivatives.Interval) in
+  let star = "(1000 | 1001)*" in
+  let quickly name decide =
+    let start = Sys.time () in
+    let holds = decide () in
+    let time = Sys.time () -. start in
+    check ("semigroups: " ^ name)
+      (holds && time < 5.)
+      (Printf.sprintf "in %.2f s" time)
+  in
+  let upper a b = Derivatives.Upper.leq running_times (U.lit a) (U.lit b) in
+  let lower a b = Derivatives.Lower.leq running_times (Lo.lit a) (Lo.lit b) in
+  let valid (type a) (module G : Grade.S with type t = a) lit a b ~expected =
+    match G.counterexample running_times (lit a) (lit b) with
+    | Some e ->
+        G.show e = expected
+        && G.leq running_times e (lit a)
+        && not (G.leq running_times e (lit b))
+    | None -> false
+  in
+  [
+    quickly "{1000} <= {(1000 | 1001)*} under the upper order" (fun () ->
+        upper "{1000}" ("{" ^ star ^ "}"));
+    quickly "{2001} <= {(1000 | 1001)*} under the upper order" (fun () ->
+        upper "{2001}" ("{" ^ star ^ "}"));
+    quickly "{998999} <= {(1000 | 1001)*} under the upper order" (fun () ->
+        upper "{998999}" ("{" ^ star ^ "}"));
+    quickly "{1000} <= {(1000 | 1001)*} under the lower order" (fun () ->
+        lower "{1000}" ("{" ^ star ^ "}"));
+    quickly "{(1000 | 1001)*} <= {(1000 | 1001 | 7)*} under the lower order"
+      (fun () -> lower ("{" ^ star ^ "}") "{(1000 | 1001 | 7)*}");
+    quickly
+      "{(1000 | 1001)*; 1000} = {1000; (1000 | 1001)*} under the lower order"
+      (fun () ->
+        Derivatives.Lower.equal running_times
+          (Lo.lit ("{" ^ star ^ "; 1000}"))
+          (Lo.lit ("{1000; " ^ star ^ "}")));
+    quickly
+      "the interval of {(1000 | 1001)*} within that of {(1000 | 1001 | 7)*}"
+      (fun () ->
+        Derivatives.Interval.leq running_times
+          (In.lit ("{" ^ star ^ "}"))
+          (In.lit "{(1000 | 1001 | 7)*}"));
+    quickly
+      "counterexample of {(1000 | 1001)*} <= {998999} under the upper order"
+      (fun () ->
+        valid
+          (module Derivatives.Upper)
+          U.lit
+          ("{" ^ star ^ "}")
+          "{998999}" ~expected:"{999000}");
+    quickly
+      "counterexample of {1000; (1000 | 1001)*} <= {998999} under the lower \
+       order" (fun () ->
+        valid
+          (module Derivatives.Lower)
+          Lo.lit
+          ("{1000; " ^ star ^ "}")
+          "{998999}" ~expected:"{1000}");
+  ]
 
 (* {1 (h) Canonical closure states} *)
 
@@ -1191,13 +1308,19 @@ module Shared (I : IMPLEMENTATION) = struct
     | rho -> Some rho
     | exception Grade.Invalid_literal _ -> None
 
-  (* [word names rho] is the shortest trace of [rho] over [names], its ticks
-     written [τ]. *)
+  (* [word names rho] is the number of operations and the shortest trace of
+     [rho] over [names], its ticks written [τ]. *)
   let word names rho =
-    Option.map
-      (List.map (fun a -> if a = 0 then "τ" else List.nth names (a - 1)))
-      (Dfa.counterexample (L.concrete names rho)
-         (Dfa.empty (List.length names + 1)))
+    let w =
+      Option.map
+        (List.map (fun a -> if a = 0 then "τ" else List.nth names (a - 1)))
+        (Dfa.counterexample (L.concrete names rho)
+           (Dfa.empty (List.length names + 1)))
+    in
+    ( Option.fold ~none:0
+        ~some:(fun w -> List.length (List.filter (( <> ) "τ") w))
+        w,
+      w )
 
   let verdicts table (r, r') =
     let bounds = bounds_of table and names = List.map fst table in
@@ -1268,11 +1391,17 @@ let shared =
           (fun (r, r') ->
             show_regex r ^ ", " ^ show_regex r' ^ " at " ^ show_table table)
           (fun pair ->
-            let verdicts = SharedDerivatives.verdicts table pair in
-            sound verdicts
+            let verdicts = SharedByLetters.verdicts table pair in
+            let gaps = SharedDerivatives.verdicts table pair in
+            sound verdicts && sound gaps
             && ((not automata) || SharedAutomata.verdicts table pair = verdicts)
-            && SharedByLetters.verdicts table pair = verdicts
-            && SharedPlain.verdicts table pair = verdicts)
+            && SharedPlain.verdicts table pair = verdicts
+            && Option.equal
+                 (fun (orders, bounds, inhabited) (orders', bounds', inhabited')
+                    ->
+                   close orders orders' && bounds = bounds'
+                   && inhabited = inhabited')
+                 verdicts gaps)
           (pairs grades))
       shared_tables
   in
@@ -1295,7 +1424,7 @@ let () =
   let checks =
     segments @ OfAutomata.checks @ OfDerivatives.checks @ OfByLetters.checks
     @ OfPlain.checks @ agreement @ printing @ plain_inhabited @ long_runs
-    @ canonical @ shared
+    @ semigroups @ canonical @ shared
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

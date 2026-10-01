@@ -162,6 +162,14 @@ module Graph : sig
   val coverage : world -> graph -> graph -> DelayAutomaton.symbol list option
   (** As {!coverage}, untabulated. *)
 
+  val in_allowance : world -> graph -> graph -> bool
+  (** [in_allowance world l m] is whether every word of [l] is in [↓m]: the
+      search of {!allowance} without its concretisation. *)
+
+  val in_coverage : world -> graph -> graph -> bool
+  (** [in_coverage world l m] is whether every word of [l] is in [↑m], as
+      {!in_allowance}. *)
+
   val permits : world -> graph -> DelayAutomaton.symbol list -> bool
   val covers : world -> graph -> DelayAutomaton.symbol list -> bool
   val max_weight : world -> graph -> (Rational.t * bool) option

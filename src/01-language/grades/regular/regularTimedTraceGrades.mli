@@ -62,9 +62,12 @@
     [{lo}] under the lower order and [{hi}] under the upper. Over whole time
     steps the ends of running-time bounds are closed
     ({!Grade.close_running_time}). A counterexample to [ρ ≾ ρ'] is the grade of
-    a shortest trace of [ρ] outside the closure of [ρ'], in which a name stands
-    for itself. The witnesses of a closed condition are its constants and their
-    pairwise products ({!Grade.sampled}), which are not complete. *)
+    a trace of [ρ] outside the closure of [ρ'], in which a name stands for
+    itself: a shortest one in its number of letters over the automata of traces,
+    and in its number of symbols over the gap graphs ({!Symbolic}). The order is
+    decided without building a counterexample. The witnesses of a closed
+    condition are its constants and their pairwise products ({!Grade.sampled}),
+    which are not complete. *)
 
 (** A regular trace grade with the languages of its grades over given names; its
     delays are whole time steps, a delay of [n] steps being the word [tickⁿ]. *)
@@ -201,9 +204,27 @@ module Interval :
      and type Delay.t = Delay.Nat.t
 
 (** The grades over {!Derivatives}, named ["regex-timed-lower-bound-symbolic"],
-    ["regex-timed-upper-bound-symbolic"] and ["regex-timed-interval-symbolic"]:
-    both grades of a comparison are explored by derivatives, by the minterms of
-    their letter sets and running times. *)
+    ["regex-timed-upper-bound-symbolic"] and ["regex-timed-interval-symbolic"],
+    decided over the graphs of the gap derivatives of the grades ({!GapGraph}),
+    over the least names of the classes of the minterms of their letter sets and
+    running times: [ρ ≾ ρ'] by the search of
+    {!DelayTimedClosure.Graph.in_allowance} under the upper order and
+    {!DelayTimedClosure.Graph.in_coverage} under the lower order, of the graph
+    of [ρ] against the reader of the closure of the graph of [ρ'], at the
+    integer running times read; a counterexample by
+    {!DelayTimedClosure.Graph.allowance} and
+    {!DelayTimedClosure.Graph.coverage}, shortest in its number of symbols, its
+    delays the extremal values of the sets of delays read, which sets of
+    integers attain, and above every finite threshold of the reader where a set
+    is unbounded; the running-time bounds implied by
+    {!DelayTimedClosure.Graph.min_weight} and
+    {!DelayTimedClosure.Graph.max_weight}, and inhabitation by the liveness of
+    the graph. The orders on traces over whole time steps are those of
+    {!DelayTimedClosure} on words of integer delays, by the same segment
+    characterisation, so that its readers decide them. The graphs have one gap
+    state per gap derivative, whatever the delays of the grades, and the
+    searches and graphs are tabulated by their arguments in module-level tables
+    that only ever grow. *)
 module Symbolic : sig
   module Lower :
     Grade.S

@@ -9,12 +9,65 @@ module type LANGUAGE = sig
   val representatives : t list -> (string * int) list -> (string * int) list
 end
 
-module Make
-    (L : LANGUAGE)
-    (Variant : sig
-      val suffix : string
-    end) =
+module type DECISIONS = sig
+  type t
+
+  val in_allowance : string list -> int list -> t -> t -> bool
+  val in_coverage : string list -> int list -> t -> t -> bool
+  val allowance : string list -> int list -> t -> t -> regex list option
+  val coverage : string list -> int list -> t -> t -> regex list option
+  val min_weight : string list -> int list -> t -> int option
+  val max_weight : string list -> int list -> t -> int option
+  val inhabited : string list -> t -> bool
+end
+
+(** Tables of the results of comparisons, by the least names of the classes,
+    their running times, and the grades compared, by their representations. *)
+module Tabulate (G : sig
+  type t
+
+  val compare : t -> t -> int
+  val hash : t -> int
+end) =
 struct
+  module Search = Hashtbl.Make (struct
+    type t = string list * int list * G.t * G.t
+
+    let equal (names, running_times, rho, sigma)
+        (names', running_times', rho', sigma') =
+      List.equal String.equal names names'
+      && List.equal Int.equal running_times running_times'
+      && G.compare rho rho' = 0
+      && G.compare sigma sigma' = 0
+
+    let hash (names, running_times, rho, sigma) =
+      combine
+        (combine
+           (hash_list String.hash names)
+           (hash_list Int.hash running_times))
+        (combine (G.hash rho) (G.hash sigma))
+  end)
+
+  (** [tabulated f] is [f], its results tabulated by its arguments in a table of
+      its own. *)
+  let tabulated f =
+    let table = Search.create 64 in
+    fun names running_times rho rho' ->
+      let key = (names, running_times, rho, rho') in
+      match Search.find_opt table key with
+      | Some r -> r
+      | None ->
+          let r = f names running_times rho rho' in
+          Search.add table key r;
+          r
+end
+
+(** The decisions by the automata of traces of [L] and their closures, a verdict
+    being that the search finds no word. *)
+module ByLetters (L : LANGUAGE) = struct
+  type t = L.t
+
+  include Tabulate (L)
   module Traces = Dfa.Implicit (L.State)
   module Allowance = TimedClosure.Allowance (L.State)
   module Coverage = TimedClosure.Coverage (L.State)
@@ -37,42 +90,6 @@ struct
     let running_times = Array.of_list running_times in
     fun a -> running_times.(a - 1)
 
-  (** The arguments of a search: the least names of the classes, their running
-      times, and the grades compared, by their representations. *)
-  module Search = Hashtbl.Make (struct
-    type t = string list * int list * L.t * L.t
-
-    let equal (names, running_times, rho, sigma)
-        (names', running_times', rho', sigma') =
-      List.equal String.equal names names'
-      && List.equal Int.equal running_times running_times'
-      && L.compare rho rho' = 0
-      && L.compare sigma sigma' = 0
-
-    let hash (names, running_times, rho, sigma) =
-      combine
-        (combine
-           (hash_list String.hash names)
-           (hash_list Int.hash running_times))
-        (combine (L.hash rho) (L.hash sigma))
-  end)
-
-  (** [tabulated search] is [search], its results tabulated by its arguments. *)
-  let tabulated search =
-    let table = Search.create 64 in
-    fun names running_times rho rho' ->
-      let key = (names, running_times, rho, rho') in
-      match Search.find_opt table key with
-      | Some word -> word
-      | None ->
-          let word =
-            search
-              ~running_time:(letter_running_time running_times)
-              names rho rho'
-          in
-          Search.add table key word;
-          word
-
   (** The grades over given least names, by their representations. *)
   module Tables = Hashtbl.Make (struct
     type t = string list * L.t
@@ -94,39 +111,155 @@ struct
           Tables.add table (names, rho) a;
           a
 
+  let letters names = List.length names + 1
+
+  (** [symbols names word] is the word [word] over the letters [tick], numbered
+      [0], and [names], numbered from [1], as its delays, its runs of ticks, and
+      its names. *)
+  let symbols names word =
+    List.rev
+      (List.fold_left
+         (fun symbols a ->
+           match (a, symbols) with
+           | 0, Tick n :: rest -> Tick (n + 1) :: rest
+           | 0, _ -> Tick 1 :: symbols
+           | a, _ -> Letter (List.nth names (a - 1)) :: symbols)
+         [] word)
+
+  let allowance =
+    tabulated (fun names running_times rho rho' ->
+        let running_time = letter_running_time running_times
+        and letters = letters names in
+        Option.map (symbols names)
+          (Closed.counterexample letters (traces names rho)
+             (Allowance.closure ~running_time ~letters (traces names rho'))))
+
+  let coverage =
+    tabulated (fun names running_times rho rho' ->
+        Option.map (symbols names)
+          (Closed.counterexample (letters names) (traces names rho)
+             (Coverage.closure
+                ~running_time:(letter_running_time running_times)
+                (traces names rho'))))
+
+  let in_allowance names running_times rho rho' =
+    Option.is_none (allowance names running_times rho rho')
+
+  let in_coverage names running_times rho rho' =
+    Option.is_none (coverage names running_times rho rho')
+
+  let weight extreme names running_times rho =
+    extreme
+      ~running_time:(letter_running_time running_times)
+      ~letters:(letters names) (traces names rho)
+
+  let min_weight = weight Weights.min_weight
+  let max_weight = weight Weights.max_weight
+
+  let inhabited names rho =
+    not (Traces.is_empty (letters names) (traces names rho))
+end
+
+(** The decisions by the graphs of the gap derivatives of the symbolic regular
+    expressions ({!GapGraph}) and the readers and search of
+    {!DelayTimedClosure.Graph} over them, at integer running times. *)
+module ByGaps = struct
+  type t = SymbolicRegex.t
+
+  include Tabulate (struct
+    type t = SymbolicRegex.t
+
+    let compare = SymbolicRegex.compare_form
+    let hash = SymbolicRegex.hash
+  end)
+
+  let world names running_times =
+    List.map2
+      (fun name c -> (name, DelaySet.Finite (Rational.of_int c, true)))
+      names running_times
+
+  (** [graph names rho] is {!GapGraph.graph}, tabulated by its arguments. *)
+  let graph =
+    let table = Hashtbl.create 16 in
+    fun names rho ->
+      let key = (names, SymbolicRegex.hash rho) in
+      match Hashtbl.find_opt table key with
+      | Some g -> g
+      | None ->
+          let g = GapGraph.graph names rho in
+          Hashtbl.add table key g;
+          g
+
+  (** [on_graphs decide names running_times rho rho'] is [decide] on the graphs
+      of [rho] and [rho'] over [names] at [running_times]. *)
+  let on_graphs decide names running_times rho rho' =
+    decide (world names running_times) (graph names rho) (graph names rho')
+
+  (** [symbols word] is the word in gap form [word] as its non-zero delays,
+      integers, and its names. *)
+  let symbols word =
+    List.filter_map
+      (function
+        | DelayAutomaton.Delay d when Rational.sign d = 0 -> None
+        | DelayAutomaton.Delay d -> Some (Tick (Option.get (Rational.to_int d)))
+        | DelayAutomaton.Operation c ->
+            Some (Letter (List.hd (DelayAutomaton.Class.names c))))
+      word
+
+  let in_allowance = tabulated (on_graphs DelayTimedClosure.Graph.in_allowance)
+  let in_coverage = tabulated (on_graphs DelayTimedClosure.Graph.in_coverage)
+
+  let allowance =
+    tabulated (fun names running_times rho rho' ->
+        Option.map symbols
+          (on_graphs DelayTimedClosure.Graph.allowance names running_times rho
+             rho'))
+
+  let coverage =
+    tabulated (fun names running_times rho rho' ->
+        Option.map symbols
+          (on_graphs DelayTimedClosure.Graph.coverage names running_times rho
+             rho'))
+
+  let weight extreme names running_times rho =
+    Option.map
+      (fun (q, _) -> Option.get (Rational.to_int q))
+      (extreme (world names running_times) (graph names rho))
+
+  let min_weight = weight DelayTimedClosure.Graph.min_weight
+  let max_weight = weight DelayTimedClosure.Graph.max_weight
+  let inhabited names rho = DelayTimedClosure.Graph.inhabited (graph names rho)
+end
+
+module Over
+    (L : LANGUAGE)
+    (D : DECISIONS with type t = L.t)
+    (Variant : sig
+      val suffix : string
+    end) =
+struct
   type order = {
-    search : string list -> int list -> L.t -> L.t -> int list option;
+    holds : string list -> int list -> L.t -> L.t -> bool;
+    search : string list -> int list -> L.t -> L.t -> regex list option;
     endpoint : running_time -> Rational.t bound;
     top : L.t;
   }
-  (** An order on traces: the search for a shortest trace of the lesser grade
-      outside the closure of the greater one, over the classes of given least
-      names at given running times, the end of the running-time bounds it reads
-      as the running time of an operation, and the representation of its
-      greatest grade. *)
-
-  let letters names = List.length names + 1
+  (** An order on traces: whether every trace of the lesser grade is in the
+      closure of the greater one, and the search for a trace outside it, over
+      the classes of given least names at given running times; the end of the
+      running-time bounds it reads as the running time of an operation, and the
+      representation of its greatest grade. *)
 
   let allowance =
     {
-      search =
-        tabulated (fun ~running_time names rho rho' ->
-            let letters = letters names in
-            Closed.counterexample letters (traces names rho)
-              (Allowance.closure ~running_time ~letters (traces names rho')));
+      holds = D.in_allowance;
+      search = D.allowance;
       endpoint = snd;
       top = L.top;
     }
 
   let coverage =
-    {
-      search =
-        tabulated (fun ~running_time names rho rho' ->
-            Closed.counterexample (letters names) (traces names rho)
-              (Coverage.closure ~running_time (traces names rho')));
-      endpoint = fst;
-      top = L.one;
-    }
+    { holds = D.in_coverage; search = D.coverage; endpoint = fst; top = L.one }
 
   (** [alphabet bounds rhos] is the names of the operations of a comparison of
       the grades [rhos]: the declared operations and the names [rhos] mention.
@@ -153,41 +286,46 @@ struct
       (L.representatives rhos
          (List.map (fun name -> (name, running_time name)) names))
 
-  (** [find order bounds rho rho'] is a shortest trace of [rho] outside the
-      closure of [rho'] under [order], with the least names of the classes its
-      letters index; there is none if [rho] and [rho'] are the same language or
-      [rho'] is the top. *)
-  let find order bounds rho rho' =
-    if L.equal bounds rho rho' || L.compare rho' order.top = 0 then None
-    else
-      let names, running_times =
-        classes (running_time order.endpoint bounds) bounds [ rho; rho' ]
-      in
-      order.search names running_times rho rho'
-      |> Option.map (fun word -> (names, word))
+  (** [trivial order bounds rho rho'] is whether [rho ≾ rho'] holds by their
+      representations: [rho] and [rho'] are the same language or [rho'] is the
+      top. *)
+  let trivial order bounds rho rho' =
+    L.equal bounds rho rho' || L.compare rho' order.top = 0
+
+  (** [compared order bounds decide rho rho'] is [decide] on the least names of
+      the classes of a comparison of [rho] with [rho'] and their running times.
+  *)
+  let compared order bounds decide rho rho' =
+    let names, running_times =
+      classes (running_time order.endpoint bounds) bounds [ rho; rho' ]
+    in
+    decide names running_times rho rho'
 
   (** [inhabited bounds rho] is whether [rho] has a trace over the declared
       operations and the names it mentions, the running times aside. *)
   let inhabited bounds rho =
     let names, _ = classes (Fun.const 0) bounds [ rho ] in
-    not (Traces.is_empty (letters names) (traces names rho))
+    D.inhabited names rho
 
-  (** [grade_of_word (names, word)] is the grade of the single trace [word] over
-      [names]. *)
-  let grade_of_word (names, word) =
-    let letter a = if a = 0 then Tick 1 else Letter (List.nth names (a - 1)) in
-    L.of_lit
-      (Braces (List.fold_left (fun r a -> Seq (r, letter a)) (Tick 0) word))
+  (** [grade_of_word word] is the grade of the single trace of the delays and
+      names [word]. *)
+  let grade_of_word word =
+    L.of_lit (Braces (List.fold_left (fun r s -> Seq (r, s)) (Tick 0) word))
 
-  let leq order bounds rho rho' = Option.is_none (find order bounds rho rho')
+  let leq order bounds rho rho' =
+    trivial order bounds rho rho' || compared order bounds order.holds rho rho'
 
   (** [is_top order bounds rho] is whether [rho] is the top: by its
       representation, and otherwise by the order. *)
   let is_top order bounds rho =
     L.compare rho order.top = 0 || leq order bounds order.top rho
 
+  (** [counterexample order bounds rho rho'] is the grade of a trace of [rho]
+      outside the closure of [rho'] under [order], in which a name stands for
+      itself, the least of its class. *)
   let counterexample order bounds rho rho' =
-    Option.map grade_of_word (find order bounds rho rho')
+    if trivial order bounds rho rho' then None
+    else Option.map grade_of_word (compared order bounds order.search rho rho')
 
   (** [weight extreme endpoint bounds rho] is the [extreme] weight of a trace of
       [rho], operations counting at the [endpoint] of their running-time bounds.
@@ -196,14 +334,12 @@ struct
     let names, running_times =
       classes (running_time endpoint bounds) bounds [ rho ]
     in
-    extreme
-      ~running_time:(letter_running_time running_times)
-      ~letters:(letters names) (traces names rho)
+    extreme names running_times rho
 
   let implied_bounds bounds lower upper =
     match
-      ( weight Weights.min_weight fst bounds lower,
-        weight Weights.max_weight snd bounds upper )
+      ( weight D.min_weight fst bounds lower,
+        weight D.max_weight snd bounds upper )
     with
     | Some fastest, Some slowest ->
         Some (Closed (Rational.of_int fastest), Closed (Rational.of_int slowest))
@@ -445,6 +581,8 @@ module PlainDerivatives = struct
   let representatives = every_name
 end
 
+module Make (L : LANGUAGE) = Over (L) (ByLetters (L))
+
 include
   Make
     (Automata)
@@ -453,8 +591,7 @@ include
     end)
 
 module Symbolic =
-  Make
-    (Derivatives)
+  Over (Derivatives) (ByGaps)
     (struct
       let suffix = "-symbolic"
     end)

@@ -571,6 +571,12 @@ module Graph = struct
       (concretise lowest (fun w -> not (reads reader w)))
       (search up reader l)
 
+  let in_allowance world l m =
+    Option.is_none (search down (fst (allowance_reader world m)) l)
+
+  let in_coverage world l m =
+    Option.is_none (search up (coverage_reader world m) l)
+
   let permits = permits
   let covers = covers
   let max_weight = max_weight
