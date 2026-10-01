@@ -90,6 +90,9 @@ module Letters : sig
   val equal : t -> t -> bool
   val compare : t -> t -> int
 
+  val hash : t -> int
+  (** A hash compatible with {!equal}. *)
+
   val empty : t
   (** The empty letter set. *)
 

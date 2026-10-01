@@ -6,8 +6,9 @@
    complements against the constructions on their atoms, the printing of sets
    of delays read back, membership against a direct matcher over timed words
    that splits delays on a grid, inclusion and its counterexamples against
-   that matcher, and the agreement with the regular trace grade over whole
-   time steps on integer instances. *)
+   that matcher, the agreement with the regular trace grade over whole time
+   steps on integer instances, and the expressions decided by gap derivatives
+   against the automata. *)
 
 module Grade = Grades.Grade
 module Rational = Grades.Rational
@@ -607,6 +608,144 @@ let whole_steps =
       grades;
   ]
 
+(* {1 Gap derivatives}
+
+   The expressions in normal form decided by their gap derivatives, against the
+   automata: the delays, membership, emptiness, inclusion and equality, on
+   random expressions over two names with constants on the grids of halves and
+   thirds; and the collapse of the expressions without names. *)
+
+module X = Grades.RationalRegex
+
+(* The constants on the grid of halves or of thirds, up to [2]. *)
+let halves_or_thirds st () =
+  let d = if Random.State.bool st then 2 else 3 in
+  q (Random.State.int st ((2 * d) + 1)) d
+
+let gap_expressions =
+  let st = Random.State.make [| 59 |] in
+  let random () =
+    let r = random_regex st ~depth:3 ~constant:(halves_or_thirds st) in
+    let rec rename = function
+      | Grade.Letter "C" -> Grade.Letter "A"
+      | Grade.Seq (r, s) -> Grade.Seq (rename r, rename s)
+      | Grade.Union (r, s) -> Grade.Union (rename r, rename s)
+      | Grade.Inter (r, s) -> Grade.Inter (rename r, rename s)
+      | Grade.Compl r -> Grade.Compl (rename r)
+      | Grade.Star r -> Grade.Star (rename r)
+      | r -> r
+    in
+    let r = rename r in
+    (r, X.of_regex r, R.automaton r)
+  in
+  List.init 320 (fun _ -> random ())
+
+(* Timed words of up to three operations among [A], [B] and [Z], with delays
+   on the grids of halves and thirds up to [2]. *)
+let gap_words =
+  let st = Random.State.make [| 61 |] in
+  List.init 80 (fun _ ->
+      let n = Random.State.int st 4 in
+      {
+        gaps = Array.init (n + 1) (fun _ -> halves_or_thirds st ());
+        ops =
+          Array.init n (fun _ ->
+              List.nth [ "A"; "B"; "Z" ] (Random.State.int st 3));
+      })
+
+let show_triple (r, _, _) = show_regex r
+
+let gap_pairs =
+  let few = List.filteri (fun i _ -> i < 60) gap_expressions in
+  List.concat_map (fun x -> List.map (fun y -> (x, y)) few) few
+
+let show_pair (x, y) = show_triple x ^ ", " ^ show_triple y
+
+(* Pairs of an expression and an expression of the same language written
+   differently. *)
+let equal_pairs =
+  List.concat_map
+    (fun (r, x, a) ->
+      List.map
+        (fun r' -> ((r, x, a), (r', X.of_regex r', R.automaton r')))
+        [
+          Grade.Union (r, r);
+          Grade.Inter (r, Grade.Star Grade.Any);
+          Grade.Seq (Grade.Tick 0, r);
+          Grade.Compl (Grade.Compl r);
+          Grade.Union
+            ( Grade.Inter (r, Grade.Letter "A"),
+              Grade.Inter (r, Grade.Compl (Grade.Letter "A")) );
+        ])
+    (List.filteri (fun i _ -> i < 80) gap_expressions)
+
+let gap_decisions =
+  [
+    every "gaps: delays against the automata" show_triple
+      (fun (_, x, a) -> DelaySet.equal (X.delays x) (A.delay_part a))
+      gap_expressions;
+    every "gaps: membership against the automata"
+      (fun ((r, _, _), w) -> show_regex r ^ " on " ^ show_word w)
+      (fun ((_, x, a), w) ->
+        let w = to_symbols w in
+        X.mem w x = A.mem w a)
+      (List.concat_map
+         (fun e -> List.map (fun w -> (e, w)) gap_words)
+         gap_expressions);
+    every "gaps: emptiness against the automata" show_triple
+      (fun (_, x, a) -> X.is_empty x = A.is_empty a)
+      gap_expressions;
+    every "gaps: inclusion against the automata" show_pair
+      (fun ((_, x, a), (_, y, b)) -> X.subset x y = A.subset a b)
+      gap_pairs;
+    every "gaps: equality against the automata" show_pair
+      (fun ((_, x, a), (_, y, b)) -> X.equal x y = A.equal a b)
+      gap_pairs;
+    every "gaps: equality of equal languages" show_pair
+      (fun ((_, x, a), (_, y, b)) -> A.equal a b && X.equal x y)
+      equal_pairs;
+    every "gaps: the names of the normal form" show_triple
+      (fun (_, x, a) ->
+        List.for_all (fun n -> List.mem n (X.names x)) (A.names a))
+      gap_expressions;
+  ]
+
+(* The expressions without names, [_] or complements are atoms: equal in form
+   iff their sets of delays are equal. *)
+let gap_letterless =
+  let st = Random.State.make [| 67 |] in
+  let rec random depth =
+    let sub () = random (depth - 1) in
+    match Random.State.int st (if depth = 0 then 2 else 6) with
+    | 0 -> Grade.rational_tick (halves_or_thirds st ())
+    | 1 -> interval_atom (1 + Random.State.int st 3) (halves_or_thirds st ())
+    | 2 -> Grade.Seq (sub (), sub ())
+    | 3 -> Grade.Union (sub (), sub ())
+    | 4 -> Grade.Inter (sub (), sub ())
+    | _ -> Grade.Star (sub ())
+  in
+  let some = List.init 60 (fun _ -> random 3) in
+  let pairs = List.concat_map (fun r -> List.map (fun s -> (r, s)) some) some in
+  [
+    expect "gaps: {1/2; 1/2} and {1} equal in form" string_of_bool
+      ~expected:true
+      (X.equal_form
+         (X.of_regex (Grade.Seq (Grade.Frac (q 1 2), Grade.Frac (q 1 2))))
+         (X.of_regex (Grade.Tick 1)));
+    every "gaps: letterless expressions are the atoms of their delays"
+      show_regex
+      (fun r ->
+        X.equal_form (X.of_regex r) (X.delays_atom (R.delays r))
+        && DelaySet.equal (X.delays (X.of_regex r)) (R.delays r))
+      some;
+    every "gaps: letterless expressions equal in form iff equal sets"
+      (fun (r, s) -> show_regex r ^ ", " ^ show_regex s)
+      (fun (r, s) ->
+        X.equal_form (X.of_regex r) (X.of_regex s)
+        = DelaySet.equal (R.delays r) (R.delays s))
+      pairs;
+  ]
+
 (* {1 Timing} *)
 
 let timing =
@@ -631,7 +770,8 @@ let () =
   let checks =
     literals @ whole_step_rejections @ examples @ laws @ delay_parts
     @ canonical_forms @ letterless @ delay_printing @ grade_printing
-    @ membership @ inclusion @ whole_steps @ timing
+    @ membership @ inclusion @ whole_steps @ gap_decisions @ gap_letterless
+    @ timing
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
