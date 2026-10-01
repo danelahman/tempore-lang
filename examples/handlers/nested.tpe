@@ -2,7 +2,7 @@
 
    Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound examples/handlers/handlers_nested.tpe
+     ./tempore --grades time-lower-bound examples/handlers/nested.tpe
 
    Grades n: at least n ticks (time steps)
      - Unit 0: no time needed

@@ -135,7 +135,7 @@ type workload = {
   prepare : unit -> unit -> unit;
 }
 
-(* The brace literals of examples/regular/regular_traces.tpe and of
+(* The brace literals of examples/regular/upper_bounds.tpe and of
    tests/*regular*.tpe. *)
 let corpus =
   [
@@ -343,7 +343,7 @@ end
    the tests of the grade. *)
 let regular_programs =
   [
-    "examples/regular/regular_traces.tpe";
+    "examples/regular/upper_bounds.tpe";
     "tests/literals_regular.tpe";
     "tests/regular_auth.tpe";
     "tests/regular_protocol.tpe";
@@ -413,8 +413,8 @@ let cost_corpus_names =
     "Fetch";
   ]
 
-(* The one-sided box grades of examples/regular_costs/*.tpe and of
-   tests/regex_costs_*.tpe, understood by every cost-model grade. *)
+(* The one-sided box grades of examples/regular_costs/{lower,upper}_bounds.tpe
+   and of tests/regex_costs_*.tpe, understood by every cost-model grade. *)
 let cost_corpus =
   [
     "{Coat; 4}";
@@ -434,7 +434,7 @@ let cost_corpus =
     "top";
   ]
 
-(* The two-sided box grades of examples/regular_costs/regular_costs_intervals.tpe
+(* The two-sided box grades of examples/regular_costs/intervals.tpe
    and tests/regex_costs_interval*.tpe, understood only by the interval grade.
 *)
 let interval_cost_corpus =
@@ -563,8 +563,7 @@ module Cost = Grades.RegularCostTraceGrades
 (* The programs typechecked under the cost-model grade [grade], the example
    first. *)
 let cost_files example grade =
-  ("examples/regular_costs/regular_costs_" ^ example ^ ".tpe")
-  :: cost_programs grade
+  ("examples/regular_costs/" ^ example ^ ".tpe") :: cost_programs grade
 
 (** The workloads of one implementation, over its grades [G], [Upper], [Lower]
     and [Interval], by family, in the order of the table. *)
@@ -587,8 +586,8 @@ struct
     [
       Plain.workloads regular_programs;
       Ops.operations;
-      UpperPrograms.workloads (cost_files "upper" "upper");
-      LowerPrograms.workloads (cost_files "lower" "lower");
+      UpperPrograms.workloads (cost_files "upper_bounds" "upper");
+      LowerPrograms.workloads (cost_files "lower_bounds" "lower");
       IntervalPrograms.workloads (cost_files "intervals" "interval");
       UpperOps.operations;
       LowerOps.operations;

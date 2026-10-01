@@ -2,7 +2,7 @@
 
    Run this example with the 'regex-cost-interval-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-cost-interval-symbolic examples/regular_costs/regular_costs_intervals.tpe
+     ./tempore --grades regex-cost-interval-symbolic examples/regular_costs/intervals.tpe
 
    Grades [L, U]: a lower and upper regular-language bound on the traces
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed

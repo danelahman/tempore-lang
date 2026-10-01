@@ -2,7 +2,7 @@
 
    Run this example with the 'regex-cost-upper-bound-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-cost-upper-bound-symbolic examples/regular_costs/regular_costs_upper.tpe
+     ./tempore --grades regex-cost-upper-bound-symbolic examples/regular_costs/upper_bounds.tpe
 
    Grades {...}: regular languages of traces in the allowance order
      - Unit {0}: the empty trace, the least grade

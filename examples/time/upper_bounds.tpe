@@ -2,7 +2,7 @@
 
    Run this example with the 'time-upper-bound' grading monoid, e.g.
 
-     ./tempore --grades time-upper-bound examples/time/time_upper.tpe
+     ./tempore --grades time-upper-bound examples/time/upper_bounds.tpe
 
    Grades n: at most n ticks (time steps)
      - Unit 0: no time spent, the least grade

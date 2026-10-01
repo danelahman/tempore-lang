@@ -2,7 +2,7 @@
 
    Run this example with the 'time-interval-rational' grading monoid, e.g.
 
-     ./tempore --grades time-interval-rational examples/time/rational_time_intervals.tpe
+     ./tempore --grades time-interval-rational examples/time/intervals_rational.tpe
 
    Grades [q, r] or (q, r): between q and r hours, a parenthesised end excluded
      - Unit [0, 0]: no time spent

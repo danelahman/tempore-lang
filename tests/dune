@@ -8,4 +8,5 @@
   (source_tree ../examples/time)
   (source_tree ../examples/rollout)
   (source_tree ../examples/sessions)
-  (source_tree ../examples/traces)))
+  (source_tree ../examples/traces)
+  (source_tree ../examples/traces_costs)))

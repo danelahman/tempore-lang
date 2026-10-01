@@ -2,7 +2,7 @@
 
    Run this example with the 'regex-upper-bound-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-upper-bound-rational-symbolic examples/regular/regular_rational.tpe
+     ./tempore --grades regex-upper-bound-rational-symbolic examples/regular/upper_bounds_rational.tpe
 
    Grades {...}: regular languages of traces over operations and rational delays
      - Unit {0}: the empty trace

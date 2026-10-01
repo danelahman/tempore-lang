@@ -2,7 +2,7 @@
 
    Run this example with the 'time-lower-bound-levels' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound-levels examples/levels/time_lower_levels.tpe
+     ./tempore --grades time-lower-bound-levels examples/levels/time_lower.tpe
 
    Grades (n, l): at least n ticks (time steps), touching nothing above level l
      - Unit (0, Low): no time needed, nothing secret touched

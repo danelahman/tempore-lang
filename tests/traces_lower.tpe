@@ -1,6 +1,6 @@
 (* Run this example with the 'traces-cost-lower-bound' grading monoid, e.g.
 
-     ./tempore --grades traces-cost-lower-bound examples/traces/traces_lower.tpe *)
+     ./tempore --grades traces-cost-lower-bound examples/traces_costs/lower_bounds.tpe *)
 
 type model = Model of string
 type heated = Heated of model

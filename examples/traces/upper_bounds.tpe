@@ -2,7 +2,7 @@
 
    Run this example with the 'traces-upper-bound' grading monoid, e.g.
 
-     ./tempore --grades traces-upper-bound examples/traces/plain_traces_upper.tpe
+     ./tempore --grades traces-upper-bound examples/traces/upper_bounds.tpe
 
    Grades {...}: the traces a computation is allowed, compared by inclusion
      - Unit {0}: the empty trace

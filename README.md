@@ -116,7 +116,7 @@ other monoids count whole time steps and accept only integers. See
 Resources and computations are graded by an ordered monoid, chosen at run time
 with `--grades` or the **Grades** selector, e.g.
 
-    ./tempore --grades time-interval examples/time/time_intervals.tpe
+    ./tempore --grades time-interval examples/time/intervals.tpe
 
 ### Grade literals
 
@@ -150,8 +150,8 @@ A grade bounds the number of time steps, or ticks, a computation takes.
   abbreviates a closed one, `(n, m)` being `[n + 1, m - 1]`.
 
 Example: `box [2, 5] v` may be unboxed after two to five ticks. See
-[`examples/time/time_upper.tpe`](examples/time/time_upper.tpe) and
-[`examples/time/time_intervals.tpe`](examples/time/time_intervals.tpe).
+[`examples/time/upper_bounds.tpe`](examples/time/upper_bounds.tpe) and
+[`examples/time/intervals.tpe`](examples/time/intervals.tpe).
 
 The rational variants `time-lower-bound-rational`, `time-upper-bound-rational` and
 `time-interval-rational` measure time exactly by non-negative rationals, with
@@ -162,7 +162,7 @@ may be unboxed strictly after four units and at most six. A sum of intervals
 is open at an endpoint if either summand is, so `[1, 2) · [1, 1]` is `[2, 3)`. A
 grade is printed as an integer, as a finite decimal if one exists (`0.125`),
 and otherwise as a fraction (`1/3`). See
-[`examples/time/rational_time_intervals.tpe`](examples/time/rational_time_intervals.tpe).
+[`examples/time/intervals_rational.tpe`](examples/time/intervals_rational.tpe).
 
 ### Traces
 
@@ -181,7 +181,7 @@ equality, so only upper bounds are provided. The rational variant
 Literals are those of the trace grades with costs, below. When an ordering
 fails, a note names a trace of the lesser grade that the greater one does not
 list. See
-[`examples/traces/plain_traces_upper.tpe`](examples/traces/plain_traces_upper.tpe).
+[`examples/traces/upper_bounds.tpe`](examples/traces/upper_bounds.tpe).
 
 ### Traces with costs
 
@@ -202,9 +202,9 @@ time against operations.
 
 Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
 Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
-[`examples/traces/traces_lower.tpe`](examples/traces/traces_lower.tpe),
-[`examples/traces/traces_upper.tpe`](examples/traces/traces_upper.tpe) and
-[`examples/traces/traces_intervals.tpe`](examples/traces/traces_intervals.tpe).
+[`examples/traces_costs/lower_bounds.tpe`](examples/traces_costs/lower_bounds.tpe),
+[`examples/traces_costs/upper_bounds.tpe`](examples/traces_costs/upper_bounds.tpe) and
+[`examples/traces_costs/intervals.tpe`](examples/traces_costs/intervals.tpe).
 
 The rational variants `traces-cost-lower-bound-rational`,
 `traces-cost-upper-bound-rational` and `traces-cost-interval-rational` have the
@@ -216,7 +216,7 @@ declare bounds such as `within [1/2, 3/2]`.
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
 infinitely many traces and is rejected; the regular expressions of
 `regex-cost-interval-rational-symbolic` can be used to express such cases. See
-[`examples/traces/rational_traces_intervals.tpe`](examples/traces/rational_traces_intervals.tpe).
+[`examples/traces_costs/intervals_rational.tpe`](examples/traces_costs/intervals_rational.tpe).
 
 ### Regular expressions
 
@@ -247,7 +247,7 @@ Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated
   Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
 ```
 
-See [`examples/regular/regular_traces.tpe`](examples/regular/regular_traces.tpe).
+See [`examples/regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe).
 
 You can benchmark four implementations of regular expressions (ranging from DFAs
 to symbolic automata and symbolic derivatives) with 
@@ -271,7 +271,7 @@ the sums of any number of halves, `0`, `1/2`, `1`, …, and `{[1, 2]*}` is the
 delay `0` and every delay from `1`. A plain number `q` abbreviates `{q}`. The
 unit is `{0}` and the top `⊤`, `{_*}`. A grade is printed as it is written, with
 adjacent delays added. See
-[`examples/regular/regular_rational.tpe`](examples/regular/regular_rational.tpe).
+[`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
 
 ### Regular expressions with costs
 
@@ -294,10 +294,10 @@ The alphabet is the atomic operations declared anywhere in the program, so `_`
 is any tick or atomic operation, and a grade must denote at least one trace
 over it. With `Read` declared `within [1, 3]`, under `regex-cost-upper-bound-symbolic`
 `{Read}` is below `{3}` and `{Read | 3}` equals `{3}`. See
-[`examples/regular_costs/regular_costs_lower.tpe`](examples/regular_costs/regular_costs_lower.tpe),
-[`examples/regular_costs/regular_costs_upper.tpe`](examples/regular_costs/regular_costs_upper.tpe)
+[`examples/regular_costs/lower_bounds.tpe`](examples/regular_costs/lower_bounds.tpe),
+[`examples/regular_costs/upper_bounds.tpe`](examples/regular_costs/upper_bounds.tpe)
 and
-[`examples/regular_costs/regular_costs_intervals.tpe`](examples/regular_costs/regular_costs_intervals.tpe).
+[`examples/regular_costs/intervals.tpe`](examples/regular_costs/intervals.tpe).
 
 The rational variants `regex-cost-lower-bound-rational-symbolic`,
 `regex-cost-upper-bound-rational-symbolic` and `regex-cost-interval-rational-symbolic` order the
@@ -321,9 +321,9 @@ greatest weights of the traces of its grade: `{Sample; [0, 1/2); Send}` gets
 
 Under `regex-cost-interval-rational-symbolic` an open numeric endpoint of an interval is
 a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`. See
-[`examples/regular_costs/regular_costs_rational.tpe`](examples/regular_costs/regular_costs_rational.tpe)
+[`examples/regular_costs/upper_bounds_rational.tpe`](examples/regular_costs/upper_bounds_rational.tpe)
 and
-[`examples/regular_costs/regular_costs_intervals_rational.tpe`](examples/regular_costs/regular_costs_intervals_rational.tpe).
+[`examples/regular_costs/intervals_rational.tpe`](examples/regular_costs/intervals_rational.tpe).
 
 ### Security levels and products
 
@@ -346,10 +346,10 @@ and
 
 The pairs of the products with the time grades are compared, multiplied and
 joined componentwise. See
-[`examples/levels/security_levels.tpe`](examples/levels/security_levels.tpe),
-[`examples/levels/time_lower_levels.tpe`](examples/levels/time_lower_levels.tpe),
-[`examples/levels/time_upper_levels.tpe`](examples/levels/time_upper_levels.tpe)
-and [`examples/levels/flow_levels.tpe`](examples/levels/flow_levels.tpe).
+[`examples/levels/security.tpe`](examples/levels/security.tpe),
+[`examples/levels/time_lower.tpe`](examples/levels/time_lower.tpe),
+[`examples/levels/time_upper.tpe`](examples/levels/time_upper.tpe)
+and [`examples/levels/flow.tpe`](examples/levels/flow.tpe).
 
 ### Semidirect products
 
@@ -515,9 +515,9 @@ instance:
     Note: the effect inequality `∀ε₀. 0 >= 1 · ε₀` does not hold: for
       `ε₀ = 0` it becomes `0 >= 1`
 
-See [`examples/handlers/handlers_lower_bound.tpe`](examples/handlers/handlers_lower_bound.tpe),
-[`examples/handlers/handlers_upper_bound.tpe`](examples/handlers/handlers_upper_bound.tpe)
-and [`examples/3dprint/3dprint_handlers.tpe`](examples/3dprint/3dprint_handlers.tpe).
+See [`examples/handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe),
+[`examples/handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe)
+and [`examples/3dprint/handlers.tpe`](examples/3dprint/handlers.tpe).
 
 ### Contexts of operation cases
 
@@ -529,9 +529,9 @@ case, and an outer box can be unboxed only if `⊤` is below its grade. This is
 because operation cases need to be executable anywhere in the computation tree
 when handling. The case's own `p` and `k`, and top-level definitions, are
 unaffected. See
-[`examples/handlers/handlers_nested.tpe`](examples/handlers/handlers_nested.tpe)
+[`examples/handlers/nested.tpe`](examples/handlers/nested.tpe)
 and
-[`examples/handlers/handlers_nested_reject.tpe`](examples/handlers/handlers_nested_reject.tpe).
+[`examples/handlers/nested_reject.tpe`](examples/handlers/nested_reject.tpe).
 
 ### Default implementations
 
@@ -548,7 +548,7 @@ its grade implies must moreover lie within the declared ones, an open end
 excluded, so that with `A` declared `within [1, 2)` the default
 `default A () = delay 2` is rejected under every monoid with costs. Elsewhere a default's
 grade must be a sub-grade of the operation's grade.
-See [`examples/3dprint/3dprint_traces.tpe`](examples/3dprint/3dprint_traces.tpe).
+See [`examples/3dprint/traces.tpe`](examples/3dprint/traces.tpe).
 
 ## Recursion
 

@@ -2,7 +2,7 @@
 
    Run this example with the 'traces-cost-interval' grading monoid, e.g.
 
-     ./tempore --grades traces-cost-interval examples/3dprint/3dprint_traces.tpe
+     ./tempore --grades traces-cost-interval examples/3dprint/traces.tpe
 
    Grades [{...}, {...}]: a lower and an upper bound on the traces
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed

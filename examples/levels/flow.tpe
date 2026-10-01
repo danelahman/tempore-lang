@@ -2,7 +2,7 @@
 
    Run this example with the 'flow-levels' grading monoid, e.g.
 
-     ./tempore --grades flow-levels examples/levels/flow_levels.tpe
+     ./tempore --grades flow-levels examples/levels/flow.tpe
 
    Grades (l, (S, k), ...): level l touched and level k of each output S
      - Unit Low: touches and writes nothing

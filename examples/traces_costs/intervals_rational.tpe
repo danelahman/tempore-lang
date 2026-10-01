@@ -2,7 +2,7 @@
 
    Run this example with the 'traces-cost-interval-rational' grading monoid, e.g.
 
-     ./tempore --grades traces-cost-interval-rational examples/traces/rational_traces_intervals.tpe
+     ./tempore --grades traces-cost-interval-rational examples/traces_costs/intervals_rational.tpe
 
    Grades [{...}, {...}]: lower and upper bounds on traces with rational
    durations

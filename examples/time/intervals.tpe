@@ -2,7 +2,7 @@
 
    Run this example with the 'time-interval' grading monoid, e.g.
 
-     ./tempore --grades time-interval examples/time/time_intervals.tpe
+     ./tempore --grades time-interval examples/time/intervals.tpe
 
    Grades [n, m]: between n and m ticks (time steps),
    (n, m) being [n + 1, m - 1]

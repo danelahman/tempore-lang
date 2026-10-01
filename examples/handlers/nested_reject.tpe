@@ -2,7 +2,7 @@
 
    Run this example with the 'time-lower-bound' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound examples/handlers/handlers_nested_reject.tpe
+     ./tempore --grades time-lower-bound examples/handlers/nested_reject.tpe
 
    Grades n: at least n ticks (time steps)
      - Unit 0: no time needed
@@ -12,7 +12,7 @@
 operation Op1 : unit ~> unit # 2
 operation Op2 : unit ~> unit # 3
 
-(* Correctly rejected by the typechecker: 'examples/handlers/handlers_nested.tpe' with
+(* Correctly rejected by the typechecker: 'examples/handlers/nested.tpe' with
    one mistake, the inner case never resuming 'k'', so its grade is the 3
    ticks it delays alone and misses the inner continuation's. *)
 let h =

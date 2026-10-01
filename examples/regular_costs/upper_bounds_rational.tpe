@@ -2,7 +2,7 @@
 
    Run this example with the 'regex-cost-upper-bound-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-cost-upper-bound-rational-symbolic examples/regular_costs/regular_costs_rational.tpe
+     ./tempore --grades regex-cost-upper-bound-rational-symbolic examples/regular_costs/upper_bounds_rational.tpe
 
    Grades {...}: regular languages of traces with rational durations in the
    allowance order

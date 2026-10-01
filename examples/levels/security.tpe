@@ -2,7 +2,7 @@
 
    Run this example with the 'security-levels' grading monoid, e.g.
 
-     ./tempore --grades security-levels examples/levels/security_levels.tpe
+     ./tempore --grades security-levels examples/levels/security.tpe
 
    Grades Low < High: the highest security level a computation touches
      - Unit Low: touches nothing secret, the least grade

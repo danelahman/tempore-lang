@@ -136,7 +136,7 @@ warm: mean of repeated runs; ratios of the cold times: automata / plain
 |------------------------------------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|
 | **typechecking, regex-upper-bound-letter-automata**      |            |            |            |            |            |            |            |            |            |            |            |
 | standard library alone                   |   34.98 ms |   29.44 ms |   28.47 ms |   28.52 ms |       1.19 |       1.03 |       1.00 |   28.67 ms |   25.04 ms |   24.35 ms |   24.37 ms |
-| examples/regular/regular_traces.tpe      |   39.58 ms |   34.09 ms |   31.82 ms |   32.24 ms |       1.16 |       1.07 |       0.99 |   34.89 ms |   29.09 ms |   26.93 ms |   26.91 ms |
+| examples/regular/upper_bounds.tpe      |   39.58 ms |   34.09 ms |   31.82 ms |   32.24 ms |       1.16 |       1.07 |       0.99 |   34.89 ms |   29.09 ms |   26.93 ms |   26.91 ms |
 | tests/literals_regular.tpe               |   33.79 ms |   29.67 ms |   29.04 ms |   29.26 ms |       1.14 |       1.02 |       0.99 |   28.74 ms |   25.17 ms |   24.40 ms |   24.63 ms |
 | tests/regular_auth.tpe                   |   36.92 ms |   32.11 ms |   30.78 ms |   31.72 ms |       1.15 |       1.04 |       0.97 |   31.56 ms |   26.97 ms |   26.50 ms |   26.27 ms |
 | tests/regular_protocol.tpe               |   39.42 ms |   34.77 ms |   32.51 ms |   32.42 ms |       1.13 |       1.07 |       1.00 |   32.89 ms |   28.56 ms |   26.71 ms |   26.79 ms |
@@ -259,20 +259,20 @@ warm: mean of repeated runs; ratios of the cold times: automata / plain
 | equal V = 0 \| U; V                       |  109.12 ms |   216.0 us |   121.1 us |   676.9 us |     505.17 |       1.78 |       0.18 |  109.51 ms |    96.1 us |     5.4 us |     5.4 us |
 | **typechecking, regex-cost-upper-bound-letter-automata** |            |            |            |            |            |            |            |            |            |            |            |
 | standard library alone                   |   28.27 ms |   28.78 ms |   27.12 ms |   27.97 ms |       0.98 |       1.06 |       0.97 |   26.22 ms |   26.38 ms |   25.39 ms |   25.98 ms |
-| examples/regular_costs/regular_costs_upper.tpe |   39.03 ms |   38.77 ms |   35.91 ms |   36.49 ms |       1.01 |       1.08 |       0.98 |   38.82 ms |   35.05 ms |   33.40 ms |   34.58 ms |
+| examples/regular_costs/upper_bounds.tpe |   39.03 ms |   38.77 ms |   35.91 ms |   36.49 ms |       1.01 |       1.08 |       0.98 |   38.82 ms |   35.05 ms |   33.40 ms |   34.58 ms |
 | tests/regex_costs_upper.tpe              |   34.88 ms |   35.25 ms |   34.28 ms |   35.98 ms |       0.99 |       1.03 |       0.95 |   33.78 ms |   32.15 ms |   31.62 ms |   32.75 ms |
 | tests/regex_costs_upper_reject.tpe       |   34.81 ms |   33.96 ms |   32.40 ms |   33.04 ms |       1.02 |       1.05 |       0.98 |   32.90 ms |   30.72 ms |   29.56 ms |   30.32 ms |
 | tests/regex_costs_upper_runs.tpe         |   31.97 ms |   32.96 ms |   31.31 ms |   32.21 ms |       0.97 |       1.05 |       0.97 |   29.59 ms |   29.25 ms |   28.00 ms |   29.08 ms |
 | tests/regex_costs_upper_runs_reject.tpe  |   31.01 ms |   30.94 ms |   29.53 ms |   30.18 ms |       1.00 |       1.05 |       0.98 |   27.79 ms |   27.38 ms |   26.30 ms |   26.86 ms |
 | **typechecking, regex-cost-lower-bound-letter-automata** |            |            |            |            |            |            |            |            |            |            |            |
 | standard library alone                   |   23.42 ms |   21.78 ms |   21.69 ms |   21.67 ms |       1.08 |       1.00 |       1.00 |   21.33 ms |   20.13 ms |   19.39 ms |   19.39 ms |
-| examples/regular_costs/regular_costs_lower.tpe |   26.40 ms |   25.56 ms |   23.87 ms |   23.85 ms |       1.03 |       1.07 |       1.00 |   24.33 ms |   22.82 ms |   21.69 ms |   21.40 ms |
+| examples/regular_costs/lower_bounds.tpe |   26.40 ms |   25.56 ms |   23.87 ms |   23.85 ms |       1.03 |       1.07 |       1.00 |   24.33 ms |   22.82 ms |   21.69 ms |   21.40 ms |
 | tests/regex_costs_lower.tpe              |   25.83 ms |   24.14 ms |   23.12 ms |   23.29 ms |       1.07 |       1.04 |       0.99 |   23.52 ms |   22.04 ms |   20.85 ms |   20.96 ms |
 | tests/regex_costs_lower_reject.tpe       |   27.83 ms |   24.56 ms |   23.59 ms |   22.69 ms |       1.13 |       1.04 |       1.04 |   24.57 ms |   21.87 ms |   20.70 ms |   20.66 ms |
 | tests/regex_costs_lower_runs_reject.tpe  |   22.81 ms |   21.59 ms |   21.12 ms |   22.52 ms |       1.06 |       1.02 |       0.94 |   21.15 ms |   19.64 ms |   19.17 ms |   20.73 ms |
 | **typechecking, regex-cost-interval-letter-automata**    |            |            |            |            |            |            |            |            |            |            |            |
 | standard library alone                   |   34.24 ms |   32.28 ms |   30.07 ms |   30.76 ms |       1.06 |       1.07 |       0.98 |   31.94 ms |   29.61 ms |   27.54 ms |   28.43 ms |
-| examples/regular_costs/regular_costs_intervals.tpe |   45.14 ms |   41.20 ms |   37.50 ms |   38.65 ms |       1.10 |       1.10 |       0.97 |   41.96 ms |   38.69 ms |   34.56 ms |   35.39 ms |
+| examples/regular_costs/intervals.tpe |   45.14 ms |   41.20 ms |   37.50 ms |   38.65 ms |       1.10 |       1.10 |       0.97 |   41.96 ms |   38.69 ms |   34.56 ms |   35.39 ms |
 | tests/regex_costs_interval.tpe           |   38.19 ms |   35.79 ms |   32.80 ms |   33.95 ms |       1.07 |       1.09 |       0.97 |   35.94 ms |   32.46 ms |   30.37 ms |   31.11 ms |
 | tests/regex_costs_interval_reject.tpe    |   37.79 ms |   34.98 ms |   32.15 ms |   33.31 ms |       1.08 |       1.09 |       0.97 |   35.01 ms |   31.69 ms |   29.53 ms |   30.19 ms |
 | tests/regex_costs_interval_runs_reject.tpe |   35.31 ms |   33.03 ms |   30.69 ms |   31.11 ms |       1.07 |       1.08 |       0.99 |   32.87 ms |   30.39 ms |   28.35 ms |   28.89 ms |

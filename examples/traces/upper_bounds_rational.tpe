@@ -3,7 +3,7 @@
 
    Run this example with the 'traces-upper-bound-rational' grading monoid, e.g.
 
-     ./tempore --grades traces-upper-bound-rational examples/traces/plain_rational_traces_upper.tpe
+     ./tempore --grades traces-upper-bound-rational examples/traces/upper_bounds_rational.tpe
 
    Grades {...}: the traces a computation is allowed, compared by inclusion
      - Unit {0}: the empty trace

@@ -1,6 +1,6 @@
 (* Run this example with the 'traces-cost-interval' grading monoid, e.g.
 
-     ./tempore --grades traces-cost-interval examples/3dprint/3dprint_traces.tpe *)
+     ./tempore --grades traces-cost-interval examples/3dprint/traces.tpe *)
 
 type model = Model of string
 type heated = Heated of model

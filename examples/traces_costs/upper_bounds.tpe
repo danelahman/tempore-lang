@@ -2,7 +2,7 @@
 
    Run this example with the 'traces-cost-upper-bound' grading monoid, e.g.
 
-     ./tempore --grades traces-cost-upper-bound examples/traces/traces_upper.tpe
+     ./tempore --grades traces-cost-upper-bound examples/traces_costs/upper_bounds.tpe
 
    Grades {...}: traces a computation is allowed
      - Unit {0}: the empty trace, the least grade

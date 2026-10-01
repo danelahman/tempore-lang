@@ -6098,9 +6098,9 @@ implementations above, the examples over rational delays excepted:
   >   case $f in
   >     *_rational.tpe) continue;;
   >     regex_costs_rational_*.tpe) continue;;
-  >     *costs_lower*.tpe) grades=regex-cost-lower-bound;;
-  >     *costs_upper*.tpe) grades=regex-cost-upper-bound;;
-  >     *costs_interval*.tpe) grades=regex-cost-interval;;
+  >     */regular_costs/lower_bounds.tpe | *costs_lower*.tpe) grades=regex-cost-lower-bound;;
+  >     */regular_costs/upper_bounds.tpe | *costs_upper*.tpe) grades=regex-cost-upper-bound;;
+  >     */regular_costs/intervals*.tpe | *costs_interval*.tpe) grades=regex-cost-interval;;
   >     *) grades=regex-upper-bound;;
   >   esac
   >   for variant in symbolic-by-letters letter-derivatives
@@ -6113,7 +6113,7 @@ implementations above, the examples over rational delays excepted:
   >   done
   > done
   ======================================================================
-  ../examples/regular/regular_traces.tpe (regex-upper-bound-symbolic-by-letters)
+  ../examples/regular/upper_bounds.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
   === Run 1 ===
   return "settled"
@@ -6123,7 +6123,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  ../examples/regular/regular_traces.tpe (regex-upper-bound-letter-derivatives)
+  ../examples/regular/upper_bounds.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
   === Run 1 ===
   return "settled"
@@ -6133,7 +6133,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_intervals.tpe (regex-cost-interval-symbolic-by-letters)
+  ../examples/regular_costs/intervals.tpe (regex-cost-interval-symbolic-by-letters)
   ======================================================================
   === Run 1 ===
   return ()
@@ -6145,7 +6145,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_intervals.tpe (regex-cost-interval-letter-derivatives)
+  ../examples/regular_costs/intervals.tpe (regex-cost-interval-letter-derivatives)
   ======================================================================
   === Run 1 ===
   return ()
@@ -6157,7 +6157,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_lower.tpe (regex-cost-lower-bound-symbolic-by-letters)
+  ../examples/regular_costs/lower_bounds.tpe (regex-cost-lower-bound-symbolic-by-letters)
   ======================================================================
   === Run 1 ===
   return (Part "gear")
@@ -6169,7 +6169,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_lower.tpe (regex-cost-lower-bound-letter-derivatives)
+  ../examples/regular_costs/lower_bounds.tpe (regex-cost-lower-bound-letter-derivatives)
   ======================================================================
   === Run 1 ===
   return (Part "gear")
@@ -6181,7 +6181,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_upper.tpe (regex-cost-upper-bound-symbolic-by-letters)
+  ../examples/regular_costs/upper_bounds.tpe (regex-cost-upper-bound-symbolic-by-letters)
   ======================================================================
   === Run 1 ===
   return (Reading 0)
@@ -6193,7 +6193,7 @@ implementations above, the examples over rational delays excepted:
   ]
   
   ======================================================================
-  ../examples/regular_costs/regular_costs_upper.tpe (regex-cost-upper-bound-letter-derivatives)
+  ../examples/regular_costs/upper_bounds.tpe (regex-cost-upper-bound-letter-derivatives)
   ======================================================================
   === Run 1 ===
   return (Reading 0)
@@ -7225,7 +7225,7 @@ single-dash form of the help option is not accepted.
 
 The rational-time example runs to its values under its intervals of hours.
 
-  $ ../tempore --grades time-interval-rational ../examples/time/rational_time_intervals.tpe
+  $ ../tempore --grades time-interval-rational ../examples/time/intervals_rational.tpe
   === Run 1 ===
   return 500
   State: [
@@ -7335,7 +7335,7 @@ The mail-session case study performs its operations by their defaults.
 The example of the trace grades without costs runs to its value under a
 grade whose adjacent delays are merged.
 
-  $ ../tempore --grades traces-upper-bound ../examples/traces/plain_traces_upper.tpe
+  $ ../tempore --grades traces-upper-bound ../examples/traces/upper_bounds.tpe
   === Run 1 ===
   return "closed"
   State: [
@@ -7348,7 +7348,7 @@ grade whose adjacent delays are merged.
 The example of the trace grades without costs over rational delays runs to
 its value under a grade whose adjacent delays are merged.
 
-  $ ../tempore --grades traces-upper-bound-rational ../examples/traces/plain_rational_traces_upper.tpe
+  $ ../tempore --grades traces-upper-bound-rational ../examples/traces/upper_bounds_rational.tpe
   === Run 1 ===
   return "ready"
   State: [
@@ -7387,7 +7387,7 @@ second by the defaults of its operations.
 The example of the regular trace grade over rational delays runs to its value
 under a grade permitting the pauses of more than a second that are not whole.
 
-  $ ../tempore --grades regex-upper-bound-rational-symbolic ../examples/regular/regular_rational.tpe
+  $ ../tempore --grades regex-upper-bound-rational-symbolic ../examples/regular/upper_bounds_rational.tpe
   === Run 1 ===
   return "settled"
   State: [
@@ -7400,7 +7400,7 @@ under a grade permitting the pauses of more than a second that are not whole.
 The example of the regular cost grades over rational delays, graded by
 intervals, runs to its value, its operations performed by their defaults.
 
-  $ ../tempore --grades regex-cost-interval-rational-symbolic ../examples/regular_costs/regular_costs_intervals_rational.tpe
+  $ ../tempore --grades regex-cost-interval-rational-symbolic ../examples/regular_costs/intervals_rational.tpe
   === Run 1 ===
   return ()
   State: [
