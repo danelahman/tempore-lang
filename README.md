@@ -16,8 +16,7 @@ Most notably, Tempore adds to Temporal Millet the following:
 
 1. temporal algebraic effects and effect handlers that are guaranteed to
 respect the temporal specifications of operations, 
-2. [general resource grades](#grading-monoids) in place of only natural
-number-based time grades, which modelled only whole lower time bounds of
+2. [general resource grades](#grading-monoids) in place of only natural-number-based time grades, which modelled only whole lower time bounds of
 programs, 
 3. a number of concrete examples of such grades (ranging from time to regexes to security levels to trough/peak usage of resources), 
 4. cleaner and more systematic treatment of type inference, and 
@@ -68,7 +67,7 @@ Command line options:
   schemes;
 - `--help` lists the options and the available grading monoids.
 
-The [`examples/`](examples/) directory holds example programs by grouped according to their topics.
+The [`examples/`](examples/) directory holds example programs grouped according to their topics.
 
 ### Web interface
 
@@ -89,11 +88,11 @@ accumulated since the resource was created.
 `box rho e` creates a resource of type `[rho]a`, where `e` has to be well-typed
 in the future in which the grade `rho` has hypothetically accumulated. 
 
-`unbox e` opens a resource `e : [rho]a`, and is allowed only if the grade
+`unbox e` opens a resource `e : [rho]a` to be used, and is allowed only if the grade
 accumulated since boxing is bounded by `rho` (i.e., below `rho` in the grade
 order). 
 
-Under the `time-lower-bound` grade, where resources are graded by the least amounts of time that has to pass before resources can be used, the program
+Under the `time-lower-bound` grade, where resources are graded by the least amounts of time that have to pass before resources can be used, the program
 
 ```
 run
@@ -118,7 +117,7 @@ by a monoid morphism, so `delay 0` has the unit grade and `delay tau; delay
 tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)). 
 
-`tau` is currently a non-negative integer or rational fraction, based on a grade. The rational time and
+`tau` is currently a non-negative integer or rational fraction, depending on the grade. The rational time and
 trace grades, `security-levels` and `flow-levels` have the non-negative
 rationals as delays and accept any, such as `delay 1/3` or `delay 0.25`; the
 other monoids count whole time steps and accept only integers. See
@@ -156,29 +155,62 @@ In this category, a grade bounds the number of time steps, or ticks, a computati
 
 - `time-lower-bound`: `n` is at least `n` ticks; ordered by `>=`, so `0` is
   the top.
+
 - `time-upper-bound`: `n` is at most `n` ticks, `∞` (ASCII `inf`) no bound;
   ordered by `<=`, so `0` is least and `∞` the top.
+
+  For example, with `Read` taking at most two ticks,
+
+  ```
+  operation Read : unit ~> nat # 2
+
+  let read_twice () : nat # 5 =
+    let x = perform Read () in
+    delay 1;
+    let y = perform Read () in
+    x + y
+  ```
+
+  is accepted, as two reads and a delay take at most `2 + 1 + 2` ticks, while if we had given the function the type
+  annotation `nat # 4`, the definition would have been rejected as
+
+      This function's body has grade `5`, which does not match its annotated
+      grade `4`
+
 - `time-interval`: `[n, m]` is between `n` and `m` ticks, and `[n, ∞)` at
   least `n` ticks; ordered by containment, with top `[0, ∞)`. An open endpoint
   abbreviates a closed one, `(n, m)` being `[n + 1, m - 1]`.
-
-Example: `box [2, 5] v` may be unboxed after two to five ticks. 
 
 See
 [`examples/time/upper_bounds.tpe`](examples/time/upper_bounds.tpe) and
 [`examples/time/intervals.tpe`](examples/time/intervals.tpe).
 
 The rational variants `time-lower-bound-rational`, `time-upper-bound-rational`
-and `time-interval-rational` measure time exactly by non-negative rationals,
-with the same orders, units and tops: `box [0.5, 4/3] v` may be unboxed after
-half a unit and before four thirds, and three delays of `1/3` take exactly `1`
-unit. 
+and `time-interval-rational` measure time by non-negative rationals.
 
 The intervals of the grade `time-interval-rational` may be open or half-open:
 `box (4, 6] v` may be unboxed strictly after four units and at most six. A sum
 of intervals is open at an endpoint if either summand is, so `[1, 2) · [1, 1]`
 is `[2, 3)`. A grade is printed as an integer, as a finite decimal if one exists
 (`0.125`), and otherwise as a fraction (`1/3`). 
+
+For example, under `time-interval-rational`, with `Sense` taking between a quarter and a
+half of a unit of time,
+
+```
+operation Sense : unit ~> nat # [1/4, 1/2]
+
+let sample () : nat # (1, 2) =
+  let x = perform Sense () in
+  delay 1;
+  x
+```
+
+is accepted, as its body takes between `1.25` and `1.5` units, while `delay 1.5`
+in place of `delay 1` would be rejected, as the body may then take exactly two units:
+
+    This function's body has grade `[1.75, 2]`, which does not match its
+    annotated grade `(1, 2)`
 
 See
 [`examples/time/intervals_rational.tpe`](examples/time/intervals_rational.tpe).
@@ -199,6 +231,26 @@ equality, so only upper bounds are provided. The rational variant
 
 Literals are those of the trace grades of timed operations, below.
 
+For example, under `traces-upper-bound`, a door that a known badge opens for three ticks and
+an unknown one alarms,
+
+```
+operation Unlock : unit ~> unit # {Unlock}
+operation Lock : unit ~> unit # {Lock}
+operation Alarm : unit ~> unit # {Alarm}
+
+let enter (known : bool) : unit # {Unlock; 3; Lock | Alarm} =
+  if known then (perform Unlock (); delay 3; perform Lock ())
+  else perform Alarm ()
+```
+
+is accepted, the traces of the two branches joined into the set of both, while
+leaving out `perform Lock ()` would be rejected, with a note naming the trace not
+permitted:
+
+    Note: the grade `{Unlock; 3}` is below `{Alarm | Unlock; 3}` but not below
+    `{Alarm | Unlock; 3; Lock}`
+
 See [`examples/traces/upper_bounds.tpe`](examples/traces/upper_bounds.tpe).
 
 ### Traces of timed operations
@@ -207,19 +259,40 @@ The grades are finite sets of traces as above, and every atomic operation
 declares running-time bounds `within [lo, hi]`, which the orders use to trade
 time against operations.
 
+Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
+Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. 
+
+The grading monoids are:
+
 - `traces-timed-lower-bound`: the traces a computation must *cover*; an operation
   performed counts as `lo` ticks towards a demanded duration. `{0}` is the top.
+
 - `traces-timed-upper-bound`: the traces a computation is *allowed*; a duration
   pays for operations at their `hi`. `{0}` is least and `⊤` the top.
+
+  For example, with `Read` taking between one and three ticks,
+
+  ```
+  operation Read : unit ~> nat # {Read} within [1, 3]
+
+  let read_then_wait () : nat # {5} =
+    let x = perform Read () in
+    delay 2;
+    x
+  ```
+
+  is accepted, as five ticks allow for a `Read` at its longest and a delay of two,
+  while `delay 3` in place of `delay 2` would be rejected with the following error message:
+
+      This function's body has grade `{Read; 3}`, which does not match its
+      annotated grade `{5}`
+
 - `traces-timed-interval`: closed intervals `[{...}, {...}]` of a lower and an
   upper bound, the traces at or above the one and at or below the other,
   compared componentwise; `[{...}, ∞)` has no upper bound, `{...}` abbreviates
   `[{...}, {...}]`, `n` is `[{n}, {n}]`, `[n, m]` is `[{n}, {m}]`, and an open
   endpoint abbreviates a closed one, `(n, m)` being `[{n + 1}, {m - 1}]`. The
   top is `[{0}, ∞)`.
-
-Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
-Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. 
 
 See
 [`examples/traces_timed_ops/lower_bounds.tpe`](examples/traces_timed_ops/lower_bounds.tpe),
@@ -234,6 +307,25 @@ running-time bounds: `{Sample; 1/2; Send}` has a duration of half a unit between
 the two operations, a fraction `q` abbreviates `{q}`, and an operation may
 declare bounds such as `within [1/2, 3/2]`. 
 
+For example, under `traces-timed-interval-rational`, the program
+
+```
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit # {Send} within [1/4, 1]
+
+let report () : unit # [1, 3] =
+  let x = perform Sample () in
+  delay 1/2;
+  perform Send x
+```
+
+is accepted, as the body takes at least `1/2 + 1/2 + 1/4` and at most
+`3/2 + 1/2 + 1` units, while `delay 1` in place of `delay 1/2` would be rejected, as
+the body may then take `3.5` units:
+
+    This function's body has grade `[{Sample; 1; Send}, {Sample; 1; Send}]`,
+    which does not match its annotated grade `[{1}, {3}]`
+
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
 infinitely many traces and is rejected, because grades are nonempty finite sets of traces. The regular expressions of
 `regex-timed-interval-rational-symbolic` can be used to express such cases instead. 
@@ -245,23 +337,9 @@ See
 
 A grade is a non-empty regular language of traces. The order is inclusion, the
 product is concatenation and the join is union; the unit is `{0}` and the top
-`⊤` is the language of all traces. Operations declare no running-time bounds. The implementation provides two variants:
+`⊤` is the language of all traces. Operations declare no running-time bounds. The implementation provides two variants, described below.
 
-- `regex-upper-bound-symbolic`: traces are words over the letter `tick` (one
-  time step) and declared operation names. A grade is a symbolic regular
-  expression over sets of letters, kept in normal form, with no automaton; an
-  inclusion `ρ ≾ ρ′` holds if `ρ & ~ρ′` is empty, found by a depth-first search
-  of its gap derivatives, each reading a run of ticks of any length and the
-  operation after it in one step, by sets of delays and minterms.
-- `regex-upper-bound-rational-symbolic`: traces are *timed words*, operations and
-  non-negative rational delays, a delay being a single letter and adjacent delays
-  added, so that `{1/2; 1/2}` is `{1}`; delays are compared as rationals,
-  not rounded to whole ticks. A grade is a minimal deterministic symbolic
-  automaton over sets of operations and sets of delays; an inclusion `ρ ≾ ρ′`
-  holds if the product of `ρ` with the complement of `ρ′` accepts nothing, found
-  by a breadth-first search.
-
-Under both:
+Under both variants:
 
 - literals are regular expressions, by increasing precedence: union `r | s`,
   intersection `r & s`, concatenation `r; s`, complement `~r` and Kleene star
@@ -280,35 +358,89 @@ Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated
   Note: the grade `{Fetch}` is below `{Auth | Fetch}` but not below `{Auth; _*}`
 ```
 
-Under `regex-upper-bound-symbolic`:
+The two variants are:
 
-- an integer `n` denotes `n` ticks, an interval `[n, m]` any number of ticks
-  from `n` to `m` and `[n, ∞)` at least `n`;
-- an open endpoint abbreviates a closed one: `(1, 4)` is `2 | 3`;
-- `_` is any single letter, including operations the grade does not name.
+- `regex-upper-bound-symbolic`: traces are words over the letter `tick` (one
+  time step) and declared operation names. A grade is a symbolic regular
+  expression over sets of letters, kept in normal form, with no automaton; an
+  inclusion `ρ ≾ ρ′` holds if `ρ & ~ρ′` is empty, found by a depth-first search
+  of its gap derivatives, each reading a run of ticks of any length and the
+  operation after it in one step, by sets of delays and minterms. Literals:
 
-See [`examples/regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe).
+  - an integer `n` denotes `n` ticks, an interval `[n, m]` any number of ticks
+    from `n` to `m` and `[n, ∞)` at least `n`;
+  - an open endpoint abbreviates a closed one: `(1, 4)` is `2 | 3`;
+  - `_` is any single letter, including operations the grade does not name.
 
-Under `regex-upper-bound-rational-symbolic`:
+  For example, the file session
 
-- delays are written `3`, `1/2` or `1.5`, and a plain number `q` abbreviates
-  `{q}`;
-- intervals of delays are written `[q, r]`, `(q, r)`, `[q, r)`, `(q, r]`,
-  `[q, ∞)` and `(q, ∞)`: `{[0, 1/2)}` is the delays below `1/2` and `{(1, ∞)}`
-  those above `1`;
-- a parenthesis followed by a delay and a comma opens an interval, and
-  otherwise a group: `{(1 | 2); (1, 2)}` is a delay `1` or `2` followed by one
-  strictly between `1` and `2`;
-- `_` is any single operation or any positive delay, and `⊤` is `{_*}`;
-- the complement is taken over all timed words: `{~1}` is every trace but a
-  delay of exactly `1`, and `{_ & ~Read}` any single operation but `Read` or any
-  positive delay;
-- a repetition of delays is their sums, the empty sum `0` included: `{(1/2)*}`
-  is `0`, `1/2`, `1`, …, and `{[1, 2]*}` is `0` and every delay from `1`;
-- a grade is printed with adjacent delays added.
+  ```
+  operation Open : unit ~> unit # {Open}
+  operation Read : unit ~> nat # {Read}
+  operation Write : nat ~> unit # {Write}
+  operation Close : unit ~> unit # {Close}
 
-See
-[`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
+  let copy () : unit # {Open; (Read | Write)*; Close} =
+    perform Open ();
+    let x = perform Read () in
+    perform Write x;
+    perform Write x;
+    perform Close ()
+  ```
+
+  is accepted, as `Open; Read; Write; Write; Close` is one of the traces the star
+  permits, while leaving out `perform Close ()` would be rejected:
+
+      This function's body has grade `{Open; Read; Write; Write}`, which does not
+      match its annotated grade `{Open; (Read | Write)*; Close}`
+
+  See [`examples/regular/upper_bounds.tpe`](examples/regular/upper_bounds.tpe).
+
+- `regex-upper-bound-rational-symbolic`: traces are *timed words*, operations and
+  non-negative rational delays, a delay being a single letter and adjacent delays
+  added, so that `{1/2; 1/2}` is `{1}`; delays are compared as rationals,
+  not rounded to whole ticks. A grade is a minimal deterministic symbolic
+  automaton over sets of operations and sets of delays; an inclusion `ρ ≾ ρ′`
+  holds if the product of `ρ` with the complement of `ρ′` accepts nothing, found
+  by a breadth-first search. Literals:
+
+  - delays are written `3`, `1/2` or `1.5`, and a plain number `q` abbreviates
+    `{q}`;
+  - intervals of delays are written `[q, r]`, `(q, r)`, `[q, r)`, `(q, r]`,
+    `[q, ∞)` and `(q, ∞)`: `{[0, 1/2)}` is the delays below `1/2` and `{(1, ∞)}`
+    those above `1`;
+  - a parenthesis followed by a delay and a comma opens an interval, and
+    otherwise a group: `{(1 | 2); (1, 2)}` is a delay `1` or `2` followed by one
+    strictly between `1` and `2`;
+  - `_` is any single operation or any positive delay, and `⊤` is `{_*}`;
+  - the complement is taken over all timed words: `{~1}` is every trace but a
+    delay of exactly `1`, and `{_ & ~Read}` any single operation but `Read` or any
+    positive delay;
+  - a repetition of delays is their sums, the empty sum `0` included: `{(1/2)*}`
+    is `0`, `1/2`, `1`, …, and `{[1, 2]*}` is `0` and every delay from `1`;
+  - a grade is printed with adjacent delays added.
+
+  For example, the program
+
+  ```
+  operation Sample : unit ~> nat # {Sample}
+  operation Send : nat ~> unit # {Send}
+
+  let report () : unit # {Sample; [0, 1/2); Send} =
+    let x = perform Sample () in
+    delay 1/4;
+    delay 1/8;
+    perform Send x
+  ```
+
+  is accepted, as the two delays add up to `3/8`, below `1/2`, while `delay 1/4`
+  in place of `delay 1/8` would be rejected, as the delays then add up to exactly `1/2`:
+
+      This function's body has grade `{Sample; 0.5; Send}`, which does not match
+      its annotated grade `{Sample; [0, 0.5); Send}`
+
+  See
+  [`examples/regular/upper_bounds_rational.tpe`](examples/regular/upper_bounds_rational.tpe).
 
 Further implementations of `regex-upper-bound-symbolic`, kept for benchmarking,
 are accepted by `--grades` with one of these suffixes in place of `-symbolic`:
@@ -357,6 +489,25 @@ Under these:
   `{Read}` is below `{3}`, as three ticks allow for `Read`, and `{Read | 3}`
   equals `{3}`.
 
+For example, under `regex-timed-lower-bound-symbolic`, the program
+
+```
+operation Fetch : unit ~> nat # {Fetch} within [2, 3]
+operation Send : nat ~> unit # {Send} within [1, 1]
+
+let send_after_wait () : unit # {5; Send} =
+  let x = perform Fetch () in
+  delay 3;
+  perform Send x
+```
+
+is accepted, as `Fetch`, taking at least two ticks, and the delay of three cover
+the five ticks demanded before `Send`, while `delay 2` in place of `delay 3`
+would be rejected:
+
+    This function's body has grade `{Fetch; 2; Send}`, which does not match its
+    annotated grade `{5; Send}`
+
 See
 [`examples/regular_timed_ops/lower_bounds.tpe`](examples/regular_timed_ops/lower_bounds.tpe),
 [`examples/regular_timed_ops/upper_bounds.tpe`](examples/regular_timed_ops/upper_bounds.tpe)
@@ -394,6 +545,25 @@ Under these:
 - under `regex-timed-interval-rational-symbolic` an open numeric endpoint of an
   interval is a set of durations: `(0.8, 3)` is `[{(0.8, ∞)}, {[0, 3)}]`.
 
+For example, under `regex-timed-upper-bound-rational-symbolic`, the program
+
+```
+operation Sample : unit ~> nat # {Sample} within [1/2, 3/2]
+operation Send : nat ~> unit # {Send} within [1/4, 1/2]
+
+let report () : unit # {[0, 3)} =
+  let x = perform Sample () in
+  delay 1/4;
+  perform Send x
+```
+
+is accepted, as the body takes at most `3/2 + 1/4 + 1/2` units, below `3`, while
+`delay 1` in place of `delay 1/4` would be rejected, as the body may then take
+exactly `3` units:
+
+    This function's body has grade `{Sample; 1; Send}`, which does not match its
+    annotated grade `{[0, 3)}`
+
 See
 [`examples/regular_timed_ops/upper_bounds_rational.tpe`](examples/regular_timed_ops/upper_bounds_rational.tpe)
 and
@@ -406,12 +576,55 @@ In this category, we have the following grading monoids:
 - `security-levels`: the levels are given by the simple security lattice `Low < High`; a computation's grade is the
   highest level it touches, and delays touch none. A box at `Low` is out of
   reach once an operation of grade `High` has run.
+
+  For example, the program
+
+  ```
+  operation ReadPublic : unit ~> string # Low
+  operation ReadSecret : unit ~> string # High
+  operation Post : string * string ~> unit # Low
+
+  let forward () =
+    let c = box Low "public" in
+    let msg = perform ReadPublic () in
+    unbox c as ch in
+    perform Post (ch, msg)
+  ```
+
+  is accepted, while `ReadSecret` in place of `ReadPublic` would be rejected, as
+  the public channel is out of reach once a secret has been read:
+
+      Variable `c` is unboxed with grade `High` accumulated since it was bound,
+      which is not below its box grade `Low`
+
 - `time-lower-bound-levels`: pairs `(n, l)`, at least `n` ticks and nothing
   above security level `l`; `(3, Low)` is an embargo with a taint check. This is a direct
   product of the time lower bounds and security levels grades.
+
 - `time-upper-bound-levels`: pairs `(n, l)`, at most `n` ticks and nothing
   above security level `l`; `(5, Low)` is an expiring capability. This is a direct
   product of the time lower bounds and security levels grades.
+
+  For example, where a token boxed at `(5, Low)` expires after
+  five ticks or once something secret is touched, the program
+
+  ```
+  operation Query : string ~> string # (2, Low)
+  operation ReadPayroll : unit ~> string # (1, High)
+
+  let query_in_time () =
+    let t = box (5, Low) "token" in
+    delay 3;
+    unbox t as tok in
+    perform Query tok
+  ```
+
+  is accepted, while `perform ReadPayroll ()` in place of `delay 3`
+  would be rejected:
+
+      Variable `t` is unboxed with grade `(1, High)` accumulated since it was
+      bound, which is not below its box grade `(5, Low)`
+
 - `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
   and each output `Sᵢ` written at most at the level `lᵢ` touched before it; `l`
   alone writes no output, and an entry `(_, l')` bounds every output not listed.
@@ -420,8 +633,29 @@ In this category, we have the following grading monoids:
   This grading monoid is an example of the semidirect product construction (see
   [Semidirect products](#semidirect-products)).
 
+  For example, where a secret may be read after a public announcement but
+  not announced, the program
+
+  ```
+  operation ReadSecret : unit ~> string # High
+  operation Publish : string ~> unit # (Low, (Board, Low))
+
+  let announce () : unit # (High, (Board, Low)) =
+    perform Publish "maintenance at noon";
+    let _ = perform ReadSecret () in
+    ()
+  ```
+
+  is accepted, while publishing after the read would be rejected, as `Board` is
+  then written at `High`:
+
+      This function's body has grade `(High, (Board, High))`, which does not
+      match its annotated grade `(High, (Board, Low))`
+
 The pairs of the products with the time grades are compared, multiplied and
-joined componentwise. See
+joined componentwise.
+
+See
 [`examples/levels/security.tpe`](examples/levels/security.tpe),
 [`examples/levels/time_lower.tpe`](examples/levels/time_lower.tpe),
 [`examples/levels/time_upper.tpe`](examples/levels/time_upper.tpe)
@@ -461,6 +695,25 @@ example, as are:
   have grade `(Files, 0, 2)`, and closing a file before opening one has grade
   `(Files, -1, 0, 0)`.
 
+  For example, the program
+
+  ```
+  operation Open : string ~> unit # (Files, 1, 1)
+  operation Close : string ~> unit # (Files, -1, 0)
+
+  let copy () : unit # (Files, 0, 2) =
+    perform Open "a";
+    perform Open "b";
+    perform Close "b";
+    perform Close "a"
+  ```
+
+  is accepted, as it holds at most two files and closes all it opens, while
+  leaving out `perform Close "a"` would be rejected, as a file is then left open:
+
+      This function's body has grade `(Files, 1, 2)`, which does not match its
+      annotated grade `(Files, 0, 2)`
+
 - `windowed-schedules`: tuples `(T, (A, E_A), …)` of the possible durations `T` and
   the times `E_A` at which each operation `A` happens, all sets of numbers of
   ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
@@ -471,6 +724,23 @@ example, as are:
   `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry `(_, E)`
   bounds every operation not listed. An operation `Send` taking a tick and
   happening at its start has grade `(1, (Send, {0}))`.
+
+  For example, where `Send` takes a tick and must start at tick 4
+  or 5, the program
+
+  ```
+  operation Send : unit ~> unit # (1, (Send, {0}))
+
+  let send_in_window () : unit # ([5, 6], (Send, {4 | 5})) =
+    delay 4;
+    perform Send ()
+  ```
+
+  is accepted, while `delay 6` in place of `delay 4` would be rejected, as `Send`
+  then happens at tick 6:
+
+      This function's body has grade `(7, (Send, {6}))`, which does not match its
+      annotated grade `([5, 6], (Send, {4 | 5}))`
 
 - `mode-switch-costs`: max-plus matrices of the greatest costs of the traces between
   named modes, the completion under joins of a semidirect product of mode
@@ -494,6 +764,24 @@ example, as are:
   idle draw is charged by operations such as `Sleep : unit ~> unit # ((Off, Off,
   10), (On, On, 50))`.
 
+  For example, where switching a radio on costs 2 and a transmission
+  4, the program
+
+  ```
+  operation TurnOn : unit ~> unit # (Off, On, 2)
+  operation Transmit : string ~> unit # (On, On, 4)
+
+  let report () : unit # (Off, On, 6) =
+    perform TurnOn ();
+    perform Transmit "reading"
+  ```
+
+  is accepted, while a second transmission would be rejected, as it costs `10`,
+  and so would a transmission before `TurnOn`, as the radio is then off:
+
+      This function's body has grade `(Off, On, 10)`, which does not match its
+      annotated grade `(Off, On, 6)`
+
 An (external) operation whose grade no code inside Tempore can meet, such as
 opening or closing a file under `resource-levels`, has no default
 implementation, and a run stops at its first call. 
@@ -506,16 +794,32 @@ and
 
 ### Operation counts
 
-In this category, we have
+In `counts-upper-bound`, a grade has entries `(A, n)`, at most `n` calls of the operation
+`A`, `n` possibly `∞`; sequencing adds the calls of each operation, and
+delays count none. An operation not listed is bounded by `0`, or by the entry
+`(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
+allows one `Auth`, three `Send` and nothing else. An operation counts itself,
+e.g. `operation Send : nat ~> unit # (Send, 1)`. 
 
-- `counts-upper-bound`: entries `(A, n)`, at most `n` calls of the operation
-  `A`, `n` possibly `∞`; sequencing adds the calls of each operation, and
-  delays count none. An operation not listed is bounded by `0`, or by the entry
-  `(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
-  allows one `Auth`, three `Send` and nothing else. An operation counts itself,
-  e.g. `operation Send : nat ~> unit # (Send, 1)`. 
-  
-  See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
+For example, the program
+
+```
+operation Auth : string ~> unit # (Auth, 1)
+operation Send : string ~> unit # (Send, 1)
+
+let notify () : unit # ((Auth, 1), (Send, 3)) =
+  perform Auth "key";
+  perform Send "a";
+  perform Send "b"
+```
+
+is accepted, as it authenticates once and sends twice, while two further
+sends would be rejected, as they make four:
+
+    This function's body has grade `((Auth, 1), (Send, 4))`, which does not
+    match its annotated grade `((Auth, 1), (Send, 3))`
+
+See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
 ## Eternal types
 
