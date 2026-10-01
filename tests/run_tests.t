@@ -7577,7 +7577,7 @@ single-dash form of the help option is not accepted.
           mode-switch-costs                         Mode-switch costs
         Operation counts:
           counts-upper-bound                        Upper bounds
-        Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic.
+        Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

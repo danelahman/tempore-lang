@@ -74,7 +74,7 @@ let accepted_grades_help =
     \      Further implementations of the regular grades, kept for \
      benchmarking, are accepted by --grades with the suffixes \
      -letter-automata, -symbolic-by-letters and -letter-derivatives in place \
-     of -symbolic."
+     of -symbolic, and -rational-automata in place of -rational-symbolic."
 
 let parse_args_to_config () =
   let filenames = ref []

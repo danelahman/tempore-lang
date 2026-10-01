@@ -178,7 +178,9 @@ run send_then_calibrate ()
    3.5 s, and about 11 s with the 13th-last element. Under
    'regex-timed-upper-bound-symbolic', the literal is kept as a normalised
    expression, whose derivatives are few: the example takes about 0.09 s at both
-   sizes, as without the program. *)
+   sizes, as without the program. With the 12th-last element, it takes about
+   53 s under 'regex-timed-upper-bound-rational-automata' and about 0.09 s
+   under 'regex-timed-upper-bound-rational-symbolic'. *)
 (*
 let cycles () =
   box {~(_*; Sample; _; _; _; _; _; _; _; _; _; _; _)

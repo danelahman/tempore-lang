@@ -415,10 +415,11 @@ The two variants are:
 - `regex-upper-bound-rational-symbolic`: traces are *timed words*, operations
   and non-negative rational delays, a delay being a single letter and adjacent
   delays added, so that `{1/2; 1/2}` is `{1}`; delays are compared as rationals,
-  not rounded to whole ticks. A grade is a minimal deterministic symbolic
-  automaton over sets of operations and sets of delays; an inclusion `ρ ≾ ρ′`
-  holds if the product of `ρ` with the complement of `ρ′` accepts nothing, found
-  by a breadth-first search. Literals:
+  not rounded to whole ticks. A grade is a symbolic regular expression over
+  sets of operations and sets of delays, kept in normal form, with no automaton;
+  an inclusion `ρ ≾ ρ′` holds if `ρ & ~ρ′` is empty, found by a depth-first
+  search of its gap derivatives, each reading a delay and the operation after
+  it in one step, by sets of delays and minterms. Literals:
 
   - delays are written `3`, `1/2` or `1.5`, and a plain number `q` abbreviates
     `{q}`;
@@ -468,6 +469,12 @@ are accepted by `--grades` with one of these suffixes in place of `-symbolic`:
   by derivatives by single letters;
 - `-letter-derivatives`: expressions over single letters; inclusion by
   derivatives by single letters.
+
+Likewise, `regex-upper-bound-rational-automata` and the timed
+`-rational-automata` variants below implement the rational grades by minimal
+deterministic symbolic automata over sets of operations and sets of delays;
+inclusion by a breadth-first search of the product with the complement, or with
+a reader of the closure.
 
 They can be compared by running
 `dune exec --profile release bench/regular/bench_regular.exe`; see
@@ -545,11 +552,11 @@ Under these:
   the grade `{(0, 1); A; (0, 1)}` is below `{3}` but below no `{q}` with
   `q < 3`, since the durations of its traces come arbitrarily close to `3`
   without reaching it;
-- grades are the automata of `regex-upper-bound-rational-symbolic`; the
+- grades are represented as under `regex-upper-bound-rational-symbolic`; the
   closures are not regular, so an ordering `ρ ≾ ρ′` is decided by a
-  breadth-first search of the product of `ρ` with a reader of the closure of
-  `ρ′`, which keeps the longest (upper) or shortest (lower) durations of the
-  traces read so far;
+  breadth-first search of the automaton of the gap derivatives of `ρ` together
+  with a reader of the closure of `ρ′`, which keeps the longest (upper) or
+  shortest (lower) durations of the traces read so far;
 - a complement is taken over all timed words, and a grade still stands for its
   closure: `{~1}` equals `⊤` under the upper order, since it contains the
   delays longer than `1`, which allow for the delay `1` it excludes;
