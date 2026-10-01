@@ -267,12 +267,17 @@
        and the CLI command equivalent to the grades selector's current
        value. */
     .terminated-note,
-    .grades-command {
+    .grades-summary {
       width: 100%;
       margin-top: 0.6rem;
-      text-align: center;
-      color: #7a7a7a;
-      font-size: 0.9rem;
+      color: #5f5f5f;
+      font-size: 0.85rem;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
     }
 
     /* While a check is under way, the pressed button shows a spinner and the

@@ -1165,15 +1165,34 @@ let view_compiler (model : Model.model) =
                            g.grades ))
                      Grades.GradeRegistry.groups);
               ];
-            elt "p"
-              ~a:
-                [
-                  class_ "grades-command";
-                  attr "title"
-                    ("./tempore --grades " ^ model.edit_model.selected_resource
-                   ^ " file.tpe");
-                ]
-              [ text model.edit_model.selected_resource ];
+            (* The description of the selected grades, the tooltip adding how
+               a regular grade is decided and the command running them. *)
+            (let name = model.edit_model.selected_resource in
+             let info =
+               List.find_map
+                 (fun (g : Grades.GradeRegistry.group) ->
+                   List.assoc_opt name g.grades)
+                 Grades.GradeRegistry.groups
+             in
+             let description, implementation =
+               match info with
+               | Some info ->
+                   ( info.description,
+                     Option.fold ~none:""
+                       ~some:(fun i ->
+                         Grades.GradeRegistry.implementation_text i ^ "\n")
+                       info.implementation )
+               | None -> ("", "")
+             in
+             elt "p"
+               ~a:
+                 [
+                   class_ "grades-summary";
+                   attr "title"
+                     (implementation ^ "./tempore --grades " ^ name
+                    ^ " file.tpe");
+                 ]
+               [ text description ]);
           ];
       ]
   and run_process =
