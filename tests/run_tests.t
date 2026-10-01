@@ -7561,11 +7561,11 @@ single-dash form of the help option is not accepted.
           regex-timed-interval-symbolic             Intervals (symbolic)
               symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first
           regex-timed-lower-bound-rational-symbolic Lower bounds (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by product with a closure reader, breadth-first
+              symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
           regex-timed-upper-bound-rational-symbolic Upper bounds (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by product with a closure reader, breadth-first
+              symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
           regex-timed-interval-rational-symbolic    Intervals (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by product with a closure reader, breadth-first
+              symbolic expressions over letter and delay sets; inclusion by gap derivatives with a closure reader, breadth-first
         Security levels:
           security-levels                           Levels
           time-lower-bound-levels                   Embargoes

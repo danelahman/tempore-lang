@@ -67,22 +67,30 @@
     The operations of a comparison are the names the grades mention and, of the
     declared operations the grades do not name, the least of each running time,
     which stands for the others of its running time: no grade tells them apart.
-    [ρ ≾ ρ'] is decided by {!DelayTimedClosure.allowance} under the upper order
-    and {!DelayTimedClosure.coverage} under the lower order, on the automata of
-    the grades; there is nothing to decide if the grades are the same language
-    or [ρ'] is the top. A grade is the top if its representation is that of the
-    top and otherwise iff the order decides [⊤ ≾ ρ]. *)
+    [ρ ≾ ρ'] is decided over the graphs of the gap derivatives of the
+    expressions of the grades in normal form ({!RationalRegex.graph}), over the
+    operations of the comparison: by {!DelayTimedClosure.Graph.in_allowance}
+    under the upper order and {!DelayTimedClosure.Graph.in_coverage} under the
+    lower order, which build no trace; a counterexample by
+    {!DelayTimedClosure.Graph.allowance} and
+    {!DelayTimedClosure.Graph.coverage}, the implied running-time bounds by
+    {!DelayTimedClosure.Graph.min_weight} and
+    {!DelayTimedClosure.Graph.max_weight}, and the inhabitation by
+    {!DelayTimedClosure.Graph.inhabited}. There is nothing to decide if the
+    grades are the same expression in normal form or [ρ'] is the top. A grade is
+    the top if its expression is that of the top, and otherwise iff the order
+    decides [⊤ ≾ ρ]. *)
 
 (** Lower bounds, in the coverage order at [lo]. *)
 module Lower :
   Grade.S
-    with type t = RegularTraceGradeRational.Automata.t
+    with type t = RegularTraceGradeRational.t
      and type Delay.t = Delay.Rational.t
 
 (** Upper bounds, in the allowance order at [hi]. *)
 module Upper :
   Grade.S
-    with type t = RegularTraceGradeRational.Automata.t
+    with type t = RegularTraceGradeRational.t
      and type Delay.t = Delay.Rational.t
 
 (** Closed intervals of a lower and an upper bound, compared componentwise,
@@ -93,13 +101,13 @@ module Upper :
     pair, is [\[{(q, ∞)}, {[0, r)}]], and so on for the half-open intervals. *)
 module Interval :
   Grade.S
-    with type t =
-      RegularTraceGradeRational.Automata.t
-      * RegularTraceGradeRational.Automata.t
+    with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t
      and type Delay.t = Delay.Rational.t
 
-(** The same grades over {!RegularTraceGradeRational.Automata}, named
-    ["regex-timed-lower-bound-rational-automata"],
+(** The same grades over {!RegularTraceGradeRational.Automata}, decided on the
+    automata of the grades by {!DelayTimedClosure.allowance} and
+    {!DelayTimedClosure.coverage}, the events of a grade being the names its
+    automaton tells apart, named ["regex-timed-lower-bound-rational-automata"],
     ["regex-timed-upper-bound-rational-automata"] and
     ["regex-timed-interval-rational-automata"]. *)
 module Automata : sig

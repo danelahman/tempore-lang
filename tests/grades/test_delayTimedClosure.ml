@@ -8,8 +8,9 @@
    the closed world and the literals; and the agreement with the regular trace
    grades of timed operations over whole time steps on integer instances, scaled
    to a resolution of fractions of a time step as the grades over whole steps of
-   a program resolution read them; and the decisions on graphs given by their
-   rows against those on automata. *)
+   a program resolution read them; the decisions on graphs given by their rows
+   against those on automata; and the grades decided on the graphs of the gap
+   derivatives against those decided on automata. *)
 
 module Grade = Grades.Grade
 module Rational = Grades.Rational
@@ -17,7 +18,7 @@ module DelaySet = Grades.DelaySet
 module A = Grades.DelayAutomaton
 module C = Grades.DelayTimedClosure
 module Plain = Grades.RegularTraceGradeRational.Automata
-module G = Grades.RegularTimedTraceGradesRational
+module G = Grades.RegularTimedTraceGradesRational.Automata
 module W = Grades.RegularTimedTraceGrades.Symbolic
 module Trace = Grades.TimedTrace.Make (Grades.Delay.Rational)
 
@@ -638,6 +639,121 @@ let recursions =
       ~world:(strict running_times_lo) ~decide:C.coverage ~reads:C.covers
       ~member:in_up
 
+(* {1 The grades by gap graphs against the grades by automata}
+
+   The verdicts, implied running-time bounds and inhabitation of the grades
+   decided on the graphs of the gap derivatives against those decided on the
+   automata, exactly, on random pairs of grades and running-time bounds with
+   closed and open ends; and their counterexamples, which are traces of the
+   lesser grade outside the closure of the greater one, with no more
+   operations than those of the automata. *)
+
+module Gaps = Grades.RegularTimedTraceGradesRational
+module Expr = Grades.RegularTraceGradeRational
+
+let gap_bounds =
+  [
+    bounds;
+    bounds_of
+      [
+        ("A", (Grade.Open (q 1 2), Grade.Closed (qi 1)));
+        ("B", (Grade.Closed (qi 0), Grade.Open (q 1 2)));
+        ("C", (Grade.Closed (q 1 3), Grade.Closed (q 1 3)));
+      ];
+  ]
+
+(* Random pairs of grades over [A] and [B], each read by both
+   implementations. *)
+let gap_cases =
+  let st = Random.State.make [| 71 |] in
+  let grade () =
+    let r = random_regex st 3 in
+    match (Expr.of_lit (Grade.Braces r), Plain.of_lit (Grade.Braces r)) with
+    | exception Grade.Invalid_literal _ -> None
+    | x, a -> Some (r, x, a)
+  in
+  let grades = List.filter_map (fun _ -> grade ()) (List.init 50 Fun.id) in
+  List.concat_map (fun x -> List.map (fun y -> (x, y)) grades) grades
+
+let show_case ((r, _, _), (s, _, _)) = show_regex r ^ ", " ^ show_regex s
+
+(* [operations e] is the number of operations of the expression [e] of a
+   trace, a concatenation of delays and operations. *)
+let operations e =
+  let rec factors = function
+    | Grade.Seq (r, s) -> factors r @ factors s
+    | r -> [ r ]
+  in
+  List.length
+    (List.filter
+       (function Grade.Tick _ | Grade.Frac _ -> false | _ -> true)
+       (factors e))
+
+(* [valid leq c rho rho'] is whether the trace grade [c], read by the automata,
+   is in [rho] and not below [rho'] under [leq]. *)
+let valid leq bounds c rho rho' =
+  let c = Plain.of_lit (Grade.Braces (Expr.expression c)) in
+  A.subset (Plain.automaton c) (Plain.automaton rho) && not (leq bounds c rho')
+
+let gap_agreement =
+  List.concat_map
+    (fun bounds ->
+      [
+        every "gaps: upper verdicts as by automata" show_case
+          (fun ((_, x, a), (_, y, b)) ->
+            Gaps.Upper.leq bounds x y = G.Upper.leq bounds a b
+            && Gaps.Upper.equal bounds x y = G.Upper.equal bounds a b)
+          gap_cases;
+        every "gaps: lower verdicts as by automata" show_case
+          (fun ((_, x, a), (_, y, b)) ->
+            Gaps.Lower.leq bounds x y = G.Lower.leq bounds a b
+            && Gaps.Lower.equal bounds x y = G.Lower.equal bounds a b)
+          gap_cases;
+        every "gaps: interval verdicts as by automata" show_case
+          (fun ((_, x, a), (_, y, b)) ->
+            Gaps.Interval.leq bounds (x, y) (y, x)
+            = G.Interval.leq bounds (a, b) (b, a))
+          gap_cases;
+        every "gaps: tops, implied bounds and inhabitation as by automata"
+          show_case
+          (fun ((_, x, a), _) ->
+            Gaps.Upper.is_top bounds x = G.Upper.is_top bounds a
+            && Gaps.Lower.is_top bounds x = G.Lower.is_top bounds a
+            && Gaps.Upper.implied_bounds bounds x
+               = G.Upper.implied_bounds bounds a
+            && Gaps.Interval.implied_bounds bounds (x, x)
+               = G.Interval.implied_bounds bounds (a, a)
+            && Gaps.Upper.inhabited bounds x = G.Upper.inhabited bounds a)
+          (List.filteri (fun i _ -> i mod 50 = 0) gap_cases);
+        every "gaps: upper counterexamples valid and no longer" show_case
+          (fun ((_, x, a), (_, y, b)) ->
+            match
+              ( Gaps.Upper.counterexample bounds x y,
+                G.Upper.counterexample bounds a b )
+            with
+            | None, None -> true
+            | Some c, Some c' ->
+                valid G.Upper.leq bounds c a b
+                && operations (Expr.expression c)
+                   <= operations (Plain.expression c')
+            | _ -> false)
+          gap_cases;
+        every "gaps: lower counterexamples valid and no longer" show_case
+          (fun ((_, x, a), (_, y, b)) ->
+            match
+              ( Gaps.Lower.counterexample bounds x y,
+                G.Lower.counterexample bounds a b )
+            with
+            | None, None -> true
+            | Some c, Some c' ->
+                valid G.Lower.leq bounds c a b
+                && operations (Expr.expression c)
+                   <= operations (Plain.expression c')
+            | _ -> false)
+          gap_cases;
+      ])
+    gap_bounds
+
 (* The orders on single traces are preorders compatible with concatenation, on
    random traces over [A], [B] and delays of halves. *)
 let preorders =
@@ -853,7 +969,8 @@ let graphs =
 let () =
   let checks =
     examples @ open_delays @ implied @ open_running_times @ closed_world
-    @ literals @ recursions @ preorders @ whole_steps @ timing @ graphs
+    @ literals @ recursions @ gap_agreement @ preorders @ whole_steps @ timing
+    @ graphs
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

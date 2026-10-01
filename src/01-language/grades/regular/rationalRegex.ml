@@ -246,10 +246,47 @@ and delays_view r =
   | Compl r -> DelaySet.compl (delays r)
   | Star r -> DelaySet.star (delays r)
 
-(* An intersection with an atom is the atom of the delays of all operands, and
-   in an intersection with a set of names, the sets of names, their complements
-   and their repetitions are merged into the intersection of their
-   one-operation words. *)
+(** [symbols r] is [(S, p)] if the words of [r] are the delays of [S] and the
+    one-operation words of the names of [p]: if [r] is an atom, a set of names
+    or a union of these. *)
+let symbols r =
+  let part r =
+    match (atom r, names_set r) with
+    | Some s, _ -> Some (s, Letters.empty)
+    | None, Some p -> Some (DelaySet.empty, p)
+    | None, None -> None
+  in
+  match r.view with
+  | Union rs ->
+      List.fold_left
+        (fun acc r ->
+          Option.bind acc (fun (s, p) ->
+              Option.map
+                (fun (s', p') -> (DelaySet.union s s', Letters.union p p'))
+                (part r)))
+        (Some (DelaySet.empty, Letters.empty))
+        rs
+  | _ -> part r
+
+(** [one_symbol_part r] is the delays and the names of the words of [r] of one
+    delay or one operation, when [r] is as in {!symbols}, the complement of such
+    an expression or the repetition of a set of names. *)
+let one_symbol_part r =
+  match r.view with
+  | Compl s ->
+      Option.map
+        (fun (s, p) ->
+          (DelaySet.compl s, Letters.inter (Letters.compl p) all_names))
+        (symbols s)
+  | Star { view = Names p; _ } -> Some (DelaySet.zero, p)
+  | _ -> symbols r
+
+(* An intersection with an atom is the atom of the delays of all operands; an
+   intersection of expressions of single symbols, their complements and
+   repetitions of sets of names, one of them of single symbols, is the
+   expression of the single symbols common to all; and in an intersection with
+   a set of names, the sets of names, their complements and their repetitions
+   are merged into the intersection of their one-operation words. *)
 let inter rs =
   let split r =
     match r.view with
@@ -261,6 +298,18 @@ let inter rs =
   if List.exists (fun r -> Option.is_some (atom r)) rs then
     delays_atom
       (List.fold_left (fun n r -> DelaySet.inter n (delays r)) DelaySet.all rs)
+  else if
+    List.exists (fun r -> Option.is_some (symbols r)) rs
+    && List.for_all (fun r -> Option.is_some (one_symbol_part r)) rs
+  then
+    let s, p =
+      List.fold_left
+        (fun (s, p) r ->
+          let s', p' = Option.get (one_symbol_part r) in
+          (DelaySet.inter s s', Letters.inter p p'))
+        (DelaySet.all, all_names) rs
+    in
+    union [ delays_atom s; names_atom p ]
   else
     let rs =
       if List.exists (fun r -> Option.is_some (names_set r)) rs then

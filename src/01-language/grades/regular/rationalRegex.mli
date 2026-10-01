@@ -21,10 +21,14 @@
     word; [⟨S⟩; ⟨T⟩] is [⟨S + T⟩], also leading a concatenation; the atoms among
     the operands of a union are merged into the atom of the union of their sets;
     an intersection with an atom is the atom of the delays common to all
-    operands; and [⟨S⟩*] is [⟨S*⟩], the delay [0] of an atom under a repetition
-    being left out. Each rule is a semantic identity, an atom's words being
-    delays, so that every expression whose words are all delays is an atom,
-    equal in form to another iff their sets of delays are equal.
+    operands; an intersection of expressions of single symbols (atoms, sets of
+    names and their unions), their complements and repetitions of sets of names,
+    one of them of single symbols, is the expression of the single symbols
+    common to all, as [_ & ~A] is [⟨ℚ>0⟩ | (Σ_names ∖ A)]; and [⟨S⟩*] is [⟨S*⟩],
+    the delay [0] of an atom under a repetition being left out. Each rule is a
+    semantic identity, an atom's words being delays, so that every expression
+    whose words are all delays is an atom, equal in form to another iff their
+    sets of delays are equal.
 
     {2 Gap derivatives}
 

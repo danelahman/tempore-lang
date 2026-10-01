@@ -13,17 +13,116 @@ let extremum = function
    [q], closed iff [attained]. *)
 let end_of_extremum (q, attained) = if attained then Closed q else Open q
 
-(* The languages the grades are built on: the regular trace grade over rational
-   delays and the automata of its grades. *)
-module type LANGUAGE = sig
-  include Grade.S with type Delay.t = Delay.Rational.t
+(* The decisions of the orders on the grades [t]: whether every trace of the
+   lesser grade is in the closure of the greater one, a trace outside it, the
+   extremal weights of the traces of a grade and its inhabitation, over the
+   operations of a world. *)
+module type DECISIONS = sig
+  type t
 
-  val automaton : t -> A.t
+  val in_allowance : Closure.world -> t -> t -> bool
+  val in_coverage : Closure.world -> t -> t -> bool
+  val allowance : Closure.world -> t -> t -> A.symbol list option
+  val coverage : Closure.world -> t -> t -> A.symbol list option
+  val min_weight : Closure.world -> t -> (Rational.t * bool) option
+  val max_weight : Closure.world -> t -> (Rational.t * bool) option
+  val inhabited : Closure.world -> t -> bool
 end
 
-(* The grades over the languages [L], their names ending in [N.suffix]. *)
+(* The decisions on the canonical automata of the grades, a verdict being that
+   the search finds no word. *)
+module ByAutomata = struct
+  module L = RegularTraceGradeRational.Automata
+
+  type t = L.t
+
+  let on decide world rho rho' =
+    decide world (L.automaton rho) (L.automaton rho')
+
+  let allowance = on Closure.allowance
+  let coverage = on Closure.coverage
+  let in_allowance world rho rho' = Option.is_none (allowance world rho rho')
+  let in_coverage world rho rho' = Option.is_none (coverage world rho rho')
+  let min_weight world rho = Closure.min_weight world (L.automaton rho)
+  let max_weight world rho = Closure.max_weight world (L.automaton rho)
+  let inhabited world rho = Closure.inhabited world (L.automaton rho)
+end
+
+(* The decisions on the graphs of the gap derivatives of the expressions of the
+   grades in normal form ({!GapGraph}), over the names of the world. *)
+module ByGaps = struct
+  module L = RegularTraceGradeRational
+
+  type t = L.t
+
+  (* [graph names rho] is {!RationalRegex.graph}, tabulated by its arguments. *)
+  let graph =
+    let table = Hashtbl.create 16 in
+    fun names rho ->
+      let key = (names, RationalRegex.hash (L.form rho)) in
+      match Hashtbl.find_opt table key with
+      | Some g -> g
+      | None ->
+          let g = RationalRegex.graph names (L.form rho) in
+          Hashtbl.add table key g;
+          g
+
+  let names world = List.map fst world
+  let on decide world rho = decide world (graph (names world) rho)
+
+  let on_pair decide world rho rho' =
+    decide world (graph (names world) rho) (graph (names world) rho')
+
+  (* The verdicts and searches decided, by the world and the grades. *)
+  module Comparisons = Hashtbl.Make (struct
+    type t = Closure.world * int * int
+
+    let equal (w, i, j) (w', i', j') =
+      Int.equal i i' && Int.equal j j'
+      && List.equal
+           (fun (n, c) (n', c') ->
+             String.equal n n' && DelaySet.equal_extremum c c')
+           w w'
+
+    let hash (w, i, j) =
+      combine
+        (hash_list
+           (fun (n, c) -> combine (String.hash n) (DelaySet.hash_extremum c))
+           w)
+        (combine i j)
+  end)
+
+  (* [tabulated f] is [f], its results tabulated by its arguments in a table of
+     its own. *)
+  let tabulated f =
+    let table = Comparisons.create 64 in
+    fun world rho rho' ->
+      let key =
+        ( world,
+          RationalRegex.hash (L.form rho),
+          RationalRegex.hash (L.form rho') )
+      in
+      match Comparisons.find_opt table key with
+      | Some r -> r
+      | None ->
+          let r = f world rho rho' in
+          Comparisons.add table key r;
+          r
+
+  let in_allowance = tabulated (on_pair Closure.Graph.in_allowance)
+  let in_coverage = tabulated (on_pair Closure.Graph.in_coverage)
+  let allowance = tabulated (on_pair Closure.Graph.allowance)
+  let coverage = tabulated (on_pair Closure.Graph.coverage)
+  let min_weight = on Closure.Graph.min_weight
+  let max_weight = on Closure.Graph.max_weight
+  let inhabited world rho = Closure.Graph.inhabited (graph (names world) rho)
+end
+
+(* The grades over the languages [L], decided by [D], their names ending in
+   [N.suffix]. *)
 module Make
-    (L : LANGUAGE)
+    (L : Grade.S with type Delay.t = Delay.Rational.t)
+    (D : DECISIONS with type t = L.t)
     (N : sig
       val suffix : string
     end) =
@@ -58,47 +157,58 @@ struct
       @ representatives)
 
   type order = {
-    decide : Closure.world -> A.t -> A.t -> A.symbol list option;
+    holds : Closure.world -> L.t -> L.t -> bool;
+    search : Closure.world -> L.t -> L.t -> A.symbol list option;
     endpoint : running_time -> Rational.t bound;
     top : L.t;
   }
-  (* An order on traces: the search for a word of the lesser grade outside the
-     closure of the greater one, the end of the running-time bounds it reads as
-     the running time of an operation, and the representation of its greatest
-     grade. *)
+  (* An order on traces: whether every trace of the lesser grade is in the
+     closure of the greater one, the search for a trace outside it, the end of
+     the running-time bounds it reads as the running time of an operation, and
+     the representation of its greatest grade. *)
 
-  let allowance = { decide = Closure.allowance; endpoint = snd; top = L.top }
-  let coverage = { decide = Closure.coverage; endpoint = fst; top = L.one }
+  let allowance =
+    {
+      holds = D.in_allowance;
+      search = D.allowance;
+      endpoint = snd;
+      top = L.top;
+    }
 
-  (* [find order bounds rho rho'] is a word of [rho] outside the closure of
-     [rho'] under [order]; there is none if [rho] and [rho'] are the same
-     language or [rho'] is the top. *)
-  let find order bounds rho rho' =
-    if L.compare rho rho' = 0 || L.compare rho' order.top = 0 then None
-    else
-      order.decide
-        (world order.endpoint bounds [ rho; rho' ])
-        (L.automaton rho) (L.automaton rho')
+  let coverage =
+    { holds = D.in_coverage; search = D.coverage; endpoint = fst; top = L.one }
 
-  let leq order bounds rho rho' = Option.is_none (find order bounds rho rho')
+  (* [trivial order rho rho'] is whether [rho ≾ rho'] holds by the
+     representations: [rho] and [rho'] are the same language or [rho'] is the
+     top. *)
+  let trivial order rho rho' =
+    L.compare rho rho' = 0 || L.compare rho' order.top = 0
+
+  (* [compared order bounds decide rho rho'] is [decide] over the world of a
+     comparison of [rho] with [rho']. *)
+  let compared order bounds decide rho rho' =
+    decide (world order.endpoint bounds [ rho; rho' ]) rho rho'
+
+  let leq order bounds rho rho' =
+    trivial order rho rho' || compared order bounds order.holds rho rho'
 
   let is_top order bounds rho =
     L.compare rho order.top = 0 || leq order bounds order.top rho
 
   let counterexample order bounds rho rho' =
-    Option.map
-      (fun word -> L.of_lit (Braces (DelayRegex.of_word word)))
-      (find order bounds rho rho')
+    if trivial order rho rho' then None
+    else
+      Option.map
+        (fun word -> L.of_lit (Braces (DelayRegex.of_word word)))
+        (compared order bounds order.search rho rho')
 
   let inhabited bounds rho =
-    Closure.inhabited
-      (world (Fun.const (Closed Rational.zero)) bounds [ rho ])
-      (L.automaton rho)
+    D.inhabited (world (Fun.const (Closed Rational.zero)) bounds [ rho ]) rho
 
   let implied_bounds bounds lower upper =
     match
-      ( Closure.min_weight (world fst bounds [ lower ]) (L.automaton lower),
-        Closure.max_weight (world snd bounds [ upper ]) (L.automaton upper) )
+      ( D.min_weight (world fst bounds [ lower ]) lower,
+        D.max_weight (world snd bounds [ upper ]) upper )
     with
     | Some fastest, Some slowest ->
         Some (end_of_extremum fastest, end_of_extremum slowest)
@@ -244,15 +354,13 @@ struct
 end
 
 include
-  Make
-    (RegularTraceGradeRational.Automata)
+  Make (RegularTraceGradeRational) (ByGaps)
     (struct
       let suffix = "-symbolic"
     end)
 
 module Automata =
-  Make
-    (RegularTraceGradeRational.Automata)
+  Make (RegularTraceGradeRational.Automata) (ByAutomata)
     (struct
       let suffix = "-automata"
     end)

@@ -198,6 +198,13 @@ let timed_letter_automata =
     inclusion_short = timed_product_inclusion_short;
   }
 
+let timed_rational_symbolic =
+  {
+    rational_symbolic with
+    inclusion = timed_symbolic_inclusion;
+    inclusion_short = timed_symbolic_inclusion_short;
+  }
+
 let timed_rational_automata =
   {
     rational_automata with
@@ -359,13 +366,13 @@ let entries =
     entry ~visibility:Hidden ~implementation:timed_letter_automata
       (module RegularTimedTraceGrades.Interval)
       regex_timed "Intervals (letter automata)" timed_interval;
-    entry ~implementation:timed_rational_automata
+    entry ~implementation:timed_rational_symbolic
       (module RegularTimedTraceGradesRational.Lower)
       regex_timed "Lower bounds (rational, symbolic)" timed_lower_rational;
-    entry ~implementation:timed_rational_automata
+    entry ~implementation:timed_rational_symbolic
       (module RegularTimedTraceGradesRational.Upper)
       regex_timed "Upper bounds (rational, symbolic)" timed_upper_rational;
-    entry ~implementation:timed_rational_automata
+    entry ~implementation:timed_rational_symbolic
       (module RegularTimedTraceGradesRational.Interval)
       regex_timed "Intervals (rational, symbolic)" timed_interval_rational;
     entry ~visibility:Hidden ~implementation:timed_rational_automata
