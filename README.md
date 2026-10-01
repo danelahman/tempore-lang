@@ -125,9 +125,10 @@ tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)).
 
 `tau` is currently a non-negative integer or rational fraction, depending on the
-grade. The rational time and trace grades, `security-levels` and `flow-levels`
-have the non-negative rationals as delays and accept any, such as `delay 1/3` or
-`delay 0.25`; the other monoids count whole time steps and accept only integers.
+grade. The grades whose names end in `-rational` or `-rational-symbolic`,
+`security-levels` and `flow-levels` have the non-negative rationals as delays
+and accept any, such as `delay 1/3` or `delay 0.25`; the other monoids count
+whole time steps and accept only integers.
 See [`examples/basics/delay.tpe`](examples/basics/delay.tpe).
 
 ## Grading monoids
@@ -919,8 +920,8 @@ accumulated a sub-grade of that grade: under `time-lower-bound`,
 checked for every effect its continuation may have; a failure names the
 instance:
 
-    Note: the effect inequality `∀ε₀. 0 >= 1 · ε₀` does not hold: for
-      `ε₀ = 0` it becomes `0 >= 1`
+    Note: the effect inequality `∀ε_Op. 0 >= 1 · ε_Op` does not hold: for
+      `ε_Op = 0` it becomes `0 >= 1`
 
 See [`examples/handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe),
 [`examples/handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe)
