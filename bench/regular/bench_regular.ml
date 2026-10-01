@@ -741,7 +741,7 @@ module Rational = struct
     ("leq " ^ delay ^ " <= {" ^ grade ^ "}", prepare)
 
   (* The time limit of one measurement, well above the slowest cases, which
-     take about a second. *)
+     take a fraction of a second. *)
   let limit = 60
 
   let table () =
