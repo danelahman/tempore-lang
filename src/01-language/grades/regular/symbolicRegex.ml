@@ -150,6 +150,12 @@ module type S = sig
   val derivative : Letters.t -> t -> t
   val lead : t -> int
   val leap : int -> t -> t
+  val delays : t -> DelaySet.t
+
+  type gaps = (DelaySet.t * t) list
+
+  val gap_derivative : Letters.t -> t -> gaps
+  val gaps : t -> (Letters.t * gaps) list
 
   module type ALPHABET = sig
     val blocks : t list -> Letters.t list
@@ -607,6 +613,151 @@ struct
 
   let tick = minterm Letters.tick
   let leap k r = leap_by tick k r
+
+  (** {1 Gap derivatives} *)
+
+  (* The sets of delays of the expressions computed, by their numbers. *)
+  let delay_sets : (int, DelaySet.t) Hashtbl.t = Hashtbl.create 1024
+
+  (* The set of the [n] such that [tickⁿ] is in the expression, by structural
+     recursion, memoised by expression. *)
+  let rec delays r =
+    match Hashtbl.find_opt delay_sets r.id with
+    | Some n -> n
+    | None ->
+        let n = delays_view r in
+        Hashtbl.add delay_sets r.id n;
+        n
+
+  and delays_view r =
+    let fold op rs =
+      match List.map delays rs with
+      | n :: ns -> List.fold_left op n ns
+      | [] -> DelaySet.empty
+    in
+    match r.view with
+    | Empty -> DelaySet.empty
+    | Eps -> DelaySet.zero
+    | Letters p ->
+        if p.tick then DelaySet.point (Rational.of_int 1) else DelaySet.empty
+    | Ticks n -> DelaySet.point (Rational.of_int n)
+    | Concat (r1, r2) -> DelaySet.sum (delays r1) (delays r2)
+    | Union rs -> fold DelaySet.union rs
+    | Inter rs -> fold DelaySet.inter rs
+    | Compl r -> DelaySet.diff DelaySet.naturals (delays r)
+    | Star r -> DelaySet.star (delays r)
+
+  type gaps = (DelaySet.t * t) list
+
+  (** [normalise entries] is the map of the pairs [entries], whose sets are
+      pairwise disjoint: the pairs of an empty set or of the empty language left
+      out, those of one expression merged. *)
+  let normalise entries =
+    let entries =
+      List.filter
+        (fun (n, e) -> not (DelaySet.is_empty n || is_empty_form e))
+        entries
+    in
+    let merge acc (n, e) =
+      match acc with
+      | (n', e') :: rest when equal_form e e' ->
+          (DelaySet.union n' n, e) :: rest
+      | _ -> (n, e) :: acc
+    in
+    List.rev
+      (List.fold_left merge []
+         (List.stable_sort (fun (_, e) (_, e') -> by_id e e') entries))
+
+  let support f =
+    List.fold_left (fun acc (n, _) -> DelaySet.union acc n) DelaySet.empty f
+
+  (** [join f g] is the pointwise union of the maps [f] and [g]. *)
+  let join f g =
+    let sf = support f and sg = support g in
+    normalise
+      (List.concat_map
+         (fun (n, e) ->
+           List.map (fun (n', e') -> (DelaySet.inter n n', union [ e; e' ])) g)
+         f
+      @ List.map (fun (n, e) -> (DelaySet.diff n sg, e)) f
+      @ List.map (fun (n, e) -> (DelaySet.diff n sf, e)) g)
+
+  (** [meet f g] is the pointwise intersection of the maps [f] and [g]. *)
+  let meet f g =
+    normalise
+      (List.concat_map
+         (fun (n, e) ->
+           List.map (fun (n', e') -> (DelaySet.inter n n', inter [ e; e' ])) g)
+         f)
+
+  (** [complement f] is the pointwise complement of the map [f], an absent delay
+      being mapped to [Σ*]. *)
+  let complement f =
+    normalise
+      ((DelaySet.diff DelaySet.naturals (support f), top)
+      :: List.map (fun (n, e) -> (n, compl e)) f)
+
+  (** [shift n f] is the map of [f] with its sets of delays summed with [n], the
+      expressions of a delay reached from several entries joined by union. *)
+  let shift n f =
+    List.fold_left
+      (fun acc (n', e) -> join acc (normalise [ (DelaySet.sum n n', e) ]))
+      [] f
+
+  (* The gap derivatives computed, by the key of the block and the number of
+     the expression. *)
+  let gap_derivatives : gaps Pairs.t = Pairs.create 1024
+
+  (* The derivative by the words [tickⁿ a], [a] a name of the block, symbolic
+     in [n]: a symbolic derivative over the Boolean algebra of the finite
+     unions of products of sets of delays and blocks of names (D'Antoni and
+     Veanes, POPL 2014), with the derivatives of concatenation and repetition
+     of Brzozowski (JACM 1964), the runs of ticks before the name read by
+     [delays]. Memoised by block and expression. *)
+  let rec gap m r =
+    let key = (m.key, r.id) in
+    match Pairs.find_opt gap_derivatives key with
+    | Some f -> f
+    | None ->
+        let f = gap_view m r in
+        Pairs.add gap_derivatives key f;
+        f
+
+  and gap_view m r =
+    match r.view with
+    | Empty | Eps | Ticks _ -> []
+    | Letters p ->
+        if Letters.is_empty (Letters.inter m.set p) then []
+        else [ (DelaySet.zero, eps) ]
+    | Concat (r1, r2) ->
+        join
+          (normalise (List.map (fun (n, e) -> (n, concat e r2)) (gap m r1)))
+          (shift (delays r1) (gap m r2))
+    | Union rs -> List.fold_left (fun f r -> join f (gap m r)) [] rs
+    | Inter rs ->
+        List.fold_left
+          (fun f r -> meet f (gap m r))
+          [ (DelaySet.naturals, top) ]
+          rs
+    | Compl r -> complement (gap m r)
+    | Star r' ->
+        shift
+          (DelaySet.star (delays r'))
+          (List.map (fun (n, e) -> (n, concat e r)) (gap m r'))
+
+  let gap_derivative set r =
+    if set.Letters.tick then
+      invalid_arg "SymbolicRegex.gap_derivative: a block containing tick"
+    else gap (minterm set) r
+
+  let gaps r =
+    List.filter_map
+      (fun b ->
+        let names = Letters.inter b (Letters.compl Letters.tick) in
+        if Letters.is_empty names then None
+        else Some (names, gap (minterm names) r))
+      (minterms r)
+    |> List.sort (fun (b, _) (b', _) -> Letters.order b b')
 
   (** {1 Alphabets} *)
 

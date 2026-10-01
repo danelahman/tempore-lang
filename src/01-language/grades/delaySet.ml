@@ -1068,6 +1068,8 @@ let star =
         Sets.replace table s r;
         r
 
+let naturals = star (point (Rational.of_int 1))
+
 (* {2 Sums} *)
 
 (* [plus_multiples g xs p] is the set [X + pℕ] for the non-empty array [X] on

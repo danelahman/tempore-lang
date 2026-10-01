@@ -70,6 +70,9 @@ val all : t
 val positive : t
 (** The set [ℚ>0] of the positive delays. *)
 
+val naturals : t
+(** The set [ℕ] of the integer delays. *)
+
 val point : Rational.t -> t
 (** [point q] is the set [{q}].
 

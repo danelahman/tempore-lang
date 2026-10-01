@@ -240,6 +240,51 @@ module type S = sig
       led by runs, repetitions of runs and complements of these, and denotes the
       same language elsewhere. *)
 
+  (** {1 Gap derivatives}
+
+      A word is read in {e gap form} [tickᵈ⁰ a₁ tickᵈ¹ ⋯ aₖ tickᵈᵏ], its names
+      [aᵢ] separated by maximal runs of ticks: a word over the letters
+      [tickⁿ a], [n ∈ ℕ] and [a] a name, followed by a final delay [dₖ]. The gap
+      derivatives are the derivatives by these letters, symbolic in [n] and [a]:
+      by the products of a set of delays and a block of names, as symbolic
+      derivatives over the Boolean algebra of the finite unions of such products
+      (D'Antoni and Veanes, POPL 2014). The sets of delays are ultimately
+      periodic (Chrobak, "Finite automata and unary languages", TCS 47, 1986),
+      {!DelaySet} values of integers. Then [tickᵈ⁰ a₁ ⋯ aₖ tickᵈᵏ ∈ r] iff [dₖ]
+      is in the {!delays} of the derivative of [r] by [tickᵈ⁰ a₁], …,
+      [tickᵈᵏ⁻¹ aₖ] in turn. *)
+
+  val delays : t -> DelaySet.t
+  (** [delays r] is the set [N(r)] of the [n ∈ ℕ] such that [tickⁿ ∈ r], by
+      structural recursion: [N(∅) = ∅], [N(ε) = {0}], [N(p)] is [{1}] if
+      [tick ∈ p] and [∅] otherwise, [N(tickⁿ) = {n}], [N(r; s) = N(r) + N(s)],
+      [N(r* ) = N(r)*], [N] commutes with union and intersection, and
+      [N(~r) = ℕ ∖ N(r)]. Memoised by expression. *)
+
+  type gaps = (DelaySet.t * t) list
+  (** A map from delays to expressions: pairs [(S, e)], the sets [S] non-empty
+      and pairwise disjoint sets of integers, the expressions [e] pairwise
+      distinct, not the empty language and ordered by {!compare_form}. A delay
+      in none of the sets is mapped to the empty language. *)
+
+  val gap_derivative : Letters.t -> t -> gaps
+  (** [gap_derivative m r] maps every delay [n] to an expression denoting the
+      derivative [(tickⁿ a)⁻¹r] of [r] by [tickⁿ] followed by any name [a] of
+      [m], for [m] a set of names contained in a block of [minterms r]. Writing
+      [D(r)(n)] for it: [D(∅)], [D(ε)] and [D(tickⁿ)] are empty, [D(p)] maps [0]
+      to [ε] if [m ⊆ p] and is empty otherwise,
+      [D(r; s)(n) = D(r)(n); s | ⋃ {D(s)(n - i) : i ∈ N(r), i ≤ n}],
+      [D(r* )(n) = ⋃ {D(r)(n - i); r* : i ∈ N(r)*, i ≤ n}], and [D] commutes
+      with union, intersection and complement, the complement of the empty
+      language being [Σ*]. Memoised by block and expression.
+
+      @raise Invalid_argument if [m] contains [tick]. *)
+
+  val gaps : t -> (Letters.t * gaps) list
+  (** [gaps r] is the list of the blocks of names of [minterms r], the blocks
+      without [tick], each with the gap derivative of [r] by it, listed by
+      {!Letters.order}. *)
+
   (** {1 Alphabets} *)
 
   (** An alphabet of the decisions. *)
