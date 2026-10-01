@@ -38,24 +38,43 @@ let default_resource_name = List.hd accepted_resource_names
 
 (* The accepted grades, one per line and grouped as the web selector groups
    them, each with its title in a column after the longest name and, for a
-   regular grade, the summary of its implementation on an indented line below;
-   indented to align under the "--grades" entry of [Arg]'s aligned option
-   list. *)
+   regular grade, its representation and inclusion test on an indented line
+   below; indented to align under the "--grades" entry of [Arg]'s aligned
+   option list. *)
 let accepted_grades_help =
+  let listed (g : Grades.GradeRegistry.group) =
+    List.filter
+      (fun (_, (info : Grades.GradeRegistry.info)) ->
+        info.visibility = Grades.GradeRegistry.Everywhere)
+      g.grades
+  in
   let width =
-    List.fold_left max 0 (List.map String.length accepted_resource_names)
+    List.fold_left max 0
+      (List.concat_map
+         (fun g -> List.map (fun (name, _) -> String.length name) (listed g))
+         Grades.GradeRegistry.groups)
   in
   let line (name, (info : Grades.GradeRegistry.info)) =
     Printf.sprintf "\n        %-*s %s%s" width name info.title
       (match info.implementation with
-      | Some i -> "\n            " ^ i.summary
+      | Some i ->
+          Printf.sprintf "\n            %s; inclusion by %s"
+            i.representation_short i.inclusion_short
       | None -> "")
   in
   let group (g : Grades.GradeRegistry.group) =
-    Printf.sprintf "\n      %s:%s" g.label
-      (String.concat "" (List.map line g.grades))
+    match listed g with
+    | [] -> ""
+    | grades ->
+        Printf.sprintf "\n      %s:%s" g.label
+          (String.concat "" (List.map line grades))
   in
   String.concat "" (List.map group Grades.GradeRegistry.groups)
+  ^ "\n\
+    \      Further implementations of the regular grades, kept for \
+     benchmarking, are accepted by --grades with the suffixes \
+     -letter-automata, -symbolic-by-letters and -letter-derivatives in place \
+     of -symbolic."
 
 let parse_args_to_config () =
   let filenames = ref []

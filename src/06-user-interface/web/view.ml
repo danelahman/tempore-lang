@@ -1152,7 +1152,7 @@ let view_compiler (model : Model.model) =
                     match info.implementation with
                     | Some i ->
                         info.description ^ " "
-                        ^ Grades.GradeRegistry.decided_by i
+                        ^ Grades.GradeRegistry.implementation_text i
                     | None -> info.description)
                   (fun (name, _) -> name = model.edit_model.selected_resource)
                   (List.map

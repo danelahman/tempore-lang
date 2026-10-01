@@ -1553,7 +1553,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-cost-lower-bound', 'traces-cost-upper-bound', 'traces-cost-interval', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound-symbolic', 'regex-upper-bound-letter-automata', 'regex-upper-bound-rational-symbolic', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-letter-automata', 'regex-cost-upper-bound-letter-automata', 'regex-cost-interval-letter-automata', 'regex-cost-lower-bound-rational-symbolic', 'regex-cost-upper-bound-rational-symbolic', 'regex-cost-interval-rational-symbolic', 'windowed-schedules', 'mode-switch-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-cost-lower-bound', 'traces-cost-upper-bound', 'traces-cost-interval', 'traces-cost-lower-bound-rational', 'traces-cost-upper-bound-rational', 'traces-cost-interval-rational', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational-symbolic', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational-symbolic', 'regex-cost-upper-bound-rational-symbolic', 'regex-cost-interval-rational-symbolic', 'windowed-schedules', 'mode-switch-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1953,7 +1953,7 @@
   File "literals_reject_complement.tpe", line 4, characters 19-32:
   4 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound-symbolic', 'regex-upper-bound-letter-automata', 'regex-upper-bound-rational-symbolic', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-letter-automata', 'regex-cost-upper-bound-letter-automata', 'regex-cost-interval-letter-automata', 'regex-cost-lower-bound-rational-symbolic', 'regex-cost-upper-bound-rational-symbolic' or 'regex-cost-interval-rational-symbolic' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound-symbolic', 'regex-upper-bound-rational-symbolic', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational-symbolic', 'regex-cost-upper-bound-rational-symbolic' or 'regex-cost-interval-rational-symbolic' grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
@@ -2093,7 +2093,7 @@
   File "literals_reject_star.tpe", line 3, characters 19-31:
   3 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound-symbolic', 'regex-upper-bound-letter-automata', 'regex-upper-bound-rational-symbolic', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-letter-automata', 'regex-cost-upper-bound-letter-automata', 'regex-cost-interval-letter-automata', 'regex-cost-lower-bound-rational-symbolic', 'regex-cost-upper-bound-rational-symbolic' or 'regex-cost-interval-rational-symbolic' grading monoids?
+  Syntax error: in the 'traces-cost-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound-symbolic', 'regex-upper-bound-rational-symbolic', 'regex-cost-lower-bound-symbolic', 'regex-cost-upper-bound-symbolic', 'regex-cost-interval-symbolic', 'regex-cost-lower-bound-rational-symbolic', 'regex-cost-upper-bound-rational-symbolic' or 'regex-cost-interval-rational-symbolic' grading monoids?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
@@ -7172,75 +7172,52 @@ single-dash form of the help option is not accepted.
     --debug           Show final internal state and top level typing results after execution
     --grades          Selects the grades (default: time-lower-bound); accepted:
         Time:
-          time-lower-bound                           Lower bounds
-          time-upper-bound                           Upper bounds
-          time-interval                              Intervals
-          time-lower-bound-rational                  Lower bounds (rational)
-          time-upper-bound-rational                  Upper bounds (rational)
-          time-interval-rational                     Intervals (rational)
+          time-lower-bound                         Lower bounds
+          time-upper-bound                         Upper bounds
+          time-interval                            Intervals
+          time-lower-bound-rational                Lower bounds (rational)
+          time-upper-bound-rational                Upper bounds (rational)
+          time-interval-rational                   Intervals (rational)
         Traces:
-          traces-upper-bound                         Upper bounds
-          traces-upper-bound-rational                Upper bounds (rational)
+          traces-upper-bound                       Upper bounds
+          traces-upper-bound-rational              Upper bounds (rational)
         Traces with costs:
-          traces-cost-lower-bound                    Lower bounds
-          traces-cost-upper-bound                    Upper bounds
-          traces-cost-interval                       Intervals
-          traces-cost-lower-bound-rational           Lower bounds (rational)
-          traces-cost-upper-bound-rational           Upper bounds (rational)
-          traces-cost-interval-rational              Intervals (rational)
+          traces-cost-lower-bound                  Lower bounds
+          traces-cost-upper-bound                  Upper bounds
+          traces-cost-interval                     Intervals
+          traces-cost-lower-bound-rational         Lower bounds (rational)
+          traces-cost-upper-bound-rational         Upper bounds (rational)
+          traces-cost-interval-rational            Intervals (rational)
         Regular expressions:
-          regex-upper-bound-symbolic                 Upper bounds (symbolic)
-              derivatives over letter sets by minterms; inclusion by derivative search
-          regex-upper-bound-letter-automata          Upper bounds (letter automata)
-              minimal automata over single letters; inclusion by product search
-          regex-upper-bound-rational-symbolic        Upper bounds (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by product search
-          regex-upper-bound-symbolic-by-letters      Upper bounds (symbolic by letters)
-              derivatives over letter sets by single letters; inclusion by derivative search
-          regex-upper-bound-letter-derivatives       Upper bounds (letter derivatives)
-              derivatives over single letters; inclusion by derivative search
+          regex-upper-bound-symbolic               Upper bounds (symbolic)
+              symbolic expressions over letter sets; inclusion by derivatives by minterms, depth-first
+          regex-upper-bound-rational-symbolic      Upper bounds (rational, symbolic)
+              minimal symbolic automata over letter and delay sets; inclusion by product with the complement, breadth-first
         Regular expressions with costs:
-          regex-cost-lower-bound-symbolic            Lower bounds (symbolic)
-              derivatives over letter sets by minterms; inclusion by derivative search with closures
-          regex-cost-upper-bound-symbolic            Upper bounds (symbolic)
-              derivatives over letter sets by minterms; inclusion by derivative search with closures
-          regex-cost-interval-symbolic               Intervals (symbolic)
-              derivatives over letter sets by minterms; inclusion by derivative search with closures
-          regex-cost-lower-bound-letter-automata     Lower bounds (letter automata)
-              minimal automata over single letters; inclusion by closure product search
-          regex-cost-upper-bound-letter-automata     Upper bounds (letter automata)
-              minimal automata over single letters; inclusion by closure product search
-          regex-cost-interval-letter-automata        Intervals (letter automata)
-              minimal automata over single letters; inclusion by closure product search
-          regex-cost-lower-bound-rational-symbolic   Lower bounds (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by closure-reader search
-          regex-cost-upper-bound-rational-symbolic   Upper bounds (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by closure-reader search
-          regex-cost-interval-rational-symbolic      Intervals (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by closure-reader search
-          regex-cost-lower-bound-symbolic-by-letters Lower bounds (symbolic by letters)
-              derivatives over letter sets by single letters; inclusion by derivative search with closures
-          regex-cost-upper-bound-symbolic-by-letters Upper bounds (symbolic by letters)
-              derivatives over letter sets by single letters; inclusion by derivative search with closures
-          regex-cost-interval-symbolic-by-letters    Intervals (symbolic by letters)
-              derivatives over letter sets by single letters; inclusion by derivative search with closures
-          regex-cost-lower-bound-letter-derivatives  Lower bounds (letter derivatives)
-              derivatives over single letters; inclusion by derivative search with closures
-          regex-cost-upper-bound-letter-derivatives  Upper bounds (letter derivatives)
-              derivatives over single letters; inclusion by derivative search with closures
-          regex-cost-interval-letter-derivatives     Intervals (letter derivatives)
-              derivatives over single letters; inclusion by derivative search with closures
+          regex-cost-lower-bound-symbolic          Lower bounds (symbolic)
+              symbolic expressions over letter sets; inclusion by derivatives by minterms with closures, depth-first
+          regex-cost-upper-bound-symbolic          Upper bounds (symbolic)
+              symbolic expressions over letter sets; inclusion by derivatives by minterms with closures, depth-first
+          regex-cost-interval-symbolic             Intervals (symbolic)
+              symbolic expressions over letter sets; inclusion by derivatives by minterms with closures, depth-first
+          regex-cost-lower-bound-rational-symbolic Lower bounds (rational, symbolic)
+              minimal symbolic automata over letter and delay sets; inclusion by product with a closure reader, breadth-first
+          regex-cost-upper-bound-rational-symbolic Upper bounds (rational, symbolic)
+              minimal symbolic automata over letter and delay sets; inclusion by product with a closure reader, breadth-first
+          regex-cost-interval-rational-symbolic    Intervals (rational, symbolic)
+              minimal symbolic automata over letter and delay sets; inclusion by product with a closure reader, breadth-first
         Security levels:
-          security-levels                            Levels
-          time-lower-bound-levels                    Embargoes
-          time-upper-bound-levels                    Expiring capabilities
-          flow-levels                                Flow-sensitive outputs
+          security-levels                          Levels
+          time-lower-bound-levels                  Embargoes
+          time-upper-bound-levels                  Expiring capabilities
+          flow-levels                              Flow-sensitive outputs
         Semidirect products:
-          resource-levels                            Resource levels
-          windowed-schedules                         Windowed schedules
-          mode-switch-costs                          Mode-switch costs
+          resource-levels                          Resource levels
+          windowed-schedules                       Windowed schedules
+          mode-switch-costs                        Mode-switch costs
         Operation counts:
-          counts-upper-bound                         Upper bounds
+          counts-upper-bound                       Upper bounds
+        Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic.
     --help            Display this list of options
     --no-stdlib       Do not load the standard library
     --typecheck-only  Typecheck the files without running them

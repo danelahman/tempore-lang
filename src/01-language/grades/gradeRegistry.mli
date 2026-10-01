@@ -21,30 +21,37 @@ val accepting_bounds : Grade.lit -> string list
 
 (** Where a grade is offered. *)
 type visibility =
-  | Everywhere  (** By the CLI and the web interface's selector *)
-  | Cli_only
-      (** By the CLI only, e.g. the implementations kept for comparison *)
+  | Everywhere  (** Listed by [--help] and the web interface's selector *)
+  | Hidden
+      (** Accepted by [--grades] but listed nowhere, e.g. the implementations
+          kept for benchmarking *)
 
 type implementation = {
-  structure : string;
-      (** The data structure representing a grade, e.g. ["derivatives"]. *)
-  labels : string;  (** What labels the structure, e.g. ["single letters"]. *)
+  representation : string;
+      (** The data structure representing a grade, e.g.
+          ["minimal deterministic automata over single letters, built with the
+           grade"]; shown by the web interface's tooltip. *)
+  representation_short : string;
+      (** A short form of {!representation}, e.g.
+          ["minimal automata over single letters"]; shown below the grade's
+          title by [--help]. *)
   inclusion : string;
-      (** How the structure is explored and inclusion decided, e.g.
-          ["inclusion by breadth-first search of the product with the
-           complement"]. *)
-  summary : string;
-      (** A short form of the three fields above, e.g.
-          ["minimal automata over single letters; inclusion by product search"];
-          shown below the grade's title by [--help]. *)
+      (** How inclusion is decided, e.g.
+          ["emptiness of the product with the complement, by breadth-first
+           search"]; shown by the web interface's tooltip. *)
+  inclusion_short : string;
+      (** A short form of {!inclusion}, e.g.
+          ["product with the complement, breadth-first"]; shown below the
+          grade's title by [--help]. *)
 }
 (** How a regular grade is decided. *)
 
-val decided_by : implementation -> string
-(** [decided_by i] is the sentence ["Decided by "] followed by the fields
-    [structure], [labels] and [inclusion] of [i], e.g.
-    ["Decided by minimal deterministic automata over single letters, inclusion
-     by breadth-first search of the product with the complement."]. *)
+val implementation_text : implementation -> string
+(** [implementation_text i] is ["Represented as "] followed by
+    [i.representation], then ["Inclusion: "] followed by [i.inclusion], e.g.
+    ["Represented as minimal deterministic automata over single letters, built
+     with the grade. Inclusion: emptiness of the product with the complement, by
+     breadth-first search."]. *)
 
 type info = {
   title : string;
@@ -57,8 +64,9 @@ type info = {
   visibility : visibility;  (** Where the grade is offered. *)
   implementation : implementation option;
       (** How the grade is decided, for the regular grades, and [None] for the
-          others; shown by [--help] as its [summary] and by the web selector's
-          option tooltip, after the description, as {!decided_by}. *)
+          others; shown by [--help] as its [representation_short] and
+          [inclusion_short], and by the web selector's option tooltip, after the
+          description, as {!implementation_text}. *)
 }
 (** Descriptive metadata about a grade, shown next to its CLI name (a key of
     {!grade_modules}) by the web interface's selector and the CLI's [--help], in

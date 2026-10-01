@@ -889,7 +889,6 @@ let registry =
           "traces-cost-interval";
           "traces-cost-interval-rational";
           "regex-cost-interval-symbolic";
-          "regex-cost-interval-letter-automata";
           "regex-cost-interval-rational-symbolic";
           "windowed-schedules";
         ]
@@ -900,7 +899,6 @@ let registry =
           "traces-cost-interval";
           "traces-cost-interval-rational";
           "regex-cost-interval-symbolic";
-          "regex-cost-interval-letter-automata";
           "regex-cost-interval-rational-symbolic";
         ]
       (GradeRegistry.accepting
@@ -918,7 +916,6 @@ let registry =
           "time-interval-rational";
           "traces-cost-interval";
           "regex-cost-interval-symbolic";
-          "regex-cost-interval-letter-automata";
           "regex-cost-interval-rational-symbolic";
           "resource-levels";
           "windowed-schedules";
@@ -998,14 +995,10 @@ let registry =
       ~expected:
         [
           "regex-upper-bound-symbolic";
-          "regex-upper-bound-letter-automata";
           "regex-upper-bound-rational-symbolic";
           "regex-cost-lower-bound-symbolic";
           "regex-cost-upper-bound-symbolic";
           "regex-cost-interval-symbolic";
-          "regex-cost-lower-bound-letter-automata";
-          "regex-cost-upper-bound-letter-automata";
-          "regex-cost-interval-letter-automata";
           "regex-cost-lower-bound-rational-symbolic";
           "regex-cost-upper-bound-rational-symbolic";
           "regex-cost-interval-rational-symbolic";
@@ -1023,11 +1016,15 @@ let registry =
          (Grade.Braces
             (Grade.Delays
                (Grade.Open Rational.zero, Grade.Open (Rational.of_int 1)))));
-    expect "registry: grades offered by the CLI only" show_names
+    expect "registry: grades accepted but listed nowhere" show_names
       ~expected:
         [
+          "regex-upper-bound-letter-automata";
           "regex-upper-bound-symbolic-by-letters";
           "regex-upper-bound-letter-derivatives";
+          "regex-cost-lower-bound-letter-automata";
+          "regex-cost-upper-bound-letter-automata";
+          "regex-cost-interval-letter-automata";
           "regex-cost-lower-bound-symbolic-by-letters";
           "regex-cost-upper-bound-symbolic-by-letters";
           "regex-cost-interval-symbolic-by-letters";
@@ -1039,7 +1036,7 @@ let registry =
          (fun (g : GradeRegistry.group) ->
            List.filter_map
              (fun (name, (info : GradeRegistry.info)) ->
-               if info.visibility = Cli_only then Some name else None)
+               if info.visibility = Hidden then Some name else None)
              g.grades)
          GradeRegistry.groups);
     expect "registry: the regular grades describe their implementations"
