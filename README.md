@@ -10,12 +10,18 @@ a typechecker based on Hindley–Milner style type and grade inference.
 Tempore grew out of Temporal Millet, which was implemented in [Joosep
 Tavits](https://github.com/joosepgit)'s Master's thesis at the University of
 Tartu ([code](https://github.com/joosepgit/temporal-millet),
-[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). Tempore
-(currently) adds (i) temporal algebraic effects and effect handlers that are
-guaranteed to respect the temporal specifications of operations, and (ii)
-general resource grades (see more on this [below](#grading-monoids)) in place of
-natural-number time grades, which modelled only whole lower time bounds of
-programs.
+[thesis](https://thesis.cs.ut.ee/1c038012-af0d-444a-95dc-7ffc8b3a1f20)). 
+
+Most notably, Tempore adds to Temporal Millet the following:
+
+1. temporal algebraic effects and effect handlers that are guaranteed to
+respect the temporal specifications of operations, 
+2. [general resource grades](#grading-monoids) in place of only natural
+number-based time grades, which modelled only whole lower time bounds of
+programs, 
+3. a number of concrete examples of such grades (ranging from time to regexes to security levels to trough/peak usage of resources), 
+4. cleaner and more systematic treatment of type inference, and 
+5. various usability improvements in the web-based user interface.
 
 Tempore (and Temporal Millet before it) is built on Matija Pretnar's
 [Millet Language](https://github.com/matijapretnar/millet) and follows the
@@ -27,61 +33,67 @@ ideas of [Ahman](https://doi.org/10.1007/978-3-031-30829-1_1) and [Ahman and
 
 ### Building
 
-Requires OCaml 5.5 or later. The rational time grades use zarith, which needs
-the GMP library (opam installs it through `conf-gmp`). 
+Requires OCaml 5.5 or later. The rational time grades use zarith, which
+additionally needs the GMP library (opam installs it through `conf-gmp`). 
 
-Install the dependencies and build:
+Install the dependencies:
 
     make deps
+
+Build the language:
+
     make
 
-`make test` runs the test suite; `make clean` removes the build.
+Run the test suite:
+
+    make test
+
+Remove the build:
+
+    make clean
 
 ### Command line
 
     ./tempore file1.tpe file2.tpe ...
 
-loads the listed files, runs every `run` command in them, and prints each result
-with the final resource state. Options:
+loads the listed `.tpe` files, typechecks them, runs every `run` command in
+them, and prints each `run` result with the final resource state. 
 
-- `--grades <grades>` selects the grading monoid (default `time-lower-bound`;
-  see [Grading monoids](#grading-monoids));
-- `--typecheck-only` typechecks the files without running;
+Command line options:
+
+- `--grades <grades>` selects the [grading monoid](#grading-monoids) (default `time-lower-bound`);
+- `--typecheck-only` typechecks the files without running them;
 - `--no-stdlib` skips importing the standard library;
 - `--debug` also prints the inferred typing context, including the inferred type
   schemes;
-- `--help` lists the options and the grading monoids.
+- `--help` lists the options and the available grading monoids.
+
+The [`examples/`](examples/) directory holds example programs by grouped according to their topics.
 
 ### Web interface
 
 Open `web/index.html` after building, or use
-<https://danel.ahman.ee/tempore-lang/>. Load an example or type a program,
-typecheck it, and step through its reductions while watching the resource state.
+<https://danel.ahman.ee/tempore-lang/>. 
 
-The **Grades** selector chooses the grading monoid; loading an example selects
-its respective grading monoid automatically.
-
-The [`examples/`](examples/) directory holds example programs by topic:
-`basics/`, `handlers/`, `time/`, `traces/`, `regular/`, `regular_timed_ops/`,
-`levels/`, `semidirect/`, `counts/`, `3dprint/` (a 3D-printing case study),
-`rollout/` (a staged software release) and `sessions/` (a mail-session case
-study). All but the `basics/` examples are offered in the web interface.
+You can load an existing example or write your own program, choose which grading monoid to use, typecheck the program, and
+step through its reductions while watching resource usage.
 
 ## Temporal resources
 
-A value of the modal type `[rho]a` is an `a`-typed resource that may be used
-only once the grade `rho` (see [Grading monoids](#grading-monoids) below) has
-accumulated since it was created.
+A value of modal type `[rho]a` is an `a`-typed resource that may be used only
+once/until the grade `rho` (see [Grading monoids](#grading-monoids) below) has
+accumulated since the resource was created.
 
 ### Boxes and unboxing
 
-`box rho e` creates a resource of type `[rho]a`; `e` is typed in the future in
-which `rho` has accumulated. 
+`box rho e` creates a resource of type `[rho]a`, where `e` has to be well-typed
+in the future in which the grade `rho` has hypothetically accumulated. 
 
 `unbox e` opens a resource `e : [rho]a`, and is allowed only if the grade
-accumulated since boxing is below `rho`. 
+accumulated since boxing is bounded by `rho` (i.e., below `rho` in the grade
+order). 
 
-Under `time-lower-bound`,
+Under the `time-lower-bound` grade, where resources are graded by the least amounts of time that has to pass before resources can be used, the program
 
 ```
 run
@@ -90,7 +102,7 @@ run
   unbox b as (l, r) in l + r
 ```
 
-is rejected, since four ticks is not a sub-grade of five:
+is rejected by the typechecker, since four ticks is not a sub-grade of five that is required:
 
     Variable `b` is unboxed with grade `4` accumulated since it was bound,
     which is not below its box grade `5`
@@ -100,12 +112,13 @@ See [`examples/basics/basic_unbox.tpe`](examples/basics/basic_unbox.tpe).
 
 ### Delays
 
-`delay tau` advances the accumulated grade by `tau`. Each [grading monoids](#grading-monoids) 
-maps its monoid of delays to grades by a monoid morphism, so `delay 0` has the unit
-grade and `delay tau; delay tau'` the grade of `delay (tau + tau')`
+`delay tau` advances the accumulated grade by `tau`. Each [grading
+monoid](#grading-monoids) has its own notion of delays, and it maps it to grades
+by a monoid morphism, so `delay 0` has the unit grade and `delay tau; delay
+tau'` the grade of `delay (tau + tau')`
 ([`delay.mli`](src/01-language/grades/delay.mli)). 
 
-`tau` is a non-negative integer or rational fraction. The rational time and
+`tau` is currently a non-negative integer or rational fraction, based on a grade. The rational time and
 trace grades, `security-levels` and `flow-levels` have the non-negative
 rationals as delays and accept any, such as `delay 1/3` or `delay 0.25`; the
 other monoids count whole time steps and accept only integers. See
@@ -113,8 +126,8 @@ other monoids count whole time steps and accept only integers. See
 
 ## Grading monoids
 
-Resources and computations are graded by an ordered monoid, chosen at run time
-with `--grades` or the **Grades** selector, e.g.
+Resources and the effects of computations are graded by an ordered monoid, chosen at run time
+with the `--grades` option or the **Grades** selector in the web interface, e.g.,
 
     ./tempore --grades time-interval examples/time/intervals.tpe
 
@@ -139,7 +152,7 @@ equal to an integer, such as `4/2` or `2.0`, is that integer.
 
 ### Time
 
-A grade bounds the number of time steps, or ticks, a computation takes.
+In this category, a grade bounds the number of time steps, or ticks, a computation takes.
 
 - `time-lower-bound`: `n` is at least `n` ticks; ordered by `>=`, so `0` is
   the top.
@@ -149,26 +162,32 @@ A grade bounds the number of time steps, or ticks, a computation takes.
   least `n` ticks; ordered by containment, with top `[0, ∞)`. An open endpoint
   abbreviates a closed one, `(n, m)` being `[n + 1, m - 1]`.
 
-Example: `box [2, 5] v` may be unboxed after two to five ticks. See
+Example: `box [2, 5] v` may be unboxed after two to five ticks. 
+
+See
 [`examples/time/upper_bounds.tpe`](examples/time/upper_bounds.tpe) and
 [`examples/time/intervals.tpe`](examples/time/intervals.tpe).
 
-The rational variants `time-lower-bound-rational`, `time-upper-bound-rational` and
-`time-interval-rational` measure time exactly by non-negative rationals, with
-the same orders, units and tops: `box [0.5, 4/3] v` may be unboxed after half a
-unit and before four thirds, and three delays of `1/3` take exactly `1` unit. The
-intervals of `time-interval-rational` may be open or half-open: `box (4, 6] v`
-may be unboxed strictly after four units and at most six. A sum of intervals
-is open at an endpoint if either summand is, so `[1, 2) · [1, 1]` is `[2, 3)`. A
-grade is printed as an integer, as a finite decimal if one exists (`0.125`),
-and otherwise as a fraction (`1/3`). See
+The rational variants `time-lower-bound-rational`, `time-upper-bound-rational`
+and `time-interval-rational` measure time exactly by non-negative rationals,
+with the same orders, units and tops: `box [0.5, 4/3] v` may be unboxed after
+half a unit and before four thirds, and three delays of `1/3` take exactly `1`
+unit. 
+
+The intervals of the grade `time-interval-rational` may be open or half-open:
+`box (4, 6] v` may be unboxed strictly after four units and at most six. A sum
+of intervals is open at an endpoint if either summand is, so `[1, 2) · [1, 1]`
+is `[2, 3)`. A grade is printed as an integer, as a finite decimal if one exists
+(`0.125`), and otherwise as a fraction (`1/3`). 
+
+See
 [`examples/time/intervals_rational.tpe`](examples/time/intervals_rational.tpe).
 
 ### Traces
 
-A grade is a non-empty finite set of *traces*, the sequences of operations and
+In this category, a grade is a non-empty finite set of *traces*, the sequences of operations and
 delays a computation may exhibit: `Read; 3; Send` performs `Read`, waits three
-ticks, and performs `Send`; adjacent delays are merged, so `Read; 1; 2; Send` is
+ticks, and performs `Send`. Adjacent delays are merged, so `Read; 1; 2; Send` is
 the same trace as `Read; 3; Send`. Grades multiply by concatenation and join by
 union. Operations declare no running-time bounds.
 
@@ -178,10 +197,9 @@ unit `{0}` is not least, and `⊤`, any trace, is the top. Traces are compared b
 equality, so only upper bounds are provided. The rational variant
 `traces-upper-bound-rational` has non-negative rational delays. 
 
-Literals are those of the trace grades of timed operations, below. When an ordering
-fails, a note names a trace of the lesser grade that the greater one does not
-list. See
-[`examples/traces/upper_bounds.tpe`](examples/traces/upper_bounds.tpe).
+Literals are those of the trace grades of timed operations, below.
+
+See [`examples/traces/upper_bounds.tpe`](examples/traces/upper_bounds.tpe).
 
 ### Traces of timed operations
 
@@ -201,9 +219,12 @@ time against operations.
   top is `[{0}, ∞)`.
 
 Literals use `;` for sequence, `|` for union and parentheses: `{(Read | 2);
-Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. See
+Send}` is `{Read; Send | 2; Send}`. An integer `n` abbreviates `{n}`. 
+
+See
 [`examples/traces_timed_ops/lower_bounds.tpe`](examples/traces_timed_ops/lower_bounds.tpe),
-[`examples/traces_timed_ops/upper_bounds.tpe`](examples/traces_timed_ops/upper_bounds.tpe) and
+[`examples/traces_timed_ops/upper_bounds.tpe`](examples/traces_timed_ops/upper_bounds.tpe)
+and
 [`examples/traces_timed_ops/intervals.tpe`](examples/traces_timed_ops/intervals.tpe).
 
 The rational variants `traces-timed-lower-bound-rational`,
@@ -214,15 +235,17 @@ the two operations, a fraction `q` abbreviates `{q}`, and an operation may
 declare bounds such as `within [1/2, 3/2]`. 
 
 An interval with an open numeric endpoint, such as `(1/2, 2]`, denotes
-infinitely many traces and is rejected; the regular expressions of
-`regex-timed-interval-rational-symbolic` can be used to express such cases. See
+infinitely many traces and is rejected, because grades are nonempty finite sets of traces. The regular expressions of
+`regex-timed-interval-rational-symbolic` can be used to express such cases instead. 
+
+See
 [`examples/traces_timed_ops/intervals_rational.tpe`](examples/traces_timed_ops/intervals_rational.tpe).
 
 ### Regular expressions
 
 A grade is a non-empty regular language of traces. The order is inclusion, the
-product concatenation and the join union; the unit is `{0}` and the top `⊤` the
-language of all traces. Operations declare no running-time bounds.
+product is concatenation and the join is union; the unit is `{0}` and the top
+`⊤` is the language of all traces. Operations declare no running-time bounds. The implementation provides two variants:
 
 - `regex-upper-bound-symbolic`: traces are words over the letter `tick` (one
   time step) and declared operation names. A grade is a symbolic regular
@@ -297,13 +320,13 @@ are accepted by `--grades` with one of these suffixes in place of `-symbolic`:
 - `-letter-derivatives`: expressions over single letters; inclusion by
   derivatives by single letters.
 
-They are compared by
+They can be compared by running
 `dune exec --profile release bench/regular/bench_regular.exe`; see
-[`bench/regular/README.md`](bench/regular/README.md) for more information.
+[`bench/regular/README.md`](bench/regular/README.md).
 
 ### Regular expressions of timed operations
 
-A grade is a regular language of traces, written as under the regular
+In this category, a grade is a regular language of traces, written as under the regular
 expressions above, and every atomic operation declares running-time bounds
 `within [lo, hi]`. The orders are those of the traces of timed operations: a
 grade stands for its *closure*, the traces that fit inside one of its traces
@@ -343,7 +366,9 @@ and
 The rational variants `regex-timed-lower-bound-rational-symbolic`,
 `regex-timed-upper-bound-rational-symbolic` and
 `regex-timed-interval-rational-symbolic` have the same orders over the timed
-words of `regex-upper-bound-rational-symbolic`. Under these:
+words of `regex-upper-bound-rational-symbolic`. 
+
+Under these:
 
 - literals are those of `regex-upper-bound-rational-symbolic`, and running-time
   bounds may be fractional, such as `within [1/2, 3/2]`;
@@ -376,14 +401,16 @@ and
 
 ### Security levels and products
 
-- `security-levels`: the levels `Low < High`; a computation's grade is the
+In this category, we have the following grading monoids:
+
+- `security-levels`: the levels are given by the simple security lattice `Low < High`; a computation's grade is the
   highest level it touches, and delays touch none. A box at `Low` is out of
   reach once an operation of grade `High` has run.
 - `time-lower-bound-levels`: pairs `(n, l)`, at least `n` ticks and nothing
-  above `l`; `(3, Low)` is an embargo with a taint check. This is a direct
+  above security level `l`; `(3, Low)` is an embargo with a taint check. This is a direct
   product of the time lower bounds and security levels grades.
 - `time-upper-bound-levels`: pairs `(n, l)`, at most `n` ticks and nothing
-  above `l`; `(5, Low)` is an expiring capability. This is a direct
+  above security level `l`; `(5, Low)` is an expiring capability. This is a direct
   product of the time lower bounds and security levels grades.
 - `flow-levels`: tuples `(l, (S₁, l₁), …, (Sₖ, lₖ))`, nothing above `l` touched
   and each output `Sᵢ` written at most at the level `lᵢ` touched before it; `l`
@@ -402,10 +429,11 @@ and [`examples/levels/flow.tpe`](examples/levels/flow.tpe).
 
 ### Semidirect products
 
-A grade is a pair `(m, n)` whose second component is acted on by the first
-components of the grades before it: `(m, n) · (m', n') = (m · m', n ⊔ m ▷ n')`,
-`m ▷ n'` being the action of `m` on `n'`. The pairs are compared and joined
-componentwise. The `flow-levels` monoid from above is an example, as are:
+In this category, a grade is generally a pair `(m, n)` whose second component is
+acted on by the first components of the grades before it: `(m, n) · (m', n') =
+(m · m', n ⊔ m ▷ n')`, where `m ▷ n'` is a grade-specific action of `m` on `n'`. The pairs are
+compared and joined componentwise. The `flow-levels` monoid from above is an
+example, as are:
 
 - `resource-levels`: triples `(t, [d1, d2], h)` bounding a resource held, such as
   open files, relative to its level at the start: the trough `t` is the lowest
@@ -467,27 +495,33 @@ componentwise. The `flow-levels` monoid from above is an example, as are:
   10), (On, On, 50))`.
 
 An (external) operation whose grade no code inside Tempore can meet, such as
-opening or closing a file under `resource-levels`, has no default implementation, and
-a run stops at its first call. See
+opening or closing a file under `resource-levels`, has no default
+implementation, and a run stops at its first call. 
+
+See
 [`examples/semidirect/resource_levels.tpe`](examples/semidirect/resource_levels.tpe),
 [`examples/semidirect/windowed_schedules.tpe`](examples/semidirect/windowed_schedules.tpe)
-and [`examples/semidirect/mode_switch_costs.tpe`](examples/semidirect/mode_switch_costs.tpe).
+and
+[`examples/semidirect/mode_switch_costs.tpe`](examples/semidirect/mode_switch_costs.tpe).
 
 ### Operation counts
+
+In this category, we have
 
 - `counts-upper-bound`: entries `(A, n)`, at most `n` calls of the operation
   `A`, `n` possibly `∞`; sequencing adds the calls of each operation, and
   delays count none. An operation not listed is bounded by `0`, or by the entry
   `(_, n)`, and a plain `n` bounds every operation: `((Auth, 1), (Send, 3))`
   allows one `Auth`, three `Send` and nothing else. An operation counts itself,
-  e.g. `operation Send : nat ~> unit # (Send, 1)`. See
-  [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
+  e.g. `operation Send : nat ~> unit # (Send, 1)`. 
+  
+  See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
 ## Eternal types
 
-A type is *eternal* if its values stay valid however much grade accumulates.
-Base types, and tuples and algebraic types built from eternal types, are
-eternal; function, handler and box types are not. A local variable of a
+A type is *eternal* if its values stay valid however much grade accumulates as a result of computations.
+Base types, tuples, and algebraic types built from eternal types are
+eternal; function, handler, and box types are not. A local variable of a
 non-eternal type may be used only while the grade accumulated since its binding
 is a sub-grade of the unit. Under `time-lower-bound` and
 `traces-timed-lower-bound` this always holds; under the other monoids such a
@@ -496,13 +530,15 @@ variable must be used before any nontrivial delay or operation call.
 ### Schemes and qualifiers
 
 When eternality depends on a type variable of a top-level definition, it
-becomes a qualifier of the definition's scheme, checked at each use. Under
-`time-upper-bound`, `let keep x = delay 1; x` gets
+becomes a qualifier of the definition's scheme, checked at each use. 
+
+Under `time-upper-bound`, the program `let keep x = delay 1; x` gets the scheme
 
     ∀ α. Et(α) ⇒ α → α # 1
 
-so `keep 5` is accepted and `keep (fun () -> ())` rejected. See
-[`examples/basics/eternal_types.tpe`](examples/basics/eternal_types.tpe).
+so `keep 5` is accepted by the typechecker and `keep (fun () -> ())` is rejected. 
+
+See [`examples/basics/eternal_types.tpe`](examples/basics/eternal_types.tpe).
 
 ### Noneternal declarations
 
