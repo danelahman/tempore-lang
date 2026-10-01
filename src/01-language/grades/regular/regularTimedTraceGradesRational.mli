@@ -10,27 +10,28 @@
     rational delays, adjacent delays added. The orders on single traces are
     allowance and coverage, as characterised in {!DelayTimedClosure}. A grade is
     ordered below another through the closure of the greater one:
-    - upper bounds, ["regex-timed-upper-bound-rational-symbolic"]: [ρ ≾ ρ']
-      iff every trace of [ρ] is permitted by some trace of [ρ'], i.e. [ρ ⊆ ↓ρ'],
+    - upper bounds, ["regex-timed-upper-bound-rational-symbolic"]: [ρ ≾ ρ'] iff
+      every trace of [ρ] is permitted by some trace of [ρ'], i.e. [ρ ⊆ ↓ρ'],
       operations counting at their upper running-time bound [hi];
-    - lower bounds, ["regex-timed-lower-bound-rational-symbolic"]: [ρ ≾ ρ']
-      iff every trace of [ρ] covers some trace of [ρ'], i.e. [ρ ⊆ ↑ρ'],
-      operations counting at their lower running-time bound [lo];
-    - intervals, ["regex-timed-interval-rational-symbolic"]: closed intervals
-      of a lower and an upper bound, compared componentwise.
+    - lower bounds, ["regex-timed-lower-bound-rational-symbolic"]: [ρ ≾ ρ'] iff
+      every trace of [ρ] covers some trace of [ρ'], i.e. [ρ ⊆ ↑ρ'], operations
+      counting at their lower running-time bound [lo];
+    - intervals, ["regex-timed-interval-rational-symbolic"]: closed intervals of
+      a lower and an upper bound, compared componentwise.
 
-    Both are preorders, [equal] being mutual [≾]: if [Read] declares [within
-    [1/2, 3/2]], then [{Read} ≾ {3/2}] but not conversely under the upper order,
-    and [{Read | 1/2} ≡ {1/2}] under the lower order. Products and joins are
-    those of languages, monotone in the orders. The orders are exact over the
-    rationals: if [A] takes [1] under the upper order, [{(0, 1); A; (0, 1)}] is
-    below [{3}] and below no [{q}] with [q < 3], its delays coming arbitrarily
-    close to [1]. A running time is the extremal value of an end of the
-    running-time bounds, attained iff the end is closed, and a trace is
-    permitted, or covers, iff it does at every duration of its operations: if
-    [A] declares [within [1, 2)], then [{A} ≾ {\[0, 2)}] under the upper order,
-    which fails for [within [1, 2]]. The closures are not timed regular
-    languages, and a grade is printed as it was written, not as its closure.
+    Both are preorders, [equal] being mutual [≾]: if [Read] declares
+    [within [1/2, 3/2]], then [{Read} ≾ {3/2}] but not conversely under the
+    upper order, and [{Read | 1/2} ≡ {1/2}] under the lower order. Products and
+    joins are those of languages, monotone in the orders. The orders are exact
+    over the rationals: if [A] takes [1] under the upper order,
+    [{(0, 1); A; (0, 1)}] is below [{3}] and below no [{q}] with [q < 3], its
+    delays coming arbitrarily close to [1]. A running time is the extremal value
+    of an end of the running-time bounds, attained iff the end is closed, and a
+    trace is permitted, or covers, iff it does at every duration of its
+    operations: if [A] declares [within \[1, 2)], then [{A} ≾ {\[0, 2)}] under
+    the upper order, which fails for [within [1, 2]]. The closures are not timed
+    regular languages, and a grade is printed as it was written, not as its
+    closure.
 
     {2 Closed world}
 

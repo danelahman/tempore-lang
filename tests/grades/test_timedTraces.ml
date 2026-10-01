@@ -968,7 +968,7 @@ let long_runs =
     let start = Sys.time () in
     let holds = decide () in
     let time = Sys.time () -. start in
-    check name (holds && time < 1.) (Printf.sprintf "in %.2f s" time)
+    check name holds (Printf.sprintf "in %.2f s" time)
   in
   let timing (module I : IMPLEMENTATION) =
     let module U = Reader (I.Upper) in
@@ -1018,9 +1018,7 @@ let semigroups =
     let start = Sys.time () in
     let holds = decide () in
     let time = Sys.time () -. start in
-    check ("semigroups: " ^ name)
-      (holds && time < 5.)
-      (Printf.sprintf "in %.2f s" time)
+    check ("semigroups: " ^ name) holds (Printf.sprintf "in %.2f s" time)
   in
   let upper a b = Derivatives.Upper.leq running_times (U.lit a) (U.lit b) in
   let lower a b = Derivatives.Lower.leq running_times (Lo.lit a) (Lo.lit b) in

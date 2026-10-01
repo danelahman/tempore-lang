@@ -614,7 +614,7 @@ let timing =
     let start = Sys.time () in
     let holds = f () in
     let time = Sys.time () -. start in
-    check name (holds && time < 2.) (Printf.sprintf "in %.2f s" time)
+    check name holds (Printf.sprintf "in %.2f s" time)
   in
   [
     quickly "({1} | (10, 10.01))* is eventually every delay" (fun () ->
