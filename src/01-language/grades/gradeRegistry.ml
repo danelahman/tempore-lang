@@ -80,10 +80,10 @@ let rational_symbolic_representation_short =
 (* How inclusion is decided for the regular grades without running times, full
    and short. *)
 let symbolic_inclusion =
-  "emptiness of ρ & ~ρ′, by depth-first search of its derivatives by minterms, \
-   an automaton built on the fly"
+  "emptiness of ρ & ~ρ′, by depth-first search of its gap derivatives, each by \
+   a set of delays and a minterm of operations, an automaton built on the fly"
 
-let symbolic_inclusion_short = "derivatives by minterms, depth-first"
+let symbolic_inclusion_short = "gap derivatives by minterms, depth-first"
 
 let letter_inclusion =
   "emptiness of ρ & ~ρ′, by depth-first search of its derivatives by single \
@@ -140,12 +140,12 @@ let letter_derivatives =
 (* How inclusion is decided for the regular grades of timed operations, full
    and short. *)
 let timed_symbolic_inclusion =
-  "emptiness relative to the closure of the greater grade, by depth-first \
-   search of the derivatives by minterms with the closure stepped alongside, \
-   an automaton built on the fly"
+  "emptiness of the product of the automaton of the gap derivatives of the \
+   lesser grade with a reader of the closure of that of the greater grade, by \
+   breadth-first search"
 
 let timed_symbolic_inclusion_short =
-  "derivatives by minterms with closures, depth-first"
+  "gap derivatives with a closure reader, breadth-first"
 
 let timed_letter_inclusion =
   "emptiness relative to the closure of the greater grade, by depth-first \

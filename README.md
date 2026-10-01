@@ -228,7 +228,8 @@ language of all traces. Operations declare no running-time bounds.
   time step) and declared operation names. A grade is a symbolic regular
   expression over sets of letters, kept in normal form, with no automaton; an
   inclusion `ρ ≾ ρ′` holds if `ρ & ~ρ′` is empty, found by a depth-first search
-  of its symbolic derivatives by minterms.
+  of its gap derivatives, each reading a run of ticks of any length and the
+  operation after it in one step, by sets of delays and minterms.
 - `regex-upper-bound-rational-symbolic`: traces are *timed words*, operations and
   non-negative rational delays, a delay being a single letter and adjacent delays
   added, so that `{1/2; 1/2}` is `{1}`; delays are compared as rationals,
@@ -321,9 +322,11 @@ Under these:
 - delays are whole ticks, and grades are represented as under
   `regex-upper-bound-symbolic`;
 - an ordering `ρ ≾ ρ′` holds if no trace of `ρ` lies outside the closure of
-  `ρ′`, found by a depth-first search of the symbolic derivatives of `ρ` by
-  minterms, reading the closure of `ρ′` alongside and a run of ticks in one
-  step;
+  `ρ′`, found as under the rational variants below: by a breadth-first search
+  of the automaton of the gap derivatives of `ρ` together with a reader of the
+  closure of `ρ′`;
+- a failed ordering names a trace with the fewest operations, its delays at the
+  extremes of their sets;
 - the alphabet is the atomic operations declared anywhere in the program, so
   `_` is any tick or atomic operation, and a grade must denote at least one
   trace over it;
