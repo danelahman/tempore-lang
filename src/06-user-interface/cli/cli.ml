@@ -170,9 +170,15 @@ let run_with (module G : Grades.Grade.S) config =
     end;
     (* loading the files has typechecked every command, the [run]s included *)
     if not config.typecheck_only then run run_state 1
-  with Error.Error d ->
-    Diagnostic.print ~source d Format.err_formatter;
-    exit 1
+  with
+  | Error.Error d ->
+      Diagnostic.print ~source d Format.err_formatter;
+      exit 1
+  | Stack_overflow ->
+      prerr_endline
+        "Fatal error: the available stack was exhausted, e.g. by a grade too \
+         large to decide under this grading monoid";
+      exit 2
 
 let main () =
   let config = parse_args_to_config () in

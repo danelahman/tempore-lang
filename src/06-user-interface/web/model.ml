@@ -846,6 +846,16 @@ let update_model model = function
         | Error.Error d ->
             (Error [ { diagnostic = d; hovered_label = None } ], [], [])
         | Invalid_argument message -> (Error [ fatal message ], [], [])
+        | Stack_overflow ->
+            ( Error
+                [
+                  fatal
+                    "The available stack was exhausted while checking this \
+                     program, e.g. by a grade too large to decide under this \
+                     grading monoid";
+                ],
+              [],
+              [] )
         | exn -> (Error [ fatal (Printexc.to_string exn) ], [], [])
       in
       {
