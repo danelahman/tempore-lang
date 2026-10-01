@@ -70,6 +70,13 @@ let letter_automata_representation =
 let letter_automata_representation_short =
   "minimal automata over single letters"
 
+let rational_symbolic_representation =
+  "symbolic expressions over letter sets and sets of rational delays in normal \
+   form, no automaton"
+
+let rational_symbolic_representation_short =
+  "symbolic expressions over letter and delay sets"
+
 let rational_automata_representation =
   "minimal deterministic symbolic automata over letter sets and sets of \
    rational delays, built with the grade"
@@ -111,6 +118,14 @@ let letter_automata =
     representation_short = letter_automata_representation_short;
     inclusion = product_inclusion;
     inclusion_short = product_inclusion_short;
+  }
+
+let rational_symbolic =
+  {
+    representation = rational_symbolic_representation;
+    representation_short = rational_symbolic_representation_short;
+    inclusion = symbolic_inclusion;
+    inclusion_short = symbolic_inclusion_short;
   }
 
 let rational_automata =
@@ -314,7 +329,7 @@ let entries =
     entry ~visibility:Hidden ~implementation:letter_automata
       (module RegularTraceGrade)
       regex "Upper bounds (letter automata)" regular_languages;
-    entry ~implementation:rational_automata
+    entry ~implementation:rational_symbolic
       (module RegularTraceGradeRational)
       regex "Upper bounds (rational, symbolic)" rational_languages;
     entry ~visibility:Hidden ~implementation:rational_automata

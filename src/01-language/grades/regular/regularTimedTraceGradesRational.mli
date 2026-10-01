@@ -76,13 +76,13 @@
 (** Lower bounds, in the coverage order at [lo]. *)
 module Lower :
   Grade.S
-    with type t = RegularTraceGradeRational.t
+    with type t = RegularTraceGradeRational.Automata.t
      and type Delay.t = Delay.Rational.t
 
 (** Upper bounds, in the allowance order at [hi]. *)
 module Upper :
   Grade.S
-    with type t = RegularTraceGradeRational.t
+    with type t = RegularTraceGradeRational.Automata.t
      and type Delay.t = Delay.Rational.t
 
 (** Closed intervals of a lower and an upper bound, compared componentwise,
@@ -93,7 +93,9 @@ module Upper :
     pair, is [\[{(q, ∞)}, {[0, r)}]], and so on for the half-open intervals. *)
 module Interval :
   Grade.S
-    with type t = RegularTraceGradeRational.t * RegularTraceGradeRational.t
+    with type t =
+      RegularTraceGradeRational.Automata.t
+      * RegularTraceGradeRational.Automata.t
      and type Delay.t = Delay.Rational.t
 
 (** The same grades over {!RegularTraceGradeRational.Automata}, named

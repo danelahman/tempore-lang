@@ -68,6 +68,35 @@ module Make (E : EXPRESSION) = struct
   let subset r s =
     equal_form r s || E.is_top s || is_empty (E.inter [ r; E.compl s ])
 
+  let fewest_operations r =
+    let ms = E.blocks [ r ] in
+    let parent = Hashtbl.create 64 and queue = Queue.create () in
+    let rec path e acc =
+      match Hashtbl.find parent (E.hash e) with
+      | None -> acc
+      | Some (n, m, d) -> path d ((n, m) :: acc)
+    in
+    let rec go () =
+      match Queue.take_opt queue with
+      | None -> None
+      | Some e ->
+          let finals = E.delays e in
+          if not (DelaySet.is_empty finals) then Some (path e [], finals)
+          else begin
+            List.iter
+              (fun (n, m, e') ->
+                if not (Hashtbl.mem parent (E.hash e') || known_empty e') then begin
+                  Hashtbl.add parent (E.hash e') (Some (n, m, e));
+                  Queue.push e' queue
+                end)
+              (edges ms e);
+            go ()
+          end
+    in
+    Hashtbl.add parent (E.hash r) None;
+    Queue.push r queue;
+    go ()
+
   (* The pairs of expressions compared, by their numbers, the lesser first. *)
   let equalities : bool Pairs.t = Pairs.create 1024
 

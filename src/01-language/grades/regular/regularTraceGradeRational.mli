@@ -31,15 +31,17 @@
 
     {2 Representation and decisions}
 
-    A grade keeps the canonical automaton of its language, which
-    {!Grade.S.equal}, {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top}
-    read, and the expression it was written as, or built as by products and
-    joins, which the printing reads. Inclusion is decided on the product of the
-    automata, and {!Grade.S.counterexample} [bounds rho rho'] is the grade of a
-    word of [rho] not in [rho'] with the fewest operations
-    ({!DelayAutomaton.counterexample}), its delays the simplest rationals of the
-    sets of delays they are chosen from, and an operation no grade names written
-    as [_ & ~((0, ∞) | …)].
+    A grade keeps its language as an expression in normal form
+    ({!RationalRegex}), which {!Grade.S.compare} and {!Grade.S.hash} read, and
+    the expression it was written as, or built as by products and joins, which
+    the printing reads. Inclusion is decided by depth-first search of the gap
+    derivatives of [ρ & ~ρ'], equality by a bisimulation on the gap derivatives
+    and {!Grade.S.is_top} [rho] as [⊤ ⊆ rho]. {!Grade.S.counterexample}
+    [bounds rho rho'] is the grade of a word of [rho] not in [rho'] with the
+    fewest operations ({!RationalRegex.counterexample}), found by breadth-first
+    search of the gap derivatives of [ρ & ~ρ'], its delays the simplest
+    rationals of the sets of delays they are read by, and an operation of a
+    block of names no grade lists written as [_ & ~((0, ∞) | …)].
 
     {2 Printing}
 
@@ -60,18 +62,30 @@
     The order does not read the running-time bounds of operations, which
     therefore declare none. {!Grade.S.implied_bounds} is [None];
     {!Grade.S.of_bounds} [(lo, hi)] is the language of the delays from [lo] to
-    [hi]; the events of a grade are the names its automaton tells apart from the
-    others; and a grade is atomic for [name] iff it is the language [{name}]. *)
+    [hi]; the events of a grade are the names its expression mentions; and a
+    grade is atomic for [name] iff it is the language [{name}]. *)
 
 include Grade.S with type Delay.t = Delay.Rational.t
 
-val automaton : t -> DelayAutomaton.t
-(** [automaton rho] is the language of [rho]. *)
+val form : t -> RationalRegex.t
+(** [form rho] is the language of [rho], in normal form. *)
 
-(** The same grade, named ["regex-upper-bound-rational-automata"]. *)
+val expression : t -> GradeLiteral.regex
+(** [expression rho] is the expression [rho] is printed as. *)
+
+(** The same grade over the canonical automata of the languages
+    ({!DelayAutomaton}), named ["regex-upper-bound-rational-automata"]: a grade
+    keeps the automaton of its language, which {!Grade.S.equal},
+    {!Grade.S.compare}, {!Grade.S.hash} and {!Grade.S.is_top} read; inclusion is
+    decided on the product of the automata, and a counterexample is
+    {!DelayAutomaton.counterexample}; the events of a grade are the names its
+    automaton tells apart from the others. *)
 module Automata : sig
-  include Grade.S with type t = t and type Delay.t = Delay.t
+  include Grade.S with type Delay.t = Delay.t
 
   val automaton : t -> DelayAutomaton.t
   (** [automaton rho] is the language of [rho]. *)
+
+  val expression : t -> GradeLiteral.regex
+  (** [expression rho] is the expression [rho] is printed as. *)
 end

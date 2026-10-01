@@ -171,8 +171,11 @@ let word text =
           | None -> qi (int_of_string token)))
     (List.filter (( <> ) "") (String.split_on_char ' ' text))
 
-let member text grade = A.mem (word text) (G.automaton (lit grade))
-let delays grade = DelaySet.show (A.delay_part (G.automaton (lit grade)))
+let member text grade =
+  A.mem (word text) (R.automaton (G.expression (lit grade)))
+
+let delays grade =
+  DelaySet.show (A.delay_part (R.automaton (G.expression (lit grade))))
 
 let examples =
   let is name b = check name b "" in
@@ -355,7 +358,8 @@ let delay_printing =
         && DelaySet.equal (A.delay_part (R.automaton r)) s
         &&
         match parse ("{" ^ DelaySet.show s ^ "}") with
-        | Ok rho -> DelaySet.equal (A.delay_part (G.automaton rho)) s
+        | Ok rho ->
+            DelaySet.equal (A.delay_part (R.automaton (G.expression rho))) s
         | Error _ -> DelaySet.is_empty s)
       sets;
   ]
@@ -746,6 +750,71 @@ let gap_letterless =
       pairs;
   ]
 
+(* {1 The grade by gap derivatives against the grade by automata}
+
+   The verdicts, the printing of products and joins, and the counterexamples of
+   the grade against those of its implementation by automata, on the random
+   expressions that denote non-empty languages: a counterexample is a word of
+   the lesser grade outside the greater, with no more operations than that of
+   the automata. *)
+
+module GA = Grades.RegularTraceGradeRational.Automata
+
+let grade_pairs =
+  let grades =
+    List.filter_map
+      (fun (r, x, _) ->
+        if X.is_empty x then None
+        else Some (r, G.of_lit (Grade.Braces r), GA.of_lit (Grade.Braces r)))
+      (List.filteri (fun i _ -> i < 70) gap_expressions)
+  in
+  List.concat_map (fun x -> List.map (fun y -> (x, y)) grades) grades
+
+let show_grades ((r, _, _), (s, _, _)) = show_regex r ^ ", " ^ show_regex s
+
+(* [operations e] is the number of operations of the word expression [e], a
+   concatenation of delays and classes of operations. *)
+let operations e =
+  let rec factors = function
+    | Grade.Seq (r, s) -> factors r @ factors s
+    | r -> [ r ]
+  in
+  List.length
+    (List.filter
+       (function Grade.Tick _ | Grade.Frac _ -> false | _ -> true)
+       (factors e))
+
+let grade_agreement =
+  [
+    every "grade: inclusion as by automata" show_grades
+      (fun ((_, g, a), (_, g', a')) -> G.leq bounds g g' = GA.leq bounds a a')
+      grade_pairs;
+    every "grade: equality as by automata" show_grades
+      (fun ((_, g, a), (_, g', a')) ->
+        G.equal bounds g g' = GA.equal bounds a a')
+      grade_pairs;
+    every "grade: the top as by automata" show_grades
+      (fun ((_, g, a), _) -> G.is_top bounds g = GA.is_top bounds a)
+      grade_pairs;
+    every "grade: products and joins printed as by automata" show_grades
+      (fun ((_, g, a), (_, g', a')) ->
+        G.show (G.mul g g') = GA.show (GA.mul a a')
+        && G.show (G.join g g') = GA.show (GA.join a a'))
+      grade_pairs;
+    every "grade: counterexamples valid and no longer than by automata"
+      show_grades
+      (fun ((_, g, a), (_, g', a')) ->
+        match (G.counterexample bounds g g', GA.counterexample bounds a a') with
+        | None, None -> true
+        | Some c, Some c' ->
+            let w = R.automaton (G.expression c) in
+            A.subset w (GA.automaton a)
+            && A.is_empty (A.inter w (GA.automaton a'))
+            && operations (G.expression c) <= operations (GA.expression c')
+        | _ -> false)
+      grade_pairs;
+  ]
+
 (* {1 Timing} *)
 
 let timing =
@@ -771,7 +840,7 @@ let () =
     literals @ whole_step_rejections @ examples @ laws @ delay_parts
     @ canonical_forms @ letterless @ delay_printing @ grade_printing
     @ membership @ inclusion @ whole_steps @ gap_decisions @ gap_letterless
-    @ timing
+    @ grade_agreement @ timing
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

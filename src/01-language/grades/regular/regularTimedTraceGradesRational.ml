@@ -245,7 +245,7 @@ end
 
 include
   Make
-    (RegularTraceGradeRational)
+    (RegularTraceGradeRational.Automata)
     (struct
       let suffix = "-symbolic"
     end)

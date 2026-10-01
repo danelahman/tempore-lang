@@ -59,6 +59,16 @@ module Make (E : EXPRESSION) : sig
   val subset : E.t -> E.t -> bool
   (** [subset r s] is whether [r ⊆ s], i.e. whether [r & ~s] is empty. *)
 
+  val fewest_operations :
+    E.t -> ((DelaySet.t * E.block) list * DelaySet.t) option
+  (** [fewest_operations r] is [None] if [r] is empty, and otherwise a word of
+      [r] with the fewest operations, as the sets it is read by: the pairs
+      [(Sᵢ, mᵢ)] of the gap derivatives followed from [r], every word
+      [d₀ a₁ ⋯ dₖ₋₁ aₖ dₖ] with [dᵢ₋₁ ∈ Sᵢ], [aᵢ ∈ mᵢ] and [dₖ] in the final set
+      being in [r]. Found by breadth-first search of the gap derivatives by the
+      blocks of [r], the edges in the order of {!edges}, stopped at the first
+      expression with a delay. *)
+
   val equal : E.t -> E.t -> bool
   (** [equal r s] is whether [r] and [s] denote the same language, decided by
       Hopcroft and Karp's algorithm (Cornell TR 1971) on the gap derivatives:

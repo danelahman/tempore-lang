@@ -7552,7 +7552,7 @@ single-dash form of the help option is not accepted.
           regex-upper-bound-symbolic                Upper bounds (symbolic)
               symbolic expressions over letter sets; inclusion by gap derivatives by minterms, depth-first
           regex-upper-bound-rational-symbolic       Upper bounds (rational, symbolic)
-              minimal symbolic automata over letter and delay sets; inclusion by product with the complement, breadth-first
+              symbolic expressions over letter and delay sets; inclusion by gap derivatives by minterms, depth-first
         Regular expressions of timed operations:
           regex-timed-lower-bound-symbolic          Lower bounds (symbolic)
               symbolic expressions over letter sets; inclusion by gap derivatives with a closure reader, breadth-first

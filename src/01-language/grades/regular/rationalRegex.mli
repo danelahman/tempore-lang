@@ -152,6 +152,15 @@ val equal : t -> t -> bool
 (** [equal r s] is whether [r] and [s] denote the same language, decided by
     Hopcroft and Karp's algorithm on the gap derivatives ({!GapDecisions}). *)
 
+val counterexample : t -> t -> DelayAutomaton.symbol list option
+(** [counterexample r s] is [None] if [r ⊆ s], and otherwise a word of [r] not
+    in [s] in gap form [d₀ c₁ d₁ ⋯ cₖ dₖ] with the fewest operations, found by
+    breadth-first search of the gap derivatives of [r & ~s]
+    ({!GapDecisions.Make.fewest_operations}): each class [cᵢ] is a block of
+    {!blocks}[ [r & ~s]] and each delay the simplest element
+    ({!DelaySet.choose}) of the set of delays it is read by; every word
+    [d₀ a₁ d₁ ⋯ aₖ dₖ] with [aᵢ ∈ cᵢ] is in [r] and not in [s]. *)
+
 val graph : string list -> t -> DelayTimedClosure.graph
 (** [graph names r] is the automaton in gap form of the gap derivatives of [r]
     by [names] ({!GapGraph.Make}), explored in full, breadth-first from [r]. *)

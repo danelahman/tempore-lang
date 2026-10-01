@@ -458,6 +458,15 @@ include GapDecisions.Make (struct
   let blocks roots = List.map block (blocks roots)
 end)
 
+(* An atom is contained in an expression iff none of its delays is a delay of
+   the complement, its words being delays. *)
+let subset r s =
+  equal_form r s
+  ||
+  match atom r with
+  | Some n -> not (DelaySet.intersects n (delays (compl s)))
+  | None -> subset r s
+
 let mem word r =
   let rec go r pending = function
     | [] -> DelaySet.mem pending (delays r)
@@ -482,3 +491,16 @@ module Graph = GapGraph.Make (struct
 end)
 
 let graph = Graph.graph
+
+let counterexample r s =
+  if subset r s then None
+  else
+    Option.map
+      (fun (steps, finals) ->
+        let choose n = Option.get (DelaySet.choose n) in
+        List.concat_map
+          (fun (n, m) ->
+            [ DelayAutomaton.Delay (choose n); DelayAutomaton.Operation m.set ])
+          steps
+        @ [ DelayAutomaton.Delay (choose finals) ])
+      (fewest_operations (inter [ r; compl s ]))
