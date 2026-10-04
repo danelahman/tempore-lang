@@ -9,7 +9,7 @@
      - Top ⊤: every trace
      - Product: concatenation of traces, adjacent delays added *)
 
-(* The preceding example, 'scan_scripts.tpe', introduced boxes, unboxing once
+(* The preceding example, 'sensor_reading.tpe', introduced boxes, unboxing once
    the grade accumulated since boxing is below the box's grade, operations,
    effect handlers and default implementations, with grades measuring how long a
    computation takes.
@@ -18,8 +18,8 @@
 
    A trace of a computation is the sequence of operations it performs and delays
    it makes, in order, e.g. 'Calibrate; Configure; 2; SelfTest'; here operations
-   cannot pay for any delays with their executions, and adjacent delays add. For
-   operations that can for delays, see "Regular expressions with timed ops.".
+   take no time, and adjacent delays add. For operations that take time, see the
+   examples under 'Regular expressions of timed operations'.
 
    Each grade is a set of traces: the grade of a computation contains every
    trace it may have, and a box's grade specifies the traces permitted between
@@ -102,5 +102,5 @@ let stale_calibration () =
    the prototype: a default must have a grade below the operation's, e.g.
    '{Configure}', which a computation not performing the operation does not
    have. The run therefore stops at the first operation, which is unhandled. *)
-run 
+run
   tested_calibration ()

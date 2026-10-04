@@ -2,7 +2,7 @@
 
    Run this example with the 'time-interval-rational' grading monoid, e.g.
 
-     ./tempore --grades time-interval-rational examples/introduction/scan_scripts.tpe
+     ./tempore --grades time-interval-rational examples/introduction/sensor_reading.tpe
 
    Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
      - Unit [0, 0]: no time spent
@@ -27,7 +27,7 @@
    other's: a box graded with '[5, 10)' may be unboxed once at least 5 and
    less than 10 milliseconds have passed since boxing happened.
 
-   'delay q' performs computationally a delay of q milliseconds, with the 
+   'delay q' performs computationally a delay of q milliseconds, with the
    corresponding grade being '[q, q]'; durations add up in sequence.
 
    The typechecker infers the type and grade of every defined computation, and
@@ -39,7 +39,7 @@ type reading = Sample of nat
 type angle = Angle of nat
 
 (* An operation declaration gives the operation's name, its argument and result
-   types, and its effect grade, here its running time; 'perform Scan ()' performs 
+   types, and its effect grade, here its running time; 'perform Scan ()' performs
    the Scan operation, which is a computation whose grade is that of Scan.
 
    A scan takes at most half a millisecond and returns a reading in a box
@@ -53,7 +53,7 @@ operation Compute  :    unit ~>             unit # [6, 8]
 operation AngleOf  : reading ~>            angle # (0, 1]
 operation SetAngle :   angle ~>             unit # (1, 2)
 
-(* 'default Op x = ...' gives the implementation that a run executes  at the top
+(* 'default Op x = ...' gives the implementation that a run executes at the top
    level when the particular operation is not handled by an effect handler; in
    this case, each default simulates the operation by a delay within its running
    time, and its grade is checked to be below the operation's. *)
@@ -94,7 +94,8 @@ let timely () =
 (* Example: This program is correctly rejected by the typechecker.
 
    Logging takes only 3.5 to 4 milliseconds, so the scan may not yet be
-   complete when the reading is unboxed in the code below, giving us
+   complete when the reading is unboxed in the code below, and the
+   typechecker reports
 
      Typing error: Variable `reading` is unboxed with grade `[3.5, 4]`
        accumulated since it was bound, which is not below its box grade
@@ -114,7 +115,8 @@ let early () =
 (* Example: This program is correctly rejected by the typechecker.
 
    Computing and logging take 9.5 to 12 milliseconds, so the reading may be
-   outdated when it is unboxed in the code below, giving us
+   outdated when it is unboxed in the code below, and the typechecker
+   reports
 
      Typing error: Variable `reading` is unboxed with grade `[9.5, 12]`
        accumulated since it was bound, which is not below its box grade
@@ -139,5 +141,5 @@ let late () =
    Here 'sensor' handles the scan, and the other operations, not handled,
    execute their defaults: the run takes 0.1 + 7 + 0.5 + 1.5 = 9.1 milliseconds.
    *)
-run 
+run
   handle timely () with sensor

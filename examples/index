@@ -38,11 +38,11 @@
 # order given here, and within a group from the simplest example to the most
 # advanced.
 
-default | introduction/scan_scripts.tpe
+default | introduction/sensor_reading.tpe
 
 group | Introduction | Introduction | Boxes graded first by the time since boxing, then by the operations performed since boxing.
-Introduction | Scan scripts | time-interval-rational | introduction/scan_scripts.tpe | A sensor reading in a box graded with a time interval, usable only once its scan is complete and while it is current, with operations taking time and a handler implementing the scan.
-Introduction | Stale calibration | regex-upper-bound-rational-symbolic | introduction/stale_calibration.tpe | A sensor calibration in a box graded with a regular language of traces, usable only if every reconfiguration since calibrating was followed by a self-test.
+Introduction | Sensor reading | time-interval-rational | introduction/sensor_reading.tpe | A sensor reading in a box graded with a time interval, usable only once its scan is complete and while it is current, with operations taking time and a handler implementing the scan.
+Introduction | Stale calibration | regex-upper-bound-rational-symbolic | introduction/stale_calibration.tpe | A sensor calibration in a box graded with a regular expression, usable only if every reconfiguration since calibrating was followed by a self-test.
 
 group | Effect handlers | Handlers | Operations handled by clauses that respect their grades.
 Effect handlers | Lower bounds | time-lower-bound | handlers/lower_bound.tpe | An operation case may resume its continuation once it has waited for at least the operation's grade.

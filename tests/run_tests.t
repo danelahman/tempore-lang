@@ -7721,7 +7721,7 @@ The first introductory example runs to its value under a handler of its scan
 and the defaults of its other operations; the second stops at its first
 operation, which no default implements.
 
-  $ ../tempore --grades time-interval-rational ../examples/introduction/scan_scripts.tpe
+  $ ../tempore --grades time-interval-rational ../examples/introduction/sensor_reading.tpe
   === Run 1 ===
   return ()
   State: [
