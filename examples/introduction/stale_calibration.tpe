@@ -1,0 +1,106 @@
+(* A calibration usable only if every later reconfiguration is self-tested.
+
+   Run this example with the 'regex-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-rational-symbolic examples/introduction/stale_calibration.tpe
+
+   Grades {...}: regular languages of traces over operations and rational delays
+     - Unit {0}: the empty trace
+     - Top ⊤: every trace
+     - Product: concatenation of traces, adjacent delays added *)
+
+(* The preceding example, 'scan_scripts.tpe', introduced boxes, unboxing once
+   the grade accumulated since boxing is below the box's grade, operations,
+   effect handlers and default implementations, with grades measuring how long a
+   computation takes.
+
+   New in this example: grades specify which operations happen, in which order.
+
+   A trace of a computation is the sequence of operations it performs and delays
+   it makes, in order, e.g. 'Calibrate; Configure; 2; SelfTest'; here operations
+   cannot pay for any delays with their executions, and adjacent delays add. For
+   operations that can for delays, see "Regular expressions with timed ops.".
+
+   Each grade is a set of traces: the grade of a computation contains every
+   trace it may have, and a box's grade specifies the traces permitted between
+   boxing and unboxing. A grade is below another if its set of traces is
+   included in the other's.
+
+   A grade is written as a regular expression in braces:
+     - 'r; s' is the sequence of r and s, 'r | s' the choice between them
+     - 'r*' is any number of repetitions of r
+     - '_' is any single operation or positive delay
+     - '~r' is the complement of r, 'r & s' the intersection of r and s
+     - an interval such as '[5, ∞)' is a delay of at least 5 *)
+
+(* A reading holds a sample, a calibration an offset, and an angle is computed
+   from a sample. *)
+type reading = Sample of nat
+type calibration = Offset of nat
+type angle = Angle of nat
+
+(* Each operation's grade is the trace consisting of the operation itself;
+   'HighwayMode' and 'SetLongRange' are compound operations, whose grades name
+   the operations they consist of: switching to highway mode reconfigures the
+   sensor and then self-tests it, setting the long range only reconfigures it.
+
+   A calibration is returned in a box graded with the traces that do not end
+   with a reconfiguration followed by operations other than self-tests: read
+   as a policy on the history since calibrating, every reconfiguration is
+   followed by a self-test. A reading is in a box graded with '{_*}', every
+   trace, and may be used whatever the history. *)
+operation Calibrate      : unit ~> [{~(_*; Configure; (_ & ~SelfTest)*)}]calibration # {Calibrate}
+operation Scan           : unit ~> [{_*}]reading # {Scan}
+operation Configure      : unit ~> unit # {Configure}
+operation SelfTest       : unit ~> unit # {SelfTest}
+operation HighwayMode    : unit ~> unit # {Configure; SelfTest}
+operation SetLongRange   : unit ~> unit # {Configure}
+operation AngleOf        : reading ~> angle # {AngleOf}
+operation SetOffsetAngle : calibration * angle ~> unit # {SetOffsetAngle}
+
+(* Example: This program is correctly accepted by the typechecker.
+
+   Since the calibration was bound, the program has the trace 'Configure;
+   SelfTest; Scan', in which the reconfiguration is followed by a self-test. *)
+let tested_calibration () =
+  let calibration = perform Calibrate () in
+  perform HighwayMode ();
+  let reading = perform Scan () in
+  unbox calibration as offset in
+  unbox reading as sample in
+  let angle = perform AngleOf sample in
+  perform SetOffsetAngle (offset, angle)
+
+(* Example: This program is correctly rejected by the typechecker.
+
+   Since the calibration was bound, the program has the trace
+   'Configure; Scan', a reconfiguration not followed by a self-test. In the
+   error, the box grade is abbreviated as '{~(_*; Configure; ...)}'.
+
+     Typing error: Variable `calibration` is unboxed with grade
+       `{Configure; Scan}` accumulated since it was bound, which is not below
+       its box grade `{~(_*; Configure; ...)}`
+       ...
+       Note: the resource inequality
+         `{Configure; Scan} <= {~(_*; Configure; ...)}` does not hold
+*)
+(*
+let stale_calibration () =
+  let calibration = perform Calibrate () in
+  perform SetLongRange ();
+  let reading = perform Scan () in
+  unbox calibration as offset in
+  unbox reading as sample in
+  let angle = perform AngleOf sample in
+  perform SetOffsetAngle (offset, angle)
+*)
+
+(* The top-level command 'run' executes a computation, using the small-step
+   reduction semantics, and prints its return value and final state.
+
+   Under the given grading monoid an operation has no default implementation in
+   the prototype: a default must have a grade below the operation's, e.g.
+   '{Configure}', which a computation not performing the operation does not
+   have. The run therefore stops at the first operation, which is unhandled. *)
+run 
+  tested_calibration ()

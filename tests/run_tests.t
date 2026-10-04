@@ -7717,31 +7717,42 @@ runs to its value under a grade whose adjacent delays are merged.
   ]
   
 
-The coffee examples run to their values, the first by delays alone, the
-second by the defaults of its operations.
+The first introductory example runs to its value under a handler of its scan
+and the defaults of its other operations; the second stops at its first
+operation, which no default implements.
 
-  $ ../tempore --grades regex-upper-bound-rational-symbolic ../examples/introduction/coffee.tpe
+  $ ../tempore --grades time-interval-rational ../examples/introduction/scan_scripts.tpe
   === Run 1 ===
-  return (Cup (Brewed (Ground (Beans "arabica"))))
+  return ()
   State: [
-    { resource_0 ↦ Brewed (Ground (Beans "arabica")) # {[5, ∞)} },
-    {3},
-    {2}
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            let reading = return op_var in
+            perform Compute () (op_var. return op_var);
+            unbox reading as sample in
+            let angle = perform AngleOf sample (op_var. return op_var) in
+            perform SetAngle angle (op_var. return op_var)
+          with sensor
+        # (0, 0.5]
+    },
+    [0.1, 0.1],
+    { resource_2 ↦ Sample 42 # [5, 10) },
+    [7, 7],
+    [0.5, 0.5],
+    [1.5, 1.5]
   ]
   
-  $ ../tempore --grades regex-timed-interval-rational-symbolic ../examples/introduction/coffee_timed_ops.tpe
-  === Run 1 ===
-  return (Cup (Brewed (Ground (Beans "arabica"))))
-  State: [
-    { resource_0 ↦
-        Brewed (Ground (Beans "arabica"))
-        # [{[5, ∞)}, {Pay; Brew; (Milk | Sugar)*}]
-    },
-    [{0.75}, {0.75}],
-    [{5}, {5}],
-    [{0.25}, {0.25}],
-    [{0.25}, {0.25}]
-  ]
+  $ ../tempore --grades regex-upper-bound-rational-symbolic ../examples/introduction/stale_calibration.tpe
+  === Run 1 (unhandled operation) ===
+  perform Calibrate () (op_var.
+    (let calibration = return op_var in
+     perform HighwayMode () (op_var. return op_var);
+     let reading = perform Scan () (op_var. return op_var) in
+     unbox calibration as offset in
+     unbox reading as sample in
+     let angle = perform AngleOf sample (op_var. return op_var) in
+     perform SetOffsetAngle (offset, angle) (op_var. return op_var)))
   
 
 The example of the regular trace grade over rational delays runs to its value

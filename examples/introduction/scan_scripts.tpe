@@ -1,0 +1,143 @@
+(* A sensor reading, usable only once its scan is complete and while it is current.
+
+   Run this example with the 'time-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades time-interval-rational examples/introduction/scan_scripts.tpe
+
+   Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition, an end open if either end added is *)
+
+(* In Tempore, resources are placed in boxes that guard when they can be used.
+
+   The computation 'box ρ v as x in c' boxes the value v, graded with ρ, and
+   continues with c; within c, the value may be used, by 'unbox x as y in ...',
+   only once the computation since boxing has accumulated a grade below ρ. The
+   boxed value alone, 'box ρ v', has the type '[ρ]A' when v has type A.
+
+   In this example, a grade is an interval of durations in milliseconds:
+     - '[q, r]' contains the durations from q to r, both included
+     - '(q, r)', '[q, r)' and '(q, r]' exclude the parenthesised ends
+     - the ends are rationals, written as fractions (such as '7/2') or decimals
+
+   The grade of a computation is the interval of its possible running times,
+   and a box's grade specifies the running times permitted between boxing and
+   unboxing. A grade is below another if its interval is included in the
+   other's: a box graded with '[5, 10)' may be unboxed once at least 5 and
+   less than 10 milliseconds have passed since boxing happened.
+
+   'delay q' performs computationally a delay of q milliseconds, with the 
+   corresponding grade being '[q, q]'; durations add up in sequence.
+
+   The typechecker infers the type and grade of every defined computation, and
+   checks the validity of each unboxing before the program is run. *)
+
+(* A reading of the sensor holds a sample, and an angle is the steering angle
+   computed from it. *)
+type reading = Sample of nat
+type angle = Angle of nat
+
+(* An operation declaration gives the operation's name, its argument and result
+   types, and its effect grade, here its running time; 'perform Scan ()' performs 
+   the Scan operation, which is a computation whose grade is that of Scan.
+
+   A scan takes at most half a millisecond and returns a reading in a box
+   graded with '[5, 10)': usable from 5 milliseconds after the scan, when it
+   is complete, and before 10 milliseconds, while it is current. Logging takes
+   3.5 to 4 milliseconds, a computation 6 to 8, computing an angle at most 1,
+   and setting the angle more than 1 and less than 2. *)
+operation Scan     :    unit ~> [[5, 10)]reading # (0, 1/2]
+operation Log      :    unit ~>             unit # [7/2, 4]
+operation Compute  :    unit ~>             unit # [6, 8]
+operation AngleOf  : reading ~>            angle # (0, 1]
+operation SetAngle :   angle ~>             unit # (1, 2)
+
+(* 'default Op x = ...' gives the implementation that a run executes  at the top
+   level when the particular operation is not handled by an effect handler; in
+   this case, each default simulates the operation by a delay within its running
+   time, and its grade is checked to be below the operation's. *)
+default Log () = delay 3.75
+default Compute () = delay 7
+
+default AngleOf reading =
+  delay 1/2;
+  match reading with
+  | Sample n -> Angle n
+
+default SetAngle angle = delay 3/2
+
+(* An effect handler allows programmers to (re)implement operations: the case
+   'Scan () k -> ...' receives the argument of Scan and its continuation k, the
+   rest of the computation, resumed by 'continue k with v'; the case 'x -> x'
+   returns the value of the handled computation unchanged.
+
+   The handler 'sensor' implements Scan by a delay of 0.1 ms, within the running
+   time of Scan, and resumes with a reading in a box graded with '[5, 10)'. *)
+let sensor =
+  handler
+  | x -> x
+  | Scan () k -> delay 0.1; continue k with (box [5, 10) (Sample 42))
+
+(* Example: This program is correctly accepted by the typechecker.
+
+   The script scans, computes, and then sets the angle computed from the
+   sample. The grade accumulated since the reading was bound is that of
+   Compute, i.e., '[6, 8]', which lies within the '[5, 10)' grade. *)
+let timely () =
+  let reading = perform Scan () in
+  perform Compute ();
+  unbox reading as sample in
+  let angle = perform AngleOf sample in
+  perform SetAngle angle
+
+(* Example: This program is correctly rejected by the typechecker.
+
+   Logging takes only 3.5 to 4 milliseconds, so the scan may not yet be
+   complete when the reading is unboxed in the code below, giving us
+
+     Typing error: Variable `reading` is unboxed with grade `[3.5, 4]`
+       accumulated since it was bound, which is not below its box grade
+       `[5, 10)`
+       ...
+       Note: the resource inequality `[3.5, 4] <= [5, 10)` does not hold
+*)
+(*
+let early () =
+  let reading = perform Scan () in
+  perform Log ();
+  unbox reading as sample in
+  let angle = perform AngleOf sample in
+  perform SetAngle angle
+*)
+
+(* Example: This program is correctly rejected by the typechecker.
+
+   Computing and logging take 9.5 to 12 milliseconds, so the reading may be
+   outdated when it is unboxed in the code below, giving us
+
+     Typing error: Variable `reading` is unboxed with grade `[9.5, 12]`
+       accumulated since it was bound, which is not below its box grade
+       `[5, 10)`
+       ...
+       Note: the resource inequality `[9.5, 12] <= [5, 10)` does not hold
+*)
+(*
+let late () =
+  let reading = perform Scan () in
+  perform Compute ();
+  perform Log ();
+  unbox reading as sample in
+  let angle = perform AngleOf sample in
+  perform SetAngle angle
+*)
+
+(* The top-level command 'run' executes a computation, using the small-step
+   reduction semantics, and prints its return value and final state.
+
+   'handle c with h' runs c with its operations implemented by the handler h.
+   Here 'sensor' handles the scan, and the other operations, not handled,
+   execute their defaults: the run takes 0.1 + 7 + 0.5 + 1.5 = 9.1 milliseconds.
+   *)
+run 
+  handle timely () with sensor
