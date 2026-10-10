@@ -1288,11 +1288,39 @@ module Gaps = struct
   let checks = derivatives @ semigroup @ decisions @ semigroup_decisions
 end
 
+(* The sets of the names other than those listed, whatever the order and
+   repetitions of the list. *)
+module Others = struct
+  module R = Grades.SymbolicRegex
+  module L = R.Letters
+
+  let unsorted = L.others [ "B"; "A"; "B" ]
+  let sorted = L.others [ "A"; "B" ]
+
+  let checks =
+    [
+      check "others: the names are sorted and deduplicated"
+        (L.equal unsorted sorted) "";
+      check "others: equal sets hash alike"
+        (Int.equal (L.hash unsorted) (L.hash sorted))
+        "";
+      check "others: equal sets are one normal form"
+        (R.equal_form (R.letters unsorted) (R.letters sorted))
+        "";
+      check "others: a listed name is excluded"
+        (L.is_empty (L.inter unsorted (L.name "B")))
+        "";
+      check "others: an unlisted name is included"
+        (not (L.is_empty (L.inter unsorted (L.name "C"))))
+        "";
+    ]
+end
+
 let () =
   let checks =
     Automata.checks @ Derivatives.checks @ ByLetters.checks @ Plain.checks
     @ Cross.checks @ ByLettersAgreement.checks @ PlainAgreement.checks
-    @ Runs.checks @ Gaps.checks
+    @ Runs.checks @ Gaps.checks @ Others.checks
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

@@ -18,7 +18,9 @@ module Letters = struct
   let any = { tick = true; names = Except [] }
   let tick = { tick = true; names = Only [] }
   let name n = { tick = false; names = Only [ n ] }
-  let others names = { tick = false; names = Except names }
+
+  let others names =
+    { tick = false; names = Except (List.sort_uniq String.compare names) }
 
   (* Set operations on lists in increasing order. *)
 
@@ -134,6 +136,7 @@ module type S = sig
   val equal_form : t -> t -> bool
   val compare_form : t -> t -> int
   val hash : t -> int
+  val id : t -> int
   val empty : t
   val eps : t
   val top : t
@@ -209,6 +212,7 @@ struct
   let equal_form r s = r.id = s.id
   let compare_form r s = Int.compare r.id s.id
   let hash r = r.id
+  let id r = r.id
   let by_id r s = Int.compare r.id s.id
   let mem_form r rs = List.exists (equal_form r) rs
 
@@ -777,7 +781,13 @@ struct
 
     (** [tick_block ms] is the block of the partition [ms] that contains [tick].
     *)
-    let tick_block ms = List.find (fun m -> m.set.Letters.tick) ms
+    let tick_block ms =
+      match List.find_opt (fun m -> m.set.Letters.tick) ms with
+      | Some m -> m
+      | None ->
+          invalid_arg
+            "SymbolicRegex.Decide.tick_block: a partition without a block \
+             holding tick"
 
     (* The emptiness of the expressions explored, by their numbers. *)
     let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
@@ -976,7 +986,7 @@ struct
       type nonrec t = t
       type block = minterm
 
-      let hash = hash
+      let id r = r.id
       let empty = empty
       let is_top = is_top
       let inter = inter
@@ -989,7 +999,11 @@ struct
 
     (** [weight n] is the number of letters of the shortest words [tickᵈ a],
         [d ∈ n]. *)
-    let weight n = Option.get (least n) + 1
+    let weight n =
+      match least n with
+      | Some d -> d + 1
+      | None ->
+          invalid_arg "SymbolicRegex.GapDecide.weight: an empty set of delays"
 
     (** [forward ms r] explores the gap derivatives of [r] by Dijkstra's
         algorithm (Numer. Math. 1, 1959), a word [tickᵈ a] costing [d + 1]
@@ -1003,7 +1017,14 @@ struct
       let rec go frontier best =
         match Frontier.min_elt_opt frontier with
         | Some ((g, id) as next) when g < best ->
-            let d = fst (Hashtbl.find reached id) in
+            let d =
+              match Hashtbl.find_opt reached id with
+              | Some (d, _) -> d
+              | None ->
+                  invalid_arg
+                    "SymbolicRegex.GapDecide.forward: an expression of the \
+                     frontier not reached"
+            in
             let best =
               Option.fold ~none:best
                 ~some:(fun k -> min best (g + k))
@@ -1097,8 +1118,19 @@ struct
           let better (d, m, _, _) (d', m', _, _) =
             d > d' || (d = d' && Letters.order m.set m'.set < 0)
           in
-          match List.filter_map option (Hashtbl.find expanded r.id) with
-          | [] -> invalid_arg "SymbolicRegex.GapDecide.build"
+          let edges =
+            match Hashtbl.find_opt expanded r.id with
+            | Some es -> es
+            | None ->
+                invalid_arg
+                  "SymbolicRegex.GapDecide.build: an expression on a shortest \
+                   word not expanded"
+          in
+          match List.filter_map option edges with
+          | [] ->
+              invalid_arg
+                "SymbolicRegex.GapDecide.build: no gap derivative leaves a \
+                 shortest word"
           | o :: os ->
               let d, m, e, k =
                 List.fold_left (fun o o' -> if better o' o then o' else o) o os

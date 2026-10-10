@@ -106,8 +106,8 @@ module Letters : sig
   (** [name n] is the set [{n}]. *)
 
   val others : string list -> t
-  (** [others names] is the set of the names not among [names], listed in
-      increasing order. *)
+  (** [others names] is the set of the names not among [names]; the names are
+      sorted and their duplicates removed. *)
 
   val union : t -> t -> t
   val inter : t -> t -> t
@@ -174,6 +174,10 @@ module type S = sig
   val hash : t -> int
   (** [hash r] is a hash of the normal form of [r], compatible with
       {!equal_form}. *)
+
+  val id : t -> int
+  (** [id r] is the number of the normal form of [r], injective on normal forms:
+      [id r = id s] iff [equal_form r s]. *)
 
   (** {1 Constructions} *)
 

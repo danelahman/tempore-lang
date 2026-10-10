@@ -138,6 +138,36 @@ let counterexamples =
       "";
   ]
 
+(* Counterexamples of a semidirect product: the lesser grade itself where the
+   order fails in the second component alone, and none where it holds or where
+   it fails in a first component that offers none. *)
+let semidirect_counterexamples =
+  let flow level sink sink_level =
+    LevelGrades.FlowLevels.of_lit
+      (Grade.Tuple
+         [
+           Grade.Name level;
+           Grade.Tuple [ Grade.Name sink; Grade.Name sink_level ];
+         ])
+  in
+  let module F = LevelGrades.FlowLevels in
+  let show = function Some e -> F.show e | None -> "none" in
+  let low_high = flow "Low" "Board" "High" in
+  [
+    expect "counterexample: in the second component of a semidirect product"
+      Fun.id ~expected:(F.show low_high)
+      (show (F.counterexample bounds low_high (flow "High" "Board" "Low")));
+    expect "counterexample: none where a semidirect order holds" Fun.id
+      ~expected:"none"
+      (show (F.counterexample bounds low_high (flow "High" "Board" "High")));
+    expect "counterexample: none from a first component that offers none" Fun.id
+      ~expected:"none"
+      (show
+         (F.counterexample bounds
+            (flow "High" "Board" "Low")
+            (flow "Low" "Board" "High")));
+  ]
+
 let products =
   let p n level = TimeLevels.of_lit (lit_of_pair n level) in
   let show = TimeLevels.show in
@@ -859,6 +889,40 @@ let literals =
 
 (* Every grade reads its own top back from the literal [⊤], and prints a value
    it reads back as itself. *)
+(* Negative delays in brace literals, which the parser does not produce, are
+   rejected by every grade of regular expressions. *)
+let negative_delays =
+  let open Grade in
+  let q n = Rational.of_int n in
+  let grades =
+    [
+      (module Grades.RegularTraceGrade : Grade.S);
+      (module Grades.RegularTraceGradePlain : Grade.S);
+      (module Grades.RegularTraceGradeDerivative : Grade.S);
+      (module Grades.RegularTraceGradeRational : Grade.S);
+      (module Grades.RegularTraceGradeRational.Automata : Grade.S);
+      windowed_schedules;
+    ]
+  in
+  let literals =
+    [
+      ("negative delay", Braces (Tick (-2)));
+      ("negative delay in a sequence", Braces (Seq (Tick 1, Tick (-1))));
+      ("negative fraction", Braces (Frac (Rational.make (-1) 2)));
+      ( "interval from a negative delay",
+        Braces (Delays (Closed (q (-1)), Closed (q 2))) );
+      ( "interval open at a negative delay",
+        Braces (Delays (Open (q (-1)), Unbounded)) );
+      ("interval unbounded below", Braces (Delays (Unbounded, Closed (q 2))));
+    ]
+  in
+  List.concat_map
+    (fun grade ->
+      List.map
+        (fun (name, lit) -> rejects name grade lit "delays are non-negative")
+        literals)
+    grades
+
 let tops =
   List.concat_map
     (fun (name, (module G : Grade.S)) ->
@@ -2705,9 +2769,10 @@ let flow_tops =
 
 let () =
   let checks =
-    delay_laws @ levels @ products @ counterexamples @ witnesses @ literals
-    @ tops @ registry @ registered_laws @ fractional_laws @ inclusion_laws
-    @ indexed @ mode_laws @ resource_laws @ interval_read_back @ schedule_laws
+    delay_laws @ levels @ products @ counterexamples
+    @ semidirect_counterexamples @ witnesses @ literals @ negative_delays @ tops
+    @ registry @ registered_laws @ fractional_laws @ inclusion_laws @ indexed
+    @ mode_laws @ resource_laws @ interval_read_back @ schedule_laws
     @ resource_construction_laws @ finite_laws @ ranges @ flow_tops
   in
   let failures = List.filter (fun c -> not c.passed) checks in

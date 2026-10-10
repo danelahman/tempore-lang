@@ -55,16 +55,27 @@ module ByGaps = struct
 
   type t = L.t
 
+  (* Tables by lists of names and normal forms. *)
+  module Graphs = Hashtbl.Make (struct
+    type t = string list * RationalRegex.t
+
+    let equal (names, r) (names', r') =
+      List.equal String.equal names names' && RationalRegex.equal_form r r'
+
+    let hash (names, r) =
+      Grade.combine (Grade.hash_list String.hash names) (RationalRegex.hash r)
+  end)
+
   (* [graph names rho] is {!RationalRegex.graph}, tabulated by its arguments. *)
   let graph =
-    let table = Hashtbl.create 16 in
+    let table = Graphs.create 16 in
     fun names rho ->
-      let key = (names, RationalRegex.hash (L.form rho)) in
-      match Hashtbl.find_opt table key with
+      let key = (names, L.form rho) in
+      match Graphs.find_opt table key with
       | Some g -> g
       | None ->
           let g = RationalRegex.graph names (L.form rho) in
-          Hashtbl.add table key g;
+          Graphs.add table key g;
           g
 
   let names world = List.map fst world

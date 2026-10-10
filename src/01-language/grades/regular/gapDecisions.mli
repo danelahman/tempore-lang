@@ -13,8 +13,9 @@ module type EXPRESSION = sig
   type block
   (** A block of names. *)
 
-  val hash : t -> int
-  (** [hash r] is the number of the normal form [r]. *)
+  val id : t -> int
+  (** [id r] is the number of the normal form [r], injective on normal forms:
+      [id r = id s] iff [r] and [s] are the same normal form. *)
 
   val empty : t
   val is_top : t -> bool

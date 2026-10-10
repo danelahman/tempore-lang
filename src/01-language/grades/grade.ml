@@ -292,6 +292,29 @@ let tick_delays lo hi =
         (Tick a)
         (List.init (b - a) Fun.id)
 
+(** [negative_delay r] is a negative delay of the expression [r] of a brace
+    literal, printed, if any: a negative number, or an interval atom whose lower
+    endpoint is negative or infinite. *)
+let rec negative_delay = function
+  | Tick n when n < 0 -> Some (string_of_int n)
+  | Frac q when Rational.sign q < 0 -> Some (Rational.show q)
+  | Delays (((Closed a | Open a) as lo), hi) when Rational.sign a < 0 ->
+      Some (show_interval Rational.show lo hi)
+  | Delays ((Unbounded as lo), hi) -> Some (show_interval Rational.show lo hi)
+  | Letter _ | Tick _ | Frac _ | Delays _ | Any -> None
+  | Seq (r, s) | Union (r, s) | Inter (r, s) -> (
+      match negative_delay r with Some d -> Some d | None -> negative_delay s)
+  | Star r | Compl r -> negative_delay r
+
+(** [check_delays lit r] rejects the brace literal [lit] with the expression [r]
+    if [r] holds a negative delay ({!negative_delay}).
+
+    @raise Invalid_literal on [lit] if it does. *)
+let check_delays lit r =
+  Option.iter
+    (fun d -> invalid_lit lit "delays are non-negative, not %s" d)
+    (negative_delay r)
+
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their
     pairwise products by [mul]. *)
 let sampled mul cs =

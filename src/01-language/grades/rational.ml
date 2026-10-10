@@ -6,9 +6,29 @@ let of_z = Q.of_bigint
 let make_z n d = if Z.equal d Z.zero then raise Division_by_zero else Q.make n d
 let make n d = make_z (Z.of_int n) (Z.of_int d)
 
+(* [is_decimal s] is whether [s] is a decimal numeral: an optional [-], a
+   digit, then digits, an optional fraction part [.] and an optional exponent
+   [e] or [E] with an optional sign and a digit, the digits after the first of
+   each part possibly separated by underscores. *)
+let is_decimal s =
+  let n = String.length s in
+  let is c i = i < n && Char.equal s.[i] c in
+  let digit i = i < n && match s.[i] with '0' .. '9' -> true | _ -> false in
+  let rec digits i = if digit i || is '_' i then digits (i + 1) else i in
+  let number i = if digit i then Some (digits (i + 1)) else None in
+  let fraction i = if is '.' i then digits (i + 1) else i in
+  let exponent i =
+    if is 'e' i || is 'E' i then
+      number (if is '-' (i + 1) || is '+' (i + 1) then i + 2 else i + 1)
+    else Some i
+  in
+  match number (if is '-' 0 then 1 else 0) with
+  | Some i -> Option.equal Int.equal (exponent (fraction i)) (Some n)
+  | None -> false
+
 let of_decimal s =
   let invalid () = invalid_arg ("Rational.of_decimal: " ^ s) in
-  if String.contains s '/' then invalid ()
+  if not (is_decimal s) then invalid ()
   else
     match Q.of_string s with
     | q when Z.equal (Q.den q) Z.zero -> invalid ()

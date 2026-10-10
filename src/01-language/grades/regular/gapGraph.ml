@@ -1,7 +1,7 @@
 module type EXPRESSION = sig
   type t
 
-  val hash : t -> int
+  val id : t -> int
   val delays : t -> DelaySet.t
   val gap_derivative : string -> t -> t GapMap.t
 end
@@ -21,11 +21,11 @@ module Make (R : EXPRESSION) = struct
   let graph names rho =
     let index = Hashtbl.create 64 and queue = Queue.create () in
     let number r =
-      match Hashtbl.find_opt index (R.hash r) with
+      match Hashtbl.find_opt index (R.id r) with
       | Some g -> g
       | None ->
           let g = Hashtbl.length index in
-          Hashtbl.add index (R.hash r) g;
+          Hashtbl.add index (R.id r) g;
           Queue.push r queue;
           g
     in
@@ -59,7 +59,7 @@ end
 include Make (struct
   type t = SymbolicRegex.t
 
-  let hash = SymbolicRegex.hash
+  let id = SymbolicRegex.id
   let delays = SymbolicRegex.delays
 
   let gap_derivative name =

@@ -143,11 +143,3 @@ module Weights (State : Map.OrderedType) : sig
       the words of [m] being unbounded iff the relaxation has not stabilised
       after as many rounds as the graph has states. *)
 end
-
-val min_weight : running_time:(int -> int) -> Dfa.t -> int option
-(** [min_weight ~running_time m] is {!Weights.min_weight} over the table of [m].
-*)
-
-val max_weight : running_time:(int -> int) -> Dfa.t -> int option
-(** [max_weight ~running_time m] is {!Weights.max_weight} over the table of [m].
-*)

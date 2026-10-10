@@ -18,8 +18,9 @@
 module type EXPRESSION = sig
   type t
 
-  val hash : t -> int
-  (** [hash r] is the number of the normal form [r]. *)
+  val id : t -> int
+  (** [id r] is the number of the normal form [r], injective on normal forms:
+      [id r = id s] iff [r] and [s] are the same normal form. *)
 
   val delays : t -> DelaySet.t
   (** [delays r] is the set [N(r)] of the delays [d] such that the word [d] is

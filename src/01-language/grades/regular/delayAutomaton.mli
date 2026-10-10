@@ -61,16 +61,17 @@ module Class : sig
 
   val union : t -> t -> t
   val inter : t -> t -> t
-
-  val compl : t -> t
-  (** [compl c] is the set of the names not in [c]. *)
-
   val is_empty : t -> bool
   val compare : t -> t -> int
 
   val names : t -> string list
   (** [names c] is the names [c] lists, in increasing order: its members if it
       is finite, and the names it leaves out otherwise. *)
+
+  val choose : t -> string option
+  (** [choose c] is a member of [c], [None] if [c] is empty: its least member if
+      it is finite, and otherwise the first of the names [_], [__], [___], …
+      that it does not leave out. *)
 end
 
 type t
@@ -83,9 +84,6 @@ val empty : t
 
 val epsilon : t
 (** The language [{ε}] of the empty word. *)
-
-val universal : t
-(** The language of all timed words. *)
 
 val delays : DelaySet.t -> t
 (** [delays s] is the language of the delays of [s], the delay [0] being the
@@ -150,10 +148,6 @@ val delay_part : t -> DelaySet.t
 val names : t -> string list
 (** [names l] is the names the labels of [l] list, in increasing order: the
     names [l] tells apart from the others. *)
-
-val states : t -> int
-(** [states l] is the number of states of the automaton of [l], of both kinds.
-*)
 
 (** {1 Transitions}
 

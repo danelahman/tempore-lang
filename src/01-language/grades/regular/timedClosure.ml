@@ -310,13 +310,3 @@ module Weights (State : Map.OrderedType) = struct
     in
     go (Array.length graph) (finals graph)
 end
-
-module Int_weights = Weights (Int)
-
-let min_weight ~running_time m =
-  Int_weights.min_weight ~running_time ~letters:(Dfa.letters m)
-    (Dfa.automaton m)
-
-let max_weight ~running_time m =
-  Int_weights.max_weight ~running_time ~letters:(Dfa.letters m)
-    (Dfa.automaton m)

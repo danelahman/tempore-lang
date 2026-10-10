@@ -16,6 +16,19 @@ module Class = struct
   let names (c : t) =
     match c.names with Letters.Only names | Letters.Except names -> names
 
+  (* The first of the names [_], [__], [___], … not among [names]. *)
+  let fresh names =
+    let rec go n =
+      if List.exists (String.equal n) names then go (n ^ "_") else n
+    in
+    go "_"
+
+  let choose (c : t) =
+    match c.names with
+    | Letters.Only [] -> None
+    | Letters.Only (name :: _) -> Some name
+    | Letters.Except names -> Some (fresh names)
+
   let hash (c : t) =
     match c.names with
     | Letters.Only names -> Grade.hash_list String.hash names
@@ -402,9 +415,12 @@ let live d =
           d.final.(o) || Array.exists (fun (_, g) -> live_gap.(g)) row)
         d.ops )
   in
+  let same (g, o) (g', o') =
+    Array.for_all2 Bool.equal g g' && Array.for_all2 Bool.equal o o'
+  in
   let rec fix states =
     let states' = step states in
-    if states' = states then states else fix states'
+    if same states' states then states else fix states'
   in
   fix (Array.make (Array.length d.gaps) false, d.final)
 
@@ -556,7 +572,6 @@ let inter = tabulated (product ( && ))
 (* Flipping the final states of a canonical automaton keeps it minimal and its
    numbering breadth-first. *)
 let compl l = automaton ~gaps:l.gaps ~ops:l.ops ~final:(Array.map not l.final)
-let universal = compl empty
 
 (* {1 Decisions} *)
 
@@ -665,8 +680,6 @@ let names l =
        (fun row ->
          List.concat_map (fun (c, _) -> Class.names c) (Array.to_list row))
        (Array.to_list l.ops))
-
-let states l = Array.length l.gaps + Array.length l.ops
 
 (* {1 Transitions} *)
 

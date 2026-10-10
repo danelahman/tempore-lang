@@ -155,6 +155,7 @@ let of_lit = function
   | Int n -> of_regex (Tick n)
   | Top -> top
   | Braces r as lit ->
+      check_delays lit r;
       let rho = component_of_lit lit ~context:"" of_regex r in
       if Dfa.is_empty rho.dfa then
         invalid_lit lit

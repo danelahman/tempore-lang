@@ -317,6 +317,42 @@ let closed_world =
       (not (upper "{S}" "{(_ & ~(0, ∞) & ~S)*}"));
   ]
 
+(* The members of the classes of names, and the words whose operations are
+   classes of names: each read as its first name of the world, a class without
+   one being rejected. *)
+let classes =
+  let module L = Grades.SymbolicRegex.Letters in
+  let show = Option.value ~default:"none" in
+  let world = exact [ ("A", qi 1) ] in
+  let m = automaton "{A}" in
+  let word c = [ A.Delay (qi 0); A.Operation c; A.Delay (qi 0) ] in
+  let rejected f =
+    match f () with
+    | _ -> false
+    | exception Invalid_argument message ->
+        String.starts_with ~prefix:"DelayTimedClosure." message
+  in
+  [
+    expect "classes: the member of a name" Fun.id ~expected:"B"
+      (show (A.Class.choose (A.Class.name "B")));
+    expect "classes: the least member of a finite class" Fun.id ~expected:"A"
+      (show
+         (A.Class.choose (A.Class.union (A.Class.name "B") (A.Class.name "A"))));
+    expect "classes: a member of all names" Fun.id ~expected:"_"
+      (show (A.Class.choose A.Class.all));
+    expect "classes: a member of a cofinite class" Fun.id ~expected:"__"
+      (show (A.Class.choose (L.others [ "A"; "_" ])));
+    expect "classes: no member of the empty class" Fun.id ~expected:"none"
+      (show
+         (A.Class.choose (A.Class.inter (A.Class.name "A") (A.Class.name "B"))));
+    is "classes: a cofinite class read as its name of the world"
+      (C.permits world m (word (L.others [ "B" ])));
+    is "classes: a class without a name of the world rejected"
+      (rejected (fun () -> C.permits world m (word (L.others [ "A" ]))));
+    is "classes: a name outside the world rejected"
+      (rejected (fun () -> C.covers world m (word (A.Class.name "B"))));
+  ]
+
 let literals =
   let reads (type a) (module M : Grade.S with type t = a) lit' expected =
     expect ("literal: " ^ expected) Fun.id ~expected (M.show (M.of_lit lit'))
@@ -969,8 +1005,8 @@ let graphs =
 let () =
   let checks =
     examples @ open_delays @ implied @ open_running_times @ closed_world
-    @ literals @ recursions @ gap_agreement @ preorders @ whole_steps @ timing
-    @ graphs
+    @ classes @ literals @ recursions @ gap_agreement @ preorders @ whole_steps
+    @ timing @ graphs
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;

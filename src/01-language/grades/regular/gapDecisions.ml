@@ -2,7 +2,7 @@ module type EXPRESSION = sig
   type t
   type block
 
-  val hash : t -> int
+  val id : t -> int
   val empty : t
   val is_top : t -> bool
   val inter : t list -> t
@@ -22,17 +22,17 @@ module Pairs = Hashtbl.Make (struct
 end)
 
 module Make (E : EXPRESSION) = struct
-  let equal_form r s = E.hash r = E.hash s
+  let equal_form r s = Int.equal (E.id r) (E.id s)
 
   let edges ms r =
     List.concat_map (fun m -> List.map (fun (n, e) -> (n, m, e)) (E.gap m r)) ms
 
   (* The emptiness of the expressions explored, by their numbers. *)
   let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
-  let known_empty r = Hashtbl.find_opt emptiness (E.hash r) = Some true
+  let known_empty r = Hashtbl.find_opt emptiness (E.id r) = Some true
 
   let record r seen found =
-    if found then Hashtbl.replace emptiness (E.hash r) false
+    if found then Hashtbl.replace emptiness (E.id r) false
     else Hashtbl.iter (fun id _ -> Hashtbl.replace emptiness id true) seen
 
   (** [inhabited r] is whether some gap derivative of [r] has a delay, found by
@@ -42,9 +42,9 @@ module Make (E : EXPRESSION) = struct
     let ms = E.blocks [ r ] in
     let seen = Hashtbl.create 64 in
     let push stack (_, _, e) =
-      if Hashtbl.mem seen (E.hash e) || known_empty e then stack
+      if Hashtbl.mem seen (E.id e) || known_empty e then stack
       else begin
-        Hashtbl.add seen (E.hash e) ();
+        Hashtbl.add seen (E.id e) ();
         e :: stack
       end
     in
@@ -55,13 +55,13 @@ module Make (E : EXPRESSION) = struct
           || (not (DelaySet.is_empty (E.delays d)))
           || go (List.fold_left push stack (edges ms d))
     in
-    Hashtbl.add seen (E.hash r) ();
+    Hashtbl.add seen (E.id r) ();
     let found = (not (equal_form r E.empty)) && go [ r ] in
     record r seen found;
     found
 
   let is_empty r =
-    match Hashtbl.find_opt emptiness (E.hash r) with
+    match Hashtbl.find_opt emptiness (E.id r) with
     | Some e -> e
     | None -> not (inhabited r)
 
@@ -72,7 +72,7 @@ module Make (E : EXPRESSION) = struct
     let ms = E.blocks [ r ] in
     let parent = Hashtbl.create 64 and queue = Queue.create () in
     let rec path e acc =
-      match Hashtbl.find parent (E.hash e) with
+      match Hashtbl.find parent (E.id e) with
       | None -> acc
       | Some (n, m, d) -> path d ((n, m) :: acc)
     in
@@ -85,15 +85,15 @@ module Make (E : EXPRESSION) = struct
           else begin
             List.iter
               (fun (n, m, e') ->
-                if not (Hashtbl.mem parent (E.hash e') || known_empty e') then begin
-                  Hashtbl.add parent (E.hash e') (Some (n, m, e));
+                if not (Hashtbl.mem parent (E.id e') || known_empty e') then begin
+                  Hashtbl.add parent (E.id e') (Some (n, m, e));
                   Queue.push e' queue
                 end)
               (edges ms e);
             go ()
           end
     in
-    Hashtbl.add parent (E.hash r) None;
+    Hashtbl.add parent (E.id r) None;
     Queue.push r queue;
     go ()
 
@@ -117,7 +117,7 @@ module Make (E : EXPRESSION) = struct
       match Queue.take_opt queue with
       | None -> true
       | Some (r, s) ->
-          let x = find (E.hash r) and y = find (E.hash s) in
+          let x = find (E.id r) and y = find (E.id s) in
           if x = y then go ()
           else if
             E.nullable r <> E.nullable s
@@ -140,7 +140,7 @@ module Make (E : EXPRESSION) = struct
     equal_form r s
     || E.nullable r = E.nullable s
        &&
-       let i = E.hash r and j = E.hash s in
+       let i = E.id r and j = E.id s in
        let key = if i < j then (i, j) else (j, i) in
        match Pairs.find_opt equalities key with
        | Some e -> e

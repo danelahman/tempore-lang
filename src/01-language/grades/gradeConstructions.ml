@@ -190,8 +190,10 @@ struct
 
   let hash (m, n) = Grade.combine (M.hash m) (N.hash n)
 
-  let counterexample bounds (m, n) (m', _) =
-    Option.map (fun e -> (e, n)) (M.counterexample bounds m m')
+  let counterexample bounds (m, n) (m', n') =
+    match M.counterexample bounds m m' with
+    | Some e -> Some (e, n)
+    | None -> if N.leq n n' then None else Some (m, n)
 
   let unit_least = M.unit_least
   let commutative = false

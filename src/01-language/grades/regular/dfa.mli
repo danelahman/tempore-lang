@@ -86,9 +86,6 @@ val relabel : int -> (int -> int) -> t -> t
 val is_empty : t -> bool
 (** [is_empty l] is whether [l] has no words. *)
 
-val is_all : t -> bool
-(** [is_all l] is whether [l] is [Σ*]. *)
-
 val alike : t -> int -> int -> bool
 (** [alike l a b] is whether the letters [a] and [b] are interchangeable in [l]:
     every word of [l] stays in [l] when an occurrence of one is replaced by the

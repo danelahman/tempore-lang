@@ -143,12 +143,14 @@ let all n = single_state n true
 let word n w =
   let w = Array.of_list w in
   let len = Array.length w in
-  let step i a = if i < len && w.(i) = a then i + 1 else len + 1 in
+  let step i a = if i < len && Int.equal w.(i) a then i + 1 else len + 1 in
   minimise (Ints.table n ~start:0 ~next:step ~final:(Int.equal len))
 
 (* States: [0] the start, [1] after one letter of [s], [2] dead. *)
 let letter_set n s =
-  let step q a = if q = 0 && List.mem a s then 1 else 2 in
+  let step q a =
+    if Int.equal q 0 && List.exists (Int.equal a) s then 1 else 2
+  in
   minimise (Ints.table n ~start:0 ~next:step ~final:(Int.equal 1))
 
 (* The product construction (Rabin and Scott, IBM J. Res. Dev. 1959), over the
@@ -217,7 +219,6 @@ let relabel n f l =
 
 (* The states of a canonical automaton are all reachable. *)
 let is_empty l = not (Array.mem true l.finals)
-let is_all l = not (Array.mem false l.finals)
 let alike l a b = Array.for_all (fun row -> row.(a) = row.(b)) l.rows
 
 (* [dead l] tells whether no final state is reachable from a state of the

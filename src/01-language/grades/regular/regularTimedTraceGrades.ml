@@ -178,16 +178,27 @@ module ByGaps = struct
       (fun name c -> (name, DelaySet.Finite (Rational.of_int c, true)))
       names running_times
 
+  (** Tables by lists of names and normal forms. *)
+  module Graphs = Hashtbl.Make (struct
+    type t = string list * SymbolicRegex.t
+
+    let equal (names, rho) (names', rho') =
+      List.equal String.equal names names' && SymbolicRegex.equal_form rho rho'
+
+    let hash (names, rho) =
+      combine (hash_list String.hash names) (SymbolicRegex.hash rho)
+  end)
+
   (** [graph names rho] is {!GapGraph.graph}, tabulated by its arguments. *)
   let graph =
-    let table = Hashtbl.create 16 in
+    let table = Graphs.create 16 in
     fun names rho ->
-      let key = (names, SymbolicRegex.hash rho) in
-      match Hashtbl.find_opt table key with
+      let key = (names, rho) in
+      match Graphs.find_opt table key with
       | Some g -> g
       | None ->
           let g = GapGraph.graph names rho in
-          Hashtbl.add table key g;
+          Graphs.add table key g;
           g
 
   (** [on_graphs decide names running_times rho rho'] is [decide] on the graphs
@@ -195,15 +206,29 @@ module ByGaps = struct
   let on_graphs decide names running_times rho rho' =
     decide (world names running_times) (graph names rho) (graph names rho')
 
+  (** [integer q] is the rational [q], an integer at integer running times. *)
+  let integer q =
+    match Rational.to_int q with
+    | Some n -> n
+    | None ->
+        invalid_arg
+          "RegularTimedTraceGrades.ByGaps.integer: a delay or weight that is \
+           not an integer"
+
   (** [symbols word] is the word in gap form [word] as its non-zero delays,
-      integers, and its names. *)
+      integers, and a member of each class of names. *)
   let symbols word =
     List.filter_map
       (function
         | DelayAutomaton.Delay d when Rational.sign d = 0 -> None
-        | DelayAutomaton.Delay d -> Some (Tick (Option.get (Rational.to_int d)))
-        | DelayAutomaton.Operation c ->
-            Some (Letter (List.hd (DelayAutomaton.Class.names c))))
+        | DelayAutomaton.Delay d -> Some (Tick (integer d))
+        | DelayAutomaton.Operation c -> (
+            match DelayAutomaton.Class.choose c with
+            | Some name -> Some (Letter name)
+            | None ->
+                invalid_arg
+                  "RegularTimedTraceGrades.ByGaps.symbols: an empty class of \
+                   names"))
       word
 
   let in_allowance = tabulated (on_graphs DelayTimedClosure.Graph.in_allowance)
@@ -223,7 +248,7 @@ module ByGaps = struct
 
   let weight extreme names running_times rho =
     Option.map
-      (fun (q, _) -> Option.get (Rational.to_int q))
+      (fun (q, _) -> integer q)
       (extreme (world names running_times) (graph names rho))
 
   let min_weight = weight DelayTimedClosure.Graph.min_weight

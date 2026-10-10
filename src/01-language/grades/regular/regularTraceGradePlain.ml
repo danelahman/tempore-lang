@@ -161,6 +161,7 @@ let of_lit = function
   | Int n -> { names = []; regex = ticks n }
   | Top -> top
   | Braces r as lit ->
+      check_delays lit r;
       let rho = component_of_lit lit ~context:"" of_regex r in
       if D.is_empty rho.regex then
         invalid_lit lit

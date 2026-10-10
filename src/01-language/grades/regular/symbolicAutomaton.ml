@@ -278,7 +278,12 @@ let eliminate ~budget g k =
   let loop = label g k k in
   let ins =
     List.map
-      (fun p -> (p, Option.get (label g p k)))
+      (fun p ->
+        match label g p k with
+        | Some x -> (p, x)
+        | None ->
+            invalid_arg
+              "SymbolicAutomaton.eliminate: a predecessor without an edge")
       (IntSet.elements (IntSet.remove k (predecessors g k)))
   in
   let outs =
@@ -312,7 +317,9 @@ let eliminate_all ~budget g nodes =
         let fewer k k' = if paths g k' < paths g k then k' else k in
         let best = List.fold_left fewer k ks in
         let* g, used = eliminate ~budget g best in
-        go (g, max largest used) (List.filter (( <> ) best) nodes)
+        go
+          (g, max largest used)
+          (List.filter (fun k -> not (Int.equal k best)) nodes)
   in
   go (g, 0) nodes
 
@@ -323,7 +330,7 @@ let live a =
   let reaches marked q = List.exists (fun (_, q') -> marked.(q')) a.edges.(q) in
   let rec grow marked =
     let marked' = Array.mapi (fun q m -> m || reaches marked q) marked in
-    if marked' = marked then marked else grow marked'
+    if Array.for_all2 Bool.equal marked' marked then marked else grow marked'
   in
   grow a.finals
 
@@ -371,7 +378,10 @@ let candidate ~budget ~states finish a =
 let canonical ~budget a =
   let n = states a in
   let key (cost, r) = (cost, LetterRegex.size r) in
-  let least best c = if key c < key best then c else best in
+  let compare_key (c, s) (c', s') =
+    match Int.compare c c' with 0 -> Int.compare s s' | k -> k
+  in
+  let least best c = if compare_key (key c) (key best) < 0 then c else best in
   if n > budget then None
   else
     let reversed =

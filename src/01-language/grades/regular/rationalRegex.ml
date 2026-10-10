@@ -281,6 +281,21 @@ let one_symbol_part r =
   | Star { view = Names p; _ } -> Some (DelaySet.zero, p)
   | _ -> symbols r
 
+(** [common_symbols rs] is the delays and the names common to the one-symbol
+    parts ({!one_symbol_part}) of all of [rs], when each of them has one and one
+    of them is as in {!symbols}. *)
+let common_symbols rs =
+  if List.exists (fun r -> Option.is_some (symbols r)) rs then
+    List.fold_left
+      (fun acc r ->
+        Option.bind acc (fun (s, p) ->
+            Option.map
+              (fun (s', p') -> (DelaySet.inter s s', Letters.inter p p'))
+              (one_symbol_part r)))
+      (Some (DelaySet.all, all_names))
+      rs
+  else None
+
 (* An intersection with an atom is the atom of the delays of all operands; an
    intersection of expressions of single symbols, their complements and
    repetitions of sets of names, one of them of single symbols, is the
@@ -298,29 +313,20 @@ let inter rs =
   if List.exists (fun r -> Option.is_some (atom r)) rs then
     delays_atom
       (List.fold_left (fun n r -> DelaySet.inter n (delays r)) DelaySet.all rs)
-  else if
-    List.exists (fun r -> Option.is_some (symbols r)) rs
-    && List.for_all (fun r -> Option.is_some (one_symbol_part r)) rs
-  then
-    let s, p =
-      List.fold_left
-        (fun (s, p) r ->
-          let s', p' = Option.get (one_symbol_part r) in
-          (DelaySet.inter s s', Letters.inter p p'))
-        (DelaySet.all, all_names) rs
-    in
-    union [ delays_atom s; names_atom p ]
   else
-    let rs =
-      if List.exists (fun r -> Option.is_some (names_set r)) rs then
-        merge one_name_part Letters.inter names_atom rs
-      else rs
-    in
-    if List.exists is_empty_form rs then empty
-    else
-      let rs = List.sort_uniq compare_form rs in
-      if complementary split rs then empty
-      else match rs with [] -> top | [ r ] -> r | rs -> make (Inter rs)
+    match common_symbols rs with
+    | Some (s, p) -> union [ delays_atom s; names_atom p ]
+    | None -> (
+        let rs =
+          if List.exists (fun r -> Option.is_some (names_set r)) rs then
+            merge one_name_part Letters.inter names_atom rs
+          else rs
+        in
+        if List.exists is_empty_form rs then empty
+        else
+          let rs = List.sort_uniq compare_form rs in
+          if complementary split rs then empty
+          else match rs with [] -> top | [ r ] -> r | rs -> make (Inter rs))
 
 let compl r =
   match r.view with
@@ -496,7 +502,7 @@ include GapDecisions.Make (struct
   type nonrec t = t
   type nonrec block = block
 
-  let hash = hash
+  let id r = r.id
   let empty = empty
   let is_top = is_top
   let inter = inter
@@ -534,7 +540,7 @@ let mem word r =
 module Graph = GapGraph.Make (struct
   type nonrec t = t
 
-  let hash = hash
+  let id r = r.id
   let delays = delays
   let gap_derivative name = gap_derivative (Letters.name name)
 end)
@@ -546,7 +552,13 @@ let counterexample r s =
   else
     Option.map
       (fun (steps, finals) ->
-        let choose n = Option.get (DelaySet.choose n) in
+        let choose n =
+          match DelaySet.choose n with
+          | Some d -> d
+          | None ->
+              invalid_arg
+                "RationalRegex.counterexample: an empty set of delays on a word"
+        in
         List.concat_map
           (fun (n, m) ->
             [ DelayAutomaton.Delay (choose n); DelayAutomaton.Operation m.set ])

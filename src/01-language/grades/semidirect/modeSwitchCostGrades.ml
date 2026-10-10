@@ -168,20 +168,60 @@ let leq m m' =
 
 let equal m m' = leq m m' && leq m' m
 
-(* The representations are canonical, trimmed of the modes alike to those not
-   named, so that they are equal iff the grades are. *)
-let fields m =
-  ( m.modes,
-    m.within,
-    m.leaving,
-    m.entering,
-    m.staying,
-    m.moving,
-    m.to_stuck,
-    m.other_to_stuck )
+(* [compare_tagged c c'] orders the costs by constructor, in the order
+   [No_trace], [Unbounded], [Cost], then by value. *)
+let compare_tagged c c' =
+  let tag = function No_trace -> 0 | Unbounded -> 1 | Cost _ -> 2 in
+  match (c, c') with
+  | Cost n, Cost n' -> Int.compare n n'
+  | _ -> Int.compare (tag c) (tag c')
 
-let compare m m' = Stdlib.compare (fields m) (fields m')
-let hash m = Hashtbl.hash (fields m)
+(* The representations are canonical, trimmed of the modes alike to those not
+   named, so that they are equal iff the grades are; they are ordered field by
+   field, lexicographically, and hashed over all their fields. *)
+let compare m m' =
+  let entries compare_key =
+    List.compare (fun (k, c) (k', c') ->
+        match compare_key k k' with 0 -> compare_tagged c c' | k -> k)
+  in
+  let pair (p, q) (p', q') =
+    match String.compare p p' with 0 -> String.compare q q' | k -> k
+  in
+  List.fold_left
+    (fun acc c -> if Int.equal acc 0 then c else acc)
+    0
+    [
+      List.compare String.compare m.modes m'.modes;
+      entries pair m.within m'.within;
+      entries String.compare m.leaving m'.leaving;
+      entries String.compare m.entering m'.entering;
+      compare_tagged m.staying m'.staying;
+      compare_tagged m.moving m'.moving;
+      entries String.compare m.to_stuck m'.to_stuck;
+      compare_tagged m.other_to_stuck m'.other_to_stuck;
+    ]
+
+let hash m =
+  let open Grade in
+  let cost = function
+    | No_trace -> 0
+    | Unbounded -> 1
+    | Cost n -> combine 2 n
+  in
+  let entries hash_key =
+    hash_list (fun (k, c) -> combine (hash_key k) (cost c))
+  in
+  List.fold_left combine
+    (hash_list String.hash m.modes)
+    [
+      entries (fun (p, q) -> combine (String.hash p) (String.hash q)) m.within;
+      entries String.hash m.leaving;
+      entries String.hash m.entering;
+      cost m.staying;
+      cost m.moving;
+      entries String.hash m.to_stuck;
+      cost m.other_to_stuck;
+    ]
 
 (** [cost_of_lit lit] is the cost the literal [lit] denotes. *)
 let cost_of_lit = function

@@ -150,7 +150,8 @@ end
     The remaining fields are those of [M] on the first component:
     [needs_op_bounds], [implied_bounds], [inhabited], [events] and [is_atomic];
     [counterexample] pairs a witness in [M] with the second component of the
-    lesser grade.
+    lesser grade, or else is the lesser grade itself if the order fails in the
+    second component.
 
     The name is [M.name ^ "⋉" ^ N.name], and [leq_symbol] is [<=] if it is that
     of [M] and [≾] otherwise. [equal] and [is_top] are decided componentwise,

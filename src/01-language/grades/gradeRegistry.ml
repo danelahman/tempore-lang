@@ -485,18 +485,27 @@ let accepting_bounds lit =
    in and the order of the grades within each, as {!grade_modules} lists
    them. *)
 let groups =
-  let groups =
+  let same (label, short) (label', short') =
+    String.equal label label' && String.equal short short'
+  in
+  let labels =
     List.fold_left
-      (fun groups (e : entry) ->
-        match groups with
-        | (group, front) :: rest when group = e.group ->
-            (group, (e.name, e.info) :: front) :: rest
-        | _ -> (e.group, [ (e.name, e.info) ]) :: groups)
+      (fun seen (e : entry) ->
+        if List.exists (same e.group) seen then seen else e.group :: seen)
       [] entries
   in
   List.rev_map
-    (fun ((label, short), front) -> { label; short; grades = List.rev front })
-    groups
+    (fun ((label, short) as group) ->
+      {
+        label;
+        short;
+        grades =
+          List.filter_map
+            (fun (e : entry) ->
+              if same e.group group then Some (e.name, e.info) else None)
+            entries;
+      })
+    labels
 
 let listed group =
   List.filter (fun (_, info) -> info.visibility = Everywhere) group.grades

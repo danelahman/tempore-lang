@@ -88,8 +88,9 @@ type group = {
 
 val groups : group list
 (** {!grade_modules} described and grouped for the web selector and the CLI's
-    [--help]: the concatenation of every group's [grades] names the same grades
-    as {!grade_modules}, in the same order. *)
+    [--help], the groups in the order of their first grades: the concatenation
+    of every group's [grades] names the same grades as {!grade_modules}, in the
+    same order where the grades of each group are listed together. *)
 
 val listed : group -> (string * info) list
 (** [listed g] is the grades of [g] shown {!Everywhere}, in order. *)

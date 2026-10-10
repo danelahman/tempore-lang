@@ -94,9 +94,12 @@ let graph ~gaps ~ops ~final =
         (fun o row -> final.(o) || List.exists (fun (_, g) -> live_gap.(g)) row)
         ops )
   in
+  let same (g, o) (g', o') =
+    Array.for_all2 Bool.equal g g' && Array.for_all2 Bool.equal o o'
+  in
   let rec fix states =
     let states' = step states in
-    if states' = states then states else fix states'
+    if same states' states then states else fix states'
   in
   let live_gap, live_op = fix (Array.make ng false, final) in
   let keep live' live row =
@@ -178,7 +181,14 @@ let longest =
     ~cycle:(Fun.const Infinite) zero
 
 let finite_part = function Finite (q, f) -> Some (q, f) | Infinite -> None
-let running_time_of world name = List.assoc name world
+
+let running_time_of world name =
+  match List.assoc_opt name world with
+  | Some c -> c
+  | None ->
+      invalid_arg
+        ("DelayTimedClosure.running_time_of: the name " ^ name
+       ^ " is not an operation of the world")
 
 let max_weight world (a : graph) =
   if not a.live then None
@@ -273,7 +283,7 @@ let allowance_reader world (a : graph) =
   in
   let segments =
     Array.init ng (fun q ->
-        if a.gaps.(q) = [] then []
+        if List.is_empty a.gaps.(q) then []
         else
           let d = longest edges q in
           List.filter_map
@@ -339,7 +349,8 @@ let allowance_reader world (a : graph) =
             (fun targets (t, o) ->
               if down.passes x t then
                 List.filter_map
-                  (fun (name', g) -> if name' = name then Some g else None)
+                  (fun (name', g) ->
+                    if String.equal name' name then Some g else None)
                   a.ops.(o)
                 @ targets
               else targets)
@@ -392,7 +403,8 @@ let coverage_reader world (a : graph) =
             (fun targets (t, o) ->
               if up.passes x t then
                 List.filter_map
-                  (fun (name', g) -> if name' = name then Some g else None)
+                  (fun (name', g) ->
+                    if String.equal name' name then Some g else None)
                   a.ops.(o)
                 @ targets
               else targets)
@@ -413,18 +425,27 @@ let coverage_reader world (a : graph) =
           List.exists (fun (t, o) -> a.final.(o) && up.passes x t) gaps.(q));
   }
 
-(* [reads reader word] is whether [reader] accepts the word [word], its delays
-   exact. *)
-let reads reader word =
+(* [operation_of world c] is the first name of [world] in the class [c]. *)
+let operation_of world c =
+  match List.find_opt (fun (name, _) -> member name c) world with
+  | Some (name, _) -> name
+  | None ->
+      invalid_arg
+        "DelayTimedClosure.operation_of: a class of names without an operation \
+         of the world"
+
+(* [reads world reader word] is whether [reader] accepts the word [word] over
+   [world], its delays exact. *)
+let reads world reader word =
   reader.accepts
     (List.fold_left
        (fun config -> function
          | A.Delay d -> reader.delay (exact d) config
-         | A.Operation c -> reader.operation (List.hd (A.Class.names c)) config)
+         | A.Operation c -> reader.operation (operation_of world c) config)
        reader.start word)
 
-let permits world m word = reads (fst (allowance_reader world m)) word
-let covers world m word = reads (coverage_reader world m) word
+let permits world m word = reads world (fst (allowance_reader world m)) word
+let covers world m word = reads world (coverage_reader world m) word
 
 (* {1 The product} *)
 
@@ -541,7 +562,10 @@ let lowest eps s =
    of delays read as the delay [delay eps] chooses from it, for the first [eps]
    of [1, 1/2, 1/4, …] at which the word is rejected; one exists, since for
    every small enough [eps] the comparisons of the reader on the word agree
-   with those made on the extremal values. *)
+   with those made on the extremal values. The search stops after
+   [max_halvings] halvings. *)
+let max_halvings = 256
+
 let concretise delay rejects steps =
   let word eps =
     List.map
@@ -550,11 +574,16 @@ let concretise delay rejects steps =
         | Perform name -> A.Operation (A.Class.name name))
       steps
   in
-  let rec attempt eps =
+  let rec attempt halvings eps =
     let w = word eps in
-    if rejects w then w else attempt (Rational.mul half eps)
+    if rejects w then w
+    else if halvings >= max_halvings then
+      invalid_arg
+        "DelayTimedClosure.concretise: no rejected word within the bound on \
+         the halvings of the distance"
+    else attempt (halvings + 1) (Rational.mul half eps)
   in
-  attempt (Rational.of_int 1)
+  attempt 0 (Rational.of_int 1)
 
 (* {1 Decisions} *)
 
@@ -562,13 +591,13 @@ module Graph = struct
   let allowance world l m =
     let reader, above = allowance_reader world m in
     Option.map
-      (concretise (highest ~above) (fun w -> not (reads reader w)))
+      (concretise (highest ~above) (fun w -> not (reads world reader w)))
       (search down reader l)
 
   let coverage world l m =
     let reader = coverage_reader world m in
     Option.map
-      (concretise lowest (fun w -> not (reads reader w)))
+      (concretise lowest (fun w -> not (reads world reader w)))
       (search up reader l)
 
   let in_allowance world l m =

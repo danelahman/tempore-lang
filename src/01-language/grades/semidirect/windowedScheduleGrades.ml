@@ -14,8 +14,10 @@ let from lo = R.concat (R.ticks lo) naturals
     expression [r] denotes, over the letter [tick] alone: [_] is a single tick
     and a complement is taken within the natural numbers.
 
-    @raise Grade.Invalid_literal if [r] names an operation. *)
+    @raise Grade.Invalid_literal
+      if [r] names an operation or holds a negative delay. *)
 let of_braces lit r =
+  Grade.check_delays lit r;
   let rec go = function
     | Grade.Letter name ->
         Grade.invalid_lit lit

@@ -29,15 +29,6 @@ let concatenation r s =
   | [] -> Tick 0
   | r :: rs -> List.fold_left (fun r s -> Seq (r, s)) r rs
 
-(* [negative_delay r] is a negative delay [r] holds, if any. *)
-let rec negative_delay = function
-  | Tick n when n < 0 -> Some (Rational.of_int n)
-  | Frac q when Rational.sign q < 0 -> Some q
-  | Letter _ | Tick _ | Frac _ | Delays _ | Any -> None
-  | Seq (r, s) | Union (r, s) | Inter (r, s) -> (
-      match negative_delay r with Some q -> Some q | None -> negative_delay s)
-  | Star r | Compl r -> negative_delay r
-
 (* The languages of the grades. *)
 module type LANGUAGE = sig
   type t
@@ -128,17 +119,14 @@ struct
         | Some d -> of_delay d
         | None -> invalid_lit lit "grades must be non-negative")
     | Top -> top
-    | Braces r as lit -> (
-        match negative_delay r with
-        | Some q ->
-            invalid_lit lit "delays are non-negative, not %s" (Rational.show q)
-        | None ->
-            let rho = of_regex r in
-            if L.is_empty rho.language then
-              invalid_lit lit
-                "this regular expression denotes the empty language, but \
-                 grades are non-empty"
-            else rho)
+    | Braces r as lit ->
+        check_delays lit r;
+        let rho = of_regex r in
+        if L.is_empty rho.language then
+          invalid_lit lit
+            "this regular expression denotes the empty language, but grades \
+             are non-empty"
+        else rho
     | lit ->
         invalid_lit lit
           "grades are regular expressions '{...}', non-negative numbers or \
