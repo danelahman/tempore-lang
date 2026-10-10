@@ -29,9 +29,6 @@ module type GRADE_VAR = sig
   (** [fresh_indexed ()] is a fresh variable named by the sort's letter and the
       next subscript of the sort, e.g. [ρ₀], [ρ₁]. *)
 
-  val equal : t -> t -> bool
-  (** [equal x y] is whether [x] and [y] are the same variable. *)
-
   module Map : Map.S with type key = t
   (** Finite maps from variables. *)
 
@@ -46,21 +43,11 @@ module Make_grade_var
     () : GRADE_VAR = struct
   include Symbol.Make ()
 
-  (* The subscript digits of a non-negative integer. *)
-  let subscript n =
-    let digits = [| "₀"; "₁"; "₂"; "₃"; "₄"; "₅"; "₆"; "₇"; "₈"; "₉" |] in
-    String.concat ""
-      (List.map
-         (fun d -> digits.(Char.code d - Char.code '0'))
-         (List.of_seq (String.to_seq (string_of_int n))))
-
   (* The supply of subscripts. *)
   let next = Atomic.make 0
 
   let fresh_indexed () =
-    fresh (Letter.letter ^ subscript (Atomic.fetch_and_add next 1))
-
-  let equal x y = compare x y = 0
+    fresh (Letter.letter ^ Utils.Print.subscript (Atomic.fetch_and_add next 1))
 
   module Ordered = struct
     type nonrec t = t
@@ -139,8 +126,8 @@ let cons_label = Label.fresh cons_label_string
    list constructors, the label's own name otherwise. The internal strings
    above stay unparsable; only this rendering is user-facing. *)
 let label_string_of lbl =
-  if lbl = nil_label then "[]"
-  else if lbl = cons_label then "::"
+  if Label.equal lbl nil_label then "[]"
+  else if Label.equal lbl cons_label then "::"
   else Label.string_of lbl
 
 (** A position within a type, where the unification of two types fails. *)

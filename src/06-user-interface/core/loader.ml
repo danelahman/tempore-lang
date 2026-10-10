@@ -12,7 +12,6 @@
 module Location = Utils.Location
 module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
-module List = Utils.List
 module Ast = Language.Ast
 open Backend
 
@@ -157,10 +156,10 @@ module Loader (Backend : Backend.S) = struct
      definitions. *)
   let desugar_commands state cmds =
     let desugarer_state', cmds' =
-      List.fold_map D.desugar_command state.desugarer cmds
+      List.fold_left_map D.desugar_command state.desugarer cmds
     in
     let references', links =
-      List.fold_map Desugarer.References.command state.references cmds
+      List.fold_left_map Desugarer.References.command state.references cmds
     in
     ( { state with desugarer = desugarer_state'; references = references' },
       cmds',

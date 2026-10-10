@@ -21,9 +21,12 @@ let place = "{here}"
 let render_label_text ~place:shown text =
   let n = String.length place and len = String.length text in
   let buffer = Buffer.create len in
+  let rec matches_at i k =
+    k >= n || (text.[i + k] = place.[k] && matches_at i (k + 1))
+  in
   let rec go i =
     if i >= len then ()
-    else if i + n <= len && String.sub text i n = place then (
+    else if i + n <= len && matches_at i 0 then (
       Buffer.add_string buffer shown;
       go (i + n))
     else (

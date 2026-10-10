@@ -1,7 +1,6 @@
 (** Desugaring of syntax into the core language. *)
 
 module Error = Utils.Error
-module List = Utils.List
 module Sugared = SugaredAst
 module Untyped = Language.Ast
 module Context = Language.Context
@@ -557,12 +556,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let expr = Untyped.located loc (Untyped.RecLambda (f', eps, abs')) in
     (state', f', expr)
 
-  and desugar_expressions state = function
-    | [] -> ([], [])
-    | t :: ts ->
-        let binds, e = desugar_expression state t in
-        let ws, es = desugar_expressions state ts in
-        (binds @ ws, e :: es)
+  and desugar_expressions state ts =
+    let binds, es = List.split (List.map (desugar_expression state) ts) in
+    (List.concat binds, es)
 
   let desugar_pure_expression state term =
     let binds, expr = desugar_expression state term in
@@ -599,7 +595,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
           let state' = add_label ~loc state label label' in
           (state', (label', ty'))
         in
-        let state', variants' = List.fold_map aux state variants in
+        let state', variants' = List.fold_left_map aux state variants in
         (state', Untyped.TySum variants')
 
   let desugar_command state { Sugared.it = cmd; at = loc } =

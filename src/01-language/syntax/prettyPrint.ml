@@ -2,27 +2,6 @@ open Ast
 module Print = Utils.Print
 module Symbol = Utils.Symbol
 
-(* Unicode subscripts for digits 0–9 *)
-let subscript i =
-  let digits =
-    [|
-      "\226\130\128";
-      "\226\130\129";
-      "\226\130\130";
-      "\226\130\131";
-      "\226\130\132";
-      "\226\130\133";
-      "\226\130\134";
-      "\226\130\135";
-      "\226\130\136";
-      "\226\130\137";
-    |]
-  in
-  let rec build_subscript n =
-    if n < 10 then digits.(n) else build_subscript (n / 10) ^ digits.(n mod 10)
-  in
-  build_subscript i
-
 (* Greek letters for type variables *)
 let greek_letters =
   [|
@@ -48,10 +27,10 @@ let greek_letters =
 
 let type_symbol n =
   if n < Array.length greek_letters then greek_letters.(n)
-  else "σ" ^ subscript (n - Array.length greek_letters)
+  else "σ" ^ Print.subscript (n - Array.length greek_letters)
 
-let rho_symbol n = "ρ" ^ subscript n
-let eps_symbol n = "ε" ^ subscript n
+let rho_symbol n = "ρ" ^ Print.subscript n
+let eps_symbol n = "ε" ^ Print.subscript n
 
 (** [rigid_symbol op] is the name of an effect variable bound by a handler case
     for the operation [op], [ε_op]. *)
@@ -232,9 +211,10 @@ let rec print_pattern ?max_level p ppf =
   | PSucc (p, k) ->
       print ~at_level:2 "%t + %s" (print_pattern ~max_level:2 p) (Z.to_string k)
   | PTuple lst -> Print.print_tuple print_pattern lst ppf
-  | PVariant (lbl, None) when lbl = nil_label -> print "[]"
+  | PVariant (lbl, None) when Label.equal lbl nil_label -> print "[]"
   | PVariant (lbl, None) -> print "%t" (Label.print lbl)
-  | PVariant (lbl, Some { it = PTuple [ v1; v2 ]; _ }) when lbl = cons_label ->
+  | PVariant (lbl, Some { it = PTuple [ v1; v2 ]; _ })
+    when Label.equal lbl cons_label ->
       print "%t::%t" (print_pattern v1) (print_pattern v2)
   | PVariant (lbl, Some p) ->
       print ~at_level:1 "%t @[<hov>%t@]" (Label.print lbl)
@@ -250,16 +230,14 @@ and print_expression resource_grade =
     | Annotated (t, _ty) -> aux ?max_level t ppf
     | Tuple lst ->
         Print.print_tuple (fun ?max_level e ppf -> aux ?max_level e ppf) lst ppf
-    | Variant (lbl, None) when lbl = nil_label -> print "[]"
+    | Variant (lbl, None) when Label.equal lbl nil_label -> print "[]"
     | Variant (lbl, None) -> print "%t" (Label.print lbl)
-    | Variant (lbl, Some { it = Tuple [ v1; v2 ]; _ }) when lbl = cons_label ->
+    | Variant (lbl, Some { it = Tuple [ v1; v2 ]; _ })
+      when Label.equal lbl cons_label ->
         print ~at_level:1 "%t::%t" (aux ~max_level:0 v1) (aux ~max_level:1 v2)
     | Variant (lbl, Some arg) ->
         print ~at_level:1 "%t %t" (Label.print lbl) (aux ~max_level:0 arg)
-    | Lambda (p, c) ->
-        print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]" (print_pattern p)
-          (print_computation resource_grade ?max_level:None c)
-    | PureLambda (p, c) ->
+    | Lambda (p, c) | PureLambda (p, c) ->
         print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]" (print_pattern p)
           (print_computation resource_grade ?max_level:None c)
     | RecLambda (f, _, _) -> print ~at_level:2 "rec %t ..." (Variable.print f)
@@ -292,7 +270,8 @@ and print_computation resource_grade =
         let print_cases ppf =
           List.iter
             (fun case ->
-              Format.fprintf ppf "@,| %t" (print_case resource_grade case))
+              Format.fprintf ppf "@,| %t"
+                (print_abstraction resource_grade case))
             lst
         in
         print "@[<v 0>match %t with%t@]"
@@ -328,9 +307,6 @@ and print_computation resource_grade =
 and print_abstraction resource_grade (p, c) ppf =
   Format.fprintf ppf "@[<hv 2>%t ↦@ %t@]" (print_pattern p)
     (print_computation resource_grade c)
-
-and print_case resource_grade a ppf =
-  Format.fprintf ppf "%t" (print_abstraction resource_grade a)
 
 and print_op_case resource_grade (op, a) ppf =
   Format.fprintf ppf "%t %t" (OpName.print op)
@@ -384,6 +360,3 @@ let string_of_interpreter_state resource_grade context =
 
 let string_of_expression resource_grade e =
   Format.asprintf "%t" (print_expression resource_grade e)
-
-let string_of_computation resource_grade c =
-  Format.asprintf "%t" (print_computation resource_grade c)

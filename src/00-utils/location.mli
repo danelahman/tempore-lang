@@ -27,9 +27,6 @@ val compare : t -> t -> int
 
 val equal : t -> t -> bool
 
-val is_point : t -> bool
-(** Whether the span is empty, as the locations of lexer errors are. *)
-
 val print : t -> Format.formatter -> unit
 (** Prints the span in the format the OCaml compiler uses, which editors already
     know how to read: [File "f.tpe", line 3, characters 4-9], or [lines 3-5] for

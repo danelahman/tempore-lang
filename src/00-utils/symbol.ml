@@ -2,6 +2,7 @@ module type S = sig
   type t
 
   val compare : t -> t -> int
+  val equal : t -> t -> bool
   val fresh : string -> t
 
   val fresh_synthetic : string -> t
@@ -24,6 +25,7 @@ module Make () : S = struct
   type t = { id : int; name : string; synthetic : bool }
 
   let compare s1 s2 = Int.compare s1.id s2.id
+  let equal s1 s2 = compare s1 s2 = 0
   let count = Atomic.make (-1)
   let next_id () = Atomic.fetch_and_add count 1 + 1
   let fresh name = { id = next_id (); name; synthetic = false }

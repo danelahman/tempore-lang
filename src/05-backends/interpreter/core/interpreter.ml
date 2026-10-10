@@ -48,15 +48,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
   (* The interpreter has no use for anything but the accumulated resource grade
      itself, so its contexts record just that. *)
   module Elapsed = struct
-    module Grade = struct
-      type t = Graded.rho
-
-      let one = Ast.RhoConst (GS.R.one, None)
-    end
-
     type t = Graded.rho
 
-    let grade rho = rho
+    let is_one = function
+      | Ast.RhoConst (c, _) -> GS.R.compare c GS.R.one = 0
+      | Ast.RhoAdd _ | Ast.RhoVar _ | Ast.RhoImage _ -> false
   end
 
   module ContextHolderModule =

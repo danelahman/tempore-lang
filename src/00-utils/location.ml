@@ -37,7 +37,6 @@ let compare l1 l2 =
   | c -> c
 
 let equal l1 l2 = compare l1 l2 = 0
-let is_point l = l.start.offset = l.stop.offset
 
 (* The compiler's convention: characters are columns counted from 0, the end
    one exclusive and, for a multi-line span, a column of its last line. *)

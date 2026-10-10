@@ -93,9 +93,6 @@ and ('rho, 'eps) plain_term =
 
 and ('rho, 'eps) abstraction = ('rho, 'eps) pattern * ('rho, 'eps) term
 
-and ('rho, 'eps) guarded_abstraction =
-  ('rho, 'eps) pattern * ('rho, 'eps) term option * ('rho, 'eps) term
-
 type ('rho, 'eps) ty_def =
   | TySum of (label annotated * ('rho, 'eps) ty option) list
       (** [Label1 of ty1 | Label2 of ty2 | ... | Labeln of tyn | Label' |

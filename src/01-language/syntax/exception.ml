@@ -1,2 +1,0 @@
-exception VariableNotFound of string
-exception InequalityCheckFailed of string

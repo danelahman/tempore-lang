@@ -1,13 +1,10 @@
 open Ast
-open Exception
 module Error = Utils.Error
 module Symbol = Utils.Symbol
 
 module type S = sig
   type var
-  type grade
   type elapsed
-  type 'a map_or_rho
   type 'a t
 
   val empty : 'a t
@@ -17,6 +14,14 @@ module type S = sig
   val find_variable_opt : var -> 'a t -> 'a option
 end
 
+(** The elapsed grades a context stores: a payload of which the context only
+    tests whether it is the unit. *)
+module type ELAPSED = sig
+  type t
+
+  val is_one : t -> bool
+end
+
 (** A context is a stack of variable bindings interleaved with the grades
     accumulated between them, which are grade expressions of [Elapsed.Grade].
     [Elapsed] is a payload the context stores as it is and only ever reads a
@@ -24,29 +29,21 @@ end
 module Make
     (Variable : Symbol.S)
     (VariableMap : Map.S with type key = Variable.t)
-    (Elapsed : sig
-      module Grade : sig
-        type t
-
-        val one : t
-      end
-
-      type t
-
-      val grade : t -> Grade.t
-    end) =
+    (Elapsed : ELAPSED) :
+  S
+    with type var = Variable.t
+     and type elapsed = Elapsed.t
+     and type 'a t = (Variable.t, 'a VariableMap.t, Elapsed.t) Ast.context =
 struct
   type var = Variable.t
-  type grade = Elapsed.Grade.t
   type elapsed = Elapsed.t
-  type 'a map_or_rho = (var, 'a VariableMap.t, elapsed) context_elem_ty
   type 'a t = (var, 'a VariableMap.t, elapsed) context
 
   let empty : 'a t = []
 
   (* The unit grade is not recorded. *)
   let add_temp (n : elapsed) (lst : 'a t) : 'a t =
-    if Elapsed.grade n = Elapsed.Grade.one then lst else Rho n :: lst
+    if Elapsed.is_one n then lst else Rho n :: lst
 
   let add_variable (key : var) (value : 'a) (lst : 'a t) : 'a t =
     match lst with
@@ -60,7 +57,7 @@ struct
   let find_variable (key : var) (lst : 'a t) : 'a =
     let rec find = function
       | [] ->
-          raise (VariableNotFound (Format.asprintf "%t" (Variable.print key)))
+          Error.fatal "Unbound variable %t in the context" (Variable.print key)
       | VarMap map :: rest -> (
           match VariableMap.find_opt key map with
           | Some v -> v
