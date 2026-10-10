@@ -24,7 +24,13 @@ module Types = struct
     | HandleCtx of computation_reduction
     | ComputationRedex of computation_redex
 
-  type step_label = ComputationReduction of computation_reduction | Return
+  (* A step of a top-level [run] command: a reduction of its computation, or
+     the end of the command at a returned value or at an unhandled operation
+     call. *)
+  type step_label =
+    | ComputationReduction of computation_reduction
+    | Return
+    | Unhandled
 end
 
 module Make (GS : Grades.GradeSystem.S) = struct
@@ -566,9 +572,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
                 (PrettyPrint.print_expression (module GS.R) expr)
         in
         doUnbox expr pat body
+    (* An operation call at the top of a run is reduced by [steps]. *)
     | Ast.Perform _ -> []
-    (* (op, _expr, (_pat, _comp)) ->
-      Error.runtime "Unhandled operation %t" (Ast.OpName.print op) *)
     | Ast.Handle (body, handler) -> (
         let comps' =
           step_in_context step_computation env
@@ -626,9 +631,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
                     :: comps'
                 | None ->
                     Error.runtime
-                      "TODO: Operation signature not found in runtime state")
+                      "Internal error: operation %t has no signature in the \
+                       runtime state"
+                      (Ast.OpName.print op))
             | Some _ ->
-                Error.runtime "TODO: Operation case not in correct format"
+                Error.runtime
+                  "Internal error: the case of operation %t does not bind an \
+                   argument and a continuation"
+                  (Ast.OpName.print op)
             | _ ->
                 ( env,
                   ComputationRedex HandleOp,
@@ -704,7 +714,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     }
 
   type run_state = load_state
-  type step_label = ComputationReduction of computation_reduction | Return
 
   type step = {
     environment : evaluation_environment;
@@ -714,29 +723,30 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let run load_state = load_state
 
+  (* The step labelled [label] that ends the current top-level [run] command
+     and passes to the next one. The resource store and the fresh-resource
+     counter are reset; top-level bindings and operation signatures are kept. *)
+  let end_run label environment comps =
+    {
+      environment;
+      label;
+      next_state =
+        (fun () ->
+          {
+            computations = comps;
+            environment =
+              {
+                environment with
+                state = ContextHolderModule.empty;
+                resource_counter = 0;
+              };
+          });
+    }
+
   let steps = function
     | { computations = []; _ } -> []
     | { computations = { it = Ast.Return _; _ } :: comps; environment } ->
-        [
-          {
-            environment;
-            label = Return;
-            next_state =
-              (fun () ->
-                (* Reset resource state between consecutive top-level [run]
-                   commands: top-level bindings and operation signatures stay,
-                   but the resource store and fresh-resource counter start
-                   from zero again. *)
-                let environment' =
-                  {
-                    environment with
-                    state = ContextHolderModule.empty;
-                    resource_counter = 0;
-                  }
-                in
-                { computations = comps; environment = environment' });
-          };
-        ]
+        [ end_run Return environment comps ]
     (* A default implementation fires only here, where the operation call has
        bubbled out of every enclosing [do] and [handle] and so is known to be
        unhandled; [step_computation] deliberately gets no [Perform] rule. The
@@ -766,6 +776,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
                 });
           };
         ]
+    (* An operation call without a default that has bubbled out of every
+       enclosing [do] and [handle] is unhandled: the run stops there and
+       execution passes to the next top-level [run] command. *)
+    | { computations = { it = Ast.Perform _; _ } :: comps; environment } ->
+        [ end_run Unhandled environment comps ]
     | { computations = comp :: comps; environment } ->
         List.map
           (fun (env, red, comp') ->

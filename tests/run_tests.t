@@ -5519,6 +5519,37 @@
   State: []
   
   ======================================================================
+  unhandled_continue.tpe
+  ======================================================================
+  === Run 1 (unhandled operation) ===
+  perform Get () (op_var. (let x = return op_var in
+                           let b = (+) x in
+                           b 1))
+  
+  === Run 2 ===
+  return 2
+  State: []
+  
+  === Run 3 (unhandled operation) ===
+  perform Get () (op_var. handle
+                            return op_var
+                          with h)
+  
+  === Run 4 ===
+  return 42
+  State: [
+    { resource_1 ↦
+        fun op_var ↦ handle
+                       let x = return op_var in
+                       let b = (+) x in
+                       b 1
+                     with g
+        # 1
+    },
+    1
+  ]
+  
+  ======================================================================
   use_undefined_type.tpe
   ======================================================================
   File "use_undefined_type.tpe", line 1, characters 18-21:

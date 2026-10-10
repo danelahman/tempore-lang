@@ -1,0 +1,23 @@
+(* Correctly accepted by the typechecker: a run stops at an operation call
+   that no handler or default handles, and the runs after it are executed. *)
+
+operation Get : unit ~> nat # 1
+
+let h =
+  handler
+  | x -> x + 1
+
+let g =
+  handler
+  | x -> x
+  | Get _ k ->
+      delay 1;
+      continue k with 41
+
+run let x = perform Get () in x + 1
+
+run 2
+
+run handle perform Get () with h
+
+run handle (let x = perform Get () in x + 1) with g

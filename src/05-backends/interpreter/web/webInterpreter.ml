@@ -70,9 +70,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | ComputationReduction reduction ->
         text (view_computation_reduction reduction)
     | Return -> text "return"
+    | Unhandled -> text "unhandled operation"
 
-  let is_return_label = function
-    | Return -> true
+  let is_end_of_run_label = function
+    | Return | Unhandled -> true
     | ComputationReduction _ -> false
 
   let is_done = function { computations = []; _ } -> true | _ -> false
@@ -83,8 +84,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let reduction =
           match step_label with
           | Some (ComputationReduction red) -> Some red
-          | Some Return -> None
-          | None -> None
+          | Some (Return | Unhandled) | None -> None
         in
 
         let active =

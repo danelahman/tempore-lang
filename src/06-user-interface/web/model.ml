@@ -101,8 +101,9 @@ and run_model_state = {
       (** Render the current run state with no redex highlighted. *)
   completed_runs : completed_run_view list;
       (** Snapshots of previously finished [run] blocks, in chronological order.
-          Each snapshot is the view of the run-state at the moment its
-          terminating [Return] step was about to be taken. *)
+          Each snapshot is the view of the run-state at the moment its final
+          step, at a returned value or an unhandled operation call, was about to
+          be taken. *)
   is_done : bool;
       (** True when there are no computations left to run (i.e. all [run] blocks
           have completed and their snapshots are in [completed_runs]). *)
@@ -802,7 +803,7 @@ let update_model model = function
                     List.map
                       (fun (step : B.step) ->
                         let next_completed_runs =
-                          if B.is_return_label step.label then
+                          if B.is_end_of_run_label step.label then
                             completed_runs
                             @ [
                                 {
