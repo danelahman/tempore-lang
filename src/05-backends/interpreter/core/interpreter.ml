@@ -19,16 +19,24 @@ module Types = struct
     | HandleOp
     | DefaultOp
 
-  type computation_reduction =
-    | DoCtx of computation_reduction
-    | HandleCtx of computation_reduction
-    | ComputationRedex of computation_redex
+  (* A frame of a reduction context: a [do] or a [handle] around the hole, with
+     the location of that node and its part outside the hole. *)
+  type ('abstraction, 'expression) context_frame =
+    | DoFrame of Utils.Location.t * 'abstraction
+    | HandleFrame of Utils.Location.t * 'expression
+
+  (* A reduction: a redex in a reduction context, given by its frames, the
+     innermost first. *)
+  type 'frame computation_reduction = {
+    context : 'frame list;
+    redex : computation_redex;
+  }
 
   (* A step of a top-level [run] command: a reduction of its computation, or
      the end of the command at a returned value or at an unhandled operation
      call. *)
-  type step_label =
-    | ComputationReduction of computation_reduction
+  type 'frame run_step_label =
+    | ComputationReduction of 'frame computation_reduction
     | Return
     | Unhandled
 end
@@ -453,15 +461,47 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Error.runtime "Handler expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
-  let step_in_context step env redCtx ctx term =
-    let terms' = step env term in
-    List.map
-      (fun (env, red, term') -> (env, redCtx red, fun () -> ctx (term' ())))
-      terms'
+  type frame = (Graded.abstraction, Graded.expression) context_frame
 
-  (* Every computation the interpreter builds is a contraction of the redex it
-     is reducing, so it is reported at the redex's span. *)
-  let rec step_computation env (comp : _ Ast.computation) =
+  (* A computation decomposed into a reduction context, its frames the
+     innermost first, and the subcomputation in its hole. Unless the context
+     is empty, the subcomputation is not a [return] or an operation call. *)
+  type focus = { frames : frame list; subject : Graded.computation }
+
+  let plug frame (comp : _ Ast.computation) =
+    match frame with
+    | DoFrame (at, abs) -> Ast.located at (Ast.Do (comp, abs))
+    | HandleFrame (at, handler) -> Ast.located at (Ast.Handle (comp, handler))
+
+  (** [computation focus] is the computation [focus] decomposes. *)
+  let computation { frames; subject } =
+    List.fold_left (Fun.flip plug) subject frames
+
+  let is_terminal (comp : _ Ast.computation) =
+    match comp.it with Ast.Return _ | Ast.Perform _ -> true | _ -> false
+
+  (* The decomposition at its redex of the computation formed by [frames]
+     around [comp]: the context is extended through every [do] and [handle]
+     whose body is not terminal, and a terminal [comp] is plugged into the
+     innermost frame, where it forms a redex. Refocusing (Danvy and Nielsen,
+     Refocusing in Reduction Semantics, 2004): a step decomposes its contractum
+     in place instead of the whole computation. *)
+  let rec refocus frames (comp : _ Ast.computation) =
+    match (comp.it, frames) with
+    | Ast.Do (comp1, abs), _ when not (is_terminal comp1) ->
+        refocus (DoFrame (comp.at, abs) :: frames) comp1
+    | Ast.Handle (body, handler), _ when not (is_terminal body) ->
+        refocus (HandleFrame (comp.at, handler) :: frames) body
+    | (Ast.Return _ | Ast.Perform _), frame :: frames ->
+        { frames; subject = plug frame comp }
+    | _ -> { frames; subject = comp }
+
+  (* The reductions of the computation [comp] at its top, each with the
+     environment after it, the redex and the contractum. A [do] or a [handle]
+     reduces at its top only when its body is terminal. Every computation the
+     interpreter builds is a contraction of the redex it is reducing, so it is
+     reported at the redex's span. *)
+  let contract env (comp : _ Ast.computation) =
     let at = comp.at in
     match comp.it with
     | Ast.Return _ -> []
@@ -469,12 +509,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let rec find_case = function
           | (env, pat, comp) :: cases -> (
               match match_pattern_with_expression env pat expr with
-              | subst ->
-                  [
-                    ( env,
-                      ComputationRedex Match,
-                      fun () -> substitute subst comp );
-                  ]
+              | subst -> [ (env, Match, fun () -> substitute subst comp) ]
               | exception PatternMismatch -> find_case cases)
           | [] -> []
         in
@@ -489,36 +524,30 @@ module Make (GS : Grades.GradeSystem.S) = struct
         find_case cases'
     | Ast.Apply (expr1, expr2) ->
         let f = eval_function env expr1 in
-        [ (env, ComputationRedex ApplyFun, fun () -> f expr2) ]
+        [ (env, ApplyFun, fun () -> f expr2) ]
     | Ast.Do (comp1, comp2) -> (
-        let comps1' =
-          step_in_context step_computation env
-            (fun red -> DoCtx red)
-            (fun comp1' -> Ast.located at (Ast.Do (comp1', comp2)))
-            comp1
-        in
         match comp1.it with
         | Ast.Return expr ->
             let pat, comp2' = comp2 in
             let subst = match_pattern_with_expression env pat expr in
-            (env, ComputationRedex DoReturn, fun () -> substitute subst comp2')
-            :: comps1'
+            [ (env, DoReturn, fun () -> substitute subst comp2') ]
         | Ast.Perform (op, expr, (pat, cont)) ->
-            ( env,
-              ComputationRedex DoOp,
-              fun () ->
-                Ast.located at
-                  (Ast.Perform
-                     (op, expr, (pat, Ast.located at (Ast.Do (cont, comp2)))))
-            )
-            :: comps1'
-        | _ -> comps1')
+            [
+              ( env,
+                DoOp,
+                fun () ->
+                  Ast.located at
+                    (Ast.Perform
+                       (op, expr, (pat, Ast.located at (Ast.Do (cont, comp2)))))
+              );
+            ]
+        | _ -> [])
     | Ast.Delay (q, comp) ->
         let rho = Ast.RhoConst (GS.R.of_delay (delay q), None) in
         let env' =
           { env with state = ContextHolderModule.add_temp rho env.state }
         in
-        [ (env', ComputationRedex Delay, fun () -> comp) ]
+        [ (env', Delay, fun () -> comp) ]
     | Ast.Box (rho, expr, (pat, body)) ->
         let rec doBox rho expr (pat : _ Ast.pattern) body =
           match pat.it with
@@ -537,11 +566,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
                   resource_counter = resource_counter + 1;
                 }
               in
-              [
-                ( env',
-                  ComputationRedex Box,
-                  fun () -> refresh_computation [ (x, x') ] body );
-              ]
+              [ (env', Box, fun () -> refresh_computation [ (x, x') ] body) ]
           | Ast.PAnnotated (pat', _) -> doBox rho expr pat' body
           | _ ->
               Error.runtime "Box expected a variable but got pattern %t"
@@ -556,7 +581,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
                 ContextHolderModule.find_variable x env.state
               in
               let subst = match_pattern_with_expression env pat expr' in
-              [ (env, ComputationRedex Unbox, fun () -> substitute subst body) ]
+              [ (env, Unbox, fun () -> substitute subst body) ]
           | Ast.Annotated (expr', _) -> doUnbox expr' pat body
           | _ ->
               Error.runtime "Unbox expected a variable but got expression %t"
@@ -566,20 +591,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
     (* An operation call at the top of a run is reduced by [steps]. *)
     | Ast.Perform _ -> []
     | Ast.Handle (body, handler) -> (
-        let comps' =
-          step_in_context step_computation env
-            (fun red -> HandleCtx red)
-            (fun body' -> Ast.located at (Ast.Handle (body', handler)))
-            body
-        in
         let (pat, ret_comp), op_cases = eval_handler env handler in
         match body.it with
         | Ast.Return expr ->
             let subst = match_pattern_with_expression env pat expr in
-            ( env,
-              ComputationRedex HandleReturn,
-              fun () -> substitute subst ret_comp )
-            :: comps'
+            (env, HandleReturn, fun () -> substitute subst ret_comp) :: []
         | Ast.Perform (op, expr, (op_pat, op_cont)) -> (
             let op_case = Ast.OpNameMap.find_opt op op_cases in
             match op_case with
@@ -606,7 +622,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
                     (* The continuation is boxed at the resource grade the
                        operation's effect grade maps to. *)
                     ( env',
-                      ComputationRedex HandleOp,
+                      HandleOp,
                       fun () ->
                         Ast.located at
                           (Ast.Box
@@ -619,7 +635,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
                                ( Ast.located at (Ast.PVar x),
                                  substitute cont_subst
                                    (substitute arg_subst op_case) ) )) )
-                    :: comps'
+                    :: []
                 | None ->
                     Error.runtime
                       "Internal error: operation %t has no signature in the \
@@ -632,7 +648,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
                   (Ast.OpName.print op)
             | _ ->
                 ( env,
-                  ComputationRedex HandleOp,
+                  HandleOp,
                   fun () ->
                     Ast.located at
                       (Ast.Perform
@@ -641,8 +657,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
                            ( op_pat,
                              Ast.located at (Ast.Handle (op_cont, handler)) ) ))
                 )
-                :: comps')
-        | _ -> comps')
+                :: [])
+        | _ -> [])
 
   (** [returned_value env comp] is [comp] with the value it returns, if it is a
       [return], given by {!eval_value}: its top-level variables are replaced by
@@ -713,14 +729,16 @@ module Make (GS : Grades.GradeSystem.S) = struct
         };
     }
 
-  (* The computation of the current [run] command, if any, with its
-     environment, and the [run] commands after it, each with the environment
-     of the commands above it. *)
+  (* The computation of the current [run] command, if any, decomposed at its
+     redex, with its environment, and the [run] commands after it, each with
+     the environment of the commands above it. *)
   type run_state = {
     environment : evaluation_environment;
-    current : Graded.computation option;
+    current : focus option;
     pending : (evaluation_environment * Graded.computation) list;
   }
+
+  type step_label = frame run_step_label
 
   type step = {
     environment : evaluation_environment;
@@ -733,7 +751,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let start environment = function
     | [] -> { environment; current = None; pending = [] }
     | (environment, comp) :: pending ->
-        { environment; current = Some comp; pending }
+        { environment; current = Some (refocus [] comp); pending }
 
   let run (load_state : load_state) =
     start load_state.environment (List.rev load_state.runs)
@@ -752,16 +770,25 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let steps = function
     | { current = None; _ } -> []
-    | { current = Some { it = Ast.Return _; _ }; environment; pending } ->
+    | {
+        current = Some { frames = []; subject = { it = Ast.Return _; _ } };
+        environment;
+        pending;
+      } ->
         [ end_run Return environment pending ]
     (* A default implementation fires only here, where the operation call has
        bubbled out of every enclosing [do] and [handle] and so is known to be
-       unhandled; [step_computation] deliberately gets no [Perform] rule. The
-       body runs in place of the call and its result is passed to the
-       continuation, exactly as a handled operation's result would be. Only
-       the defaults declared above the [run] command are in its environment. *)
+       unhandled; [contract] deliberately gets no [Perform] rule. The body runs
+       in place of the call and its result is passed to the continuation,
+       exactly as a handled operation's result would be. Only the defaults
+       declared above the [run] command are in its environment. *)
     | {
-        current = Some { it = Ast.Perform (op, expr, (pat, cont)); at };
+        current =
+          Some
+            {
+              frames = [];
+              subject = { it = Ast.Perform (op, expr, (pat, cont)); at };
+            };
         environment;
         pending;
       }
@@ -773,14 +800,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
         [
           {
             environment;
-            label = ComputationReduction (ComputationRedex DefaultOp);
+            label = ComputationReduction { context = []; redex = DefaultOp };
             next_state =
               (fun () ->
                 {
                   current =
                     Some
-                      (Ast.located at
-                         (Ast.Do (substitute subst dcomp', (pat, cont))));
+                      (refocus []
+                         (Ast.located at
+                            (Ast.Do (substitute subst dcomp', (pat, cont)))));
                   environment;
                   pending;
                 });
@@ -789,17 +817,25 @@ module Make (GS : Grades.GradeSystem.S) = struct
     (* An operation call without a default that has bubbled out of every
        enclosing [do] and [handle] is unhandled: the run stops there and
        execution passes to the next top-level [run] command. *)
-    | { current = Some { it = Ast.Perform _; _ }; environment; pending } ->
+    | {
+        current = Some { frames = []; subject = { it = Ast.Perform _; _ } };
+        environment;
+        pending;
+      } ->
         [ end_run Unhandled environment pending ]
-    | { current = Some comp; environment; pending } ->
+    | { current = Some { frames; subject }; environment; pending } ->
         List.map
-          (fun (env, red, comp') ->
+          (fun (env, redex, comp') ->
             {
               environment = env;
-              label = ComputationReduction red;
+              label = ComputationReduction { context = frames; redex };
               next_state =
                 (fun () ->
-                  { current = Some (comp' ()); environment = env; pending });
+                  {
+                    current = Some (refocus frames (comp' ()));
+                    environment = env;
+                    pending;
+                  });
             })
-          (step_computation environment comp)
+          (contract environment subject)
 end

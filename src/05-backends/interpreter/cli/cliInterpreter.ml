@@ -3,9 +3,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
   module Ast = Language.Ast
   module PrettyPrint = Language.PrettyPrint
 
+  (* A run is reported once its computation, decomposed with an empty
+     context, is a [return] or an operation call. *)
   let view_run_state (run_state : run_state) ~run_num =
     match run_state with
-    | { current = Some ({ it = Ast.Return _; _ } as comp); environment; _ } ->
+    | {
+     current = Some { frames = []; subject = { it = Ast.Return _; _ } as comp };
+     environment;
+     _;
+    } ->
         Format.printf "=== Run %d ===@." run_num;
         Format.printf "%t@."
           (PrettyPrint.print_computation
@@ -20,7 +26,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     (* An operation with a default implementation is not stuck here: the
        default is about to fire, so there is nothing to report yet. *)
     | {
-     current = Some ({ it = Ast.Perform (op, _, _); _ } as comp);
+     current =
+       Some
+         { frames = []; subject = { it = Ast.Perform (op, _, _); _ } as comp };
      environment;
      _;
     }

@@ -1008,7 +1008,7 @@ let go_to_error model i =
 let update model msg =
   match msg with
   | Point (pointer, link, _) when pointer = model.pointer ->
-      ({ model with link }, [])
+      ((if link = model.link then model else { model with link }), [])
   | Point (pointer, link, point) -> (
       let model = { model with pointer; link } in
       match (pointer, model.popover) with

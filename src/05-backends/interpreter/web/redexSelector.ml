@@ -42,27 +42,30 @@ module Make (GS : Grades.GradeSystem.S) = struct
             PrettyPrint.print_computation (module GS.R) ?max_level c ppf)
           print_mark
 
-  let rec print_computation_reduction ?max_level red c ppf =
+  (* [frames] lists the frames of the context the outermost first. *)
+  let rec print_in_context ?max_level frames redex c ppf =
     let print ?at_level = Print.print ?max_level ?at_level ppf in
-    match (red, c.Ast.it) with
-    | DoCtx red, Ast.Do (c1, ({ it = Ast.PNonbinding; _ }, c2)) ->
+    match (frames, c.Ast.it) with
+    | DoFrame _ :: frames, Ast.Do (c1, ({ it = Ast.PNonbinding; _ }, c2)) ->
         print ~at_level:2 "@[<v 0>%t;@,%t@]"
-          (print_computation_reduction ~max_level:1 red c1)
+          (print_in_context ~max_level:1 frames redex c1)
           (PrettyPrint.print_computation (module GS.R) c2)
-    | DoCtx red, Ast.Do (c1, (pat, c2)) ->
+    | DoFrame _ :: frames, Ast.Do (c1, (pat, c2)) ->
         print ~at_level:2 "@[<v 0>@[<hov 2>let %t =@ %t@] in@,%t@]"
           (PrettyPrint.print_pattern pat)
-          (print_computation_reduction ~max_level:1 red c1)
+          (print_in_context ~max_level:1 frames redex c1)
           (PrettyPrint.print_computation (module GS.R) c2)
-    | HandleCtx red, Ast.Handle (c', h) ->
+    | HandleFrame _ :: frames, Ast.Handle (c', h) ->
         print ~at_level:1 "@[<v 0>handle@;<1 2>%t@,with %t@]"
-          (print_computation_reduction red c')
+          (print_in_context frames redex c')
           (PrettyPrint.print_expression (module GS.R) ~max_level:0 h)
-    | ComputationRedex redex, _ ->
-        print_computation_redex ?max_level redex c ppf
+    | [], _ -> print_computation_redex ?max_level redex c ppf
     (* A context that does not fit the computation marks no redex. *)
-    | (DoCtx _ | HandleCtx _), _ ->
+    | (DoFrame _ | HandleFrame _) :: _, _ ->
         PrettyPrint.print_computation (module GS.R) ?max_level c ppf
+
+  let print_computation_reduction { context; redex } c =
+    print_in_context (List.rev context) redex c
 
   let view_computation_with_redexes red comp =
     let rendered =

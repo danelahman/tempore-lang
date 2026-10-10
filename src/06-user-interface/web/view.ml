@@ -5,16 +5,7 @@ module Location = Utils.Location
 module SyntaxHighlight = WebInterpreter.SyntaxHighlight
 
 (* Auxiliary definitions *)
-(* [action] is placed at the right of the heading, opposite its name. *)
-let panel ?(a = []) ?action heading blocks =
-  let named =
-    match action with
-    | None -> [ text heading ]
-    | Some action -> [ elt "span" [ text heading ]; action ]
-  in
-  div ~a:(class_ "panel" :: a)
-    (elt "p" ~a:[ class_ "panel-heading" ] named :: blocks)
-
+let panel = Widgets.panel
 let panel_block = div ~a:[ class_ "panel-block" ]
 
 let button txt msg =
@@ -844,14 +835,12 @@ let onescape_popover (model : Model.model) =
 (* The editor proper: the highlighted text, with the errors' spans and the
    definitions' names marked, the transparent textarea stretched over it, and
    the open popover. *)
-let view_editor ~marks ~errors (model : Model.model) =
+let view_editor ~highlighted ~errors (model : Model.model) =
   let source = model.edit_model.unparsed_code in
-  let lines = String.split_on_char '\n' source |> List.length in
-  let rows = max 10 lines in
-  let highlighted =
-    SyntaxHighlight.highlight_with_marks ~line_numbers:true ~marks
-      (source ^ "\n")
+  let lines =
+    String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 1 source
   in
+  let rows = max 10 lines in
   (* The gutter is a small inset, the line numbers (0.558rem a digit at the
      editor's 0.9rem) and a gap; in rem so the marker's smaller font can use it. *)
   let gutter =
@@ -876,7 +865,7 @@ let view_editor ~marks ~errors (model : Model.model) =
         onescape_popover model;
       ]
     [
-      elt "pre" ~a:[ class_ "code-editor-display syn-ml" ] highlighted;
+      highlighted;
       elt "textarea"
         ~a:
           ([
@@ -1253,97 +1242,167 @@ let view_compiler (model : Model.model) =
   panel ~action:(page_link Model.Docs) "Code options"
     [ use_stdlib; load_example; select_resource; run_process ]
 
-let edit_view (model : Model.model) =
-  let errors =
-    match model.run_model with Error errors -> errors | Ok _ -> []
-  in
-  let stale = model.stale_errors in
-  let popover = popover_target model in
-  let pointed =
-    match model.pointer with
-    | Model.Over_target target -> target_error target
-    | Model.Nowhere | Model.Over_popover -> None
-  in
+(* What the editor's highlighted text depends on. *)
+type editor_key = {
+  source : string;
+  errors : Model.load_error list;
+  stale : bool;
+  popover : Model.popover_target option;
+  pointed : int option;
+  hovered_error : int option;
+  active_error : int option;
+  definitions : Model.definition list;
+  links : Model.link list;
+  link : int option;
+  flash : Model.flash option;
+}
+
+let editor_key (model : Model.model) =
+  {
+    source = model.edit_model.unparsed_code;
+    errors = (match model.run_model with Error errors -> errors | Ok _ -> []);
+    stale = model.stale_errors;
+    popover = popover_target model;
+    pointed =
+      (match model.pointer with
+      | Model.Over_target target -> target_error target
+      | Model.Nowhere | Model.Over_popover -> None);
+    hovered_error = model.hovered_error;
+    active_error = model.active_error;
+    definitions = model.definitions;
+    links = model.links;
+    link = model.link;
+    flash = model.flash;
+  }
+
+(* The lists are compared physically: a model keeps each list until it replaces
+   it. *)
+let equal_editor_key k k' =
+  String.equal k.source k'.source
+  && k.errors == k'.errors && k.stale = k'.stale && k.popover = k'.popover
+  && k.pointed = k'.pointed
+  && k.hovered_error = k'.hovered_error
+  && k.active_error = k'.active_error
+  && k.definitions == k'.definitions
+  && k.links == k'.links && k.link = k'.link && k.flash = k'.flash
+
+(* [interned key] is the last key given if it equals [key], and [key]
+   otherwise, so that [Vdom.memo], which compares its argument physically,
+   keeps the highlighted text as long as what it depends on is unchanged. *)
+let interned =
+  let last = ref None in
+  fun key ->
+    match !last with
+    | Some key' when equal_editor_key key key' -> key'
+    | _ ->
+        last := Some key;
+        key
+
+(* The marks of the editor's text: the spans of the errors, the names of the
+   definitions and links, and what has just been gone to. *)
+let editor_marks
+    ({
+       errors;
+       stale;
+       popover;
+       pointed;
+       hovered_error;
+       active_error;
+       definitions;
+       links;
+       link;
+       flash;
+       _;
+     } :
+      editor_key) =
   (* Edited source: the spans have moved, so only the messages remain. *)
-  let marks =
-    if stale then []
-    else
-      List.concat
-        (List.mapi
-           (fun i (error : Model.load_error) ->
-             (* Labels of every error at once would only confuse; they show
+  if stale then []
+  else
+    List.concat
+      (List.mapi
+         (fun i (error : Model.load_error) ->
+           (* Labels of every error at once would only confuse; they show
                 for the error the user is looking at, or when it is alone. *)
-             let with_labels =
-               List.length errors = 1
-               || model.hovered_error = Some i
-               || model.active_error = Some i
-               || error.hovered_label <> None
-               || pointed = Some i
-               || Option.bind popover target_error = Some i
-             in
-             marks_of_error
-               ~hovered:(model.hovered_error = Some i)
-               ~with_labels ~popover i error)
-           errors)
-      (* the names the definitions are given, each described by its scheme *)
-      @ List.concat
-          (List.mapi
-             (fun k (d : Model.definition) ->
-               match d.name_span with
-               | Some (from, until) ->
-                   [
-                     {
-                       SyntaxHighlight.from;
-                       until;
-                       mark_cls =
-                         (if popover = Some (Model.Definition k) then
-                            "def-name is-hover "
-                          else "def-name ")
-                         ^ popover_classes (Model.Definition k);
-                       id = None;
-                       marker = None;
-                     };
-                   ]
-               | None -> [])
-             model.definitions)
-      (* the names of the links, one of them underlined while the modifier of
+           let with_labels =
+             List.length errors = 1
+             || hovered_error = Some i || active_error = Some i
+             || error.hovered_label <> None
+             || pointed = Some i
+             || Option.bind popover target_error = Some i
+           in
+           marks_of_error ~hovered:(hovered_error = Some i) ~with_labels
+             ~popover i error)
+         errors)
+    (* the names the definitions are given, each described by its scheme *)
+    @ List.concat
+        (List.mapi
+           (fun k (d : Model.definition) ->
+             match d.name_span with
+             | Some (from, until) ->
+                 [
+                   {
+                     SyntaxHighlight.from;
+                     until;
+                     mark_cls =
+                       (if popover = Some (Model.Definition k) then
+                          "def-name is-hover "
+                        else "def-name ")
+                       ^ popover_classes (Model.Definition k);
+                     id = None;
+                     marker = None;
+                   };
+                 ]
+             | None -> [])
+           definitions)
+    (* the names of the links, one of them underlined while the modifier of
          links is held with the pointer on it *)
-      @ List.mapi
-          (fun k ({ use = from, until; _ } : Model.link) ->
-            {
-              SyntaxHighlight.from;
-              until;
-              mark_cls =
-                String.concat " "
-                  ([ "name-ref"; EditorDom.link_prefix ^ string_of_int k ]
-                  @ (if model.link = Some k then [ "is-link" ] else [])
-                  @
-                  if popover = Some (Model.Reference k) then
-                    [ "is-hover"; popover_classes (Model.Reference k) ]
-                  else []);
-              id = None;
-              marker = None;
-            })
-          model.links
-      @
-      match model.flash with
-      | Some (Model.Span (from, until)) ->
-          [
-            {
-              SyntaxHighlight.from;
-              until;
-              mark_cls = "goto-flash";
-              id = Some EditorDom.flash_id;
-              marker = None;
-            };
-          ]
-      | Some (Model.Message _) | None -> []
-  in
+    @ List.mapi
+        (fun k ({ use = from, until; _ } : Model.link) ->
+          {
+            SyntaxHighlight.from;
+            until;
+            mark_cls =
+              String.concat " "
+                ([ "name-ref"; EditorDom.link_prefix ^ string_of_int k ]
+                @ (if link = Some k then [ "is-link" ] else [])
+                @
+                if popover = Some (Model.Reference k) then
+                  [ "is-hover"; popover_classes (Model.Reference k) ]
+                else []);
+            id = None;
+            marker = None;
+          })
+        links
+    @
+    match flash with
+    | Some (Model.Span (from, until)) ->
+        [
+          {
+            SyntaxHighlight.from;
+            until;
+            mark_cls = "goto-flash";
+            id = Some EditorDom.flash_id;
+            marker = None;
+          };
+        ]
+    | Some (Model.Message _) | None -> []
+
+(* The editor's text, highlighted with its marks, and a newline the source has
+   not got, so that a last empty line keeps its height. *)
+let view_highlighted (key : editor_key) =
+  elt "pre"
+    ~a:[ class_ "code-editor-display syn-ml" ]
+    (SyntaxHighlight.highlight_with_marks ~line_numbers:true
+       ~marks:(editor_marks key) (key.source ^ "\n"))
+
+let edit_view (model : Model.model) =
+  let key = interned (editor_key model) in
+  let errors = key.errors and stale = key.stale in
   view_contents
     [
       div
         ~a:[ class_ "box editor-box" ]
-        (view_editor ~marks ~errors model
+        (view_editor ~highlighted:(Vdom.memo view_highlighted key) ~errors model
         :: List.mapi
              (fun i error ->
                view_load_error ~stale
@@ -1359,14 +1418,6 @@ let edit_view (model : Model.model) =
 (* A layer over the page listing the examples of Examples_tpe, generated from
    examples/index (see the dune file), by group, with a search over them. *)
 
-(* Whether [sub] occurs in [s]. *)
-let contains ~sub s =
-  let sub_len = String.length sub and s_len = String.length s in
-  let rec at i =
-    i + sub_len <= s_len && (String.sub s i sub_len = sub || at (i + 1))
-  in
-  at 0
-
 (* The path under examples/, the directory every example lives in. *)
 let example_path (e : Examples_tpe.example) =
   let prefix = "examples/" in
@@ -1378,7 +1429,7 @@ let example_path (e : Examples_tpe.example) =
 (* Whether [query], trimmed, occurs in the group, title, grade, description or
    path under examples/ of an example, ignoring case. *)
 let matches query group (e : Examples_tpe.example) =
-  contains
+  Widgets.contains
     ~sub:(String.lowercase_ascii (String.trim query))
     (String.lowercase_ascii
        (String.concat " "
@@ -1630,10 +1681,12 @@ let run_view (run_model : Model.run_model) =
       && not (List.is_empty run_model.current.completed_runs)
     then []
     else
+      (* The views of a state are closures stored in the model, so [Vdom.memo]
+         renders each of them once while it stays in place. *)
       let state_view =
         match selected_step with
-        | None -> run_model.current.view ()
-        | Some step -> step.view_highlighted ()
+        | None -> Vdom.memo run_model.current.view ()
+        | Some step -> Vdom.memo step.view_highlighted ()
       in
       [ state_view ]
   in
@@ -1644,7 +1697,7 @@ let run_view (run_model : Model.run_model) =
           div
             ~a:[ class_ "completed-run-separator" ]
             [ elt "span" [ text "previous run" ] ];
-          cr.view_completed ();
+          Vdom.memo cr.view_completed ();
         ])
       run_model.current.completed_runs
   in

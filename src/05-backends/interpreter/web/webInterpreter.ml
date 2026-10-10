@@ -38,13 +38,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
     Format.asprintf "%t"
       (PrettyPrint.print_vars_and_exprs (module GS.R) print_var_and_expr state)
 
-  (* If the redex at the head of [red] is an [Unbox] applied to a variable,
-     return that variable so we can highlight the corresponding state entry. *)
-  let rec active_unbox_var red c =
-    match (red, c.Ast.it) with
-    | DoCtx red, Ast.Do (c1, _) -> active_unbox_var red c1
-    | HandleCtx red, Ast.Handle (c', _) -> active_unbox_var red c'
-    | ComputationRedex Unbox, Ast.Unbox ({ it = Ast.Var v; _ }, _) -> Some v
+  (* The variable unboxed by the reduction [red] of the computation in the hole
+     of [focus], if [red] is an [Unbox] of a variable, so that the
+     corresponding state entry can be highlighted. *)
+  let active_unbox_var red focus =
+    match (red.redex, focus.subject.it) with
+    | Unbox, Ast.Unbox ({ it = Ast.Var v; _ }, _) -> Some v
     | _ -> None
 
   let view_computation_redex = function
@@ -59,10 +58,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | HandleOp -> "handleOp"
     | DefaultOp -> "defaultOp"
 
-  let rec view_computation_reduction = function
-    | DoCtx red -> view_computation_reduction red
-    | HandleCtx red -> view_computation_reduction red
-    | ComputationRedex redex -> view_computation_redex redex
+  let view_computation_reduction red = view_computation_redex red.redex
 
   let view_step_label = function
     | ComputationReduction reduction ->
@@ -80,7 +76,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let view_run_state (run_state : run_state) step_label =
     match run_state with
-    | { environment; current = Some comp; _ } ->
+    | { environment; current = Some focus; _ } ->
         let reduction =
           match step_label with
           | Some (ComputationReduction red) -> Some red
@@ -89,7 +85,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
         let active =
           match reduction with
-          | Some red -> active_unbox_var red comp
+          | Some red -> active_unbox_var red focus
           | None -> None
         in
         let state_string = string_of_state ?active environment.state in
@@ -111,7 +107,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         in
         let computation_tree =
           RS.view_computation_with_redexes reduction
-            (returned_value environment comp)
+            (returned_value environment (computation focus))
         in
         div
           ~a:[ class_ "box" ]

@@ -12,31 +12,12 @@ let source = Readme_md.contents
    that the table of contents has something to link to. *)
 let doc = lazy (Cmarkit.Doc.of_string ~heading_auto_ids:true ~locs:true source)
 
-(* The panel the editor's side column is built from, repeated here because View
-   depends on this module and so cannot lend its own copy. [action] sits at the
-   right of the heading, as it does there. *)
-let panel ~action heading blocks =
-  div
-    ~a:[ class_ "panel" ]
-    (elt "p"
-       ~a:[ class_ "panel-heading" ]
-       [ elt "span" [ text heading ]; action ]
-    :: blocks)
-
 (* The repository the README's relative links point into; the web interface is
    served from elsewhere, so they cannot be followed as they stand. *)
 let repository = "https://github.com/danelahman/tempore-lang/blob/main/"
 
 (* The comment that marks a README section as belonging to the repository only. *)
 let skip_marker = "web-skip"
-
-(* Stdlib has no substring search, and Str is not available under js_of_ocaml. *)
-let contains needle haystack =
-  let n = String.length needle and m = String.length haystack in
-  let rec from i =
-    i + n <= m && (String.sub haystack i n = needle || from (i + 1))
-  in
-  from 0
 
 (* The source text a node was parsed from, empty when it carries no location. *)
 let literal_source meta =
@@ -220,7 +201,8 @@ let rec first_content = function
 let marked_skip blocks =
   match first_content blocks with
   | Some (Block.Html_block (lines, _)) ->
-      is_html_comment lines && contains skip_marker (line_text lines)
+      is_html_comment lines
+      && Widgets.contains ~sub:skip_marker (line_text lines)
   | _ -> false
 
 (* A section runs until the next heading that is no deeper, so skipping one
@@ -286,28 +268,33 @@ let rec contents_items = function
         elt "li" (entry :: nested) :: contents_items rest
       else elt "li" [ entry ] :: contents_items rest
 
+(* The blocks of the README shown on the page, and the entries of its table of
+   contents. *)
+let blocks = lazy (filter (flatten (Cmarkit.Doc.block (Lazy.force doc))))
+let entries = lazy (headings (Lazy.force blocks))
+
+(* The README rendered, and its table of contents. [view] passes both to
+   [Vdom.memo], which renders them once for as long as the page is shown. *)
+let readme () =
+  let defs = Cmarkit.Doc.defs (Lazy.force doc) in
+  div ~a:[ class_ "content" ] (List.concat_map (block defs) (Lazy.force blocks))
+
+let contents_menu () =
+  elt "ul" ~a:[ class_ "menu-list" ] (contents_items (Lazy.force entries))
+
 (* Bulma's [menu-list] indents a nested list and lights one entry at a time.
    The body is padded by hand to the measure of a [panel-block] rather than
    being one, since a panel block lights all of its contents at once. *)
-let contents ~action blocks =
-  match headings blocks with
+let contents ~action =
+  match Lazy.force entries with
   | [] -> []
-  | entries ->
+  | _ :: _ ->
       [
-        panel ~action "Contents"
-          [
-            div
-              ~a:[ class_ "px-3 py-2" ]
-              [ elt "ul" ~a:[ class_ "menu-list" ] (contents_items entries) ];
-          ];
+        Widgets.panel ~action "Contents"
+          [ div ~a:[ class_ "px-3 py-2" ] [ Vdom.memo contents_menu () ] ];
       ]
 
 (** The documentation page: the blocks of its main column, the project's README
     rendered from its Markdown source, and those of its side column, a table of
     contents of the same. *)
-let view action =
-  let doc = Lazy.force doc in
-  let defs = Cmarkit.Doc.defs doc in
-  let blocks = filter (flatten (Cmarkit.Doc.block doc)) in
-  ( [ div ~a:[ class_ "content" ] (List.concat_map (block defs) blocks) ],
-    contents ~action blocks )
+let view action = ([ Vdom.memo readme () ], contents ~action)
