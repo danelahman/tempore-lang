@@ -443,6 +443,39 @@ module Make (C : Constraint.S) = struct
     in
     X.Eps_var.Map.fold (fun _ eps -> add_eps eps) sigma.grade_subst.eps_subst us
 
+  (* The unknowns of an atom with the unknowns [us] under [sigma]: those
+     outside its domain, and those of the values of those within it. *)
+  let substituted (sigma : C.subst) =
+    let bindings =
+      TyParamMap.fold
+        (fun a ty acc ->
+          (Ty_unknown a, lazy (add_ty ty Unknown_set.empty)) :: acc)
+        sigma.ty_subst []
+      |> X.Rho_var.Map.fold
+           (fun k rho acc ->
+             ( Grade_unknown (R.Rho_unknown k),
+               lazy (add_rho rho Unknown_set.empty) )
+             :: acc)
+           sigma.grade_subst.rho_subst
+      |> X.Eps_var.Map.fold
+           (fun k eps acc ->
+             ( Grade_unknown (R.Eps_unknown k),
+               lazy (add_eps eps Unknown_set.empty) )
+             :: acc)
+           sigma.grade_subst.eps_subst
+    in
+    fun us ->
+      let kept, added =
+        List.fold_left
+          (fun (kept, added) (u, values) ->
+            if Unknown_set.mem u us then
+              ( Unknown_set.remove u kept,
+                Unknown_set.union added (Lazy.force values) )
+            else (kept, added))
+          (us, Unknown_set.empty) bindings
+      in
+      Unknown_set.union kept added
+
   (* The polarity of [u] in an atom. *)
   let in_atom u = function
     | Rho_atom o -> in_ordering (in_rho u) o
@@ -637,29 +670,33 @@ module Make (C : Constraint.S) = struct
           reflexive = Int_set.remove id st.reflexive;
         }
 
-  (* The atom at [id] replaced by [f] of it, or removed where [f] gives no
-     atom, the first at [id] and the others after the last atom, with the
+  (* The entry at [id] replaced by [f] of it, or removed where [f] gives no
+     entry, the first at [id] and the others after the last atom, with the
      unknowns of all added to [touched]. *)
   let replace context f id (st, touched) =
-    let { atom; unknowns } = Int_map.find id st.atoms in
-    let set id atom ~before (st, touched) =
+    let entry = Int_map.find id st.atoms in
+    let set id replacement ~before (st, touched) =
       let after =
-        Option.fold ~none:Unknown_set.empty ~some:atom_unknowns atom
+        Option.fold ~none:Unknown_set.empty
+          ~some:(fun e -> e.unknowns)
+          replacement
       in
-      ( reindex context id atom ~before ~after st,
+      ( reindex context id
+          (Option.map (fun e -> e.atom) replacement)
+          ~before ~after st,
         Unknown_set.union touched (Unknown_set.union before after) )
     in
-    let add (st, touched) atom =
+    let add (st, touched) replacement =
       let st, touched =
-        set st.next (Some atom) ~before:Unknown_set.empty (st, touched)
+        set st.next (Some replacement) ~before:Unknown_set.empty (st, touched)
       in
       ({ st with next = st.next + 1 }, touched)
     in
-    match f atom with
-    | [] -> set id None ~before:unknowns (st, touched)
+    match f entry with
+    | [] -> set id None ~before:entry.unknowns (st, touched)
     | first :: rest ->
         List.fold_left add
-          (set id (Some first) ~before:unknowns (st, touched))
+          (set id (Some first) ~before:entry.unknowns (st, touched))
           rest
 
   (* The tests of [kind] at [us] due again. *)
@@ -741,10 +778,20 @@ module Make (C : Constraint.S) = struct
     let rewrite =
       match kind with
       | Unit_eps | Unit_rho ->
-          fun atom -> canon_atom context (subst_atom plan.value atom)
+          fun e ->
+            List.map
+              (fun atom -> { atom; unknowns = atom_unknowns atom })
+              (canon_atom context (subst_atom plan.value e.atom))
       | Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps | Raise_rho
       | Collapse | Lower_ty ->
-          fun atom -> [ subst_atom plan.value atom ]
+          let unknowns = substituted plan.value in
+          fun e ->
+            [
+              {
+                atom = subst_atom plan.value e.atom;
+                unknowns = unknowns e.unknowns;
+              };
+            ]
     in
     let st, touched =
       Int_set.fold (replace context rewrite) (occurrences st u) (st, touched)
@@ -1013,11 +1060,28 @@ module Make (C : Constraint.S) = struct
       { rho_hyps = []; eps_hyps = [] }
       (Seq.map (fun (_, e) -> e.atom) (Int_map.to_rev_seq st.atoms))
 
+  (* The grade hypotheses, found by the unknowns occurring in them. *)
+  let index st : R.reason N.index =
+    let at u pick =
+      List.filter_map
+        (fun id -> pick (atom_at st id))
+        (Int_set.elements (occurrences st u))
+    in
+    let rho = function Rho_atom o -> Some o | _ -> None
+    and eps = function Eps_atom o -> Some o | _ -> None in
+    {
+      hyps = lazy (grades st);
+      rho_of = (fun k -> at (Grade_unknown (R.Rho_unknown k)) rho);
+      rho_of_image = (fun k -> at (Grade_unknown (R.Eps_unknown k)) rho);
+      eps_of = (fun k -> at (Grade_unknown (R.Eps_unknown k)) eps);
+    }
+
   (* The test of [kind] at an unknown; for equating, the decision procedure
-     of the hypotheses is shared by the unknowns tested. *)
+     of the hypotheses is shared by the unknowns tested, and reads the
+     hypotheses through the index of the unknowns. *)
   let test env kind st =
     let context = env.context in
-    let entail = lazy (E.make context.Residual.bounds (grades st)) in
+    let entail = lazy (E.make_indexed context.Residual.bounds (index st)) in
     fun u ->
       match (kind, u) with
       | Equate_eps, Grade_unknown (R.Eps_unknown k) ->

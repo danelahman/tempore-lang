@@ -47,6 +47,18 @@ module Make (X : GradeExp.S) : sig
   val no_hyps : 'a hyps
   (** The empty set of hypotheses. *)
 
+  type 'a index = {
+    hyps : 'a hyps Lazy.t;  (** every hypothesis *)
+    rho_of : X.Rho_var.t -> (X.rho, 'a) ordering list;
+        (** the resource hypotheses in which a resource variable occurs *)
+    rho_of_image : X.Eps_var.t -> (X.rho, 'a) ordering list;
+        (** the resource hypotheses in which an effect variable occurs *)
+    eps_of : X.Eps_var.t -> (X.eps, 'a) ordering list;
+        (** the effect hypotheses in which an effect variable occurs *)
+  }
+  (** Hypotheses of both sorts, found by the variables occurring in them. Each
+      list may hold further hypotheses, and repeat them. *)
+
   (** The operations of one sort. *)
   module type SORT = sig
     type exp
@@ -130,6 +142,16 @@ module Make (X : GradeExp.S) : sig
         with atoms compared along the chains of the hypotheses whose both sides
         are single atoms only, on the resource side also along the images of
         such effect hypotheses: a fragment of {!decide_leq}. *)
+
+    val decide_leq_atomic_indexed :
+      Grades.Grade.bounds -> 'a index -> exp -> exp -> 'a list option
+    (** [decide_leq_atomic_indexed bounds index e e'] succeeds exactly where
+        {!decide_leq_atomic} at the hypotheses of [index] does, possibly with
+        another derivation. The chains are found by breadth-first search along
+        the hypotheses of the variables met, forward from a variable and
+        backward to the target from a constant; all hypotheses are read only
+        where a search meets a constant. Applied to [bounds] and [index] alone,
+        each search runs once and is shared by the orderings decided. *)
 
     val split :
       Grades.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list

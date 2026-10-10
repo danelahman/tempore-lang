@@ -88,32 +88,55 @@ module Make (C : Constraint.S) = struct
         List.map (subst_ordering (subst_eps sigma) sigma) d.eps_conditions;
     }
 
-  let subst sigma r =
+  (* The atoms under a substitution of types alone: the grades, and the
+     reasons, which carry grades only, are left as they are. *)
+  let subst_types sigma r =
+    let on_ty = C.subst_ty sigma in
     {
-      rho_orderings =
-        List.map (subst_ordering (subst_rho sigma) sigma) r.rho_orderings;
-      eps_orderings =
-        List.map (subst_ordering (subst_eps sigma) sigma) r.eps_orderings;
+      r with
       eternals =
         List.map
-          (fun e ->
-            {
-              eternal_ty = C.subst_ty sigma e.eternal_ty;
-              eternal_reason = C.subst_reason sigma e.eternal_reason;
-            })
+          (fun e -> { e with eternal_ty = on_ty e.eternal_ty })
           r.eternals;
-      subs = List.map (subst_ordering (C.subst_ty sigma) sigma) r.subs;
-      disjunctions =
+      subs =
         List.map
-          (fun d ->
-            {
-              disj_ty = C.subst_ty sigma d.disj_ty;
-              disj_grade = subst_rho sigma d.disj_grade;
-              disj_reason = C.subst_reason sigma d.disj_reason;
-            })
-          r.disjunctions;
-      deferred = List.map (subst_deferred sigma) r.deferred;
+          (fun (s : sub) -> { s with lhs = on_ty s.lhs; rhs = on_ty s.rhs })
+          r.subs;
+      disjunctions =
+        List.map (fun d -> { d with disj_ty = on_ty d.disj_ty }) r.disjunctions;
     }
+
+  let subst (sigma : C.subst) r =
+    if
+      X.Rho_var.Map.is_empty sigma.grade_subst.rho_subst
+      && X.Eps_var.Map.is_empty sigma.grade_subst.eps_subst
+    then subst_types sigma r
+    else
+      {
+        rho_orderings =
+          List.map (subst_ordering (subst_rho sigma) sigma) r.rho_orderings;
+        eps_orderings =
+          List.map (subst_ordering (subst_eps sigma) sigma) r.eps_orderings;
+        eternals =
+          List.map
+            (fun e ->
+              {
+                eternal_ty = C.subst_ty sigma e.eternal_ty;
+                eternal_reason = C.subst_reason sigma e.eternal_reason;
+              })
+            r.eternals;
+        subs = List.map (subst_ordering (C.subst_ty sigma) sigma) r.subs;
+        disjunctions =
+          List.map
+            (fun d ->
+              {
+                disj_ty = C.subst_ty sigma d.disj_ty;
+                disj_grade = subst_rho sigma d.disj_grade;
+                disj_reason = C.subst_reason sigma d.disj_reason;
+              })
+            r.disjunctions;
+        deferred = List.map (subst_deferred sigma) r.deferred;
+      }
 
   (* ------------------------------------------------------------------ *)
   (* Grade unknowns                                                      *)

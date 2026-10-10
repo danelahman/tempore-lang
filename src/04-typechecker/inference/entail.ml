@@ -7,21 +7,57 @@ module Make (X : GradeExp.S) = struct
 
   type 'a t = {
     bounds : Grades.Grade.bounds;
-    hyps : 'a hyps;
+    rho_with : X.rho -> X.rho -> (X.rho, 'a) GradeNormal.ordering list;
+        (* hypotheses that include those between two given sides *)
+    eps_with : X.eps -> X.eps -> (X.eps, 'a) GradeNormal.ordering list;
     rho : (X.rho -> X.rho -> 'a list option) Lazy.t;
     eps : (X.eps -> X.eps -> 'a list option) Lazy.t;
     rho_atomic : (X.rho -> X.rho -> 'a list option) Lazy.t;
     eps_atomic : (X.eps -> X.eps -> 'a list option) Lazy.t;
   }
 
-  let make bounds hyps =
+  let make bounds (hyps : _ hyps) =
     {
       bounds;
-      hyps;
+      rho_with = (fun _ _ -> hyps.rho_hyps);
+      eps_with = (fun _ _ -> hyps.eps_hyps);
       rho = lazy (N.Rho.decide_leq bounds hyps);
       eps = lazy (N.Eps.decide_leq bounds hyps);
       rho_atomic = lazy (N.Rho.decide_leq_atomic bounds hyps);
       eps_atomic = lazy (N.Eps.decide_leq_atomic bounds hyps);
+    }
+
+  (* The first of [e] and [e'] that has a variable, by [some_var]. *)
+  let either some_var e e' =
+    match some_var e with Some _ as v -> v | None -> some_var e'
+
+  let eps_var eps = X.Eps.fold_vars (fun v _ -> Some v) eps None
+
+  let make_indexed bounds (index : _ N.index) =
+    let hyps = index.hyps in
+    let rho_var rho =
+      X.Rho.fold_vars
+        ~on_rho:(fun v _ -> Some (Either.Left v))
+        ~on_eps:(fun v _ -> Some (Either.Right v))
+        rho None
+    in
+    {
+      bounds;
+      rho_with =
+        (fun e e' ->
+          match either rho_var e e' with
+          | Some (Either.Left v) -> index.rho_of v
+          | Some (Either.Right v) -> index.rho_of_image v
+          | None -> (Lazy.force hyps).rho_hyps);
+      eps_with =
+        (fun e e' ->
+          match either eps_var e e' with
+          | Some v -> index.eps_of v
+          | None -> (Lazy.force hyps).eps_hyps);
+      rho = lazy (N.Rho.decide_leq bounds (Lazy.force hyps));
+      eps = lazy (N.Eps.decide_leq bounds (Lazy.force hyps));
+      rho_atomic = lazy (N.Rho.decide_leq_atomic_indexed bounds index);
+      eps_atomic = lazy (N.Eps.decide_leq_atomic_indexed bounds index);
     }
 
   module type SORT = sig
@@ -43,7 +79,7 @@ module Make (X : GradeExp.S) = struct
     include N.SORT
 
     val equal_exp : Grades.Grade.bounds -> exp -> exp -> bool
-    val orderings : 'a hyps -> (exp, 'a) GradeNormal.ordering list
+    val orderings : 'a t -> exp -> exp -> (exp, 'a) GradeNormal.ordering list
     val derivation : 'a t -> (exp -> exp -> 'a list option) Lazy.t
     val atomic_derivation : 'a t -> (exp -> exp -> 'a list option) Lazy.t
   end) : SORT with type exp = S.exp = struct
@@ -59,7 +95,7 @@ module Make (X : GradeExp.S) = struct
       List.exists
         (fun (o : _ GradeNormal.ordering) ->
           S.equal_exp t.bounds o.lhs e && S.equal_exp t.bounds o.rhs e')
-        (S.orderings t.hyps)
+        (S.orderings t e e')
       || closed t.bounds e e' = Some true
       || Option.is_some (Lazy.force (S.atomic_derivation t) e e')
 
@@ -82,7 +118,7 @@ module Make (X : GradeExp.S) = struct
     include N.Rho
 
     let equal_exp = X.Rho.equal
-    let orderings (hyps : _ hyps) = hyps.rho_hyps
+    let orderings t = t.rho_with
     let derivation t = t.rho
     let atomic_derivation t = t.rho_atomic
   end)
@@ -91,7 +127,7 @@ module Make (X : GradeExp.S) = struct
     include N.Eps
 
     let equal_exp = X.Eps.equal
-    let orderings (hyps : _ hyps) = hyps.eps_hyps
+    let orderings t = t.eps_with
     let derivation t = t.eps
     let atomic_derivation t = t.eps_atomic
   end)

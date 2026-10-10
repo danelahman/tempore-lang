@@ -69,6 +69,9 @@ module Core (S : BASE) = struct
 
   let equal_product bounds = List.equal (equal_atom bounds)
 
+  let equal_atom_var a v =
+    match a with Var w -> equal_var v w | Const _ -> false
+
   let atom_is_top bounds = function
     | Const c -> S.is_top bounds c
     | Var _ -> false
@@ -84,7 +87,94 @@ module Core (S : BASE) = struct
     | Const c, p when S.equal bounds c S.one -> p
     | a, p -> a :: p
 
-  let app bounds p q = List.fold_right (cons bounds) p q
+  (* A product under construction: its atoms in a binary tree, a rope (Boehm,
+     Atkinson and Plass, Softw. Pract. Exper. 1995), so that two products are
+     joined in constant time, with its length and its first and last
+     atoms. *)
+  type rope = Leaf of atom | Cat of rope * rope
+
+  type built =
+    | Empty
+    | Built of { atoms : rope; length : int; first : atom; last : atom }
+
+  let rec to_list_onto acc = function
+    | Leaf a -> a :: acc
+    | Cat (l, r) -> to_list_onto (to_list_onto acc r) l
+
+  let to_list = function Empty -> [] | Built b -> to_list_onto [] b.atoms
+
+  let of_list p =
+    List.fold_right
+      (fun a q ->
+        match q with
+        | Empty -> Built { atoms = Leaf a; length = 1; first = a; last = a }
+        | Built b ->
+            Built
+              {
+                atoms = Cat (Leaf a, b.atoms);
+                length = b.length + 1;
+                first = a;
+                last = b.last;
+              })
+      p Empty
+
+  let concat p q =
+    match (p, q) with
+    | Empty, r | r, Empty -> r
+    | Built b, Built b' ->
+        Built
+          {
+            atoms = Cat (b.atoms, b'.atoms);
+            length = b.length + b'.length;
+            first = b.first;
+            last = b'.last;
+          }
+
+  (* The atoms of a tree but its last, and but its first, if any remain. *)
+  let rec but_last = function
+    | Leaf _ -> None
+    | Cat (l, r) ->
+        Some (Option.fold ~none:l ~some:(fun r -> Cat (l, r)) (but_last r))
+
+  let rec but_first = function
+    | Leaf _ -> None
+    | Cat (l, r) ->
+        Some (Option.fold ~none:r ~some:(fun l -> Cat (l, r)) (but_first l))
+
+  let rec last_of = function Leaf a -> a | Cat (_, r) -> last_of r
+  let rec first_of = function Leaf a -> a | Cat (l, _) -> first_of l
+
+  let drop_last = function
+    | Empty -> Empty
+    | Built b -> (
+        match but_last b.atoms with
+        | None -> Empty
+        | Some atoms ->
+            Built { b with atoms; length = b.length - 1; last = last_of atoms })
+
+  let drop_first = function
+    | Empty -> Empty
+    | Built b -> (
+        match but_first b.atoms with
+        | None -> Empty
+        | Some atoms ->
+            Built
+              { b with atoms; length = b.length - 1; first = first_of atoms })
+
+  (* [List.fold_right (cons bounds) p q] on products whose adjacent constants
+     are multiplied and whose constants are not the unit, as {!cons} leaves
+     them: only the last atom of [p] and the first of [q] may be merged. *)
+  let app bounds p q =
+    match (p, q) with
+    | Empty, r | r, Empty -> r
+    | Built b, Built b' -> (
+        match (b.last, b'.first) with
+        | Const c, Const d ->
+            concat (drop_last p)
+              (concat
+                 (of_list (cons bounds (Const (S.mul c d)) []))
+                 (drop_first q))
+        | (Const _ | Var _), _ -> concat p q)
 
   (* Every alternative of the one sum against every alternative of the
      other. *)
@@ -97,25 +187,46 @@ module Core (S : BASE) = struct
         if List.exists (equal_product bounds p) s' then s' else p :: s')
       s []
 
+  (* {!nub} on products under construction. *)
+  let nub_built bounds s =
+    List.fold_right
+      (fun p s' ->
+        let same p' =
+          match (p, p') with
+          | Empty, Empty -> true
+          | Built b, Built b' ->
+              b.length = b'.length
+              && equal_product bounds (to_list p) (to_list p')
+          | (Empty | Built _), _ -> false
+        in
+        if List.exists same s' then s' else p :: s')
+      s []
+
   (* The constant top, or the empty product where the unit is the top. *)
   let is_top bounds = function
-    | [] -> S.is_top bounds S.one
-    | [ a ] -> atom_is_top bounds a
-    | _ -> false
+    | Empty -> S.is_top bounds S.one
+    | Built { length = 1; first; _ } -> atom_is_top bounds first
+    | Built _ -> false
 
   (* A sum with a top alternative is the top. *)
   let absorb bounds s =
-    if List.exists (is_top bounds) s then [ cons bounds (Const S.top) [] ]
+    if List.exists (is_top bounds) s then
+      [ of_list (cons bounds (Const S.top) []) ]
     else s
 
-  let flat bounds =
-    S.fold_exp
-      {
-        const = (fun c -> [ cons bounds (Const c) [] ]);
-        var = (fun v -> [ [ Var v ] ]);
-        mul = (fun s t -> absorb bounds (nub bounds (cross bounds s t)));
-        join = (fun s t -> absorb bounds (nub bounds (s @ t)));
-      }
+  (* Products are built as trees, so that a product nested to the left is
+     flattened in time linear in its size. *)
+  let flat bounds e =
+    List.map to_list
+      (S.fold_exp
+         {
+           const = (fun c -> [ of_list (cons bounds (Const c) []) ]);
+           var = (fun v -> [ of_list [ Var v ] ]);
+           mul =
+             (fun s t -> absorb bounds (nub_built bounds (cross bounds s t)));
+           join = (fun s t -> absorb bounds (nub_built bounds (s @ t)));
+         }
+         e)
 
   (* A product as its constant followed by its variables in order. *)
   let commute bounds p =
@@ -407,21 +518,158 @@ module Core (S : BASE) = struct
     let var_sources, consts = List.fold_left add (Var_map.empty, []) edges in
     { var_sources; const_sources = List.rev consts }
 
-  type 'a context = { bounds : Grades.Grade.bounds; table : 'a table }
-
-  (* Whether [a] reaches [b] directly or along the table's edges. *)
-  let reach ctx a b =
-    derived_if (link ctx.bounds a b) <|> fun () ->
+  (* Whether [a] reaches [b] along the table's edges. *)
+  let along_table bounds table a b =
     match a with
     | Var v ->
-        Option.bind (Var_map.find_opt v ctx.table.var_sources) (fun reached ->
-            find ctx.bounds (Lazy.force reached) b)
+        Option.bind (Var_map.find_opt v table.var_sources) (fun reached ->
+            find bounds (Lazy.force reached) b)
     | Const c ->
         List.find_map
           (fun (d, reached) ->
-            if S.leq ctx.bounds c d then find ctx.bounds (Lazy.force reached) b
+            if S.leq bounds c d then find bounds (Lazy.force reached) b
             else None)
-          ctx.table.const_sources
+          table.const_sources
+
+  (* The edges between atoms, found by their endpoints: those out of a
+     variable, those into a variable, and all of them. *)
+  type 'a adjacency = {
+    out_of_var : var -> (atom * atom * 'a list) list;
+    into_var : var -> (atom * atom * 'a list) list;
+    all : (atom * atom * 'a list) list Lazy.t;
+  }
+
+  (* The chain of an atom reached that the atom [a] is linked to: [a] itself
+     where it is a variable, a constant above [a] where it is one. *)
+  let find_above bounds reached a =
+    match a with
+    | Var v -> Var_map.find_opt v reached.vars
+    | Const c ->
+        List.find_map
+          (fun (d, used) -> if S.leq bounds c d then Some used else None)
+          reached.consts
+
+  (* A breadth-first search in progress: the atoms found, each with its
+     chain, and those found and not yet followed, in order. *)
+  type 'a search = {
+    found : 'a reached;
+    now : (atom * 'a list) list;
+    later : (atom * 'a list) list;
+  }
+
+  (* The search one atom further: the next atom found and not yet followed is
+     followed along [next], which gives the atoms one edge away from it with
+     the edge's payloads; each atom not matched by [known] in what is found
+     is added with the chain to it extended by [extend]. [None] once every
+     atom found has been followed. *)
+  let advance ~next ~known ~extend st =
+    match (st.now, st.later) with
+    | [], [] -> None
+    | [], later -> Some { st with now = List.rev later; later = [] }
+    | (x, chain) :: now, later ->
+        let found, later =
+          List.fold_left
+            (fun (found, later) (y, used) ->
+              if Option.is_some (known found y) then (found, later)
+              else
+                let chain = extend chain used in
+                (add_reached y chain found, (y, chain) :: later))
+            (st.found, later) (next x)
+        in
+        Some { found; now; later }
+
+  (* The search from [start], resumed by each query until [matches] holds of
+     what it has found or nothing is left to follow; the progress is kept for
+     the later queries. *)
+  let resumable ~next ~known ~extend start =
+    let progress =
+      ref { found = reached_from start; now = [ (start, []) ]; later = [] }
+    in
+    let rec query matches =
+      match matches !progress.found with
+      | Some _ as hit -> hit
+      | None -> (
+          match advance ~next ~known ~extend !progress with
+          | Some st ->
+              progress := st;
+              query matches
+          | None -> None)
+    in
+    query
+
+  (* The search from [source] forward along the edges of [adj]: chains from
+     it. *)
+  let forward bounds adj source =
+    let next x =
+      let edges =
+        match x with
+        | Var v -> adj.out_of_var v
+        | Const _ ->
+            List.filter (fun (a, _, _) -> link bounds x a) (Lazy.force adj.all)
+      in
+      List.map (fun (_, b, used) -> (b, used)) edges
+    in
+    resumable ~next ~known:(find bounds) ~extend:( @ ) source
+
+  (* The search from [target] backward along the edges of [adj]: chains to
+     it. *)
+  let backward bounds adj target =
+    let next y =
+      let edges =
+        match y with
+        | Var v -> adj.into_var v
+        | Const _ ->
+            List.filter (fun (_, b, _) -> link bounds b y) (Lazy.force adj.all)
+      in
+      List.map (fun (a, _, used) -> (a, used)) edges
+    in
+    resumable ~next ~known:(find_above bounds)
+      ~extend:(fun chain used -> used @ chain)
+      target
+
+  (* [f] memoised at each atom, constants compared by the grade's
+     equality. *)
+  let memoised bounds f =
+    let vars = ref Var_map.empty and consts = ref [] in
+    function
+    | Var v as a -> (
+        match Var_map.find_opt v !vars with
+        | Some r -> r
+        | None ->
+            let r = f a in
+            vars := Var_map.add v r !vars;
+            r)
+    | Const c as a -> (
+        match
+          List.find_map
+            (fun (d, r) -> if S.equal bounds c d then Some r else None)
+            !consts
+        with
+        | Some r -> r
+        | None ->
+            let r = f a in
+            consts := (c, r) :: !consts;
+            r)
+
+  (* Whether [a] reaches [b] along the edges of [adj]: by the search forward
+     from [a] where it is a variable, and backward from [b] where [a] is a
+     constant, one search from each atom, resumed by the queries. *)
+  let along_adjacent bounds adj =
+    let from = memoised bounds (forward bounds adj)
+    and towards = memoised bounds (backward bounds adj) in
+    fun a b ->
+      match a with
+      | Var _ -> from a (fun found -> find bounds found b)
+      | Const _ -> towards b (fun found -> find_above bounds found a)
+
+  type 'a context = {
+    bounds : Grades.Grade.bounds;
+    along : atom -> atom -> 'a list option;
+  }
+
+  (* Whether [a] reaches [b] directly or along the edges of [ctx]. *)
+  let reach ctx a b =
+    derived_if (link ctx.bounds a b) <|> fun () -> ctx.along a b
 
   (* An atom that the top reaches. *)
   let top_leq ctx b = reach ctx (Const S.top) b
@@ -533,12 +781,19 @@ module Core (S : BASE) = struct
             Option.map (List.append used) (alt_sum_leq ctx p t)))
       (Some []) s
 
+  let decide_in ctx e e' =
+    sum_leq ctx (normal ctx.bounds e)
+      (fold_sum ctx.bounds (normal ctx.bounds e'))
+
   (* Decides orderings [e ≾ e'] along the given atomic edges, the table of the
      edges shared by the orderings decided. *)
   let decide bounds edges =
-    let ctx = { bounds; table = table bounds edges } in
-    fun e e' ->
-      sum_leq ctx (normal bounds e) (fold_sum bounds (normal bounds e'))
+    decide_in { bounds; along = along_table bounds (table bounds edges) }
+
+  (* {!decide} along the edges of [adj], each search shared by the orderings
+     decided. *)
+  let decide_adjacent bounds adj =
+    decide_in { bounds; along = along_adjacent bounds adj }
 
   (* The orderings between two atoms, as edges. *)
   let atomic_edges orderings =
@@ -941,6 +1196,13 @@ module Make (X : GradeExp.S) = struct
 
   let no_hyps = { rho_hyps = []; eps_hyps = [] }
 
+  type 'a index = {
+    hyps : 'a hyps Lazy.t;
+    rho_of : X.Rho_var.t -> (X.rho, 'a) ordering list;
+    rho_of_image : X.Eps_var.t -> (X.rho, 'a) ordering list;
+    eps_of : X.Eps_var.t -> (X.eps, 'a) ordering list;
+  }
+
   module type SORT = sig
     type exp
     type const
@@ -961,6 +1223,9 @@ module Make (X : GradeExp.S) = struct
 
     val decide_leq_atomic :
       Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
+
+    val decide_leq_atomic_indexed :
+      Grades.Grade.bounds -> 'a index -> exp -> exp -> 'a list option
 
     val split :
       Grades.Grade.bounds -> (exp, 'a) ordering -> (exp, 'a) ordering list
@@ -1092,6 +1357,23 @@ module Make (X : GradeExp.S) = struct
 
     let decide_leq_atomic bounds hyps =
       decide bounds (atomic_edges hyps.eps_hyps)
+
+    (* The edges between atoms of the orderings of each variable whose source,
+       or target, it is, and of all orderings. *)
+    let adjacency index =
+      let at pick v =
+        List.filter
+          (fun edge -> equal_atom_var (pick edge) v)
+          (atomic_edges (index.eps_of v))
+      in
+      {
+        out_of_var = at (fun (a, _, _) -> a);
+        into_var = at (fun (_, b, _) -> b);
+        all = lazy (atomic_edges (Lazy.force index.hyps).eps_hyps);
+      }
+
+    let decide_leq_atomic_indexed bounds index =
+      decide_adjacent bounds (adjacency index)
   end
 
   module Rho = struct
@@ -1115,15 +1397,42 @@ module Make (X : GradeExp.S) = struct
       in
       decide_graph bounds ~extra:images hyps.rho_hyps
 
+    let image_edges edges =
+      List.map (fun (a, b, used) -> (image a, image b, used)) edges
+
     (* The resource hypotheses between atoms and the images of the effect
        ones. *)
     let decide_leq_atomic bounds hyps =
-      let images =
-        List.map
-          (fun (a, b, used) -> (image a, image b, used))
-          (Eps_core.atomic_edges hyps.eps_hyps)
+      decide bounds
+        (atomic_edges hyps.rho_hyps
+        @ image_edges (Eps_core.atomic_edges hyps.eps_hyps))
+
+    (* The edges between atoms of the resource orderings of each variable
+       atom whose source, or target, it is, with the images of those of the
+       effect orderings of the variable of an image, and of all orderings. *)
+    let adjacency index =
+      let at pick v =
+        let edges =
+          match v with
+          | Resource r -> atomic_edges (index.rho_of r)
+          | Image e ->
+              atomic_edges (index.rho_of_image e)
+              @ image_edges (Eps_core.atomic_edges (index.eps_of e))
+        in
+        List.filter (fun edge -> equal_atom_var (pick edge) v) edges
       in
-      decide bounds (atomic_edges hyps.rho_hyps @ images)
+      {
+        out_of_var = at (fun (a, _, _) -> a);
+        into_var = at (fun (_, b, _) -> b);
+        all =
+          lazy
+            (let hyps = Lazy.force index.hyps in
+             atomic_edges hyps.rho_hyps
+             @ image_edges (Eps_core.atomic_edges hyps.eps_hyps));
+      }
+
+    let decide_leq_atomic_indexed bounds index =
+      decide_adjacent bounds (adjacency index)
   end
 
   type 'a closed_failure =

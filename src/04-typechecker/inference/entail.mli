@@ -37,6 +37,12 @@ module Make (X : GradeExp.S) : sig
   (** [make bounds hyps] is the entailment from [hyps]. The chains along the
       hypotheses are computed when first needed, and shared by the queries. *)
 
+  val make_indexed : Grades.Grade.bounds -> 'a GradeNormal.Make(X).index -> 'a t
+  (** [make_indexed bounds index] is the entailment from the hypotheses of
+      [index], whose queries [follows_atomic] read the hypotheses of the
+      variables of their sides and those the searches of
+      {!GradeNormal.Make.SORT.decide_leq_atomic_indexed} meet. *)
+
   (** The queries on the orderings of one sort. *)
   module type SORT = sig
     type exp
