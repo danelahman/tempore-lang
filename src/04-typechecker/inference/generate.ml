@@ -424,6 +424,57 @@ module Make (C : Constraint.S) = struct
           name name
           (String.capitalize_ascii name)
 
+  (* An argument of an alias being unfolded: a type with the aliases unfolded
+     around it and the arguments of its parameters. *)
+  type argument =
+    | Argument of
+        Ast.ty_name list * argument Ast.TyParamMap.t * (rho, eps) Ast.ty
+
+  (* Whether unfolding the aliases in a type reaches an alias of [path], the
+     aliases being unfolded. Types defined by constructors are not unfolded,
+     but their arguments are searched. The parameters of the type are bound to
+     their arguments by [args]; a parameter without an argument is left as it
+     is. *)
+  let rec reaches_unfolded env ~path ~args = function
+    | Ast.TyConst _ -> false
+    | Ast.TyParam p -> (
+        match Ast.TyParamMap.find_opt p args with
+        | Some (Argument (path, args, ty)) ->
+            reaches_unfolded env ~path ~args ty
+        | None -> false)
+    | Ast.TyApply (name, tys) -> (
+        match find_type_definition env name with
+        | Some { params; definition = Ast.TyInline body; _ } ->
+            List.exists (fun name' -> Ast.TyName.compare name name' = 0) path
+            ||
+            let args' =
+              List.fold_left2
+                (fun args' p ty ->
+                  Ast.TyParamMap.add p (Argument (path, args, ty)) args')
+                Ast.TyParamMap.empty params tys
+            in
+            reaches_unfolded env ~path:(name :: path) ~args:args' body
+        | Some { definition = Ast.TySum _; _ } | None ->
+            List.exists (reaches_unfolded env ~path ~args) tys)
+    | ty ->
+        List.exists (reaches_unfolded env ~path ~args) (immediate_subtypes ty)
+
+  (* No alias of [group] unfolds, through aliases only, to a type containing
+     itself. *)
+  let check_acyclic_aliases ~loc env group =
+    List.iter
+      (fun (name, def) ->
+        match def.definition with
+        | Ast.TySum _ -> ()
+        | Ast.TyInline body ->
+            if
+              reaches_unfolded env ~path:[ name ] ~args:Ast.TyParamMap.empty
+                body
+            then
+              Error.typing ~loc "The type alias `%t` is cyclic"
+                (Ast.TyName.print name))
+      group
+
   let add_type_definitions ~loc env (eternality, defs) =
     (match eternality with
     | Ast.Derived -> ()
@@ -445,6 +496,7 @@ module Make (C : Constraint.S) = struct
         env group
     in
     List.iter (fun (_, def) -> check_ty_def ~loc env' def.definition) group;
+    check_acyclic_aliases ~loc env' group;
     check_strictly_positive ~loc env' group;
     settle_polarities env' group
 

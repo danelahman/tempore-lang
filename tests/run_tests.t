@@ -151,6 +151,56 @@
   State: []
   
   ======================================================================
+  alias_cyclic_reject.tpe
+  ======================================================================
+  File "alias_cyclic_reject.tpe", line 3, characters 0-16:
+  3 | type t = t * nat
+      ^^^^^^^^^^^^^^^^
+  Typing error: The type alias `t` is cyclic
+  ======================================================================
+  alias_cyclic_reject_argument.tpe
+  ======================================================================
+  File "alias_cyclic_reject_argument.tpe", line 3, characters 0-21:
+  3 | type 'a t = 'a t list
+      ^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The type alias `t` is cyclic
+  ======================================================================
+  alias_cyclic_reject_mutual.tpe
+  ======================================================================
+  File "alias_cyclic_reject_mutual.tpe", lines 3-4, characters 0-9:
+  3 | type t = u * nat
+      ^^^^^^^^^^^^^^^^
+  Typing error: The type alias `t` is cyclic
+  ======================================================================
+  alias_cyclic_reject_parameter.tpe
+  ======================================================================
+  File "alias_cyclic_reject_parameter.tpe", line 3, characters 0-23:
+  3 | type 'a t = ('a * 'a) t
+      ^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The type alias `t` is cyclic
+  ======================================================================
+  alias_cyclic_reject_through_alias.tpe
+  ======================================================================
+  File "alias_cyclic_reject_through_alias.tpe", lines 3-4, characters 0-12:
+  3 | type 'a id = 'a
+      ^^^^^^^^^^^^^^^
+  Typing error: The type alias `u` is cyclic
+  ======================================================================
+  alias_recursive.tpe
+  ======================================================================
+  === Run 1 ===
+  return (Node (Leaf, Node (Leaf, Leaf)))
+  State: []
+  
+  === Run 2 ===
+  return (1, 2)
+  State: []
+  
+  === Run 3 ===
+  return 3
+  State: []
+  
+  ======================================================================
   annotation_grade_variables.tpe
   ======================================================================
   === Run 1 ===

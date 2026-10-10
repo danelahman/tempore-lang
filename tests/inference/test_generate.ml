@@ -68,6 +68,11 @@ let grades_of_test table name =
    with an error of their own rather than one of the solver. *)
 let malformed =
   [
+    "alias_cyclic_reject.tpe";
+    "alias_cyclic_reject_argument.tpe";
+    "alias_cyclic_reject_mutual.tpe";
+    "alias_cyclic_reject_parameter.tpe";
+    "alias_cyclic_reject_through_alias.tpe";
     "annotation_type_variables_reject.tpe";
     "annotation_type_variables_reject_operation.tpe";
     "error_unbox_nonvariable.tpe";

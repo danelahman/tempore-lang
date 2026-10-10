@@ -1,0 +1,26 @@
+(* Aliases recursive only through the definition of a type defined by
+   constructors, and an alias whose unfolding discards its own occurrence. *)
+type tree = Leaf | Node of pair
+and pair = tree * tree
+
+type 'a const = nat
+
+type n = n const
+
+type 'a id = 'a
+
+type 'a twice = 'a id * 'a id
+
+type m = nat twice twice
+
+let node (p : pair) : tree = Node p
+
+let first ((x, _) : m) = x
+
+let succ (x : n) = x + 1
+
+run node (Leaf, node (Leaf, Leaf))
+
+run first ((1, 2), (3, 4))
+
+run succ 2

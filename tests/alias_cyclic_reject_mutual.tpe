@@ -1,0 +1,4 @@
+(* Correctly rejected by the typechecker: the aliases `t` and `u`, defined
+   together, unfold to each other. *)
+type t = u * nat
+and u = t

@@ -1,0 +1,5 @@
+(* Correctly rejected by the typechecker: the alias `t` unfolds to a type
+   containing itself. *)
+type t = t * nat
+
+let f (x : t) = x

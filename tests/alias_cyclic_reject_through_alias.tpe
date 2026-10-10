@@ -1,0 +1,4 @@
+(* Correctly rejected by the typechecker: the alias `u` unfolds, through the
+   alias `id` defined together with it, to itself. *)
+type 'a id = 'a
+and u = u id

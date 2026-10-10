@@ -270,6 +270,11 @@ let rec tpe_files dir =
    accepted. *)
 let expected_rejections =
   [
+    ("tests/alias_cyclic_reject.tpe", [ 3 ]);
+    ("tests/alias_cyclic_reject_argument.tpe", [ 3 ]);
+    ("tests/alias_cyclic_reject_mutual.tpe", [ 3 ]);
+    ("tests/alias_cyclic_reject_parameter.tpe", [ 3 ]);
+    ("tests/alias_cyclic_reject_through_alias.tpe", [ 3 ]);
     ("tests/annotation_grade_variables_cyclic_reject.tpe", [ 14; 27 ]);
     ("tests/annotation_grade_variables_interval_reject.tpe", [ 24 ]);
     ("tests/annotation_grade_variables_reject.tpe", [ 10; 17 ]);

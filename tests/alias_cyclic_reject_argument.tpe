@@ -1,0 +1,5 @@
+(* Correctly rejected by the typechecker: the alias `t` unfolds to a type
+   containing itself as an argument of a type defined by constructors. *)
+type 'a t = 'a t list
+
+let f (x : nat t) = x
