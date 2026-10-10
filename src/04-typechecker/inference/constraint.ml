@@ -56,7 +56,6 @@ module type S = sig
 
   val empty_subst : subst
   val subst_ty : subst -> ty -> ty
-  val subst_comp_ty : subst -> comp_ty -> comp_ty
   val subst_reason : subst -> reason -> reason
   val subst : subst -> t -> t
   val freshen : subst -> t -> t
@@ -95,14 +94,6 @@ module type S = sig
   val to_string : t -> string
   val print_inline : ?names:names -> t -> Format.formatter -> unit
   val print_scheme : ?names:names -> scheme -> Format.formatter -> unit
-
-  val scheme_parts :
-    ?names:names ->
-    scheme ->
-    (Format.formatter -> unit) option
-    * (Format.formatter -> unit) option
-    * (Format.formatter -> unit)
-
   val scheme_layout : ?names:names -> scheme -> layout
 end
 
@@ -181,10 +172,6 @@ module Make (X : GradeExp.S) = struct
 
   let subst_ty sigma =
     Ast.substitute_ty sigma.ty_subst ~on_rho:(subst_rho sigma)
-      ~on_eps:(subst_eps sigma)
-
-  let subst_comp_ty sigma =
-    Ast.substitute_comp_ty sigma.ty_subst ~on_rho:(subst_rho sigma)
       ~on_eps:(subst_eps sigma)
 
   let subst_reason sigma = Reason.map_grades (subst_rho sigma) (subst_eps sigma)
@@ -619,20 +606,10 @@ module Make (X : GradeExp.S) = struct
     eps_occ : X.Eps_var.t list;
   }
 
-  let rec eps_occurrences eps occ =
-    match eps with
-    | X.Eps_var e -> { occ with eps_occ = e :: occ.eps_occ }
-    | X.Eps_const _ -> occ
-    | X.Eps_mul (eps, eps') | X.Eps_join (eps, eps') ->
-        eps_occurrences eps' (eps_occurrences eps occ)
-
-  let rec rho_occurrences rho occ =
-    match rho with
-    | X.Rho_var r -> { occ with rho_occ = r :: occ.rho_occ }
-    | X.Rho_const _ -> occ
-    | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
-        rho_occurrences rho' (rho_occurrences rho occ)
-    | X.Rho_map eps -> eps_occurrences eps occ
+  let add_eps_occ e occ = { occ with eps_occ = e :: occ.eps_occ }
+  let add_rho_occ r occ = { occ with rho_occ = r :: occ.rho_occ }
+  let eps_occurrences = X.Eps.fold_vars add_eps_occ
+  let rho_occurrences = X.Rho.fold_vars ~on_rho:add_rho_occ ~on_eps:add_eps_occ
 
   let ty_occurrences ty occ =
     Ast.fold_ty

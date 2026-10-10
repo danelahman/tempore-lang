@@ -115,6 +115,26 @@ module Make (C : Constraint.S) : sig
   (** [free_vars_deferred d] is the unknowns of the conditions of [d] other than
       its rigids. *)
 
+  (** {1 Grade unknowns} *)
+
+  (** A grade unknown of either sort. *)
+  type grade_unknown =
+    | Rho_unknown of C.X.Rho_var.t
+    | Eps_unknown of C.X.Eps_var.t
+
+  val in_rho : grade_unknown -> rho -> bool
+  (** [in_rho u rho] is whether [u] occurs in [rho], an effect unknown under an
+      image. *)
+
+  val in_eps : grade_unknown -> eps -> bool
+  (** [in_eps u eps] is whether [u] occurs in [eps]. *)
+
+  val assign_rho : C.X.Rho_var.t -> rho -> C.X.subst
+  (** [assign_rho k rho] is the substitution sending [k] to [rho]. *)
+
+  val assign_eps : C.X.Eps_var.t -> eps -> C.X.subst
+  (** [assign_eps k eps] is the substitution sending [k] to [eps]. *)
+
   (** {1 Failures} *)
 
   (** Why a constraint has no solution, or, for a run, is not shown to have one.
@@ -156,17 +176,12 @@ module Make (C : Constraint.S) : sig
 
   (** {1 Decomposition} *)
 
-  val unfold_alias : context -> Ast.ty_name -> ty list -> ty option
-  (** [unfold_alias context name args] is the definition of the alias [name] at
-      the arguments [args], and [None] for another type. *)
+  val unfold_alias : context -> ty -> ty option
+  (** [unfold_alias context ty] is the definition of the alias [ty] applies at
+      its arguments, and [None] for another type. *)
 
   val skeleton_unfold : context -> Skeleton.unfold
   (** [skeleton_unfold context] unfolds the skeletons of alias applications. *)
-
-  val eternal_vars : context -> ty -> Ast.ty_param list option
-  (** [eternal_vars context ty] is the type unknowns the eternality of [ty]
-      depends on, without repetition, and [None] when [ty] is eternal at no
-      instance. *)
 
   (** {1 Disjunctions} *)
 

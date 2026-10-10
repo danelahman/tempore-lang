@@ -164,13 +164,11 @@ module Make (C : Constraint.S) = struct
      binding. *)
   let decided context solved (bindings : site Skeleton.bindings) =
     let rec along seen (ty : C.ty) path =
-      match (ty, path) with
-      | Ast.TyParam a, _ -> within seen a path
-      | Ast.TyApply (name, args), _
-        when Option.is_some (R.unfold_alias context name args) ->
-          along seen (Option.get (R.unfold_alias context name args)) path
-      | _, [] -> None
-      | _, step :: path ->
+      match (ty, R.unfold_alias context ty, path) with
+      | Ast.TyParam a, _, _ -> within seen a path
+      | _, Some ty, _ -> along seen ty path
+      | _, None, [] -> None
+      | _, None, step :: path ->
           Option.bind (child ty step) (fun ty -> along seen ty path)
     (* The decision of the part at [path] of the value of [a]. *)
     and within seen a path =
@@ -202,7 +200,9 @@ module Make (C : Constraint.S) = struct
       delta solved
 
   (* The atoms of [links] other than [site], each once, with the skeleton
-     each relates. *)
+     each relates. Atoms are told apart by the physical identity of their
+     reasons, so that the two subtyping atoms of an equation, which share
+     theirs, count once. *)
   let related site (links : site Skeleton.link list) =
     List.fold_left
       (fun acc (l : site Skeleton.link) ->

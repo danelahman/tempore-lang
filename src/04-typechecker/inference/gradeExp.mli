@@ -80,6 +80,10 @@ module type S = sig
     val mem_var : Eps_var.t -> t -> bool
     (** [mem_var k eps] is whether [k] is a variable of [eps]. *)
 
+    val fold_vars : (Eps_var.t -> 'a -> 'a) -> t -> 'a -> 'a
+    (** [fold_vars f eps acc] folds [f] over the occurrences of the variables of
+        [eps], from left to right. *)
+
     val subst : subst -> t -> t
     (** [subst sigma eps] replaces each variable of [eps] by its image under
         [sigma]. *)
@@ -144,6 +148,16 @@ module type S = sig
 
     val mem_eps_var : Eps_var.t -> t -> bool
     (** [mem_eps_var k rho] is whether [k] is an effect variable of [rho]. *)
+
+    val fold_vars :
+      on_rho:(Rho_var.t -> 'a -> 'a) ->
+      on_eps:(Eps_var.t -> 'a -> 'a) ->
+      t ->
+      'a ->
+      'a
+    (** [fold_vars ~on_rho ~on_eps rho acc] folds [on_rho] over the occurrences
+        of the resource variables of [rho] and [on_eps] over those of its effect
+        variables, from left to right. *)
 
     val subst : subst -> t -> t
     (** [subst sigma rho] replaces each variable of [rho], of either sort, by

@@ -22,9 +22,6 @@ type t =
 val of_ty : ('rho, 'eps) Language.Ast.ty -> t
 (** [of_ty ty] is the skeleton of [ty], its grades erased. *)
 
-val of_comp_ty : ('rho, 'eps) Language.Ast.comp_ty -> t
-(** [of_comp_ty cty] is the skeleton of the value type of [cty]. *)
-
 val equal : t -> t -> bool
 (** [equal t u] is syntactic equality. *)
 

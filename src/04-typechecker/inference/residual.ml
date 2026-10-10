@@ -116,6 +116,26 @@ module Make (C : Constraint.S) = struct
     }
 
   (* ------------------------------------------------------------------ *)
+  (* Grade unknowns                                                      *)
+  (* ------------------------------------------------------------------ *)
+
+  type grade_unknown = Rho_unknown of X.Rho_var.t | Eps_unknown of X.Eps_var.t
+
+  let in_rho u rho =
+    match u with
+    | Rho_unknown k -> X.Rho.mem_rho_var k rho
+    | Eps_unknown k -> X.Rho.mem_eps_var k rho
+
+  let in_eps u eps =
+    match u with Rho_unknown _ -> false | Eps_unknown k -> X.Eps.mem_var k eps
+
+  let assign_rho k rho : X.subst =
+    { X.empty_subst with rho_subst = X.Rho_var.Map.singleton k rho }
+
+  let assign_eps k eps : X.subst =
+    { X.empty_subst with eps_subst = X.Eps_var.Map.singleton k eps }
+
+  (* ------------------------------------------------------------------ *)
   (* Failures                                                            *)
   (* ------------------------------------------------------------------ *)
 
@@ -163,12 +183,18 @@ module Make (C : Constraint.S) = struct
     else
       Some (definition, { C.empty_subst with ty_subst = param_map params args })
 
-  let unfold_alias context name args =
-    match
-      Option.bind (context.find_definition name) (fun d -> instance_of d args)
-    with
-    | Some (Ast.TyInline body, sigma) -> Some (C.subst_ty sigma body)
-    | Some (Ast.TySum _, _) | None -> None
+  let unfold_alias context (ty : ty) =
+    match ty with
+    | Ast.TyApply (name, args) -> (
+        match
+          Option.bind (context.find_definition name) (fun d ->
+              instance_of d args)
+        with
+        | Some (Ast.TyInline body, sigma) -> Some (C.subst_ty sigma body)
+        | Some (Ast.TySum _, _) | None -> None)
+    | Ast.TyConst _ | Ast.TyParam _ | Ast.TyArrow _ | Ast.TyTuple _
+    | Ast.TyBox _ | Ast.TyHandler _ ->
+        None
 
   let skeleton_unfold context name args =
     match context.find_definition name with
@@ -329,24 +355,22 @@ module Make (C : Constraint.S) = struct
      shape into atomic demands and grade orderings along {!Former.decompose}
      (Mitchell, JFP 1991; Fuh and Mishra, ESOP 1988). *)
   let rec push_sub context (s : sub) r =
-    match (s.lhs, s.rhs) with
-    | Ast.TyParam a, Ast.TyParam b ->
-        if TyParam.compare a b = 0 then Ok r
-        else Ok { r with subs = s :: r.subs }
-    | Ast.TyApply (name, args), _
-      when Option.is_some (unfold_alias context name args) ->
-        push_sub context
-          { s with lhs = Option.get (unfold_alias context name args) }
-          r
-    | _, Ast.TyApply (name, args)
-      when Option.is_some (unfold_alias context name args) ->
-        push_sub context
-          { s with rhs = Option.get (unfold_alias context name args) }
-          r
-    | lhs, rhs -> (
-        match Former.decompose (Former.of_ty lhs) (Former.of_ty rhs) with
-        | Some parts -> fold_result (push_part context s.info) parts r
-        | None -> Error (mismatch s))
+    match unfold_alias context s.lhs with
+    | Some lhs -> push_sub context { s with lhs } r
+    | None -> (
+        match unfold_alias context s.rhs with
+        | Some rhs -> push_sub context { s with rhs } r
+        | None -> (
+            match (s.lhs, s.rhs) with
+            | Ast.TyParam a, Ast.TyParam b ->
+                if TyParam.compare a b = 0 then Ok r
+                else Ok { r with subs = s :: r.subs }
+            | lhs, rhs -> (
+                match
+                  Former.decompose (Former.of_ty lhs) (Former.of_ty rhs)
+                with
+                | Some parts -> fold_result (push_part context s.info) parts r
+                | None -> Error (mismatch s))))
 
   (* The demands of a pair of parts, the reason extended by their position. *)
   and push_part context info part r =

@@ -105,20 +105,6 @@ module Make (C : Constraint.S) : sig
       operation declared so far; the running time of any other event is a typing
       error at [loc]. *)
 
-  val open_rho : env -> program_rho -> rho
-  (** [open_rho env rho] is the program grade [rho] as an open expression.
-      @raise Utils.Error.Error
-        if a grade of [rho] read from the source is not
-        {!Grades.Grade.S.inhabited} under the operations declared in [env]. *)
-
-  val open_eps : env -> program_eps -> eps
-  (** [open_eps env eps] is the program grade [eps] as an open expression.
-      @raise Utils.Error.Error as {!open_rho}. *)
-
-  val open_ty : env -> program_ty -> ty
-  (** [open_ty env ty] is the program type [ty] as an open type.
-      @raise Utils.Error.Error as {!open_rho}. *)
-
   val add_type_definitions :
     loc:Location.t ->
     env ->
@@ -186,10 +172,6 @@ module Make (C : Constraint.S) : sig
   val bind : env -> Ast.variable -> ty -> bound_at:Location.t -> env
   (** [bind env x ty ~bound_at] extends the context by [x : ty]. *)
 
-  val bind_persistent : env -> Ast.variable -> ty -> bound_at:Location.t -> env
-  (** [bind_persistent env x ty ~bound_at] extends the context by [x :[⊤] ty],
-      used under any locks with an implicit unbox. *)
-
   val lock : env -> rho Reason.lock -> env
   (** [lock env l] extends the context by the lock [⟨l.grade⟩]. *)
 
@@ -203,13 +185,6 @@ module Make (C : Constraint.S) : sig
 
   val is_noneternal : env -> Ast.ty_name -> bool
   (** [is_noneternal env name] is whether [name] is declared [noneternal]. *)
-
-  val find_op_signature : env -> Ast.operation -> op_signature option
-  (** [find_op_signature env op] is the signature of [op]. *)
-
-  val op_bounds : env -> Grades.Grade.running_time Utils.StringMap.t
-  (** [op_bounds env] is the running-time bounds of the operations, by surface
-      name: the running times the grades' order reads. *)
 
   (** {2 Generation} *)
 

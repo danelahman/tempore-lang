@@ -92,6 +92,10 @@ module Make (X : GradeExp.S) : sig
     (** [canon bounds e] is the canonical form of [e], the read-back of
         {!canon_sum} of its normal form. *)
 
+    val alternatives : Grades.Grade.bounds -> exp -> exp list
+    (** [alternatives bounds e] is the alternatives of the canonical form of
+        [e], each the read-back of a product of {!canon_sum}, in order. *)
+
     val decide_leq :
       Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option
     (** [decide_leq bounds hyps e e'] is [Some used] when [e ≾ e'] is derived

@@ -39,6 +39,7 @@ module type S = sig
     val join : t -> t -> t
     val free_vars : t -> Eps_var.Set.t
     val mem_var : Eps_var.t -> t -> bool
+    val fold_vars : (Eps_var.t -> 'a -> 'a) -> t -> 'a -> 'a
     val subst : subst -> t -> t
 
     val constants : t -> GS.E.t list
@@ -66,6 +67,14 @@ module type S = sig
     val free_eps_vars : t -> Eps_var.Set.t
     val mem_rho_var : Rho_var.t -> t -> bool
     val mem_eps_var : Eps_var.t -> t -> bool
+
+    val fold_vars :
+      on_rho:(Rho_var.t -> 'a -> 'a) ->
+      on_eps:(Eps_var.t -> 'a -> 'a) ->
+      t ->
+      'a ->
+      'a
+
     val subst : subst -> t -> t
 
     val constants : t -> GS.R.t list * GS.E.t list
@@ -139,6 +148,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
       | Eps_const _ -> false
       | Eps_mul (eps, eps') | Eps_join (eps, eps') ->
           mem_var k eps || mem_var k eps'
+
+    let rec fold_vars f eps acc =
+      match eps with
+      | Eps_var k -> f k acc
+      | Eps_const _ -> acc
+      | Eps_mul (eps, eps') | Eps_join (eps, eps') ->
+          fold_vars f eps' (fold_vars f eps acc)
 
     let rec subst sigma = function
       | Eps_var eps_var as eps ->
@@ -228,6 +244,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
       | Rho_map eps -> Eps.mem_var k eps
       | Rho_mul (rho, rho') | Rho_join (rho, rho') ->
           mem_eps_var k rho || mem_eps_var k rho'
+
+    let rec fold_vars ~on_rho ~on_eps rho acc =
+      match rho with
+      | Rho_var k -> on_rho k acc
+      | Rho_const _ -> acc
+      | Rho_map eps -> Eps.fold_vars on_eps eps acc
+      | Rho_mul (rho, rho') | Rho_join (rho, rho') ->
+          fold_vars ~on_rho ~on_eps rho' (fold_vars ~on_rho ~on_eps rho acc)
 
     let rec subst sigma = function
       | Rho_var rho_var as rho ->

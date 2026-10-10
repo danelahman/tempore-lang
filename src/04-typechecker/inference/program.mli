@@ -88,9 +88,6 @@ module Make (C : Constraint.S) : sig
       after [cmd] extended alike except that a definition enters [unsimplified]
       with its unsimplified scheme. *)
 
-  val execute_all : env -> command list -> env * verdict list
-  (** [execute_all env cmds] executes [cmds] in order until one stops them. *)
-
   val print_outcome : outcome -> Format.formatter -> unit
   (** [print_outcome outcome ppf] prints [outcome]: a definition with its scheme
       ({!Constraint.S.print_scheme}), a rejection with its failure. *)

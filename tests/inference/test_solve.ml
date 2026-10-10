@@ -335,6 +335,7 @@ let expected_rejections =
     ("tests/invalid_match_type.tpe", [ 4 ]);
     ("tests/flow_levels_reject.tpe", [ 8; 13; 18; 26 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
+    ("tests/unbox_annotation_reject.tpe", [ 4 ]);
     ("tests/less_than_function.tpe", [ 1 ]);
     ("tests/levels_reject.tpe", [ 8 ]);
     ("tests/levels_time_lower_reject.tpe", [ 9; 16 ]);

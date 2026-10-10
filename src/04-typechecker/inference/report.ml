@@ -24,28 +24,20 @@ module Make (C : Constraint.S) = struct
   (* ------------------------------------------------------------------ *)
 
   (* An unknown of any sort. *)
-  type unknown =
-    | Ty_unknown of Ast.ty_param
-    | Rho_unknown of X.Rho_var.t
-    | Eps_unknown of X.Eps_var.t
+  type unknown = Ty_unknown of Ast.ty_param | Grade_unknown of R.grade_unknown
 
   let same_param a b = TyParam.compare a b = 0
 
   let is_param u (ty : C.ty) =
     match (u, ty) with
     | Ty_unknown a, Ast.TyParam b -> same_param a b
-    | (Ty_unknown _ | Rho_unknown _ | Eps_unknown _), _ -> false
+    | (Ty_unknown _ | Grade_unknown _), _ -> false
 
   let in_rho u rho =
-    match u with
-    | Ty_unknown _ -> false
-    | Rho_unknown k -> X.Rho.mem_rho_var k rho
-    | Eps_unknown k -> X.Rho.mem_eps_var k rho
+    match u with Ty_unknown _ -> false | Grade_unknown g -> R.in_rho g rho
 
   let in_eps u eps =
-    match u with
-    | Ty_unknown _ | Rho_unknown _ -> false
-    | Eps_unknown k -> X.Eps.mem_var k eps
+    match u with Ty_unknown _ -> false | Grade_unknown g -> R.in_eps g eps
 
   (* ------------------------------------------------------------------ *)
   (* Polarity                                                            *)
@@ -385,16 +377,17 @@ module Make (C : Constraint.S) = struct
 
     let rank = function
       | Ty_unknown _ -> 0
-      | Rho_unknown _ -> 1
-      | Eps_unknown _ -> 2
+      | Grade_unknown (R.Rho_unknown _) -> 1
+      | Grade_unknown (R.Eps_unknown _) -> 2
 
     let compare u v =
       match (u, v) with
       | Ty_unknown a, Ty_unknown b -> TyParam.compare a b
-      | Rho_unknown k, Rho_unknown k' -> X.Rho_var.compare k k'
-      | Eps_unknown k, Eps_unknown k' -> X.Eps_var.compare k k'
-      | (Ty_unknown _ | Rho_unknown _ | Eps_unknown _), _ ->
-          Int.compare (rank u) (rank v)
+      | Grade_unknown (R.Rho_unknown k), Grade_unknown (R.Rho_unknown k') ->
+          X.Rho_var.compare k k'
+      | Grade_unknown (R.Eps_unknown k), Grade_unknown (R.Eps_unknown k') ->
+          X.Eps_var.compare k k'
+      | (Ty_unknown _ | Grade_unknown _), _ -> Int.compare (rank u) (rank v)
   end
 
   module Unknown_map = Map.Make (Unknown)
@@ -412,15 +405,15 @@ module Make (C : Constraint.S) = struct
 
   let add_eps eps us =
     Eps_set.fold
-      (fun k -> Unknown_set.add (Eps_unknown k))
+      (fun k -> Unknown_set.add (Grade_unknown (R.Eps_unknown k)))
       (X.Eps.free_vars eps) us
 
   let add_rho rho us =
     Rho_set.fold
-      (fun k -> Unknown_set.add (Rho_unknown k))
+      (fun k -> Unknown_set.add (Grade_unknown (R.Rho_unknown k)))
       (X.Rho.free_rho_vars rho)
       (Eps_set.fold
-         (fun k -> Unknown_set.add (Eps_unknown k))
+         (fun k -> Unknown_set.add (Grade_unknown (R.Eps_unknown k)))
          (X.Rho.free_eps_vars rho) us)
 
   let add_ty ty us =
@@ -556,8 +549,10 @@ module Make (C : Constraint.S) = struct
   (* Whether a kind of step is tested at an unknown alone, and at [u]. *)
   let tested_at kind u =
     match (kind, u) with
-    | (Equate_eps | Lower_eps | Raise_eps | Unit_eps), Eps_unknown _
-    | (Equate_rho | Lower_rho | Raise_rho | Unit_rho), Rho_unknown _
+    | ( (Equate_eps | Lower_eps | Raise_eps | Unit_eps),
+        Grade_unknown (R.Eps_unknown _) )
+    | ( (Equate_rho | Lower_rho | Raise_rho | Unit_rho),
+        Grade_unknown (R.Rho_unknown _) )
     | Lower_ty, Ty_unknown _ ->
         true
     | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
@@ -679,14 +674,14 @@ module Make (C : Constraint.S) = struct
     let touched = Unknown_set.inter touched env.candidates in
     let tys, grades =
       Unknown_set.partition
-        (function
-          | Ty_unknown _ -> true | Rho_unknown _ | Eps_unknown _ -> false)
+        (function Ty_unknown _ -> true | Grade_unknown _ -> false)
         touched
     in
     let rhos, eps =
       Unknown_set.partition
         (function
-          | Rho_unknown _ -> true | Ty_unknown _ | Eps_unknown _ -> false)
+          | Grade_unknown (R.Rho_unknown _) -> true
+          | Ty_unknown _ | Grade_unknown (R.Eps_unknown _) -> false)
         grades
     in
     let mark_kind kind t =
@@ -791,19 +786,9 @@ module Make (C : Constraint.S) = struct
   (* Elimination: tests                                                  *)
   (* ------------------------------------------------------------------ *)
 
-  let assign_eps k eps : C.subst =
-    {
-      C.empty_subst with
-      grade_subst =
-        { X.empty_subst with eps_subst = X.Eps_var.Map.singleton k eps };
-    }
-
-  let assign_rho k rho : C.subst =
-    {
-      C.empty_subst with
-      grade_subst =
-        { X.empty_subst with rho_subst = X.Rho_var.Map.singleton k rho };
-    }
+  let of_grade_subst grade_subst : C.subst = { C.empty_subst with grade_subst }
+  let assign_eps k eps = of_grade_subst (R.assign_eps k eps)
+  let assign_rho k rho = of_grade_subst (R.assign_rho k rho)
 
   let assign_ty a b : C.subst =
     { C.empty_subst with ty_subst = TyParamMap.singleton a (Ast.TyParam b) }
@@ -825,7 +810,7 @@ module Make (C : Constraint.S) = struct
     let bounds = context.Residual.bounds in
     let sort = V.eps bounds k in
     {
-      unknown = Eps_unknown k;
+      unknown = Grade_unknown (R.Eps_unknown k);
       sort;
       ordering = (function Eps_atom o -> Some o | _ -> None);
       assign = assign_eps k;
@@ -840,7 +825,7 @@ module Make (C : Constraint.S) = struct
   let rho_grade context k =
     let sort = V.rho context.Residual.bounds k in
     {
-      unknown = Rho_unknown k;
+      unknown = Grade_unknown (R.Rho_unknown k);
       sort;
       ordering = (function Rho_atom o -> Some o | _ -> None);
       assign = assign_rho k;
@@ -1035,22 +1020,26 @@ module Make (C : Constraint.S) = struct
     let entail = lazy (E.make context.Residual.bounds (grades st)) in
     fun u ->
       match (kind, u) with
-      | Equate_eps, Eps_unknown k ->
+      | Equate_eps, Grade_unknown (R.Eps_unknown k) ->
           equate (eps_grade context k)
             (fun a b -> E.Eps.follows_atomic (Lazy.force entail) a b)
             st
-      | Equate_rho, Rho_unknown k ->
+      | Equate_rho, Grade_unknown (R.Rho_unknown k) ->
           equate (rho_grade context k)
             (fun a b -> E.Rho.follows_atomic (Lazy.force entail) a b)
             st
-      | Lower_eps, Eps_unknown k -> lower context (eps_grade context k) st
-      | Lower_rho, Rho_unknown k -> lower context (rho_grade context k) st
-      | Raise_eps, Eps_unknown k ->
+      | Lower_eps, Grade_unknown (R.Eps_unknown k) ->
+          lower context (eps_grade context k) st
+      | Lower_rho, Grade_unknown (R.Rho_unknown k) ->
+          lower context (rho_grade context k) st
+      | Raise_eps, Grade_unknown (R.Eps_unknown k) ->
           raise_to_cap context (eps_grade context k) st
-      | Raise_rho, Rho_unknown k ->
+      | Raise_rho, Grade_unknown (R.Rho_unknown k) ->
           raise_to_cap context (rho_grade context k) st
-      | Unit_eps, Eps_unknown k -> to_unit (eps_grade context k) st
-      | Unit_rho, Rho_unknown k -> to_unit (rho_grade context k) st
+      | Unit_eps, Grade_unknown (R.Eps_unknown k) ->
+          to_unit (eps_grade context k) st
+      | Unit_rho, Grade_unknown (R.Rho_unknown k) ->
+          to_unit (rho_grade context k) st
       | Lower_ty, Ty_unknown a -> lower_ty context a st
       | ( ( Equate_eps | Equate_rho | Lower_eps | Lower_rho | Raise_eps
           | Raise_rho | Unit_eps | Unit_rho | Collapse | Lower_ty ),
@@ -1104,10 +1093,10 @@ module Make (C : Constraint.S) = struct
          (fun a -> Ty_unknown a)
          (TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys))
       @ List.map
-          (fun k -> Rho_unknown k)
+          (fun k -> Grade_unknown (R.Rho_unknown k))
           (Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos))
       @ List.map
-          (fun k -> Eps_unknown k)
+          (fun k -> Grade_unknown (R.Eps_unknown k))
           (Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps)))
 
   (* The unknowns outside [fixed] tested by each kind of step. *)

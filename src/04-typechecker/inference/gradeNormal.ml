@@ -587,11 +587,14 @@ module Core (S : BASE) = struct
 
   let canon bounds e = read_back (canon_sum bounds (normal bounds e))
 
+  let alternatives bounds e =
+    List.map read_back_product (canon_sum bounds (normal bounds e))
+
   let split bounds o =
     let rhs = canon bounds o.rhs in
     List.map
-      (fun p -> { lhs = read_back_product p; rhs; info = o.info })
-      (canon_sum bounds (normal bounds o.lhs))
+      (fun lhs -> { lhs; rhs; info = o.info })
+      (alternatives bounds o.lhs)
 
   let canon_orderings bounds orderings =
     List.concat_map (split bounds) orderings
@@ -951,6 +954,7 @@ module Make (X : GradeExp.S) = struct
     val read_back_product : product -> exp
     val read_back : sum -> exp
     val canon : Grades.Grade.bounds -> exp -> exp
+    val alternatives : Grades.Grade.bounds -> exp -> exp list
 
     val decide_leq :
       Grades.Grade.bounds -> 'a hyps -> exp -> exp -> 'a list option

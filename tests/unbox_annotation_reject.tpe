@@ -1,0 +1,8 @@
+(* Correctly rejected by the typechecker: the annotation on the unboxed
+   variable is checked, and the boxed pair is not a natural number. *)
+
+run
+  let x = (1, 2) in
+  box 5 x as boxed in
+  delay 5;
+  unbox (boxed : nat) as (l, r) in l + r

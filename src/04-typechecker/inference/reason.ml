@@ -222,6 +222,146 @@ let print_step s ppf =
   | Handler_input -> Format.pp_print_string ppf "handler input"
   | Handler_output -> Format.pp_print_string ppf "handler output"
 
+let equal_symbol compare x y = compare x y = 0
+let equal_variable = equal_symbol Ast.Variable.compare
+let equal_operation = equal_symbol Ast.OpName.compare
+
+let equal_clause c c' =
+  equal_operation c.op c'.op
+  && Location.equal c.signature_at c'.signature_at
+  && Location.equal c.case_at c'.case_at
+
+let equal_lock_kind kind kind' =
+  match (kind, kind') with
+  | Delayed q, Delayed q' -> Grades.Rational.equal q q'
+  | Performed op, Performed op' -> equal_operation op op'
+  | Sequenced, Sequenced | Boxed, Boxed | Handled, Handled -> true
+  | Clause_lock c, Clause_lock c' -> equal_clause c c'
+  | Recursive_lock f, Recursive_lock f' -> equal_variable f f'
+  | ( ( Delayed _ | Performed _ | Sequenced | Boxed | Handled | Clause_lock _
+      | Recursive_lock _ ),
+      _ ) ->
+      false
+
+let equal_lock equal_rho l l' =
+  equal_rho l.grade l'.grade && Location.equal l.at l'.at
+  && equal_lock_kind l.kind l'.kind
+  && Option.equal equal_rho l.declared l'.declared
+
+let equal_step (s : step) s' =
+  match (s, s') with
+  | Argument, Argument
+  | Result, Result
+  | Effect, Effect
+  | Box_content, Box_content
+  | Box_grade, Box_grade
+  | Handler_input, Handler_input
+  | Handler_output, Handler_output ->
+      true
+  | Component i, Component i' | Type_argument i, Type_argument i' -> i = i'
+  | ( ( Argument | Result | Effect | Component _ | Type_argument _ | Box_content
+      | Box_grade | Handler_input | Handler_output ),
+      _ ) ->
+      false
+
+let equal_rigid_origin o o' =
+  equal_clause o.clause o'.clause
+  && Option.equal equal_variable o.continuation o'.continuation
+  && Location.equal o.continuation_at o'.continuation_at
+
+let rec equal equal_rho equal_eps r r' =
+  Location.equal r.at r'.at
+  && equal_why equal_rho equal_eps r.why r'.why
+  && List.equal equal_step r.path r'.path
+  && Option.equal Location.equal r.subject r'.subject
+  && Option.equal (equal_stated equal_rho equal_eps) r.stated r'.stated
+
+and equal_why equal_rho equal_eps why why' =
+  let locks = List.equal (equal_lock equal_rho) in
+  let op_site op at op' at' = equal_operation op op' && Location.equal at at' in
+  match (why, why') with
+  | Application a, Application a' ->
+      Location.equal a.func_at a'.func_at
+      && Location.equal a.arg_at a'.arg_at
+      && Option.equal equal_variable a.func a'.func
+      && Option.equal equal_variable a.arg a'.arg
+  | Match_scrutinee m, Match_scrutinee m' ->
+      Location.equal m.scrutinee_at m'.scrutinee_at
+  | Match_branch, Match_branch
+  | Annotation, Annotation
+  | Pattern_annotation, Pattern_annotation
+  | Successor_pattern, Successor_pattern
+  | Boxed_value, Boxed_value
+  | Handle_with, Handle_with
+  | Handled_computation, Handled_computation
+  | Return_clause, Return_clause
+  | Function_body, Function_body
+  | Function_parameter, Function_parameter
+  | Pure_body, Pure_body
+  | Top_computation, Top_computation
+  | Compared_values, Compared_values ->
+      true
+  | Variant_argument lbl, Variant_argument lbl' ->
+      equal_symbol Ast.Label.compare lbl lbl'
+  | Unboxed u, Unboxed u' ->
+      equal_variable u.var u'.var
+      && Option.equal Location.equal u.bound_at u'.bound_at
+      && locks u.locks u'.locks
+  | Use_under_locks u, Use_under_locks u' ->
+      equal_variable u.var u'.var
+      && Location.equal u.bound_at u'.bound_at
+      && locks u.locks u'.locks
+  | Op_case_capture u, Op_case_capture u' ->
+      equal_variable u.var u'.var
+      && Location.equal u.bound_at u'.bound_at
+      && equal_clause u.clause u'.clause
+      && locks u.locks u'.locks
+  | Rec_capture u, Rec_capture u' ->
+      equal_variable u.var u'.var
+      && Location.equal u.bound_at u'.bound_at
+      && equal_variable u.f u'.f
+      && Location.equal u.defined_at u'.defined_at
+      && locks u.locks u'.locks
+  | Instance_of i, Instance_of i' ->
+      equal_variable i.var i'.var
+      && Option.equal Location.equal i.defined_at i'.defined_at
+      && equal equal_rho equal_eps i.inner i'.inner
+  | Handler_case h, Handler_case h' ->
+      op_site h.op h.signature_at h'.op h'.signature_at
+  | Continuation_grade c, Continuation_grade c' ->
+      op_site c.op c.signature_at c'.op c'.signature_at
+  | Perform_argument p, Perform_argument p' ->
+      op_site p.op p.signature_at p'.op p'.signature_at
+  | Perform_continuation p, Perform_continuation p' ->
+      op_site p.op p.signature_at p'.op p'.signature_at
+  | Default_of d, Default_of d' ->
+      op_site d.op d.signature_at d'.op d'.signature_at
+  | Recursive_definition f, Recursive_definition f'
+  | Top_definition f, Top_definition f' ->
+      equal_variable f f'
+  | Sequencing x, Sequencing x' -> Option.equal equal_variable x x'
+  | Continuation_effect kind, Continuation_effect kind' ->
+      equal_lock_kind kind kind'
+  | ( ( Application _ | Match_scrutinee _ | Match_branch | Annotation
+      | Pattern_annotation | Variant_argument _ | Successor_pattern
+      | Boxed_value | Unboxed _ | Use_under_locks _ | Op_case_capture _
+      | Rec_capture _ | Instance_of _ | Handler_case _ | Continuation_grade _
+      | Perform_argument _ | Perform_continuation _ | Handle_with
+      | Handled_computation | Return_clause | Recursive_definition _
+      | Function_body | Function_parameter | Pure_body | Sequencing _
+      | Continuation_effect _ | Default_of _ | Top_definition _
+      | Top_computation | Compared_values ),
+      _ ) ->
+      false
+
+and equal_stated equal_rho equal_eps stated stated' =
+  match (stated, stated') with
+  | Stated_rho (rho, rho'), Stated_rho (sigma, sigma') ->
+      equal_rho rho sigma && equal_rho rho' sigma'
+  | Stated_eps (eps, eps'), Stated_eps (eta, eta') ->
+      equal_eps eps eta && equal_eps eps' eta'
+  | (Stated_rho _ | Stated_eps _), _ -> false
+
 let print_lock_kind kind ppf =
   match kind with
   | Delayed q -> Format.fprintf ppf "delay %s" (Grades.Rational.show q)

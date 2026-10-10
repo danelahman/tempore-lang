@@ -308,7 +308,6 @@ module Make (C : Constraint.S) = struct
 
   let is_noneternal env name = Ast.TyNameSet.mem name env.noneternal
   let find_op_signature env op = Ast.OpNameMap.find_opt op env.op_signatures
-  let op_bounds env = env.op_bounds
 
   let declare_operations declarations env =
     let add world (name, bounds) =
@@ -1382,17 +1381,20 @@ module Make (C : Constraint.S) = struct
 
   (* [unbox x as p in c], of a variable only: its type is a box [[r] α] whose
      grade covers the grade accumulated since its binding, the pattern against
-     [α]. *)
+     [α]. An annotation [(x : A)] requires the type of [x] to be a subtype of
+     [A]; the box unboxed is that of [x]. *)
   and unbox env at e pat c' ty eps =
     let rec find_var (e : expression) =
       match e.Ast.it with
-      | Ast.Var x -> x
-      | Ast.Annotated (e', _) -> find_var e'
+      | Ast.Var x -> (x, e.Ast.at, [])
+      | Ast.Annotated (e', ann) ->
+          let x, var_at, anns = find_var e' in
+          (x, var_at, (e'.Ast.at, e.Ast.at, ann) :: anns)
       | _ -> Error.typing ~loc:e.Ast.at "Only a variable can be unboxed"
     in
-    let x = find_var e in
-    let boxed_ty, bound_at, locks, instance =
-      match lookup ~loc:e.Ast.at env x with
+    let x, var_at, anns = find_var e in
+    let var_ty, bound_at, locks, instance =
+      match lookup ~loc:var_at env x with
       | Local { ty; bound_at; locks } -> (ty, Some bound_at, locks, C.True)
       | Persistent_local { ty; bound_at } -> (ty, Some bound_at, [], C.True)
       | Global { scheme; defined_at } ->
@@ -1400,7 +1402,17 @@ module Make (C : Constraint.S) = struct
           ( ty,
             defined_at,
             all_locks env,
-            instance_of e.Ast.at x defined_at qualifier )
+            instance_of var_at x defined_at qualifier )
+    in
+    let _, annotations =
+      List.fold_right
+        (fun (inner_at, ann_at, ann) (inner_ty, atoms) ->
+          let ann = open_ty env ann in
+          ( ann,
+            sub_expected inner_at inner_ty
+              (expect ann (Reason.because ann_at Reason.Annotation))
+            :: atoms ))
+        anns (var_ty, [])
     in
     exists_ty (fun payload_ty ->
         exists_rho (fun rho ->
@@ -1408,16 +1420,17 @@ module Make (C : Constraint.S) = struct
               Reason.because at (Reason.Unboxed { var = x; bound_at; locks })
             in
             C.conj_all
-              [
-                C.equal_ty because boxed_ty (Ast.TyBox (rho, payload_ty));
-                C.Rho_leq (because, accumulated_grade locks, rho);
-                with_pattern env pat
-                  (expect payload_ty
-                     (Reason.because pat.Ast.at
-                        (Reason.Unboxed { var = x; bound_at; locks })))
-                  (fun env' -> generate_computation env' c' ty eps);
-                instance;
-              ]))
+              (annotations
+              @ [
+                  C.equal_ty because var_ty (Ast.TyBox (rho, payload_ty));
+                  C.Rho_leq (because, accumulated_grade locks, rho);
+                  with_pattern env pat
+                    (expect payload_ty
+                       (Reason.because pat.Ast.at
+                          (Reason.Unboxed { var = x; bound_at; locks })))
+                    (fun env' -> generate_computation env' c' ty eps);
+                  instance;
+                ])))
 
   (* [perform op e]: the continuation under the lock [⟨∣op∣⟩], the effect
      [op · ε] below the expected one. *)

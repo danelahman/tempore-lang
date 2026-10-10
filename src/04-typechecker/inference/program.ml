@@ -216,14 +216,4 @@ module Make (C : Constraint.S) = struct
         Format.fprintf ppf "rejected: %t" (R.print_failure failure)
     | Rejected (Stuck stuck) ->
         Format.fprintf ppf "rejected: %t" (S.print_outcome (S.Stuck stuck))
-
-  let execute_all env cmds =
-    let rec go env verdicts = function
-      | [] -> (env, List.rev verdicts)
-      | cmd :: cmds -> (
-          match execute env cmd with
-          | env, verdict, Continue -> go env (verdict :: verdicts) cmds
-          | env, verdict, Stop -> (env, List.rev (verdict :: verdicts)))
-    in
-    go env [] cmds
 end

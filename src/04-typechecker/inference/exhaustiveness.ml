@@ -154,12 +154,13 @@ let rec missing ~constructors rows n =
   | _ :: _ when n = 0 -> None
   | _ :: _ -> (
       let hs =
-        List.fold_left
-          (fun hs row ->
-            match Option.bind (List.nth_opt row 0) head with
-            | Some h when not (List.exists (same_head h) hs) -> hs @ [ h ]
-            | Some _ | None -> hs)
-          [] rows
+        List.rev
+          (List.fold_left
+             (fun hs row ->
+               match Option.bind (List.nth_opt row 0) head with
+               | Some h when not (List.exists (same_head h) hs) -> h :: hs
+               | Some _ | None -> hs)
+             [] rows)
       in
       let complete =
         match hs with
@@ -176,9 +177,7 @@ let rec missing ~constructors rows n =
             (fun h ->
               let k = arity h in
               Option.map
-                (fun ps ->
-                  rebuild h (List.filteri (fun i _ -> i < k) ps)
-                  :: List.filteri (fun i _ -> i >= k) ps)
+                (fun ps -> rebuild h (List.take k ps) :: List.drop k ps)
                 (missing ~constructors
                    (List.filter_map (specialise h) rows)
                    (k + n - 1)))

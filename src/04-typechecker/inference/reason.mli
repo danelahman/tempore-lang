@@ -227,11 +227,23 @@ val fold_grades :
 (** [fold_grades on_rho on_eps reason acc] folds [on_rho] over the resource
     grades and [on_eps] over the effect grades of [reason]. *)
 
-val print_step : step -> Format.formatter -> unit
-(** [print_step s ppf] prints [s]. *)
+val equal_step : step -> step -> bool
+(** [equal_step s s'] is whether [s] and [s'] are the same position. *)
 
-val print_why : ('rho, 'eps) why -> Format.formatter -> unit
-(** [print_why why ppf] prints the name of the rule [why], for debugging. *)
+val equal_rigid_origin : rigid_origin -> rigid_origin -> bool
+(** [equal_rigid_origin o o'] is whether [o] and [o'] are the same clause with
+    the same continuation pattern. *)
+
+val equal :
+  ('rho -> 'rho -> bool) ->
+  ('eps -> 'eps -> bool) ->
+  ('rho, 'eps) t ->
+  ('rho, 'eps) t ->
+  bool
+(** [equal equal_rho equal_eps r r'] is the structural equality of reasons: the
+    same construct, rule, path, subject and stated ordering, the resource grades
+    compared by [equal_rho] and the effect grades by [equal_eps]. Symbols are
+    compared by identity and locations by their spans. *)
 
 val print : ('rho, 'eps) t -> Format.formatter -> unit
 (** [print reason ppf] prints the rule, the location and the path of [reason],

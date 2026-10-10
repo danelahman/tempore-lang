@@ -30,22 +30,15 @@ module Make (C : Constraint.S) = struct
   (* Unknowns and their occurrences                                      *)
   (* ------------------------------------------------------------------ *)
 
-  (* A grade unknown of either sort. *)
-  type unknown = Rho_unknown of X.Rho_var.t | Eps_unknown of X.Eps_var.t
-
-  let in_rho u rho =
-    match u with
-    | Rho_unknown k -> X.Rho.mem_rho_var k rho
-    | Eps_unknown k -> X.Rho.mem_eps_var k rho
-
-  let in_eps u eps =
-    match u with Rho_unknown _ -> false | Eps_unknown k -> X.Eps.mem_var k eps
+  type unknown = R.grade_unknown =
+    | Rho_unknown of X.Rho_var.t
+    | Eps_unknown of X.Eps_var.t
 
   let in_ty u ty =
     Language.Ast.fold_ty
       ~on_param:(fun _ found -> found)
-      ~on_rho:(fun rho found -> found || in_rho u rho)
-      ~on_eps:(fun eps found -> found || in_eps u eps)
+      ~on_rho:(fun rho found -> found || R.in_rho u rho)
+      ~on_eps:(fun eps found -> found || R.in_eps u eps)
       ty false
 
   let is_rigid scope k = X.Eps_var.equal k scope.rigid
@@ -80,7 +73,7 @@ module Make (C : Constraint.S) = struct
   let disj_free u (r : residual) =
     not
       (List.exists
-         (fun (d : R.disjunction) -> in_rho u d.disj_grade)
+         (fun (d : R.disjunction) -> R.in_rho u d.disj_grade)
          r.disjunctions)
 
   (* The sides of the deferred conditions: the greater ones, which a lowering
@@ -91,8 +84,8 @@ module Make (C : Constraint.S) = struct
     let pick (o : _ GradeNormal.ordering) =
       match side with Greater -> o.rhs | Smaller -> o.lhs
     in
-    List.exists (fun o -> in_rho u (pick o)) d.rho_conditions
-    || List.exists (fun o -> in_eps u (pick o)) d.eps_conditions
+    List.exists (fun o -> R.in_rho u (pick o)) d.rho_conditions
+    || List.exists (fun o -> R.in_eps u (pick o)) d.eps_conditions
 
   (* Whether a value for [u] keeps every deferred condition: [u] is on no side
      the value moves. *)
@@ -112,8 +105,10 @@ module Make (C : Constraint.S) = struct
   (* Whether [u] occurs on a left side, in a disjunction's grade or in a
      deferred condition. *)
   let occurs_below u (r : residual) =
-    List.exists (fun (o : R.eps_ordering) -> in_eps u o.lhs) r.eps_orderings
-    || List.exists (fun (o : R.rho_ordering) -> in_rho u o.lhs) r.rho_orderings
+    List.exists (fun (o : R.eps_ordering) -> R.in_eps u o.lhs) r.eps_orderings
+    || List.exists
+         (fun (o : R.rho_ordering) -> R.in_rho u o.lhs)
+         r.rho_orderings
     || (not (disj_free u r))
     || List.exists (on_side Greater u) r.deferred
     || List.exists (on_side Smaller u) r.deferred
@@ -121,8 +116,10 @@ module Make (C : Constraint.S) = struct
   (* Whether [u] occurs on a right side or a greater side of a deferred
      condition. *)
   let occurs_above u (r : residual) =
-    List.exists (fun (o : R.eps_ordering) -> in_eps u o.rhs) r.eps_orderings
-    || List.exists (fun (o : R.rho_ordering) -> in_rho u o.rhs) r.rho_orderings
+    List.exists (fun (o : R.eps_ordering) -> R.in_eps u o.rhs) r.eps_orderings
+    || List.exists
+         (fun (o : R.rho_ordering) -> R.in_rho u o.rhs)
+         r.rho_orderings
     || List.exists (on_side Greater u) r.deferred
 
   (* The occurrence oracle of [u], [image] reading the resource orderings for
@@ -184,12 +181,6 @@ module Make (C : Constraint.S) = struct
   let apply (sigma : X.subst) r =
     R.subst { C.empty_subst with grade_subst = sigma } r
 
-  let assign_eps k eps : X.subst =
-    { empty_grade_subst with eps_subst = X.Eps_var.Map.singleton k eps }
-
-  let assign_rho k rho : X.subst =
-    { empty_grade_subst with rho_subst = X.Rho_var.Map.singleton k rho }
-
   (* The residual less the orderings of the unknown's sort with it on the
      greater side, and those orderings. *)
   let drop_greater u (r : residual) =
@@ -197,14 +188,14 @@ module Make (C : Constraint.S) = struct
     | Eps_unknown _ ->
         let dropped, eps_orderings =
           List.partition
-            (fun (o : R.eps_ordering) -> in_eps u o.rhs)
+            (fun (o : R.eps_ordering) -> R.in_eps u o.rhs)
             r.eps_orderings
         in
         ({ r with eps_orderings }, { R.empty with eps_orderings = dropped })
     | Rho_unknown _ ->
         let dropped, rho_orderings =
           List.partition
-            (fun (o : R.rho_ordering) -> in_rho u o.rhs)
+            (fun (o : R.rho_ordering) -> R.in_rho u o.rhs)
             r.rho_orderings
         in
         ({ r with rho_orderings }, { R.empty with rho_orderings = dropped })
@@ -284,15 +275,11 @@ module Make (C : Constraint.S) = struct
     {
       rho_ordering =
         canon_ordering
-          ~alternatives:(fun e ->
-            List.map N.Rho.read_back_product
-              (N.Rho.canon_sum bounds (N.Rho.normal bounds e)))
+          ~alternatives:(N.Rho.alternatives bounds)
           ~canon:(N.Rho.canon bounds) ~decided:(E.Rho.decided bounds);
       eps_ordering =
         canon_ordering
-          ~alternatives:(fun e ->
-            List.map N.Eps.read_back_product
-              (N.Eps.canon_sum bounds (N.Eps.normal bounds e)))
+          ~alternatives:(N.Eps.alternatives bounds)
           ~canon:(N.Eps.canon bounds) ~decided:(E.Eps.decided bounds);
       grade = N.Rho.canon bounds;
     }
@@ -428,14 +415,14 @@ module Make (C : Constraint.S) = struct
         | (Rho_unknown _ | Eps_unknown _), _ -> false)
       members
 
-  let hit_rho members rho = List.exists (fun u -> in_rho u rho) members
-  let hit_eps members eps = List.exists (fun u -> in_eps u eps) members
+  let hit_rho members rho = List.exists (fun u -> R.in_rho u rho) members
+  let hit_eps members eps = List.exists (fun u -> R.in_eps u eps) members
 
   let tops members =
     List.fold_left
       (fun sigma -> function
-        | Rho_unknown k -> X.compose_subst sigma (assign_rho k X.Rho.top)
-        | Eps_unknown k -> X.compose_subst sigma (assign_eps k X.Eps.top))
+        | Rho_unknown k -> X.compose_subst sigma (R.assign_rho k X.Rho.top)
+        | Eps_unknown k -> X.compose_subst sigma (R.assign_eps k X.Eps.top))
       empty_grade_subst members
 
   (* The first unknown [k] allowed by [ok], not a member, with an ordering
@@ -517,8 +504,10 @@ module Make (C : Constraint.S) = struct
     in
     List.filter
       (fun u ->
-        List.exists (fun (o : R.eps_ordering) -> in_eps u o.lhs) failing_eps
-        || List.exists (fun (o : R.rho_ordering) -> in_rho u o.lhs) failing_rho
+        List.exists (fun (o : R.eps_ordering) -> R.in_eps u o.lhs) failing_eps
+        || List.exists
+             (fun (o : R.rho_ordering) -> R.in_rho u o.lhs)
+             failing_rho
         || fixed u r)
       members
 
@@ -710,11 +699,11 @@ module Make (C : Constraint.S) = struct
     match u with
     | Eps_unknown k ->
         Option.map
-          (fun (b, drops) -> (assign_eps k b, drops))
+          (fun (b, drops) -> (R.assign_eps k b, drops))
           (eps_value context k r)
     | Rho_unknown k ->
         Option.map
-          (fun (b, drops) -> (assign_rho k b, drops))
+          (fun (b, drops) -> (R.assign_rho k b, drops))
           (rho_value context k r)
 
   (* Chaotic iteration with a worklist (Cousot and Cousot, POPL 1977): an
@@ -789,7 +778,7 @@ module Make (C : Constraint.S) = struct
   (* The fate of an ordering of the scope. *)
   type 'o fate = Keep of 'o | Discharge | Defer of 'o | Block of 'o
 
-  let at_rigid scope value : X.subst = assign_eps scope.rigid value
+  let at_rigid scope value : X.subst = R.assign_eps scope.rigid value
 
   (* How the orderings of one sort are split. *)
   type 'e splitting = {
@@ -806,7 +795,7 @@ module Make (C : Constraint.S) = struct
   let rho_splitting scope entail =
     let rigid = Eps_set.singleton scope.rigid in
     {
-      mentions = in_rho (Eps_unknown scope.rigid);
+      mentions = R.in_rho (Eps_unknown scope.rigid);
       follows = E.Rho.follows entail;
       at_unit = X.Rho.subst (at_rigid scope X.Eps.unit);
       at_top = X.Rho.subst (at_rigid scope X.Eps.top);
@@ -818,7 +807,7 @@ module Make (C : Constraint.S) = struct
   let eps_splitting scope entail =
     let rigid = Eps_set.singleton scope.rigid in
     {
-      mentions = in_eps (Eps_unknown scope.rigid);
+      mentions = R.in_eps (Eps_unknown scope.rigid);
       follows = E.Eps.follows entail;
       at_unit = X.Eps.subst (at_rigid scope X.Eps.unit);
       at_top = X.Eps.subst (at_rigid scope X.Eps.top);
@@ -868,11 +857,12 @@ module Make (C : Constraint.S) = struct
     let rigid = Eps_unknown scope.rigid in
     if
       List.exists
-        (fun (o : R.rho_ordering) -> in_rho rigid o.lhs || in_rho rigid o.rhs)
+        (fun (o : R.rho_ordering) ->
+          R.in_rho rigid o.lhs || R.in_rho rigid o.rhs)
         d.rho_conditions
       || List.exists
            (fun (o : R.eps_ordering) ->
-             in_eps rigid o.lhs || in_eps rigid o.rhs)
+             R.in_eps rigid o.lhs || R.in_eps rigid o.rhs)
            d.eps_conditions
     then { d with rigids = (scope.rigid, origin) :: d.rigids }
     else d
@@ -914,12 +904,12 @@ module Make (C : Constraint.S) = struct
           rho_hyps =
             List.filter
               (fun (o : R.rho_ordering) ->
-                not (in_rho rigid o.lhs || in_rho rigid o.rhs))
+                not (R.in_rho rigid o.lhs || R.in_rho rigid o.rhs))
               r.rho_orderings;
           eps_hyps =
             List.filter
               (fun (o : R.eps_ordering) ->
-                not (in_eps rigid o.lhs || in_eps rigid o.rhs))
+                not (R.in_eps rigid o.lhs || R.in_eps rigid o.rhs))
               r.eps_orderings;
         }
     in
@@ -984,18 +974,12 @@ module Make (C : Constraint.S) = struct
 
   (* The number of occurrences of the unknowns [(rhos, eps)] in an
      expression. *)
-  let rec eps_occurrences eps = function
-    | X.Eps_var k -> if Eps_set.mem k eps then 1 else 0
-    | X.Eps_const _ -> 0
-    | X.Eps_mul (e, e') | X.Eps_join (e, e') ->
-        eps_occurrences eps e + eps_occurrences eps e'
+  let count mem set k n = if mem k set then n + 1 else n
+  let eps_occurrences eps e = X.Eps.fold_vars (count Eps_set.mem eps) e 0
 
-  let rec rho_occurrences ((rhos, eps) as unknowns) = function
-    | X.Rho_var k -> if Rho_set.mem k rhos then 1 else 0
-    | X.Rho_const _ -> 0
-    | X.Rho_map e -> eps_occurrences eps e
-    | X.Rho_mul (rho, rho') | X.Rho_join (rho, rho') ->
-        rho_occurrences unknowns rho + rho_occurrences unknowns rho'
+  let rho_occurrences (rhos, eps) rho =
+    X.Rho.fold_vars ~on_rho:(count Rho_set.mem rhos)
+      ~on_eps:(count Eps_set.mem eps) rho 0
 
   let rho_sort entail bounds =
     {
@@ -1367,8 +1351,8 @@ module Make (C : Constraint.S) = struct
         (fun i u ->
           let values =
             match u with
-            | Eps_unknown k -> List.map (assign_eps k) (Lazy.force eps_values)
-            | Rho_unknown k -> List.map (assign_rho k) (Lazy.force rho_values)
+            | Eps_unknown k -> List.map (R.assign_eps k) (Lazy.force eps_values)
+            | Rho_unknown k -> List.map (R.assign_rho k) (Lazy.force rho_values)
           in
           (values, at i))
         order,

@@ -818,21 +818,24 @@ module Make (C : Inference.Constraint.S) = struct
   (* Solutions without the failing atoms                                 *)
   (* ------------------------------------------------------------------ *)
 
-  let erase (r : C.reason) =
-    Reason.map_grades
-      (fun _ -> ())
-      (fun _ -> ())
+  (* Whether two reasons name the same construct, rule and subject, whatever
+     their paths, stated orderings and grades. *)
+  let same_origin (r : C.reason) (r' : C.reason) =
+    let any _ _ = true in
+    Reason.equal any any
       { r with path = []; stated = None }
+      { r' with path = []; stated = None }
 
   let rec is_prefix path path' =
     match (path, path') with
     | [], _ -> true
-    | step :: path, step' :: path' -> step = step' && is_prefix path path'
+    | step :: path, step' :: path' ->
+        Reason.equal_step step step' && is_prefix path path'
     | _ :: _, [] -> false
 
   (* Whether an atom of reason [r] is one [failing] was decomposed out of. *)
   let generated_by (failing : C.reason) (r : C.reason) =
-    is_prefix r.path failing.path && erase r = erase failing
+    is_prefix r.path failing.path && same_origin r failing
 
   let rec atoms = function
     | C.True -> []
@@ -898,16 +901,14 @@ module Make (C : Inference.Constraint.S) = struct
             (fun n ((r : C.reason), _, _) -> max n (List.length r.path))
             (-1) subs
         in
-        match
-          List.filter
-            (fun ((r : C.reason), _, _) -> List.length r.path = longest)
-            subs
-        with
+        let is_root (r : C.reason) =
+          generated_by reason r && List.length r.path = longest
+        in
+        match List.filter (fun (r, _, _) -> is_root r) subs with
         | [] -> None
-        | (r, a, b) :: _ as roots ->
+        | (r, a, b) :: _ ->
             let dropped = function
-              | C.Sub (r', _, _) ->
-                  List.exists (fun (r'', _, _) -> r'' == r') roots
+              | C.Sub (r', _, _) -> is_root r'
               | _ -> false
             in
             Option.map
@@ -916,11 +917,11 @@ module Make (C : Inference.Constraint.S) = struct
 
   (* The sides of the generated atom of the function of an application. *)
   let function_atom source (reason : C.reason) ~func_at =
-    let generated = erase { reason with subject = Some func_at } in
+    let generated = { reason with subject = Some func_at } in
     Option.bind source.constr (fun c ->
         List.find_map
           (function
-            | C.Sub (r, a, b) when r.path = [] && erase r = generated ->
+            | C.Sub (r, a, b) when r.path = [] && same_origin r generated ->
                 Some (a, b)
             | _ -> None)
           (atoms c))
@@ -1084,7 +1085,15 @@ module Make (C : Inference.Constraint.S) = struct
         ( at,
           Printf.sprintf "%s, as the type of %s requires" generic (describe var)
         )
-    | _ -> (at, generic)
+    | ( ( Reason.Application _ | Reason.Handler_case _ | Reason.Handle_with
+        | Reason.Default_of _ | Reason.Use_under_locks _
+        | Reason.Op_case_capture _ | Reason.Rec_capture _
+        | Reason.Continuation_grade _ | Reason.Function_body
+        | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing _
+        | Reason.Continuation_effect _ | Reason.Top_definition _
+        | Reason.Top_computation | Reason.Compared_values ),
+        _ ) ->
+        (at, generic)
 
   (* Whether the construct of [reason] words a mismatch between whole types,
      rather than a shape alone or no construct in particular. *)
@@ -1105,7 +1114,15 @@ module Make (C : Inference.Constraint.S) = struct
         | Reason.Recursive_definition _ ),
         _ ) ->
         true
-    | _ -> false
+    | ( ( Reason.Application _ | Reason.Handler_case _ | Reason.Handle_with
+        | Reason.Default_of _ | Reason.Use_under_locks _
+        | Reason.Op_case_capture _ | Reason.Rec_capture _ | Reason.Instance_of _
+        | Reason.Continuation_grade _ | Reason.Function_body
+        | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing _
+        | Reason.Continuation_effect _ | Reason.Top_definition _
+        | Reason.Top_computation | Reason.Compared_values ),
+        _ ) ->
+        false
 
   (* The sides of a subtyping atom one step down: the argument's type and the
      function's domain, or the two results. *)
@@ -1131,7 +1148,9 @@ module Make (C : Inference.Constraint.S) = struct
             (descend step sides)
       | _ -> None
 
-  (* The provenance of the failed expansion [f], as solving recorded it. *)
+  (* The provenance of the failed expansion [f], as solving recorded it. The
+     solver records the reason of the failing atom itself, so the provenance
+     of [f] is recognised by the identity of that reason. *)
   let recorded source (f : C.reason Skeleton.failure) =
     match source.mismatch with
     | Some (m : S.mismatch) when m.atom.info == f.info -> Some m
@@ -1548,14 +1567,24 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Default_of _ ->
         true
     | Reason.Annotation -> r.path = [ Reason.Effect ]
-    | _ -> false
+    | Reason.Application _ | Reason.Match_scrutinee _ | Reason.Match_branch
+    | Reason.Pattern_annotation | Reason.Variant_argument _
+    | Reason.Successor_pattern | Reason.Boxed_value | Reason.Handler_case _
+    | Reason.Perform_argument _ | Reason.Perform_continuation _
+    | Reason.Handle_with | Reason.Handled_computation | Reason.Return_clause
+    | Reason.Recursive_definition _ | Reason.Function_body
+    | Reason.Function_parameter | Reason.Pure_body | Reason.Sequencing _
+    | Reason.Continuation_effect _ | Reason.Top_definition _
+    | Reason.Top_computation | Reason.Compared_values ->
+        false
 
   (* The reason a headline is built on: the first that names a promise, else
-     the last, which set the bound. *)
+     the last, which set the bound; none for an empty chain. *)
   let principal reasons =
     match List.find_opt specific reasons with
-    | Some r -> r
-    | None -> List.nth reasons (List.length reasons - 1)
+    | Some r -> Some r
+    | None -> (
+        match List.rev reasons with last :: _ -> Some last | [] -> None)
 
   (* A grade shown in a headline: [preferred] when it is variable-free or
      quantified over rigids only, [fallback] otherwise. *)
@@ -1697,36 +1726,44 @@ module Make (C : Inference.Constraint.S) = struct
         | Some _ | None -> (reason.at, inequality, witness))
 
   let refuted_ordering source p f =
-    let reason = principal f.reasons in
-    let ty =
-      match use_of reason with
-      | Some _ -> disjunction_ty source reason
-      | None -> None
-    in
-    let primary, message, notes = ordering_message source p f reason ~ty in
-    let labels = labels_of_reason p reason in
-    let labels =
-      labels
-      @ chain_labels ~primary ~labels
-          (List.filter (fun r -> r != reason) f.reasons)
-    in
-    let rigids =
-      union_rigids f.rigids
-        (union_rigids
-           (mentioned_rigids source [ reason ])
-           (ty_rigids source ty))
-    in
-    diagnostic ~primary
-      ~labels:(dedup (with_rigid_labels p rigids labels))
-      ~notes message
+    match principal f.reasons with
+    | None ->
+        {
+          Diagnostic.kind = Diagnostic.Typing;
+          primary = None;
+          message = String.capitalize_ascii (ineq_note p f);
+          labels = [];
+          notes = [];
+        }
+    | Some reason ->
+        let ty =
+          match use_of reason with
+          | Some _ -> disjunction_ty source reason
+          | None -> None
+        in
+        let primary, message, notes = ordering_message source p f reason ~ty in
+        let labels = labels_of_reason p reason in
+        let labels =
+          labels
+          @ chain_labels ~primary ~labels
+              (List.filter (fun r -> r != reason) f.reasons)
+        in
+        let rigids =
+          union_rigids f.rigids
+            (union_rigids
+               (mentioned_rigids source [ reason ])
+               (ty_rigids source ty))
+        in
+        diagnostic ~primary
+          ~labels:(dedup (with_rigid_labels p rigids labels))
+          ~notes message
 
   (* The rigids a rewritten ordering was stated with, each at the value the
      rewriting gave it: the top where it stood on the left, the unit on the
      right. *)
   let restated source sort
       (o : ('e, C.reason list) Inference.GradeNormal.ordering) =
-    let reason = principal o.info in
-    match sort.stated_of reason with
+    match Option.bind (principal o.info) sort.stated_of with
     | None -> ((o.lhs, o.rhs), [])
     | Some (lhs, rhs) -> (
         let instance =
@@ -1787,7 +1824,8 @@ module Make (C : Inference.Constraint.S) = struct
         match
           List.find_opt
             (fun (h : ('e, C.reason) Inference.GradeNormal.ordering) ->
-              h.info.path = reason.path && erase h.info = erase reason)
+              List.equal Reason.equal_step h.info.path reason.path
+              && same_origin h.info reason)
             hyps
         with
         | Some h ->
@@ -1807,6 +1845,41 @@ module Make (C : Inference.Constraint.S) = struct
         rigids;
         reasons = completed source sort o;
       }
+
+  type at_ordering = {
+    at :
+      'e.
+      'e sort -> ('e, C.reason) Inference.GradeNormal.ordering -> Diagnostic.t;
+  }
+  (** A diagnostic built on an ordering of either sort. *)
+
+  (* The diagnostic [k] builds on the first ordering of the condition [d] of
+     the case of [origin]; without one, the case cannot be typed. *)
+  let first_condition (d : R.deferred) (origin : Reason.rigid_origin) k =
+    match (d.rho_conditions, d.eps_conditions) with
+    | o :: _, _ -> k.at rho_sort o
+    | [], o :: _ -> k.at eps_sort o
+    | [], [] ->
+        diagnostic ~primary:origin.clause.case_at ~labels:[] ~notes:[]
+          (Printf.sprintf
+             "The case for %s cannot be typed for every grade of %s"
+             (op_name origin.clause.op)
+             (continuation_phrase origin))
+
+  (* The diagnostic of an ordering [o] of the case of [origin], mentioning the
+     rigids [rs], that cannot be decided. *)
+  let clause_ordering p (origin : Reason.rigid_origin) rs
+      (o : (_, C.reason) Inference.GradeNormal.ordering) ~note message =
+    diagnostic ~primary:o.info.at
+      ~labels:
+        (dedup
+           (labels_of_reason p o.info @ rigid_labels p rs
+           @ [
+               label origin.clause.case_at
+                 (Printf.sprintf "the case for %s begins %s"
+                    (op_name origin.clause.op) here);
+             ]))
+      ~notes:[ note ] message
 
   let refuted_condition source (d : R.deferred) witness =
     let p = printer source in
@@ -1837,15 +1910,7 @@ module Make (C : Inference.Constraint.S) = struct
           reasons = [ o.info ];
         }
     in
-    match (d.rho_conditions, d.eps_conditions) with
-    | o :: _, _ -> refute rho_sort o
-    | [], o :: _ -> refute eps_sort o
-    | [], [] ->
-        diagnostic ~primary:d.origin.clause.case_at ~labels:[] ~notes:[]
-          (Printf.sprintf
-             "The case for %s cannot be typed for every grade of %s"
-             (op_name d.origin.clause.op)
-             (continuation_phrase d.origin))
+    first_condition d d.origin { at = refute }
 
   (* ------------------------------------------------------------------ *)
   (* Continuation grades out of their clause                             *)
@@ -1858,7 +1923,8 @@ module Make (C : Inference.Constraint.S) = struct
       | Some c ->
           List.filter_map
             (fun (var, o) ->
-              if o = origin then Some { var; origin; value = GS.E.top }
+              if Reason.equal_rigid_origin o origin then
+                Some { var; origin; value = GS.E.top }
               else None)
             (rigid_origins c)
       | None -> []
@@ -1900,37 +1966,19 @@ module Make (C : Inference.Constraint.S) = struct
             else None)
           d.rigids
       in
-      diagnostic ~primary:o.info.at
-        ~labels:
-          (dedup
-             (labels_of_reason p o.info @ rigid_labels p rs
-             @ [
-                 label origin.clause.case_at
-                   (Printf.sprintf "the case for %s begins %s"
-                      (op_name origin.clause.op) here);
-               ]))
-        ~notes:
-          [
-            Printf.sprintf
-              "a run requires the %s inequality to hold for every grade %s may \
-               have, and it is neither derived nor refuted"
-              sort.noun
-              (continuation_phrase origin);
-          ]
+      clause_ordering p origin rs o
+        ~note:
+          (Printf.sprintf
+             "a run requires the %s inequality to hold for every grade %s may \
+              have, and it is neither derived nor refuted"
+             sort.noun
+             (continuation_phrase origin))
         (Printf.sprintf
            "The condition %s of the case for %s cannot be established"
            (quantified p rs (ineq_text p sort (o.lhs, o.rhs)))
            (op_name origin.clause.op))
     in
-    match (d.rho_conditions, d.eps_conditions) with
-    | o :: _, _ -> report rho_sort o
-    | [], o :: _ -> report eps_sort o
-    | [], [] ->
-        diagnostic ~primary:origin.clause.case_at ~labels:[] ~notes:[]
-          (Printf.sprintf
-             "The case for %s cannot be typed for every grade of %s"
-             (op_name origin.clause.op)
-             (continuation_phrase origin))
+    first_condition d origin { at = report }
 
   (* The conditions of a run that share unknowns and hold together at none of
      the grades tried, in reading order. *)
@@ -2051,23 +2099,13 @@ module Make (C : Inference.Constraint.S) = struct
           Printf.sprintf "Cannot decide the %s inequality %s %s" sort.noun ineq
             (for_every p rs)
     in
-    diagnostic ~primary:o.info.at
-      ~labels:
-        (dedup
-           (labels_of_reason p o.info @ rigid_labels p rs
-           @ [
-               label origin.clause.case_at
-                 (Printf.sprintf "the case for %s begins %s"
-                    (op_name origin.clause.op) here);
-             ]))
-      ~notes:
-        [
-          Printf.sprintf
-            "it relates grades inferred inside the case for %s to the grade of \
-             %s, which the case must allow to be any grade"
-            (op_name origin.clause.op)
-            (continuation_phrase origin);
-        ]
+    clause_ordering p origin rs o
+      ~note:
+        (Printf.sprintf
+           "it relates grades inferred inside the case for %s to the grade of \
+            %s, which the case must allow to be any grade"
+           (op_name origin.clause.op)
+           (continuation_phrase origin))
       message
 
   let stuck source (s : RS.stuck) =
@@ -2076,16 +2114,9 @@ module Make (C : Inference.Constraint.S) = struct
     match s.blocking with
     | RS.Blocking_rho o -> undecided source p origin rho_sort o
     | RS.Blocking_eps o -> undecided source p origin eps_sort o
-    | RS.Blocking_deferred d -> (
-        match (d.rho_conditions, d.eps_conditions) with
-        | o :: _, _ -> undecided source p origin rho_sort o
-        | [], o :: _ -> undecided source p origin eps_sort o
-        | [], [] ->
-            diagnostic ~primary:origin.clause.case_at ~labels:[] ~notes:[]
-              (Printf.sprintf
-                 "The case for %s cannot be typed for every grade of %s"
-                 (op_name origin.clause.op)
-                 (continuation_phrase origin)))
+    | RS.Blocking_deferred d ->
+        first_condition d origin
+          { at = (fun sort o -> undecided source p origin sort o) }
 
   (* ------------------------------------------------------------------ *)
   (* Refuted atoms                                                       *)
@@ -2095,8 +2126,8 @@ module Make (C : Inference.Constraint.S) = struct
      on, when the failure names one. *)
   let refuted_reason = function
     | R.Shape_mismatch f | R.Occurs_check f -> Some f.info
-    | R.Refuted_rho o -> Some (principal o.info)
-    | R.Refuted_eps o -> Some (principal o.info)
+    | R.Refuted_rho o -> principal o.info
+    | R.Refuted_eps o -> principal o.info
     | R.Never_eternal { reason; _ } -> Some reason
     | R.Refuted_condition { condition; _ } | R.Undecided_condition condition
       -> (
