@@ -953,7 +953,8 @@ and
 default Heat () = delay 1
 ```
 
-gives `Heat` a default, run only when a call reaches the top level unhandled;
+gives `Heat` a default, run only when a call reaches the top level unhandled
+in a `run` command below it, commands taking effect in the order of the file;
 here it simulates the running time of `Heat` by a delay. Where operations
 declare running-time bounds, only atomic operations have defaults, and a
 default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}` under

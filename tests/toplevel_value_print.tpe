@@ -1,0 +1,14 @@
+(* Correctly accepted by the typechecker: a run returning a top-level value
+   prints the value in place of its name, through tuples and constructors. *)
+
+let x = 1
+let y = (x, Some x)
+let f = fun z -> z
+
+run x
+
+run y
+
+run (y, f)
+
+run Some y

@@ -218,12 +218,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         ({ pat with it = Ast.PSucc (pat'', k) }, vars)
     | Ast.PVariant (_, None) | Ast.PConst _ | Ast.PNonbinding -> (pat, [])
 
-  (** | Ast.Handler ((y, ret_case), op_cases) -> let y' = Ast.Variable.refresh y
-      in let ret_case' = refresh_computation ((y, y') :: vars) ret_case in let
-      op_cases' = Ast.OpNameMap.map (fun (x, k, op_case) -> let x' =
-      Ast.Variable.refresh x in let k' = Ast.Variable.refresh k in let op_case'
-      = refresh_computation ((x, x') :: (k, k') :: vars) op_case in (x', k',
-      op_case')) op_cases in Ast.Handler ((y', ret_case'), op_cases') *)
   let rec refresh_expression vars (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Var x -> (
@@ -530,9 +524,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
           match pat.it with
           | Ast.PVar x ->
               let resource_counter = env.resource_counter in
-              (* let x' =
-              Ast.Variable.fresh
-                (Ast.Variable.string_of x ^ string_of_int resource_counter) *)
               let x' =
                 Ast.Variable.fresh ("resource_" ^ string_of_int resource_counter)
               in
@@ -653,13 +644,22 @@ module Make (GS : Grades.GradeSystem.S) = struct
                 :: comps')
         | _ -> comps')
 
+  (** [returned_value env comp] is [comp] with the value it returns, if it is a
+      [return], given by {!eval_value}: its top-level variables are replaced by
+      their values in [env]. *)
+  let returned_value env (comp : _ Ast.computation) =
+    match comp.it with
+    | Ast.Return expr -> { comp with it = Ast.Return (eval_value env expr) }
+    | _ -> comp
+
+  (* The [run] commands loaded so far, the last first, each with the
+     environment of the commands above it. *)
   type load_state = {
     environment : evaluation_environment;
-    computations : Graded.computation list;
+    runs : (evaluation_environment * Graded.computation) list;
   }
 
-  let initial_load_state =
-    { environment = initial_environment; computations = [] }
+  let initial_load_state = { environment = initial_environment; runs = [] }
 
   let load_primitive load_state x prim =
     {
@@ -689,7 +689,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     }
 
   let load_top_do load_state comp =
-    { load_state with computations = load_state.computations @ [ comp ] }
+    { load_state with runs = (load_state.environment, comp) :: load_state.runs }
 
   let load_op_sig load_state op eps =
     {
@@ -713,7 +713,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
         };
     }
 
-  type run_state = load_state
+  (* The computation of the current [run] command, if any, with its
+     environment, and the [run] commands after it, each with the environment
+     of the commands above it. *)
+  type run_state = {
+    environment : evaluation_environment;
+    current : Graded.computation option;
+    pending : (evaluation_environment * Graded.computation) list;
+  }
 
   type step = {
     environment : evaluation_environment;
@@ -721,40 +728,42 @@ module Make (GS : Grades.GradeSystem.S) = struct
     next_state : unit -> run_state;
   }
 
-  let run load_state = load_state
+  (* The state at the start of the first of [runs], or the final state
+     [environment] if there is none. *)
+  let start environment = function
+    | [] -> { environment; current = None; pending = [] }
+    | (environment, comp) :: pending ->
+        { environment; current = Some comp; pending }
+
+  let run (load_state : load_state) =
+    start load_state.environment (List.rev load_state.runs)
 
   (* The step labelled [label] that ends the current top-level [run] command
-     and passes to the next one. The resource store and the fresh-resource
-     counter are reset; top-level bindings and operation signatures are kept. *)
-  let end_run label environment comps =
+     and passes to the next one, which executes in the environment of the
+     commands above it, with an empty resource store. *)
+  let end_run label (environment : evaluation_environment) pending =
     {
       environment;
       label;
       next_state =
         (fun () ->
-          {
-            computations = comps;
-            environment =
-              {
-                environment with
-                state = ContextHolderModule.empty;
-                resource_counter = 0;
-              };
-          });
+          start { environment with state = ContextHolderModule.empty } pending);
     }
 
   let steps = function
-    | { computations = []; _ } -> []
-    | { computations = { it = Ast.Return _; _ } :: comps; environment } ->
-        [ end_run Return environment comps ]
+    | { current = None; _ } -> []
+    | { current = Some { it = Ast.Return _; _ }; environment; pending } ->
+        [ end_run Return environment pending ]
     (* A default implementation fires only here, where the operation call has
        bubbled out of every enclosing [do] and [handle] and so is known to be
        unhandled; [step_computation] deliberately gets no [Perform] rule. The
        body runs in place of the call and its result is passed to the
-       continuation, exactly as a handled operation's result would be. *)
+       continuation, exactly as a handled operation's result would be. Only
+       the defaults declared above the [run] command are in its environment. *)
     | {
-        computations = { it = Ast.Perform (op, expr, (pat, cont)); at } :: comps;
+        current = Some { it = Ast.Perform (op, expr, (pat, cont)); at };
         environment;
+        pending;
       }
       when Ast.OpNameMap.mem op environment.op_defaults ->
         let dpat, dcomp = Ast.OpNameMap.find op environment.op_defaults in
@@ -768,20 +777,21 @@ module Make (GS : Grades.GradeSystem.S) = struct
             next_state =
               (fun () ->
                 {
-                  computations =
-                    Ast.located at
-                      (Ast.Do (substitute subst dcomp', (pat, cont)))
-                    :: comps;
+                  current =
+                    Some
+                      (Ast.located at
+                         (Ast.Do (substitute subst dcomp', (pat, cont))));
                   environment;
+                  pending;
                 });
           };
         ]
     (* An operation call without a default that has bubbled out of every
        enclosing [do] and [handle] is unhandled: the run stops there and
        execution passes to the next top-level [run] command. *)
-    | { computations = { it = Ast.Perform _; _ } :: comps; environment } ->
-        [ end_run Unhandled environment comps ]
-    | { computations = comp :: comps; environment } ->
+    | { current = Some { it = Ast.Perform _; _ }; environment; pending } ->
+        [ end_run Unhandled environment pending ]
+    | { current = Some comp; environment; pending } ->
         List.map
           (fun (env, red, comp') ->
             {
@@ -789,7 +799,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
               label = ComputationReduction red;
               next_state =
                 (fun () ->
-                  { computations = comp' () :: comps; environment = env });
+                  { current = Some (comp' ()); environment = env; pending });
             })
           (step_computation environment comp)
 end

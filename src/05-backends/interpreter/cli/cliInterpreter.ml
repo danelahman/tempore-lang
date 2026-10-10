@@ -5,9 +5,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let view_run_state (run_state : run_state) ~run_num =
     match run_state with
-    | { computations = ({ it = Ast.Return _; _ } as comp) :: _; environment } ->
+    | { current = Some ({ it = Ast.Return _; _ } as comp); environment; _ } ->
         Format.printf "=== Run %d ===@." run_num;
-        Format.printf "%t@." (PrettyPrint.print_computation (module GS.R) comp);
+        Format.printf "%t@."
+          (PrettyPrint.print_computation
+             (module GS.R)
+             (returned_value environment comp));
         print_string
           (PrettyPrint.string_of_interpreter_state
              (module GS.R)
@@ -17,8 +20,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     (* An operation with a default implementation is not stuck here: the
        default is about to fire, so there is nothing to report yet. *)
     | {
-     computations = ({ it = Ast.Perform (op, _, _); _ } as comp) :: _;
+     current = Some ({ it = Ast.Perform (op, _, _); _ } as comp);
      environment;
+     _;
     }
       when not (Ast.OpNameMap.mem op environment.op_defaults) ->
         Format.printf "=== Run %d (unhandled operation) ===@." run_num;

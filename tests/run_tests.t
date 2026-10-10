@@ -850,6 +850,23 @@
   ]
   
   ======================================================================
+  default_file_order.tpe
+  ======================================================================
+  === Run 1 (unhandled operation) ===
+  perform Heat () (op_var. return op_var)
+  
+  === Run 2 (unhandled operation) ===
+  perform Cool () (op_var. (let op_var = return op_var in
+                            return op_var))
+  
+  === Run 3 ===
+  return ()
+  State: [
+    1,
+    1
+  ]
+  
+  ======================================================================
   default_ops.tpe
   ======================================================================
   === Run 1 ===
@@ -3057,11 +3074,11 @@
   State: []
   
   === Run 3 ===
-  return (1::u, "foo"::u)
+  return (1::[], "foo"::[])
   State: []
   
   === Run 4 ===
-  return ([]::v, (2::[])::v)
+  return ([]::[]::[], (2::[])::[]::[])
   State: []
   
   === Run 5 ===
@@ -5199,7 +5216,7 @@
   State: []
   
   === Run 83 ===
-  return id
+  return (fun x ↦ return x)
   State: []
   
   === Run 84 ===
@@ -5392,6 +5409,25 @@
   
   === Run 2 ===
   return 3
+  State: []
+  
+  ======================================================================
+  toplevel_value_print.tpe
+  ======================================================================
+  === Run 1 ===
+  return 1
+  State: []
+  
+  === Run 2 ===
+  return (1, Some 1)
+  State: []
+  
+  === Run 3 ===
+  return ((1, Some 1), fun z ↦ return z)
+  State: []
+  
+  === Run 4 ===
+  return (Some (1, Some 1))
   State: []
   
   ======================================================================
@@ -5744,7 +5780,7 @@
   State: []
   
   === Run 2 ===
-  return h
+  return (rec h ...)
   State: []
   
   ======================================================================
@@ -7829,7 +7865,7 @@ single-dash form of the help option is not accepted.
   $ ../tempore -help
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
-    --debug           Show final internal state and top level typing results after execution
+    --debug           Print the inferred type schemes of the top-level definitions before running
     --grades          Selects the grades (default: time-lower-bound); accepted:
         Time:
           time-lower-bound                          Lower bounds

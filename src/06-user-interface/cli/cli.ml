@@ -34,7 +34,6 @@ type config = {
 }
 
 let accepted_resource_names = List.map fst Grades.GradeRegistry.grade_modules
-let default_resource_name = List.hd accepted_resource_names
 
 (* The accepted grades, one per line and grouped as the web selector groups
    them, each with its title in a column after the longest name and, for a
@@ -42,12 +41,7 @@ let default_resource_name = List.hd accepted_resource_names
    below; indented to align under the "--grades" entry of [Arg]'s aligned
    option list. *)
 let accepted_grades_help =
-  let listed (g : Grades.GradeRegistry.group) =
-    List.filter
-      (fun (_, (info : Grades.GradeRegistry.info)) ->
-        info.visibility = Grades.GradeRegistry.Everywhere)
-      g.grades
-  in
+  let listed = Grades.GradeRegistry.listed in
   let width =
     List.fold_left max 0
       (List.concat_map
@@ -81,7 +75,7 @@ let parse_args_to_config () =
   and use_stdlib = ref true
   and debug = ref false
   and typecheck_only = ref false
-  and resource_type = ref default_resource_name in
+  and resource_type = ref Grades.GradeRegistry.default_name in
   let usage = "Run Tempore as '" ^ Sys.argv.(0) ^ " [filename.tpe] ...'"
   and anonymous filename = filenames := filename :: !filenames
   (* The options, in alphabetical order. [--help] is listed rather than left
@@ -93,12 +87,12 @@ let parse_args_to_config () =
       [
         ( "--debug",
           Arg.Set debug,
-          " Show final internal state and top level typing results after \
-           execution" );
+          " Print the inferred type schemes of the top-level definitions \
+           before running" );
         ( "--grades",
           Arg.Set_string resource_type,
           Printf.sprintf " Selects the grades (default: %s); accepted:%s"
-            default_resource_name accepted_grades_help );
+            Grades.GradeRegistry.default_name accepted_grades_help );
         ( "--help",
           Arg.Unit
             (fun () -> raise (Arg.Help (Arg.usage_string !options usage))),
@@ -143,26 +137,9 @@ let run_with (module G : Grades.Grade.S) config =
     Random.self_init ();
     (* Every source is parsed before any is loaded, so that the grades of the
        program are read over the operations all of them declare. *)
-    let stdlib =
-      if config.use_stdlib then
-        Loader.parse_source ~filename:stdlib_filename Loader.stdlib_source
-      else []
-    in
     let files = List.map Loader.parse_file config.filenames in
-    let stdlib_state =
-      Loader.load_commands
-        (Loader.declare (stdlib :: files) Loader.initial_state)
-        stdlib
-    in
-    (* Every file is loaded even when an earlier one had errors, so that all
-       of them are reported at once; a fatal failure still stops everything. *)
-    let state', diagnostics =
-      List.fold_left
-        (fun (state, diagnostics) file ->
-          let state', diagnostics' = Loader.load_commands_all state file in
-          (state', diagnostics @ diagnostics'))
-        (stdlib_state, []) files
-    in
+    let program = Loader.load_program ~use_stdlib:config.use_stdlib files in
+    let diagnostics = program.diagnostics in
     (* A blank line between diagnostics, so that a reader can tell where one
        ends. A rejected program is not run, whatever [--typecheck-only] says. *)
     if diagnostics <> [] then begin
@@ -173,7 +150,7 @@ let run_with (module G : Grades.Grade.S) config =
         diagnostics;
       exit 1
     end;
-    let run_state = Backend.run state'.backend in
+    let run_state = Backend.run program.loaded.backend in
     if config.debug then begin
       let definitions (state : Loader.state) =
         Loader.TC.definitions state.typechecker
@@ -185,11 +162,13 @@ let run_with (module G : Grades.Grade.S) config =
       in
       if config.use_stdlib then begin
         print_endline "=== Standard library ===";
-        print_definitions stdlib_state;
+        print_definitions program.library;
         print_newline ()
       end;
       print_endline "=== Top-level definitions ===";
-      print_definitions ~skip:(List.length (definitions stdlib_state)) state';
+      print_definitions
+        ~skip:(List.length (definitions program.library))
+        program.loaded;
       print_newline ()
     end;
     (* loading the files has typechecked every command, the [run]s included *)

@@ -30,6 +30,10 @@ let declared_operations commands =
           None)
     commands
 
+(** The file name the standard library's locations are reported under, since it
+    is loaded from a string rather than from a file. *)
+let stdlib_filename = "stdlib.tpe"
+
 module Loader (Backend : Backend.S) = struct
   module D = Desugarer.Make (Backend.Grades)
   module TC = Typechecker.Make (Backend.Grades)
@@ -197,12 +201,55 @@ module Loader (Backend : Backend.S) = struct
   (** The module Stdlib_tpe is automatically generated from stdlib.tpe. Check
       the dune file for details. *)
   let stdlib_source = Stdlib_tpe.contents
+
+  type 'link program = {
+    library : state;  (** the state after the standard library *)
+    library_definitions : definition list;
+        (** the top-level definitions of the standard library *)
+    loaded : state;  (** the state after every source *)
+    diagnostics : Diagnostic.t list;  (** those of the sources, in order *)
+    definitions : definition list;
+        (** the top-level definitions of the sources accepted before the first
+            error of each *)
+    links : 'link list;
+        (** the links of the names of the sources to their definitions *)
+  }
+  (** A program loaded by {!load_program}. *)
+
+  (** [load_program ~use_stdlib sources] loads the parsed [sources] in order,
+      preceded by the standard library if [use_stdlib], all of them {!declare}d
+      first. Every source is loaded even when an earlier one has errors, so that
+      all of them are reported at once. An error in the standard library is
+      fatal. *)
+  let load_program ~use_stdlib sources =
+    let stdlib =
+      if use_stdlib then parse_source ~filename:stdlib_filename stdlib_source
+      else []
+    in
+    let library, library_definitions =
+      match
+        load_commands_defining
+          (declare (stdlib :: sources) initial_state)
+          stdlib
+      with
+      | state, [], definitions, _ -> (state, definitions)
+      | _, d :: _, _, _ -> raise (Error.Error d)
+    in
+    let loaded, diagnostics, definitions, links =
+      List.fold_left
+        (fun (state, diagnostics, definitions, links) source ->
+          let state', diagnostics', definitions', links' =
+            load_commands_defining state source
+          in
+          ( state',
+            diagnostics @ diagnostics',
+            definitions @ definitions',
+            links @ links' ))
+        (library, [], [], []) sources
+    in
+    { library; library_definitions; loaded; diagnostics; definitions; links }
 end
 
 (** The standard library's source, independently of any backend, for callers
     that need to know what precedes a program's own source. *)
 let stdlib_source = Stdlib_tpe.contents
-
-(** The file name the standard library's locations are reported under, since it
-    is loaded from a string rather than from a file. *)
-let stdlib_filename = "stdlib.tpe"

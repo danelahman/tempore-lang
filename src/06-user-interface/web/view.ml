@@ -902,20 +902,6 @@ let view_editor ~marks ~errors (model : Model.model) =
       view_popover model errors;
     ]
 
-(* let _view (model : Model.model) =
-   match model.loaded_code with
-   | Ok code ->
-       div
-         [
-           input ~a:[type_ "range"; int_attr "min" 0; int_attr "max" 10; int_attr "step" 2; onmousedown (fun event -> Model.ParseInterrupt (string_of_int event.x))] [];
-           (* elt "progress" ~a:[type_ "range"; value (string_of_int model.random_step_size); int_attr "max" 10; oninput (fun input -> Model.ChangeStepSize input)] []; *)
-           editor model;
-           actions model code;
-           view_operations code.snapshot.operations;
-           view_process code.snapshot.process;
-         ]
-   | Error msg -> div [ editor model; text msg ] *)
-
 (* The mark of the outcome of a check, a stroke drawn in the current text
    colour. *)
 let check_mark cls path =
@@ -1157,12 +1143,7 @@ let view_compiler (model : Model.model) =
                   (fun (name, _) -> name = model.edit_model.selected_resource)
                   (List.map
                      (fun (g : Grades.GradeRegistry.group) ->
-                       ( g.label,
-                         g.short,
-                         List.filter
-                           (fun (_, (info : Grades.GradeRegistry.info)) ->
-                             info.visibility = Everywhere)
-                           g.grades ))
+                       (g.label, g.short, Grades.GradeRegistry.listed g))
                      Grades.GradeRegistry.groups);
               ];
             (* The description of the selected grades, the tooltip adding how
@@ -1575,7 +1556,7 @@ let view_steps (run_model : Model.run_model) steps =
             [
               class_ "button is-outlined is-fullwidth";
               onclick (fun _ -> Model.RunMsg Model.Back);
-              disabled (run_model.history = []);
+              disabled (List.is_empty run_model.history);
             ]
           [ text "Undo last step" ];
       ]
@@ -1619,12 +1600,12 @@ let view_steps (run_model : Model.run_model) steps =
                     [
                       class_ "button is-info is-fullwidth";
                       onclick (fun _ -> Model.RunMsg Model.RandomStep);
-                      disabled (steps = []);
+                      disabled (List.is_empty steps);
                     ]
                   [ text "next steps" ];
               ];
           ];
-        (if steps = [] then
+        (if List.is_empty steps then
            elt "p"
              ~a:[ class_ "terminated-note" ]
              [ text "Computation has terminated" ]
@@ -1644,8 +1625,10 @@ let run_view (run_model : Model.run_model) =
     Option.bind run_model.selected_step_index (List.nth_opt steps)
   in
   let active_view =
-    if run_model.current.is_done && run_model.current.completed_runs <> [] then
-      []
+    if
+      run_model.current.is_done
+      && not (List.is_empty run_model.current.completed_runs)
+    then []
     else
       let state_view =
         match selected_step with

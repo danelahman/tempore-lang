@@ -1,11 +1,9 @@
-module Error = Utils.Error
 module Print = Utils.Print
 module Ast = Language.Ast
 module PrettyPrint = Language.PrettyPrint
 
 module Make (GS : Grades.GradeSystem.S) = struct
-  module I = Interpreter.Make (GS)
-  open I
+  open Interpreter.Types
 
   (* A NUL byte is used as the redex marker because it cannot appear in any
      output produced by [Format] and so makes a single-character separator
@@ -62,8 +60,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
           (PrettyPrint.print_expression (module GS.R) ~max_level:0 h)
     | ComputationRedex redex, _ ->
         print_computation_redex ?max_level redex c ppf
-    | _, _ ->
-        Error.runtime "internal: malformed reduction context in redex selector"
+    (* A context that does not fit the computation marks no redex. *)
+    | (DoCtx _ | HandleCtx _), _ ->
+        PrettyPrint.print_computation (module GS.R) ?max_level c ppf
 
   let view_computation_with_redexes red comp =
     let rendered =
@@ -83,7 +82,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
               (SyntaxHighlight.highlight_text redex);
           ]
         @ SyntaxHighlight.highlight_text post
-    | _ ->
-        Error.runtime
-          "internal: redex marker split produced an unexpected layout"
+    (* Markers that do not delimit one redex mark none. *)
+    | parts -> SyntaxHighlight.highlight_text (String.concat "" parts)
 end

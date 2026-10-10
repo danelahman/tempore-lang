@@ -1,0 +1,18 @@
+(* Correctly accepted by the typechecker, under the default 'time-lower-bound'
+   grading monoid: commands take effect in the order of the file, so a run uses
+   only the default implementations declared above it. The first run stops at
+   the call of 'Heat', the second at the call of 'Cool' that the default of
+   'Heat' performs, and the third completes. *)
+
+operation Heat : unit ~> unit # 1
+operation Cool : unit ~> unit # 1
+
+run perform Heat ()
+
+default Heat () = delay 1; perform Cool ()
+
+run perform Heat ()
+
+default Cool () = delay 1
+
+run perform Heat ()

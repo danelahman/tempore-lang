@@ -380,13 +380,10 @@ let print_interpreter_state resource_grade ctx ppf =
   print_vars_and_exprs resource_grade print_var_and_expr ctx ppf
 
 let string_of_interpreter_state resource_grade context =
-  print_interpreter_state resource_grade context Format.str_formatter;
-  Format.flush_str_formatter ()
+  Format.asprintf "%t" (print_interpreter_state resource_grade context)
 
 let string_of_expression resource_grade e =
-  print_expression resource_grade e Format.str_formatter;
-  Format.flush_str_formatter ()
+  Format.asprintf "%t" (print_expression resource_grade e)
 
 let string_of_computation resource_grade c =
-  print_computation resource_grade c Format.str_formatter;
-  Format.flush_str_formatter ()
+  Format.asprintf "%t" (print_computation resource_grade c)

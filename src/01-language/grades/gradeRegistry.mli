@@ -5,6 +5,9 @@ val grade_modules : (string * (module Grade.S)) list
     CLI's [--grades] option and listed by the web interface's grade selector,
     those shown {!Everywhere}, are taken from here. *)
 
+val default_name : string
+(** The name of the default grade, the first of {!grade_modules}. *)
+
 val accepting : Grade.lit -> string list
 (** [accepting lit] lists the names of the grades shown {!Everywhere} that
     understand the literal [lit], in the order of {!grade_modules}. *)
@@ -87,3 +90,6 @@ val groups : group list
 (** {!grade_modules} described and grouped for the web selector and the CLI's
     [--help]: the concatenation of every group's [grades] names the same grades
     as {!grade_modules}, in the same order. *)
+
+val listed : group -> (string * info) list
+(** [listed g] is the grades of [g] shown {!Everywhere}, in order. *)

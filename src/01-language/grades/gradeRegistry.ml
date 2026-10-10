@@ -447,6 +447,7 @@ let entries =
   ]
 
 let grade_modules = List.map (fun e -> (e.name, e.grade)) entries
+let default_name = fst (List.hd grade_modules)
 
 let understands lit (module G : Grade.S) =
   match G.of_lit lit with
@@ -496,3 +497,6 @@ let groups =
   List.rev_map
     (fun ((label, short), front) -> { label; short; grades = List.rev front })
     groups
+
+let listed group =
+  List.filter (fun (_, info) -> info.visibility = Everywhere) group.grades

@@ -207,8 +207,6 @@ type edit_model = {
 (** The key the browser remembers whether to load the standard library under. *)
 let use_stdlib_key = "tempore.use-stdlib"
 
-let default_resource_name = fst (List.hd Grades.GradeRegistry.grade_modules)
-
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)
 let indentation = "  "
 
@@ -270,7 +268,7 @@ let edit_init =
     {
       use_stdlib = true;
       unparsed_code = "";
-      selected_resource = default_resource_name;
+      selected_resource = Grades.GradeRegistry.default_name;
       selected_example = None;
     }
   in
@@ -691,6 +689,30 @@ let utf16_offset source byte =
   in
   go 0 0
 
+(** What the program was undergoing when an exception was raised. *)
+type stage = Checking | Running
+
+(** [errors_of_exception stage exn] is the errors reported for the exception
+    [exn] raised at [stage]: the diagnostic of an error of the language, a
+    run-time error among them, and a fatal error otherwise. *)
+let errors_of_exception stage exn =
+  match exn with
+  | Error.Error diagnostic -> [ { diagnostic; hovered_label = None } ]
+  | Invalid_argument message -> [ fatal message ]
+  | Stack_overflow -> (
+      match stage with
+      | Checking ->
+          [
+            fatal
+              "The available stack was exhausted while checking this program, \
+               e.g. by a grade too large to decide under this grading monoid";
+          ]
+      | Running ->
+          [
+            fatal "The available stack was exhausted while running this program";
+          ])
+  | exn -> [ fatal (Printexc.to_string exn) ]
+
 (* The update of the model proper; [update] adds the effects. *)
 let update_model model = function
   | EditMsg edit_msg ->
@@ -735,8 +757,16 @@ let update_model model = function
       }
   | RunMsg run_msg -> (
       match model.run_model with
-      | Ok run_model ->
-          { model with run_model = Ok (run_update run_model run_msg) }
+      | Ok run_model -> (
+          match run_update run_model run_msg with
+          | run_model -> { model with run_model = Ok run_model }
+          | exception exn ->
+              {
+                (without_popover model) with
+                run_model = Error (errors_of_exception Running exn);
+                active_error = None;
+                hovered_error = None;
+              })
       | Error _ -> model)
   | Perform action ->
       let run = action = Run in
@@ -758,28 +788,18 @@ let update_model model = function
           | Some (module G : Grades.Grade.S) ->
               let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
               let module L = Loader.Loader (B) in
-              (* Loaded as two separate sources, so that an editor location
-                 is a location in what the user typed. *)
-              let stdlib =
-                if model.edit_model.use_stdlib then
-                  L.parse_source ~filename:Loader.stdlib_filename
-                    L.stdlib_source
-                else []
+              (* The standard library is loaded as a source of its own, so
+                 that an editor location is a location in what the user
+                 typed. *)
+              let program =
+                L.load_program ~use_stdlib:model.edit_model.use_stdlib
+                  [ L.parse_source model.edit_model.unparsed_code ]
               in
-              let code = L.parse_source model.edit_model.unparsed_code in
-              (* An error in the standard library is a bug, and fatal. *)
-              let state, library_definitions =
-                match
-                  L.load_commands_defining
-                    (L.declare [ stdlib; code ] L.initial_state)
-                    stdlib
-                with
-                | state, [], accepted, _ -> (state, accepted)
-                | _, d :: _, _, _ -> raise (Error.Error d)
-              in
-              let state, diagnostics, accepted, references =
-                L.load_commands_defining state code
-              in
+              let state = program.loaded
+              and diagnostics = program.diagnostics
+              and accepted = program.definitions
+              and library_definitions = program.library_definitions
+              and references = program.links in
               let triple (d : L.definition) = (d.variable, d.at, d.scheme) in
               let definitions =
                 defined ~source:model.edit_model.unparsed_code
@@ -843,21 +863,7 @@ let update_model model = function
                   definitions,
                   links )
               else (Error [], definitions, links)
-        with
-        | Error.Error d ->
-            (Error [ { diagnostic = d; hovered_label = None } ], [], [])
-        | Invalid_argument message -> (Error [ fatal message ], [], [])
-        | Stack_overflow ->
-            ( Error
-                [
-                  fatal
-                    "The available stack was exhausted while checking this \
-                     program, e.g. by a grade too large to decide under this \
-                     grading monoid";
-                ],
-              [],
-              [] )
-        | exn -> (Error [ fatal (Printexc.to_string exn) ], [], [])
+        with exn -> (Error (errors_of_exception Checking exn), [], [])
       in
       {
         (without_popover model) with

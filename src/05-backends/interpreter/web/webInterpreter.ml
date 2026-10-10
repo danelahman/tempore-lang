@@ -35,10 +35,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
         (PrettyPrint.print_rho (module GS.R) rho)
         surround
     in
-    PrettyPrint.print_vars_and_exprs
-      (module GS.R)
-      print_var_and_expr state Format.str_formatter;
-    Format.flush_str_formatter ()
+    Format.asprintf "%t"
+      (PrettyPrint.print_vars_and_exprs (module GS.R) print_var_and_expr state)
 
   (* If the redex at the head of [red] is an [Unbox] applied to a variable,
      return that variable so we can highlight the corresponding state entry. *)
@@ -76,11 +74,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Return | Unhandled -> true
     | ComputationReduction _ -> false
 
-  let is_done = function { computations = []; _ } -> true | _ -> false
+  let is_done = function
+    | { current = None; _ } -> true
+    | { current = Some _; _ } -> false
 
   let view_run_state (run_state : run_state) step_label =
     match run_state with
-    | { environment; computations = comp :: _ } ->
+    | { environment; current = Some comp; _ } ->
         let reduction =
           match step_label with
           | Some (ComputationReduction red) -> Some red
@@ -110,7 +110,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
           | _ -> SyntaxHighlight.highlight_text state_string
         in
         let computation_tree =
-          RS.view_computation_with_redexes reduction comp
+          RS.view_computation_with_redexes reduction
+            (returned_value environment comp)
         in
         div
           ~a:[ class_ "box" ]
@@ -119,6 +120,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
             elt "hr" [];
             elt "pre" ~a:[ class_ "syn-ml" ] computation_tree;
           ]
-    | { computations = []; _ } ->
+    | { current = None; _ } ->
         div ~a:[ class_ "box" ] [ elt "pre" [ text "done" ] ]
 end
