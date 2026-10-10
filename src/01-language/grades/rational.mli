@@ -18,18 +18,18 @@ val of_z : Z.t -> t
 val make : int -> int -> t
 (** [make n d] is the fraction [n/d].
 
-    @raise Division_by_zero if [d = 0]. *)
+    Raises [Division_by_zero] if [d = 0]. *)
 
 val make_z : Z.t -> Z.t -> t
 (** [make_z n d] is the fraction [n/d].
 
-    @raise Division_by_zero if [d = 0]. *)
+    Raises [Division_by_zero] if [d = 0]. *)
 
 val of_decimal : string -> t
 (** [of_decimal s] is the number the decimal numeral [s] denotes exactly, e.g.
     ["1.5"], ["0.125"], ["-2.0"] or ["2.5e-3"], underscores ignored.
 
-    @raise Invalid_argument if [s] is not a decimal numeral. *)
+    Raises [Invalid_argument] if [s] is not a decimal numeral. *)
 
 val add : t -> t -> t
 (** [add p q] is [p + q]. *)
@@ -46,7 +46,7 @@ val mul : t -> t -> t
 val div : t -> t -> t
 (** [div p q] is [p / q].
 
-    @raise Division_by_zero if [q] is [0]. *)
+    Raises [Division_by_zero] if [q] is [0]. *)
 
 val sign : t -> int
 (** [sign q] is [-1], [0] or [1] as [q] is negative, zero or positive. *)
@@ -80,7 +80,7 @@ val den : t -> Z.t
 val denominator : t -> int
 (** [denominator q] is the denominator of [q] in lowest terms.
 
-    @raise Invalid_argument if it is not representable as an [int]. *)
+    Raises [Invalid_argument] if it is not representable as an [int]. *)
 
 val show : t -> string
 (** [show q] prints [q] as an integer, e.g. [3]; otherwise as a decimal if its

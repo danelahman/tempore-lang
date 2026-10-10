@@ -98,7 +98,7 @@ module Make (X : GradeExp.S) : sig
     val read_back : sum -> exp
     (** [read_back s] is [s] as a right-nested join.
 
-        @raise Invalid_argument on the empty list, which is no sum. *)
+        Raises [Invalid_argument] on the empty list, which is no sum. *)
 
     val canon : Grades.Grade.bounds -> exp -> exp
     (** [canon bounds e] is the canonical form of [e], the read-back of

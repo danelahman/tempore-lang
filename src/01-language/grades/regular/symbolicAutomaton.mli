@@ -47,7 +47,8 @@ val of_table : final:bool array -> edges:(Letters.t * int) list array -> t
     state [q] listed by [edges.(q)]: labels that are non-empty, pairwise
     disjoint and cover all letters, several edges possibly sharing a target.
 
-    @raise Invalid_argument if the arrays are empty or of different lengths. *)
+    Raises [Invalid_argument] if the arrays are empty or of different lengths.
+*)
 
 val of_regex : limit:int -> SymbolicRegex.t -> t option
 (** [of_regex ~limit r] is the canonical form of the automaton of the

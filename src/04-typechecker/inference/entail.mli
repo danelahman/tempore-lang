@@ -8,10 +8,10 @@
 
     - [closed]: the grade's order, where both sides are variable-free;
     - [derive]: {!GradeNormal.Make.SORT.decide_leq}, the embedding of normal
-      forms along the graph of the hypotheses of {!check_closed}: its chains
-      between atoms through any sides, its steps from factors to products with
-      the evidence of the unit below them, and its chains from a side of a
-      hypothesis;
+      forms along the graph of the hypotheses of {!Entail.Make.check_closed}:
+      its chains between atoms through any sides, its steps from factors to
+      products with the evidence of the unit below them, and its chains from a
+      side of a hypothesis;
     - [follows]: [closed] where it holds, or [derive];
     - [follows_atomic]: the fragment of [follows] whose chains pass along the
       hypotheses between two atoms only, and a hypothesis itself;
@@ -24,7 +24,7 @@
     negative answer means only that no derivation was found.
 
     The refutation of a set of hypotheses by chains between variable-free sides
-    is {!check_closed}. *)
+    is {!Entail.Make.check_closed}. *)
 
 module Make (X : GradeExp.S) : sig
   type 'a hyps = 'a GradeNormal.Make(X).hyps

@@ -4,10 +4,10 @@
     A type definition or operation signature extends the environment. A default
     implementation, a top-level definition and a run have their constraint
     generated and solved, and the qualifier of the solution searched for a
-    closed instance ({!check}); the command is rejected when either refutes. A
-    top-level definition is generalised to its reported scheme [∀Θ. Q ∧ R ⇒ A]
-    ({!Solver.Make.generalise}), no unknown being free in the environment of
-    top-level definitions; local definitions are not generalised.
+    closed instance ({!Program.Make.check}); the command is rejected when either
+    refutes. A top-level definition is generalised to its reported scheme
+    [∀Θ. Q ∧ R ⇒ A] ({!Solver.Make.generalise}), no unknown being free in the
+    environment of top-level definitions; local definitions are not generalised.
 
     Satisfiability of a definition's qualifier is decided provisionally: the
     definition is accepted unless the search for a closed instance refutes its

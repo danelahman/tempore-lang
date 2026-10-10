@@ -43,7 +43,7 @@ val hash : t -> int
 
     The binary constructions take two languages over the same alphabet.
 
-    @raise Invalid_argument if the alphabets differ. *)
+    Raises [Invalid_argument] if the alphabets differ. *)
 
 val empty : int -> t
 (** [empty n] is the empty language over [n] letters. *)
@@ -84,7 +84,7 @@ val relabel : int -> (int -> int) -> t -> t
     acts as the letter [f a] of [l]: the words [a₁ … aₖ] such that [f a₁ … f aₖ]
     is in [l].
 
-    @raise Invalid_argument if some [f a] is not a letter of [l]. *)
+    Raises [Invalid_argument] if some [f a] is not a letter of [l]. *)
 
 val partition : bool array -> int array array -> int array
 (** [partition final delta] is the coarsest partition of the states of the table

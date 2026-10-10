@@ -26,10 +26,10 @@
     After the whole constraint the deferred conditions are retried and the
     residual read as hypotheses; the orderings between variable-free sides,
     directly or through chains of hypotheses, are decided by the grades' order.
-    The search for a closed instance of the qualifier ({!satisfiable}) decides
-    them also through chains that pass from a factor of a product to the product
-    when the other factors are above the unit, by the grade or along the
-    hypotheses. *)
+    The search for a closed instance of the qualifier
+    ({!Solver.Make.satisfiable}) decides them also through chains that pass from
+    a factor of a product to the product when the other factors are above the
+    unit, by the grade or along the hypotheses. *)
 
 module Make (C : Constraint.S) : sig
   type context = Residual.Make(C).context

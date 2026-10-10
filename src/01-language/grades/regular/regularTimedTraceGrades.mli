@@ -121,7 +121,7 @@ end
     are read off {!LANGUAGE.traces} over the classes of the running times read
     ({!TimedClosure.Weights}). The searches, the closures and the weights take
     the runs of ticks of the automata {!LANGUAGE.traces} of the derivatives in
-    one step each ({!Dfa.automaton}); over {!Automata}, every tick is a
+    one step each ({!Dfa.type-automaton}); over {!Automata}, every tick is a
     transition. *)
 module Make
     (L : LANGUAGE)

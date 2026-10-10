@@ -76,7 +76,7 @@ val naturals : t
 val point : Rational.t -> t
 (** [point q] is the set [{q}].
 
-    @raise Invalid_argument if [q] is negative. *)
+    Raises [Invalid_argument] if [q] is negative. *)
 
 val interval :
   lo:Rational.t -> lo_closed:bool -> hi:Rational.t option -> hi_closed:bool -> t

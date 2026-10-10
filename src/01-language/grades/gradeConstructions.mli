@@ -195,10 +195,10 @@ module SemiDirect
     names that no constant of the ordering gives its own element are all alike
     to it. It thus fails at a map iff it fails, at one of the names of the
     constants or at a fresh name ["_"] standing for the others, at the element
-    of the map there. The witnesses of {!OfGrade} are, for each such name, the
-    witnesses of the component for the elements of the constants there, each
-    given to that name alone, or to all the others for ["_"]: they are complete
-    whenever those of the component are. *)
+    of the map there. The witnesses of {!Indexed.OfGrade} are, for each such
+    name, the witnesses of the component for the elements of the constants
+    there, each given to that name alone, or to all the others for ["_"]: they
+    are complete whenever those of the component are. *)
 module Indexed : sig
   type 'a t
   (** The maps to ['a]. *)

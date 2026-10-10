@@ -34,8 +34,8 @@
 
     {2 Runs of ticks}
 
-    A state [y] of lead [k ≥ 1] ({!Dfa.automaton}) has one live successor by a
-    word of length at most [k], by [0ʲ]; its {e run} is the sequence of its
+    A state [y] of lead [k ≥ 1] ({!Dfa.type-automaton}) has one live successor
+    by a word of length at most [k], by [0ʲ]; its {e run} is the sequence of its
     successors by [0ʲ] for [0 < j ≤ k], taken by [leap], [x] lying on it iff [x]
     is the [leap] of [y] by the difference of their leads. The closures are
     automata of lead [0] whose [leap] by [k] reads [k] ticks at once. Over the

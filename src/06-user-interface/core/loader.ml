@@ -38,6 +38,11 @@ module Loader (Backend : Backend.S) = struct
   module TC = Typechecker.Make (Backend.Grades)
   module Grammar = Parser.Grammar.Make (Backend.Grades)
 
+  type command =
+    ( Backend.Grades.R.t SugaredAst.grade Ast.located,
+      Backend.Grades.E.t SugaredAst.grade Ast.located )
+    SugaredAst.command
+
   type state = {
     desugarer : D.state;
     references : Desugarer.References.env;

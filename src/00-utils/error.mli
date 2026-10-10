@@ -10,14 +10,14 @@ val error :
   Diagnostic.kind ->
   ('a, Format.formatter, unit, 'b) format4 ->
   'a
-(** [error ?loc ?labels ?notes kind fmt] raises an {!Error} of [kind] with the
-    message formatted by [fmt]. *)
+(** [error ?loc ?labels ?notes kind fmt] raises an {!exception-Error} of [kind]
+    with the message formatted by [fmt]. *)
 
 val fatal : ?loc:Location.t -> ('a, Format.formatter, unit, 'b) format4 -> 'a
-(** [fatal ?loc fmt] raises a fatal {!Error}. *)
+(** [fatal ?loc fmt] raises a fatal {!exception-Error}. *)
 
 val syntax : loc:Location.t -> ('a, Format.formatter, unit, 'b) format4 -> 'a
-(** [syntax ~loc fmt] raises a syntax {!Error} at [loc]. *)
+(** [syntax ~loc fmt] raises a syntax {!exception-Error} at [loc]. *)
 
 val typing :
   ?loc:Location.t ->
@@ -25,7 +25,7 @@ val typing :
   ?notes:string list ->
   ('a, Format.formatter, unit, 'b) format4 ->
   'a
-(** [typing ?loc ?labels ?notes fmt] raises a typing {!Error}. *)
+(** [typing ?loc ?labels ?notes fmt] raises a typing {!exception-Error}. *)
 
 val runtime : ?loc:Location.t -> ('a, Format.formatter, unit, 'b) format4 -> 'a
-(** [runtime ?loc fmt] raises a run-time {!Error}. *)
+(** [runtime ?loc fmt] raises a run-time {!exception-Error}. *)

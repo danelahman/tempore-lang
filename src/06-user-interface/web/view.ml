@@ -8,11 +8,6 @@ module SyntaxHighlight = WebInterpreter.SyntaxHighlight
 let panel = Widgets.panel
 let panel_block = div ~a:[ class_ "panel-block" ]
 
-let button txt msg =
-  input [] ~a:[ onclick (fun _ -> msg); type_button; value txt ]
-
-let disabled_button txt = input [] ~a:[ type_button; value txt; disabled true ]
-
 let select ?(a = []) empty_description msg describe_choice selected choices =
   let view_choice choice =
     elt "option"

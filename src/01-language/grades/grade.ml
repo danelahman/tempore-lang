@@ -36,8 +36,9 @@
     same throughout a program. The operations that depend on the order, [leq],
     [equal], [counterexample], [implied_bounds] and [inhabited], take both as an
     argument of type {!bounds}; the other grades ignore it. Running-time bounds
-    are kept as the non-negative rationals the source writes ({!running_time}),
-    and each grade reads them as its delays ({!read_bound}).
+    are kept as the non-negative rationals the source writes
+    ({!type-running_time}), and each grade reads them as its delays
+    ({!read_bound}).
 
     {2 Literals}
 
@@ -55,7 +56,7 @@ type running_time = Rational.t bound * Rational.t bound
 
 (** [end_value b] is the value of the finite end [b] of an interval.
 
-    @raise Invalid_argument if [b] is infinite. *)
+    Raises [Invalid_argument] if [b] is infinite. *)
 let end_value = function
   | Closed q | Open q -> q
   | Unbounded -> invalid_arg "Grade.end_value: an infinite end"
@@ -208,7 +209,7 @@ module type S = sig
   val of_lit : lit -> t
   (** [of_lit lit] is the grade the literal [lit] denotes.
 
-      @raise Invalid_literal if the grade does not understand [lit]. *)
+      Raises [Invalid_literal] if the grade does not understand [lit]. *)
 
   val of_bounds : Delay.t bound * Delay.t bound -> t
   (** [of_bounds (lo, hi)] is the "time shadow" of an operation declaring the
@@ -217,7 +218,7 @@ module type S = sig
       implementation of the operation is checked against, since the operation's
       own grade can only be realised by performing the operation itself. Each
       grade reads the end of the bounds its order uses, the two-sided ones both;
-      a grade that expresses no strict ends reads the closed hull ({!hull}). *)
+      a grade that expresses no strict ends reads the closed hull ([hull]). *)
 
   val is_atomic : string -> t -> bool
   (** [is_atomic name rho] is whether [rho] is the grade of an atomic operation
@@ -235,15 +236,14 @@ module type S = sig
       at every witness implies [∀j. O]. A condition is an ordering between
       expressions built from the constants, [j], products and joins, [j]
       occurring at most [degree] times on either side. The solver adds {!one},
-      {!top} and, where the delays read the literal [1], its grade to the list.
-  *)
+      {!val-top} and, where the delays read the literal [1], its grade to the
+      list. *)
 end
 
 (** [read_bound read q] is the delay [read] reads the running-time bound [q] as.
 
-    @raise Invalid_argument
-      if [read] reads none: the running-time bounds of a program are checked to
-      be delays of its grades where they are declared. *)
+    Raises [Invalid_argument] if [read] reads none: the running-time bounds of a
+    program are checked to be delays of its grades where they are declared. *)
 let read_bound read q =
   match read (rational_lit q) with
   | Some d -> d

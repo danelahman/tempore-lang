@@ -293,12 +293,12 @@ module type S = sig
       with union, intersection and complement, the complement of the empty
       language being [Σ*]. Memoised by block and expression.
 
-      @raise Invalid_argument if [m] contains [tick]. *)
+      Raises [Invalid_argument] if [m] contains [tick]. *)
 
   val gaps : t -> (Letters.t * gaps) list
   (** [gaps r] is the list of the blocks of names of [minterms r], the blocks
       without [tick], each with the gap derivative of [r] by it, listed by
-      {!Letters.order}. *)
+      [Letters.order]. *)
 
   (** {1 Alphabets} *)
 
@@ -307,7 +307,7 @@ module type S = sig
     val blocks : t list -> Letters.t list
     (** [blocks roots] is a partition of the letters into non-empty sets that
         every letter set occurring in [roots] respects, listed by
-        {!Letters.order}: the derivatives of [roots] are taken by one letter of
+        [Letters.order]: the derivatives of [roots] are taken by one letter of
         each block. *)
   end
 

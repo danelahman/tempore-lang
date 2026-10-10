@@ -22,7 +22,7 @@ module type S = sig
     R.t list ->
     E.t list ->
     E.t list * Grade.completeness
-  (** [witnesses ~degree bounds rcs ecs] is {!Grade.S.witnesses} for a condition
+  (** [witnesses ~degree bounds rcs ecs] is [Grade.S.witnesses] for a condition
       over an effect rigid [j] whose orderings are of either sort, [j] occurring
       under images on the resource side at most [degree] times on either side of
       each, with resource constants [rcs] and effect constants [ecs]. *)
