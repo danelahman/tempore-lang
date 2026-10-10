@@ -50,14 +50,17 @@ let lift2 op op' rho rho' =
 
 (** [dfa_of_regex names r] is the automaton over [names] of the regular
     expression [r], whose names are among [names], built by recursion on [r]
-    with the product and subset constructions of {!Dfa}. *)
+    with the product and subset constructions of {!Dfa}, a run of ticks and an
+    interval of delays being the chain {!Dfa.ticks}. *)
 let dfa_of_regex names =
   let n = size names in
   let rec go = function
     | Letter name -> Dfa.word n [ letter names name ]
-    | Tick k -> Dfa.word n (List.init k (Fun.const tick))
+    | Tick k -> Dfa.ticks n k (Some k)
     | Frac q -> fractional_tick q
-    | Delays (lo, hi) -> go (tick_delays lo hi)
+    | Delays (lo, hi) ->
+        let lo, hi = tick_interval lo hi in
+        Dfa.ticks n lo hi
     | Any -> Dfa.letter_set n (List.init n Fun.id)
     | Seq (r, s) -> Dfa.concat (go r) (go s)
     | Union (r, s) -> Dfa.union (go r) (go s)
@@ -82,8 +85,6 @@ let leq _bounds rho rho' =
   let names = merge rho.names rho'.names in
   Dfa.subset (align names rho) (align names rho')
 
-let leq_symbol = "<="
-
 (** [same rho rho'] is whether [rho] and [rho'] denote the same language:
     whether their names and automata are equal. *)
 let same rho rho' =
@@ -99,29 +100,17 @@ let compare rho rho' =
 
 let hash rho = combine (hash_list String.hash rho.names) (Dfa.hash rho.dfa)
 
-(* Delays in whole time steps: [n] steps are the word [tickⁿ]. *)
-module Delay : Delay.STEPPED with type t = int = Delay.Nat
+include Expression.Constants
 
 let of_delay d = of_regex (Tick (Delay.to_int d))
-let unit_least = false
-let commutative = false
-let needs_op_bounds = false
-let implied_bounds _bounds _rho = None
-let inhabited _bounds _rho = true
 let events rho = rho.names
 
-(* [lo] ticks followed by up to [hi - lo] more, the ends of the closed hull. *)
+(* The runs of [lo] to [hi] ticks, the ends of the closed hull. *)
 let of_bounds b =
   let lo, hi = hull b in
-  let tick_or_not = Union (Tick 0, Tick 1) in
-  let rho =
-    of_regex
-      (List.fold_left
-         (fun r _ -> Seq (r, tick_or_not))
-         (Tick lo)
-         (List.init (max 0 (hi - lo)) Fun.id))
-  in
-  { rho with expression = Expression.of_bounds b }
+  restrict []
+    (Dfa.ticks (size []) lo (Some (max lo hi)))
+    (Expression.of_bounds b)
 
 let is_atomic name rho = same rho (of_regex (Letter name))
 
@@ -150,22 +139,11 @@ let counterexample _bounds rho rho' =
   Option.map (word names)
     (Dfa.counterexample (align names rho) (align names rho'))
 
-let of_lit = function
-  | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-  | Int n -> of_regex (Tick n)
-  | Top -> top
-  | Braces r as lit ->
-      check_delays lit r;
-      let rho = component_of_lit lit ~context:"" of_regex r in
-      if Dfa.is_empty rho.dfa then
-        invalid_lit lit
-          "this regular expression denotes the empty language, but grades are \
-           non-empty"
-      else rho
-  | lit ->
-      invalid_lit lit
-        "grades are regular expressions '{...}', plain integers or '⊤', not %s"
-        (describe_lit lit)
+let of_lit =
+  Expression.of_lit_with
+    ~ticks:(fun n -> of_regex (Tick n))
+    ~top ~of_regex
+    ~is_empty:(fun rho -> Dfa.is_empty rho.dfa)
 
 (** {1 Printing} *)
 

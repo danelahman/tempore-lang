@@ -31,42 +31,6 @@ let target edges m =
 
 let next a q p = target a.edges.(q) p
 
-module Signatures = Map.Make (struct
-  type t = bool * int array
-
-  let compare (f, a) (f', a') =
-    match Bool.compare f f' with
-    | 0 -> Grade.compare_array Int.compare a a'
-    | c -> c
-end)
-
-(** [refine final delta classes] is one round of Moore's partition refinement
-    (Moore, Automata Studies 1956) of the partition [classes] of the states of
-    the table [delta] of successors by block, with its number of classes: two
-    states stay together iff they agree on finality and on the classes of their
-    successors. Classes are numbered in the order of their first member. *)
-let refine final delta classes =
-  let classify (seen, count) q =
-    let signature = (final.(q), Array.map (Array.get classes) delta.(q)) in
-    match Signatures.find_opt signature seen with
-    | Some c -> ((seen, count), c)
-    | None -> ((Signatures.add signature count seen, count + 1), count)
-  in
-  let (_, count), classes =
-    List.fold_left_map classify (Signatures.empty, 0)
-      (List.init (Array.length delta) Fun.id)
-  in
-  (count, Array.of_list classes)
-
-(** [partition final delta] is the coarsest stable partition of the states: the
-    classes of the states with equal languages. *)
-let partition final delta =
-  let rec go (count, classes) =
-    let count', classes' = refine final delta classes in
-    if count' = count then classes else go (count', classes')
-  in
-  go (1, Array.make (Array.length delta) 0)
-
 (** [merge edges] joins the labels of the edges [edges] to the same target, and
     orders the edges by their labels. *)
 let merge edges =
@@ -109,7 +73,7 @@ let blocks edges =
     (List.sort_uniq Letters.compare
        (List.concat_map (List.map fst) (Array.to_list edges)))
 
-(* Minimisation by {!partition} over the blocks of the labels, then the
+(* Minimisation by {!Dfa.partition} over the blocks of the labels, then the
    breadth-first numbering of {!number}. *)
 let of_table ~final ~edges =
   let n = Array.length final in
@@ -119,7 +83,7 @@ let of_table ~final ~edges =
   let delta =
     Array.map (fun es -> Array.of_list (List.map (target es) blocks)) edges
   in
-  let classes = partition final delta in
+  let classes = Dfa.partition final delta in
   let member = Hashtbl.create 16 in
   Array.iteri
     (fun q c -> if not (Hashtbl.mem member c) then Hashtbl.add member c q)

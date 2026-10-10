@@ -137,232 +137,92 @@ module Make
     (N : sig
       val suffix : string
     end) =
-struct
-  (* [world endpoint bounds rhos] is the operations of a comparison of the
-     grades [rhos], each with the extremal value of the [endpoint] of its
-     running-time bounds as its running time: the names [rhos] mention, and of
-     the other declared operations, which [rhos] do not tell apart, the least
-     name of each running time. *)
-  let world endpoint bounds rhos =
-    let mentioned =
-      List.sort_uniq String.compare (List.concat_map L.events rhos)
-    in
-    let running_time name = extremum (endpoint (bounds.running_time name)) in
-    let others =
-      List.filter
-        (fun name -> not (List.mem name mentioned))
-        (List.sort_uniq String.compare bounds.operations)
-    in
-    let representatives =
-      List.fold_left
-        (fun reps name ->
-          let c = running_time name in
-          if List.exists (fun (_, c') -> DelaySet.equal_extremum c c') reps then
-            reps
-          else (name, c) :: reps)
-        [] others
-    in
-    List.sort
-      (fun (n, _) (n', _) -> String.compare n n')
-      (List.map (fun name -> (name, running_time name)) mentioned
-      @ representatives)
+  RegularTimedOrders.Make
+    (L)
+    (struct
+      type grade = L.t
+      type delay = L.Delay.t
+      type world = Closure.world
+      type word = A.symbol list
 
-  type order = {
-    holds : Closure.world -> L.t -> L.t -> bool;
-    search : Closure.world -> L.t -> L.t -> A.symbol list option;
-    endpoint : running_time -> Rational.t bound;
-    top : L.t;
-  }
-  (* An order on traces: whether every trace of the lesser grade is in the
-     closure of the greater one, the search for a trace outside it, the end of
-     the running-time bounds it reads as the running time of an operation, and
-     the representation of its greatest grade. *)
+      let suffix = "-rational" ^ N.suffix
 
-  let allowance =
-    {
-      holds = D.in_allowance;
-      search = D.allowance;
-      endpoint = snd;
-      top = L.top;
-    }
+      (* [world endpoint bounds rhos] is the operations of a comparison of the
+         grades [rhos], each with the extremal value of the [endpoint] of its
+         running-time bounds as its running time: the names [rhos] mention, and
+         of the other declared operations, which [rhos] do not tell apart, the
+         least name of each running time. *)
+      let world endpoint bounds rhos =
+        let mentioned =
+          List.sort_uniq String.compare (List.concat_map L.events rhos)
+        in
+        let running_time name =
+          extremum (endpoint (bounds.running_time name))
+        in
+        let others =
+          List.filter
+            (fun name -> not (List.mem name mentioned))
+            (List.sort_uniq String.compare bounds.operations)
+        in
+        let representatives =
+          List.fold_left
+            (fun reps name ->
+              let c = running_time name in
+              if List.exists (fun (_, c') -> DelaySet.equal_extremum c c') reps
+              then reps
+              else (name, c) :: reps)
+            [] others
+        in
+        List.sort
+          (fun (n, _) (n', _) -> String.compare n n')
+          (List.map (fun name -> (name, running_time name)) mentioned
+          @ representatives)
 
-  let coverage =
-    { holds = D.in_coverage; search = D.coverage; endpoint = fst; top = L.one }
+      let in_allowance = D.in_allowance
+      let in_coverage = D.in_coverage
+      let allowance = D.allowance
+      let coverage = D.coverage
 
-  (* [trivial order rho rho'] is whether [rho ≾ rho'] holds by the
-     representations: [rho] and [rho'] are the same language or [rho'] is the
-     top. *)
-  let trivial order rho rho' =
-    L.compare rho rho' = 0 || L.compare rho' order.top = 0
+      let min_weight world rho =
+        Option.map end_of_extremum (D.min_weight world rho)
 
-  (* [compared order bounds decide rho rho'] is [decide] over the world of a
-     comparison of [rho] with [rho']. *)
-  let compared order bounds decide rho rho' =
-    decide (world order.endpoint bounds [ rho; rho' ]) rho rho'
+      let max_weight world rho =
+        Option.map end_of_extremum (D.max_weight world rho)
 
-  let leq order bounds rho rho' =
-    trivial order rho rho' || compared order bounds order.holds rho rho'
+      let inhabited bounds rho =
+        D.inhabited
+          (world (Fun.const (Closed Rational.zero)) bounds [ rho ])
+          rho
 
-  let is_top order bounds rho =
-    L.compare rho order.top = 0 || leq order bounds order.top rho
+      let grade_of_word word = L.of_lit (Braces (DelayRegex.of_word word))
+      let single = function Int _ | Rat _ | Braces _ -> true | _ -> false
+      let number = L.Delay.read
 
-  let counterexample order bounds rho rho' =
-    if trivial order rho rho' then None
-    else
-      Option.map
-        (fun word -> L.of_lit (Braces (DelayRegex.of_word word)))
-        (compared order bounds order.search rho rho')
+      (* [close ~lower a] is the bound of the open endpoint [a], a delay [q]:
+         the delays above [q] for a lower endpoint, and those below [q] for an
+         upper one. *)
+      let close ~lower a =
+        match L.Delay.read a with
+        | Some q ->
+            Braces
+              (if lower then Delays (Open q, Unbounded)
+               else Delays (Closed Rational.zero, Open q))
+        | None -> a
 
-  let inhabited bounds rho =
-    D.inhabited (world (Fun.const (Closed Rational.zero)) bounds [ rho ]) rho
+      (* [lower_shadow lo] is the lower time shadow of the lower end [lo] of
+         running-time bounds: [{lo}] if it is closed, and [{(lo, ∞)}], covered
+         by the traces longer than [lo], if it is open. *)
+      let lower_shadow = function
+        | Open q -> L.of_lit (Braces (Delays (Open q, Unbounded)))
+        | lo -> L.of_delay (end_value lo)
 
-  let implied_bounds bounds lower upper =
-    match
-      ( D.min_weight (world fst bounds [ lower ]) lower,
-        D.max_weight (world snd bounds [ upper ]) upper )
-    with
-    | Some fastest, Some slowest ->
-        Some (end_of_extremum fastest, end_of_extremum slowest)
-    | _ -> None
-
-  (* [lower_shadow lo] is the lower time shadow of the lower end [lo] of
-     running-time bounds: [{lo}] if it is closed, and [{(lo, ∞)}], covered by
-     the traces longer than [lo], if it is open. *)
-  let lower_shadow = function
-    | Open q -> L.of_lit (Braces (Delays (Open q, Unbounded)))
-    | lo -> L.of_delay (end_value lo)
-
-  (* [upper_shadow hi] is the upper time shadow of the upper end [hi] of
-     running-time bounds: [{hi}] if it is closed, and [{[0, hi)}], permitting
-     the traces shorter than [hi], if it is open. *)
-  let upper_shadow = function
-    | Open q -> L.of_lit (Braces (Delays (Closed Rational.zero, Open q)))
-    | hi -> L.of_delay (end_value hi)
-
-  (* The fields the grades share with the regular trace grade over rational
-     delays. *)
-  module Common = struct
-    type t = L.t
-
-    module Delay = L.Delay
-
-    let one = L.one
-    let mul = L.mul
-    let join = L.join
-    let of_delay = L.of_delay
-    let leq_symbol = "<="
-    let commutative = false
-    let needs_op_bounds = true
-    let implied_bounds bounds rho = implied_bounds bounds rho rho
-    let inhabited = inhabited
-    let events = L.events
-    let compare = L.compare
-    let hash = L.hash
-    let is_atomic = L.is_atomic
-    let show = L.show
-    let witnesses = L.witnesses
-  end
-
-  module Lower = struct
-    include Common
-
-    let name = "regex-timed-lower-bound-rational" ^ N.suffix
-    let leq = leq coverage
-    let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
-    let counterexample = counterexample coverage
-    let top = coverage.top
-    let is_top = is_top coverage
-    let unit_least = false
-    let of_lit = function Top -> top | lit -> L.of_lit lit
-    let of_bounds (lo, _hi) = lower_shadow lo
-  end
-
-  module Upper = struct
-    include Common
-
-    let name = "regex-timed-upper-bound-rational" ^ N.suffix
-    let leq = leq allowance
-    let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
-    let counterexample = counterexample allowance
-    let top = allowance.top
-    let is_top = is_top allowance
-    let unit_least = true
-    let of_lit = L.of_lit
-    let of_bounds (_lo, hi) = upper_shadow hi
-  end
-
-  module Interval = struct
-    type t = L.t * L.t
-
-    module Delay = L.Delay
-
-    let name = "regex-timed-interval-rational" ^ N.suffix
-    let one = (Lower.one, Upper.one)
-    let mul (lo, hi) (lo', hi') = (L.mul lo lo', L.mul hi hi')
-
-    let leq bounds (lo, hi) (lo', hi') =
-      Lower.leq bounds lo lo' && Upper.leq bounds hi hi'
-
-    let leq_symbol = "<="
-    let top = (Lower.top, Upper.top)
-    let join (lo, hi) (lo', hi') = (L.join lo lo', L.join hi hi')
-    let equal bounds p q = leq bounds p q && leq bounds q p
-
-    let is_top bounds (lo, hi) =
-      Lower.is_top bounds lo && Upper.is_top bounds hi
-
-    let compare (lo, hi) (lo', hi') =
-      match L.compare lo lo' with 0 -> L.compare hi hi' | c -> c
-
-    let hash (lo, hi) = combine (L.hash lo) (L.hash hi)
-
-    let counterexample bounds (lo, hi) (lo', hi') =
-      match Lower.counterexample bounds lo lo' with
-      | Some e -> Some (e, hi)
-      | None ->
-          Option.map (fun e -> (lo, e)) (Upper.counterexample bounds hi hi')
-
-    let unit_least = false
-    let commutative = false
-    let needs_op_bounds = true
-    let implied_bounds bounds (lo, hi) = implied_bounds bounds lo hi
-    let inhabited bounds (lo, hi) = inhabited bounds lo && inhabited bounds hi
-
-    let events (lo, hi) =
-      List.sort_uniq String.compare (L.events lo @ L.events hi)
-
-    (** [close ~lower a] is the bound of the open endpoint [a], a delay [q]: the
-        delays above [q] for a lower endpoint, and those below [q] for an upper
-        one. *)
-    let close ~lower a =
-      match Delay.read a with
-      | Some q ->
-          Braces
-            (if lower then Delays (Open q, Unbounded)
-             else Delays (Closed Rational.zero, Open q))
-      | None -> a
-
-    let of_lit = function
-      | Top -> top
-      | (Int _ | Rat _ | Braces _) as lit ->
-          let rho = L.of_lit lit in
-          (rho, rho)
-      | lit ->
-          bounds_of_lit lit ~number:Delay.read ~close ~lower:Lower.of_lit
-            ~upper:Upper.of_lit ~unbounded:Upper.top
-            ~bounds:"regular expressions"
-
-    let of_delay d = (L.of_delay d, L.of_delay d)
-    let of_bounds (lo, hi) = (lower_shadow lo, upper_shadow hi)
-    let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
-
-    let show (lo, hi) =
-      show_bounds (Lower.show lo)
-        (if L.compare hi Upper.top = 0 then None else Some (Upper.show hi))
-
-    let witnesses ~degree:_ _bounds = sampled mul
-  end
-end
+      (* [upper_shadow hi] is the upper time shadow of the upper end [hi] of
+         running-time bounds: [{hi}] if it is closed, and [{[0, hi)}],
+         permitting the traces shorter than [hi], if it is open. *)
+      let upper_shadow = function
+        | Open q -> L.of_lit (Braces (Delays (Closed Rational.zero, Open q)))
+        | hi -> L.of_delay (end_value hi)
+    end)
 
 include
   Make (RegularTraceGradeRational) (ByGaps)

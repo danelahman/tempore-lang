@@ -25,6 +25,37 @@ let rec of_regex = function
   | Star r -> R.star (of_regex r)
   | Compl r -> R.compl (of_regex r)
 
+(** {1 Shared by the implementations} *)
+
+module Constants = struct
+  (* Delays in whole time steps: [n] steps are the word [tickⁿ]. *)
+  module Delay : Delay.STEPPED with type t = int = Delay.Nat
+
+  let leq_symbol = "<="
+  let unit_least = false
+  let commutative = false
+  let needs_op_bounds = false
+  let implied_bounds _bounds _rho = None
+  let inhabited _bounds _rho = true
+end
+
+let of_lit_with ~ticks ~top ~of_regex ~is_empty = function
+  | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
+  | Int n -> ticks n
+  | Top -> top
+  | Braces r as lit ->
+      check_delays lit r;
+      let rho = component_of_lit lit ~context:"" of_regex r in
+      if is_empty rho then
+        invalid_lit lit
+          "this regular expression denotes the empty language, but grades are \
+           non-empty"
+      else rho
+  | lit ->
+      invalid_lit lit
+        "grades are regular expressions '{...}', plain integers or '⊤', not %s"
+        (describe_lit lit)
+
 (** [representative m] is the least letter of the block [m] of an alphabet:
     [tick], else its least name, else the block itself, the names the grades
     compared do not mention. *)
@@ -106,50 +137,27 @@ struct
   let join rho rho' = R.union [ rho; rho' ]
   let top = R.top
   let leq _bounds = D.subset
-  let leq_symbol = "<="
   let equal _bounds = D.equal
   let is_top _bounds = D.subset top
   let compare = R.compare_form
   let hash = R.hash
 
-  (* Delays in whole time steps: [n] steps are the word [tickⁿ]. *)
-  module Delay : Delay.STEPPED with type t = int = Delay.Nat
+  include Constants
 
   let of_delay d = ticks (Delay.to_int d)
-  let unit_least = false
-  let commutative = false
-  let needs_op_bounds = false
-  let implied_bounds _bounds _rho = None
-  let inhabited _bounds _rho = true
   let events = R.names
 
   (* The delays of [lo] to [hi] time steps. *)
   let of_bounds b =
     let lo, hi = hull b in
-    R.union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)))
+    R.runs lo hi
 
   let is_atomic name rho = D.equal rho (R.letters (Letters.name name))
 
   let counterexample _bounds rho rho' =
     D.shortest (R.inter [ rho; R.compl rho' ])
 
-  let of_lit = function
-    | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-    | Int n -> ticks n
-    | Top -> top
-    | Braces r as lit ->
-        check_delays lit r;
-        let rho = component_of_lit lit ~context:"" of_regex r in
-        if D.is_empty rho then
-          invalid_lit lit
-            "this regular expression denotes the empty language, but grades \
-             are non-empty"
-        else rho
-    | lit ->
-        invalid_lit lit
-          "grades are regular expressions '{...}', plain integers or '⊤', not \
-           %s"
-          (describe_lit lit)
+  let of_lit = of_lit_with ~ticks ~top ~of_regex ~is_empty:D.is_empty
 
   (** {1 Traces over given names} *)
 

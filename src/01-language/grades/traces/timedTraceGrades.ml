@@ -11,6 +11,50 @@ module type TIMED_NAMES = sig
   val close : lower:bool -> lit -> lit
 end
 
+(** Sets of traces over the delays [D] with a separate greatest point
+    [Unbounded], their product, join, representation, literals and printing. *)
+module Bounded (D : Delay.S) = struct
+  module Sets = TimedTrace.Base (D)
+
+  type t =
+    | Within of Sets.traces  (** every trace is within a listed one *)
+    | Unbounded  (** any trace; printed as [⊤] *)
+
+  let one = Within (Sets.of_delay D.zero)
+
+  let mul p q =
+    match (p, q) with
+    | Within p, Within q -> Within (Sets.product p q)
+    | _ -> Unbounded
+
+  let join p q =
+    match (p, q) with
+    | Within p, Within q -> Within (Sets.union p q)
+    | _ -> Unbounded
+
+  (** No set of traces is the top. *)
+  let is_top _bounds = function Unbounded -> true | Within _ -> false
+
+  let compare p q =
+    match (p, q) with
+    | Within p, Within q -> Sets.compare p q
+    | Unbounded, Within _ -> -1
+    | Within _, Unbounded -> 1
+    | Unbounded, Unbounded -> 0
+
+  let hash = function Within p -> Sets.hash p | Unbounded -> -1
+  let events = function Within p -> Sets.events p | Unbounded -> []
+  let of_delay d = Within (Sets.of_delay d)
+
+  (** [of_lit ~number lit] is the grade of the literal [lit], [number] naming
+      the literals of the delays in the singular. *)
+  let of_lit ~number = function
+    | Top -> Unbounded
+    | lit -> Within (Sets.of_lit ~number lit)
+
+  let show = function Within p -> Sets.show p | Unbounded -> "⊤"
+end
+
 module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
   module Trace = TimedTrace.Make (D)
 
@@ -58,16 +102,9 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
   (** Sets of traces read as upper bounds, in the allowance order, with a
       separate greatest point [Unbounded]. *)
   module UpperTraces = struct
-    type t =
-      | Within of Trace.traces  (** every trace stays within a listed bound *)
-      | Unbounded  (** any trace; printed as [⊤] *)
+    include Bounded (D)
 
-    let one = Within (Trace.of_delay D.zero)
-
-    let mul p q =
-      match (p, q) with
-      | Within p, Within q -> Within (Trace.product p q)
-      | _ -> Unbounded
+    let of_lit = of_lit ~number:N.number
 
     (** Allowance order lifted to sets: every bound listed on the left stays
         within some bound listed on the right. An operation's [hi] bound is what
@@ -77,26 +114,6 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       | _, Unbounded -> true
       | Unbounded, Within _ -> false
       | Within p, Within q -> Trace.upper_bound_le (hi_running_time bounds) p q
-
-    let join p q =
-      match (p, q) with
-      | Within p, Within q -> Within (Trace.union p q)
-      | _ -> Unbounded
-
-    (** No set of traces allows every trace. *)
-    let is_top _bounds = function Unbounded -> true | Within _ -> false
-
-    let compare p q =
-      match (p, q) with
-      | Within p, Within q -> Trace.compare p q
-      | Unbounded, Within _ -> -1
-      | Within _, Unbounded -> 1
-      | Unbounded, Unbounded -> 0
-
-    let hash = function Within p -> Trace.hash p | Unbounded -> -1
-    let events = function Within p -> Trace.events p | Unbounded -> []
-    let of_lit = function Top -> Unbounded | lit -> Within (traces_of_lit lit)
-    let show = function Within p -> Trace.show p | Unbounded -> "⊤"
   end
 
   (** [extremal_duration ~lower running_time p] is the infimum of the durations
@@ -180,7 +197,6 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       | Unbounded -> None
 
     let inhabited _bounds _ = true
-    let of_delay d = Within (Trace.of_delay d)
     let of_bounds b = Within (Trace.of_delay (snd (hull b)))
     let is_atomic name p = compare p (Within (atomic_traces name)) = 0
     let witnesses ~degree:_ _bounds = sampled mul

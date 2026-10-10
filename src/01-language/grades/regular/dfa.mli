@@ -54,6 +54,11 @@ val all : int -> t
 val word : int -> int list -> t
 (** [word n w] is the language [{w}] over [n] letters. *)
 
+val ticks : int -> int -> int option -> t
+(** [ticks n lo hi] is the language of the words [0ᵏ], [lo ≤ k ≤ hi], over [n]
+    letters, [hi] being [None] if unbounded, built directly as its minimal
+    automaton, a chain of [hi + 2] states, or [lo + 2] if [hi] is [None]. *)
+
 val letter_set : int -> int list -> t
 (** [letter_set n s] is the language of the one-letter words [a] with [a] in
     [s], over [n] letters. *)
@@ -80,6 +85,14 @@ val relabel : int -> (int -> int) -> t -> t
     is in [l].
 
     @raise Invalid_argument if some [f a] is not a letter of [l]. *)
+
+val partition : bool array -> int array array -> int array
+(** [partition final delta] is the coarsest partition of the states of the table
+    [delta], row [q] listing the successors of state [q] by letter, of final
+    states [final], stable under Moore's partition refinement (Moore, Automata
+    Studies 1956): the classes of the states with equal residual languages,
+    numbered in the order of their first member, as the array of the class of
+    each state. *)
 
 (** {1 Decisions} *)
 

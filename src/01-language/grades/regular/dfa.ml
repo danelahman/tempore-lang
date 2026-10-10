@@ -88,39 +88,40 @@ module Signatures = Map.Make (struct
     | c -> c
 end)
 
-(** [refine l classes] is one round of Moore's partition refinement (Moore,
-    Automata Studies 1956) of the partition [classes] of the states of [l], with
-    its number of classes: two states stay together iff they agree on finality
-    and on the classes of their successors. Classes are numbered in the order of
+(** [refine final delta classes] is one round of Moore's partition refinement
+    (Moore, Automata Studies 1956) of the partition [classes] of the states of
+    the table [delta] of successors by letter, of final states [final], with its
+    number of classes: two states stay together iff they agree on finality and
+    on the classes of their successors. Classes are numbered in the order of
     their first member. *)
-let refine l classes =
+let refine final delta classes =
   let classify (seen, count) q =
-    let signature = (final l q, Array.map (Array.get classes) l.rows.(q)) in
+    let signature = (final.(q), Array.map (Array.get classes) delta.(q)) in
     match Signatures.find_opt signature seen with
     | Some c -> ((seen, count), c)
     | None -> ((Signatures.add signature count seen, count + 1), count)
   in
   let (_, count), classes =
-    List.fold_left_map classify (Signatures.empty, 0) (range (states l))
+    List.fold_left_map classify (Signatures.empty, 0)
+      (range (Array.length delta))
   in
   (count, Array.of_list classes)
 
-(** [partition l] is the coarsest partition of the states of [l] stable under
-    refinement: the classes of states with equal residual languages, reached by
-    iterating {!refine} until the number of classes is stable. *)
-let partition l =
+(* The partition is reached by iterating {!refine} until the number of classes
+   is stable. *)
+let partition final delta =
   let rec go (count, classes) =
-    let count', classes' = refine l classes in
+    let count', classes' = refine final delta classes in
     if count' = count then classes else go (count', classes')
   in
-  go (1, Array.make (states l) 0)
+  go (1, Array.make (Array.length delta) 0)
 
 (** [minimise l] is the canonical form of [l]: the quotient by {!partition},
     explored breadth-first from the class of the start. The quotient is the
     minimal automaton, unique up to isomorphism (Myhill–Nerode), and the
     breadth-first numbering fixes the isomorphism. *)
 let minimise l =
-  let classes = partition l in
+  let classes = partition l.finals l.rows in
   let first (count, reps) (q, c) =
     if c = count then (count + 1, q :: reps) else (count, reps)
   in
@@ -145,6 +146,21 @@ let word n w =
   let len = Array.length w in
   let step i a = if i < len && Int.equal w.(i) a then i + 1 else len + 1 in
   minimise (Ints.table n ~start:0 ~next:step ~final:(Int.equal len))
+
+(* The states of the chain are the numbers of ticks read, up to [hi], or up to
+   [lo] with a loop on [lo] if [hi] is infinite, and a dead state. The chain is
+   minimal: its live states accept the runs of ticks of pairwise distinct
+   lengths. Its breadth-first table is thus canonical without minimisation. *)
+let ticks n lo hi =
+  let last = Option.value hi ~default:lo in
+  let dead = last + 1 in
+  let step i a =
+    if Int.equal a 0 && i < last then i + 1
+    else if Int.equal a 0 && Int.equal i last && Option.is_none hi then i
+    else dead
+  in
+  if Option.fold ~none:false ~some:(fun hi -> hi < lo) hi then empty n
+  else Ints.table n ~start:0 ~next:step ~final:(fun i -> lo <= i && i <= last)
 
 (* States: [0] the start, [1] after one letter of [s], [2] dead. *)
 let letter_set n s =
@@ -262,6 +278,11 @@ let moves n a k q =
   if k = 0 then List.map (fun c -> (a.step q c, [ c ])) (range n)
   else [ (a.leap q k, List.init k (Fun.const 0)) ]
 
+(** [successors n a k q] is the successors of {!moves} [n a k q], without their
+    words. *)
+let successors n a k q =
+  if k = 0 then List.map (a.step q) (range n) else [ a.leap q k ]
+
 module Implicit (State : Map.OrderedType) = struct
   module Table = Explore (State)
   module States = Set.Make (State)
@@ -278,8 +299,7 @@ module Implicit (State : Map.OrderedType) = struct
           let fresh q = not (a.dead q || States.mem q seen) in
           let k = a.lead q in
           let next =
-            if k = unbounded then []
-            else List.filter fresh (List.map fst (moves n a k q))
+            if k = unbounded then [] else List.filter fresh (successors n a k q)
           in
           go (List.fold_right States.add next seen) (next @ stack)
     in
@@ -301,7 +321,7 @@ module Product (Left : Map.OrderedType) (Right : Map.OrderedType) = struct
   let counterexample n a b =
     let found ((p, q), _) = a.accepts p && not (b.accepts q) in
     let visit k (seen, next) ((p, q), rev_word) =
-      let moves = List.combine (moves n a k p) (List.map fst (moves n b k q)) in
+      let moves = List.combine (moves n a k p) (successors n b k q) in
       List.fold_left
         (fun (seen, next) ((p', word), q') ->
           let s = (p', q') in

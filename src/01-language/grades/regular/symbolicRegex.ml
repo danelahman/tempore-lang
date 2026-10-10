@@ -142,6 +142,7 @@ module type S = sig
   val top : t
   val letters : Letters.t -> t
   val ticks : int -> t
+  val runs : int -> int -> t
   val concat : t -> t -> t
   val union : t list -> t
   val inter : t list -> t
@@ -214,39 +215,6 @@ struct
   let hash r = r.id
   let id r = r.id
   let by_id r s = Int.compare r.id s.id
-  let mem_form r rs = List.exists (equal_form r) rs
-
-  (** The table of normal forms, each view built of normal forms identified by
-      their numbers. *)
-  module Forms = Hashtbl.Make (struct
-    type t = view
-
-    let equal v w =
-      match (v, w) with
-      | Empty, Empty | Eps, Eps -> true
-      | Letters p, Letters q -> Letters.equal p q
-      | Ticks n, Ticks n' -> Int.equal n n'
-      | Concat (r, s), Concat (r', s') -> equal_form r r' && equal_form s s'
-      | Union rs, Union rs' | Inter rs, Inter rs' ->
-          List.equal equal_form rs rs'
-      | Compl r, Compl r' | Star r, Star r' -> equal_form r r'
-      | _ -> false
-
-    let combine tag rs = List.fold_left (fun h r -> (h * 65599) + r.id) tag rs
-
-    let hash = function
-      | Empty -> 0
-      | Eps -> 1
-      | Letters p -> Letters.hash p
-      | Ticks n -> Grade.combine 7 n
-      | Concat (r, s) -> combine 2 [ r; s ]
-      | Union rs -> combine 3 rs
-      | Inter rs -> combine 4 rs
-      | Compl r -> combine 5 [ r ]
-      | Star r -> combine 6 [ r ]
-  end)
-
-  let forms = Forms.create 4096
 
   let nullable_view = function
     | Empty | Letters _ | Ticks _ -> false
@@ -285,22 +253,47 @@ struct
     | Union rs, None -> List.fold_left (fun k r -> min k r.lead) unbounded rs
     | Inter rs, None -> List.fold_left (fun k r -> max k r.lead) 0 rs
 
-  (** [make view] is the normal form of [view], built on its first request: the
-      expressions are hash-consed (Filliâtre and Conchon, ML Workshop 2006). *)
-  let make view =
-    match Forms.find_opt forms view with
-    | Some r -> r
-    | None ->
-        let r =
-          {
-            id = Forms.length forms;
-            view;
-            nullable = nullable_view view;
-            lead = lead_view view;
-          }
-        in
-        Forms.add forms view r;
-        r
+  (** The table of normal forms, each view built of normal forms identified by
+      their numbers. *)
+  module Forms =
+    NormalForms.HashCons
+      (struct
+        type t = view
+
+        let equal v w =
+          match (v, w) with
+          | Empty, Empty | Eps, Eps -> true
+          | Letters p, Letters q -> Letters.equal p q
+          | Ticks n, Ticks n' -> Int.equal n n'
+          | Concat (r, s), Concat (r', s') -> equal_form r r' && equal_form s s'
+          | Union rs, Union rs' | Inter rs, Inter rs' ->
+              List.equal equal_form rs rs'
+          | Compl r, Compl r' | Star r, Star r' -> equal_form r r'
+          | _ -> false
+
+        let combine = NormalForms.combine_ids id
+
+        let hash = function
+          | Empty -> 0
+          | Eps -> 1
+          | Letters p -> Letters.hash p
+          | Ticks n -> Grade.combine 7 n
+          | Concat (r, s) -> combine 2 [ r; s ]
+          | Union rs -> combine 3 rs
+          | Inter rs -> combine 4 rs
+          | Compl r -> combine 5 [ r ]
+          | Star r -> combine 6 [ r ]
+      end)
+      (struct
+        type nonrec t = t
+
+        let build id view =
+          { id; view; nullable = nullable_view view; lead = lead_view view }
+      end)
+
+  (** [make view] is the normal form of [view]: the expressions are hash-consed
+      ({!NormalForms.HashCons}). *)
+  let make = Forms.make
 
   let nullable r = r.nullable
   let lead r = r.lead
@@ -316,6 +309,17 @@ struct
 
   let empty = make Empty
   let eps = make Eps
+
+  include NormalForms.Boolean (struct
+    type nonrec t = t
+
+    let id = id
+    let nullable r = r.nullable
+    let eps = eps
+    let compl_operand r = match r.view with Compl s -> Some s | _ -> None
+    let star_operand r = match r.view with Star s -> Some s | _ -> None
+  end)
+
   let letters p = if Letters.is_empty p then empty else make (Letters p)
 
   let ticks n =
@@ -351,11 +355,6 @@ struct
             concat (ticks (Delay.checked_add ~quantity:"duration" m n)) s'
         | _ -> make (Concat (r, s)))
 
-  (** [flatten split rs] is the operands of the n-ary operation of the operands
-      [rs], by [split]: [Some rs'] to replace an operand by [rs']. *)
-  let flatten split rs =
-    List.concat_map (fun r -> Option.value (split r) ~default:[ r ]) rs
-
   let letter_set r = match r.view with Letters p -> Some p | _ -> None
 
   (** [one_letter_part r] is the set of the letters of the one-letter words of
@@ -368,50 +367,14 @@ struct
     | Star { view = Letters p; _ } -> Some p
     | _ -> None
 
-  (** [merge_letters part combine rs] merges the operands [rs] that [part] maps
-      to a letter set into the letter set they combine to by [combine]. *)
-  let merge_letters part combine rs =
-    let sets, others =
-      List.partition_map
-        (fun r -> match part r with Some p -> Left p | None -> Right r)
-        rs
-    in
-    match sets with
-    | [] -> others
-    | p :: ps -> letters (List.fold_left combine p ps) :: others
-
-  (** [complementary split rs] is whether some operand of [rs] is the complement
-      of another, or of the operation that [split] splits into operands, all of
-      them among [rs]: the operands of a flattened union or intersection. *)
-  let complementary split rs =
-    let among s =
-      match split s with
-      | Some ss -> List.for_all (fun s' -> mem_form s' rs) ss
-      | None -> mem_form s rs
-    in
-    List.exists
-      (fun r -> match r.view with Compl s -> among s | _ -> false)
-      rs
-
   let is_top r = equal_form r top
   let is_empty_form r = equal_form r empty
-
-  (** [subsumed rs r] is whether the operand [r] of a union is contained in
-      another operand [s] of [rs] by one of the laws [0 ⊆ s] for a nullable [s]
-      and [r ⊆ r*]. *)
-  let subsumed rs r =
-    let contains s =
-      match s.view with
-      | Star s' -> equal_form r s'
-      | _ -> s.nullable && equal_form r eps && not (equal_form s eps)
-    in
-    List.exists contains rs
 
   (** [merge_union rs] merges the letter sets among the operands [rs] of a union
       into their union; single letters are not merged. *)
   let merge_union rs =
     match L.letters with
-    | Sets -> merge_letters letter_set Letters.union rs
+    | Sets -> merge letter_set Letters.union letters rs
     | Atoms -> rs
 
   let union rs =
@@ -438,7 +401,7 @@ struct
        intersection with a letter set. *)
     let rs =
       if List.exists (fun r -> Option.is_some (letter_set r)) rs then
-        merge_letters one_letter_part Letters.inter rs
+        merge one_letter_part Letters.inter letters rs
       else rs
     in
     if List.exists is_empty_form rs then empty
@@ -455,6 +418,9 @@ struct
     | Empty -> top
     | _ when is_top r -> empty
     | _ -> make (Compl r)
+
+  let runs lo hi =
+    union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)))
 
   (** [all_letters r] is whether [r] is a letter set, or a union of letters,
       that holds every letter: the one-letter words [Σ], whose repetition is
@@ -497,21 +463,14 @@ struct
   (** [letter_sets roots] is the list of the letter sets occurring in [roots],
       each once, a run of ticks being made of the letter set [{tick}]. *)
   let letter_sets roots =
-    let seen = Hashtbl.create 64 in
-    let rec visit acc r =
-      if Hashtbl.mem seen r.id then acc
-      else begin
-        Hashtbl.add seen r.id ();
-        let acc =
-          match r.view with
-          | Letters p -> p :: acc
-          | Ticks _ -> Letters.tick :: acc
-          | _ -> acc
-        in
-        List.fold_left visit acc (children r)
-      end
-    in
-    List.sort_uniq Letters.compare (List.fold_left visit [] roots)
+    List.sort_uniq Letters.compare
+      (collect children
+         (fun r ->
+           match r.view with
+           | Letters p -> [ p ]
+           | Ticks _ -> [ Letters.tick ]
+           | _ -> [])
+         roots)
 
   (** [mentioned roots] is the list of the names the letter sets of [roots]
       mention, in increasing order. *)
@@ -530,13 +489,7 @@ struct
 
   let minterm set = { set; key = (letters set).id }
 
-  (** Tables by pairs of numbers. *)
-  module Pairs = Hashtbl.Make (struct
-    type t = int * int
-
-    let equal (i, j) (i', j') = Int.equal i i' && Int.equal j j'
-    let hash (i, j) = Grade.combine i j
-  end)
+  module Pairs = NormalForms.Pairs
 
   (* The derivatives computed, by the key of the block and the number of the
      expression. *)
@@ -584,13 +537,37 @@ struct
      number of the expression. *)
   let leaps : t Triples.t = Triples.create 1024
 
+  module Positions = Map.Make (Int)
+  (** Maps by positions in an orbit, or by numbers of expressions. *)
+
+  type orbit = {
+    anchors : t Positions.t;
+    index : int Positions.t;
+    last : int * t;
+    cycle : (int * int) option;
+  }
+  (** The {e orbit} of an expression [r] under the derivative by a block [m],
+      the sequence of its derivatives by [mᵏ], [k ≥ 0], explored up to [last]: a
+      lasso, eventually periodic as the derivatives are finitely many up to
+      their normal form. It is recorded at its {e anchors}, by position: [r] at
+      [0], and after the anchor [e] at [p] the anchor at [p + j], its leap by
+      [j], [j] the lead of [e] if positive and finite, and its derivative by [m]
+      at [p + 1] otherwise. The anchors depend on [r] alone, so that the first
+      anchor reached again closes the [cycle] [(μ, λ)]: the derivatives by [mᵏ]
+      and by [mᵏ⁺λ] denote the same language for [k ≥ μ]. [index] maps the
+      number of each anchor to its position. *)
+
+  (* The orbits explored, by the key of the block and the number of the
+     expression. *)
+  let orbits : orbit Pairs.t = Pairs.create 64
+
   (* The derivative by [mᵏ], [m] the block of [tick], taken at once where the
-     form of the expression tells it and by [k] derivatives by [m] otherwise:
-     the derivative by a word is that by its letters in turn (Brzozowski, JACM
-     1964), and a run of ticks is a word of a unary alphabet, whose
-     derivatives are its shorter runs, as the derivatives of the counted
-     repetitions [r{n,m}] are (Moseley et al., PLDI 2023). Memoised by block,
-     number and expression. *)
+     form of the expression tells it and off the orbit of the expression
+     otherwise: the derivative by a word is that by its letters in turn
+     (Brzozowski, JACM 1964), and a run of ticks is a word of a unary alphabet,
+     whose derivatives are its shorter runs, as the derivatives of the counted
+     repetitions [r{n,m}] are (Moseley et al., PLDI 2023), and whose orbit is
+     eventually periodic. Memoised by block, number and expression. *)
   let rec leap_by m k r =
     if k = 0 then r
     else
@@ -622,68 +599,105 @@ struct
         | Some c -> concat (ticks (c - (k mod c))) r
         | None -> steps m k r)
 
-  (** [steps m k r] is the derivative of [r] by [mᵏ] taken letter by letter,
-      until a derivative is its own derivative. *)
+  (** [steps m k r] is the derivative of [r] by [mᵏ] read off the orbit of [r]
+      ({!orbit}), [k] reduced modulo its period once its cycle is found. [k]
+      exceeds the lead of [r], so that every leap it takes is by fewer than [k]
+      ticks. *)
   and steps m k r =
-    let d = derive m r in
-    if equal_form d r then r else leap_by m (k - 1) d
+    let key = (m.key, r.id) in
+    let o =
+      match Pairs.find_opt orbits key with
+      | Some o -> o
+      | None ->
+          {
+            anchors = Positions.singleton 0 r;
+            index = Positions.singleton r.id 0;
+            last = (0, r);
+            cycle = None;
+          }
+    in
+    let o, d = along m k o in
+    Pairs.replace orbits key o;
+    d
+
+  (** [along m k o] is the orbit [o] extended as far as the derivative by [mᵏ]
+      needs, with that derivative: from the anchor at the greatest position [p]
+      up to [k], its leap by [k - p]. *)
+  and along m k o =
+    let read k =
+      match Positions.find_last_opt (fun p -> p <= k) o.anchors with
+      | Some (p, e) -> leap_by m (k - p) e
+      | None -> invalid_arg "SymbolicRegex.steps: an orbit without its start"
+    in
+    match o.cycle with
+    | Some (mu, lambda) when k >= mu -> (o, read (mu + ((k - mu) mod lambda)))
+    | Some _ -> (o, read k)
+    | None ->
+        let p, e = o.last in
+        let j = if e.lead >= 1 && e.lead < unbounded then e.lead else 1 in
+        if p + j > k then (o, read k)
+        else
+          let e' = if j = 1 then derive m e else leap_by m j e in
+          let o =
+            match Positions.find_opt e'.id o.index with
+            | Some p' -> { o with cycle = Some (p', p + j - p') }
+            | None ->
+                {
+                  anchors = Positions.add (p + j) e' o.anchors;
+                  index = Positions.add e'.id (p + j) o.index;
+                  last = (p + j, e');
+                  cycle = None;
+                }
+          in
+          along m k o
 
   let tick = minterm Letters.tick
   let leap k r = leap_by tick k r
 
   (** {1 Gap derivatives} *)
 
-  (* The sets of delays of the expressions computed, by their numbers. *)
-  let delay_sets : (int, DelaySet.t) Hashtbl.t = Hashtbl.create 1024
-
-  (* The set of the [n] such that [tickⁿ] is in the expression, by structural
-     recursion, memoised by expression. *)
-  let rec delays r =
-    match Hashtbl.find_opt delay_sets r.id with
-    | Some n -> n
-    | None ->
-        let n = delays_view r in
-        Hashtbl.add delay_sets r.id n;
-        n
-
-  and delays_view r =
-    let fold op rs =
-      match List.map delays rs with
-      | n :: ns -> List.fold_left op n ns
-      | [] -> DelaySet.empty
-    in
+  (** [node r] is the top operation of [r], its atoms being its letter sets and
+      runs of ticks. *)
+  let node r : t NormalForms.node =
     match r.view with
-    | Empty -> DelaySet.empty
-    | Eps -> DelaySet.zero
-    | Letters p ->
-        if p.tick then DelaySet.point (Rational.of_int 1) else DelaySet.empty
-    | Ticks n -> DelaySet.point (Rational.of_int n)
-    | Concat (r1, r2) -> DelaySet.sum (delays r1) (delays r2)
-    | Union rs -> fold DelaySet.union rs
-    | Inter rs -> (
-        (* [N(r & ~s) = N(r) ∖ N(s)], a difference from a bounded set reading
-           [N(s)] only up to its supremum. *)
-        let complemented, others =
-          List.partition_map
-            (fun r -> match r.view with Compl s -> Left s | _ -> Right r)
-            rs
-        in
-        match others with
-        | [] ->
-            DelaySet.diff DelaySet.naturals (fold DelaySet.union complemented)
-        | others ->
-            List.fold_left
-              (fun n s -> DelaySet.diff n (delays s))
-              (fold DelaySet.inter others)
-              complemented)
-    | Compl r -> DelaySet.diff DelaySet.naturals (delays r)
-    | Star r -> DelaySet.star (delays r)
+    | Letters _ | Ticks _ -> Atom r
+    | Empty -> Empty
+    | Eps -> Eps
+    | Concat (r, s) -> Concat (r, s)
+    | Union rs -> Union rs
+    | Inter rs -> Inter rs
+    | Compl r -> Compl r
+    | Star r -> Star r
+
+  (* The set of the [n] such that [tickⁿ] is in the expression, the complement
+     taken in the natural numbers. *)
+  include NormalForms.Delays (struct
+    type nonrec t = t
+
+    let id = id
+    let node = node
+
+    let atom_delays r =
+      match r.view with
+      | Letters p ->
+          if p.tick then DelaySet.point (Rational.of_int 1) else DelaySet.empty
+      | Ticks n -> DelaySet.point (Rational.of_int n)
+      | _ -> DelaySet.empty
+
+    let complement = DelaySet.diff DelaySet.naturals
+  end)
 
   type gaps = (DelaySet.t * t) list
 
-  include GapMap.Make (struct
+  (* The derivative by the words [tickⁿ a], [a] a name of the block, symbolic
+     in [n] ({!NormalForms.Gaps}), the runs of ticks before the name read by
+     [delays]. *)
+  include NormalForms.Gaps (struct
     type nonrec t = t
+    type block = minterm
 
+    let id = id
+    let node = node
     let universe = DelaySet.naturals
     let empty = empty
     let top = top
@@ -691,44 +705,17 @@ struct
     let inter = inter
     let compl = compl
     let compare_form = compare_form
+    let key m = m.key
+
+    let meets m r =
+      match r.view with
+      | Letters p -> not (Letters.is_empty (Letters.inter m.set p))
+      | _ -> false
+
+    let eps = eps
+    let concat = concat
+    let delays = delays
   end)
-
-  (* The gap derivatives computed, by the key of the block and the number of
-     the expression. *)
-  let gap_derivatives : gaps Pairs.t = Pairs.create 1024
-
-  (* The derivative by the words [tickⁿ a], [a] a name of the block, symbolic
-     in [n]: a symbolic derivative over the Boolean algebra of the finite
-     unions of products of sets of delays and blocks of names (D'Antoni and
-     Veanes, POPL 2014), with the derivatives of concatenation and repetition
-     of Brzozowski (JACM 1964), the runs of ticks before the name read by
-     [delays]. Memoised by block and expression. *)
-  let rec gap m r =
-    let key = (m.key, r.id) in
-    match Pairs.find_opt gap_derivatives key with
-    | Some f -> f
-    | None ->
-        let f = gap_view m r in
-        Pairs.add gap_derivatives key f;
-        f
-
-  and gap_view m r =
-    match r.view with
-    | Empty | Eps | Ticks _ -> []
-    | Letters p ->
-        if Letters.is_empty (Letters.inter m.set p) then []
-        else [ (DelaySet.zero, eps) ]
-    | Concat (r1, r2) ->
-        join
-          (normalise (List.map (fun (n, e) -> (n, concat e r2)) (gap m r1)))
-          (shift (delays r1) (gap m r2))
-    | Union rs -> List.fold_left (fun f r -> join f (gap m r)) [] rs
-    | Inter rs -> List.fold_left (fun f r -> meet f (gap m r)) full rs
-    | Compl r -> complement (gap m r)
-    | Star r' ->
-        shift
-          (DelaySet.star (delays r'))
-          (List.map (fun (n, e) -> (n, concat e r)) (gap m r'))
 
   let gap_derivative set r =
     if set.Letters.tick then
@@ -803,6 +790,12 @@ struct
       else
         let tick = tick_block ms in
         [ (leap_by tick k d, List.init k (Fun.const tick.set)) ]
+
+    (** [successors ms k d] is the derivatives of {!moves} [ms k d], without
+        their words. *)
+    let successors ms k d =
+      if k = 0 then List.map (fun m -> derive m d) ms
+      else [ leap_by (tick_block ms) k d ]
 
     (** The outcome of the exploration of one depth of a breadth-first search: a
         word found, or the expressions of the next depth. *)
@@ -879,7 +872,7 @@ struct
         | [] -> false
         | d :: _ when d.nullable -> true
         | d :: stack ->
-            let next = List.filter fresh (List.map fst (moves ms d.lead d)) in
+            let next = List.filter fresh (successors ms d.lead d) in
             List.iter (fun d -> Hashtbl.replace seen d.id ()) next;
             go (next @ stack)
       in
@@ -932,8 +925,8 @@ struct
               Hashtbl.replace parent x y;
               let k = min r.lead s.lead in
               List.iter2
-                (fun (d, _) (d', _) -> Queue.push (d, d') queue)
-                (moves ms k r) (moves ms k s);
+                (fun d d' -> Queue.push (d, d') queue)
+                (successors ms k r) (successors ms k s);
               go ()
             end
       in

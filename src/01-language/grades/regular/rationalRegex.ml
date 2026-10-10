@@ -19,38 +19,6 @@ let equal_form r s = r.id = s.id
 let compare_form r s = Int.compare r.id s.id
 let hash r = r.id
 let nullable r = r.nullable
-let mem_form r rs = List.exists (equal_form r) rs
-
-(** The table of normal forms, each view built of normal forms identified by
-    their numbers. *)
-module Forms = Hashtbl.Make (struct
-  type t = view
-
-  let equal v w =
-    match (v, w) with
-    | Empty, Empty | Eps, Eps -> true
-    | Delays s, Delays s' -> DelaySet.equal s s'
-    | Names p, Names q -> Letters.equal p q
-    | Concat (r, s), Concat (r', s') -> equal_form r r' && equal_form s s'
-    | Union rs, Union rs' | Inter rs, Inter rs' -> List.equal equal_form rs rs'
-    | Compl r, Compl r' | Star r, Star r' -> equal_form r r'
-    | _ -> false
-
-  let combine tag rs = List.fold_left (fun h r -> (h * 65599) + r.id) tag rs
-
-  let hash = function
-    | Empty -> 0
-    | Eps -> 1
-    | Delays s -> Grade.combine 7 (DelaySet.hash s)
-    | Names p -> Letters.hash p
-    | Concat (r, s) -> combine 2 [ r; s ]
-    | Union rs -> combine 3 rs
-    | Inter rs -> combine 4 rs
-    | Compl r -> combine 5 [ r ]
-    | Star r -> combine 6 [ r ]
-end)
-
-let forms = Forms.create 4096
 
 let nullable_view = function
   | Empty | Names _ -> false
@@ -61,22 +29,61 @@ let nullable_view = function
   | Inter rs -> List.for_all nullable rs
   | Compl r -> not r.nullable
 
-(** [make view] is the normal form of [view], built on its first request: the
-    expressions are hash-consed (Filliâtre and Conchon, ML Workshop 2006). *)
-let make view =
-  match Forms.find_opt forms view with
-  | Some r -> r
-  | None ->
-      let r =
-        { id = Forms.length forms; view; nullable = nullable_view view }
-      in
-      Forms.add forms view r;
-      r
+(** The table of normal forms, each view built of normal forms identified by
+    their numbers. *)
+module Forms =
+  NormalForms.HashCons
+    (struct
+      type t = view
+
+      let equal v w =
+        match (v, w) with
+        | Empty, Empty | Eps, Eps -> true
+        | Delays s, Delays s' -> DelaySet.equal s s'
+        | Names p, Names q -> Letters.equal p q
+        | Concat (r, s), Concat (r', s') -> equal_form r r' && equal_form s s'
+        | Union rs, Union rs' | Inter rs, Inter rs' ->
+            List.equal equal_form rs rs'
+        | Compl r, Compl r' | Star r, Star r' -> equal_form r r'
+        | _ -> false
+
+      let combine = NormalForms.combine_ids (fun r -> r.id)
+
+      let hash = function
+        | Empty -> 0
+        | Eps -> 1
+        | Delays s -> Grade.combine 7 (DelaySet.hash s)
+        | Names p -> Letters.hash p
+        | Concat (r, s) -> combine 2 [ r; s ]
+        | Union rs -> combine 3 rs
+        | Inter rs -> combine 4 rs
+        | Compl r -> combine 5 [ r ]
+        | Star r -> combine 6 [ r ]
+    end)
+    (struct
+      type nonrec t = t
+
+      let build id view = { id; view; nullable = nullable_view view }
+    end)
+
+(** [make view] is the normal form of [view]: the expressions are hash-consed
+    ({!NormalForms.HashCons}). *)
+let make = Forms.make
 
 (** {1 Constructions} *)
 
 let empty = make Empty
 let eps = make Eps
+
+include NormalForms.Boolean (struct
+  type nonrec t = t
+
+  let id r = r.id
+  let nullable = nullable
+  let eps = eps
+  let compl_operand r = match r.view with Compl s -> Some s | _ -> None
+  let star_operand r = match r.view with Star s -> Some s | _ -> None
+end)
 
 let delays_atom s =
   if DelaySet.is_empty s then empty
@@ -133,23 +140,6 @@ let rec concat r s =
           | None -> make (Concat (r, s)))
       | _ -> make (Concat (r, s)))
 
-(** [flatten split rs] is the operands of the n-ary operation of the operands
-    [rs], by [split]: [Some rs'] to replace an operand by [rs']. *)
-let flatten split rs =
-  List.concat_map (fun r -> Option.value (split r) ~default:[ r ]) rs
-
-(** [merge part combine build rs] merges the operands [rs] that [part] maps to a
-    value into the value they combine to by [combine], built by [build]. *)
-let merge part combine build rs =
-  let parts, others =
-    List.partition_map
-      (fun r -> match part r with Some p -> Left p | None -> Right r)
-      rs
-  in
-  match parts with
-  | [] -> others
-  | p :: ps -> build (List.fold_left combine p ps) :: others
-
 (** [one_name_part r] is the set of the names of the one-operation words of [r],
     when [r] is a set of names, the complement of one or the repetition of one.
 *)
@@ -160,28 +150,6 @@ let one_name_part r =
       Some (Letters.inter (Letters.compl p) all_names)
   | Star { view = Names p; _ } -> Some p
   | _ -> None
-
-(** [complementary split rs] is whether some operand of [rs] is the complement
-    of another, or of the operation that [split] splits into operands, all of
-    them among [rs]: the operands of a flattened union or intersection. *)
-let complementary split rs =
-  let among s =
-    match split s with
-    | Some ss -> List.for_all (fun s' -> mem_form s' rs) ss
-    | None -> mem_form s rs
-  in
-  List.exists (fun r -> match r.view with Compl s -> among s | _ -> false) rs
-
-(** [subsumed rs r] is whether the operand [r] of a union is contained in
-    another operand [s] of [rs] by one of the laws [0 ⊆ s] for a nullable [s]
-    and [r ⊆ r*]. *)
-let subsumed rs r =
-  let contains s =
-    match s.view with
-    | Star s' -> equal_form r s'
-    | _ -> s.nullable && equal_form r eps && not (equal_form s eps)
-  in
-  List.exists contains rs
 
 (* The atoms of a union are merged into the atom of the union of their sets,
    and the sets of names into their union. *)
@@ -204,47 +172,29 @@ let union rs =
     if complementary split rs then top
     else match rs with [] -> empty | [ r ] -> r | rs -> make (Union rs)
 
-(* The sets of delays of the expressions computed, by their numbers. *)
-let delay_sets : (int, DelaySet.t) Hashtbl.t = Hashtbl.create 1024
-
-(* The set of the delays [d] such that the word [d] is in the expression, by
-   structural recursion, memoised by expression. *)
-let rec delays r =
-  match Hashtbl.find_opt delay_sets r.id with
-  | Some n -> n
-  | None ->
-      let n = delays_view r in
-      Hashtbl.add delay_sets r.id n;
-      n
-
-and delays_view r =
-  let fold op rs =
-    match List.map delays rs with
-    | n :: ns -> List.fold_left op n ns
-    | [] -> DelaySet.empty
-  in
+(** [node r] is the top operation of [r], its atoms being its sets of delays and
+    of names. *)
+let node r : t NormalForms.node =
   match r.view with
-  | Empty | Names _ -> DelaySet.empty
-  | Eps -> DelaySet.zero
-  | Delays s -> s
-  | Concat (r1, r2) -> DelaySet.sum (delays r1) (delays r2)
-  | Union rs -> fold DelaySet.union rs
-  | Inter rs -> (
-      (* [N(r & ~s) = N(r) ∖ N(s)]. *)
-      let complemented, others =
-        List.partition_map
-          (fun r -> match r.view with Compl s -> Left s | _ -> Right r)
-          rs
-      in
-      match others with
-      | [] -> DelaySet.compl (fold DelaySet.union complemented)
-      | others ->
-          List.fold_left
-            (fun n s -> DelaySet.diff n (delays s))
-            (fold DelaySet.inter others)
-            complemented)
-  | Compl r -> DelaySet.compl (delays r)
-  | Star r -> DelaySet.star (delays r)
+  | Delays _ | Names _ -> Atom r
+  | Empty -> Empty
+  | Eps -> Eps
+  | Concat (r, s) -> Concat (r, s)
+  | Union rs -> Union rs
+  | Inter rs -> Inter rs
+  | Compl r -> Compl r
+  | Star r -> Star r
+
+(* The set of the delays [d] such that the word [d] is in the expression, the
+   complement taken in [ℚ≥0]. *)
+include NormalForms.Delays (struct
+  type nonrec t = t
+
+  let id r = r.id
+  let node = node
+  let atom_delays r = match r.view with Delays s -> s | _ -> DelaySet.empty
+  let complement = DelaySet.compl
+end)
 
 (** [symbols r] is [(S, p)] if the words of [r] are the delays of [S] and the
     one-operation words of the names of [p]: if [r] is an atom, a set of names
@@ -403,16 +353,10 @@ let children r =
 (** [name_sets roots] is the list of the sets of names occurring in [roots],
     each once. *)
 let name_sets roots =
-  let seen = Hashtbl.create 64 in
-  let rec visit acc r =
-    if Hashtbl.mem seen r.id then acc
-    else begin
-      Hashtbl.add seen r.id ();
-      let acc = match r.view with Names p -> p :: acc | _ -> acc in
-      List.fold_left visit acc (children r)
-    end
-  in
-  List.sort_uniq Letters.compare (List.fold_left visit [] roots)
+  List.sort_uniq Letters.compare
+    (collect children
+       (fun r -> match r.view with Names p -> [ p ] | _ -> [])
+       roots)
 
 let names r =
   List.sort_uniq String.compare
@@ -432,9 +376,19 @@ let blocks roots =
 
 type gaps = t GapMap.t
 
-include GapMap.Make (struct
-  type nonrec t = t
+type block = { set : Letters.t; key : int }
+(** A block of names, with the number of its normal form as a key. *)
 
+let block set = { set; key = (names_atom set).id }
+
+(* The derivative by the words [d a], [a] a name of the block, symbolic in the
+   delay [d] ({!NormalForms.Gaps}). *)
+include NormalForms.Gaps (struct
+  type nonrec t = t
+  type nonrec block = block
+
+  let id r = r.id
+  let node = node
   let universe = DelaySet.all
   let empty = empty
   let top = top
@@ -442,57 +396,17 @@ include GapMap.Make (struct
   let inter = inter
   let compl = compl
   let compare_form = compare_form
+  let key m = m.key
+
+  let meets m r =
+    match r.view with
+    | Names p -> not (Letters.is_empty (Letters.inter m.set p))
+    | _ -> false
+
+  let eps = eps
+  let concat = concat
+  let delays = delays
 end)
-
-type block = { set : Letters.t; key : int }
-(** A block of names, with the number of its normal form as a key. *)
-
-let block set = { set; key = (names_atom set).id }
-
-(** Tables by pairs of numbers. *)
-module Pairs = Hashtbl.Make (struct
-  type t = int * int
-
-  let equal (i, j) (i', j') = Int.equal i i' && Int.equal j j'
-  let hash (i, j) = Grade.combine i j
-end)
-
-(* The gap derivatives computed, by the key of the block and the number of the
-   expression. *)
-let gap_derivatives : gaps Pairs.t = Pairs.create 1024
-
-(* The derivative by the words [d a], [a] a name of the block, symbolic in the
-   delay [d]: a symbolic derivative over the Boolean algebra of the finite
-   unions of products of sets of delays and blocks of names (D'Antoni and
-   Veanes, POPL 2014), with the derivatives of concatenation and repetition of
-   Brzozowski (JACM 1964), the delays before the name read by [delays].
-   Memoised by block and expression. *)
-let rec gap m r =
-  let key = (m.key, r.id) in
-  match Pairs.find_opt gap_derivatives key with
-  | Some f -> f
-  | None ->
-      let f = gap_view m r in
-      Pairs.add gap_derivatives key f;
-      f
-
-and gap_view m r =
-  match r.view with
-  | Empty | Eps | Delays _ -> []
-  | Names p ->
-      if Letters.is_empty (Letters.inter m.set p) then []
-      else [ (DelaySet.zero, eps) ]
-  | Concat (r1, r2) ->
-      join
-        (normalise (List.map (fun (n, e) -> (n, concat e r2)) (gap m r1)))
-        (shift (delays r1) (gap m r2))
-  | Union rs -> List.fold_left (fun f r -> join f (gap m r)) [] rs
-  | Inter rs -> List.fold_left (fun f r -> meet f (gap m r)) full rs
-  | Compl r -> complement (gap m r)
-  | Star r' ->
-      shift
-        (DelaySet.star (delays r'))
-        (List.map (fun (n, e) -> (n, concat e r)) (gap m r'))
 
 let gap_derivative set r = gap (block (Letters.inter set all_names)) r
 

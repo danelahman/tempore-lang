@@ -257,16 +257,16 @@ let read_bound read q =
       with {!component_of_lit}. *)
 let fractional_tick q = invalid_lit (Rat q) "%s" (Delay.Nat.rejection (Rat q))
 
-(** [tick_delays lo hi] is the expression over whole time steps of the interval
-    atom from [lo] to [hi] of a brace literal: [[a, b]] is [a] ticks followed by
-    up to [b - a] more, [\[a, ∞)] is [a] ticks followed by any number, and an
-    open endpoint is shifted by one tick.
+(** [tick_interval lo hi] is the pair [(a, b)] of the least and the greatest
+    whole number of time steps of the interval atom from [lo] to [hi] of a brace
+    literal, [b] being [None] for an infinite upper endpoint: an open endpoint
+    is shifted by one tick.
 
     @raise Invalid_literal
       on a fractional endpoint, by {!fractional_tick}, and on the brace literal
       of the atom alone if it contains no whole number of time steps, which the
       grade reports against the enclosing literal with {!component_of_lit}. *)
-let tick_delays lo hi =
+let tick_interval lo hi =
   let whole q =
     match Rational.to_int q with Some n -> n | None -> fractional_tick q
   in
@@ -280,13 +280,23 @@ let tick_delays lo hi =
     | Unbounded -> None
   in
   match b with
-  | None -> Seq (Tick a, Star (Tick 1))
   | Some b when b < a ->
       invalid_lit
         (Braces (Delays (lo, hi)))
         "the interval '%s' contains no whole number of time steps"
         (show_interval Rational.show lo hi)
-  | Some b ->
+  | b -> (a, b)
+
+(** [tick_delays lo hi] is the expression over whole time steps of the interval
+    atom from [lo] to [hi] of a brace literal, of the ends {!tick_interval}
+    [lo hi]: [[a, b]] is [a] ticks followed by up to [b - a] more, and [\[a, ∞)]
+    is [a] ticks followed by any number.
+
+    @raise Invalid_literal as {!tick_interval}. *)
+let tick_delays lo hi =
+  match tick_interval lo hi with
+  | a, None -> Seq (Tick a, Star (Tick 1))
+  | a, Some b ->
       List.fold_left
         (fun r _ -> Seq (r, Union (Tick 0, Tick 1)))
         (Tick a)

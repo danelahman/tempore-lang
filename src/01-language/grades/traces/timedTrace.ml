@@ -204,6 +204,36 @@ end
 module Make (D : Delay.MONUS) = struct
   include Base (D)
 
+  (** Tables by a budget and two positions. *)
+  module Positions = Hashtbl.Make (struct
+    type t = D.t * int * int
+
+    let equal (k, i, j) (k', i', j') =
+      Int.equal i i' && Int.equal j j' && D.equal k k'
+
+    let hash (k, i, j) = Grade.combine (Grade.combine (D.hash k) i) j
+  end)
+
+  (** [decide rules k s t] is [rules go k 0 0], where [rules go k i j] decides
+      an order at budget [k] on the suffixes of the traces [s] and [t] from the
+      positions [i] and [j], given their events if any, by [go] on the same
+      traces at further positions. The search is memoised by budget and
+      positions: dynamic programming over the positions in [s] and [t]. *)
+  let decide rules k s t =
+    let s = Array.of_list s and t = Array.of_list t in
+    let at trace i = if i < Array.length trace then Some trace.(i) else None in
+    let table = Positions.create 64 in
+    let rec go k i j =
+      let key = (k, i, j) in
+      match Positions.find_opt table key with
+      | Some b -> b
+      | None ->
+          let b = rules go k i j (at s i) (at t j) in
+          Positions.add table key b;
+          b
+    in
+    go k 0 0
+
   (** [allowance running_time k s t] decides the allowance order at budget [k]:
       the bound [t] permits the trace [s], given [k] units of budget already
       banked. Budget comes from the bound's delays and is spent on the trace's
@@ -211,26 +241,26 @@ module Make (D : Delay.MONUS) = struct
       a matched operation resets the budget, so slack the bound offers before an
       operation it names is spent before that operation or not at all.
 
-      Each rule shrinks [s] or [t], so the plain backtracking search terminates.
-      The [when] guards are the backtracking: a failing guard falls through to
-      the next rule. *)
-  let rec allowance running_time k s t =
-    match (s, t) with
-    | [], _ -> true (* nil *)
-    | Ev o :: s', Ev o' :: t' when o = o' && allowance running_time D.zero s' t'
-      ->
-        true (* keep: the budget does not cross a match *)
-    | _, Ev _ :: t' when allowance running_time k s t' -> true (* skip-op *)
-    | _, Wait e :: t' when allowance running_time (D.add k e) s t' ->
-        true (* bank-delay *)
-    | Wait d :: s', _
-      when D.leq d k && allowance running_time (D.monus k d) s' t ->
-        true (* use-delay *)
-    | Ev o :: s', _
-      when D.leq (running_time o) k
-           && allowance running_time (D.monus k (running_time o)) s' t ->
-        true (* use-op *)
-    | _ -> false
+      Each rule advances in [s] or [t], so the search terminates. The [when]
+      guards are the backtracking: a failing guard falls through to the next
+      rule. *)
+  let allowance running_time =
+    decide (fun go k i j s t ->
+        match (s, t) with
+        | None, _ -> true (* nil *)
+        | Some (Ev o), Some (Ev o')
+          when String.equal o o' && go D.zero (i + 1) (j + 1) ->
+            true (* keep: the budget does not cross a match *)
+        | _, Some (Ev _) when go k i (j + 1) -> true (* skip-op *)
+        | _, Some (Wait e) when go (D.add k e) i (j + 1) ->
+            true (* bank-delay *)
+        | Some (Wait d), _ when D.leq d k && go (D.monus k d) (i + 1) j ->
+            true (* use-delay *)
+        | Some (Ev o), _
+          when D.leq (running_time o) k
+               && go (D.monus k (running_time o)) (i + 1) j ->
+            true (* use-op *)
+        | _ -> false)
 
   (** [coverage running_time k s t] decides the coverage order at budget [k]:
       the trace [t] covers the guarantee [s], given [k] units of slack already
@@ -240,21 +270,19 @@ module Make (D : Delay.MONUS) = struct
       operation itself discharges a demand for an operation, which is what a
       guarantee wants and what makes this order not the converse of
       {!allowance}. *)
-  let rec coverage running_time k s t =
-    match (s, t) with
-    | [], _ -> true (* nil *)
-    | Ev o :: s', Ev o' :: t' when o = o' && coverage running_time D.zero s' t'
-      ->
-        true (* keep: the slack does not cross a match *)
-    | _, Ev o :: t' when coverage running_time (D.add k (running_time o)) s t'
-      ->
-        true (* pay-op *)
-    | _, Wait e :: t' when coverage running_time (D.add k e) s t' ->
-        true (* del-delay *)
-    | Wait d :: s', _ when D.leq d k && coverage running_time (D.monus k d) s' t
-      ->
-        true (* use-delay *)
-    | _ -> false
+  let coverage running_time =
+    decide (fun go k i j s t ->
+        match (s, t) with
+        | None, _ -> true (* nil *)
+        | Some (Ev o), Some (Ev o')
+          when String.equal o o' && go D.zero (i + 1) (j + 1) ->
+            true (* keep: the slack does not cross a match *)
+        | _, Some (Ev o) when go (D.add k (running_time o)) i (j + 1) ->
+            true (* pay-op *)
+        | _, Some (Wait e) when go (D.add k e) i (j + 1) -> true (* del-delay *)
+        | Some (Wait d), _ when D.leq d k && go (D.monus k d) (i + 1) j ->
+            true (* use-delay *)
+        | _ -> false)
 
   (** [upper_bound_le running_time p q] is the Hoare lift of the allowance
       order, the order of the lower powerdomain: every bound listed by [p] stays

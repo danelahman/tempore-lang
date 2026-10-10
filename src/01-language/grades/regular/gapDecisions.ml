@@ -13,13 +13,7 @@ module type EXPRESSION = sig
   val blocks : t list -> block list
 end
 
-(** Tables by pairs of numbers. *)
-module Pairs = Hashtbl.Make (struct
-  type t = int * int
-
-  let equal (i, j) (i', j') = Int.equal i i' && Int.equal j j'
-  let hash (i, j) = Grade.combine i j
-end)
+module Pairs = NormalForms.Pairs
 
 module Make (E : EXPRESSION) = struct
   let equal_form r s = Int.equal (E.id r) (E.id s)

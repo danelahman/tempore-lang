@@ -103,7 +103,6 @@ let mul = lift2 Regex.concat
 let join = lift2 (fun r s -> Regex.union [ r; s ])
 let top = { names = []; regex = Regex.top }
 let leq _bounds = decide2 D.subset
-let leq_symbol = "<="
 let equal _bounds = decide2 D.equal
 let is_top _bounds = decide2 D.subset top
 
@@ -114,24 +113,14 @@ let compare rho rho' =
 
 let hash rho = combine (hash_list String.hash rho.names) (Regex.hash rho.regex)
 
-(* Delays in whole time steps: [n] steps are the word [tickⁿ]. *)
-module Delay : Delay.STEPPED with type t = int = Delay.Nat
+include RegularTraceGradeDerivative.Constants
 
 let of_delay d = { names = []; regex = ticks (Delay.to_int d) }
-let unit_least = false
-let commutative = false
-let needs_op_bounds = false
-let implied_bounds _bounds _rho = None
-let inhabited _bounds _rho = true
 
 (* The delays of [lo] to [hi] time steps. *)
 let of_bounds b =
   let lo, hi = hull b in
-  {
-    names = [];
-    regex =
-      Regex.union (List.init (max 1 (hi - lo + 1)) (fun k -> ticks (lo + k)));
-  }
+  { names = []; regex = Regex.runs lo hi }
 
 let is_atomic name rho =
   decide2 D.equal rho { names = [ name ]; regex = atom name }
@@ -156,22 +145,11 @@ let counterexample _bounds rho rho' =
     (D.shortest
        (Regex.inter [ align names rho; Regex.compl (align names rho') ]))
 
-let of_lit = function
-  | Int n when n < 0 -> invalid_lit (Int n) "grades must be non-negative"
-  | Int n -> { names = []; regex = ticks n }
-  | Top -> top
-  | Braces r as lit ->
-      check_delays lit r;
-      let rho = component_of_lit lit ~context:"" of_regex r in
-      if D.is_empty rho.regex then
-        invalid_lit lit
-          "this regular expression denotes the empty language, but grades are \
-           non-empty"
-      else rho
-  | lit ->
-      invalid_lit lit
-        "grades are regular expressions '{...}', plain integers or '⊤', not %s"
-        (describe_lit lit)
+let of_lit =
+  RegularTraceGradeDerivative.of_lit_with
+    ~ticks:(fun n -> { names = []; regex = ticks n })
+    ~top ~of_regex
+    ~is_empty:(fun rho -> D.is_empty rho.regex)
 
 (** {1 Letter sets} *)
 

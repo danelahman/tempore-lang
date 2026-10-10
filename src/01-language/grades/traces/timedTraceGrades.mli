@@ -75,6 +75,47 @@ module type TIMED_NAMES = sig
       @raise Grade.Invalid_literal if no closed endpoint does. *)
 end
 
+(** Sets of traces over the delays [D] with a separate greatest point, the
+    carrier of the upper-bound grades here and in {!TraceInclusionGrades}. *)
+module Bounded (D : Delay.S) : sig
+  type t =
+    | Within of TimedTrace.Base(D).traces
+        (** every trace is within a listed one *)
+    | Unbounded  (** any trace; printed as [⊤] *)
+
+  val one : t
+  (** The unit [{0}]. *)
+
+  val mul : t -> t -> t
+  (** The language product, absorbed by [Unbounded]. *)
+
+  val join : t -> t -> t
+  (** The union, absorbed by [Unbounded]. *)
+
+  val is_top : Grade.bounds -> t -> bool
+  (** [is_top bounds p] is whether [p] is [Unbounded]. *)
+
+  val compare : t -> t -> int
+  (** The order of the representations, [Unbounded] least. *)
+
+  val hash : t -> int
+  (** A hash compatible with {!compare}. *)
+
+  val events : t -> string list
+  (** [events p] is the operation names [p] mentions, in increasing order. *)
+
+  val of_delay : D.t -> t
+  (** [of_delay d] is the set of the single trace [d]. *)
+
+  val of_lit : number:string -> GradeLiteral.lit -> t
+  (** [of_lit ~number lit] is the set of traces the one-sided literal [lit]
+      denotes, or [Unbounded] for [⊤], [number] naming the literals of the
+      delays in the singular. *)
+
+  val show : t -> string
+  (** [show p] prints [p], [Unbounded] as [⊤]. *)
+end
+
 (** The trace grades of timed operations over the delays [D], named by [N]. *)
 module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
   module LowerBound : Grade.S with type Delay.t = D.t

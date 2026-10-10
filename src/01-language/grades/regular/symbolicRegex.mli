@@ -198,6 +198,10 @@ module type S = sig
   (** [ticks n] is the word [tickⁿ]: the empty word, the letter set [{tick}] or
       a run of [n] ticks. *)
 
+  val runs : int -> int -> t
+  (** [runs lo hi] is the union of the words [tickⁿ], [lo ≤ n ≤ hi], and
+      [tickˡᵒ] if [hi < lo]. *)
+
   val concat : t -> t -> t
   val union : t list -> t
   val inter : t list -> t
@@ -242,10 +246,13 @@ module type S = sig
       concatenation [r; s] if [k] is at most the lead of [r],
       [tickᶜ⁻ʲ; (tickᶜ)*] for the repetition [(tickᶜ)*] of a run,
       [j = k mod c ≠ 0], and the complement, union or intersection of the leaps
-      of the operands; and otherwise by [k] derivatives, until a derivative is
-      its own. It is the normal form of [k] derivatives on runs, concatenations
-      led by runs, repetitions of runs and complements of these, and denotes the
-      same language elsewhere. *)
+      of the operands; and otherwise off the orbit of [r], the sequence of its
+      derivatives by [tickʲ], [j ≥ 0], explored up to [k], an expression of lead
+      [l ≥ 1] by its leap by [l] and any other by its derivative, and eventually
+      periodic, [k] being reduced modulo its period once its cycle is found. It
+      is the normal form of [k] derivatives on runs, concatenations led by runs,
+      repetitions of runs and complements of these, and denotes the same
+      language elsewhere. *)
 
   (** {1 Gap derivatives}
 

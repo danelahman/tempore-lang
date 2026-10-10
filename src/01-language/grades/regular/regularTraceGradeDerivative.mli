@@ -71,6 +71,39 @@
     ticks that all words of an expression begin with are taken in one step, by
     the leaps of {!SymbolicRegex.S.leap}. *)
 
+(** {1 Shared by the implementations}
+
+    The fields of the regular trace grade common to its implementations,
+    {!RegularTraceGrade}, {!RegularTraceGradePlain} and those here. *)
+
+(** The constant fields: the delays are whole time steps, the unit is not least,
+    the product is not commutative, and the grade needs no running-time bounds,
+    implies none and has no grade without traces. *)
+module Constants : sig
+  module Delay : Delay.STEPPED with type t = int
+
+  val leq_symbol : string
+  val unit_least : bool
+  val commutative : bool
+  val needs_op_bounds : bool
+  val implied_bounds : Grade.bounds -> 'a -> Grade.running_time option
+  val inhabited : Grade.bounds -> 'a -> bool
+end
+
+val of_lit_with :
+  ticks:(int -> 'a) ->
+  top:'a ->
+  of_regex:(Grade.regex -> 'a) ->
+  is_empty:('a -> bool) ->
+  Grade.lit ->
+  'a
+(** [of_lit_with ~ticks ~top ~of_regex ~is_empty lit] is the grade of the
+    literal [lit]: [ticks n] for a non-negative integer [n], [top] for [⊤], and
+    [of_regex r] for a brace literal [{r}] whose delays are non-negative and
+    which [is_empty] does not find empty.
+
+    @raise Grade.Invalid_literal on the other literals. *)
+
 (** A regular trace grade by derivatives. *)
 module type S = sig
   include Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t
