@@ -178,9 +178,9 @@ module Make (C : Constraint.S) = struct
     | Some _ | None -> None
 
   (* The type unknowns the eternality of a type depends on. An application
-     of a type being unfolded is eternal; a [noneternal] declaration is
-     consulted first, so that it also poisons the types recursing through
-     it. *)
+     of a type being unfolded is eternal when its arguments are; a
+     [noneternal] declaration is consulted first, so that it also poisons the
+     types recursing through it. *)
   let eternal_vars context ty =
     let open Option.Syntax in
     let rec all visited tys acc =
@@ -198,7 +198,7 @@ module Make (C : Constraint.S) = struct
       | Ast.TyApply (name, args) -> (
           if context.is_noneternal name then None
           else if List.exists (fun n -> Ast.TyName.compare n name = 0) visited
-          then Some acc
+          then all visited args acc
           else
             let visited = name :: visited in
             match

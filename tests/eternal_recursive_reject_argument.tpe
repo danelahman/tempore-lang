@@ -1,0 +1,17 @@
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/eternal_recursive_reject_argument.tpe *)
+
+type 'a wrap = W of 'a | N of (unit -> nat) wrap
+
+(* Correctly rejected by the typechecker: a wrap recurses at a function type,
+   so it is not eternal, and w is used after a delay. *)
+let leak () =
+  box 0 7 as b in
+  let w = N (W (fun () -> unbox b as x in x)) in
+  delay 5;
+  match w with
+  | N (W g) -> g ()
+  | _ -> 0
+
+run leak ()

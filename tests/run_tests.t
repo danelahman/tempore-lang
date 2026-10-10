@@ -411,6 +411,17 @@
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `(=)` is defined here
   ======================================================================
+  comparison_reject_recursive_argument.tpe
+  ======================================================================
+  File "comparison_reject_recursive_argument.tpe", line 5, characters 26-27:
+  5 | run (N (W (fun () -> 1))) = (N (W (fun () -> 2)))
+                                ^
+  Typing error: Type `α wrap` is not eternal, as required by the type of `(=)`
+    File "stdlib.tpe", line 1, characters 0-37:
+    1 | let ( = ) x y = __compare_eq__ (x, y)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `(=)` is defined here
+  ======================================================================
   continuation_discard_abort_reject_lower.tpe
   ======================================================================
   File "continuation_discard_abort_reject_lower.tpe", line 13, characters 52-57:
@@ -1070,6 +1081,35 @@
     2
   ]
   
+  ======================================================================
+  eternal_recursive.tpe
+  ======================================================================
+  === Run 1 ===
+  return 2
+  State: [
+    5
+  ]
+  
+  === Run 2 ===
+  return true
+  State: []
+  
+  ======================================================================
+  eternal_recursive_reject_argument.tpe
+  ======================================================================
+  File "eternal_recursive_reject_argument.tpe", line 13, characters 8-9:
+  13 |   match w with
+               ^
+  Typing error: Variable `w` is used with grade `5` accumulated since it was bound, but its type `α wrap` is not eternal
+    File "eternal_recursive_reject_argument.tpe", line 11, characters 6-7:
+    11 |   let w = N (W (fun () -> unbox b as x in x)) in
+               ^
+    `w` is bound here
+    File "eternal_recursive_reject_argument.tpe", line 12, characters 2-9:
+    12 |   delay 5;
+           ^^^^^^^
+    grade `5` accumulates here (delay)
+    Note: the resource inequality `5 <= 0` does not hold
   ======================================================================
   eternal_types.tpe
   ======================================================================

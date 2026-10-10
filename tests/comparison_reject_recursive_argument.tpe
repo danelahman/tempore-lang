@@ -1,0 +1,5 @@
+type 'a wrap = W of 'a | N of (unit -> nat) wrap
+
+(* Correctly rejected by the typechecker: a wrap recurses at a function type,
+   so it is not eternal and its values cannot be compared. *)
+run (N (W (fun () -> 1))) = (N (W (fun () -> 2)))

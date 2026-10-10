@@ -279,6 +279,7 @@ let expected_rejections =
     ("tests/comp_type_annotation_reject.tpe", [ 3 ]);
     ("tests/comparison_reject_box.tpe", [ 3 ]);
     ("tests/comparison_reject_function.tpe", [ 5 ]);
+    ("tests/comparison_reject_recursive_argument.tpe", [ 5 ]);
     ("tests/comp_type_annotation_upper_reject.tpe", [ 3 ]);
     ("tests/continuation_discard_abort_reject_lower.tpe", [ 13 ]);
     ("tests/continuation_discard_delay_reject_lower.tpe", [ 11 ]);
@@ -318,6 +319,7 @@ let expected_rejections =
     ("tests/error_use_after_delay.tpe", [ 15 ]);
     ("tests/error_variant_arity.tpe", [ 12; 14; 16; 20 ]);
     ("tests/errors_multiple.tpe", [ 12; 14; 18 ]);
+    ("tests/eternal_recursive_reject_argument.tpe", [ 9 ]);
     ("tests/eternal_tyvars_reject_function.tpe", [ 9 ]);
     ("tests/eternal_tyvars_reject_handler.tpe", [ 12 ]);
     ("tests/eternal_tyvars_reject_higher_order.tpe", [ 9 ]);
