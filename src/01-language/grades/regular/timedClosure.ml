@@ -280,7 +280,9 @@ module Weights (State : Map.OrderedType) = struct
     Array.mapi
       (fun q dq ->
         List.fold_left
-          (fun best (w, q') -> pick best (Option.map (( + ) w) d.(q')))
+          (fun best (w, q') ->
+            pick best
+              (Option.map (Delay.checked_add ~quantity:"duration" w) d.(q')))
           dq
           (snd graph.(q)))
       d

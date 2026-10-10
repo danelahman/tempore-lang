@@ -6,7 +6,7 @@ let add c c' =
   match (c, c') with
   | No_trace, _ | _, No_trace -> No_trace
   | Unbounded, _ | _, Unbounded -> Unbounded
-  | Cost n, Cost n' -> Cost (n + n')
+  | Cost n, Cost n' -> Cost (Delay.checked_add ~quantity:"cost" n n')
 
 let rank = function No_trace -> 0 | Cost _ -> 1 | Unbounded -> 2
 

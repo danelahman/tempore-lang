@@ -92,7 +92,9 @@ let member r a =
    An array of runs is written into a fresh array long enough for it, the
    number of bounds written threaded through, and then cut to that number. *)
 
-let fresh n : runs = Array.make n Z.zero
+let fresh n : runs =
+  if n > Sys.max_array_length then Delay.out_of_range "delay set"
+  else Array.make n Z.zero
 
 (* [emit out n s e] writes the run [[s, e)], whose lower bound is not below
    those of the runs written, after the first [n] bounds of [out], joined with
@@ -416,9 +418,14 @@ let copies ~origin ~step ~from tail ~lo ~hi =
     let first = Z.max from (Z.pred (Z.fdiv (Z.sub lo origin) step)) in
     let n =
       Int.max 0
-        (Z.to_int (Z.sub (Z.cdiv (Z.sub (Z.pred hi) origin) step) first))
+        (Delay.checked_to_int ~quantity:"delay set"
+           (Z.sub (Z.cdiv (Z.sub (Z.pred hi) origin) step) first))
     in
-    let out = fresh (n * Array.length tail) in
+    let out =
+      fresh
+        (Delay.checked_to_int ~quantity:"delay set"
+           (Z.mul (Z.of_int n) (Z.of_int (Array.length tail))))
+    in
     let rec go o c i k =
       if c >= n then k
       else if i >= Array.length tail then go (Z.add o step) (c + 1) 0 k
@@ -814,31 +821,62 @@ let intervals_upto x s =
       | [] -> ivs
     else ivs
 
-(* [piece m s i] is the [i]-th interval of [s] in increasing order, refined by
-   [m]: those of its base, then the copies of its tail, one period after
-   another, not joined where they touch; [None] past the last one of a bounded
-   set. *)
-let piece m s i =
-  let nb = count s.base in
-  if i < nb then
-    Some (refine_bound m s.base.(2 * i), refine_bound m s.base.((2 * i) + 1))
-  else
-    let nt = count s.tail in
-    if nt = 0 then None
-    else
-      let c = (i - nb) / nt and j = (i - nb) mod nt in
-      let o =
-        Z.mul m (twice (Z.add s.threshold (Z.mul (Z.of_int c) s.period)))
-      in
-      Some
-        ( Z.add o (refine_bound m s.tail.(2 * j)),
-          Z.add o (refine_bound m s.tail.((2 * j) + 1)) )
+(* A cursor over the intervals of [s] in increasing order: the [i]-th interval
+   of its base, or the [j]-th interval of the [c]-th copy of its tail, the
+   copies following one another one period apart, not joined where they
+   touch. *)
+type cursor = Base of int | Copy of Z.t * int
 
-(* [intersects s r] sweeps the pieces of [s] and of [r] on a common grid in
+(* [first s] is the cursor of the least interval of [s], [None] if it is
+   empty. *)
+let first s =
+  if count s.base > 0 then Some (Base 0)
+  else if count s.tail > 0 then Some (Copy (Z.zero, 0))
+  else None
+
+(* [next s k] is the cursor after [k], [None] past the last interval of a
+   bounded set. *)
+let next s = function
+  | Base i when i + 1 < count s.base -> Some (Base (i + 1))
+  | Base _ -> if count s.tail > 0 then Some (Copy (Z.zero, 0)) else None
+  | Copy (c, j) when j + 1 < count s.tail -> Some (Copy (c, j + 1))
+  | Copy (c, _) -> Some (Copy (Z.succ c, 0))
+
+(* [piece m s k] is the interval of [s] at the cursor [k], refined by [m]. *)
+let piece m s = function
+  | Base i ->
+      (refine_bound m s.base.(2 * i), refine_bound m s.base.((2 * i) + 1))
+  | Copy (c, j) ->
+      let o = Z.mul m (twice (Z.add s.threshold (Z.mul c s.period))) in
+      ( Z.add o (refine_bound m s.tail.(2 * j)),
+        Z.add o (refine_bound m s.tail.((2 * j) + 1)) )
+
+(* [seek m s k x] is the cursor of the least interval of [s] from [k] on,
+   refined by [m], whose upper bound exceeds [x]: the copies of the tail ending
+   at or below [x] are skipped at once, the copy containing [x] being the
+   [⌊(x - o)/q⌋]-th for [o] and [q] the origin and the period in atoms. *)
+let seek m s k x =
+  let skip = function
+    | Copy (c, _) as k ->
+        let o = Z.mul m (twice s.threshold) and q = Z.mul m (twice s.period) in
+        let c' = Z.pred (Z.fdiv (Z.sub x o) q) in
+        if Z.gt c' c then Copy (c', 0) else k
+    | k -> k
+  in
+  let rec go = function
+    | None -> None
+    | Some k ->
+        let k = skip k in
+        if Z.gt (snd (piece m s k)) x then Some k else go (next s k)
+  in
+  go (Some k)
+
+(* [intersects s r] sweeps the intervals of [s] and of [r] on a common grid in
    increasing order until two of them meet, or until one lies above the greater
    threshold plus a common period: both sets are periodic with that period
    above the greater threshold, so a common element above it has a translate
-   below. *)
+   below. Each step skips the intervals of one set that end below the current
+   interval of the other, as a merge by galloping does. *)
 let intersects s r =
   let g = common_grid s r in
   let ms = Z.divexact g s.grid and mr = Z.divexact g r.grid in
@@ -854,14 +892,17 @@ let intersects s r =
       (twice (Z.add (Z.max (Z.mul ms s.threshold) (Z.mul mr r.threshold)) p))
   in
   let rec sweep i j =
-    match (piece ms s i, piece mr r j) with
+    match (i, j) with
     | None, _ | _, None -> false
-    | Some (a, b), Some (c, d) ->
+    | Some i, Some j ->
+        let a, b = piece ms s i and c, d = piece mr r j in
         Z.lt (Z.max a c) (Z.min b d)
         || Z.leq a limit && Z.leq c limit
-           && if Z.leq b d then sweep (i + 1) j else sweep i (j + 1)
+           &&
+           if Z.leq b d then sweep (seek ms s i c) (Some j)
+           else sweep (Some i) (seek mr r j a)
   in
-  sweep 0 0
+  sweep (first s) (first r)
 
 let subset s r = not (intersects s (compl r))
 
@@ -962,19 +1003,34 @@ let star_dense s c =
    by its least generator (Nijenhuis, "A minimal-path algorithm for the money
    changing problem", Amer. Math. Monthly 86, 1979), by Dijkstra's algorithm.
    The least generator of a class is among [DF] and [Dg + jDp] for
-   [j < μ / gcd(μ, Dp)]. *)
+   [j < μ / gcd(μ, Dp)]. The generators are first divided by their greatest
+   common divisor [c], [A = cA'], so that the residues are those modulo
+   [μ/c]. *)
 let star_discrete s =
-  let scale a = Z.to_int (half a) and t = Z.to_int s.threshold in
-  let points = List.rev (fold_runs (fun acc a _ -> scale a :: acc) [] s.base)
+  let to_int = Delay.checked_to_int ~quantity:"delay set" in
+  let sum = Delay.checked_add ~quantity:"delay set" in
+  let points = List.rev (fold_runs (fun acc a _ -> half a :: acc) [] s.base)
   and families =
-    List.rev (fold_runs (fun acc a _ -> (t + scale a) :: acc) [] s.tail)
+    List.rev
+      (fold_runs (fun acc a _ -> Z.add s.threshold (half a) :: acc) [] s.tail)
   in
+  let c =
+    List.fold_left Z.gcd
+      (if families = [] then Z.zero else s.period)
+      (points @ families)
+  in
+  let reduce z = to_int (Z.divexact z c) in
+  let points = List.map reduce points and families = List.map reduce families in
   let mu = List.fold_left min max_int (points @ families) in
-  let dp = Z.to_int s.period in
+  let dp = reduce s.period in
   let span = mu / Z.to_int (Z.gcd (Z.of_int mu) (Z.of_int dp)) in
   let generators =
     points
-    @ List.concat_map (fun g -> List.init span (fun j -> g + (j * dp))) families
+    @ List.concat_map
+        (fun g ->
+          List.init span (fun j ->
+              sum g (to_int (Z.mul (Z.of_int j) (Z.of_int dp)))))
+        families
   in
   (* The least generator of each residue class modulo [μ]. *)
   let edges =
@@ -1002,7 +1058,7 @@ let star_discrete s =
           let dist, queue =
             List.fold_left
               (fun (dist, queue) (r, g) ->
-                let v = (u + r) mod mu and dv = du + g in
+                let v = (u + r) mod mu and dv = sum du g in
                 match IntMap.find_opt v dist with
                 | Some dv' when dv' <= dv -> (dist, queue)
                 | _ -> (IntMap.add v dv dist, Queue.add (dv, v) queue))
@@ -1020,7 +1076,7 @@ let star_discrete s =
   in
   let member x = apery.(x mod mu) <= x in
   (* [points_among ~origin lo hi] is the array of the runs of the points
-     [x - origin] for the elements [x] of [A] with [lo ≤ x ≤ hi]. *)
+     [c(x - origin)] for the elements [x] of [A'] with [lo ≤ x ≤ hi]. *)
   let points_among ~origin lo hi =
     let rec size x n =
       if x > hi then n else size (x + 1) (if member x then n + 1 else n)
@@ -1029,7 +1085,7 @@ let star_discrete s =
     let rec fill x k =
       if x > hi then out
       else if member x then (
-        let a = twice (Z.of_int (x - origin)) in
+        let a = twice (Z.mul c (Z.of_int (x - origin))) in
         out.(k) <- a;
         out.(k + 1) <- Z.succ a;
         fill (x + 1) (k + 2))
@@ -1037,9 +1093,11 @@ let star_discrete s =
     in
     fill lo 0
   in
-  make ~grid:s.grid ~threshold:(Z.of_int w) ~period:(Z.of_int mu)
+  make ~grid:s.grid
+    ~threshold:(Z.mul c (Z.of_int w))
+    ~period:(Z.mul c (Z.of_int mu))
     ~base:(points_among ~origin:0 0 w)
-    ~tail:(points_among ~origin:w (w + 1) (w + mu))
+    ~tail:(points_among ~origin:w (w + 1) (sum w mu))
 
 let repetition s =
   let s = diff s zero in
@@ -1084,7 +1142,9 @@ let plus_multiples g xs p =
     let low = half xs.(0) in
     let n =
       if Z.lt limit low then 0
-      else Z.to_int (Z.succ (Z.fdiv (Z.sub limit low) p))
+      else
+        Delay.checked_to_int ~quantity:"delay set"
+          (Z.succ (Z.fdiv (Z.sub limit low) p))
     in
     coalesce
       (merge_all

@@ -1,0 +1,6 @@
+(* Rejected: under time-upper-bound the delays add up to max_int + 1 time
+   steps, a duration beyond the supported range. *)
+
+let f () = delay 4611686018427387903; delay 1; ()
+
+let g () : unit # 0 = f ()

@@ -2636,12 +2636,79 @@ let delay_laws =
   stepped_delay_laws ~name:"natural delays" (module Grades.Delay.Nat)
   @ measured_delay_laws ~name:"rational delays" (module Grades.Delay.Rational)
 
+(* [out_of_range f] is whether [f ()] is rejected as out of range by a typing
+   error. *)
+let out_of_range f =
+  match f () with
+  | _ -> false
+  | exception Utils.Error.Error { kind = Utils.Diagnostic.Typing; message; _ }
+    ->
+      contains message "exceeds the supported range"
+
+(* The arithmetic of delays beyond the integers of the machine, and the
+   witnesses of constants whose grid is not representable. *)
+let ranges =
+  let module N = Grades.Delay.Nat in
+  let module Q = Grades.Delay.Rational in
+  let completeness = function
+    | Grades.Delay.Complete -> "complete"
+    | Grades.Delay.Partial -> "partial"
+  in
+  let huge = Rational.of_z (Z.pow (Z.of_int 10) 20) in
+  [
+    expect "natural delays: 2 + 3" string_of_int ~expected:5 (N.add 2 3);
+    check "natural delays: max_int + 1 is out of range"
+      (out_of_range (fun () -> N.add max_int 1))
+      "accepted";
+    check "natural delays: max_int + 0 is in range"
+      (N.add max_int 0 = max_int)
+      "rejected";
+    expect "natural delays: witnesses of 1 and 2" completeness
+      ~expected:Grades.Delay.Complete
+      (snd (N.witnesses ~degree:1 [ 1; 2 ]));
+    expect "natural delays: witnesses of max_int and 1" completeness
+      ~expected:Grades.Delay.Partial
+      (snd (N.witnesses ~degree:1 [ max_int; 1 ]));
+    check "natural delays: partial witnesses include a positive delay"
+      (List.exists
+         (fun d -> d > 0)
+         (fst (N.witnesses ~degree:1 [ max_int; 1 ])))
+      "none positive";
+    expect "rational delays: witnesses of 1/2 and 1/3" completeness
+      ~expected:Grades.Delay.Complete
+      (snd (Q.witnesses ~degree:2 [ Rational.make 1 2; Rational.make 1 3 ]));
+    expect "rational delays: witnesses of 10^20" completeness
+      ~expected:Grades.Delay.Partial
+      (snd (Q.witnesses ~degree:1 [ huge ]));
+    expect "rational delays: witnesses of 1/2^62 and 1/3" completeness
+      ~expected:Grades.Delay.Partial
+      (snd
+         (Q.witnesses ~degree:1
+            [ Rational.make_z Z.one (Z.shift_left Z.one 62); Rational.make 1 3 ]));
+    check "rational delays: partial witnesses include a positive delay"
+      (List.exists
+         (fun d -> Rational.sign d > 0)
+         (fst (Q.witnesses ~degree:1 [ huge ])))
+      "none positive";
+  ]
+
+(* The flow levels print [⊤] for the top alone. *)
+let flow_tops =
+  let module F = LevelGrades.FlowLevels in
+  [
+    expect "flow-levels: the top prints as ⊤" Fun.id ~expected:"⊤"
+      (F.show F.top);
+    check "flow-levels: a low level with every sink written is not ⊤"
+      (F.show (LevelGrades.Low, LevelGrades.Outputs.top) <> "⊤")
+      (F.show (LevelGrades.Low, LevelGrades.Outputs.top));
+  ]
+
 let () =
   let checks =
     delay_laws @ levels @ products @ counterexamples @ witnesses @ literals
     @ tops @ registry @ registered_laws @ fractional_laws @ inclusion_laws
     @ indexed @ mode_laws @ resource_laws @ interval_read_back @ schedule_laws
-    @ resource_construction_laws @ finite_laws
+    @ resource_construction_laws @ finite_laws @ ranges @ flow_tops
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

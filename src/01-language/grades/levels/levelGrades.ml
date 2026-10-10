@@ -131,8 +131,8 @@ module Make (D : Delay.S) = struct
                  outputs written"
                 reason)
 
-    let show (l, o) =
-      if Outputs.compare o Outputs.top = 0 then "⊤"
+    let show ((l, o) as c) =
+      if compare c top = 0 then "⊤"
       else if Outputs.compare o Outputs.bottom = 0 then LowHigh.show l
       else
         "(" ^ LowHigh.show l ^ ", "

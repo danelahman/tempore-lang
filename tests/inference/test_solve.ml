@@ -311,6 +311,7 @@ let expected_rejections =
     ("tests/default_reject_loop.tpe", [ 6 ]);
     ("tests/default_reject_type.tpe", [ 7 ]);
     ("tests/default_reject_unestablished.tpe", [ 18 ]);
+    ("tests/delay_reject_overflow.tpe", [ 4 ]);
     ("tests/error_apply_arg.tpe", [ 8 ]);
     ("tests/float_literals_reject_subtraction.tpe", [ 4 ]);
     ("tests/exhaustiveness_reject_bool.tpe", [ 3 ]);

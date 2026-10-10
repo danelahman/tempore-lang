@@ -2,6 +2,17 @@ open GradeLiteral
 
 type completeness = Complete | Partial
 
+let out_of_range quantity =
+  Utils.Error.typing "The %s exceeds the supported range" quantity
+
+(* A sum of two integers of the same sign overflows iff its sign differs. *)
+let checked_add ~quantity m n =
+  let s = m + n in
+  if m >= 0 = (n >= 0) && s >= 0 <> (m >= 0) then out_of_range quantity else s
+
+let checked_to_int ~quantity z =
+  if Z.fits_int z then Z.to_int z else out_of_range quantity
+
 module type S = sig
   type t
 
@@ -64,7 +75,7 @@ module Nat = struct
   type t = int
 
   let zero = 0
-  let add = ( + )
+  let add = checked_add ~quantity:"duration"
   let step = 1
 
   let steps n =
@@ -90,9 +101,13 @@ module Nat = struct
   let min = Int.min
   let max = Int.max
 
-  (** [0, ..., s+1], [s] the sum of [cs]. *)
+  (** [0, ..., s+1], [s] the sum of [cs], and a [Partial] sample of [0], [1],
+      [cs] and [max_int] if [s+2] is not representable. *)
   let witnesses ~degree:_ cs =
-    (List.init (List.fold_left ( + ) 0 cs + 2) Fun.id, Complete)
+    let s = List.fold_left (fun s c -> Z.add s (Z.of_int c)) Z.zero cs in
+    if Z.fits_int (Z.add s (Z.of_int 2)) then
+      (List.init (Z.to_int s + 2) Fun.id, Complete)
+    else (List.sort_uniq Int.compare (0 :: 1 :: max_int :: cs), Partial)
 
   let monus d e = Int.max 0 (d - e)
   let to_rational = Rational.of_int
@@ -115,31 +130,37 @@ end
    witnesses depending on the constants alone is complete for every degree:
    [1 + j ≤ 1 ⊔ k·j] fails exactly on [(0, 1/(k-1))]. *)
 
-let rec gcd m n = if n = 0 then m else gcd n (m mod n)
-let lcm m n = m / gcd m n * n
-
 (** [grid ~degree cs] is the sorted witnesses of the delays [cs] and a rigid
-    occurring at most [degree] times on either side. *)
+    occurring at most [degree] times on either side, [Complete], and a [Partial]
+    sample of [0], [cs], [s] and [s+1] if the number of points of the grid is
+    not representable. *)
 let grid ~degree cs =
+  let one = Rational.of_int 1 in
   let s = List.fold_left Rational.add Rational.zero cs in
-  let d = List.fold_left (fun d c -> lcm d (Rational.denominator c)) 1 cs in
-  let steps =
-    Option.value ~default:0
-      (Rational.to_int (Rational.mul s (Rational.of_int d)))
-  in
-  let g =
-    List.sort_uniq Rational.compare
-      (List.concat
-         (List.init (Int.max 1 degree) (fun m ->
-              List.init (steps + 1) (fun x -> Rational.make x (d * (m + 1))))))
-  in
-  let rec midpoints = function
-    | a :: (b :: _ as rest) ->
-        Rational.div (Rational.add a b) (Rational.of_int 2) :: midpoints rest
-    | [ _ ] | [] -> []
-  in
-  List.sort_uniq Rational.compare
-    ((Rational.add s (Rational.of_int 1) :: g) @ midpoints g)
+  let d = List.fold_left (fun d c -> Z.lcm d (Rational.den c)) Z.one cs in
+  let k = Int.max 1 degree in
+  let steps = Rational.num (Rational.mul s (Rational.of_z d)) in
+  if not (Z.fits_int (Z.mul (Z.of_int k) (Z.succ steps))) then
+    ( List.sort_uniq Rational.compare
+        (Rational.zero :: s :: Rational.add s one :: cs),
+      Partial )
+  else
+    let g =
+      List.sort_uniq Rational.compare
+        (List.concat
+           (List.init k (fun m ->
+                let dm = Z.mul d (Z.of_int (m + 1)) in
+                List.init
+                  (Z.to_int steps + 1)
+                  (fun x -> Rational.make_z (Z.of_int x) dm))))
+    in
+    let rec midpoints = function
+      | a :: (b :: _ as rest) ->
+          Rational.div (Rational.add a b) (Rational.of_int 2) :: midpoints rest
+      | [ _ ] | [] -> []
+    in
+    ( List.sort_uniq Rational.compare ((Rational.add s one :: g) @ midpoints g),
+      Complete )
 
 module Rational = struct
   type t = Rational.t
@@ -163,7 +184,7 @@ module Rational = struct
   let leq p q = Rational.compare p q <= 0
   let min p q = if Rational.compare p q <= 0 then p else q
   let max p q = if Rational.compare p q >= 0 then p else q
-  let witnesses ~degree cs = (grid ~degree cs, Complete)
+  let witnesses = grid
 
   let monus p q =
     if Rational.compare p q <= 0 then Rational.zero

@@ -406,7 +406,9 @@ let cases =
                   ]))));
   ]
 
-(* The repetition of a set with large constants, and one of many points. *)
+(* The repetition of a set with large constants, of progressions of large
+   generators, and one of many points; a repetition beyond the integers of the
+   machine is rejected. *)
 let timing =
   let quickly name f =
     let start = Sys.time () in
@@ -423,6 +425,36 @@ let timing =
         mem (q 100105 10) s
         && (not (mem (q 105 10) s))
         && subset (span ~lo_closed:false (qi 10010) None) s);
+    quickly "(99999999999.5)* is the progression of its generator" (fun () ->
+        let p = q 199999999999 2 in
+        let s = star (point p) in
+        show s = "(99999999999.5)*"
+        && mem (Rational.mul (qi 3) p) s
+        && not (mem (qi 99999999999) s));
+    quickly "(10^20/3)* is the progression of its generator" (fun () ->
+        let p = Rational.make_z (Z.pow (Z.of_int 10) 20) (Z.of_int 3) in
+        let s = star (point p) in
+        show s = "(100000000000000000000/3)*"
+        && mem (Rational.add p p) s
+        && (not (mem (qi 1) s))
+        && not (subset (point (qi 1)) s));
+    quickly "{2·10^11, 3·10^11}* has the Frobenius number 10^11" (fun () ->
+        let u = 100000000000 in
+        let s = star (union (point (qi (2 * u))) (point (qi (3 * u)))) in
+        (not (mem (qi u) s))
+        && List.for_all (fun n -> mem (qi (n * u)) s) [ 0; 2; 3; 4; 5; 6 ]
+        && not (mem (qi ((5 * u) + 1)) s));
+    check "{10^17/3, 10^17/2 + 1/2}* exceeds the supported range"
+      (match
+         star
+           (union
+              (point (Rational.make 100000000000000000 3))
+              (point (Rational.make 100000000000000001 2)))
+       with
+      | _ -> false
+      | exception Utils.Error.Error { kind = Utils.Diagnostic.Typing; _ } ->
+          true)
+      "computed";
     quickly "{7, 11}* has the Frobenius number 59" (fun () ->
         let s = star (union (point (qi 7)) (point (qi 11))) in
         (not (mem (qi 59) s))

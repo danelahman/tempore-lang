@@ -15,6 +15,24 @@ type completeness =
           value *)
   | Partial  (** a condition may hold at every witness and fail elsewhere *)
 
+val out_of_range : string -> 'a
+(** [out_of_range quantity] rejects a [quantity], e.g. ["duration"], that
+    exceeds the integers of the machine.
+
+    @raise Utils.Error.Error a typing error. *)
+
+val checked_add : quantity:string -> int -> int -> int
+(** [checked_add ~quantity m n] is [m + n].
+
+    @raise Utils.Error.Error
+      by {!out_of_range} if the sum is not representable as an [int]. *)
+
+val checked_to_int : quantity:string -> Z.t -> int
+(** [checked_to_int ~quantity z] is [z] as an [int].
+
+    @raise Utils.Error.Error
+      by {!out_of_range} if [z] is not representable as an [int]. *)
+
 (** Monoids of delays, with their literals.
 
     Laws, [=] being {!equal}:
@@ -170,10 +188,12 @@ end
 module Nat : STEPPED with type t = int
 (** The natural numbers of time steps, written as integers. A fraction is
     rejected, as is an integer beyond [max_int]. The monus is the truncated
-    subtraction of integers.
+    subtraction of integers, and a sum beyond [max_int] is rejected by
+    {!out_of_range}.
 
     The witnesses of the constants summing to [s] are [0], ..., [s+1], whatever
-    the degree, and are complete. *)
+    the degree, and are complete; if [s+2] exceeds [max_int], they are the
+    partial sample [0], [1], the constants and [max_int]. *)
 
 module Rational : MEASURED with type t = Rational.t
 (** The non-negative rationals, written as integers and fractions: decimals such
@@ -184,4 +204,5 @@ module Rational : MEASURED with type t = Rational.t
     Let [s] be the sum of the constants, [D] the least common multiple of their
     denominators, and [K ≥ 1] the degree. The witnesses are the grid
     [G = { x/(D·m) : x ∈ 0..s·D, m ∈ 1..K }], the midpoints of its consecutive
-    elements and [s+1], and are complete. *)
+    elements and [s+1], and are complete; if the number of points of [G] exceeds
+    [max_int], they are the partial sample [0], the constants, [s] and [s+1]. *)

@@ -1,12 +1,15 @@
 type bound = Minus_inf | Fin of int | Plus_inf
 
+(** [sum d d'] is [d + d'], a net change beyond the integers being rejected. *)
+let sum = Delay.checked_add ~quantity:"net change"
+
 (** [add b b'] is the sum of [b] and [b'], an infinite summand absorbing the
     other; [-∞] and [∞] are never added together. *)
 let add b b' =
   match (b, b') with
   | Minus_inf, _ | _, Minus_inf -> Minus_inf
   | Plus_inf, _ | _, Plus_inf -> Plus_inf
-  | Fin d, Fin d' -> Fin (d + d')
+  | Fin d, Fin d' -> Fin (sum d d')
 
 let rank = function Minus_inf -> 0 | Fin _ -> 1 | Plus_inf -> 2
 
@@ -254,10 +257,10 @@ module Make (D : Delay.S) = struct
       let s =
         List.fold_left
           (fun s ((low, t), (high, h)) ->
-            s + magnitude low + magnitude t + magnitude high + magnitude h)
+            List.fold_left sum s (List.map magnitude [ low; t; high; h ]))
           0 cs
       in
-      let grid = List.init ((2 * s) + 3) (fun i -> i - s - 1) in
+      let grid = List.init (sum (sum s s) 3) (fun i -> i - s - 1) in
       let range low high =
         ((low, min_bound (Fin 0) low), (high, max_bound (Fin 0) high))
       in

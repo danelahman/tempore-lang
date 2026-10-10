@@ -269,15 +269,17 @@ module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
        of the cell of the delay witnesses next to [q], where both sides are
        affine. *)
     let witnesses ~degree bounds cs =
-      let lower, completeness =
+      let lower, lower_completeness =
         LowerBound.witnesses ~degree bounds (List.map (fun c -> c.lo) cs)
       in
-      let upper, _ =
+      let upper, upper_completeness =
         UpperBound.witnesses ~degree bounds (List.map (fun c -> c.hi) cs)
       in
       ( List.map (fun n -> closed n Ext.Inf) lower
         @ List.map (fun m -> closed D.zero m) upper,
-        completeness )
+        match (lower_completeness, upper_completeness) with
+        | Grade.Complete, Grade.Complete -> Grade.Complete
+        | Grade.Partial, _ | _, Grade.Partial -> Grade.Partial )
   end
 end
 

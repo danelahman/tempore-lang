@@ -18,12 +18,15 @@
 
   (* [grade ~loc name of_lit lit] is the grade [of_lit] reads the literal [lit]
      as. A rejection, the usual symptom of running a file under the wrong
-     grades, is a syntax error at [loc] naming the grade [name]. *)
+     grades, is a syntax error at [loc] naming the grade [name]; an error
+     raised without a location while reading it is pinned to [loc]. *)
   let grade ~loc name of_lit lit =
-    try of_lit lit
-    with Grade.Invalid_literal (lit, reason) ->
+    try of_lit lit with
+    | Grade.Invalid_literal (lit, reason) ->
       Error.syntax ~loc "in the '%s' grading monoid, %s%s" name reason
         (suggestion (Grades.GradeRegistry.accepting lit))
+    | Error.Error ({ Diagnostic.primary = None; _ } as d) ->
+      raise (Error.Error { d with Diagnostic.primary = Some loc })
 
   (* [delay ~loc q] is [q] if the delays of the grade system read it;
      otherwise a syntax error at [loc] naming the grades whose delays do. *)

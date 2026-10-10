@@ -15,7 +15,7 @@
 (test
  (name test_grades)
  (modules test_grades)
- (libraries utils language grades lawChecks parser sugaredAst))
+ (libraries utils language grades lawChecks parser sugaredAst zarith))
 
 (test
  (name test_regularTraces)
@@ -30,7 +30,7 @@
 (test
  (name test_delaySet)
  (modules test_delaySet)
- (libraries grades zarith))
+ (libraries utils grades zarith))
 
 (test
  (name test_delaySetReference)

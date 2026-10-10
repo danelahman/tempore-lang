@@ -274,7 +274,8 @@ struct
     | (Eps | Letters _ | Ticks _ | Star _ | Compl _), None -> 0
     | Concat (r, s), None -> (
         match run r with
-        | Some n when s.lead < unbounded -> n + s.lead
+        | Some n when s.lead < unbounded ->
+            Delay.checked_add ~quantity:"duration" n s.lead
         | Some _ -> unbounded
         | None -> r.lead)
     | Union rs, None -> List.fold_left (fun k r -> min k r.lead) unbounded rs
@@ -342,7 +343,8 @@ struct
     | Star _, Concat (s1, _) when equal_form r s1 -> s
     | _ -> (
         match (run r, split_run s) with
-        | Some m, (n, s') when n > 0 -> concat (ticks (m + n)) s'
+        | Some m, (n, s') when n > 0 ->
+            concat (ticks (Delay.checked_add ~quantity:"duration" m n)) s'
         | _ -> make (Concat (r, s)))
 
   (** [flatten split rs] is the operands of the n-ary operation of the operands

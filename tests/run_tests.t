@@ -17,6 +17,7 @@
   >     literals_reject_rational_negative.tpe) ../tempore --grades time-upper-bound-rational $f;;
   >     literals_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
   >     delay_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
+  >     delay_reject_overflow.tpe) ../tempore --grades time-upper-bound $f;;
   >     default_reject_unestablished.tpe) ../tempore --grades time-upper-bound $f;;
   >     time_upper.tpe) ../tempore --grades time-upper-bound $f;;
   >     comp_type_annotation_upper*.tpe) ../tempore --grades time-upper-bound $f;;
@@ -999,6 +1000,13 @@
   3 | run delay -0.5
                 ^^^^
   Syntax error: durations must be non-negative
+  ======================================================================
+  delay_reject_overflow.tpe
+  ======================================================================
+  File "delay_reject_overflow.tpe", line 4, characters 0-49:
+  4 | let f () = delay 4611686018427387903; delay 1; ()
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: The duration exceeds the supported range
   ======================================================================
   delay_reject_variable.tpe
   ======================================================================
