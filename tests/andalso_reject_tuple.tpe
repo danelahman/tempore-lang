@@ -1,0 +1,4 @@
+(* Rejected: the boolean operators are curried functions, not functions of a
+   pair. *)
+
+run (&&) (true, false)

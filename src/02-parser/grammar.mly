@@ -136,6 +136,13 @@
     | Some reason -> Error.syntax ~loc "%s" reason
     | None -> Grade.Delays (lower, upper)
 
+  (* The name of the operator [op] in parentheses, as in OCaml separated from
+     them by spaces if it begins with an asterisk, which would otherwise open a
+     comment. *)
+  let operator_name op =
+    if String.starts_with ~prefix:"*" op then "( " ^ op ^ " )"
+    else "(" ^ op ^ ")"
+
   (* The literals written as lowercase names. *)
   let named_lit ~loc = function
     | "top" -> Grade.Top
@@ -176,10 +183,21 @@
 %token TOP INFINITY NEQ
 %token EOF
 
+(* Precedences, by increasing strength. As in OCaml, a [let], [match],
+   [function], [fun] or [handler] extends as far to the right as possible, and
+   so does a nested [match], [function] or [handler] over the cases [| ...]
+   that follow it ([below_BAR] below [BAR]). A [box] or [unbox] without a
+   continuation, a [handle] and a [continue] end before [;], as an
+   application does; a [box] or [unbox] followed by [as] has a continuation
+   ([below_AS] below [AS]). *)
 %nonassoc ARROW IN
+%nonassoc below_BAR
+%nonassoc BAR
 %nonassoc HASH
 %right SEMI
 %nonassoc ELSE
+%nonassoc below_AS
+%nonassoc AS
 %right OR BARBAR
 %right AMPER AMPERAMPER
 %left  INFIXOP0 EQUAL
@@ -216,7 +234,7 @@ plain_command:
     { OpSig (op, ty1, ty2, eps, bounds) }
   | DEFAULT op = UNAME p = simple_pattern EQUAL t = term
     { OpDefault (op, (p, t)) }
-  | LET x = mark_position(ident) t = lambdas0(EQUAL)
+  | LET x = mark_position(ident) t = lambdas0(EQUAL, ty)
     { TopLet (x, t) }
   | LET REC def = let_rec_def
     { let (f, t) = def in TopLetRec (f, t) }
@@ -231,11 +249,11 @@ payload:
 
 term: mark_position(plain_term) { $1 }
 plain_term:
-  | MATCH t = term WITH cases = cases0(case) (* END *)
+  | MATCH t = term WITH cases = cases0(case)
     { Match (t, cases) }
-  | FUNCTION cases = cases(case) (* END *)
+  | FUNCTION cases = cases(case)
     { Function cases }
-  | FUN t = lambdas1(ARROW)
+  | FUN t = lambdas1(ARROW, prod_ty)
     { t.it }
   | LET def = let_def IN t2 = term
     { let (p, t1) = def in Let (p, t1, t2) }
@@ -255,21 +273,21 @@ plain_term:
          or '0.25'" }
   | BOX rho = rho_grade e = term AS p = pattern IN c = term
     { Box (rho, e, (p, c)) }
-  | BOX rho = rho_grade e = term
+  | BOX rho = rho_grade e = term %prec below_AS
     { GenBox (rho, e) }
   | UNBOX e = term AS p = pattern IN c = term
     { Unbox (e, (p, c)) }
-  | UNBOX e = term
+  | UNBOX e = term %prec below_AS
     { GenUnbox (e) }
   | PERFORM op = mark_position(UNAME) e = comma_term
     { Perform (op, e) }
-  | HANDLER BAR? ret_case = case
+  | HANDLER BAR? ret_case = case %prec below_BAR
     { Handler (ret_case, []) }
   | HANDLER BAR? ret_case = case op_cases = bar_cases0(op_case)
     { Handler (ret_case, op_cases) }
-  | HANDLE c = term WITH h = term
+  | HANDLE c = term WITH h = term %prec below_AS
     { Handle (c, h) }
-  | CONTINUE k = term WITH e = term 
+  | CONTINUE k = term WITH e = term %prec below_AS
     { Continue (k, e) }
   | t = plain_comma_term
     { t }
@@ -294,9 +312,13 @@ plain_binop_term:
 
 uminus_term: mark_position(plain_uminus_term) { $1 }
 plain_uminus_term:
-  | MINUS uminus_term
-    { Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
-        "Natural numbers have no negation" }
+  (* As in OCaml, the negation of a float literal is a float literal. *)
+  | MINUS t = uminus_term
+    { match t.it with
+      | Const (Language.Const.Float f) -> Const (Language.Const.of_float (-. f))
+      | _ ->
+          Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+            "Natural numbers have no negation; floats are negated with '-.'" }
   | MINUSDOT t = uminus_term
     { let op_loc = Location.of_lexing $startpos($1) $endpos($1) in
       Apply ({it= Var "(~-.)"; at= op_loc}, t) }
@@ -370,22 +392,28 @@ case:
   | p = pattern ARROW t = term
     { (p, t) }
 
+(* An operation case [Op p k -> t], its argument and continuation patterns
+   simple, as the arguments of a constructor are. *)
 op_case:
-  | op = UNAME p = pattern k = pattern ARROW t = term
+  | op = UNAME p = simple_pattern k = simple_pattern ARROW t = term
     { (op, ({it= PTuple [p; k]; at= Location.of_lexing $startpos $endpos}, t)) }
 
-lambdas0(SEP):
+(* Parameters, an optional annotation of the result by a type of [TY], and the
+   body after [SEP]. After [fun] the annotation is a type without an arrow at
+   its top, as the arrow of [fun] would otherwise be read as one of the type;
+   an arrow type is parenthesised there. *)
+lambdas0(SEP, TY):
   | SEP t = term
     { t }
-  | p = simple_pattern t = lambdas0(SEP)
+  | p = simple_pattern t = lambdas0(SEP, TY)
     { {it= Lambda (p, t); at= Location.of_lexing $startpos $endpos} }
-  | COLON ty = ty SEP t = term
+  | COLON ty = TY SEP t = term
     { {it= Annotated (t, ty); at= Location.of_lexing $startpos $endpos} }
-  | COLON ty = ty HASH eps = eps_grade SEP t = term
+  | COLON ty = TY HASH eps = eps_grade SEP t = term
     { {it= AnnotatedComp (t, ty, eps); at= Location.of_lexing $startpos $endpos} }
 
-lambdas1(SEP):
-  | p = simple_pattern t = lambdas0(SEP)
+lambdas1(SEP, TY):
+  | p = simple_pattern t = lambdas0(SEP, TY)
     { {it= Lambda (p, t); at= Location.of_lexing $startpos $endpos} }
 
 pure_lambdas(SEP):
@@ -403,7 +431,7 @@ let_def:
     { (p, t) }
   | p = pattern COLON ty= ty EQUAL t = term
     { (p, {it= Annotated(t, ty); at= Location.of_lexing $startpos $endpos}) }
-  | x = mark_position(ident) t = lambdas1(EQUAL)
+  | x = mark_position(ident) t = lambdas1(EQUAL, ty)
     { ({it= PVar x.it; at= x.at}, t) }
 
 let_rec_def:
@@ -457,6 +485,8 @@ plain_simple_pattern:
     { PNonbinding }
   | cst = const
     { PConst cst }
+  | MINUS f = FLOAT
+    { PConst (Language.Const.of_float (-. float_of_string f)) }
   | LBRACK ts = separated_list(SEMI, pattern) RBRACK
     {
       let nil_at = Location.of_lexing $endpos $endpos in
@@ -493,7 +523,7 @@ ident:
 
 %inline binop:
   | op = binop_symbol
-    { "(" ^ op ^ ")" }
+    { operator_name op }
 
 %inline binop_symbol:
   | OR
@@ -543,17 +573,31 @@ ident:
   | op = PREFIXOP
     { "(" ^ op ^ ")" }
 
+(* Cases separated by [|], the first optionally preceded by one. A nested
+   [match], [function] or [handler] takes the cases that follow it. *)
 cases0(case):
-  | BAR? cs = separated_list(BAR, case)
+  | %prec below_BAR
+    { [] }
+  | cs = cases(case)
     { cs }
 
 bar_cases0(case):
-  | BAR cs = separated_list(BAR, case)
+  | BAR
+    { [] }
+  | BAR cs = case_list(case)
     { cs }
 
 cases(case):
-  | BAR? cs = separated_nonempty_list(BAR, case)
+  | cs = case_list(case)
     { cs }
+  | BAR cs = case_list(case)
+    { cs }
+
+case_list(case):
+  | c = case %prec below_BAR
+    { [ c ] }
+  | c = case BAR cs = case_list(case)
+    { c :: cs }
 
 mark_position(X):
   x = X
@@ -675,11 +719,10 @@ eps_grade:
 (* A non-negative duration: an integer or a fraction. *)
 duration:
   | n = INT { Rational.of_z n }
-  | q = fraction
-    { if Rational.sign q < 0 then
-        Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
-          "durations must be non-negative"
-      else q }
+  | q = fraction { q }
+  | MINUS INT | MINUS fraction
+    { Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+        "durations must be non-negative" }
 
 (* A fraction, exact: a decimal, or the quotient of two integers. *)
 fraction:
@@ -701,6 +744,7 @@ grade_lit:
   | q = fraction { Grade.rational_lit q }
   | MINUS n = INT
     { Grade.Int (- small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
+  | MINUS q = fraction { Grade.rational_lit (Rational.neg q) }
   | UNDERSCORE { Grade.Name "_" }
   | name = UNAME { Grade.Name name }
   | TOP { Grade.Top }

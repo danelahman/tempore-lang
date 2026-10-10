@@ -1,0 +1,3 @@
+(* The carets of an excerpt count characters, not bytes. *)
+
+run ("∞∞∞", qq)

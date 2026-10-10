@@ -6,7 +6,7 @@ module Sugared = SugaredAst
 module Untyped = Language.Ast
 module Context = Language.Context
 module Const = Language.Const
-module StringMap = Map.Make (String)
+module StringMap = Utils.StringMap
 module StringSet = Set.Make (String)
 module References = References
 
@@ -103,7 +103,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let rec ty_annotation_names names { Sugared.it = ty; _ } =
     match ty with
-    | Sugared.TyConst _ -> names
     | Sugared.TyParam a -> { names with tys = StringSet.add a names.tys }
     | Sugared.TyApply (_, tys) | Sugared.TyTuple tys ->
         List.fold_left ty_annotation_names names tys
@@ -274,7 +273,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Sugared.TyTuple tys ->
         let tys' = List.map (desugar_ty state) tys in
         Untyped.TyTuple tys'
-    | Sugared.TyConst c -> Untyped.TyConst c
     | Sugared.TyBox (rho, ty) ->
         let rho' = rho_grade state rho in
         let ty' = desugar_ty state ty in
@@ -286,25 +284,26 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let eps2' = eps_grade state eps2 in
         Untyped.TyHandler (CompTy (ty1', eps1'), CompTy (ty2', eps2'))
 
-  let rec desugar_pattern state vars { Sugared.it = pat; at = loc } =
-    let vars, pat' = desugar_plain_pattern ~loc state vars pat in
+  (* A pattern, with the variables it binds. *)
+  let rec desugar_pattern state { Sugared.it = pat; at = loc } =
+    let vars, pat' = desugar_plain_pattern ~loc state pat in
     (vars, Untyped.located loc pat')
 
-  and desugar_plain_pattern ~loc state vars = function
+  and desugar_plain_pattern ~loc state = function
     | Sugared.PVar x ->
         let x' = Untyped.Variable.fresh x in
         (StringMap.singleton x x', Untyped.PVar x')
     | Sugared.PAnnotated (pat, ty) ->
-        let vars, pat' = desugar_pattern state vars pat
+        let vars, pat' = desugar_pattern state pat
         and ty' = desugar_ty state ty in
         (vars, Untyped.PAnnotated (pat', ty'))
     | Sugared.PAs (pat, { it = x; _ }) ->
-        let vars, pat' = desugar_pattern state vars pat in
+        let vars, pat' = desugar_pattern state pat in
         let x' = Untyped.Variable.fresh x in
         (add_unique ~loc "Variable" x x' vars, Untyped.PAs (pat', x'))
     | Sugared.PTuple ps ->
         let aux p (vars, ps') =
-          let vars', p' = desugar_pattern state vars p in
+          let vars', p' = desugar_pattern state p in
           (StringMap.fold (add_unique ~loc "Variable") vars' vars, p' :: ps')
         in
         let vars, ps' = List.fold_right aux ps (StringMap.empty, []) in
@@ -314,11 +313,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
         (StringMap.empty, Untyped.PVariant (lbl', None))
     | Sugared.PVariant (lbl, Some pat) ->
         let lbl' = lookup_label ~loc state lbl.it in
-        let vars, pat' = desugar_pattern state vars pat in
+        let vars, pat' = desugar_pattern state pat in
         (vars, Untyped.PVariant (lbl', Some pat'))
     | Sugared.PConst c -> (StringMap.empty, Untyped.PConst c)
     | Sugared.PSucc (pat, k) ->
-        let vars, pat' = desugar_pattern state vars pat in
+        let vars, pat' = desugar_pattern state pat in
         (vars, Untyped.PSucc (pat', k))
     | Sugared.PNonbinding -> (StringMap.empty, Untyped.PNonbinding)
 
@@ -408,28 +407,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
       Untyped.Match (e, [ (true_p, c1); (false_p, c2) ])
     in
     function
-    | Sugared.Apply
-        ({ it = Sugared.Var "(&&)"; _ }, { it = Sugared.Tuple [ t1; t2 ]; _ })
-      ->
-        let binds1, e1 = desugar_expression state t1 in
-        let c1 = desugar_computation state t2 in
-        let c2 =
-          Untyped.located loc
-            (Untyped.Return
-               (Untyped.located loc (Untyped.Const (Const.Boolean false))))
-        in
-        (binds1, if_then_else e1 c1 c2)
-    | Sugared.Apply
-        ({ it = Sugared.Var "(||)"; _ }, { it = Sugared.Tuple [ t1; t2 ]; _ })
-      ->
-        let binds1, e1 = desugar_expression state t1 in
-        let c1 =
-          Untyped.located loc
-            (Untyped.Return
-               (Untyped.located loc (Untyped.Const (Const.Boolean true))))
-        in
-        let c2 = desugar_computation state t2 in
-        (binds1, if_then_else e1 c1 c2)
     | Sugared.Apply (t1, t2) ->
         let binds1, e1 = desugar_expression state t1 in
         let binds2, e2 = desugar_expression state t2 in
@@ -508,7 +485,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Sugared.Continue (k, e) ->
         let binds, k' = desugar_expression state k in
         let binds', e' = desugar_expression state e in
-        let var = Untyped.Variable.fresh_synthetic "unbox_var" in
+        let var = Untyped.Variable.fresh_synthetic "cont_var" in
         ( binds @ binds',
           Untyped.Unbox
             ( k',
@@ -536,8 +513,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
                  thunk_ty ))
         in
         ([], Untyped.Apply (thunk, Untyped.located loc (Untyped.Tuple [])))
-    (* The remaining cases are expressions, which we list explicitly to catch any
-     future changeSugared. *)
+    (* The remaining cases are expressions, listed explicitly so that the match
+       stays exhaustive over the constructors of the sugared syntax. *)
     | ( Sugared.Var _ | Sugared.Const _ | Sugared.Annotated _ | Sugared.Tuple _
       | Sugared.Variant _ | Sugared.Lambda _ | Sugared.PureLambda _
       | Sugared.Function _ | Sugared.Handler _ ) as term ->
@@ -545,7 +522,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         (binds, Untyped.Return expr)
 
   and desugar_abstraction state (pat, term) =
-    let vars, pat' = desugar_pattern state StringMap.empty pat in
+    let vars, pat' = desugar_pattern state pat in
     let state' = add_fresh_variables state vars in
     let comp = desugar_computation state' term in
     (pat', comp)
@@ -664,13 +641,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
           in
           (state, Untyped.OpDefault (operation, desugar_abstraction scoped abs))
       | Sugared.TopLet ({ it = x; _ }, term) ->
-          let x' = Untyped.Variable.fresh x in
-          let state' = add_fresh_variables state (StringMap.singleton x x') in
           let scoped =
-            in_definition state'
-              (term_annotation_names no_annotation_names term)
+            in_definition state (term_annotation_names no_annotation_names term)
           in
           let expr = desugar_pure_expression scoped term in
+          let x' = Untyped.Variable.fresh x in
+          let state' = add_fresh_variables state (StringMap.singleton x x') in
           (state', Untyped.TopLet (x', expr))
       | Sugared.TopDo term ->
           let scoped =

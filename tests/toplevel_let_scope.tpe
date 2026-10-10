@@ -1,0 +1,9 @@
+(* A top-level definition is in scope after it, not in its own body; a
+   recursive one is also in scope in its own body. *)
+
+let x = 1
+let x = (x, 2)
+run match x with (a, b) -> a + b
+
+let rec count n = match n with 0 -> 0 | m + 1 -> count m + 1
+run count 3

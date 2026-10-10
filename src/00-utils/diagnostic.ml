@@ -51,9 +51,21 @@ let segments text =
   in
   go [] false (String.split_on_char '`' text)
 
+(* The number of characters of the UTF-8 encoded [text] in the bytes from [from]
+   to [until], a byte that decodes to no character counted as one. *)
+let characters text from until =
+  let rec go i count =
+    if i >= until then count
+    else
+      let length = Uchar.utf_decode_length (String.get_utf_8_uchar text i) in
+      go (i + length) (count + 1)
+  in
+  go from 0
+
 (* The span's first line with carets under it, from the start of the span to
    its end or to the end of the line, whichever comes first. A multi-line span
-   is marked on its first line only, as the compiler does it. *)
+   is marked on its first line only, as the compiler does it. Columns are
+   counted in characters, so that the carets align under UTF-8 text. *)
 let print_excerpt ~source (loc : Location.t) ppf =
   match source loc.filename with
   | None -> ()
@@ -68,11 +80,12 @@ let print_excerpt ~source (loc : Location.t) ppf =
               min (loc.stop.column - 1) width
             else width
           in
-          let carets = max 1 (until - from) in
+          let indent = characters line 0 from in
+          let carets = max 1 (characters line from until) in
           let number = string_of_int loc.start.line in
           Format.fprintf ppf "%s | %s@\n%s   %s%s@\n" number line
             (String.make (String.length number) ' ')
-            (String.make from ' ') (String.make carets '^'))
+            (String.make indent ' ') (String.make carets '^'))
 
 let print_located ~source ~indent loc text ppf =
   (* Location, excerpt and text are indented by [indent] and by nothing else,

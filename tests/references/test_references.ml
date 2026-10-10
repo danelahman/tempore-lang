@@ -1,7 +1,8 @@
 (* Test of the links of the names of a program to their definitions, in the
    program and in the standard library: local variables, parameters, top-level
-   definitions, constructors, types in annotations, a performed operation and
-   functions and operators of the standard library. Silent on success. *)
+   definitions, constructors, types in annotations, a performed operation,
+   functions and operators of the standard library, and a top-level definition
+   whose body refers to the definition it shadows. Silent on success. *)
 
 module Location = Utils.Location
 module References = Desugarer.References
@@ -25,6 +26,8 @@ run
   let c = Circle 2 in
   perform Observe c;
   total [c; Square (length [1; 2])]
+
+let area = area (Circle 1)
 |}
 
 let parse ~filename source =
@@ -87,6 +90,8 @@ let expected =
     "c 15:10 -> c 13:7 (value)";
     "Square 15:13 -> Square 1:30 (constructor)";
     "length 15:21 -> length stdlib.tpe (value)";
+    "area 17:12 -> area 5:5 (value)";
+    "Circle 17:18 -> Circle 1:14 (constructor)";
   ]
 
 let () =

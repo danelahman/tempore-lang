@@ -1,0 +1,3 @@
+(* Rejected: identifiers are ASCII; the error marks the whole character. *)
+
+let café = 1

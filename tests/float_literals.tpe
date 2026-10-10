@@ -1,0 +1,12 @@
+(* Float literals carry no sign: a minus sign before one is subtraction or the
+   negation of the literal, in terms and in patterns. *)
+
+let x = 2.0
+run x -. 1.0
+run x-.1.0
+run -1.5
+run -(2.5)
+run x -. -1.0
+run 1.0e-3
+run -. x
+run match -1.5 with -1.5 -> 1 | _ -> 0

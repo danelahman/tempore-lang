@@ -7,39 +7,9 @@
    tokenized pieces, which would break a comment or string that an error
    starts inside. *)
 
-let keywords =
-  [
-    "let";
-    "in";
-    "fun";
-    "function";
-    "rec";
-    "match";
-    "with";
-    "as";
-    "if";
-    "then";
-    "else";
-    "true";
-    "false";
-    "of";
-    "type";
-    "noneternal";
-    "operation";
-    "default";
-    "run";
-    "return";
-    "perform";
-    "handle";
-    "handler";
-    "continue";
-    "box";
-    "unbox";
-    "delay";
-    "and";
-    "within";
-  ]
-
+(* The keywords of the lexer, and [return], a keyword of the core language the
+   interpreter prints. *)
+let keywords = "return" :: List.map fst Parser.Lexer.keywords
 let is_lower c = c >= 'a' && c <= 'z'
 let is_upper c = c >= 'A' && c <= 'Z'
 let is_digit c = c >= '0' && c <= '9'
@@ -109,14 +79,7 @@ let tokens s =
   while !i < n do
     let c = s.[!i] in
     let start = !i in
-    if
-      c = '('
-      && !i + 1 < n
-      && s.[!i + 1] = '*'
-      (* Don't treat "(*)" as a comment opener — it's the multiplication
-         operator used as a value, the same convention as OCaml's lexer. *)
-      && (!i + 2 >= n || s.[!i + 2] <> ')')
-    then begin
+    if c = '(' && !i + 1 < n && s.[!i + 1] = '*' then begin
       (* OCaml-style nested comment. Comments are trivia and do not reset
          the surrounding-token context. *)
       i := !i + 2;

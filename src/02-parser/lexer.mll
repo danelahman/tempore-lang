@@ -2,9 +2,8 @@
   open Token
   open Utils
 
-  module StringMap = Map.Make (String)
-
-  let reserved = StringMap.of_seq @@ List.to_seq [
+  (** The keywords, each with its token. *)
+  let keywords = [
     ("and", AND);
     ("as", AS);
     ("asr", ASR);
@@ -45,6 +44,8 @@
     ("continue", CONTINUE);
   ]
 
+  let reserved = StringMap.of_seq (List.to_seq keywords)
+
   let escaped_characters = [
     ("\"", "\"");
     ("\\", "\\");
@@ -73,11 +74,17 @@ let xxxint =
     | ("0b" | "0B") ['0' '1'] ['0' '1' '_']*)
 
 let float =
-  '-'? ['0'-'9'] ['0'-'9' '_']*
+  ['0'-'9'] ['0'-'9' '_']*
   (('.' ['0'-'9' '_']*) (['e' 'E'] ['+' '-']? ['0'-'9'] ['0'-'9' '_']*)? |
    ('.' ['0'-'9' '_']*)? (['e' 'E'] ['+' '-']? ['0'-'9'] ['0'-'9' '_']*))
 
-let operatorchar = ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '.' '<' '=' '>' '?' '@' '^' '|' '~']
+let operatorchar = ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
+
+(* A multi-byte UTF-8 encoded character. *)
+let utf8cont = ['\x80'-'\xBF']
+let utf8char = ( ['\xC2'-'\xDF'] utf8cont
+               | ['\xE0'-'\xEF'] utf8cont utf8cont
+               | ['\xF0'-'\xF4'] utf8cont utf8cont utf8cont )
 
 let prefixop = ['~' '?' '!']                  operatorchar*
 let infixop0 = ['=' '<' '>' '|' '&' '$']      operatorchar*
@@ -92,7 +99,7 @@ rule token = parse
   | "(*"                { comment token 0 lexbuf }
   | int | xxxint        { INT (Z.of_string (Lexing.lexeme lexbuf)) }
   | float               { FLOAT (Lexing.lexeme lexbuf) }
-  | '"'                 { STRING (string "" lexbuf) }
+  | '"'                 { STRING (string (Buffer.create 16) lexbuf) }
   | lname               { let s = Lexing.lexeme lexbuf in
                             match StringMap.find_opt s reserved with
                               | Some t -> t
@@ -136,6 +143,8 @@ rule token = parse
   | infixop4            { INFIXOP4(Lexing.lexeme lexbuf) }
   | infixop3            { INFIXOP3(Lexing.lexeme lexbuf) }
   | eof                 { EOF }
+  | utf8char | _        { Error.syntax ~loc:(Location.of_lexbuf lexbuf)
+                            "Unexpected character '%s'" (Lexing.lexeme lexbuf) }
 
 (* Inside a brace literal each of the regular-expression operators [*], [|], [&]
    and [~] is a token of its own, so that, e.g., [A*|~B] needs no spaces; any
@@ -158,17 +167,20 @@ and comment continue n = parse
   | _                   { comment continue n lexbuf }
   | eof                 { Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unterminated comment" }
 
-and string acc = parse
-  | '"'                 { acc }
-  | '\\'                { let esc = escaped lexbuf in string (acc ^ esc) lexbuf }
-  | [^'"' '\\']*        { string (acc ^ (Lexing.lexeme lexbuf)) lexbuf }
-  | eof                 { Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unterminated string %s" acc}
+(* The contents of a string literal, accumulated in [buf]. *)
+and string buf = parse
+  | '"'                 { Buffer.contents buf }
+  | '\\'                { Buffer.add_string buf (escaped lexbuf); string buf lexbuf }
+  | '\n'                { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; string buf lexbuf }
+  | [^'"' '\\' '\n']+  { Buffer.add_string buf (Lexing.lexeme lexbuf); string buf lexbuf }
+  | eof                 { Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unterminated string %s" (Buffer.contents buf) }
 
 and escaped = parse
   | _                   { let str = Lexing.lexeme lexbuf in
                           try List.assoc str escaped_characters
                           with Not_found -> Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unknown escaped character %s" str
                         }
+  | eof                 { Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unterminated string" }
 
 {
   (** [tokens ()] is a lexer for one source: [token] outside brace literals and

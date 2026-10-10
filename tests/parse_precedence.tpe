@@ -1,0 +1,32 @@
+(* The extent of [box], [unbox], [handle] and [continue] before [;], parameter
+   and result annotations of [fun], operation cases with constructor arguments
+   and nested cases, and the operator names beginning with an asterisk. *)
+
+type choice = Neither | Number of nat
+type token = Token
+
+operation Op : choice ~> nat # 0
+operation Other : token ~> nat # 0
+
+let h =
+  handler
+  | x -> x
+  | Other Token k -> continue k with 5; 4
+  | Op c k ->
+      match c with
+      | Neither -> continue k with 1
+      | Number 0 -> continue k with 2
+      | Number _ -> continue k with 3
+
+run box 1 5; 6
+run unbox (box 0 7); 8
+run handle perform Op Neither with h; 9
+run handle (perform Other Token) + 10 with h
+run handle perform Op Neither with h
+run handle perform Op (Number 0) with h
+run handle perform Op (Number 4) with h
+run (fun (y : nat) -> y + 1) 1
+run (fun y : nat -> y + 1) 1
+run (fun f : (nat -> nat) -> f) (fun y -> y) 3
+run (fun y -> y * 2)
+run ( * ) 2 3

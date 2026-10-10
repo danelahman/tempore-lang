@@ -201,6 +201,18 @@
   State: []
   
   ======================================================================
+  andalso_reject_tuple.tpe
+  ======================================================================
+  File "andalso_reject_tuple.tpe", line 4, characters 9-22:
+  4 | run (&&) (true, false)
+               ^^^^^^^^^^^^^
+  Typing error: This argument has type `α × β` but the function expects `bool`
+    File "andalso_reject_tuple.tpe", line 4, characters 4-8:
+    4 | run (&&) (true, false)
+            ^^^^
+    the function has type `bool → bool → bool`
+    Note: while matching `bool → bool → bool` against `bool × bool → γ # ε₀`
+  ======================================================================
   annotation_grade_variables.tpe
   ======================================================================
   === Run 1 ===
@@ -563,10 +575,9 @@
   continuation_fixed.tpe
   ======================================================================
   === Run 1 ===
-  return (fun () ↦
-            let f = (unbox resource_1 as unbox_var in
-                     unbox_var ()) in
-            f ())
+  return (fun () ↦ let f = (unbox resource_1 as cont_var in
+                            cont_var ()) in
+                   f ())
   State: [
     { resource_1 ↦ fun op_var ↦ handle
                                   return op_var;
@@ -618,10 +629,9 @@
   continuation_nested_fixed.tpe
   ======================================================================
   === Run 1 ===
-  return (fun () ↦
-            let f = (unbox resource_3 as unbox_var in
-                     unbox_var ()) in
-            f ())
+  return (fun () ↦ let f = (unbox resource_3 as cont_var in
+                            cont_var ()) in
+                   f ())
   State: [
     { resource_1 ↦ fun op_var ↦ handle
                                   return op_var;
@@ -631,14 +641,14 @@
         fun op_var ↦
           handle
             return op_var;
-            unbox resource_1 as unbox_var in
-            unbox_var ()
+            unbox resource_1 as cont_var in
+            cont_var ()
           with handler
                | return y ↦ return y
                | Op2 (q, k') ↦
                        return (fun () ↦
-                                 let f = (unbox k' as unbox_var in
-                                          unbox_var ()) in
+                                 let f = (unbox k' as cont_var in
+                                          cont_var ()) in
                                  f ())
         # 1
     }
@@ -675,8 +685,8 @@
                | return x ↦ return x
                | Op ((), k) ↦
                       (fun () ↦ delay 1 (return ())) ();
-                      unbox k as unbox_var in
-                      unbox_var ()
+                      unbox k as cont_var in
+                      cont_var ()
         # 1
     },
     1
@@ -728,8 +738,8 @@
             perform Send 3 (op_var. return op_var)
           with handler
                | return x ↦ return x
-               | Send (n, k) ↦ unbox k as unbox_var in
-                               unbox_var ()
+               | Send (n, k) ↦ unbox k as cont_var in
+                               cont_var ()
         # (Send, 1),
       resource_3 ↦
         fun op_var ↦
@@ -738,8 +748,8 @@
             perform Send 3 (op_var. return op_var)
           with handler
                | return x ↦ return x
-               | Send (n, k) ↦ unbox k as unbox_var in
-                               unbox_var ()
+               | Send (n, k) ↦ unbox k as cont_var in
+                               cont_var ()
         # (Send, 1),
       resource_5 ↦
         fun op_var ↦
@@ -747,8 +757,8 @@
             return op_var
           with handler
                | return x ↦ return x
-               | Send (n, k) ↦ unbox k as unbox_var in
-                               unbox_var ()
+               | Send (n, k) ↦ unbox k as cont_var in
+                               cont_var ()
         # (Send, 1)
     }
   ]
@@ -831,8 +841,8 @@
                | return x ↦ return x
                | Report (msg, k) ↦
                           delay 1 (return ());
-                          unbox k as unbox_var in
-                          unbox_var ()
+                          unbox k as cont_var in
+                          cont_var ()
         # 1
     },
     1
@@ -983,12 +993,26 @@
                           ^^^
   Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-upper-bound-rational', 'traces-timed-lower-bound-rational', 'traces-timed-upper-bound-rational', 'traces-timed-interval-rational', 'regex-upper-bound-rational-symbolic', 'regex-timed-lower-bound-rational-symbolic', 'regex-timed-upper-bound-rational-symbolic', 'regex-timed-interval-rational-symbolic', 'security-levels' or 'flow-levels' grading monoids?
   ======================================================================
+  delay_reject_negative.tpe
+  ======================================================================
+  File "delay_reject_negative.tpe", line 3, characters 10-14:
+  3 | run delay -0.5
+                ^^^^
+  Syntax error: durations must be non-negative
+  ======================================================================
   delay_reject_variable.tpe
   ======================================================================
   File "delay_reject_variable.tpe", line 6, characters 8-9:
   6 |   delay n
               ^
   Syntax error: the argument of 'delay' is a duration literal, such as '2', '1/2' or '0.25'
+  ======================================================================
+  diagnostic_reject_utf8_columns.tpe
+  ======================================================================
+  File "diagnostic_reject_utf8_columns.tpe", line 3, characters 18-20:
+  3 | run ("∞∞∞", qq)
+                  ^^
+  Syntax error: Unknown name `qq`
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
@@ -1202,8 +1226,8 @@
           with handler
                | return y ↦ return y
                | Tick (p, k) ↦
-                        let r = (unbox k as unbox_var in
-                                 unbox_var ()) in
+                        let r = (unbox k as cont_var in
+                                 cont_var ()) in
                         return 2
         # 1
     }
@@ -1268,8 +1292,8 @@
           with handler
                | return y ↦ return y
                | Op (p, k) ↦
-                      let r = (unbox k as unbox_var in
-                               unbox_var ()) in
+                      let r = (unbox k as cont_var in
+                               cont_var ()) in
                       return 6
         # 1
     }
@@ -1405,8 +1429,8 @@
                | return () ↦ return 0
                | Put ((n, _), k) ↦
                        delay 1 (return ());
-                       unbox k as unbox_var in
-                       unbox_var ()
+                       unbox k as cont_var in
+                       cont_var ()
         # 1
     },
     1
@@ -1475,6 +1499,48 @@
   Typing error: This match is not exhaustive: `""` is not matched
     Note: a value that no case matches would stop the run
   ======================================================================
+  float_literals.tpe
+  ======================================================================
+  === Run 1 ===
+  return 1.
+  State: []
+  
+  === Run 2 ===
+  return 1.
+  State: []
+  
+  === Run 3 ===
+  return -1.5
+  State: []
+  
+  === Run 4 ===
+  return -2.5
+  State: []
+  
+  === Run 5 ===
+  return 3.
+  State: []
+  
+  === Run 6 ===
+  return 0.001
+  State: []
+  
+  === Run 7 ===
+  return -2.
+  State: []
+  
+  === Run 8 ===
+  return 1
+  State: []
+  
+  ======================================================================
+  float_literals_reject_subtraction.tpe
+  ======================================================================
+  File "float_literals_reject_subtraction.tpe", line 4, characters 4-5:
+  4 | run x-1.0
+          ^
+  Typing error: This argument has type `float` but the function expects `nat`
+  ======================================================================
   flow_levels.tpe
   ======================================================================
   === Run 1 ===
@@ -1496,8 +1562,8 @@
             return ()
           with handler
                | return x ↦ return x
-               | Post (n, k) ↦ unbox k as unbox_var in
-                               unbox_var ()
+               | Post (n, k) ↦ unbox k as cont_var in
+                               cont_var ()
         # (Low, (Board, Low))
     }
   ]
@@ -1835,6 +1901,13 @@
   State: []
   
   ======================================================================
+  lexer_reject_unknown_character.tpe
+  ======================================================================
+  File "lexer_reject_unknown_character.tpe", line 3, characters 7-9:
+  3 | let café = 1
+             ^
+  Syntax error: Unexpected character 'é'
+  ======================================================================
   list_constructor_reject.tpe
   ======================================================================
   File "list_constructor_reject.tpe", line 3, characters 23-33:
@@ -2098,14 +2171,14 @@
   ======================================================================
   File "literals_reject_inf.tpe", line 3, characters 19-22:
   3 | let claim () = box ∞ 1
-                         ^^^
+                         ^
   Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'time-upper-bound-rational', 'mode-switch-costs' or 'counts-upper-bound' grading monoids?
   ======================================================================
   literals_reject_interval_closed_infinity.tpe
   ======================================================================
   File "literals_reject_interval_closed_infinity.tpe", line 4, characters 19-27:
   4 | let claim () = box [2, ∞] 1
-                         ^^^^^^^^
+                         ^^^^^^
   Syntax error: an infinite endpoint of an interval is written with a parenthesis, as in '[n, ∞)'
   ======================================================================
   literals_reject_interval_empty.tpe
@@ -2466,7 +2539,7 @@
   File "nat_reject_negative.tpe", line 3, characters 4-18:
   3 | run -1_000_000_000
           ^^^^^^^^^^^^^^
-  Syntax error: Natural numbers have no negation
+  Syntax error: Natural numbers have no negation; floats are negated with '-.'
   ======================================================================
   nat_reject_successor_pattern.tpe
   ======================================================================
@@ -2710,8 +2783,8 @@
                                      (+) b) in
                             b i) in
                          double b) in
-                      unbox k as unbox_var in
-                      unbox_var b
+                      unbox k as cont_var in
+                      cont_var b
         # 0
     }
   ]
@@ -2730,15 +2803,15 @@
         fun op_var ↦
           handle
             return op_var;
-            unbox resource_1 as unbox_var in
-            unbox_var ()
+            unbox resource_1 as cont_var in
+            cont_var ()
           with handler
                | return y ↦ return y
                | Op2 (q, k') ↦
-                       let a = (unbox k' as unbox_var in
-                                unbox_var ()) in
-                       unbox resource_1 as unbox_var in
-                       unbox_var ()
+                       let a = (unbox k' as cont_var in
+                                cont_var ()) in
+                       unbox resource_1 as cont_var in
+                       cont_var ()
         # 0
     }
   ]
@@ -2812,6 +2885,88 @@
   
   === Run 9 ===
   return true
+  State: []
+  
+  ======================================================================
+  parse_precedence.tpe
+  ======================================================================
+  === Run 1 ===
+  return 6
+  State: [
+    { resource_0 ↦ 5 # 1 }
+  ]
+  
+  === Run 2 ===
+  return 8
+  State: [
+    { resource_0 ↦ 7 # 0 }
+  ]
+  
+  === Run 3 ===
+  return 9
+  State: [
+    { resource_1 ↦ fun op_var ↦ handle
+                                  return op_var
+                                with h # 0 }
+  ]
+  
+  === Run 4 ===
+  return 4
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            let b = (let b = return op_var in
+                     (+) b) in
+            b 10
+          with h
+        # 0
+    }
+  ]
+  
+  === Run 5 ===
+  return 1
+  State: [
+    { resource_1 ↦ fun op_var ↦ handle
+                                  return op_var
+                                with h # 0 }
+  ]
+  
+  === Run 6 ===
+  return 2
+  State: [
+    { resource_1 ↦ fun op_var ↦ handle
+                                  return op_var
+                                with h # 0 }
+  ]
+  
+  === Run 7 ===
+  return 3
+  State: [
+    { resource_1 ↦ fun op_var ↦ handle
+                                  return op_var
+                                with h # 0 }
+  ]
+  
+  === Run 8 ===
+  return 2
+  State: []
+  
+  === Run 9 ===
+  return 2
+  State: []
+  
+  === Run 10 ===
+  return 3
+  State: []
+  
+  === Run 11 ===
+  return (fun y ↦ let b = ( * ) y in
+                  b 2)
+  State: []
+  
+  === Run 12 ===
+  return 6
   State: []
   
   ======================================================================
@@ -3384,8 +3539,8 @@
                          let y = (rec pause_nested ...) 1 in
                          let b = (let b = (+) y in
                                   b 1) in
-                         unbox k as unbox_var in
-                         unbox_var b
+                         unbox k as cont_var in
+                         cont_var b
         # ∞
     },
     1,
@@ -3400,8 +3555,8 @@
                          let y = (rec pause_nested ...) 0 in
                          let b = (let b = (+) y in
                                   b 1) in
-                         unbox k as unbox_var in
-                         unbox_var b
+                         unbox k as cont_var in
+                         cont_var b
         # ∞
     },
     1
@@ -3424,8 +3579,8 @@
                          (let b = (let b = (rec count ...) 1 in
                                    (+) b) in
                           b 1) in
-                       unbox k as unbox_var in
-                       unbox_var b
+                       unbox k as cont_var in
+                       cont_var b
         # 0,
       resource_3 ↦
         fun op_var ↦
@@ -3438,8 +3593,8 @@
                          (let b = (let b = (rec count ...) 0 in
                                    (+) b) in
                           b 1) in
-                       unbox k as unbox_var in
-                       unbox_var b
+                       unbox k as cont_var in
+                       cont_var b
         # 0,
       resource_5 ↦
         fun op_var ↦
@@ -3451,8 +3606,8 @@
                        let b = (let b = (let b = (rec go ...) 2 in
                                          (+) b) in
                                 b 1) in
-                       unbox k as unbox_var in
-                       unbox_var b
+                       unbox k as cont_var in
+                       cont_var b
         # 0,
       resource_7 ↦
         fun op_var ↦
@@ -3464,8 +3619,8 @@
                        let b = (let b = (let b = (rec go ...) 1 in
                                          (+) b) in
                                 b 1) in
-                       unbox k as unbox_var in
-                       unbox_var b
+                       unbox k as cont_var in
+                       cont_var b
         # 0,
       resource_9 ↦
         fun op_var ↦
@@ -3477,8 +3632,8 @@
                        let b = (let b = (let b = (rec go ...) 0 in
                                          (+) b) in
                                 b 1) in
-                       unbox k as unbox_var in
-                       unbox_var b
+                       unbox k as cont_var in
+                       cont_var b
         # 0
     }
   ]
@@ -3568,7 +3723,7 @@
   Typing error: Variable `w` is unboxed with grade `{2 | 0.5}` accumulated since it was bound, which is not below its box grade `{[1, ∞)}`
     File "regex_rational_reject.tpe", line 29, characters 23-24:
     29 |   box {[1, ∞)} () as w in
-                                ^
+                              ^
     `w` is bound here
     File "regex_rational_reject.tpe", line 30, characters 2-34:
     30 |   if b then delay 1/2 else delay 2;
@@ -4234,9 +4389,8 @@
             return (a, b)
           with handler
                | return x ↦ return x
-               | Reserve (name, k) ↦
-                           unbox k as unbox_var in
-                           unbox_var (File name)
+               | Reserve (name, k) ↦ unbox k as cont_var in
+                                     cont_var (File name)
         # ([0, 1], 1),
       resource_3 ↦
         fun op_var ↦
@@ -4245,9 +4399,8 @@
             return (File "a", b)
           with handler
                | return x ↦ return x
-               | Reserve (name, k) ↦
-                           unbox k as unbox_var in
-                           unbox_var (File name)
+               | Reserve (name, k) ↦ unbox k as cont_var in
+                                     cont_var (File name)
         # ([0, 1], 1)
     }
   ]
@@ -4387,6 +4540,13 @@
   3 | type cow = Hoof of bool
       ^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: Type `cow` defined multiple times
+  ======================================================================
+  string_reject_newline_location.tpe
+  ======================================================================
+  File "string_reject_newline_location.tpe", line 6, characters 8-17:
+  6 | run (s, undefined)
+              ^^^^^^^^^
+  Syntax error: Unknown name `undefined`
   ======================================================================
   termination.tpe
   ======================================================================
@@ -5216,6 +5376,17 @@
   ]
   
   ======================================================================
+  toplevel_let_scope.tpe
+  ======================================================================
+  === Run 1 ===
+  return 3
+  State: []
+  
+  === Run 2 ===
+  return 3
+  State: []
+  
+  ======================================================================
   traces_annotation.tpe
   ======================================================================
   === Run 1 ===
@@ -5628,8 +5799,8 @@
                | return x ↦ return x
                | Send ((), k) ↦
                         delay 1 (return ());
-                        unbox k as unbox_var in
-                        unbox_var ()
+                        unbox k as cont_var in
+                        cont_var ()
         # (1, (Send, {0}))
     },
     1
@@ -6287,7 +6458,7 @@ their visible implementations, under their implementations by automata
   Typing error: Variable `w` is unboxed with grade `{2 | 0.5}` accumulated since it was bound, which is not below its box grade `{[1, ∞)}`
     File "regex_rational_reject.tpe", line 29, characters 23-24:
     29 |   box {[1, ∞)} () as w in
-                                ^
+                              ^
     `w` is bound here
     File "regex_rational_reject.tpe", line 30, characters 2-34:
     30 |   if b then delay 1/2 else delay 2;

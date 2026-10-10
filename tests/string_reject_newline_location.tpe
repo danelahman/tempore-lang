@@ -1,0 +1,6 @@
+(* A newline in a string literal advances the line of later locations. *)
+
+let s = "first
+second
+third"
+run (s, undefined)

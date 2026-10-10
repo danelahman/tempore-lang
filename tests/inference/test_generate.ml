@@ -118,6 +118,10 @@ let malformed =
     "literals_reject_within_empty.tpe";
     "literals_reject_within_no_step.tpe";
     "nat_reject_negative.tpe";
+    "delay_reject_negative.tpe";
+    "diagnostic_reject_utf8_columns.tpe";
+    "lexer_reject_unknown_character.tpe";
+    "string_reject_newline_location.tpe";
     "nat_reject_successor_zero.tpe";
     "operation_reject_datatype.tpe";
     "operation_reject_higher_order.tpe";

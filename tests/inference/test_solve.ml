@@ -275,6 +275,7 @@ let expected_rejections =
     ("tests/alias_cyclic_reject_mutual.tpe", [ 3 ]);
     ("tests/alias_cyclic_reject_parameter.tpe", [ 3 ]);
     ("tests/alias_cyclic_reject_through_alias.tpe", [ 3 ]);
+    ("tests/andalso_reject_tuple.tpe", [ 4 ]);
     ("tests/annotation_grade_variables_cyclic_reject.tpe", [ 14; 27 ]);
     ("tests/annotation_grade_variables_interval_reject.tpe", [ 24 ]);
     ("tests/annotation_grade_variables_reject.tpe", [ 10; 17 ]);
@@ -311,6 +312,7 @@ let expected_rejections =
     ("tests/default_reject_type.tpe", [ 7 ]);
     ("tests/default_reject_unestablished.tpe", [ 18 ]);
     ("tests/error_apply_arg.tpe", [ 8 ]);
+    ("tests/float_literals_reject_subtraction.tpe", [ 4 ]);
     ("tests/exhaustiveness_reject_bool.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_constructor.tpe", [ 5 ]);
     ("tests/exhaustiveness_reject_let.tpe", [ 3 ]);

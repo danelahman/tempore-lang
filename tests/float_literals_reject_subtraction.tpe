@@ -1,0 +1,4 @@
+(* Rejected: [x-1.0] is the subtraction of natural numbers applied to floats. *)
+
+let x = 2.0
+run x-1.0

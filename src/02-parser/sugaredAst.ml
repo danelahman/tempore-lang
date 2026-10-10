@@ -22,7 +22,6 @@ type 'g grade =
 type ('rho, 'eps) ty = ('rho, 'eps) plain_ty annotated
 
 and ('rho, 'eps) plain_ty =
-  | TyConst of Language.Const.ty
   | TyApply of ty_name annotated * ('rho, 'eps) ty list
       (** [(ty1, ty2, ..., tyn) type_name] *)
   | TyParam of ty_param  (** ['a] *)

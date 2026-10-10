@@ -1,3 +1,11 @@
 (library
  (name webInterpreter)
- (libraries utils language grades vdom vdom.base webBackend interpreter))
+ (libraries
+  utils
+  language
+  parser
+  grades
+  vdom
+  vdom.base
+  webBackend
+  interpreter))

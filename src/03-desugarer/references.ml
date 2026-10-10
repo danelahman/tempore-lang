@@ -1,5 +1,5 @@
 module Location = Utils.Location
-module StringMap = Map.Make (String)
+module StringMap = Utils.StringMap
 module Sugared = SugaredAst
 
 type sort = Value | Constructor | Type | Operation
@@ -39,7 +39,7 @@ let bind env bound =
 
 let rec ty env links { Sugared.it; _ } =
   match it with
-  | Sugared.TyConst _ | Sugared.TyParam _ -> links
+  | Sugared.TyParam _ -> links
   | Sugared.TyApply (name, tys) ->
       List.fold_left (ty env) (refer Type env.types name links) tys
   | Sugared.TyTuple tys -> List.fold_left (ty env) links tys
@@ -131,9 +131,11 @@ let command env { Sugared.it; _ } =
         ( { env with operations = define op env.operations },
           ty env (ty env [] a) b )
     | Sugared.OpDefault (_, abs) -> (env, abstraction env [] abs)
-    (* As in the desugarer, a top-level definition is in scope in its own
-       body. *)
-    | Sugared.TopLet (x, t) | Sugared.TopLetRec (x, t) ->
+    (* A top-level definition is in scope after it, and a recursive one also in
+       its own body. *)
+    | Sugared.TopLet (x, t) ->
+        (bind env (define x StringMap.empty), term env [] t)
+    | Sugared.TopLetRec (x, t) ->
         let env = bind env (define x StringMap.empty) in
         (env, term env [] t)
     | Sugared.TopDo t -> (env, term env [] t)
