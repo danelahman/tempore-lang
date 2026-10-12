@@ -39,10 +39,10 @@
    picked up. Its type is not eternal, so it cannot be kept unboxed past an
    operation: a tip used for several operations is the same boxed tip,
    unboxed again before each use, and each unboxing checks that this tip is
-   still clean. Only new_tip () puts on a new tip. The monitors of the protocol check each binding function
-   against the time bound of its operation's grade. A reagent is named by a
-   string, of the type reagent, and a column by its number, of the type
-   column.
+   still clean. Only new_tip () puts on a new tip. The monitors of the
+   protocol check each binding function against the time bound of its
+   operation's grade. A reagent is named by a string, of the type reagent,
+   and a column by its number, of the type column.
 
    The protocol is given its master mix ready; its preparation, and the
    30-minute window within which it is dispensed, are the example's own. So
@@ -138,16 +138,17 @@ let ddpcr () =
 (* Correctly rejected by the typechecker: the tip that added the test article
    is used again for the water control:
 
-     Typing error: Variable `tip` is unboxed with grade `(1, High)` accumulated
-       since it was bound, which is not below its box grade `(∞, Low)`
+     Typing error: Variable `article_tip` is unboxed with grade `(1, High)`
+       accumulated since it was bound, which is not below its box grade
+       `(∞, Low)`
        Note: the resource inequality `(1, High) <= (∞, Low)` does not hold
 *)
 (*
 let ddpcr_shared_tip () =
-  let tip = new_tip () in
-  unbox tip as t in
+  let article_tip = new_tip () in
+  unbox article_tip as t in
   perform AddArticle (t, 1);
-  unbox tip as t in
+  unbox article_tip as t in
   perform AddWater (t, 4)
 *)
 

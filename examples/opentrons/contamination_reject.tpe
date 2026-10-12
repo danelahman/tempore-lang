@@ -30,16 +30,17 @@ let new_tip () =
 (* Correctly rejected by the typechecker: the tip that added the test article
    is used again for the water control:
 
-     Typing error: Variable `tip` is unboxed with grade `(1, High)` accumulated
-       since it was bound, which is not below its box grade `(∞, Low)`
+     Typing error: Variable `article_tip` is unboxed with grade `(1, High)`
+       accumulated since it was bound, which is not below its box grade
+       `(∞, Low)`
        ...
        Note: the resource inequality `(1, High) <= (∞, Low)` does not hold
 *)
 let shared_tip () =
-  let tip = new_tip () in
-  unbox tip as t in
+  let article_tip = new_tip () in
+  unbox article_tip as t in
   perform AddArticle (t, 1);
-  unbox tip as t in
+  unbox article_tip as t in
   perform AddWater (t, 4)
 
 run shared_tip ()

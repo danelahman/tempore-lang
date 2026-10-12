@@ -322,7 +322,7 @@ The rejected variants of the examples.
   $ ../../tempore --grades regex-timed-interval-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `washed` is unboxed with grade `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}, {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]`
   $ ../../tempore --grades time-upper-bound-levels --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
+  Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do
   >   ../../tempore --grades time-interval --typecheck-only $examples/${name}_reject.tpe 2>&1 | grep 'Typing error'
   > done

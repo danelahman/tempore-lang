@@ -34,7 +34,7 @@ let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : c
   | column :: rest ->
       delay 5;
       let started = perform Fix column in
-      unbox fixing as next in
-      stagger rest (started, next)
+      unbox fixing as previous in
+      stagger rest (started, previous)
 
 run stagger [2; 3] (box [12, 20] 1, 0)

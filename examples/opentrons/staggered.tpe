@@ -57,8 +57,8 @@ let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : c
   | column :: rest ->
       delay 10;
       let started = perform Fix column in
-      unbox fixing as next in
-      stagger rest (started, next)
+      unbox fixing as previous in
+      stagger rest (started, previous)
 
 (* Correctly accepted by the typechecker: each column is rinsed 12 to 14
    minutes after its fixative was added. *)
@@ -68,12 +68,12 @@ let fixation (columns : column list) =
   | first :: rest -> (
       let fixing = perform Fix first in
       match rest with
-      | [] -> delay 12; unbox fixing as column in perform Rinse column
+      | [] -> delay 12; unbox fixing as first in perform Rinse first
       | second :: rest ->
           delay 11;
           let started = perform Fix second in
-          unbox fixing as column in
-          stagger rest (started, column))
+          unbox fixing as first in
+          stagger rest (started, first))
 
 (* Correctly rejected by the typechecker: the next column is started five
    minutes after the rinse instead of ten, so a column is rinsed seven to
@@ -92,8 +92,8 @@ let rec stagger_early (columns : column list) ((fixing : [[12, 20]]column), (fix
   | column :: rest ->
       delay 5;
       let started = perform Fix column in
-      unbox fixing as next in
-      stagger_early rest (started, next)
+      unbox fixing as previous in
+      stagger_early rest (started, previous)
 *)
 
 run fixation [1; 2; 3; 4]

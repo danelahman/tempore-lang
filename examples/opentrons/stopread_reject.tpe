@@ -42,10 +42,10 @@ let late_read () =
   let first = perform Stop "plate 1" in
   delay 30;
   let second = perform Stop "plate 2" in
-  unbox first as plate in
-  let a = perform Read plate in
-  unbox second as plate in
-  let b = perform Read plate in
+  unbox first as first_plate in
+  let a = perform Read first_plate in
+  unbox second as second_plate in
+  let b = perform Read second_plate in
   (a, b)
 
 run handle late_read () with simulated_reader

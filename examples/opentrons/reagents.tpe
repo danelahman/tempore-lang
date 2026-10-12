@@ -62,9 +62,9 @@ default Tagment column = delay 6
    must contain the running time of the step:
 
      ∀ α ε₀. (column → α # ε₀) → [∣ε₀∣]reagent → (column → unit # [1, 2] · ε₀) *)
-let after step reagent (column : column) =
+let after step thawed (column : column) =
   step column;
-  unbox reagent as r in
+  unbox thawed as r in
   perform Dispense (r, column)
 
 let load (column : column) =
