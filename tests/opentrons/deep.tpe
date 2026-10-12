@@ -1,0 +1,16 @@
+(* Recursion 100000 deep, in and out of tail position, and over long lists. *)
+
+let rec count n acc =
+  match n with
+  | 0 -> acc
+  | m + 1 -> count m (acc + 1)
+
+let rec sum n =
+  match n with
+  | 0 -> 0
+  | m + 1 -> n + sum m
+
+run count 100000 0
+run sum 100000
+run length (range 1 100000)
+run fold_left (fun acc x -> acc + x) 0 (map (fun x -> 2 * x) (range 1 100000))

@@ -1,0 +1,14 @@
+(library
+ (name opentronsBackend)
+ (libraries utils language grades zarith))
+
+; The runtime is embedded in the library as the string
+; Opentrons_runtime.contents, as the standard library is in the loader.
+
+(rule
+ (with-stdout-to
+  opentrons_runtime.ml
+  (progn
+   (echo "let contents = {py|")
+   (cat opentrons_runtime.py)
+   (echo "|py}"))))

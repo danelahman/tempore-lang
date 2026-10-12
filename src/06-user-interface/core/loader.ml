@@ -128,8 +128,9 @@ module Loader (Backend : Backend.S) = struct
       errors are reported at once; otherwise the first escapes as an exception.
       Errors of any other kind are fatal either way. *)
   let execute_commands ~recover state cmds =
-    let step (state, diagnostics, defined, stopped) (cmd : _ Ast.command) =
-      if stopped then (state, diagnostics, defined, stopped)
+    let step (state, diagnostics, defined, accepted, stopped)
+        (cmd : _ Ast.command) =
+      if stopped then (state, diagnostics, defined, accepted, stopped)
       else
         match execute_command state cmd with
         | Ok state' ->
@@ -138,13 +139,14 @@ module Loader (Backend : Backend.S) = struct
               | Ast.TopLet (x, _), [] -> (x, cmd.at) :: defined
               | _ -> defined
             in
-            (state', diagnostics, defined, false)
+            (state', diagnostics, defined, cmd :: accepted, false)
         | Error (d, _) when not recover -> raise (Error.Error d)
-        | Error (d, Some state') -> (state', d :: diagnostics, defined, false)
-        | Error (d, None) -> (state, d :: diagnostics, defined, true)
+        | Error (d, Some state') ->
+            (state', d :: diagnostics, defined, accepted, false)
+        | Error (d, None) -> (state, d :: diagnostics, defined, accepted, true)
     in
-    let state', diagnostics, defined, _ =
-      List.fold_left step (state, [], [], false) cmds
+    let state', diagnostics, defined, accepted, _ =
+      List.fold_left step (state, [], [], [], false) cmds
     in
     let schemes = TC.definitions state'.typechecker in
     let definition (variable, at) =
@@ -155,7 +157,10 @@ module Loader (Backend : Backend.S) = struct
           else None)
         schemes
     in
-    (state', List.rev diagnostics, List.filter_map definition (List.rev defined))
+    ( state',
+      List.rev diagnostics,
+      List.filter_map definition (List.rev defined),
+      List.rev accepted )
 
   (* The desugared commands, and the links of the names they use to their
      definitions. *)
@@ -177,14 +182,15 @@ module Loader (Backend : Backend.S) = struct
       Desugaring stays fatal: an unknown name would only cascade. *)
   let load_commands_defining state cmds =
     let state', cmds', links = desugar_commands state cmds in
-    let state'', diagnostics, defined =
+    let state'', diagnostics, defined, accepted =
       execute_commands ~recover:true state' cmds'
     in
-    (state'', diagnostics, defined, links)
+    (state'', diagnostics, defined, links, accepted)
 
-  (** As {!load_commands_defining}, without the definitions and links. *)
+  (** As {!load_commands_defining}, without the definitions, links and accepted
+      commands. *)
   let load_commands_all state cmds =
-    let state', diagnostics, _, _ = load_commands_defining state cmds in
+    let state', diagnostics, _, _, _ = load_commands_defining state cmds in
     (state', diagnostics)
 
   (* Without recovery the first error escapes as an exception and the
@@ -192,8 +198,8 @@ module Loader (Backend : Backend.S) = struct
   let load_commands state cmds =
     let state', cmds', _ = desugar_commands state cmds in
     match execute_commands ~recover:false state' cmds' with
-    | state'', [], _ -> state''
-    | _, d :: _, _ -> raise (Error.Error d)
+    | state'', [], _, _ -> state''
+    | _, d :: _, _, _ -> raise (Error.Error d)
 
   let parse_source ?(filename = "") source =
     let lexbuf = Lexing.from_string source in
@@ -217,8 +223,23 @@ module Loader (Backend : Backend.S) = struct
             error of each *)
     links : 'link list;
         (** the links of the names of the sources to their definitions *)
+    commands : Ast.Graded(Backend.Grades).command list;
+        (** the desugared commands the typechecker accepted, those of the
+            standard library first, in order *)
+    operations : (Ast.operation * Grades.Grade.running_time option) list;
+        (** the operations the accepted commands declare, in order, each with
+            its running-time bounds if it declares them *)
   }
   (** A program loaded by {!load_program}. *)
+
+  (* The operations [cmds] declare, with their running-time bounds. *)
+  let operations_of cmds =
+    List.filter_map
+      (fun (cmd : _ Ast.command) ->
+        match cmd.it with
+        | Ast.OpSig (op, _, _, _, bounds) -> Some (op, bounds)
+        | Ast.TyDef _ | Ast.OpDefault _ | Ast.TopLet _ | Ast.TopDo _ -> None)
+      cmds
 
   (** [load_program ~use_stdlib sources] loads the parsed [sources] in order,
       preceded by the standard library if [use_stdlib], all of them {!declare}d
@@ -230,28 +251,39 @@ module Loader (Backend : Backend.S) = struct
       if use_stdlib then parse_source ~filename:stdlib_filename stdlib_source
       else []
     in
-    let library, library_definitions =
+    let library, library_definitions, library_commands =
       match
         load_commands_defining
           (declare (stdlib :: sources) initial_state)
           stdlib
       with
-      | state, [], definitions, _ -> (state, definitions)
-      | _, d :: _, _, _ -> raise (Error.Error d)
+      | state, [], definitions, _, accepted -> (state, definitions, accepted)
+      | _, d :: _, _, _, _ -> raise (Error.Error d)
     in
-    let loaded, diagnostics, definitions, links =
+    let loaded, diagnostics, definitions, links, commands =
       List.fold_left
-        (fun (state, diagnostics, definitions, links) source ->
-          let state', diagnostics', definitions', links' =
+        (fun (state, diagnostics, definitions, links, commands) source ->
+          let state', diagnostics', definitions', links', accepted =
             load_commands_defining state source
           in
           ( state',
             diagnostics @ diagnostics',
             definitions @ definitions',
-            links @ links' ))
-        (library, [], [], []) sources
+            links @ links',
+            commands @ accepted ))
+        (library, [], [], [], library_commands)
+        sources
     in
-    { library; library_definitions; loaded; diagnostics; definitions; links }
+    {
+      library;
+      library_definitions;
+      loaded;
+      diagnostics;
+      definitions;
+      links;
+      commands;
+      operations = operations_of commands;
+    }
 end
 
 (** The standard library's source, independently of any backend, for callers

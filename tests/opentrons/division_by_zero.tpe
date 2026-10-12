@@ -1,0 +1,5 @@
+(* A run-time error ends the program after the runs before it. *)
+
+run 1 + 1
+run 1 / 0
+run 2 + 2

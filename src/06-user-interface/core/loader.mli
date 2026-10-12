@@ -104,6 +104,13 @@ module Loader (Backend : Backend.S) : sig
             error of each *)
     links : 'link list;
         (** the links of the names of the sources to their definitions *)
+    commands : Language.Ast.Graded(Backend.Grades).command list;
+        (** the desugared commands the typechecker accepted, those of the
+            standard library first, in order *)
+    operations :
+      (Language.Ast.operation * Grades.Grade.running_time option) list;
+        (** the operations the accepted commands declare, in order, each with
+            its running-time bounds if it declares them *)
   }
   (** A program loaded by {!load_program}. *)
 

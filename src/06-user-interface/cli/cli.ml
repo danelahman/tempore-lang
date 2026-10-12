@@ -31,6 +31,7 @@ type config = {
   debug : bool;
   typecheck_only : bool;
   resource_type : string;
+  emit_opentrons : string option;
 }
 
 let accepted_resource_names = List.map fst Grades.GradeRegistry.grade_modules
@@ -75,7 +76,8 @@ let parse_args_to_config () =
   and use_stdlib = ref true
   and debug = ref false
   and typecheck_only = ref false
-  and resource_type = ref Grades.GradeRegistry.default_name in
+  and resource_type = ref Grades.GradeRegistry.default_name
+  and emit_opentrons = ref None in
   let usage = "Run Tempore as '" ^ Sys.argv.(0) ^ " [filename.tpe] ...'"
   and anonymous filename = filenames := filename :: !filenames
   (* The options, in alphabetical order. [--help] is listed rather than left
@@ -89,6 +91,10 @@ let parse_args_to_config () =
           Arg.Set debug,
           " Print the inferred type schemes of the top-level definitions \
            before running" );
+        ( "--emit-opentrons",
+          Arg.String (fun filename -> emit_opentrons := Some filename),
+          " Typecheck the files and write them, compiled to Python, to the \
+           given file, without running them" );
         ( "--grades",
           Arg.Set_string resource_type,
           Printf.sprintf " Selects the grades (default: %s); accepted:%s"
@@ -117,6 +123,7 @@ let parse_args_to_config () =
     debug = !debug;
     typecheck_only = !typecheck_only;
     resource_type = !resource_type;
+    emit_opentrons = !emit_opentrons;
   }
 
 let run_with (module G : Grades.Grade.S) config =
@@ -172,7 +179,12 @@ let run_with (module G : Grades.Grade.S) config =
       print_newline ()
     end;
     (* loading the files has typechecked every command, the [run]s included *)
-    if not config.typecheck_only then run run_state 1
+    match config.emit_opentrons with
+    | Some filename ->
+        Out_channel.with_open_text filename (fun oc ->
+            Out_channel.output_string oc
+              (OpentronsBackend.OpentronsEmit.plain_program program.commands))
+    | None -> if not config.typecheck_only then run run_state 1
   with
   | Error.Error d ->
       Diagnostic.print ~source d Format.err_formatter;

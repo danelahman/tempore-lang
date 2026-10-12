@@ -7883,6 +7883,7 @@ single-dash form of the help option is not accepted.
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
     --debug           Print the inferred type schemes of the top-level definitions before running
+    --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them
     --grades          Selects the grades (default: time-lower-bound); accepted:
         Time:
           time-lower-bound                          Lower bounds

@@ -1,0 +1,23 @@
+(* Lists and the higher-order functions of the standard library. *)
+
+let double x = 2 * x
+
+run range 1 10
+run map double (range 1 5)
+run fold_left (fun acc x -> acc + x) 0 (range 1 100)
+run fold_right (fun x acc -> x :: acc) [1; 2; 3] [4]
+run filter even (range 1 20)
+run reverse [1; 2; 3]
+run zip [1; 2; 3] ["a"; "b"; "c"]
+run unzip [(1, "a"); (2, "b")]
+run [1; 2] @ [3; 4]
+run (length [1; 2; 3], nth [1; 2; 3] 1, nth [1; 2; 3] 5)
+run assoc 2 [(1, "one"); (2, "two")]
+run (hd [1; 2], tl [1; 2], hd [])
+run (forall even [2; 4], exists odd [2; 4], mem 3 [1; 2; 3])
+run complement [1; 2; 3; 4] [2; 4]
+run intersection [1; 2; 3; 4] [2; 4; 6]
+run take (fun i -> i * i) 5
+run compose double double 3
+run 3 |> double
+run (min 3 4, max 3 4, fst (1, 2), snd (1, 2), id "x")

@@ -1,0 +1,6 @@
+; Parity of the Python compilation of pure programs with the interpreter.
+
+(cram
+ (deps
+  %{project_root}/tempore
+  (glob_files *.tpe)))

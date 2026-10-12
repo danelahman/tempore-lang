@@ -1,0 +1,20 @@
+(* Strings and their printing, and the printing of values by to_string. *)
+
+type 'a tree = Leaf | Node of 'a tree * 'a * 'a tree
+
+run "plain"
+run "quote \" backslash \\ newline \n tab \t"
+run "café"
+run to_string 42
+run to_string 2.5
+run to_string "nested \"string\""
+run to_string (1, "two", 3.0, true)
+run to_string [1; 2; 3]
+run to_string (Node (Leaf, Some [1; 2], Node (Leaf, None, Leaf)))
+run to_string (range 1 30, range 100 130)
+run (range 1000 1030, "a long tuple wraps at the margin of the printer")
+run [(1, "one"); (2, "two"); (3, "three"); (4, "four"); (5, "five"); (6, "six"); (7, "seven")]
+run Node (Node (Leaf, (1, 2), Leaf), (3, 4), Leaf)
+run [Some 1; None]
+run Some [Some (1, [2])]
+run [[1; 2]; []; [3]]
