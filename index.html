@@ -131,9 +131,137 @@
     }
 
     .editor-box {
+      position: relative;
       flex-grow: 1;
       display: flex;
       flex-direction: column;
+    }
+
+    /* The switch between the program and the code compiled from it: a button
+       floating over the top right corner of the code, so that the editor keeps
+       its place. */
+    .view-switch {
+      position: absolute;
+      top: 1.75rem;
+      right: 1.75rem;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 8px;
+      color: inherit;
+      background-color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 1px 4px rgba(10, 10, 10, 0.2);
+      opacity: 0.8;
+    }
+
+    .view-switch:hover,
+    .view-switch:focus-visible {
+      color: inherit;
+      opacity: 1;
+      box-shadow: 0 2px 8px rgba(10, 10, 10, 0.3);
+    }
+
+    .view-switch svg,
+    .view-switch img {
+      display: block;
+      width: 2rem;
+      height: 2rem;
+    }
+
+    /* The inputs of choices of the selected backend, in the side panel under
+       its description, wrapping within the column's width. */
+    .aside .backend-choices {
+      margin-top: 0.75rem;
+    }
+
+    .aside .backend-choices .select,
+    .aside .backend-choices .select select {
+      max-width: 100%;
+    }
+
+    /* The view of the code compiled in the editor's place, and the report of
+       the operation model of the selected backend, above a run. */
+    .backend-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .backend-choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
+    }
+
+    .backend-choices .field {
+      margin-bottom: 0;
+    }
+
+    .backend-input {
+      margin-top: 0.75rem;
+    }
+
+    .backend-input > summary {
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .backend-input-size {
+      margin-left: 0.5em;
+      color: #6f6f6f;
+      font-size: 0.85em;
+      font-weight: normal;
+    }
+
+    .backend-text {
+      margin-top: 0.5rem;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.85rem;
+    }
+
+    .backend-code-heading {
+      margin-top: 0.75rem;
+      font-weight: 500;
+    }
+
+    pre.syn-ml.backend-code {
+      max-height: 70vh;
+      overflow: auto;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .backend-message {
+      margin-top: 0.75rem;
+    }
+
+    .backend-note {
+      margin-top: 0.5rem;
+      color: #4a4a4a;
+      font-size: 0.9rem;
+    }
+
+    .backend-report td {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .backend-report tr.is-within td:last-child {
+      color: #257942;
+    }
+
+    .backend-report tr.is-outside td {
+      background-color: #feecf0;
+    }
+
+    .backend-report tr.is-outside td:last-child {
+      color: #cc0f35;
+      font-weight: 600;
+    }
+
+    .backend-report tr.is-pending td:last-child {
+      color: #946c00;
     }
 
     .editor-box .code-editor {
