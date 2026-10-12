@@ -1,0 +1,66 @@
+(* A stop and read on the Opentrons Flex: a stopped plate read within 30 minutes.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/stopread.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+(* Modelled on the Opentrons Protocol Library protocols 1464-3 (an ELISA
+   whose substrate is stopped after 30 minutes and read promptly) and
+   sci-tecan-cortisol-saliva-elisa (plates read off the deck).
+
+   A unit of duration is a minute. The protocol for the Flex, with the
+   operations performed by the functions of 'stopread_bindings.py', is
+   written by
+
+     ./tempore --grades time-interval --emit-opentrons stopread.py --bind examples/opentrons/stopread_bindings.py --time-unit minutes examples/opentrons/stopread.tpe
+
+   A plate is named by a string. A stopped plate is a box, read within 30
+   minutes of the stop. *)
+
+(* Dispensing the stop solution takes one to two minutes. *)
+operation AddStop : string ~> [[0, 30]]string # [1, 2]
+default AddStop plate = delay 1; box [0, 30] plate
+
+(* The operations of a plate reader with an injector for the stop solution:
+   stopping a plate takes one to two minutes, and reading it one to two. *)
+operation Stop : string ~> [[0, 30]]string # [1, 2]
+default Stop plate = delay 1; box [0, 30] plate
+
+operation Read : string ~> nat # [1, 2]
+default Read plate = delay 1; 0
+
+(* Noting a simulated reading in the run log takes at most a minute. *)
+operation Note : string ~> unit # [0, 1]
+default Note plate = ()
+
+(* Simulates the reader: the stop solution is dispensed by the pipette, whose
+   boxed plate the case of Stop passes to the continuation, and a reading is
+   noted, takes a minute and gives 0. *)
+let simulated_reader =
+  handler
+  | x -> x
+  | Stop plate k ->
+      let stopped = perform AddStop plate in
+      continue k with stopped
+  | Read plate k ->
+      perform Note plate;
+      delay 1;
+      continue k with 0
+
+(* Correctly accepted by the typechecker: each plate is read one to two
+   minutes after its stop. *)
+let assay () =
+  let first = perform Stop "plate 1" in
+  let second = perform Stop "plate 2" in
+  unbox first as plate in
+  let a = perform Read plate in
+  unbox second as plate in
+  let b = perform Read plate in
+  (a, b)
+
+run handle assay () with simulated_reader

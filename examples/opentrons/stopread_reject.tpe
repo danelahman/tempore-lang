@@ -1,0 +1,49 @@
+(* As the stop and read example, with the first plate read after its window.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/stopread_reject.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+operation AddStop : string ~> [[0, 30]]string # [1, 2]
+default AddStop plate = delay 1; box [0, 30] plate
+
+operation Stop : string ~> [[0, 30]]string # [1, 2]
+default Stop plate = delay 1; box [0, 30] plate
+
+operation Read : string ~> nat # [1, 2]
+default Read plate = delay 1; 0
+
+let simulated_reader =
+  handler
+  | x -> x
+  | Stop plate k ->
+      let stopped = perform AddStop plate in
+      continue k with stopped
+  | Read plate k -> delay 1; continue k with 0
+
+(* Correctly rejected by the typechecker: the second plate develops for 30
+   minutes after the first is stopped, so the first is read 31 to 32 minutes
+   after its stop:
+
+     Typing error: Variable `first` is unboxed with grade `[31, 32]`
+       accumulated since it was bound, which is not below its box grade
+       `[0, 30]`
+       ...
+       Note: the resource inequality `[31, 32] <= [0, 30]` does not hold
+*)
+let late_read () =
+  let first = perform Stop "plate 1" in
+  delay 30;
+  let second = perform Stop "plate 2" in
+  unbox first as plate in
+  let a = perform Read plate in
+  unbox second as plate in
+  let b = perform Read plate in
+  (a, b)
+
+run handle late_read () with simulated_reader

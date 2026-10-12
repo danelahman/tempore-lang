@@ -31,7 +31,11 @@ status=0
 for example in \
   "elisa time-interval minutes" \
   "washes regex-timed-interval-symbolic minutes" \
-  "contamination time-upper-bound-levels minutes"
+  "contamination time-upper-bound-levels minutes" \
+  "reagents time-interval minutes" \
+  "staggered time-interval minutes" \
+  "beads time-interval minutes" \
+  "stopread time-interval minutes"
 do
   set -- $example
   name=$1

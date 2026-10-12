@@ -1,0 +1,44 @@
+(* As the tagmentation example, with a reagent dispensed after a long incubation.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/reagents_reject.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+type reagent = string
+
+operation Thaw : string ~> [[0, 30]]reagent # [5, 10]
+default Thaw name = delay 6; box [0, 30] name
+
+operation Dispense : reagent * nat ~> unit # [1, 2]
+default Dispense (r, column) = delay 1
+
+operation Tagment : nat ~> unit # [5, 7]
+default Tagment column = delay 6
+
+let after step reagent column =
+  step column;
+  unbox reagent as r in
+  perform Dispense (r, column)
+
+(* Correctly rejected by the typechecker: the neutralization buffer is
+   thawed before a tagmentation followed by a 30-minute incubation, so it
+   would be dispensed 35 to 37 minutes after thawing:
+
+     Typing error: The resource inequality `[35, 37] <= [0, 30]` does not
+       hold
+       Note: while matching `[[0, 30]]reagent` against `[[35, 37]]reagent`
+*)
+let incubate column =
+  perform Tagment column;
+  delay 30
+
+let late_neutralization column =
+  let neutralization = perform Thaw "neutralize tagment buffer" in
+  after incubate neutralization column
+
+run late_neutralization 1

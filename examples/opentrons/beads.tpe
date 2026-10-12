@@ -1,0 +1,83 @@
+(* A bead clean-up on the Opentrons Flex: settled beads and an air-dry window.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/beads.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+(* Modelled on the Opentrons Protocol Library protocols kapa-amp-cleanup (a
+   bead clean-up with settling times and a drying time),
+   nextera-flex-library-prep-post-tag-cleanup (beads not to be overdried) and
+   macherey-nagel-nucleomag-rna (an air-dry before the next reagent).
+
+   A unit of duration is a minute. The protocol for the Flex, with the
+   operations performed by the functions of 'beads_bindings.py', is written by
+
+     ./tempore --grades time-interval --emit-opentrons beads.py --bind examples/opentrons/beads_bindings.py --time-unit minutes examples/opentrons/beads.tpe
+
+   The beads of the samples are named by a string. Beads on the magnet are a
+   box that opens once they have settled, and air-drying beads a box that
+   opens only within the drying window. *)
+
+(* Mixing the beads into the samples and removing a liquid take one to two
+   minutes each. *)
+operation AddBeads : string ~> unit # [1, 2]
+default AddBeads beads = delay 1
+
+operation RemoveSupernatant : string ~> unit # [1, 2]
+default RemoveSupernatant beads = delay 1
+
+(* Moving the plate onto the magnetic block takes at most a minute; the beads
+   then settle in at least two minutes. Moving it off takes at most a
+   minute. *)
+operation Engage : string ~> [[2, ∞)]string # [0, 1]
+default Engage beads = box [2, ∞) beads
+
+operation Disengage : string ~> unit # [0, 1]
+default Disengage beads = ()
+
+(* An ethanol wash adds and removes the ethanol in one to two minutes. The
+   last wash leaves the beads to air-dry: the elution buffer is added two to
+   five minutes after it, once the ethanol has evaporated and before the
+   beads crack. *)
+operation Ethanol : string ~> unit # [1, 2]
+default Ethanol beads = delay 1
+
+operation LastEthanol : string ~> [[2, 5]]string # [1, 2]
+default LastEthanol beads = delay 1; box [2, 5] beads
+
+(* Adding the elution buffer and transferring the eluate take one to two
+   minutes each. *)
+operation Elute : string ~> unit # [1, 2]
+default Elute beads = delay 1
+
+operation Transfer : string ~> unit # [1, 2]
+default Transfer beads = delay 1
+
+(* Correctly accepted by the typechecker: the supernatant and the eluate are
+   removed after the beads have settled for three minutes, and the elution
+   buffer is added two to three minutes into the air-dry. *)
+let cleanup () =
+  perform AddBeads "beads";
+  delay 5;
+  let settling = perform Engage "beads" in
+  delay 3;
+  unbox settling as beads in
+  perform RemoveSupernatant beads;
+  perform Ethanol beads;
+  let drying = perform LastEthanol beads in
+  delay 2;
+  perform Disengage beads;
+  unbox drying as beads in
+  perform Elute beads;
+  delay 2;
+  let settling = perform Engage beads in
+  delay 3;
+  unbox settling as beads in
+  perform Transfer beads
+
+run cleanup ()

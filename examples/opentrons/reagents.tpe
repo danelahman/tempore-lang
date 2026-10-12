@@ -1,0 +1,67 @@
+(* A tagmentation on the Opentrons Flex: thawed reagents used within 30 minutes.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/reagents.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+(* Modelled on the Opentrons Protocol Library protocols
+   illumina-nextera-XT-library-prep-part1 (a tagmentation whose reagents are
+   used promptly) and 6a93a2-part2 (a reagent kept within a time window).
+
+   A unit of duration is a minute. The protocol for the Flex, with the
+   operations performed by the functions of 'reagents_bindings.py', is
+   written by
+
+     ./tempore --grades time-interval --emit-opentrons reagents.py --bind examples/opentrons/reagents_bindings.py --time-unit minutes examples/opentrons/reagents.tpe
+
+   A thawed reagent is a box: it may be dispensed only within 30 minutes of
+   thawing. Reagents are named by strings. *)
+
+type reagent = string
+
+(* Thawing a reagent takes five to ten minutes. *)
+operation Thaw : string ~> [[0, 30]]reagent # [5, 10]
+default Thaw name = delay 6; box [0, 30] name
+
+(* Dispensing a reagent or the DNA into a column takes one to two minutes. *)
+operation Dispense : reagent * nat ~> unit # [1, 2]
+default Dispense (r, column) = delay 1
+
+operation AddDNA : nat ~> unit # [1, 2]
+default AddDNA column = delay 1
+
+(* The tagmentation holds a column at 55 °C for five minutes and cools it,
+   in five to seven minutes. *)
+operation Tagment : nat ~> unit # [5, 7]
+default Tagment column = delay 6
+
+(* Dispenses a thawed reagent into a column after the step on the column.
+   The scheme of 'after' is polymorphic in the window of the reagent, which
+   must contain the running time of the step:
+
+     ∀ α ε₀. (nat → α # ε₀) → [∣ε₀∣]reagent → (nat → unit # [1, 2] · ε₀) *)
+let after step reagent column =
+  step column;
+  unbox reagent as r in
+  perform Dispense (r, column)
+
+let load column =
+  perform Dispense ("tagment DNA buffer", column);
+  perform AddDNA column
+
+(* Correctly accepted by the typechecker: the tagment mix is dispensed two to
+   four minutes after thawing, once the column is loaded, and the
+   neutralization buffer five to seven minutes after thawing, once the
+   column is tagmented. *)
+let tagmentation column =
+  let mix = perform Thaw "amplicon tagment mix" in
+  after load mix column;
+  let neutralization = perform Thaw "neutralize tagment buffer" in
+  after (fun c -> perform Tagment c) neutralization column
+
+run tagmentation 1

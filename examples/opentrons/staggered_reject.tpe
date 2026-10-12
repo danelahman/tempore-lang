@@ -1,0 +1,38 @@
+(* As the staggered fixation example, with each column rinsed too early.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/staggered_reject.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+operation Fix : nat ~> [[12, 20]]nat # [1, 2]
+default Fix column = delay 1; box [12, 20] column
+
+operation Rinse : nat ~> unit # [1, 2]
+default Rinse column = delay 1
+
+(* Correctly rejected by the typechecker: the next column is started five
+   minutes after the rinse instead of ten, so a column is rinsed seven to
+   nine minutes after its fixative was added:
+
+     Typing error: Variable `fixing` is unboxed with grade `[7, 9]`
+       accumulated since it was bound, which is not below its box grade
+       `[12, 20]`
+       ...
+       Note: the resource inequality `[7, 9] <= [12, 20]` does not hold
+*)
+let rec stagger columns ((fixing : [[12, 20]]nat), fixed) : unit # [0, ∞) =
+  perform Rinse fixed;
+  match columns with
+  | [] -> delay 11; unbox fixing as last in perform Rinse last
+  | column :: rest ->
+      delay 5;
+      let started = perform Fix column in
+      unbox fixing as next in
+      stagger rest (started, next)
+
+run stagger [2; 3] (box [12, 20] 1, 0)

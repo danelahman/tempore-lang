@@ -1,0 +1,63 @@
+(* A staggered fixation on the Opentrons Flex: each column fixed for 12 to 20 minutes.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/staggered.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+(* Modelled on the Opentrons Protocol Library protocol 00a214-protocol-5 (a
+   fixation of at least 12 minutes, the samples fixed one after another).
+
+   A unit of duration is a minute. The protocol for the Flex, with the
+   operations performed by the functions of 'staggered_bindings.py', is
+   written by
+
+     ./tempore --grades time-interval --emit-opentrons staggered.py --bind examples/opentrons/staggered_bindings.py --time-unit minutes examples/opentrons/staggered.tpe
+
+   The columns of a plate of cells are fixed in turn, at staggered times:
+   while one column fixes, the column before it is rinsed and the column
+   after it starts fixing. A column is named by its number. *)
+
+(* Adding the fixative to a column takes one to two minutes; the column is
+   rinsed 12 to 20 minutes later. *)
+operation Fix : nat ~> [[12, 20]]nat # [1, 2]
+default Fix column = delay 1; box [12, 20] column
+
+(* Rinsing a column takes one to two minutes. *)
+operation Rinse : nat ~> unit # [1, 2]
+default Rinse column = delay 1
+
+(* Rinses the column [fixed] and starts the next column while the column in
+   [fixing] fixes. The pair of the boxed column and the column to rinse is
+   passed to the recursive call at the moment the box is created, and the
+   box is opened when its column is rinsed. *)
+let rec stagger columns ((fixing : [[12, 20]]nat), fixed) : unit # [0, ∞) =
+  perform Rinse fixed;
+  match columns with
+  | [] -> delay 11; unbox fixing as last in perform Rinse last
+  | column :: rest ->
+      delay 10;
+      let started = perform Fix column in
+      unbox fixing as next in
+      stagger rest (started, next)
+
+(* Correctly accepted by the typechecker: each column is rinsed 12 to 14
+   minutes after its fixative was added. *)
+let fixation columns =
+  match columns with
+  | [] -> ()
+  | first :: rest -> (
+      let fixing = perform Fix first in
+      match rest with
+      | [] -> delay 12; unbox fixing as column in perform Rinse column
+      | second :: rest ->
+          delay 11;
+          let started = perform Fix second in
+          unbox fixing as column in
+          stagger rest (started, column))
+
+run fixation [1; 2; 3; 4]
