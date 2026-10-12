@@ -46,8 +46,7 @@ Install the dependencies:
 
 This runs `make tempore-deps`, which installs the OCaml dependencies with opam,
 and `make opentrons-deps`, which installs the optional Opentrons simulator (see
-[Opentrons](#opentrons)) when Python 3.10 or later is available; each target can
-also be run separately.
+[Opentrons](#opentrons)) when Python 3.10 or later is available.
 
 Build the language:
 
