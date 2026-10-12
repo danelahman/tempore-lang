@@ -37,7 +37,9 @@
    and Low otherwise. A tip is boxed at level Low: it may enter a clean
    reagent only while nothing contaminated has been touched since it was
    picked up. Its type is not eternal, so it cannot be kept unboxed past an
-   operation. The monitors of the protocol check each binding function
+   operation: a tip used for several operations is the same boxed tip,
+   unboxed again before each use, and each unboxing checks that this tip is
+   still clean. Only new_tip () puts on a new tip. The monitors of the protocol check each binding function
    against the time bound of its operation's grade. A reagent is named by a
    string, of the type reagent, and a column by its number, of the type
    column.
@@ -89,47 +91,48 @@ let new_tip () =
   perform ChangeTip ();
   box (∞, Low) Tip
 
-(* Correctly accepted by the typechecker: one clean tip dispenses the buffer,
-   each step of the dilution series has a new tip, a new clean tip dispenses
-   the master mix into the final plate, each dilution is transferred into it
-   with a new tip, and the water control, added last, has a new clean one. *)
+(* Correctly accepted by the typechecker: one clean tip dispenses the buffer
+   into both columns, each step of the dilution series has a new tip, another
+   clean tip dispenses the master mix into the four columns of the final
+   plate, each dilution is transferred into it with a new tip, and the water
+   control, added last, has a new clean one. *)
 let ddpcr () =
   let mix = perform PrepareMix () in
-  let clean = new_tip () in
-  unbox clean as t in
+  let buffer_tip = new_tip () in
+  unbox buffer_tip as t in
   perform AddBuffer (t, 2);
-  unbox clean as t in
+  unbox buffer_tip as t in
   perform AddBuffer (t, 3);
-  let article = new_tip () in
-  unbox article as t in
+  let article_tip = new_tip () in
+  unbox article_tip as t in
   perform AddArticle (t, 1);
-  let step = new_tip () in
-  unbox step as t in
+  let dilution_tip = new_tip () in
+  unbox dilution_tip as t in
   perform Dilute (t, (1, 2));
-  let step = new_tip () in
-  unbox step as t in
+  let dilution_tip = new_tip () in
+  unbox dilution_tip as t in
   perform Dilute (t, (2, 3));
   unbox mix as m in
-  let clean = new_tip () in
-  unbox clean as t in
+  let mix_tip = new_tip () in
+  unbox mix_tip as t in
   perform AddMix (t, 1);
-  unbox clean as t in
+  unbox mix_tip as t in
   perform AddMix (t, 2);
-  unbox clean as t in
+  unbox mix_tip as t in
   perform AddMix (t, 3);
-  unbox clean as t in
+  unbox mix_tip as t in
   perform AddMix (t, 4);
-  let sample = new_tip () in
-  unbox sample as t in
+  let transfer_tip = new_tip () in
+  unbox transfer_tip as t in
   perform AddDilution (t, (1, 1));
-  let sample = new_tip () in
-  unbox sample as t in
+  let transfer_tip = new_tip () in
+  unbox transfer_tip as t in
   perform AddDilution (t, (2, 2));
-  let sample = new_tip () in
-  unbox sample as t in
+  let transfer_tip = new_tip () in
+  unbox transfer_tip as t in
   perform AddDilution (t, (3, 3));
-  let water = new_tip () in
-  unbox water as t in
+  let water_tip = new_tip () in
+  unbox water_tip as t in
   perform AddWater (t, 4)
 
 (* Correctly rejected by the typechecker: the tip that added the test article
