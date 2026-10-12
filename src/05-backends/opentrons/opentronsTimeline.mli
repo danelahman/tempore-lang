@@ -1,13 +1,14 @@
 (** Timelines of runs whose operations are performed by their default
     implementations.
 
-    A timeline has a virtual clock, advanced by the delays of the program, and
-    records each call of an operation that reaches the top level, unhandled, and
-    is performed by its default implementation: the run it belongs to, the time
-    it starts, the number of such calls it is nested in, and the time its
-    default implementation takes, once that has returned to the continuation of
-    the call. A call whose run ends before its default implementation returns
-    stays unfinished. The clock is not reset between runs, as in a protocol. *)
+    A timeline has a virtual clock, advanced by the delays of the program. It
+    records each delay outside every default implementation still running, and
+    each call of an operation that reaches the top level, unhandled, and is
+    performed by its default implementation: the run it belongs to, the time it
+    starts, the number of such calls it is nested in, and the time its default
+    implementation takes, once that has returned to the continuation of the
+    call. A call whose run ends before its default implementation returns stays
+    unfinished. The clock is not reset between runs, as in a protocol. *)
 
 type call = {
   run : int;  (** the run of the call, from 1 *)
@@ -18,6 +19,16 @@ type call = {
   elapsed : Grades.Rational.t option;
       (** the time its default implementation takes, once it has returned *)
 }
+
+type wait = {
+  run : int;  (** the run of the delay, from 1 *)
+  start : Grades.Rational.t;  (** the time of the clock at the delay *)
+  duration : Grades.Rational.t;  (** the duration of the delay *)
+}
+(** A delay outside every default implementation still running. *)
+
+(** An entry of a timeline. *)
+type entry = Call of call | Delay of wait
 
 (** How a run ends. *)
 type outcome =
@@ -42,7 +53,9 @@ val clock : t -> Grades.Rational.t
 (** [clock t] is the time of the clock of [t]. *)
 
 val delay : Grades.Rational.t -> t -> t
-(** [delay q t] advances the clock of [t] by [q]. *)
+(** [delay q t] advances the clock of [t] by [q], and records the delay if no
+    default implementation of a call of [t] is still running; a delay inside one
+    counts towards the time of the call. *)
 
 val perform : string -> t -> t
 (** [perform op t] records a call of [op] performed by its default
@@ -56,6 +69,10 @@ val resume : t -> t
 val finish : outcome -> t -> t
 (** [finish outcome t] ends the current run of [t] with [outcome], leaving the
     calls still running unfinished; the next run starts at the same clock. *)
+
+val entries : t -> entry list
+(** [entries t] is the calls and the delays recorded of [t], in the order of
+    their start. *)
 
 val calls : t -> call list
 (** [calls t] is the calls of [t], in the order of their start. *)

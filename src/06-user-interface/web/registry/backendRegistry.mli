@@ -111,8 +111,9 @@ val opentrons : entry
     the binding file, the robot, the time unit and the monitor policy. Without a
     binding file the program compiles to a plain Python program
     ({!OpentronsBackend.OpentronsEmit.plain_program}). The operation model is
-    the timeline of the run ({!OpentronsBackend.OpentronsTimeline}), with the
-    verdicts of the monitors of the running-time bounds. *)
+    the timeline of the run ({!OpentronsBackend.OpentronsTimeline}): its calls,
+    with the verdicts of the monitors of the running-time bounds, and its
+    delays. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)

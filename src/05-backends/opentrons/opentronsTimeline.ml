@@ -10,16 +10,18 @@ type call = {
   elapsed : Rational.t option;
 }
 
+type wait = { run : int; start : Rational.t; duration : Rational.t }
+type entry = Call of call | Delay of wait
 type outcome = Returned of string | Stopped of string
 type finished = { index : int; at : Rational.t; outcome : outcome }
 
-(* The calls by their position in the order of starts; [running] holds the
+(* The entries by their position in the order of starts; [running] holds the
    positions of the calls whose default implementations have not returned,
    the innermost first. *)
 type t = {
   clock : Rational.t;
   run : int;
-  calls : call IntMap.t;
+  entries : entry IntMap.t;
   running : int list;
   finished : finished list;  (** the latest first *)
 }
@@ -28,16 +30,27 @@ let empty =
   {
     clock = Rational.zero;
     run = 1;
-    calls = IntMap.empty;
+    entries = IntMap.empty;
     running = [];
     finished = [];
   }
 
 let clock t = t.clock
-let delay q t = { t with clock = Rational.add t.clock q }
+
+let delay q t =
+  let entries =
+    match t.running with
+    | [] ->
+        IntMap.add
+          (IntMap.cardinal t.entries)
+          (Delay { run = t.run; start = t.clock; duration = q })
+          t.entries
+    | _ :: _ -> t.entries
+  in
+  { t with clock = Rational.add t.clock q; entries }
 
 let perform op t =
-  let index = IntMap.cardinal t.calls in
+  let index = IntMap.cardinal t.entries in
   let call =
     {
       run = t.run;
@@ -47,16 +60,26 @@ let perform op t =
       elapsed = None;
     }
   in
-  { t with calls = IntMap.add index call t.calls; running = index :: t.running }
+  {
+    t with
+    entries = IntMap.add index (Call call) t.entries;
+    running = index :: t.running;
+  }
 
 let resume t =
   match t.running with
   | [] -> t
   | index :: running ->
-      let close call =
-        { call with elapsed = Some (Rational.sub t.clock call.start) }
+      let close = function
+        | Call call ->
+            Call { call with elapsed = Some (Rational.sub t.clock call.start) }
+        | Delay _ as entry -> entry
       in
-      { t with calls = IntMap.update index (Option.map close) t.calls; running }
+      {
+        t with
+        entries = IntMap.update index (Option.map close) t.entries;
+        running;
+      }
 
 let finish outcome t =
   {
@@ -66,7 +89,13 @@ let finish outcome t =
     finished = { index = t.run; at = t.clock; outcome } :: t.finished;
   }
 
-let calls t = List.map snd (IntMap.bindings t.calls)
+let entries t = List.map snd (IntMap.bindings t.entries)
+
+let calls t =
+  List.filter_map
+    (function Call call -> Some call | Delay _ -> None)
+    (entries t)
+
 let runs t = List.rev t.finished
 
 let within (lo, hi) d =

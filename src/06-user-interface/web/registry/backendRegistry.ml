@@ -184,10 +184,11 @@ let show_bounds ((lo, hi) : Grade.running_time) =
   lower ^ ", " ^ upper
 
 (* The report of a timeline, its times in the unit [symbol]: a row per call,
-   indented by its depth, and a note per run ended and on the clock. *)
+   indented by its depth, a row per delay recorded, and a note per run ended
+   and on the clock. *)
 let timeline_report ~bounds ~symbol timeline =
   let time q = Rational.show q ^ " " ^ symbol in
-  let row (call : Timeline.call) =
+  let call_row (call : Timeline.call) =
     let declared = bounds call.op in
     let verdict = Timeline.verdict declared call in
     {
@@ -212,6 +213,24 @@ let timeline_report ~bounds ~symbol timeline =
         | Unfinished -> Pending);
     }
   in
+  let delay_row (wait : Timeline.wait) =
+    {
+      cells =
+        [
+          string_of_int wait.run;
+          time wait.start;
+          "delay";
+          time wait.duration;
+          "—";
+          "—";
+        ];
+      status = Plain;
+    }
+  in
+  let row = function
+    | Timeline.Call call -> call_row call
+    | Timeline.Delay wait -> delay_row wait
+  in
   let note (run : Timeline.finished) =
     match run.outcome with
     | Returned value ->
@@ -225,7 +244,7 @@ let timeline_report ~bounds ~symbol timeline =
   {
     title = "Timeline";
     columns = [ "Run"; "Start"; "Operation"; "Time"; "Bounds"; "Monitor" ];
-    rows = List.map row (Timeline.calls timeline);
+    rows = List.map row (Timeline.entries timeline);
     notes =
       List.map note (Timeline.runs timeline)
       @ [ "Clock: " ^ time (Timeline.clock timeline) ^ "." ];
@@ -261,7 +280,8 @@ let opentrons =
     name = "Opentrons";
     description =
       "Opentrons protocols in Python, with monitors of the running times of \
-       operations; interpreter runs record a timeline of the operations.";
+       operations; interpreter runs record a timeline of the operations and \
+       delays.";
     inputs = opentrons_inputs;
     compiler =
       Some { compile = opentrons_compile; code_name = "Opentrons protocol" };

@@ -46,6 +46,39 @@ let () =
   | _ -> fail "timeline: the runs ended");
   if not (Rational.equal (Timeline.clock t) (q 4)) then fail "timeline: clock"
 
+(* Delays outside every default implementation are entries of their own;
+   delays inside one count towards the time of its call. *)
+let show_entry = function
+  | Timeline.Call c ->
+      Printf.sprintf "%d %s %s %s" c.run c.op (Rational.show c.start)
+        (Option.fold ~none:"-" ~some:Rational.show c.elapsed)
+  | Timeline.Delay d ->
+      Printf.sprintf "%d delay %s %s" d.run (Rational.show d.start)
+        (Rational.show d.duration)
+
+let () =
+  let t =
+    Timeline.empty
+    |> Timeline.delay (q 2)
+    |> Timeline.delay (q 3)
+    |> Timeline.perform "A"
+    |> Timeline.delay (q 1)
+    |> Timeline.resume
+    |> Timeline.delay (q 4)
+    |> Timeline.finish (Returned "()")
+    |> Timeline.delay (q 1)
+  in
+  let entries = List.map show_entry (Timeline.entries t) in
+  if
+    entries
+    <> [
+         "1 delay 0 2"; "1 delay 2 3"; "1 A 5 1"; "1 delay 6 4"; "2 delay 10 1";
+       ]
+  then fail "timeline delays: %s" (String.concat "; " entries);
+  if List.length (Timeline.calls t) <> 1 then fail "timeline delays: calls";
+  if not (Rational.equal (Timeline.clock t) (q 11)) then
+    fail "timeline delays: clock"
+
 let () =
   let check name bounds d expected =
     if Timeline.within bounds (q d) <> expected then
@@ -146,10 +179,12 @@ let run_example (entry : Manifest.entry) =
               List.iter print_endline report.notes
             end;
             if report.rows = [] then fail "%s: no operation recorded" entry.path;
+            (* a call within its bounds, or a delay, unmonitored *)
             List.iter
               (fun (row : BackendRegistry.row) ->
-                if row.status <> Good then
-                  fail "%s: %s" entry.path (String.concat " " row.cells))
+                match (row.status, row.cells) with
+                | Good, _ | Plain, [ _; _; "delay"; _; "—"; "—" ] -> ()
+                | _ -> fail "%s: %s" entry.path (String.concat " " row.cells))
               report.rows;
             if
               not
@@ -230,6 +265,20 @@ let () =
       ]
     in
     if calls <> expected then fail "nested: %s" (String.concat "; " calls);
+    let entries = List.map show_entry (Timeline.entries t) in
+    let expected =
+      [
+        "1 Outer 0 3";
+        "1 Inner 1 1";
+        "1 delay 3 5";
+        "1 Outer 8 3";
+        "1 Inner 9 1";
+        "2 Outer 11 3";
+        "2 Inner 12 1";
+      ]
+    in
+    if entries <> expected then
+      fail "nested entries: %s" (String.concat "; " entries);
     match Timeline.runs t with
     | [ { outcome = Returned "()"; _ }; { outcome = Stopped "Missing"; _ } ] ->
         ()

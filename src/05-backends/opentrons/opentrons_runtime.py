@@ -340,6 +340,23 @@ class tempore_Event:
         )
 
 
+class tempore_Wait:
+    """A delay outside every default implementation: the clock's time at its
+    start and its length, in seconds."""
+
+    __slots__ = ("start", "duration")
+
+    def __init__(self, start, duration):
+        self.start = start
+        self.duration = duration
+
+    def __str__(self):
+        return "At %s s: delay of %s s" % (
+            tempore_format_quantity(self.start),
+            tempore_format_quantity(self.duration),
+        )
+
+
 tempore_MONITOR_POLICIES = ("abort", "warn", "off")
 
 
@@ -362,6 +379,8 @@ class tempore_Runtime:
       which waits that long, or None;
     on_event: a function called with each monitored call as it completes,
       before its violation is acted on, or None;
+    on_wait: a function called with each delay outside every default
+      implementation, as a tempore_Wait, before it waits, or None;
     report: the function that reports a warning, given its message.
 
     The timeline lists the monitored calls in order, and violations those
@@ -379,6 +398,7 @@ class tempore_Runtime:
         monitor="abort",
         on_delay=None,
         on_event=None,
+        on_wait=None,
         report=_tempore_warn_to_stderr,
     ):
         if monitor not in tempore_MONITOR_POLICIES:
@@ -390,6 +410,7 @@ class tempore_Runtime:
         self.monitor = monitor
         self.on_delay = on_delay
         self.on_event = on_event
+        self.on_wait = on_wait
         self.report = report
         self.timeline = []
         self.violations = []
@@ -401,9 +422,12 @@ class tempore_Runtime:
     def now(self):
         return self.clock.now()
 
-    def delay(self, duration):
-        """Delays for `duration` units of the program."""
+    def delay(self, duration, nested=False):
+        """Delays for `duration` units of the program, inside a default
+        implementation if `nested`."""
         seconds = self.seconds(duration)
+        if not nested and self.on_wait is not None:
+            self.on_wait(tempore_Wait(self.clock.now(), seconds))
         if self.on_delay is not None:
             self.on_delay(float(seconds))
         self.clock.advance(seconds)
@@ -459,11 +483,13 @@ def tempore_execute(comp, defaults=None):
     operation call no handler handles is unhandled: it calls the operation's
     binding function and continues with its result, or else runs the default
     implementation outside every handler and then continues, or else raises
-    tempore_UnhandledOperation. A delay delays by `tempore_rt.delay`."""
+    tempore_UnhandledOperation. A delay delays by `tempore_rt.delay`;
+    `running` counts the default implementations that have not returned."""
     if defaults is None:
         defaults = {}
     frames = None
     segments = None
+    running = 0
     while True:
         cls = comp.__class__
         if cls is tempore_App:
@@ -504,6 +530,7 @@ def tempore_execute(comp, defaults=None):
             elif op in defaults:
                 frames = (tempore_partial(tempore_Reinstate, (comp.cont, frames), segments), None)
                 segments = None
+                running += 1
                 comp = defaults[op](comp.arg)
             else:
                 raise tempore_UnhandledOperation(op, comp.arg)
@@ -519,13 +546,14 @@ def tempore_execute(comp, defaults=None):
         elif cls is tempore_Reinstate:
             frames = comp.frames
             segments = comp.segments
+            running -= 1
             comp = tempore_Ret(comp.value)
         elif cls is tempore_Handle:
             segments = ((comp.handler, frames), segments)
             frames = None
             comp = comp.comp
         elif cls is tempore_Delay:
-            tempore_rt.delay(comp.duration)
+            tempore_rt.delay(comp.duration, running > 0)
             comp = comp.comp
         else:
             raise TypeError("not a computation: " + repr(comp))
@@ -1075,7 +1103,8 @@ def tempore_run_protocol(protocol, runs, setup, binding, time_unit=1, monitor="a
     and on the robot it is the monotonic clock of the host. A delay calls
     `protocol.delay`, and a warning of a monitor `protocol.comment`. Each
     run is announced by a comment, each monitored call is commented as it
-    completes, and the value of the run is commented at its end; an error of
+    completes, each delay outside every default implementation before it
+    waits, and the value of the run is commented at its end; an error of
     a run, a violation of running-time bounds under the policy "abort"
     included, ends the protocol with that error, after the comment of the
     call that violated them."""
@@ -1089,6 +1118,7 @@ def tempore_run_protocol(protocol, runs, setup, binding, time_unit=1, monitor="a
         monitor=monitor,
         on_delay=lambda seconds: protocol.delay(seconds=seconds),
         on_event=lambda event: protocol.comment("Tempore timeline: %s" % event),
+        on_wait=lambda wait: protocol.comment("Tempore timeline: %s" % wait),
         report=lambda message: protocol.comment("Tempore warning: " + message),
     )
     for number, run in enumerate(runs, 1):
