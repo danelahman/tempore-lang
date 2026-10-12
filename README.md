@@ -968,7 +968,7 @@ instance:
 
 See [`examples/handlers/lower_bound.tpe`](examples/handlers/lower_bound.tpe),
 [`examples/handlers/upper_bound.tpe`](examples/handlers/upper_bound.tpe)
-and [`examples/3dprint/handlers.tpe`](examples/3dprint/handlers.tpe).
+and [`examples/handlers/3d_printing.tpe`](examples/handlers/3d_printing.tpe).
 
 ### Contexts of operation cases
 
@@ -999,7 +999,7 @@ grade implies must moreover lie within the declared ones, an open end excluded,
 so that with `A` declared `within [1, 2)` the default `default A () = delay 2`
 is rejected under every monoid of timed operations. Elsewhere a default's grade
 must be a sub-grade of the operation's grade. See
-[`examples/3dprint/traces.tpe`](examples/3dprint/traces.tpe).
+[`examples/traces_timed_ops/3d_printing.tpe`](examples/traces_timed_ops/3d_printing.tpe).
 
 ## Recursion
 

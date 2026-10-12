@@ -63,11 +63,13 @@ Effect handlers | Lower bounds | time-lower-bound | handlers/lower_bound.tpe | A
 Effect handlers | Upper bounds | time-upper-bound | handlers/upper_bound.tpe | An operation case may resume its continuation at any point up to the operation's grade, or not at all.
 Effect handlers | Nested | time-lower-bound | handlers/nested.tpe | Nested handlers each resume their own continuation, quantifying over one rigid effect per level of nesting.
 Effect handlers | Nested (rejected) | time-lower-bound | handlers/nested_reject.tpe | The nested-handlers example with one inner continuation left unresumed, correctly rejected.
+Effect handlers | 3D printing | time-lower-bound | handlers/3d_printing.tpe | The 3D-printing pipeline with each stage an operation, handled by clauses that respect its timing.
 
-group | Time grades | Time | Boxes usable before or within a duration, whole or fractional.
+group | Time grades | Time | Boxes usable after, before or within a duration, whole or fractional.
 Time grades | Upper bounds | time-upper-bound | time/upper_bounds.tpe | A box may be unboxed at any point up to its upper-bound grade.
 Time grades | Intervals | time-interval | time/intervals.tpe | A box grade pairs a lower and an upper time bound, unboxable only within that interval.
 Time grades | Intervals (rational) | time-interval-rational | time/intervals_rational.tpe | A medication schedule in hours, whose doses and reports are due within intervals with fractional endpoints.
+Time grades | 3D printing | time-lower-bound | time/3d_printing.tpe | The stages of a 3D print, boxed at the lower time bounds each stage demands.
 
 group | Traces | Traces | Finite sets of traces of operations and delays, compared by inclusion.
 Traces | Upper bounds | traces-upper-bound | traces/upper_bounds.tpe | A door controller whose visits are graded by the exact traces they may exhibit, a delay paying for no operation.
@@ -77,6 +79,7 @@ group | Traces of timed operations | Traces (timed ops) | Finite sets of traces 
 Traces of timed operations | Lower bounds | traces-timed-lower-bound | traces_timed_ops/lower_bounds.tpe | A 3D-printing pipeline whose operations must be covered by the traces a box demands, delays banking towards them.
 Traces of timed operations | Upper bounds | traces-timed-upper-bound | traces_timed_ops/upper_bounds.tpe | The same pipeline under the allowance order, where a duration pays for operations at their upper running-time bounds.
 Traces of timed operations | Intervals | traces-timed-interval | traces_timed_ops/intervals.tpe | The pipeline graded by a pair of a coverage and an allowance bound, compared componentwise.
+Traces of timed operations | 3D printing | traces-timed-interval | traces_timed_ops/3d_printing.tpe | The full pipeline graded by the traces of operations it may exhibit, running-time bounds included.
 Traces of timed operations | Intervals (rational) | traces-timed-interval-rational | traces_timed_ops/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds and whose windows are traces with fractional durations.
 
 group | Regular expressions | Regex | Regular languages of traces of operations and delays.
@@ -88,12 +91,14 @@ Regular expressions of timed operations | Lower bounds (symbolic) | regex-timed-
 Regular expressions of timed operations | Upper bounds (symbolic) | regex-timed-upper-bound-symbolic | regular_timed_ops/upper_bounds.tpe | A sensor station graded by regular upper bounds whose ticks pay for operations at their upper running-time bounds.
 Regular expressions of timed operations | Intervals (symbolic) | regex-timed-interval-symbolic | regular_timed_ops/intervals.tpe | The coating line graded by pairs of a regular lower and a regular upper bound, compared componentwise.
 Regular expressions of timed operations | Intervals (rational, symbolic) | regex-timed-interval-rational-symbolic | regular_timed_ops/intervals_rational.tpe | A weather station timed in seconds, whose operations declare fractional running-time bounds, one open, and whose windows are regular lower and upper bounds with intervals of durations.
+Regular expressions of timed operations | Mail session | regex-timed-upper-bound-symbolic | regular_timed_ops/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations taking their declared running times.
 
 group | Security levels | Security | Levels touched, alone or with time bounds and outputs.
 Security levels | Levels | security-levels | levels/security.tpe | A box at a security level is out of reach once a higher level has been touched since boxing.
 Security levels | Embargoes | time-lower-bound-levels | levels/time_lower.tpe | A box paired with a time lower bound and a level: an embargo with a taint check.
 Security levels | Expiring capabilities | time-upper-bound-levels | levels/time_upper.tpe | A box paired with a time upper bound and a level: a capability that expires and can be revoked by a taint.
 Security levels | Flow-sensitive outputs | flow-levels | levels/flow.tpe | A report whose public post must come before the vault is read, each output graded by the level touched before it.
+Security levels | Staged release | time-lower-bound-levels | levels/staged_release.tpe | A release deployed in stages, each stage unboxing its approval only after the deployed hosts have been observed and only if nothing untrusted has been touched since the approval, with probes repeated within a budget and hotfixes fetched at the level High.
 
 group | Semidirect products | Semidirect | Grades whose second component is shifted by the first.
 Semidirect products | Resource levels | resource-levels | semidirect/resource_levels.tpe | File copies, uploads and log rotations graded by the trough, the net change and the peak of the files and connections they hold.
@@ -102,13 +107,6 @@ Semidirect products | Mode-switch costs | mode-switch-costs | semidirect/mode_sw
 
 group | Operation counts | Counts | How often each operation is called.
 Operation counts | Upper bounds | counts-upper-bound | counts/rate_limits.tpe | A client whose logins and requests are checked against rate limits on each operation.
-
-group | Case studies | Case studies | Larger programs using many features together.
-Case studies | 3D printing: time bounds | time-lower-bound | 3dprint/time.tpe | The stages of a 3D print, boxed at the lower time bounds each stage demands.
-Case studies | 3D printing: with effect handlers | time-lower-bound | 3dprint/handlers.tpe | The same pipeline with each stage an operation, handled by clauses that respect its timing.
-Case studies | 3D printing: with trace grades | traces-timed-interval | 3dprint/traces.tpe | The same pipeline graded by the traces of operations it may exhibit, running-time bounds included.
-Case studies | Staged release | time-lower-bound-levels | rollout/rollout.tpe | A release deployed in stages, each stage unboxing its approval only after the deployed hosts have been observed and only if nothing untrusted has been touched since the approval, with probes repeated within a budget and hotfixes fetched at the level High.
-Case studies | Mail session | regex-timed-upper-bound-symbolic | sessions/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations taking their declared running times.
 
 group | Opentrons protocols | Opentrons | Laboratory protocols compiled to Opentrons Python, their operations performed by binding functions.
 Opentrons protocols | ELISA | time-interval | opentrons/elisa.tpe | An enzyme-linked immunosorbent assay (ELISA) whose coated plate incubates before washing, whose diluted antibody is used within 20 minutes and whose development is stopped within a window. | opentrons | binding=opentrons/elisa_bindings.py time-unit=minutes

@@ -2,7 +2,8 @@
 
    Run this example with the 'time-lower-bound-levels' grading monoid, e.g.
 
-     ./tempore --grades time-lower-bound-levels examples/rollout/rollout.tpe
+     ./tempore --grades time-lower-bound-levels \
+       examples/levels/staged_release.tpe
 
    Grades (n, l): at least n ticks (time steps), nothing touched above level l
      - Unit (0, Low): no time demanded and nothing touched above Low

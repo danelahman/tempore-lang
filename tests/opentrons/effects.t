@@ -46,12 +46,12 @@ The handler examples.
   === Run 4 ===
   return 42
   
-  $ parity time-lower-bound ../../examples/3dprint/handlers.tpe
+  $ parity time-lower-bound ../../examples/handlers/3d_printing.tpe
   === Run 1 ===
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   
-  $ parity traces-timed-interval ../../examples/3dprint/traces.tpe
+  $ parity traces-timed-interval ../../examples/traces_timed_ops/3d_printing.tpe
   === Run 1 ===
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   

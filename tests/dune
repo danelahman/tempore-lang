@@ -3,10 +3,9 @@
   ../tempore
   (source_tree .)
   (source_tree ../examples/introduction)
+  (source_tree ../examples/levels)
   (source_tree ../examples/regular)
   (source_tree ../examples/regular_timed_ops)
   (source_tree ../examples/time)
-  (source_tree ../examples/rollout)
-  (source_tree ../examples/sessions)
   (source_tree ../examples/traces)
   (source_tree ../examples/traces_timed_ops)))

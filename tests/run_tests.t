@@ -6812,7 +6812,8 @@ implementations above, the examples over rational delays excepted:
   >     *_rational.tpe) continue;;
   >     regex_timed_rational_*.tpe) continue;;
   >     */regular_timed_ops/lower_bounds.tpe | *timed_lower*.tpe) grades=regex-timed-lower-bound;;
-  >     */regular_timed_ops/upper_bounds.tpe | *timed_upper*.tpe) grades=regex-timed-upper-bound;;
+  >     */regular_timed_ops/upper_bounds.tpe | */regular_timed_ops/mail_session.tpe \
+  >     | *timed_upper*.tpe) grades=regex-timed-upper-bound;;
   >     */regular_timed_ops/intervals*.tpe | *timed_interval*.tpe) grades=regex-timed-interval;;
   >     *) grades=regex-upper-bound;;
   >   esac
@@ -6890,6 +6891,110 @@ implementations above, the examples over rational delays excepted:
     { resource_0 ↦ Part "gear" # {Coat; 4} },
     {1},
     {4},
+    {1}
+  ]
+  
+  ======================================================================
+  ../examples/regular_timed_ops/mail_session.tpe (regex-timed-upper-bound-symbolic-by-letters)
+  ======================================================================
+  === Run 1 ===
+  return (Checkpoint 5, 2)
+  State: [
+    { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
+    {2},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 2 ===
+  return (Message (1, "Agenda", false))
+  State: [
+    {2},
+    {1},
+    {1}
+  ]
+  
+  === Run 3 ===
+  return 3
+  State: [
+    { resource_1 ↦
+        fun op_var ↦ handle
+                       return op_var
+                     with fetch_then_flag
+        # {Login; (Fetch | Store)*; Logout}
+    },
+    {2},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 4 ===
+  return 1
+  State: [
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  ======================================================================
+  ../examples/regular_timed_ops/mail_session.tpe (regex-timed-upper-bound-letter-derivatives)
+  ======================================================================
+  === Run 1 ===
+  return (Checkpoint 5, 2)
+  State: [
+    { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
+    {2},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 2 ===
+  return (Message (1, "Agenda", false))
+  State: [
+    {2},
+    {1},
+    {1}
+  ]
+  
+  === Run 3 ===
+  return 3
+  State: [
+    { resource_1 ↦
+        fun op_var ↦ handle
+                       return op_var
+                     with fetch_then_flag
+        # {Login; (Fetch | Store)*; Logout}
+    },
+    {2},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1},
+    {1}
+  ]
+  
+  === Run 4 ===
+  return 1
+  State: [
+    {1},
+    {1},
+    {1},
     {1}
   ]
   
@@ -7973,10 +8078,10 @@ The rational-time example runs to its values under its intervals of hours.
   ]
   
 
-The staged-release case study runs to its values; the resource states are
+The staged-release example runs to its values; the resource states are
 omitted.
 
-  $ ../tempore --grades time-lower-bound-levels ../examples/rollout/rollout.tpe | awk '/^State:/ { s = 1 } /^=== Run/ { s = 0 } !s'
+  $ ../tempore --grades time-lower-bound-levels ../examples/levels/staged_release.tpe | awk '/^State:/ { s = 1 } /^=== Run/ { s = 0 } !s'
   === Run 1 ===
   return (Stage ((Host "web-1")::[], 
                  Stage ((Host "web-2")::(Host "web-3")::[], 
@@ -8000,9 +8105,9 @@ omitted.
   === Run 8 ===
   return (Completed 5, "release notes")
 
-The mail-session case study performs its operations by their defaults.
+The mail-session example performs its operations by their defaults.
 
-  $ ../tempore --grades regex-timed-upper-bound-symbolic ../examples/sessions/mail_session.tpe
+  $ ../tempore --grades regex-timed-upper-bound-symbolic ../examples/regular_timed_ops/mail_session.tpe
   === Run 1 ===
   return (Checkpoint 5, 2)
   State: [

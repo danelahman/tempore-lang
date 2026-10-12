@@ -9,5 +9,5 @@
   (glob_files *.py)
   (source_tree stub)
   (source_tree %{project_root}/examples/handlers)
-  (source_tree %{project_root}/examples/3dprint)
+  (source_tree %{project_root}/examples/traces_timed_ops)
   (source_tree %{project_root}/examples/opentrons)))

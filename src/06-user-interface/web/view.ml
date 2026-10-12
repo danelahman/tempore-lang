@@ -1875,7 +1875,7 @@ let view_gallery ~selected ~backend query =
                   ([
                      class_ "example-gallery-search";
                      attr "placeholder"
-                       "Search examples, e.g. rollout, levels, handlers, regex";
+                       "Search examples, e.g. release, levels, handlers, regex";
                      attr "aria-label" "Search examples";
                      str_prop "value" query;
                      oninput (fun query -> Model.SearchGallery query);

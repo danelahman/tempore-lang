@@ -4,7 +4,7 @@
    Run this example with the 'regex-timed-upper-bound-symbolic' grading monoid, e.g.
 
      ./tempore --grades regex-timed-upper-bound-symbolic \
-       examples/sessions/mail_session.tpe
+       examples/regular_timed_ops/mail_session.tpe
 
    Grades {...}: regular languages of traces in the allowance order
      - Unit {0}: the empty trace, the least grade
