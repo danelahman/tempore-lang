@@ -7990,6 +7990,7 @@ single-dash form of the help option is not accepted.
     --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30)
     --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
     --debug           Print the inferred type schemes of the top-level definitions before running
+    --emit-arduino    Typecheck the files and write them, compiled to C++, to the given directory, without running them; a name without a directory component names a directory in _arduino/projects
     --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them; a file name without a directory names a file in _opentrons/protocols
     --grades          Selects the grades (default: time-lower-bound); accepted:
         Time:
@@ -8040,6 +8041,7 @@ single-dash form of the help option is not accepted.
           counts-upper-bound                        Upper bounds
         Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.
     --help            Display this list of options
+    --host-runs       With --emit-arduino, also compile the run commands, and write a main program for the host that executes them and prints their results as the interpreter does
     --monitor         Set what a protocol written with --bind does when an operation's running time is outside its bounds: abort, warn or off (default: abort)
     --no-stdlib       Do not load the standard library
     --robot           Set the robot of the protocol written with --bind: flex (default: flex)

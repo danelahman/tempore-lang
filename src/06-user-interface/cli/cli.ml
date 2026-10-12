@@ -32,6 +32,8 @@ type config = {
   typecheck_only : bool;
   resource_type : string;
   emit_opentrons : string option;
+  emit_arduino : string option;
+  host_runs : bool;
   bind : string option;
   robot : OpentronsBackend.OpentronsProtocol.robot option;
   api_level : string option;
@@ -105,6 +107,8 @@ let parse_args_to_config () =
   and typecheck_only = ref false
   and resource_type = ref Grades.GradeRegistry.default_name
   and emit_opentrons = ref None
+  and emit_arduino = ref None
+  and host_runs = ref false
   and bind = ref None
   and robot = ref None
   and api_level = ref None
@@ -145,6 +149,11 @@ let parse_args_to_config () =
           Arg.Set debug,
           " Print the inferred type schemes of the top-level definitions \
            before running" );
+        ( "--emit-arduino",
+          Arg.String (fun directory -> emit_arduino := Some directory),
+          " Typecheck the files and write them, compiled to C++, to the given \
+           directory, without running them; a name without a directory \
+           component names a directory in _arduino/projects" );
         ( "--emit-opentrons",
           Arg.String (fun filename -> emit_opentrons := Some filename),
           " Typecheck the files and write them, compiled to Python, to the \
@@ -158,6 +167,11 @@ let parse_args_to_config () =
           Arg.Unit
             (fun () -> raise (Arg.Help (Arg.usage_string !options usage))),
           " Display this list of options" );
+        ( "--host-runs",
+          Arg.Set host_runs,
+          " With --emit-arduino, also compile the run commands, and write a \
+           main program for the host that executes them and prints their \
+           results as the interpreter does" );
         ( "--monitor",
           Arg.String
             (choice "--monitor"
@@ -220,14 +234,25 @@ let parse_args_to_config () =
     end
   in
   requires "--bind" (!bind <> None) "--emit-opentrons" (!emit_opentrons <> None);
+  requires "--host-runs" !host_runs "--emit-arduino" (!emit_arduino <> None);
   List.iter
-    (fun (option, given) ->
-      if given && !emit_opentrons <> None then begin
-        Printf.eprintf "%s: option '%s' cannot be used with '%s'.\n"
-          Sys.argv.(0) option "--emit-opentrons";
-        exit 2
-      end)
-    [ ("--timeline", !timeline); ("--timeline-full", !timeline_full) ];
+    (fun (emit, emitting) ->
+      List.iter
+        (fun (option, given) ->
+          if given && emitting then begin
+            Printf.eprintf "%s: option '%s' cannot be used with '%s'.\n"
+              Sys.argv.(0) option emit;
+            exit 2
+          end)
+        [
+          ("--timeline", !timeline);
+          ("--timeline-full", !timeline_full);
+          ("--emit-arduino", emit <> "--emit-arduino" && !emit_arduino <> None);
+        ])
+    [
+      ("--emit-opentrons", !emit_opentrons <> None);
+      ("--emit-arduino", !emit_arduino <> None);
+    ];
   List.iter
     (fun (option, given) -> requires option given "--bind" (!bind <> None))
     [
@@ -245,6 +270,8 @@ let parse_args_to_config () =
     typecheck_only = !typecheck_only;
     resource_type = !resource_type;
     emit_opentrons = !emit_opentrons;
+    emit_arduino = !emit_arduino;
+    host_runs = !host_runs;
     bind = !bind;
     robot = !robot;
     api_level = !api_level;
@@ -368,6 +395,42 @@ let write_file filename contents =
     prerr_endline ("Error: " ^ message);
     exit 1
 
+(* The directory written by --emit-arduino under [name]: [name] in
+   [_arduino/projects] if it has no directory component, else [name]. *)
+let arduino_directory name =
+  if Filename.basename name = name then
+    Filename.concat (Filename.concat "_arduino" "projects") name
+  else name
+
+(* Writes to the directory [directory], created if missing, the C++ files of
+   the [commands] of the program, those of the standard library being the
+   commands located in it. *)
+let emit_arduino config ~directory commands =
+  let library, sources =
+    List.partition
+      (fun (cmd : _ Ast.command) -> cmd.at.filename = stdlib_filename)
+      commands
+  in
+  let program =
+    ArduinoBackend.ArduinoFragment.check ~runs:config.host_runs ~library sources
+  in
+  let source =
+    match List.rev config.filenames with
+    | last :: _ -> Filename.basename last
+    | [] -> "the standard library"
+  in
+  let files =
+    ArduinoBackend.ArduinoEmit.files ~host_runs:config.host_runs ~source program
+  in
+  (try make_directory directory
+   with Sys_error message ->
+     prerr_endline ("Error: " ^ message);
+     exit 1);
+  List.iter
+    (fun (name, contents) ->
+      write_file (Filename.concat directory name) contents)
+    files
+
 (* Writes to [filename] the Opentrons protocol of the [commands] of the
    program, with the binding file [binding_name], or reports the errors that
    refuse it. The protocol is named after the last source file. *)
@@ -486,6 +549,10 @@ let run_with (module G : Grades.Grade.S) config =
     end;
     (* loading the files has typechecked every command, the [run]s included *)
     match (Option.map emit_path config.emit_opentrons, config.bind) with
+    | _ when config.emit_arduino <> None ->
+        emit_arduino config
+          ~directory:(arduino_directory (Option.get config.emit_arduino))
+          program.commands
     | Some filename, None ->
         write_file filename
           (OpentronsBackend.OpentronsEmit.plain_program

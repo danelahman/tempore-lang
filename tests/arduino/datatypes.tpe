@@ -1,0 +1,31 @@
+(* Tuples, datatypes without type parameters, nested matches, top-level
+   constants, and comparisons of datatypes in the order of their
+   constructors. *)
+
+type mode = Idle | Armed | Fault of nat
+type shape = Circle of float | Rect of float * float | Group of shape_pair
+and shape_pair = Pair of mode * mode
+
+let origin = (0, (Idle, Fault 3))
+
+let next mode =
+  match mode with
+  | Idle -> Armed
+  | Armed -> Fault 0
+  | Fault (n + 1) -> Fault n
+  | Fault 0 -> Idle
+
+let describe s =
+  match s with
+  | Circle _ -> 1
+  | Rect (w, _) -> if w > 1.0 then 2 else 3
+  | Group (Pair (Fault n, Idle)) -> n + 100
+  | Group (Pair (a, b) as p) -> if a = b then 4 else (match p with Pair (Idle, _) -> 5 | _ -> 6)
+
+run origin
+run (next Idle, next Armed, next (Fault 2), next (Fault 0))
+run (describe (Circle 1.0), describe (Rect (2.0, 1.0)), describe (Rect (0.5, 1.0)))
+run (describe (Group (Pair (Fault 7, Idle))), describe (Group (Pair (Armed, Armed))), describe (Group (Pair (Idle, Armed))), describe (Group (Pair (Armed, Idle))))
+run (Idle < Armed, Fault 2 < Fault 3, Armed < Fault 0, Fault 1 = Fault 1, max Idle (Fault 1))
+run Group (Pair (Fault 1, Idle))
+run (Rect (1.5, 2.5), Circle 0.5)

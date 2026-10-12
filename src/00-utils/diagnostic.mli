@@ -4,7 +4,13 @@
     user interfaces do not know; the locations stay structured, since the
     interfaces act on them. *)
 
-type kind = Syntax | Typing | Runtime | Fatal
+type kind =
+  | Syntax
+  | Typing
+  | Compilation
+  | Runtime
+  | Fatal
+      (** [Compilation] is a rejection of a program a backend cannot compile. *)
 
 type label = { span : Location.t; text : string }
 (** A related place, with what it contributes to the error: where a variable was

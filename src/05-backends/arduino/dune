@@ -1,0 +1,14 @@
+(library
+ (name arduinoBackend)
+ (libraries utils language grades zarith))
+
+; The runtime header is embedded in the library as the string
+; Tempore_arduino_h.contents.
+
+(rule
+ (with-stdout-to
+  tempore_arduino_h.ml
+  (progn
+   (echo "let contents = {cpp|")
+   (cat tempore_arduino.h)
+   (echo "|cpp}"))))

@@ -1,0 +1,12 @@
+(* Arithmetic on floats, computed in single precision. *)
+
+let ops x y = (x +. y, x -. y, x *. y, x /. y, x ** y, ~-. x)
+let compare_all x y = (x < y, x <= y, x > y, x >= y, x = y, x <> y)
+let sign x = match x with 0.0 -> 0 | _ -> if x > 0.0 then 1 else 2
+
+run ops 1.5 2.0
+run ops 1.0 3.0
+run compare_all 0.5 0.25
+run (sign 0.0, sign 2.5, sign (~-. 1.0))
+run (1.0 /. 0.0, ~-. 1.0 /. 0.0, 0.0 /. 0.0)
+run 100.0 *. 3.0

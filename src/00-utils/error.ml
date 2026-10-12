@@ -17,4 +17,5 @@ let syntax ~loc fmt = error ~loc Diagnostic.Syntax fmt
 let typing ?loc ?labels ?notes fmt =
   error ?loc ?labels ?notes Diagnostic.Typing fmt
 
+let compilation ?loc fmt = error ?loc Diagnostic.Compilation fmt
 let runtime ?loc fmt = error ?loc Diagnostic.Runtime fmt

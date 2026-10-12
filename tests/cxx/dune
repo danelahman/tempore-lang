@@ -1,0 +1,12 @@
+; Probe for a C++17 compiler c++ (required by the Arduino tests): the file
+; cxx-available holds "true" or "false".
+
+(rule
+ (targets cxx-available)
+ (deps
+  (env_var PATH))
+ (action
+  (with-stdout-to
+   cxx-available
+   (system
+    "if printf 'int main() { return 0; }' | c++ -std=c++17 -x c++ -o /dev/null - 2>/dev/null; then echo true; else echo false; fi"))))

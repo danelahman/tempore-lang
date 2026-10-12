@@ -1,0 +1,6 @@
+(* The remainder by zero is a run-time error. *)
+
+let remainder x y = x mod y
+
+run remainder 7 2
+run remainder 1 0

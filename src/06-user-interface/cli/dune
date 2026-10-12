@@ -7,4 +7,5 @@
   cliInterpreter
   loader
   timeline
-  opentronsBackend))
+  opentronsBackend
+  arduinoBackend))

@@ -27,5 +27,10 @@ val typing :
   'a
 (** [typing ?loc ?labels ?notes fmt] raises a typing {!exception-Error}. *)
 
+val compilation :
+  ?loc:Location.t -> ('a, Format.formatter, unit, 'b) format4 -> 'a
+(** [compilation ?loc fmt] raises a compilation {!exception-Error}: a construct
+    that a backend does not compile. *)
+
 val runtime : ?loc:Location.t -> ('a, Format.formatter, unit, 'b) format4 -> 'a
 (** [runtime ?loc fmt] raises a run-time {!exception-Error}. *)

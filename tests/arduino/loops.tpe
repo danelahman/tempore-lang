@@ -1,0 +1,34 @@
+(* Recursive calls in tail position, compiled to loops: a million iterations,
+   curried functions of several parameters, a parameter that is a pattern and
+   one that is unused, and calls in the branches of conditionals. *)
+
+let rec count acc n =
+  match n with
+  | 0 -> acc
+  | k + 1 -> count (acc + 1) k
+
+let rec gcd fuel a b =
+  match fuel with
+  | 0 -> a
+  | f + 1 -> if b = 0 then a else gcd f b (a mod b)
+
+let rec fib_mod (a, b) n =
+  match n with
+  | 0 -> a
+  | k + 1 -> fib_mod (b, (a + b) mod 1000007) k
+
+let rec collatz fuel steps n =
+  match fuel with
+  | 0 -> steps
+  | f + 1 ->
+      if n = 1 then steps
+      else if n mod 2 = 0 then collatz f (steps + 1) (n / 2)
+      else collatz f (steps + 1) (3 * n + 1)
+
+let rec unused_parameter x n = match n with 0 -> 42 | k + 1 -> unused_parameter x k
+
+run count 0 1000000
+run gcd 100 1071 462
+run fib_mod (0, 1) 1000
+run collatz 1000 0 27
+run unused_parameter (1, 2) 10

@@ -1,0 +1,20 @@
+(* Arithmetic on natural numbers of 32 bits: truncated subtraction, division
+   and remainder, comparisons, constant and successor patterns. *)
+
+let arith x y = (x + y, x * y, x - y, y - x, x / y, x mod y)
+
+let classify n =
+  match n with
+  | 0 -> 0
+  | 1 -> 10
+  | k + 2 -> k
+
+let compare_all x y = (x < y, x <= y, x > y, x >= y, x = y, x <> y)
+
+run arith 17 5
+run arith 5 17
+run (classify 0, classify 1, classify 2, classify 4294967295)
+run compare_all 3 4
+run compare_all 4 4
+run 4294967295 - 1
+run (true < false, () = (), (1, 2) < (1, 3))

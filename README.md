@@ -85,11 +85,17 @@ Command-line options:
   schemes;
 - `--timeline` prints the [timeline](#interpreter) of each run after its result,
   as a table, long grades shortened; `--timeline-full` prints it with the
-  grades in full; neither can be combined with `--emit-opentrons`;
+  grades in full; neither can be combined with `--emit-opentrons` or
+  `--emit-arduino`;
 - `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
   Python, to the given file, without running them; a file name without a
   directory names a file in `_opentrons/protocols`; with `--bind`, as an
   Opentrons protocol (see [Opentrons](#opentrons));
+- `--emit-arduino <directory>` typechecks the files and writes them, compiled to
+  C++, to the given directory, without running them; a name without a
+  directory component names a directory in `_arduino/projects`; with
+  `--host-runs`, also the `run` commands and a main program for the host that
+  executes them;
 - `--help` lists the options and the available grading monoids.
 
 The [`examples/`](examples/) directory holds example programs grouped according

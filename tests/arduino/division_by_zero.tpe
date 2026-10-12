@@ -1,0 +1,7 @@
+(* A run-time error ends the program after the runs before it. *)
+
+let divide x y = x / y
+
+run divide 7 2
+run divide 1 0
+run divide 2 2
