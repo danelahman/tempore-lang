@@ -2,7 +2,8 @@
 
    Run this example with the 'time-upper-bound-levels' grading monoid, e.g.
 
-     ./tempore --grades time-upper-bound-levels examples/opentrons/contamination_reject.tpe
+     ./tempore --grades time-upper-bound-levels \
+       examples/opentrons/contamination_reject.tpe
 
    Grades (n, l): at most n minutes, touching nothing above level l,
    Low being clean and High contaminated

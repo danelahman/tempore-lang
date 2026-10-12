@@ -2,7 +2,8 @@
 
    Run this example with the 'regex-timed-upper-bound-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-upper-bound-rational-symbolic examples/regular_timed_ops/upper_bounds_rational.tpe
+     ./tempore --grades regex-timed-upper-bound-rational-symbolic \
+       examples/regular_timed_ops/upper_bounds_rational.tpe
 
    Grades {...}: regular languages of traces with rational durations in the
    allowance order

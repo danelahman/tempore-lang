@@ -2,7 +2,8 @@
 
    Run this example with the 'time-interval-rational' grading monoid, e.g.
 
-     ./tempore --grades time-interval-rational examples/introduction/sensor_reading.tpe
+     ./tempore --grades time-interval-rational \
+       examples/introduction/sensor_reading.tpe
 
    Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
      - Unit [0, 0]: no time spent

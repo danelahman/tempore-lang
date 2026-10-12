@@ -285,12 +285,12 @@ let expected_rejections =
     ("examples/basics/basic_unbox.tpe", [ 20; 30 ]);
     ("examples/handlers/nested_reject.tpe", [ 18 ]);
     ("examples/opentrons/beads_reject.tpe", [ 32 ]);
-    ("examples/opentrons/contamination_reject.tpe", [ 37 ]);
+    ("examples/opentrons/contamination_reject.tpe", [ 38 ]);
     ("examples/opentrons/elisa_reject.tpe", [ 31 ]);
     ("examples/opentrons/reagents_reject.tpe", [ 41 ]);
     ("examples/opentrons/staggered_reject.tpe", [ 30 ]);
     ("examples/opentrons/stopread_reject.tpe", [ 41 ]);
-    ("examples/opentrons/washes_reject.tpe", [ 29 ]);
+    ("examples/opentrons/washes_reject.tpe", [ 30 ]);
     ("tests/comp_type_annotation_reject.tpe", [ 3 ]);
     ("tests/comparison_reject_box.tpe", [ 3 ]);
     ("tests/comparison_reject_function.tpe", [ 5 ]);

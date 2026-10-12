@@ -7,6 +7,11 @@
 
           ./tempore --grades <grade> examples/<dir>/<file>.tpe
 
+        A command longer than 80 columns is split after the grade:
+
+          ./tempore --grades <grade> \
+            examples/<dir>/<file>.tpe
+
         Grades <form>: <meaning>
           - Unit <literal>: <meaning>
           - Top <literal>: <meaning>
@@ -99,12 +104,24 @@ let check_header name path =
     | _ -> 0
   in
   let summary = continuation 0 in
+  (* The run command occupies a second line when its first line ends with a
+     line continuation. *)
+  let command =
+    match List.nth_opt lines (4 + summary) with
+    | Some line when ends_with ~suffix:" \\" line -> 1
+    | _ -> 0
+  in
   let grades =
-    continuation (6 + summary) ~stop:(String.starts_with ~prefix:"     - ")
+    continuation
+      (6 + summary + command)
+      ~stop:(String.starts_with ~prefix:"     - ")
   in
   let nth n =
     List.nth_opt lines
-      (if n = 0 then 0 else if n <= 6 then n + summary else n + summary + grades)
+      (if n = 0 then 0
+       else if n <= 4 then n + summary
+       else if n <= 6 then n + summary + command
+       else n + summary + command + grades)
   in
   (match nth 0 with
   | None -> fail "%s: is empty" name
@@ -144,15 +161,26 @@ let check_header name path =
               fail
                 "%s: expected a blank line after the run-command introduction"
                 name);
-          let expected_command =
+          let one_line =
             Printf.sprintf "     ./tempore --grades %s %s" grade name
           in
-          (match nth 4 with
-          | Some line5 when line5 = expected_command -> ()
-          | Some line5 ->
-              fail "%s: expected the line %S, found %S" name expected_command
-                line5
-          | None -> fail "%s: is missing the run command" name);
+          let expected_command =
+            if String.length one_line <= 80 then [ one_line ]
+            else
+              [
+                Printf.sprintf "     ./tempore --grades %s \\" grade;
+                "       " ^ name;
+              ]
+          in
+          let found_command =
+            List.filteri
+              (fun i _ -> i >= 4 + summary && i < 5 + summary + command)
+              lines
+          in
+          if found_command <> expected_command then
+            fail "%s: expected the run command %S, found %S" name
+              (String.concat "\n" expected_command)
+              (String.concat "\n" found_command);
           (match nth 5 with
           | Some "" -> ()
           | Some _ ->

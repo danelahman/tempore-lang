@@ -2,7 +2,8 @@
 
    Run this example with the 'regex-timed-interval-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-symbolic examples/opentrons/washes_reject.tpe
+     ./tempore --grades regex-timed-interval-symbolic \
+       examples/opentrons/washes_reject.tpe
 
    Grades [L, U]: a lower and upper regular-language bound on the traces
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
