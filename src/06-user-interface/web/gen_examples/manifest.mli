@@ -1,0 +1,59 @@
+(** The example manifest [examples/index], which lists the examples of the web
+    interface's gallery; its format is described in the manifest's header. *)
+
+type entry = {
+  group : string;
+  title : string;
+  grade : string;
+      (** the grading monoid the web interface switches to when it is loaded *)
+  path : string;  (** relative to the project root *)
+  description : string;
+  backend : string;  (** the key of its backend, ["tempore"] unless given *)
+  settings : (string * string) list;
+      (** the values of inputs of its backend, by key; that of a text input is
+          the path of the file holding it, relative to the project root *)
+}
+(** An example. *)
+
+type summary = { label : string; short : string; summary : string }
+(** A group's summary line: its label, the label's short form and the one-line
+    summary. *)
+
+(** A line of the manifest. *)
+type line = Example of entry | Summary of summary | Default of string
+
+val line_of_string : string -> line option
+(** [line_of_string line] is the manifest line [line], its fields trimmed;
+    [None] for a blank line or a comment.
+
+    Raises [Failure] if the line is malformed. *)
+
+val checked : entry -> entry
+(** [checked entry] is [entry], if its grade is one that {!Grades.GradeRegistry}
+    lists, its backend one that {!BackendRegistry} lists, and each of its
+    settings names an input of the backend and, for an input of choices, one of
+    its choices.
+
+    Raises [Failure] otherwise. *)
+
+val read : string -> summary list * entry list * string list
+(** [read path] is the summaries, the {!checked} examples and the default paths
+    of the manifest at [path], each in the manifest's order. *)
+
+val group_entries : entry list -> (string * entry list) list
+(** [group_entries entries] is [entries] grouped by [group], in the order of the
+    manifest, both of the groups and within them; entries of one group are
+    expected to be consecutive. *)
+
+val summarised :
+  summary list -> (string * entry list) list -> (summary * entry list) list
+(** [summarised summaries groups] is each of [groups] paired with its summary.
+
+    Raises [Failure] unless every group has exactly one summary, every summary
+    names a group and no two groups have one short form. *)
+
+val default_path : entry list -> string list -> string
+(** [default_path entries defaults] is the one path of [defaults], which names
+    one of [entries].
+
+    Raises [Failure] otherwise. *)

@@ -136,6 +136,84 @@
       flex-direction: column;
     }
 
+    /* The inputs and compiled code of the selected backend, under the editor,
+       and the report of its operation model, above a run; in the main column,
+       so that the side column keeps its width. */
+    .backend-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .backend-choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
+    }
+
+    .backend-choices .field {
+      margin-bottom: 0;
+    }
+
+    .backend-input {
+      margin-top: 0.75rem;
+    }
+
+    .backend-input > summary {
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .backend-input-size {
+      margin-left: 0.5em;
+      color: #6f6f6f;
+      font-size: 0.85em;
+      font-weight: normal;
+    }
+
+    .backend-text {
+      margin-top: 0.5rem;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.85rem;
+    }
+
+    pre.syn-ml.backend-code {
+      max-height: 36rem;
+      overflow: auto;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .backend-message {
+      margin-top: 0.75rem;
+    }
+
+    .backend-note {
+      margin-top: 0.5rem;
+      color: #4a4a4a;
+      font-size: 0.9rem;
+    }
+
+    .backend-report td {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .backend-report tr.is-within td:last-child {
+      color: #257942;
+    }
+
+    .backend-report tr.is-outside td {
+      background-color: #feecf0;
+    }
+
+    .backend-report tr.is-outside td:last-child {
+      color: #cc0f35;
+      font-weight: 600;
+    }
+
+    .backend-report tr.is-pending td:last-child {
+      color: #946c00;
+    }
+
     .editor-box .code-editor {
       flex-grow: 1;
       display: flex;

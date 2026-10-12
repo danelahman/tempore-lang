@@ -1,0 +1,6 @@
+; The registry of the backends of the web interface, without a dependency on
+; the browser, so that the example manifest generator and the tests link it.
+
+(library
+ (name backendRegistry)
+ (libraries language grades backend opentronsBackend))

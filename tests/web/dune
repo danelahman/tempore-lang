@@ -1,0 +1,17 @@
+; Unit tests of the parts of the web interface that need no browser: the
+; reading of the example manifest, the backend registry and the timelines of
+; the Opentrons backend.
+
+(tests
+ (names test_manifest test_backends)
+ (libraries
+  grades
+  language
+  loader
+  webInterpreter
+  manifest
+  backendRegistry
+  opentronsBackend)
+ (deps
+  %{project_root}/examples/index
+  (glob_files_rec %{project_root}/examples/*)))

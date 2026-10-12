@@ -1096,6 +1096,32 @@ let view_compiler (model : Model.model) =
               ];
           ];
       ]
+  and select_backend =
+    let selected = Model.backend model.edit_model in
+    div
+      ~a:[ class_ "panel-block" ]
+      [
+        div
+          ~a:[ class_ "field" ]
+          [
+            elt "label" ~a:[ class_ "label" ] [ text "Backend" ];
+            div
+              ~a:[ class_ "control is-expanded" ]
+              [
+                (* the backends of {!BackendRegistry.entries}, by name *)
+                select
+                  ~a:[ class_ "select is-fullwidth backend-select" ]
+                  "Select a backend"
+                  (fun (entry : BackendRegistry.entry) ->
+                    Model.EditMsg (Model.SelectBackend entry.key))
+                  (fun (entry : BackendRegistry.entry) -> entry.name)
+                  (fun (entry : BackendRegistry.entry) ->
+                    entry.key = selected.key)
+                  BackendRegistry.entries;
+              ];
+            elt "p" ~a:[ class_ "grades-summary" ] [ text selected.description ];
+          ];
+      ]
   and select_resource =
     div
       ~a:[ class_ "panel-block" ]
@@ -1235,7 +1261,204 @@ let view_compiler (model : Model.model) =
       ]
   in
   panel ~action:(page_link Model.Docs) "Code options"
-    [ use_stdlib; load_example; select_resource; run_process ]
+    [ use_stdlib; load_example; select_backend; select_resource; run_process ]
+
+(* Backends *)
+
+(* The control of an input of choices of the selected backend. *)
+let view_choice_input ~value (input : BackendRegistry.input) choices =
+  div
+    ~a:[ class_ "field backend-choice" ]
+    [
+      elt "label" ~a:[ class_ "label is-small" ] [ text input.label ];
+      select
+        ~a:[ class_ "select is-small" ]
+        input.label
+        (fun choice -> Model.EditMsg (Model.SetInput (input.key, choice)))
+        Fun.id
+        (fun choice -> choice = value)
+        choices;
+    ]
+
+(* A text input of the selected backend, folded under its label and its
+   number of lines. *)
+let view_text_input ~value (input : BackendRegistry.input) =
+  let lines =
+    if String.trim value = "" then "empty"
+    else
+      let n =
+        String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 0 value
+      in
+      count (if String.ends_with ~suffix:"\n" value then n else n + 1) "line"
+  in
+  elt "details"
+    ~a:[ class_ "backend-input" ]
+    [
+      elt "summary"
+        [
+          text input.label;
+          elt "span" ~a:[ class_ "backend-input-size" ] [ text lines ];
+        ];
+      elt "textarea"
+        ~a:
+          [
+            class_ "textarea backend-text";
+            (* bound as a property, as the editor's text is, so that loading
+               an example replaces it *)
+            str_prop "value" value;
+            oninput (fun text ->
+                Model.EditMsg (Model.SetInput (input.key, text)));
+            int_prop "rows" 14;
+            attr "aria-label" input.label;
+            attr "spellcheck" "false";
+            attr "autocapitalize" "off";
+            attr "autocorrect" "off";
+          ]
+        [];
+    ]
+
+(* The code of a compilation, highlighted in its language where a highlighter
+   is known for it. *)
+let view_code (output : BackendRegistry.compiled) =
+  let code = Option.value output.code ~default:"" in
+  elt "pre"
+    ~a:[ class_ "syn-ml backend-code" ]
+    (if output.language = "python" then PythonHighlight.highlight code
+     else [ text code ])
+
+(* A message of a compilation, in the style of the errors of a check. *)
+let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
+  let kind, cls =
+    match message.severity with
+    | BackendRegistry.Error -> ("Error", "is-danger")
+    | Warning -> ("Warning", "is-warning")
+    | Note -> ("Note", "is-info")
+  in
+  elt "article"
+    ~a:
+      [
+        class_
+          (String.concat " "
+             ([ "message"; cls; "editor-error"; "backend-message" ]
+             @ if stale then [ "is-stale" ] else []));
+      ]
+    [
+      div
+        ~a:[ class_ "message-header" ]
+        [
+          elt "p" [ text (Printf.sprintf "%s %d — %s" kind (i + 1) backend) ];
+          (if stale then
+             elt "span" ~a:[ class_ "stale-note" ] [ text "out of date" ]
+           else nil);
+        ];
+      div ~a:[ class_ "message-body" ] [ elt "p" [ text message.text ] ];
+    ]
+
+(* The inputs of the selected backend and the code it has compiled the
+   program to, under the editor; nothing for a backend without either. *)
+let view_backend (model : Model.model) =
+  let entry = Model.backend model.edit_model in
+  let settings = Model.settings model.edit_model in
+  let value key = BackendRegistry.setting entry.inputs settings key in
+  let choices =
+    List.filter_map
+      (fun (input : BackendRegistry.input) ->
+        match input.kind with
+        | Choice choices ->
+            Some (view_choice_input ~value:(value input.key) input choices)
+        | Text -> None)
+      entry.inputs
+  and texts =
+    List.filter_map
+      (fun (input : BackendRegistry.input) ->
+        match input.kind with
+        | Text -> Some (view_text_input ~value:(value input.key) input)
+        | Choice _ -> None)
+      entry.inputs
+  in
+  let compiled =
+    match (entry.compiler, model.compiled) with
+    | None, _ -> []
+    | Some _, None ->
+        [
+          elt "p"
+            ~a:[ class_ "backend-note" ]
+            [ text "The program is compiled once it typechecks." ];
+        ]
+    | Some _, Some { output; up_to_date } ->
+        let stale = not up_to_date in
+        List.mapi
+          (view_compile_message ~backend:entry.name ~stale)
+          output.messages
+        @ Option.fold ~none:[]
+            ~some:(fun _ ->
+              [
+                elt "details"
+                  ~a:[ class_ "backend-input"; bool_prop "open" true ]
+                  [
+                    elt "summary"
+                      [
+                        text "Compiled code";
+                        elt "span"
+                          ~a:[ class_ "backend-input-size" ]
+                          [
+                            text
+                              (if stale then "out of date" else output.language);
+                          ];
+                      ];
+                    (* rendered once per compilation *)
+                    Vdom.memo view_code output;
+                  ];
+              ])
+            output.code
+  in
+  if entry.inputs = [] && entry.compiler = None then []
+  else
+    [
+      div
+        ~a:[ class_ "box backend-box" ]
+        (elt "p" ~a:[ class_ "backend-title" ] [ text entry.name ]
+         ::
+         (if choices = [] then []
+          else [ div ~a:[ class_ "backend-choices" ] choices ])
+        @ texts @ compiled);
+    ]
+
+(* The report of the operation model of a run, as a table and notes. *)
+let view_report (report : BackendRegistry.report) =
+  let row_class = function
+    | BackendRegistry.Plain -> []
+    | Good -> [ class_ "is-within" ]
+    | Bad -> [ class_ "is-outside" ]
+    | Pending -> [ class_ "is-pending" ]
+  in
+  div
+    ~a:[ class_ "box backend-box backend-report" ]
+    ([
+       elt "p" ~a:[ class_ "backend-title" ] [ text report.title ];
+       div
+         ~a:[ class_ "table-container" ]
+         [
+           elt "table"
+             ~a:[ class_ "table is-narrow is-fullwidth" ]
+             [
+               elt "thead"
+                 [
+                   elt "tr"
+                     (List.map (fun c -> elt "th" [ text c ]) report.columns);
+                 ];
+               elt "tbody"
+                 (List.map
+                    (fun (row : BackendRegistry.row) ->
+                      elt "tr" ~a:(row_class row.status)
+                        (List.map (fun c -> elt "td" [ text c ]) row.cells))
+                    report.rows);
+             ];
+         ];
+     ]
+    @ List.map
+        (fun note -> elt "p" ~a:[ class_ "backend-note" ] [ text note ])
+        report.notes)
 
 (* What the editor's highlighted text depends on. *)
 type editor_key = {
@@ -1394,18 +1617,21 @@ let edit_view (model : Model.model) =
   let key = interned (editor_key model) in
   let errors = key.errors and stale = key.stale in
   view_contents
-    [
-      div
-        ~a:[ class_ "box editor-box" ]
-        (view_editor ~highlighted:(Vdom.memo view_highlighted key) ~errors model
-        :: List.mapi
-             (fun i error ->
-               view_load_error ~stale
-                 ~active:(model.active_error = Some i)
-                 ~flashed:(model.flash = Some (Model.Message i))
-                 i error)
-             errors);
-    ]
+    ([
+       div
+         ~a:[ class_ "box editor-box" ]
+         (view_editor
+            ~highlighted:(Vdom.memo view_highlighted key)
+            ~errors model
+         :: List.mapi
+              (fun i error ->
+                view_load_error ~stale
+                  ~active:(model.active_error = Some i)
+                  ~flashed:(model.flash = Some (Model.Message i))
+                  i error)
+              errors);
+     ]
+    @ view_backend model)
     [ view_compiler model ]
 
 (* Example gallery *)
@@ -1444,9 +1670,7 @@ let view_example_card ~current group (e : Examples_tpe.example) =
       ([
          class_ (if current then "example-card is-current" else "example-card");
          type_button;
-         onclick (fun _ ->
-             Model.EditMsg
-               (Model.LoadExample (group, e.title, e.grade, e.source)));
+         onclick (fun _ -> Model.EditMsg (Model.LoadExample (group, e)));
        ]
       @
       if current then
@@ -1476,11 +1700,16 @@ let onescape msg =
    click on the backdrop beside the panel. The search field takes the focus
    when the gallery opens with no example loaded; otherwise the page focuses
    the card of the example last loaded. *)
-let view_gallery ~selected query =
+let view_gallery ~selected ~backend query =
   let groups =
     List.filter_map
       (fun (k, (g : Examples_tpe.group)) ->
-        match List.filter (matches query g.label) g.examples with
+        match
+          List.filter
+            (fun (e : Examples_tpe.example) ->
+              e.backend = backend && matches query g.label e)
+            g.examples
+        with
         | [] -> None
         | examples -> Some (k, g, examples))
       (List.mapi (fun k g -> (k, g)) Examples_tpe.examples)
@@ -1696,7 +1925,15 @@ let run_view (run_model : Model.run_model) =
         ])
       run_model.current.completed_runs
   in
-  view_contents (active_view @ completed_views) [ view_steps run_model steps ]
+  let report =
+    Option.fold ~none:[]
+      ~some:(fun (o : BackendRegistry.observer) ->
+        [ Vdom.memo view_report (Lazy.force o.report) ])
+      run_model.current.observer
+  in
+  view_contents
+    (report @ active_view @ completed_views)
+    [ view_steps run_model steps ]
 
 let github_url = "https://github.com/danelahman/tempore-lang"
 
@@ -1831,6 +2068,7 @@ let view (model : Model.model) =
       view_footer;
       (match model.gallery with
       | Some query ->
-          view_gallery ~selected:model.edit_model.selected_example query
+          view_gallery ~selected:model.edit_model.selected_example
+            ~backend:(Model.backend model.edit_model).key query
       | None -> nil);
     ]

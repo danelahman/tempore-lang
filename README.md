@@ -85,6 +85,15 @@ You can load an existing example or write your own program, choose which grading
 monoid to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
+The backend selector above the grade selector chooses between Tempore, the
+interpreter alone, and Opentrons (see [Opentrons protocols](#opentrons-protocols)),
+and the gallery lists the examples of the backend selected. Under Opentrons, the
+editor is followed by the binding file, the robot, the time unit and the monitor
+policy, and by the protocol compiled from the program once it typechecks. A run
+also shows a timeline: the time of a virtual clock advanced by the delays, and
+each operation call performed by its default implementation with its start, its
+duration and the verdict of the monitor of its running-time bounds.
+
 ## Temporal resources
 
 A value of modal type `[rho]a` is an `a`-typed resource that may be used only
@@ -1190,7 +1199,9 @@ For example,
 
     ./tempore --grades time-interval --emit-opentrons elisa.py --bind examples/opentrons/elisa_bindings.py --time-unit minutes --simulate examples/opentrons/elisa.tpe
 
-writes the ELISA protocol and runs it with the simulator.
+writes the ELISA protocol and runs it with the simulator. The simulator writes
+its configuration to `~/.opentrons` unless the environment variable
+`OT_API_CONFIG_DIR` names another directory.
 `scripts/opentrons-simulate.sh` runs every example with the simulator installed
 in a Python virtual environment.
 

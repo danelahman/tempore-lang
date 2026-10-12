@@ -67,8 +67,7 @@ let link_to dest content =
           [
             attr "href" "#";
             onclick ~prevent_default:() (fun _ ->
-                Model.EditMsg
-                  (Model.LoadExample (group, e.title, e.grade, e.source)));
+                Model.EditMsg (Model.LoadExample (group, e)));
           ]
         content
   | None when String.starts_with ~prefix:"#" dest ->

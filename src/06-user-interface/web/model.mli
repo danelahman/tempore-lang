@@ -105,6 +105,9 @@ and run_model_state = {
   is_done : bool;
       (** True when there are no computations left to run (i.e. all [run] blocks
           have completed and their snapshots are in [completed_runs]). *)
+  observer : BackendRegistry.observer option;
+      (** The operation model of the selected backend, having observed the steps
+          taken so far, if the backend has one. *)
 }
 (** A snapshot of an interpreter run state together with its available steps,
     all resource-grade types hidden behind closures. *)
@@ -116,13 +119,17 @@ and edit_msg =
       (** Tab pressed in the editor: the source as the browser has it, and the
           selection to replace with an indentation, in the UTF-16 code units the
           browser counts selections in. *)
-  | LoadExample of string * string * string * string
-      (** Load a bundled example: its group, its title, the name of the resource
-          grade it is meant to be run with, and its source. The group is carried
-          along with the title because two examples of different groups may
-          share a title. *)
+  | LoadExample of string * Examples_tpe.example
+      (** Load a bundled example, given with the label of its group: its source,
+          the grades it is meant to be run with, and its backend with the
+          settings of its inputs. The group is carried along with the example
+          because two examples of different groups may share a title. *)
   | SelectResource of string
       (** Select the grades to use (by name from [grade_modules]). *)
+  | SelectBackend of string
+      (** Select the backend (by key from {!BackendRegistry.entries}). *)
+  | SetInput of string * string
+      (** Set the input of the given key of the selected backend to a value. *)
 
 and run_msg =
   | SelectStepIndex of int option
@@ -186,6 +193,10 @@ and msg =
           the span has not been found. *)
   | ShowFullError of int
       (** Scroll to the message of the given error and highlight it briefly. *)
+  | Recompile of int
+      (** The inputs of the backend have rested since the change of the given
+          serial: compile the program with them, unless a later change has
+          superseded it. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -200,6 +211,10 @@ type edit_model = {
       (** Group and title of the bundled example last loaded; editing it keeps
           the selection, so the example button still says where the program came
           from. *)
+  selected_backend : string;
+      (** Key of the selected backend (in {!BackendRegistry.entries}). *)
+  backend_settings : (string * BackendRegistry.settings) list;
+      (** The values of the inputs set, by the key of their backend. *)
 }
 
 type run_model = {
@@ -238,6 +253,13 @@ type popover = {
   placement : placement option;  (** set once the drawn card is measured *)
 }
 (** The card describing an error's span or a definition's name. *)
+
+type compiled = {
+  output : BackendRegistry.compiled;
+  up_to_date : bool;
+      (** whether neither the program nor the inputs have changed since *)
+}
+(** The code the selected backend has compiled the program to. *)
 
 type model = {
   edit_model : edit_model;
@@ -288,6 +310,18 @@ type model = {
       (** The serial of the timer the popover awaits; a timer of another serial
           has been superseded. *)
   closing : bool;  (** whether that timer closes the popover *)
+  accepted :
+    (BackendRegistry.compiler ->
+    BackendRegistry.settings ->
+    BackendRegistry.compiled)
+    option;
+      (** The compilation of the program as last checked, while neither it nor
+          the options have changed and it had no errors. *)
+  compiled : compiled option;
+      (** The code of the program as last compiled by the selected backend. *)
+  compile_serial : int;
+      (** The serial of the latest change of the inputs, which the debounce of
+          the compilation awaits. *)
 }
 
 (** A side effect the update asks for, performed by the page. *)
@@ -306,6 +340,14 @@ type side_effect =
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
+
+val backend : edit_model -> BackendRegistry.entry
+(** [backend edit_model] is the selected backend, or the default one if the key
+    selected names none. *)
+
+val settings : edit_model -> BackendRegistry.settings
+(** [settings edit_model] is the values of the inputs of the selected backend
+    that have been set. *)
 
 val init : model
 (** The model as the page opens. *)

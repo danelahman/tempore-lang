@@ -8,6 +8,8 @@
   vdom
   vdom.base
   ojs
+  backend
+  backendRegistry
   webBackend
   webInterpreter
   desugarer

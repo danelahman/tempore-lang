@@ -107,6 +107,9 @@ and run_model_state = {
   is_done : bool;
       (** True when there are no computations left to run (i.e. all [run] blocks
           have completed and their snapshots are in [completed_runs]). *)
+  observer : BackendRegistry.observer option;
+      (** The operation model of the selected backend, having observed the steps
+          taken so far, if the backend has one. *)
 }
 (** A snapshot of an interpreter run state together with its available steps,
     all resource-grade types hidden behind closures. *)
@@ -118,13 +121,17 @@ and edit_msg =
       (** Tab pressed in the editor: the source as the browser has it, and the
           selection to replace with an indentation, in the UTF-16 code units the
           browser counts selections in. *)
-  | LoadExample of string * string * string * string
-      (** Load a bundled example: its group, its title, the name of the resource
-          grade it is meant to be run with, and its source. The group is carried
-          along with the title because two examples of different groups may
-          share a title. *)
+  | LoadExample of string * Examples_tpe.example
+      (** Load a bundled example, given with the label of its group: its source,
+          the grades it is meant to be run with, and its backend with the
+          settings of its inputs. The group is carried along with the example
+          because two examples of different groups may share a title. *)
   | SelectResource of string
       (** Select the grades to use (by name from [grade_modules]). *)
+  | SelectBackend of string
+      (** Select the backend (by key from {!BackendRegistry.entries}). *)
+  | SetInput of string * string
+      (** Set the input of the given key of the selected backend to a value. *)
 
 and run_msg =
   | SelectStepIndex of int option
@@ -188,6 +195,10 @@ and msg =
           the span has not been found. *)
   | ShowFullError of int
       (** Scroll to the message of the given error and highlight it briefly. *)
+  | Recompile of int
+      (** The inputs of the backend have rested since the change of the given
+          serial: compile the program with them, unless a later change has
+          superseded it. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -202,6 +213,10 @@ type edit_model = {
       (** Group and title of the bundled example last loaded; editing it keeps
           the selection, so the example button still says where the program came
           from. *)
+  selected_backend : string;
+      (** Key of the selected backend (in {!BackendRegistry.entries}). *)
+  backend_settings : (string * BackendRegistry.settings) list;
+      (** The values of the inputs set, by the key of their backend. *)
 }
 
 (** The key the browser remembers whether to load the standard library under. *)
@@ -238,16 +253,46 @@ let edit_update edit_model = function
       let before = String.sub source 0 start
       and after = String.sub source stop (String.length source - stop) in
       { edit_model with unparsed_code = before ^ indentation ^ after }
-  | LoadExample (group, title, resource_name, source) ->
-      (* An example is written for a particular resource grade, so loading one
-         switches to that grade. The user remains free to change it afterwards. *)
+  | LoadExample (group, e) ->
+      (* An example is written for a particular resource grade and backend, so
+         loading one switches to them, its settings replacing those of the
+         backend. The user remains free to change them afterwards. *)
       {
         edit_model with
-        unparsed_code = source;
-        selected_resource = resource_name;
-        selected_example = Some (group, title);
+        unparsed_code = e.source;
+        selected_resource = e.grade;
+        selected_example = Some (group, e.title);
+        selected_backend = e.backend;
+        backend_settings =
+          (e.backend, e.settings)
+          :: List.remove_assoc e.backend edit_model.backend_settings;
       }
   | SelectResource name -> { edit_model with selected_resource = name }
+  | SelectBackend key -> { edit_model with selected_backend = key }
+  | SetInput (key, value) ->
+      let backend = edit_model.selected_backend in
+      let settings =
+        Option.value ~default:[]
+          (List.assoc_opt backend edit_model.backend_settings)
+      in
+      {
+        edit_model with
+        backend_settings =
+          (backend, (key, value) :: List.remove_assoc key settings)
+          :: List.remove_assoc backend edit_model.backend_settings;
+      }
+
+(** [backend edit_model] is the selected backend, or the default one if the key
+    selected names none. *)
+let backend edit_model =
+  Option.value ~default:BackendRegistry.default
+    (BackendRegistry.find edit_model.selected_backend)
+
+(** [settings edit_model] is the values of the inputs of the selected backend
+    that have been set. *)
+let settings edit_model =
+  Option.value ~default:[]
+    (List.assoc_opt edit_model.selected_backend edit_model.backend_settings)
 
 (** [example_of_path path] is the group label and the bundled example at [path],
     relative to the project root, if there is one. *)
@@ -270,11 +315,12 @@ let edit_init =
       unparsed_code = "";
       selected_resource = Grades.GradeRegistry.default_name;
       selected_example = None;
+      selected_backend = BackendRegistry.default.key;
+      backend_settings = [];
     }
   in
   match example_of_path Examples_tpe.default with
-  | Some (group, e) ->
-      edit_update empty (LoadExample (group, e.title, e.grade, e.source))
+  | Some (group, e) -> edit_update empty (LoadExample (group, e))
   | None -> empty
 
 type run_model = {
@@ -348,6 +394,13 @@ type popover = {
 }
 (** The card describing an error's span or a definition's name. *)
 
+type compiled = {
+  output : BackendRegistry.compiled;
+  up_to_date : bool;
+      (** whether neither the program nor the inputs have changed since *)
+}
+(** The code the selected backend has compiled the program to. *)
+
 type model = {
   edit_model : edit_model;
   run_model : (run_model, load_error list) result;
@@ -397,6 +450,18 @@ type model = {
       (** The serial of the timer the popover awaits; a timer of another serial
           has been superseded. *)
   closing : bool;  (** whether that timer closes the popover *)
+  accepted :
+    (BackendRegistry.compiler ->
+    BackendRegistry.settings ->
+    BackendRegistry.compiled)
+    option;
+      (** The compilation of the program as last checked, while neither it nor
+          the options have changed and it had no errors. *)
+  compiled : compiled option;
+      (** The code of the program as last compiled by the selected backend. *)
+  compile_serial : int;
+      (** The serial of the latest change of the inputs, which the debounce of
+          the compilation awaits. *)
 }
 
 let init =
@@ -422,6 +487,9 @@ let init =
     caret_target = None;
     timer = 0;
     closing = false;
+    accepted = None;
+    compiled = None;
+    compile_serial = 0;
   }
 
 (** A side effect the update asks for, performed by the page. *)
@@ -459,7 +527,42 @@ let fatal message =
 (* Whether an edit moves the text that the reported errors point into. *)
 let edits_source = function
   | ChangeSource _ | InsertIndent _ | LoadExample _ -> true
-  | UseStdlib _ | SelectResource _ -> false
+  | UseStdlib _ | SelectResource _ | SelectBackend _ | SetInput _ -> false
+
+(* Whether an edit changes the program or the options it is checked under. *)
+let edits_program = function
+  | ChangeSource _ | InsertIndent _ | LoadExample _ | UseStdlib _
+  | SelectResource _ ->
+      true
+  | SelectBackend _ | SetInput _ -> false
+
+(** How long the inputs of a backend rest before the program is compiled with
+    them, in milliseconds. *)
+let compile_delay = 300
+
+(* The program as last accepted, compiled by the selected backend with its
+   inputs; [None] without an accepted program or a compiler. An exception
+   escaping the compiler is reported as its error. *)
+let compile model =
+  match (model.accepted, (backend model.edit_model).compiler) with
+  | Some accepted, Some compiler ->
+      let output =
+        try accepted compiler (settings model.edit_model)
+        with exn ->
+          {
+            BackendRegistry.code = None;
+            language = "";
+            messages =
+              [
+                {
+                  severity = BackendRegistry.Error;
+                  text = Printexc.to_string exn;
+                };
+              ];
+          }
+      in
+      Some { output; up_to_date = true }
+  | _ -> None
 
 (* The first error whose primary span covers [offset], a byte of the editor's
    text. A point span is widened as the editor widens it when marking it. *)
@@ -715,6 +818,21 @@ let errors_of_exception stage exn =
 
 (* The update of the model proper; [update] adds the effects. *)
 let update_model model = function
+  | EditMsg ((SelectBackend _ | SetInput _) as edit_msg) ->
+      (* The program stays checked: another backend compiles it at once, and
+         a changed input after a rest (see [update]). *)
+      let model =
+        { model with edit_model = edit_update model.edit_model edit_msg }
+      in
+      let compiled =
+        match edit_msg with
+        | SelectBackend _ -> compile model
+        | _ ->
+            Option.map
+              (fun compiled -> { compiled with up_to_date = false })
+              model.compiled
+      in
+      { model with compiled }
   | EditMsg edit_msg ->
       (* A loaded example replaces the program, so the errors of the old one
          go with it; an edit only makes them out of date. *)
@@ -754,6 +872,14 @@ let update_model model = function
               Option.map
                 (fun check -> { check with current = false })
                 model.last_check);
+        accepted = (if edits_program edit_msg then None else model.accepted);
+        compiled =
+          (match edit_msg with
+          | LoadExample _ -> None
+          | _ ->
+              Option.map
+                (fun compiled -> { compiled with up_to_date = false })
+                model.compiled);
       }
   | RunMsg run_msg -> (
       match model.run_model with
@@ -770,7 +896,8 @@ let update_model model = function
       | Error _ -> model)
   | Perform action ->
       let run = action = Run in
-      let run_model, definitions, links =
+      let entry = backend model.edit_model in
+      let run_model, definitions, links, accepted =
         try
           match
             List.assoc_opt model.edit_model.selected_resource
@@ -784,7 +911,8 @@ let update_model model = function
                          model.edit_model.selected_resource);
                   ],
                 [],
-                [] )
+                [],
+                None )
           | Some (module G : Grades.Grade.S) ->
               let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
               let module L = Loader.Loader (B) in
@@ -816,12 +944,21 @@ let update_model model = function
               (* Build a run_model_state from a B.run_state, capturing all
                  resource-grade-specific types in closures so the rest of the
                  application is independent of the chosen resource grade. *)
-              let rec make_run_state ~completed_runs (rs : B.run_state) :
-                  run_model_state =
+              let rec make_run_state ~completed_runs ~observer
+                  (rs : B.run_state) : run_model_state =
                 {
                   steps =
                     List.map
                       (fun (step : B.step) ->
+                        (* the operation model observes the step once it is
+                           taken *)
+                        let next_observer () =
+                          Option.map
+                            (fun (o : BackendRegistry.observer) ->
+                              Option.fold ~none:o ~some:o.observe
+                                (B.observe rs step.label))
+                            observer
+                        in
                         let next_completed_runs =
                           if B.is_end_of_run_label step.label then
                             completed_runs
@@ -841,13 +978,20 @@ let update_model model = function
                           next_state =
                             (fun () ->
                               make_run_state ~completed_runs:next_completed_runs
+                                ~observer:(next_observer ())
                                 (step.next_state ()));
                         })
                       (B.steps rs);
                   view = (fun () -> B.view_run_state rs None);
                   completed_runs;
                   is_done = B.is_done rs;
+                  observer;
                 }
+              in
+              let commands = program.commands
+              and operations = program.operations in
+              let accepted (compiler : BackendRegistry.compiler) settings =
+                compiler.compile settings ~operations commands
               in
               if diagnostics <> [] then
                 ( Error
@@ -855,16 +999,26 @@ let update_model model = function
                        (fun diagnostic -> { diagnostic; hovered_label = None })
                        diagnostics),
                   definitions,
-                  links )
+                  links,
+                  None )
               else if run then
+                let observer =
+                  Option.map
+                    (fun observer ->
+                      observer (settings model.edit_model) operations)
+                    entry.observer
+                in
                 ( Ok
                     (run_init
-                       (make_run_state ~completed_runs:[] (B.run state.backend))),
+                       (make_run_state ~completed_runs:[] ~observer
+                          (B.run state.backend))),
                   definitions,
-                  links )
-              else (Error [], definitions, links)
-        with exn -> (Error (errors_of_exception Checking exn), [], [])
+                  links,
+                  Some accepted )
+              else (Error [], definitions, links, Some accepted)
+        with exn -> (Error (errors_of_exception Checking exn), [], [], None)
       in
+      let model = { model with accepted } in
       {
         (without_popover model) with
         run_model;
@@ -876,6 +1030,7 @@ let update_model model = function
         link = None;
         flash = None;
         checking = None;
+        compiled = compile model;
         last_check =
           Some
             {
@@ -920,9 +1075,14 @@ let update_model model = function
   | Abbreviate abbreviated -> { model with abbreviated }
   | Unflash serial when serial = model.flash_serial ->
       { model with flash = None }
+  (* A program edited since its check keeps its code, out of date. *)
+  | Recompile serial when serial = model.compile_serial -> (
+      match compile model with
+      | Some compiled -> { model with compiled = Some compiled }
+      | None -> model)
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
   | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
-  | GoToError _ ->
+  | GoToError _ | Recompile _ ->
       model
 
 (* How long the pointer rests on a span before its popover opens, and how long
@@ -1093,6 +1253,10 @@ let update model msg =
       | _ -> (model, []))
   | EditMsg (UseStdlib use_stdlib) ->
       (update_model model msg, [ Remember (use_stdlib_key, use_stdlib) ])
+  | EditMsg (SetInput _) ->
+      let compile_serial = model.compile_serial + 1 in
+      ( update_model { model with compile_serial } msg,
+        [ After (compile_delay, Recompile compile_serial) ] )
   | OpenGallery when model.edit_model.selected_example <> None ->
       (update_model model msg, [ Focus_current_example ])
   | _ -> (update_model model msg, [])

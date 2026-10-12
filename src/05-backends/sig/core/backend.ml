@@ -1,6 +1,21 @@
 module Ast = Language.Ast
 module Primitives = Language.Primitives
 
+(** What a step of an interpreter run shows of the operations performed and the
+    time passed, for models of the operations of runs. *)
+type observation =
+  | Delayed of Grades.Rational.t  (** a delay of the given duration *)
+  | Performed of string
+      (** a call of the operation, unhandled, performed by its default
+          implementation *)
+  | Resumed
+      (** the default implementation of the innermost call still running has
+          returned to the continuation of the call *)
+  | Returned of string  (** the run has returned the value printed *)
+  | Stopped of string
+      (** the run has ended at a call of the operation, which has neither a
+          handler nor a default implementation *)
+
 module type S = sig
   module Grades : Grades.GradeSystem.S
   (** The grade system grading the programs the backend runs. *)

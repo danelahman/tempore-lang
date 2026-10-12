@@ -1,7 +1,13 @@
-; A native, host-run generator, kept in its own directory so that its module
-; does not collide with those of the (js-only) web executable it feeds.
+; A native, host-run generator, kept in its own directory so that its modules
+; do not collide with those of the (js-only) web executable it feeds. The
+; reading of the manifest is a library of its own, which the tests link.
+
+(library
+ (name manifest)
+ (modules manifest)
+ (libraries grades backendRegistry))
 
 (executable
  (name gen_examples)
  (modules gen_examples)
- (libraries language grades))
+ (libraries manifest backendRegistry))

@@ -2,9 +2,12 @@
 # src/06-user-interface/web/gen_examples/gen_examples.ml to generate the
 # module Examples_tpe (see src/06-user-interface/web/dune).
 #
-# One example per non-blank, non-comment line, five fields separated by ' | ':
+# One example per non-blank, non-comment line, five fields separated by ' | ',
+# optionally followed by a sixth and a seventh:
 #
 #   group | title | grade | path | description
+#   group | title | grade | path | description | backend
+#   group | title | grade | path | description | backend | settings
 #
 # - group: the heading of the gallery section the example is listed under.
 # - title: the heading of the example's card, without a prefix already given
@@ -13,6 +16,13 @@
 #   is loaded (a key of Grades.GradeRegistry.grade_modules).
 # - path: the example's file, relative to this directory.
 # - description: one sentence, shown on the example's card.
+# - backend: the backend whose gallery lists the example, and which the web
+#   interface switches to when it is loaded (a key of BackendRegistry.entries,
+#   src/06-user-interface/web/registry); tempore when not given.
+# - settings: the values of inputs of the backend, set when the example is
+#   loaded, separated by blanks, each written key=value; the value of a text
+#   input is the path of the file holding it, relative to this directory.
+#   The inputs not given take their defaults.
 #
 # Each group is summarised by one line of four fields, the first the word
 # 'group', placed before the group's examples:
@@ -95,3 +105,12 @@ Case studies | 3D printing: with effect handlers | time-lower-bound | 3dprint/ha
 Case studies | 3D printing: with trace grades | traces-timed-interval | 3dprint/traces.tpe | The same pipeline graded by the traces of operations it may exhibit, running-time bounds included.
 Case studies | Staged release | time-lower-bound-levels | rollout/rollout.tpe | A release deployed in stages, each stage unboxing its approval only after the deployed hosts have been observed and only if nothing untrusted has been touched since the approval, with probes repeated within a budget and hotfixes fetched at the level High.
 Case studies | Mail session | regex-timed-upper-bound-symbolic | sessions/mail_session.tpe | A mail session whose retrieval and flagging loops are graded by Kleene stars of traces, with operations taking their declared running times.
+
+group | Opentrons protocols | Opentrons | Laboratory protocols compiled to Opentrons Python, their operations performed by binding functions.
+Opentrons protocols | ELISA | time-interval | opentrons/elisa.tpe | An ELISA whose coated plate incubates before washing, whose diluted antibody is used within 20 minutes and whose development is stopped within a window. | opentrons | binding=opentrons/elisa_bindings.py time-unit=minutes
+Opentrons protocols | Ethanol washes | regex-timed-interval-symbolic | opentrons/washes.tpe | A bead clean-up whose elution demands exactly two ethanol washes, each with a tip of its own, and an air-dry of two to five minutes. | opentrons | binding=opentrons/washes_bindings.py time-unit=minutes
+Opentrons protocols | Contamination | time-upper-bound-levels | opentrons/contamination.tpe | A ddPCR plate set-up whose clean tips may enter a clean reagent only while nothing contaminated has been touched since they were picked up. | opentrons | binding=opentrons/contamination_bindings.py time-unit=minutes
+Opentrons protocols | Reagent windows | time-interval | opentrons/reagents.tpe | A tagmentation whose thawed reagents are boxes usable within 30 minutes, passed to a helper polymorphic in the window. | opentrons | binding=opentrons/reagents_bindings.py time-unit=minutes
+Opentrons protocols | Staggered columns | time-interval | opentrons/staggered.tpe | A fixation of the columns of a plate at staggered times, each column's box passed through a recursion and rinsed within its window. | opentrons | binding=opentrons/staggered_bindings.py time-unit=minutes
+Opentrons protocols | Settling and drying | time-interval | opentrons/beads.tpe | A bead clean-up whose beads on the magnet open once settled and whose air-dried beads open only within the drying window. | opentrons | binding=opentrons/beads_bindings.py time-unit=minutes
+Opentrons protocols | Stop and read | time-interval | opentrons/stopread.tpe | A stop and read whose stopped plates are boxes read within 30 minutes, passed from a handler's case to its continuation. | opentrons | binding=opentrons/stopread_bindings.py time-unit=minutes
