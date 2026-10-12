@@ -171,6 +171,12 @@
       height: 2rem;
     }
 
+    /* The Tempore logo, enlarged within the same button to match the pipette. */
+    .view-switch img {
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+
     /* The inputs of choices of the selected backend, in the side panel under
        its description, wrapping within the column's width. */
     .aside .backend-choices {
@@ -183,7 +189,7 @@
     }
 
     /* The view of the code compiled in the editor's place, and the report of
-       the operation model of the selected backend, above a run. */
+       the observer of the selected backend, above a run. */
     .backend-title {
       font-weight: 600;
       margin-bottom: 0.5rem;
@@ -247,21 +253,41 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .backend-report tr.is-within td:last-child {
-      color: #257942;
+    .backend-report > summary {
+      cursor: pointer;
     }
 
-    .backend-report tr.is-outside td {
-      background-color: #feecf0;
+    .backend-report:not([open]) > summary {
+      margin-bottom: 0;
     }
 
-    .backend-report tr.is-outside td:last-child {
-      color: #cc0f35;
-      font-weight: 600;
-    }
-
-    .backend-report tr.is-pending td:last-child {
+    .backend-report tr.is-pending td {
       color: #946c00;
+    }
+
+    /* A shortened cell: the full text replaces the shortened one when
+       unfolded. */
+    .backend-cell > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .backend-cell > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .backend-cell[open] .backend-cell-short,
+    .backend-cell:not([open]) .backend-cell-full {
+      display: none;
+    }
+
+    .backend-cell-full {
+      overflow-wrap: anywhere;
+    }
+
+    /* The events inside a default implementation. */
+    .backend-report tr.is-sub td {
+      color: #888;
     }
 
     .editor-box .code-editor {
