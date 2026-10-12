@@ -1,6 +1,7 @@
 (* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-upper-bound-symbolic tests/recursion_effect_reject_unannotated_regular.tpe
+     ./tempore --grades regex-upper-bound-symbolic \
+       tests/recursion_effect_reject_unannotated_regular.tpe
 
    The unit is not the least regular grade, but the qualifier of an
    unannotated recursive definition places it below the effect of the

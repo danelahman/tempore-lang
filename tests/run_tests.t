@@ -266,66 +266,66 @@
   ======================================================================
   annotation_grade_variables_cyclic_reject.tpe
   ======================================================================
-  File "annotation_grade_variables_cyclic_reject.tpe", line 14, characters 22-23:
-  14 | let h () : unit # 5 = f (fun () -> ())
+  File "annotation_grade_variables_cyclic_reject.tpe", line 15, characters 22-23:
+  15 | let h () : unit # 5 = f (fun () -> ())
                              ^
   Typing error: The effect inequality `10 <= 5` does not hold
-    File "annotation_grade_variables_cyclic_reject.tpe", line 10, characters 0-58:
-    10 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+    File "annotation_grade_variables_cyclic_reject.tpe", line 11, characters 0-58:
+    11 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `f` is defined here
-    File "annotation_grade_variables_cyclic_reject.tpe", line 14, characters 9-38:
-    14 | let h () : unit # 5 = f (fun () -> ())
+    File "annotation_grade_variables_cyclic_reject.tpe", line 15, characters 9-38:
+    15 | let h () : unit # 5 = f (fun () -> ())
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   
-  File "annotation_grade_variables_cyclic_reject.tpe", line 27, characters 4-7:
-  27 | run bad ()
+  File "annotation_grade_variables_cyclic_reject.tpe", line 28, characters 4-7:
+  28 | run bad ()
            ^^^
   Typing error: The conditions of this run could not be established: `1 · ε₀ <= 3` and `1 · ε₀ <= ε₀`
-    File "annotation_grade_variables_cyclic_reject.tpe", line 23, characters 0-31:
-    23 | let bad () : unit # 3 = loop 20
+    File "annotation_grade_variables_cyclic_reject.tpe", line 24, characters 0-31:
+    24 | let bad () : unit # 3 = loop 20
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `bad` is defined here
-    File "annotation_grade_variables_cyclic_reject.tpe", lines 18-19, characters 0-51:
-    18 | let rec loop (n : nat) : unit # 'e =
+    File "annotation_grade_variables_cyclic_reject.tpe", lines 19-20, characters 0-51:
+    19 | let rec loop (n : nat) : unit # 'e =
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `loop` is defined here
     Note: this run requires grades for its unknowns at which every one of these holds; none of the grades tried does, although the definitions they come from were accepted
   ======================================================================
   annotation_grade_variables_interval_reject.tpe
   ======================================================================
-  File "annotation_grade_variables_interval_reject.tpe", line 24, characters 27-28:
-  24 | let h () : unit # [0, 5] = f (fun () -> ())
+  File "annotation_grade_variables_interval_reject.tpe", line 25, characters 27-28:
+  25 | let h () : unit # [0, 5] = f (fun () -> ())
                                   ^
   Typing error: The effect inequality `[10, 10] <= [0, 5]` does not hold
-    File "annotation_grade_variables_interval_reject.tpe", line 13, characters 0-58:
-    13 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
+    File "annotation_grade_variables_interval_reject.tpe", line 14, characters 0-58:
+    14 | let f (g : unit -> unit # 'e) : unit # 'e = g (); delay 10
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `f` is defined here
-    File "annotation_grade_variables_interval_reject.tpe", line 24, characters 9-43:
-    24 | let h () : unit # [0, 5] = f (fun () -> ())
+    File "annotation_grade_variables_interval_reject.tpe", line 25, characters 9-43:
+    25 | let h () : unit # [0, 5] = f (fun () -> ())
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
   ======================================================================
   annotation_grade_variables_reject.tpe
   ======================================================================
-  File "annotation_grade_variables_reject.tpe", line 11, characters 37-69:
-  11 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
+  File "annotation_grade_variables_reject.tpe", line 12, characters 37-69:
+  12 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This expression has type `(unit → nat # 1) list` but is annotated with `(unit → nat # 2) list`
-    File "annotation_grade_variables_reject.tpe", line 11, characters 3-35:
-    11 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
+    File "annotation_grade_variables_reject.tpe", line 12, characters 3-35:
+    12 |   ((slow : (unit -> nat # 'e) list), (fast : (unit -> nat # 'e) list))
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the inequality goes through the annotation here
     Note: the effect inequality `2 <= 1` does not hold
   
-  File "annotation_grade_variables_reject.tpe", line 17, characters 27-70:
-  17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
+  File "annotation_grade_variables_reject.tpe", line 18, characters 27-70:
+  18 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `2`, which does not match its annotated grade `1`
-    File "annotation_grade_variables_reject.tpe", line 17, characters 18-26:
-    17 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
+    File "annotation_grade_variables_reject.tpe", line 18, characters 18-26:
+    18 | let violated () = run_fast ((fun () -> delay 2; 0) : unit -> nat # 'e)
                            ^^^^^^^^
     the inequality goes through the type of `run_fast` here
     Note: the effect inequality `2 <= 1` does not hold
@@ -605,24 +605,24 @@
   ======================================================================
   continuation_nested_escape_reject.tpe
   ======================================================================
-  File "continuation_nested_escape_reject.tpe", line 23, characters 23-24:
-  23 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
+  File "continuation_nested_escape_reject.tpe", line 24, characters 23-24:
+  24 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
                               ^
   Typing error: Variable `g` has type `[1](unit → α # ε₀) → β`, which is not eternal, so it cannot be used in the case for `Op1`: the case runs with a grade the handler does not fix
-    File "continuation_nested_escape_reject.tpe", line 5, characters 0-32:
-    5 | operation Op1 : unit ~> unit # 1
+    File "continuation_nested_escape_reject.tpe", line 6, characters 0-32:
+    6 | operation Op1 : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op1` is declared here
-    File "continuation_nested_escape_reject.tpe", line 13, characters 6-7:
-    13 | let h g =
+    File "continuation_nested_escape_reject.tpe", line 14, characters 6-7:
+    14 | let h g =
                ^
     `g` is bound here
-    File "continuation_nested_escape_reject.tpe", lines 16-23, characters 4-58:
-    16 |   | Op1 p k ->
+    File "continuation_nested_escape_reject.tpe", lines 17-24, characters 4-58:
+    17 |   | Op1 p k ->
              ^^^^^^^^^^
     the case for `Op1` is checked with the top grade `∞` accumulated
-    File "continuation_nested_escape_reject.tpe", line 23, characters 11-57:
-    23 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
+    File "continuation_nested_escape_reject.tpe", line 24, characters 11-57:
+    24 |          | Op2 q k' -> g k'; delay 1; continue k' with ())
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the case for `Op2` is checked with the top grade `∞` accumulated
     Note: the resource inequality `∞ <= 0` does not hold
@@ -658,16 +658,16 @@
   ======================================================================
   continuation_nested_twice_reject_upper.tpe
   ======================================================================
-  File "continuation_nested_twice_reject_upper.tpe", line 24, characters 15-34:
-  24 |                continue k' with ())
+  File "continuation_nested_twice_reject_upper.tpe", line 25, characters 15-34:
+  25 |                continue k' with ())
                       ^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k'` is unboxed with grade `∣ε_Op2∣` accumulated since it was bound, which is not below its box grade `1`
-    File "continuation_nested_twice_reject_upper.tpe", line 23, characters 23-42:
-    23 |                let b = continue k' with () in
+    File "continuation_nested_twice_reject_upper.tpe", line 24, characters 23-42:
+    24 |                let b = continue k' with () in
                                 ^^^^^^^^^^^^^^^^^^^
     grade `ε_Op2` accumulates here (this computation)
-    File "continuation_nested_twice_reject_upper.tpe", line 22, characters 19-21:
-    22 |            | Op2 q k' ->
+    File "continuation_nested_twice_reject_upper.tpe", line 23, characters 19-21:
+    23 |            | Op2 q k' ->
                             ^^
     `k'` may have any grade `ε_Op2`
     Note: the resource inequality `∀ε_Op2. ∣ε_Op2∣ <= 1` does not hold: for `ε_Op2 = ∞` it becomes `∞ <= 1`
@@ -708,16 +708,16 @@
   ======================================================================
   continuation_twice_reject_upper.tpe
   ======================================================================
-  File "continuation_twice_reject_upper.tpe", line 10, characters 67-85:
-  10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
+  File "continuation_twice_reject_upper.tpe", line 11, characters 67-85:
+  11 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                                                           ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `∣ε_Op∣` accumulated since it was bound, which is not below its box grade `1`
-    File "continuation_twice_reject_upper.tpe", line 10, characters 45-63:
-    10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
+    File "continuation_twice_reject_upper.tpe", line 11, characters 45-63:
+    11 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                                       ^^^^^^^^^^^^^^^^^^
     grade `ε_Op` accumulates here (this computation)
-    File "continuation_twice_reject_upper.tpe", line 10, characters 32-33:
-    10 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
+    File "continuation_twice_reject_upper.tpe", line 11, characters 32-33:
+    11 | let h = handler | x -> x | Op p k -> let a = continue k with () in continue k with ()
                                          ^
     `k` may have any grade `ε_Op`
     Note: the resource inequality `∀ε_Op. ∣ε_Op∣ <= 1` does not hold: for `ε_Op = ∞` it becomes `∞ <= 1`
@@ -1196,16 +1196,16 @@
   ======================================================================
   eternal_recursive_reject_argument.tpe
   ======================================================================
-  File "eternal_recursive_reject_argument.tpe", line 13, characters 8-9:
-  13 |   match w with
+  File "eternal_recursive_reject_argument.tpe", line 14, characters 8-9:
+  14 |   match w with
                ^
   Typing error: Variable `w` is used with grade `5` accumulated since it was bound, but its type `α wrap` is not eternal
-    File "eternal_recursive_reject_argument.tpe", line 11, characters 6-7:
-    11 |   let w = N (W (fun () -> unbox b as x in x)) in
+    File "eternal_recursive_reject_argument.tpe", line 12, characters 6-7:
+    12 |   let w = N (W (fun () -> unbox b as x in x)) in
                ^
     `w` is bound here
-    File "eternal_recursive_reject_argument.tpe", line 12, characters 2-9:
-    12 |   delay 5;
+    File "eternal_recursive_reject_argument.tpe", line 13, characters 2-9:
+    13 |   delay 5;
            ^^^^^^^
     grade `5` accumulates here (delay)
     Note: the resource inequality `5 <= 0` does not hold
@@ -1327,104 +1327,104 @@
   ======================================================================
   eternal_tyvars_reject_function.tpe
   ======================================================================
-  File "eternal_tyvars_reject_function.tpe", line 9, characters 4-8:
-  9 | run keep (fun () -> ())
-          ^^^^
+  File "eternal_tyvars_reject_function.tpe", line 10, characters 4-8:
+  10 | run keep (fun () -> ())
+           ^^^^
   Typing error: `unit → unit # ε₀` is not eternal, but `keep` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_function.tpe", line 5, characters 0-23:
-    5 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_function.tpe", line 6, characters 0-23:
+    6 | let keep x = delay 1; x
         ^^^^^^^^^^^^^^^^^^^^^^^
     `keep` is defined here
-    File "eternal_tyvars_reject_function.tpe", line 5, characters 9-10:
-    5 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_function.tpe", line 6, characters 9-10:
+    6 | let keep x = delay 1; x
                  ^
     `x` is bound here
-    File "eternal_tyvars_reject_function.tpe", line 5, characters 13-20:
-    5 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_function.tpe", line 6, characters 13-20:
+    6 | let keep x = delay 1; x
                      ^^^^^^^
     grade `1` accumulates here (delay)
-    File "eternal_tyvars_reject_function.tpe", line 5, characters 22-23:
-    5 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_function.tpe", line 6, characters 22-23:
+    6 | let keep x = delay 1; x
                               ^
     `x` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
   ======================================================================
   eternal_tyvars_reject_handler.tpe
   ======================================================================
-  File "eternal_tyvars_reject_handler.tpe", line 12, characters 48-49:
-  12 | run handle (perform Op (); (fun () -> ())) with h (fun () -> ())
+  File "eternal_tyvars_reject_handler.tpe", line 13, characters 48-49:
+  13 | run handle (perform Op (); (fun () -> ())) with h (fun () -> ())
                                                        ^
   Typing error: `unit → unit # ε₀` is not eternal, but `h` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_handler.tpe", line 9, characters 0-70:
-    9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "eternal_tyvars_reject_handler.tpe", line 10, characters 0-70:
+    10 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `h` is defined here
-    File "eternal_tyvars_reject_handler.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
+    File "eternal_tyvars_reject_handler.tpe", line 6, characters 0-31:
+    6 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "eternal_tyvars_reject_handler.tpe", line 9, characters 6-7:
-    9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
-              ^
+    File "eternal_tyvars_reject_handler.tpe", line 10, characters 6-7:
+    10 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
+               ^
     `x` is bound here
-    File "eternal_tyvars_reject_handler.tpe", line 9, characters 29-70:
-    9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
-                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "eternal_tyvars_reject_handler.tpe", line 10, characters 29-70:
+    10 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the case for `Op` is checked with the top grade `∞` accumulated
-    File "eternal_tyvars_reject_handler.tpe", line 9, characters 47-65:
-    9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
-                                                       ^^^^^^^^^^^^^^^^^^
+    File "eternal_tyvars_reject_handler.tpe", line 10, characters 47-65:
+    10 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
+                                                        ^^^^^^^^^^^^^^^^^^
     grade `ε₁` accumulates here (this computation)
-    File "eternal_tyvars_reject_handler.tpe", line 9, characters 69-70:
-    9 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
-                                                                             ^
+    File "eternal_tyvars_reject_handler.tpe", line 10, characters 69-70:
+    10 | let h x = handler | y -> y | Op p k -> let r = continue k with () in x
+                                                                              ^
     `x` is used here, in the case for `Op`
     Note: the resource inequality `∞ <= 0` does not hold
   ======================================================================
   eternal_tyvars_reject_higher_order.tpe
   ======================================================================
-  File "eternal_tyvars_reject_higher_order.tpe", line 9, characters 4-9:
-  9 | run after (fun () -> delay 2) (fun () -> ())
-          ^^^^^
+  File "eternal_tyvars_reject_higher_order.tpe", line 10, characters 4-9:
+  10 | run after (fun () -> delay 2) (fun () -> ())
+           ^^^^^
   Typing error: `unit → unit # ε₀` is not eternal, but `after` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 0-23:
-    5 | let after g x = g (); x
+    File "eternal_tyvars_reject_higher_order.tpe", line 6, characters 0-23:
+    6 | let after g x = g (); x
         ^^^^^^^^^^^^^^^^^^^^^^^
     `after` is defined here
-    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 12-13:
-    5 | let after g x = g (); x
+    File "eternal_tyvars_reject_higher_order.tpe", line 6, characters 12-13:
+    6 | let after g x = g (); x
                     ^
     `x` is bound here
-    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 16-20:
-    5 | let after g x = g (); x
+    File "eternal_tyvars_reject_higher_order.tpe", line 6, characters 16-20:
+    6 | let after g x = g (); x
                         ^^^^
     grade `2` accumulates here (this computation)
-    File "eternal_tyvars_reject_higher_order.tpe", line 5, characters 22-23:
-    5 | let after g x = g (); x
+    File "eternal_tyvars_reject_higher_order.tpe", line 6, characters 22-23:
+    6 | let after g x = g (); x
                               ^
     `x` is used here with grade `2` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `2 <= 0` does not hold
   ======================================================================
   eternal_tyvars_reject_noneternal.tpe
   ======================================================================
-  File "eternal_tyvars_reject_noneternal.tpe", line 11, characters 4-8:
-  11 | run keep Token
+  File "eternal_tyvars_reject_noneternal.tpe", line 12, characters 4-8:
+  12 | run keep Token
            ^^^^
   Typing error: `token` is not eternal, but `keep` needs the type of `x` to be eternal
-    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 0-23:
-    7 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_noneternal.tpe", line 8, characters 0-23:
+    8 | let keep x = delay 1; x
         ^^^^^^^^^^^^^^^^^^^^^^^
     `keep` is defined here
-    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 9-10:
-    7 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_noneternal.tpe", line 8, characters 9-10:
+    8 | let keep x = delay 1; x
                  ^
     `x` is bound here
-    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 13-20:
-    7 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_noneternal.tpe", line 8, characters 13-20:
+    8 | let keep x = delay 1; x
                      ^^^^^^^
     grade `1` accumulates here (delay)
-    File "eternal_tyvars_reject_noneternal.tpe", line 7, characters 22-23:
-    7 | let keep x = delay 1; x
+    File "eternal_tyvars_reject_noneternal.tpe", line 8, characters 22-23:
+    8 | let keep x = delay 1; x
                               ^
     `x` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
@@ -2654,16 +2654,16 @@
   ======================================================================
   noneternal_reject_after_delay.tpe
   ======================================================================
-  File "noneternal_reject_after_delay.tpe", line 13, characters 2-3:
-  13 |   t
+  File "noneternal_reject_after_delay.tpe", line 14, characters 2-3:
+  14 |   t
          ^
   Typing error: Variable `t` is used with grade `1` accumulated since it was bound, but its type `token` is not eternal
-    File "noneternal_reject_after_delay.tpe", line 11, characters 6-7:
-    11 |   let t = Token in
+    File "noneternal_reject_after_delay.tpe", line 12, characters 6-7:
+    12 |   let t = Token in
                ^
     `t` is bound here
-    File "noneternal_reject_after_delay.tpe", line 12, characters 2-9:
-    12 |   delay 1;
+    File "noneternal_reject_after_delay.tpe", line 13, characters 2-9:
+    13 |   delay 1;
            ^^^^^^^
     grade `1` accumulates here (delay)
     Note: the resource inequality `1 <= 0` does not hold
@@ -2677,38 +2677,38 @@
   ======================================================================
   noneternal_reject_unknown_grade.tpe
   ======================================================================
-  File "noneternal_reject_unknown_grade.tpe", line 21, characters 2-3:
-  21 |   t
+  File "noneternal_reject_unknown_grade.tpe", line 22, characters 2-3:
+  22 |   t
          ^
   Typing error: Variable `t` is used with grade `1` accumulated since it was bound, but its type `token` is not eternal
-    File "noneternal_reject_unknown_grade.tpe", line 18, characters 6-7:
-    18 |   let t = Token in
+    File "noneternal_reject_unknown_grade.tpe", line 19, characters 6-7:
+    19 |   let t = Token in
                ^
     `t` is bound here
-    File "noneternal_reject_unknown_grade.tpe", line 20, characters 2-9:
-    20 |   delay 1;
+    File "noneternal_reject_unknown_grade.tpe", line 21, characters 2-9:
+    21 |   delay 1;
            ^^^^^^^
     grade `1` accumulates here (delay)
     Note: the resource inequality `1 <= 0` does not hold
   
-  File "noneternal_reject_unknown_grade.tpe", line 34, characters 19-23:
-  34 | let hold_token g = hold g Token
+  File "noneternal_reject_unknown_grade.tpe", line 35, characters 19-23:
+  35 | let hold_token g = hold g Token
                           ^^^^
   Typing error: `token` is not eternal, but `hold` needs the type of `y` to be eternal
-    File "noneternal_reject_unknown_grade.tpe", lines 26-30, characters 0-3:
-    26 | let hold g x =
+    File "noneternal_reject_unknown_grade.tpe", lines 27-31, characters 0-3:
+    27 | let hold g x =
          ^^^^^^^^^^^^^^
     `hold` is defined here
-    File "noneternal_reject_unknown_grade.tpe", line 27, characters 6-7:
-    27 |   let y = x in
+    File "noneternal_reject_unknown_grade.tpe", line 28, characters 6-7:
+    28 |   let y = x in
                ^
     `y` is bound here
-    File "noneternal_reject_unknown_grade.tpe", line 29, characters 2-9:
-    29 |   delay 1;
+    File "noneternal_reject_unknown_grade.tpe", line 30, characters 2-9:
+    30 |   delay 1;
            ^^^^^^^
     grade `1` accumulates here (delay)
-    File "noneternal_reject_unknown_grade.tpe", line 30, characters 2-3:
-    30 |   y
+    File "noneternal_reject_unknown_grade.tpe", line 31, characters 2-3:
+    31 |   y
            ^
     `y` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
@@ -3185,20 +3185,20 @@
   ======================================================================
   rational_time_intervals_reject.tpe
   ======================================================================
-  File "rational_time_intervals_reject.tpe", lines 13-14, characters 2-3:
-  13 |   unbox r as y in
+  File "rational_time_intervals_reject.tpe", lines 14-15, characters 2-3:
+  14 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `[1, 1.5]` accumulated since it was bound, which is not below its box grade `[0.5, 1.25]`
-    File "rational_time_intervals_reject.tpe", line 10, characters 27-28:
-    10 |   box [0.5, 1.25] "tea" as r in
+    File "rational_time_intervals_reject.tpe", line 11, characters 27-28:
+    11 |   box [0.5, 1.25] "tea" as r in
                                     ^
     `r` is bound here
-    File "rational_time_intervals_reject.tpe", line 11, characters 2-17:
-    11 |   perform Pour ();
-           ^^^^^^^^^^^^^^^
-    grade `[0.5, 0.75]` accumulates here (operation `Pour`)
     File "rational_time_intervals_reject.tpe", line 12, characters 2-17:
     12 |   perform Pour ();
+           ^^^^^^^^^^^^^^^
+    grade `[0.5, 0.75]` accumulates here (operation `Pour`)
+    File "rational_time_intervals_reject.tpe", line 13, characters 2-17:
+    13 |   perform Pour ();
            ^^^^^^^^^^^^^^^
     grade `[0.5, 0.75]` accumulates here (operation `Pour`)
     Note: the resource inequality `[1, 1.5] <= [0.5, 1.25]` does not hold
@@ -3233,38 +3233,38 @@
   ======================================================================
   rational_time_lower_reject.tpe
   ======================================================================
-  File "rational_time_lower_reject.tpe", line 10, characters 27-48:
-  10 | let h = handler | x -> x | Op () k -> delay 5; 0
+  File "rational_time_lower_reject.tpe", line 11, characters 27-48:
+  11 | let h = handler | x -> x | Op () k -> delay 5; 0
                                   ^^^^^^^^^^^^^^^^^^^^^
   Typing error: For every grade `ε_Op` the continuation `k` may have, the case for `Op` must have a grade matching `1 · ε_Op`, but its grade `5` does not
-    File "rational_time_lower_reject.tpe", line 5, characters 0-31:
-    5 | operation Op : unit ~> unit # 1
+    File "rational_time_lower_reject.tpe", line 6, characters 0-31:
+    6 | operation Op : unit ~> unit # 1
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "rational_time_lower_reject.tpe", line 10, characters 33-34:
-    10 | let h = handler | x -> x | Op () k -> delay 5; 0
+    File "rational_time_lower_reject.tpe", line 11, characters 33-34:
+    11 | let h = handler | x -> x | Op () k -> delay 5; 0
                                           ^
     `k` may have any grade `ε_Op`
     Note: the effect inequality `∀ε_Op. 5 >= 1 · ε_Op` does not hold: for `ε_Op = 4.5` it becomes `5 >= 5.5`
   
-  File "rational_time_lower_reject.tpe", lines 19-20, characters 2-3:
-  19 |   unbox r as y in
+  File "rational_time_lower_reject.tpe", lines 20-21, characters 2-3:
+  20 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `1` accumulated since it was bound, which is not below its box grade `1.5`
-    File "rational_time_lower_reject.tpe", line 15, characters 22-23:
-    15 |   box 1.5 "unripe" as r in
+    File "rational_time_lower_reject.tpe", line 16, characters 22-23:
+    16 |   box 1.5 "unripe" as r in
                                ^
     `r` is bound here
-    File "rational_time_lower_reject.tpe", line 16, characters 2-11:
-    16 |   delay 1/3;
-           ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
     File "rational_time_lower_reject.tpe", line 17, characters 2-11:
     17 |   delay 1/3;
            ^^^^^^^^^
     grade `1/3` accumulates here (delay)
     File "rational_time_lower_reject.tpe", line 18, characters 2-11:
     18 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    File "rational_time_lower_reject.tpe", line 19, characters 2-11:
+    19 |   delay 1/3;
            ^^^^^^^^^
     grade `1/3` accumulates here (delay)
     Note: the resource inequality `1 >= 1.5` does not hold
@@ -3308,18 +3308,14 @@
   ======================================================================
   rational_time_upper_reject.tpe
   ======================================================================
-  File "rational_time_upper_reject.tpe", lines 13-14, characters 2-3:
-  13 |   unbox r as y in
+  File "rational_time_upper_reject.tpe", lines 14-15, characters 2-3:
+  14 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `4/3` accumulated since it was bound, which is not below its box grade `1`
-    File "rational_time_upper_reject.tpe", line 8, characters 19-20:
-    8 |   box 1 "fresh" as r in
+    File "rational_time_upper_reject.tpe", line 9, characters 19-20:
+    9 |   box 1 "fresh" as r in
                            ^
     `r` is bound here
-    File "rational_time_upper_reject.tpe", line 9, characters 2-11:
-    9 |   delay 1/3;
-          ^^^^^^^^^
-    grade `1/3` accumulates here (delay)
     File "rational_time_upper_reject.tpe", line 10, characters 2-11:
     10 |   delay 1/3;
            ^^^^^^^^^
@@ -3330,6 +3326,10 @@
     grade `1/3` accumulates here (delay)
     File "rational_time_upper_reject.tpe", line 12, characters 2-11:
     12 |   delay 1/3;
+           ^^^^^^^^^
+    grade `1/3` accumulates here (delay)
+    File "rational_time_upper_reject.tpe", line 13, characters 2-11:
+    13 |   delay 1/3;
            ^^^^^^^^^
     grade `1/3` accumulates here (delay)
     Note: the resource inequality `4/3 <= 1` does not hold
@@ -3499,8 +3499,8 @@
   ======================================================================
   recursion_effect_reject_invariant.tpe
   ======================================================================
-  File "recursion_effect_reject_invariant.tpe", lines 7-12, characters 15-12:
-  7 | let rec wait n : unit # 5 =
+  File "recursion_effect_reject_invariant.tpe", lines 8-13, characters 15-12:
+  8 | let rec wait n : unit # 5 =
                      ^^^^^^^^^^^^
   Typing error: This function's body has grade `6`, which does not match its annotated grade `5`
     Note: the effect inequality `6 <= 5` does not hold
@@ -3515,15 +3515,15 @@
   ======================================================================
   recursion_effect_reject_unannotated.tpe
   ======================================================================
-  File "recursion_effect_reject_unannotated.tpe", lines 7-12, characters 13-12:
-  7 | let rec wait n =
+  File "recursion_effect_reject_unannotated.tpe", lines 8-13, characters 13-12:
+  8 | let rec wait n =
                    ^^^
   Typing error: The effect inequality `1 <= 0` does not hold
   ======================================================================
   recursion_effect_reject_unannotated_regular.tpe
   ======================================================================
-  File "recursion_effect_reject_unannotated_regular.tpe", lines 15-20, characters 20-19:
-  15 | let rec unannotated (n : nat) =
+  File "recursion_effect_reject_unannotated_regular.tpe", lines 16-21, characters 20-19:
+  16 | let rec unannotated (n : nat) =
                            ^^^^^^^^^^^
   Typing error: The effect inequality `{Read} <= {0}` does not hold
   ======================================================================

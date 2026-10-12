@@ -1,8 +1,11 @@
 ; Parity of the Python compilation of programs with the interpreter, the
 ; monitors of the running-time bounds of operations, and the Opentrons
-; protocols of the examples, run with a stub of the opentrons package.
+; protocols of the examples, run with a stub of the opentrons package. Skipped
+; unless Python 3.10 or later is available.
 
 (cram
+ (enabled_if
+  (= %{read:../python/python-available} "true\n"))
  (deps
   %{project_root}/tempore
   (glob_files *.tpe)

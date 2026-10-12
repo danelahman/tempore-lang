@@ -1,6 +1,7 @@
 (* Run this example with the 'traces-timed-interval' grading monoid, e.g.
 
-     ./tempore --grades traces-timed-interval examples/traces_timed_ops/3d_printing.tpe *)
+     ./tempore --grades traces-timed-interval \
+       examples/traces_timed_ops/3d_printing.tpe *)
 
 type model = Model of string
 type heated = Heated of model

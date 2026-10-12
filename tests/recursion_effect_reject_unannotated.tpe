@@ -1,6 +1,7 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./tempore --grades time-upper-bound tests/recursion_effect_reject_unannotated.tpe *)
+     ./tempore --grades time-upper-bound \
+       tests/recursion_effect_reject_unannotated.tpe *)
 
 (* Correctly rejected by the typechecker: without an annotation, the body of
    a recursive function has the unit effect, but a round takes a step. *)

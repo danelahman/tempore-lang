@@ -1,0 +1,12 @@
+; Probe for Python 3.10 or later (required by the Opentrons tests): the file
+; python-available holds "true" or "false".
+
+(rule
+ (targets python-available)
+ (deps
+  (env_var PATH))
+ (action
+  (with-stdout-to
+   python-available
+   (system
+    "python3 -c 'import sys; print(str(sys.version_info >= (3, 10)).lower())' 2>/dev/null || echo false"))))

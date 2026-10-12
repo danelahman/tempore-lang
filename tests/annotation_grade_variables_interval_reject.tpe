@@ -1,6 +1,7 @@
 (* Run this test with the 'time-interval' grading monoid, e.g.
 
-     ./tempore --grades time-interval tests/annotation_grade_variables_interval_reject.tpe
+     ./tempore --grades time-interval \
+       tests/annotation_grade_variables_interval_reject.tpe
 
    A grade variable of an annotation shared between an argument and the result
    bounds a product of grades by one of its own factors. The unit is not the

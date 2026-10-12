@@ -1,6 +1,7 @@
 (* Run this test with the 'time-upper-bound' grading monoid, e.g.
 
-     ./tempore --grades time-upper-bound tests/annotation_grade_variables_cyclic.tpe
+     ./tempore --grades time-upper-bound \
+       tests/annotation_grade_variables_cyclic.tpe
 
    A grade variable of an annotation shared between positions bounds a product
    of grades by one of its own factors. A run of such a definition is accepted

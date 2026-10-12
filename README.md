@@ -45,12 +45,12 @@ Install the OCaml dependencies with opam:
     make tempore-deps
 
 The Opentrons simulator, used only to simulate the protocols of the
-[Opentrons](#opentrons) backend, is installed separately; it needs Python 3.10
-or later and the network:
+proof-of-concept [Opentrons](#opentrons) backend, is installed separately; it
+needs Python 3.10 or later and the network:
 
     make opentrons-deps
 
-Tempore is fully usable without it, only `--simulate` failing.
+Tempore is fully usable without it, only `--simulate` option would fail without.
 
 Build the language:
 
@@ -59,6 +59,9 @@ Build the language:
 Run the test suite:
 
     make test
+
+The tests of the Opentrons backend run the generated Python and need Python 3.10
+or later; they are skipped when `python3` is absent or older.
 
 Remove the build (the Opentrons simulator and the protocols in `_opentrons` are
 kept):
