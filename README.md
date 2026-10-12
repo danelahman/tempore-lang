@@ -22,9 +22,9 @@ Most notably, Tempore adds to Temporal Millet the following:
 3. a number of concrete examples of such grades (ranging from time to regexes to
    security levels to trough/peak usage of resources),
 4. a cleaner and more systematic treatment of type inference,
-5. [multiple backends](#backends): besides the interpreter, a compiler of
-   programs to protocols for Opentrons liquid-handling robots, with run-time
-   monitors of the running times of operations, and
+5. [multiple backends](#backends): besides the interpreter, a proof-of-concept
+   compiler of programs to protocols for Opentrons liquid-handling robots, with
+   run-time monitors of the running times of operations, and
 6. various usability improvements in the web-based user interface.
 
 Tempore (and Temporal Millet before it) is built on Matija Pretnar's [Millet
@@ -1123,26 +1123,25 @@ Limits:
 
 ## Backends
 
-A program is executed by one of two backends. The web interface chooses between
-them with the backend selector.
+A program is executed by one of two backends.
 
 ### Interpreter
 
-The interpreter evaluates the program by reduction and tracks the resource
-state: the accumulated grade. A `run` command prints its result with the final
-resource state. The web interface also steps through the reductions and shows
-the resource usage.
+The interpreter evaluates the program by a small-step reduction relation and
+tracks the resource state: both the boxed resources and the accumulated grade. A
+`run` command prints its result with the final resource state. The web interface
+can also step through the individual reductions and shows the resource usage.
 
 ### Opentrons
 
-The Opentrons backend compiles the program to a single-file Opentrons Python
-protocol, accepted by the Opentrons App and by `opentrons_simulate`. Grades are
-erased, and the program is executed by an abstract machine included in the file,
-so that handlers, continuations and recursion behave as in the interpreter. The
-robot is the Flex.
+The proof-of-concept Opentrons backend compiles the program to a single-file
+Opentrons Python protocol, accepted by the Opentrons App and by
+`opentrons_simulate`. Grades are erased, and the program is executed by an
+abstract machine included in the file, so that handlers, continuations and
+recursion behave as in the small-step interpreter. The robot is the Flex.
 
 The program is paired with a binding file in Python. It defines `setup(protocol)`,
-which loads the labware, pipettes and modules and returns a context object, and,
+which loads the labware, pipettes, and modules, and returns a context object, and,
 for an operation `Op`, a function `Op(ctx, arg)` that performs the operation and
 returns its result. Arguments and results are Python values: a `nat` is an
 `int`, a `string` a `str`, a tuple a `tuple` and `()` the unit value. A binding
@@ -1185,9 +1184,9 @@ examples, each with a binding file and a rejected variant:
 
     ./tempore --grades <grades> --emit-opentrons protocol.py --bind bindings.py file.tpe
 
-writes the protocol. Run as a script, `python3 protocol.py` executes the program
-as the interpreter does, without the binding file. Without `--bind`, only the
-compiled program is written. The options below require `--bind`:
+writes the protocol to a file. Run as a script, `python3 protocol.py` executes
+the program as the interpreter does, without the binding file. Without `--bind`,
+only the compiled program is written. The options below require `--bind`:
 
 - `--api-level <level>` sets the `apiLevel` (default 2.30);
 - `--time-unit <unit>` sets the length of a unit of duration: `seconds` (the
@@ -1200,7 +1199,12 @@ compiled program is written. The options below require `--bind`:
 
 For example,
 
-    ./tempore --grades time-interval --emit-opentrons elisa.py --bind examples/opentrons/elisa_bindings.py --time-unit minutes --simulate examples/opentrons/elisa.tpe
+    ./tempore --grades time-interval \
+      --emit-opentrons elisa.py \
+      --bind examples/opentrons/elisa_bindings.py \
+      --time-unit minutes \
+      --simulate \
+      examples/opentrons/elisa.tpe
 
 writes the ELISA protocol and simulates it.
 
