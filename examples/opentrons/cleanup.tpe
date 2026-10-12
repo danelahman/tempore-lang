@@ -1,0 +1,150 @@
+(* A bead clean-up on the Opentrons Flex whose steps are compound operations,
+   implemented by a handler in terms of the atomic operations of the robot.
+
+   Run this example with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-symbolic \
+       examples/opentrons/cleanup.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+(* Modelled on the Opentrons Protocol Library protocols kapa-amp-cleanup (a
+   bead clean-up with a five-minute binding, three minutes on the magnet, two
+   ethanol washes of half a minute each, a dry time and an elution followed by
+   three minutes on the magnet) and nextera-flex-library-prep-post-tag-cleanup
+   (magnetic washes, beads kept wet to prevent overdrying).
+
+   The protocols are in
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/
+       - kapa-amp-cleanup
+       - nextera-flex-library-prep-post-tag-cleanup
+
+   A tick is a minute. The protocol for the Flex, with the atomic operations
+   performed by the functions of 'cleanup_bindings.py', is written by
+
+     ./tempore --grades regex-timed-interval-symbolic \
+       --emit-opentrons cleanup.py \
+       --bind examples/opentrons/cleanup_bindings.py \
+       --time-unit minutes \
+       --simulate \
+       examples/opentrons/cleanup.tpe
+
+   and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+
+   The atomic operations declare their running times and have binding
+   functions; the compound operations have neither, and are performed by the
+   handler 'cleanup_steps'. The beads are named by a string, of the type
+   beads. *)
+
+type beads = string
+
+(* The atomic operations. Mixing the beads into the samples, removing the
+   supernatant or the ethanol, adding the elution buffer and transferring the
+   eluates each take one to two minutes. The plate is moved onto and off the
+   magnetic block, and the ethanol is added from above, in at most a
+   minute. *)
+operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
+default AddBeads () = delay 1
+
+operation Engage : unit ~> unit # {Engage} within [0, 1]
+default Engage () = delay 1
+
+operation Disengage : unit ~> unit # {Disengage} within [0, 1]
+default Disengage () = delay 1
+
+operation RemoveSupernatant : unit ~> unit # {RemoveSupernatant} within [1, 2]
+default RemoveSupernatant () = delay 1
+
+operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
+default AddEthanol () = delay 1
+
+operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
+default RemoveEthanol () = delay 1
+
+operation AddBuffer : unit ~> unit # {AddBuffer} within [1, 2]
+default AddBuffer () = delay 1
+
+operation Transfer : unit ~> unit # {Transfer} within [1, 2]
+default Transfer () = delay 1
+
+(* The compound operations, their running-time bounds derived from their
+   grades. Binding adds the beads, lets them bind the sample for five to ten
+   minutes and engages the magnet; the beads it returns settle on the magnet
+   for three to five minutes. An ethanol wash adds the ethanol and removes it
+   after a minute. The elution resuspends the beads off the magnet in the
+   buffer for two to five minutes, engages the magnet and, after three to five
+   minutes, transfers the eluates. The upper bounds are the example's own. *)
+operation Bind : beads ~> [[3, 5]] beads # {AddBeads; [5, 10]; Engage}
+
+operation EthanolWash : unit ~> unit # {AddEthanol; 1; RemoveEthanol}
+
+operation Elute : beads ~> beads
+  # {Disengage; AddBuffer; [2, 5]; Engage; [3, 5]; Transfer}
+
+(* Correctly accepted by the typechecker: each case performs the atomic
+   operations its compound operation names, in order, with waits within the
+   delays of its grade, before it resumes the continuation. *)
+let cleanup_steps =
+  handler
+  | x -> x
+  | Bind beads k ->
+      perform AddBeads ();
+      delay 5;
+      perform Engage ();
+      continue k with (box [3, 5] beads)
+  | EthanolWash () k ->
+      perform AddEthanol ();
+      delay 1;
+      perform RemoveEthanol ();
+      continue k with ()
+  | Elute beads k ->
+      perform Disengage ();
+      perform AddBuffer ();
+      delay 2;
+      perform Engage ();
+      delay 3;
+      perform Transfer ();
+      continue k with beads
+
+(* The protocol. The supernatant is removed once the beads have settled. The
+   washed beads may take the elution buffer after exactly two ethanol washes
+   and an air-dry of two to three minutes. *)
+let cleanup (beads : beads) =
+  let settling = perform Bind beads in
+  delay 3;
+  unbox settling as beads in
+  perform RemoveSupernatant ();
+  box {AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; [2, 3]} beads
+    as washed in
+  perform EthanolWash ();
+  perform EthanolWash ();
+  delay 2;
+  unbox washed as beads in
+  perform Elute beads
+
+(* Correctly rejected by the typechecker: the ethanol wash removes the ethanol
+   without the minute of washing:
+
+     Typing error: Variable `k` is unboxed with grade
+       `[{AddEthanol; RemoveEthanol}, {AddEthanol; RemoveEthanol}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
+       Note: the resource inequality
+       `[{AddEthanol; RemoveEthanol}, {AddEthanol; RemoveEthanol}] <=
+       [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
+       does not hold
+*)
+(*
+let no_wait =
+  handler
+  | x -> x
+  | EthanolWash () k ->
+      perform AddEthanol ();
+      perform RemoveEthanol ();
+      continue k with ()
+*)
+
+run handle cleanup "beads" with cleanup_steps

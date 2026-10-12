@@ -36,7 +36,8 @@ for example in \
   "reagents time-interval minutes" \
   "staggered time-interval minutes" \
   "beads time-interval minutes" \
-  "stopread time-interval minutes"
+  "stopread time-interval minutes" \
+  "cleanup regex-timed-interval-symbolic minutes"
 do
   set -- $example
   name=$1

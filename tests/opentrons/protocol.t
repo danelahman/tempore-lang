@@ -341,12 +341,73 @@ solution in the case of a handler that simulates the reader.
   delay(seconds=60.0)
   comment: Tempore run 1 returns (0, 0)
 
+The bead clean-up by compound operations: the handler of the run performs each
+compound operation by the atomic operations its grade names, so only the
+atomic operations call binding functions and are commented. The compound
+operations, which have neither binding functions nor defaults, are warnings.
+
+  $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons cleanup.py \
+  >   --bind $examples/cleanup_bindings.py --time-unit minutes $examples/cleanup.tpe
+  Warning: operation `Bind`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
+  Warning: operation `Elute`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
+  Warning: operation `EthanolWash`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
+  Wrote _opentrons/protocols/cleanup.py
+  $ simulate cleanup.py
+  requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
+  load_labware('opentrons_flex_96_tiprack_200ul', 'B3')
+  load_labware('nest_12_reservoir_15ml', 'D1')
+  load_labware('nest_96_wellplate_100ul_pcr_full_skirt', 'D2')
+  load_labware('nest_96_wellplate_100ul_pcr_full_skirt', 'D3')
+  load_module('magneticBlockV1', 'C1')
+  load_trash_bin('A3')
+  load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_200ul in B3])
+  comment: Tempore run 1
+  pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40), new_tip='always')
+  comment: Tempore timeline: At 0 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 90 s: delay of 300 s
+  delay(seconds=300.0)
+  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
+  comment: Tempore timeline: At 390 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 420 s: delay of 180 s
+  delay(seconds=180.0)
+  pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
+  comment: Tempore timeline: At 600 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
+  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
+  comment: Tempore timeline: At 690 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 735 s: delay of 60 s
+  delay(seconds=60.0)
+  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
+  comment: Tempore timeline: At 795 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
+  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='once')
+  comment: Tempore timeline: At 885 s: operation `AddEthanol` took 45 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 930 s: delay of 60 s
+  delay(seconds=60.0)
+  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
+  comment: Tempore timeline: At 990 s: operation `RemoveEthanol` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1080 s: delay of 120 s
+  delay(seconds=120.0)
+  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
+  comment: Tempore timeline: At 1200 s: operation `Disengage` took 30 s, within its running-time bounds [0, 60] s
+  pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='always')
+  comment: Tempore timeline: At 1230 s: operation `AddBuffer` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1320 s: delay of 120 s
+  delay(seconds=120.0)
+  move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
+  comment: Tempore timeline: At 1440 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 1470 s: delay of 180 s
+  delay(seconds=180.0)
+  pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of D3, B1 of D3, C1 of D3, D1 of D3], new_tip='always')
+  comment: Tempore timeline: At 1650 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore run 1 returns "beads"
+
 The rejected variants of the examples.
 
   $ ../../tempore --grades time-interval --typecheck-only $examples/elisa_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
   $ ../../tempore --grades regex-timed-interval-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `washed` is unboxed with grade `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}, {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]`
+  $ ../../tempore --grades regex-timed-interval-symbolic --typecheck-only $examples/cleanup_reject.tpe 2>&1 | grep 'Typing error'
+  Typing error: Variable `k` is unboxed with grade `[{RemoveEthanol; 1; AddEthanol}, {RemoveEthanol; 1; AddEthanol}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
   $ ../../tempore --grades time-upper-bound-levels --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `article_tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do

@@ -1178,7 +1178,9 @@ examples, each with a binding file and a rejected variant:
 - [`beads.tpe`](examples/opentrons/beads.tpe): a bead clean-up with beads boxed
   `[3, ∞)` and `[2, 3]`;
 - [`stopread.tpe`](examples/opentrons/stopread.tpe): a stop and read with plates
-  boxed `[0, 30]`.
+  boxed `[0, 30]`;
+- [`cleanup.tpe`](examples/opentrons/cleanup.tpe): a bead clean-up whose compound
+  operations are performed by a handler through the atomic operations.
 
 #### Command line
 <!-- web-skip -->

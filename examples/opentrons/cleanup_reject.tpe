@@ -1,0 +1,42 @@
+(* As the bead clean-up by compound operations, with an ethanol wash that
+   removes the ethanol before adding it.
+
+   Run this example with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-symbolic \
+       examples/opentrons/cleanup_reject.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
+default AddEthanol () = delay 1
+
+operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
+default RemoveEthanol () = delay 1
+
+operation EthanolWash : unit ~> unit # {AddEthanol; 1; RemoveEthanol}
+
+(* Correctly rejected by the typechecker: the case performs the steps of the
+   wash in the reverse order:
+
+     Typing error: Variable `k` is unboxed with grade
+       `[{RemoveEthanol; 1; AddEthanol}, {RemoveEthanol; 1; AddEthanol}]`
+       accumulated since it was bound, which is not below its box grade ...
+*)
+let reversed_wash =
+  handler
+  | x -> x
+  | EthanolWash () k ->
+      perform RemoveEthanol ();
+      delay 1;
+      perform AddEthanol ();
+      continue k with ()
+
+let two_washes () =
+  perform EthanolWash ();
+  perform EthanolWash ()
+
+run handle two_washes () with reversed_wash

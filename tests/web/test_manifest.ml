@@ -98,8 +98,8 @@ let () =
   let opentrons =
     List.filter (fun (e : Manifest.entry) -> e.backend = "opentrons") entries
   in
-  if List.length opentrons <> 7 then
-    fail "the manifest lists %d Opentrons examples, not 7"
+  if List.length opentrons <> 8 then
+    fail "the manifest lists %d Opentrons examples, not 8"
       (List.length opentrons);
   List.iter
     (fun (e : Manifest.entry) ->
