@@ -1,0 +1,11 @@
+{
+  "description": "Register transactions with devices on the I2C bus Wire",
+  "declarations": "i2c.tpe",
+  "grades": ["time-interval-rational"],
+  "requires": ["i2c"],
+  "sources": ["i2c.cpp"],
+  "bindings": [
+    "I2cWrite8", "I2cWrite16", "I2cWrite32",
+    "I2cRead8", "I2cRead16", "I2cRead32"
+  ]
+}

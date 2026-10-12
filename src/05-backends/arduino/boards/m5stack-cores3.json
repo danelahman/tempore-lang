@@ -7,6 +7,7 @@
   "build_flags": ["-DARDUINO_USB_CDC_ON_BOOT=1"],
   "cores": 2,
   "m5unified": true,
+  "capabilities": ["imu", "display"],
   "serial_baud": 115200,
   "i2c": [{ "port": "Wire", "sda": 2, "scl": 1, "frequency": 400000 }],
   "includes": [],

@@ -11,6 +11,10 @@ val identifier : string -> int -> string
     a C++ keyword nor a reserved identifier, and it differs from the names the
     compiler introduces, which start with [tempore]. *)
 
+val base : string -> string
+(** [base name] is [name] made a C++ identifier as by {!identifier}, without the
+    index. *)
+
 val operation : string -> string
 (** [operation name] is the name of the C++ function that performs the operation
     [name]: [tempore_op_] followed by [name] made an identifier as by

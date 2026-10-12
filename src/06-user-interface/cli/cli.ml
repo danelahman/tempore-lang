@@ -13,8 +13,11 @@ let source filename =
   if filename = stdlib_filename then Some Loader.stdlib_source
   else if filename = "" then None
   else
-    try Some (In_channel.with_open_text filename In_channel.input_all)
-    with Sys_error _ -> None
+    match ArduinoBackend.ArduinoPackage.source filename with
+    | Some text -> Some text
+    | None -> (
+        try Some (In_channel.with_open_text filename In_channel.input_all)
+        with Sys_error _ -> None)
 
 (* The definitions with their schemes, from the [skip]-th on. *)
 let print_definitions ~print_scheme ?(skip = 0) definitions =
@@ -34,6 +37,7 @@ type config = {
   emit_opentrons : string option;
   emit_arduino : string option;
   device : string option;
+  packages : string list;
   host_runs : bool;
   host_simulate : int option;
   bind : string option;
@@ -129,6 +133,7 @@ let parse_args_to_config () =
   and emit_opentrons = ref None
   and emit_arduino = ref None
   and device = ref None
+  and packages = ref []
   and host_runs = ref false
   and host_simulate = ref None
   and bind = ref None
@@ -217,6 +222,22 @@ let parse_args_to_config () =
         ( "--no-stdlib",
           Arg.Clear use_stdlib,
           " Do not load the standard library" );
+        ( "--package",
+          Arg.String
+            (fun name ->
+              if List.mem name ArduinoBackend.ArduinoPackage.names then
+                packages := name :: !packages
+              else
+                raise
+                  (Arg.Bad
+                     (Printf.sprintf "option '--package': '%s' is not one of %s"
+                        name
+                        (String.concat ", " ArduinoBackend.ArduinoPackage.names)))),
+          " Load the declarations of the operations of the given peripheral \
+           package of the Arduino backend before the files, so that the \
+           program may perform them, run by their default implementations; \
+           repeatable; the packages of a device written with --device are \
+           those of its manifest" );
         ( "--robot",
           Arg.String
             (choice "--robot"
@@ -271,11 +292,14 @@ let parse_args_to_config () =
   requires "--device" (!device <> None) "--emit-arduino" (!emit_arduino <> None);
   requires "--host-simulate" (!host_simulate <> None) "--device"
     (!device <> None);
-  if !host_runs && !device <> None then begin
-    Printf.eprintf "%s: option '--host-runs' cannot be used with '--device'.\n"
-      Sys.argv.(0);
-    exit 2
-  end;
+  List.iter
+    (fun (option, given) ->
+      if given && !device <> None then begin
+        Printf.eprintf "%s: option '%s' cannot be used with '--device'.\n"
+          Sys.argv.(0) option;
+        exit 2
+      end)
+    [ ("--host-runs", !host_runs); ("--package", !packages <> []) ];
   List.iter
     (fun (emit, emitting) ->
       List.iter
@@ -317,6 +341,7 @@ let parse_args_to_config () =
     emit_opentrons = !emit_opentrons;
     emit_arduino = !emit_arduino;
     device = !device;
+    packages = List.rev !packages;
     host_runs = !host_runs;
     host_simulate = !host_simulate;
     bind = !bind;
@@ -489,15 +514,20 @@ let host_simulate ~directory ~duration files =
     (Sys.command (Filename.quote_command executable [ string_of_int duration ]))
 
 (* Writes to the directory [directory], created if missing, the C++ files of
-   the [commands] of the program, those of the standard library being the
-   commands located in it; under --device, the PlatformIO project of the
-   device, whose task functions are found among the [definitions] of the
-   program's sources, each with the effect of its type, and whose operations
-   are monitored against the bounds of the declared [operations]. *)
-let emit_arduino config ~directory ~definitions ~operations commands =
+   the [commands] of the program, those of the library being the commands
+   located in the standard library or in the files [declarations] of the
+   packages; under --device, the PlatformIO project of the device of the
+   manifest [device], whose task functions are found among the [definitions]
+   of the program's sources, each with the effect of its type, and whose
+   operations are monitored against the bounds of the declared
+   [operations]. *)
+let emit_arduino config ~directory ~device ~declarations ~definitions
+    ~operations commands =
   let library, sources =
     List.partition
-      (fun (cmd : _ Ast.command) -> cmd.at.filename = stdlib_filename)
+      (fun (cmd : _ Ast.command) ->
+        cmd.at.filename = stdlib_filename
+        || List.mem cmd.at.filename declarations)
       commands
   in
   let program =
@@ -509,28 +539,23 @@ let emit_arduino config ~directory ~definitions ~operations commands =
     | [] -> "the standard library"
   in
   let files =
-    match config.device with
+    match device with
     | None ->
         (ArduinoBackend.ArduinoEmit.compile ~host_runs:config.host_runs ~source
            program)
           .files
-    | Some manifest ->
+    | Some (manifest, (device : ArduinoBackend.ArduinoDevice.t)) ->
         let module Project = ArduinoBackend.ArduinoProject in
-        let device =
-          ArduinoBackend.ArduinoDevice.parse ~filename:manifest
-            (read_file manifest)
+        let read (name : string Utils.Location.located) =
+          let path =
+            if Filename.is_relative name.it then
+              Filename.concat (Filename.dirname manifest) name.it
+            else name.it
+          in
+          (path, read_file path)
         in
-        let bindings =
-          Option.map
-            (fun (name : string Utils.Location.located) ->
-              let path =
-                if Filename.is_relative name.it then
-                  Filename.concat (Filename.dirname manifest) name.it
-                else name.it
-              in
-              (path, read_file path))
-            device.bindings
-        in
+        let bindings = Option.map read device.bindings in
+        let host_models = List.map read device.host_models in
         let monitor =
           match config.monitor with
           | None | Some OpentronsBackend.OpentronsProtocol.Abort ->
@@ -539,7 +564,15 @@ let emit_arduino config ~directory ~definitions ~operations commands =
           | Some Off -> Project.Off
         in
         Project.files
-          { device; monitor; source; definitions; operations; bindings }
+          {
+            device;
+            monitor;
+            source;
+            definitions;
+            operations;
+            bindings;
+            host_models;
+          }
           program
   in
   (try
@@ -638,9 +671,63 @@ let run_with (module G : Grades.Grade.S) config =
   in
   try
     Random.self_init ();
+    (* The manifest of --device, and the peripheral packages whose
+       declarations precede the files: those of the manifest, or else those
+       of --package. *)
+    let device =
+      Option.map
+        (fun manifest ->
+          ( manifest,
+            ArduinoBackend.ArduinoDevice.parse ~filename:manifest
+              (read_file manifest) ))
+        config.device
+    in
+    let module Package = ArduinoBackend.ArduinoPackage in
+    let checked ~refuse (package : Package.t) =
+      match Package.check_grades ~grades:config.resource_type package with
+      | Ok () -> package
+      | Error message -> refuse message
+    in
+    let packages =
+      match device with
+      | Some (_, device) ->
+          List.map
+            (fun (name : string Utils.Location.located) ->
+              checked (Package.resolve name) ~refuse:(fun message ->
+                  Error.compilation ~loc:name.at "%s" message))
+            device.packages
+      | None ->
+          List.map
+            (fun name ->
+              checked
+                (Option.get (Package.find name))
+                ~refuse:(fun message ->
+                  prerr_endline ("Error: " ^ message);
+                  exit 1))
+            config.packages
+    in
+    (* Each package once, in the order of its first mention. *)
+    let packages =
+      List.rev
+        (List.fold_left
+           (fun acc (p : Package.t) ->
+             if List.exists (fun (q : Package.t) -> q.name = p.name) acc then
+               acc
+             else p :: acc)
+           [] packages)
+    in
+    let declarations =
+      List.map (fun (p : Package.t) -> p.declarations) packages
+    in
     (* Every source is parsed before any is loaded, so that the grades of the
        program are read over the operations all of them declare. *)
-    let files = List.map Loader.parse_file config.filenames in
+    let files =
+      List.map
+        (fun (p : Package.t) ->
+          Loader.parse_source ~filename:p.declarations p.declarations_source)
+        packages
+      @ List.map Loader.parse_file config.filenames
+    in
     let program = Loader.load_program ~use_stdlib:config.use_stdlib files in
     let diagnostics = program.diagnostics in
     (* A blank line between diagnostics, so that a reader can tell where one
@@ -687,6 +774,7 @@ let run_with (module G : Grades.Grade.S) config =
         in
         emit_arduino config
           ~directory:(arduino_directory (Option.get config.emit_arduino))
+          ~device ~declarations
           ~definitions:
             (List.map
                (fun (d : Loader.definition) -> (d.variable, effect_of d.scheme))

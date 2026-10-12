@@ -1,0 +1,9 @@
+(* A repeated free task on an M5Stack core, with the package m5-display: each
+   call shows a line and waits 100 ms. Time is in milliseconds, under the
+   grades time-interval-rational. *)
+
+let tick () =
+  perform ShowText "Tick";
+  delay 100
+
+let spin () = ()

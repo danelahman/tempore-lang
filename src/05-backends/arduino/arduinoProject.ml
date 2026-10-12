@@ -7,6 +7,7 @@ module F = ArduinoFragment
 module Device = ArduinoDevice
 module Board = ArduinoBoard
 module Names = ArduinoNames
+module Package = ArduinoPackage
 
 type monitor = Abort | Warn | Off
 
@@ -27,6 +28,7 @@ type input = {
     (Ast.operation * (Rational.t Grade.bound * Rational.t Grade.bound) option)
     list;
   bindings : (string * string) option;
+  host_models : (string * string) list;
 }
 
 (* Types, printed as in the source, the type variables named ['a], ['b], ...
@@ -179,6 +181,31 @@ let check_period (name : Device.name) r period =
            below its period: its durations are not all below %s"
           grade name.it (Rational.show period)
 
+(* Whether a lower end of an interval of durations is positive. *)
+let takes_time = function
+  | Grade.Closed q | Grade.Open q -> Rational.sign q > 0
+  | Grade.Unbounded -> false
+
+let check_repeat (name : Device.name) r =
+  let fail grade =
+    Error.compilation ~loc:name.at
+      "The effect `%s` of the function '%s' of a repeated free task does not \
+       bound its durations below by a positive time, so that the task may \
+       never yield"
+      grade name.it
+  in
+  match r.function_effect with
+  | Not_a_function -> ()
+  | Effect_variable ->
+      Error.compilation ~loc:name.at
+        "The effect of the function '%s' of a repeated free task has a \
+         variable; annotate the function with an effect whose durations are \
+         bounded below by a positive time"
+        name.it
+  | Effect { grade; durations = None } -> fail grade
+  | Effect { grade; durations = Some (lo, _) } ->
+      if not (takes_time lo) then fail grade
+
 (* Bindings. *)
 
 let is_identifier_char = function
@@ -246,12 +273,22 @@ let bindings_header input (compiled : ArduinoEmit.compiled) =
     @ (match compiled.operation_types with
       | [] -> []
       | ops ->
-          "" :: "// The binding functions of the operations."
-          :: List.map
+          ""
+          :: "// The operations performed: the types of their arguments and \
+              results, and their binding functions."
+          :: List.concat_map
                (fun (op, (argument, result)) ->
-                 Printf.sprintf "%s %s(%s);" result
-                   (Names.binding (Ast.OpName.string_of op))
-                   argument)
+                 let name = Ast.OpName.string_of op in
+                 let base = Names.base name in
+                 [
+                   "";
+                   "#define TEMPORE_PERFORMS_" ^ base;
+                   Printf.sprintf "typedef %s tempore_argument_%s;" argument
+                     base;
+                   Printf.sprintf "typedef %s tempore_result_%s;" result base;
+                   Printf.sprintf "%s %s(%s);" result (Names.binding name)
+                     argument;
+                 ])
                ops)
     @ (match input.device.safe_state with
       | None -> []
@@ -306,8 +343,11 @@ type task_code = {
   initial : resolved option;
 }
 
-let main_source input board tasks =
+let main_source input board packages tasks =
   let device = input.device in
+  let hooks f = List.filter_map (fun (p : Package.t) -> f p) packages in
+  let inits = hooks (fun p -> p.init)
+  and safe_states = hooks (fun p -> p.safe_state) in
   let task_function i { task; step; initial } =
     let name = Names.string_literal task.function_name.it in
     let header = Printf.sprintf "static void tempore_task%d(void *) {" i in
@@ -335,7 +375,7 @@ let main_source input board tasks =
           "  }";
           "}";
         ]
-    | Device.Free ->
+    | Device.Free { repeat = false } ->
         [
           Printf.sprintf "// The free task %s." task.function_name.it;
           header;
@@ -344,6 +384,18 @@ let main_source input board tasks =
           Printf.sprintf "  %s(tempore_unit{});" step.cxx;
           Printf.sprintf "  tempore_trace(\"End %%s\", %s);" name;
           "  vTaskDelete(nullptr);";
+          "}";
+        ]
+    | Device.Free { repeat = true } ->
+        [
+          Printf.sprintf "// The repeated free task %s." task.function_name.it;
+          header;
+          "  for (;;) {";
+          "    tempore_check_halt();";
+          Printf.sprintf "    tempore_trace(\"Start %%s\", %s);" name;
+          Printf.sprintf "    %s(tempore_unit{});" step.cxx;
+          Printf.sprintf "    tempore_trace(\"End %%s\", %s);" name;
+          "  }";
           "}";
         ]
   in
@@ -379,11 +431,23 @@ let main_source input board tasks =
           (Z.to_string (Rational.num unit_us));
         Printf.sprintf "const uint64_t tempore_unit_denominator_us = %sULL;"
           (Z.to_string (Rational.den unit_us));
+      ]
+    @ (match inits @ safe_states with
+      | [] -> []
+      | hooks ->
+          "" :: "// The hooks of the packages."
+          :: List.map (fun f -> "void " ^ f ^ "();") hooks)
+    @ [
         "";
-        (match device.safe_state with
-        | Some hook ->
-            Printf.sprintf "void tempore_safe_state() { %s(); }" hook.it
-        | None -> "void tempore_safe_state() {}");
+        (match
+           safe_states
+           @ Option.to_list
+               (Option.map (fun (h : Device.name) -> h.it) device.safe_state)
+         with
+        | [] -> "void tempore_safe_state() {}"
+        | hooks ->
+            Printf.sprintf "void tempore_safe_state() { %s }"
+              (String.concat " " (List.map (fun f -> f ^ "();") hooks)));
       ]
     @ List.concat (List.mapi (fun i t -> "" :: task_function i t) tasks)
     @ [
@@ -400,6 +464,7 @@ let main_source input board tasks =
             bus.frequency)
         board.i2c
     @ List.map (fun s -> "  " ^ s) board.init
+    @ List.map (fun f -> "  " ^ f ^ "();") inits
     @ List.mapi
         (fun i { task; _ } ->
           Printf.sprintf
@@ -425,11 +490,28 @@ let files input (program : F.program) =
           "Unknown board '%s'; accepted: %s" device.board.it
           (String.concat ", " Board.names)
   in
-  List.iter
-    (fun (package : Device.name) ->
-      Error.compilation ~loc:package.at
-        "Unknown package '%s'; no peripheral packages are available" package.it)
-    device.packages;
+  let packages =
+    List.fold_left
+      (fun packages (name : Device.name) ->
+        let package = Package.resolve name in
+        if List.exists (fun (p : Package.t) -> p.name = name.it) packages then
+          Error.compilation ~loc:name.at "The package '%s' is listed twice"
+            name.it;
+        List.iter
+          (fun capability ->
+            if not (List.mem capability board.capabilities) then
+              Error.compilation ~loc:name.at
+                "The package %s requires the capability %s, which the board %s \
+                 lacks; its capabilities are: %s"
+                package.name capability board.name
+                (match board.capabilities with
+                | [] -> "none"
+                | cs -> String.concat ", " cs))
+          package.requires;
+        package :: packages)
+      [] device.packages
+    |> List.rev
+  in
   List.iter
     (fun (task : Device.task) ->
       if task.core >= board.cores then
@@ -446,9 +528,10 @@ let files input (program : F.program) =
         let name = task.function_name in
         let step = resolve name in
         match task.kind with
-        | Device.Free ->
+        | Device.Free { repeat } ->
             check_type ~role:"a free task" name step
               ~expected:(unit_ty, Some unit_ty);
+            if repeat then check_repeat name step;
             { task; step; initial = None }
         | Device.Periodic { period; initial; _ } ->
             check_type ~role:"a periodic task" name step
@@ -477,32 +560,79 @@ let files input (program : F.program) =
             { task; step; initial })
       device.tasks
   in
+  let package_files f =
+    List.concat_map (fun (p : Package.t) -> List.map fst (f p)) packages
+  in
+  let source_names = package_files (fun p -> p.sources)
+  and host_names = package_files (fun p -> p.host_models) in
+  let check_file ~what ~taken (name : Device.name) =
+    let base = Filename.basename name.it in
+    if
+      String.starts_with ~prefix:"tempore" base
+      || base = "main.cpp"
+      || not (Filename.check_suffix base ".cpp")
+    then
+      Error.compilation ~loc:name.at
+        "%s must be a .cpp file whose name is neither main.cpp nor starts with \
+         tempore"
+        what;
+    if List.mem base taken then
+      Error.compilation ~loc:name.at
+        "%s %s has the name of another file of the project; rename it" what base;
+    base
+  in
   let binding_file =
     match (device.bindings, input.bindings) with
     | Some name, Some (_, text) ->
-        let base = Filename.basename name.it in
-        if
-          String.starts_with ~prefix:"tempore" base
-          || base = "main.cpp"
-          || not (Filename.check_suffix base ".cpp")
-        then
-          Error.compilation ~loc:name.at
-            "The binding file must be a .cpp file whose name is neither \
-             main.cpp nor starts with tempore";
-        Some (name, base, text)
+        Some
+          ( name,
+            check_file ~what:"The binding file" ~taken:source_names name,
+            text )
     | _ -> None
   in
+  let host_models =
+    List.fold_left2
+      (fun acc (name : Device.name) (_, text) ->
+        let base =
+          check_file ~what:"A host model"
+            ~taken:(host_names @ List.map fst acc)
+            name
+        in
+        (base, text) :: acc)
+      [] device.host_models input.host_models
+    |> List.rev
+  in
+  let provider name =
+    List.find_opt (fun (p : Package.t) -> List.mem name p.bindings) packages
+  in
   let required =
-    List.map
+    List.filter_map
       (fun (op, _) ->
         let name = Ast.OpName.string_of op in
-        (Names.binding name, Printf.sprintf "the operation %s" name))
+        match provider name with
+        | Some _ -> None
+        | None ->
+            Some (Names.binding name, Printf.sprintf "the operation %s" name))
       compiled.operation_types
     @
     match device.safe_state with
     | Some hook -> [ (hook.it, "the safe state") ]
     | None -> []
   in
+  Option.iter
+    (fun ((name : Device.name), base, text) ->
+      List.iter
+        (fun (op, _) ->
+          let op = Ast.OpName.string_of op in
+          match provider op with
+          | Some p when mentions text (Names.binding op) ->
+              Error.compilation ~loc:name.at
+                "The binding file %s defines the function %s of the operation \
+                 %s, which the package %s defines"
+                base (Names.binding op) op p.name
+          | _ -> ())
+        compiled.operation_types)
+    binding_file;
   List.iter
     (fun (id, what) ->
       match binding_file with
@@ -520,7 +650,7 @@ let files input (program : F.program) =
   List.map (fun (path, text) -> ("src/" ^ path, text)) compiled.files
   @ [
       ("platformio.ini", Board.platformio_ini board);
-      ("src/main.cpp", main_source input board tasks);
+      ("src/main.cpp", main_source input board packages tasks);
       ("src/tempore_bindings.h", bindings_header input compiled);
       ("src/tempore_operations.cpp", operations_source input compiled);
     ]
@@ -529,10 +659,17 @@ let files input (program : F.program) =
         if String.starts_with ~prefix:host_directory path then (path, text)
         else ("src/" ^ path, text))
       Arduino_scaffold.files
-  @
-  match binding_file with
-  | Some (_, base, text) -> [ ("src/" ^ base, text) ]
-  | None -> []
+  @ List.concat_map
+      (fun (p : Package.t) ->
+        List.map (fun (file, text) -> ("src/" ^ file, text)) p.sources
+        @ List.map
+            (fun (file, text) -> (host_directory ^ file, text))
+            p.host_models)
+      packages
+  @ (match binding_file with
+    | Some (_, base, text) -> [ ("src/" ^ base, text) ]
+    | None -> [])
+  @ List.map (fun (base, text) -> (host_directory ^ base, text)) host_models
 
 let host_sources files =
   List.filter_map
@@ -540,7 +677,7 @@ let host_sources files =
       if
         Filename.check_suffix path ".cpp"
         && (String.starts_with ~prefix:"src/" path
-           || path = host_directory ^ "tempore_simulator.cpp")
+           || Filename.dirname path ^ "/" = host_directory)
       then Some path
       else None)
     files

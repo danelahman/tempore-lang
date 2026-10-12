@@ -1,0 +1,9 @@
+{
+  "description": "The accelerometer and gyroscope of an M5Stack core through M5Unified, with an attitude filter",
+  "declarations": "m5_imu.tpe",
+  "grades": ["time-interval-rational"],
+  "requires": ["m5unified", "imu"],
+  "sources": ["m5_imu.cpp"],
+  "host_models": ["m5_imu_model.cpp"],
+  "bindings": ["ReadImu"]
+}

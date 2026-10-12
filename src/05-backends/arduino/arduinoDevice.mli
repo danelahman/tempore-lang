@@ -14,18 +14,25 @@
     - ["initial"]: for a periodic task, the name of a top-level function of type
       [unit -> s] whose result is the initial state of the task; required unless
       [s] is [unit],
+    - ["repeat"]: for a free task, and only for one, whether its function is
+      called again each time it returns (default [false]),
     - ["core"]: the core the task is pinned to (default 1),
     - ["priority"]: its FreeRTOS priority, from 1 to 24 (default 1),
     - ["stack"]: its stack size in bytes, at least 1024 (default 4096);
-    - ["packages"]: an array of names of peripheral packages (default none);
+    - ["packages"]: an array of names of peripheral packages ({!ArduinoPackage},
+      default none);
     - ["bindings"]: the C++ file of the bindings of the operations of the
       program, relative to the directory of the manifest;
     - ["safe_state"]: the name of the C++ function [void f()] of the binding
-      file that puts the device in its safe state.
+      file that puts the device in its safe state;
+    - ["host_models"]: an array of C++ files, relative to the directory of the
+      manifest, compiled only by the host simulation: the models of the devices
+      and of the physical world of the application (default none).
 
     A periodic task calls its function, of type [s -> s], once per period,
     passing the state from one call to the next; a free task calls its function,
-    of type [unit -> unit], once.
+    of type [unit -> unit], once, or, if it is repeated, again each time it
+    returns, as Arduino's [loop()].
 
     For example:
     {v
@@ -52,7 +59,7 @@ type kind =
       period : Grades.Rational.t;  (** the period in time units *)
       initial : name option;
     }
-  | Free
+  | Free of { repeat : bool }  (** whether the function is called again *)
 
 type task = {
   function_name : name;
@@ -74,6 +81,7 @@ type t = {
   packages : name list;
   bindings : name option;
   safe_state : name option;
+  host_models : name list;
 }
 (** A manifest. *)
 

@@ -1,0 +1,88 @@
+(* The package m5-imu: the inertial measurement unit of an M5Stack core,
+   read through M5Unified, and an attitude filter. Grades:
+   time-interval-rational, in milliseconds.
+
+   ReadImu () reads the accelerometer, in g, and the gyroscope, in degrees per
+   second, each as the components along the x, y and z axes of the unit. The
+   default implementation reads a unit at rest with its z axis up.
+
+   PROVISIONAL: the bounds of the running time are estimates for a read over
+   the internal I2C bus at 400 kHz, to be measured on the device. *)
+
+type vector = float * float * float
+type imu = vector * vector
+
+operation ReadImu : unit ~> imu # [0.2, 1]
+default ReadImu () = delay 1/2; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+
+let imu_pi = 3.14159265358979
+
+let imu_abs (x : float) = if x < 0.0 then ~-.x else x
+
+(* The arctangent of x, for x from -1 to 1, in radians, by the polynomial
+   approximation 4.4.49 of Abramowitz and Stegun (1964), of absolute error at
+   most 2e-8. *)
+let imu_atan_unit (x : float) =
+  let s = x *. x in
+  x
+  *. (1.0
+     +. s
+        *. (-0.3333314528
+           +. s
+              *. (0.1999355085
+                 +. s
+                    *. (-0.1420889944
+                       +. s
+                          *. (0.1065626393
+                             +. s
+                                *. (-0.07528964
+                                   +. s
+                                      *. (0.0429096138
+                                         +. s
+                                            *. (-0.0161657367
+                                               +. s *. 0.0028662257))))))))
+
+(* The angle of the point (x, y) from the x axis, from -180 to 180 degrees,
+   as atan2 (y, x); zero at the origin. *)
+let imu_atan2 (y : float) (x : float) =
+  let radians =
+    if imu_abs y <= imu_abs x then
+      if x = 0.0 then 0.0
+      else
+        let a = imu_atan_unit (y /. x) in
+        if x > 0.0 then a else if y >= 0.0 then a +. imu_pi else a -. imu_pi
+    else
+      let a = imu_atan_unit (x /. y) in
+      if y > 0.0 then (imu_pi /. 2.0) -. a else ~-.(imu_pi /. 2.0) -. a
+  in
+  radians *. (180.0 /. imu_pi)
+
+(* The tilt of the unit about its x axis, in degrees, from the direction of
+   gravity measured by the accelerometer: zero with the z axis up, positive
+   when the y axis tilts up. *)
+let tilt_x_of_accel ((_, ay, az) : vector) = imu_atan2 ay az
+
+(* The tilt of the unit about its y axis, in degrees, from the direction of
+   gravity: zero with the z axis up, positive when the x axis tilts down. *)
+let tilt_y_of_accel ((ax, ay, az) : vector) =
+  imu_atan2 (~-.ax) (((ay *. ay) +. (az *. az)) ** 0.5)
+
+(* A complementary filter: the angle, in degrees, advanced by the rate, in
+   degrees per second, over dt seconds, weighted by alpha, and the measured
+   angle weighted by 1 - alpha. *)
+let complementary (alpha : float) (dt : float) (angle : float)
+    (measured : float) (rate : float) =
+  (alpha *. (angle +. (rate *. dt))) +. ((1.0 -. alpha) *. measured)
+
+(* The tilt about the x axis, in degrees, filtered from the previous estimate
+   angle and a reading of the unit dt seconds later. *)
+let tilt_x (alpha : float) (dt : float) (angle : float)
+    (((accel, gyro) : imu)) =
+  let gx, _, _ = gyro in
+  complementary alpha dt angle (tilt_x_of_accel accel) gx
+
+(* The tilt about the y axis, in degrees, filtered as by tilt_x. *)
+let tilt_y (alpha : float) (dt : float) (angle : float)
+    (((accel, gyro) : imu)) =
+  let _, gy, _ = gyro in
+  complementary alpha dt angle (tilt_y_of_accel accel) gy

@@ -98,7 +98,13 @@ Command-line options:
   executes them; with `--device <manifest.json>`, a PlatformIO project of the
   device the manifest describes, monitored under `--monitor abort|warn|off`
   (default `abort`), which `--host-simulate <seconds>` builds and runs on the
-  host for the given simulated time;
+  host for the given simulated time; the declarations of the peripheral
+  packages the manifest lists (`i2c`, `m5-imu`, `m5-display`, `bala2-base`,
+  under `time-interval-rational` in milliseconds) are loaded before the files;
+- `--package <name>`, repeatable, loads the declarations of a peripheral
+  package of the Arduino backend before the files, so that a program run by
+  the interpreter performs its operations by their default implementations;
+  it cannot be combined with `--device`;
 - `--help` lists the options and the available grading monoids.
 
 The [`examples/`](examples/) directory holds example programs grouped according

@@ -1,0 +1,5 @@
+{
+  "board": "m5stack-gray",
+  "tasks": [ { "function": "tick", "kind": "free", "repeat": true } ],
+  "packages": ["m5-display"]
+}

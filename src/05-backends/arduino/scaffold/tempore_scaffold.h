@@ -71,6 +71,13 @@ void tempore_monitor_operation(const char *name, int64_t elapsed_us,
 void tempore_monitor_period(const char *name, int64_t elapsed_us,
                             int64_t period_us);
 
+// Excludes the other tasks from the I2C buses, from the start of a
+// transaction to the last byte read of it, until tempore_i2c_unlock. The
+// bindings that use an I2C bus enclose each transaction in these calls and do
+// not end a task, by tempore_fault, between them.
+void tempore_i2c_lock();
+void tempore_i2c_unlock();
+
 // Declares the nominal duration of the action of a binding function. Under
 // host simulation the simulated clock advances by it; on the device nothing
 // happens, the action taking its own time.

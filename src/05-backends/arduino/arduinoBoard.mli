@@ -12,6 +12,10 @@
     - ["cores"]: the number of processor cores, to which the cores of tasks are
       pinned;
     - ["m5unified"]: whether the board is initialised by M5Unified;
+    - ["capabilities"]: an array of names of further capabilities of the board
+      that peripheral packages may require ({!ArduinoPackage}): ["imu"], an
+      inertial measurement unit read through M5Unified, and ["display"], a
+      display driven through M5Unified;
     - ["serial_baud"]: the baud rate of the serial port of the log;
     - ["i2c"]: an array of I2C buses, each an object of the ["port"] (the
       [TwoWire] object, e.g. ["Wire"]), the pins ["sda"] and ["scl"] and the
@@ -33,6 +37,10 @@ type t = {
   build_flags : string list;
   cores : int;
   m5unified : bool;
+  capabilities : string list;
+      (** the capabilities of the board: ["m5unified"] if it is initialised by
+          M5Unified, ["i2c"] if it has an I2C bus, and those of the member
+          ["capabilities"] *)
   serial_baud : int;
   i2c : i2c list;
   includes : string list;

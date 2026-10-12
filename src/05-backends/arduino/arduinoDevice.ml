@@ -12,7 +12,7 @@ type kind =
       period : Rational.t;
       initial : name option;
     }
-  | Free
+  | Free of { repeat : bool }
 
 type task = {
   function_name : name;
@@ -32,6 +32,7 @@ type t = {
   packages : name list;
   bindings : name option;
   safe_state : name option;
+  host_models : name list;
 }
 
 let located decode ~what (v : Json.t) =
@@ -88,17 +89,31 @@ let task ~unit_us ~what v =
   let f =
     Json.fields ~what
       ~accepted:
-        [ "function"; "kind"; "period"; "initial"; "core"; "priority"; "stack" ]
+        [
+          "function";
+          "kind";
+          "period";
+          "initial";
+          "repeat";
+          "core";
+          "priority";
+          "stack";
+        ]
       v
   in
   let function_name = Json.required f "function" (located Json.string) in
   let kind_name = Json.required f "kind" (located Json.string) in
   let period = Json.optional f "period" Json.rational in
   let initial = Json.optional f "initial" (located Json.string) in
+  let repeat = Json.optional f "repeat" Json.bool in
   let kind =
     match (kind_name.it, period) with
     | "periodic", None ->
         Error.compilation ~loc:v.at "A periodic task needs the member 'period'"
+    | "periodic", Some _ when repeat <> None ->
+        Error.compilation ~loc:(Json.location f "repeat")
+          "A periodic task is repeated by its period; the member 'repeat' is \
+           for free tasks"
     | "periodic", Some period ->
         let us = Rational.mul period unit_us in
         let ms = Rational.div us (Rational.of_int 1000) in
@@ -121,7 +136,7 @@ let task ~unit_us ~what v =
         match initial with
         | Some name ->
             Error.compilation ~loc:name.at "A free task has no initial state"
-        | None -> Free)
+        | None -> Free { repeat = Option.value repeat ~default:false })
     | other, _ ->
         Error.compilation ~loc:kind_name.at
           "Unknown kind of task '%s'; accepted: periodic, free" other
@@ -144,7 +159,15 @@ let parse ~filename text =
   let f =
     Json.fields ~what:"the manifest"
       ~accepted:
-        [ "board"; "time_unit"; "tasks"; "packages"; "bindings"; "safe_state" ]
+        [
+          "board";
+          "time_unit";
+          "tasks";
+          "packages";
+          "bindings";
+          "safe_state";
+          "host_models";
+        ]
       v
   in
   let board = Json.required f "board" (located Json.string) in
@@ -172,4 +195,7 @@ let parse ~filename text =
         (Json.optional f "packages" (Json.list (located Json.string)));
     bindings = Json.optional f "bindings" (located Json.string);
     safe_state = Json.optional f "safe_state" (located identifier);
+    host_models =
+      Option.value ~default:[]
+        (Json.optional f "host_models" (Json.list (located Json.string)));
   }

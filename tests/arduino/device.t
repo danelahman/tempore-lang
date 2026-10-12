@@ -17,8 +17,13 @@ tasks of the manifest, and the stubs of the host simulation.
   Wrote _arduino/projects/toy/host/M5Unified.h
   Wrote _arduino/projects/toy/host/Wire.h
   Wrote _arduino/projects/toy/host/esp_timer.h
+  Wrote _arduino/projects/toy/host/tempore_i2c_model.h
+  Wrote _arduino/projects/toy/host/tempore_world.h
+  Wrote _arduino/projects/toy/host/tempore_i2c_bus.cpp
   Wrote _arduino/projects/toy/host/tempore_simulator.cpp
+  Wrote _arduino/projects/toy/host/tempore_world.cpp
   Wrote _arduino/projects/toy/host/freertos/FreeRTOS.h
+  Wrote _arduino/projects/toy/host/freertos/semphr.h
   Wrote _arduino/projects/toy/host/freertos/task.h
   Wrote _arduino/projects/toy/src/toy_bindings.cpp
   $ cd _arduino/projects/toy
@@ -92,8 +97,16 @@ tasks of the manifest, and the stubs of the host simulation.
   #include "tempore_program.h"
   #include "tempore_scaffold.h"
   
-  // The binding functions of the operations.
+  // The operations performed: the types of their arguments and results, and their binding functions.
+  
+  #define TEMPORE_PERFORMS_Show
+  typedef uint32_t tempore_argument_Show;
+  typedef tempore_unit tempore_result_Show;
   tempore_unit binding_Show(uint32_t);
+  
+  #define TEMPORE_PERFORMS_Blink
+  typedef uint32_t tempore_argument_Blink;
+  typedef tempore_unit tempore_result_Blink;
   tempore_unit binding_Blink(uint32_t);
   
   // The safe state.
@@ -129,7 +142,7 @@ The sources build without warnings, also without exceptions and run-time type
 information, and the host simulation builds with the stubs:
 
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
-  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/tempore_simulator.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
 
 A board with M5Unified initialises it, and its sources build with the stubs:

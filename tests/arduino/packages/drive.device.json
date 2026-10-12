@@ -1,0 +1,5 @@
+{
+  "board": "m5stack-gray",
+  "tasks": [ { "function": "drive", "kind": "free" } ],
+  "packages": ["bala2-base", "m5-display"]
+}

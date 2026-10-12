@@ -7,6 +7,7 @@
   "build_flags": [],
   "cores": 2,
   "m5unified": false,
+  "capabilities": [],
   "serial_baud": 115200,
   "i2c": [{ "port": "Wire", "sda": 8, "scl": 9, "frequency": 400000 }],
   "includes": [],

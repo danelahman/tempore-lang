@@ -16,6 +16,7 @@ typedef void (*TaskFunction_t)(void *);
 #define pdMS_TO_TICKS(ms) (static_cast<TickType_t>(ms))
 #define portMAX_DELAY (static_cast<TickType_t>(0xffffffffUL))
 #define pdPASS 1
+#define pdTRUE 1
 #define tskNO_AFFINITY 0x7fffffff
 
 #endif

@@ -1,0 +1,19 @@
+(* A drive of the base of the M5Stack BALA2, with the packages bala2-base and
+   m5-display: the encoders are reset and the motors driven at half and
+   minus a quarter of their range for 100 ms; the counts are shown, and then
+   no setpoint comes for 300 ms, so that the watchdog of the base stops the
+   motors. Time is in milliseconds, under the grades
+   time-interval-rational. *)
+
+let show_counts () =
+  let left, right = perform ReadEncoders () in
+  perform ShowNumber left;
+  perform ShowNumber right
+
+let drive () =
+  perform ResetEncoders ();
+  perform SetMotors (511.5, -256.0);
+  delay 100;
+  show_counts ();
+  delay 300;
+  show_counts ()

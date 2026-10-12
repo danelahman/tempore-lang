@@ -41,3 +41,17 @@
    %{target}
    (system
     "echo 'let files = ['; for f in %{deps}; do printf '(\"%s\", {cpp|' \"${f#scaffold/}\"; cat \"$f\"; echo '|cpp});'; done; echo ']'"))))
+
+; The files of the peripheral packages under libraries/NAME/ are embedded as
+; the list Arduino_libraries.files of pairs of their paths below libraries/ and
+; their texts.
+
+(rule
+ (target arduino_libraries.ml)
+ (deps
+  (glob_files_rec libraries/*.{json,tpe,h,cpp}))
+ (action
+  (with-stdout-to
+   %{target}
+   (system
+    "echo 'let files = ['; for f in %{deps}; do printf '(\"%s\", {package|' \"${f#libraries/}\"; cat \"$f\"; echo '|package});'; done; echo ']'"))))

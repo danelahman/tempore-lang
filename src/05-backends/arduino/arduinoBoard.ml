@@ -12,6 +12,7 @@ type t = {
   build_flags : string list;
   cores : int;
   m5unified : bool;
+  capabilities : string list;
   serial_baud : int;
   i2c : i2c list;
   includes : string list;
@@ -43,6 +44,7 @@ let parse name text =
           "build_flags";
           "cores";
           "m5unified";
+          "capabilities";
           "serial_baud";
           "i2c";
           "includes";
@@ -51,6 +53,8 @@ let parse name text =
       v
   in
   let strings = Json.list Json.string in
+  let m5unified = Json.required f "m5unified" Json.bool in
+  let i2c = Json.required f "i2c" (Json.list i2c) in
   {
     name;
     description = Json.required f "description" Json.string;
@@ -60,9 +64,13 @@ let parse name text =
     lib_deps = Json.required f "lib_deps" strings;
     build_flags = Json.required f "build_flags" strings;
     cores = Json.required f "cores" Json.int;
-    m5unified = Json.required f "m5unified" Json.bool;
+    m5unified;
+    capabilities =
+      (if m5unified then [ "m5unified" ] else [])
+      @ (if i2c <> [] then [ "i2c" ] else [])
+      @ Json.required f "capabilities" strings;
     serial_baud = Json.required f "serial_baud" Json.int;
-    i2c = Json.required f "i2c" (Json.list i2c);
+    i2c;
     includes = Json.required f "includes" strings;
     init = Json.required f "init" strings;
   }

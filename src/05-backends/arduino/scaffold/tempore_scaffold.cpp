@@ -6,6 +6,7 @@
 #include <Arduino.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <freertos/task.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -13,6 +14,12 @@
 #include <atomic>
 
 static std::atomic<bool> tempore_halt{false};
+
+static SemaphoreHandle_t tempore_i2c_mutex = xSemaphoreCreateMutex();
+
+void tempore_i2c_lock() { xSemaphoreTake(tempore_i2c_mutex, portMAX_DELAY); }
+
+void tempore_i2c_unlock() { xSemaphoreGive(tempore_i2c_mutex); }
 
 int64_t tempore_clock_us() { return esp_timer_get_time(); }
 

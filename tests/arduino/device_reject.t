@@ -23,7 +23,7 @@ An unknown member, a member of the wrong kind, a missing member and no task:
   File "m.json", line 1, characters 27-33:
   1 | { "board": "esp32-devkit", "task": [] }
                                  ^^^^^^
-  Compilation error: Unknown member 'task' of the manifest; accepted: board, time_unit, tasks, packages, bindings, safe_state
+  Compilation error: Unknown member 'task' of the manifest; accepted: board, time_unit, tasks, packages, bindings, safe_state, host_models
   exit 1
   $ printf '{ "board": 32, "tasks": [ { "function": "blinker", "kind": "free" } ] }\n' > m.json
   $ reject m.json
@@ -61,7 +61,7 @@ An unknown board, package and time unit:
   File "m.json", line 3, characters 34-42:
   3 |   "time_unit": "ms", "packages": ["m5-imu"],
                                         ^^^^^^^^
-  Compilation error: Unknown package 'm5-imu'; no peripheral packages are available
+  Compilation error: The package m5-imu requires the capability m5unified, which the board esp32-devkit lacks; its capabilities are: i2c
   exit 1
   $ sed 's/"time_unit": "ms"/"time_unit": "min"/' toy/toy.device.json > m.json
   $ reject m.json

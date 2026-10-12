@@ -1,0 +1,20 @@
+(* The package m5-display: lines of text and numbers on the display of an
+   M5Stack core, through M5Unified. Grades: time-interval-rational, in
+   milliseconds.
+
+   ShowText s and ShowNumber x write a line, the number with three decimals,
+   below the previous one; ClearDisplay () clears the display and returns to
+   its first line. The default implementations take the time of the action
+   and show nothing.
+
+   PROVISIONAL: the bounds of the running times are estimates for a display of
+   320 by 240 pixels on an SPI bus of 40 MHz, to be measured on the device. *)
+
+operation ShowText : string ~> unit # [0.2, 20]
+default ShowText _ = delay 1
+
+operation ShowNumber : float ~> unit # [0.2, 20]
+default ShowNumber _ = delay 1
+
+operation ClearDisplay : unit ~> unit # [10, 60]
+default ClearDisplay () = delay 31

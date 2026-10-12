@@ -13,28 +13,37 @@
     - [src/tempore_scaffold.h], [src/tempore_scaffold.cpp]: the scaffold, the
       same for every device: the clock ([esp_timer_get_time]), the log on the
       serial port, delays, the monitors and the halt of the tasks;
-    - [src/tempore_bindings.h]: the declarations of the binding functions and of
-      the safe-state hook, which the binding file includes;
+    - [src/tempore_bindings.h]: for each operation [Op] the program performs,
+      the macro [TEMPORE_PERFORMS_Op], the types [tempore_argument_Op] and
+      [tempore_result_Op] of its argument and result, and the declaration of its
+      binding function; and the declaration of the safe-state hook; the binding
+      file and the sources of the packages include it;
     - [src/tempore_operations.cpp]: the function [tempore_op_Op] of each
       operation [Op] the program performs, which calls the binding function
       [binding_Op] ({!ArduinoNames.binding}) and checks its running time against
       the bounds of the operation;
-    - [src/main.cpp]: the configuration, [setup()], which initialises the board
-      and creates a FreeRTOS task for each task of the manifest, and [loop()],
-      which deletes its own task;
-    - the binding file of the manifest, in [src/];
+    - [src/main.cpp]: the configuration, the safe state, which calls the
+      safe-state functions of the packages and then the safe-state hook of the
+      application, [setup()], which initialises the board, calls the
+      initialisation functions of the packages and creates a FreeRTOS task for
+      each task of the manifest, and [loop()], which deletes its own task;
+    - the sources of the packages ({!ArduinoPackage}) and the binding file of
+      the manifest, in [src/];
     - [host/]: the stubs of Arduino, FreeRTOS, the timer of the ESP32, [Wire]
-      and M5Unified, and the discrete-event simulator [tempore_simulator.cpp],
-      with which the sources of [src/] build and run on the host
-      ({!host_build_command}).
+      and M5Unified, the I2C buses with their device models
+      ([tempore_i2c_model.h]), the world of the simulation ([tempore_world.h]),
+      the discrete-event simulator [tempore_simulator.cpp], and the host models
+      of the packages and of the manifest, with which the sources of [src/]
+      build and run on the host ({!host_build_command}).
 
     {2 Tasks}
 
     A periodic task of period [P] calls the initial function, if any, once, and
     then its function at every release, from the tick at which it starts, with
     [vTaskDelayUntil]; the running time of each call is checked against [P]. A
-    free task calls its function once and is deleted when it returns. Each task
-    first checks whether the tasks are halted, and stops if they are.
+    free task calls its function once and is deleted when it returns, or, if it
+    is repeated, calls it again each time it returns. Each task first checks
+    whether the tasks are halted, and stops if they are.
 
     {2 Time}
 
@@ -87,6 +96,8 @@ type input = {
           any *)
   bindings : (string * string) option;
       (** the name and the text of the binding file of the manifest, if any *)
+  host_models : (string * string) list;
+      (** the name and the text of each host model of the manifest, in order *)
 }
 (** What a project is made from. *)
 
@@ -96,18 +107,25 @@ val files : input -> ArduinoFragment.program -> (string * string) list
 
     @raise Utils.Error.Error
       at the place of the manifest that does not fit the program: an unknown
-      board, package or function, a core beyond those of the board, a task
-      function of the wrong type, the function of a periodic task whose effect
-      has a variable or does not bound its durations below the period (the
-      upper end of {!Grades.Grade.S.duration_bounds} of the effect is below the
-      period, or equal to it and open, so that the effect is below [[0, P)]), a
-      periodic task with a state other than [unit] and no initial function, an
-      operation performed without a binding file, and a binding function or the
-      safe-state hook that the binding file does not mention. *)
+      board, package or function, a package listed twice or requiring a
+      capability the board lacks, a core beyond those of the board, a task
+      function of the wrong type, the function of a repeated free task whose
+      effect does not bound its durations below by a positive time, the function
+      of a periodic task whose effect has a variable or does not bound its
+      durations below the period (the upper end of
+      {!Grades.Grade.S.duration_bounds} of the effect is below the period, or
+      equal to it and open, so that the effect is below the durations from 0 to
+      [P], [P] excluded), a periodic task with a state other than [unit] and no
+      initial function, an operation performed that no package binds without a
+      binding file, a binding function or the safe-state hook that the binding
+      file does not mention, a binding function of a package that the binding
+      file mentions, and a binding file or host model that is not a C++ file
+      ending in .cpp or has the name of a file of a package or of another host
+      model. *)
 
 val host_sources : (string * string) list -> string list
 (** [host_sources files] is the paths of the C++ sources of the project [files]
-    that its host build compiles: those of [src/] and the simulator. *)
+    that its host build compiles: those of [src/] and of [host/]. *)
 
 val host_build_command :
   directory:string -> output:string -> (string * string) list -> string list

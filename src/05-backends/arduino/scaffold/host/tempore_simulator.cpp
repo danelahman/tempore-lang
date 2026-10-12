@@ -8,7 +8,8 @@
 // deterministic. Computation takes no simulated time; an action that takes
 // time (vTaskDelay, vTaskDelayUntil, delay, delayMicroseconds) blocks the task
 // until its end, while the other tasks run, as if each task had a processor
-// of its own.
+// of its own. A task that takes a mutex held by another task blocks until it
+// is released.
 //
 // Usage: simulation [DURATION_US] runs setup() and then the tasks for the
 // given simulated time in microseconds (default: one second), the events at
@@ -18,6 +19,8 @@
 #include <M5Unified.h>
 #include <Wire.h>
 #include <esp_timer.h>
+#include <freertos/semphr.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <condition_variable>
@@ -42,6 +45,7 @@ struct Task {
   UBaseType_t priority;
   size_t index;
   int64_t wake;
+  void *waiting;  // the mutex the task waits for, if any
   bool stopped;
   bool resumed;
   std::condition_variable resume;
@@ -103,8 +107,8 @@ BaseType_t xTaskCreatePinnedToCore(TaskFunction_t code, const char *name,
   {
     std::lock_guard<std::mutex> lock(mutex);
     tasks.push_back(std::unique_ptr<Task>(
-        new Task{name, code, parameter, priority, tasks.size(), now, false,
-                 false, {}}));
+        new Task{name, code, parameter, priority, tasks.size(), now, nullptr,
+                 false, false, {}}));
     task = tasks.back().get();
   }
   if (handle != nullptr) *handle = task;
@@ -139,6 +143,41 @@ void delay(uint32_t ms) { block(now + static_cast<int64_t>(ms) * 1000, false); }
 
 void delayMicroseconds(uint32_t us) {
   block(now + static_cast<int64_t>(us), false);
+}
+
+namespace {
+
+struct Mutex {
+  bool held;
+  Task *holder;
+};
+
+}  // namespace
+
+SemaphoreHandle_t xSemaphoreCreateMutex() { return new Mutex{false, nullptr}; }
+
+BaseType_t xSemaphoreTake(SemaphoreHandle_t handle, TickType_t) {
+  Mutex *m = static_cast<Mutex *>(handle);
+  while (m->held && self != nullptr && m->holder != self) {
+    self->waiting = m;
+    block(INT64_MAX, false);
+  }
+  m->held = true;
+  m->holder = self;
+  return pdTRUE;
+}
+
+BaseType_t xSemaphoreGive(SemaphoreHandle_t handle) {
+  Mutex *m = static_cast<Mutex *>(handle);
+  m->held = false;
+  m->holder = nullptr;
+  std::lock_guard<std::mutex> lock(mutex);
+  for (const auto &task : tasks)
+    if (task->waiting == m) {
+      task->waiting = nullptr;
+      task->wake = now;
+    }
+  return pdTRUE;
 }
 
 unsigned long millis() { return static_cast<unsigned long>(now / 1000); }

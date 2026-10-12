@@ -10,4 +10,5 @@
  (deps
   %{project_root}/tempore
   (glob_files *.tpe)
-  (glob_files toy/*)))
+  (glob_files toy/*)
+  (glob_files packages/*)))

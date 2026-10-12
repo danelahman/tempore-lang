@@ -8046,6 +8046,7 @@ single-dash form of the help option is not accepted.
     --host-simulate   With --device, build the project for the host with c++ and run its tasks for the given number of seconds of simulated time, printing the log of the device with the events of its tasks
     --monitor         Set what a protocol written with --bind or a device written with --device does when an operation's running time is outside its bounds, or a step of a periodic task takes its period or longer: abort, warn or off (default: abort)
     --no-stdlib       Do not load the standard library
+    --package         Load the declarations of the operations of the given peripheral package of the Arduino backend before the files, so that the program may perform them, run by their default implementations; repeatable; the packages of a device written with --device are those of its manifest
     --robot           Set the robot of the protocol written with --bind: flex (default: flex)
     --simulate        Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code
     --simulator       Use the given executable as the Opentrons simulator of --simulate (default: opentrons_simulate on the PATH, or else in _opentrons)
