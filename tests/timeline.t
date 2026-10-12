@@ -315,39 +315,39 @@ grades are printed in full. Only the timelines are shown.
 
   $ ../tempore --grades regex-timed-interval-symbolic --timeline ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
-  Run  Start                                                                             Event                                                                                             Grade
-  1    [{0}, {0}]                                                                        AddBeads                                                                                          [{AddBeads}, {AddBeads}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
+  Run  Start                                                                             Event                                               Grade
+  1    [{0}, {0}]                                                                        AddBeads                                            [{AddBeads}, {AddBeads}]
+  1                                                                                      · delay                                             [{1}, {1}]
   1    [{AddBeads}, {AddBeads}]                                                          box binding with grade [{5}, {10}]
-  1    [{AddBeads}, {AddBeads}]                                                          delay                                                                                             [{5}, {5}]
+  1    [{AddBeads}, {AddBeads}]                                                          delay                                               [{5}, {5}]
   1    [{AddBeads; 5}, {AddBeads; 5}]                                                    unbox binding
-  1    [{AddBeads; 5}, {AddBeads; 5}]                                                    Engage                                                                                            [{Engage}, {Engage}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  1    [{AddBeads; 5; Engage}, {AddBeads; 5; Engage}]                                    delay                                                                                             [{3}, {3}]
-  1    [{AddBeads; 5; Engage; 3}, {AddBeads; 5; Engage; 3}]                              RemoveSupernatant                                                                                 [{RemoveSupernatant}, {RemoveSupernatant}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  1    [{…; 5; Engage; 3; RemoveSupernatant}, {…; 5; Engage; 3; RemoveSupernatant}]      box washed with grade [{Ethanol; ChangeTip; Ethanol; 2; …}, {Ethanol; ChangeTip; Ethanol; 2; …}]
-  1    [{…; 5; Engage; 3; RemoveSupernatant}, {…; 5; Engage; 3; RemoveSupernatant}]      Ethanol                                                                                           [{Ethanol}, {Ethanol}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  1    [{…; 3; RemoveSupernatant; Ethanol}, {…; 3; RemoveSupernatant; Ethanol}]          ChangeTip                                                                                         [{ChangeTip}, {ChangeTip}]
-  1                                                                                      · delay                                                                                           [{0}, {0}]
-  1    [{…; Ethanol; ChangeTip}, {…; Ethanol; ChangeTip}]                                Ethanol                                                                                           [{Ethanol}, {Ethanol}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  1    [{…; Ethanol; ChangeTip; Ethanol}, {…; Ethanol; ChangeTip; Ethanol}]              delay                                                                                             [{3}, {3}]
-  1    [{…; Ethanol; ChangeTip; Ethanol; 3}, {…; Ethanol; ChangeTip; Ethanol; 3}]        ChangeTip                                                                                         [{ChangeTip}, {ChangeTip}]
-  1                                                                                      · delay                                                                                           [{0}, {0}]
+  1    [{AddBeads; 5}, {AddBeads; 5}]                                                    Engage                                              [{Engage}, {Engage}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  1    [{AddBeads; 5; Engage}, {AddBeads; 5; Engage}]                                    delay                                               [{3}, {3}]
+  1    [{AddBeads; 5; Engage; 3}, {AddBeads; 5; Engage; 3}]                              RemoveSupernatant                                   [{RemoveSupernatant}, {RemoveSupernatant}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  1    [{…; 5; Engage; 3; RemoveSupernatant}, {…; 5; Engage; 3; RemoveSupernatant}]      box washed with grade [{Ethanol; …}, {Ethanol; …}]
+  1    [{…; 5; Engage; 3; RemoveSupernatant}, {…; 5; Engage; 3; RemoveSupernatant}]      Ethanol                                             [{Ethanol}, {Ethanol}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  1    [{…; 3; RemoveSupernatant; Ethanol}, {…; 3; RemoveSupernatant; Ethanol}]          ChangeTip                                           [{ChangeTip}, {ChangeTip}]
+  1                                                                                      · delay                                             [{0}, {0}]
+  1    [{…; Ethanol; ChangeTip}, {…; Ethanol; ChangeTip}]                                Ethanol                                             [{Ethanol}, {Ethanol}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  1    [{…; Ethanol; ChangeTip; Ethanol}, {…; Ethanol; ChangeTip; Ethanol}]              delay                                               [{3}, {3}]
+  1    [{…; Ethanol; ChangeTip; Ethanol; 3}, {…; Ethanol; ChangeTip; Ethanol; 3}]        ChangeTip                                           [{ChangeTip}, {ChangeTip}]
+  1                                                                                      · delay                                             [{0}, {0}]
   1    [{…; ChangeTip; Ethanol; 3; ChangeTip}, {…; ChangeTip; Ethanol; 3; ChangeTip}]    unbox washed
-  1    [{…; ChangeTip; Ethanol; 3; ChangeTip}, {…; ChangeTip; Ethanol; 3; ChangeTip}]    Disengage                                                                                         [{Disengage}, {Disengage}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  1    [{…; Ethanol; 3; ChangeTip; Disengage}, {…; Ethanol; 3; ChangeTip; Disengage}]    Elute                                                                                             [{Elute}, {Elute}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  1    [{…; 3; ChangeTip; Disengage; Elute}, {…; 3; ChangeTip; Disengage; Elute}]        delay                                                                                             [{2}, {2}]
-  1    [{…; 3; ChangeTip; Disengage; Elute; 2}, {…; 3; ChangeTip; Disengage; Elute; 2}]  Engage                                                                                            [{Engage}, {Engage}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  1    [{…; Disengage; Elute; 2; Engage}, {…; Disengage; Elute; 2; Engage}]              delay                                                                                             [{3}, {3}]
-  1    [{…; Disengage; Elute; 2; Engage; 3}, {…; Disengage; Elute; 2; Engage; 3}]        Transfer                                                                                          [{Transfer}, {Transfer}]
-  1                                                                                      · delay                                                                                           [{1}, {1}]
-  Run 1 returned () at [{AddBeads; 5; Engage; 3; RemoveSupernatant; Ethanol; ChangeTip; Ethanol; 3; ChangeTip; Disengage; Elute; 2; Engage; 3; Transfer}, {AddBeads; 5; Engage; 3; RemoveSupernatant; Ethanol; ChangeTip; Ethanol; 3; ChangeTip; Disengage; Elute; 2; Engage; 3; Transfer}].
+  1    [{…; ChangeTip; Ethanol; 3; ChangeTip}, {…; ChangeTip; Ethanol; 3; ChangeTip}]    Disengage                                           [{Disengage}, {Disengage}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  1    [{…; Ethanol; 3; ChangeTip; Disengage}, {…; Ethanol; 3; ChangeTip; Disengage}]    Elute                                               [{Elute}, {Elute}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  1    [{…; 3; ChangeTip; Disengage; Elute}, {…; 3; ChangeTip; Disengage; Elute}]        delay                                               [{2}, {2}]
+  1    [{…; 3; ChangeTip; Disengage; Elute; 2}, {…; 3; ChangeTip; Disengage; Elute; 2}]  Engage                                              [{Engage}, {Engage}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  1    [{…; Disengage; Elute; 2; Engage}, {…; Disengage; Elute; 2; Engage}]              delay                                               [{3}, {3}]
+  1    [{…; Disengage; Elute; 2; Engage; 3}, {…; Disengage; Elute; 2; Engage; 3}]        Transfer                                            [{Transfer}, {Transfer}]
+  1                                                                                      · delay                                             [{1}, {1}]
+  Run 1 returned () at [{…; Elute; 2; Engage; 3; Transfer}, {…; Elute; 2; Engage; 3; Transfer}].
 
   $ ../tempore --grades regex-timed-interval-symbolic --timeline-full ../examples/opentrons/washes.tpe | sed -n '/^Timeline$/,/^Run 1 /p'
   Timeline
@@ -405,7 +405,7 @@ grades are printed in full. Only the timelines are shown.
   1    [{MixEpoxy; Heat; Extrude; Cool; 2}, {MixEpoxy; Heat; Extrude; Cool; 2}]  unbox glue
   1    [{MixEpoxy; Heat; Extrude; Cool; 2}, {MixEpoxy; Heat; Extrude; Cool; 2}]  Mount                              [{Mount}, {Mount}]
   1                                                                              · delay                            [{1}, {1}]
-  Run 1 returned Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{MixEpoxy; Heat; Extrude; Cool; 2; Mount}, {MixEpoxy; Heat; Extrude; Cool; 2; Mount}].
+  Run 1 returned Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))) at [{…; Heat; Extrude; Cool; 2; Mount}, {…; Heat; Extrude; Cool; 2; Mount}].
   Timeline
   Run  Start                                                 Event                              Grade
   2    [{0}, {0}]                                            Heat                               [{Heat}, {Heat}]

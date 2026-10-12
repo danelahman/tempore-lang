@@ -94,6 +94,7 @@ type report = Timeline.report = {
   columns : string list;  (** the headings of the columns of the rows *)
   rows : row list;
   notes : string list;  (** lines shown after the rows *)
+  full_notes : string list;  (** the notes with their grades in full *)
 }
 (** What an observer reports on the events observed. *)
 

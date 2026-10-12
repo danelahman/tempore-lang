@@ -1576,9 +1576,15 @@ let view_report ~expanded (report : BackendRegistry.report) =
              ];
          ];
      ]
-    @ List.map
-        (fun note -> elt "p" ~a:[ class_ "backend-note" ] [ text note ])
-        report.notes)
+    @ List.map2
+        (fun note full ->
+          elt "p"
+            ~a:
+              (class_ "backend-note"
+              :: (if String.equal note full then [] else [ attr "title" full ])
+              )
+            [ text note ])
+        report.notes report.full_notes)
 
 (* [view_report] with each folding, as functions of the report alone, which
    [Vdom.memo] compares. *)

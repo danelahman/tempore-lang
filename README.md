@@ -115,7 +115,8 @@ the protocol compiled from the program once it typechecks.
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
 title under Interpreter and unfolded under Opentrons; the events inside default
-implementations are greyed. Long grades are shortened; a shortened cell shows
+implementations are greyed; under Opentrons the title states the time unit,
+`Timeline (one time unit = 1 min)`. Long grades are shortened; a shortened cell shows
 its full text as a tooltip and, when clicked, in place.
 
 ## Temporal resources

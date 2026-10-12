@@ -67,6 +67,7 @@ type report = Timeline.report = {
   columns : string list;
   rows : row list;
   notes : string list;
+  full_notes : string list;
 }
 
 type observer = {
@@ -76,11 +77,16 @@ type observer = {
 }
 
 (* The timeline of a run. *)
-let timeline ~expanded =
+let timeline ?title ~expanded () =
   let rec observer timeline =
     {
       observe = (fun event -> observer (Timeline.observe event timeline));
-      report = lazy (Timeline.report timeline);
+      report =
+        lazy
+          (let report = Timeline.report timeline in
+           Option.fold ~none:report
+             ~some:(fun title -> { report with title })
+             title);
       expanded;
     }
   in
@@ -104,7 +110,7 @@ let interpreter =
        timeline of each run.";
     inputs = [];
     compiler = None;
-    observer = Some (fun _ -> timeline ~expanded:false);
+    observer = Some (fun _ -> timeline ~expanded:false ());
   }
 
 (* Opentrons *)
@@ -194,7 +200,17 @@ let opentrons_compile settings ~operations ~compound commands =
           messages = List.map (fun text -> { severity = Error; text }) errors;
         }
 
-let opentrons_observer _ = timeline ~expanded:true
+(* The timeline titled with the unit of duration. *)
+let opentrons_observer settings =
+  let unit =
+    match opentrons_setting settings "time-unit" with
+    | "minutes" -> "1 min"
+    | "hours" -> "1 h"
+    | _ -> "1 s"
+  in
+  timeline
+    ~title:(Printf.sprintf "Timeline (one time unit = %s)" unit)
+    ~expanded:true ()
 
 let opentrons =
   {

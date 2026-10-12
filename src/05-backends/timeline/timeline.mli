@@ -83,6 +83,19 @@ val shorten : keep -> string -> string
     cut to its first or last [limit - 1] characters, with […] after or before
     them. *)
 
+val event_limit : int
+(** [event_limit] is 50, the number of characters an event cell may have when
+    shortened for display. *)
+
+val shorten_total : keep -> int -> string -> string option
+(** [shorten_total keep n g] is the printed grade [g] shortened as a whole to at
+    most [n] characters: [g] if it has at most [n], otherwise every group of
+    more than [k] items in all its ends keeps only its first ([Beginning]) or
+    last ([End]) [k] items, the others replaced by […], [k] being the largest
+    number for which the grade has at most [n] characters. A grade without a
+    brace group is cut to [n - 1] characters with […]. [None] if no such number
+    exists (at least 1 for a brace group, [n] at least 2 otherwise). *)
+
 (** {1 Reports} *)
 
 (** How a row of a report is marked. *)
@@ -94,7 +107,10 @@ type row = {
   cells : string list;
   short : string list;
       (** the cells shortened for display: the grade accumulated by
-          {!shorten}[ End], the grades of events by {!shorten}[ Beginning] *)
+          {!shorten}[ End], the grades of events by {!shorten}[ Beginning], the
+          box grade in an event cell by {!shorten_total}[ Beginning] so that the
+          cell has at most {!event_limit} characters, or [box x with grade …] if
+          it does not fit *)
   status : status;
   depth : int;
       (** the depth of its entry; a row of positive depth belongs to the default
@@ -106,16 +122,18 @@ type report = {
   title : string;
   columns : string list;  (** the headings of the columns of the rows *)
   rows : row list;
-  notes : string list;  (** lines shown after the rows *)
+  notes : string list;  (** lines shown after the rows, grades shortened *)
+  full_notes : string list;  (** the notes with their grades in full *)
 }
 (** A report on a timeline, independent of how it is displayed. *)
 
 val report : ?run:int -> t -> report
 (** [report ?run t] is the report on [t], titled [Timeline], with the columns
     [Run], [Start], [Event] and [Grade], a row per entry of [t] in order and a
-    note per run ended, [Run n returned v at g.] or
+    note per run ended, [Run n returned v at g.] (the value in full) or
     [Run n ended at g at a call of Op, ...], [g] the grade accumulated at its
-    end. With [run], only the entries and the note of that run.
+    end, shortened by {!shorten}[ End] ([full_notes] in full). With [run], only
+    the entries and the note of that run.
 
     - [Start] is the grade accumulated before the entry, at depth 0; it is empty
       for the entries of a default implementation, which start at the start of
@@ -129,5 +147,6 @@ val report : ?run:int -> t -> report
 val text : ?full:bool -> report -> string
 (** [text ?full report] is [report] as plain text: its title, then a line for
     the headings of the columns and a line per row, with the shortened cells of
-    the rows unless [full] (default [false]), each cell padded to the widest of
-    its column and the cells separated by two spaces, then a line per note. *)
+    the rows and notes unless [full] (default [false]), each cell padded to the
+    widest of its column and the cells separated by two spaces, then a line per
+    note. *)

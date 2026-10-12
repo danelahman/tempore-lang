@@ -185,39 +185,64 @@ let cut keep k s =
 
 let ellipsis = "…"
 
-let shorten keep s =
+(* The end [c] with its first or last [k] items if it is a brace group of
+   more, the others elided. *)
+let group keep k (c, items) =
+  match items with
+  | Some items when List.length items > k ->
+      let kept =
+        match keep with
+        | Beginning -> take k items @ [ ellipsis ]
+        | End -> ellipsis :: drop (List.length items - k) items
+      in
+      "{" ^ String.concat "; " kept ^ "}"
+  | Some _ | None -> c
+
+(* The ends of the interval [s], the largest number of items in a group, the
+   ends and the interval with every group reduced to [k] items. *)
+let reduced keep s =
   let opening, ends, closing = components s in
+  let groups = List.map (fun c -> (c, items c)) ends in
+  let most =
+    List.fold_left
+      (fun most (_, items) ->
+        max most (Option.fold ~none:0 ~some:List.length items))
+      0 groups
+  in
+  let ends_at k = List.map (group keep k) groups in
+  let at k = opening ^ String.concat ", " (ends_at k) ^ closing in
+  (ends, most, ends_at, at)
+
+(* The first or last [n - 1] characters of [s] with the ellipsis. *)
+let cut_ellipsis keep n s =
+  match keep with
+  | Beginning -> cut Beginning (n - 1) s ^ ellipsis
+  | End -> ellipsis ^ cut End (n - 1) s
+
+let shorten keep s =
+  let ends, most, ends_at, at = reduced keep s in
   if List.for_all (fun c -> length c <= limit) ends then s
+  else if most = 0 then cut_ellipsis keep limit s
   else
-    let groups = List.map (fun c -> (c, items c)) ends in
-    let most =
-      List.fold_left
-        (fun most (_, items) ->
-          max most (Option.fold ~none:0 ~some:List.length items))
-        0 groups
-    in
-    (* The end [c] with its first or last [k] items if it is a brace group,
-       the others elided. *)
-    let group k (c, items) =
-      match items with
-      | Some items when List.length items > k ->
-          let kept =
-            match keep with
-            | Beginning -> take k items @ [ ellipsis ]
-            | End -> ellipsis :: drop (List.length items - k) items
-          in
-          "{" ^ String.concat "; " kept ^ "}"
-      | Some _ | None -> c
-    in
-    let fits k = List.for_all (fun g -> length (group k g) <= limit) groups in
+    let fits k = List.for_all (fun c -> length c <= limit) (ends_at k) in
     let rec fit k = if k <= 1 || fits k then k else fit (k - 1) in
-    if most = 0 then
-      match keep with
-      | Beginning -> cut Beginning (limit - 1) s ^ ellipsis
-      | End -> ellipsis ^ cut End (limit - 1) s
+    at (fit (max 1 (most - 1)))
+
+let shorten_total keep n s =
+  if length s <= n then Some s
+  else
+    let _, most, _, at = reduced keep s in
+    if most = 0 then if n >= 2 then Some (cut_ellipsis keep n s) else None
     else
-      let k = fit (max 1 (most - 1)) in
-      opening ^ String.concat ", " (List.map (group k) groups) ^ closing
+      let rec fit k =
+        if k < 1 then None
+        else
+          let candidate = at k in
+          if length candidate <= n then Some candidate else fit (k - 1)
+      in
+      fit (max 1 (most - 1))
+
+let event_limit = 50
 
 (* Reports *)
 
@@ -235,11 +260,13 @@ type report = {
   columns : string list;
   rows : row list;
   notes : string list;
+  full_notes : string list;
 }
 
 let report ?run t =
   let of_run index = Option.fold ~none:true ~some:(Int.equal index) run in
   let row (entry : entry) =
+    let mark = String.concat "" (List.init entry.depth (fun _ -> "· ")) in
     (* The event, its grade, and the event and grade shortened. *)
     let event, grade, short_event, status =
       match entry.event with
@@ -248,12 +275,17 @@ let report ?run t =
       | Delay { grade } -> ("delay", grade, "delay", Plain)
       | Box { name; grade; _ } ->
           let box = "box " ^ name ^ " with grade " in
-          (box ^ grade, "", box ^ shorten Beginning grade, Plain)
+          let room = event_limit - length mark - length box in
+          let shortened =
+            match shorten_total Beginning room grade with
+            | Some g -> g
+            | None -> ellipsis
+          in
+          (box ^ grade, "", box ^ shortened, Plain)
       | Unbox { name; _ } ->
           let unbox = "unbox " ^ name in
           (unbox, "", unbox, Plain)
     in
-    let mark = String.concat "" (List.init entry.depth (fun _ -> "· ")) in
     let start = if entry.depth = 0 then entry.start else "" in
     let run = string_of_int entry.run in
     {
@@ -264,16 +296,22 @@ let report ?run t =
       depth = entry.depth;
     }
   in
-  let note finished =
+  let note shorten_at finished =
+    let at = shorten_at finished.at in
     match finished.outcome with
     | Returned value ->
-        Printf.sprintf "Run %d returned %s at %s." finished.index value
-          finished.at
+        Printf.sprintf "Run %d returned %s at %s." finished.index value at
     | Stopped op ->
         Printf.sprintf
           "Run %d ended at %s at a call of %s, which has neither a handler nor \
            a default implementation."
-          finished.index finished.at op
+          finished.index at op
+  in
+  let notes shorten_at =
+    List.filter_map
+      (fun finished ->
+        if of_run finished.index then Some (note shorten_at finished) else None)
+      (runs t)
   in
   {
     title = "Timeline";
@@ -283,11 +321,8 @@ let report ?run t =
         (fun (entry : entry) ->
           if of_run entry.run then Some (row entry) else None)
         (entries t);
-    notes =
-      List.filter_map
-        (fun finished ->
-          if of_run finished.index then Some (note finished) else None)
-        (runs t);
+    notes = notes (shorten End);
+    full_notes = notes Fun.id;
   }
 
 let text ?(full = false) report =
@@ -311,5 +346,7 @@ let text ?(full = false) report =
     let rec trim n = if n > 0 && s.[n - 1] = ' ' then trim (n - 1) else n in
     String.sub s 0 (trim (String.length s))
   in
-  String.concat "\n" ((report.title :: List.map line lines) @ report.notes)
+  String.concat "\n"
+    ((report.title :: List.map line lines)
+    @ if full then report.full_notes else report.notes)
   ^ "\n"

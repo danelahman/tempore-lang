@@ -143,7 +143,41 @@ let () =
     String.concat "" (List.init 50 (fun i -> string_of_int (i mod 10)))
   in
   check End long ("…" ^ String.sub long 11 39);
-  check Beginning long (String.sub long 0 39 ^ "…")
+  check Beginning long (String.sub long 0 39 ^ "…");
+  (* the grade shortened as a whole *)
+  let total keep n grade expected =
+    let shortened = Timeline.shorten_total keep n grade in
+    if shortened <> expected then
+      fail "shorten_total %d %s: differs from the expectation" n grade
+  in
+  let both = "[" ^ washed ^ ", " ^ washed ^ "]" in
+  total Beginning 28 both (Some "[{Ethanol; …}, {Ethanol; …}]");
+  total End 28 both (Some "[{…; (0 | 1)}, {…; (0 | 1)}]");
+  total Beginning 60 both
+    (Some "[{Ethanol; ChangeTip; …}, {Ethanol; ChangeTip; …}]");
+  total Beginning 200 both (Some both);
+  total Beginning 20 both None;
+  total Beginning 20 long (Some (String.sub long 0 19 ^ "…"));
+  total Beginning 1 long None;
+  (* the event cell of a box row fits the limit, or loses its grade *)
+  let box name =
+    let t =
+      Timeline.observe
+        (Boxed { at = "0"; resource = "r"; name; grade = both })
+        Timeline.empty
+    in
+    match (Timeline.report t).rows with
+    | [ { short = [ _; _; event; _ ]; _ } ] -> event
+    | _ ->
+        fail "box row";
+        ""
+  in
+  if box "washed" <> "box washed with grade [{Ethanol; …}, {Ethanol; …}]" then
+    fail "box event: %s" (box "washed");
+  if
+    box "aVeryLongNameOfABoundResource"
+    <> "box aVeryLongNameOfABoundResource with grade …"
+  then fail "box event: %s" (box "aVeryLongNameOfABoundResource")
 
 (* The registry *)
 
@@ -158,6 +192,23 @@ let () =
     <> "hours"
   then fail "the time unit set";
   if BackendRegistry.setting inputs [] "colour" <> "" then fail "an unknown key";
+  (* the title of the Opentrons timeline states the time unit *)
+  let title (entry : BackendRegistry.entry) settings =
+    match entry.observer with
+    | Some make -> (Lazy.force (make settings).report).title
+    | None -> ""
+  in
+  List.iter
+    (fun (unit, expected) ->
+      let t = title BackendRegistry.opentrons [ ("time-unit", unit) ] in
+      if t <> expected then fail "Opentrons title: %s, not %s" t expected)
+    [
+      ("seconds", "Timeline (one time unit = 1 s)");
+      ("minutes", "Timeline (one time unit = 1 min)");
+      ("hours", "Timeline (one time unit = 1 h)");
+    ];
+  if title BackendRegistry.default [] <> "Timeline" then
+    fail "the interpreter's title";
   (* the interpreter's timeline folded, that of Opentrons unfolded, both in
      grades whatever the time unit *)
   let report (entry : BackendRegistry.entry) settings =
