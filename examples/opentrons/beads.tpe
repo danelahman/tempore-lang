@@ -15,9 +15,9 @@
    macherey-nagel-nucleomag-rna (an air-dry before the next reagent).
 
    The protocols are at
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/kapa-amp-cleanup
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/nextera-flex-library-prep-post-tag-cleanup
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/macherey-nagel-nucleomag-rna
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/kapa-amp-cleanup
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/nextera-flex-library-prep-post-tag-cleanup
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/macherey-nagel-nucleomag-rna
 
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'beads_bindings.py', is written by

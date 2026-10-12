@@ -16,9 +16,9 @@
    used promptly once prepared).
 
    The protocols are at
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/0fd3dd
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/00a214-protocol-5
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/illumina-nextera-XT-library-prep-part1
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/0fd3dd
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/00a214-protocol-5
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/illumina-nextera-XT-library-prep-part1
 
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'elisa_bindings.py', is written by

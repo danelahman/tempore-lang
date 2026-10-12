@@ -15,8 +15,8 @@
    sci-tecan-cortisol-saliva-elisa (plates read off the deck).
 
    The protocols are at
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/1464-3
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/sci-tecan-cortisol-saliva-elisa
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/1464-3
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/sci-tecan-cortisol-saliva-elisa
 
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'stopread_bindings.py', is
