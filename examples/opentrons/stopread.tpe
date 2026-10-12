@@ -9,8 +9,9 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-(* Modelled on the Opentrons Protocol Library protocols 1464-3 (an ELISA
-   whose substrate is stopped after 30 minutes and read promptly) and
+(* Modelled on the Opentrons Protocol Library protocols 1464-3 (an
+   enzyme-linked immunosorbent assay, ELISA, whose substrate is stopped after
+   30 minutes and read promptly) and
    sci-tecan-cortisol-saliva-elisa (plates read off the deck).
 
    A unit of duration is a minute. The protocol for the Flex, with the

@@ -1181,7 +1181,7 @@ The protocol is refused when:
 The directory [`examples/opentrons/`](examples/opentrons/) holds the
 following examples, each with a binding file and a rejected variant:
 
-- `elisa.tpe`, an ELISA under `time-interval`: an incubation of at least 60
+- `elisa.tpe`, an enzyme-linked immunosorbent assay (ELISA) under `time-interval`: an incubation of at least 60
   minutes, a dilution used within 20 minutes, a development stopped after 15
   to 20 minutes;
 - `washes.tpe`, a bead clean-up under `regex-timed-interval-symbolic`: exactly

@@ -1,4 +1,5 @@
-(* As the ELISA example, with the coated plate washed after too short an incubation.
+(* As the example of an enzyme-linked immunosorbent assay (ELISA), with the
+   coated plate washed after too short an incubation.
 
    Run this example with the 'time-interval' grading monoid, e.g.
 

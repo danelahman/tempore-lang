@@ -286,7 +286,7 @@ let expected_rejections =
     ("examples/handlers/nested_reject.tpe", [ 18 ]);
     ("examples/opentrons/beads_reject.tpe", [ 30 ]);
     ("examples/opentrons/contamination_reject.tpe", [ 36 ]);
-    ("examples/opentrons/elisa_reject.tpe", [ 27 ]);
+    ("examples/opentrons/elisa_reject.tpe", [ 28 ]);
     ("examples/opentrons/reagents_reject.tpe", [ 40 ]);
     ("examples/opentrons/staggered_reject.tpe", [ 28 ]);
     ("examples/opentrons/stopread_reject.tpe", [ 39 ]);

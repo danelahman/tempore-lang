@@ -1,4 +1,5 @@
-(* An ELISA on the Opentrons Flex: incubation, dilution and timed development.
+(* An enzyme-linked immunosorbent assay (ELISA) on the Opentrons Flex:
+   incubation, dilution and timed development.
 
    Run this example with the 'time-interval' grading monoid, e.g.
 
