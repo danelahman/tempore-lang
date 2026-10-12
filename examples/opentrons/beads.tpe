@@ -14,6 +14,11 @@
    nextera-flex-library-prep-post-tag-cleanup (beads not to be overdried) and
    macherey-nagel-nucleomag-rna (an air-dry before the next reagent).
 
+   The protocols are at
+     https://github.com/Opentrons/Protocols/tree/develop/protocols/kapa-amp-cleanup
+     https://github.com/Opentrons/Protocols/tree/develop/protocols/nextera-flex-library-prep-post-tag-cleanup
+     https://github.com/Opentrons/Protocols/tree/develop/protocols/macherey-nagel-nucleomag-rna
+
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'beads_bindings.py', is written by
 

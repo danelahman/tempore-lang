@@ -14,6 +14,9 @@
    set-up with a serial dilution of a test article, a master mix and
    no-template water controls).
 
+   The protocol is at
+     https://github.com/Opentrons/Protocols/tree/develop/protocols/0e525c
+
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'contamination_bindings.py', is
    written by
