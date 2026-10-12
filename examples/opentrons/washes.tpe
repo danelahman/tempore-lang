@@ -22,7 +22,12 @@
    A tick is a minute. The protocol for the Flex, with the operations
    performed by the functions of 'washes_bindings.py', is written by
 
-     ./tempore --grades regex-timed-interval-symbolic --emit-opentrons washes.py --bind examples/opentrons/washes_bindings.py --time-unit minutes --simulate examples/opentrons/washes.tpe
+     ./tempore --grades regex-timed-interval-symbolic \
+       --emit-opentrons washes.py \
+       --bind examples/opentrons/washes_bindings.py \
+       --time-unit minutes \
+       --simulate \
+       examples/opentrons/washes.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
 

@@ -23,7 +23,12 @@
    operations performed by the functions of 'reagents_bindings.py', is
    written by
 
-     ./tempore --grades time-interval --emit-opentrons reagents.py --bind examples/opentrons/reagents_bindings.py --time-unit minutes --simulate examples/opentrons/reagents.tpe
+     ./tempore --grades time-interval \
+       --emit-opentrons reagents.py \
+       --bind examples/opentrons/reagents_bindings.py \
+       --time-unit minutes \
+       --simulate \
+       examples/opentrons/reagents.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
 

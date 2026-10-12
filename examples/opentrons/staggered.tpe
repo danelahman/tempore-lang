@@ -20,7 +20,12 @@
    operations performed by the functions of 'staggered_bindings.py', is
    written by
 
-     ./tempore --grades time-interval --emit-opentrons staggered.py --bind examples/opentrons/staggered_bindings.py --time-unit minutes --simulate examples/opentrons/staggered.tpe
+     ./tempore --grades time-interval \
+       --emit-opentrons staggered.py \
+       --bind examples/opentrons/staggered_bindings.py \
+       --time-unit minutes \
+       --simulate \
+       examples/opentrons/staggered.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
 
