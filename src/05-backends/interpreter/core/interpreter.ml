@@ -69,7 +69,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   (* The state holds each resource with the resource grade it was boxed at,
      interleaved with the resource grades that have passed; operations are
-     graded by effect grades. *)
+     graded by effect grades. The resource names, the continuations, the
+     accumulated grade and the calls serve the observations of steps. *)
   type evaluation_environment = {
     state : (Graded.rho * Graded.expression) ContextHolderModule.t;
     variables : Graded.expression ContextHolderModule.t;
@@ -77,6 +78,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
       (Graded.expression -> Graded.computation) ContextHolderModule.t;
     resource_counter : int;
     resource_names : string Ast.VariableMap.t;
+    continuations : Ast.VariableSet.t;
+    accumulated : GS.R.t;
+    calls : GS.R.t list;
     op_signatures : Graded.eps Ast.OpNameMap.t;
     op_defaults : Graded.abstraction Ast.OpNameMap.t;
   }
@@ -88,6 +92,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
       builtin_functions = ContextHolderModule.empty;
       resource_counter = 0;
       resource_names = Ast.VariableMap.empty;
+      continuations = Ast.VariableSet.empty;
+      accumulated = GS.R.one;
+      calls = [];
       op_signatures = Ast.OpNameMap.empty;
       op_defaults = Ast.OpNameMap.empty;
     }
@@ -100,6 +107,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map c, at)
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
     | Ast.EpsVar e -> Ast.RhoImage e
+
+  (* The resource grade [∣eps∣] of the effect grade [eps], if it is closed. *)
+  let rec grade_of_eps = function
+    | Ast.EpsConst (c, _) -> Some (GS.map c)
+    | Ast.EpsAdd (eps, eps') ->
+        Option.bind (grade_of_eps eps) (fun g ->
+            Option.map (GS.R.mul g) (grade_of_eps eps'))
+    | Ast.EpsVar _ -> None
 
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with
@@ -501,11 +516,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.PAnnotated (pat', _) -> bound_variable pat'
     | _ -> None
 
-  let source_variable pat =
-    Option.bind (bound_variable pat) (fun x ->
-        if Ast.Variable.is_synthetic x then None
-        else Some (Ast.Variable.string_of x))
-
   (* The source variable to which the value bound to [x] in [body], in the
      context [frames], is bound in turn, through the synthetic variables that
      pass it on unchanged: [body] returns [x], so that the innermost [do] of
@@ -530,26 +540,42 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Some x -> bound_name x body frames
     | None -> None
 
-  (* The name of the resource a [box] in the context [frames] binds by [pat] in
-     [body]: the name given to its variable by the handling of an operation, or
-     the source variable to which the resource is bound ({!pattern_name}), or
-     else the name of the resource in the state. *)
-  let box_name env frames pat body =
-    match
-      Option.bind (bound_variable pat) (fun x ->
-          Ast.VariableMap.find_opt x env.resource_names)
-    with
-    | Some name -> name
-    | None ->
-        Option.value
-          (pattern_name pat body frames)
-          ~default:("resource_" ^ string_of_int env.resource_counter)
+  (* The name in the state of the resource boxed with the counter [n]. *)
+  let resource_id n = "resource_" ^ string_of_int n
 
-  (* The name of the continuation of a call of [op] handled by a case binding
-     it to the pattern [pat]. *)
-  let continuation_name op pat =
-    Option.value (source_variable pat) ~default:"continuation"
-    ^ " of " ^ Ast.OpName.string_of op
+  (* Whether the pattern [pat] binds the continuation of a handled operation. *)
+  let binds_continuation env pat =
+    Option.fold ~none:false
+      ~some:(fun x -> Ast.VariableSet.mem x env.continuations)
+      (bound_variable pat)
+
+  (* The resource variable [expr] is, if any. *)
+  let rec resource_variable (expr : _ Ast.expression) =
+    match expr.it with
+    | Ast.Var x -> Some x
+    | Ast.Annotated (expr', _) -> resource_variable expr'
+    | _ -> None
+
+  (* [env] with each resource of its state that is still unnamed, not a
+     continuation, and bound by the substitution [subst] to a source variable
+     named after that variable. A resource boxed without a name, such as the
+     value passed to the continuation of a handled operation, is so named
+     after the variable it is bound to later. *)
+  let name_resources env subst =
+    let name y expr names =
+      match resource_variable expr with
+      | Some r
+        when (not (Ast.Variable.is_synthetic y))
+             && (not (Ast.VariableMap.mem r names))
+             && (not (Ast.VariableSet.mem r env.continuations))
+             && ContextHolderModule.find_variable_opt r env.state <> None ->
+          Ast.VariableMap.add r (Ast.Variable.string_of y) names
+      | _ -> names
+    in
+    {
+      env with
+      resource_names = Ast.VariableMap.fold name subst env.resource_names;
+    }
 
   (* The reductions of the computation [comp] at its top, in the context
      [frames], each with the environment after it, the redex and the
@@ -564,7 +590,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let rec find_case = function
           | (env, pat, comp) :: cases -> (
               match match_pattern_with_expression env pat expr with
-              | subst -> [ (env, Match, fun () -> substitute subst comp) ]
+              | subst ->
+                  [
+                    ( name_resources env subst,
+                      Match,
+                      fun () -> substitute subst comp );
+                  ]
               | exception PatternMismatch -> find_case cases)
           | [] -> []
         in
@@ -585,7 +616,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
         | Ast.Return expr ->
             let pat, comp2' = comp2 in
             let subst = match_pattern_with_expression env pat expr in
-            [ (env, DoReturn, fun () -> substitute subst comp2') ]
+            let env' = name_resources env subst in
+            (* At the root, while a default implementation runs, the binding
+               of its result ends the innermost call. *)
+            let env' =
+              match (frames, env'.calls) with
+              | [], _ :: calls -> { env' with calls }
+              | _, _ -> env'
+            in
+            [ (env', DoReturn, fun () -> substitute subst comp2') ]
         | Ast.Perform (op, expr, (pat, cont)) ->
             [
               ( env,
@@ -598,9 +637,22 @@ module Make (GS : Grades.GradeSystem.S) = struct
             ]
         | _ -> [])
     | Ast.Delay (q, comp) ->
-        let rho = Ast.RhoConst (GS.R.of_delay (delay q), None) in
+        let grade = GS.R.of_delay (delay q) in
+        let rho = Ast.RhoConst (grade, None) in
         let env' =
-          { env with state = ContextHolderModule.add_temp rho env.state }
+          match env.calls with
+          | [] ->
+              {
+                env with
+                state = ContextHolderModule.add_temp rho env.state;
+                accumulated = GS.R.mul env.accumulated grade;
+              }
+          | call :: calls ->
+              {
+                env with
+                state = ContextHolderModule.add_temp rho env.state;
+                calls = GS.R.mul call grade :: calls;
+              }
         in
         [ (env', Delay, fun () -> comp) ]
     | Ast.Box (rho, expr, (pat, body)) ->
@@ -620,9 +672,16 @@ module Make (GS : Grades.GradeSystem.S) = struct
                   state = state';
                   resource_counter = resource_counter + 1;
                   resource_names =
-                    Ast.VariableMap.add x'
-                      (box_name env frames pat body)
-                      env.resource_names;
+                    (match
+                       (binds_continuation env pat, pattern_name pat body frames)
+                     with
+                    | false, Some name ->
+                        Ast.VariableMap.add x' name env.resource_names
+                    | true, _ | false, None -> env.resource_names);
+                  continuations =
+                    (if binds_continuation env pat then
+                       Ast.VariableSet.add x' env.continuations
+                     else env.continuations);
                 }
               in
               [ (env', Box, fun () -> refresh_computation [ (x, x') ] body) ]
@@ -654,7 +713,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
         match body.it with
         | Ast.Return expr ->
             let subst = match_pattern_with_expression env pat expr in
-            (env, HandleReturn, fun () -> substitute subst ret_comp) :: []
+            ( name_resources env subst,
+              HandleReturn,
+              fun () -> substitute subst ret_comp )
+            :: []
         | Ast.Perform (op, expr, (op_pat, op_cont)) -> (
             let op_case = Ast.OpNameMap.find_opt op op_cases in
             match op_case with
@@ -672,10 +734,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
                       {
                         env with
                         resource_counter = resource_counter + 1;
-                        resource_names =
-                          Ast.VariableMap.add x
-                            (continuation_name op op_cont_pat)
-                            env.resource_names;
+                        continuations = Ast.VariableSet.add x env.continuations;
                       }
                     in
                     let arg_subst =
@@ -863,6 +922,30 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let dpat', vars = refresh_pattern dpat in
         let dcomp' = refresh_computation vars dcomp in
         let subst = match_pattern_with_expression environment dpat' expr in
+        (* The grade of the signature of the call is added to the grade of
+           the default implementation performing it, if any, and otherwise to
+           the accumulated grade; the call's own default implementation starts
+           a grade of its own, the first of the calls. *)
+        let grade =
+          Option.value ~default:GS.R.one
+            (Option.bind
+               (Ast.OpNameMap.find_opt op environment.op_signatures)
+               grade_of_eps)
+        in
+        let environment =
+          match environment.calls with
+          | [] ->
+              {
+                environment with
+                accumulated = GS.R.mul environment.accumulated grade;
+                calls = [ GS.R.one ];
+              }
+          | call :: calls ->
+              {
+                environment with
+                calls = GS.R.one :: GS.R.mul call grade :: calls;
+              }
+        in
         [
           {
             environment;
@@ -910,74 +993,86 @@ module Make (GS : Grades.GradeSystem.S) = struct
      the continuation when a [return] is bound at the root. A call it makes
      moves the continuation into its own, so the binding at the root is always
      that of the innermost call still running. *)
-  let observe (run_state : run_state) (label : step_label) :
-      Backend.observation option =
+  let observe (run_state : run_state) (step : step) : Backend.observation list =
+    let env = run_state.environment in
     let show_rho rho =
       Format.asprintf "%t" (PrettyPrint.print_rho (module GS.R) rho)
     in
-    match (label, run_state) with
+    let show grade = show_rho (Ast.RhoConst (grade, None)) in
+    let at = show env.accumulated in
+    let named =
+      List.filter_map
+        (fun (r, name) ->
+          if Ast.VariableMap.mem r env.resource_names then None
+          else
+            Some (Backend.Named { resource = Ast.Variable.string_of r; name }))
+        (Ast.VariableMap.bindings step.environment.resource_names)
+    in
+    match (step.label, run_state.current) with
     | ( ComputationReduction { redex = Delay; _ },
-        { current = Some { subject = { it = Ast.Delay (q, _); _ }; _ }; _ } ) ->
-        Some (Delayed q)
-    | ( ComputationReduction { redex = Box; context },
-        {
-          current =
-            Some { subject = { it = Ast.Box (rho, _, (pat, body)); _ }; _ };
-          environment;
-          _;
-        } ) ->
-        Some
-          (Backend.Boxed
-             {
-               name = box_name environment context pat body;
-               grade = show_rho rho;
-             })
+        Some { subject = { it = Ast.Delay (q, _); _ }; _ } ) ->
+        [ Delayed { at; grade = show (GS.R.of_delay (delay q)) } ]
+    | ( ComputationReduction { redex = Box; _ },
+        Some { subject = { it = Ast.Box (rho, _, (pat, _)); _ }; _ } ) ->
+        if binds_continuation env pat then []
+        else
+          let resource = resource_id env.resource_counter in
+          let name =
+            match named with
+            | [ Backend.Named { name; _ } ] -> name
+            | _ -> resource
+          in
+          [ Boxed { at; resource; name; grade = show_rho rho } ]
     | ( ComputationReduction { redex = Unbox; _ },
-        {
-          current = Some { subject = { it = Ast.Unbox (expr, _); _ }; _ };
-          environment;
-          _;
-        } ) ->
-        let rec resource (expr : _ Ast.expression) =
-          match expr.it with
-          | Ast.Var x -> Some x
-          | Ast.Annotated (expr', _) -> resource expr'
-          | _ -> None
-        in
-        Option.map
-          (fun x ->
-            let grade, _ =
-              ContextHolderModule.find_variable x environment.state
-            in
-            Backend.Unboxed
-              {
-                name =
-                  Option.value
-                    (Ast.VariableMap.find_opt x environment.resource_names)
-                    ~default:(Ast.Variable.string_of x);
-                grade = show_rho grade;
-              })
-          (resource expr)
+        Some { subject = { it = Ast.Unbox (expr, _); _ }; _ } ) -> (
+        match resource_variable expr with
+        | Some x when not (Ast.VariableSet.mem x env.continuations) ->
+            let grade, _ = ContextHolderModule.find_variable x env.state in
+            let resource = Ast.Variable.string_of x in
+            [
+              Unboxed
+                {
+                  at;
+                  resource;
+                  name =
+                    Option.value
+                      (Ast.VariableMap.find_opt x env.resource_names)
+                      ~default:resource;
+                  grade = show_rho grade;
+                };
+            ]
+        | Some _ | None -> [])
     | ( ComputationReduction { redex = DefaultOp; _ },
-        {
-          current = Some { subject = { it = Ast.Perform (op, _, _); _ }; _ };
-          _;
-        } ) ->
-        Some (Performed (Ast.OpName.string_of op))
-    | ComputationReduction { redex = DoReturn; context = [] }, _ -> Some Resumed
-    | Return, { current = Some focus; environment; _ } -> (
-        match (returned_value environment (computation focus)).it with
+        Some { subject = { it = Ast.Perform (op, _, _); _ }; _ } ) ->
+        [
+          Performed
+            {
+              at;
+              op = Ast.OpName.string_of op;
+              grade =
+                Option.fold ~none:""
+                  ~some:(fun eps -> show_rho (rho_of_eps eps))
+                  (Ast.OpNameMap.find_opt op env.op_signatures);
+            };
+        ]
+    | ComputationReduction { redex = DoReturn; context = [] }, _ -> (
+        match env.calls with
+        | grade :: _ -> Resumed { grade = show grade } :: named
+        | [] -> named)
+    | Return, Some focus -> (
+        match (returned_value env (computation focus)).it with
         | Ast.Return value ->
-            Some
-              (Returned
-                 (Format.asprintf "%t"
-                    (PrettyPrint.print_expression (module GS.R) value)))
-        | _ -> None)
-    | ( Unhandled,
-        {
-          current = Some { subject = { it = Ast.Perform (op, _, _); _ }; _ };
-          _;
-        } ) ->
-        Some (Stopped (Ast.OpName.string_of op))
-    | _ -> None
+            [
+              Returned
+                {
+                  at;
+                  value =
+                    Format.asprintf "%t"
+                      (PrettyPrint.print_expression (module GS.R) value);
+                };
+            ]
+        | _ -> [])
+    | Unhandled, Some { subject = { it = Ast.Perform (op, _, _); _ }; _ } ->
+        [ Stopped { at; op = Ast.OpName.string_of op } ]
+    | _ -> named
 end

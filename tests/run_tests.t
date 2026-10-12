@@ -8045,8 +8045,8 @@ single-dash form of the help option is not accepted.
     --robot           Set the robot of the protocol written with --bind: flex (default: flex)
     --simulate        Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code
     --simulator       Use the given executable as the Opentrons simulator of --simulate (default: opentrons_simulate on the PATH, or else in _opentrons)
-    --time-unit       Set the length of a unit of duration of the protocol written with --bind, and the unit of the times printed by --timeline, which are otherwise plain numbers: seconds, minutes, hours or a positive number of seconds (default: seconds)
-    --timeline        Print the timeline of each run after its result: its delays, the calls of operations performed by their default implementations with their durations, and the resources boxed and unboxed with their box grades
+    --time-unit       Set the length of a unit of duration of the protocol written with --bind: seconds, minutes, hours or a positive number of seconds (default: seconds)
+    --timeline        Print the timeline of each run after its result: its delays, the calls of operations performed by their default implementations, with the events of these indented below them, and the resources boxed and unboxed, each with its grade and the grade accumulated before it
     --typecheck-only  Typecheck the files without running them
   [2]
 

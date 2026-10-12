@@ -980,8 +980,10 @@ let rec update_model model = function
                         let next_observer () =
                           Option.map
                             (fun (o : BackendRegistry.observer) ->
-                              Option.fold ~none:o ~some:o.observe
-                                (B.observe rs step.label))
+                              List.fold_left
+                                (fun (o : BackendRegistry.observer) ->
+                                  o.observe)
+                                o (B.observe rs step))
                             observer
                         in
                         let next_completed_runs =

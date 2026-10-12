@@ -44,16 +44,18 @@ type compiler = {
 }
 
 type event = Backend.observation =
-  | Delayed of Rational.t
-  | Performed of string
-  | Resumed
-  | Returned of string
-  | Stopped of string
-  | Boxed of { name : string; grade : string }
-  | Unboxed of { name : string; grade : string }
+  | Delayed of { at : string; grade : string }
+  | Performed of { at : string; op : string; grade : string }
+  | Resumed of { grade : string }
+  | Boxed of { at : string; resource : string; name : string; grade : string }
+  | Unboxed of { at : string; resource : string; name : string; grade : string }
+  | Named of { resource : string; name : string }
+  | Returned of { at : string; value : string }
+  | Stopped of { at : string; op : string }
 
 type status = Timeline.status = Plain | Pending
-type row = Timeline.row = { cells : string list; status : status }
+type cell = Timeline.cell = { text : string; aside : string option }
+type row = Timeline.row = { cells : cell list; status : status; depth : int }
 
 type report = Timeline.report = {
   title : string;
@@ -68,12 +70,12 @@ type observer = {
   expanded : bool;
 }
 
-(* The timeline of a run, with times followed by the symbol [time_unit]. *)
-let timeline ~expanded ?time_unit () =
+(* The timeline of a run. *)
+let timeline ~expanded =
   let rec observer timeline =
     {
       observe = (fun event -> observer (Timeline.observe event timeline));
-      report = lazy (Timeline.report ?time_unit timeline);
+      report = lazy (Timeline.report timeline);
       expanded;
     }
   in
@@ -97,7 +99,7 @@ let interpreter =
        timeline of each run.";
     inputs = [];
     compiler = None;
-    observer = Some (fun _ -> timeline ~expanded:false ());
+    observer = Some (fun _ -> timeline ~expanded:false);
   }
 
 (* Opentrons *)
@@ -127,12 +129,12 @@ let opentrons_inputs =
 
 let opentrons_setting = setting opentrons_inputs
 
-(* The length in seconds of a unit of duration, and its symbol. *)
+(* The length in seconds of a unit of duration. *)
 let time_unit settings =
   match opentrons_setting settings "time-unit" with
-  | "minutes" -> (Rational.of_int 60, "min")
-  | "hours" -> (Rational.of_int 3600, "h")
-  | _ -> (Rational.of_int 1, "s")
+  | "minutes" -> Rational.of_int 60
+  | "hours" -> Rational.of_int 3600
+  | _ -> Rational.of_int 1
 
 let opentrons_compile settings ~operations ~compound commands =
   let binding = opentrons_setting settings "binding" in
@@ -163,7 +165,7 @@ let opentrons_compile settings ~operations ~compound commands =
       {
         Protocol.robot;
         api_level = Protocol.default_api_level robot;
-        time_unit = fst (time_unit settings);
+        time_unit = time_unit settings;
         monitor;
         name = "Tempore program";
         source = "the web interface";
@@ -187,8 +189,7 @@ let opentrons_compile settings ~operations ~compound commands =
           messages = List.map (fun text -> { severity = Error; text }) errors;
         }
 
-let opentrons_observer settings =
-  timeline ~expanded:true ~time_unit:(snd (time_unit settings)) ()
+let opentrons_observer _ = timeline ~expanded:true
 
 let opentrons =
   {
@@ -196,7 +197,7 @@ let opentrons =
     name = "Opentrons";
     description =
       "Opentrons protocols in Python, with monitors of the running times of \
-       operations; interpreter runs record a timeline in units of time.";
+       operations; interpreter runs record a timeline.";
     inputs = opentrons_inputs;
     compiler =
       Some { compile = opentrons_compile; code_name = "Opentrons protocol" };

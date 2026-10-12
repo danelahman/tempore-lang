@@ -84,9 +84,7 @@ Command-line options:
 - `--debug` also prints the inferred typing context, including the inferred type
   schemes;
 - `--timeline` prints the [timeline](#interpreter) of each run after its result,
-  as a table; its times are plain numbers, or followed by the symbol of the unit
-  given by `--time-unit` (see [Opentrons](#opentrons)); it cannot be combined
-  with `--emit-opentrons`;
+  as a table; it cannot be combined with `--emit-opentrons`;
 - `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
   Python, to the given file, without running them; a file name without a
   directory names a file in `_opentrons/protocols`; with `--bind`, as an
@@ -115,8 +113,9 @@ switches between the program and the Opentrons protocol: the binding file and
 the protocol compiled from the program once it typechecks.
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
-title under Interpreter and unfolded under Opentrons, where its times carry the
-symbol of the time unit selected.
+title under Interpreter and unfolded under Opentrons; the events inside default
+implementations, and the grade of a default implementation beside the grade of
+its operation, are greyed.
 
 ## Temporal resources
 
@@ -1145,16 +1144,38 @@ tracks the resource state: both the boxed resources and the accumulated grade. A
 `run` command prints its result with the final resource state. The web interface
 can also step through the individual reductions and shows the resource usage.
 
-The timeline of a run lists what happens in it, against a virtual clock advanced
-by the delays: the delays, the calls of operations that no handler handles and
-that are performed by their default implementations, with their start, nesting
-depth and duration, and the resources boxed and unboxed, by name and with the
-grade they are boxed at. A continuation boxed by a handler is named after its
-operation, as in `k of Op`. The timeline displays the run and checks nothing,
-the program having been typechecked before it runs. The command-line option
-`--timeline` prints it after each run, e.g.
+The timeline of a run lists, in grades, what reaches its top level: the delays,
+the calls of operations that no handler handles and that are performed by their
+default implementations, and the resources boxed and unboxed, by the name of the
+variable they are bound to. Each row has a grade: that of a delay, the declared
+grade of an operation, or the grade a resource is boxed at; an operation is
+followed, in brackets, by the grade of what its default implementation did, the
+product of its delays and of the declared grades of the operations it performs.
+The events of a default implementation, the operations it performs among them,
+are listed below its operation, indented by `·`. Each row at the top level
+starts at the grade accumulated before it, the product of the grades of the
+rows at the top level above it. Operations handled by handlers, and their
+continuations, are not listed; the steps of a handler's case are listed as they
+happen. The timeline displays the run and checks nothing, the program having
+been typechecked before it runs. The command-line option `--timeline` prints it
+after each run, e.g.
 
-    ./tempore --grades time-interval --timeline examples/time/intervals.tpe
+    ./tempore --grades time-interval-rational --timeline examples/introduction/sensor_reading.tpe
+
+prints
+
+    Timeline
+    Run  Start       Event          Grade
+    1    [0, 0]      delay          [0.1, 0.1]
+    1    [0.1, 0.1]  box reading    [5, 10)
+    1    [0.1, 0.1]  Compute        [6, 8]  ([7, 7])
+    1                · delay        [7, 7]
+    1    [6.1, 8.1]  unbox reading  [5, 10)
+    1    [6.1, 8.1]  AngleOf        (0, 1]  ([0.5, 0.5])
+    1                · delay        [0.5, 0.5]
+    1    (6.1, 9.1]  SetAngle       (1, 2)  ([1.5, 1.5])
+    1                · delay        [1.5, 1.5]
+    Run 1 returned () at (7.1, 11.1).
 
 ### Opentrons
 
@@ -1222,8 +1243,7 @@ directory names a file in `_opentrons/protocols` of the current directory, which
 git does not track; a name with a directory, such as `./protocol.py`, is used as
 given. Run as a script, `python3 _opentrons/protocols/protocol.py` executes the
 program as the interpreter does, without the binding file. Without `--bind`,
-only the compiled program is written. The options below require `--bind`, except
-that `--time-unit` is also accepted with `--timeline`:
+only the compiled program is written. The options below require `--bind`:
 
 - `--api-level <level>` sets the `apiLevel` (default 2.30);
 - `--time-unit <unit>` sets the length of a unit of duration: `seconds` (the

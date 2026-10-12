@@ -1524,9 +1524,24 @@ let view_switch (compiler : BackendRegistry.compiler) code_view =
 (* The report of the observer of a run, as a table and notes folded under its
    title, unfolded at first if [expanded]. *)
 let view_report ~expanded (report : BackendRegistry.report) =
-  let row_class = function
-    | BackendRegistry.Plain -> []
-    | Pending -> [ class_ "is-pending" ]
+  let row_class (row : BackendRegistry.row) =
+    match (row.status, row.depth) with
+    | Plain, 0 -> []
+    | Pending, 0 -> [ class_ "is-pending" ]
+    | Plain, _ -> [ class_ "is-sub" ]
+    | Pending, _ -> [ class_ "is-pending is-sub" ]
+  in
+  let cell (cell : BackendRegistry.cell) =
+    elt "td"
+      (text cell.text
+      :: Option.fold ~none:[]
+           ~some:(fun aside ->
+             [
+               elt "span"
+                 ~a:[ class_ "backend-aside" ]
+                 [ text ("(" ^ aside ^ ")") ];
+             ])
+           cell.aside)
   in
   elt "details"
     ~a:
@@ -1548,8 +1563,7 @@ let view_report ~expanded (report : BackendRegistry.report) =
                elt "tbody"
                  (List.map
                     (fun (row : BackendRegistry.row) ->
-                      elt "tr" ~a:(row_class row.status)
-                        (List.map (fun c -> elt "td" [ text c ]) row.cells))
+                      elt "tr" ~a:(row_class row) (List.map cell row.cells))
                     report.rows);
              ];
          ];

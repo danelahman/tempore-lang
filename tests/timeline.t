@@ -1,8 +1,49 @@
 The timelines of runs printed by --timeline: the delays, the calls of
-operations performed by their default implementations with their durations,
-and the resources boxed and unboxed with their box grades.
+operations performed by their default implementations, with the events of
+these below them, and the resources boxed and unboxed, each with its grade and
+the grade accumulated before it.
 
-Values boxed for time intervals, the times plain numbers.
+A reading boxed by a handler and passed to the continuation of the call it
+handles, named after the variable it is bound to; the handled operation and its
+continuation are not shown.
+
+  $ ../tempore --grades time-interval-rational --timeline ../examples/introduction/sensor_reading.tpe
+  === Run 1 ===
+  return ()
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            let reading = return op_var in
+            perform Compute () (op_var. return op_var);
+            unbox reading as sample in
+            let angle = perform AngleOf sample (op_var. return op_var) in
+            perform SetAngle angle (op_var. return op_var)
+          with sensor
+        # (0, 0.5]
+    },
+    [0.1, 0.1],
+    { resource_2 ↦ Sample 42 # [5, 10) },
+    [7, 7],
+    [0.5, 0.5],
+    [1.5, 1.5]
+  ]
+  
+  Timeline
+  Run  Start       Event          Grade
+  1    [0, 0]      delay          [0.1, 0.1]
+  1    [0.1, 0.1]  box reading    [5, 10)
+  1    [0.1, 0.1]  Compute        [6, 8]  ([7, 7])
+  1                · delay        [7, 7]
+  1    [6.1, 8.1]  unbox reading  [5, 10)
+  1    [6.1, 8.1]  AngleOf        (0, 1]  ([0.5, 0.5])
+  1                · delay        [0.5, 0.5]
+  1    (6.1, 9.1]  SetAngle       (1, 2)  ([1.5, 1.5])
+  1                · delay        [1.5, 1.5]
+  Run 1 returned () at (7.1, 11.1).
+  
+
+Values boxed for time intervals.
 
   $ ../tempore --grades time-interval --timeline ../examples/time/intervals.tpe
   === Run 1 ===
@@ -14,12 +55,12 @@ Values boxed for time intervals, the times plain numbers.
   ]
   
   Timeline
-  Run  Start  Event    Time  Grade
-  1    0      box r          [1, 4]
-  1    0      delay    1
-  1    1      delay    2
-  1    3      unbox r        [1, 4]
-  Run 1 returned 1 at 3.
+  Run  Start   Event    Grade
+  1    [0, 0]  box r    [1, 4]
+  1    [0, 0]  delay    [1, 1]
+  1    [1, 1]  delay    [2, 2]
+  1    [3, 3]  unbox r  [1, 4]
+  Run 1 returned 1 at [3, 3].
   
   === Run 2 ===
   return 1
@@ -30,12 +71,12 @@ Values boxed for time intervals, the times plain numbers.
   ]
   
   Timeline
-  Run  Start  Event    Time  Grade
-  2    3      box r          [1, 4]
-  2    3      delay    1
-  2    4      delay    2
-  2    6      unbox r        [1, 4]
-  Run 2 returned 1 at 6.
+  Run  Start   Event    Grade
+  2    [0, 0]  box r    [1, 4]
+  2    [0, 0]  delay    [1, 1]
+  2    [1, 1]  delay    [2, 2]
+  2    [3, 3]  unbox r  [1, 4]
+  Run 2 returned 1 at [3, 3].
   
   === Run 3 ===
   return 4
@@ -46,12 +87,12 @@ Values boxed for time intervals, the times plain numbers.
   ]
   
   Timeline
-  Run  Start  Event    Time  Grade
-  3    6      box r          [1, 4]
-  3    6      delay    1
-  3    7      delay    2
-  3    9      unbox r        [1, 4]
-  Run 3 returned 4 at 9.
+  Run  Start   Event    Grade
+  3    [0, 0]  box r    [1, 4]
+  3    [0, 0]  delay    [1, 1]
+  3    [1, 1]  delay    [2, 2]
+  3    [3, 3]  unbox r  [1, 4]
+  Run 3 returned 4 at [3, 3].
   
   === Run 4 ===
   return 8
@@ -62,12 +103,12 @@ Values boxed for time intervals, the times plain numbers.
   ]
   
   Timeline
-  Run  Start  Event    Time  Grade
-  4    9      box r          [1, 4]
-  4    9      delay    1
-  4    10     delay    2
-  4    12     unbox r        [1, 4]
-  Run 4 returned 8 at 12.
+  Run  Start   Event    Grade
+  4    [0, 0]  box r    [1, 4]
+  4    [0, 0]  delay    [1, 1]
+  4    [1, 1]  delay    [2, 2]
+  4    [3, 3]  unbox r  [1, 4]
+  Run 4 returned 8 at [3, 3].
   
   === Run 5 ===
   return 15
@@ -78,14 +119,14 @@ Values boxed for time intervals, the times plain numbers.
   ]
   
   Timeline
-  Run  Start  Event     Time  Grade
-  5    12     box x'          [2, 5]
-  5    12     box r           [1, 4]
-  5    12     delay     1
-  5    13     delay     2
-  5    15     unbox r         [1, 4]
-  5    15     unbox x'        [2, 5]
-  Run 5 returned 15 at 15.
+  Run  Start   Event     Grade
+  5    [0, 0]  box x'    [2, 5]
+  5    [0, 0]  box r     [1, 4]
+  5    [0, 0]  delay     [1, 1]
+  5    [1, 1]  delay     [2, 2]
+  5    [3, 3]  unbox r   [1, 4]
+  5    [3, 3]  unbox x'  [2, 5]
+  Run 5 returned 15 at [3, 3].
   
   === Run 6 ===
   return 1
@@ -95,14 +136,14 @@ Values boxed for time intervals, the times plain numbers.
   ]
   
   Timeline
-  Run  Start  Event    Time  Grade
-  6    15     box r          [1, 4]
-  6    15     delay    4
-  6    19     unbox r        [1, 4]
-  Run 6 returned 1 at 19.
+  Run  Start   Event    Grade
+  6    [0, 0]  box r    [1, 4]
+  6    [0, 0]  delay    [4, 4]
+  6    [4, 4]  unbox r  [1, 4]
+  Run 6 returned 1 at [4, 4].
   
 
-Continuations boxed by nested handlers, named after their operations.
+Nested handlers: their continuations are not shown.
 
   $ ../tempore --grades time-lower-bound --timeline ../examples/handlers/nested.tpe
   === Run 1 ===
@@ -129,12 +170,8 @@ Continuations boxed by nested handlers, named after their operations.
   ]
   
   Timeline
-  Run  Start  Event            Time  Grade
-  1    0      box k of Op1           2
-  1    0      box k' of Op2          3
-  1    0      delay            3
-  1    3      unbox k' of Op2        3
-  1    3      unbox k of Op1         2
+  Run  Start  Event  Grade
+  1    0      delay  3
   Run 1 returned 7 at 3.
   
 
@@ -148,13 +185,13 @@ Channels boxed at security levels, whose delays are unit grades.
   ]
   
   Timeline
-  Run  Start  Event       Time  Grade
-  1    0      box c             Low
-  1    0      ReadPublic  0
-  1    0      delay       3
-  1    3      unbox c           Low
-  1    3      Post        0
-  Run 1 returned "weather: sunny" at 3.
+  Run  Start  Event       Grade
+  1    Low    box c       Low
+  1    Low    ReadPublic  Low  (Low)
+  1    Low    delay       Low
+  1    Low    unbox c     Low
+  1    Low    Post        Low  (Low)
+  Run 1 returned "weather: sunny" at Low.
   
   === Run 2 ===
   return "launch code: 0000"
@@ -163,17 +200,17 @@ Channels boxed at security levels, whose delays are unit grades.
   ]
   
   Timeline
-  Run  Start  Event       Time  Grade
-  2    3      box c             High
-  2    3      ReadSecret  0
-  2    3      unbox c           High
-  2    3      Post        0
-  Run 2 returned "launch code: 0000" at 3.
+  Run  Start  Event       Grade
+  2    Low    box c       High
+  2    Low    ReadSecret  High  (Low)
+  2    High   unbox c     High
+  2    High   Post        Low  (Low)
+  Run 2 returned "launch code: 0000" at High.
   
 
-The ELISA protocol, interpreted, its times in minutes.
+The ELISA protocol, interpreted.
 
-  $ ../tempore --grades time-interval --timeline --time-unit minutes ../examples/opentrons/elisa.tpe
+  $ ../tempore --grades time-interval --timeline ../examples/opentrons/elisa.tpe
   === Run 1 ===
   return 0
   State: [
@@ -194,35 +231,90 @@ The ELISA protocol, interpreted, its times in minutes.
   ]
   
   Timeline
-  Run  Start   Event             Time    Grade
-  1    0 min   AddSample         2 min
-  1    2 min   Dilute            1 min
-  1    3 min   · box antibody            [0, 20]
-  1    3 min   Wash              3 min
-  1    6 min   Wash              3 min
-  1    9 min   Wash              3 min
-  1    12 min  unbox antibody            [0, 20]
-  1    12 min  Detect            2 min
-  1    14 min  · box incubating          [60, ∞)
-  1    14 min  delay             60 min
-  1    74 min  unbox incubating          [60, ∞)
-  1    74 min  Wash              3 min
-  1    77 min  Develop           1 min
-  1    78 min  · box developing          [15, 20]
-  1    78 min  delay             15 min
-  1    93 min  unbox developing          [15, 20]
-  1    93 min  Stop              0 min
-  1    93 min  Read              1 min
-  Run 1 returned 0 at 94 min.
+  Run  Start      Event             Grade
+  1    [0, 0]     AddSample         [1, 3]  ([2, 2])
+  1               · delay           [2, 2]
+  1    [1, 3]     Dilute            [1, 2]  ([1, 1])
+  1               · delay           [1, 1]
+  1               · box antibody    [0, 20]
+  1    [2, 5]     Wash              [2, 4]  ([3, 3])
+  1               · delay           [3, 3]
+  1    [4, 9]     Wash              [2, 4]  ([3, 3])
+  1               · delay           [3, 3]
+  1    [6, 13]    Wash              [2, 4]  ([3, 3])
+  1               · delay           [3, 3]
+  1    [8, 17]    unbox antibody    [0, 20]
+  1    [8, 17]    Detect            [1, 3]  ([2, 2])
+  1               · delay           [2, 2]
+  1               · box incubating  [60, ∞)
+  1    [9, 20]    delay             [60, 60]
+  1    [69, 80]   unbox incubating  [60, ∞)
+  1    [69, 80]   Wash              [2, 4]  ([3, 3])
+  1               · delay           [3, 3]
+  1    [71, 84]   Develop           [1, 2]  ([1, 1])
+  1               · delay           [1, 1]
+  1               · box developing  [15, 20]
+  1    [72, 86]   delay             [15, 15]
+  1    [87, 101]  unbox developing  [15, 20]
+  1    [87, 101]  Stop              [0, 1]  ([0, 0])
+  1    [87, 102]  Read              [1, 2]  ([1, 1])
+  1               · delay           [1, 1]
+  Run 1 returned 0 at [88, 104].
   
 
---timeline is refused with --emit-opentrons, and --time-unit needs --bind or
---timeline.
+Default implementations that perform operations: each call one level below
+the call whose default implementation performs it.
+
+  $ ../tempore --timeline default_chain.tpe
+  === Run 1 ===
+  return 2
+  State: [
+    1,
+    1,
+    1
+  ]
+  
+  Timeline
+  Run  Start  Event        Grade
+  1    0      Ask          3  (3)
+  1           · delay      1
+  1           · Load       2  (2)
+  1           · · Store    1  (1)
+  1           · · · delay  1
+  1           · · Store    1  (1)
+  1           · · · delay  1
+  Run 1 returned 2 at 3.
+  
+  === Run 2 ===
+  return ()
+  State: [
+    { resource_1 ↦
+        fun op_var ↦
+          handle
+            return op_var
+          with handler
+               | return x ↦ return x
+               | Report (msg, k) ↦
+                          delay 1 (return ());
+                          unbox k as cont_var in
+                          cont_var ()
+        # 1
+    },
+    1
+  ]
+  
+  Timeline
+  Run  Start  Event  Grade
+  2    0      delay  1
+  Run 2 returned () at 1.
+  
+
+--timeline is refused with --emit-opentrons, and --time-unit needs --bind.
 
   $ ../tempore --grades time-interval --timeline --emit-opentrons elisa.py ../examples/opentrons/elisa.tpe
   ../tempore: option '--timeline' cannot be used with '--emit-opentrons'.
   [2]
 
   $ ../tempore --grades time-interval --time-unit minutes ../examples/opentrons/elisa.tpe
-  ../tempore: option '--time-unit' requires '--bind' or '--timeline'.
+  ../tempore: option '--time-unit' requires '--bind'.
   [2]

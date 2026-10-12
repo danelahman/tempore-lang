@@ -35,24 +35,23 @@ type config = {
   bind : string option;
   robot : OpentronsBackend.OpentronsProtocol.robot option;
   api_level : string option;
-  time_unit : (Grades.Rational.t * string) option;
+  time_unit : Grades.Rational.t option;
   timeline : bool;
   monitor : OpentronsBackend.OpentronsProtocol.monitor option;
   simulate : bool;
   simulator : string option;
 }
 
-(* The length in seconds of the time unit [s], [seconds], [minutes], [hours]
-   or a positive decimal number of seconds, and its symbol. *)
+(* The length in seconds of the time unit [s]: [seconds], [minutes], [hours]
+   or a positive decimal number of seconds. *)
 let time_unit_of_string s =
   match s with
-  | "seconds" -> (Grades.Rational.of_int 1, "s")
-  | "minutes" -> (Grades.Rational.of_int 60, "min")
-  | "hours" -> (Grades.Rational.of_int 3600, "h")
+  | "seconds" -> Grades.Rational.of_int 1
+  | "minutes" -> Grades.Rational.of_int 60
+  | "hours" -> Grades.Rational.of_int 3600
   | _ -> (
       match Grades.Rational.of_decimal s with
-      | q when Grades.Rational.sign q > 0 ->
-          (q, "× " ^ Grades.Rational.show q ^ " s")
+      | q when Grades.Rational.sign q > 0 -> q
       | _ | (exception Invalid_argument _) ->
           raise
             (Arg.Bad
@@ -187,15 +186,15 @@ let parse_args_to_config () =
         ( "--time-unit",
           Arg.String (fun s -> time_unit := Some (time_unit_of_string s)),
           " Set the length of a unit of duration of the protocol written with \
-           --bind, and the unit of the times printed by --timeline, which are \
-           otherwise plain numbers: seconds, minutes, hours or a positive \
-           number of seconds (default: seconds)" );
+           --bind: seconds, minutes, hours or a positive number of seconds \
+           (default: seconds)" );
         ( "--timeline",
           Arg.Set timeline,
           " Print the timeline of each run after its result: its delays, the \
-           calls of operations performed by their default implementations with \
-           their durations, and the resources boxed and unboxed with their box \
-           grades" );
+           calls of operations performed by their default implementations, \
+           with the events of these indented below them, and the resources \
+           boxed and unboxed, each with its grade and the grade accumulated \
+           before it" );
         ( "--typecheck-only",
           Arg.Set typecheck_only,
           " Typecheck the files without running them" );
@@ -220,8 +219,6 @@ let parse_args_to_config () =
       Sys.argv.(0) "--emit-opentrons";
     exit 2
   end;
-  requires "--time-unit" (!time_unit <> None) "--bind' or '--timeline"
-    (!bind <> None || !timeline);
   List.iter
     (fun (option, given) -> requires option given "--bind" (!bind <> None))
     [
@@ -230,6 +227,7 @@ let parse_args_to_config () =
       ("--robot", !robot <> None);
       ("--simulate", !simulate);
       ("--simulator", !simulator <> None);
+      ("--time-unit", !time_unit <> None);
     ];
   {
     filenames = List.rev !filenames;
@@ -384,7 +382,7 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
       api_level =
         Option.value config.api_level ~default:(P.default_api_level robot);
       time_unit =
-        Option.fold ~none:(Grades.Rational.of_int 1) ~some:fst config.time_unit;
+        Option.value config.time_unit ~default:(Grades.Rational.of_int 1);
       monitor = Option.value config.monitor ~default:P.Abort;
       name = Filename.remove_extension source;
       source;
@@ -406,11 +404,7 @@ let run_with (module G : Grades.Grade.S) config =
   let module Loader = Loader.Loader (Backend) in
   (* The timeline of the run [run_num], as a table. *)
   let print_timeline timeline run_num =
-    print_string
-      (Timeline.text
-         (Timeline.report ~run:run_num
-            ?time_unit:(Option.map snd config.time_unit)
-            timeline));
+    print_string (Timeline.text (Timeline.report ~run:run_num timeline));
     print_newline ()
   in
   (* Runs the program from [state], each step chosen at random among those
@@ -426,9 +420,10 @@ let run_with (module G : Grades.Grade.S) config =
     let timeline =
       Option.fold ~none:timeline
         ~some:(fun (step : Backend.step) ->
-          Option.fold ~none:timeline
-            ~some:(fun observation -> Timeline.observe observation timeline)
-            (Backend.observe state step.label))
+          List.fold_left
+            (Fun.flip Timeline.observe)
+            timeline
+            (Backend.observe state step))
         step
     in
     let printed = Backend.view_run_state state ~run_num in

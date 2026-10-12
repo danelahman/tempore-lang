@@ -2,25 +2,36 @@ module Ast = Language.Ast
 module Primitives = Language.Primitives
 
 (** What a step of an interpreter run shows of the operations performed, the
-    time passed and the resources boxed and unboxed, for models of runs. *)
+    delays and the resources boxed and unboxed, for models of runs. Grades are
+    printed resource grades. [at] is the resource grade accumulated at the top
+    level of the run before the step: the product of the grades of its delays
+    outside every default implementation and of the declared grades of the
+    operations performed by their default implementations at the top level.
+    Resources are identified by their names in the state. *)
 type observation =
-  | Delayed of Grades.Rational.t  (** a delay of the given duration *)
-  | Performed of string
-      (** a call of the operation, unhandled, performed by its default
-          implementation *)
-  | Resumed
+  | Delayed of { at : string; grade : string }
+      (** a delay of the resource grade [grade] *)
+  | Performed of { at : string; op : string; grade : string }
+      (** a call of [op], unhandled, performed by its default implementation;
+          [grade] is the resource grade of the effect grade of its signature *)
+  | Resumed of { grade : string }
       (** the default implementation of the innermost call still running has
-          returned to the continuation of the call *)
-  | Returned of string  (** the run has returned the value printed *)
-  | Stopped of string
-      (** the run has ended at a call of the operation, which has neither a
-          handler nor a default implementation *)
-  | Boxed of { name : string; grade : string }
-      (** a resource named [name] has been boxed at the resource grade printed
-          [grade] *)
-  | Unboxed of { name : string; grade : string }
-      (** the resource named [name], boxed at the resource grade printed
+          returned to the continuation of the call, of the resource grade
+          [grade]: the product of its delays and of the declared grades of the
+          calls it has performed *)
+  | Boxed of { at : string; resource : string; name : string; grade : string }
+      (** the resource [resource], named [name], has been boxed at the resource
+          grade [grade] *)
+  | Unboxed of { at : string; resource : string; name : string; grade : string }
+      (** the resource [resource], named [name] and boxed at the resource grade
           [grade], has been unboxed *)
+  | Named of { resource : string; name : string }
+      (** the resource [resource], boxed earlier, is named [name] *)
+  | Returned of { at : string; value : string }
+      (** the run has returned the value printed [value] *)
+  | Stopped of { at : string; op : string }
+      (** the run has ended at a call of [op], which has neither a handler nor a
+          default implementation *)
 
 module type S = sig
   module Grades : Grades.GradeSystem.S
@@ -51,6 +62,9 @@ module type S = sig
       list;
     resource_counter : int;
     resource_names : string Ast.VariableMap.t;
+    continuations : Ast.VariableSet.t;
+    accumulated : Grades.R.t;
+    calls : Grades.R.t list;
     op_signatures : Ast.Graded(Grades).eps Ast.OpNameMap.t;
     op_defaults : Ast.Graded(Grades).abstraction Ast.OpNameMap.t;
   }

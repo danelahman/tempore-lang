@@ -1,48 +1,35 @@
 (** Timelines of interpreter runs.
 
-    A timeline has a virtual clock, advanced by the delays of the program. It
-    records each delay outside every default implementation still running; each
-    call of an operation that reaches the top level, unhandled, and is performed
-    by its default implementation: the run it belongs to, the time it starts,
-    the number of such calls it is nested in, and the time its default
-    implementation takes, once that has returned to the continuation of the
-    call; and each box and unbox of a resource, at the time of the clock and the
-    number of calls still running. A call whose run ends before its default
-    implementation returns stays unfinished. The clock is not reset between
-    runs. *)
+    A timeline records, in the order they happen, the delays, the calls of
+    operations that reach the top level, unhandled, and are performed by their
+    default implementations, and the resources boxed and unboxed. Each entry
+    carries its depth, the number of calls whose default implementations are
+    still running, and the resource grade accumulated at the top level of its
+    run before it ({!Backend.observation}). Grades are printed resource grades:
+    the timeline does no arithmetic on them. *)
 
-type call = {
-  run : int;  (** the run of the call, from 1 *)
-  op : string;  (** the operation called *)
-  depth : int;
-      (** the number of calls whose default implementations perform it *)
-  start : Grades.Rational.t;  (** the time of the clock at the call *)
-  elapsed : Grades.Rational.t option;
-      (** the time its default implementation takes, once it has returned *)
-}
+(** What an entry records. *)
+type event =
+  | Call of { op : string; grade : string; performed : string option }
+      (** a call of [op] of the declared resource grade [grade]; [performed] is
+          the grade of its default implementation, the product of its delays and
+          of the declared grades of the calls it performs, once it has returned
+          to the continuation of the call *)
+  | Delay of { grade : string }  (** a delay of the resource grade [grade] *)
+  | Box of { resource : string; name : string; grade : string }
+      (** the resource [resource] (its name in the state), named [name], boxed
+          at the resource grade [grade] *)
+  | Unbox of { resource : string; name : string; grade : string }
+      (** the resource [resource], named [name], boxed at the resource grade
+          [grade], unboxed *)
 
-type wait = {
-  run : int;  (** the run of the delay, from 1 *)
-  start : Grades.Rational.t;  (** the time of the clock at the delay *)
-  duration : Grades.Rational.t;  (** the duration of the delay *)
-}
-(** A delay outside every default implementation still running. *)
-
-type resource = {
-  run : int;  (** the run of the event, from 1 *)
-  start : Grades.Rational.t;  (** the time of the clock at the event *)
+type entry = {
+  run : int;  (** the run, from 1 *)
   depth : int;  (** the number of calls still running *)
-  name : string;  (** the name of the resource *)
-  grade : string;  (** the resource grade it is boxed at, printed *)
+  start : string;  (** the resource grade accumulated before the entry *)
+  event : event;
 }
-(** A resource boxed or unboxed. *)
-
 (** An entry of a timeline. *)
-type entry =
-  | Call of call
-  | Delay of wait
-  | Box of resource
-  | Unbox of resource
 
 (** How a run ends. *)
 type outcome =
@@ -53,7 +40,7 @@ type outcome =
 
 type finished = {
   index : int;  (** the run, from 1 *)
-  at : Grades.Rational.t;  (** the time of the clock at its end *)
+  at : string;  (** the resource grade accumulated at its end *)
   outcome : outcome;
 }
 (** A run that has ended. *)
@@ -61,46 +48,18 @@ type finished = {
 type t
 
 val empty : t
-(** The timeline at the start of the first run: the clock at 0, no entries. *)
-
-val clock : t -> Grades.Rational.t
-(** [clock t] is the time of the clock of [t]. *)
-
-val delay : Grades.Rational.t -> t -> t
-(** [delay q t] advances the clock of [t] by [q], and records the delay if no
-    default implementation of a call of [t] is still running; a delay inside one
-    counts towards the time of the call. *)
-
-val perform : string -> t -> t
-(** [perform op t] records a call of [op] performed by its default
-    implementation, starting at the clock of [t]. *)
-
-val resume : t -> t
-(** [resume t] records that the default implementation of the innermost call of
-    [t] still running has returned to the continuation of the call, which then
-    takes the time elapsed since its start; [t] itself without such a call. *)
-
-val box : name:string -> grade:string -> t -> t
-(** [box ~name ~grade t] records the resource [name] boxed at the resource grade
-    printed [grade], at the clock of [t]. *)
-
-val unbox : name:string -> grade:string -> t -> t
-(** [unbox ~name ~grade t] records the resource [name], boxed at the resource
-    grade printed [grade], unboxed at the clock of [t]. *)
-
-val finish : outcome -> t -> t
-(** [finish outcome t] ends the current run of [t] with [outcome], leaving the
-    calls still running unfinished; the next run starts at the same clock. *)
+(** The timeline at the start of the first run, without entries. *)
 
 val observe : Backend.observation -> t -> t
-(** [observe observation t] records [observation] in [t] by {!delay},
-    {!perform}, {!resume}, {!box}, {!unbox} or {!finish}. *)
+(** [observe observation t] records [observation] in [t]: a delay, call, box or
+    unbox as an entry at the current depth; the return of the innermost call
+    still running with the grade of its default implementation; the name given
+    to a resource, in the boxes and unboxes of the current run; or the end of
+    the current run, leaving the calls still running unfinished, the next run
+    following it. *)
 
 val entries : t -> entry list
-(** [entries t] is the entries of [t], in the order of their start. *)
-
-val calls : t -> call list
-(** [calls t] is the calls of [t], in the order of their start. *)
+(** [entries t] is the entries of [t], in order. *)
 
 val runs : t -> finished list
 (** [runs t] is the runs of [t] that have ended, in order. *)
@@ -112,7 +71,19 @@ type status =
   | Plain
   | Pending  (** a call whose default implementation has not returned *)
 
-type row = { cells : string list; status : status }
+type cell = {
+  text : string;
+  aside : string option;  (** a secondary value, shown de-emphasised *)
+}
+(** A cell of a report. *)
+
+type row = {
+  cells : cell list;
+  status : status;
+  depth : int;
+      (** the depth of its entry; a row of positive depth belongs to the default
+          implementation of a call and is shown de-emphasised *)
+}
 (** A row of a report, a cell per column. *)
 
 type report = {
@@ -123,22 +94,24 @@ type report = {
 }
 (** A report on a timeline, independent of how it is displayed. *)
 
-val report : ?run:int -> ?time_unit:string -> t -> report
-(** [report ?run ?time_unit t] is the report on [t], titled [Timeline], with the
-    columns [Run], [Start], [Event], [Time] and [Grade], a row per entry of [t]
-    in order and a note per run ended, followed by a note on the clock. With
-    [run], only the entries and the note of that run, without the note on the
-    clock. Times are numbers followed by the symbol [time_unit], if given.
+val report : ?run:int -> t -> report
+(** [report ?run t] is the report on [t], titled [Timeline], with the columns
+    [Run], [Start], [Event] and [Grade], a row per entry of [t] in order and a
+    note per run ended, [Run n returned v at g.] or
+    [Run n ended at g at a call of Op, ...], [g] the grade accumulated at its
+    end. With [run], only the entries and the note of that run.
 
-    - A call is shown by its operation, indented by its depth, and its time, or
-      [running] while its default implementation has not returned (the row then
-      pending); its grade is empty.
-    - A delay is shown by its duration; its grade is empty.
-    - A box or unbox of the resource [x] is shown as [box x] or [unbox x],
-      indented by its depth, with the resource grade [x] is boxed at. *)
+    - [Start] is the grade accumulated before the entry, at depth 0; it is empty
+      for the entries of a default implementation, which start at the start of
+      the call at depth 0 they belong to.
+    - [Event] is the operation called, [delay], [box x] or [unbox x], preceded
+      by a mark [· ] per level of depth.
+    - [Grade] is the declared grade of a call, with the grade of its default
+      implementation as its aside once that has returned (the row pending until
+      then), the grade of a delay, or the box grade of a box or unbox. *)
 
 val text : report -> string
 (** [text report] is [report] as plain text: its title, then a line for the
     headings of the columns and a line per row, each cell padded to the widest
-    of its column and the cells separated by two spaces, then a line per note.
-*)
+    of its column and the cells separated by two spaces, then a line per note. A
+    cell with an aside [a] reads [text  (a)]. *)

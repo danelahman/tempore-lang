@@ -2,6 +2,7 @@ module Location = Utils.Location
 module Symbol = Utils.Symbol
 module Variable = Symbol.Make ()
 module VariableMap = Map.Make (Variable)
+module VariableSet = Set.Make (Variable)
 module Label = Symbol.Make ()
 module TyName = Symbol.Make ()
 

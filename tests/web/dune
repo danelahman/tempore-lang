@@ -17,4 +17,5 @@
   opentronsBackend)
  (deps
   %{project_root}/examples/index
+  %{project_root}/tests/default_chain.tpe
   (glob_files_rec %{project_root}/examples/*)))

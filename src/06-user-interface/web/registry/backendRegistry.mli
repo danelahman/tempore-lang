@@ -70,18 +70,28 @@ type compiler = {
 
 (** What an observer observes of an interpreter run. *)
 type event = Backend.observation =
-  | Delayed of Grades.Rational.t
-  | Performed of string
-  | Resumed
-  | Returned of string
-  | Stopped of string
-  | Boxed of { name : string; grade : string }
-  | Unboxed of { name : string; grade : string }
+  | Delayed of { at : string; grade : string }
+  | Performed of { at : string; op : string; grade : string }
+  | Resumed of { grade : string }
+  | Boxed of { at : string; resource : string; name : string; grade : string }
+  | Unboxed of { at : string; resource : string; name : string; grade : string }
+  | Named of { resource : string; name : string }
+  | Returned of { at : string; value : string }
+  | Stopped of { at : string; op : string }
 
 (** How a row of a report is marked. *)
 type status = Timeline.status = Plain | Pending
 
-type row = Timeline.row = { cells : string list; status : status }
+type cell = Timeline.cell = {
+  text : string;
+  aside : string option;  (** a secondary value, shown de-emphasised *)
+}
+
+type row = Timeline.row = {
+  cells : cell list;
+  status : status;
+  depth : int;  (** positive for the rows shown de-emphasised *)
+}
 
 type report = Timeline.report = {
   title : string;
@@ -112,16 +122,15 @@ type entry = {
 
 val interpreter : entry
 (** The interpreter alone: no inputs and no compiled code. The observer is the
-    timeline of the run ({!Timeline}), folded at first, its times plain numbers.
-*)
+    timeline of the run ({!Timeline}), folded at first. *)
 
 val opentrons : entry
 (** Opentrons protocols ({!OpentronsBackend.OpentronsProtocol}). The inputs are
     the binding file, the robot, the time unit and the monitor policy. Without a
     binding file the program compiles to a plain Python program
     ({!OpentronsBackend.OpentronsEmit.plain_program}). The observer is the
-    timeline of the run ({!Timeline}), unfolded at first, its times followed by
-    the symbol of the time unit. *)
+    timeline of the run ({!Timeline}), unfolded at first; its cells are grades,
+    so the time unit does not apply to them. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)

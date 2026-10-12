@@ -72,14 +72,22 @@ module Make (GS : Grades.GradeSystem.S) : sig
       list;
     resource_counter : int;
     resource_names : string Language.Ast.VariableMap.t;
+    continuations : Language.Ast.VariableSet.t;
+    accumulated : Grades.R.t;
+    calls : Grades.R.t list;
     op_signatures : Graded.eps Language.Ast.OpNameMap.t;
     op_defaults : Graded.abstraction Language.Ast.OpNameMap.t;
   }
   (** The state holds each resource with the resource grade it was boxed at,
       interleaved with the resource grades that have passed; operations are
-      graded by effect grades. [resource_names] names the resources for
-      observations ({!observe}), and the variables to which the continuations of
-      handled operations are about to be boxed. *)
+      graded by effect grades. For the observations of steps ({!observe}):
+      [resource_names] names the resources, [continuations] holds the resources
+      and variables of the continuations of handled operations, [accumulated] is
+      the resource grade accumulated at the top level of the run, and [calls]
+      holds, for each call still running whose default implementation was
+      reached, the innermost first, the grade of its default implementation so
+      far: the product of its delays and of the declared grades of the calls it
+      performs, as the typechecker grades its body. *)
 
   type frame = (Graded.abstraction, Graded.expression) context_frame
 
@@ -160,15 +168,21 @@ module Make (GS : Grades.GradeSystem.S) : sig
   (** [steps state] are the steps available from [state]: none once all [run]
       commands have completed. *)
 
-  val observe : run_state -> step_label -> Backend.observation option
-  (** [observe state label] is what the step labelled [label] from [state] shows
-      of the operations performed, the time passed and the resources boxed and
-      unboxed, if anything, each resource with the resource grade it was boxed
-      at.
+  val observe : run_state -> step -> Backend.observation list
+  (** [observe state step] is what [step] from [state] shows of the operations
+      performed, the delays and the resources boxed and unboxed, in order.
+
+      The accumulated grade grows at the top level only: by the grade of each
+      delay outside every default implementation, and by the declared grade of
+      each operation performed by its default implementation outside every
+      other. The delays of a default implementation and the declared grades of
+      the calls it performs make up the grade it is reported with when it
+      returns. The continuations of handled operations are neither boxed nor
+      unboxed in observations.
 
       A resource is named by the source variable its [box] binds, or else by the
       source variable the innermost enclosing [do] binds the result of the [box]
-      to, or else by its name in the state. The continuation of a call of an
-      operation [Op] boxed by a handler is named [k of Op], [k] being the
-      variable of the continuation in the case of the handler. *)
+      to; otherwise it is named when it is first bound to a source variable by a
+      [do], a [match] or the return case of a handler ([Named]), and it keeps
+      its name in the state until then. *)
 end
