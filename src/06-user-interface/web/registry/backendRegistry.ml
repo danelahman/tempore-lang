@@ -89,7 +89,7 @@ let opentrons_inputs =
     {
       key = "robot";
       label = "Robot";
-      kind = Choice [ "flex"; "ot2" ];
+      kind = Choice [ "flex" ];
       default = "flex";
     };
     {
@@ -133,10 +133,7 @@ let opentrons_compile settings ~operations commands =
         ];
     }
   else
-    let robot =
-      match opentrons_setting settings "robot" with
-      | "ot2" -> Protocol.Ot2
-      | _ -> Protocol.Flex
+    let robot = Protocol.Flex
     and monitor =
       match opentrons_setting settings "monitor" with
       | "warn" -> Protocol.Warn

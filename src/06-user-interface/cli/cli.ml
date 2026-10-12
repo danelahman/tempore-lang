@@ -131,7 +131,7 @@ let parse_args_to_config () =
         ( "--api-level",
           Arg.String (fun level -> api_level := Some level),
           " Set the apiLevel of the protocol written with --bind (default: \
-           2.30 for the Flex, 2.28 for the OT-2)" );
+           2.30)" );
         ( "--bind",
           Arg.String (fun filename -> bind := Some filename),
           " With --emit-opentrons, write an Opentrons protocol whose \
@@ -168,11 +168,10 @@ let parse_args_to_config () =
         ( "--robot",
           Arg.String
             (choice "--robot"
-               OpentronsBackend.OpentronsProtocol.
-                 [ ("flex", Flex); ("ot2", Ot2) ]
+               OpentronsBackend.OpentronsProtocol.[ ("flex", Flex) ]
                robot),
-          " Set the robot of the protocol written with --bind: flex or ot2 \
-           (default: flex)" );
+          " Set the robot of the protocol written with --bind: flex (default: \
+           flex)" );
         ( "--simulate",
           Arg.Set simulate,
           " Run the Opentrons simulator on the protocol written with --bind, \

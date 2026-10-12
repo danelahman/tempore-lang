@@ -2,7 +2,7 @@ module Ast = Language.Ast
 module Reach = OpentronsReach
 module OperationSet = Reach.OperationSet
 
-type robot = Flex | Ot2
+type robot = Flex
 type monitor = Abort | Warn | Off
 
 type options = {
@@ -14,8 +14,8 @@ type options = {
   source : string;
 }
 
-let default_api_level = function Flex -> "2.30" | Ot2 -> "2.28"
-let robot_type = function Flex -> "Flex" | Ot2 -> "OT-2"
+let default_api_level = function Flex -> "2.30"
+let robot_type = function Flex -> "Flex"
 let monitor_policy = function Abort -> "abort" | Warn -> "warn" | Off -> "off"
 let reserved_prefixes = [ "tempore_"; "_tempore_" ]
 let protocol_names = [ "metadata"; "requirements"; "run" ]

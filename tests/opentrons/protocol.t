@@ -439,19 +439,18 @@ of the protocol or those of the compiled program, and must define setup.
   Error: operation `Pipette`, which run 3 may perform, has neither a binding function nor a default implementation
   [1]
 
-A protocol for the OT-2 has its latest apiLevel by default.
+The Flex is the only robot.
 
-  $ ../../tempore --grades time-interval --emit-opentrons ot2.py --robot ot2 \
-  >   --bind protocol_bindings.py protocol_ok.tpe 2> /dev/null
-  $ grep '^requirements' ot2.py
-  requirements = {"robotType": "OT-2", "apiLevel": "2.28"}
+  $ ../../tempore --emit-opentrons ot2.py --robot ot2 \
+  >   --bind protocol_bindings.py protocol_ok.tpe 2>&1 | head -1
+  ../../tempore: option '--robot': 'ot2' is not one of flex.
 
 The options of protocols require --bind, and --bind requires --emit-opentrons.
 
   $ ../../tempore --bind protocol_bindings.py protocol_ok.tpe
   ../../tempore: option '--bind' requires '--emit-opentrons'.
   [2]
-  $ ../../tempore --emit-opentrons plain.py --robot ot2 protocol_ok.tpe
+  $ ../../tempore --emit-opentrons plain.py --robot flex protocol_ok.tpe
   ../../tempore: option '--robot' requires '--bind'.
   [2]
   $ ../../tempore --emit-opentrons plain.py --bind protocol_bindings.py --time-unit 0 protocol_ok.tpe 2>&1 | head -1

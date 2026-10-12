@@ -25,9 +25,7 @@
     [NAME = ...], [NAME: T = ...] or [NAME, NAME = ...] defines the names it
     binds. *)
 
-type robot =
-  | Flex  (** the Opentrons Flex, robot type ["Flex"] *)
-  | Ot2  (** the OT-2, robot type ["OT-2"] *)
+type robot = Flex  (** the Opentrons Flex, robot type ["Flex"] *)
 
 type monitor =
   | Abort  (** a call outside its bounds ends the protocol with an error *)
@@ -46,7 +44,7 @@ type options = {
 
 val default_api_level : robot -> string
 (** [default_api_level robot] is the latest [apiLevel] of [robot]: ["2.30"] for
-    the Flex and ["2.28"] for the OT-2. *)
+    the Flex. *)
 
 val top_level_names : string -> (string * int) list
 (** [top_level_names source] is the names the lines of the Python [source]

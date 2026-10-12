@@ -88,8 +88,10 @@ let () =
   let inputs = BackendRegistry.opentrons.inputs in
   if BackendRegistry.setting inputs [] "robot" <> "flex" then
     fail "the robot's default";
-  if BackendRegistry.setting inputs [ ("robot", "ot2") ] "robot" <> "ot2" then
-    fail "the robot set";
+  if
+    BackendRegistry.setting inputs [ ("time-unit", "hours") ] "time-unit"
+    <> "hours"
+  then fail "the time unit set";
   if BackendRegistry.setting inputs [] "colour" <> "" then fail "an unknown key"
 
 (* The Opentrons examples *)

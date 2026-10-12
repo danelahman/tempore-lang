@@ -1130,9 +1130,8 @@ the interpreter does, without the binding file. Without `--bind`,
 
 The options below require `--bind`:
 
-- `--robot flex|ot2` selects the robot type (default `flex`);
-- `--api-level <level>` sets the `apiLevel` (default 2.30 for the Flex and 2.28
-  for the OT-2);
+- `--robot flex` selects the robot type (the only value, and the default);
+- `--api-level <level>` sets the `apiLevel` (default 2.30);
 - `--time-unit <unit>` sets the length of a unit of duration of the program:
   `seconds` (the default), `minutes`, `hours` or a positive number of seconds;
 - `--monitor abort|warn|off` sets the policy of the monitors (default `abort`);
