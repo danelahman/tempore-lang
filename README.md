@@ -1182,7 +1182,10 @@ examples, each with a binding file and a rejected variant:
 #### Command line
 <!-- web-skip -->
 
-    ./tempore --grades <grades> --emit-opentrons protocol.py --bind bindings.py file.tpe
+    ./tempore --grades <grades> \
+      --emit-opentrons protocol.py \
+      --bind bindings.py \
+      file.tpe
 
 writes the protocol to a file. Run as a script, `python3 protocol.py` executes
 the program as the interpreter does, without the binding file. Without `--bind`,
