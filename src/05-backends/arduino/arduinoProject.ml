@@ -118,7 +118,8 @@ let resolve input (program : F.program) entries (name : Device.name) =
   | (x, function_effect) :: _ -> (
       match
         List.find_opt
-          (fun (d : F.definition) -> Ast.Variable.equal d.variable x)
+          (fun (d : F.definition) ->
+            d.in_sources && Ast.Variable.equal d.variable x)
           program.definitions
       with
       | None -> unknown ()

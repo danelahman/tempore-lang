@@ -143,3 +143,27 @@ The primitive `to_string`:
 
   $ test -e _arduino || echo 'Nothing is written.'
   Nothing is written.
+
+An operation whose result is a string:
+  $ cat > string_result.tpe <<'TPE'
+  > operation Name : unit ~> string # 1
+  > let same () = let a = perform Name () in let b = perform Name () in a = b
+  > TPE
+  $ reject string_result.tpe
+  File "string_result.tpe", line 2, characters 22-37:
+  2 | let same () = let a = perform Name () in let b = perform Name () in a = b
+                            ^^^^^^^^^^^^^^^
+  Compilation error: The Arduino backend does not support the operation `Name`, whose result contains a string
+  exit 1
+
+A datatype whose constructors take strings:
+  $ cat > string_data.tpe <<'TPE'
+  > type t = Named of string | Anon
+  > let f () = Anon
+  > TPE
+  $ reject string_data.tpe
+  File "string_data.tpe", line 2, characters 11-15:
+  2 | let f () = Anon
+                 ^^^^
+  Compilation error: The Arduino backend does not support the type `t`, whose constructors take strings
+  exit 1

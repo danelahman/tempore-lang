@@ -13,7 +13,10 @@ typedef void *TaskHandle_t;
 typedef void (*TaskFunction_t)(void *);
 
 #define configTICK_RATE_HZ 1000
-#define pdMS_TO_TICKS(ms) (static_cast<TickType_t>(ms))
+#define pdMS_TO_TICKS(ms)                                     \
+  (static_cast<TickType_t>(static_cast<TickType_t>(ms) *    \
+                           static_cast<TickType_t>(configTICK_RATE_HZ) / \
+                           1000U))
 #define portMAX_DELAY (static_cast<TickType_t>(0xffffffffUL))
 #define pdPASS 1
 #define pdTRUE 1

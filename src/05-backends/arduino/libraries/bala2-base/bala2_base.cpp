@@ -36,26 +36,37 @@ enum : uint8_t { bala2_motors = 0x00, bala2_encoders = 0x10 };
 static std::atomic<int64_t> bala2_setpoint_us{0};
 static std::atomic<bool> bala2_driven{false};
 
+// Writes the bytes data to the registers from reg on, under the I2C lock;
+// whether the base acknowledged them.
+static bool bala2_transmit(uint8_t reg, const uint8_t *data, size_t length) {
+  Wire.beginTransmission(bala2_address);
+  Wire.write(reg);
+  Wire.write(data, length);
+  return Wire.endTransmission() == 0;
+}
+
 // Writes the bytes data to the registers from reg on; whether the base
 // acknowledged them.
 static bool bala2_write(uint8_t reg, const uint8_t *data, size_t length) {
   tempore_i2c_lock();
-  Wire.beginTransmission(bala2_address);
-  Wire.write(reg);
-  Wire.write(data, length);
-  const bool acknowledged = Wire.endTransmission() == 0;
+  const bool acknowledged = bala2_transmit(reg, data, length);
   tempore_i2c_unlock();
   return acknowledged;
 }
 
-// Sets the drives of the motors.
+// Sets the drives of the motors, or stops them if the tasks are halted, so
+// that a setpoint does not follow the stop of the safe state.
 static bool bala2_set(int16_t left, int16_t right) {
+  tempore_i2c_lock();
+  if (tempore_halted()) left = right = 0;
   const uint8_t data[4] = {
       static_cast<uint8_t>(static_cast<uint16_t>(left) >> 8),
       static_cast<uint8_t>(left),
       static_cast<uint8_t>(static_cast<uint16_t>(right) >> 8),
       static_cast<uint8_t>(right)};
-  return bala2_write(bala2_motors, data, sizeof data);
+  const bool acknowledged = bala2_transmit(bala2_motors, data, sizeof data);
+  tempore_i2c_unlock();
+  return acknowledged;
 }
 
 // Stops the motors, logging a failure.

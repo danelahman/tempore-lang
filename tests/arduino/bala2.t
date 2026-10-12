@@ -179,7 +179,7 @@ robot falls:
   [4003.631 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4003.631 ms] Safe state
   [4003.766 ms] Task step stopped
-  [4036.135 ms] Task supervise stopped
+  [4036.000 ms] Task supervise stopped
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1535.6 ms
   [8000.000 ms] Plant: tilt -80.21 degrees, wheels at 0.097 m

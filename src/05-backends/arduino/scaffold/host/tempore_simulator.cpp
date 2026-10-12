@@ -73,12 +73,25 @@ void wait_resumed(std::unique_lock<std::mutex> &lock, Task *task) {
   task->resumed = false;
 }
 
+// Prints the end of the simulation at the time now, or at duration if later,
+// lets the world finish and ends the program.
+[[noreturn]] void finish(int64_t duration) {
+  if (now < duration) now = duration;
+  printf("[%lld.%03lld ms] End of the simulation\n",
+         static_cast<long long>(now / 1000), static_cast<long long>(now % 1000));
+  tempore_world_finish();
+  fflush(stdout);
+  _Exit(0);
+}
+
 // Blocks the calling task until the time wake, or for ever if stop. Outside
-// the tasks, in setup(), the clock advances to wake at once.
+// the tasks, in setup(), the clock advances to wake at once, and a stop ends
+// the simulation.
 void block(int64_t wake, bool stop) {
   Task *task = self;
   if (task == nullptr) {
-    if (!stop && wake > now) now = wake;
+    if (stop) finish(now);
+    if (wake > now) now = wake;
     return;
   }
   std::unique_lock<std::mutex> lock(mutex);
@@ -160,7 +173,13 @@ SemaphoreHandle_t xSemaphoreCreateMutex() { return new Mutex{false, nullptr}; }
 
 BaseType_t xSemaphoreTake(SemaphoreHandle_t handle, TickType_t) {
   Mutex *m = static_cast<Mutex *>(handle);
-  while (m->held && self != nullptr && m->holder != self) {
+  if (m->held && self != nullptr && m->holder == self) {
+    printf("[%lld.%03lld ms] Task %s takes a mutex it holds and blocks\n",
+           static_cast<long long>(now / 1000),
+           static_cast<long long>(now % 1000), self->name);
+    block(0, true);
+  }
+  while (m->held && self != nullptr) {
     self->waiting = m;
     block(INT64_MAX, false);
   }
@@ -214,10 +233,5 @@ int main(int argc, char **argv) {
     next->resume.notify_one();
     yielded.wait(lock, [] { return running == nullptr; });
   }
-  if (now < duration) now = duration;
-  printf("[%lld.%03lld ms] End of the simulation\n",
-         static_cast<long long>(now / 1000), static_cast<long long>(now % 1000));
-  tempore_world_finish();
-  fflush(stdout);
-  _Exit(0);
+  finish(duration);
 }

@@ -25,9 +25,10 @@
 
     Rejected are, among others, functions other than top-level definitions,
     functions used as values, partial applications, handlers, lists, strings
-    elsewhere, recursive calls outside tail position, and natural number
-    literals of more than 32 bits. A rejection is a compilation
-    {!Utils.Diagnostic.t} at the construct.
+    elsewhere (also as results of operations and arguments of constructors),
+    recursive calls outside tail position, and natural number literals of more
+    than 32 bits. A rejection is a compilation {!Utils.Diagnostic.t} at the
+    construct.
 
     Types are reconstructed by unification, with the top-level definitions
     generalised over the type variables of their types. A polymorphic definition

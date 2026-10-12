@@ -40,10 +40,6 @@ let spelling u =
           else Printf.sprintf "_u%x_" code
   else Printf.sprintf "_u%x_" code
 
-let starts_with prefix s =
-  String.length s >= String.length prefix
-  && String.sub s 0 (String.length prefix) = prefix
-
 let base name =
   let rec spelt i acc =
     if i >= String.length name then String.concat "" (List.rev acc)
@@ -58,7 +54,10 @@ let base name =
   in
   match String.concat "_" parts with
   | "" -> "v"
-  | s when (s.[0] >= '0' && s.[0] <= '9') || starts_with "tempore" s -> "v" ^ s
+  | s
+    when (s.[0] >= '0' && s.[0] <= '9')
+         || String.starts_with ~prefix:"tempore" s ->
+      "v" ^ s
   | s -> s
 
 let identifier name index = Printf.sprintf "%s_%d" (base name) index

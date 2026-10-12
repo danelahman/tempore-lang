@@ -7,10 +7,9 @@
 type kind =
   | Syntax
   | Typing
-  | Compilation
+  | Compilation  (** a construct that a backend does not compile *)
   | Runtime
   | Fatal
-      (** [Compilation] is a rejection of a program a backend cannot compile. *)
 
 type label = { span : Location.t; text : string }
 (** A related place, with what it contributes to the error: where a variable was

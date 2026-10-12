@@ -22,9 +22,10 @@ Most notably, Tempore adds to Temporal Millet the following:
 3. a number of concrete examples of such grades (ranging from time to regexes to
    security levels to trough/peak usage of resources),
 4. a cleaner and more systematic treatment of type inference,
-5. [multiple backends](#backends): besides the interpreter, a proof-of-concept
-   compiler of programs to protocols for Opentrons liquid-handling robots, with
-   run-time monitors of the running times of operations, and
+5. [multiple backends](#backends): besides the interpreter, proof-of-concept
+   compilers of programs to protocols for Opentrons liquid-handling robots and
+   to C++ for Arduino and ESP32 boards, with run-time monitors of the running
+   times of operations, and
 6. various usability improvements in the web-based user interface.
 
 Tempore (and Temporal Millet before it) is built on Matija Pretnar's [Millet
@@ -1175,7 +1176,7 @@ Limits:
 
 ## Backends
 
-A program is executed by one of two backends.
+A program is executed by one of three backends.
 
 ### Interpreter
 
@@ -1335,6 +1336,138 @@ Requirements:
   virtual environment `VENV_DIR` (default `_opentrons`), which it creates and
   installs the package in if needed (the network is then needed), writing the
   protocols and logs to the environment's directory.
+
+### Arduino
+
+The proof-of-concept Arduino backend compiles a first-order fragment of
+Tempore to allocation-free C++ and generates a PlatformIO project for an
+Arduino or ESP32 board, with FreeRTOS tasks and run-time monitors. Grades are
+erased; boxes and unboxing generate no code.
+
+The fragment consists of top-level functions, fully applied, `let`, `match`
+and `if`, natural numbers (32-bit, `+` and `*` modulo 2^32), single-precision
+floats, booleans, tuples, datatypes without type parameters that are not
+recursive, `delay`, operation calls and self calls in tail position, which
+become loops. Local functions, functions as values, partial application,
+handlers, lists, strings other than constant arguments of operations, and
+recursion other than self calls in tail position are refused, each with a
+`Compilation error` at the construct.
+
+An application is described in four layers.
+
+- A **board profile** gives the PlatformIO board, libraries and build flags,
+  the cores, the I2C buses and the capabilities of a board: `m5stack-gray`,
+  `m5stack-fire`, `m5stack-core2`, `m5stack-cores3`, `esp32-devkit` and
+  `esp32s3-devkit`.
+- A **device manifest**, in JSON, names the board, the tasks, the time unit of
+  the program (`ms` by default), the peripheral packages, the C++ binding file,
+  the C++ function of the safe state, and the C++ models of devices and of the
+  physical world used only by the host simulation:
+
+      {
+        "board": "m5stack-cores3",
+        "tasks": [
+          { "function": "step", "kind": "periodic", "period": 20,
+            "initial": "start", "priority": 2 },
+          { "function": "show", "kind": "free", "repeat": true,
+            "priority": 1, "core": 0 }
+        ],
+        "packages": ["m5-imu", "m5-display"],
+        "bindings": "bindings.cpp",
+        "safe_state": "tilt_safe_state"
+      }
+
+  A periodic task calls its function, of type `s -> s`, once per period, from
+  the state its `initial` function returns; a free task calls its function, of
+  type `unit -> unit`, once, or, with `repeat`, each time it returns.
+- A **peripheral package** declares operations, with their running-time bounds
+  and default implementations, and implements them in C++; the operations
+  return plain values, and the freshness of a reading is specified by the
+  application, which boxes it. The packages, all under
+  `time-interval-rational` in milliseconds, are:
+  - `i2c`: `I2cWrite8`, `I2cWrite16`, `I2cWrite32`, `I2cRead8`, `I2cRead16`
+    and `I2cRead32`, register transactions on the bus `Wire`;
+  - `m5-imu`: `ReadImu`, the accelerometer and gyroscope of an M5Stack core,
+    with the tilt filters `tilt_x` and `tilt_y`;
+  - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`;
+  - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base
+    of the M5Stack BALA2, with a watchdog of the motor setpoints.
+- The **application** is the program with its binding file, which defines,
+  for each further operation `Op`, the function
+  `tempore_result_Op binding_Op(tempore_argument_Op)`, and the safe-state
+  function.
+
+The typechecker checks the function of each periodic task against its period:
+the durations of its effect must lie below the period, as for
+`step : float -> float # [0, 20)`. Boxes specify how long a reading may be
+used. These guarantees are relative to the declared bounds of the operations,
+which are provisional until measured on the devices. On the device, each call
+of a binding function is monitored against these bounds and each step of a
+periodic task against its period; a violation puts the device in its safe
+state and stops the tasks, is logged, or is not checked, according to the
+monitor policy `abort`, `warn` or `off`. Watchdogs, cut-offs and the safe
+state are mechanisms of the C++ packages and of the application, outside the
+typing.
+
+The project can be simulated on the host: the tasks run against host models
+of the devices and of the physical world, in simulated time, and the log is
+printed.
+
+The directory [`examples/arduino/`](examples/arduino/) holds the following
+examples, each with its manifest and binding file:
+
+- [`bala2/balance.tpe`](examples/arduino/bala2/balance.tpe): a 5 ms balancing
+  step of the M5Stack BALA2 robot with its supervision and calibration, and
+  the host model of a wheeled inverted pendulum;
+- [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
+  M5Stack CoreS3 Lite, with a 20 ms filter step and a display task.
+
+#### Command line
+<!-- web-skip -->
+
+    ./tempore --grades time-interval-rational \
+      --emit-arduino balance \
+      --device examples/arduino/bala2/balance.device.json \
+      --host-simulate 8 \
+      examples/arduino/bala2/balance.tpe
+
+writes the PlatformIO project to `_arduino/projects/balance`, loading the
+declarations of the packages of the manifest before the file, and simulates
+it on the host for 8 seconds. A name without a directory component names a
+directory in `_arduino/projects`. The options are:
+
+- `--emit-arduino <directory>` writes the compiled program, and with
+  `--device <manifest.json>` the project of the manifest;
+- `--host-runs`, without `--device`, also compiles the `run` commands and a
+  main program for the host that executes them;
+- `--monitor abort|warn|off` sets the monitor policy (default `abort`);
+- `--host-simulate <seconds>` builds the project on the host with `c++` and
+  runs it for the given simulated time;
+- `--build` builds the project with PlatformIO; `--upload` builds it and
+  uploads it to the board, through the serial port `--port <port>` if given;
+  `--pio <path>` names the PlatformIO executable;
+- `--package <name>`, repeatable, loads the declarations of a package for the
+  interpreter, which performs its operations by their default implementations.
+
+Requirements:
+
+- `make arduino-deps` installs PlatformIO Core 6.2.0 in the virtual environment
+  `_arduino/venv`, with the first Python of version 3.10 or later; without
+  `--pio`, `pio` on the `PATH` is used, or else that of `_arduino/venv`;
+- PlatformIO keeps its platforms, toolchains and libraries in
+  `PLATFORMIO_CORE_DIR`, set to `_arduino/platformio` for the `pio` of
+  `_arduino/venv` unless the environment sets it; after building the examples,
+  `_arduino` takes about 3 GB, and `make clean-arduino` removes it;
+- the first build of a board downloads its platform and toolchain;
+- uploading needs the USB-serial driver of the board: its port is listed by
+  `ls /dev/cu.*` on macOS once the board is connected.
+
+A board is added as a profile `boards/NAME.json` in
+[`src/05-backends/arduino/`](src/05-backends/arduino/), a package as a
+directory `libraries/NAME/` with a descriptor `package.json`, its
+declarations, C++ sources and host models; both are embedded in the compiler
+when it is built. An application is a `.tpe` file, a manifest and a binding
+file, with host models for the simulation if needed.
 
 ## Editor support
 <!-- web-skip -->

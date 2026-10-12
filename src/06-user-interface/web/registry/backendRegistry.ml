@@ -347,11 +347,12 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
   in
   let source = "of the web interface" in
   try
-    match manifest settings with
+    let device = manifest settings in
+    let program =
+      ArduinoBackend.ArduinoFragment.check ~runs:false ~library sources
+    in
+    match device with
     | None ->
-        let program =
-          ArduinoBackend.ArduinoFragment.check ~runs:false ~library sources
-        in
         let compiled =
           ArduinoBackend.ArduinoEmit.compile ~host_runs:false ~source program
         in
@@ -374,9 +375,6 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
             ];
         }
     | Some device ->
-        let program =
-          ArduinoBackend.ArduinoFragment.check ~runs:false ~library sources
-        in
         let bindings =
           Option.map
             (fun (name : Device.name) ->

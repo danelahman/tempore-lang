@@ -6,19 +6,7 @@
     - ["board"] (required): the name of a board profile ({!ArduinoBoard});
     - ["time_unit"]: the length of one time unit of the program, ["ms"]
       (default), ["us"] or ["s"], or a positive number of microseconds;
-    - ["tasks"] (required): a non-empty array of tasks, each an object of
-    - ["function"] (required): the name of a top-level function of the program,
-    - ["kind"] (required): ["periodic"] or ["free"],
-    - ["period"]: for a periodic task, and only for one, its period in time
-      units, a whole number of milliseconds (the tick of FreeRTOS),
-    - ["initial"]: for a periodic task, the name of a top-level function of type
-      [unit -> s] whose result is the initial state of the task; required unless
-      [s] is [unit],
-    - ["repeat"]: for a free task, and only for one, whether its function is
-      called again each time it returns (default [false]),
-    - ["core"]: the core the task is pinned to (default 1),
-    - ["priority"]: its FreeRTOS priority, from 1 to 24 (default 1),
-    - ["stack"]: its stack size in bytes, at least 1024 (default 4096);
+    - ["tasks"] (required): a non-empty array of tasks;
     - ["packages"]: an array of names of peripheral packages ({!ArduinoPackage},
       default none);
     - ["bindings"]: the C++ file of the bindings of the operations of the
@@ -29,6 +17,21 @@
       manifest, compiled only by the host simulation: the models of the devices
       and of the physical world of the application (default none).
 
+    A task is an object with the members:
+
+    - ["function"] (required): the name of a top-level function of the program;
+    - ["kind"] (required): ["periodic"] or ["free"];
+    - ["period"]: for a periodic task, and only for one, its period in time
+      units, a whole number of milliseconds (the tick of FreeRTOS);
+    - ["initial"]: for a periodic task, the name of a top-level function of type
+      [unit -> s] whose result is the initial state of the task; required unless
+      [s] is [unit];
+    - ["repeat"]: for a free task, and only for one, whether its function is
+      called again each time it returns (default [false]);
+    - ["core"]: the core the task is pinned to (default 1);
+    - ["priority"]: its FreeRTOS priority, from 1 to 24 (default 1);
+    - ["stack"]: its stack size in bytes, at least 1024 (default 4096).
+
     A periodic task calls its function, of type [s -> s], once per period,
     passing the state from one call to the next; a free task calls its function,
     of type [unit -> unit], once, or, if it is repeated, again each time it
@@ -36,17 +39,17 @@
 
     For example:
     {v
-{
-  "board": "esp32-devkit",
-  "time_unit": "ms",
-  "tasks": [
-    { "function": "step", "kind": "periodic", "period": 10,
-      "initial": "start", "core": 1, "priority": 2 },
-    { "function": "blinker", "kind": "free", "core": 0 }
-  ],
-  "bindings": "bindings.cpp",
-  "safe_state": "safe_state"
-}
+    {
+      "board": "esp32-devkit",
+      "time_unit": "ms",
+      "tasks": [
+        { "function": "step", "kind": "periodic", "period": 10,
+          "initial": "start", "core": 1, "priority": 2 },
+        { "function": "blinker", "kind": "free", "core": 0 }
+      ],
+      "bindings": "bindings.cpp",
+      "safe_state": "safe_state"
+    }
     v} *)
 
 type name = string Utils.Location.located

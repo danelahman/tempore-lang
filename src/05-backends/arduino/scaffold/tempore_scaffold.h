@@ -49,6 +49,9 @@ struct tempore_bounds {
   bool upper_finite;
 };
 
+// Whether the tasks are halted.
+bool tempore_halted();
+
 // Stops the calling task if the tasks are halted.
 void tempore_check_halt();
 

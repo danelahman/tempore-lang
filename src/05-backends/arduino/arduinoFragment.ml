@@ -232,6 +232,12 @@ let rec substituted st ty =
   | Tuple tys -> Tuple (List.map (substituted st) tys)
   | ty -> ty
 
+(* Whether a converted type has a string component. *)
+let rec has_string = function
+  | String -> true
+  | Tuple tys -> List.exists has_string tys
+  | Nat | Float | Bool | Data _ | Meta _ -> false
+
 let rec occurs st i ty =
   match resolve st ty with
   | Meta j -> i = j
@@ -333,7 +339,13 @@ let rec convert env ?(visiting = Ast.TyNameSet.empty) st (ty : _ Ast.ty) =
               List.iter
                 (fun (_, arg) ->
                   Option.iter
-                    (fun ty -> ignore (convert env ~visiting st ty))
+                    (fun ty ->
+                      if has_string (snd (convert env ~visiting st ty)) then
+                        raise
+                          (Unsupported_type
+                             (Printf.sprintf
+                                "the type `%s`, whose constructors take strings"
+                                (ty_name_string name))))
                     arg)
                 constructors;
               (st, Data name)
@@ -679,8 +691,10 @@ and computation env st ~tail (c : _ Ast.computation) =
           unsupported e1.at
             "the application of a function other than a top-level definition")
   | Ast.Delay (q, c') ->
-      let fits z = Z.leq Z.zero z && Z.leq z max_nat in
-      if not (fits (Grades.Rational.num q) && fits (Grades.Rational.den q)) then
+      if
+        not
+          (fits_nat (Grades.Rational.num q) && fits_nat (Grades.Rational.den q))
+      then
         unsupported c.at
           "the delay `%s`, whose numerator or denominator exceeds 32 bits"
           (Grades.Rational.show q);
@@ -693,6 +707,9 @@ and computation env st ~tail (c : _ Ast.computation) =
       let argument, result = Ast.OpNameMap.find op env.signatures in
       let st, argument = convert_at c.at env st argument in
       let st, result = convert_at c.at env st result in
+      if has_string result then
+        unsupported c.at "the operation `%s`, whose result contains a string"
+          (Ast.OpName.string_of op);
       let st, v = value ~strings:true env st e in
       let st = unify_at e.at st argument v.ty in
       let st =

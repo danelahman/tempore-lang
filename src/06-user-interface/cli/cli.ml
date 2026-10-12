@@ -440,54 +440,60 @@ let find_installation name path =
       else None)
     [ executable_dir; Sys.getcwd () ]
 
-(* The virtual environment of the Opentrons simulator installed by
-   [make opentrons-deps]. *)
-let find_opentrons_venv () =
-  find_installation "_opentrons" [ "bin"; "opentrons_simulate" ]
-
-(* Runs the Opentrons simulator on the protocol [filename], its output passed
-   through, and exits with its exit code. The simulator is [simulator], or
-   else [opentrons_simulate] on the PATH, or else that of the virtual
-   environment [_opentrons], run with OT_API_CONFIG_DIR set to its directory
-   [config] unless the environment sets it. *)
-let simulate ?simulator filename =
+(* Runs an optional tool with [arguments], its output passed through, and exits
+   with its exit code. The tool is [explicit], or else [name] on the PATH, or
+   else the executable [path] of the installation [installation]
+   ({!find_installation}), run with the environment variable [variable] set to
+   the subdirectory [subdirectory] of the installation unless the environment
+   sets it. If there is none, the error [missing explicit] or [absent] is
+   reported and the program exits with code 1. *)
+let run_tool ?explicit ~name ~installation:(installation, path)
+    ~variable:(variable, subdirectory) ~missing ~absent arguments =
   let command =
-    match simulator with
+    match explicit with
     | Some path when Sys.file_exists path ->
-        Some (Filename.quote_command path [ filename ])
+        Some (Filename.quote_command path arguments)
     | Some _ -> None
     | None -> (
-        match find_on_path "opentrons_simulate" with
-        | Some path -> Some (Filename.quote_command path [ filename ])
+        match find_on_path name with
+        | Some path -> Some (Filename.quote_command path arguments)
         | None ->
             Option.map
-              (fun (venv, path) ->
-                match Sys.getenv_opt "OT_API_CONFIG_DIR" with
-                | Some _ -> Filename.quote_command path [ filename ]
+              (fun (dir, path) ->
+                match Sys.getenv_opt variable with
+                | Some _ -> Filename.quote_command path arguments
                 | None ->
                     Filename.quote_command "env"
-                      [
-                        "OT_API_CONFIG_DIR=" ^ Filename.concat venv "config";
-                        path;
-                        filename;
-                      ])
-              (find_opentrons_venv ()))
+                      ((variable ^ "=" ^ Filename.concat dir subdirectory)
+                      :: path :: arguments))
+              (find_installation installation path))
   in
   match command with
   | None ->
       prerr_endline
-        (match simulator with
-        | Some path ->
-            Printf.sprintf "Error: the Opentrons simulator '%s' was not found"
-              path
-        | None ->
-            "Error: the Opentrons simulator opentrons_simulate was not found \
-             on the PATH or in _opentrons; 'make opentrons-deps' installs it \
-             with Python 3.10 or later");
+        (match explicit with Some path -> missing path | None -> absent);
       exit 1
   | Some command ->
       flush_all ();
       exit (Sys.command command)
+
+(* Runs the Opentrons simulator on the protocol [filename], its output passed
+   through, and exits with its exit code. The simulator is [simulator], or
+   else [opentrons_simulate] on the PATH, or else that of the virtual
+   environment [_opentrons] of [make opentrons-deps], run with
+   OT_API_CONFIG_DIR set to its directory [config] unless the environment sets
+   it. *)
+let simulate ?simulator filename =
+  run_tool ?explicit:simulator ~name:"opentrons_simulate"
+    ~installation:("_opentrons", [ "bin"; "opentrons_simulate" ])
+    ~variable:("OT_API_CONFIG_DIR", "config")
+    ~missing:
+      (Printf.sprintf "Error: the Opentrons simulator '%s' was not found")
+    ~absent:
+      "Error: the Opentrons simulator opentrons_simulate was not found on the \
+       PATH or in _opentrons; 'make opentrons-deps' installs it with Python \
+       3.10 or later"
+    [ filename ]
 
 (* Runs PlatformIO on the project in [directory], building it, or under
    [upload] building and uploading it, through the serial port [port] if
@@ -497,56 +503,28 @@ let simulate ?simulator filename =
    PLATFORMIO_CORE_DIR set to its directory [platformio] unless the
    environment sets it. *)
 let platformio ?pio ~upload ?port directory =
-  let arguments =
-    [ "run"; "-d"; directory ]
+  run_tool ?explicit:pio ~name:"pio"
+    ~installation:("_arduino", [ "venv"; "bin"; "pio" ])
+    ~variable:("PLATFORMIO_CORE_DIR", "platformio")
+    ~missing:(Printf.sprintf "Error: PlatformIO '%s' was not found")
+    ~absent:
+      "Error: PlatformIO pio was not found on the PATH or in _arduino/venv; \
+       'make arduino-deps' installs it with Python 3.10 or later"
+    ([ "run"; "-d"; directory ]
     @ (if upload then [ "-t"; "upload" ] else [])
-    @ match port with Some port -> [ "--upload-port"; port ] | None -> []
-  in
-  let command =
-    match pio with
-    | Some path when Sys.file_exists path ->
-        Some (Filename.quote_command path arguments)
-    | Some _ -> None
-    | None -> (
-        match find_on_path "pio" with
-        | Some path -> Some (Filename.quote_command path arguments)
-        | None ->
-            Option.map
-              (fun (installation, path) ->
-                match Sys.getenv_opt "PLATFORMIO_CORE_DIR" with
-                | Some _ -> Filename.quote_command path arguments
-                | None ->
-                    Filename.quote_command "env"
-                      (("PLATFORMIO_CORE_DIR="
-                       ^ Filename.concat installation "platformio")
-                      :: path :: arguments))
-              (find_installation "_arduino" [ "venv"; "bin"; "pio" ]))
-  in
-  match command with
-  | None ->
-      prerr_endline
-        (match pio with
-        | Some path ->
-            Printf.sprintf "Error: PlatformIO '%s' was not found" path
-        | None ->
-            "Error: PlatformIO pio was not found on the PATH or in \
-             _arduino/venv; 'make arduino-deps' installs it with Python 3.10 \
-             or later");
-      exit 1
-  | Some command ->
-      flush_all ();
-      exit (Sys.command command)
+    @ match port with Some port -> [ "--upload-port"; port ] | None -> [])
+
+(* The path under [name] in [directory]: [name] in [directory] if it has no
+   directory component, else [name]. *)
+let in_default_directory directory name =
+  if Filename.basename name = name then Filename.concat directory name else name
 
 (* The directory, relative to the current directory, of the files written by
    --emit-opentrons under a name without a directory component. *)
 let default_emit_directory = Filename.concat "_opentrons" "protocols"
 
-(* The path of the file written by --emit-opentrons under [name]: [name] in
-   [default_emit_directory] if it has no directory component, else [name]. *)
-let emit_path name =
-  if Filename.basename name = name then
-    Filename.concat default_emit_directory name
-  else name
+(* The path of the file written by --emit-opentrons under [name]. *)
+let emit_path = in_default_directory default_emit_directory
 
 (* Creates the directory [dir] and its missing ancestors. *)
 let rec make_directory dir =
@@ -569,12 +547,9 @@ let write_file filename contents =
     prerr_endline ("Error: " ^ message);
     exit 1
 
-(* The directory written by --emit-arduino under [name]: [name] in
-   [_arduino/projects] if it has no directory component, else [name]. *)
-let arduino_directory name =
-  if Filename.basename name = name then
-    Filename.concat (Filename.concat "_arduino" "projects") name
-  else name
+(* The directory written by --emit-arduino under [name]. *)
+let arduino_directory =
+  in_default_directory (Filename.concat "_arduino" "projects")
 
 (* The text of the file [filename], or else the error reported and exit with
    code 1. *)

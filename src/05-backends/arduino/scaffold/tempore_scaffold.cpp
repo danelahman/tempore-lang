@@ -41,6 +41,8 @@ void tempore_stop_task() {
   for (;;) vTaskSuspend(nullptr);
 }
 
+bool tempore_halted() { return tempore_halt.load(); }
+
 void tempore_check_halt() {
   if (tempore_halt.load()) tempore_stop_task();
 }
@@ -60,11 +62,16 @@ void tempore_fault(const char *message) {
   tempore_abort(reason);
 }
 
+// The longest wait of one call of vTaskDelay, in milliseconds: one hour, so
+// that pdMS_TO_TICKS, computed in 32 bits, does not overflow.
+static const uint64_t tempore_delay_chunk_ms = 3600000;
+
 // The delay of numerator / denominator time units, rounded to the nearest
-// microsecond: the whole milliseconds by vTaskDelay, which yields the
-// processor, and the remainder by delayMicroseconds, which waits actively.
-// vTaskDelay(k) returns at the k-th tick from now, after at least k - 1
-// milliseconds, so that the remainder is under two milliseconds.
+// microsecond: the whole milliseconds by vTaskDelay, in waits of at most
+// tempore_delay_chunk_ms, which yields the processor, and the remainder by
+// delayMicroseconds, which waits actively. vTaskDelay(k) returns at the k-th
+// tick from now, after at least k - 1 milliseconds, so that the remainder is
+// under one millisecond per wait and one more.
 void tempore_delay(uint32_t numerator, uint32_t denominator) {
   tempore_check_halt();
   const uint64_t d = static_cast<uint64_t>(denominator) *
@@ -74,7 +81,13 @@ void tempore_delay(uint32_t numerator, uint32_t denominator) {
       (2 * d);
   tempore_trace("Delay %llu us", static_cast<unsigned long long>(us));
   const int64_t target = tempore_clock_us() + static_cast<int64_t>(us);
-  if (us >= 1000) vTaskDelay(pdMS_TO_TICKS(us / 1000));
+  for (uint64_t ms = us / 1000; ms > 0;) {
+    const uint64_t wait =
+        ms < tempore_delay_chunk_ms ? ms : tempore_delay_chunk_ms;
+    vTaskDelay(pdMS_TO_TICKS(static_cast<uint32_t>(wait)));
+    ms -= wait;
+    tempore_check_halt();
+  }
   const int64_t rest = target - tempore_clock_us();
   if (rest > 0) delayMicroseconds(static_cast<uint32_t>(rest));
   tempore_check_halt();
