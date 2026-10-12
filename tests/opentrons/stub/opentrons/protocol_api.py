@@ -8,8 +8,20 @@ class Well:
         self.labware = labware
         self.name = name
 
+    def top(self):
+        return Location(self, "top")
+
     def __repr__(self):
         return "%s of %s" % (self.name, self.labware.location)
+
+
+class Location:
+    def __init__(self, well, position):
+        self.well = well
+        self.position = position
+
+    def __repr__(self):
+        return "%s of %r" % (self.position, self.well)
 
 
 class Labware:

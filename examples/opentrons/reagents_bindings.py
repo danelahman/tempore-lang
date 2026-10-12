@@ -1,8 +1,9 @@
 # Binding functions of the operations of reagents.tpe for the Opentrons Flex.
 #
-# The reagent tubes stand in an aluminium block on the temperature module:
-# the tagment DNA buffer (A1), the amplicon tagment mix (A2) and the
-# neutralize tagment buffer (A3). The DNA samples are in the first wells of
+# The reagent tubes stand in an aluminium block on the temperature module,
+# held at 4 °C: the amplicon tagment mix (A1), the tagment DNA buffer (B1) and
+# the neutralize tagment buffer (C1), dispensed at 5, 10 and 5 µL. The DNA
+# samples are in the first wells of
 # the columns of a PCR plate in D2, and the tagmentation takes place in the
 # first four wells of the columns of a PCR plate on the thermocycler. Each
 # function declares the nominal duration of its action in seconds by
@@ -10,9 +11,14 @@
 
 ROWS = ["A", "B", "C", "D"]
 TUBES = {
-    "tagment DNA buffer": "A1",
-    "amplicon tagment mix": "A2",
-    "neutralize tagment buffer": "A3",
+    "amplicon tagment mix": "A1",
+    "tagment DNA buffer": "B1",
+    "neutralize tagment buffer": "C1",
+}
+VOLUMES = {
+    "amplicon tagment mix": 5,
+    "tagment DNA buffer": 10,
+    "neutralize tagment buffer": 5,
 }
 
 
@@ -20,6 +26,7 @@ def setup(protocol):
     tips = protocol.load_labware("opentrons_flex_96_tiprack_200ul", "B3")
     block = protocol.load_module("temperature module gen2", "D1")
     tubes = block.load_labware("opentrons_24_aluminumblock_nest_1.5ml_snapcap")
+    block.set_temperature(4)
     samples = protocol.load_labware("nest_96_wellplate_100ul_pcr_full_skirt", "D2")
     cycler = protocol.load_module("thermocyclerModuleV2", "B1")
     plate = cycler.load_labware("nest_96_wellplate_100ul_pcr_full_skirt")
@@ -52,7 +59,7 @@ def Thaw(ctx, name):
 
 def Dispense(ctx, arg):
     name, number = arg
-    ctx["pipette"].transfer(5, ctx["tubes"][TUBES[name]], column(ctx, "plate", number), new_tip="always")
+    ctx["pipette"].transfer(VOLUMES[name], ctx["tubes"][TUBES[name]], column(ctx, "plate", number), new_tip="always")
     tempore_elapse(90)
     return ()
 

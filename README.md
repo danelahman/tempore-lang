@@ -1182,10 +1182,10 @@ The directory [`examples/opentrons/`](examples/opentrons/) holds the
 following examples, each with a binding file and a rejected variant:
 
 - `elisa.tpe`, an enzyme-linked immunosorbent assay (ELISA) under `time-interval`: an incubation of at least 60
-  minutes, a dilution used within 20 minutes, a development stopped after 15
-  to 20 minutes;
+  minutes, a dilution used within 20 minutes, a development stopped after at
+  least 15 minutes and, by the example's own bound, at most 20;
 - `washes.tpe`, a bead clean-up under `regex-timed-interval-symbolic`: exactly
-  two ethanol washes, an air-dry of two to five minutes and a tip change
+  two ethanol washes, an air-dry of two to three minutes and a tip change
   before the elution buffer;
 - `contamination.tpe`, a ddPCR plate set-up under `time-upper-bound-levels`: a
   tip that has touched the test article does not enter a clean reagent;
@@ -1193,8 +1193,8 @@ following examples, each with a binding file and a rejected variant:
   `[0, 30]`, dispensed by a function whose scheme is polymorphic in the window;
 - `staggered.tpe`, a fixation of columns at staggered times under
   `time-interval`: each column boxed `[12, 20]`, its box passed on by recursion;
-- `beads.tpe`, a bead clean-up under `time-interval`: beads boxed `[2, ∞)` on
-  the magnet until settled and `[2, 5]` while they air-dry;
+- `beads.tpe`, a bead clean-up under `time-interval`: beads boxed `[3, ∞)` on
+  the magnet until settled and `[2, 3]` while they air-dry;
 - `stopread.tpe`, a stop and read under `time-interval`: plates boxed
   `[0, 30]` by the stop solution in a handler that simulates the reader.
 

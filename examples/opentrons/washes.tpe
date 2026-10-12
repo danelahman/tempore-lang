@@ -10,9 +10,9 @@
      - Product: concatenation of traces, componentwise *)
 
 (* Modelled on the Opentrons Protocol Library protocols kapa-amp-cleanup (a
-   bead clean-up with two ethanol washes and a drying time) and
-   nextera-flex-library-prep-post-tag-cleanup (washes on the magnet, beads
-   not to be overdried).
+   bead clean-up with a five-minute binding, two ethanol washes and a dry time
+   of two to three minutes) and nextera-flex-library-prep-post-tag-cleanup
+   (magnetic washes, beads kept wet to prevent overdrying).
 
    The protocols are in
      https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/
@@ -25,7 +25,10 @@
      ./tempore --grades regex-timed-interval-symbolic --emit-opentrons washes.py --bind examples/opentrons/washes_bindings.py --time-unit minutes examples/opentrons/washes.tpe
 
    Each operation declares its running time, which the monitors of the
-   protocol check against the durations of its binding function. *)
+   protocol check against the durations of its binding function. The beads
+   are named by a string, of the type beads. *)
+
+type beads = string
 
 (* Mixing the beads into the samples takes one to two minutes. The plate is
    moved onto and off the magnetic block in at most a minute. *)
@@ -57,18 +60,19 @@ operation Transfer : unit ~> unit # {Transfer} within [1, 2]
 default Transfer () = delay 1
 
 (* The beads bind the sample for five to ten minutes before the plate goes on
-   the magnet. The washed beads may take the elution buffer after exactly two
-   ethanol washes, each with a tip of its own, and an air-dry of two to five
-   minutes, followed by a fresh tip for the buffer. *)
-let cleanup () =
+   the magnet; the upper bound of ten minutes is the example's own. The
+   washed beads may take the elution buffer after exactly two ethanol washes,
+   each with a tip of its own, and an air-dry of two to three minutes,
+   followed by a fresh tip for the buffer. *)
+let cleanup (beads : beads) =
   perform AddBeads ();
-  box [5, 10] "beads" as binding in
+  box [5, 10] beads as binding in
   delay 5;
   unbox binding as beads in
   perform Engage ();
   delay 3;
   perform RemoveSupernatant ();
-  box {Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip} beads as washed in
+  box {Ethanol; ChangeTip; Ethanol; [2, 3]; ChangeTip} beads as washed in
   perform Ethanol ();
   perform ChangeTip ();
   perform Ethanol ();
@@ -82,4 +86,4 @@ let cleanup () =
   delay 3;
   perform Transfer ()
 
-run cleanup ()
+run cleanup "beads"

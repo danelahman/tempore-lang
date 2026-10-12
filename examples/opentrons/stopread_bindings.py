@@ -2,7 +2,7 @@
 #
 # The plates are flat 96-well plates in C1 ("plate 1") and C2 ("plate 2"),
 # their samples in the wells of the first column. The reservoir holds the
-# stop solution (A1). Stop and Read are handled by the simulated reader of
+# stop solution (A12). Stop and Read are handled by the simulated reader of
 # the program, which performs AddStop and Note. Each function declares the
 # nominal duration of its action in seconds by tempore_elapse, the duration
 # the virtual clock of a simulation advances by.
@@ -24,7 +24,7 @@ def setup(protocol):
 
 def AddStop(ctx, plate):
     wells = [ctx["plates"][plate]["%s1" % row] for row in ROWS]
-    ctx["pipette"].distribute(50, ctx["reservoir"]["A1"], wells)
+    ctx["pipette"].distribute(100, ctx["reservoir"]["A12"], wells)
     tempore_elapse(60)
     return plate
 

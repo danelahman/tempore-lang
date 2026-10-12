@@ -1,5 +1,5 @@
 (* As the example of an enzyme-linked immunosorbent assay (ELISA), with the
-   coated plate washed after too short an incubation.
+   plate washed after too short an incubation with the detection antibody.
 
    Run this example with the 'time-interval' grading monoid, e.g.
 
@@ -10,25 +10,28 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-operation Coat : string ~> [[60, ∞)]string # [1, 3]
-default Coat plate = delay 2; box [60, ∞) plate
+type plate = string
+type reagent = string
 
-operation Wash : string ~> string # [2, 4]
+operation Detect : plate * reagent ~> [[60, ∞)]plate # [1, 3]
+default Detect (plate, antibody) = delay 2; box [60, ∞) plate
+
+operation Wash : plate ~> plate # [2, 4]
 default Wash plate = delay 3; plate
 
-(* Correctly rejected by the typechecker: the plate incubates for 30 minutes
-   only, short of the 60 its coating demands:
+(* Correctly rejected by the typechecker: the plate incubates with the
+   detection antibody for 30 minutes only, short of the 60 it demands:
 
-     Typing error: Variable `coated` is unboxed with grade `[30, 30]`
+     Typing error: Variable `incubating` is unboxed with grade `[30, 30]`
        accumulated since it was bound, which is not below its box grade
        `[60, ∞)`
        ...
        Note: the resource inequality `[30, 30] <= [60, ∞)` does not hold
 *)
-let early_wash () =
-  let coated = perform Coat "plate" in
+let early_wash (plate : plate) (antibody : reagent) =
+  let incubating = perform Detect (plate, antibody) in
   delay 30;
-  unbox coated as plate in
+  unbox incubating as plate in
   perform Wash plate
 
-run early_wash ()
+run early_wash "plate" "detection antibody"

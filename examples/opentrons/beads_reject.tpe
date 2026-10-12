@@ -9,29 +9,31 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-operation Disengage : string ~> unit # [0, 1]
+type beads = string
+
+operation Disengage : beads ~> unit # [0, 1]
 default Disengage beads = ()
 
-operation LastEthanol : string ~> [[2, 5]]string # [1, 2]
-default LastEthanol beads = delay 1; box [2, 5] beads
+operation LastEthanol : beads ~> [[2, 3]]beads # [1, 2]
+default LastEthanol beads = delay 1; box [2, 3] beads
 
-operation Elute : string ~> unit # [1, 2]
+operation Elute : beads ~> unit # [1, 2]
 default Elute beads = delay 1
 
-(* Correctly rejected by the typechecker: the elution buffer is added six to
-   seven minutes after the last ethanol wash, when the beads are overdried:
+(* Correctly rejected by the typechecker: the elution buffer is added four to
+   five minutes after the last ethanol wash, when the beads are overdried:
 
-     Typing error: Variable `drying` is unboxed with grade `[6, 7]`
+     Typing error: Variable `drying` is unboxed with grade `[4, 5]`
        accumulated since it was bound, which is not below its box grade
-       `[2, 5]`
+       `[2, 3]`
        ...
-       Note: the resource inequality `[6, 7] <= [2, 5]` does not hold
+       Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
 *)
-let overdried () =
-  let drying = perform LastEthanol "beads" in
-  delay 6;
-  perform Disengage "beads";
+let overdried (beads : beads) =
+  let drying = perform LastEthanol beads in
+  delay 4;
+  perform Disengage beads;
   unbox drying as beads in
   perform Elute beads
 
-run overdried ()
+run overdried "beads"

@@ -9,13 +9,15 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-operation AddStop : string ~> [[0, 30]]string # [1, 2]
+type plate = string
+
+operation AddStop : plate ~> [[0, 30]]plate # [1, 2]
 default AddStop plate = delay 1; box [0, 30] plate
 
-operation Stop : string ~> [[0, 30]]string # [1, 2]
+operation Stop : plate ~> [[0, 30]]plate # [1, 2]
 default Stop plate = delay 1; box [0, 30] plate
 
-operation Read : string ~> nat # [1, 2]
+operation Read : plate ~> nat # [1, 2]
 default Read plate = delay 1; 0
 
 let simulated_reader =

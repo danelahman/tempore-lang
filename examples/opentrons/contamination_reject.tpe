@@ -11,14 +11,15 @@
      - Product: addition and join, componentwise *)
 
 noneternal type tip = Tip
+type column = nat
 
 operation ChangeTip : unit ~> unit # (1, Low)
 default ChangeTip () = delay 1
 
-operation AddWater : tip * nat ~> unit # (1, Low)
+operation AddWater : tip * column ~> unit # (1, Low)
 default AddWater (t, column) = delay 1
 
-operation AddArticle : tip * nat ~> unit # (1, High)
+operation AddArticle : tip * column ~> unit # (1, High)
 default AddArticle (t, column) = delay 1
 
 let new_tip () =

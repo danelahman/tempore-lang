@@ -10,9 +10,10 @@
      - Product: componentwise addition *)
 
 (* Modelled on the Opentrons Protocol Library protocols kapa-amp-cleanup (a
-   bead clean-up with settling times and a drying time),
-   nextera-flex-library-prep-post-tag-cleanup (beads not to be overdried) and
-   macherey-nagel-nucleomag-rna (an air-dry before the next reagent).
+   bead clean-up with three minutes on the magnet and a dry time of two to
+   three minutes), nextera-flex-library-prep-post-tag-cleanup (beads kept wet
+   to prevent overdrying) and macherey-nagel-nucleomag-rna (an air-dry before
+   the next reagent, there of 30 minutes).
 
    The protocols are in
      https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/
@@ -25,52 +26,53 @@
 
      ./tempore --grades time-interval --emit-opentrons beads.py --bind examples/opentrons/beads_bindings.py --time-unit minutes examples/opentrons/beads.tpe
 
-   The beads of the samples are named by a string. Beads on the magnet are a
-   box that opens once they have settled, and air-drying beads a box that
-   opens only within the drying window. *)
+   The beads of the samples are named by a string, of the type beads. Beads
+   on the magnet are a box that opens once they have settled, and air-drying
+   beads a box that opens only within the drying window. *)
+
+type beads = string
 
 (* Mixing the beads into the samples and removing a liquid take one to two
    minutes each. *)
-operation AddBeads : string ~> unit # [1, 2]
+operation AddBeads : beads ~> unit # [1, 2]
 default AddBeads beads = delay 1
 
-operation RemoveSupernatant : string ~> unit # [1, 2]
+operation RemoveSupernatant : beads ~> unit # [1, 2]
 default RemoveSupernatant beads = delay 1
 
 (* Moving the plate onto the magnetic block takes at most a minute; the beads
-   then settle in at least two minutes. Moving it off takes at most a
+   then settle in at least three minutes. Moving it off takes at most a
    minute. *)
-operation Engage : string ~> [[2, ∞)]string # [0, 1]
-default Engage beads = box [2, ∞) beads
+operation Engage : beads ~> [[3, ∞)]beads # [0, 1]
+default Engage beads = box [3, ∞) beads
 
-operation Disengage : string ~> unit # [0, 1]
+operation Disengage : beads ~> unit # [0, 1]
 default Disengage beads = ()
 
 (* An ethanol wash adds and removes the ethanol in one to two minutes. The
    last wash leaves the beads to air-dry: the elution buffer is added two to
-   five minutes after it, once the ethanol has evaporated and before the
-   beads crack. *)
-operation Ethanol : string ~> unit # [1, 2]
+   three minutes after it, once the ethanol has evaporated. *)
+operation Ethanol : beads ~> unit # [1, 2]
 default Ethanol beads = delay 1
 
-operation LastEthanol : string ~> [[2, 5]]string # [1, 2]
-default LastEthanol beads = delay 1; box [2, 5] beads
+operation LastEthanol : beads ~> [[2, 3]]beads # [1, 2]
+default LastEthanol beads = delay 1; box [2, 3] beads
 
 (* Adding the elution buffer and transferring the eluate take one to two
    minutes each. *)
-operation Elute : string ~> unit # [1, 2]
+operation Elute : beads ~> unit # [1, 2]
 default Elute beads = delay 1
 
-operation Transfer : string ~> unit # [1, 2]
+operation Transfer : beads ~> unit # [1, 2]
 default Transfer beads = delay 1
 
 (* Correctly accepted by the typechecker: the supernatant and the eluate are
    removed after the beads have settled for three minutes, and the elution
    buffer is added two to three minutes into the air-dry. *)
-let cleanup () =
-  perform AddBeads "beads";
+let cleanup (beads : beads) =
+  perform AddBeads beads;
   delay 5;
-  let settling = perform Engage "beads" in
+  let settling = perform Engage beads in
   delay 3;
   unbox settling as beads in
   perform RemoveSupernatant beads;
@@ -86,4 +88,4 @@ let cleanup () =
   unbox settling as beads in
   perform Transfer beads
 
-run cleanup ()
+run cleanup "beads"

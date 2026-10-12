@@ -10,8 +10,9 @@
      - Product: componentwise addition *)
 
 (* Modelled on the Opentrons Protocol Library protocols
-   illumina-nextera-XT-library-prep-part1 (a tagmentation whose reagents are
-   used promptly) and 6a93a2-part2 (a reagent kept within a time window).
+   illumina-nextera-XT-library-prep-part1 (a tagmentation after which the
+   neutralization buffer is added immediately) and 6a93a2-part2 (a mastermix
+   kept at 4 °C on a temperature module).
 
    The protocols are in
      https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/
@@ -25,37 +26,41 @@
      ./tempore --grades time-interval --emit-opentrons reagents.py --bind examples/opentrons/reagents_bindings.py --time-unit minutes examples/opentrons/reagents.tpe
 
    A thawed reagent is a box: it may be dispensed only within 30 minutes of
-   thawing. Reagents are named by strings. *)
+   thawing. The thawing and its 30-minute window are the example's own.
+   Reagents are named by strings, of the type reagent, and columns by
+   numbers, of the type column. *)
 
 type reagent = string
+type column = nat
 
 (* Thawing a reagent takes five to ten minutes. *)
-operation Thaw : string ~> [[0, 30]]reagent # [5, 10]
+operation Thaw : reagent ~> [[0, 30]]reagent # [5, 10]
 default Thaw name = delay 6; box [0, 30] name
 
 (* Dispensing a reagent or the DNA into a column takes one to two minutes. *)
-operation Dispense : reagent * nat ~> unit # [1, 2]
+operation Dispense : reagent * column ~> unit # [1, 2]
 default Dispense (r, column) = delay 1
 
-operation AddDNA : nat ~> unit # [1, 2]
+operation AddDNA : column ~> unit # [1, 2]
 default AddDNA column = delay 1
 
 (* The tagmentation holds a column at 55 °C for five minutes and cools it,
-   in five to seven minutes. *)
-operation Tagment : nat ~> unit # [5, 7]
+   in five to seven minutes. The protocol runs its tagmentation program off
+   the deck and does not state it; the program is the example's own. *)
+operation Tagment : column ~> unit # [5, 7]
 default Tagment column = delay 6
 
 (* Dispenses a thawed reagent into a column after the step on the column.
    The scheme of 'after' is polymorphic in the window of the reagent, which
    must contain the running time of the step:
 
-     ∀ α ε₀. (nat → α # ε₀) → [∣ε₀∣]reagent → (nat → unit # [1, 2] · ε₀) *)
-let after step reagent column =
+     ∀ α ε₀. (column → α # ε₀) → [∣ε₀∣]reagent → (column → unit # [1, 2] · ε₀) *)
+let after step reagent (column : column) =
   step column;
   unbox reagent as r in
   perform Dispense (r, column)
 
-let load column =
+let load (column : column) =
   perform Dispense ("tagment DNA buffer", column);
   perform AddDNA column
 
@@ -63,7 +68,7 @@ let load column =
    four minutes after thawing, once the column is loaded, and the
    neutralization buffer five to seven minutes after thawing, once the
    column is tagmented. *)
-let tagmentation column =
+let tagmentation (column : column) =
   let mix = perform Thaw "amplicon tagment mix" in
   after load mix column;
   let neutralization = perform Thaw "neutralize tagment buffer" in

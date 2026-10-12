@@ -9,6 +9,8 @@
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
 
+type beads = string
+
 operation Ethanol : unit ~> unit # {Ethanol} within [1, 2]
 default Ethanol () = delay 1
 
@@ -24,12 +26,12 @@ default Elute () = delay 1
        `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since
        it was bound, which is not below its box grade ...
 *)
-let one_wash () =
-  box {Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip} "beads" as washed in
+let one_wash (beads : beads) =
+  box {Ethanol; ChangeTip; Ethanol; [2, 3]; ChangeTip} beads as washed in
   perform Ethanol ();
   delay 3;
   perform ChangeTip ();
   unbox washed as beads in
   perform Elute ()
 
-run one_wash ()
+run one_wash "beads"

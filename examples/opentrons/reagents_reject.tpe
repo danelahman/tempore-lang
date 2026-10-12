@@ -10,17 +10,18 @@
      - Product: componentwise addition *)
 
 type reagent = string
+type column = nat
 
-operation Thaw : string ~> [[0, 30]]reagent # [5, 10]
+operation Thaw : reagent ~> [[0, 30]]reagent # [5, 10]
 default Thaw name = delay 6; box [0, 30] name
 
-operation Dispense : reagent * nat ~> unit # [1, 2]
+operation Dispense : reagent * column ~> unit # [1, 2]
 default Dispense (r, column) = delay 1
 
-operation Tagment : nat ~> unit # [5, 7]
+operation Tagment : column ~> unit # [5, 7]
 default Tagment column = delay 6
 
-let after step reagent column =
+let after step reagent (column : column) =
   step column;
   unbox reagent as r in
   perform Dispense (r, column)
@@ -33,11 +34,11 @@ let after step reagent column =
        hold
        Note: while matching `[[0, 30]]reagent` against `[[35, 37]]reagent`
 *)
-let incubate column =
+let incubate (column : column) =
   perform Tagment column;
   delay 30
 
-let late_neutralization column =
+let late_neutralization (column : column) =
   let neutralization = perform Thaw "neutralize tagment buffer" in
   after incubate neutralization column
 

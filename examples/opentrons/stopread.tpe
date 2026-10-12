@@ -9,9 +9,8 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-(* Modelled on the Opentrons Protocol Library protocols 1464-3 (an
-   enzyme-linked immunosorbent assay, ELISA, whose substrate is stopped after
-   30 minutes and read promptly) and
+(* Modelled on the Opentrons Protocol Library protocols 1464-3 (an ELISA
+   whose substrate is stopped after 30 minutes) and
    sci-tecan-cortisol-saliva-elisa (plates read off the deck).
 
    The protocols are in
@@ -25,23 +24,26 @@
 
      ./tempore --grades time-interval --emit-opentrons stopread.py --bind examples/opentrons/stopread_bindings.py --time-unit minutes examples/opentrons/stopread.tpe
 
-   A plate is named by a string. A stopped plate is a box, read within 30
-   minutes of the stop. *)
+   A plate is named by a string, of the type plate. A stopped plate is a box,
+   read within 30 minutes of the stop; the 30-minute window of the reading is
+   the example's own. *)
+
+type plate = string
 
 (* Dispensing the stop solution takes one to two minutes. *)
-operation AddStop : string ~> [[0, 30]]string # [1, 2]
+operation AddStop : plate ~> [[0, 30]]plate # [1, 2]
 default AddStop plate = delay 1; box [0, 30] plate
 
 (* The operations of a plate reader with an injector for the stop solution:
    stopping a plate takes one to two minutes, and reading it one to two. *)
-operation Stop : string ~> [[0, 30]]string # [1, 2]
+operation Stop : plate ~> [[0, 30]]plate # [1, 2]
 default Stop plate = delay 1; box [0, 30] plate
 
-operation Read : string ~> nat # [1, 2]
+operation Read : plate ~> nat # [1, 2]
 default Read plate = delay 1; 0
 
 (* Noting a simulated reading in the run log takes at most a minute. *)
-operation Note : string ~> unit # [0, 1]
+operation Note : plate ~> unit # [0, 1]
 default Note plate = ()
 
 (* Simulates the reader: the stop solution is dispensed by the pipette, whose

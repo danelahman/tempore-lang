@@ -25,42 +25,36 @@ it completes.
   load_labware('opentrons_flex_96_tiprack_1000ul', 'B3')
   load_labware('nest_12_reservoir_15ml', 'D2')
   load_labware('corning_96_wellplate_360ul_flat', 'C2')
+  load_labware('nest_96_wellplate_100ul_pcr_full_skirt', 'C1')
   load_trash_bin('A3')
   load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_1000ul in B3])
   comment: Tempore run 1
-  pipette.distribute(100, A1 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 0 s: operation `Coat` took 120 s, within its running-time bounds [60, 180] s
-  delay(seconds=3600.0)
+  pipette.transfer(50, [A1 of C1, B1 of C1, C1 of C1, D1 of C1, E1 of C1, F1 of C1, G1 of C1, H1 of C1], [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], new_tip='always')
+  comment: Tempore timeline: At 0 s: operation `AddSample` took 120 s, within its running-time bounds [60, 180] s
   pipette.transfer(50, A3 of D2, A4 of D2, mix_after=(3, 500))
-  comment: Tempore timeline: At 3720 s: operation `Dilute` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 120 s: operation `Dilute` took 90 s, within its running-time bounds [60, 120] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 3810 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
+  comment: Tempore timeline: At 210 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 3990 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
+  comment: Tempore timeline: At 390 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 4170 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  pipette.distribute(100, A4 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 4350 s: operation `Detect` took 120 s, within its running-time bounds [60, 180] s
+  comment: Tempore timeline: At 570 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
+  pipette.distribute(50, A4 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 750 s: operation `Detect` took 120 s, within its running-time bounds [60, 180] s
   delay(seconds=3600.0)
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 8070 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
-  pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 8250 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
-  pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 8430 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
+  comment: Tempore timeline: At 4470 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.distribute(100, A5 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 8610 s: operation `Develop` took 60 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 4650 s: operation `Develop` took 60 s, within its running-time bounds [60, 120] s
   delay(seconds=900.0)
-  pipette.distribute(50, A6 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Tempore timeline: At 9570 s: operation `Stop` took 45 s, within its running-time bounds [0, 60] s
+  pipette.distribute(100, A6 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 5610 s: operation `Stop` took 45 s, within its running-time bounds [0, 60] s
   comment: Read the absorbances of plate at 450 nm
-  comment: Tempore timeline: At 9615 s: operation `Read` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 5655 s: operation `Read` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns 0
 
 The bead clean-up example, its operations declaring their running times under
@@ -77,24 +71,42 @@ regex-timed-interval-symbolic, a time unit given in seconds.
   load_module('magneticBlockV1', 'C1')
   load_trash_bin('A3')
   load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_200ul in B3])
-  pipette.pick_up_tip()
   comment: Tempore run 1
-  pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40), new_tip='never')
+  pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40), new_tip='always')
   comment: Tempore timeline: At 0 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=300.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
   comment: Tempore timeline: At 390 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
   delay(seconds=180.0)
-  pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='never')
+  pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 600 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
-  pipette.transfer(150, A2 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], new_tip='never')
-  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='never')
+  pipette.pick_up_tip()
+  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='never')
+  pipette.transfer(150, A1 of D2, A12 of D1, new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(150, B1 of D2, A12 of D1, new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(150, C1 of D2, A12 of D1, new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(150, D1 of D2, A12 of D1, new_tip='never')
   comment: Tempore timeline: At 690 s: operation `Ethanol` took 90 s, within its running-time bounds [60, 120] s
   pipette.drop_tip()
   pipette.pick_up_tip()
   comment: Tempore timeline: At 780 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
-  pipette.transfer(150, A2 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], new_tip='never')
-  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='never')
+  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2], new_tip='never')
+  pipette.transfer(150, A1 of D2, A12 of D1, new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(150, B1 of D2, A12 of D1, new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(150, C1 of D2, A12 of D1, new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(150, D1 of D2, A12 of D1, new_tip='never')
   comment: Tempore timeline: At 795 s: operation `Ethanol` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=180.0)
   pipette.drop_tip()
@@ -102,17 +114,23 @@ regex-timed-interval-symbolic, a time unit given in seconds.
   comment: Tempore timeline: At 1065 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
   comment: Tempore timeline: At 1080 s: operation `Disengage` took 30 s, within its running-time bounds [0, 60] s
-  pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='never')
+  pipette.transfer(25, A3 of D1, A1 of D2, mix_after=(5, 20), new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(25, A3 of D1, B1 of D2, mix_after=(5, 20), new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(25, A3 of D1, C1 of D2, mix_after=(5, 20), new_tip='never')
+  pipette.drop_tip()
+  pipette.pick_up_tip()
+  pipette.transfer(25, A3 of D1, D1 of D2, mix_after=(5, 20), new_tip='never')
+  pipette.drop_tip()
   comment: Tempore timeline: At 1110 s: operation `Elute` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=120.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
   comment: Tempore timeline: At 1320 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
   delay(seconds=180.0)
-  pipette.transfer(20, A1 of D2, A1 of D3, new_tip='never')
-  pipette.transfer(20, B1 of D2, B1 of D3, new_tip='never')
-  pipette.transfer(20, C1 of D2, C1 of D3, new_tip='never')
-  pipette.transfer(20, D1 of D2, D1 of D3, new_tip='never')
-  pipette.drop_tip()
+  pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of D3, B1 of D3, C1 of D3, D1 of D3], new_tip='always')
   comment: Tempore timeline: At 1530 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns ()
 
@@ -124,28 +142,36 @@ time-upper-bound-levels its upper bound.
   >   --api-level 2.29 $examples/contamination.tpe
   $ simulate contamination.py | grep -v '^pipette'
   requirements: {'robotType': 'Flex', 'apiLevel': '2.29'}
-  load_labware('opentrons_flex_96_tiprack_200ul', 'B3')
+  load_labware('opentrons_flex_96_filtertiprack_200ul', 'B3')
   load_labware('nest_12_reservoir_15ml', 'D1')
   load_labware('nest_96_wellplate_100ul_pcr_full_skirt', 'D2')
+  load_labware('nest_96_wellplate_100ul_pcr_full_skirt', 'C2')
   load_trash_bin('A3')
-  load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_200ul in B3])
+  load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_filtertiprack_200ul in B3])
   comment: Tempore run 1
   comment: Tempore timeline: At 0 s: operation `PrepareMix` took 180 s, within its running-time bounds [0, 300] s
   comment: Tempore timeline: At 180 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
   comment: Tempore timeline: At 195 s: operation `AddBuffer` took 40 s, within its running-time bounds [0, 60] s
   comment: Tempore timeline: At 235 s: operation `AddBuffer` took 40 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 275 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 315 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 355 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 395 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 275 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 290 s: operation `AddArticle` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 330 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 345 s: operation `Dilute` took 90 s, within its running-time bounds [0, 120] s
   comment: Tempore timeline: At 435 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 450 s: operation `AddArticle` took 40 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 490 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 505 s: operation `Dilute` took 90 s, within its running-time bounds [0, 120] s
-  comment: Tempore timeline: At 595 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 610 s: operation `Dilute` took 90 s, within its running-time bounds [0, 120] s
-  comment: Tempore timeline: At 700 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 715 s: operation `AddWater` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 450 s: operation `Dilute` took 90 s, within its running-time bounds [0, 120] s
+  comment: Tempore timeline: At 540 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 555 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 595 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 635 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 675 s: operation `AddMix` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 715 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 730 s: operation `AddDilution` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 770 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 785 s: operation `AddDilution` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 825 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 840 s: operation `AddDilution` took 40 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 880 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
+  comment: Tempore timeline: At 895 s: operation `AddWater` took 40 s, within its running-time bounds [0, 60] s
   comment: Tempore run 1 returns ()
 
 The examples whose boxes carry the specification, under time-interval: thawed
@@ -161,6 +187,7 @@ solution in the case of a handler that simulates the reader.
   load_labware('opentrons_flex_96_tiprack_200ul', 'B3')
   load_module('temperature module gen2', 'D1')
   temperature module gen2.load_labware('opentrons_24_aluminumblock_nest_1.5ml_snapcap')
+  temperature module gen2.set_temperature(4)
   load_labware('nest_96_wellplate_100ul_pcr_full_skirt', 'D2')
   load_module('thermocyclerModuleV2', 'B1')
   thermocyclerModuleV2.load_labware('nest_96_wellplate_100ul_pcr_full_skirt')
@@ -170,18 +197,18 @@ solution in the case of a handler that simulates the reader.
   comment: Tempore run 1
   comment: Thaw the amplicon tagment mix
   pipette.pick_up_tip()
-  pipette.mix(3, 20, A2 of temperature module gen2)
+  pipette.mix(3, 20, A1 of temperature module gen2)
   pipette.drop_tip()
   comment: Tempore timeline: At 0 s: operation `Thaw` took 360 s, within its running-time bounds [300, 600] s
-  pipette.transfer(5, A1 of temperature module gen2, [A1 of thermocyclerModuleV2, B1 of thermocyclerModuleV2, C1 of thermocyclerModuleV2, D1 of thermocyclerModuleV2], new_tip='always')
+  pipette.transfer(10, B1 of temperature module gen2, [A1 of thermocyclerModuleV2, B1 of thermocyclerModuleV2, C1 of thermocyclerModuleV2, D1 of thermocyclerModuleV2], new_tip='always')
   comment: Tempore timeline: At 360 s: operation `Dispense` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(5, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of thermocyclerModuleV2, B1 of thermocyclerModuleV2, C1 of thermocyclerModuleV2, D1 of thermocyclerModuleV2], mix_after=(3, 10), new_tip='always')
   comment: Tempore timeline: At 450 s: operation `AddDNA` took 90 s, within its running-time bounds [60, 120] s
-  pipette.transfer(5, A2 of temperature module gen2, [A1 of thermocyclerModuleV2, B1 of thermocyclerModuleV2, C1 of thermocyclerModuleV2, D1 of thermocyclerModuleV2], new_tip='always')
+  pipette.transfer(5, A1 of temperature module gen2, [A1 of thermocyclerModuleV2, B1 of thermocyclerModuleV2, C1 of thermocyclerModuleV2, D1 of thermocyclerModuleV2], new_tip='always')
   comment: Tempore timeline: At 540 s: operation `Dispense` took 90 s, within its running-time bounds [60, 120] s
   comment: Thaw the neutralize tagment buffer
   pipette.pick_up_tip()
-  pipette.mix(3, 20, A3 of temperature module gen2)
+  pipette.mix(3, 20, C1 of temperature module gen2)
   pipette.drop_tip()
   comment: Tempore timeline: At 630 s: operation `Thaw` took 360 s, within its running-time bounds [300, 600] s
   thermocyclerModuleV2.close_lid()
@@ -189,7 +216,7 @@ solution in the case of a handler that simulates the reader.
   thermocyclerModuleV2.set_block_temperature(10)
   thermocyclerModuleV2.open_lid()
   comment: Tempore timeline: At 990 s: operation `Tagment` took 360 s, within its running-time bounds [300, 420] s
-  pipette.transfer(5, A3 of temperature module gen2, [A1 of thermocyclerModuleV2, B1 of thermocyclerModuleV2, C1 of thermocyclerModuleV2, D1 of thermocyclerModuleV2], new_tip='always')
+  pipette.transfer(5, C1 of temperature module gen2, [A1 of thermocyclerModuleV2, B1 of thermocyclerModuleV2, C1 of thermocyclerModuleV2, D1 of thermocyclerModuleV2], new_tip='always')
   comment: Tempore timeline: At 1350 s: operation `Dispense` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns ()
   $ ../../tempore --grades time-interval --emit-opentrons staggered.py \
@@ -239,30 +266,30 @@ solution in the case of a handler that simulates the reader.
   load_trash_bin('A3')
   load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_200ul in B3])
   comment: Tempore run 1
-  pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40))
+  pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40), new_tip='always')
   comment: Tempore timeline: At 0 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=300.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
   comment: Tempore timeline: At 390 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
   delay(seconds=180.0)
-  pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1)
+  pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 600 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
-  pipette.transfer(150, A2 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2])
-  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1)
+  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2])
+  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 690 s: operation `Ethanol` took 90 s, within its running-time bounds [60, 120] s
-  pipette.transfer(150, A2 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2])
-  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1)
+  pipette.transfer(150, A2 of D1, [top of A1 of D2, top of B1 of D2, top of C1 of D2, top of D1 of D2])
+  pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='always')
   comment: Tempore timeline: At 780 s: operation `LastEthanol` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=120.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
   comment: Tempore timeline: At 990 s: operation `Disengage` took 30 s, within its running-time bounds [0, 60] s
-  pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20))
+  pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='always')
   comment: Tempore timeline: At 1020 s: operation `Elute` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=120.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
   comment: Tempore timeline: At 1230 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
   delay(seconds=180.0)
-  pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of D3, B1 of D3, C1 of D3, D1 of D3])
+  pipette.transfer(20, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], [A1 of D3, B1 of D3, C1 of D3, D1 of D3], new_tip='always')
   comment: Tempore timeline: At 1440 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns ()
   $ ../../tempore --grades time-interval --emit-opentrons stopread.py \
@@ -276,9 +303,9 @@ solution in the case of a handler that simulates the reader.
   load_trash_bin('A3')
   load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_1000ul in B3])
   comment: Tempore run 1
-  pipette.distribute(50, A1 of D2, [A1 of C1, B1 of C1, C1 of C1, D1 of C1, E1 of C1, F1 of C1, G1 of C1, H1 of C1])
+  pipette.distribute(100, A12 of D2, [A1 of C1, B1 of C1, C1 of C1, D1 of C1, E1 of C1, F1 of C1, G1 of C1, H1 of C1])
   comment: Tempore timeline: At 0 s: operation `AddStop` took 60 s, within its running-time bounds [60, 120] s
-  pipette.distribute(50, A1 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  pipette.distribute(100, A12 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
   comment: Tempore timeline: At 60 s: operation `AddStop` took 60 s, within its running-time bounds [60, 120] s
   comment: Simulated reading of plate 1 at 450 nm
   comment: Tempore timeline: At 120 s: operation `Note` took 0 s, within its running-time bounds [0, 60] s
@@ -291,9 +318,9 @@ solution in the case of a handler that simulates the reader.
 The rejected variants of the examples.
 
   $ ../../tempore --grades time-interval --typecheck-only $examples/elisa_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `coated` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
+  Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
   $ ../../tempore --grades regex-timed-interval-symbolic --typecheck-only $examples/washes_reject.tpe 2>&1 | grep 'Typing error'
-  Typing error: Variable `washed` is unboxed with grade `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Ethanol; ChangeTip; Ethanol; 2; (0 | 1; (0 | 1; (0 | 1))); ChangeTip}, {Ethanol; ChangeTip; Ethanol; 2; (0 | 1; (0 | 1; (0 | 1))); ChangeTip}]`
+  Typing error: Variable `washed` is unboxed with grade `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}, {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]`
   $ ../../tempore --grades time-upper-bound-levels --typecheck-only $examples/contamination_reject.tpe 2>&1 | grep 'Typing error'
   Typing error: Variable `tip` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(∞, Low)`
   $ for name in reagents staggered beads stopread; do
@@ -301,7 +328,7 @@ The rejected variants of the examples.
   > done
   Typing error: The resource inequality `[35, 37] <= [0, 30]` does not hold
   Typing error: Variable `fixing` is unboxed with grade `[7, 9]` accumulated since it was bound, which is not below its box grade `[12, 20]`
-  Typing error: Variable `drying` is unboxed with grade `[6, 7]` accumulated since it was bound, which is not below its box grade `[2, 5]`
+  Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
   Typing error: Variable `first` is unboxed with grade `[31, 32]` accumulated since it was bound, which is not below its box grade `[0, 30]`
 
 Run as a script, a protocol executes its program as the interpreter does,

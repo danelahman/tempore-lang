@@ -9,10 +9,12 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition *)
 
-operation Fix : nat ~> [[12, 20]]nat # [1, 2]
+type column = nat
+
+operation Fix : column ~> [[12, 20]]column # [1, 2]
 default Fix column = delay 1; box [12, 20] column
 
-operation Rinse : nat ~> unit # [1, 2]
+operation Rinse : column ~> unit # [1, 2]
 default Rinse column = delay 1
 
 (* Correctly rejected by the typechecker: the next column is started five
@@ -25,7 +27,7 @@ default Rinse column = delay 1
        ...
        Note: the resource inequality `[7, 9] <= [12, 20]` does not hold
 *)
-let rec stagger columns ((fixing : [[12, 20]]nat), fixed) : unit # [0, ∞) =
+let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
   perform Rinse fixed;
   match columns with
   | [] -> delay 11; unbox fixing as last in perform Rinse last
