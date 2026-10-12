@@ -137,37 +137,38 @@
       flex-direction: column;
     }
 
-    /* The switch between the program and the code compiled from it: placed
-       over the top right corner of the editor's box, within its padding, so
-       that the editor keeps its place; styled as the link to the other
-       page. */
+    /* The switch between the program and the code compiled from it: a button
+       floating over the top right corner of the code, so that the editor keeps
+       its place. */
     .view-switch {
       position: absolute;
-      top: 0;
-      right: 0;
+      top: 1.75rem;
+      right: 1.75rem;
       z-index: 3;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 1.25rem;
-      height: 1.25rem;
-      border-radius: 0 6px 0 4px;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 8px;
       color: inherit;
-      opacity: 0.55;
+      background-color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 1px 4px rgba(10, 10, 10, 0.2);
+      opacity: 0.8;
     }
 
     .view-switch:hover,
     .view-switch:focus-visible {
       color: inherit;
       opacity: 1;
-      background-color: rgba(10, 10, 10, 0.07);
+      box-shadow: 0 2px 8px rgba(10, 10, 10, 0.3);
     }
 
     .view-switch svg,
     .view-switch img {
       display: block;
-      width: 0.95rem;
-      height: 0.95rem;
+      width: 2rem;
+      height: 2rem;
     }
 
     /* The inputs of choices of the selected backend, in the side panel under
