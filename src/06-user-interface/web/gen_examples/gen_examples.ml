@@ -8,7 +8,8 @@
    registries do not list, on a setting of an input its backend does not have
    or of a choice the input does not offer, on a group without exactly one
    summary or a summary without a group, on two groups of one short form, and
-   unless exactly one default line names a listed example. *)
+   unless the default lines name listed examples, at most one of each backend
+   and one of the default backend. *)
 
 (* A delimiter [tag] for a quoted string literal [{tag|...|tag}] that does not
    occur as the closing sequence "|tag}" inside [content]; tried in increasing
@@ -87,8 +88,10 @@ let print_group buf root
 let preamble =
   "(* Generated from examples/index by gen_examples; see \
    src/06-user-interface/web/dune. [examples] lists the groups of the web \
-   interface's gallery, in order, each with its examples; [default] is the \
-   path of the example loaded when the page is opened, one of theirs. *)\n\n\
+   interface's gallery, in order, each with its examples; [defaults] pairs the \
+   key of a backend with the path of the example loaded when it is selected, \
+   one of theirs, and [default] is that of the default backend, loaded when \
+   the page is opened. *)\n\n\
    type example = {\n\
   \  title : string;  (** shown on its card, without the group's prefix *)\n\
   \  grade : string;  (** the grading monoid the web interface switches to *)\n\
@@ -115,14 +118,22 @@ let () =
       let groups =
         Manifest.summarised summaries (Manifest.group_entries entries)
       in
-      let default = Manifest.default_path entries defaults in
+      let defaults = Manifest.defaults entries defaults in
       let buf = Buffer.create 4096 in
       Buffer.add_string buf preamble;
       Buffer.add_string buf "let examples : group list =\n  [\n";
       List.iter (print_group buf root) groups;
       Buffer.add_string buf "  ]\n";
       Buffer.add_string buf
-        (Printf.sprintf "\nlet default : string = %s\n" (quoted default));
+        (Printf.sprintf "\nlet defaults : (string * string) list = [ %s ]\n"
+           (String.concat "; "
+              (List.map
+                 (fun (backend, path) ->
+                   Printf.sprintf "(%s, %s)" (quoted backend) (quoted path))
+                 defaults)));
+      Buffer.add_string buf
+        (Printf.sprintf "\nlet default : string = %s\n"
+           (quoted (List.assoc BackendRegistry.default.key defaults)));
       print_string (Buffer.contents buf)
   | _ ->
       prerr_endline "usage: gen_examples <manifest path> <project root>";

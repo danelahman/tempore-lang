@@ -77,7 +77,24 @@ let () =
     Manifest.read (Filename.concat root "examples/index")
   in
   let groups = Manifest.summarised summaries (Manifest.group_entries entries) in
-  ignore (Manifest.default_path entries defaults);
+  (match Manifest.defaults entries defaults with
+  | [
+   ("tempore", "examples/introduction/sensor_reading.tpe");
+   ("opentrons", "examples/opentrons/elisa.tpe");
+  ] ->
+      ()
+  | _ -> fail "the manifest's defaults are not those expected");
+  if
+    not
+      (raises (fun () ->
+           Manifest.defaults entries
+             [ "examples/opentrons/elisa.tpe"; "examples/opentrons/beads.tpe" ]))
+  then fail "defaults accepted two of one backend";
+  if
+    not
+      (raises (fun () ->
+           Manifest.defaults entries [ "examples/opentrons/elisa.tpe" ]))
+  then fail "defaults accepted none of the default backend";
   let opentrons =
     List.filter (fun (e : Manifest.entry) -> e.backend = "opentrons") entries
   in

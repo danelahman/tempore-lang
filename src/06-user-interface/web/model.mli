@@ -197,10 +197,17 @@ and msg =
       (** The inputs of the backend have rested since the change of the given
           serial: compile the program with them, unless a later change has
           superseded it. *)
+  | ShowCode of code_view
+      (** Show the program or the code the selected backend has compiled it to
+          in the editor's place. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
 and page = Editor | Docs
+
+(* What the editor's box shows, under a backend with a compiler: the program,
+   or the code compiled from it with the inputs of the backend. *)
+and code_view = Source | Compiled
 
 type edit_model = {
   use_stdlib : bool;
@@ -322,6 +329,9 @@ type model = {
   compile_serial : int;
       (** The serial of the latest change of the inputs, which the debounce of
           the compilation awaits. *)
+  code_view : code_view;
+      (** What the editor's box shows while the selected backend has a compiler;
+          the program otherwise. *)
 }
 
 (** A side effect the update asks for, performed by the page. *)

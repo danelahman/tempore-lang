@@ -52,8 +52,12 @@ val summarised :
     Raises [Failure] unless every group has exactly one summary, every summary
     names a group and no two groups have one short form. *)
 
-val default_path : entry list -> string list -> string
-(** [default_path entries defaults] is the one path of [defaults], which names
-    one of [entries].
+val defaults : entry list -> string list -> (string * string) list
+(** [defaults entries paths] is each of [paths] paired with the key of the
+    backend of the example of [entries] it names: the example the web interface
+    loads when that backend is selected, and, for the default backend, when the
+    page is opened.
 
-    Raises [Failure] otherwise. *)
+    Raises [Failure] unless every path names one of [entries], no two name
+    examples of one backend and one names an example of
+    {!BackendRegistry.default}. *)

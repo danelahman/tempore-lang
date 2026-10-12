@@ -131,14 +131,58 @@
     }
 
     .editor-box {
+      position: relative;
       flex-grow: 1;
       display: flex;
       flex-direction: column;
     }
 
-    /* The inputs and compiled code of the selected backend, under the editor,
-       and the report of its operation model, above a run; in the main column,
-       so that the side column keeps its width. */
+    /* The switch between the program and the code compiled from it: placed
+       over the top right corner of the editor's box, within its padding, so
+       that the editor keeps its place; styled as the link to the other
+       page. */
+    .view-switch {
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 0 6px 0 4px;
+      color: inherit;
+      opacity: 0.55;
+    }
+
+    .view-switch:hover,
+    .view-switch:focus-visible {
+      color: inherit;
+      opacity: 1;
+      background-color: rgba(10, 10, 10, 0.07);
+    }
+
+    .view-switch svg,
+    .view-switch img {
+      display: block;
+      width: 0.95rem;
+      height: 0.95rem;
+    }
+
+    /* The inputs of choices of the selected backend, in the side panel under
+       its description, wrapping within the column's width. */
+    .aside .backend-choices {
+      margin-top: 0.75rem;
+    }
+
+    .aside .backend-choices .select,
+    .aside .backend-choices .select select {
+      max-width: 100%;
+    }
+
+    /* The view of the code compiled in the editor's place, and the report of
+       the operation model of the selected backend, above a run. */
     .backend-title {
       font-weight: 600;
       margin-bottom: 0.5rem;
@@ -176,8 +220,13 @@
       font-size: 0.85rem;
     }
 
+    .backend-code-heading {
+      margin-top: 0.75rem;
+      font-weight: 500;
+    }
+
     pre.syn-ml.backend-code {
-      max-height: 36rem;
+      max-height: 70vh;
       overflow: auto;
       margin-top: 0.5rem;
       font-size: 0.8rem;

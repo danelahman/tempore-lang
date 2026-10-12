@@ -85,13 +85,16 @@ You can load an existing example or write your own program, choose which grading
 monoid to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
-The backend selector above the grade selector chooses between Tempore, the
-interpreter alone, and Opentrons (see [Opentrons protocols](#opentrons-protocols)),
-and the gallery lists the examples of the backend selected. Under Opentrons, the
-editor is followed by the binding file, the robot, the time unit and the monitor
-policy, and by the protocol compiled from the program once it typechecks. A run
-also shows a timeline: the time of a virtual clock advanced by the delays, and
-each operation call performed by its default implementation with its start, its
+The backend selector, first among the code options, chooses between Tempore,
+the interpreter alone, and Opentrons (see [Opentrons protocols](#opentrons-protocols)).
+Selecting a backend loads its default example (the sensor reading for Tempore,
+the ELISA for Opentrons), and the gallery lists the examples of the backend
+selected. Under Opentrons, the robot, the time unit and the monitor policy are
+chosen under the selector, and the mark in the top right corner of the editor
+switches between the program and the Opentrons protocol: the binding file and
+the protocol compiled from the program once it typechecks. A run also shows a
+timeline: the time of a virtual clock advanced by the delays, and each
+operation call performed by its default implementation with its start, its
 duration and the verdict of the monitor of its running-time bounds.
 
 ## Temporal resources

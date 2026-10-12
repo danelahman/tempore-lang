@@ -1030,6 +1030,97 @@ let view_check_status (model : Model.model) =
       ]
     (outcome @ progress)
 
+(* Backends *)
+
+(* The control of an input of choices of the selected backend. *)
+let view_choice_input ~value (input : BackendRegistry.input) choices =
+  div
+    ~a:[ class_ "field backend-choice" ]
+    [
+      elt "label" ~a:[ class_ "label is-small" ] [ text input.label ];
+      select
+        ~a:[ class_ "select is-small" ]
+        input.label
+        (fun choice -> Model.EditMsg (Model.SetInput (input.key, choice)))
+        Fun.id
+        (fun choice -> choice = value)
+        choices;
+    ]
+
+(* A text input of the selected backend, folded under its label and its
+   number of lines. *)
+let view_text_input ~value (input : BackendRegistry.input) =
+  let lines =
+    if String.trim value = "" then "empty"
+    else
+      let n =
+        String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 0 value
+      in
+      count (if String.ends_with ~suffix:"\n" value then n else n + 1) "line"
+  in
+  elt "details"
+    ~a:[ class_ "backend-input" ]
+    [
+      elt "summary"
+        [
+          text input.label;
+          elt "span" ~a:[ class_ "backend-input-size" ] [ text lines ];
+        ];
+      elt "textarea"
+        ~a:
+          [
+            class_ "textarea backend-text";
+            (* bound as a property, as the editor's text is, so that loading
+               an example replaces it *)
+            str_prop "value" value;
+            oninput (fun text ->
+                Model.EditMsg (Model.SetInput (input.key, text)));
+            int_prop "rows" 14;
+            attr "aria-label" input.label;
+            attr "spellcheck" "false";
+            attr "autocapitalize" "off";
+            attr "autocorrect" "off";
+          ]
+        [];
+    ]
+
+(* The code of a compilation, highlighted in its language where a highlighter
+   is known for it. *)
+let view_code (output : BackendRegistry.compiled) =
+  let code = Option.value output.code ~default:"" in
+  elt "pre"
+    ~a:[ class_ "syn-ml backend-code" ]
+    (if output.language = "python" then PythonHighlight.highlight code
+     else [ text code ])
+
+(* A message of a compilation, in the style of the errors of a check. *)
+let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
+  let kind, cls =
+    match message.severity with
+    | BackendRegistry.Error -> ("Error", "is-danger")
+    | Warning -> ("Warning", "is-warning")
+    | Note -> ("Note", "is-info")
+  in
+  elt "article"
+    ~a:
+      [
+        class_
+          (String.concat " "
+             ([ "message"; cls; "editor-error"; "backend-message" ]
+             @ if stale then [ "is-stale" ] else []));
+      ]
+    [
+      div
+        ~a:[ class_ "message-header" ]
+        [
+          elt "p" [ text (Printf.sprintf "%s %d — %s" kind (i + 1) backend) ];
+          (if stale then
+             elt "span" ~a:[ class_ "stale-note" ] [ text "out of date" ]
+           else nil);
+        ];
+      div ~a:[ class_ "message-body" ] [ elt "p" [ text message.text ] ];
+    ]
+
 let view_compiler (model : Model.model) =
   let use_stdlib =
     elt "label"
@@ -1098,29 +1189,49 @@ let view_compiler (model : Model.model) =
       ]
   and select_backend =
     let selected = Model.backend model.edit_model in
+    let settings = Model.settings model.edit_model in
+    (* the inputs of choices of the selected backend, under its description *)
+    let choices =
+      List.filter_map
+        (fun (input : BackendRegistry.input) ->
+          match input.kind with
+          | Choice choices ->
+              Some
+                (view_choice_input
+                   ~value:
+                     (BackendRegistry.setting selected.inputs settings input.key)
+                   input choices)
+          | Text -> None)
+        selected.inputs
+    in
     div
       ~a:[ class_ "panel-block" ]
       [
         div
           ~a:[ class_ "field" ]
-          [
-            elt "label" ~a:[ class_ "label" ] [ text "Backend" ];
-            div
-              ~a:[ class_ "control is-expanded" ]
-              [
-                (* the backends of {!BackendRegistry.entries}, by name *)
-                select
-                  ~a:[ class_ "select is-fullwidth backend-select" ]
-                  "Select a backend"
-                  (fun (entry : BackendRegistry.entry) ->
-                    Model.EditMsg (Model.SelectBackend entry.key))
-                  (fun (entry : BackendRegistry.entry) -> entry.name)
-                  (fun (entry : BackendRegistry.entry) ->
-                    entry.key = selected.key)
-                  BackendRegistry.entries;
-              ];
-            elt "p" ~a:[ class_ "grades-summary" ] [ text selected.description ];
-          ];
+          ([
+             elt "label" ~a:[ class_ "label" ] [ text "Backend" ];
+             div
+               ~a:[ class_ "control is-expanded" ]
+               [
+                 (* the backends of {!BackendRegistry.entries}, by name *)
+                 select
+                   ~a:[ class_ "select is-fullwidth backend-select" ]
+                   "Select a backend"
+                   (fun (entry : BackendRegistry.entry) ->
+                     Model.EditMsg (Model.SelectBackend entry.key))
+                   (fun (entry : BackendRegistry.entry) -> entry.name)
+                   (fun (entry : BackendRegistry.entry) ->
+                     entry.key = selected.key)
+                   BackendRegistry.entries;
+               ];
+             elt "p"
+               ~a:[ class_ "grades-summary" ]
+               [ text selected.description ];
+           ]
+          @
+          if choices = [] then []
+          else [ div ~a:[ class_ "backend-choices" ] choices ]);
       ]
   and select_resource =
     div
@@ -1261,131 +1372,59 @@ let view_compiler (model : Model.model) =
       ]
   in
   panel ~action:(page_link Model.Docs) "Code options"
-    [ use_stdlib; load_example; select_backend; select_resource; run_process ]
+    [ select_backend; use_stdlib; load_example; select_resource; run_process ]
 
-(* Backends *)
-
-(* The control of an input of choices of the selected backend. *)
-let view_choice_input ~value (input : BackendRegistry.input) choices =
-  div
-    ~a:[ class_ "field backend-choice" ]
-    [
-      elt "label" ~a:[ class_ "label is-small" ] [ text input.label ];
-      select
-        ~a:[ class_ "select is-small" ]
-        input.label
-        (fun choice -> Model.EditMsg (Model.SetInput (input.key, choice)))
-        Fun.id
-        (fun choice -> choice = value)
-        choices;
-    ]
-
-(* A text input of the selected backend, folded under its label and its
-   number of lines. *)
-let view_text_input ~value (input : BackendRegistry.input) =
-  let lines =
-    if String.trim value = "" then "empty"
-    else
-      let n =
-        String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 0 value
-      in
-      count (if String.ends_with ~suffix:"\n" value then n else n + 1) "line"
-  in
-  elt "details"
-    ~a:[ class_ "backend-input" ]
-    [
-      elt "summary"
-        [
-          text input.label;
-          elt "span" ~a:[ class_ "backend-input-size" ] [ text lines ];
-        ];
-      elt "textarea"
-        ~a:
-          [
-            class_ "textarea backend-text";
-            (* bound as a property, as the editor's text is, so that loading
-               an example replaces it *)
-            str_prop "value" value;
-            oninput (fun text ->
-                Model.EditMsg (Model.SetInput (input.key, text)));
-            int_prop "rows" 14;
-            attr "aria-label" input.label;
-            attr "spellcheck" "false";
-            attr "autocapitalize" "off";
-            attr "autocorrect" "off";
-          ]
-        [];
-    ]
-
-(* The code of a compilation, highlighted in its language where a highlighter
-   is known for it. *)
-let view_code (output : BackendRegistry.compiled) =
-  let code = Option.value output.code ~default:"" in
-  elt "pre"
-    ~a:[ class_ "syn-ml backend-code" ]
-    (if output.language = "python" then PythonHighlight.highlight code
-     else [ text code ])
-
-(* A message of a compilation, in the style of the errors of a check. *)
-let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
-  let kind, cls =
-    match message.severity with
-    | BackendRegistry.Error -> ("Error", "is-danger")
-    | Warning -> ("Warning", "is-warning")
-    | Note -> ("Note", "is-info")
-  in
-  elt "article"
-    ~a:
-      [
-        class_
-          (String.concat " "
-             ([ "message"; cls; "editor-error"; "backend-message" ]
-             @ if stale then [ "is-stale" ] else []));
-      ]
-    [
-      div
-        ~a:[ class_ "message-header" ]
-        [
-          elt "p" [ text (Printf.sprintf "%s %d — %s" kind (i + 1) backend) ];
-          (if stale then
-             elt "span" ~a:[ class_ "stale-note" ] [ text "out of date" ]
-           else nil);
-        ];
-      div ~a:[ class_ "message-body" ] [ elt "p" [ text message.text ] ];
-    ]
-
-(* The inputs of the selected backend and the code it has compiled the
-   program to, under the editor; nothing for a backend without either. *)
-let view_backend (model : Model.model) =
-  let entry = Model.backend model.edit_model in
+(* The view of a backend with a compiler in the editor's place: the text
+   inputs of the backend, the messages of the compilation and the code
+   compiled. *)
+let view_compiled (model : Model.model) (entry : BackendRegistry.entry)
+    (compiler : BackendRegistry.compiler) =
   let settings = Model.settings model.edit_model in
-  let value key = BackendRegistry.setting entry.inputs settings key in
-  let choices =
+  let texts =
     List.filter_map
       (fun (input : BackendRegistry.input) ->
         match input.kind with
-        | Choice choices ->
-            Some (view_choice_input ~value:(value input.key) input choices)
-        | Text -> None)
-      entry.inputs
-  and texts =
-    List.filter_map
-      (fun (input : BackendRegistry.input) ->
-        match input.kind with
-        | Text -> Some (view_text_input ~value:(value input.key) input)
+        | Text ->
+            Some
+              (view_text_input
+                 ~value:
+                   (BackendRegistry.setting entry.inputs settings input.key)
+                 input)
         | Choice _ -> None)
       entry.inputs
   in
+  let errors =
+    match model.run_model with
+    | Error (_ :: _ as errors) ->
+        [
+          elt "p"
+            ~a:[ class_ "backend-note" ]
+            [
+              text
+                (Printf.sprintf "The program has %s, shown with "
+                   (count (List.length errors) "error"));
+              elt "a"
+                ~a:
+                  [
+                    attr "href" "#";
+                    onclick ~prevent_default:() (fun _ ->
+                        Model.ShowCode Model.Source);
+                  ]
+                [ text "the program" ];
+              text ".";
+            ];
+        ]
+    | _ -> []
+  in
   let compiled =
-    match (entry.compiler, model.compiled) with
-    | None, _ -> []
-    | Some _, None ->
+    match model.compiled with
+    | None ->
         [
           elt "p"
             ~a:[ class_ "backend-note" ]
             [ text "The program is compiled once it typechecks." ];
         ]
-    | Some _, Some { output; up_to_date } ->
+    | Some { output; up_to_date } ->
         let stale = not up_to_date in
         List.mapi
           (view_compile_message ~backend:entry.name ~stale)
@@ -1393,36 +1432,94 @@ let view_backend (model : Model.model) =
         @ Option.fold ~none:[]
             ~some:(fun _ ->
               [
-                elt "details"
-                  ~a:[ class_ "backend-input"; bool_prop "open" true ]
+                elt "p"
+                  ~a:[ class_ "backend-code-heading" ]
                   [
-                    elt "summary"
+                    text "Compiled code";
+                    elt "span"
+                      ~a:[ class_ "backend-input-size" ]
                       [
-                        text "Compiled code";
-                        elt "span"
-                          ~a:[ class_ "backend-input-size" ]
-                          [
-                            text
-                              (if stale then "out of date" else output.language);
-                          ];
+                        text (if stale then "out of date" else output.language);
                       ];
-                    (* rendered once per compilation *)
-                    Vdom.memo view_code output;
                   ];
+                (* rendered once per compilation *)
+                Vdom.memo view_code output;
               ])
             output.code
   in
-  if entry.inputs = [] && entry.compiler = None then []
-  else
+  div
+    ~a:[ class_ "backend-view" ]
+    ((elt "p" ~a:[ class_ "backend-title" ] [ text compiler.code_name ] :: texts)
+    @ errors @ compiled)
+
+(* An image as the mark of a view. *)
+let image_mark src =
+  elt "img" ~a:[ attr "src" src; attr "alt" ""; attr "aria-hidden" "true" ] []
+
+(* A pipette, drawn in the current text colour. *)
+let pipette_mark =
+  svg_elt "svg"
+    ~a:
+      [
+        attr "viewBox" "0 0 16 16";
+        attr "width" "16";
+        attr "height" "16";
+        attr "aria-hidden" "true";
+      ]
     [
-      div
-        ~a:[ class_ "box backend-box" ]
-        (elt "p" ~a:[ class_ "backend-title" ] [ text entry.name ]
-         ::
-         (if choices = [] then []
-          else [ div ~a:[ class_ "backend-choices" ] choices ])
-        @ texts @ compiled);
+      svg_elt "g"
+        ~a:
+          [
+            attr "transform" "rotate(45 8 8)";
+            attr "fill" "none";
+            attr "stroke" "currentColor";
+            attr "stroke-width" "1.4";
+            attr "stroke-linecap" "round";
+            attr "stroke-linejoin" "round";
+          ]
+        [
+          svg_elt "path"
+            ~a:
+              [
+                attr "d"
+                  "M6.3 1.2h3.4M8 1.2v2.3M6 3.5h4v6H6zM6.4 9.5 8 14l1.6-4.5";
+              ]
+            [];
+        ];
+      svg_elt "circle"
+        ~a:
+          [
+            attr "cx" "3.1";
+            attr "cy" "14.6";
+            attr "r" "0.9";
+            attr "fill" "currentColor";
+          ]
+        [];
     ]
+
+(* The marks of the program and of the code compiled from it, on the switch
+   between the two views. *)
+let source_mark = image_mark "logo/tempore-logo.svg"
+let compiled_mark = pipette_mark
+
+(* The switch in the top right corner of the editor's box, to the view not
+   shown, named by its mark alone, as the link to the other page is. *)
+let view_switch (compiler : BackendRegistry.compiler) code_view =
+  let target, mark, label =
+    match code_view with
+    | Model.Source -> (Model.Compiled, compiled_mark, compiler.code_name)
+    | Model.Compiled -> (Model.Source, source_mark, "Tempore program")
+  in
+  elt "a"
+    ~a:
+      [
+        class_ "view-switch";
+        attr "href" "#";
+        attr "title" label;
+        attr "aria-label" label;
+        onclick ~prevent_default:() (fun _ -> Model.ShowCode target);
+      ]
+    [ mark ]
 
 (* The report of the operation model of a run, as a table and notes. *)
 let view_report (report : BackendRegistry.report) =
@@ -1613,25 +1710,33 @@ let view_highlighted (key : editor_key) =
     (SyntaxHighlight.highlight_with_marks ~line_numbers:true
        ~marks:(editor_marks key) (key.source ^ "\n"))
 
+(* The editor's box: the program, with the errors of its check, or, under a
+   backend with a compiler, the view of the code compiled, with the switch
+   between the two last, so that the editor keeps its place among the
+   children of the box. *)
 let edit_view (model : Model.model) =
-  let key = interned (editor_key model) in
-  let errors = key.errors and stale = key.stale in
+  let entry = Model.backend model.edit_model in
+  let content =
+    match (entry.compiler, model.code_view) with
+    | Some compiler, Model.Compiled -> [ view_compiled model entry compiler ]
+    | _ ->
+        let key = interned (editor_key model) in
+        let errors = key.errors and stale = key.stale in
+        view_editor ~highlighted:(Vdom.memo view_highlighted key) ~errors model
+        :: List.mapi
+             (fun i error ->
+               view_load_error ~stale
+                 ~active:(model.active_error = Some i)
+                 ~flashed:(model.flash = Some (Model.Message i))
+                 i error)
+             errors
+  and switch =
+    Option.fold ~none:[]
+      ~some:(fun compiler -> [ view_switch compiler model.code_view ])
+      entry.compiler
+  in
   view_contents
-    ([
-       div
-         ~a:[ class_ "box editor-box" ]
-         (view_editor
-            ~highlighted:(Vdom.memo view_highlighted key)
-            ~errors model
-         :: List.mapi
-              (fun i error ->
-                view_load_error ~stale
-                  ~active:(model.active_error = Some i)
-                  ~flashed:(model.flash = Some (Model.Message i))
-                  i error)
-              errors);
-     ]
-    @ view_backend model)
+    [ div ~a:[ class_ "box editor-box" ] (content @ switch) ]
     [ view_compiler model ]
 
 (* Example gallery *)

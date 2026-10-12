@@ -150,12 +150,32 @@ let summarised summaries groups =
                label))
     groups
 
-let default_path entries = function
-  | [ path ] ->
-      if List.exists (fun (entry : entry) -> entry.path = path) entries then
-        path
-      else
+let defaults entries paths =
+  let pairs =
+    List.map
+      (fun path ->
+        match
+          List.find_opt (fun (entry : entry) -> entry.path = path) entries
+        with
+        | Some entry -> (entry.backend, path)
+        | None ->
+            failwith
+              (Printf.sprintf
+                 "the manifest's default %s is not a listed example" path))
+      paths
+  in
+  List.iter
+    (fun (backend, _) ->
+      if List.length (List.filter (fun (b, _) -> b = backend) pairs) > 1 then
         failwith
-          (Printf.sprintf "the manifest's default %s is not a listed example"
-             path)
-  | _ -> failwith "the manifest does not give exactly one default example"
+          (Printf.sprintf
+             "the manifest gives more than one default example of the backend \
+              '%s'"
+             backend))
+    pairs;
+  if not (List.mem_assoc BackendRegistry.default.key pairs) then
+    failwith
+      (Printf.sprintf
+         "the manifest gives no default example of the backend '%s'"
+         BackendRegistry.default.key);
+  pairs

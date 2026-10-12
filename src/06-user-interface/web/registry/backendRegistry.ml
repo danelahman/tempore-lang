@@ -40,6 +40,7 @@ type compiler = {
     operations:operations ->
     ('rho, 'eps) Language.Ast.command list ->
     compiled;
+  code_name : string;
 }
 
 type event = Backend.observation =
@@ -265,7 +266,8 @@ let opentrons =
       "Opentrons protocols in Python, with monitors of the running times of \
        operations; interpreter runs record a timeline of the operations.";
     inputs = opentrons_inputs;
-    compiler = Some { compile = opentrons_compile };
+    compiler =
+      Some { compile = opentrons_compile; code_name = "Opentrons protocol" };
     observer = Some opentrons_observer;
   }
 

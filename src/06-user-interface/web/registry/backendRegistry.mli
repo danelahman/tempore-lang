@@ -56,6 +56,9 @@ type compiler = {
     operations:operations ->
     ('rho, 'eps) Language.Ast.command list ->
     compiled;
+  code_name : string;
+      (** the name of the compiled code, by which the web interface labels the
+          view of it *)
 }
 (** [compile settings ~operations commands] compiles the desugared [commands],
     accepted by the typechecker, of a program, the standard library's included,

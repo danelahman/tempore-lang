@@ -36,19 +36,23 @@
 #
 # A group without a summary, or a summary without examples, is an error.
 #
-# One line of two fields, the first the word 'default', names the example the
-# web interface loads when the page is opened:
+# A line of two fields, the first the word 'default', names the example the
+# web interface loads when the backend of that example is selected; that of
+# the default backend, tempore, is also loaded when the page is opened:
 #
 #   default | path
 #
 # - path: the example's file, relative to this directory, as an example line
 #   gives it.
 #
+# At most one default is given per backend, and one for tempore.
+#
 # Examples are listed in the order they appear in the gallery: groups in the
 # order given here, and within a group from the simplest example to the most
 # advanced.
 
 default | introduction/sensor_reading.tpe
+default | opentrons/elisa.tpe
 
 group | Introduction | Introduction | Boxes graded first by the time since boxing, then by the operations performed since boxing.
 Introduction | Sensor reading | time-interval-rational | introduction/sensor_reading.tpe | A sensor reading in a box graded with a time interval, usable only once its scan is complete and while it is current, with operations taking time and a handler implementing the scan.

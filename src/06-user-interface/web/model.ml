@@ -199,10 +199,17 @@ and msg =
       (** The inputs of the backend have rested since the change of the given
           serial: compile the program with them, unless a later change has
           superseded it. *)
+  | ShowCode of code_view
+      (** Show the program or the code the selected backend has compiled it to
+          in the editor's place. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
 and page = Editor | Docs
+
+(* What the editor's box shows, under a backend with a compiler: the program,
+   or the code compiled from it with the inputs of the backend. *)
+and code_view = Source | Compiled
 
 type edit_model = {
   use_stdlib : bool;
@@ -305,6 +312,11 @@ let example_of_path path =
            (fun (e : Examples_tpe.example) -> e.path = path)
            g.examples))
     Examples_tpe.examples
+
+(* The group label and the example the manifest names as the default of the
+   backend [key], if it names one. *)
+let default_example key =
+  Option.bind (List.assoc_opt key Examples_tpe.defaults) example_of_path
 
 (** The editor as the page opens: the manifest's default example loaded, its
     grades selected. *)
@@ -462,6 +474,9 @@ type model = {
   compile_serial : int;
       (** The serial of the latest change of the inputs, which the debounce of
           the compilation awaits. *)
+  code_view : code_view;
+      (** What the editor's box shows while the selected backend has a compiler;
+          the program otherwise. *)
 }
 
 let init =
@@ -490,6 +505,7 @@ let init =
     accepted = None;
     compiled = None;
     compile_serial = 0;
+    code_view = Source;
   }
 
 (** A side effect the update asks for, performed by the page. *)
@@ -817,7 +833,14 @@ let errors_of_exception stage exn =
   | exn -> [ fatal (Printexc.to_string exn) ]
 
 (* The update of the model proper; [update] adds the effects. *)
-let update_model model = function
+let rec update_model model = function
+  (* A backend is selected with its default example, loaded as from the
+     gallery. *)
+  | EditMsg (SelectBackend key) when default_example key <> None ->
+      Option.fold ~none:model
+        ~some:(fun (group, e) ->
+          update_model model (EditMsg (LoadExample (group, e))))
+        (default_example key)
   | EditMsg ((SelectBackend _ | SetInput _) as edit_msg) ->
       (* The program stays checked: another backend compiles it at once, and
          a changed input after a rest (see [update]). *)
@@ -873,6 +896,8 @@ let update_model model = function
                 (fun check -> { check with current = false })
                 model.last_check);
         accepted = (if edits_program edit_msg then None else model.accepted);
+        code_view =
+          (match edit_msg with LoadExample _ -> Source | _ -> model.code_view);
         compiled =
           (match edit_msg with
           | LoadExample _ -> None
@@ -1067,6 +1092,7 @@ let update_model model = function
           { model with run_model = Error errors }
       | Ok _ -> model)
   | ShowPage page -> { (without_popover model) with page }
+  | ShowCode code_view -> { (without_popover model) with code_view }
   | HoverError hovered_error -> { model with hovered_error }
   | OpenGallery -> { (without_popover model) with gallery = Some "" }
   | CloseGallery -> { model with gallery = None }
@@ -1122,8 +1148,10 @@ let flash target model =
 
 (* The definition of the [k]th link gone to: the caret placed at a definition
    in the editor, which flashes, or the popover of a definition in the
-   standard library opened at the name, the caret being there too. *)
+   standard library opened at the name, the caret being there too; the
+   editor's box shows the program. *)
 let follow model k =
+  let model = { model with code_view = Source } in
   match List.nth_opt model.links k with
   | Some { destination = In_editor (start, stop); _ } ->
       let model, effects =
@@ -1140,9 +1168,10 @@ let follow model k =
 
 (* The [i]th error gone to: its primary span in the editor while the errors
    hold of the source, or otherwise its message, highlighted briefly. A point
-   span is widened to the byte it points at, as the editor marks it. *)
+   span is widened to the byte it points at, as the editor marks it. The
+   editor's box shows the program. *)
 let go_to_error model i =
-  let model = close model in
+  let model = { (close model) with code_view = Source } in
   let span =
     match model.run_model with
     | Error errors when not model.stale_errors -> (
