@@ -16,15 +16,13 @@ test: default
 clean:
 	dune clean
 
-deps: tempore-deps opentrons-deps
-
 tempore-deps:
 	opam install --deps-only --with-dev-setup .
 
 # The Opentrons simulator, opentrons_simulate of the Python package opentrons
 # 10.0.0, in the virtual environment _opentrons, created with the first of the
-# interpreters below of version 3.10 or later. Skipped with a notice if there
-# is none. clean-opentrons removes it, together with the protocols written by
+# interpreters below of version 3.10 or later; an error if there is none.
+# Optional: only --simulate needs it. clean-opentrons removes it, together with the protocols written by
 # --emit-opentrons to _opentrons/protocols.
 OPENTRONS_VENV = _opentrons
 OPENTRONS_PYTHONS = python3.13 python3.12 python3.11 python3.10 python3
@@ -44,7 +42,8 @@ opentrons-deps:
 	    exit $$?; \
 	  fi; \
 	done; \
-	echo "Python 3.10 or later was not found; the Opentrons simulator is not installed."
+	echo "Error: Python 3.10 or later was not found; the Opentrons simulator is not installed." >&2; \
+	exit 1
 
 clean-opentrons:
 	rm -rf $(OPENTRONS_VENV)
@@ -55,5 +54,5 @@ vscode-extension:
 	  npx --yes @vscode/vsce package && \
 	  code --install-extension vscode-tempore-*.vsix --force
 
-.PHONY: default format check-format release test clean deps tempore-deps \
+.PHONY: default format check-format release test clean tempore-deps \
   opentrons-deps clean-opentrons vscode-extension

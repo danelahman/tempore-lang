@@ -40,13 +40,17 @@ Language](https://github.com/matijapretnar/millet) and follows the ideas of
 Requires OCaml 5.5 or later. The rational time grades use zarith, which
 additionally needs the GMP library (opam installs it through `conf-gmp`).
 
-Install the dependencies:
+Install the OCaml dependencies with opam:
 
-    make deps
+    make tempore-deps
 
-This runs `make tempore-deps`, which installs the OCaml dependencies with opam,
-and `make opentrons-deps`, which installs the optional Opentrons simulator (see
-[Opentrons](#opentrons)) when Python 3.10 or later is available.
+The Opentrons simulator, used only to simulate the protocols of the
+[Opentrons](#opentrons) backend, is installed separately; it needs Python 3.10
+or later and the network:
+
+    make opentrons-deps
+
+Tempore is fully usable without it, only `--simulate` failing.
 
 Build the language:
 
@@ -1225,10 +1229,10 @@ Requirements:
 
 - the simulator is `opentrons_simulate` of the `opentrons` Python package
   (tested with version 10.0.0), which needs Python 3.10 or later;
-- `make deps`, or `make opentrons-deps` alone, installs it in the virtual
-  environment `_opentrons` of the repository with the first of `python3.13`,
-  `python3.12`, `python3.11`, `python3.10` and `python3` of version 3.10 or
-  later, and does nothing if there is none; `make clean-opentrons` removes it,
+- `make opentrons-deps` installs it in the virtual environment `_opentrons` of
+  the repository with the first of `python3.13`, `python3.12`, `python3.11`,
+  `python3.10` and `python3` of version 3.10 or later, and fails if there is
+  none; `make clean-opentrons` removes it,
   together with the protocols written to `_opentrons/protocols`;
 - it can also be installed by hand, e.g.
   `python3 -m venv venv && venv/bin/pip install opentrons==10.0.0`, and then
