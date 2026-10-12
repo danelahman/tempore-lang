@@ -1531,18 +1531,7 @@ let view_report ~expanded (report : BackendRegistry.report) =
     | Plain, _ -> [ class_ "is-sub" ]
     | Pending, _ -> [ class_ "is-pending is-sub" ]
   in
-  let cell (cell : BackendRegistry.cell) =
-    elt "td"
-      (text cell.text
-      :: Option.fold ~none:[]
-           ~some:(fun aside ->
-             [
-               elt "span"
-                 ~a:[ class_ "backend-aside" ]
-                 [ text ("(" ^ aside ^ ")") ];
-             ])
-           cell.aside)
-  in
+  let cell s = elt "td" [ text s ] in
   elt "details"
     ~a:
       (class_ "box backend-box backend-report"

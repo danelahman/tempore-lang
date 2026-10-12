@@ -33,12 +33,12 @@ continuation are not shown.
   Run  Start       Event          Grade
   1    [0, 0]      delay          [0.1, 0.1]
   1    [0.1, 0.1]  box reading    [5, 10)
-  1    [0.1, 0.1]  Compute        [6, 8]  ([7, 7])
+  1    [0.1, 0.1]  Compute        [6, 8]
   1                · delay        [7, 7]
   1    [6.1, 8.1]  unbox reading  [5, 10)
-  1    [6.1, 8.1]  AngleOf        (0, 1]  ([0.5, 0.5])
+  1    [6.1, 8.1]  AngleOf        (0, 1]
   1                · delay        [0.5, 0.5]
-  1    (6.1, 9.1]  SetAngle       (1, 2)  ([1.5, 1.5])
+  1    (6.1, 9.1]  SetAngle       (1, 2)
   1                · delay        [1.5, 1.5]
   Run 1 returned () at (7.1, 11.1).
   
@@ -187,10 +187,10 @@ Channels boxed at security levels, whose delays are unit grades.
   Timeline
   Run  Start  Event       Grade
   1    Low    box c       Low
-  1    Low    ReadPublic  Low  (Low)
+  1    Low    ReadPublic  Low
   1    Low    delay       Low
   1    Low    unbox c     Low
-  1    Low    Post        Low  (Low)
+  1    Low    Post        Low
   Run 1 returned "weather: sunny" at Low.
   
   === Run 2 ===
@@ -202,9 +202,9 @@ Channels boxed at security levels, whose delays are unit grades.
   Timeline
   Run  Start  Event       Grade
   2    Low    box c       High
-  2    Low    ReadSecret  High  (Low)
+  2    Low    ReadSecret  High
   2    High   unbox c     High
-  2    High   Post        Low  (Low)
+  2    High   Post        Low
   Run 2 returned "launch code: 0000" at High.
   
 
@@ -232,32 +232,32 @@ The ELISA protocol, interpreted.
   
   Timeline
   Run  Start      Event             Grade
-  1    [0, 0]     AddSample         [1, 3]  ([2, 2])
+  1    [0, 0]     AddSample         [1, 3]
   1               · delay           [2, 2]
-  1    [1, 3]     Dilute            [1, 2]  ([1, 1])
+  1    [1, 3]     Dilute            [1, 2]
   1               · delay           [1, 1]
   1               · box antibody    [0, 20]
-  1    [2, 5]     Wash              [2, 4]  ([3, 3])
+  1    [2, 5]     Wash              [2, 4]
   1               · delay           [3, 3]
-  1    [4, 9]     Wash              [2, 4]  ([3, 3])
+  1    [4, 9]     Wash              [2, 4]
   1               · delay           [3, 3]
-  1    [6, 13]    Wash              [2, 4]  ([3, 3])
+  1    [6, 13]    Wash              [2, 4]
   1               · delay           [3, 3]
   1    [8, 17]    unbox antibody    [0, 20]
-  1    [8, 17]    Detect            [1, 3]  ([2, 2])
+  1    [8, 17]    Detect            [1, 3]
   1               · delay           [2, 2]
   1               · box incubating  [60, ∞)
   1    [9, 20]    delay             [60, 60]
   1    [69, 80]   unbox incubating  [60, ∞)
-  1    [69, 80]   Wash              [2, 4]  ([3, 3])
+  1    [69, 80]   Wash              [2, 4]
   1               · delay           [3, 3]
-  1    [71, 84]   Develop           [1, 2]  ([1, 1])
+  1    [71, 84]   Develop           [1, 2]
   1               · delay           [1, 1]
   1               · box developing  [15, 20]
   1    [72, 86]   delay             [15, 15]
   1    [87, 101]  unbox developing  [15, 20]
-  1    [87, 101]  Stop              [0, 1]  ([0, 0])
-  1    [87, 102]  Read              [1, 2]  ([1, 1])
+  1    [87, 101]  Stop              [0, 1]
+  1    [87, 102]  Read              [1, 2]
   1               · delay           [1, 1]
   Run 1 returned 0 at [88, 104].
   
@@ -276,12 +276,12 @@ the call whose default implementation performs it.
   
   Timeline
   Run  Start  Event        Grade
-  1    0      Ask          3  (3)
+  1    0      Ask          3
   1           · delay      1
-  1           · Load       2  (2)
-  1           · · Store    1  (1)
+  1           · Load       2
+  1           · · Store    1
   1           · · · delay  1
-  1           · · Store    1  (1)
+  1           · · Store    1
   1           · · · delay  1
   Run 1 returned 2 at 3.
   

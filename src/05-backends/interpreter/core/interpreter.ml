@@ -70,7 +70,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   (* The state holds each resource with the resource grade it was boxed at,
      interleaved with the resource grades that have passed; operations are
      graded by effect grades. The resource names, the continuations, the
-     accumulated grade and the calls serve the observations of steps. *)
+     accumulated grade and the depth of the calls serve the observations of steps. *)
   type evaluation_environment = {
     state : (Graded.rho * Graded.expression) ContextHolderModule.t;
     variables : Graded.expression ContextHolderModule.t;
@@ -80,7 +80,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     resource_names : string Ast.VariableMap.t;
     continuations : Ast.VariableSet.t;
     accumulated : GS.R.t;
-    calls : GS.R.t list;
+    calls : int;
     op_signatures : Graded.eps Ast.OpNameMap.t;
     op_defaults : Graded.abstraction Ast.OpNameMap.t;
   }
@@ -94,7 +94,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
       resource_names = Ast.VariableMap.empty;
       continuations = Ast.VariableSet.empty;
       accumulated = GS.R.one;
-      calls = [];
+      calls = 0;
       op_signatures = Ast.OpNameMap.empty;
       op_defaults = Ast.OpNameMap.empty;
     }
@@ -620,9 +620,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
             (* At the root, while a default implementation runs, the binding
                of its result ends the innermost call. *)
             let env' =
-              match (frames, env'.calls) with
-              | [], _ :: calls -> { env' with calls }
-              | _, _ -> env'
+              match frames with
+              | [] when env'.calls > 0 -> { env' with calls = env'.calls - 1 }
+              | _ -> env'
             in
             [ (env', DoReturn, fun () -> substitute subst comp2') ]
         | Ast.Perform (op, expr, (pat, cont)) ->
@@ -640,19 +640,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let grade = GS.R.of_delay (delay q) in
         let rho = Ast.RhoConst (grade, None) in
         let env' =
-          match env.calls with
-          | [] ->
-              {
-                env with
-                state = ContextHolderModule.add_temp rho env.state;
-                accumulated = GS.R.mul env.accumulated grade;
-              }
-          | call :: calls ->
-              {
-                env with
-                state = ContextHolderModule.add_temp rho env.state;
-                calls = GS.R.mul call grade :: calls;
-              }
+          let env =
+            { env with state = ContextHolderModule.add_temp rho env.state }
+          in
+          if env.calls = 0 then
+            { env with accumulated = GS.R.mul env.accumulated grade }
+          else env
         in
         [ (env', Delay, fun () -> comp) ]
     | Ast.Box (rho, expr, (pat, body)) ->
@@ -922,10 +915,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let dpat', vars = refresh_pattern dpat in
         let dcomp' = refresh_computation vars dcomp in
         let subst = match_pattern_with_expression environment dpat' expr in
-        (* The grade of the signature of the call is added to the grade of
-           the default implementation performing it, if any, and otherwise to
-           the accumulated grade; the call's own default implementation starts
-           a grade of its own, the first of the calls. *)
+        (* The grade of the signature of the call is added to the accumulated
+           grade at the top level; a call inside a default implementation is
+           counted in the grade of that. *)
         let grade =
           Option.value ~default:GS.R.one
             (Option.bind
@@ -933,18 +925,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
                grade_of_eps)
         in
         let environment =
-          match environment.calls with
-          | [] ->
-              {
-                environment with
-                accumulated = GS.R.mul environment.accumulated grade;
-                calls = [ GS.R.one ];
-              }
-          | call :: calls ->
-              {
-                environment with
-                calls = GS.R.one :: GS.R.mul call grade :: calls;
-              }
+          {
+            environment with
+            accumulated =
+              (if environment.calls = 0 then
+                 GS.R.mul environment.accumulated grade
+               else environment.accumulated);
+            calls = environment.calls + 1;
+          }
         in
         [
           {
@@ -1055,10 +1043,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
                   (Ast.OpNameMap.find_opt op env.op_signatures);
             };
         ]
-    | ComputationReduction { redex = DoReturn; context = [] }, _ -> (
-        match env.calls with
-        | grade :: _ -> Resumed { grade = show grade } :: named
-        | [] -> named)
+    | ComputationReduction { redex = DoReturn; context = [] }, _ ->
+        if env.calls > 0 then Resumed :: named else named
     | Return, Some focus -> (
         match (returned_value env (computation focus)).it with
         | Ast.Return value ->

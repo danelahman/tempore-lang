@@ -1,7 +1,7 @@
 module IntMap = Map.Make (Int)
 
 type event =
-  | Call of { op : string; grade : string; performed : string option }
+  | Call of { op : string; grade : string; returned : bool }
   | Delay of { grade : string }
   | Box of { resource : string; name : string; grade : string }
   | Unbox of { resource : string; name : string; grade : string }
@@ -36,14 +36,13 @@ let add ~at event t =
 
 let record ~at event t = snd (add ~at event t)
 
-let resume grade t =
+let resume t =
   match t.running with
   | [] -> t
   | index :: running ->
       let close entry =
         match entry.event with
-        | Call call ->
-            { entry with event = Call { call with performed = Some grade } }
+        | Call call -> { entry with event = Call { call with returned = true } }
         | Delay _ | Box _ | Unbox _ -> entry
       in
       {
@@ -77,9 +76,9 @@ let observe (observation : Backend.observation) t =
   match observation with
   | Delayed { at; grade } -> record ~at (Delay { grade }) t
   | Performed { at; op; grade } ->
-      let index, t = add ~at (Call { op; grade; performed = None }) t in
+      let index, t = add ~at (Call { op; grade; returned = false }) t in
       { t with running = index :: t.running }
-  | Resumed { grade } -> resume grade t
+  | Resumed -> resume t
   | Boxed { at; resource; name; grade } ->
       record ~at (Box { resource; name; grade }) t
   | Unboxed { at; resource; name; grade } ->
@@ -94,8 +93,7 @@ let runs t = List.rev t.finished
 (* Reports *)
 
 type status = Plain | Pending
-type cell = { text : string; aside : string option }
-type row = { cells : cell list; status : status; depth : int }
+type row = { cells : string list; status : status; depth : int }
 
 type report = {
   title : string;
@@ -105,25 +103,22 @@ type report = {
 }
 
 let report ?run t =
-  let cell text = { text; aside = None } in
   let of_run index = Option.fold ~none:true ~some:(Int.equal index) run in
   let row (entry : entry) =
     let event, grade, status =
       match entry.event with
-      | Call { op; grade; performed } ->
-          ( op,
-            { text = grade; aside = performed },
-            if performed = None then Pending else Plain )
-      | Delay { grade } -> ("delay", cell grade, Plain)
-      | Box { name; grade; _ } -> ("box " ^ name, cell grade, Plain)
-      | Unbox { name; grade; _ } -> ("unbox " ^ name, cell grade, Plain)
+      | Call { op; grade; returned } ->
+          (op, grade, if returned then Plain else Pending)
+      | Delay { grade } -> ("delay", grade, Plain)
+      | Box { name; grade; _ } -> ("box " ^ name, grade, Plain)
+      | Unbox { name; grade; _ } -> ("unbox " ^ name, grade, Plain)
     in
     {
       cells =
         [
-          cell (string_of_int entry.run);
-          cell (if entry.depth = 0 then entry.start else "");
-          cell (String.concat "" (List.init entry.depth (fun _ -> "· ")) ^ event);
+          string_of_int entry.run;
+          (if entry.depth = 0 then entry.start else "");
+          String.concat "" (List.init entry.depth (fun _ -> "· ")) ^ event;
           grade;
         ];
       status;
@@ -163,16 +158,8 @@ let length s =
     (fun n c -> if Char.code c land 0xC0 = 0x80 then n else n + 1)
     0 s
 
-let text_of_cell cell =
-  match cell.aside with
-  | None -> cell.text
-  | Some aside -> cell.text ^ "  (" ^ aside ^ ")"
-
 let text report =
-  let lines =
-    report.columns
-    :: List.map (fun row -> List.map text_of_cell row.cells) report.rows
-  in
+  let lines = report.columns :: List.map (fun row -> row.cells) report.rows in
   let widths =
     List.fold_left
       (fun widths cells -> List.map2 max widths (List.map length cells))

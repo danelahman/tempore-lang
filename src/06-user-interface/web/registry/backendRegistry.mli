@@ -72,7 +72,7 @@ type compiler = {
 type event = Backend.observation =
   | Delayed of { at : string; grade : string }
   | Performed of { at : string; op : string; grade : string }
-  | Resumed of { grade : string }
+  | Resumed
   | Boxed of { at : string; resource : string; name : string; grade : string }
   | Unboxed of { at : string; resource : string; name : string; grade : string }
   | Named of { resource : string; name : string }
@@ -82,13 +82,8 @@ type event = Backend.observation =
 (** How a row of a report is marked. *)
 type status = Timeline.status = Plain | Pending
 
-type cell = Timeline.cell = {
-  text : string;
-  aside : string option;  (** a secondary value, shown de-emphasised *)
-}
-
 type row = Timeline.row = {
-  cells : cell list;
+  cells : string list;
   status : status;
   depth : int;  (** positive for the rows shown de-emphasised *)
 }

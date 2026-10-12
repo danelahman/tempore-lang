@@ -14,11 +14,9 @@ type observation =
   | Performed of { at : string; op : string; grade : string }
       (** a call of [op], unhandled, performed by its default implementation;
           [grade] is the resource grade of the effect grade of its signature *)
-  | Resumed of { grade : string }
+  | Resumed
       (** the default implementation of the innermost call still running has
-          returned to the continuation of the call, of the resource grade
-          [grade]: the product of its delays and of the declared grades of the
-          calls it has performed *)
+          returned to the continuation of the call *)
   | Boxed of { at : string; resource : string; name : string; grade : string }
       (** the resource [resource], named [name], has been boxed at the resource
           grade [grade] *)
@@ -64,7 +62,7 @@ module type S = sig
     resource_names : string Ast.VariableMap.t;
     continuations : Ast.VariableSet.t;
     accumulated : Grades.R.t;
-    calls : Grades.R.t list;
+    calls : int;
     op_signatures : Ast.Graded(Grades).eps Ast.OpNameMap.t;
     op_defaults : Ast.Graded(Grades).abstraction Ast.OpNameMap.t;
   }

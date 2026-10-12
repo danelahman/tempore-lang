@@ -46,7 +46,7 @@ type compiler = {
 type event = Backend.observation =
   | Delayed of { at : string; grade : string }
   | Performed of { at : string; op : string; grade : string }
-  | Resumed of { grade : string }
+  | Resumed
   | Boxed of { at : string; resource : string; name : string; grade : string }
   | Unboxed of { at : string; resource : string; name : string; grade : string }
   | Named of { resource : string; name : string }
@@ -54,8 +54,7 @@ type event = Backend.observation =
   | Stopped of { at : string; op : string }
 
 type status = Timeline.status = Plain | Pending
-type cell = Timeline.cell = { text : string; aside : string option }
-type row = Timeline.row = { cells : cell list; status : status; depth : int }
+type row = Timeline.row = { cells : string list; status : status; depth : int }
 
 type report = Timeline.report = {
   title : string;

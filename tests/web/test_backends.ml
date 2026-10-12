@@ -15,9 +15,8 @@ let verbose = Array.exists (( = ) "-v") Sys.argv
 let show_entry (e : Timeline.entry) =
   let event =
     match e.event with
-    | Call { op; grade; performed } ->
-        Printf.sprintf "%s %s %s" op grade
-          (Option.fold ~none:"-" ~some:(fun g -> "(" ^ g ^ ")") performed)
+    | Call { op; grade; returned } ->
+        Printf.sprintf "%s %s %s" op grade (if returned then "+" else "-")
     | Delay { grade } -> "delay " ^ grade
     | Box { name; grade; _ } -> Printf.sprintf "box %s %s" name grade
     | Unbox { name; grade; _ } -> Printf.sprintf "unbox %s %s" name grade
@@ -37,7 +36,7 @@ let () =
         Delayed { at = "0"; grade = "2" };
         Performed { at = "0"; op = "B"; grade = "2" };
         Delayed { at = "0"; grade = "1" };
-        Resumed { grade = "1" };
+        Resumed;
         Boxed
           {
             at = "0";
@@ -45,7 +44,7 @@ let () =
             name = "resource_0";
             grade = "3";
           };
-        Resumed { grade = "4" };
+        Resumed;
         Unboxed
           {
             at = "5";
@@ -63,9 +62,9 @@ let () =
   if
     entries
     <> [
-         "1 0 0 A 5 (4)";
+         "1 0 0 A 5 +";
          "1 1 0 delay 2";
-         "1 1 0 B 2 (1)";
+         "1 1 0 B 2 +";
          "1 2 0 delay 1";
          "1 1 0 box x 3";
          "1 0 5 unbox x 3";
@@ -80,13 +79,7 @@ let () =
       ()
   | _ -> fail "timeline: the runs ended");
   let report = Timeline.report t in
-  let cells (row : Timeline.row) =
-    String.concat " | "
-      (List.map
-         (fun (c : Timeline.cell) ->
-           c.text ^ Option.fold ~none:"" ~some:(fun a -> " (" ^ a ^ ")") c.aside)
-         row.cells)
-  in
+  let cells (row : Timeline.row) = String.concat " | " row.cells in
   let rows =
     List.map
       (fun (row : Timeline.row) ->
@@ -97,9 +90,9 @@ let () =
   if
     rows
     <> [
-         "1 | 0 | A | 5 (4) 0 plain";
+         "1 | 0 | A | 5 0 plain";
          "1 |  | · delay | 2 1 plain";
-         "1 |  | · B | 2 (1) 1 plain";
+         "1 |  | · B | 2 1 plain";
          "1 |  | · · delay | 1 2 plain";
          "1 |  | · box x | 3 1 plain";
          "1 | 5 | unbox x | 3 0 plain";
@@ -112,9 +105,9 @@ let () =
       [
         "Timeline";
         "Run  Start  Event      Grade";
-        "1    0      A          5  (4)";
+        "1    0      A          5";
         "1           · delay    2";
-        "1           · B        2  (1)";
+        "1           · B        2";
         "1           · · delay  1";
         "1           · box x    3";
         "1    5      unbox x    3";
@@ -151,19 +144,7 @@ let () =
         Some (observer.expanded, Lazy.force observer.report)
   in
   let delay_row : BackendRegistry.row list -> bool = function
-    | [
-        {
-          cells =
-            [
-              { text = "1"; _ };
-              { text = "0"; _ };
-              { text = "delay"; _ };
-              { text = "2"; aside = None };
-            ];
-          depth = 0;
-          status = Plain;
-        };
-      ] ->
+    | [ { cells = [ "1"; "0"; "delay"; "2" ]; depth = 0; status = Plain } ] ->
         true
     | _ -> false
   in
@@ -187,12 +168,7 @@ let root = Filename.concat (Sys.getcwd ()) "../.."
 let read path =
   In_channel.with_open_text (Filename.concat root path) In_channel.input_all
 
-let text_of_row (row : BackendRegistry.row) =
-  String.concat " | "
-    (List.map
-       (fun (c : BackendRegistry.cell) ->
-         c.text ^ Option.fold ~none:"" ~some:(fun a -> " (" ^ a ^ ")") c.aside)
-       row.cells)
+let text_of_row (row : BackendRegistry.row) = String.concat " | " row.cells
 
 let run_example (entry : Manifest.entry) =
   match List.assoc_opt entry.grade Grades.GradeRegistry.grade_modules with
@@ -240,8 +216,8 @@ let run_example (entry : Manifest.entry) =
             List.iter
               (fun (row : BackendRegistry.row) ->
                 match (row.status, row.cells) with
-                | Plain, [ _; start; _; { text = grade; _ } ]
-                  when grade <> "" && start.text = "" = (row.depth > 0) ->
+                | Plain, [ _; start; _; grade ]
+                  when grade <> "" && start = "" = (row.depth > 0) ->
                     ()
                 | _ -> fail "%s: %s" entry.path (text_of_row row))
               report.rows;
@@ -348,20 +324,20 @@ let () =
   let t = timeline (observations "time-interval" nested) in
   check_entries "nested" t
     [
-      "1 0 [0, 0] Outer [2, 4] ([3, 4])";
+      "1 0 [0, 0] Outer [2, 4] +";
       "1 1 [0, 0] delay [1, 1]";
-      "1 1 [0, 0] Inner [1, 2] ([1, 1])";
+      "1 1 [0, 0] Inner [1, 2] +";
       "1 2 [0, 0] delay [1, 1]";
       "1 1 [0, 0] delay [1, 1]";
       "1 0 [2, 4] delay [5, 5]";
-      "1 0 [7, 9] Outer [2, 4] ([3, 4])";
+      "1 0 [7, 9] Outer [2, 4] +";
       "1 1 [7, 9] delay [1, 1]";
-      "1 1 [7, 9] Inner [1, 2] ([1, 1])";
+      "1 1 [7, 9] Inner [1, 2] +";
       "1 2 [7, 9] delay [1, 1]";
       "1 1 [7, 9] delay [1, 1]";
-      "2 0 [0, 0] Outer [2, 4] ([3, 4])";
+      "2 0 [0, 0] Outer [2, 4] +";
       "2 1 [0, 0] delay [1, 1]";
-      "2 1 [0, 0] Inner [1, 2] ([1, 1])";
+      "2 1 [0, 0] Inner [1, 2] +";
       "2 2 [0, 0] delay [1, 1]";
       "2 1 [0, 0] delay [1, 1]";
     ];
@@ -395,12 +371,12 @@ let () =
       if
         rows
         <> [
-             "1 | 0 | Ask | 3 (3) 0";
+             "1 | 0 | Ask | 3 0";
              "1 |  | · delay | 1 1";
-             "1 |  | · Load | 2 (2) 1";
-             "1 |  | · · Store | 1 (1) 2";
+             "1 |  | · Load | 2 1";
+             "1 |  | · · Store | 1 2";
              "1 |  | · · · delay | 1 3";
-             "1 |  | · · Store | 1 (1) 2";
+             "1 |  | · · Store | 1 2";
              "1 |  | · · · delay | 1 3";
              "2 | 0 | delay | 1 0";
            ]
@@ -492,7 +468,7 @@ let () =
         "1    [0, 0]  box p    [3, 5]";
         "1    [0, 0]  delay    [1, 1]";
         "1    [1, 1]  box q    [2, 3]";
-        "1    [1, 1]  Op       [2, 3]  ([2, 2])";
+        "1    [1, 1]  Op       [2, 3]";
         "1            · delay  [2, 2]";
         "1    [3, 4]  unbox q  [2, 3]";
         "1    [3, 4]  box b    [0, 0]";

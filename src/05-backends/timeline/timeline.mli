@@ -10,11 +10,10 @@
 
 (** What an entry records. *)
 type event =
-  | Call of { op : string; grade : string; performed : string option }
-      (** a call of [op] of the declared resource grade [grade]; [performed] is
-          the grade of its default implementation, the product of its delays and
-          of the declared grades of the calls it performs, once it has returned
-          to the continuation of the call *)
+  | Call of { op : string; grade : string; returned : bool }
+      (** a call of [op] of the declared resource grade [grade]; [returned]
+          holds once its default implementation has returned to the continuation
+          of the call *)
   | Delay of { grade : string }  (** a delay of the resource grade [grade] *)
   | Box of { resource : string; name : string; grade : string }
       (** the resource [resource] (its name in the state), named [name], boxed
@@ -53,10 +52,9 @@ val empty : t
 val observe : Backend.observation -> t -> t
 (** [observe observation t] records [observation] in [t]: a delay, call, box or
     unbox as an entry at the current depth; the return of the innermost call
-    still running with the grade of its default implementation; the name given
-    to a resource, in the boxes and unboxes of the current run; or the end of
-    the current run, leaving the calls still running unfinished, the next run
-    following it. *)
+    still running; the name given to a resource, in the boxes and unboxes of the
+    current run; or the end of the current run, leaving the calls still running
+    unfinished, the next run following it. *)
 
 val entries : t -> entry list
 (** [entries t] is the entries of [t], in order. *)
@@ -71,14 +69,8 @@ type status =
   | Plain
   | Pending  (** a call whose default implementation has not returned *)
 
-type cell = {
-  text : string;
-  aside : string option;  (** a secondary value, shown de-emphasised *)
-}
-(** A cell of a report. *)
-
 type row = {
-  cells : cell list;
+  cells : string list;
   status : status;
   depth : int;
       (** the depth of its entry; a row of positive depth belongs to the default
@@ -106,12 +98,12 @@ val report : ?run:int -> t -> report
       the call at depth 0 they belong to.
     - [Event] is the operation called, [delay], [box x] or [unbox x], preceded
       by a mark [· ] per level of depth.
-    - [Grade] is the declared grade of a call, with the grade of its default
-      implementation as its aside once that has returned (the row pending until
-      then), the grade of a delay, or the box grade of a box or unbox. *)
+    - [Grade] is the declared grade of a call (the row pending until its default
+      implementation has returned), the grade of a delay, or the box grade of a
+      box or unbox. *)
 
 val text : report -> string
 (** [text report] is [report] as plain text: its title, then a line for the
     headings of the columns and a line per row, each cell padded to the widest
-    of its column and the cells separated by two spaces, then a line per note. A
-    cell with an aside [a] reads [text  (a)]. *)
+    of its column and the cells separated by two spaces, then a line per note.
+*)

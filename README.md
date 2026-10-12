@@ -114,8 +114,7 @@ the protocol compiled from the program once it typechecks.
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
 title under Interpreter and unfolded under Opentrons; the events inside default
-implementations, and the grade of a default implementation beside the grade of
-its operation, are greyed.
+implementations are greyed.
 
 ## Temporal resources
 
@@ -1148,11 +1147,9 @@ The timeline of a run lists, in grades, what reaches its top level: the delays,
 the calls of operations that no handler handles and that are performed by their
 default implementations, and the resources boxed and unboxed, by the name of the
 variable they are bound to. Each row has a grade: that of a delay, the declared
-grade of an operation, or the grade a resource is boxed at; an operation is
-followed, in brackets, by the grade of what its default implementation did, the
-product of its delays and of the declared grades of the operations it performs.
-The events of a default implementation, the operations it performs among them,
-are listed below its operation, indented by `·`. Each row at the top level
+grade of an operation, or the grade a resource is boxed at. The events of a
+default implementation, the operations it performs among them, are listed below
+its operation, indented by `·`. Each row at the top level
 starts at the grade accumulated before it, the product of the grades of the
 rows at the top level above it. Operations handled by handlers, and their
 continuations, are not listed; the steps of a handler's case are listed as they
@@ -1168,12 +1165,12 @@ prints
     Run  Start       Event          Grade
     1    [0, 0]      delay          [0.1, 0.1]
     1    [0.1, 0.1]  box reading    [5, 10)
-    1    [0.1, 0.1]  Compute        [6, 8]  ([7, 7])
+    1    [0.1, 0.1]  Compute        [6, 8]
     1                · delay        [7, 7]
     1    [6.1, 8.1]  unbox reading  [5, 10)
-    1    [6.1, 8.1]  AngleOf        (0, 1]  ([0.5, 0.5])
+    1    [6.1, 8.1]  AngleOf        (0, 1]
     1                · delay        [0.5, 0.5]
-    1    (6.1, 9.1]  SetAngle       (1, 2)  ([1.5, 1.5])
+    1    (6.1, 9.1]  SetAngle       (1, 2)
     1                · delay        [1.5, 1.5]
     Run 1 returned () at (7.1, 11.1).
 
