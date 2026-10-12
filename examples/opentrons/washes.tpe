@@ -14,9 +14,10 @@
    nextera-flex-library-prep-post-tag-cleanup (washes on the magnet, beads
    not to be overdried).
 
-   The protocols are at
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/kapa-amp-cleanup
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/nextera-flex-library-prep-post-tag-cleanup
+   The protocols are in
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/
+       - kapa-amp-cleanup
+       - nextera-flex-library-prep-post-tag-cleanup
 
    A tick is a minute. The protocol for the Flex, with the operations
    performed by the functions of 'washes_bindings.py', is written by

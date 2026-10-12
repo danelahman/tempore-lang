@@ -13,9 +13,10 @@
    illumina-nextera-XT-library-prep-part1 (a tagmentation whose reagents are
    used promptly) and 6a93a2-part2 (a reagent kept within a time window).
 
-   The protocols are at
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/illumina-nextera-XT-library-prep-part1
-     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/6a93a2-part2
+   The protocols are in
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49/protocols/
+       - illumina-nextera-XT-library-prep-part1
+       - 6a93a2-part2
 
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'reagents_bindings.py', is
