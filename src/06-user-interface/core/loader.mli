@@ -117,6 +117,10 @@ module Loader (Backend : Backend.S) : sig
             the bounds of its running time, if any: those it declares, or else
             those its grade implies ({!Grades.Grade.S.duration_bounds}); the
             upper end may be infinite *)
+    running_times : Grades.Grade.bounds;
+        (** the running times of these operations, under which the typechecker
+            orders the grades of the program: the bounds of each operation with
+            finite bounds, and the names of those that declare them *)
     compound_operations : Language.Ast.operation list;
         (** the operations the accepted commands declare whose grade is not that
             of an atomic operation ({!Grades.Grade.S.is_atomic}), in order *)

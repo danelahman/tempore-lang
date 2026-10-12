@@ -75,13 +75,20 @@ type event = Backend.observation =
   | Resumed
   | Returned of string
   | Stopped of string
+  | Boxed of { name : string; grade : string }
+  | Unboxed of {
+      name : string;
+      box_grade : string;
+      accumulated : string;
+      within : bool;
+    }
 
 (** How a row of a report is marked. *)
-type status = Plain | Good | Bad | Pending
+type status = Timeline.status = Plain | Good | Bad | Pending
 
-type row = { cells : string list; status : status }
+type row = Timeline.row = { cells : string list; status : status }
 
-type report = {
+type report = Timeline.report = {
   title : string;
   columns : string list;  (** the headings of the columns of the rows *)
   rows : row list;
@@ -113,9 +120,9 @@ val opentrons : entry
     the binding file, the robot, the time unit and the monitor policy. Without a
     binding file the program compiles to a plain Python program
     ({!OpentronsBackend.OpentronsEmit.plain_program}). The operation model is
-    the timeline of the run ({!OpentronsBackend.OpentronsTimeline}): its calls,
-    with the verdicts of the monitors of the running-time bounds, and its
-    delays. *)
+    the timeline of the run ({!Timeline}): its calls, with the verdicts of the
+    monitors of the running-time bounds ({!OpentronsBackend.OpentronsTimeline}),
+    its delays, and its boxes and unboxes. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)

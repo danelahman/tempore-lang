@@ -74,40 +74,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | { current = None; _ } -> true
     | { current = Some _; _ } -> false
 
-  (* A default implementation runs in place of the call, at the root of the
-     computation, followed by the continuation of the call; it has returned to
-     the continuation when a [return] is bound at the root. A call it makes
-     moves the continuation into its own, so the binding at the root is always
-     that of the innermost call still running. *)
-  let observe (run_state : run_state) (label : step_label) :
-      Backend.observation option =
-    match (label, run_state) with
-    | ( ComputationReduction { redex = Delay; _ },
-        { current = Some { subject = { it = Ast.Delay (q, _); _ }; _ }; _ } ) ->
-        Some (Delayed q)
-    | ( ComputationReduction { redex = DefaultOp; _ },
-        {
-          current = Some { subject = { it = Ast.Perform (op, _, _); _ }; _ };
-          _;
-        } ) ->
-        Some (Performed (Ast.OpName.string_of op))
-    | ComputationReduction { redex = DoReturn; context = [] }, _ -> Some Resumed
-    | Return, { current = Some focus; environment; _ } -> (
-        match (returned_value environment (computation focus)).it with
-        | Ast.Return value ->
-            Some
-              (Returned
-                 (Format.asprintf "%t"
-                    (PrettyPrint.print_expression (module GS.R) value)))
-        | _ -> None)
-    | ( Unhandled,
-        {
-          current = Some { subject = { it = Ast.Perform (op, _, _); _ }; _ };
-          _;
-        } ) ->
-        Some (Stopped (Ast.OpName.string_of op))
-    | _ -> None
-
   let view_run_state (run_state : run_state) step_label =
     match run_state with
     | { environment; current = Some focus; _ } ->

@@ -76,6 +76,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     builtin_functions :
       (Graded.expression -> Graded.computation) ContextHolderModule.t;
     resource_counter : int;
+    resource_names : string Ast.VariableMap.t;
     op_signatures : Graded.eps Ast.OpNameMap.t;
     op_defaults : Graded.abstraction Ast.OpNameMap.t;
   }
@@ -86,6 +87,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
       variables = ContextHolderModule.empty;
       builtin_functions = ContextHolderModule.empty;
       resource_counter = 0;
+      resource_names = Ast.VariableMap.empty;
       op_signatures = Ast.OpNameMap.empty;
       op_defaults = Ast.OpNameMap.empty;
     }
@@ -98,6 +100,23 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map c, at)
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
     | Ast.EpsVar e -> Ast.RhoImage e
+
+  (* The grade of a resource grade expression without grade variables, as the
+     grades of [box] and of the delays and the operation signatures are. *)
+  let rec grade_of_rho = function
+    | Ast.RhoConst (c, _) -> c
+    | Ast.RhoAdd (rho, rho') -> GS.R.mul (grade_of_rho rho) (grade_of_rho rho')
+    | Ast.RhoVar _ | Ast.RhoImage _ ->
+        invalid_arg "Interpreter.grade_of_rho: a grade variable"
+
+  let accumulated_since x state =
+    let rec product acc = function
+      | [] -> invalid_arg "Interpreter.accumulated_since: an unbound resource"
+      | Ast.VarMap map :: rest ->
+          if Ast.VariableMap.mem x map then acc else product acc rest
+      | Ast.Rho rho :: rest -> product (GS.R.mul (grade_of_rho rho) acc) rest
+    in
+    Ast.RhoConst (product GS.R.one state, None)
 
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with
@@ -492,12 +511,69 @@ module Make (GS : Grades.GradeSystem.S) = struct
         { frames; subject = plug frame comp }
     | _ -> { frames; subject = comp }
 
-  (* The reductions of the computation [comp] at its top, each with the
-     environment after it, the redex and the contractum. A [do] or a [handle]
-     reduces at its top only when its body is terminal. Every computation the
-     interpreter builds is a contraction of the redex it is reducing, so it is
-     reported at the redex's span. *)
-  let contract env (comp : _ Ast.computation) =
+  (* The variable bound by the pattern [pat], if it is one. *)
+  let rec bound_variable (pat : _ Ast.pattern) =
+    match pat.it with
+    | Ast.PVar x -> Some x
+    | Ast.PAnnotated (pat', _) -> bound_variable pat'
+    | _ -> None
+
+  let source_variable pat =
+    Option.bind (bound_variable pat) (fun x ->
+        if Ast.Variable.is_synthetic x then None
+        else Some (Ast.Variable.string_of x))
+
+  (* The source variable to which the value bound to [x] in [body], in the
+     context [frames], is bound in turn, through the synthetic variables that
+     pass it on unchanged: [body] returns [x], so that the innermost [do] of
+     [frames] binds it, or [body] binds [x] by a [do] at its top. *)
+  let rec bound_name x (body : _ Ast.computation) frames =
+    match body.it with
+    | Ast.Return { it = Ast.Var y; _ } when Ast.Variable.equal x y -> (
+        match frames with
+        | DoFrame (_, (pat, body')) :: frames' -> pattern_name pat body' frames'
+        | HandleFrame _ :: _ | [] -> None)
+    | Ast.Do ({ it = Ast.Return { it = Ast.Var y; _ }; _ }, (pat, body'))
+      when Ast.Variable.equal x y ->
+        pattern_name pat body' frames
+    | _ -> None
+
+  (* The source variable to which the pattern [pat], binding in [body] in the
+     context [frames], binds a value, directly or as {!bound_name} follows it. *)
+  and pattern_name pat body frames =
+    match bound_variable pat with
+    | Some x when not (Ast.Variable.is_synthetic x) ->
+        Some (Ast.Variable.string_of x)
+    | Some x -> bound_name x body frames
+    | None -> None
+
+  (* The name of the resource a [box] in the context [frames] binds by [pat] in
+     [body]: the name given to its variable by the handling of an operation, or
+     the source variable to which the resource is bound ({!pattern_name}), or
+     else the name of the resource in the state. *)
+  let box_name env frames pat body =
+    match
+      Option.bind (bound_variable pat) (fun x ->
+          Ast.VariableMap.find_opt x env.resource_names)
+    with
+    | Some name -> name
+    | None ->
+        Option.value
+          (pattern_name pat body frames)
+          ~default:("resource_" ^ string_of_int env.resource_counter)
+
+  (* The name of the continuation of a call of [op] handled by a case binding
+     it to the pattern [pat]. *)
+  let continuation_name op pat =
+    Option.value (source_variable pat) ~default:"continuation"
+    ^ " of " ^ Ast.OpName.string_of op
+
+  (* The reductions of the computation [comp] at its top, in the context
+     [frames], each with the environment after it, the redex and the
+     contractum. A [do] or a [handle] reduces at its top only when its body is
+     terminal. Every computation the interpreter builds is a contraction of the
+     redex it is reducing, so it is reported at the redex's span. *)
+  let contract env frames (comp : _ Ast.computation) =
     let at = comp.at in
     match comp.it with
     | Ast.Return _ -> []
@@ -560,6 +636,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
                   env with
                   state = state';
                   resource_counter = resource_counter + 1;
+                  resource_names =
+                    Ast.VariableMap.add x'
+                      (box_name env frames pat body)
+                      env.resource_names;
                 }
               in
               [ (env', Box, fun () -> refresh_computation [ (x, x') ] body) ]
@@ -606,7 +686,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
                         ("resource_" ^ string_of_int resource_counter)
                     in
                     let env' =
-                      { env with resource_counter = resource_counter + 1 }
+                      {
+                        env with
+                        resource_counter = resource_counter + 1;
+                        resource_names =
+                          Ast.VariableMap.add x
+                            (continuation_name op op_cont_pat)
+                            env.resource_names;
+                      }
                     in
                     let arg_subst =
                       match_pattern_with_expression env' op_arg_pat expr
@@ -833,5 +920,86 @@ module Make (GS : Grades.GradeSystem.S) = struct
                     pending;
                   });
             })
-          (contract environment subject)
+          (contract environment frames subject)
+
+  (* A default implementation runs in place of the call, at the root of the
+     computation, followed by the continuation of the call; it has returned to
+     the continuation when a [return] is bound at the root. A call it makes
+     moves the continuation into its own, so the binding at the root is always
+     that of the innermost call still running. *)
+  let observe ~bounds (run_state : run_state) (label : step_label) :
+      Backend.observation option =
+    let show_rho rho =
+      Format.asprintf "%t" (PrettyPrint.print_rho (module GS.R) rho)
+    in
+    match (label, run_state) with
+    | ( ComputationReduction { redex = Delay; _ },
+        { current = Some { subject = { it = Ast.Delay (q, _); _ }; _ }; _ } ) ->
+        Some (Delayed q)
+    | ( ComputationReduction { redex = Box; context },
+        {
+          current =
+            Some { subject = { it = Ast.Box (rho, _, (pat, body)); _ }; _ };
+          environment;
+          _;
+        } ) ->
+        Some
+          (Backend.Boxed
+             {
+               name = box_name environment context pat body;
+               grade = show_rho rho;
+             })
+    | ( ComputationReduction { redex = Unbox; _ },
+        {
+          current = Some { subject = { it = Ast.Unbox (expr, _); _ }; _ };
+          environment;
+          _;
+        } ) ->
+        let rec resource (expr : _ Ast.expression) =
+          match expr.it with
+          | Ast.Var x -> Some x
+          | Ast.Annotated (expr', _) -> resource expr'
+          | _ -> None
+        in
+        Option.map
+          (fun x ->
+            let box_grade, _ =
+              ContextHolderModule.find_variable x environment.state
+            in
+            let accumulated = accumulated_since x environment.state in
+            Backend.Unboxed
+              {
+                name =
+                  Option.value
+                    (Ast.VariableMap.find_opt x environment.resource_names)
+                    ~default:(Ast.Variable.string_of x);
+                box_grade = show_rho box_grade;
+                accumulated = show_rho accumulated;
+                within =
+                  GS.R.leq bounds (grade_of_rho accumulated)
+                    (grade_of_rho box_grade);
+              })
+          (resource expr)
+    | ( ComputationReduction { redex = DefaultOp; _ },
+        {
+          current = Some { subject = { it = Ast.Perform (op, _, _); _ }; _ };
+          _;
+        } ) ->
+        Some (Performed (Ast.OpName.string_of op))
+    | ComputationReduction { redex = DoReturn; context = [] }, _ -> Some Resumed
+    | Return, { current = Some focus; environment; _ } -> (
+        match (returned_value environment (computation focus)).it with
+        | Ast.Return value ->
+            Some
+              (Returned
+                 (Format.asprintf "%t"
+                    (PrettyPrint.print_expression (module GS.R) value)))
+        | _ -> None)
+    | ( Unhandled,
+        {
+          current = Some { subject = { it = Ast.Perform (op, _, _); _ }; _ };
+          _;
+        } ) ->
+        Some (Stopped (Ast.OpName.string_of op))
+    | _ -> None
 end

@@ -6,7 +6,13 @@ module type S = sig
   val is_end_of_run_label : step_label -> bool
   val is_done : run_state -> bool
 
-  val observe : run_state -> step_label -> Backend.observation option
-  (** [observe state label] is what the step labelled [label] from [state] shows
-      of the operations performed and the time passed, if anything. *)
+  val observe :
+    bounds:Backend.bounds ->
+    run_state ->
+    step_label ->
+    Backend.observation option
+  (** [observe ~bounds state label] is what the step labelled [label] from
+      [state] shows of the operations performed, the time passed and the
+      resources boxed and unboxed, if anything, the resource grades ordered
+      under the running times [bounds]. *)
 end

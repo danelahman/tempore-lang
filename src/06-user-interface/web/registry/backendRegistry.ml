@@ -2,7 +2,7 @@ module Rational = Grades.Rational
 module Grade = Grades.Grade
 module Protocol = OpentronsBackend.OpentronsProtocol
 module Emit = OpentronsBackend.OpentronsEmit
-module Timeline = OpentronsBackend.OpentronsTimeline
+module Monitors = OpentronsBackend.OpentronsTimeline
 
 type input_kind = Text | Choice of string list
 
@@ -50,11 +50,18 @@ type event = Backend.observation =
   | Resumed
   | Returned of string
   | Stopped of string
+  | Boxed of { name : string; grade : string }
+  | Unboxed of {
+      name : string;
+      box_grade : string;
+      accumulated : string;
+      within : bool;
+    }
 
-type status = Plain | Good | Bad | Pending
-type row = { cells : string list; status : status }
+type status = Timeline.status = Plain | Good | Bad | Pending
+type row = Timeline.row = { cells : string list; status : status }
 
-type report = {
+type report = Timeline.report = {
   title : string;
   columns : string list;
   rows : row list;
@@ -169,88 +176,6 @@ let opentrons_compile settings ~operations ~compound commands =
           messages = List.map (fun text -> { severity = Error; text }) errors;
         }
 
-(* Running-time bounds as the source writes them. *)
-let show_bounds ((lo, hi) : Grade.running_time) =
-  let lower =
-    match lo with
-    | Closed q -> "[" ^ Rational.show q
-    | Open q -> "(" ^ Rational.show q
-    | Unbounded -> "(-∞"
-  and upper =
-    match hi with
-    | Closed q -> Rational.show q ^ "]"
-    | Open q -> Rational.show q ^ ")"
-    | Unbounded -> "∞)"
-  in
-  lower ^ ", " ^ upper
-
-(* The report of a timeline, its times in the unit [symbol]: a row per call,
-   indented by its depth, a row per delay recorded, and a note per run ended
-   and on the clock. *)
-let timeline_report ~bounds ~symbol timeline =
-  let time q = Rational.show q ^ " " ^ symbol in
-  let call_row (call : Timeline.call) =
-    let declared = bounds call.op in
-    let verdict = Timeline.verdict declared call in
-    {
-      cells =
-        [
-          string_of_int call.run;
-          time call.start;
-          String.concat "" (List.init call.depth (fun _ -> "· ")) ^ call.op;
-          Option.fold ~none:"running" ~some:time call.elapsed;
-          Option.fold ~none:"none" ~some:show_bounds declared;
-          (match verdict with
-          | Within -> "within"
-          | Outside -> "outside"
-          | Unchecked -> "not monitored"
-          | Unfinished -> "unfinished");
-        ];
-      status =
-        (match verdict with
-        | Within -> Good
-        | Outside -> Bad
-        | Unchecked -> Plain
-        | Unfinished -> Pending);
-    }
-  in
-  let delay_row (wait : Timeline.wait) =
-    {
-      cells =
-        [
-          string_of_int wait.run;
-          time wait.start;
-          "delay";
-          time wait.duration;
-          "—";
-          "—";
-        ];
-      status = Plain;
-    }
-  in
-  let row = function
-    | Timeline.Call call -> call_row call
-    | Timeline.Delay wait -> delay_row wait
-  in
-  let note (run : Timeline.finished) =
-    match run.outcome with
-    | Returned value ->
-        Printf.sprintf "Run %d returned %s at %s." run.index value (time run.at)
-    | Stopped op ->
-        Printf.sprintf
-          "Run %d ended at %s at a call of %s, which has neither a handler nor \
-           a default implementation."
-          run.index (time run.at) op
-  in
-  {
-    title = "Timeline";
-    columns = [ "Run"; "Start"; "Operation"; "Time"; "Bounds"; "Monitor" ];
-    rows = List.map row (Timeline.entries timeline);
-    notes =
-      List.map note (Timeline.runs timeline)
-      @ [ "Clock: " ^ time (Timeline.clock timeline) ^ "." ];
-  }
-
 let opentrons_observer settings operations =
   let bounds op =
     List.find_map
@@ -261,16 +186,12 @@ let opentrons_observer settings operations =
   and symbol = snd (time_unit settings) in
   let rec observer timeline =
     {
-      observe =
-        (fun event ->
-          observer
-            (match event with
-            | Delayed q -> Timeline.delay q timeline
-            | Performed op -> Timeline.perform op timeline
-            | Resumed -> Timeline.resume timeline
-            | Returned value -> Timeline.finish (Returned value) timeline
-            | Stopped op -> Timeline.finish (Stopped op) timeline));
-      report = lazy (timeline_report ~bounds ~symbol timeline);
+      observe = (fun event -> observer (Timeline.observe event timeline));
+      report =
+        lazy
+          (Timeline.report
+             ~verdict:(fun call -> Monitors.verdict (bounds call.op) call)
+             ~time_unit:symbol timeline);
     }
   in
   observer Timeline.empty

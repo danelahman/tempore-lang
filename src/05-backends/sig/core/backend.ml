@@ -1,8 +1,8 @@
 module Ast = Language.Ast
 module Primitives = Language.Primitives
 
-(** What a step of an interpreter run shows of the operations performed and the
-    time passed, for models of the operations of runs. *)
+(** What a step of an interpreter run shows of the operations performed, the
+    time passed and the resources boxed and unboxed, for models of runs. *)
 type observation =
   | Delayed of Grades.Rational.t  (** a delay of the given duration *)
   | Performed of string
@@ -15,6 +15,23 @@ type observation =
   | Stopped of string
       (** the run has ended at a call of the operation, which has neither a
           handler nor a default implementation *)
+  | Boxed of { name : string; grade : string }
+      (** a resource named [name] has been boxed at the resource grade printed
+          [grade] *)
+  | Unboxed of {
+      name : string;
+      box_grade : string;
+      accumulated : string;
+      within : bool;
+    }
+      (** the resource named [name], boxed at the resource grade printed
+          [box_grade], has been unboxed after the resource grade printed
+          [accumulated] has accumulated since; [within] is whether the latter is
+          below the former *)
+
+type bounds = Grades.Grade.bounds
+(** The running times of the operations of a program, under which its resource
+    grades are ordered. *)
 
 module type S = sig
   module Grades : Grades.GradeSystem.S
@@ -44,6 +61,7 @@ module type S = sig
       Ast.context_elem_ty
       list;
     resource_counter : int;
+    resource_names : string Ast.VariableMap.t;
     op_signatures : Ast.Graded(Grades).eps Ast.OpNameMap.t;
     op_defaults : Ast.Graded(Grades).abstraction Ast.OpNameMap.t;
   }

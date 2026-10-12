@@ -235,6 +235,10 @@ module Loader (Backend : Backend.S) = struct
         (** the operations the accepted commands declare, in order, each with
             the bounds of its running time, if any: those it declares, or else
             those its grade implies ({!Grades.Grade.S.duration_bounds}) *)
+    running_times : Grades.Grade.bounds;
+        (** the running times of these operations, under which the typechecker
+            orders the grades of the program: the bounds of each operation with
+            finite bounds, and the names of those that declare them *)
     compound_operations : Ast.operation list;
         (** the operations the accepted commands declare whose grade is not that
             of an atomic operation ({!Grades.Grade.S.is_atomic}), in order *)
@@ -245,7 +249,7 @@ module Loader (Backend : Backend.S) = struct
      those it declares, or else those its grade implies
      ({!Grades.Grade.S.duration_bounds}), read over the declared ones and those
      of the operations before it with finite bounds, as the typechecker reads
-     them. *)
+     them, and the running times under which the typechecker orders grades. *)
   let operations_of cmds =
     let signatures =
       List.filter_map
@@ -283,7 +287,12 @@ module Loader (Backend : Backend.S) = struct
       in
       (known, (op, bounds) :: acc)
     in
-    List.rev (snd (List.fold_left step (declared, []) signatures))
+    let known, acc = List.fold_left step (declared, []) signatures in
+    ( List.rev acc,
+      {
+        Grades.Grade.running_time = (fun name -> List.assoc name known);
+        operations;
+      } )
 
   (* The operations [cmds] declare whose grade is a literal that is not that
      of an atomic operation. *)
@@ -333,6 +342,7 @@ module Loader (Backend : Backend.S) = struct
         (library, [], [], [], library_commands)
         sources
     in
+    let operations, running_times = operations_of commands in
     {
       library;
       library_definitions;
@@ -341,7 +351,8 @@ module Loader (Backend : Backend.S) = struct
       definitions;
       links;
       commands;
-      operations = operations_of commands;
+      operations;
+      running_times;
       compound_operations = compound_operations_of commands;
     }
 end
