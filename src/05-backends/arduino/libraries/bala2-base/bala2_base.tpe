@@ -13,15 +13,20 @@
    window, 200 ms unless the build flag BALA2_WATCHDOG_MS sets it, and in the
    safe state of the device.
 
-   PROVISIONAL: the bounds of the running times are estimates for the bus at
-   400 kHz with the clock stretching of the STM32, to be measured on the
-   device. *)
+   PROVISIONAL: the bounds of the running times are estimates, to be
+   measured on the device. On the bus at 400 kHz a byte with its
+   acknowledgement takes 9 bit times, 22.5 microseconds. SetMotors writes 6
+   bytes (the address, the register and 4 bytes of data), 0.135 ms;
+   ReadEncoders writes 2 and reads 9 (the address and 8 bytes of data),
+   0.2475 ms; ResetEncoders writes 10, 0.225 ms. The upper bounds add about
+   0.35 ms for the driver, the lock of the bus and the clock stretching of
+   the STM32; the lower bounds are below the transfer times. *)
 
-operation SetMotors : float * float ~> unit # [0.05, 2]
+operation SetMotors : float * float ~> unit # [0.05, 0.5]
 default SetMotors _ = delay 1/5
 
-operation ReadEncoders : unit ~> float * float # [0.1, 2]
+operation ReadEncoders : unit ~> float * float # [0.1, 0.6]
 default ReadEncoders () = delay 1/4; (0.0, 0.0)
 
-operation ResetEncoders : unit ~> unit # [0.05, 2]
+operation ResetEncoders : unit ~> unit # [0.05, 0.5]
 default ResetEncoders () = delay 1/5

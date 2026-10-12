@@ -3,13 +3,18 @@
 // 2 seconds, as a harmonic oscillator integrated by the semi-implicit Euler
 // method, and wheels that turn at 20 radians per second times their drives.
 // The default world is defined weakly, so that the host model of an
-// application replaces it by defining world_start and world_advance.
+// application replaces it by defining world_start, world_advance and
+// world_finish.
 
 #include "tempore_world.h"
 
 #include <esp_timer.h>
 
+// Whether tempore_world_now has been called.
+static bool tempore_world_observed = false;
+
 tempore_world &tempore_world_now() {
+  tempore_world_observed = true;
   static tempore_world w = [] {
     tempore_world initial{};
     world_start(initial);
@@ -36,4 +41,10 @@ __attribute__((weak)) void world_advance(tempore_world &w, double dt) {
     w.wheel_rate[i] = 20 * w.drive[i];
     w.wheel[i] += w.wheel_rate[i] * dt;
   }
+}
+
+__attribute__((weak)) void world_finish(const tempore_world &) {}
+
+void tempore_world_finish() {
+  if (tempore_world_observed) world_finish(tempore_world_now());
 }

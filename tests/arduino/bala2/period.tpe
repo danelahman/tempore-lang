@@ -1,0 +1,15 @@
+(* A control step that shows the tilt on the display, longer than the period,
+   after balance.tpe. *)
+
+let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
+  let reading = perform ReadImu () in
+  box [0, 2] reading as fresh in
+  unbox fresh as imu in
+  let accel, gyro = imu in
+  let raw, _, _ = gyro in
+  let tilt =
+    complementary gyro_weight period tilt (tilt_x_of_accel accel) raw
+  in
+  perform ShowNumber tilt;
+  perform SetMotors (0.0, 0.0);
+  (tilt, speed, integral, position)

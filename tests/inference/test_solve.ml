@@ -55,6 +55,27 @@ let header_grades path =
   |> List.filteri (fun i _ -> i < 12)
   |> List.find_map (fun line -> grades_option (words line))
 
+(* The peripheral packages of the Arduino backend that a file names by
+   [--package NAME] options in the run command of its header, before its
+   "Grades" line, each with the file name and the text of its declarations,
+   which precede the file. *)
+let header_packages path =
+  let rec names = function
+    | "--package" :: name :: rest -> name :: names rest
+    | _ :: rest -> names rest
+    | [] -> []
+  in
+  In_channel.with_open_text path In_channel.input_lines
+  |> List.to_seq
+  |> Seq.take_while (fun line ->
+      not (String.starts_with ~prefix:"   Grades " line))
+  |> List.of_seq |> List.concat_map words |> names
+  |> List.map (fun name ->
+      match ArduinoBackend.ArduinoPackage.find name with
+      | Some (p : ArduinoBackend.ArduinoPackage.t) ->
+          (p.declarations, p.declarations_source)
+      | None -> failwith ("unknown package " ^ name))
+
 let grades_of_test table name =
   List.find_map
     (fun (pattern, grades) -> if glob pattern name then Some grades else None)
@@ -216,12 +237,29 @@ module Programs (G : Grade.S) = struct
     in
     List.rev verdicts
 
-  (* The verdicts on a file, or [None] when it does not parse or desugar. *)
-  let file path =
+  (* The verdicts on a file, or [None] when it does not parse or desugar,
+     after the declarations of the packages, each of whose commands must be
+     accepted. *)
+  let file ?(packages = []) path =
     match Parser.Lexer.read_file parse path with
     | cmds -> (
-        match run (declare cmds (Lazy.force with_stdlib)) cmds with
-        | _, verdicts -> Some verdicts
+        let preceding =
+          List.concat_map
+            (fun (name, source) -> parse_source ~name source)
+            packages
+        in
+        let st = declare (preceding @ cmds) (Lazy.force with_stdlib) in
+        match run st preceding with
+        | st, preceded -> (
+            List.iter
+              (fun v ->
+                if not v.ok then
+                  fail "%s: a package (%s) line %d, %s: %s" path G.name v.line
+                    v.kind v.detail)
+              preceded;
+            match run st cmds with
+            | _, verdicts -> Some verdicts
+            | exception Error.Error _ -> None)
         | exception Error.Error _ -> None)
     | exception Error.Error _ -> None
     | exception Grammar.Error -> None
@@ -233,7 +271,9 @@ let grade_module name =
   | None -> failwith ("unknown grades " ^ name)
 
 module type PROGRAMS = sig
-  val file : string -> command_verdict list option
+  val file :
+    ?packages:(string * string) list -> string -> command_verdict list option
+
   val definitions : string -> (string * bool * string) list
 end
 
@@ -249,10 +289,10 @@ let programs_of =
         Hashtbl.add table grades p;
         p
 
-let file_verdicts path grades =
+let file_verdicts ?packages path grades =
   let (module P) = programs_of grades in
   let start = Unix.gettimeofday () in
-  let verdicts = P.file path in
+  let verdicts = P.file ?packages path in
   (verdicts, Unix.gettimeofday () -. start)
 
 (* The '.tpe' files under [dir], recursing into subdirectories (examples are
@@ -423,7 +463,7 @@ let slow = ref []
 
 (* The verdicts on the file at [path] against [expected_rejections], or
    [None] when it does not parse or desugar. *)
-let check path grades =
+let check ?packages path grades =
   let name = Filename.basename path in
   let root = "../../" in
   let key =
@@ -432,7 +472,7 @@ let check path grades =
         (String.length path - String.length root)
     else path
   in
-  match file_verdicts path grades with
+  match file_verdicts ?packages path grades with
   | None, _ -> None
   | Some verdicts, time ->
       if time > 2. then slow := (name, time) :: !slow;
@@ -467,7 +507,7 @@ let programs () =
   List.iter
     (fun path ->
       let grades = Option.value (header_grades path) ~default:default_grades in
-      ignore (check path grades))
+      ignore (check ~packages:(header_packages path) path grades))
     (tpe_files (Filename.concat root "examples"));
   List.iter
     (fun path ->

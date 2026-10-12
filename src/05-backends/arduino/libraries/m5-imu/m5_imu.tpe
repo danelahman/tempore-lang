@@ -6,13 +6,19 @@
    second, each as the components along the x, y and z axes of the unit. The
    default implementation reads a unit at rest with its z axis up.
 
-   PROVISIONAL: the bounds of the running time are estimates for a read over
-   the internal I2C bus at 400 kHz, to be measured on the device. *)
+   PROVISIONAL: the bounds of the running time are estimates, to be measured
+   on the device. On the internal I2C bus at 400 kHz a byte with its
+   acknowledgement takes 9 bit times, 22.5 microseconds; a read of the 14
+   bytes of the accelerometer, the temperature and the gyroscope from one
+   register on transfers 17 bytes (the address and the register written, the
+   address and the data read), 0.383 ms. The upper bound adds about 0.4 ms
+   for the driver and the conversion of the readings, or for a read in two
+   transactions; the lower bound is below the transfer time. *)
 
 type vector = float * float * float
 type imu = vector * vector
 
-operation ReadImu : unit ~> imu # [0.2, 1]
+operation ReadImu : unit ~> imu # [0.2, 0.8]
 default ReadImu () = delay 1/2; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
 
 let imu_pi = 3.14159265358979

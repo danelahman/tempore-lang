@@ -10,7 +10,15 @@
 (test
  (name test_generate)
  (modules test_generate)
- (libraries utils language grades parser desugarer loader inference)
+ (libraries
+  utils
+  language
+  grades
+  parser
+  desugarer
+  loader
+  inference
+  arduinoBackend)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)
   (glob_files %{project_root}/tests/*.tpe)
@@ -19,7 +27,16 @@
 (test
  (name test_solve)
  (modules test_solve)
- (libraries utils language grades parser desugarer loader inference unix)
+ (libraries
+  utils
+  language
+  grades
+  parser
+  desugarer
+  loader
+  inference
+  arduinoBackend
+  unix)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)
   (glob_files %{project_root}/tests/*.tpe)

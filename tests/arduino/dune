@@ -11,4 +11,6 @@
   %{project_root}/tempore
   (glob_files *.tpe)
   (glob_files toy/*)
-  (glob_files packages/*)))
+  (glob_files packages/*)
+  (glob_files bala2/*)
+  (glob_files %{project_root}/examples/arduino/bala2/*)))

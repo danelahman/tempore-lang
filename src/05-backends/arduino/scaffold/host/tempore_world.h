@@ -6,7 +6,9 @@
 // simulated time, lazily: tempore_world_now advances it by the steps that end
 // by the current time. Its state is the initial state set by world_start and
 // the steps taken by world_advance, which the host model of an application
-// defines; without them the default world of tempore_world.cpp applies.
+// defines; without them the default world of tempore_world.cpp applies. At
+// the end of the simulation, world_finish receives the world at that time,
+// if a device model has observed it.
 
 #ifndef TEMPORE_HOST_WORLD_H
 #define TEMPORE_HOST_WORLD_H
@@ -33,5 +35,13 @@ void world_start(tempore_world &w);
 
 // Advances the world by dt seconds; the time is advanced by the caller.
 void world_advance(tempore_world &w, double dt);
+
+// Receives the world at the end of the simulation; by default nothing.
+void world_finish(const tempore_world &w);
+
+// Advances the world to the end of the simulation and passes it to
+// world_finish, if tempore_world_now has been called; called by the
+// simulator.
+void tempore_world_finish();
 
 #endif

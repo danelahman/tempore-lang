@@ -115,32 +115,32 @@ its lines to the log:
   $ simulate tilt tilt 0.3
   [0.000 ms] Release step
   [0.000 ms] Start title
-  [0.350 ms] IMU accel 0.000 0.100 0.995 g, gyro -0.02 0.00 0.00 deg/s
-  [0.350 ms] Operation ReadImu took 350 us
-  [1.350 ms] Display: 0.572
-  [1.350 ms] Operation ShowNumber took 1000 us
+  [0.383 ms] IMU accel 0.000 0.100 0.995 g, gyro -0.02 0.00 0.00 deg/s
+  [0.383 ms] Operation ReadImu took 383 us
+  [1.383 ms] Display: 0.572
+  [1.383 ms] Operation ShowNumber took 1000 us
   [31.000 ms] Display cleared
   [31.000 ms] Operation ClearDisplay took 31000 us
   [32.000 ms] Display: Tilt (degrees)
   [32.000 ms] Operation ShowText took 1000 us
   [32.000 ms] End title
   [50.000 ms] Release step
-  [50.350 ms] IMU accel 0.000 0.099 0.995 g, gyro -2.83 0.00 0.00 deg/s
-  [50.350 ms] Operation ReadImu took 350 us
+  [50.383 ms] IMU accel 0.000 0.099 0.995 g, gyro -2.83 0.00 0.00 deg/s
+  [50.383 ms] Operation ReadImu took 383 us
   [100.000 ms] Release step
-  [100.350 ms] IMU accel 0.000 0.095 0.995 g, gyro -5.58 0.00 0.00 deg/s
-  [100.350 ms] Operation ReadImu took 350 us
+  [100.383 ms] IMU accel 0.000 0.095 0.995 g, gyro -5.58 0.00 0.00 deg/s
+  [100.383 ms] Operation ReadImu took 383 us
   [150.000 ms] Release step
-  [150.350 ms] IMU accel 0.000 0.089 0.996 g, gyro -8.19 0.00 0.00 deg/s
-  [150.350 ms] Operation ReadImu took 350 us
+  [150.383 ms] IMU accel 0.000 0.089 0.996 g, gyro -8.19 0.00 0.00 deg/s
+  [150.383 ms] Operation ReadImu took 383 us
   [200.000 ms] Release step
-  [200.350 ms] IMU accel 0.000 0.081 0.997 g, gyro -10.59 0.00 0.00 deg/s
-  [200.350 ms] Operation ReadImu took 350 us
+  [200.383 ms] IMU accel 0.000 0.081 0.997 g, gyro -10.59 0.00 0.00 deg/s
+  [200.383 ms] Operation ReadImu took 383 us
   [250.000 ms] Release step
-  [250.350 ms] IMU accel 0.000 0.071 0.998 g, gyro -12.74 0.00 0.00 deg/s
-  [250.350 ms] Operation ReadImu took 350 us
-  [251.350 ms] Display: 0.774
-  [251.350 ms] Operation ShowNumber took 1000 us
+  [250.383 ms] IMU accel 0.000 0.071 0.998 g, gyro -12.74 0.00 0.00 deg/s
+  [250.383 ms] Operation ReadImu took 383 us
+  [251.383 ms] Display: 0.774
+  [251.383 ms] Operation ShowNumber took 1000 us
   [300.000 ms] End of the simulation
 
 A host model of the application that defines the world replaces the default
@@ -149,18 +149,18 @@ world:
   $ simulate still tilt 0.06
   [0.000 ms] Release step
   [0.000 ms] Start title
-  [0.350 ms] IMU accel 0.000 0.479 0.878 g, gyro 0.00 0.00 0.00 deg/s
-  [0.350 ms] Operation ReadImu took 350 us
-  [1.350 ms] Display: 2.865
-  [1.350 ms] Operation ShowNumber took 1000 us
+  [0.383 ms] IMU accel 0.000 0.479 0.878 g, gyro 0.00 0.00 0.00 deg/s
+  [0.383 ms] Operation ReadImu took 383 us
+  [1.383 ms] Display: 2.865
+  [1.383 ms] Operation ShowNumber took 1000 us
   [31.000 ms] Display cleared
   [31.000 ms] Operation ClearDisplay took 31000 us
   [32.000 ms] Display: Tilt (degrees)
   [32.000 ms] Operation ShowText took 1000 us
   [32.000 ms] End title
   [50.000 ms] Release step
-  [50.350 ms] IMU accel 0.000 0.479 0.878 g, gyro 0.00 0.00 0.00 deg/s
-  [50.350 ms] Operation ReadImu took 350 us
+  [50.383 ms] IMU accel 0.000 0.479 0.878 g, gyro 0.00 0.00 0.00 deg/s
+  [50.383 ms] Operation ReadImu took 383 us
   [60.000 ms] End of the simulation
 
 The drive of the BALA2 base, with the packages bala2-base and m5-display: the

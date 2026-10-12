@@ -58,6 +58,27 @@ let header_grades path =
   |> List.filteri (fun i _ -> i < 12)
   |> List.find_map (fun line -> grades_option (words line))
 
+(* The peripheral packages of the Arduino backend that a file names by
+   [--package NAME] options in the run command of its header, before its
+   "Grades" line, each with the file name and the text of its declarations,
+   which precede the file. *)
+let header_packages path =
+  let rec names = function
+    | "--package" :: name :: rest -> name :: names rest
+    | _ :: rest -> names rest
+    | [] -> []
+  in
+  In_channel.with_open_text path In_channel.input_lines
+  |> List.to_seq
+  |> Seq.take_while (fun line ->
+      not (String.starts_with ~prefix:"   Grades " line))
+  |> List.of_seq |> List.concat_map words |> names
+  |> List.map (fun name ->
+      match ArduinoBackend.ArduinoPackage.find name with
+      | Some (p : ArduinoBackend.ArduinoPackage.t) ->
+          (p.declarations, p.declarations_source)
+      | None -> failwith ("unknown package " ^ name))
+
 let grades_of_test table name =
   List.find_map
     (fun (pattern, grades) -> if glob pattern name then Some grades else None)
@@ -160,9 +181,9 @@ module Program (G : Grade.S) = struct
 
   let parse lexbuf = Grammar.commands (Parser.Lexer.tokens ()) lexbuf
 
-  let parse_source source =
+  let parse_source ?(name = "stdlib.tpe") source =
     let lexbuf = Lexing.from_string source in
-    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "stdlib.tpe" };
+    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = name };
     parse lexbuf
 
   let initial =
@@ -241,11 +262,18 @@ module Program (G : Grade.S) = struct
             (parse_source Loader.stdlib_source)))
 
   (* Whether the file was rejected; the program declares the operations of the
-     file, the standard library declaring none. *)
-  let file path ~expect_errors =
+     packages and of the file, the standard library declaring none, and the
+     declarations of the packages precede the file. *)
+  let file ?(packages = []) path ~expect_errors =
     let name = Filename.basename path in
     match Parser.Lexer.read_file parse path with
     | cmds -> (
+        let cmds =
+          List.concat_map
+            (fun (name, source) -> parse_source ~name source)
+            packages
+          @ cmds
+        in
         let desugarer, env = Lazy.force with_stdlib in
         let env =
           Gen.declare_operations (Loader.declared_operations cmds) env
@@ -262,12 +290,12 @@ let grade_module name =
   | Some g -> g
   | None -> failwith ("unknown grades " ^ name)
 
-let check_file path grades =
+let check_file ?packages path grades =
   let name = Filename.basename path in
   let expect_errors = List.mem name malformed in
   let (module G) = grade_module grades in
   let module P = Program (G) in
-  match P.file path ~expect_errors with
+  match P.file ?packages path ~expect_errors with
   | rejected ->
       if expect_errors && not rejected then
         fail "%s (%s): listed as malformed but accepted" name grades
@@ -293,7 +321,7 @@ let programs () =
   let table = case_table (Filename.concat root "tests/run_tests.t") in
   List.iter
     (fun path ->
-      check_file path
+      check_file ~packages:(header_packages path) path
         (Option.value (header_grades path) ~default:default_grades))
     (tpe_files (Filename.concat root "examples"));
   List.iter

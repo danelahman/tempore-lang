@@ -13,7 +13,7 @@
 //
 // Usage: simulation [DURATION_US] runs setup() and then the tasks for the
 // given simulated time in microseconds (default: one second), the events at
-// times before it.
+// times before it, and then passes the world at the end to world_finish.
 
 #include <Arduino.h>
 #include <M5Unified.h>
@@ -28,6 +28,8 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+
+#include "tempore_world.h"
 
 void setup();
 
@@ -215,6 +217,7 @@ int main(int argc, char **argv) {
   if (now < duration) now = duration;
   printf("[%lld.%03lld ms] End of the simulation\n",
          static_cast<long long>(now / 1000), static_cast<long long>(now % 1000));
+  tempore_world_finish();
   fflush(stdout);
   _Exit(0);
 }
