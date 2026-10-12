@@ -108,9 +108,15 @@ module Loader (Backend : Backend.S) : sig
         (** the desugared commands the typechecker accepted, those of the
             standard library first, in order *)
     operations :
-      (Language.Ast.operation * Grades.Grade.running_time option) list;
+      (Language.Ast.operation
+      * (Grades.Rational.t Grades.Grade.bound
+        * Grades.Rational.t Grades.Grade.bound)
+        option)
+      list;
         (** the operations the accepted commands declare, in order, each with
-            its running-time bounds if it declares them *)
+            the bounds of its running time, if any: those it declares, or else
+            those its grade implies ({!Grades.Grade.S.duration_bounds}); the
+            upper end may be infinite *)
   }
   (** A program loaded by {!load_program}. *)
 

@@ -32,6 +32,7 @@ module Make (D : Delay.S) (N : TimedTraceGrades.NAMES) = struct
     let commutative = false
     let needs_op_bounds = false
     let implied_bounds _bounds _ = None
+    let duration_bounds _bounds _ = None
     let inhabited _bounds _ = true
 
     (** The time shadow of exact bounds is their delay, and that of other bounds

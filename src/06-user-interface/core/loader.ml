@@ -226,20 +226,51 @@ module Loader (Backend : Backend.S) = struct
     commands : Ast.Graded(Backend.Grades).command list;
         (** the desugared commands the typechecker accepted, those of the
             standard library first, in order *)
-    operations : (Ast.operation * Grades.Grade.running_time option) list;
+    operations :
+      (Ast.operation
+      * (Grades.Rational.t Grades.Grade.bound
+        * Grades.Rational.t Grades.Grade.bound)
+        option)
+      list;
         (** the operations the accepted commands declare, in order, each with
-            its running-time bounds if it declares them *)
+            the bounds of its running time, if any: those it declares, or else
+            those its grade implies ({!Grades.Grade.S.duration_bounds}) *)
   }
   (** A program loaded by {!load_program}. *)
 
-  (* The operations [cmds] declare, with their running-time bounds. *)
+  (* The operations [cmds] declare, each with the bounds of its running time:
+     those it declares, or else those its grade implies
+     ({!Grades.Grade.S.duration_bounds}), read over the declared ones. *)
   let operations_of cmds =
-    List.filter_map
-      (fun (cmd : _ Ast.command) ->
-        match cmd.it with
-        | Ast.OpSig (op, _, _, _, bounds) -> Some (op, bounds)
-        | Ast.TyDef _ | Ast.OpDefault _ | Ast.TopLet _ | Ast.TopDo _ -> None)
-      cmds
+    let signatures =
+      List.filter_map
+        (fun (cmd : _ Ast.command) ->
+          match cmd.it with
+          | Ast.OpSig (op, _, _, eps, bounds) -> Some (op, eps, bounds)
+          | Ast.TyDef _ | Ast.OpDefault _ | Ast.TopLet _ | Ast.TopDo _ -> None)
+        cmds
+    in
+    let declared =
+      List.filter_map
+        (fun (op, _, bounds) ->
+          Option.map (fun b -> (Ast.OpName.string_of op, b)) bounds)
+        signatures
+    in
+    let bounds =
+      {
+        Grades.Grade.running_time = (fun name -> List.assoc name declared);
+        operations = List.map fst declared;
+      }
+    in
+    List.map
+      (fun (op, eps, declared) ->
+        match (declared, eps) with
+        | Some _, _ -> (op, declared)
+        | None, Ast.EpsConst (grade, _) -> (
+            try (op, Backend.Grades.E.duration_bounds bounds grade)
+            with Not_found -> (op, None))
+        | None, (Ast.EpsAdd _ | Ast.EpsVar _) -> (op, None))
+      signatures
 
   (** [load_program ~use_stdlib sources] loads the parsed [sources] in order,
       preceded by the standard library if [use_stdlib], all of them {!declare}d

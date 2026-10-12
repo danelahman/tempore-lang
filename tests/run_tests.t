@@ -7882,6 +7882,8 @@ single-dash form of the help option is not accepted.
   $ ../tempore -help
   ../tempore: unknown option '-help'.
   Run Tempore as '../tempore [filename.tpe] ...'
+    --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30 for the Flex, 2.28 for the OT-2)
+    --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
     --debug           Print the inferred type schemes of the top-level definitions before running
     --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them
     --grades          Selects the grades (default: time-lower-bound); accepted:
@@ -7933,7 +7935,12 @@ single-dash form of the help option is not accepted.
           counts-upper-bound                        Upper bounds
         Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.
     --help            Display this list of options
+    --monitor         Set what a protocol written with --bind does when an operation's running time is outside its bounds: abort, warn or off (default: abort)
     --no-stdlib       Do not load the standard library
+    --robot           Set the robot of the protocol written with --bind: flex or ot2 (default: flex)
+    --simulate        Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code
+    --simulator       Use the given executable as the Opentrons simulator of --simulate (default: opentrons_simulate on the PATH)
+    --time-unit       Set the length of a unit of duration of the protocol written with --bind: seconds, minutes, hours or a positive number of seconds (default: seconds)
     --typecheck-only  Typecheck the files without running them
   [2]
 

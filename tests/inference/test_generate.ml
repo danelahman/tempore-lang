@@ -277,12 +277,14 @@ let check_file path grades =
       fail "%s (%s): unexpected exception %s" name grades (Printexc.to_string e)
 
 (* The '.tpe' files under [dir], recursing into subdirectories (examples are
-   grouped into some), each named entries sorted within its own directory. *)
-let rec tpe_files dir =
+   grouped into some) if [recursive], each named entries sorted within its own
+   directory. The tests are those directly under [tests/], the files the test
+   depends on; those of its subdirectories belong to other tests. *)
+let rec tpe_files ?(recursive = true) dir =
   Sys.readdir dir |> Array.to_list |> List.sort String.compare
   |> List.concat_map (fun name ->
       let path = Filename.concat dir name in
-      if Sys.is_directory path then tpe_files path
+      if Sys.is_directory path then if recursive then tpe_files path else []
       else if Filename.check_suffix name ".tpe" then [ path ]
       else [])
 
@@ -297,7 +299,7 @@ let programs () =
   List.iter
     (fun path ->
       check_file path (grades_of_test table (Filename.basename path)))
-    (tpe_files (Filename.concat root "tests"))
+    (tpe_files ~recursive:false (Filename.concat root "tests"))
 
 (* ------------------------------------------------------------------ *)
 (* Constraints of small terms                                          *)

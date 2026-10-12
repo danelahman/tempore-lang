@@ -171,6 +171,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let implied_bounds bounds p =
       implied_trace_bounds bounds p (UpperTraces.Within p)
 
+    let duration_bounds = implied_bounds
     let inhabited _bounds _ = true
     let of_delay = Trace.of_delay
     let of_bounds b = Trace.of_delay (fst (hull b))
@@ -196,6 +197,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       | Within p -> implied_trace_bounds bounds p (Within p)
       | Unbounded -> None
 
+    let duration_bounds = implied_bounds
     let inhabited _bounds _ = true
     let of_bounds b = Within (Trace.of_delay (snd (hull b)))
     let is_atomic name p = compare p (Within (atomic_traces name)) = 0
@@ -242,6 +244,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       List.sort_uniq String.compare (Trace.events lo @ UpperTraces.events hi)
 
     let implied_bounds bounds (lo, hi) = implied_trace_bounds bounds lo hi
+    let duration_bounds = implied_bounds
     let inhabited _bounds _ = true
 
     (** [diagonal lit] is the pair of the set of traces [lit] denotes with

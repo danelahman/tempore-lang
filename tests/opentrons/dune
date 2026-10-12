@@ -1,10 +1,13 @@
-; Parity of the Python compilation of programs with the interpreter, and the
-; monitors of the running-time bounds of operations.
+; Parity of the Python compilation of programs with the interpreter, the
+; monitors of the running-time bounds of operations, and the Opentrons
+; protocols of the examples, run with a stub of the opentrons package.
 
 (cram
  (deps
   %{project_root}/tempore
   (glob_files *.tpe)
   (glob_files *.py)
+  (source_tree stub)
   (source_tree %{project_root}/examples/handlers)
-  (source_tree %{project_root}/examples/3dprint)))
+  (source_tree %{project_root}/examples/3dprint)
+  (source_tree %{project_root}/examples/opentrons)))

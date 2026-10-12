@@ -2756,6 +2756,58 @@ let ranges =
       "none positive";
   ]
 
+(* The bounds of durations of grades: those the time grades denote, those
+   the trace grades of timed operations imply, the intersection of a
+   product's, and none for the grades that do not bound durations. *)
+let duration_bounds =
+  let show = function
+    | Some (lo, hi) -> Grade.show_interval Rational.show lo hi
+    | None -> "None"
+  in
+  let durations name (module G : Grade.S) lit expected =
+    expect
+      ("duration bounds: " ^ name)
+      show ~expected
+      (G.duration_bounds bounds (G.of_lit lit))
+  in
+  let closed n = Grade.Closed (Rational.of_int n) in
+  let interval lo hi = Grade.Interval (lo, hi) in
+  [
+    durations "time-lower-bound" time_lower (Grade.Int 3)
+      (Some (closed 3, Grade.Unbounded));
+    durations "time-upper-bound" time_upper (Grade.Int 3)
+      (Some (closed 0, closed 3));
+    durations "time-upper-bound, infinite" time_upper Grade.Inf
+      (Some (closed 0, Grade.Unbounded));
+    durations "time-interval" time_interval
+      (interval (Grade.Closed (Grade.Int 2)) (Grade.Closed (Grade.Int 4)))
+      (Some (closed 2, closed 4));
+    durations "time-interval, open over whole steps" time_interval
+      (interval (Grade.Open (Grade.Int 2)) (Grade.Open (Grade.Int 6)))
+      (Some (closed 3, closed 5));
+    durations "time-interval-rational, open" rational_interval
+      (interval (Grade.Open (Grade.Int 2)) (Grade.Open (Grade.Int 4)))
+      (Some (Grade.Open (Rational.of_int 2), Grade.Open (Rational.of_int 4)));
+    durations "time-interval-rational, unbounded" rational_interval
+      (interval (Grade.Closed (Grade.Rat (Rational.make 1 2))) Grade.Unbounded)
+      (Some (Grade.Closed (Rational.make 1 2), Grade.Unbounded));
+    durations "traces-timed-lower-bound, implied" traces_lower
+      (Grade.Braces (Grade.Seq (Grade.Letter "Send", Grade.Tick 3)))
+      (Some (closed 4, closed 5));
+    durations "time-upper-bound-levels, the time component"
+      (module UpperLevels : Grade.S)
+      (lit_of_pair 5 "High")
+      (Some (closed 0, closed 5));
+    durations "security-levels, none"
+      (module LevelGrades.SecurityLevels : Grade.S)
+      (Grade.Name "High") None;
+    expect "duration bounds: intersection of a product's components" show
+      ~expected:(Some (closed 3, closed 5))
+      (Grade.intersect_durations
+         (Some (closed 3, Grade.Unbounded))
+         (Some (closed 0, closed 5)));
+  ]
+
 (* The flow levels print [⊤] for the top alone. *)
 let flow_tops =
   let module F = LevelGrades.FlowLevels in
@@ -2774,6 +2826,7 @@ let () =
     @ registry @ registered_laws @ fractional_laws @ inclusion_laws @ indexed
     @ mode_laws @ resource_laws @ interval_read_back @ schedule_laws
     @ resource_construction_laws @ finite_laws @ ranges @ flow_tops
+    @ duration_bounds
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

@@ -1,0 +1,98 @@
+(* A ddPCR plate set-up on the Opentrons Flex, keeping clean tips from the test article.
+
+   Run this example with the 'time-upper-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-levels examples/opentrons/contamination.tpe
+
+   Grades (n, l): at most n minutes, touching nothing above level l,
+   Low being clean and High contaminated
+     - Unit (0, Low): no time spent, nothing contaminated touched
+     - Top (∞, High): unbounded time, whatever is touched
+     - Product: addition and join, componentwise *)
+
+(* Modelled on the Opentrons Protocol Library protocol 0e525c (a ddPCR plate
+   set-up with a serial dilution of a test article, a master mix and
+   no-template water controls).
+
+   A unit of duration is a minute. The protocol for the Flex, with the
+   operations performed by the functions of 'contamination_bindings.py', is
+   written by
+
+     ./tempore --grades time-upper-bound-levels --emit-opentrons contamination.py
+       --bind examples/opentrons/contamination_bindings.py --time-unit minutes
+       examples/opentrons/contamination.tpe
+
+   The level of an operation is High if its tip touches the test article,
+   and Low otherwise. A tip is boxed at level Low: it may enter a clean
+   reagent only while nothing contaminated has been touched since it was
+   picked up. Its type is not eternal, so it cannot be kept unboxed past an
+   operation. The monitors of the protocol check each binding function
+   against the time bound of its operation's grade. *)
+
+noneternal type tip = Tip
+
+(* Changing the tip takes at most a minute. *)
+operation ChangeTip : unit ~> unit # (1, Low)
+default ChangeTip () = delay 1
+
+(* Buffer, master mix and water are clean reagents, and dispensing one into a
+   column takes at most a minute. *)
+operation AddBuffer : tip * nat ~> unit # (1, Low)
+default AddBuffer (t, column) = delay 1
+
+operation AddMix : tip * nat ~> unit # (1, Low)
+default AddMix (t, column) = delay 1
+
+operation AddWater : tip * nat ~> unit # (1, Low)
+default AddWater (t, column) = delay 1
+
+(* The master mix takes at most five minutes to prepare, and must be
+   dispensed within 30 minutes. *)
+operation PrepareMix : unit ~> [(30, High)]unit # (5, Low)
+default PrepareMix () = delay 4; box (30, High) ()
+
+(* Adding the test article and diluting it from one column into the next
+   touch the test article. *)
+operation AddArticle : tip * nat ~> unit # (1, High)
+default AddArticle (t, column) = delay 1
+
+operation Dilute : tip * (nat * nat) ~> unit # (2, High)
+default Dilute (t, columns) = delay 2
+
+let new_tip () =
+  perform ChangeTip ();
+  box (∞, Low) Tip
+
+(* Correctly accepted by the typechecker: one clean tip dispenses the buffer
+   and the master mix, each step of the dilution series has a new tip, and
+   the water control, added last, a new clean one. *)
+let ddpcr () =
+  let mix = perform PrepareMix () in
+  let clean = new_tip () in
+  unbox clean as t in
+  perform AddBuffer (t, 2);
+  unbox clean as t in
+  perform AddBuffer (t, 3);
+  unbox mix as m in
+  unbox clean as t in
+  perform AddMix (t, 1);
+  unbox clean as t in
+  perform AddMix (t, 2);
+  unbox clean as t in
+  perform AddMix (t, 3);
+  unbox clean as t in
+  perform AddMix (t, 4);
+  let article = new_tip () in
+  unbox article as t in
+  perform AddArticle (t, 1);
+  let step = new_tip () in
+  unbox step as t in
+  perform Dilute (t, (1, 2));
+  let step = new_tip () in
+  unbox step as t in
+  perform Dilute (t, (2, 3));
+  let water = new_tip () in
+  unbox water as t in
+  perform AddWater (t, 4)
+
+run ddpcr ()

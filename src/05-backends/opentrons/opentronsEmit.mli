@@ -43,31 +43,54 @@
     {2 Operations}
 
     An operation call that no handler handles calls the binding function of the
-    operation, if the runtime has one, monitored against the running-time bounds
-    of the operation if it declares any; otherwise it runs the default
-    implementation of the operation declared above the [run] command, outside
-    every handler; otherwise the run ends at the call. A [delay q] delays for
-    [q] units of the program, converted to seconds by the runtime's time unit.
-*)
+    operation, if the runtime has one, monitored against the bounds of the
+    running time of the operation if it has any other than [\[0, ∞)]; otherwise
+    it runs the default implementation of the operation declared above the [run]
+    command, outside every handler; otherwise the run ends at the call. A
+    [delay q] delays for [q] units of the program, converted to seconds by the
+    runtime's time unit. *)
 
 val runtime : string
-(** The source of the runtime. *)
+(** The source of the runtime. Its global names, and those of the definitions
+    the compiler introduces at the top level of the module, begin with
+    [tempore_] or [_tempore_]; the top-level definitions of the program are
+    named by {!OpentronsNames.identifier}. *)
+
+val python_string : string -> string
+(** [python_string s] is a Python string literal, in ASCII, of the UTF-8 string
+    [s]; a byte not part of a well-formed UTF-8 sequence is the lone surrogate
+    that the [surrogateescape] error handler encodes back to it. *)
+
+val fraction : Grades.Rational.t -> string
+(** [fraction q] is a Python expression of the exact rational [q], a [Fraction].
+*)
 
 val compile :
-  operations:(Language.Ast.operation * Grades.Grade.running_time option) list ->
+  operations:
+    (Language.Ast.operation
+    * (Grades.Rational.t Grades.Grade.bound
+      * Grades.Rational.t Grades.Grade.bound)
+      option)
+    list ->
   ('rho, 'eps) Language.Ast.command list ->
   string
 (** [compile ~operations commands] is the Python source of the compiled
     desugared [commands], accepted by the typechecker, of a program, the
     standard library's included, whose declared operations are [operations],
-    each with its running-time bounds if it declares them. It declares the
-    bounds to the runtime, defines the program's top-level definitions and
-    default implementations, and binds [RUNS] to the tuple of its [run]
-    commands, each a [Run] of the function returning its computation and the
-    default implementations declared above it. *)
+    each with the bounds of its running time if it has any, the upper end
+    possibly infinite. It declares the bounds other than [\[0, ∞)] to the
+    runtime, defines the program's top-level definitions and default
+    implementations, and binds [tempore_RUNS] to the tuple of its [run]
+    commands, each a [tempore_Run] of the function returning its computation and
+    the default implementations declared above it. *)
 
 val plain_program :
-  operations:(Language.Ast.operation * Grades.Grade.running_time option) list ->
+  operations:
+    (Language.Ast.operation
+    * (Grades.Rational.t Grades.Grade.bound
+      * Grades.Rational.t Grades.Grade.bound)
+      option)
+    list ->
   ('rho, 'eps) Language.Ast.command list ->
   string
 (** [plain_program ~operations commands] is a Python program of the runtime and

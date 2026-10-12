@@ -9,7 +9,7 @@ from fractions import Fraction
 spec = importlib.util.spec_from_file_location("monitors", sys.argv[1])
 program = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(program)
-rt = program.rt
+rt = program.tempore_rt
 
 
 def taking(seconds):
@@ -24,8 +24,8 @@ def attempt(run, **configuration):
     reports = []
     rt.configure(report=reports.append, **configuration)
     try:
-        outcome = "returns %s" % program.execute_run(program.RUNS[run])
-    except program.BoundViolation as violation:
+        outcome = "returns %s" % program.tempore_execute_run(program.tempore_RUNS[run])
+    except program.tempore_BoundViolation as violation:
         outcome = "aborts: %s" % violation
     return outcome, reports
 
@@ -37,7 +37,7 @@ for policy in ("abort", "warn"):
             outcome, reports = attempt(
                 run, binding={op: taking(seconds)}, monitor=policy
             )
-            print("  %s %s, %d s: %s" % (op, program.OPERATIONS[op], seconds, outcome))
+            print("  %s %s, %d s: %s" % (op, program.tempore_OPERATIONS[op], seconds, outcome))
             for report in reports:
                 print("    reported: %s" % report)
             if policy == "warn":
@@ -50,7 +50,7 @@ print("  CC, 5 s: %s, %d monitored calls" % (outcome, len(rt.timeline)))
 print("Exact durations:")
 for seconds in (Fraction(1, 2), (3, 2), Fraction(3, 2) + Fraction(1, 10**9)):
     outcome, reports = attempt(4, binding={"Wait": taking(seconds)})
-    duration = program.format_quantity(program.exact(seconds))
+    duration = program.tempore_format_quantity(program.tempore_exact(seconds))
     print("  Wait, %s s: %s" % (duration, outcome))
 
 print("Time unit of 60 s:")
@@ -66,15 +66,15 @@ rt.configure(
     report=lambda message: None,
 )
 for run in range(5):
-    program.execute_run(program.RUNS[run])
+    program.tempore_execute_run(program.tempore_RUNS[run])
 for event in rt.timeline:
     print("  %s" % event)
-print("  clock at the end: %s s" % program.format_quantity(rt.now()))
+print("  clock at the end: %s s" % program.tempore_format_quantity(rt.now()))
 
 print("Delays and the default of Wait, time unit 60 s:")
 rt.configure(time_unit=60)
 print("  returns %s at %s s, %d monitored calls" % (
-    program.execute_run(program.RUNS[4]),
-    program.format_quantity(rt.now()),
+    program.tempore_execute_run(program.tempore_RUNS[4]),
+    program.tempore_format_quantity(rt.now()),
     len(rt.timeline),
 ))

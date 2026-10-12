@@ -46,8 +46,8 @@ let python_string s =
 
 let python_float f =
   match Float.classify_float f with
-  | FP_nan -> "math.nan"
-  | FP_infinite -> if f > 0. then "math.inf" else "-math.inf"
+  | FP_nan -> "tempore_math.nan"
+  | FP_infinite -> if f > 0. then "tempore_math.inf" else "-tempore_math.inf"
   | FP_normal | FP_subnormal | FP_zero ->
       let s = Printf.sprintf "%.17g" f in
       if String.exists (fun c -> c = '.' || c = 'e') s then s else s ^ ".0"
@@ -60,7 +60,7 @@ let constant = function
 
 (* An exact rational as a Python [Fraction]. *)
 let fraction q =
-  Printf.sprintf "Fraction(%s, %s)"
+  Printf.sprintf "tempore_Fraction(%s, %s)"
     (Z.to_string (Grades.Rational.num q))
     (Z.to_string (Grades.Rational.den q))
 
@@ -71,24 +71,24 @@ let tuple = function
 
 (* The runtime function of each primitive. *)
 let primitive_function = function
-  | Primitives.CompareEq -> "prim_compare_eq"
-  | Primitives.CompareLt -> "prim_compare_lt"
-  | Primitives.CompareGt -> "prim_compare_gt"
-  | Primitives.CompareLe -> "prim_compare_le"
-  | Primitives.CompareGe -> "prim_compare_ge"
-  | Primitives.CompareNe -> "prim_compare_ne"
-  | Primitives.NatAdd -> "prim_nat_add"
-  | Primitives.NatMul -> "prim_nat_mul"
-  | Primitives.NatSub -> "prim_nat_sub"
-  | Primitives.NatDiv -> "prim_nat_div"
-  | Primitives.NatMod -> "prim_nat_mod"
-  | Primitives.FloatAdd -> "prim_float_add"
-  | Primitives.FloatMul -> "prim_float_mul"
-  | Primitives.FloatSub -> "prim_float_sub"
-  | Primitives.FloatDiv -> "prim_float_div"
-  | Primitives.FloatPow -> "prim_float_pow"
-  | Primitives.FloatNeg -> "prim_float_neg"
-  | Primitives.ToString -> "prim_to_string"
+  | Primitives.CompareEq -> "tempore_prim_compare_eq"
+  | Primitives.CompareLt -> "tempore_prim_compare_lt"
+  | Primitives.CompareGt -> "tempore_prim_compare_gt"
+  | Primitives.CompareLe -> "tempore_prim_compare_le"
+  | Primitives.CompareGe -> "tempore_prim_compare_ge"
+  | Primitives.CompareNe -> "tempore_prim_compare_ne"
+  | Primitives.NatAdd -> "tempore_prim_nat_add"
+  | Primitives.NatMul -> "tempore_prim_nat_mul"
+  | Primitives.NatSub -> "tempore_prim_nat_sub"
+  | Primitives.NatDiv -> "tempore_prim_nat_div"
+  | Primitives.NatMod -> "tempore_prim_nat_mod"
+  | Primitives.FloatAdd -> "tempore_prim_float_add"
+  | Primitives.FloatMul -> "tempore_prim_float_mul"
+  | Primitives.FloatSub -> "tempore_prim_float_sub"
+  | Primitives.FloatDiv -> "tempore_prim_float_div"
+  | Primitives.FloatPow -> "tempore_prim_float_pow"
+  | Primitives.FloatNeg -> "tempore_prim_float_neg"
+  | Primitives.ToString -> "tempore_prim_to_string"
 
 (* The emission context. Continuations and the computations bound by [do] are
    lifted out of the function they occur in to definitions at the level of
@@ -97,12 +97,14 @@ let primitive_function = function
    definition takes as parameters the variables it uses that are bound in
    lifted definitions, [local]; the others it reads from the enclosing
    function. [in_lifted] is whether the code emitted is in a lifted
-   definition. *)
+   definition, and [top] whether it is at the top level of the module, where
+   the names of the definitions it introduces bear the prefix [tempore_]. *)
 type context = {
   names : Names.t;
   labels : Names.labels;
   local : VariableSet.t;
   in_lifted : bool;
+  top : bool;
 }
 
 (* The emission state: the supply of fresh names, which consist of a lowercase
@@ -133,6 +135,11 @@ let variable ctx x =
       with
       | Some p -> primitive_function p
       | None -> invalid_arg ("unbound variable " ^ Ast.Variable.string_of x))
+
+(* The prefix of a fresh name of a definition: [prefix] inside a function,
+   with [tempore_] before it at the top level of the module. *)
+let definition_prefix ctx prefix =
+  if ctx.top then "tempore_" ^ prefix else prefix
 
 let bind_local ctx p =
   if ctx.in_lifted then
@@ -174,7 +181,7 @@ let rec tests ctx path (p : _ Ast.pattern) acc =
   | Ast.PConst (Const.Boolean true) -> path :: acc
   | Ast.PConst (Const.Boolean false) -> ("not " ^ path) :: acc
   | Ast.PConst (Const.Float f) ->
-      Printf.sprintf "float_eq(%s, %s)" path (python_float f) :: acc
+      Printf.sprintf "tempore_float_eq(%s, %s)" path (python_float f) :: acc
   | Ast.PConst c -> Printf.sprintf "%s == %s" path (constant c) :: acc
   | Ast.PSucc (p, k) ->
       tests ctx (succ_path path k) p
@@ -224,9 +231,10 @@ let rec expression ctx st (e : _ Ast.expression) =
       in
       ( st,
         defs,
-        Printf.sprintf "Con(%d, %s)" (Names.label_rank ctx.labels l) arg )
+        Printf.sprintf "tempore_Con(%d, %s)" (Names.label_rank ctx.labels l) arg
+      )
   | Ast.Lambda abs | Ast.PureLambda abs ->
-      let name, st = fresh "f" st in
+      let name, st = fresh (definition_prefix ctx "f") st in
       let st, def = function_definition ctx st name abs in
       (st, [ def ], name)
   | Ast.RecLambda (f, _, abs) ->
@@ -234,12 +242,12 @@ let rec expression ctx st (e : _ Ast.expression) =
       let st, def = function_definition ctx st name abs in
       (st, [ def ], name)
   | Ast.Handler (ret, ops) ->
-      let name, st = fresh "h" st in
+      let name, st = fresh (definition_prefix ctx "h") st in
       let st, ret_def = function_definition ctx st name ret in
       let st, defs, clauses =
         List.fold_left
           (fun (st, defs, clauses) (op, abs) ->
-            let clause, st = fresh "h" st in
+            let clause, st = fresh (definition_prefix ctx "h") st in
             let st, def = function_definition ctx st clause abs in
             ( st,
               def :: defs,
@@ -250,7 +258,7 @@ let rec expression ctx st (e : _ Ast.expression) =
       in
       ( st,
         List.rev defs,
-        Printf.sprintf "Handler(%s, {%s})" name
+        Printf.sprintf "tempore_Handler(%s, {%s})" name
           (String.concat ", " (List.rev clauses)) )
 
 and expressions ctx st es =
@@ -266,7 +274,9 @@ and expressions ctx st es =
 (* A function, its body a new scope. *)
 and function_definition ctx st name (p, c) =
   let st, param, binds = parameter ctx st p in
-  let ctx = { ctx with local = VariableSet.empty; in_lifted = false } in
+  let ctx =
+    { ctx with local = VariableSet.empty; in_lifted = false; top = false }
+  in
   let st, body = in_scope st (fun st -> computation ctx st c) in
   (st, Block (Printf.sprintf "def %s(%s):" name param, binds @ body))
 
@@ -276,7 +286,7 @@ and computation ctx st (c : _ Ast.computation) =
   match c.it with
   | Ast.Return e ->
       let st, defs, e = expression ctx st e in
-      (st, defs @ [ Line (Printf.sprintf "return Ret(%s)" e) ])
+      (st, defs @ [ Line (Printf.sprintf "return tempore_Ret(%s)" e) ])
   | Ast.Apply _ ->
       let st, defs, node = node ctx st c in
       (st, defs @ [ Line ("return " ^ node) ])
@@ -289,13 +299,16 @@ and computation ctx st (c : _ Ast.computation) =
   | Ast.Do (c1, abs) ->
       let st, defs, node = node ctx st c1 in
       let st, k = continuation ctx st abs in
-      (st, defs @ [ Line (Printf.sprintf "return Bind(%s, %s)" node k) ])
+      (st, defs @ [ Line (Printf.sprintf "return tempore_Bind(%s, %s)" node k) ])
   | Ast.Match (e, cases) -> match_cases ctx st e cases
   | Ast.Delay (q, c) ->
       let st, defs, node = node ctx st c in
       ( st,
         defs
-        @ [ Line (Printf.sprintf "return Delay(%s, %s)" (fraction q) node) ] )
+        @ [
+            Line
+              (Printf.sprintf "return tempore_Delay(%s, %s)" (fraction q) node);
+          ] )
   | Ast.Perform (op, e, abs) ->
       let st, defs, e = expression ctx st e in
       let st, k = continuation ctx st abs in
@@ -303,7 +316,7 @@ and computation ctx st (c : _ Ast.computation) =
         defs
         @ [
             Line
-              (Printf.sprintf "return Perform(%s, %s, %s)"
+              (Printf.sprintf "return tempore_Perform(%s, %s, %s)"
                  (python_string (Ast.OpName.string_of op))
                  e k);
           ] )
@@ -311,8 +324,8 @@ and computation ctx st (c : _ Ast.computation) =
       let st, defs, node = node ctx st c in
       let st, defs', h = expression ctx st h in
       ( st,
-        defs @ defs' @ [ Line (Printf.sprintf "return Handle(%s, %s)" node h) ]
-      )
+        defs @ defs'
+        @ [ Line (Printf.sprintf "return tempore_Handle(%s, %s)" node h) ] )
 
 (* The binding of the value of [e] to the pattern [p]. A function bound to a
    variable is defined under the variable's name. *)
@@ -352,7 +365,7 @@ and match_cases ctx st e cases =
       (st, []) cases
   in
   let rec chain first = function
-    | [] -> [ Line "return match_failure()" ]
+    | [] -> [ Line "return tempore_match_failure()" ]
     | ([], body) :: _ -> if first then body else [ Block ("else:", body) ]
     | (tests, body) :: branches ->
         Block
@@ -371,10 +384,10 @@ and node ctx st (c : _ Ast.computation) =
   match c.it with
   | Ast.Return e ->
       let st, defs, e = expression ctx st e in
-      (st, defs, Printf.sprintf "Ret(%s)" e)
+      (st, defs, Printf.sprintf "tempore_Ret(%s)" e)
   | Ast.Apply (e1, e2) ->
       let st, defs, es = expressions ctx st [ e1; e2 ] in
-      (st, defs, Printf.sprintf "App(%s)" (String.concat ", " es))
+      (st, defs, Printf.sprintf "tempore_App(%s)" (String.concat ", " es))
   | _ ->
       let name, st = fresh "c" st in
       let params = captured ctx (Reach.free_in_computation c) in
@@ -412,18 +425,25 @@ and continuation ctx st (p, c) =
       st,
     match params with
     | [] -> name
-    | _ -> Printf.sprintf "partial(%s, %s)" name (String.concat ", " params) )
+    | _ ->
+        Printf.sprintf "tempore_partial(%s, %s)" name
+          (String.concat ", " params) )
 
-(* The bounds of an operation as a runtime [Bounds] value. Running-time bounds
-   have finite ends. *)
-let bounds ((lo, hi) : Grades.Grade.running_time) =
+(* The bounds of the running time of an operation as a runtime [Bounds]
+   value, an infinite upper end as [None]. *)
+let bounds ((lo, hi) : Grades.Rational.t Grades.Grade.bound * _) =
   let value_end = function
     | Grades.Grade.Closed q -> (fraction q, "True")
     | Grades.Grade.Open q -> (fraction q, "False")
-    | Grades.Grade.Unbounded -> invalid_arg "OpentronsEmit.bounds: infinite end"
+    | Grades.Grade.Unbounded -> ("None", "False")
   in
   let lo, lo_closed = value_end lo and hi, hi_closed = value_end hi in
-  Printf.sprintf "Bounds(%s, %s, %s, %s)" lo lo_closed hi hi_closed
+  Printf.sprintf "tempore_Bounds(%s, %s, %s, %s)" lo lo_closed hi hi_closed
+
+(* Whether the bounds [b] constrain the running time: they are not [\[0, ∞)]. *)
+let constraining = function
+  | Grades.Grade.Closed q, Grades.Grade.Unbounded -> Grades.Rational.sign q <> 0
+  | _ -> true
 
 let dictionary entries =
   "{"
@@ -431,7 +451,7 @@ let dictionary entries =
       (List.map (fun (key, value) -> python_string key ^ ": " ^ value) entries)
   ^ "}"
 
-(* The emission of the commands: the statements, the last first, the [Run]
+(* The emission of the commands: the statements, the last first, the [tempore_Run]
    values of the [run] commands, the last first, and the default
    implementations declared so far. *)
 type commands = {
@@ -447,7 +467,7 @@ let command ctx (st, acc) (cmd : _ Ast.command) =
       let st, binds = let_binding ctx st (Ast.located cmd.at (Ast.PVar x)) e in
       (st, { acc with stmts = List.rev_append binds acc.stmts })
   | Ast.OpDefault (op, abs) ->
-      let name, st = fresh "d" st in
+      let name, st = fresh "tempore_d" st in
       let st, def = function_definition ctx st name abs in
       ( st,
         {
@@ -456,8 +476,10 @@ let command ctx (st, acc) (cmd : _ Ast.command) =
           defaults = Ast.OpNameMap.add op name acc.defaults;
         } )
   | Ast.TopDo c ->
-      let name, st = fresh "run" st in
-      let st, body = in_scope st (fun st -> computation ctx st c) in
+      let name, st = fresh "tempore_run" st in
+      let st, body =
+        in_scope st (fun st -> computation { ctx with top = false } st c)
+      in
       let defaults =
         List.map
           (fun (op, name) -> (Ast.OpName.string_of op, name))
@@ -468,7 +490,8 @@ let command ctx (st, acc) (cmd : _ Ast.command) =
           acc with
           stmts = Block (Printf.sprintf "def %s():" name, body) :: acc.stmts;
           runs =
-            Printf.sprintf "Run(%s, %s)" name (dictionary defaults) :: acc.runs;
+            Printf.sprintf "tempore_Run(%s, %s)" name (dictionary defaults)
+            :: acc.runs;
         } )
 
 let compile ~operations commands =
@@ -480,6 +503,7 @@ let compile ~operations commands =
       labels;
       local = VariableSet.empty;
       in_lifted = false;
+      top = true;
     }
   in
   let _, { stmts; runs; _ } =
@@ -489,22 +513,26 @@ let compile ~operations commands =
       commands
   in
   let labels =
-    Printf.sprintf "declare_labels(%s, %d, %d)"
+    Printf.sprintf "tempore_declare_labels(%s, %d, %d)"
       (tuple (List.map python_string (Names.label_names labels)))
       (Names.label_rank labels Ast.nil_label)
       (Names.label_rank labels Ast.cons_label)
   and operations =
-    Printf.sprintf "declare_operations(%s)"
+    Printf.sprintf "tempore_declare_operations(%s)"
       (dictionary
          (List.filter_map
             (fun (op, b) ->
-              Option.map (fun b -> (Ast.OpName.string_of op, bounds b)) b)
+              match b with
+              | Some b when constraining b ->
+                  Some (Ast.OpName.string_of op, bounds b)
+              | _ -> None)
             operations))
   in
   render
     ((Line labels :: Line operations :: List.rev stmts)
     @ [
-        Block ("RUNS = (", List.rev_map (fun run -> Line (run ^ ",")) runs);
+        Block
+          ("tempore_RUNS = (", List.rev_map (fun run -> Line (run ^ ",")) runs);
         Line ")";
       ])
 
@@ -516,6 +544,6 @@ let plain_program ~operations commands =
       "";
       compile ~operations commands;
       "if __name__ == \"__main__\":";
-      "    run_plain(RUNS)";
+      "    tempore_run_plain(tempore_RUNS)";
       "";
     ]

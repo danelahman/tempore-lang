@@ -32,7 +32,32 @@ type config = {
   typecheck_only : bool;
   resource_type : string;
   emit_opentrons : string option;
+  bind : string option;
+  robot : OpentronsBackend.OpentronsProtocol.robot option;
+  api_level : string option;
+  time_unit : Grades.Rational.t option;
+  monitor : OpentronsBackend.OpentronsProtocol.monitor option;
+  simulate : bool;
+  simulator : string option;
 }
+
+(* The length in seconds of the time unit [s]: [seconds], [minutes], [hours]
+   or a positive decimal number of seconds. *)
+let time_unit_of_string s =
+  match s with
+  | "seconds" -> Grades.Rational.of_int 1
+  | "minutes" -> Grades.Rational.of_int 60
+  | "hours" -> Grades.Rational.of_int 3600
+  | _ -> (
+      match Grades.Rational.of_decimal s with
+      | q when Grades.Rational.sign q > 0 -> q
+      | _ | (exception Invalid_argument _) ->
+          raise
+            (Arg.Bad
+               (Printf.sprintf
+                  "option '--time-unit': '%s' is neither seconds, minutes, \
+                   hours nor a positive number of seconds"
+                  s)))
 
 let accepted_resource_names = List.map fst Grades.GradeRegistry.grade_modules
 
@@ -77,7 +102,23 @@ let parse_args_to_config () =
   and debug = ref false
   and typecheck_only = ref false
   and resource_type = ref Grades.GradeRegistry.default_name
-  and emit_opentrons = ref None in
+  and emit_opentrons = ref None
+  and bind = ref None
+  and robot = ref None
+  and api_level = ref None
+  and time_unit = ref None
+  and monitor = ref None
+  and simulate = ref false
+  and simulator = ref None in
+  let choice option values reference value =
+    match List.assoc_opt value values with
+    | Some v -> reference := Some v
+    | None ->
+        raise
+          (Arg.Bad
+             (Printf.sprintf "option '%s': '%s' is not one of %s" option value
+                (String.concat ", " (List.map fst values))))
+  in
   let usage = "Run Tempore as '" ^ Sys.argv.(0) ^ " [filename.tpe] ...'"
   and anonymous filename = filenames := filename :: !filenames
   (* The options, in alphabetical order. [--help] is listed rather than left
@@ -87,6 +128,15 @@ let parse_args_to_config () =
   options :=
     Arg.align
       [
+        ( "--api-level",
+          Arg.String (fun level -> api_level := Some level),
+          " Set the apiLevel of the protocol written with --bind (default: \
+           2.30 for the Flex, 2.28 for the OT-2)" );
+        ( "--bind",
+          Arg.String (fun filename -> bind := Some filename),
+          " With --emit-opentrons, write an Opentrons protocol whose \
+           operations are performed by the functions of the given Python \
+           binding file" );
         ( "--debug",
           Arg.Set debug,
           " Print the inferred type schemes of the top-level definitions \
@@ -103,9 +153,39 @@ let parse_args_to_config () =
           Arg.Unit
             (fun () -> raise (Arg.Help (Arg.usage_string !options usage))),
           " Display this list of options" );
+        ( "--monitor",
+          Arg.String
+            (choice "--monitor"
+               OpentronsBackend.OpentronsProtocol.
+                 [ ("abort", Abort); ("warn", Warn); ("off", Off) ]
+               monitor),
+          " Set what a protocol written with --bind does when an operation's \
+           running time is outside its bounds: abort, warn or off (default: \
+           abort)" );
         ( "--no-stdlib",
           Arg.Clear use_stdlib,
           " Do not load the standard library" );
+        ( "--robot",
+          Arg.String
+            (choice "--robot"
+               OpentronsBackend.OpentronsProtocol.
+                 [ ("flex", Flex); ("ot2", Ot2) ]
+               robot),
+          " Set the robot of the protocol written with --bind: flex or ot2 \
+           (default: flex)" );
+        ( "--simulate",
+          Arg.Set simulate,
+          " Run the Opentrons simulator on the protocol written with --bind, \
+           passing its run log through and exiting with its exit code" );
+        ( "--simulator",
+          Arg.String (fun path -> simulator := Some path),
+          " Use the given executable as the Opentrons simulator of --simulate \
+           (default: opentrons_simulate on the PATH)" );
+        ( "--time-unit",
+          Arg.String (fun s -> time_unit := Some (time_unit_of_string s)),
+          " Set the length of a unit of duration of the protocol written with \
+           --bind: seconds, minutes, hours or a positive number of seconds \
+           (default: seconds)" );
         ( "--typecheck-only",
           Arg.Set typecheck_only,
           " Typecheck the files without running them" );
@@ -117,6 +197,24 @@ let parse_args_to_config () =
           "" );
       ];
   Arg.parse !options anonymous usage;
+  let requires option given needed present =
+    if given && not present then begin
+      Printf.eprintf "%s: option '%s' requires '%s'.\n" Sys.argv.(0) option
+        needed;
+      exit 2
+    end
+  in
+  requires "--bind" (!bind <> None) "--emit-opentrons" (!emit_opentrons <> None);
+  List.iter
+    (fun (option, given) -> requires option given "--bind" (!bind <> None))
+    [
+      ("--api-level", !api_level <> None);
+      ("--monitor", !monitor <> None);
+      ("--robot", !robot <> None);
+      ("--simulate", !simulate);
+      ("--simulator", !simulator <> None);
+      ("--time-unit", !time_unit <> None);
+    ];
   {
     filenames = List.rev !filenames;
     use_stdlib = !use_stdlib;
@@ -124,7 +222,94 @@ let parse_args_to_config () =
     typecheck_only = !typecheck_only;
     resource_type = !resource_type;
     emit_opentrons = !emit_opentrons;
+    bind = !bind;
+    robot = !robot;
+    api_level = !api_level;
+    time_unit = !time_unit;
+    monitor = !monitor;
+    simulate = !simulate;
+    simulator = !simulator;
   }
+
+(* The path of the executable [name] in a directory of the PATH, if any. *)
+let find_on_path name =
+  let separator = if Sys.win32 then ';' else ':' in
+  match Sys.getenv_opt "PATH" with
+  | None -> None
+  | Some path ->
+      List.find_map
+        (fun dir ->
+          let candidate =
+            Filename.concat (if dir = "" then "." else dir) name
+          in
+          if Sys.file_exists candidate && not (Sys.is_directory candidate) then
+            Some candidate
+          else None)
+        (String.split_on_char separator path)
+
+(* Runs the Opentrons simulator, [simulator] or else [opentrons_simulate] on
+   the PATH, on the protocol [filename], its output passed through, and exits
+   with its exit code. *)
+let simulate ?simulator filename =
+  let executable =
+    match simulator with
+    | Some path when Sys.file_exists path -> Some path
+    | Some _ -> None
+    | None -> find_on_path "opentrons_simulate"
+  in
+  match executable with
+  | None ->
+      prerr_endline
+        (Printf.sprintf
+           "Error: the Opentrons simulator %s was not found; it is installed \
+            with the Python package opentrons (Python 3.10 or later), e.g. by \
+            'pip install opentrons'"
+           (match simulator with
+           | Some path -> "'" ^ path ^ "'"
+           | None -> "opentrons_simulate"));
+      exit 1
+  | Some executable ->
+      flush_all ();
+      exit (Sys.command (Filename.quote_command executable [ filename ]))
+
+(* Writes to [filename] the Opentrons protocol of the [commands] of the
+   program, with the binding file [binding_name], or reports the errors that
+   refuse it. The protocol is named after the last source file. *)
+let emit_protocol config ~filename ~binding_name ~operations commands =
+  let module P = OpentronsBackend.OpentronsProtocol in
+  let binding =
+    try In_channel.with_open_text binding_name In_channel.input_all
+    with Sys_error message ->
+      prerr_endline ("Error: " ^ message);
+      exit 1
+  in
+  let robot = Option.value config.robot ~default:P.Flex in
+  let source =
+    match List.rev config.filenames with
+    | last :: _ -> Filename.basename last
+    | [] -> "the standard library"
+  in
+  let options =
+    {
+      P.robot;
+      api_level =
+        Option.value config.api_level ~default:(P.default_api_level robot);
+      time_unit =
+        Option.value config.time_unit ~default:(Grades.Rational.of_int 1);
+      monitor = Option.value config.monitor ~default:P.Abort;
+      name = Filename.remove_extension source;
+      source;
+    }
+  in
+  match P.protocol options ~operations ~binding_name ~binding commands with
+  | Ok (protocol, warnings) ->
+      List.iter (fun w -> prerr_endline ("Warning: " ^ w)) warnings;
+      Out_channel.with_open_text filename (fun oc ->
+          Out_channel.output_string oc protocol);
+      if config.simulate then simulate ?simulator:config.simulator filename
+  | Error errors ->
+      List.iter (fun e -> prerr_endline ("Error: " ^ e)) errors;
+      exit 1
 
 let run_with (module G : Grades.Grade.S) config =
   let module Backend = CliInterpreter.Make (Grades.GradeSystem.Identity (G)) in
@@ -179,13 +364,16 @@ let run_with (module G : Grades.Grade.S) config =
       print_newline ()
     end;
     (* loading the files has typechecked every command, the [run]s included *)
-    match config.emit_opentrons with
-    | Some filename ->
+    match (config.emit_opentrons, config.bind) with
+    | Some filename, None ->
         Out_channel.with_open_text filename (fun oc ->
             Out_channel.output_string oc
               (OpentronsBackend.OpentronsEmit.plain_program
                  ~operations:program.operations program.commands))
-    | None -> if not config.typecheck_only then run run_state 1
+    | Some filename, Some binding_name ->
+        emit_protocol config ~filename ~binding_name
+          ~operations:program.operations program.commands
+    | None, _ -> if not config.typecheck_only then run run_state 1
   with
   | Error.Error d ->
       Diagnostic.print ~source d Format.err_formatter;

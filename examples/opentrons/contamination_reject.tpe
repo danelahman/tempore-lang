@@ -1,0 +1,43 @@
+(* As the ddPCR example, with a tip reused after touching the test article.
+
+   Run this example with the 'time-upper-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-levels examples/opentrons/contamination_reject.tpe
+
+   Grades (n, l): at most n minutes, touching nothing above level l,
+   Low being clean and High contaminated
+     - Unit (0, Low): no time spent, nothing contaminated touched
+     - Top (∞, High): unbounded time, whatever is touched
+     - Product: addition and join, componentwise *)
+
+noneternal type tip = Tip
+
+operation ChangeTip : unit ~> unit # (1, Low)
+default ChangeTip () = delay 1
+
+operation AddWater : tip * nat ~> unit # (1, Low)
+default AddWater (t, column) = delay 1
+
+operation AddArticle : tip * nat ~> unit # (1, High)
+default AddArticle (t, column) = delay 1
+
+let new_tip () =
+  perform ChangeTip ();
+  box (∞, Low) Tip
+
+(* Correctly rejected by the typechecker: the tip that added the test article
+   is used again for the water control:
+
+     Typing error: Variable `tip` is unboxed with grade `(1, High)` accumulated
+       since it was bound, which is not below its box grade `(∞, Low)`
+       ...
+       Note: the resource inequality `(1, High) <= (∞, Low)` does not hold
+*)
+let shared_tip () =
+  let tip = new_tip () in
+  unbox tip as t in
+  perform AddArticle (t, 1);
+  unbox tip as t in
+  perform AddWater (t, 4)
+
+run shared_tip ()

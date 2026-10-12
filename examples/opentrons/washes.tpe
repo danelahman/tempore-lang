@@ -1,0 +1,82 @@
+(* A bead clean-up on the Opentrons Flex: two ethanol washes, air-drying, a tip change.
+
+   Run this example with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-symbolic examples/opentrons/washes.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+(* Modelled on the Opentrons Protocol Library protocols kapa-amp-cleanup (a
+   bead clean-up with two ethanol washes and a drying time) and
+   nextera-flex-library-prep-post-tag-cleanup (washes on the magnet, beads
+   not to be overdried).
+
+   A tick is a minute. The protocol for the Flex, with the operations
+   performed by the functions of 'washes_bindings.py', is written by
+
+     ./tempore --grades regex-timed-interval-symbolic --emit-opentrons washes.py
+       --bind examples/opentrons/washes_bindings.py --time-unit minutes
+       examples/opentrons/washes.tpe
+
+   Each operation declares its running time, which the monitors of the
+   protocol check against the durations of its binding function. *)
+
+(* Mixing the beads into the samples takes one to two minutes. The plate is
+   moved onto and off the magnetic block in at most a minute. *)
+operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
+default AddBeads () = delay 1
+
+operation Engage : unit ~> unit # {Engage} within [0, 1]
+default Engage () = delay 1
+
+operation Disengage : unit ~> unit # {Disengage} within [0, 1]
+default Disengage () = delay 1
+
+(* Removing the supernatant, an ethanol wash, which adds and removes the
+   ethanol, and the elution each take one to two minutes; changing the tip
+   at most one. *)
+operation RemoveSupernatant : unit ~> unit # {RemoveSupernatant} within [1, 2]
+default RemoveSupernatant () = delay 1
+
+operation Ethanol : unit ~> unit # {Ethanol} within [1, 2]
+default Ethanol () = delay 1
+
+operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
+default ChangeTip () = delay 0
+
+operation Elute : unit ~> unit # {Elute} within [1, 2]
+default Elute () = delay 1
+
+operation Transfer : unit ~> unit # {Transfer} within [1, 2]
+default Transfer () = delay 1
+
+(* The beads bind the sample for five to ten minutes before the plate goes on
+   the magnet. The washed beads may take the elution buffer after exactly two
+   ethanol washes, each with a tip of its own, and an air-dry of two to five
+   minutes, followed by a fresh tip for the buffer. *)
+let cleanup () =
+  perform AddBeads ();
+  box [5, 10] "beads" as binding in
+  delay 5;
+  unbox binding as beads in
+  perform Engage ();
+  delay 3;
+  perform RemoveSupernatant ();
+  box {Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip} beads as washed in
+  perform Ethanol ();
+  perform ChangeTip ();
+  perform Ethanol ();
+  delay 3;
+  perform ChangeTip ();
+  unbox washed as beads in
+  perform Disengage ();
+  perform Elute ();
+  delay 2;
+  perform Engage ();
+  delay 3;
+  perform Transfer ()
+
+run cleanup ()

@@ -1,0 +1,18 @@
+(* Operations of a protocol under the 'time-interval' grading monoid: 'Pipette'
+   is performed by a binding function, 'Probe' only under a handler, 'Shake'
+   by its default implementation, and 'Lost' only by a definition that no run
+   uses. *)
+
+operation Pipette : nat ~> nat # [1, 2]
+operation Probe : unit ~> nat # [0, 1]
+operation Shake : unit ~> unit # [0, 5]
+operation Lost : unit ~> unit # [0, 1]
+
+default Shake () = delay 1
+
+let probe = handler | x -> x | Probe () k -> continue k with 7
+let unused () = perform Lost ()
+
+run perform Pipette 1
+run handle perform Probe () with probe
+run delay 3; perform Shake (); perform Pipette 2

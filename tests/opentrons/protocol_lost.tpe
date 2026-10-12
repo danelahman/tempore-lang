@@ -1,0 +1,15 @@
+(* A run that performs 'Lost', through a definition, with neither a binding
+   function nor a default implementation, and 'Shake' before its default is
+   declared. *)
+
+operation Pipette : nat ~> nat # [1, 2]
+operation Shake : unit ~> unit # [0, 5]
+operation Lost : unit ~> unit # [0, 1]
+
+let lose () = perform Lost ()
+
+run lose (); perform Shake ()
+
+default Shake () = delay 1
+
+run perform Shake ()

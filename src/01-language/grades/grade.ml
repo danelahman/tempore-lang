@@ -103,6 +103,24 @@ let close_running_time adjacent (lo, hi) =
   in
   (close ~lower:true lo, close ~lower:false hi)
 
+(** [intersect_durations b b'] is the intersection of the intervals of durations
+    [b] and [b'], either possibly absent: the greater of the lower ends, which
+    are finite, and the lesser of the upper ends, an infinite end being the
+    greatest. *)
+let intersect_durations b b' =
+  let upper hi hi' =
+    match (hi, hi') with
+    | Unbounded, hi | hi, Unbounded -> hi
+    | _ -> if compare_ends ~lower:false hi hi' <= 0 then hi else hi'
+  in
+  match (b, b') with
+  | Some (lo, hi), Some (lo', hi') ->
+      Some
+        ( (if compare_ends ~lower:true lo lo' >= 0 then lo else lo'),
+          upper hi hi' )
+  | Some b, None | None, Some b -> Some b
+  | None, None -> None
+
 type bounds = {
   running_time : string -> running_time;
       (** The running-time bounds declared by each operation, or implied by its
@@ -196,6 +214,16 @@ module type S = sig
       timed operations. The time grades imply nothing, since there the grade of
       an operation already is its running-time bound, and return [None]; so does
       an unbounded upper-bound component. *)
+
+  val duration_bounds :
+    bounds -> t -> (Rational.t bound * Rational.t bound) option
+  (** [duration_bounds bounds rho] is the interval of the durations of the
+      computations of grade [rho], each end attained or not, where [rho]
+      determines one: for the time grades the interval [rho] denotes, its upper
+      end infinite where [rho] imposes no upper bound; for the trace grades of
+      timed operations {!implied_bounds}; for a product the intersection of
+      those of its components ({!intersect_durations}). [None] for the grades
+      that do not bound durations. *)
 
   val inhabited : bounds -> t -> bool
   (** [inhabited bounds rho] is whether the grade [rho] denotes at least one

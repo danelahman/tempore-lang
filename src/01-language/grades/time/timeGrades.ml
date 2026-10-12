@@ -8,7 +8,7 @@ module type NAMES = sig
   val step : delay option
 end
 
-module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
+module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
   module Ext = Extended.Make (D)
 
   (** [negate lit] is the literal of the negation of the number [lit]. *)
@@ -59,6 +59,7 @@ module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
     let needs_op_bounds = false
     let events _ = []
     let implied_bounds _bounds _ = None
+    let duration_bounds _bounds n = Some (Closed (D.to_rational n), Unbounded)
     let inhabited _bounds _ = true
 
     let of_lit = function
@@ -94,6 +95,11 @@ module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
     let needs_op_bounds = false
     let events _ = []
     let implied_bounds _bounds _ = None
+
+    let duration_bounds _bounds = function
+      | Ext.Fin n -> Some (Closed Rational.zero, Closed (D.to_rational n))
+      | Ext.Inf -> Some (Closed Rational.zero, Unbounded)
+
     let inhabited _bounds _ = true
 
     let of_lit = function
@@ -190,6 +196,15 @@ module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) = struct
     let needs_op_bounds = false
     let events _ = []
     let implied_bounds _bounds _ = None
+
+    let duration_bounds _bounds c =
+      let at closed d = if closed then Closed d else Open d in
+      Some
+        ( at c.lo_closed (D.to_rational c.lo),
+          match c.hi with
+          | Ext.Fin m -> at c.hi_closed (D.to_rational m)
+          | Ext.Inf -> Unbounded )
+
     let inhabited _bounds _ = true
 
     (** [interval lit lo hi] is the interval of the literal [lit] from [lo] to

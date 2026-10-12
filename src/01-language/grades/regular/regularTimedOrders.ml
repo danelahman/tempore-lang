@@ -100,6 +100,7 @@ struct
     let commutative = false
     let needs_op_bounds = true
     let implied_bounds bounds rho = implied_bounds bounds rho rho
+    let duration_bounds = implied_bounds
     let inhabited = W.inhabited
     let events = L.events
     let compare = L.compare
@@ -175,6 +176,7 @@ struct
     let commutative = false
     let needs_op_bounds = true
     let implied_bounds bounds (lo, hi) = implied_bounds bounds lo hi
+    let duration_bounds = implied_bounds
 
     let inhabited bounds (lo, hi) =
       W.inhabited bounds lo && W.inhabited bounds hi

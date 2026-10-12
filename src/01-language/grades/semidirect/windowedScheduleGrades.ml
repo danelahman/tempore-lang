@@ -70,6 +70,7 @@ module Durations = struct
   let commutative = true
   let needs_op_bounds = false
   let implied_bounds _bounds _ = None
+  let duration_bounds _bounds _ = None
   let inhabited _bounds _ = true
   let events _ = []
 

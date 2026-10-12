@@ -68,6 +68,9 @@ Command-line options:
 - `--no-stdlib` skips importing the standard library;
 - `--debug` also prints the inferred typing context, including the inferred type
   schemes;
+- `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
+  Python, to the given file, without running them; with `--bind`, as an
+  Opentrons protocol (see [Opentrons protocols](#opentrons-protocols));
 - `--help` lists the options and the available grading monoids.
 
 The [`examples/`](examples/) directory holds example programs grouped according
@@ -1085,6 +1088,79 @@ Limits:
   least grade or the hypotheses of the qualifier entail it, and each use
   checks it; a `run` must have a closed instance of its whole qualifier
   `Q ∧ R` among finitely many grades per unknown.
+
+## Opentrons protocols
+<!-- web-skip -->
+
+    ./tempore --grades <grades> --emit-opentrons protocol.py --bind bindings.py \
+      [--robot flex|ot2] [--api-level <level>] [--time-unit <unit>] \
+      [--monitor abort|warn|off] [--simulate [--simulator <path>]] file.tpe
+
+typechecks the program and writes it as a single-file Opentrons Python
+protocol, which the Opentrons App and `opentrons_simulate` accept. Grades are
+erased; the program is executed by a small abstract machine included in the
+file, so that handlers, continuations and recursion behave as in the
+interpreter. The file contains, in order, the `metadata` and `requirements` of
+the protocol (`robotType` `Flex` or `OT-2`; `apiLevel` 2.30 for the Flex and
+2.28 for the OT-2 unless `--api-level` gives one), the runtime, the binding
+file, the compiled program and the function `run(protocol)`. Run as a script,
+`python3 protocol.py` executes the program as the interpreter does, without the
+binding file. Without `--bind`, `--emit-opentrons` writes the program alone,
+with no Opentrons parts; `--robot`, `--api-level`, `--time-unit`,
+`--monitor`, `--simulate` and `--simulator` require `--bind`. With
+`--simulate`, the protocol written is then run by the Opentrons simulator,
+`opentrons_simulate` on the `PATH` or the executable `--simulator` names
+(installed with `pip install opentrons`, Python 3.10 or later; not needed
+otherwise), its output passed through and its exit code that of `tempore`.
+
+The binding file is Python. It defines `setup(protocol)`, which loads the
+labware, pipettes and modules and returns a context object, and, for an
+operation `Op`, a function `Op(ctx, arg)` that performs it and returns its
+result. Arguments and results are Python values: a `nat` is an `int`, a
+`string` a `str`, a tuple a `tuple` and `()` the unit value. A binding function
+declares the nominal duration of its action by `tempore_elapse(seconds)`.
+`run(protocol)` calls `setup`, then executes the `run` commands in order: an
+operation call that no handler handles calls the binding function of the
+operation, or else its default implementation; `delay q` calls
+`protocol.delay` for `q` units of the program, each unit `--time-unit` long
+(`seconds`, the default, `minutes`, `hours` or a positive number of seconds).
+
+Every call of a binding function is monitored against the bounds of the running
+time of its operation: those it declares by `within`, or else those its grade
+implies, such as `[2, 4]` for `# [2, 4]` under `time-interval`, `[n, ∞)` for
+`# n` under `time-lower-bound` and `[0, n]` under `time-upper-bound`; an
+operation with neither, or with the bounds `[0, ∞)`, is not monitored. In
+simulation the clock is virtual, advanced by the delays and the declared
+durations; on the robot it is the host's monotonic clock. A call outside its
+bounds ends the protocol with an error under `--monitor abort` (the default),
+is reported by a comment under `warn`, and is not checked under `off`. Each run
+is announced by a comment, followed by a comment per monitored call (the
+timeline) and one with its value.
+
+The protocol is refused when:
+
+- the binding file defines a name that begins with `tempore_` or `_tempore_`,
+  reserved for the runtime and the compiled program, the names `metadata`,
+  `requirements` or `run`, or a name of a top-level definition of the compiled
+  program; the names are found by a line-based check, which reads the
+  definitions (`def`, `async def`, `class`), imports and assignments that start
+  at column 0;
+- the binding file defines no `setup`;
+- the code of a `run` command, which includes the top-level definitions it uses
+  and the default implementations of the operations it performs, may perform
+  an operation that has neither a binding function nor a default implementation
+  declared above the run. If a handler in that code has a case for the
+  operation, this is a warning instead.
+
+See [`examples/opentrons/`](examples/opentrons/): an ELISA under
+`time-interval` (an incubation of at least 60 minutes, a dilution used within
+20 minutes, a development stopped between 15 and 20 minutes), a bead clean-up
+under `regex-timed-interval-symbolic` (exactly two ethanol washes, an air-dry
+of two to five minutes and a tip change before the elution buffer) and a ddPCR
+plate set-up under `time-upper-bound-levels` (a tip that has touched the test
+article does not enter a clean reagent), each with a binding file and a
+rejected variant. `scripts/opentrons-simulate.sh` runs the examples with
+`--simulate`, the simulator installed in a Python virtual environment.
 
 ## Editor support
 <!-- web-skip -->

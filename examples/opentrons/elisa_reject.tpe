@@ -1,0 +1,33 @@
+(* As the ELISA example, with the coated plate washed after too short an incubation.
+
+   Run this example with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval examples/opentrons/elisa_reject.tpe
+
+   Grades [n, m]: between n and m minutes, (n, m) being [n + 1, m - 1]
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition *)
+
+operation Coat : string ~> [[60, ∞)]string # [1, 3]
+default Coat plate = delay 2; box [60, ∞) plate
+
+operation Wash : string ~> string # [2, 4]
+default Wash plate = delay 3; plate
+
+(* Correctly rejected by the typechecker: the plate incubates for 30 minutes
+   only, short of the 60 its coating demands:
+
+     Typing error: Variable `coated` is unboxed with grade `[30, 30]`
+       accumulated since it was bound, which is not below its box grade
+       `[60, ∞)`
+       ...
+       Note: the resource inequality `[30, 30] <= [60, ∞)` does not hold
+*)
+let early_wash () =
+  let coated = perform Coat "plate" in
+  delay 30;
+  unbox coated as plate in
+  perform Wash plate
+
+run early_wash ()

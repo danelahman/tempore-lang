@@ -1,0 +1,35 @@
+(* As the bead clean-up example, with one ethanol wash in place of two.
+
+   Run this example with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-symbolic examples/opentrons/washes_reject.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+operation Ethanol : unit ~> unit # {Ethanol} within [1, 2]
+default Ethanol () = delay 1
+
+operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
+default ChangeTip () = delay 0
+
+operation Elute : unit ~> unit # {Elute} within [1, 2]
+default Elute () = delay 1
+
+(* Correctly rejected by the typechecker: the beads are washed once only:
+
+     Typing error: Variable `washed` is unboxed with grade
+       `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since
+       it was bound, which is not below its box grade ...
+*)
+let one_wash () =
+  box {Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip} "beads" as washed in
+  perform Ethanol ();
+  delay 3;
+  perform ChangeTip ();
+  unbox washed as beads in
+  perform Elute ()
+
+run one_wash ()

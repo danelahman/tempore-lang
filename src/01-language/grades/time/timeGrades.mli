@@ -31,7 +31,7 @@ end
 
 (** The time grades over the delays [D], named by [N]. A negative literal is
     rejected as such where its absolute value is a delay. *)
-module Make (D : Delay.MONUS) (N : NAMES with type delay = D.t) : sig
+module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) : sig
   module LowerBound : Grade.S with type Delay.t = D.t
   (** Lower bounds, ["time-lower-bound" ^ N.suffix]: [n] is "at least [n]",
       ordered by [≥], so the unit [0] is the top. *)

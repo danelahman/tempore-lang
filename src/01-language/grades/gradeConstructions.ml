@@ -36,6 +36,7 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let commutative = true
   let needs_op_bounds = false
   let implied_bounds _bounds _ = None
+  let duration_bounds _bounds _ = None
   let inhabited _bounds _ = true
   let events _ = []
   let of_lit = function Grade.Top -> L.top | lit -> L.of_lit lit
@@ -96,6 +97,11 @@ struct
 
   let implied_bounds bounds (a, b) =
     intersect (G1.implied_bounds bounds a) (G2.implied_bounds bounds b)
+
+  let duration_bounds bounds (a, b) =
+    Grade.intersect_durations
+      (G1.duration_bounds bounds a)
+      (G2.duration_bounds bounds b)
 
   let inhabited bounds (a, b) = G1.inhabited bounds a && G2.inhabited bounds b
   let events (a, b) = List.sort_uniq String.compare (G1.events a @ G2.events b)
@@ -199,6 +205,7 @@ struct
   let commutative = false
   let needs_op_bounds = M.needs_op_bounds
   let implied_bounds bounds (m, _) = M.implied_bounds bounds m
+  let duration_bounds bounds (m, _) = M.duration_bounds bounds m
   let inhabited bounds (m, _) = M.inhabited bounds m
   let events (m, _) = M.events m
 
@@ -456,6 +463,7 @@ module Indexed = struct
     let commutative = G.commutative
     let needs_op_bounds = G.needs_op_bounds
     let implied_bounds _bounds _ = None
+    let duration_bounds _bounds _ = None
     let inhabited bounds = for_all (G.inhabited bounds)
 
     let events m =
