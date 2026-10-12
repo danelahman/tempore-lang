@@ -3,4 +3,11 @@
 
 (library
  (name backendRegistry)
- (libraries language grades backend timeline opentronsBackend))
+ (libraries
+  language
+  grades
+  backend
+  timeline
+  opentronsBackend
+  arduinoBackend
+  utils))

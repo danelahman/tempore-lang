@@ -40,6 +40,10 @@ type config = {
   packages : string list;
   host_runs : bool;
   host_simulate : int option;
+  build : bool;
+  upload : bool;
+  port : string option;
+  pio : string option;
   bind : string option;
   robot : OpentronsBackend.OpentronsProtocol.robot option;
   api_level : string option;
@@ -136,6 +140,10 @@ let parse_args_to_config () =
   and packages = ref []
   and host_runs = ref false
   and host_simulate = ref None
+  and build = ref false
+  and upload = ref false
+  and port = ref None
+  and pio = ref None
   and bind = ref None
   and robot = ref None
   and api_level = ref None
@@ -172,6 +180,10 @@ let parse_args_to_config () =
           " With --emit-opentrons, write an Opentrons protocol whose \
            operations are performed by the functions of the given Python \
            binding file" );
+        ( "--build",
+          Arg.Set build,
+          " Build the project written with --device with PlatformIO, passing \
+           its output through and exiting with its exit code" );
         ( "--debug",
           Arg.Set debug,
           " Print the inferred type schemes of the top-level definitions \
@@ -238,6 +250,14 @@ let parse_args_to_config () =
            program may perform them, run by their default implementations; \
            repeatable; the packages of a device written with --device are \
            those of its manifest" );
+        ( "--pio",
+          Arg.String (fun path -> pio := Some path),
+          " Use the given executable as the PlatformIO of --build and --upload \
+           (default: pio on the PATH, or else in _arduino/venv)" );
+        ( "--port",
+          Arg.String (fun name -> port := Some name),
+          " Upload through the given serial port under --upload (default: the \
+           port PlatformIO detects)" );
         ( "--robot",
           Arg.String
             (choice "--robot"
@@ -272,6 +292,11 @@ let parse_args_to_config () =
         ( "--typecheck-only",
           Arg.Set typecheck_only,
           " Typecheck the files without running them" );
+        ( "--upload",
+          Arg.Set upload,
+          " Build the project written with --device with PlatformIO and upload \
+           it to the board, passing its output through and exiting with its \
+           exit code" );
         (* [Arg] would otherwise add a single-dash "-help" alongside "--help";
            listing it here with an empty doc string keeps it out of the help
            text and makes it fail like any other unknown option. *)
@@ -292,6 +317,28 @@ let parse_args_to_config () =
   requires "--device" (!device <> None) "--emit-arduino" (!emit_arduino <> None);
   requires "--host-simulate" (!host_simulate <> None) "--device"
     (!device <> None);
+  requires "--build" !build "--device" (!device <> None);
+  requires "--upload" !upload "--device" (!device <> None);
+  requires "--port" (!port <> None) "--upload" !upload;
+  if !pio <> None && not (!build || !upload) then begin
+    Printf.eprintf "%s: option '--pio' requires '--build' or '--upload'.\n"
+      Sys.argv.(0);
+    exit 2
+  end;
+  List.iter
+    (fun (option, given) ->
+      if given && !host_simulate <> None then begin
+        Printf.eprintf
+          "%s: option '%s' cannot be used with '--host-simulate'.\n"
+          Sys.argv.(0) option;
+        exit 2
+      end)
+    [ ("--build", !build); ("--upload", !upload) ];
+  if !build && !upload then begin
+    Printf.eprintf "%s: option '--build' cannot be used with '--upload'.\n"
+      Sys.argv.(0);
+    exit 2
+  end;
   List.iter
     (fun (option, given) ->
       if given && !device <> None then begin
@@ -344,6 +391,10 @@ let parse_args_to_config () =
     packages = List.rev !packages;
     host_runs = !host_runs;
     host_simulate = !host_simulate;
+    build = !build;
+    upload = !upload;
+    port = !port;
+    pio = !pio;
     bind = !bind;
     robot = !robot;
     api_level = !api_level;
@@ -371,10 +422,10 @@ let find_on_path name =
           else None)
         (String.split_on_char separator path)
 
-(* The virtual environment of the Opentrons simulator installed by
-   [make opentrons-deps], in the directory of the executable or else in the
-   current directory, if it holds the simulator. *)
-let find_opentrons_venv () =
+(* The installation directory [name] of an optional tool, in the directory of
+   the executable or else in the current directory, with the path of the
+   tool's executable [path] relative to it, if it holds that executable. *)
+let find_installation name path =
   let executable_dir =
     let dir = Filename.dirname Sys.executable_name in
     if Filename.is_relative dir then Filename.concat (Sys.getcwd ()) dir
@@ -382,14 +433,17 @@ let find_opentrons_venv () =
   in
   List.find_map
     (fun dir ->
-      let venv = Filename.concat dir "_opentrons" in
-      let simulator =
-        Filename.concat (Filename.concat venv "bin") "opentrons_simulate"
-      in
-      if Sys.file_exists simulator && not (Sys.is_directory simulator) then
-        Some (venv, simulator)
+      let installation = Filename.concat dir name in
+      let executable = List.fold_left Filename.concat installation path in
+      if Sys.file_exists executable && not (Sys.is_directory executable) then
+        Some (installation, executable)
       else None)
     [ executable_dir; Sys.getcwd () ]
+
+(* The virtual environment of the Opentrons simulator installed by
+   [make opentrons-deps]. *)
+let find_opentrons_venv () =
+  find_installation "_opentrons" [ "bin"; "opentrons_simulate" ]
 
 (* Runs the Opentrons simulator on the protocol [filename], its output passed
    through, and exits with its exit code. The simulator is [simulator], or
@@ -430,6 +484,54 @@ let simulate ?simulator filename =
             "Error: the Opentrons simulator opentrons_simulate was not found \
              on the PATH or in _opentrons; 'make opentrons-deps' installs it \
              with Python 3.10 or later");
+      exit 1
+  | Some command ->
+      flush_all ();
+      exit (Sys.command command)
+
+(* Runs PlatformIO on the project in [directory], building it, or under
+   [upload] building and uploading it, through the serial port [port] if
+   given, its output passed through, and exits with its exit code.
+   PlatformIO is [pio], or else [pio] on the PATH, or else that of the
+   installation [_arduino] of [make arduino-deps], run with
+   PLATFORMIO_CORE_DIR set to its directory [platformio] unless the
+   environment sets it. *)
+let platformio ?pio ~upload ?port directory =
+  let arguments =
+    [ "run"; "-d"; directory ]
+    @ (if upload then [ "-t"; "upload" ] else [])
+    @ match port with Some port -> [ "--upload-port"; port ] | None -> []
+  in
+  let command =
+    match pio with
+    | Some path when Sys.file_exists path ->
+        Some (Filename.quote_command path arguments)
+    | Some _ -> None
+    | None -> (
+        match find_on_path "pio" with
+        | Some path -> Some (Filename.quote_command path arguments)
+        | None ->
+            Option.map
+              (fun (installation, path) ->
+                match Sys.getenv_opt "PLATFORMIO_CORE_DIR" with
+                | Some _ -> Filename.quote_command path arguments
+                | None ->
+                    Filename.quote_command "env"
+                      (("PLATFORMIO_CORE_DIR="
+                       ^ Filename.concat installation "platformio")
+                      :: path :: arguments))
+              (find_installation "_arduino" [ "venv"; "bin"; "pio" ]))
+  in
+  match command with
+  | None ->
+      prerr_endline
+        (match pio with
+        | Some path ->
+            Printf.sprintf "Error: PlatformIO '%s' was not found" path
+        | None ->
+            "Error: PlatformIO pio was not found on the PATH or in \
+             _arduino/venv; 'make arduino-deps' installs it with Python 3.10 \
+             or later");
       exit 1
   | Some command ->
       flush_all ();
@@ -589,7 +691,9 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
     files;
   Option.iter
     (fun duration -> host_simulate ~directory ~duration files)
-    config.host_simulate
+    config.host_simulate;
+  if config.build || config.upload then
+    platformio ?pio:config.pio ~upload:config.upload ?port:config.port directory
 
 (* Writes to [filename] the Opentrons protocol of the [commands] of the
    program, with the binding file [binding_name], or reports the errors that

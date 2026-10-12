@@ -14,7 +14,9 @@
   backend
   timeline
   cliInterpreter
-  opentronsBackend)
+  opentronsBackend
+  arduinoBackend
+  typechecker)
  (deps
   %{project_root}/examples/index
   %{project_root}/tests/default_chain.tpe

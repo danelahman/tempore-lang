@@ -199,6 +199,12 @@ let view_contents main aside =
    and is neither shown nor editable; only editor spans can be marked. *)
 let in_editor (loc : Location.t) = loc.filename = ""
 
+(* The source of a span outside the editor: the standard library, or the file
+   of declarations a backend loads before the program. *)
+let source_name (loc : Location.t) =
+  if loc.filename = Loader.stdlib_filename then "the standard library"
+  else loc.filename
+
 (* The ids the error's spans are given in the editor, so that the message
    under it can link to them and the page can scroll to them. *)
 let primary_id i = Printf.sprintf "error-primary-%d" i
@@ -214,7 +220,7 @@ let load_error_header (error : Model.load_error) =
   | Some loc when in_editor loc ->
       Format.asprintf "%s at %t" kind (Location.print_short loc)
   | Some loc ->
-      Format.asprintf "%s in the standard library (%t)" kind
+      Format.asprintf "%s in %s (%t)" kind (source_name loc)
         (Location.print loc)
 
 (* The same, cut down for the side panel's list: no characters, no file. *)
@@ -224,7 +230,7 @@ let load_error_summary (error : Model.load_error) =
   | None -> kind
   | Some loc when in_editor loc ->
       Printf.sprintf "%s at line %d" kind loc.start.line
-  | Some _ -> kind ^ " in the standard library"
+  | Some loc -> kind ^ " in " ^ source_name loc
 
 (* Text with each rigid variable [ε_Op] set as [ε] with the operation [Op] as
    a subscript, followed by its primes. *)
@@ -404,7 +410,7 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
        the line instead, and needs no line reference after it. *)
     let place =
       if in_editor span then Printf.sprintf "on line %d" span.start.line
-      else Printf.sprintf "on line %d of the standard library" span.start.line
+      else Printf.sprintf "on line %d of %s" span.start.line (source_name span)
     in
     let placed = Diagnostic.render_label_text ~place label_text in
     let where =
@@ -418,7 +424,8 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
                 (if in_editor span then
                    Printf.sprintf " (line %d)" span.start.line
                  else
-                   Printf.sprintf " (standard library, line %d)" span.start.line);
+                   Printf.sprintf " (%s, line %d)" (source_name span)
+                     span.start.line);
             ];
         ]
     in
@@ -1090,8 +1097,10 @@ let view_code (output : BackendRegistry.compiled) =
   let code = Option.value output.code ~default:"" in
   elt "pre"
     ~a:[ class_ "syn-ml backend-code" ]
-    (if output.language = "python" then PythonHighlight.highlight code
-     else [ text code ])
+    (match output.language with
+    | "python" -> PythonHighlight.highlight code
+    | "cpp" -> CppHighlight.highlight code
+    | _ -> [ text code ])
 
 (* A message of a compilation, in the style of the errors of a check. *)
 let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
@@ -1118,7 +1127,15 @@ let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
              elt "span" ~a:[ class_ "stale-note" ] [ text "out of date" ]
            else nil);
         ];
-      div ~a:[ class_ "message-body" ] [ elt "p" [ text message.text ] ];
+      div
+        ~a:[ class_ "message-body" ]
+        [
+          (if String.contains message.text '\n' then
+             elt "pre"
+               ~a:[ class_ "backend-message-text" ]
+               [ text message.text ]
+           else elt "p" [ text message.text ]);
+        ];
     ]
 
 let view_compiler (model : Model.model) =

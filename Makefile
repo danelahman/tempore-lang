@@ -48,6 +48,38 @@ opentrons-deps:
 clean-opentrons:
 	rm -rf $(OPENTRONS_VENV)
 
+# PlatformIO Core 6.2.0, the build tool of --build and --upload, in the
+# virtual environment _arduino/venv, created with the first of the interpreters
+# below of version 3.10 or later; an error if there is none. PlatformIO keeps
+# its platforms, toolchains and libraries in _arduino/platformio, set by the
+# executable as PLATFORMIO_CORE_DIR. Optional: only --build and --upload need
+# it. clean-arduino removes _arduino, together with the projects written by
+# --emit-arduino to _arduino/projects.
+ARDUINO_DIR = _arduino
+ARDUINO_VENV = $(ARDUINO_DIR)/venv
+ARDUINO_PYTHONS = $(OPENTRONS_PYTHONS)
+
+arduino-deps:
+	@if [ -x $(ARDUINO_VENV)/bin/pio ]; then \
+	  echo "PlatformIO is installed in $(ARDUINO_VENV)."; \
+	  exit 0; \
+	fi; \
+	for python in $(ARDUINO_PYTHONS); do \
+	  if command -v $$python > /dev/null 2>&1 && \
+	     $$python -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then \
+	    echo "Installing PlatformIO in $(ARDUINO_VENV) with $$python."; \
+	    $$python -m venv $(ARDUINO_VENV) && \
+	    $(ARDUINO_VENV)/bin/pip install --quiet --disable-pip-version-check platformio==6.2.0 && \
+	    mkdir -p $(ARDUINO_DIR)/platformio $(ARDUINO_DIR)/projects; \
+	    exit $$?; \
+	  fi; \
+	done; \
+	echo "Error: Python 3.10 or later was not found; PlatformIO is not installed." >&2; \
+	exit 1
+
+clean-arduino:
+	rm -rf $(ARDUINO_DIR)
+
 vscode-extension:
 	cd editors/vscode && \
 	  rm -f vscode-tempore-*.vsix && \
@@ -55,4 +87,4 @@ vscode-extension:
 	  code --install-extension vscode-tempore-*.vsix --force
 
 .PHONY: default format check-format release test clean tempore-deps \
-  opentrons-deps clean-opentrons vscode-extension
+  opentrons-deps clean-opentrons arduino-deps clean-arduino vscode-extension

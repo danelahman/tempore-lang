@@ -1,0 +1,9 @@
+(* The step of tilt.tpe showing the tilt itself. *)
+
+let step_shown (tilt : float) : float # [0, 20) =
+  let reading = perform ReadImu () in
+  box [0, 5] reading as fresh in
+  unbox fresh as imu in
+  let tilt = tilt_x gyro_weight period tilt imu in
+  perform ShowNumber tilt;
+  tilt

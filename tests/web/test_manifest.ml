@@ -81,6 +81,7 @@ let () =
   | [
    ("interpreter", "examples/introduction/sensor_reading.tpe");
    ("opentrons", "examples/opentrons/elisa.tpe");
+   ("arduino", "examples/arduino/tilt/tilt.tpe");
   ] ->
       ()
   | _ -> fail "the manifest's defaults are not those expected");

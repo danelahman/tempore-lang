@@ -324,6 +324,9 @@ type model = {
     option;
       (** The compilation of the program as last checked, while neither it nor
           the options have changed and it had no errors. *)
+  declared : string list;
+      (** The file names of the declarations of the selected backend loaded
+          before the program as last checked. *)
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;

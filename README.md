@@ -52,6 +52,16 @@ needs Python 3.10 or later and the network:
 
 Tempore is fully usable without it, only `--simulate` option would fail without.
 
+PlatformIO Core, used only to build and upload the projects of the Arduino
+backend, is likewise optional; it needs Python 3.10 or later and the network,
+and is installed (version 6.2.0) in the virtual environment `_arduino/venv`,
+with its platforms, toolchains and libraries in `_arduino/platformio`:
+
+    make arduino-deps
+
+Only the options `--build` and `--upload` need it; `make clean-arduino`
+removes `_arduino`, together with the projects written to `_arduino/projects`.
+
 Build the language:
 
     make
@@ -101,6 +111,14 @@ Command-line options:
   host for the given simulated time; the declarations of the peripheral
   packages the manifest lists (`i2c`, `m5-imu`, `m5-display`, `bala2-base`,
   under `time-interval-rational` in milliseconds) are loaded before the files;
+  `--build` builds the project with PlatformIO (`pio run`), and `--upload`
+  builds it and uploads it to the board (`pio run -t upload`), through the
+  serial port of `--port <port>` if given, each passing the output of
+  PlatformIO through and exiting with its exit code; `--pio <path>` names the
+  executable, by default `pio` on the `PATH`, or else that of `_arduino/venv`
+  in the directory of `tempore` or in the current directory, run with
+  `PLATFORMIO_CORE_DIR` set to `_arduino/platformio` unless the environment
+  sets it;
 - `--package <name>`, repeatable, loads the declarations of a peripheral
   package of the Arduino backend before the files, so that a program run by
   the interpreter performs its operations by their default implementations;
@@ -120,16 +138,21 @@ monoid to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
 The backend selector, first among the code options, chooses the backend,
-Interpreter or Opentrons (see [Backends](#backends)).
+Interpreter, Opentrons or Arduino (see [Backends](#backends)).
 Selecting a backend loads its default example (the sensor reading for Interpreter,
-the ELISA for Opentrons), and the gallery lists the examples of the backend
-selected. Under Opentrons, the robot, the time unit and the monitor policy are
-chosen under the selector, and the mark in the top right corner of the editor
-switches between the program and the Opentrons protocol: the binding file and
-the protocol compiled from the program once it typechecks.
+the ELISA for Opentrons, the tilt display for Arduino), and the gallery lists the
+examples of the backend selected. Under Opentrons, the robot, the time unit and
+the monitor policy are chosen under the selector, and the mark in the top right
+corner of the editor switches between the program and the Opentrons protocol:
+the binding file and the protocol compiled from the program once it typechecks.
+Under Arduino, the device manifest, the binding file and the monitor policy are
+the inputs; the declarations of the peripheral packages the manifest lists are
+loaded before the program, which is checked again when they change, and the
+compiled code is the configuration, `main.cpp`, the program and the operation
+wrappers of the PlatformIO project, one file after another.
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
-title under Interpreter and unfolded under Opentrons; the events inside default
+title under Interpreter and unfolded under Opentrons and Arduino; the events inside default
 implementations are greyed; under Opentrons the title states the time unit,
 `Timeline (one time unit = 1 min)`. Long grades are shortened; a shortened cell shows
 its full text as a tooltip and, when clicked, in place.

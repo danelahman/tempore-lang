@@ -32,16 +32,32 @@ type compiled = {
 type operations =
   (Language.Ast.operation * Grades.Grade.running_time option) list
 
+type function_effect = ArduinoBackend.ArduinoProject.function_effect =
+  | Not_a_function
+  | Effect_variable
+  | Effect of {
+      grade : string;
+      durations :
+        (Grades.Rational.t Grades.Grade.bound
+        * Grades.Rational.t Grades.Grade.bound)
+        option;
+    }
+
+type definitions = (Language.Ast.variable * function_effect) list
+
 type compiler = {
   compile :
     'rho 'eps.
     settings ->
     operations:operations ->
     compound:Language.Ast.operation list ->
+    definitions:definitions ->
     ('rho, 'eps) Language.Ast.command list ->
     compiled;
   code_name : string;
 }
+
+type source = { filename : string; text : string }
 
 type event = Backend.observation =
   | Delayed of { at : string; grade : string }
@@ -99,7 +115,10 @@ type entry = {
   inputs : input list;
   compiler : compiler option;
   observer : (settings -> observer) option;
+  declarations : settings -> grades:string -> (source list, string) result;
 }
+
+let no_declarations _ ~grades:_ = Ok []
 
 let interpreter =
   {
@@ -111,6 +130,7 @@ let interpreter =
     inputs = [];
     compiler = None;
     observer = Some (fun _ -> timeline ~expanded:false ());
+    declarations = no_declarations;
   }
 
 (* Opentrons *)
@@ -147,7 +167,7 @@ let time_unit settings =
   | "hours" -> Rational.of_int 3600
   | _ -> Rational.of_int 1
 
-let opentrons_compile settings ~operations ~compound commands =
+let opentrons_compile settings ~operations ~compound ~definitions:_ commands =
   let binding = opentrons_setting settings "binding" in
   if String.trim binding = "" then
     {
@@ -223,8 +243,212 @@ let opentrons =
     compiler =
       Some { compile = opentrons_compile; code_name = "Opentrons protocol" };
     observer = Some opentrons_observer;
+    declarations = no_declarations;
   }
 
-let entries = [ interpreter; opentrons ]
+(* Arduino *)
+
+module Device = ArduinoBackend.ArduinoDevice
+module Package = ArduinoBackend.ArduinoPackage
+module Project = ArduinoBackend.ArduinoProject
+
+let arduino_inputs =
+  [
+    { key = "manifest"; label = "Device manifest"; kind = Text; default = "" };
+    { key = "bindings"; label = "Binding file"; kind = Text; default = "" };
+    {
+      key = "monitor";
+      label = "Monitor";
+      kind = Choice [ "abort"; "warn"; "off" ];
+      default = "abort";
+    };
+  ]
+
+let arduino_setting = setting arduino_inputs
+
+(* The file name under which the manifest is parsed and its diagnostics
+   located. *)
+let manifest_filename = "device.json"
+
+(* The manifest of [settings], unless its input is blank. *)
+let manifest settings =
+  let text = arduino_setting settings "manifest" in
+  if String.trim text = "" then None
+  else Some (Device.parse ~filename:manifest_filename text)
+
+(* The packages of the manifest of [settings] known to the registry, each
+   once, in the order of their first mention; none if the manifest is blank
+   or malformed, whose compilation reports it. *)
+let arduino_packages settings =
+  match manifest settings with
+  | None | (exception Utils.Error.Error _) -> []
+  | Some device ->
+      List.fold_left
+        (fun acc (name : Device.name) ->
+          match Package.find name.it with
+          | Some p
+            when not (List.exists (fun (q : Package.t) -> q.name = p.name) acc)
+            ->
+              acc @ [ p ]
+          | _ -> acc)
+        [] device.packages
+
+let arduino_declarations settings ~grades =
+  List.fold_left
+    (fun acc (p : Package.t) ->
+      Result.bind acc (fun sources ->
+          Result.map
+            (fun () ->
+              sources
+              @ [ { filename = p.declarations; text = p.declarations_source } ])
+            (Package.check_grades ~grades p)))
+    (Ok [])
+    (arduino_packages settings)
+
+(* The files of a project shown, in order, the others being the runtime
+   header, the scaffold, the sources of the packages, the binding file and the
+   host simulation. *)
+let shown_files =
+  [
+    "platformio.ini";
+    "src/main.cpp";
+    "src/tempore_program.h";
+    "src/tempore_program.cpp";
+    "src/tempore_bindings.h";
+    "src/tempore_operations.cpp";
+  ]
+
+(* The files [names] of [files] that are present, each after a comment line
+   naming it. *)
+let concatenated names files =
+  String.concat "\n"
+    (List.filter_map
+       (fun name ->
+         Option.map
+           (fun contents -> Printf.sprintf "// File %s\n\n%s" name contents)
+           (List.assoc_opt name files))
+       names)
+
+(* The text of the diagnostic [d], with the lines of the manifest
+   [manifest_text] and of the declarations of the packages it points at. *)
+let diagnostic_text ~manifest_text d =
+  let source filename =
+    if filename = manifest_filename then Some manifest_text
+    else Package.source filename
+  in
+  String.trim (Format.asprintf "%t" (Utils.Diagnostic.print ~source d))
+
+let arduino_compile settings ~operations ~compound:_ ~definitions commands =
+  let manifest_text = arduino_setting settings "manifest" in
+  let library, sources =
+    List.partition
+      (fun (cmd : _ Language.Ast.command) -> cmd.at.filename <> "")
+      commands
+  in
+  let source = "of the web interface" in
+  try
+    match manifest settings with
+    | None ->
+        let program =
+          ArduinoBackend.ArduinoFragment.check ~runs:false ~library sources
+        in
+        let compiled =
+          ArduinoBackend.ArduinoEmit.compile ~host_runs:false ~source program
+        in
+        {
+          code =
+            Some
+              (concatenated
+                 [ "tempore_program.h"; "tempore_program.cpp" ]
+                 compiled.files);
+          language = "cpp";
+          messages =
+            [
+              {
+                severity = Note;
+                text =
+                  "Without a device manifest, the program is compiled to C++ \
+                   functions alone, its operations calls of functions \
+                   implemented outside the program.";
+              };
+            ];
+        }
+    | Some device ->
+        let program =
+          ArduinoBackend.ArduinoFragment.check ~runs:false ~library sources
+        in
+        let bindings =
+          Option.map
+            (fun (name : Device.name) ->
+              (name.it, arduino_setting settings "bindings"))
+            device.bindings
+        and monitor =
+          match arduino_setting settings "monitor" with
+          | "warn" -> Project.Warn
+          | "off" -> Project.Off
+          | _ -> Project.Abort
+        in
+        let files =
+          Project.files
+            {
+              device;
+              monitor;
+              source;
+              definitions;
+              operations;
+              bindings;
+              host_models =
+                List.map
+                  (fun (name : Device.name) -> (name.it, ""))
+                  device.host_models;
+            }
+            program
+        in
+        let packages =
+          List.map (fun (p : Package.t) -> p.name) (arduino_packages settings)
+        in
+        {
+          code = Some (concatenated shown_files files);
+          language = "cpp";
+          messages =
+            [
+              {
+                severity = Note;
+                text =
+                  Printf.sprintf
+                    "The PlatformIO project of the device for the board %s%s. \
+                     Not shown: the runtime header, the scaffold, the sources \
+                     of the packages, the binding file and the host \
+                     simulation."
+                    device.board.it
+                    (match packages with
+                    | [] -> ""
+                    | names -> ", with the packages " ^ String.concat ", " names);
+              };
+            ];
+        }
+  with Utils.Error.Error d ->
+    {
+      code = None;
+      language = "cpp";
+      messages =
+        [ { severity = Error; text = diagnostic_text ~manifest_text d } ];
+    }
+
+let arduino =
+  {
+    key = "arduino";
+    name = "Arduino";
+    description =
+      "C++ for Arduino boards: a PlatformIO project of the tasks of a device \
+       manifest, with the declarations of its peripheral packages and monitors \
+       of the running times of operations; interpreter runs record a timeline.";
+    inputs = arduino_inputs;
+    compiler = Some { compile = arduino_compile; code_name = "C++ project" };
+    observer = Some (fun _ -> timeline ~expanded:true ());
+    declarations = arduino_declarations;
+  }
+
+let entries = [ interpreter; opentrons; arduino ]
 let default = interpreter
 let find key = List.find_opt (fun (entry : entry) -> entry.key = key) entries

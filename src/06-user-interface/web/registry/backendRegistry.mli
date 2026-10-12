@@ -49,22 +49,42 @@ type operations =
 (** The operations a program declares, each with the bounds of its running time
     if it has any, the upper end possibly infinite. *)
 
+(** The effect of the type of a top-level definition. *)
+type function_effect = ArduinoBackend.ArduinoProject.function_effect =
+  | Not_a_function
+  | Effect_variable  (** an effect with a variable *)
+  | Effect of {
+      grade : string;  (** the grade, printed *)
+      durations :
+        (Grades.Rational.t Grades.Grade.bound
+        * Grades.Rational.t Grades.Grade.bound)
+        option;
+          (** the interval of the durations of the grade, if it bounds them *)
+    }
+
+type definitions = (Language.Ast.variable * function_effect) list
+(** The top-level definitions of a program, the standard library's excepted, in
+    order, each with the effect of its type. *)
+
 type compiler = {
   compile :
     'rho 'eps.
     settings ->
     operations:operations ->
     compound:Language.Ast.operation list ->
+    definitions:definitions ->
     ('rho, 'eps) Language.Ast.command list ->
     compiled;
   code_name : string;
       (** the name of the compiled code, by which the web interface labels the
           view of it *)
 }
-(** [compile settings ~operations ~compound commands] compiles the desugared
-    [commands], accepted by the typechecker, of a program, the standard
-    library's included, whose declared operations are [operations], those of
-    them that are compound being [compound]. *)
+(** [compile settings ~operations ~compound ~definitions commands] compiles the
+    desugared [commands], accepted by the typechecker, of a program, the
+    standard library's and the declarations' ({!entry.declarations}) included,
+    whose declared operations are [operations], those of them that are compound
+    being [compound], and whose top-level definitions are [definitions]. The
+    commands of the editor are those located in the file named [""]. *)
 
 (** {1 Observers} *)
 
@@ -107,6 +127,9 @@ type observer = {
 
 (** {1 Backends} *)
 
+type source = { filename : string; text : string }
+(** A source loaded before the program, under its file name. *)
+
 type entry = {
   key : string;  (** by which the example manifest names the backend *)
   name : string;  (** shown in the selector *)
@@ -115,6 +138,9 @@ type entry = {
   compiler : compiler option;
   observer : (settings -> observer) option;
       (** the observer of a run, before any event *)
+  declarations : settings -> grades:string -> (source list, string) result;
+      (** the sources loaded before the program under the grades named [grades],
+          in order, or else why they cannot be loaded under them *)
 }
 
 val interpreter : entry
@@ -128,6 +154,18 @@ val opentrons : entry
     ({!OpentronsBackend.OpentronsEmit.plain_program}). The observer is the
     timeline of the run ({!Timeline}), unfolded at first; its cells are grades,
     so the time unit does not apply to them. *)
+
+val arduino : entry
+(** PlatformIO projects of the Arduino backend
+    ({!ArduinoBackend.ArduinoProject}). The inputs are the device manifest
+    ({!ArduinoBackend.ArduinoDevice}), the binding file it names and the monitor
+    policy. The declarations are those of the peripheral packages of the
+    manifest ({!ArduinoBackend.ArduinoPackage}), each once; none for a blank or
+    malformed manifest. The compiled code is the configuration, [main.cpp], the
+    program and the operation wrappers of the project, one file after another,
+    each after a comment line naming it; a blank manifest compiles the program
+    alone ({!ArduinoBackend.ArduinoEmit}). The observer is the timeline of the
+    run ({!Timeline}), unfolded at first. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)

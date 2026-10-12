@@ -469,6 +469,9 @@ type model = {
     option;
       (** The compilation of the program as last checked, while neither it nor
           the options have changed and it had no errors. *)
+  declared : string list;
+      (** The file names of the declarations of the selected backend loaded
+          before the program as last checked. *)
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;
@@ -503,6 +506,7 @@ let init =
     timer = 0;
     closing = false;
     accepted = None;
+    declared = [];
     compiled = None;
     compile_serial = 0;
     code_view = Source;
@@ -555,6 +559,24 @@ let edits_program = function
 (** How long the inputs of a backend rest before the program is compiled with
     them, in milliseconds. *)
 let compile_delay = 300
+
+(* The declarations the selected backend loads before the program under its
+   inputs and the grades selected, or else why it cannot load them. *)
+let declarations edit_model =
+  (backend edit_model).declarations (settings edit_model)
+    ~grades:edit_model.selected_resource
+
+(* Whether the program, unchanged since its last check, was checked with
+   other declarations than those the selected backend now loads, and must be
+   checked again. *)
+let declarations_changed model =
+  (match model.last_check with Some check -> check.current | None -> false)
+  &&
+  match declarations model.edit_model with
+  | Ok sources ->
+      List.map (fun (d : BackendRegistry.source) -> d.filename) sources
+      <> model.declared
+  | Error _ -> true
 
 (* The program as last accepted, compiled by the selected backend with its
    inputs; [None] without an accepted program or a compiler. An exception
@@ -922,13 +944,19 @@ let rec update_model model = function
   | Perform action ->
       let run = action = Run in
       let entry = backend model.edit_model in
+      let declared =
+        match declarations model.edit_model with
+        | Ok sources -> sources
+        | Error _ -> []
+      in
       let run_model, definitions, links, accepted =
         try
           match
-            List.assoc_opt model.edit_model.selected_resource
-              Grades.GradeRegistry.grade_modules
+            ( List.assoc_opt model.edit_model.selected_resource
+                Grades.GradeRegistry.grade_modules,
+              declarations model.edit_model )
           with
-          | None ->
+          | None, _ ->
               ( Error
                   [
                     fatal
@@ -938,7 +966,8 @@ let rec update_model model = function
                 [],
                 [],
                 None )
-          | Some (module G : Grades.Grade.S) ->
+          | _, Error message -> (Error [ fatal message ], [], [], None)
+          | Some (module G : Grades.Grade.S), Ok _ ->
               let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
               let module L = Loader.Loader (B) in
               (* The standard library is loaded as a source of its own, so
@@ -946,7 +975,11 @@ let rec update_model model = function
                  typed. *)
               let program =
                 L.load_program ~use_stdlib:model.edit_model.use_stdlib
-                  [ L.parse_source model.edit_model.unparsed_code ]
+                  (List.map
+                     (fun (d : BackendRegistry.source) ->
+                       L.parse_source ~filename:d.filename d.text)
+                     declared
+                  @ [ L.parse_source model.edit_model.unparsed_code ])
               in
               let state = program.loaded
               and diagnostics = program.diagnostics
@@ -1018,8 +1051,21 @@ let rec update_model model = function
               let commands = program.commands
               and operations = program.operations
               and compound = program.compound_operations in
+              let effect_definitions =
+                List.map
+                  (fun (d : L.definition) ->
+                    ( d.variable,
+                      match L.TC.function_effect state.typechecker d.scheme with
+                      | Typechecker.Not_a_function ->
+                          BackendRegistry.Not_a_function
+                      | Typechecker.Effect_variable -> Effect_variable
+                      | Typechecker.Effect { grade; durations } ->
+                          Effect { grade; durations } ))
+                  accepted
+              in
               let accepted (compiler : BackendRegistry.compiler) settings =
-                compiler.compile settings ~operations ~compound commands
+                compiler.compile settings ~operations ~compound
+                  ~definitions:effect_definitions commands
               in
               if diagnostics <> [] then
                 ( Error
@@ -1045,7 +1091,14 @@ let rec update_model model = function
               else (Error [], definitions, links, Some accepted)
         with exn -> (Error (errors_of_exception Checking exn), [], [], None)
       in
-      let model = { model with accepted } in
+      let model =
+        {
+          model with
+          accepted;
+          declared =
+            List.map (fun (d : BackendRegistry.source) -> d.filename) declared;
+        }
+      in
       {
         (without_popover model) with
         run_model;
@@ -1284,6 +1337,13 @@ let update model msg =
       | _ -> (model, []))
   | EditMsg (UseStdlib use_stdlib) ->
       (update_model model msg, [ Remember (use_stdlib_key, use_stdlib) ])
+  (* Inputs that change the declarations of the backend, such as the
+     packages of a device manifest, change the program: it is checked
+     again. *)
+  | Recompile serial
+    when serial = model.compile_serial
+         && model.checking = None && declarations_changed model ->
+      ({ model with checking = Some Check }, [ Perform_after_paint Check ])
   | EditMsg (SetInput _) ->
       let compile_serial = model.compile_serial + 1 in
       ( update_model { model with compile_serial } msg,

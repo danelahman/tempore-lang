@@ -7989,6 +7989,7 @@ single-dash form of the help option is not accepted.
   Run Tempore as '../tempore [filename.tpe] ...'
     --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30)
     --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
+    --build           Build the project written with --device with PlatformIO, passing its output through and exiting with its exit code
     --debug           Print the inferred type schemes of the top-level definitions before running
     --device          With --emit-arduino, write a PlatformIO project of the device described by the given manifest
     --emit-arduino    Typecheck the files and write them, compiled to C++, to the given directory, without running them; a name without a directory component names a directory in _arduino/projects
@@ -8047,6 +8048,8 @@ single-dash form of the help option is not accepted.
     --monitor         Set what a protocol written with --bind or a device written with --device does when an operation's running time is outside its bounds, or a step of a periodic task takes its period or longer: abort, warn or off (default: abort)
     --no-stdlib       Do not load the standard library
     --package         Load the declarations of the operations of the given peripheral package of the Arduino backend before the files, so that the program may perform them, run by their default implementations; repeatable; the packages of a device written with --device are those of its manifest
+    --pio             Use the given executable as the PlatformIO of --build and --upload (default: pio on the PATH, or else in _arduino/venv)
+    --port            Upload through the given serial port under --upload (default: the port PlatformIO detects)
     --robot           Set the robot of the protocol written with --bind: flex (default: flex)
     --simulate        Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code
     --simulator       Use the given executable as the Opentrons simulator of --simulate (default: opentrons_simulate on the PATH, or else in _opentrons)
@@ -8054,6 +8057,7 @@ single-dash form of the help option is not accepted.
     --timeline        Print the timeline of each run after its result: its delays and calls of operations performed by their default implementations, with the events of these indented below them, each with its grade, and the resources boxed, with their grades, and unboxed, each row with the grade accumulated before it; long grades are shortened
     --timeline-full   Print the timelines of --timeline with their grades in full; implies --timeline
     --typecheck-only  Typecheck the files without running them
+    --upload          Build the project written with --device with PlatformIO and upload it to the board, passing its output through and exiting with its exit code
   [2]
 
 The rational-time example runs to its values under its intervals of hours.
