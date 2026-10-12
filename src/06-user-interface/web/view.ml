@@ -1531,7 +1531,25 @@ let view_report ~expanded (report : BackendRegistry.report) =
     | Plain, _ -> [ class_ "is-sub" ]
     | Pending, _ -> [ class_ "is-pending is-sub" ]
   in
-  let cell s = elt "td" [ text s ] in
+  (* A shortened cell shows its full text as a tooltip and, unfolded by a
+     click, in place of the shortened one. *)
+  let cell full short =
+    if String.equal full short then elt "td" [ text full ]
+    else
+      elt "td"
+        ~a:[ attr "title" full ]
+        [
+          elt "details"
+            ~a:[ class_ "backend-cell" ]
+            [
+              elt "summary"
+                [
+                  elt "span" ~a:[ class_ "backend-cell-short" ] [ text short ];
+                  elt "span" ~a:[ class_ "backend-cell-full" ] [ text full ];
+                ];
+            ];
+        ]
+  in
   elt "details"
     ~a:
       (class_ "box backend-box backend-report"
@@ -1552,7 +1570,8 @@ let view_report ~expanded (report : BackendRegistry.report) =
                elt "tbody"
                  (List.map
                     (fun (row : BackendRegistry.row) ->
-                      elt "tr" ~a:(row_class row) (List.map cell row.cells))
+                      elt "tr" ~a:(row_class row)
+                        (List.map2 cell row.cells row.short))
                     report.rows);
              ];
          ];

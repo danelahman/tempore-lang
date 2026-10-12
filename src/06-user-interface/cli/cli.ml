@@ -37,6 +37,7 @@ type config = {
   api_level : string option;
   time_unit : Grades.Rational.t option;
   timeline : bool;
+  timeline_full : bool;
   monitor : OpentronsBackend.OpentronsProtocol.monitor option;
   simulate : bool;
   simulator : string option;
@@ -109,6 +110,7 @@ let parse_args_to_config () =
   and api_level = ref None
   and time_unit = ref None
   and timeline = ref false
+  and timeline_full = ref false
   and monitor = ref None
   and simulate = ref false
   and simulator = ref None in
@@ -190,11 +192,15 @@ let parse_args_to_config () =
            (default: seconds)" );
         ( "--timeline",
           Arg.Set timeline,
-          " Print the timeline of each run after its result: its delays, the \
+          " Print the timeline of each run after its result: its delays and \
            calls of operations performed by their default implementations, \
-           with the events of these indented below them, and the resources \
-           boxed and unboxed, each with its grade and the grade accumulated \
-           before it" );
+           with the events of these indented below them, each with its grade, \
+           and the resources boxed, with their grades, and unboxed, each row \
+           with the grade accumulated before it; long grades are shortened" );
+        ( "--timeline-full",
+          Arg.Set timeline_full,
+          " Print the timelines of --timeline with their grades in full; \
+           implies --timeline" );
         ( "--typecheck-only",
           Arg.Set typecheck_only,
           " Typecheck the files without running them" );
@@ -214,11 +220,14 @@ let parse_args_to_config () =
     end
   in
   requires "--bind" (!bind <> None) "--emit-opentrons" (!emit_opentrons <> None);
-  if !timeline && !emit_opentrons <> None then begin
-    Printf.eprintf "%s: option '--timeline' cannot be used with '%s'.\n"
-      Sys.argv.(0) "--emit-opentrons";
-    exit 2
-  end;
+  List.iter
+    (fun (option, given) ->
+      if given && !emit_opentrons <> None then begin
+        Printf.eprintf "%s: option '%s' cannot be used with '%s'.\n"
+          Sys.argv.(0) option "--emit-opentrons";
+        exit 2
+      end)
+    [ ("--timeline", !timeline); ("--timeline-full", !timeline_full) ];
   List.iter
     (fun (option, given) -> requires option given "--bind" (!bind <> None))
     [
@@ -240,7 +249,8 @@ let parse_args_to_config () =
     robot = !robot;
     api_level = !api_level;
     time_unit = !time_unit;
-    timeline = !timeline;
+    timeline = !timeline || !timeline_full;
+    timeline_full = !timeline_full;
     monitor = !monitor;
     simulate = !simulate;
     simulator = !simulator;
@@ -404,7 +414,9 @@ let run_with (module G : Grades.Grade.S) config =
   let module Loader = Loader.Loader (Backend) in
   (* The timeline of the run [run_num], as a table. *)
   let print_timeline timeline run_num =
-    print_string (Timeline.text (Timeline.report ~run:run_num timeline));
+    print_string
+      (Timeline.text ~full:config.timeline_full
+         (Timeline.report ~run:run_num timeline));
     print_newline ()
   in
   (* Runs the program from [state], each step chosen at random among those

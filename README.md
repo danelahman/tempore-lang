@@ -84,7 +84,8 @@ Command-line options:
 - `--debug` also prints the inferred typing context, including the inferred type
   schemes;
 - `--timeline` prints the [timeline](#interpreter) of each run after its result,
-  as a table; it cannot be combined with `--emit-opentrons`;
+  as a table, long grades shortened; `--timeline-full` prints it with the
+  grades in full; neither can be combined with `--emit-opentrons`;
 - `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
   Python, to the given file, without running them; a file name without a
   directory names a file in `_opentrons/protocols`; with `--bind`, as an
@@ -114,7 +115,8 @@ the protocol compiled from the program once it typechecks.
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
 title under Interpreter and unfolded under Opentrons; the events inside default
-implementations are greyed.
+implementations are greyed. Long grades are shortened; a shortened cell shows
+its full text as a tooltip and, when clicked, in place.
 
 ## Temporal resources
 
@@ -1146,8 +1148,10 @@ can also step through the individual reductions and shows the resource usage.
 The timeline of a run lists, in grades, what reaches its top level: the delays,
 the calls of operations that no handler handles and that are performed by their
 default implementations, and the resources boxed and unboxed, by the name of the
-variable they are bound to. Each row has a grade: that of a delay, the declared
-grade of an operation, or the grade a resource is boxed at. The events of a
+variable they are bound to. A delay or an operation has a grade: that of the
+delay, or the declared grade of the operation. Boxing and unboxing add nothing
+to the grade accumulated; a box row names the grade the resource is boxed at in
+its event, `box reading with grade [5, 10)`. The events of a
 default implementation, the operations it performs among them, are listed below
 its operation, indented by `·`. Each row at the top level
 starts at the grade accumulated before it, the product of the grades of the
@@ -1162,17 +1166,24 @@ after each run, e.g.
 prints
 
     Timeline
-    Run  Start       Event          Grade
-    1    [0, 0]      delay          [0.1, 0.1]
-    1    [0.1, 0.1]  box reading    [5, 10)
-    1    [0.1, 0.1]  Compute        [6, 8]
-    1                · delay        [7, 7]
-    1    [6.1, 8.1]  unbox reading  [5, 10)
-    1    [6.1, 8.1]  AngleOf        (0, 1]
-    1                · delay        [0.5, 0.5]
-    1    (6.1, 9.1]  SetAngle       (1, 2)
-    1                · delay        [1.5, 1.5]
+    Run  Start       Event                           Grade
+    1    [0, 0]      delay                           [0.1, 0.1]
+    1    [0.1, 0.1]  box reading with grade [5, 10)
+    1    [0.1, 0.1]  Compute                         [6, 8]
+    1                · delay                         [7, 7]
+    1    [6.1, 8.1]  unbox reading
+    1    [6.1, 8.1]  AngleOf                         (0, 1]
+    1                · delay                         [0.5, 0.5]
+    1    (6.1, 9.1]  SetAngle                        (1, 2)
+    1                · delay                         [1.5, 1.5]
     Run 1 returned () at (7.1, 11.1).
+
+Grades whose ends exceed 40 characters, such as the traces of the Opentrons
+examples under `regex-timed-interval-symbolic`, are shortened for display at
+the separators `; ` of their events, never inside an event: the grade
+accumulated keeps its last events, `{…; 3; ChangeTip; Disengage; Elute}`, a box
+grade its first, `{Ethanol; ChangeTip; Ethanol; 2; …}`. The grades themselves
+are unchanged; `--timeline-full` prints them in full.
 
 ### Opentrons
 

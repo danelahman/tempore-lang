@@ -20,9 +20,8 @@ type observation =
   | Boxed of { at : string; resource : string; name : string; grade : string }
       (** the resource [resource], named [name], has been boxed at the resource
           grade [grade] *)
-  | Unboxed of { at : string; resource : string; name : string; grade : string }
-      (** the resource [resource], named [name] and boxed at the resource grade
-          [grade], has been unboxed *)
+  | Unboxed of { at : string; resource : string; name : string }
+      (** the resource [resource], named [name], has been unboxed *)
   | Named of { resource : string; name : string }
       (** the resource [resource], boxed earlier, is named [name] *)
   | Returned of { at : string; value : string }

@@ -19,7 +19,7 @@ let show_entry (e : Timeline.entry) =
         Printf.sprintf "%s %s %s" op grade (if returned then "+" else "-")
     | Delay { grade } -> "delay " ^ grade
     | Box { name; grade; _ } -> Printf.sprintf "box %s %s" name grade
-    | Unbox { name; grade; _ } -> Printf.sprintf "unbox %s %s" name grade
+    | Unbox { name; _ } -> Printf.sprintf "unbox %s" name
   in
   Printf.sprintf "%d %d %s %s" e.run e.depth e.start event
 
@@ -45,13 +45,7 @@ let () =
             grade = "3";
           };
         Resumed;
-        Unboxed
-          {
-            at = "5";
-            resource = "resource_0";
-            name = "resource_0";
-            grade = "3";
-          };
+        Unboxed { at = "5"; resource = "resource_0"; name = "resource_0" };
         Named { resource = "resource_0"; name = "x" };
         Returned { at = "5"; value = "()" };
         Performed { at = "0"; op = "C"; grade = "1" };
@@ -67,7 +61,7 @@ let () =
          "1 1 0 B 2 +";
          "1 2 0 delay 1";
          "1 1 0 box x 3";
-         "1 0 5 unbox x 3";
+         "1 0 5 unbox x";
          "2 0 0 C 1 -";
        ]
   then fail "timeline: %s" (String.concat "; " entries);
@@ -94,8 +88,8 @@ let () =
          "1 |  | · delay | 2 1 plain";
          "1 |  | · B | 2 1 plain";
          "1 |  | · · delay | 1 2 plain";
-         "1 |  | · box x | 3 1 plain";
-         "1 | 5 | unbox x | 3 0 plain";
+         "1 |  | · box x with grade 3 |  1 plain";
+         "1 | 5 | unbox x |  0 plain";
          "2 | 0 | C | 1 0 pending";
        ]
   then fail "timeline report: %s" (String.concat "; " rows);
@@ -104,18 +98,52 @@ let () =
     String.concat "\n"
       [
         "Timeline";
-        "Run  Start  Event      Grade";
-        "1    0      A          5";
-        "1           · delay    2";
-        "1           · B        2";
-        "1           · · delay  1";
-        "1           · box x    3";
-        "1    5      unbox x    3";
+        "Run  Start  Event                 Grade";
+        "1    0      A                     5";
+        "1           · delay               2";
+        "1           · B                   2";
+        "1           · · delay             1";
+        "1           · box x with grade 3";
+        "1    5      unbox x";
         "Run 1 returned () at 5.";
         "";
       ]
   in
   if text <> expected then fail "timeline text:\n%s" text
+
+(* Shortening: brace groups at both ends of an interval, from the front or the
+   back, a regular expression with a nested group, short grades unchanged, and
+   the character cut of grades without groups. *)
+let () =
+  let check keep grade expected =
+    let shortened = Timeline.shorten keep grade in
+    if shortened <> expected then
+      fail "shorten %s: %s, not %s" grade shortened expected
+  in
+  let start = "{AddBeads; 5; Engage; 3; RemoveSupernatant}" in
+  check End
+    ("[" ^ start ^ ", " ^ start ^ "]")
+    "[{…; 5; Engage; 3; RemoveSupernatant}, {…; 5; Engage; 3; \
+     RemoveSupernatant}]";
+  check Beginning
+    ("[" ^ start ^ ", " ^ start ^ "]")
+    "[{AddBeads; 5; Engage; 3; …}, {AddBeads; 5; Engage; 3; …}]";
+  let washed =
+    "{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip; Ethanol; (0 | 1)}"
+  in
+  check Beginning washed "{Ethanol; ChangeTip; Ethanol; 2; …}";
+  check End washed "{…; ChangeTip; Ethanol; (0 | 1)}";
+  check Beginning "{(Aaaa; Bbbb; Cccc; Dddd; Eeee; Ffff); Gggg; Hhhh}"
+    "{(Aaaa; Bbbb; Cccc; Dddd; Eeee; Ffff); …}";
+  check End "[{AddBeads; 5}, {AddBeads; 5}]" "[{AddBeads; 5}, {AddBeads; 5}]";
+  check End "[7, 7]" "[7, 7]";
+  check Beginning "[{RemoveSupernatantAndDiscardTheLiquidPhase}, {0}]"
+    "[{RemoveSupernatantAndDiscardTheLiquidPhase}, {0}]";
+  let long =
+    String.concat "" (List.init 50 (fun i -> string_of_int (i mod 10)))
+  in
+  check End long ("…" ^ String.sub long 11 39);
+  check Beginning long (String.sub long 0 39 ^ "…")
 
 (* The registry *)
 
@@ -144,7 +172,8 @@ let () =
         Some (observer.expanded, Lazy.force observer.report)
   in
   let delay_row : BackendRegistry.row list -> bool = function
-    | [ { cells = [ "1"; "0"; "delay"; "2" ]; depth = 0; status = Plain } ] ->
+    | [ { cells = [ "1"; "0"; "delay"; "2" ]; depth = 0; status = Plain; _ } ]
+      ->
         true
     | _ -> false
   in
@@ -211,13 +240,22 @@ let run_example (entry : Manifest.entry) =
             if report.rows = [] then fail "%s: no operation recorded" entry.path;
             if report.columns <> [ "Run"; "Start"; "Event"; "Grade" ] then
               fail "%s: columns" entry.path;
-            (* every call finished, every row with a grade, and a start for
-               exactly the rows at the top level *)
+            (* every call finished, a grade exactly for the rows other than
+               boxes and unboxes, and a start for exactly the rows at the top
+               level *)
+            let rec resource event =
+              if String.starts_with ~prefix:"· " event then
+                resource (String.sub event 3 (String.length event - 3))
+              else
+                String.starts_with ~prefix:"box " event
+                || String.starts_with ~prefix:"unbox " event
+            in
             List.iter
               (fun (row : BackendRegistry.row) ->
                 match (row.status, row.cells) with
-                | Plain, [ _; start; _; grade ]
-                  when grade <> "" && start = "" = (row.depth > 0) ->
+                | Plain, [ _; start; event; grade ]
+                  when grade = "" = resource event
+                       && start = "" = (row.depth > 0) ->
                     ()
                 | _ -> fail "%s: %s" entry.path (text_of_row row))
               report.rows;
@@ -394,8 +432,7 @@ let check_boxes name grade source expected =
       (fun (e : Timeline.entry) ->
         match e.event with
         | Box { name; grade; _ } -> Some (Printf.sprintf "box %s %s" name grade)
-        | Unbox { name; grade; _ } ->
-            Some (Printf.sprintf "unbox %s %s" name grade)
+        | Unbox { name; _ } -> Some (Printf.sprintf "unbox %s" name)
         | Call _ | Delay _ -> None)
       (Timeline.entries (timeline (observations ~cli:true grade source)))
   in
@@ -446,12 +483,12 @@ let () =
     [
       "box p [3, 5]";
       "box q [2, 3]";
-      "unbox q [2, 3]";
+      "unbox q";
       "box b [0, 0]";
-      "unbox b [0, 0]";
-      "unbox p [3, 5]";
+      "unbox b";
+      "unbox p";
       "box got [0, 0]";
-      "unbox got [0, 0]";
+      "unbox got";
     ];
   let t =
     timeline
@@ -464,16 +501,16 @@ let () =
     String.concat "\n"
       [
         "Timeline";
-        "Run  Start   Event    Grade";
-        "1    [0, 0]  box p    [3, 5]";
-        "1    [0, 0]  delay    [1, 1]";
-        "1    [1, 1]  box q    [2, 3]";
-        "1    [1, 1]  Op       [2, 3]";
-        "1            · delay  [2, 2]";
-        "1    [3, 4]  unbox q  [2, 3]";
-        "1    [3, 4]  box b    [0, 0]";
-        "1    [3, 4]  unbox b  [0, 0]";
-        "1    [3, 4]  unbox p  [3, 5]";
+        "Run  Start   Event                    Grade";
+        "1    [0, 0]  box p with grade [3, 5]";
+        "1    [0, 0]  delay                    [1, 1]";
+        "1    [1, 1]  box q with grade [2, 3]";
+        "1    [1, 1]  Op                       [2, 3]";
+        "1            · delay                  [2, 2]";
+        "1    [3, 4]  unbox q";
+        "1    [3, 4]  box b with grade [0, 0]";
+        "1    [3, 4]  unbox b";
+        "1    [3, 4]  unbox p";
         "Run 1 returned () at [3, 4].";
         "";
       ]
@@ -499,12 +536,12 @@ let () =
     [
       "box p 3";
       "box q 2";
-      "unbox q 2";
+      "unbox q";
       "box b 0";
-      "unbox b 0";
-      "unbox p 3";
+      "unbox b";
+      "unbox p";
       "box got 0";
-      "unbox got 0";
+      "unbox got";
     ]
 
 (* Under the security levels the delays are unit grades. *)
@@ -522,7 +559,7 @@ run
   unbox h as _ in
   n
 |}
-    [ "box h High"; "box l Low"; "unbox l Low"; "unbox h High" ]
+    [ "box h High"; "box l Low"; "unbox l"; "unbox h" ]
 
 let () =
   let _, entries, _ = Manifest.read (Filename.concat root "examples/index") in

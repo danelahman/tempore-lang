@@ -265,6 +265,26 @@
       color: #946c00;
     }
 
+    /* A shortened cell: the full text replaces the shortened one when
+       unfolded. */
+    .backend-cell > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .backend-cell > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .backend-cell[open] .backend-cell-short,
+    .backend-cell:not([open]) .backend-cell-full {
+      display: none;
+    }
+
+    .backend-cell-full {
+      overflow-wrap: anywhere;
+    }
+
     /* The events inside a default implementation. */
     .backend-report tr.is-sub td {
       color: #888;

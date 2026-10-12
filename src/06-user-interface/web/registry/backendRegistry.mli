@@ -74,7 +74,7 @@ type event = Backend.observation =
   | Performed of { at : string; op : string; grade : string }
   | Resumed
   | Boxed of { at : string; resource : string; name : string; grade : string }
-  | Unboxed of { at : string; resource : string; name : string; grade : string }
+  | Unboxed of { at : string; resource : string; name : string }
   | Named of { resource : string; name : string }
   | Returned of { at : string; value : string }
   | Stopped of { at : string; op : string }
@@ -84,6 +84,7 @@ type status = Timeline.status = Plain | Pending
 
 type row = Timeline.row = {
   cells : string list;
+  short : string list;  (** the cells shortened for display *)
   status : status;
   depth : int;  (** positive for the rows shown de-emphasised *)
 }

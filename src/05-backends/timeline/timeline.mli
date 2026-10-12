@@ -18,9 +18,8 @@ type event =
   | Box of { resource : string; name : string; grade : string }
       (** the resource [resource] (its name in the state), named [name], boxed
           at the resource grade [grade] *)
-  | Unbox of { resource : string; name : string; grade : string }
-      (** the resource [resource], named [name], boxed at the resource grade
-          [grade], unboxed *)
+  | Unbox of { resource : string; name : string }
+      (** the resource [resource], named [name], unboxed *)
 
 type entry = {
   run : int;  (** the run, from 1 *)
@@ -62,6 +61,28 @@ val entries : t -> entry list
 val runs : t -> finished list
 (** [runs t] is the runs of [t] that have ended, in order. *)
 
+(** {1 Shortening} *)
+
+(** Which part of a long grade is kept. *)
+type keep = Beginning | End
+
+val limit : int
+(** [limit] is 40, the number of characters above which an end of a grade is
+    shortened for display. *)
+
+val shorten : keep -> string -> string
+(** [shorten keep g] is the printed grade [g] shortened for display. [g] is read
+    as an interval of ends separated by [, ] in brackets or parentheses, or as a
+    single end; an end in braces is a group of items separated by [; ], the
+    separators inside nested brackets, parentheses and braces excepted. If every
+    end has at most {!limit} characters, [g] is unchanged. Otherwise every group
+    of more than [k] items keeps only its first ([Beginning]) or last ([End])
+    [k] items, the others replaced by […], [k] being the largest number for
+    which every end has at most {!limit} characters, and at least 1. Items are
+    never cut, so an end may exceed {!limit}. A grade without a brace group is
+    cut to its first or last [limit - 1] characters, with […] after or before
+    them. *)
+
 (** {1 Reports} *)
 
 (** How a row of a report is marked. *)
@@ -71,6 +92,9 @@ type status =
 
 type row = {
   cells : string list;
+  short : string list;
+      (** the cells shortened for display: the grade accumulated by
+          {!shorten}[ End], the grades of events by {!shorten}[ Beginning] *)
   status : status;
   depth : int;
       (** the depth of its entry; a row of positive depth belongs to the default
@@ -96,14 +120,14 @@ val report : ?run:int -> t -> report
     - [Start] is the grade accumulated before the entry, at depth 0; it is empty
       for the entries of a default implementation, which start at the start of
       the call at depth 0 they belong to.
-    - [Event] is the operation called, [delay], [box x] or [unbox x], preceded
-      by a mark [· ] per level of depth.
+    - [Event] is the operation called, [delay], [box x with grade g] with the
+      box grade [g], or [unbox x], preceded by a mark [· ] per level of depth.
     - [Grade] is the declared grade of a call (the row pending until its default
-      implementation has returned), the grade of a delay, or the box grade of a
-      box or unbox. *)
+      implementation has returned) or the grade of a delay; it is empty for
+      boxes and unboxes, which add nothing to the grade accumulated. *)
 
-val text : report -> string
-(** [text report] is [report] as plain text: its title, then a line for the
-    headings of the columns and a line per row, each cell padded to the widest
-    of its column and the cells separated by two spaces, then a line per note.
-*)
+val text : ?full:bool -> report -> string
+(** [text ?full report] is [report] as plain text: its title, then a line for
+    the headings of the columns and a line per row, with the shortened cells of
+    the rows unless [full] (default [false]), each cell padded to the widest of
+    its column and the cells separated by two spaces, then a line per note. *)

@@ -1015,7 +1015,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Some { subject = { it = Ast.Unbox (expr, _); _ }; _ } ) -> (
         match resource_variable expr with
         | Some x when not (Ast.VariableSet.mem x env.continuations) ->
-            let grade, _ = ContextHolderModule.find_variable x env.state in
             let resource = Ast.Variable.string_of x in
             [
               Unboxed
@@ -1026,7 +1025,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
                     Option.value
                       (Ast.VariableMap.find_opt x env.resource_names)
                       ~default:resource;
-                  grade = show_rho grade;
                 };
             ]
         | Some _ | None -> [])
