@@ -4,7 +4,7 @@ protocol is run here with the stub opentrons package of stub/, whose protocol
 context prints the commands it is given, in simulation, on the virtual clock.
 
   $ simulate () {
-  >   python3 protocol_driver.py "$1"
+  >   python3 protocol_driver.py "_opentrons/protocols/$1"
   > }
   $ examples=../../examples/opentrons
 
@@ -15,7 +15,8 @@ it completes.
 
   $ ../../tempore --grades time-interval --emit-opentrons elisa.py \
   >   --bind $examples/elisa_bindings.py --time-unit minutes $examples/elisa.tpe
-  $ head -4 elisa.py
+  Wrote _opentrons/protocols/elisa.py
+  $ head -4 _opentrons/protocols/elisa.py
   # An Opentrons protocol compiled by Tempore from elisa.tpe.
   
   metadata = {"protocolName": "elisa", "description": "Compiled by Tempore from elisa.tpe"}
@@ -62,6 +63,7 @@ regex-timed-interval-symbolic, a time unit given in seconds.
 
   $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons washes.py \
   >   --bind $examples/washes_bindings.py --time-unit 60 $examples/washes.tpe
+  Wrote _opentrons/protocols/washes.py
   $ simulate washes.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   load_labware('opentrons_flex_96_tiprack_200ul', 'B3')
@@ -140,6 +142,7 @@ time-upper-bound-levels its upper bound.
   $ ../../tempore --grades time-upper-bound-levels --emit-opentrons contamination.py \
   >   --bind $examples/contamination_bindings.py --time-unit minutes \
   >   --api-level 2.29 $examples/contamination.tpe
+  Wrote _opentrons/protocols/contamination.py
   $ simulate contamination.py | grep -v '^pipette'
   requirements: {'robotType': 'Flex', 'apiLevel': '2.29'}
   load_labware('opentrons_flex_96_filtertiprack_200ul', 'B3')
@@ -182,6 +185,7 @@ solution in the case of a handler that simulates the reader.
 
   $ ../../tempore --grades time-interval --emit-opentrons reagents.py \
   >   --bind $examples/reagents_bindings.py --time-unit minutes $examples/reagents.tpe
+  Wrote _opentrons/protocols/reagents.py
   $ simulate reagents.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   load_labware('opentrons_flex_96_tiprack_200ul', 'B3')
@@ -221,6 +225,7 @@ solution in the case of a handler that simulates the reader.
   comment: Tempore run 1 returns ()
   $ ../../tempore --grades time-interval --emit-opentrons staggered.py \
   >   --bind $examples/staggered_bindings.py --time-unit minutes $examples/staggered.tpe
+  Wrote _opentrons/protocols/staggered.py
   $ simulate staggered.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   load_labware('opentrons_flex_96_tiprack_1000ul', 'B3')
@@ -256,6 +261,7 @@ solution in the case of a handler that simulates the reader.
   comment: Tempore run 1 returns ()
   $ ../../tempore --grades time-interval --emit-opentrons beads.py \
   >   --bind $examples/beads_bindings.py --time-unit minutes $examples/beads.tpe
+  Wrote _opentrons/protocols/beads.py
   $ simulate beads.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   load_labware('opentrons_flex_96_tiprack_200ul', 'B3')
@@ -294,6 +300,7 @@ solution in the case of a handler that simulates the reader.
   comment: Tempore run 1 returns ()
   $ ../../tempore --grades time-interval --emit-opentrons stopread.py \
   >   --bind $examples/stopread_bindings.py --time-unit minutes $examples/stopread.tpe
+  Wrote _opentrons/protocols/stopread.py
   $ simulate stopread.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   load_labware('opentrons_flex_96_tiprack_1000ul', 'B3')
@@ -334,7 +341,7 @@ The rejected variants of the examples.
 Run as a script, a protocol executes its program as the interpreter does,
 without the binding file.
 
-  $ python3 elisa.py
+  $ python3 _opentrons/protocols/elisa.py
   === Run 1 ===
   return 0
   
@@ -349,6 +356,7 @@ definition that no run uses is not compiled, nor are its operations checked.
   $ ../../tempore --grades time-interval --emit-opentrons ok.py \
   >   --bind protocol_bindings.py protocol_ok.tpe
   Warning: operation `Probe`, which run 2 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
+  Wrote _opentrons/protocols/ok.py
   $ simulate ok.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   comment: setup
@@ -378,6 +386,7 @@ reported by a comment; under off it is neither checked nor recorded.
   error: tempore_BoundViolation: Operation `Pipette` took 3 s, outside its running-time bounds [1, 2] s
   $ ../../tempore --grades time-interval --emit-opentrons ok_warn.py --monitor warn \
   >   --bind protocol_bindings.py protocol_ok.tpe 2> /dev/null
+  Wrote _opentrons/protocols/ok_warn.py
   $ PIPETTE_SECONDS=3 simulate ok_warn.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   comment: setup
@@ -397,6 +406,7 @@ reported by a comment; under off it is neither checked nor recorded.
   comment: Tempore run 3 returns 3
   $ ../../tempore --grades time-interval --emit-opentrons ok_off.py --monitor off \
   >   --bind protocol_bindings.py protocol_ok.tpe 2> /dev/null
+  Wrote _opentrons/protocols/ok_off.py
   $ PIPETTE_SECONDS=3 simulate ok_off.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
   comment: setup
@@ -420,7 +430,7 @@ implementation declared above the run, refuses the protocol.
   Error: operation `Lost`, which run 1 may perform, has neither a binding function nor a default implementation
   Error: operation `Shake`, which run 1 may perform, has neither a binding function nor a default implementation
   [1]
-  $ test -e lost.py
+  $ test -e _opentrons/protocols/lost.py
   [1]
 
 A binding file may not define names with the prefixes of the runtime, the names
@@ -458,6 +468,31 @@ The options of protocols require --bind, and --bind requires --emit-opentrons.
   $ ../../tempore --emit-opentrons plain.py --bind protocol_bindings.py --monitor stop protocol_ok.tpe 2>&1 | head -1
   ../../tempore: option '--monitor': 'stop' is not one of abort, warn, off.
 
+A file name without a directory is that of a file in _opentrons/protocols of
+the current directory, which is created with its missing ancestors; a name
+with a directory is used as given. The path of the file written is printed.
+
+  $ mkdir fresh && cd fresh
+  $ ../../../tempore --grades time-interval --emit-opentrons plain.py ../protocol_ok.tpe
+  Wrote _opentrons/protocols/plain.py
+  $ ls _opentrons/protocols
+  plain.py
+  $ cd ..
+  $ mkdir -p partial/_opentrons && cd partial
+  $ ../../../tempore --grades time-interval --emit-opentrons plain.py ../protocol_ok.tpe
+  Wrote _opentrons/protocols/plain.py
+  $ ls _opentrons/protocols
+  plain.py
+  $ cd ..
+  $ ../../tempore --grades time-interval --emit-opentrons ./plain.py protocol_ok.tpe
+  Wrote ./plain.py
+  $ mkdir out
+  $ ../../tempore --grades time-interval --emit-opentrons out/plain.py protocol_ok.tpe
+  Wrote out/plain.py
+  $ ../../tempore --grades time-interval --emit-opentrons "$PWD/out/absolute.py" protocol_ok.tpe
+  Wrote $TESTCASE_ROOT/out/absolute.py
+  $ test -e plain.py && test -e out/plain.py && test -e out/absolute.py
+
 A file that cannot be written, or a binding file that cannot be read, is an
 error.
 
@@ -492,20 +527,24 @@ one fails.
   $ chmod +x bin/opentrons_simulate failing_simulate
   $ PATH="$PWD/bin:$PATH" ../../tempore --grades time-interval --emit-opentrons sim.py \
   >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2> /dev/null
-  Simulated sim.py
+  Wrote _opentrons/protocols/sim.py
+  Simulated _opentrons/protocols/sim.py
   Tempore run 1
   $ PATH="$PWD/bin:$PATH" ../../tempore --grades time-interval --emit-opentrons sim.py \
   >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2>&1 >/dev/null | grep -v '^Warning'
   a warning of the simulator
   $ ../../tempore --grades time-interval --emit-opentrons sim.py --bind protocol_bindings.py \
   >   --simulate --simulator ./failing_simulate protocol_ok.tpe 2> /dev/null
-  Simulating sim.py
+  Wrote _opentrons/protocols/sim.py
+  Simulating _opentrons/protocols/sim.py
   [1]
   $ ../../tempore --grades time-interval --emit-opentrons sim.py --bind protocol_bindings.py \
   >   --simulate --simulator ./missing_simulate protocol_ok.tpe 2>&1 | grep -v '^Warning'
+  Wrote _opentrons/protocols/sim.py
   Error: the Opentrons simulator './missing_simulate' was not found
   $ PATH=/nonexistent ../../tempore --grades time-interval --emit-opentrons sim.py \
   >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2>&1 | grep -v '^Warning'
+  Wrote _opentrons/protocols/sim.py
   Error: the Opentrons simulator opentrons_simulate was not found on the PATH or in _opentrons; 'make opentrons-deps' installs it with Python 3.10 or later
 
 Without --simulator and opentrons_simulate on the PATH, the simulator is that
@@ -525,19 +564,23 @@ opentrons_simulate on the PATH takes precedence over it.
   $ chmod +x repo/_opentrons/bin/opentrons_simulate
   $ PATH=/usr/bin:/bin repo/tempore --grades time-interval --emit-opentrons sim.py \
   >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2> /dev/null
-  Simulated sim.py
+  Wrote _opentrons/protocols/sim.py
+  Simulated _opentrons/protocols/sim.py
   OT_API_CONFIG_DIR=repo/_opentrons/config
   $ PATH=/usr/bin:/bin OT_API_CONFIG_DIR=elsewhere repo/tempore --grades time-interval \
   >   --emit-opentrons sim.py --bind protocol_bindings.py --simulate protocol_ok.tpe 2> /dev/null
-  Simulated sim.py
+  Wrote _opentrons/protocols/sim.py
+  Simulated _opentrons/protocols/sim.py
   OT_API_CONFIG_DIR=elsewhere
   $ PATH="$PWD/bin:/usr/bin:/bin" repo/tempore --grades time-interval --emit-opentrons sim.py \
   >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2> /dev/null
-  Simulated sim.py
+  Wrote _opentrons/protocols/sim.py
+  Simulated _opentrons/protocols/sim.py
   Tempore run 1
   $ cd repo
   $ PATH=/usr/bin:/bin ../../../tempore --grades time-interval --emit-opentrons ../sim.py \
   >   --bind ../protocol_bindings.py --simulate ../protocol_ok.tpe 2> /dev/null
+  Wrote ../sim.py
   Simulated ../sim.py
   OT_API_CONFIG_DIR=_opentrons/config
   $ cd ..

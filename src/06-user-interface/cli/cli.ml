@@ -144,7 +144,8 @@ let parse_args_to_config () =
         ( "--emit-opentrons",
           Arg.String (fun filename -> emit_opentrons := Some filename),
           " Typecheck the files and write them, compiled to Python, to the \
-           given file, without running them" );
+           given file, without running them; a file name without a directory \
+           names a file in _opentrons/protocols" );
         ( "--grades",
           Arg.Set_string resource_type,
           Printf.sprintf " Selects the grades (default: %s); accepted:%s"
@@ -310,12 +311,34 @@ let simulate ?simulator filename =
       flush_all ();
       exit (Sys.command command)
 
-(* Writes [contents] to the file [filename], or reports the error and exits
-   with code 1. *)
+(* The directory, relative to the current directory, of the files written by
+   --emit-opentrons under a name without a directory component. *)
+let default_emit_directory = Filename.concat "_opentrons" "protocols"
+
+(* The path of the file written by --emit-opentrons under [name]: [name] in
+   [default_emit_directory] if it has no directory component, else [name]. *)
+let emit_path name =
+  if Filename.basename name = name then
+    Filename.concat default_emit_directory name
+  else name
+
+(* Creates the directory [dir] and its missing ancestors. *)
+let rec make_directory dir =
+  if not (Sys.file_exists dir) then begin
+    make_directory (Filename.dirname dir);
+    Sys.mkdir dir 0o755
+  end
+
+(* Writes [contents] to the file [filename], creating [default_emit_directory]
+   if [filename] lies in it, and prints the path written; or reports the error
+   and exits with code 1. *)
 let write_file filename contents =
   try
+    if Filename.dirname filename = default_emit_directory then
+      make_directory default_emit_directory;
     Out_channel.with_open_text filename (fun oc ->
-        Out_channel.output_string oc contents)
+        Out_channel.output_string oc contents);
+    print_endline ("Wrote " ^ filename)
   with Sys_error message ->
     prerr_endline ("Error: " ^ message);
     exit 1
@@ -411,7 +434,7 @@ let run_with (module G : Grades.Grade.S) config =
       print_newline ()
     end;
     (* loading the files has typechecked every command, the [run]s included *)
-    match (config.emit_opentrons, config.bind) with
+    match (Option.map emit_path config.emit_opentrons, config.bind) with
     | Some filename, None ->
         write_file filename
           (OpentronsBackend.OpentronsEmit.plain_program

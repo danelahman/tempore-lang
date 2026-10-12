@@ -5,8 +5,8 @@ each run, which is dropped before the comparison.
   $ strip_state () { awk '/^State:/ { skip = 1 } /^$/ { skip = 0 } !skip'; }
   $ parity () {
   >   ../../tempore "$1" 2>&1 | strip_state > interpreter.out
-  >   ../../tempore --emit-opentrons "${1%.tpe}.py" "$1" &&
-  >   python3 "${1%.tpe}.py" > python.out 2>&1
+  >   ../../tempore --emit-opentrons "${1%.tpe}.py" "$1" > /dev/null &&
+  >   python3 "_opentrons/protocols/${1%.tpe}.py" > python.out 2>&1
   >   diff interpreter.out python.out && cat python.out
   > }
 
@@ -273,7 +273,9 @@ the nesting of parentheses in an expression.
 Recursion 100000 deep, beyond the reach of the interpreter in a test, runs in
 Python without a bound on the depth of the stack.
 
-  $ ../../tempore --emit-opentrons deep.py deep.tpe && python3 deep.py
+  $ ../../tempore --emit-opentrons deep.py deep.tpe &&
+  > python3 _opentrons/protocols/deep.py
+  Wrote _opentrons/protocols/deep.py
   === Run 1 ===
   return 100000
   

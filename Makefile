@@ -24,7 +24,8 @@ tempore-deps:
 # The Opentrons simulator, opentrons_simulate of the Python package opentrons
 # 10.0.0, in the virtual environment _opentrons, created with the first of the
 # interpreters below of version 3.10 or later. Skipped with a notice if there
-# is none.
+# is none. clean-opentrons removes it, together with the protocols written by
+# --emit-opentrons to _opentrons/protocols.
 OPENTRONS_VENV = _opentrons
 OPENTRONS_PYTHONS = python3.13 python3.12 python3.11 python3.10 python3
 

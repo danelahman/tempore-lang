@@ -56,7 +56,8 @@ Run the test suite:
 
     make test
 
-Remove the build (the Opentrons simulator in `_opentrons` is kept):
+Remove the build (the Opentrons simulator and the protocols in `_opentrons` are
+kept):
 
     make clean
 
@@ -76,7 +77,8 @@ Command-line options:
 - `--debug` also prints the inferred typing context, including the inferred type
   schemes;
 - `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
-  Python, to the given file, without running them; with `--bind`, as an
+  Python, to the given file, without running them; a file name without a
+  directory names a file in `_opentrons/protocols`; with `--bind`, as an
   Opentrons protocol (see [Opentrons](#opentrons));
 - `--help` lists the options and the available grading monoids.
 
@@ -1186,8 +1188,12 @@ examples, each with a binding file and a rejected variant:
       --bind bindings.py \
       file.tpe
 
-writes the protocol to a file. Run as a script, `python3 protocol.py` executes
-the program as the interpreter does, without the binding file. Without `--bind`,
+writes the protocol to `_opentrons/protocols/protocol.py`, creating the
+directory if needed, and prints the path written. A file name without a
+directory names a file in `_opentrons/protocols` of the current directory, which
+git does not track; a name with a directory, such as `./protocol.py`, is used as
+given. Run as a script, `python3 _opentrons/protocols/protocol.py` executes the
+program as the interpreter does, without the binding file. Without `--bind`,
 only the compiled program is written. The options below require `--bind`:
 
 - `--api-level <level>` sets the `apiLevel` (default 2.30);
@@ -1208,7 +1214,7 @@ For example,
       --simulate \
       examples/opentrons/elisa.tpe
 
-writes the ELISA protocol and simulates it.
+writes the ELISA protocol to `_opentrons/protocols/elisa.py` and simulates it.
 
 Requirements:
 
@@ -1217,7 +1223,8 @@ Requirements:
 - `make deps`, or `make opentrons-deps` alone, installs it in the virtual
   environment `_opentrons` of the repository with the first of `python3.13`,
   `python3.12`, `python3.11`, `python3.10` and `python3` of version 3.10 or
-  later, and does nothing if there is none; `make clean-opentrons` removes it;
+  later, and does nothing if there is none; `make clean-opentrons` removes it,
+  together with the protocols written to `_opentrons/protocols`;
 - it can also be installed by hand, e.g.
   `python3 -m venv venv && venv/bin/pip install opentrons==10.0.0`, and then
   named by `--simulator` or placed on the `PATH`;
@@ -1225,8 +1232,9 @@ Requirements:
   environment variable `OT_API_CONFIG_DIR` names another directory; for the
   simulator of `_opentrons`, `--simulate` sets it to `_opentrons/config` unless
   it is set;
-- a compiled protocol run as a script, `python3 protocol.py`, needs Python 3.10
-  or later only, not the `opentrons` package;
+- a compiled protocol run as a script,
+  `python3 _opentrons/protocols/protocol.py`, needs Python 3.10 or later only,
+  not the `opentrons` package;
 - `scripts/opentrons-simulate.sh [VENV_DIR]` simulates every example with the
   virtual environment `VENV_DIR` (default `_opentrons`), which it creates and
   installs the package in if needed (the network is then needed), writing the

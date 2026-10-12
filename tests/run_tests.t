@@ -7885,7 +7885,7 @@ single-dash form of the help option is not accepted.
     --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30)
     --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
     --debug           Print the inferred type schemes of the top-level definitions before running
-    --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them
+    --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them; a file name without a directory names a file in _opentrons/protocols
     --grades          Selects the grades (default: time-lower-bound); accepted:
         Time:
           time-lower-bound                          Lower bounds

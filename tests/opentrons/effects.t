@@ -12,8 +12,8 @@ replaced by it before the comparison.
   > }
   $ parity () {
   >   ../../tempore --grades "$1" "$2" 2>&1 | normalise > interpreter.out
-  >   ../../tempore --grades "$1" --emit-opentrons program.py "$2" &&
-  >   python3 program.py > python.out 2>&1
+  >   ../../tempore --grades "$1" --emit-opentrons program.py "$2" > /dev/null &&
+  >   python3 _opentrons/protocols/program.py > python.out 2>&1
   >   diff interpreter.out python.out && cat python.out
   > }
 
@@ -153,7 +153,9 @@ at the unhandled call, or run the default implementation.
 A handler applied to 100000 calls, its continuation growing with them, runs in
 Python without a bound on the depth of the stack.
 
-  $ ../../tempore --emit-opentrons deep_effects.py effects_deep.tpe && python3 deep_effects.py
+  $ ../../tempore --emit-opentrons deep_effects.py effects_deep.tpe &&
+  > python3 _opentrons/protocols/deep_effects.py
+  Wrote _opentrons/protocols/deep_effects.py
   === Run 1 ===
   return 4999950000
   
@@ -164,7 +166,8 @@ aborts the run under the policy abort, and is reported and recorded under warn.
 Delays and declared durations advance the clock, scaled by the time unit.
 
   $ ../../tempore --grades traces-timed-interval-rational --emit-opentrons monitors.py monitors.tpe &&
-  > python3 monitor_driver.py monitors.py
+  > python3 monitor_driver.py _opentrons/protocols/monitors.py
+  Wrote _opentrons/protocols/monitors.py
   Policy abort:
     CC [2, 4], 1 s: aborts: Operation `CC` took 1 s, outside its running-time bounds [2, 4] s
     CC [2, 4], 2 s: returns 2
@@ -247,5 +250,6 @@ bounds of the operations it names, compound ones included.
   > run return ()
   > TPE
   $ ../../tempore --grades traces-timed-upper-bound --emit-opentrons compound.py compound.tpe &&
-  > grep -o '"C": tempore_Bounds([^)]*)[^)]*)[^)]*)' compound.py
+  > grep -o '"C": tempore_Bounds([^)]*)[^)]*)[^)]*)' _opentrons/protocols/compound.py
+  Wrote _opentrons/protocols/compound.py
   "C": tempore_Bounds(tempore_Fraction(3, 1), True, tempore_Fraction(6, 1), True)
