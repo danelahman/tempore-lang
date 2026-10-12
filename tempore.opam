@@ -8,7 +8,7 @@ description:
 maintainer: ["Danel Ahman"]
 authors: ["Danel Ahman"]
 license: "MIT"
-homepage: "https://danel.ahman.ee/tempore-lang/"
+homepage: "https://tempore-lang.ee/"
 bug-reports: "https://github.com/danelahman/tempore-lang/issues"
 depends: [
   "dune" {>= "3.17"}

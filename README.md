@@ -88,7 +88,7 @@ to their topics.
 ### Web interface
 
 Open `web/index.html` after building, or use
-<https://danel.ahman.ee/tempore-lang/>.
+<https://tempore-lang.ee/>.
 
 You can load an existing example or write your own program, choose which grading
 monoid to use, typecheck the program, and step through its reductions while

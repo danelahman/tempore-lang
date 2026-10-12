@@ -21,7 +21,7 @@
 (source
  (uri "git+https://github.com/danelahman/tempore-lang.git"))
 
-(homepage "https://danel.ahman.ee/tempore-lang/")
+(homepage "https://tempore-lang.ee/")
 
 (bug_reports "https://github.com/danelahman/tempore-lang/issues")
 
