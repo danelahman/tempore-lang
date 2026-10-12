@@ -17,7 +17,7 @@ let () =
   (match example "G | T | time-interval | dir/a.tpe | A description." with
   | Some e ->
       if
-        e.backend <> "tempore" || e.settings <> []
+        e.backend <> "interpreter" || e.settings <> []
         || e.path <> "examples/dir/a.tpe"
       then fail "five fields: backend %s, path %s" e.backend e.path
   | None -> fail "five fields: not an example");
@@ -69,7 +69,7 @@ let () =
       "G | T | time-interval | a.tpe | D. | no-such-backend";
       "G | T | time-interval | a.tpe | D. | opentrons | colour=red";
       "G | T | time-interval | a.tpe | D. | opentrons | robot=ot3";
-      "G | T | time-interval | a.tpe | D. | tempore | binding=b.py";
+      "G | T | time-interval | a.tpe | D. | interpreter | binding=b.py";
     ];
   (* the manifest of the repository *)
   let root = Filename.concat (Sys.getcwd ()) "../.." in
@@ -79,7 +79,7 @@ let () =
   let groups = Manifest.summarised summaries (Manifest.group_entries entries) in
   (match Manifest.defaults entries defaults with
   | [
-   ("tempore", "examples/introduction/sensor_reading.tpe");
+   ("interpreter", "examples/introduction/sensor_reading.tpe");
    ("opentrons", "examples/opentrons/elisa.tpe");
   ] ->
       ()

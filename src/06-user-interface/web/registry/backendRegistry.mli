@@ -103,7 +103,7 @@ type entry = {
           given, before any event *)
 }
 
-val tempore : entry
+val interpreter : entry
 (** The interpreter alone: no inputs, no compiled code, no operation model. *)
 
 val opentrons : entry
@@ -115,10 +115,10 @@ val opentrons : entry
     verdicts of the monitors of the running-time bounds. *)
 
 val entries : entry list
-(** The backends, in the order of the selector, {!tempore} first. *)
+(** The backends, in the order of the selector, {!interpreter} first. *)
 
 val default : entry
-(** The backend selected as the page opens, {!tempore}. *)
+(** The backend selected as the page opens, {!interpreter}. *)
 
 val find : string -> entry option
 (** [find key] is the backend of [key], if any. *)

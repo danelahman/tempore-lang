@@ -41,6 +41,11 @@ Install the dependencies:
 
     make deps
 
+This runs `make tempore-deps`, which installs the OCaml dependencies with opam,
+and `make opentrons-deps`, which installs the optional Opentrons simulator (see
+[Opentrons](#opentrons)) when Python 3.10 or later is available; each target can
+also be run separately.
+
 Build the language:
 
     make
@@ -49,7 +54,7 @@ Run the test suite:
 
     make test
 
-Remove the build:
+Remove the build (the Opentrons simulator in `_opentrons` is kept):
 
     make clean
 
@@ -85,9 +90,9 @@ You can load an existing example or write your own program, choose which grading
 monoid to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
-The backend selector, first among the code options, chooses between Tempore,
-the interpreter alone, and Opentrons (see [Backends](#backends)).
-Selecting a backend loads its default example (the sensor reading for Tempore,
+The backend selector, first among the code options, chooses the backend,
+Interpreter or Opentrons (see [Backends](#backends)).
+Selecting a backend loads its default example (the sensor reading for Interpreter,
 the ELISA for Opentrons), and the gallery lists the examples of the backend
 selected. Under Opentrons, the robot, the time unit and the monitor policy are
 chosen under the selector, and the mark in the top right corner of the editor
@@ -1118,7 +1123,7 @@ Limits:
 A program is executed by one of two backends. The web interface chooses between
 them with the backend selector.
 
-### Standard interpreter
+### Interpreter
 
 The interpreter evaluates the program by reduction and tracks the resource
 state: the accumulated grade. A `run` command prints its result with the final
@@ -1187,7 +1192,8 @@ compiled program is written. The options below require `--bind`:
 - `--monitor abort|warn|off` sets the monitor policy (default `abort`);
 - `--simulate` runs the protocol with the Opentrons simulator and exits with its
   exit code; `--simulator <path>` names the executable, by default
-  `opentrons_simulate` on the `PATH`.
+  `opentrons_simulate` on the `PATH`, or else that of the virtual environment
+  `_opentrons` in the directory of `tempore` or in the current directory.
 
 For example,
 
@@ -1198,16 +1204,24 @@ writes the ELISA protocol and simulates it.
 Requirements:
 
 - the simulator is `opentrons_simulate` of the `opentrons` Python package
-  (tested with version 10.0.0), which needs Python 3.10 or later and can be
-  installed in a virtual environment:
-  `python3 -m venv venv && venv/bin/pip install opentrons==10.0.0`;
+  (tested with version 10.0.0), which needs Python 3.10 or later;
+- `make deps`, or `make opentrons-deps` alone, installs it in the virtual
+  environment `_opentrons` of the repository with the first of `python3.13`,
+  `python3.12`, `python3.11`, `python3.10` and `python3` of version 3.10 or
+  later, and does nothing if there is none; `make clean-opentrons` removes it;
+- it can also be installed by hand, e.g.
+  `python3 -m venv venv && venv/bin/pip install opentrons==10.0.0`, and then
+  named by `--simulator` or placed on the `PATH`;
 - the simulator writes its configuration to `~/.opentrons` unless the
-  environment variable `OT_API_CONFIG_DIR` names another directory;
+  environment variable `OT_API_CONFIG_DIR` names another directory; for the
+  simulator of `_opentrons`, `--simulate` sets it to `_opentrons/config` unless
+  it is set;
 - a compiled protocol run as a script, `python3 protocol.py`, needs Python 3.10
   or later only, not the `opentrons` package;
-- `scripts/opentrons-simulate.sh [VENV_DIR]` creates such a virtual environment,
-  installs the package (the network is needed on the first run), and simulates
-  every example, writing the protocols and logs to the environment's directory.
+- `scripts/opentrons-simulate.sh [VENV_DIR]` simulates every example with the
+  virtual environment `VENV_DIR` (default `_opentrons`), which it creates and
+  installs the package in if needed (the network is then needed), writing the
+  protocols and logs to the environment's directory.
 
 ## Editor support
 <!-- web-skip -->

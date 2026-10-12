@@ -18,7 +18,7 @@
 # - description: one sentence, shown on the example's card.
 # - backend: the backend whose gallery lists the example, and which the web
 #   interface switches to when it is loaded (a key of BackendRegistry.entries,
-#   src/06-user-interface/web/registry); tempore when not given.
+#   src/06-user-interface/web/registry); interpreter when not given.
 # - settings: the values of inputs of the backend, set when the example is
 #   loaded, separated by blanks, each written key=value; the value of a text
 #   input is the path of the file holding it, relative to this directory.
@@ -38,14 +38,14 @@
 #
 # A line of two fields, the first the word 'default', names the example the
 # web interface loads when the backend of that example is selected; that of
-# the default backend, tempore, is also loaded when the page is opened:
+# the default backend, interpreter, is also loaded when the page is opened:
 #
 #   default | path
 #
 # - path: the example's file, relative to this directory, as an example line
 #   gives it.
 #
-# At most one default is given per backend, and one for tempore.
+# At most one default is given per backend, and one for interpreter.
 #
 # Examples are listed in the order they appear in the gallery: groups in the
 # order given here, and within a group from the simplest example to the most

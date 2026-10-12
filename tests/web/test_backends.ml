@@ -83,7 +83,7 @@ let () =
 (* The registry *)
 
 let () =
-  if BackendRegistry.default.key <> "tempore" then fail "default backend";
+  if BackendRegistry.default.key <> "interpreter" then fail "default backend";
   if BackendRegistry.find "opentrons" = None then fail "no Opentrons backend";
   let inputs = BackendRegistry.opentrons.inputs in
   if BackendRegistry.setting inputs [] "robot" <> "flex" then

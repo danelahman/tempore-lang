@@ -8,7 +8,7 @@ type entry = {
       (** the grading monoid the web interface switches to when it is loaded *)
   path : string;  (** relative to the project root *)
   description : string;
-  backend : string;  (** the key of its backend, ["tempore"] unless given *)
+  backend : string;  (** the key of its backend, ["interpreter"] unless given *)
   settings : (string * string) list;
       (** the values of inputs of its backend, by key; that of a text input is
           the path of the file holding it, relative to the project root *)

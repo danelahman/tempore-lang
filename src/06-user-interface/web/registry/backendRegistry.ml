@@ -71,10 +71,10 @@ type entry = {
   observer : (settings -> operations -> observer) option;
 }
 
-let tempore =
+let interpreter =
   {
-    key = "tempore";
-    name = "Tempore";
+    key = "interpreter";
+    name = "Interpreter";
     description = "The interpreter, which runs the program step by step.";
     inputs = [];
     compiler = None;
@@ -268,6 +268,6 @@ let opentrons =
     observer = Some opentrons_observer;
   }
 
-let entries = [ tempore; opentrons ]
-let default = tempore
+let entries = [ interpreter; opentrons ]
+let default = interpreter
 let find key = List.find_opt (fun (entry : entry) -> entry.key = key) entries

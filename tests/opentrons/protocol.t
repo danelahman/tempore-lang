@@ -503,10 +503,45 @@ one fails.
   [1]
   $ ../../tempore --grades time-interval --emit-opentrons sim.py --bind protocol_bindings.py \
   >   --simulate --simulator ./missing_simulate protocol_ok.tpe 2>&1 | grep -v '^Warning'
-  Error: the Opentrons simulator './missing_simulate' was not found; it is installed with the Python package opentrons (Python 3.10 or later), e.g. by 'pip install opentrons'
+  Error: the Opentrons simulator './missing_simulate' was not found
   $ PATH=/nonexistent ../../tempore --grades time-interval --emit-opentrons sim.py \
   >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2>&1 | grep -v '^Warning'
-  Error: the Opentrons simulator opentrons_simulate was not found; it is installed with the Python package opentrons (Python 3.10 or later), e.g. by 'pip install opentrons'
+  Error: the Opentrons simulator opentrons_simulate was not found on the PATH or in _opentrons; 'make opentrons-deps' installs it with Python 3.10 or later
+
+Without --simulator and opentrons_simulate on the PATH, the simulator is that
+of the virtual environment _opentrons installed by 'make opentrons-deps', in
+the directory of the executable or else in the current directory, run with
+OT_API_CONFIG_DIR set to its directory config unless the environment sets it.
+Here the simulator is a script that prints its argument and that variable;
+opentrons_simulate on the PATH takes precedence over it.
+
+  $ mkdir -p repo/_opentrons/bin
+  $ cp ../../tempore repo/tempore
+  $ cat > repo/_opentrons/bin/opentrons_simulate <<'SCRIPT'
+  > #!/bin/sh
+  > echo "Simulated $1"
+  > echo "OT_API_CONFIG_DIR=${OT_API_CONFIG_DIR#$PWD/}"
+  > SCRIPT
+  $ chmod +x repo/_opentrons/bin/opentrons_simulate
+  $ PATH=/usr/bin:/bin repo/tempore --grades time-interval --emit-opentrons sim.py \
+  >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2> /dev/null
+  Simulated sim.py
+  OT_API_CONFIG_DIR=repo/_opentrons/config
+  $ PATH=/usr/bin:/bin OT_API_CONFIG_DIR=elsewhere repo/tempore --grades time-interval \
+  >   --emit-opentrons sim.py --bind protocol_bindings.py --simulate protocol_ok.tpe 2> /dev/null
+  Simulated sim.py
+  OT_API_CONFIG_DIR=elsewhere
+  $ PATH="$PWD/bin:/usr/bin:/bin" repo/tempore --grades time-interval --emit-opentrons sim.py \
+  >   --bind protocol_bindings.py --simulate protocol_ok.tpe 2> /dev/null
+  Simulated sim.py
+  Tempore run 1
+  $ cd repo
+  $ PATH=/usr/bin:/bin ../../../tempore --grades time-interval --emit-opentrons ../sim.py \
+  >   --bind ../protocol_bindings.py --simulate ../protocol_ok.tpe 2> /dev/null
+  Simulated ../sim.py
+  OT_API_CONFIG_DIR=_opentrons/config
+  $ cd ..
+
   $ ../../tempore --emit-opentrons sim.py --simulate protocol_ok.tpe
   ../../tempore: option '--simulate' requires '--bind'.
   [2]

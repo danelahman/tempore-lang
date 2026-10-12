@@ -179,7 +179,7 @@ let parse_args_to_config () =
         ( "--simulator",
           Arg.String (fun path -> simulator := Some path),
           " Use the given executable as the Opentrons simulator of --simulate \
-           (default: opentrons_simulate on the PATH)" );
+           (default: opentrons_simulate on the PATH, or else in _opentrons)" );
         ( "--time-unit",
           Arg.String (fun s -> time_unit := Some (time_unit_of_string s)),
           " Set the length of a unit of duration of the protocol written with \
@@ -246,30 +246,69 @@ let find_on_path name =
           else None)
         (String.split_on_char separator path)
 
-(* Runs the Opentrons simulator, [simulator] or else [opentrons_simulate] on
-   the PATH, on the protocol [filename], its output passed through, and exits
-   with its exit code. *)
-let simulate ?simulator filename =
-  let executable =
-    match simulator with
-    | Some path when Sys.file_exists path -> Some path
-    | Some _ -> None
-    | None -> find_on_path "opentrons_simulate"
+(* The virtual environment of the Opentrons simulator installed by
+   [make opentrons-deps], in the directory of the executable or else in the
+   current directory, if it holds the simulator. *)
+let find_opentrons_venv () =
+  let executable_dir =
+    let dir = Filename.dirname Sys.executable_name in
+    if Filename.is_relative dir then Filename.concat (Sys.getcwd ()) dir
+    else dir
   in
-  match executable with
+  List.find_map
+    (fun dir ->
+      let venv = Filename.concat dir "_opentrons" in
+      let simulator =
+        Filename.concat (Filename.concat venv "bin") "opentrons_simulate"
+      in
+      if Sys.file_exists simulator && not (Sys.is_directory simulator) then
+        Some (venv, simulator)
+      else None)
+    [ executable_dir; Sys.getcwd () ]
+
+(* Runs the Opentrons simulator on the protocol [filename], its output passed
+   through, and exits with its exit code. The simulator is [simulator], or
+   else [opentrons_simulate] on the PATH, or else that of the virtual
+   environment [_opentrons], run with OT_API_CONFIG_DIR set to its directory
+   [config] unless the environment sets it. *)
+let simulate ?simulator filename =
+  let command =
+    match simulator with
+    | Some path when Sys.file_exists path ->
+        Some (Filename.quote_command path [ filename ])
+    | Some _ -> None
+    | None -> (
+        match find_on_path "opentrons_simulate" with
+        | Some path -> Some (Filename.quote_command path [ filename ])
+        | None ->
+            Option.map
+              (fun (venv, path) ->
+                match Sys.getenv_opt "OT_API_CONFIG_DIR" with
+                | Some _ -> Filename.quote_command path [ filename ]
+                | None ->
+                    Filename.quote_command "env"
+                      [
+                        "OT_API_CONFIG_DIR=" ^ Filename.concat venv "config";
+                        path;
+                        filename;
+                      ])
+              (find_opentrons_venv ()))
+  in
+  match command with
   | None ->
       prerr_endline
-        (Printf.sprintf
-           "Error: the Opentrons simulator %s was not found; it is installed \
-            with the Python package opentrons (Python 3.10 or later), e.g. by \
-            'pip install opentrons'"
-           (match simulator with
-           | Some path -> "'" ^ path ^ "'"
-           | None -> "opentrons_simulate"));
+        (match simulator with
+        | Some path ->
+            Printf.sprintf "Error: the Opentrons simulator '%s' was not found"
+              path
+        | None ->
+            "Error: the Opentrons simulator opentrons_simulate was not found \
+             on the PATH or in _opentrons; 'make opentrons-deps' installs it \
+             with Python 3.10 or later");
       exit 1
-  | Some executable ->
+  | Some command ->
       flush_all ();
-      exit (Sys.command (Filename.quote_command executable [ filename ]))
+      exit (Sys.command command)
 
 (* Writes [contents] to the file [filename], or reports the error and exits
    with code 1. *)
