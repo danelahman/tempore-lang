@@ -81,20 +81,6 @@ module Make (GS : Grades.GradeSystem.S) : sig
       observations ({!observe}), and the variables to which the continuations of
       handled operations are about to be boxed. *)
 
-  val accumulated_since :
-    Language.Ast.variable ->
-    ( Language.Ast.Variable.t,
-      (Graded.rho * Graded.expression) Language.Ast.VariableMap.t,
-      Graded.rho )
-    Language.Ast.context_elem_ty
-    list ->
-    Graded.rho
-  (** [accumulated_since x state] is the resource grade accumulated in [state]
-      since the resource [x] was boxed: the product, in order, of the resource
-      grades recorded after the binding of [x], or the unit if there are none.
-
-      @raise Invalid_argument if [x] is not bound in [state]. *)
-
   type frame = (Graded.abstraction, Graded.expression) context_frame
 
   type focus = { frames : frame list; subject : Graded.computation }
@@ -174,15 +160,11 @@ module Make (GS : Grades.GradeSystem.S) : sig
   (** [steps state] are the steps available from [state]: none once all [run]
       commands have completed. *)
 
-  val observe :
-    bounds:Backend.bounds ->
-    run_state ->
-    step_label ->
-    Backend.observation option
-  (** [observe ~bounds state label] is what the step labelled [label] from
-      [state] shows of the operations performed, the time passed and the
-      resources boxed and unboxed, if anything, the resource grades ordered
-      under the running times [bounds] of the operations.
+  val observe : run_state -> step_label -> Backend.observation option
+  (** [observe state label] is what the step labelled [label] from [state] shows
+      of the operations performed, the time passed and the resources boxed and
+      unboxed, if anything, each resource with the resource grade it was boxed
+      at.
 
       A resource is named by the source variable its [box] binds, or else by the
       source variable the innermost enclosing [do] binds the result of the [box]

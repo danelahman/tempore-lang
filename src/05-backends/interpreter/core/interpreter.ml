@@ -101,23 +101,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
     | Ast.EpsVar e -> Ast.RhoImage e
 
-  (* The grade of a resource grade expression without grade variables, as the
-     grades of [box] and of the delays and the operation signatures are. *)
-  let rec grade_of_rho = function
-    | Ast.RhoConst (c, _) -> c
-    | Ast.RhoAdd (rho, rho') -> GS.R.mul (grade_of_rho rho) (grade_of_rho rho')
-    | Ast.RhoVar _ | Ast.RhoImage _ ->
-        invalid_arg "Interpreter.grade_of_rho: a grade variable"
-
-  let accumulated_since x state =
-    let rec product acc = function
-      | [] -> invalid_arg "Interpreter.accumulated_since: an unbound resource"
-      | Ast.VarMap map :: rest ->
-          if Ast.VariableMap.mem x map then acc else product acc rest
-      | Ast.Rho rho :: rest -> product (GS.R.mul (grade_of_rho rho) acc) rest
-    in
-    Ast.RhoConst (product GS.R.one state, None)
-
   let rec eval_tuple (env : evaluation_environment) (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Annotated (expr', _) -> eval_tuple env expr'
@@ -927,7 +910,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
      the continuation when a [return] is bound at the root. A call it makes
      moves the continuation into its own, so the binding at the root is always
      that of the innermost call still running. *)
-  let observe ~bounds (run_state : run_state) (label : step_label) :
+  let observe (run_state : run_state) (label : step_label) :
       Backend.observation option =
     let show_rho rho =
       Format.asprintf "%t" (PrettyPrint.print_rho (module GS.R) rho)
@@ -963,21 +946,16 @@ module Make (GS : Grades.GradeSystem.S) = struct
         in
         Option.map
           (fun x ->
-            let box_grade, _ =
+            let grade, _ =
               ContextHolderModule.find_variable x environment.state
             in
-            let accumulated = accumulated_since x environment.state in
             Backend.Unboxed
               {
                 name =
                   Option.value
                     (Ast.VariableMap.find_opt x environment.resource_names)
                     ~default:(Ast.Variable.string_of x);
-                box_grade = show_rho box_grade;
-                accumulated = show_rho accumulated;
-                within =
-                  GS.R.leq bounds (grade_of_rho accumulated)
-                    (grade_of_rho box_grade);
+                grade = show_rho grade;
               })
           (resource expr)
     | ( ComputationReduction { redex = DefaultOp; _ },

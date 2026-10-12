@@ -183,7 +183,7 @@
     }
 
     /* The view of the code compiled in the editor's place, and the report of
-       the operation model of the selected backend, above a run. */
+       the observer of the selected backend, above a run. */
     .backend-title {
       font-weight: 600;
       margin-bottom: 0.5rem;
@@ -247,20 +247,15 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .backend-report tr.is-within td:last-child {
-      color: #257942;
+    .backend-report > summary {
+      cursor: pointer;
     }
 
-    .backend-report tr.is-outside td {
-      background-color: #feecf0;
+    .backend-report:not([open]) > summary {
+      margin-bottom: 0;
     }
 
-    .backend-report tr.is-outside td:last-child {
-      color: #cc0f35;
-      font-weight: 600;
-    }
-
-    .backend-report tr.is-pending td:last-child {
+    .backend-report tr.is-pending td {
       color: #946c00;
     }
 

@@ -28,29 +28,21 @@ type wait = {
 }
 (** A delay outside every default implementation still running. *)
 
-type box = {
-  run : int;  (** the run of the box, from 1 *)
-  start : Grades.Rational.t;  (** the time of the clock at the box *)
+type resource = {
+  run : int;  (** the run of the event, from 1 *)
+  start : Grades.Rational.t;  (** the time of the clock at the event *)
   depth : int;  (** the number of calls still running *)
   name : string;  (** the name of the resource *)
   grade : string;  (** the resource grade it is boxed at, printed *)
 }
-(** A resource boxed. *)
-
-type unbox = {
-  run : int;  (** the run of the unbox, from 1 *)
-  start : Grades.Rational.t;  (** the time of the clock at the unbox *)
-  depth : int;  (** the number of calls still running *)
-  name : string;  (** the name of the resource *)
-  box_grade : string;  (** the resource grade it was boxed at, printed *)
-  accumulated : string;
-      (** the resource grade accumulated since it was boxed, printed *)
-  within : bool;  (** whether [accumulated] is below [box_grade] *)
-}
-(** A resource unboxed. *)
+(** A resource boxed or unboxed. *)
 
 (** An entry of a timeline. *)
-type entry = Call of call | Delay of wait | Box of box | Unbox of unbox
+type entry =
+  | Call of call
+  | Delay of wait
+  | Box of resource
+  | Unbox of resource
 
 (** How a run ends. *)
 type outcome =
@@ -92,10 +84,9 @@ val box : name:string -> grade:string -> t -> t
 (** [box ~name ~grade t] records the resource [name] boxed at the resource grade
     printed [grade], at the clock of [t]. *)
 
-val unbox :
-  name:string -> box_grade:string -> accumulated:string -> within:bool -> t -> t
-(** [unbox ~name ~box_grade ~accumulated ~within t] records the resource [name]
-    unboxed at the clock of [t] (see {!type-unbox}). *)
+val unbox : name:string -> grade:string -> t -> t
+(** [unbox ~name ~grade t] records the resource [name], boxed at the resource
+    grade printed [grade], unboxed at the clock of [t]. *)
 
 val finish : outcome -> t -> t
 (** [finish outcome t] ends the current run of [t] with [outcome], leaving the
@@ -116,15 +107,10 @@ val runs : t -> finished list
 
 (** {1 Reports} *)
 
-(** The verdict on the time of a call. *)
-type verdict =
-  | Within  (** its time lies within the bounds of the operation *)
-  | Outside  (** its time lies outside them *)
-  | Unchecked  (** the operation has no bounds that are checked *)
-  | Unfinished  (** its default implementation has not returned *)
-
 (** How a row of a report is marked. *)
-type status = Plain | Good | Bad | Pending
+type status =
+  | Plain
+  | Pending  (** a call whose default implementation has not returned *)
 
 type row = { cells : string list; status : status }
 (** A row of a report, a cell per column. *)
@@ -137,21 +123,22 @@ type report = {
 }
 (** A report on a timeline, independent of how it is displayed. *)
 
-val report : ?verdict:(call -> verdict) -> ?time_unit:string -> t -> report
-(** [report ?verdict ?time_unit t] is the report on [t], titled [Timeline], with
-    the columns [Run], [Start], [Event], [Time], [Grade] and [Check], a row per
-    entry of [t] in order, and a note per run ended and on the clock. Times are
-    numbers followed by the symbol [time_unit], if given.
+val report : ?run:int -> ?time_unit:string -> t -> report
+(** [report ?run ?time_unit t] is the report on [t], titled [Timeline], with the
+    columns [Run], [Start], [Event], [Time] and [Grade], a row per entry of [t]
+    in order and a note per run ended, followed by a note on the clock. With
+    [run], only the entries and the note of that run, without the note on the
+    clock. Times are numbers followed by the symbol [time_unit], if given.
 
     - A call is shown by its operation, indented by its depth, and its time, or
-      [running]; its grade is empty, and its check is the verdict [verdict]
-      gives, if given: [within] (marked good), [outside] (bad), [not monitored]
-      (plain) or [unfinished] (pending). Without [verdict] the check is empty,
-      and the row is pending while the call is unfinished.
-    - A delay is shown by its duration, its grade and check [—].
-    - A box of the resource [x] is shown as [box x], indented by its depth, with
-      the grade it is boxed at.
-    - An unbox of the resource [x] is shown as [unbox x], indented by its depth,
-      with the grade [a within g] or [a outside g] of the grade [a] accumulated
-      since the box and the grade [g] it was boxed at, and the check [within]
-      (good) or [outside] (bad). *)
+      [running] while its default implementation has not returned (the row then
+      pending); its grade is empty.
+    - A delay is shown by its duration; its grade is empty.
+    - A box or unbox of the resource [x] is shown as [box x] or [unbox x],
+      indented by its depth, with the resource grade [x] is boxed at. *)
+
+val text : report -> string
+(** [text report] is [report] as plain text: its title, then a line for the
+    headings of the columns and a line per row, each cell padded to the widest
+    of its column and the cells separated by two spaces, then a line per note.
+*)

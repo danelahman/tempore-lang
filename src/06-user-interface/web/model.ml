@@ -108,8 +108,8 @@ and run_model_state = {
       (** True when there are no computations left to run (i.e. all [run] blocks
           have completed and their snapshots are in [completed_runs]). *)
   observer : BackendRegistry.observer option;
-      (** The operation model of the selected backend, having observed the steps
-          taken so far, if the backend has one. *)
+      (** The observer of the selected backend, having observed the steps taken
+          so far, if the backend has one. *)
 }
 (** A snapshot of an interpreter run state together with its available steps,
     all resource-grade types hidden behind closures. *)
@@ -975,14 +975,13 @@ let rec update_model model = function
                   steps =
                     List.map
                       (fun (step : B.step) ->
-                        (* the operation model observes the step once it is
+                        (* the observer observes the step once it is
                            taken *)
                         let next_observer () =
                           Option.map
                             (fun (o : BackendRegistry.observer) ->
                               Option.fold ~none:o ~some:o.observe
-                                (B.observe ~bounds:program.running_times rs
-                                   step.label))
+                                (B.observe rs step.label))
                             observer
                         in
                         let next_completed_runs =
@@ -1031,8 +1030,7 @@ let rec update_model model = function
               else if run then
                 let observer =
                   Option.map
-                    (fun observer ->
-                      observer (settings model.edit_model) operations)
+                    (fun observer -> observer (settings model.edit_model))
                     entry.observer
                 in
                 ( Ok

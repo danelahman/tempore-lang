@@ -1,11 +1,11 @@
 (** The backends of the web interface.
 
     A backend is an entry of {!entries}: its name, the inputs it needs besides
-    the program, the code it compiles a program to, if any, and the model of the
-    operations of interpreter runs, if any, which observes each run and reports
-    on it. The web interface lists the backends in a selector, shows their
-    inputs, compiled code and reports, and lists in its gallery the examples of
-    the selected backend; adding a backend is adding an entry. *)
+    the program, the code it compiles a program to, if any, and the observer of
+    interpreter runs, if any, which observes each run and reports on it. The web
+    interface lists the backends in a selector, shows their inputs, compiled
+    code and reports, and lists in its gallery the examples of the selected
+    backend; adding a backend is adding an entry. *)
 
 (** {1 Inputs} *)
 
@@ -66,9 +66,9 @@ type compiler = {
     library's included, whose declared operations are [operations], those of
     them that are compound being [compound]. *)
 
-(** {1 Operation models} *)
+(** {1 Observers} *)
 
-(** What an operation model observes of an interpreter run. *)
+(** What an observer observes of an interpreter run. *)
 type event = Backend.observation =
   | Delayed of Grades.Rational.t
   | Performed of string
@@ -76,15 +76,10 @@ type event = Backend.observation =
   | Returned of string
   | Stopped of string
   | Boxed of { name : string; grade : string }
-  | Unboxed of {
-      name : string;
-      box_grade : string;
-      accumulated : string;
-      within : bool;
-    }
+  | Unboxed of { name : string; grade : string }
 
 (** How a row of a report is marked. *)
-type status = Timeline.status = Plain | Good | Bad | Pending
+type status = Timeline.status = Plain | Pending
 
 type row = Timeline.row = { cells : string list; status : status }
 
@@ -94,10 +89,14 @@ type report = Timeline.report = {
   rows : row list;
   notes : string list;  (** lines shown after the rows *)
 }
-(** What an operation model reports on the events observed. *)
+(** What an observer reports on the events observed. *)
 
-type observer = { observe : event -> observer; report : report Lazy.t }
-(** An operation model, having observed the events of a run so far. *)
+type observer = {
+  observe : event -> observer;
+  report : report Lazy.t;
+  expanded : bool;  (** whether the report is shown unfolded at first *)
+}
+(** An observer, having observed the events of a run so far. *)
 
 (** {1 Backends} *)
 
@@ -107,22 +106,22 @@ type entry = {
   description : string;  (** one sentence *)
   inputs : input list;
   compiler : compiler option;
-  observer : (settings -> operations -> observer) option;
-      (** the operation model of a run of a program declaring the operations
-          given, before any event *)
+  observer : (settings -> observer) option;
+      (** the observer of a run, before any event *)
 }
 
 val interpreter : entry
-(** The interpreter alone: no inputs, no compiled code, no operation model. *)
+(** The interpreter alone: no inputs and no compiled code. The observer is the
+    timeline of the run ({!Timeline}), folded at first, its times plain numbers.
+*)
 
 val opentrons : entry
 (** Opentrons protocols ({!OpentronsBackend.OpentronsProtocol}). The inputs are
     the binding file, the robot, the time unit and the monitor policy. Without a
     binding file the program compiles to a plain Python program
-    ({!OpentronsBackend.OpentronsEmit.plain_program}). The operation model is
-    the timeline of the run ({!Timeline}): its calls, with the verdicts of the
-    monitors of the running-time bounds ({!OpentronsBackend.OpentronsTimeline}),
-    its delays, and its boxes and unboxes. *)
+    ({!OpentronsBackend.OpentronsEmit.plain_program}). The observer is the
+    timeline of the run ({!Timeline}), unfolded at first, its times followed by
+    the symbol of the time unit. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)

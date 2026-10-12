@@ -1521,18 +1521,19 @@ let view_switch (compiler : BackendRegistry.compiler) code_view =
       ]
     [ mark ]
 
-(* The report of the operation model of a run, as a table and notes. *)
-let view_report (report : BackendRegistry.report) =
+(* The report of the observer of a run, as a table and notes folded under its
+   title, unfolded at first if [expanded]. *)
+let view_report ~expanded (report : BackendRegistry.report) =
   let row_class = function
     | BackendRegistry.Plain -> []
-    | Good -> [ class_ "is-within" ]
-    | Bad -> [ class_ "is-outside" ]
     | Pending -> [ class_ "is-pending" ]
   in
-  div
-    ~a:[ class_ "box backend-box backend-report" ]
+  elt "details"
+    ~a:
+      (class_ "box backend-box backend-report"
+      :: (if expanded then [ attr "open" "" ] else []))
     ([
-       elt "p" ~a:[ class_ "backend-title" ] [ text report.title ];
+       elt "summary" ~a:[ class_ "backend-title" ] [ text report.title ];
        div
          ~a:[ class_ "table-container" ]
          [
@@ -1556,6 +1557,11 @@ let view_report (report : BackendRegistry.report) =
     @ List.map
         (fun note -> elt "p" ~a:[ class_ "backend-note" ] [ text note ])
         report.notes)
+
+(* [view_report] with each folding, as functions of the report alone, which
+   [Vdom.memo] compares. *)
+let view_unfolded_report = view_report ~expanded:true
+let view_folded_report = view_report ~expanded:false
 
 (* What the editor's highlighted text depends on. *)
 type editor_key = {
@@ -2033,7 +2039,11 @@ let run_view (run_model : Model.run_model) =
   let report =
     Option.fold ~none:[]
       ~some:(fun (o : BackendRegistry.observer) ->
-        [ Vdom.memo view_report (Lazy.force o.report) ])
+        [
+          Vdom.memo
+            (if o.expanded then view_unfolded_report else view_folded_report)
+            (Lazy.force o.report);
+        ])
       run_model.current.observer
   in
   view_contents

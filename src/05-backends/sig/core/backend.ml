@@ -18,20 +18,9 @@ type observation =
   | Boxed of { name : string; grade : string }
       (** a resource named [name] has been boxed at the resource grade printed
           [grade] *)
-  | Unboxed of {
-      name : string;
-      box_grade : string;
-      accumulated : string;
-      within : bool;
-    }
+  | Unboxed of { name : string; grade : string }
       (** the resource named [name], boxed at the resource grade printed
-          [box_grade], has been unboxed after the resource grade printed
-          [accumulated] has accumulated since; [within] is whether the latter is
-          below the former *)
-
-type bounds = Grades.Grade.bounds
-(** The running times of the operations of a program, under which its resource
-    grades are ordered. *)
+          [grade], has been unboxed *)
 
 module type S = sig
   module Grades : Grades.GradeSystem.S

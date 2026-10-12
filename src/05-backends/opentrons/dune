@@ -1,6 +1,6 @@
 (library
  (name opentronsBackend)
- (libraries utils language grades timeline zarith))
+ (libraries utils language grades zarith))
 
 ; The runtime is embedded in the library as the string
 ; Opentrons_runtime.contents, as the standard library is in the loader.

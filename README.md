@@ -83,6 +83,10 @@ Command-line options:
 - `--no-stdlib` skips importing the standard library;
 - `--debug` also prints the inferred typing context, including the inferred type
   schemes;
+- `--timeline` prints the [timeline](#interpreter) of each run after its result,
+  as a table; its times are plain numbers, or followed by the symbol of the unit
+  given by `--time-unit` (see [Opentrons](#opentrons)); it cannot be combined
+  with `--emit-opentrons`;
 - `--emit-opentrons <file.py>` typechecks the files and writes them, compiled to
   Python, to the given file, without running them; a file name without a
   directory names a file in `_opentrons/protocols`; with `--bind`, as an
@@ -108,10 +112,11 @@ the ELISA for Opentrons), and the gallery lists the examples of the backend
 selected. Under Opentrons, the robot, the time unit and the monitor policy are
 chosen under the selector, and the mark in the top right corner of the editor
 switches between the program and the Opentrons protocol: the binding file and
-the protocol compiled from the program once it typechecks. A run also shows a
-timeline: the time of a virtual clock advanced by the delays, and each
-operation call performed by its default implementation with its start, its
-duration and the verdict of the monitor of its running-time bounds.
+the protocol compiled from the program once it typechecks.
+
+A run shows its [timeline](#interpreter) above the reductions, folded under its
+title under Interpreter and unfolded under Opentrons, where its times carry the
+symbol of the time unit selected.
 
 ## Temporal resources
 
@@ -1140,6 +1145,17 @@ tracks the resource state: both the boxed resources and the accumulated grade. A
 `run` command prints its result with the final resource state. The web interface
 can also step through the individual reductions and shows the resource usage.
 
+The timeline of a run lists what happens in it, against a virtual clock advanced
+by the delays: the delays, the calls of operations that no handler handles and
+that are performed by their default implementations, with their start, nesting
+depth and duration, and the resources boxed and unboxed, by name and with the
+grade they are boxed at. A continuation boxed by a handler is named after its
+operation, as in `k of Op`. The timeline displays the run and checks nothing,
+the program having been typechecked before it runs. The command-line option
+`--timeline` prints it after each run, e.g.
+
+    ./tempore --grades time-interval --timeline examples/time/intervals.tpe
+
 ### Opentrons
 
 The proof-of-concept Opentrons backend compiles the program to a single-file
@@ -1206,7 +1222,8 @@ directory names a file in `_opentrons/protocols` of the current directory, which
 git does not track; a name with a directory, such as `./protocol.py`, is used as
 given. Run as a script, `python3 _opentrons/protocols/protocol.py` executes the
 program as the interpreter does, without the binding file. Without `--bind`,
-only the compiled program is written. The options below require `--bind`:
+only the compiled program is written. The options below require `--bind`, except
+that `--time-unit` is also accepted with `--timeline`:
 
 - `--api-level <level>` sets the `apiLevel` (default 2.30);
 - `--time-unit <unit>` sets the length of a unit of duration: `seconds` (the

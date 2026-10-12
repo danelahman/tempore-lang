@@ -1,3 +1,10 @@
 (executable
  (name cli)
- (libraries utils language grades cliInterpreter loader opentronsBackend))
+ (libraries
+  utils
+  language
+  grades
+  cliInterpreter
+  loader
+  timeline
+  opentronsBackend))

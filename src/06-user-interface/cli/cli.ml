@@ -35,22 +35,24 @@ type config = {
   bind : string option;
   robot : OpentronsBackend.OpentronsProtocol.robot option;
   api_level : string option;
-  time_unit : Grades.Rational.t option;
+  time_unit : (Grades.Rational.t * string) option;
+  timeline : bool;
   monitor : OpentronsBackend.OpentronsProtocol.monitor option;
   simulate : bool;
   simulator : string option;
 }
 
-(* The length in seconds of the time unit [s]: [seconds], [minutes], [hours]
-   or a positive decimal number of seconds. *)
+(* The length in seconds of the time unit [s], [seconds], [minutes], [hours]
+   or a positive decimal number of seconds, and its symbol. *)
 let time_unit_of_string s =
   match s with
-  | "seconds" -> Grades.Rational.of_int 1
-  | "minutes" -> Grades.Rational.of_int 60
-  | "hours" -> Grades.Rational.of_int 3600
+  | "seconds" -> (Grades.Rational.of_int 1, "s")
+  | "minutes" -> (Grades.Rational.of_int 60, "min")
+  | "hours" -> (Grades.Rational.of_int 3600, "h")
   | _ -> (
       match Grades.Rational.of_decimal s with
-      | q when Grades.Rational.sign q > 0 -> q
+      | q when Grades.Rational.sign q > 0 ->
+          (q, "× " ^ Grades.Rational.show q ^ " s")
       | _ | (exception Invalid_argument _) ->
           raise
             (Arg.Bad
@@ -107,6 +109,7 @@ let parse_args_to_config () =
   and robot = ref None
   and api_level = ref None
   and time_unit = ref None
+  and timeline = ref false
   and monitor = ref None
   and simulate = ref false
   and simulator = ref None in
@@ -184,8 +187,15 @@ let parse_args_to_config () =
         ( "--time-unit",
           Arg.String (fun s -> time_unit := Some (time_unit_of_string s)),
           " Set the length of a unit of duration of the protocol written with \
-           --bind: seconds, minutes, hours or a positive number of seconds \
-           (default: seconds)" );
+           --bind, and the unit of the times printed by --timeline, which are \
+           otherwise plain numbers: seconds, minutes, hours or a positive \
+           number of seconds (default: seconds)" );
+        ( "--timeline",
+          Arg.Set timeline,
+          " Print the timeline of each run after its result: its delays, the \
+           calls of operations performed by their default implementations with \
+           their durations, and the resources boxed and unboxed with their box \
+           grades" );
         ( "--typecheck-only",
           Arg.Set typecheck_only,
           " Typecheck the files without running them" );
@@ -205,6 +215,13 @@ let parse_args_to_config () =
     end
   in
   requires "--bind" (!bind <> None) "--emit-opentrons" (!emit_opentrons <> None);
+  if !timeline && !emit_opentrons <> None then begin
+    Printf.eprintf "%s: option '--timeline' cannot be used with '%s'.\n"
+      Sys.argv.(0) "--emit-opentrons";
+    exit 2
+  end;
+  requires "--time-unit" (!time_unit <> None) "--bind' or '--timeline"
+    (!bind <> None || !timeline);
   List.iter
     (fun (option, given) -> requires option given "--bind" (!bind <> None))
     [
@@ -213,7 +230,6 @@ let parse_args_to_config () =
       ("--robot", !robot <> None);
       ("--simulate", !simulate);
       ("--simulator", !simulator <> None);
-      ("--time-unit", !time_unit <> None);
     ];
   {
     filenames = List.rev !filenames;
@@ -226,6 +242,7 @@ let parse_args_to_config () =
     robot = !robot;
     api_level = !api_level;
     time_unit = !time_unit;
+    timeline = !timeline;
     monitor = !monitor;
     simulate = !simulate;
     simulator = !simulator;
@@ -367,7 +384,7 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
       api_level =
         Option.value config.api_level ~default:(P.default_api_level robot);
       time_unit =
-        Option.value config.time_unit ~default:(Grades.Rational.of_int 1);
+        Option.fold ~none:(Grades.Rational.of_int 1) ~some:fst config.time_unit;
       monitor = Option.value config.monitor ~default:P.Abort;
       name = Filename.remove_extension source;
       source;
@@ -387,16 +404,40 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
 let run_with (module G : Grades.Grade.S) config =
   let module Backend = CliInterpreter.Make (Grades.GradeSystem.Identity (G)) in
   let module Loader = Loader.Loader (Backend) in
-  let rec run (state : Backend.run_state) run_num =
+  (* The timeline of the run [run_num], as a table. *)
+  let print_timeline timeline run_num =
+    print_string
+      (Timeline.text
+         (Timeline.report ~run:run_num
+            ?time_unit:(Option.map snd config.time_unit)
+            timeline));
+    print_newline ()
+  in
+  (* Runs the program from [state], each step chosen at random among those
+     available, and prints each run as it ends, followed by its timeline under
+     [--timeline]. The timeline observes a step before the state it leaves is
+     printed, so that it holds the end of the run printed. *)
+  let rec run (state : Backend.run_state) run_num timeline =
+    let step =
+      match Backend.steps state with
+      | [] -> None
+      | steps -> Some (List.nth steps (Random.int (List.length steps)))
+    in
+    let timeline =
+      Option.fold ~none:timeline
+        ~some:(fun (step : Backend.step) ->
+          Option.fold ~none:timeline
+            ~some:(fun observation -> Timeline.observe observation timeline)
+            (Backend.observe state step.label))
+        step
+    in
     let printed = Backend.view_run_state state ~run_num in
+    if printed && config.timeline then print_timeline timeline run_num;
     let next_run_num = if printed then run_num + 1 else run_num in
-    match Backend.steps state with
-    | [] -> ()
-    | steps ->
-        let i = Random.int (List.length steps) in
-        let step = List.nth steps i in
-        let state' = step.next_state () in
-        run state' next_run_num
+    Option.iter
+      (fun (step : Backend.step) ->
+        run (step.next_state ()) next_run_num timeline)
+      step
   in
   try
     Random.self_init ();
@@ -446,7 +487,8 @@ let run_with (module G : Grades.Grade.S) config =
         emit_protocol config ~filename ~binding_name
           ~operations:program.operations ~compound:program.compound_operations
           program.commands
-    | None, _ -> if not config.typecheck_only then run run_state 1
+    | None, _ ->
+        if not config.typecheck_only then run run_state 1 Timeline.empty
   with
   | Error.Error d ->
       Diagnostic.print ~source d Format.err_formatter;

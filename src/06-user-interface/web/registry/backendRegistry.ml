@@ -2,7 +2,6 @@ module Rational = Grades.Rational
 module Grade = Grades.Grade
 module Protocol = OpentronsBackend.OpentronsProtocol
 module Emit = OpentronsBackend.OpentronsEmit
-module Monitors = OpentronsBackend.OpentronsTimeline
 
 type input_kind = Text | Choice of string list
 
@@ -51,14 +50,9 @@ type event = Backend.observation =
   | Returned of string
   | Stopped of string
   | Boxed of { name : string; grade : string }
-  | Unboxed of {
-      name : string;
-      box_grade : string;
-      accumulated : string;
-      within : bool;
-    }
+  | Unboxed of { name : string; grade : string }
 
-type status = Timeline.status = Plain | Good | Bad | Pending
+type status = Timeline.status = Plain | Pending
 type row = Timeline.row = { cells : string list; status : status }
 
 type report = Timeline.report = {
@@ -68,7 +62,22 @@ type report = Timeline.report = {
   notes : string list;
 }
 
-type observer = { observe : event -> observer; report : report Lazy.t }
+type observer = {
+  observe : event -> observer;
+  report : report Lazy.t;
+  expanded : bool;
+}
+
+(* The timeline of a run, with times followed by the symbol [time_unit]. *)
+let timeline ~expanded ?time_unit () =
+  let rec observer timeline =
+    {
+      observe = (fun event -> observer (Timeline.observe event timeline));
+      report = lazy (Timeline.report ?time_unit timeline);
+      expanded;
+    }
+  in
+  observer Timeline.empty
 
 type entry = {
   key : string;
@@ -76,17 +85,19 @@ type entry = {
   description : string;
   inputs : input list;
   compiler : compiler option;
-  observer : (settings -> operations -> observer) option;
+  observer : (settings -> observer) option;
 }
 
 let interpreter =
   {
     key = "interpreter";
     name = "Interpreter";
-    description = "The interpreter, which runs the program step by step.";
+    description =
+      "The interpreter, which runs the program step by step and records a \
+       timeline of each run.";
     inputs = [];
     compiler = None;
-    observer = None;
+    observer = Some (fun _ -> timeline ~expanded:false ());
   }
 
 (* Opentrons *)
@@ -176,25 +187,8 @@ let opentrons_compile settings ~operations ~compound commands =
           messages = List.map (fun text -> { severity = Error; text }) errors;
         }
 
-let opentrons_observer settings operations =
-  let bounds op =
-    List.find_map
-      (fun (op', b) ->
-        if Language.Ast.OpName.string_of op' = op then Some b else None)
-      operations
-    |> Option.join
-  and symbol = snd (time_unit settings) in
-  let rec observer timeline =
-    {
-      observe = (fun event -> observer (Timeline.observe event timeline));
-      report =
-        lazy
-          (Timeline.report
-             ~verdict:(fun call -> Monitors.verdict (bounds call.op) call)
-             ~time_unit:symbol timeline);
-    }
-  in
-  observer Timeline.empty
+let opentrons_observer settings =
+  timeline ~expanded:true ~time_unit:(snd (time_unit settings)) ()
 
 let opentrons =
   {
@@ -202,8 +196,7 @@ let opentrons =
     name = "Opentrons";
     description =
       "Opentrons protocols in Python, with monitors of the running times of \
-       operations; interpreter runs record a timeline of the operations and \
-       delays.";
+       operations; interpreter runs record a timeline in units of time.";
     inputs = opentrons_inputs;
     compiler =
       Some { compile = opentrons_compile; code_name = "Opentrons protocol" };

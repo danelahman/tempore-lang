@@ -1,14 +1,11 @@
 (* Tests of the timelines of interpreter runs, of the observations of boxes and
-   unboxes, and of the backend registry of the web interface: the verdicts of
-   the Opentrons monitors at the ends of bounds, and the Opentrons
+   unboxes, and of the backend registry of the web interface: the Opentrons
    examples, run by the interpreter with the observations of each step fed to
-   the operation model of the registry, which must finish every call within
-   its bounds, and compiled with and without their binding files. Silent on
-   success. *)
+   the observer of the registry, which must finish every call, and compiled
+   with and without their binding files. Silent on success. *)
 
 module Rational = Grades.Rational
 module Grade = Grades.Grade
-module Monitors = OpentronsBackend.OpentronsTimeline
 
 let failures = ref []
 let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
@@ -60,8 +57,8 @@ let show_entry = function
       Printf.sprintf "%d box %s %d %s %s" b.run b.name b.depth
         (Rational.show b.start) b.grade
   | Timeline.Unbox u ->
-      Printf.sprintf "%d unbox %s %d %s %s %s %b" u.run u.name u.depth
-        (Rational.show u.start) u.accumulated u.box_grade u.within
+      Printf.sprintf "%d unbox %s %d %s %s" u.run u.name u.depth
+        (Rational.show u.start) u.grade
 
 let () =
   let t =
@@ -86,40 +83,6 @@ let () =
   if not (Rational.equal (Timeline.clock t) (q 11)) then
     fail "timeline delays: clock"
 
-let () =
-  let check name bounds d expected =
-    if Monitors.within bounds (q d) <> expected then
-      fail "within %s at %d is not %b" name d expected
-  in
-  let closed = (Grade.Closed (q 1), Grade.Closed (q 3))
-  and opened = (Grade.Open (q 1), Grade.Open (q 3))
-  and unbounded = (Grade.Closed (q 2), Grade.Unbounded) in
-  List.iter
-    (fun (d, e) -> check "[1, 3]" closed d e)
-    [ (0, false); (1, true); (2, true); (3, true); (4, false) ];
-  List.iter
-    (fun (d, e) -> check "(1, 3)" opened d e)
-    [ (1, false); (2, true); (3, false) ];
-  List.iter
-    (fun (d, e) -> check "[2, ∞)" unbounded d e)
-    [ (1, false); (2, true); (1000, true) ];
-  let call elapsed =
-    {
-      Timeline.run = 1;
-      op = "Op";
-      depth = 0;
-      start = q 0;
-      elapsed = Option.map q elapsed;
-    }
-  in
-  let verdict bounds elapsed = Monitors.verdict bounds (call elapsed) in
-  if verdict (Some closed) (Some 2) <> Within then fail "verdict: within";
-  if verdict (Some closed) (Some 4) <> Outside then fail "verdict: outside";
-  if verdict (Some (Grade.Closed (q 0), Grade.Unbounded)) (Some 9) <> Unchecked
-  then fail "verdict: [0, ∞) is monitored";
-  if verdict None (Some 9) <> Unchecked then fail "verdict: no bounds";
-  if verdict (Some closed) None <> Unfinished then fail "verdict: unfinished"
-
 (* The registry *)
 
 let () =
@@ -132,7 +95,37 @@ let () =
     BackendRegistry.setting inputs [ ("time-unit", "hours") ] "time-unit"
     <> "hours"
   then fail "the time unit set";
-  if BackendRegistry.setting inputs [] "colour" <> "" then fail "an unknown key"
+  if BackendRegistry.setting inputs [] "colour" <> "" then fail "an unknown key";
+  (* the interpreter's timeline folded and in plain numbers, that of Opentrons
+     unfolded and in the time unit set *)
+  let report (entry : BackendRegistry.entry) settings =
+    match entry.observer with
+    | None ->
+        fail "%s: no observer" entry.key;
+        None
+    | Some make ->
+        let observer = make settings in
+        let observer = observer.observe (Delayed (q 2)) in
+        let observer = observer.observe (Returned "()") in
+        Some (observer.expanded, Lazy.force observer.report)
+  in
+  (match report BackendRegistry.interpreter [] with
+  | Some (false, { rows = [ { cells = [ "1"; "0"; "delay"; "2"; "" ]; _ } ]; _ })
+    ->
+      ()
+  | Some _ -> fail "the interpreter's timeline"
+  | None -> ());
+  match report BackendRegistry.opentrons [ ("time-unit", "minutes") ] with
+  | Some
+      ( true,
+        {
+          rows = [ { cells = [ "1"; "0 min"; "delay"; "2 min"; "" ]; _ } ];
+          notes = [ "Run 1 returned () at 2 min."; "Clock: 2 min." ];
+          _;
+        } ) ->
+      ()
+  | Some _ -> fail "the Opentrons timeline"
+  | None -> ()
 
 (* The Opentrons examples *)
 
@@ -172,16 +165,14 @@ let run_example (entry : Manifest.entry) =
               let observer =
                 Option.fold ~none:observer
                   ~some:observer.BackendRegistry.observe
-                  (B.observe ~bounds:program.running_times rs step.label)
+                  (B.observe rs step.label)
               in
               go observer (step.next_state ())
         in
         match BackendRegistry.opentrons.observer with
-        | None -> fail "the Opentrons backend has no operation model"
+        | None -> fail "the Opentrons backend has no observer"
         | Some make -> (
-            let observer =
-              go (make settings operations) (B.run program.loaded.backend)
-            in
+            let observer = go (make settings) (B.run program.loaded.backend) in
             let report = Lazy.force observer.report in
             if verbose then begin
               print_endline entry.path;
@@ -192,26 +183,22 @@ let run_example (entry : Manifest.entry) =
               List.iter print_endline report.notes
             end;
             if report.rows = [] then fail "%s: no operation recorded" entry.path;
-            if
-              report.columns
-              <> [ "Run"; "Start"; "Event"; "Time"; "Grade"; "Check" ]
+            if report.columns <> [ "Run"; "Start"; "Event"; "Time"; "Grade" ]
             then fail "%s: columns" entry.path;
-            (* a call within its bounds, an unbox within its box grade, or a
-               delay or a box, unchecked; under the grades of the regular
-               expressions of timed operations an unbox may be outside, the
-               accumulated grade being a product of delays only *)
-            let regular = String.starts_with ~prefix:"regex-" entry.grade in
+            (* a finished call or a delay without a grade, or a box or an
+               unbox with its box grade *)
             List.iter
               (fun (row : BackendRegistry.row) ->
                 match (row.status, row.cells) with
-                | Good, _ | Plain, [ _; _; "delay"; _; "—"; "—" ] -> ()
-                | Plain, [ _; _; event; ""; _; "" ]
-                  when String.starts_with ~prefix:"box " (strip_depth event) ->
+                | Plain, [ _; _; event; time; "" ]
+                  when time <> "running"
+                       && not (String.contains (strip_depth event) ' ') ->
                     ()
-                | Bad, [ _; _; event; ""; _; "outside" ]
-                  when regular
-                       && String.starts_with ~prefix:"unbox "
-                            (strip_depth event) ->
+                | Plain, [ _; _; event; ""; grade ]
+                  when grade <> ""
+                       && (String.starts_with ~prefix:"box " (strip_depth event)
+                          || String.starts_with ~prefix:"unbox "
+                               (strip_depth event)) ->
                     ()
                 | _ -> fail "%s: %s" entry.path (String.concat " " row.cells))
               report.rows;
@@ -271,7 +258,7 @@ let () =
           let timeline =
             Option.fold ~none:timeline
               ~some:(fun o -> Timeline.observe o timeline)
-              (B.observe ~bounds:program.running_times rs step.label)
+              (B.observe rs step.label)
           in
           go timeline (step.next_state ())
     in
@@ -332,10 +319,8 @@ let boxes grade source =
         let show : Backend.observation -> string option = function
           | Boxed { name; grade } ->
               Some (Printf.sprintf "box %s %s" name grade)
-          | Unboxed { name; box_grade; accumulated; within } ->
-              Some
-                (Printf.sprintf "unbox %s %s %s %b" name accumulated box_grade
-                   within)
+          | Unboxed { name; grade } ->
+              Some (Printf.sprintf "unbox %s %s" name grade)
           | Delayed _ | Performed _ | Resumed | Returned _ | Stopped _ -> None
         in
         let rec go (shown, timeline) (rs : B.run_state) =
@@ -343,7 +328,7 @@ let boxes grade source =
           | [] -> (List.rev shown, timeline)
           | step :: _ ->
               let acc =
-                match B.observe ~bounds:program.running_times rs step.label with
+                match B.observe rs step.label with
                 | None -> (shown, timeline)
                 | Some o ->
                     ( Option.fold ~none:shown
@@ -361,10 +346,9 @@ let check_boxes name grade source expected =
   if shown <> expected then fail "%s: %s" name (String.concat "; " shown);
   timeline
 
-(* Nested boxes, the accumulated grade a product of the delays outside and
-   inside a default implementation, the unit accumulated by an immediate
-   unbox, a box named by the [let] binding it, and a continuation boxed by a
-   handler. *)
+(* Nested boxes, a box inside the continuation of a call performed by its
+   default implementation, an immediate unbox, a box named by the [let]
+   binding it, and a continuation boxed by a handler. *)
 let nested_boxes ~op ~outer ~inner ~unit ~handled =
   Printf.sprintf
     {|operation Op : unit ~> unit # %s
@@ -397,12 +381,12 @@ let () =
       [
         "box p [3, 5]";
         "box q [2, 3]";
-        "unbox q [2, 2] [2, 3] true";
+        "unbox q [2, 3]";
         "box b [0, 0]";
-        "unbox b [0, 0] [0, 0] true";
-        "unbox p [3, 3] [3, 5] true";
+        "unbox b [0, 0]";
+        "unbox p [3, 5]";
         "box k of Op [2, 3]";
-        "unbox k of Op [2, 2] [2, 3] true";
+        "unbox k of Op [2, 3]";
       ]
   in
   let entries = List.map show_entry (Timeline.entries timeline) in
@@ -412,13 +396,13 @@ let () =
       "1 delay 0 1";
       "1 box q 0 1 [2, 3]";
       "1 Op 1 2";
-      "1 unbox q 0 3 [2, 2] [2, 3] true";
+      "1 unbox q 0 3 [2, 3]";
       "1 box b 0 3 [0, 0]";
-      "1 unbox b 0 3 [0, 0] [0, 0] true";
-      "1 unbox p 0 3 [3, 3] [3, 5] true";
+      "1 unbox b 0 3 [0, 0]";
+      "1 unbox p 0 3 [3, 5]";
       "2 box k of Op 0 3 [2, 3]";
       "2 delay 3 2";
-      "2 unbox k of Op 0 5 [2, 2] [2, 3] true";
+      "2 unbox k of Op 0 5 [2, 3]";
       "2 delay 5 1";
     ]
   in
@@ -430,12 +414,23 @@ let () =
       (fun (row : Timeline.row) -> String.concat " | " row.cells)
       report.rows
   in
-  if
-    List.nth_opt cells 7
-    <> Some "1 | 3 s | unbox p |  | [3, 3] within [3, 5] | within"
-  then fail "time-interval report: %s" (String.concat "; " cells);
-  if List.exists (fun (row : Timeline.row) -> row.status = Bad) report.rows then
-    fail "time-interval report: an unbox outside its box grade"
+  if List.nth_opt cells 7 <> Some "1 | 3 s | unbox p |  | [3, 5]" then
+    fail "time-interval report: %s" (String.concat "; " cells);
+  let text = Timeline.text (Timeline.report ~run:2 timeline) in
+  let expected =
+    String.concat "\n"
+      [
+        "Timeline";
+        "Run  Start  Event          Time  Grade";
+        "2    3      box k of Op          [2, 3]";
+        "2    3      delay          2";
+        "2    5      unbox k of Op        [2, 3]";
+        "2    5      delay          1";
+        "Run 2 returned () at 6.";
+        "";
+      ]
+  in
+  if text <> expected then fail "time-interval text:\n%s" text
 
 let () =
   ignore
@@ -444,12 +439,12 @@ let () =
        [
          "box p 3";
          "box q 2";
-         "unbox q 2 2 true";
+         "unbox q 2";
          "box b 0";
-         "unbox b 0 0 true";
-         "unbox p 3 3 true";
+         "unbox b 0";
+         "unbox p 3";
          "box k of Op 2";
-         "unbox k of Op 2 2 true";
+         "unbox k of Op 2";
        ])
 
 (* Under the security levels the delays are unit grades, which the state does
@@ -469,12 +464,7 @@ run
   unbox h as _ in
   n
 |}
-       [
-         "box h High";
-         "box l Low";
-         "unbox l Low Low true";
-         "unbox h Low High true";
-       ])
+       [ "box h High"; "box l Low"; "unbox l Low"; "unbox h High" ])
 
 let () =
   let _, entries, _ = Manifest.read (Filename.concat root "examples/index") in
