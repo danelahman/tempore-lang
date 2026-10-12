@@ -1,0 +1,23 @@
+(* Operations of a protocol under the 'regex-timed-interval-symbolic' grading
+   monoid: the atomic 'Probe' and the compound 'Measure' have neither a binding
+   function nor a default implementation, and are performed under handlers. *)
+
+operation Probe : unit ~> nat # {Probe} within [0, 1]
+operation Measure : unit ~> nat # {Probe; Probe}
+
+let measure =
+  handler
+  | x -> x
+  | Measure () k ->
+      let a = perform Probe () in
+      let b = perform Probe () in
+      continue k with a + b
+
+let probe =
+  handler
+  | x -> x
+  | Probe () k ->
+      let n = perform Probe () in
+      continue k with n + 1
+
+run handle (handle perform Measure () with measure) with probe

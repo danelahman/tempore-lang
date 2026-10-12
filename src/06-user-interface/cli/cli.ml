@@ -346,7 +346,8 @@ let write_file filename contents =
 (* Writes to [filename] the Opentrons protocol of the [commands] of the
    program, with the binding file [binding_name], or reports the errors that
    refuse it. The protocol is named after the last source file. *)
-let emit_protocol config ~filename ~binding_name ~operations commands =
+let emit_protocol config ~filename ~binding_name ~operations ~compound commands
+    =
   let module P = OpentronsBackend.OpentronsProtocol in
   let binding =
     try In_channel.with_open_text binding_name In_channel.input_all
@@ -372,7 +373,9 @@ let emit_protocol config ~filename ~binding_name ~operations commands =
       source;
     }
   in
-  match P.protocol options ~operations ~binding_name ~binding commands with
+  match
+    P.protocol options ~operations ~compound ~binding_name ~binding commands
+  with
   | Ok (protocol, warnings) ->
       List.iter (fun w -> prerr_endline ("Warning: " ^ w)) warnings;
       write_file filename protocol;
@@ -441,7 +444,8 @@ let run_with (module G : Grades.Grade.S) config =
              ~operations:program.operations program.commands)
     | Some filename, Some binding_name ->
         emit_protocol config ~filename ~binding_name
-          ~operations:program.operations program.commands
+          ~operations:program.operations ~compound:program.compound_operations
+          program.commands
     | None, _ -> if not config.typecheck_only then run run_state 1
   with
   | Error.Error d ->

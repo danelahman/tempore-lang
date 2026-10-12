@@ -1160,7 +1160,10 @@ to the monitor policy `abort`, `warn` or `off`.
 
 The protocol is refused when the binding file defines no `setup` or defines a
 reserved name, or when the code of a `run` command may perform an operation that
-has neither a binding function nor a default implementation.
+has neither a binding function nor a default implementation and that no handler
+in that code has a case for. Such an operation that a handler does have a case
+for is a warning if it is atomic, and is accepted silently if it is compound,
+since a compound operation is implemented by handlers only.
 
 The directory [`examples/opentrons/`](examples/opentrons/) holds the following
 examples, each with a binding file and a rejected variant:

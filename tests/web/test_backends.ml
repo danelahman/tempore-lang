@@ -206,9 +206,11 @@ let run_example (entry : Manifest.entry) =
                   then fail "%s: not compiled %s" entry.path name
                 in
                 check "with its binding"
-                  (compiler.compile settings ~operations program.commands);
+                  (compiler.compile settings ~operations
+                     ~compound:program.compound_operations program.commands);
                 check "without a binding"
-                  (compiler.compile [] ~operations program.commands)))
+                  (compiler.compile [] ~operations
+                     ~compound:program.compound_operations program.commands)))
 
 (* A default implementation that performs an operation, and a run that ends
    at an operation with neither a handler nor a default implementation: the

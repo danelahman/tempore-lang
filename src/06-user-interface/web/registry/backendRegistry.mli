@@ -54,15 +54,17 @@ type compiler = {
     'rho 'eps.
     settings ->
     operations:operations ->
+    compound:Language.Ast.operation list ->
     ('rho, 'eps) Language.Ast.command list ->
     compiled;
   code_name : string;
       (** the name of the compiled code, by which the web interface labels the
           view of it *)
 }
-(** [compile settings ~operations commands] compiles the desugared [commands],
-    accepted by the typechecker, of a program, the standard library's included,
-    whose declared operations are [operations]. *)
+(** [compile settings ~operations ~compound commands] compiles the desugared
+    [commands], accepted by the typechecker, of a program, the standard
+    library's included, whose declared operations are [operations], those of
+    them that are compound being [compound]. *)
 
 (** {1 Operation models} *)
 

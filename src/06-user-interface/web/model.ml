@@ -1014,9 +1014,10 @@ let rec update_model model = function
                 }
               in
               let commands = program.commands
-              and operations = program.operations in
+              and operations = program.operations
+              and compound = program.compound_operations in
               let accepted (compiler : BackendRegistry.compiler) settings =
-                compiler.compile settings ~operations commands
+                compiler.compile settings ~operations ~compound commands
               in
               if diagnostics <> [] then
                 ( Error

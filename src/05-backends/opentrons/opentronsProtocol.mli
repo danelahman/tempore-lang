@@ -59,16 +59,17 @@ val protocol :
       * Grades.Rational.t Grades.Grade.bound)
       option)
     list ->
+  compound:Language.Ast.operation list ->
   binding_name:string ->
   binding:string ->
   ('rho, 'eps) Language.Ast.command list ->
   (string * string list, string list) result
-(** [protocol options ~operations ~binding_name ~binding commands] is the source
-    of the protocol of the desugared [commands], accepted by the typechecker, of
-    a program whose declared operations are [operations], as for
-    {!OpentronsEmit.compile}, with the binding file [binding], named
-    [binding_name] in messages, and the warnings about it; or the errors that
-    refuse it.
+(** [protocol options ~operations ~compound ~binding_name ~binding commands] is
+    the source of the protocol of the desugared [commands], accepted by the
+    typechecker, of a program whose declared operations are [operations], as for
+    {!OpentronsEmit.compile}, those of them that are compound being [compound],
+    with the binding file [binding], named [binding_name] in messages, and the
+    warnings about it; or the errors that refuse it.
 
     The function [run(protocol)] calls [setup(protocol)], configures the runtime
     with the binding functions of the declared operations that the binding file
@@ -83,5 +84,8 @@ val protocol :
     ({!OpentronsReach.run_operations}) that has no binding function and no
     default implementation declared above the run and that no handler in the
     run's code has a case for. Such an operation that a handler in the run's
-    code does have a case for is a warning instead, since the check does not
-    decide whether every call is inside such a handler. *)
+    code does have a case for is a warning instead if it is atomic, since the
+    check does not decide whether every call is inside such a handler, and
+    neither an error nor a warning if it is compound, since a compound operation
+    has neither a binding function nor a default implementation and is
+    implemented by a handler only. *)

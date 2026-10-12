@@ -155,12 +155,14 @@ let binding_errors ~compiled ~binding_name binding =
 (* The checks of the operations of the runs. *)
 
 (* The errors and the warnings about the operations of the runs of
-   [commands], in the order of the runs and of the operations' names. *)
-let operation_diagnostics ~bound commands =
+   [commands], in the order of the runs and of the operations' names; a
+   [compound] operation that a handler has a case for is neither. *)
+let operation_diagnostics ~bound ~compound commands =
   let unbound i (run : Reach.run_operations) op =
-    if bound op || OperationSet.mem op run.defaults then None
+    let handled = OperationSet.mem op run.handled in
+    if bound op || OperationSet.mem op run.defaults || (handled && compound op)
+    then None
     else
-      let handled = OperationSet.mem op run.handled in
       let message =
         Printf.sprintf
           "operation `%s`, which run %d may perform, has neither a binding \
@@ -183,13 +185,16 @@ let operation_diagnostics ~bound commands =
 let python_string = OpentronsEmit.python_string
 let dictionary = OpentronsEmit.dictionary
 
-let protocol options ~operations ~binding_name ~binding commands =
+let protocol options ~operations ~compound ~binding_name ~binding commands =
   let compiled = OpentronsEmit.compile ~operations commands in
   let defined = List.map fst (top_level_names binding) in
   let declared = List.map (fun (op, _) -> Ast.OpName.string_of op) operations in
-  let bound op = List.mem op declared && List.mem op defined in
+  let bound op = List.mem op declared && List.mem op defined
+  and compound op =
+    List.exists (fun op' -> Ast.OpName.string_of op' = op) compound
+  in
   let errors, warnings =
-    operation_diagnostics ~bound (Reach.reachable commands)
+    operation_diagnostics ~bound ~compound (Reach.reachable commands)
   in
   match binding_errors ~compiled ~binding_name binding @ errors with
   | _ :: _ as errors -> Error errors

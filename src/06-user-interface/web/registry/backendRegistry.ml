@@ -38,6 +38,7 @@ type compiler = {
     'rho 'eps.
     settings ->
     operations:operations ->
+    compound:Language.Ast.operation list ->
     ('rho, 'eps) Language.Ast.command list ->
     compiled;
   code_name : string;
@@ -115,7 +116,7 @@ let time_unit settings =
   | "hours" -> (Rational.of_int 3600, "h")
   | _ -> (Rational.of_int 1, "s")
 
-let opentrons_compile settings ~operations commands =
+let opentrons_compile settings ~operations ~compound commands =
   let binding = opentrons_setting settings "binding" in
   if String.trim binding = "" then
     {
@@ -151,8 +152,8 @@ let opentrons_compile settings ~operations commands =
       }
     in
     match
-      Protocol.protocol options ~operations ~binding_name:"the binding file"
-        ~binding commands
+      Protocol.protocol options ~operations ~compound
+        ~binding_name:"the binding file" ~binding commands
     with
     | Ok (code, warnings) ->
         {

@@ -344,13 +344,11 @@ solution in the case of a handler that simulates the reader.
 The bead clean-up by compound operations: the handler of the run performs each
 compound operation by the atomic operations its grade names, so only the
 atomic operations call binding functions and are commented. The compound
-operations, which have neither binding functions nor defaults, are warnings.
+operations, which have neither binding functions nor defaults, are neither
+errors nor warnings.
 
   $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons cleanup.py \
   >   --bind $examples/cleanup_bindings.py --time-unit minutes $examples/cleanup.tpe
-  Warning: operation `Bind`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
-  Warning: operation `Elute`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
-  Warning: operation `EthanolWash`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
   Wrote _opentrons/protocols/cleanup.py
   $ simulate cleanup.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
@@ -429,8 +427,17 @@ without the binding file.
   === Run 1 ===
   return 0
 
-An operation that a handler in a run's code has a case for, but that has
-neither a binding function nor a default implementation, is a warning. A
+Under a grading monoid with compound operations, an atomic operation that a
+handler has a case for, with neither a binding function nor a default
+implementation, is a warning, and such a compound operation is not.
+
+  $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons atomic_handled.py \
+  >   --bind protocol_bindings.py protocol_atomic_handled.tpe
+  Warning: operation `Probe`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
+  Wrote _opentrons/protocols/atomic_handled.py
+
+An atomic operation that a handler in a run's code has a case for, but that
+has neither a binding function nor a default implementation, is a warning. A
 definition that no run uses is not compiled, nor are its operations checked.
 
   $ ../../tempore --grades time-interval --emit-opentrons ok.py \

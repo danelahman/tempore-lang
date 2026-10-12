@@ -235,6 +235,9 @@ module Loader (Backend : Backend.S) = struct
         (** the operations the accepted commands declare, in order, each with
             the bounds of its running time, if any: those it declares, or else
             those its grade implies ({!Grades.Grade.S.duration_bounds}) *)
+    compound_operations : Ast.operation list;
+        (** the operations the accepted commands declare whose grade is not that
+            of an atomic operation ({!Grades.Grade.S.is_atomic}), in order *)
   }
   (** A program loaded by {!load_program}. *)
 
@@ -282,6 +285,21 @@ module Loader (Backend : Backend.S) = struct
     in
     List.rev (snd (List.fold_left step (declared, []) signatures))
 
+  (* The operations [cmds] declare whose grade is a literal that is not that
+     of an atomic operation. *)
+  let compound_operations_of cmds =
+    List.filter_map
+      (fun (cmd : _ Ast.command) ->
+        match cmd.it with
+        | Ast.OpSig (op, _, _, Ast.EpsConst (grade, _), _)
+          when not (Backend.Grades.E.is_atomic (Ast.OpName.string_of op) grade)
+          ->
+            Some op
+        | Ast.OpSig _ | Ast.TyDef _ | Ast.OpDefault _ | Ast.TopLet _
+        | Ast.TopDo _ ->
+            None)
+      cmds
+
   (** [load_program ~use_stdlib sources] loads the parsed [sources] in order,
       preceded by the standard library if [use_stdlib], all of them {!declare}d
       first. Every source is loaded even when an earlier one has errors, so that
@@ -324,6 +342,7 @@ module Loader (Backend : Backend.S) = struct
       links;
       commands;
       operations = operations_of commands;
+      compound_operations = compound_operations_of commands;
     }
 end
 
