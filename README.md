@@ -21,8 +21,11 @@ Most notably, Tempore adds to Temporal Millet the following:
    of programs,
 3. a number of concrete examples of such grades (ranging from time to regexes to
    security levels to trough/peak usage of resources),
-4. a cleaner and more systematic treatment of type inference, and
-5. various usability improvements in the web-based user interface.
+4. a cleaner and more systematic treatment of type inference,
+5. [multiple backends](#backends): besides the interpreter, a compiler of
+   programs to protocols for Opentrons liquid-handling robots, with run-time
+   monitors of the running times of operations, and
+6. various usability improvements in the web-based user interface.
 
 Tempore (and Temporal Millet before it) is built on Matija Pretnar's [Millet
 Language](https://github.com/matijapretnar/millet) and follows the ideas of
