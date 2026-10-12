@@ -89,4 +89,21 @@ let elisa (plate : plate) =
   let plate = perform Stop plate in
   perform Read plate
 
+(* Correctly rejected by the typechecker: the plate is washed after an
+   incubation of 30 minutes with the detection antibody, short of the 60 it
+   demands:
+
+     Typing error: Variable `incubating` is unboxed with grade `[30, 30]`
+       accumulated since it was bound, which is not below its box grade
+       `[60, ∞)`
+       Note: the resource inequality `[30, 30] <= [60, ∞)` does not hold
+*)
+(*
+let elisa_early (plate : plate) (antibody : reagent) =
+  let incubating = perform Detect (plate, antibody) in
+  delay 30;
+  unbox incubating as plate in
+  perform Wash plate
+*)
+
 run elisa "plate"

@@ -74,4 +74,22 @@ let tagmentation (column : column) =
   let neutralization = perform Thaw "neutralize tagment buffer" in
   after (fun c -> perform Tagment c) neutralization column
 
+(* Correctly rejected by the typechecker: the neutralization buffer is thawed
+   before a tagmentation followed by a 30-minute incubation, so it would be
+   dispensed 35 to 37 minutes after thawing:
+
+     Typing error: The resource inequality `[35, 37] <= [0, 30]` does not
+       hold
+       Note: while matching `[[0, 30]]reagent` against `[[35, 37]]reagent`
+*)
+(*
+let incubate (column : column) =
+  perform Tagment column;
+  delay 30
+
+let tagmentation_late (column : column) =
+  let neutralization = perform Thaw "neutralize tagment buffer" in
+  after incubate neutralization column
+*)
+
 run tagmentation 1

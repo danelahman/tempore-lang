@@ -88,4 +88,21 @@ let cleanup (beads : beads) =
   unbox settling as beads in
   perform Transfer beads
 
+(* Correctly rejected by the typechecker: the elution buffer is added four to
+   five minutes after the last ethanol wash, when the beads are overdried:
+
+     Typing error: Variable `drying` is unboxed with grade `[4, 5]`
+       accumulated since it was bound, which is not below its box grade
+       `[2, 3]`
+       Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
+*)
+(*
+let cleanup_overdried (beads : beads) =
+  let drying = perform LastEthanol beads in
+  delay 4;
+  perform Disengage beads;
+  unbox drying as beads in
+  perform Elute beads
+*)
+
 run cleanup "beads"

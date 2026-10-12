@@ -71,4 +71,25 @@ let assay () =
   let b = perform Read plate in
   (a, b)
 
+(* Correctly rejected by the typechecker: the second plate is stopped 30
+   minutes after the first, so the first is read 31 to 32 minutes after its
+   stop:
+
+     Typing error: Variable `first` is unboxed with grade `[31, 32]`
+       accumulated since it was bound, which is not below its box grade
+       `[0, 30]`
+       Note: the resource inequality `[31, 32] <= [0, 30]` does not hold
+*)
+(*
+let assay_late () =
+  let first = perform Stop "plate 1" in
+  delay 30;
+  let second = perform Stop "plate 2" in
+  unbox first as plate in
+  let a = perform Read plate in
+  unbox second as plate in
+  let b = perform Read plate in
+  (a, b)
+*)
+
 run handle assay () with simulated_reader

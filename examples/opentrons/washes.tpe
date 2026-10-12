@@ -86,4 +86,26 @@ let cleanup (beads : beads) =
   delay 3;
   perform Transfer ()
 
+(* Correctly rejected by the typechecker: the beads are washed once only:
+
+     Typing error: Variable `washed` is unboxed with grade
+       `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since
+       it was bound, which is not below its box grade
+       `[{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip},
+       {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]`
+       Note: the resource inequality
+       `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}] <=
+       [{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip},
+       {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]` does not hold
+*)
+(*
+let cleanup_one_wash (beads : beads) =
+  box {Ethanol; ChangeTip; Ethanol; [2, 3]; ChangeTip} beads as washed in
+  perform Ethanol ();
+  delay 3;
+  perform ChangeTip ();
+  unbox washed as beads in
+  perform Elute ()
+*)
+
 run cleanup "beads"

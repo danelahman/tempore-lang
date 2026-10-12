@@ -68,4 +68,25 @@ let fixation (columns : column list) =
           unbox fixing as column in
           stagger rest (started, column))
 
+(* Correctly rejected by the typechecker: the next column is started five
+   minutes after the rinse instead of ten, so a column is rinsed seven to
+   nine minutes after its fixative was added:
+
+     Typing error: Variable `fixing` is unboxed with grade `[7, 9]`
+       accumulated since it was bound, which is not below its box grade
+       `[12, 20]`
+       Note: the resource inequality `[7, 9] <= [12, 20]` does not hold
+*)
+(*
+let rec stagger_early (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
+  perform Rinse fixed;
+  match columns with
+  | [] -> delay 11; unbox fixing as last in perform Rinse last
+  | column :: rest ->
+      delay 5;
+      let started = perform Fix column in
+      unbox fixing as next in
+      stagger_early rest (started, next)
+*)
+
 run fixation [1; 2; 3; 4]
