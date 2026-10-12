@@ -33,7 +33,9 @@ type config = {
   resource_type : string;
   emit_opentrons : string option;
   emit_arduino : string option;
+  device : string option;
   host_runs : bool;
+  host_simulate : int option;
   bind : string option;
   robot : OpentronsBackend.OpentronsProtocol.robot option;
   api_level : string option;
@@ -62,6 +64,24 @@ let time_unit_of_string s =
                   "option '--time-unit': '%s' is neither seconds, minutes, \
                    hours nor a positive number of seconds"
                   s)))
+
+(* The number of microseconds of [s], a positive decimal number of seconds. *)
+let simulated_duration_of_string s =
+  let bad () =
+    raise
+      (Arg.Bad
+         (Printf.sprintf
+            "option '--host-simulate': '%s' is not a positive number of \
+             seconds of at most 10^6"
+            s))
+  in
+  match Grades.Rational.of_decimal s with
+  | q
+    when Grades.Rational.sign q > 0
+         && Grades.Rational.compare q (Grades.Rational.of_int 1_000_000) <= 0 ->
+      let us = Grades.Rational.mul q (Grades.Rational.of_int 1_000_000) in
+      Z.to_int (Z.fdiv (Grades.Rational.num us) (Grades.Rational.den us))
+  | _ | (exception Invalid_argument _) -> bad ()
 
 let accepted_resource_names = List.map fst Grades.GradeRegistry.grade_modules
 
@@ -108,7 +128,9 @@ let parse_args_to_config () =
   and resource_type = ref Grades.GradeRegistry.default_name
   and emit_opentrons = ref None
   and emit_arduino = ref None
+  and device = ref None
   and host_runs = ref false
+  and host_simulate = ref None
   and bind = ref None
   and robot = ref None
   and api_level = ref None
@@ -149,6 +171,10 @@ let parse_args_to_config () =
           Arg.Set debug,
           " Print the inferred type schemes of the top-level definitions \
            before running" );
+        ( "--device",
+          Arg.String (fun filename -> device := Some filename),
+          " With --emit-arduino, write a PlatformIO project of the device \
+           described by the given manifest" );
         ( "--emit-arduino",
           Arg.String (fun directory -> emit_arduino := Some directory),
           " Typecheck the files and write them, compiled to C++, to the given \
@@ -172,15 +198,22 @@ let parse_args_to_config () =
           " With --emit-arduino, also compile the run commands, and write a \
            main program for the host that executes them and prints their \
            results as the interpreter does" );
+        ( "--host-simulate",
+          Arg.String
+            (fun s -> host_simulate := Some (simulated_duration_of_string s)),
+          " With --device, build the project for the host with c++ and run its \
+           tasks for the given number of seconds of simulated time, printing \
+           the log of the device with the events of its tasks" );
         ( "--monitor",
           Arg.String
             (choice "--monitor"
                OpentronsBackend.OpentronsProtocol.
                  [ ("abort", Abort); ("warn", Warn); ("off", Off) ]
                monitor),
-          " Set what a protocol written with --bind does when an operation's \
-           running time is outside its bounds: abort, warn or off (default: \
-           abort)" );
+          " Set what a protocol written with --bind or a device written with \
+           --device does when an operation's running time is outside its \
+           bounds, or a step of a periodic task takes its period or longer: \
+           abort, warn or off (default: abort)" );
         ( "--no-stdlib",
           Arg.Clear use_stdlib,
           " Do not load the standard library" );
@@ -235,6 +268,14 @@ let parse_args_to_config () =
   in
   requires "--bind" (!bind <> None) "--emit-opentrons" (!emit_opentrons <> None);
   requires "--host-runs" !host_runs "--emit-arduino" (!emit_arduino <> None);
+  requires "--device" (!device <> None) "--emit-arduino" (!emit_arduino <> None);
+  requires "--host-simulate" (!host_simulate <> None) "--device"
+    (!device <> None);
+  if !host_runs && !device <> None then begin
+    Printf.eprintf "%s: option '--host-runs' cannot be used with '--device'.\n"
+      Sys.argv.(0);
+    exit 2
+  end;
   List.iter
     (fun (emit, emitting) ->
       List.iter
@@ -257,12 +298,16 @@ let parse_args_to_config () =
     (fun (option, given) -> requires option given "--bind" (!bind <> None))
     [
       ("--api-level", !api_level <> None);
-      ("--monitor", !monitor <> None);
       ("--robot", !robot <> None);
       ("--simulate", !simulate);
       ("--simulator", !simulator <> None);
       ("--time-unit", !time_unit <> None);
     ];
+  if !monitor <> None && !bind = None && !device = None then begin
+    Printf.eprintf "%s: option '--monitor' requires '--bind' or '--device'.\n"
+      Sys.argv.(0);
+    exit 2
+  end;
   {
     filenames = List.rev !filenames;
     use_stdlib = !use_stdlib;
@@ -271,7 +316,9 @@ let parse_args_to_config () =
     resource_type = !resource_type;
     emit_opentrons = !emit_opentrons;
     emit_arduino = !emit_arduino;
+    device = !device;
     host_runs = !host_runs;
+    host_simulate = !host_simulate;
     bind = !bind;
     robot = !robot;
     api_level = !api_level;
@@ -402,10 +449,52 @@ let arduino_directory name =
     Filename.concat (Filename.concat "_arduino" "projects") name
   else name
 
+(* The text of the file [filename], or else the error reported and exit with
+   code 1. *)
+let read_file filename =
+  try In_channel.with_open_text filename In_channel.input_all
+  with Sys_error message ->
+    prerr_endline ("Error: " ^ message);
+    exit 1
+
+(* Builds the project [files] written to [directory] for the host with c++ and
+   runs its simulation for [duration] microseconds, its output passed through,
+   and exits with its exit code. *)
+let host_simulate ~directory ~duration files =
+  if find_on_path "c++" = None then begin
+    prerr_endline "Error: the C++ compiler c++ was not found on the PATH";
+    exit 1
+  end;
+  let executable =
+    Filename.concat (Filename.concat directory "host") "simulation"
+  in
+  let command =
+    ArduinoBackend.ArduinoProject.host_build_command ~directory
+      ~output:executable files
+  in
+  flush_all ();
+  if
+    Sys.command (Filename.quote_command (List.hd command) (List.tl command))
+    <> 0
+  then begin
+    prerr_endline "Error: the host build of the project failed";
+    exit 1
+  end;
+  let executable =
+    if Filename.is_implicit executable then
+      Filename.concat Filename.current_dir_name executable
+    else executable
+  in
+  exit
+    (Sys.command (Filename.quote_command executable [ string_of_int duration ]))
+
 (* Writes to the directory [directory], created if missing, the C++ files of
    the [commands] of the program, those of the standard library being the
-   commands located in it. *)
-let emit_arduino config ~directory commands =
+   commands located in it; under --device, the PlatformIO project of the
+   device, whose task functions are found among the [definitions] of the
+   program's sources, each with the effect of its type, and whose operations
+   are monitored against the bounds of the declared [operations]. *)
+let emit_arduino config ~directory ~definitions ~operations commands =
   let library, sources =
     List.partition
       (fun (cmd : _ Ast.command) -> cmd.at.filename = stdlib_filename)
@@ -420,16 +509,54 @@ let emit_arduino config ~directory commands =
     | [] -> "the standard library"
   in
   let files =
-    ArduinoBackend.ArduinoEmit.files ~host_runs:config.host_runs ~source program
+    match config.device with
+    | None ->
+        (ArduinoBackend.ArduinoEmit.compile ~host_runs:config.host_runs ~source
+           program)
+          .files
+    | Some manifest ->
+        let module Project = ArduinoBackend.ArduinoProject in
+        let device =
+          ArduinoBackend.ArduinoDevice.parse ~filename:manifest
+            (read_file manifest)
+        in
+        let bindings =
+          Option.map
+            (fun (name : string Utils.Location.located) ->
+              let path =
+                if Filename.is_relative name.it then
+                  Filename.concat (Filename.dirname manifest) name.it
+                else name.it
+              in
+              (path, read_file path))
+            device.bindings
+        in
+        let monitor =
+          match config.monitor with
+          | None | Some OpentronsBackend.OpentronsProtocol.Abort ->
+              Project.Abort
+          | Some Warn -> Project.Warn
+          | Some Off -> Project.Off
+        in
+        Project.files
+          { device; monitor; source; definitions; operations; bindings }
+          program
   in
-  (try make_directory directory
+  (try
+     List.iter
+       (fun (name, _) ->
+         make_directory (Filename.dirname (Filename.concat directory name)))
+       files
    with Sys_error message ->
      prerr_endline ("Error: " ^ message);
      exit 1);
   List.iter
     (fun (name, contents) ->
       write_file (Filename.concat directory name) contents)
-    files
+    files;
+  Option.iter
+    (fun duration -> host_simulate ~directory ~duration files)
+    config.host_simulate
 
 (* Writes to [filename] the Opentrons protocol of the [commands] of the
    program, with the binding file [binding_name], or reports the errors that
@@ -550,9 +677,21 @@ let run_with (module G : Grades.Grade.S) config =
     (* loading the files has typechecked every command, the [run]s included *)
     match (Option.map emit_path config.emit_opentrons, config.bind) with
     | _ when config.emit_arduino <> None ->
+        let effect_of scheme =
+          match Loader.TC.function_effect program.loaded.typechecker scheme with
+          | Typechecker.Not_a_function ->
+              ArduinoBackend.ArduinoProject.Not_a_function
+          | Typechecker.Effect_variable -> Effect_variable
+          | Typechecker.Effect { grade; durations } ->
+              Effect { grade; durations }
+        in
         emit_arduino config
           ~directory:(arduino_directory (Option.get config.emit_arduino))
-          program.commands
+          ~definitions:
+            (List.map
+               (fun (d : Loader.definition) -> (d.variable, effect_of d.scheme))
+               program.definitions)
+          ~operations:program.operations program.commands
     | Some filename, None ->
         write_file filename
           (OpentronsBackend.OpentronsEmit.plain_program

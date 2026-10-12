@@ -63,6 +63,7 @@ let base name =
 
 let identifier name index = Printf.sprintf "%s_%d" (base name) index
 let operation name = "tempore_op_" ^ base name
+let binding name = "binding_" ^ base name
 
 let string_literal s =
   let char c =

@@ -1,0 +1,14 @@
+{
+  "description": "Generic ESP32-S3 development board (ESP32-S3-DevKitC-1); I2C on the default pins",
+  "platform": "espressif32",
+  "board": "esp32-s3-devkitc-1",
+  "framework": "arduino",
+  "lib_deps": [],
+  "build_flags": [],
+  "cores": 2,
+  "m5unified": false,
+  "serial_baud": 115200,
+  "i2c": [{ "port": "Wire", "sda": 8, "scl": 9, "frequency": 400000 }],
+  "includes": [],
+  "init": []
+}

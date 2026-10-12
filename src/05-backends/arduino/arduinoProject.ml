@@ -1,0 +1,562 @@
+module Ast = Language.Ast
+module Location = Utils.Location
+module Error = Utils.Error
+module Rational = Grades.Rational
+module Grade = Grades.Grade
+module F = ArduinoFragment
+module Device = ArduinoDevice
+module Board = ArduinoBoard
+module Names = ArduinoNames
+
+type monitor = Abort | Warn | Off
+
+type function_effect =
+  | Not_a_function
+  | Effect_variable
+  | Effect of {
+      grade : string;
+      durations : (Rational.t Grade.bound * Rational.t Grade.bound) option;
+    }
+
+type input = {
+  device : Device.t;
+  monitor : monitor;
+  source : string;
+  definitions : (Ast.variable * function_effect) list;
+  operations :
+    (Ast.operation * (Rational.t Grade.bound * Rational.t Grade.bound) option)
+    list;
+  bindings : (string * string) option;
+}
+
+(* Types, printed as in the source, the type variables named ['a], ['b], ...
+   in the order of the list [metas]. *)
+
+let rec show_ty metas = function
+  | F.Nat -> "nat"
+  | F.Float -> "float"
+  | F.Bool -> "bool"
+  | F.String -> "string"
+  | F.Tuple [] -> "unit"
+  | F.Tuple tys -> String.concat " * " (List.map (show_atom metas) tys)
+  | F.Data n -> Ast.TyName.string_of n
+  | F.Meta i ->
+      let rec index k = function
+        | [] -> 0
+        | j :: rest -> if i = j then k else index (k + 1) rest
+      in
+      let k = index 0 metas in
+      if k < 26 then Printf.sprintf "'%c" (Char.chr (Char.code 'a' + k))
+      else Printf.sprintf "'t%d" k
+
+and show_atom metas = function
+  | F.Tuple (_ :: _) as ty -> "(" ^ show_ty metas ty ^ ")"
+  | ty -> show_ty metas ty
+
+(* The type variables of [tys], in order of first occurrence. *)
+let metas tys =
+  let rec collect acc = function
+    | F.Meta i -> if List.mem i acc then acc else i :: acc
+    | F.Tuple tys -> List.fold_left collect acc tys
+    | F.Nat | F.Float | F.Bool | F.String | F.Data _ -> acc
+  in
+  List.rev (List.fold_left collect [] tys)
+
+let unit_ty = F.Tuple []
+
+(* The parameter and result types of a function definition. *)
+let signature (d : F.definition) =
+  match d.definition_body with
+  | F.Function_body { parameters; body; _ } ->
+      Some
+        ( List.map (fun (p : F.pattern) -> p.pattern_ty) parameters,
+          body.F.result )
+  | F.Constant_body _ -> None
+
+let show_signature (d : F.definition) =
+  match signature d with
+  | Some (parameters, result) ->
+      let tys = parameters @ [ result ] in
+      String.concat " -> " (List.map (show_atom (metas tys)) tys)
+  | None -> "not that of a function"
+
+(* Task functions. *)
+
+type resolved = {
+  definition : F.definition;
+  function_effect : function_effect;
+  cxx : string;  (** the name of the C++ function *)
+}
+
+(* The definition of the program's sources named [name], the last of them, with
+   its effect and C++ name. *)
+let resolve input (program : F.program) entries (name : Device.name) =
+  let candidates =
+    List.filter
+      (fun (x, _) -> Ast.Variable.string_of x = name.it)
+      input.definitions
+  in
+  let unknown () =
+    let functions =
+      List.filter_map
+        (fun (d : F.definition) ->
+          match d.definition_body with
+          | F.Function_body _ when d.in_sources ->
+              Some (Ast.Variable.string_of d.variable)
+          | _ -> None)
+        program.definitions
+    in
+    Error.compilation ~loc:name.at
+      "Unknown function '%s'; the top-level functions of the program are: %s"
+      name.it
+      (match functions with [] -> "none" | _ -> String.concat ", " functions)
+  in
+  match List.rev candidates with
+  | [] -> unknown ()
+  | (x, function_effect) :: _ -> (
+      match
+        List.find_opt
+          (fun (d : F.definition) -> Ast.Variable.equal d.variable x)
+          program.definitions
+      with
+      | None -> unknown ()
+      | Some definition ->
+          let cxx =
+            List.find_map
+              (fun (y, cxx) ->
+                if Ast.Variable.equal x y then Some cxx else None)
+              entries
+          in
+          { definition; function_effect; cxx = Option.value cxx ~default:"" })
+
+(* Checks that [r], named by [name], has the type [parameter -> result], [role]
+   naming it in the message. *)
+let check_type ~role (name : Device.name) r ~expected =
+  let ok =
+    r.definition.quantified = []
+    &&
+    match (signature r.definition, expected) with
+    | Some ([ p ], q), (p', Some q') ->
+        F.compare_ty p p' = 0 && F.compare_ty q q' = 0
+    | Some ([ p ], q), (_, None) -> F.compare_ty p q = 0
+    | _ -> false
+  in
+  if not ok then
+    Error.compilation ~loc:name.at
+      "The function '%s' of %s must have the type %s, but it has the type %s"
+      name.it role
+      (match expected with
+      | p, Some q -> show_atom [] p ^ " -> " ^ show_atom [] q
+      | _, None -> "s -> s for a type s without type variables")
+      (show_signature r.definition)
+
+(* Whether the upper end [hi] of an interval of durations is below [period]:
+   the effect is then below [[0, period)]. *)
+let below_period hi period =
+  match hi with
+  | Grade.Closed q -> Rational.compare q period < 0
+  | Grade.Open q -> Rational.compare q period <= 0
+  | Grade.Unbounded -> false
+
+let check_period (name : Device.name) r period =
+  match r.function_effect with
+  | Not_a_function -> ()
+  | Effect_variable ->
+      Error.compilation ~loc:name.at
+        "The effect of the function '%s' of a periodic task has a variable; \
+         annotate the function with an effect whose durations are below its \
+         period %s"
+        name.it (Rational.show period)
+  | Effect { grade; durations = None } ->
+      Error.compilation ~loc:name.at
+        "The effect `%s` of the function '%s' of a periodic task does not \
+         bound its durations, so it is not below the period %s"
+        grade name.it (Rational.show period)
+  | Effect { grade; durations = Some (_, hi) } ->
+      if not (below_period hi period) then
+        Error.compilation ~loc:name.at
+          "The effect `%s` of the function '%s' of a periodic task is not \
+           below its period: its durations are not all below %s"
+          grade name.it (Rational.show period)
+
+(* Bindings. *)
+
+let is_identifier_char = function
+  | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> true
+  | _ -> false
+
+(* Whether [text] contains the identifier [id] as a whole word. *)
+let mentions text id =
+  let n = String.length id and m = String.length text in
+  let rec from i =
+    if i + n > m then false
+    else if
+      String.sub text i n = id
+      && (i = 0 || not (is_identifier_char text.[i - 1]))
+      && (i + n = m || not (is_identifier_char text.[i + n]))
+    then true
+    else from (i + 1)
+  in
+  from 0
+
+(* Rendering. *)
+
+let lines ls = String.concat "\n" ls ^ "\n"
+
+(* The end [b] of the bounds of an operation, times [unit_us], in whole
+   microseconds, rounded outwards: the value, whether it is open, and whether
+   it is finite. Values beyond 2^62 microseconds are taken as infinite. *)
+let end_us ~lower ~unit_us b =
+  let limit = Z.shift_left Z.one 62 in
+  match b with
+  | Grade.Unbounded -> ("0", false, false)
+  | Grade.Closed q | Grade.Open q ->
+      let x = Rational.mul q unit_us in
+      let exact = Rational.is_integer x in
+      let n =
+        if lower then Z.fdiv (Rational.num x) (Rational.den x)
+        else Z.cdiv (Rational.num x) (Rational.den x)
+      in
+      let opened = exact && match b with Grade.Open _ -> true | _ -> false in
+      if Z.gt n limit then
+        if lower then (Z.to_string limit, false, true) else ("0", false, false)
+      else (Z.to_string n, opened, true)
+
+let bounds_initialiser ~unit_us (lo, hi) =
+  let lo_value, lo_open, _ = end_us ~lower:true ~unit_us lo in
+  let hi_value, hi_open, hi_finite = end_us ~lower:false ~unit_us hi in
+  Printf.sprintf "{%s, %b, %s, %b, %b}" lo_value lo_open hi_value hi_open
+    hi_finite
+
+let generated source what =
+  Printf.sprintf "// %s of the program %s, generated by Tempore." what source
+
+let bindings_header input (compiled : ArduinoEmit.compiled) =
+  lines
+    ([
+       generated input.source
+         "The declarations of the binding functions and the safe-state hook";
+       "";
+       "#ifndef TEMPORE_BINDINGS_H";
+       "#define TEMPORE_BINDINGS_H";
+       "";
+       "#include \"tempore_program.h\"";
+       "#include \"tempore_scaffold.h\"";
+     ]
+    @ (match compiled.operation_types with
+      | [] -> []
+      | ops ->
+          "" :: "// The binding functions of the operations."
+          :: List.map
+               (fun (op, (argument, result)) ->
+                 Printf.sprintf "%s %s(%s);" result
+                   (Names.binding (Ast.OpName.string_of op))
+                   argument)
+               ops)
+    @ (match input.device.safe_state with
+      | None -> []
+      | Some hook -> [ ""; "// The safe state."; "void " ^ hook.it ^ "();" ])
+    @ [ ""; "#endif" ])
+
+let operations_source input (compiled : ArduinoEmit.compiled) =
+  let unit_us = input.device.unit_us in
+  let operation (op, (argument, result)) =
+    let name = Ast.OpName.string_of op in
+    let bounds =
+      List.find_map
+        (fun (op', bounds) ->
+          if Ast.OpName.string_of op' = name then Some bounds else None)
+        input.operations
+      |> Option.join
+    in
+    let bounds_name = Names.operation name ^ "_bounds" in
+    (match bounds with
+      | Some b ->
+          [
+            Printf.sprintf "static const tempore_bounds %s = %s;" bounds_name
+              (bounds_initialiser ~unit_us b);
+            "";
+          ]
+      | None -> [])
+    @ [
+        Printf.sprintf "%s %s(%s a) {" result (Names.operation name) argument;
+        "  tempore_check_halt();";
+        "  const int64_t start = tempore_clock_us();";
+        Printf.sprintf "  const auto r = %s(a);" (Names.binding name);
+        Printf.sprintf
+          "  tempore_monitor_operation(%s, tempore_clock_us() - start, %s);"
+          (Names.string_literal name)
+          (match bounds with Some _ -> "&" ^ bounds_name | None -> "nullptr");
+        "  return r;";
+        "}";
+      ]
+  in
+  lines
+    ([
+       generated input.source
+         "The operations, monitored calls of the binding functions,";
+       "";
+       "#include \"tempore_bindings.h\"";
+     ]
+    @ List.concat_map (fun op -> "" :: operation op) compiled.operation_types)
+
+type task_code = {
+  task : Device.task;
+  step : resolved;
+  initial : resolved option;
+}
+
+let main_source input board tasks =
+  let device = input.device in
+  let task_function i { task; step; initial } =
+    let name = Names.string_literal task.function_name.it in
+    let header = Printf.sprintf "static void tempore_task%d(void *) {" i in
+    match task.kind with
+    | Device.Periodic { period_ms; period_us; _ } ->
+        [
+          Printf.sprintf "// The periodic task %s, of period %d us."
+            task.function_name.it period_us;
+          header;
+          "  tempore_check_halt();";
+          (match initial with
+          | Some r -> Printf.sprintf "  auto state = %s(tempore_unit{});" r.cxx
+          | None -> "  tempore_unit state{};");
+          "  TickType_t release = xTaskGetTickCount();";
+          "  for (;;) {";
+          "    tempore_check_halt();";
+          Printf.sprintf "    tempore_trace(\"Release %%s\", %s);" name;
+          "    const int64_t start = tempore_clock_us();";
+          Printf.sprintf "    state = %s(state);" step.cxx;
+          Printf.sprintf
+            "    tempore_monitor_period(%s, tempore_clock_us() - start, %d);"
+            name period_us;
+          Printf.sprintf "    vTaskDelayUntil(&release, pdMS_TO_TICKS(%d));"
+            period_ms;
+          "  }";
+          "}";
+        ]
+    | Device.Free ->
+        [
+          Printf.sprintf "// The free task %s." task.function_name.it;
+          header;
+          "  tempore_check_halt();";
+          Printf.sprintf "  tempore_trace(\"Start %%s\", %s);" name;
+          Printf.sprintf "  %s(tempore_unit{});" step.cxx;
+          Printf.sprintf "  tempore_trace(\"End %%s\", %s);" name;
+          "  vTaskDelete(nullptr);";
+          "}";
+        ]
+  in
+  let unit_us = device.unit_us in
+  let policy =
+    match input.monitor with Abort -> "abort" | Warn -> "warn" | Off -> "off"
+  in
+  lines
+    ([
+       Printf.sprintf
+         "// The device of the program %s on the board %s, generated by \
+          Tempore."
+         input.source board.Board.name;
+       "";
+       "#include <Arduino.h>";
+       "#include <freertos/FreeRTOS.h>";
+       "#include <freertos/task.h>";
+     ]
+    @ (if board.m5unified then [ "#include <M5Unified.h>" ] else [])
+    @ (if board.i2c <> [] then [ "#include <Wire.h>" ] else [])
+    @ List.map (fun h -> "#include <" ^ h ^ ">") board.includes
+    @ [
+        "";
+        "#include \"tempore_bindings.h\"";
+        "#include \"tempore_scaffold.h\"";
+        "";
+        "// The configuration.";
+        Printf.sprintf
+          "const tempore_monitor_policy tempore_monitor = \
+           tempore_monitor_policy::%s;"
+          policy;
+        Printf.sprintf "const uint64_t tempore_unit_numerator_us = %sULL;"
+          (Z.to_string (Rational.num unit_us));
+        Printf.sprintf "const uint64_t tempore_unit_denominator_us = %sULL;"
+          (Z.to_string (Rational.den unit_us));
+        "";
+        (match device.safe_state with
+        | Some hook ->
+            Printf.sprintf "void tempore_safe_state() { %s(); }" hook.it
+        | None -> "void tempore_safe_state() {}");
+      ]
+    @ List.concat (List.mapi (fun i t -> "" :: task_function i t) tasks)
+    @ [
+        "";
+        "void setup() {";
+        Printf.sprintf "  Serial.begin(%d);" board.serial_baud;
+      ]
+    @ (if board.m5unified then
+         [ "  auto m5_config = M5.config();"; "  M5.begin(m5_config);" ]
+       else [])
+    @ List.map
+        (fun (bus : Board.i2c) ->
+          Printf.sprintf "  %s.begin(%d, %d, %d);" bus.port bus.sda bus.scl
+            bus.frequency)
+        board.i2c
+    @ List.map (fun s -> "  " ^ s) board.init
+    @ List.mapi
+        (fun i { task; _ } ->
+          Printf.sprintf
+            "  xTaskCreatePinnedToCore(tempore_task%d, %s, %d, nullptr, %d, \
+             nullptr, %d);"
+            i
+            (Names.string_literal task.function_name.it)
+            task.stack task.priority task.core)
+        tasks
+    @ [ "}"; ""; "void loop() { vTaskDelete(nullptr); }" ])
+
+(* The project. *)
+
+let host_directory = "host/"
+
+let files input (program : F.program) =
+  let device = input.device in
+  let board =
+    match Board.find device.board.it with
+    | Some board -> board
+    | None ->
+        Error.compilation ~loc:device.board.at
+          "Unknown board '%s'; accepted: %s" device.board.it
+          (String.concat ", " Board.names)
+  in
+  List.iter
+    (fun (package : Device.name) ->
+      Error.compilation ~loc:package.at
+        "Unknown package '%s'; no peripheral packages are available" package.it)
+    device.packages;
+  List.iter
+    (fun (task : Device.task) ->
+      if task.core >= board.cores then
+        Error.compilation ~loc:task.core_at
+          "The core of a task must be below %d, the number of cores of the \
+           board %s"
+          board.cores board.name)
+    device.tasks;
+  let compiled = ArduinoEmit.compile ~source:input.source program in
+  let resolve = resolve input program compiled.entries in
+  let tasks =
+    List.map
+      (fun (task : Device.task) ->
+        let name = task.function_name in
+        let step = resolve name in
+        match task.kind with
+        | Device.Free ->
+            check_type ~role:"a free task" name step
+              ~expected:(unit_ty, Some unit_ty);
+            { task; step; initial = None }
+        | Device.Periodic { period; initial; _ } ->
+            check_type ~role:"a periodic task" name step
+              ~expected:(unit_ty, None);
+            let state =
+              match signature step.definition with
+              | Some (_, state) -> state
+              | None -> unit_ty
+            in
+            check_period name step period;
+            let initial =
+              match initial with
+              | Some initial_name ->
+                  let r = resolve initial_name in
+                  check_type ~role:"the initial state of a periodic task"
+                    initial_name r ~expected:(unit_ty, Some state);
+                  Some r
+              | None ->
+                  if F.compare_ty state unit_ty <> 0 then
+                    Error.compilation ~loc:name.at
+                      "The periodic task of the function '%s' has the state \
+                       type %s, so it needs the member 'initial'"
+                      name.it (show_ty [] state);
+                  None
+            in
+            { task; step; initial })
+      device.tasks
+  in
+  let binding_file =
+    match (device.bindings, input.bindings) with
+    | Some name, Some (_, text) ->
+        let base = Filename.basename name.it in
+        if
+          String.starts_with ~prefix:"tempore" base
+          || base = "main.cpp"
+          || not (Filename.check_suffix base ".cpp")
+        then
+          Error.compilation ~loc:name.at
+            "The binding file must be a .cpp file whose name is neither \
+             main.cpp nor starts with tempore";
+        Some (name, base, text)
+    | _ -> None
+  in
+  let required =
+    List.map
+      (fun (op, _) ->
+        let name = Ast.OpName.string_of op in
+        (Names.binding name, Printf.sprintf "the operation %s" name))
+      compiled.operation_types
+    @
+    match device.safe_state with
+    | Some hook -> [ (hook.it, "the safe state") ]
+    | None -> []
+  in
+  List.iter
+    (fun (id, what) ->
+      match binding_file with
+      | Some (name, base, text) ->
+          if not (mentions text id) then
+            Error.compilation ~loc:name.at
+              "The binding file %s does not define the function %s of %s" base
+              id what
+      | None ->
+          Error.compilation ~loc:device.at
+            "The function %s of %s needs a binding file, the member 'bindings' \
+             of the manifest"
+            id what)
+    required;
+  List.map (fun (path, text) -> ("src/" ^ path, text)) compiled.files
+  @ [
+      ("platformio.ini", Board.platformio_ini board);
+      ("src/main.cpp", main_source input board tasks);
+      ("src/tempore_bindings.h", bindings_header input compiled);
+      ("src/tempore_operations.cpp", operations_source input compiled);
+    ]
+  @ List.map
+      (fun (path, text) ->
+        if String.starts_with ~prefix:host_directory path then (path, text)
+        else ("src/" ^ path, text))
+      Arduino_scaffold.files
+  @
+  match binding_file with
+  | Some (_, base, text) -> [ ("src/" ^ base, text) ]
+  | None -> []
+
+let host_sources files =
+  List.filter_map
+    (fun (path, _) ->
+      if
+        Filename.check_suffix path ".cpp"
+        && (String.starts_with ~prefix:"src/" path
+           || path = host_directory ^ "tempore_simulator.cpp")
+      then Some path
+      else None)
+    files
+
+let host_build_command ~directory ~output files =
+  let path p = Filename.concat directory p in
+  [
+    "c++";
+    "-std=c++17";
+    "-DTEMPORE_HOST";
+    "-DTEMPORE_TRACE";
+    "-pthread";
+    "-I";
+    path "host";
+    "-I";
+    path "src";
+  ]
+  @ List.map path (host_sources files)
+  @ [ "-o"; output ]

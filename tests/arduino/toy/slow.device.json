@@ -1,0 +1,11 @@
+{
+  "board": "esp32-devkit",
+  "time_unit": "ms",
+  "tasks": [
+    { "function": "step", "kind": "periodic", "period": 10,
+      "initial": "start", "core": 1, "priority": 2 },
+    { "function": "blinker", "kind": "free", "core": 0, "priority": 1 }
+  ],
+  "bindings": "slow_bindings.cpp",
+  "safe_state": "lights_off"
+}

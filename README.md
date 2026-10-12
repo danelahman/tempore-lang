@@ -95,7 +95,10 @@ Command-line options:
   C++, to the given directory, without running them; a name without a
   directory component names a directory in `_arduino/projects`; with
   `--host-runs`, also the `run` commands and a main program for the host that
-  executes them;
+  executes them; with `--device <manifest.json>`, a PlatformIO project of the
+  device the manifest describes, monitored under `--monitor abort|warn|off`
+  (default `abort`), which `--host-simulate <seconds>` builds and runs on the
+  host for the given simulated time;
 - `--help` lists the options and the available grading monoids.
 
 The [`examples/`](examples/) directory holds example programs grouped according

@@ -1,0 +1,14 @@
+{
+  "description": "M5Stack Core2: ESP32 with PSRAM and an MPU6886 IMU; external I2C on port A",
+  "platform": "espressif32",
+  "board": "m5stack-core2",
+  "framework": "arduino",
+  "lib_deps": ["m5stack/M5Unified@^0.2.2"],
+  "build_flags": ["-DBOARD_HAS_PSRAM"],
+  "cores": 2,
+  "m5unified": true,
+  "serial_baud": 115200,
+  "i2c": [{ "port": "Wire", "sda": 32, "scl": 33, "frequency": 400000 }],
+  "includes": [],
+  "init": []
+}

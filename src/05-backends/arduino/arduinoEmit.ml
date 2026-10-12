@@ -993,7 +993,13 @@ inline void tempore_print(tempore_unit, bool) { printf("()"); }
 
 (* Files. *)
 
-let files ?(host_runs = false) ~source (program : F.program) =
+type compiled = {
+  files : (string * string) list;
+  entries : (Ast.variable * string) list;
+  operation_types : (Ast.operation * (string * string)) list;
+}
+
+let compile ?(host_runs = false) ~source (program : F.program) =
   let datatypes =
     List.fold_left
       (fun map (d : F.datatype) -> Ast.TyNameMap.add d.type_name d map)
@@ -1176,9 +1182,18 @@ let files ?(host_runs = false) ~source (program : F.program) =
           @ [ Line "return 0;" ]);
       ]
   in
-  [
-    (runtime_file, runtime);
-    (header_file, render header);
-    (source_file, render source_stmts);
-  ]
-  @ if host_runs then [ (host_main_file, render host_main) ] else []
+  {
+    files =
+      ([
+         (runtime_file, runtime);
+         (header_file, render header);
+         (source_file, render source_stmts);
+       ]
+      @ if host_runs then [ (host_main_file, render host_main) ] else []);
+    entries = List.map (fun key -> (fst key, instance_name names key)) entries;
+    operation_types =
+      List.map
+        (fun (op : F.operation) ->
+          (op.operation, (ty_name names op.argument, ty_name names op.result_ty)))
+        program.operations;
+  }

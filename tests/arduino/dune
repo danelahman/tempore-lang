@@ -1,6 +1,7 @@
 ; The C++ compilation of programs by the Arduino backend: parity of the runs
 ; of programs compiled for the host with the interpreter, the generated code,
-; and the rejection of constructs outside the fragment. Skipped unless a C++17
+; the rejection of constructs outside the fragment, and the PlatformIO projects
+; of devices with their host simulation. Skipped unless a C++17
 ; compiler c++ is available.
 
 (cram
@@ -8,4 +9,5 @@
   (= %{read:../cxx/cxx-available} "true\n"))
  (deps
   %{project_root}/tempore
-  (glob_files *.tpe)))
+  (glob_files *.tpe)
+  (glob_files toy/*)))

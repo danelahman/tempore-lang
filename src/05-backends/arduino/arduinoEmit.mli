@@ -36,12 +36,19 @@
 val runtime : string
 (** The source of the runtime header [tempore_arduino.h]. *)
 
-val files :
-  ?host_runs:bool ->
-  source:string ->
-  ArduinoFragment.program ->
-  (string * string) list
-(** [files ~host_runs ~source program] is the files of the C++ compilation of
+type compiled = {
+  files : (string * string) list;  (** the files, each with its name *)
+  entries : (Language.Ast.variable * string) list;
+      (** the entry points, each with the name of its C++ function *)
+  operation_types : (Language.Ast.operation * (string * string)) list;
+      (** the operations performed, each with the C++ types of its argument and
+          its result *)
+}
+(** A compiled program. *)
+
+val compile :
+  ?host_runs:bool -> source:string -> ArduinoFragment.program -> compiled
+(** [compile ~host_runs ~source program] is the files of the C++ compilation of
     [program], of the source file named [source], each with its name: the
     runtime header [tempore_arduino.h], the header [tempore_program.h] and the
     source [tempore_program.cpp]. The entry points, declared in the header, are

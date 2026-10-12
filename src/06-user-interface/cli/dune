@@ -8,4 +8,6 @@
   loader
   timeline
   opentronsBackend
-  arduinoBackend))
+  arduinoBackend
+  typechecker
+  zarith))

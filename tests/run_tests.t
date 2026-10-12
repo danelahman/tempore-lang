@@ -7990,6 +7990,7 @@ single-dash form of the help option is not accepted.
     --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30)
     --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
     --debug           Print the inferred type schemes of the top-level definitions before running
+    --device          With --emit-arduino, write a PlatformIO project of the device described by the given manifest
     --emit-arduino    Typecheck the files and write them, compiled to C++, to the given directory, without running them; a name without a directory component names a directory in _arduino/projects
     --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them; a file name without a directory names a file in _opentrons/protocols
     --grades          Selects the grades (default: time-lower-bound); accepted:
@@ -8042,7 +8043,8 @@ single-dash form of the help option is not accepted.
         Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.
     --help            Display this list of options
     --host-runs       With --emit-arduino, also compile the run commands, and write a main program for the host that executes them and prints their results as the interpreter does
-    --monitor         Set what a protocol written with --bind does when an operation's running time is outside its bounds: abort, warn or off (default: abort)
+    --host-simulate   With --device, build the project for the host with c++ and run its tasks for the given number of seconds of simulated time, printing the log of the device with the events of its tasks
+    --monitor         Set what a protocol written with --bind or a device written with --device does when an operation's running time is outside its bounds, or a step of a periodic task takes its period or longer: abort, warn or off (default: abort)
     --no-stdlib       Do not load the standard library
     --robot           Set the robot of the protocol written with --bind: flex (default: flex)
     --simulate        Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code

@@ -16,6 +16,11 @@ val operation : string -> string
     [name]: [tempore_op_] followed by [name] made an identifier as by
     {!identifier}, without the index. *)
 
+val binding : string -> string
+(** [binding name] is the name of the C++ function of the bindings that
+    implements the operation [name]: [binding_] followed by [name] made an
+    identifier as by {!identifier}, without the index. *)
+
 val string_literal : string -> string
 (** [string_literal s] is a C++ string literal, in printable ASCII, of the bytes
     of [s]. *)

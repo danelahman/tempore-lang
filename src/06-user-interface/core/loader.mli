@@ -40,6 +40,10 @@ module Loader (Backend : Backend.S) : sig
 
     val scheme_layout : state -> scheme -> Inference.Constraint.layout
     (** [scheme_layout state scheme] is [scheme] laid out in parts. *)
+
+    val function_effect : state -> scheme -> Typechecker.function_effect
+    (** [function_effect state scheme] is the effect of the outermost arrow of
+        the type of [scheme] ({!Typechecker.Make.function_effect}). *)
   end
 
   type state = {

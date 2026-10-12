@@ -12,3 +12,32 @@
    (echo "let contents = {cpp|")
    (cat tempore_arduino.h)
    (echo "|cpp}"))))
+
+; The board profiles boards/NAME.json are embedded as the list
+; Arduino_boards.profiles of pairs of NAME and the text of the profile, and the
+; files of the scaffold under scaffold/ as the list Arduino_scaffold.files of
+; pairs of their paths below scaffold/ and their texts.
+
+(rule
+ (target arduino_boards.ml)
+ (deps
+  (glob_files boards/*.json))
+ (action
+  (with-stdout-to
+   %{target}
+   (system
+    "echo 'let profiles = ['; for f in %{deps}; do printf '(\"%s\", {json|' \"$(basename \"$f\" .json)\"; cat \"$f\"; echo '|json});'; done; echo ']'"))))
+
+(rule
+ (target arduino_scaffold.ml)
+ (deps
+  (glob_files scaffold/*.h)
+  (glob_files scaffold/*.cpp)
+  (glob_files scaffold/host/*.h)
+  (glob_files scaffold/host/*.cpp)
+  (glob_files scaffold/host/freertos/*.h))
+ (action
+  (with-stdout-to
+   %{target}
+   (system
+    "echo 'let files = ['; for f in %{deps}; do printf '(\"%s\", {cpp|' \"${f#scaffold/}\"; cat \"$f\"; echo '|cpp});'; done; echo ']'"))))

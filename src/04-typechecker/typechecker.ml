@@ -5,6 +5,17 @@ module Diagnostic = Utils.Diagnostic
 module Error = Utils.Error
 module Location = Utils.Location
 
+type function_effect =
+  | Not_a_function
+  | Effect_variable
+  | Effect of {
+      grade : string;
+      durations :
+        (Grades.Rational.t Grades.Grade.bound
+        * Grades.Rational.t Grades.Grade.bound)
+        option;
+    }
+
 module Make (GS : Grades.GradeSystem.S) = struct
   module X = Inference.GradeExp.Make (GS)
   module C = Inference.Constraint.Make (X)
@@ -189,15 +200,31 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let definitions state = List.rev state.definitions
 
-  (* The names of a scheme, the unit effect decided under the running times of
-     the operations the program declares. *)
-  let names state =
+  (* The running times of the operations the program declares. *)
+  let running_times state =
     let pos = { Location.line = 1; column = 1; offset = 0 } in
     let loc = { Location.filename = ""; start = pos; stop = pos } in
-    C.names ~bounds:(Gen.running_times ~loc state.envs.reported) ()
+    Gen.running_times ~loc state.envs.reported
+
+  (* The names of a scheme, the unit effect decided under the running times of
+     the operations the program declares. *)
+  let names state = C.names ~bounds:(running_times state) ()
 
   let print_scheme state scheme ppf =
     C.print_scheme ~names:(names state) scheme ppf
 
   let scheme_layout state scheme = C.scheme_layout ~names:(names state) scheme
+
+  let function_effect state (scheme : scheme) =
+    match scheme.ty with
+    | Ast.TyArrow (_, Ast.CompTy (_, eps)) -> (
+        match X.Eps.value eps with
+        | None -> Effect_variable
+        | Some grade ->
+            Effect
+              {
+                grade = GS.E.show grade;
+                durations = GS.E.duration_bounds (running_times state) grade;
+              })
+    | _ -> Not_a_function
 end
