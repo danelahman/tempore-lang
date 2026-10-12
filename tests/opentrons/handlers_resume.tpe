@@ -1,0 +1,69 @@
+(* Deep handlers whose cases resume their continuation twice, under the
+   'time-lower-bound' grading monoid: a choice collects the results of both
+   alternatives, nested handlers forward operations to the outer one, and a
+   handler is applied to every call of its operation in the continuation. *)
+
+operation Choose : unit ~> bool # 0
+operation Emit : nat ~> unit # 0
+
+let all_choices =
+  handler
+  | x -> [x]
+  | Choose () k ->
+      let l = continue k with true in
+      let r = continue k with false in
+      l @ r
+
+let collect =
+  handler
+  | x -> (x, [])
+  | Emit n k ->
+      let (v, ns) = continue k with () in
+      (v, n :: ns)
+
+let coin () =
+  let c = perform Choose () in
+  if c then 1 else 0
+
+run handle coin () + coin () + coin () with all_choices
+
+run
+  handle
+    handle
+      let a = coin () in
+      perform Emit a;
+      let b = coin () in
+      perform Emit (10 + b);
+      (a, b)
+    with all_choices
+  with collect
+
+run
+  handle
+    handle
+      let a = coin () in
+      perform Emit a;
+      a
+    with collect
+  with all_choices
+
+let rec countdown n =
+  match n with
+  | 0 -> return 0
+  | m + 1 -> perform Emit m; countdown m
+
+run handle countdown 5 with collect
+
+let twice =
+  handler
+  | x -> x
+  | Emit n k ->
+      continue k with ();
+      continue k with ()
+
+run
+  handle
+    perform Emit 0;
+    delay 1;
+    "done"
+  with twice

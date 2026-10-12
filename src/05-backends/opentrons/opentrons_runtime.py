@@ -6,16 +6,25 @@
 #   constructors -> Con(tag, arg), the tag the rank of the label in the
 #     order of labels of the compiler and arg None for a constant constructor,
 #   functions -> Python functions from a value to a computation,
-#   handlers -> Handler(ret, clauses).
+#   handlers -> Handler(ret, clauses),
+#   continuations -> Continuation(segments), called as functions.
 #
 # Computations are effect trees, run by the abstract machine `execute`:
-# Ret(v), Bind(c, k), App(f, v), Perform(op, v, k), Handle(c, h) and
-# Delay(duration, c). The machine is iterative: the frames of the evaluation
-# context are kept on a persistent stack of cons cells, so that neither long
-# sequences nor deep recursion consume Python stack.
+# Ret(v), Bind(c, k), App(f, v), Perform(op, v, k), Handle(c, h),
+# Delay(duration, c), and Resume(k, v) and Reinstate(frames, segments, v),
+# which the machine builds. The machine is iterative: the evaluation context is
+# kept on persistent stacks of cons cells, so that neither long sequences nor
+# deep recursion consume Python stack, and a captured continuation may be
+# dropped or resumed any number of times.
+#
+# Durations are exact rationals, in units of the program, converted to seconds
+# by the runtime's time unit. The runtime `rt` holds the configuration of a
+# run: the binding functions of operations, the clock, the time unit and the
+# policy of the monitors of running-time bounds.
 
 import math
 import sys
+import time
 from fractions import Fraction
 from functools import partial
 
@@ -24,8 +33,30 @@ class TemporeRuntimeError(Exception):
     """A run-time error of a Tempore program."""
 
 
-class Unsupported(Exception):
-    """A construct the runtime does not execute."""
+class Stuck(Exception):
+    """A computation that has no reduction: a match no case of which matches
+    its subject."""
+
+
+class UnhandledOperation(Exception):
+    """A call of an operation that no handler, binding function or default
+    implementation handles."""
+
+    def __init__(self, op, arg):
+        Exception.__init__(self, op)
+        self.op = op
+        self.arg = arg
+
+
+class BoundViolation(Exception):
+    """A call of a binding function whose running time is outside the
+    running-time bounds of its operation."""
+
+    def __init__(self, op, elapsed, bounds):
+        Exception.__init__(self, violation_message(op, elapsed, bounds))
+        self.op = op
+        self.elapsed = elapsed
+        self.bounds = bounds
 
 
 # Computations.
@@ -79,6 +110,23 @@ class Delay:
         self.comp = comp
 
 
+class Resume:
+    __slots__ = ("cont", "value")
+
+    def __init__(self, cont, value):
+        self.cont = cont
+        self.value = value
+
+
+class Reinstate:
+    __slots__ = ("frames", "segments", "value")
+
+    def __init__(self, frames, segments, value):
+        self.frames = frames
+        self.segments = segments
+        self.value = value
+
+
 # Values.
 
 
@@ -88,6 +136,21 @@ class Handler:
     def __init__(self, ret, clauses):
         self.ret = ret
         self.clauses = clauses
+
+
+class Continuation:
+    """The continuation of an operation call up to and including the handler
+    that handles it: the segments of the context, each a handler and the
+    frames inside it up to the next handler inside, the outermost first, as
+    nested pairs (segment, rest) ending in None."""
+
+    __slots__ = ("segments",)
+
+    def __init__(self, segments):
+        self.segments = segments
+
+    def __call__(self, value):
+        return Resume(self, value)
 
 
 class Con:
@@ -116,40 +179,336 @@ def declare_labels(names, nil, cons):
     CONS = cons
 
 
+# Operations: the running-time bounds the program declares.
+
+
+class Bounds:
+    """The running-time bounds [lo, hi] of an operation, in units of the
+    program, each end closed or open."""
+
+    __slots__ = ("lo", "lo_closed", "hi", "hi_closed")
+
+    def __init__(self, lo, lo_closed, hi, hi_closed):
+        self.lo = lo
+        self.lo_closed = lo_closed
+        self.hi = hi
+        self.hi_closed = hi_closed
+
+    def scaled(self, unit):
+        """The bounds with their ends multiplied by `unit`."""
+        return Bounds(self.lo * unit, self.lo_closed, self.hi * unit, self.hi_closed)
+
+    def contains(self, x):
+        above = self.lo <= x if self.lo_closed else self.lo < x
+        below = x <= self.hi if self.hi_closed else x < self.hi
+        return above and below
+
+    def __str__(self):
+        return "%s%s, %s%s" % (
+            "[" if self.lo_closed else "(",
+            format_quantity(self.lo),
+            format_quantity(self.hi),
+            "]" if self.hi_closed else ")",
+        )
+
+
+# The operations of the program that declare running-time bounds, by name.
+OPERATIONS = {}
+
+
+def declare_operations(bounds):
+    global OPERATIONS
+    OPERATIONS = dict(bounds)
+
+
+def format_quantity(x):
+    """The number `x`: an exact rational as an integer, a finite decimal or a
+    fraction n/d, a float as %g prints it with 12 significant digits."""
+    if isinstance(x, float):
+        return "%.12g" % x
+    x = Fraction(x)
+    if x.denominator == 1:
+        return str(x.numerator)
+    d = x.denominator
+    while d % 2 == 0:
+        d //= 2
+    while d % 5 == 0:
+        d //= 5
+    if d != 1:
+        return "%d/%d" % (x.numerator, x.denominator)
+    digits = 0
+    scaled = x
+    while scaled.denominator != 1:
+        scaled *= 10
+        digits += 1
+    sign = "-" if scaled < 0 else ""
+    text = str(abs(scaled.numerator)).rjust(digits + 1, "0")
+    return sign + text[:-digits] + "." + text[-digits:]
+
+
+def violation_message(op, elapsed, bounds):
+    return "Operation `%s` took %s s, outside its running-time bounds %s s" % (
+        op,
+        format_quantity(elapsed),
+        bounds,
+    )
+
+
+# Clocks, in seconds.
+
+
+def exact(x):
+    """The number `x` as an exact rational: a pair (n, d) as n/d, a float as
+    the rational it represents."""
+    if isinstance(x, tuple):
+        return Fraction(x[0], x[1])
+    return Fraction(x)
+
+
+class VirtualClock:
+    """A clock that advances only by the delays of the program and by the
+    durations binding functions declare. Its time is an exact rational."""
+
+    def __init__(self):
+        self.time = Fraction(0)
+
+    def now(self):
+        return self.time
+
+    def advance(self, seconds):
+        self.time += exact(seconds)
+
+
+class RealClock:
+    """The monotonic clock of the host, measured from its creation; delays and
+    declared durations do not advance it, as the time they take passes."""
+
+    def __init__(self):
+        self.origin = time.monotonic()
+
+    def now(self):
+        return time.monotonic() - self.origin
+
+    def advance(self, seconds):
+        pass
+
+
+# The runtime: the configuration of runs and the monitors of binding calls.
+
+
+class Event:
+    """A monitored call of a binding function: the clock's time at its start,
+    the operation, its running time and the bounds, in seconds."""
+
+    __slots__ = ("start", "op", "elapsed", "bounds")
+
+    def __init__(self, start, op, elapsed, bounds):
+        self.start = start
+        self.op = op
+        self.elapsed = elapsed
+        self.bounds = bounds
+
+    def within(self):
+        return self.bounds.contains(self.elapsed)
+
+    def __str__(self):
+        text = "At %s s: operation `%s` took %s s, %s its running-time bounds %s s"
+        return text % (
+            format_quantity(self.start),
+            self.op,
+            format_quantity(self.elapsed),
+            "within" if self.within() else "outside",
+            self.bounds,
+        )
+
+
+MONITOR_POLICIES = ("abort", "warn", "off")
+
+
+def _warn_to_stderr(message):
+    sys.stderr.write("Warning: %s\n" % message)
+
+
+class Runtime:
+    """The configuration of the runs of a program.
+
+    binding: the binding functions, a mapping from operation names to
+      functions f(ctx, arg) returning the result of the operation;
+    ctx: the context passed to the binding functions;
+    clock: the clock, VirtualClock() unless given;
+    time_unit: the length of one unit of duration of the program in seconds;
+    monitor: what a call of a binding function outside the running-time bounds
+      of its operation does: "abort" raises BoundViolation, "warn" records
+      it and reports it by `report`, "off" neither checks nor records calls;
+    on_delay: a function called with the length in seconds of each delay,
+      which waits that long, or None;
+    report: the function that reports a warning, given its message.
+
+    The timeline lists the monitored calls in order, and violations those
+    outside their bounds that did not abort."""
+
+    def __init__(self):
+        self.configure()
+
+    def configure(
+        self,
+        binding=None,
+        ctx=None,
+        clock=None,
+        time_unit=1,
+        monitor="abort",
+        on_delay=None,
+        report=_warn_to_stderr,
+    ):
+        if monitor not in MONITOR_POLICIES:
+            raise ValueError("unknown monitor policy " + repr(monitor))
+        self.binding = dict(binding or {})
+        self.ctx = ctx
+        self.clock = VirtualClock() if clock is None else clock
+        self.time_unit = exact(time_unit)
+        self.monitor = monitor
+        self.on_delay = on_delay
+        self.report = report
+        self.timeline = []
+        self.violations = []
+
+    def seconds(self, duration):
+        """The length in seconds of the duration `duration` of the program."""
+        return exact(duration) * self.time_unit
+
+    def now(self):
+        return self.clock.now()
+
+    def delay(self, duration):
+        """Delays for `duration` units of the program."""
+        seconds = self.seconds(duration)
+        if self.on_delay is not None:
+            self.on_delay(float(seconds))
+        self.clock.advance(seconds)
+
+    def elapse(self, seconds):
+        """Declares that `seconds` seconds pass, as a binding function does for
+        the nominal duration of the action it performs."""
+        self.clock.advance(seconds)
+
+    def call(self, op, function, arg):
+        """The result of the binding function `function` of the operation
+        `op` on `arg`, monitored if `op` declares running-time bounds."""
+        bounds = OPERATIONS.get(op)
+        if bounds is None or self.monitor == "off":
+            return function(self.ctx, arg)
+        start = self.clock.now()
+        value = function(self.ctx, arg)
+        elapsed = self.clock.now() - start
+        event = Event(start, op, elapsed, bounds.scaled(self.time_unit))
+        self.timeline.append(event)
+        if not event.within():
+            if self.monitor == "abort":
+                raise BoundViolation(op, event.elapsed, event.bounds)
+            self.violations.append(event)
+            self.report(violation_message(op, event.elapsed, event.bounds))
+        return value
+
+
+rt = Runtime()
+
+
 # The abstract machine.
 
 
-def execute(comp):
-    """The value the computation `comp` returns.
+def execute(comp, defaults=None):
+    """The value the computation `comp` returns, its unhandled operations
+    performed by their binding functions in `rt` or else their default
+    implementations in `defaults`, a mapping from operation names to
+    functions from the argument to a computation.
 
-    The state is the current computation and the stack of frames of its
-    evaluation context, each a continuation, as nested pairs (frame, rest)
-    ending in None."""
-    stack = None
+    The state is the current computation and its evaluation context, split at
+    the handlers into segments: `frames`, the frames inside the innermost
+    handler, each a continuation, as nested pairs (frame, rest) ending in
+    None, and `segments`, the handlers from the innermost, each with the
+    frames outside it up to the next handler, as nested pairs
+    ((handler, frames), rest) ending in None.
+
+    Handlers are deep: an operation call is handled by the innermost handler
+    that has a case for it, given the argument and the continuation up to and
+    including that handler, whose frames outside it continue the case. An
+    operation call no handler handles is unhandled: it calls the operation's
+    binding function and continues with its result, or else runs the default
+    implementation outside every handler and then continues, or else raises
+    UnhandledOperation. A delay delays by `rt.delay`."""
+    if defaults is None:
+        defaults = {}
+    frames = None
+    segments = None
     while True:
         cls = comp.__class__
         if cls is App:
             comp = comp.fun(comp.arg)
         elif cls is Bind:
-            stack = (comp.cont, stack)
+            frames = (comp.cont, frames)
             comp = comp.comp
         elif cls is Ret:
-            if stack is None:
+            if frames is not None:
+                frame, frames = frames
+                comp = frame(comp.value)
+            elif segments is not None:
+                (handler, frames), segments = segments
+                comp = handler.ret(comp.value)
+            else:
                 return comp.value
-            frame, stack = stack
-            comp = frame(comp.value)
         elif cls is Perform:
-            raise Unsupported("operation " + comp.op)
+            op = comp.op
+            inside = (comp.cont, frames)
+            captured = None
+            rest = segments
+            clause = None
+            while rest is not None:
+                (handler, outside), rest = rest
+                captured = ((handler, inside), captured)
+                clause = handler.clauses.get(op)
+                if clause is not None:
+                    break
+                inside = outside
+            if clause is not None:
+                frames = outside
+                segments = rest
+                comp = clause((comp.arg, Continuation(captured)))
+            elif op in rt.binding:
+                value = rt.call(op, rt.binding[op], comp.arg)
+                frames = (comp.cont, frames)
+                comp = Ret(value)
+            elif op in defaults:
+                frames = (partial(Reinstate, (comp.cont, frames), segments), None)
+                segments = None
+                comp = defaults[op](comp.arg)
+            else:
+                raise UnhandledOperation(op, comp.arg)
+        elif cls is Resume:
+            outside = frames
+            captured = comp.cont.segments
+            while captured is not None:
+                (handler, inside), captured = captured
+                segments = ((handler, outside), segments)
+                outside = inside
+            frames = outside
+            comp = Ret(comp.value)
+        elif cls is Reinstate:
+            frames = comp.frames
+            segments = comp.segments
+            comp = Ret(comp.value)
         elif cls is Handle:
-            raise Unsupported("handler")
+            segments = ((comp.handler, frames), segments)
+            frames = None
+            comp = comp.comp
         elif cls is Delay:
-            raise Unsupported("delay")
+            rt.delay(comp.duration)
+            comp = comp.comp
         else:
             raise TypeError("not a computation: " + repr(comp))
 
 
 def match_failure():
-    raise TemporeRuntimeError("No case matches the value")
+    raise Stuck()
 
 
 # Comparison: the structural order of values, constants compared as OCaml
@@ -576,7 +935,10 @@ def _print_value(fmt, value, max_level):
                         (_PRINT_VALUE, v.arg[1], 1),
                     ]
                 else:
-                    items = [(_PRINT_TEXT, LABELS[v.tag] + " "), (_PRINT_VALUE, v.arg, 0)]
+                    items = [
+                        (_PRINT_TEXT, LABELS[v.tag] + " "),
+                        (_PRINT_VALUE, v.arg, 0),
+                    ]
                 if level < 1:
                     items = [(_PRINT_TEXT, "(")] + items + [(_PRINT_TEXT, ")")]
                 work.extend(reversed(items))
@@ -612,17 +974,62 @@ def returned(value):
     return fmt.flush(True)
 
 
-# Running the run commands in order, each reported as the command-line
-# interpreter reports it, without the final state of its resources.
+def unhandled(op, arg):
+    """The lines the command-line interpreter prints for a run that ends at
+    the unhandled call of `op` on `arg`, with the continuation, whose source
+    is not kept, as <continuation>."""
+    fmt = _Formatter()
+    fmt.text("perform %s " % op)
+    _print_value(fmt, arg, 0)
+    fmt.text(" (<continuation>)")
+    return fmt.flush(True)
 
 
-def run_plain(runs):
+# The run commands of a program.
+
+
+class Run:
+    """A run command: the function that returns its computation, and the
+    default implementations declared above it, by operation name."""
+
+    __slots__ = ("comp", "defaults")
+
+    def __init__(self, comp, defaults):
+        self.comp = comp
+        self.defaults = defaults
+
+
+def execute_run(run):
+    """The value of the run command `run`, executed by the runtime `rt`."""
+    return execute(run.comp(), run.defaults)
+
+
+def run_plain(runs, **configuration):
+    """Executes the run commands `runs` in order with the runtime `rt`
+    configured by `configuration`, by default on a virtual clock that delays do
+    not wait for, and reports each as the command-line interpreter reports it,
+    without the final state of its resources. A run that ends at an unhandled
+    operation call is reported as such and the next one follows; a stuck run
+    ends the execution; a run-time error or a violation of running-time bounds
+    is reported on the standard error and ends the program with exit code 1."""
+    rt.configure(**configuration)
     for number, run in enumerate(runs, 1):
         try:
-            value = execute(run())
+            value = execute_run(run)
+        except UnhandledOperation as call:
+            sys.stdout.write("=== Run %d (unhandled operation) ===\n" % number)
+            sys.stdout.write(unhandled(call.op, call.arg))
+            sys.stdout.write("\n")
+            continue
+        except Stuck:
+            return
         except TemporeRuntimeError as error:
             sys.stdout.flush()
             sys.stderr.write("Run-time error: %s\n" % error)
+            sys.exit(1)
+        except BoundViolation as violation:
+            sys.stdout.flush()
+            sys.stderr.write("Monitor error: %s\n" % violation)
             sys.exit(1)
         sys.stdout.write("=== Run %d ===\n" % number)
         sys.stdout.write(returned(value))

@@ -183,7 +183,8 @@ let run_with (module G : Grades.Grade.S) config =
     | Some filename ->
         Out_channel.with_open_text filename (fun oc ->
             Out_channel.output_string oc
-              (OpentronsBackend.OpentronsEmit.plain_program program.commands))
+              (OpentronsBackend.OpentronsEmit.plain_program
+                 ~operations:program.operations program.commands))
     | None -> if not config.typecheck_only then run run_state 1
   with
   | Error.Error d ->

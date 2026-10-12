@@ -1,0 +1,46 @@
+(* Default implementations, under the default 'time-lower-bound' grading
+   monoid: a run uses only the defaults declared above it, a default runs
+   outside every handler around its call, and a run whose operation call has
+   neither a handler nor a default stops there, the next run following. *)
+
+type reading = Reading of nat
+
+operation Measure : nat ~> reading # 1
+operation Calibrate : unit ~> nat # 1
+operation Log : string ~> unit # 0
+
+run perform Measure 3
+
+default Calibrate () = delay 1; perform Log "calibrated"; 5
+
+run
+  let r = perform Measure 3 in
+  r
+
+run
+  let c = perform Calibrate () in
+  c + 1
+
+default Log _ = return ()
+default Measure n = let c = perform Calibrate () in Reading (n + c)
+
+run perform Measure 3
+
+let fixed =
+  handler
+  | x -> x
+  | Calibrate () k -> delay 1; continue k with 100
+
+run handle perform Measure 4 with fixed
+
+run
+  handle
+    let c = perform Calibrate () in
+    let r = perform Measure c in
+    r
+  with fixed
+
+run
+  perform Log "outside";
+  let r = perform Measure 0 in
+  Some r

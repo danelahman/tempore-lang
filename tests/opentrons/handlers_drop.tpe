@@ -1,0 +1,48 @@
+(* Handlers whose cases drop their continuation, under the 'time-upper-bound'
+   grading monoid: the computation after the call is abandoned together with
+   the frames inside the handler, and the frames outside it continue with the
+   value of the case. *)
+
+operation Fail : string ~> unit # 0
+operation Ask : unit ~> nat # 0
+
+let catch =
+  handler
+  | x -> Some x
+  | Fail _ k -> None
+
+let answer =
+  handler
+  | x -> x
+  | Ask () k -> continue k with 42
+
+let safe_div (m, n) =
+  match n with
+  | 0 -> perform Fail "division by zero"; 0
+  | _ -> m / n
+
+run handle safe_div (7, 2) with catch
+
+run handle safe_div (7, 0) with catch
+
+run
+  let r = handle (1 + safe_div (1, 0)) with catch in
+  (r, "after")
+
+run
+  handle
+    handle
+      let a = perform Ask () in
+      perform Fail "stop";
+      a
+    with catch
+  with answer
+
+run
+  handle
+    handle
+      let a = perform Ask () in
+      delay 2;
+      a + 1
+    with catch
+  with answer

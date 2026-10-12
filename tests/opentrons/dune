@@ -1,6 +1,10 @@
-; Parity of the Python compilation of pure programs with the interpreter.
+; Parity of the Python compilation of programs with the interpreter, and the
+; monitors of the running-time bounds of operations.
 
 (cram
  (deps
   %{project_root}/tempore
-  (glob_files *.tpe)))
+  (glob_files *.tpe)
+  (glob_files *.py)
+  (source_tree %{project_root}/examples/handlers)
+  (source_tree %{project_root}/examples/3dprint)))

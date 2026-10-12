@@ -58,6 +58,12 @@ let constant = function
   | Const.Boolean b -> if b then "True" else "False"
   | Const.Float f -> python_float f
 
+(* An exact rational as a Python [Fraction]. *)
+let fraction q =
+  Printf.sprintf "Fraction(%s, %s)"
+    (Z.to_string (Grades.Rational.num q))
+    (Z.to_string (Grades.Rational.den q))
+
 let tuple = function
   | [] -> "()"
   | [ e ] -> "(" ^ e ^ ",)"
@@ -289,13 +295,7 @@ and computation ctx st (c : _ Ast.computation) =
       let st, defs, node = node ctx st c in
       ( st,
         defs
-        @ [
-            Line
-              (Printf.sprintf "return Delay(Fraction(%s, %s), %s)"
-                 (Z.to_string (Grades.Rational.num q))
-                 (Z.to_string (Grades.Rational.den q))
-                 node);
-          ] )
+        @ [ Line (Printf.sprintf "return Delay(%s, %s)" (fraction q) node) ] )
   | Ast.Perform (op, e, abs) ->
       let st, defs, e = expression ctx st e in
       let st, k = continuation ctx st abs in
@@ -414,20 +414,64 @@ and continuation ctx st (p, c) =
     | [] -> name
     | _ -> Printf.sprintf "partial(%s, %s)" name (String.concat ", " params) )
 
-type compiled = { definitions : string; runs : string list }
+(* The bounds of an operation as a runtime [Bounds] value. Running-time bounds
+   have finite ends. *)
+let bounds ((lo, hi) : Grades.Grade.running_time) =
+  let value_end = function
+    | Grades.Grade.Closed q -> (fraction q, "True")
+    | Grades.Grade.Open q -> (fraction q, "False")
+    | Grades.Grade.Unbounded -> invalid_arg "OpentronsEmit.bounds: infinite end"
+  in
+  let lo, lo_closed = value_end lo and hi, hi_closed = value_end hi in
+  Printf.sprintf "Bounds(%s, %s, %s, %s)" lo lo_closed hi hi_closed
 
-let command ctx (st, stmts, runs) (cmd : _ Ast.command) =
+let dictionary entries =
+  "{"
+  ^ String.concat ", "
+      (List.map (fun (key, value) -> python_string key ^ ": " ^ value) entries)
+  ^ "}"
+
+(* The emission of the commands: the statements, the last first, the [Run]
+   values of the [run] commands, the last first, and the default
+   implementations declared so far. *)
+type commands = {
+  stmts : stmt list;
+  runs : string list;
+  defaults : string Ast.OpNameMap.t;
+}
+
+let command ctx (st, acc) (cmd : _ Ast.command) =
   match cmd.it with
-  | Ast.TyDef _ | Ast.OpSig _ | Ast.OpDefault _ -> (st, stmts, runs)
+  | Ast.TyDef _ | Ast.OpSig _ -> (st, acc)
   | Ast.TopLet (x, e) ->
       let st, binds = let_binding ctx st (Ast.located cmd.at (Ast.PVar x)) e in
-      (st, List.rev_append binds stmts, runs)
+      (st, { acc with stmts = List.rev_append binds acc.stmts })
+  | Ast.OpDefault (op, abs) ->
+      let name, st = fresh "d" st in
+      let st, def = function_definition ctx st name abs in
+      ( st,
+        {
+          acc with
+          stmts = def :: acc.stmts;
+          defaults = Ast.OpNameMap.add op name acc.defaults;
+        } )
   | Ast.TopDo c ->
       let name, st = fresh "run" st in
       let st, body = in_scope st (fun st -> computation ctx st c) in
-      (st, Block (Printf.sprintf "def %s():" name, body) :: stmts, name :: runs)
+      let defaults =
+        List.map
+          (fun (op, name) -> (Ast.OpName.string_of op, name))
+          (Ast.OpNameMap.bindings acc.defaults)
+      in
+      ( st,
+        {
+          acc with
+          stmts = Block (Printf.sprintf "def %s():" name, body) :: acc.stmts;
+          runs =
+            Printf.sprintf "Run(%s, %s)" name (dictionary defaults) :: acc.runs;
+        } )
 
-let compile commands =
+let compile ~operations commands =
   let commands = Reach.reachable commands in
   let labels = Names.labels_of_commands commands in
   let ctx =
@@ -438,29 +482,40 @@ let compile commands =
       in_lifted = false;
     }
   in
-  let _, stmts, runs =
-    List.fold_left (command ctx) ({ next = 0; lifted = [] }, [], []) commands
+  let _, { stmts; runs; _ } =
+    List.fold_left (command ctx)
+      ( { next = 0; lifted = [] },
+        { stmts = []; runs = []; defaults = Ast.OpNameMap.empty } )
+      commands
   in
-  let declaration =
+  let labels =
     Printf.sprintf "declare_labels(%s, %d, %d)"
       (tuple (List.map python_string (Names.label_names labels)))
       (Names.label_rank labels Ast.nil_label)
       (Names.label_rank labels Ast.cons_label)
+  and operations =
+    Printf.sprintf "declare_operations(%s)"
+      (dictionary
+         (List.filter_map
+            (fun (op, b) ->
+              Option.map (fun b -> (Ast.OpName.string_of op, bounds b)) b)
+            operations))
   in
-  {
-    definitions = render (Line declaration :: List.rev stmts);
-    runs = List.rev runs;
-  }
+  render
+    ((Line labels :: Line operations :: List.rev stmts)
+    @ [
+        Block ("RUNS = (", List.rev_map (fun run -> Line (run ^ ",")) runs);
+        Line ")";
+      ])
 
-let plain_program commands =
-  let { definitions; runs } = compile commands in
+let plain_program ~operations commands =
   String.concat "\n"
     [
       runtime;
       "# The compiled program.";
       "";
-      definitions;
+      compile ~operations commands;
       "if __name__ == \"__main__\":";
-      "    run_plain(" ^ tuple runs ^ ")";
+      "    run_plain(RUNS)";
       "";
     ]

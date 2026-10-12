@@ -1,0 +1,19 @@
+(* A handler applied to 100000 operation calls, each case resuming its
+   continuation before it adds the argument, so that the evaluation context
+   grows with the number of calls. *)
+
+operation Emit : nat ~> unit # 0
+
+let rec countdown n =
+  match n with
+  | 0 -> return 0
+  | m + 1 -> perform Emit m; countdown m
+
+let sum =
+  handler
+  | x -> x
+  | Emit n k ->
+      let s = continue k with () in
+      s + n
+
+run handle countdown 100000 with sum
