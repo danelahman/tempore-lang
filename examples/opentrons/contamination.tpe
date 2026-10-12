@@ -15,7 +15,7 @@
    no-template water controls).
 
    The protocol is at
-     https://github.com/Opentrons/Protocols/tree/develop/protocols/0e525c
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/0e525c
 
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'contamination_bindings.py', is

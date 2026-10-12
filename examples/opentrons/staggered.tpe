@@ -13,7 +13,7 @@
    fixation of at least 12 minutes, the samples fixed one after another).
 
    The protocol is at
-     https://github.com/Opentrons/Protocols/tree/develop/protocols/00a214-protocol-5
+     https://github.com/Opentrons/Protocols/tree/2f447c936b49720d68154054e94d58e1d33ccba5/protocols/00a214-protocol-5
 
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'staggered_bindings.py', is
