@@ -23,7 +23,9 @@
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'elisa_bindings.py', is written by
 
-     ./tempore --grades time-interval --emit-opentrons elisa.py --bind examples/opentrons/elisa_bindings.py --time-unit minutes examples/opentrons/elisa.tpe
+     ./tempore --grades time-interval --emit-opentrons elisa.py --bind examples/opentrons/elisa_bindings.py --time-unit minutes --simulate examples/opentrons/elisa.tpe
+
+   and run by the Opentrons simulator, installed by 'make opentrons-deps'.
 
    The grade of an operation is the interval of its running times, which the
    monitors of the protocol check against the durations of its binding

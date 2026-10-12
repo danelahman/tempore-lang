@@ -24,7 +24,9 @@
    A unit of duration is a minute. The protocol for the Flex, with the
    operations performed by the functions of 'beads_bindings.py', is written by
 
-     ./tempore --grades time-interval --emit-opentrons beads.py --bind examples/opentrons/beads_bindings.py --time-unit minutes examples/opentrons/beads.tpe
+     ./tempore --grades time-interval --emit-opentrons beads.py --bind examples/opentrons/beads_bindings.py --time-unit minutes --simulate examples/opentrons/beads.tpe
+
+   and run by the Opentrons simulator, installed by 'make opentrons-deps'.
 
    The beads of the samples are named by a string, of the type beads. Beads
    on the magnet are a box that opens once they have settled, and air-drying
