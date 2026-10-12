@@ -230,13 +230,13 @@ let products =
       (TraceLevels.is_atomic "Send" send_low);
     expect "product: atomic iff in both" show_bool ~expected:false
       (TraceLevels.is_atomic "Send" send_then_tick);
-    expect "product: implied bounds"
+    expect "product: duration bounds"
       (function
         | Some (lo, hi) -> Grade.show_interval Rational.show lo hi
         | None -> "None")
       ~expected:
         (Some Rational.(Grade.Closed (of_int 1), Grade.Closed (of_int 2)))
-      (TraceLevels.implied_bounds bounds send_low);
+      (TraceLevels.duration_bounds bounds send_low);
     expect "product: level component" Fun.id ~expected:"(3, High)"
       (show (p 3 "High"));
   ]

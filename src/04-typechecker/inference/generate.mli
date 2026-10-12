@@ -242,6 +242,7 @@ module Make (C : Constraint.S) : sig
       bounds implied by the effect [grade] of the default implementation of [op]
       at [loc] lie within the running-time bounds [op] declares, each end
       compared with its strictness. It holds where [op] declares no running-time
-      bounds or [grade] implies none ({!Grades.Grade.S.implied_bounds}).
+      bounds or [grade] implies none bounded above
+      ({!Grades.Grade.S.duration_bounds}).
       @raise Utils.Error.Error if it does not hold. *)
 end

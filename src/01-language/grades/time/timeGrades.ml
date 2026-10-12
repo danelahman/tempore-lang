@@ -58,7 +58,6 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let commutative = true
     let needs_op_bounds = false
     let events _ = []
-    let implied_bounds _bounds _ = None
     let duration_bounds _bounds n = Some (Closed (D.to_rational n), Unbounded)
     let inhabited _bounds _ = true
 
@@ -94,7 +93,6 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let commutative = true
     let needs_op_bounds = false
     let events _ = []
-    let implied_bounds _bounds _ = None
 
     let duration_bounds _bounds = function
       | Ext.Fin n -> Some (Closed Rational.zero, Closed (D.to_rational n))
@@ -195,7 +193,6 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let commutative = true
     let needs_op_bounds = false
     let events _ = []
-    let implied_bounds _bounds _ = None
 
     let duration_bounds _bounds c =
       let at closed d = if closed then Closed d else Open d in

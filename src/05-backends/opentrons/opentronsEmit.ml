@@ -213,34 +213,47 @@ let parameter ctx st p =
       let a, st = fresh "a" st in
       (st, a, pattern_bindings ctx a p)
 
+(* The greatest nesting of parentheses of the Python expression of a tuple or a
+   constructor value; the components of a value nested deeper are bound to
+   temporaries. CPython accepts at most 200 nested parentheses. *)
+let max_nesting = 40
+
 (* Values: each expression is a Python expression, preceded by the
-   definitions of the functions and handlers in it. *)
-let rec expression ctx st (e : _ Ast.expression) =
+   definitions of the functions, handlers and temporaries in it. *)
+let rec expression ctx st e =
+  let st, defs, e, _ = nested_expression ctx st e in
+  (st, defs, e)
+
+(* The Python expression of [e] and the nesting of the parentheses of its
+   tuples and constructors. *)
+and nested_expression ctx st (e : _ Ast.expression) =
   match e.it with
-  | Ast.Var x -> (st, [], variable ctx x)
-  | Ast.Const c -> (st, [], constant c)
-  | Ast.Annotated (e, _) -> expression ctx st e
+  | Ast.Var x -> (st, [], variable ctx x, 0)
+  | Ast.Const c -> (st, [], constant c, 0)
+  | Ast.Annotated (e, _) -> nested_expression ctx st e
   | Ast.Tuple es ->
-      let st, defs, es = expressions ctx st es in
-      (st, defs, tuple es)
+      let st, defs, es, nesting = components ctx st es in
+      (st, defs, tuple es, nesting + 1)
   | Ast.Variant (l, arg) ->
-      let st, defs, arg =
+      let st, defs, arg, nesting =
         match arg with
-        | None -> (st, [], "None")
-        | Some e -> expression ctx st e
+        | None -> (st, [], "None", 0)
+        | Some e ->
+            let st, defs, args, nesting = components ctx st [ e ] in
+            (st, defs, String.concat "" args, nesting)
       in
       ( st,
         defs,
-        Printf.sprintf "tempore_Con(%d, %s)" (Names.label_rank ctx.labels l) arg
-      )
+        Printf.sprintf "tempore_Con(%d, %s)" (Names.label_rank ctx.labels l) arg,
+        nesting + 1 )
   | Ast.Lambda abs | Ast.PureLambda abs ->
       let name, st = fresh (definition_prefix ctx "f") st in
       let st, def = function_definition ctx st name abs in
-      (st, [ def ], name)
+      (st, [ def ], name, 0)
   | Ast.RecLambda (f, _, abs) ->
       let name = variable ctx f in
       let st, def = function_definition ctx st name abs in
-      (st, [ def ], name)
+      (st, [ def ], name, 0)
   | Ast.Handler (ret, ops) ->
       let name, st = fresh (definition_prefix ctx "h") st in
       let st, ret_def = function_definition ctx st name ret in
@@ -259,7 +272,23 @@ let rec expression ctx st (e : _ Ast.expression) =
       ( st,
         List.rev defs,
         Printf.sprintf "tempore_Handler(%s, {%s})" name
-          (String.concat ", " (List.rev clauses)) )
+          (String.concat ", " (List.rev clauses)),
+        0 )
+
+(* The components [es] of a value, each nested at most [max_nesting] deep or
+   else bound to a temporary, and the greatest of their nestings. *)
+and components ctx st es =
+  let st, defs, es, nesting =
+    List.fold_left
+      (fun (st, defs, es, nesting) e ->
+        let st, defs', e, nesting' = nested_expression ctx st e in
+        if nesting' > max_nesting then
+          let v, st = fresh (definition_prefix ctx "v") st in
+          (st, defs @ defs' @ [ Line (v ^ " = " ^ e) ], v :: es, nesting)
+        else (st, defs @ defs', e :: es, max nesting nesting'))
+      (st, [], [], 0) es
+  in
+  (st, defs, List.rev es, nesting)
 
 and expressions ctx st es =
   let st, defs, es =

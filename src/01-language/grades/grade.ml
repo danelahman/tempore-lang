@@ -34,9 +34,9 @@
     the operations the program declares, over which their catch-all letter
     ranges: all of them, before or after the grade, so that a grade means the
     same throughout a program. The operations that depend on the order, [leq],
-    [equal], [counterexample], [implied_bounds] and [inhabited], take both as an
-    argument of type {!bounds}; the other grades ignore it. Running-time bounds
-    are kept as the non-negative rationals the source writes
+    [equal], [counterexample], [duration_bounds] and [inhabited], take both as
+    an argument of type {!bounds}; the other grades ignore it. Running-time
+    bounds are kept as the non-negative rationals the source writes
     ({!type-running_time}), and each grade reads them as its delays
     ({!read_bound}).
 
@@ -204,26 +204,20 @@ module type S = sig
   (** Whether operation signatures must carry their running-time bounds
       [within [lo, hi]]. *)
 
-  val implied_bounds : bounds -> t -> running_time option
-  (** [implied_bounds bounds rho] is the pair of running-time bounds the grade
-      [rho] itself implies: the infimum of the durations of its traces, each
-      event counted at the lower end of its [bounds], and their supremum, each
-      event counted at the upper end, each attained or not. The fastest trace is
-      taken over the lower-bound component of the grade and the slowest over its
-      upper-bound component, which coincide for the one-sided trace grades of
-      timed operations. The time grades imply nothing, since there the grade of
-      an operation already is its running-time bound, and return [None]; so does
-      an unbounded upper-bound component. *)
-
   val duration_bounds :
     bounds -> t -> (Rational.t bound * Rational.t bound) option
   (** [duration_bounds bounds rho] is the interval of the durations of the
       computations of grade [rho], each end attained or not, where [rho]
-      determines one: for the time grades the interval [rho] denotes, its upper
-      end infinite where [rho] imposes no upper bound; for the trace grades of
-      timed operations {!implied_bounds}; for a product the intersection of
-      those of its components ({!intersect_durations}). [None] for the grades
-      that do not bound durations. *)
+      determines one. For the time grades it is the interval [rho] denotes, its
+      upper end infinite where [rho] imposes no upper bound. For the trace
+      grades of timed operations it is the infimum of the durations of the
+      traces of [rho], each event counted at the lower end of its [bounds], and
+      their supremum, each event counted at the upper end: the fastest trace is
+      taken over the lower-bound component of the grade and the slowest over its
+      upper-bound component, which coincide for the one-sided grades; it is
+      [None] where the upper-bound component is unbounded. For a product it is
+      the intersection of those of its components ({!intersect_durations}). It
+      is [None] for the grades that do not bound durations. *)
 
   val inhabited : bounds -> t -> bool
   (** [inhabited bounds rho] is whether the grade [rho] denotes at least one

@@ -49,7 +49,10 @@ class tempore_UnhandledOperation(Exception):
     implementation handles."""
 
     def __init__(self, op, arg):
-        Exception.__init__(self, op)
+        Exception.__init__(
+            self,
+            "Operation `%s` has no handler, binding function or default implementation" % op,
+        )
         self.op = op
         self.arg = arg
 
@@ -357,6 +360,8 @@ class tempore_Runtime:
       it and reports it by `report`, "off" neither checks nor records calls;
     on_delay: a function called with the length in seconds of each delay,
       which waits that long, or None;
+    on_event: a function called with each monitored call as it completes,
+      before its violation is acted on, or None;
     report: the function that reports a warning, given its message.
 
     The timeline lists the monitored calls in order, and violations those
@@ -373,6 +378,7 @@ class tempore_Runtime:
         time_unit=1,
         monitor="abort",
         on_delay=None,
+        on_event=None,
         report=_tempore_warn_to_stderr,
     ):
         if monitor not in tempore_MONITOR_POLICIES:
@@ -383,6 +389,7 @@ class tempore_Runtime:
         self.time_unit = tempore_exact(time_unit)
         self.monitor = monitor
         self.on_delay = on_delay
+        self.on_event = on_event
         self.report = report
         self.timeline = []
         self.violations = []
@@ -417,6 +424,8 @@ class tempore_Runtime:
         elapsed = self.clock.now() - start
         event = tempore_Event(start, op, elapsed, bounds.scaled(self.time_unit))
         self.timeline.append(event)
+        if self.on_event is not None:
+            self.on_event(event)
         if not event.within():
             if self.monitor == "abort":
                 raise tempore_BoundViolation(op, event.elapsed, event.bounds)
@@ -523,7 +532,7 @@ def tempore_execute(comp, defaults=None):
 
 
 def tempore_match_failure():
-    raise tempore_Stuck()
+    raise tempore_Stuck("A match has no case for its subject")
 
 
 # Comparison: the structural order of values, constants compared as OCaml
@@ -1065,10 +1074,11 @@ def tempore_run_protocol(protocol, runs, setup, binding, time_unit=1, monitor="a
     context `setup(protocol)` returns. In simulation the clock is virtual,
     and on the robot it is the monotonic clock of the host. A delay calls
     `protocol.delay`, and a warning of a monitor `protocol.comment`. Each
-    run is announced by a comment, followed by the monitored calls it made
-    and its value; an error of a run, a violation of running-time bounds
-    under the policy "abort" included, ends the protocol with that error,
-    after the comments of the calls the run made."""
+    run is announced by a comment, each monitored call is commented as it
+    completes, and the value of the run is commented at its end; an error of
+    a run, a violation of running-time bounds under the policy "abort"
+    included, ends the protocol with that error, after the comment of the
+    call that violated them."""
     ctx = setup(protocol)
     clock = tempore_VirtualClock() if protocol.is_simulating() else tempore_RealClock()
     tempore_rt.configure(
@@ -1078,14 +1088,10 @@ def tempore_run_protocol(protocol, runs, setup, binding, time_unit=1, monitor="a
         time_unit=time_unit,
         monitor=monitor,
         on_delay=lambda seconds: protocol.delay(seconds=seconds),
+        on_event=lambda event: protocol.comment("Tempore timeline: %s" % event),
         report=lambda message: protocol.comment("Tempore warning: " + message),
     )
     for number, run in enumerate(runs, 1):
         protocol.comment("Tempore run %d" % number)
-        start = len(tempore_rt.timeline)
-        try:
-            value = tempore_execute_run(run)
-        finally:
-            for event in tempore_rt.timeline[start:]:
-                protocol.comment("Tempore timeline: %s" % event)
+        value = tempore_execute_run(run)
         protocol.comment("Tempore run %d returns %s" % (number, tempore_to_string(value)))

@@ -76,9 +76,9 @@ val protocol :
     with the binding functions of the declared operations that the binding file
     defines, the virtual clock in simulation and the clock of the host on the
     robot, the time unit and monitor policy of [options], and [protocol.delay]
-    for delays, then executes the [run] commands of the program in order, each
-    announced by a comment and followed by comments of the monitored calls it
-    made and of its value.
+    for delays, then executes the [run] commands of the program in order: each
+    is announced by a comment, each monitored call is commented as it completes,
+    and the value of the run is commented at its end.
 
     The errors are the names the binding file must not define, a missing
     [setup], and each operation that the code of a [run] command may perform

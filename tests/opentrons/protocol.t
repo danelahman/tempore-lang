@@ -10,7 +10,8 @@ context prints the commands it is given, in simulation, on the virtual clock.
 
 The ELISA example: the incubations and the development are delays of the
 protocol, in minutes, and each call of a binding function is checked against
-the running-time bounds its grade implies under time-interval.
+the running-time bounds its grade implies under time-interval and commented as
+it completes.
 
   $ ../../tempore --grades time-interval --emit-opentrons elisa.py \
   >   --bind $examples/elisa_bindings.py --time-unit minutes $examples/elisa.tpe
@@ -28,37 +29,37 @@ the running-time bounds its grade implies under time-interval.
   load_instrument('flex_1channel_1000', 'left', tip_racks=[opentrons_flex_96_tiprack_1000ul in B3])
   comment: Tempore run 1
   pipette.distribute(100, A1 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 0 s: operation `Coat` took 120 s, within its running-time bounds [60, 180] s
   delay(seconds=3600.0)
   pipette.transfer(50, A3 of D2, A4 of D2, mix_after=(3, 500))
+  comment: Tempore timeline: At 3720 s: operation `Dilute` took 90 s, within its running-time bounds [60, 120] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 3810 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 3990 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 4170 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.distribute(100, A4 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 4350 s: operation `Detect` took 120 s, within its running-time bounds [60, 180] s
   delay(seconds=3600.0)
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 8070 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 8250 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.consolidate(300, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2], A12 of D2)
   pipette.distribute(300, A2 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 8430 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
   pipette.distribute(100, A5 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
+  comment: Tempore timeline: At 8610 s: operation `Develop` took 60 s, within its running-time bounds [60, 120] s
   delay(seconds=900.0)
   pipette.distribute(50, A6 of D2, [A1 of C2, B1 of C2, C1 of C2, D1 of C2, E1 of C2, F1 of C2, G1 of C2, H1 of C2])
-  comment: Read the absorbances of plate at 450 nm
-  comment: Tempore timeline: At 0 s: operation `Coat` took 120 s, within its running-time bounds [60, 180] s
-  comment: Tempore timeline: At 3720 s: operation `Dilute` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 3810 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  comment: Tempore timeline: At 3990 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  comment: Tempore timeline: At 4170 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  comment: Tempore timeline: At 4350 s: operation `Detect` took 120 s, within its running-time bounds [60, 180] s
-  comment: Tempore timeline: At 8070 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  comment: Tempore timeline: At 8250 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  comment: Tempore timeline: At 8430 s: operation `Wash` took 180 s, within its running-time bounds [120, 240] s
-  comment: Tempore timeline: At 8610 s: operation `Develop` took 60 s, within its running-time bounds [60, 120] s
   comment: Tempore timeline: At 9570 s: operation `Stop` took 45 s, within its running-time bounds [0, 60] s
+  comment: Read the absorbances of plate at 450 nm
   comment: Tempore timeline: At 9615 s: operation `Read` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns 0
 
@@ -79,39 +80,39 @@ regex-timed-interval-symbolic, a time unit given in seconds.
   pipette.pick_up_tip()
   comment: Tempore run 1
   pipette.transfer(50, A1 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 40), new_tip='never')
+  comment: Tempore timeline: At 0 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=300.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
+  comment: Tempore timeline: At 390 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
   delay(seconds=180.0)
   pipette.transfer(80, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='never')
+  comment: Tempore timeline: At 600 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
   pipette.transfer(150, A2 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], new_tip='never')
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='never')
+  comment: Tempore timeline: At 690 s: operation `Ethanol` took 90 s, within its running-time bounds [60, 120] s
   pipette.drop_tip()
   pipette.pick_up_tip()
+  comment: Tempore timeline: At 780 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
   pipette.transfer(150, A2 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], new_tip='never')
   pipette.transfer(150, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], A12 of D1, new_tip='never')
+  comment: Tempore timeline: At 795 s: operation `Ethanol` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=180.0)
   pipette.drop_tip()
   pipette.pick_up_tip()
+  comment: Tempore timeline: At 1065 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
+  comment: Tempore timeline: At 1080 s: operation `Disengage` took 30 s, within its running-time bounds [0, 60] s
   pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='never')
+  comment: Tempore timeline: At 1110 s: operation `Elute` took 90 s, within its running-time bounds [60, 120] s
   delay(seconds=120.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
+  comment: Tempore timeline: At 1320 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
   delay(seconds=180.0)
   pipette.transfer(20, A1 of D2, A1 of D3, new_tip='never')
   pipette.transfer(20, B1 of D2, B1 of D3, new_tip='never')
   pipette.transfer(20, C1 of D2, C1 of D3, new_tip='never')
   pipette.transfer(20, D1 of D2, D1 of D3, new_tip='never')
   pipette.drop_tip()
-  comment: Tempore timeline: At 0 s: operation `AddBeads` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 390 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 600 s: operation `RemoveSupernatant` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 690 s: operation `Ethanol` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 780 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 795 s: operation `Ethanol` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 1065 s: operation `ChangeTip` took 15 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 1080 s: operation `Disengage` took 30 s, within its running-time bounds [0, 60] s
-  comment: Tempore timeline: At 1110 s: operation `Elute` took 90 s, within its running-time bounds [60, 120] s
-  comment: Tempore timeline: At 1320 s: operation `Engage` took 30 s, within its running-time bounds [0, 60] s
   comment: Tempore timeline: At 1530 s: operation `Transfer` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore run 1 returns ()
 
@@ -191,7 +192,7 @@ definition that no run uses is not compiled, nor are its operations checked.
   comment: Tempore run 3 returns 3
 
 A binding function outside the bounds of its operation ends the protocol under
-the policy abort, after the comments of the calls of the run; under warn it is
+the policy abort, after the comment of the call; under warn it is
 reported by a comment; under off it is neither checked nor recorded.
 
   $ PIPETTE_SECONDS=3 simulate ok.py
@@ -208,8 +209,8 @@ reported by a comment; under off it is neither checked nor recorded.
   comment: setup
   comment: Tempore run 1
   comment: pipette 1
-  comment: Tempore warning: Operation `Pipette` took 3 s, outside its running-time bounds [1, 2] s
   comment: Tempore timeline: At 0 s: operation `Pipette` took 3 s, outside its running-time bounds [1, 2] s
+  comment: Tempore warning: Operation `Pipette` took 3 s, outside its running-time bounds [1, 2] s
   comment: Tempore run 1 returns 2
   comment: Tempore run 2
   comment: Tempore run 2 returns 7
@@ -217,8 +218,8 @@ reported by a comment; under off it is neither checked nor recorded.
   delay(seconds=3.0)
   delay(seconds=1.0)
   comment: pipette 2
-  comment: Tempore warning: Operation `Pipette` took 3 s, outside its running-time bounds [1, 2] s
   comment: Tempore timeline: At 7 s: operation `Pipette` took 3 s, outside its running-time bounds [1, 2] s
+  comment: Tempore warning: Operation `Pipette` took 3 s, outside its running-time bounds [1, 2] s
   comment: Tempore run 3 returns 3
   $ ../../tempore --grades time-interval --emit-opentrons ok_off.py --monitor off \
   >   --bind protocol_bindings.py protocol_ok.tpe 2> /dev/null
@@ -283,6 +284,18 @@ The options of protocols require --bind, and --bind requires --emit-opentrons.
   ../../tempore: option '--time-unit': '0' is neither seconds, minutes, hours nor a positive number of seconds.
   $ ../../tempore --emit-opentrons plain.py --bind protocol_bindings.py --monitor stop protocol_ok.tpe 2>&1 | head -1
   ../../tempore: option '--monitor': 'stop' is not one of abort, warn, off.
+
+A file that cannot be written, or a binding file that cannot be read, is an
+error.
+
+  $ ../../tempore --grades time-interval --emit-opentrons missing/plain.py protocol_ok.tpe
+  Error: missing/plain.py: No such file or directory
+  [1]
+  $ ../../tempore --grades time-interval --emit-opentrons missing/ok.py --bind protocol_bindings.py protocol_ok.tpe 2> /dev/null
+  [1]
+  $ ../../tempore --grades time-interval --emit-opentrons ok.py --bind missing.py protocol_ok.tpe
+  Error: missing.py: No such file or directory
+  [1]
 
 With --simulate, the protocol written is run by the Opentrons simulator,
 opentrons_simulate on the PATH or the executable given by --simulator, whose

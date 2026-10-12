@@ -13,7 +13,9 @@
     constructor; the lists are built from the constructors [[]] and [::]. A
     function is a Python function from its argument to a computation, and a
     handler is [Handler(ret, clauses)], its return case and its operation cases,
-    by operation name.
+    by operation name. The components of a value nested deeper than a fixed
+    bound are bound to temporaries, as Python limits the nesting of parentheses
+    in an expression.
 
     {2 Computations}
 
@@ -60,6 +62,10 @@ val python_string : string -> string
 (** [python_string s] is a Python string literal, in ASCII, of the UTF-8 string
     [s]; a byte not part of a well-formed UTF-8 sequence is the lone surrogate
     that the [surrogateescape] error handler encodes back to it. *)
+
+val dictionary : (string * string) list -> string
+(** [dictionary entries] is a Python dictionary display of [entries], each a
+    key, written as a {!python_string}, and a Python expression. *)
 
 val fraction : Grades.Rational.t -> string
 (** [fraction q] is a Python expression of the exact rational [q], a [Fraction].

@@ -236,3 +236,16 @@ Delays and declared durations advance the clock, scaled by the time unit.
     clock at the end: 16.75 s
   Delays and the default of Wait, time unit 60 s:
     returns 2 at 165 s, 0 monitored calls
+
+The bounds of a compound operation are those its grade implies, read over the
+bounds of the operations it names, compound ones included.
+
+  $ cat > compound.tpe <<'TPE'
+  > operation A : unit ~> unit # {A} within [1, 2]
+  > operation B : unit ~> unit # {A; A}
+  > operation C : unit ~> unit # {B; A}
+  > run return ()
+  > TPE
+  $ ../../tempore --grades traces-timed-upper-bound --emit-opentrons compound.py compound.tpe &&
+  > grep -o '"C": tempore_Bounds([^)]*)[^)]*)[^)]*)' compound.py
+  "C": tempore_Bounds(tempore_Fraction(3, 1), True, tempore_Fraction(6, 1), True)

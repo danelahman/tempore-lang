@@ -399,7 +399,6 @@ module Make (D : Delay.S) = struct
   let unit_least = false
   let commutative = false
   let needs_op_bounds = false
-  let implied_bounds _bounds _ = None
   let duration_bounds _bounds _ = None
   let inhabited _bounds _ = true
   let events _ = []

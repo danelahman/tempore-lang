@@ -64,9 +64,9 @@ module OfLattice (D : Delay.S) (L : LATTICE) :
     - [counterexample] pairs a witness in the first component with the second
       component of the lesser grade, or else the first component of the lesser
       grade with a witness in the second component;
-    - [implied_bounds] intersects the bounds the components imply, the greater
-      lower bound and the lesser upper bound, and is [None] only if neither
-      implies any;
+    - [duration_bounds] is the intersection of the intervals of durations of the
+      components ({!Grade.intersect_durations}), and is [None] only if neither
+      determines one;
     - [inhabited] holds iff it holds for both components;
     - [events] are the events of either component;
     - [is_atomic name] and [is_top bounds] hold iff they hold for both
@@ -148,7 +148,7 @@ end
     The unit is least iff it is in [M], and [mul] is not taken to commute.
 
     The remaining fields are those of [M] on the first component:
-    [needs_op_bounds], [implied_bounds], [inhabited], [events] and [is_atomic];
+    [needs_op_bounds], [duration_bounds], [inhabited], [events] and [is_atomic];
     [counterexample] pairs a witness in [M] with the second component of the
     lesser grade, or else is the lesser grade itself if the order fails in the
     second component.
@@ -263,7 +263,7 @@ module Indexed : sig
       those of [G], [mul], [join], [leq] and [equal] are taken name by name, and
       [is_top], [inhabited] and [is_atomic] hold iff they hold at every name.
       The unit is least and [mul] commutes iff they do so in [G];
-      [needs_op_bounds] is that of [G], [implied_bounds] is [None] and [events]
+      [needs_op_bounds] is that of [G], [duration_bounds] is [None] and [events]
       are those of every name. [counterexample] gives the lesser map, at the
       first name where [G] offers one, the witness of [G] there. The witnesses
       are described above, complete iff those of [G] are. The name is

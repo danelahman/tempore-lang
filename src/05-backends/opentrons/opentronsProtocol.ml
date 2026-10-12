@@ -181,12 +181,7 @@ let operation_diagnostics ~bound commands =
 (* The protocol. *)
 
 let python_string = OpentronsEmit.python_string
-
-let dictionary entries =
-  "{"
-  ^ String.concat ", "
-      (List.map (fun (key, value) -> python_string key ^ ": " ^ value) entries)
-  ^ "}"
+let dictionary = OpentronsEmit.dictionary
 
 let protocol options ~operations ~binding_name ~binding commands =
   let compiled = OpentronsEmit.compile ~operations commands in

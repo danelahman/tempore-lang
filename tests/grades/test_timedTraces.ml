@@ -295,8 +295,8 @@ let agree tables (module F : Grade.S) (module G : Grade.S) lits =
           (G.name ^ ": implied bounds as " ^ F.name)
           (fun l -> G.show (G.of_lit l) ^ " at " ^ show_table table)
           (fun l ->
-            F.implied_bounds bounds (F.of_lit l)
-            = G.implied_bounds bounds (G.of_lit l))
+            F.duration_bounds bounds (F.of_lit l)
+            = G.duration_bounds bounds (G.of_lit l))
           lits;
       ])
     tables
@@ -578,11 +578,11 @@ module Suite (I : IMPLEMENTATION) = struct
               (U.lit "{5}")));
       expect (name "implied bounds") show_bounds
         ~expected:(Some (running_time (1, 3)))
-        (Upper.implied_bounds running_times (U.lit "{A | B; 1}"));
+        (Upper.duration_bounds running_times (U.lit "{A | B; 1}"));
       expect
         (name "no implied bounds when unbounded")
         show_bounds ~expected:None
-        (Upper.implied_bounds running_times (U.lit "{A; B*}"));
+        (Upper.duration_bounds running_times (U.lit "{A; B*}"));
       expect (name "time shadow") Fun.id ~expected:"{3}"
         (Upper.show (Upper.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       holds (name "atomic") (Upper.is_atomic "A" (U.lit "{A}"));
@@ -612,7 +612,7 @@ module Suite (I : IMPLEMENTATION) = struct
            (Lower.counterexample running_times (Lo.lit "{A | 3}") (Lo.lit "{2}")));
       expect (name "implied bounds") show_bounds
         ~expected:(Some (running_time (1, 3)))
-        (Lower.implied_bounds running_times (Lo.lit "{A | B; 1}"));
+        (Lower.duration_bounds running_times (Lo.lit "{A | B; 1}"));
       expect (name "time shadow") Fun.id ~expected:"{1}"
         (Lower.show (Lower.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Lower.unit_least;
@@ -641,7 +641,7 @@ module Suite (I : IMPLEMENTATION) = struct
       fails (name "the upper component") (leq "{A}" "[1, 2]");
       expect (name "implied bounds") show_bounds
         ~expected:(Some (running_time (1, 2)))
-        (Interval.implied_bounds running_times (In.lit "[{A | B}, {B}]"));
+        (Interval.duration_bounds running_times (In.lit "[{A | B}, {B}]"));
       expect (name "time shadow") Fun.id ~expected:"[{1}, {3}]"
         (Interval.show (Interval.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Interval.unit_least;
@@ -992,7 +992,7 @@ let long_runs =
             (I.Lower.leq running_times (Lo.lit "{9999; A}")
                (Lo.lit "{10000; A}")));
       quickly (name "{10000; A} implies (10001, 10003)") (fun () ->
-          I.Upper.implied_bounds running_times (U.lit "{10000; A}")
+          I.Upper.duration_bounds running_times (U.lit "{10000; A}")
           = Some (running_time (10001, 10003)));
       quickly (name "counterexample of {10001; A} <= {10000; A}") (fun () ->
           Option.map I.Upper.show
@@ -1340,9 +1340,9 @@ module Shared (I : IMPLEMENTATION) = struct
               verdict (module Interval) pair (rho, rho') (rho', rho);
             ],
             [
-              Upper.implied_bounds bounds rho;
-              Lower.implied_bounds bounds rho;
-              Interval.implied_bounds bounds (rho, rho');
+              Upper.duration_bounds bounds rho;
+              Lower.duration_bounds bounds rho;
+              Interval.duration_bounds bounds (rho, rho');
             ],
             [ Upper.inhabited bounds rho; Lower.inhabited bounds rho ] )
     | _ -> None

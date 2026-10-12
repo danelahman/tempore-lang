@@ -18,9 +18,7 @@
    operations performed by the functions of 'contamination_bindings.py', is
    written by
 
-     ./tempore --grades time-upper-bound-levels --emit-opentrons contamination.py
-       --bind examples/opentrons/contamination_bindings.py --time-unit minutes
-       examples/opentrons/contamination.tpe
+     ./tempore --grades time-upper-bound-levels --emit-opentrons contamination.py --bind examples/opentrons/contamination_bindings.py --time-unit minutes examples/opentrons/contamination.tpe
 
    The level of an operation is High if its tip touches the test article,
    and Low otherwise. A tip is boxed at level Low: it may enter a clean

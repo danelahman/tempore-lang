@@ -188,7 +188,7 @@ let show_bounds = function
   | None -> "none"
 
 let implied =
-  let implied text = show_bounds (G.Upper.implied_bounds bounds (lit text)) in
+  let implied text = show_bounds (G.Upper.duration_bounds bounds (lit text)) in
   [
     expect "implied: a compound operation" Fun.id ~expected:"[1, 2.75]"
       (implied "{S; 1/4; T}");
@@ -203,7 +203,7 @@ let implied =
       (implied "{_ & ~(0, ∞)}");
     expect "implied: an interval" Fun.id ~expected:"[0.5, 1]"
       (show_bounds
-         (G.Interval.implied_bounds bounds
+         (G.Interval.duration_bounds bounds
             (G.Interval.of_lit
                (Grade.Interval
                   ( Grade.Closed (Grade.Braces (Grade.Letter "S")),
@@ -256,14 +256,14 @@ let open_running_times =
       (show_counterexample G.Upper.show
          (G.Upper.counterexample half_open (lit "{X; 1/2}") (lit "{2}")));
     expect "open running times: implied bounds" Fun.id ~expected:"[2, 3)"
-      (show_bounds (G.Upper.implied_bounds half_open (lit "{X; 1}")));
+      (show_bounds (G.Upper.duration_bounds half_open (lit "{X; 1}")));
     expect "open running times: implied bounds of a choice" Fun.id
       ~expected:"[1, 2]"
-      (show_bounds (G.Upper.implied_bounds half_open (lit "{X | 2}")));
+      (show_bounds (G.Upper.duration_bounds half_open (lit "{X | 2}")));
     expect "open running times: implied bounds of an interval" Fun.id
       ~expected:"(1.5, 2.5]"
       (show_bounds
-         (G.Interval.implied_bounds open_below
+         (G.Interval.duration_bounds open_below
             (G.Interval.of_lit
                (Grade.Interval
                   ( Grade.Closed
@@ -755,10 +755,10 @@ let gap_agreement =
           (fun ((_, x, a), _) ->
             Gaps.Upper.is_top bounds x = G.Upper.is_top bounds a
             && Gaps.Lower.is_top bounds x = G.Lower.is_top bounds a
-            && Gaps.Upper.implied_bounds bounds x
-               = G.Upper.implied_bounds bounds a
-            && Gaps.Interval.implied_bounds bounds (x, x)
-               = G.Interval.implied_bounds bounds (a, a)
+            && Gaps.Upper.duration_bounds bounds x
+               = G.Upper.duration_bounds bounds a
+            && Gaps.Interval.duration_bounds bounds (x, x)
+               = G.Interval.duration_bounds bounds (a, a)
             && Gaps.Upper.inhabited bounds x = G.Upper.inhabited bounds a)
           (List.filteri (fun i _ -> i mod 50 = 0) gap_cases);
         every "gaps: upper counterexamples valid and no longer" show_case

@@ -35,7 +35,6 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let unit_least = true
   let commutative = true
   let needs_op_bounds = false
-  let implied_bounds _bounds _ = None
   let duration_bounds _bounds _ = None
   let inhabited _bounds _ = true
   let events _ = []
@@ -45,20 +44,6 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let show = L.show
   let witnesses ~degree:_ _bounds _ = (L.elements, Grade.Complete)
 end
-
-(** [intersect b b'] is the intersection of the running-time bounds [b] and
-    [b'], either possibly absent: the greater of the lower ends and the lesser
-    of the upper ends ({!Grade.compare_ends}). *)
-let intersect b b' =
-  match (b, b') with
-  | Some (lo, hi), Some (lo', hi') ->
-      let lo = if Grade.compare_ends ~lower:true lo lo' >= 0 then lo else lo' in
-      let hi =
-        if Grade.compare_ends ~lower:false hi hi' <= 0 then hi else hi'
-      in
-      Some (lo, hi)
-  | Some b, None | None, Some b -> Some b
-  | None, None -> None
 
 (* The product of two grading monoids, ordered componentwise. *)
 module Product (G1 : Grade.S) (G2 : Grade.S with type Delay.t = G1.Delay.t) =
@@ -94,9 +79,6 @@ struct
   let unit_least = G1.unit_least && G2.unit_least
   let commutative = G1.commutative && G2.commutative
   let needs_op_bounds = G1.needs_op_bounds || G2.needs_op_bounds
-
-  let implied_bounds bounds (a, b) =
-    intersect (G1.implied_bounds bounds a) (G2.implied_bounds bounds b)
 
   let duration_bounds bounds (a, b) =
     Grade.intersect_durations
@@ -204,7 +186,6 @@ struct
   let unit_least = M.unit_least
   let commutative = false
   let needs_op_bounds = M.needs_op_bounds
-  let implied_bounds bounds (m, _) = M.implied_bounds bounds m
   let duration_bounds bounds (m, _) = M.duration_bounds bounds m
   let inhabited bounds (m, _) = M.inhabited bounds m
   let events (m, _) = M.events m
@@ -462,7 +443,6 @@ module Indexed = struct
     let unit_least = G.unit_least
     let commutative = G.commutative
     let needs_op_bounds = G.needs_op_bounds
-    let implied_bounds _bounds _ = None
     let duration_bounds _bounds _ = None
     let inhabited bounds = for_all (G.inhabited bounds)
 

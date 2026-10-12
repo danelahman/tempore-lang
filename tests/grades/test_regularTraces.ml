@@ -411,7 +411,7 @@ struct
       expect_grade "time shadow" ~expected:(lit "{1 | 2 | 3}")
         (G.of_bounds (Grade.Closed 1, Grade.Closed 3));
       check "no implied bounds"
-        (G.implied_bounds bounds (lit "{Send}") = None)
+        (G.duration_bounds bounds (lit "{Send}") = None)
         "";
       expect "events" show_names ~expected:[ "Read"; "Send" ]
         (G.events (lit "{Send; 2; Read*}"));

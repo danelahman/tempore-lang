@@ -78,7 +78,7 @@ struct
     else
       Option.map W.grade_of_word (compared order bounds order.search rho rho')
 
-  let implied_bounds bounds lower upper =
+  let duration_bounds bounds lower upper =
     match
       ( W.min_weight (W.world fst bounds [ lower ]) lower,
         W.max_weight (W.world snd bounds [ upper ]) upper )
@@ -99,8 +99,7 @@ struct
     let leq_symbol = "<="
     let commutative = false
     let needs_op_bounds = true
-    let implied_bounds bounds rho = implied_bounds bounds rho rho
-    let duration_bounds = implied_bounds
+    let duration_bounds bounds rho = duration_bounds bounds rho rho
     let inhabited = W.inhabited
     let events = L.events
     let compare = L.compare
@@ -175,8 +174,7 @@ struct
     let unit_least = false
     let commutative = false
     let needs_op_bounds = true
-    let implied_bounds bounds (lo, hi) = implied_bounds bounds lo hi
-    let duration_bounds = implied_bounds
+    let duration_bounds bounds (lo, hi) = duration_bounds bounds lo hi
 
     let inhabited bounds (lo, hi) =
       W.inhabited bounds lo && W.inhabited bounds hi

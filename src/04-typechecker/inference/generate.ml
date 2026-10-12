@@ -499,6 +499,14 @@ module Make (C : Constraint.S) = struct
     check_strictly_positive ~loc env' group;
     settle_polarities env' group
 
+  (* The interval of the durations of the computations of [grade] as
+     running-time bounds, which have finite ends: [None] where the interval is
+     not determined or not bounded above. *)
+  let finite_durations bounds grade =
+    match GS.E.duration_bounds bounds grade with
+    | Some (_, Grades.Grade.Unbounded) | None -> None
+    | durations -> durations
+
   (* The running-time bounds of the operations, extended by those of [op_name],
      declared or implied by its grade. *)
   let checked_op_bounds ~loc env op_name grade bounds =
@@ -555,7 +563,7 @@ module Make (C : Constraint.S) = struct
             "compound operation `%s` may not name itself in its grade `%s`"
             op_name (GS.E.show c);
         match
-          GS.E.implied_bounds
+          finite_durations
             { (running_times ~loc env) with running_time = event_bounds }
             c
         with
@@ -1594,7 +1602,7 @@ module Make (C : Constraint.S) = struct
     let op_name = Ast.OpName.string_of op in
     match
       ( StringMap.find_opt op_name env.op_bounds,
-        GS.E.implied_bounds (running_times ~loc env) grade )
+        finite_durations (running_times ~loc env) grade )
     with
     | Some (lo, hi), Some (lo', hi')
       when Grades.Grade.compare_ends ~lower:true lo lo' > 0

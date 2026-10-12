@@ -138,9 +138,9 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     | [] -> invalid_arg "TimedTraceGrades.extremal_duration: no traces"
     | d :: ds -> List.fold_left pick d ds
 
-  (** The running-time bounds implied by a lower-bound component [lo] and an
-      upper-bound component [hi]. *)
-  let implied_trace_bounds bounds lo = function
+  (** The interval of the durations of the grade with lower-bound component [lo]
+      and upper-bound component [hi]. *)
+  let trace_duration_bounds bounds lo = function
     | UpperTraces.Within hi ->
         let running_time end_ op = end_ (bounds.running_time op) in
         Some
@@ -168,10 +168,9 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let needs_op_bounds = true
     let events = Trace.events
 
-    let implied_bounds bounds p =
-      implied_trace_bounds bounds p (UpperTraces.Within p)
+    let duration_bounds bounds p =
+      trace_duration_bounds bounds p (UpperTraces.Within p)
 
-    let duration_bounds = implied_bounds
     let inhabited _bounds _ = true
     let of_delay = Trace.of_delay
     let of_bounds b = Trace.of_delay (fst (hull b))
@@ -193,11 +192,10 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let commutative = false
     let needs_op_bounds = true
 
-    let implied_bounds bounds = function
-      | Within p -> implied_trace_bounds bounds p (Within p)
+    let duration_bounds bounds = function
+      | Within p -> trace_duration_bounds bounds p (Within p)
       | Unbounded -> None
 
-    let duration_bounds = implied_bounds
     let inhabited _bounds _ = true
     let of_bounds b = Within (Trace.of_delay (snd (hull b)))
     let is_atomic name p = compare p (Within (atomic_traces name)) = 0
@@ -243,8 +241,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let events (lo, hi) =
       List.sort_uniq String.compare (Trace.events lo @ UpperTraces.events hi)
 
-    let implied_bounds bounds (lo, hi) = implied_trace_bounds bounds lo hi
-    let duration_bounds = implied_bounds
+    let duration_bounds bounds (lo, hi) = trace_duration_bounds bounds lo hi
     let inhabited _bounds _ = true
 
     (** [diagonal lit] is the pair of the set of traces [lit] denotes with

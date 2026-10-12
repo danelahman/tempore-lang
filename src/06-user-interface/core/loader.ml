@@ -240,7 +240,9 @@ module Loader (Backend : Backend.S) = struct
 
   (* The operations [cmds] declare, each with the bounds of its running time:
      those it declares, or else those its grade implies
-     ({!Grades.Grade.S.duration_bounds}), read over the declared ones. *)
+     ({!Grades.Grade.S.duration_bounds}), read over the declared ones and those
+     of the operations before it with finite bounds, as the typechecker reads
+     them. *)
   let operations_of cmds =
     let signatures =
       List.filter_map
@@ -256,21 +258,29 @@ module Loader (Backend : Backend.S) = struct
           Option.map (fun b -> (Ast.OpName.string_of op, b)) bounds)
         signatures
     in
-    let bounds =
-      {
-        Grades.Grade.running_time = (fun name -> List.assoc name declared);
-        operations = List.map fst declared;
-      }
-    in
-    List.map
-      (fun (op, eps, declared) ->
-        match (declared, eps) with
-        | Some _, _ -> (op, declared)
+    let operations = List.map fst declared in
+    let step (known, acc) (op, eps, bounds) =
+      let bounds =
+        match (bounds, eps) with
+        | Some _, _ -> bounds
         | None, Ast.EpsConst (grade, _) -> (
-            try (op, Backend.Grades.E.duration_bounds bounds grade)
-            with Not_found -> (op, None))
-        | None, (Ast.EpsAdd _ | Ast.EpsVar _) -> (op, None))
-      signatures
+            let running_time name = List.assoc name known in
+            try
+              Backend.Grades.E.duration_bounds
+                { Grades.Grade.running_time; operations }
+                grade
+            with Not_found -> None)
+        | None, (Ast.EpsAdd _ | Ast.EpsVar _) -> None
+      in
+      let known =
+        match bounds with
+        | Some ((_, (Grades.Grade.Closed _ | Grades.Grade.Open _)) as b) ->
+            (Ast.OpName.string_of op, b) :: known
+        | Some (_, Grades.Grade.Unbounded) | None -> known
+      in
+      (known, (op, bounds) :: acc)
+    in
+    List.rev (snd (List.fold_left step (declared, []) signatures))
 
   (** [load_program ~use_stdlib sources] loads the parsed [sources] in order,
       preceded by the standard library if [use_stdlib], all of them {!declare}d

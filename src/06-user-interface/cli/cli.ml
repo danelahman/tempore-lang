@@ -272,6 +272,16 @@ let simulate ?simulator filename =
       flush_all ();
       exit (Sys.command (Filename.quote_command executable [ filename ]))
 
+(* Writes [contents] to the file [filename], or reports the error and exits
+   with code 1. *)
+let write_file filename contents =
+  try
+    Out_channel.with_open_text filename (fun oc ->
+        Out_channel.output_string oc contents)
+  with Sys_error message ->
+    prerr_endline ("Error: " ^ message);
+    exit 1
+
 (* Writes to [filename] the Opentrons protocol of the [commands] of the
    program, with the binding file [binding_name], or reports the errors that
    refuse it. The protocol is named after the last source file. *)
@@ -304,8 +314,7 @@ let emit_protocol config ~filename ~binding_name ~operations commands =
   match P.protocol options ~operations ~binding_name ~binding commands with
   | Ok (protocol, warnings) ->
       List.iter (fun w -> prerr_endline ("Warning: " ^ w)) warnings;
-      Out_channel.with_open_text filename (fun oc ->
-          Out_channel.output_string oc protocol);
+      write_file filename protocol;
       if config.simulate then simulate ?simulator:config.simulator filename
   | Error errors ->
       List.iter (fun e -> prerr_endline ("Error: " ^ e)) errors;
@@ -366,10 +375,9 @@ let run_with (module G : Grades.Grade.S) config =
     (* loading the files has typechecked every command, the [run]s included *)
     match (config.emit_opentrons, config.bind) with
     | Some filename, None ->
-        Out_channel.with_open_text filename (fun oc ->
-            Out_channel.output_string oc
-              (OpentronsBackend.OpentronsEmit.plain_program
-                 ~operations:program.operations program.commands))
+        write_file filename
+          (OpentronsBackend.OpentronsEmit.plain_program
+             ~operations:program.operations program.commands)
     | Some filename, Some binding_name ->
         emit_protocol config ~filename ~binding_name
           ~operations:program.operations program.commands

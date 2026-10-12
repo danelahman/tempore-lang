@@ -81,7 +81,7 @@
     {2 Running-time bounds}
 
     The order does not read the running-time bounds of operations, which
-    therefore declare none. {!Grade.S.implied_bounds} is [None];
+    therefore declare none. {!Grade.S.duration_bounds} is [None];
     {!Grade.S.of_bounds} [(lo, hi)] is the language of the delays of [lo] to
     [hi] time steps; the events of a grade are its names; and a grade is atomic
     for [name] iff it is the language [{name}]. *)
