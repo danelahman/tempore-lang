@@ -2000,12 +2000,7 @@ let view_declarations (model : Model.model) =
               ]
             (elt "summary"
                ~a:[ class_ "declarations-title" ]
-               [
-                 text (WebDeclarations.title sources);
-                 elt "span"
-                   ~a:[ class_ "declarations-note" ]
-                   [ text "read-only" ];
-               ]
+               [ text (WebDeclarations.title sources) ]
             :: List.map
                  (fun (source : WebDeclarations.source) ->
                    match model.flash with
