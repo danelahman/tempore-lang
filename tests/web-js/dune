@@ -1,0 +1,38 @@
+; The backend tests of the web interface (../web/test_backends.ml), compiled to
+; JavaScript as the web interface is, whose integers have 32 bits, and run by
+; Node.js when it is available (../node).
+
+(copy_files# ../web/test_backends.ml)
+
+(executable
+ (name test_backends)
+ (modes js)
+ (libraries
+  grades
+  language
+  loader
+  webInterpreter
+  manifest
+  backendRegistry
+  backend
+  timeline
+  cliInterpreter
+  opentronsBackend
+  arduinoBackend
+  typechecker
+  zarith_stubs_js)
+ (link_flags -no-check-prims))
+
+(rule
+ (alias runtest)
+ (enabled_if
+  (= %{read:../node/node-available} "true\n"))
+ (deps
+  test_backends.bc.js
+  %{project_root}/examples/index
+  %{project_root}/tests/default_chain.tpe
+  (glob_files_rec %{project_root}/examples/*))
+ (action
+  (chdir
+   %{workspace_root}/tests/web-js
+   (run node --stack-size=60000 %{dep:test_backends.bc.js}))))

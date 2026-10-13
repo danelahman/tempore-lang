@@ -304,7 +304,7 @@ let int ~what (v : t) =
   match v.value with
   | Number n when String.for_all is_digit n -> (
       match int_of_string_opt n with
-      | Some i when i < 1 lsl 31 -> i
+      | Some i when i <= 0x7FFF_FFFF -> i
       | _ -> wrong ~what v "an integer below 2^31")
   | _ -> wrong ~what v "a non-negative integer"
 

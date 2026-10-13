@@ -119,7 +119,7 @@ let task ~unit_us ~what v =
         let ms = Rational.div us (Rational.of_int 1000) in
         let period_ms =
           match Rational.to_int ms with
-          | Some ms when Rational.sign period > 0 && ms < (1 lsl 31) / 1000 ->
+          | Some ms when Rational.sign period > 0 && ms <= 0x7FFF_FFFF / 1000 ->
               ms
           | _ ->
               Error.compilation ~loc:(Json.location f "period")
