@@ -72,9 +72,9 @@ and with an expired one, and a supervisory iteration that may exceed the
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2/balance.tpe", line 94, characters 0-47:
-    94 | operation Arm : calibration ~> unit # [0, 0.05]
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "../../examples/arduino/bala2/balance.tpe", line 105, characters 0-47:
+    105 | operation Arm : calibration ~> unit # [0, 0.05]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2/unchecked.tpe", line 5, characters 14-26:
     5 |   let token = calibrate () in
@@ -222,6 +222,33 @@ counts last read, and the arming:
   [2002.000 ms] Armed, gyroscope bias 0.000 deg/s
   [2002.000 ms] Tilt -0.01 deg, rate 1.9 deg/s, drives 15 15, counts 31 31
   [2502.000 ms] Tilt -0.06 deg, rate -2.5 deg/s, drives 18 18, counts 57 57
+
+With the build flag BALANCE_RECORD, here 100 ms, and 20 samples, two tasks
+started by the first publication record the run from the arming for 2 s and
+print the recording, once complete, every 10 s; the filter recordings.awk of
+the target -capture extracts it. The recording has its header, the line of
+its columns and 20 rows of 9 fields, one every 100 ms; the tilt stays below 5
+degrees, the reference tilt within its limit of 10 degrees, and the counts of
+the wheels are equal:
+
+  $ build -DBALANCE_RECORD=100 -DBALANCE_RECORD_SAMPLES=20 && ./simulation 15000000 > record.log
+  $ grep -c '^# Recording' record.log
+  2
+  $ awk -f ../../../$app/recordings.awk record.log > record.csv
+  $ head -n 2 record.csv
+  # Recording 1, run 00000000, 20 of 20 samples every 100 ms from the arming
+  time_ms,tilt_deg,rate_deg_s,speed_counts_s,reference_deg,left_drive,right_drive,left_count,right_count
+  $ tail -n 1 record.csv
+  # End of recording 1
+  $ awk -F, '
+  >   function within(x, b) { return (x < 0 ? -x : x) < b }
+  >   NR > 2 && !/^#/ {
+  >     n++
+  >     if (NF != 9 || $1 != 100 * (n - 1)) print "row " n ": " $0
+  >     if (!within($2, 5) || !within($5, 10.01) || $8 != $9) print "row " n ": " $0
+  >   }
+  >   END { print n " rows" }' record.csv
+  20 rows
 
 The profile of the closed loop over 6 s, built with TEMPORE_PROFILE in place
 of TEMPORE_TRACE, at the end of the simulation: each call takes the nominal

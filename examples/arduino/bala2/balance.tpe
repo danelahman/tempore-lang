@@ -51,8 +51,16 @@
    of Publish do not include; the monitor policy warn logs a call beyond
    them.
 
-   The make targets arduino-bala2-simulate, -build, -upload, -profile and
-   -log run these commands and their variants for the board;
+   Under the build flag BALANCE_RECORD of bindings.cpp, an interval in
+   milliseconds, the device records the tilt, the rate, the speed, the
+   reference tilt, the drives and the counts at that interval for the first
+   minute after the arming, in memory kept across a reset, and prints the
+   recordings over the serial port as CSV every 10 seconds, so that a run
+   without the cable is read once the cable is connected.
+
+   The make targets arduino-bala2-simulate, -build, -upload, -profile, -log
+   and -record run these commands and their variants for the board, and
+   arduino-bala2-capture reads the recordings without an upload;
    'make examples-help' lists them with their variables.
 
    The typing is relative to the declared bounds of the running times of the
@@ -63,14 +71,16 @@
    the step stop the motors. *)
 
 (* The exchange between the tasks, through bindings.cpp. The step publishes
-   the tilt, in degrees, and the rate of the gyroscope, in degrees per
-   second, and reads the setpoints: whether the robot is armed, the bias of
-   the gyroscope, the speed of the wheels, in encoder counts per second, and
-   the difference of the drives of the motors, which turns the robot. The
-   supervision reads the attitude, arms the robot with a calibration of the
-   gyroscope, disarms it, and commands a speed and a turn; a command older
-   than 200 ms is replaced by zero setpoints. The default implementations
-   describe an armed robot without commands.
+   the tilt, in degrees, the rate of the gyroscope, in degrees per second,
+   the filtered speed of the wheels, in encoder counts per second, and the
+   reference tilt of the speed loop, in degrees, and reads the setpoints:
+   whether the robot is armed, the bias of the gyroscope, the speed of the
+   wheels, in encoder counts per second, and the difference of the drives of
+   the motors, which turns the robot. The supervision reads the attitude,
+   arms the robot with a calibration of the gyroscope, disarms it, and
+   commands a speed and a turn; a command older than 200 ms is replaced by
+   zero setpoints. The default implementations describe an armed robot
+   without commands.
 
    The bounds of the running times are measured on the device by its
    profile (2026-10-14): Publish took 0 to 0.008 ms, Setpoints 0 to 0.028
@@ -78,11 +88,12 @@
    ms; with the margin of the packages, 1.5 times the greatest time, rounded
    up, each is bounded by 0.05 ms. Arm, which stores as many values as
    Command, is bounded as Command; it is not measured in its present form,
-   without a line to the log. *)
+   without a line to the log. Publish, measured with two values, stores
+   four, as many as Setpoints loads, and is bounded as Setpoints. *)
 
 type calibration = Calibration of float
 
-operation Publish : float * float ~> unit # [0, 0.05]
+operation Publish : float * float * float * float ~> unit # [0, 0.05]
 default Publish _ = delay 1/100
 
 operation Setpoints : unit ~> bool * float * float * float # [0, 0.05]
@@ -125,6 +136,11 @@ let rate_gain = 0.4
 let speed_gain = 0.02
 let integral_gain = 0.001
 
+(* The balance point, in degrees: the tilt at which the robot is upright,
+   which the tilt loop subtracts from the tilt. The cutoff applies to the
+   tilt itself. *)
+let balance_point = 0.0
+
 (* The bounds of the integral of the error of the speed, of the reference
    tilt, in degrees, and of the tilt beyond which the motors stop. *)
 let integral_limit = 2000.0
@@ -139,8 +155,9 @@ let clamp (limit : float) (x : float) =
 (* Correctly accepted by the typechecker: the step reads the unit, boxes the
    reading for 2 ms, reads the encoders and the setpoints, and unboxes the
    reading after 0.45 to 1.05 ms; it ends within 1.2 to 2.8 ms, below its
-   period. Beyond the cutoff, or disarmed, it stops the motors and clears the
-   integral. *)
+   period. It publishes the attitude, the speed and the reference tilt before
+   it commands the motors. Beyond the cutoff, or disarmed, it stops the
+   motors and clears the integral. *)
 let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
@@ -153,17 +170,19 @@ let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
   in
-  perform Publish (tilt, raw);
   let now = (float_of_int left +. float_of_int right) /. 2.0 in
   let speed = (0.7 *. speed) +. (0.3 *. ((now -. position) /. period)) in
+  let error = speed -. target in
+  let integral = clamp integral_limit (integral +. (error *. period)) in
+  let reference =
+    clamp reference_limit
+      (~-.((speed_gain *. error) +. (integral_gain *. integral)))
+  in
+  perform Publish (tilt, raw, speed, reference);
   if armed && magnitude tilt <= cutoff then
-    let error = speed -. target in
-    let integral = clamp integral_limit (integral +. (error *. period)) in
-    let reference =
-      clamp reference_limit
-        (~-.((speed_gain *. error) +. (integral_gain *. integral)))
+    let drive =
+      (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
-    let drive = (tilt_gain *. (tilt -. reference)) +. (rate_gain *. rate) in
     perform SetMotors
       (bala2_drive (drive +. turn), bala2_drive (drive -. turn));
     (tilt, speed, integral, now)

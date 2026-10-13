@@ -126,8 +126,8 @@ the reading, and delays the reading:
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 94, characters 0-60:
-    94 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 98, characters 0-60:
+    98 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2-regex/unchecked.tpe", line 5, characters 14-26:
@@ -197,8 +197,8 @@ the reading, and delays the reading:
   7 |   let token = calibrate () in
                     ^^^^^^^^^
   Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 322-324, characters 0-51:
-    322 | let calibrate () =
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 330-332, characters 0-51:
+    330 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
     File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:

@@ -1565,7 +1565,10 @@ M5Stack Gray, the core of the M5Stack BALA2 self-balancing robot (profile
   `BALANCE_LOG` (an interval in milliseconds, e.g.
   `PLATFORMIO_BUILD_FLAGS=-DBALANCE_LOG=20` with `--upload` and `--capture`)
   logs its tilt, gyroscope rate, drives and encoder counts from a task of
-  the lowest priority;
+  the lowest priority, and the build flag `BALANCE_RECORD` records them,
+  with the speed and the reference tilt of the speed loop, for the first
+  minute after the arming (see Recording a run, below); the
+  constant `balance_point` sets the tilt at which the robot is upright;
 - [`bala2-regex/balance_regex.tpe`](examples/arduino/bala2-regex/balance_regex.tpe):
   the same robot under the regular expressions of timed operations, sharing
   the binding file and host model of `bala2`: the step reads the unit, the
@@ -1631,7 +1634,9 @@ directory in `_arduino/projects`. The options are:
   trace, every 5 simulated seconds and at the end;
 - `--capture <seconds>`, with `--upload` and `--port`, reads the serial port
   after the upload for the given time at the baud rate of the board, prints
-  its lines and, with `--profile`, then the last complete profile; the port
+  its lines and, with `--profile`, then the last complete profile; without
+  `--upload`, it writes the project and reads the port of a board already
+  programmed, without PlatformIO; the port
   is opened in raw mode with its modem control lines as opening it sets them,
   both asserted, which on the boards with an automatic reset circuit holds
   neither the reset nor the boot pin, and they are left so when it is closed;
@@ -1645,7 +1650,9 @@ simulation), `arduino-NAME-build` (the PlatformIO build),
 `arduino-NAME-upload` (the build and upload), `arduino-NAME-profile` (the
 upload with `--profile`, then `--capture`), and, for `bala2` and
 `bala2-regex`, `arduino-NAME-log` (the upload with `-DBALANCE_LOG`, then
-`--capture`); `make arduino-simulate-all` and `make arduino-build-all` run
+`--capture`), `arduino-NAME-record` (the upload with `-DBALANCE_RECORD`,
+then `--capture`) and `arduino-NAME-capture` (`--capture` without an upload,
+saving the recordings); `make arduino-simulate-all` and `make arduino-build-all` run
 the first two for every example, and `make examples-help` lists the targets
 with the values of their variables. The targets that need PlatformIO install
 it by `make arduino-deps` first. An upload goes to the serial port of the
@@ -1661,19 +1668,25 @@ or in the environment:
 `CAPTURE` is the time, in seconds, for which the port is read (default 30),
 `SIMULATE` the simulated time of the host simulation (by default that of the
 example), `MONITOR` the monitor policy (by default `abort`, and `warn` for
-the targets that read the port) and `BALANCE_LOG` the interval of the log in
-milliseconds (default 20).
+the targets that read the port), `BALANCE_LOG` the interval of the log in
+milliseconds (default 20) and `BALANCE_RECORD` the interval of the samples of
+a recording in milliseconds (default 20).
 
 The targets are defined by [`examples/examples.mk`](examples/examples.mk)
 from a fragment `example.mk` in the directory of the example, which holds one
 manifest `PROGRAM.device.json` and its program `PROGRAM.tpe`. The fragment
 sets the grades and the simulated time of the host simulation, in seconds,
-and optionally the build flags of the target `-log`:
+and optionally the build flags of the targets `-log` and `-record` and the
+awk program with which the target `-capture` extracts the recordings from
+the serial output:
 
     EXAMPLE_GRADES = time-interval-rational
     EXAMPLE_SIMULATE = 8
     BALANCE_LOG ?= 20
     EXAMPLE_LOG_FLAGS = -DBALANCE_LOG=$(BALANCE_LOG)
+    BALANCE_RECORD ?= 20
+    EXAMPLE_RECORD_FLAGS = -DBALANCE_RECORD=$(BALANCE_RECORD)
+    EXAMPLE_RECORD_FILTER = examples/arduino/bala2/recordings.awk
 
 The board is that of the manifest, and its port the variable `PORT_BOARD`,
 the name of the board in upper case with `-` replaced by `_`, such as
@@ -1702,6 +1715,52 @@ grade system to a file of declarations and may give running-time bounds per
 board, and the declarations, C++ sources and host models; both are embedded in the compiler
 when it is built. An application is a `.tpe` file, a manifest and a binding
 file, with host models for the simulation if needed.
+
+#### Recording a run
+<!-- web-skip -->
+
+The BALA2 examples record a run without the USB cable under the build flag
+`BALANCE_RECORD` of [`bala2/bindings.cpp`](examples/arduino/bala2/bindings.cpp),
+the interval of the samples in milliseconds. From the first arming after
+start-up, a task of core 0 takes 3000 samples (`BALANCE_RECORD_SAMPLES`), a
+minute at 20 ms, of the tilt, the rate of the gyroscope, the filtered speed of
+the wheels, the reference tilt of the speed loop, the drives of the motors and
+the counts of the encoders; the control step only publishes the values. Once
+complete, the recording is printed over the serial port as CSV every 10
+seconds (`BALANCE_RECORD_REPEAT_MS`), between a line `# Recording N, run ID,
+...` and a line `# End of recording N`, N its sequence number and ID a random
+identifier drawn at the arming. The core keeps running on its battery when
+the cable is removed, the USB-serial bridge of the M5Stack Gray being powered
+by USB, so that the recording is read once the cable is connected again. The
+recordings of the last two start-ups are kept in memory that is not
+initialised at start-up: a recording survives a reset, such as one by the
+serial port or a brownout, and is then printed with the recording of the new
+start-up, but not a loss of power.
+
+    make arduino-bala2-record
+
+builds and uploads the project `_arduino/projects/balance-record` and reads
+the port for `CAPTURE` seconds. The robot then calibrates, arms and records
+on the cable; to record a run without it, remove the cable and reset the
+core with its power button, which starts a new recording at the next arming.
+After the run, with the core still on, connect the cable and run
+
+    make arduino-bala2-capture CAPTURE=60
+
+which reads the port for 60 seconds without an upload, writes its output to
+`_arduino/recordings/bala2-TIME.log`, TIME the date and time, and the last
+complete copy of each recording to `_arduino/recordings/bala2-TIME.csv`; a
+copy takes about 11 seconds at 115200 baud. The targets
+`arduino-bala2-regex-record` and `arduino-bala2-regex-capture` do the same for
+`bala2-regex`. The script [`scripts/bala2-recording.py`](scripts/bala2-recording.py),
+optional and of the Python standard library only,
+
+    python3 -I scripts/bala2-recording.py _arduino/recordings/bala2-TIME.csv
+
+summarises each recording: the tilt, the reference tilt, the speed, the travel
+of the wheels, the time of a fall beyond the cutoff, and the correlation of
+the speed with the reference tilt, which is negative when the speed loop
+opposes the motion.
 
 ## Editor support
 <!-- web-skip -->

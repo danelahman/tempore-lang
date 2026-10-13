@@ -42,8 +42,10 @@
 
    and built for the board, with PlatformIO, by --build in place of
    --host-simulate. The make targets arduino-bala2-regex-simulate, -build,
-   -upload, -profile and -log run these commands and their variants for the
-   board; 'make examples-help' lists them with their variables.
+   -upload, -profile, -log and -record run these commands and their variants
+   for the board, and arduino-bala2-regex-capture reads the recordings of
+   -record without an upload; 'make examples-help' lists them with their
+   variables.
 
    A grade is a regular expression over the operations and the delays: each
    operation is a letter, within the bounds of its running time, and an
@@ -70,19 +72,21 @@
    stops the motors. The device does not use them. *)
 
 (* The exchange between the tasks, as in balance.tpe. The step publishes the
-   tilt, in degrees, and the rate of the gyroscope, in degrees per second,
-   and reads the setpoints: whether the robot is armed, the bias of the
-   gyroscope, the speed of the wheels, in encoder counts per second, and the
-   difference of the drives of the motors, which turns the robot. The
-   supervision reads the attitude, arms the robot with a calibration of the
-   gyroscope, disarms it, and commands a speed and a turn; a command older
-   than 200 ms is replaced by zero setpoints. The default implementations
-   describe an armed robot without commands. The bounds of their running
-   times are those of balance.tpe. *)
+   tilt, in degrees, the rate of the gyroscope, in degrees per second, the
+   filtered speed of the wheels, in encoder counts per second, and the
+   reference tilt of the speed loop, in degrees, and reads the setpoints:
+   whether the robot is armed, the bias of the gyroscope, the speed of the
+   wheels, in encoder counts per second, and the difference of the drives of
+   the motors, which turns the robot. The supervision reads the attitude,
+   arms the robot with a calibration of the gyroscope, disarms it, and
+   commands a speed and a turn; a command older than 200 ms is replaced by
+   zero setpoints. The default implementations describe an armed robot
+   without commands. The bounds of their running times are those of
+   balance.tpe. *)
 
 type calibration = Calibration of float
 
-operation Publish : float * float ~> unit # {Publish} within [0, 0.05]
+operation Publish : float * float * float * float ~> unit # {Publish} within [0, 0.05]
 default Publish _ = delay 1/100
 
 operation Setpoints : unit ~> bool * float * float * float # {Setpoints} within [0, 0.05]
@@ -108,8 +112,9 @@ default Command _ = delay 1/100
 type state = float * float * float * float
 
 (* The period, in seconds, the weight of the gyroscope in the complementary
-   filter of the tilt, and the gains and bounds of the controller, those of
-   balance.tpe. *)
+   filter of the tilt, the gains and bounds of the controller, and the
+   balance point, in degrees, which the tilt loop subtracts from the tilt,
+   those of balance.tpe. *)
 let period = 0.005
 let gyro_weight = 0.98
 let tilt_gain = 25.0
@@ -119,6 +124,7 @@ let integral_gain = 0.001
 let integral_limit = 2000.0
 let reference_limit = 10.0
 let cutoff = 70.0
+let balance_point = 0.0
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
@@ -126,8 +132,8 @@ let clamp (limit : float) (x : float) =
   if x < ~-.limit then ~-.limit else if x > limit then limit else x
 
 (* Correctly accepted by the typechecker: the step reads the unit, the
-   encoders and the setpoints, publishes the attitude and commands the
-   motors, each once and in this order; its durations, 1.2 to 2.8 ms, are
+   encoders and the setpoints, publishes the attitude, the speed and the
+   reference tilt, and commands the motors, each once and in this order; its durations, 1.2 to 2.8 ms, are
    checked against its period of 5 ms by the device. The reading of the unit
    is boxed with the trace of the reads of the encoders and the setpoints,
    without delays: it is used at most 1.05 ms after it is taken, and only if
@@ -146,17 +152,19 @@ let step ((tilt, speed, integral, position) : state) : state
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
   in
-  perform Publish (tilt, raw);
   let now = (float_of_int left +. float_of_int right) /. 2.0 in
   let speed = (0.7 *. speed) +. (0.3 *. ((now -. position) /. period)) in
+  let error = speed -. target in
+  let integral = clamp integral_limit (integral +. (error *. period)) in
+  let reference =
+    clamp reference_limit
+      (~-.((speed_gain *. error) +. (integral_gain *. integral)))
+  in
+  perform Publish (tilt, raw, speed, reference);
   if armed && magnitude tilt <= cutoff then
-    let error = speed -. target in
-    let integral = clamp integral_limit (integral +. (error *. period)) in
-    let reference =
-      clamp reference_limit
-        (~-.((speed_gain *. error) +. (integral_gain *. integral)))
+    let drive =
+      (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
-    let drive = (tilt_gain *. (tilt -. reference)) +. (rate_gain *. rate) in
     perform SetMotors
       (bala2_drive (drive +. turn), bala2_drive (drive -. turn));
     (tilt, speed, integral, now)
@@ -197,7 +205,7 @@ let step_unordered ((tilt, speed, integral, position) : state) : state
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
-  perform Publish (tilt, raw);
+  perform Publish (tilt, raw, speed, 0.0);
   perform SetMotors (0i, 0i);
   (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
 *)
@@ -233,7 +241,7 @@ let step_stale ((tilt, speed, integral, position) : state) : state =
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
-  perform Publish (tilt, raw);
+  perform Publish (tilt, raw, speed, 0.0);
   perform SetMotors (0i, 0i);
   (tilt, speed, integral, (left +. right) /. 2.0)
 *)
@@ -267,7 +275,7 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
-  perform Publish (tilt, raw);
+  perform Publish (tilt, raw, speed, 0.0);
   (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
 *)
 

@@ -16,6 +16,6 @@ let step_stale ((tilt, speed, integral, position) : state) : state =
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
-  perform Publish (tilt, raw);
+  perform Publish (tilt, raw, speed, 0.0);
   perform SetMotors (0i, 0i);
   (tilt, speed, integral, (left +. right) /. 2.0)

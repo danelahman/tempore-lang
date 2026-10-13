@@ -13,5 +13,5 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
-  perform Publish (tilt, raw);
+  perform Publish (tilt, raw, speed, 0.0);
   (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
