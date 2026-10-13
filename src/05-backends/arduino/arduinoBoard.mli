@@ -12,6 +12,10 @@
     - ["cores"]: the number of processor cores, to which the cores of tasks are
       pinned;
     - ["m5unified"]: whether the board is initialised by M5Unified;
+    - ["imu_frequency"], optional, under ["m5unified"]: the frequency in hertz
+      of the I2C transactions of M5Unified with the inertial measurement unit,
+      set by [M5.Imu.setClock] after [M5.begin]; without it, the default of
+      M5Unified, 400 kHz;
     - ["capabilities"]: an array of names of further capabilities of the board
       that peripheral packages may require ({!ArduinoPackage}): ["imu"], an
       inertial measurement unit read through M5Unified, and ["display"], a
@@ -19,7 +23,10 @@
     - ["serial_baud"]: the baud rate of the serial port of the log;
     - ["i2c"]: an array of I2C buses, each an object of the ["port"] (the
       [TwoWire] object, e.g. ["Wire"]), the pins ["sda"] and ["scl"] and the
-      ["frequency"] in hertz;
+      ["frequency"] in hertz, started by [begin] after the initialisation of
+      M5Unified and clocked at the frequency by [setClock], since M5Unified may
+      start a bus that shares its port at the default frequency of 100 kHz, on
+      which [begin] does not change the frequency;
     - ["includes"]: an array of further headers of the initialisation;
     - ["init"]: an array of further C++ statements of the initialisation,
       executed after those the other members imply. *)
@@ -37,6 +44,7 @@ type t = {
   build_flags : string list;
   cores : int;
   m5unified : bool;
+  imu_frequency : int option;
   capabilities : string list;
       (** the capabilities of the board: ["m5unified"] if it is initialised by
           M5Unified, ["i2c"] if it has an I2C bus, and those of the member

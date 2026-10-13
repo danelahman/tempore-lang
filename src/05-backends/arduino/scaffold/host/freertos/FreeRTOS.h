@@ -21,5 +21,13 @@ typedef void (*TaskFunction_t)(void *);
 #define pdPASS 1
 #define pdTRUE 1
 #define tskNO_AFFINITY 0x7fffffff
+#define tskIDLE_PRIORITY 0
+
+// The spinlocks of the critical sections of FreeRTOS on the ESP32, which do
+// nothing on the host, where one task runs at a time.
+typedef int portMUX_TYPE;
+#define portMUX_INITIALIZER_UNLOCKED 0
+#define portENTER_CRITICAL(mux) ((void)(mux))
+#define portEXIT_CRITICAL(mux) ((void)(mux))
 
 #endif

@@ -26,6 +26,7 @@ type input = {
     list;
   bindings : (string * string) option;
   host_models : (string * string) list;
+  profile : bool;
 }
 
 (* Types, printed as in the source, the type variables named ['a], ['b], ...
@@ -296,6 +297,8 @@ let bindings_header input (compiled : ArduinoEmit.compiled) =
       | Some hook -> [ ""; "// The safe state."; "void " ^ hook.it ^ "();" ])
     @ [ ""; "#endif" ])
 
+let operation_monitor name = Names.operation name ^ "_monitor"
+
 let operations_source input (compiled : ArduinoEmit.compiled) =
   let unit_us = input.device.unit_us in
   let operation (op, (argument, result)) =
@@ -313,18 +316,21 @@ let operations_source input (compiled : ArduinoEmit.compiled) =
           [
             Printf.sprintf "static const tempore_bounds %s = %s;" bounds_name
               (bounds_initialiser ~unit_us b);
-            "";
           ]
       | None -> [])
     @ [
+        Printf.sprintf "static tempore_operation_monitor %s(%s, %s);"
+          (operation_monitor name)
+          (Names.string_literal name)
+          (match bounds with Some _ -> "&" ^ bounds_name | None -> "nullptr");
+        "";
         Printf.sprintf "%s %s(%s a) {" result (Names.operation name) argument;
         "  tempore_check_halt();";
         "  const int64_t start = tempore_clock_us();";
         Printf.sprintf "  const auto r = %s(a);" (Names.binding name);
         Printf.sprintf
-          "  tempore_monitor_operation(%s, tempore_clock_us() - start, %s);"
-          (Names.string_literal name)
-          (match bounds with Some _ -> "&" ^ bounds_name | None -> "nullptr");
+          "  tempore_monitor_operation(&%s, tempore_clock_us() - start);"
+          (operation_monitor name);
         "  return r;";
         "}";
       ]
@@ -336,7 +342,16 @@ let operations_source input (compiled : ArduinoEmit.compiled) =
        "";
        "#include \"tempore_bindings.h\"";
      ]
-    @ List.concat_map (fun op -> "" :: operation op) compiled.operation_types)
+    @ List.concat_map (fun op -> "" :: operation op) compiled.operation_types
+    @ [
+        ""; "tempore_operation_monitor *const tempore_operation_monitors[] = {";
+      ]
+    @ List.map
+        (fun (op, _) ->
+          Printf.sprintf "    &%s,"
+            (operation_monitor (Ast.OpName.string_of op)))
+        compiled.operation_types
+    @ [ "    nullptr};" ])
 
 type task_code = {
   task : Device.task;
@@ -349,6 +364,7 @@ let main_source input board packages tasks =
   let hooks f = List.filter_map (fun (p : Package.t) -> f p) packages in
   let inits = hooks (fun p -> p.init)
   and safe_states = hooks (fun p -> p.safe_state) in
+  let task_monitor i = Printf.sprintf "tempore_task%d_monitor" i in
   let task_function i { task; step; initial } =
     let name = Names.string_literal task.function_name.it in
     let header = Printf.sprintf "static void tempore_task%d(void *) {" i in
@@ -362,6 +378,9 @@ let main_source input board packages tasks =
                 "; its grades bound no durations, so its steps are checked \
                  against the period by the monitor only"
             | _ -> "");
+          Printf.sprintf "static tempore_task_monitor %s(%s, %d);"
+            (task_monitor i) name period_us;
+          "";
           header;
           "  tempore_check_halt();";
           (match initial with
@@ -374,8 +393,8 @@ let main_source input board packages tasks =
           "    const int64_t start = tempore_clock_us();";
           Printf.sprintf "    state = %s(state);" step.cxx;
           Printf.sprintf
-            "    tempore_monitor_period(%s, tempore_clock_us() - start, %d);"
-            name period_us;
+            "    tempore_monitor_period(&%s, start, tempore_clock_us());"
+            (task_monitor i);
           Printf.sprintf "    vTaskDelayUntil(&release, pdMS_TO_TICKS(%d));"
             period_ms;
           "  }";
@@ -456,18 +475,34 @@ let main_source input board packages tasks =
               (String.concat " " (List.map (fun f -> f ^ "();") hooks)));
       ]
     @ List.concat (List.mapi (fun i t -> "" :: task_function i t) tasks)
+    @ [ ""; "tempore_task_monitor *const tempore_task_monitors[] = {" ]
+    @ List.concat
+        (List.mapi
+           (fun i { task; _ } ->
+             match task.kind with
+             | Device.Periodic _ ->
+                 [ Printf.sprintf "    &%s," (task_monitor i) ]
+             | Device.Free _ -> [])
+           tasks)
     @ [
+        "    nullptr};";
         "";
         "void setup() {";
         Printf.sprintf "  Serial.begin(%d);" board.serial_baud;
       ]
     @ (if board.m5unified then
          [ "  auto m5_config = M5.config();"; "  M5.begin(m5_config);" ]
+         @ List.map
+             (Printf.sprintf "  M5.Imu.setClock(%d);")
+             (Option.to_list board.imu_frequency)
        else [])
-    @ List.map
+    @ List.concat_map
         (fun (bus : Board.i2c) ->
-          Printf.sprintf "  %s.begin(%d, %d, %d);" bus.port bus.sda bus.scl
-            bus.frequency)
+          [
+            Printf.sprintf "  %s.begin(%d, %d, %d);" bus.port bus.sda bus.scl
+              bus.frequency;
+            Printf.sprintf "  %s.setClock(%d);" bus.port bus.frequency;
+          ])
         board.i2c
     @ List.map (fun s -> "  " ^ s) board.init
     @ List.map (fun f -> "  " ^ f ^ "();") inits
@@ -480,7 +515,12 @@ let main_source input board packages tasks =
             (Names.string_literal task.function_name.it)
             task.stack task.priority task.core)
         tasks
-    @ [ "}"; ""; "void loop() { vTaskDelete(nullptr); }" ])
+    @ [
+        "  tempore_profile_begin();";
+        "}";
+        "";
+        "void loop() { vTaskDelete(nullptr); }";
+      ])
 
 (* The project. *)
 
@@ -655,7 +695,14 @@ let files input (program : F.program) =
     required;
   List.map (fun (path, text) -> ("src/" ^ path, text)) compiled.files
   @ [
-      ("platformio.ini", Board.platformio_ini board);
+      ( "platformio.ini",
+        Board.platformio_ini
+          (if input.profile then
+             {
+               board with
+               build_flags = board.build_flags @ [ "-DTEMPORE_PROFILE" ];
+             }
+           else board) );
       ("src/main.cpp", main_source input board packages tasks);
       ("src/tempore_bindings.h", bindings_header input compiled);
       ("src/tempore_operations.cpp", operations_source input compiled);
@@ -688,13 +735,13 @@ let host_sources files =
       else None)
     files
 
-let host_build_command ~directory ~output files =
+let host_build_command ?(profile = false) ~directory ~output files =
   let path p = Filename.concat directory p in
   [
     "c++";
     "-std=c++17";
     "-DTEMPORE_HOST";
-    "-DTEMPORE_TRACE";
+    (if profile then "-DTEMPORE_PROFILE" else "-DTEMPORE_TRACE");
     "-pthread";
     "-I";
     path "host";

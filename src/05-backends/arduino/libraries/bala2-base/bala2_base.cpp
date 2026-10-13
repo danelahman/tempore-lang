@@ -2,7 +2,9 @@
 // M5Stack BALA2, an STM32 at I2C address 0x3A on the bus Wire, by its register
 // map: the drives of the two motors at 0x00, two big-endian 16-bit signed
 // integers from -1023 to 1023, and the counts of the two encoders at 0x10, two
-// big-endian 32-bit signed integers.
+// big-endian 32-bit signed integers, which decrease as a positive drive turns
+// the wheel. ReadEncoders negates them, so that its counts increase in the
+// direction in which a positive drive turns the wheel.
 //
 // A watchdog task checks every BALA2_WATCHDOG_CHECK_MS milliseconds whether
 // the motors are driven and no setpoint has come for BALA2_WATCHDOG_MS
@@ -124,7 +126,7 @@ tempore_result_ReadEncoders binding_ReadEncoders(
     uint32_t u = 0;
     for (int i = 0; acknowledged && i < 4; ++i)
       u = (u << 8) | static_cast<uint8_t>(Wire.read());
-    count = tempore_int_of_bits(u);
+    count = tempore_int_neg(tempore_int_of_bits(u));
   }
   tempore_i2c_unlock();
   if (!acknowledged) tempore_fault("BALA2 base: encoder read not acknowledged");

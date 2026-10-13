@@ -40,6 +40,8 @@ type config = {
   packages : string list;
   host_runs : bool;
   host_simulate : int option;
+  profile : bool;
+  capture : int option;
   build : bool;
   upload : bool;
   port : string option;
@@ -73,15 +75,16 @@ let time_unit_of_string s =
                    hours nor a positive number of seconds"
                   s)))
 
-(* The number of microseconds of [s], a positive decimal number of seconds. *)
-let simulated_duration_of_string s =
+(* The number of microseconds of [s], a positive decimal number of seconds,
+   the argument of the option [option]. *)
+let duration_of_string option s =
   let bad () =
     raise
       (Arg.Bad
          (Printf.sprintf
-            "option '--host-simulate': '%s' is not a positive number of \
-             seconds of at most 10^6"
-            s))
+            "option '%s': '%s' is not a positive number of seconds of at most \
+             10^6"
+            option s))
   in
   match Grades.Rational.of_decimal s with
   | q
@@ -140,6 +143,8 @@ let parse_args_to_config () =
   and packages = ref []
   and host_runs = ref false
   and host_simulate = ref None
+  and profile = ref false
+  and capture = ref None
   and build = ref false
   and upload = ref false
   and port = ref None
@@ -184,6 +189,12 @@ let parse_args_to_config () =
           Arg.Set build,
           " Build the project written with --device with PlatformIO, passing \
            its output through and exiting with its exit code" );
+        ( "--capture",
+          Arg.String
+            (fun s -> capture := Some (duration_of_string "--capture" s)),
+          " After --upload, read the serial port of --port at the baud rate of \
+           the board for the given number of seconds, printing its lines, and \
+           then the last complete profile among them, if any" );
         ( "--debug",
           Arg.Set debug,
           " Print the inferred type schemes of the top-level definitions \
@@ -217,7 +228,8 @@ let parse_args_to_config () =
            results as the interpreter does" );
         ( "--host-simulate",
           Arg.String
-            (fun s -> host_simulate := Some (simulated_duration_of_string s)),
+            (fun s ->
+              host_simulate := Some (duration_of_string "--host-simulate" s)),
           " With --device, build the project for the host with c++ and run its \
            tasks for the given number of seconds of simulated time, printing \
            the log of the device with the events of its tasks" );
@@ -258,6 +270,11 @@ let parse_args_to_config () =
           Arg.String (fun name -> port := Some name),
           " Upload through the given serial port under --upload (default: the \
            port PlatformIO detects)" );
+        ( "--profile",
+          Arg.Set profile,
+          " Build the project written with --device with the profile of the \
+           running times of its operations and periodic tasks, logged every 5 \
+           seconds in place of the trace under --host-simulate" );
         ( "--robot",
           Arg.String
             (choice "--robot"
@@ -320,6 +337,9 @@ let parse_args_to_config () =
   requires "--build" !build "--device" (!device <> None);
   requires "--upload" !upload "--device" (!device <> None);
   requires "--port" (!port <> None) "--upload" !upload;
+  requires "--profile" !profile "--device" (!device <> None);
+  requires "--capture" (!capture <> None) "--upload" !upload;
+  requires "--capture" (!capture <> None) "--port" (!port <> None);
   if !pio <> None && not (!build || !upload) then begin
     Printf.eprintf "%s: option '--pio' requires '--build' or '--upload'.\n"
       Sys.argv.(0);
@@ -391,6 +411,8 @@ let parse_args_to_config () =
     packages = List.rev !packages;
     host_runs = !host_runs;
     host_simulate = !host_simulate;
+    profile = !profile;
+    capture = !capture;
     build = !build;
     upload = !upload;
     port = !port;
@@ -440,8 +462,8 @@ let find_installation name path =
       else None)
     [ executable_dir; Sys.getcwd () ]
 
-(* Runs an optional tool with [arguments], its output passed through, and exits
-   with its exit code. The tool is [explicit], or else [name] on the PATH, or
+(* Runs an optional tool with [arguments], its output passed through, and is
+   its exit code. The tool is [explicit], or else [name] on the PATH, or
    else the executable [path] of the installation [installation]
    ({!find_installation}), run with the environment variable [variable] set to
    the subdirectory [subdirectory] of the installation unless the environment
@@ -475,7 +497,7 @@ let run_tool ?explicit ~name ~installation:(installation, path)
       exit 1
   | Some command ->
       flush_all ();
-      exit (Sys.command command)
+      Sys.command command
 
 (* Runs the Opentrons simulator on the protocol [filename], its output passed
    through, and exits with its exit code. The simulator is [simulator], or
@@ -484,20 +506,21 @@ let run_tool ?explicit ~name ~installation:(installation, path)
    OT_API_CONFIG_DIR set to its directory [config] unless the environment sets
    it. *)
 let simulate ?simulator filename =
-  run_tool ?explicit:simulator ~name:"opentrons_simulate"
-    ~installation:("_opentrons", [ "bin"; "opentrons_simulate" ])
-    ~variable:("OT_API_CONFIG_DIR", "config")
-    ~missing:
-      (Printf.sprintf "Error: the Opentrons simulator '%s' was not found")
-    ~absent:
-      "Error: the Opentrons simulator opentrons_simulate was not found on the \
-       PATH or in _opentrons; 'make opentrons-deps' installs it with Python \
-       3.10 or later"
-    [ filename ]
+  exit
+  @@ run_tool ?explicit:simulator ~name:"opentrons_simulate"
+       ~installation:("_opentrons", [ "bin"; "opentrons_simulate" ])
+       ~variable:("OT_API_CONFIG_DIR", "config")
+       ~missing:
+         (Printf.sprintf "Error: the Opentrons simulator '%s' was not found")
+       ~absent:
+         "Error: the Opentrons simulator opentrons_simulate was not found on \
+          the PATH or in _opentrons; 'make opentrons-deps' installs it with \
+          Python 3.10 or later"
+       [ filename ]
 
 (* Runs PlatformIO on the project in [directory], building it, or under
    [upload] building and uploading it, through the serial port [port] if
-   given, its output passed through, and exits with its exit code.
+   given, its output passed through, and is its exit code.
    PlatformIO is [pio], or else [pio] on the PATH, or else that of the
    installation [_arduino] of [make arduino-deps], run with
    PLATFORMIO_CORE_DIR set to its directory [platformio] unless the
@@ -513,6 +536,128 @@ let platformio ?pio ~upload ?port directory =
     ([ "run"; "-d"; directory ]
     @ (if upload then [ "-t"; "upload" ] else [])
     @ match port with Some port -> [ "--upload-port"; port ] | None -> [])
+
+(* The beginning and the end of a profile in the log of a device. *)
+let profile_start = "] Profile since start-up"
+and profile_end = "] End of the profile"
+
+(* Whether [line] contains [part]. *)
+let contains line part =
+  let n = String.length part and m = String.length line in
+  let rec from i = i + n <= m && (String.sub line i n = part || from (i + 1)) in
+  from 0
+
+(* Opens the serial port [port] for reading, retrying until the time
+   [deadline] of [Unix.gettimeofday] while it is missing, as while a board
+   restarts. A terminal is opened without waiting for a carrier and set to
+   raw input at [baud] bauds, its modem control lines left as opening it sets
+   them and kept when it is closed; a port that is not a terminal is read as
+   it is. *)
+let rec open_port ~deadline ~baud port =
+  match
+    Unix.openfile port [ Unix.O_RDONLY; Unix.O_NOCTTY; Unix.O_NONBLOCK ] 0
+  with
+  | fd ->
+      (match Unix.tcgetattr fd with
+      | attributes ->
+          Unix.tcsetattr fd Unix.TCSANOW
+            {
+              attributes with
+              c_ibaud = baud;
+              c_obaud = baud;
+              c_csize = 8;
+              c_cstopb = 1;
+              c_parenb = false;
+              c_cread = true;
+              c_clocal = true;
+              c_hupcl = false;
+              c_icanon = false;
+              c_echo = false;
+              c_isig = false;
+              c_icrnl = false;
+              c_inlcr = false;
+              c_igncr = false;
+              c_ixon = false;
+              c_ixoff = false;
+              c_istrip = false;
+              c_opost = false;
+              c_vmin = 0;
+              c_vtime = 0;
+            }
+      | exception Unix.Unix_error (Unix.ENOTTY, _, _) -> ());
+      Unix.clear_nonblock fd;
+      fd
+  | exception Unix.Unix_error (Unix.ENOENT, _, _)
+    when Unix.gettimeofday () < deadline ->
+      Unix.sleepf 0.1;
+      open_port ~deadline ~baud port
+
+(* Reads the serial port [port] at [baud] bauds for [duration] microseconds,
+   or until its end or an error of reading, which is reported, printing its
+   lines without their carriage returns, and then, if [profile], the last
+   complete profile among them, or else a note that there is none; or reports
+   the error of opening the port and exits with code 1. *)
+let capture ~port ~baud ~duration ~profile =
+  let deadline = Unix.gettimeofday () +. (float_of_int duration /. 1e6) in
+  match open_port ~deadline ~baud port with
+  | exception Unix.Unix_error (error, _, _) ->
+      Printf.eprintf "Error: the serial port %s: %s\n" port
+        (Unix.error_message error);
+      exit 1
+  | fd ->
+      let buffer = Bytes.create 4096 and line = Buffer.create 160 in
+      (* The lines of the profile being read, in reverse order, if any, and
+         those of the last complete one, in order. *)
+      let current = ref None and last = ref [] in
+      let end_line () =
+        let text = Buffer.contents line in
+        Buffer.clear line;
+        print_endline text;
+        if contains text profile_start then current := Some [ text ]
+        else
+          Option.iter
+            (fun lines ->
+              if contains text profile_end then begin
+                last := List.rev (text :: lines);
+                current := None
+              end
+              else if String.starts_with ~prefix:"  " text then
+                current := Some (text :: lines))
+            !current
+      in
+      let rec read () =
+        let remaining = deadline -. Unix.gettimeofday () in
+        if remaining > 0. then
+          match Unix.select [ fd ] [] [] remaining with
+          | [], _, _ -> ()
+          | _ -> (
+              match Unix.read fd buffer 0 (Bytes.length buffer) with
+              | exception Unix.Unix_error (Unix.EINTR, _, _) -> read ()
+              | exception Unix.Unix_error (error, _, _) ->
+                  Printf.eprintf "Error: the serial port %s: %s\n" port
+                    (Unix.error_message error)
+              | 0 -> ()
+              | n ->
+                  Bytes.iter
+                    (function
+                      | '\n' -> end_line ()
+                      | '\r' -> ()
+                      | c -> Buffer.add_char line c)
+                    (Bytes.sub buffer 0 n);
+                  flush stdout;
+                  read ())
+          | exception Unix.Unix_error (Unix.EINTR, _, _) -> read ()
+      in
+      read ();
+      if Buffer.length line > 0 then end_line ();
+      Unix.close fd;
+      if profile then begin
+        match !last with
+        | [] -> print_endline "No complete profile was read."
+        | lines ->
+            print_endline "The last profile read:";
+            List.iter print_endline lines
+      end
 
 (* The path under [name] in [directory]: [name] in [directory] if it has no
    directory component, else [name]. *)
@@ -562,7 +707,7 @@ let read_file filename =
 (* Builds the project [files] written to [directory] for the host with c++ and
    runs its simulation for [duration] microseconds, its output passed through,
    and exits with its exit code. *)
-let host_simulate ~directory ~duration files =
+let host_simulate ~directory ~duration ~profile files =
   if find_on_path "c++" = None then begin
     prerr_endline "Error: the C++ compiler c++ was not found on the PATH";
     exit 1
@@ -571,7 +716,7 @@ let host_simulate ~directory ~duration files =
     Filename.concat (Filename.concat directory "host") "simulation"
   in
   let command =
-    ArduinoBackend.ArduinoProject.host_build_command ~directory
+    ArduinoBackend.ArduinoProject.host_build_command ~profile ~directory
       ~output:executable files
   in
   flush_all ();
@@ -649,6 +794,7 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
             operations;
             bindings;
             host_models;
+            profile = config.profile;
           }
           program
   in
@@ -665,10 +811,25 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
       write_file (Filename.concat directory name) contents)
     files;
   Option.iter
-    (fun duration -> host_simulate ~directory ~duration files)
+    (fun duration ->
+      host_simulate ~directory ~duration ~profile:config.profile files)
     config.host_simulate;
-  if config.build || config.upload then
-    platformio ?pio:config.pio ~upload:config.upload ?port:config.port directory
+  if config.build || config.upload then begin
+    let code =
+      platformio ?pio:config.pio ~upload:config.upload ?port:config.port
+        directory
+    in
+    match (config.capture, config.port, device) with
+    | Some duration, Some port, Some (_, device) when code = 0 ->
+        (* The board is known: the project was written for it. *)
+        let board =
+          Option.get (ArduinoBackend.ArduinoBoard.find device.board.it)
+        in
+        let baud = board.serial_baud in
+        capture ~port ~baud ~duration ~profile:config.profile;
+        exit 0
+    | _ -> exit code
+  end
 
 (* Writes to [filename] the Opentrons protocol of the [commands] of the
    program, with the binding file [binding_name], or reports the errors that

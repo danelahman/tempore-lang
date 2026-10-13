@@ -92,7 +92,7 @@ is called by setup():
   tempore_unit binding_ClearDisplay(tempore_unit);
   
   #endif
-  $ grep -B 1 -A 9 'The hooks' src/main.cpp
+  $ grep -B 1 -A 11 'The hooks' src/main.cpp
   
   // The hooks of the packages.
   void m5_display_init();
@@ -100,6 +100,8 @@ is called by setup():
   void tempore_safe_state() {}
   
   // The periodic task step, of period 50000 us.
+  static tempore_task_monitor tempore_task0_monitor("step", 50000);
+  
   static void tempore_task0(void *) {
     tempore_check_halt();
     auto state = start_0(tempore_unit{});
@@ -165,7 +167,9 @@ world:
 
 The drive of the BALA2 base, with the packages bala2-base and m5-display: the
 transactions with the base on the simulated I2C bus, the counts of its
-encoders from the wheels of the world, and its watchdog, which stops the
+encoders from the wheels of the world, which decrease in its registers as a
+positive drive turns a wheel, as on the base, and increase as read by
+ReadEncoders, and its watchdog, which stops the
 motors 200 ms after the last setpoint (checked every 10 ms). The motors are
 stopped by the initialisation of the package and in the safe state, before
 the safe-state hook of the application:
@@ -179,7 +183,7 @@ the safe-state hook of the application:
   [0.495 ms] Operation SetMotors took 135 us
   [0.495 ms] Delay 100000 us
   [100.495 ms] I2C 0x3a write 10
-  [100.495 ms] I2C 0x3a read 00 00 00 42 ff ff ff de
+  [100.495 ms] I2C 0x3a read ff ff ff be 00 00 00 22
   [100.743 ms] Operation ReadEncoders took 248 us
   [101.743 ms] Display: 66.000
   [101.743 ms] Operation ShowNumber took 1000 us
@@ -189,7 +193,7 @@ the safe-state hook of the application:
   [210.000 ms] BALA2 base: no motor setpoint for 200 ms; motors stopped
   [210.000 ms] I2C 0x3a write 00 00 00 00 00
   [402.743 ms] I2C 0x3a write 10
-  [402.743 ms] I2C 0x3a read 00 00 00 8c ff ff ff b9
+  [402.743 ms] I2C 0x3a read ff ff ff 74 00 00 00 47
   [402.991 ms] Operation ReadEncoders took 248 us
   [403.991 ms] Display: 140.000
   [403.991 ms] Operation ShowNumber took 1000 us

@@ -16,6 +16,7 @@
 class TwoWire {
  public:
   bool begin(int sda, int scl, uint32_t frequency);
+  void setClock(uint32_t frequency);
   void beginTransmission(int address);
   size_t write(uint8_t byte);
   size_t write(const uint8_t *data, size_t length);

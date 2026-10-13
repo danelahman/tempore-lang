@@ -115,7 +115,9 @@ Command-line options:
   `--build` builds the project with PlatformIO (`pio run`), and `--upload`
   builds it and uploads it to the board (`pio run -t upload`), through the
   serial port of `--port <port>` if given, each passing the output of
-  PlatformIO through and exiting with its exit code; `--pio <path>` names the
+  PlatformIO through and exiting with its exit code; `--profile` builds the
+  project with the profile of its running times, and `--capture <seconds>`
+  reads the serial port after the upload; `--pio <path>` names the
   executable, by default `pio` on the `PATH`, or else that of `_arduino/venv`
   in the directory of `tempore` or in the current directory, run with
   `PLATFORMIO_CORE_DIR` set to `_arduino/platformio` unless the environment
@@ -1418,7 +1420,10 @@ An application is described in four layers.
     with the tilt filters `tilt_x` and `tilt_y`;
   - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`;
   - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base
-    of the M5Stack BALA2, with a watchdog of the motor setpoints.
+    of the M5Stack BALA2, with a watchdog of the motor setpoints; the counts
+    of the encoders increase in the direction in which a positive drive turns
+    the wheel (the registers of the base count the other way, and the package
+    negates them).
 - The **application** is the program with its binding file, which defines,
   for each further operation `Op`, the function
   `tempore_result_Op binding_Op(tempore_argument_Op)`, and the safe-state
@@ -1444,6 +1449,25 @@ typing.
 The project can be simulated on the host: the tasks run against host models
 of the devices and of the physical world, in simulated time, and the log is
 printed.
+
+The I2C buses of a board profile are started after M5Unified and then set to
+their frequency, since M5Unified may already have started a bus that shares
+their port at 100 kHz; the optional member `imu_frequency` of a profile sets
+the frequency of the transactions of M5Unified with the inertial measurement
+unit (`M5.Imu.setClock`, 400 kHz by default).
+
+Running times are measured on the device by its profile. With the build flag
+`TEMPORE_PROFILE`, set by `--profile`, the monitors collect the number and
+the least, mean and greatest running time of the calls of each operation and
+of the steps of each periodic task, with the least and greatest interval
+between the starts of consecutive steps and the overruns, since start-up; a
+task of the lowest priority logs them as a table every 5 seconds
+(`TEMPORE_PROFILE_INTERVAL_MS`). The statistics are updated after the clock
+is read and the table is printed outside the timed calls, so that the
+measurement does not lengthen what it measures. The trace of the build flag
+`TEMPORE_TRACE` (for example in `PLATFORMIO_BUILD_FLAGS`), which logs each
+event, lengthens the steps by the time of its serial output and is not
+suited to measurement.
 
 The directory [`examples/arduino/`](examples/arduino/) holds the following
 examples, each with its manifest and binding file:
@@ -1482,7 +1506,17 @@ examples, each with its manifest and binding file:
 
 writes the PlatformIO project to `_arduino/projects/balance`, loading the
 declarations of the packages of the manifest before the file, and simulates
-it on the host for 8 seconds. A name without a directory component names a
+it on the host for 8 seconds;
+
+    ./tempore --grades time-interval-rational \
+      --emit-arduino balance-profile \
+      --device examples/arduino/bala2/balance.device.json \
+      --monitor warn --profile --upload --port /dev/cu.usbserial-02012C91 \
+      --capture 60 \
+      examples/arduino/bala2/balance.tpe
+
+builds the project with the profile, uploads it, and reads the serial port
+for 60 seconds, printing the last profile at the end. A name without a directory component names a
 directory in `_arduino/projects`. The options are:
 
 - `--emit-arduino <directory>` writes the compiled program, and with
@@ -1495,6 +1529,15 @@ directory in `_arduino/projects`. The options are:
 - `--build` builds the project with PlatformIO; `--upload` builds it and
   uploads it to the board, through the serial port `--port <port>` if given;
   `--pio <path>` names the PlatformIO executable;
+- `--profile` builds the project with the profile (`-DTEMPORE_PROFILE` in
+  `platformio.ini`), and under `--host-simulate` logs it in place of the
+  trace, every 5 simulated seconds and at the end;
+- `--capture <seconds>`, with `--upload` and `--port`, reads the serial port
+  after the upload for the given time at the baud rate of the board, prints
+  its lines and, with `--profile`, then the last complete profile; the port
+  is opened in raw mode with its modem control lines as opening it sets them,
+  both asserted, which on the boards with an automatic reset circuit holds
+  neither the reset nor the boot pin, and they are left so when it is closed;
 - `--package <name>`, repeatable, loads the declarations of a package for the
   interpreter, which performs its operations by their default implementations.
 

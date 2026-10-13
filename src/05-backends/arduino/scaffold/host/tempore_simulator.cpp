@@ -29,6 +29,7 @@
 #include <thread>
 #include <vector>
 
+#include "tempore_scaffold.h"
 #include "tempore_world.h"
 
 void setup();
@@ -74,12 +75,16 @@ void wait_resumed(std::unique_lock<std::mutex> &lock, Task *task) {
 }
 
 // Prints the end of the simulation at the time now, or at duration if later,
-// lets the world finish and ends the program.
+// lets the world finish, logs the profile if TEMPORE_PROFILE is defined and
+// ends the program.
 [[noreturn]] void finish(int64_t duration) {
   if (now < duration) now = duration;
   printf("[%lld.%03lld ms] End of the simulation\n",
          static_cast<long long>(now / 1000), static_cast<long long>(now % 1000));
   tempore_world_finish();
+#ifdef TEMPORE_PROFILE
+  tempore_profile_report();
+#endif
   fflush(stdout);
   _Exit(0);
 }

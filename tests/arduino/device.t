@@ -57,6 +57,8 @@ tasks of the manifest, and the stubs of the host simulation.
   void tempore_safe_state() { lights_off(); }
   
   // The periodic task step, of period 10000 us.
+  static tempore_task_monitor tempore_task0_monitor("step", 10000);
+  
   static void tempore_task0(void *) {
     tempore_check_halt();
     auto state = start_0(tempore_unit{});
@@ -66,7 +68,7 @@ tasks of the manifest, and the stubs of the host simulation.
       tempore_trace("Release %s", "step");
       const int64_t start = tempore_clock_us();
       state = step_2(state);
-      tempore_monitor_period("step", tempore_clock_us() - start, 10000);
+      tempore_monitor_period(&tempore_task0_monitor, start, tempore_clock_us());
       vTaskDelayUntil(&release, pdMS_TO_TICKS(10));
     }
   }
@@ -80,11 +82,17 @@ tasks of the manifest, and the stubs of the host simulation.
     vTaskDelete(nullptr);
   }
   
+  tempore_task_monitor *const tempore_task_monitors[] = {
+      &tempore_task0_monitor,
+      nullptr};
+  
   void setup() {
     Serial.begin(115200);
     Wire.begin(21, 22, 400000);
+    Wire.setClock(400000);
     xTaskCreatePinnedToCore(tempore_task0, "step", 4096, nullptr, 2, nullptr, 1);
     xTaskCreatePinnedToCore(tempore_task1, "blinker", 4096, nullptr, 1, nullptr, 0);
+    tempore_profile_begin();
   }
   
   void loop() { vTaskDelete(nullptr); }
@@ -119,24 +127,31 @@ tasks of the manifest, and the stubs of the host simulation.
   #include "tempore_bindings.h"
   
   static const tempore_bounds tempore_op_Show_bounds = {100, false, 200, false, true};
+  static tempore_operation_monitor tempore_op_Show_monitor("Show", &tempore_op_Show_bounds);
   
   tempore_unit tempore_op_Show(uint32_t a) {
     tempore_check_halt();
     const int64_t start = tempore_clock_us();
     const auto r = binding_Show(a);
-    tempore_monitor_operation("Show", tempore_clock_us() - start, &tempore_op_Show_bounds);
+    tempore_monitor_operation(&tempore_op_Show_monitor, tempore_clock_us() - start);
     return r;
   }
   
   static const tempore_bounds tempore_op_Blink_bounds = {200, false, 500, false, true};
+  static tempore_operation_monitor tempore_op_Blink_monitor("Blink", &tempore_op_Blink_bounds);
   
   tempore_unit tempore_op_Blink(uint32_t a) {
     tempore_check_halt();
     const int64_t start = tempore_clock_us();
     const auto r = binding_Blink(a);
-    tempore_monitor_operation("Blink", tempore_clock_us() - start, &tempore_op_Blink_bounds);
+    tempore_monitor_operation(&tempore_op_Blink_monitor, tempore_clock_us() - start);
     return r;
   }
+  
+  tempore_operation_monitor *const tempore_operation_monitors[] = {
+      &tempore_op_Show_monitor,
+      &tempore_op_Blink_monitor,
+      nullptr};
 
 The sources build without warnings, also without exceptions and run-time type
 information, and the host simulation builds with the stubs:
@@ -149,12 +164,13 @@ A board with M5Unified initialises it, and its sources build with the stubs:
 
   $ sed 's/esp32-devkit/m5stack-gray/' toy/toy.device.json > toy/gray.device.json
   $ emit gray --device toy/gray.device.json toy/toy.tpe > /dev/null
-  $ grep -A 4 'void setup' _arduino/projects/gray/src/main.cpp
+  $ grep -A 5 'void setup' _arduino/projects/gray/src/main.cpp
   void setup() {
     Serial.begin(115200);
     auto m5_config = M5.config();
     M5.begin(m5_config);
     Wire.begin(21, 22, 400000);
+    Wire.setClock(400000);
   $ grep -A 4 'lib_deps' _arduino/projects/gray/platformio.ini
   lib_deps =
       m5stack/M5Unified@^0.2.2
@@ -301,3 +317,35 @@ operation outside its bounds, which under abort halts the tasks first.
   [12.000 ms] Lights off
   [12.000 ms] Task step stopped
   [40.000 ms] End of the simulation
+
+With --profile, the project is built with the flag TEMPORE_PROFILE, and the
+host simulation logs, in place of the trace, the profile of the running times
+of the operations and of the steps of the periodic tasks, with the intervals
+between the starts of the steps and the overruns, every 5 s and at its end:
+
+  $ emit overrun --device toy/overrun.device.json toy/toy.tpe --profile --monitor warn --host-simulate 0.05 | grep -v '^Wrote'
+  [0.300 ms] Blink 4
+  [12.000 ms] Show 0
+  [12.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
+  [12.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
+  [24.000 ms] Show 1
+  [24.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
+  [24.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
+  [36.000 ms] Show 2
+  [36.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
+  [36.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
+  [48.000 ms] Show 3
+  [48.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
+  [48.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
+  [50.000 ms] End of the simulation
+  [50.000 ms] Profile since start-up, times in microseconds
+    operation    calls       min       mean       max
+    Show             4     12000    12000.0     12000
+    Blink            1       300      300.0       300
+    task         steps       min       mean       max    period  min interval  max interval  overruns
+    step             4     12000    12000.0     12000     10000         12000         12000         4
+  [50.000 ms] End of the profile
+  $ grep -A 2 'build_flags' _arduino/projects/overrun/platformio.ini
+  build_flags =
+      -std=gnu++17
+      -DTEMPORE_PROFILE

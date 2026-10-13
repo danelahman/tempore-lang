@@ -7,12 +7,13 @@
     {2 Files}
 
     - [platformio.ini]: the environment of the board
-      ({!ArduinoBoard.platformio_ini});
+      ({!ArduinoBoard.platformio_ini}), with the build flag [-DTEMPORE_PROFILE]
+      under [profile];
     - [src/tempore_arduino.h], [src/tempore_program.h],
       [src/tempore_program.cpp]: the compiled program;
     - [src/tempore_scaffold.h], [src/tempore_scaffold.cpp]: the scaffold, the
       same for every device: the clock ([esp_timer_get_time]), the log on the
-      serial port, delays, the monitors and the halt of the tasks;
+      serial port, delays, the monitors, the profile and the halt of the tasks;
     - [src/tempore_bindings.h]: for each operation [Op] the program performs,
       the macro [TEMPORE_PERFORMS_Op], the types [tempore_argument_Op] and
       [tempore_result_Op] of its argument and result, and the declaration of its
@@ -21,12 +22,15 @@
     - [src/tempore_operations.cpp]: the function [tempore_op_Op] of each
       operation [Op] the program performs, which calls the binding function
       [binding_Op] ({!ArduinoNames.binding}) and checks its running time against
-      the bounds of the operation;
+      the bounds of the operation, and the array [tempore_operation_monitors] of
+      the monitors of the operations;
     - [src/main.cpp]: the configuration, the safe state, which calls the
       safe-state functions of the packages and then the safe-state hook of the
-      application, [setup()], which initialises the board, calls the
-      initialisation functions of the packages and creates a FreeRTOS task for
-      each task of the manifest, and [loop()], which deletes its own task;
+      application, the array [tempore_task_monitors] of the monitors of the
+      periodic tasks, [setup()], which initialises the board, calls the
+      initialisation functions of the packages, creates a FreeRTOS task for each
+      task of the manifest and starts the profile, and [loop()], which deletes
+      its own task;
     - the sources of the packages ({!ArduinoPackage}) and the binding file of
       the manifest, in [src/];
     - [host/]: the stubs of Arduino, FreeRTOS, the timer of the ESP32, [Wire]
@@ -62,7 +66,20 @@
     run-time error log their cause, call the safe-state hook once and halt the
     tasks; under [Warn] the first two are logged and the tasks go on, and under
     [Off] they are not checked. A run-time error halts the tasks under every
-    policy. *)
+    policy.
+
+    {2 Profile}
+
+    With the build flag [TEMPORE_PROFILE], the monitors collect the least, mean
+    and greatest running time of the calls of each operation and of the steps of
+    each periodic task, the least and greatest interval between the starts of
+    consecutive steps and the number of overruns, since start-up, and a task of
+    the lowest priority logs them as a table every [TEMPORE_PROFILE_INTERVAL_MS]
+    milliseconds (default 5000). The statistics are updated in a critical
+    section after the clock is read, and the table is printed by a task of its
+    own, outside the calls and steps it times; unlike the trace of
+    [TEMPORE_TRACE], which logs each event, the profile does not lengthen the
+    times it measures. *)
 
 type monitor = Abort | Warn | Off
 
@@ -94,6 +111,8 @@ type input = {
       (** the name and the text of the binding file of the manifest, if any *)
   host_models : (string * string) list;
       (** the name and the text of each host model of the manifest, in order *)
+  profile : bool;
+      (** whether the project is built with the profile ([TEMPORE_PROFILE]) *)
 }
 (** What a project is made from. *)
 
@@ -130,10 +149,17 @@ val host_sources : (string * string) list -> string list
     that its host build compiles: those of [src/] and of [host/]. *)
 
 val host_build_command :
-  directory:string -> output:string -> (string * string) list -> string list
+  ?profile:bool ->
+  directory:string ->
+  output:string ->
+  (string * string) list ->
+  string list
 (** [host_build_command ~directory ~output files] is the command, as a list of
     its words, that compiles the project [files] written to [directory] for the
     host simulation into the executable [output], with [c++] under C++17,
-    [TEMPORE_HOST] and [TEMPORE_TRACE] defined, and threads. The executable
-    takes the simulated duration in microseconds as its argument and prints the
-    log of the device, with the events of the tasks traced. *)
+    [TEMPORE_HOST] and [TEMPORE_TRACE] defined, and threads; under [~profile]
+    (default [false]), with [TEMPORE_PROFILE] in place of [TEMPORE_TRACE]. The
+    executable takes the simulated duration in microseconds as its argument and
+    prints the log of the device, with the events of the tasks traced, or under
+    [~profile] with the profile every 5 simulated seconds and at the end of the
+    simulation. *)

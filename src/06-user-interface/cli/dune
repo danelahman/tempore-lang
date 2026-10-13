@@ -10,4 +10,5 @@
   opentronsBackend
   arduinoBackend
   typechecker
+  unix
   zarith))

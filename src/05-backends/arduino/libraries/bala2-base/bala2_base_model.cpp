@@ -2,8 +2,10 @@
 // Wire: its registers of the motors and the encoders over the wheels of the
 // world. A drive d of a motor, clamped to -1023 to 1023, sets the drive of
 // its wheel to d / 1023; the count of an encoder is the angle of its wheel
-// times BALA2_MODEL_COUNTS_PER_REVOLUTION / (2 pi), rounded down, less its
-// value at the last write of the encoders plus the value written.
+// times BALA2_MODEL_COUNTS_PER_REVOLUTION / (2 pi), rounded down, at the last
+// write of the encoders, less that at the time of the reading, plus the value
+// written. As on the base, the counts decrease as a positive drive turns the
+// wheel.
 
 #include <Wire.h>
 #include <math.h>
@@ -37,14 +39,14 @@ class bala2_base_model : public tempore_i2c_registers {
       }
     if (first == encoders && length >= 8)
       for (int i = 0; i < 2; ++i)
-        offset[i] = count(w.wheel[i]) - static_cast<int32_t>(word(encoders + 4 * i));
+        offset[i] = count(w.wheel[i]) + static_cast<int32_t>(word(encoders + 4 * i));
   }
 
   void reading(uint8_t first, size_t length) override {
     if (first >= encoders + 8 || first + length <= encoders) return;
     const tempore_world &w = tempore_world_now();
     for (int i = 0; i < 2; ++i) {
-      const uint32_t c = static_cast<uint32_t>(count(w.wheel[i]) - offset[i]);
+      const uint32_t c = static_cast<uint32_t>(offset[i] - count(w.wheel[i]));
       for (int k = 0; k < 4; ++k)
         registers[encoders + 4 * i + k] = static_cast<uint8_t>(c >> (24 - 8 * k));
     }

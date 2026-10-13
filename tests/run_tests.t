@@ -8128,6 +8128,7 @@ single-dash form of the help option is not accepted.
     --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30)
     --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
     --build           Build the project written with --device with PlatformIO, passing its output through and exiting with its exit code
+    --capture         After --upload, read the serial port of --port at the baud rate of the board for the given number of seconds, printing its lines, and then the last complete profile among them, if any
     --debug           Print the inferred type schemes of the top-level definitions before running
     --device          With --emit-arduino, write a PlatformIO project of the device described by the given manifest
     --emit-arduino    Typecheck the files and write them, compiled to C++, to the given directory, without running them; a name without a directory component names a directory in _arduino/projects
@@ -8188,6 +8189,7 @@ single-dash form of the help option is not accepted.
     --package         Load the declarations of the operations of the given peripheral package of the Arduino backend before the files, so that the program may perform them, run by their default implementations; repeatable; the packages of a device written with --device are those of its manifest
     --pio             Use the given executable as the PlatformIO of --build and --upload (default: pio on the PATH, or else in _arduino/venv)
     --port            Upload through the given serial port under --upload (default: the port PlatformIO detects)
+    --profile         Build the project written with --device with the profile of the running times of its operations and periodic tasks, logged every 5 seconds in place of the trace under --host-simulate
     --robot           Set the robot of the protocol written with --bind: flex (default: flex)
     --simulate        Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code
     --simulator       Use the given executable as the Opentrons simulator of --simulate (default: opentrons_simulate on the PATH, or else in _opentrons)

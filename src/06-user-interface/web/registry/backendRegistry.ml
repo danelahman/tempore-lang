@@ -396,6 +396,7 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
                 List.map
                   (fun (name : Device.name) -> (name.it, ""))
                   device.host_models;
+              profile = false;
             }
             program
         in

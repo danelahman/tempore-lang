@@ -50,6 +50,8 @@ bool TwoWire::begin(int, int, uint32_t frequency) {
   return true;
 }
 
+void TwoWire::setClock(uint32_t frequency) { frequency_ = frequency; }
+
 void TwoWire::beginTransmission(int address) {
   address_ = address;
   sent_length_ = 0;

@@ -203,7 +203,7 @@ not checked against its period, whose overruns only the monitor detects:
   Wrote _arduino/projects/levels/host/freertos/task.h
   $ grep -A1 'The periodic task' _arduino/projects/levels/src/main.cpp
   // The periodic task tick, of period 10000 us; its grades bound no durations, so its steps are checked against the period by the monitor only.
-  static void tempore_task0(void *) {
+  static tempore_task_monitor tempore_task0_monitor("tick", 10000);
 
 Bindings: the operations performed need a binding file that mentions their
 binding functions, and the safe-state hook must be mentioned too:

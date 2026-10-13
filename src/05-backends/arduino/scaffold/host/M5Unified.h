@@ -12,9 +12,10 @@ struct tempore_m5_config {};
 
 // The inertial measurement unit: update reads the sensors, getAccel the
 // acceleration in g and getGyro the angular rate in degrees per second read
-// last.
+// last; the frequency of its bus is ignored.
 class tempore_m5_imu {
  public:
+  void setClock(uint32_t) {}
   int update();
   bool getAccel(float *x, float *y, float *z);
   bool getGyro(float *x, float *y, float *z);

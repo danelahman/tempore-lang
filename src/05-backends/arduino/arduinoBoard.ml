@@ -12,6 +12,7 @@ type t = {
   build_flags : string list;
   cores : int;
   m5unified : bool;
+  imu_frequency : int option;
   capabilities : string list;
   serial_baud : int;
   i2c : i2c list;
@@ -44,6 +45,7 @@ let parse name text =
           "build_flags";
           "cores";
           "m5unified";
+          "imu_frequency";
           "capabilities";
           "serial_baud";
           "i2c";
@@ -55,6 +57,11 @@ let parse name text =
   let strings = Json.list Json.string in
   let m5unified = Json.required f "m5unified" Json.bool in
   let i2c = Json.required f "i2c" (Json.list i2c) in
+  let imu_frequency = Json.optional f "imu_frequency" Json.int in
+  if imu_frequency <> None && not m5unified then
+    Utils.Error.compilation
+      ~loc:(Json.location f "imu_frequency")
+      "The member 'imu_frequency' of a board profile requires 'm5unified'";
   {
     name;
     description = Json.required f "description" Json.string;
@@ -65,6 +72,7 @@ let parse name text =
     build_flags = Json.required f "build_flags" strings;
     cores = Json.required f "cores" Json.int;
     m5unified;
+    imu_frequency;
     capabilities =
       (if m5unified then [ "m5unified" ] else [])
       @ (if i2c <> [] then [ "i2c" ] else [])

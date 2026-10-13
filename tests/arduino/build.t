@@ -84,6 +84,65 @@ over it.
   PLATFORMIO_CORE_DIR=_arduino/platformio
   $ cd ..
 
+With --capture, after a successful upload the serial port of --port is read
+at the baud rate of the board for the given number of seconds, or until its
+end, and its lines are printed without their carriage returns; with
+--profile, the last complete profile among them follows. A terminal is read
+as raw input, its modem control lines left as opening it sets them; here the
+port is a file of a log with two profiles, the line of another task within
+the second, and the start of a third profile:
+
+  $ printf '[0.1 ms] Start\r\n[5000.0 ms] Profile since start-up, times in microseconds\r\n  operation calls\r\n  Show 500\r\n[5000.1 ms] End of the profile\r\n' > serial.log
+  $ printf '[10000.0 ms] Profile since start-up, times in microseconds\r\n  operation calls\r\n[10000.0 ms] Display: 1\r\n  Show 1000\r\n[10000.1 ms] End of the profile\r\n' >> serial.log
+  $ printf '[15000.0 ms] Profile since start-up, times in microseconds\r\n  operation' >> serial.log
+  $ run PATH="$PWD/bin:$PATH" $T toy --device toy/toy.device.json toy/toy.tpe --upload \
+  >   --port serial.log --capture 2 --profile
+  pio run -d _arduino/projects/toy -t upload --upload-port serial.log
+  a warning of PlatformIO
+  [0.1 ms] Start
+  [5000.0 ms] Profile since start-up, times in microseconds
+    operation calls
+    Show 500
+  [5000.1 ms] End of the profile
+  [10000.0 ms] Profile since start-up, times in microseconds
+    operation calls
+  [10000.0 ms] Display: 1
+    Show 1000
+  [10000.1 ms] End of the profile
+  [15000.0 ms] Profile since start-up, times in microseconds
+    operation
+  The last profile read:
+  [10000.0 ms] Profile since start-up, times in microseconds
+    operation calls
+    Show 1000
+  [10000.1 ms] End of the profile
+  $ run PATH="$PWD/bin:$PATH" $T toy --device toy/toy.device.json toy/toy.tpe --upload \
+  >   --port serial.log --capture 2 | tail -n 2
+  [15000.0 ms] Profile since start-up, times in microseconds
+    operation
+  $ head -c 10 serial.log > short.log
+  $ run PATH="$PWD/bin:$PATH" $T toy --device toy/toy.device.json toy/toy.tpe --upload \
+  >   --port short.log --capture 2 --profile
+  pio run -d _arduino/projects/toy -t upload --upload-port short.log
+  a warning of PlatformIO
+  [0.1 ms] S
+  No complete profile was read.
+
+A failed upload is not followed by the capture, and a port that does not
+appear within the capture is an error:
+
+  $ run $T toy --device toy/toy.device.json toy/toy.tpe --upload --pio ./failing_pio \
+  >   --port serial.log --capture 2
+  pio run -d _arduino/projects/toy -t upload --upload-port serial.log
+  Error: the build failed
+  [3]
+  $ run PATH="$PWD/bin:$PATH" $T toy --device toy/toy.device.json toy/toy.tpe --upload \
+  >   --port missing.log --capture 0.2
+  pio run -d _arduino/projects/toy -t upload --upload-port missing.log
+  a warning of PlatformIO
+  Error: the serial port missing.log: No such file or directory
+  [1]
+
 The options of PlatformIO need a project.
 
   $ $T toy toy/toy.tpe --build
@@ -104,3 +163,14 @@ The options of PlatformIO need a project.
   $ $T toy --device toy/toy.device.json toy/toy.tpe --build --host-simulate 1
   ../../tempore: option '--build' cannot be used with '--host-simulate'.
   [2]
+  $ $T toy --device toy/toy.device.json toy/toy.tpe --upload --capture 1
+  ../../tempore: option '--capture' requires '--port'.
+  [2]
+  $ $T toy --device toy/toy.device.json toy/toy.tpe --build --capture 1
+  ../../tempore: option '--capture' requires '--upload'.
+  [2]
+  $ $T toy toy/toy.tpe --profile
+  ../../tempore: option '--profile' requires '--device'.
+  [2]
+  $ $T toy --device toy/toy.device.json toy/toy.tpe --upload --port p --capture 0 2>&1 | head -n 1
+  ../../tempore: option '--capture': '0' is not a positive number of seconds of at most 10^6.

@@ -65,11 +65,11 @@ exceptions and run-time type information:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json $app/peak.tpe | grep -c Wrote
   26
-  $ grep -c 'tempore_monitor_operation(.*, nullptr);' _arduino/projects/peak/src/tempore_operations.cpp
+  $ grep -c 'tempore_operation_monitor .*, nullptr);' _arduino/projects/peak/src/tempore_operations.cpp
   8
   $ grep 'The periodic task\|tempore_monitor_period' _arduino/projects/peak/src/main.cpp
   // The periodic task step, of period 20000 us; its grades bound no durations, so its steps are checked against the period by the monitor only.
-      tempore_monitor_period("step", tempore_clock_us() - start, 20000);
+      tempore_monitor_period(&tempore_task0_monitor, start, tempore_clock_us());
   $ cd _arduino/projects/peak
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..

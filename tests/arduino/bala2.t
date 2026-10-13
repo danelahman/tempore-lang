@@ -185,3 +185,31 @@ robot falls:
   [8000.000 ms] Plant: tilt -80.21 degrees, wheels at 0.097 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release 80.21 degrees
   [8000.000 ms] Plant: largest drive 0.280, last at 3995.6 ms
+
+The profile of the closed loop over 6 s, built with TEMPORE_PROFILE in place
+of TEMPORE_TRACE, at the end of the simulation: each call takes the nominal
+time of its binding or device model, and the steps keep their period of 5 ms
+from the second on, the first starting late in its tick after the initial
+function:
+
+  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_PROFILE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ ./simulation 6000000 | sed -n '/End of the simulation/,$p' | grep -v Plant
+  [6000.000 ms] End of the simulation
+  [6000.000 ms] Profile since start-up, times in microseconds
+    operation        calls       min       mean       max
+    ReadImu           1201       383      383.0       383
+    ShowText             3      1000     1000.0      1000
+    ShowNumber           4      1000     1000.0      1000
+    ClearDisplay         1     31000    31000.0     31000
+    SetMotors         1200       135      135.0       135
+    ReadEncoders      1200       248      248.0       248
+    ResetEncoders        1       225      225.0       225
+    Publish           1200         0        0.0         0
+    Setpoints         1200         0        0.0         0
+    Attitude            95         0        0.0         0
+    Arm                  1         0        0.0         0
+    Disarm               1         0        0.0         0
+    Command             45         0        0.0         0
+    task             steps       min       mean       max    period  min interval  max interval  overruns
+    step              1200       766      766.0       766      5000          4257          5000         0
+  [6000.000 ms] End of the profile
