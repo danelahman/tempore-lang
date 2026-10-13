@@ -13,8 +13,9 @@
       pinned;
     - ["m5unified"]: whether the board is initialised by M5Unified;
     - ["imu_frequency"], optional, under ["m5unified"]: the frequency in hertz
-      of the I2C transactions of M5Unified with the inertial measurement unit,
-      set by [M5.Imu.setClock] after [M5.begin]; without it, the default of
+      of the I2C transactions with the inertial measurement unit, set by
+      [M5.Imu.setClock] after [M5.begin] and by the build flag
+      [TEMPORE_IMU_FREQUENCY] for the package m5-imu; without it, the default of
       M5Unified, 400 kHz;
     - ["capabilities"]: an array of names of further capabilities of the board
       that peripheral packages may require ({!ArduinoPackage}): ["imu"], an

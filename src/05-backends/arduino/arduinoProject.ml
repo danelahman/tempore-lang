@@ -696,13 +696,14 @@ let files input (program : F.program) =
   List.map (fun (path, text) -> ("src/" ^ path, text)) compiled.files
   @ [
       ( "platformio.ini",
+        let flags =
+          List.map
+            (Printf.sprintf "-DTEMPORE_IMU_FREQUENCY=%d")
+            (Option.to_list board.imu_frequency)
+          @ if input.profile then [ "-DTEMPORE_PROFILE" ] else []
+        in
         Board.platformio_ini
-          (if input.profile then
-             {
-               board with
-               build_flags = board.build_flags @ [ "-DTEMPORE_PROFILE" ];
-             }
-           else board) );
+          { board with build_flags = board.build_flags @ flags } );
       ("src/main.cpp", main_source input board packages tasks);
       ("src/tempore_bindings.h", bindings_header input compiled);
       ("src/tempore_operations.cpp", operations_source input compiled);

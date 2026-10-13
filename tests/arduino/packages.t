@@ -92,9 +92,10 @@ is called by setup():
   tempore_unit binding_ClearDisplay(tempore_unit);
   
   #endif
-  $ grep -B 1 -A 11 'The hooks' src/main.cpp
+  $ grep -B 1 -A 12 'The hooks' src/main.cpp
   
   // The hooks of the packages.
+  void m5_imu_init();
   void m5_display_init();
   
   void tempore_safe_state() {}

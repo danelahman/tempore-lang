@@ -1431,7 +1431,9 @@ An application is described in four layers.
   - `i2c`: `I2cWrite8`, `I2cWrite16`, `I2cWrite32`, `I2cRead8`, `I2cRead16`
     and `I2cRead32`, register transactions on the bus `Wire`;
   - `m5-imu`: `ReadImu`, the accelerometer and gyroscope of an M5Stack core,
-    with the tilt filters `tilt_x` and `tilt_y`;
+    with the tilt filters `tilt_x` and `tilt_y`; a unit of the MPU6886 family
+    is read in one transaction of 14 bytes and converted as by M5Unified,
+    any other unit through `M5.Imu.update`;
   - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`;
   - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base
     of the M5Stack BALA2, with a watchdog of the motor setpoints; the counts
@@ -1467,8 +1469,9 @@ printed.
 The I2C buses of a board profile are started after M5Unified and then set to
 their frequency, since M5Unified may already have started a bus that shares
 their port at 100 kHz; the optional member `imu_frequency` of a profile sets
-the frequency of the transactions of M5Unified with the inertial measurement
-unit (`M5.Imu.setClock`, 400 kHz by default).
+the frequency of the transactions with the inertial measurement unit
+(`M5.Imu.setClock`, and the build flag `TEMPORE_IMU_FREQUENCY` of the package
+`m5-imu`; 400 kHz by default).
 
 Running times are measured on the device by its profile. With the build flag
 `TEMPORE_PROFILE`, set by `--profile`, the monitors collect the number and

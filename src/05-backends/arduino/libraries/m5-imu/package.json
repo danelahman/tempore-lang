@@ -11,5 +11,6 @@
   "requires": ["m5unified", "imu"],
   "sources": ["m5_imu.cpp"],
   "host_models": ["m5_imu_model.cpp"],
-  "bindings": ["ReadImu"]
+  "bindings": ["ReadImu"],
+  "init": "m5_imu_init"
 }
