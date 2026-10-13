@@ -4,6 +4,7 @@
     embedded in the compiler; adding a board means adding a profile. Its members
     are:
 
+    - ["title"]: a short string naming the board, shown in listings;
     - ["description"]: a string describing the board;
     - ["platform"], ["board"], ["framework"]: the PlatformIO platform, board
       identifier and framework of the [platformio.ini] of the project;
@@ -37,6 +38,7 @@ type i2c = { port : string; sda : int; scl : int; frequency : int }
 
 type t = {
   name : string;
+  title : string;
   description : string;
   platform : string;
   board : string;

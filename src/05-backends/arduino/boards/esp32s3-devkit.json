@@ -1,4 +1,5 @@
 {
+  "title": "ESP32-S3 DevKit",
   "description": "Generic ESP32-S3 development board (ESP32-S3-DevKitC-1); I2C on the default pins",
   "platform": "espressif32",
   "board": "esp32-s3-devkitc-1",

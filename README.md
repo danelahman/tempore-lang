@@ -1521,7 +1521,12 @@ event, lengthens the steps by the time of its serial output and is not
 suited to measurement.
 
 The directory [`examples/arduino/`](examples/arduino/) holds the following
-examples, each with its manifest and binding file:
+examples, each with its manifest and binding file, grouped by board. The board
+is that of the manifest, and its profile and serial port variable are named
+below.
+
+M5Stack Gray, the core of the M5Stack BALA2 self-balancing robot (profile
+`m5stack-gray`, port variable `PORT_M5STACK_GRAY`):
 
 - [`bala2/balance.tpe`](examples/arduino/bala2/balance.tpe): a 5 ms balancing
   step of the M5Stack BALA2 robot with its supervision and calibration, and
@@ -1539,13 +1544,17 @@ examples, each with its manifest and binding file:
   minutes, drives and disarms, in this order; handlers, which the device does
   not use, simulate the robot and a fault of its gyroscope in the
   interpreter, each case of an operation performing that operation;
-- [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
-  M5Stack CoreS3 Lite, with a 20 ms filter step and a display task;
 - [`wheels/wheels.tpe`](examples/arduino/wheels/wheels.tpe): a wheel check of
   the M5Stack BALA2 on a stand, under the regular expressions of timed
   operations: the counts of the encoders are divided by the length of the
   window only after a drive command, 100 to 101 ms and a reading of the
-  encoders, in this order;
+  encoders, in this order.
+
+M5Stack CoreS3 and CoreS3 Lite (profile `m5stack-cores3`, port variable
+`PORT_M5STACK_CORES3`):
+
+- [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
+  M5Stack CoreS3 Lite, with a 20 ms filter step and a display task;
 - [`peak/peak.tpe`](examples/arduino/peak/peak.tpe): a recorder of the peak
   tilt in the flash memory of the M5Stack CoreS3 Lite, under the operation
   counts: the step performs one reading and one publication and no write of

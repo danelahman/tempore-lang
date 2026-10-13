@@ -4,6 +4,7 @@ type i2c = { port : string; sda : int; scl : int; frequency : int }
 
 type t = {
   name : string;
+  title : string;
   description : string;
   platform : string;
   board : string;
@@ -37,6 +38,7 @@ let parse name text =
     Json.fields ~what:"a board profile"
       ~accepted:
         [
+          "title";
           "description";
           "platform";
           "board";
@@ -64,6 +66,7 @@ let parse name text =
       "The member 'imu_frequency' of a board profile requires 'm5unified'";
   {
     name;
+    title = Json.required f "title" Json.string;
     description = Json.required f "description" Json.string;
     platform = Json.required f "platform" Json.string;
     board = Json.required f "board" Json.string;

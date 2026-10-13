@@ -1,4 +1,5 @@
 {
+  "title": "ESP32 DevKit",
   "description": "Generic ESP32 development board (ESP32-WROOM-32); I2C on the default pins",
   "platform": "espressif32",
   "board": "esp32dev",

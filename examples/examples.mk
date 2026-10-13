@@ -13,7 +13,9 @@
 #   the program, EXAMPLE_SIMULATE, the seconds of its host simulation, and
 #   optionally EXAMPLE_LOG_FLAGS, the build flags of its target -log. The
 #   board is that of the manifest, and its port the variable PORT_BOARD, the
-#   name of the board in upper case with '-' replaced by '_'.
+#   name of the board in upper case with '-' replaced by '_'. 'make
+#   examples-help' groups the Arduino targets by board, named by the member
+#   "title" of the board profile.
 #
 # Each target builds tempore first, and a target that needs the Opentrons
 # simulator or PlatformIO first installs it by opentrons-deps or
@@ -159,6 +161,7 @@ arduino-$(1)-log: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 ARDUINO_LOGS += $(1)
+ARDUINO_LOGS_$(4) += $(1)
 ARDUINO_TARGETS += arduino-$(1)-log
 ARDUINO_LOG_FLAGS_$(1) = $(EXAMPLE_LOG_FLAGS)
 endef
@@ -177,25 +180,35 @@ opentrons-simulate-all: $(OPENTRONS_EXAMPLES:%=opentrons-%-simulate)
 arduino-simulate-all: $(ARDUINO_EXAMPLES:%=arduino-%-simulate)
 arduino-build-all: $(ARDUINO_EXAMPLES:%=arduino-%-build)
 
+# The title of the board $(1), the member "title" of its profile.
+board_title = $(shell sed -n 's/^ *"title": *"\([^"]*\)".*/\1/p' \
+  src/05-backends/arduino/boards/$(1).json)
+
+# The help of the Arduino examples of the board $(1): its title, port
+# variable and port, and the targets of its examples.
+define arduino_board_help
+	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $($(call port_variable,$(1))):"
+	@echo "  NAME one of: $(ARDUINO_EXAMPLES_$(1))"
+	@echo "  arduino-NAME-simulate     simulates the project on the host"
+	@echo "  arduino-NAME-build        builds the project with PlatformIO"
+	@echo "  arduino-NAME-upload       builds the project and uploads it to the board"
+	@echo "  arduino-NAME-profile      uploads the project with the profile and reads the port"
+	@$(foreach name,$(ARDUINO_LOGS_$(1)),printf '  %-25s %s\n' \
+	  "arduino-$(name)-log" \
+	  "uploads the project with $(ARDUINO_LOG_FLAGS_$(name)) and reads the port";)
+endef
+
 examples-help:
 	@echo "Opentrons examples, NAME one of: $(OPENTRONS_EXAMPLES)"
 	@echo "  opentrons-NAME-emit       writes the protocol to _opentrons/protocols/NAME.py"
 	@echo "  opentrons-NAME-simulate   writes the protocol and runs the Opentrons simulator"
 	@echo "  opentrons-simulate-all    opentrons-NAME-simulate for every example"
-	@echo "Arduino examples, NAME one of: $(ARDUINO_EXAMPLES)"
-	@echo "  arduino-NAME-simulate     simulates the project on the host"
-	@echo "  arduino-NAME-build        builds the project with PlatformIO"
-	@echo "  arduino-NAME-upload       builds the project and uploads it to the board"
-	@echo "  arduino-NAME-profile      uploads the project with the profile and reads the port"
-	@$(foreach name,$(ARDUINO_LOGS),printf '  %-25s %s\n' \
-	  "arduino-$(name)-log" \
-	  "uploads the project with $(ARDUINO_LOG_FLAGS_$(name)) and reads the port";)
+	@echo "Arduino examples, by board:"
+	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_board_help,$(board)))
+	@echo "All Arduino examples:"
 	@echo "  arduino-simulate-all      arduino-NAME-simulate for every example"
 	@echo "  arduino-build-all         arduino-NAME-build for every example"
 	@echo "Variables, with their values:"
-	@$(foreach board,$(sort $(ARDUINO_BOARDS)),printf '  %-44s %s\n' \
-	  "$(call port_variable,$(board))=$($(call port_variable,$(board)))" \
-	  "the port of $(board): $(ARDUINO_EXAMPLES_$(board))";)
 	@printf '  %-44s %s\n' \
 	  "PORT=$(PORT)" "when set, the port of every upload" \
 	  "CAPTURE=$(CAPTURE)" "the seconds for which the port is read" \

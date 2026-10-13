@@ -1,4 +1,5 @@
 {
+  "title": "M5Stack Gray",
   "description": "M5Stack Gray: ESP32 with an MPU6886 IMU; external I2C on port A",
   "platform": "espressif32",
   "board": "m5stack-grey",
