@@ -361,6 +361,13 @@ type task_code = {
   initial : resolved option;
 }
 
+(* Whether the board has a screen driven through M5Unified, on which the
+   events of the monitor are shown. *)
+let has_screen (board : Board.t) =
+  board.m5unified && List.mem "display" board.capabilities
+
+let m5_directory = "m5/"
+
 let main_source input board packages tasks =
   let device = input.device in
   let hooks f = List.filter_map (fun (p : Package.t) -> f p) packages in
@@ -464,6 +471,13 @@ let main_source input board packages tasks =
       | hooks ->
           "" :: "// The hooks of the packages."
           :: List.map (fun f -> "void " ^ f ^ "();") hooks)
+    @ (if has_screen board then
+         [
+           "";
+           "// The display of the events of the monitor on the screen.";
+           "extern const tempore_monitor_display tempore_m5_monitor_display;";
+         ]
+       else [])
     @ [
         "";
         (match
@@ -508,6 +522,9 @@ let main_source input board packages tasks =
         board.i2c
     @ List.map (fun s -> "  " ^ s) board.init
     @ List.map (fun f -> "  " ^ f ^ "();") inits
+    @ (if has_screen board then
+         [ "  tempore_monitor_display_begin(&tempore_m5_monitor_display);" ]
+       else [])
     @ List.mapi
         (fun i { task; _ } ->
           Printf.sprintf
@@ -710,10 +727,13 @@ let files input (program : F.program) =
       ("src/tempore_bindings.h", bindings_header input compiled);
       ("src/tempore_operations.cpp", operations_source input compiled);
     ]
-  @ List.map
+  @ List.filter_map
       (fun (path, text) ->
-        if String.starts_with ~prefix:host_directory path then (path, text)
-        else ("src/" ^ path, text))
+        if String.starts_with ~prefix:host_directory path then Some (path, text)
+        else if String.starts_with ~prefix:m5_directory path then
+          if has_screen board then Some ("src/" ^ Filename.basename path, text)
+          else None
+        else Some ("src/" ^ path, text))
       Arduino_scaffold.files
   @ List.concat_map
       (fun (p : Package.t) ->

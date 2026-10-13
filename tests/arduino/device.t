@@ -20,6 +20,7 @@ tasks of the manifest, and the stubs of the host simulation.
   Wrote _arduino/projects/toy/host/tempore_i2c_model.h
   Wrote _arduino/projects/toy/host/tempore_world.h
   Wrote _arduino/projects/toy/host/tempore_i2c_bus.cpp
+  Wrote _arduino/projects/toy/host/tempore_m5_display.cpp
   Wrote _arduino/projects/toy/host/tempore_simulator.cpp
   Wrote _arduino/projects/toy/host/tempore_world.cpp
   Wrote _arduino/projects/toy/host/freertos/FreeRTOS.h

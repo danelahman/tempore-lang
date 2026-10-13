@@ -1,7 +1,7 @@
 // The part of M5Unified that the scaffold and the packages use, on the host.
-// The initialisation does nothing; the inertial measurement unit, the
-// display, the touch screen and the speaker are defined by the host models of
-// the packages that use them.
+// The initialisation does nothing; the display is defined by
+// tempore_m5_display.cpp, and the inertial measurement unit, the touch screen
+// and the speaker by the host models of the packages that use them.
 
 #ifndef TEMPORE_HOST_M5UNIFIED_H
 #define TEMPORE_HOST_M5UNIFIED_H
@@ -59,6 +59,9 @@ class tempore_m5_display {
   void setTextSize(float size);
   void setCursor(int32_t x, int32_t y);
   void setTextColor(uint32_t foreground, uint32_t background);
+  int32_t getCursorX() const { return cursor_x; }
+  int32_t getCursorY() const { return cursor_y; }
+  float getTextSizeX() const { return text_size; }
   int32_t width() const { return 320; }
   int32_t height() const { return 240; }
   int32_t textWidth(const char *text) const;

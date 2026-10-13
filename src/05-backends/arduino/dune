@@ -16,7 +16,8 @@
 ; The board profiles boards/NAME.json are embedded as the list
 ; Arduino_boards.profiles of pairs of NAME and the text of the profile, and the
 ; files of the scaffold under scaffold/ as the list Arduino_scaffold.files of
-; pairs of their paths below scaffold/ and their texts.
+; pairs of their paths below scaffold/ and their texts; those under m5/ are
+; those of the boards with a screen driven through M5Unified.
 
 (rule
  (target arduino_boards.ml)
@@ -33,6 +34,7 @@
  (deps
   (glob_files scaffold/*.h)
   (glob_files scaffold/*.cpp)
+  (glob_files scaffold/m5/*.cpp)
   (glob_files scaffold/host/*.h)
   (glob_files scaffold/host/*.cpp)
   (glob_files scaffold/host/freertos/*.h))

@@ -128,7 +128,7 @@ against its period; its sources compile without exceptions and run-time type
 information:
 
   $ tempore --emit-arduino level --device $app/level.device.json $app/level.tpe | grep -c Wrote
-  31
+  32
   $ cd _arduino/projects/level
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
@@ -149,11 +149,11 @@ during the shaking at about 7.36 s, and taken again at about 9.36 s:
   $ tempore --emit-arduino level --device $app/level.device.json --host-simulate 10 $app/level.tpe |
   >   grep 'Display disc\|Display at (\(130, 120\|0, 150\|0, 172\|206, 6\))\|Speaker\|accelerometer\|simulation' | changes
   [45.176 ms] Display at (206, 6): Sensor rate: 100 Hz
-  [54.848 ms] IMU: accelerometer at 100 Hz
-  [55.986 ms] Display disc at (55, 82), radius 8: 0x808080
-  [64.266 ms] Display at (130, 120):
-  [68.346 ms] Display at (0, 150): No reference: place on the
-  [72.426 ms] Display at (0, 172): surface, tap Set reference
+  [54.079 ms] IMU: accelerometer at 100 Hz
+  [55.217 ms] Display disc at (55, 82), radius 8: 0x808080
+  [63.497 ms] Display at (130, 120):
+  [67.577 ms] Display at (0, 150): No reference: place on the
+  [71.657 ms] Display at (0, 172): surface, tap Set reference
   [1067.003 ms] Display at (0, 150): Hold still...
   [1070.563 ms] Display at (0, 172):
   [2355.365 ms] Speaker: 2000 Hz for 100 ms

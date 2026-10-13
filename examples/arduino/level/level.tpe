@@ -260,8 +260,8 @@ let start () : state =
   perform ShowTextAt (130, 45, 2, "Pitch");
   perform ShowTextAt (130, 85, 2, "Roll");
   perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 100 Hz");
-  perform DrawButton (0, 196, 144, 30, "Set reference");
-  perform DrawButton (148, 196, 172, 30, "Reconfigure sensor");
+  perform DrawButton (0, 194, 144, 24, "Set reference");
+  perform DrawButton (148, 194, 172, 24, "Reconfigure sensor");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ConfigureImu 100;
   (NoReference, 0, 100, false)

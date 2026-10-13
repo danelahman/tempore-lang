@@ -98,10 +98,10 @@ is called by setup():
   Wrote _arduino/projects/tilt/src/tempore_operations.cpp
   Wrote _arduino/projects/tilt/src/tempore_scaffold.h
   Wrote _arduino/projects/tilt/src/tempore_scaffold.cpp
+  Wrote _arduino/projects/tilt/src/tempore_m5_monitor.cpp
   Wrote _arduino/projects/tilt/src/m5_imu.cpp
   Wrote _arduino/projects/tilt/host/m5_imu_model.cpp
   Wrote _arduino/projects/tilt/src/m5_display.cpp
-  Wrote _arduino/projects/tilt/host/m5_display_model.cpp
   $ cd _arduino/projects/tilt
   $ sed -n '/The operations performed/,$p' src/tempore_bindings.h
   // The operations performed: the types of their arguments and results, and their binding functions.
@@ -133,15 +133,15 @@ is called by setup():
   void m5_imu_init();
   void m5_display_init();
   
+  // The display of the events of the monitor on the screen.
+  extern const tempore_monitor_display tempore_m5_monitor_display;
+  
   void tempore_safe_state() {}
   
   // The periodic task step, of period 50000 us.
   static tempore_task_monitor tempore_task0_monitor("step", 50000);
   
   static void tempore_task0(void *) {
-    tempore_check_halt();
-    auto state = start_0(tempore_unit{});
-    TickType_t release = xTaskGetTickCount();
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
@@ -166,30 +166,20 @@ its lines to the log:
   [0.000 ms] Start title
   [0.603 ms] IMU accel 0.000 0.100 0.995 g, gyro -0.03 0.00 0.00 deg/s
   [0.603 ms] Operation ReadImu took 603 us
-  [1.603 ms] Display: 0.571
-  [1.603 ms] Operation ShowNumber took 1000 us
   [31.000 ms] Display cleared
   [31.000 ms] Operation ClearDisplay took 31000 us
   [32.000 ms] Display: Tilt (degrees)
   [32.000 ms] Operation ShowText took 1000 us
   [32.000 ms] End title
-  [50.000 ms] Release step
-  [50.603 ms] IMU accel 0.000 0.099 0.995 g, gyro -2.85 0.00 0.00 deg/s
-  [50.603 ms] Operation ReadImu took 603 us
-  [100.000 ms] Release step
-  [100.603 ms] IMU accel 0.000 0.095 0.995 g, gyro -5.59 0.00 0.00 deg/s
-  [100.603 ms] Operation ReadImu took 603 us
-  [150.000 ms] Release step
-  [150.603 ms] IMU accel 0.000 0.089 0.996 g, gyro -8.20 0.00 0.00 deg/s
-  [150.603 ms] Operation ReadImu took 603 us
-  [200.000 ms] Release step
-  [200.603 ms] IMU accel 0.000 0.081 0.997 g, gyro -10.61 0.00 0.00 deg/s
-  [200.603 ms] Operation ReadImu took 603 us
-  [250.000 ms] Release step
-  [250.603 ms] IMU accel 0.000 0.071 0.998 g, gyro -12.75 0.00 0.00 deg/s
-  [250.603 ms] Operation ReadImu took 603 us
-  [251.603 ms] Display: 0.769
-  [251.603 ms] Operation ShowNumber took 1000 us
+  [33.000 ms] Display: 0.571
+  [33.000 ms] Operation ShowNumber took 32397 us
+  [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
+  [33.000 ms] Safe state
+  [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
+  [46.728 ms] Display at (28, 84): Stopped by the monitor
+  [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
+  [49.608 ms] Display at (46, 136): bounds 0.05-12.5 ms
+  [49.608 ms] Task step stopped
   [300.000 ms] End of the simulation
 
 A host model of the application that defines the world replaces the default
@@ -200,16 +190,20 @@ world:
   [0.000 ms] Start title
   [0.603 ms] IMU accel 0.000 0.479 0.878 g, gyro 0.00 0.00 0.00 deg/s
   [0.603 ms] Operation ReadImu took 603 us
-  [1.603 ms] Display: 2.865
-  [1.603 ms] Operation ShowNumber took 1000 us
   [31.000 ms] Display cleared
   [31.000 ms] Operation ClearDisplay took 31000 us
   [32.000 ms] Display: Tilt (degrees)
   [32.000 ms] Operation ShowText took 1000 us
   [32.000 ms] End title
-  [50.000 ms] Release step
-  [50.603 ms] IMU accel 0.000 0.479 0.878 g, gyro 0.00 0.00 0.00 deg/s
-  [50.603 ms] Operation ReadImu took 603 us
+  [33.000 ms] Display: 2.865
+  [33.000 ms] Operation ShowNumber took 32397 us
+  [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
+  [33.000 ms] Safe state
+  [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
+  [46.728 ms] Display at (28, 84): Stopped by the monitor
+  [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
+  [49.608 ms] Display at (46, 136): bounds 0.05-12.5 ms
+  [49.608 ms] Task step stopped
   [60.000 ms] End of the simulation
 
 The drive of the BALA2 base, with the packages bala2-base and m5-display: the
@@ -254,8 +248,8 @@ the safe-state hook of the application:
   void m5_display_init();
   void bala2_base_safe_state();
   
-  void tempore_safe_state() { bala2_base_safe_state(); }
-  
+  // The display of the events of the monitor on the screen.
+  extern const tempore_monitor_display tempore_m5_monitor_display;
   $ grep 'bala2_base_init' _arduino/projects/drive/src/main.cpp
   void bala2_base_init();
     bala2_base_init();

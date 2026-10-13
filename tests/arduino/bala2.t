@@ -114,7 +114,7 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information, and its host build:
 
   $ tempore --emit-arduino balance --device $app/balance.device.json $app/balance.tpe | grep -c Wrote
-  30
+  31
   $ cd _arduino/projects/balance
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ build () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
@@ -155,16 +155,16 @@ they are:
   $ tempore --emit-arduino balance --device $app/balance.device.json --host-simulate 8 $app/balance.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
   [35.105 ms] Display at (0, 0): Balancing robot
-  [37.689 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [38.689 ms] Display: Calibrating
-  [539.689 ms] Display: Hold upright
-  [1540.689 ms] Display: Armed
-  [2441.689 ms] Display: a tilt below 2.5 degrees
-  [3442.689 ms] Display: a tilt below 2.5 degrees
-  [4443.689 ms] Display: a tilt below 2.5 degrees
-  [5444.689 ms] Display: a tilt below 2.5 degrees
-  [6445.689 ms] Display: a tilt below 2.5 degrees
-  [7446.689 ms] Display: a tilt below 2.5 degrees
+  [37.865 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [38.865 ms] Display: Calibrating
+  [539.865 ms] Display: Hold upright
+  [1540.865 ms] Display: Armed
+  [2441.865 ms] Display: a tilt below 2.5 degrees
+  [3442.865 ms] Display: a tilt below 2.5 degrees
+  [4443.865 ms] Display: a tilt below 2.5 degrees
+  [5444.865 ms] Display: a tilt below 2.5 degrees
+  [6445.865 ms] Display: a tilt below 2.5 degrees
+  [7446.865 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m
@@ -178,16 +178,16 @@ step never drives the motors, and the robot falls when released at 2 s:
   $ build -DPLANT_TILT=1.3 && events 8000000
   [31.245 ms] Display cleared
   [35.105 ms] Display at (0, 0): Balancing robot
-  [37.689 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [38.689 ms] Display: Calibrating
-  [539.689 ms] Display: Hold upright
-  [1540.689 ms] Display: Armed
-  [2441.689 ms] Display: 80.124
-  [3442.689 ms] Display: 80.212
-  [4443.689 ms] Display: 80.214
-  [5444.689 ms] Display: 80.214
-  [6445.689 ms] Display: 80.214
-  [7446.689 ms] Display: 80.214
+  [37.865 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [38.865 ms] Display: Calibrating
+  [539.865 ms] Display: Hold upright
+  [1540.865 ms] Display: Armed
+  [2441.865 ms] Display: 80.124
+  [3442.865 ms] Display: 80.212
+  [4443.865 ms] Display: 80.214
+  [5444.865 ms] Display: 80.214
+  [6445.865 ms] Display: 80.214
+  [7446.865 ms] Display: 80.214
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 2000.0 ms
   [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.495 m
@@ -195,27 +195,48 @@ step never drives the motors, and the robot falls when released at 2 s:
   [8000.000 ms] Plant: the motors were never driven
 
 A binding made slow from 4 s on, Publish taking 3 ms beyond its bound of
-0.05 ms: its monitor enters the safe state, which stops the motors, and the
-robot falls:
+0.05 ms: its monitor enters the safe state, which stops the motors, and then
+draws a red banner across the middle of the screen that states the violation;
+the robot falls:
 
   $ build -DBALANCE_SLOW_FROM_MS=4000 && events 8000000
   [31.245 ms] Display cleared
   [35.105 ms] Display at (0, 0): Balancing robot
-  [37.689 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [38.689 ms] Display: Calibrating
-  [539.689 ms] Display: Hold upright
-  [1540.689 ms] Display: Armed
-  [2441.689 ms] Display: -0.044
-  [3442.689 ms] Display: 0.084
+  [37.865 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [38.865 ms] Display: Calibrating
+  [539.865 ms] Display: Hold upright
+  [1540.865 ms] Display: Armed
+  [2441.865 ms] Display: -0.044
+  [3442.865 ms] Display: 0.084
   [4005.071 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4005.071 ms] Safe state
-  [4005.316 ms] Task step stopped
+  [4017.604 ms] Display fill at (0, 72), 320 by 96: 0xc00000
+  [4019.044 ms] Display at (28, 84): Stopped by the monitor
+  [4020.384 ms] Display at (58, 112): Publish took 3 ms
+  [4021.704 ms] Display at (64, 136): bounds 0-0.05 ms
+  [4021.704 ms] Task step stopped
   [4042.000 ms] Task supervise stopped
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.214 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release 80.21 degrees
   [8000.000 ms] Plant: largest drive 0.316, last at 4005.0 ms
+
+Under the policy warn the monitor logs each violation, and a task of the
+lowest priority draws the number of the warnings and the last of them in
+yellow above the footer every 500 ms:
+
+  $ cd ../../..
+  $ tempore --emit-arduino balance_warn --monitor warn --device $app/balance.device.json $app/balance.tpe > /dev/null
+  $ cd _arduino/projects/balance_warn
+  $ build -DBALANCE_SLOW_FROM_MS=4000 && ./simulation 6000000 > warn.log
+  $ grep -c 'Monitor: operation Publish' warn.log
+  399
+  $ grep '(0, 218)' warn.log
+  [4503.060 ms] Display at (0, 218): Monitor: 99 warnings, last Publish 3 ms
+  [5006.080 ms] Display at (0, 218): Monitor: 200 warnings, last Publish 3 ms
+  [5509.080 ms] Display at (0, 218): Monitor: 301 warnings, last Publish 3 ms
+  $ cd ../balance
 
 With the build flag BALANCE_LOG, here 500 ms, a task started by the first
 publication logs the published attitude, the drives last written and the
@@ -400,7 +421,7 @@ function:
     ShowText             3      1000     1000.0      1000
     ShowNumber           4      1000     1000.0      1000
     ClearDisplay         1     31000    31000.0     31000
-    ShowTextAt           2      2584     3222.0      3860
+    ShowTextAt           2      2760     3310.0      3860
     SetMotors         1200       245      245.0       245
     ReadEncoders      1200       468      468.0       468
     ResetEncoders        1       335      335.0       335

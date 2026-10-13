@@ -261,7 +261,7 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json $app/balance_regex.tpe | grep -c Wrote
-  30
+  31
   $ cd _arduino/projects/balance_regex
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
@@ -300,16 +300,16 @@ bounds, and prints the other events as they are:
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
   [35.365 ms] Display at (0, 0): Balancing robot with regexes
-  [37.949 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [38.949 ms] Display: Calibrating
-  [539.949 ms] Display: Hold upright
-  [1540.949 ms] Display: Armed
-  [2441.949 ms] Display: a tilt below 2.5 degrees
-  [3442.949 ms] Display: a tilt below 2.5 degrees
-  [4443.949 ms] Display: a tilt below 2.5 degrees
-  [5444.949 ms] Display: a tilt below 2.5 degrees
-  [6445.949 ms] Display: a tilt below 2.5 degrees
-  [7446.949 ms] Display: a tilt below 2.5 degrees
+  [38.125 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [39.125 ms] Display: Calibrating
+  [540.125 ms] Display: Hold upright
+  [1541.125 ms] Display: Armed
+  [2442.125 ms] Display: a tilt below 2.5 degrees
+  [3443.125 ms] Display: a tilt below 2.5 degrees
+  [4444.125 ms] Display: a tilt below 2.5 degrees
+  [5445.125 ms] Display: a tilt below 2.5 degrees
+  [6446.125 ms] Display: a tilt below 2.5 degrees
+  [7447.125 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m

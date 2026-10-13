@@ -49,10 +49,10 @@
    33 ms with the margin. A text that wraps over several lines is not within
    these bounds. Their lower bound is that of ShowText. On an M5Stack CoreS3
    Lite the profile of the device (2026-10-14) measured ShowTextAt at 2.599
-   to 5.498 ms and ShowNumberAt at 1.818 to 4.119 ms, on the texts of the
-   digital level of the examples only, whose least times, rounded down, are
-   the lower bounds of that board in the descriptor, 2.55 and 1.8 ms, with
-   the upper bound of 33 ms. ShowTimeAt and ShowColourTextAt have the bounds
+   to 5.498 ms and ShowNumberAt at 1.818 to 4.119 ms, on some texts of the
+   digital level only; a shorter text took 2.404 ms, below these, so the
+   least time depends on the text and the lower bound stays that of
+   ShowText on every board. ShowTimeAt and ShowColourTextAt have the bounds
    of ShowTextAt, PROVISIONAL, not yet measured.
 
    DrawButton (x, y, w, h, s) draws a button: a rectangle with rounded

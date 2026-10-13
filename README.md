@@ -1521,9 +1521,8 @@ down, and the upper bound 1.5 times the greatest, rounded up. Each
 declaration states its measurements, and how the bounds not measured
 directly, such as those of the package `i2c`, are derived. The bounds of
 `ConfigureImu`, `CheckAtRest`, `Touched` and `Beep` are measured on the
-CoreS3 only, and the lower bounds of `ShowTextAt` and `ShowNumberAt` on the
-CoreS3, 2.55 and 1.8 ms, given per board, on the texts of the digital level
-only. The bounds of `ShowTimeAt`, `ShowColourTextAt`, `DrawButton`,
+CoreS3 only. The least times of `ShowTextAt` and `ShowNumberAt` depend on
+the text, so their lower bound stays that of `ShowText`. The bounds of `ShowTimeAt`, `ShowColourTextAt`, `DrawButton`,
 `DrawBar` and `DrawLevel` are provisional, derived from those measurements,
 and not yet measured.
 
@@ -1553,8 +1552,12 @@ their comments are those under its bounds. On the device,
 each call of a binding function is monitored against these bounds and each step of a
 periodic task against its period; a violation puts the device in its safe
 state and stops the tasks, is logged, or is not checked, according to the
-monitor policy `abort`, `warn` or `off`. Watchdogs, cut-offs and the safe
-state are mechanisms of the C++ packages and of the application, outside the
+monitor policy `abort`, `warn` or `off`. On a board with a screen driven
+through M5Unified the violation is also shown: under `abort` a red banner
+across the middle of the screen, drawn once the safe state is entered, and
+under `warn` a yellow line above the footer, with the number of the warnings
+and the last of them, drawn every 500 ms by a task of the lowest priority.
+Watchdogs, cut-offs and the safe state are mechanisms of the C++ packages and of the application, outside the
 typing.
 
 The project can be simulated on the host: the tasks run against host models
@@ -1659,11 +1662,10 @@ those of the unit.
 
 The CoreS3 examples show their name at the top of the screen, in text of
 size 2, and a footer at the bottom right, in text of size 1, by
-`ShowTextAt`: in `tilt` and `peak` the line "Powered by Tempore
-(tempore-lang.ee)" at the column 320 − 6 · 36 = 104 of its 36 characters of 6
-pixels, and in `level` and `fall` the line "Typechecked by Tempore
-(tempore-lang.ee)" at the column 320 − 6 · 40 = 80, below a line of size 1
-under the name that states the guarantee of the example. They are drawn
+`ShowTextAt`: the line "Typechecked by Tempore (tempore-lang.ee)" at the
+column 320 − 6 · 40 = 80 of its 40 characters of 6 pixels; in `level` and
+`fall` it is below a line of size 1 under the name that states the guarantee
+of the example. They are drawn
 after each clearing in `tilt`, `peak` and `fall`, outside their boxes, and
 once by the initial function in `level`, which redraws its values by bands
 and does not clear.

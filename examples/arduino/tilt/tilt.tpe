@@ -71,7 +71,7 @@ let show () =
   box [0, 5] tilt as fresh in
   unbox fresh as shown in
   perform ShowNumber shown;
-  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   delay 250
 
 (* Correctly rejected by the typechecker: the display reads the tilt before
