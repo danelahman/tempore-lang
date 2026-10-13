@@ -1,0 +1,9 @@
+{
+  "board": "m5stack-gray",
+  "tasks": [
+    { "function": "step", "kind": "periodic", "period": 50,
+      "initial": "start", "priority": 2 },
+    { "function": "title", "kind": "free" }
+  ],
+  "packages": ["m5-imu", "m5-display"]
+}

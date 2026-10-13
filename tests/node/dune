@@ -1,0 +1,11 @@
+; Probe for Node.js (required by the tests of ../web-js): the file
+; node-available holds "true" or "false".
+
+(rule
+ (targets node-available)
+ (deps
+  (env_var PATH))
+ (action
+  (with-stdout-to
+   node-available
+   (system "command -v node > /dev/null 2>&1 && echo true || echo false"))))

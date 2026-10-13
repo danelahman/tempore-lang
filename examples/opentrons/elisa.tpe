@@ -31,6 +31,7 @@
        examples/opentrons/elisa.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+   The target opentrons-elisa-simulate of 'make' runs this command.
 
    The grade of an operation is the interval of its running times, which the
    monitors of the protocol check against the durations of its binding

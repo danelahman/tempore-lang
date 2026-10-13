@@ -1,0 +1,21 @@
+(* A discrete PID controller driving a first-order plant towards a set point,
+   over ten thousand steps of a tail-recursive loop. *)
+
+type gains = Gains of float * float * float
+
+let pid (Gains (kp, ki, kd)) dt (integral, previous) error =
+  let integral = integral +. error *. dt in
+  let derivative = (error -. previous) /. dt in
+  (kp *. error +. ki *. integral +. kd *. derivative, (integral, error))
+
+let plant y u dt = y +. (u -. y) *. dt
+
+let rec simulate gains dt setpoint y state n =
+  match n with
+  | 0 -> y
+  | k + 1 ->
+      let (u, state) = pid gains dt state (setpoint -. y) in
+      simulate gains dt setpoint (plant y u dt) state k
+
+run pid (Gains (1.5, 0.25, 0.5)) 0.5 (0.0, 0.0) 2.0
+run simulate (Gains (0.8, 0.5, 0.01)) 0.005 1.0 0.0 (0.0, 0.0) 10000

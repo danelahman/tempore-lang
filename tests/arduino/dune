@@ -1,0 +1,32 @@
+; The C++ compilation of programs by the Arduino backend: parity of the runs
+; of programs compiled for the host with the interpreter, the generated code,
+; the rejection of constructs outside the fragment, and the PlatformIO projects
+; of devices with their host simulation. Skipped unless a C++17
+; compiler c++ is available.
+
+(cram
+ (enabled_if
+  (= %{read:../cxx/cxx-available} "true\n"))
+ (deps
+  %{project_root}/tempore
+  (glob_files *.tpe)
+  (glob_files toy/*)
+  (glob_files packages/*)
+  (glob_files bala2/*)
+  (glob_files bala2-regex/*)
+  (glob_files tilt/*)
+  (glob_files wheels/*)
+  (glob_files peak/*)
+  (glob_files %{project_root}/examples/arduino/bala2/*)
+  (glob_files %{project_root}/examples/arduino/bala2-regex/*)
+  (glob_files %{project_root}/examples/arduino/tilt/*)
+  (glob_files %{project_root}/examples/arduino/wheels/*)
+  (glob_files %{project_root}/examples/arduino/peak/*)))
+
+; The running-time bounds of the peripheral packages by board, compared with
+; test_package.expected.
+
+(test
+ (name test_package)
+ (modules test_package)
+ (libraries utils grades sugaredAst parser loader arduinoBackend))

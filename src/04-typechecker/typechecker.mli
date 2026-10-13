@@ -15,6 +15,19 @@
 
 module Ast = Language.Ast
 
+(** The effect of a function type. *)
+type function_effect =
+  | Not_a_function  (** the type is not a function type *)
+  | Effect_variable  (** the effect has a variable *)
+  | Effect of {
+      grade : string;  (** the grade, as {!Grades.Grade.S.show} prints it *)
+      durations : Grades.Grade.durations;
+          (** the durations of the grade under the running times of the program
+              ({!Grades.Grade.S.duration_bounds}); [Untimed] where the grade
+              system determines no durations, not even those of the unit grade
+          *)
+    }  (** a closed grade *)
+
 module Make (GS : Grades.GradeSystem.S) : sig
   type scheme
   (** The qualified type scheme of a top-level definition or primitive. *)
@@ -62,6 +75,11 @@ module Make (GS : Grades.GradeSystem.S) : sig
   val print_scheme : state -> scheme -> Format.formatter -> unit
   (** [print_scheme state scheme ppf] prints [scheme] with its qualifier, an
       effect of the unit under the running times of [state] not shown. *)
+
+  val function_effect : state -> scheme -> function_effect
+  (** [function_effect state scheme] is the effect of the outermost arrow of the
+      type of [scheme], its grade evaluated where it has no variable, under the
+      running times of the operations of [state]. *)
 
   val scheme_layout : state -> scheme -> Inference.Constraint.layout
   (** [scheme_layout state scheme] is the parts of the scheme that

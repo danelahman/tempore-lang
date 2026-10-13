@@ -1,0 +1,8 @@
+{
+  "board": "esp32-devkit",
+  "tasks": [ { "function": "check", "kind": "free" } ],
+  "packages": ["i2c"],
+  "bindings": "memory_bindings.cpp",
+  "safe_state": "memory_safe_state",
+  "host_models": ["memory_model.cpp"]
+}

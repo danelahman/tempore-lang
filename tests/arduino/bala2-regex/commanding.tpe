@@ -1,0 +1,10 @@
+(* A handler whose case of ReadImu also commands the motors, after
+   balance_regex.tpe. *)
+
+let commanding_robot =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let reading = perform ReadImu () in
+      perform SetMotors (0i, 0i);
+      continue k with reading

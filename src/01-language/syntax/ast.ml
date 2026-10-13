@@ -112,6 +112,7 @@ let nat_ty_name = TyName.fresh "nat"
 let unit_ty_name = TyName.fresh "unit"
 let string_ty_name = TyName.fresh "string"
 let float_ty_name = TyName.fresh "float"
+let int_ty_name = TyName.fresh "int"
 let list_ty_name = TyName.fresh "list"
 let empty_ty_name = TyName.fresh "empty"
 

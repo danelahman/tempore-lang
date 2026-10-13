@@ -1,0 +1,14 @@
+(* The package bala2-base: the drive of a motor of the base of the M5Stack
+   BALA2 from a float, under every grade system of the package. The
+   operations are declared under each grade system by a file of their own. *)
+
+(* The largest magnitude of a drive. *)
+let bala2_full_drive = 1023i
+
+(* The drive of a motor for x: x rounded to the nearest integer, a half away
+   from zero, and clamped to -1023 to 1023; zero for NaN. *)
+let bala2_drive (x : float) =
+  if x >= 1023.0 then bala2_full_drive
+  else if x <= -1023.0 then ~-!bala2_full_drive
+  else if x < 0.0 then int_of_float (x -. 0.5)
+  else int_of_float (x +. 0.5)

@@ -1,0 +1,6 @@
+(* A run-time error: division of integers by zero. *)
+
+let divide x y = x /! y
+
+run divide (-7i) 2i
+run divide 1i 0i

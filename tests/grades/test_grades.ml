@@ -2794,6 +2794,12 @@ let duration_bounds =
     durations "traces-timed-lower-bound, implied" traces_lower
       (Grade.Braces (Grade.Seq (Grade.Letter "Send", Grade.Tick 3)))
       (Some (closed 4, closed 5));
+    durations "traces-timed-interval, infinite above" traces_interval
+      (interval (Grade.Closed (Grade.Braces (Grade.Letter "Send")))
+         Grade.Unbounded)
+      (Some (closed 1, Grade.Unbounded));
+    durations "traces-timed-upper-bound, the top" traces_upper Grade.Top
+      (Some (closed 0, Grade.Unbounded));
     durations "time-upper-bound-levels, the time component"
       (module UpperLevels : Grade.S)
       (lit_of_pair 5 "High")

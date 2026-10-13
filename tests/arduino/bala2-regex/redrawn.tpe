@@ -1,0 +1,19 @@
+(* A drive whose iterations wait 150 ms and clear and redraw the display,
+   after balance_regex.tpe. *)
+
+let drive_step_redrawn (n : nat) =
+  let tilt, _ = perform Attitude () in
+  perform Command (0.0, 0.0);
+  perform ClearDisplay ();
+  perform ShowText "Tilt";
+  perform ShowNumber tilt;
+  delay 150
+
+let rec drive_redrawn (n : nat) : unit # {_*} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      box [0, 200) () as expiry in
+      drive_step_redrawn m;
+      unbox expiry as _ in
+      drive_redrawn m

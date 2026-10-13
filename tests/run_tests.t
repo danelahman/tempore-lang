@@ -94,16 +94,7 @@
   State: [
     [{1}, {1}],
     { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            unbox resource_0 as g in
-            perform Mount (p, g) (op_var. return op_var)
-          with printer
-        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
     [{3}, {3}],
@@ -120,16 +111,7 @@
   === Run 2 ===
   return ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword")))))
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            return ("Sword #1", p)
-          with printer
-        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
-    },
+    { resource_1 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
     [{1}, {1}],
     [{3}, {3}],
     { resource_2 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
@@ -226,8 +208,7 @@
   === Run 2 ===
   return 5
   State: [
-    { resource_0 ↦ fun () ↦ delay 2 (return ());
-                            return 5 # 2 },
+    { resource_0 ↦ <fun> # 2 },
     2
   ]
   
@@ -542,14 +523,7 @@
   === Run 1 ===
   return 5
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var;
-                       delay 5 (return ());
-                       return 3
-                     with h
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -580,10 +554,7 @@
                             cont_var ()) in
                    f ())
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 3
-                                with h # 1 }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -634,25 +605,7 @@
                             cont_var ()) in
                    f ())
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 7
-                                with h # 1,
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_1 as cont_var in
-            cont_var ()
-          with handler
-               | return y ↦ return y
-               | Op2 (q, k') ↦
-                       return (fun () ↦
-                                 let f = (unbox k' as cont_var in
-                                          cont_var ()) in
-                                 f ())
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1, resource_3 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -677,19 +630,7 @@
   === Run 1 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            return 3
-          with handler
-               | return x ↦ return x
-               | Op ((), k) ↦
-                      (fun () ↦ delay 1 (return ())) ();
-                      unbox k as cont_var in
-                      cont_var ()
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -699,10 +640,7 @@
   === Run 1 ===
   return 3
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 3
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   ======================================================================
@@ -731,36 +669,9 @@
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            perform Send 2 (op_var. return op_var);
-            perform Send 3 (op_var. return op_var)
-          with handler
-               | return x ↦ return x
-               | Send (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Send, 1),
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            perform Send 3 (op_var. return op_var)
-          with handler
-               | return x ↦ return x
-               | Send (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Send, 1),
-      resource_5 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Send (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Send, 1)
+    { resource_1 ↦ <fun> # (Send, 1),
+      resource_3 ↦ <fun> # (Send, 1),
+      resource_5 ↦ <fun> # (Send, 1)
     }
   ]
   
@@ -834,18 +745,7 @@
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Report (msg, k) ↦
-                          delay 1 (return ());
-                          unbox k as cont_var in
-                          cont_var ()
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -872,17 +772,7 @@
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let v = return op_var in
-            (let b = (let b = (+) v in
-                      b 1) in
-             perform Set b (op_var. return op_var));
-            return v
-          with h
-        # 3
-    },
+    { resource_1 ↦ <fun> # 3 },
     3,
     1,
     1
@@ -1243,19 +1133,7 @@
   === Run 6 ===
   return 2
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            return 1
-          with handler
-               | return y ↦ return y
-               | Tick (p, k) ↦
-                        let r = (unbox k as cont_var in
-                                 cont_var ()) in
-                        return 2
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   === Run 7 ===
@@ -1309,19 +1187,7 @@
   === Run 7 ===
   return 6
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            return 5
-          with handler
-               | return y ↦ return y
-               | Op (p, k) ↦
-                      let r = (unbox k as cont_var in
-                               cont_var ()) in
-                      return 6
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -1446,18 +1312,7 @@
   === Run 4 ===
   return 0
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return () ↦ return 0
-               | Put ((n, _), k) ↦
-                       delay 1 (return ());
-                       unbox k as cont_var in
-                       cont_var ()
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -1482,6 +1337,14 @@
   6 |   match c with
         ^^^^^^^^^^^^
   Typing error: This match is not exhaustive: `Blue _` is not matched
+    Note: a value that no case matches would stop the run
+  ======================================================================
+  exhaustiveness_reject_int.tpe
+  ======================================================================
+  File "exhaustiveness_reject_int.tpe", line 3, characters 18-56:
+  3 | let f (n : int) = match n with 0i -> true | -1i -> false
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This match is not exhaustive: `1i` is not matched
     Note: a value that no case matches would stop the run
   ======================================================================
   exhaustiveness_reject_let.tpe
@@ -1523,6 +1386,61 @@
         ^^^^^^^^^^^^
   Typing error: This match is not exhaustive: `""` is not matched
     Note: a value that no case matches would stop the run
+  ======================================================================
+  float_functions.tpe
+  ======================================================================
+  === Run 1 ===
+  return (0., 3., 1e+20)
+  State: []
+  
+  === Run 2 ===
+  return 9007199254740992
+  State: []
+  
+  === Run 3 ===
+  return (1e+308, infinity)
+  State: []
+  
+  === Run 4 ===
+  return (2, 3, 0, 100000000000000000000)
+  State: []
+  
+  === Run 5 ===
+  return (0, 0, 0)
+  State: []
+  
+  === Run 6 ===
+  return 0
+  State: []
+  
+  === Run 7 ===
+  return 4294967295
+  State: []
+  
+  === Run 8 ===
+  return (2., 1.41421356237, 0., -0., nan)
+  State: []
+  
+  === Run 9 ===
+  return (infinity, nan)
+  State: []
+  
+  === Run 10 ===
+  return (0.785398163397, -0.785398163397, 1.57079632679, nan)
+  State: []
+  
+  === Run 11 ===
+  return (0.785398163397, 2.35619449019, -2.35619449019)
+  State: []
+  
+  === Run 12 ===
+  return (0., 3.14159265359, -3.14159265359)
+  State: []
+  
+  === Run 13 ===
+  return (1.57079632679, 0.785398163397, nan)
+  State: []
+  
   ======================================================================
   float_literals.tpe
   ======================================================================
@@ -1579,18 +1497,7 @@
   === Run 3 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            perform ReadSecret () (op_var. return op_var);
-            return ()
-          with handler
-               | return x ↦ return x
-               | Post (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Low, (Board, Low))
-    }
+    { resource_1 ↦ <fun> # (Low, (Board, Low)) }
   ]
   
   === Run 4 ===
@@ -1645,6 +1552,73 @@
                         ^^^^^^^^^^^^^^
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
     Note: the resource inequality `(Low, (Board, Low)) <= (Low, (Audit, Low))` does not hold
+  ======================================================================
+  int_division_by_zero.tpe
+  ======================================================================
+  Run-time error: Division by zero
+  ======================================================================
+  int_modulo_by_zero.tpe
+  ======================================================================
+  Run-time error: Modulo by zero
+  ======================================================================
+  int_of_float_infinity.tpe
+  ======================================================================
+  === Run 1 ===
+  return -1i
+  State: []
+  
+  Run-time error: Conversion of infinity to an integer
+  ======================================================================
+  integers.tpe
+  ======================================================================
+  === Run 1 ===
+  return (3i, -3i, -3i, 0i, 0i, 31i, 1000i)
+  State: []
+  
+  === Run 2 ===
+  return (4i, -3i, -24i, 5i, 0i)
+  State: []
+  
+  === Run 3 ===
+  return (3i, -3i, -3i, 3i)
+  State: []
+  
+  === Run 4 ===
+  return (1i, -1i, 1i, -1i)
+  State: []
+  
+  === Run 5 ===
+  return (7i, 3i, 6i)
+  State: []
+  
+  === Run 6 ===
+  return (true, true, false, -1i, 0i, -1i)
+  State: []
+  
+  === Run 7 ===
+  return (Some -3i, -1i::0i::1i::[], "-12i")
+  State: []
+  
+  === Run 8 ===
+  return (0i, 5i, 5, 0, 0)
+  State: []
+  
+  === Run 9 ===
+  return (-3., 0., 1e+23)
+  State: []
+  
+  === Run 10 ===
+  return (2i, -2i, 0i)
+  State: []
+  
+  === Run 11 ===
+  return (100000000000000000000i, -100000000000000000000i, 0i)
+  State: []
+  
+  === Run 12 ===
+  return (18446744073709551616i, 2147483648i, 0i)
+  State: []
+  
   ======================================================================
   invalid_match_type.tpe
   ======================================================================
@@ -2559,12 +2533,20 @@
   State: []
   
   ======================================================================
+  nat_of_float_infinity.tpe
+  ======================================================================
+  === Run 1 ===
+  return 1
+  State: []
+  
+  Run-time error: Conversion of infinity to a natural number
+  ======================================================================
   nat_reject_negative.tpe
   ======================================================================
   File "nat_reject_negative.tpe", line 3, characters 4-18:
   3 | run -1_000_000_000
           ^^^^^^^^^^^^^^
-  Syntax error: Natural numbers have no negation; floats are negated with '-.'
+  Syntax error: Natural numbers have no negation; floats are negated with '-.' and integers with '~-!'
   ======================================================================
   nat_reject_successor_pattern.tpe
   ======================================================================
@@ -2792,26 +2774,7 @@
   === Run 1 ===
   return 12
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let v = return op_var in
-            return v
-          with handler
-               | return x ↦ return x
-               | Op (p, k) ↦
-                      let Stamp i = return (Stamp 3) in
-                      let b =
-                        (let b =
-                           (let b = (let b = (let b = (+) p in
-                                              b 2) in
-                                     (+) b) in
-                            b i) in
-                         double b) in
-                      unbox k as cont_var in
-                      cont_var b
-        # 0
-    }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   ======================================================================
@@ -2820,25 +2783,7 @@
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 7
-                                with h # 0,
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_1 as cont_var in
-            cont_var ()
-          with handler
-               | return y ↦ return y
-               | Op2 (q, k') ↦
-                       let a = (unbox k' as cont_var in
-                                cont_var ()) in
-                       unbox resource_1 as cont_var in
-                       cont_var ()
-        # 0
-    }
+    { resource_1 ↦ <fun> # 0, resource_3 ↦ <fun> # 0 }
   ]
   
   ======================================================================
@@ -2930,47 +2875,31 @@
   === Run 3 ===
   return 9
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 4 ===
   return 4
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let b = (let b = return op_var in
-                     (+) b) in
-            b 10
-          with h
-        # 0
-    }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 5 ===
   return 1
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 6 ===
   return 2
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 7 ===
   return 3
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 8 ===
@@ -3170,15 +3099,7 @@
   State: [
     { resource_0 ↦ "tea" # [0.5, 1.5] },
     [0.25, 0.25],
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # [0.5, 0.75]
-    },
+    { resource_2 ↦ <fun> # [0.5, 0.75] },
     [0.625, 0.625]
   ]
   
@@ -3218,15 +3139,7 @@
     { resource_0 ↦ "ripe" # 2.25 },
     0.5,
     1.25,
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # 0.5
-    },
+    { resource_2 ↦ <fun> # 0.5 },
     0.5
   ]
   
@@ -3293,15 +3206,7 @@
   State: [
     { resource_0 ↦ "fresh" # 0.5 },
     0.375,
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # 0.125
-    },
+    { resource_2 ↦ <fun> # 0.125 },
     0.0625
   ]
   
@@ -3553,37 +3458,9 @@
   === Run 4 ===
   return 2
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Pause (_, k) ↦
-                         delay 1 (return ());
-                         let y = (rec pause_nested ...) 1 in
-                         let b = (let b = (+) y in
-                                  b 1) in
-                         unbox k as cont_var in
-                         cont_var b
-        # ∞
-    },
+    { resource_1 ↦ <fun> # ∞ },
     1,
-    { resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Pause (_, k) ↦
-                         delay 1 (return ());
-                         let y = (rec pause_nested ...) 0 in
-                         let b = (let b = (+) y in
-                                  b 1) in
-                         unbox k as cont_var in
-                         cont_var b
-        # ∞
-    },
+    { resource_3 ↦ <fun> # ∞ },
     1
   ]
   
@@ -3593,73 +3470,11 @@
   === Run 1 ===
   return (12, 2, 3)
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b =
-                         (let b = (let b = (rec count ...) 1 in
-                                   (+) b) in
-                          b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b =
-                         (let b = (let b = (rec count ...) 0 in
-                                   (+) b) in
-                          b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_5 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b = (let b = (let b = (rec go ...) 2 in
-                                         (+) b) in
-                                b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_7 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b = (let b = (let b = (rec go ...) 1 in
-                                         (+) b) in
-                                b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_9 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b = (let b = (let b = (rec go ...) 0 in
-                                         (+) b) in
-                                b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0
+    { resource_1 ↦ <fun> # 0,
+      resource_3 ↦ <fun> # 0,
+      resource_5 ↦ <fun> # 0,
+      resource_7 ↦ <fun> # 0,
+      resource_9 ↦ <fun> # 0
     }
   ]
   
@@ -4406,28 +4221,7 @@
   === Run 2 ===
   return (File "a", File "b")
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let a = return op_var in
-            let b = perform Reserve "b" (op_var. return op_var) in
-            return (a, b)
-          with handler
-               | return x ↦ return x
-               | Reserve (name, k) ↦ unbox k as cont_var in
-                                     cont_var (File name)
-        # ([0, 1], 1),
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            let b = return op_var in
-            return (File "a", b)
-          with handler
-               | return x ↦ return x
-               | Reserve (name, k) ↦ unbox k as cont_var in
-                                     cont_var (File name)
-        # ([0, 1], 1)
-    }
+    { resource_1 ↦ <fun> # ([0, 1], 1), resource_3 ↦ <fun> # ([0, 1], 1) }
   ]
   
   === Run 3 ===
@@ -4787,61 +4581,13 @@
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let freshSword = return op_var in
-            let freshHammer =
-              perform PrintResinModel (Model "Hammer") (op_var. return op_var) in
-            unbox freshSword as cooledSword in
-            let curedSword =
-              perform UvCure (Cooled cooledSword) (op_var. return op_var) in
-            unbox freshHammer as cooledHammer in
-            let curedHammer =
-              perform UvCure (Cooled cooledHammer) (op_var. return op_var) in
-            return (Complete curedSword, Complete curedHammer)
-          with h
-        # 7
-    },
+    { resource_1 ↦ <fun> # 7 },
     7,
-    { resource_2 ↦ Fresh (Model "Sword") # 5,
-      resource_4 ↦
-        fun op_var ↦
-          handle
-            let freshHammer = return op_var in
-            unbox resource_2 as cooledSword in
-            let curedSword =
-              perform UvCure (Cooled cooledSword) (op_var. return op_var) in
-            unbox freshHammer as cooledHammer in
-            let curedHammer =
-              perform UvCure (Cooled cooledHammer) (op_var. return op_var) in
-            return (Complete curedSword, Complete curedHammer)
-          with h
-        # 7
-    },
+    { resource_2 ↦ Fresh (Model "Sword") # 5, resource_4 ↦ <fun> # 7 },
     7,
-    { resource_5 ↦ Fresh (Model "Hammer") # 5,
-      resource_7 ↦
-        fun op_var ↦
-          handle
-            let curedSword = return op_var in
-            unbox resource_5 as cooledHammer in
-            let curedHammer =
-              perform UvCure (Cooled cooledHammer) (op_var. return op_var) in
-            return (Complete curedSword, Complete curedHammer)
-          with h
-        # 5
-    },
+    { resource_5 ↦ Fresh (Model "Hammer") # 5, resource_7 ↦ <fun> # 5 },
     5,
-    { resource_9 ↦
-        fun op_var ↦
-          handle
-            let curedHammer = return op_var in
-            return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
-                    Complete curedHammer)
-          with h
-        # 5
-    },
+    { resource_9 ↦ <fun> # 5 },
     5
   ]
   
@@ -5318,16 +5064,7 @@
   === Run 1 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # 7,
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as x in
-            return x
-          with h
-        # 7
-    },
+    { resource_0 ↦ 42 # 7, resource_2 ↦ <fun> # 7 },
     3,
     4
   ]
@@ -5445,12 +5182,7 @@
   === Run 1 ===
   return (Fresh (Model "Sword"))
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with printer
-        # {Heat; Extrude; Cool}
-    },
+    { resource_1 ↦ <fun> # {Heat; Extrude; Cool} },
     {1},
     {3},
     {2}
@@ -5464,16 +5196,7 @@
   State: [
     [{1}, {1}],
     { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            unbox resource_0 as g in
-            perform Mount (p, g) (op_var. return op_var)
-          with printer
-        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
     [{3}, {3}],
@@ -5535,18 +5258,7 @@
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   State: [
     {1},
-    { resource_0 ↦ Epoxy # {8},
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            unbox resource_0 as g in
-            perform Mount (p, g) (op_var. return op_var)
-          with printer
-        # {Heat; Extrude; Cool}
-    },
+    { resource_0 ↦ Epoxy # {8}, resource_2 ↦ <fun> # {Heat; Extrude; Cool} },
     {1},
     {3},
     { resource_3 ↦ Extruded (Heated (Model "Sword")) # {2} },
@@ -5739,14 +5451,7 @@
   return (Receipt "telemetry")
   State: [
     { resource_0 ↦ Receipt "telemetry" # {6},
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as r in
-            return r
-          with send_retry
-        # {Tx | Tx; Tx}
+      resource_2 ↦ <fun> # {Tx | Tx; Tx}
     },
     {2},
     {2}
@@ -5820,14 +5525,7 @@
   === Run 4 ===
   return 42
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       let x = return op_var in
-                       let b = (+) x in
-                       b 1
-                     with g
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -5852,18 +5550,7 @@
   return ()
   State: [
     2,
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Send ((), k) ↦
-                        delay 1 (return ());
-                        unbox k as cont_var in
-                        cont_var ()
-        # (1, (Send, {0}))
-    },
+    { resource_1 ↦ <fun> # (1, (Send, {0})) },
     1
   ]
   
@@ -6922,12 +6609,7 @@ implementations above, the examples over rational delays excepted:
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with fetch_then_flag
-        # {Login; (Fetch | Store)*; Logout}
-    },
+    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
     {2},
     {1},
     {1},
@@ -6974,12 +6656,7 @@ implementations above, the examples over rational delays excepted:
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with fetch_then_flag
-        # {Login; (Fetch | Store)*; Logout}
-    },
+    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
     {2},
     {1},
     {1},
@@ -7989,7 +7666,12 @@ single-dash form of the help option is not accepted.
   Run Tempore as '../tempore [filename.tpe] ...'
     --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30)
     --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
+    --board           With --package, type the program under the running-time bounds of the operations of the packages on the given board of the Arduino backend, where they give them (default: the bounds of their declarations); a device written with --device has the board of its manifest
+    --build           Build the project written with --device with PlatformIO, passing its output through and exiting with its exit code
+    --capture         After --upload, read the serial port of --port at the baud rate of the board for the given number of seconds, printing its lines, and then the last complete profile among them, if any
     --debug           Print the inferred type schemes of the top-level definitions before running
+    --device          With --emit-arduino, write a PlatformIO project of the device described by the given manifest, of the definitions reached from its tasks
+    --emit-arduino    Typecheck the files and write them, compiled to C++, to the given directory, without running them; a name without a directory component names a directory in _arduino/projects
     --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them; a file name without a directory names a file in _opentrons/protocols
     --grades          Selects the grades (default: time-lower-bound); accepted:
         Time:
@@ -8040,8 +7722,14 @@ single-dash form of the help option is not accepted.
           counts-upper-bound                        Upper bounds
         Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.
     --help            Display this list of options
-    --monitor         Set what a protocol written with --bind does when an operation's running time is outside its bounds: abort, warn or off (default: abort)
+    --host-runs       With --emit-arduino, also compile the run commands, and write a main program for the host that executes them and prints their results as the interpreter does
+    --host-simulate   With --device, build the project for the host with c++ and run its tasks for the given number of seconds of simulated time, printing the log of the device with the events of its tasks
+    --monitor         Set what a protocol written with --bind or a device written with --device does when an operation's running time is outside its bounds, or a step of a periodic task takes its period or longer: abort, warn or off (default: abort)
     --no-stdlib       Do not load the standard library
+    --package         Load the declarations of the operations of the given peripheral package of the Arduino backend before the files, so that the program may perform them, run by their default implementations; repeatable; the packages of a device written with --device are those of its manifest
+    --pio             Use the given executable as the PlatformIO of --build and --upload (default: pio on the PATH, or else in _arduino/venv)
+    --port            Upload through the given serial port under --upload (default: the port PlatformIO detects)
+    --profile         Build the project written with --device with the profile of the running times of its operations and periodic tasks, logged every 5 seconds in place of the trace under --host-simulate
     --robot           Set the robot of the protocol written with --bind: flex (default: flex)
     --simulate        Run the Opentrons simulator on the protocol written with --bind, passing its run log through and exiting with its exit code
     --simulator       Use the given executable as the Opentrons simulator of --simulate (default: opentrons_simulate on the PATH, or else in _opentrons)
@@ -8049,6 +7737,7 @@ single-dash form of the help option is not accepted.
     --timeline        Print the timeline of each run after its result: its delays and calls of operations performed by their default implementations, with the events of these indented below them, each with its grade, and the resources boxed, with their grades, and unboxed, each row with the grade accumulated before it; long grades are shortened
     --timeline-full   Print the timelines of --timeline with their grades in full; implies --timeline
     --typecheck-only  Typecheck the files without running them
+    --upload          Build the project written with --device with PlatformIO and upload it to the board, passing its output through and exiting with its exit code
   [2]
 
 The rational-time example runs to its values under its intervals of hours.
@@ -8135,12 +7824,7 @@ The mail-session example performs its operations by their defaults.
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with fetch_then_flag
-        # {Login; (Fetch | Store)*; Logout}
-    },
+    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
     {2},
     {1},
     {1},
@@ -8193,17 +7877,7 @@ operation, which no default implements.
   === Run 1 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let reading = return op_var in
-            perform Compute () (op_var. return op_var);
-            unbox reading as sample in
-            let angle = perform AngleOf sample (op_var. return op_var) in
-            perform SetAngle angle (op_var. return op_var)
-          with sensor
-        # (0, 0.5]
-    },
+    { resource_1 ↦ <fun> # (0, 0.5] },
     [0.1, 0.1],
     { resource_2 ↦ Sample 42 # [5, 10) },
     [7, 7],

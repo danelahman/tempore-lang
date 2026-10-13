@@ -1,0 +1,339 @@
+(* The M5Stack BALA2 balancing robot: a 5 ms control step and its supervision
+
+   Run this example with the 'time-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades time-interval-rational \
+       --package m5-imu \
+       --package m5-display \
+       --package bala2-base \
+       --board m5stack-gray \
+       examples/arduino/bala2/balance.tpe
+
+   Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition, an end open if either end added is *)
+
+(* The application of the Arduino backend to the M5Stack BALA2, an M5Stack
+   Gray core on a base with two wheels: the device manifest balance.device.json
+   runs the control step 'step' every 5 ms, from the state of 'start', and
+   repeats the supervision 'supervise' as a free task. The operations
+   ReadImu, SetMotors, ReadEncoders, ResetEncoders, ShowText, ShowNumber and
+   ClearDisplay, and the functions tilt_x_of_accel, complementary and
+   bala2_drive, come from the packages m5-imu, m5-display and bala2-base,
+   whose declarations precede this file. The operations declared below are
+   bound by bindings.cpp; plant.cpp is the host model of the robot.
+
+   The PlatformIO project is written, and simulated on the host for 8
+   seconds, by
+
+     ./tempore --grades time-interval-rational \
+       --emit-arduino balance \
+       --device examples/arduino/bala2/balance.device.json \
+       --host-simulate 8 \
+       examples/arduino/bala2/balance.tpe
+
+   Under the build flag BALANCE_LOG of bindings.cpp, an interval in
+   milliseconds, the device logs the tilt, the rate of the gyroscope, the
+   drives of the motors and the counts of the encoders at that interval. The
+   project is built with it, uploaded and its serial output read for 60
+   seconds by
+
+     PLATFORMIO_BUILD_FLAGS=-DBALANCE_LOG=20 \
+       ./tempore --grades time-interval-rational \
+       --emit-arduino balance-log \
+       --device examples/arduino/bala2/balance.device.json \
+       --monitor warn --upload --port /dev/cu.usbserial-02012C91 \
+       --capture 60 \
+       examples/arduino/bala2/balance.tpe
+
+   The first publication also starts the task of the log, which the bounds
+   of Publish do not include; the monitor policy warn logs a call beyond
+   them.
+
+   The make targets arduino-bala2-simulate, -build, -upload, -profile and
+   -log run these commands and their variants for the board;
+   'make examples-help' lists them with their variables.
+
+   The typing is relative to the declared bounds of the running times of the
+   operations, those of the packages on the M5Stack Gray, the board of the
+   manifest, which the option --board m5stack-gray of the interpreter run
+   selects and to which the figures below refer; the monitors of the device
+   check these bounds, and the watchdog of the base and the tilt cutoff of
+   the step stop the motors. *)
+
+(* The exchange between the tasks, through bindings.cpp. The step publishes
+   the tilt, in degrees, and the rate of the gyroscope, in degrees per
+   second, and reads the setpoints: whether the robot is armed, the bias of
+   the gyroscope, the speed of the wheels, in encoder counts per second, and
+   the difference of the drives of the motors, which turns the robot. The
+   supervision reads the attitude, arms the robot with a calibration of the
+   gyroscope, disarms it, and commands a speed and a turn; a command older
+   than 200 ms is replaced by zero setpoints. The default implementations
+   describe an armed robot without commands.
+
+   The bounds of the running times are measured on the device by its
+   profile (2026-10-14): Publish took 0 to 0.008 ms, Setpoints 0 to 0.028
+   ms, Attitude 0 to 0.012 ms, Disarm 0.021 ms and Command 0.002 to 0.019
+   ms; with the margin of the packages, 1.5 times the greatest time, rounded
+   up, each is bounded by 0.05 ms. Arm, which stores as many values as
+   Command, is bounded as Command; it is not measured in its present form,
+   without a line to the log. *)
+
+type calibration = Calibration of float
+
+operation Publish : float * float ~> unit # [0, 0.05]
+default Publish _ = delay 1/100
+
+operation Setpoints : unit ~> bool * float * float * float # [0, 0.05]
+default Setpoints () = delay 1/100; (true, 0.0, 0.0, 0.0)
+
+operation Attitude : unit ~> float * float # [0, 0.05]
+default Attitude () = delay 1/100; (0.0, 0.0)
+
+operation Arm : calibration ~> unit # [0, 0.05]
+default Arm _ = delay 1/100
+
+operation Disarm : unit ~> unit # [0, 0.05]
+default Disarm () = delay 1/100
+
+operation Command : float * float ~> unit # [0, 0.05]
+default Command _ = delay 1/100
+
+(* The control step. The state is the tilt, in degrees, filtered from the
+   inertial measurement unit; the speed of the wheels, in encoder counts per
+   second, filtered; the integral of the error of the speed; and the
+   position of the wheels, in encoder counts. *)
+
+type state = float * float * float * float
+
+(* The period, in seconds, and the weight of the gyroscope in the
+   complementary filter of the tilt. *)
+let period = 0.005
+let gyro_weight = 0.98
+
+(* The gains of the cascade of an outer speed loop, a proportional-integral
+   controller that sets the reference tilt, and an inner tilt loop, a
+   proportional-derivative controller that sets the drive of the motors: the
+   drive per degree of tilt and per degree per second of its rate, and the
+   reference tilt per encoder count per second of the error of the speed
+   and per encoder count of its integral. The gains of the tilt loop were
+   tuned on the device, those of the speed loop on the host model
+   plant.cpp. *)
+let tilt_gain = 25.0
+let rate_gain = 0.4
+let speed_gain = 0.02
+let integral_gain = 0.001
+
+(* The bounds of the integral of the error of the speed, of the reference
+   tilt, in degrees, and of the tilt beyond which the motors stop. *)
+let integral_limit = 2000.0
+let reference_limit = 10.0
+let cutoff = 70.0
+
+let magnitude (x : float) = if x < 0.0 then ~-.x else x
+
+let clamp (limit : float) (x : float) =
+  if x < ~-.limit then ~-.limit else if x > limit then limit else x
+
+(* Correctly accepted by the typechecker: the step reads the unit, boxes the
+   reading for 2 ms, reads the encoders and the setpoints, and unboxes the
+   reading after 0.45 to 1.05 ms; it ends within 1.2 to 2.8 ms, below its
+   period. Beyond the cutoff, or disarmed, it stops the motors and clears the
+   integral. *)
+let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
+  let reading = perform ReadImu () in
+  box [0, 2] reading as fresh in
+  let left, right = perform ReadEncoders () in
+  let armed, bias, target, turn = perform Setpoints () in
+  unbox fresh as imu in
+  let accel, gyro = imu in
+  let raw, _, _ = gyro in
+  let rate = raw -. bias in
+  let tilt =
+    complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
+  in
+  perform Publish (tilt, raw);
+  let now = (float_of_int left +. float_of_int right) /. 2.0 in
+  let speed = (0.7 *. speed) +. (0.3 *. ((now -. position) /. period)) in
+  if armed && magnitude tilt <= cutoff then
+    let error = speed -. target in
+    let integral = clamp integral_limit (integral +. (error *. period)) in
+    let reference =
+      clamp reference_limit
+        (~-.((speed_gain *. error) +. (integral_gain *. integral)))
+    in
+    let drive = (tilt_gain *. (tilt -. reference)) +. (rate_gain *. rate) in
+    perform SetMotors
+      (bala2_drive (drive +. turn), bala2_drive (drive -. turn));
+    (tilt, speed, integral, now)
+  else (
+    perform SetMotors (0i, 0i);
+    (tilt, speed, 0.0, now))
+
+(* The initial state: the encoders reset, and the tilt from the
+   accelerometer. *)
+let start () : state =
+  perform ResetEncoders ();
+  let accel, _ = perform ReadImu () in
+  (tilt_x_of_accel accel, 0.0, 0.0, 0.0)
+
+(* Correctly rejected by the typechecker: the step averages two reads of the
+   encoders 1.5 ms apart before it uses the reading of the unit, which is
+   then 2.4 to 3.55 ms old:
+
+     Typing error: Variable `fresh` is unboxed with grade `[2.4, 3.55]`
+       accumulated since it was bound, which is not below its box grade
+       `[0, 2]`
+       ...
+       Note: the resource inequality `[2.4, 3.55] <= [0, 2]` does not hold
+*)
+(*
+let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
+  let reading = perform ReadImu () in
+  box [0, 2] reading as fresh in
+  let left1, right1 = perform ReadEncoders () in
+  delay 1.5;
+  let left2, right2 = perform ReadEncoders () in
+  let left = (float_of_int left1 +. float_of_int left2) /. 2.0 in
+  let right = (float_of_int right1 +. float_of_int right2) /. 2.0 in
+  let armed, bias, target, turn = perform Setpoints () in
+  unbox fresh as imu in
+  let accel, gyro = imu in
+  let raw, _, _ = gyro in
+  let tilt =
+    complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
+  in
+  perform SetMotors (0i, 0i);
+  (tilt, speed, integral, (left +. right) /. 2.0)
+*)
+
+(* Correctly rejected by the typechecker: the step shows the tilt on the
+   display, which takes up to 12.5 ms, longer than the period:
+
+     Typing error: This function's body has grade `[0.85, 14.2]`, which
+       does not match its annotated grade `[0, 5)`
+       Note: the effect inequality `[0.85, 14.2] <= [0, 5)` does not hold
+*)
+(*
+let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
+  let reading = perform ReadImu () in
+  box [0, 2] reading as fresh in
+  unbox fresh as imu in
+  let accel, gyro = imu in
+  let raw, _, _ = gyro in
+  let tilt =
+    complementary gyro_weight period tilt (tilt_x_of_accel accel) raw
+  in
+  perform ShowNumber tilt;
+  perform SetMotors (0i, 0i);
+  (tilt, speed, integral, position)
+*)
+
+(* The supervision. The bias of the gyroscope is the mean of 50 rates
+   published by the step 10 ms apart, with the robot held still; the
+   calibration is boxed for ten minutes, and arming the robot needs it
+   unboxed, that is, at most ten minutes old. *)
+
+let rec rate_sum (n : nat) (sum : float) : float # [0, ∞) =
+  match n with
+  | 0 -> sum
+  | m + 1 ->
+      let _, rate = perform Attitude () in
+      delay 10;
+      rate_sum m (sum +. rate)
+
+let calibrate () =
+  perform Disarm ();
+  perform ClearDisplay ();
+  perform ShowText "Calibrating";
+  let sum = rate_sum 50 0.0 in
+  box [0, 600000) (Calibration (sum /. 50.0))
+
+(* Correctly accepted by the typechecker: an iteration of the drive commands
+   zero setpoints, shows the tilt every tenth iteration and waits 100 ms; it
+   takes 100 to 112.6 ms, within the 200 ms after which a command expires. *)
+let drive_step (n : nat) : unit # [0, 200) =
+  let tilt, _ = perform Attitude () in
+  perform Command (0.0, 0.0);
+  (if n mod 10 = 0 then perform ShowNumber tilt else ());
+  delay 100
+
+let rec drive (n : nat) : unit # [0, ∞) =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      drive_step m;
+      drive m
+
+(* Correctly accepted by the typechecker: the robot is calibrated, held
+   upright for a second, armed with a calibration 1000.1 to 1012.5 ms old,
+   and driven for about 13 years, after which it is disarmed and the
+   supervision repeats. *)
+let supervise () =
+  let token = calibrate () in
+  perform ShowText "Hold upright";
+  delay 1000;
+  unbox token as calibration in
+  perform Arm calibration;
+  perform ShowText "Armed";
+  drive 4000000000;
+  perform Disarm ()
+
+(* Correctly rejected by the typechecker: the robot is armed with the boxed
+   calibration, not with an unboxed one:
+
+     Typing error: Operation `Arm` takes an argument of type `calibration` but
+       is given `[_]calibration`
+       ...
+*)
+(*
+let supervise_unchecked () =
+  let token = calibrate () in
+  perform Arm token;
+  drive 4000000000
+*)
+
+(* Correctly rejected by the typechecker: the robot is armed with a
+   calibration more than ten minutes old:
+
+     Typing error: Variable `token` is unboxed with grade
+       `[600000.1, 600012.5]`
+       accumulated since it was bound, which is not below its box grade
+       `[0, 600000)`
+       ...
+       Note: the resource inequality `[600000.1, 600012.5] <= [0, 600000)`
+       does not hold
+*)
+(*
+let supervise_late () =
+  let token = calibrate () in
+  perform ShowText "Hold upright";
+  delay 600000;
+  unbox token as calibration in
+  perform Arm calibration;
+  drive 4000000000
+*)
+
+(* Correctly rejected by the typechecker: an iteration of the drive that
+   waits 150 ms clears and redraws the display, and may take 223.1 ms, so
+   that a command may expire before the next:
+
+     Typing error: This function's body has grade `[181.2, 223.1]`, which
+       does not match its annotated grade `[0, 200)`
+       Note: the effect inequality `[181.2, 223.1] <= [0, 200)` does not
+       hold
+*)
+(*
+let drive_step_redrawn (n : nat) : unit # [0, 200) =
+  let tilt, _ = perform Attitude () in
+  perform Command (0.0, 0.0);
+  perform ClearDisplay ();
+  perform ShowText "Tilt";
+  perform ShowNumber tilt;
+  delay 150
+*)
+
+(* Two control steps from the reading of the default implementation of the
+   unit, a robot at rest, and a tilt of 3 degrees. *)
+run step (step (3.0, 0.0, 0.0, 0.0))

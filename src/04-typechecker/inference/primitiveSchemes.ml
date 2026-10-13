@@ -9,6 +9,7 @@ module Make (C : Constraint.S) = struct
   let pure ty = Ast.CompTy (ty, C.X.Eps.unit)
   let arrow ty ty' = Ast.TyArrow (ty, pure ty')
   let nat = Ast.TyConst Const.NatTy
+  let int = Ast.TyConst Const.IntTy
   let float = Ast.TyConst Const.FloatTy
   let bool = Ast.TyConst Const.BooleanTy
   let string = Ast.TyConst Const.StringTy
@@ -46,6 +47,18 @@ module Make (C : Constraint.S) = struct
     | Primitives.FloatAdd | Primitives.FloatMul | Primitives.FloatSub
     | Primitives.FloatDiv | Primitives.FloatPow ->
         binary float
-    | Primitives.FloatNeg -> unary float
+    | Primitives.FloatNeg | Primitives.FloatSqrt | Primitives.FloatAtan ->
+        unary float
+    | Primitives.FloatAtan2 -> binary float
+    | Primitives.FloatOfNat -> C.monomorphic (arrow nat float)
+    | Primitives.NatOfFloat -> C.monomorphic (arrow float nat)
+    | Primitives.IntAdd | Primitives.IntMul | Primitives.IntSub
+    | Primitives.IntDiv | Primitives.IntMod ->
+        binary int
+    | Primitives.IntNeg -> unary int
+    | Primitives.IntOfNat -> C.monomorphic (arrow nat int)
+    | Primitives.NatOfInt -> C.monomorphic (arrow int nat)
+    | Primitives.FloatOfInt -> C.monomorphic (arrow int float)
+    | Primitives.IntOfFloat -> C.monomorphic (arrow float int)
     | Primitives.ToString -> poly (fun a -> arrow a string)
 end

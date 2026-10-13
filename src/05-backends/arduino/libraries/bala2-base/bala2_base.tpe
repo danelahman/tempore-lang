@@ -1,0 +1,33 @@
+(* The package bala2-base: the two motors and wheel encoders of the base of
+   the M5Stack BALA2, an STM32 at I2C address 0x3A on the bus Wire. Grades:
+   time-interval-rational, in milliseconds.
+
+   SetMotors (left, right) sets the drives of the motors, each an integer
+   from -1023 to 1023, a drive outside that range being a run-time error;
+   bala2_drive, of bala2_base_drive.tpe, is the drive of a float, rounded and
+   clamped. ReadEncoders () reads the counts of the encoders of the wheels,
+   each an integer of 32 bits that increases in the direction in which a
+   positive drive turns its wheel; ResetEncoders () sets them to zero.
+
+   The base stops the motors when no SetMotors call has come for the setpoint
+   window, 200 ms unless the build flag BALA2_WATCHDOG_MS sets it, and in the
+   safe state of the device.
+
+   The bounds of the running times are measured on an M5Stack Gray core on
+   the base, with the bus at 400 kHz, by the profile of the device
+   (2026-10-14): the lower bound is the least time measured, rounded down,
+   and the upper bound 1.5 times the greatest, rounded up. SetMotors, a write
+   of 6 bytes, took 0.220 to 0.292 ms, and ReadEncoders, a read of 8 bytes,
+   0.462 to 0.653 ms. ResetEncoders, a write of 10 bytes, was measured once,
+   0.321 ms; its bounds are those of SetMotors with the transfer of 4 more
+   bytes, 22.5 microseconds each at 400 kHz: 0.310 to 0.382 ms. The default
+   implementations take a time within the bounds and read zeros. *)
+
+operation SetMotors : int * int ~> unit # [0.2, 0.45]
+default SetMotors _ = delay 1/5
+
+operation ReadEncoders : unit ~> int * int # [0.45, 1]
+default ReadEncoders () = delay 1/2; (0i, 0i)
+
+operation ResetEncoders : unit ~> unit # [0.3, 0.6]
+default ResetEncoders () = delay 7/20

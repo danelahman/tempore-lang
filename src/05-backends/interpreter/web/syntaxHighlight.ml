@@ -111,6 +111,8 @@ let tokens s =
       while !i < n && (is_digit s.[!i] || s.[!i] = '.') do
         incr i
       done;
+      if !i < n && s.[!i] = 'i' && not (!i + 1 < n && is_ident_char s.[!i + 1])
+      then incr i;
       emit start !i (Some "syn-num");
       after_op_kw := false;
       after_bar := false

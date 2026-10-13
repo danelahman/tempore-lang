@@ -84,6 +84,8 @@ struct
         W.max_weight (W.world snd bounds [ upper ]) upper )
     with
     | Some fastest, Some slowest -> Some (fastest, slowest)
+    | Some fastest, None when W.inhabited bounds upper ->
+        Some (fastest, Unbounded)
     | _ -> None
 
   (** The fields the grades share with the underlying regular trace grade. *)

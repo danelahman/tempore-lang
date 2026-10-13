@@ -33,6 +33,7 @@
        examples/opentrons/cleanup.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+   The target opentrons-cleanup-simulate of 'make' runs this command.
 
    The atomic operations declare their running times and have binding
    functions; the compound operations have neither, and are performed by the

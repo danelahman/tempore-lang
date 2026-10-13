@@ -331,10 +331,12 @@ let run_example (entry : Manifest.entry) =
                 in
                 check "with its binding"
                   (compiler.compile settings ~operations
-                     ~compound:program.compound_operations program.commands);
+                     ~compound:program.compound_operations ~definitions:[]
+                     program.commands);
                 check "without a binding"
                   (compiler.compile [] ~operations
-                     ~compound:program.compound_operations program.commands)))
+                     ~compound:program.compound_operations ~definitions:[]
+                     program.commands)))
 
 (* Programs run by an interpreter *)
 
@@ -612,10 +614,269 @@ run
 |}
     [ "box h High"; "box l Low"; "unbox l"; "unbox h" ]
 
+(* The conversions between natural numbers and floats, with natural numbers
+   beyond 32 bits, and the square root and the arctangent of two floats. *)
+let () =
+  let returned =
+    List.filter_map
+      (function Backend.Returned { value; _ } -> Some value | _ -> None)
+      (observations "time-interval"
+         {|let rec power (n : nat) = match n with 0 -> 1 | m + 1 -> 10 * power m
+
+run nat_of_float (float_of_nat 9007199254740993)
+run (nat_of_float 4294967296.0, nat_of_float 1e20)
+run (float_of_nat (power 308), float_of_nat (power 309))
+run (nat_of_float (~-. 2.5), nat_of_float (0.0 /. 0.0))
+run (sqrt 2.25, sqrt (~-. 1.0), atan2 (1.0, ~-. 1.0))
+|})
+  in
+  let expected =
+    [
+      "9007199254740992";
+      "(4294967296, 100000000000000000000)";
+      "(1e+308, infinity)";
+      "(0, 0)";
+      "(1.5, nan, 2.35619449019)";
+    ]
+  in
+  if returned <> expected then
+    fail "conversions: %s" (String.concat "; " returned)
+
+(* Integers beyond 32 bits, division and modulo truncated toward zero, and
+   the conversions of integers. *)
+let () =
+  let returned =
+    List.filter_map
+      (function Backend.Returned { value; _ } -> Some value | _ -> None)
+      (observations "time-interval"
+         {|run (4294967296i *! -4294967296i, -7i /! 2i, -7i mod! 2i, ~-!(-3i))
+run (int_of_nat 4294967296, nat_of_int (-4294967296i), nat_of_int 5i)
+run (int_of_float (~-. 1e20), int_of_float (~-. 2.75), float_of_int (-3i))
+|})
+  in
+  let expected =
+    [
+      "(-18446744073709551616i, -3i, -1i, 3i)";
+      "(4294967296i, 0, 5)";
+      "(-100000000000000000000i, -2i, -3.)";
+    ]
+  in
+  if returned <> expected then fail "integers: %s" (String.concat "; " returned)
+
+(* The Arduino backend *)
+
+let arduino_compiler =
+  match BackendRegistry.arduino.compiler with
+  | Some compiler -> compiler
+  | None -> failwith "the Arduino backend has no compiler"
+
+let has_error (output : BackendRegistry.compiled) =
+  List.exists
+    (fun (m : BackendRegistry.message) -> m.severity = BackendRegistry.Error)
+    output.messages
+
+let error_text (output : BackendRegistry.compiled) =
+  String.concat "\n"
+    (List.map (fun (m : BackendRegistry.message) -> m.text) output.messages)
+
+let contains ~sub s =
+  let n = String.length s and m = String.length sub in
+  let rec go i = i + m <= n && (String.sub s i m = sub || go (i + 1)) in
+  go 0
+
+(* The program [source], after the declarations of the Arduino backend under
+   [settings] and [grade], loaded by the web interpreter, run with the
+   observer of the backend by the first step at each state, which must record
+   an operation if [observed], and compiled with each of [variants], a list
+   of settings and a check of the output; [name] names it in failures. *)
+let arduino_program ~name ~grade ~settings ?(observed = false) variants source =
+  match List.assoc_opt grade Grades.GradeRegistry.grade_modules with
+  | None -> fail "%s: unknown grade" name
+  | Some (module G : Grade.S) -> (
+      let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
+      let module L = Loader.Loader (B) in
+      match BackendRegistry.arduino.declarations settings ~grades:grade with
+      | Error message -> fail "%s: %s" name message
+      | Ok declarations ->
+          let program =
+            L.load_program ~use_stdlib:true
+              (List.map
+                 (fun (d : BackendRegistry.source) ->
+                   L.parse_source ~filename:d.filename d.text)
+                 declarations
+              @ [ L.parse_source source ])
+          in
+          if program.diagnostics <> [] then fail "%s: rejected" name
+          else
+            let definitions =
+              List.map
+                (fun (d : L.definition) ->
+                  ( d.variable,
+                    match
+                      L.TC.function_effect program.loaded.typechecker d.scheme
+                    with
+                    | Typechecker.Not_a_function ->
+                        BackendRegistry.Not_a_function
+                    | Typechecker.Effect_variable -> Effect_variable
+                    | Typechecker.Effect { grade; durations } ->
+                        Effect { grade; durations } ))
+                program.definitions
+            in
+            let compile settings =
+              arduino_compiler.compile settings ~operations:program.operations
+                ~compound:program.compound_operations ~definitions
+                program.commands
+            in
+            (match BackendRegistry.arduino.observer with
+            | None -> fail "the Arduino backend has no observer"
+            | Some make ->
+                let rec go observer (rs : B.run_state) =
+                  match B.steps rs with
+                  | [] -> observer
+                  | step :: _ ->
+                      go
+                        (List.fold_left
+                           (fun (o : BackendRegistry.observer) -> o.observe)
+                           observer (B.observe rs step))
+                        (step.next_state ())
+                in
+                let report =
+                  Lazy.force
+                    (go (make settings) (B.run program.loaded.backend)).report
+                in
+                if observed && report.rows = [] then
+                  fail "%s: no operation recorded" name);
+            List.iter
+              (fun (variant, check) ->
+                let output = compile variant in
+                if verbose then begin
+                  print_endline (Option.value output.code ~default:"");
+                  print_endline (error_text output)
+                end;
+                if not (check output) then
+                  fail "%s: variant %s" name
+                    (String.concat " " (List.map (fun (k, _) -> k) variant)))
+              variants)
+
+(* The Arduino examples, with their manifests and binding files: compiled to
+   the files of the project shown; without the binding file, refused at the
+   manifest; without a manifest, compiled to the program alone, or, if the
+   program defines handlers, which only the definitions of the tasks of the
+   manifest may leave out, refused at them. *)
+let arduino_example (entry : Manifest.entry) =
+  let settings = List.map (fun (k, v) -> (k, read v)) entry.settings in
+  let source = read entry.path in
+  let has_files names (output : BackendRegistry.compiled) =
+    match output.code with
+    | Some code ->
+        List.for_all (fun name -> contains ~sub:("// File " ^ name) code) names
+        && output.language = "cpp"
+        && not (has_error output)
+    | None -> false
+  in
+  arduino_program ~name:entry.path ~grade:entry.grade ~settings ~observed:true
+    [
+      ( settings,
+        has_files
+          [
+            "platformio.ini";
+            "src/main.cpp";
+            "src/tempore_program.h";
+            "src/tempore_program.cpp";
+            "src/tempore_bindings.h";
+            "src/tempore_operations.cpp";
+          ] );
+      ( List.remove_assoc "bindings" settings,
+        fun output ->
+          output.code = None && contains ~sub:"device.json" (error_text output)
+      );
+      ( List.remove_assoc "manifest" settings,
+        fun output ->
+          if contains ~sub:"handler\n" source then
+            output.code = None
+            && contains ~sub:"does not support handlers" (error_text output)
+          else
+            has_files [ "tempore_program.h"; "tempore_program.cpp" ] output
+            && not
+                 (contains ~sub:"// File src/main.cpp" (Option.get output.code))
+      );
+    ]
+    source
+
+(* Errors of the Arduino backend: a malformed manifest, a task function the
+   program lacks, a construct outside the fragment, an unknown package, which
+   loads no declarations, a package listed twice, which loads them once, and
+   packages under grades they are not declared under. *)
+let () =
+  let manifest text = [ ("manifest", text) ] in
+  let refused ~sub (output : BackendRegistry.compiled) =
+    output.code = None && has_error output && contains ~sub (error_text output)
+  in
+  arduino_program ~name:"a program of nats" ~grade:"time-interval-rational"
+    ~settings:[]
+    [
+      ([], fun output -> output.code <> None && not (has_error output));
+      (manifest "{ \"board\": ", refused ~sub:"device.json");
+      ( manifest
+          {|{ "board": "esp32-devkit", "tasks": [ { "function": "missing", "kind": "free" } ] }|},
+        refused ~sub:"missing" );
+    ]
+    "let double (n : nat) = n + n\nrun double 2";
+  arduino_program ~name:"a local function" ~grade:"time-interval-rational"
+    ~settings:[]
+    [ ([], refused ~sub:"Compilation error") ]
+    "let twice (n : nat) = let f (m : nat) = m + m in f n\nrun twice 2";
+  let gray packages =
+    manifest
+      (Printf.sprintf
+         {|{ "board": "m5stack-gray", "tasks": [ { "function": "f", "kind": "free" } ], "packages": %s }|}
+         packages)
+  in
+  (match
+     BackendRegistry.arduino.declarations
+       (gray {|["m5-imu", "nowhere", "m5-imu"]|})
+       ~grades:"time-interval-rational"
+   with
+  | Ok [ definitions; declarations ]
+    when contains ~sub:"m5_imu_filter.tpe" definitions.filename
+         && contains ~sub:"m5_imu.tpe" declarations.filename ->
+      ()
+  | Ok sources ->
+      fail "the declarations of the packages: %s"
+        (String.concat ", "
+           (List.map (fun (d : BackendRegistry.source) -> d.filename) sources))
+  | Error message -> fail "the declarations of the packages: %s" message);
+  (match
+     BackendRegistry.arduino.declarations (gray {|["m5-imu"]|})
+       ~grades:"time-interval"
+   with
+  | Error _ -> ()
+  | Ok _ -> fail "m5-imu loaded under time-interval");
+  (match
+     BackendRegistry.arduino.declarations (gray {|["m5-imu"]|})
+       ~grades:"counts-upper-bound"
+   with
+  | Ok [ _; declarations ]
+    when contains ~sub:"m5_imu_counts.tpe" declarations.filename ->
+      ()
+  | _ -> fail "the declarations of m5-imu under counts-upper-bound");
+  match
+    BackendRegistry.arduino.declarations
+      (manifest "not a manifest")
+      ~grades:"time-interval-rational"
+  with
+  | Ok [] -> ()
+  | _ -> fail "the declarations of a malformed manifest"
+
 let () =
   let _, entries, _ = Manifest.read (Filename.concat root "examples/index") in
   List.iter run_example
     (List.filter (fun (e : Manifest.entry) -> e.backend = "opentrons") entries);
+  let arduino =
+    List.filter (fun (e : Manifest.entry) -> e.backend = "arduino") entries
+  in
+  if List.length arduino < 2 then fail "the Arduino examples are missing";
+  List.iter arduino_example arduino;
   match !failures with
   | [] -> ()
   | failures ->

@@ -1,0 +1,22 @@
+(* Register transactions with a memory at the I2C address 0x50, with the
+   package i2c, on a generic ESP32: a word of 32 bits is written and read
+   back in parts, unsigned and signed, and a read from the address 0x51, at
+   which no device answers, is a run-time error. Time is in milliseconds,
+   under the grades time-interval-rational. *)
+
+operation Report : nat ~> unit # [0, 1]
+operation ReportInt : int ~> unit # [0, 1]
+
+let check () =
+  perform I2cWrite32 (80, 16, 305419896);
+  perform Report (perform I2cRead32 (80, 16));
+  perform Report (perform I2cRead16 (80, 18));
+  perform Report (perform I2cRead8 (80, 17));
+  perform I2cWrite8 (80, 17, 511);
+  perform Report (perform I2cRead16 (80, 16));
+  perform ReportInt (perform I2cReadInt8 (80, 17));
+  perform ReportInt (perform I2cReadInt16 (80, 17));
+  perform ReportInt (perform I2cReadInt32 (80, 16));
+  perform Report (perform I2cRead8 (81, 0))
+
+let probe () = perform Report (perform I2cRead32 (80, 16))

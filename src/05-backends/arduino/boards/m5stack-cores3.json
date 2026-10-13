@@ -1,0 +1,16 @@
+{
+  "title": "M5Stack CoreS3",
+  "description": "M5Stack CoreS3 and CoreS3 Lite: ESP32-S3 with a BMI270 IMU; external I2C on port A",
+  "platform": "espressif32",
+  "board": "m5stack-cores3",
+  "framework": "arduino",
+  "lib_deps": ["m5stack/M5Unified@^0.2.2"],
+  "build_flags": ["-DARDUINO_USB_CDC_ON_BOOT=1"],
+  "cores": 2,
+  "m5unified": true,
+  "capabilities": ["imu", "display"],
+  "serial_baud": 115200,
+  "i2c": [{ "port": "Wire", "sda": 2, "scl": 1, "frequency": 400000 }],
+  "includes": [],
+  "init": []
+}

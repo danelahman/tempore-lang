@@ -18,6 +18,21 @@ type primitive =
   | FloatDiv
   | FloatPow
   | FloatNeg
+  | FloatOfNat
+  | NatOfFloat
+  | FloatSqrt
+  | FloatAtan
+  | FloatAtan2
+  | IntAdd
+  | IntMul
+  | IntSub
+  | IntDiv
+  | IntMod
+  | IntNeg
+  | IntOfNat
+  | NatOfInt
+  | FloatOfInt
+  | IntOfFloat
   | ToString
 
 val primitives : primitive list

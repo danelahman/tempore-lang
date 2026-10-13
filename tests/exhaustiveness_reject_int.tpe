@@ -1,0 +1,3 @@
+(* Rejected: only a wildcard covers every integer. *)
+
+let f (n : int) = match n with 0i -> true | -1i -> false

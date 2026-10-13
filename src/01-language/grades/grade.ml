@@ -54,6 +54,18 @@ type running_time = Rational.t bound * Rational.t bound
     the grade. A closed end is attained by the durations of the operation, an
     open one is their strict infimum or supremum. *)
 
+(** The durations of the computations of a grade, as a program reports them to a
+    backend. *)
+type durations =
+  | Duration_interval of Rational.t bound * Rational.t bound
+      (** the interval of the durations, each end attained or not, the upper end
+          infinite where the grade bounds them only below ({!S.duration_bounds})
+      *)
+  | Undetermined
+      (** the grade system bounds durations, but this grade determines no
+          interval of them *)
+  | Untimed  (** the grade system does not bound durations *)
+
 (** [end_value b] is the value of the finite end [b] of an interval.
 
     Raises [Invalid_argument] if [b] is infinite. *)
@@ -214,10 +226,12 @@ module type S = sig
       traces of [rho], each event counted at the lower end of its [bounds], and
       their supremum, each event counted at the upper end: the fastest trace is
       taken over the lower-bound component of the grade and the slowest over its
-      upper-bound component, which coincide for the one-sided grades; it is
-      [None] where the upper-bound component is unbounded. For a product it is
-      the intersection of those of its components ({!intersect_durations}). It
-      is [None] for the grades that do not bound durations. *)
+      upper-bound component, which coincide for the one-sided grades; the upper
+      end is infinite where the durations of the upper-bound component are
+      unbounded, and the interval is [None] where either component denotes no
+      trace. For a product it is the intersection of those of its components
+      ({!intersect_durations}). It is [None] for the grades that do not bound
+      durations. *)
 
   val inhabited : bounds -> t -> bool
   (** [inhabited bounds rho] is whether the grade [rho] denotes at least one

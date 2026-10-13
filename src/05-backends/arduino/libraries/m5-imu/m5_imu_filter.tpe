@@ -1,0 +1,40 @@
+(* The package m5-imu: the types of the readings of the inertial measurement
+   unit of an M5Stack core, and an attitude filter, under every grade system
+   of the package. The operation ReadImu is declared under each grade system
+   by a file of its own. *)
+
+type vector = float * float * float
+type imu = vector * vector
+
+(* The number of degrees in a radian. *)
+let imu_degrees = 57.2957795130823
+
+(* The tilt of the unit about its x axis, in degrees, from the direction of
+   gravity measured by the accelerometer: zero with the z axis up, positive
+   when the y axis tilts up. *)
+let tilt_x_of_accel ((_, ay, az) : vector) = atan2 (ay, az) *. imu_degrees
+
+(* The tilt of the unit about its y axis, in degrees, from the direction of
+   gravity: zero with the z axis up, positive when the x axis tilts down. *)
+let tilt_y_of_accel ((ax, ay, az) : vector) =
+  atan2 (~-.ax, sqrt ((ay *. ay) +. (az *. az))) *. imu_degrees
+
+(* A complementary filter: the angle, in degrees, advanced by the rate, in
+   degrees per second, over dt seconds, weighted by alpha, and the measured
+   angle weighted by 1 - alpha. *)
+let complementary (alpha : float) (dt : float) (angle : float)
+    (measured : float) (rate : float) =
+  (alpha *. (angle +. (rate *. dt))) +. ((1.0 -. alpha) *. measured)
+
+(* The tilt about the x axis, in degrees, filtered from the previous estimate
+   angle and a reading of the unit dt seconds later. *)
+let tilt_x (alpha : float) (dt : float) (angle : float)
+    (((accel, gyro) : imu)) =
+  let gx, _, _ = gyro in
+  complementary alpha dt angle (tilt_x_of_accel accel) gx
+
+(* The tilt about the y axis, in degrees, filtered as by tilt_x. *)
+let tilt_y (alpha : float) (dt : float) (angle : float)
+    (((accel, gyro) : imu)) =
+  let _, gy, _ = gyro in
+  complementary alpha dt angle (tilt_y_of_accel accel) gy

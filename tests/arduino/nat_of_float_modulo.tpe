@@ -1,0 +1,6 @@
+(* The conversion of floats of 2^32 and above to natural numbers of 32 bits,
+   modulo 2^32. *)
+
+let convert x = nat_of_float x
+
+run (convert 4294967296.0, convert 1e10, convert 4294967040.0)

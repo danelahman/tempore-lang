@@ -64,6 +64,14 @@ type flash =
       (** the bytes of the editor's text from a start up to a stop *)
   | Message of int  (** the message of the [i]th error *)
 
+(** A notice shown under the example. *)
+type notice =
+  | Ignored of WebLink.parameter list
+      (** the parameters of the page's address that name nothing known or are
+          malformed *)
+  | Link_copied
+  | Copy_failed of string  (** the link the clipboard has refused *)
+
 (** What the pointer is over in the editor. *)
 type pointer = Nowhere | Over_target of popover_target | Over_popover
 
@@ -202,6 +210,13 @@ and msg =
   | ShowCode of code_view
       (** Show the program or the code the selected backend has compiled it to
           in the editor's place. *)
+  | CopyLink
+      (** Copy the link to the example, the grades and the backend selected to
+          the clipboard. *)
+  | Copied of string * bool
+      (** The given link has been copied to the clipboard, or the clipboard has
+          refused it. *)
+  | Unnotice of int  (** The notice of the given serial has run its course. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -225,9 +240,6 @@ type edit_model = {
   backend_settings : (string * BackendRegistry.settings) list;
       (** The values of the inputs set, by the key of their backend. *)
 }
-
-(** The key the browser remembers whether to load the standard library under. *)
-let use_stdlib_key = "tempore.use-stdlib"
 
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)
 let indentation = "  "
@@ -313,6 +325,20 @@ let example_of_path path =
            g.examples))
     Examples_tpe.examples
 
+(* The group label and the bundled example in the group of label [group] with
+   title [title], if there is one. *)
+let example_of_title group title =
+  Option.bind
+    (List.find_opt
+       (fun (g : Examples_tpe.group) -> g.label = group)
+       Examples_tpe.examples)
+    (fun (g : Examples_tpe.group) ->
+      Option.map
+        (fun e -> (g.label, e))
+        (List.find_opt
+           (fun (e : Examples_tpe.example) -> e.title = title)
+           g.examples))
+
 (* The group label and the example the manifest names as the default of the
    backend [key], if it names one. *)
 let default_example key =
@@ -334,6 +360,77 @@ let edit_init =
   match example_of_path Examples_tpe.default with
   | Some (group, e) -> edit_update empty (LoadExample (group, e))
   | None -> empty
+
+let choices edit_model =
+  {
+    WebChoices.use_stdlib = edit_model.use_stdlib;
+    example =
+      Option.map
+        (fun (group, title) ->
+          {
+            WebChoices.path =
+              Option.fold ~none:""
+                ~some:(fun (_, (e : Examples_tpe.example)) -> e.path)
+                (example_of_title group title);
+            group;
+            title;
+          })
+        edit_model.selected_example;
+    grade = Some edit_model.selected_resource;
+    backend = Some edit_model.selected_backend;
+    settings = edit_model.backend_settings;
+  }
+
+(* The bundled examples, as the parameters of the page's address name them. *)
+let catalogue =
+  let entry (group, (e : Examples_tpe.example)) =
+    {
+      WebLink.example = { WebChoices.path = e.path; group; title = e.title };
+      grade = e.grade;
+      backend = e.backend;
+    }
+  in
+  {
+    WebLink.find = (fun path -> Option.map entry (example_of_path path));
+    default_of = (fun key -> Option.map entry (default_example key));
+  }
+
+(* The query of the page's address naming the example, the grades and the
+   backend of [edit_model]. *)
+let link edit_model =
+  WebLink.serialise (WebLink.of_choices catalogue (choices edit_model))
+
+(* The editor as the page opens with the choices [c] restored: the example
+   loaded first, as it sets the grades, the backend and its inputs, which the
+   remembered ones then override. The backend is selected without its default
+   example. *)
+let restore_edit (c : WebChoices.t) =
+  let c = WebChoices.sanitise c in
+  let loaded =
+    Option.fold ~none:edit_init
+      ~some:(fun (group, e) -> edit_update edit_init (LoadExample (group, e)))
+      (Option.bind c.example (fun (e : WebChoices.example) ->
+           match example_of_path e.path with
+           | Some found -> Some found
+           | None -> example_of_title e.group e.title))
+  in
+  let edit_model =
+    List.fold_left edit_update
+      { loaded with use_stdlib = c.use_stdlib }
+      (List.filter_map Fun.id
+         [
+           Option.map (fun g -> SelectResource g) c.grade;
+           Option.map (fun b -> SelectBackend b) c.backend;
+         ])
+  in
+  {
+    edit_model with
+    backend_settings =
+      c.settings
+      @ List.filter
+          (fun (b, _) -> not (List.mem_assoc b c.settings))
+          edit_model.backend_settings;
+  }
 
 type run_model = {
   current : run_model_state;
@@ -469,6 +566,9 @@ type model = {
     option;
       (** The compilation of the program as last checked, while neither it nor
           the options have changed and it had no errors. *)
+  declared : BackendRegistry.source list;
+      (** The declarations of the selected backend loaded before the program as
+          last checked. *)
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;
@@ -477,6 +577,10 @@ type model = {
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)
+  notice : notice option;
+  notice_serial : int;
+      (** The serial of the latest notice, which replaces any earlier one; the
+          end of an earlier one is ignored. *)
 }
 
 let init =
@@ -503,9 +607,12 @@ let init =
     timer = 0;
     closing = false;
     accepted = None;
+    declared = [];
     compiled = None;
     compile_serial = 0;
     code_view = Source;
+    notice = None;
+    notice_serial = 0;
   }
 
 (** A side effect the update asks for, performed by the page. *)
@@ -517,13 +624,20 @@ type side_effect =
       (** scroll to the primary span of the given error in the editor *)
   | Perform_after_paint of action
       (** send [Perform] once the page has been drawn *)
-  | Remember of string * bool  (** keep a setting in the browser *)
+  | Remember of string * string
+      (** keep the value under the key in the browser's storage *)
   | Focus_current_example
       (** focus the card of the example last loaded in the gallery and centre it
           in the gallery's list *)
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
+  | Replace_query of string
+      (** replace the query of the page's address by the given one, without an
+          entry of its own in the history *)
+  | Copy_link of string
+      (** copy the page's address with the given query to the clipboard and send
+          [Copied] *)
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
    the interpreter: there is nothing to point at, only what went wrong. *)
@@ -555,6 +669,22 @@ let edits_program = function
 (** How long the inputs of a backend rest before the program is compiled with
     them, in milliseconds. *)
 let compile_delay = 300
+
+(* The declarations the selected backend loads before the program under its
+   inputs and the grades selected, or else why it cannot load them. *)
+let declarations edit_model =
+  (backend edit_model).declarations (settings edit_model)
+    ~grades:edit_model.selected_resource
+
+(* Whether the program, unchanged since its last check, was checked with
+   other declarations than those the selected backend now loads, and must be
+   checked again. *)
+let declarations_changed model =
+  (match model.last_check with Some check -> check.current | None -> false)
+  &&
+  match declarations model.edit_model with
+  | Ok sources -> sources <> model.declared
+  | Error _ -> true
 
 (* The program as last accepted, compiled by the selected backend with its
    inputs; [None] without an accepted program or a compiler. An exception
@@ -922,13 +1052,19 @@ let rec update_model model = function
   | Perform action ->
       let run = action = Run in
       let entry = backend model.edit_model in
+      let declared =
+        match declarations model.edit_model with
+        | Ok sources -> sources
+        | Error _ -> []
+      in
       let run_model, definitions, links, accepted =
         try
           match
-            List.assoc_opt model.edit_model.selected_resource
-              Grades.GradeRegistry.grade_modules
+            ( List.assoc_opt model.edit_model.selected_resource
+                Grades.GradeRegistry.grade_modules,
+              declarations model.edit_model )
           with
-          | None ->
+          | None, _ ->
               ( Error
                   [
                     fatal
@@ -938,7 +1074,8 @@ let rec update_model model = function
                 [],
                 [],
                 None )
-          | Some (module G : Grades.Grade.S) ->
+          | _, Error message -> (Error [ fatal message ], [], [], None)
+          | Some (module G : Grades.Grade.S), Ok _ ->
               let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
               let module L = Loader.Loader (B) in
               (* The standard library is loaded as a source of its own, so
@@ -946,7 +1083,12 @@ let rec update_model model = function
                  typed. *)
               let program =
                 L.load_program ~use_stdlib:model.edit_model.use_stdlib
-                  [ L.parse_source model.edit_model.unparsed_code ]
+                  (List.map
+                     (fun (d : BackendRegistry.source) ->
+                       L.parse_source ~filename:d.filename
+                         ~running_times:d.running_times d.text)
+                     declared
+                  @ [ L.parse_source model.edit_model.unparsed_code ])
               in
               let state = program.loaded
               and diagnostics = program.diagnostics
@@ -1018,8 +1160,21 @@ let rec update_model model = function
               let commands = program.commands
               and operations = program.operations
               and compound = program.compound_operations in
+              let effect_definitions =
+                List.map
+                  (fun (d : L.definition) ->
+                    ( d.variable,
+                      match L.TC.function_effect state.typechecker d.scheme with
+                      | Typechecker.Not_a_function ->
+                          BackendRegistry.Not_a_function
+                      | Typechecker.Effect_variable -> Effect_variable
+                      | Typechecker.Effect { grade; durations } ->
+                          Effect { grade; durations } ))
+                  accepted
+              in
               let accepted (compiler : BackendRegistry.compiler) settings =
-                compiler.compile settings ~operations ~compound commands
+                compiler.compile settings ~operations ~compound
+                  ~definitions:effect_definitions commands
               in
               if diagnostics <> [] then
                 ( Error
@@ -1045,7 +1200,7 @@ let rec update_model model = function
               else (Error [], definitions, links, Some accepted)
         with exn -> (Error (errors_of_exception Checking exn), [], [], None)
       in
-      let model = { model with accepted } in
+      let model = { model with accepted; declared } in
       {
         (without_popover model) with
         run_model;
@@ -1103,6 +1258,8 @@ let rec update_model model = function
   | Abbreviate abbreviated -> { model with abbreviated }
   | Unflash serial when serial = model.flash_serial ->
       { model with flash = None }
+  | Unnotice serial when serial = model.notice_serial ->
+      { model with notice = None }
   (* A program edited since its check keeps its code, out of date. *)
   | Recompile serial when serial = model.compile_serial -> (
       match compile model with
@@ -1110,8 +1267,20 @@ let rec update_model model = function
       | None -> model)
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
   | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
-  | GoToError _ | Recompile _ ->
+  | GoToError _ | Recompile _ | CopyLink | Copied _ | Unnotice _ ->
       model
+
+(** How long the confirmation of a copied link is shown, in milliseconds. *)
+let notice_duration = 2000
+
+(* The notice [notice] shown, replacing any earlier one; the confirmation of a
+   copied link for a while only. *)
+let notify model notice =
+  let notice_serial = model.notice_serial + 1 in
+  ( { model with notice = Some notice; notice_serial },
+    match notice with
+    | Link_copied -> [ After (notice_duration, Unnotice notice_serial) ]
+    | Ignored _ | Copy_failed _ -> [] )
 
 (* How long the pointer rests on a span before its popover opens, and how long
    the popover outlasts the pointer's leaving, in milliseconds: the latter lets
@@ -1195,8 +1364,9 @@ let go_to_error model i =
   let model, effects = flash target model in
   (model, scroll :: effects)
 
-(** [update model msg] is the model after [msg] and the effects it asks for. *)
-let update model msg =
+(* The model after [msg] and the effects it asks for, except the remembering
+   of the choices, which [update] adds. *)
+let respond model msg =
   match msg with
   | Point (pointer, link, _) when pointer = model.pointer ->
       ((if link = model.link then model else { model with link }), [])
@@ -1282,12 +1452,69 @@ let update model msg =
       with
       | Some k when not model.stale_errors -> follow model k
       | _ -> (model, []))
-  | EditMsg (UseStdlib use_stdlib) ->
-      (update_model model msg, [ Remember (use_stdlib_key, use_stdlib) ])
+  (* Inputs that change the declarations of the backend, such as the
+     packages of a device manifest, change the program: it is checked
+     again. *)
+  | Recompile serial
+    when serial = model.compile_serial
+         && model.checking = None && declarations_changed model ->
+      ({ model with checking = Some Check }, [ Perform_after_paint Check ])
   | EditMsg (SetInput _) ->
       let compile_serial = model.compile_serial + 1 in
       ( update_model { model with compile_serial } msg,
         [ After (compile_delay, Recompile compile_serial) ] )
   | OpenGallery when model.edit_model.selected_example <> None ->
       (update_model model msg, [ Focus_current_example ])
+  | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
+  | Copied (url, copied) ->
+      notify model (if copied then Link_copied else Copy_failed url)
   | _ -> (update_model model msg, [])
+
+(* Whether a message changes the choices the browser remembers. *)
+let changes_choices = function
+  | EditMsg
+      ( UseStdlib _ | LoadExample _ | SelectResource _ | SelectBackend _
+      | SetInput _ ) ->
+      true
+  | _ -> false
+
+(** [update model msg] is the model after [msg] and the effects it asks for. *)
+let update model msg =
+  let model, effects = respond model msg in
+  if changes_choices msg then
+    ( { model with notice = None },
+      Remember (WebChoices.key, WebChoices.encode (choices model.edit_model))
+      :: Replace_query (link model.edit_model)
+      :: effects )
+  else (model, effects)
+
+let restored stored =
+  Option.fold ~none:init
+    ~some:(fun c -> { init with edit_model = restore_edit c })
+    (Option.bind stored WebChoices.decode)
+
+let opened ~query stored =
+  let parameters, malformed = WebLink.parse query in
+  let model, unknown =
+    if parameters = WebLink.empty then (restored stored, [])
+    else
+      let c, unknown =
+        WebLink.resolve catalogue ~defaults:(choices edit_init)
+          (Option.bind stored WebChoices.decode)
+          parameters
+      in
+      ({ init with edit_model = restore_edit c }, unknown)
+  in
+  let model =
+    match List.sort compare (malformed @ unknown) with
+    | [] -> model
+    | ignored -> fst (notify model (Ignored ignored))
+  in
+  ( model,
+    Replace_query (link model.edit_model)
+    ::
+    (if parameters = WebLink.empty then []
+     else
+       [
+         Remember (WebChoices.key, WebChoices.encode (choices model.edit_model));
+       ]) )

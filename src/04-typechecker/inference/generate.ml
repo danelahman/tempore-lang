@@ -301,6 +301,7 @@ module Make (C : Constraint.S) = struct
     |> add_type_definition Ast.string_ty_name
          (alias (Ast.TyConst Const.StringTy))
     |> add_type_definition Ast.float_ty_name (alias (Ast.TyConst Const.FloatTy))
+    |> add_type_definition Ast.int_ty_name (alias (Ast.TyConst Const.IntTy))
     |> add_type_definition Ast.empty_ty_name
          (assumed_positive [] (Ast.TySum []))
     |> fun env ->

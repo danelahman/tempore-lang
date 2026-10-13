@@ -1,0 +1,17 @@
+(* The conversions between natural numbers and floats, the square root and
+   the arctangents, computed in single precision. *)
+
+let convert n x = (float_of_nat n, nat_of_float x)
+let roots x = (sqrt x, atan x)
+let angle y x = atan2 (y, x)
+
+run convert 3 2.75
+run convert 4000000000 1e9
+run (nat_of_float (~-. 2.75), nat_of_float (~-. 0.0), nat_of_float (0.0 /. 0.0))
+run nat_of_float (~-. 1.0 /. 0.0)
+run (roots 4.0, roots 2.0)
+run (roots (~-. 1.0), roots (1.0 /. 0.0))
+run (sqrt (~-. 0.0), atan (0.0 /. 0.0))
+run (angle 1.0 1.0, angle 1.0 (~-. 1.0), angle (~-. 1.0) (~-. 1.0))
+run (angle 0.0 0.0, angle 0.0 (~-. 0.0), angle (~-. 0.0) (~-. 1.0))
+run (angle 1.0 0.0, angle (1.0 /. 0.0) (1.0 /. 0.0), angle (0.0 /. 0.0) 1.0)

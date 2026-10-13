@@ -243,6 +243,13 @@
       margin-top: 0.75rem;
     }
 
+    pre.backend-message-text {
+      padding: 0;
+      background: none;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+    }
+
     .backend-note {
       margin-top: 0.5rem;
       color: #4a4a4a;
@@ -678,6 +685,46 @@
 
     .example-button > .choice-label {
       flex: 1 1 auto;
+    }
+
+    /* The example button and, at its right, the button copying the link to
+       the example, the grades and the backend selected. */
+    .example-field {
+      display: flex;
+      gap: 0.5em;
+    }
+
+    .example-field > .control.is-expanded {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    /* the label of the example, with the copy link at its right end */
+    .example-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5em;
+    }
+
+    .example-label > .label {
+      margin-bottom: 0;
+    }
+
+    .copy-link {
+      display: inline-flex;
+      color: inherit;
+      opacity: 0.6;
+    }
+
+    .copy-link:hover,
+    .copy-link:focus-visible {
+      opacity: 1;
+    }
+
+    /* the notice under the example, which may hold a link */
+    .link-notice {
+      overflow-wrap: anywhere;
     }
 
     /* The one-line label of a choice made under a heading: the heading in

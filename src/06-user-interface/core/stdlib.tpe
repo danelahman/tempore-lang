@@ -15,6 +15,21 @@ let ( -. ) x y = __float_sub__ (x, y)
 let ( /. ) x y = __float_div__ (x, y)
 let ( ** ) x y = __float_pow__ (x, y)
 let ( ~-. ) x = __float_neg__ x
+let float_of_nat n = __float_of_nat__ n
+let nat_of_float x = __nat_of_float__ x
+let sqrt x = __float_sqrt__ x
+let atan x = __float_atan__ x
+let atan2 (y, x) = __float_atan2__ (y, x)
+let ( +! ) x y = __int_add__ (x, y)
+let ( *! ) x y = __int_mul__ (x, y)
+let ( -! ) x y = __int_sub__ (x, y)
+let ( /! ) x y = __int_div__ (x, y)
+let ( mod! ) x y = __int_mod__ (x, y)
+let ( ~-! ) x = __int_neg__ x
+let int_of_nat n = __int_of_nat__ n
+let nat_of_int n = __nat_of_int__ n
+let float_of_int n = __float_of_int__ n
+let int_of_float x = __int_of_float__ x
 
 let absurd void = (match void with)
 

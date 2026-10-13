@@ -12,6 +12,16 @@
           ./tempore --grades <grade> \
             examples/<dir>/<file>.tpe
 
+        An example that uses peripheral packages of the Arduino backend names
+        them by --package options after the grade, and the board whose
+        running-time bounds they take, if any, by a --board option after them,
+        one per line when the command is split:
+
+          ./tempore --grades <grade> \
+            --package <name> \
+            --board <board> \
+            examples/<dir>/<file>.tpe
+
         Grades <form>: <meaning>
           - Unit <literal>: <meaning>
           - Top <literal>: <meaning>
@@ -53,6 +63,19 @@ let strip_suffix ~suffix s =
   else None
 
 let ends_with ~suffix s = strip_suffix ~suffix s <> None
+
+(* The values given by the options [option] in the lines [lines] of a run
+   command, in order. *)
+let option_values option lines =
+  let rec values = function
+    | o :: value :: rest when o = option -> value :: values rest
+    | _ :: rest -> values rest
+    | [] -> []
+  in
+  values
+    (List.concat_map
+       (fun line -> List.filter (( <> ) "") (String.split_on_char ' ' line))
+       lines)
 
 (* The grade named between the first pair of single quotes in [line], the
    "Run this example ..." introduction. *)
@@ -104,12 +127,15 @@ let check_header name path =
     | _ -> 0
   in
   let summary = continuation 0 in
-  (* The run command occupies a second line when its first line ends with a
-     line continuation. *)
+  (* The run command occupies one more line for each of its lines that ends
+     with a line continuation. *)
   let command =
-    match List.nth_opt lines (4 + summary) with
-    | Some line when ends_with ~suffix:" \\" line -> 1
-    | _ -> 0
+    let rec continued n =
+      match List.nth_opt lines n with
+      | Some line when ends_with ~suffix:" \\" line -> 1 + continued (n + 1)
+      | _ -> 0
+    in
+    continued (4 + summary)
   in
   let grades =
     continuation
@@ -161,21 +187,29 @@ let check_header name path =
               fail
                 "%s: expected a blank line after the run-command introduction"
                 name);
-          let one_line =
-            Printf.sprintf "     ./tempore --grades %s %s" grade name
-          in
-          let expected_command =
-            if String.length one_line <= 80 then [ one_line ]
-            else
-              [
-                Printf.sprintf "     ./tempore --grades %s \\" grade;
-                "       " ^ name;
-              ]
-          in
           let found_command =
             List.filteri
               (fun i _ -> i >= 4 + summary && i < 5 + summary + command)
               lines
+          in
+          let options =
+            List.map
+              (fun p -> "--package " ^ p)
+              (option_values "--package" found_command)
+            @ List.map
+                (fun b -> "--board " ^ b)
+                (option_values "--board" found_command)
+          in
+          let one_line =
+            String.concat " "
+              ((("     ./tempore --grades " ^ grade) :: options) @ [ name ])
+          in
+          let expected_command =
+            if String.length one_line <= 80 then [ one_line ]
+            else
+              Printf.sprintf "     ./tempore --grades %s \\" grade
+              :: List.map (fun o -> "       " ^ o ^ " \\") options
+              @ [ "       " ^ name ]
           in
           if found_command <> expected_command then
             fail "%s: expected the run command %S, found %S" name

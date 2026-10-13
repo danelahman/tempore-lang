@@ -10,11 +10,14 @@
   ojs
   backend
   backendRegistry
+  webChoices
+  webLink
   webBackend
   webInterpreter
   desugarer
   inference
   loader
+  typechecker
   zarith_stubs_js)
  (modes js)
  ;; zarith_stubs_js provides the JavaScript primitives of zarith, which the

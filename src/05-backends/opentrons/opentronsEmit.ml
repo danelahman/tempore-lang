@@ -54,6 +54,7 @@ let python_float f =
 
 let constant = function
   | Const.Nat n -> Z.to_string n
+  | Const.Int n -> Printf.sprintf "tempore_Int(%s)" (Z.to_string n)
   | Const.String s -> python_string s
   | Const.Boolean b -> if b then "True" else "False"
   | Const.Float f -> python_float f
@@ -88,6 +89,21 @@ let primitive_function = function
   | Primitives.FloatDiv -> "tempore_prim_float_div"
   | Primitives.FloatPow -> "tempore_prim_float_pow"
   | Primitives.FloatNeg -> "tempore_prim_float_neg"
+  | Primitives.FloatOfNat -> "tempore_prim_float_of_nat"
+  | Primitives.NatOfFloat -> "tempore_prim_nat_of_float"
+  | Primitives.FloatSqrt -> "tempore_prim_float_sqrt"
+  | Primitives.FloatAtan -> "tempore_prim_float_atan"
+  | Primitives.FloatAtan2 -> "tempore_prim_float_atan2"
+  | Primitives.IntAdd -> "tempore_prim_int_add"
+  | Primitives.IntMul -> "tempore_prim_int_mul"
+  | Primitives.IntSub -> "tempore_prim_int_sub"
+  | Primitives.IntDiv -> "tempore_prim_int_div"
+  | Primitives.IntMod -> "tempore_prim_int_mod"
+  | Primitives.IntNeg -> "tempore_prim_int_neg"
+  | Primitives.IntOfNat -> "tempore_prim_int_of_nat"
+  | Primitives.NatOfInt -> "tempore_prim_nat_of_int"
+  | Primitives.FloatOfInt -> "tempore_prim_float_of_int"
+  | Primitives.IntOfFloat -> "tempore_prim_int_of_float"
   | Primitives.ToString -> "tempore_prim_to_string"
 
 (* The emission context. Continuations and the computations bound by [do] are

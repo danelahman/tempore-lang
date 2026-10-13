@@ -16,6 +16,7 @@ type token =
   | UNDERSCORE
   | AS
   | INT of Z.t
+  | INTEGER of Z.t
   | STRING of string
   | BOOL of bool
   | FLOAT of string

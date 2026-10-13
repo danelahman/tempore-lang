@@ -1,0 +1,10 @@
+(* A handler whose case of ReadImu delays the reading by 2 ms, after
+   balance_regex.tpe. *)
+
+let slow_robot =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let reading = perform ReadImu () in
+      delay 2;
+      continue k with reading

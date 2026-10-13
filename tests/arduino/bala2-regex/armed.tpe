@@ -1,0 +1,9 @@
+(* A measurement of the bias of the gyroscope that does not disarm the robot
+   first, after balance_regex.tpe. *)
+
+let measure_bias_armed () : float
+    # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*} =
+  perform ClearDisplay ();
+  perform ShowText "Calibrating";
+  let sum = rate_sum 50 0.0 in
+  sum /. 50.0

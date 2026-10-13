@@ -196,8 +196,8 @@ let implied =
       (implied "{S; (0, 1/2); T}");
     expect "implied: a choice" Fun.id ~expected:"[0.25, 1.5]"
       (implied "{S | T}");
-    expect "implied: unbounded" Fun.id ~expected:"none" (implied "{S*}");
-    expect "implied: unbounded delays" Fun.id ~expected:"none"
+    expect "implied: unbounded" Fun.id ~expected:"[0, ∞)" (implied "{S*}");
+    expect "implied: unbounded delays" Fun.id ~expected:"(1.5, ∞)"
       (implied "{S; (1, ∞)}");
     expect "implied: a catch-all" Fun.id ~expected:"[0, 1.5]"
       (implied "{_ & ~(0, ∞)}");

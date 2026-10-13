@@ -30,6 +30,7 @@
        examples/opentrons/stopread.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+   The target opentrons-stopread-simulate of 'make' runs this command.
 
    A plate is named by a string, of the type plate. A stopped plate is a box,
    read within 30 minutes of the stop; the 30-minute window of the reading is

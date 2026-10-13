@@ -55,6 +55,38 @@ let header_grades path =
   |> List.filteri (fun i _ -> i < 12)
   |> List.find_map (fun line -> grades_option (words line))
 
+(* The peripheral packages of the Arduino backend that a file names by
+   [--package NAME] options in the run command of its header, before its
+   "Grades" line: the files of each under the grades [grades], each with its
+   name, its text and the running-time bounds of the board named by a
+   [--board NAME] option, if any, which precede the file. *)
+let header_packages ~grades path =
+  let words =
+    In_channel.with_open_text path In_channel.input_lines
+    |> List.to_seq
+    |> Seq.take_while (fun line ->
+        not (String.starts_with ~prefix:"   Grades " line))
+    |> List.of_seq |> List.concat_map words
+  in
+  let rec options option = function
+    | o :: value :: rest when o = option -> value :: options option rest
+    | _ :: rest -> options option rest
+    | [] -> []
+  in
+  let board = List.nth_opt (options "--board" words) 0 in
+  options "--package" words
+  |> List.concat_map (fun name ->
+      let module Package = ArduinoBackend.ArduinoPackage in
+      match
+        Option.map (Package.files_for ~grades ?board) (Package.find name)
+      with
+      | Some (Ok files) ->
+          List.map
+            (fun (f : Package.file) -> (f.filename, f.text, f.running_times))
+            files
+      | Some (Error message) -> failwith message
+      | None -> failwith ("unknown package " ^ name))
+
 let grades_of_test table name =
   List.find_map
     (fun (pattern, grades) -> if glob pattern name then Some grades else None)
@@ -216,12 +248,33 @@ module Programs (G : Grade.S) = struct
     in
     List.rev verdicts
 
-  (* The verdicts on a file, or [None] when it does not parse or desugar. *)
-  let file path =
+  (* The verdicts on a file, or [None] when it does not parse or desugar,
+     after the declarations of the packages, each of whose commands must be
+     accepted. *)
+  let file ?(packages = []) path =
     match Parser.Lexer.read_file parse path with
     | cmds -> (
-        match run (declare cmds (Lazy.force with_stdlib)) cmds with
-        | _, verdicts -> Some verdicts
+        let preceding =
+          List.concat_map
+            (fun (name, source, running_times) ->
+              Loader.with_running_times
+                (module GS.E)
+                ~filename:name running_times
+                (parse_source ~name source))
+            packages
+        in
+        let st = declare (preceding @ cmds) (Lazy.force with_stdlib) in
+        match run st preceding with
+        | st, preceded -> (
+            List.iter
+              (fun v ->
+                if not v.ok then
+                  fail "%s: a package (%s) line %d, %s: %s" path G.name v.line
+                    v.kind v.detail)
+              preceded;
+            match run st cmds with
+            | _, verdicts -> Some verdicts
+            | exception Error.Error _ -> None)
         | exception Error.Error _ -> None)
     | exception Error.Error _ -> None
     | exception Grammar.Error -> None
@@ -233,7 +286,11 @@ let grade_module name =
   | None -> failwith ("unknown grades " ^ name)
 
 module type PROGRAMS = sig
-  val file : string -> command_verdict list option
+  val file :
+    ?packages:(string * string * (string * Grade.running_time) list) list ->
+    string ->
+    command_verdict list option
+
   val definitions : string -> (string * bool * string) list
 end
 
@@ -249,10 +306,10 @@ let programs_of =
         Hashtbl.add table grades p;
         p
 
-let file_verdicts path grades =
+let file_verdicts ?packages path grades =
   let (module P) = programs_of grades in
   let start = Unix.gettimeofday () in
-  let verdicts = P.file path in
+  let verdicts = P.file ?packages path in
   (verdicts, Unix.gettimeofday () -. start)
 
 (* The '.tpe' files under [dir], recursing into subdirectories (examples are
@@ -326,6 +383,7 @@ let expected_rejections =
     ("tests/float_literals_reject_subtraction.tpe", [ 4 ]);
     ("tests/exhaustiveness_reject_bool.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_constructor.tpe", [ 5 ]);
+    ("tests/exhaustiveness_reject_int.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_let.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_nat.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_nil.tpe", [ 3 ]);
@@ -423,7 +481,7 @@ let slow = ref []
 
 (* The verdicts on the file at [path] against [expected_rejections], or
    [None] when it does not parse or desugar. *)
-let check path grades =
+let check ?packages path grades =
   let name = Filename.basename path in
   let root = "../../" in
   let key =
@@ -432,7 +490,7 @@ let check path grades =
         (String.length path - String.length root)
     else path
   in
-  match file_verdicts path grades with
+  match file_verdicts ?packages path grades with
   | None, _ -> None
   | Some verdicts, time ->
       if time > 2. then slow := (name, time) :: !slow;
@@ -467,7 +525,7 @@ let programs () =
   List.iter
     (fun path ->
       let grades = Option.value (header_grades path) ~default:default_grades in
-      ignore (check path grades))
+      ignore (check ~packages:(header_packages ~grades path) path grades))
     (tpe_files (Filename.concat root "examples"));
   List.iter
     (fun path ->

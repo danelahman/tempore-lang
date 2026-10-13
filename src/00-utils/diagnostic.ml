@@ -1,4 +1,4 @@
-type kind = Syntax | Typing | Runtime | Fatal
+type kind = Syntax | Typing | Compilation | Runtime | Fatal
 type label = { span : Location.t; text : string }
 
 type t = {
@@ -12,6 +12,7 @@ type t = {
 let kind_to_string = function
   | Syntax -> "Syntax error"
   | Typing -> "Typing error"
+  | Compilation -> "Compilation error"
   | Runtime -> "Run-time error"
   | Fatal -> "Fatal error"
 

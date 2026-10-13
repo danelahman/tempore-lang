@@ -163,6 +163,17 @@ let code_mark =
      1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 \
      1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"
 
+let link_mark =
+  octicon
+    "m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 \
+     1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 \
+     0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 \
+     1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 \
+     0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 \
+     1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 \
+     1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 \
+     2.5a1.998 1.998 0 0 0 0 2.83Z"
+
 (* The other page is reached from the side panel's heading. The mark stands on
    its own there, so the name it is given is the one read out. *)
 let page_link target =
@@ -199,6 +210,12 @@ let view_contents main aside =
    and is neither shown nor editable; only editor spans can be marked. *)
 let in_editor (loc : Location.t) = loc.filename = ""
 
+(* The source of a span outside the editor: the standard library, or the file
+   of declarations a backend loads before the program. *)
+let source_name (loc : Location.t) =
+  if loc.filename = Loader.stdlib_filename then "the standard library"
+  else loc.filename
+
 (* The ids the error's spans are given in the editor, so that the message
    under it can link to them and the page can scroll to them. *)
 let primary_id i = Printf.sprintf "error-primary-%d" i
@@ -214,7 +231,7 @@ let load_error_header (error : Model.load_error) =
   | Some loc when in_editor loc ->
       Format.asprintf "%s at %t" kind (Location.print_short loc)
   | Some loc ->
-      Format.asprintf "%s in the standard library (%t)" kind
+      Format.asprintf "%s in %s (%t)" kind (source_name loc)
         (Location.print loc)
 
 (* The same, cut down for the side panel's list: no characters, no file. *)
@@ -224,7 +241,7 @@ let load_error_summary (error : Model.load_error) =
   | None -> kind
   | Some loc when in_editor loc ->
       Printf.sprintf "%s at line %d" kind loc.start.line
-  | Some _ -> kind ^ " in the standard library"
+  | Some loc -> kind ^ " in " ^ source_name loc
 
 (* Text with each rigid variable [ε_Op] set as [ε] with the operation [Op] as
    a subscript, followed by its primes. *)
@@ -404,7 +421,7 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
        the line instead, and needs no line reference after it. *)
     let place =
       if in_editor span then Printf.sprintf "on line %d" span.start.line
-      else Printf.sprintf "on line %d of the standard library" span.start.line
+      else Printf.sprintf "on line %d of %s" span.start.line (source_name span)
     in
     let placed = Diagnostic.render_label_text ~place label_text in
     let where =
@@ -418,7 +435,8 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
                 (if in_editor span then
                    Printf.sprintf " (line %d)" span.start.line
                  else
-                   Printf.sprintf " (standard library, line %d)" span.start.line);
+                   Printf.sprintf " (%s, line %d)" (source_name span)
+                     span.start.line);
             ];
         ]
     in
@@ -1090,8 +1108,10 @@ let view_code (output : BackendRegistry.compiled) =
   let code = Option.value output.code ~default:"" in
   elt "pre"
     ~a:[ class_ "syn-ml backend-code" ]
-    (if output.language = "python" then PythonHighlight.highlight code
-     else [ text code ])
+    (match output.language with
+    | "python" -> PythonHighlight.highlight code
+    | "cpp" -> CppHighlight.highlight code
+    | _ -> [ text code ])
 
 (* A message of a compilation, in the style of the errors of a check. *)
 let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
@@ -1118,7 +1138,15 @@ let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
              elt "span" ~a:[ class_ "stale-note" ] [ text "out of date" ]
            else nil);
         ];
-      div ~a:[ class_ "message-body" ] [ elt "p" [ text message.text ] ];
+      div
+        ~a:[ class_ "message-body" ]
+        [
+          (if String.contains message.text '\n' then
+             elt "pre"
+               ~a:[ class_ "backend-message-text" ]
+               [ text message.text ]
+           else elt "p" [ text message.text ]);
+        ];
     ]
 
 let view_compiler (model : Model.model) =
@@ -1138,54 +1166,107 @@ let view_compiler (model : Model.model) =
         text "Load standard library";
       ]
   in
+  let notice =
+    match model.notice with
+    | None -> []
+    | Some notice ->
+        let colour, message =
+          match notice with
+          | Model.Ignored [ parameter ] ->
+              ( "is-danger",
+                Printf.sprintf
+                  "The parameter %s of the address was ignored: its value is \
+                   malformed or names nothing known."
+                  (WebLink.name parameter) )
+          | Model.Ignored parameters ->
+              ( "is-danger",
+                Printf.sprintf
+                  "The parameters %s of the address were ignored: their values \
+                   are malformed or name nothing known."
+                  (String.concat ", " (List.map WebLink.name parameters)) )
+          | Model.Link_copied -> ("is-success", "Link copied.")
+          | Model.Copy_failed link ->
+              ( "is-danger",
+                "The link could not be copied to the clipboard: " ^ link )
+        in
+        [
+          elt "p"
+            ~a:[ class_ ("help link-notice " ^ colour); attr "role" "status" ]
+            [ text message ];
+        ]
+  in
   let load_example =
     div
       ~a:[ class_ "panel-block" ]
       [
         div
           ~a:[ class_ "field" ]
-          [
-            elt "label" ~a:[ class_ "label" ] [ text "Example" ];
-            div
-              ~a:[ class_ "control is-expanded" ]
-              [
-                (* opens the gallery, see [view_gallery]; labelled by the
-                   example last loaded, after the short form of the label of
-                   the group it is listed under, the tooltip and the
-                   accessible name giving the full label *)
-                elt "button"
-                  ~a:
-                    ([
-                       class_ "button is-fullwidth example-button";
-                       type_button;
-                       onclick (fun _ -> Model.OpenGallery);
+          ([
+             (* the label, with the link copying the address naming the
+                example, the grades and the backend selected at its right
+                end *)
+             div
+               ~a:[ class_ "example-label" ]
+               [
+                 elt "label" ~a:[ class_ "label" ] [ text "Example" ];
+                 elt "a"
+                   ~a:
+                     [
+                       class_ "copy-link";
+                       attr "href" "#";
+                       attr "title" "Copy link";
+                       attr "aria-label" "Copy link";
+                       onclick ~prevent_default:() (fun _ -> Model.CopyLink);
                      ]
-                    @
-                    match model.edit_model.selected_example with
-                    | Some (group, title) ->
-                        [
-                          attr "title" (group ^ " \xC2\xB7 " ^ title);
-                          attr "aria-label" ("Example: " ^ group ^ ", " ^ title);
-                        ]
-                    | None -> [])
-                  [
-                    (match model.edit_model.selected_example with
-                    | Some (group, title) ->
-                        view_choice_label
-                          ~heading:
-                            (List.find_map
-                               (fun (g : Examples_tpe.group) ->
-                                 if g.label = group then Some g.short else None)
-                               Examples_tpe.examples
-                            |> Option.value ~default:group)
-                          title
-                    | None -> view_choice_label "Load example");
-                    elt "span"
-                      ~a:[ class_ "has-text-grey" ]
-                      [ text "\xE2\x80\xA6" ];
-                  ];
-              ];
-          ];
+                   [ link_mark ];
+               ];
+             div
+               ~a:[ class_ "example-field" ]
+               [
+                 div
+                   ~a:[ class_ "control is-expanded" ]
+                   [
+                     (* opens the gallery, see [view_gallery]; labelled by
+                        the example last loaded, after the short form of the
+                        label of the group it is listed under, the tooltip and
+                        the accessible name giving the full label *)
+                     elt "button"
+                       ~a:
+                         ([
+                            class_ "button is-fullwidth example-button";
+                            type_button;
+                            onclick (fun _ -> Model.OpenGallery);
+                          ]
+                         @
+                         match model.edit_model.selected_example with
+                         | Some (group, title) ->
+                             [
+                               attr "title" (group ^ " \xC2\xB7 " ^ title);
+                               attr "aria-label"
+                                 ("Example: " ^ group ^ ", " ^ title);
+                             ]
+                         | None -> [])
+                       [
+                         (match model.edit_model.selected_example with
+                         | Some (group, title) ->
+                             view_choice_label
+                               ~heading:
+                                 (List.find_map
+                                    (fun (g : Examples_tpe.group) ->
+                                      if g.label = group then Some g.short
+                                      else None)
+                                    Examples_tpe.examples
+                                 |> Option.value ~default:group)
+                               title
+                         | None -> view_choice_label "Load example");
+                         elt "span"
+                           ~a:[ class_ "has-text-grey" ]
+                           [ text "\xE2\x80\xA6" ];
+                       ];
+                   ];
+               ];
+           ]
+          @ notice);
       ]
   and select_backend =
     let selected = Model.backend model.edit_model in
@@ -1330,8 +1411,13 @@ let view_compiler (model : Model.model) =
     in
     panel_block
       [
-        action [ "is-outlined" ] "Typecheck" Model.Check Model.CheckCode;
-        action [] "Run" Model.Run Model.RunCode;
+        action [ "is-outlined" ]
+          (* a backend with a compiler compiles the program it accepts *)
+          (if Option.is_some (Model.backend model.edit_model).compiler then
+             "Typecheck & Compile"
+           else "Typecheck")
+          Model.Check Model.CheckCode;
+        action [] "Run Interpreter" Model.Run Model.RunCode;
         view_check_status model;
         (* every error shown under the editor, which may be far below when the
            program is long; clicking one scrolls to its message *)
@@ -1497,17 +1583,68 @@ let pipette_mark =
         [];
     ]
 
-(* The marks of the program and of the code compiled from it, on the switch
-   between the two views. *)
+(* A microcontroller chip with its pins, drawn in the current text colour. *)
+let chip_mark =
+  svg_elt "svg"
+    ~a:
+      [
+        attr "viewBox" "0 0 16 16";
+        attr "width" "16";
+        attr "height" "16";
+        attr "aria-hidden" "true";
+      ]
+    [
+      svg_elt "g"
+        ~a:
+          [
+            attr "fill" "none";
+            attr "stroke" "currentColor";
+            attr "stroke-width" "1.4";
+            attr "stroke-linecap" "round";
+            attr "stroke-linejoin" "round";
+          ]
+        [
+          svg_elt "rect"
+            ~a:
+              [
+                attr "x" "4";
+                attr "y" "4";
+                attr "width" "8";
+                attr "height" "8";
+                attr "rx" "1";
+              ]
+            [];
+          svg_elt "path"
+            ~a:
+              [
+                attr "d"
+                  "M6 4V1.5M10 4V1.5M6 14.5V12M10 14.5V12M4 6H1.5M4 \
+                   10H1.5M14.5 6H12M14.5 10H12";
+              ]
+            [];
+        ];
+      svg_elt "circle"
+        ~a:
+          [
+            attr "cx" "6.4";
+            attr "cy" "6.4";
+            attr "r" "0.8";
+            attr "fill" "currentColor";
+          ]
+        [];
+    ]
+
+(* The marks of the program and of the code compiled from it by the backend
+   [key], on the switch between the two views. *)
 let source_mark = image_mark "logo/tempore-logo.svg"
-let compiled_mark = pipette_mark
+let compiled_mark = function "arduino" -> chip_mark | _ -> pipette_mark
 
 (* The switch in the top right corner of the editor's box, to the view not
    shown, named by its mark alone, as the link to the other page is. *)
-let view_switch (compiler : BackendRegistry.compiler) code_view =
+let view_switch ~key (compiler : BackendRegistry.compiler) code_view =
   let target, mark, label =
     match code_view with
-    | Model.Source -> (Model.Compiled, compiled_mark, compiler.code_name)
+    | Model.Source -> (Model.Compiled, compiled_mark key, compiler.code_name)
     | Model.Compiled -> (Model.Source, source_mark, "Tempore program")
   in
   elt "a"
@@ -1766,7 +1903,8 @@ let edit_view (model : Model.model) =
              errors
   and switch =
     Option.fold ~none:[]
-      ~some:(fun compiler -> [ view_switch compiler model.code_view ])
+      ~some:(fun compiler ->
+        [ view_switch ~key:entry.key compiler model.code_view ])
       entry.compiler
   in
   view_contents

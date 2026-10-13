@@ -1,0 +1,6 @@
+; The choices of the web interface its page remembers, without a dependency on
+; the browser, so that the tests link it.
+
+(library
+ (name webChoices)
+ (libraries grades backendRegistry))

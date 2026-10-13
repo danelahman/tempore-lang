@@ -46,6 +46,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         |> StringMap.add Sugared.unit_ty_name Untyped.unit_ty_name
         |> StringMap.add Sugared.string_ty_name Untyped.string_ty_name
         |> StringMap.add Sugared.float_ty_name Untyped.float_ty_name
+        |> StringMap.add Sugared.int_ty_name Untyped.int_ty_name
         |> StringMap.add Sugared.empty_ty_name Untyped.empty_ty_name
         |> StringMap.add Sugared.list_ty_name Untyped.list_ty_name;
       ty_params = StringMap.empty;

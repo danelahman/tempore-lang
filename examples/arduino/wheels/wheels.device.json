@@ -1,0 +1,13 @@
+{
+  "board": "m5stack-gray",
+  "tasks": [
+    { "function": "watch", "kind": "periodic", "period": 10,
+      "initial": "start", "priority": 2 },
+    { "function": "check", "kind": "free", "repeat": true,
+      "priority": 1, "core": 0 }
+  ],
+  "packages": ["m5-imu", "m5-display", "bala2-base"],
+  "bindings": "bindings.cpp",
+  "safe_state": "wheels_safe_state",
+  "host_models": ["stand.cpp"]
+}

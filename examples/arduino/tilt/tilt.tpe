@@ -1,0 +1,133 @@
+(* A tilt display on the M5Stack CoreS3 Lite: a 20 ms step and its display
+
+   Run this example with the 'time-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades time-interval-rational \
+       --package m5-imu \
+       --package m5-display \
+       --board m5stack-cores3 \
+       examples/arduino/tilt/tilt.tpe
+
+   Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition, an end open if either end added is *)
+
+(* An application of the Arduino backend to a second board, the M5Stack
+   CoreS3 Lite: the device manifest tilt.device.json runs the step 'step'
+   every 20 ms, from the state of 'start', and repeats the display 'show' as
+   a free task. The operations ReadImu, ShowText, ShowNumber and
+   ClearDisplay, and the function tilt_x, come from the packages m5-imu and
+   m5-display, whose declarations precede this file. The operations declared
+   below are bound by bindings.cpp. The host simulation tilts the unit by the
+   default world of the backend, a harmonic oscillation.
+
+   The PlatformIO project is written, and simulated on the host for one
+   second, by
+
+     ./tempore --grades time-interval-rational \
+       --emit-arduino tilt \
+       --device examples/arduino/tilt/tilt.device.json \
+       --host-simulate 1 \
+       examples/arduino/tilt/tilt.tpe
+
+   and built for the board, with PlatformIO, by --build in place of
+   --host-simulate. The make targets arduino-tilt-simulate, -build, -upload
+   and -profile run these commands and their variants for the board;
+   'make examples-help' lists them with their variables.
+
+   The bounds of the running times of the operations of the packages are
+   those on the M5Stack CoreS3, the board of the manifest, which the option
+   --board m5stack-cores3 of the interpreter run selects and to which the
+   figures below refer. *)
+
+(* The exchange between the tasks, through bindings.cpp: the step publishes
+   the tilt, in degrees, and the display reads the tilt last published. The
+   bounds of the running times are measured on the device by its profile
+   (2026-10-14): Publish took 0 to 0.028 ms and Latest 0.001 to 0.004 ms;
+   with the margin of the packages, 1.5 times the greatest time, rounded up,
+   each is bounded by 0.05 ms. *)
+
+operation Publish : float ~> unit # [0, 0.05]
+default Publish _ = delay 1/100
+
+operation Latest : unit ~> float # [0, 0.05]
+default Latest () = delay 1/100; 0.0
+
+(* The period, in seconds, and the weight of the gyroscope in the
+   complementary filter of the tilt. *)
+let period = 0.02
+let gyro_weight = 0.9
+
+(* Correctly accepted by the typechecker: the step reads the unit, boxes the
+   reading for 5 ms, filters the tilt about the x axis of the unit from it
+   and publishes the tilt; it ends within 0.2 to 1.55 ms, below its
+   period. *)
+let step (tilt : float) : float # [0, 20) =
+  let reading = perform ReadImu () in
+  box [0, 5] reading as fresh in
+  unbox fresh as imu in
+  let tilt = tilt_x gyro_weight period tilt imu in
+  perform Publish tilt;
+  tilt
+
+(* The initial state: the tilt from the accelerometer alone. *)
+let start () : float =
+  let accel, _ = perform ReadImu () in
+  tilt_x_of_accel accel
+
+(* Correctly accepted by the typechecker: the display clears the screen,
+   writes the title, and then reads the tilt last published, boxes it for
+   5 ms and shows it at once; it then waits 250 ms. *)
+let show () =
+  perform ClearDisplay ();
+  perform ShowText "Tilt (degrees)";
+  let tilt = perform Latest () in
+  box [0, 5] tilt as fresh in
+  unbox fresh as shown in
+  perform ShowNumber shown;
+  delay 250
+
+(* Correctly rejected by the typechecker: the display reads the tilt before
+   it clears the screen and writes the title, and then shows a reading 31.1
+   to 60.5 ms old:
+
+     Typing error: Variable `fresh` is unboxed with grade `[31.1, 60.5]`
+       accumulated since it was bound, which is not below its box grade
+       `[0, 5]`
+       ...
+       Note: the resource inequality `[31.1, 60.5] <= [0, 5]` does not hold
+*)
+(*
+let show_stale () =
+  let tilt = perform Latest () in
+  box [0, 5] tilt as fresh in
+  perform ClearDisplay ();
+  perform ShowText "Tilt (degrees)";
+  unbox fresh as shown in
+  perform ShowNumber shown;
+  delay 250
+*)
+
+(* Correctly rejected by the typechecker: the step clears the screen and
+   shows the tilt itself, which takes at least 31 ms, so that the step lasts
+   longer than its period:
+
+     Typing error: This function's body has grade `[31.3, 62]`, which
+       does not match its annotated grade `[0, 20)`
+       Note: the effect inequality `[31.3, 62] <= [0, 20)` does not hold
+*)
+(*
+let step_shown (tilt : float) : float # [0, 20) =
+  let reading = perform ReadImu () in
+  box [0, 5] reading as fresh in
+  unbox fresh as imu in
+  let tilt = tilt_x gyro_weight period tilt imu in
+  perform ClearDisplay ();
+  perform ShowNumber tilt;
+  tilt
+*)
+
+run step (start ())
+
+run show ()

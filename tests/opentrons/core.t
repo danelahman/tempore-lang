@@ -81,6 +81,106 @@ each run, which is dropped before the comparison.
   
   Run-time error: Division by zero
 
+  $ parity float_functions.tpe
+  === Run 1 ===
+  return (0., 3., 1e+20)
+  
+  === Run 2 ===
+  return 9007199254740992
+  
+  === Run 3 ===
+  return (1e+308, infinity)
+  
+  === Run 4 ===
+  return (2, 3, 0, 100000000000000000000)
+  
+  === Run 5 ===
+  return (0, 0, 0)
+  
+  === Run 6 ===
+  return 0
+  
+  === Run 7 ===
+  return 4294967295
+  
+  === Run 8 ===
+  return (2., 1.41421356237, 0., -0., nan)
+  
+  === Run 9 ===
+  return (infinity, nan)
+  
+  === Run 10 ===
+  return (0.785398163397, -0.785398163397, 1.57079632679, nan)
+  
+  === Run 11 ===
+  return (0.785398163397, 2.35619449019, -2.35619449019)
+  
+  === Run 12 ===
+  return (0., 3.14159265359, -3.14159265359)
+  
+  === Run 13 ===
+  return (1.57079632679, 0.785398163397, nan)
+  
+
+  $ parity nat_of_float_infinity.tpe
+  === Run 1 ===
+  return 1
+  
+  Run-time error: Conversion of infinity to a natural number
+
+  $ parity integers.tpe
+  === Run 1 ===
+  return (3i, -3i, -3i, 0i, 0i, 31i, 1000i)
+  
+  === Run 2 ===
+  return (4i, -3i, -24i, 5i, 0i)
+  
+  === Run 3 ===
+  return (3i, -3i, -3i, 3i)
+  
+  === Run 4 ===
+  return (1i, -1i, 1i, -1i)
+  
+  === Run 5 ===
+  return (7i, 3i, 6i)
+  
+  === Run 6 ===
+  return (true, true, false, -1i, 0i, -1i)
+  
+  === Run 7 ===
+  return (Some -3i, -1i::0i::1i::[], "-12i")
+  
+  === Run 8 ===
+  return (0i, 5i, 5, 0, 0)
+  
+  === Run 9 ===
+  return (-3., 0., 1e+23)
+  
+  === Run 10 ===
+  return (2i, -2i, 0i)
+  
+  === Run 11 ===
+  return (100000000000000000000i, -100000000000000000000i, 0i)
+  
+  === Run 12 ===
+  return (18446744073709551616i, 2147483648i, 0i)
+  
+
+  $ parity int_of_float_infinity.tpe
+  === Run 1 ===
+  return -1i
+  
+  Run-time error: Conversion of infinity to an integer
+
+  $ parity int_division_by_zero.tpe
+  === Run 1 ===
+  return (-3i, -1i)
+  
+  Run-time error: Division by zero
+
+  $ parity int_modulo_by_zero.tpe
+  Run-time error: Modulo by zero
+
   $ parity strings.tpe
   === Run 1 ===
   return "plain"

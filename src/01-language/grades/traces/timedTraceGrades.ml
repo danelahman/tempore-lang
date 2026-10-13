@@ -139,14 +139,16 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     | d :: ds -> List.fold_left pick d ds
 
   (** The interval of the durations of the grade with lower-bound component [lo]
-      and upper-bound component [hi]. *)
-  let trace_duration_bounds bounds lo = function
-    | UpperTraces.Within hi ->
-        let running_time end_ op = end_ (bounds.running_time op) in
-        Some
-          ( extremal_duration ~lower:true (running_time fst) lo,
-            extremal_duration ~lower:false (running_time snd) hi )
-    | UpperTraces.Unbounded -> None
+      and upper-bound component [hi], its upper end infinite where [hi] is
+      unbounded. *)
+  let trace_duration_bounds bounds lo hi =
+    let running_time end_ op = end_ (bounds.running_time op) in
+    Some
+      ( extremal_duration ~lower:true (running_time fst) lo,
+        match hi with
+        | UpperTraces.Within hi ->
+            extremal_duration ~lower:false (running_time snd) hi
+        | UpperTraces.Unbounded -> Unbounded )
 
   let atomic_traces name = [ [ Trace.Ev name ] ]
 
@@ -194,7 +196,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
 
     let duration_bounds bounds = function
       | Within p -> trace_duration_bounds bounds p (Within p)
-      | Unbounded -> None
+      | Unbounded -> Some (Closed Rational.zero, Unbounded)
 
     let inhabited _bounds _ = true
     let of_bounds b = Within (Trace.of_delay (snd (hull b)))

@@ -1,0 +1,13 @@
+(* The measurement of wheels.tpe showing the drive within the window. *)
+
+let spin_shown (drive : int) : float * float =
+  let shown = float_of_int drive in
+  perform ResetEncoders ();
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+  perform SetMotors (drive, drive);
+  perform ShowNumber shown;
+  delay 100;
+  let left, right = perform ReadEncoders () in
+  unbox window as seconds in
+  perform SetMotors (0i, 0i);
+  (float_of_int left /. seconds, float_of_int right /. seconds)

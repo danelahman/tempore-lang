@@ -53,6 +53,7 @@
 
 default | introduction/sensor_reading.tpe
 default | opentrons/elisa.tpe
+default | arduino/bala2/balance.tpe
 
 group | Introduction | Introduction | Boxes graded first by the time since boxing, then by the operations performed since boxing.
 Introduction | Sensor reading | time-interval-rational | introduction/sensor_reading.tpe | A sensor reading in a box graded with a time interval, usable only once its scan is complete and while it is current, with operations taking time and a handler implementing the scan.
@@ -117,3 +118,12 @@ Opentrons protocols | Staggered columns | time-interval | opentrons/staggered.tp
 Opentrons protocols | Settling and drying | time-interval | opentrons/beads.tpe | A bead clean-up whose beads on the magnet open once settled and whose air-dried beads open only within the drying window. | opentrons | binding=opentrons/beads_bindings.py time-unit=minutes
 Opentrons protocols | Stop and read | time-interval | opentrons/stopread.tpe | A stop and read whose stopped plates are boxes read within 30 minutes, passed from a handler's case to its continuation. | opentrons | binding=opentrons/stopread_bindings.py time-unit=minutes
 Opentrons protocols | Compound steps | regex-timed-interval-symbolic | opentrons/cleanup.tpe | A bead clean-up whose binding, ethanol washes and elution are compound operations, performed by a handler through the atomic operations of the robot. | opentrons | binding=opentrons/cleanup_bindings.py time-unit=minutes
+
+group | BALA2 | BALA2 | The self-balancing robot with an M5Stack Gray core (ESP32, MPU6886 inertial unit) on a base with two motors and encoders, programmed through the board profile m5stack-gray.
+BALA2 | Balancing robot | time-interval-rational | arduino/bala2/balance.tpe | The M5Stack BALA2 balancing robot, whose 5 ms control step uses each reading of the inertial unit within 2 ms and whose supervision arms the robot only within 10 minutes of a calibration. | arduino | manifest=arduino/bala2/balance.device.json bindings=arduino/bala2/bindings.cpp
+BALA2 | Balancing robot with regexes | regex-timed-interval-rational-symbolic | arduino/bala2-regex/balance_regex.tpe | The M5Stack BALA2 balancing robot under timed regular expressions, whose control step reads the inertial unit, the encoders and the setpoints before it commands the motors, using the reading only if no other operation came between, and whose supervision disarms, calibrates, arms at least a second after its prompt and within 10 minutes, drives and disarms, in this order; handlers simulate the robot and a fault of its gyroscope in the interpreter. | arduino | manifest=arduino/bala2-regex/balance_regex.device.json bindings=arduino/bala2/bindings.cpp
+BALA2 | Wheel check | regex-timed-interval-rational-symbolic | arduino/wheels/wheels.tpe | The M5Stack BALA2 on a stand, whose wheel check divides the counts of the encoders by the length of a window only after a drive command, 100 to 101 ms and a reading of the encoders, in this order. | arduino | manifest=arduino/wheels/wheels.device.json bindings=arduino/wheels/bindings.cpp
+
+group | CoreS3 Lite | CoreS3 Lite | The M5Stack CoreS3 Lite (ESP32-S3, BMI270 inertial unit, display), programmed through the board profile m5stack-cores3.
+CoreS3 Lite | Tilt display | time-interval-rational | arduino/tilt/tilt.tpe | A tilt display on the M5Stack CoreS3 Lite whose 20 ms step uses each reading of the inertial unit within 5 ms and whose display shows the tilt within 5 ms of reading it. | arduino | manifest=arduino/tilt/tilt.device.json bindings=arduino/tilt/bindings.cpp
+CoreS3 Lite | Peak tilt recorder | counts-upper-bound | arduino/peak/peak.tpe | A recorder of the peak tilt on the M5Stack CoreS3 Lite, whose step never writes the flash and whose copy of the record is usable only while no write of the flash has followed it. | arduino | manifest=arduino/peak/peak.device.json bindings=arduino/peak/bindings.cpp

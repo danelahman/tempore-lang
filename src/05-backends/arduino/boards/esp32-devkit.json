@@ -1,0 +1,16 @@
+{
+  "title": "ESP32 DevKit",
+  "description": "Generic ESP32 development board (ESP32-WROOM-32); I2C on the default pins",
+  "platform": "espressif32",
+  "board": "esp32dev",
+  "framework": "arduino",
+  "lib_deps": [],
+  "build_flags": [],
+  "cores": 2,
+  "m5unified": false,
+  "capabilities": [],
+  "serial_baud": 115200,
+  "i2c": [{ "port": "Wire", "sda": 21, "scl": 22, "frequency": 400000 }],
+  "includes": [],
+  "init": []
+}

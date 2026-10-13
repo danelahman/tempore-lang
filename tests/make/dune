@@ -1,0 +1,9 @@
+; The make targets of the examples of the Opentrons and Arduino backends:
+; their fragments and the commands of their dry runs.
+
+(cram
+ (deps
+  %{project_root}/Makefile
+  %{project_root}/examples/examples.mk
+  (source_tree %{project_root}/examples/opentrons)
+  (source_tree %{project_root}/examples/arduino)))

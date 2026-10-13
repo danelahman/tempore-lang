@@ -1,0 +1,8 @@
+(* Polymorphic functions, compiled once for each type they are used at. *)
+
+let swap (x, y) = (y, x)
+let twice x = (x, x)
+let choose b x y = if b then x else y
+
+run (swap (1, 2.5), swap (true, ()), twice (twice 3))
+run (choose true 1 2, choose false 1.5 2.5, fst (swap (true, 0)), min 3 2, max 1.5 2.5)

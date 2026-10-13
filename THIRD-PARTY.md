@@ -157,9 +157,9 @@ SOFTWARE.
 
 ### GitHub Octicons
 
-Three SVG path datasets are copied into
-`src/06-user-interface/web/view.ml` (`book_mark`, `code_mark`, and
-`github_mark`) and so end up in the bundle. They are drawn in
+Four SVG path datasets are copied into
+`src/06-user-interface/web/view.ml` (`book_mark`, `code_mark`, `link_mark`,
+and `github_mark`) and so end up in the bundle. They are drawn in
 `currentColor`, so that they follow the hover styling of the surrounding
 link rather than the fixed colour of the original icons: they are recoloured
 from the originals, not reproduced unchanged. MIT licensed, Copyright (c)

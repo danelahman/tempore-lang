@@ -58,6 +58,38 @@ let header_grades path =
   |> List.filteri (fun i _ -> i < 12)
   |> List.find_map (fun line -> grades_option (words line))
 
+(* The peripheral packages of the Arduino backend that a file names by
+   [--package NAME] options in the run command of its header, before its
+   "Grades" line: the files of each under the grades [grades], each with its
+   name, its text and the running-time bounds of the board named by a
+   [--board NAME] option, if any, which precede the file. *)
+let header_packages ~grades path =
+  let words =
+    In_channel.with_open_text path In_channel.input_lines
+    |> List.to_seq
+    |> Seq.take_while (fun line ->
+        not (String.starts_with ~prefix:"   Grades " line))
+    |> List.of_seq |> List.concat_map words
+  in
+  let rec options option = function
+    | o :: value :: rest when o = option -> value :: options option rest
+    | _ :: rest -> options option rest
+    | [] -> []
+  in
+  let board = List.nth_opt (options "--board" words) 0 in
+  options "--package" words
+  |> List.concat_map (fun name ->
+      let module Package = ArduinoBackend.ArduinoPackage in
+      match
+        Option.map (Package.files_for ~grades ?board) (Package.find name)
+      with
+      | Some (Ok files) ->
+          List.map
+            (fun (f : Package.file) -> (f.filename, f.text, f.running_times))
+            files
+      | Some (Error message) -> failwith message
+      | None -> failwith ("unknown package " ^ name))
+
 let grades_of_test table name =
   List.find_map
     (fun (pattern, grades) -> if glob pattern name then Some grades else None)
@@ -160,9 +192,9 @@ module Program (G : Grade.S) = struct
 
   let parse lexbuf = Grammar.commands (Parser.Lexer.tokens ()) lexbuf
 
-  let parse_source source =
+  let parse_source ?(name = "stdlib.tpe") source =
     let lexbuf = Lexing.from_string source in
-    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "stdlib.tpe" };
+    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = name };
     parse lexbuf
 
   let initial =
@@ -241,11 +273,22 @@ module Program (G : Grade.S) = struct
             (parse_source Loader.stdlib_source)))
 
   (* Whether the file was rejected; the program declares the operations of the
-     file, the standard library declaring none. *)
-  let file path ~expect_errors =
+     packages and of the file, the standard library declaring none, and the
+     declarations of the packages precede the file. *)
+  let file ?(packages = []) path ~expect_errors =
     let name = Filename.basename path in
     match Parser.Lexer.read_file parse path with
     | cmds -> (
+        let cmds =
+          List.concat_map
+            (fun (name, source, running_times) ->
+              Loader.with_running_times
+                (module GS.E)
+                ~filename:name running_times
+                (parse_source ~name source))
+            packages
+          @ cmds
+        in
         let desugarer, env = Lazy.force with_stdlib in
         let env =
           Gen.declare_operations (Loader.declared_operations cmds) env
@@ -262,12 +305,12 @@ let grade_module name =
   | Some g -> g
   | None -> failwith ("unknown grades " ^ name)
 
-let check_file path grades =
+let check_file ?packages path grades =
   let name = Filename.basename path in
   let expect_errors = List.mem name malformed in
   let (module G) = grade_module grades in
   let module P = Program (G) in
-  match P.file path ~expect_errors with
+  match P.file ?packages path ~expect_errors with
   | rejected ->
       if expect_errors && not rejected then
         fail "%s (%s): listed as malformed but accepted" name grades
@@ -293,8 +336,8 @@ let programs () =
   let table = case_table (Filename.concat root "tests/run_tests.t") in
   List.iter
     (fun path ->
-      check_file path
-        (Option.value (header_grades path) ~default:default_grades))
+      let grades = Option.value (header_grades path) ~default:default_grades in
+      check_file ~packages:(header_packages ~grades path) path grades)
     (tpe_files (Filename.concat root "examples"));
   List.iter
     (fun path ->

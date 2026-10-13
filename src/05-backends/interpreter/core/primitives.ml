@@ -24,6 +24,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
         Error.runtime "Natural number expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
+  let get_int (expr : _ Ast.expression) =
+    match expr.it with
+    | Ast.Const (Const.Int n) -> n
+    | _ ->
+        Error.runtime "Integer expected but got %t"
+          (PrettyPrint.print_expression (module GS.R) expr)
+
   let get_float (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Const (Const.Float n) -> n
@@ -38,6 +45,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let n2 = get_nat expr2 in
         f n1 n2)
       expr
+
+  let int_int_to_int f expr =
+    return_const expr.Ast.at
+      (Const.Int
+         (binary_function (fun e1 e2 -> f (get_int e1) (get_int e2)) expr))
 
   let float_to f expr =
     let n = get_float expr in
@@ -59,6 +71,21 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   let float_float_to_float f expr =
     return_const expr.Ast.at (Const.Float (float_float_to f expr))
+
+  (* The natural number of a float, truncated toward zero; zero for a
+     negative float and for NaN, and a run-time error for infinity. *)
+  let nat_of_float x =
+    if Float.is_nan x || x <= 0.0 then Z.zero
+    else if x = Float.infinity then
+      Error.runtime "Conversion of infinity to a natural number"
+    else Z.of_float x
+
+  (* The integer of a float, truncated toward zero; zero for NaN, and a
+     run-time error for infinity. *)
+  let int_of_float x =
+    if Float.is_nan x then Z.zero
+    else if Float.is_finite x then Z.of_float x
+    else Error.runtime "Conversion of infinity to an integer"
 
   (* Which shapes the comparison primitives below accept: everything but a
      function or a handler, which are not values that can be compared. *)
@@ -112,6 +139,39 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Primitives.FloatDiv -> float_float_to_float ( /. )
     | Primitives.FloatPow -> float_float_to_float ( ** )
     | Primitives.FloatNeg -> float_to_float ( ~-. )
+    | Primitives.FloatOfNat ->
+        fun expr ->
+          return_const expr.Ast.at (Const.Float (Z.to_float (get_nat expr)))
+    | Primitives.NatOfFloat ->
+        fun expr ->
+          return_const expr.Ast.at (Const.Nat (float_to nat_of_float expr))
+    | Primitives.FloatSqrt -> float_to_float Float.sqrt
+    | Primitives.FloatAtan -> float_to_float Float.atan
+    | Primitives.FloatAtan2 -> float_float_to_float Float.atan2
+    | Primitives.IntAdd -> int_int_to_int Z.add
+    | Primitives.IntMul -> int_int_to_int Z.mul
+    | Primitives.IntSub -> int_int_to_int Z.sub
+    | Primitives.IntDiv ->
+        int_int_to_int (fun m n ->
+            if Z.equal n Z.zero then Error.runtime "Division by zero"
+            else Z.div m n)
+    | Primitives.IntMod ->
+        int_int_to_int (fun m n ->
+            if Z.equal n Z.zero then Error.runtime "Modulo by zero"
+            else Z.rem m n)
+    | Primitives.IntNeg ->
+        fun expr -> return_const expr.Ast.at (Const.Int (Z.neg (get_int expr)))
+    | Primitives.IntOfNat ->
+        fun expr -> return_const expr.Ast.at (Const.Int (get_nat expr))
+    | Primitives.NatOfInt ->
+        fun expr ->
+          return_const expr.Ast.at (Const.Nat (Z.max Z.zero (get_int expr)))
+    | Primitives.FloatOfInt ->
+        fun expr ->
+          return_const expr.Ast.at (Const.Float (Z.to_float (get_int expr)))
+    | Primitives.IntOfFloat ->
+        fun expr ->
+          return_const expr.Ast.at (Const.Int (float_to int_of_float expr))
     | Primitives.ToString ->
         fun expr ->
           return_const expr.Ast.at

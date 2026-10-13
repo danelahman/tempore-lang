@@ -1,0 +1,19 @@
+(* A tilt display on an M5Stack core, with the packages m5-imu and
+   m5-display: a periodic task of 50 ms reads the inertial measurement unit,
+   keeps the reading fresh for 2 ms, filters the tilt about the x axis of the
+   unit, and shows it every fifth step. Time is in milliseconds, under the
+   grades time-interval-rational. *)
+
+let start () = (0.0, 0)
+
+let step ((angle, n) : float * nat) : (float * nat) # [0, 50) =
+  let reading = perform ReadImu () in
+  box [0, 2] reading as fresh in
+  unbox fresh as r in
+  let a = tilt_x 0.9 0.05 angle r in
+  (if n mod 5 = 0 then perform ShowNumber a else ());
+  (a, n + 1)
+
+let title () =
+  perform ClearDisplay ();
+  perform ShowText "Tilt (degrees)"

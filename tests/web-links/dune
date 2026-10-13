@@ -1,0 +1,6 @@
+; Unit tests of the parameters of the address of the web interface: their
+; parsing and serialisation, and the choices the page opens with under them.
+
+(test
+ (name test_links)
+ (libraries grades backendRegistry webChoices webLink))

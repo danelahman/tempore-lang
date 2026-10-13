@@ -1,0 +1,6 @@
+; Unit tests of the choices the web interface remembers: their encoding and
+; the removal of grades, backends and inputs no longer known.
+
+(test
+ (name test_choices)
+ (libraries grades backendRegistry webChoices))

@@ -1,0 +1,4 @@
+(* A run-time error: division of integers by zero. *)
+
+run (-7i /! 2i, -7i mod! 2i)
+run -7i /! 0i
