@@ -154,17 +154,19 @@ they are:
 
   $ tempore --emit-arduino balance --device $app/balance.device.json --host-simulate 8 $app/balance.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
-  [32.245 ms] Display: Calibrating
-  [533.245 ms] Display: Hold upright
-  [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: a tilt below 2.5 degrees
-  [3436.245 ms] Display: a tilt below 2.5 degrees
-  [4437.245 ms] Display: a tilt below 2.5 degrees
-  [5438.245 ms] Display: a tilt below 2.5 degrees
-  [6439.245 ms] Display: a tilt below 2.5 degrees
-  [7440.245 ms] Display: a tilt below 2.5 degrees
+  [34.805 ms] Display at (0, 0): Balancing robot
+  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [37.669 ms] Display: Calibrating
+  [538.669 ms] Display: Hold upright
+  [1539.669 ms] Display: Armed
+  [2440.669 ms] Display: a tilt below 2.5 degrees
+  [3441.669 ms] Display: a tilt below 2.5 degrees
+  [4442.669 ms] Display: a tilt below 2.5 degrees
+  [5443.669 ms] Display: a tilt below 2.5 degrees
+  [6444.669 ms] Display: a tilt below 2.5 degrees
+  [7445.669 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
-  [8000.000 ms] Plant: released at 1537.0 ms
+  [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release below 2.5 degrees
   [8000.000 ms] Plant: largest drive below 0.4, last at 8000.0 ms
@@ -175,15 +177,17 @@ step never drives the motors, and the robot falls when released at 2 s:
   $ cd _arduino/projects/balance
   $ build -DPLANT_TILT=1.3 && events 8000000
   [31.245 ms] Display cleared
-  [32.245 ms] Display: Calibrating
-  [533.245 ms] Display: Hold upright
-  [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: 80.122
-  [3436.245 ms] Display: 80.212
-  [4437.245 ms] Display: 80.214
-  [5438.245 ms] Display: 80.214
-  [6439.245 ms] Display: 80.214
-  [7440.245 ms] Display: 80.214
+  [34.805 ms] Display at (0, 0): Balancing robot
+  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [37.669 ms] Display: Calibrating
+  [538.669 ms] Display: Hold upright
+  [1539.669 ms] Display: Armed
+  [2440.669 ms] Display: 80.124
+  [3441.669 ms] Display: 80.212
+  [4442.669 ms] Display: 80.214
+  [5443.669 ms] Display: 80.214
+  [6444.669 ms] Display: 80.214
+  [7445.669 ms] Display: 80.214
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 2000.0 ms
   [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.495 m
@@ -196,18 +200,20 @@ robot falls:
 
   $ build -DBALANCE_SLOW_FROM_MS=4000 && events 8000000
   [31.245 ms] Display cleared
-  [32.245 ms] Display: Calibrating
-  [533.245 ms] Display: Hold upright
-  [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: -0.044
-  [3436.245 ms] Display: 0.084
+  [34.805 ms] Display at (0, 0): Balancing robot
+  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [37.669 ms] Display: Calibrating
+  [538.669 ms] Display: Hold upright
+  [1539.669 ms] Display: Armed
+  [2440.669 ms] Display: -0.044
+  [3441.669 ms] Display: 0.084
   [4005.071 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4005.071 ms] Safe state
   [4005.316 ms] Task step stopped
-  [4036.000 ms] Task supervise stopped
+  [4041.000 ms] Task supervise stopped
   [8000.000 ms] End of the simulation
-  [8000.000 ms] Plant: released at 1537.0 ms
-  [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.217 m
+  [8000.000 ms] Plant: released at 1542.0 ms
+  [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.214 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release 80.21 degrees
   [8000.000 ms] Plant: largest drive 0.316, last at 4005.0 ms
 
@@ -220,8 +226,8 @@ counts last read, and the arming:
   [1002.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [1502.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [2002.000 ms] Armed, gyroscope bias 0.000 deg/s
-  [2002.000 ms] Tilt 0.01 deg, rate -1.7 deg/s, drives 70 180, counts 14 14
-  [2502.000 ms] Tilt -0.04 deg, rate 5.2 deg/s, drives -76 -186, counts 12 12
+  [2002.000 ms] Tilt 0.02 deg, rate -1.7 deg/s, drives 71 181, counts 14 14
+  [2502.000 ms] Tilt -0.07 deg, rate 3.3 deg/s, drives -78 -188, counts 12 12
 
 With the build flag BALANCE_RECORD, here 100 ms, and 20 samples, two tasks
 started by the first publication record the run from the arming for 2 s and
@@ -394,6 +400,7 @@ function:
     ShowText             3      1000     1000.0      1000
     ShowNumber           4      1000     1000.0      1000
     ClearDisplay         1     31000    31000.0     31000
+    ShowTextAt           2      1864     2712.0      3560
     SetMotors         1200       245      245.0       245
     ReadEncoders      1200       468      468.0       468
     ResetEncoders        1       335      335.0       335

@@ -143,10 +143,12 @@ let turns (forward : float) (backward : float) =
 
 (* Correctly accepted by the typechecker: the check spins the wheels forwards
    and backwards, 300 ms apart, only while the robot stands upright within 20
-   degrees, and shows the verdict and the forward speeds; it then waits two
-   seconds. *)
+   degrees, and shows the verdict and the forward speeds, with the title
+   and the footer; it then waits two seconds. *)
 let check () =
   perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Wheel check");
+  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)");
   let tilt = perform Latest () in
   (if magnitude tilt <= 20.0 then (
      let left, right = spin 300i in

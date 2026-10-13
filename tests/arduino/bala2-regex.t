@@ -116,11 +116,11 @@ the reading, and delays the reading:
     grade `[{SetMotors | 0}, {SetMotors | 0}]` accumulates here (this computation)
     Note: the resource inequality `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}] <= [{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]` does not hold
   [1]
-  File "bala2-regex/armed.tpe", lines 4-9, characters 26-13:
+  File "bala2-regex/armed.tpe", lines 4-12, characters 26-13:
   4 | let measure_bias_armed () : float
                                 ^^^^^^^
-  Typing error: This function's body has grade `[{ClearDisplay; ShowText}, {ClearDisplay; ShowText; _*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*}]`
-    Note: the effect inequality `[{ClearDisplay; ShowText}, {ClearDisplay; ShowText; _*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*}]` does not hold
+  Typing error: This function's body has grade `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}]`, which does not match its annotated grade `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]`
+    Note: the effect inequality `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText}, {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*}]` does not hold
   [1]
   File "bala2-regex/unchecked.tpe", line 6, characters 14-19:
   6 |   perform Arm token;
@@ -193,15 +193,15 @@ the reading, and delays the reading:
     grade `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}]` accumulates here (this computation)
     Note: the resource inequality `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}] <= [{0}, {[0, 200)}]` does not hold
   [1]
-  File "bala2-regex/undisarmed.tpe", line 7, characters 14-23:
-  7 |   let token = calibrate () in
+  File "bala2-regex/undisarmed.tpe", line 8, characters 14-23:
+  8 |   let token = calibrate () in
                     ^^^^^^^^^
-  Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 317-319, characters 0-51:
-    317 | let calibrate () =
+  Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 330-332, characters 0-51:
+    330 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
-    File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:
+    File "bala2-regex/undisarmed.tpe", lines 4-14, characters 28-18:
     4 | let supervise_undisarmed () : unit
                                     ^^^^^^
     the inequality goes through the annotation here
@@ -299,17 +299,19 @@ bounds, and prints the other events as they are:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
-  [32.245 ms] Display: Calibrating
-  [533.245 ms] Display: Hold upright
-  [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: a tilt below 2.5 degrees
-  [3436.245 ms] Display: a tilt below 2.5 degrees
-  [4437.245 ms] Display: a tilt below 2.5 degrees
-  [5438.245 ms] Display: a tilt below 2.5 degrees
-  [6439.245 ms] Display: a tilt below 2.5 degrees
-  [7440.245 ms] Display: a tilt below 2.5 degrees
+  [34.805 ms] Display at (0, 0): Balancing robot with regexes
+  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [37.669 ms] Display: Calibrating
+  [538.669 ms] Display: Hold upright
+  [1539.669 ms] Display: Armed
+  [2440.669 ms] Display: a tilt below 2.5 degrees
+  [3441.669 ms] Display: a tilt below 2.5 degrees
+  [4442.669 ms] Display: a tilt below 2.5 degrees
+  [5443.669 ms] Display: a tilt below 2.5 degrees
+  [6444.669 ms] Display: a tilt below 2.5 degrees
+  [7445.669 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
-  [8000.000 ms] Plant: released at 1537.0 ms
+  [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release below 2.5 degrees
   [8000.000 ms] Plant: largest drive below 0.4, last at 8000.0 ms

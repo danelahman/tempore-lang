@@ -278,12 +278,16 @@ let rec rate_sum (n : nat) (sum : float) : float # {(Attitude; 10)*} =
       rate_sum m (sum +. rate)
 
 (* Correctly accepted by the typechecker: the measurement of the bias
-   disarms the robot, clears the display and shows a message before it reads
+   disarms the robot, clears the display, writes the title and the footer
+   and shows a message before it reads
    the rates, in this order. *)
 let measure_bias () : float
-    # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*} =
+    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*} =
   perform Disarm ();
   perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Balancing robot with regexes");
+  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)");
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
   sum /. 50.0
@@ -292,19 +296,28 @@ let measure_bias () : float
    the robot first, so that the motors may move it while the rates are read:
 
      Typing error: This function's body has grade
-       `[{ClearDisplay; ShowText}, {ClearDisplay; ShowText; _*}]`, which does
+       `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText},
+       {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}]`, which does
        not match its annotated grade
-       `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*},
-       {Disarm; ClearDisplay; ShowText; (Attitude; 10)*}]`
+       `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*},
+       {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*}]`
        Note: the effect inequality
-         `[{ClearDisplay; ShowText}, {ClearDisplay; ShowText; _*}] <=
-         [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*},
-         {Disarm; ClearDisplay; ShowText; (Attitude; 10)*}]` does not hold
+         `[{ClearDisplay; ShowTextAt; ShowTextAt; ShowText},
+         {ClearDisplay; ShowTextAt; ShowTextAt; ShowText; _*}] <=
+         [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+         (Attitude; 10)*},
+         {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+         (Attitude; 10)*}]` does not hold
 *)
 (*
 let measure_bias_armed () : float
-    # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*} =
+    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*} =
   perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Balancing robot with regexes");
+  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)");
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
   sum /. 50.0
@@ -379,8 +392,9 @@ let rec drive_redrawn (n : nat) : unit # {_*} =
    the protocol of the supervision: calibrate, arm, drive and disarm, in
    this order. *)
 let supervise () : unit
-    # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm;
-       ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =
+    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
+       (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =
   let token = calibrate () in
   perform ShowText "Hold upright";
   delay 1000;
@@ -454,21 +468,26 @@ let supervise_late () =
    armed after the drive:
 
      Typing error: The effect inequality
-       `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000;
-       Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*},
-       {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000;
-       Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <=
-       [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000;
-       Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm},
-       {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000;
-       Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]`
+       `[{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
+       (Attitude; Command; (ShowNumber | 0); 100)*},
+       {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
+       (Attitude; Command; (ShowNumber | 0); 100)*}] <=
+       [{Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
+       (Attitude; Command; (ShowNumber | 0); 100)*; Disarm},
+       {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
+       (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]`
        does not hold
        ...
 *)
 (*
 let supervise_undisarmed () : unit
-    # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm;
-       ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =
+    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
+       (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =
   let token = calibrate () in
   perform ShowText "Hold upright";
   delay 1000;

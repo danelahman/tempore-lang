@@ -2,8 +2,11 @@
    first, after balance_regex.tpe. *)
 
 let measure_bias_armed () : float
-    # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*} =
+    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*} =
   perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Balancing robot with regexes");
+  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)");
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
   sum /. 50.0

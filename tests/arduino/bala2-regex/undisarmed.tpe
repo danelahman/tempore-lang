@@ -2,8 +2,9 @@
    balance_regex.tpe. *)
 
 let supervise_undisarmed () : unit
-    # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm;
-       ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =
+    # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
+       (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =
   let token = calibrate () in
   perform ShowText "Hold upright";
   delay 1000;
