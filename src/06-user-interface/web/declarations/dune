@@ -1,0 +1,6 @@
+; The declarations a backend loads before the program, as the editor shows
+; them, without a dependency on the browser, so that the tests link it.
+
+(library
+ (name webDeclarations)
+ (libraries utils desugarer))

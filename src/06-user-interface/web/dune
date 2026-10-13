@@ -10,6 +10,7 @@
   ojs
   backend
   backendRegistry
+  webDeclarations
   webChoices
   webLink
   webBackend

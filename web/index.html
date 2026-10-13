@@ -301,6 +301,45 @@
       color: #888;
     }
 
+    /* The declarations loaded before the program, folded above the editor,
+       read-only; the title leaves room for the switch floating over the top
+       right corner of the box. */
+    .editor-declarations:not(:empty) {
+      margin-bottom: 0.75rem;
+    }
+
+    .declarations > summary {
+      cursor: pointer;
+      padding-right: 3.5rem;
+      font-weight: 500;
+    }
+
+    .declarations-note {
+      margin-left: 0.5em;
+      color: #6f6f6f;
+      font-size: 0.85em;
+      font-weight: normal;
+    }
+
+    .declarations-filename {
+      margin-top: 0.75rem;
+      color: #5f6873;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.8rem;
+    }
+
+    pre.syn-ml.declarations-source {
+      position: relative;
+      margin-top: 0.3rem;
+      padding: 0.75em 1em 0.75em var(--gutter, 2.1em);
+      border: 1px solid #dbdbdb;
+      border-radius: 4px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      tab-size: 2;
+    }
+
     .editor-box .code-editor {
       flex-grow: 1;
       display: flex;
@@ -1274,6 +1313,11 @@
     .code-popover-link:hover,
     .code-popover-link:focus-visible {
       color: #cc0f35;
+    }
+
+    .code-popover.is-type .code-popover-link:hover,
+    .code-popover.is-type .code-popover-link:focus-visible {
+      color: #485fc7;
     }
 
     /* A scheme in the popover: the quantifier and qualifier dimmer than the

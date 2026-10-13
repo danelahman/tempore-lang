@@ -29,6 +29,7 @@ type definition = {
 type destination =
   | In_editor of int * int  (** the bytes of the editor's text naming it *)
   | In_library of library_entry
+  | In_declarations of declaration_entry
 
 and library_entry = {
   line : int;  (** the line of the standard library naming it, from 1 *)
@@ -36,6 +37,14 @@ and library_entry = {
   value : definition option;  (** the definition, when the name is a value's *)
 }
 (** A definition of the standard library, which the editor does not show. *)
+
+and declaration_entry = {
+  place : WebDeclarations.place;
+      (** where it lies among the declarations the selected backend loads *)
+  defined : definition option;  (** the definition, when the name is a value's *)
+}
+(** A definition of the declarations loaded before the program, which the editor
+    shows above it. *)
 
 type link = {
   use : int * int;  (** the bytes of the editor's text where the name occurs *)
@@ -49,7 +58,8 @@ type popover_target =
   | Error_label of int * int  (** the span of label [j] of the [i]th error *)
   | Definition of int  (** the name of the [k]th definition *)
   | Reference of int
-      (** the name of the [k]th link, defined in the standard library *)
+      (** the name of the [k]th link, defined in the standard library or in the
+          declarations loaded before the program *)
 
 (** What a button of the code options asks for. *)
 type action =
@@ -61,6 +71,9 @@ type flash =
   | Span of int * int
       (** the bytes of the editor's text from a start up to a stop *)
   | Message of int  (** the message of the [i]th error *)
+  | Declaration of string * int * int
+      (** the bytes of the declarations of the given file name from a start up
+          to a stop *)
 
 (** A notice shown under the example. *)
 type notice =
@@ -211,6 +224,9 @@ and msg =
   | CopyLink
       (** Copy the link to the example, the grades and the backend selected to
           the clipboard. *)
+  | ShowDeclarations of bool
+      (** The declarations shown above the program have been unfolded, or
+          folded. *)
   | Copied of string * bool
       (** The given link has been copied to the clipboard, or the clipboard has
           refused it. *)
@@ -342,6 +358,11 @@ type model = {
   declared : BackendRegistry.source list;
       (** The declarations of the selected backend loaded before the program as
           last checked. *)
+  shown_declarations : WebDeclarations.source list;
+      (** The declarations the selected backend loads before the program under
+          its inputs and the grades selected, shown above the program. *)
+  declarations_open : bool;
+      (** Whether the declarations shown above the program are unfolded. *)
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;
@@ -370,6 +391,7 @@ type side_effect =
   | Focus_current_example
       (** focus the card of the example last loaded in the gallery and centre it
           in the gallery's list *)
+  | Scroll_to_declaration  (** scroll the flashed declaration into view *)
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)

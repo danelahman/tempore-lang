@@ -246,6 +246,7 @@ let command (model : Model.model) = function
             model.popover)
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
   | Model.Scroll_to_span i -> Scroll_to (View.primary_id i)
+  | Model.Scroll_to_declaration -> Scroll_to View.declaration_flash_id
   | Model.Perform_after_paint action -> After_paint (Model.Perform action)
   | Model.Remember (key, value) -> Now (fun () -> remember key value)
   | Model.Focus_current_example ->

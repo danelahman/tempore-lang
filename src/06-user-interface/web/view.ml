@@ -713,10 +713,49 @@ let view_library_entry ~columns (entry : Model.library_entry) =
       [ elt "p" ~a:[ class_ "code-popover-scheme" ] (view_scheme ~columns d) ]
   | None -> []
 
+(* The id of the definition of the declarations loaded before the program
+   flashed after going to it. *)
+let declaration_flash_id = "declaration-flash"
+
+(* A definition of the declarations loaded before the program, that of the
+   [k]th link: its package or file and line, its command, highlighted as the
+   editor highlights, the scheme of a value, and a link going to it. *)
+let view_declaration_entry ~columns k (entry : Model.declaration_entry) =
+  let { WebDeclarations.filename; line; text = command; _ } = entry.place in
+  let package = WebDeclarations.package filename in
+  let place =
+    if package = filename then Printf.sprintf "File %s, line %d" filename line
+    else
+      Printf.sprintf "Package %s, file %s, line %d" package
+        (Filename.basename filename)
+        line
+  in
+  [
+    elt "p" ~a:[ class_ "code-popover-place" ] [ text place ];
+    elt "pre"
+      ~a:[ class_ "code-popover-source syn-ml" ]
+      (SyntaxHighlight.highlight_text command);
+  ]
+  @ (match entry.defined with
+    | Some d ->
+        [ elt "p" ~a:[ class_ "code-popover-scheme" ] (view_scheme ~columns d) ]
+    | None -> [])
+  @ [
+      elt "a"
+        ~a:
+          [
+            class_ "code-popover-link";
+            attr "href" ("#" ^ declaration_flash_id);
+            onclick ~prevent_default:() (fun _ -> Model.Follow k);
+          ]
+        [ text "Show declaration" ];
+    ]
+
 (* The open popover: for an error's span, its kind and headline, then the
    label of the span when it is one of the error's labels and otherwise the
    error's first note, and a link to its message; for a definition's name, its
-   scheme; for a name defined in the standard library, its definition. It is
+   scheme; for a name defined in the standard library or in the declarations
+   loaded before the program, its definition. It is
    drawn hidden until measured, and then placed under or above its span, a
    scheme laid out again first when the measured width differs. *)
 let view_popover (model : Model.model) errors =
@@ -778,6 +817,8 @@ let view_popover (model : Model.model) errors =
         match List.nth_opt model.links k with
         | Some { destination = Model.In_library entry; _ } ->
             Some ("is-type", view_library_entry ~columns entry)
+        | Some { destination = Model.In_declarations entry; _ } ->
+            Some ("is-type", view_declaration_entry ~columns k entry)
         | Some { destination = Model.In_editor _; _ } | None -> None)
   in
   match model.popover with
@@ -845,6 +886,13 @@ let onescape_popover (model : Model.model) =
           else None)
         (field "key" String))
 
+(* The gutter of a text of [lines] lines: a small inset, the line numbers
+   (0.558rem a digit at the editor's 0.9rem) and a gap; in rem so the marker's
+   smaller font can use it. *)
+let gutter lines =
+  Printf.sprintf "calc(0.36rem + %d * 0.558rem + 0.63rem)"
+    (String.length (string_of_int lines))
+
 (* The editor proper: the highlighted text, with the errors' spans and the
    definitions' names marked, the transparent textarea stretched over it, and
    the open popover. *)
@@ -854,12 +902,7 @@ let view_editor ~highlighted ~errors (model : Model.model) =
     String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 1 source
   in
   let rows = max 10 lines in
-  (* The gutter is a small inset, the line numbers (0.558rem a digit at the
-     editor's 0.9rem) and a gap; in rem so the marker's smaller font can use it. *)
-  let gutter =
-    Printf.sprintf "calc(0.36rem + %d * 0.558rem + 0.63rem)"
-      (String.length (string_of_int lines))
-  in
+  let gutter = gutter lines in
   let described =
     match (popover_target model, model.caret_target) with
     | Some target, Some target' when target = target' ->
@@ -1841,9 +1884,10 @@ let editor_marks
              | None -> [])
            definitions)
     (* the names of the links, one of them underlined while the modifier of
-         links is held with the pointer on it *)
+         links is held with the pointer on it, those defined in the
+         declarations loaded before the program described by popovers *)
     @ List.mapi
-        (fun k ({ use = from, until; _ } : Model.link) ->
+        (fun k ({ use = from, until; destination } : Model.link) ->
           {
             SyntaxHighlight.from;
             until;
@@ -1851,10 +1895,16 @@ let editor_marks
               String.concat " "
                 ([ "name-ref"; EditorDom.link_prefix ^ string_of_int k ]
                 @ (if link = Some k then [ "is-link" ] else [])
+                @ (if popover = Some (Model.Reference k) then [ "is-hover" ]
+                   else [])
                 @
-                if popover = Some (Model.Reference k) then
-                  [ "is-hover"; popover_classes (Model.Reference k) ]
-                else []);
+                match destination with
+                | Model.In_declarations _ ->
+                    [ popover_classes (Model.Reference k) ]
+                | Model.In_editor _ | Model.In_library _ ->
+                    if popover = Some (Model.Reference k) then
+                      [ popover_classes (Model.Reference k) ]
+                    else []);
             id = None;
             marker = None;
           })
@@ -1871,7 +1921,7 @@ let editor_marks
             marker = None;
           };
         ]
-    | Some (Model.Message _) | None -> []
+    | Some (Model.Message _ | Model.Declaration _) | None -> []
 
 (* The editor's text, highlighted with its marks, and a newline the source has
    not got, so that a last empty line keeps its height. *)
@@ -1880,6 +1930,91 @@ let view_highlighted (key : editor_key) =
     ~a:[ class_ "code-editor-display syn-ml" ]
     (SyntaxHighlight.highlight_with_marks ~line_numbers:true
        ~marks:(editor_marks key) (key.source ^ "\n"))
+
+(* Declarations loaded before the program *)
+
+(* A source of the declarations loaded before the program, under its file
+   name, highlighted as the editor highlights, with line numbers; [flash] is
+   the bytes of it just gone to, if any. *)
+let view_declaration_source ?flash (source : WebDeclarations.source) =
+  let code =
+    if String.ends_with ~suffix:"\n" source.text then
+      String.sub source.text 0 (String.length source.text - 1)
+    else source.text
+  in
+  let lines =
+    String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 1 code
+  in
+  let marks =
+    Option.fold ~none:[]
+      ~some:(fun (from, until) ->
+        [
+          {
+            SyntaxHighlight.from;
+            until = max until (from + 1);
+            mark_cls = "goto-flash";
+            id = Some declaration_flash_id;
+            marker = None;
+          };
+        ])
+      flash
+  in
+  div
+    ~a:[ class_ "declarations-file" ]
+    [
+      elt "p" ~a:[ class_ "declarations-filename" ] [ text source.filename ];
+      elt "pre"
+        ~a:
+          [
+            class_ "declarations-source syn-ml"; style "--gutter" (gutter lines);
+          ]
+        (SyntaxHighlight.highlight_with_marks ~line_numbers:true ~marks code);
+    ]
+
+(* [view_declaration_source] without a flash, as a function of the source
+   alone, which [Vdom.memo] compares. *)
+let view_unflashed_declaration_source source = view_declaration_source source
+
+(* The declarations the selected backend loads before the program, folded
+   above it under their packages, read-only; a container without them, so
+   that the editor keeps its place among the children of the box. *)
+let view_declarations (model : Model.model) =
+  div
+    ~a:[ class_ "editor-declarations" ]
+    (match model.shown_declarations with
+    | [] -> []
+    | sources ->
+        [
+          elt "details"
+            ~a:
+              [
+                class_ "declarations";
+                bool_prop "open" model.declarations_open;
+                on "toggle"
+                  Vdom.Decoder.(
+                    map
+                      (fun shown ->
+                        if shown = model.declarations_open then None
+                        else Some (Model.ShowDeclarations shown))
+                      (field "target.open" Bool));
+              ]
+            (elt "summary"
+               ~a:[ class_ "declarations-title" ]
+               [
+                 text (WebDeclarations.title sources);
+                 elt "span"
+                   ~a:[ class_ "declarations-note" ]
+                   [ text "read-only" ];
+               ]
+            :: List.map
+                 (fun (source : WebDeclarations.source) ->
+                   match model.flash with
+                   | Some (Model.Declaration (filename, start, stop))
+                     when filename = source.filename ->
+                       view_declaration_source ~flash:(start, stop) source
+                   | _ -> Vdom.memo view_unflashed_declaration_source source)
+                 sources);
+        ])
 
 (* The editor's box: the program, with the errors of its check, or, under a
    backend with a compiler, the view of the code compiled, with the switch
@@ -1893,7 +2028,10 @@ let edit_view (model : Model.model) =
     | _ ->
         let key = interned (editor_key model) in
         let errors = key.errors and stale = key.stale in
-        view_editor ~highlighted:(Vdom.memo view_highlighted key) ~errors model
+        view_declarations model
+        :: view_editor
+             ~highlighted:(Vdom.memo view_highlighted key)
+             ~errors model
         :: List.mapi
              (fun i error ->
                view_load_error ~stale

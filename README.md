@@ -154,6 +154,10 @@ the inputs; the declarations of the peripheral packages the manifest lists are
 loaded before the program, which is checked again when they change, and the
 compiled code is the configuration, `main.cpp`, the program and the operation
 wrappers of the PlatformIO project, one file after another.
+These declarations are shown read-only above the program, folded under the
+names of their packages; once the program is checked, a name it uses from them,
+such as an operation or a function, shows its declaration and scheme as a
+tooltip, and ⌘-click (Ctrl-click) or F12 on it unfolds the declarations at it.
 
 The address of the page names the example, the grades and the backend selected,
 in the query parameters `example`, the path of the example relative to
