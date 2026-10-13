@@ -154,6 +154,20 @@ loaded before the program, which is checked again when they change, and the
 compiled code is the configuration, `main.cpp`, the program and the operation
 wrappers of the PlatformIO project, one file after another.
 
+The address of the page names the example, the grades and the backend selected,
+in the query parameters `example`, the path of the example relative to
+`examples` (as in `examples/index`), `grades`, a grading monoid, and `backend`,
+a backend's key (`interpreter`, `opentrons` or `arduino`), e.g.,
+<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>. Opening such a
+link loads the example as the gallery does, with its own grades and backend
+unless `grades` or `backend` overrides them; `backend` without `example` selects
+the backend with its default example, unless the example last loaded is of that
+backend. The address follows the selection, `grades` and `backend` given only
+where they differ from the example's own, and the button beside the example
+copies it to the clipboard. The edited text of a program is not part of the
+address. Parameters of unknown or malformed values are ignored, with a notice;
+the choices not given by the address are those the browser remembers.
+
 A run shows its [timeline](#interpreter) above the reductions, folded under its
 title under Interpreter and unfolded under Opentrons and Arduino; the events inside default
 implementations are greyed; under Opentrons the title states the time unit,

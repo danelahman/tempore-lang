@@ -64,6 +64,14 @@ type flash =
       (** the bytes of the editor's text from a start up to a stop *)
   | Message of int  (** the message of the [i]th error *)
 
+(** A notice shown under the example. *)
+type notice =
+  | Ignored of WebLink.parameter list
+      (** the parameters of the page's address that name nothing known or are
+          malformed *)
+  | Link_copied
+  | Copy_failed of string  (** the link the clipboard has refused *)
+
 (** What the pointer is over in the editor. *)
 type pointer = Nowhere | Over_target of popover_target | Over_popover
 
@@ -202,6 +210,13 @@ and msg =
   | ShowCode of code_view
       (** Show the program or the code the selected backend has compiled it to
           in the editor's place. *)
+  | CopyLink
+      (** Copy the link to the example, the grades and the backend selected to
+          the clipboard. *)
+  | Copied of string * bool
+      (** The given link has been copied to the clipboard, or the clipboard has
+          refused it. *)
+  | Unnotice of int  (** The notice of the given serial has run its course. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -365,6 +380,25 @@ let choices edit_model =
     backend = Some edit_model.selected_backend;
     settings = edit_model.backend_settings;
   }
+
+(* The bundled examples, as the parameters of the page's address name them. *)
+let catalogue =
+  let entry (group, (e : Examples_tpe.example)) =
+    {
+      WebLink.example = { WebChoices.path = e.path; group; title = e.title };
+      grade = e.grade;
+      backend = e.backend;
+    }
+  in
+  {
+    WebLink.find = (fun path -> Option.map entry (example_of_path path));
+    default_of = (fun key -> Option.map entry (default_example key));
+  }
+
+(* The query of the page's address naming the example, the grades and the
+   backend of [edit_model]. *)
+let link edit_model =
+  WebLink.serialise (WebLink.of_choices catalogue (choices edit_model))
 
 (* The editor as the page opens with the choices [c] restored: the example
    loaded first, as it sets the grades, the backend and its inputs, which the
@@ -543,6 +577,10 @@ type model = {
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)
+  notice : notice option;
+  notice_serial : int;
+      (** The serial of the latest notice, which replaces any earlier one; the
+          end of an earlier one is ignored. *)
 }
 
 let init =
@@ -573,6 +611,8 @@ let init =
     compiled = None;
     compile_serial = 0;
     code_view = Source;
+    notice = None;
+    notice_serial = 0;
   }
 
 (** A side effect the update asks for, performed by the page. *)
@@ -592,6 +632,12 @@ type side_effect =
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
+  | Replace_query of string
+      (** replace the query of the page's address by the given one, without an
+          entry of its own in the history *)
+  | Copy_link of string
+      (** copy the page's address with the given query to the clipboard and send
+          [Copied] *)
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
    the interpreter: there is nothing to point at, only what went wrong. *)
@@ -1220,6 +1266,8 @@ let rec update_model model = function
   | Abbreviate abbreviated -> { model with abbreviated }
   | Unflash serial when serial = model.flash_serial ->
       { model with flash = None }
+  | Unnotice serial when serial = model.notice_serial ->
+      { model with notice = None }
   (* A program edited since its check keeps its code, out of date. *)
   | Recompile serial when serial = model.compile_serial -> (
       match compile model with
@@ -1227,8 +1275,20 @@ let rec update_model model = function
       | None -> model)
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
   | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
-  | GoToError _ | Recompile _ ->
+  | GoToError _ | Recompile _ | CopyLink | Copied _ | Unnotice _ ->
       model
+
+(** How long the confirmation of a copied link is shown, in milliseconds. *)
+let notice_duration = 2000
+
+(* The notice [notice] shown, replacing any earlier one; the confirmation of a
+   copied link for a while only. *)
+let notify model notice =
+  let notice_serial = model.notice_serial + 1 in
+  ( { model with notice = Some notice; notice_serial },
+    match notice with
+    | Link_copied -> [ After (notice_duration, Unnotice notice_serial) ]
+    | Ignored _ | Copy_failed _ -> [] )
 
 (* How long the pointer rests on a span before its popover opens, and how long
    the popover outlasts the pointer's leaving, in milliseconds: the latter lets
@@ -1413,6 +1473,9 @@ let respond model msg =
         [ After (compile_delay, Recompile compile_serial) ] )
   | OpenGallery when model.edit_model.selected_example <> None ->
       (update_model model msg, [ Focus_current_example ])
+  | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
+  | Copied (url, copied) ->
+      notify model (if copied then Link_copied else Copy_failed url)
   | _ -> (update_model model msg, [])
 
 (* Whether a message changes the choices the browser remembers. *)
@@ -1427,8 +1490,9 @@ let changes_choices = function
 let update model msg =
   let model, effects = respond model msg in
   if changes_choices msg then
-    ( model,
+    ( { model with notice = None },
       Remember (WebChoices.key, WebChoices.encode (choices model.edit_model))
+      :: Replace_query (link model.edit_model)
       :: effects )
   else (model, effects)
 
@@ -1436,3 +1500,29 @@ let restored stored =
   Option.fold ~none:init
     ~some:(fun c -> { init with edit_model = restore_edit c })
     (Option.bind stored WebChoices.decode)
+
+let opened ~query stored =
+  let parameters, malformed = WebLink.parse query in
+  let model, unknown =
+    if parameters = WebLink.empty then (restored stored, [])
+    else
+      let c, unknown =
+        WebLink.resolve catalogue ~defaults:(choices edit_init)
+          (Option.bind stored WebChoices.decode)
+          parameters
+      in
+      ({ init with edit_model = restore_edit c }, unknown)
+  in
+  let model =
+    match List.sort compare (malformed @ unknown) with
+    | [] -> model
+    | ignored -> fst (notify model (Ignored ignored))
+  in
+  ( model,
+    Replace_query (link model.edit_model)
+    ::
+    (if parameters = WebLink.empty then []
+     else
+       [
+         Remember (WebChoices.key, WebChoices.encode (choices model.edit_model));
+       ]) )

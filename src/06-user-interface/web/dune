@@ -11,6 +11,7 @@
   backend
   backendRegistry
   webChoices
+  webLink
   webBackend
   webInterpreter
   desugarer

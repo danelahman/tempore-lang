@@ -163,6 +163,17 @@ let code_mark =
      1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 \
      1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"
 
+let link_mark =
+  octicon
+    "m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 \
+     1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 \
+     0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 \
+     1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 \
+     0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 \
+     1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 \
+     1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 \
+     2.5a1.998 1.998 0 0 0 0 2.83Z"
+
 (* The other page is reached from the side panel's heading. The mark stands on
    its own there, so the name it is given is the one read out. *)
 let page_link target =
@@ -1155,54 +1166,106 @@ let view_compiler (model : Model.model) =
         text "Load standard library";
       ]
   in
+  let notice =
+    match model.notice with
+    | None -> []
+    | Some notice ->
+        let colour, message =
+          match notice with
+          | Model.Ignored [ parameter ] ->
+              ( "is-danger",
+                Printf.sprintf
+                  "The parameter %s of the address was ignored: its value is \
+                   malformed or names nothing known."
+                  (WebLink.name parameter) )
+          | Model.Ignored parameters ->
+              ( "is-danger",
+                Printf.sprintf
+                  "The parameters %s of the address were ignored: their values \
+                   are malformed or name nothing known."
+                  (String.concat ", " (List.map WebLink.name parameters)) )
+          | Model.Link_copied -> ("is-success", "Link copied.")
+          | Model.Copy_failed link ->
+              ( "is-danger",
+                "The link could not be copied to the clipboard: " ^ link )
+        in
+        [
+          elt "p"
+            ~a:[ class_ ("help link-notice " ^ colour); attr "role" "status" ]
+            [ text message ];
+        ]
+  in
   let load_example =
     div
       ~a:[ class_ "panel-block" ]
       [
         div
           ~a:[ class_ "field" ]
-          [
-            elt "label" ~a:[ class_ "label" ] [ text "Example" ];
-            div
-              ~a:[ class_ "control is-expanded" ]
-              [
-                (* opens the gallery, see [view_gallery]; labelled by the
-                   example last loaded, after the short form of the label of
-                   the group it is listed under, the tooltip and the
-                   accessible name giving the full label *)
-                elt "button"
-                  ~a:
-                    ([
-                       class_ "button is-fullwidth example-button";
-                       type_button;
-                       onclick (fun _ -> Model.OpenGallery);
-                     ]
-                    @
-                    match model.edit_model.selected_example with
-                    | Some (group, title) ->
-                        [
-                          attr "title" (group ^ " \xC2\xB7 " ^ title);
-                          attr "aria-label" ("Example: " ^ group ^ ", " ^ title);
-                        ]
-                    | None -> [])
-                  [
-                    (match model.edit_model.selected_example with
-                    | Some (group, title) ->
-                        view_choice_label
-                          ~heading:
-                            (List.find_map
-                               (fun (g : Examples_tpe.group) ->
-                                 if g.label = group then Some g.short else None)
-                               Examples_tpe.examples
-                            |> Option.value ~default:group)
-                          title
-                    | None -> view_choice_label "Load example");
-                    elt "span"
-                      ~a:[ class_ "has-text-grey" ]
-                      [ text "\xE2\x80\xA6" ];
-                  ];
-              ];
-          ];
+          ([
+             elt "label" ~a:[ class_ "label" ] [ text "Example" ];
+             div
+               ~a:[ class_ "example-field" ]
+               [
+                 div
+                   ~a:[ class_ "control is-expanded" ]
+                   [
+                     (* opens the gallery, see [view_gallery]; labelled by
+                        the example last loaded, after the short form of the
+                        label of the group it is listed under, the tooltip and
+                        the accessible name giving the full label *)
+                     elt "button"
+                       ~a:
+                         ([
+                            class_ "button is-fullwidth example-button";
+                            type_button;
+                            onclick (fun _ -> Model.OpenGallery);
+                          ]
+                         @
+                         match model.edit_model.selected_example with
+                         | Some (group, title) ->
+                             [
+                               attr "title" (group ^ " \xC2\xB7 " ^ title);
+                               attr "aria-label"
+                                 ("Example: " ^ group ^ ", " ^ title);
+                             ]
+                         | None -> [])
+                       [
+                         (match model.edit_model.selected_example with
+                         | Some (group, title) ->
+                             view_choice_label
+                               ~heading:
+                                 (List.find_map
+                                    (fun (g : Examples_tpe.group) ->
+                                      if g.label = group then Some g.short
+                                      else None)
+                                    Examples_tpe.examples
+                                 |> Option.value ~default:group)
+                               title
+                         | None -> view_choice_label "Load example");
+                         elt "span"
+                           ~a:[ class_ "has-text-grey" ]
+                           [ text "\xE2\x80\xA6" ];
+                       ];
+                   ];
+                 (* copies the address naming the example, the grades and
+                    the backend selected *)
+                 div
+                   ~a:[ class_ "control" ]
+                   [
+                     elt "button"
+                       ~a:
+                         [
+                           class_ "button copy-link-button";
+                           type_button;
+                           attr "title" "Copy link";
+                           attr "aria-label" "Copy link";
+                           onclick (fun _ -> Model.CopyLink);
+                         ]
+                       [ link_mark ];
+                   ];
+               ];
+           ]
+          @ notice);
       ]
   and select_backend =
     let selected = Model.backend model.edit_model in

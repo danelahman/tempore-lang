@@ -62,6 +62,14 @@ type flash =
       (** the bytes of the editor's text from a start up to a stop *)
   | Message of int  (** the message of the [i]th error *)
 
+(** A notice shown under the example. *)
+type notice =
+  | Ignored of WebLink.parameter list
+      (** the parameters of the page's address that name nothing known or are
+          malformed *)
+  | Link_copied
+  | Copy_failed of string  (** the link the clipboard has refused *)
+
 (** What the pointer is over in the editor. *)
 type pointer = Nowhere | Over_target of popover_target | Over_popover
 
@@ -200,6 +208,13 @@ and msg =
   | ShowCode of code_view
       (** Show the program or the code the selected backend has compiled it to
           in the editor's place. *)
+  | CopyLink
+      (** Copy the link to the example, the grades and the backend selected to
+          the clipboard. *)
+  | Copied of string * bool
+      (** The given link has been copied to the clipboard, or the clipboard has
+          refused it. *)
+  | Unnotice of int  (** The notice of the given serial has run its course. *)
 
 (* Which of the two top-level pages is showing. [Editor] covers both editing and
    running, which [run_model] distinguishes between. *)
@@ -335,6 +350,10 @@ type model = {
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)
+  notice : notice option;
+  notice_serial : int;
+      (** The serial of the latest notice, which replaces any earlier one; the
+          end of an earlier one is ignored. *)
 }
 
 (** A side effect the update asks for, performed by the page. *)
@@ -354,6 +373,12 @@ type side_effect =
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
+  | Replace_query of string
+      (** replace the query of the page's address by the given one, without an
+          entry of its own in the history *)
+  | Copy_link of string
+      (** copy the page's address with the given query to the clipboard and send
+          [Copied] *)
 
 val backend : edit_model -> BackendRegistry.entry
 (** [backend edit_model] is the selected backend, or the default one if the key
@@ -377,6 +402,15 @@ val restored : string option -> model
     from the gallery, or else the default one; then the grades and the backend
     selected, if known, the latter without loading its default example; then the
     inputs set. Without [stored], or if it encodes no choices, {!init}. *)
+
+val opened : query:string -> string option -> model * side_effect list
+(** [opened ~query stored] is the model as the page opens at an address of query
+    [query] ({!WebLink}), with the choices encoded by [stored], and the effects
+    it asks for: the query replaced by the one naming the resulting choices,
+    which are remembered if [query] has parameters. Without parameters,
+    [restored stored]; with them, the choices {!WebLink.resolve} yields,
+    restored as [restored] restores them, with a notice of the parameters
+    ignored. *)
 
 val indentation : string
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)

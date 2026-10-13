@@ -11,6 +11,9 @@ type 'msg Vdom.Cmd.t +=
   | After_paint of 'msg
         (** send the message once the next redraw has been painted *)
   | Now of (unit -> unit)  (** run at once *)
+  | Copy of string * (bool -> 'msg)
+        (** copy the text to the clipboard, sending the message of whether it
+            has been copied *)
 
 (* Whether the reader has asked for reduced motion, which scrolls at once. *)
 let reduced_motion () =
@@ -77,6 +80,47 @@ let set_caret position =
       Js_browser.Element.set_selection_end editor position
   | _ -> ()
 
+(* The page's address: its location without query and fragment, followed by
+   [query]. *)
+let address query =
+  let location = EditorDom.get Ojs.global "location" in
+  let field key = Ojs.string_of_js (EditorDom.get location key) in
+  field "protocol" ^ "//" ^ field "host" ^ field "pathname" ^ query
+
+(* The query of the page's address replaced, the fragment removed, without an
+   entry of its own in the history. Some browsers refuse it for the address of
+   a file, which is then left as it is. *)
+let replace_query query =
+  try
+    let location = EditorDom.get Ojs.global "location" in
+    let path = Ojs.string_of_js (EditorDom.get location "pathname") in
+    ignore
+      (EditorDom.call
+         (EditorDom.get Ojs.global "history")
+         "replaceState"
+         [ Ojs.null; Ojs.string_to_js ""; Ojs.string_to_js (path ^ query) ])
+  with _ -> ()
+
+(* [text] written to the clipboard, [reply] receiving whether it has been: the
+   clipboard is missing outside a secure context, and may refuse the write. *)
+let copy text reply =
+  try
+    let clipboard =
+      EditorDom.get (EditorDom.get Ojs.global "navigator") "clipboard"
+    in
+    if EditorDom.is_nothing clipboard then reply false
+    else
+      let written =
+        EditorDom.call clipboard "writeText" [ Ojs.string_to_js text ]
+      in
+      ignore
+        (EditorDom.call written "then"
+           [
+             Ojs.fun_to_js 1 (fun _ -> reply true);
+             Ojs.fun_to_js 1 (fun _ -> reply false);
+           ])
+  with _ -> reply false
+
 let scroll_handler =
   {
     Vdom_blit.Cmd.f =
@@ -109,6 +153,9 @@ let scroll_handler =
             true
         | Now f ->
             f ();
+            true
+        | Copy (text, msg) ->
+            copy text (fun copied -> Vdom_blit.Cmd.send_msg ctx (msg copied));
             true
         | _ -> false);
   }
@@ -211,6 +258,10 @@ let command (model : Model.model) = function
         (fun () ->
           EditorDom.jump offset;
           None)
+  | Model.Replace_query query -> Now (fun () -> replace_query query)
+  | Model.Copy_link query ->
+      let link = address query in
+      Copy (link, fun copied -> Model.Copied (link, copied))
 
 let update model msg =
   let model', side_effects = Model.update model msg in
@@ -234,8 +285,17 @@ let update model msg =
   ( model',
     Vdom.Cmd.batch ((cmd :: status) @ List.map (command model') side_effects) )
 
-let init = Model.restored (recall WebChoices.key)
-let app = Vdom.app ~init:(init, Vdom.Cmd.batch []) ~view:View.view ~update ()
+let app =
+  let query =
+    try
+      Ojs.string_of_js
+        (EditorDom.get (EditorDom.get Ojs.global "location") "search")
+    with _ -> ""
+  in
+  let model, side_effects = Model.opened ~query (recall WebChoices.key) in
+  Vdom.app
+    ~init:(model, Vdom.Cmd.batch (List.map (command model) side_effects))
+    ~view:View.view ~update ()
 
 (* The modifier of links is watched on the whole page, the pointer resting on
    a name as it is pressed or released: its position is kept from the last

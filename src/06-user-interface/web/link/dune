@@ -1,0 +1,6 @@
+; The parameters of the address of the web interface, without a dependency on
+; the browser, so that the tests link it.
+
+(library
+ (name webLink)
+ (libraries grades backendRegistry webChoices))
