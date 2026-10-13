@@ -2,11 +2,14 @@
 
 The proof-of-concept Opentrons backend compiles a Tempore program to a
 single-file Opentrons Python protocol for the Opentrons Flex, accepted by the
-Opentrons App and by the simulator `opentrons_simulate`. Grades are erased,
-and the program is executed by an abstract machine included in the file, so
-that handlers, continuations and recursion behave as in the small-step
-interpreter. The calls of the operations are monitored against their
-running-time bounds while the protocol runs.
+Opentrons App and by the simulator `opentrons_simulate`.
+
+- Grades are erased.
+- The program is executed by an abstract machine included in the file, so
+  that handlers, continuations and recursion behave as in the small-step
+  interpreter.
+- The calls of the operations are monitored against their running-time
+  bounds while the protocol runs.
 
 ## Protocols and binding files
 
@@ -16,13 +19,18 @@ that the robot and the simulator call. Run as a script,
 `python3 _opentrons/protocols/protocol.py`, the file executes the program as
 the interpreter does, without the binding file.
 
-The binding file, in Python, defines `setup(protocol)`, which loads the
-labware, pipettes and modules and returns a context object, and, for an
-operation `Op`, a function `Op(ctx, arg)` that performs the operation on the
-context object and the argument and returns its result. A binding function
-declares the nominal duration of its action by `tempore_elapse(seconds)`. The
-binding file must not define the names `metadata`, `requirements` and `run`,
-names beginning with `tempore_` or `_tempore_`, nor the names of the
+The binding file, in Python, defines
+
+- `setup(protocol)`, which loads the labware, pipettes and modules and
+  returns a context object;
+- for an operation `Op`, a function `Op(ctx, arg)` that performs the
+  operation on the context object and the argument and returns its result.
+
+A binding function declares the nominal duration of its action by
+`tempore_elapse(seconds)`.
+
+The binding file must not define the names `metadata`, `requirements` and
+`run`, names beginning with `tempore_` or `_tempore_`, nor the names of the
 top-level definitions of the compiled program.
 
 ## From programs to protocols
@@ -41,21 +49,25 @@ top-level definitions of the compiled program.
   does not grow with the recursion of the program, and a continuation may be
   dropped or resumed more than once.
 
-The protocol is refused when the binding file defines no `setup` or defines
-a reserved name, or when the code of a `run` command may perform an
-operation that has neither a binding function nor a default implementation
-and that no handler in that code has a case for. Such an operation that a
-handler does have a case for is a warning if it is atomic, and is accepted
-silently if it is compound, since a compound operation is implemented by
-handlers only.
+The protocol is refused when
+
+- the binding file defines no `setup` or defines a reserved name, or
+- the code of a `run` command may perform an operation that has neither a
+  binding function nor a default implementation and that no handler in that
+  code has a case for.
+
+Such an operation that a handler does have a case for is a warning if it is
+atomic, and is accepted silently if it is compound, since a compound
+operation is implemented by handlers only.
 
 ## Monitors and the time unit
 
 Each call of a binding function is monitored against the running-time
 bounds of its operation: those it declares by `within`, or else the
 interval of durations its grade determines, such as `[2, 4]` for `# [2, 4]`
-under `time-interval`. An operation with neither is not monitored. A call
-outside its bounds ends the protocol with an error, is reported by a
+under `time-interval`. An operation with neither is not monitored.
+
+A call outside its bounds ends the protocol with an error, is reported by a
 comment, or is not checked, according to the monitor policy `abort`, `warn`
 or `off`. Each run command is announced by a comment, each monitored call is
 commented as it completes, and the value of the run is commented at its end.
@@ -92,11 +104,14 @@ A unit of duration of the program is a second unless `--time-unit` sets it.
       file.tpe
 
 writes the protocol to `_opentrons/protocols/protocol.py`, creating the
-directory if needed, and prints the path written. A file name without a
-directory names a file in `_opentrons/protocols` of the current directory,
-which git does not track; a name with a directory, such as `./protocol.py`,
-is used as given. Without `--bind`, only the compiled program is written. The
-options below require `--bind`:
+directory if needed, and prints the path written.
+
+A file name without a directory names a file in `_opentrons/protocols` of
+the current directory, which git does not track; a name with a directory,
+such as `./protocol.py`, is used as given.
+
+Without `--bind`, only the compiled program is written. The options below
+require `--bind`:
 
 - `--api-level <level>` sets the `apiLevel` (default 2.30);
 - `--time-unit <unit>` sets the length of a unit of duration: `seconds` (the
@@ -129,12 +144,16 @@ Each example `NAME` has the targets
 - `make opentrons-NAME-simulate`, which also simulates it, installing the
   simulator by `make opentrons-deps` first.
 
-`make opentrons-simulate-all` simulates every example, and
-`make examples-help` lists the targets. `MONITOR=warn` sets the monitor
-policy. `scripts/opentrons-simulate.sh [VENV_DIR]` simulates every example
-with the virtual environment `VENV_DIR` (default `_opentrons`), which it
-creates and installs the package in if needed (the network is then needed),
-writing the protocols and logs to the directory of the environment.
+Further targets and variables:
+
+- `make opentrons-simulate-all` simulates every example;
+- `make examples-help` lists the targets;
+- `MONITOR=warn` sets the monitor policy;
+- `scripts/opentrons-simulate.sh [VENV_DIR]` simulates every example with
+  the virtual environment `VENV_DIR` (default `_opentrons`), which it
+  creates and installs the package in if needed (the network is then
+  needed), writing the protocols and logs to the directory of the
+  environment.
 
 ### Fragments
 

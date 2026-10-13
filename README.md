@@ -51,7 +51,7 @@ needs Python 3.10 or later and the network:
 
     make opentrons-deps
 
-Tempore is fully usable without it, only `--simulate` option would fail without.
+Tempore is fully usable without it; only the option `--simulate` needs it.
 
 PlatformIO Core, used only to build and upload the projects of the Arduino
 backend, is likewise optional; it needs Python 3.10 or later and the network,
@@ -104,24 +104,27 @@ Command-line options:
   Opentrons protocol (see [Opentrons](#opentrons));
 - `--emit-arduino <directory>` typechecks the files and writes them, compiled to
   C++, to the given directory, without running them; a name without a
-  directory component names a directory in `_arduino/projects`; with
-  `--host-runs`, also the `run` commands and a main program for the host that
-  executes them; with `--device <manifest.json>`, a PlatformIO project of the
-  device the manifest describes, monitored under `--monitor abort|warn|off`
-  (default `abort`), which `--host-simulate <seconds>` builds and runs on the
-  host for the given simulated time; the declarations of the peripheral
-  packages the manifest lists (`i2c`, `m5-imu`, `m5-display`, `bala2-base`,
-  under `time-interval-rational` in milliseconds) are loaded before the files;
-  `--build` builds the project with PlatformIO (`pio run`), and `--upload`
-  builds it and uploads it to the board (`pio run -t upload`), through the
-  serial port of `--port <port>` if given, each passing the output of
-  PlatformIO through and exiting with its exit code; `--profile` builds the
-  project with the profile of its running times, and `--capture <seconds>`
-  reads the serial port after the upload; `--pio <path>` names the
-  executable, by default `pio` on the `PATH`, or else that of `_arduino/venv`
-  in the directory of `tempore` or in the current directory, run with
-  `PLATFORMIO_CORE_DIR` set to `_arduino/platformio` unless the environment
-  sets it;
+  directory component names a directory in `_arduino/projects`. Further
+  options of the Arduino backend (see [Arduino](#arduino)):
+  - `--host-runs` also writes the `run` commands and a main program for the
+    host that executes them;
+  - `--device <manifest.json>` writes a PlatformIO project of the device the
+    manifest describes, monitored under `--monitor abort|warn|off` (default
+    `abort`); the declarations of the peripheral packages the manifest lists
+    (`i2c`, `m5-imu`, `m5-display`, `bala2-base`, under
+    `time-interval-rational` in milliseconds) are loaded before the files;
+  - `--host-simulate <seconds>` builds the project and runs it on the host
+    for the given simulated time;
+  - `--build` builds the project with PlatformIO (`pio run`), and `--upload`
+    builds it and uploads it to the board (`pio run -t upload`), through the
+    serial port of `--port <port>` if given, each passing the output of
+    PlatformIO through and exiting with its exit code;
+  - `--profile` builds the project with the profile of its running times,
+    and `--capture <seconds>` reads the serial port after the upload;
+  - `--pio <path>` names the executable, by default `pio` on the `PATH`, or
+    else that of `_arduino/venv` in the directory of `tempore` or in the
+    current directory, run with `PLATFORMIO_CORE_DIR` set to
+    `_arduino/platformio` unless the environment sets it;
 - `--package <name>`, repeatable, loads the declarations of a peripheral
   package of the Arduino backend before the files, so that a program run by
   the interpreter performs its operations by their default implementations;
@@ -141,37 +144,54 @@ You can load an existing example or write your own program, choose which grading
 monoid to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
+#### Backend selection
+
 The backend selector, first among the code options, chooses the backend,
 Interpreter, Opentrons or Arduino (see [Backends](#backends)).
 Selecting a backend loads its default example (the sensor reading for Interpreter,
 the ELISA for Opentrons, the tilt display for Arduino), and the gallery lists the
-examples of the backend selected. Under Opentrons, the robot, the time unit and
-the monitor policy are chosen under the selector, and the mark in the top right
-corner of the editor switches between the program and the Opentrons protocol:
-the binding file and the protocol compiled from the program once it typechecks.
+examples of the backend selected.
+
+Under Opentrons, the robot, the time unit and the monitor policy are chosen
+under the selector. The mark in the top right corner of the editor switches
+between the program and the Opentrons protocol: the binding file and the
+protocol compiled from the program once it typechecks.
+
 Under Arduino, the device manifest, the binding file and the monitor policy are
-the inputs; the declarations of the peripheral packages the manifest lists are
-loaded before the program, which is checked again when they change, and the
+the inputs. The declarations of the peripheral packages the manifest lists are
+loaded before the program, which is checked again when they change. The
 compiled code is the configuration, `main.cpp`, the program and the operation
 wrappers of the PlatformIO project, one file after another.
+
 These declarations are shown read-only above the program, folded under the
-names of their packages; once the program is checked, a name it uses from them,
+names of their packages. Once the program is checked, a name it uses from them,
 such as an operation or a function, shows its declaration and scheme as a
 tooltip, and ⌘-click (Ctrl-click) or F12 on it unfolds the declarations at it.
 
+#### Addresses
+
 The address of the page names the example, the grades and the backend selected,
-in the query parameters `example`, the path of the example relative to
-`examples` (as in `examples/index`), `grades`, a grading monoid, and `backend`,
-a backend's key (`interpreter`, `opentrons` or `arduino`), e.g.,
-<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>. Opening such a
-link loads the example as the gallery does, with its own grades and backend
-unless `grades` or `backend` overrides them; `backend` without `example` selects
-the backend with its default example, unless the example last loaded is of that
-backend. The address follows the selection, `grades` and `backend` given only
-where they differ from the example's own, and the button beside the example
-copies it to the clipboard. The edited text of a program is not part of the
-address. Parameters of unknown or malformed values are ignored, with a notice;
-the choices not given by the address are those the browser remembers.
+in the query parameters
+
+- `example`, the path of the example relative to `examples` (as in
+  `examples/index`);
+- `grades`, a grading monoid;
+- `backend`, a backend's key (`interpreter`, `opentrons` or `arduino`),
+
+e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>.
+
+- Opening such a link loads the example as the gallery does, with its own
+  grades and backend unless `grades` or `backend` overrides them.
+- `backend` without `example` selects the backend with its default example,
+  unless the example last loaded is of that backend.
+- The address follows the selection, `grades` and `backend` given only where
+  they differ from the example's own, and the button beside the example
+  copies it to the clipboard.
+- The edited text of a program is not part of the address.
+- Parameters of unknown or malformed values are ignored, with a notice; the
+  choices not given by the address are those the browser remembers.
+
+#### Run timelines
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
 title under Interpreter and unfolded under Opentrons and Arduino; the events inside default
@@ -245,10 +265,12 @@ expressions (`{...}`).
 An interval has the standard mathematical meaning: a bracket includes its finite
 endpoint and a parenthesis excludes it, as in `[1, 4]`, `(1, 4)`, `[1, 4)`,
 `(1/2, 4]`, `[1, ∞)`, `(1, ∞)`, `(-∞, 4]`, `(-∞, ∞)` (ASCII `inf` and `-inf`) or
-`[{A}, {A; B}]`; an infinite endpoint is always open, so `[1, ∞]` is a syntax
-error, and an empty interval, such as `(1, 1)`, `[1, 1)` or `[4, 1]`, is
-rejected. Over whole time steps an open endpoint abbreviates a closed one:
-`(1, 4)` is `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
+`[{A}, {A; B}]`.
+
+- An infinite endpoint is always open, so `[1, ∞]` is a syntax error.
+- An empty interval, such as `(1, 1)`, `[1, 1)` or `[4, 1]`, is rejected.
+- Over whole time steps an open endpoint abbreviates a closed one: `(1, 4)` is
+  `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
 
 Each monoid accepts the literals it understands; any other literal is a syntax
 error naming the monoids that accept it. The greatest grade is `⊤` (ASCII
@@ -631,15 +653,17 @@ would be rejected:
 
 An upper bound stands for the traces that fit inside its traces, so the
 operations of its traces may be left out. With a leading `_*`, a bound allows
-any trace first and permits, without demanding, the rest: with `Ethanol`
-declared `within [1, 2]` and `ChangeTip` `within [1, 1]`, under
-`regex-timed-interval-symbolic` a value boxed with
+any trace first and permits, without demanding, the rest.
+
+For example, with `Ethanol` declared `within [1, 2]` and `ChangeTip`
+`within [1, 1]`, under `regex-timed-interval-symbolic` a value boxed with
 `{_*; Ethanol; _*; Ethanol; [2, 5]; ChangeTip}` may be unboxed after the calls
 of `Ethanol`, `ChangeTip` and `Ethanol`, a `delay 6` and a call of `ChangeTip`,
-whose gap of six ticks before `ChangeTip` exceeds `[2, 5]`. A maximum gap
-between given operations is stated by a fixed pattern: with the box grade
-`{Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip}`, the same unboxing is
-rejected, and accepted after `delay 3` in place of `delay 6`.
+whose gap of six ticks before `ChangeTip` exceeds `[2, 5]`.
+
+A maximum gap between given operations is stated by a fixed pattern: with the
+box grade `{Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip}`, the same unboxing
+is rejected, and accepted after `delay 3` in place of `delay 6`.
 
 See
 [`examples/regular_timed_ops/lower_bounds.tpe`](examples/regular_timed_ops/lower_bounds.tpe),
@@ -852,12 +876,14 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
 - `windowed-schedules`: tuples `(T, (A, E_A), …)` of the possible durations `T`
   and the times `E_A` at which each operation `A` happens, all sets of numbers
   of ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
-  adding elementwise, and the order is inclusion. `T` is written `n`, `[n, m]`,
-  `[n, ∞)`, with open endpoints as for `time-interval`, or as a brace literal
-  over ticks, `{0 | 10}`, and `T` alone performs no operation; `E_A` is a brace
-  literal, `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry
-  `(_, E)` bounds every operation not listed. An operation `Send` taking a tick
-  and happening at its start has grade `(1, (Send, {0}))`.
+  adding elementwise, and the order is inclusion.
+
+  `T` is written `n`, `[n, m]`, `[n, ∞)`, with open endpoints as for
+  `time-interval`, or as a brace literal over ticks, `{0 | 10}`, and `T` alone
+  performs no operation. `E_A` is a brace literal, `{(4 | 5); 10*}` being
+  ticks 4 and 5 of every ten, and an entry `(_, E)` bounds every operation not
+  listed. An operation `Send` taking a tick and happening at its start has
+  grade `(1, (Send, {0}))`.
 
   For example, where `Send` takes a tick and must start at tick 4
   or 5, the program
@@ -959,8 +985,9 @@ See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
 A type is *eternal* if its values stay valid however much grade accumulates as a
 result of computations. Base types, tuples, and algebraic types built from
-eternal types are eternal; function, handler, and box types are not. A local
-variable of a non-eternal type may be used only while the grade accumulated
+eternal types are eternal; function, handler, and box types are not.
+
+A local variable of a non-eternal type may be used only while the grade accumulated
 since its binding is a sub-grade of the unit. Under `time-lower-bound` and
 `traces-timed-lower-bound` this always holds; under the other monoids such a
 variable must be used before any nontrivial delay or operation call.
@@ -1046,13 +1073,17 @@ and [`examples/handlers/3d_printing.tpe`](examples/handlers/3d_printing.tpe).
 ### Contexts of operation cases
 
 An operation case is typed with the top grade `⊤` accumulated for the variables
-bound outside it. Under `time-lower-bound` and `traces-timed-lower-bound` the
-top is the unit, which restricts nothing. Under the other monoids an outer
-variable of non-eternal type, including an outer continuation, cannot be used in
-the case, and an outer box can be unboxed only if `⊤` is below its grade. This
-is because operation cases need to be executable anywhere in the computation
-tree when handling. The case's own `p` and `k`, and top-level definitions, are
-unaffected. See [`examples/handlers/nested.tpe`](examples/handlers/nested.tpe)
+bound outside it, because operation cases need to be executable anywhere in
+the computation tree when handling.
+
+- Under `time-lower-bound` and `traces-timed-lower-bound` the top is the unit,
+  which restricts nothing.
+- Under the other monoids an outer variable of non-eternal type, including an
+  outer continuation, cannot be used in the case, and an outer box can be
+  unboxed only if `⊤` is below its grade.
+- The case's own `p` and `k`, and top-level definitions, are unaffected.
+
+See [`examples/handlers/nested.tpe`](examples/handlers/nested.tpe)
 and
 [`examples/handlers/nested_reject.tpe`](examples/handlers/nested_reject.tpe).
 
@@ -1064,14 +1095,19 @@ default Heat () = delay 1
 
 gives `Heat` a default, run only when a call reaches the top level unhandled
 in a `run` command below it, commands taking effect in the order of the file;
-here it simulates the running time of `Heat` by a delay. Where operations
-declare running-time bounds, only atomic operations have defaults, and a
-default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}` under
-upper bounds, and `[{lo}, {hi}]` under intervals; the running-time bounds its
-grade implies must moreover lie within the declared ones, an open end excluded,
-so that with `A` declared `within [1, 2)` the default `default A () = delay 2`
-is rejected under every monoid of timed operations. Elsewhere a default's grade
-must be a sub-grade of the operation's grade. See
+here it simulates the running time of `Heat` by a delay.
+
+Where operations declare running-time bounds:
+
+- only atomic operations have defaults;
+- a default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}`
+  under upper bounds, and `[{lo}, {hi}]` under intervals;
+- the running-time bounds its grade implies must moreover lie within the
+  declared ones, an open end excluded, so that with `A` declared
+  `within [1, 2)` the default `default A () = delay 2` is rejected under every
+  monoid of timed operations.
+
+Elsewhere a default's grade must be a sub-grade of the operation's grade. See
 [`examples/traces_timed_ops/3d_printing.tpe`](examples/traces_timed_ops/3d_printing.tpe).
 
 ## Recursion
@@ -1079,7 +1115,9 @@ must be a sub-grade of the operation's grade. See
 `let rec f p₁ … pₙ = c` must be structurally recursive: for a fixed position
 `d`, every call of `f` in `c` has a `d`-th argument that is a variable bound
 by a constructor, `x :: xs` or `m + k` pattern in a match on `p_d` or on such
-a variable. Like an operation case, `c` is typed with the top grade `⊤`
+a variable.
+
+Like an operation case, `c` is typed with the top grade `⊤`
 accumulated for the local variables bound outside it (see [Contexts of
 operation cases](#contexts-of-operation-cases)); `f` itself may be called
 anywhere in `c`, including after delays and in operation cases.
@@ -1107,18 +1145,26 @@ by `⊤` but by no `n`, as `1 · n ≾ n` fails.
 Types, grades and effects are inferred in the style of HM(X) (Odersky, Sulzmann
 and Wehr, TAPOS 1999). Types are compared by subtyping: functions are
 contravariant in the argument and covariant in the result and effect, and a box
-`[rho]a` is contravariant in `rho`. Top-level `let` definitions are generalised
-to qualified schemes,
+`[rho]a` is contravariant in `rho`.
+
+### Qualified schemes
+
+Top-level `let` definitions are generalised to qualified schemes,
 
     ∀ α ρ₀ ε₀. Q ∧ R ⇒ A
 
-where `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables, `R`
-lists the conditions of operation cases that must hold for every effect of
-their continuations, and `∣ε∣` is the resource grade accumulated while `ε`
-runs. A condition is printed `∀ε_Op. …`, `ε_Op` being the effect of the
+where
+
+- `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables;
+- `R` lists the conditions of operation cases that must hold for every effect
+  of their continuations;
+- `∣ε∣` is the resource grade accumulated while `ε` runs.
+
+A condition is printed `∀ε_Op. …`, `ε_Op` being the effect of the
 continuation of a case for `Op`, primed (`ε_Op′`) for another case for `Op`.
-`--debug` prints the schemes. Under `time-upper-bound`, the standard library's
-`compose f g x = f (g x)` has
+`--debug` prints the schemes.
+
+Under `time-upper-bound`, the standard library's `compose f g x = f (g x)` has
 
     ∀ α β γ ε₀. (α → β # ε₀) → (γ → α) → (γ → β # ε₀)
 
@@ -1136,9 +1182,12 @@ has
 
 where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op`
 of `k` the case, `f` followed by `k`, takes at least the time of `Op` followed
-by `k`. A `run` must establish every such condition: one without unknowns that
-the typechecker can neither derive nor refute rejects it, and one with
-unknowns must hold together with `Q` at a closed instance of the unknowns.
+by `k`.
+
+A `run` must establish every such condition: one without unknowns that the
+typechecker can neither derive nor refute rejects it, and one with unknowns
+must hold together with `Q` at a closed instance of the unknowns.
+
 Under the time grades, the security levels and their products, a condition in
 the effect of a single continuation is always decided; under the trace grades
 it may not be.
@@ -1157,11 +1206,14 @@ Type-constructor application binds tightest, then the box `[rho]`, then
 products `a * b`, which are n-ary and non-associative, and last arrows
 `a -> b # e`, which are right-associative: `[2]nat list * bool -> nat` takes
 a pair of a `[2](nat list)` and a `bool`, and a box of a function is written
-`[2](nat -> nat)`. An effect `# e` belongs to the innermost arrow, so
-`nat -> nat -> nat # 1` is `nat -> (nat -> nat # 1)`, and an arrow without
-one has the unit effect. Printed types use the same precedences and leave out
-an effect of the unit; a result that is a function type is printed in
-parentheses where either arrow shows its effect, `nat → (nat → nat # 1)`.
+`[2](nat -> nat)`.
+
+An effect `# e` belongs to the innermost arrow, so `nat -> nat -> nat # 1` is
+`nat -> (nat -> nat # 1)`, and an arrow without one has the unit effect.
+
+Printed types use the same precedences and leave out an effect of the unit; a
+result that is a function type is printed in parentheses where either arrow
+shows its effect, `nat → (nat → nat # 1)`.
 
 ### Sub-effecting
 
@@ -1206,39 +1258,56 @@ tracks the resource state: both the boxed resources and the accumulated grade. A
 `run` command prints its result with the final resource state. The web interface
 can also step through the individual reductions and shows the resource usage.
 
+#### Natural numbers and floats
+
 Natural numbers are unbounded and floats are of double precision. Besides the
-arithmetic operators, the standard library provides `float_of_nat`, the
-nearest float, infinity beyond the range; `nat_of_float`, truncated toward
-zero, 0 for a negative float and for NaN, and a run-time error for infinity,
-as division by zero; `sqrt`, NaN for a negative float; `atan`; and
-`atan2 (y, x)`, the angle of the point `(x, y)` from -π to π, with the
-special cases of C.
+arithmetic operators, the standard library provides
+
+- `float_of_nat`, the nearest float, infinity beyond the range;
+- `nat_of_float`, truncated toward zero, 0 for a negative float and for NaN,
+  and a run-time error for infinity, as division by zero;
+- `sqrt`, NaN for a negative float;
+- `atan`;
+- `atan2 (y, x)`, the angle of the point `(x, y)` from -π to π, with the
+  special cases of C.
+
+#### Integers
 
 Integers, of type `int`, are unbounded and written with the suffix `i`: `3i`,
 `0x1fi`, and, as the negation of a literal, `-3i`; as in OCaml, `x -3i` is the
-subtraction `x - 3i`. Their operators are `+!`, `-!`, `*!`, `/!` and `mod!`,
-of the precedences of `+`, `-`, `*`, `/` and `mod`, and the negation `~-!`.
-Division and `mod!` truncate toward zero, as in C, the remainder having the
-sign of the dividend, and division or modulo by zero is a run-time error. The
-conversions are `int_of_nat`; `nat_of_int`, 0 for a negative integer;
-`float_of_int`, the nearest float; and `int_of_float`, truncated toward zero,
-0 for NaN, and a run-time error for infinity. A match on integers needs a
-case for every other integer, such as a wildcard.
+subtraction `x - 3i`.
+
+- Their operators are `+!`, `-!`, `*!`, `/!` and `mod!`, of the precedences
+  of `+`, `-`, `*`, `/` and `mod`, and the negation `~-!`.
+- Division and `mod!` truncate toward zero, as in C, the remainder having the
+  sign of the dividend, and division or modulo by zero is a run-time error.
+- The conversions are `int_of_nat`; `nat_of_int`, 0 for a negative integer;
+  `float_of_int`, the nearest float; and `int_of_float`, truncated toward
+  zero, 0 for NaN, and a run-time error for infinity.
+- A match on integers needs a case for every other integer, such as a
+  wildcard.
+
+#### Timelines
 
 The timeline of a run lists, in grades, what reaches its top level: the delays,
 the calls of operations that no handler handles and that are performed by their
 default implementations, and the resources boxed and unboxed, by the name of the
-variable they are bound to. A delay or an operation has a grade: that of the
-delay, or the declared grade of the operation. Boxing and unboxing add nothing
-to the grade accumulated; a box row names the grade the resource is boxed at in
-its event, `box reading with grade [5, 10)`. The events of a
-default implementation, the operations it performs among them, are listed below
-its operation, indented by `·`. Each row at the top level
-starts at the grade accumulated before it, the product of the grades of the
-rows at the top level above it. Operations handled by handlers, and their
-continuations, are not listed; the steps of a handler's case are listed as they
-happen. The timeline displays the run and checks nothing, the program having
-been typechecked before it runs. The command-line option `--timeline` prints it
+variable they are bound to.
+
+- A delay or an operation has a grade: that of the delay, or the declared
+  grade of the operation.
+- Boxing and unboxing add nothing to the grade accumulated; a box row names
+  the grade the resource is boxed at in its event,
+  `box reading with grade [5, 10)`.
+- The events of a default implementation, the operations it performs among
+  them, are listed below its operation, indented by `·`.
+- Each row at the top level starts at the grade accumulated before it, the
+  product of the grades of the rows at the top level above it.
+- Operations handled by handlers, and their continuations, are not listed;
+  the steps of a handler's case are listed as they happen.
+
+The timeline displays the run and checks nothing, the program having been
+typechecked before it runs. The command-line option `--timeline` prints it
 after each run, e.g.
 
     ./tempore --grades time-interval-rational --timeline examples/introduction/sensor_reading.tpe
@@ -1286,16 +1355,22 @@ monitors check the running-time bounds of the operations. The details are in
 
 The examples in [`examples/opentrons/`](examples/opentrons/), each with a
 binding file and a rejected variant:
-[`elisa`](examples/opentrons/elisa.tpe), an enzyme-linked immunosorbent
-assay; [`washes`](examples/opentrons/washes.tpe), a bead clean-up with
-exactly two ethanol washes;
-[`contamination`](examples/opentrons/contamination.tpe), a ddPCR plate
-set-up; [`reagents`](examples/opentrons/reagents.tpe), a tagmentation with
-boxed reagents; [`staggered`](examples/opentrons/staggered.tpe), a fixation
-of columns at staggered times; [`beads`](examples/opentrons/beads.tpe), a
-bead clean-up with boxed beads; [`stopread`](examples/opentrons/stopread.tpe),
-a stop and read with boxed plates; [`cleanup`](examples/opentrons/cleanup.tpe),
-a bead clean-up by compound operations implemented by a handler.
+
+- [`elisa`](examples/opentrons/elisa.tpe), an enzyme-linked immunosorbent
+  assay;
+- [`washes`](examples/opentrons/washes.tpe), a bead clean-up with exactly two
+  ethanol washes;
+- [`contamination`](examples/opentrons/contamination.tpe), a ddPCR plate
+  set-up;
+- [`reagents`](examples/opentrons/reagents.tpe), a tagmentation with boxed
+  reagents;
+- [`staggered`](examples/opentrons/staggered.tpe), a fixation of columns at
+  staggered times;
+- [`beads`](examples/opentrons/beads.tpe), a bead clean-up with boxed beads;
+- [`stopread`](examples/opentrons/stopread.tpe), a stop and read with boxed
+  plates;
+- [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound
+  operations implemented by a handler.
 
 #### Quick start
 <!-- web-skip -->
@@ -1316,14 +1391,13 @@ Tempore to allocation-free C++ and generates a PlatformIO project for an
 Arduino or ESP32 board, with FreeRTOS tasks. A device manifest names the
 board, the periodic and free tasks and the peripheral packages, which declare
 operations with running-time bounds measured on the boards. The program is
-typed against those bounds and the periods of its tasks, and run-time
-monitors on the device check them. The details are in
+typed against those bounds and the periods of its tasks. The details are in
 [`src/05-backends/arduino/README.md`](src/05-backends/arduino/README.md).
 
 - The guarantees of the typing, on effects, boxes and their grades, are
   relative to the declared bounds of the operations. The grades are erased
-  in the compiled code, and run-time monitors check those bounds and the
-  periods of the tasks: a violation on the device puts it in its safe state,
+  in the compiled code, and run-time monitors on the device check those
+  bounds and the periods of the tasks: a violation puts it in its safe state,
   is logged, or is not checked, under the monitor policy `abort`, `warn` or
   `off`.
 - Watchdogs and the safe state are mechanisms of the C++
