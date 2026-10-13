@@ -202,7 +202,8 @@ let parse_args_to_config () =
         ( "--device",
           Arg.String (fun filename -> device := Some filename),
           " With --emit-arduino, write a PlatformIO project of the device \
-           described by the given manifest" );
+           described by the given manifest, of the definitions reached from \
+           its tasks" );
         ( "--emit-arduino",
           Arg.String (fun directory -> emit_arduino := Some directory),
           " Typecheck the files and write them, compiled to C++, to the given \
@@ -739,10 +740,10 @@ let host_simulate ~directory ~duration ~profile files =
    the [commands] of the program, those of the library being the commands
    located in the standard library or in the files [declarations] of the
    packages; under --device, the PlatformIO project of the device of the
-   manifest [device], whose task functions are found among the [definitions]
-   of the program's sources, each with the effect of its type, and whose
-   operations are monitored against the bounds of the declared
-   [operations]. *)
+   manifest [device], of the definitions reached from its task functions and
+   initial functions, which are found among the [definitions] of the
+   program's sources, each with the effect of its type, and whose operations
+   are monitored against the bounds of the declared [operations]. *)
 let emit_arduino config ~directory ~device ~declarations ~definitions
     ~operations commands =
   let library, sources =
@@ -753,7 +754,12 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
       commands
   in
   let program =
-    ArduinoBackend.ArduinoFragment.check ~runs:config.host_runs ~library sources
+    ArduinoBackend.ArduinoFragment.check
+      ?roots:
+        (Option.map
+           (fun (_, device) -> ArduinoBackend.ArduinoDevice.functions device)
+           device)
+      ~runs:config.host_runs ~library sources
   in
   let source =
     match List.rev config.filenames with

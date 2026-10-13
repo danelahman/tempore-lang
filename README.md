@@ -1391,6 +1391,13 @@ application, handlers, lists, strings other than constant arguments of
 operations, and recursion other than self calls in tail position are refused,
 each with a `Compilation error` at the construct.
 
+Under a device manifest, the definitions checked and compiled are those
+reached from the task functions and the `initial` functions of the manifest;
+the other definitions of the program, such as handlers used only by `run`
+commands of the interpreter, may lie outside the fragment. Without a manifest,
+every top-level definition of the program is checked and compiled, with its
+`run` commands under `--host-runs`.
+
 An application is described in four layers.
 
 - A **board profile** gives the PlatformIO board, libraries and build flags,
@@ -1512,7 +1519,9 @@ examples, each with its manifest and binding file:
   encoders and the setpoints before it commands the motors, uses the reading
   of the unit only if no other operation came between, and the supervision
   disarms, calibrates, arms at least a second after its prompt and within ten
-  minutes, drives and disarms, in this order;
+  minutes, drives and disarms, in this order; handlers, which the device does
+  not use, simulate the robot and a fault of its gyroscope in the
+  interpreter, each case of an operation performing that operation;
 - [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
   M5Stack CoreS3 Lite, with a 20 ms filter step and a display task;
 - [`wheels/wheels.tpe`](examples/arduino/wheels/wheels.tpe): a wheel check of

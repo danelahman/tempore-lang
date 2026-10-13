@@ -1,0 +1,9 @@
+(* A handler whose case of ReadImu waits within the bounds of its running
+   time in place of the reading, after balance_regex.tpe. *)
+
+let waiting_robot =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      delay 1/2;
+      continue k with ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

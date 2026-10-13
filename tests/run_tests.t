@@ -8130,7 +8130,7 @@ single-dash form of the help option is not accepted.
     --build           Build the project written with --device with PlatformIO, passing its output through and exiting with its exit code
     --capture         After --upload, read the serial port of --port at the baud rate of the board for the given number of seconds, printing its lines, and then the last complete profile among them, if any
     --debug           Print the inferred type schemes of the top-level definitions before running
-    --device          With --emit-arduino, write a PlatformIO project of the device described by the given manifest
+    --device          With --emit-arduino, write a PlatformIO project of the device described by the given manifest, of the definitions reached from its tasks
     --emit-arduino    Typecheck the files and write them, compiled to C++, to the given directory, without running them; a name without a directory component names a directory in _arduino/projects
     --emit-opentrons  Typecheck the files and write them, compiled to Python, to the given file, without running them; a file name without a directory names a file in _opentrons/protocols
     --grades          Selects the grades (default: time-lower-bound); accepted:

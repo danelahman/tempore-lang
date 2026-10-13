@@ -54,7 +54,14 @@
 
    The typing is relative to the declared bounds of the running times of the
    operations; the monitors of the device check these bounds, and the
-   watchdog of the base and the tilt cutoff of the step stop the motors. *)
+   watchdog of the base and the tilt cutoff of the step stop the motors.
+
+   The handlers at the end of this file run the control step in the
+   interpreter, by the first command above: 'simulated_robot' replaces the
+   readings of the inertial unit and the encoders by those of a model of the
+   robot, which the closed loop 'balance' advances after each step, and
+   'stuck_gyroscope' injects a fault of the gyroscope, under which the step
+   stops the motors. The device does not use them. *)
 
 (* The exchange between the tasks, as in balance.tpe. The step publishes the
    tilt, in degrees, and the rate of the gyroscope, in degrees per second,
@@ -479,3 +486,154 @@ let supervise_undisarmed () : unit
 (* Two control steps from the reading of the default implementation of the
    unit, a robot at rest, and a tilt of 3 degrees. *)
 run step (step (3.0, 0.0, 0.0, 0.0))
+
+(* The simulation by handlers, in the interpreter. Under these grades a case
+   of an operation is checked against the grade of the operation, its own
+   trace: the case of an atomic operation performs the operation once and
+   nothing else, and may replace its argument and its result. The handlers
+   below therefore keep the operations, and with them their running times,
+   those of the default implementations in the interpreter, and replace the
+   readings by those of a model of the robot. The device does not use them:
+   the Arduino backend compiles the definitions that the tasks of the
+   manifest use, and handlers are outside its fragment. *)
+
+(* Correctly accepted by the typechecker: the robot at the tilt 'tilt', in
+   degrees, turning at the rate 'rate', in degrees per second, with the
+   wheels at the position 'position', in encoder counts. The case of ReadImu
+   replaces the reading by the direction of gravity, its y component
+   approximated by the tilt in radians, and the rate about the x axis; the
+   case of ReadEncoders replaces the counts by those of the position; the
+   case of SetMotors returns, with the result of the handled computation,
+   the mean of the drives of the motors. *)
+let simulated_robot (tilt : float) (rate : float) (position : float) =
+  handler
+  | s -> (s, 0.0)
+  | ReadImu () k ->
+      let _ = perform ReadImu () in
+      continue k with ((0.0, tilt /. imu_degrees, 1.0), (rate, 0.0, 0.0))
+  | ReadEncoders () k ->
+      let _ = perform ReadEncoders () in
+      let counts = int_of_float position in
+      continue k with (counts, counts)
+  | SetMotors (left, right) k ->
+      perform SetMotors (left, right);
+      let s, _ = continue k with () in
+      (s, (float_of_int left +. float_of_int right) /. 2.0)
+
+(* The closed loop of 'n' control steps with a linear model of the robot,
+   whose coefficients are chosen for the illustration, not identified from
+   the BALA2: the angular acceleration, in degrees per second squared, is
+   100 times the tilt less 150 times the mean drive, and the wheels turn by
+   2 encoder counts per second for each unit of drive. The result is the
+   state of the step and the tilt of the model after the last step. *)
+let rec balance (n : nat) (tilt : float) (rate : float) (position : float)
+    (s : state) : state * float
+    # {(ReadImu; ReadEncoders; Setpoints; Publish; SetMotors)*} =
+  match n with
+  | 0 -> (s, tilt)
+  | m + 1 ->
+      let s, drive = handle step s with simulated_robot tilt rate position in
+      let rate = rate +. (period *. ((100.0 *. tilt) -. (150.0 *. drive))) in
+      let tilt = tilt +. (period *. rate) in
+      balance m tilt rate (position +. (2.0 *. period *. drive)) s
+
+(* Correctly accepted by the typechecker: the injection of a fault, a
+   gyroscope stuck at its full-scale rate of 2000 degrees per second. The
+   case of ReadImu performs the operation, which a handler around it may
+   handle in turn, and replaces the rate of its reading. *)
+let stuck_gyroscope =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let accel, _ = perform ReadImu () in
+      continue k with (accel, (2000.0, 0.0, 0.0))
+
+(* 'n' control steps of the robot held upright at rest, with the gyroscope
+   stuck. The result is the state of the step and the mean drive of the
+   motors in the last step. *)
+let rec held (n : nat) (s : state) (drive : float) : state * float
+    # {(ReadImu; ReadEncoders; Setpoints; Publish; SetMotors)*} =
+  match n with
+  | 0 -> (s, drive)
+  | m + 1 ->
+      let s, drive =
+        handle (handle step s with stuck_gyroscope)
+        with simulated_robot 0.0 0.0 0.0
+      in
+      held m s drive
+
+(* Correctly rejected by the typechecker: the case of ReadImu also commands
+   the motors, so that its trace is not that of the operation:
+
+     Typing error: Variable `k` is unboxed with grade
+       `[{ReadImu; SetMotors}, {ReadImu; SetMotors}]` accumulated since it
+       was bound, which is not below its box grade
+       `[{ReadImu}, {ReadImu}]`
+       ...
+       Note: the resource inequality
+         `[{ReadImu; SetMotors}, {ReadImu; SetMotors}] <=
+         [{ReadImu}, {ReadImu}]` does not hold
+*)
+(*
+let commanding_robot =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let reading = perform ReadImu () in
+      perform SetMotors (0i, 0i);
+      continue k with reading
+*)
+
+(* Correctly rejected by the typechecker: the case of ReadImu waits 0.5 ms,
+   within the bounds of its running time, in place of the reading. A delay
+   is not the operation, which the grade demands:
+
+     Typing error: Variable `k` is unboxed with grade `[{0.5}, {0.5}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{ReadImu}, {ReadImu}]`
+       ...
+       Note: the resource inequality
+         `[{0.5}, {0.5}] <= [{ReadImu}, {ReadImu}]` does not hold
+*)
+(*
+let waiting_robot =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      delay 1/2;
+      continue k with ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+*)
+
+(* Correctly rejected by the typechecker: the case of ReadImu delays the
+   reading by 2 ms, so that the case may take 3.75 ms, beyond the upper
+   bound of 1.75 ms of the running time of ReadImu. Under these grades a
+   delay of any length after the operation is rejected, its trace not being
+   that of the operation:
+
+     Typing error: Variable `k` is unboxed with grade
+       `[{ReadImu; 2}, {ReadImu; 2}]` accumulated since it was bound, which
+       is not below its box grade `[{ReadImu}, {ReadImu}]`
+       ...
+       Note: the resource inequality
+         `[{ReadImu; 2}, {ReadImu; 2}] <= [{ReadImu}, {ReadImu}]` does not
+         hold
+*)
+(*
+let slow_robot =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let reading = perform ReadImu () in
+      delay 2;
+      continue k with reading
+*)
+
+(* The closed loop of 20 control steps, 100 ms, from a tilt of 3 degrees:
+   the step brings the tilt of the model to 0.22 degrees. *)
+run balance 20 3.0 0.0 0.0 (3.0, 0.0, 0.0, 0.0)
+
+(* Ten control steps with the gyroscope stuck: the filtered tilt grows by
+   about 10 degrees in each step and exceeds the cutoff of 70 degrees in the
+   eighth, from which on the step stops the motors and resets the integral,
+   so that the mean drive of the last step is zero. *)
+run held 10 (0.0, 0.0, 0.0, 0.0) 0.0

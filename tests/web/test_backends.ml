@@ -760,9 +760,12 @@ let arduino_program ~name ~grade ~settings ?(observed = false) variants source =
 
 (* The Arduino examples, with their manifests and binding files: compiled to
    the files of the project shown; without the binding file, refused at the
-   manifest; without a manifest, compiled to the program alone. *)
+   manifest; without a manifest, compiled to the program alone, or, if the
+   program defines handlers, which only the definitions of the tasks of the
+   manifest may leave out, refused at them. *)
 let arduino_example (entry : Manifest.entry) =
   let settings = List.map (fun (k, v) -> (k, read v)) entry.settings in
+  let source = read entry.path in
   let has_files names (output : BackendRegistry.compiled) =
     match output.code with
     | Some code ->
@@ -789,11 +792,16 @@ let arduino_example (entry : Manifest.entry) =
       );
       ( List.remove_assoc "manifest" settings,
         fun output ->
-          has_files [ "tempore_program.h"; "tempore_program.cpp" ] output
-          && not (contains ~sub:"// File src/main.cpp" (Option.get output.code))
+          if contains ~sub:"handler\n" source then
+            output.code = None
+            && contains ~sub:"does not support handlers" (error_text output)
+          else
+            has_files [ "tempore_program.h"; "tempore_program.cpp" ] output
+            && not
+                 (contains ~sub:"// File src/main.cpp" (Option.get output.code))
       );
     ]
-    (read entry.path)
+    source
 
 (* Errors of the Arduino backend: a malformed manifest, a task function the
    program lacks, a construct outside the fragment, an unknown package, which

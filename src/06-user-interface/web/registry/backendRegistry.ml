@@ -346,7 +346,9 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
   try
     let device = manifest settings in
     let program =
-      ArduinoBackend.ArduinoFragment.check ~runs:false ~library sources
+      ArduinoBackend.ArduinoFragment.check
+        ?roots:(Option.map Device.functions device)
+        ~runs:false ~library sources
     in
     match device with
     | None ->

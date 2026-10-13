@@ -5,6 +5,7 @@ module Location = Utils.Location
 module Error = Utils.Error
 module IntMap = Map.Make (Int)
 module LabelMap = Map.Make (Ast.Label)
+module StringMap = Map.Make (String)
 
 type ty =
   | Nat
@@ -780,7 +781,7 @@ and apply env st ~tail at p e =
               } )
       | _ -> (st, Applied ({ p with arguments; remaining }, at)))
 
-let check ~runs ~library sources =
+let check ?roots ~runs ~library sources =
   let environment =
     let add_command env (in_sources, (cmd : _ Ast.command)) =
       match cmd.it with
@@ -842,19 +843,48 @@ let check ~runs ~library sources =
       performed = Ast.OpNameMap.empty;
     }
   in
-  let st, runs_rev =
+  (* The definitions of [sources] satisfying [included], in order, and the
+     [run] commands if [runs]. *)
+  let reconstruct included =
     List.fold_left
       (fun (st, runs_rev) (cmd : _ Ast.command) ->
         match cmd.it with
-        | Ast.TopLet (x, _) -> (fst (ensure environment st x), runs_rev)
+        | Ast.TopLet (x, _) when included x ->
+            (fst (ensure environment st x), runs_rev)
         | Ast.TopDo c when runs ->
             let st = { st with type_parameters = Ast.TyParamMap.empty } in
             let st, c = computation environment st ~tail:true c in
             let c = map_computation (substituted st) (as_computation c) in
             (st, c :: runs_rev)
-        | Ast.TopDo _ | Ast.TyDef _ | Ast.OpSig _ | Ast.OpDefault _ ->
+        | Ast.TopLet _ | Ast.TopDo _ | Ast.TyDef _ | Ast.OpSig _
+        | Ast.OpDefault _ ->
             (st, runs_rev))
       (initial, []) sources
+  in
+  let st, runs_rev =
+    match roots with
+    | None -> reconstruct (fun _ -> true)
+    | Some names ->
+        (* The last definition of [sources] of each name of [roots]. *)
+        let named =
+          List.fold_left
+            (fun named (cmd : _ Ast.command) ->
+              match cmd.it with
+              | Ast.TopLet (x, _) when List.mem (Ast.Variable.string_of x) names
+                ->
+                  StringMap.add (Ast.Variable.string_of x) x named
+              | _ -> named)
+            StringMap.empty sources
+        in
+        let root_variables =
+          StringMap.fold
+            (fun _ x -> Ast.VariableSet.add x)
+            named Ast.VariableSet.empty
+        in
+        let reached, _ =
+          reconstruct (fun x -> Ast.VariableSet.mem x root_variables)
+        in
+        reconstruct (fun x -> Ast.VariableMap.mem x reached.definitions)
   in
   let datatypes =
     Ast.TyNameMap.fold

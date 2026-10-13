@@ -213,7 +213,7 @@ binding functions, and the safe-state hook must be mentioned too:
   File "m.json", line 1, characters 0-83:
   1 | { "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ] }
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Compilation error: The function binding_Show of the operation Show needs a binding file, the member 'bindings' of the manifest
+  Compilation error: The function binding_Blink of the operation Blink needs a binding file, the member 'bindings' of the manifest
   exit 1
   $ printf 'tempore_unit binding_Show(uint32_t) { return {}; }\n' > partial.cpp
   $ printf '{ "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ], "bindings": "partial.cpp" }\n' > m.json

@@ -2,10 +2,13 @@
     its typed intermediate representation.
 
     A program accepted by the typechecker is checked against the fragment
-    definition by definition, starting from the top-level definitions of its
-    sources and, if requested, its [run] commands, and continuing with the
-    definitions of the program or of the standard library they use. The fragment
-    consists of:
+    definition by definition, starting from its roots and, if requested, its
+    [run] commands, and continuing with the definitions of the program or of the
+    standard library they use. The roots are the top-level definitions of the
+    sources named by a device manifest, its task functions and initial
+    functions, or, without a manifest, all the top-level definitions of the
+    sources; a definition that is not reached from them is neither checked nor
+    compiled. The fragment consists of:
 
     - top-level functions, possibly curried, applied to all their arguments; the
       arguments of a curried application may be supplied through intermediate
@@ -149,14 +152,18 @@ type program = {
 }
 
 val check :
+  ?roots:string list ->
   runs:bool ->
   library:('rho, 'eps) Language.Ast.command list ->
   ('rho, 'eps) Language.Ast.command list ->
   program
-(** [check ~runs ~library sources] is the program of the desugared commands
-    [library] of the standard library and [sources], accepted by the
-    typechecker: the top-level definitions of [sources], with the [run] commands
-    of [sources] if [runs], and the definitions they use.
+(** [check ?roots ~runs ~library sources] is the program of the desugared
+    commands [library] of the standard library and [sources], accepted by the
+    typechecker: the top-level definitions of [sources] named by [roots], the
+    last of each name, or all the top-level definitions of [sources] if [roots]
+    is not given, with the [run] commands of [sources] if [runs], and the
+    definitions they use. A name of [roots] that [sources] does not define is
+    ignored.
 
     @raise Utils.Error.Error
       at the first construct outside the fragment, or at a use of a definition

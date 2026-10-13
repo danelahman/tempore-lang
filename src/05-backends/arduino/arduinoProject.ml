@@ -99,13 +99,15 @@ let resolve input (program : F.program) entries (name : Device.name) =
   in
   let unknown () =
     let functions =
-      List.filter_map
-        (fun (d : F.definition) ->
-          match d.definition_body with
-          | F.Function_body _ when d.in_sources ->
-              Some (Ast.Variable.string_of d.variable)
-          | _ -> None)
-        program.definitions
+      List.fold_left
+        (fun functions (x, function_effect) ->
+          let name = Ast.Variable.string_of x in
+          match function_effect with
+          | Not_a_function -> functions
+          | Effect_variable | Effect _ ->
+              if List.mem name functions then functions else name :: functions)
+        [] input.definitions
+      |> List.rev
     in
     Error.compilation ~loc:name.at
       "Unknown function '%s'; the top-level functions of the program are: %s"

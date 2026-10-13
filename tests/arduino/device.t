@@ -349,3 +349,35 @@ between the starts of the steps and the overruns, every 5 s and at its end:
   build_flags =
       -std=gnu++17
       -DTEMPORE_PROFILE
+
+Under a manifest, the definitions checked and compiled are those reached
+from its task functions and initial functions: a handler used only by a
+run command is neither checked nor compiled, and is rejected once a task
+uses it, as it is without a manifest, where every top-level definition is
+checked:
+
+  $ cat > handled.tpe <<'TPE'
+  > let silent =
+  >   handler
+  >   | x -> x
+  >   | Show _ k -> delay 1/10; continue k with ()
+  > let quiet_step (n : nat) = handle step n with silent
+  > run quiet_step 0
+  > TPE
+  $ emit handled --device toy/toy.device.json toy/toy.tpe handled.tpe | tail -1
+  Wrote _arduino/projects/handled/src/toy_bindings.cpp
+  $ grep -q 'quiet_step\|silent' _arduino/projects/handled/src/tempore_program.cpp
+  [1]
+  $ printf '{ "board": "esp32-devkit",\n  "tasks": [ { "function": "quiet_step", "kind": "periodic", "period": 10, "initial": "start" } ],\n  "bindings": "toy/toy_bindings.cpp" }\n' > quiet.json
+  $ emit quiet --device quiet.json toy/toy.tpe handled.tpe
+  File "handled.tpe", line 5, characters 27-52:
+  5 | let quiet_step (n : nat) = handle step n with silent
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Compilation error: The Arduino backend does not support handlers
+  [1]
+  $ emit unmanifested toy/toy.tpe handled.tpe
+  File "handled.tpe", lines 2-4, characters 2-46:
+  2 |   handler
+        ^^^^^^^
+  Compilation error: The Arduino backend does not support handlers
+  [1]

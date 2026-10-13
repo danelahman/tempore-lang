@@ -154,6 +154,16 @@ let task ~unit_us ~what v =
         ~lo:1024 ~hi:(1 lsl 20) f "stack" 4096;
   }
 
+let functions device =
+  List.concat_map
+    (fun task ->
+      task.function_name.it
+      ::
+      (match task.kind with
+      | Periodic { initial = Some initial; _ } -> [ initial.it ]
+      | Periodic { initial = None; _ } | Free _ -> []))
+    device.tasks
+
 let parse ~filename text =
   let v = Json.parse ~filename text in
   let f =

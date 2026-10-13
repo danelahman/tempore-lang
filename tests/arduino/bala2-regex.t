@@ -12,7 +12,8 @@ of the robot.
 The interpreter, with the declarations of the packages, runs two control
 steps with the default implementations of the operations:
 
-  $ packages $app/balance_regex.tpe
+  $ packages $app/balance_regex.tpe > runs
+  $ awk '/^=== Run 2/ { exit } { print }' runs
   === Run 1 ===
   return (2.8812, 0., 0., 0.)
   State: [
@@ -37,14 +38,28 @@ steps with the default implementations of the operations:
   ]
   
 
+and, with the handlers of the file, 20 steps of the closed loop with the
+simulated robot from a tilt of 3 degrees, and 10 steps of the robot held
+upright with the gyroscope stuck, from the eighth of which on the step stops
+the motors:
+
+  $ grep -A 1 '^=== Run [23]' runs
+  === Run 2 ===
+  return ((0.268872806919, -1.04681773741, 0.0122128736031, 0.), 0.221364260223)
+  --
+  === Run 3 ===
+  return ((89.6343246251, 0., 0., 0.), 0.)
+
 The rejected variants, each loaded after the application: a step that reads
 the encoders before the unit, a stale reading of the unit, a reading used
 after a command of the motors, a measurement of the bias without disarming,
 arming with the boxed calibration, arming before the robot is held upright
 and with an expired calibration, a drive iteration that may exceed the
-200 ms of a command, and a supervision that leaves the robot armed:
+200 ms of a command, a supervision that leaves the robot armed, and the
+handlers whose case of ReadImu also commands the motors, waits in place of
+the reading, and delays the reading:
 
-  $ for v in unordered stale stopped armed unchecked hasty late redrawn undisarmed; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
+  $ for v in unordered stale stopped armed unchecked hasty late redrawn undisarmed commanding waiting slow; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
   File "bala2-regex/unordered.tpe", lines 4-15, characters 63-75:
   4 | let step_unordered ((tilt, speed, integral, position) : state) : state
                                                                      ^^^^^^^
@@ -109,8 +124,8 @@ and with an expired calibration, a drive iteration that may exceed the
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 81, characters 0-60:
-    81 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 88, characters 0-60:
+    88 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2-regex/unchecked.tpe", line 5, characters 14-26:
@@ -180,14 +195,64 @@ and with an expired calibration, a drive iteration that may exceed the
   7 |   let token = calibrate () in
                     ^^^^^^^^^
   Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 309-311, characters 0-51:
-    309 | let calibrate () =
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 316-318, characters 0-51:
+    316 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
     File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:
     4 | let supervise_undisarmed () : unit
                                     ^^^^^^
     the inequality goes through the annotation here
+  [1]
+  File "bala2-regex/commanding.tpe", line 10, characters 6-29:
+  10 |       continue k with reading
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `[{ReadImu; SetMotors}, {ReadImu; SetMotors}]` accumulated since it was bound, which is not below its box grade `[{ReadImu}, {ReadImu}]`
+    File "bala2-regex/commanding.tpe", line 7, characters 15-16:
+    7 |   | ReadImu () k ->
+                       ^
+    `k` is bound here
+    File "bala2-regex/commanding.tpe", line 8, characters 20-38:
+    8 |       let reading = perform ReadImu () in
+                            ^^^^^^^^^^^^^^^^^^
+    grade `[{ReadImu}, {ReadImu}]` accumulates here (operation `ReadImu`)
+    File "bala2-regex/commanding.tpe", line 9, characters 6-32:
+    9 |       perform SetMotors (0i, 0i);
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{SetMotors}, {SetMotors}]` accumulates here (operation `SetMotors`)
+    Note: the resource inequality `[{ReadImu; SetMotors}, {ReadImu; SetMotors}] <= [{ReadImu}, {ReadImu}]` does not hold
+  [1]
+  File "bala2-regex/waiting.tpe", line 9, characters 6-56:
+  9 |       continue k with ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `[{0.5}, {0.5}]` accumulated since it was bound, which is not below its box grade `[{ReadImu}, {ReadImu}]`
+    File "bala2-regex/waiting.tpe", line 7, characters 15-16:
+    7 |   | ReadImu () k ->
+                       ^
+    `k` is bound here
+    File "bala2-regex/waiting.tpe", line 8, characters 6-15:
+    8 |       delay 1/2;
+              ^^^^^^^^^
+    grade `[{0.5}, {0.5}]` accumulates here (delay)
+    Note: the resource inequality `[{0.5}, {0.5}] <= [{ReadImu}, {ReadImu}]` does not hold
+  [1]
+  File "bala2-regex/slow.tpe", line 10, characters 6-29:
+  10 |       continue k with reading
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `k` is unboxed with grade `[{ReadImu; 2}, {ReadImu; 2}]` accumulated since it was bound, which is not below its box grade `[{ReadImu}, {ReadImu}]`
+    File "bala2-regex/slow.tpe", line 7, characters 15-16:
+    7 |   | ReadImu () k ->
+                       ^
+    `k` is bound here
+    File "bala2-regex/slow.tpe", line 8, characters 20-38:
+    8 |       let reading = perform ReadImu () in
+                            ^^^^^^^^^^^^^^^^^^
+    grade `[{ReadImu}, {ReadImu}]` accumulates here (operation `ReadImu`)
+    File "bala2-regex/slow.tpe", line 9, characters 6-13:
+    9 |       delay 2;
+              ^^^^^^^
+    grade `[{2}, {2}]` accumulates here (delay)
+    Note: the resource inequality `[{ReadImu; 2}, {ReadImu; 2}] <= [{ReadImu}, {ReadImu}]` does not hold
   [1]
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without

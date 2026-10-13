@@ -88,6 +88,10 @@ type t = {
 }
 (** A manifest. *)
 
+val functions : t -> string list
+(** [functions device] is the names of the task functions and the initial
+    functions of the manifest [device], in order. *)
+
 val parse : filename:string -> string -> t
 (** [parse ~filename text] is the manifest [text] of the file [filename].
 
