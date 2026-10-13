@@ -51,7 +51,9 @@ class tempore_m5_imu {
   float gyro[3] = {0, 0, 0};
 };
 
-// The display, written line by line or at a position.
+// The display, written line by line or at a position, with rectangles and
+// circles; colours are of 24 bits, 0xRRGGBB. The text is in a font of 6 by 8
+// pixels scaled by the text size.
 class tempore_m5_display {
  public:
   void setTextSize(float size);
@@ -59,12 +61,21 @@ class tempore_m5_display {
   void setTextColor(uint32_t foreground, uint32_t background);
   int32_t width() const { return 320; }
   int32_t height() const { return 240; }
+  int32_t textWidth(const char *text) const;
+  int32_t fontHeight() const;
   void fillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color);
+  void fillRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r,
+                     uint32_t color);
+  void drawRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r,
+                     uint32_t color);
+  void fillCircle(int32_t x, int32_t y, int32_t r, uint32_t color);
+  void drawCircle(int32_t x, int32_t y, int32_t r, uint32_t color);
   void clear();
   size_t print(const char *text);
   size_t println(const char *text);
 
  private:
+  float text_size = 1;
   int32_t cursor_x = 0;
   int32_t cursor_y = 0;
 };

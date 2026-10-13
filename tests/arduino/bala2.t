@@ -154,17 +154,17 @@ they are:
 
   $ tempore --emit-arduino balance --device $app/balance.device.json --host-simulate 8 $app/balance.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
-  [34.805 ms] Display at (0, 0): Balancing robot
-  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [37.669 ms] Display: Calibrating
-  [538.669 ms] Display: Hold upright
-  [1539.669 ms] Display: Armed
-  [2440.669 ms] Display: a tilt below 2.5 degrees
-  [3441.669 ms] Display: a tilt below 2.5 degrees
-  [4442.669 ms] Display: a tilt below 2.5 degrees
-  [5443.669 ms] Display: a tilt below 2.5 degrees
-  [6444.669 ms] Display: a tilt below 2.5 degrees
-  [7445.669 ms] Display: a tilt below 2.5 degrees
+  [35.105 ms] Display at (0, 0): Balancing robot
+  [37.689 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [38.689 ms] Display: Calibrating
+  [539.689 ms] Display: Hold upright
+  [1540.689 ms] Display: Armed
+  [2441.689 ms] Display: a tilt below 2.5 degrees
+  [3442.689 ms] Display: a tilt below 2.5 degrees
+  [4443.689 ms] Display: a tilt below 2.5 degrees
+  [5444.689 ms] Display: a tilt below 2.5 degrees
+  [6445.689 ms] Display: a tilt below 2.5 degrees
+  [7446.689 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m
@@ -177,17 +177,17 @@ step never drives the motors, and the robot falls when released at 2 s:
   $ cd _arduino/projects/balance
   $ build -DPLANT_TILT=1.3 && events 8000000
   [31.245 ms] Display cleared
-  [34.805 ms] Display at (0, 0): Balancing robot
-  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [37.669 ms] Display: Calibrating
-  [538.669 ms] Display: Hold upright
-  [1539.669 ms] Display: Armed
-  [2440.669 ms] Display: 80.124
-  [3441.669 ms] Display: 80.212
-  [4442.669 ms] Display: 80.214
-  [5443.669 ms] Display: 80.214
-  [6444.669 ms] Display: 80.214
-  [7445.669 ms] Display: 80.214
+  [35.105 ms] Display at (0, 0): Balancing robot
+  [37.689 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [38.689 ms] Display: Calibrating
+  [539.689 ms] Display: Hold upright
+  [1540.689 ms] Display: Armed
+  [2441.689 ms] Display: 80.124
+  [3442.689 ms] Display: 80.212
+  [4443.689 ms] Display: 80.214
+  [5444.689 ms] Display: 80.214
+  [6445.689 ms] Display: 80.214
+  [7446.689 ms] Display: 80.214
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 2000.0 ms
   [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.495 m
@@ -200,17 +200,17 @@ robot falls:
 
   $ build -DBALANCE_SLOW_FROM_MS=4000 && events 8000000
   [31.245 ms] Display cleared
-  [34.805 ms] Display at (0, 0): Balancing robot
-  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [37.669 ms] Display: Calibrating
-  [538.669 ms] Display: Hold upright
-  [1539.669 ms] Display: Armed
-  [2440.669 ms] Display: -0.044
-  [3441.669 ms] Display: 0.084
+  [35.105 ms] Display at (0, 0): Balancing robot
+  [37.689 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [38.689 ms] Display: Calibrating
+  [539.689 ms] Display: Hold upright
+  [1540.689 ms] Display: Armed
+  [2441.689 ms] Display: -0.044
+  [3442.689 ms] Display: 0.084
   [4005.071 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4005.071 ms] Safe state
   [4005.316 ms] Task step stopped
-  [4041.000 ms] Task supervise stopped
+  [4042.000 ms] Task supervise stopped
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.214 m
@@ -400,7 +400,7 @@ function:
     ShowText             3      1000     1000.0      1000
     ShowNumber           4      1000     1000.0      1000
     ClearDisplay         1     31000    31000.0     31000
-    ShowTextAt           2      1864     2712.0      3560
+    ShowTextAt           2      2584     3222.0      3860
     SetMotors         1200       245      245.0       245
     ReadEncoders      1200       468      468.0       468
     ResetEncoders        1       335      335.0       335

@@ -5,5 +5,5 @@
    running time. Touched, its bounds and its default implementation are those
    of m5_touch.tpe. *)
 
-operation Touched : unit ~> bool * nat * nat # {Touched} within [0, 1.5]
+operation Touched : unit ~> bool * nat * nat # {Touched} within [0, 1.45]
 default Touched () = delay 3/10; (false, 0, 0)

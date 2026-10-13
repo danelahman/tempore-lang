@@ -1,9 +1,9 @@
 (* A rejected variant of examples/arduino/fall/fall.tpe. *)
 
 let respond_stale (fall : fall) =
-  box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
-  perform ShowTextAt (0, 60, 3, "Fall detected");
-  perform ShowTextAt (0, 100, 3, "Tap if OK");
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+  perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
+  perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
   perform Beep (1000, 300);
   let tapped = polls false in
   delay 29000;

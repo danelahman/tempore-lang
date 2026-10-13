@@ -1,7 +1,7 @@
 (* A rejected variant of examples/arduino/fall/fall.tpe. *)
 
 let respond_silent (fall : fall) =
-  box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
   delay 10000;
   unbox event as fall in
   raise fall

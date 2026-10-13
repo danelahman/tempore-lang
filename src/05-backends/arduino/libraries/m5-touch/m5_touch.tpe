@@ -8,10 +8,10 @@
    readings may be missed. The default implementation takes a time within
    the bounds and reads no touch.
 
-   The bounds are PROVISIONAL, not yet measured: a reading of the controller
-   on the internal bus is bounded as a reading of the inertial measurement
-   unit of the CoreS3, at most 1.5 ms, and a reading within 4 ms of the last
-   reads no bus, at least 0 ms. *)
+   The bounds are measured on an M5Stack CoreS3 Lite by the profile of the
+   device (2026-10-14): the lower bound is the least time measured, rounded
+   down, and the upper bound 1.5 times the greatest, rounded up. Touched took
+   0.021 to 0.942 ms: [0, 1.45]. They are not measured on other boards. *)
 
-operation Touched : unit ~> bool * nat * nat # [0, 1.5]
+operation Touched : unit ~> bool * nat * nat # [0, 1.45]
 default Touched () = delay 3/10; (false, 0, 0)

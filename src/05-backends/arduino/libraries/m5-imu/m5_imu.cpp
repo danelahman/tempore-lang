@@ -20,8 +20,8 @@
 // changing its range, so that the conversion of M5Unified remains valid: on
 // the BMI270 by its register ACC_CONF (0x40), in the filter performance mode
 // with the normal bandwidth, and on a unit of the MPU6886 family by its
-// sample rate divider SMPLRT_DIV (0x19). SelfTestImu reads the unit four
-// times, 5 ms apart, and checks that it is at rest.
+// sample rate divider SMPLRT_DIV (0x19). CheckAtRest reads the unit four
+// times, the readings started 6 ms apart, and checks that it is at rest.
 
 #include <Arduino.h>
 #include <M5Unified.h>
@@ -96,7 +96,7 @@ static float m5_imu_convert(int s, int j, int16_t r) {
 
 #endif
 
-#if defined(TEMPORE_PERFORMS_ReadImu) || defined(TEMPORE_PERFORMS_SelfTestImu)
+#if defined(TEMPORE_PERFORMS_ReadImu) || defined(TEMPORE_PERFORMS_CheckAtRest)
 // A reading of the unit: the acceleration, in g, and the angular rate, in
 // degrees per second, along the x, y and z axes.
 struct m5_imu_reading {
@@ -176,14 +176,26 @@ tempore_result_ConfigureImu binding_ConfigureImu(
 }
 #endif
 
-#ifdef TEMPORE_PERFORMS_SelfTestImu
-// Whether the unit is at rest in four readings 5 ms apart: the magnitude of
-// the acceleration between 0.9 and 1.1 g, and that of the angular rate below
-// 20 degrees per second.
-tempore_result_SelfTestImu binding_SelfTestImu(tempore_argument_SelfTestImu) {
+#ifdef TEMPORE_PERFORMS_CheckAtRest
+// The interval between the starts of the readings of CheckAtRest, in
+// microseconds.
+static const int64_t m5_imu_check_interval_us = 6000;
+
+// Whether the unit is at rest in four readings started 6 ms apart: the
+// magnitude of the acceleration between 0.9 and 1.1 g, and that of the
+// angular rate below 20 degrees per second. Each wait yields the processor
+// by vTaskDelay for one tick less than the whole milliseconds left, so that
+// it returns before the start of the next reading, and waits the rest by
+// delayMicroseconds.
+tempore_result_CheckAtRest binding_CheckAtRest(tempore_argument_CheckAtRest) {
+  const int64_t start = tempore_clock_us();
   bool rest = true;
   for (int i = 0; i < 4; ++i) {
-    if (i > 0) delay(5);
+    const int64_t next = start + i * m5_imu_check_interval_us;
+    const int64_t ms = (next - tempore_clock_us()) / 1000;
+    if (ms > 1) vTaskDelay(pdMS_TO_TICKS(static_cast<uint32_t>(ms - 1)));
+    const int64_t us = next - tempore_clock_us();
+    if (us > 0) delayMicroseconds(static_cast<uint32_t>(us));
     const m5_imu_reading r = m5_imu_read();
     float a = 0, g = 0;
     for (int k = 0; k < 3; ++k) {

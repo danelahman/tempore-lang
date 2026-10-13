@@ -1,10 +1,10 @@
 (* A rejected variant of examples/arduino/level/level.tpe. *)
 
-let step_stale ((calibration, age, rate, touching) : state) : state =
+let step_stale ((reference, age, rate, touching) : state) : state =
   let touched, _, _ = perform Touched () in
   let accel, _ = perform ReadImu () in
-  box [0, 5] accel as reading in
-  let calibration = if touched then calibrate () else calibration in
+  box 0 accel as reading in
+  let reference = if touched then take () else reference in
   unbox reading as accel in
-  display calibration (angles accel calibration) 0;
-  (calibration, 0, rate, touched)
+  display reference (angles accel reference) 0;
+  (reference, 0, rate, touched)

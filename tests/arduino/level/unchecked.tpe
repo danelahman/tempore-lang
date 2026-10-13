@@ -1,0 +1,8 @@
+(* A rejected variant of examples/arduino/level/level.tpe. *)
+
+let take_unchecked () : reference =
+  let x, y = tilts () in
+  box {CheckAtRest; Beep} (Offsets (x, y)) as unchecked in
+  perform Beep (2000, 100);
+  unbox unchecked as checked in
+  checked

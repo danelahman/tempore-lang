@@ -1,8 +1,0 @@
-(* A rejected variant of examples/arduino/level/level.tpe. *)
-
-let calibrate_untested () : calibration =
-  let x, y = tilts () in
-  box {SelfTestImu; Beep} (Offsets (x, y)) as untested in
-  perform Beep (2000, 100);
-  unbox untested as tested in
-  tested

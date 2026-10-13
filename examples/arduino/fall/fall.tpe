@@ -1,5 +1,5 @@
 (* A fall detector on the M5Stack CoreS3 Lite: a free fall and an impact
-   within a second, and an alarm raised 10 to 30 s after the fall
+   within a second, and an alarm raised 10 to 30 s after a prompt
 
    Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
 
@@ -20,12 +20,14 @@
 (* Runs on the M5Stack CoreS3 Lite carried by a person (fall.device.json):
    'watch' as a free task, reading the unit every 10 ms. A fall is a free
    fall below 0.3 g for at least 100 ms and an impact above 2.5 g within a
-   second; a prompt, a tone and a countdown of 10 seconds follow, which a
-   tap cancels, and otherwise the alarm sounds every second until a tap
-   acknowledges it. Operations come from the packages m5-imu, m5-display,
-   m5-touch and m5-speaker; bindings.cpp defines the safe state and
-   world.cpp models the falls and the taps. The figures below are those
-   under the bounds of the CoreS3, some of them provisional.
+   second. The screen shows, in green, that falls are watched for, with the
+   falls counted, the time since the last event and a bar of the
+   acceleration; after a fall, in orange, "Are you OK?", a countdown of 10
+   seconds and a shrinking bar, which a tap cancels; and otherwise, in red,
+   a flashing alarm sounding every second until a tap stops it.
+   bindings.cpp defines the safe state and world.cpp models the falls and
+   the taps. The figures below are those under the bounds of the CoreS3,
+   some of them provisional.
 
    On the board: make arduino-fall-upload; simulated on the host: make
    arduino-fall-simulate ('make examples-help', README: Arduino). *)
@@ -36,6 +38,15 @@ type fall = Fall of float * float
 
 let free_fall = 0.3
 let impact = 2.5
+
+(* The colours of the states, of 24 bits: watching, a fall detected, the
+   alarm, the text on them, and the bar of the acceleration. *)
+let green = 0x00c000
+let orange = 0xff8000
+let red = 0xe00000
+let black = 0x000000
+let white = 0xffffff
+let blue = 0x00a0ff
 
 (* The magnitude of the acceleration, in g. *)
 let load () : float # {ReadImu} =
@@ -137,55 +148,79 @@ let polls (tapped : bool) : bool # {[1000, 1030]} =
   let tapped = poll tapped in
   tapped
 
-(* A second of the countdown: the seconds left, and twenty polls. *)
-let second (left : nat) : bool # {[1000, 1065]} =
-  perform ShowNumberAt (0, 140, 4, 0, float_of_nat left);
+(* The frame of every screen: the display cleared, the title, the guarantee
+   and the footer. *)
+let frame () =
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Fall detector");
+  perform ShowTextAt (0, 24, 1, "Alarm only 10-30 s after a fall, after asking you");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+
+(* A second of the countdown: the seconds left, large, a bar of their
+   length, and twenty polls. *)
+let second (left : nat) =
+  perform ShowNumberAt (0, 100, 4, 0, float_of_nat left);
+  perform DrawBar (0, 172, 320, 16, 32 * left, orange);
   polls false
 
+(* A fall cancelled by a tap: a tone acknowledges the tap, and the screen
+   shows it for two seconds. *)
 let cancel () =
-  perform ShowTextAt (0, 140, 4, "");
-  perform ShowTextAt (0, 100, 3, "Cancelled");
+  perform Beep (1500, 100);
+  perform ShowColourTextAt (0, 44, 3, black, green, "Cancelled");
+  perform ShowColourTextAt (0, 76, 2, black, green, "Glad you're OK");
   delay 2000
 
-(* The alarm, raised: a tone every second until a tap acknowledges it, for
-   at most n seconds. It needs no box: the box of the fall licenses raising
-   it, and the alarm then lasts until it is acknowledged. *)
-let rec alarm (n : nat) : unit # {_*} =
+(* The alarm, raised: a tone every second, the alarm flashing and the time
+   since it was raised, until a tap stops it, for at most n seconds. It
+   needs no box: the box of the fall licenses raising it, and the alarm
+   then lasts until it is stopped. *)
+let rec alarm (n : nat) (seconds : nat) : unit # {_*} =
   match n with
   | 0 -> ()
   | m + 1 ->
       let tapped = polls false in
       if tapped then (
-        perform ShowTextAt (0, 60, 3, "Alarm");
-        perform ShowTextAt (0, 100, 3, "acknowledged");
+        perform Beep (1500, 100);
+        perform ShowColourTextAt (0, 44, 3, black, green, "Alarm stopped");
+        perform ShowColourTextAt (0, 76, 2, black, green, "");
         delay 2000)
       else (
+        (if seconds mod 2 = 0 then
+           perform ShowColourTextAt (0, 44, 3, red, white, "ALARM")
+         else perform ShowColourTextAt (0, 44, 3, white, red, "ALARM"));
+        perform ShowTimeAt (0, 146, 2, "Alarm for ", seconds + 1);
         perform Beep (2000, 500);
-        alarm m)
+        alarm m (seconds + 1))
 
-(* Raises the alarm for a fall: "ALARM" and the peak of the impact on the
-   screen, and the first tone. *)
+(* Raises the alarm for a fall: the alarm on the screen, in red, with the
+   peak of the impact, and the first tone. *)
 let raise ((Fall (_, peak)) : fall) =
-  perform ShowTextAt (0, 60, 4, "ALARM");
-  perform ShowNumberAt (0, 100, 3, 1, peak);
-  perform ShowTextAt (0, 140, 4, "");
+  frame ();
+  perform ShowColourTextAt (0, 44, 3, white, red, "ALARM");
+  perform ShowColourTextAt (0, 76, 2, white, red, "Tap to stop");
+  perform ShowTextAt (0, 100, 2, "Impact (g)");
+  perform ShowNumberAt (160, 100, 2, 1, peak);
+  perform ShowTimeAt (0, 146, 2, "Alarm for ", 0);
   perform Beep (2000, 500);
-  alarm 4000000000
+  alarm 4000000000 0
 
-(* Correctly accepted by the typechecker: the response to a fall shows the
-   prompt, sounds a tone and counts down 10 seconds, polling the screen. The
-   fall is boxed with the two lines of the prompt, the tone and a delay of
-   10 to 30 seconds: the alarm is raised only after the prompt and the tone,
-   at least 10 and at most 30 seconds after the detection. The countdown is
-   written out, so that the alarm is raised only on the path on which no
-   second was tapped, 10000.5 to 10630 ms after the tone. Within the delay
-   '[10000, 30000]' of the box grade any operation may come, at the upper
-   bound of its running time: the box bounds the time to the alarm, and the
-   operations it names before that delay, but not those within it. *)
+(* Correctly accepted by the typechecker: the response to a fall redraws the
+   screen, shows the prompt, in orange, sounds a tone and counts down 10
+   seconds, polling the screen. The fall is boxed with the two lines of the
+   prompt, the tone and a delay of 10 to 30 seconds: the alarm is raised
+   only after the prompt and the tone, at least 10 and at most 30 seconds
+   after them. The countdown is written out, so that the alarm is raised
+   only on the path on which no second was tapped, 10018 to 10960 ms after
+   the tone. Within the delay '[10000, 30000]' of the box grade any
+   operation may come, at the upper bound of its running time: the box
+   bounds the time to the alarm, and the operations it names before that
+   delay, but not those within it. *)
 let respond (fall : fall) =
-  box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
-  perform ShowTextAt (0, 60, 3, "Fall detected");
-  perform ShowTextAt (0, 100, 3, "Tap if OK");
+  frame ();
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+  perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
+  perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
   perform Beep (1000, 300);
   let tapped = second 10 in
   if tapped then cancel () else
@@ -231,35 +266,51 @@ let suspect (falls : nat) (first : float) : nat =
     else falls)
   else falls
 
-(* The screen of the detector: the title, the state, the falls detected and
-   the footer. *)
+(* The screen of the detector: the frame, the state, in green, the falls
+   detected, the time since the last event and the label of the bar of the
+   acceleration. *)
 let idle (falls : nat) =
-  perform ClearDisplay ();
-  perform ShowTextAt (0, 0, 2, "Fall detector");
-  perform ShowTextAt (0, 60, 3, "Monitoring");
-  perform ShowTextAt (0, 190, 2, "Falls");
-  perform ShowNumberAt (130, 190, 2, 0, float_of_nat falls);
-  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)")
+  frame ();
+  perform ShowColourTextAt (0, 44, 3, black, green, "Watching");
+  perform ShowColourTextAt (0, 76, 2, black, green, "for falls");
+  perform ShowTextAt (0, 100, 2, "Falls");
+  perform ShowNumberAt (160, 100, 2, 0, float_of_nat falls);
+  perform ShowTimeAt (0, 146, 2, "Since last event ", 0);
+  perform ShowTextAt (0, 160, 1, "Acceleration, 0 to 3 g")
+
+(* The length of the bar of an acceleration of a g, in pixels: 320 for
+   3 g. *)
+let bar (a : float) = nat_of_float (a *. 320.0 /. 3.0)
 
 (* Correctly accepted by the typechecker: n readings 10 ms apart, each
-   below 0.3 g starting a suspected fall. *)
-let rec monitor (n : nat) (falls : nat) : unit # {_*} =
+   below 0.3 g starting a suspected fall. The bar of the acceleration is
+   redrawn every tenth reading and the time since the last event, counted
+   in readings, every hundredth: at 10 ms a reading, it falls short of the
+   time by the running times of the operations, about a tenth. *)
+let rec monitor (n : nat) (falls : nat) (since : nat) : unit # {_*} =
   match n with
   | 0 -> ()
   | m + 1 ->
       let a = load () in
       if a < free_fall then (
         let counted = suspect falls a in
-        (if counted > falls then idle counted else ());
-        monitor m counted)
+        if counted > falls then (
+          idle counted;
+          monitor m counted 0)
+        else monitor m falls since)
       else (
+        (if since mod 10 = 0 then perform DrawBar (0, 172, 320, 16, bar a, blue)
+         else ());
+        (if since mod 100 = 99 then
+           perform ShowTimeAt (0, 146, 2, "Since last event ", (since + 1) / 100)
+         else ());
         delay 10;
-        monitor m falls)
+        monitor m falls (since + 1))
 
 (* The task: the screen, and readings for about 460 days. *)
 let watch () =
   idle 0;
-  monitor 4000000000 0
+  monitor 4000000000 0 0
 
 (* Correctly rejected by the typechecker: the free fall is confirmed after
    five readings, 51 to 57.5 ms, shorter than 100 ms:
@@ -302,18 +353,18 @@ let suspect_late (least : float) =
    after the tone:
 
      Typing error: Variable `event` is unboxed with grade
-       `[{ShowTextAt; ShowTextAt; Beep; 5000},
-       {ShowTextAt; ShowTextAt; Beep; 5000}]` accumulated since it was
-       bound, which is not below its box grade
-       `[{ShowTextAt; ShowTextAt; Beep; [10000, 30000]},
-       {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]`
+       `[{ShowColourTextAt; ShowColourTextAt; Beep; 5000},
+       {ShowColourTextAt; ShowColourTextAt; Beep; 5000}]` accumulated since
+       it was bound, which is not below its box grade
+       `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
+       {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
        ...
 *)
 (*
 let respond_early (fall : fall) =
-  box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
-  perform ShowTextAt (0, 60, 3, "Fall detected");
-  perform ShowTextAt (0, 100, 3, "Tap if OK");
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+  perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
+  perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
   perform Beep (1000, 300);
   delay 5000;
   unbox event as fall in
@@ -325,13 +376,14 @@ let respond_early (fall : fall) =
 
      Typing error: Variable `event` is unboxed with grade
        `[{10000}, {10000}]` accumulated since it was bound, which is not
-       below its box grade `[{ShowTextAt; ShowTextAt; Beep; [10000, 30000]},
-       {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]`
+       below its box grade
+       `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
+       {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
        ...
 *)
 (*
 let respond_silent (fall : fall) =
-  box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
   delay 10000;
   unbox event as fall in
   raise fall
@@ -341,18 +393,18 @@ let respond_silent (fall : fall) =
    event, after a second of polls and a further wait of 29 seconds:
 
      Typing error: Variable `event` is unboxed with grade
-       `[{ShowTextAt; ShowTextAt; Beep; [1000, 1030]; 29000},
-       {ShowTextAt; ShowTextAt; Beep; [1000, 1030]; 29000}]` accumulated
-       since it was bound, which is not below its box grade
-       `[{ShowTextAt; ShowTextAt; Beep; [10000, 30000]},
-       {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]`
+       `[{ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000},
+       {ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
+       {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
        ...
 *)
 (*
 let respond_stale (fall : fall) =
-  box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
-  perform ShowTextAt (0, 60, 3, "Fall detected");
-  perform ShowTextAt (0, 100, 3, "Tap if OK");
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+  perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
+  perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
   perform Beep (1000, 300);
   let tapped = polls false in
   delay 29000;

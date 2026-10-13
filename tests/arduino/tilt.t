@@ -26,12 +26,12 @@ with the default implementations of the operations:
   return ()
   State: [
     [31, 31],
-    [2, 2],
+    [3, 3],
     [1, 1],
     [0.01, 0.01],
     { resource_0 ↦ 0. # [0, 5] },
     [1, 1],
-    [2, 2],
+    [3, 3],
     [250, 250]
   ]
   
@@ -88,25 +88,25 @@ readings:
 
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep '\] Display\|simulation'
   [31.000 ms] Display cleared
-  [34.560 ms] Display at (0, 0): Tilt display
-  [35.560 ms] Display: Tilt (degrees)
-  [36.560 ms] Display: 5.706
-  [38.424 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [319.424 ms] Display cleared
-  [322.984 ms] Display at (0, 0): Tilt display
-  [323.984 ms] Display: Tilt (degrees)
-  [324.984 ms] Display: 2.997
-  [326.848 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [607.848 ms] Display cleared
-  [611.408 ms] Display at (0, 0): Tilt display
-  [612.408 ms] Display: Tilt (degrees)
-  [613.408 ms] Display: -1.797
-  [615.272 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [896.272 ms] Display cleared
-  [899.832 ms] Display at (0, 0): Tilt display
-  [900.832 ms] Display: Tilt (degrees)
-  [901.832 ms] Display: -5.394
-  [903.696 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [34.800 ms] Display at (0, 0): Tilt display
+  [35.800 ms] Display: Tilt (degrees)
+  [36.800 ms] Display: 5.706
+  [39.384 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [320.384 ms] Display cleared
+  [324.184 ms] Display at (0, 0): Tilt display
+  [325.184 ms] Display: Tilt (degrees)
+  [326.184 ms] Display: 2.997
+  [328.768 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [609.768 ms] Display cleared
+  [613.568 ms] Display at (0, 0): Tilt display
+  [614.568 ms] Display: Tilt (degrees)
+  [615.568 ms] Display: -1.797
+  [618.152 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [899.152 ms] Display cleared
+  [902.952 ms] Display at (0, 0): Tilt display
+  [903.952 ms] Display: Tilt (degrees)
+  [904.952 ms] Display: -5.394
+  [907.536 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
   [1000.000 ms] End of the simulation
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep -c 'Release step'
   50

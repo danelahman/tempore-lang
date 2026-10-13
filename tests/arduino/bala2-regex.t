@@ -299,17 +299,17 @@ bounds, and prints the other events as they are:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
-  [34.805 ms] Display at (0, 0): Balancing robot with regexes
-  [36.669 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
-  [37.669 ms] Display: Calibrating
-  [538.669 ms] Display: Hold upright
-  [1539.669 ms] Display: Armed
-  [2440.669 ms] Display: a tilt below 2.5 degrees
-  [3441.669 ms] Display: a tilt below 2.5 degrees
-  [4442.669 ms] Display: a tilt below 2.5 degrees
-  [5443.669 ms] Display: a tilt below 2.5 degrees
-  [6444.669 ms] Display: a tilt below 2.5 degrees
-  [7445.669 ms] Display: a tilt below 2.5 degrees
+  [35.365 ms] Display at (0, 0): Balancing robot with regexes
+  [37.949 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [38.949 ms] Display: Calibrating
+  [539.949 ms] Display: Hold upright
+  [1540.949 ms] Display: Armed
+  [2441.949 ms] Display: a tilt below 2.5 degrees
+  [3442.949 ms] Display: a tilt below 2.5 degrees
+  [4443.949 ms] Display: a tilt below 2.5 degrees
+  [5444.949 ms] Display: a tilt below 2.5 degrees
+  [6445.949 ms] Display: a tilt below 2.5 degrees
+  [7446.949 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1542.0 ms
   [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m

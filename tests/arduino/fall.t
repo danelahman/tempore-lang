@@ -79,19 +79,19 @@ stale event:
   File "fall/early.tpe", lines 9-10, characters 2-12:
   9 |   unbox event as fall in
         ^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `[{ShowTextAt; ShowTextAt; Beep; 5000}, {ShowTextAt; ShowTextAt; Beep; 5000}]` accumulated since it was bound, which is not below its box grade `[{ShowTextAt; ShowTextAt; Beep; [10000, 30000]}, {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]`
-    File "fall/early.tpe", line 4, characters 61-66:
-    4 |   box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
-                                                                     ^^^^^
+  Typing error: Variable `event` is unboxed with grade `[{ShowColourTextAt; ShowColourTextAt; Beep; 5000}, {ShowColourTextAt; ShowColourTextAt; Beep; 5000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
+    File "fall/early.tpe", line 4, characters 73-78:
+    4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+                                                                                 ^^^^^
     `event` is bound here
-    File "fall/early.tpe", line 5, characters 2-48:
-    5 |   perform ShowTextAt (0, 60, 3, "Fall detected");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowTextAt}, {ShowTextAt}]` accumulates here (operation `ShowTextAt`)
-    File "fall/early.tpe", line 6, characters 2-45:
-    6 |   perform ShowTextAt (0, 100, 3, "Tap if OK");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowTextAt}, {ShowTextAt}]` accumulates here (operation `ShowTextAt`)
+    File "fall/early.tpe", line 5, characters 2-67:
+    5 |   perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
+    File "fall/early.tpe", line 6, characters 2-69:
+    6 |   perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
     File "fall/early.tpe", line 7, characters 2-26:
     7 |   perform Beep (1000, 300);
           ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -100,38 +100,38 @@ stale event:
     8 |   delay 5000;
           ^^^^^^^^^^
     grade `[{5000}, {5000}]` accumulates here (delay)
-    Note: the resource inequality `[{ShowTextAt; ShowTextAt; Beep; 5000}, {ShowTextAt; ShowTextAt; Beep; 5000}] <= [{ShowTextAt; ShowTextAt; Beep; [10000, 30000]}, {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]` does not hold
+    Note: the resource inequality `[{ShowColourTextAt; ShowColourTextAt; Beep; 5000}, {ShowColourTextAt; ShowColourTextAt; Beep; 5000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
   [1]
   File "fall/silent.tpe", lines 6-7, characters 2-12:
   6 |   unbox event as fall in
         ^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `[{10000}, {10000}]` accumulated since it was bound, which is not below its box grade `[{ShowTextAt; ShowTextAt; Beep; [10000, 30000]}, {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]`
-    File "fall/silent.tpe", line 4, characters 61-66:
-    4 |   box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
-                                                                     ^^^^^
+  Typing error: Variable `event` is unboxed with grade `[{10000}, {10000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
+    File "fall/silent.tpe", line 4, characters 73-78:
+    4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+                                                                                 ^^^^^
     `event` is bound here
     File "fall/silent.tpe", line 5, characters 2-13:
     5 |   delay 10000;
           ^^^^^^^^^^^
     grade `[{10000}, {10000}]` accumulates here (delay)
-    Note: the resource inequality `[{10000}, {10000}] <= [{ShowTextAt; ShowTextAt; Beep; [10000, 30000]}, {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]` does not hold
+    Note: the resource inequality `[{10000}, {10000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
   [1]
   File "fall/stale.tpe", line 10, characters 32-67:
   10 |   if tapped then cancel () else (unbox event as fall in raise fall)
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `[{ShowTextAt; ShowTextAt; Beep; [1000, 1030]; 29000}, {ShowTextAt; ShowTextAt; Beep; [1000, 1030]; 29000}]` accumulated since it was bound, which is not below its box grade `[{ShowTextAt; ShowTextAt; Beep; [10000, 30000]}, {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]`
-    File "fall/stale.tpe", line 4, characters 61-66:
-    4 |   box {ShowTextAt; ShowTextAt; Beep; [10000, 30000]} fall as event in
-                                                                     ^^^^^
+  Typing error: Variable `event` is unboxed with grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}, {ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
+    File "fall/stale.tpe", line 4, characters 73-78:
+    4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+                                                                                 ^^^^^
     `event` is bound here
-    File "fall/stale.tpe", line 5, characters 2-48:
-    5 |   perform ShowTextAt (0, 60, 3, "Fall detected");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowTextAt}, {ShowTextAt}]` accumulates here (operation `ShowTextAt`)
-    File "fall/stale.tpe", line 6, characters 2-45:
-    6 |   perform ShowTextAt (0, 100, 3, "Tap if OK");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowTextAt}, {ShowTextAt}]` accumulates here (operation `ShowTextAt`)
+    File "fall/stale.tpe", line 5, characters 2-67:
+    5 |   perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
+    File "fall/stale.tpe", line 6, characters 2-69:
+    6 |   perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
     File "fall/stale.tpe", line 7, characters 2-26:
     7 |   perform Beep (1000, 300);
           ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -144,7 +144,7 @@ stale event:
     9 |   delay 29000;
           ^^^^^^^^^^^
     grade `[{29000}, {29000}]` accumulates here (delay)
-    Note: the resource inequality `[{ShowTextAt; ShowTextAt; Beep; [1000, 1030]; 29000}, {ShowTextAt; ShowTextAt; Beep; [1000, 1030]; 29000}] <= [{ShowTextAt; ShowTextAt; Beep; [10000, 30000]}, {ShowTextAt; ShowTextAt; Beep; [10000, 30000]}]` does not hold
+    Note: the resource inequality `[{ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}, {ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without
@@ -157,42 +157,77 @@ exceptions and run-time type information:
   $ cd ../../..
 
 35 seconds of simulated time: the first fall, at 2 s, is detected after its
-impact at 2.3 s, counted down, and alarmed at about 12.4 s, the alarm
-sounding every second until the tap at 16 s acknowledges it; the second, at
-25 s, is cancelled by the tap at 28 s. The screen shows the falls counted:
+impact at 2.3 s, counted down in orange, and alarmed in red at about 12.5 s,
+the alarm flashing and sounding every second until the tap at 16 s stops it;
+the second, at 25 s, is cancelled by the tap at 28 s. The screen of the
+watch, in green, shows the falls counted:
 
   $ tempore --emit-arduino fall --device $app/fall.device.json --host-simulate 35 $app/fall.tpe > run.log
-  $ grep 'Display at (0, [0-9]*0)\|Display at (130\|simulation' run.log | grep -v 'Display at (0, 0)\|(0, 230)\|(0, 190)' | sed 's/ *$//'
-  [39.400 ms] Display at (0, 60): Monitoring
-  [45.480 ms] Display at (130, 190): 0
-  [2311.226 ms] Display at (0, 60): Fall detected
-  [2316.066 ms] Display at (0, 100): Tap if OK
-  [2322.236 ms] Display at (0, 140): 10
-  [3334.356 ms] Display at (0, 140): 9
-  [4346.476 ms] Display at (0, 140): 8
-  [5358.596 ms] Display at (0, 140): 7
-  [6370.716 ms] Display at (0, 140): 6
-  [7382.836 ms] Display at (0, 140): 5
-  [8394.956 ms] Display at (0, 140): 4
-  [9407.076 ms] Display at (0, 140): 3
-  [10419.196 ms] Display at (0, 140): 2
-  [11431.316 ms] Display at (0, 140): 1
-  [12443.436 ms] Display at (0, 60): ALARM
-  [12448.276 ms] Display at (0, 100): 3.5
-  [12454.396 ms] Display at (0, 140):
-  [16483.436 ms] Display at (0, 60): Alarm
-  [16488.276 ms] Display at (0, 100): acknowledged
-  [18527.676 ms] Display at (0, 60): Monitoring
-  [18533.756 ms] Display at (130, 190): 1
-  [25305.777 ms] Display at (0, 60): Fall detected
-  [25310.617 ms] Display at (0, 100): Tap if OK
-  [25316.787 ms] Display at (0, 140): 10
-  [26328.907 ms] Display at (0, 140): 9
-  [27341.027 ms] Display at (0, 140): 8
-  [28353.147 ms] Display at (0, 140):
-  [28357.987 ms] Display at (0, 100): Cancelled
-  [30397.387 ms] Display at (0, 60): Monitoring
-  [30403.467 ms] Display at (130, 190): 2
+  $ grep 'Display at (0, \(44\|76\|100\))\|Display at (160\|Display fill at (0, 44)\|simulation' run.log | sed 's/ *$//'
+  [44.680 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [45.840 ms] Display at (0, 44): Watching
+  [49.580 ms] Display at (0, 76): for falls
+  [53.240 ms] Display at (0, 100): Falls
+  [55.540 ms] Display at (160, 100): 0
+  [2353.773 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [2354.993 ms] Display at (0, 44): Are you OK?
+  [2358.813 ms] Display at (0, 76): Tap to cancel
+  [2365.023 ms] Display at (0, 100): 10
+  [3379.211 ms] Display at (0, 100): 9
+  [4393.398 ms] Display at (0, 100): 8
+  [5407.585 ms] Display at (0, 100): 7
+  [6421.772 ms] Display at (0, 100): 6
+  [7435.959 ms] Display at (0, 100): 5
+  [8450.147 ms] Display at (0, 100): 4
+  [9464.334 ms] Display at (0, 100): 3
+  [10478.521 ms] Display at (0, 100): 2
+  [11492.708 ms] Display at (0, 100): 1
+  [12545.435 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [12546.535 ms] Display at (0, 44): ALARM
+  [12550.315 ms] Display at (0, 76): Tap to stop
+  [12554.075 ms] Display at (0, 100): Impact (g)
+  [12556.415 ms] Display at (160, 100): 3.5
+  [13570.145 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [13571.245 ms] Display at (0, 44): ALARM
+  [14584.975 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [14586.075 ms] Display at (0, 44): ALARM
+  [15599.805 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [15600.905 ms] Display at (0, 44): ALARM
+  [16614.685 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [16615.945 ms] Display at (0, 44): Alarm stopped
+  [16619.505 ms] Display at (0, 76):
+  [18664.185 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [18665.345 ms] Display at (0, 44): Watching
+  [18669.085 ms] Display at (0, 76): for falls
+  [18672.745 ms] Display at (0, 100): Falls
+  [18675.045 ms] Display at (160, 100): 1
+  [25346.134 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [25347.354 ms] Display at (0, 44): Are you OK?
+  [25351.174 ms] Display at (0, 76): Tap to cancel
+  [25357.384 ms] Display at (0, 100): 10
+  [26371.572 ms] Display at (0, 100): 9
+  [27385.759 ms] Display at (0, 100): 8
+  [28397.696 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [28398.876 ms] Display at (0, 44): Cancelled
+  [28402.716 ms] Display at (0, 76): Glad you're OK
+  [30447.396 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [30448.556 ms] Display at (0, 44): Watching
+  [30452.296 ms] Display at (0, 76): for falls
+  [30455.956 ms] Display at (0, 100): Falls
+  [30458.256 ms] Display at (160, 100): 2
   [35000.000 ms] End of the simulation
+The alarm sounds four tones, and a tone of 1500 Hz acknowledges each of the
+two taps; the time since the last event is redrawn every hundred readings,
+and the bar of the acceleration every ten readings, and of the countdown
+every second:
+
   $ grep -c 'Speaker: 2000 Hz' run.log
   4
+  $ grep -c 'Speaker: 1500 Hz' run.log
+  2
+  $ grep 'Since last event' run.log | sed -n '1,3p'
+  [59.520 ms] Display at (0, 146): Since last event 0:00
+  [1136.990 ms] Display at (0, 146): Since last event 0:01
+  [18679.025 ms] Display at (0, 146): Since last event 0:00
+  $ grep -c 'Display fill at (0, 172)' run.log
+  132

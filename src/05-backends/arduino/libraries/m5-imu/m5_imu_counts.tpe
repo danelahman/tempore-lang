@@ -1,7 +1,7 @@
 (* The package m5-imu under the operation counts: the inertial measurement
    unit of an M5Stack core, read through M5Unified. Grades: counts-upper-bound;
    a call counts once, and its running time is not bounded. ReadImu,
-   ConfigureImu, SelfTestImu and their default implementations are those of
+   ConfigureImu, CheckAtRest and their default implementations are those of
    m5_imu.tpe, and the types and the attitude filter are defined in
    m5_imu_filter.tpe. *)
 
@@ -11,5 +11,5 @@ default ReadImu () = ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
 operation ConfigureImu : nat ~> unit # (ConfigureImu, 1)
 default ConfigureImu _ = ()
 
-operation SelfTestImu : unit ~> bool # (SelfTestImu, 1)
-default SelfTestImu () = true
+operation CheckAtRest : unit ~> bool # (CheckAtRest, 1)
+default CheckAtRest () = true

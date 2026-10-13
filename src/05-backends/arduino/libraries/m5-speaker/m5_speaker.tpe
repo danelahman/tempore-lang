@@ -7,8 +7,10 @@
    its duration. The default implementation takes a time within the bounds
    and plays nothing.
 
-   The bounds are PROVISIONAL, not yet measured: starting a tone queues it to
-   the task of the speaker, without a transfer on a bus, bounded by 0.5 ms. *)
+   The bounds are measured on an M5Stack CoreS3 Lite by the profile of the
+   device (2026-10-14): the lower bound is the least time measured, rounded
+   down, and the upper bound 1.5 times the greatest, rounded up. Beep took
+   0.055 to 0.082 ms: [0.05, 0.15]. They are not measured on other boards. *)
 
-operation Beep : nat * nat ~> unit # [0, 0.5]
+operation Beep : nat * nat ~> unit # [0.05, 0.15]
 default Beep _ = delay 1/20

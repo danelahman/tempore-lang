@@ -1467,13 +1467,20 @@ An application is described in four layers.
     the bounds that cover both; `ConfigureImu`, which sets the output data
     rate of the accelerometer without changing its range (the register
     ACC_CONF of the BMI270, the sample rate divider of the MPU6886), so that
-    the conversion of M5Unified stays valid; and `SelfTestImu`, four
-    readings 5 ms apart, true if the unit is at rest;
+    the conversion of M5Unified stays valid; and `CheckAtRest`, a check of
+    plausibility, not a self-test: four readings started 6 ms apart, true if
+    the unit is at rest;
   - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`, lines of text
     of size 2 written one below another, and `ShowTextAt` and
     `ShowNumberAt`, a text or a number written at a position in a size from
     1 to 4 over a band of the display filled first, so that it replaces the
     text of that band without a clearing; the next line follows below it;
+    `ShowTimeAt`, a text followed by a duration as m:ss, and
+    `ShowColourTextAt`, a text in a colour over a band of another;
+    `DrawButton`, a button with a centred label; `DrawBar`, a horizontal bar
+    filled to a length; and `DrawLevel`, a bubble level, a vial with a
+    bubble at an offset from its centre, redrawn only when the bubble moves
+    or changes colour; colours are of 24 bits, `0xRRGGBB`;
   - `m5-touch`: `Touched`, whether the screen is touched and where, read
     through `M5.Touch.update` under the I2C lock (the touch screens of the
     CoreS3 and the Core2, capability `touch`);
@@ -1513,9 +1520,12 @@ examples are measured on the devices by their profile (`--profile` with
 down, and the upper bound 1.5 times the greatest, rounded up. Each
 declaration states its measurements, and how the bounds not measured
 directly, such as those of the package `i2c`, are derived. The bounds of
-`ConfigureImu`, `SelfTestImu`, `ShowTextAt`, `ShowNumberAt`, `Touched` and
-`Beep` are provisional, derived from those measurements, and not yet
-measured.
+`ConfigureImu`, `CheckAtRest`, `Touched` and `Beep` are measured on the
+CoreS3 only, and the lower bounds of `ShowTextAt` and `ShowNumberAt` on the
+CoreS3, 2.55 and 1.8 ms, given per board, on the texts of the digital level
+only. The bounds of `ShowTimeAt`, `ShowColourTextAt`, `DrawButton`,
+`DrawBar` and `DrawLevel` are provisional, derived from those measurements,
+and not yet measured.
 
 The bounds a package declares hold on every board it supports. Where an
 operation is measured to run within narrower bounds on a particular board,
@@ -1620,23 +1630,43 @@ M5Stack CoreS3 and CoreS3 Lite (profile `m5stack-cores3`, port variable
   has followed it;
 - [`level/level.tpe`](examples/arduino/level/level.tpe): a digital level on
   the M5Stack CoreS3 Lite, under the regular expressions of timed
-  operations: a tap calibrates, with a self-test and a tone, a tap on the
-  top right corner reconfigures the unit, and the calibration is applied
-  only to a reading that no reconfiguration or calibration precedes within
-  its 250 ms step, and expires after 10 minutes;
+  operations: a bubble vial, the pitch and the roll less the offsets of a
+  reference, and the buttons "Set reference" and "Reconfigure sensor"; a
+  reference is taken after the unit is held still for a second, and
+  installed only after a check at rest, the reconfiguration of the unit by
+  "Reconfigure sensor" invalidates it, and it is applied only to a reading that no reconfiguration or new
+  reference precedes within its 250 ms step, and expires after 30 seconds;
 - [`fall/fall.tpe`](examples/arduino/fall/fall.tpe): a fall detector on the
   M5Stack CoreS3 Lite, under the regular expressions of timed operations: a
   free fall of at least 100 ms followed within a second by an impact is a
-  fall, after which a prompt, a tone and a countdown of 10 seconds precede
-  the alarm, raised only 10 to 30 seconds after the fall unless a tap
-  cancels, and acknowledged by a tap.
+  fall, after which a prompt, in orange, a tone and a countdown of 10
+  seconds with a shrinking bar precede the alarm, in red, raised only 10 to
+  30 seconds after the prompt unless a tap cancels, and stopped by a tap;
+  while watching, in green, the screen shows the falls counted, the time
+  since the last event and a bar of the acceleration.
+
+The digital level is used as follows. Place it on the surface taken as the
+reference and tap "Set reference"; it asks to hold still, and a second later
+reads the unit and checks that it is at rest, with a high tone, or rejects
+the reference as moved during the check, with a low tone. Placed on another
+surface, it then shows the angles relative to the reference, the bubble
+green and "LEVEL" within half a degree. The reference becomes invalid, and
+must be set again, when it is rejected, when "Reconfigure sensor"
+reconfigures the unit, which switches the output data rate of its
+accelerometer between 100 and 400 Hz, shown at the top right, and when it
+expires 30 seconds after it was set, its time left shown meanwhile. Without a valid reference the bubble is grey and the angles are
+those of the unit.
 
 The CoreS3 examples show their name at the top of the screen, in text of
-size 2, and the line "Powered by Tempore (tempore-lang.ee)" at the bottom
-right, in text of size 1, at the column 320 − 6 · 36 = 104 of its 36
-characters of 6 pixels, by `ShowTextAt`: after each clearing in `tilt`, `peak` and `fall`, outside
-their boxes, and once by the initial function in `level`, which redraws its
-values by bands and does not clear.
+size 2, and a footer at the bottom right, in text of size 1, by
+`ShowTextAt`: in `tilt` and `peak` the line "Powered by Tempore
+(tempore-lang.ee)" at the column 320 − 6 · 36 = 104 of its 36 characters of 6
+pixels, and in `level` and `fall` the line "Typechecked by Tempore
+(tempore-lang.ee)" at the column 320 − 6 · 40 = 80, below a line of size 1
+under the name that states the guarantee of the example. They are drawn
+after each clearing in `tilt`, `peak` and `fall`, outside their boxes, and
+once by the initial function in `level`, which redraws its values by bands
+and does not clear.
 
 #### Command line
 <!-- web-skip -->

@@ -1,4 +1,4 @@
-(* A digital level on the M5Stack CoreS3 Lite: a calibration applied only to
+(* A digital level on the M5Stack CoreS3 Lite: a reference applied only to
    readings that no reconfiguration of the unit precedes
 
    Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
@@ -18,76 +18,117 @@
      - Product: concatenation of traces, componentwise *)
 
 (* Runs on the M5Stack CoreS3 Lite lying on a surface (level.device.json):
-   'step' every 250 ms from the state of 'start'. The step shows the pitch
-   and the roll, in degrees, less the offsets of a calibration, "LEVEL" when
-   both are within half a degree, and the age of the calibration. A tap
-   calibrates; a tap on the top right corner reconfigures the unit, which
-   invalidates the calibration. Operations come from the packages m5-imu,
-   m5-display, m5-touch and m5-speaker; bindings.cpp defines the safe state
+   'step' every 250 ms from the state of 'start'. The screen shows a bubble
+   vial, the pitch and the roll, in degrees, less the offsets of a
+   reference, "LEVEL" when both are within half a degree, the state of the
+   reference, and two buttons: "Set reference" takes a reference, checked
+   at rest, and "Reconfigure sensor" switches the output data rate of the
+   accelerometer between 100 and 400 Hz, which invalidates it; a
+   reference expires after 30 seconds. bindings.cpp defines the safe state
    and world.cpp models the surface and the taps. The figures below are
    those under the bounds of the CoreS3, some of them provisional.
 
    On the board: make arduino-level-upload; simulated on the host: make
    arduino-level-simulate ('make examples-help', README: Arduino). *)
 
-(* A calibration: none yet, invalidated by a reconfiguration or by its age,
-   failed by its self-test, or the offsets of the pitch and the roll, in
-   degrees. *)
-type calibration =
-  | Uncalibrated
-  | Invalidated
-  | Failed
+(* A reference: none yet, held still before it is taken for the given
+   number of steps, rejected by its check at rest, invalidated by a
+   reconfiguration, to the given rate, or by its age, or the offsets of the pitch and the roll,
+   in degrees. *)
+type reference =
+  | NoReference
+  | Holding of nat
+  | Rejected
+  | Reconfigured of nat
+  | Expired
   | Offsets of float * float
 
-(* The state of the step: the calibration, its age in steps, the output data
+(* The state of the step: the reference, its age in steps, the output data
    rate of the accelerometer, in hertz, and whether the screen was touched
    at the last step. *)
-type state = calibration * nat * nat * bool
+type state = reference * nat * nat * bool
 
-(* The period, in seconds, the age at which a calibration expires, in steps,
-   and the tolerance of the level, in degrees. *)
+(* The period, in seconds; the age at which a reference expires, in steps,
+   and the steps held still before a reference is taken; the tolerance of the level, in degrees, and the
+   displacement of the bubble, in pixels per degree. *)
 let period = 0.25
-let expiry = 2400
+let expiry = 120
+let hold = 4
 let tolerance = 0.5
+let scale = 8.0
+
+(* The colours of the bubble: without a valid reference, off level and
+   level. *)
+let grey = 0x808080
+let white = 0xffffff
+let green = 0x00e000
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
-(* Whether a point of the screen, in pixels, lies in its top right corner. *)
-let corner (x : nat) (y : nat) = x >= 240 && y < 80
+(* Whether a point of the screen, in pixels, lies on the button "Set
+   reference" at the bottom left or on the button "Reconfigure sensor" at
+   the bottom right. *)
+let on_set (x : nat) (y : nat) = x < 146 && y >= 190
+let on_sensor (x : nat) (y : nat) = x >= 146 && y >= 190
 
 (* The pitch and the roll of an acceleration, in degrees, less the offsets of
-   a calibration, if any. *)
-let angles (accel : vector) (calibration : calibration) =
+   a reference, if any. *)
+let angles (accel : vector) (reference : reference) =
   let pitch = tilt_x_of_accel accel in
   let roll = tilt_y_of_accel accel in
-  match calibration with
+  match reference with
   | Offsets (dx, dy) -> (pitch -. dx, roll -. dy)
   | _ -> (pitch, roll)
 
 let level ((pitch, roll) : float * float) =
   magnitude pitch <= tolerance && magnitude roll <= tolerance
 
-(* The screen: a title at the top, the labels, and a footer at the bottom,
-   drawn once by 'start'; the angles, the verdict, the state of the
-   calibration and its age, in seconds, redrawn by each step over the bands
-   of the previous. *)
-let display (calibration : calibration) (shown : float * float) (age : nat) :
-    unit # {ShowNumberAt; ShowNumberAt; ShowTextAt; ShowTextAt; ShowNumberAt}
-    =
-  let pitch, roll = shown in
-  perform ShowNumberAt (130, 30, 3, 1, pitch);
-  perform ShowNumberAt (130, 70, 3, 1, roll);
-  (match calibration with
+(* The two lines of the state of the reference, of age 'age' in steps. *)
+let status (reference : reference) (age : nat) :
+    unit # {(ShowTextAt | ShowTimeAt); ShowTextAt} =
+  match reference with
+  | NoReference ->
+      perform ShowTextAt (0, 150, 2, "No reference: place on the");
+      perform ShowTextAt (0, 172, 2, "surface, tap Set reference")
+  | Holding _ ->
+      perform ShowTextAt (0, 150, 2, "Hold still...");
+      perform ShowTextAt (0, 172, 2, "")
+  | Rejected ->
+      perform ShowTextAt (0, 150, 2, "Moved during check:");
+      perform ShowTextAt (0, 172, 2, "reference rejected")
+  | Reconfigured 400 ->
+      perform ShowTextAt (0, 150, 2, "Reconfigured, now 400 Hz:");
+      perform ShowTextAt (0, 172, 2, "old reference not trusted")
+  | Reconfigured _ ->
+      perform ShowTextAt (0, 150, 2, "Reconfigured, now 100 Hz:");
+      perform ShowTextAt (0, 172, 2, "old reference not trusted")
+  | Expired ->
+      perform ShowTextAt (0, 150, 2, "Reference expired:");
+      perform ShowTextAt (0, 172, 2, "tap Set reference")
   | Offsets _ ->
-      if level shown then perform ShowTextAt (0, 110, 4, "LEVEL")
-      else perform ShowTextAt (0, 110, 4, "")
-  | _ -> perform ShowTextAt (0, 110, 4, ""));
-  (match calibration with
-  | Uncalibrated -> perform ShowTextAt (0, 160, 2, "Tap to calibrate")
-  | Invalidated -> perform ShowTextAt (0, 160, 2, "Recalibrate (tap)")
-  | Failed -> perform ShowTextAt (0, 160, 2, "Self-test failed")
-  | Offsets _ -> perform ShowTextAt (0, 160, 2, "Calibrated"));
-  perform ShowNumberAt (130, 190, 2, 0, float_of_nat age *. period)
+      perform ShowTimeAt (0, 150, 2, "Reference valid for ", (expiry - age) / 4);
+      perform ShowTextAt (0, 172, 2, "(checked at rest)")
+
+(* The screen: the title, the rate of the accelerometer, the guarantee, the
+   labels, the buttons and the footer, drawn once by 'start', the rate
+   redrawn by a reconfiguration; the vial, whose bubble moves to the higher
+   side, grey without a valid reference and green when level, the angles,
+   the verdict and the state of the reference, redrawn by each step over
+   the bands of the previous. *)
+let display (reference : reference) (shown : float * float) (age : nat) :
+    unit
+    # {DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
+       (ShowTextAt | ShowTimeAt); ShowTextAt} =
+  let pitch, roll = shown in
+  let valid = match reference with Offsets _ -> true | _ -> false in
+  let colour = if not valid then grey else if level shown then green else white in
+  perform DrawLevel
+    (60, 90, 50, int_of_float (~-.roll *. scale), int_of_float (~-.pitch *. scale), colour);
+  perform ShowNumberAt (200, 40, 3, 1, pitch);
+  perform ShowNumberAt (200, 80, 3, 1, roll);
+  (if valid && level shown then perform ShowTextAt (130, 120, 3, "LEVEL")
+   else perform ShowTextAt (130, 120, 3, ""));
+  status reference age
 
 (* The tilts of a reading, in degrees. *)
 let tilts () : float * float # {ReadImu} =
@@ -97,19 +138,19 @@ let tilts () : float * float # {ReadImu} =
 (* The box grades below name operations without delays: such a grade
    excludes every operation it does not name. A box grade such as
    '{~(_*; ConfigureImu; ...)}', the traces in which every reconfiguration
-   is followed by a self-test, does not exclude a reconfiguration here,
-   since it contains the delays, within which any operation may come; nor
-   does '{(ConfigureImu; SelfTestImu | 0); ReadImu}', whose upper bound
-   permits the self-test to be left out and whose lower bound demands only
-   one of its traces. *)
+   is followed by a check, does not exclude a reconfiguration here, since it
+   contains the delays, within which any operation may come; nor does
+   '{(ConfigureImu; CheckAtRest | 0); ReadImu}', whose upper bound permits
+   the check to be left out and whose lower bound demands only one of its
+   traces. *)
 
-(* Correctly accepted by the typechecker: the calibration reads the unit four
-   times, 10 ms apart, self-tests it and sounds a tone, high if the unit is
-   at rest and low otherwise. The offsets are boxed with the self-test and
-   the tone, without delays: they are installed only after a self-test, with
-   no other operation, in particular no reconfiguration, between. *)
-let calibrate () : calibration
-    # {ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; SelfTestImu; Beep} =
+(* Correctly accepted by the typechecker: a reference reads the unit four
+   times, 10 ms apart, checks that it is at rest and sounds a tone, high if
+   it is and low otherwise. The offsets are boxed with the check and the
+   tone, without delays: they are installed only after a check at rest,
+   with no other operation, in particular no reconfiguration, between. *)
+let take () : reference
+    # {ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest; Beep} =
   let x1, y1 = tilts () in
   delay 10;
   let x2, y2 = tilts () in
@@ -118,104 +159,116 @@ let calibrate () : calibration
   delay 10;
   let x4, y4 = tilts () in
   let offsets = Offsets ((x1 +. x2 +. x3 +. x4) /. 4.0, (y1 +. y2 +. y3 +. y4) /. 4.0) in
-  box {SelfTestImu; Beep} offsets as untested in
-  let rest = perform SelfTestImu () in
+  box {CheckAtRest; Beep} offsets as unchecked in
+  let rest = perform CheckAtRest () in
   (if rest then perform Beep (2000, 100) else perform Beep (400, 400));
-  unbox untested as tested in
-  if rest then tested else Failed
+  unbox unchecked as checked in
+  if rest then checked else Rejected
 
 (* Correctly rejected by the typechecker: the offsets are installed without a
-   self-test, which the lower bound of their box demands:
+   check at rest, which the lower bound of their box demands:
 
-     Typing error: Variable `untested` is unboxed with grade
+     Typing error: Variable `unchecked` is unboxed with grade
        `[{Beep}, {Beep}]` accumulated since it was bound, which is not below
-       its box grade `[{SelfTestImu; Beep}, {SelfTestImu; Beep}]`
+       its box grade `[{CheckAtRest; Beep}, {CheckAtRest; Beep}]`
        ...
        Note: the resource inequality
-         `[{Beep}, {Beep}] <= [{SelfTestImu; Beep}, {SelfTestImu; Beep}]`
+         `[{Beep}, {Beep}] <= [{CheckAtRest; Beep}, {CheckAtRest; Beep}]`
          does not hold
 *)
 (*
-let calibrate_untested () : calibration =
+let take_unchecked () : reference =
   let x, y = tilts () in
-  box {SelfTestImu; Beep} (Offsets (x, y)) as untested in
+  box {CheckAtRest; Beep} (Offsets (x, y)) as unchecked in
   perform Beep (2000, 100);
-  unbox untested as tested in
-  tested
+  unbox unchecked as checked in
+  checked
 *)
 
-(* Correctly accepted by the typechecker: the step reads the touch screen,
-   then calibrates on a tap, reconfigures the unit on a tap on the corner,
-   setting the output data rate of its accelerometer to 400 or 100 Hz, or
-   neither, then reads the unit and draws, in this order; its durations,
-   0.45 to 234.5 ms, lie below its period of 250 ms. The calibration of the
-   state is boxed with the reading of the touch screen and of the unit,
-   without delays: it is applied, and kept, only if nothing else came
-   between the start of the step and the reading, in particular no
-   reconfiguration and no calibration. The reading is boxed for 5 ms.
+(* Correctly accepted by the typechecker: the step reads the touch screen;
+   then, on a tap on "Reconfigure sensor", it reconfigures the unit,
+   setting the output data rate of its accelerometer to 400 or 100 Hz, and
+   shows the rate, in grey; at the end of the hold after a tap on "Set reference", it
+   takes the reference and shows its state; and otherwise it reads the unit
+   and draws, in this order. Its durations, 8.95 to 211.5 ms, lie below its
+   period of 250 ms. The reference of the state is boxed with the reading
+   of the touch screen and of the unit, without delays: it is applied, and
+   kept, only if nothing else came between the start of the step and the
+   reading, in particular no reconfiguration and no new reference. The
+   reading is boxed with the unit grade: it is drawn with no operation
+   between.
 
    A box is checked from its binding to its unboxing, within one function
-   body. The calibration persists from step to step in the state, as data:
+   body. The reference persists from step to step in the state, as data:
    each step boxes it anew, and its age is counted in steps, so that it
-   expires after 2400 steps, 10 minutes at the period, which the monitor of
+   expires after 120 steps, 30 seconds at the period, which the monitor of
    the device enforces; the typing bounds each step below its period. The
-   step carries the calibration into the next state only as unboxed from
-   its box; the typing does not exclude returning the calibration of the
-   state unchecked, which is plain data. *)
-let step ((calibration, age, rate, touching) : state) : state
+   step carries the offsets into the next state only as unboxed from their
+   box; the typing does not exclude returning the reference of the state
+   unchecked, which is plain data. *)
+let step ((reference, age, rate, touching) : state) : state
     # {Touched;
-       (ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; SelfTestImu; Beep
-       | ConfigureImu; Beep | 0);
-       ReadImu; ShowNumberAt; ShowNumberAt; ShowTextAt; ShowTextAt;
-       ShowNumberAt} =
-  box {Touched; ReadImu} calibration as kept in
+       ((ConfigureImu; Beep; ShowColourTextAt | 0); ReadImu; DrawLevel;
+        ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
+        ShowTextAt
+       | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest; Beep;
+         (ShowTextAt | ShowTimeAt); ShowTextAt)} =
+  box {Touched; ReadImu} reference as kept in
   let touched, x, y = perform Touched () in
   let tapped = touched && not touching in
-  if tapped && corner x y then (
+  if tapped && on_sensor x y then (
     let rate = if rate = 100 then 400 else 100 in
     perform ConfigureImu rate;
     perform Beep (600, 50);
+    (if rate = 100 then perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 100 Hz")
+     else perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 400 Hz"));
     let accel, _ = perform ReadImu () in
-    display Invalidated (angles accel Invalidated) 0;
-    (Invalidated, 0, rate, touched))
-  else if tapped then (
-    let calibration = calibrate () in
-    let accel, _ = perform ReadImu () in
-    box [0, 5] accel as reading in
+    box 0 accel as reading in
     unbox reading as accel in
-    display calibration (angles accel calibration) 0;
-    (calibration, 0, rate, touched))
+    display (Reconfigured rate) (angles accel (Reconfigured rate)) 0;
+    (Reconfigured rate, 0, rate, touched))
   else
-    let accel, _ = perform ReadImu () in
-    box [0, 5] accel as reading in
-    unbox kept as calibration in
-    unbox reading as accel in
-    match calibration with
-    | Offsets _ ->
-        if age + 1 >= expiry then (
-          display Invalidated (angles accel Invalidated) 0;
-          (Invalidated, 0, rate, touched))
-        else (
-          display calibration (angles accel calibration) (age + 1);
-          (calibration, age + 1, rate, touched))
+    match reference with
+    | Holding 0 ->
+        let reference = take () in
+        status reference 0;
+        (reference, 0, rate, touched)
     | _ ->
-        display calibration (angles accel calibration) 0;
-        (calibration, 0, rate, touched)
+        let accel, _ = perform ReadImu () in
+        box 0 accel as reading in
+        unbox kept as reference in
+        unbox reading as accel in
+        let next, age =
+          if tapped && on_set x y then (Holding hold, 0)
+          else
+            match reference with
+            | Holding (n + 1) -> (Holding n, 0)
+            | Offsets _ ->
+                if age + 1 >= expiry then (Expired, 0) else (reference, age + 1)
+            | _ -> (reference, 0)
+        in
+        display next (angles accel next) age;
+        (next, age, rate, touched)
 
-(* The initial state: the screen cleared, with its title, labels and footer,
-   and the unit at its default rate, uncalibrated. *)
+(* The initial state: the screen cleared, with its title, guarantee, labels,
+   buttons and footer, and the unit at its default rate, without a
+   reference. *)
 let start () : state =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Digital level");
-  perform ShowTextAt (0, 30, 3, "Pitch");
-  perform ShowTextAt (0, 70, 3, "Roll");
-  perform ShowTextAt (0, 190, 2, "Age (s)");
-  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (0, 24, 1, "Reference used only if at rest and not reconfigured");
+  perform ShowTextAt (130, 45, 2, "Pitch");
+  perform ShowTextAt (130, 85, 2, "Roll");
+  perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 100 Hz");
+  perform DrawButton (0, 196, 144, 30, "Set reference");
+  perform DrawButton (148, 196, 172, 30, "Reconfigure sensor");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ConfigureImu 100;
-  (Uncalibrated, 0, 100, false)
+  (NoReference, 0, 100, false)
 
-(* Correctly rejected by the typechecker: a tap on the corner reconfigures
-   the unit, and the step still applies the calibration to the reading:
+(* Correctly rejected by the typechecker: a tap on "Reconfigure sensor"
+   reconfigures the unit, and the step still applies the reference to the
+   reading:
 
      Typing error: Variable `kept` is unboxed with grade
        `[{Touched; (0 | ConfigureImu; Beep); ReadImu},
@@ -229,70 +282,66 @@ let start () : state =
          [{Touched; ReadImu}, {Touched; ReadImu}]` does not hold
 *)
 (*
-let step_reconfigured ((calibration, age, rate, touching) : state) : state =
-  box {Touched; ReadImu} calibration as kept in
+let step_reconfigured ((reference, age, rate, touching) : state) : state =
+  box {Touched; ReadImu} reference as kept in
   let touched, x, y = perform Touched () in
-  (if touched && corner x y then (
+  (if touched && on_sensor x y then (
      perform ConfigureImu 400;
      perform Beep (600, 50))
    else ());
   let accel, _ = perform ReadImu () in
-  unbox kept as calibration in
-  display calibration (angles accel calibration) (age + 1);
-  (calibration, age + 1, rate, touched)
+  unbox kept as reference in
+  display reference (angles accel reference) (age + 1);
+  (reference, age + 1, rate, touched)
 *)
 
 (* Correctly rejected by the typechecker: the step reads the unit before it
-   calibrates, and applies the new calibration to a reading more than 5 ms
-   old:
+   takes a reference, and applies the new reference to that reading:
 
      Typing error: Variable `reading` is unboxed with grade
-       `[{0 | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; SelfTestImu;
+       `[{0 | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest;
        Beep}, {0 | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu;
-       SelfTestImu; Beep}]` accumulated since it was bound, which is not
-       below its box grade `[{0}, {5}]`
+       CheckAtRest; Beep}]` accumulated since it was bound, which is not
+       below its box grade `[{0}, {0}]`
        ...
-       Note: the resource inequality
-         `[{0 | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; SelfTestImu;
-         Beep}, {0 | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu;
-         SelfTestImu; Beep}] <= [{0}, {5}]` does not hold
 *)
 (*
-let step_stale ((calibration, age, rate, touching) : state) : state =
+let step_stale ((reference, age, rate, touching) : state) : state =
   let touched, _, _ = perform Touched () in
   let accel, _ = perform ReadImu () in
-  box [0, 5] accel as reading in
-  let calibration = if touched then calibrate () else calibration in
+  box 0 accel as reading in
+  let reference = if touched then take () else reference in
   unbox reading as accel in
-  display calibration (angles accel calibration) 0;
-  (calibration, 0, rate, touched)
+  display reference (angles accel reference) 0;
+  (reference, 0, rate, touched)
 *)
 
 (* Correctly rejected by the typechecker: the step draws before it reads the
    unit, against the order of its grade:
 
      Typing error: This function's body has grade
-       `[{Touched; ShowNumberAt; ShowNumberAt; ShowTextAt; ShowTextAt;
-       ShowNumberAt; ReadImu}, {Touched; ShowNumberAt; ShowNumberAt;
-       ShowTextAt; ShowTextAt; ShowNumberAt; ReadImu}]`, which does not
-       match its annotated grade `[{Touched; ReadImu; ShowNumberAt;
-       ShowNumberAt; ShowTextAt; ShowTextAt; ShowNumberAt}, {Touched;
-       ReadImu; ShowNumberAt; ShowNumberAt; ShowTextAt; ShowTextAt;
-       ShowNumberAt}]`
+       `[{Touched; DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
+       (ShowTextAt | ShowTimeAt); ShowTextAt; ReadImu}, {Touched; DrawLevel;
+       ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
+       ShowTextAt; ReadImu}]`, which does not match its annotated grade
+       `[{Touched; ReadImu; DrawLevel; ShowNumberAt; ShowNumberAt;
+       ShowTextAt; (ShowTextAt | ShowTimeAt); ShowTextAt}, {Touched;
+       ReadImu; DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
+       (ShowTextAt | ShowTimeAt); ShowTextAt}]`
        ...
 *)
 (*
-let step_drawn_first ((calibration, age, rate, touching) : state) : state
-    # {Touched; ReadImu; ShowNumberAt; ShowNumberAt; ShowTextAt; ShowTextAt;
-       ShowNumberAt} =
+let step_drawn_first ((reference, age, rate, touching) : state) : state
+    # {Touched; ReadImu; DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
+       (ShowTextAt | ShowTimeAt); ShowTextAt} =
   let touched, _, _ = perform Touched () in
-  display calibration (0.0, 0.0) age;
+  display reference (0.0, 0.0) age;
   let _ = perform ReadImu () in
-  (calibration, age + 1, rate, touched)
+  (reference, age + 1, rate, touched)
 *)
 
-(* A step without a tap from the initial state, and a calibration with the
+(* A step without a tap from the initial state, and a reference with the
    default implementations, which read a unit at rest with its z axis up. *)
 run step (start ())
 
-run calibrate ()
+run take ()
