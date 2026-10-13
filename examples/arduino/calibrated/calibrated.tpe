@@ -1,0 +1,153 @@
+(* A calibrated tilt display on the M5Stack CoreS3 Lite: a handler that
+   corrects the gyroscope, compiled into the 20 ms step
+
+   Run this example with the 'time-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades time-interval-rational \
+       --package m5-imu \
+       --package m5-display \
+       --board m5stack-cores3 \
+       examples/arduino/calibrated/calibrated.tpe
+
+   Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
+     - Unit [0, 0]: no time spent
+     - Top [0, ∞): no bound, the widest interval
+     - Product: componentwise addition, an end open if either end added is *)
+
+(* Runs on the M5Stack CoreS3 Lite (calibrated.device.json): 'step' every
+   20 ms from the state of 'start', and 'show' repeated, as in
+   ../tilt/tilt.tpe. Operations come from the packages m5-imu and m5-display;
+   bindings.cpp binds the others, and the host model world.cpp holds the unit
+   at rest at a tilt of 0.1 rad with a gyroscope that reads a bias of 2
+   degrees per second about the x axis. The figures below are those under
+   the bounds of the CoreS3.
+
+   The step reads the unit through the handler 'calibrated', which the
+   Arduino backend compiles to a direct call of its case of ReadImu: a
+   handler whose cases resume their continuations once, in tail position, is
+   compiled for the device. The case is not monitored itself; the binding of
+   ReadImu that it calls is.
+
+   On the board: make arduino-calibrated-upload; simulated on the host: make
+   arduino-calibrated-simulate ('make examples-help', README: Arduino). *)
+
+(* The exchange between the tasks, through bindings.cpp, as in tilt.tpe. *)
+
+operation Publish : float ~> unit # [0, 0.05]
+default Publish _ = delay 1/100
+
+operation Latest : unit ~> float # [0, 0.05]
+default Latest () = delay 1/100; 0.0
+
+(* The period, in seconds, and the weight of the gyroscope in the
+   complementary filter of the tilt. *)
+let period = 0.02
+let gyro_weight = 0.9
+
+(* Correctly accepted by the typechecker: the gyroscope corrected by its
+   bias about the x axis, in degrees per second. The case of ReadImu
+   performs the operation and resumes its continuation with the reading, the
+   bias subtracted from its rate about the x axis. A case is checked against
+   the grade of its operation, [0.2, 1.5]: its continuation is boxed with
+   that grade, so that the bounds of every program that performs ReadImu
+   hold under the handler. *)
+let calibrated (bias : float) =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let accel, (gx, gy, gz) = perform ReadImu () in
+      continue k with (accel, (gx -. bias, gy, gz))
+
+(* Correctly rejected by the typechecker: the case of ReadImu averages two
+   readings, which takes 0.4 to 3 ms, longer than the operation it handles:
+
+     Typing error: Variable `k` is unboxed with grade `[0.4, 3]`
+       accumulated since it was bound, which is not below its box grade
+       `[0.2, 1.5]`
+       ...
+       Note: the resource inequality `[0.4, 3] <= [0.2, 1.5]` does not hold
+*)
+(*
+let smoothed (bias : float) =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let (ax1, ay1, az1), (gx1, gy1, gz1) = perform ReadImu () in
+      let (ax2, ay2, az2), (gx2, gy2, gz2) = perform ReadImu () in
+      let mean a b = (a +. b) /. 2.0 in
+      continue k with
+        ((mean ax1 ax2, mean ay1 ay2, mean az1 az2),
+         (mean gx1 gx2 -. bias, mean gy1 gy2, mean gz1 gz2))
+*)
+
+(* Correctly rejected by the Arduino backend, though accepted by the
+   typechecker: the case of ReadImu pairs the result of the resumption of its
+   continuation with whether the unit was read, so that the resumption is not
+   in tail position:
+
+     Compilation error: The continuation `k` of the case of `ReadImu` is
+       resumed outside tail position, so the handler cannot be compiled to
+       direct calls
+*)
+(*
+let observed (bias : float) =
+  handler
+  | s -> (s, false)
+  | ReadImu () k ->
+      let accel, (gx, gy, gz) = perform ReadImu () in
+      let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
+      (s, true)
+*)
+
+(* The step of tilt.tpe: it reads the unit, filters the tilt about the x
+   axis from the reading and publishes the tilt. *)
+let filter (tilt : float) =
+  let imu = perform ReadImu () in
+  let tilt = tilt_x gyro_weight period tilt imu in
+  perform Publish tilt;
+  tilt
+
+(* Correctly accepted by the typechecker: the step filters the tilt from a
+   reading corrected by the bias of its state, the bias and the tilt; it
+   ends within 0.2 to 1.55 ms, below its period. *)
+let step ((bias, tilt) : float * float) : (float * float) # [0, 20) =
+  let tilt = handle filter tilt with calibrated bias in
+  (bias, tilt)
+
+(* The sum of 'n' rates about the x axis added to 'sum', read 2 ms apart. *)
+let rec rates (n : nat) (sum : float) : float # [0, ∞) =
+  match n with
+  | 0 -> sum
+  | m + 1 ->
+      let _, (gx, _, _) = perform ReadImu () in
+      delay 2;
+      rates m (sum +. gx)
+
+(* The initial state: the bias, the mean rate about the x axis of 50
+   readings of the unit at rest, and the tilt from the accelerometer
+   alone. *)
+let start () =
+  let bias = rates 50 0.0 /. 50.0 in
+  let accel, _ = perform ReadImu () in
+  (bias, tilt_x_of_accel accel)
+
+(* Correctly accepted by the typechecker: the display of tilt.tpe. It clears
+   the screen and writes the name of the example in text of size 2 at the
+   top; it then reads the tilt last published, writes the label and shows
+   the tilt. The tilt is boxed for a period of the step: it is shown 0.05 to
+   12.5 ms after it was read. The display then writes the footer in small
+   text at the bottom right and waits 250 ms. *)
+let show () =
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Calibrated tilt");
+  let tilt = perform Latest () in
+  box [0, 20) tilt as fresh in
+  perform ShowText "Tilt (degrees)";
+  unbox fresh as shown in
+  perform ShowNumber shown;
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  delay 250
+
+run step (start ())
+
+run show ()

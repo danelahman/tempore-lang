@@ -1448,7 +1448,8 @@ handlers as further parameters. On a device, an operation handled by a case
 is not a call of its binding and is not monitored; the operations the case
 performs are, and an operation that no code performs outside all handlers
 needs no binding. See
-[`tests/arduino/handlers.tpe`](tests/arduino/handlers.tpe).
+[`tests/arduino/handlers.tpe`](tests/arduino/handlers.tpe) and the example
+[`calibrated/calibrated.tpe`](examples/arduino/calibrated/calibrated.tpe).
 
 Under a device manifest, the definitions checked and compiled are those
 reached from the task functions and the `initial` functions of the manifest;
@@ -1669,6 +1670,12 @@ M5Stack CoreS3 and CoreS3 Lite (profile `m5stack-cores3`, port variable
 
 - [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
   M5Stack CoreS3 Lite, with a 20 ms filter step and a display task;
+- [`calibrated/calibrated.tpe`](examples/arduino/calibrated/calibrated.tpe):
+  the tilt display with a gyroscope bias measured at start-up and removed
+  from every reading by a tail-resumptive handler around the step, whose
+  case of `ReadImu` is checked against the grade of the operation and
+  compiled to a direct call; its host model holds the unit at rest with a
+  biased gyroscope;
 - [`peak/peak.tpe`](examples/arduino/peak/peak.tpe): a recorder of the peak
   tilt in the flash memory of the M5Stack CoreS3 Lite, under the operation
   counts: the step performs one reading and one publication and no write of

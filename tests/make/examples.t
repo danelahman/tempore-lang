@@ -141,6 +141,6 @@ The aggregate targets cover every example:
   $ dry opentrons-simulate-all | grep -c tempore
   8
   $ dry arduino-simulate-all | grep -c tempore
-  7
+  8
   $ dry arduino-build-all | grep -c tempore
-  7
+  8

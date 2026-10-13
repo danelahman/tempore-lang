@@ -1,0 +1,10 @@
+(* The handler of calibrated.tpe pairing its result with whether the unit
+   was read. *)
+
+let observed (bias : float) =
+  handler
+  | s -> (s, false)
+  | ReadImu () k ->
+      let accel, (gx, gy, gz) = perform ReadImu () in
+      let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
+      (s, true)

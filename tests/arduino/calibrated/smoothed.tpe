@@ -1,0 +1,12 @@
+(* The handler of calibrated.tpe averaging two readings in its case. *)
+
+let smoothed (bias : float) =
+  handler
+  | s -> s
+  | ReadImu () k ->
+      let (ax1, ay1, az1), (gx1, gy1, gz1) = perform ReadImu () in
+      let (ax2, ay2, az2), (gx2, gy2, gz2) = perform ReadImu () in
+      let mean a b = (a +. b) /. 2.0 in
+      continue k with
+        ((mean ax1 ax2, mean ay1 ay2, mean az1 az2),
+         (mean gx1 gx2 -. bias, mean gy1 gy2, mean gz1 gz2))
