@@ -60,8 +60,8 @@ itself and may last its period:
   File "tilt/shown.tpe", lines 3-10, characters 30-6:
   3 | let step_shown (tilt : float) : float # [0, 20) =
                                     ^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `[31.3, 62.25]`, which does not match its annotated grade `[0, 20)`
-    Note: the effect inequality `[31.3, 62.25] <= [0, 20)` does not hold
+  Typing error: This function's body has grade `[31.3, 62]`, which does not match its annotated grade `[0, 20)`
+    Note: the effect inequality `[31.3, 62] <= [0, 20)` does not hold
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without

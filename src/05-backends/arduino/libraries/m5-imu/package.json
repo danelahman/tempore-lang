@@ -15,6 +15,6 @@
   "init": "m5_imu_init",
   "bounds": {
     "m5stack-gray": { "ReadImu": [0.55, 1.25] },
-    "m5stack-cores3": { "ReadImu": [0.2, 1.75] }
+    "m5stack-cores3": { "ReadImu": [0.2, 1.5] }
   }
 }

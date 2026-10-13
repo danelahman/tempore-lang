@@ -61,7 +61,7 @@ let gyro_weight = 0.9
 
 (* Correctly accepted by the typechecker: the step reads the unit, boxes the
    reading for 5 ms, filters the tilt about the x axis of the unit from it
-   and publishes the tilt; it ends within 0.2 to 1.8 ms, below its
+   and publishes the tilt; it ends within 0.2 to 1.55 ms, below its
    period. *)
 let step (tilt : float) : float # [0, 20) =
   let reading = perform ReadImu () in
@@ -113,9 +113,9 @@ let show_stale () =
    shows the tilt itself, which takes at least 31 ms, so that the step lasts
    longer than its period:
 
-     Typing error: This function's body has grade `[31.3, 62.25]`, which
+     Typing error: This function's body has grade `[31.3, 62]`, which
        does not match its annotated grade `[0, 20)`
-       Note: the effect inequality `[31.3, 62.25] <= [0, 20)` does not hold
+       Note: the effect inequality `[31.3, 62] <= [0, 20)` does not hold
 *)
 (*
 let step_shown (tilt : float) : float # [0, 20) =

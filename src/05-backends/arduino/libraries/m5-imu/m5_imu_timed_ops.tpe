@@ -6,5 +6,5 @@
    implementation are those of m5_imu.tpe; the types and the attitude filter
    are defined in m5_imu_filter.tpe. *)
 
-operation ReadImu : unit ~> imu # {ReadImu} within [0.2, 1.75]
+operation ReadImu : unit ~> imu # {ReadImu} within [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

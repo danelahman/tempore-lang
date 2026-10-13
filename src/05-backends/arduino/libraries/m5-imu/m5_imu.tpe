@@ -12,11 +12,11 @@
    and the upper bound 1.5 times the greatest, rounded up. On an M5Stack Gray
    core, whose MPU6886 is read in one transaction of 14 bytes, ReadImu took
    0.577 to 0.833 ms: [0.55, 1.25]. On an M5Stack CoreS3 Lite, whose BMI270
-   was read through M5.Imu.update, M5.Imu.getAccel and M5.Imu.getGyro, it
-   took 0.214 to 1.145 ms: [0.2, 1.75]. The bounds below cover both
+   was read by one M5.Imu.update followed by M5.Imu.getImuData, it took
+   0.224 to 1.000 ms: [0.2, 1.5]. The bounds below cover both
    boards; the descriptor package.json gives those of each board, which
    replace them for a device of that board. The default implementation
    takes 0.6 ms, within the bounds of each. *)
 
-operation ReadImu : unit ~> imu # [0.2, 1.75]
+operation ReadImu : unit ~> imu # [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

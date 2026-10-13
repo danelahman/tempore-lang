@@ -60,7 +60,7 @@ board for which the package gives none keeps those of the declarations:
   m5stack-cores3 [1]
   m5stack-fire [1]
   $ ../../tempore --grades time-interval-rational --package m5-imu --typecheck-only bounds.tpe 2>&1 | grep error
-  Typing error: This function's body has grade `[0.2, 1.75]`, which does not match its annotated grade `[0.55, 1.25]`
+  Typing error: This function's body has grade `[0.2, 1.5]`, which does not match its annotated grade `[0.55, 1.25]`
   $ cat > bounds.tpe <<'EOF'
   > let read () : imu # {[0, 1.3]} = perform ReadImu ()
   > EOF
@@ -155,7 +155,7 @@ manifest on the M5Stack CoreS3, those on the CoreS3:
   $ sed 's/m5stack-gray/m5stack-cores3/' packages/tilt.device.json > cores3.device.json
   $ emit cores3 --device cores3.device.json packages/tilt.tpe > /dev/null
   $ grep 'ReadImu_bounds = ' _arduino/projects/cores3/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 1750, false, true};
+  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 1500, false, true};
 
 Its host simulation: the model of the unit reads the default world, a body
 swinging about the x axis with an amplitude of 0.1 radians; the display writes

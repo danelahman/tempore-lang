@@ -1463,7 +1463,7 @@ An application is described in four layers.
     readings of that update without the further update of `M5.Imu.getAccel`
     and `M5.Imu.getGyro` when more than 256 µs have passed since the last
     one; its running-time bounds are given per board, `[0.55, 1.25]` ms on
-    the Gray and `[0.2, 1.75]` ms on the CoreS3, and the declarations give
+    the Gray and `[0.2, 1.5]` ms on the CoreS3, and the declarations give
     the bounds that cover both;
   - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`;
   - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base
@@ -1501,7 +1501,7 @@ operation, as closed intervals in the time unit of the declarations:
 
     "bounds": {
       "m5stack-gray": { "ReadImu": [0.55, 1.25] },
-      "m5stack-cores3": { "ReadImu": [0.2, 1.75] }
+      "m5stack-cores3": { "ReadImu": [0.2, 1.5] }
     }
 
 For the board of a manifest, these bounds replace those of the declarations
