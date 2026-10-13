@@ -55,4 +55,13 @@ inline uint32_t tempore_nat_mod(uint32_t a, uint32_t b) {
 
 inline float tempore_float_pow(float a, float b) { return powf(a, b); }
 
+// The natural number of a float, truncated toward zero and reduced modulo
+// 2^32; zero for a negative float and for NaN, and a run-time error for
+// infinity.
+inline uint32_t tempore_nat_of_float(float x) {
+  if (!(x > 0.0f)) return 0;
+  if (x == INFINITY) tempore_fault("Conversion of infinity to a natural number");
+  return static_cast<uint32_t>(fmodf(truncf(x), 4294967296.0f));
+}
+
 #endif

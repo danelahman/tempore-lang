@@ -6,57 +6,18 @@
 type vector = float * float * float
 type imu = vector * vector
 
-let imu_pi = 3.14159265358979
-
-let imu_abs (x : float) = if x < 0.0 then ~-.x else x
-
-(* The arctangent of x, for x from -1 to 1, in radians, by the polynomial
-   approximation 4.4.49 of Abramowitz and Stegun (1964), of absolute error at
-   most 2e-8. *)
-let imu_atan_unit (x : float) =
-  let s = x *. x in
-  x
-  *. (1.0
-     +. s
-        *. (-0.3333314528
-           +. s
-              *. (0.1999355085
-                 +. s
-                    *. (-0.1420889944
-                       +. s
-                          *. (0.1065626393
-                             +. s
-                                *. (-0.07528964
-                                   +. s
-                                      *. (0.0429096138
-                                         +. s
-                                            *. (-0.0161657367
-                                               +. s *. 0.0028662257))))))))
-
-(* The angle of the point (x, y) from the x axis, from -180 to 180 degrees,
-   as atan2 (y, x); zero at the origin. *)
-let imu_atan2 (y : float) (x : float) =
-  let radians =
-    if imu_abs y <= imu_abs x then
-      if x = 0.0 then 0.0
-      else
-        let a = imu_atan_unit (y /. x) in
-        if x > 0.0 then a else if y >= 0.0 then a +. imu_pi else a -. imu_pi
-    else
-      let a = imu_atan_unit (x /. y) in
-      if y > 0.0 then (imu_pi /. 2.0) -. a else ~-.(imu_pi /. 2.0) -. a
-  in
-  radians *. (180.0 /. imu_pi)
+(* The number of degrees in a radian. *)
+let imu_degrees = 57.2957795130823
 
 (* The tilt of the unit about its x axis, in degrees, from the direction of
    gravity measured by the accelerometer: zero with the z axis up, positive
    when the y axis tilts up. *)
-let tilt_x_of_accel ((_, ay, az) : vector) = imu_atan2 ay az
+let tilt_x_of_accel ((_, ay, az) : vector) = atan2 (ay, az) *. imu_degrees
 
 (* The tilt of the unit about its y axis, in degrees, from the direction of
    gravity: zero with the z axis up, positive when the x axis tilts down. *)
 let tilt_y_of_accel ((ax, ay, az) : vector) =
-  imu_atan2 (~-.ax) (((ay *. ay) +. (az *. az)) ** 0.5)
+  atan2 (~-.ax, sqrt ((ay *. ay) +. (az *. az))) *. imu_degrees
 
 (* A complementary filter: the angle, in degrees, advanced by the rate, in
    degrees per second, over dt seconds, weighted by alpha, and the measured

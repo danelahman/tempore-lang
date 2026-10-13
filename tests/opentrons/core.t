@@ -81,6 +81,53 @@ each run, which is dropped before the comparison.
   
   Run-time error: Division by zero
 
+  $ parity float_functions.tpe
+  === Run 1 ===
+  return (0., 3., 1e+20)
+  
+  === Run 2 ===
+  return 9007199254740992
+  
+  === Run 3 ===
+  return (1e+308, infinity)
+  
+  === Run 4 ===
+  return (2, 3, 0, 100000000000000000000)
+  
+  === Run 5 ===
+  return (0, 0, 0)
+  
+  === Run 6 ===
+  return 0
+  
+  === Run 7 ===
+  return 4294967295
+  
+  === Run 8 ===
+  return (2., 1.41421356237, 0., -0., nan)
+  
+  === Run 9 ===
+  return (infinity, nan)
+  
+  === Run 10 ===
+  return (0.785398163397, -0.785398163397, 1.57079632679, nan)
+  
+  === Run 11 ===
+  return (0.785398163397, 2.35619449019, -2.35619449019)
+  
+  === Run 12 ===
+  return (0., 3.14159265359, -3.14159265359)
+  
+  === Run 13 ===
+  return (1.57079632679, 0.785398163397, nan)
+  
+
+  $ parity nat_of_float_infinity.tpe
+  === Run 1 ===
+  return 1
+  
+  Run-time error: Conversion of infinity to a natural number
+
   $ parity strings.tpe
   === Run 1 ===
   return "plain"

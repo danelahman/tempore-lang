@@ -60,6 +60,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let float_float_to_float f expr =
     return_const expr.Ast.at (Const.Float (float_float_to f expr))
 
+  (* The natural number of a float, truncated toward zero; zero for a
+     negative float and for NaN, and a run-time error for infinity. *)
+  let nat_of_float x =
+    if Float.is_nan x || x <= 0.0 then Z.zero
+    else if x = Float.infinity then
+      Error.runtime "Conversion of infinity to a natural number"
+    else Z.of_float x
+
   (* Which shapes the comparison primitives below accept: everything but a
      function or a handler, which are not values that can be compared. *)
   let rec comparable_expression (expr : _ Ast.expression) =
@@ -112,6 +120,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Primitives.FloatDiv -> float_float_to_float ( /. )
     | Primitives.FloatPow -> float_float_to_float ( ** )
     | Primitives.FloatNeg -> float_to_float ( ~-. )
+    | Primitives.FloatOfNat ->
+        fun expr ->
+          return_const expr.Ast.at (Const.Float (Z.to_float (get_nat expr)))
+    | Primitives.NatOfFloat ->
+        fun expr ->
+          return_const expr.Ast.at (Const.Nat (float_to nat_of_float expr))
+    | Primitives.FloatSqrt -> float_to_float Float.sqrt
+    | Primitives.FloatAtan -> float_to_float Float.atan
+    | Primitives.FloatAtan2 -> float_float_to_float Float.atan2
     | Primitives.ToString ->
         fun expr ->
           return_const expr.Ast.at

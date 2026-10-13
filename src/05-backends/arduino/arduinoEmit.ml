@@ -461,6 +461,13 @@ let primitive names p (v : F.value) =
   | Primitives.NatMod -> binary (Printf.sprintf "tempore_nat_mod(%s, %s)")
   | Primitives.FloatPow -> binary (Printf.sprintf "tempore_float_pow(%s, %s)")
   | Primitives.FloatNeg -> Printf.sprintf "(-%s)" (expression names v)
+  | Primitives.FloatOfNat ->
+      Printf.sprintf "static_cast<float>(%s)" (expression names v)
+  | Primitives.NatOfFloat ->
+      Printf.sprintf "tempore_nat_of_float(%s)" (expression names v)
+  | Primitives.FloatSqrt -> Printf.sprintf "sqrtf(%s)" (expression names v)
+  | Primitives.FloatAtan -> Printf.sprintf "atanf(%s)" (expression names v)
+  | Primitives.FloatAtan2 -> binary (Printf.sprintf "atan2f(%s, %s)")
   | Primitives.ToString -> invalid_arg "to_string"
 
 (* Free variables. *)

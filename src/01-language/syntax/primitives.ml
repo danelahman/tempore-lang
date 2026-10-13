@@ -16,6 +16,11 @@ type primitive =
   | FloatDiv
   | FloatPow
   | FloatNeg
+  | FloatOfNat
+  | NatOfFloat
+  | FloatSqrt
+  | FloatAtan
+  | FloatAtan2
   | ToString
 
 (* Keep this list up to date with the type above, otherwise the missing primitives will not be loaded *)
@@ -38,6 +43,11 @@ let primitives =
     FloatDiv;
     FloatPow;
     FloatNeg;
+    FloatOfNat;
+    NatOfFloat;
+    FloatSqrt;
+    FloatAtan;
+    FloatAtan2;
     ToString;
   ]
 
@@ -59,4 +69,9 @@ let primitive_name = function
   | FloatDiv -> "__float_div__"
   | FloatPow -> "__float_pow__"
   | FloatNeg -> "__float_neg__"
+  | FloatOfNat -> "__float_of_nat__"
+  | NatOfFloat -> "__nat_of_float__"
+  | FloatSqrt -> "__float_sqrt__"
+  | FloatAtan -> "__float_atan__"
+  | FloatAtan2 -> "__float_atan2__"
   | ToString -> "to_string"

@@ -88,6 +88,11 @@ let primitive_function = function
   | Primitives.FloatDiv -> "tempore_prim_float_div"
   | Primitives.FloatPow -> "tempore_prim_float_pow"
   | Primitives.FloatNeg -> "tempore_prim_float_neg"
+  | Primitives.FloatOfNat -> "tempore_prim_float_of_nat"
+  | Primitives.NatOfFloat -> "tempore_prim_nat_of_float"
+  | Primitives.FloatSqrt -> "tempore_prim_float_sqrt"
+  | Primitives.FloatAtan -> "tempore_prim_float_atan"
+  | Primitives.FloatAtan2 -> "tempore_prim_float_atan2"
   | Primitives.ToString -> "tempore_prim_to_string"
 
 (* The emission context. Continuations and the computations bound by [do] are

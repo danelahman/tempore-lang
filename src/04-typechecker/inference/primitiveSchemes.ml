@@ -46,6 +46,10 @@ module Make (C : Constraint.S) = struct
     | Primitives.FloatAdd | Primitives.FloatMul | Primitives.FloatSub
     | Primitives.FloatDiv | Primitives.FloatPow ->
         binary float
-    | Primitives.FloatNeg -> unary float
+    | Primitives.FloatNeg | Primitives.FloatSqrt | Primitives.FloatAtan ->
+        unary float
+    | Primitives.FloatAtan2 -> binary float
+    | Primitives.FloatOfNat -> C.monomorphic (arrow nat float)
+    | Primitives.NatOfFloat -> C.monomorphic (arrow float nat)
     | Primitives.ToString -> poly (fun a -> arrow a string)
 end

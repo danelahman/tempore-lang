@@ -1185,6 +1185,14 @@ tracks the resource state: both the boxed resources and the accumulated grade. A
 `run` command prints its result with the final resource state. The web interface
 can also step through the individual reductions and shows the resource usage.
 
+Natural numbers are unbounded and floats are of double precision. Besides the
+arithmetic operators, the standard library provides `float_of_nat`, the
+nearest float, infinity beyond the range; `nat_of_float`, truncated toward
+zero, 0 for a negative float and for NaN, and a run-time error for infinity,
+as division by zero; `sqrt`, NaN for a negative float; `atan`; and
+`atan2 (y, x)`, the angle of the point `(x, y)` from -π to π, with the
+special cases of C.
+
 The timeline of a run lists, in grades, what reaches its top level: the delays,
 the calls of operations that no handler handles and that are performed by their
 default implementations, and the resources boxed and unboxed, by the name of the
@@ -1345,13 +1353,13 @@ Arduino or ESP32 board, with FreeRTOS tasks and run-time monitors. Grades are
 erased; boxes and unboxing generate no code.
 
 The fragment consists of top-level functions, fully applied, `let`, `match`
-and `if`, natural numbers (32-bit, `+` and `*` modulo 2^32), single-precision
-floats, booleans, tuples, datatypes without type parameters that are not
-recursive, `delay`, operation calls and self calls in tail position, which
-become loops. Local functions, functions as values, partial application,
-handlers, lists, strings other than constant arguments of operations, and
-recursion other than self calls in tail position are refused, each with a
-`Compilation error` at the construct.
+and `if`, natural numbers (32-bit, `+`, `*` and `nat_of_float` modulo 2^32),
+single-precision floats, booleans, tuples, datatypes without type parameters
+that are not recursive, `delay`, operation calls and self calls in tail
+position, which become loops. Local functions, functions as values, partial
+application, handlers, lists, strings other than constant arguments of
+operations, and recursion other than self calls in tail position are refused,
+each with a `Compilation error` at the construct.
 
 An application is described in four layers.
 

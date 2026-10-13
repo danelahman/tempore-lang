@@ -16,7 +16,7 @@ performed by their default implementations, and its attitude filter:
   >   unbox fresh as x in
   >   tilt_x 0.98 0.005 1.0 x
   > run read ()
-  > run (imu_atan2 1.0 (-1.0), tilt_y_of_accel (-0.5, 0.0, 0.866025403784))
+  > run (tilt_x_of_accel (0.0, 1.0, -1.0), tilt_y_of_accel (-0.5, 0.0, 0.866025403784))
   > EOF
   $ ../../tempore --grades time-interval-rational --package m5-imu filter.tpe
   === Run 1 ===
@@ -27,7 +27,7 @@ performed by their default implementations, and its attitude filter:
   ]
   
   === Run 2 ===
-  return (135., 29.9999998359)
+  return (135., 30.)
   State: []
   
 

@@ -614,6 +614,34 @@ run
 |}
     [ "box h High"; "box l Low"; "unbox l"; "unbox h" ]
 
+(* The conversions between natural numbers and floats, with natural numbers
+   beyond 32 bits, and the square root and the arctangent of two floats. *)
+let () =
+  let returned =
+    List.filter_map
+      (function Backend.Returned { value; _ } -> Some value | _ -> None)
+      (observations "time-interval"
+         {|let rec power (n : nat) = match n with 0 -> 1 | m + 1 -> 10 * power m
+
+run nat_of_float (float_of_nat 9007199254740993)
+run (nat_of_float 4294967296.0, nat_of_float 1e20)
+run (float_of_nat (power 308), float_of_nat (power 309))
+run (nat_of_float (~-. 2.5), nat_of_float (0.0 /. 0.0))
+run (sqrt 2.25, sqrt (~-. 1.0), atan2 (1.0, ~-. 1.0))
+|})
+  in
+  let expected =
+    [
+      "9007199254740992";
+      "(4294967296, 100000000000000000000)";
+      "(1e+308, infinity)";
+      "(0, 0)";
+      "(1.5, nan, 2.35619449019)";
+    ]
+  in
+  if returned <> expected then
+    fail "conversions: %s" (String.concat "; " returned)
+
 (* The Arduino backend *)
 
 let arduino_compiler =

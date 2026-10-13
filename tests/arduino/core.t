@@ -163,3 +163,50 @@ numbers above 1, and their text otherwise.
   === Run 2 ===
   return 0.999988079071
   
+
+  $ parity_close float_functions.tpe
+  === Run 1 ===
+  return (3., 2)
+  
+  === Run 2 ===
+  return (4000000000., 1000000000)
+  
+  === Run 3 ===
+  return (0, 0, 0)
+  
+  === Run 4 ===
+  return 0
+  
+  === Run 5 ===
+  return ((2., 1.3258177042), (1.41421353817, 1.10714876652))
+  
+  === Run 6 ===
+  return ((nan, -0.785398185253), (infinity, 1.5707962513))
+  
+  === Run 7 ===
+  return (-0., nan)
+  
+  === Run 8 ===
+  return (0.785398185253, 2.35619449615, -2.35619449615)
+  
+  === Run 9 ===
+  return (0., 3.14159250259, -3.14159274101)
+  
+  === Run 10 ===
+  return (1.57079637051, 0.785398185253, nan)
+  
+
+  $ parity nat_of_float_infinity.tpe
+  === Run 1 ===
+  return 1
+  
+  Run-time error: Conversion of infinity to a natural number
+
+Natural numbers are of 32 bits in C++, so that the conversion of a float of
+2^32 or above to a natural number is reduced modulo 2^32, where the
+interpreter keeps it whole.
+
+  $ compile nat_of_float_modulo.tpe && ./nat_of_float_modulo.host
+  === Run 1 ===
+  return (0, 1410065408, 4294967040)
+  

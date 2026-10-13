@@ -1,0 +1,4 @@
+(* A run-time error: the conversion of infinity to a natural number. *)
+
+run nat_of_float 1.5
+run nat_of_float (1.0 /. 0.0)

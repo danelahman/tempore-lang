@@ -717,6 +717,39 @@ def tempore_prim_float_neg(v):
     return tempore_Ret(-v)
 
 
+def tempore_prim_float_sqrt(v):
+    return tempore_Ret(tempore_math.nan if v < 0.0 else tempore_math.sqrt(v))
+
+
+def tempore_prim_float_atan(v):
+    return tempore_Ret(tempore_math.atan(v))
+
+
+def tempore_prim_float_atan2(v):
+    return tempore_Ret(tempore_math.atan2(v[0], v[1]))
+
+
+# Conversions between natural numbers and floats: a natural number to the
+# nearest float, infinity beyond the range of floats; a float to the natural
+# number truncated toward zero, zero for a negative float and for NaN, and a
+# run-time error for infinity.
+
+
+def tempore_prim_float_of_nat(v):
+    try:
+        return tempore_Ret(float(v))
+    except OverflowError:
+        return tempore_Ret(tempore_math.inf)
+
+
+def tempore_prim_nat_of_float(v):
+    if not v > 0.0:
+        return tempore_Ret(0)
+    if v == tempore_math.inf:
+        raise tempore_RuntimeError("Conversion of infinity to a natural number")
+    return tempore_Ret(int(v))
+
+
 def tempore_prim_to_string(v):
     return tempore_Ret(tempore_to_string(v))
 

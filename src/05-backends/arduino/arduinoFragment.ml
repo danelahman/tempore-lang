@@ -405,9 +405,12 @@ let primitive_signature at st = function
   | Primitives.NatDiv | Primitives.NatMod ->
       (st, Tuple [ Nat; Nat ], Nat)
   | Primitives.FloatAdd | Primitives.FloatMul | Primitives.FloatSub
-  | Primitives.FloatDiv | Primitives.FloatPow ->
+  | Primitives.FloatDiv | Primitives.FloatPow | Primitives.FloatAtan2 ->
       (st, Tuple [ Float; Float ], Float)
-  | Primitives.FloatNeg -> (st, Float, Float)
+  | Primitives.FloatNeg | Primitives.FloatSqrt | Primitives.FloatAtan ->
+      (st, Float, Float)
+  | Primitives.FloatOfNat -> (st, Nat, Float)
+  | Primitives.NatOfFloat -> (st, Float, Nat)
   | Primitives.ToString -> unsupported at "`to_string`"
 
 (* The types of the parameters and the result of a definition. *)
