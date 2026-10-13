@@ -31,7 +31,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
       Format.fprintf ppf "%t@[<hv 2>%t%t%t ↦@ %t@ # %t@]%t" surround label_mark
         (Ast.Variable.print variable)
         label_mark
-        (PrettyPrint.print_expression (module GS.R) expr)
+        (PrettyPrint.print_expression ~abbreviated:true (module GS.R) expr)
         (PrettyPrint.print_rho (module GS.R) rho)
         surround
     in
