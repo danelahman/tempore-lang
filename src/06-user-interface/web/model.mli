@@ -346,7 +346,8 @@ type side_effect =
       (** scroll to the primary span of the given error in the editor *)
   | Perform_after_paint of action
       (** send [Perform] once the page has been drawn *)
-  | Remember of string * bool  (** keep a setting in the browser *)
+  | Remember of string * string
+      (** keep the value under the key in the browser's storage *)
   | Focus_current_example
       (** focus the card of the example last loaded in the gallery and centre it
           in the gallery's list *)
@@ -365,8 +366,17 @@ val settings : edit_model -> BackendRegistry.settings
 val init : model
 (** The model as the page opens. *)
 
-val use_stdlib_key : string
-(** The key the browser remembers whether to load the standard library under. *)
+val choices : edit_model -> WebChoices.t
+(** [choices edit_model] is the choices of [edit_model] the browser remembers.
+*)
+
+val restored : string option -> model
+(** [restored stored] is the model as the page opens, with the choices encoded
+    by [stored] ({!WebChoices.encode}) restored as far as they are still valid:
+    the example, found by its path or else by its group and title, loaded as
+    from the gallery, or else the default one; then the grades and the backend
+    selected, if known, the latter without loading its default example; then the
+    inputs set. Without [stored], or if it encodes no choices, {!init}. *)
 
 val indentation : string
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)

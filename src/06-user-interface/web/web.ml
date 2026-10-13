@@ -113,25 +113,19 @@ let scroll_handler =
         | _ -> false);
   }
 
-(* Settings the browser remembers, as "true" or "false" under a key. Storage
-   may be missing or refuse access, as in a private window: the default then
-   holds and nothing is remembered. *)
-let recall key default =
+(* Values the browser's local storage keeps under a key. Storage may be missing
+   or refuse access, as in a private window, or be full: nothing is then
+   recalled or remembered. *)
+let recall key =
   try
-    match Js_browser.Window.local_storage Js_browser.window with
-    | Some storage -> (
-        match Js_browser.Storage.get_item storage key with
-        | Some "true" -> true
-        | Some "false" -> false
-        | _ -> default)
-    | None -> default
-  with _ -> default
+    Option.bind (Js_browser.Window.local_storage Js_browser.window)
+      (fun storage -> Js_browser.Storage.get_item storage key)
+  with _ -> None
 
 let remember key value =
   try
     Option.iter
-      (fun storage ->
-        Js_browser.Storage.set_item storage key (string_of_bool value))
+      (fun storage -> Js_browser.Storage.set_item storage key value)
       (Js_browser.Window.local_storage Js_browser.window)
   with _ -> ()
 
@@ -240,17 +234,7 @@ let update model msg =
   ( model',
     Vdom.Cmd.batch ((cmd :: status) @ List.map (command model') side_effects) )
 
-let init =
-  {
-    Model.init with
-    edit_model =
-      {
-        Model.init.edit_model with
-        use_stdlib =
-          recall Model.use_stdlib_key Model.init.edit_model.use_stdlib;
-      };
-  }
-
+let init = Model.restored (recall WebChoices.key)
 let app = Vdom.app ~init:(init, Vdom.Cmd.batch []) ~view:View.view ~update ()
 
 (* The modifier of links is watched on the whole page, the pointer resting on

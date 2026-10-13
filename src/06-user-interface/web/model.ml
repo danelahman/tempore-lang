@@ -226,9 +226,6 @@ type edit_model = {
       (** The values of the inputs set, by the key of their backend. *)
 }
 
-(** The key the browser remembers whether to load the standard library under. *)
-let use_stdlib_key = "tempore.use-stdlib"
-
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)
 let indentation = "  "
 
@@ -313,6 +310,20 @@ let example_of_path path =
            g.examples))
     Examples_tpe.examples
 
+(* The group label and the bundled example in the group of label [group] with
+   title [title], if there is one. *)
+let example_of_title group title =
+  Option.bind
+    (List.find_opt
+       (fun (g : Examples_tpe.group) -> g.label = group)
+       Examples_tpe.examples)
+    (fun (g : Examples_tpe.group) ->
+      Option.map
+        (fun e -> (g.label, e))
+        (List.find_opt
+           (fun (e : Examples_tpe.example) -> e.title = title)
+           g.examples))
+
 (* The group label and the example the manifest names as the default of the
    backend [key], if it names one. *)
 let default_example key =
@@ -334,6 +345,58 @@ let edit_init =
   match example_of_path Examples_tpe.default with
   | Some (group, e) -> edit_update empty (LoadExample (group, e))
   | None -> empty
+
+let choices edit_model =
+  {
+    WebChoices.use_stdlib = edit_model.use_stdlib;
+    example =
+      Option.map
+        (fun (group, title) ->
+          {
+            WebChoices.path =
+              Option.fold ~none:""
+                ~some:(fun (_, (e : Examples_tpe.example)) -> e.path)
+                (example_of_title group title);
+            group;
+            title;
+          })
+        edit_model.selected_example;
+    grade = Some edit_model.selected_resource;
+    backend = Some edit_model.selected_backend;
+    settings = edit_model.backend_settings;
+  }
+
+(* The editor as the page opens with the choices [c] restored: the example
+   loaded first, as it sets the grades, the backend and its inputs, which the
+   remembered ones then override. The backend is selected without its default
+   example. *)
+let restore_edit (c : WebChoices.t) =
+  let c = WebChoices.sanitise c in
+  let loaded =
+    Option.fold ~none:edit_init
+      ~some:(fun (group, e) -> edit_update edit_init (LoadExample (group, e)))
+      (Option.bind c.example (fun (e : WebChoices.example) ->
+           match example_of_path e.path with
+           | Some found -> Some found
+           | None -> example_of_title e.group e.title))
+  in
+  let edit_model =
+    List.fold_left edit_update
+      { loaded with use_stdlib = c.use_stdlib }
+      (List.filter_map Fun.id
+         [
+           Option.map (fun g -> SelectResource g) c.grade;
+           Option.map (fun b -> SelectBackend b) c.backend;
+         ])
+  in
+  {
+    edit_model with
+    backend_settings =
+      c.settings
+      @ List.filter
+          (fun (b, _) -> not (List.mem_assoc b c.settings))
+          edit_model.backend_settings;
+  }
 
 type run_model = {
   current : run_model_state;
@@ -521,7 +584,8 @@ type side_effect =
       (** scroll to the primary span of the given error in the editor *)
   | Perform_after_paint of action
       (** send [Perform] once the page has been drawn *)
-  | Remember of string * bool  (** keep a setting in the browser *)
+  | Remember of string * string
+      (** keep the value under the key in the browser's storage *)
   | Focus_current_example
       (** focus the card of the example last loaded in the gallery and centre it
           in the gallery's list *)
@@ -1248,8 +1312,9 @@ let go_to_error model i =
   let model, effects = flash target model in
   (model, scroll :: effects)
 
-(** [update model msg] is the model after [msg] and the effects it asks for. *)
-let update model msg =
+(* The model after [msg] and the effects it asks for, except the remembering
+   of the choices, which [update] adds. *)
+let respond model msg =
   match msg with
   | Point (pointer, link, _) when pointer = model.pointer ->
       ((if link = model.link then model else { model with link }), [])
@@ -1335,8 +1400,6 @@ let update model msg =
       with
       | Some k when not model.stale_errors -> follow model k
       | _ -> (model, []))
-  | EditMsg (UseStdlib use_stdlib) ->
-      (update_model model msg, [ Remember (use_stdlib_key, use_stdlib) ])
   (* Inputs that change the declarations of the backend, such as the
      packages of a device manifest, change the program: it is checked
      again. *)
@@ -1351,3 +1414,25 @@ let update model msg =
   | OpenGallery when model.edit_model.selected_example <> None ->
       (update_model model msg, [ Focus_current_example ])
   | _ -> (update_model model msg, [])
+
+(* Whether a message changes the choices the browser remembers. *)
+let changes_choices = function
+  | EditMsg
+      ( UseStdlib _ | LoadExample _ | SelectResource _ | SelectBackend _
+      | SetInput _ ) ->
+      true
+  | _ -> false
+
+(** [update model msg] is the model after [msg] and the effects it asks for. *)
+let update model msg =
+  let model, effects = respond model msg in
+  if changes_choices msg then
+    ( model,
+      Remember (WebChoices.key, WebChoices.encode (choices model.edit_model))
+      :: effects )
+  else (model, effects)
+
+let restored stored =
+  Option.fold ~none:init
+    ~some:(fun c -> { init with edit_model = restore_edit c })
+    (Option.bind stored WebChoices.decode)
