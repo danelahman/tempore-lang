@@ -1268,131 +1268,46 @@ are unchanged; `--timeline-full` prints them in full.
 ### Opentrons
 
 The proof-of-concept Opentrons backend compiles the program to a single-file
-Opentrons Python protocol, accepted by the Opentrons App and by
-`opentrons_simulate`. Grades are erased, and the program is executed by an
-abstract machine included in the file, so that handlers, continuations and
-recursion behave as in the small-step interpreter. The robot is the Flex.
+Opentrons Python protocol for the Opentrons Flex, accepted by the Opentrons
+App and by the simulator `opentrons_simulate`. A binding file in Python loads
+the labware, pipettes and modules and implements the operations. The program
+is executed by an abstract machine included in the file, and run-time
+monitors check the running-time bounds of the operations. The details are in
+[`src/05-backends/opentrons/README.md`](src/05-backends/opentrons/README.md).
 
-The program is paired with a binding file in Python. It defines `setup(protocol)`,
-which loads the labware, pipettes, and modules, and returns a context object, and,
-for an operation `Op`, a function `Op(ctx, arg)` that performs the operation and
-returns its result. Arguments and results are Python values: a `nat` is an
-`int`, an `int` a `tempore_Int`, a subclass of `int`, a `string` a `str`, a tuple a `tuple` and `()` the unit value. A binding
-function declares the nominal duration of its action by
-`tempore_elapse(seconds)`. An operation call that no handler handles calls the
-binding function of the operation, or else its default implementation, and
-`delay q` calls `protocol.delay` for `q` units of duration.
+- Handlers, continuations and recursion behave as in the small-step
+  interpreter; grades are erased.
+- A call of a binding function outside the running-time bounds of its
+  operation ends the protocol with an error, is reported by a comment, or is
+  not checked, under the monitor policy `abort`, `warn` or `off`.
+- A protocol is refused when the code of a `run` command may perform an
+  operation that has neither a binding function, nor a default
+  implementation, nor a case in a handler of that code.
 
-Each call of a binding function is monitored against the running-time bounds of
-its operation: those it declares by `within`, or else the interval of durations
-its grade determines, such as `[2, 4]` for `# [2, 4]` under `time-interval`. An
-operation with neither is not monitored. A call outside its bounds ends the
-protocol with an error, is reported by a comment, or is not checked, according
-to the monitor policy `abort`, `warn` or `off`.
+The examples in [`examples/opentrons/`](examples/opentrons/), each with a
+binding file and a rejected variant:
+[`elisa`](examples/opentrons/elisa.tpe), an enzyme-linked immunosorbent
+assay; [`washes`](examples/opentrons/washes.tpe), a bead clean-up with
+exactly two ethanol washes;
+[`contamination`](examples/opentrons/contamination.tpe), a ddPCR plate
+set-up; [`reagents`](examples/opentrons/reagents.tpe), a tagmentation with
+boxed reagents; [`staggered`](examples/opentrons/staggered.tpe), a fixation
+of columns at staggered times; [`beads`](examples/opentrons/beads.tpe), a
+bead clean-up with boxed beads; [`stopread`](examples/opentrons/stopread.tpe),
+a stop and read with boxed plates; [`cleanup`](examples/opentrons/cleanup.tpe),
+a bead clean-up by compound operations implemented by a handler.
 
-The protocol is refused when the binding file defines no `setup` or defines a
-reserved name, or when the code of a `run` command may perform an operation that
-has neither a binding function nor a default implementation and that no handler
-in that code has a case for. Such an operation that a handler does have a case
-for is a warning if it is atomic, and is accepted silently if it is compound,
-since a compound operation is implemented by handlers only.
-
-The directory [`examples/opentrons/`](examples/opentrons/) holds the following
-examples, each with a binding file and a rejected variant:
-
-- [`elisa.tpe`](examples/opentrons/elisa.tpe): an enzyme-linked immunosorbent
-  assay under `time-interval`;
-- [`washes.tpe`](examples/opentrons/washes.tpe): a bead clean-up with exactly
-  two ethanol washes, under `regex-timed-interval-symbolic`;
-- [`contamination.tpe`](examples/opentrons/contamination.tpe): a ddPCR plate
-  set-up under `time-upper-bound-levels`;
-- [`reagents.tpe`](examples/opentrons/reagents.tpe): a tagmentation with reagents
-  boxed `[0, 30]`;
-- [`staggered.tpe`](examples/opentrons/staggered.tpe): a fixation of columns at
-  staggered times;
-- [`beads.tpe`](examples/opentrons/beads.tpe): a bead clean-up with beads boxed
-  `[3, ∞)` and `[2, 3]`;
-- [`stopread.tpe`](examples/opentrons/stopread.tpe): a stop and read with plates
-  boxed `[0, 30]`;
-- [`cleanup.tpe`](examples/opentrons/cleanup.tpe): a bead clean-up whose compound
-  operations are performed by a handler through the atomic operations.
-
-#### Command line
+#### Quick start
 <!-- web-skip -->
 
-    ./tempore --grades <grades> \
-      --emit-opentrons protocol.py \
-      --bind bindings.py \
-      file.tpe
+    make opentrons-deps
+    make examples-help
+    make opentrons-elisa-simulate
 
-writes the protocol to `_opentrons/protocols/protocol.py`, creating the
-directory if needed, and prints the path written. A file name without a
-directory names a file in `_opentrons/protocols` of the current directory, which
-git does not track; a name with a directory, such as `./protocol.py`, is used as
-given. Run as a script, `python3 _opentrons/protocols/protocol.py` executes the
-program as the interpreter does, without the binding file. Without `--bind`,
-only the compiled program is written. The options below require `--bind`:
-
-- `--api-level <level>` sets the `apiLevel` (default 2.30);
-- `--time-unit <unit>` sets the length of a unit of duration: `seconds` (the
-  default), `minutes`, `hours` or a positive number of seconds;
-- `--monitor abort|warn|off` sets the monitor policy (default `abort`);
-- `--simulate` runs the protocol with the Opentrons simulator and exits with its
-  exit code; `--simulator <path>` names the executable, by default
-  `opentrons_simulate` on the `PATH`, or else that of the virtual environment
-  `_opentrons` in the directory of `tempore` or in the current directory.
-
-For example,
-
-    ./tempore --grades time-interval \
-      --emit-opentrons elisa.py \
-      --bind examples/opentrons/elisa_bindings.py \
-      --time-unit minutes \
-      --simulate \
-      examples/opentrons/elisa.tpe
-
-writes the ELISA protocol to `_opentrons/protocols/elisa.py` and simulates it.
-
-Each example `NAME` has the targets `make opentrons-NAME-emit`, which writes
-its protocol to `_opentrons/protocols/NAME.py`, and `make
-opentrons-NAME-simulate`, which also simulates it, installing the simulator by
-`make opentrons-deps` first; `make opentrons-simulate-all` simulates every
-example, and `make examples-help` lists the targets. `MONITOR=warn` sets the
-monitor policy. The targets are defined by
-[`examples/examples.mk`](examples/examples.mk) from a fragment
-`examples/opentrons/NAME.mk` next to the example, which sets its grades and
-its unit of duration:
-
-    EXAMPLE_GRADES = time-interval
-    EXAMPLE_TIME_UNIT = minutes
-
-A new example `NAME.tpe`, with its binding file `NAME_bindings.py`, gets its
-targets by such a fragment; `tests/make/examples.t` checks that every example
-has one and that its target runs the command of its header.
-
-Requirements:
-
-- the simulator is `opentrons_simulate` of the `opentrons` Python package
-  (tested with version 10.0.0), which needs Python 3.10 or later;
-- `make opentrons-deps` installs it in the virtual environment `_opentrons` of
-  the repository with the first of `python3.13`, `python3.12`, `python3.11`,
-  `python3.10` and `python3` of version 3.10 or later, and fails if there is
-  none; `make clean-opentrons` removes it,
-  together with the protocols written to `_opentrons/protocols`;
-- it can also be installed by hand, e.g.
-  `python3 -m venv venv && venv/bin/pip install opentrons==10.0.0`, and then
-  named by `--simulator` or placed on the `PATH`;
-- the simulator writes its configuration to `~/.opentrons` unless the
-  environment variable `OT_API_CONFIG_DIR` names another directory; for the
-  simulator of `_opentrons`, `--simulate` sets it to `_opentrons/config` unless
-  it is set;
-- a compiled protocol run as a script,
-  `python3 _opentrons/protocols/protocol.py`, needs Python 3.10 or later only,
-  not the `opentrons` package;
-- `scripts/opentrons-simulate.sh [VENV_DIR]` simulates every example with the
-  virtual environment `VENV_DIR` (default `_opentrons`), which it creates and
-  installs the package in if needed (the network is then needed), writing the
-  protocols and logs to the environment's directory.
+install the Opentrons simulator, list the targets of the examples, and write
+the ELISA protocol to `_opentrons/protocols/elisa.py` and simulate it. Each
+example `NAME` has the targets `opentrons-NAME-emit` and
+`opentrons-NAME-simulate`; `MONITOR=warn` sets the monitor policy.
 
 ### Arduino
 
