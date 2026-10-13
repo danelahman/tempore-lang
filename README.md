@@ -1320,10 +1320,13 @@ typed against those bounds and the periods of its tasks, and run-time
 monitors on the device check them. The details are in
 [`src/05-backends/arduino/README.md`](src/05-backends/arduino/README.md).
 
-- The guarantees are relative to the declared bounds of the operations; a
-  violation on the device puts it in its safe state, is logged, or is not
-  checked, under the monitor policy `abort`, `warn` or `off`.
-- Grades are erased; watchdogs and the safe state are mechanisms of the C++
+- The guarantees of the typing, on effects, boxes and their grades, are
+  relative to the declared bounds of the operations. The grades are erased
+  in the compiled code, and run-time monitors check those bounds and the
+  periods of the tasks: a violation on the device puts it in its safe state,
+  is logged, or is not checked, under the monitor policy `abort`, `warn` or
+  `off`.
+- Watchdogs and the safe state are mechanisms of the C++
   packages and of the application, outside the typing.
 - Local functions, functions as values, lists, recursion other than self
   calls in tail position, and handlers that are not tail-resumptive are

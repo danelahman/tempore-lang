@@ -235,6 +235,27 @@ These guarantees are relative to the declared bounds of the operations.
 
 ## Monitors
 
+The typing is static and relative to the declared grades of the operations.
+The effect grade of each computation, accumulated from the grades of its
+operations and delays, is checked against the annotations of the functions
+and the periods of the tasks, and each boxed value, of a type `[ρ]A`, is
+unboxed only after a computation whose grade since the boxing lies below `ρ`:
+under the time grades within its window of time, under the regular
+expressions only after the operations they admit, in the order they admit,
+and under the operation counts after at most the operations they count.
+These guarantees hold of the device provided each operation behaves as its
+declared grade states. The grades and the boxes are erased in the compiled
+code and cost nothing at run time; the monitors are what remains of the
+grades, and check this proviso where it concerns time: the running time of
+each call of a binding against the bounds of its operation, and the
+duration of each step of a periodic task against its period. A run either
+satisfies the assumptions of the typing, or the monitors report it. The
+order and the number of the operations need no monitor, since the compiled
+code performs exactly the operations the typed program performs; an
+operation handled by a compiled case of a handler is not monitored, its case
+being typed against the grade of the operation and its own operations
+monitored.
+
 On the device, each call of a binding function is monitored against the
 bounds of its operation on the board, and each step of a periodic task
 against its period. A violation puts the device in its safe state and stops
