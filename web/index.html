@@ -21,6 +21,10 @@
         position: -webkit-sticky;
         top: 0;
         height: 100%;
+        /* A panel taller than the window, such as a long table of contents,
+           scrolls on its own. */
+        max-height: 100vh;
+        overflow-y: auto;
       }
     }
 
