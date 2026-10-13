@@ -163,36 +163,36 @@ sounding every second until the tap at 16 s acknowledges it; the second, at
 
   $ tempore --emit-arduino fall --device $app/fall.device.json --host-simulate 35 $app/fall.tpe > run.log
   $ grep 'Display at (0, [0-9]*0)\|Display at (130\|simulation' run.log | grep -v 'Display at (0, 0)\|(0, 230)\|(0, 190)' | sed 's/ *$//'
-  [38.120 ms] Display at (0, 60): Monitoring
-  [44.200 ms] Display at (130, 190): 0
-  [2310.362 ms] Display at (0, 60): Fall detected
-  [2315.202 ms] Display at (0, 100): Tap if OK
-  [2321.372 ms] Display at (0, 140): 10
-  [3333.492 ms] Display at (0, 140): 9
-  [4345.612 ms] Display at (0, 140): 8
-  [5357.732 ms] Display at (0, 140): 7
-  [6369.852 ms] Display at (0, 140): 6
-  [7381.972 ms] Display at (0, 140): 5
-  [8394.092 ms] Display at (0, 140): 4
-  [9406.212 ms] Display at (0, 140): 3
-  [10418.332 ms] Display at (0, 140): 2
-  [11430.452 ms] Display at (0, 140): 1
-  [12442.572 ms] Display at (0, 60): ALARM
-  [12447.412 ms] Display at (0, 100): 3.5
-  [12453.532 ms] Display at (0, 140):
-  [16482.572 ms] Display at (0, 60): Alarm
-  [16487.412 ms] Display at (0, 100): acknowledged
-  [18525.532 ms] Display at (0, 60): Monitoring
-  [18531.612 ms] Display at (130, 190): 1
-  [25314.652 ms] Display at (0, 60): Fall detected
-  [25319.492 ms] Display at (0, 100): Tap if OK
-  [25325.662 ms] Display at (0, 140): 10
-  [26337.782 ms] Display at (0, 140): 9
-  [27349.902 ms] Display at (0, 140): 8
-  [28362.022 ms] Display at (0, 140):
-  [28366.862 ms] Display at (0, 100): Cancelled
-  [30404.982 ms] Display at (0, 60): Monitoring
-  [30411.062 ms] Display at (130, 190): 2
+  [39.400 ms] Display at (0, 60): Monitoring
+  [45.480 ms] Display at (130, 190): 0
+  [2311.226 ms] Display at (0, 60): Fall detected
+  [2316.066 ms] Display at (0, 100): Tap if OK
+  [2322.236 ms] Display at (0, 140): 10
+  [3334.356 ms] Display at (0, 140): 9
+  [4346.476 ms] Display at (0, 140): 8
+  [5358.596 ms] Display at (0, 140): 7
+  [6370.716 ms] Display at (0, 140): 6
+  [7382.836 ms] Display at (0, 140): 5
+  [8394.956 ms] Display at (0, 140): 4
+  [9407.076 ms] Display at (0, 140): 3
+  [10419.196 ms] Display at (0, 140): 2
+  [11431.316 ms] Display at (0, 140): 1
+  [12443.436 ms] Display at (0, 60): ALARM
+  [12448.276 ms] Display at (0, 100): 3.5
+  [12454.396 ms] Display at (0, 140):
+  [16483.436 ms] Display at (0, 60): Alarm
+  [16488.276 ms] Display at (0, 100): acknowledged
+  [18527.676 ms] Display at (0, 60): Monitoring
+  [18533.756 ms] Display at (130, 190): 1
+  [25305.777 ms] Display at (0, 60): Fall detected
+  [25310.617 ms] Display at (0, 100): Tap if OK
+  [25316.787 ms] Display at (0, 140): 10
+  [26328.907 ms] Display at (0, 140): 9
+  [27341.027 ms] Display at (0, 140): 8
+  [28353.147 ms] Display at (0, 140):
+  [28357.987 ms] Display at (0, 100): Cancelled
+  [30397.387 ms] Display at (0, 60): Monitoring
+  [30403.467 ms] Display at (130, 190): 2
   [35000.000 ms] End of the simulation
   $ grep -c 'Speaker: 2000 Hz' run.log
   4

@@ -13,38 +13,17 @@
      - Top ∞: unlimited calls of every operation
      - Product: addition, name by name *)
 
-(* An application of the Arduino backend under the operation counts, on the
-   M5Stack CoreS3 Lite: the device manifest peak.device.json runs the step
-   'step' every 20 ms, from the state of 'start', and repeats the recorder
-   'record' as a free task. The recorder keeps the largest magnitude of the
-   tilt in the flash memory of the board, so that it survives a reset. The
-   operations ReadImu, ShowText, ShowNumber, ShowTextAt and ClearDisplay,
-   and the functions tilt_x and tilt_x_of_accel, come from the packages
-   m5-imu and m5-display, whose declarations under these grades precede
-   this file. The operations declared below are bound by bindings.cpp. The
-   host simulation tilts the unit by the default world of the backend, a
-   harmonic oscillation.
+(* Runs on the M5Stack CoreS3 Lite (peak.device.json): 'step' every 20 ms
+   from the state of 'start', and 'record' repeated, which keeps the largest
+   magnitude of the tilt in the flash memory of the board, so that it
+   survives a reset. Operations come from the packages m5-imu and
+   m5-display; bindings.cpp binds the others, and the host simulation tilts
+   the unit by the default world of the backend, a harmonic oscillation.
+   The grades bound no durations: the operations have no running-time
+   bounds, and only the monitor of the device checks the period.
 
-   The PlatformIO project is written, and simulated on the host for 3
-   seconds, by
-
-     ./tempore --grades counts-upper-bound \
-       --emit-arduino peak \
-       --device examples/arduino/peak/peak.device.json \
-       --host-simulate 3 \
-       examples/arduino/peak/peak.tpe
-
-   and built for the board, with PlatformIO, by --build in place of
-   --host-simulate. The make targets arduino-peak-simulate, -build, -upload
-   and -profile run these commands and their variants for the board;
-   'make examples-help' lists them with their variables.
-
-   The grades count the calls of the operations and bound no durations, so
-   the step is not checked against its period by the typechecker, only by
-   the monitor of the device; the operations have no running-time bounds,
-   and their calls are not monitored. The option --board m5stack-cores3 of
-   the interpreter run names the board of the manifest, whose running-time
-   bounds do not apply under these grades. *)
+   On the board: make arduino-peak-upload; simulated on the host: make
+   arduino-peak-simulate ('make examples-help', README: Arduino). *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the recorder reads the tilt last published. *)
@@ -109,7 +88,8 @@ let magnitude (x : float) = if x < 0.0 then ~-.x else x
    of the flash allowed, so that the copy is unboxed only while it equals the
    record. It writes the magnitude of the tilt last published if it exceeds
    the record by more than half a degree, shows the record, between the name
-   of the example and the footer in small text, and waits one second. *)
+   of the example, in text of size 2, and the footer, in small text at the
+   bottom right, and waits one second. *)
 let record () : unit # ((StorePeak, 1), (_, ∞)) =
   let stored = perform LoadPeak () in
   box ((StorePeak, 0), (_, ∞)) stored as copy in
@@ -122,10 +102,10 @@ let record () : unit # ((StorePeak, 1), (_, ∞)) =
     else peak
   in
   perform ClearDisplay ();
-  perform ShowTextAt (0, 0, 1, "Peak tilt recorder");
+  perform ShowTextAt (0, 0, 2, "Peak tilt recorder");
   perform ShowText "Peak tilt";
   perform ShowNumber peak;
-  perform ShowTextAt (0, 230, 1, "Powered by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (104, 230, 1, "Powered by Tempore (tempore-lang.ee)");
   delay 1000
 
 (* Correctly rejected by the typechecker: the recorder compares a second tilt

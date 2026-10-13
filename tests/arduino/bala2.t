@@ -65,16 +65,16 @@ and with an expired one, and a supervisory iteration that may exceed the
   File "bala2/period.tpe", lines 4-16, characters 68-44:
   4 | let step_shown ((tilt, speed, integral, position, heading) : state) : state
                                                                           ^^^^^^^
-  Typing error: This function's body has grade `[0.85, 14.2]`, which does not match its annotated grade `[0, 5)`
-    Note: the effect inequality `[0.85, 14.2] <= [0, 5)` does not hold
+  Typing error: This function's body has grade `[0.8, 14.2]`, which does not match its annotated grade `[0, 5)`
+    Note: the effect inequality `[0.8, 14.2] <= [0, 5)` does not hold
   [1]
   File "bala2/unchecked.tpe", line 6, characters 14-19:
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2/balance.tpe", line 105, characters 0-47:
-    105 | operation Arm : calibration ~> unit # [0, 0.05]
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "../../examples/arduino/bala2/balance.tpe", line 60, characters 0-47:
+    60 | operation Arm : calibration ~> unit # [0, 0.05]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2/unchecked.tpe", line 5, characters 14-26:
     5 |   let token = calibrate () in
@@ -84,7 +84,7 @@ and with an expired one, and a supervisory iteration that may exceed the
   File "bala2/late.tpe", lines 8-10, characters 2-18:
   8 |   unbox token as calibration in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `token` is unboxed with grade `[600000.1, 600012.5]` accumulated since it was bound, which is not below its box grade `[0, 600000)`
+  Typing error: Variable `token` is unboxed with grade `[600000.05, 600012.5]` accumulated since it was bound, which is not below its box grade `[0, 600000)`
     File "bala2/late.tpe", line 5, characters 6-11:
     5 |   let token = calibrate () in
               ^^^^^
@@ -92,7 +92,7 @@ and with an expired one, and a supervisory iteration that may exceed the
     File "bala2/late.tpe", line 6, characters 2-33:
     6 |   perform ShowText "Hold upright";
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[0.1, 12.5]` accumulates here (operation `ShowText`)
+    grade `[0.05, 12.5]` accumulates here (operation `ShowText`)
     File "bala2/late.tpe", line 7, characters 2-14:
     7 |   delay 600000;
           ^^^^^^^^^^^^
@@ -101,13 +101,13 @@ and with an expired one, and a supervisory iteration that may exceed the
     5 |   let token = calibrate () in
                       ^^^^^^^^^
     the inequality goes through the type of `calibrate` here
-    Note: the resource inequality `[600000.1, 600012.5] <= [0, 600000)` does not hold
+    Note: the resource inequality `[600000.05, 600012.5] <= [0, 600000)` does not hold
   [1]
   File "bala2/redrawn.tpe", lines 4-10, characters 33-11:
   4 | let drive_step_redrawn (n : nat) : unit # [0, 200) =
                                        ^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `[181.2, 223.1]`, which does not match its annotated grade `[0, 200)`
-    Note: the effect inequality `[181.2, 223.1] <= [0, 200)` does not hold
+  Typing error: This function's body has grade `[181.1, 223.1]`, which does not match its annotated grade `[0, 200)`
+    Note: the effect inequality `[181.1, 223.1] <= [0, 200)` does not hold
   [1]
 
 The PlatformIO project for the M5Stack Gray, its C++ sources checked without

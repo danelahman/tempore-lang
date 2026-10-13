@@ -18,7 +18,14 @@
 // that interval the tilt and the rate of the gyroscope last published, the
 // drives last written to the motors and the counts last read from the
 // encoders, and logs each arming with its bias of the gyroscope. The timed
-// bindings themselves do not log, except for the expiry of a command.
+// bindings themselves do not log, except for the expiry of a command. The
+// start of the task lies outside the bounds of Publish, so that the target
+// -log of the examples monitors under the policy warn, which logs that call.
+//
+// The make targets arduino-bala2-log and arduino-bala2-regex-log build with
+// BALANCE_LOG, and arduino-bala2-record and arduino-bala2-regex-record with
+// BALANCE_RECORD, whose recordings the targets -capture read (README:
+// Recording a run).
 //
 // Under the build flag BALANCE_RECORD, an interval in milliseconds, the first
 // publication starts two tasks on core 0, which record and print the run:

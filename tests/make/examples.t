@@ -23,7 +23,8 @@ example has its fragment:
   >   [ -f "${d}example.mk" ] || echo "$d: no fragment example.mk"
   > done
 
-The commands of the headers of the examples, their lines joined:
+The commands of a file, the headers of the examples or the README, their
+lines joined:
 
   $ commands () {
   >   awk '!c && /^ *(PLATFORMIO_BUILD_FLAGS=[^ ]* \\$|\.\/tempore )/ { c = 1; s = "" }
@@ -41,20 +42,51 @@ that simulates it:
   >   [ "$header" = "$made" ] || printf '%s:\n  %s\n  %s\n' "$n" "$header" "$made"
   > done
 
-The target -simulate of an Arduino example runs the command of its header
-that simulates it on the host, with the monitor policy abort, the default,
-given explicitly; the target -log of bala2 runs that of its header under
-CAPTURE=60:
+The header of an Arduino example names its make targets instead of their
+commands, which the README documents. Each target that the header names is
+defined, and the header names the targets -simulate and -upload of its
+example:
 
   $ for d in examples/arduino/*/; do
   >   n=$(basename "$d"); p=$(basename "$d"*.device.json .device.json)
-  >   header=$(commands "$d$p.tpe" | grep -e '--host-simulate')
-  >   made=$(dry "arduino-$n-simulate" | sed 's/ --monitor abort//')
-  >   [ "$header" = "$made" ] || printf '%s:\n  %s\n  %s\n' "$n" "$header" "$made"
+  >   targets=$(awk '{ print } /\*\)$/ && ++c == 2 { exit }' "$d$p.tpe" |
+  >     grep -o 'arduino-[a-z0-9-]*' | sort -u)
+  >   for t in $targets; do
+  >     make -s --no-print-directory -n "$t" > /dev/null 2>&1 ||
+  >       echo "$n: no target $t"
+  >   done
+  >   for t in "arduino-$n-simulate" "arduino-$n-upload"; do
+  >     echo "$targets" | grep -qx "$t" || echo "$n: the header does not name $t"
+  >   done
   > done
-  $ header=$(commands examples/arduino/bala2/balance.tpe | grep -e '-log')
-  $ made=$(dry arduino-bala2-log CAPTURE=60 | tr -d '"')
-  $ [ "$header" = "$made" ] || printf '%s\n%s\n' "$header" "$made"
+
+The run command of the header of an Arduino example has the grades of its
+target -simulate, and the packages and the board of its manifest:
+
+  $ for d in examples/arduino/*/; do
+  >   n=$(basename "$d"); p=$(basename "$d"*.device.json .device.json)
+  >   header=$(commands "$d$p.tpe" | head -n 1)
+  >   grades=$(dry "arduino-$n-simulate" | grep -o -e '--grades [^ ]*')
+  >   packages=$(sed -n 's/.*"packages": *\[\(.*\)\].*/\1/p' "$d$p.device.json" |
+  >     tr -d '" ' | tr ',' '\n' | sed 's/^/--package /' | tr '\n' ' ')
+  >   board=$(sed -n 's/.*"board": *"\([^"]*\)".*/\1/p' "$d$p.device.json")
+  >   expected="./tempore $grades ${packages}--board $board $d$p.tpe"
+  >   [ "$header" = "$expected" ] ||
+  >     printf '%s:\n  %s\n  %s\n' "$n" "$header" "$expected"
+  > done
+
+The commands of the README, its lines joined: the target -simulate of bala2
+runs the command of the README that simulates it on the host, with the
+monitor policy abort, the default, given explicitly, and the target -profile
+runs that of the README under CAPTURE=60:
+
+  $ readme=$(commands README.md | grep -e '--emit-arduino balance')
+  $ echo "$readme" | wc -l | tr -d ' '
+  2
+  $ made=$(dry arduino-bala2-simulate | sed 's/ --monitor abort//')
+  $ echo "$readme" | grep -qxF "$made" || echo "$made"
+  $ made=$(dry arduino-bala2-profile CAPTURE=60)
+  $ echo "$readme" | grep -qxF "$made" || echo "$made"
 
 The uploads go to the port of the board of the manifest, PORT_BOARD, or else
 to PORT:

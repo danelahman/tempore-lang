@@ -14,61 +14,16 @@
      - Top [0, ∞): no bound, the widest interval
      - Product: componentwise addition, an end open if either end added is *)
 
-(* The application of the Arduino backend to the M5Stack BALA2, an M5Stack
-   Gray core on a base with two wheels: the device manifest balance.device.json
-   runs the control step 'step' every 5 ms, from the state of 'start', and
-   repeats the supervision 'supervise' as a free task. The operations
-   ReadImu, SetMotors, ReadEncoders, ResetEncoders, ShowText, ShowNumber and
-   ClearDisplay, and the functions tilt_x_of_accel, complementary and
-   bala2_drive, come from the packages m5-imu, m5-display and bala2-base,
-   whose declarations precede this file. The operations declared below are
-   bound by bindings.cpp; plant.cpp is the host model of the robot.
+(* Runs on the M5Stack Gray core of the BALA2 (balance.device.json): 'step'
+   every 5 ms from the state of 'start', and 'supervise' repeated.
+   Operations come from the packages m5-imu, m5-display and bala2-base;
+   bindings.cpp binds the others and plant.cpp models the robot. The
+   figures below are those under the bounds of the Gray.
 
-   The PlatformIO project is written, and simulated on the host for 8
-   seconds, by
-
-     ./tempore --grades time-interval-rational \
-       --emit-arduino balance \
-       --device examples/arduino/bala2/balance.device.json \
-       --host-simulate 8 \
-       examples/arduino/bala2/balance.tpe
-
-   Under the build flag BALANCE_LOG of bindings.cpp, an interval in
-   milliseconds, the device logs the tilt, the rate of the gyroscope, the
-   drives of the motors and the counts of the encoders at that interval. The
-   project is built with it, uploaded and its serial output read for 60
-   seconds by
-
-     PLATFORMIO_BUILD_FLAGS=-DBALANCE_LOG=20 \
-       ./tempore --grades time-interval-rational \
-       --emit-arduino balance-log \
-       --device examples/arduino/bala2/balance.device.json \
-       --monitor warn --upload --port /dev/cu.usbserial-02012C91 \
-       --capture 60 \
-       examples/arduino/bala2/balance.tpe
-
-   The first publication also starts the task of the log, which the bounds
-   of Publish do not include; the monitor policy warn logs a call beyond
-   them.
-
-   Under the build flag BALANCE_RECORD of bindings.cpp, an interval in
-   milliseconds, the device records the tilt, the rate, the speed, the
-   reference tilt, the drives and the counts at that interval for the first
-   minute after the arming, in memory kept across a reset, and prints the
-   recordings over the serial port as CSV every 10 seconds, so that a run
-   without the cable is read once the cable is connected.
-
-   The make targets arduino-bala2-simulate, -build, -upload, -profile, -log
-   and -record run these commands and their variants for the board, and
-   arduino-bala2-capture reads the recordings without an upload;
-   'make examples-help' lists them with their variables.
-
-   The typing is relative to the declared bounds of the running times of the
-   operations, those of the packages on the M5Stack Gray, the board of the
-   manifest, which the option --board m5stack-gray of the interpreter run
-   selects and to which the figures below refer; the monitors of the device
-   check these bounds, and the watchdog of the base and the tilt cutoff of
-   the step stop the motors. *)
+   On the board: make arduino-bala2-upload; simulated on the host: make
+   arduino-bala2-simulate; tuning log and recording: make arduino-bala2-log,
+   arduino-bala2-record and arduino-bala2-capture ('make examples-help',
+   README: Arduino). *)
 
 (* The exchange between the tasks, through bindings.cpp. The step publishes
    the tilt, in degrees, the rate of the gyroscope, in degrees per second,
@@ -274,9 +229,9 @@ let step_stale ((tilt, speed, integral, position, heading) : state) : state
 (* Correctly rejected by the typechecker: the step shows the tilt on the
    display, which takes up to 12.5 ms, longer than the period:
 
-     Typing error: This function's body has grade `[0.85, 14.2]`, which
+     Typing error: This function's body has grade `[0.8, 14.2]`, which
        does not match its annotated grade `[0, 5)`
-       Note: the effect inequality `[0.85, 14.2] <= [0, 5)` does not hold
+       Note: the effect inequality `[0.8, 14.2] <= [0, 5)` does not hold
 *)
 (*
 let step_shown ((tilt, speed, integral, position, heading) : state) : state
@@ -331,7 +286,7 @@ let rec drive (n : nat) : unit # [0, ∞) =
       drive m
 
 (* Correctly accepted by the typechecker: the robot is calibrated, held
-   upright for a second, armed with a calibration 1000.1 to 1012.5 ms old,
+   upright for a second, armed with a calibration 1000.05 to 1012.5 ms old,
    and driven for about 13 years, after which it is disarmed and the
    supervision repeats. *)
 let supervise () =
@@ -362,11 +317,11 @@ let supervise_unchecked () =
    calibration more than ten minutes old:
 
      Typing error: Variable `token` is unboxed with grade
-       `[600000.1, 600012.5]`
+       `[600000.05, 600012.5]`
        accumulated since it was bound, which is not below its box grade
        `[0, 600000)`
        ...
-       Note: the resource inequality `[600000.1, 600012.5] <= [0, 600000)`
+       Note: the resource inequality `[600000.05, 600012.5] <= [0, 600000)`
        does not hold
 *)
 (*
@@ -383,9 +338,9 @@ let supervise_late () =
    waits 150 ms clears and redraws the display, and may take 223.1 ms, so
    that a command may expire before the next:
 
-     Typing error: This function's body has grade `[181.2, 223.1]`, which
+     Typing error: This function's body has grade `[181.1, 223.1]`, which
        does not match its annotated grade `[0, 200)`
-       Note: the effect inequality `[181.2, 223.1] <= [0, 200)` does not
+       Note: the effect inequality `[181.1, 223.1] <= [0, 200)` does not
        hold
 *)
 (*

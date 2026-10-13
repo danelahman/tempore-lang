@@ -80,21 +80,21 @@ between the name of the example and the footer:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep '\] \(Display\|Flash\)\|simulation'
   [31.000 ms] Display cleared
-  [33.280 ms] Display at (0, 0): Peak tilt recorder
-  [34.280 ms] Display: Peak tilt
-  [35.280 ms] Display: 0.000
-  [37.560 ms] Display at (0, 230): Powered by Tempore (tempore-lang.ee)
-  [1037.560 ms] Flash: record 5.639 degrees
-  [1068.560 ms] Display cleared
-  [1070.840 ms] Display at (0, 0): Peak tilt recorder
-  [1071.840 ms] Display: Peak tilt
-  [1072.840 ms] Display: 5.639
-  [1075.120 ms] Display at (0, 230): Powered by Tempore (tempore-lang.ee)
-  [2106.120 ms] Display cleared
-  [2108.400 ms] Display at (0, 0): Peak tilt recorder
-  [2109.400 ms] Display: Peak tilt
-  [2110.400 ms] Display: 5.639
-  [2112.680 ms] Display at (0, 230): Powered by Tempore (tempore-lang.ee)
+  [34.560 ms] Display at (0, 0): Peak tilt recorder
+  [35.560 ms] Display: Peak tilt
+  [36.560 ms] Display: 0.000
+  [38.424 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [1038.424 ms] Flash: record 5.639 degrees
+  [1069.424 ms] Display cleared
+  [1072.984 ms] Display at (0, 0): Peak tilt recorder
+  [1073.984 ms] Display: Peak tilt
+  [1074.984 ms] Display: 5.639
+  [1076.848 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
+  [2107.848 ms] Display cleared
+  [2111.408 ms] Display at (0, 0): Peak tilt recorder
+  [2112.408 ms] Display: Peak tilt
+  [2113.408 ms] Display: 5.639
+  [2115.272 ms] Display at (104, 230): Powered by Tempore (tempore-lang.ee)
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep -c 'Release step'
   150

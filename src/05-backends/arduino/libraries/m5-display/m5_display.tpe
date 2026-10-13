@@ -11,7 +11,7 @@
    an M5Stack CoreS3 Lite by the profile of the device (2026-10-14): the
    lower bound is the least time measured over both, rounded down, and the
    upper bound 1.5 times the greatest, rounded up. ClearDisplay took 31.354
-   to 31.814 ms. ShowText and ShowNumber took 0.858 to 2.561 ms and 0.104 to
+   to 31.814 ms. ShowText and ShowNumber took 0.858 to 2.561 ms and 0.061 to
    1.597 ms, on lines of at most 14 characters; a line written below the
    display, which draws nothing, takes the least time, and ShowText, which
    writes its line as ShowNumber does, has the lower bound of ShowNumber,
@@ -44,17 +44,17 @@
    each: 21.7 ms, 33 ms with the margin. A text that wraps over several
    lines is not within these bounds. *)
 
-operation ShowText : string ~> unit # [0.1, 12.5]
+operation ShowText : string ~> unit # [0.05, 12.5]
 default ShowText _ = delay 1
 
-operation ShowNumber : float ~> unit # [0.1, 12.5]
+operation ShowNumber : float ~> unit # [0.05, 12.5]
 default ShowNumber _ = delay 1
 
 operation ClearDisplay : unit ~> unit # [31, 48]
 default ClearDisplay () = delay 31
 
-operation ShowTextAt : nat * nat * nat * string ~> unit # [0.1, 33]
+operation ShowTextAt : nat * nat * nat * string ~> unit # [0.05, 33]
 default ShowTextAt _ = delay 2
 
-operation ShowNumberAt : nat * nat * nat * nat * float ~> unit # [0.1, 33]
+operation ShowNumberAt : nat * nat * nat * nat * float ~> unit # [0.05, 33]
 default ShowNumberAt _ = delay 2

@@ -1,4 +1,4 @@
-The spirit level of examples/arduino/level on the M5Stack CoreS3 Lite, with
+The digital level of examples/arduino/level on the M5Stack CoreS3 Lite, with
 the packages m5-imu, m5-display, m5-touch and m5-speaker, under the regular
 expressions of timed operations: its runs by the interpreter, its rejected
 variants, its project and its host simulation, over the surface and the taps
@@ -140,9 +140,9 @@ reconfiguration at 5 s, and calibrated again at 6.5 s:
   > }
   $ tempore --emit-arduino level --device $app/level.device.json --host-simulate 9 $app/level.tpe |
   >   grep 'Display at (0, 1[16]0)\|Speaker\|accelerometer\|simulation' | changes
-  [49.000 ms] IMU: accelerometer at 100 Hz
-  [62.583 ms] Display at (0, 110):
-  [66.143 ms] Display at (0, 160): Tap to calibrate
+  [49.864 ms] IMU: accelerometer at 100 Hz
+  [63.447 ms] Display at (0, 110):
+  [67.007 ms] Display at (0, 160): Tap to calibrate
   [1099.174 ms] Speaker: 2000 Hz for 100 ms
   [1112.457 ms] Display at (0, 110): LEVEL
   [1116.017 ms] Display at (0, 160): Calibrated
@@ -162,7 +162,7 @@ steps, and the screen asks for a new one:
 
   $ tempore --emit-arduino level --device $app/level.device.json --host-simulate 610 $app/level.tpe |
   >   grep 'Display at (0, 160)\|simulation' | changes
-  [66.143 ms] Display at (0, 160): Tap to calibrate
+  [67.007 ms] Display at (0, 160): Tap to calibrate
   [1116.017 ms] Display at (0, 160): Calibrated
   [5066.393 ms] Display at (0, 160): Recalibrate (tap)
   [6616.017 ms] Display at (0, 160): Calibrated

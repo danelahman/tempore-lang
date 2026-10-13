@@ -161,8 +161,8 @@ exceptions and run-time type information:
   framework = arduino
   $ grep 'bounds = ' _arduino/projects/wheels/src/tempore_operations.cpp
   static const tempore_bounds tempore_op_ReadImu_bounds = {550, false, 1250, false, true};
-  static const tempore_bounds tempore_op_ShowText_bounds = {100, false, 12500, false, true};
-  static const tempore_bounds tempore_op_ShowNumber_bounds = {100, false, 12500, false, true};
+  static const tempore_bounds tempore_op_ShowText_bounds = {50, false, 12500, false, true};
+  static const tempore_bounds tempore_op_ShowNumber_bounds = {50, false, 12500, false, true};
   static const tempore_bounds tempore_op_ClearDisplay_bounds = {31000, false, 48000, false, true};
   static const tempore_bounds tempore_op_SetMotors_bounds = {200, false, 450, false, true};
   static const tempore_bounds tempore_op_ReadEncoders_bounds = {450, false, 1000, false, true};

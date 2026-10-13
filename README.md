@@ -1499,7 +1499,14 @@ durations are those of the operations of its trace. Under grades that bound
 no durations, such as the operation counts, the period is checked by the
 monitor of the device only, and the operations have no running-time bounds.
 Boxes specify how long a reading may be used and, under other grades, which
-operations must or may not precede its use. These guarantees are relative to
+operations must or may not precede its use. Under the regular expressions of
+timed operations, the examples write a grade as one expression, which is both
+bounds: the operations it names are demanded, in its order, and the delays
+between them are bounded below and above; another operation may come between
+them only within a delay, at the upper bound of its running time. A box grade
+without delays therefore excludes every operation it does not name, while a
+box grade with a delay bounds the time but not the operations within it. These
+guarantees are relative to
 the declared bounds of the operations. The bounds of the packages and of the
 examples are measured on the devices by their profile (`--profile` with
 `--capture`, below): the lower bound is the least time measured, rounded
@@ -1581,7 +1588,8 @@ M5Stack Gray, the core of the M5Stack BALA2 self-balancing robot (profile
   `BALANCE_LOG` (an interval in milliseconds, e.g.
   `PLATFORMIO_BUILD_FLAGS=-DBALANCE_LOG=20` with `--upload` and `--capture`)
   logs its tilt, gyroscope rate, drives and encoder counts from a task of
-  the lowest priority, and the build flag `BALANCE_RECORD` records them,
+  the lowest priority, whose start, outside the bounds of `Publish`, the
+  target `-log` reports under the monitor policy `warn`, and the build flag `BALANCE_RECORD` records them,
   with the speed and the reference tilt of the speed loop, for the first
   minute after the arming (see Recording a run, below); the
   constant `balance_point` sets the tilt at which the robot is upright;
@@ -1610,7 +1618,7 @@ M5Stack CoreS3 and CoreS3 Lite (profile `m5stack-cores3`, port variable
   counts: the step performs one reading and one publication and no write of
   the flash, and a copy of the record is used only while no write of the flash
   has followed it;
-- [`level/level.tpe`](examples/arduino/level/level.tpe): a spirit level on
+- [`level/level.tpe`](examples/arduino/level/level.tpe): a digital level on
   the M5Stack CoreS3 Lite, under the regular expressions of timed
   operations: a tap calibrates, with a self-test and a tone, a tap on the
   top right corner reconfigures the unit, and the calibration is applied
@@ -1623,9 +1631,10 @@ M5Stack CoreS3 and CoreS3 Lite (profile `m5stack-cores3`, port variable
   the alarm, raised only 10 to 30 seconds after the fall unless a tap
   cancels, and acknowledged by a tap.
 
-The CoreS3 examples show their name at the top of the screen and the line
-"Powered by Tempore (tempore-lang.ee)" at the bottom, in text of size 1, by
-`ShowTextAt`: after each clearing in `tilt`, `peak` and `fall`, outside
+The CoreS3 examples show their name at the top of the screen, in text of
+size 2, and the line "Powered by Tempore (tempore-lang.ee)" at the bottom
+right, in text of size 1, at the column 320 − 6 · 36 = 104 of its 36
+characters of 6 pixels, by `ShowTextAt`: after each clearing in `tilt`, `peak` and `fall`, outside
 their boxes, and once by the initial function in `level`, which redraws its
 values by bands and does not clear.
 
@@ -1726,8 +1735,10 @@ The board is that of the manifest, and its port the variable `PORT_BOARD`,
 the name of the board in upper case with `-` replaced by `_`, such as
 `PORT_ESP32_DEVKIT` for `esp32-devkit`; a board without a default port
 needs `PORT` or that variable. A new example gets its targets by such a
-fragment; `tests/make/examples.t` checks that every example has one and that
-its target `-simulate` runs the command of its header.
+fragment; `tests/make/examples.t` checks that every example has one, that
+the targets its header names exist and run under the grades of its run
+command, and that the targets `arduino-bala2-simulate` and
+`arduino-bala2-profile` run the commands above.
 
 Requirements:
 

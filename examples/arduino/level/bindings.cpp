@@ -5,4 +5,4 @@
 
 #include "tempore_bindings.h"
 
-void level_safe_state() { tempore_log("Spirit level stopped"); }
+void level_safe_state() { tempore_log("Digital level stopped"); }
