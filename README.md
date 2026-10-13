@@ -1437,6 +1437,13 @@ examples, each with its manifest and binding file:
 - [`bala2/balance.tpe`](examples/arduino/bala2/balance.tpe): a 5 ms balancing
   step of the M5Stack BALA2 robot with its supervision and calibration, and
   the host model of a wheeled inverted pendulum;
+- [`bala2-regex/balance_regex.tpe`](examples/arduino/bala2-regex/balance_regex.tpe):
+  the same robot under the regular expressions of timed operations, sharing
+  the binding file and host model of `bala2`: the step reads the unit, the
+  encoders and the setpoints before it commands the motors, uses the reading
+  of the unit only if no other operation came between, and the supervision
+  disarms, calibrates, arms at least a second after its prompt and within ten
+  minutes, drives and disarms, in this order;
 - [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
   M5Stack CoreS3 Lite, with a 20 ms filter step and a display task;
 - [`wheels/wheels.tpe`](examples/arduino/wheels/wheels.tpe): a wheel check of

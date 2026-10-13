@@ -479,11 +479,19 @@ let rec value_free acc (v : F.value) =
   | F.Tuple_value vs -> List.fold_left value_free acc vs
   | F.Construct (_, arg) -> Option.fold ~none:acc ~some:(value_free acc) arg
 
-(* The variables free in [c]; bound variables are distinct, so that those a
-   pattern binds are never free elsewhere. *)
+let binds_used used p =
+  List.exists (fun x -> VariableSet.mem x used) (pattern_binders [] p)
+
+(* The variables free in [c] that its C++ statements refer to; bound variables
+   are distinct, so that those a pattern binds are never free elsewhere. A
+   returned value bound by a pattern whose variables are unused, as by an
+   unboxing whose result is unused, generates no statement. *)
 let rec computation_free acc (c : F.computation) =
   match c.computation with
   | F.Return v | F.Perform (_, v) -> value_free acc v
+  | F.Bind (p, ({ computation = F.Return _; _ } as c1), c2) ->
+      let acc = computation_free acc c2 in
+      if binds_used acc p then computation_free acc c1 else acc
   | F.Bind (_, c1, c2) -> computation_free (computation_free acc c1) c2
   | F.Match (v, cases) ->
       List.fold_left
@@ -491,9 +499,6 @@ let rec computation_free acc (c : F.computation) =
         (value_free acc v) cases
   | F.Call (_, vs) -> List.fold_left value_free acc vs
   | F.Delay (_, c) -> computation_free acc c
-
-let binds_used used p =
-  List.exists (fun x -> VariableSet.mem x used) (pattern_binders [] p)
 
 (* Patterns: a match is a chain of tests of the subject, at the paths of the
    subterms the pattern constrains, followed by the declarations of the
