@@ -28,6 +28,7 @@
        examples/opentrons/staggered.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+   The target opentrons-staggered-simulate of 'make' runs this command.
 
    The columns of a plate of cells are fixed in turn, at staggered times:
    while one column fixes, the column before it is rinsed and the column

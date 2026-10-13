@@ -35,7 +35,9 @@
        examples/arduino/wheels/wheels.tpe
 
    and built for the board, with PlatformIO, by --build in place of
-   --host-simulate.
+   --host-simulate. The make targets arduino-wheels-simulate, -build, -upload
+   and -profile run these commands and their variants for the board;
+   'make examples-help' lists them with their variables.
 
    A grade is a regular expression over the operations and the delays: each
    operation is a letter, within the bounds of its running time, and an

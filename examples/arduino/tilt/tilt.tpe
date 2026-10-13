@@ -31,7 +31,9 @@
        examples/arduino/tilt/tilt.tpe
 
    and built for the board, with PlatformIO, by --build in place of
-   --host-simulate. *)
+   --host-simulate. The make targets arduino-tilt-simulate, -build, -upload
+   and -profile run these commands and their variants for the board;
+   'make examples-help' lists them with their variables. *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the display reads the tilt last published. The

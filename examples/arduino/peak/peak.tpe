@@ -34,7 +34,9 @@
        examples/arduino/peak/peak.tpe
 
    and built for the board, with PlatformIO, by --build in place of
-   --host-simulate.
+   --host-simulate. The make targets arduino-peak-simulate, -build, -upload
+   and -profile run these commands and their variants for the board;
+   'make examples-help' lists them with their variables.
 
    The grades count the calls of the operations and bound no durations, so
    the step is not checked against its period by the typechecker, only by

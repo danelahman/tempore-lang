@@ -50,6 +50,10 @@
    of Publish do not include; the monitor policy warn logs a call beyond
    them.
 
+   The make targets arduino-bala2-simulate, -build, -upload, -profile and
+   -log run these commands and their variants for the board;
+   'make examples-help' lists them with their variables.
+
    The typing is relative to the declared bounds of the running times of the
    operations; the monitors of the device check these bounds, and the
    watchdog of the base and the tilt cutoff of the step stop the motors. *)

@@ -88,3 +88,7 @@ vscode-extension:
 
 .PHONY: default format check-format release test clean tempore-deps \
   opentrons-deps clean-opentrons arduino-deps clean-arduino vscode-extension
+
+# The targets of the examples of the Opentrons and Arduino backends, listed by
+# 'make examples-help'.
+include examples/examples.mk

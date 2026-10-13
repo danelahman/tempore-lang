@@ -32,6 +32,7 @@
        examples/opentrons/beads.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+   The target opentrons-beads-simulate of 'make' runs this command.
 
    The beads of the samples are named by a string, of the type beads. Beads
    on the magnet are a box that opens once they have settled, and air-drying

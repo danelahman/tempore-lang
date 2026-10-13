@@ -31,6 +31,7 @@
        examples/opentrons/reagents.tpe
 
    and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+   The target opentrons-reagents-simulate of 'make' runs this command.
 
    A thawed reagent is a box: it may be dispensed only within 30 minutes of
    thawing. The thawing and its 30-minute window are the example's own.

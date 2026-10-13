@@ -70,8 +70,8 @@ and with an expired one, and a supervisory iteration that may exceed the
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2/balance.tpe", line 86, characters 0-47:
-    86 | operation Arm : calibration ~> unit # [0, 0.05]
+    File "../../examples/arduino/bala2/balance.tpe", line 90, characters 0-47:
+    90 | operation Arm : calibration ~> unit # [0, 0.05]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2/unchecked.tpe", line 5, characters 14-26:

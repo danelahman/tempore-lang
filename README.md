@@ -1348,6 +1348,23 @@ For example,
 
 writes the ELISA protocol to `_opentrons/protocols/elisa.py` and simulates it.
 
+Each example `NAME` has the targets `make opentrons-NAME-emit`, which writes
+its protocol to `_opentrons/protocols/NAME.py`, and `make
+opentrons-NAME-simulate`, which also simulates it, installing the simulator by
+`make opentrons-deps` first; `make opentrons-simulate-all` simulates every
+example, and `make examples-help` lists the targets. `MONITOR=warn` sets the
+monitor policy. The targets are defined by
+[`examples/examples.mk`](examples/examples.mk) from a fragment
+`examples/opentrons/NAME.mk` next to the example, which sets its grades and
+its unit of duration:
+
+    EXAMPLE_GRADES = time-interval
+    EXAMPLE_TIME_UNIT = minutes
+
+A new example `NAME.tpe`, with its binding file `NAME_bindings.py`, gets its
+targets by such a fragment; `tests/make/examples.t` checks that every example
+has one and that its target runs the command of its header.
+
 Requirements:
 
 - the simulator is `opentrons_simulate` of the `opentrons` Python package
@@ -1580,6 +1597,48 @@ directory in `_arduino/projects`. The options are:
   neither the reset nor the boot pin, and they are left so when it is closed;
 - `--package <name>`, repeatable, loads the declarations of a package for the
   interpreter, which performs its operations by their default implementations.
+
+Each example `NAME` has the targets `make arduino-NAME-simulate` (the host
+simulation), `arduino-NAME-build` (the PlatformIO build),
+`arduino-NAME-upload` (the build and upload), `arduino-NAME-profile` (the
+upload with `--profile`, then `--capture`), and, for `bala2` and
+`bala2-regex`, `arduino-NAME-log` (the upload with `-DBALANCE_LOG`, then
+`--capture`); `make arduino-simulate-all` and `make arduino-build-all` run
+the first two for every example, and `make examples-help` lists the targets
+with the values of their variables. The targets that need PlatformIO install
+it by `make arduino-deps` first. An upload goes to the serial port of the
+board of the manifest, `PORT_M5STACK_GRAY` (by default
+`/dev/cu.usbserial-02012C91`) or `PORT_M5STACK_CORES3` (by default
+`/dev/cu.usbmodem101`), the ports of the boards of the development machine,
+or else to `PORT` when it is set; the variables are set on the command line
+or in the environment:
+
+    make arduino-bala2-upload PORT=/dev/ttyUSB0
+    make arduino-tilt-profile PORT_M5STACK_CORES3=/dev/ttyACM0 CAPTURE=60
+
+`CAPTURE` is the time, in seconds, for which the port is read (default 30),
+`SIMULATE` the simulated time of the host simulation (by default that of the
+example), `MONITOR` the monitor policy (by default `abort`, and `warn` for
+the targets that read the port) and `BALANCE_LOG` the interval of the log in
+milliseconds (default 20).
+
+The targets are defined by [`examples/examples.mk`](examples/examples.mk)
+from a fragment `example.mk` in the directory of the example, which holds one
+manifest `PROGRAM.device.json` and its program `PROGRAM.tpe`. The fragment
+sets the grades and the simulated time of the host simulation, in seconds,
+and optionally the build flags of the target `-log`:
+
+    EXAMPLE_GRADES = time-interval-rational
+    EXAMPLE_SIMULATE = 8
+    BALANCE_LOG ?= 20
+    EXAMPLE_LOG_FLAGS = -DBALANCE_LOG=$(BALANCE_LOG)
+
+The board is that of the manifest, and its port the variable `PORT_BOARD`,
+the name of the board in upper case with `-` replaced by `_`, such as
+`PORT_ESP32_DEVKIT` for `esp32-devkit`; a board without a default port
+needs `PORT` or that variable. A new example gets its targets by such a
+fragment; `tests/make/examples.t` checks that every example has one and that
+its target `-simulate` runs the command of its header.
 
 Requirements:
 
