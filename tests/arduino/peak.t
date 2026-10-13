@@ -66,7 +66,7 @@ exceptions and run-time type information:
   $ tempore --emit-arduino peak --device $app/peak.device.json $app/peak.tpe | grep -c Wrote
   26
   $ grep -c 'tempore_operation_monitor .*, nullptr);' _arduino/projects/peak/src/tempore_operations.cpp
-  8
+  9
   $ grep 'The periodic task\|tempore_monitor_period' _arduino/projects/peak/src/main.cpp
   // The periodic task step, of period 20000 us; its grades bound no durations, so its steps are checked against the period by the monitor only.
       tempore_monitor_period(&tempore_task0_monitor, start, tempore_clock_us());
@@ -75,19 +75,26 @@ exceptions and run-time type information:
   $ cd ../../..
 
 Three seconds of simulated time: the recorder writes the flash once, when
-the tilt first exceeds the record, and shows the record every second:
+the tilt first exceeds the record, and shows the record every second,
+between the name of the example and the footer:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep '\] \(Display\|Flash\)\|simulation'
   [31.000 ms] Display cleared
-  [32.000 ms] Display: Peak tilt
-  [33.000 ms] Display: 0.000
-  [1033.000 ms] Flash: record 5.639 degrees
-  [1064.000 ms] Display cleared
-  [1065.000 ms] Display: Peak tilt
-  [1066.000 ms] Display: 5.639
-  [2097.000 ms] Display cleared
-  [2098.000 ms] Display: Peak tilt
-  [2099.000 ms] Display: 5.639
+  [33.280 ms] Display at (0, 0): Peak tilt recorder
+  [34.280 ms] Display: Peak tilt
+  [35.280 ms] Display: 0.000
+  [37.560 ms] Display at (0, 230): Powered by Tempore (tempore-lang.ee)
+  [1037.560 ms] Flash: record 5.639 degrees
+  [1068.560 ms] Display cleared
+  [1070.840 ms] Display at (0, 0): Peak tilt recorder
+  [1071.840 ms] Display: Peak tilt
+  [1072.840 ms] Display: 5.639
+  [1075.120 ms] Display at (0, 230): Powered by Tempore (tempore-lang.ee)
+  [2106.120 ms] Display cleared
+  [2108.400 ms] Display at (0, 0): Peak tilt recorder
+  [2109.400 ms] Display: Peak tilt
+  [2110.400 ms] Display: 5.639
+  [2112.680 ms] Display at (0, 230): Powered by Tempore (tempore-lang.ee)
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep -c 'Release step'
   150

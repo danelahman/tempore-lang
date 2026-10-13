@@ -1,0 +1,13 @@
+(* A rejected variant of examples/arduino/level/level.tpe. *)
+
+let step_reconfigured ((calibration, age, rate, touching) : state) : state =
+  box {Touched; ReadImu} calibration as kept in
+  let touched, x, y = perform Touched () in
+  (if touched && corner x y then (
+     perform ConfigureImu 400;
+     perform Beep (600, 50))
+   else ());
+  let accel, _ = perform ReadImu () in
+  unbox kept as calibration in
+  display calibration (angles accel calibration) (age + 1);
+  (calibration, age + 1, rate, touched)

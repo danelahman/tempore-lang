@@ -1,0 +1,14 @@
+(* The package m5-speaker: tones on the speaker of an M5Stack core, through
+   M5Unified. Grades: time-interval-rational, in milliseconds.
+
+   Beep (frequency, duration) starts a tone of the given frequency, in hertz,
+   for the given duration, in milliseconds, replacing a tone still playing,
+   and returns at once: its running time is that of starting the tone, not
+   its duration. The default implementation takes a time within the bounds
+   and plays nothing.
+
+   The bounds are PROVISIONAL, not yet measured: starting a tone queues it to
+   the task of the speaker, without a transfer on a bus, bounded by 0.5 ms. *)
+
+operation Beep : nat * nat ~> unit # [0, 0.5]
+default Beep _ = delay 1/20

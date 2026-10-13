@@ -13,3 +13,10 @@ default ShowNumber _ = delay 1
 
 operation ClearDisplay : unit ~> unit # {ClearDisplay} within [31, 48]
 default ClearDisplay () = delay 31
+
+operation ShowTextAt : nat * nat * nat * string ~> unit # {ShowTextAt} within [0.1, 33]
+default ShowTextAt _ = delay 2
+
+operation ShowNumberAt : nat * nat * nat * nat * float ~> unit
+    # {ShowNumberAt} within [0.1, 33]
+default ShowNumberAt _ = delay 2

@@ -16,7 +16,30 @@
    0.224 to 1.000 ms: [0.2, 1.5]. The bounds below cover both
    boards; the descriptor package.json gives those of each board, which
    replace them for a device of that board. The default implementation
-   takes 0.6 ms, within the bounds of each. *)
+   takes 0.6 ms, within the bounds of each.
+
+   ConfigureImu rate sets the output data rate of the accelerometer to the
+   greatest rate supported not above rate hertz, without changing its range:
+   on the BMI270, 25 to 1600 Hz in powers of two, and on a unit of the MPU6886
+   family the sample rate of 1 kHz divided by an integer; on another unit it
+   does nothing. SelfTestImu () reads the unit four times, 5 ms apart, and
+   returns whether it is at rest: the magnitude of each acceleration between
+   0.9 and 1.1 g and that of each angular rate below 20 degrees per second.
+   Their default implementations take a time within the bounds; that of
+   SelfTestImu returns true.
+
+   The bounds of ConfigureImu and SelfTestImu are PROVISIONAL, not yet
+   measured: ConfigureImu, a write of one register, takes the bounds of a
+   write of the package i2c, and SelfTestImu, three waits of 4 to 5 ms (one
+   tick of the scheduler less than requested, at the least) and four
+   readings, those of the waits and of four readings at the bounds of
+   ReadImu on the CoreS3, the upper bound with the margin of 1.5. *)
 
 operation ReadImu : unit ~> imu # [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+
+operation ConfigureImu : nat ~> unit # [0.15, 0.45]
+default ConfigureImu _ = delay 1/5
+
+operation SelfTestImu : unit ~> bool # [12, 30]
+default SelfTestImu () = delay 17; true

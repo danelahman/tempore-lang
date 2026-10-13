@@ -16,11 +16,11 @@
 (* An application of the Arduino backend to a second board, the M5Stack
    CoreS3 Lite: the device manifest tilt.device.json runs the step 'step'
    every 20 ms, from the state of 'start', and repeats the display 'show' as
-   a free task. The operations ReadImu, ShowText, ShowNumber and
-   ClearDisplay, and the function tilt_x, come from the packages m5-imu and
-   m5-display, whose declarations precede this file. The operations declared
-   below are bound by bindings.cpp. The host simulation tilts the unit by the
-   default world of the backend, a harmonic oscillation.
+   a free task. The operations ReadImu, ShowText, ShowNumber, ShowTextAt
+   and ClearDisplay, and the function tilt_x, come from the packages m5-imu
+   and m5-display, whose declarations precede this file. The operations
+   declared below are bound by bindings.cpp. The host simulation tilts the
+   unit by the default world of the backend, a harmonic oscillation.
 
    The PlatformIO project is written, and simulated on the host for one
    second, by
@@ -77,15 +77,19 @@ let start () : float =
   tilt_x_of_accel accel
 
 (* Correctly accepted by the typechecker: the display clears the screen,
-   writes the title, and then reads the tilt last published, boxes it for
-   5 ms and shows it at once; it then waits 250 ms. *)
+   writes the name of the example in small text at the top and the label
+   below it, and then reads the tilt last published, boxes it for 5 ms and
+   shows it at once; it then writes the footer in small text at the bottom
+   and waits 250 ms. *)
 let show () =
   perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 1, "Tilt display");
   perform ShowText "Tilt (degrees)";
   let tilt = perform Latest () in
   box [0, 5] tilt as fresh in
   unbox fresh as shown in
   perform ShowNumber shown;
+  perform ShowTextAt (0, 230, 1, "Powered by Tempore (tempore-lang.ee)");
   delay 250
 
 (* Correctly rejected by the typechecker: the display reads the tilt before

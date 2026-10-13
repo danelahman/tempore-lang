@@ -1,0 +1,9 @@
+(* A rejected variant of examples/arduino/level/level.tpe. *)
+
+let step_drawn_first ((calibration, age, rate, touching) : state) : state
+    # {Touched; ReadImu; ShowNumberAt; ShowNumberAt; ShowTextAt; ShowTextAt;
+       ShowNumberAt} =
+  let touched, _, _ = perform Touched () in
+  display calibration (0.0, 0.0) age;
+  let _ = perform ReadImu () in
+  (calibration, age + 1, rate, touched)

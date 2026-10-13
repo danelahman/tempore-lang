@@ -59,11 +59,13 @@ CAPTURE=60:
 The uploads go to the port of the board of the manifest, PORT_BOARD, or else
 to PORT:
 
-  $ for n in bala2 bala2-regex peak tilt wheels; do
+  $ for n in bala2 bala2-regex fall level peak tilt wheels; do
   >   dry "arduino-$n-upload" | grep -o -e '--port [^ ]*' | sed "s|^|$n: |"
   > done
   bala2: --port /dev/cu.usbserial-02012C91
   bala2-regex: --port /dev/cu.usbserial-02012C91
+  fall: --port /dev/cu.usbmodem101
+  level: --port /dev/cu.usbmodem101
   peak: --port /dev/cu.usbmodem101
   tilt: --port /dev/cu.usbmodem101
   wheels: --port /dev/cu.usbserial-02012C91
@@ -107,6 +109,6 @@ The aggregate targets cover every example:
   $ dry opentrons-simulate-all | grep -c tempore
   8
   $ dry arduino-simulate-all | grep -c tempore
-  5
+  7
   $ dry arduino-build-all | grep -c tempore
-  5
+  7

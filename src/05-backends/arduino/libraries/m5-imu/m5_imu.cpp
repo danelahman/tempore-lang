@@ -15,7 +15,15 @@
 // passed since the last one; on the BMI270 of an M5Stack CoreS3 an update
 // reads the status and 20 bytes of data, the magnetometer included through
 // the auxiliary interface of the sensor.
+//
+// ConfigureImu sets the output data rate of the accelerometer without
+// changing its range, so that the conversion of M5Unified remains valid: on
+// the BMI270 by its register ACC_CONF (0x40), in the filter performance mode
+// with the normal bandwidth, and on a unit of the MPU6886 family by its
+// sample rate divider SMPLRT_DIV (0x19). SelfTestImu reads the unit four
+// times, 5 ms apart, and checks that it is at rest.
 
+#include <Arduino.h>
 #include <M5Unified.h>
 
 #include "tempore_bindings.h"
@@ -31,8 +39,12 @@ enum : uint8_t {
   m5_imu_address = 0x68,
   m5_imu_gyro_config = 0x1b,
   m5_imu_accel_config = 0x1c,
-  m5_imu_accel_xout_h = 0x3b
+  m5_imu_accel_xout_h = 0x3b,
+  m5_imu_smplrt_div = 0x19
 };
+
+// The address of the BMI270 and its register ACC_CONF.
+enum : uint8_t { m5_imu_bmi270_address = 0x69, m5_imu_bmi270_acc_conf = 0x40 };
 
 // The frequency of the transactions with the unit, set by the member
 // imu_frequency of the board profile, as for M5.Imu.setClock.
@@ -84,8 +96,16 @@ static float m5_imu_convert(int s, int j, int16_t r) {
 
 #endif
 
-#ifdef TEMPORE_PERFORMS_ReadImu
-tempore_result_ReadImu binding_ReadImu(tempore_argument_ReadImu) {
+#if defined(TEMPORE_PERFORMS_ReadImu) || defined(TEMPORE_PERFORMS_SelfTestImu)
+// A reading of the unit: the acceleration, in g, and the angular rate, in
+// degrees per second, along the x, y and z axes.
+struct m5_imu_reading {
+  float accel[3];
+  float gyro[3];
+};
+
+// A reading of the unit, under the I2C lock.
+static inline m5_imu_reading m5_imu_read() {
 #ifndef TEMPORE_HOST
   if (m5_imu_direct) {
     uint8_t data[14];
@@ -115,5 +135,63 @@ tempore_result_ReadImu binding_ReadImu(tempore_argument_ReadImu) {
   tempore_i2c_unlock();
   return {{data.accel.x, data.accel.y, data.accel.z},
           {data.gyro.x, data.gyro.y, data.gyro.z}};
+}
+#endif
+
+#ifdef TEMPORE_PERFORMS_ReadImu
+tempore_result_ReadImu binding_ReadImu(tempore_argument_ReadImu) {
+  const m5_imu_reading r = m5_imu_read();
+  return {{r.accel[0], r.accel[1], r.accel[2]},
+          {r.gyro[0], r.gyro[1], r.gyro[2]}};
+}
+#endif
+
+#ifdef TEMPORE_PERFORMS_ConfigureImu
+tempore_result_ConfigureImu binding_ConfigureImu(
+    tempore_argument_ConfigureImu rate) {
+#ifdef TEMPORE_HOST
+  M5.Imu.configureAccel(rate);
+#else
+  if (m5_imu_direct) {
+    // The sample rate of 1 kHz divided by 1 + SMPLRT_DIV.
+    const uint32_t divider = rate == 0 ? 255 : rate >= 1000 ? 0 : 1000 / rate - 1;
+    tempore_i2c_lock();
+    M5.In_I2C.writeRegister8(m5_imu_address, m5_imu_smplrt_div,
+                             static_cast<uint8_t>(divider > 255 ? 255 : divider),
+                             m5_imu_frequency);
+    tempore_i2c_unlock();
+  } else if (M5.Imu.getType() == m5::imu_bmi270) {
+    // The output data rate 25 * 2^(n - 6) Hz of the code n, from 6 (25 Hz)
+    // to 12 (1600 Hz): the greatest not above rate.
+    uint8_t code = 6;
+    while (code < 12 && (25u << (code - 5)) <= rate) ++code;
+    tempore_i2c_lock();
+    M5.In_I2C.writeRegister8(m5_imu_bmi270_address, m5_imu_bmi270_acc_conf,
+                             static_cast<uint8_t>(0xa0 | code),
+                             m5_imu_frequency);
+    tempore_i2c_unlock();
+  }
+#endif
+  return {};
+}
+#endif
+
+#ifdef TEMPORE_PERFORMS_SelfTestImu
+// Whether the unit is at rest in four readings 5 ms apart: the magnitude of
+// the acceleration between 0.9 and 1.1 g, and that of the angular rate below
+// 20 degrees per second.
+tempore_result_SelfTestImu binding_SelfTestImu(tempore_argument_SelfTestImu) {
+  bool rest = true;
+  for (int i = 0; i < 4; ++i) {
+    if (i > 0) delay(5);
+    const m5_imu_reading r = m5_imu_read();
+    float a = 0, g = 0;
+    for (int k = 0; k < 3; ++k) {
+      a += r.accel[k] * r.accel[k];
+      g += r.gyro[k] * r.gyro[k];
+    }
+    rest = rest && a >= 0.81f && a <= 1.21f && g < 400.0f;
+  }
+  return rest;
 }
 #endif

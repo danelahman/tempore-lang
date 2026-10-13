@@ -1464,8 +1464,21 @@ An application is described in four layers.
     and `M5.Imu.getGyro` when more than 256 µs have passed since the last
     one; its running-time bounds are given per board, `[0.55, 1.25]` ms on
     the Gray and `[0.2, 1.5]` ms on the CoreS3, and the declarations give
-    the bounds that cover both;
-  - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`;
+    the bounds that cover both; `ConfigureImu`, which sets the output data
+    rate of the accelerometer without changing its range (the register
+    ACC_CONF of the BMI270, the sample rate divider of the MPU6886), so that
+    the conversion of M5Unified stays valid; and `SelfTestImu`, four
+    readings 5 ms apart, true if the unit is at rest;
+  - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`, lines of text
+    of size 2 written one below another, and `ShowTextAt` and
+    `ShowNumberAt`, a text or a number written at a position in a size from
+    1 to 4 over a band of the display filled first, so that it replaces the
+    text of that band without a clearing; the next line follows below it;
+  - `m5-touch`: `Touched`, whether the screen is touched and where, read
+    through `M5.Touch.update` under the I2C lock (the touch screens of the
+    CoreS3 and the Core2, capability `touch`);
+  - `m5-speaker`: `Beep`, which starts a tone of a frequency and a duration
+    on the speaker and returns at once (capability `speaker`);
   - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base
     of the M5Stack BALA2, with a watchdog of the motor setpoints; the counts
     of the encoders increase in the direction in which a positive drive turns
@@ -1492,7 +1505,10 @@ examples are measured on the devices by their profile (`--profile` with
 `--capture`, below): the lower bound is the least time measured, rounded
 down, and the upper bound 1.5 times the greatest, rounded up. Each
 declaration states its measurements, and how the bounds not measured
-directly, such as those of the package `i2c`, are derived.
+directly, such as those of the package `i2c`, are derived. The bounds of
+`ConfigureImu`, `SelfTestImu`, `ShowTextAt`, `ShowNumberAt`, `Touched` and
+`Beep` are provisional, derived from those measurements, and not yet
+measured.
 
 The bounds a package declares hold on every board it supports. Where an
 operation is measured to run within narrower bounds on a particular board,
@@ -1593,7 +1609,25 @@ M5Stack CoreS3 and CoreS3 Lite (profile `m5stack-cores3`, port variable
   tilt in the flash memory of the M5Stack CoreS3 Lite, under the operation
   counts: the step performs one reading and one publication and no write of
   the flash, and a copy of the record is used only while no write of the flash
-  has followed it.
+  has followed it;
+- [`level/level.tpe`](examples/arduino/level/level.tpe): a spirit level on
+  the M5Stack CoreS3 Lite, under the regular expressions of timed
+  operations: a tap calibrates, with a self-test and a tone, a tap on the
+  top right corner reconfigures the unit, and the calibration is applied
+  only to a reading that no reconfiguration or calibration precedes within
+  its 250 ms step, and expires after 10 minutes;
+- [`fall/fall.tpe`](examples/arduino/fall/fall.tpe): a fall detector on the
+  M5Stack CoreS3 Lite, under the regular expressions of timed operations: a
+  free fall of at least 100 ms followed within a second by an impact is a
+  fall, after which a prompt, a tone and a countdown of 10 seconds precede
+  the alarm, raised only 10 to 30 seconds after the fall unless a tap
+  cancels, and acknowledged by a tap.
+
+The CoreS3 examples show their name at the top of the screen and the line
+"Powered by Tempore (tempore-lang.ee)" at the bottom, in text of size 1, by
+`ShowTextAt`: after each clearing in `tilt`, `peak` and `fall`, outside
+their boxes, and once by the initial function in `level`, which redraws its
+values by bands and does not clear.
 
 #### Command line
 <!-- web-skip -->

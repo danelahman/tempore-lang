@@ -25,7 +25,24 @@
    The bounds hold on both boards, and the descriptor gives none per board:
    ClearDisplay took 31.354 to 31.469 ms on the Gray and 31.739 to 31.814 ms
    on the CoreS3, which give the same bounds, and those of ShowText and
-   ShowNumber are those of a full line. *)
+   ShowNumber are those of a full line.
+
+   ShowTextAt (x, y, size, s) writes s at the pixel (x, y) from the top left
+   corner, in text of the size 1 to 4 (a larger size is 4, a smaller 1),
+   over the band from x to the right edge of the display, 10 times the size
+   pixels high, which it fills with the background first, so that it
+   replaces the text of that band; ShowNumberAt (x, y, size, decimals, v)
+   writes v with the given number of decimals, at most 6, likewise. The next
+   line of ShowText or ShowNumber starts at the left edge below the band.
+   They leave the rest of the display as it is, and ClearDisplay clears it.
+
+   The bounds of ShowTextAt and ShowNumberAt are PROVISIONAL, not yet
+   measured: the lower bound is that of ShowText, and the upper bound
+   assumes the widest band, of size 4 from the left edge, 320 by 40 pixels
+   of 16 bits at 40 MHz, 5.1 ms, and a full line of 13 characters of size 4,
+   at four times the greatest time per character measured at size 2, 1.28 ms
+   each: 21.7 ms, 33 ms with the margin. A text that wraps over several
+   lines is not within these bounds. *)
 
 operation ShowText : string ~> unit # [0.1, 12.5]
 default ShowText _ = delay 1
@@ -35,3 +52,9 @@ default ShowNumber _ = delay 1
 
 operation ClearDisplay : unit ~> unit # [31, 48]
 default ClearDisplay () = delay 31
+
+operation ShowTextAt : nat * nat * nat * string ~> unit # [0.1, 33]
+default ShowTextAt _ = delay 2
+
+operation ShowNumberAt : nat * nat * nat * nat * float ~> unit # [0.1, 33]
+default ShowNumberAt _ = delay 2

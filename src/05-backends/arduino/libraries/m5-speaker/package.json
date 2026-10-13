@@ -1,0 +1,15 @@
+{
+  "description": "Tones on the speaker of an M5Stack core through M5Unified",
+  "declarations": {
+    "time-interval-rational": "m5_speaker.tpe",
+    "regex-timed-lower-bound-rational-symbolic": "m5_speaker_timed_ops.tpe",
+    "regex-timed-upper-bound-rational-symbolic": "m5_speaker_timed_ops.tpe",
+    "regex-timed-interval-rational-symbolic": "m5_speaker_timed_ops.tpe",
+    "counts-upper-bound": "m5_speaker_counts.tpe"
+  },
+  "requires": ["m5unified", "speaker"],
+  "sources": ["m5_speaker.cpp"],
+  "host_models": ["m5_speaker_model.cpp"],
+  "bindings": ["Beep"],
+  "init": "m5_speaker_init"
+}
