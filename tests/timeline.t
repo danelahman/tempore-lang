@@ -11,17 +11,7 @@ continuation are not shown.
   === Run 1 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let reading = return op_var in
-            perform Compute () (op_var. return op_var);
-            unbox reading as sample in
-            let angle = perform AngleOf sample (op_var. return op_var) in
-            perform SetAngle angle (op_var. return op_var)
-          with sensor
-        # (0, 0.5]
-    },
+    { resource_1 ↦ <fun> # (0, 0.5] },
     [0.1, 0.1],
     { resource_2 ↦ Sample 42 # [5, 10) },
     [7, 7],
@@ -149,23 +139,7 @@ Nested handlers: their continuations are not shown.
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 7
-                                with h # 2,
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            return ()
-          with handler
-               | return y ↦ return y
-               | Op2 (q, k') ↦
-                       delay 3 (return ());
-                       unbox k' as cont_var in
-                       cont_var ()
-        # 3
-    },
+    { resource_1 ↦ <fun> # 2, resource_3 ↦ <fun> # 3 },
     3
   ]
   
@@ -288,18 +262,7 @@ the call whose default implementation performs it.
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Report (msg, k) ↦
-                          delay 1 (return ());
-                          unbox k as cont_var in
-                          cont_var ()
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   

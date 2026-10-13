@@ -99,12 +99,15 @@ val print_pattern :
 (** Prints a pattern. *)
 
 val print_expression :
+  ?abbreviated:bool ->
   (module Grades.Grade.S with type t = 'a) ->
   ?max_level:int ->
   ('a Ast.rho, 'eps) Ast.expression ->
   Format.formatter ->
   unit
-(** Prints an expression, its resource grades by the grade module. *)
+(** Prints an expression, its resource grades by the grade module; with
+    [~abbreviated:true], functions are printed as [<fun>] and handlers as
+    [<handler>]. *)
 
 val print_computation :
   (module Grades.Grade.S with type t = 'a) ->
@@ -140,4 +143,5 @@ val string_of_interpreter_state :
   list ->
   string
 (** The text of an interpreter state, whose resources are held with the grades
-    they were boxed at. *)
+    they were boxed at; functions and handlers among the resources are
+    abbreviated ({!print_expression}). *)

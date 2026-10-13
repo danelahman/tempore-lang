@@ -221,7 +221,7 @@ let rec print_pattern ?max_level p ppf =
         (print_pattern ~max_level:0 p)
   | PNonbinding -> print "_"
 
-and print_expression resource_grade =
+and print_expression ?(abbreviated = false) resource_grade =
   let rec aux ?max_level e ppf =
     let print ?at_level = Print.print ?max_level ?at_level ppf in
     match e.it with
@@ -237,6 +237,8 @@ and print_expression resource_grade =
         print ~at_level:1 "%t::%t" (aux ~max_level:0 v1) (aux ~max_level:1 v2)
     | Variant (lbl, Some arg) ->
         print ~at_level:1 "%t %t" (Label.print lbl) (aux ~max_level:0 arg)
+    | (Lambda _ | PureLambda _ | RecLambda _) when abbreviated -> print "<fun>"
+    | Handler _ when abbreviated -> print "<handler>"
     | Lambda (p, c) | PureLambda (p, c) ->
         print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]" (print_pattern p)
           (print_computation resource_grade ?max_level:None c)
@@ -350,7 +352,7 @@ let print_vars_and_exprs resource_grade print_var_and_expr
 let print_interpreter_state resource_grade ctx ppf =
   let print_var_and_expr (variable, (rho, expr)) ppf =
     Format.fprintf ppf "@[<hv 2>%t ↦@ %t@ # %t@]" (Variable.print variable)
-      (print_expression resource_grade expr)
+      (print_expression ~abbreviated:true resource_grade expr)
       (print_rho resource_grade rho)
   in
   print_vars_and_exprs resource_grade print_var_and_expr ctx ppf

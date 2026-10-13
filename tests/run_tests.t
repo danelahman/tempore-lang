@@ -94,16 +94,7 @@
   State: [
     [{1}, {1}],
     { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            unbox resource_0 as g in
-            perform Mount (p, g) (op_var. return op_var)
-          with printer
-        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
     [{3}, {3}],
@@ -120,16 +111,7 @@
   === Run 2 ===
   return ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword")))))
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            return ("Sword #1", p)
-          with printer
-        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
-    },
+    { resource_1 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
     [{1}, {1}],
     [{3}, {3}],
     { resource_2 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
@@ -226,8 +208,7 @@
   === Run 2 ===
   return 5
   State: [
-    { resource_0 ↦ fun () ↦ delay 2 (return ());
-                            return 5 # 2 },
+    { resource_0 ↦ <fun> # 2 },
     2
   ]
   
@@ -542,14 +523,7 @@
   === Run 1 ===
   return 5
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var;
-                       delay 5 (return ());
-                       return 3
-                     with h
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -580,10 +554,7 @@
                             cont_var ()) in
                    f ())
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 3
-                                with h # 1 }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -634,25 +605,7 @@
                             cont_var ()) in
                    f ())
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 7
-                                with h # 1,
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_1 as cont_var in
-            cont_var ()
-          with handler
-               | return y ↦ return y
-               | Op2 (q, k') ↦
-                       return (fun () ↦
-                                 let f = (unbox k' as cont_var in
-                                          cont_var ()) in
-                                 f ())
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1, resource_3 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -677,19 +630,7 @@
   === Run 1 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            return 3
-          with handler
-               | return x ↦ return x
-               | Op ((), k) ↦
-                      (fun () ↦ delay 1 (return ())) ();
-                      unbox k as cont_var in
-                      cont_var ()
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -699,10 +640,7 @@
   === Run 1 ===
   return 3
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 3
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   ======================================================================
@@ -731,36 +669,9 @@
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            perform Send 2 (op_var. return op_var);
-            perform Send 3 (op_var. return op_var)
-          with handler
-               | return x ↦ return x
-               | Send (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Send, 1),
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            perform Send 3 (op_var. return op_var)
-          with handler
-               | return x ↦ return x
-               | Send (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Send, 1),
-      resource_5 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Send (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Send, 1)
+    { resource_1 ↦ <fun> # (Send, 1),
+      resource_3 ↦ <fun> # (Send, 1),
+      resource_5 ↦ <fun> # (Send, 1)
     }
   ]
   
@@ -834,18 +745,7 @@
   === Run 2 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Report (msg, k) ↦
-                          delay 1 (return ());
-                          unbox k as cont_var in
-                          cont_var ()
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -872,17 +772,7 @@
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let v = return op_var in
-            (let b = (let b = (+) v in
-                      b 1) in
-             perform Set b (op_var. return op_var));
-            return v
-          with h
-        # 3
-    },
+    { resource_1 ↦ <fun> # 3 },
     3,
     1,
     1
@@ -1243,19 +1133,7 @@
   === Run 6 ===
   return 2
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            return 1
-          with handler
-               | return y ↦ return y
-               | Tick (p, k) ↦
-                        let r = (unbox k as cont_var in
-                                 cont_var ()) in
-                        return 2
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   === Run 7 ===
@@ -1309,19 +1187,7 @@
   === Run 7 ===
   return 6
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            return 5
-          with handler
-               | return y ↦ return y
-               | Op (p, k) ↦
-                      let r = (unbox k as cont_var in
-                               cont_var ()) in
-                      return 6
-        # 1
-    }
+    { resource_1 ↦ <fun> # 1 }
   ]
   
   ======================================================================
@@ -1446,18 +1312,7 @@
   === Run 4 ===
   return 0
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return () ↦ return 0
-               | Put ((n, _), k) ↦
-                       delay 1 (return ());
-                       unbox k as cont_var in
-                       cont_var ()
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -1642,18 +1497,7 @@
   === Run 3 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            perform ReadSecret () (op_var. return op_var);
-            return ()
-          with handler
-               | return x ↦ return x
-               | Post (n, k) ↦ unbox k as cont_var in
-                               cont_var ()
-        # (Low, (Board, Low))
-    }
+    { resource_1 ↦ <fun> # (Low, (Board, Low)) }
   ]
   
   === Run 4 ===
@@ -2930,26 +2774,7 @@
   === Run 1 ===
   return 12
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let v = return op_var in
-            return v
-          with handler
-               | return x ↦ return x
-               | Op (p, k) ↦
-                      let Stamp i = return (Stamp 3) in
-                      let b =
-                        (let b =
-                           (let b = (let b = (let b = (+) p in
-                                              b 2) in
-                                     (+) b) in
-                            b i) in
-                         double b) in
-                      unbox k as cont_var in
-                      cont_var b
-        # 0
-    }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   ======================================================================
@@ -2958,25 +2783,7 @@
   === Run 1 ===
   return 7
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var;
-                                  return 7
-                                with h # 0,
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_1 as cont_var in
-            cont_var ()
-          with handler
-               | return y ↦ return y
-               | Op2 (q, k') ↦
-                       let a = (unbox k' as cont_var in
-                                cont_var ()) in
-                       unbox resource_1 as cont_var in
-                       cont_var ()
-        # 0
-    }
+    { resource_1 ↦ <fun> # 0, resource_3 ↦ <fun> # 0 }
   ]
   
   ======================================================================
@@ -3068,47 +2875,31 @@
   === Run 3 ===
   return 9
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 4 ===
   return 4
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let b = (let b = return op_var in
-                     (+) b) in
-            b 10
-          with h
-        # 0
-    }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 5 ===
   return 1
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 6 ===
   return 2
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 7 ===
   return 3
   State: [
-    { resource_1 ↦ fun op_var ↦ handle
-                                  return op_var
-                                with h # 0 }
+    { resource_1 ↦ <fun> # 0 }
   ]
   
   === Run 8 ===
@@ -3308,15 +3099,7 @@
   State: [
     { resource_0 ↦ "tea" # [0.5, 1.5] },
     [0.25, 0.25],
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # [0.5, 0.75]
-    },
+    { resource_2 ↦ <fun> # [0.5, 0.75] },
     [0.625, 0.625]
   ]
   
@@ -3356,15 +3139,7 @@
     { resource_0 ↦ "ripe" # 2.25 },
     0.5,
     1.25,
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # 0.5
-    },
+    { resource_2 ↦ <fun> # 0.5 },
     0.5
   ]
   
@@ -3431,15 +3206,7 @@
   State: [
     { resource_0 ↦ "fresh" # 0.5 },
     0.375,
-    { resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as y in
-            return y
-          with h
-        # 0.125
-    },
+    { resource_2 ↦ <fun> # 0.125 },
     0.0625
   ]
   
@@ -3691,37 +3458,9 @@
   === Run 4 ===
   return 2
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Pause (_, k) ↦
-                         delay 1 (return ());
-                         let y = (rec pause_nested ...) 1 in
-                         let b = (let b = (+) y in
-                                  b 1) in
-                         unbox k as cont_var in
-                         cont_var b
-        # ∞
-    },
+    { resource_1 ↦ <fun> # ∞ },
     1,
-    { resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Pause (_, k) ↦
-                         delay 1 (return ());
-                         let y = (rec pause_nested ...) 0 in
-                         let b = (let b = (+) y in
-                                  b 1) in
-                         unbox k as cont_var in
-                         cont_var b
-        # ∞
-    },
+    { resource_3 ↦ <fun> # ∞ },
     1
   ]
   
@@ -3731,73 +3470,11 @@
   === Run 1 ===
   return (12, 2, 3)
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b =
-                         (let b = (let b = (rec count ...) 1 in
-                                   (+) b) in
-                          b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b =
-                         (let b = (let b = (rec count ...) 0 in
-                                   (+) b) in
-                          b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_5 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b = (let b = (let b = (rec go ...) 2 in
-                                         (+) b) in
-                                b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_7 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b = (let b = (let b = (rec go ...) 1 in
-                                         (+) b) in
-                                b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0,
-      resource_9 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Ask (_, k) ↦
-                       let b = (let b = (let b = (rec go ...) 0 in
-                                         (+) b) in
-                                b 1) in
-                       unbox k as cont_var in
-                       cont_var b
-        # 0
+    { resource_1 ↦ <fun> # 0,
+      resource_3 ↦ <fun> # 0,
+      resource_5 ↦ <fun> # 0,
+      resource_7 ↦ <fun> # 0,
+      resource_9 ↦ <fun> # 0
     }
   ]
   
@@ -4544,28 +4221,7 @@
   === Run 2 ===
   return (File "a", File "b")
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let a = return op_var in
-            let b = perform Reserve "b" (op_var. return op_var) in
-            return (a, b)
-          with handler
-               | return x ↦ return x
-               | Reserve (name, k) ↦ unbox k as cont_var in
-                                     cont_var (File name)
-        # ([0, 1], 1),
-      resource_3 ↦
-        fun op_var ↦
-          handle
-            let b = return op_var in
-            return (File "a", b)
-          with handler
-               | return x ↦ return x
-               | Reserve (name, k) ↦ unbox k as cont_var in
-                                     cont_var (File name)
-        # ([0, 1], 1)
-    }
+    { resource_1 ↦ <fun> # ([0, 1], 1), resource_3 ↦ <fun> # ([0, 1], 1) }
   ]
   
   === Run 3 ===
@@ -4925,61 +4581,13 @@
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let freshSword = return op_var in
-            let freshHammer =
-              perform PrintResinModel (Model "Hammer") (op_var. return op_var) in
-            unbox freshSword as cooledSword in
-            let curedSword =
-              perform UvCure (Cooled cooledSword) (op_var. return op_var) in
-            unbox freshHammer as cooledHammer in
-            let curedHammer =
-              perform UvCure (Cooled cooledHammer) (op_var. return op_var) in
-            return (Complete curedSword, Complete curedHammer)
-          with h
-        # 7
-    },
+    { resource_1 ↦ <fun> # 7 },
     7,
-    { resource_2 ↦ Fresh (Model "Sword") # 5,
-      resource_4 ↦
-        fun op_var ↦
-          handle
-            let freshHammer = return op_var in
-            unbox resource_2 as cooledSword in
-            let curedSword =
-              perform UvCure (Cooled cooledSword) (op_var. return op_var) in
-            unbox freshHammer as cooledHammer in
-            let curedHammer =
-              perform UvCure (Cooled cooledHammer) (op_var. return op_var) in
-            return (Complete curedSword, Complete curedHammer)
-          with h
-        # 7
-    },
+    { resource_2 ↦ Fresh (Model "Sword") # 5, resource_4 ↦ <fun> # 7 },
     7,
-    { resource_5 ↦ Fresh (Model "Hammer") # 5,
-      resource_7 ↦
-        fun op_var ↦
-          handle
-            let curedSword = return op_var in
-            unbox resource_5 as cooledHammer in
-            let curedHammer =
-              perform UvCure (Cooled cooledHammer) (op_var. return op_var) in
-            return (Complete curedSword, Complete curedHammer)
-          with h
-        # 5
-    },
+    { resource_5 ↦ Fresh (Model "Hammer") # 5, resource_7 ↦ <fun> # 5 },
     5,
-    { resource_9 ↦
-        fun op_var ↦
-          handle
-            let curedHammer = return op_var in
-            return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
-                    Complete curedHammer)
-          with h
-        # 5
-    },
+    { resource_9 ↦ <fun> # 5 },
     5
   ]
   
@@ -5456,16 +5064,7 @@
   === Run 1 ===
   return 42
   State: [
-    { resource_0 ↦ 42 # 7,
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as x in
-            return x
-          with h
-        # 7
-    },
+    { resource_0 ↦ 42 # 7, resource_2 ↦ <fun> # 7 },
     3,
     4
   ]
@@ -5583,12 +5182,7 @@
   === Run 1 ===
   return (Fresh (Model "Sword"))
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with printer
-        # {Heat; Extrude; Cool}
-    },
+    { resource_1 ↦ <fun> # {Heat; Extrude; Cool} },
     {1},
     {3},
     {2}
@@ -5602,16 +5196,7 @@
   State: [
     [{1}, {1}],
     { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            unbox resource_0 as g in
-            perform Mount (p, g) (op_var. return op_var)
-          with printer
-        # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
+      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
     [{3}, {3}],
@@ -5673,18 +5258,7 @@
   return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
   State: [
     {1},
-    { resource_0 ↦ Epoxy # {8},
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            let printed = return op_var in
-            delay 2 (return ());
-            unbox printed as p in
-            unbox resource_0 as g in
-            perform Mount (p, g) (op_var. return op_var)
-          with printer
-        # {Heat; Extrude; Cool}
-    },
+    { resource_0 ↦ Epoxy # {8}, resource_2 ↦ <fun> # {Heat; Extrude; Cool} },
     {1},
     {3},
     { resource_3 ↦ Extruded (Heated (Model "Sword")) # {2} },
@@ -5877,14 +5451,7 @@
   return (Receipt "telemetry")
   State: [
     { resource_0 ↦ Receipt "telemetry" # {6},
-      resource_2 ↦
-        fun op_var ↦
-          handle
-            return op_var;
-            unbox resource_0 as r in
-            return r
-          with send_retry
-        # {Tx | Tx; Tx}
+      resource_2 ↦ <fun> # {Tx | Tx; Tx}
     },
     {2},
     {2}
@@ -5958,14 +5525,7 @@
   === Run 4 ===
   return 42
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       let x = return op_var in
-                       let b = (+) x in
-                       b 1
-                     with g
-        # 1
-    },
+    { resource_1 ↦ <fun> # 1 },
     1
   ]
   
@@ -5990,18 +5550,7 @@
   return ()
   State: [
     2,
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            return op_var
-          with handler
-               | return x ↦ return x
-               | Send ((), k) ↦
-                        delay 1 (return ());
-                        unbox k as cont_var in
-                        cont_var ()
-        # (1, (Send, {0}))
-    },
+    { resource_1 ↦ <fun> # (1, (Send, {0})) },
     1
   ]
   
@@ -7060,12 +6609,7 @@ implementations above, the examples over rational delays excepted:
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with fetch_then_flag
-        # {Login; (Fetch | Store)*; Logout}
-    },
+    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
     {2},
     {1},
     {1},
@@ -7112,12 +6656,7 @@ implementations above, the examples over rational delays excepted:
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with fetch_then_flag
-        # {Login; (Fetch | Store)*; Logout}
-    },
+    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
     {2},
     {1},
     {1},
@@ -8284,12 +7823,7 @@ The mail-session example performs its operations by their defaults.
   === Run 3 ===
   return 3
   State: [
-    { resource_1 ↦
-        fun op_var ↦ handle
-                       return op_var
-                     with fetch_then_flag
-        # {Login; (Fetch | Store)*; Logout}
-    },
+    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
     {2},
     {1},
     {1},
@@ -8342,17 +7876,7 @@ operation, which no default implements.
   === Run 1 ===
   return ()
   State: [
-    { resource_1 ↦
-        fun op_var ↦
-          handle
-            let reading = return op_var in
-            perform Compute () (op_var. return op_var);
-            unbox reading as sample in
-            let angle = perform AngleOf sample (op_var. return op_var) in
-            perform SetAngle angle (op_var. return op_var)
-          with sensor
-        # (0, 0.5]
-    },
+    { resource_1 ↦ <fun> # (0, 0.5] },
     [0.1, 0.1],
     { resource_2 ↦ Sample 42 # [5, 10) },
     [7, 7],
