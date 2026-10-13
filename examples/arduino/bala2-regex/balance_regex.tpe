@@ -319,7 +319,8 @@ run step (step (3.0, 0.0, 0.0, 0.0, 0.0))
    those of the default implementations in the interpreter, and replace the
    readings by those of a model of the robot. The device does not use them:
    the Arduino backend compiles the definitions that the tasks of the
-   manifest use, and handlers are outside its fragment. *)
+   manifest use, and the case of SetMotors, which computes after resuming
+   its continuation, is outside its fragment. *)
 
 (* Correctly accepted by the typechecker: the robot at the tilt 'tilt', in
    degrees, turning at the rate 'rate', in degrees per second, with the

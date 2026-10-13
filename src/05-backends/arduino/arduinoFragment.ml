@@ -72,6 +72,22 @@ and computation_node =
   | Call of callee * value list
   | Perform of Ast.operation * value
   | Delay of Grades.Rational.t * computation
+  | Handle of handler_use * computation
+
+and handler_use = { source : handler_source; arguments : value list }
+and handler_source = Defined of global | Inline of Ast.variable * handler
+
+and handler = {
+  handler_parameters : pattern list;
+  return_case : pattern * computation;
+  operation_cases : operation_case list;
+}
+
+and operation_case = {
+  case_operation : Ast.operation;
+  case_parameter : pattern;
+  case_body : computation;
+}
 
 type body =
   | Function_body of {
@@ -80,6 +96,7 @@ type body =
       recursive : bool;
     }
   | Constant_body of value
+  | Handler_body of handler
 
 type definition = {
   variable : Ast.variable;
@@ -140,8 +157,10 @@ let rec map_pattern f p =
   in
   { pattern; pattern_ty = f p.pattern_ty }
 
+let map_global f g = { g with instance = List.map f g.instance }
+
 let map_callee f = function
-  | Function g -> Function { g with instance = List.map f g.instance }
+  | Function g -> Function (map_global f g)
   | (Self | Primitive _) as callee -> callee
 
 let rec map_computation f c =
@@ -159,8 +178,34 @@ let rec map_computation f c =
     | Call (callee, vs) -> Call (map_callee f callee, List.map (map_value f) vs)
     | Perform (op, v) -> Perform (op, map_value f v)
     | Delay (q, c) -> Delay (q, map_computation f c)
+    | Handle (u, c) -> Handle (map_handler_use f u, map_computation f c)
   in
   { computation; result = f c.result }
+
+and map_handler_use f u =
+  {
+    source =
+      (match u.source with
+      | Defined g -> Defined (map_global f g)
+      | Inline (x, h) -> Inline (x, map_handler f h));
+    arguments = List.map (map_value f) u.arguments;
+  }
+
+and map_handler f h =
+  let p, c = h.return_case in
+  {
+    handler_parameters = List.map (map_pattern f) h.handler_parameters;
+    return_case = (map_pattern f p, map_computation f c);
+    operation_cases =
+      List.map
+        (fun oc ->
+          {
+            oc with
+            case_parameter = map_pattern f oc.case_parameter;
+            case_body = map_computation f oc.case_body;
+          })
+        h.operation_cases;
+  }
 
 let map_body f = function
   | Function_body { parameters; body; recursive } ->
@@ -171,6 +216,7 @@ let map_body f = function
           recursive;
         }
   | Constant_body v -> Constant_body (map_value f v)
+  | Handler_body h -> Handler_body (map_handler f h)
 
 let rec calls_self c =
   match c.computation with
@@ -178,21 +224,39 @@ let rec calls_self c =
   | Return _ | Call _ | Perform _ -> false
   | Bind (_, c1, c2) -> calls_self c1 || calls_self c2
   | Match (_, cases) -> List.exists (fun (_, c) -> calls_self c) cases
-  | Delay (_, c) -> calls_self c
+  | Delay (_, c) | Handle (_, c) -> calls_self c
+
+(* The types of the input and the output of a handler. *)
+let handler_types h =
+  let p, c = h.return_case in
+  (p.pattern_ty, c.result)
 
 (* The reconstruction of types. A term of a function type, which is a
-   top-level function, the function being defined or a primitive, is kept as
-   the callee of an application missing the arguments of [remaining]. *)
+   top-level function, the function being defined, a primitive or a top-level
+   handler of parameters, is kept as the target of an application missing the
+   arguments of [remaining]. A handler known at compilation is kept with the
+   types of its input and output. *)
+
+type target =
+  | Call_target of callee * ty  (** the callee and the type of its result *)
+  | Handler_target of global * ty * ty
+      (** the handler and the types of its input and output *)
 
 type partial = {
-  callee : callee;
+  target : target;
   name : string;
   arguments : value list;
   remaining : ty list;
-  partial_result : ty;
 }
 
-type local = Value of ty | Partial of partial
+type known_handler = {
+  use : handler_use;
+  input : ty;
+  output : ty;
+  handler_name : string option;  (** the name of a top-level handler *)
+}
+
+type local = Value of ty | Partial of partial | Handler_local of known_handler
 
 type state = {
   substitution : ty IntMap.t;
@@ -435,15 +499,19 @@ let primitive_signature at st = function
   | Primitives.IntOfFloat -> (st, Float, Int)
   | Primitives.ToString -> unsupported at "`to_string`"
 
-(* The types of the parameters and the result of a definition. *)
+(* The types of the parameters of a definition, and of its result or, for a
+   handler, of its input and output. *)
 let signature d =
   match d.definition_body with
   | Function_body { parameters; body; _ } ->
-      (List.map (fun p -> p.pattern_ty) parameters, body.result)
-  | Constant_body v -> ([], v.ty)
+      (List.map (fun p -> p.pattern_ty) parameters, [ body.result ])
+  | Constant_body v -> ([], [ v.ty ])
+  | Handler_body h ->
+      let input, output = handler_types h in
+      (List.map (fun p -> p.pattern_ty) h.handler_parameters, [ input; output ])
 
 (* A use of the definition [d] at fresh types of its quantified variables,
-   with its parameter and result types at them. *)
+   with the substitution of its types at them. *)
 let instantiate st d =
   let st, instance =
     List.fold_left_map
@@ -454,11 +522,7 @@ let instantiate st d =
   in
   let assoc = List.combine d.quantified instance in
   let f i = List.assoc_opt i assoc in
-  let params, result = signature d in
-  ( st,
-    { variable = d.variable; instance },
-    List.map (substitute f) params,
-    substitute f result )
+  (st, { variable = d.variable; instance }, substitute f)
 
 (* The type variables of [ty], prepended to [acc] unless already in it. *)
 let rec metas acc ty =
@@ -473,54 +537,271 @@ let rec strip_expression (e : _ Ast.expression) =
 let rec strip_pattern (p : _ Ast.pattern) =
   match p.it with Ast.PAnnotated (p, _) -> strip_pattern p | _ -> p
 
-(* A term bound to a variable: a value, or a function. *)
-type resolved = Resolved_value of value | Resolved_function of partial
+(* A term bound to a variable: a value, a function, or a handler. *)
+type resolved =
+  | Resolved_value of value
+  | Resolved_function of partial
+  | Resolved_handler of known_handler
 
-(* A computation: one of the fragment, or a function, which only the bound
-   computation of a [do] may be. *)
-type elaborated = Computed of computation | Applied of partial * Location.t
+(* A computation: one of the fragment, or a function or a handler, which only
+   the bound computation of a [do] may be. *)
+type elaborated =
+  | Computed of computation
+  | Applied of partial * Location.t
+  | Handler_value of known_handler * Location.t
 
 let reject_function p at =
   match p.arguments with
   | [] -> unsupported at "the function `%s` used as a value" p.name
   | _ :: _ -> unsupported at "the partial application of `%s`" p.name
 
+let reject_handler h at =
+  match h.handler_name with
+  | Some name -> unsupported at "the handler `%s` used as a value" name
+  | None -> unsupported at "handlers used as values"
+
 let as_computation = function
   | Computed c -> c
   | Applied (p, at) -> reject_function p at
+  | Handler_value (h, at) -> reject_handler h at
+
+(* The tail-resumptive operation cases. The continuation of a case is denoted
+   by the variables of [ks]: the variable of the case and those it is unboxed
+   to. An occurrence of one of them is reported with whether it is the subject
+   of an [unbox], that is, a resumption. *)
+
+let rec expression_occurrence ks (e : _ Ast.expression) =
+  match e.it with
+  | Ast.Var x -> if Ast.VariableSet.mem x ks then Some (e.at, false) else None
+  | Ast.Const _ -> None
+  | Ast.Annotated (e, _) -> expression_occurrence ks e
+  | Ast.Tuple es -> List.find_map (expression_occurrence ks) es
+  | Ast.Variant (_, arg) -> Option.bind arg (expression_occurrence ks)
+  | Ast.Lambda (_, c) | Ast.PureLambda (_, c) | Ast.RecLambda (_, _, (_, c)) ->
+      computation_occurrence ks c
+  | Ast.Handler ((_, c), cases) ->
+      List.find_map
+        (computation_occurrence ks)
+        (c :: List.map (fun (_, (_, c)) -> c) (Ast.OpNameMap.bindings cases))
+
+and computation_occurrence ks (c : _ Ast.computation) =
+  let first f g = match f () with Some _ as o -> o | None -> g () in
+  match c.it with
+  | Ast.Return e -> expression_occurrence ks e
+  | Ast.Do (c1, (_, c2)) ->
+      first
+        (fun () -> computation_occurrence ks c1)
+        (fun () -> computation_occurrence ks c2)
+  | Ast.Match (e, cases) ->
+      first
+        (fun () -> expression_occurrence ks e)
+        (fun () ->
+          List.find_map (fun (_, c) -> computation_occurrence ks c) cases)
+  | Ast.Apply (e1, e2) ->
+      first
+        (fun () -> expression_occurrence ks e1)
+        (fun () -> expression_occurrence ks e2)
+  | Ast.Delay (_, c) -> computation_occurrence ks c
+  | Ast.Box (_, e, (_, c)) | Ast.Perform (_, e, (_, c)) ->
+      first
+        (fun () -> expression_occurrence ks e)
+        (fun () -> computation_occurrence ks c)
+  | Ast.Unbox (e, (_, c)) ->
+      first
+        (fun () ->
+          match expression_occurrence ks e with
+          | Some (at, _) -> Some (at, true)
+          | None -> None)
+        (fun () -> computation_occurrence ks c)
+  | Ast.Handle (c, e) ->
+      first
+        (fun () -> computation_occurrence ks c)
+        (fun () -> expression_occurrence ks e)
+
+let rec bound_variable (p : _ Ast.pattern) =
+  match p.it with
+  | Ast.PVar x -> Some x
+  | Ast.PAnnotated (p, _) -> bound_variable p
+  | _ -> None
+
+(* [resumed ~op ~k ks c] is the case [c] of the operation [op], whose
+   continuation is [k] if it is named, with its resumption in tail position
+   [continue k with v] replaced by [return v]; [do x <- c in return x] is
+   [c]. *)
+let rec resumed ~op ~k ks (c : _ Ast.computation) =
+  let located it = Ast.located c.at it in
+  let continuation = Option.fold ~none:"" ~some:Ast.Variable.string_of k in
+  let op_name = Ast.OpName.string_of op in
+  let absent occurrence =
+    Option.iter
+      (fun (at, resumption) ->
+        if resumption then
+          Error.compilation ~loc:at
+            "The continuation `%s` of the case of `%s` is resumed outside tail \
+             position, so the handler cannot be compiled to direct calls"
+            continuation op_name
+        else
+          Error.compilation ~loc:at
+            "The continuation `%s` of the case of `%s` is used other than by \
+             its resumption in tail position, so the handler cannot be \
+             compiled to direct calls"
+            continuation op_name)
+      occurrence
+  in
+  let ends () =
+    absent (computation_occurrence ks c);
+    match k with
+    | Some k ->
+        Error.compilation ~loc:c.at
+          "The case of `%s` ends here without resuming its continuation `%s`, \
+           so the handler cannot be compiled to direct calls"
+          op_name (Ast.Variable.string_of k)
+    | None ->
+        Error.compilation ~loc:c.at
+          "The case of `%s` ends here without resuming its continuation, so \
+           the handler cannot be compiled to direct calls"
+          op_name
+  in
+  let is_continuation e =
+    match (strip_expression e).it with
+    | Ast.Var x -> Ast.VariableSet.mem x ks
+    | _ -> false
+  in
+  let continue_with c = resumed ~op ~k ks c in
+  match c.it with
+  | Ast.Apply (e1, e2) when is_continuation e1 ->
+      absent (expression_occurrence ks e2);
+      located (Ast.Return e2)
+  | Ast.Apply (e1, e2) -> (
+      match (strip_expression e1).it with
+      | Ast.Lambda abs | Ast.PureLambda abs ->
+          continue_with (located (Ast.Do (located (Ast.Return e2), abs)))
+      | _ -> ends ())
+  | Ast.Unbox (e, (p, c')) when is_continuation e ->
+      let ks =
+        Option.fold ~none:ks
+          ~some:(fun z -> Ast.VariableSet.add z ks)
+          (bound_variable p)
+      in
+      resumed ~op ~k ks c'
+  | Ast.Do ({ it = Ast.Do (c0, (p0, c1)); at }, abs) ->
+      continue_with
+        (located (Ast.Do (c0, (p0, Ast.located at (Ast.Do (c1, abs))))))
+  | Ast.Do (c1, (p, { it = Ast.Return e; _ }))
+    when match (bound_variable p, (strip_expression e).it) with
+         | Some x, Ast.Var y -> Ast.Variable.equal x y
+         | _ -> false ->
+      continue_with c1
+  | Ast.Do (c1, (p, c2)) ->
+      absent (computation_occurrence ks c1);
+      located (Ast.Do (c1, (p, continue_with c2)))
+  | Ast.Match (e, cases) ->
+      absent (expression_occurrence ks e);
+      located
+        (Ast.Match (e, List.map (fun (p, c) -> (p, continue_with c)) cases))
+  | Ast.Delay (q, c') -> located (Ast.Delay (q, continue_with c'))
+  | Ast.Box (rho, e, (p, c')) ->
+      absent (expression_occurrence ks e);
+      located (Ast.Box (rho, e, (p, continue_with c')))
+  | Ast.Unbox (e, (p, c')) ->
+      absent (expression_occurrence ks e);
+      located (Ast.Unbox (e, (p, continue_with c')))
+  | Ast.Perform (op', e, (p, c')) ->
+      absent (expression_occurrence ks e);
+      located (Ast.Perform (op', e, (p, continue_with c')))
+  | Ast.Return _ | Ast.Handle _ -> ends ()
 
 let add_local x local env =
   { env with locals = Ast.VariableMap.add x local env.locals }
 
+(* The free variables of the handler [h], in the order of their first
+   occurrences: the variables of its values that its patterns do not bind.
+   The handlers of its [handle]s are closed but for their arguments. *)
+let free_variables (h : handler) =
+  let rec value (refs, binders) v =
+    match v.value with
+    | Local x -> (x :: refs, binders)
+    | Global _ | Constant _ -> (refs, binders)
+    | Tuple_value vs -> List.fold_left value (refs, binders) vs
+    | Construct (_, arg) ->
+        Option.fold ~none:(refs, binders) ~some:(value (refs, binders)) arg
+  in
+  let rec pattern (refs, binders) p =
+    match p.pattern with
+    | PVar x -> (refs, x :: binders)
+    | PAs (p, x) -> pattern (refs, x :: binders) p
+    | PTuple ps -> List.fold_left pattern (refs, binders) ps
+    | PConstruct (_, arg) ->
+        Option.fold ~none:(refs, binders) ~some:(pattern (refs, binders)) arg
+    | PSucc (p, _) -> pattern (refs, binders) p
+    | PConstant _ | PAny -> (refs, binders)
+  in
+  let rec computation acc c =
+    match c.computation with
+    | Return v | Perform (_, v) -> value acc v
+    | Bind (p, c1, c2) -> computation (computation (pattern acc p) c1) c2
+    | Match (v, cases) ->
+        List.fold_left
+          (fun acc (p, c) -> computation (pattern acc p) c)
+          (value acc v) cases
+    | Call (_, vs) -> List.fold_left value acc vs
+    | Delay (_, c) -> computation acc c
+    | Handle (u, c) -> computation (List.fold_left value acc u.arguments) c
+  in
+  let ret_p, ret_c = h.return_case in
+  let refs, binders =
+    List.fold_left
+      (fun acc oc -> computation (pattern acc oc.case_parameter) oc.case_body)
+      (computation (pattern ([], []) ret_p) ret_c)
+      h.operation_cases
+  in
+  List.fold_left
+    (fun free x ->
+      if
+        List.exists (Ast.Variable.equal x) binders
+        || List.exists (Ast.Variable.equal x) free
+      then free
+      else free @ [ x ])
+    [] (List.rev refs)
+
 let rec resolve_variable env st at x =
   let name = Ast.Variable.string_of x in
-  let function_value callee params result =
-    Resolved_function
-      {
-        callee;
-        name;
-        arguments = [];
-        remaining = params;
-        partial_result = result;
-      }
+  let function_value target params =
+    Resolved_function { target; name; arguments = []; remaining = params }
   in
   match Ast.VariableMap.find_opt x env.locals with
   | Some (Value ty) -> (st, Resolved_value { value = Local x; ty })
   | Some (Partial p) -> (st, Resolved_function p)
+  | Some (Handler_local h) -> (st, Resolved_handler h)
   | None -> (
       match (env.self, Ast.VariableMap.mem x env.commands, primitive_of x) with
       | Some (f, params, result), _, _ when Ast.Variable.equal f x ->
-          (st, function_value Self params result)
+          (st, function_value (Call_target (Self, result)) params)
       | _, true, _ -> (
           let st, d = ensure env st x in
-          let st, g, params, result = instantiate st d in
-          match d.definition_body with
-          | Function_body _ -> (st, function_value (Function g) params result)
-          | Constant_body _ ->
-              (st, Resolved_value { value = Global g; ty = result }))
+          let st, g, f = instantiate st d in
+          let params, results = signature d in
+          let params = List.map f params and results = List.map f results in
+          match (d.definition_body, params, results) with
+          | Function_body _, _, [ result ] ->
+              (st, function_value (Call_target (Function g, result)) params)
+          | Constant_body _, _, [ result ] ->
+              (st, Resolved_value { value = Global g; ty = result })
+          | Handler_body _, [], [ input; output ] ->
+              ( st,
+                Resolved_handler
+                  {
+                    use = { source = Defined g; arguments = [] };
+                    input;
+                    output;
+                    handler_name = Some name;
+                  } )
+          | Handler_body _, _, [ input; output ] ->
+              (st, function_value (Handler_target (g, input, output)) params)
+          | _ -> invalid_arg "signature of a definition")
       | _, false, Some p ->
           let st, param, result = primitive_signature at st p in
-          (st, function_value (Primitive p) [ param ] result)
+          (st, function_value (Call_target (Primitive p, result)) [ param ])
       | _, false, None -> invalid_arg ("unbound variable " ^ name))
 
 (* The top-level definition [x], reconstructed first if it is not yet. *)
@@ -541,17 +822,20 @@ and define env st x at in_sources e =
     match (strip_expression e).it with
     | Ast.Lambda abs | Ast.PureLambda abs -> function_body env st None abs
     | Ast.RecLambda (f, _, abs) -> function_body env st (Some f) abs
+    | Ast.Handler (ret_case, op_cases) ->
+        let st, h = handler env st [] ret_case op_cases in
+        (st, Handler_body h)
     | _ ->
         let st, v = value env st e in
         (st, Constant_body v)
   in
   let definition_body = map_body (substituted st) definition_body in
   let d = { variable = x; at; in_sources; quantified = []; definition_body } in
-  let params, result = signature d in
+  let params, results = signature d in
   let d =
     {
       d with
-      quantified = List.rev (List.fold_left metas [] (params @ [ result ]));
+      quantified = List.rev (List.fold_left metas [] (params @ results));
     }
   in
   ( {
@@ -573,27 +857,146 @@ and function_body env st self abs =
       (st, env, []) params
   in
   let parameters = List.rev parameters in
-  let result, st = fresh st in
-  let env =
-    {
-      env with
-      self =
-        Option.map
-          (fun f -> (f, List.map (fun p -> p.pattern_ty) parameters, result))
-          self;
-    }
+  let returned_handler =
+    match body.it with
+    | Ast.Return e -> (
+        match (strip_expression e).it with
+        | Ast.Handler (ret_case, op_cases) -> Some (ret_case, op_cases)
+        | _ -> None)
+    | _ -> None
   in
-  let st, elaborated = computation env st ~tail:true body in
-  let body = as_computation elaborated in
-  let st = unify_at (snd abs).at st result body.result in
-  (st, Function_body { parameters; body; recursive = calls_self body })
+  match (self, returned_handler) with
+  | None, Some (ret_case, op_cases) ->
+      let st, h = handler env st parameters ret_case op_cases in
+      (st, Handler_body h)
+  | _ ->
+      let result, st = fresh st in
+      let env =
+        {
+          env with
+          self =
+            Option.map
+              (fun f ->
+                (f, List.map (fun p -> p.pattern_ty) parameters, result))
+              self;
+        }
+      in
+      let st, elaborated = computation env st ~tail:true body in
+      let body = as_computation elaborated in
+      let st = unify_at (snd abs).at st result body.result in
+      (st, Function_body { parameters; body; recursive = calls_self body })
+
+(* The handler of a return case and the operation cases [op_cases], of the
+   parameters [parameters] bound in [env]. *)
+and handler env st parameters (ret_pattern, ret_body) op_cases =
+  let input, st = fresh st in
+  let st, ret_pattern, ret_env = pattern env st ret_pattern input in
+  let st, ret_body = computation ret_env st ~tail:false ret_body in
+  let st, operation_cases =
+    List.fold_left_map
+      (fun st (op, case) -> operation_case env st op case)
+      st
+      (Ast.OpNameMap.bindings op_cases)
+  in
+  ( st,
+    {
+      handler_parameters = parameters;
+      return_case = (ret_pattern, as_computation ret_body);
+      operation_cases;
+    } )
+
+(* The case of [op], whose resumption in tail position is replaced by the
+   value it resumes with. *)
+and operation_case env st op ((p, body) : _ Ast.abstraction) =
+  let st, argument, result = operation_types p.at env st op in
+  match (strip_pattern p).it with
+  | Ast.PTuple [ argument_pattern; continuation_pattern ] ->
+      let k =
+        match (strip_pattern continuation_pattern).it with
+        | Ast.PVar k -> Some k
+        | Ast.PNonbinding -> None
+        | _ ->
+            unsupported continuation_pattern.at
+              "patterns of continuations other than variables"
+      in
+      let ks =
+        Option.fold ~none:Ast.VariableSet.empty ~some:Ast.VariableSet.singleton
+          k
+      in
+      let body = resumed ~op ~k ks body in
+      let st, case_parameter, env = pattern env st argument_pattern argument in
+      let st, case_body = computation env st ~tail:false body in
+      let case_body = as_computation case_body in
+      let st = unify_at body.at st result case_body.result in
+      (st, { case_operation = op; case_parameter; case_body })
+  | _ -> invalid_arg "operation case without an argument and a continuation"
+
+(* The types of the argument and the result of the operation [op]. *)
+and operation_types at env st op =
+  let argument, result = Ast.OpNameMap.find op env.signatures in
+  let st, argument = convert_at at env st argument in
+  let st, result = convert_at at env st result in
+  if has_string result then
+    unsupported at "the operation `%s`, whose result contains a string"
+      (Ast.OpName.string_of op);
+  (st, argument, result)
+
+(* A handler written in a definition, whose parameters are its free
+   variables. *)
+and inline_handler env st ret_case op_cases =
+  let st, h = handler env st [] ret_case op_cases in
+  let free = free_variables h in
+  let typed =
+    List.map
+      (fun x ->
+        match Ast.VariableMap.find_opt x env.locals with
+        | Some (Value ty) -> (x, ty)
+        | Some (Partial _ | Handler_local _) | None ->
+            invalid_arg "free variable of a handler")
+      free
+  in
+  let input, output = handler_types h in
+  ( st,
+    {
+      use =
+        {
+          source =
+            Inline
+              ( Ast.Variable.fresh "handler",
+                {
+                  h with
+                  handler_parameters =
+                    List.map
+                      (fun (x, ty) -> { pattern = PVar x; pattern_ty = ty })
+                      typed;
+                } );
+          arguments = List.map (fun (x, ty) -> { value = Local x; ty }) typed;
+        };
+      input;
+      output;
+      handler_name = None;
+    } )
+
+(* The handler [e] of a [handle], which is known at compilation. *)
+and handled_by env st (e : _ Ast.expression) =
+  match (strip_expression e).it with
+  | Ast.Var x -> (
+      match resolve_variable env st e.at x with
+      | st, Resolved_handler h -> (st, h)
+      | _, Resolved_function p -> reject_function p e.at
+      | _, Resolved_value _ ->
+          unsupported e.at "the handler `%s`, which is not known at compilation"
+            (Ast.Variable.string_of x))
+  | Ast.Handler (ret_case, op_cases) -> inline_handler env st ret_case op_cases
+  | _ -> unsupported e.at "handlers not known at compilation"
 
 and value ?(strings = false) env st (e : _ Ast.expression) =
   match e.it with
   | Ast.Var x -> (
       match resolve_variable env st e.at x with
       | st, Resolved_value v -> (st, v)
-      | _, Resolved_function p -> reject_function p e.at)
+      | _, Resolved_function p -> reject_function p e.at
+      | _, Resolved_handler h -> reject_handler h e.at)
   | Ast.Const c -> (st, { value = Constant c; ty = constant_ty e.at ~strings c })
   | Ast.Annotated (e', annotation) ->
       let st, v = value ~strings env st e' in
@@ -611,7 +1014,7 @@ and value ?(strings = false) env st (e : _ Ast.expression) =
       | _ -> (st, { value = Construct (l, None); ty = data }))
   | Ast.Lambda _ | Ast.PureLambda _ | Ast.RecLambda _ ->
       unsupported e.at "functions other than top-level definitions"
-  | Ast.Handler _ -> unsupported e.at "handlers"
+  | Ast.Handler _ -> unsupported e.at "handlers used as values"
 
 and pattern env st (p : _ Ast.pattern) ty =
   let make st node env = (st, { pattern = node; pattern_ty = ty }, env) in
@@ -670,7 +1073,11 @@ and computation env st ~tail (c : _ Ast.computation) =
           match resolve_variable env st e.at x with
           | st, Resolved_value v ->
               (st, Computed { computation = Return v; result = v.ty })
-          | st, Resolved_function p -> (st, Applied (p, e.at)))
+          | st, Resolved_function p -> (st, Applied (p, e.at))
+          | st, Resolved_handler h -> (st, Handler_value (h, e.at)))
+      | Ast.Handler (ret_case, op_cases) ->
+          let st, h = inline_handler env st ret_case op_cases in
+          (st, Handler_value (h, e.at))
       | _ ->
           let st, v = value env st e in
           (st, Computed { computation = Return v; result = v.ty }))
@@ -678,13 +1085,18 @@ and computation env st ~tail (c : _ Ast.computation) =
       computation env st ~tail
         (located (Ast.Do (c0, (p0, Ast.located at (Ast.Do (c1, abs))))))
   | Ast.Do (c1, (p, c2)) -> (
+      (* A function or a handler bound to a variable. *)
+      let bound st local reject =
+        match (strip_pattern p).it with
+        | Ast.PVar x -> computation (add_local x local env) st ~tail c2
+        | Ast.PNonbinding -> computation env st ~tail c2
+        | _ -> reject ()
+      in
       match computation env st ~tail:false c1 with
-      | st, Applied (partial, at) -> (
-          match (strip_pattern p).it with
-          | Ast.PVar x ->
-              computation (add_local x (Partial partial) env) st ~tail c2
-          | Ast.PNonbinding -> computation env st ~tail c2
-          | _ -> reject_function partial at)
+      | st, Applied (partial, at) ->
+          bound st (Partial partial) (fun () -> reject_function partial at)
+      | st, Handler_value (h, at) ->
+          bound st (Handler_local h) (fun () -> reject_handler h at)
       | st, Computed c1 -> bind env st ~tail p c1 c2)
   | Ast.Match (_, []) -> unsupported c.at "a match without cases"
   | Ast.Match (e, cases) ->
@@ -708,7 +1120,7 @@ and computation env st ~tail (c : _ Ast.computation) =
       | Ast.Var x -> (
           match resolve_variable env st e1.at x with
           | st, Resolved_function p -> apply env st ~tail c.at p e2
-          | _, Resolved_value _ ->
+          | _, (Resolved_value _ | Resolved_handler _) ->
               unsupported e1.at
                 "the application of a function other than a top-level \
                  definition")
@@ -729,12 +1141,7 @@ and computation env st ~tail (c : _ Ast.computation) =
   | Ast.Box (_, e, abs) | Ast.Unbox (e, abs) ->
       computation env st ~tail (located (Ast.Do (located (Ast.Return e), abs)))
   | Ast.Perform (op, e, (p, c')) ->
-      let argument, result = Ast.OpNameMap.find op env.signatures in
-      let st, argument = convert_at c.at env st argument in
-      let st, result = convert_at c.at env st result in
-      if has_string result then
-        unsupported c.at "the operation `%s`, whose result contains a string"
-          (Ast.OpName.string_of op);
+      let st, argument, result = operation_types c.at env st op in
       let st, v = value ~strings:true env st e in
       let st = unify_at e.at st argument v.ty in
       let st =
@@ -744,7 +1151,12 @@ and computation env st ~tail (c : _ Ast.computation) =
         }
       in
       bind env st ~tail p { computation = Perform (op, v); result } c'
-  | Ast.Handle _ -> unsupported c.at "handlers"
+  | Ast.Handle (body, e) ->
+      let st, h = handled_by env st e in
+      let st, body' = computation env st ~tail:false body in
+      let body' = as_computation body' in
+      let st = unify_at body.at st h.input body'.result in
+      (st, Computed { computation = Handle (h.use, body'); result = h.output })
 
 (* The binding of the result of [c1] to [p] in [c2]; [do x <- c1 in return x]
    is [c1]. *)
@@ -757,8 +1169,8 @@ and bind env st ~tail p c1 c2 =
       (st, Computed c1)
   | _ -> (st, Computed { computation = Bind (p, c1, c2); result = c2.result })
 
-(* The application of the function [p] to [e]: a call once it has all its
-   arguments. *)
+(* The application of the function [p] to [e]: a call, or a handler, once it
+   has all its arguments. *)
 and apply env st ~tail at p e =
   let st, v = value env st e in
   match p.remaining with
@@ -766,20 +1178,25 @@ and apply env st ~tail at p e =
   | ty :: remaining -> (
       let st = unify_at e.at st ty v.ty in
       let arguments = p.arguments @ [ v ] in
-      match remaining with
-      | [] ->
-          (match p.callee with
+      match (remaining, p.target) with
+      | [], Call_target (callee, result) ->
+          (match callee with
           | Self when not tail ->
               unsupported at
                 "the recursive call of `%s` outside a tail position" p.name
           | Self | Function _ | Primitive _ -> ());
+          (st, Computed { computation = Call (callee, arguments); result })
+      | [], Handler_target (g, input, output) ->
           ( st,
-            Computed
-              {
-                computation = Call (p.callee, arguments);
-                result = p.partial_result;
-              } )
-      | _ -> (st, Applied ({ p with arguments; remaining }, at)))
+            Handler_value
+              ( {
+                  use = { source = Defined g; arguments };
+                  input;
+                  output;
+                  handler_name = Some p.name;
+                },
+                at ) )
+      | _ :: _, _ -> (st, Applied ({ p with arguments; remaining }, at)))
 
 let check ?roots ~runs ~library sources =
   let environment =

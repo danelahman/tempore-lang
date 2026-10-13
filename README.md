@@ -1407,16 +1407,54 @@ integers (32-bit two's complement, the arithmetic, `int_of_nat` and
 `int_of_float` modulo 2^32 into [-2^31, 2^31), so that `-2147483648i /! -1i`
 is `-2147483648i`; a literal outside that range is refused), single-precision
 floats, booleans, tuples, datatypes without type parameters
-that are not recursive, `delay`, operation calls and self calls in tail
-position, which become loops. Local functions, functions as values, partial
-application, handlers, lists, strings other than constant arguments of
-operations, and recursion other than self calls in tail position are refused,
-each with a `Compilation error` at the construct.
+that are not recursive, `delay`, operation calls, self calls in tail
+position, which become loops, and tail-resumptive handlers. Local functions,
+functions and handlers as values, partial application, handlers that are not
+tail-resumptive, lists, strings other than constant arguments of operations,
+and recursion other than self calls in tail position are refused, each with a
+`Compilation error` at the construct.
+
+A handler is compiled if it is known at its `handle` — a top-level handler,
+possibly of first-order parameters such as `offset d`, or a handler written
+at the `handle` or bound by `let`, whose free variables become its parameters
+— and tail-resumptive: the continuation `k` of each operation case occurs
+only in resumptions `continue k with v` in tail position of every branch of
+the case, through `let`, `match`, `delay`, `box`, `unbox` and operation
+calls, and in neither the bound computations nor `v`. Such handlers are the
+runners of Ahman and Bauer (ESOP 2020) without state:
+
+    let offset (d : nat) =
+      handler
+      | x -> x
+      | Read () k ->
+          let v = perform Read () in
+          continue k with v + d
+
+A case that resumes its continuation twice or not at all, computes after the
+resumption, or passes the continuation on is refused at the occurrence of
+the continuation, or at the end of the branch that does not resume it; the
+return case is not constrained. The handlers are compiled by specialisation,
+with no indirect calls and no allocation: each operation case becomes a C++
+function of the parameters of the handler and the argument of the operation
+that returns the value of the resumption, and the return case a function
+applied to the result of the handled computation. As in the interpreter, the
+handlers are deep and a case runs outside its handler: an operation
+performed inside a `handle`, also in the functions it calls, calls the case
+of the innermost handler of the operation, whose own operations go to the
+handlers outside it, or the binding of the operation if no handler handles
+it. Each function is compiled once for each instance of its type and each
+context of the handlers its operations reach, with the parameters of those
+handlers as further parameters. On a device, an operation handled by a case
+is not a call of its binding and is not monitored; the operations the case
+performs are, and an operation that no code performs outside all handlers
+needs no binding. See
+[`tests/arduino/handlers.tpe`](tests/arduino/handlers.tpe).
 
 Under a device manifest, the definitions checked and compiled are those
 reached from the task functions and the `initial` functions of the manifest;
-the other definitions of the program, such as handlers used only by `run`
-commands of the interpreter, may lie outside the fragment. Without a manifest,
+the other definitions of the program, such as handlers that are not
+tail-resumptive used only by `run` commands of the interpreter, may lie
+outside the fragment. Without a manifest,
 every top-level definition of the program is checked and compiled, with its
 `run` commands under `--host-runs`.
 

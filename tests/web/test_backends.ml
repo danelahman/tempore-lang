@@ -761,8 +761,8 @@ let arduino_program ~name ~grade ~settings ?(observed = false) variants source =
 (* The Arduino examples, with their manifests and binding files: compiled to
    the files of the project shown; without the binding file, refused at the
    manifest; without a manifest, compiled to the program alone, or, if the
-   program defines handlers, which only the definitions of the tasks of the
-   manifest may leave out, refused at them. *)
+   program defines a handler that is not tail-resumptive, which only the
+   definitions of the tasks of the manifest may leave out, refused at it. *)
 let arduino_example (entry : Manifest.entry) =
   let settings = List.map (fun (k, v) -> (k, read v)) entry.settings in
   let source = read entry.path in
@@ -792,14 +792,14 @@ let arduino_example (entry : Manifest.entry) =
       );
       ( List.remove_assoc "manifest" settings,
         fun output ->
-          if contains ~sub:"handler\n" source then
-            output.code = None
-            && contains ~sub:"does not support handlers" (error_text output)
-          else
-            has_files [ "tempore_program.h"; "tempore_program.cpp" ] output
-            && not
-                 (contains ~sub:"// File src/main.cpp" (Option.get output.code))
-      );
+          match output.code with
+          | None ->
+              contains ~sub:"handler\n" source
+              && contains ~sub:"cannot be compiled to direct calls"
+                   (error_text output)
+          | Some code ->
+              has_files [ "tempore_program.h"; "tempore_program.cpp" ] output
+              && not (contains ~sub:"// File src/main.cpp" code) );
     ]
     source
 

@@ -353,9 +353,10 @@ between the starts of the steps and the overruns, every 5 s and at its end:
 
 Under a manifest, the definitions checked and compiled are those reached
 from its task functions and initial functions: a handler used only by a
-run command is neither checked nor compiled, and is rejected once a task
-uses it, as it is without a manifest, where every top-level definition is
-checked:
+run command is neither checked nor compiled. Once a task uses it, the
+instance of step in the handler calls the case of the handler in place of
+the operation, a call that is not one of the binding and is not monitored;
+without a manifest, every top-level definition is checked and compiled:
 
   $ cat > handled.tpe <<'TPE'
   > let silent =
@@ -370,15 +371,12 @@ checked:
   $ grep -q 'quiet_step\|silent' _arduino/projects/handled/src/tempore_program.cpp
   [1]
   $ printf '{ "board": "esp32-devkit",\n  "tasks": [ { "function": "quiet_step", "kind": "periodic", "period": 10, "initial": "start" } ],\n  "bindings": "toy/toy_bindings.cpp" }\n' > quiet.json
-  $ emit quiet --device quiet.json toy/toy.tpe handled.tpe
-  File "handled.tpe", line 5, characters 27-52:
-  5 | let quiet_step (n : nat) = handle step n with silent
-                                 ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Compilation error: The Arduino backend does not support handlers
-  [1]
-  $ emit unmanifested toy/toy.tpe handled.tpe
-  File "handled.tpe", lines 2-4, characters 2-46:
-  2 |   handler
-        ^^^^^^^
-  Compilation error: The Arduino backend does not support handlers
-  [1]
+  $ emit quiet --device quiet.json toy/toy.tpe handled.tpe | tail -1
+  Wrote _arduino/projects/quiet/src/toy_bindings.cpp
+  $ grep 'silent\|Show' _arduino/projects/quiet/src/tempore_program.cpp
+  static tempore_unit silent_Show_3(uint32_t);
+    static_cast<void>(tempore_op_Show(n_8));
+  static tempore_unit silent_Show_3(uint32_t) {
+    static_cast<void>(silent_Show_3(n_8));
+  $ emit unmanifested toy/toy.tpe handled.tpe | tail -1
+  Wrote _arduino/projects/unmanifested/tempore_program.cpp

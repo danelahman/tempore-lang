@@ -72,7 +72,7 @@ let signature (d : F.definition) =
       Some
         ( List.map (fun (p : F.pattern) -> p.pattern_ty) parameters,
           body.F.result )
-  | F.Constant_body _ -> None
+  | F.Constant_body _ | F.Handler_body _ -> None
 
 let show_signature (d : F.definition) =
   match signature d with

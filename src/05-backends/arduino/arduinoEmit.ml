@@ -61,72 +61,6 @@ let rec lines indent = function
 
 let render stmts = String.concat "\n" (List.concat_map (lines "") stmts) ^ "\n"
 
-(* Instances. *)
-
-(* The body of [d] at the types [instance] of its quantified variables, its
-   other type variables the unit type. *)
-let ground_body (d : F.definition) instance =
-  let assoc = List.combine d.quantified instance in
-  F.map_body
-    (F.substitute (fun i ->
-         Some (Option.value (List.assoc_opt i assoc) ~default:(F.Tuple []))))
-    d.definition_body
-
-let ground_computation =
-  F.map_computation (F.substitute (fun _ -> Some (F.Tuple [])))
-
-(* The instances of the top-level constants and functions a term uses,
-   prepended to [acc]. *)
-let rec value_globals acc (v : F.value) =
-  match v.value with
-  | F.Local _ | F.Constant _ -> acc
-  | F.Global g -> (g.variable, g.instance) :: acc
-  | F.Tuple_value vs -> List.fold_left value_globals acc vs
-  | F.Construct (_, arg) -> Option.fold ~none:acc ~some:(value_globals acc) arg
-
-let rec computation_globals acc (c : F.computation) =
-  match c.computation with
-  | F.Return v | F.Perform (_, v) -> value_globals acc v
-  | F.Bind (_, c1, c2) -> computation_globals (computation_globals acc c1) c2
-  | F.Match (v, cases) ->
-      List.fold_left
-        (fun acc (_, c) -> computation_globals acc c)
-        (value_globals acc v) cases
-  | F.Call (callee, vs) ->
-      let acc =
-        match callee with
-        | F.Function g -> (g.variable, g.instance) :: acc
-        | F.Self | F.Primitive _ -> acc
-      in
-      List.fold_left value_globals acc vs
-  | F.Delay (_, c) -> computation_globals acc c
-
-let body_globals = function
-  | F.Function_body { body; _ } -> computation_globals [] body
-  | F.Constant_body v -> value_globals [] v
-
-type instance = {
-  key : Key.t;
-  body : F.body;  (** at the types of the instance *)
-  entry : bool;  (** whether the instance is an entry point *)
-}
-
-(* The instances of the definitions [roots] and of those they use, each after
-   the instances it uses. *)
-let instances definitions ~entries roots =
-  let rec visit (seen, order) key =
-    if KeyMap.mem key seen then (seen, order)
-    else
-      let definition = Ast.VariableMap.find (fst key) definitions in
-      let body = ground_body definition (snd key) in
-      let seen = KeyMap.add key () seen in
-      let seen, order =
-        List.fold_left visit (seen, order) (List.rev (body_globals body))
-      in
-      (seen, { key; body; entry = List.mem key entries } :: order)
-  in
-  List.rev (snd (List.fold_left visit (KeyMap.empty, []) roots))
-
 (* Types. *)
 
 let rec value_types acc (v : F.value) =
@@ -157,11 +91,423 @@ let rec computation_types acc (c : F.computation) =
         (value_types acc v) cases
   | F.Call (_, vs) -> List.fold_left value_types acc vs
   | F.Delay (_, c) -> computation_types acc c
+  | F.Handle (u, c) ->
+      let acc = List.fold_left value_types acc u.arguments in
+      let acc =
+        match u.source with
+        | F.Defined _ -> acc
+        | F.Inline (_, h) -> handler_types acc ~return:true h
+      in
+      computation_types acc c
+
+(* The types of the parameters and the operation cases of [h], and of its
+   return case if [return]. *)
+and handler_types acc ~return (h : F.handler) =
+  let acc = List.fold_left pattern_types acc h.handler_parameters in
+  let acc =
+    List.fold_left
+      (fun acc (oc : F.operation_case) ->
+        computation_types (pattern_types acc oc.case_parameter) oc.case_body)
+      acc h.operation_cases
+  in
+  if return then
+    let p, c = h.return_case in
+    computation_types (pattern_types acc p) c
+  else acc
 
 let body_types acc = function
   | F.Function_body { parameters; body; _ } ->
       computation_types (List.fold_left pattern_types acc parameters) body
   | F.Constant_body v -> value_types acc v
+  | F.Handler_body _ -> acc
+
+(* Instances. *)
+
+(* The body of [d] at the types [instance] of its quantified variables, its
+   other type variables the unit type. *)
+let ground_body (d : F.definition) instance =
+  let assoc = List.combine d.quantified instance in
+  F.map_body
+    (F.substitute (fun i ->
+         Some (Option.value (List.assoc_opt i assoc) ~default:(F.Tuple []))))
+    d.definition_body
+
+let ground_computation =
+  F.map_computation (F.substitute (fun _ -> Some (F.Tuple [])))
+
+(* Handlers. A handler at a [handle] is named by two keys: its definition,
+   or the variable of a handler written in a definition, with the types of
+   its parameters and its operation cases, which names its cases, and with
+   the types of its return case too, which names its return case; a handler
+   at types that differ only in its return case thus has the same cases. A
+   context is the handlers around a computation, the innermost first. An
+   operation performed in a context calls the case of the innermost handler
+   of the operation, which runs in the context of the handlers outside that
+   one, or the external function of the operation if no handler of the
+   context handles it. *)
+
+module OpNameSet = Ast.OpNameSet
+
+let handles (h : F.handler) op =
+  List.exists
+    (fun (oc : F.operation_case) -> Ast.OpName.equal oc.case_operation op)
+    h.operation_cases
+
+let case_of (h : F.handler) op =
+  List.find
+    (fun (oc : F.operation_case) -> Ast.OpName.equal oc.case_operation op)
+    h.operation_cases
+
+(* Whether the return case of [h] returns its input. *)
+let returns_input (h : F.handler) =
+  match h.return_case with
+  | ( { pattern = F.PVar x; _ },
+      { computation = F.Return { value = F.Local y; _ }; _ } ) ->
+      Ast.Variable.equal x y
+  | _ -> false
+
+(* The operations that a computation may perform outside itself, from those
+   [escaping] that each top-level function may perform outside itself, and
+   the [definitions] of the program. *)
+type operations = {
+  escaping : OpNameSet.t Ast.VariableMap.t;
+  definitions : F.definition Ast.VariableMap.t;
+}
+
+let handler_of_source ops = function
+  | F.Defined g -> (
+      match
+        (Ast.VariableMap.find g.variable ops.definitions).definition_body
+      with
+      | F.Handler_body h -> h
+      | F.Function_body _ | F.Constant_body _ -> invalid_arg "not a handler")
+  | F.Inline (_, h) -> h
+
+let rec computation_operations ops (c : F.computation) =
+  match c.computation with
+  | F.Return _ | F.Call ((F.Self | F.Primitive _), _) -> OpNameSet.empty
+  | F.Perform (op, _) -> OpNameSet.singleton op
+  | F.Call (F.Function g, _) ->
+      Option.value
+        (Ast.VariableMap.find_opt g.variable ops.escaping)
+        ~default:OpNameSet.empty
+  | F.Bind (_, c1, c2) ->
+      OpNameSet.union
+        (computation_operations ops c1)
+        (computation_operations ops c2)
+  | F.Match (_, cases) ->
+      List.fold_left
+        (fun acc (_, c) -> OpNameSet.union acc (computation_operations ops c))
+        OpNameSet.empty cases
+  | F.Delay (_, c) -> computation_operations ops c
+  | F.Handle (u, c) ->
+      handled_operations ops
+        (handler_of_source ops u.source)
+        (computation_operations ops c)
+
+(* The operations performed outside a [handle] of [h] whose body performs
+   [performed]: those that [h] does not handle, and those of its return case
+   and of its cases of the operations of [performed]. *)
+and handled_operations ops h performed =
+  OpNameSet.fold
+    (fun op acc ->
+      if handles h op then
+        OpNameSet.union acc
+          (computation_operations ops (case_of h op).case_body)
+      else OpNameSet.add op acc)
+    performed
+    (computation_operations ops (snd h.return_case))
+
+let operations (definitions : F.definition list) =
+  let map =
+    List.fold_left
+      (fun map (d : F.definition) -> Ast.VariableMap.add d.variable d map)
+      Ast.VariableMap.empty definitions
+  in
+  List.fold_left
+    (fun ops (d : F.definition) ->
+      match d.definition_body with
+      | F.Function_body { body; _ } ->
+          {
+            ops with
+            escaping =
+              Ast.VariableMap.add d.variable
+                (computation_operations ops body)
+                ops.escaping;
+          }
+      | F.Constant_body _ | F.Handler_body _ -> ops)
+    { escaping = Ast.VariableMap.empty; definitions = map }
+    definitions
+
+(* A handler of a context, with the C++ expressions of the values of its
+   parameters. *)
+type frame = {
+  frame_key : Key.t;  (** the key of its cases *)
+  return_key : Key.t;  (** the key of its return case *)
+  code : F.handler;
+  captured : string list;
+}
+
+(* The handlers of [frames] that a computation performing [performed] uses,
+   in order: the innermost handler of each operation, and in turn the
+   handlers of the operations of its cases, outside it. The other handlers do
+   not affect the computation. *)
+let rec relevant ops performed = function
+  | [] -> []
+  | frame :: rest ->
+      let hit = OpNameSet.filter (handles frame.code) performed in
+      if OpNameSet.is_empty hit then relevant ops performed rest
+      else
+        let outside =
+          OpNameSet.fold
+            (fun op acc ->
+              OpNameSet.union acc
+                (computation_operations ops (case_of frame.code op).case_body))
+            hit
+            (OpNameSet.diff performed
+               (OpNameSet.of_list
+                  (List.map
+                     (fun (oc : F.operation_case) -> oc.case_operation)
+                     frame.code.operation_cases)))
+        in
+        frame :: relevant ops outside rest
+
+(* A unit of the compilation, a C++ function or constant: an instance of a
+   definition in a context, the case of an operation of a handler and its
+   return case, each in the context outside the handler. A context is given
+   by the keys of its relevant handlers. *)
+type unit_key =
+  | Instance of Key.t * Key.t list
+  | Case of Key.t * Ast.operation * Key.t list
+  | Return_case of Key.t * Key.t list
+
+module UnitKey = struct
+  type t = unit_key
+
+  let rank = function Instance _ -> 0 | Case _ -> 1 | Return_case _ -> 2
+  let keys = List.compare Key.compare
+
+  let compare u1 u2 =
+    match (u1, u2) with
+    | Instance (k1, c1), Instance (k2, c2) -> (
+        match Key.compare k1 k2 with 0 -> keys c1 c2 | c -> c)
+    | Case (k1, op1, c1), Case (k2, op2, c2) -> (
+        match Key.compare k1 k2 with
+        | 0 -> (
+            match Ast.OpName.compare op1 op2 with 0 -> keys c1 c2 | c -> c)
+        | c -> c)
+    | Return_case (k1, c1), Return_case (k2, c2) -> (
+        match Key.compare k1 k2 with 0 -> keys c1 c2 | c -> c)
+    | _ -> Int.compare (rank u1) (rank u2)
+end
+
+module UnitMap = Map.Make (UnitKey)
+
+let frame_keys frames = List.map (fun frame -> frame.frame_key) frames
+
+(* The unit of a call of [g] in [frames], with the relevant handlers. *)
+let call_unit ops frames (g : F.global) =
+  let performed =
+    Option.value
+      (Ast.VariableMap.find_opt g.variable ops.escaping)
+      ~default:OpNameSet.empty
+  in
+  let relevant = relevant ops performed frames in
+  (Instance ((g.variable, g.instance), frame_keys relevant), relevant)
+
+(* The unit of the case of [op] in [frames], with its handler and the
+   relevant handlers outside it, if a handler of [frames] handles [op]. *)
+let case_unit ops frames op =
+  let rec innermost = function
+    | [] -> None
+    | frame :: rest when handles frame.code op -> Some (frame, rest)
+    | _ :: rest -> innermost rest
+  in
+  Option.map
+    (fun (frame, outside) ->
+      let relevant =
+        relevant ops
+          (computation_operations ops (case_of frame.code op).case_body)
+          outside
+      in
+      (Case (frame.frame_key, op, frame_keys relevant), frame, relevant))
+    (innermost frames)
+
+(* The unit of the return case of the handler of [frame] in [frames], with
+   the relevant handlers. *)
+let return_unit ops frames frame =
+  let relevant =
+    relevant ops
+      (computation_operations ops (snd frame.code.return_case))
+      frames
+  in
+  (Return_case (frame.return_key, frame_keys relevant), relevant)
+
+(* The handler of [u] at a [handle], with the expressions [captured] of its
+   arguments. *)
+let handle_frame definitions (u : F.handler_use) captured =
+  let x, code =
+    match u.source with
+    | F.Defined g -> (
+        match
+          ground_body (Ast.VariableMap.find g.variable definitions) g.instance
+        with
+        | F.Handler_body code -> (g.variable, code)
+        | F.Function_body _ | F.Constant_body _ -> invalid_arg "not a handler")
+    | F.Inline (x, code) -> (x, code)
+  in
+  {
+    frame_key = (x, List.rev (handler_types [] ~return:false code));
+    return_key = (x, List.rev (handler_types [] ~return:true code));
+    code;
+    captured;
+  }
+
+type instance = {
+  key : unit_key;
+  context : Key.t list;
+  body : F.body;  (** at the types of the instance *)
+  entry : bool;  (** whether the instance is an entry point *)
+}
+
+(* The parameters of the handlers of a context, after the parameters of the
+   unit: the [i]-th parameter of the [j]-th handler is [tempore_cj_i]. *)
+let context_frames handlers context =
+  List.mapi
+    (fun j key ->
+      let code = KeyMap.find key handlers in
+      {
+        frame_key = key;
+        return_key = key;
+        code;
+        captured =
+          List.mapi
+            (fun i _ -> Printf.sprintf "tempore_c%d_%d" j i)
+            code.handler_parameters;
+      })
+    context
+
+(* The units a computation in [frames] uses, in the order of their first use,
+   prepended to [acc] in reverse, and the handlers of its [handle]s added to
+   [handlers]. The operations it performs outside the handlers of [frames]
+   are added to [external_ops]. *)
+type uses = {
+  used : unit_key list;
+  handlers : F.handler KeyMap.t;
+  external_ops : OpNameSet.t;
+}
+
+let rec value_uses acc (v : F.value) =
+  match v.value with
+  | F.Local _ | F.Constant _ -> acc
+  | F.Global g ->
+      { acc with used = Instance ((g.variable, g.instance), []) :: acc.used }
+  | F.Tuple_value vs -> List.fold_left value_uses acc vs
+  | F.Construct (_, arg) -> Option.fold ~none:acc ~some:(value_uses acc) arg
+
+let rec computation_uses ops frames acc (c : F.computation) =
+  let uses = computation_uses ops frames in
+  match c.computation with
+  | F.Return v -> value_uses acc v
+  | F.Perform (op, v) -> (
+      let acc = value_uses acc v in
+      match case_unit ops frames op with
+      | Some (key, _, _) -> { acc with used = key :: acc.used }
+      | None -> { acc with external_ops = OpNameSet.add op acc.external_ops })
+  | F.Bind (_, c1, c2) -> uses (uses acc c1) c2
+  | F.Match (v, cases) ->
+      List.fold_left (fun acc (_, c) -> uses acc c) (value_uses acc v) cases
+  | F.Call (callee, vs) ->
+      let acc =
+        match callee with
+        | F.Function g ->
+            { acc with used = fst (call_unit ops frames g) :: acc.used }
+        | F.Self | F.Primitive _ -> acc
+      in
+      List.fold_left value_uses acc vs
+  | F.Delay (_, c) -> uses acc c
+  | F.Handle (u, c) ->
+      let acc = List.fold_left value_uses acc u.arguments in
+      let frame = handle_frame ops.definitions u [] in
+      let acc =
+        {
+          acc with
+          handlers =
+            KeyMap.add frame.frame_key frame.code
+              (KeyMap.add frame.return_key frame.code acc.handlers);
+        }
+      in
+      let acc = computation_uses ops (frame :: frames) acc c in
+      if returns_input frame.code then acc
+      else { acc with used = fst (return_unit ops frames frame) :: acc.used }
+
+let body_uses ops frames acc = function
+  | F.Function_body { body; _ } -> computation_uses ops frames acc body
+  | F.Constant_body v -> value_uses acc v
+  | F.Handler_body _ -> acc
+
+(* The unit of [key], with the handlers known so far. *)
+let instance definitions handlers ~entries key =
+  let unit_of_case hk context parameter body =
+    let code : F.handler = KeyMap.find hk handlers in
+    {
+      key;
+      context;
+      body =
+        F.Function_body
+          {
+            parameters = code.handler_parameters @ [ parameter ];
+            body;
+            recursive = false;
+          };
+      entry = false;
+    }
+  in
+  match key with
+  | Instance (((x, tys) as k), context) ->
+      {
+        key;
+        context;
+        body = ground_body (Ast.VariableMap.find x definitions) tys;
+        entry = context = [] && List.mem k entries;
+      }
+  | Case (hk, op, context) ->
+      let oc = case_of (KeyMap.find hk handlers) op in
+      unit_of_case hk context oc.case_parameter oc.case_body
+  | Return_case (hk, context) ->
+      let p, c = (KeyMap.find hk handlers).return_case in
+      unit_of_case hk context p c
+
+(* The units of [roots] and of the units they use, each after the units it
+   uses, the handlers of their contexts, and the operations performed outside
+   all handlers. *)
+let instances ops ~entries ~runs roots =
+  let rec visit (seen, order, acc) key =
+    if UnitMap.mem key seen then (seen, order, acc)
+    else
+      let inst = instance ops.definitions acc.handlers ~entries key in
+      let frames = context_frames acc.handlers inst.context in
+      let used = body_uses ops frames { acc with used = [] } inst.body in
+      let seen = UnitMap.add key () seen in
+      let seen, order, acc =
+        List.fold_left visit
+          (seen, order, { used with used = [] })
+          (List.rev used.used)
+      in
+      (seen, inst :: order, acc)
+  in
+  let initial =
+    { used = []; handlers = KeyMap.empty; external_ops = OpNameSet.empty }
+  in
+  let acc =
+    List.fold_left (fun acc c -> computation_uses ops [] acc c) initial runs
+  in
+  let _, order, acc =
+    List.fold_left visit
+      (UnitMap.empty, [], { acc with used = [] })
+      (roots @ List.rev acc.used)
+  in
+  (List.rev order, acc.handlers, acc.external_ops)
 
 (* The types a struct of type [ty] has members of. *)
 let components datatypes ty =
@@ -197,11 +543,11 @@ let rec has_string datatypes ty =
 (* Names. *)
 
 type names = {
-  instance_names : string KeyMap.t;
+  instance_names : string UnitMap.t;
   locals : string Ast.VariableMap.t;
   types : string TyMap.t;
   tags : string LabelMap.t;
-  wrappers : Primitives.primitive KeyMap.t;
+  wrappers : Primitives.primitive UnitMap.t;
       (** the instances whose calls are applications of a primitive *)
 }
 
@@ -222,12 +568,12 @@ let rec computation_binders acc (c : F.computation) =
       List.fold_left
         (fun acc (p, c) -> computation_binders (pattern_binders acc p) c)
         acc cases
-  | F.Delay (_, c) -> computation_binders acc c
+  | F.Delay (_, c) | F.Handle (_, c) -> computation_binders acc c
 
 let body_binders acc = function
   | F.Function_body { parameters; body; _ } ->
       computation_binders (List.fold_left pattern_binders acc parameters) body
-  | F.Constant_body _ -> acc
+  | F.Constant_body _ | F.Handler_body _ -> acc
 
 (* A function of the standard library that applies a primitive to its
    parameters, in order: its calls are applications of the primitive. *)
@@ -257,13 +603,20 @@ let primitive_wrapper = function
         && List.equal (Option.equal Ast.Variable.equal) variables arguments
       then Some p
       else None
-  | F.Function_body _ | F.Constant_body _ -> None
+  | F.Function_body _ | F.Constant_body _ | F.Handler_body _ -> None
+
+(* The name of the C++ function or constant of a unit, before its number. *)
+let unit_name = function
+  | Instance ((x, _), _) -> Ast.Variable.string_of x
+  | Case ((x, _), op, _) ->
+      Ast.Variable.string_of x ^ "_" ^ Ast.OpName.string_of op
+  | Return_case ((x, _), _) -> Ast.Variable.string_of x ^ "_return"
 
 (* What a name is given to. *)
 type named =
   | Named_type of F.ty * string
   | Named_tag of Ast.label
-  | Named_instance of Key.t
+  | Named_instance of unit_key
   | Named_local of Ast.variable
 
 (* The names of the program: each name is numbered by its position among all
@@ -302,7 +655,7 @@ let names datatypes instances runs structs =
   in
   let initial =
     {
-      instance_names = KeyMap.empty;
+      instance_names = UnitMap.empty;
       locals = Ast.VariableMap.empty;
       types =
         List.fold_left
@@ -315,9 +668,9 @@ let names datatypes instances runs structs =
         List.fold_left
           (fun wrappers inst ->
             match primitive_wrapper inst.body with
-            | Some p when not inst.entry -> KeyMap.add inst.key p wrappers
+            | Some p when not inst.entry -> UnitMap.add inst.key p wrappers
             | _ -> wrappers)
-          KeyMap.empty instances;
+          UnitMap.empty instances;
     }
   in
   List.fold_left
@@ -340,8 +693,8 @@ let names datatypes instances runs structs =
           {
             names with
             instance_names =
-              KeyMap.add key
-                (Names.identifier (Ast.Variable.string_of (fst key)) i)
+              UnitMap.add key
+                (Names.identifier (unit_name key) i)
                 names.instance_names;
           }
       | Named_local x ->
@@ -405,12 +758,12 @@ let constant = function
 (* Values. *)
 
 let local names x = Ast.VariableMap.find x names.locals
-let instance_name names key = KeyMap.find key names.instance_names
+let instance_name names key = UnitMap.find key names.instance_names
 
 let rec expression names (v : F.value) =
   match v.value with
   | F.Local x -> local names x
-  | F.Global g -> instance_name names (g.variable, g.instance)
+  | F.Global g -> instance_name names (Instance ((g.variable, g.instance), []))
   | F.Constant c -> constant c
   | F.Tuple_value [] -> "tempore_unit{}"
   | F.Tuple_value vs ->
@@ -518,6 +871,8 @@ let rec computation_free acc (c : F.computation) =
         (value_free acc v) cases
   | F.Call (_, vs) -> List.fold_left value_free acc vs
   | F.Delay (_, c) -> computation_free acc c
+  | F.Handle (u, c) ->
+      computation_free (List.fold_left value_free acc u.arguments) c
 
 (* Patterns: a match is a chain of tests of the subject, at the paths of the
    subterms the pattern constrains, followed by the declarations of the
@@ -596,17 +951,30 @@ let pattern_bindings names used path p =
 
 type destination = Tail | Assign of string | Discard
 
-(* The emission context: the names, and the function being defined, if it
-   calls itself, with the names of its parameters, [None] for those unused. *)
-type context = { names : names; self : string option list option }
+(* The emission context: the names, the function being defined, if it calls
+   itself, with the names of its parameters, [None] for those unused, the
+   operations of the program, and the handlers around the computation. *)
+type context = {
+  names : names;
+  self : string option list option;
+  ops : operations;
+  frames : frame list;
+}
 
 (* The fresh names of temporaries, which start with [tempore_]. *)
 let fresh prefix next = (Printf.sprintf "tempore_%s%d" prefix next, next + 1)
+let captured frames = List.concat_map (fun frame -> frame.captured) frames
 
-let call names callee vs =
+let unit_call names key arguments =
+  Printf.sprintf "%s(%s)" (instance_name names key)
+    (String.concat ", " arguments)
+
+let call ctx callee vs =
+  let names = ctx.names in
   match callee with
   | F.Function g -> (
-      match (KeyMap.find_opt (g.variable, g.instance) names.wrappers, vs) with
+      let key, relevant = call_unit ctx.ops ctx.frames g in
+      match (UnitMap.find_opt key names.wrappers, vs) with
       | Some p, [ v ] -> primitive names p v
       | Some p, _ ->
           primitive names p
@@ -615,22 +983,30 @@ let call names callee vs =
               ty = F.Tuple (List.map (fun (v : F.value) -> v.ty) vs);
             }
       | None, _ ->
-          Printf.sprintf "%s(%s)"
-            (instance_name names (g.variable, g.instance))
-            (String.concat ", " (List.map (expression names) vs)))
+          unit_call names key
+            (List.map (expression names) vs @ captured relevant))
   | F.Primitive p -> primitive names p (List.hd vs)
   | F.Self -> invalid_arg "a recursive call outside tail position"
 
+(* An operation call: a call of the case of the innermost handler of the
+   operation, with the values of the parameters of the handler and of the
+   relevant handlers outside it, or of the external function. *)
+let perform ctx op v =
+  let names = ctx.names in
+  match case_unit ctx.ops ctx.frames op with
+  | Some (key, frame, relevant) ->
+      unit_call names key
+        ((frame.captured @ [ expression names v ]) @ captured relevant)
+  | None -> Printf.sprintf "%s(%s)" (operation_function op) (expression names v)
+
 (* The C++ expression of [c], if [c] is one. *)
-let expression_of names (c : F.computation) =
+let expression_of ctx (c : F.computation) =
   match c.computation with
-  | F.Return v -> Some (expression names v)
+  | F.Return v -> Some (expression ctx.names v)
   | F.Call (((F.Function _ | F.Primitive _) as callee), vs) ->
-      Some (call names callee vs)
-  | F.Perform (op, v) ->
-      Some
-        (Printf.sprintf "%s(%s)" (operation_function op) (expression names v))
-  | F.Call (F.Self, _) | F.Bind _ | F.Match _ | F.Delay _ -> None
+      Some (call ctx callee vs)
+  | F.Perform (op, v) -> Some (perform ctx op v)
+  | F.Call (F.Self, _) | F.Bind _ | F.Match _ | F.Delay _ | F.Handle _ -> None
 
 let deliver destination ~pure e =
   match destination with
@@ -639,8 +1015,7 @@ let deliver destination ~pure e =
   | Discard -> if pure then [] else [ Line ("static_cast<void>(" ^ e ^ ");") ]
 
 let rec statements ctx next destination (c : F.computation) =
-  let names = ctx.names in
-  match (c.computation, expression_of names c) with
+  match (c.computation, expression_of ctx c) with
   | F.Return _, Some e -> (next, deliver destination ~pure:true e)
   | _, Some e -> (next, deliver destination ~pure:false e)
   | F.Call (F.Self, vs), None -> (next, tail_call ctx vs)
@@ -658,13 +1033,14 @@ let rec statements ctx next destination (c : F.computation) =
              (Z.to_string (Grades.Rational.num q))
              (Z.to_string (Grades.Rational.den q)))
         :: rest )
+  | F.Handle (u, body), None -> handle ctx next destination u body
   | (F.Return _ | F.Call _ | F.Perform _), None -> assert false
 
 (* The binding of the result of [c1] to [p], of which [used] are used. *)
 and bind ctx next used (p : F.pattern) c1 =
   let names = ctx.names in
   let ty = ty_name names c1.result in
-  match (expression_of names c1, p.pattern, binds_used used p) with
+  match (expression_of ctx c1, p.pattern, binds_used used p) with
   | Some e, _, false ->
       ( next,
         deliver Discard
@@ -727,6 +1103,25 @@ and match_cases ctx next destination (v : F.value) cases =
   | [ (None, body) ] -> (next, subject @ body)
   | _ -> (next, subject @ [ If chain ])
 
+(* A [handle]: the body in the context extended by the handler, its result
+   passed to the return case, unless the return case returns its input. *)
+and handle ctx next destination (u : F.handler_use) body =
+  let names = ctx.names in
+  let frame =
+    handle_frame ctx.ops.definitions u (List.map (expression names) u.arguments)
+  in
+  let inner = { ctx with frames = frame :: ctx.frames } in
+  if returns_input frame.code then statements inner next destination body
+  else
+    let t, next = fresh "t" next in
+    let next, stmts = statements inner next (Assign t) body in
+    let key, relevant = return_unit ctx.ops ctx.frames frame in
+    ( next,
+      (Line (Printf.sprintf "%s %s{};" (ty_name names body.result) t) :: stmts)
+      @ deliver destination ~pure:false
+          (unit_call names key ((frame.captured @ [ t ]) @ captured relevant))
+    )
+
 (* A recursive call in tail position: the parameters that are used take the
    arguments, through temporaries if there are several, and the loop of the
    function's body continues. *)
@@ -761,10 +1156,12 @@ and tail_call ctx vs =
 
 (* Functions: the parameters of a function are named by their variables, or
    by [tempore_a] and their position when they are patterns whose variables
-   are then declared, or left unnamed when their variables are unused. A
-   function that calls itself runs its body in a loop. *)
-let function_definition names ~static ~name (parameters : F.pattern list) body
+   are then declared, or left unnamed when their variables are unused; the
+   values of the parameters of the handlers of its context follow. A function
+   that calls itself runs its body in a loop. *)
+let function_definition ctx ~static ~name (parameters : F.pattern list) body
     ~recursive =
+  let names = ctx.names in
   let used = computation_free VariableSet.empty body in
   let parameters =
     List.mapi
@@ -778,6 +1175,15 @@ let function_definition names ~static ~name (parameters : F.pattern list) body
         | _ -> (ty, None, []))
       parameters
   in
+  let context =
+    List.concat_map
+      (fun frame ->
+        List.map2
+          (fun (p : F.pattern) name ->
+            (ty_name names p.pattern_ty, Some name, []))
+          frame.code.handler_parameters frame.captured)
+      ctx.frames
+  in
   let signature =
     Printf.sprintf "%s%s %s(%s)"
       (if static then "static " else "")
@@ -787,18 +1193,19 @@ let function_definition names ~static ~name (parameters : F.pattern list) body
          (List.map
             (fun (ty, name, _) ->
               Option.fold ~none:ty ~some:(fun name -> ty ^ " " ^ name) name)
-            parameters))
+            (parameters @ context)))
   in
   let prototype =
     Printf.sprintf "%s%s %s(%s);"
       (if static then "static " else "")
       (ty_name names body.F.result)
       name
-      (String.concat ", " (List.map (fun (ty, _, _) -> ty) parameters))
+      (String.concat ", "
+         (List.map (fun (ty, _, _) -> ty) (parameters @ context)))
   in
   let ctx =
     {
-      names;
+      ctx with
       self =
         (if recursive then Some (List.map (fun (_, name, _) -> name) parameters)
          else None);
@@ -1041,11 +1448,7 @@ let compile ?(host_runs = false) ~source (program : F.program) =
       (fun map (d : F.datatype) -> Ast.TyNameMap.add d.type_name d map)
       Ast.TyNameMap.empty program.datatypes
   in
-  let definitions =
-    List.fold_left
-      (fun map (d : F.definition) -> Ast.VariableMap.add d.variable d map)
-      Ast.VariableMap.empty program.definitions
-  in
+  let ops = operations program.definitions in
   let entries =
     List.filter_map
       (fun (d : F.definition) ->
@@ -1057,10 +1460,15 @@ let compile ?(host_runs = false) ~source (program : F.program) =
   let runs =
     if host_runs then List.map ground_computation program.runs else []
   in
-  let instances =
-    instances definitions ~entries
-      (entries
-      @ List.concat_map (fun c -> List.rev (computation_globals [] c)) runs)
+  let instances, handlers, external_ops =
+    instances ops ~entries ~runs
+      (List.map (fun key -> Instance (key, [])) entries)
+  in
+  (* The operations performed outside all handlers. *)
+  let performed =
+    List.filter
+      (fun (op : F.operation) -> OpNameSet.mem op.operation external_ops)
+      program.operations
   in
   let structs =
     structs datatypes
@@ -1071,9 +1479,10 @@ let compile ?(host_runs = false) ~source (program : F.program) =
          runs
       @ List.concat_map
           (fun (op : F.operation) -> [ op.argument; op.result_ty ])
-          program.operations)
+          performed)
   in
   let names = names datatypes instances runs structs in
+  let context frames = { names; self = None; ops; frames } in
   let comparable =
     List.filter (fun ty -> not (has_string datatypes ty)) structs
   in
@@ -1084,20 +1493,22 @@ let compile ?(host_runs = false) ~source (program : F.program) =
           (ty_name names op.result_ty)
           (operation_function op.operation)
           (ty_name names op.argument))
-      program.operations
+      performed
   in
   let functions =
     List.filter_map
       (fun inst ->
         match inst.body with
-        | F.Function_body _ when KeyMap.mem inst.key names.wrappers -> None
+        | F.Function_body _ when UnitMap.mem inst.key names.wrappers -> None
         | F.Function_body { parameters; body; recursive } ->
             Some
               ( inst.entry,
-                function_definition names ~static:(not inst.entry)
+                function_definition
+                  (context (context_frames handlers inst.context))
+                  ~static:(not inst.entry)
                   ~name:(instance_name names inst.key)
                   parameters body ~recursive )
-        | F.Constant_body _ -> None)
+        | F.Constant_body _ | F.Handler_body _ -> None)
       instances
   in
   let constants =
@@ -1110,13 +1521,13 @@ let compile ?(host_runs = false) ~source (program : F.program) =
                  (Printf.sprintf "static const %s %s = %s;" (ty_name names v.ty)
                     (instance_name names inst.key)
                     (expression names v)))
-        | F.Function_body _ -> None)
+        | F.Function_body _ | F.Handler_body _ -> None)
       instances
   in
   let run_functions =
     List.mapi
       (fun i c ->
-        function_definition names ~static:false
+        function_definition (context []) ~static:false
           ~name:(Printf.sprintf "tempore_run%d" (i + 1))
           [] c ~recursive:false)
       runs
@@ -1192,7 +1603,7 @@ let compile ?(host_runs = false) ~source (program : F.program) =
               ];
             Line "";
           ])
-        (List.combine program.operations operations)
+        (List.combine performed operations)
     @ List.concat_map
         (fun ty -> [ print_definition names datatypes ty; Line "" ])
         comparable
@@ -1226,10 +1637,13 @@ let compile ?(host_runs = false) ~source (program : F.program) =
          (source_file, render source_stmts);
        ]
       @ if host_runs then [ (host_main_file, render host_main) ] else []);
-    entries = List.map (fun key -> (fst key, instance_name names key)) entries;
+    entries =
+      List.map
+        (fun key -> (fst key, instance_name names (Instance (key, []))))
+        entries;
     operation_types =
       List.map
         (fun (op : F.operation) ->
           (op.operation, (ty_name names op.argument, ty_name names op.result_ty)))
-        program.operations;
+        performed;
   }
