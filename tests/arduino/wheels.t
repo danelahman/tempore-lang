@@ -111,6 +111,41 @@ A periodic task whose trace takes 10.2 to 10.8 ms is refused for a period of
   Compilation error: The effect `[{ReadImu; 10}, {ReadImu; 10}]` of the function 'slow' of a periodic task is not below its period: its durations are not all below 10
   [1]
 
+A grade with a star bounds the durations below by its fastest trace, and not
+above: its function is refused for a periodic task, and accepted for a
+repeated free task iff that lower bound is positive:
+
+  $ cat > star.tpe <<'EOF'
+  > let poll () : unit # {ReadImu; (ReadImu; 10)*} =
+  >   let _ = perform ReadImu () in
+  >   ()
+  > 
+  > let idle () : unit # {(ReadImu; 10)*} = ()
+  > EOF
+  $ cat > star.device.json <<'EOF'
+  > {
+  >   "board": "m5stack-gray",
+  >   "tasks": [ { "function": "poll", "kind": "periodic", "period": 10 } ],
+  >   "packages": ["m5-imu"]
+  > }
+  > EOF
+  $ tempore --emit-arduino star --device star.device.json star.tpe
+  File "star.device.json", line 3, characters 27-33:
+  3 |   "tasks": [ { "function": "poll", "kind": "periodic", "period": 10 } ],
+                                 ^^^^^^
+  Compilation error: The effect `[{ReadImu; (ReadImu; 10)*}, {ReadImu; (ReadImu; 10)*}]` of the function 'poll' of a periodic task is not below its period: its durations are not all below 10
+  [1]
+  $ sed -i.bak 's/"kind": "periodic", "period": 10/"kind": "free", "repeat": true/' star.device.json
+  $ tempore --emit-arduino star --device star.device.json star.tpe | tail -1
+  Wrote _arduino/projects/star/host/m5_imu_model.cpp
+  $ sed -i.bak 's/"poll"/"idle"/' star.device.json
+  $ tempore --emit-arduino idle --device star.device.json star.tpe
+  File "star.device.json", line 3, characters 27-33:
+  3 |   "tasks": [ { "function": "idle", "kind": "free", "repeat": true } ],
+                                 ^^^^^^
+  Compilation error: The effect `[{(ReadImu; 10)*}, {(ReadImu; 10)*}]` of the function 'idle' of a repeated free task does not bound its durations below by a positive time, so that the task may never yield
+  [1]
+
 The project, for the board m5stack-gray, with the running-time bounds of
 the operations, which the monitors check; its sources compile without
 exceptions and run-time type information:

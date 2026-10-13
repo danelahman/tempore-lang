@@ -57,9 +57,9 @@
     has the language [⊤] of all traces as its top, absorbing up to [≡], and its
     unit is least; the lower order has the unit as its top. The running-time
     bounds implied by a grade are the least weight of its lower-bound traces, at
-    [lo], and the greatest weight of its upper-bound traces, at [hi], [None] if
-    the latter is unbounded; an operation's time shadow [of_bounds (lo, hi)] is
-    [{lo}] under the lower order and [{hi}] under the upper. Over whole time
+    [lo], and the greatest weight of its upper-bound traces, at [hi], infinite
+    if the latter is unbounded; an operation's time shadow [of_bounds (lo, hi)]
+    is [{lo}] under the lower order and [{hi}] under the upper. Over whole time
     steps the ends of running-time bounds are closed
     ({!Grade.close_running_time}). A counterexample to [ρ ≾ ρ'] is the grade of
     a trace of [ρ] outside the closure of [ρ'], in which a name stands for

@@ -3,7 +3,7 @@
   "tasks": [
     { "function": "step", "kind": "periodic", "period": 5,
       "initial": "start", "priority": 3 },
-    { "function": "supervise", "kind": "free", "repeat": false,
+    { "function": "supervise", "kind": "free", "repeat": true,
       "priority": 1, "core": 0 }
   ],
   "packages": ["m5-imu", "m5-display", "bala2-base"],

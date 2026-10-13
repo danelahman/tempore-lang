@@ -226,10 +226,12 @@ module type S = sig
       traces of [rho], each event counted at the lower end of its [bounds], and
       their supremum, each event counted at the upper end: the fastest trace is
       taken over the lower-bound component of the grade and the slowest over its
-      upper-bound component, which coincide for the one-sided grades; it is
-      [None] where the upper-bound component is unbounded. For a product it is
-      the intersection of those of its components ({!intersect_durations}). It
-      is [None] for the grades that do not bound durations. *)
+      upper-bound component, which coincide for the one-sided grades; the upper
+      end is infinite where the durations of the upper-bound component are
+      unbounded, and the interval is [None] where either component denotes no
+      trace. For a product it is the intersection of those of its components
+      ({!intersect_durations}). It is [None] for the grades that do not bound
+      durations. *)
 
   val inhabited : bounds -> t -> bool
   (** [inhabited bounds rho] is whether the grade [rho] denotes at least one

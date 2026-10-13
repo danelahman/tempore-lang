@@ -20,13 +20,11 @@
    expressions of timed operations, in milliseconds: the grades fix the
    order of the operations as well as their timing. The device manifest
    balance_regex.device.json runs the control step 'step' every 5 ms, from
-   the state of 'start', and the supervision 'supervise' once as a free
-   task: a repeated free task needs a grade that bounds its durations below
-   by a positive time, and the backend determines the durations of a grade
-   under these grades only where they are bounded above, which those of the
-   supervision, with its loops, are not. The operations ReadImu, SetMotors,
-   ReadEncoders, ResetEncoders, ShowText, ShowNumber and ClearDisplay, and
-   the functions tilt_x_of_accel, complementary and bala2_drive, come from
+   the state of 'start', and repeats the supervision 'supervise' as a free
+   task, whose grade bounds its durations below by a positive time. The
+   operations ReadImu, SetMotors, ReadEncoders, ResetEncoders, ShowText,
+   ShowNumber and ClearDisplay, and the functions tilt_x_of_accel,
+   complementary and bala2_drive, come from
    the packages m5-imu, m5-display and bala2-base, whose declarations under
    these grades precede this file. The operations declared below are bound
    by examples/arduino/bala2/bindings.cpp; examples/arduino/bala2/plant.cpp

@@ -109,8 +109,8 @@ and with an expired calibration, a drive iteration that may exceed the
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 82, characters 0-60:
-    82 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 80, characters 0-60:
+    80 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2-regex/unchecked.tpe", line 5, characters 14-26:
@@ -180,8 +180,8 @@ and with an expired calibration, a drive iteration that may exceed the
   7 |   let token = calibrate () in
                     ^^^^^^^^^
   Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 310-312, characters 0-51:
-    310 | let calibrate () =
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 308-310, characters 0-51:
+    308 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
     File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:

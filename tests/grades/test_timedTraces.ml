@@ -121,6 +121,11 @@ let running_time (lo, hi) =
   ( Grade.Closed (Grades.Rational.of_int lo),
     Grade.Closed (Grades.Rational.of_int hi) )
 
+(* [unbounded_above lo] is the interval of durations from [lo] time steps,
+infinite above. *)
+let unbounded_above lo =
+  (Grade.Closed (Grades.Rational.of_int lo), Grade.Unbounded)
+
 let bounds_of table =
   {
     Grade.running_time = (fun o -> running_time (List.assoc o table));
@@ -580,8 +585,9 @@ module Suite (I : IMPLEMENTATION) = struct
         ~expected:(Some (running_time (1, 3)))
         (Upper.duration_bounds running_times (U.lit "{A | B; 1}"));
       expect
-        (name "no implied bounds when unbounded")
-        show_bounds ~expected:None
+        (name "implied bounds infinite above when unbounded")
+        show_bounds
+        ~expected:(Some (unbounded_above 1))
         (Upper.duration_bounds running_times (U.lit "{A; B*}"));
       expect (name "time shadow") Fun.id ~expected:"{3}"
         (Upper.show (Upper.of_bounds (Grade.Closed 1, Grade.Closed 3)));
@@ -613,6 +619,11 @@ module Suite (I : IMPLEMENTATION) = struct
       expect (name "implied bounds") show_bounds
         ~expected:(Some (running_time (1, 3)))
         (Lower.duration_bounds running_times (Lo.lit "{A | B; 1}"));
+      expect
+        (name "implied bounds of a star infinite above")
+        show_bounds
+        ~expected:(Some (unbounded_above 1))
+        (Lower.duration_bounds running_times (Lo.lit "{A; (B; 10)*}"));
       expect (name "time shadow") Fun.id ~expected:"{1}"
         (Lower.show (Lower.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Lower.unit_least;
@@ -642,6 +653,11 @@ module Suite (I : IMPLEMENTATION) = struct
       expect (name "implied bounds") show_bounds
         ~expected:(Some (running_time (1, 2)))
         (Interval.duration_bounds running_times (In.lit "[{A | B}, {B}]"));
+      expect
+        (name "implied bounds infinite above under an unbounded allowance")
+        show_bounds
+        ~expected:(Some (unbounded_above 1))
+        (Interval.duration_bounds running_times (In.lit "[{A}, ∞)"));
       expect (name "time shadow") Fun.id ~expected:"[{1}, {3}]"
         (Interval.show (Interval.of_bounds (Grade.Closed 1, Grade.Closed 3)));
       fails (name "unit least") Interval.unit_least;
