@@ -106,17 +106,19 @@ default Command _ = delay 1/100
 
 (* The control step. The state is the tilt, in degrees, filtered from the
    inertial measurement unit; the speed of the wheels, in encoder counts per
-   second, filtered; the integral of the error of the speed; and the
-   position of the wheels, in encoder counts. *)
+   second, filtered; the integral of the error of the speed; the
+   position of the wheels, in encoder counts; and the heading held, the
+   difference of the counts of the left and the right encoder. *)
 
-type state = float * float * float * float
+type state = float * float * float * float * float
 
 (* The period, in seconds, the weight of the gyroscope in the complementary
-   filter of the tilt, the gains and bounds of the controller, the weight of
-   the previous speed in the filter of the speed, the balance point, in
-   degrees, which the tilt loop subtracts from the tilt, and the dead band
-   of the motors, in units of drive, by which a drive is moved away from
-   zero, those of balance.tpe. *)
+   filter of the tilt, the gains and bounds of the controller and of its
+   heading loop, the weight of the previous speed in the filter of the
+   speed, the balance point, in degrees, which the tilt loop subtracts from
+   the tilt, and the dead bands of the left and the right motor, in units of
+   drive, by which their drives are moved away from zero, those of
+   balance.tpe. *)
 let period = 0.005
 let gyro_weight = 0.98
 let tilt_gain = 25.0
@@ -128,10 +130,13 @@ let integral_limit = 1250.0
 let reference_limit = 20.0
 let cutoff = 70.0
 let balance_point = 0.0
-let dead_band = 70.0
+let heading_gain = 2.0
+let heading_limit = 200.0
+let left_dead_band = 70.0
+let right_dead_band = 180.0
 
-let compensated (d : float) =
-  if d > 0.0 then d +. dead_band else if d < 0.0 then d -. dead_band else d
+let compensated (band : float) (d : float) =
+  if d > 0.0 then d +. band else if d < 0.0 then d -. band else d
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
@@ -145,8 +150,9 @@ let clamp (limit : float) (x : float) =
    is boxed with the trace of the reads of the encoders and the setpoints,
    without delays: it is used at most 1.05 ms after it is taken, and only if
    no other operation, in particular no command of the motors, has come
-   between. *)
-let step ((tilt, speed, integral, position) : state) : state
+   between. While a turn is commanded, the heading held follows the
+   difference of the counts; disarmed, the step holds the present heading. *)
+let step ((tilt, speed, integral, position, heading) : state) : state
     # {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
   let reading = perform ReadImu () in
   box {ReadEncoders; Setpoints} reading as fresh in
@@ -160,6 +166,7 @@ let step ((tilt, speed, integral, position) : state) : state
     complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
   in
   let now = (float_of_int left +. float_of_int right) /. 2.0 in
+  let difference = float_of_int left -. float_of_int right in
   let speed =
     (speed_weight *. speed)
     +. ((1.0 -. speed_weight) *. ((now -. position) /. period))
@@ -175,20 +182,24 @@ let step ((tilt, speed, integral, position) : state) : state
     let drive =
       (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
+    let heading = if magnitude turn > 0.0 then difference else heading in
+    let turn =
+      turn +. clamp heading_limit (~-.(heading_gain *. (difference -. heading)))
+    in
     perform SetMotors
-      ( bala2_drive (compensated (drive +. turn)),
-        bala2_drive (compensated (drive -. turn)) );
-    (tilt, speed, integral, now)
+      ( bala2_drive (compensated left_dead_band (drive +. turn)),
+        bala2_drive (compensated right_dead_band (drive -. turn)) );
+    (tilt, speed, integral, now, heading)
   else (
     perform SetMotors (0i, 0i);
-    (tilt, speed, 0.0, now))
+    (tilt, speed, 0.0, now, difference))
 
 (* The initial state: the encoders reset, and the tilt from the
    accelerometer. *)
 let start () : state =
   perform ResetEncoders ();
   let accel, _ = perform ReadImu () in
-  (tilt_x_of_accel accel, 0.0, 0.0, 0.0)
+  (tilt_x_of_accel accel, 0.0, 0.0, 0.0, 0.0)
 
 (* Correctly rejected by the typechecker: the step reads the encoders before
    the unit:
@@ -207,7 +218,8 @@ let start () : state =
          hold
 *)
 (*
-let step_unordered ((tilt, speed, integral, position) : state) : state
+let step_unordered
+    ((tilt, speed, integral, position, heading) : state) : state
     # {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors} =
   let left, right = perform ReadEncoders () in
   let accel, gyro = perform ReadImu () in
@@ -218,7 +230,8 @@ let step_unordered ((tilt, speed, integral, position) : state) : state
   in
   perform Publish (tilt, raw, speed, 0.0);
   perform SetMotors (0i, 0i);
-  (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
+  let now = (float_of_int left +. float_of_int right) /. 2.0 in
+  (tilt, speed, integral, now, heading)
 *)
 
 (* Correctly rejected by the typechecker: the step averages two reads of the
@@ -237,7 +250,8 @@ let step_unordered ((tilt, speed, integral, position) : state) : state
          hold
 *)
 (*
-let step_stale ((tilt, speed, integral, position) : state) : state =
+let step_stale
+    ((tilt, speed, integral, position, heading) : state) : state =
   let reading = perform ReadImu () in
   box {ReadEncoders; Setpoints} reading as fresh in
   let left1, right1 = perform ReadEncoders () in
@@ -254,7 +268,7 @@ let step_stale ((tilt, speed, integral, position) : state) : state =
   in
   perform Publish (tilt, raw, speed, 0.0);
   perform SetMotors (0i, 0i);
-  (tilt, speed, integral, (left +. right) /. 2.0)
+  (tilt, speed, integral, (left +. right) /. 2.0, heading)
 *)
 
 (* Correctly rejected by the typechecker: the step stops the motors of a
@@ -274,7 +288,8 @@ let step_stale ((tilt, speed, integral, position) : state) : state =
          hold
 *)
 (*
-let step_stopped ((tilt, speed, integral, position) : state) : state =
+let step_stopped
+    ((tilt, speed, integral, position, heading) : state) : state =
   let reading = perform ReadImu () in
   box {ReadEncoders; Setpoints} reading as fresh in
   let left, right = perform ReadEncoders () in
@@ -287,7 +302,8 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform Publish (tilt, raw, speed, 0.0);
-  (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
+  let now = (float_of_int left +. float_of_int right) /. 2.0 in
+  (tilt, speed, integral, now, heading)
 *)
 
 (* The supervision. The bias of the gyroscope is the mean of 50 rates
@@ -510,7 +526,7 @@ let supervise_undisarmed () : unit
 
 (* Two control steps from the reading of the default implementation of the
    unit, a robot at rest, and a tilt of 3 degrees. *)
-run step (step (3.0, 0.0, 0.0, 0.0))
+run step (step (3.0, 0.0, 0.0, 0.0, 0.0))
 
 (* The simulation by handlers, in the interpreter. Under these grades a case
    of an operation is checked against the grade of the operation, its own
@@ -654,11 +670,11 @@ let slow_robot =
 *)
 
 (* The closed loop of 20 control steps, 100 ms, from a tilt of 3 degrees:
-   the step brings the tilt of the model to -0.06 degrees. *)
-run balance 20 3.0 0.0 0.0 (3.0, 0.0, 0.0, 0.0)
+   the step brings the tilt of the model to 0.3 degrees. *)
+run balance 20 3.0 0.0 0.0 (3.0, 0.0, 0.0, 0.0, 0.0)
 
 (* Ten control steps with the gyroscope stuck: the filtered tilt grows by
    about 10 degrees in each step and exceeds the cutoff of 70 degrees in the
    eighth, from which on the step stops the motors and resets the integral,
    so that the mean drive of the last step is zero. *)
-run held 10 (0.0, 0.0, 0.0, 0.0) 0.0
+run held 10 (0.0, 0.0, 0.0, 0.0, 0.0) 0.0

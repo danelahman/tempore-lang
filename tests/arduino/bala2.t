@@ -13,7 +13,7 @@ implementations of the operations:
 
   $ packages $app/balance.tpe
   === Run 1 ===
-  return (2.8812, 0., 0., 0.)
+  return (2.8812, 0., 0., 0., 0.)
   State: [
     [0.6, 0.6],
     { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 2] },
@@ -36,35 +36,35 @@ and with an expired one, and a supervisory iteration that may exceed the
 200 ms of a command:
 
   $ for v in stale period unchecked late redrawn; do packages --typecheck-only $app/balance.tpe bala2/$v.tpe; echo "[$?]"; done
-  File "bala2/stale.tpe", lines 13-20, characters 2-49:
-  13 |   unbox fresh as imu in
+  File "bala2/stale.tpe", lines 14-21, characters 2-58:
+  14 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `fresh` is unboxed with grade `[2.4, 3.55]` accumulated since it was bound, which is not below its box grade `[0, 2]`
-    File "bala2/stale.tpe", line 6, characters 24-29:
-    6 |   box [0, 2] reading as fresh in
+    File "bala2/stale.tpe", line 7, characters 24-29:
+    7 |   box [0, 2] reading as fresh in
                                 ^^^^^
     `fresh` is bound here
-    File "bala2/stale.tpe", line 7, characters 22-45:
-    7 |   let left1, right1 = perform ReadEncoders () in
+    File "bala2/stale.tpe", line 8, characters 22-45:
+    8 |   let left1, right1 = perform ReadEncoders () in
                               ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.45, 1]` accumulates here (operation `ReadEncoders`)
-    File "bala2/stale.tpe", line 8, characters 2-11:
-    8 |   delay 1.5;
+    File "bala2/stale.tpe", line 9, characters 2-11:
+    9 |   delay 1.5;
           ^^^^^^^^^
     grade `[1.5, 1.5]` accumulates here (delay)
-    File "bala2/stale.tpe", line 9, characters 22-45:
-    9 |   let left2, right2 = perform ReadEncoders () in
-                              ^^^^^^^^^^^^^^^^^^^^^^^
+    File "bala2/stale.tpe", line 10, characters 22-45:
+    10 |   let left2, right2 = perform ReadEncoders () in
+                               ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.45, 1]` accumulates here (operation `ReadEncoders`)
-    File "bala2/stale.tpe", line 12, characters 34-54:
-    12 |   let armed, bias, target, turn = perform Setpoints () in
+    File "bala2/stale.tpe", line 13, characters 34-54:
+    13 |   let armed, bias, target, turn = perform Setpoints () in
                                            ^^^^^^^^^^^^^^^^^^^^
     grade `[0, 0.05]` accumulates here (operation `Setpoints`)
     Note: the resource inequality `[2.4, 3.55] <= [0, 2]` does not hold
   [1]
-  File "bala2/period.tpe", lines 4-15, characters 59-35:
-  4 | let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
-                                                                 ^^^^^^^^^^^^^^^^^^
+  File "bala2/period.tpe", lines 4-16, characters 68-44:
+  4 | let step_shown ((tilt, speed, integral, position, heading) : state) : state
+                                                                          ^^^^^^^
   Typing error: This function's body has grade `[0.85, 14.2]`, which does not match its annotated grade `[0, 5)`
     Note: the effect inequality `[0.85, 14.2] <= [0, 5)` does not hold
   [1]
@@ -124,8 +124,7 @@ exceptions and run-time type information, and its host build:
 The closed loop for 8 s from a tilt of 0.1 rad, the robot held until its
 motors are first driven: the supervision calibrates the gyroscope, arms the
 robot after a second and shows the tilt every second; the tilt stays below
-2.5 degrees from one second after the release, the dead band of the right
-wheel of the model exceeding that of the step. The digits of the simulated
+2.5 degrees from one second after the release. The digits of the simulated
 tilt depend on the rounding of the single-precision functions of the C
 library, so that the filter balanced checks the tilts, the position of the
 wheels and the largest drive against bounds, and prints the other events as
@@ -200,17 +199,17 @@ robot falls:
   [32.245 ms] Display: Calibrating
   [533.245 ms] Display: Hold upright
   [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: -0.462
-  [3436.245 ms] Display: -0.592
+  [2435.245 ms] Display: -0.044
+  [3436.245 ms] Display: 0.084
   [4005.071 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4005.071 ms] Safe state
   [4005.316 ms] Task step stopped
   [4036.000 ms] Task supervise stopped
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1537.0 ms
-  [8000.000 ms] Plant: tilt -80.21 degrees, wheels at 0.266 m
+  [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.217 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release 80.21 degrees
-  [8000.000 ms] Plant: largest drive 0.208, last at 4005.0 ms
+  [8000.000 ms] Plant: largest drive 0.316, last at 4005.0 ms
 
 With the build flag BALANCE_LOG, here 500 ms, a task started by the first
 publication logs the published attitude, the drives last written and the
@@ -221,8 +220,8 @@ counts last read, and the arming:
   [1002.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [1502.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [2002.000 ms] Armed, gyroscope bias 0.000 deg/s
-  [2002.000 ms] Tilt -0.27 deg, rate 0.7 deg/s, drives 108 108, counts 90 -6
-  [2502.000 ms] Tilt -0.51 deg, rate -0.9 deg/s, drives 86 86, counts 151 -6
+  [2002.000 ms] Tilt 0.01 deg, rate -1.7 deg/s, drives 70 180, counts 14 14
+  [2502.000 ms] Tilt -0.04 deg, rate 5.2 deg/s, drives -76 -186, counts 12 12
 
 With the build flag BALANCE_RECORD, here 100 ms, and 20 samples, two tasks
 started by the first publication record the run from the arming for 2 s and
@@ -250,6 +249,31 @@ the wheels within 500:
   >   }
   >   END { print n " rows" }' record.csv
   20 rows
+
+The filter recordings.awk on a serial output read from the device by the
+target -capture, shortened: the bytes read as the port opens, the end of a
+copy of recording 1 without its header, a complete copy, and a copy cut
+short. Under the locale C, which the target sets, the filter extracts the
+complete copy, of 3000 rows, and reports the copy cut short:
+
+  $ capture=../../../bala2/capture.log
+  $ extract () { LC_ALL=C awk -f ../../../$app/recordings.awk "$@"; }
+  $ extract $capture > capture.csv
+  Skipped an incomplete copy of recording 1: no end line
+  $ head -n 1 capture.csv; tail -n 2 capture.csv; grep -c '^[0-9]' capture.csv
+  # Recording 1, run 505e56f7, 3000 of 3000 samples every 20 ms from the arming
+  59980,-1.72,-103.9,118,-2.26,-100,-100,696,-731
+  # End of recording 1
+  3000
+
+With a carriage return at the end of each line and other bytes before each
+header, the filter extracts the same copy; without a row of the complete
+copy, it extracts none:
+
+  $ LC_ALL=C awk '{ printf "%s%s\r\n", (/^# Recording/ ? "\001>" : ""), $0 }' $capture | extract 2> /dev/null | cmp - capture.csv
+  $ LC_ALL=C awk '!/^30000,/' $capture | extract
+  Skipped an incomplete copy of recording 1: 2999 of 3000 rows
+  Skipped an incomplete copy of recording 1: no end line
 
 The closed loop over 120 s from the arming, recorded every 100 ms and built
 without the trace, checked by the filter settled: given the balance tilt B
@@ -286,19 +310,34 @@ oscillation does not grow:
   > }
   $ long () { ./simulation 124000000 | awk -f ../../../$app/recordings.awk > "$1"; }
 
-On the model, whose dead band of the right wheel, 180, exceeds the 70 that
-the step adds to a drive, the robot keeps a limit cycle of about 2 degrees,
-5 degrees of the reference tilt and 240 counts of the wheels:
+The filter heading, given a bound D, prints whether the difference of the
+counts of the left and the right wheel, the heading of the robot, stays
+within D counts throughout a recording:
+
+  $ heading () {
+  >   awk -F, -v d="$1" '
+  >     function within(x, b) { return (x < 0 ? -x : x) < b }
+  >     NR > 2 && !/^#/ && !within($8 - $9, d) { n++ }
+  >     END { print "the difference of the counts " (n ? "beyond " d " counts in " n " rows" : "within " d " counts") }' "$2"
+  > }
+
+On the model, whose dead bands of the motors, 70 and 180, the step
+compensates, the robot settles within half a degree and keeps its heading:
 
   $ quiet && long model.csv
-  $ settled 0 3 8 600 model.csv
-  1200 rows; the wheels from 20 s on within a span of 600 counts, not growing
+  $ settled 0 0.5 1 20 model.csv
+  1200 rows; the wheels from 20 s on within a span of 20 counts, not growing
+  $ heading 10 model.csv
+  the difference of the counts within 10 counts
 
-Without the dead bands of the motors, the robot settles within half a degree:
+Without the dead bands of the motors, which the step then overcompensates,
+the robot settles within half a degree:
 
   $ quiet -DPLANT_DEAD_BAND=0 -DPLANT_RIGHT_DEAD_BAND=0 && long ideal.csv
   $ settled 0 0.5 1 20 ideal.csv
   1200 rows; the wheels from 20 s on within a span of 20 counts, not growing
+  $ heading 10 ideal.csv
+  the difference of the counts within 10 counts
 
 The centre of mass of the model 0.035 rad (2 degrees) forwards of the axis of
 the body, and backwards, under the build flag PLANT_OFFSET of plant.cpp: the
@@ -306,11 +345,39 @@ robot balances about a tilt of -2 and 2 degrees, the integral of the speed
 loop taking up the offset, with the wheels about 500 counts from their start:
 
   $ quiet -DPLANT_OFFSET=0.035 && long forwards.csv
-  $ settled -2 3 8 600 forwards.csv
-  1200 rows; the wheels from 20 s on within a span of 600 counts, not growing
+  $ settled -2 0.5 1 20 forwards.csv
+  1200 rows; the wheels from 20 s on within a span of 20 counts, not growing
+  $ heading 10 forwards.csv
+  the difference of the counts within 10 counts
   $ quiet -DPLANT_OFFSET=-0.035 && long backwards.csv
-  $ settled 2 3 8 600 backwards.csv
+  $ settled 2 0.5 1 20 backwards.csv
+  1200 rows; the wheels from 20 s on within a span of 20 counts, not growing
+  $ heading 10 backwards.csv
+  the difference of the counts within 10 counts
+
+With a dead band of the right motor of 240, 60 beyond the compensation of the
+step, the robot keeps a limit cycle of about 2.5 degrees, 3.5 degrees of the
+reference tilt and 590 counts of the wheels, in which the right wheel lags
+the left; the heading loop keeps the difference of the counts within about
+20 counts, which reaches about 240 counts without it:
+
+  $ quiet -DPLANT_RIGHT_DEAD_BAND=240 && long weak.csv
+  $ settled 0 3 5 700 weak.csv
+  1200 rows; the wheels from 20 s on within a span of 700 counts, not growing
+  $ heading 40 weak.csv
+  the difference of the counts within 40 counts
+
+So also with a right motor of 0.8 times the strength of the left, under the
+build flag PLANT_RIGHT_STRENGTH of plant.cpp: the limit cycle is of about 2
+degrees, 3 degrees of the reference tilt and 440 counts of the wheels, and
+the difference of the counts, which reaches about 190 counts without the
+heading loop, stays within about 20 counts:
+
+  $ quiet -DPLANT_RIGHT_STRENGTH=0.8 && long strength.csv
+  $ settled 0 3 5 600 strength.csv
   1200 rows; the wheels from 20 s on within a span of 600 counts, not growing
+  $ heading 40 strength.csv
+  the difference of the counts within 40 counts
 
 The profile of the closed loop over 6 s, built with TEMPORE_PROFILE in place
 of TEMPORE_TRACE, at the end of the simulation: each call takes the nominal

@@ -1,7 +1,8 @@
 (* A control step that stops the motors of a disarmed robot before it uses
    the reading of the unit, after balance_regex.tpe. *)
 
-let step_stopped ((tilt, speed, integral, position) : state) : state =
+let step_stopped
+    ((tilt, speed, integral, position, heading) : state) : state =
   let reading = perform ReadImu () in
   box {ReadEncoders; Setpoints} reading as fresh in
   let left, right = perform ReadEncoders () in
@@ -14,4 +15,5 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform Publish (tilt, raw, speed, 0.0);
-  (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
+  let now = (float_of_int left +. float_of_int right) /. 2.0 in
+  (tilt, speed, integral, now, heading)

@@ -179,7 +179,9 @@ endef
 # reads the serial port for CAPTURE seconds into
 # _arduino/recordings/$(1)-TIME.log, TIME the date and time of the capture,
 # and writes the recordings extracted from it by the awk program
-# EXAMPLE_RECORD_FILTER to _arduino/recordings/$(1)-TIME.csv.
+# EXAMPLE_RECORD_FILTER, run under the locale C, to
+# _arduino/recordings/$(1)-TIME.csv, or reports that no recording was read in
+# full.
 define arduino_record
 arduino-$(1)-record: tempore-cli arduino-deps
 	PLATFORMIO_BUILD_FLAGS="$$(strip $$(PLATFORMIO_BUILD_FLAGS) $(EXAMPLE_RECORD_FLAGS))" \
@@ -199,9 +201,11 @@ arduino-$(1)-capture: tempore-cli
 	  --device $(2)/$(3).device.json \
 	  --capture $$(CAPTURE) --port $$(call port,$(4)) \
 	  $(2)/$(3).tpe | tee "$$$$name.log"; \
-	awk -f $(EXAMPLE_RECORD_FILTER) "$$$$name.log" > "$$$$name.csv"; \
+	LC_ALL=C awk -f $(EXAMPLE_RECORD_FILTER) "$$$$name.log" > "$$$$name.csv"; \
 	if [ -s "$$$$name.csv" ]; then echo "Wrote $$$$name.csv"; \
-	else rm -f "$$$$name.csv"; echo "No complete recording was read."; exit 1; fi
+	else rm -f "$$$$name.csv"; \
+	  echo "No complete recording was read; the serial output is in $$$$name.log."; \
+	  exit 1; fi
 
 ARDUINO_RECORDS_$(4) += $(1)
 ARDUINO_TARGETS += arduino-$(1)-record arduino-$(1)-capture

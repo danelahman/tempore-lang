@@ -113,10 +113,11 @@ default Command _ = delay 1/100
 
 (* The control step. The state is the tilt, in degrees, filtered from the
    inertial measurement unit; the speed of the wheels, in encoder counts per
-   second, filtered; the integral of the error of the speed; and the
-   position of the wheels, in encoder counts. *)
+   second, filtered; the integral of the error of the speed; the
+   position of the wheels, in encoder counts; and the heading held, the
+   difference of the counts of the left and the right encoder. *)
 
-type state = float * float * float * float
+type state = float * float * float * float * float
 
 (* The period, in seconds, and the weight of the gyroscope in the
    complementary filter of the tilt. *)
@@ -158,15 +159,25 @@ let integral_limit = 1250.0
 let reference_limit = 20.0
 let cutoff = 70.0
 
-(* The dead band of the motors, in units of drive: the drive below which a
-   wheel on the ground does not turn. A drive is moved away from zero by it,
-   the inverse of a dead zone (G. Tao and P. V. Kokotovic, "Adaptive control
-   of plants with unknown dead-zones", IEEE Transactions on Automatic
-   Control 39(1), 1994). *)
-let dead_band = 70.0
+(* The gain and the bound of the heading loop, a proportional controller
+   that adds to the turn the drive per encoder count of the difference of
+   the counts of the left and the right encoder from the heading held,
+   tuned on the host model plant.cpp. The back electromotive force of the
+   motors damps the rotation, so that the loop has no derivative term. *)
+let heading_gain = 2.0
+let heading_limit = 200.0
 
-let compensated (d : float) =
-  if d > 0.0 then d +. dead_band else if d < 0.0 then d -. dead_band else d
+(* The dead bands of the left and the right motor, in units of drive: the
+   drive below which a wheel does not turn, estimated from measurements of
+   the device with its wheels off the ground. The drive of a motor is moved
+   away from zero by its dead band, the inverse of a dead zone (G. Tao and
+   P. V. Kokotovic, "Adaptive control of plants with unknown dead-zones",
+   IEEE Transactions on Automatic Control 39(1), 1994). *)
+let left_dead_band = 70.0
+let right_dead_band = 180.0
+
+let compensated (band : float) (d : float) =
+  if d > 0.0 then d +. band else if d < 0.0 then d -. band else d
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
@@ -177,9 +188,11 @@ let clamp (limit : float) (x : float) =
    reading for 2 ms, reads the encoders and the setpoints, and unboxes the
    reading after 0.45 to 1.05 ms; it ends within 1.2 to 2.8 ms, below its
    period. It publishes the attitude, the speed and the reference tilt before
-   it commands the motors. Beyond the cutoff, or disarmed, it stops the
-   motors and clears the integral. *)
-let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
+   it commands the motors. While a turn is commanded, the heading held
+   follows the difference of the counts. Beyond the cutoff, or disarmed, it
+   stops the motors, clears the integral and holds the present heading. *)
+let step ((tilt, speed, integral, position, heading) : state) : state
+    # [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   let left, right = perform ReadEncoders () in
@@ -192,6 +205,7 @@ let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
   in
   let now = (float_of_int left +. float_of_int right) /. 2.0 in
+  let difference = float_of_int left -. float_of_int right in
   let speed =
     (speed_weight *. speed)
     +. ((1.0 -. speed_weight) *. ((now -. position) /. period))
@@ -207,20 +221,24 @@ let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
     let drive =
       (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
+    let heading = if magnitude turn > 0.0 then difference else heading in
+    let turn =
+      turn +. clamp heading_limit (~-.(heading_gain *. (difference -. heading)))
+    in
     perform SetMotors
-      ( bala2_drive (compensated (drive +. turn)),
-        bala2_drive (compensated (drive -. turn)) );
-    (tilt, speed, integral, now)
+      ( bala2_drive (compensated left_dead_band (drive +. turn)),
+        bala2_drive (compensated right_dead_band (drive -. turn)) );
+    (tilt, speed, integral, now, heading)
   else (
     perform SetMotors (0i, 0i);
-    (tilt, speed, 0.0, now))
+    (tilt, speed, 0.0, now, difference))
 
 (* The initial state: the encoders reset, and the tilt from the
    accelerometer. *)
 let start () : state =
   perform ResetEncoders ();
   let accel, _ = perform ReadImu () in
-  (tilt_x_of_accel accel, 0.0, 0.0, 0.0)
+  (tilt_x_of_accel accel, 0.0, 0.0, 0.0, 0.0)
 
 (* Correctly rejected by the typechecker: the step averages two reads of the
    encoders 1.5 ms apart before it uses the reading of the unit, which is
@@ -233,7 +251,8 @@ let start () : state =
        Note: the resource inequality `[2.4, 3.55] <= [0, 2]` does not hold
 *)
 (*
-let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
+let step_stale ((tilt, speed, integral, position, heading) : state) : state
+    # [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   let left1, right1 = perform ReadEncoders () in
@@ -249,7 +268,7 @@ let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform SetMotors (0i, 0i);
-  (tilt, speed, integral, (left +. right) /. 2.0)
+  (tilt, speed, integral, (left +. right) /. 2.0, heading)
 *)
 
 (* Correctly rejected by the typechecker: the step shows the tilt on the
@@ -260,7 +279,8 @@ let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
        Note: the effect inequality `[0.85, 14.2] <= [0, 5)` does not hold
 *)
 (*
-let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
+let step_shown ((tilt, speed, integral, position, heading) : state) : state
+    # [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   unbox fresh as imu in
@@ -271,7 +291,7 @@ let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
   in
   perform ShowNumber tilt;
   perform SetMotors (0i, 0i);
-  (tilt, speed, integral, position)
+  (tilt, speed, integral, position, heading)
 *)
 
 (* The supervision. The bias of the gyroscope is the mean of 50 rates
@@ -380,4 +400,4 @@ let drive_step_redrawn (n : nat) : unit # [0, 200) =
 
 (* Two control steps from the reading of the default implementation of the
    unit, a robot at rest, and a tilt of 3 degrees. *)
-run step (step (3.0, 0.0, 0.0, 0.0))
+run step (step (3.0, 0.0, 0.0, 0.0, 0.0))

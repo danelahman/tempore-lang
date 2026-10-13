@@ -1792,9 +1792,9 @@ optional and of the Python standard library only,
     python3 -I scripts/bala2-recording.py _arduino/recordings/bala2-TIME.csv
 
 summarises each recording: the tilt, the reference tilt, the speed, the travel
-of the wheels, the time of a fall beyond the cutoff, and the correlation of
-the speed with the reference tilt, which is negative when the speed loop
-opposes the motion.
+of the wheels, the time of a fall beyond the cutoff, the difference of the
+counts of the wheels and its drift, the fraction of the time each wheel is at
+rest, and the correlation of the speed with the reference tilt.
 
 ## Editor support
 <!-- web-skip -->

@@ -1,7 +1,8 @@
 (* A control step that shows the tilt on the display, longer than the period,
    after balance.tpe. *)
 
-let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
+let step_shown ((tilt, speed, integral, position, heading) : state) : state
+    # [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   unbox fresh as imu in
@@ -12,4 +13,4 @@ let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
   in
   perform ShowNumber tilt;
   perform SetMotors (0i, 0i);
-  (tilt, speed, integral, position)
+  (tilt, speed, integral, position, heading)
