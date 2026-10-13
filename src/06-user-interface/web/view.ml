@@ -1411,7 +1411,12 @@ let view_compiler (model : Model.model) =
     in
     panel_block
       [
-        action [ "is-outlined" ] "Typecheck" Model.Check Model.CheckCode;
+        action [ "is-outlined" ]
+          (* a backend with a compiler compiles the program it accepts *)
+          (if Option.is_some (Model.backend model.edit_model).compiler then
+             "Typecheck & Compile"
+           else "Typecheck")
+          Model.Check Model.CheckCode;
         action [] "Run" Model.Run Model.RunCode;
         view_check_status model;
         (* every error shown under the editor, which may be far below when the
