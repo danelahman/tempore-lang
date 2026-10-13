@@ -83,15 +83,15 @@ let magnitude (x : float) = if x < 0.0 then ~-.x else x
    the encoders, in this order. The counts read are divided by the length
    only once it is unboxed, so that they are counts over the window; the
    motors are then stopped. *)
-let spin (drive : float) : float * float =
+let spin (drive : int) : float * float =
   perform ResetEncoders ();
   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
   perform SetMotors (drive, drive);
   delay 100;
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
-  perform SetMotors (0.0, 0.0);
-  (left /. seconds, right /. seconds)
+  perform SetMotors (0i, 0i);
+  (float_of_int left /. seconds, float_of_int right /. seconds)
 
 (* Correctly rejected by the typechecker: the drive is commanded after the
    wait, just before the encoders are read, so that the counts are read 0.05
@@ -109,15 +109,15 @@ let spin (drive : float) : float * float =
          {SetMotors; [100, 101]; ReadEncoders}]` does not hold
 *)
 (*
-let spin_unordered (drive : float) : float * float =
+let spin_unordered (drive : int) : float * float =
   perform ResetEncoders ();
   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
   delay 100;
   perform SetMotors (drive, drive);
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
-  perform SetMotors (0.0, 0.0);
-  (left /. seconds, right /. seconds)
+  perform SetMotors (0i, 0i);
+  (float_of_int left /. seconds, float_of_int right /. seconds)
 *)
 
 (* Correctly rejected by the typechecker: the drive is shown on the display
@@ -138,16 +138,17 @@ let spin_unordered (drive : float) : float * float =
          {SetMotors; [100, 101]; ReadEncoders}]` does not hold
 *)
 (*
-let spin_shown (drive : float) : float * float =
+let spin_shown (drive : int) : float * float =
+  let shown = float_of_int drive in
   perform ResetEncoders ();
   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
   perform SetMotors (drive, drive);
-  perform ShowNumber drive;
+  perform ShowNumber shown;
   delay 100;
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
-  perform SetMotors (0.0, 0.0);
-  (left /. seconds, right /. seconds)
+  perform SetMotors (0i, 0i);
+  (float_of_int left /. seconds, float_of_int right /. seconds)
 *)
 
 (* Whether a wheel turns at the speeds 'forward' and 'backward', measured at
@@ -166,9 +167,9 @@ let check () =
   perform ClearDisplay ();
   let tilt = perform Latest () in
   (if magnitude tilt <= 20.0 then (
-     let left, right = spin 300.0 in
+     let left, right = spin 300i in
      delay 300;
-     let left_back, right_back = spin (~-.300.0) in
+     let left_back, right_back = spin (-300i) in
      (match (turns left left_back, turns right right_back) with
      | true, true -> perform ShowText "Wheels turn"
      | false, true -> perform ShowText "Left wheel fault"
@@ -184,4 +185,4 @@ let check () =
    implementations, which read zero counts. *)
 run watch 3.0
 
-run spin 300.0
+run spin 300i

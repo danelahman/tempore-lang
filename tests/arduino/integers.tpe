@@ -1,0 +1,21 @@
+(* Arithmetic on integers of 32 bits: negation, division and modulo truncated
+   toward zero, comparisons, constant patterns and the conversions. *)
+
+let arith x y = (x +! y, x -! y, x *! y, x /! y, x mod! y, ~-!x)
+
+let classify n = match n with 0i -> 0 | -1i -> 1 | _ -> 2
+
+let compare_all x y = (x < y, x <= y, x > y, x >= y, x = y, x <> y)
+
+let convert x = (int_of_float x, float_of_int (int_of_float x))
+
+run arith 7i 2i
+run arith (-7i) 2i
+run arith 7i (-2i)
+run arith (-7i) (-2i)
+run (classify 0i, classify (-1i), classify 5i)
+run compare_all (-3i) 2i
+run compare_all (-3i) (-3i)
+run (int_of_nat 7, nat_of_int (-7i), nat_of_int 7i)
+run (convert 2.75, convert (~-. 2.75), convert (0.0 /. 0.0))
+run (2147483647i, -2147483648i)

@@ -368,6 +368,7 @@ let expected_rejections =
     ("tests/float_literals_reject_subtraction.tpe", [ 4 ]);
     ("tests/exhaustiveness_reject_bool.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_constructor.tpe", [ 5 ]);
+    ("tests/exhaustiveness_reject_int.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_let.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_nat.tpe", [ 3 ]);
     ("tests/exhaustiveness_reject_nil.tpe", [ 3 ]);

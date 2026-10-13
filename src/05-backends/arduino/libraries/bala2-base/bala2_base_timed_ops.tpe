@@ -5,11 +5,11 @@
    running time. The operations, their bounds, their default implementations
    and the watchdog of the motor setpoints are those of bala2_base.tpe. *)
 
-operation SetMotors : float * float ~> unit # {SetMotors} within [0.05, 0.5]
+operation SetMotors : int * int ~> unit # {SetMotors} within [0.05, 0.5]
 default SetMotors _ = delay 1/5
 
-operation ReadEncoders : unit ~> float * float # {ReadEncoders} within [0.1, 0.6]
-default ReadEncoders () = delay 1/4; (0.0, 0.0)
+operation ReadEncoders : unit ~> int * int # {ReadEncoders} within [0.1, 0.6]
+default ReadEncoders () = delay 1/4; (0i, 0i)
 
 operation ResetEncoders : unit ~> unit # {ResetEncoders} within [0.05, 0.5]
 default ResetEncoders () = delay 1/5

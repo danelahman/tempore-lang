@@ -11,7 +11,7 @@ type constructors = Ast.label -> (Ast.label * bool) list
 
 (* Patterns up to their variables and annotations. A natural number is zero or
    a successor: [Nat n] is [succⁿ zero] and [Succ (p, k)] is [succᵏ p], with
-   [k ≥ 1]. Booleans, strings and floats are [Literal]s. *)
+   [k ≥ 1]. Booleans, integers, strings and floats are [Literal]s. *)
 type pattern =
   | Any
   | Variant of Ast.label * pattern option
@@ -71,7 +71,8 @@ let signature ~constructors = function
   | Zero | Successor -> Some [ Zero; Successor ]
   | Constant (Const.Boolean _) ->
       Some [ Constant (Const.Boolean true); Constant (Const.Boolean false) ]
-  | Constant (Const.Nat _ | Const.String _ | Const.Float _) -> None
+  | Constant (Const.Nat _ | Const.Int _ | Const.String _ | Const.Float _) ->
+      None
 
 (* The successor of pattern [p]. *)
 let succ = function
@@ -118,6 +119,7 @@ let fresh_literal cs =
   let candidate i =
     match cs with
     | Const.Float _ :: _ -> Const.Float (float_of_int i)
+    | Const.Int _ :: _ -> Const.Int (Z.of_int i)
     | _ -> Const.String (String.make i 'a')
   in
   let rec first i =

@@ -33,6 +33,7 @@ type input = {
 
 let rec show_ty metas = function
   | F.Nat -> "nat"
+  | F.Int -> "int"
   | F.Float -> "float"
   | F.Bool -> "bool"
   | F.String -> "string"
@@ -57,7 +58,7 @@ let metas tys =
   let rec collect acc = function
     | F.Meta i -> if List.mem i acc then acc else i :: acc
     | F.Tuple tys -> List.fold_left collect acc tys
-    | F.Nat | F.Float | F.Bool | F.String | F.Data _ -> acc
+    | F.Nat | F.Int | F.Float | F.Bool | F.String | F.Data _ -> acc
   in
   List.rev (List.fold_left collect [] tys)
 

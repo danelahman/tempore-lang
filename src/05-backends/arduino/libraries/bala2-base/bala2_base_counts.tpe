@@ -4,11 +4,11 @@
    bounded. The operations and the watchdog of the motor setpoints are those
    of bala2_base.tpe; the default implementations read zeros. *)
 
-operation SetMotors : float * float ~> unit # (SetMotors, 1)
+operation SetMotors : int * int ~> unit # (SetMotors, 1)
 default SetMotors _ = ()
 
-operation ReadEncoders : unit ~> float * float # (ReadEncoders, 1)
-default ReadEncoders () = (0.0, 0.0)
+operation ReadEncoders : unit ~> int * int # (ReadEncoders, 1)
+default ReadEncoders () = (0i, 0i)
 
 operation ResetEncoders : unit ~> unit # (ResetEncoders, 1)
 default ResetEncoders () = ()

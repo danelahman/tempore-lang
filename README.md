@@ -1193,6 +1193,17 @@ as division by zero; `sqrt`, NaN for a negative float; `atan`; and
 `atan2 (y, x)`, the angle of the point `(x, y)` from -π to π, with the
 special cases of C.
 
+Integers, of type `int`, are unbounded and written with the suffix `i`: `3i`,
+`0x1fi`, and, as the negation of a literal, `-3i`; as in OCaml, `x -3i` is the
+subtraction `x - 3i`. Their operators are `+!`, `-!`, `*!`, `/!` and `mod!`,
+of the precedences of `+`, `-`, `*`, `/` and `mod`, and the negation `~-!`.
+Division and `mod!` truncate toward zero, as in C, the remainder having the
+sign of the dividend, and division or modulo by zero is a run-time error. The
+conversions are `int_of_nat`; `nat_of_int`, 0 for a negative integer;
+`float_of_int`, the nearest float; and `int_of_float`, truncated toward zero,
+0 for NaN, and a run-time error for infinity. A match on integers needs a
+case for every other integer, such as a wildcard.
+
 The timeline of a run lists, in grades, what reaches its top level: the delays,
 the calls of operations that no handler handles and that are performed by their
 default implementations, and the resources boxed and unboxed, by the name of the
@@ -1245,7 +1256,7 @@ The program is paired with a binding file in Python. It defines `setup(protocol)
 which loads the labware, pipettes, and modules, and returns a context object, and,
 for an operation `Op`, a function `Op(ctx, arg)` that performs the operation and
 returns its result. Arguments and results are Python values: a `nat` is an
-`int`, a `string` a `str`, a tuple a `tuple` and `()` the unit value. A binding
+`int`, an `int` a `tempore_Int`, a subclass of `int`, a `string` a `str`, a tuple a `tuple` and `()` the unit value. A binding
 function declares the nominal duration of its action by
 `tempore_elapse(seconds)`. An operation call that no handler handles calls the
 binding function of the operation, or else its default implementation, and
@@ -1354,7 +1365,10 @@ erased; boxes and unboxing generate no code.
 
 The fragment consists of top-level functions, fully applied, `let`, `match`
 and `if`, natural numbers (32-bit, `+`, `*` and `nat_of_float` modulo 2^32),
-single-precision floats, booleans, tuples, datatypes without type parameters
+integers (32-bit two's complement, the arithmetic, `int_of_nat` and
+`int_of_float` modulo 2^32 into [-2^31, 2^31), so that `-2147483648i /! -1i`
+is `-2147483648i`; a literal outside that range is refused), single-precision
+floats, booleans, tuples, datatypes without type parameters
 that are not recursive, `delay`, operation calls and self calls in tail
 position, which become loops. Local functions, functions as values, partial
 application, handlers, lists, strings other than constant arguments of

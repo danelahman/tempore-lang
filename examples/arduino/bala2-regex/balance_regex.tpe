@@ -26,11 +26,11 @@
    under these grades only where they are bounded above, which those of the
    supervision, with its loops, are not. The operations ReadImu, SetMotors,
    ReadEncoders, ResetEncoders, ShowText, ShowNumber and ClearDisplay, and
-   the functions tilt_x_of_accel and complementary, come from the packages
-   m5-imu, m5-display and bala2-base, whose declarations under these grades
-   precede this file. The operations declared below are bound by
-   examples/arduino/bala2/bindings.cpp; examples/arduino/bala2/plant.cpp is
-   the host model of the robot.
+   the functions tilt_x_of_accel, complementary and bala2_drive, come from
+   the packages m5-imu, m5-display and bala2-base, whose declarations under
+   these grades precede this file. The operations declared below are bound
+   by examples/arduino/bala2/bindings.cpp; examples/arduino/bala2/plant.cpp
+   is the host model of the robot.
 
    The PlatformIO project is written, and simulated on the host for 8
    seconds, by
@@ -135,7 +135,7 @@ let step ((tilt, speed, integral, position) : state) : state
     complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
   in
   perform Publish (tilt, raw);
-  let now = (left +. right) /. 2.0 in
+  let now = (float_of_int left +. float_of_int right) /. 2.0 in
   let speed = (0.7 *. speed) +. (0.3 *. ((now -. position) /. period)) in
   if armed && magnitude tilt <= cutoff then
     let error = speed -. target in
@@ -145,10 +145,11 @@ let step ((tilt, speed, integral, position) : state) : state
         (~-.((speed_gain *. error) +. (integral_gain *. integral)))
     in
     let drive = (tilt_gain *. (tilt -. reference)) +. (rate_gain *. rate) in
-    perform SetMotors (drive +. turn, drive -. turn);
+    perform SetMotors
+      (bala2_drive (drive +. turn), bala2_drive (drive -. turn));
     (tilt, speed, integral, now)
   else (
-    perform SetMotors (0.0, 0.0);
+    perform SetMotors (0i, 0i);
     (tilt, speed, 0.0, now))
 
 (* The initial state: the encoders reset, and the tilt from the
@@ -185,8 +186,8 @@ let step_unordered ((tilt, speed, integral, position) : state) : state
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform Publish (tilt, raw);
-  perform SetMotors (0.0, 0.0);
-  (tilt, speed, integral, (left +. right) /. 2.0)
+  perform SetMotors (0i, 0i);
+  (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
 *)
 
 (* Correctly rejected by the typechecker: the step averages two reads of the
@@ -211,8 +212,8 @@ let step_stale ((tilt, speed, integral, position) : state) : state =
   let left1, right1 = perform ReadEncoders () in
   delay 1.5;
   let left2, right2 = perform ReadEncoders () in
-  let left = (left1 +. left2) /. 2.0 in
-  let right = (right1 +. right2) /. 2.0 in
+  let left = (float_of_int left1 +. float_of_int left2) /. 2.0 in
+  let right = (float_of_int right1 +. float_of_int right2) /. 2.0 in
   let armed, bias, target, turn = perform Setpoints () in
   unbox fresh as imu in
   let accel, gyro = imu in
@@ -221,7 +222,7 @@ let step_stale ((tilt, speed, integral, position) : state) : state =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform Publish (tilt, raw);
-  perform SetMotors (0.0, 0.0);
+  perform SetMotors (0i, 0i);
   (tilt, speed, integral, (left +. right) /. 2.0)
 *)
 
@@ -247,7 +248,7 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
   box {ReadEncoders; Setpoints} reading as fresh in
   let left, right = perform ReadEncoders () in
   let armed, bias, target, turn = perform Setpoints () in
-  (if armed then () else perform SetMotors (0.0, 0.0));
+  (if armed then () else perform SetMotors (0i, 0i));
   unbox fresh as imu in
   let accel, gyro = imu in
   let raw, _, _ = gyro in
@@ -255,7 +256,7 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform Publish (tilt, raw);
-  (tilt, speed, integral, (left +. right) /. 2.0)
+  (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)
 *)
 
 (* The supervision. The bias of the gyroscope is the mean of 50 rates

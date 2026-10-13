@@ -5,10 +5,12 @@
    A device is given by its 7-bit address and a register by its 8-bit
    address. I2cWriteN (device, register, value) writes the value, modulo
    2^N, as an unsigned big-endian integer of N bits to the registers from the
-   given one on; I2cReadN (device, register) reads one. A larger device or
-   register address, or a transaction the device does not acknowledge, is a
-   run-time error. The default implementations take the time of the
-   transaction and read zeros.
+   given one on; I2cReadN (device, register) reads one, and
+   I2cReadIntN (device, register) reads a signed big-endian integer of N
+   bits, in two's complement. A larger device or register address, or a
+   transaction the device does not acknowledge, is a run-time error. The
+   default implementations take the time of the transaction and read
+   zeros.
 
    PROVISIONAL: the bounds of the running times are estimates for a bus of
    100 to 400 kHz, to be measured on the device. *)
@@ -30,3 +32,12 @@ default I2cRead16 _ = delay 1/10; 0
 
 operation I2cRead32 : nat * nat ~> nat # [0, 2]
 default I2cRead32 _ = delay 1/10; 0
+
+operation I2cReadInt8 : nat * nat ~> int # [0, 2]
+default I2cReadInt8 _ = delay 1/10; 0i
+
+operation I2cReadInt16 : nat * nat ~> int # [0, 2]
+default I2cReadInt16 _ = delay 1/10; 0i
+
+operation I2cReadInt32 : nat * nat ~> int # [0, 2]
+default I2cReadInt32 _ = delay 1/10; 0i

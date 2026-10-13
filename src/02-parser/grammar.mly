@@ -166,6 +166,7 @@
 %token <string> LNAME
 %token UNDERSCORE AS
 %token <Z.t> INT
+%token <Z.t> INTEGER
 %token <string> STRING
 %token <bool> BOOL
 %token <string> FLOAT
@@ -315,13 +316,15 @@ plain_binop_term:
 
 uminus_term: mark_position(plain_uminus_term) { $1 }
 plain_uminus_term:
-  (* As in OCaml, the negation of a float literal is a float literal. *)
+  (* As in OCaml, the negation of a float or integer literal is a literal. *)
   | MINUS t = uminus_term
     { match t.it with
       | Const (Language.Const.Float f) -> Const (Language.Const.of_float (-. f))
+      | Const (Language.Const.Int n) -> Const (Language.Const.of_int (Z.neg n))
       | _ ->
           Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
-            "Natural numbers have no negation; floats are negated with '-.'" }
+            "Natural numbers have no negation; floats are negated with '-.' \
+             and integers with '~-!'" }
   | MINUSDOT t = uminus_term
     { let op_loc = Location.of_lexing $startpos($1) $endpos($1) in
       Apply ({it= Var "(~-.)"; at= op_loc}, t) }
@@ -384,6 +387,8 @@ plain_simple_term:
 const:
   | n = INT
     { Language.Const.of_nat n }
+  | n = INTEGER
+    { Language.Const.of_int n }
   | str = STRING
     { Language.Const.of_string str }
   | b = BOOL
@@ -490,6 +495,8 @@ plain_simple_pattern:
     { PConst cst }
   | MINUS f = FLOAT
     { PConst (Language.Const.of_float (-. float_of_string f)) }
+  | MINUS n = INTEGER
+    { PConst (Language.Const.of_int (Z.neg n)) }
   | LBRACK ts = separated_list(SEMI, pattern) RBRACK
     {
       let nil_at = Location.of_lexing $endpos $endpos in

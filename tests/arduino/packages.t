@@ -243,11 +243,26 @@ an address without a device is a run-time error, which enters the safe state:
   [0.677 ms] Operation I2cRead16 took 113 us
   [0.677 ms] Report 4863
   [0.677 ms] Operation Report took 0 us
-  [0.677 ms] I2C 0x51 write 00: not acknowledged
-  [0.700 ms] Run-time error: I2C: read not acknowledged
-  [0.700 ms] Safe state
-  [0.700 ms] Memory check stopped
-  [0.700 ms] Task check stopped
+  [0.677 ms] I2C 0x50 write 11
+  [0.677 ms] I2C 0x50 read ff
+  [0.767 ms] Operation I2cReadInt8 took 90 us
+  [0.767 ms] Report -1
+  [0.767 ms] Operation ReportInt took 0 us
+  [0.767 ms] I2C 0x50 write 11
+  [0.767 ms] I2C 0x50 read ff 56
+  [0.880 ms] Operation I2cReadInt16 took 113 us
+  [0.880 ms] Report -170
+  [0.880 ms] Operation ReportInt took 0 us
+  [0.880 ms] I2C 0x50 write 10
+  [0.880 ms] I2C 0x50 read 12 ff 56 78
+  [1.038 ms] Operation I2cReadInt32 took 158 us
+  [1.038 ms] Report 318723704
+  [1.038 ms] Operation ReportInt took 0 us
+  [1.038 ms] I2C 0x51 write 00: not acknowledged
+  [1.061 ms] Run-time error: I2C: read not acknowledged
+  [1.061 ms] Safe state
+  [1.061 ms] Memory check stopped
+  [1.061 ms] Task check stopped
   [10.000 ms] End of the simulation
   $ cd _arduino/projects/memory
   $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation

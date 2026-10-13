@@ -39,7 +39,7 @@ The rejected variants, each loaded after the application: a drive commanded
 after the wait, and the drive shown on the display within the window:
 
   $ for v in unordered shown; do packages --typecheck-only $app/wheels.tpe wheels/$v.tpe; echo "[$?]"; done
-  File "wheels/unordered.tpe", lines 9-11, characters 2-37:
+  File "wheels/unordered.tpe", lines 9-11, characters 2-63:
   9 |   unbox window as seconds in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `window` is unboxed with grade `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
@@ -61,29 +61,29 @@ after the wait, and the drive shown on the display within the window:
     grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
     Note: the resource inequality `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
   [1]
-  File "wheels/shown.tpe", lines 10-12, characters 2-37:
-  10 |   unbox window as seconds in
+  File "wheels/shown.tpe", lines 11-13, characters 2-63:
+  11 |   unbox window as seconds in
          ^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `window` is unboxed with grade `[{SetMotors; ShowNumber; 100; ReadEncoders}, {SetMotors; ShowNumber; 100; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
-    File "wheels/shown.tpe", line 5, characters 51-57:
-    5 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+    File "wheels/shown.tpe", line 6, characters 51-57:
+    6 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
                                                            ^^^^^^
     `window` is bound here
-    File "wheels/shown.tpe", line 6, characters 2-34:
-    6 |   perform SetMotors (drive, drive);
+    File "wheels/shown.tpe", line 7, characters 2-34:
+    7 |   perform SetMotors (drive, drive);
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{SetMotors}, {SetMotors}]` accumulates here (operation `SetMotors`)
-    File "wheels/shown.tpe", line 7, characters 2-26:
-    7 |   perform ShowNumber drive;
+    File "wheels/shown.tpe", line 8, characters 2-26:
+    8 |   perform ShowNumber shown;
           ^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ShowNumber}, {ShowNumber}]` accumulates here (operation `ShowNumber`)
-    File "wheels/shown.tpe", line 8, characters 2-11:
-    8 |   delay 100;
+    File "wheels/shown.tpe", line 9, characters 2-11:
+    9 |   delay 100;
           ^^^^^^^^^
     grade `[{100}, {100}]` accumulates here (delay)
-    File "wheels/shown.tpe", line 9, characters 20-43:
-    9 |   let left, right = perform ReadEncoders () in
-                            ^^^^^^^^^^^^^^^^^^^^^^^
+    File "wheels/shown.tpe", line 10, characters 20-43:
+    10 |   let left, right = perform ReadEncoders () in
+                             ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
     Note: the resource inequality `[{SetMotors; ShowNumber; 100; ReadEncoders}, {SetMotors; ShowNumber; 100; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
   [1]

@@ -39,6 +39,7 @@
 
 type ty =
   | Nat
+  | Int  (** an integer of 32 bits *)
   | Float
   | Bool
   | String

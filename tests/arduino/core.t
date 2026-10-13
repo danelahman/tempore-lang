@@ -210,3 +210,71 @@ interpreter keeps it whole.
   === Run 1 ===
   return (0, 1410065408, 4294967040)
   
+
+  $ parity integers.tpe
+  === Run 1 ===
+  return (9i, 5i, 14i, 3i, 1i, -7i)
+  
+  === Run 2 ===
+  return (-5i, -9i, -14i, -3i, -1i, 7i)
+  
+  === Run 3 ===
+  return (5i, 9i, -14i, -3i, 1i, -7i)
+  
+  === Run 4 ===
+  return (-9i, -5i, 14i, 3i, -1i, 7i)
+  
+  === Run 5 ===
+  return (0, 1, 2)
+  
+  === Run 6 ===
+  return (true, true, false, false, false, true)
+  
+  === Run 7 ===
+  return (false, true, false, true, true, false)
+  
+  === Run 8 ===
+  return (7i, 0, 7)
+  
+  === Run 9 ===
+  return ((2i, 2.), (-2i, -2.), (0i, 0.))
+  
+  === Run 10 ===
+  return (2147483647i, -2147483648i)
+  
+
+  $ parity int_division_by_zero.tpe
+  === Run 1 ===
+  return -3i
+  
+  Run-time error: Division by zero
+
+  $ parity int_modulo_by_zero.tpe
+  === Run 1 ===
+  return -1i
+  
+  Run-time error: Modulo by zero
+
+  $ parity int_of_float_infinity.tpe
+  === Run 1 ===
+  return -1i
+  
+  Run-time error: Conversion of infinity to an integer
+
+Integers are of 32 bits in C++, in two's complement: their arithmetic and the
+conversions of natural numbers and floats to integers are reduced modulo 2^32
+into [-2^31, 2^31), where the interpreter keeps them whole.
+
+  $ compile int_wrap.tpe && ./int_wrap.host
+  === Run 1 ===
+  return (-2147483648i, -2147483648i, 2147483647i, -2147483647i, -2147483647i, 0i)
+  
+  === Run 2 ===
+  return (-2147483646i, -2147483646i, 0i, -2147483648i, -2147483648i, 0i)
+  
+  === Run 3 ===
+  return (-1i, -2147483648i)
+  
+  === Run 4 ===
+  return (-2147483648i, 2147483392i, 1410065408i)
+  

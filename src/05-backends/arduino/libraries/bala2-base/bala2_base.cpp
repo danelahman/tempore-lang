@@ -14,8 +14,6 @@
 #include <Wire.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <math.h>
-
 #include <atomic>
 
 #include "tempore_bindings.h"
@@ -75,13 +73,11 @@ static void bala2_stop() {
   if (!bala2_set(0, 0)) tempore_log("BALA2 base: the motors did not stop");
 }
 
-// A drive, rounded to the nearest integer and clamped to -1023 to 1023; NaN
-// is 0.
-static inline int16_t bala2_drive(float x) {
-  if (x != x) return 0;
-  if (x <= -1023.0f) return -1023;
-  if (x >= 1023.0f) return 1023;
-  return static_cast<int16_t>(lroundf(x));
+// A drive, from -1023 to 1023; a run-time error outside that range.
+static inline int16_t bala2_drive(int32_t d) {
+  if (d < -1023 || d > 1023)
+    tempore_fault("BALA2 base: motor drive outside -1023 to 1023");
+  return static_cast<int16_t>(d);
 }
 
 static void bala2_watchdog(void *) {
@@ -128,11 +124,11 @@ tempore_result_ReadEncoders binding_ReadEncoders(
     uint32_t u = 0;
     for (int i = 0; acknowledged && i < 4; ++i)
       u = (u << 8) | static_cast<uint8_t>(Wire.read());
-    count = static_cast<int32_t>(u);
+    count = tempore_int_of_bits(u);
   }
   tempore_i2c_unlock();
   if (!acknowledged) tempore_fault("BALA2 base: encoder read not acknowledged");
-  return {static_cast<float>(counts[0]), static_cast<float>(counts[1])};
+  return {counts[0], counts[1]};
 }
 #endif
 

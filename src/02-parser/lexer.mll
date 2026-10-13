@@ -98,8 +98,11 @@ rule token = parse
   | [' ' '\r' '\t']     { token lexbuf }
   | "(*"                { comment token 0 lexbuf }
   | int | xxxint        { INT (Z.of_string (Lexing.lexeme lexbuf)) }
+  | (int | xxxint) 'i'  { let s = Lexing.lexeme lexbuf in
+                          INTEGER (Z.of_string (String.sub s 0 (String.length s - 1))) }
   | float               { FLOAT (Lexing.lexeme lexbuf) }
   | '"'                 { STRING (string (Buffer.create 16) lexbuf) }
+  | "mod!"              { INFIXOP3 "mod!" }
   | lname               { let s = Lexing.lexeme lexbuf in
                             match StringMap.find_opt s reserved with
                               | Some t -> t

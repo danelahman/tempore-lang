@@ -1,12 +1,20 @@
 (** Constants and their types. *)
 
-type t = Nat of Z.t | String of string | Boolean of bool | Float of float
-type ty = NatTy | StringTy | BooleanTy | FloatTy
+(** Natural numbers and integers are unbounded. *)
+type t =
+  | Nat of Z.t
+  | Int of Z.t
+  | String of string
+  | Boolean of bool
+  | Float of float
+
+type ty = NatTy | IntTy | StringTy | BooleanTy | FloatTy
 
 val is_eternal_ty : ty -> bool
 (** Whether values of the type are eternal. *)
 
 val of_nat : Z.t -> t
+val of_int : Z.t -> t
 val of_string : string -> t
 val of_boolean : bool -> t
 val of_float : float -> t

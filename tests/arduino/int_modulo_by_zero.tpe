@@ -1,0 +1,6 @@
+(* A run-time error: modulo of integers by zero. *)
+
+let remainder x y = x mod! y
+
+run remainder (-7i) 2i
+run remainder 1i 0i

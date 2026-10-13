@@ -1484,6 +1484,14 @@
   Typing error: This match is not exhaustive: `Blue _` is not matched
     Note: a value that no case matches would stop the run
   ======================================================================
+  exhaustiveness_reject_int.tpe
+  ======================================================================
+  File "exhaustiveness_reject_int.tpe", line 3, characters 18-56:
+  3 | let f (n : int) = match n with 0i -> true | -1i -> false
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This match is not exhaustive: `1i` is not matched
+    Note: a value that no case matches would stop the run
+  ======================================================================
   exhaustiveness_reject_let.tpe
   ======================================================================
   File "exhaustiveness_reject_let.tpe", line 3, characters 8-16:
@@ -1700,6 +1708,73 @@
                         ^^^^^^^^^^^^^^
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
     Note: the resource inequality `(Low, (Board, Low)) <= (Low, (Audit, Low))` does not hold
+  ======================================================================
+  int_division_by_zero.tpe
+  ======================================================================
+  Run-time error: Division by zero
+  ======================================================================
+  int_modulo_by_zero.tpe
+  ======================================================================
+  Run-time error: Modulo by zero
+  ======================================================================
+  int_of_float_infinity.tpe
+  ======================================================================
+  === Run 1 ===
+  return -1i
+  State: []
+  
+  Run-time error: Conversion of infinity to an integer
+  ======================================================================
+  integers.tpe
+  ======================================================================
+  === Run 1 ===
+  return (3i, -3i, -3i, 0i, 0i, 31i, 1000i)
+  State: []
+  
+  === Run 2 ===
+  return (4i, -3i, -24i, 5i, 0i)
+  State: []
+  
+  === Run 3 ===
+  return (3i, -3i, -3i, 3i)
+  State: []
+  
+  === Run 4 ===
+  return (1i, -1i, 1i, -1i)
+  State: []
+  
+  === Run 5 ===
+  return (7i, 3i, 6i)
+  State: []
+  
+  === Run 6 ===
+  return (true, true, false, -1i, 0i, -1i)
+  State: []
+  
+  === Run 7 ===
+  return (Some -3i, -1i::0i::1i::[], "-12i")
+  State: []
+  
+  === Run 8 ===
+  return (0i, 5i, 5, 0, 0)
+  State: []
+  
+  === Run 9 ===
+  return (-3., 0., 1e+23)
+  State: []
+  
+  === Run 10 ===
+  return (2i, -2i, 0i)
+  State: []
+  
+  === Run 11 ===
+  return (100000000000000000000i, -100000000000000000000i, 0i)
+  State: []
+  
+  === Run 12 ===
+  return (18446744073709551616i, 2147483648i, 0i)
+  State: []
+  
   ======================================================================
   invalid_match_type.tpe
   ======================================================================
@@ -2627,7 +2702,7 @@
   File "nat_reject_negative.tpe", line 3, characters 4-18:
   3 | run -1_000_000_000
           ^^^^^^^^^^^^^^
-  Syntax error: Natural numbers have no negation; floats are negated with '-.'
+  Syntax error: Natural numbers have no negation; floats are negated with '-.' and integers with '~-!'
   ======================================================================
   nat_reject_successor_pattern.tpe
   ======================================================================

@@ -7,8 +7,8 @@ let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
   let left1, right1 = perform ReadEncoders () in
   delay 1.5;
   let left2, right2 = perform ReadEncoders () in
-  let left = (left1 +. left2) /. 2.0 in
-  let right = (right1 +. right2) /. 2.0 in
+  let left = (float_of_int left1 +. float_of_int left2) /. 2.0 in
+  let right = (float_of_int right1 +. float_of_int right2) /. 2.0 in
   let armed, bias, target, turn = perform Setpoints () in
   unbox fresh as imu in
   let accel, gyro = imu in
@@ -16,5 +16,5 @@ let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
   let tilt =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
-  perform SetMotors (0.0, 0.0);
+  perform SetMotors (0i, 0i);
   (tilt, speed, integral, (left +. right) /. 2.0)

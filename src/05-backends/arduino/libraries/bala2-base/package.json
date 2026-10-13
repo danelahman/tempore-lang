@@ -1,5 +1,6 @@
 {
   "description": "The motors and wheel encoders of the base of the M5Stack BALA2, at I2C address 0x3A on the bus Wire, with a watchdog of the motor setpoints",
+  "definitions": "bala2_base_drive.tpe",
   "declarations": {
     "time-interval-rational": "bala2_base.tpe",
     "regex-timed-lower-bound-rational-symbolic": "bala2_base_timed_ops.tpe",

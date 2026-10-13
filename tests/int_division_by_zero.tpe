@@ -1,0 +1,3 @@
+(* A run-time error: division of integers by zero. *)
+
+run -7i /! 0i

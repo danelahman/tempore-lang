@@ -642,6 +642,27 @@ run (sqrt 2.25, sqrt (~-. 1.0), atan2 (1.0, ~-. 1.0))
   if returned <> expected then
     fail "conversions: %s" (String.concat "; " returned)
 
+(* Integers beyond 32 bits, division and modulo truncated toward zero, and
+   the conversions of integers. *)
+let () =
+  let returned =
+    List.filter_map
+      (function Backend.Returned { value; _ } -> Some value | _ -> None)
+      (observations "time-interval"
+         {|run (4294967296i *! -4294967296i, -7i /! 2i, -7i mod! 2i, ~-!(-3i))
+run (int_of_nat 4294967296, nat_of_int (-4294967296i), nat_of_int 5i)
+run (int_of_float (~-. 1e20), int_of_float (~-. 2.75), float_of_int (-3i))
+|})
+  in
+  let expected =
+    [
+      "(-18446744073709551616i, -3i, -1i, 3i)";
+      "(4294967296i, 0, 5)";
+      "(-100000000000000000000i, -2i, -3.)";
+    ]
+  in
+  if returned <> expected then fail "integers: %s" (String.concat "; " returned)
+
 (* The Arduino backend *)
 
 let arduino_compiler =

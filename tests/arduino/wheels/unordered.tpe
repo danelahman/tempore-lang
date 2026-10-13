@@ -1,11 +1,11 @@
 (* The measurement of wheels.tpe commanding the drive after the wait. *)
 
-let spin_unordered (drive : float) : float * float =
+let spin_unordered (drive : int) : float * float =
   perform ResetEncoders ();
   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
   delay 100;
   perform SetMotors (drive, drive);
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
-  perform SetMotors (0.0, 0.0);
-  (left /. seconds, right /. seconds)
+  perform SetMotors (0i, 0i);
+  (float_of_int left /. seconds, float_of_int right /. seconds)

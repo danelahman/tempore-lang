@@ -594,7 +594,7 @@ def tempore_compare(a, b):
         if x is y:
             continue
         cls = x.__class__
-        if cls is bool or cls is int or cls is str:
+        if cls is bool or cls is int or cls is tempore_Int or cls is str:
             if x != y:
                 return -1 if x < y else 1
         elif cls is float:
@@ -748,6 +748,77 @@ def tempore_prim_nat_of_float(v):
     if v == tempore_math.inf:
         raise tempore_RuntimeError("Conversion of infinity to a natural number")
     return tempore_Ret(int(v))
+
+
+# Arithmetic on integers, unbounded, as values of the subclass tempore_Int of
+# int, which the printer marks with the suffix i. Division and modulo truncate
+# toward zero, as in C: the remainder has the sign of the dividend.
+
+
+class tempore_Int(int):
+    __slots__ = ()
+
+
+def tempore_prim_int_add(v):
+    return tempore_Ret(tempore_Int(v[0] + v[1]))
+
+
+def tempore_prim_int_mul(v):
+    return tempore_Ret(tempore_Int(v[0] * v[1]))
+
+
+def tempore_prim_int_sub(v):
+    return tempore_Ret(tempore_Int(v[0] - v[1]))
+
+
+def _tempore_int_quotient(a, b):
+    q = abs(a) // abs(b)
+    return -q if (a < 0) != (b < 0) else q
+
+
+def tempore_prim_int_div(v):
+    if v[1] == 0:
+        raise tempore_RuntimeError("Division by zero")
+    return tempore_Ret(tempore_Int(_tempore_int_quotient(v[0], v[1])))
+
+
+def tempore_prim_int_mod(v):
+    if v[1] == 0:
+        raise tempore_RuntimeError("Modulo by zero")
+    return tempore_Ret(tempore_Int(v[0] - v[1] * _tempore_int_quotient(v[0], v[1])))
+
+
+def tempore_prim_int_neg(v):
+    return tempore_Ret(tempore_Int(-v))
+
+
+# Conversions of integers: a natural number to the same integer; an integer to
+# the same natural number, zero for a negative integer; an integer to the
+# nearest float, infinity beyond the range of floats; a float to the integer
+# truncated toward zero, zero for NaN, and a run-time error for infinity.
+
+
+def tempore_prim_int_of_nat(v):
+    return tempore_Ret(tempore_Int(v))
+
+
+def tempore_prim_nat_of_int(v):
+    return tempore_Ret(max(0, int(v)))
+
+
+def tempore_prim_float_of_int(v):
+    try:
+        return tempore_Ret(float(v))
+    except OverflowError:
+        return tempore_Ret(tempore_math.inf if v > 0 else -tempore_math.inf)
+
+
+def tempore_prim_int_of_float(v):
+    if v != v:
+        return tempore_Ret(tempore_Int(0))
+    if v == tempore_math.inf or v == -tempore_math.inf:
+        raise tempore_RuntimeError("Conversion of infinity to an integer")
+    return tempore_Ret(tempore_Int(int(v)))
 
 
 def tempore_prim_to_string(v):
@@ -992,6 +1063,8 @@ def _tempore_print_value(fmt, value, max_level):
                 fmt.text("true" if v else "false")
             elif cls is int:
                 fmt.text(str(v))
+            elif cls is tempore_Int:
+                fmt.text("%di" % v)
             elif cls is float:
                 fmt.text(tempore_float_to_string(v))
             elif cls is str:

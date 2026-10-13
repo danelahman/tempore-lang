@@ -8,6 +8,7 @@ module LabelMap = Map.Make (Ast.Label)
 
 type ty =
   | Nat
+  | Int
   | Float
   | Bool
   | String
@@ -17,12 +18,13 @@ type ty =
 
 let rank = function
   | Nat -> 0
-  | Float -> 1
-  | Bool -> 2
-  | String -> 3
-  | Tuple _ -> 4
-  | Data _ -> 5
-  | Meta _ -> 6
+  | Int -> 1
+  | Float -> 2
+  | Bool -> 3
+  | String -> 4
+  | Tuple _ -> 5
+  | Data _ -> 6
+  | Meta _ -> 7
 
 let rec compare_ty t1 t2 =
   match (t1, t2) with
@@ -34,7 +36,7 @@ let rec compare_ty t1 t2 =
 let rec substitute f = function
   | Meta i as ty -> Option.value (f i) ~default:ty
   | Tuple tys -> Tuple (List.map (substitute f) tys)
-  | (Nat | Float | Bool | String | Data _) as ty -> ty
+  | (Nat | Int | Float | Bool | String | Data _) as ty -> ty
 
 type global = { variable : Ast.variable; instance : ty list }
 
@@ -109,6 +111,10 @@ let unsupported at fmt =
 (* The largest natural number of 32 bits. *)
 let max_nat = Z.of_string "4294967295"
 let fits_nat n = Z.leq Z.zero n && Z.leq n max_nat
+
+(* Whether an integer is of 32 bits in two's complement. *)
+let fits_int n =
+  Z.leq (Z.of_string "-2147483648") n && Z.leq n (Z.of_string "2147483647")
 
 (* Maps of the types of terms. *)
 
@@ -236,13 +242,13 @@ let rec substituted st ty =
 let rec has_string = function
   | String -> true
   | Tuple tys -> List.exists has_string tys
-  | Nat | Float | Bool | Data _ | Meta _ -> false
+  | Nat | Int | Float | Bool | Data _ | Meta _ -> false
 
 let rec occurs st i ty =
   match resolve st ty with
   | Meta j -> i = j
   | Tuple tys -> List.exists (occurs st i) tys
-  | Nat | Float | Bool | String | Data _ -> false
+  | Nat | Int | Float | Bool | String | Data _ -> false
 
 (* Unification, by a substitution of the type variables. *)
 let rec unify st ty1 ty2 =
@@ -251,7 +257,7 @@ let rec unify st ty1 ty2 =
   | Meta i, ty | ty, Meta i ->
       if occurs st i ty then None
       else Some { st with substitution = IntMap.add i ty st.substitution }
-  | Nat, Nat | Float, Float | Bool, Bool | String, String -> Some st
+  | Nat, Nat | Int, Int | Float, Float | Bool, Bool | String, String -> Some st
   | Data n1, Data n2 when Ast.TyName.equal n1 n2 -> Some st
   | Tuple tys1, Tuple tys2 when List.compare_lengths tys1 tys2 = 0 ->
       List.fold_left2
@@ -278,6 +284,7 @@ let ty_name_string = Ast.TyName.string_of
 let rec convert env ?(visiting = Ast.TyNameSet.empty) st (ty : _ Ast.ty) =
   match ty with
   | Ast.TyConst Const.NatTy -> (st, Nat)
+  | Ast.TyConst Const.IntTy -> (st, Int)
   | Ast.TyConst Const.FloatTy -> (st, Float)
   | Ast.TyConst Const.BooleanTy -> (st, Bool)
   | Ast.TyConst Const.StringTy -> (st, String)
@@ -305,6 +312,7 @@ let rec convert env ?(visiting = Ast.TyNameSet.empty) st (ty : _ Ast.ty) =
           (Ast.unit_ty_name, Tuple []);
           (Ast.string_ty_name, String);
           (Ast.float_ty_name, Float);
+          (Ast.int_ty_name, Int);
         ]
       in
       match List.find_opt (fun (n, _) -> Ast.TyName.equal n name) builtin with
@@ -383,6 +391,11 @@ let constant_ty at ~strings = function
         unsupported at "the natural number literal `%s`, which exceeds 32 bits"
           (Z.to_string n);
       Nat
+  | Const.Int n ->
+      if not (fits_int n) then
+        unsupported at "the integer literal `%si`, which exceeds 32 bits"
+          (Z.to_string n);
+      Int
   | Const.Float _ -> Float
   | Const.Boolean _ -> Bool
   | Const.String _ ->
@@ -411,6 +424,14 @@ let primitive_signature at st = function
       (st, Float, Float)
   | Primitives.FloatOfNat -> (st, Nat, Float)
   | Primitives.NatOfFloat -> (st, Float, Nat)
+  | Primitives.IntAdd | Primitives.IntMul | Primitives.IntSub
+  | Primitives.IntDiv | Primitives.IntMod ->
+      (st, Tuple [ Int; Int ], Int)
+  | Primitives.IntNeg -> (st, Int, Int)
+  | Primitives.IntOfNat -> (st, Nat, Int)
+  | Primitives.NatOfInt -> (st, Int, Nat)
+  | Primitives.FloatOfInt -> (st, Int, Float)
+  | Primitives.IntOfFloat -> (st, Float, Int)
   | Primitives.ToString -> unsupported at "`to_string`"
 
 (* The types of the parameters and the result of a definition. *)
@@ -443,7 +464,7 @@ let rec metas acc ty =
   match ty with
   | Meta i -> if List.mem i acc then acc else i :: acc
   | Tuple tys -> List.fold_left metas acc tys
-  | Nat | Float | Bool | String | Data _ -> acc
+  | Nat | Int | Float | Bool | String | Data _ -> acc
 
 let rec strip_expression (e : _ Ast.expression) =
   match e.it with Ast.Annotated (e, _) -> strip_expression e | _ -> e

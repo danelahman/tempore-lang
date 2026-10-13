@@ -45,7 +45,7 @@ and with an expired calibration, a drive iteration that may exceed the
 200 ms of a command, and a supervision that leaves the robot armed:
 
   $ for v in unordered stale stopped armed unchecked hasty late redrawn undisarmed; do packages --typecheck-only $app/balance_regex.tpe bala2-regex/$v.tpe; echo "[$?]"; done
-  File "bala2-regex/unordered.tpe", lines 4-15, characters 63-49:
+  File "bala2-regex/unordered.tpe", lines 4-15, characters 63-75:
   4 | let step_unordered ((tilt, speed, integral, position) : state) : state
                                                                      ^^^^^^^
   Typing error: This function's body has grade `[{ReadEncoders; ReadImu; Setpoints; Publish; SetMotors}, {ReadEncoders; ReadImu; Setpoints; Publish; SetMotors}]`, which does not match its annotated grade `[{ReadImu; ReadEncoders; Setpoints; Publish; SetMotors}, {ReadImu; ReadEncoders; Setpoints; Publish; SetMotors}]`
@@ -77,7 +77,7 @@ and with an expired calibration, a drive iteration that may exceed the
     grade `[{Setpoints}, {Setpoints}]` accumulates here (operation `Setpoints`)
     Note: the resource inequality `[{ReadEncoders; 1.5; ReadEncoders; Setpoints}, {ReadEncoders; 1.5; ReadEncoders; Setpoints}] <= [{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]` does not hold
   [1]
-  File "bala2-regex/stopped.tpe", lines 10-17, characters 2-49:
+  File "bala2-regex/stopped.tpe", lines 10-17, characters 2-75:
   10 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `fresh` is unboxed with grade `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}]` accumulated since it was bound, which is not below its box grade `[{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]`
@@ -93,9 +93,9 @@ and with an expired calibration, a drive iteration that may exceed the
     8 |   let armed, bias, target, turn = perform Setpoints () in
                                           ^^^^^^^^^^^^^^^^^^^^
     grade `[{Setpoints}, {Setpoints}]` accumulates here (operation `Setpoints`)
-    File "bala2-regex/stopped.tpe", line 9, characters 2-54:
-    9 |   (if armed then () else perform SetMotors (0.0, 0.0));
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "bala2-regex/stopped.tpe", line 9, characters 2-52:
+    9 |   (if armed then () else perform SetMotors (0i, 0i));
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{SetMotors | 0}, {SetMotors | 0}]` accumulates here (this computation)
     Note: the resource inequality `[{ReadEncoders; Setpoints; (SetMotors | 0)}, {ReadEncoders; Setpoints; (SetMotors | 0)}] <= [{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]` does not hold
   [1]
@@ -180,8 +180,8 @@ and with an expired calibration, a drive iteration that may exceed the
   7 |   let token = calibrate () in
                     ^^^^^^^^^
   Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 309-311, characters 0-51:
-    309 | let calibrate () =
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 310-312, characters 0-51:
+    310 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
     File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:

@@ -22,3 +22,12 @@ default I2cRead16 _ = delay 1/10; 0
 
 operation I2cRead32 : nat * nat ~> nat # {I2cRead32} within [0, 2]
 default I2cRead32 _ = delay 1/10; 0
+
+operation I2cReadInt8 : nat * nat ~> int # {I2cReadInt8} within [0, 2]
+default I2cReadInt8 _ = delay 1/10; 0i
+
+operation I2cReadInt16 : nat * nat ~> int # {I2cReadInt16} within [0, 2]
+default I2cReadInt16 _ = delay 1/10; 0i
+
+operation I2cReadInt32 : nat * nat ~> int # {I2cReadInt32} within [0, 2]
+default I2cReadInt32 _ = delay 1/10; 0i

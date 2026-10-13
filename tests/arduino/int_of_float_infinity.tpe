@@ -1,0 +1,6 @@
+(* A run-time error: the conversion of infinity to an integer. *)
+
+let convert x = int_of_float x
+
+run convert (~-. 1.5)
+run convert (~-. 1.0 /. 0.0)

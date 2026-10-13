@@ -170,11 +170,11 @@ let components datatypes ty =
   | F.Data n ->
       List.filter_map snd
         (Ast.TyNameMap.find n datatypes : F.datatype).constructors
-  | F.Nat | F.Float | F.Bool | F.String | F.Meta _ -> []
+  | F.Nat | F.Int | F.Float | F.Bool | F.String | F.Meta _ -> []
 
 let is_struct = function
   | F.Tuple (_ :: _) | F.Data _ -> true
-  | F.Tuple [] | F.Nat | F.Float | F.Bool | F.String | F.Meta _ -> false
+  | F.Tuple [] | F.Nat | F.Int | F.Float | F.Bool | F.String | F.Meta _ -> false
 
 (* The struct types of [tys] and of their members, each after the types of
    its members. *)
@@ -357,6 +357,7 @@ let names datatypes instances runs structs =
 
 let ty_name names = function
   | F.Nat -> "uint32_t"
+  | F.Int -> "int32_t"
   | F.Float -> "float"
   | F.Bool -> "bool"
   | F.String -> "const char *"
@@ -395,6 +396,8 @@ let float_literal f =
 
 let constant = function
   | Const.Nat n -> Z.to_string n ^ "u"
+  | Const.Int n when Z.equal n (Z.of_string "-2147483648") -> "INT32_MIN"
+  | Const.Int n -> Printf.sprintf "INT32_C(%s)" (Z.to_string n)
   | Const.Float f -> float_literal f
   | Const.Boolean b -> if b then "true" else "false"
   | Const.String s -> Names.string_literal s
@@ -427,6 +430,7 @@ let component names (v : F.value) i =
 
 let compare_function = function
   | F.Nat -> "tempore_compare_nat"
+  | F.Int -> "tempore_compare_int"
   | F.Float -> "tempore_compare_float"
   | F.Bool -> "tempore_compare_bool"
   | _ -> "tempore_compare"
@@ -435,7 +439,7 @@ let primitive names p (v : F.value) =
   let binary format = format (component names v 0) (component names v 1) in
   let comparison operator =
     match v.ty with
-    | F.Tuple [ (F.Nat | F.Bool); _ ] ->
+    | F.Tuple [ (F.Nat | F.Int | F.Bool); _ ] ->
         Printf.sprintf "(%s %s %s)" (component names v 0) operator
           (component names v 1)
     | F.Tuple [ ty; _ ] ->
@@ -468,6 +472,21 @@ let primitive names p (v : F.value) =
   | Primitives.FloatSqrt -> Printf.sprintf "sqrtf(%s)" (expression names v)
   | Primitives.FloatAtan -> Printf.sprintf "atanf(%s)" (expression names v)
   | Primitives.FloatAtan2 -> binary (Printf.sprintf "atan2f(%s, %s)")
+  | Primitives.IntAdd -> binary (Printf.sprintf "tempore_int_add(%s, %s)")
+  | Primitives.IntMul -> binary (Printf.sprintf "tempore_int_mul(%s, %s)")
+  | Primitives.IntSub -> binary (Printf.sprintf "tempore_int_sub(%s, %s)")
+  | Primitives.IntDiv -> binary (Printf.sprintf "tempore_int_div(%s, %s)")
+  | Primitives.IntMod -> binary (Printf.sprintf "tempore_int_mod(%s, %s)")
+  | Primitives.IntNeg ->
+      Printf.sprintf "tempore_int_neg(%s)" (expression names v)
+  | Primitives.IntOfNat ->
+      Printf.sprintf "tempore_int_of_bits(%s)" (expression names v)
+  | Primitives.NatOfInt ->
+      Printf.sprintf "tempore_nat_of_int(%s)" (expression names v)
+  | Primitives.FloatOfInt ->
+      Printf.sprintf "static_cast<float>(%s)" (expression names v)
+  | Primitives.IntOfFloat ->
+      Printf.sprintf "tempore_int_of_float(%s)" (expression names v)
   | Primitives.ToString -> invalid_arg "to_string"
 
 (* Free variables. *)
@@ -911,6 +930,7 @@ let compare_definition names datatypes ty =
 
 let printer = function
   | F.Nat -> "tempore_print_nat"
+  | F.Int -> "tempore_print_int"
   | F.Float -> "tempore_print_float"
   | F.Bool -> "tempore_print_bool"
   | _ -> "tempore_print"
@@ -982,6 +1002,10 @@ void tempore_delay(uint32_t, uint32_t) {}
 
 inline void tempore_print_nat(uint32_t v, bool) {
   printf("%lu", static_cast<unsigned long>(v));
+}
+
+inline void tempore_print_int(int32_t v, bool) {
+  printf("%ldi", static_cast<long>(v));
 }
 
 inline void tempore_print_bool(bool v, bool) { printf("%s", v ? "true" : "false"); }

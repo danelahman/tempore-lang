@@ -11,5 +11,5 @@ let step_unordered ((tilt, speed, integral, position) : state) : state
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform Publish (tilt, raw);
-  perform SetMotors (0.0, 0.0);
-  (tilt, speed, integral, (left +. right) /. 2.0)
+  perform SetMotors (0i, 0i);
+  (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)

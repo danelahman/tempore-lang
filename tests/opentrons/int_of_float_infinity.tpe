@@ -1,0 +1,4 @@
+(* A run-time error: the conversion of infinity to an integer. *)
+
+run int_of_float (~-. 1.5)
+run int_of_float (~-. 1.0 /. 0.0)

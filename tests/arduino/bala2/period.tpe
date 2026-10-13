@@ -11,5 +11,5 @@ let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) raw
   in
   perform ShowNumber tilt;
-  perform SetMotors (0.0, 0.0);
+  perform SetMotors (0i, 0i);
   (tilt, speed, integral, position)

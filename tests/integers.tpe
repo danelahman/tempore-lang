@@ -1,0 +1,18 @@
+(* Integers: literals, negation, arithmetic, division and modulo truncated
+   toward zero, comparisons, patterns and the conversions. *)
+
+let sign (n : int) =
+  match n with 0i -> 0i | -1i -> ~-!1i | _ -> if n < 0i then -1i else 1i
+
+run (3i, -3i, - 3i, 0i, -0i, 0x1fi, 1_000i)
+run (7i +! -3i, 7i -! 10i, -4i *! 6i, ~-!(-5i), ~-!0i)
+run (7i /! 2i, -7i /! 2i, 7i /! -2i, -7i /! -2i)
+run (7i mod! 2i, -7i mod! 2i, 7i mod! -2i, -7i mod! -2i)
+run (1i +! 2i *! 3i, 10i -! 4i -! 3i, 7i mod! 4i *! 2i)
+run (-3i < 2i, -3i = -3i, 2i >= 3i, sign (-4i), sign 0i, sign (-1i))
+run (Some (-3i), [ -1i; 0i; 1i ], to_string (-12i))
+run (int_of_nat 0, int_of_nat 5, nat_of_int 5i, nat_of_int (-5i), nat_of_int 0i)
+run (float_of_int (-3i), float_of_int 0i, float_of_int 99999999999999999999999i)
+run (int_of_float 2.75, int_of_float (~-. 2.75), int_of_float (~-. 0.5))
+run (int_of_float 1e20, int_of_float (~-. 1e20), int_of_float (0.0 /. 0.0))
+run (4294967296i *! 4294967296i, -2147483648i /! -1i, -2147483648i mod! -1i)

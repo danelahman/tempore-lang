@@ -130,6 +130,17 @@ A natural number literal of more than 32 bits:
   Compilation error: The Arduino backend does not support the natural number literal `4294967296`, which exceeds 32 bits
   exit 1
 
+An integer literal outside 32 bits:
+  $ cat > integer.tpe <<'TPE'
+  > let f x = x -! -2147483649i
+  > TPE
+  $ reject integer.tpe
+  File "integer.tpe", line 1, characters 15-27:
+  1 | let f x = x -! -2147483649i
+                     ^^^^^^^^^^^^
+  Compilation error: The Arduino backend does not support the integer literal `-2147483649i`, which exceeds 32 bits
+  exit 1
+
 The primitive `to_string`:
   $ cat > to_string.tpe <<'TPE'
   > let f x = to_string x

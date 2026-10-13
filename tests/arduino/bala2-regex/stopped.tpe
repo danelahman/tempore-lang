@@ -6,7 +6,7 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
   box {ReadEncoders; Setpoints} reading as fresh in
   let left, right = perform ReadEncoders () in
   let armed, bias, target, turn = perform Setpoints () in
-  (if armed then () else perform SetMotors (0.0, 0.0));
+  (if armed then () else perform SetMotors (0i, 0i));
   unbox fresh as imu in
   let accel, gyro = imu in
   let raw, _, _ = gyro in
@@ -14,4 +14,4 @@ let step_stopped ((tilt, speed, integral, position) : state) : state =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform Publish (tilt, raw);
-  (tilt, speed, integral, (left +. right) /. 2.0)
+  (tilt, speed, integral, (float_of_int left +. float_of_int right) /. 2.0)

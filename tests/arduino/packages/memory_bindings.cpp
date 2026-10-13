@@ -7,4 +7,9 @@ tempore_unit binding_Report(uint32_t n) {
   return {};
 }
 
+tempore_unit binding_ReportInt(int32_t n) {
+  tempore_log("Report %ld", static_cast<long>(n));
+  return {};
+}
+
 void memory_safe_state() { tempore_log("Memory check stopped"); }

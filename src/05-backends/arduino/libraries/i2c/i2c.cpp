@@ -44,6 +44,13 @@ static inline uint32_t i2c_read(uint32_t device, uint32_t reg, int bytes) {
   return value;
 }
 
+// The integer in two's complement of the bytes big-endian value read by
+// i2c_read, sign-extended to 32 bits.
+static inline int32_t i2c_signed(uint32_t value, int bytes) {
+  const uint32_t sign = 1u << (8 * bytes - 1);
+  return tempore_int_of_bits((value ^ sign) - sign);
+}
+
 #ifdef TEMPORE_PERFORMS_I2cWrite8
 tempore_result_I2cWrite8 binding_I2cWrite8(tempore_argument_I2cWrite8 a) {
   i2c_write(a.c0, a.c1, a.c2, 1);
@@ -80,5 +87,26 @@ tempore_result_I2cRead16 binding_I2cRead16(tempore_argument_I2cRead16 a) {
 #ifdef TEMPORE_PERFORMS_I2cRead32
 tempore_result_I2cRead32 binding_I2cRead32(tempore_argument_I2cRead32 a) {
   return i2c_read(a.c0, a.c1, 4);
+}
+#endif
+
+#ifdef TEMPORE_PERFORMS_I2cReadInt8
+tempore_result_I2cReadInt8 binding_I2cReadInt8(
+    tempore_argument_I2cReadInt8 a) {
+  return i2c_signed(i2c_read(a.c0, a.c1, 1), 1);
+}
+#endif
+
+#ifdef TEMPORE_PERFORMS_I2cReadInt16
+tempore_result_I2cReadInt16 binding_I2cReadInt16(
+    tempore_argument_I2cReadInt16 a) {
+  return i2c_signed(i2c_read(a.c0, a.c1, 2), 2);
+}
+#endif
+
+#ifdef TEMPORE_PERFORMS_I2cReadInt32
+tempore_result_I2cReadInt32 binding_I2cReadInt32(
+    tempore_argument_I2cReadInt32 a) {
+  return i2c_signed(i2c_read(a.c0, a.c1, 4), 4);
 }
 #endif
