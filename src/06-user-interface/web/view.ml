@@ -1514,17 +1514,68 @@ let pipette_mark =
         [];
     ]
 
-(* The marks of the program and of the code compiled from it, on the switch
-   between the two views. *)
+(* A microcontroller chip with its pins, drawn in the current text colour. *)
+let chip_mark =
+  svg_elt "svg"
+    ~a:
+      [
+        attr "viewBox" "0 0 16 16";
+        attr "width" "16";
+        attr "height" "16";
+        attr "aria-hidden" "true";
+      ]
+    [
+      svg_elt "g"
+        ~a:
+          [
+            attr "fill" "none";
+            attr "stroke" "currentColor";
+            attr "stroke-width" "1.4";
+            attr "stroke-linecap" "round";
+            attr "stroke-linejoin" "round";
+          ]
+        [
+          svg_elt "rect"
+            ~a:
+              [
+                attr "x" "4";
+                attr "y" "4";
+                attr "width" "8";
+                attr "height" "8";
+                attr "rx" "1";
+              ]
+            [];
+          svg_elt "path"
+            ~a:
+              [
+                attr "d"
+                  "M6 4V1.5M10 4V1.5M6 14.5V12M10 14.5V12M4 6H1.5M4 \
+                   10H1.5M14.5 6H12M14.5 10H12";
+              ]
+            [];
+        ];
+      svg_elt "circle"
+        ~a:
+          [
+            attr "cx" "6.4";
+            attr "cy" "6.4";
+            attr "r" "0.8";
+            attr "fill" "currentColor";
+          ]
+        [];
+    ]
+
+(* The marks of the program and of the code compiled from it by the backend
+   [key], on the switch between the two views. *)
 let source_mark = image_mark "logo/tempore-logo.svg"
-let compiled_mark = pipette_mark
+let compiled_mark = function "arduino" -> chip_mark | _ -> pipette_mark
 
 (* The switch in the top right corner of the editor's box, to the view not
    shown, named by its mark alone, as the link to the other page is. *)
-let view_switch (compiler : BackendRegistry.compiler) code_view =
+let view_switch ~key (compiler : BackendRegistry.compiler) code_view =
   let target, mark, label =
     match code_view with
-    | Model.Source -> (Model.Compiled, compiled_mark, compiler.code_name)
+    | Model.Source -> (Model.Compiled, compiled_mark key, compiler.code_name)
     | Model.Compiled -> (Model.Source, source_mark, "Tempore program")
   in
   elt "a"
@@ -1783,7 +1834,8 @@ let edit_view (model : Model.model) =
              errors
   and switch =
     Option.fold ~none:[]
-      ~some:(fun compiler -> [ view_switch compiler model.code_view ])
+      ~some:(fun compiler ->
+        [ view_switch ~key:entry.key compiler model.code_view ])
       entry.compiler
   in
   view_contents
