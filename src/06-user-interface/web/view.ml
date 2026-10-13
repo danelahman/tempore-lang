@@ -1417,7 +1417,7 @@ let view_compiler (model : Model.model) =
              "Typecheck & Compile"
            else "Typecheck")
           Model.Check Model.CheckCode;
-        action [] "Run" Model.Run Model.RunCode;
+        action [] "Run Interpreter" Model.Run Model.RunCode;
         view_check_status model;
         (* every error shown under the editor, which may be far below when the
            program is long; clicking one scrolls to its message *)
