@@ -29,6 +29,95 @@ let declared_operations commands =
           None)
     commands
 
+(** [with_running_times (module E) ~filename running_times commands] is
+    [commands] with the running-time bounds of each operation of [running_times]
+    replaced: those of its [within], if it declares them, and else those of its
+    grade, if it is the grade of its bounds under the effect grades [E]
+    ({!Grades.Grade.S.of_bounds}); an operation whose grade bounds no durations
+    keeps its declaration.
+
+    @raise Utils.Error.Error
+      if [commands], the source [filename], declare no operation of
+      [running_times], if a grade bounds durations but is not that of its
+      bounds, or if the delays of [E] do not read a bound. *)
+let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
+    ~filename running_times
+    (commands : ('r, e SugaredAst.grade Ast.located) SugaredAst.command list) =
+  let declared = List.map fst (declared_operations commands) in
+  List.iter
+    (fun (op, _) ->
+      if not (List.mem op declared) then
+        Error.compilation
+          "The source %s declares no operation %s, whose running-time bounds \
+           are given"
+          filename op)
+    running_times;
+  let no_operations =
+    {
+      Grades.Grade.running_time =
+        (fun event -> Error.typing "Unknown event `%s`" event);
+      operations = [];
+    }
+  in
+  let read ~loc (lo, hi) =
+    let read_end =
+      Grades.Grade.map_end (fun q ->
+          match E.Delay.read (Grades.Grade.rational_lit q) with
+          | Some d -> d
+          | None ->
+              Error.compilation ~loc
+                "In the '%s' grading monoid, the running-time bound %s is not \
+                 a delay: %s"
+                E.name (Grades.Rational.show q)
+                (E.Delay.rejection (Grades.Grade.rational_lit q)))
+    in
+    let lo = read_end lo in
+    (lo, read_end hi)
+  in
+  (* [finite own bounds] is [own] with each infinite end, that of a grade
+     bounding durations on one side only, replaced by the end of [bounds]. *)
+  let finite (lo, hi) (lo', hi') =
+    let pick b b' = match b with Grades.Grade.Unbounded -> b' | _ -> b in
+    (pick lo lo', pick hi hi')
+  in
+  List.map
+    (fun (cmd : _ SugaredAst.command) ->
+      match cmd.it with
+      | SugaredAst.OpSig (name, t1, t2, (eps : _ Ast.located), declared) -> (
+          match (List.assoc_opt name.it running_times, declared, eps.it) with
+          | None, _, _ | Some _, None, SugaredAst.GradeParam _ -> cmd
+          | Some bounds, Some _, _ ->
+              {
+                cmd with
+                it = SugaredAst.OpSig (name, t1, t2, eps, Some bounds);
+              }
+          | Some bounds, None, SugaredAst.GradeLit g -> (
+              match E.duration_bounds no_operations g with
+              | None -> cmd
+              | Some own
+                when E.equal no_operations g
+                       (E.of_bounds (read ~loc:eps.at (finite own bounds))) ->
+                  let g = E.of_bounds (read ~loc:eps.at bounds) in
+                  {
+                    cmd with
+                    it =
+                      SugaredAst.OpSig
+                        ( name,
+                          t1,
+                          t2,
+                          { eps with it = SugaredAst.GradeLit g },
+                          None );
+                  }
+              | Some _ ->
+                  Error.compilation ~loc:eps.at
+                    "The grade of the operation %s is not that of its \
+                     running-time bounds, which therefore cannot be replaced"
+                    name.it))
+      | SugaredAst.TyDef _ | SugaredAst.OpDefault _ | SugaredAst.TopLet _
+      | SugaredAst.TopLetRec _ | SugaredAst.TopDo _ ->
+          cmd)
+    commands
+
 (** The file name the standard library's locations are reported under, since it
     is loaded from a string rather than from a file. *)
 let stdlib_filename = "stdlib.tpe"
@@ -201,10 +290,15 @@ module Loader (Backend : Backend.S) = struct
     | state'', [], _, _ -> state''
     | _, d :: _, _, _ -> raise (Error.Error d)
 
-  let parse_source ?(filename = "") source =
+  let parse_source ?(filename = "") ?(running_times = []) source =
     let lexbuf = Lexing.from_string source in
     lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-    parse_commands lexbuf
+    let commands = parse_commands lexbuf in
+    if running_times = [] then commands
+    else
+      with_running_times
+        (module Backend.Grades.E)
+        ~filename running_times commands
 
   let parse_file filename = Parser.Lexer.read_file parse_commands filename
 

@@ -566,9 +566,9 @@ type model = {
     option;
       (** The compilation of the program as last checked, while neither it nor
           the options have changed and it had no errors. *)
-  declared : string list;
-      (** The file names of the declarations of the selected backend loaded
-          before the program as last checked. *)
+  declared : BackendRegistry.source list;
+      (** The declarations of the selected backend loaded before the program as
+          last checked. *)
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;
@@ -683,9 +683,7 @@ let declarations_changed model =
   (match model.last_check with Some check -> check.current | None -> false)
   &&
   match declarations model.edit_model with
-  | Ok sources ->
-      List.map (fun (d : BackendRegistry.source) -> d.filename) sources
-      <> model.declared
+  | Ok sources -> sources <> model.declared
   | Error _ -> true
 
 (* The program as last accepted, compiled by the selected backend with its
@@ -1087,7 +1085,8 @@ let rec update_model model = function
                 L.load_program ~use_stdlib:model.edit_model.use_stdlib
                   (List.map
                      (fun (d : BackendRegistry.source) ->
-                       L.parse_source ~filename:d.filename d.text)
+                       L.parse_source ~filename:d.filename
+                         ~running_times:d.running_times d.text)
                      declared
                   @ [ L.parse_source model.edit_model.unparsed_code ])
               in
@@ -1201,14 +1200,7 @@ let rec update_model model = function
               else (Error [], definitions, links, Some accepted)
         with exn -> (Error (errors_of_exception Checking exn), [], [], None)
       in
-      let model =
-        {
-          model with
-          accepted;
-          declared =
-            List.map (fun (d : BackendRegistry.source) -> d.filename) declared;
-        }
-      in
+      let model = { model with accepted; declared } in
       {
         (without_popover model) with
         run_model;

@@ -6,6 +6,7 @@
        --package m5-imu \
        --package m5-display \
        --package bala2-base \
+       --board m5stack-gray \
        examples/arduino/bala2/balance.tpe
 
    Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
@@ -55,8 +56,11 @@
    'make examples-help' lists them with their variables.
 
    The typing is relative to the declared bounds of the running times of the
-   operations; the monitors of the device check these bounds, and the
-   watchdog of the base and the tilt cutoff of the step stop the motors. *)
+   operations, those of the packages on the M5Stack Gray, the board of the
+   manifest, which the option --board m5stack-gray of the interpreter run
+   selects and to which the figures below refer; the monitors of the device
+   check these bounds, and the watchdog of the base and the tilt cutoff of
+   the step stop the motors. *)
 
 (* The exchange between the tasks, through bindings.cpp. The step publishes
    the tilt, in degrees, and the rate of the gyroscope, in degrees per
@@ -134,7 +138,7 @@ let clamp (limit : float) (x : float) =
 
 (* Correctly accepted by the typechecker: the step reads the unit, boxes the
    reading for 2 ms, reads the encoders and the setpoints, and unboxes the
-   reading after 0.45 to 1.05 ms; it ends within 0.85 to 3.3 ms, below its
+   reading after 0.45 to 1.05 ms; it ends within 1.2 to 2.8 ms, below its
    period. Beyond the cutoff, or disarmed, it stops the motors and clears the
    integral. *)
 let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
@@ -207,9 +211,9 @@ let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
 (* Correctly rejected by the typechecker: the step shows the tilt on the
    display, which takes up to 12.5 ms, longer than the period:
 
-     Typing error: This function's body has grade `[0.5, 14.7]`, which does
-       not match its annotated grade `[0, 5)`
-       Note: the effect inequality `[0.5, 14.7] <= [0, 5)` does not hold
+     Typing error: This function's body has grade `[0.85, 14.2]`, which
+       does not match its annotated grade `[0, 5)`
+       Note: the effect inequality `[0.85, 14.2] <= [0, 5)` does not hold
 *)
 (*
 let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =

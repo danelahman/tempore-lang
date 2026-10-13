@@ -10,15 +10,30 @@
 
 struct tempore_m5_config {};
 
-// The inertial measurement unit: update reads the sensors, getAccel the
-// acceleration in g and getGyro the angular rate in degrees per second read
-// last; the frequency of its bus is ignored.
+namespace m5 {
+
+// The components of a reading along the x, y and z axes.
+struct imu_3d_t {
+  float x, y, z;
+};
+
+// The readings of an update: the acceleration in g, the angular rate in
+// degrees per second and the magnetic field, which the host does not model.
+struct imu_data_t {
+  uint32_t usec;
+  imu_3d_t accel, gyro, mag;
+};
+
+}  // namespace m5
+
+// The inertial measurement unit: update reads the sensors and getImuData
+// gives the readings of the last update; the frequency of its bus is
+// ignored.
 class tempore_m5_imu {
  public:
   void setClock(uint32_t) {}
   int update();
-  bool getAccel(float *x, float *y, float *z);
-  bool getGyro(float *x, float *y, float *z);
+  void getImuData(m5::imu_data_t *data);
 
  private:
   float accel[3] = {0, 0, 0};

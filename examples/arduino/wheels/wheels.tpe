@@ -6,6 +6,7 @@
        --package m5-imu \
        --package m5-display \
        --package bala2-base \
+       --board m5stack-gray \
        examples/arduino/wheels/wheels.tpe
 
    Grades [L, U]: a lower and upper regular-language bound on the traces with
@@ -45,7 +46,12 @@
    expression is both bounds: the operations it names are demanded, in its
    order, and the delays between them are bounded below and above; another
    operation may come between them only within a delay, at the upper bound
-   of its running time. *)
+   of its running time.
+
+   The bounds of the running times of the operations of the packages are
+   those on the M5Stack Gray, the board of the manifest, which the option
+   --board m5stack-gray of the interpreter run selects and to which the
+   figures below refer. *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the check reads the tilt last published. The
@@ -65,7 +71,7 @@ let gyro_weight = 0.98
 
 (* Correctly accepted by the typechecker: the step reads the unit, filters
    the tilt and publishes it, in this order; its grade bounds its durations
-   by the running times of the two operations, 0.2 to 1.8 ms, below its
+   by the running times of the two operations, 0.55 to 1.3 ms, below its
    period. *)
 let watch (tilt : float) : float # {ReadImu; Publish} =
   let imu = perform ReadImu () in

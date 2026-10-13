@@ -7,16 +7,18 @@ stand, with a stalled wheel.
 
   $ app=../../examples/arduino/wheels
   $ tempore () { ../../tempore --grades regex-timed-interval-rational-symbolic "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base "$@"; }
+  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
 
-The interpreter runs a step and a measurement with the default
+The interpreter, with the declarations of the packages under their
+running-time bounds on the M5Stack Gray, the board of the manifest, as for
+the rejected variants below, runs a step and a measurement with the default
 implementations of the operations:
 
   $ packages $app/wheels.tpe
   === Run 1 ===
   return 2.94
   State: [
-    [{0.5}, {0.5}],
+    [{0.6}, {0.6}],
     [{0.01}, {0.01}]
   ]
   
@@ -158,7 +160,7 @@ exceptions and run-time type information:
   board = m5stack-grey
   framework = arduino
   $ grep 'bounds = ' _arduino/projects/wheels/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 1750, false, true};
+  static const tempore_bounds tempore_op_ReadImu_bounds = {550, false, 1250, false, true};
   static const tempore_bounds tempore_op_ShowText_bounds = {100, false, 12500, false, true};
   static const tempore_bounds tempore_op_ShowNumber_bounds = {100, false, 12500, false, true};
   static const tempore_bounds tempore_op_ClearDisplay_bounds = {31000, false, 48000, false, true};

@@ -7666,6 +7666,7 @@ single-dash form of the help option is not accepted.
   Run Tempore as '../tempore [filename.tpe] ...'
     --api-level       Set the apiLevel of the protocol written with --bind (default: 2.30)
     --bind            With --emit-opentrons, write an Opentrons protocol whose operations are performed by the functions of the given Python binding file
+    --board           With --package, type the program under the running-time bounds of the operations of the packages on the given board of the Arduino backend, where they give them (default: the bounds of their declarations); a device written with --device has the board of its manifest
     --build           Build the project written with --device with PlatformIO, passing its output through and exiting with its exit code
     --capture         After --upload, read the serial port of --port at the baud rate of the board for the given number of seconds, printing its lines, and then the last complete profile among them, if any
     --debug           Print the inferred type schemes of the top-level definitions before running

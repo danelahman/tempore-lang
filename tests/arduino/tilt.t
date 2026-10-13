@@ -5,18 +5,19 @@ oscillation of the tilt from 0.1 rad with a period of 2 s.
 
   $ app=../../examples/arduino/tilt
   $ tempore () { ../../tempore --grades time-interval-rational "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display "$@"; }
+  $ packages () { tempore --package m5-imu --package m5-display --board m5stack-cores3 "$@"; }
 
-The interpreter, with the declarations of the packages, runs a step and an
-iteration of the display with the default implementations of the
-operations:
+The interpreter, with the declarations of the packages under their
+running-time bounds on the M5Stack CoreS3, the board of the manifest, as for
+the rejected variants below, runs a step and an iteration of the display
+with the default implementations of the operations:
 
   $ packages $app/tilt.tpe
   === Run 1 ===
   return 0.
   State: [
-    [0.5, 0.5],
-    [0.5, 0.5],
+    [0.6, 0.6],
+    [0.6, 0.6],
     { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 5] },
     [0.01, 0.01]
   ]

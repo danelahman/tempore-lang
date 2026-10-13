@@ -5,6 +5,7 @@
      ./tempore --grades time-interval-rational \
        --package m5-imu \
        --package m5-display \
+       --board m5stack-cores3 \
        examples/arduino/tilt/tilt.tpe
 
    Grades [q, r], [q, r), (q, r], (q, r): between q and r milliseconds
@@ -33,7 +34,12 @@
    and built for the board, with PlatformIO, by --build in place of
    --host-simulate. The make targets arduino-tilt-simulate, -build, -upload
    and -profile run these commands and their variants for the board;
-   'make examples-help' lists them with their variables. *)
+   'make examples-help' lists them with their variables.
+
+   The bounds of the running times of the operations of the packages are
+   those on the M5Stack CoreS3, the board of the manifest, which the option
+   --board m5stack-cores3 of the interpreter run selects and to which the
+   figures below refer. *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the display reads the tilt last published. The

@@ -13,11 +13,13 @@
             examples/<dir>/<file>.tpe
 
         An example that uses peripheral packages of the Arduino backend names
-        them by --package options after the grade, one per line when the
-        command is split:
+        them by --package options after the grade, and the board whose
+        running-time bounds they take, if any, by a --board option after them,
+        one per line when the command is split:
 
           ./tempore --grades <grade> \
             --package <name> \
+            --board <board> \
             examples/<dir>/<file>.tpe
 
         Grades <form>: <meaning>
@@ -62,15 +64,15 @@ let strip_suffix ~suffix s =
 
 let ends_with ~suffix s = strip_suffix ~suffix s <> None
 
-(* The names given by [--package NAME] options in the lines [lines] of a run
+(* The values given by the options [option] in the lines [lines] of a run
    command, in order. *)
-let packages lines =
-  let rec names = function
-    | "--package" :: name :: rest -> name :: names rest
-    | _ :: rest -> names rest
+let option_values option lines =
+  let rec values = function
+    | o :: value :: rest when o = option -> value :: values rest
+    | _ :: rest -> values rest
     | [] -> []
   in
-  names
+  values
     (List.concat_map
        (fun line -> List.filter (( <> ) "") (String.split_on_char ' ' line))
        lines)
@@ -191,7 +193,12 @@ let check_header name path =
               lines
           in
           let options =
-            List.map (fun p -> "--package " ^ p) (packages found_command)
+            List.map
+              (fun p -> "--package " ^ p)
+              (option_values "--package" found_command)
+            @ List.map
+                (fun b -> "--board " ^ b)
+                (option_values "--board" found_command)
           in
           let one_line =
             String.concat " "

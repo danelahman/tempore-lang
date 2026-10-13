@@ -4,22 +4,24 @@ closed loop with the host model of the robot.
 
   $ app=../../examples/arduino/bala2
   $ tempore () { ../../tempore --grades time-interval-rational "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base "$@"; }
+  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
 
-The interpreter, with the declarations of the packages, runs two control
-steps with the default implementations of the operations:
+The interpreter, with the declarations of the packages under their
+running-time bounds on the M5Stack Gray, the board of the manifest, as for
+the rejected variants below, runs two control steps with the default
+implementations of the operations:
 
   $ packages $app/balance.tpe
   === Run 1 ===
   return (2.8812, 0., 0., 0.)
   State: [
-    [0.5, 0.5],
+    [0.6, 0.6],
     { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 2] },
     [0.5, 0.5],
     [0.01, 0.01],
     [0.01, 0.01],
     [0.2, 0.2],
-    [0.5, 0.5],
+    [0.6, 0.6],
     { resource_1 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 2] },
     [0.5, 0.5],
     [0.01, 0.01],
@@ -63,15 +65,15 @@ and with an expired one, and a supervisory iteration that may exceed the
   File "bala2/period.tpe", lines 4-15, characters 59-35:
   4 | let step_shown ((tilt, speed, integral, position) : state) : state # [0, 5) =
                                                                  ^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `[0.5, 14.7]`, which does not match its annotated grade `[0, 5)`
-    Note: the effect inequality `[0.5, 14.7] <= [0, 5)` does not hold
+  Typing error: This function's body has grade `[0.85, 14.2]`, which does not match its annotated grade `[0, 5)`
+    Note: the effect inequality `[0.85, 14.2] <= [0, 5)` does not hold
   [1]
   File "bala2/unchecked.tpe", line 6, characters 14-19:
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2/balance.tpe", line 90, characters 0-47:
-    90 | operation Arm : calibration ~> unit # [0, 0.05]
+    File "../../examples/arduino/bala2/balance.tpe", line 94, characters 0-47:
+    94 | operation Arm : calibration ~> unit # [0, 0.05]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2/unchecked.tpe", line 5, characters 14-26:

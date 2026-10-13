@@ -51,7 +51,11 @@ type compiler = {
   code_name : string;
 }
 
-type source = { filename : string; text : string }
+type source = {
+  filename : string;
+  text : string;
+  running_times : (string * Grades.Grade.running_time) list;
+}
 
 type event = Backend.observation =
   | Delayed of { at : string; grade : string }
@@ -270,24 +274,28 @@ let manifest settings =
   if String.trim text = "" then None
   else Some (Device.parse ~filename:manifest_filename text)
 
-(* The packages of the manifest of [settings] known to the registry, each
-   once, in the order of their first mention; none if the manifest is blank
-   or malformed, whose compilation reports it. *)
+(* The board of the manifest of [settings] and its packages known to the
+   registry, each once, in the order of their first mention; no board and no
+   packages if the manifest is blank or malformed, whose compilation reports
+   it. *)
 let arduino_packages settings =
   match manifest settings with
-  | None | (exception Utils.Error.Error _) -> []
+  | None | (exception Utils.Error.Error _) -> (None, [])
   | Some device ->
-      List.fold_left
-        (fun acc (name : Device.name) ->
-          match Package.find name.it with
-          | Some p
-            when not (List.exists (fun (q : Package.t) -> q.name = p.name) acc)
-            ->
-              acc @ [ p ]
-          | _ -> acc)
-        [] device.packages
+      ( Some device.board.it,
+        List.fold_left
+          (fun acc (name : Device.name) ->
+            match Package.find name.it with
+            | Some p
+              when not
+                     (List.exists (fun (q : Package.t) -> q.name = p.name) acc)
+              ->
+                acc @ [ p ]
+            | _ -> acc)
+          [] device.packages )
 
 let arduino_declarations settings ~grades =
+  let board, packages = arduino_packages settings in
   List.fold_left
     (fun acc (p : Package.t) ->
       Result.bind acc (fun sources ->
@@ -296,11 +304,14 @@ let arduino_declarations settings ~grades =
               sources
               @ List.map
                   (fun (f : Package.file) ->
-                    { filename = f.filename; text = f.text })
+                    {
+                      filename = f.filename;
+                      text = f.text;
+                      running_times = f.running_times;
+                    })
                   files)
-            (Package.files_for ~grades p)))
-    (Ok [])
-    (arduino_packages settings)
+            (Package.files_for ~grades ?board p)))
+    (Ok []) packages
 
 (* The files of a project shown, in order, the others being the runtime
    header, the scaffold, the sources of the packages, the binding file and the
@@ -403,7 +414,9 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
             program
         in
         let packages =
-          List.map (fun (p : Package.t) -> p.name) (arduino_packages settings)
+          List.map
+            (fun (p : Package.t) -> p.name)
+            (snd (arduino_packages settings))
         in
         {
           code = Some (concatenated shown_files files);

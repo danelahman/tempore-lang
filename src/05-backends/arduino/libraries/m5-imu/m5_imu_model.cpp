@@ -27,16 +27,9 @@ int tempore_m5_imu::update() {
   return 1;
 }
 
-bool tempore_m5_imu::getAccel(float *x, float *y, float *z) {
-  *x = accel[0];
-  *y = accel[1];
-  *z = accel[2];
-  return true;
-}
-
-bool tempore_m5_imu::getGyro(float *x, float *y, float *z) {
-  *x = gyro[0];
-  *y = gyro[1];
-  *z = gyro[2];
-  return true;
+void tempore_m5_imu::getImuData(m5::imu_data_t *data) {
+  data->usec = 0;
+  data->accel = {accel[0], accel[1], accel[2]};
+  data->gyro = {gyro[0], gyro[1], gyro[2]};
+  data->mag = {0.0f, 0.0f, 0.0f};
 }

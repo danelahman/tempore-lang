@@ -58,23 +58,32 @@ let header_grades path =
 (* The peripheral packages of the Arduino backend that a file names by
    [--package NAME] options in the run command of its header, before its
    "Grades" line: the files of each under the grades [grades], each with its
-   name and text, which precede the file. *)
+   name, its text and the running-time bounds of the board named by a
+   [--board NAME] option, if any, which precede the file. *)
 let header_packages ~grades path =
-  let rec names = function
-    | "--package" :: name :: rest -> name :: names rest
-    | _ :: rest -> names rest
+  let words =
+    In_channel.with_open_text path In_channel.input_lines
+    |> List.to_seq
+    |> Seq.take_while (fun line ->
+        not (String.starts_with ~prefix:"   Grades " line))
+    |> List.of_seq |> List.concat_map words
+  in
+  let rec options option = function
+    | o :: value :: rest when o = option -> value :: options option rest
+    | _ :: rest -> options option rest
     | [] -> []
   in
-  In_channel.with_open_text path In_channel.input_lines
-  |> List.to_seq
-  |> Seq.take_while (fun line ->
-      not (String.starts_with ~prefix:"   Grades " line))
-  |> List.of_seq |> List.concat_map words |> names
+  let board = List.nth_opt (options "--board" words) 0 in
+  options "--package" words
   |> List.concat_map (fun name ->
       let module Package = ArduinoBackend.ArduinoPackage in
-      match Option.map (Package.files_for ~grades) (Package.find name) with
+      match
+        Option.map (Package.files_for ~grades ?board) (Package.find name)
+      with
       | Some (Ok files) ->
-          List.map (fun (f : Package.file) -> (f.filename, f.text)) files
+          List.map
+            (fun (f : Package.file) -> (f.filename, f.text, f.running_times))
+            files
       | Some (Error message) -> failwith message
       | None -> failwith ("unknown package " ^ name))
 
@@ -247,7 +256,11 @@ module Programs (G : Grade.S) = struct
     | cmds -> (
         let preceding =
           List.concat_map
-            (fun (name, source) -> parse_source ~name source)
+            (fun (name, source, running_times) ->
+              Loader.with_running_times
+                (module GS.E)
+                ~filename:name running_times
+                (parse_source ~name source))
             packages
         in
         let st = declare (preceding @ cmds) (Lazy.force with_stdlib) in
@@ -274,7 +287,9 @@ let grade_module name =
 
 module type PROGRAMS = sig
   val file :
-    ?packages:(string * string) list -> string -> command_verdict list option
+    ?packages:(string * string * (string * Grade.running_time) list) list ->
+    string ->
+    command_verdict list option
 
   val definitions : string -> (string * bool * string) list
 end

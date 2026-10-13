@@ -5,6 +5,7 @@
      ./tempore --grades counts-upper-bound \
        --package m5-imu \
        --package m5-display \
+       --board m5stack-cores3 \
        examples/arduino/peak/peak.tpe
 
    Grades ((A, n), ...): at most n calls of each operation A
@@ -41,7 +42,9 @@
    The grades count the calls of the operations and bound no durations, so
    the step is not checked against its period by the typechecker, only by
    the monitor of the device; the operations have no running-time bounds,
-   and their calls are not monitored. *)
+   and their calls are not monitored. The option --board m5stack-cores3 of
+   the interpreter run names the board of the manifest, whose running-time
+   bounds do not apply under these grades. *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the recorder reads the tilt last published. *)

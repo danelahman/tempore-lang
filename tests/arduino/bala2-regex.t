@@ -7,17 +7,19 @@ of the robot.
 
   $ app=../../examples/arduino/bala2-regex
   $ tempore () { ../../tempore --grades regex-timed-interval-rational-symbolic "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base "$@"; }
+  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
 
-The interpreter, with the declarations of the packages, runs two control
-steps with the default implementations of the operations:
+The interpreter, with the declarations of the packages under their
+running-time bounds on the M5Stack Gray, the board of the manifest, as for
+the rejected variants below, runs two control steps with the default
+implementations of the operations:
 
   $ packages $app/balance_regex.tpe > runs
   $ awk '/^=== Run 2/ { exit } { print }' runs
   === Run 1 ===
   return (2.8812, 0., 0., 0.)
   State: [
-    [{0.5}, {0.5}],
+    [{0.6}, {0.6}],
     { resource_0 ↦
         ((0., 0., 1.), (0., 0., 0.))
         # [{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]
@@ -26,7 +28,7 @@ steps with the default implementations of the operations:
     [{0.01}, {0.01}],
     [{0.01}, {0.01}],
     [{0.2}, {0.2}],
-    [{0.5}, {0.5}],
+    [{0.6}, {0.6}],
     { resource_1 ↦
         ((0., 0., 1.), (0., 0., 0.))
         # [{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]
@@ -124,8 +126,8 @@ the reading, and delays the reading:
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 90, characters 0-60:
-    90 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 94, characters 0-60:
+    94 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2-regex/unchecked.tpe", line 5, characters 14-26:
@@ -195,8 +197,8 @@ the reading, and delays the reading:
   7 |   let token = calibrate () in
                     ^^^^^^^^^
   Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 318-320, characters 0-51:
-    318 | let calibrate () =
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 322-324, characters 0-51:
+    322 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
     File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:
@@ -225,16 +227,16 @@ the reading, and delays the reading:
   File "bala2-regex/waiting.tpe", line 9, characters 6-56:
   9 |       continue k with ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with grade `[{0.5}, {0.5}]` accumulated since it was bound, which is not below its box grade `[{ReadImu}, {ReadImu}]`
+  Typing error: Variable `k` is unboxed with grade `[{0.6}, {0.6}]` accumulated since it was bound, which is not below its box grade `[{ReadImu}, {ReadImu}]`
     File "bala2-regex/waiting.tpe", line 7, characters 15-16:
     7 |   | ReadImu () k ->
                        ^
     `k` is bound here
     File "bala2-regex/waiting.tpe", line 8, characters 6-15:
-    8 |       delay 1/2;
+    8 |       delay 3/5;
               ^^^^^^^^^
-    grade `[{0.5}, {0.5}]` accumulates here (delay)
-    Note: the resource inequality `[{0.5}, {0.5}] <= [{ReadImu}, {ReadImu}]` does not hold
+    grade `[{0.6}, {0.6}]` accumulates here (delay)
+    Note: the resource inequality `[{0.6}, {0.6}] <= [{ReadImu}, {ReadImu}]` does not hold
   [1]
   File "bala2-regex/slow.tpe", line 10, characters 6-29:
   10 |       continue k with reading

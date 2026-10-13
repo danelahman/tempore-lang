@@ -22,3 +22,11 @@
   (glob_files %{project_root}/examples/arduino/tilt/*)
   (glob_files %{project_root}/examples/arduino/wheels/*)
   (glob_files %{project_root}/examples/arduino/peak/*)))
+
+; The running-time bounds of the peripheral packages by board, compared with
+; test_package.expected.
+
+(test
+ (name test_package)
+ (modules test_package)
+ (libraries utils grades sugaredAst parser loader arduinoBackend))

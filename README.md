@@ -125,7 +125,8 @@ Command-line options:
 - `--package <name>`, repeatable, loads the declarations of a peripheral
   package of the Arduino backend before the files, so that a program run by
   the interpreter performs its operations by their default implementations;
-  it cannot be combined with `--device`;
+  it cannot be combined with `--device`; with `--board <board>`, the
+  operations take the running-time bounds of the packages on that board;
 - `--help` lists the options and the available grading monoids.
 
 The [`examples/`](examples/) directory holds example programs grouped according
@@ -1457,7 +1458,13 @@ An application is described in four layers.
   - `m5-imu`: `ReadImu`, the accelerometer and gyroscope of an M5Stack core,
     with the tilt filters `tilt_x` and `tilt_y`; a unit of the MPU6886 family
     is read in one transaction of 14 bytes and converted as by M5Unified,
-    any other unit through `M5.Imu.update`;
+    any other unit, such as the BMI270 of the CoreS3, by one
+    `M5.Imu.update` followed by `M5.Imu.getImuData`, which converts the
+    readings of that update without the further update of `M5.Imu.getAccel`
+    and `M5.Imu.getGyro` when more than 256 µs have passed since the last
+    one; its running-time bounds are given per board, `[0.55, 1.25]` ms on
+    the Gray and `[0.2, 1.75]` ms on the CoreS3, and the declarations give
+    the bounds that cover both;
   - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`;
   - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base
     of the M5Stack BALA2, with a watchdog of the motor setpoints; the counts
@@ -1485,7 +1492,31 @@ examples are measured on the devices by their profile (`--profile` with
 `--capture`, below): the lower bound is the least time measured, rounded
 down, and the upper bound 1.5 times the greatest, rounded up. Each
 declaration states its measurements, and how the bounds not measured
-directly, such as those of the package `i2c`, are derived. On the device,
+directly, such as those of the package `i2c`, are derived.
+
+The bounds a package declares hold on every board it supports. Where an
+operation is measured to run within narrower bounds on a particular board,
+the member `bounds` of the descriptor `package.json` gives them, by board and
+operation, as closed intervals in the time unit of the declarations:
+
+    "bounds": {
+      "m5stack-gray": { "ReadImu": [0.55, 1.25] },
+      "m5stack-cores3": { "ReadImu": [0.2, 1.75] }
+    }
+
+For the board of a manifest, these bounds replace those of the declarations
+under every grade system that bounds durations: the interval grade of the
+operation under `time-interval-rational`, and its `within` bounds under the
+regular expressions of timed operations; under `counts-upper-bound` the
+operations have no bounds to replace. The program is typed, and the monitors
+of the device are generated, under the bounds of its board. An interpreter
+run with `--package` takes those of the board named by `--board`, and else
+those of the declarations; the web interface takes those of the board of its
+manifest. Each board and operation of `bounds` must be a board profile and
+an operation the package binds, and the default implementations take a time
+within the bounds of every board. The examples name the board of their
+manifest by `--board` in the run command of their header, and the figures in
+their comments are those under its bounds. On the device,
 each call of a binding function is monitored against these bounds and each step of a
 periodic task against its period; a violation puts the device in its safe
 state and stops the tasks, is logged, or is not checked, according to the
@@ -1605,7 +1636,9 @@ directory in `_arduino/projects`. The options are:
   both asserted, which on the boards with an automatic reset circuit holds
   neither the reset nor the boot pin, and they are left so when it is closed;
 - `--package <name>`, repeatable, loads the declarations of a package for the
-  interpreter, which performs its operations by their default implementations.
+  interpreter, which performs its operations by their default implementations;
+  `--board <board>` gives them the running-time bounds of the packages on
+  that board.
 
 Each example `NAME` has the targets `make arduino-NAME-simulate` (the host
 simulation), `arduino-NAME-build` (the PlatformIO build),
@@ -1665,8 +1698,8 @@ Requirements:
 A board is added as a profile `boards/NAME.json` in
 [`src/05-backends/arduino/`](src/05-backends/arduino/), a package as a
 directory `libraries/NAME/` with a descriptor `package.json`, which maps each
-grade system to a file of declarations, and the declarations, C++ sources
-and host models; both are embedded in the compiler
+grade system to a file of declarations and may give running-time bounds per
+board, and the declarations, C++ sources and host models; both are embedded in the compiler
 when it is built. An application is a `.tpe` file, a manifest and a binding
 file, with host models for the simulation if needed.
 

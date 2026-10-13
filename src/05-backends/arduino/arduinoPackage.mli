@@ -29,7 +29,12 @@
       created;
     - ["safe_state"]: the name of a C++ function [void f()] of the sources
       called when the device enters its safe state, before the safe-state hook
-      of the application.
+      of the application;
+    - ["bounds"]: the running-time bounds of operations on particular boards; an
+      object mapping the name of a board profile ({!ArduinoBoard}) to an object
+      mapping the name of an operation among ["bindings"] to its bounds on that
+      board, an array [[lo, hi]] of the ends of a closed interval, in the time
+      unit of the declarations.
 
     The sources include [tempore_bindings.h], which declares, for each operation
     [Op] the program performs, the binding function [binding_Op], the types
@@ -45,6 +50,16 @@
     grade systems an operation has no running-time bounds, and its calls are not
     checked by a monitor.
 
+    The bounds the declarations give hold on every board the package supports.
+    For a board named by ["bounds"], the bounds given there replace, under each
+    grade system that bounds durations, those the declarations give to the
+    operations it names ({!file.running_times}): the bounds of the interval
+    grade of an operation, or those of its [within]. A program for a device is
+    typed and monitored under the bounds of the board of its manifest; one run
+    by the interpreter under those of the board it names, if any, and else under
+    those of the declarations. The default implementations take a time within
+    the bounds of every board.
+
     A program under the grade system [g] is preceded by the definitions and the
     declarations under [g] of each of its packages ({!files_for}). *)
 
@@ -53,6 +68,9 @@ type file = {
       (** the name under which its locations are reported: [libraries/NAME/FILE]
       *)
   text : string;
+  running_times : (string * Grades.Grade.running_time) list;
+      (** the running-time bounds, by operation, that replace those the file
+          declares, for a board *)
 }
 (** A Tempore file of a package. *)
 
@@ -71,8 +89,19 @@ type t = {
   bindings : string list;  (** the names of the operations it binds *)
   init : string option;
   safe_state : string option;
+  bounds : (string * (string * Grades.Grade.running_time) list) list;
+      (** the running-time bounds of operations by board, in the order of the
+          descriptor *)
 }
 (** A package. *)
+
+val parse : files:(string * string) list -> string -> t
+(** [parse ~files name] is the package named [name] whose files are [files],
+    each with its text and its path below [libraries/], such as
+    [NAME/package.json]; the embedded packages are those of {!find}.
+
+    @raise Utils.Error.Error if the package is malformed or has no descriptor.
+*)
 
 val names : string list
 (** The names of the packages, in alphabetical order. *)
@@ -91,8 +120,16 @@ val source : string -> string option
 (** [source filename] is the text of the file of a package, definitions or
     declarations, whose {!file.filename} is [filename], if any. *)
 
-val files_for : grades:string -> t -> (file list, string) result
-(** [files_for ~grades package] is the files of [package] that precede a program
-    under the grade system named [grades]: its definitions, if any, and its
-    declarations under [grades]; an error message if it has none under [grades].
-*)
+val running_times :
+  ?board:string -> t -> (string * Grades.Grade.running_time) list
+(** [running_times ?board package] is the running-time bounds of the operations
+    of [package] on the board named [board], by operation: those ["bounds"]
+    gives for it, none if it gives none or [board] is absent. *)
+
+val files_for :
+  grades:string -> ?board:string -> t -> (file list, string) result
+(** [files_for ~grades ?board package] is the files of [package] that precede a
+    program under the grade system named [grades]: its definitions, if any, and
+    its declarations under [grades], with the running-time bounds of the board
+    named [board] ({!running_times}); an error message if it has none under
+    [grades]. *)

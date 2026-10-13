@@ -17,6 +17,25 @@ val declared_operations :
     declares them. Only these are read, so that an operation declared with a
     malformed or ill-typed signature is listed all the same. *)
 
+val with_running_times :
+  (module Grades.Grade.S with type t = 'e) ->
+  filename:string ->
+  (string * Grades.Grade.running_time) list ->
+  ('r, 'e SugaredAst.grade Language.Ast.located) SugaredAst.command list ->
+  ('r, 'e SugaredAst.grade Language.Ast.located) SugaredAst.command list
+(** [with_running_times (module E) ~filename running_times commands] is
+    [commands], parsed from the source [filename] under the effect grades [E],
+    with the running-time bounds of each operation of [running_times] replaced:
+    those of its [within], if it declares them, and else those of its grade, if
+    it is the grade of its bounds ({!Grades.Grade.S.of_bounds}), by the grade of
+    the new bounds. An operation whose grade bounds no durations, as under the
+    operation counts, keeps its declaration.
+
+    @raise Utils.Error.Error
+      if [commands] declare no operation of [running_times], if the grade of an
+      operation bounds durations but is not that of its bounds, or if the delays
+      of [E] do not read a bound. *)
+
 val stdlib_filename : string
 (** The file name the standard library's locations are reported under, since it
     is loaded from a string rather than from a file. *)
@@ -86,9 +105,15 @@ module Loader (Backend : Backend.S) : sig
   (** Load the parsed source of a program {!declare}d, the first error escaping
       as an exception. *)
 
-  val parse_source : ?filename:string -> string -> command list
-  (** [parse_source ?filename source] is the commands of [source], whose
-      locations are reported under [filename]. *)
+  val parse_source :
+    ?filename:string ->
+    ?running_times:(string * Grades.Grade.running_time) list ->
+    string ->
+    command list
+  (** [parse_source ?filename ?running_times source] is the commands of
+      [source], whose locations are reported under [filename], with the
+      running-time bounds of the operations of [running_times] replaced
+      ({!with_running_times}). *)
 
   val parse_file : string -> command list
   (** [parse_file filename] is the commands of the file [filename]. *)

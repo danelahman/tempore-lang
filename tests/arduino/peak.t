@@ -7,7 +7,7 @@ and its host simulation.
 
   $ app=../../examples/arduino/peak
   $ tempore () { ../../tempore --grades counts-upper-bound "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display "$@"; }
+  $ packages () { tempore --package m5-imu --package m5-display --board m5stack-cores3 "$@"; }
 
 The interpreter runs a step and an iteration of the recorder with the
 default implementations of the operations:

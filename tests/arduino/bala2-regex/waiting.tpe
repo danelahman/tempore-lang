@@ -5,5 +5,5 @@ let waiting_robot =
   handler
   | s -> s
   | ReadImu () k ->
-      delay 1/2;
+      delay 3/5;
       continue k with ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

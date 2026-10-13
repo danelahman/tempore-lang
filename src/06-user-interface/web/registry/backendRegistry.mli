@@ -123,7 +123,13 @@ type observer = {
 
 (** {1 Backends} *)
 
-type source = { filename : string; text : string }
+type source = {
+  filename : string;
+  text : string;
+  running_times : (string * Grades.Grade.running_time) list;
+      (** the running-time bounds, by operation, that replace those the source
+          declares ({!Loader.with_running_times}) *)
+}
 (** A source loaded before the program, under its file name. *)
 
 type entry = {
@@ -156,7 +162,8 @@ val arduino : entry
     ({!ArduinoBackend.ArduinoProject}). The inputs are the device manifest
     ({!ArduinoBackend.ArduinoDevice}), the binding file it names and the monitor
     policy. The declarations are those of the peripheral packages of the
-    manifest ({!ArduinoBackend.ArduinoPackage}), each once; none for a blank or
+    manifest ({!ArduinoBackend.ArduinoPackage}), each once, with the
+    running-time bounds of the board of the manifest; none for a blank or
     malformed manifest. The compiled code is the configuration, [main.cpp], the
     program and the operation wrappers of the project, one file after another,
     each after a comment line naming it; a blank manifest compiles the program

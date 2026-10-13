@@ -12,5 +12,9 @@
   "sources": ["m5_imu.cpp"],
   "host_models": ["m5_imu_model.cpp"],
   "bindings": ["ReadImu"],
-  "init": "m5_imu_init"
+  "init": "m5_imu_init",
+  "bounds": {
+    "m5stack-gray": { "ReadImu": [0.55, 1.25] },
+    "m5stack-cores3": { "ReadImu": [0.2, 1.75] }
+  }
 }

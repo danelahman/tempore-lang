@@ -38,6 +38,7 @@ type config = {
   emit_arduino : string option;
   device : string option;
   packages : string list;
+  board : string option;
   host_runs : bool;
   host_simulate : int option;
   profile : bool;
@@ -141,6 +142,7 @@ let parse_args_to_config () =
   and emit_arduino = ref None
   and device = ref None
   and packages = ref []
+  and board = ref None
   and host_runs = ref false
   and host_simulate = ref None
   and profile = ref false
@@ -185,6 +187,22 @@ let parse_args_to_config () =
           " With --emit-opentrons, write an Opentrons protocol whose \
            operations are performed by the functions of the given Python \
            binding file" );
+        ( "--board",
+          Arg.String
+            (fun name ->
+              if List.mem name ArduinoBackend.ArduinoBoard.names then
+                board := Some name
+              else
+                raise
+                  (Arg.Bad
+                     (Printf.sprintf "option '--board': '%s' is not one of %s"
+                        name
+                        (String.concat ", " ArduinoBackend.ArduinoBoard.names)))),
+          " With --package, type the program under the running-time bounds of \
+           the operations of the packages on the given board of the Arduino \
+           backend, where they give them (default: the bounds of their \
+           declarations); a device written with --device has the board of its \
+           manifest" );
         ( "--build",
           Arg.Set build,
           " Build the project written with --device with PlatformIO, passing \
@@ -338,6 +356,7 @@ let parse_args_to_config () =
   requires "--build" !build "--device" (!device <> None);
   requires "--upload" !upload "--device" (!device <> None);
   requires "--port" (!port <> None) "--upload" !upload;
+  requires "--board" (!board <> None) "--package" (!packages <> []);
   requires "--profile" !profile "--device" (!device <> None);
   requires "--capture" (!capture <> None) "--upload" !upload;
   requires "--capture" (!capture <> None) "--port" (!port <> None);
@@ -410,6 +429,7 @@ let parse_args_to_config () =
     emit_arduino = !emit_arduino;
     device = !device;
     packages = List.rev !packages;
+    board = !board;
     host_runs = !host_runs;
     host_simulate = !host_simulate;
     profile = !profile;
@@ -929,8 +949,15 @@ let run_with (module G : Grades.Grade.S) config =
         config.device
     in
     let module Package = ArduinoBackend.ArduinoPackage in
+    (* The board whose running-time bounds the packages take: that of the
+       manifest, or else that of --board. *)
+    let board =
+      match device with
+      | Some (_, device) -> Some device.board.it
+      | None -> config.board
+    in
     let checked ~refuse (package : Package.t) =
-      match Package.files_for ~grades:config.resource_type package with
+      match Package.files_for ~grades:config.resource_type ?board package with
       | Ok files -> (package, files)
       | Error message -> refuse message
     in
@@ -971,7 +998,8 @@ let run_with (module G : Grades.Grade.S) config =
     let files =
       List.map
         (fun (f : Package.file) ->
-          Loader.parse_source ~filename:f.filename f.text)
+          Loader.parse_source ~filename:f.filename
+            ~running_times:f.running_times f.text)
         package_files
       @ List.map Loader.parse_file config.filenames
     in

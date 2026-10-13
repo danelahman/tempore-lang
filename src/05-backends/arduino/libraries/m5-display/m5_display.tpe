@@ -20,7 +20,12 @@
    pixels wide, at the greatest time per character measured, 0.32 ms (1.597
    ms for a number of at least 5 characters): 8.3 ms, 12.5 ms with the
    margin. A longer text, which wraps over several lines, is not within
-   these bounds. *)
+   these bounds.
+
+   The bounds hold on both boards, and the descriptor gives none per board:
+   ClearDisplay took 31.354 to 31.469 ms on the Gray and 31.739 to 31.814 ms
+   on the CoreS3, which give the same bounds, and those of ShowText and
+   ShowNumber are those of a full line. *)
 
 operation ShowText : string ~> unit # [0.1, 12.5]
 default ShowText _ = delay 1

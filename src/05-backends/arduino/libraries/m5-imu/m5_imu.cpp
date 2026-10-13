@@ -7,8 +7,14 @@
 // gyroscope in one transaction of 14 bytes from the register ACCEL_XOUT_H
 // (0x3B) on the internal bus, converted as M5Unified converts them, with the
 // full-scale ranges of the sensor and the offsets of M5Unified. Any other unit
-// is read through M5.Imu.update, which also reads the status of the sensor and
-// the magnetometer of the board, if any.
+// is read by one call of M5.Imu.update, which also reads the status of the
+// sensor and the magnetometer of the board, if any, followed by
+// M5.Imu.getImuData, which converts the readings of that update with the
+// offsets and the axis order of M5Unified. M5.Imu.getAccel and M5.Imu.getGyro
+// apply the same conversion but repeat the update when more than 256 us have
+// passed since the last one; on the BMI270 of an M5Stack CoreS3 an update
+// reads the status and 20 bytes of data, the magnetometer included through
+// the auxiliary interface of the sensor.
 
 #include <M5Unified.h>
 
@@ -102,12 +108,12 @@ tempore_result_ReadImu binding_ReadImu(tempore_argument_ReadImu) {
              m5_imu_convert(1, 2, m5_imu_raw[5])}};
   }
 #endif
-  float ax = 0, ay = 0, az = 0, gx = 0, gy = 0, gz = 0;
+  m5::imu_data_t data;
   tempore_i2c_lock();
   M5.Imu.update();
-  M5.Imu.getAccel(&ax, &ay, &az);
-  M5.Imu.getGyro(&gx, &gy, &gz);
+  M5.Imu.getImuData(&data);
   tempore_i2c_unlock();
-  return {{ax, ay, az}, {gx, gy, gz}};
+  return {{data.accel.x, data.accel.y, data.accel.z},
+          {data.gyro.x, data.gyro.y, data.gyro.z}};
 }
 #endif

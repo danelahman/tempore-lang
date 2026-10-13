@@ -22,7 +22,7 @@ performed by their default implementations, and its attitude filter:
   === Run 1 ===
   return 0.98
   State: [
-    [0.5, 0.5],
+    [0.6, 0.6],
     { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 2] }
   ]
   
@@ -46,6 +46,41 @@ package under other grades, and --package with --device are refused:
   $ emit tilt --device packages/tilt.device.json --package m5-imu packages/tilt.tpe
   ../../tempore: option '--package' cannot be used with '--device'.
   [2]
+
+The running-time bounds of the operations of a package on a board, given by
+its descriptor, replace those of its declarations for --board, under the
+interval grades and under the regular expressions of timed operations; a
+board for which the package gives none keeps those of the declarations:
+
+  $ cat > bounds.tpe <<'EOF'
+  > let read () : imu # [0.55, 1.25] = perform ReadImu ()
+  > EOF
+  $ for b in m5stack-gray m5stack-cores3 m5stack-fire; do ../../tempore --grades time-interval-rational --package m5-imu --board $b --typecheck-only bounds.tpe > /dev/null 2>&1; echo "$b [$?]"; done
+  m5stack-gray [0]
+  m5stack-cores3 [1]
+  m5stack-fire [1]
+  $ ../../tempore --grades time-interval-rational --package m5-imu --typecheck-only bounds.tpe 2>&1 | grep error
+  Typing error: This function's body has grade `[0.2, 1.75]`, which does not match its annotated grade `[0.55, 1.25]`
+  $ cat > bounds.tpe <<'EOF'
+  > let read () : imu # {[0, 1.3]} = perform ReadImu ()
+  > EOF
+  $ for b in m5stack-gray m5stack-cores3; do ../../tempore --grades regex-timed-interval-rational-symbolic --package m5-imu --board $b --typecheck-only bounds.tpe 2>&1 | grep error; done
+  Typing error: This function's body has grade `[{ReadImu}, {ReadImu}]`, which does not match its annotated grade `[{[0, 1.3]}, {[0, 1.3]}]`
+
+The default implementations take a time within the bounds of every board, so
+that the declarations of each package load under each of its grade systems
+on each board:
+
+  $ touch empty.tpe
+  $ for p in bala2-base i2c m5-display m5-imu; do for g in time-interval-rational regex-timed-lower-bound-rational-symbolic regex-timed-upper-bound-rational-symbolic regex-timed-interval-rational-symbolic counts-upper-bound; do for b in m5stack-gray m5stack-cores3 esp32-devkit; do ../../tempore --grades $g --package $p --board $b --typecheck-only empty.tpe || echo "$p $g $b"; done; done; done
+
+The option --board needs --package and names a board profile:
+
+  $ ../../tempore --grades time-interval-rational --board m5stack-gray filter.tpe
+  ../../tempore: option '--board' requires '--package'.
+  [2]
+  $ ../../tempore --grades time-interval-rational --package m5-imu --board m5stack-grey filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
+  option '--board': 'm5stack-grey' is not one of esp32-devkit, esp32s3-devkit, m5stack-core2, m5stack-cores3, m5stack-fire, m5stack-gray.
 
 The tilt display on an M5Stack Gray, with the packages m5-imu and m5-display:
 the sources of the packages are copied to src/ and their host models to host/,
@@ -110,6 +145,17 @@ is called by setup():
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
+
+The monitors of the device check the running-time bounds of the board of
+the manifest, those of ReadImu on the M5Stack Gray and, for the same
+manifest on the M5Stack CoreS3, those on the CoreS3:
+
+  $ grep 'ReadImu_bounds = ' _arduino/projects/tilt/src/tempore_operations.cpp
+  static const tempore_bounds tempore_op_ReadImu_bounds = {550, false, 1250, false, true};
+  $ sed 's/m5stack-gray/m5stack-cores3/' packages/tilt.device.json > cores3.device.json
+  $ emit cores3 --device cores3.device.json packages/tilt.tpe > /dev/null
+  $ grep 'ReadImu_bounds = ' _arduino/projects/cores3/src/tempore_operations.cpp
+  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 1750, false, true};
 
 Its host simulation: the model of the unit reads the default world, a body
 swinging about the x axis with an amplitude of 0.1 radians; the display writes
