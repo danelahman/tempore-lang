@@ -18,7 +18,6 @@ with the default implementations of the operations:
   State: [
     [0.6, 0.6],
     [0.6, 0.6],
-    { resource_0 ↦ ((0., 0., 1.), (0., 0., 0.)) # [0, 5] },
     [0.01, 0.01]
   ]
   
@@ -27,9 +26,9 @@ with the default implementations of the operations:
   State: [
     [31, 31],
     [3, 3],
-    [1, 1],
     [0.01, 0.01],
-    { resource_0 ↦ 0. # [0, 5] },
+    { resource_0 ↦ 0. # [0, 20) },
+    [1, 1],
     [1, 1],
     [3, 3],
     [250, 250]
@@ -41,25 +40,29 @@ tilt read before the screen is cleared, and a step that shows the tilt
 itself and may last its period:
 
   $ for v in stale shown; do packages --typecheck-only $app/tilt.tpe tilt/$v.tpe; echo "[$?]"; done
-  File "tilt/stale.tpe", lines 8-10, characters 2-11:
-  8 |   unbox fresh as shown in
+  File "tilt/stale.tpe", lines 9-11, characters 2-11:
+  9 |   unbox fresh as shown in
         ^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `fresh` is unboxed with grade `[31.05, 60.5]` accumulated since it was bound, which is not below its box grade `[0, 5]`
-    File "tilt/stale.tpe", line 5, characters 21-26:
-    5 |   box [0, 5] tilt as fresh in
-                             ^^^^^
+  Typing error: Variable `fresh` is unboxed with grade `[31.1, 93.5]` accumulated since it was bound, which is not below its box grade `[0, 20)`
+    File "tilt/stale.tpe", line 5, characters 22-27:
+    5 |   box [0, 20) tilt as fresh in
+                              ^^^^^
     `fresh` is bound here
     File "tilt/stale.tpe", line 6, characters 2-25:
     6 |   perform ClearDisplay ();
           ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[31, 48]` accumulates here (operation `ClearDisplay`)
-    File "tilt/stale.tpe", line 7, characters 2-35:
-    7 |   perform ShowText "Tilt (degrees)";
+    File "tilt/stale.tpe", line 7, characters 2-46:
+    7 |   perform ShowTextAt (0, 0, 2, "Tilt display");
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[0.05, 33]` accumulates here (operation `ShowTextAt`)
+    File "tilt/stale.tpe", line 8, characters 2-35:
+    8 |   perform ShowText "Tilt (degrees)";
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.05, 12.5]` accumulates here (operation `ShowText`)
-    Note: the resource inequality `[31.05, 60.5] <= [0, 5]` does not hold
+    Note: the resource inequality `[31.1, 93.5] <= [0, 20)` does not hold
   [1]
-  File "tilt/shown.tpe", lines 3-10, characters 30-6:
+  File "tilt/shown.tpe", lines 3-8, characters 30-6:
   3 | let step_shown (tilt : float) : float # [0, 20) =
                                     ^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `[31.25, 62]`, which does not match its annotated grade `[0, 20)`

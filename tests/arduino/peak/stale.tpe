@@ -1,0 +1,11 @@
+(* The recorder of peak.tpe showing the copy of the record after a write. *)
+
+let record_stale () =
+  let stored = perform LoadPeak () in
+  box ((StorePeak, 0), (_, ∞)) stored as copy in
+  let tilt = magnitude (perform Latest ()) in
+  let exceeds = unbox copy as peak in tilt > peak +. 0.5 in
+  (if exceeds then perform StorePeak tilt else ());
+  unbox copy as peak in
+  screen peak;
+  delay 1000

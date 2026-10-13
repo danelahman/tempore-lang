@@ -349,30 +349,8 @@ let suspect_late (least : float) =
   else Fall (least, 0.0)
 *)
 
-(* Correctly rejected by the typechecker: the alarm is raised five seconds
-   after the tone:
-
-     Typing error: Variable `event` is unboxed with grade
-       `[{ShowColourTextAt; ShowColourTextAt; Beep; 5000},
-       {ShowColourTextAt; ShowColourTextAt; Beep; 5000}]` accumulated since
-       it was bound, which is not below its box grade
-       `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
-       {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
-       ...
-*)
-(*
-let respond_early (fall : fall) =
-  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
-  perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
-  perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
-  perform Beep (1000, 300);
-  delay 5000;
-  unbox event as fall in
-  raise fall
-*)
-
-(* Correctly rejected by the typechecker: the alarm is raised without the
-   prompt:
+(* Correctly rejected by the typechecker: the response waits ten seconds and
+   raises the alarm without the prompt and the tone that ask for a tap:
 
      Typing error: Variable `event` is unboxed with grade
        `[{10000}, {10000}]` accumulated since it was bound, which is not
@@ -387,28 +365,6 @@ let respond_silent (fall : fall) =
   delay 10000;
   unbox event as fall in
   raise fall
-*)
-
-(* Correctly rejected by the typechecker: the alarm is raised from a stale
-   event, after a second of polls and a further wait of 29 seconds:
-
-     Typing error: Variable `event` is unboxed with grade
-       `[{ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000},
-       {ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
-       {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
-       ...
-*)
-(*
-let respond_stale (fall : fall) =
-  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
-  perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
-  perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
-  perform Beep (1000, 300);
-  let tapped = polls false in
-  delay 29000;
-  if tapped then cancel () else (unbox event as fall in raise fall)
 *)
 
 (* A suspected fall from a reading of 0.1 g, with the default

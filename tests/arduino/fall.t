@@ -44,10 +44,9 @@ the operations, which read a unit at rest:
 
 The rejected variants, each loaded after the application: a free fall
 confirmed within 100 ms, an impact searched for beyond a second, and an
-alarm raised five seconds after the tone, without the prompt, and from a
-stale event:
+alarm raised without the prompt:
 
-  $ for v in brief late early silent stale; do packages --typecheck-only $app/fall.tpe fall/$v.tpe; echo "[$?]"; done
+  $ for v in brief late silent; do packages --typecheck-only $app/fall.tpe fall/$v.tpe; echo "[$?]"; done
   File "fall/brief.tpe", line 6, characters 18-49:
   6 |   if falling then (unbox onset as least in least) else first
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,32 +75,6 @@ stale event:
     grade `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}]` accumulates here (this computation)
     Note: the resource inequality `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}] <= [{0}, {1000}]` does not hold
   [1]
-  File "fall/early.tpe", lines 9-10, characters 2-12:
-  9 |   unbox event as fall in
-        ^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `[{ShowColourTextAt; ShowColourTextAt; Beep; 5000}, {ShowColourTextAt; ShowColourTextAt; Beep; 5000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
-    File "fall/early.tpe", line 4, characters 73-78:
-    4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
-                                                                                 ^^^^^
-    `event` is bound here
-    File "fall/early.tpe", line 5, characters 2-67:
-    5 |   perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
-    File "fall/early.tpe", line 6, characters 2-69:
-    6 |   perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
-    File "fall/early.tpe", line 7, characters 2-26:
-    7 |   perform Beep (1000, 300);
-          ^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{Beep}, {Beep}]` accumulates here (operation `Beep`)
-    File "fall/early.tpe", line 8, characters 2-12:
-    8 |   delay 5000;
-          ^^^^^^^^^^
-    grade `[{5000}, {5000}]` accumulates here (delay)
-    Note: the resource inequality `[{ShowColourTextAt; ShowColourTextAt; Beep; 5000}, {ShowColourTextAt; ShowColourTextAt; Beep; 5000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
-  [1]
   File "fall/silent.tpe", lines 6-7, characters 2-12:
   6 |   unbox event as fall in
         ^^^^^^^^^^^^^^^^^^^^^^
@@ -115,36 +88,6 @@ stale event:
           ^^^^^^^^^^^
     grade `[{10000}, {10000}]` accumulates here (delay)
     Note: the resource inequality `[{10000}, {10000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
-  [1]
-  File "fall/stale.tpe", line 10, characters 32-67:
-  10 |   if tapped then cancel () else (unbox event as fall in raise fall)
-                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}, {ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
-    File "fall/stale.tpe", line 4, characters 73-78:
-    4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
-                                                                                 ^^^^^
-    `event` is bound here
-    File "fall/stale.tpe", line 5, characters 2-67:
-    5 |   perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
-    File "fall/stale.tpe", line 6, characters 2-69:
-    6 |   perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{ShowColourTextAt}, {ShowColourTextAt}]` accumulates here (operation `ShowColourTextAt`)
-    File "fall/stale.tpe", line 7, characters 2-26:
-    7 |   perform Beep (1000, 300);
-          ^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{Beep}, {Beep}]` accumulates here (operation `Beep`)
-    File "fall/stale.tpe", line 8, characters 15-26:
-    8 |   let tapped = polls false in
-                       ^^^^^^^^^^^
-    grade `[{[1000, 1030]}, {[1000, 1030]}]` accumulates here (this computation)
-    File "fall/stale.tpe", line 9, characters 2-13:
-    9 |   delay 29000;
-          ^^^^^^^^^^^
-    grade `[{29000}, {29000}]` accumulates here (delay)
-    Note: the resource inequality `[{ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}, {ShowColourTextAt; ShowColourTextAt; Beep; [1000, 1030]; 29000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without

@@ -1,9 +1,0 @@
-(* A rejected variant of examples/arduino/level/level.tpe. *)
-
-let step_drawn_first ((reference, age, rate, touching) : state) : state
-    # {Touched; ReadImu; DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
-       (ShowTextAt | ShowTimeAt); ShowTextAt} =
-  let touched, _, _ = perform Touched () in
-  display reference (0.0, 0.0) age;
-  let _ = perform ReadImu () in
-  (reference, age + 1, rate, touched)

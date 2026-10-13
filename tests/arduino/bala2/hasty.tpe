@@ -1,5 +1,5 @@
-(* A supervision that arms the robot 100 ms after the prompt to hold it
-   upright, after balance_regex.tpe. *)
+(* A supervision that arms the robot 100 ms after the message, after
+   balance.tpe. *)
 
 let supervise_hasty () =
   let token = calibrate () in

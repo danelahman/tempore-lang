@@ -1614,9 +1614,10 @@ M5Stack Gray, the core of the M5Stack BALA2 self-balancing robot (profile
   the same robot under the regular expressions of timed operations, sharing
   the binding file and host model of `bala2`: the step reads the unit, the
   encoders and the setpoints before it commands the motors, uses the reading
-  of the unit only if no other operation came between, and the supervision
-  disarms, calibrates, arms at least a second after its prompt and within ten
-  minutes, drives and disarms, in this order; handlers, which the device does
+  of the unit only if no command of the motors and no delay came between,
+  across any number of reads of the encoders and setpoints, and the
+  supervision disarms, calibrates, arms at least a second after its prompt,
+  drives and disarms, in this order; handlers, which the device does
   not use, simulate the robot and a fault of its gyroscope in the
   interpreter, each case of an operation performing that operation;
 - [`wheels/wheels.tpe`](examples/arduino/wheels/wheels.tpe): a wheel check of

@@ -83,54 +83,54 @@ let step_stored (tilt : float) : float # ((ReadImu, 1), (Publish, 1)) =
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
-(* Correctly accepted by the typechecker: an iteration of the recorder writes
-   the flash at most once. It reads the record, which is boxed with no write
-   of the flash allowed, so that the copy is unboxed only while it equals the
-   record. It writes the magnitude of the tilt last published if it exceeds
-   the record by more than half a degree, shows the record, between the name
-   of the example, in text of size 2, and the footer, in small text at the
-   bottom right, and waits one second. *)
-let record () : unit # ((StorePeak, 1), (_, ∞)) =
-  let stored = perform LoadPeak () in
-  box ((StorePeak, 0), (_, ∞)) stored as copy in
-  let tilt = magnitude (perform Latest ()) in
-  unbox copy as peak in
-  let peak =
-    if tilt > peak +. 0.5 then (
-      perform StorePeak tilt;
-      tilt)
-    else peak
-  in
+(* The screen of the recorder: the record, between the name of the example,
+   in text of size 2, and the footer, in small text at the bottom right. *)
+let screen (peak : float) =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Peak tilt recorder");
   perform ShowText "Peak tilt";
   perform ShowNumber peak;
-  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+
+(* Correctly accepted by the typechecker: an iteration of the recorder writes
+   the flash at most once. It reads the record, boxed with no write of the
+   flash allowed, and the magnitude of the tilt last published; it writes
+   and shows the tilt if it exceeds the record by more than half a degree,
+   and otherwise shows the record, unboxed on the path without a write; it
+   then waits one second. *)
+let record () : unit # ((StorePeak, 1), (_, ∞)) =
+  let stored = perform LoadPeak () in
+  box ((StorePeak, 0), (_, ∞)) stored as copy in
+  let tilt = magnitude (perform Latest ()) in
+  let exceeds = unbox copy as peak in tilt > peak +. 0.5 in
+  (if exceeds then (
+     perform StorePeak tilt;
+     screen tilt)
+   else (unbox copy as peak in screen peak));
   delay 1000
 
-(* Correctly rejected by the typechecker: the recorder compares a second tilt
-   with the copy of the record read before the first write, which may then
-   overwrite a greater record with a smaller one:
+(* Correctly rejected by the typechecker: the recorder shows the copy of the
+   record after it may have written a greater one, so that the screen shows
+   a record that the flash no longer holds:
 
      Typing error: Variable `copy` is unboxed with grade
-       `((Latest, 2), (StorePeak, 1))` accumulated since it was bound, which
+       `((Latest, 1), (StorePeak, 1))` accumulated since it was bound, which
        is not below its box grade `((StorePeak, 0), (_, ∞))`
        ...
        Note: the resource inequality
-         `((Latest, 2), (StorePeak, 1)) <= ((StorePeak, 0), (_, ∞))` does not
+         `((Latest, 1), (StorePeak, 1)) <= ((StorePeak, 0), (_, ∞))` does not
          hold
 *)
 (*
-let record_twice () =
+let record_stale () =
   let stored = perform LoadPeak () in
   box ((StorePeak, 0), (_, ∞)) stored as copy in
-  let first = magnitude (perform Latest ()) in
+  let tilt = magnitude (perform Latest ()) in
+  let exceeds = unbox copy as peak in tilt > peak +. 0.5 in
+  (if exceeds then perform StorePeak tilt else ());
   unbox copy as peak in
-  (if first > peak +. 0.5 then perform StorePeak first else ());
-  delay 500;
-  let second = magnitude (perform Latest ()) in
-  unbox copy as peak in
-  if second > peak +. 0.5 then perform StorePeak second else ()
+  screen peak;
+  delay 1000
 *)
 
 (* A step from the reading of the default implementation of the unit, and an

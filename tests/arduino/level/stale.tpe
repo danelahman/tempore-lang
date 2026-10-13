@@ -1,10 +1,14 @@
 (* A rejected variant of examples/arduino/level/level.tpe. *)
 
 let step_stale ((reference, age, rate, touching) : state) : state =
-  let touched, _, _ = perform Touched () in
   let accel, _ = perform ReadImu () in
-  box 0 accel as reading in
-  let reference = if touched then take () else reference in
-  unbox reading as accel in
-  display reference (angles accel reference) 0;
-  (reference, 0, rate, touched)
+  box {Touched} accel as reading in
+  let touched, x, y = perform Touched () in
+  if touched && not touching && on_sensor x y then (
+    let rate = if rate = 100 then 400 else 100 in
+    perform ConfigureImu rate;
+    perform Beep (600, 50);
+    unbox reading as accel in
+    display (Reconfigured rate) (angles accel (Reconfigured rate)) 0;
+    (Reconfigured rate, 0, rate, touched))
+  else (reference, age, rate, touched)

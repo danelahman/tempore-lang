@@ -4,7 +4,7 @@
 let step_stopped
     ((tilt, speed, integral, position, heading) : state) : state =
   let reading = perform ReadImu () in
-  box {ReadEncoders; Setpoints} reading as fresh in
+  box {(ReadEncoders | Setpoints)*} reading as fresh in
   let left, right = perform ReadEncoders () in
   let armed, bias, target, turn = perform Setpoints () in
   (if armed then () else perform SetMotors (0i, 0i));

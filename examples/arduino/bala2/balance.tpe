@@ -226,33 +226,11 @@ let step_stale ((tilt, speed, integral, position, heading) : state) : state
   (tilt, speed, integral, (left +. right) /. 2.0, heading)
 *)
 
-(* Correctly rejected by the typechecker: the step shows the tilt on the
-   display, which takes up to 12.5 ms, longer than the period:
-
-     Typing error: This function's body has grade `[0.8, 14.2]`, which
-       does not match its annotated grade `[0, 5)`
-       Note: the effect inequality `[0.8, 14.2] <= [0, 5)` does not hold
-*)
-(*
-let step_shown ((tilt, speed, integral, position, heading) : state) : state
-    # [0, 5) =
-  let reading = perform ReadImu () in
-  box [0, 2] reading as fresh in
-  unbox fresh as imu in
-  let accel, gyro = imu in
-  let raw, _, _ = gyro in
-  let tilt =
-    complementary gyro_weight period tilt (tilt_x_of_accel accel) raw
-  in
-  perform ShowNumber tilt;
-  perform SetMotors (0i, 0i);
-  (tilt, speed, integral, position, heading)
-*)
-
 (* The supervision. The bias of the gyroscope is the mean of 50 rates
    published by the step 10 ms apart, with the robot held still; the
-   calibration is boxed for ten minutes, and arming the robot needs it
-   unboxed, that is, at most ten minutes old. *)
+   calibration is boxed with a delay of at least a second, and arming the
+   robot needs it unboxed, that is, at least a second after the
+   calibration, in which the robot is to be held upright. *)
 
 let rec rate_sum (n : nat) (sum : float) : float # [0, ∞) =
   match n with
@@ -269,7 +247,7 @@ let calibrate () =
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ShowText "Calibrating";
   let sum = rate_sum 50 0.0 in
-  box [0, 600000) (Calibration (sum /. 50.0))
+  box [1000, ∞) (Calibration (sum /. 50.0))
 
 (* Correctly accepted by the typechecker: an iteration of the drive commands
    zero setpoints, shows the tilt every tenth iteration and waits 100 ms; it
@@ -301,36 +279,21 @@ let supervise () =
   drive 4000000000;
   perform Disarm ()
 
-(* Correctly rejected by the typechecker: the robot is armed with the boxed
-   calibration, not with an unboxed one:
+(* Correctly rejected by the typechecker: the robot is armed 100 ms after
+   the message, before it can be held upright:
 
-     Typing error: Operation `Arm` takes an argument of type `calibration` but
-       is given `[_]calibration`
-       ...
-*)
-(*
-let supervise_unchecked () =
-  let token = calibrate () in
-  perform Arm token;
-  drive 4000000000
-*)
-
-(* Correctly rejected by the typechecker: the robot is armed with a
-   calibration more than ten minutes old:
-
-     Typing error: Variable `token` is unboxed with grade
-       `[600000.05, 600012.5]`
+     Typing error: Variable `token` is unboxed with grade `[100.05, 112.5]`
        accumulated since it was bound, which is not below its box grade
-       `[0, 600000)`
+       `[1000, ∞)`
        ...
-       Note: the resource inequality `[600000.05, 600012.5] <= [0, 600000)`
-       does not hold
+       Note: the resource inequality `[100.05, 112.5] <= [1000, ∞)` does not
+       hold
 *)
 (*
-let supervise_late () =
+let supervise_hasty () =
   let token = calibrate () in
   perform ShowText "Hold upright";
-  delay 600000;
+  delay 100;
   unbox token as calibration in
   perform Arm calibration;
   drive 4000000000

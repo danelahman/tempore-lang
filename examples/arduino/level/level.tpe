@@ -185,18 +185,17 @@ let take_unchecked () : reference =
   checked
 *)
 
-(* Correctly accepted by the typechecker: the step reads the touch screen;
-   then, on a tap on "Reconfigure sensor", it reconfigures the unit,
-   setting the output data rate of its accelerometer to 400 or 100 Hz, and
-   shows the rate, in grey; at the end of the hold after a tap on "Set reference", it
-   takes the reference and shows its state; and otherwise it reads the unit
-   and draws, in this order. Its durations, 8.95 to 211.5 ms, lie below its
-   period of 250 ms. The reference of the state is boxed with the reading
-   of the touch screen and of the unit, without delays: it is applied, and
-   kept, only if nothing else came between the start of the step and the
-   reading, in particular no reconfiguration and no new reference. The
-   reading is boxed with the unit grade: it is drawn with no operation
-   between.
+(* Correctly accepted by the typechecker: the step reads the unit and then
+   the touch screen; on a tap on "Reconfigure sensor", it reconfigures the
+   unit, setting the output data rate of its accelerometer to 400 or 100 Hz,
+   shows the rate, in grey, reads the unit anew and draws; at the end of the
+   hold after a tap on "Set reference", it takes the reference and shows its
+   state; and otherwise it draws the first reading. Its durations, 0.45 to
+   213 ms, lie below its period of 250 ms. The first reading is boxed with
+   the reading of the touch screen, and the reference of the state with any
+   number of readings of the unit and of the touch screen, without delays:
+   each is used only if no other operation came between, in particular no
+   reconfiguration and no new reference.
 
    A box is checked from its binding to its unboxing, within one function
    body. The reference persists from step to step in the state, as data:
@@ -207,13 +206,15 @@ let take_unchecked () : reference =
    box; the typing does not exclude returning the reference of the state
    unchecked, which is plain data. *)
 let step ((reference, age, rate, touching) : state) : state
-    # {Touched;
-       ((ConfigureImu; Beep; ShowColourTextAt | 0); ReadImu; DrawLevel;
+    # {ReadImu; Touched;
+       ((ConfigureImu; Beep; ShowColourTextAt; ReadImu | 0); DrawLevel;
         ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
         ShowTextAt
        | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest; Beep;
          (ShowTextAt | ShowTimeAt); ShowTextAt)} =
-  box {Touched; ReadImu} reference as kept in
+  box {(ReadImu | Touched)*} reference as kept in
+  let accel, _ = perform ReadImu () in
+  box {Touched} accel as reading in
   let touched, x, y = perform Touched () in
   let tapped = touched && not touching in
   if tapped && on_sensor x y then (
@@ -223,8 +224,6 @@ let step ((reference, age, rate, touching) : state) : state
     (if rate = 100 then perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 100 Hz")
      else perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 400 Hz"));
     let accel, _ = perform ReadImu () in
-    box 0 accel as reading in
-    unbox reading as accel in
     display (Reconfigured rate) (angles accel (Reconfigured rate)) 0;
     (Reconfigured rate, 0, rate, touched))
   else
@@ -234,8 +233,6 @@ let step ((reference, age, rate, touching) : state) : state
         status reference 0;
         (reference, 0, rate, touched)
     | _ ->
-        let accel, _ = perform ReadImu () in
-        box 0 accel as reading in
         unbox kept as reference in
         unbox reading as accel in
         let next, age =
@@ -267,77 +264,62 @@ let start () : state =
   (NoReference, 0, 100, false)
 
 (* Correctly rejected by the typechecker: a tap on "Reconfigure sensor"
-   reconfigures the unit, and the step still applies the reference to the
-   reading:
+   reconfigures the unit, and the step keeps the reference and applies it
+   to the reading, although it was taken at the former rate:
 
      Typing error: Variable `kept` is unboxed with grade
-       `[{Touched; (0 | ConfigureImu; Beep); ReadImu},
-       {Touched; (0 | ConfigureImu; Beep); ReadImu}]` accumulated since it
-       was bound, which is not below its box grade
-       `[{Touched; ReadImu}, {Touched; ReadImu}]`
+       `[{ReadImu; Touched; (0 | ConfigureImu)},
+       {ReadImu; Touched; (0 | ConfigureImu)}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{(ReadImu | Touched)*}, {(ReadImu | Touched)*}]`
        ...
        Note: the resource inequality
-         `[{Touched; (0 | ConfigureImu; Beep); ReadImu},
-         {Touched; (0 | ConfigureImu; Beep); ReadImu}] <=
-         [{Touched; ReadImu}, {Touched; ReadImu}]` does not hold
+         `[{ReadImu; Touched; (0 | ConfigureImu)},
+         {ReadImu; Touched; (0 | ConfigureImu)}] <=
+         [{(ReadImu | Touched)*}, {(ReadImu | Touched)*}]` does not hold
 *)
 (*
 let step_reconfigured ((reference, age, rate, touching) : state) : state =
-  box {Touched; ReadImu} reference as kept in
-  let touched, x, y = perform Touched () in
-  (if touched && on_sensor x y then (
-     perform ConfigureImu 400;
-     perform Beep (600, 50))
-   else ());
+  box {(ReadImu | Touched)*} reference as kept in
   let accel, _ = perform ReadImu () in
+  let touched, x, y = perform Touched () in
+  let rate =
+    if touched && not touching && on_sensor x y then (
+      let rate = if rate = 100 then 400 else 100 in
+      perform ConfigureImu rate;
+      rate)
+    else rate
+  in
   unbox kept as reference in
-  display reference (angles accel reference) (age + 1);
-  (reference, age + 1, rate, touched)
+  display reference (angles accel reference) age;
+  (reference, age, rate, touched)
 *)
 
-(* Correctly rejected by the typechecker: the step reads the unit before it
-   takes a reference, and applies the new reference to that reading:
+(* Correctly rejected by the typechecker: after a reconfiguration the step
+   draws the reading taken before it, in place of a new one:
 
      Typing error: Variable `reading` is unboxed with grade
-       `[{0 | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest;
-       Beep}, {0 | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu;
-       CheckAtRest; Beep}]` accumulated since it was bound, which is not
-       below its box grade `[{0}, {0}]`
+       `[{Touched; ConfigureImu; Beep}, {Touched; ConfigureImu; Beep}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{Touched}, {Touched}]`
        ...
+       Note: the resource inequality
+         `[{Touched; ConfigureImu; Beep}, {Touched; ConfigureImu; Beep}] <=
+         [{Touched}, {Touched}]` does not hold
 *)
 (*
 let step_stale ((reference, age, rate, touching) : state) : state =
-  let touched, _, _ = perform Touched () in
   let accel, _ = perform ReadImu () in
-  box 0 accel as reading in
-  let reference = if touched then take () else reference in
-  unbox reading as accel in
-  display reference (angles accel reference) 0;
-  (reference, 0, rate, touched)
-*)
-
-(* Correctly rejected by the typechecker: the step draws before it reads the
-   unit, against the order of its grade:
-
-     Typing error: This function's body has grade
-       `[{Touched; DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
-       (ShowTextAt | ShowTimeAt); ShowTextAt; ReadImu}, {Touched; DrawLevel;
-       ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
-       ShowTextAt; ReadImu}]`, which does not match its annotated grade
-       `[{Touched; ReadImu; DrawLevel; ShowNumberAt; ShowNumberAt;
-       ShowTextAt; (ShowTextAt | ShowTimeAt); ShowTextAt}, {Touched;
-       ReadImu; DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
-       (ShowTextAt | ShowTimeAt); ShowTextAt}]`
-       ...
-*)
-(*
-let step_drawn_first ((reference, age, rate, touching) : state) : state
-    # {Touched; ReadImu; DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
-       (ShowTextAt | ShowTimeAt); ShowTextAt} =
-  let touched, _, _ = perform Touched () in
-  display reference (0.0, 0.0) age;
-  let _ = perform ReadImu () in
-  (reference, age + 1, rate, touched)
+  box {Touched} accel as reading in
+  let touched, x, y = perform Touched () in
+  if touched && not touching && on_sensor x y then (
+    let rate = if rate = 100 then 400 else 100 in
+    perform ConfigureImu rate;
+    perform Beep (600, 50);
+    unbox reading as accel in
+    display (Reconfigured rate) (angles accel (Reconfigured rate)) 0;
+    (Reconfigured rate, 0, rate, touched))
+  else (reference, age, rate, touched)
 *)
 
 (* A step without a tap from the initial state, and a reference with the

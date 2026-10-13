@@ -173,7 +173,7 @@ static void tempore_warning_display(void *) {
     memcpy(last, tempore_last_warning, sizeof last);
     portEXIT_CRITICAL(&tempore_warning_lock);
     if (count == 0) continue;
-    char line[96];
+    char line[128];
     snprintf(line, sizeof line, "Monitor: %lu warning%s, last %s",
              static_cast<unsigned long>(count), count == 1 ? "" : "s", last);
     tempore_display_lock();

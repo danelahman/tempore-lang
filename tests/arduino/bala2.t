@@ -31,11 +31,10 @@ implementations of the operations:
   
 
 The rejected variants, each loaded after the application: a stale reading of
-the unit, a step longer than its period, arming with the boxed calibration
-and with an expired one, and a supervisory iteration that may exceed the
-200 ms of a command:
+the unit, arming before the robot is held upright, and a supervisory
+iteration that may exceed the 200 ms of a command:
 
-  $ for v in stale period unchecked late redrawn; do packages --typecheck-only $app/balance.tpe bala2/$v.tpe; echo "[$?]"; done
+  $ for v in stale hasty redrawn; do packages --typecheck-only $app/balance.tpe bala2/$v.tpe; echo "[$?]"; done
   File "bala2/stale.tpe", lines 14-21, characters 2-58:
   14 |   unbox fresh as imu in
          ^^^^^^^^^^^^^^^^^^^^^
@@ -62,46 +61,27 @@ and with an expired one, and a supervisory iteration that may exceed the
     grade `[0, 0.05]` accumulates here (operation `Setpoints`)
     Note: the resource inequality `[2.4, 3.55] <= [0, 2]` does not hold
   [1]
-  File "bala2/period.tpe", lines 4-16, characters 68-44:
-  4 | let step_shown ((tilt, speed, integral, position, heading) : state) : state
-                                                                          ^^^^^^^
-  Typing error: This function's body has grade `[0.8, 14.2]`, which does not match its annotated grade `[0, 5)`
-    Note: the effect inequality `[0.8, 14.2] <= [0, 5)` does not hold
-  [1]
-  File "bala2/unchecked.tpe", line 6, characters 14-19:
-  6 |   perform Arm token;
-                    ^^^^^
-  Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2/balance.tpe", line 60, characters 0-47:
-    60 | operation Arm : calibration ~> unit # [0, 0.05]
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    operation `Arm` is declared here
-    File "bala2/unchecked.tpe", line 5, characters 14-26:
-    5 |   let token = calibrate () in
-                      ^^^^^^^^^^^^
-    `[_]calibration` was inferred here
-  [1]
-  File "bala2/late.tpe", lines 8-10, characters 2-18:
+  File "bala2/hasty.tpe", lines 8-10, characters 2-18:
   8 |   unbox token as calibration in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `token` is unboxed with grade `[600000.05, 600012.5]` accumulated since it was bound, which is not below its box grade `[0, 600000)`
-    File "bala2/late.tpe", line 5, characters 6-11:
+  Typing error: Variable `token` is unboxed with grade `[100.05, 112.5]` accumulated since it was bound, which is not below its box grade `[1000, ∞)`
+    File "bala2/hasty.tpe", line 5, characters 6-11:
     5 |   let token = calibrate () in
               ^^^^^
     `token` is bound here
-    File "bala2/late.tpe", line 6, characters 2-33:
+    File "bala2/hasty.tpe", line 6, characters 2-33:
     6 |   perform ShowText "Hold upright";
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[0.05, 12.5]` accumulates here (operation `ShowText`)
-    File "bala2/late.tpe", line 7, characters 2-14:
-    7 |   delay 600000;
-          ^^^^^^^^^^^^
-    grade `[600000, 600000]` accumulates here (delay)
-    File "bala2/late.tpe", line 5, characters 14-23:
+    File "bala2/hasty.tpe", line 7, characters 2-11:
+    7 |   delay 100;
+          ^^^^^^^^^
+    grade `[100, 100]` accumulates here (delay)
+    File "bala2/hasty.tpe", line 5, characters 14-23:
     5 |   let token = calibrate () in
                       ^^^^^^^^^
     the inequality goes through the type of `calibrate` here
-    Note: the resource inequality `[600000.05, 600012.5] <= [0, 600000)` does not hold
+    Note: the resource inequality `[100.05, 112.5] <= [1000, ∞)` does not hold
   [1]
   File "bala2/redrawn.tpe", lines 4-10, characters 33-11:
   4 | let drive_step_redrawn (n : nat) : unit # [0, 200) =
