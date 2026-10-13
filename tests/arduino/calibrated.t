@@ -46,9 +46,11 @@ the operation:
   [1]
 
 A handler whose case computes after the resumption of its continuation,
-accepted by the typechecker, is rejected by the Arduino backend:
+accepted by the typechecker, is rejected by the Arduino backend when a task
+of the manifest uses it, here through the step that replaces that of
+calibrated.tpe:
 
-  $ packages --emit-arduino observed $app/calibrated.tpe calibrated/observed.tpe
+  $ tempore --emit-arduino observed --device $app/calibrated.device.json $app/calibrated.tpe calibrated/observed.tpe
   File "calibrated/observed.tpe", line 9, characters 26-27:
   9 |       let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
                                 ^

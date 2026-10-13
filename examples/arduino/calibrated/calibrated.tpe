@@ -81,25 +81,6 @@ let smoothed (bias : float) =
          (mean gx1 gx2 -. bias, mean gy1 gy2, mean gz1 gz2))
 *)
 
-(* Correctly rejected by the Arduino backend, though accepted by the
-   typechecker: the case of ReadImu pairs the result of the resumption of its
-   continuation with whether the unit was read, so that the resumption is not
-   in tail position:
-
-     Compilation error: The continuation `k` of the case of `ReadImu` is
-       resumed outside tail position, so the handler cannot be compiled to
-       direct calls
-*)
-(*
-let observed (bias : float) =
-  handler
-  | s -> (s, false)
-  | ReadImu () k ->
-      let accel, (gx, gy, gz) = perform ReadImu () in
-      let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
-      (s, true)
-*)
-
 (* The step of tilt.tpe: it reads the unit, filters the tilt about the x
    axis from the reading and publishes the tilt. *)
 let filter (tilt : float) =
@@ -114,6 +95,30 @@ let filter (tilt : float) =
 let step ((bias, tilt) : float * float) : (float * float) # [0, 20) =
   let tilt = handle filter tilt with calibrated bias in
   (bias, tilt)
+
+(* Correctly rejected by the Arduino backend, though accepted by the
+   typechecker: a step that also learns whether the unit was read, through a
+   handler whose case of ReadImu pairs the result of the resumption of its
+   continuation with that fact, so that the resumption is not in tail
+   position:
+
+     Compilation error: The continuation `k` of the case of `ReadImu` is
+       resumed outside tail position, so the handler cannot be compiled to
+       direct calls
+*)
+(*
+let observed (bias : float) =
+  handler
+  | s -> (s, false)
+  | ReadImu () k ->
+      let accel, (gx, gy, gz) = perform ReadImu () in
+      let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
+      (s, true)
+
+let step ((bias, tilt) : float * float) : (float * float) # [0, 20) =
+  let tilt, _ = handle filter tilt with observed bias in
+  (bias, tilt)
+*)
 
 (* The sum of 'n' rates about the x axis added to 'sum', read 2 ms apart. *)
 let rec rates (n : nat) (sum : float) : float # [0, ∞) =
