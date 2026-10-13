@@ -59,6 +59,28 @@ calibrated.tpe:
   $ test -e _arduino/projects/observed || echo 'Nothing is written.'
   Nothing is written.
 
+Handlers that are not tail-resumptive and that no task uses are reported by
+warnings at the offending occurrences of their continuations, since the
+interpreter can run them, and the project is written:
+
+  $ tempore --emit-arduino unused --device $app/calibrated.device.json $app/calibrated.tpe calibrated/unused.tpe > /dev/null
+  File "calibrated/unused.tpe", line 9, characters 26-27:
+  9 |       let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
+                                ^
+  Warning: The handler `observed` is not tail-resumptive: the continuation `k` of its case of `ReadImu` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
+  
+  File "calibrated/unused.tpe", line 17, characters 26-27:
+  17 |       let r, n = continue k with perform ReadImu () in
+                                 ^
+  Warning: A handler in the definition of `counted` is not tail-resumptive: the continuation `k` of its case of `ReadImu` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
+  
+  File "calibrated/unused.tpe", line 25, characters 17-18:
+  25 |         let k' = k in
+                        ^
+  Warning: The handler `h` in the definition of `shown` is not tail-resumptive: the continuation `k` of its case of `ReadImu` is used other than by its resumption in tail position; it is not compiled for the device, and the interpreter can run it
+  $ test -e _arduino/projects/unused/platformio.ini && echo 'The project is written.'
+  The project is written.
+
 The project, for the board m5stack-cores3; its sources compile without
 exceptions and run-time type information. The step calls the case of the
 handler, a function of the bias, in place of the operation, and the case

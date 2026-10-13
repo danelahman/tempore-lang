@@ -119,6 +119,7 @@ type program = {
   runs : computation list;
   datatypes : datatype list;
   operations : operation list;
+  warnings : Utils.Diagnostic.t list;
 }
 
 (* Rejections. *)
@@ -624,43 +625,67 @@ let rec bound_variable (p : _ Ast.pattern) =
   | Ast.PAnnotated (p, _) -> bound_variable p
   | _ -> None
 
+(* Why a case of a handler is not tail-resumptive: its continuation is
+   resumed outside tail position, used other than by a resumption, or not
+   resumed at the end of a branch. *)
+type not_resuming = Resumed_outside_tail | Used_otherwise | Not_resumed
+
+(* A case of the operation [op], of the continuation [k] if it is named, that
+   is not tail-resumptive for [reason] at [at]. *)
+type failure = {
+  at : Location.t;
+  op : Ast.operation;
+  k : Ast.variable option;
+  reason : not_resuming;
+}
+
+exception Not_tail_resumptive of failure
+
+(* The failure [reason] of the case [case] of an operation, whose continuation
+   is [k] if it is named. *)
+let not_resuming_text ~case ~k reason =
+  let continuation = Option.fold ~none:"" ~some:Ast.Variable.string_of k in
+  match (reason, k) with
+  | Resumed_outside_tail, _ ->
+      Printf.sprintf
+        "the continuation `%s` of %s is resumed outside tail position"
+        continuation case
+  | Used_otherwise, _ ->
+      Printf.sprintf
+        "the continuation `%s` of %s is used other than by its resumption in \
+         tail position"
+        continuation case
+  | Not_resumed, Some _ ->
+      Printf.sprintf "%s ends here without resuming its continuation `%s`" case
+        continuation
+  | Not_resumed, None ->
+      Printf.sprintf "%s ends here without resuming its continuation" case
+
 (* [resumed ~op ~k ks c] is the case [c] of the operation [op], whose
    continuation is [k] if it is named, with its resumption in tail position
    [continue k with v] replaced by [return v]; [do x <- c in return x] is
-   [c]. *)
+   [c].
+
+   @raise Not_tail_resumptive at the first offending occurrence of [k]. *)
 let rec resumed ~op ~k ks (c : _ Ast.computation) =
   let located it = Ast.located c.at it in
-  let continuation = Option.fold ~none:"" ~some:Ast.Variable.string_of k in
-  let op_name = Ast.OpName.string_of op in
   let absent occurrence =
     Option.iter
       (fun (at, resumption) ->
-        if resumption then
-          Error.compilation ~loc:at
-            "The continuation `%s` of the case of `%s` is resumed outside tail \
-             position, so the handler cannot be compiled to direct calls"
-            continuation op_name
-        else
-          Error.compilation ~loc:at
-            "The continuation `%s` of the case of `%s` is used other than by \
-             its resumption in tail position, so the handler cannot be \
-             compiled to direct calls"
-            continuation op_name)
+        raise
+          (Not_tail_resumptive
+             {
+               at;
+               op;
+               k;
+               reason =
+                 (if resumption then Resumed_outside_tail else Used_otherwise);
+             }))
       occurrence
   in
   let ends () =
     absent (computation_occurrence ks c);
-    match k with
-    | Some k ->
-        Error.compilation ~loc:c.at
-          "The case of `%s` ends here without resuming its continuation `%s`, \
-           so the handler cannot be compiled to direct calls"
-          op_name (Ast.Variable.string_of k)
-    | None ->
-        Error.compilation ~loc:c.at
-          "The case of `%s` ends here without resuming its continuation, so \
-           the handler cannot be compiled to direct calls"
-          op_name
+    raise (Not_tail_resumptive { at = c.at; op; k; reason = Not_resumed })
   in
   let is_continuation e =
     match (strip_expression e).it with
@@ -710,6 +735,139 @@ let rec resumed ~op ~k ks (c : _ Ast.computation) =
       absent (expression_occurrence ks e);
       located (Ast.Perform (op', e, (p, continue_with c')))
   | Ast.Return _ | Ast.Handle _ -> ends ()
+
+(* The rejection of a case of the operation [op] that is not
+   tail-resumptive. *)
+let reject_not_tail_resumptive { at; op; k; reason } =
+  Error.compilation ~loc:at
+    "%s, so the handler cannot be compiled to direct calls"
+    (String.capitalize_ascii
+       (not_resuming_text
+          ~case:(Printf.sprintf "the case of `%s`" (Ast.OpName.string_of op))
+          ~k reason))
+
+(* The handlers of the unreached definitions. A handler written in a top-level
+   definition is checked for tail-resumption alone, without its types: the
+   first of its cases, in the order {!Ast.OpName.compare}, that is not
+   tail-resumptive is reported. *)
+
+(* How a handler written in a top-level definition is named: by the
+   definition, by a [let] in it, or not at all. *)
+type handler_name = Top_level | Let_bound of Ast.variable | Anonymous
+
+(* The handlers written in [e], each with its name, prepended in reverse order
+   to [acc]. [name] is the name of [e], if it is a handler, and of the handlers
+   that its functions return. *)
+let rec expression_handlers ?(name = Anonymous) acc (e : _ Ast.expression) =
+  match e.it with
+  | Ast.Var _ | Ast.Const _ -> acc
+  | Ast.Annotated (e, _) -> expression_handlers ~name acc e
+  | Ast.Tuple es -> List.fold_left (expression_handlers ?name:None) acc es
+  | Ast.Variant (_, arg) ->
+      Option.fold ~none:acc ~some:(expression_handlers acc) arg
+  | Ast.Lambda (_, c) | Ast.PureLambda (_, c) -> (
+      match c.it with
+      | Ast.Return e -> expression_handlers ~name acc e
+      | _ -> computation_handlers acc c)
+  | Ast.RecLambda (_, _, (_, c)) -> computation_handlers acc c
+  | Ast.Handler ((_, c), cases) ->
+      List.fold_left computation_handlers ((name, cases) :: acc)
+        (c :: List.map (fun (_, (_, c)) -> c) (Ast.OpNameMap.bindings cases))
+
+and computation_handlers acc (c : _ Ast.computation) =
+  match c.it with
+  | Ast.Return e -> expression_handlers acc e
+  | Ast.Do ({ it = Ast.Return e; _ }, (p, c2)) ->
+      let name =
+        match ((strip_expression e).it, bound_variable p) with
+        | Ast.Handler _, Some x -> Let_bound x
+        | _ -> Anonymous
+      in
+      computation_handlers (expression_handlers ~name acc e) c2
+  | Ast.Do (c1, (_, c2)) ->
+      computation_handlers (computation_handlers acc c1) c2
+  | Ast.Match (e, cases) ->
+      List.fold_left
+        (fun acc (_, c) -> computation_handlers acc c)
+        (expression_handlers acc e)
+        cases
+  | Ast.Apply (e1, e2) -> expression_handlers (expression_handlers acc e1) e2
+  | Ast.Delay (_, c) -> computation_handlers acc c
+  | Ast.Box (_, e, (_, c)) | Ast.Unbox (e, (_, c)) | Ast.Perform (_, e, (_, c))
+    ->
+      computation_handlers (expression_handlers acc e) c
+  | Ast.Handle (c, e) -> expression_handlers (computation_handlers acc c) e
+
+(* The first case of the operation cases [cases] that is not tail-resumptive,
+   if any, with the reason. A case whose continuation is bound by a pattern
+   other than a variable or [_] is not checked. *)
+let first_not_tail_resumptive cases =
+  List.find_map
+    (fun (op, ((p : _ Ast.pattern), body)) ->
+      let check k =
+        let ks =
+          Option.fold ~none:Ast.VariableSet.empty
+            ~some:Ast.VariableSet.singleton k
+        in
+        match resumed ~op ~k ks body with
+        | _ -> None
+        | exception Not_tail_resumptive failure -> Some failure
+      in
+      match (strip_pattern p).it with
+      | Ast.PTuple [ _; continuation ] -> (
+          match (strip_pattern continuation).it with
+          | Ast.PVar k -> check (Some k)
+          | Ast.PNonbinding -> check None
+          | _ -> None)
+      | _ -> None)
+    (Ast.OpNameMap.bindings cases)
+
+(* The warnings of the handlers that are not tail-resumptive among those
+   written in the top-level definitions of [sources] that are not [reached],
+   in order, each at the offending occurrence of its continuation. *)
+let unreached_handler_warnings ~reached sources =
+  List.concat_map
+    (fun (cmd : _ Ast.command) ->
+      match cmd.it with
+      | Ast.TopLet (x, e) when not (reached x) ->
+          let definition = Ast.Variable.string_of x in
+          List.filter_map
+            (fun (name, cases) ->
+              Option.map
+                (fun { at; op; k; reason } ->
+                  let handler =
+                    match name with
+                    | Top_level -> Printf.sprintf "The handler `%s`" definition
+                    | Let_bound h ->
+                        Printf.sprintf
+                          "The handler `%s` in the definition of `%s`"
+                          (Ast.Variable.string_of h) definition
+                    | Anonymous ->
+                        Printf.sprintf "A handler in the definition of `%s`"
+                          definition
+                  in
+                  {
+                    Utils.Diagnostic.kind = Warning;
+                    primary = Some at;
+                    message =
+                      Printf.sprintf
+                        "%s is not tail-resumptive: %s; it is not compiled for \
+                         the device, and the interpreter can run it"
+                        handler
+                        (not_resuming_text
+                           ~case:
+                             (Printf.sprintf "its case of `%s`"
+                                (Ast.OpName.string_of op))
+                           ~k reason);
+                    labels = [];
+                    notes = [];
+                  })
+                (first_not_tail_resumptive cases))
+            (List.rev (expression_handlers ~name:Top_level [] e))
+      | Ast.TopLet _ | Ast.TopDo _ | Ast.TyDef _ | Ast.OpSig _ | Ast.OpDefault _
+        ->
+          [])
+    sources
 
 let add_local x local env =
   { env with locals = Ast.VariableMap.add x local env.locals }
@@ -923,7 +1081,10 @@ and operation_case env st op ((p, body) : _ Ast.abstraction) =
         Option.fold ~none:Ast.VariableSet.empty ~some:Ast.VariableSet.singleton
           k
       in
-      let body = resumed ~op ~k ks body in
+      let body =
+        try resumed ~op ~k ks body
+        with Not_tail_resumptive failure -> reject_not_tail_resumptive failure
+      in
       let st, case_parameter, env = pattern env st argument_pattern argument in
       let st, case_body = computation env st ~tail:false body in
       let case_body = as_computation case_body in
@@ -1338,4 +1499,11 @@ let check ?roots ~runs ~library sources =
         (fun (operation, (argument, result_ty)) ->
           { operation; argument; result_ty })
         (Ast.OpNameMap.bindings st.performed);
+    warnings =
+      (match roots with
+      | None -> []
+      | Some _ ->
+          unreached_handler_warnings
+            ~reached:(fun x -> Ast.VariableMap.mem x st.definitions)
+            sources);
   }

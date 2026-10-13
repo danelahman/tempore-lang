@@ -227,16 +227,31 @@ let label_id i j = Printf.sprintf "error-label-%d-%d" i j
 let error_id i = Printf.sprintf "editor-error-%d" i
 
 (* The kind of error and where it points: an editor span by its line and
-   characters, a standard-library span by its file as well. *)
+   characters, a standard-library span by its file as well. A warning is
+   named by where it points alone. *)
 let load_error_header (error : Model.load_error) =
   let kind = Diagnostic.kind_to_string error.diagnostic.kind in
+  let warning = Model.is_warning error in
   match error.diagnostic.primary with
-  | None -> kind
+  | None -> if warning then "" else kind
   | Some loc when in_editor loc ->
-      Format.asprintf "%s at %t" kind (Location.print_short loc)
+      if warning then Format.asprintf "%t" (Location.print_short loc)
+      else Format.asprintf "%s at %t" kind (Location.print_short loc)
   | Some loc ->
-      Format.asprintf "%s in %s (%t)" kind (source_name loc)
-        (Location.print loc)
+      if warning then
+        Format.asprintf "in %s (%t)" (source_name loc) (Location.print loc)
+      else
+        Format.asprintf "%s in %s (%t)" kind (source_name loc)
+          (Location.print loc)
+
+(* The attribute of the classes [names], none if there are none. *)
+let classes = function
+  | [] -> []
+  | names -> [ class_ (String.concat " " names) ]
+
+(* The class of the marks of an error, [is-warning] for a warning. *)
+let severity_classes (error : Model.load_error) =
+  if Model.is_warning error then [ "is-warning" ] else []
 
 (* The same, cut down for the side panel's list: no characters, no file. *)
 let load_error_summary (error : Model.load_error) =
@@ -342,7 +357,7 @@ let popover_target (model : Model.model) =
    open the error's popover as well, by the pointer or the keyboard focus, and
    are described by it while it is open. *)
 let error_number_attrs ~hovered ~described i (error : Model.load_error) =
-  (if hovered then [ class_ "is-hover" ] else [])
+  classes ((if hovered then [ "is-hover" ] else []) @ severity_classes error)
   @ (if described then [ attr "aria-describedby" popover_id ] else [])
   @ [
       attr "aria-label"
@@ -376,9 +391,10 @@ let marks_of_error ~hovered ~with_labels ~popover i (error : Model.load_error) =
   (match error.diagnostic.primary with
     | Some loc ->
         mark
-          ((if hovered then "error-primary is-hover" else "error-primary")
-          ^ " "
-          ^ popover_classes (Model.Error_span i))
+          (String.concat " "
+             (("error-primary" :: (if hovered then [ "is-hover" ] else []))
+             @ severity_classes error
+             @ [ popover_classes (Model.Error_span i) ]))
           (primary_id i) loc
           ~marker:
             {
@@ -486,7 +502,11 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
   in
   let classes =
     String.concat " "
-      ([ "message"; "is-danger"; "editor-error" ]
+      ([
+         "message";
+         (if Model.is_warning error then "is-warning" else "is-danger");
+         "editor-error";
+       ]
       @ (if active then [ "is-active" ] else [])
       @ (if flashed then [ "is-flashed" ] else [])
       @ if stale then [ "is-stale" ] else [])
@@ -505,8 +525,11 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
           elt "p"
             [
               text
-                (Printf.sprintf "Error %d — %s" (i + 1)
-                   (load_error_header error));
+                (match (Model.is_warning error, load_error_header error) with
+                | true, "" -> Printf.sprintf "Warning %d" (i + 1)
+                | true, header ->
+                    Printf.sprintf "Warning %d — %s" (i + 1) header
+                | false, header -> Printf.sprintf "Error %d — %s" (i + 1) header);
             ];
           header_aside;
         ];
@@ -786,7 +809,12 @@ let view_popover (model : Model.model) errors =
             elt "p"
               ~a:[ class_ "code-popover-title" ]
               (elt "span"
-                 ~a:[ class_ "code-popover-kind" ]
+                 ~a:
+                   [
+                     class_
+                       (String.concat " "
+                          ("code-popover-kind" :: severity_classes error));
+                   ]
                  [ text (Diagnostic.kind_to_string d.kind ^ ":") ]
               :: text " " :: rendered d.message);
           ]
@@ -799,7 +827,11 @@ let view_popover (model : Model.model) errors =
                     attr "href" ("#" ^ error_id i);
                     onclick ~prevent_default:() (fun _ -> Model.ShowFullError i);
                   ]
-                [ text "Show full error" ];
+                [
+                  text
+                    (if Model.is_warning error then "Show full warning"
+                     else "Show full error");
+                ];
             ] ))
       (List.nth_opt errors i)
   in
@@ -1034,11 +1066,40 @@ let view_check_status (model : Model.model) =
              else cross "is-danger is-dimmed")
             [ [ text "Edited since the last check" ] ];
         ]
-    | Some { errors = 0; definitions; _ } ->
+    | Some { errors = 0; warnings = 0; definitions; _ } ->
         [
           outcome (tick "is-success")
             [
               [ text "Checked \xE2\x80\x94 no errors" ];
+              view_definitions definitions;
+            ];
+        ]
+    | Some { errors = 0; warnings; definitions; _ } ->
+        let target =
+          match model.run_model with
+          | Error (warning :: _) -> load_error_target 0 warning
+          | _ -> error_id 0
+        in
+        [
+          outcome (tick "is-warning")
+            [
+              [
+                text "Checked \xE2\x80\x94 ";
+                elt "a"
+                  ~a:
+                    [
+                      class_ "check-status-warnings";
+                      attr "href" ("#" ^ target);
+                      attr "title" "Go to the first warning";
+                      onclick ~prevent_default:() (fun _ -> Model.GoToError 0);
+                    ]
+                  [
+                    text (count warnings "warning");
+                    elt "span"
+                      ~a:[ class_ "is-sr-only" ]
+                      [ text ", go to the first" ];
+                  ];
+              ];
               view_definitions definitions;
             ];
         ]
@@ -1473,8 +1534,10 @@ let view_compiler (model : Model.model) =
             let view_entry i error =
               elt "li"
                 ~a:
-                  ((if model.active_error = Some i then [ class_ "is-active" ]
-                    else [])
+                  (classes
+                     ((if model.active_error = Some i then [ "is-active" ]
+                       else [])
+                     @ severity_classes error)
                   @ [
                       onmouseenter (fun _ -> Model.HoverError (Some i));
                       onmouseleave (fun _ -> Model.HoverError None);

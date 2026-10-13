@@ -108,6 +108,10 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json $app/balance_regex.tpe | grep -c Wrote
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 346, characters 26-27:
+  346 |       let s, _ = continue k with () in
+                                  ^
+  Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   31
   $ cd _arduino/projects/balance_regex
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
@@ -145,6 +149,10 @@ bounds, and prints the other events as they are:
   > }
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
+  File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 346, characters 26-27:
+  346 |       let s, _ = continue k with () in
+                                  ^
+  Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   [31.245 ms] Display cleared
   [35.365 ms] Display at (0, 0): Balancing robot with regexes
   [38.125 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)

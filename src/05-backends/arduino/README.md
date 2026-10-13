@@ -196,6 +196,14 @@ resumption, or passes the continuation on is refused at the occurrence of
 the continuation, or at the end of the branch that does not resume it; the
 return case is not constrained.
 
+Under a manifest, a handler written in a top-level definition of the
+program's sources that the tasks do not reach is not refused when it is not
+tail-resumptive: it is reported by a `Warning` at the same place, and the
+project is written, since the interpreter can still run the handler (as the
+handler `simulated_robot` of the BALA2 example with regexes). The handlers
+of the standard library, of the packages and of `run` commands are not
+checked.
+
 The handlers are compiled by specialisation, with no indirect calls and no
 allocation: each operation case becomes a C++ function of the parameters of
 the handler and the argument of the operation that returns the value of the

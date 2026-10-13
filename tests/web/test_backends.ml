@@ -759,7 +759,9 @@ let arduino_program ~name ~grade ~settings ?(observed = false) variants source =
               variants)
 
 (* The Arduino examples, with their manifests and binding files: compiled to
-   the files of the project shown; without the binding file, refused at the
+   the files of the project shown, each warning located in the program, those
+   of bala2-regex about its handler [simulated_robot], which no task uses;
+   without the binding file, refused at the
    manifest; without a manifest, compiled to the program alone, or, if the
    program defines a handler that is not tail-resumptive, which only the
    definitions of the tasks of the manifest may leave out, refused at it. *)
@@ -774,18 +776,39 @@ let arduino_example (entry : Manifest.entry) =
         && not (has_error output)
     | None -> false
   in
+  let warnings (output : BackendRegistry.compiled) =
+    List.filter
+      (fun (m : BackendRegistry.message) ->
+        m.severity = BackendRegistry.Warning)
+      output.messages
+  in
+  let warned (output : BackendRegistry.compiled) =
+    List.for_all
+      (fun (m : BackendRegistry.message) ->
+        match m.diagnostic with
+        | Some { kind = Warning; primary = Some loc; message; _ } ->
+            loc.filename = ""
+            && ((not (contains ~sub:"bala2-regex" entry.path))
+               || contains ~sub:"`simulated_robot`" message)
+        | _ -> false)
+      (warnings output)
+    && (warnings output <> [] || not (contains ~sub:"bala2-regex" entry.path))
+  in
   arduino_program ~name:entry.path ~grade:entry.grade ~settings ~observed:true
     [
       ( settings,
-        has_files
-          [
-            "platformio.ini";
-            "src/main.cpp";
-            "src/tempore_program.h";
-            "src/tempore_program.cpp";
-            "src/tempore_bindings.h";
-            "src/tempore_operations.cpp";
-          ] );
+        fun output ->
+          has_files
+            [
+              "platformio.ini";
+              "src/main.cpp";
+              "src/tempore_program.h";
+              "src/tempore_program.cpp";
+              "src/tempore_bindings.h";
+              "src/tempore_operations.cpp";
+            ]
+            output
+          && warned output );
       ( List.remove_assoc "bindings" settings,
         fun output ->
           output.code = None && contains ~sub:"device.json" (error_text output)
@@ -851,6 +874,54 @@ let () =
           refused ~sub:"Compilation error" output && located ~file:"" output );
     ]
     "let twice (n : nat) = let f (m : nat) = m + m in f n\nrun twice 2";
+  (* A handler that is not tail-resumptive: a warning located in the program
+     when no task uses it, the project compiled; an error when one does. *)
+  let free task =
+    manifest
+      (Printf.sprintf
+         {|{ "board": "esp32-devkit", "tasks": [ { "function": "%s", "kind": "free" } ] }|}
+         task)
+  in
+  let warned (output : BackendRegistry.compiled) =
+    output.code <> None
+    && (not (has_error output))
+    &&
+    match
+      List.filter
+        (fun (m : BackendRegistry.message) ->
+          m.severity = BackendRegistry.Warning)
+        output.messages
+    with
+    | [
+     {
+       diagnostic = Some { kind = Warning; primary = Some loc; message; _ };
+       text;
+       _;
+     };
+    ] ->
+        loc.filename = "" && loc.start.line = 6
+        && contains ~sub:"The handler `counted` is not tail-resumptive" message
+        && contains ~sub:"Warning: The handler `counted`" text
+    | _ -> false
+  in
+  arduino_program ~name:"a handler not tail-resumptive"
+    ~grade:"time-interval-rational" ~settings:[]
+    [
+      (free "pause", warned);
+      ( free "counting",
+        fun output ->
+          refused ~sub:"resumed outside tail position" output
+          && located ~file:"" output );
+    ]
+    "operation Pause : unit ~> unit # [1, 1]\n\
+     let counted =\n\
+    \  handler\n\
+    \  | r -> (r, 0)\n\
+    \  | Pause () k ->\n\
+    \      let r, n = continue k with delay 1 in\n\
+    \      (r, n + 1)\n\
+     let pause () = delay 1\n\
+     let counting () = handle perform Pause () with counted\n";
   let gray packages =
     manifest
       (Printf.sprintf

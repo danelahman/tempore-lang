@@ -38,8 +38,8 @@ type message = {
   severity : severity;
   text : string;
   diagnostic : Utils.Diagnostic.t option;
-      (** the diagnostic of an error, located in the program, its declarations
-          or the inputs, when the compiler reports one *)
+      (** the diagnostic of an error or a warning, located in the program, its
+          declarations or the inputs, when the compiler reports one *)
 }
 (** A message of a compilation. *)
 
@@ -176,8 +176,10 @@ val arduino : entry
     malformed manifest. The compiled code is the configuration, [main.cpp], the
     program and the operation wrappers of the project, one file after another,
     each after a comment line naming it; a blank manifest compiles the program
-    alone ({!ArduinoBackend.ArduinoEmit}). The observer is the timeline of the
-    run ({!Timeline}), unfolded at first. *)
+    alone ({!ArduinoBackend.ArduinoEmit}). Under a manifest, the warnings of the
+    check ({!ArduinoBackend.ArduinoFragment.program}) are messages of severity
+    [Warning] with their diagnostics. The observer is the timeline of the run
+    ({!Timeline}), unfolded at first. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)

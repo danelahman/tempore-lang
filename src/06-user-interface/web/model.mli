@@ -272,10 +272,12 @@ type load_error = {
       (** The label the pointer is over, whose span is brightened in the editor.
       *)
 }
-(** An error the edit view reports, with the state of showing it. *)
+(** An error the edit view reports, or a warning, of the diagnostic kind
+    [Warning], with the state of showing it. *)
 
 type check = {
   errors : int;  (** the number of errors reported *)
+  warnings : int;  (** the number of warnings reported *)
   definitions : int;  (** the number of top-level definitions of the program *)
   current : bool;
       (** whether neither the program nor the options have changed since *)
@@ -405,6 +407,9 @@ type side_effect =
   | Copy_link of string
       (** copy the page's address with the given query to the clipboard and send
           [Copied] *)
+
+val is_warning : load_error -> bool
+(** [is_warning e] is whether [e] is a warning rather than an error. *)
 
 val backend : edit_model -> BackendRegistry.entry
 (** [backend edit_model] is the selected backend, or the default one if the key

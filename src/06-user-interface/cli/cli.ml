@@ -775,7 +775,8 @@ let host_simulate ~directory ~duration ~profile files =
    manifest [device], of the definitions reached from its task functions and
    initial functions, which are found among the [definitions] of the
    program's sources, each with the effect of its type, and whose operations
-   are monitored against the bounds of the declared [operations]. *)
+   are monitored against the bounds of the declared [operations]. The
+   warnings of the check are printed first. *)
 let emit_arduino config ~directory ~device ~declarations ~definitions
     ~operations commands =
   let library, sources =
@@ -793,6 +794,14 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
            device)
       ~runs:config.host_runs ~library sources
   in
+  (* The warnings go to the standard error, a blank line between two, and
+     leave the exit status as it is. *)
+  List.iteri
+    (fun i d ->
+      if i > 0 then Format.pp_print_newline Format.err_formatter ();
+      Diagnostic.print ~source d Format.err_formatter)
+    program.warnings;
+  Format.pp_print_flush Format.err_formatter ();
   let source =
     match List.rev config.filenames with
     | last :: _ -> Filename.basename last

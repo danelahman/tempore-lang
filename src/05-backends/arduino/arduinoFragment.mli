@@ -39,6 +39,14 @@
     rejected at the offending occurrence of [k], or at the end of a branch that
     does not resume [k]. The return case is not constrained.
 
+    Under roots, the handlers written in the top-level definitions of the
+    sources that are not reached are checked for tail-resumption alone: a
+    top-level handler, possibly of parameters, a handler bound by [let] in a
+    definition, or a handler written at a [handle] or elsewhere in it. One that
+    is not tail-resumptive is reported by a warning at the offending occurrence
+    of its continuation, not by a rejection, since it is not compiled. The
+    handlers of the standard library and of the [run] commands are not checked.
+
     Rejected are, among others, functions other than top-level definitions,
     functions and handlers used as values, partial applications, handlers that
     are not tail-resumptive, lists, strings elsewhere (also as results of
@@ -194,6 +202,10 @@ type program = {
   runs : computation list;  (** the [run] commands, if requested, in order *)
   datatypes : datatype list;  (** those of the program and the library *)
   operations : operation list;  (** those the definitions and runs perform *)
+  warnings : Utils.Diagnostic.t list;
+      (** under [roots], a warning for each handler that is not tail-resumptive
+          among those written in the top-level definitions of the sources that
+          are not reached, in order *)
 }
 
 val check :

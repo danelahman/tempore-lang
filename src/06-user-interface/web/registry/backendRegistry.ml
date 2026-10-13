@@ -433,26 +433,38 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
             (fun (p : Package.t) -> p.name)
             (snd (arduino_packages settings))
         in
+        let warnings =
+          List.map
+            (fun d ->
+              {
+                severity = Warning;
+                text = diagnostic_text ~manifest_text d;
+                diagnostic = Some d;
+              })
+            program.warnings
+        in
         {
           code = Some (concatenated shown_files files);
           language = "cpp";
           messages =
-            [
-              {
-                severity = Note;
-                diagnostic = None;
-                text =
-                  Printf.sprintf
-                    "The PlatformIO project of the device for the board %s%s. \
-                     Not shown: the runtime header, the scaffold, the sources \
-                     of the packages, the binding file and the host \
-                     simulation."
-                    device.board.it
-                    (match packages with
-                    | [] -> ""
-                    | names -> ", with the packages " ^ String.concat ", " names);
-              };
-            ];
+            warnings
+            @ [
+                {
+                  severity = Note;
+                  diagnostic = None;
+                  text =
+                    Printf.sprintf
+                      "The PlatformIO project of the device for the board \
+                       %s%s. Not shown: the runtime header, the scaffold, the \
+                       sources of the packages, the binding file and the host \
+                       simulation."
+                      device.board.it
+                      (match packages with
+                      | [] -> ""
+                      | names ->
+                          ", with the packages " ^ String.concat ", " names);
+                };
+              ];
         }
   with Utils.Error.Error d ->
     {

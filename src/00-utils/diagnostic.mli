@@ -1,8 +1,8 @@
-(** Diagnostics: what is reported when a program is rejected — a headline, the
-    place it points at, labelled related places and free-form notes. The text is
-    rendered when the diagnostic is made, since it mentions types and grades the
-    user interfaces do not know; the locations stay structured, since the
-    interfaces act on them. *)
+(** Diagnostics: what is reported when a program is rejected, or a warning about
+    a program that is accepted — a headline, the place it points at, labelled
+    related places and free-form notes. The text is rendered when the diagnostic
+    is made, since it mentions types and grades the user interfaces do not know;
+    the locations stay structured, since the interfaces act on them. *)
 
 type kind =
   | Syntax
@@ -10,6 +10,9 @@ type kind =
   | Compilation  (** a construct that a backend does not compile *)
   | Runtime
   | Fatal
+  | Warning
+      (** a construct that is accepted, of which the user is informed, such as
+          one that a backend does not compile but that is not required *)
 
 type label = { span : Location.t; text : string }
 (** A related place, with what it contributes to the error: where a variable was
@@ -24,7 +27,7 @@ type t = {
 }
 
 val kind_to_string : kind -> string
-(** ["Syntax error"], ["Typing error"], ... *)
+(** ["Syntax error"], ["Typing error"], ..., ["Warning"] *)
 
 val place : string
 (** The marker a label's text carries where it refers to its own span. A

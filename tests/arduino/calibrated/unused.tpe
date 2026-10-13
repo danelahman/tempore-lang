@@ -1,0 +1,28 @@
+(* Handlers that are not tail-resumptive, which no task of calibrated.tpe
+   uses: a top-level handler, one at a handle and one bound by let. *)
+
+let observed (bias : float) =
+  handler
+  | s -> (s, false)
+  | ReadImu () k ->
+      let accel, (gx, gy, gz) = perform ReadImu () in
+      let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
+      (s, true)
+
+let counted () =
+  handle perform ReadImu () with
+  handler
+  | r -> (r, 0)
+  | ReadImu () k ->
+      let r, n = continue k with perform ReadImu () in
+      (r, n + 1)
+
+let shown () =
+  let h =
+    handler
+    | r -> r
+    | ReadImu () k ->
+        let k' = k in
+        continue k' with perform ReadImu ()
+  in
+  handle perform ReadImu () with h

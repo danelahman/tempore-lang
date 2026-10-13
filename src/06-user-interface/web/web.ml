@@ -268,7 +268,7 @@ let update model msg =
   let model', side_effects = Model.update model msg in
   let cmd =
     match (msg, model'.Model.run_model) with
-    | Model.Perform _, Error (error :: _) ->
+    | Model.Perform _, Error (error :: _) when not (Model.is_warning error) ->
         Scroll_to (View.load_error_target 0 error)
     | Model.EditMsg (Model.InsertIndent (_, start, _)), _ ->
         Set_caret (start + String.length Model.indentation)

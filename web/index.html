@@ -628,6 +628,10 @@
       color: #cc0f35;
     }
 
+    .check-status-mark.is-warning {
+      color: #946c00;
+    }
+
     .check-status-mark.is-dimmed {
       opacity: 0.45;
     }
@@ -652,6 +656,20 @@
       text-decoration: underline;
     }
 
+    /* The count of the warnings, in amber where the errors are in red. */
+    .check-status-warnings {
+      color: #946c00;
+      font-weight: 600;
+      text-decoration: underline dotted;
+      text-underline-offset: 0.15em;
+    }
+
+    .check-status-warnings:hover {
+      color: #946c00;
+      text-decoration: underline;
+    }
+
+    .check-status-warnings:focus-visible,
     .check-status-errors:focus-visible {
       outline: 2px solid #485fc7;
       outline-offset: 2px;
@@ -708,6 +726,12 @@
     .error-list a:hover {
       color: #cc0f35;
       text-decoration: underline;
+    }
+
+    /* a warning, in amber */
+    .error-list li.is-warning,
+    .error-list li.is-warning a:hover {
+      color: #946c00;
     }
 
     /* The example button: the example last loaded, after the short form of
@@ -1082,6 +1106,23 @@
       top: 3px;
     }
 
+    /* The lines of a warning: the same marks, in amber. */
+    .line-number.is-error.is-warning,
+    .line-number.is-error.is-warning:hover,
+    .line-number.is-error.is-warning.is-hover {
+      color: #946c00;
+    }
+
+    .line-number.is-error.is-warning::before,
+    .line-number.is-error.is-warning::after {
+      background: #e6b400;
+    }
+
+    .line-number.is-error.is-warning.is-hover::before,
+    .line-number.is-error.is-warning.is-hover::after {
+      background: #946c00;
+    }
+
     .line-number.is-error-end::before {
       bottom: 3px;
     }
@@ -1101,6 +1142,16 @@
     /* while the pointer is on the error's line numbers or message */
     pre.syn-ml .error-primary.is-hover {
       background: #fbd0d9;
+    }
+
+    /* The span a warning points at, in amber. */
+    pre.syn-ml .error-primary.is-warning {
+      background: #fff8e1;
+      text-decoration-color: #e6b400;
+    }
+
+    pre.syn-ml .error-primary.is-warning.is-hover {
+      background: #ffe9a8;
     }
 
     /* The span of a label: a place the message refers to, marked more
@@ -1270,6 +1321,10 @@
 
     .code-popover-kind {
       color: #cc0f35;
+    }
+
+    .code-popover-kind.is-warning {
+      color: #946c00;
     }
 
     /* The span's own label, marked as the span is, in amber. */
@@ -1464,6 +1519,10 @@
       border-left: 4px solid #f14668;
       border-radius: 4px;
       animation: error-flash 900ms ease-out;
+    }
+
+    .editor-error.is-warning.is-active {
+      border-left-color: #e6b400;
     }
 
     /* The error just gone to, highlighted briefly. */

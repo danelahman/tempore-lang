@@ -499,10 +499,12 @@ type load_error = {
       (** The label the pointer is over, whose span is brightened in the editor.
       *)
 }
-(** An error the edit view reports, with the state of showing it. *)
+(** An error the edit view reports, or a warning, of the diagnostic kind
+    [Warning], with the state of showing it. *)
 
 type check = {
   errors : int;  (** the number of errors reported *)
+  warnings : int;  (** the number of warnings reported *)
   definitions : int;  (** the number of top-level definitions of the program *)
   current : bool;
       (** whether neither the program nor the options have changed since *)
@@ -754,29 +756,39 @@ let compile model =
       Some { output; up_to_date = true }
   | _ -> None
 
-(* The errors of a compilation, reported as those of a check: the diagnostic
-   of each, or else a diagnostic of its text alone. *)
+(* The errors and the warnings of a compilation, reported as those of a
+   check: the diagnostic of each, or else a diagnostic of its text alone. *)
 let compilation_errors = function
   | None -> []
   | Some { output; _ } ->
       List.filter_map
         (fun (m : BackendRegistry.message) ->
+          let reported kind =
+            let diagnostic =
+              Option.value m.diagnostic
+                ~default:
+                  {
+                    Diagnostic.kind;
+                    primary = None;
+                    message = m.text;
+                    labels = [];
+                    notes = [];
+                  }
+            in
+            Some { diagnostic; hovered_label = None }
+          in
           match m.severity with
-          | BackendRegistry.Error ->
-              let diagnostic =
-                Option.value m.diagnostic
-                  ~default:
-                    {
-                      Diagnostic.kind = Compilation;
-                      primary = None;
-                      message = m.text;
-                      labels = [];
-                      notes = [];
-                    }
-              in
-              Some { diagnostic; hovered_label = None }
-          | Warning | Note -> None)
+          | BackendRegistry.Error -> reported Compilation
+          | Warning -> reported Warning
+          | Note -> None)
         output.messages
+
+let is_warning (error : load_error) = error.diagnostic.kind = Diagnostic.Warning
+
+(* The numbers of errors and of warnings of [reported]. *)
+let counted reported =
+  let warnings = List.length (List.filter is_warning reported) in
+  (List.length reported - warnings, warnings)
 
 (* The first error whose primary span covers [offset], a byte of the editor's
    text. A point span is widened as the editor widens it when marking it. *)
@@ -1047,7 +1059,9 @@ let recompiled model compiled =
         flash = None;
         last_check =
           Option.map
-            (fun check -> { check with errors = List.length errors })
+            (fun check ->
+              let errors, warnings = counted errors in
+              { check with errors; warnings })
             model.last_check;
       }
   | _ -> model
@@ -1354,15 +1368,18 @@ let rec update_model model = function
         checking = None;
         compiled;
         last_check =
-          Some
-            {
-              errors =
-                (match run_model with
-                | Error errors -> List.length errors
-                | Ok _ -> 0);
-              definitions = List.length definitions;
-              current = true;
-            };
+          (let errors, warnings =
+             match run_model with
+             | Error reported -> counted reported
+             | Ok _ -> (0, 0)
+           in
+           Some
+             {
+               errors;
+               warnings;
+               definitions = List.length definitions;
+               current = true;
+             });
       }
   | EditCode ->
       {
