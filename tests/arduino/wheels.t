@@ -156,7 +156,7 @@ exceptions and run-time type information:
   30
   $ grep -A3 '^\[env' _arduino/projects/wheels/platformio.ini
   [env:m5stack-gray]
-  platform = espressif32
+  platform = espressif32@7.1.3
   board = m5stack-grey
   framework = arduino
   $ grep 'bounds = ' _arduino/projects/wheels/src/tempore_operations.cpp
