@@ -124,7 +124,8 @@ exceptions and run-time type information, and its host build:
 The closed loop for 8 s from a tilt of 0.1 rad, the robot held until its
 motors are first driven: the supervision calibrates the gyroscope, arms the
 robot after a second and shows the tilt every second; the tilt stays below
-half a degree from one second after the release. The digits of the simulated
+2.5 degrees from one second after the release, the dead band of the right
+wheel of the model exceeding that of the step. The digits of the simulated
 tilt depend on the rounding of the single-precision functions of the C
 library, so that the filter balanced checks the tilts, the position of the
 wheels and the largest drive against bounds, and prints the other events as
@@ -135,19 +136,19 @@ they are:
   >     function within(x, b) { return (x < 0 ? -x : x) < b }
   >     function check(ok, text) { print (ok ? text : $0) }
   >     / Display: -?[0-9]+\.[0-9]+$/ {
-  >       check(within($NF, 0.5), $1 " " $2 " Display: a tilt below 0.5 degrees"); next
+  >       check(within($NF, 2.5), $1 " " $2 " Display: a tilt below 2.5 degrees"); next
   >     }
   >     / Plant: tilt / {
-  >       check(within($5, 0.2) && within($9, 0.01),
-  >         $1 " " $2 " Plant: tilt below 0.2 degrees, wheels within 0.01 m"); next
+  >       check(within($5, 2.5) && within($9, 0.2),
+  >         $1 " " $2 " Plant: tilt below 2.5 degrees, wheels within 0.2 m"); next
   >     }
   >     / Plant: largest tilt / {
-  >       check(within($(NF - 1), 0.5),
-  >         $1 " " $2 " Plant: largest tilt from 1 s after the release below 0.5 degrees"); next
+  >       check(within($(NF - 1), 2.5),
+  >         $1 " " $2 " Plant: largest tilt from 1 s after the release below 2.5 degrees"); next
   >     }
   >     / Plant: largest drive / {
   >       d = $6; sub(/,$/, "", d)
-  >       check(within(d, 0.2), $1 " " $2 " Plant: largest drive below 0.2, " $7 " " $8 " " $9 " " $10); next
+  >       check(within(d, 0.4), $1 " " $2 " Plant: largest drive below 0.4, " $7 " " $8 " " $9 " " $10); next
   >     }
   >     { print }'
   > }
@@ -157,17 +158,17 @@ they are:
   [32.245 ms] Display: Calibrating
   [533.245 ms] Display: Hold upright
   [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: a tilt below 0.5 degrees
-  [3436.245 ms] Display: a tilt below 0.5 degrees
-  [4437.245 ms] Display: a tilt below 0.5 degrees
-  [5438.245 ms] Display: a tilt below 0.5 degrees
-  [6439.245 ms] Display: a tilt below 0.5 degrees
-  [7440.245 ms] Display: a tilt below 0.5 degrees
+  [2435.245 ms] Display: a tilt below 2.5 degrees
+  [3436.245 ms] Display: a tilt below 2.5 degrees
+  [4437.245 ms] Display: a tilt below 2.5 degrees
+  [5438.245 ms] Display: a tilt below 2.5 degrees
+  [6439.245 ms] Display: a tilt below 2.5 degrees
+  [7440.245 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1537.0 ms
-  [8000.000 ms] Plant: tilt below 0.2 degrees, wheels within 0.01 m
-  [8000.000 ms] Plant: largest tilt from 1 s after the release below 0.5 degrees
-  [8000.000 ms] Plant: largest drive below 0.2, last at 8000.0 ms
+  [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m
+  [8000.000 ms] Plant: largest tilt from 1 s after the release below 2.5 degrees
+  [8000.000 ms] Plant: largest drive below 0.4, last at 8000.0 ms
 
 From a tilt of 1.3 rad (74.5 degrees), beyond the cutoff of 70 degrees, the
 step never drives the motors, and the robot falls when released at 2 s:
@@ -178,15 +179,15 @@ step never drives the motors, and the robot falls when released at 2 s:
   [32.245 ms] Display: Calibrating
   [533.245 ms] Display: Hold upright
   [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: 80.326
-  [3436.245 ms] Display: 80.216
+  [2435.245 ms] Display: 80.122
+  [3436.245 ms] Display: 80.212
   [4437.245 ms] Display: 80.214
   [5438.245 ms] Display: 80.214
   [6439.245 ms] Display: 80.214
   [7440.245 ms] Display: 80.214
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 2000.0 ms
-  [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.247 m
+  [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.495 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release 80.21 degrees
   [8000.000 ms] Plant: the motors were never driven
 
@@ -199,17 +200,17 @@ robot falls:
   [32.245 ms] Display: Calibrating
   [533.245 ms] Display: Hold upright
   [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: -0.046
-  [3436.245 ms] Display: -0.059
+  [2435.245 ms] Display: -0.462
+  [3436.245 ms] Display: -0.592
   [4005.071 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
   [4005.071 ms] Safe state
   [4005.316 ms] Task step stopped
   [4036.000 ms] Task supervise stopped
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1537.0 ms
-  [8000.000 ms] Plant: tilt 80.21 degrees, wheels at -0.043 m
+  [8000.000 ms] Plant: tilt -80.21 degrees, wheels at 0.266 m
   [8000.000 ms] Plant: largest tilt from 1 s after the release 80.21 degrees
-  [8000.000 ms] Plant: largest drive 0.140, last at 4005.0 ms
+  [8000.000 ms] Plant: largest drive 0.208, last at 4005.0 ms
 
 With the build flag BALANCE_LOG, here 500 ms, a task started by the first
 publication logs the published attitude, the drives last written and the
@@ -220,16 +221,16 @@ counts last read, and the arming:
   [1002.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [1502.000 ms] Tilt 5.73 deg, rate 0.0 deg/s, drives 0 0, counts 0 0
   [2002.000 ms] Armed, gyroscope bias 0.000 deg/s
-  [2002.000 ms] Tilt -0.01 deg, rate 1.9 deg/s, drives 15 15, counts 31 31
-  [2502.000 ms] Tilt -0.06 deg, rate -2.5 deg/s, drives 18 18, counts 57 57
+  [2002.000 ms] Tilt -0.27 deg, rate 0.7 deg/s, drives 108 108, counts 90 -6
+  [2502.000 ms] Tilt -0.51 deg, rate -0.9 deg/s, drives 86 86, counts 151 -6
 
 With the build flag BALANCE_RECORD, here 100 ms, and 20 samples, two tasks
 started by the first publication record the run from the arming for 2 s and
 print the recording, once complete, every 10 s; the filter recordings.awk of
 the target -capture extracts it. The recording has its header, the line of
 its columns and 20 rows of 9 fields, one every 100 ms; the tilt stays below 5
-degrees, the reference tilt within its limit of 10 degrees, and the counts of
-the wheels are equal:
+degrees, the reference tilt within its limit of 20 degrees, and the counts of
+the wheels within 500:
 
   $ build -DBALANCE_RECORD=100 -DBALANCE_RECORD_SAMPLES=20 && ./simulation 15000000 > record.log
   $ grep -c '^# Recording' record.log
@@ -245,10 +246,71 @@ the wheels are equal:
   >   NR > 2 && !/^#/ {
   >     n++
   >     if (NF != 9 || $1 != 100 * (n - 1)) print "row " n ": " $0
-  >     if (!within($2, 5) || !within($5, 10.01) || $8 != $9) print "row " n ": " $0
+  >     if (!within($2, 5) || !within($5, 20.01) || !within($8, 500) || !within($9, 500)) print "row " n ": " $0
   >   }
   >   END { print n " rows" }' record.csv
   20 rows
+
+The closed loop over 120 s from the arming, recorded every 100 ms and built
+without the trace, checked by the filter settled: given the balance tilt B
+and bounds T, R and S, it prints a row of the recording whose tilt is beyond
+the cutoff or, from 20 s on, whose tilt is not within T degrees of B, whose
+reference tilt is not within R degrees of B, or whose wheels are not within
+1000 counts of their start; then the number of rows, and whether from 20 s
+on the wheels stay within a span of S counts, and the span of the last 50 s
+exceeds that of the 50 s before by less than 10 counts, so that an
+oscillation does not grow:
+
+  $ quiet () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DBALANCE_RECORD=100 -DBALANCE_RECORD_SAMPLES=1200 "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
+  $ settled () {
+  >   awk -F, -v b="$1" -v t="$2" -v r="$3" -v s="$4" '
+  >     function within(x, d) { return (x < 0 ? -x : x) < d }
+  >     function span(k) { return high[k] - low[k] }
+  >     NR > 2 && !/^#/ {
+  >       n++
+  >       w = ($8 + $9) / 2
+  >       if (!within($2, 70)) print "row " n ", beyond the cutoff: " $0
+  >       if ($1 < 20000) next
+  >       if (!within($2 - b, t) || !within($5 - b, r) || !within(w, 1000))
+  >         print "row " n ": " $0
+  >       for (k = 0; k < 3; k++) {
+  >         if (k == 1 && $1 >= 70000 || k == 2 && $1 < 70000) continue
+  >         if (!(k in low) || w < low[k]) low[k] = w
+  >         if (!(k in high) || w > high[k]) high[k] = w
+  >       }
+  >     }
+  >     END {
+  >       print n " rows; the wheels from 20 s on " (span(0) < s ? "within" : "beyond") " a span of " s " counts, " \
+  >         (span(2) < span(1) + 10 ? "not growing" : "growing from " span(1) " to " span(2) " counts")
+  >     }' "$5"
+  > }
+  $ long () { ./simulation 124000000 | awk -f ../../../$app/recordings.awk > "$1"; }
+
+On the model, whose dead band of the right wheel, 180, exceeds the 70 that
+the step adds to a drive, the robot keeps a limit cycle of about 2 degrees,
+5 degrees of the reference tilt and 240 counts of the wheels:
+
+  $ quiet && long model.csv
+  $ settled 0 3 8 600 model.csv
+  1200 rows; the wheels from 20 s on within a span of 600 counts, not growing
+
+Without the dead bands of the motors, the robot settles within half a degree:
+
+  $ quiet -DPLANT_DEAD_BAND=0 -DPLANT_RIGHT_DEAD_BAND=0 && long ideal.csv
+  $ settled 0 0.5 1 20 ideal.csv
+  1200 rows; the wheels from 20 s on within a span of 20 counts, not growing
+
+The centre of mass of the model 0.035 rad (2 degrees) forwards of the axis of
+the body, and backwards, under the build flag PLANT_OFFSET of plant.cpp: the
+robot balances about a tilt of -2 and 2 degrees, the integral of the speed
+loop taking up the offset, with the wheels about 500 counts from their start:
+
+  $ quiet -DPLANT_OFFSET=0.035 && long forwards.csv
+  $ settled -2 3 8 600 forwards.csv
+  1200 rows; the wheels from 20 s on within a span of 600 counts, not growing
+  $ quiet -DPLANT_OFFSET=-0.035 && long backwards.csv
+  $ settled 2 3 8 600 backwards.csv
+  1200 rows; the wheels from 20 s on within a span of 600 counts, not growing
 
 The profile of the closed loop over 6 s, built with TEMPORE_PROFILE in place
 of TEMPORE_TRACE, at the end of the simulation: each call takes the nominal

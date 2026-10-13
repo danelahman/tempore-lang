@@ -128,24 +128,45 @@ let gyro_weight = 0.98
    proportional-derivative controller that sets the drive of the motors: the
    drive per degree of tilt and per degree per second of its rate, and the
    reference tilt per encoder count per second of the error of the speed
-   and per encoder count of its integral. The gains of the tilt loop were
-   tuned on the device, those of the speed loop on the host model
-   plant.cpp. *)
+   and per encoder count of its integral, the position of the wheels. The
+   gains of the tilt loop were tuned on the device, those of the speed loop
+   on the host model plant.cpp, whose linearisation is stable for speed
+   gains from 0.011 to 0.037: below, the speed of the wheels diverges, the
+   drive of the speed term falling short of that which the free speed of
+   the motors demands; above, the tilt loop oscillates. Both ends scale
+   with the inverse of the free speed. *)
 let tilt_gain = 25.0
 let rate_gain = 0.4
 let speed_gain = 0.02
-let integral_gain = 0.001
+let integral_gain = 0.004
+
+(* The weight of the previous speed in the filter of the speed, a
+   first-order low-pass filter with a time constant of about 50 ms. *)
+let speed_weight = 0.9
 
 (* The balance point, in degrees: the tilt at which the robot is upright,
    which the tilt loop subtracts from the tilt. The cutoff applies to the
    tilt itself. *)
 let balance_point = 0.0
 
-(* The bounds of the integral of the error of the speed, of the reference
-   tilt, in degrees, and of the tilt beyond which the motors stop. *)
-let integral_limit = 2000.0
-let reference_limit = 10.0
+(* The bounds of the integral of the error of the speed, which limits its
+   term of the reference tilt to 5 degrees, of the reference tilt, in
+   degrees, and of the tilt beyond which the motors stop. A reference tilt
+   at its bound leaves the speed of the wheels unstable, so that the bound
+   is above the reference tilts of the recovery from a disturbance. *)
+let integral_limit = 1250.0
+let reference_limit = 20.0
 let cutoff = 70.0
+
+(* The dead band of the motors, in units of drive: the drive below which a
+   wheel on the ground does not turn. A drive is moved away from zero by it,
+   the inverse of a dead zone (G. Tao and P. V. Kokotovic, "Adaptive control
+   of plants with unknown dead-zones", IEEE Transactions on Automatic
+   Control 39(1), 1994). *)
+let dead_band = 70.0
+
+let compensated (d : float) =
+  if d > 0.0 then d +. dead_band else if d < 0.0 then d -. dead_band else d
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
@@ -171,7 +192,10 @@ let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
   in
   let now = (float_of_int left +. float_of_int right) /. 2.0 in
-  let speed = (0.7 *. speed) +. (0.3 *. ((now -. position) /. period)) in
+  let speed =
+    (speed_weight *. speed)
+    +. ((1.0 -. speed_weight) *. ((now -. position) /. period))
+  in
   let error = speed -. target in
   let integral = clamp integral_limit (integral +. (error *. period)) in
   let reference =
@@ -184,7 +208,8 @@ let step ((tilt, speed, integral, position) : state) : state # [0, 5) =
       (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
     perform SetMotors
-      (bala2_drive (drive +. turn), bala2_drive (drive -. turn));
+      ( bala2_drive (compensated (drive +. turn)),
+        bala2_drive (compensated (drive -. turn)) );
     (tilt, speed, integral, now)
   else (
     perform SetMotors (0i, 0i);

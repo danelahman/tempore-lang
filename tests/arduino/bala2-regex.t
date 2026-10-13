@@ -45,10 +45,10 @@ simulated robot from a tilt of 3 degrees, and 10 steps of the robot held
 upright with the gyroscope stuck, from the eighth of which on the step stops
 the motors:
 
-  $ grep -A 1 '^=== Run [23]' runs
+  $ grep -A 2 '^=== Run 2' runs | sed 's/ *$//'; grep -A 1 '^=== Run 3' runs
   === Run 2 ===
-  return ((0.268872806919, -1.04681773741, 0.0122128736031, 0.), 0.221364260223)
-  --
+  return ((0.0938558826909, -1.48653397372, 0.0668940288176, 0.),
+          -0.0550371555741)
   === Run 3 ===
   return ((89.6343246251, 0., 0., 0.), 0.)
 
@@ -197,8 +197,8 @@ the reading, and delays the reading:
   7 |   let token = calibrate () in
                     ^^^^^^^^^
   Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 330-332, characters 0-51:
-    330 | let calibrate () =
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 341-343, characters 0-51:
+    341 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
     File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:
@@ -269,8 +269,9 @@ exceptions and run-time type information:
 The closed loop for 8 s from a tilt of 0.1 rad, the robot held until its
 motors are first driven, as for examples/arduino/bala2: the supervision
 calibrates the gyroscope, arms the robot after a second and shows the tilt
-every second; the tilt stays below half a degree from one second after the
-release. The digits of the simulated tilt depend on the rounding of the
+every second; the tilt stays below 2.5 degrees from one second after the
+release, the dead band of the right wheel of the model exceeding that of the
+step. The digits of the simulated tilt depend on the rounding of the
 single-precision functions of the C library, so that the filter balanced
 checks the tilts, the position of the wheels and the largest drive against
 bounds, and prints the other events as they are:
@@ -280,19 +281,19 @@ bounds, and prints the other events as they are:
   >     function within(x, b) { return (x < 0 ? -x : x) < b }
   >     function check(ok, text) { print (ok ? text : $0) }
   >     / Display: -?[0-9]+\.[0-9]+$/ {
-  >       check(within($NF, 0.5), $1 " " $2 " Display: a tilt below 0.5 degrees"); next
+  >       check(within($NF, 2.5), $1 " " $2 " Display: a tilt below 2.5 degrees"); next
   >     }
   >     / Plant: tilt / {
-  >       check(within($5, 0.2) && within($9, 0.01),
-  >         $1 " " $2 " Plant: tilt below 0.2 degrees, wheels within 0.01 m"); next
+  >       check(within($5, 2.5) && within($9, 0.2),
+  >         $1 " " $2 " Plant: tilt below 2.5 degrees, wheels within 0.2 m"); next
   >     }
   >     / Plant: largest tilt / {
-  >       check(within($(NF - 1), 0.5),
-  >         $1 " " $2 " Plant: largest tilt from 1 s after the release below 0.5 degrees"); next
+  >       check(within($(NF - 1), 2.5),
+  >         $1 " " $2 " Plant: largest tilt from 1 s after the release below 2.5 degrees"); next
   >     }
   >     / Plant: largest drive / {
   >       d = $6; sub(/,$/, "", d)
-  >       check(within(d, 0.2), $1 " " $2 " Plant: largest drive below 0.2, " $7 " " $8 " " $9 " " $10); next
+  >       check(within(d, 0.4), $1 " " $2 " Plant: largest drive below 0.4, " $7 " " $8 " " $9 " " $10); next
   >     }
   >     { print }'
   > }
@@ -302,14 +303,14 @@ bounds, and prints the other events as they are:
   [32.245 ms] Display: Calibrating
   [533.245 ms] Display: Hold upright
   [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: a tilt below 0.5 degrees
-  [3436.245 ms] Display: a tilt below 0.5 degrees
-  [4437.245 ms] Display: a tilt below 0.5 degrees
-  [5438.245 ms] Display: a tilt below 0.5 degrees
-  [6439.245 ms] Display: a tilt below 0.5 degrees
-  [7440.245 ms] Display: a tilt below 0.5 degrees
+  [2435.245 ms] Display: a tilt below 2.5 degrees
+  [3436.245 ms] Display: a tilt below 2.5 degrees
+  [4437.245 ms] Display: a tilt below 2.5 degrees
+  [5438.245 ms] Display: a tilt below 2.5 degrees
+  [6439.245 ms] Display: a tilt below 2.5 degrees
+  [7440.245 ms] Display: a tilt below 2.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1537.0 ms
-  [8000.000 ms] Plant: tilt below 0.2 degrees, wheels within 0.01 m
-  [8000.000 ms] Plant: largest tilt from 1 s after the release below 0.5 degrees
-  [8000.000 ms] Plant: largest drive below 0.2, last at 8000.0 ms
+  [8000.000 ms] Plant: tilt below 2.5 degrees, wheels within 0.2 m
+  [8000.000 ms] Plant: largest tilt from 1 s after the release below 2.5 degrees
+  [8000.000 ms] Plant: largest drive below 0.4, last at 8000.0 ms

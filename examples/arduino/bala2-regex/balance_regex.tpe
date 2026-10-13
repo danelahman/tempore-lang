@@ -112,19 +112,26 @@ default Command _ = delay 1/100
 type state = float * float * float * float
 
 (* The period, in seconds, the weight of the gyroscope in the complementary
-   filter of the tilt, the gains and bounds of the controller, and the
-   balance point, in degrees, which the tilt loop subtracts from the tilt,
-   those of balance.tpe. *)
+   filter of the tilt, the gains and bounds of the controller, the weight of
+   the previous speed in the filter of the speed, the balance point, in
+   degrees, which the tilt loop subtracts from the tilt, and the dead band
+   of the motors, in units of drive, by which a drive is moved away from
+   zero, those of balance.tpe. *)
 let period = 0.005
 let gyro_weight = 0.98
 let tilt_gain = 25.0
 let rate_gain = 0.4
 let speed_gain = 0.02
-let integral_gain = 0.001
-let integral_limit = 2000.0
-let reference_limit = 10.0
+let integral_gain = 0.004
+let speed_weight = 0.9
+let integral_limit = 1250.0
+let reference_limit = 20.0
 let cutoff = 70.0
 let balance_point = 0.0
+let dead_band = 70.0
+
+let compensated (d : float) =
+  if d > 0.0 then d +. dead_band else if d < 0.0 then d -. dead_band else d
 
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
@@ -153,7 +160,10 @@ let step ((tilt, speed, integral, position) : state) : state
     complementary gyro_weight period tilt (tilt_x_of_accel accel) rate
   in
   let now = (float_of_int left +. float_of_int right) /. 2.0 in
-  let speed = (0.7 *. speed) +. (0.3 *. ((now -. position) /. period)) in
+  let speed =
+    (speed_weight *. speed)
+    +. ((1.0 -. speed_weight) *. ((now -. position) /. period))
+  in
   let error = speed -. target in
   let integral = clamp integral_limit (integral +. (error *. period)) in
   let reference =
@@ -166,7 +176,8 @@ let step ((tilt, speed, integral, position) : state) : state
       (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
     perform SetMotors
-      (bala2_drive (drive +. turn), bala2_drive (drive -. turn));
+      ( bala2_drive (compensated (drive +. turn)),
+        bala2_drive (compensated (drive -. turn)) );
     (tilt, speed, integral, now)
   else (
     perform SetMotors (0i, 0i);
@@ -643,7 +654,7 @@ let slow_robot =
 *)
 
 (* The closed loop of 20 control steps, 100 ms, from a tilt of 3 degrees:
-   the step brings the tilt of the model to 0.22 degrees. *)
+   the step brings the tilt of the model to -0.06 degrees. *)
 run balance 20 3.0 0.0 0.0 (3.0, 0.0, 0.0, 0.0)
 
 (* Ten control steps with the gyroscope stuck: the filtered tilt grows by
