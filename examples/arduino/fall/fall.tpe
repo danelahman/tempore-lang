@@ -30,7 +30,8 @@
    some of them provisional.
 
    On the board: make arduino-fall-upload; simulated on the host: make
-   arduino-fall-simulate ('make examples-help', README: Arduino). *)
+   arduino-fall-simulate ('make examples-help',
+   src/05-backends/arduino/README.md). *)
 
 (* A fall: the least magnitude of the acceleration at the start of its free
    fall and the peak magnitude of its impact, in g. *)

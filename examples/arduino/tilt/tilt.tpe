@@ -21,7 +21,8 @@
    the CoreS3.
 
    On the board: make arduino-tilt-upload; simulated on the host: make
-   arduino-tilt-simulate ('make examples-help', README: Arduino). *)
+   arduino-tilt-simulate ('make examples-help',
+   src/05-backends/arduino/README.md). *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the display reads the tilt last published. The

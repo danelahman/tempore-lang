@@ -29,7 +29,8 @@
    those under the bounds of the CoreS3, some of them provisional.
 
    On the board: make arduino-level-upload; simulated on the host: make
-   arduino-level-simulate ('make examples-help', README: Arduino). *)
+   arduino-level-simulate ('make examples-help',
+   src/05-backends/arduino/README.md). *)
 
 (* A reference: none yet, held still before it is taken for the given
    number of steps, rejected by its check at rest, invalidated by a

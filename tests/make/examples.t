@@ -23,8 +23,8 @@ example has its fragment:
   >   [ -f "${d}example.mk" ] || echo "$d: no fragment example.mk"
   > done
 
-The commands of a file, the headers of the examples or the README, their
-lines joined:
+The commands of a file, the headers of the examples or the README of the
+Arduino backend, their lines joined:
 
   $ commands () {
   >   awk '!c && /^ *(PLATFORMIO_BUILD_FLAGS=[^ ]* \\$|\.\/tempore )/ { c = 1; s = "" }
@@ -43,9 +43,9 @@ that simulates it:
   > done
 
 The header of an Arduino example names its make targets instead of their
-commands, which the README documents. Each target that the header names is
-defined, and the header names the targets -simulate and -upload of its
-example:
+commands, which the README of the Arduino backend documents. Each target
+that the header names is defined, and the header names the targets -simulate
+and -upload of its example:
 
   $ for d in examples/arduino/*/; do
   >   n=$(basename "$d"); p=$(basename "$d"*.device.json .device.json)
@@ -75,12 +75,13 @@ target -simulate, and the packages and the board of its manifest:
   >     printf '%s:\n  %s\n  %s\n' "$n" "$header" "$expected"
   > done
 
-The commands of the README, its lines joined: the target -simulate of bala2
-runs the command of the README that simulates it on the host, with the
-monitor policy abort, the default, given explicitly, and the target -profile
-runs that of the README under CAPTURE=60:
+The commands of the README of the Arduino backend, their lines joined: the
+target -simulate of bala2 runs the command of the README that simulates it on
+the host, with the monitor policy abort, the default, given explicitly, and
+the target -profile runs that of the README under CAPTURE=60:
 
-  $ readme=$(commands README.md | grep -e '--emit-arduino balance')
+  $ readme=$(commands src/05-backends/arduino/README.md |
+  >   grep -e '--emit-arduino balance')
   $ echo "$readme" | wc -l | tr -d ' '
   2
   $ made=$(dry arduino-bala2-simulate | sed 's/ --monitor abort//')

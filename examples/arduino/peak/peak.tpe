@@ -23,7 +23,8 @@
    bounds, and only the monitor of the device checks the period.
 
    On the board: make arduino-peak-upload; simulated on the host: make
-   arduino-peak-simulate ('make examples-help', README: Arduino). *)
+   arduino-peak-simulate ('make examples-help',
+   src/05-backends/arduino/README.md). *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
    the tilt, in degrees, and the recorder reads the tilt last published. *)

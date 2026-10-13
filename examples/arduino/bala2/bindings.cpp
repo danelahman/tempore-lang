@@ -24,8 +24,8 @@
 //
 // The make targets arduino-bala2-log and arduino-bala2-regex-log build with
 // BALANCE_LOG, and arduino-bala2-record and arduino-bala2-regex-record with
-// BALANCE_RECORD, whose recordings the targets -capture read (README:
-// Recording a run).
+// BALANCE_RECORD, whose recordings the targets -capture read
+// (src/05-backends/arduino/README.md: Recording a run).
 //
 // Under the build flag BALANCE_RECORD, an interval in milliseconds, the first
 // publication starts two tasks on core 0, which record and print the run:

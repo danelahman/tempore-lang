@@ -29,7 +29,8 @@
    ReadImu that it calls is.
 
    On the board: make arduino-calibrated-upload; simulated on the host: make
-   arduino-calibrated-simulate ('make examples-help', README: Arduino). *)
+   arduino-calibrated-simulate ('make examples-help',
+   src/05-backends/arduino/README.md). *)
 
 (* The exchange between the tasks, through bindings.cpp, as in tilt.tpe. *)
 
