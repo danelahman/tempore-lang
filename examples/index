@@ -53,7 +53,7 @@
 
 default | introduction/sensor_reading.tpe
 default | opentrons/elisa.tpe
-default | arduino/tilt/tilt.tpe
+default | arduino/bala2/balance.tpe
 
 group | Introduction | Introduction | Boxes graded first by the time since boxing, then by the operations performed since boxing.
 Introduction | Sensor reading | time-interval-rational | introduction/sensor_reading.tpe | A sensor reading in a box graded with a time interval, usable only once its scan is complete and while it is current, with operations taking time and a handler implementing the scan.
