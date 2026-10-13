@@ -117,31 +117,57 @@ exceptions and run-time type information, and its host build:
   30
   $ cd _arduino/projects/balance
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
-  $ build () { c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
+  $ build () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
   $ events () { ./simulation "$1" | grep -v '\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)'; }
   $ cd ../../..
 
 The closed loop for 8 s from a tilt of 0.1 rad, the robot held until its
 motors are first driven: the supervision calibrates the gyroscope, arms the
 robot after a second and shows the tilt every second; the tilt stays below
-a degree from one second after the release:
+half a degree from one second after the release. The digits of the simulated
+tilt depend on the rounding of the single-precision functions of the C
+library, so that the filter balanced checks the tilts, the position of the
+wheels and the largest drive against bounds, and prints the other events as
+they are:
 
-  $ tempore --emit-arduino balance --device $app/balance.device.json --host-simulate 8 $app/balance.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)'
+  $ balanced () {
+  >   awk '
+  >     function within(x, b) { return (x < 0 ? -x : x) < b }
+  >     function check(ok, text) { print (ok ? text : $0) }
+  >     / Display: -?[0-9]+\.[0-9]+$/ {
+  >       check(within($NF, 0.5), $1 " " $2 " Display: a tilt below 0.5 degrees"); next
+  >     }
+  >     / Plant: tilt / {
+  >       check(within($5, 0.2) && within($9, 0.01),
+  >         $1 " " $2 " Plant: tilt below 0.2 degrees, wheels within 0.01 m"); next
+  >     }
+  >     / Plant: largest tilt / {
+  >       check(within($(NF - 1), 0.5),
+  >         $1 " " $2 " Plant: largest tilt from 1 s after the release below 0.5 degrees"); next
+  >     }
+  >     / Plant: largest drive / {
+  >       d = $6; sub(/,$/, "", d)
+  >       check(within(d, 0.2), $1 " " $2 " Plant: largest drive below 0.2, " $7 " " $8 " " $9 " " $10); next
+  >     }
+  >     { print }'
+  > }
+
+  $ tempore --emit-arduino balance --device $app/balance.device.json --host-simulate 8 $app/balance.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
   [32.245 ms] Display: Calibrating
   [533.245 ms] Display: Hold upright
   [1534.245 ms] Display: Armed
-  [2435.245 ms] Display: -0.046
-  [3436.245 ms] Display: -0.059
-  [4437.245 ms] Display: -0.167
-  [5438.245 ms] Display: -0.177
-  [6439.245 ms] Display: -0.173
-  [7440.245 ms] Display: -0.066
+  [2435.245 ms] Display: a tilt below 0.5 degrees
+  [3436.245 ms] Display: a tilt below 0.5 degrees
+  [4437.245 ms] Display: a tilt below 0.5 degrees
+  [5438.245 ms] Display: a tilt below 0.5 degrees
+  [6439.245 ms] Display: a tilt below 0.5 degrees
+  [7440.245 ms] Display: a tilt below 0.5 degrees
   [8000.000 ms] End of the simulation
   [8000.000 ms] Plant: released at 1537.0 ms
-  [8000.000 ms] Plant: tilt -0.07 degrees, wheels at 0.004 m
-  [8000.000 ms] Plant: largest tilt from 1 s after the release 0.28 degrees
-  [8000.000 ms] Plant: largest drive 0.140, last at 8000.0 ms
+  [8000.000 ms] Plant: tilt below 0.2 degrees, wheels within 0.01 m
+  [8000.000 ms] Plant: largest tilt from 1 s after the release below 0.5 degrees
+  [8000.000 ms] Plant: largest drive below 0.2, last at 8000.0 ms
 
 From a tilt of 1.3 rad (74.5 degrees), beyond the cutoff of 70 degrees, the
 step never drives the motors, and the robot falls when released at 2 s:
@@ -203,7 +229,7 @@ time of its binding or device model, and the steps keep their period of 5 ms
 from the second on, the first starting late in its tick after the initial
 function:
 
-  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_PROFILE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_PROFILE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 6000000 | sed -n '/End of the simulation/,$p' | grep -v Plant
   [6000.000 ms] End of the simulation
   [6000.000 ms] Profile since start-up, times in microseconds

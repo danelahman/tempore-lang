@@ -143,7 +143,7 @@ is called by setup():
     auto state = start_0(tempore_unit{});
     TickType_t release = xTaskGetTickCount();
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
-  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
 
 The monitors of the device check the running-time bounds of the board of
@@ -261,7 +261,7 @@ the safe-state hook of the application:
     bala2_base_init();
   $ cd _arduino/projects/drive
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
-  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
 
 Raw register transactions with the package i2c on a generic ESP32, against
@@ -316,7 +316,7 @@ an address without a device is a run-time error, which enters the safe state:
   [2.931 ms] Task check stopped
   [10.000 ms] End of the simulation
   $ cd _arduino/projects/memory
-  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
 
 Two tasks share the bus: the second waits for the lock of the I2C buses until

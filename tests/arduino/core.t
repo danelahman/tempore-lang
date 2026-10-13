@@ -1,12 +1,13 @@
 Programs compiled to C++ for the host print the results of their runs as the
 interpreter prints them. The interpreter also prints the final state of the
 resources of each run, which is dropped before the comparison. The generated
-code compiles without warnings.
+code compiles without warnings, here, as for the host simulation, without the
+contraction of floating-point expressions into fused multiply-adds.
 
   $ strip_state () { awk '/^State:/ { skip = 1 } /^$/ { skip = 0 } !skip'; }
   $ compile () {
   >   ../../tempore --emit-arduino "${1%.tpe}" --host-runs "$1" > /dev/null &&
-  >   c++ -std=c++17 -Wall -Wextra -Werror -O2 -o "${1%.tpe}.host" \
+  >   c++ -std=c++17 -Wall -Wextra -Werror -O2 -ffp-contract=off -o "${1%.tpe}.host" \
   >     "_arduino/projects/${1%.tpe}/tempore_program.cpp" \
   >     "_arduino/projects/${1%.tpe}/tempore_host_main.cpp"
   > }
@@ -18,7 +19,10 @@ code compiles without warnings.
 
 Floats are single precision in C++ and double precision in the interpreter, so
 the results with floats are compared up to a difference of 10^-4, relative to
-numbers above 1, and their text otherwise.
+numbers above 1, and their text otherwise. The results of the C++ runs are
+then printed with their floats rounded to 6 significant digits, since the last
+digits of single-precision functions such as atan and atan2 depend on the C
+library.
 
   $ close () {
   >   paste -d '\n' "$1" "$2" | awk '
@@ -47,10 +51,24 @@ numbers above 1, and their text otherwise.
   >     }
   >     END { exit status }'
   > }
+  $ significant () {
+  >   awk '{
+  >     out = ""; s = $0
+  >     while (match(s, /-?[0-9]+\.[0-9]*(e[-+]?[0-9]+)?/)) {
+  >       x = substr(s, RSTART, RLENGTH); d = x
+  >       sub(/e.*/, "", d); gsub(/[^0-9]/, "", d)
+  >       sub(/^0+/, "", d); sub(/0+$/, "", d)
+  >       if (length(d) > 6) x = sprintf("%.6g", x + 0)
+  >       out = out substr(s, 1, RSTART - 1) x
+  >       s = substr(s, RSTART + RLENGTH)
+  >     }
+  >     print out s
+  >   }'
+  > }
   $ parity_close () {
   >   ../../tempore "$1" 2>&1 | strip_state > interpreter.out
   >   compile "$1" && "./${1%.tpe}.host" > cxx.out 2>&1
-  >   close interpreter.out cxx.out && cat cxx.out
+  >   close interpreter.out cxx.out && significant < cxx.out
   > }
 
   $ parity nat.tpe
@@ -141,7 +159,7 @@ numbers above 1, and their text otherwise.
   return (3.5, -0.5, 3., 0.75, 2.25, -1.5)
   
   === Run 2 ===
-  return (4., -2., 3., 0.333333343267, 1., -1.)
+  return (4., -2., 3., 0.333333, 1., -1.)
   
   === Run 3 ===
   return (false, false, true, true, false, true)
@@ -161,7 +179,7 @@ numbers above 1, and their text otherwise.
   return (5.25, (1., 2.))
   
   === Run 2 ===
-  return 0.999988079071
+  return 0.999988
   
 
   $ parity_close float_functions.tpe
@@ -178,22 +196,22 @@ numbers above 1, and their text otherwise.
   return 0
   
   === Run 5 ===
-  return ((2., 1.3258177042), (1.41421353817, 1.10714876652))
+  return ((2., 1.32582), (1.41421, 1.10715))
   
   === Run 6 ===
-  return ((nan, -0.785398185253), (infinity, 1.5707962513))
+  return ((nan, -0.785398), (infinity, 1.5708))
   
   === Run 7 ===
   return (-0., nan)
   
   === Run 8 ===
-  return (0.785398185253, 2.35619449615, -2.35619449615)
+  return (0.785398, 2.35619, -2.35619)
   
   === Run 9 ===
-  return (0., 3.14159250259, -3.14159274101)
+  return (0., 3.14159, -3.14159)
   
   === Run 10 ===
-  return (1.57079637051, 0.785398185253, nan)
+  return (1.5708, 0.785398, nan)
   
 
   $ parity nat_of_float_infinity.tpe

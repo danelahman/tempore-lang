@@ -201,7 +201,7 @@ repeats after two seconds; the step runs every 10 ms:
 With the right wheel stalled, the check reports its fault:
 
   $ cd _arduino/projects/wheels
-  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -DSTAND_STALLED_WHEEL -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DSTAND_STALLED_WHEEL -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 3000000 | grep '\] Display'
   [31.245 ms] Display cleared
   [534.831 ms] Display: Right wheel fault
