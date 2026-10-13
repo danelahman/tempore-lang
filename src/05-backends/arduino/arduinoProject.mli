@@ -156,7 +156,8 @@ val host_build_command :
   string list
 (** [host_build_command ~directory ~output files] is the command, as a list of
     its words, that compiles the project [files] written to [directory] for the
-    host simulation into the executable [output], with [c++] under C++17,
+    host simulation into the executable [output], with [c++] under C++17 without
+    the contraction of floating-point expressions into fused multiply-adds,
     [TEMPORE_HOST] and [TEMPORE_TRACE] defined, and threads; under [~profile]
     (default [false]), with [TEMPORE_PROFILE] in place of [TEMPORE_TRACE]. The
     executable takes the simulated duration in microseconds as its argument and

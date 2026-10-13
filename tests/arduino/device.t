@@ -31,7 +31,7 @@ tasks of the manifest, and the stubs of the host simulation.
   ; The PlatformIO project of a device programmed in Tempore, for the board esp32-devkit.
   
   [env:esp32-devkit]
-  platform = espressif32
+  platform = espressif32@7.1.3
   board = esp32dev
   framework = arduino
   monitor_speed = 115200
@@ -157,7 +157,7 @@ The sources build without warnings, also without exceptions and run-time type
 information, and the host simulation builds with the stubs:
 
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
-  $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ cd ../../..
 
 A board with M5Unified initialises it, and its sources build with the stubs:
@@ -173,10 +173,10 @@ A board with M5Unified initialises it, and its sources build with the stubs:
     Wire.setClock(400000);
   $ grep -A 4 'lib_deps' _arduino/projects/gray/platformio.ini
   lib_deps =
-      m5stack/M5Unified@^0.2.2
+      m5stack/M5Unified@0.2.25
+      m5stack/M5GFX@0.2.32
   build_flags =
       -std=gnu++17
-  build_unflags = -std=gnu++11
   $ cd _arduino/projects/gray
   $ c++ -std=c++17 -Wall -Wextra -Werror -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..

@@ -743,6 +743,7 @@ let host_build_command ?(profile = false) ~directory ~output files =
   [
     "c++";
     "-std=c++17";
+    "-ffp-contract=off";
     "-DTEMPORE_HOST";
     (if profile then "-DTEMPORE_PROFILE" else "-DTEMPORE_TRACE");
     "-pthread";

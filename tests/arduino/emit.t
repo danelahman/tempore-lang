@@ -141,7 +141,7 @@ error.
   Wrote out/controller/tempore_program.h
   Wrote out/controller/tempore_program.cpp
   Wrote out/controller/tempore_host_main.cpp
-  $ c++ -std=c++17 -Wall -Wextra -Werror -o controller.host \
+  $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -o controller.host \
   >   out/controller/tempore_program.cpp out/controller/tempore_host_main.cpp
   $ ./controller.host
   === Run 1 ===
