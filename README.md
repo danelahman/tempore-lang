@@ -1439,7 +1439,9 @@ An application is described in four layers.
     of the M5Stack BALA2, with a watchdog of the motor setpoints; the counts
     of the encoders increase in the direction in which a positive drive turns
     the wheel (the registers of the base count the other way, and the package
-    negates them).
+    negates them); its header `bala2_base.h` gives the application the drives
+    last written and the counts last read, for logging outside the timed
+    bindings.
 - The **application** is the program with its binding file, which defines,
   for each further operation `Op`, the function
   `tempore_result_Op binding_Op(tempore_argument_Op)`, and the safe-state
@@ -1454,8 +1456,13 @@ no durations, such as the operation counts, the period is checked by the
 monitor of the device only, and the operations have no running-time bounds.
 Boxes specify how long a reading may be used and, under other grades, which
 operations must or may not precede its use. These guarantees are relative to
-the declared bounds of the operations, which are provisional until measured on the devices. On the device, each call
-of a binding function is monitored against these bounds and each step of a
+the declared bounds of the operations. The bounds of the packages and of the
+examples are measured on the devices by their profile (`--profile` with
+`--capture`, below): the lower bound is the least time measured, rounded
+down, and the upper bound 1.5 times the greatest, rounded up. Each
+declaration states its measurements, and how the bounds not measured
+directly, such as those of the package `i2c`, are derived. On the device,
+each call of a binding function is monitored against these bounds and each step of a
 periodic task against its period; a violation puts the device in its safe
 state and stops the tasks, is logged, or is not checked, according to the
 monitor policy `abort`, `warn` or `off`. Watchdogs, cut-offs and the safe
@@ -1464,7 +1471,10 @@ typing.
 
 The project can be simulated on the host: the tasks run against host models
 of the devices and of the physical world, in simulated time, and the log is
-printed.
+printed. The host model of the I2C bus charges a transaction with the
+transfer of its bytes at the frequency of the bus and a time per address
+phase measured on the M5Stack Gray, 110 microseconds unless the build flag
+`TEMPORE_I2C_MODEL_PHASE_US` sets it.
 
 The I2C buses of a board profile are started after M5Unified and then set to
 their frequency, since M5Unified may already have started a bus that shares
@@ -1491,7 +1501,11 @@ examples, each with its manifest and binding file:
 
 - [`bala2/balance.tpe`](examples/arduino/bala2/balance.tpe): a 5 ms balancing
   step of the M5Stack BALA2 robot with its supervision and calibration, and
-  the host model of a wheeled inverted pendulum;
+  the host model of a wheeled inverted pendulum; the build flag
+  `BALANCE_LOG` (an interval in milliseconds, e.g.
+  `PLATFORMIO_BUILD_FLAGS=-DBALANCE_LOG=20` with `--upload` and `--capture`)
+  logs its tilt, gyroscope rate, drives and encoder counts from a task of
+  the lowest priority;
 - [`bala2-regex/balance_regex.tpe`](examples/arduino/bala2-regex/balance_regex.tpe):
   the same robot under the regular expressions of timed operations, sharing
   the binding file and host model of `bala2`: the step reads the unit, the

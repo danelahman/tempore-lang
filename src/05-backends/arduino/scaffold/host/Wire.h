@@ -2,10 +2,14 @@
 // tempore_i2c_model.h answer at their addresses.
 //
 // A transaction takes the simulated time of its bits at the frequency of the
-// bus: nine per byte, the address included. A transmission ended without a
-// stop is charged with the request that follows it, so that a write of a
-// register address and the read after it take place at once for the other
-// tasks. With TEMPORE_TRACE defined, each transaction is logged.
+// bus, nine per byte, the address included, and TEMPORE_I2C_MODEL_PHASE_US
+// microseconds (110 unless the build flag sets it) for each address phase:
+// the time beyond the transfer of the bytes measured on an M5Stack Gray core
+// at 400 kHz, 85 to 157 microseconds for a write of 6 bytes, of one phase,
+// and 107 to 203 per phase for a read of 8 bytes, of two. A transmission
+// ended without a stop is charged with the request that follows it, so that
+// a write of a register address and the read after it take place at once for
+// the other tasks. With TEMPORE_TRACE defined, each transaction is logged.
 
 #ifndef TEMPORE_HOST_WIRE_H
 #define TEMPORE_HOST_WIRE_H
@@ -38,6 +42,7 @@ class TwoWire {
   size_t received_length_ = 0;
   size_t received_position_ = 0;
   uint64_t pending_bits_ = 0;
+  uint32_t pending_phases_ = 0;
 
   void elapse(uint64_t bits);
 };

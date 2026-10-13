@@ -1,7 +1,8 @@
 // The host model of the inertial measurement unit of an M5Stack core: the
 // readings of a unit whose x axis is the axis of the tilt of the world, from
-// the state of the world, without noise. A read takes 383 microseconds, the
-// transfer of 17 bytes over an I2C bus at 400 kHz.
+// the state of the world, without noise. A read takes 603 microseconds, the
+// time of a read of 14 bytes on the host model of an I2C bus at 400 kHz: the
+// transfer of 17 bytes and two address phases.
 
 #include <Arduino.h>
 #include <M5Unified.h>
@@ -13,7 +14,7 @@
 static const double m5_imu_degrees = 180.0 / 3.14159265358979323846;
 
 int tempore_m5_imu::update() {
-  delayMicroseconds(383);
+  delayMicroseconds(603);
   const tempore_world &w = tempore_world_now();
   accel[0] = 0.0f;
   accel[1] = static_cast<float>(sin(w.tilt));

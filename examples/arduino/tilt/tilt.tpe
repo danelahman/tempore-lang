@@ -34,7 +34,11 @@
    --host-simulate. *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
-   the tilt, in degrees, and the display reads the tilt last published. *)
+   the tilt, in degrees, and the display reads the tilt last published. The
+   bounds of the running times are measured on the device by its profile
+   (2026-10-14): Publish took 0 to 0.028 ms and Latest 0.001 to 0.004 ms;
+   with the margin of the packages, 1.5 times the greatest time, rounded up,
+   each is bounded by 0.05 ms. *)
 
 operation Publish : float ~> unit # [0, 0.05]
 default Publish _ = delay 1/100
@@ -49,7 +53,7 @@ let gyro_weight = 0.9
 
 (* Correctly accepted by the typechecker: the step reads the unit, boxes the
    reading for 5 ms, filters the tilt about the x axis of the unit from it
-   and publishes the tilt; it ends within 0.2 to 0.85 ms, below its
+   and publishes the tilt; it ends within 0.2 to 1.8 ms, below its
    period. *)
 let step (tilt : float) : float # [0, 20) =
   let reading = perform ReadImu () in
@@ -77,14 +81,14 @@ let show () =
   delay 250
 
 (* Correctly rejected by the typechecker: the display reads the tilt before
-   it clears the screen and writes the title, and then shows a reading 10.2
-   to 80 ms old:
+   it clears the screen and writes the title, and then shows a reading 31.1
+   to 60.5 ms old:
 
-     Typing error: Variable `fresh` is unboxed with grade `[10.2, 80]`
+     Typing error: Variable `fresh` is unboxed with grade `[31.1, 60.5]`
        accumulated since it was bound, which is not below its box grade
        `[0, 5]`
        ...
-       Note: the resource inequality `[10.2, 80] <= [0, 5]` does not hold
+       Note: the resource inequality `[31.1, 60.5] <= [0, 5]` does not hold
 *)
 (*
 let show_stale () =
@@ -97,12 +101,13 @@ let show_stale () =
   delay 250
 *)
 
-(* Correctly rejected by the typechecker: the step shows the tilt itself,
-   which takes up to 20 ms, so that the step may last its period or longer:
+(* Correctly rejected by the typechecker: the step clears the screen and
+   shows the tilt itself, which takes at least 31 ms, so that the step lasts
+   longer than its period:
 
-     Typing error: This function's body has grade `[0.4, 20.8]`, which does
-       not match its annotated grade `[0, 20)`
-       Note: the effect inequality `[0.4, 20.8] <= [0, 20)` does not hold
+     Typing error: This function's body has grade `[31.3, 62.25]`, which
+       does not match its annotated grade `[0, 20)`
+       Note: the effect inequality `[31.3, 62.25] <= [0, 20)` does not hold
 *)
 (*
 let step_shown (tilt : float) : float # [0, 20) =
@@ -110,6 +115,7 @@ let step_shown (tilt : float) : float # [0, 20) =
   box [0, 5] reading as fresh in
   unbox fresh as imu in
   let tilt = tilt_x gyro_weight period tilt imu in
+  perform ClearDisplay ();
   perform ShowNumber tilt;
   tilt
 *)

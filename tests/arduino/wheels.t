@@ -23,14 +23,14 @@ implementations of the operations:
   === Run 2 ===
   return (0., 0.)
   State: [
-    [{0.2}, {0.2}],
+    [{0.35}, {0.35}],
     { resource_0 ↦
         0.1
         # [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]
     },
     [{0.2}, {0.2}],
     [{100}, {100}],
-    [{0.25}, {0.25}],
+    [{0.5}, {0.5}],
     [{0.2}, {0.2}]
   ]
   
@@ -151,20 +151,20 @@ the operations, which the monitors check; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json $app/wheels.tpe | grep -c Wrote
-  29
+  30
   $ grep -A3 '^\[env' _arduino/projects/wheels/platformio.ini
   [env:m5stack-gray]
   platform = espressif32
   board = m5stack-grey
   framework = arduino
   $ grep 'bounds = ' _arduino/projects/wheels/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 800, false, true};
-  static const tempore_bounds tempore_op_ShowText_bounds = {200, false, 20000, false, true};
-  static const tempore_bounds tempore_op_ShowNumber_bounds = {200, false, 20000, false, true};
-  static const tempore_bounds tempore_op_ClearDisplay_bounds = {10000, false, 60000, false, true};
-  static const tempore_bounds tempore_op_SetMotors_bounds = {50, false, 500, false, true};
-  static const tempore_bounds tempore_op_ReadEncoders_bounds = {100, false, 600, false, true};
-  static const tempore_bounds tempore_op_ResetEncoders_bounds = {50, false, 500, false, true};
+  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 1750, false, true};
+  static const tempore_bounds tempore_op_ShowText_bounds = {100, false, 12500, false, true};
+  static const tempore_bounds tempore_op_ShowNumber_bounds = {100, false, 12500, false, true};
+  static const tempore_bounds tempore_op_ClearDisplay_bounds = {31000, false, 48000, false, true};
+  static const tempore_bounds tempore_op_SetMotors_bounds = {200, false, 450, false, true};
+  static const tempore_bounds tempore_op_ReadEncoders_bounds = {450, false, 1000, false, true};
+  static const tempore_bounds tempore_op_ResetEncoders_bounds = {300, false, 600, false, true};
   static const tempore_bounds tempore_op_Publish_bounds = {0, false, 50, false, true};
   static const tempore_bounds tempore_op_Latest_bounds = {0, false, 50, false, true};
   $ cd _arduino/projects/wheels
@@ -173,25 +173,25 @@ exceptions and run-time type information:
 
 Three seconds of simulated time: the check spins the wheels forwards and
 backwards, each window from the drive command to the reading of the encoders
-lasting about 100.25 ms, shows the forward speeds, 310 counts per second, and
+lasting about 100.47 ms, shows the forward speeds, 310 counts per second, and
 repeats after two seconds; the step runs every 10 ms:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep '\] \(Display\|Operation SetMotors\|Operation ReadEncoders\)\|simulation'
-  [31.135 ms] Display cleared
-  [31.495 ms] Operation SetMotors took 135 us
-  [131.743 ms] Operation ReadEncoders took 248 us
-  [131.878 ms] Operation SetMotors took 135 us
-  [432.238 ms] Operation SetMotors took 135 us
-  [532.486 ms] Operation ReadEncoders took 248 us
-  [532.621 ms] Operation SetMotors took 135 us
-  [533.621 ms] Display: Wheels turn
-  [534.621 ms] Display: 310.000
-  [535.621 ms] Display: 310.000
-  [2566.621 ms] Display cleared
-  [2566.981 ms] Operation SetMotors took 135 us
-  [2667.229 ms] Operation ReadEncoders took 248 us
-  [2667.364 ms] Operation SetMotors took 135 us
-  [2967.724 ms] Operation SetMotors took 135 us
+  [31.245 ms] Display cleared
+  [31.825 ms] Operation SetMotors took 245 us
+  [132.293 ms] Operation ReadEncoders took 468 us
+  [132.538 ms] Operation SetMotors took 245 us
+  [433.118 ms] Operation SetMotors took 245 us
+  [533.586 ms] Operation ReadEncoders took 468 us
+  [533.831 ms] Operation SetMotors took 245 us
+  [534.831 ms] Display: Wheels turn
+  [535.831 ms] Display: 310.000
+  [536.831 ms] Display: 310.000
+  [2567.831 ms] Display cleared
+  [2568.411 ms] Operation SetMotors took 245 us
+  [2668.879 ms] Operation ReadEncoders took 468 us
+  [2669.124 ms] Operation SetMotors took 245 us
+  [2969.704 ms] Operation SetMotors took 245 us
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep -c 'Release watch'
   300
@@ -201,8 +201,8 @@ With the right wheel stalled, the check reports its fault:
   $ cd _arduino/projects/wheels
   $ c++ -std=c++17 -Wall -Wextra -Werror -DTEMPORE_HOST -DTEMPORE_TRACE -DSTAND_STALLED_WHEEL -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 3000000 | grep '\] Display'
-  [31.135 ms] Display cleared
-  [533.621 ms] Display: Right wheel fault
-  [534.621 ms] Display: 310.000
-  [535.621 ms] Display: 0.000
-  [2566.621 ms] Display cleared
+  [31.245 ms] Display cleared
+  [534.831 ms] Display: Right wheel fault
+  [535.831 ms] Display: 310.000
+  [536.831 ms] Display: 0.000
+  [2567.831 ms] Display cleared

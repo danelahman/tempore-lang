@@ -11,6 +11,13 @@
 // Under the build flag BALANCE_SLOW_FROM_MS, the publication of the attitude
 // takes 3 ms from that time on, beyond the bounds of Publish, so that its
 // monitor stops the device.
+//
+// Under the build flag BALANCE_LOG, an interval in milliseconds, the first
+// publication starts a task of the lowest priority on core 0, which logs at
+// that interval the tilt and the rate of the gyroscope last published, the
+// drives last written to the motors and the counts last read from the
+// encoders, and logs each arming with its bias of the gyroscope. The timed
+// bindings themselves do not log, except for the expiry of a command.
 
 #include <Arduino.h>
 #include <string.h>
@@ -18,6 +25,13 @@
 #include <atomic>
 
 #include "tempore_bindings.h"
+
+#ifdef BALANCE_LOG
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+#include "bala2_base.h"
+#endif
 
 #ifndef BALANCE_COMMAND_MS
 #define BALANCE_COMMAND_MS 200
@@ -32,6 +46,34 @@ static std::atomic<bool> balance_expired{false};
 static std::atomic<float> balance_tilt{0};
 static std::atomic<float> balance_rate{0};
 
+#ifdef BALANCE_LOG
+static std::atomic<bool> balance_logging{false};
+
+static void balance_log(void *) {
+  bool armed = false;
+  for (;;) {
+    vTaskDelay(pdMS_TO_TICKS(BALANCE_LOG));
+    if (balance_armed.load() != armed) {
+      armed = !armed;
+      if (armed)
+        tempore_log("Armed, gyroscope bias %.3f deg/s",
+                    static_cast<double>(balance_bias.load()));
+      else
+        tempore_log("Disarmed");
+    }
+    int16_t left_drive, right_drive;
+    int32_t left_count, right_count;
+    bala2_last_drives(&left_drive, &right_drive);
+    bala2_last_counts(&left_count, &right_count);
+    tempore_log("Tilt %.2f deg, rate %.1f deg/s, drives %d %d, counts %ld %ld",
+                static_cast<double>(balance_tilt.load()),
+                static_cast<double>(balance_rate.load()), left_drive,
+                right_drive, static_cast<long>(left_count),
+                static_cast<long>(right_count));
+  }
+}
+#endif
+
 tempore_result_Publish binding_Publish(tempore_argument_Publish a) {
 #ifdef BALANCE_SLOW_FROM_MS
   if (tempore_clock_us() >= BALANCE_SLOW_FROM_MS * 1000LL)
@@ -39,6 +81,11 @@ tempore_result_Publish binding_Publish(tempore_argument_Publish a) {
 #endif
   balance_tilt.store(a.c0);
   balance_rate.store(a.c1);
+#ifdef BALANCE_LOG
+  if (!balance_logging.exchange(true))
+    xTaskCreatePinnedToCore(balance_log, "balance-log", 4096, nullptr, 0,
+                            nullptr, 0);
+#endif
   return {};
 }
 
@@ -73,7 +120,6 @@ tempore_result_Arm binding_Arm(tempore_argument_Arm calibration) {
   balance_bias.store(bias);
   balance_command_us.store(tempore_clock_us());
   balance_armed.store(true);
-  tempore_log("Armed, gyroscope bias %.3f deg/s", static_cast<double>(bias));
   return {};
 }
 

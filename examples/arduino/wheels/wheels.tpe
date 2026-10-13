@@ -46,7 +46,9 @@
    of its running time. *)
 
 (* The exchange between the tasks, through bindings.cpp: the step publishes
-   the tilt, in degrees, and the check reads the tilt last published. *)
+   the tilt, in degrees, and the check reads the tilt last published. The
+   bindings are those of examples/arduino/tilt, and their bounds those
+   measured there. *)
 
 operation Publish : float ~> unit # {Publish} within [0, 0.05]
 default Publish _ = delay 1/100
@@ -61,7 +63,7 @@ let gyro_weight = 0.98
 
 (* Correctly accepted by the typechecker: the step reads the unit, filters
    the tilt and publishes it, in this order; its grade bounds its durations
-   by the running times of the two operations, 0.2 to 0.85 ms, below its
+   by the running times of the two operations, 0.2 to 1.8 ms, below its
    period. *)
 let watch (tilt : float) : float # {ReadImu; Publish} =
   let imu = perform ReadImu () in
@@ -94,8 +96,8 @@ let spin (drive : int) : float * float =
   (float_of_int left /. seconds, float_of_int right /. seconds)
 
 (* Correctly rejected by the typechecker: the drive is commanded after the
-   wait, just before the encoders are read, so that the counts are read 0.05
-   to 0.5 ms after the drive command, not 100 to 101 ms:
+   wait, just before the encoders are read, so that the counts are read 0.2
+   to 0.45 ms after the drive command, not 100 to 101 ms:
 
      Typing error: Variable `window` is unboxed with grade
        `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}]`
@@ -121,8 +123,8 @@ let spin_unordered (drive : int) : float * float =
 *)
 
 (* Correctly rejected by the typechecker: the drive is shown on the display
-   within the window, which takes up to 20 ms, so that the counts may be read
-   up to 120 ms after the drive command:
+   within the window, which takes up to 12.5 ms, so that the counts may be
+   read up to 112.5 ms after the drive command:
 
      Typing error: Variable `window` is unboxed with grade
        `[{SetMotors; ShowNumber; 100; ReadEncoders},

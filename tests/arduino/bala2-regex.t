@@ -21,7 +21,7 @@ steps with the default implementations of the operations:
         ((0., 0., 1.), (0., 0., 0.))
         # [{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]
     },
-    [{0.25}, {0.25}],
+    [{0.5}, {0.5}],
     [{0.01}, {0.01}],
     [{0.01}, {0.01}],
     [{0.2}, {0.2}],
@@ -30,7 +30,7 @@ steps with the default implementations of the operations:
         ((0., 0., 1.), (0., 0., 0.))
         # [{ReadEncoders; Setpoints}, {ReadEncoders; Setpoints}]
     },
-    [{0.25}, {0.25}],
+    [{0.5}, {0.5}],
     [{0.01}, {0.01}],
     [{0.01}, {0.01}],
     [{0.2}, {0.2}]
@@ -109,8 +109,8 @@ and with an expired calibration, a drive iteration that may exceed the
   6 |   perform Arm token;
                     ^^^^^
   Typing error: Operation `Arm` takes an argument of type `calibration` but is given `[_]calibration`
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 80, characters 0-60:
-    80 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", line 81, characters 0-60:
+    81 | operation Arm : calibration ~> unit # {Arm} within [0, 0.05]
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Arm` is declared here
     File "bala2-regex/unchecked.tpe", line 5, characters 14-26:
@@ -165,7 +165,7 @@ and with an expired calibration, a drive iteration that may exceed the
   File "bala2-regex/redrawn.tpe", lines 18-19, characters 6-21:
   18 |       unbox expiry as _ in
              ^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `expiry` is unboxed with grade `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 200)}]`
+  Typing error: Variable `expiry` is unboxed with grade `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}]` accumulated since it was bound, which is not below its box grade `[{0}, {[0, 200)}]`
     File "bala2-regex/redrawn.tpe", line 16, characters 25-31:
     16 |       box [0, 200) () as expiry in
                                   ^^^^^^
@@ -173,15 +173,15 @@ and with an expired calibration, a drive iteration that may exceed the
     File "bala2-regex/redrawn.tpe", line 17, characters 6-26:
     17 |       drive_step_redrawn m;
                ^^^^^^^^^^^^^^^^^^^^
-    grade `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}]` accumulates here (this computation)
-    Note: the resource inequality `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}] <= [{0}, {[0, 200)}]` does not hold
+    grade `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}]` accumulates here (this computation)
+    Note: the resource inequality `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}, {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}] <= [{0}, {[0, 200)}]` does not hold
   [1]
   File "bala2-regex/undisarmed.tpe", line 7, characters 14-23:
   7 |   let token = calibrate () in
                     ^^^^^^^^^
   Typing error: The effect inequality `[{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*}] <= [{Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}, {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm; ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm}]` does not hold
-    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 308-310, characters 0-51:
-    308 | let calibrate () =
+    File "../../examples/arduino/bala2-regex/balance_regex.tpe", lines 309-311, characters 0-51:
+    309 | let calibrate () =
           ^^^^^^^^^^^^^^^^^^
     `calibrate` is defined here
     File "bala2-regex/undisarmed.tpe", lines 4-13, characters 28-18:
@@ -194,7 +194,7 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json $app/balance_regex.tpe | grep -c Wrote
-  29
+  30
   $ cd _arduino/projects/balance_regex
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
@@ -206,19 +206,18 @@ every second; the tilt stays below a degree from one second after the
 release:
 
   $ tempore --emit-arduino balance_regex --device $app/balance_regex.device.json --host-simulate 8 $app/balance_regex.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)'
-  [31.135 ms] Display cleared
-  [32.135 ms] Display: Calibrating
-  [533.135 ms] Display: Hold upright
-  [1533.135 ms] Armed, gyroscope bias 0.000 deg/s
-  [1534.135 ms] Display: Armed
-  [2435.135 ms] Display: -0.002
-  [3436.135 ms] Display: -0.035
-  [4437.135 ms] Display: 0.130
-  [5438.135 ms] Display: 0.023
-  [6439.135 ms] Display: 0.000
-  [7440.135 ms] Display: -0.020
+  [31.245 ms] Display cleared
+  [32.245 ms] Display: Calibrating
+  [533.245 ms] Display: Hold upright
+  [1534.245 ms] Display: Armed
+  [2435.245 ms] Display: -0.046
+  [3436.245 ms] Display: -0.059
+  [4437.245 ms] Display: -0.167
+  [5438.245 ms] Display: -0.177
+  [6439.245 ms] Display: -0.173
+  [7440.245 ms] Display: -0.066
   [8000.000 ms] End of the simulation
-  [8000.000 ms] Plant: released at 1535.6 ms
-  [8000.000 ms] Plant: tilt 0.01 degrees, wheels at 0.005 m
-  [8000.000 ms] Plant: largest tilt from 1 s after the release 0.29 degrees
-  [8000.000 ms] Plant: largest drive 0.280, last at 7995.6 ms
+  [8000.000 ms] Plant: released at 1537.0 ms
+  [8000.000 ms] Plant: tilt -0.07 degrees, wheels at 0.004 m
+  [8000.000 ms] Plant: largest tilt from 1 s after the release 0.28 degrees
+  [8000.000 ms] Plant: largest drive 0.140, last at 8000.0 ms

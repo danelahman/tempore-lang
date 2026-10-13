@@ -8,6 +8,10 @@
 #include "tempore_i2c_model.h"
 #include "tempore_scaffold.h"
 
+#ifndef TEMPORE_I2C_MODEL_PHASE_US
+#define TEMPORE_I2C_MODEL_PHASE_US 110
+#endif
+
 namespace {
 
 struct attached {
@@ -71,9 +75,12 @@ size_t TwoWire::write(const uint8_t *data, size_t length) {
 
 void TwoWire::elapse(uint64_t bits) {
   const uint64_t total = pending_bits_ + bits;
+  const uint32_t phases = pending_phases_ + 1;
   pending_bits_ = 0;
+  pending_phases_ = 0;
   delayMicroseconds(
-      static_cast<uint32_t>((total * 1000000 + frequency_ - 1) / frequency_));
+      static_cast<uint32_t>((total * 1000000 + frequency_ - 1) / frequency_) +
+      phases * TEMPORE_I2C_MODEL_PHASE_US);
 }
 
 uint8_t TwoWire::endTransmission(bool stop) {
@@ -88,8 +95,10 @@ uint8_t TwoWire::endTransmission(bool stop) {
   const uint64_t bits = 9 * (1 + (device != nullptr ? sent_length_ : 0));
   if (stop || device == nullptr)
     elapse(bits);
-  else
+  else {
     pending_bits_ += bits;
+    ++pending_phases_;
+  }
   return device != nullptr ? 0 : 2;
 }
 

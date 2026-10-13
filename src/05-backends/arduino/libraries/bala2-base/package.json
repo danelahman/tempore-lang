@@ -9,7 +9,7 @@
     "counts-upper-bound": "bala2_base_counts.tpe"
   },
   "requires": ["i2c"],
-  "sources": ["bala2_base.cpp"],
+  "sources": ["bala2_base.cpp", "bala2_base.h"],
   "host_models": ["bala2_base_model.cpp"],
   "bindings": ["SetMotors", "ReadEncoders", "ResetEncoders"],
   "init": "bala2_base_init",

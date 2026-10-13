@@ -64,7 +64,8 @@
    supervision reads the attitude, arms the robot with a calibration of the
    gyroscope, disarms it, and commands a speed and a turn; a command older
    than 200 ms is replaced by zero setpoints. The default implementations
-   describe an armed robot without commands. *)
+   describe an armed robot without commands. The bounds of their running
+   times are those of balance.tpe. *)
 
 type calibration = Calibration of float
 
@@ -98,8 +99,8 @@ type state = float * float * float * float
    balance.tpe. *)
 let period = 0.005
 let gyro_weight = 0.98
-let tilt_gain = 50.0
-let rate_gain = 0.8
+let tilt_gain = 25.0
+let rate_gain = 0.4
 let speed_gain = 0.02
 let integral_gain = 0.001
 let integral_limit = 2000.0
@@ -113,10 +114,10 @@ let clamp (limit : float) (x : float) =
 
 (* Correctly accepted by the typechecker: the step reads the unit, the
    encoders and the setpoints, publishes the attitude and commands the
-   motors, each once and in this order; its durations, 0.35 to 2 ms, are
+   motors, each once and in this order; its durations, 0.85 to 3.3 ms, are
    checked against its period of 5 ms by the device. The reading of the unit
    is boxed with the trace of the reads of the encoders and the setpoints,
-   without delays: it is used at most 0.65 ms after it is taken, and only if
+   without delays: it is used at most 1.05 ms after it is taken, and only if
    no other operation, in particular no command of the motors, has come
    between. *)
 let step ((tilt, speed, integral, position) : state) : state
@@ -312,7 +313,7 @@ let calibrate () =
 (* Correctly accepted by the typechecker: an iteration of the drive reads
    the attitude, commands zero setpoints, shows the tilt every tenth
    iteration and waits 100 ms, in this order. Each iteration is boxed with a
-   delay below 200 ms: it takes at most 120.1 ms, within the 200 ms after
+   delay below 200 ms: it takes at most 112.6 ms, within the 200 ms after
    which a command expires. *)
 let drive_step (n : nat) : unit # {Attitude; Command; (ShowNumber | 0); 100} =
   let tilt, _ = perform Attitude () in
@@ -330,19 +331,19 @@ let rec drive (n : nat) : unit
       unbox expiry as _ in
       drive m
 
-(* Correctly rejected by the typechecker: an iteration of the drive clears
-   and redraws the display, and may take 200.1 ms, so that a command may
-   expire before the next:
+(* Correctly rejected by the typechecker: an iteration of the drive that
+   waits 150 ms clears and redraws the display, and may take 223.1 ms, so
+   that a command may expire before the next:
 
      Typing error: Variable `expiry` is unboxed with grade
-       `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100},
-       {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}]`
+       `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150},
+       {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}]`
        accumulated since it was bound, which is not below its box grade
        `[{0}, {[0, 200)}]`
        ...
        Note: the resource inequality
-         `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100},
-         {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 100}] <=
+         `[{Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150},
+         {Attitude; Command; ClearDisplay; ShowText; ShowNumber; 150}] <=
          [{0}, {[0, 200)}]` does not hold
 *)
 (*
@@ -352,7 +353,7 @@ let drive_step_redrawn (n : nat) =
   perform ClearDisplay ();
   perform ShowText "Tilt";
   perform ShowNumber tilt;
-  delay 100
+  delay 150
 
 let rec drive_redrawn (n : nat) : unit # {_*} =
   match n with
@@ -365,10 +366,10 @@ let rec drive_redrawn (n : nat) : unit # {_*} =
 *)
 
 (* Correctly accepted by the typechecker: the robot is calibrated, held
-   upright for a second, armed with a calibration 1000.2 to 1020 ms old, and
-   driven for about 13 years, after which it is disarmed. Its grade is the
-   protocol of the supervision: calibrate, arm, drive and disarm, in this
-   order. *)
+   upright for a second, armed with a calibration 1000.1 to 1012.5 ms old,
+   and driven for about 13 years, after which it is disarmed. Its grade is
+   the protocol of the supervision: calibrate, arm, drive and disarm, in
+   this order. *)
 let supervise () : unit
     # {Disarm; ClearDisplay; ShowText; (Attitude; 10)*; ShowText; 1000; Arm;
        ShowText; (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =

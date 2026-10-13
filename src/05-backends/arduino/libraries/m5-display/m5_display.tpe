@@ -4,17 +4,29 @@
 
    ShowText s and ShowNumber x write a line, the number with three decimals,
    below the previous one; ClearDisplay () clears the display and returns to
-   its first line. The default implementations take the time of the action
-   and show nothing.
+   its first line. The default implementations take a time within the
+   bounds and show nothing.
 
-   PROVISIONAL: the bounds of the running times are estimates for a display of
-   320 by 240 pixels on an SPI bus of 40 MHz, to be measured on the device. *)
+   The bounds of the running times are measured on an M5Stack Gray core and
+   an M5Stack CoreS3 Lite by the profile of the device (2026-10-14): the
+   lower bound is the least time measured over both, rounded down, and the
+   upper bound 1.5 times the greatest, rounded up. ClearDisplay took 31.354
+   to 31.814 ms. ShowText and ShowNumber took 0.858 to 2.561 ms and 0.104 to
+   1.597 ms, on lines of at most 14 characters; a line written below the
+   display, which draws nothing, takes the least time, and ShowText, which
+   writes its line as ShowNumber does, has the lower bound of ShowNumber,
+   below the least time measured for it on the display. Their upper bound
+   assumes a full line, of 26 characters of 12 pixels on a display 320
+   pixels wide, at the greatest time per character measured, 0.32 ms (1.597
+   ms for a number of at least 5 characters): 8.3 ms, 12.5 ms with the
+   margin. A longer text, which wraps over several lines, is not within
+   these bounds. *)
 
-operation ShowText : string ~> unit # [0.2, 20]
+operation ShowText : string ~> unit # [0.1, 12.5]
 default ShowText _ = delay 1
 
-operation ShowNumber : float ~> unit # [0.2, 20]
+operation ShowNumber : float ~> unit # [0.1, 12.5]
 default ShowNumber _ = delay 1
 
-operation ClearDisplay : unit ~> unit # [10, 60]
+operation ClearDisplay : unit ~> unit # [31, 48]
 default ClearDisplay () = delay 31

@@ -11,6 +11,9 @@
 // milliseconds, and then stops them. On two cores, a setpoint written while
 // the watchdog stops the motors may be overwritten by the stop until the next
 // setpoint.
+//
+// The drives last written and the counts last read are kept for
+// bala2_last_drives and bala2_last_counts of bala2_base.h.
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -18,6 +21,7 @@
 #include <freertos/task.h>
 #include <atomic>
 
+#include "bala2_base.h"
 #include "tempore_bindings.h"
 
 #ifndef BALA2_WATCHDOG_MS
@@ -35,6 +39,20 @@ enum : uint8_t { bala2_motors = 0x00, bala2_encoders = 0x10 };
 // The time of the last setpoint, and whether it drives a motor.
 static std::atomic<int64_t> bala2_setpoint_us{0};
 static std::atomic<bool> bala2_driven{false};
+
+// The drives last written and the counts last read.
+static std::atomic<int16_t> bala2_drives[2] = {{0}, {0}};
+static std::atomic<int32_t> bala2_counts[2] = {{0}, {0}};
+
+void bala2_last_drives(int16_t *left, int16_t *right) {
+  *left = bala2_drives[0].load();
+  *right = bala2_drives[1].load();
+}
+
+void bala2_last_counts(int32_t *left, int32_t *right) {
+  *left = bala2_counts[0].load();
+  *right = bala2_counts[1].load();
+}
 
 // Writes the bytes data to the registers from reg on, under the I2C lock;
 // whether the base acknowledged them.
@@ -66,6 +84,10 @@ static bool bala2_set(int16_t left, int16_t right) {
       static_cast<uint8_t>(right)};
   const bool acknowledged = bala2_transmit(bala2_motors, data, sizeof data);
   tempore_i2c_unlock();
+  if (acknowledged) {
+    bala2_drives[0].store(left);
+    bala2_drives[1].store(right);
+  }
   return acknowledged;
 }
 
@@ -130,6 +152,8 @@ tempore_result_ReadEncoders binding_ReadEncoders(
   }
   tempore_i2c_unlock();
   if (!acknowledged) tempore_fault("BALA2 base: encoder read not acknowledged");
+  bala2_counts[0].store(counts[0]);
+  bala2_counts[1].store(counts[1]);
   return {counts[0], counts[1]};
 }
 #endif

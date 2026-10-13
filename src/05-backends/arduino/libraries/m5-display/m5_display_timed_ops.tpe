@@ -5,11 +5,11 @@
    the bounds of its running time. The operations, their bounds and their
    default implementations are those of m5_display.tpe. *)
 
-operation ShowText : string ~> unit # {ShowText} within [0.2, 20]
+operation ShowText : string ~> unit # {ShowText} within [0.1, 12.5]
 default ShowText _ = delay 1
 
-operation ShowNumber : float ~> unit # {ShowNumber} within [0.2, 20]
+operation ShowNumber : float ~> unit # {ShowNumber} within [0.1, 12.5]
 default ShowNumber _ = delay 1
 
-operation ClearDisplay : unit ~> unit # {ClearDisplay} within [10, 60]
+operation ClearDisplay : unit ~> unit # {ClearDisplay} within [31, 48]
 default ClearDisplay () = delay 31

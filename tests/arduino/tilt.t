@@ -41,7 +41,7 @@ itself and may last its period:
   File "tilt/stale.tpe", lines 8-10, characters 2-11:
   8 |   unbox fresh as shown in
         ^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `fresh` is unboxed with grade `[10.2, 80]` accumulated since it was bound, which is not below its box grade `[0, 5]`
+  Typing error: Variable `fresh` is unboxed with grade `[31.1, 60.5]` accumulated since it was bound, which is not below its box grade `[0, 5]`
     File "tilt/stale.tpe", line 5, characters 21-26:
     5 |   box [0, 5] tilt as fresh in
                              ^^^^^
@@ -49,18 +49,18 @@ itself and may last its period:
     File "tilt/stale.tpe", line 6, characters 2-25:
     6 |   perform ClearDisplay ();
           ^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[10, 60]` accumulates here (operation `ClearDisplay`)
+    grade `[31, 48]` accumulates here (operation `ClearDisplay`)
     File "tilt/stale.tpe", line 7, characters 2-35:
     7 |   perform ShowText "Tilt (degrees)";
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[0.2, 20]` accumulates here (operation `ShowText`)
-    Note: the resource inequality `[10.2, 80] <= [0, 5]` does not hold
+    grade `[0.1, 12.5]` accumulates here (operation `ShowText`)
+    Note: the resource inequality `[31.1, 60.5] <= [0, 5]` does not hold
   [1]
-  File "tilt/shown.tpe", lines 3-9, characters 30-6:
+  File "tilt/shown.tpe", lines 3-10, characters 30-6:
   3 | let step_shown (tilt : float) : float # [0, 20) =
                                     ^^^^^^^^^^^^^^^^^^^
-  Typing error: This function's body has grade `[0.4, 20.8]`, which does not match its annotated grade `[0, 20)`
-    Note: the effect inequality `[0.4, 20.8] <= [0, 20)` does not hold
+  Typing error: This function's body has grade `[31.3, 62.25]`, which does not match its annotated grade `[0, 20)`
+    Note: the effect inequality `[31.3, 62.25] <= [0, 20)` does not hold
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without
@@ -84,16 +84,16 @@ which shows the tilt of the world filtered from the readings:
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep '\] Display\|simulation'
   [31.000 ms] Display cleared
   [32.000 ms] Display: Tilt (degrees)
-  [33.000 ms] Display: 5.707
+  [33.000 ms] Display: 5.706
   [314.000 ms] Display cleared
   [315.000 ms] Display: Tilt (degrees)
-  [316.000 ms] Display: 3.298
+  [316.000 ms] Display: 3.294
   [597.000 ms] Display cleared
   [598.000 ms] Display: Tilt (degrees)
-  [599.000 ms] Display: -1.451
+  [599.000 ms] Display: -1.456
   [880.000 ms] Display cleared
   [881.000 ms] Display: Tilt (degrees)
-  [882.000 ms] Display: -5.275
+  [882.000 ms] Display: -5.277
   [1000.000 ms] End of the simulation
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep -c 'Release step'
   50

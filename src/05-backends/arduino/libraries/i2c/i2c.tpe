@@ -9,35 +9,43 @@
    I2cReadIntN (device, register) reads a signed big-endian integer of N
    bits, in two's complement. A larger device or register address, or a
    transaction the device does not acknowledge, is a run-time error. The
-   default implementations take the time of the transaction and read
-   zeros.
+   default implementations take a time within the bounds and read zeros.
 
-   PROVISIONAL: the bounds of the running times are estimates for a bus of
-   100 to 400 kHz, to be measured on the device. *)
+   The bounds of the running times are those of a bus at 400 kHz and a
+   device that holds the clock no longer than those measured. They are not
+   measured for these operations, but derived from the transactions of the
+   packages m5-imu and bala2-base on an M5Stack Gray core, measured by the
+   profile of the device (2026-10-14), with the margin of those packages:
+   the lower bound is the least time, rounded down, and the upper bound 1.5
+   times the greatest, rounded up. A write, of 3 to 6 bytes, is bounded by
+   a write of 6 bytes, 0.220 to 0.292 ms, less the transfer of 3 bytes,
+   22.5 microseconds each, below; a read, of 1 to 4 bytes, by a read of 2
+   bytes, about 0.31 ms, less the transfer of a byte, below, and by a read
+   of 8 bytes, 0.462 to 0.653 ms, above. *)
 
-operation I2cWrite8 : nat * nat * nat ~> unit # [0, 2]
-default I2cWrite8 _ = delay 1/10
+operation I2cWrite8 : nat * nat * nat ~> unit # [0.15, 0.45]
+default I2cWrite8 _ = delay 1/5
 
-operation I2cWrite16 : nat * nat * nat ~> unit # [0, 2]
-default I2cWrite16 _ = delay 1/10
+operation I2cWrite16 : nat * nat * nat ~> unit # [0.15, 0.45]
+default I2cWrite16 _ = delay 1/5
 
-operation I2cWrite32 : nat * nat * nat ~> unit # [0, 2]
-default I2cWrite32 _ = delay 1/10
+operation I2cWrite32 : nat * nat * nat ~> unit # [0.15, 0.45]
+default I2cWrite32 _ = delay 1/5
 
-operation I2cRead8 : nat * nat ~> nat # [0, 2]
-default I2cRead8 _ = delay 1/10; 0
+operation I2cRead8 : nat * nat ~> nat # [0.25, 1]
+default I2cRead8 _ = delay 3/10; 0
 
-operation I2cRead16 : nat * nat ~> nat # [0, 2]
-default I2cRead16 _ = delay 1/10; 0
+operation I2cRead16 : nat * nat ~> nat # [0.25, 1]
+default I2cRead16 _ = delay 3/10; 0
 
-operation I2cRead32 : nat * nat ~> nat # [0, 2]
-default I2cRead32 _ = delay 1/10; 0
+operation I2cRead32 : nat * nat ~> nat # [0.25, 1]
+default I2cRead32 _ = delay 3/10; 0
 
-operation I2cReadInt8 : nat * nat ~> int # [0, 2]
-default I2cReadInt8 _ = delay 1/10; 0i
+operation I2cReadInt8 : nat * nat ~> int # [0.25, 1]
+default I2cReadInt8 _ = delay 3/10; 0i
 
-operation I2cReadInt16 : nat * nat ~> int # [0, 2]
-default I2cReadInt16 _ = delay 1/10; 0i
+operation I2cReadInt16 : nat * nat ~> int # [0.25, 1]
+default I2cReadInt16 _ = delay 3/10; 0i
 
-operation I2cReadInt32 : nat * nat ~> int # [0, 2]
-default I2cReadInt32 _ = delay 1/10; 0i
+operation I2cReadInt32 : nat * nat ~> int # [0.25, 1]
+default I2cReadInt32 _ = delay 3/10; 0i
