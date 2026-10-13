@@ -1,0 +1,10 @@
+(* The package m5-imu under the regular expressions of timed operations: the
+   inertial measurement unit of an M5Stack core, read through M5Unified.
+   Grades: the regular expressions of timed operations over rational delays,
+   in milliseconds; each operation is its own trace, within the bounds of its
+   running time. ReadImu, its bounds and its default implementation are those
+   of m5_imu.tpe; the types and the attitude filter are defined in
+   m5_imu_filter.tpe. *)
+
+operation ReadImu : unit ~> imu # {ReadImu} within [0.2, 0.8]
+default ReadImu () = delay 1/2; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))

@@ -1,7 +1,13 @@
 {
   "description": "The accelerometer and gyroscope of an M5Stack core through M5Unified, with an attitude filter",
-  "declarations": "m5_imu.tpe",
-  "grades": ["time-interval-rational"],
+  "definitions": "m5_imu_filter.tpe",
+  "declarations": {
+    "time-interval-rational": "m5_imu.tpe",
+    "regex-timed-lower-bound-rational-symbolic": "m5_imu_timed_ops.tpe",
+    "regex-timed-upper-bound-rational-symbolic": "m5_imu_timed_ops.tpe",
+    "regex-timed-interval-rational-symbolic": "m5_imu_timed_ops.tpe",
+    "counts-upper-bound": "m5_imu_counts.tpe"
+  },
   "requires": ["m5unified", "imu"],
   "sources": ["m5_imu.cpp"],
   "host_models": ["m5_imu_model.cpp"],

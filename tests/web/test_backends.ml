@@ -780,7 +780,10 @@ let () =
        (gray {|["m5-imu", "nowhere", "m5-imu"]|})
        ~grades:"time-interval-rational"
    with
-  | Ok [ { filename; _ } ] when contains ~sub:"m5-imu" filename -> ()
+  | Ok [ definitions; declarations ]
+    when contains ~sub:"m5_imu_filter.tpe" definitions.filename
+         && contains ~sub:"m5_imu.tpe" declarations.filename ->
+      ()
   | Ok sources ->
       fail "the declarations of the packages: %s"
         (String.concat ", "
@@ -792,6 +795,14 @@ let () =
    with
   | Error _ -> ()
   | Ok _ -> fail "m5-imu loaded under time-interval");
+  (match
+     BackendRegistry.arduino.declarations (gray {|["m5-imu"]|})
+       ~grades:"counts-upper-bound"
+   with
+  | Ok [ _; declarations ]
+    when contains ~sub:"m5_imu_counts.tpe" declarations.filename ->
+      ()
+  | _ -> fail "the declarations of m5-imu under counts-upper-bound");
   match
     BackendRegistry.arduino.declarations
       (manifest "not a manifest")

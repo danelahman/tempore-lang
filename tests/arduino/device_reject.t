@@ -194,16 +194,16 @@ blinker, whose state is the unit; slow fits a period of 13.
   $ ../../tempore --grades time-interval-rational --emit-arduino accepted --device m.json toy/tasks.tpe | tail -1
   Wrote _arduino/projects/accepted/src/overrun_bindings.cpp
 
-Under grades that do not bound durations, no effect is below a period:
+Under grades that do not bound durations, the function of a periodic task is
+not checked against its period, whose overruns only the monitor detects:
 
   $ printf 'let tick (n : nat) = n + 1\nlet zero () = 0\n' > levels.tpe
   $ printf '{ "board": "esp32-devkit", "tasks": [ { "function": "tick", "kind": "periodic", "period": 10, "initial": "zero" } ] }\n' > m.json
-  $ ../../tempore --grades security-levels --emit-arduino rejected --device m.json levels.tpe
-  File "m.json", line 1, characters 52-58:
-  1 | { "board": "esp32-devkit", "tasks": [ { "function": "tick", "kind": "periodic", "period": 10, "initial": "zero" } ] }
-                                                          ^^^^^^
-  Compilation error: The effect `Low` of the function 'tick' of a periodic task does not bound its durations, so it is not below the period 10
-  [1]
+  $ ../../tempore --grades security-levels --emit-arduino levels --device m.json levels.tpe | tail -1
+  Wrote _arduino/projects/levels/host/freertos/task.h
+  $ grep -A1 'The periodic task' _arduino/projects/levels/src/main.cpp
+  // The periodic task tick, of period 10000 us; its grades bound no durations, so its steps are checked against the period by the monitor only.
+  static void tempore_task0(void *) {
 
 Bindings: the operations performed need a binding file that mentions their
 binding functions, and the safe-state hook must be mentioned too:

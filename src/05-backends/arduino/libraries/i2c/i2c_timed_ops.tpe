@@ -1,0 +1,24 @@
+(* The package i2c under the regular expressions of timed operations:
+   transactions with the registers of devices on the I2C bus Wire of the
+   board. Grades: the regular expressions of timed operations over rational
+   delays, in milliseconds; each operation is its own trace, within the
+   bounds of its running time. The operations, their bounds and their default
+   implementations are those of i2c.tpe. *)
+
+operation I2cWrite8 : nat * nat * nat ~> unit # {I2cWrite8} within [0, 2]
+default I2cWrite8 _ = delay 1/10
+
+operation I2cWrite16 : nat * nat * nat ~> unit # {I2cWrite16} within [0, 2]
+default I2cWrite16 _ = delay 1/10
+
+operation I2cWrite32 : nat * nat * nat ~> unit # {I2cWrite32} within [0, 2]
+default I2cWrite32 _ = delay 1/10
+
+operation I2cRead8 : nat * nat ~> nat # {I2cRead8} within [0, 2]
+default I2cRead8 _ = delay 1/10; 0
+
+operation I2cRead16 : nat * nat ~> nat # {I2cRead16} within [0, 2]
+default I2cRead16 _ = delay 1/10; 0
+
+operation I2cRead32 : nat * nat ~> nat # {I2cRead32} within [0, 2]
+default I2cRead32 _ = delay 1/10; 0

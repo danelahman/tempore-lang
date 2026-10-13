@@ -60,9 +60,9 @@ let header_grades path =
 
 (* The peripheral packages of the Arduino backend that a file names by
    [--package NAME] options in the run command of its header, before its
-   "Grades" line, each with the file name and the text of its declarations,
-   which precede the file. *)
-let header_packages path =
+   "Grades" line: the files of each under the grades [grades], each with its
+   name and text, which precede the file. *)
+let header_packages ~grades path =
   let rec names = function
     | "--package" :: name :: rest -> name :: names rest
     | _ :: rest -> names rest
@@ -73,10 +73,12 @@ let header_packages path =
   |> Seq.take_while (fun line ->
       not (String.starts_with ~prefix:"   Grades " line))
   |> List.of_seq |> List.concat_map words |> names
-  |> List.map (fun name ->
-      match ArduinoBackend.ArduinoPackage.find name with
-      | Some (p : ArduinoBackend.ArduinoPackage.t) ->
-          (p.declarations, p.declarations_source)
+  |> List.concat_map (fun name ->
+      let module Package = ArduinoBackend.ArduinoPackage in
+      match Option.map (Package.files_for ~grades) (Package.find name) with
+      | Some (Ok files) ->
+          List.map (fun (f : Package.file) -> (f.filename, f.text)) files
+      | Some (Error message) -> failwith message
       | None -> failwith ("unknown package " ^ name))
 
 let grades_of_test table name =
@@ -321,8 +323,8 @@ let programs () =
   let table = case_table (Filename.concat root "tests/run_tests.t") in
   List.iter
     (fun path ->
-      check_file ~packages:(header_packages path) path
-        (Option.value (header_grades path) ~default:default_grades))
+      let grades = Option.value (header_grades path) ~default:default_grades in
+      check_file ~packages:(header_packages ~grades path) path grades)
     (tpe_files (Filename.concat root "examples"));
   List.iter
     (fun path ->

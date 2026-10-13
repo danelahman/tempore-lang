@@ -1,0 +1,187 @@
+(* A wheel check of the M5Stack BALA2: speeds over windows of fixed traces
+
+   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       --package m5-imu \
+       --package m5-display \
+       --package bala2-base \
+       examples/arduino/wheels/wheels.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces with
+   rational durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+(* An application of the Arduino backend under the regular expressions of
+   timed operations, in milliseconds, to the M5Stack BALA2 on a stand, its
+   wheels off the ground: the device manifest wheels.device.json runs the
+   step 'watch' every 10 ms, from the state of 'start', and repeats the check
+   'check' as a free task. The operations ReadImu, SetMotors, ReadEncoders,
+   ResetEncoders, ShowText, ShowNumber and ClearDisplay, and the functions
+   tilt_x and tilt_x_of_accel, come from the packages m5-imu, m5-display and
+   bala2-base, whose declarations under these grades precede this file. The
+   operations declared below are bound by bindings.cpp; stand.cpp is the host
+   model of the robot on its stand.
+
+   The PlatformIO project is written, and simulated on the host for 3
+   seconds, by
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       --emit-arduino wheels \
+       --device examples/arduino/wheels/wheels.device.json \
+       --host-simulate 3 \
+       examples/arduino/wheels/wheels.tpe
+
+   and built for the board, with PlatformIO, by --build in place of
+   --host-simulate.
+
+   A grade is a regular expression over the operations and the delays: each
+   operation is a letter, within the bounds of its running time, and an
+   interval such as [100, 101] is a delay. A box grade written as one
+   expression is both bounds: the operations it names are demanded, in its
+   order, and the delays between them are bounded below and above; another
+   operation may come between them only within a delay, at the upper bound
+   of its running time. *)
+
+(* The exchange between the tasks, through bindings.cpp: the step publishes
+   the tilt, in degrees, and the check reads the tilt last published. *)
+
+operation Publish : float ~> unit # {Publish} within [0, 0.05]
+default Publish _ = delay 1/100
+
+operation Latest : unit ~> float # {Latest} within [0, 0.05]
+default Latest () = delay 1/100; 0.0
+
+(* The period of the step, in seconds, and the weight of the gyroscope in the
+   complementary filter of the tilt. *)
+let period = 0.01
+let gyro_weight = 0.98
+
+(* Correctly accepted by the typechecker: the step reads the unit, filters
+   the tilt and publishes it, in this order; its grade bounds its durations
+   by the running times of the two operations, 0.2 to 0.85 ms, below its
+   period. *)
+let watch (tilt : float) : float # {ReadImu; Publish} =
+  let imu = perform ReadImu () in
+  let tilt = tilt_x gyro_weight period tilt imu in
+  perform Publish tilt;
+  tilt
+
+(* The initial state: the tilt from the accelerometer alone. *)
+let start () : float =
+  let accel, _ = perform ReadImu () in
+  tilt_x_of_accel accel
+
+let magnitude (x : float) = if x < 0.0 then ~-.x else x
+
+(* Correctly accepted by the typechecker: the speeds of the wheels, in
+   encoder counts per second, at the drive 'drive' of both motors. The
+   encoders are reset, and the length of the window, 0.1 s, is boxed with
+   the trace of the window: a drive command, 100 to 101 ms, and a reading of
+   the encoders, in this order. The counts read are divided by the length
+   only once it is unboxed, so that they are counts over the window; the
+   motors are then stopped. *)
+let spin (drive : float) : float * float =
+  perform ResetEncoders ();
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+  perform SetMotors (drive, drive);
+  delay 100;
+  let left, right = perform ReadEncoders () in
+  unbox window as seconds in
+  perform SetMotors (0.0, 0.0);
+  (left /. seconds, right /. seconds)
+
+(* Correctly rejected by the typechecker: the drive is commanded after the
+   wait, just before the encoders are read, so that the counts are read 0.05
+   to 0.5 ms after the drive command, not 100 to 101 ms:
+
+     Typing error: Variable `window` is unboxed with grade
+       `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{SetMotors; [100, 101]; ReadEncoders},
+       {SetMotors; [100, 101]; ReadEncoders}]`
+       ...
+       Note: the resource inequality
+         `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}] <=
+         [{SetMotors; [100, 101]; ReadEncoders},
+         {SetMotors; [100, 101]; ReadEncoders}]` does not hold
+*)
+(*
+let spin_unordered (drive : float) : float * float =
+  perform ResetEncoders ();
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+  delay 100;
+  perform SetMotors (drive, drive);
+  let left, right = perform ReadEncoders () in
+  unbox window as seconds in
+  perform SetMotors (0.0, 0.0);
+  (left /. seconds, right /. seconds)
+*)
+
+(* Correctly rejected by the typechecker: the drive is shown on the display
+   within the window, which takes up to 20 ms, so that the counts may be read
+   up to 120 ms after the drive command:
+
+     Typing error: Variable `window` is unboxed with grade
+       `[{SetMotors; ShowNumber; 100; ReadEncoders},
+       {SetMotors; ShowNumber; 100; ReadEncoders}]` accumulated since it was
+       bound, which is not below its box grade
+       `[{SetMotors; [100, 101]; ReadEncoders},
+       {SetMotors; [100, 101]; ReadEncoders}]`
+       ...
+       Note: the resource inequality
+         `[{SetMotors; ShowNumber; 100; ReadEncoders},
+         {SetMotors; ShowNumber; 100; ReadEncoders}] <=
+         [{SetMotors; [100, 101]; ReadEncoders},
+         {SetMotors; [100, 101]; ReadEncoders}]` does not hold
+*)
+(*
+let spin_shown (drive : float) : float * float =
+  perform ResetEncoders ();
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+  perform SetMotors (drive, drive);
+  perform ShowNumber drive;
+  delay 100;
+  let left, right = perform ReadEncoders () in
+  unbox window as seconds in
+  perform SetMotors (0.0, 0.0);
+  (left /. seconds, right /. seconds)
+*)
+
+(* Whether a wheel turns at the speeds 'forward' and 'backward', measured at
+   opposite drives: at least 100 counts per second in each direction, in
+   opposite directions. *)
+let turns (forward : float) (backward : float) =
+  magnitude forward >= 100.0
+  && magnitude backward >= 100.0
+  && forward *. backward < 0.0
+
+(* Correctly accepted by the typechecker: the check spins the wheels forwards
+   and backwards, 300 ms apart, only while the robot stands upright within 20
+   degrees, and shows the verdict and the forward speeds; it then waits two
+   seconds. *)
+let check () =
+  perform ClearDisplay ();
+  let tilt = perform Latest () in
+  (if magnitude tilt <= 20.0 then (
+     let left, right = spin 300.0 in
+     delay 300;
+     let left_back, right_back = spin (~-.300.0) in
+     (match (turns left left_back, turns right right_back) with
+     | true, true -> perform ShowText "Wheels turn"
+     | false, true -> perform ShowText "Left wheel fault"
+     | true, false -> perform ShowText "Right wheel fault"
+     | false, false -> perform ShowText "Both wheels fault");
+     perform ShowNumber left;
+     perform ShowNumber right)
+   else perform ShowText "Not upright");
+  delay 2000
+
+(* A step from the reading of the default implementation of the unit, a
+   robot at rest, and a measurement at the drive 300 with the default
+   implementations, which read zero counts. *)
+run watch 3.0
+
+run spin 300.0

@@ -1,0 +1,14 @@
+(* The package m5-display under the operation counts: lines of text and
+   numbers on the display of an M5Stack core, through M5Unified. Grades:
+   counts-upper-bound; each call counts once, and running times are not
+   bounded. The operations are those of m5_display.tpe; their default
+   implementations show nothing. *)
+
+operation ShowText : string ~> unit # (ShowText, 1)
+default ShowText _ = ()
+
+operation ShowNumber : float ~> unit # (ShowNumber, 1)
+default ShowNumber _ = ()
+
+operation ClearDisplay : unit ~> unit # (ClearDisplay, 1)
+default ClearDisplay () = ()

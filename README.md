@@ -1380,11 +1380,16 @@ An application is described in four layers.
   A periodic task calls its function, of type `s -> s`, once per period, from
   the state its `initial` function returns; a free task calls its function, of
   type `unit -> unit`, once, or, with `repeat`, each time it returns.
-- A **peripheral package** declares operations, with their running-time bounds
-  and default implementations, and implements them in C++; the operations
-  return plain values, and the freshness of a reading is specified by the
-  application, which boxes it. The packages, all under
-  `time-interval-rational` in milliseconds, are:
+- A **peripheral package** declares operations, with their grades and default
+  implementations, and implements them in C++; the operations return plain
+  values, and the freshness of a reading is specified by the application,
+  which boxes it. A package declares its operations once for each grade
+  system it supports, in a file of its own, and may share types and
+  functions across them. The packages below are declared under
+  `time-interval-rational` and under the regular expressions of timed
+  operations over rational delays (`regex-timed-*-rational-symbolic`), with
+  their running-time bounds in milliseconds, and under `counts-upper-bound`,
+  each call counting once:
   - `i2c`: `I2cWrite8`, `I2cWrite16`, `I2cWrite32`, `I2cRead8`, `I2cRead16`
     and `I2cRead32`, register transactions on the bus `Wire`;
   - `m5-imu`: `ReadImu`, the accelerometer and gyroscope of an M5Stack core,
@@ -1399,9 +1404,14 @@ An application is described in four layers.
 
 The typechecker checks the function of each periodic task against its period:
 the durations of its effect must lie below the period, as for
-`step : float -> float # [0, 20)`. Boxes specify how long a reading may be
-used. These guarantees are relative to the declared bounds of the operations,
-which are provisional until measured on the devices. On the device, each call
+`step : float -> float # [0, 20)`, and under the regular expressions of
+timed operations for `watch : float -> float # {ReadImu; Publish}`, whose
+durations are those of the operations of its trace. Under grades that bound
+no durations, such as the operation counts, the period is checked by the
+monitor of the device only, and the operations have no running-time bounds.
+Boxes specify how long a reading may be used and, under other grades, which
+operations must or may not precede its use. These guarantees are relative to
+the declared bounds of the operations, which are provisional until measured on the devices. On the device, each call
 of a binding function is monitored against these bounds and each step of a
 periodic task against its period; a violation puts the device in its safe
 state and stops the tasks, is logged, or is not checked, according to the
@@ -1420,7 +1430,17 @@ examples, each with its manifest and binding file:
   step of the M5Stack BALA2 robot with its supervision and calibration, and
   the host model of a wheeled inverted pendulum;
 - [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
-  M5Stack CoreS3 Lite, with a 20 ms filter step and a display task.
+  M5Stack CoreS3 Lite, with a 20 ms filter step and a display task;
+- [`wheels/wheels.tpe`](examples/arduino/wheels/wheels.tpe): a wheel check of
+  the M5Stack BALA2 on a stand, under the regular expressions of timed
+  operations: the counts of the encoders are divided by the length of the
+  window only after a drive command, 100 to 101 ms and a reading of the
+  encoders, in this order;
+- [`peak/peak.tpe`](examples/arduino/peak/peak.tpe): a recorder of the peak
+  tilt in the flash memory of the M5Stack CoreS3 Lite, under the operation
+  counts: the step performs one reading and one publication and no write of
+  the flash, and a copy of the record is used only while no write of the flash
+  has followed it.
 
 #### Command line
 <!-- web-skip -->
@@ -1464,8 +1484,9 @@ Requirements:
 
 A board is added as a profile `boards/NAME.json` in
 [`src/05-backends/arduino/`](src/05-backends/arduino/), a package as a
-directory `libraries/NAME/` with a descriptor `package.json`, its
-declarations, C++ sources and host models; both are embedded in the compiler
+directory `libraries/NAME/` with a descriptor `package.json`, which maps each
+grade system to a file of declarations, and the declarations, C++ sources
+and host models; both are embedded in the compiler
 when it is built. An application is a `.tpe` file, a manifest and a binding
 file, with host models for the simulation if needed.
 

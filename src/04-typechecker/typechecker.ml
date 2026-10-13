@@ -8,13 +8,7 @@ module Location = Utils.Location
 type function_effect =
   | Not_a_function
   | Effect_variable
-  | Effect of {
-      grade : string;
-      durations :
-        (Grades.Rational.t Grades.Grade.bound
-        * Grades.Rational.t Grades.Grade.bound)
-        option;
-    }
+  | Effect of { grade : string; durations : Grades.Grade.durations }
 
 module Make (GS : Grades.GradeSystem.S) = struct
   module X = Inference.GradeExp.Make (GS)
@@ -224,7 +218,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
             Effect
               {
                 grade = GS.E.show grade;
-                durations = GS.E.duration_bounds (running_times state) grade;
+                durations =
+                  (let bounds = running_times state in
+                   match GS.E.duration_bounds bounds grade with
+                   | Some (lo, hi) -> Grades.Grade.Duration_interval (lo, hi)
+                   | None when GS.E.duration_bounds bounds GS.E.one = None ->
+                       Grades.Grade.Untimed
+                   | None -> Grades.Grade.Undetermined);
               })
     | _ -> Not_a_function
 end

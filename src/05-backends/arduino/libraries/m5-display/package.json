@@ -1,7 +1,12 @@
 {
   "description": "Text and numbers on the display of an M5Stack core through M5Unified",
-  "declarations": "m5_display.tpe",
-  "grades": ["time-interval-rational"],
+  "declarations": {
+    "time-interval-rational": "m5_display.tpe",
+    "regex-timed-lower-bound-rational-symbolic": "m5_display_timed_ops.tpe",
+    "regex-timed-upper-bound-rational-symbolic": "m5_display_timed_ops.tpe",
+    "regex-timed-interval-rational-symbolic": "m5_display_timed_ops.tpe",
+    "counts-upper-bound": "m5_display_counts.tpe"
+  },
   "requires": ["m5unified", "display"],
   "sources": ["m5_display.cpp"],
   "host_models": ["m5_display_model.cpp"],

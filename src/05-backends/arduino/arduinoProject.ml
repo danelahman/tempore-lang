@@ -14,10 +14,7 @@ type monitor = Abort | Warn | Off
 type function_effect =
   | Not_a_function
   | Effect_variable
-  | Effect of {
-      grade : string;
-      durations : (Rational.t Grade.bound * Rational.t Grade.bound) option;
-    }
+  | Effect of { grade : string; durations : Grade.durations }
 
 type input = {
   device : Device.t;
@@ -170,12 +167,13 @@ let check_period (name : Device.name) r period =
          annotate the function with an effect whose durations are below its \
          period %s"
         name.it (Rational.show period)
-  | Effect { grade; durations = None } ->
+  | Effect { durations = Grade.Untimed; _ } -> ()
+  | Effect { grade; durations = Grade.Undetermined } ->
       Error.compilation ~loc:name.at
         "The effect `%s` of the function '%s' of a periodic task does not \
          bound its durations, so it is not below the period %s"
         grade name.it (Rational.show period)
-  | Effect { grade; durations = Some (_, hi) } ->
+  | Effect { grade; durations = Grade.Duration_interval (_, hi) } ->
       if not (below_period hi period) then
         Error.compilation ~loc:name.at
           "The effect `%s` of the function '%s' of a periodic task is not \
@@ -203,8 +201,9 @@ let check_repeat (name : Device.name) r =
          variable; annotate the function with an effect whose durations are \
          bounded below by a positive time"
         name.it
-  | Effect { grade; durations = None } -> fail grade
-  | Effect { grade; durations = Some (lo, _) } ->
+  | Effect { durations = Grade.Untimed; _ } -> ()
+  | Effect { grade; durations = Grade.Undetermined } -> fail grade
+  | Effect { grade; durations = Grade.Duration_interval (lo, _) } ->
       if not (takes_time lo) then fail grade
 
 (* Bindings. *)
@@ -355,8 +354,13 @@ let main_source input board packages tasks =
     match task.kind with
     | Device.Periodic { period_ms; period_us; _ } ->
         [
-          Printf.sprintf "// The periodic task %s, of period %d us."
-            task.function_name.it period_us;
+          Printf.sprintf "// The periodic task %s, of period %d us%s."
+            task.function_name.it period_us
+            (match step.function_effect with
+            | Effect { durations = Grade.Untimed; _ } ->
+                "; its grades bound no durations, so its steps are checked \
+                 against the period by the monitor only"
+            | _ -> "");
           header;
           "  tempore_check_halt();";
           (match initial with

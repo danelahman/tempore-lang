@@ -55,11 +55,7 @@ type function_effect = ArduinoBackend.ArduinoProject.function_effect =
   | Effect_variable  (** an effect with a variable *)
   | Effect of {
       grade : string;  (** the grade, printed *)
-      durations :
-        (Grades.Rational.t Grades.Grade.bound
-        * Grades.Rational.t Grades.Grade.bound)
-        option;
-          (** the interval of the durations of the grade, if it bounds them *)
+      durations : Grades.Grade.durations;  (** the durations of the grade *)
     }
 
 type definitions = (Language.Ast.variable * function_effect) list

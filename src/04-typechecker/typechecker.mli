@@ -21,12 +21,11 @@ type function_effect =
   | Effect_variable  (** the effect has a variable *)
   | Effect of {
       grade : string;  (** the grade, as {!Grades.Grade.S.show} prints it *)
-      durations :
-        (Grades.Rational.t Grades.Grade.bound
-        * Grades.Rational.t Grades.Grade.bound)
-        option;
-          (** the interval of the durations of the grade under the running times
-              of the program ({!Grades.Grade.S.duration_bounds}) *)
+      durations : Grades.Grade.durations;
+          (** the durations of the grade under the running times of the program
+              ({!Grades.Grade.S.duration_bounds}); [Untimed] where the grade
+              system determines no durations, not even those of the unit grade
+          *)
     }  (** a closed grade *)
 
 module Make (GS : Grades.GradeSystem.S) : sig

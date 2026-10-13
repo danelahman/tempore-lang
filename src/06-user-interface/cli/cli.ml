@@ -763,8 +763,8 @@ let run_with (module G : Grades.Grade.S) config =
     in
     let module Package = ArduinoBackend.ArduinoPackage in
     let checked ~refuse (package : Package.t) =
-      match Package.check_grades ~grades:config.resource_type package with
-      | Ok () -> package
+      match Package.files_for ~grades:config.resource_type package with
+      | Ok files -> (package, files)
       | Error message -> refuse message
     in
     let packages =
@@ -785,26 +785,27 @@ let run_with (module G : Grades.Grade.S) config =
                   exit 1))
             config.packages
     in
-    (* Each package once, in the order of its first mention. *)
-    let packages =
+    (* The files of each package once, in the order of its first mention. *)
+    let package_files =
       List.rev
         (List.fold_left
-           (fun acc (p : Package.t) ->
-             if List.exists (fun (q : Package.t) -> q.name = p.name) acc then
-               acc
-             else p :: acc)
+           (fun acc ((p : Package.t), files) ->
+             if List.exists (fun ((q : Package.t), _) -> q.name = p.name) acc
+             then acc
+             else (p, files) :: acc)
            [] packages)
+      |> List.concat_map snd
     in
     let declarations =
-      List.map (fun (p : Package.t) -> p.declarations) packages
+      List.map (fun (f : Package.file) -> f.filename) package_files
     in
     (* Every source is parsed before any is loaded, so that the grades of the
        program are read over the operations all of them declare. *)
     let files =
       List.map
-        (fun (p : Package.t) ->
-          Loader.parse_source ~filename:p.declarations p.declarations_source)
-        packages
+        (fun (f : Package.file) ->
+          Loader.parse_source ~filename:f.filename f.text)
+        package_files
       @ List.map Loader.parse_file config.filenames
     in
     let program = Loader.load_program ~use_stdlib:config.use_stdlib files in

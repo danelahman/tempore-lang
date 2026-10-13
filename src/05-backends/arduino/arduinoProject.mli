@@ -72,11 +72,7 @@ type function_effect =
   | Effect_variable  (** an effect with a variable *)
   | Effect of {
       grade : string;  (** the grade, printed *)
-      durations :
-        (Grades.Rational.t Grades.Grade.bound
-        * Grades.Rational.t Grades.Grade.bound)
-        option;
-          (** the interval of the durations of the grade, if it bounds them *)
+      durations : Grades.Grade.durations;  (** the durations of the grade *)
     }
 
 type input = {
@@ -121,7 +117,13 @@ val files : input -> ArduinoFragment.program -> (string * string) list
       file does not mention, a binding function of a package that the binding
       file mentions, and a binding file or host model that is not a C++ file
       ending in .cpp or has the name of a file of a package or of another host
-      model. *)
+      model.
+
+    Under a grade system that does not bound durations
+    ({!Grades.Grade.Untimed}), the durations of the functions of periodic and
+    repeated free tasks are not checked: the period of a step is checked only by
+    the monitor of the device, and a repeated free task is not shown to yield.
+*)
 
 val host_sources : (string * string) list -> string list
 (** [host_sources files] is the paths of the C++ sources of the project [files]

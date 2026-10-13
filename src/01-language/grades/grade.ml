@@ -54,6 +54,18 @@ type running_time = Rational.t bound * Rational.t bound
     the grade. A closed end is attained by the durations of the operation, an
     open one is their strict infimum or supremum. *)
 
+(** The durations of the computations of a grade, as a program reports them to a
+    backend. *)
+type durations =
+  | Duration_interval of Rational.t bound * Rational.t bound
+      (** the interval of the durations, each end attained or not, the upper end
+          infinite where the grade bounds them only below ({!S.duration_bounds})
+      *)
+  | Undetermined
+      (** the grade system bounds durations, but this grade determines no
+          interval of them *)
+  | Untimed  (** the grade system does not bound durations *)
+
 (** [end_value b] is the value of the finite end [b] of an interval.
 
     Raises [Invalid_argument] if [b] is infinite. *)

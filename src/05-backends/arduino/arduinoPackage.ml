@@ -2,12 +2,13 @@ module Json = ArduinoJson
 module Error = Utils.Error
 module Location = Utils.Location
 
+type file = { filename : string; text : string }
+
 type t = {
   name : string;
   description : string;
-  declarations : string;
-  declarations_source : string;
-  grades : string list;
+  definitions : file option;
+  declarations : (string * file) list;
   requires : string list;
   sources : (string * string) list;
   host_models : (string * string) list;
@@ -37,6 +38,7 @@ let parse name text =
       ~accepted:
         [
           "description";
+          "definitions";
           "declarations";
           "grades";
           "requires";
@@ -57,13 +59,55 @@ let parse name text =
         Error.compilation ~loc:v.at "The package %s has no file %s for %s" name
           file what
   in
-  let declarations = Json.required f "declarations" Json.string in
+  let tpe ~what filename =
+    { filename = directory ^ filename; text = snd (file ~what filename) }
+  in
+  let declarations =
+    let what = "its declarations" in
+    let member = Json.required f "declarations" (fun ~what:_ v -> v) in
+    match (member.value, Json.optional f "grades" strings) with
+    | Json.String filename, Some grades ->
+        let declarations = tpe ~what filename in
+        List.map (fun grades -> (grades, declarations)) grades
+    | Json.String _, None ->
+        Error.compilation ~loc:v.at
+          "The member 'grades' of a package descriptor is missing; it names \
+           the grades under which the declarations are read"
+    | Json.Object members, None ->
+        if members = [] then
+          Error.compilation ~loc:member.at
+            "The member 'declarations' of a package descriptor names no grades";
+        (* The grades, none twice. *)
+        let g =
+          Json.fields ~what:"the member 'declarations' of a package descriptor"
+            ~accepted:
+              (List.map
+                 (fun ((key : string Location.located), _) -> key.it)
+                 members)
+            member
+        in
+        List.map
+          (fun ((key : string Location.located), _) ->
+            (key.it, tpe ~what (Json.required g key.it Json.string)))
+          members
+    | Json.Object _, Some _ ->
+        Error.compilation ~loc:(Json.location f "grades")
+          "A package descriptor whose declarations map grades to files has no \
+           member 'grades'"
+    | _ ->
+        Error.compilation ~loc:member.at
+          "The member 'declarations' of a package descriptor must be a string \
+           or an object, but it is %s"
+          (Json.kind member)
+  in
   {
     name;
     description = Json.required f "description" Json.string;
-    declarations = directory ^ declarations;
-    declarations_source = snd (file ~what:"its declarations" declarations);
-    grades = Json.required f "grades" strings;
+    definitions =
+      Option.map
+        (tpe ~what:"its definitions")
+        (Json.optional f "definitions" Json.string);
+    declarations;
     requires = list "requires";
     sources = List.map (file ~what:"its sources") (list "sources");
     host_models = List.map (file ~what:"its host models") (list "host_models");
@@ -82,20 +126,27 @@ let resolve (name : string Location.located) =
       Error.compilation ~loc:name.at "Unknown package '%s'; accepted: %s"
         name.it (String.concat ", " names)
 
+let package_files package =
+  Option.to_list package.definitions @ List.map snd package.declarations
+
 let source filename =
   List.find_map
     (fun name ->
-      match find name with
-      | Some p when p.declarations = filename -> Some p.declarations_source
-      | _ -> None)
+      Option.bind (find name) (fun p ->
+          List.find_map
+            (fun file ->
+              if file.filename = filename then Some file.text else None)
+            (package_files p)))
     names
 
-let check_grades ~grades package =
-  if List.mem grades package.grades then Ok ()
-  else
-    Error
-      (Printf.sprintf
-         "The package %s declares its operations under the grades %s, not %s"
-         package.name
-         (String.concat ", " package.grades)
-         grades)
+let files_for ~grades package =
+  match List.assoc_opt grades package.declarations with
+  | Some declarations ->
+      Ok (Option.to_list package.definitions @ [ declarations ])
+  | None ->
+      Error
+        (Printf.sprintf
+           "The package %s declares its operations under the grades %s, not %s"
+           package.name
+           (String.concat ", " (List.map fst package.declarations))
+           grades)

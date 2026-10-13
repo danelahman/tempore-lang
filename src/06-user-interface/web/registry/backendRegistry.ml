@@ -35,13 +35,7 @@ type operations =
 type function_effect = ArduinoBackend.ArduinoProject.function_effect =
   | Not_a_function
   | Effect_variable
-  | Effect of {
-      grade : string;
-      durations :
-        (Grades.Rational.t Grades.Grade.bound
-        * Grades.Rational.t Grades.Grade.bound)
-        option;
-    }
+  | Effect of { grade : string; durations : Grades.Grade.durations }
 
 type definitions = (Language.Ast.variable * function_effect) list
 
@@ -298,10 +292,13 @@ let arduino_declarations settings ~grades =
     (fun acc (p : Package.t) ->
       Result.bind acc (fun sources ->
           Result.map
-            (fun () ->
+            (fun files ->
               sources
-              @ [ { filename = p.declarations; text = p.declarations_source } ])
-            (Package.check_grades ~grades p)))
+              @ List.map
+                  (fun (f : Package.file) ->
+                    { filename = f.filename; text = f.text })
+                  files)
+            (Package.files_for ~grades p)))
     (Ok [])
     (arduino_packages settings)
 
