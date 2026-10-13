@@ -699,9 +699,27 @@
       min-width: 0;
     }
 
-    .copy-link-button {
-      padding-left: 0.75em;
-      padding-right: 0.75em;
+    /* the label of the example, with the copy link at its right end */
+    .example-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5em;
+    }
+
+    .example-label > .label {
+      margin-bottom: 0;
+    }
+
+    .copy-link {
+      display: inline-flex;
+      color: inherit;
+      opacity: 0.6;
+    }
+
+    .copy-link:hover,
+    .copy-link:focus-visible {
+      opacity: 1;
     }
 
     /* the notice under the example, which may hold a link */

@@ -1202,7 +1202,24 @@ let view_compiler (model : Model.model) =
         div
           ~a:[ class_ "field" ]
           ([
-             elt "label" ~a:[ class_ "label" ] [ text "Example" ];
+             (* the label, with the link copying the address naming the
+                example, the grades and the backend selected at its right
+                end *)
+             div
+               ~a:[ class_ "example-label" ]
+               [
+                 elt "label" ~a:[ class_ "label" ] [ text "Example" ];
+                 elt "a"
+                   ~a:
+                     [
+                       class_ "copy-link";
+                       attr "href" "#";
+                       attr "title" "Copy link";
+                       attr "aria-label" "Copy link";
+                       onclick ~prevent_default:() (fun _ -> Model.CopyLink);
+                     ]
+                   [ link_mark ];
+               ];
              div
                ~a:[ class_ "example-field" ]
                [
@@ -1246,22 +1263,6 @@ let view_compiler (model : Model.model) =
                            ~a:[ class_ "has-text-grey" ]
                            [ text "\xE2\x80\xA6" ];
                        ];
-                   ];
-                 (* copies the address naming the example, the grades and
-                    the backend selected *)
-                 div
-                   ~a:[ class_ "control" ]
-                   [
-                     elt "button"
-                       ~a:
-                         [
-                           class_ "button copy-link-button";
-                           type_button;
-                           attr "title" "Copy link";
-                           attr "aria-label" "Copy link";
-                           onclick (fun _ -> Model.CopyLink);
-                         ]
-                       [ link_mark ];
                    ];
                ];
            ]
