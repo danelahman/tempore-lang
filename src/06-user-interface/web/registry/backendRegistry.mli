@@ -34,7 +34,13 @@ val setting : input list -> settings -> string -> string
 
 type severity = Error | Warning | Note
 
-type message = { severity : severity; text : string }
+type message = {
+  severity : severity;
+  text : string;
+  diagnostic : Utils.Diagnostic.t option;
+      (** the diagnostic of an error, located in the program, its declarations
+          or the inputs, when the compiler reports one *)
+}
 (** A message of a compilation. *)
 
 type compiled = {
@@ -143,6 +149,9 @@ type entry = {
   declarations : settings -> grades:string -> (source list, string) result;
       (** the sources loaded before the program under the grades named [grades],
           in order, or else why they cannot be loaded under them *)
+  files : (string * string) list;
+      (** the file names under which the compiler locates the diagnostics of the
+          text of its inputs, each with the key of the input *)
 }
 
 val interpreter : entry
@@ -178,3 +187,7 @@ val default : entry
 
 val find : string -> entry option
 (** [find key] is the backend of [key], if any. *)
+
+val input_of_file : string -> input option
+(** [input_of_file filename] is the input of a backend of {!entries} whose text
+    the compiler locates under [filename] ({!entry.files}), if any. *)

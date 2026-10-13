@@ -368,6 +368,10 @@ type model = {
   compile_serial : int;
       (** The serial of the latest change of the inputs, which the debounce of
           the compilation awaits. *)
+  reports_compilation : bool;
+      (** Whether the errors reported are those of the compilation of the
+          program as last checked, which a compilation with other inputs or by
+          another backend replaces. *)
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)

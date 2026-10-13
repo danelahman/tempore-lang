@@ -21,7 +21,12 @@ let setting inputs settings key =
       Option.value (List.assoc_opt key settings) ~default:input.default
 
 type severity = Error | Warning | Note
-type message = { severity : severity; text : string }
+
+type message = {
+  severity : severity;
+  text : string;
+  diagnostic : Utils.Diagnostic.t option;
+}
 
 type compiled = {
   code : string option;
@@ -114,6 +119,7 @@ type entry = {
   compiler : compiler option;
   observer : (settings -> observer) option;
   declarations : settings -> grades:string -> (source list, string) result;
+  files : (string * string) list;
 }
 
 let no_declarations _ ~grades:_ = Ok []
@@ -129,6 +135,7 @@ let interpreter =
     compiler = None;
     observer = Some (fun _ -> timeline ~expanded:false ());
     declarations = no_declarations;
+    files = [];
   }
 
 (* Opentrons *)
@@ -175,6 +182,7 @@ let opentrons_compile settings ~operations ~compound ~definitions:_ commands =
         [
           {
             severity = Note;
+            diagnostic = None;
             text =
               "Without a binding file, the program is compiled to a Python \
                program that runs on a virtual clock, its operations performed \
@@ -209,13 +217,18 @@ let opentrons_compile settings ~operations ~compound ~definitions:_ commands =
           code = Some code;
           language = "python";
           messages =
-            List.map (fun text -> { severity = Warning; text }) warnings;
+            List.map
+              (fun text -> { severity = Warning; text; diagnostic = None })
+              warnings;
         }
     | Stdlib.Error errors ->
         {
           code = None;
           language = "python";
-          messages = List.map (fun text -> { severity = Error; text }) errors;
+          messages =
+            List.map
+              (fun text -> { severity = Error; text; diagnostic = None })
+              errors;
         }
 
 (* The timeline titled with the unit of duration. *)
@@ -242,6 +255,7 @@ let opentrons =
       Some { compile = opentrons_compile; code_name = "Opentrons protocol" };
     observer = Some opentrons_observer;
     declarations = no_declarations;
+    files = [];
   }
 
 (* Arduino *)
@@ -377,6 +391,7 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
             [
               {
                 severity = Note;
+                diagnostic = None;
                 text =
                   "Without a device manifest, the program is compiled to C++ \
                    functions alone, its operations calls of functions \
@@ -425,6 +440,7 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
             [
               {
                 severity = Note;
+                diagnostic = None;
                 text =
                   Printf.sprintf
                     "The PlatformIO project of the device for the board %s%s. \
@@ -443,7 +459,13 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
       code = None;
       language = "cpp";
       messages =
-        [ { severity = Error; text = diagnostic_text ~manifest_text d } ];
+        [
+          {
+            severity = Error;
+            text = diagnostic_text ~manifest_text d;
+            diagnostic = Some d;
+          };
+        ];
     }
 
 let arduino =
@@ -458,8 +480,16 @@ let arduino =
     compiler = Some { compile = arduino_compile; code_name = "C++ project" };
     observer = Some (fun _ -> timeline ~expanded:true ());
     declarations = arduino_declarations;
+    files = [ (manifest_filename, "manifest") ];
   }
 
 let entries = [ interpreter; opentrons; arduino ]
 let default = interpreter
 let find key = List.find_opt (fun (entry : entry) -> entry.key = key) entries
+
+let input_of_file filename =
+  List.find_map
+    (fun (entry : entry) ->
+      Option.bind (List.assoc_opt filename entry.files) (fun key ->
+          List.find_opt (fun (input : input) -> input.key = key) entry.inputs))
+    entries

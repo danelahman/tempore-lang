@@ -803,20 +803,41 @@ let arduino_example (entry : Manifest.entry) =
     ]
     source
 
-(* Errors of the Arduino backend: a malformed manifest, a task function the
-   program lacks, a construct outside the fragment, an unknown package, which
-   loads no declarations, a package listed twice, which loads them once, and
-   packages under grades they are not declared under. *)
+(* Errors of the Arduino backend: a malformed manifest, located in the file of
+   the manifest input, a task function the program lacks, a construct outside
+   the fragment, located in the program, an unknown package, which loads no
+   declarations, a package listed twice, which loads them once, and packages
+   under grades they are not declared under. *)
 let () =
   let manifest text = [ ("manifest", text) ] in
   let refused ~sub (output : BackendRegistry.compiled) =
     output.code = None && has_error output && contains ~sub (error_text output)
   in
+  (* every error carries a diagnostic located in the file [file] *)
+  let located ~file (output : BackendRegistry.compiled) =
+    List.for_all
+      (fun (m : BackendRegistry.message) ->
+        m.severity <> BackendRegistry.Error
+        ||
+        match m.diagnostic with
+        | Some { primary = Some loc; _ } -> loc.filename = file
+        | _ -> false)
+      output.messages
+  in
+  (match
+     ( BackendRegistry.input_of_file "device.json",
+       BackendRegistry.input_of_file "" )
+   with
+  | Some { key = "manifest"; _ }, None -> ()
+  | _ -> fail "the inputs of the files of diagnostics");
   arduino_program ~name:"a program of nats" ~grade:"time-interval-rational"
     ~settings:[]
     [
       ([], fun output -> output.code <> None && not (has_error output));
-      (manifest "{ \"board\": ", refused ~sub:"device.json");
+      ( manifest "{ \"board\": ",
+        fun output ->
+          refused ~sub:"device.json" output
+          && located ~file:"device.json" output );
       ( manifest
           {|{ "board": "esp32-devkit", "tasks": [ { "function": "missing", "kind": "free" } ] }|},
         refused ~sub:"missing" );
@@ -824,7 +845,11 @@ let () =
     "let double (n : nat) = n + n\nrun double 2";
   arduino_program ~name:"a local function" ~grade:"time-interval-rational"
     ~settings:[]
-    [ ([], refused ~sub:"Compilation error") ]
+    [
+      ( [],
+        fun output ->
+          refused ~sub:"Compilation error" output && located ~file:"" output );
+    ]
     "let twice (n : nat) = let f (m : nat) = m + m in f n\nrun twice 2";
   let gray packages =
     manifest

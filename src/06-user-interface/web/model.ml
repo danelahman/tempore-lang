@@ -595,6 +595,10 @@ type model = {
   compile_serial : int;
       (** The serial of the latest change of the inputs, which the debounce of
           the compilation awaits. *)
+  reports_compilation : bool;
+      (** Whether the errors reported are those of the compilation of the
+          program as last checked, which a compilation with other inputs or by
+          another backend replaces. *)
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)
@@ -654,6 +658,7 @@ let init =
     declarations_open = false;
     compiled = None;
     compile_serial = 0;
+    reports_compilation = false;
     code_view = Source;
     notice = None;
     notice_serial = 0;
@@ -731,23 +736,47 @@ let declarations_changed model =
 let compile model =
   match (model.accepted, (backend model.edit_model).compiler) with
   | Some accepted, Some compiler ->
+      let refused text diagnostic =
+        {
+          BackendRegistry.code = None;
+          language = "";
+          messages = [ { severity = BackendRegistry.Error; text; diagnostic } ];
+        }
+      in
       let output =
-        try accepted compiler (settings model.edit_model)
-        with exn ->
-          {
-            BackendRegistry.code = None;
-            language = "";
-            messages =
-              [
-                {
-                  severity = BackendRegistry.Error;
-                  text = Printexc.to_string exn;
-                };
-              ];
-          }
+        try accepted compiler (settings model.edit_model) with
+        | Error.Error d ->
+            refused
+              (String.trim (Format.asprintf "%t" (Diagnostic.print d)))
+              (Some d)
+        | exn -> refused (Printexc.to_string exn) None
       in
       Some { output; up_to_date = true }
   | _ -> None
+
+(* The errors of a compilation, reported as those of a check: the diagnostic
+   of each, or else a diagnostic of its text alone. *)
+let compilation_errors = function
+  | None -> []
+  | Some { output; _ } ->
+      List.filter_map
+        (fun (m : BackendRegistry.message) ->
+          match m.severity with
+          | BackendRegistry.Error ->
+              let diagnostic =
+                Option.value m.diagnostic
+                  ~default:
+                    {
+                      Diagnostic.kind = Compilation;
+                      primary = None;
+                      message = m.text;
+                      labels = [];
+                      notes = [];
+                    }
+              in
+              Some { diagnostic; hovered_label = None }
+          | Warning | Note -> None)
+        output.messages
 
 (* The first error whose primary span covers [offset], a byte of the editor's
    text. A point span is widened as the editor widens it when marking it. *)
@@ -999,6 +1028,30 @@ let utf16_offset source byte =
   in
   go 0 0
 
+(* The model with the code [compiled]. Where the errors reported are those of
+   the compilation, the errors of [compiled] replace them, unless they are the
+   same, and the outcome of the check counts them. *)
+let recompiled model compiled =
+  let model = { model with compiled } in
+  let errors = compilation_errors compiled in
+  let diagnostics = List.map (fun (e : load_error) -> e.diagnostic) in
+  match model.run_model with
+  | Error reported
+    when model.reports_compilation && diagnostics reported <> diagnostics errors
+    ->
+      {
+        (without_popover model) with
+        run_model = Error errors;
+        active_error = None;
+        hovered_error = None;
+        flash = None;
+        last_check =
+          Option.map
+            (fun check -> { check with errors = List.length errors })
+            model.last_check;
+      }
+  | _ -> model
+
 (** What the program was undergoing when an exception was raised. *)
 type stage = Checking | Running
 
@@ -1032,21 +1085,22 @@ let rec update_model model = function
         ~some:(fun (group, e) ->
           update_model model (EditMsg (LoadExample (group, e))))
         (default_example key)
-  | EditMsg ((SelectBackend _ | SetInput _) as edit_msg) ->
+  | EditMsg ((SelectBackend _ | SetInput _) as edit_msg) -> (
       (* The program stays checked: another backend compiles it at once, and
          a changed input after a rest (see [update]). *)
       let model =
         { model with edit_model = edit_update model.edit_model edit_msg }
       in
-      let compiled =
-        match edit_msg with
-        | SelectBackend _ -> compile model
-        | _ ->
-            Option.map
-              (fun compiled -> { compiled with up_to_date = false })
-              model.compiled
-      in
-      { model with compiled }
+      match edit_msg with
+      | SelectBackend _ -> recompiled model (compile model)
+      | _ ->
+          {
+            model with
+            compiled =
+              Option.map
+                (fun compiled -> { compiled with up_to_date = false })
+                model.compiled;
+          })
   | EditMsg edit_msg ->
       (* A loaded example replaces the program, so the errors of the old one
          go with it; an edit only makes them out of date. *)
@@ -1091,6 +1145,8 @@ let rec update_model model = function
                 (fun check -> { check with current = false })
                 model.last_check);
         accepted = (if edits_program edit_msg then None else model.accepted);
+        reports_compilation =
+          model.reports_compilation && not (edits_program edit_msg);
         code_view =
           (match edit_msg with LoadExample _ -> Source | _ -> model.code_view);
         compiled =
@@ -1112,6 +1168,7 @@ let rec update_model model = function
                 run_model = Error (errors_of_exception Running exn);
                 active_error = None;
                 hovered_error = None;
+                reports_compilation = false;
               })
       | Error _ -> model)
   | Perform action ->
@@ -1274,10 +1331,19 @@ let rec update_model model = function
               else (Error [], definitions, links, Some accepted)
         with exn -> (Error (errors_of_exception Checking exn), [], [], None)
       in
+      (* A program accepted by a check, not run, reports the errors of its
+         compilation. *)
+      let reports_compilation = (not run) && Option.is_some accepted in
       let model = { model with accepted; declared } in
+      let compiled = compile model in
+      let run_model =
+        if reports_compilation then Error (compilation_errors compiled)
+        else run_model
+      in
       {
         (without_popover model) with
         run_model;
+        reports_compilation;
         active_error = None;
         hovered_error = None;
         stale_errors = false;
@@ -1286,7 +1352,7 @@ let rec update_model model = function
         link = None;
         flash = None;
         checking = None;
-        compiled = compile model;
+        compiled;
         last_check =
           Some
             {
@@ -1302,6 +1368,7 @@ let rec update_model model = function
       {
         (without_popover model) with
         run_model = Error [];
+        reports_compilation = false;
         active_error = None;
         hovered_error = None;
         stale_errors = false;
@@ -1338,7 +1405,7 @@ let rec update_model model = function
   (* A program edited since its check keeps its code, out of date. *)
   | Recompile serial when serial = model.compile_serial -> (
       match compile model with
-      | Some compiled -> { model with compiled = Some compiled }
+      | Some compiled -> recompiled model (Some compiled)
       | None -> model)
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
   | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode

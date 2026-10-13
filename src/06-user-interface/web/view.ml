@@ -210,11 +210,15 @@ let view_contents main aside =
    and is neither shown nor editable; only editor spans can be marked. *)
 let in_editor (loc : Location.t) = loc.filename = ""
 
-(* The source of a span outside the editor: the standard library, or the file
-   of declarations a backend loads before the program. *)
+(* The source of a span outside the editor: the standard library, an input of
+   a backend, or the file of declarations a backend loads before the
+   program. *)
 let source_name (loc : Location.t) =
   if loc.filename = Loader.stdlib_filename then "the standard library"
-  else loc.filename
+  else
+    match BackendRegistry.input_of_file loc.filename with
+    | Some input -> "the " ^ String.uncapitalize_ascii input.label
+    | None -> loc.filename
 
 (* The ids the error's spans are given in the editor, so that the message
    under it can link to them and the page can scroll to them. *)
@@ -1524,7 +1528,7 @@ let view_compiled (model : Model.model) (entry : BackendRegistry.entry)
   in
   let errors =
     match model.run_model with
-    | Error (_ :: _ as errors) ->
+    | Error (_ :: _ as errors) when not model.reports_compilation ->
         [
           elt "p"
             ~a:[ class_ "backend-note" ]
