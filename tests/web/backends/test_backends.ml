@@ -242,7 +242,7 @@ let () =
 
 (* The Opentrons examples *)
 
-let root = Filename.concat (Sys.getcwd ()) "../.."
+let root = Filename.concat (Sys.getcwd ()) "../../.."
 
 let read path =
   In_channel.with_open_text (Filename.concat root path) In_channel.input_all

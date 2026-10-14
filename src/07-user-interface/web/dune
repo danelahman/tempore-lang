@@ -34,8 +34,8 @@
   (only web.bc.js)))
 
 ;; The modules Readme_md, Arduino_readme_md and Opentrons_readme_md, generated
-;; as Stdlib_tpe is in src/06-user-interface/core/dune, with the sources of the
-;; READMEs the documentation view renders. The {md| |md} delimiter is used rather than
+;; as Stdlib_tpe is in src/06-loader/dune, with the sources of the READMEs the
+;; documentation view renders. The {md| |md} delimiter is used rather than
 ;; {| |}, so that a "|}" written in a README does not terminate the literal.
 
 (rule

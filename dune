@@ -6,4 +6,4 @@
  (mode
   (promote (until-clean)))
  (action
-  (copy src/06-user-interface/cli/cli.exe tempore)))
+  (copy src/07-user-interface/cli/cli.exe tempore)))

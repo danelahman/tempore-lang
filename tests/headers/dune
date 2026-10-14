@@ -1,0 +1,8 @@
+; The headers of the examples: their summary, the command that runs them and
+; their grades.
+
+(test
+ (name test_headers)
+ (libraries testSupport)
+ (deps
+  (glob_files_rec %{project_root}/examples/*.tpe)))

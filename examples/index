@@ -1,6 +1,6 @@
 # Index of the examples shown in the web interface's gallery, read by
-# src/06-user-interface/web/gen_examples/gen_examples.ml to generate the
-# module Examples_tpe (see src/06-user-interface/web/dune).
+# src/07-user-interface/web/gen_examples/gen_examples.ml to generate the
+# module Examples_tpe (see src/07-user-interface/web/dune).
 #
 # One example per non-blank, non-comment line, five fields separated by ' | ',
 # optionally followed by a sixth and a seventh:
@@ -18,7 +18,7 @@
 # - description: one sentence, shown on the example's card.
 # - backend: the backend whose gallery lists the example, and which the web
 #   interface switches to when it is loaded (a key of BackendRegistry.entries,
-#   src/06-user-interface/web/registry); interpreter when not given.
+#   src/07-user-interface/web/registry); interpreter when not given.
 # - settings: the values of inputs of the backend, set when the example is
 #   loaded, separated by blanks, each written key=value; the value of a text
 #   input is the path of the file holding it, relative to this directory.

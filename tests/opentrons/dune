@@ -5,7 +5,7 @@
 
 (cram
  (enabled_if
-  (= %{read:../python/python-available} "true\n"))
+  (= %{read:../probes/python/python-available} "true\n"))
  (deps
   %{project_root}/tempore
   %{project_root}/tests/helpers.sh

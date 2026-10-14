@@ -56,10 +56,3 @@
   inference
   testSupport
   testPrograms))
-
-(test
- (name test_headers)
- (modules test_headers)
- (libraries testSupport)
- (deps
-  (glob_files_rec %{project_root}/examples/*.tpe)))
