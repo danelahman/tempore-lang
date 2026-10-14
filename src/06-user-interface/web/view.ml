@@ -347,7 +347,7 @@ let target_error = function
   | Model.Definition _ | Model.Reference _ -> None
 
 let popover_target (model : Model.model) =
-  match model.popover with
+  match model.popovers.popover with
   | Some { target; shown = true; _ } -> Some target
   | _ -> None
 
@@ -541,7 +541,7 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
 (* The link whose name is under the pointer of a mouse [event], while the
    modifier of links is held. *)
 let link_under (model : Model.model) event =
-  if model.links <> [] && EditorDom.modifier_held event then
+  if model.checked.links <> [] && EditorDom.modifier_held event then
     EditorDom.link_at (EditorDom.point event)
   else None
 
@@ -559,11 +559,14 @@ let oneditor_keys (model : Model.model) =
   on_with_options "keydown"
     (bind
        (fun (key, shift) ->
-         if key = "F12" && model.links <> [] && not model.stale_errors then
+         if
+           key = "F12" && model.checked.links <> []
+           && not model.error_view.stale_errors
+         then
            map
              (fun offset ->
                match
-                 Model.link_at model.links
+                 Model.link_at model.checked.links
                    (Model.byte_offset model.edit_model.unparsed_code offset)
                with
                | Some _ ->
@@ -786,7 +789,7 @@ let view_declaration_entry ~columns k (entry : Model.declaration_entry) =
    drawn hidden until measured, and then placed under or above its span, a
    scheme laid out again first when the measured width differs. *)
 let view_popover (model : Model.model) errors =
-  let columns = Option.value ~default:default_columns model.columns in
+  let columns = Option.value ~default:default_columns model.popovers.columns in
   let error_card i label =
     Option.map
       (fun (error : Model.load_error) ->
@@ -848,16 +851,16 @@ let view_popover (model : Model.model) errors =
                   ~a:[ class_ "code-popover-scheme" ]
                   (view_scheme ~columns d);
               ] ))
-          (List.nth_opt model.definitions k)
+          (List.nth_opt model.checked.definitions k)
     | Model.Reference k -> (
-        match List.nth_opt model.links k with
+        match List.nth_opt model.checked.links k with
         | Some { destination = Model.In_library entry; _ } ->
             Some ("is-type", view_library_entry ~columns entry)
         | Some { destination = Model.In_declarations entry; _ } ->
             Some ("is-type", view_declaration_entry ~columns k entry)
         | Some { destination = Model.In_editor _; _ } | None -> None)
   in
-  match model.popover with
+  match model.popovers.popover with
   | Some ({ shown = true; _ } as popover) -> (
       match card popover.target with
       | None -> nil
@@ -900,7 +903,8 @@ let onpointer (model : Model.model) =
               | None -> Model.Nowhere)
           | `Nothing -> Model.Nowhere
         and link = link_under model event in
-        if pointer = model.pointer && link = model.link then None
+        if pointer = model.popovers.pointer && link = model.popovers.link then
+          None
         else Some (Model.Point (pointer, link, EditorDom.point event))
     | _ -> None)
 
@@ -908,7 +912,8 @@ let onpointer (model : Model.model) =
 let onpointer_leave (model : Model.model) =
   on_js "mouseleave" (function
     | Vdom_blit.Ojs event
-      when (model.pointer <> Model.Nowhere || model.link <> None)
+      when (model.popovers.pointer <> Model.Nowhere
+           || model.popovers.link <> None)
            && not (EditorDom.moves_within ".code-editor" event) ->
         Some (Model.Point (Model.Nowhere, None, EditorDom.point event))
     | _ -> None)
@@ -918,7 +923,8 @@ let onescape_popover (model : Model.model) =
     Vdom.Decoder.(
       map
         (fun key ->
-          if key = "Escape" && model.popover <> None then Some Model.Conceal
+          if key = "Escape" && model.popovers.popover <> None then
+            Some Model.Conceal
           else None)
         (field "key" String))
 
@@ -940,7 +946,7 @@ let view_editor ~highlighted ~errors (model : Model.model) =
   let rows = max 10 lines in
   let gutter = gutter lines in
   let described =
-    match (popover_target model, model.caret_target) with
+    match (popover_target model, model.popovers.caret_target) with
     | Some target, Some target' when target = target' ->
         [ attr "aria-describedby" popover_id ]
     | _ -> []
@@ -949,7 +955,7 @@ let view_editor ~highlighted ~errors (model : Model.model) =
     ~a:
       [
         class_
-          (if model.link <> None then "code-editor is-linking"
+          (if model.popovers.link <> None then "code-editor is-linking"
            else "code-editor");
         style "--gutter" gutter;
         onpointer model;
@@ -1051,13 +1057,14 @@ let view_check_status (model : Model.model) =
       ~a:
         [
           class_
-            (if model.checking <> None then "check-status-outcome is-superseded"
+            (if model.status.checking <> None then
+               "check-status-outcome is-superseded"
              else "check-status-outcome");
         ]
       [ mark; view_status_text ~clipped parts ]
   in
   let outcome =
-    match model.last_check with
+    match model.status.last_check with
     | None -> []
     | Some { current = false; errors; _ } ->
         [
@@ -1131,7 +1138,7 @@ let view_check_status (model : Model.model) =
             ];
         ]
   and progress =
-    if model.checking = None then []
+    if model.status.checking = None then []
     else
       [
         elt "span"
@@ -1148,7 +1155,7 @@ let view_check_status (model : Model.model) =
     ~a:
       [
         class_
-          (if model.abbreviated then "check-status is-abbreviated"
+          (if model.status.abbreviated then "check-status is-abbreviated"
            else "check-status");
         attr "id" status_id;
         attr "role" "status";
@@ -1275,7 +1282,7 @@ let view_compiler (model : Model.model) =
       ]
   in
   let notice =
-    match model.notice with
+    match model.notices.notice with
     | None -> []
     | Some notice ->
         let colour, message =
@@ -1493,7 +1500,7 @@ let view_compiler (model : Model.model) =
        assistive technology only, so that the focus stays on them. *)
     let action cls label pressed msg =
       let state =
-        match model.checking with
+        match model.status.checking with
         | None -> []
         | Some action when action = pressed -> [ "is-checking" ]
         | Some _ -> [ "is-waiting" ]
@@ -1512,7 +1519,7 @@ let view_compiler (model : Model.model) =
                  onclick (fun _ -> msg);
                ]
               @
-              if model.checking = None then []
+              if model.status.checking = None then []
               else [ attr "aria-disabled" "true" ])
             [ elt "span" [ text label ] ];
         ]
@@ -1535,7 +1542,8 @@ let view_compiler (model : Model.model) =
               elt "li"
                 ~a:
                   (classes
-                     ((if model.active_error = Some i then [ "is-active" ]
+                     ((if model.error_view.active_error = Some i then
+                         [ "is-active" ]
                        else [])
                      @ severity_classes error)
                   @ [
@@ -1549,7 +1557,7 @@ let view_compiler (model : Model.model) =
                         attr "href"
                           ("#"
                           ^
-                          if model.stale_errors then error_id i
+                          if model.error_view.stale_errors then error_id i
                           else load_error_target i error);
                         onclick ~prevent_default:() (fun _ -> Model.GoToError i);
                       ]
@@ -1560,7 +1568,7 @@ let view_compiler (model : Model.model) =
               ~a:
                 [
                   class_
-                    (if model.stale_errors then "error-list is-stale"
+                    (if model.error_view.stale_errors then "error-list is-stale"
                      else "error-list");
                 ]
               (List.mapi view_entry errors)
@@ -1591,7 +1599,7 @@ let view_compiled (model : Model.model) (entry : BackendRegistry.entry)
   in
   let errors =
     match model.run_model with
-    | Error (_ :: _ as errors) when not model.reports_compilation ->
+    | Error (_ :: _ as errors) when not model.compilation.reports_compilation ->
         [
           elt "p"
             ~a:[ class_ "backend-note" ]
@@ -1613,7 +1621,7 @@ let view_compiled (model : Model.model) (entry : BackendRegistry.entry)
     | _ -> []
   in
   let compiled =
-    match model.compiled with
+    match model.compilation.compiled with
     | None ->
         [
           elt "p"
@@ -1858,18 +1866,18 @@ let editor_key (model : Model.model) =
   {
     source = model.edit_model.unparsed_code;
     errors = (match model.run_model with Error errors -> errors | Ok _ -> []);
-    stale = model.stale_errors;
+    stale = model.error_view.stale_errors;
     popover = popover_target model;
     pointed =
-      (match model.pointer with
+      (match model.popovers.pointer with
       | Model.Over_target target -> target_error target
       | Model.Nowhere | Model.Over_popover -> None);
-    hovered_error = model.hovered_error;
-    active_error = model.active_error;
-    definitions = model.definitions;
-    links = model.links;
-    link = model.link;
-    flash = model.flash;
+    hovered_error = model.error_view.hovered_error;
+    active_error = model.error_view.active_error;
+    definitions = model.checked.definitions;
+    links = model.checked.links;
+    link = model.popovers.link;
+    flash = model.notices.flash;
     line_links = Model.line_links model;
   }
 
@@ -2071,7 +2079,7 @@ let view_unflashed_declaration_source source = view_declaration_source source
 let view_declarations (model : Model.model) =
   div
     ~a:[ class_ "editor-declarations" ]
-    (match model.shown_declarations with
+    (match model.declarations.shown_declarations with
     | [] -> []
     | sources ->
         [
@@ -2079,12 +2087,13 @@ let view_declarations (model : Model.model) =
             ~a:
               [
                 class_ "declarations";
-                bool_prop "open" model.declarations_open;
+                bool_prop "open" model.declarations.declarations_open;
                 on "toggle"
                   Vdom.Decoder.(
                     map
                       (fun shown ->
-                        if shown = model.declarations_open then None
+                        if shown = model.declarations.declarations_open then
+                          None
                         else Some (Model.ShowDeclarations shown))
                       (field "target.open" Bool));
               ]
@@ -2093,7 +2102,7 @@ let view_declarations (model : Model.model) =
                [ text (WebDeclarations.title sources) ]
             :: List.map
                  (fun (source : WebDeclarations.source) ->
-                   match model.flash with
+                   match model.notices.flash with
                    | Some (Model.Declaration (filename, start, stop))
                      when filename = source.filename ->
                        view_declaration_source ~flash:(start, stop) source
@@ -2108,7 +2117,7 @@ let view_declarations (model : Model.model) =
 let edit_view (model : Model.model) =
   let entry = Model.backend model.edit_model in
   let content =
-    match (entry.compiler, model.code_view) with
+    match (entry.compiler, model.compilation.code_view) with
     | Some compiler, Model.Compiled -> [ view_compiled model entry compiler ]
     | _ ->
         let key = interned (editor_key model) in
@@ -2120,14 +2129,14 @@ let edit_view (model : Model.model) =
         :: List.mapi
              (fun i error ->
                view_load_error ~stale
-                 ~active:(model.active_error = Some i)
-                 ~flashed:(model.flash = Some (Model.Message i))
+                 ~active:(model.error_view.active_error = Some i)
+                 ~flashed:(model.notices.flash = Some (Model.Message i))
                  i error)
              errors
   and switch =
     Option.fold ~none:[]
       ~some:(fun compiler ->
-        [ view_switch ~key:entry.key compiler model.code_view ])
+        [ view_switch ~key:entry.key compiler model.compilation.code_view ])
       entry.compiler
   in
   view_contents
@@ -2571,11 +2580,11 @@ let view (model : Model.model) =
   div
     [
       view_navbar;
-      (match model.page with
+      (match model.navigation.page with
       | Model.Docs ->
           let main, aside =
-            Docs.view model.docs_page ~current:model.docs_heading
-              (page_link Model.Editor)
+            Docs.view model.navigation.docs_page
+              ~current:model.navigation.docs_heading (page_link Model.Editor)
           in
           view_contents main aside
       | Model.Editor -> (
@@ -2583,10 +2592,10 @@ let view (model : Model.model) =
           | Error _ -> edit_view model
           | Ok run_model -> run_view run_model));
       view_footer;
-      (match model.gallery with
+      (match model.navigation.gallery with
       | Some query ->
           view_gallery ~selected:model.edit_model.selected_example
             ~backend:(Model.backend model.edit_model).key
-            ~current:model.gallery_group query
+            ~current:model.navigation.gallery_group query
       | None -> nil);
     ]

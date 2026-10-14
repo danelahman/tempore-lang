@@ -314,10 +314,7 @@ type compiled = {
 }
 (** The code the selected backend has compiled the program to. *)
 
-type model = {
-  edit_model : edit_model;
-  run_model : (run_model, load_error list) result;
-      (** [Error []] is the edit view with nothing to report. *)
+type error_view = {
   active_error : int option;
       (** The error the caret sits in, singled out among the messages. *)
   hovered_error : int option;
@@ -327,6 +324,43 @@ type model = {
   stale_errors : bool;
       (** Whether the source has been edited since the errors were reported, so
           that their spans point at bytes that have moved. *)
+}
+(** The state of showing the errors reported. *)
+
+type status = {
+  checking : action option;
+      (** The check asked for and not yet performed, which awaits the drawing of
+          the page. *)
+  last_check : check option;
+      (** The outcome of the last check, [None] before any and once an example
+          is loaded. *)
+  abbreviated : bool;
+      (** Whether the status line abbreviates the number of definitions, not
+          holding it in full. *)
+}
+(** The check under way and the status line stating the outcome of the last. *)
+
+type checked = {
+  definitions : definition list;
+      (** The definitions of the program as last checked, those accepted before
+          its first error; none once the source or the options change. *)
+  links : link list;
+      (** The names of the program as last checked with the definitions they
+          refer to; none once the source or the options change. *)
+  accepted :
+    (BackendRegistry.compiler ->
+    BackendRegistry.settings ->
+    BackendRegistry.compiled)
+    option;
+      (** The compilation of the program as last checked, while neither it nor
+          the options have changed and it had no errors. *)
+  declared : BackendRegistry.source list;
+      (** The declarations of the selected backend loaded before the program as
+          last checked. *)
+}
+(** What the last check of the program has found. *)
+
+type navigation = {
   page : page;
   docs_page : WebDocPages.page;
       (** The page of the documentation shown, kept while the editor is. *)
@@ -338,27 +372,10 @@ type model = {
           closed. *)
   gallery_group : string option;
       (** The group of the example gallery scrolled to, [None] for the first. *)
-  definitions : definition list;
-      (** The definitions of the program as last checked, those accepted before
-          its first error; none once the source or the options change. *)
-  links : link list;
-      (** The names of the program as last checked with the definitions they
-          refer to; none once the source or the options change. *)
-  link : int option;
-      (** The link whose name is under the pointer while ⌘ (Ctrl) is held. *)
-  flash : flash option;  (** What has just been gone to, highlighted briefly. *)
-  flash_serial : int;
-      (** The serial of the latest flash, which replaces any earlier one; the
-          end of an earlier one is ignored. *)
-  checking : action option;
-      (** The check asked for and not yet performed, which awaits the drawing of
-          the page. *)
-  last_check : check option;
-      (** The outcome of the last check, [None] before any and once an example
-          is loaded. *)
-  abbreviated : bool;
-      (** Whether the status line abbreviates the number of definitions, not
-          holding it in full. *)
+}
+(** The page shown, the place of the documentation and the example gallery. *)
+
+type popovers = {
   popover : popover option;
   columns : int option;
       (** the characters a line of the scheme a card shows holds at most, as
@@ -370,21 +387,12 @@ type model = {
       (** The serial of the timer the popover awaits; a timer of another serial
           has been superseded. *)
   closing : bool;  (** whether that timer closes the popover *)
-  accepted :
-    (BackendRegistry.compiler ->
-    BackendRegistry.settings ->
-    BackendRegistry.compiled)
-    option;
-      (** The compilation of the program as last checked, while neither it nor
-          the options have changed and it had no errors. *)
-  declared : BackendRegistry.source list;
-      (** The declarations of the selected backend loaded before the program as
-          last checked. *)
-  shown_declarations : WebDeclarations.source list;
-      (** The declarations the selected backend loads before the program under
-          its inputs and the grades selected, shown above the program. *)
-  declarations_open : bool;
-      (** Whether the declarations shown above the program are unfolded. *)
+  link : int option;
+      (** The link whose name is under the pointer while ⌘ (Ctrl) is held. *)
+}
+(** The popover of the editor and what the pointer and the caret are on. *)
+
+type compilation = {
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;
@@ -397,10 +405,42 @@ type model = {
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)
+}
+(** The code compiled by the selected backend and its view. *)
+
+type declarations = {
+  shown_declarations : WebDeclarations.source list;
+      (** The declarations the selected backend loads before the program under
+          its inputs and the grades selected, shown above the program. *)
+  declarations_open : bool;
+      (** Whether the declarations shown above the program are unfolded. *)
+}
+(** The declarations shown above the program. *)
+
+type notices = {
+  flash : flash option;  (** What has just been gone to, highlighted briefly. *)
+  flash_serial : int;
+      (** The serial of the latest flash, which replaces any earlier one; the
+          end of an earlier one is ignored. *)
   notice : notice option;
   notice_serial : int;
       (** The serial of the latest notice, which replaces any earlier one; the
           end of an earlier one is ignored. *)
+}
+(** What is highlighted briefly and the notice shown under the example. *)
+
+type model = {
+  edit_model : edit_model;
+  run_model : (run_model, load_error list) result;
+      (** [Error []] is the edit view with nothing to report. *)
+  error_view : error_view;
+  status : status;
+  checked : checked;
+  navigation : navigation;
+  popovers : popovers;
+  compilation : compilation;
+  declarations : declarations;
+  notices : notices;
 }
 
 (** A side effect the update asks for, performed by the page. *)

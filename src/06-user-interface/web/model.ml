@@ -250,38 +250,42 @@ let init =
   {
     edit_model = edit_init;
     run_model = Error [];
-    active_error = None;
-    hovered_error = None;
-    stale_errors = false;
-    page = Editor;
-    docs_page = WebDocPages.Main;
-    docs_heading = None;
-    gallery = None;
-    gallery_group = None;
-    definitions = [];
-    links = [];
-    link = None;
-    flash = None;
-    flash_serial = 0;
-    checking = None;
-    last_check = None;
-    abbreviated = false;
-    popover = None;
-    columns = None;
-    pointer = Nowhere;
-    caret_target = None;
-    timer = 0;
-    closing = false;
-    accepted = None;
-    declared = [];
-    shown_declarations = shown_declarations ~shown:[] edit_init;
-    declarations_open = false;
-    compiled = None;
-    compile_serial = 0;
-    reports_compilation = false;
-    code_view = Source;
-    notice = None;
-    notice_serial = 0;
+    error_view =
+      { active_error = None; hovered_error = None; stale_errors = false };
+    status = { checking = None; last_check = None; abbreviated = false };
+    checked = { definitions = []; links = []; accepted = None; declared = [] };
+    navigation =
+      {
+        page = Editor;
+        docs_page = WebDocPages.Main;
+        docs_heading = None;
+        gallery = None;
+        gallery_group = None;
+      };
+    popovers =
+      {
+        popover = None;
+        columns = None;
+        pointer = Nowhere;
+        caret_target = None;
+        timer = 0;
+        closing = false;
+        link = None;
+      };
+    compilation =
+      {
+        compiled = None;
+        compile_serial = 0;
+        reports_compilation = false;
+        code_view = Source;
+      };
+    declarations =
+      {
+        shown_declarations = shown_declarations ~shown:[] edit_init;
+        declarations_open = false;
+      };
+    notices =
+      { flash = None; flash_serial = 0; notice = None; notice_serial = 0 };
   }
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
@@ -319,17 +323,19 @@ let compile_delay = 300
    other declarations than those the selected backend now loads, and must be
    checked again. *)
 let declarations_changed model =
-  (match model.last_check with Some check -> check.current | None -> false)
+  (match model.status.last_check with
+    | Some check -> check.current
+    | None -> false)
   &&
   match declarations model.edit_model with
-  | Ok sources -> sources <> model.declared
+  | Ok sources -> sources <> model.checked.declared
   | Error _ -> true
 
 (* The program as last accepted, compiled by the selected backend with its
    inputs; [None] without an accepted program or a compiler. An exception
    escaping the compiler is reported as its error. *)
 let compile model =
-  match (model.accepted, (backend model.edit_model).compiler) with
+  match (model.checked.accepted, (backend model.edit_model).compiler) with
   | Some accepted, Some compiler ->
       let refused text diagnostic =
         {
@@ -503,14 +509,26 @@ let defined_name source offset name =
 
 (* The popover closed, with no target under the pointer or the caret. *)
 let without_popover model =
+  let popovers = model.popovers in
   {
     model with
-    popover = None;
-    pointer = Nowhere;
-    caret_target = None;
-    timer = model.timer + 1;
-    closing = false;
+    popovers =
+      {
+        popovers with
+        popover = None;
+        pointer = Nowhere;
+        caret_target = None;
+        timer = popovers.timer + 1;
+        closing = false;
+      };
   }
+
+(* The errors shown, none of them singled out by the caret or the pointer. *)
+let unselected error_view =
+  { error_view with active_error = None; hovered_error = None }
+
+(* The notices, nothing highlighted. *)
+let unflashed notices = { notices with flash = None }
 
 (* The text of [scheme], split into its parts by [scheme_layout]. The printers
    name the unknowns as they meet them, so they are applied in order. *)
@@ -635,25 +653,31 @@ let utf16_offset source byte =
    the compilation, the errors of [compiled] replace them, unless they are the
    same, and the outcome of the check counts them. *)
 let recompiled model compiled =
-  let model = { model with compiled } in
+  let model =
+    { model with compilation = { model.compilation with compiled } }
+  in
   let errors = compilation_errors compiled in
   let diagnostics = List.map (fun (e : load_error) -> e.diagnostic) in
   match model.run_model with
   | Error reported
-    when model.reports_compilation && diagnostics reported <> diagnostics errors
-    ->
+    when model.compilation.reports_compilation
+         && diagnostics reported <> diagnostics errors ->
+      let model = without_popover model in
       {
-        (without_popover model) with
+        model with
         run_model = Error errors;
-        active_error = None;
-        hovered_error = None;
-        flash = None;
-        last_check =
-          Option.map
-            (fun check ->
-              let errors, warnings = counted errors in
-              { check with errors; warnings })
-            model.last_check;
+        error_view = unselected model.error_view;
+        notices = unflashed model.notices;
+        status =
+          {
+            model.status with
+            last_check =
+              Option.map
+                (fun check ->
+                  let errors, warnings = counted errors in
+                  { check with errors; warnings })
+                model.status.last_check;
+          };
       }
   | _ -> model
 
@@ -701,66 +725,74 @@ let rec update_model model = function
       | _ ->
           {
             model with
-            compiled =
-              Option.map
-                (fun compiled -> { compiled with up_to_date = false })
-                model.compiled;
+            compilation =
+              {
+                model.compilation with
+                compiled =
+                  Option.map
+                    (fun compiled -> { compiled with up_to_date = false })
+                    model.compilation.compiled;
+              };
           })
   | EditMsg edit_msg ->
       (* A loaded example replaces the program, so the errors of the old one
          go with it; an edit only makes them out of date. *)
+      let loaded = match edit_msg with LoadExample _ -> true | _ -> false in
       let run_model, stale_errors =
-        match edit_msg with
-        | LoadExample _ -> (Error [], false)
-        | _ -> (model.run_model, model.stale_errors || edits_source edit_msg)
+        if loaded then (Error [], false)
+        else
+          ( model.run_model,
+            model.error_view.stale_errors || edits_source edit_msg )
       in
+      let edited = edits_program edit_msg in
+      let model = without_popover model in
       (* Examples are also linked from the documentation, where loading one is a
-         request to go and look at it. *)
-      let page =
-        match edit_msg with LoadExample _ -> Editor | _ -> model.page
-      in
-      (* An example picked in the gallery closes it. *)
-      let gallery =
-        match edit_msg with LoadExample _ -> None | _ -> model.gallery
-      in
-      (* The schemes hold of the program and options they were inferred
+         request to go and look at it; an example picked in the gallery closes
+         it. The schemes hold of the program and options they were inferred
          under only. *)
       {
-        (without_popover model) with
         edit_model = edit_update model.edit_model edit_msg;
         run_model;
-        active_error = None;
-        hovered_error = None;
-        stale_errors;
-        page;
-        gallery;
-        definitions = [];
-        links = [];
-        link = None;
-        flash = None;
-        declarations_open =
-          (match edit_msg with
-          | LoadExample _ -> false
-          | _ -> model.declarations_open);
-        last_check =
-          (match edit_msg with
-          | LoadExample _ -> None
-          | _ ->
-              Option.map
-                (fun check -> { check with current = false })
-                model.last_check);
-        accepted = (if edits_program edit_msg then None else model.accepted);
-        reports_compilation =
-          model.reports_compilation && not (edits_program edit_msg);
-        code_view =
-          (match edit_msg with LoadExample _ -> Source | _ -> model.code_view);
-        compiled =
-          (match edit_msg with
-          | LoadExample _ -> None
-          | _ ->
-              Option.map
-                (fun compiled -> { compiled with up_to_date = false })
-                model.compiled);
+        error_view = { active_error = None; hovered_error = None; stale_errors };
+        navigation =
+          (if loaded then
+             { model.navigation with page = Editor; gallery = None }
+           else model.navigation);
+        checked =
+          {
+            model.checked with
+            definitions = [];
+            links = [];
+            accepted = (if edited then None else model.checked.accepted);
+          };
+        popovers = { model.popovers with link = None };
+        notices = unflashed model.notices;
+        declarations =
+          (if loaded then { model.declarations with declarations_open = false }
+           else model.declarations);
+        status =
+          {
+            model.status with
+            last_check =
+              (if loaded then None
+               else
+                 Option.map
+                   (fun check -> { check with current = false })
+                   model.status.last_check);
+          };
+        compilation =
+          {
+            model.compilation with
+            reports_compilation =
+              model.compilation.reports_compilation && not edited;
+            code_view = (if loaded then Source else model.compilation.code_view);
+            compiled =
+              (if loaded then None
+               else
+                 Option.map
+                   (fun compiled -> { compiled with up_to_date = false })
+                   model.compilation.compiled);
+          };
       }
   | RunMsg run_msg -> (
       match model.run_model with
@@ -768,12 +800,13 @@ let rec update_model model = function
           match run_update run_model run_msg with
           | run_model -> { model with run_model = Ok run_model }
           | exception exn ->
+              let model = without_popover model in
               {
-                (without_popover model) with
+                model with
                 run_model = Error (errors_of_exception Running exn);
-                active_error = None;
-                hovered_error = None;
-                reports_compilation = false;
+                error_view = unselected model.error_view;
+                compilation =
+                  { model.compilation with reports_compilation = false };
               })
       | Error _ -> model)
   | Perform action ->
@@ -938,47 +971,50 @@ let rec update_model model = function
       (* A program accepted by a check, not run, reports the errors of its
          compilation. *)
       let reports_compilation = (not run) && Option.is_some accepted in
-      let model = { model with accepted; declared } in
+      let model =
+        { model with checked = { definitions; links; accepted; declared } }
+      in
       let compiled = compile model in
       let run_model =
         if reports_compilation then Error (compilation_errors compiled)
         else run_model
       in
+      let model = without_popover model in
       {
-        (without_popover model) with
+        model with
         run_model;
-        reports_compilation;
-        active_error = None;
-        hovered_error = None;
-        stale_errors = false;
-        definitions;
-        links;
-        link = None;
-        flash = None;
-        checking = None;
-        compiled;
-        last_check =
-          (let errors, warnings =
-             match run_model with
-             | Error reported -> counted reported
-             | Ok _ -> (0, 0)
-           in
-           Some
-             {
-               errors;
-               warnings;
-               definitions = List.length definitions;
-               current = true;
-             });
+        compilation = { model.compilation with reports_compilation; compiled };
+        error_view =
+          { active_error = None; hovered_error = None; stale_errors = false };
+        popovers = { model.popovers with link = None };
+        notices = unflashed model.notices;
+        status =
+          {
+            model.status with
+            checking = None;
+            last_check =
+              (let errors, warnings =
+                 match run_model with
+                 | Error reported -> counted reported
+                 | Ok _ -> (0, 0)
+               in
+               Some
+                 {
+                   errors;
+                   warnings;
+                   definitions = List.length definitions;
+                   current = true;
+                 });
+          };
       }
   | EditCode ->
+      let model = without_popover model in
       {
-        (without_popover model) with
+        model with
         run_model = Error [];
-        reports_compilation = false;
-        active_error = None;
-        hovered_error = None;
-        stale_errors = false;
+        compilation = { model.compilation with reports_compilation = false };
+        error_view =
+          { active_error = None; hovered_error = None; stale_errors = false };
       }
   | HoverLabel hovered -> (
       match model.run_model with
@@ -996,24 +1032,49 @@ let rec update_model model = function
           in
           { model with run_model = Error errors }
       | Ok _ -> model)
-  | ShowPage page -> { (without_popover model) with page }
-  | ShowCode code_view -> { (without_popover model) with code_view }
-  | HoverError hovered_error -> { model with hovered_error }
+  | ShowPage page ->
+      let model = without_popover model in
+      { model with navigation = { model.navigation with page } }
+  | ShowCode code_view ->
+      let model = without_popover model in
+      { model with compilation = { model.compilation with code_view } }
+  | HoverError hovered_error ->
+      { model with error_view = { model.error_view with hovered_error } }
   | OpenGallery ->
-      { (without_popover model) with gallery = Some ""; gallery_group = None }
-  | CloseGallery -> { model with gallery = None }
-  | SearchGallery query -> { model with gallery = Some query }
-  | ReachHeading id -> { model with docs_heading = Some id }
-  | ReachGroup id -> { model with gallery_group = Some id }
-  | OverLink link -> { model with link }
-  | ShowDeclarations declarations_open -> { model with declarations_open }
-  | Abbreviate abbreviated -> { model with abbreviated }
-  | Unflash serial when serial = model.flash_serial ->
-      { model with flash = None }
-  | Unnotice serial when serial = model.notice_serial ->
-      { model with notice = None }
+      let model = without_popover model in
+      {
+        model with
+        navigation =
+          { model.navigation with gallery = Some ""; gallery_group = None };
+      }
+  | CloseGallery ->
+      { model with navigation = { model.navigation with gallery = None } }
+  | SearchGallery query ->
+      { model with navigation = { model.navigation with gallery = Some query } }
+  | ReachHeading id ->
+      {
+        model with
+        navigation = { model.navigation with docs_heading = Some id };
+      }
+  | ReachGroup id ->
+      {
+        model with
+        navigation = { model.navigation with gallery_group = Some id };
+      }
+  | OverLink link -> { model with popovers = { model.popovers with link } }
+  | ShowDeclarations declarations_open ->
+      {
+        model with
+        declarations = { model.declarations with declarations_open };
+      }
+  | Abbreviate abbreviated ->
+      { model with status = { model.status with abbreviated } }
+  | Unflash serial when serial = model.notices.flash_serial ->
+      { model with notices = unflashed model.notices }
+  | Unnotice serial when serial = model.notices.notice_serial ->
+      { model with notices = { model.notices with notice = None } }
   (* A program edited since its check keeps its code, out of date. *)
-  | Recompile serial when serial = model.compile_serial -> (
+  | Recompile serial when serial = model.compilation.compile_serial -> (
       match compile model with
       | Some compiled -> recompiled model (Some compiled)
       | None -> model)
@@ -1029,8 +1090,11 @@ let notice_duration = 2000
 (* The notice [notice] shown, replacing any earlier one; the confirmation of a
    copied link for a while only. *)
 let notify model notice =
-  let notice_serial = model.notice_serial + 1 in
-  ( { model with notice = Some notice; notice_serial },
+  let notice_serial = model.notices.notice_serial + 1 in
+  ( {
+      model with
+      notices = { model.notices with notice = Some notice; notice_serial };
+    },
     match notice with
     | Link_copied -> [ After (notice_duration, Unnotice notice_serial) ]
     | Ignored _ | Copy_failed _ -> [] )
@@ -1041,23 +1105,32 @@ let notify model notice =
 let open_delay = 250
 let close_delay = 150
 
+(* The popovers with [f] applied. *)
+let map_popovers f model = { model with popovers = f model.popovers }
+
 (* A new timer, superseding any other. *)
 let arm ~closing delay model =
-  let timer = model.timer + 1 in
-  ({ model with timer; closing }, [ After (delay, Elapsed timer) ])
+  let timer = model.popovers.timer + 1 in
+  ( map_popovers (fun p -> { p with timer; closing }) model,
+    [ After (delay, Elapsed timer) ] )
 
 (* No timer. *)
-let disarm model = { model with timer = model.timer + 1; closing = false }
+let disarm =
+  map_popovers (fun p -> { p with timer = p.timer + 1; closing = false })
 
 (* The popover of [target] open without delay, to be measured once drawn. *)
 let show ?point target model =
-  ( {
-      (disarm model) with
-      popover = Some { target; point; shown = true; placement = None };
-    },
+  ( map_popovers
+      (fun p ->
+        {
+          p with
+          popover = Some { target; point; shown = true; placement = None };
+        })
+      (disarm model),
     [ Measure_popover ] )
 
-let close model = { (disarm model) with popover = None }
+let close model =
+  map_popovers (fun p -> { p with popover = None }) (disarm model)
 
 (* How long what has been gone to stays highlighted, in milliseconds, as long
    as the page's highlight fades: a span of the editor, an error's message, or
@@ -1070,9 +1143,16 @@ let flash_duration = function
 
 (* [target] highlighted briefly, replacing any earlier flash. *)
 let flash target model =
-  let flash_serial = model.flash_serial + 1 in
-  ( { model with flash = Some target; flash_serial },
+  let flash_serial = model.notices.flash_serial + 1 in
+  ( {
+      model with
+      notices = { model.notices with flash = Some target; flash_serial };
+    },
     [ After (flash_duration target, Unflash flash_serial) ] )
+
+(* The model whose editor's box shows the program. *)
+let showing_source model =
+  { model with compilation = { model.compilation with code_view = Source } }
 
 (* The definition of the [k]th link gone to: the caret placed at a definition
    in the editor, which flashes; the popover of a definition in the standard
@@ -1080,29 +1160,29 @@ let flash target model =
    the declarations loaded before the program unfolded, flashed and scrolled
    to. The editor's box shows the program. *)
 let follow model k =
-  let model = { model with code_view = Source } in
-  match List.nth_opt model.links k with
+  let model = showing_source model in
+  let unpointed caret_target =
+    map_popovers (fun p -> { p with link = None; caret_target })
+  in
+  match List.nth_opt model.checked.links k with
   | Some { destination = In_editor (start, stop); _ } ->
       let model, effects =
-        flash
-          (Span (start, stop))
-          { (close model) with link = None; caret_target = None }
+        flash (Span (start, stop)) (unpointed None (close model))
       in
       ( model,
         Jump (utf16_offset model.edit_model.unparsed_code start) :: effects )
   | Some { destination = In_library _; _ } ->
       let target = Reference k in
-      show target { model with link = None; caret_target = Some target }
+      show target (unpointed (Some target) model)
   | Some { destination = In_declarations { place; _ }; _ } ->
       let start, stop = place.span in
+      let model = unpointed None (close model) in
       let model, effects =
         flash
           (Declaration (place.filename, start, stop))
           {
-            (close model) with
-            link = None;
-            caret_target = None;
-            declarations_open = true;
+            model with
+            declarations = { model.declarations with declarations_open = true };
           }
       in
       (model, Scroll_to_declaration :: effects)
@@ -1113,10 +1193,10 @@ let follow model k =
    span is widened to the byte it points at, as the editor marks it. The
    editor's box shows the program. *)
 let go_to_error model i =
-  let model = { (close model) with code_view = Source } in
+  let model = showing_source (close model) in
   let span =
     match model.run_model with
-    | Error errors when not model.stale_errors -> (
+    | Error errors when not model.error_view.stale_errors -> (
         match List.nth_opt errors i with
         | Some
             {
@@ -1135,59 +1215,73 @@ let go_to_error model i =
   let model, effects = flash target model in
   (model, scroll :: effects)
 
-let line_links model = model.code_view = Source && unedited model.edit_model
+let line_links model =
+  model.compilation.code_view = Source && unedited model.edit_model
 
 (* The model after [msg] and the effects it asks for, except the remembering
    of the choices, which [update] adds. *)
 let respond model msg =
   match msg with
-  | Point (pointer, link, _) when pointer = model.pointer ->
-      ((if link = model.link then model else { model with link }), [])
+  | Point (pointer, link, _) when pointer = model.popovers.pointer ->
+      ( (if link = model.popovers.link then model
+         else map_popovers (fun p -> { p with link }) model),
+        [] )
   | Point (pointer, link, point) -> (
-      let model = { model with pointer; link } in
-      match (pointer, model.popover) with
-      | Over_popover, _ -> ((if model.closing then disarm model else model), [])
+      let model = map_popovers (fun p -> { p with pointer; link }) model in
+      match (pointer, model.popovers.popover) with
+      | Over_popover, _ ->
+          ((if model.popovers.closing then disarm model else model), [])
       | Over_target t, Some p when p.target = t ->
           ((if p.shown then disarm model else model), [])
       (* from one target to another while a popover is open: no delay *)
       | Over_target t, Some { shown = true; _ } -> show ~point t model
       | Over_target t, _ ->
           let model, effects = arm ~closing:false open_delay model in
-          ( {
-              model with
-              popover =
-                Some
-                  {
-                    target = t;
-                    point = Some point;
-                    shown = false;
-                    placement = None;
-                  };
-            },
+          ( map_popovers
+              (fun p ->
+                {
+                  p with
+                  popover =
+                    Some
+                      {
+                        target = t;
+                        point = Some point;
+                        shown = false;
+                        placement = None;
+                      };
+                })
+              model,
             effects )
       | Nowhere, Some { shown = true; _ } ->
-          if model.closing then (model, [])
+          if model.popovers.closing then (model, [])
           else arm ~closing:true close_delay model
       | Nowhere, Some _ -> (close model, [])
       | Nowhere, None -> (model, []))
   | Reveal target -> show target model
   | Conceal -> (close model, [])
-  | Elapsed timer when timer = model.timer -> (
-      match model.popover with
-      | Some _ when model.closing -> (close model, [])
+  | Elapsed timer when timer = model.popovers.timer -> (
+      match model.popovers.popover with
+      | Some _ when model.popovers.closing -> (close model, [])
       | Some p when not p.shown ->
-          ( { model with popover = Some { p with shown = true } },
+          ( map_popovers
+              (fun ps -> { ps with popover = Some { p with shown = true } })
+              model,
             [ Measure_popover ] )
       | _ -> (model, []))
   | Elapsed _ -> (model, [])
   | Place (target, placement) -> (
-      match (model.popover, placement) with
+      match (model.popovers.popover, placement) with
       (* a scheme laid out for another width is laid out again first *)
       | Some p, Some { columns = Some _ as columns; _ }
-        when p.shown && p.target = target && columns <> model.columns ->
-          ({ model with columns }, [ Measure_popover ])
+        when p.shown && p.target = target && columns <> model.popovers.columns
+        ->
+          ( map_popovers (fun ps -> { ps with columns }) model,
+            [ Measure_popover ] )
       | Some p, Some _ when p.shown && p.target = target ->
-          ({ model with popover = Some { p with placement } }, [])
+          ( map_popovers
+              (fun ps -> { ps with popover = Some { p with placement } })
+              model,
+            [] )
       | Some p, None when p.target = target -> (close model, [])
       | _ -> (model, []))
   | ShowFullError i ->
@@ -1196,24 +1290,36 @@ let respond model msg =
   | GoToError i -> go_to_error model i
   (* The check is performed once the page shows it under way; a press while
      one is under way is ignored. *)
-  | (CheckCode | RunCode) when model.checking <> None -> (model, [])
+  | (CheckCode | RunCode) when model.status.checking <> None -> (model, [])
   | CheckCode | RunCode ->
       let action = match msg with RunCode -> Run | _ -> Check in
-      ({ model with checking = Some action }, [ Perform_after_paint action ])
+      ( { model with status = { model.status with checking = Some action } },
+        [ Perform_after_paint action ] )
   | CaretAt offset -> (
       (* Edited source: the spans no longer say where the caret is. The popover
          of the target the caret enters opens, and one it opened closes as the
          caret leaves; the caret staying within a target leaves it alone, so
          that Escape keeps the popover closed. *)
       match model.run_model with
-      | Error errors when not model.stale_errors -> (
+      | Error errors when not model.error_view.stale_errors -> (
           let offset = byte_offset model.edit_model.unparsed_code offset in
-          let target = target_at errors model.definitions model.links offset in
-          let model = { model with active_error = error_at errors offset } in
-          if target = model.caret_target then (model, [])
+          let target =
+            target_at errors model.checked.definitions model.checked.links
+              offset
+          in
+          let model =
+            {
+              model with
+              error_view =
+                { model.error_view with active_error = error_at errors offset };
+            }
+          in
+          if target = model.popovers.caret_target then (model, [])
           else
-            let model = { model with caret_target = target } in
-            match (target, model.popover) with
+            let model =
+              map_popovers (fun p -> { p with caret_target = target }) model
+            in
+            match (target, model.popovers.popover) with
             | Some t, _ -> show t model
             | None, Some { point = None; _ } -> (close model, [])
             | None, _ -> (model, []))
@@ -1221,29 +1327,39 @@ let respond model msg =
   | Follow k -> follow model k
   | FollowAt offset -> (
       match
-        link_at model.links (byte_offset model.edit_model.unparsed_code offset)
+        link_at model.checked.links
+          (byte_offset model.edit_model.unparsed_code offset)
       with
-      | Some k when not model.stale_errors -> follow model k
+      | Some k when not model.error_view.stale_errors -> follow model k
       | _ -> (model, []))
   (* Inputs that change the declarations of the backend, such as the
      packages of a device manifest, change the program: it is checked
      again. *)
   | Recompile serial
-    when serial = model.compile_serial
-         && model.checking = None && declarations_changed model ->
-      ({ model with checking = Some Check }, [ Perform_after_paint Check ])
+    when serial = model.compilation.compile_serial
+         && model.status.checking = None
+         && declarations_changed model ->
+      ( { model with status = { model.status with checking = Some Check } },
+        [ Perform_after_paint Check ] )
   | EditMsg (SetInput _) ->
-      let compile_serial = model.compile_serial + 1 in
-      ( update_model { model with compile_serial } msg,
+      let compile_serial = model.compilation.compile_serial + 1 in
+      ( update_model
+          { model with compilation = { model.compilation with compile_serial } }
+          msg,
         [ After (compile_delay, Recompile compile_serial) ] )
   | OpenGallery when model.edit_model.selected_example <> None ->
       (update_model model msg, [ Focus_current_example ])
   | ShowDocs (docs_page, heading) ->
+      let model = without_popover model in
       ( {
-          (without_popover model) with
-          page = Docs;
-          docs_page;
-          docs_heading = heading;
+          model with
+          navigation =
+            {
+              model.navigation with
+              page = Docs;
+              docs_page;
+              docs_heading = heading;
+            };
         },
         [ Scroll_to_heading heading ] )
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
@@ -1267,9 +1383,14 @@ let update model msg =
   if changes_choices msg then
     ( {
         model with
-        notice = None;
-        shown_declarations =
-          shown_declarations ~shown:model.shown_declarations model.edit_model;
+        notices = { model.notices with notice = None };
+        declarations =
+          {
+            model.declarations with
+            shown_declarations =
+              shown_declarations ~shown:model.declarations.shown_declarations
+                model.edit_model;
+          };
       },
       Remember (WebChoices.key, WebChoices.encode (choices model.edit_model))
       :: Replace_query (link model.edit_model)
@@ -1281,8 +1402,13 @@ let opening edit_model =
   {
     init with
     edit_model;
-    shown_declarations =
-      shown_declarations ~shown:init.shown_declarations edit_model;
+    declarations =
+      {
+        init.declarations with
+        shown_declarations =
+          shown_declarations ~shown:init.declarations.shown_declarations
+            edit_model;
+      };
   }
 
 (* The model opening with the choices encoded by [stored] restored, or [init]

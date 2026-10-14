@@ -238,7 +238,7 @@ let fit_status (model : Model.model) () =
         !status_observer;
       status_needed := measure_status line;
       let abbreviated = abbreviates line in
-      if abbreviated <> model.abbreviated then
+      if abbreviated <> model.status.abbreviated then
         Some (Model.Abbreviate abbreviated)
       else None)
 
@@ -256,24 +256,26 @@ let gallery_groups = gallery_list ^ " > .example-group[id]"
 (* The message of the section of the documentation scrolled to, when that has
    changed. *)
 let reached_heading (model : Model.model) () =
-  if model.page <> Model.Docs then None
+  if model.navigation.page <> Model.Docs then None
   else
     match
       EditorDom.reached ~headings:docs_headings ~area:None ~followed:!followed
     with
-    | Some id when model.docs_heading <> Some id -> Some (Model.ReachHeading id)
+    | Some id when model.navigation.docs_heading <> Some id ->
+        Some (Model.ReachHeading id)
     | _ -> None
 
 (* The message of the group of the example gallery scrolled to, when that has
    changed. *)
 let reached_group (model : Model.model) () =
-  if model.gallery = None then None
+  if model.navigation.gallery = None then None
   else
     match
       EditorDom.reached ~headings:gallery_groups ~area:(Some gallery_list)
         ~followed:!followed
     with
-    | Some id when model.gallery_group <> Some id -> Some (Model.ReachGroup id)
+    | Some id when model.navigation.gallery_group <> Some id ->
+        Some (Model.ReachGroup id)
     | _ -> None
 
 let command (model : Model.model) = function
@@ -286,7 +288,7 @@ let command (model : Model.model) = function
               Model.Place
                 ( target,
                   EditorDom.placement ~key:(View.target_key target) ~point ))
-            model.popover)
+            model.popovers.popover)
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
   | Model.Scroll_to_span i -> Scroll_to (View.primary_id i)
   | Model.Scroll_to_declaration -> Scroll_to View.declaration_flash_id
@@ -326,8 +328,8 @@ let update model msg =
   (* the content of the status line changed, or the line drawn anew *)
   let status =
     if
-      model.Model.last_check <> model'.last_check
-      || model.page <> model'.page
+      model.Model.status.last_check <> model'.status.last_check
+      || model.navigation.page <> model'.navigation.page
       || Result.is_ok model.run_model <> Result.is_ok model'.run_model
     then [ After_redraw (fit_status model') ]
     else []
@@ -338,11 +340,13 @@ let update model msg =
     match msg with
     | Model.ShowDocs _ -> []
     | _ ->
-        (if model.page <> model'.page || model.docs_page <> model'.docs_page
+        (if
+           model.navigation.page <> model'.navigation.page
+           || model.navigation.docs_page <> model'.navigation.docs_page
          then [ After_redraw (reached_heading model') ]
          else [])
         @
-        if model.gallery <> model'.gallery then
+        if model.navigation.gallery <> model'.navigation.gallery then
           [ After_redraw (reached_group model') ]
         else []
   in
@@ -369,7 +373,7 @@ let app =
 let watch_modifier app =
   let point = ref None in
   let report link =
-    if (Vdom_blit.get app).Model.link <> link then
+    if (Vdom_blit.get app).Model.popovers.link <> link then
       Vdom_blit.process app (Model.OverLink link)
   in
   let listen kind f =
@@ -383,7 +387,7 @@ let watch_modifier app =
       if
         EditorDom.is_modifier
           (Ojs.string_of_js (Ojs.get_prop_ascii event "key"))
-        && (Vdom_blit.get app).Model.links <> []
+        && (Vdom_blit.get app).Model.checked.links <> []
       then report (Option.bind !point EditorDom.link_at));
   listen Js_browser.Event.Keyup (fun event ->
       if
@@ -404,7 +408,9 @@ let observe_status app =
                  Option.iter
                    (fun line ->
                      let abbreviated = abbreviates line in
-                     if abbreviated <> (Vdom_blit.get app).Model.abbreviated
+                     if
+                       abbreviated
+                       <> (Vdom_blit.get app).Model.status.abbreviated
                      then Vdom_blit.process app (Model.Abbreviate abbreviated))
                    (status_line ()));
            |])
