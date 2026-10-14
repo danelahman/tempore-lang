@@ -147,7 +147,7 @@ and ('rho, 'eps) plain_command =
       (** [operation Op : t1 ~> t2 # eps within [lo, hi]]; the running-time
           bounds are optional, read only by the grading monoids of timed
           operations *)
-  | OpDefault of operation * ('rho, 'eps) abstraction
+  | OpDefault of operation annotated * ('rho, 'eps) abstraction
       (** [default Op p = t]; the implementation the operation falls back on
           when it reaches the top level unhandled *)
   | TopLet of variable annotated * ('rho, 'eps) term  (** [let x = t] *)

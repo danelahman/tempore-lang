@@ -236,7 +236,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
 
   and desugar_plain_ty ~loc state = function
     | Sugared.TyApply (ty_name, tys) ->
-        let ty_name' = lookup_ty_name ~loc state ty_name.it in
+        let ty_name' = lookup_ty_name ~loc:ty_name.at state ty_name.it in
         let tys' = List.map (desugar_ty state) tys in
         Untyped.TyApply (ty_name', tys')
     | Sugared.TyParam ty_param ->
@@ -267,10 +267,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let vars, pat' = desugar_pattern state pat
         and ty' = desugar_ty state ty in
         (vars, Untyped.PAnnotated (pat', ty'))
-    | Sugared.PAs (pat, { it = x; _ }) ->
+    | Sugared.PAs (pat, { it = x; at }) ->
         let vars, pat' = desugar_pattern state pat in
         let x' = Untyped.Variable.fresh x in
-        (add_unique ~loc "Variable" x x' vars, Untyped.PAs (pat', x'))
+        (add_unique ~loc:at "Variable" x x' vars, Untyped.PAs (pat', x'))
     | Sugared.PTuple ps ->
         let aux p (vars, ps') =
           let vars', p' = desugar_pattern state p in
@@ -279,10 +279,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let vars, ps' = List.fold_right aux ps (StringMap.empty, []) in
         (vars, Untyped.PTuple ps')
     | Sugared.PVariant (lbl, None) ->
-        let lbl' = lookup_label ~loc state lbl.it in
+        let lbl' = lookup_label ~loc:lbl.at state lbl.it in
         (StringMap.empty, Untyped.PVariant (lbl', None))
     | Sugared.PVariant (lbl, Some pat) ->
-        let lbl' = lookup_label ~loc state lbl.it in
+        let lbl' = lookup_label ~loc:lbl.at state lbl.it in
         let vars, pat' = desugar_pattern state pat in
         (vars, Untyped.PVariant (lbl', Some pat'))
     | Sugared.PConst c -> (StringMap.empty, Untyped.PConst c)
@@ -330,10 +330,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let binds, es = desugar_expressions state ts in
         (binds, Untyped.Tuple es)
     | Sugared.Variant (lbl, None) ->
-        let lbl' = lookup_label ~loc state lbl.it in
+        let lbl' = lookup_label ~loc:lbl.at state lbl.it in
         ([], Untyped.Variant (lbl', None))
     | Sugared.Variant (lbl, Some term) ->
-        let lbl' = lookup_label ~loc state lbl.it in
+        let lbl' = lookup_label ~loc:lbl.at state lbl.it in
         let binds, expr = desugar_expression state term in
         (binds, Untyped.Variant (lbl', Some expr))
     | Sugared.Handler (ret_case, op_cases) ->
@@ -430,7 +430,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let binds, e' = desugar_expression state e in
         (binds, Untyped.Unbox (e', identity "unbox_var"))
     | Sugared.Perform (op, e) ->
-        let operation = lookup_operation ~loc state op.it in
+        let operation = lookup_operation ~loc:op.at state op.it in
         let binds, expr = desugar_expression state e in
         (binds, Untyped.Perform (operation, expr, identity "op_var"))
     | Sugared.Handle (c, h) ->
@@ -526,8 +526,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let labels' = add_unique ~loc "Label" label label' state.labels in
     { state with labels = labels' }
 
-  let add_fresh_ty_names ~loc state vars =
-    let aux ty_names (x, x') = add_unique ~loc "Type" x x' ty_names in
+  let add_fresh_ty_names state vars =
+    let aux ty_names (x, x', loc) = add_unique ~loc "Type" x x' ty_names in
     let ty_names' = List.fold_left aux state.ty_names vars in
     { state with ty_names = ty_names' }
 
@@ -542,13 +542,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
     in
     { state with operations = operations' }
 
-  let desugar_ty_def ~loc state = function
+  let desugar_ty_def state = function
     | Sugared.TyInline ty -> (state, Untyped.TyInline (desugar_ty state ty))
     | Sugared.TySum variants ->
-        let aux state ({ Sugared.it = label; _ }, ty) =
+        let aux state ({ Sugared.it = label; at }, ty) =
           let label' = Untyped.Label.fresh label in
           let ty' = Option.map (desugar_ty state) ty in
-          let state' = add_label ~loc state label label' in
+          let state' = add_label ~loc:at state label label' in
           (state', (label', ty'))
         in
         let state', variants' = List.fold_left_map aux state variants in
@@ -558,18 +558,18 @@ module Make (GS : Grades.GradeSystem.S) = struct
     let state', cmd' =
       match cmd with
       | Sugared.TyDef (eternality, defs) ->
-          let def_name (_, { Sugared.it = ty_name; _ }, _) =
+          let def_name (_, { Sugared.it = ty_name; at }, _) =
             let ty_name' = Untyped.TyName.fresh ty_name in
-            (ty_name, ty_name')
+            (ty_name, ty_name', at)
           in
           let new_names = List.map def_name defs in
-          let state' = add_fresh_ty_names ~loc state new_names in
-          let aux (params, _, ty_def) (_, ty_name') (state', defs) =
+          let state' = add_fresh_ty_names state new_names in
+          let aux (params, _, ty_def) (_, ty_name', _) (state', defs) =
             let params' =
               List.map (fun a -> (a, Untyped.TyParamModule.fresh a)) params
             in
             let state'' = add_fresh_ty_params state' params' in
-            let state''', ty_def' = desugar_ty_def ~loc state'' ty_def in
+            let state''', ty_def' = desugar_ty_def state'' ty_def in
             ( { state''' with ty_params = state'.ty_params },
               (List.map snd params', ty_name', ty_def') :: defs )
           in
@@ -577,16 +577,16 @@ module Make (GS : Grades.GradeSystem.S) = struct
             List.fold_right2 aux defs new_names (state', [])
           in
           (state'', Untyped.TyDef (eternality, defs'))
-      | Sugared.OpSig ({ it = op_name; _ }, ty1_name, ty2_name, eps_val, bounds)
-        ->
+      | Sugared.OpSig
+          ({ it = op_name; at = op_at }, ty1_name, ty2_name, eps_val, bounds) ->
           let operation = Untyped.OpName.fresh op_name in
           let ty1 = desugar_ty state ty1_name in
           let ty2 = desugar_ty state ty2_name in
           let eps = eps_const eps_val in
-          let state' = add_operation ~loc state op_name operation in
+          let state' = add_operation ~loc:op_at state op_name operation in
           (state', Untyped.OpSig (operation, ty1, ty2, eps, bounds))
       | Sugared.OpDefault (op_name, abs) ->
-          let operation = lookup_operation ~loc state op_name in
+          let operation = lookup_operation ~loc:op_name.at state op_name.it in
           let scoped =
             in_definition state
               (abstraction_annotation_names no_annotation_names abs)

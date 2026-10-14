@@ -758,9 +758,9 @@ it names none:
   ======================================================================
   default_reject_unknown.tpe
   ======================================================================
-  File "default_reject_unknown.tpe", line 5, characters 0-25:
+  File "default_reject_unknown.tpe", line 5, characters 8-11:
   5 | default Log msg = delay 1
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+              ^^^
   Syntax error: Unknown name `Log`
   ======================================================================
   delay_reject_expression.tpe
@@ -807,9 +807,9 @@ it names none:
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
-  File "duplicate_variant_tydef_sum.tpe", line 3, characters 0-39:
+  File "duplicate_variant_tydef_sum.tpe", line 3, characters 25-29:
   3 | type cow = Horn of nat | Horn of string
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                               ^^^^
   Syntax error: Label `Horn` defined multiple times
   ======================================================================
   error_apply_arg.tpe
@@ -4188,16 +4188,16 @@ it names none:
   ======================================================================
   shadow_label.tpe
   ======================================================================
-  File "shadow_label.tpe", line 2, characters 0-41:
+  File "shadow_label.tpe", line 2, characters 29-33:
   2 | type bull = Tail of string | Horn of bull
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                   ^^^^
   Syntax error: Label `Horn` defined multiple times
   ======================================================================
   shadow_type.tpe
   ======================================================================
-  File "shadow_type.tpe", line 3, characters 0-23:
+  File "shadow_type.tpe", line 3, characters 5-8:
   3 | type cow = Hoof of bool
-      ^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^
   Syntax error: Type `cow` defined multiple times
   ======================================================================
   string_reject_newline_location.tpe

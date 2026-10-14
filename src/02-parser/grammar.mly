@@ -236,7 +236,7 @@ plain_command:
   | OPERATION op = mark_position(UNAME) COLON ty1 = ty SIGARROW ty2 = ty HASH eps = eps_grade
     bounds = option(op_bounds)
     { OpSig (op, ty1, ty2, eps, bounds) }
-  | DEFAULT op = UNAME p = simple_pattern EQUAL t = term
+  | DEFAULT op = mark_position(UNAME) p = simple_pattern EQUAL t = term
     { OpDefault (op, (p, t)) }
   | LET x = mark_position(ident) t = lambdas0(EQUAL, ty)
     { TopLet (x, t) }
