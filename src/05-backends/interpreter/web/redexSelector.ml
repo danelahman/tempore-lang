@@ -2,6 +2,18 @@ module Print = Utils.Print
 module Ast = Language.Ast
 module PrettyPrint = Language.PrettyPrint
 
+let highlight_delimited marker s =
+  match String.split_on_char marker s with
+  | [ pre; active; post ] ->
+      SyntaxHighlight.highlight_text pre
+      @ [
+          Vdom.elt "span"
+            ~a:[ Vdom.class_ "active-redex" ]
+            (SyntaxHighlight.highlight_text active);
+        ]
+      @ SyntaxHighlight.highlight_text post
+  | parts -> SyntaxHighlight.highlight_text (String.concat "" parts)
+
 module Make (GS : Grades.GradeSystem.S) = struct
   open Interpreter.Types
 
@@ -75,16 +87,5 @@ module Make (GS : Grades.GradeSystem.S) = struct
             (PrettyPrint.print_computation (module GS.R) comp)
       | Some red -> Format.asprintf "%t" (print_computation_reduction red comp)
     in
-    match String.split_on_char tag_marker rendered with
-    | [ code ] -> SyntaxHighlight.highlight_text code
-    | [ pre; redex; post ] ->
-        SyntaxHighlight.highlight_text pre
-        @ [
-            Vdom.elt "span"
-              ~a:[ Vdom.class_ "active-redex" ]
-              (SyntaxHighlight.highlight_text redex);
-          ]
-        @ SyntaxHighlight.highlight_text post
-    (* Markers that do not delimit one redex mark none. *)
-    | parts -> SyntaxHighlight.highlight_text (String.concat "" parts)
+    highlight_delimited tag_marker rendered
 end

@@ -916,10 +916,9 @@ let run_with (module G : Grades.Grade.S) config =
   let module Loader = Loader.Loader (Backend) in
   (* The timeline of the run [run_num], as a table. *)
   let print_timeline timeline run_num =
-    print_string
+    Format.printf "%s@."
       (Timeline.text ~full:config.timeline_full
-         (Timeline.report ~run:run_num timeline));
-    print_newline ()
+         (Timeline.report ~run:run_num timeline))
   in
   (* Runs the program from [state], each step chosen at random among those
      available, and prints each run as it ends, followed by its timeline under
@@ -1039,15 +1038,15 @@ let run_with (module G : Grades.Grade.S) config =
           ?skip (definitions state)
       in
       if config.use_stdlib then begin
-        print_endline "=== Standard library ===";
+        Format.printf "=== Standard library ===@.";
         print_definitions program.library;
-        print_newline ()
+        Format.printf "@."
       end;
-      print_endline "=== Top-level definitions ===";
+      Format.printf "=== Top-level definitions ===@.";
       print_definitions
         ~skip:(List.length (definitions program.library))
         program.loaded;
-      print_newline ()
+      Format.printf "@."
     end;
     (* loading the files has typechecked every command, the [run]s included *)
     match (Option.map emit_path config.emit_opentrons, config.bind) with
