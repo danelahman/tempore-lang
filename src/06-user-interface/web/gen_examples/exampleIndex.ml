@@ -21,7 +21,9 @@ let settings_of_string field =
       | Some i when i > 0 ->
           ( String.sub pair 0 i,
             String.sub pair (i + 1) (String.length pair - i - 1) )
-      | _ -> failwith (Printf.sprintf "malformed manifest setting: %s" pair))
+      | _ ->
+          failwith
+            (Printf.sprintf "malformed setting of the example index: %s" pair))
 
 let example group title grade path description backend settings =
   Example
@@ -53,7 +55,8 @@ let line_of_string line =
         Some
           (example group title grade path description backend
              (settings_of_string settings))
-    | _ -> failwith (Printf.sprintf "malformed manifest line: %s" line)
+    | _ ->
+        failwith (Printf.sprintf "malformed line of the example index: %s" line)
 
 (* A text input is given by the path of its file, relative to examples/, and
    kept relative to the project root. *)
@@ -66,7 +69,7 @@ let checked_setting (backend : BackendRegistry.entry) path (key, value) =
   | None ->
       failwith
         (Printf.sprintf
-           "the manifest sets the input `%s`, unknown to %s, for %s" key
+           "the example index sets the input `%s`, unknown to %s, for %s" key
            backend.name path)
   | Some { kind = Text; _ } -> (key, "examples/" ^ value)
   | Some { kind = Choice choices; _ } ->
@@ -74,19 +77,20 @@ let checked_setting (backend : BackendRegistry.entry) path (key, value) =
       else
         failwith
           (Printf.sprintf
-             "the manifest sets the input `%s` to `%s`, not one of its \
+             "the example index sets the input `%s` to `%s`, not one of its \
               choices, for %s"
              key value path)
 
 let checked (entry : entry) =
   if not (List.mem_assoc entry.grade Grades.GradeRegistry.grade_modules) then
     failwith
-      (Printf.sprintf "the manifest names the unknown grade `%s` for %s"
+      (Printf.sprintf "the example index names the unknown grade `%s` for %s"
          entry.grade entry.path);
   match BackendRegistry.find entry.backend with
   | None ->
       failwith
-        (Printf.sprintf "the manifest names the unknown backend `%s` for %s"
+        (Printf.sprintf
+           "the example index names the unknown backend `%s` for %s"
            entry.backend entry.path)
   | Some backend ->
       {
@@ -94,9 +98,9 @@ let checked (entry : entry) =
         settings = List.map (checked_setting backend entry.path) entry.settings;
       }
 
-let read manifest_path =
+let read index_path =
   let lines =
-    In_channel.with_open_text manifest_path In_channel.input_lines
+    In_channel.with_open_text index_path In_channel.input_lines
     |> List.filter_map line_of_string
   in
   ( List.filter_map
@@ -124,16 +128,16 @@ let summarised summaries groups =
     (fun { label; short; _ } ->
       if not (List.mem_assoc label groups) then
         failwith
-          (Printf.sprintf "the manifest summarises the group `%s` of no example"
-             label);
+          (Printf.sprintf
+             "the example index summarises the group `%s` of no example" label);
       if
         List.exists
           (fun (s : summary) -> s.short = short && s.label <> label)
           summaries
       then
         failwith
-          (Printf.sprintf "the manifest gives the short form `%s` to two groups"
-             short))
+          (Printf.sprintf
+             "the example index gives the short form `%s` to two groups" short))
     summaries;
   List.map
     (fun (label, entries) ->
@@ -141,12 +145,12 @@ let summarised summaries groups =
       | [ summary ] -> (summary, entries)
       | [] ->
           failwith
-            (Printf.sprintf "the manifest gives no summary of the group `%s`"
-               label)
+            (Printf.sprintf
+               "the example index gives no summary of the group `%s`" label)
       | _ ->
           failwith
             (Printf.sprintf
-               "the manifest gives more than one summary of the group `%s`"
+               "the example index gives more than one summary of the group `%s`"
                label))
     groups
 
@@ -160,8 +164,7 @@ let defaults entries paths =
         | Some entry -> (entry.backend, path)
         | None ->
             failwith
-              (Printf.sprintf
-                 "the manifest's default %s is not a listed example" path))
+              (Printf.sprintf "the default %s is not a listed example" path))
       paths
   in
   List.iter
@@ -169,13 +172,13 @@ let defaults entries paths =
       if List.length (List.filter (fun (b, _) -> b = backend) pairs) > 1 then
         failwith
           (Printf.sprintf
-             "the manifest gives more than one default example of the backend \
-              `%s`"
+             "the example index gives more than one default example of the \
+              backend `%s`"
              backend))
     pairs;
   if not (List.mem_assoc BackendRegistry.default.key pairs) then
     failwith
       (Printf.sprintf
-         "the manifest gives no default example of the backend `%s`"
+         "the example index gives no default example of the backend `%s`"
          BackendRegistry.default.key);
   pairs

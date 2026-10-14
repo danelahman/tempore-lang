@@ -2,7 +2,6 @@ open Vdom
 module Ast = Language.Ast
 module Diagnostic = Utils.Diagnostic
 module Location = Utils.Location
-module SyntaxHighlight = WebInterpreter.SyntaxHighlight
 
 (* Auxiliary definitions *)
 let panel = Widgets.panel
@@ -131,56 +130,13 @@ let grouped_select ?(a = []) ?id empty_description msg describe_choice
 
 let nil = text ""
 
-(* Octicons (MIT licensed, Copyright (c) GitHub Inc.; see THIRD-PARTY.md),
-   drawn in the current text colour so that they follow the hover styling of
-   the link they sit in. *)
-let octicon path =
-  svg_elt "svg"
-    ~a:
-      [
-        attr "viewBox" "0 0 16 16";
-        attr "width" "16";
-        attr "height" "16";
-        attr "aria-hidden" "true";
-      ]
-    [ svg_elt "path" ~a:[ attr "fill" "currentColor"; attr "d" path ] [] ]
-
-let book_mark =
-  octicon
-    "M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.744 3.744 0 0 \
-     1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 \
-     2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 \
-     0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 \
-     10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 \
-     3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 \
-     1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"
-
-let code_mark =
-  octicon
-    "m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 \
-     1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 \
-     .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 \
-     1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 \
-     1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"
-
-let link_mark =
-  octicon
-    "m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 \
-     1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 \
-     0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 \
-     1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 \
-     0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 \
-     1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 \
-     1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 \
-     2.5a1.998 1.998 0 0 0 0 2.83Z"
-
 (* The other page is reached from the side panel's heading. The mark stands on
    its own there, so the name it is given is the one read out. *)
 let page_link target =
   let mark, label =
     match target with
-    | Model.Docs -> (book_mark, "Documentation")
-    | Model.Editor -> (code_mark, "Editor")
+    | Model.Docs -> (Icons.book, "Documentation")
+    | Model.Editor -> (Icons.code, "Editor")
   in
   elt "a"
     ~a:
@@ -347,7 +303,7 @@ let target_error = function
   | Model.Definition _ | Model.Reference _ -> None
 
 let popover_target (model : Model.model) =
-  match model.popover with
+  match model.popovers.popover with
   | Some { target; shown = true; _ } -> Some target
   | _ -> None
 
@@ -430,43 +386,77 @@ let load_error_target i (error : Model.load_error) =
   | Some loc when in_editor loc -> primary_id i
   | _ -> error_id i
 
+(* Label [j] of the [i]th error. In the editor a label links to its span,
+   which lights up while the pointer is on it; a standard-library span can only
+   be named. No excerpt is shown here, so a label that says "here" is made to
+   name the line instead, and needs no line reference after it. *)
+let view_error_label ~stale i j ({ span; text = label_text } : Diagnostic.label)
+    =
+  let place =
+    if in_editor span then Printf.sprintf "on line %d" span.start.line
+    else Printf.sprintf "on line %d of %s" span.start.line (source_name span)
+  in
+  let placed = Diagnostic.render_label_text ~place label_text in
+  let where =
+    if placed <> label_text then []
+    else
+      [
+        elt "span"
+          ~a:[ class_ "error-line-ref" ]
+          [
+            text
+              (if in_editor span then
+                 Printf.sprintf " (line %d)" span.start.line
+               else
+                 Printf.sprintf " (%s, line %d)" (source_name span)
+                   span.start.line);
+          ];
+      ]
+  in
+  let content = rendered placed @ where in
+  if in_editor span && not stale then
+    elt "li"
+      ~a:[ onmouseenter (fun _ -> Model.HoverLabel (Some (i, j))) ]
+      [ elt "a" ~a:[ attr "href" ("#" ^ label_id i j) ] content ]
+  else elt "li" content
+
+(* The header of the message of the [i]th error: its number and where it
+   points, and a link to its span in the editor, or a note that it is out of
+   date under [stale]. *)
+let view_error_header ~stale i (error : Model.load_error) =
+  let aside =
+    if stale then elt "span" ~a:[ class_ "stale-note" ] [ text "out of date" ]
+    else
+      match error.diagnostic.primary with
+      | Some loc when in_editor loc ->
+          elt "a"
+            ~a:[ class_ "show-in-editor"; attr "href" ("#" ^ primary_id i) ]
+            [ text "show in editor" ]
+      | _ -> nil
+  in
+  div
+    ~a:
+      [
+        class_ "message-header";
+        onmouseenter (fun _ -> Model.HoverError (Some i));
+        onmouseleave (fun _ -> Model.HoverError None);
+      ]
+    [
+      elt "p"
+        [
+          text
+            (match (Model.is_warning error, load_error_header error) with
+            | true, "" -> Printf.sprintf "Warning %d" (i + 1)
+            | true, header -> Printf.sprintf "Warning %d — %s" (i + 1) header
+            | false, header -> Printf.sprintf "Error %d — %s" (i + 1) header);
+        ];
+      aside;
+    ]
+
 (* One error's message. [active] is the error the caret sits in and [flashed]
    the error just gone to; under [stale] the editor marks nothing, so the
    links into it are left out. *)
 let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
-  (* In the editor a label links to its span, which lights up while the
-     pointer is on it; a standard-library span can only be named. *)
-  let view_label j ({ span; text = label_text } : Diagnostic.label) =
-    (* No excerpt is shown here, so a label that says "here" is made to name
-       the line instead, and needs no line reference after it. *)
-    let place =
-      if in_editor span then Printf.sprintf "on line %d" span.start.line
-      else Printf.sprintf "on line %d of %s" span.start.line (source_name span)
-    in
-    let placed = Diagnostic.render_label_text ~place label_text in
-    let where =
-      if placed <> label_text then []
-      else
-        [
-          elt "span"
-            ~a:[ class_ "error-line-ref" ]
-            [
-              text
-                (if in_editor span then
-                   Printf.sprintf " (line %d)" span.start.line
-                 else
-                   Printf.sprintf " (%s, line %d)" (source_name span)
-                     span.start.line);
-            ];
-        ]
-    in
-    let content = rendered placed @ where in
-    if in_editor span && not stale then
-      elt "li"
-        ~a:[ onmouseenter (fun _ -> Model.HoverLabel (Some (i, j))) ]
-        [ elt "a" ~a:[ attr "href" ("#" ^ label_id i j) ] content ]
-    else elt "li" content
-  in
   let labels =
     match error.diagnostic.labels with
     | [] -> []
@@ -478,7 +468,7 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
                 class_ "error-labels";
                 onmouseleave (fun _ -> Model.HoverLabel None);
               ]
-            (List.mapi view_label labels);
+            (List.mapi (view_error_label ~stale i) labels);
         ]
   and notes =
     match error.diagnostic.notes with
@@ -489,16 +479,6 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
             ~a:[ class_ "error-notes" ]
             (List.map (fun note -> elt "li" (rendered note)) notes);
         ]
-  in
-  let header_aside =
-    if stale then elt "span" ~a:[ class_ "stale-note" ] [ text "out of date" ]
-    else
-      match error.diagnostic.primary with
-      | Some loc when in_editor loc ->
-          elt "a"
-            ~a:[ class_ "show-in-editor"; attr "href" ("#" ^ primary_id i) ]
-            [ text "show in editor" ]
-      | _ -> nil
   in
   let classes =
     String.concat " "
@@ -514,25 +494,7 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
   elt "article"
     ~a:[ class_ classes; attr "id" (error_id i) ]
     [
-      div
-        ~a:
-          [
-            class_ "message-header";
-            onmouseenter (fun _ -> Model.HoverError (Some i));
-            onmouseleave (fun _ -> Model.HoverError None);
-          ]
-        [
-          elt "p"
-            [
-              text
-                (match (Model.is_warning error, load_error_header error) with
-                | true, "" -> Printf.sprintf "Warning %d" (i + 1)
-                | true, header ->
-                    Printf.sprintf "Warning %d — %s" (i + 1) header
-                | false, header -> Printf.sprintf "Error %d — %s" (i + 1) header);
-            ];
-          header_aside;
-        ];
+      view_error_header ~stale i error;
       div
         ~a:[ class_ "message-body" ]
         ((elt "p" (rendered error.diagnostic.message) :: labels) @ notes);
@@ -541,7 +503,7 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
 (* The link whose name is under the pointer of a mouse [event], while the
    modifier of links is held. *)
 let link_under (model : Model.model) event =
-  if model.links <> [] && EditorDom.modifier_held event then
+  if model.checked.links <> [] && EditorDom.modifier_held event then
     EditorDom.link_at (EditorDom.point event)
   else None
 
@@ -559,11 +521,14 @@ let oneditor_keys (model : Model.model) =
   on_with_options "keydown"
     (bind
        (fun (key, shift) ->
-         if key = "F12" && model.links <> [] && not model.stale_errors then
+         if
+           key = "F12" && model.checked.links <> []
+           && not model.error_view.stale_errors
+         then
            map
              (fun offset ->
                match
-                 Model.link_at model.links
+                 Model.link_at model.checked.links
                    (Model.byte_offset model.edit_model.unparsed_code offset)
                with
                | Some _ ->
@@ -778,88 +743,89 @@ let view_declaration_entry ~columns k (entry : Model.declaration_entry) =
         [ text "Show declaration" ];
     ]
 
-(* The open popover: for an error's span, its kind and headline, then the
-   label of the span when it is one of the error's labels and otherwise the
-   error's first note, and a link to its message; for a definition's name, its
-   scheme; for a name defined in the standard library or in the declarations
-   loaded before the program, its definition. It is
-   drawn hidden until measured, and then placed under or above its span, a
-   scheme laid out again first when the measured width differs. *)
-let view_popover (model : Model.model) errors =
-  let columns = Option.value ~default:default_columns model.columns in
-  let error_card i label =
-    Option.map
-      (fun (error : Model.load_error) ->
-        let d = error.diagnostic in
-        let label =
-          Option.bind label (List.nth_opt d.labels)
-          |> Option.map (fun (l : Diagnostic.label) ->
-              elt "p"
-                ~a:[ class_ "code-popover-label" ]
-                (rendered (Diagnostic.render_label_text ~place:"here" l.text)))
-        in
-        let note =
-          match (label, d.notes) with
-          | None, note :: _ ->
-              [ elt "p" ~a:[ class_ "code-popover-note" ] (rendered note) ]
-          | Some _, _ | None, [] -> []
-        in
-        ( (if Option.is_some label then "is-label" else "is-error"),
+(* The card of the [i]th error, of kind [is-label] for its label [label] and
+   [is-error] otherwise: its kind and headline, then the label when there is
+   one and otherwise the error's first note, and a link to its message. *)
+let error_card i label (error : Model.load_error) =
+  let d = error.diagnostic in
+  let label =
+    Option.bind label (List.nth_opt d.labels)
+    |> Option.map (fun (l : Diagnostic.label) ->
+        elt "p"
+          ~a:[ class_ "code-popover-label" ]
+          (rendered (Diagnostic.render_label_text ~place:"here" l.text)))
+  in
+  let note =
+    match (label, d.notes) with
+    | None, note :: _ ->
+        [ elt "p" ~a:[ class_ "code-popover-note" ] (rendered note) ]
+    | Some _, _ | None, [] -> []
+  in
+  ( (if Option.is_some label then "is-label" else "is-error"),
+    [
+      elt "p"
+        ~a:[ class_ "code-popover-title" ]
+        (elt "span"
+           ~a:
+             [
+               class_
+                 (String.concat " "
+                    ("code-popover-kind" :: severity_classes error));
+             ]
+           [ text (Diagnostic.kind_to_string d.kind ^ ":") ]
+        :: text " " :: rendered d.message);
+    ]
+    @ Option.to_list label @ note
+    @ [
+        elt "a"
+          ~a:
+            [
+              class_ "code-popover-link";
+              attr "href" ("#" ^ error_id i);
+              onclick ~prevent_default:() (fun _ -> Model.ShowFullError i);
+            ]
           [
-            elt "p"
-              ~a:[ class_ "code-popover-title" ]
-              (elt "span"
-                 ~a:
-                   [
-                     class_
-                       (String.concat " "
-                          ("code-popover-kind" :: severity_classes error));
-                   ]
-                 [ text (Diagnostic.kind_to_string d.kind ^ ":") ]
-              :: text " " :: rendered d.message);
-          ]
-          @ Option.to_list label @ note
-          @ [
-              elt "a"
-                ~a:
-                  [
-                    class_ "code-popover-link";
-                    attr "href" ("#" ^ error_id i);
-                    onclick ~prevent_default:() (fun _ -> Model.ShowFullError i);
-                  ]
-                [
-                  text
-                    (if Model.is_warning error then "Show full warning"
-                     else "Show full error");
-                ];
+            text
+              (if Model.is_warning error then "Show full warning"
+               else "Show full error");
+          ];
+      ] )
+
+(* The kind and the body of the card of [target], among the errors [errors]
+   and what the last check has found [checked], schemes laid out in [columns]
+   characters: for a definition's name, its scheme; for a name defined in the
+   standard library or in the declarations loaded before the program, its
+   definition. *)
+let card ~columns errors (checked : Model.checked) = function
+  | Model.Error_span i -> Option.map (error_card i None) (List.nth_opt errors i)
+  | Model.Error_label (i, j) ->
+      Option.map (error_card i (Some j)) (List.nth_opt errors i)
+  | Model.Definition k ->
+      Option.map
+        (fun d ->
+          ( "is-type",
+            [
+              elt "p"
+                ~a:[ class_ "code-popover-scheme" ]
+                (view_scheme ~columns d);
             ] ))
-      (List.nth_opt errors i)
-  in
-  let card target =
-    match target with
-    | Model.Error_span i -> error_card i None
-    | Model.Error_label (i, j) -> error_card i (Some j)
-    | Model.Definition k ->
-        Option.map
-          (fun d ->
-            ( "is-type",
-              [
-                elt "p"
-                  ~a:[ class_ "code-popover-scheme" ]
-                  (view_scheme ~columns d);
-              ] ))
-          (List.nth_opt model.definitions k)
-    | Model.Reference k -> (
-        match List.nth_opt model.links k with
-        | Some { destination = Model.In_library entry; _ } ->
-            Some ("is-type", view_library_entry ~columns entry)
-        | Some { destination = Model.In_declarations entry; _ } ->
-            Some ("is-type", view_declaration_entry ~columns k entry)
-        | Some { destination = Model.In_editor _; _ } | None -> None)
-  in
-  match model.popover with
+        (List.nth_opt checked.definitions k)
+  | Model.Reference k -> (
+      match List.nth_opt checked.links k with
+      | Some { destination = Model.In_library entry; _ } ->
+          Some ("is-type", view_library_entry ~columns entry)
+      | Some { destination = Model.In_declarations entry; _ } ->
+          Some ("is-type", view_declaration_entry ~columns k entry)
+      | Some { destination = Model.In_editor _; _ } | None -> None)
+
+(* The open popover, its card that of [card]. It is drawn hidden until
+   measured, and then placed under or above its span, a scheme laid out again
+   first when the measured width differs. *)
+let view_popover (model : Model.model) errors =
+  let columns = Option.value ~default:default_columns model.popovers.columns in
+  match model.popovers.popover with
   | Some ({ shown = true; _ } as popover) -> (
-      match card popover.target with
+      match card ~columns errors model.checked popover.target with
       | None -> nil
       | Some (kind, body) ->
           let placed, arrow =
@@ -900,7 +866,8 @@ let onpointer (model : Model.model) =
               | None -> Model.Nowhere)
           | `Nothing -> Model.Nowhere
         and link = link_under model event in
-        if pointer = model.pointer && link = model.link then None
+        if pointer = model.popovers.pointer && link = model.popovers.link then
+          None
         else Some (Model.Point (pointer, link, EditorDom.point event))
     | _ -> None)
 
@@ -908,7 +875,8 @@ let onpointer (model : Model.model) =
 let onpointer_leave (model : Model.model) =
   on_js "mouseleave" (function
     | Vdom_blit.Ojs event
-      when (model.pointer <> Model.Nowhere || model.link <> None)
+      when (model.popovers.pointer <> Model.Nowhere
+           || model.popovers.link <> None)
            && not (EditorDom.moves_within ".code-editor" event) ->
         Some (Model.Point (Model.Nowhere, None, EditorDom.point event))
     | _ -> None)
@@ -918,7 +886,8 @@ let onescape_popover (model : Model.model) =
     Vdom.Decoder.(
       map
         (fun key ->
-          if key = "Escape" && model.popover <> None then Some Model.Conceal
+          if key = "Escape" && model.popovers.popover <> None then
+            Some Model.Conceal
           else None)
         (field "key" String))
 
@@ -940,7 +909,7 @@ let view_editor ~highlighted ~errors (model : Model.model) =
   let rows = max 10 lines in
   let gutter = gutter lines in
   let described =
-    match (popover_target model, model.caret_target) with
+    match (popover_target model, model.popovers.caret_target) with
     | Some target, Some target' when target = target' ->
         [ attr "aria-describedby" popover_id ]
     | _ -> []
@@ -949,7 +918,7 @@ let view_editor ~highlighted ~errors (model : Model.model) =
     ~a:
       [
         class_
-          (if model.link <> None then "code-editor is-linking"
+          (if model.popovers.link <> None then "code-editor is-linking"
            else "code-editor");
         style "--gutter" gutter;
         onpointer model;
@@ -983,33 +952,6 @@ let view_editor ~highlighted ~errors (model : Model.model) =
       view_popover model errors;
     ]
 
-(* The mark of the outcome of a check, a stroke drawn in the current text
-   colour. *)
-let check_mark cls path =
-  svg_elt "svg"
-    ~a:
-      [
-        class_ ("check-status-mark " ^ cls);
-        attr "viewBox" "0 0 16 16";
-        attr "aria-hidden" "true";
-      ]
-    [
-      svg_elt "path"
-        ~a:
-          [
-            attr "d" path;
-            attr "fill" "none";
-            attr "stroke" "currentColor";
-            attr "stroke-width" "2.2";
-            attr "stroke-linecap" "round";
-            attr "stroke-linejoin" "round";
-          ]
-        [];
-    ]
-
-let tick cls = check_mark cls "M3 8.6l3.3 3.2L13 4.6"
-let cross cls = check_mark cls "M4.5 4.5l7 7M11.5 4.5l-7 7"
-
 (* [count n noun] is [n] followed by [noun], in the plural unless [n] is 1. *)
 let count n noun = Printf.sprintf "%d %s%s" n noun (if n = 1 then "" else "s")
 
@@ -1041,120 +983,107 @@ let view_definitions n =
 
 let status_id = "check-status"
 
-(* The line under the buttons stating the outcome of the last check, empty
-   before any. While a check is under way, a note saying so takes its place
-   once the check has lasted a moment (see the page's style). The line is a
-   live region, present throughout so that its changes are announced. *)
-let view_check_status (model : Model.model) =
+(* The link to the first of the [n] errors or warnings, named by [noun], whose
+   first is reported in [run_model], under the class [cls]. *)
+let view_go_to_first ~cls ~noun n run_model =
+  let target =
+    match run_model with
+    | Error (first :: _) -> load_error_target 0 first
+    | _ -> error_id 0
+  in
+  elt "a"
+    ~a:
+      [
+        class_ cls;
+        attr "href" ("#" ^ target);
+        attr "title" ("Go to the first " ^ noun);
+        onclick ~prevent_default:() (fun _ -> Model.GoToError 0);
+      ]
+    [
+      text (count n noun);
+      elt "span" ~a:[ class_ "is-sr-only" ] [ text ", go to the first" ];
+    ]
+
+(* The outcome of the last check of [model], if any: its mark and the parts of
+   its text, dimmed while a check is under way. *)
+let view_outcome (model : Model.model) =
   let outcome ?(clipped = true) mark parts =
     elt "span"
       ~a:
         [
           class_
-            (if model.checking <> None then "check-status-outcome is-superseded"
+            (if model.status.checking <> None then
+               "check-status-outcome is-superseded"
              else "check-status-outcome");
         ]
       [ mark; view_status_text ~clipped parts ]
   in
-  let outcome =
-    match model.last_check with
-    | None -> []
-    | Some { current = false; errors; _ } ->
-        [
-          outcome
-            (if errors = 0 then tick "is-success is-dimmed"
-             else cross "is-danger is-dimmed")
-            [ [ text "Edited since the last check" ] ];
-        ]
-    | Some { errors = 0; warnings = 0; definitions; _ } ->
-        [
-          outcome (tick "is-success")
-            [
-              [ text "Checked \xE2\x80\x94 no errors" ];
-              view_definitions definitions;
-            ];
-        ]
-    | Some { errors = 0; warnings; definitions; _ } ->
-        let target =
-          match model.run_model with
-          | Error (warning :: _) -> load_error_target 0 warning
-          | _ -> error_id 0
-        in
-        [
-          outcome (tick "is-warning")
-            [
-              [
-                text "Checked \xE2\x80\x94 ";
-                elt "a"
-                  ~a:
-                    [
-                      class_ "check-status-warnings";
-                      attr "href" ("#" ^ target);
-                      attr "title" "Go to the first warning";
-                      onclick ~prevent_default:() (fun _ -> Model.GoToError 0);
-                    ]
-                  [
-                    text (count warnings "warning");
-                    elt "span"
-                      ~a:[ class_ "is-sr-only" ]
-                      [ text ", go to the first" ];
-                  ];
-              ];
-              view_definitions definitions;
-            ];
-        ]
-    | Some { errors; _ } ->
-        let target =
-          match model.run_model with
-          | Error (error :: _) -> load_error_target 0 error
-          | _ -> error_id 0
-        in
-        [
-          outcome ~clipped:false (cross "is-danger")
-            [
-              [
-                elt "a"
-                  ~a:
-                    [
-                      class_ "check-status-errors";
-                      attr "href" ("#" ^ target);
-                      attr "title" "Go to the first error";
-                      onclick ~prevent_default:() (fun _ -> Model.GoToError 0);
-                    ]
-                  [
-                    text (count errors "error");
-                    elt "span"
-                      ~a:[ class_ "is-sr-only" ]
-                      [ text ", go to the first" ];
-                  ];
-              ];
-            ];
-        ]
-  and progress =
-    if model.checking = None then []
-    else
+  match model.status.last_check with
+  | None -> []
+  | Some { current = false; errors; _ } ->
       [
-        elt "span"
-          ~a:[ class_ "check-status-progress" ]
+        outcome
+          (if errors = 0 then Icons.tick "is-success is-dimmed"
+           else Icons.cross "is-danger is-dimmed")
+          [ [ text "Edited since the last check" ] ];
+      ]
+  | Some { errors = 0; warnings = 0; definitions; _ } ->
+      [
+        outcome (Icons.tick "is-success")
           [
-            elt "span"
-              ~a:[ class_ "check-spinner"; attr "aria-hidden" "true" ]
-              [];
-            text "Checking\xE2\x80\xA6";
+            [ text "Checked \xE2\x80\x94 no errors" ];
+            view_definitions definitions;
           ];
       ]
-  in
+  | Some { errors = 0; warnings; definitions; _ } ->
+      [
+        outcome (Icons.tick "is-warning")
+          [
+            [
+              text "Checked \xE2\x80\x94 ";
+              view_go_to_first ~cls:"check-status-warnings" ~noun:"warning"
+                warnings model.run_model;
+            ];
+            view_definitions definitions;
+          ];
+      ]
+  | Some { errors; _ } ->
+      [
+        outcome ~clipped:false (Icons.cross "is-danger")
+          [
+            [
+              view_go_to_first ~cls:"check-status-errors" ~noun:"error" errors
+                model.run_model;
+            ];
+          ];
+      ]
+
+(* The note that a check is under way. *)
+let view_progress =
+  elt "span"
+    ~a:[ class_ "check-status-progress" ]
+    [
+      elt "span" ~a:[ class_ "check-spinner"; attr "aria-hidden" "true" ] [];
+      text "Checking\xE2\x80\xA6";
+    ]
+
+(* The line under the buttons stating the outcome of the last check, empty
+   before any. While a check is under way, a note saying so takes its place
+   once the check has lasted a moment (see the page's style). The line is a
+   live region, present throughout so that its changes are announced. *)
+let view_check_status (model : Model.model) =
   div
     ~a:
       [
         class_
-          (if model.abbreviated then "check-status is-abbreviated"
+          (if model.status.abbreviated then "check-status is-abbreviated"
            else "check-status");
         attr "id" status_id;
         attr "role" "status";
         attr "aria-live" "polite";
       ]
-    (outcome @ progress)
+    (view_outcome model
+    @ if model.status.checking = None then [] else [ view_progress ])
 
 (* Backends *)
 
@@ -1257,318 +1186,370 @@ let view_compile_message ~backend ~stale i (message : BackendRegistry.message) =
         ];
     ]
 
-let view_compiler (model : Model.model) =
-  let use_stdlib =
-    elt "label"
-      ~a:[ class_ "panel-block" ]
-      [
-        input
-          ~a:
-            [
-              type_ "checkbox";
-              onchange_checked (fun use_stdlib ->
-                  Model.EditMsg (Model.UseStdlib use_stdlib));
-              bool_prop "checked" model.edit_model.use_stdlib;
-            ]
-          [];
-        text "Load standard library";
-      ]
-  in
-  let notice =
-    match model.notice with
-    | None -> []
-    | Some notice ->
-        let colour, message =
-          match notice with
-          | Model.Ignored [ parameter ] ->
-              ( "is-danger",
-                Printf.sprintf
-                  "The parameter %s of the address was ignored: its value is \
-                   malformed or names nothing known."
-                  (WebLink.name parameter) )
-          | Model.Ignored parameters ->
-              ( "is-danger",
-                Printf.sprintf
-                  "The parameters %s of the address were ignored: their values \
-                   are malformed or name nothing known."
-                  (String.concat ", " (List.map WebLink.name parameters)) )
-          | Model.Link_copied -> ("is-success", "Link copied.")
-          | Model.Copy_failed link ->
-              ( "is-danger",
-                "The link could not be copied to the clipboard: " ^ link )
-        in
-        [
-          elt "p"
-            ~a:[ class_ ("help link-notice " ^ colour); attr "role" "status" ]
-            [ text message ];
-        ]
-  in
-  let load_example =
-    div
-      ~a:[ class_ "panel-block" ]
-      [
-        div
-          ~a:[ class_ "field" ]
-          ([
-             (* the label, with the link copying the address naming the
-                example, the grades and the backend selected at its right
-                end *)
-             div
-               ~a:[ class_ "example-label" ]
-               [
-                 elt "label" ~a:[ class_ "label" ] [ text "Example" ];
-                 elt "a"
-                   ~a:
-                     [
-                       class_ "copy-link";
-                       attr "href" "#";
-                       attr "title" "Copy link";
-                       attr "aria-label" "Copy link";
-                       onclick ~prevent_default:() (fun _ -> Model.CopyLink);
-                     ]
-                   [ link_mark ];
-               ];
-             div
-               ~a:[ class_ "example-field" ]
-               [
-                 div
-                   ~a:[ class_ "control is-expanded" ]
-                   [
-                     (* opens the gallery, see [view_gallery]; labelled by
-                        the example last loaded, after the short form of the
-                        label of the group it is listed under, the tooltip and
-                        the accessible name giving the full label *)
-                     elt "button"
-                       ~a:
-                         ([
-                            class_ "button is-fullwidth example-button";
-                            type_button;
-                            onclick (fun _ -> Model.OpenGallery);
-                          ]
-                         @
-                         match model.edit_model.selected_example with
-                         | Some (group, title) ->
-                             [
-                               attr "title" (group ^ " \xC2\xB7 " ^ title);
-                               attr "aria-label"
-                                 ("Example: " ^ group ^ ", " ^ title);
-                             ]
-                         | None -> [])
-                       [
-                         (match model.edit_model.selected_example with
-                         | Some (group, title) ->
-                             view_choice_label
-                               ~heading:
-                                 (List.find_map
-                                    (fun (g : Examples_tpe.group) ->
-                                      if g.label = group then Some g.short
-                                      else None)
-                                    Examples_tpe.examples
-                                 |> Option.value ~default:group)
-                               title
-                         | None -> view_choice_label "Load example");
-                         elt "span"
-                           ~a:[ class_ "has-text-grey" ]
-                           [ text "\xE2\x80\xA6" ];
-                       ];
-                   ];
-               ];
-           ]
-          @ notice);
-      ]
-  and select_backend =
-    let selected = Model.backend model.edit_model in
-    let settings = Model.settings model.edit_model in
-    (* the inputs of choices of the selected backend, under its description *)
-    let choices =
-      List.filter_map
-        (fun (input : BackendRegistry.input) ->
-          match input.kind with
-          | Choice choices ->
-              Some
-                (view_choice_input
-                   ~value:
-                     (BackendRegistry.setting selected.inputs settings input.key)
-                   input choices)
-          | Text -> None)
-        selected.inputs
-    in
-    div
-      ~a:[ class_ "panel-block" ]
-      [
-        div
-          ~a:[ class_ "field" ]
-          ([
-             elt "label" ~a:[ class_ "label" ] [ text "Backend" ];
-             div
-               ~a:[ class_ "control is-expanded" ]
-               [
-                 (* the backends of {!BackendRegistry.entries}, by name *)
-                 select
-                   ~a:[ class_ "select is-fullwidth backend-select" ]
-                   "Select a backend"
-                   (fun (entry : BackendRegistry.entry) ->
-                     Model.EditMsg (Model.SelectBackend entry.key))
-                   (fun (entry : BackendRegistry.entry) -> entry.name)
-                   (fun (entry : BackendRegistry.entry) ->
-                     entry.key = selected.key)
-                   BackendRegistry.entries;
-               ];
-             elt "p"
-               ~a:[ class_ "grades-summary" ]
-               [ text selected.description ];
-           ]
-          @
-          if choices = [] then []
-          else [ div ~a:[ class_ "backend-choices" ] choices ]);
-      ]
-  and select_grades =
-    div
-      ~a:[ class_ "panel-block" ]
-      [
-        div
-          ~a:[ class_ "field" ]
+(* Code options *)
+
+(* The choice of loading the standard library. *)
+let view_use_stdlib (edit_model : Model.edit_model) =
+  elt "label"
+    ~a:[ class_ "panel-block" ]
+    [
+      input
+        ~a:
           [
-            elt "label"
-              ~a:[ class_ "label"; attr "for" "grades-select" ]
-              [ text "Grades" ];
-            div
-              ~a:[ class_ "control is-expanded" ]
-              [
-                (* Grouped as {!Grades.GradeRegistry.groups} groups them,
-                   without the grades offered by the CLI only, the option text
-                   its title and the tooltip its description, followed by how
-                   it is decided for a regular grade. *)
-                grouped_select
-                  ~a:[ class_ "select is-fullwidth choice-select" ]
-                  ~id:"grades-select" "Select grades"
-                  (fun (name, _) -> Model.EditMsg (Model.SelectGrades name))
-                  (fun (_, (info : Grades.GradeRegistry.info)) -> info.title)
-                  (fun (_, (info : Grades.GradeRegistry.info)) ->
-                    match info.implementation with
-                    | Some i ->
-                        info.description ^ " "
-                        ^ Grades.GradeRegistry.implementation_text i
-                    | None -> info.description)
-                  (fun (name, _) -> name = model.edit_model.selected_grades)
-                  (List.map
-                     (fun (g : Grades.GradeRegistry.group) ->
-                       (g.label, g.short, Grades.GradeRegistry.listed g))
-                     Grades.GradeRegistry.groups);
-              ];
-            (* The description of the selected grades, the tooltip adding how
-               a regular grade is decided and the command running them. *)
-            (let name = model.edit_model.selected_grades in
-             let info =
-               List.find_map
-                 (fun (g : Grades.GradeRegistry.group) ->
-                   List.assoc_opt name g.grades)
-                 Grades.GradeRegistry.groups
-             in
-             let description, implementation =
-               match info with
-               | Some info ->
-                   ( info.description,
-                     Option.fold ~none:""
-                       ~some:(fun i ->
-                         Grades.GradeRegistry.implementation_text i ^ "\n")
-                       info.implementation )
-               | None -> ("", "")
-             in
-             elt "p"
-               ~a:
-                 [
-                   class_ "grades-summary";
-                   attr "title"
-                     (implementation ^ "./tempore --grades " ^ name
-                    ^ " file.tpe");
-                 ]
-               [ text description ]);
-          ];
-      ]
-  and run_process =
-    (* Typecheck stays in the editor; Run typechecks and, without errors, runs
-       the program. While a check is under way, the button pressed shows a
-       spinner and neither takes a press; they are marked disabled for
-       assistive technology only, so that the focus stays on them. *)
-    let action cls label pressed msg =
-      let state =
-        match model.checking with
-        | None -> []
-        | Some action when action = pressed -> [ "is-checking" ]
-        | Some _ -> [ "is-waiting" ]
+            type_ "checkbox";
+            onchange_checked (fun use_stdlib ->
+                Model.EditMsg (Model.UseStdlib use_stdlib));
+            bool_prop "checked" edit_model.use_stdlib;
+          ]
+        [];
+      text "Load standard library";
+    ]
+
+(* The notice shown under the example, if any. *)
+let view_notice = function
+  | None -> []
+  | Some notice ->
+      let colour, message =
+        match notice with
+        | Model.Ignored [ parameter ] ->
+            ( "is-danger",
+              Printf.sprintf
+                "The parameter %s of the address was ignored: its value is \
+                 malformed or names nothing known."
+                (WebLink.name parameter) )
+        | Model.Ignored parameters ->
+            ( "is-danger",
+              Printf.sprintf
+                "The parameters %s of the address were ignored: their values \
+                 are malformed or name nothing known."
+                (String.concat ", " (List.map WebLink.name parameters)) )
+        | Model.Link_copied -> ("is-success", "Link copied.")
+        | Model.Copy_failed link ->
+            ( "is-danger",
+              "The link could not be copied to the clipboard: " ^ link )
       in
+      [
+        elt "p"
+          ~a:[ class_ ("help link-notice " ^ colour); attr "role" "status" ]
+          [ text message ];
+      ]
+
+(* The button opening the gallery, see [view_gallery], labelled by the example
+   [selected] last loaded, after the short form of the label of the group it is
+   listed under, the tooltip and the accessible name giving the full label. *)
+let view_example_button selected =
+  elt "button"
+    ~a:
+      ([
+         class_ "button is-fullwidth example-button";
+         type_button;
+         onclick (fun _ -> Model.OpenGallery);
+       ]
+      @
+      match selected with
+      | Some (group, title) ->
+          [
+            attr "title" (group ^ " \xC2\xB7 " ^ title);
+            attr "aria-label" ("Example: " ^ group ^ ", " ^ title);
+          ]
+      | None -> [])
+    [
+      (match selected with
+      | Some (group, title) ->
+          view_choice_label
+            ~heading:
+              (Option.fold ~none:group
+                 ~some:(fun (g : Examples_tpe.group) -> g.short)
+                 (Model.example_group group))
+            title
+      | None -> view_choice_label "Load example");
+      elt "span" ~a:[ class_ "has-text-grey" ] [ text "\xE2\x80\xA6" ];
+    ]
+
+(* The example last loaded, under its label with the link copying the address
+   naming the example, the grades and the backend selected at its right end,
+   and the notice [notice]. *)
+let view_example (edit_model : Model.edit_model) notice =
+  div
+    ~a:[ class_ "panel-block" ]
+    [
+      div
+        ~a:[ class_ "field" ]
+        ([
+           div
+             ~a:[ class_ "example-label" ]
+             [
+               elt "label" ~a:[ class_ "label" ] [ text "Example" ];
+               elt "a"
+                 ~a:
+                   [
+                     class_ "copy-link";
+                     attr "href" "#";
+                     attr "title" "Copy link";
+                     attr "aria-label" "Copy link";
+                     onclick ~prevent_default:() (fun _ -> Model.CopyLink);
+                   ]
+                 [ Icons.link ];
+             ];
+           div
+             ~a:[ class_ "example-field" ]
+             [
+               div
+                 ~a:[ class_ "control is-expanded" ]
+                 [ view_example_button edit_model.selected_example ];
+             ];
+         ]
+        @ view_notice notice);
+    ]
+
+(* The backends of {!BackendRegistry.entries} by name, the selected one with
+   its description and the inputs of choices it has. *)
+let view_backend (edit_model : Model.edit_model) =
+  let selected = Model.backend edit_model in
+  let settings = Model.settings edit_model in
+  let choices =
+    List.filter_map
+      (fun (input : BackendRegistry.input) ->
+        match input.kind with
+        | Choice choices ->
+            Some
+              (view_choice_input
+                 ~value:
+                   (BackendRegistry.setting selected.inputs settings input.key)
+                 input choices)
+        | Text -> None)
+      selected.inputs
+  in
+  div
+    ~a:[ class_ "panel-block" ]
+    [
+      div
+        ~a:[ class_ "field" ]
+        ([
+           elt "label" ~a:[ class_ "label" ] [ text "Backend" ];
+           div
+             ~a:[ class_ "control is-expanded" ]
+             [
+               select
+                 ~a:[ class_ "select is-fullwidth backend-select" ]
+                 "Select a backend"
+                 (fun (entry : BackendRegistry.entry) ->
+                   Model.EditMsg (Model.SelectBackend entry.key))
+                 (fun (entry : BackendRegistry.entry) -> entry.name)
+                 (fun (entry : BackendRegistry.entry) ->
+                   entry.key = selected.key)
+                 BackendRegistry.entries;
+             ];
+           elt "p" ~a:[ class_ "grades-summary" ] [ text selected.description ];
+         ]
+        @
+        if choices = [] then []
+        else [ div ~a:[ class_ "backend-choices" ] choices ]);
+    ]
+
+(* The description of the grades [name], the tooltip adding how a regular
+   grade is decided and the command running them. *)
+let view_grades_summary name =
+  let description, implementation =
+    match Grades.GradeRegistry.info name with
+    | Some info ->
+        ( info.description,
+          Option.fold ~none:""
+            ~some:(fun i -> Grades.GradeRegistry.implementation_text i ^ "\n")
+            info.implementation )
+    | None -> ("", "")
+  in
+  elt "p"
+    ~a:
+      [
+        class_ "grades-summary";
+        attr "title"
+          (implementation ^ "./tempore --grades " ^ name ^ " file.tpe");
+      ]
+    [ text description ]
+
+(* The grades, grouped as {!Grades.GradeRegistry.groups} groups them, without
+   the grades offered by the CLI only, the option text its title and the
+   tooltip its description, followed by how it is decided for a regular grade;
+   then the description of the selected grades. *)
+let view_grades (edit_model : Model.edit_model) =
+  div
+    ~a:[ class_ "panel-block" ]
+    [
       div
         ~a:[ class_ "field" ]
         [
-          elt "button"
-            ~a:
-              ([
-                 class_
-                   (String.concat " "
-                      ([ "button"; "is-info"; "is-fullwidth"; "check-action" ]
-                      @ cls @ state));
-                 type_button;
-                 onclick (fun _ -> msg);
-               ]
-              @
-              if model.checking = None then []
-              else [ attr "aria-disabled" "true" ])
-            [ elt "span" [ text label ] ];
-        ]
-    in
-    panel_block
-      [
-        action [ "is-outlined" ]
-          (* a backend with a compiler compiles the program it accepts *)
-          (if Option.is_some (Model.backend model.edit_model).compiler then
-             "Typecheck & Compile"
-           else "Typecheck")
-          Model.Check Model.CheckCode;
-        action [] "Run Interpreter" Model.Run Model.RunCode;
-        view_check_status model;
-        (* every error shown under the editor, which may be far below when the
-           program is long; clicking one scrolls to its message *)
-        (match model.run_model with
-        | Error (_ :: _ as errors) ->
-            let view_entry i error =
-              elt "li"
-                ~a:
-                  (classes
-                     ((if model.active_error = Some i then [ "is-active" ]
-                       else [])
-                     @ severity_classes error)
-                  @ [
-                      onmouseenter (fun _ -> Model.HoverError (Some i));
-                      onmouseleave (fun _ -> Model.HoverError None);
-                    ])
-                [
-                  elt "a"
-                    ~a:
-                      [
-                        attr "href"
-                          ("#"
-                          ^
-                          if model.stale_errors then error_id i
-                          else load_error_target i error);
-                        onclick ~prevent_default:() (fun _ -> Model.GoToError i);
-                      ]
-                    [ text (load_error_summary error) ];
-                ]
-            in
-            elt "ol"
+          elt "label"
+            ~a:[ class_ "label"; attr "for" "grades-select" ]
+            [ text "Grades" ];
+          div
+            ~a:[ class_ "control is-expanded" ]
+            [
+              grouped_select
+                ~a:[ class_ "select is-fullwidth choice-select" ]
+                ~id:"grades-select" "Select grades"
+                (fun (name, _) -> Model.EditMsg (Model.SelectGrades name))
+                (fun (_, (info : Grades.GradeRegistry.info)) -> info.title)
+                (fun (_, (info : Grades.GradeRegistry.info)) ->
+                  match info.implementation with
+                  | Some i ->
+                      info.description ^ " "
+                      ^ Grades.GradeRegistry.implementation_text i
+                  | None -> info.description)
+                (fun (name, _) -> name = edit_model.selected_grades)
+                (List.map
+                   (fun (g : Grades.GradeRegistry.group) ->
+                     (g.label, g.short, Grades.GradeRegistry.listed g))
+                   Grades.GradeRegistry.groups);
+            ];
+          view_grades_summary edit_model.selected_grades;
+        ];
+    ]
+
+(* The button of the check [pressed], under the classes [cls] and the label
+   [label], sending [msg]. While a check is under way, the button pressed shows
+   a spinner and neither takes a press; they are marked disabled for assistive
+   technology only, so that the focus stays on them. *)
+let view_check_action ~checking cls label pressed msg =
+  let state =
+    match checking with
+    | None -> []
+    | Some action when action = pressed -> [ "is-checking" ]
+    | Some _ -> [ "is-waiting" ]
+  in
+  div
+    ~a:[ class_ "field" ]
+    [
+      elt "button"
+        ~a:
+          ([
+             class_
+               (String.concat " "
+                  ([ "button"; "is-info"; "is-fullwidth"; "check-action" ]
+                  @ cls @ state));
+             type_button;
+             onclick (fun _ -> msg);
+           ]
+          @ if checking = None then [] else [ attr "aria-disabled" "true" ])
+        [ elt "span" [ text label ] ];
+    ]
+
+(* Every error shown under the editor, which may be far below when the program
+   is long; clicking one scrolls to its message. *)
+let view_error_list (model : Model.model) =
+  match model.run_model with
+  | Error (_ :: _ as errors) ->
+      let stale = model.error_view.stale_errors in
+      let view_entry i error =
+        elt "li"
+          ~a:
+            (classes
+               ((if model.error_view.active_error = Some i then [ "is-active" ]
+                 else [])
+               @ severity_classes error)
+            @ [
+                onmouseenter (fun _ -> Model.HoverError (Some i));
+                onmouseleave (fun _ -> Model.HoverError None);
+              ])
+          [
+            elt "a"
               ~a:
                 [
-                  class_
-                    (if model.stale_errors then "error-list is-stale"
-                     else "error-list");
+                  attr "href"
+                    ("#"
+                    ^ if stale then error_id i else load_error_target i error);
+                  onclick ~prevent_default:() (fun _ -> Model.GoToError i);
                 ]
-              (List.mapi view_entry errors)
-        | _ -> nil);
-      ]
-  in
+              [ text (load_error_summary error) ];
+          ]
+      in
+      elt "ol"
+        ~a:[ class_ (if stale then "error-list is-stale" else "error-list") ]
+        (List.mapi view_entry errors)
+  | _ -> nil
+
+(* Typecheck stays in the editor, and compiles the program it accepts under a
+   backend with a compiler; Run typechecks and, without errors, runs the
+   program. The status of the last check and the list of the errors follow. *)
+let view_checks (model : Model.model) =
+  let checking = model.status.checking in
+  panel_block
+    [
+      view_check_action ~checking [ "is-outlined" ]
+        (if Option.is_some (Model.backend model.edit_model).compiler then
+           "Typecheck & Compile"
+         else "Typecheck")
+        Model.Check Model.CheckCode;
+      view_check_action ~checking [] "Run Interpreter" Model.Run Model.RunCode;
+      view_check_status model;
+      view_error_list model;
+    ]
+
+(* The side panel of the editor. *)
+let view_code_options (model : Model.model) =
   panel ~action:(page_link Model.Docs) "Code options"
-    [ select_backend; use_stdlib; load_example; select_grades; run_process ]
+    [
+      view_backend model.edit_model;
+      view_use_stdlib model.edit_model;
+      view_example model.edit_model model.notices.notice;
+      view_grades model.edit_model;
+      view_checks model;
+    ]
+
+(* The note that the program has errors, shown with the program, unless the
+   errors reported are those of the compilation. *)
+let view_program_errors (model : Model.model) =
+  match model.run_model with
+  | Error (_ :: _ as errors) when not model.compilation.reports_compilation ->
+      [
+        elt "p"
+          ~a:[ class_ "backend-note" ]
+          [
+            text
+              (Printf.sprintf "The program has %s, shown with "
+                 (count (List.length errors) "error"));
+            elt "a"
+              ~a:
+                [
+                  attr "href" "#";
+                  onclick ~prevent_default:() (fun _ ->
+                      Model.ShowCode Model.Source);
+                ]
+              [ text "the program" ];
+            text ".";
+          ];
+      ]
+  | _ -> []
+
+(* The messages of the compilation [compiled] by the backend [backend] and the
+   code compiled, or the note that the program is compiled once it
+   typechecks. *)
+let view_compilation ~backend (compiled : Model.compiled option) =
+  match compiled with
+  | None ->
+      [
+        elt "p"
+          ~a:[ class_ "backend-note" ]
+          [ text "The program is compiled once it typechecks." ];
+      ]
+  | Some { output; up_to_date } ->
+      let stale = not up_to_date in
+      List.mapi (view_compile_message ~backend ~stale) output.messages
+      @ Option.fold ~none:[]
+          ~some:(fun _ ->
+            [
+              elt "p"
+                ~a:[ class_ "backend-code-heading" ]
+                [
+                  text "Compiled code";
+                  elt "span"
+                    ~a:[ class_ "backend-input-size" ]
+                    [ text (if stale then "out of date" else output.language) ];
+                ];
+              (* rendered once per compilation *)
+              Vdom.memo view_code output;
+            ])
+          output.code
 
 (* The view of a backend with a compiler in the editor's place: the text
    inputs of the backend, the messages of the compilation and the code
@@ -1589,172 +1570,31 @@ let view_compiled (model : Model.model) (entry : BackendRegistry.entry)
         | Choice _ -> None)
       entry.inputs
   in
-  let errors =
-    match model.run_model with
-    | Error (_ :: _ as errors) when not model.reports_compilation ->
-        [
-          elt "p"
-            ~a:[ class_ "backend-note" ]
-            [
-              text
-                (Printf.sprintf "The program has %s, shown with "
-                   (count (List.length errors) "error"));
-              elt "a"
-                ~a:
-                  [
-                    attr "href" "#";
-                    onclick ~prevent_default:() (fun _ ->
-                        Model.ShowCode Model.Source);
-                  ]
-                [ text "the program" ];
-              text ".";
-            ];
-        ]
-    | _ -> []
-  in
-  let compiled =
-    match model.compiled with
-    | None ->
-        [
-          elt "p"
-            ~a:[ class_ "backend-note" ]
-            [ text "The program is compiled once it typechecks." ];
-        ]
-    | Some { output; up_to_date } ->
-        let stale = not up_to_date in
-        List.mapi
-          (view_compile_message ~backend:entry.name ~stale)
-          output.messages
-        @ Option.fold ~none:[]
-            ~some:(fun _ ->
-              [
-                elt "p"
-                  ~a:[ class_ "backend-code-heading" ]
-                  [
-                    text "Compiled code";
-                    elt "span"
-                      ~a:[ class_ "backend-input-size" ]
-                      [
-                        text (if stale then "out of date" else output.language);
-                      ];
-                  ];
-                (* rendered once per compilation *)
-                Vdom.memo view_code output;
-              ])
-            output.code
-  in
   div
     ~a:[ class_ "backend-view" ]
     ((elt "p" ~a:[ class_ "backend-title" ] [ text compiler.code_name ] :: texts)
-    @ errors @ compiled)
+    @ view_program_errors model
+    @ view_compilation ~backend:entry.name model.compilation.compiled)
 
 (* An image as the mark of a view. *)
 let image_mark src =
   elt "img" ~a:[ attr "src" src; attr "alt" ""; attr "aria-hidden" "true" ] []
 
-(* A pipette, drawn in the current text colour. *)
-let pipette_mark =
-  svg_elt "svg"
-    ~a:
-      [
-        attr "viewBox" "0 0 16 16";
-        attr "width" "16";
-        attr "height" "16";
-        attr "aria-hidden" "true";
-      ]
-    [
-      svg_elt "g"
-        ~a:
-          [
-            attr "transform" "rotate(45 8 8)";
-            attr "fill" "none";
-            attr "stroke" "currentColor";
-            attr "stroke-width" "1.4";
-            attr "stroke-linecap" "round";
-            attr "stroke-linejoin" "round";
-          ]
-        [
-          svg_elt "path"
-            ~a:
-              [
-                attr "d"
-                  "M6.3 1.2h3.4M8 1.2v2.3M6 3.5h4v6H6zM6.4 9.5 8 14l1.6-4.5";
-              ]
-            [];
-        ];
-      svg_elt "circle"
-        ~a:
-          [
-            attr "cx" "3.1";
-            attr "cy" "14.6";
-            attr "r" "0.9";
-            attr "fill" "currentColor";
-          ]
-        [];
-    ]
-
-(* A microcontroller chip with its pins, drawn in the current text colour. *)
-let chip_mark =
-  svg_elt "svg"
-    ~a:
-      [
-        attr "viewBox" "0 0 16 16";
-        attr "width" "16";
-        attr "height" "16";
-        attr "aria-hidden" "true";
-      ]
-    [
-      svg_elt "g"
-        ~a:
-          [
-            attr "fill" "none";
-            attr "stroke" "currentColor";
-            attr "stroke-width" "1.4";
-            attr "stroke-linecap" "round";
-            attr "stroke-linejoin" "round";
-          ]
-        [
-          svg_elt "rect"
-            ~a:
-              [
-                attr "x" "4";
-                attr "y" "4";
-                attr "width" "8";
-                attr "height" "8";
-                attr "rx" "1";
-              ]
-            [];
-          svg_elt "path"
-            ~a:
-              [
-                attr "d"
-                  "M6 4V1.5M10 4V1.5M6 14.5V12M10 14.5V12M4 6H1.5M4 \
-                   10H1.5M14.5 6H12M14.5 10H12";
-              ]
-            [];
-        ];
-      svg_elt "circle"
-        ~a:
-          [
-            attr "cx" "6.4";
-            attr "cy" "6.4";
-            attr "r" "0.8";
-            attr "fill" "currentColor";
-          ]
-        [];
-    ]
-
-(* The marks of the program and of the code compiled from it by the backend
-   [key], on the switch between the two views. *)
+(* The marks of the program and of the code compiled from it, on the switch
+   between the two views. *)
 let source_mark = image_mark "logo/tempore-logo.svg"
-let compiled_mark = function "arduino" -> chip_mark | _ -> pipette_mark
+
+let compiled_mark = function
+  | BackendRegistry.Chip -> Icons.chip
+  | BackendRegistry.Pipette -> Icons.pipette
 
 (* The switch in the top right corner of the editor's box, to the view not
    shown, named by its mark alone, as the link to the other page is. *)
-let view_switch ~key (compiler : BackendRegistry.compiler) code_view =
+let view_switch (compiler : BackendRegistry.compiler) code_view =
   let target, mark, label =
     match code_view with
-    | Model.Source -> (Model.Compiled, compiled_mark key, compiler.code_name)
+    | Model.Source ->
+        (Model.Compiled, compiled_mark compiler.mark, compiler.code_name)
     | Model.Compiled -> (Model.Source, source_mark, "Tempore program")
   in
   elt "a"
@@ -1858,18 +1698,18 @@ let editor_key (model : Model.model) =
   {
     source = model.edit_model.unparsed_code;
     errors = (match model.run_model with Error errors -> errors | Ok _ -> []);
-    stale = model.stale_errors;
+    stale = model.error_view.stale_errors;
     popover = popover_target model;
     pointed =
-      (match model.pointer with
+      (match model.popovers.pointer with
       | Model.Over_target target -> target_error target
       | Model.Nowhere | Model.Over_popover -> None);
-    hovered_error = model.hovered_error;
-    active_error = model.active_error;
-    definitions = model.definitions;
-    links = model.links;
-    link = model.link;
-    flash = model.flash;
+    hovered_error = model.error_view.hovered_error;
+    active_error = model.error_view.active_error;
+    definitions = model.checked.definitions;
+    links = model.checked.links;
+    link = model.popovers.link;
+    flash = model.notices.flash;
     line_links = Model.line_links model;
   }
 
@@ -1897,105 +1737,104 @@ let interned =
         last := Some key;
         key
 
+(* The marks of the errors of [key]. Labels of every error at once would only
+   confuse; they show for the error the user is looking at, or when it is
+   alone. *)
+let error_marks
+    ({ errors; popover; pointed; hovered_error; active_error; _ } : editor_key)
+    =
+  List.concat
+    (List.mapi
+       (fun i (error : Model.load_error) ->
+         let with_labels =
+           List.length errors = 1
+           || hovered_error = Some i || active_error = Some i
+           || error.hovered_label <> None
+           || pointed = Some i
+           || Option.bind popover target_error = Some i
+         in
+         marks_of_error ~hovered:(hovered_error = Some i) ~with_labels ~popover
+           i error)
+       errors)
+
+(* The marks of the names the definitions are given, each described by its
+   scheme. *)
+let definition_marks ~popover definitions =
+  List.concat
+    (List.mapi
+       (fun k (d : Model.definition) ->
+         match d.name_span with
+         | Some (from, until) ->
+             [
+               {
+                 SyntaxHighlight.from;
+                 until;
+                 mark_cls =
+                   (if popover = Some (Model.Definition k) then
+                      "def-name is-hover "
+                    else "def-name ")
+                   ^ popover_classes (Model.Definition k);
+                 id = None;
+                 marker = None;
+               };
+             ]
+         | None -> [])
+       definitions)
+
+(* The marks of the names of the links, the [link]th underlined while the
+   modifier of links is held with the pointer on it, those defined in the
+   declarations loaded before the program described by popovers. *)
+let link_marks ~popover ~link links =
+  List.mapi
+    (fun k ({ use = from, until; destination } : Model.link) ->
+      {
+        SyntaxHighlight.from;
+        until;
+        mark_cls =
+          String.concat " "
+            ([ "name-ref"; EditorDom.link_prefix ^ string_of_int k ]
+            @ (if link = Some k then [ "is-link" ] else [])
+            @ (if popover = Some (Model.Reference k) then [ "is-hover" ] else [])
+            @
+            match destination with
+            | Model.In_declarations _ -> [ popover_classes (Model.Reference k) ]
+            | Model.In_editor _ | Model.In_library _ ->
+                if popover = Some (Model.Reference k) then
+                  [ popover_classes (Model.Reference k) ]
+                else []);
+        id = None;
+        marker = None;
+      })
+    links
+
+(* The mark of the span of the editor just gone to, if any. *)
+let flash_marks = function
+  | Some (Model.Span (from, until)) ->
+      [
+        {
+          SyntaxHighlight.from;
+          until;
+          mark_cls = "goto-flash";
+          id = Some EditorDom.flash_id;
+          marker = None;
+        };
+      ]
+  | Some
+      ( Model.Message _ | Model.Declaration _ | Model.Line _
+      | Model.Copied_line _ )
+  | None ->
+      []
+
 (* The marks of the editor's text: the spans of the errors, the names of the
-   definitions and links, and what has just been gone to. *)
-let editor_marks
-    ({
-       errors;
-       stale;
-       popover;
-       pointed;
-       hovered_error;
-       active_error;
-       definitions;
-       links;
-       link;
-       flash;
-       _;
-     } :
-      editor_key) =
-  (* Edited source: the spans have moved, so only the messages remain. *)
-  if stale then []
+   definitions and links, and what has just been gone to. Edited source: the
+   spans have moved, so only the messages remain. *)
+let editor_marks (key : editor_key) =
+  if key.stale then []
   else
-    List.concat
-      (List.mapi
-         (fun i (error : Model.load_error) ->
-           (* Labels of every error at once would only confuse; they show
-                for the error the user is looking at, or when it is alone. *)
-           let with_labels =
-             List.length errors = 1
-             || hovered_error = Some i || active_error = Some i
-             || error.hovered_label <> None
-             || pointed = Some i
-             || Option.bind popover target_error = Some i
-           in
-           marks_of_error ~hovered:(hovered_error = Some i) ~with_labels
-             ~popover i error)
-         errors)
-    (* the names the definitions are given, each described by its scheme *)
-    @ List.concat
-        (List.mapi
-           (fun k (d : Model.definition) ->
-             match d.name_span with
-             | Some (from, until) ->
-                 [
-                   {
-                     SyntaxHighlight.from;
-                     until;
-                     mark_cls =
-                       (if popover = Some (Model.Definition k) then
-                          "def-name is-hover "
-                        else "def-name ")
-                       ^ popover_classes (Model.Definition k);
-                     id = None;
-                     marker = None;
-                   };
-                 ]
-             | None -> [])
-           definitions)
-    (* the names of the links, one of them underlined while the modifier of
-         links is held with the pointer on it, those defined in the
-         declarations loaded before the program described by popovers *)
-    @ List.mapi
-        (fun k ({ use = from, until; destination } : Model.link) ->
-          {
-            SyntaxHighlight.from;
-            until;
-            mark_cls =
-              String.concat " "
-                ([ "name-ref"; EditorDom.link_prefix ^ string_of_int k ]
-                @ (if link = Some k then [ "is-link" ] else [])
-                @ (if popover = Some (Model.Reference k) then [ "is-hover" ]
-                   else [])
-                @
-                match destination with
-                | Model.In_declarations _ ->
-                    [ popover_classes (Model.Reference k) ]
-                | Model.In_editor _ | Model.In_library _ ->
-                    if popover = Some (Model.Reference k) then
-                      [ popover_classes (Model.Reference k) ]
-                    else []);
-            id = None;
-            marker = None;
-          })
-        links
-    @
-    match flash with
-    | Some (Model.Span (from, until)) ->
-        [
-          {
-            SyntaxHighlight.from;
-            until;
-            mark_cls = "goto-flash";
-            id = Some EditorDom.flash_id;
-            marker = None;
-          };
-        ]
-    | Some
-        ( Model.Message _ | Model.Declaration _ | Model.Line _
-        | Model.Copied_line _ )
-    | None ->
-        []
+    error_marks key
+    @ definition_marks ~popover:key.popover key.definitions
+    @ link_marks ~popover:key.popover ~link:key.link key.links
+    @ flash_marks key.flash
 
 (* The number [n] of a line, copying the link to the line when clicked. *)
 let line_link n =
@@ -2071,7 +1910,7 @@ let view_unflashed_declaration_source source = view_declaration_source source
 let view_declarations (model : Model.model) =
   div
     ~a:[ class_ "editor-declarations" ]
-    (match model.shown_declarations with
+    (match model.declarations.shown_declarations with
     | [] -> []
     | sources ->
         [
@@ -2079,12 +1918,13 @@ let view_declarations (model : Model.model) =
             ~a:
               [
                 class_ "declarations";
-                bool_prop "open" model.declarations_open;
+                bool_prop "open" model.declarations.declarations_open;
                 on "toggle"
                   Vdom.Decoder.(
                     map
                       (fun shown ->
-                        if shown = model.declarations_open then None
+                        if shown = model.declarations.declarations_open then
+                          None
                         else Some (Model.ShowDeclarations shown))
                       (field "target.open" Bool));
               ]
@@ -2093,7 +1933,7 @@ let view_declarations (model : Model.model) =
                [ text (WebDeclarations.title sources) ]
             :: List.map
                  (fun (source : WebDeclarations.source) ->
-                   match model.flash with
+                   match model.notices.flash with
                    | Some (Model.Declaration (filename, start, stop))
                      when filename = source.filename ->
                        view_declaration_source ~flash:(start, stop) source
@@ -2108,7 +1948,7 @@ let view_declarations (model : Model.model) =
 let edit_view (model : Model.model) =
   let entry = Model.backend model.edit_model in
   let content =
-    match (entry.compiler, model.code_view) with
+    match (entry.compiler, model.compilation.code_view) with
     | Some compiler, Model.Compiled -> [ view_compiled model entry compiler ]
     | _ ->
         let key = interned (editor_key model) in
@@ -2120,19 +1960,19 @@ let edit_view (model : Model.model) =
         :: List.mapi
              (fun i error ->
                view_load_error ~stale
-                 ~active:(model.active_error = Some i)
-                 ~flashed:(model.flash = Some (Model.Message i))
+                 ~active:(model.error_view.active_error = Some i)
+                 ~flashed:(model.notices.flash = Some (Model.Message i))
                  i error)
              errors
   and switch =
     Option.fold ~none:[]
       ~some:(fun compiler ->
-        [ view_switch ~key:entry.key compiler model.code_view ])
+        [ view_switch compiler model.compilation.code_view ])
       entry.compiler
   in
   view_contents
     [ div ~a:[ class_ "box editor-box" ] (content @ switch) ]
-    [ view_compiler model ]
+    [ view_code_options model ]
 
 (* Example gallery *)
 
@@ -2158,12 +1998,12 @@ let matches query group (e : Examples_tpe.example) =
 
 let example_group_id k = Printf.sprintf "example-group-%d" k
 
-(* An example's card, which loads it; [current] marks the example last
-   loaded. *)
 (* The id of the card of the example last loaded, which the page focuses
    when the gallery opens. *)
 let current_example_id = "current-example"
 
+(* An example's card, which loads it; [current] marks the example last
+   loaded. *)
 let view_example_card ~current group (e : Examples_tpe.example) =
   elt "button"
     ~a:
@@ -2194,58 +2034,95 @@ let onescape msg =
         (fun key -> if key = "Escape" then Some msg else None)
         (field "key" String))
 
+(* The groups of examples of the backend [backend] with an example matching
+   [query], each by its index, with the examples matching. *)
+let gallery_groups ~backend query =
+  List.filter_map
+    (fun (k, (g : Examples_tpe.group)) ->
+      match
+        List.filter
+          (fun (e : Examples_tpe.example) ->
+            e.backend = backend && matches query g.label e)
+          g.examples
+      with
+      | [] -> None
+      | examples -> Some (k, g, examples))
+    (List.mapi (fun k g -> (k, g)) Examples_tpe.examples)
+
+(* The entry of a group in the side column of the gallery, lit when its id is
+   [current]. *)
+let view_toc_entry ~current (k, (g : Examples_tpe.group), examples) =
+  let id = example_group_id k in
+  elt "a"
+    ~a:
+      (attr "href" ("#" ^ id)
+      :: (if id = current then [ class_ "is-active" ] else []))
+    [
+      text (g.label ^ " ");
+      elt "span" [ text (Printf.sprintf "(%d)" (List.length examples)) ];
+    ]
+
+(* The section of the cards of a group, the example [selected] last loaded
+   marked. *)
+let view_gallery_group ~selected (k, (g : Examples_tpe.group), examples) =
+  elt "section"
+    ~a:[ class_ "example-group"; attr "id" (example_group_id k) ]
+    [
+      elt "header" [ elt "h3" [ text g.label ]; elt "p" [ text g.summary ] ];
+      div
+        ~a:[ class_ "example-cards" ]
+        (List.map
+           (fun (e : Examples_tpe.example) ->
+             view_example_card
+               ~current:(selected = Some (g.label, e.title))
+               g.label e)
+           examples);
+    ]
+
+(* The head of the gallery: its title, the search field with the search
+   [query], focused when no example has been loaded, and the close button. *)
+let view_gallery_head ~selected query =
+  div
+    ~a:[ class_ "example-gallery-head" ]
+    [
+      elt "h2" [ text "Examples" ];
+      input
+        ~a:
+          ([
+             class_ "example-gallery-search";
+             attr "placeholder"
+               "Search examples, e.g. release, levels, handlers, regex";
+             attr "aria-label" "Search examples";
+             str_prop "value" query;
+             oninput (fun query -> Model.SearchGallery query);
+           ]
+          @ if selected = None then [ autofocus ] else [])
+        [];
+      elt "button"
+        ~a:
+          [
+            class_ "example-gallery-close";
+            type_button;
+            attr "aria-label" "Close";
+            onclick (fun _ -> Model.CloseGallery);
+          ]
+        [ text "\xC3\x97" ];
+    ]
+
 (* The gallery with the search [query]: the groups with an example matching
-   it, each listed in the side column and as a section of cards. Esc closes
-   it, the layer taking the focus from a click inside the panel, and so does a
-   click on the backdrop beside the panel. The search field takes the focus
-   when the gallery opens with no example loaded; otherwise the page focuses
-   the card of the example last loaded. *)
+   it, each listed in the side column, the group scrolled to [current] or
+   else the first lit, and as a section of cards. Esc closes it, the layer
+   taking the focus from a click inside the panel, and so does a click on the
+   backdrop beside the panel. The search field takes the focus when the
+   gallery opens with no example loaded; otherwise the page focuses the card of
+   the example last loaded. *)
 let view_gallery ~selected ~backend ~current query =
-  let groups =
-    List.filter_map
-      (fun (k, (g : Examples_tpe.group)) ->
-        match
-          List.filter
-            (fun (e : Examples_tpe.example) ->
-              e.backend = backend && matches query g.label e)
-            g.examples
-        with
-        | [] -> None
-        | examples -> Some (k, g, examples))
-      (List.mapi (fun k g -> (k, g)) Examples_tpe.examples)
-  in
-  (* The group scrolled to, or the first group shown. *)
+  let groups = gallery_groups ~backend query in
   let current =
     match (current, groups) with
     | Some id, _ -> id
     | None, (k, _, _) :: _ -> example_group_id k
     | None, [] -> ""
-  in
-  let view_toc_entry (k, (g : Examples_tpe.group), examples) =
-    let id = example_group_id k in
-    elt "a"
-      ~a:
-        (attr "href" ("#" ^ id)
-        :: (if id = current then [ class_ "is-active" ] else []))
-      [
-        text (g.label ^ " ");
-        elt "span" [ text (Printf.sprintf "(%d)" (List.length examples)) ];
-      ]
-  in
-  let view_group (k, (g : Examples_tpe.group), examples) =
-    elt "section"
-      ~a:[ class_ "example-group"; attr "id" (example_group_id k) ]
-      [
-        elt "header" [ elt "h3" [ text g.label ]; elt "p" [ text g.summary ] ];
-        div
-          ~a:[ class_ "example-cards" ]
-          (List.map
-             (fun (e : Examples_tpe.example) ->
-               view_example_card
-                 ~current:(selected = Some (g.label, e.title))
-                 g.label e)
-             examples);
-      ]
   in
   div
     ~a:
@@ -2271,38 +2148,13 @@ let view_gallery ~selected ~backend ~current query =
             attr "aria-label" "Examples";
           ]
         [
-          div
-            ~a:[ class_ "example-gallery-head" ]
-            [
-              elt "h2" [ text "Examples" ];
-              input
-                ~a:
-                  ([
-                     class_ "example-gallery-search";
-                     attr "placeholder"
-                       "Search examples, e.g. release, levels, handlers, regex";
-                     attr "aria-label" "Search examples";
-                     str_prop "value" query;
-                     oninput (fun query -> Model.SearchGallery query);
-                   ]
-                  @ if selected = None then [ autofocus ] else [])
-                [];
-              elt "button"
-                ~a:
-                  [
-                    class_ "example-gallery-close";
-                    type_button;
-                    attr "aria-label" "Close";
-                    onclick (fun _ -> Model.CloseGallery);
-                  ]
-                [ text "\xC3\x97" ];
-            ];
+          view_gallery_head ~selected query;
           div
             ~a:[ class_ "example-gallery-body" ]
             [
               elt "nav"
                 ~a:[ class_ "example-gallery-toc" ]
-                (List.map view_toc_entry groups);
+                (List.map (view_toc_entry ~current) groups);
               div
                 ~a:[ class_ "example-gallery-list" ]
                 (match groups with
@@ -2312,95 +2164,105 @@ let view_gallery ~selected ~backend ~current query =
                         ~a:[ class_ "example-gallery-empty" ]
                         [ text "No example matches." ];
                     ]
-                | _ -> List.map view_group groups);
+                | _ -> List.map (view_gallery_group ~selected) groups);
             ];
         ];
     ]
 
 (* Run view *)
 
-let view_steps (run_model : Model.run_model) steps =
-  let view_edit_source =
-    panel_block
-      [
-        elt "button"
-          ~a:
-            [
-              class_ "button is-outlined is-fullwidth is-danger";
-              onclick (fun _ -> Model.EditCode);
-              attr "title"
-                "Re-editing source code will abort current evaluation";
-            ]
-          [ text "Re-edit source code" ];
-      ]
-  and view_undo_last_step =
-    panel_block
-      [
-        elt "button"
-          ~a:
-            [
-              class_ "button is-outlined is-fullwidth";
-              onclick (fun _ -> Model.RunMsg Model.Back);
-              disabled (List.is_empty run_model.history);
-            ]
-          [ text "Undo last step" ];
-      ]
-  and view_step i step =
-    panel_block
-      [
-        elt "button"
-          ~a:
-            [
-              class_ "button is-outlined is-fullwidth";
-              onclick (fun _ -> Model.RunMsg (Model.MakeStep step));
-              onmouseenter (fun _ ->
-                  Model.RunMsg (Model.SelectStepIndex (Some i)));
-            ]
-          [ step.Model.label_vdom ];
-      ]
-  and view_random_steps steps =
-    div
-      ~a:[ class_ "panel-block" ]
-      [
-        div
-          ~a:[ class_ "field has-addons" ]
+(* The button returning to the editor, which aborts the run. *)
+let view_edit_source () =
+  panel_block
+    [
+      elt "button"
+        ~a:
           [
-            div
-              ~a:[ class_ "control" ]
-              [
-                select
-                  ~a:[ class_ "select is-info" ]
-                  "Step size"
-                  (fun step_size ->
-                    Model.RunMsg (Model.ChangeRandomStepSize step_size))
-                  string_of_int
-                  (fun step_size -> step_size = run_model.random_step_size)
-                  [ 1; 2; 4; 8; 16; 32; 64; 128; 256; 512; 1024 ];
-              ];
-            div
-              ~a:[ class_ "control is-expanded" ]
-              [
-                elt "button"
-                  ~a:
-                    [
-                      class_ "button is-info is-fullwidth";
-                      onclick (fun _ -> Model.RunMsg Model.RandomStep);
-                      disabled (List.is_empty steps);
-                    ]
-                  [ text "next steps" ];
-              ];
-          ];
-        (if List.is_empty steps then
-           elt "p"
-             ~a:[ class_ "terminated-note" ]
-             [ text "Computation has terminated" ]
-         else text "");
-      ]
-  in
+            class_ "button is-outlined is-fullwidth is-danger";
+            onclick (fun _ -> Model.EditCode);
+            attr "title" "Re-editing source code will abort current evaluation";
+          ]
+        [ text "Re-edit source code" ];
+    ]
+
+(* The button undoing the last step, disabled before any. *)
+let view_undo_last_step (run_model : Model.run_model) =
+  panel_block
+    [
+      elt "button"
+        ~a:
+          [
+            class_ "button is-outlined is-fullwidth";
+            onclick (fun _ -> Model.RunMsg Model.Back);
+            disabled (List.is_empty run_model.history);
+          ]
+        [ text "Undo last step" ];
+    ]
+
+(* The button of the [i]th step, which takes it. *)
+let view_step i (step : Model.concrete_step) =
+  panel_block
+    [
+      elt "button"
+        ~a:
+          [
+            class_ "button is-outlined is-fullwidth";
+            onclick (fun _ -> Model.RunMsg (Model.MakeStep step));
+            onmouseenter (fun _ ->
+                Model.RunMsg (Model.SelectStepIndex (Some i)));
+          ]
+        [ step.label_vdom ];
+    ]
+
+(* The choice of the number of random steps and the button taking them, or
+   the note that the computation has terminated, without [steps]. *)
+let view_random_steps (run_model : Model.run_model) steps =
+  div
+    ~a:[ class_ "panel-block" ]
+    [
+      div
+        ~a:[ class_ "field has-addons" ]
+        [
+          div
+            ~a:[ class_ "control" ]
+            [
+              select
+                ~a:[ class_ "select is-info" ]
+                "Step size"
+                (fun step_size ->
+                  Model.RunMsg (Model.ChangeRandomStepSize step_size))
+                string_of_int
+                (fun step_size -> step_size = run_model.random_step_size)
+                [ 1; 2; 4; 8; 16; 32; 64; 128; 256; 512; 1024 ];
+            ];
+          div
+            ~a:[ class_ "control is-expanded" ]
+            [
+              elt "button"
+                ~a:
+                  [
+                    class_ "button is-info is-fullwidth";
+                    onclick (fun _ -> Model.RunMsg Model.RandomStep);
+                    disabled (List.is_empty steps);
+                  ]
+                [ text "next steps" ];
+            ];
+        ];
+      (if List.is_empty steps then
+         elt "p"
+           ~a:[ class_ "terminated-note" ]
+           [ text "Computation has terminated" ]
+       else text "");
+    ]
+
+(* The side panel of a run, with the steps [steps] that can be taken. *)
+let view_steps (run_model : Model.run_model) steps =
   panel ~action:(page_link Model.Docs) "Interaction"
     ~a:[ onmouseleave (fun _ -> Model.RunMsg (Model.SelectStepIndex None)) ]
-    (view_edit_source :: view_undo_last_step :: view_random_steps steps
-   :: List.mapi view_step steps)
+    (view_edit_source ()
+    :: view_undo_last_step run_model
+    :: view_random_steps run_model steps
+    :: List.mapi view_step steps)
 
 let run_view (run_model : Model.run_model) =
   let steps = run_model.current.steps in
@@ -2448,44 +2310,6 @@ let run_view (run_model : Model.run_model) =
   view_contents
     (report @ active_view @ completed_views)
     [ view_steps run_model steps ]
-
-let github_url = "https://github.com/danelahman/tempore-lang"
-
-(* A file at the tip of main in the public repository. *)
-let github_blob name = github_url ^ "/blob/main/" ^ name
-
-(* The GitHub mark, as in GitHub's Octicons (MIT licensed, Copyright (c)
-   GitHub Inc.; see THIRD-PARTY.md), drawn in the current text colour so
-   that it follows the link's hover styling. *)
-let github_mark =
-  svg_elt "svg"
-    ~a:
-      [
-        attr "viewBox" "0 0 16 16";
-        attr "width" "20";
-        attr "height" "20";
-        attr "aria-hidden" "true";
-      ]
-    [
-      svg_elt "path"
-        ~a:
-          [
-            attr "fill" "currentColor";
-            attr "d"
-              "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 \
-               7.59.4.07.55-.17.55-.38 \
-               0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 \
-               1.08.58 1.23.82.72 1.21 1.87.87 \
-               2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 \
-               0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 \
-               2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 \
-               2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 \
-               3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 \
-               1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 \
-               8c0-4.42-3.58-8-8-8z";
-          ]
-        [];
-    ]
 
 let view_navbar =
   let view_title =
@@ -2553,17 +2377,18 @@ let view_footer =
         ~a:
           [
             class_ "footer-link github-link";
-            attr "href" github_url;
+            attr "href" Docs.repository;
             attr "target" "_blank";
             attr "rel" "noopener";
             attr "title" "Source code on GitHub";
           ]
         [
-          elt "span" ~a:[ class_ "icon" ] [ github_mark ];
+          elt "span" ~a:[ class_ "icon" ] [ Icons.github ];
           elt "span" [ text "Source on GitHub" ];
         ];
       view_footer_separator;
-      view_footer_link ~href:(github_blob "LICENSE")
+      view_footer_link
+        ~href:(Docs.repository_file "LICENSE")
         ~title:"Tempore is MIT licensed" "MIT license";
     ]
 
@@ -2571,11 +2396,11 @@ let view (model : Model.model) =
   div
     [
       view_navbar;
-      (match model.page with
+      (match model.navigation.page with
       | Model.Docs ->
           let main, aside =
-            Docs.view model.docs_page ~current:model.docs_heading
-              (page_link Model.Editor)
+            Docs.view model.navigation.docs_page
+              ~current:model.navigation.docs_heading (page_link Model.Editor)
           in
           view_contents main aside
       | Model.Editor -> (
@@ -2583,10 +2408,10 @@ let view (model : Model.model) =
           | Error _ -> edit_view model
           | Ok run_model -> run_view run_model));
       view_footer;
-      (match model.gallery with
+      (match model.navigation.gallery with
       | Some query ->
           view_gallery ~selected:model.edit_model.selected_example
             ~backend:(Model.backend model.edit_model).key
-            ~current:model.gallery_group query
+            ~current:model.navigation.gallery_group query
       | None -> nil);
     ]

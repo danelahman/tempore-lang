@@ -1,0 +1,6 @@
+; The syntax highlighter of the web editor, also used by the web interface of
+; the interpreter for the programs and states it prints.
+
+(library
+ (name syntaxHighlight)
+ (libraries parser vdom.base))

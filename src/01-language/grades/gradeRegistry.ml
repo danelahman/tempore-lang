@@ -505,5 +505,8 @@ let groups =
       })
     labels
 
+let info name =
+  Option.map (fun e -> e.info) (List.find_opt (fun e -> e.name = name) entries)
+
 let listed group =
   List.filter (fun (_, info) -> info.visibility = Everywhere) group.grades

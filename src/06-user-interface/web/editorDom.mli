@@ -18,6 +18,23 @@ val is_nothing : Ojs.t -> bool
 val number : Ojs.t -> string -> float
 (** [number obj key] is the numeric property [key] of [obj]. *)
 
+val by_id : string -> Ojs.t option
+(** [by_id id] is the element of the page of id [id], if any. *)
+
+val query_all : Ojs.t -> string -> Ojs.t list
+(** [query_all root selector] is the elements within [root] matching [selector],
+    in document order. *)
+
+val listen : capture:bool -> string -> (Ojs.t -> unit) -> unit
+(** [listen ~capture kind f] calls [f] on each event of [kind] of the window, in
+    its capturing phase under [capture]. *)
+
+val set_timeout : (unit -> unit) -> int -> unit
+(** [set_timeout f delay] calls [f] after [delay] milliseconds. *)
+
+val reduced_motion : unit -> bool
+(** Whether the reader has asked for reduced motion, which scrolls at once. *)
+
 val closest : Ojs.t -> string -> Ojs.t option
 (** [closest element selector] is the nearest ancestor of [element], itself
     included, matching [selector], if any. *)

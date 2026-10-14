@@ -15,99 +15,92 @@ type 'msg Vdom.Cmd.t +=
         (** copy the text to the clipboard, sending the message of whether it
             has been copied *)
 
-(* Whether the reader has asked for reduced motion, which scrolls at once. *)
-let reduced_motion () =
-  let match_media = EditorDom.get Ojs.global "matchMedia" in
-  (not (EditorDom.is_nothing match_media))
-  && Ojs.bool_of_js
-       (EditorDom.get
-          (EditorDom.call Ojs.global "matchMedia"
-             [ Ojs.string_to_js "(prefers-reduced-motion: reduce)" ])
-          "matches")
-
+(* The element of id [id] scrolled to the middle of the window. *)
 let scroll_to id =
-  match Js_browser.Document.get_element_by_id Js_browser.document id with
-  | Some element ->
+  Option.iter
+    (fun element ->
       ignore
-        (Ojs.call
-           (Js_browser.Element.t_to_js element)
-           "scrollIntoView"
-           [|
+        (EditorDom.call element "scrollIntoView"
+           [
              Ojs.obj
                [|
                  ( "behavior",
                    Ojs.string_to_js
-                     (if reduced_motion () then "auto" else "smooth") );
+                     (if EditorDom.reduced_motion () then "auto" else "smooth")
+                 );
                  ("block", Ojs.string_to_js "center");
                |];
-           |])
-  | None -> ()
+           ]))
+    (EditorDom.by_id id)
 
 (* The heading of identifier [id] at the top of the window, as following an
    anchor places it, or the page at its top without one. *)
 let scroll_to_heading = function
-  | Some id -> (
-      match Js_browser.Document.get_element_by_id Js_browser.document id with
-      | Some element -> Js_browser.Element.scroll_into_view element true
-      | None -> ())
-  | None -> Js_browser.Window.scroll_to Js_browser.window 0 0
+  | Some id ->
+      Option.iter
+        (fun element ->
+          ignore
+            (EditorDom.call element "scrollIntoView" [ Ojs.bool_to_js true ]))
+        (EditorDom.by_id id)
+  | None ->
+      ignore
+        (EditorDom.call Ojs.global "scrollTo"
+           [ Ojs.int_to_js 0; Ojs.int_to_js 0 ])
 
 (* The card of the example last loaded, in the gallery just opened: focused
    without the browser's own scrolling, and centred at once in the gallery's
    list by scrolling the list alone, which leaves the page behind the gallery
    in place. *)
 let focus_current_example () =
-  let card =
-    EditorDom.call EditorDom.document "getElementById"
-      [ Ojs.string_to_js View.current_example_id ]
-  in
-  if not (EditorDom.is_nothing card) then begin
-    ignore
-      (EditorDom.call card "focus"
-         [ Ojs.obj [| ("preventScroll", Ojs.bool_to_js true) |] ]);
-    Option.iter
-      (fun list ->
-        let middle (r : EditorDom.rect) = (r.top +. r.bottom) /. 2. in
-        let offset =
-          middle (EditorDom.bounding card) -. middle (EditorDom.bounding list)
-        in
-        Ojs.set_prop_ascii list "scrollTop"
-          (Ojs.float_to_js (EditorDom.number list "scrollTop" +. offset)))
-      (EditorDom.closest card ".example-gallery-list")
-  end
+  Option.iter
+    (fun card ->
+      ignore
+        (EditorDom.call card "focus"
+           [ Ojs.obj [| ("preventScroll", Ojs.bool_to_js true) |] ]);
+      Option.iter
+        (fun list ->
+          let middle (r : EditorDom.rect) = (r.top +. r.bottom) /. 2. in
+          let offset =
+            middle (EditorDom.bounding card) -. middle (EditorDom.bounding list)
+          in
+          Ojs.set_prop_ascii list "scrollTop"
+            (Ojs.float_to_js (EditorDom.number list "scrollTop" +. offset)))
+        (EditorDom.closest card ".example-gallery-list"))
+    (EditorDom.by_id View.current_example_id)
 
 (* Setting the editor's value from the model leaves the caret at the end; put
    it back where the edit happened. The position is counted in the browser's
    own UTF-16 code units, as the selection it sets is. *)
 let set_caret position =
-  match
-    Js_browser.Document.query_selector_all Js_browser.document
-      ".code-editor-input"
-  with
+  match EditorDom.query_all EditorDom.document ".code-editor-input" with
   | [ editor ] ->
-      Js_browser.Element.set_selection_start editor position;
-      Js_browser.Element.set_selection_end editor position
+      Ojs.set_prop_ascii editor "selectionStart" (Ojs.int_to_js position);
+      Ojs.set_prop_ascii editor "selectionEnd" (Ojs.int_to_js position)
   | _ -> ()
+
+(* The property [key] of the page's location, as a string. *)
+let location key =
+  Ojs.string_of_js (EditorDom.get (EditorDom.get Ojs.global "location") key)
 
 (* The page's address: its location without query and fragment, followed by
    [query]. *)
 let address query =
-  let location = EditorDom.get Ojs.global "location" in
-  let field key = Ojs.string_of_js (EditorDom.get location key) in
-  field "protocol" ^ "//" ^ field "host" ^ field "pathname" ^ query
+  location "protocol" ^ "//" ^ location "host" ^ location "pathname" ^ query
 
 (* The query of the page's address replaced, the fragment removed, without an
    entry of its own in the history. Some browsers refuse it for the address of
    a file, which is then left as it is. *)
 let replace_query query =
   try
-    let location = EditorDom.get Ojs.global "location" in
-    let path = Ojs.string_of_js (EditorDom.get location "pathname") in
     ignore
       (EditorDom.call
          (EditorDom.get Ojs.global "history")
          "replaceState"
-         [ Ojs.null; Ojs.string_to_js ""; Ojs.string_to_js (path ^ query) ])
+         [
+           Ojs.null;
+           Ojs.string_to_js "";
+           Ojs.string_to_js (location "pathname" ^ query);
+         ])
   with _ -> ()
 
 (* [text] written to the clipboard, [reply] receiving whether it has been: the
@@ -130,7 +123,7 @@ let copy text reply =
            ])
   with _ -> reply false
 
-let scroll_handler =
+let command_handler =
   {
     Vdom_blit.Cmd.f =
       (fun ctx cmd ->
@@ -142,10 +135,9 @@ let scroll_handler =
             Vdom_blit.Cmd.after_redraw ctx (fun () -> set_caret position);
             true
         | Send_after (delay, msg) ->
-            ignore
-              (Js_browser.Window.set_timeout Js_browser.window
-                 (fun () -> Vdom_blit.Cmd.send_msg ctx msg)
-                 delay);
+            EditorDom.set_timeout
+              (fun () -> Vdom_blit.Cmd.send_msg ctx msg)
+              delay;
             true
         | After_redraw f ->
             Vdom_blit.Cmd.after_redraw ctx (fun () ->
@@ -155,10 +147,9 @@ let scroll_handler =
            tasks queued during it are run. *)
         | After_paint msg ->
             Vdom_blit.Cmd.after_redraw ctx (fun () ->
-                ignore
-                  (Js_browser.Window.set_timeout Js_browser.window
-                     (fun () -> Vdom_blit.Cmd.send_msg ctx msg)
-                     0));
+                EditorDom.set_timeout
+                  (fun () -> Vdom_blit.Cmd.send_msg ctx msg)
+                  0);
             true
         | Now f ->
             f ();
@@ -172,17 +163,26 @@ let scroll_handler =
 (* Values the browser's local storage keeps under a key. Storage may be missing
    or refuse access, as in a private window, or be full: nothing is then
    recalled or remembered. *)
+let storage () =
+  let storage = EditorDom.get Ojs.global "localStorage" in
+  if EditorDom.is_nothing storage then None else Some storage
+
 let recall key =
   try
-    Option.bind (Js_browser.Window.local_storage Js_browser.window)
-      (fun storage -> Js_browser.Storage.get_item storage key)
+    Option.bind (storage ()) (fun storage ->
+        let value = EditorDom.call storage "getItem" [ Ojs.string_to_js key ] in
+        if EditorDom.is_nothing value then None
+        else Some (Ojs.string_of_js value))
   with _ -> None
 
 let remember key value =
   try
     Option.iter
-      (fun storage -> Js_browser.Storage.set_item storage key value)
-      (Js_browser.Window.local_storage Js_browser.window)
+      (fun storage ->
+        ignore
+          (EditorDom.call storage "setItem"
+             [ Ojs.string_to_js key; Ojs.string_to_js value ]))
+      (storage ())
   with _ -> ()
 
 (* The status line abbreviates the number of definitions where it cannot hold
@@ -191,10 +191,7 @@ let remember key value =
    changes, as an observer set up by [run] reports. *)
 let status_needed = ref None
 let status_observer = ref None
-
-let status_line () =
-  Option.map Js_browser.Element.t_to_js
-    (Js_browser.Document.get_element_by_id Js_browser.document View.status_id)
+let status_line () = EditorDom.by_id View.status_id
 
 let abbreviates line =
   match !status_needed with
@@ -238,7 +235,7 @@ let fit_status (model : Model.model) () =
         !status_observer;
       status_needed := measure_status line;
       let abbreviated = abbreviates line in
-      if abbreviated <> model.abbreviated then
+      if abbreviated <> model.status.abbreviated then
         Some (Model.Abbreviate abbreviated)
       else None)
 
@@ -247,36 +244,40 @@ let fit_status (model : Model.model) () =
    the end of a page lights when its last sections cannot reach the top. *)
 let followed = ref None
 
-let docs_headings =
+let docs_heading_selector =
   Printf.sprintf ".%s h2[id], .%s h3[id]" Docs.readme_class Docs.readme_class
 
-let gallery_list = ".example-gallery-list"
-let gallery_groups = gallery_list ^ " > .example-group[id]"
+let gallery_list_selector = ".example-gallery-list"
+let gallery_group_selector = gallery_list_selector ^ " > .example-group[id]"
 
 (* The message of the section of the documentation scrolled to, when that has
    changed. *)
 let reached_heading (model : Model.model) () =
-  if model.page <> Model.Docs then None
+  if model.navigation.page <> Model.Docs then None
   else
     match
-      EditorDom.reached ~headings:docs_headings ~area:None ~followed:!followed
+      EditorDom.reached ~headings:docs_heading_selector ~area:None
+        ~followed:!followed
     with
-    | Some id when model.docs_heading <> Some id -> Some (Model.ReachHeading id)
+    | Some id when model.navigation.docs_heading <> Some id ->
+        Some (Model.ReachHeading id)
     | _ -> None
 
 (* The message of the group of the example gallery scrolled to, when that has
    changed. *)
 let reached_group (model : Model.model) () =
-  if model.gallery = None then None
+  if model.navigation.gallery = None then None
   else
     match
-      EditorDom.reached ~headings:gallery_groups ~area:(Some gallery_list)
-        ~followed:!followed
+      EditorDom.reached ~headings:gallery_group_selector
+        ~area:(Some gallery_list_selector) ~followed:!followed
     with
-    | Some id when model.gallery_group <> Some id -> Some (Model.ReachGroup id)
+    | Some id when model.navigation.gallery_group <> Some id ->
+        Some (Model.ReachGroup id)
     | _ -> None
 
-let command (model : Model.model) = function
+(* The command performing the side effect of [model]. *)
+let command_of_effect (model : Model.model) = function
   | Model.After (delay, msg) -> Send_after (delay, msg)
   | Model.Measure_popover ->
       After_redraw
@@ -286,7 +287,7 @@ let command (model : Model.model) = function
               Model.Place
                 ( target,
                   EditorDom.placement ~key:(View.target_key target) ~point ))
-            model.popover)
+            model.popovers.popover)
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
   | Model.Scroll_to_span i -> Scroll_to (View.primary_id i)
   | Model.Scroll_to_declaration -> Scroll_to View.declaration_flash_id
@@ -326,8 +327,8 @@ let update model msg =
   (* the content of the status line changed, or the line drawn anew *)
   let status =
     if
-      model.Model.last_check <> model'.last_check
-      || model.page <> model'.page
+      model.Model.status.last_check <> model'.status.last_check
+      || model.navigation.page <> model'.navigation.page
       || Result.is_ok model.run_model <> Result.is_ok model'.run_model
     then [ After_redraw (fit_status model') ]
     else []
@@ -338,28 +339,27 @@ let update model msg =
     match msg with
     | Model.ShowDocs _ -> []
     | _ ->
-        (if model.page <> model'.page || model.docs_page <> model'.docs_page
+        (if
+           model.navigation.page <> model'.navigation.page
+           || model.navigation.docs_page <> model'.navigation.docs_page
          then [ After_redraw (reached_heading model') ]
          else [])
         @
-        if model.gallery <> model'.gallery then
+        if model.navigation.gallery <> model'.navigation.gallery then
           [ After_redraw (reached_group model') ]
         else []
   in
   ( model',
     Vdom.Cmd.batch
-      ((cmd :: status) @ reading @ List.map (command model') side_effects) )
+      ((cmd :: status) @ reading
+      @ List.map (command_of_effect model') side_effects) )
 
 let app =
-  let query =
-    try
-      Ojs.string_of_js
-        (EditorDom.get (EditorDom.get Ojs.global "location") "search")
-    with _ -> ""
-  in
+  let query = try location "search" with _ -> "" in
   let model, side_effects = Model.opened ~query (recall WebChoices.key) in
   Vdom.app
-    ~init:(model, Vdom.Cmd.batch (List.map (command model) side_effects))
+    ~init:
+      (model, Vdom.Cmd.batch (List.map (command_of_effect model) side_effects))
     ~view:View.view ~update ()
 
 (* The modifier of links is watched on the whole page, the pointer resting on
@@ -369,28 +369,20 @@ let app =
 let watch_modifier app =
   let point = ref None in
   let report link =
-    if (Vdom_blit.get app).Model.link <> link then
+    if (Vdom_blit.get app).Model.popovers.link <> link then
       Vdom_blit.process app (Model.OverLink link)
   in
-  let listen kind f =
-    Js_browser.Window.add_event_listener Js_browser.window kind
-      (fun event -> f (Js_browser.Event.t_to_js event))
-      false
+  let modifier event =
+    EditorDom.is_modifier (Ojs.string_of_js (EditorDom.get event "key"))
   in
-  listen Js_browser.Event.Mousemove (fun event ->
+  EditorDom.listen ~capture:false "mousemove" (fun event ->
       point := Some (EditorDom.point event));
-  listen Js_browser.Event.Keydown (fun event ->
-      if
-        EditorDom.is_modifier
-          (Ojs.string_of_js (Ojs.get_prop_ascii event "key"))
-        && (Vdom_blit.get app).Model.links <> []
-      then report (Option.bind !point EditorDom.link_at));
-  listen Js_browser.Event.Keyup (fun event ->
-      if
-        EditorDom.is_modifier
-          (Ojs.string_of_js (Ojs.get_prop_ascii event "key"))
-      then report None);
-  listen Js_browser.Event.Blur (fun _ -> report None)
+  EditorDom.listen ~capture:false "keydown" (fun event ->
+      if modifier event && (Vdom_blit.get app).Model.checked.links <> [] then
+        report (Option.bind !point EditorDom.link_at));
+  EditorDom.listen ~capture:false "keyup" (fun event ->
+      if modifier event then report None);
+  EditorDom.listen ~capture:false "blur" (fun _ -> report None)
 
 (* The observer of the width of the status line, where the browser has one. *)
 let observe_status app =
@@ -404,7 +396,9 @@ let observe_status app =
                  Option.iter
                    (fun line ->
                      let abbreviated = abbreviates line in
-                     if abbreviated <> (Vdom_blit.get app).Model.abbreviated
+                     if
+                       abbreviated
+                       <> (Vdom_blit.get app).Model.status.abbreviated
                      then Vdom_blit.process app (Model.Abbreviate abbreviated))
                    (status_line ()));
            |])
@@ -430,14 +424,9 @@ let watch_reading app =
            [ Ojs.fun_to_js 1 (fun _ -> reach ()) ])
     end
   in
-  let listen kind f =
-    Js_browser.Window.add_event_listener Js_browser.window kind
-      (fun event -> f (Js_browser.Event.t_to_js event))
-      true
-  in
-  listen Js_browser.Event.Scroll schedule;
-  listen Js_browser.Event.Resize schedule;
-  listen Js_browser.Event.Click (fun event ->
+  EditorDom.listen ~capture:true "scroll" schedule;
+  EditorDom.listen ~capture:true "resize" schedule;
+  EditorDom.listen ~capture:true "click" (fun event ->
       Option.iter
         (fun link ->
           let href =
@@ -448,18 +437,22 @@ let watch_reading app =
             followed := Some (String.sub href 1 (String.length href - 1)))
         (EditorDom.closest (EditorDom.get event "target") "a[href^='#']"))
 
+(* The page drawn into its container, or else into the document's root, and
+   its watchers set up. *)
 let run () =
   Random.self_init ();
-  let app = Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app in
+  let app = Vdom_blit.run ~env:(Vdom_blit.cmd command_handler) app in
   watch_modifier app;
   watch_reading app;
   observe_status app;
-  Vdom_blit.dom app
-  |> Js_browser.Element.append_child
-       (match
-          Js_browser.Document.get_element_by_id Js_browser.document "container"
-        with
-       | Some element -> element
-       | None -> Js_browser.Document.document_element Js_browser.document)
+  let container =
+    match EditorDom.by_id "container" with
+    | Some element -> element
+    | None -> EditorDom.get EditorDom.document "documentElement"
+  in
+  ignore
+    (EditorDom.call container "appendChild"
+       [ Js_browser.Element.t_to_js (Vdom_blit.dom app) ])
 
-let () = Js_browser.Window.set_onload Js_browser.window run
+let () =
+  Ojs.set_prop_ascii Ojs.global "onload" (Ojs.fun_to_js 1 (fun _ -> run ()))

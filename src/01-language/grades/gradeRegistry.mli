@@ -92,5 +92,9 @@ val groups : group list
     of every group's [grades] names the same grades as {!grade_modules}, in the
     same order where the grades of each group are listed together. *)
 
+val info : string -> info option
+(** [info name] is the description of the grade [name] of {!grade_modules}, if
+    it is one. *)
+
 val listed : group -> (string * info) list
 (** [listed g] is the grades of [g] shown {!Everywhere}, in order. *)

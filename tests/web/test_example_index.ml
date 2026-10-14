@@ -1,14 +1,14 @@
-(* Tests of the reading of the example manifest: the forms of its example
+(* Tests of the reading of the example index: the forms of its example
    lines, with and without a backend and settings, the checks of grades,
-   backends and settings, and the manifest of the repository. Silent on
+   backends and settings, and the example index of the repository. Silent on
    success. *)
 
 let fail = TestSupport.Failures.fail
 let raises f = match f () with _ -> false | exception Failure _ -> true
 
 let example line =
-  match Manifest.line_of_string line with
-  | Some (Manifest.Example entry) -> Some entry
+  match ExampleIndex.line_of_string line with
+  | Some (ExampleIndex.Example entry) -> Some entry
   | _ -> None
 
 let () =
@@ -36,18 +36,18 @@ let () =
       if e.settings <> [ ("binding", "b.py"); ("time-unit", "minutes") ] then
         fail "seven fields: settings %s"
           (String.concat ";" (List.map (fun (k, v) -> k ^ "=" ^ v) e.settings));
-      let e = Manifest.checked e in
+      let e = ExampleIndex.checked e in
       if List.assoc_opt "binding" e.settings <> Some "examples/b.py" then
         fail "checked: the binding is not relative to the project root"
   | None -> fail "seven fields: not an example");
   (* blank lines and comments *)
-  if Manifest.line_of_string "   " <> None then fail "a blank line is read";
-  if Manifest.line_of_string "# G | T | g | p | d" <> None then
+  if ExampleIndex.line_of_string "   " <> None then fail "a blank line is read";
+  if ExampleIndex.line_of_string "# G | T | g | p | d" <> None then
     fail "a comment is read";
   (* malformed lines and settings *)
   List.iter
     (fun line ->
-      if not (raises (fun () -> Manifest.line_of_string line)) then
+      if not (raises (fun () -> ExampleIndex.line_of_string line)) then
         fail "accepted the malformed line %S" line)
     [
       "G | T | g";
@@ -60,7 +60,7 @@ let () =
     (fun line ->
       match example line with
       | Some e ->
-          if not (raises (fun () -> Manifest.checked e)) then
+          if not (raises (fun () -> ExampleIndex.checked e)) then
             fail "checked accepted %S" line
       | None -> fail "not an example: %S" line)
     [
@@ -70,39 +70,43 @@ let () =
       "G | T | time-interval | a.tpe | D. | opentrons | robot=ot3";
       "G | T | time-interval | a.tpe | D. | interpreter | binding=b.py";
     ];
-  (* the manifest of the repository *)
+  (* the example index of the repository *)
   let root = Filename.concat (Sys.getcwd ()) "../.." in
   let summaries, entries, defaults =
-    Manifest.read (Filename.concat root "examples/index")
+    ExampleIndex.read (Filename.concat root "examples/index")
   in
-  let groups = Manifest.summarised summaries (Manifest.group_entries entries) in
-  (match Manifest.defaults entries defaults with
+  let groups =
+    ExampleIndex.summarised summaries (ExampleIndex.group_entries entries)
+  in
+  (match ExampleIndex.defaults entries defaults with
   | [
    ("interpreter", "examples/introduction/sensor_reading.tpe");
    ("arduino", "examples/arduino/bala2/balance.tpe");
    ("opentrons", "examples/opentrons/elisa.tpe");
   ] ->
       ()
-  | _ -> fail "the manifest's defaults are not those expected");
+  | _ -> fail "the defaults of the example index are not those expected");
   if
     not
       (raises (fun () ->
-           Manifest.defaults entries
+           ExampleIndex.defaults entries
              [ "examples/opentrons/elisa.tpe"; "examples/opentrons/beads.tpe" ]))
   then fail "defaults accepted two of one backend";
   if
     not
       (raises (fun () ->
-           Manifest.defaults entries [ "examples/opentrons/elisa.tpe" ]))
+           ExampleIndex.defaults entries [ "examples/opentrons/elisa.tpe" ]))
   then fail "defaults accepted none of the default backend";
   let opentrons =
-    List.filter (fun (e : Manifest.entry) -> e.backend = "opentrons") entries
+    List.filter
+      (fun (e : ExampleIndex.entry) -> e.backend = "opentrons")
+      entries
   in
   if List.length opentrons <> 8 then
-    fail "the manifest lists %d Opentrons examples, not 8"
+    fail "the example index lists %d Opentrons examples, not 8"
       (List.length opentrons);
   List.iter
-    (fun (e : Manifest.entry) ->
+    (fun (e : ExampleIndex.entry) ->
       match List.assoc_opt "binding" e.settings with
       | Some path ->
           if not (Sys.file_exists (Filename.concat root path)) then
@@ -112,11 +116,11 @@ let () =
   if
     not
       (List.for_all
-         (fun ((_ : Manifest.summary), es) ->
+         (fun ((_ : ExampleIndex.summary), es) ->
            List.for_all
-             (fun (e : Manifest.entry) ->
-               e.backend = (List.hd es : Manifest.entry).backend)
+             (fun (e : ExampleIndex.entry) ->
+               e.backend = (List.hd es : ExampleIndex.entry).backend)
              es)
          groups)
-  then fail "a group of the manifest mixes backends";
+  then fail "a group of the example index mixes backends";
   TestSupport.Failures.finish ()

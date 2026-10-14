@@ -1,15 +1,15 @@
 ; Unit tests of the parts of the web interface that need no browser: the
-; reading of the example manifest, the backend registry, the timelines of
+; reading of the example index, the backend registry, the timelines of
 ; interpreter runs and the observations of boxes and unboxes.
 
 (tests
- (names test_manifest test_backends)
+ (names test_example_index test_backends)
  (libraries
   grades
   language
   loader
   webInterpreter
-  manifest
+  exampleIndex
   backendRegistry
   backend
   timeline

@@ -1,8 +1,8 @@
 (* Generates the source of the module [Examples_tpe], which lists the
-   examples the web interface's gallery offers. Reads the manifest
-   [examples/index] ({!Manifest}), the source of each example it names and the
+   examples the web interface's gallery offers. Reads the example index
+   [examples/index] ({!ExampleIndex}), the source of each example it names and the
    files of the text inputs its examples set, and prints an OCaml module of the
-   groups and examples it describes, in the manifest's order, and the example
+   groups and examples it describes, in the order of the index, and the example
    loaded when the page is opened; invoked by a dune rule, see
    src/06-user-interface/web/dune. It fails on a grade or a backend the
    registries do not list, on a setting of an input its backend does not have
@@ -53,7 +53,7 @@ let setting_value root backend (key, value) =
   | Some { kind = Text; _ } -> (key, read_source root value)
   | _ -> (key, value)
 
-let print_example buf root (entry : Manifest.entry) =
+let print_example buf root (entry : ExampleIndex.entry) =
   let source = read_source root entry.path in
   let settings =
     String.concat "; "
@@ -78,7 +78,7 @@ let print_example buf root (entry : Manifest.entry) =
        settings)
 
 let print_group buf root
-    (({ label; short; summary } : Manifest.summary), entries) =
+    (({ label; short; summary } : ExampleIndex.summary), entries) =
   Buffer.add_string buf
     (Printf.sprintf "    { label = %s; short = %s; summary = %s; examples = [\n"
        (quoted label) (quoted short) (quoted summary));
@@ -113,12 +113,12 @@ let preamble =
 
 let () =
   match Sys.argv with
-  | [| _; manifest_path; root |] ->
-      let summaries, entries, defaults = Manifest.read manifest_path in
+  | [| _; index_path; root |] ->
+      let summaries, entries, defaults = ExampleIndex.read index_path in
       let groups =
-        Manifest.summarised summaries (Manifest.group_entries entries)
+        ExampleIndex.summarised summaries (ExampleIndex.group_entries entries)
       in
-      let defaults = Manifest.defaults entries defaults in
+      let defaults = ExampleIndex.defaults entries defaults in
       let buf = Buffer.create 4096 in
       Buffer.add_string buf preamble;
       Buffer.add_string buf "let examples : group list =\n  [\n";
@@ -136,5 +136,5 @@ let () =
            (quoted (List.assoc BackendRegistry.default.key defaults)));
       print_string (Buffer.contents buf)
   | _ ->
-      prerr_endline "usage: gen_examples <manifest path> <project root>";
+      prerr_endline "usage: gen_examples <example index> <project root>";
       exit 2

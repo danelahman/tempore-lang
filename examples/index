@@ -1,4 +1,4 @@
-# Manifest of the examples shown in the web interface's gallery, read by
+# Index of the examples shown in the web interface's gallery, read by
 # src/06-user-interface/web/gen_examples/gen_examples.ml to generate the
 # module Examples_tpe (see src/06-user-interface/web/dune).
 #

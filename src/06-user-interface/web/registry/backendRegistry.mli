@@ -20,8 +20,8 @@ type input = {
   kind : input_kind;
   default : string;
 }
-(** An input of a backend: its key, by which settings and the example manifest
-    name it, its label and its value unless set. *)
+(** An input of a backend: its key, by which settings and the example index name
+    it, its label and its value unless set. *)
 
 type settings = (string * string) list
 (** Values of inputs, by key. *)
@@ -68,6 +68,9 @@ type definitions = (Language.Ast.variable * function_effect) list
 (** The top-level definitions of a program, the standard library's excepted, in
     order, each with the effect of its type. *)
 
+(** The icon by which the web interface marks the view of compiled code. *)
+type mark = Pipette | Chip
+
 type compiler = {
   compile :
     'rho 'eps.
@@ -80,6 +83,7 @@ type compiler = {
   code_name : string;
       (** the name of the compiled code, by which the web interface labels the
           view of it *)
+  mark : mark;  (** the icon of the view of the compiled code *)
 }
 (** [compile settings ~operations ~compound ~definitions commands] compiles the
     desugared [commands], accepted by the typechecker, of a program, the
@@ -139,7 +143,7 @@ type source = {
 (** A source loaded before the program, under its file name. *)
 
 type entry = {
-  key : string;  (** by which the example manifest names the backend *)
+  key : string;  (** by which the example index names the backend *)
   name : string;  (** shown in the selector *)
   description : string;  (** one sentence *)
   inputs : input list;
