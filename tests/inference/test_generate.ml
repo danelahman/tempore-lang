@@ -39,6 +39,7 @@ let malformed =
     "traces_reject_missing_within.tpe";
     "traces_reject_self_retry.tpe";
     "traces_reject_unknown_event.tpe";
+    "regex_timed_compound_named_later_reject.tpe";
     "use_undefined_type.tpe";
     "non_linear_pattern.tpe";
     "shadow_type.tpe";

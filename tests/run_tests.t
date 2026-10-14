@@ -3412,6 +3412,16 @@ it names none:
     Note: the resource inequality `{2 | 0.5} <= {[1, ∞)}` does not hold
     Note: the grade `{0.5}` is below `{2 | 0.5}` but not below `{[1, ∞)}`
   ======================================================================
+  regex_timed_compound_named_later_reject.tpe
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_wildcard.tpe
+  ======================================================================
+  ======================================================================
   regex_timed_interval.tpe
   ======================================================================
   === Run 1 ===
@@ -5587,6 +5597,16 @@ automata, the programs over rational delays excepted:
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
+  regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-automata)
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_wildcard.tpe (regex-timed-interval-letter-automata)
+  ======================================================================
+  ======================================================================
   regex_timed_interval.tpe (regex-timed-interval-letter-automata)
   ======================================================================
   === Run 1 ===
@@ -6853,6 +6873,26 @@ implementations above, the examples over rational delays excepted:
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
+  ======================================================================
+  regex_timed_compound_named_later_reject.tpe (regex-timed-interval-symbolic-by-letters)
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-derivatives)
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_wildcard.tpe (regex-timed-interval-symbolic-by-letters)
+  ======================================================================
+  ======================================================================
+  regex_timed_compound_wildcard.tpe (regex-timed-interval-letter-derivatives)
+  ======================================================================
   ======================================================================
   regex_timed_interval.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================
