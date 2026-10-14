@@ -96,10 +96,10 @@ the packages, and these are called by setup():
   Wrote _arduino/projects/tilt/src/main.cpp
   Wrote _arduino/projects/tilt/src/tempore_bindings.h
   Wrote _arduino/projects/tilt/src/tempore_operations.cpp
-  Wrote _arduino/projects/tilt/src/tempore_i2c.h
-  Wrote _arduino/projects/tilt/src/tempore_scaffold.h
-  Wrote _arduino/projects/tilt/src/tempore_scaffold.cpp
   Wrote _arduino/projects/tilt/src/tempore_m5_monitor.cpp
+  Wrote _arduino/projects/tilt/src/tempore_i2c.h
+  Wrote _arduino/projects/tilt/src/tempore_scaffold.cpp
+  Wrote _arduino/projects/tilt/src/tempore_scaffold.h
   Wrote _arduino/projects/tilt/src/m5_imu.cpp
   Wrote _arduino/projects/tilt/host/m5_imu_model.cpp
   Wrote _arduino/projects/tilt/src/m5_display.cpp

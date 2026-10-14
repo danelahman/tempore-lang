@@ -1,0 +1,5 @@
+; The generator of the modules that embed the runtime, the board profiles,
+; the scaffold and the peripheral packages in the Arduino backend.
+
+(executable
+ (name embed))

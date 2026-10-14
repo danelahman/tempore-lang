@@ -802,17 +802,22 @@ let platformio_ini input (board : Board.t) =
   in
   Board.platformio_ini { board with build_flags = board.build_flags @ flags }
 
-(* The files of the scaffold for [board], each with its path in the
-   project. *)
+(* The files of the scaffold for [board], each with its path in the project:
+   its sources in src/, then the files of the host simulation in host/. *)
 let scaffold_files board =
+  let host, sources =
+    List.partition
+      (fun (path, _) -> String.starts_with ~prefix:host_directory path)
+      Arduino_scaffold.files
+  in
   List.filter_map
     (fun (path, text) ->
-      if String.starts_with ~prefix:host_directory path then Some (path, text)
-      else if String.starts_with ~prefix:m5_directory path then
+      if String.starts_with ~prefix:m5_directory path then
         if has_screen board then Some ("src/" ^ Filename.basename path, text)
         else None
       else Some ("src/" ^ path, text))
-    Arduino_scaffold.files
+    sources
+  @ host
 
 let files input (program : F.program) =
   let board = board_of input.device in

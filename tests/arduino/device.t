@@ -12,21 +12,21 @@ tasks of the manifest, and the stubs of the host simulation.
   Wrote _arduino/projects/toy/src/tempore_bindings.h
   Wrote _arduino/projects/toy/src/tempore_operations.cpp
   Wrote _arduino/projects/toy/src/tempore_i2c.h
-  Wrote _arduino/projects/toy/src/tempore_scaffold.h
   Wrote _arduino/projects/toy/src/tempore_scaffold.cpp
+  Wrote _arduino/projects/toy/src/tempore_scaffold.h
   Wrote _arduino/projects/toy/host/Arduino.h
   Wrote _arduino/projects/toy/host/M5Unified.h
   Wrote _arduino/projects/toy/host/Wire.h
   Wrote _arduino/projects/toy/host/esp_timer.h
-  Wrote _arduino/projects/toy/host/tempore_i2c_model.h
-  Wrote _arduino/projects/toy/host/tempore_world.h
-  Wrote _arduino/projects/toy/host/tempore_i2c_bus.cpp
-  Wrote _arduino/projects/toy/host/tempore_m5_display.cpp
-  Wrote _arduino/projects/toy/host/tempore_simulator.cpp
-  Wrote _arduino/projects/toy/host/tempore_world.cpp
   Wrote _arduino/projects/toy/host/freertos/FreeRTOS.h
   Wrote _arduino/projects/toy/host/freertos/semphr.h
   Wrote _arduino/projects/toy/host/freertos/task.h
+  Wrote _arduino/projects/toy/host/tempore_i2c_bus.cpp
+  Wrote _arduino/projects/toy/host/tempore_i2c_model.h
+  Wrote _arduino/projects/toy/host/tempore_m5_display.cpp
+  Wrote _arduino/projects/toy/host/tempore_simulator.cpp
+  Wrote _arduino/projects/toy/host/tempore_world.cpp
+  Wrote _arduino/projects/toy/host/tempore_world.h
   Wrote _arduino/projects/toy/src/toy_bindings.cpp
   $ cd _arduino/projects/toy
   $ cat platformio.ini

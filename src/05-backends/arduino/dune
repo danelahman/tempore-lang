@@ -2,22 +2,30 @@
  (name arduinoBackend)
  (libraries utils language grades zarith))
 
-; The runtime header is embedded in the library as the string
-; Tempore_arduino_h.contents.
+; The files of C++, JSON and Tempore that the backend writes or reads are
+; embedded as string literals by the generator embed/embed.exe:
+;
+; - Arduino_runtime.header, the runtime header tempore_arduino.h, and
+;   Arduino_runtime.host_prelude, the beginning of the main program of the runs
+;   on the host after the include of the program header,
+;   tempore_host_prelude.cpp;
+; - Arduino_boards.files, the board profiles boards/NAME.json, each with its
+;   name NAME.json;
+; - Arduino_scaffold.files, the files of the scaffold under scaffold/, each
+;   with its path below scaffold/; those under m5/ are those of the boards
+;   with a screen driven through M5Unified;
+; - Arduino_libraries.files, the files of the peripheral packages under
+;   libraries/NAME/, each with its path below libraries/.
 
 (rule
- (with-stdout-to
-  tempore_arduino_h.ml
-  (progn
-   (echo "let contents = {cpp|")
-   (cat tempore_arduino.h)
-   (echo "|cpp}"))))
-
-; The board profiles boards/NAME.json are embedded as the list
-; Arduino_boards.profiles of pairs of NAME and the text of the profile, and the
-; files of the scaffold under scaffold/ as the list Arduino_scaffold.files of
-; pairs of their paths below scaffold/ and their texts; those under m5/ are
-; those of the boards with a screen driven through M5Unified.
+ (target arduino_runtime.ml)
+ (deps tempore_arduino.h tempore_host_prelude.cpp)
+ (action
+  (with-stdout-to
+   %{target}
+   (progn
+    (run %{exe:embed/embed.exe} value header tempore_arduino.h)
+    (run %{exe:embed/embed.exe} value host_prelude tempore_host_prelude.cpp)))))
 
 (rule
  (target arduino_boards.ml)
@@ -26,27 +34,16 @@
  (action
   (with-stdout-to
    %{target}
-   (system
-    "echo 'let profiles = ['; for f in %{deps}; do printf '(\"%s\", {json|' \"$(basename \"$f\" .json)\"; cat \"$f\"; echo '|json});'; done; echo ']'"))))
+   (run %{exe:embed/embed.exe} files files boards/ %{deps}))))
 
 (rule
  (target arduino_scaffold.ml)
  (deps
-  (glob_files scaffold/*.h)
-  (glob_files scaffold/*.cpp)
-  (glob_files scaffold/m5/*.cpp)
-  (glob_files scaffold/host/*.h)
-  (glob_files scaffold/host/*.cpp)
-  (glob_files scaffold/host/freertos/*.h))
+  (glob_files_rec scaffold/*.{h,cpp}))
  (action
   (with-stdout-to
    %{target}
-   (system
-    "echo 'let files = ['; for f in %{deps}; do printf '(\"%s\", {cpp|' \"${f#scaffold/}\"; cat \"$f\"; echo '|cpp});'; done; echo ']'"))))
-
-; The files of the peripheral packages under libraries/NAME/ are embedded as
-; the list Arduino_libraries.files of pairs of their paths below libraries/ and
-; their texts.
+   (run %{exe:embed/embed.exe} files files scaffold/ %{deps}))))
 
 (rule
  (target arduino_libraries.ml)
@@ -55,5 +52,4 @@
  (action
   (with-stdout-to
    %{target}
-   (system
-    "echo 'let files = ['; for f in %{deps}; do printf '(\"%s\", {package|' \"${f#libraries/}\"; cat \"$f\"; echo '|package});'; done; echo ']'"))))
+   (run %{exe:embed/embed.exe} files files libraries/ %{deps}))))
