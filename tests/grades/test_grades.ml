@@ -291,6 +291,7 @@ let counts_upper = (module Grades.CountGrades.UpperBound : Grade.S)
 let mode_switch_costs =
   (module Grades.ModeSwitchCostGrades.ModeSwitchCosts : Grade.S)
 
+let mode_times = (module Grades.ModeTimeGrades.ModeTimes : Grade.S)
 let time_lower_levels = (module TimeLevels : Grade.S)
 let time_upper_levels = (module UpperLevels : Grade.S)
 
@@ -701,6 +702,115 @@ let literals =
       (Tuple [ Name "On"; Name "≠"; Int 1 ])
       "only an entry from `_` ends in `≠`";
     rejects "pair" mode_switch_costs (Tuple [ Int 1; Int 2 ]) "not pairs";
+    reads "operation in every mode" mode_times (Braces (Letter "Take")) "{Take}";
+    reads "operation changing the mode" mode_times
+      (Tuple [ Braces (Letter "Take"); Name "Cold"; Name "Out" ])
+      "({Take}, Cold, Out)";
+    reads "operation of several modes" mode_times
+      (Tuple
+         [
+           Braces (Letter "Mix");
+           Tuple [ Name "Out"; Name "Out" ];
+           Tuple [ Name "Cold"; Name "Cold" ];
+         ])
+      "({Mix}, (Cold, Cold), (Out, Out))";
+    reads "delay" mode_times (Int 3) "3";
+    reads "interval of delays" mode_times
+      (Interval (Closed (Int 1), Closed (Rat (Rational.make 5 2))))
+      "[1, 2.5]";
+    reads "specification" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "Out"; Interval (Closed (Int 0), Closed (Int 30)) ];
+         ])
+      "(Cold, Cold, (Out, [0, 30]))";
+    reads "specification with a total" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Out";
+           Tuple [ Name "Out"; Int 0 ];
+           Interval (Closed (Int 1), Unbounded);
+         ])
+      "(Cold, Out, (Out, 0), [1, ∞))";
+    reads "specifications with the modes not named" mode_times
+      (Tuple
+         [
+           Tuple [ Name "Cold"; Name "Cold" ];
+           Tuple
+             [
+               Name "_";
+               Name "_";
+               Tuple [ Name "_"; Interval (Closed (Int 0), Closed (Int 5)) ];
+             ];
+           Tuple [ Name "_"; Name "Stuck" ];
+         ])
+      "((Cold, Cold), (_, _, (_, [0, 5])), (_, Stuck))";
+    reads "bounds at most the total" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "Out"; Interval (Closed (Int 0), Closed (Int 60)) ];
+           Interval (Closed (Int 0), Closed (Int 30));
+         ])
+      "(Cold, Cold, [0, 30])";
+    reads "stuck everywhere" mode_times
+      (Tuple [ Name "Stuck"; Name "Stuck" ])
+      "(Stuck, Stuck)";
+    reads "top" mode_times Top "⊤";
+    rejects "change of mode at no time" mode_times
+      (Tuple [ Name "On"; Name "Off"; Int 0 ])
+      "in the entry from `On` to `Off`, a change of mode takes a positive time";
+    rejects "time in a mode beyond the total" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "Out"; Int 40 ];
+           Interval (Closed (Int 0), Closed (Int 30));
+         ])
+      "the time in `Out` exceeds the total time";
+    rejects "time in the stuck mode" mode_times
+      (Tuple [ Name "Cold"; Name "Cold"; Tuple [ Name "Stuck"; Int 1 ] ])
+      "no time is spent in the mode `Stuck`";
+    rejects "leaving the stuck mode" mode_times
+      (Tuple [ Name "Stuck"; Name "On" ])
+      "no trace leaves the mode `Stuck`";
+    rejects "two totals" mode_times
+      (Tuple [ Name "Cold"; Name "Cold"; Int 1; Int 2 ])
+      "the total time is bounded twice";
+    rejects "a mode bounded twice" mode_times
+      (Tuple
+         [
+           Name "Cold";
+           Name "Cold";
+           Tuple [ Name "Out"; Int 1 ];
+           Tuple [ Name "Out"; Int 2 ];
+         ])
+      "the time in `Out` is bounded twice";
+    rejects "pair listed twice" mode_times
+      (Tuple
+         [
+           Tuple [ Name "On"; Name "On" ]; Tuple [ Name "On"; Name "On"; Int 2 ];
+         ])
+      "listed twice";
+    rejects "open interval" mode_times
+      (Interval (Open (Int 1), Closed (Int 2)))
+      "intervals of times are closed";
+    rejects "negative delay" mode_times (Int (-1)) "times must be non-negative";
+    rejects "operation of a sequence" mode_times
+      (Tuple [ Braces (Seq (Letter "A", Letter "B")); Name "On"; Name "Off" ])
+      "an operation is written `{X}` of a single operation `X`, not `{A; B}`";
+    rejects "operation of a cost" mode_times
+      (Tuple [ Braces (Letter "A"); Name "On"; Int 1 ])
+      "the modes of an operation are written";
+    rejects "another mode not named after a mode named" mode_times
+      (Tuple [ Name "On"; Name "≠" ])
+      "only an entry from `_` ends in `≠`";
+    rejects "level" mode_times (Name "Low") "not names such as `Low`";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
     rejects "infinity" time_lower Inf "not `∞`";
@@ -955,6 +1065,7 @@ let registry =
           "regex-timed-interval-symbolic";
           "regex-timed-interval-rational-symbolic";
           "windowed-schedules";
+          "mode-times";
           "event-separation";
         ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
@@ -1003,6 +1114,7 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "mode-times";
           "event-separation";
         ]
       (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
@@ -1029,6 +1141,7 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "mode-times";
           "event-separation";
         ]
       (GradeRegistry.accepting_bounds (Grade.Rat (Rational.make 1 2)));
@@ -1048,6 +1161,7 @@ let registry =
           "regex-timed-interval-rational-symbolic";
           "security-levels";
           "flow-levels";
+          "mode-times";
           "event-separation";
         ]
       (GradeRegistry.accepting_delay (Grade.Rat (Rational.make 1 2)));
@@ -1519,6 +1633,8 @@ let witnesses =
       (completeness counts_upper);
     expect "witnesses: mode-switch costs partial" Fun.id ~expected:"partial"
       (completeness mode_switch_costs);
+    expect "witnesses: mode times partial" Fun.id ~expected:"partial"
+      (completeness mode_times);
     check "counts: delays count nothing"
       Grades.CountGrades.UpperBound.(equal bounds (of_delay 5) one)
       "";
@@ -1555,6 +1671,7 @@ type family =
   | Resources
   | Schedules
   | Modes
+  | Mode_times
   | Counts
   | Separation
 
@@ -1568,6 +1685,7 @@ let family name =
   | "resource-levels" -> Some Resources
   | "windowed-schedules" -> Some Schedules
   | "mode-switch-costs" -> Some Modes
+  | "mode-times" -> Some Mode_times
   | "counts-upper-bound" -> Some Counts
   | "event-separation" -> Some Separation
   | "traces-upper-bound" -> Some Inclusion_traces
@@ -1833,6 +1951,32 @@ let cover =
           ];
         Tuple [ mode "On" "_" (Int 1); mode "_" "On" (Int 2); mode "_" "≠" Inf ];
       ]
+  | Mode_times ->
+      let op x modes = Tuple (Braces (Letter x) :: modes) in
+      let modes p q = Tuple [ Name p; Name q ] in
+      let spec p q bounds = Tuple (Name p :: Name q :: bounds) in
+      [
+        Braces letter_a;
+        op "B" [ Name "On"; Name "Off" ];
+        op "C" [ Name "Off"; Name "On" ];
+        op "A" [ modes "On" "On"; modes "Off" "Off" ];
+        op "B" [ modes "_" "_"; modes "On" "Stuck" ];
+        op "C" [ modes "On" "_"; modes "_" "On" ];
+        op "A" [ Name "_"; Name "≠" ];
+        spec "On" "On" [ entry "Off" [ span (Int 0) (Int 3) ] ];
+        spec "Off" "On"
+          [ entry "Off" [ span (Int 1) (Int 5) ]; span (Int 1) (Int 8) ];
+        Tuple
+          [
+            spec "_" "_" [ entry "_" [ span (Int 0) (Int 4) ] ];
+            modes "_" "Stuck";
+          ];
+        Tuple [ modes "On" "Off"; spec "Off" "On" [ span (Int 1) Inf ] ];
+        modes "Stuck" "Stuck";
+        Int 2;
+        span (Int 1) (Int 3);
+        rat 1 2;
+      ]
   | Counts ->
       [
         entry "A" [ Int 3 ];
@@ -2022,6 +2166,35 @@ let random family st =
       if int 4 = 0 then Int (int 3)
       else if Random.State.bool st then mode ()
       else Tuple [ mode (); mode () ]
+  | Mode_times -> (
+      let name () = pick st [ "Off"; "On"; "_" ] in
+      let target () = pick st [ "Off"; "On"; "_"; "Stuck"; "≠" ] in
+      let time () =
+        let n = int 4 in
+        pick st [ Int n; span (Int n) (Int (n + int 4)); span (Int n) Inf ]
+      in
+      let spec () =
+        Tuple
+          (Name (name ())
+           :: Name (target ())
+           :: List.filter_map
+                (fun m ->
+                  if Random.State.bool st then Some (entry m [ time () ])
+                  else None)
+                [ "Off"; "On"; "_" ]
+          @ if Random.State.bool st then [ time () ] else [])
+      in
+      match int 4 with
+      | 0 -> time ()
+      | 1 ->
+          Tuple
+            [
+              Braces (letter ());
+              Tuple [ Name (name ()); Name (target ()) ];
+              Tuple [ Name (name ()); Name (target ()) ];
+            ]
+      | 2 -> spec ()
+      | _ -> Tuple [ spec (); spec () ])
   | Counts ->
       entries [ "A"; "B"; "C"; "_" ] (fun () -> pick st [ Int (int 4); Inf ])
   | Separation -> (
@@ -2435,6 +2608,306 @@ let mode_laws =
   @ order_laws (module M) ~context bounds samples
   @ algebra_laws (module M) ~context bounds samples
   @ of_delay_laws (module M) bounds ()
+
+(* The mode times: the reading back of the printed literals of the operations,
+   the delays and the specifications; the running time of an operation counted
+   in the mode it starts from; the durations; and a brute-force oracle over the
+   modes [Cold], [Out] and [Warm] and two modes not named, [Dry] and [Wet]:
+   for random sequences of delays and operations of exact running times, the
+   time in each mode and the total time of each trace, computed directly, lie
+   within the entry of the evaluated grade for the start and the end mode of
+   the trace, and a random specification is above the grade iff every trace
+   satisfies it. *)
+let mode_time_laws =
+  let module M = Grades.ModeTimeGrades.ModeTimes in
+  let module S = Grades.ModeTimeGrades.Summary in
+  let module R = Reader (M) in
+  let open Grade in
+  let pair p q = Tuple [ Name p; Name q ] in
+  let op x pairs = Tuple (Braces (Letter x) :: pairs) in
+  let reads_back x =
+    match R.parse (M.show x) with
+    | Ok x' -> M.compare x x' = 0
+    | Error _ -> false
+  in
+  let leaves =
+    List.filter_map
+      (fun lit -> try Some (M.of_lit lit) with Invalid_literal _ -> None)
+      (cover Mode_times)
+  in
+  let exact table =
+    {
+      running_time =
+        (fun x ->
+          let d = List.assoc x table in
+          (Closed d, Closed d));
+      operations = List.map fst table;
+    }
+  in
+  let two = Rational.of_int 2 in
+  let take = M.of_lit (op "Take" [ Name "Cold"; Name "Out" ]) in
+  let after_take =
+    S.times
+      (Grades.ModeTimeGrades.evaluate (exact [ ("Take", two) ]) take)
+      "Cold" "Out"
+  in
+  let named = [ "Cold"; "Out"; "Warm" ] in
+  let universe = named @ [ "Dry"; "Wet" ] in
+  let st = Random.State.make [| 23 |] in
+  let int n = Random.State.int st n in
+  let duration () = Rational.make (1 + int 6) 2 in
+  (* A deterministic behaviour: at most one pair from each mode named and from
+     the modes not named. *)
+  let behaviour () =
+    List.filter_map
+      (fun p ->
+        match int 4 with
+        | 0 -> None
+        | 1 -> Some (p, "Stuck")
+        | _ when String.equal p "_" && Random.State.bool st -> Some ("_", "_")
+        | _ -> Some (p, pick st named))
+      ("_" :: named)
+  in
+  let program i =
+    List.init
+      (1 + int 5)
+      (fun j ->
+        if int 3 = 0 then `Delay (Rational.make (int 5) (1 + int 2))
+        else `Op (Printf.sprintf "Op%d_%d" i j, behaviour (), duration ()))
+  in
+  let grade_of steps =
+    List.fold_left
+      (fun g step ->
+        M.mul g
+          (match step with
+          | `Delay d -> M.of_delay d
+          | `Op (x, [], _) -> M.of_lit (op x [ Name "Stuck"; Name "Stuck" ])
+          | `Op (x, b, _) ->
+              M.of_lit (op x (List.map (fun (p, q) -> pair p q) b))))
+      M.one steps
+  in
+  let bounds_of steps =
+    exact
+      (List.filter_map
+         (function `Op (x, _, d) -> Some (x, d) | `Delay _ -> None)
+         steps)
+  in
+  let time times m =
+    Option.value (List.assoc_opt m times) ~default:Rational.zero
+  in
+  let add m d times =
+    (m, Rational.add d (time times m)) :: List.remove_assoc m times
+  in
+  (* The trace from [start]: its end mode, the time in each mode and the total
+     time; an operation from a mode its behaviour does not start from gets
+     stuck, at no time. *)
+  let run steps start =
+    List.fold_left
+      (fun ((mode, times, total) as state) step ->
+        match (mode, step) with
+        | "Stuck", _ -> state
+        | m, `Delay d -> (m, add m d times, Rational.add total d)
+        | m, `Op (_, b, d) -> (
+            let modes =
+              List.filter
+                (fun p -> not (List.mem p [ "_"; "Stuck" ]))
+                (List.concat_map (fun (p, q) -> [ p; q ]) b)
+            in
+            match List.assoc_opt (if List.mem m modes then m else "_") b with
+            | None | Some "Stuck" -> ("Stuck", times, total)
+            | Some q ->
+                ( (if String.equal q "_" then m else q),
+                  add m d times,
+                  Rational.add total d )))
+      (start, [], Rational.zero) steps
+  in
+  let member q (i : Grades.ModeTimeGrades.interval) =
+    Rational.compare i.lo q <= 0
+    && match i.hi with Some h -> Rational.compare q h <= 0 | None -> true
+  in
+  let sound steps =
+    let g = Grades.ModeTimeGrades.evaluate (bounds_of steps) (grade_of steps) in
+    List.for_all
+      (fun s ->
+        let e, times, total = run steps s in
+        match S.times g s e with
+        | Some (within, all) ->
+            member total all
+            && List.for_all (fun m -> member (time times m) (within m)) universe
+        | None -> false)
+      universe
+  in
+  (* A random specification: entries from a mode named or not named to a mode
+     named, not named, another or [Stuck], with random bounds. *)
+  let interval () =
+    let lo = int 8 in
+    match int 3 with
+    | 0 -> Int lo
+    | 1 -> closed (Int lo) (Int (lo + int 8))
+    | _ -> span (Int lo) Inf
+  in
+  let spec_entry () =
+    let p = pick st ("_" :: named) in
+    let q =
+      pick st
+        (("_" :: "Stuck" :: named) @ if String.equal p "_" then [ "≠" ] else [])
+    in
+    Tuple
+      (Name p :: Name q
+       :: List.filter_map
+            (fun m ->
+              if int 3 = 0 then Some (entry m [ interval () ]) else None)
+            ("_" :: named)
+      @ if Random.State.bool st then [ interval () ] else [])
+  in
+  let spec () =
+    match List.init (1 + int 3) (fun _ -> spec_entry ()) with
+    | [ e ] -> e
+    | es -> Tuple es
+  in
+  let read_interval = function
+    | Int n ->
+        {
+          Grades.ModeTimeGrades.lo = Rational.of_int n;
+          hi = Some (Rational.of_int n);
+        }
+    | Interval (Closed (Int lo), Closed (Int hi)) ->
+        { lo = Rational.of_int lo; hi = Some (Rational.of_int hi) }
+    | Interval (Closed (Int lo), Unbounded) ->
+        { lo = Rational.of_int lo; hi = None }
+    | _ -> invalid_arg "read_interval"
+  in
+  let unconstrained = { Grades.ModeTimeGrades.lo = Rational.zero; hi = None } in
+  (* Whether the trace from [s] to [e] satisfies the specification [lit]: an
+     entry of the pair of modes bounds the time in each mode and the total; a
+     mode from which no entry starts gets stuck at no time. *)
+  let satisfies lit s (e, times, total) =
+    let entries =
+      List.map
+        (function
+          | Tuple (Name p :: Name q :: bounds) -> ((p, q), bounds)
+          | _ -> invalid_arg "satisfies")
+        (match lit with Tuple (Tuple _ :: _ as es) -> es | lit -> [ lit ])
+    in
+    let spec_named =
+      List.filter
+        (fun m -> not (List.mem m [ "_"; "≠"; "Stuck" ]))
+        (List.concat_map
+           (fun ((p, q), bounds) ->
+             p :: q
+             :: List.filter_map
+                  (function Tuple [ Name m; _ ] -> Some m | _ -> None)
+                  bounds)
+           entries)
+    in
+    let name m = if List.mem m spec_named then m else "_" in
+    let key =
+      match (name s, e) with
+      | "_", "Stuck" -> ("_", "Stuck")
+      | "_", e when not (List.mem e spec_named) ->
+          ("_", if String.equal s e then "_" else "≠")
+      | p, e -> (p, if String.equal e "Stuck" then e else name e)
+    in
+    match List.assoc_opt key entries with
+    | Some bounds ->
+        let bound m =
+          Option.value ~default:unconstrained
+            (List.find_map
+               (function
+                 | Tuple [ Name m'; i ] when String.equal m m' ->
+                     Some (read_interval i)
+                 | _ -> None)
+               bounds)
+        in
+        let total_bound =
+          Option.value ~default:unconstrained
+            (List.find_map
+               (function Tuple _ -> None | i -> Some (read_interval i))
+               bounds)
+        in
+        member total total_bound
+        && List.for_all
+             (fun m -> member (time times m) (bound (name m)))
+             universe
+    | None ->
+        String.equal e "Stuck"
+        && (not
+              (List.exists
+                 (fun ((p, _), _) -> String.equal p (fst key))
+                 entries))
+        && Rational.sign total = 0
+  in
+  let accepted steps =
+    List.filter_map
+      (fun lit ->
+        match M.of_lit lit with
+        | specification ->
+            let expected =
+              List.for_all (fun s -> satisfies lit s (run steps s)) universe
+            in
+            Some
+              ( lit,
+                expected,
+                M.leq (bounds_of steps) (grade_of steps) specification )
+        | exception Invalid_literal _ -> None)
+      (List.init 4 (fun _ -> spec ()))
+  in
+  let programs = List.init 300 program in
+  let acceptances = List.concat_map accepted programs in
+  let show_point (i : Grades.ModeTimeGrades.interval) =
+    match i.hi with
+    | Some h when Rational.equal h i.lo -> Rational.show h
+    | _ -> "an interval"
+  in
+  [
+    all "mode-times: printed leaves read back" M.show reads_back
+      (M.one :: M.top :: leaves);
+    expect "mode-times: an operation" Fun.id ~expected:"({Take}, Cold, Out)"
+      (M.show take);
+    expect "mode-times: a product" Fun.id ~expected:"({Take}, Cold, Out) · 3"
+      (M.show (M.mul take (M.of_delay (Rational.of_int 3))));
+    expect "mode-times: delays added" Fun.id ~expected:"[3, 5]"
+      (M.show
+         (M.mul
+            (M.of_delay (Rational.of_int 2))
+            (M.of_lit (closed (Int 1) (Int 3)))));
+    expect "mode-times: a running time counted in the mode it starts from"
+      Fun.id ~expected:"2, 0, 2"
+      (match after_take with
+      | Some (within, total) ->
+          String.concat ", "
+            [
+              show_point (within "Cold");
+              show_point (within "Out");
+              show_point total;
+            ]
+      | None -> "no trace");
+    expect "mode-times: atomic" show_bool ~expected:true
+      (M.is_atomic "Take" take);
+    expect "mode-times: events" show_names ~expected:[ "A"; "Take" ]
+      (M.events (M.join take (M.of_lit (Braces (Letter "A")))));
+    check "mode-times: durations of an operation"
+      (M.duration_bounds running_times (M.of_lit (Braces (Letter "A")))
+      = Some (Closed (Rational.of_int 1), Closed (Rational.of_int 3)))
+      "{A} within [1, 3]";
+    check "mode-times: durations of a specification"
+      (M.duration_bounds running_times
+         (M.of_lit (Tuple [ Name "Cold"; Name "Cold"; span (Int 1) Inf ]))
+      = Some (Closed (Rational.of_int 1), Unbounded))
+      "(Cold, Cold, [1, ∞))";
+    all "mode-times: traces within the evaluated grade"
+      (fun steps -> M.show (grade_of steps))
+      sound programs;
+    all "mode-times: specifications accept exactly the traces satisfying them"
+      (fun (lit, expected, _) ->
+        M.show (M.of_lit lit) ^ ": expected " ^ show_bool expected)
+      (fun (_, expected, actual) -> expected = actual)
+      acceptances;
+    check "mode-times: specifications both accepted and rejected"
+      (List.exists (fun (_, e, _) -> e) acceptances
+      && List.exists (fun (_, e, _) -> not e) acceptances)
+      (string_of_int (List.length acceptances));
+  ]
 
 (* The laws of the resource levels on grades acquiring and releasing the resources
    [Files] and [Sockets], with ranges of net changes, explicit and unbounded
@@ -2878,7 +3351,7 @@ let () =
     @ registry @ registered_laws @ fractional_laws @ inclusion_laws @ indexed
     @ mode_laws @ resource_laws @ interval_read_back @ schedule_laws
     @ resource_construction_laws @ finite_laws @ ranges @ flow_tops
-    @ duration_bounds
+    @ duration_bounds @ mode_time_laws
   in
   let failures = List.filter (fun c -> not c.passed) checks in
   List.iter (Printf.printf "note: %s\n") registered_notes;

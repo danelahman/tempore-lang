@@ -17,114 +17,46 @@ let compare_cost c c' =
 
 let leq_cost c c' = compare_cost c c' <= 0
 let max_cost c c' = if leq_cost c c' then c' else c
-let maximum = List.fold_left max_cost No_trace
+
+(* [compare_tagged c c'] orders the costs by constructor, in the order
+   [No_trace], [Unbounded], [Cost], then by value. *)
+let compare_tagged c c' =
+  let tag = function No_trace -> 0 | Unbounded -> 1 | Cost _ -> 2 in
+  match (c, c') with
+  | Cost n, Cost n' -> Int.compare n n'
+  | _ -> Int.compare (tag c) (tag c')
 
 let show_cost = function
   | No_trace -> "⊥"
   | Cost n -> string_of_int n
   | Unbounded -> "∞"
 
-(** The absorbing mode, in which a trace is stuck. *)
-let stuck = "Stuck"
+(** The max-plus semiring of the costs, naming no modes. *)
+module Costs = struct
+  type t = cost
 
-(* The costs between the modes named, from a mode named to the others, from
-   the others to a mode named, keeping a mode not named, between two modes not
-   named, and into [stuck] from a mode named and from the others; [No_trace]
-   entries are omitted. *)
-type t = {
-  modes : string list;
-  within : ((string * string) * cost) list;
-  leaving : (string * cost) list;
-  entering : (string * cost) list;
-  staying : cost;
-  moving : cost;
-  to_stuck : (string * cost) list;
-  other_to_stuck : cost;
-}
+  let zero = No_trace
+  let one = Cost 0
+  let is_zero c = c = No_trace
+  let mul = add
+  let add = max_cost
+  let leq = leq_cost
+  let equal c c' = compare_cost c c' = 0
+  let compare = compare_tagged
 
-(* The names standing for modes that no grade at hand names; the modes of the
-   literals are capitalised, so that these differ from them. *)
-let other = "_x"
-let another = "_y"
-let yet_another = "_z"
+  let hash = function
+    | No_trace -> 0
+    | Unbounded -> 1
+    | Cost n -> Hashing.combine 2 n
 
-(* [cost m p q] is the cost of the traces from the mode [p] to the mode [q]. *)
-let cost m p q =
-  let named p = List.mem p m.modes in
-  let find key entries =
-    Option.value (List.assoc_opt key entries) ~default:No_trace
-  in
-  if String.equal p stuck then if String.equal q stuck then Cost 0 else No_trace
-  else if String.equal q stuck then
-    if named p then find p m.to_stuck else m.other_to_stuck
-  else
-    match (named p, named q) with
-    | true, true -> find (p, q) m.within
-    | true, false -> find p m.leaving
-    | false, true -> find q m.entering
-    | false, false -> if String.equal p q then m.staying else m.moving
+  let rename _ c = c
+  let project _ c = c
+end
 
-(* A mode whose costs are those of the modes not named is dropped. *)
-let trim m =
-  let alike q =
-    List.for_all
-      (fun p ->
-        String.equal p q
-        || compare_cost (cost m p q) (cost m p other) = 0
-           && compare_cost (cost m q p) (cost m other p) = 0)
-      m.modes
-    && compare_cost (cost m q q) m.staying = 0
-    && compare_cost (cost m q other) m.moving = 0
-    && compare_cost (cost m other q) m.moving = 0
-    && compare_cost (cost m q stuck) m.other_to_stuck = 0
-  in
-  let modes = List.filter (fun q -> not (alike q)) m.modes in
-  let keep (p, q) = List.mem p modes && List.mem q modes in
-  {
-    m with
-    modes;
-    within = List.filter (fun (key, _) -> keep key) m.within;
-    leaving = List.filter (fun (p, _) -> List.mem p modes) m.leaving;
-    entering = List.filter (fun (q, _) -> List.mem q modes) m.entering;
-    to_stuck = List.filter (fun (p, _) -> List.mem p modes) m.to_stuck;
-  }
+module Matrices = ModeMatrices.Make (Costs)
+include Matrices
 
-(** [make modes f] is the grade over the ordinary modes [modes] whose cost from
-    [p] to [q] is [f p q], [f] treating alike the modes not among [modes]. *)
-let make modes f =
-  let modes = List.sort_uniq String.compare modes in
-  let costs pairs =
-    List.filter_map
-      (fun (key, c) -> if c = No_trace then None else Some (key, c))
-      pairs
-  in
-  trim
-    {
-      modes;
-      within =
-        costs
-          (List.concat_map
-             (fun p -> List.map (fun q -> ((p, q), f p q)) modes)
-             modes);
-      leaving = costs (List.map (fun p -> (p, f p other)) modes);
-      entering = costs (List.map (fun q -> (q, f other q)) modes);
-      staying = f other other;
-      moving = f other another;
-      to_stuck = costs (List.map (fun p -> (p, f p stuck)) modes);
-      other_to_stuck = f other stuck;
-    }
-
-(* The modes of [m] and [m'], and pairs of modes covering every case of
-   theirs: pairs of those modes or of one mode not named, one pair of two
-   distinct modes not named, and each of these modes paired with [stuck]. *)
-let modes_of m m' = List.sort_uniq String.compare (m.modes @ m'.modes)
-
-let cases modes =
-  let with_other = modes @ [ other ] in
-  (other, another)
-  :: List.concat_map
-       (fun p -> (p, stuck) :: List.map (fun q -> (p, q)) with_other)
-       with_other
+let stuck = ModeMatrices.stuck
 
 let everywhere c =
   {
@@ -142,87 +74,6 @@ let one = everywhere (Cost 0)
 
 let top =
   { (everywhere Unbounded) with moving = Unbounded; other_to_stuck = Unbounded }
-
-(* The max-plus matrix product. A trace from [p] to [r] passes through a mode
-   named, [p], [r], [stuck] or another mode, the modes not named all alike. *)
-let mul m m' =
-  let modes = modes_of m m' in
-  make modes (fun p r ->
-      let fresh =
-        List.find
-          (fun q -> not (String.equal q p || String.equal q r))
-          [ other; another; yet_another ]
-      in
-      maximum
-        (List.map
-           (fun q -> add (cost m p q) (cost m' q r))
-           (fresh :: p :: r :: stuck :: modes)))
-
-let join m m' =
-  make (modes_of m m') (fun p q -> max_cost (cost m p q) (cost m' p q))
-
-let leq m m' =
-  List.for_all
-    (fun (p, q) -> leq_cost (cost m p q) (cost m' p q))
-    (cases (modes_of m m'))
-
-let equal m m' = leq m m' && leq m' m
-
-(* [compare_tagged c c'] orders the costs by constructor, in the order
-   [No_trace], [Unbounded], [Cost], then by value. *)
-let compare_tagged c c' =
-  let tag = function No_trace -> 0 | Unbounded -> 1 | Cost _ -> 2 in
-  match (c, c') with
-  | Cost n, Cost n' -> Int.compare n n'
-  | _ -> Int.compare (tag c) (tag c')
-
-(* The representations are canonical, trimmed of the modes alike to those not
-   named, so that they are equal iff the grades are; they are ordered field by
-   field, lexicographically, and hashed over all their fields. *)
-let compare m m' =
-  let entries compare_key =
-    List.compare (fun (k, c) (k', c') ->
-        match compare_key k k' with 0 -> compare_tagged c c' | k -> k)
-  in
-  let pair (p, q) (p', q') =
-    match String.compare p p' with 0 -> String.compare q q' | k -> k
-  in
-  List.fold_left
-    (fun acc c -> if Int.equal acc 0 then c else acc)
-    0
-    [
-      List.compare String.compare m.modes m'.modes;
-      entries pair m.within m'.within;
-      entries String.compare m.leaving m'.leaving;
-      entries String.compare m.entering m'.entering;
-      compare_tagged m.staying m'.staying;
-      compare_tagged m.moving m'.moving;
-      entries String.compare m.to_stuck m'.to_stuck;
-      compare_tagged m.other_to_stuck m'.other_to_stuck;
-    ]
-
-let hash m =
-  let cost = function
-    | No_trace -> 0
-    | Unbounded -> 1
-    | Cost n -> Hashing.combine 2 n
-  in
-  let entries hash_key =
-    Hashing.list (fun (k, c) -> Hashing.combine (hash_key k) (cost c))
-  in
-  List.fold_left Hashing.combine
-    (Hashing.list String.hash m.modes)
-    [
-      entries
-        (fun (p, q) -> Hashing.combine (String.hash p) (String.hash q))
-        m.within;
-      entries String.hash m.leaving;
-      entries String.hash m.entering;
-      cost m.staying;
-      cost m.moving;
-      entries String.hash m.to_stuck;
-      cost m.other_to_stuck;
-    ]
 
 (** [cost_of_lit lit] is the cost the literal [lit] denotes. *)
 let cost_of_lit = function

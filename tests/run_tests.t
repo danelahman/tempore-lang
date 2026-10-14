@@ -775,7 +775,7 @@ it names none:
   File "delay_reject_fraction.tpe", line 8, characters 20-23:
   8 | let wait () = delay 0.5
                           ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `security-levels`, `flow-levels` or `event-separation` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `security-levels`, `flow-levels`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
@@ -1605,7 +1605,7 @@ it names none:
   File "levels_reject_literal.tpe", line 7, characters 19-20:
   7 | let claim () = box 3 1
                          ^
-  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `counts-upper-bound` or `event-separation` grading monoids?
+  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `mode-times`, `counts-upper-bound` or `event-separation` grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -2054,7 +2054,7 @@ it names none:
   File "literals_reject_fraction.tpe", line 8, characters 19-22:
   8 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic` or `event-separation` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -2111,6 +2111,27 @@ it names none:
   3 | let claim () = box 99999999999999999999 1
                          ^^^^^^^^^^^^^^^^^^^^
   Syntax error: Grade literal 99999999999999999999 is too large
+  ======================================================================
+  literals_reject_mode_times.tpe
+  ======================================================================
+  File "literals_reject_mode_times.tpe", line 7, characters 19-31:
+  7 | let claim () = box (On, Off, 0) 1
+                         ^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `On` to `Off`, a change of mode takes a positive time
+  ======================================================================
+  literals_reject_mode_times_bound.tpe
+  ======================================================================
+  File "literals_reject_mode_times_bound.tpe", line 7, characters 19-57:
+  7 | let claim () = box (Cold, Cold, (Out, [40, 50]), [0, 30]) 1
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, in the entry from `Cold` to `Cold`, the time in `Out` exceeds the total time
+  ======================================================================
+  literals_reject_mode_times_operation.tpe
+  ======================================================================
+  File "literals_reject_mode_times_operation.tpe", line 7, characters 33-61:
+  7 | operation Round : unit ~> unit # ({Take; Return}, Cold, Cold) within [2, 3]
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `mode-times` grading monoid, an operation is written `{X}` of a single operation `X`, not `{Take; Return}`
   ======================================================================
   literals_reject_modes.tpe
   ======================================================================
@@ -2406,6 +2427,59 @@ it names none:
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `On` is declared here
     Note: the effect inequality `0 <= (Off, On, 1)` does not hold
+  ======================================================================
+  mode_times.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    4,
+    4,
+    1,
+    1,
+    4,
+    4,
+    1,
+    1,
+    4,
+    4,
+    1
+  ]
+  
+  ======================================================================
+  mode_times_reject.tpe
+  ======================================================================
+  File "mode_times_reject.tpe", line 19, characters 2-7:
+  19 |   round ();
+         ^^^^^
+  Typing error: The effect inequality `(Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) · (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) · (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) · (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) <= (Cold, Cold, (Out, [0, 30]))` does not hold
+    File "mode_times_reject.tpe", lines 11-15, characters 0-19:
+    11 | let round () : unit # (Cold, Cold, (Cold, [1, 2]), (Out, [8, 10])) =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `round` is defined here
+    File "mode_times_reject.tpe", lines 18-22, characters 14-10:
+    18 | let rounds () : unit # (Cold, Cold, (Out, [0, 30])) =
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
+  
+  File "mode_times_reject.tpe", line 25, characters 20-62:
+  25 | let cold_pipette () : unit # (Cold, Cold) = perform Pipette ()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `({Pipette}, Out, Out)`, which does not match its annotated grade `(Cold, Cold)`
+    Note: the effect inequality `({Pipette}, Out, Out) <= (Cold, Cold)` does not hold
+  
+  File "mode_times_reject.tpe", line 29, characters 12-61:
+  29 | let take () : unit # (Cold, Out, (Cold, 0)) = perform Take ()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `({Take}, Cold, Out)`, which does not match its annotated grade `(Cold, Out, (Cold, 0))`
+    Note: the effect inequality `({Take}, Cold, Out) <= (Cold, Out, (Cold, 0))` does not hold
+  
+  File "mode_times_reject.tpe", lines 32-34, characters 12-19:
+  32 | let late () : unit # (Out, Cold, (Out, [0, 1])) =
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `5 · ({Return}, Out, Cold)`, which does not match its annotated grade `(Out, Cold, (Out, [0, 1]))`
+    Note: the effect inequality `5 · ({Return}, Out, Cold) <= (Out, Cold, (Out, [0, 1]))` does not hold
   ======================================================================
   nat_division_by_zero.tpe
   ======================================================================
@@ -5182,7 +5256,7 @@ it names none:
   File "traces_reject_fractional_bound.tpe", line 10, characters 47-50:
   10 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
                                                       ^^^
-  Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic` or `event-separation` grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `mode-times` or `event-separation` grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
@@ -7531,6 +7605,7 @@ single-dash form of the help option is not accepted.
           resource-levels                           Resource levels
           windowed-schedules                        Windowed schedules
           mode-switch-costs                         Mode-switch costs
+          mode-times                                Mode times
         Operation counts:
           counts-upper-bound                        Upper bounds
         Separation of timed operations:

@@ -1,0 +1,7 @@
+(* Run this test with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times tests/literals_reject_mode_times_operation.tpe
+
+   Rejected: the grade of an operation names a single operation. *)
+
+operation Round : unit ~> unit # ({Take; Return}, Cold, Cold) within [2, 3]

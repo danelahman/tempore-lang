@@ -1,0 +1,7 @@
+(* Run this test with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times tests/literals_reject_mode_times.tpe
+
+   Rejected: a change of mode takes a positive time. *)
+
+let claim () = box (On, Off, 0) 1
