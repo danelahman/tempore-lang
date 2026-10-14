@@ -89,21 +89,15 @@ module Make (GS : Grades.GradeSystem.S) = struct
           | None -> None
         in
         let state_string = string_of_state ?active environment.state in
+        (* The segments between active markers alternate between inactive
+           and active text, starting with inactive text. *)
         let state_nodes =
-          match
-            String.split_on_char SyntaxHighlight.active_state_marker
-              state_string
-          with
-          | [ code ] -> SyntaxHighlight.highlight_text code
-          | [ pre; active; post ] ->
-              SyntaxHighlight.highlight_text pre
-              @ [
-                  elt "span"
-                    ~a:[ class_ "active-redex" ]
-                    (SyntaxHighlight.highlight_text active);
-                ]
-              @ SyntaxHighlight.highlight_text post
-          | _ -> SyntaxHighlight.highlight_text state_string
+          String.split_on_char SyntaxHighlight.active_state_marker state_string
+          |> List.mapi (fun i segment ->
+              let nodes = SyntaxHighlight.highlight_text segment in
+              if i mod 2 = 0 then nodes
+              else [ elt "span" ~a:[ class_ "active-redex" ] nodes ])
+          |> List.concat
         in
         let computation_tree =
           RS.view_computation_with_redexes reduction
