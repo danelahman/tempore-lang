@@ -73,7 +73,7 @@ The project, for the board m5stack-cores3; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino tilt --device $app/tilt.device.json $app/tilt.tpe | grep -c Wrote
-  27
+  28
   $ grep -A3 '^\[env' _arduino/projects/tilt/platformio.ini
   [env:m5stack-cores3]
   platform = espressif32@7.1.3

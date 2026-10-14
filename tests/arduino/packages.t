@@ -85,8 +85,8 @@ The option --board needs --package and names a board profile:
 The tilt display on an M5Stack Gray, with the packages m5-imu and m5-display:
 the sources of the packages are copied to src/ and their host models to host/,
 the binding functions of the operations performed are declared with the
-types of their arguments and results, and the initialisation of the display
-is called by setup():
+types of their arguments and results, as are the initialisation functions of
+the packages, and these are called by setup():
 
   $ emit tilt --device packages/tilt.device.json packages/tilt.tpe | grep -v 'host/\(tempore\|freertos\|[A-Z]\|esp\)'
   Wrote _arduino/projects/tilt/src/tempore_arduino.h
@@ -96,6 +96,7 @@ is called by setup():
   Wrote _arduino/projects/tilt/src/main.cpp
   Wrote _arduino/projects/tilt/src/tempore_bindings.h
   Wrote _arduino/projects/tilt/src/tempore_operations.cpp
+  Wrote _arduino/projects/tilt/src/tempore_i2c.h
   Wrote _arduino/projects/tilt/src/tempore_scaffold.h
   Wrote _arduino/projects/tilt/src/tempore_scaffold.cpp
   Wrote _arduino/projects/tilt/src/tempore_m5_monitor.cpp
@@ -126,12 +127,12 @@ is called by setup():
   typedef tempore_unit tempore_result_ClearDisplay;
   tempore_unit binding_ClearDisplay(tempore_unit);
   
-  #endif
-  $ grep -B 1 -A 12 'The hooks' src/main.cpp
-  
-  // The hooks of the packages.
+  // The initialisation and safe-state functions of the packages.
   void m5_imu_init();
   void m5_display_init();
+  
+  #endif
+  $ grep -B 1 -A 8 'The display of the events' src/main.cpp
   
   // The display of the events of the monitor on the screen.
   extern const tempore_monitor_display tempore_m5_monitor_display;
@@ -242,16 +243,12 @@ the safe-state hook of the application:
   [405.761 ms] Operation ShowNumber took 1000 us
   [405.761 ms] End drive
   [500.000 ms] End of the simulation
-  $ grep -A 6 'The hooks' _arduino/projects/drive/src/main.cpp
-  // The hooks of the packages.
+  $ grep -A 3 'functions of the packages' _arduino/projects/drive/src/tempore_bindings.h
+  // The initialisation and safe-state functions of the packages.
   void bala2_base_init();
   void m5_display_init();
   void bala2_base_safe_state();
-  
-  // The display of the events of the monitor on the screen.
-  extern const tempore_monitor_display tempore_m5_monitor_display;
   $ grep 'bala2_base_init' _arduino/projects/drive/src/main.cpp
-  void bala2_base_init();
     bala2_base_init();
   $ cd _arduino/projects/drive
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp

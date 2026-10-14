@@ -77,12 +77,14 @@ void m5_imu_init() {
                                  8.0f / 32768.0f, 16.0f / 32768.0f};
   static const float gyro[4] = {250.0f / 32768.0f, 500.0f / 32768.0f,
                                 1000.0f / 32768.0f, 2000.0f / 32768.0f};
-  tempore_i2c_lock();
-  const uint8_t accel_config = M5.In_I2C.readRegister8(
-      m5_imu_address, m5_imu_accel_config, m5_imu_frequency);
-  const uint8_t gyro_config = M5.In_I2C.readRegister8(
-      m5_imu_address, m5_imu_gyro_config, m5_imu_frequency);
-  tempore_i2c_unlock();
+  uint8_t accel_config, gyro_config;
+  {
+    const tempore_i2c_guard guard;
+    accel_config = M5.In_I2C.readRegister8(
+        m5_imu_address, m5_imu_accel_config, m5_imu_frequency);
+    gyro_config = M5.In_I2C.readRegister8(m5_imu_address, m5_imu_gyro_config,
+                                          m5_imu_frequency);
+  }
   m5_imu_resolution[0] = accel[(accel_config >> 3) & 3] * (1.0f / 65536.0f);
   m5_imu_resolution[1] = gyro[(gyro_config >> 3) & 3] * (1.0f / 65536.0f);
   for (int i = 0; i < 6; ++i) m5_imu_offset[i] = M5.Imu.getOffsetData(i);
@@ -126,11 +128,12 @@ static inline m5_imu_reading m5_imu_read() {
 #ifndef TEMPORE_HOST
   if (m5_imu_direct) {
     uint8_t data[14];
-    tempore_i2c_lock();
-    const bool read = M5.In_I2C.readRegister(
-        m5_imu_address, m5_imu_accel_xout_h, data, sizeof data,
-        m5_imu_frequency);
-    tempore_i2c_unlock();
+    bool read;
+    {
+      const tempore_i2c_guard guard;
+      read = M5.In_I2C.readRegister(m5_imu_address, m5_imu_accel_xout_h, data,
+                                    sizeof data, m5_imu_frequency);
+    }
     if (!read) tempore_fault("IMU: read not acknowledged");
     int16_t raw[6];
     for (int k = 0; k < 3; ++k) {
@@ -145,16 +148,18 @@ static inline m5_imu_reading m5_imu_read() {
   }
 #endif
   m5::imu_data_t data;
-  tempore_i2c_lock();
-  const bool updated =
-      (M5.Imu.update() & (m5::IMU_Class::sensor_mask_accel |
-                          m5::IMU_Class::sensor_mask_gyro)) != 0;
-  M5.Imu.getImuData(&data);
-  const int64_t now = tempore_clock_us();
-  const bool stale = !updated && m5_imu_updated_us >= 0 &&
-                     now - m5_imu_updated_us > TEMPORE_IMU_STALE_MS * 1000LL;
-  if (updated || m5_imu_updated_us < 0) m5_imu_updated_us = now;
-  tempore_i2c_unlock();
+  bool stale;
+  {
+    const tempore_i2c_guard guard;
+    const bool updated =
+        (M5.Imu.update() & (m5::IMU_Class::sensor_mask_accel |
+                            m5::IMU_Class::sensor_mask_gyro)) != 0;
+    M5.Imu.getImuData(&data);
+    const int64_t now = tempore_clock_us();
+    stale = !updated && m5_imu_updated_us >= 0 &&
+            now - m5_imu_updated_us > TEMPORE_IMU_STALE_MS * 1000LL;
+    if (updated || m5_imu_updated_us < 0) m5_imu_updated_us = now;
+  }
   if (stale) {
     char message[64];
     snprintf(message, sizeof message, "IMU: no new reading for %d ms",
@@ -185,21 +190,19 @@ tempore_result_ConfigureImu binding_ConfigureImu(
     // above rate, the divider rounded up, and 1000 / 256 Hz below that.
     const uint32_t divider =
         rate == 0 ? 255 : rate >= 1000 ? 0 : (1000 + rate - 1) / rate - 1;
-    tempore_i2c_lock();
+    const tempore_i2c_guard guard;
     M5.In_I2C.writeRegister8(m5_imu_address, m5_imu_smplrt_div,
                              static_cast<uint8_t>(divider > 255 ? 255 : divider),
                              m5_imu_frequency);
-    tempore_i2c_unlock();
   } else if (M5.Imu.getType() == m5::imu_bmi270) {
     // The output data rate 25 * 2^(n - 6) Hz of the code n, from 6 (25 Hz)
     // to 12 (1600 Hz): the greatest not above rate.
     uint8_t code = 6;
     while (code < 12 && (25u << (code - 5)) <= rate) ++code;
-    tempore_i2c_lock();
+    const tempore_i2c_guard guard;
     M5.In_I2C.writeRegister8(m5_imu_bmi270_address, m5_imu_bmi270_acc_conf,
                              static_cast<uint8_t>(0xa0 | code),
                              m5_imu_frequency);
-    tempore_i2c_unlock();
   }
 #endif
   return {};
@@ -213,19 +216,14 @@ static const int64_t m5_imu_check_interval_us = 6000;
 
 // Whether the unit is at rest in four readings started 6 ms apart: the
 // magnitude of the acceleration between 0.9 and 1.1 g, and that of the
-// angular rate below 20 degrees per second. Each wait yields the processor
-// by vTaskDelay for one tick less than the whole milliseconds left, so that
-// it returns before the start of the next reading, and waits the rest by
-// delayMicroseconds.
+// angular rate below 20 degrees per second. Each wait, by tempore_wait_until,
+// yields the processor until one tick before the start of the next reading.
 tempore_result_CheckAtRest binding_CheckAtRest(tempore_argument_CheckAtRest) {
   const int64_t start = tempore_clock_us();
   bool rest = true;
   for (int i = 0; i < 4; ++i) {
-    const int64_t next = start + i * m5_imu_check_interval_us;
-    const int64_t ms = (next - tempore_clock_us()) / 1000;
-    if (ms > 1) vTaskDelay(pdMS_TO_TICKS(static_cast<uint32_t>(ms - 1)));
-    const int64_t us = next - tempore_clock_us();
-    if (us > 0) delayMicroseconds(static_cast<uint32_t>(us));
+    tempore_wait_until(tempore_clock_us(),
+                       start + i * m5_imu_check_interval_us, 1);
     const m5_imu_reading r = m5_imu_read();
     float a = 0, g = 0;
     for (int k = 0; k < 3; ++k) {

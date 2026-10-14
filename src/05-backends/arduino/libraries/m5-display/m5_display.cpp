@@ -18,14 +18,6 @@ void m5_display_init() {
   M5.Display.setCursor(0, 0);
 }
 
-// Holds the lock of the display from its construction to its destruction.
-struct m5_display_guard {
-  m5_display_guard() { tempore_display_lock(); }
-  ~m5_display_guard() { tempore_display_unlock(); }
-  m5_display_guard(const m5_display_guard &) = delete;
-  m5_display_guard &operator=(const m5_display_guard &) = delete;
-};
-
 // The colours of the text and of the background, the grey of the buttons and
 // of the bars, and the grey of the centre of the bubble level.
 enum : uint32_t {
@@ -60,7 +52,7 @@ static inline void m5_display_at(uint32_t x, uint32_t y, uint32_t size,
 
 #ifdef TEMPORE_PERFORMS_ShowText
 tempore_result_ShowText binding_ShowText(tempore_argument_ShowText text) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   M5.Display.println(text);
   return {};
 }
@@ -68,7 +60,7 @@ tempore_result_ShowText binding_ShowText(tempore_argument_ShowText text) {
 
 #ifdef TEMPORE_PERFORMS_ShowNumber
 tempore_result_ShowNumber binding_ShowNumber(tempore_argument_ShowNumber x) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   char line[24];
   snprintf(line, sizeof line, "%.3f", static_cast<double>(x));
   M5.Display.println(line);
@@ -78,7 +70,7 @@ tempore_result_ShowNumber binding_ShowNumber(tempore_argument_ShowNumber x) {
 
 #ifdef TEMPORE_PERFORMS_ClearDisplay
 tempore_result_ClearDisplay binding_ClearDisplay(tempore_argument_ClearDisplay) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   M5.Display.clear();
   M5.Display.setCursor(0, 0);
   return {};
@@ -87,7 +79,7 @@ tempore_result_ClearDisplay binding_ClearDisplay(tempore_argument_ClearDisplay) 
 
 #ifdef TEMPORE_PERFORMS_ShowTextAt
 tempore_result_ShowTextAt binding_ShowTextAt(tempore_argument_ShowTextAt a) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   m5_display_at(a.c0, a.c1, a.c2, m5_display_white, m5_display_black, a.c3);
   return {};
 }
@@ -96,7 +88,7 @@ tempore_result_ShowTextAt binding_ShowTextAt(tempore_argument_ShowTextAt a) {
 #ifdef TEMPORE_PERFORMS_ShowNumberAt
 tempore_result_ShowNumberAt binding_ShowNumberAt(
     tempore_argument_ShowNumberAt a) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   char text[24];
   snprintf(text, sizeof text, "%.*f", static_cast<int>(a.c3 > 6 ? 6 : a.c3),
            static_cast<double>(a.c4));
@@ -107,7 +99,7 @@ tempore_result_ShowNumberAt binding_ShowNumberAt(
 
 #ifdef TEMPORE_PERFORMS_ShowTimeAt
 tempore_result_ShowTimeAt binding_ShowTimeAt(tempore_argument_ShowTimeAt a) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   char text[96];
   snprintf(text, sizeof text, "%s%u:%02u", a.c3,
            static_cast<unsigned>(a.c4 / 60), static_cast<unsigned>(a.c4 % 60));
@@ -119,7 +111,7 @@ tempore_result_ShowTimeAt binding_ShowTimeAt(tempore_argument_ShowTimeAt a) {
 #ifdef TEMPORE_PERFORMS_ShowColourTextAt
 tempore_result_ShowColourTextAt binding_ShowColourTextAt(
     tempore_argument_ShowColourTextAt a) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   m5_display_at(a.c0, a.c1, a.c2, a.c3, a.c4, a.c5);
   return {};
 }
@@ -130,7 +122,7 @@ tempore_result_ShowColourTextAt binding_ShowColourTextAt(
 static const int32_t m5_display_corner = 6;
 
 tempore_result_DrawButton binding_DrawButton(tempore_argument_DrawButton a) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   const int32_t x = static_cast<int32_t>(a.c0), y = static_cast<int32_t>(a.c1);
   const int32_t w = static_cast<int32_t>(a.c2), h = static_cast<int32_t>(a.c3);
   M5.Display.fillRoundRect(x, y, w, h, m5_display_corner, m5_display_dark_grey);
@@ -153,7 +145,7 @@ tempore_result_DrawButton binding_DrawButton(tempore_argument_DrawButton a) {
 
 #ifdef TEMPORE_PERFORMS_DrawBar
 tempore_result_DrawBar binding_DrawBar(tempore_argument_DrawBar a) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   const int32_t x = static_cast<int32_t>(a.c0), y = static_cast<int32_t>(a.c1);
   const int32_t w = static_cast<int32_t>(a.c2), h = static_cast<int32_t>(a.c3);
   const int32_t n = a.c4 > a.c2 ? w : static_cast<int32_t>(a.c4);
@@ -174,7 +166,7 @@ struct m5_display_level {
 static m5_display_level m5_display_last_level = {false, 0, 0, 0, 0, 0, 0};
 
 tempore_result_DrawLevel binding_DrawLevel(tempore_argument_DrawLevel a) {
-  const m5_display_guard guard;
+  const tempore_display_guard guard;
   const int32_t x = static_cast<int32_t>(a.c0), y = static_cast<int32_t>(a.c1);
   const int32_t r = static_cast<int32_t>(a.c2), rb = r / 6;
   // The offset of the bubble, scaled towards the centre to the greatest

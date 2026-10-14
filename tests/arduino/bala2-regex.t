@@ -112,7 +112,7 @@ exceptions and run-time type information:
   346 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
-  31
+  32
   $ cd _arduino/projects/balance_regex
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..

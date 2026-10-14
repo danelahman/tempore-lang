@@ -12,9 +12,10 @@
 
 #ifdef TEMPORE_PERFORMS_Touched
 tempore_result_Touched binding_Touched(tempore_argument_Touched) {
-  tempore_i2c_lock();
-  M5.Touch.update(millis());
-  tempore_i2c_unlock();
+  {
+    const tempore_i2c_guard guard;
+    M5.Touch.update(millis());
+  }
   if (M5.Touch.getCount() == 0) return {false, 0, 0};
   const auto &point = M5.Touch.getDetail();
   if (!point.isPressed()) return {false, 0, 0};

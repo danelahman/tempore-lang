@@ -21,8 +21,9 @@
     - [src/tempore_bindings.h]: for each operation [Op] the program performs,
       the macro [TEMPORE_PERFORMS_Op], the types [tempore_argument_Op] and
       [tempore_result_Op] of its argument and result, and the declaration of its
-      binding function; and the declaration of the safe-state hook; the binding
-      file and the sources of the packages include it;
+      binding function; the declaration of the safe-state hook, and those of the
+      initialisation and safe-state functions of the packages; the binding file
+      and the sources of the packages include it;
     - [src/tempore_operations.cpp]: the function [tempore_op_Op] of each
       operation [Op] the program performs, which calls the binding function
       [binding_Op] ({!ArduinoNames.binding}) and checks its running time against

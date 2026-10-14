@@ -94,7 +94,7 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information, and its host build:
 
   $ tempore --emit-arduino balance --device $app/balance.device.json $app/balance.tpe | grep -c Wrote
-  31
+  32
   $ cd _arduino/projects/balance
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ build () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }

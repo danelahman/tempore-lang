@@ -137,6 +137,18 @@ void tempore_monitor_period(tempore_task_monitor *task, int64_t start_us,
 // releases are not made up by steps that follow one another at once.
 void tempore_wait_release(TickType_t *release, TickType_t period);
 
+// Waits from start_us, a reading of tempore_clock_us, until target_us: the
+// whole milliseconds from start_us to target_us less early_ticks by
+// vTaskDelay, which yields the processor, in waits of at most an hour, each
+// followed by tempore_check_halt, and the rest by delayMicroseconds, which
+// waits actively. A tick of FreeRTOS is a millisecond, and vTaskDelay(k)
+// returns at the k-th tick from now, after at least k - 1 milliseconds, so
+// that the active wait is under early_ticks + 1 milliseconds and one more
+// per wait; early_ticks ends the yielding waits before target_us, so that a
+// late wake-up of the task does not delay it beyond target_us.
+void tempore_wait_until(int64_t start_us, int64_t target_us,
+                        uint32_t early_ticks);
+
 // The profile, when TEMPORE_PROFILE is defined: the statistics of the running
 // times of the operations, and of the steps of the periodic tasks, the
 // intervals between their starts and their overruns, since start-up. The
@@ -152,16 +164,33 @@ void tempore_profile_report();
 
 // Excludes the other tasks from the I2C buses, from the start of a
 // transaction to the last byte read of it, until tempore_i2c_unlock. The
-// bindings that use an I2C bus enclose each transaction in these calls and do
-// not end a task, by tempore_fault, between them.
+// bindings that use an I2C bus hold the lock by a tempore_i2c_guard during
+// each transaction.
 void tempore_i2c_lock();
 void tempore_i2c_unlock();
 
 // Excludes the other tasks from the display, from the start of a drawing to
 // its end, until tempore_display_unlock. The bindings that draw on the display
-// enclose each drawing in these calls.
+// hold the lock by a tempore_display_guard during each drawing.
 void tempore_display_lock();
 void tempore_display_unlock();
+
+// Holds a lock, taken by lock and released by unlock, from its construction
+// to its destruction. A task that holds one does not end by tempore_fault,
+// which does not release it.
+template <void (*lock)(), void (*unlock)()>
+struct tempore_lock_guard {
+  tempore_lock_guard() { lock(); }
+  ~tempore_lock_guard() { unlock(); }
+  tempore_lock_guard(const tempore_lock_guard &) = delete;
+  tempore_lock_guard &operator=(const tempore_lock_guard &) = delete;
+};
+
+// The guards of the locks of the I2C buses and of the display.
+using tempore_i2c_guard =
+    tempore_lock_guard<tempore_i2c_lock, tempore_i2c_unlock>;
+using tempore_display_guard =
+    tempore_lock_guard<tempore_display_lock, tempore_display_unlock>;
 
 // The display of the events of the monitor on the screen of the board: stop
 // draws a banner that states that the monitor stopped the tasks, with the two

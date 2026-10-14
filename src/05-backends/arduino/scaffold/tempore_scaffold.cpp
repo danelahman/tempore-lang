@@ -15,6 +15,9 @@
 #include <algorithm>
 #include <atomic>
 
+static_assert(configTICK_RATE_HZ == 1000,
+              "the scaffold takes a tick of FreeRTOS to be a millisecond");
+
 static std::atomic<bool> tempore_halt{false};
 
 static SemaphoreHandle_t tempore_i2c_mutex = xSemaphoreCreateMutex();
@@ -182,9 +185,8 @@ void tempore_check_halt() {
   if (!halted) {
     tempore_log("Safe state entered");
     if (first != nullptr && tempore_monitor_screen != nullptr) {
-      tempore_display_lock();
+      const tempore_display_guard guard;
       tempore_monitor_screen->stop(first, second);
-      tempore_display_unlock();
     }
   }
   tempore_stop_task();
@@ -204,14 +206,24 @@ void tempore_fault(const char *message) {
 // that pdMS_TO_TICKS, computed in 32 bits, does not overflow.
 static const uint64_t tempore_delay_chunk_ms = 3600000;
 
+void tempore_wait_until(int64_t start_us, int64_t target_us,
+                        uint32_t early_ticks) {
+  for (int64_t ms = (target_us - start_us) / 1000 - early_ticks; ms > 0;) {
+    const int64_t wait = ms < static_cast<int64_t>(tempore_delay_chunk_ms)
+                             ? ms
+                             : static_cast<int64_t>(tempore_delay_chunk_ms);
+    vTaskDelay(pdMS_TO_TICKS(static_cast<uint32_t>(wait)));
+    ms -= wait;
+    tempore_check_halt();
+  }
+  const int64_t rest = target_us - tempore_clock_us();
+  if (rest > 0) delayMicroseconds(static_cast<uint32_t>(rest));
+}
+
 // The delay of numerator / denominator time units, rounded to the nearest
-// microsecond: the whole milliseconds by vTaskDelay, in waits of at most
-// tempore_delay_chunk_ms, which yields the processor, and the remainder by
-// delayMicroseconds, which waits actively. vTaskDelay(k) returns at the k-th
-// tick from now, after at least k - 1 milliseconds, so that the remainder is
-// under one millisecond per wait and one more. The numerator and the
-// denominator of the time unit are below 2^30, so that the arithmetic in 64
-// bits does not overflow.
+// microsecond, by tempore_wait_until. The numerator and the denominator of
+// the time unit are below 2^30, so that the arithmetic in 64 bits does not
+// overflow.
 void tempore_delay(uint32_t numerator, uint32_t denominator) {
   tempore_check_halt();
   const uint64_t d = static_cast<uint64_t>(denominator) *
@@ -220,16 +232,8 @@ void tempore_delay(uint32_t numerator, uint32_t denominator) {
       (2 * static_cast<uint64_t>(numerator) * tempore_unit_numerator_us + d) /
       (2 * d);
   tempore_trace("Delay %llu us", static_cast<unsigned long long>(us));
-  const int64_t target = tempore_clock_us() + static_cast<int64_t>(us);
-  for (uint64_t ms = us / 1000; ms > 0;) {
-    const uint64_t wait =
-        ms < tempore_delay_chunk_ms ? ms : tempore_delay_chunk_ms;
-    vTaskDelay(pdMS_TO_TICKS(static_cast<uint32_t>(wait)));
-    ms -= wait;
-    tempore_check_halt();
-  }
-  const int64_t rest = target - tempore_clock_us();
-  if (rest > 0) delayMicroseconds(static_cast<uint32_t>(rest));
+  const int64_t start = tempore_clock_us();
+  tempore_wait_until(start, start + static_cast<int64_t>(us), 0);
   tempore_check_halt();
 }
 
@@ -289,9 +293,8 @@ static void tempore_warning_display(void *) {
     char line[128];
     snprintf(line, sizeof line, "Monitor: %lu warning%s, last %s",
              static_cast<unsigned long>(count), count == 1 ? "" : "s", last);
-    tempore_display_lock();
+    const tempore_display_guard guard;
     tempore_monitor_screen->warnings(line);
-    tempore_display_unlock();
   }
 }
 
