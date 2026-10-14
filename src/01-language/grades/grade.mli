@@ -219,6 +219,11 @@ module type S = sig
 
       Raises [Invalid_literal] if the grade does not understand [lit]. *)
 
+  val accepts : lit -> bool
+  (** [accepts lit] is whether {!of_lit} reads [lit] without rejecting it,
+      [reads_lit of_lit lit], decided without building the grade where that is
+      costly. *)
+
   val of_bounds : Delay.t bound * Delay.t bound -> t
   (** [of_bounds (lo, hi)] is the "time shadow" of an operation declaring the
       running-time bounds [(lo, hi)], read as delays: the grade that records
@@ -277,7 +282,9 @@ val tick_delays : Rational.t bound -> Rational.t bound -> regex
 (** [tick_delays lo hi] is the expression over whole time steps of the interval
     atom from [lo] to [hi] of a brace literal, of the ends {!tick_interval}
     [lo hi]: [[a, b]] is [a] ticks followed by up to [b - a] more, and [\[a, ∞)]
-    is [a] ticks followed by any number.
+    is [a] ticks followed by any number. The expression is of size proportional
+    to [b - a], and the grades that read interval atoms through it build them in
+    time quadratic in [b - a] ({!RegularTraceGrade}).
 
     @raise Invalid_literal as {!tick_interval}. *)
 
@@ -287,6 +294,18 @@ val check_delays : lit -> regex -> unit
     lower endpoint is negative or infinite.
 
     @raise Invalid_literal on [lit] if it does. *)
+
+val whole_braces : names:bool -> regex -> bool
+(** [whole_braces ~names r] is whether a grade over whole time steps reads the
+    delays of the brace literal [{r}]: they are non-negative, no delay is a
+    fraction, each interval atom contains a whole number of time steps
+    ({!tick_interval}), and, unless [names], [r] names no operation. It builds
+    no expression of the ticks of an interval atom. *)
+
+val positive : regex -> bool
+(** [positive r] is whether [r] holds no intersection and no complement. Such an
+    expression whose atoms are read ({!whole_braces}) denotes a non-empty
+    language. *)
 
 val sampled : ('a -> 'a -> 'a) -> 'a list -> 'a list * completeness
 (** [sampled mul cs] is the [Partial] list of the constants [cs] and their

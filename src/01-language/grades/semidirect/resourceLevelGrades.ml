@@ -72,6 +72,7 @@ module Side (D : Delay.S) (O : ORIENTATION) = struct
     let inhabited _bounds _ = true
     let events _ = []
     let of_lit = O.of_lit "net changes"
+    let accepts = Grade.reads_lit of_lit
     let of_bounds _ = one
     let is_atomic _name _ = true
     let show = O.show
@@ -225,6 +226,8 @@ module Make (D : Delay.S) = struct
             "grades are tuples `(d, h)` or `(t, d, h)` of a trough, a net \
              change and a peak, not %s"
             (Grade.describe_lit lit)
+
+    let accepts = Grade.reads_lit of_lit
 
     (* The shortest literal: the trough is omitted where it is [min(0, low)],
      and an exact net change is written as a single integer; a range is

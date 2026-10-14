@@ -147,6 +147,8 @@ let of_lit =
     ~top ~of_regex
     ~is_empty:(fun rho -> D.is_empty rho.regex)
 
+let accepts = RegularTraceGradeDerivative.accepts_with of_lit
+
 (** {1 Letter sets} *)
 
 module Conversion = Rebuild (SymbolicRegex)

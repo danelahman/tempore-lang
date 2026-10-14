@@ -71,6 +71,17 @@ val read_lit : (lit -> 'a) -> lit -> ('a, lit * string) result
 (** [read_lit of_lit lit] is [Ok (of_lit lit)], and [Error (lit', reason)] if
     [of_lit] rejects [lit'] with [reason] instead. *)
 
+val reads_lit : (lit -> 'a) -> lit -> bool
+(** [reads_lit of_lit lit] is whether [of_lit] reads [lit] without rejecting it,
+    [Result.is_ok (read_lit of_lit lit)]. *)
+
+val require : (lit -> bool) -> lit -> unit
+(** [require accepts lit] is [()] if [accepts lit]: a reader that builds
+    nothing, in place of a reader of grades whose acceptance [accepts] decides,
+    within a reader of composite literals.
+
+    @raise Invalid_literal on [lit] if [accepts lit] does not hold. *)
+
 val component_of_lit : lit -> context:string -> ('a -> 'b) -> 'a -> 'b
 (** [component_of_lit lit ~context of_lit component] is [of_lit component], a
     rejection being reported against the enclosing literal [lit], its reason

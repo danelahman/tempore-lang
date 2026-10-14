@@ -65,6 +65,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
       | Top -> top
       | lit -> duration_of_lit ("plain " ^ N.numbers) lit
 
+    let accepts = reads_lit of_lit
     let of_delay d = d
     let of_bounds b = fst (hull b)
     let is_atomic _name _ = true
@@ -104,6 +105,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
       | Top | Inf -> top
       | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or `∞`") lit)
 
+    let accepts = reads_lit of_lit
     let of_delay d = Ext.Fin d
     let of_bounds b = Ext.Fin (snd (hull b))
     let is_atomic _name _ = true
@@ -253,6 +255,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
           invalid_lit lit "grades are intervals %s, not %s" interval_forms
             (describe_lit lit)
 
+    let accepts = reads_lit of_lit
     let of_delay d = closed d (Ext.Fin d)
 
     let of_bounds (lo, hi) =

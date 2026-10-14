@@ -91,6 +91,7 @@ module type S = sig
   val inhabited : bounds -> t -> bool
   val events : t -> string list
   val of_lit : lit -> t
+  val accepts : lit -> bool
   val of_bounds : Delay.t bound * Delay.t bound -> t
   val is_atomic : string -> t -> bool
   val show : t -> string
@@ -152,6 +153,27 @@ let check_delays lit r =
   Option.iter
     (fun d -> invalid_lit lit "delays are non-negative, not %s" d)
     (negative_delay r)
+
+let rec whole_delays ~names = function
+  | Letter _ -> names
+  | Tick _ | Any -> true
+  | Frac _ -> false
+  | Delays (lo, hi) -> (
+      match tick_interval lo hi with
+      | _ -> true
+      | exception Invalid_literal _ -> false)
+  | Seq (r, s) | Union (r, s) | Inter (r, s) ->
+      whole_delays ~names r && whole_delays ~names s
+  | Star r | Compl r -> whole_delays ~names r
+
+let whole_braces ~names r =
+  Option.is_none (negative_delay r) && whole_delays ~names r
+
+let rec positive = function
+  | Letter _ | Tick _ | Frac _ | Delays _ | Any -> true
+  | Seq (r, s) | Union (r, s) -> positive r && positive s
+  | Star r -> positive r
+  | Inter _ | Compl _ -> false
 
 let sampled mul cs =
   (cs @ List.concat_map (fun c -> List.map (mul c) cs) cs, Partial)

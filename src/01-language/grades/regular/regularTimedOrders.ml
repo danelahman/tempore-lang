@@ -125,6 +125,7 @@ struct
     let is_top = is_top coverage
     let unit_least = false
     let of_lit = function Top -> top | lit -> L.of_lit lit
+    let accepts = function Top -> true | lit -> L.accepts lit
     let of_bounds (lo, _hi) = W.lower_shadow lo
   end
 
@@ -139,6 +140,7 @@ struct
     let is_top = is_top allowance
     let unit_least = true
     let of_lit = L.of_lit
+    let accepts = L.accepts
     let of_bounds (_lo, hi) = W.upper_shadow hi
   end
 
@@ -193,6 +195,17 @@ struct
           bounds_of_lit lit ~number:W.number ~close:W.close ~lower:Lower.of_lit
             ~upper:Upper.of_lit ~unbounded:Upper.top
             ~bounds:"regular expressions"
+
+    let accepts = function
+      | Top -> true
+      | lit when W.single lit -> L.accepts lit
+      | lit ->
+          reads_lit
+            (fun lit ->
+              bounds_of_lit lit ~number:W.number ~close:W.close
+                ~lower:(require Lower.accepts) ~upper:(require Upper.accepts)
+                ~unbounded:() ~bounds:"regular expressions")
+            lit
 
     let of_delay d = (L.of_delay d, L.of_delay d)
     let of_bounds (lo, hi) = (W.lower_shadow lo, W.upper_shadow hi)

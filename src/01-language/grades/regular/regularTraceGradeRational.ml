@@ -133,6 +133,8 @@ struct
            `⊤`, not %s"
           (describe_lit lit)
 
+  let accepts = reads_lit of_lit
+
   let show rho =
     if L.is_top rho.language then "⊤" else "{" ^ show_regex rho.expression ^ "}"
 

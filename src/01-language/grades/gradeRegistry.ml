@@ -449,14 +449,11 @@ let entries =
 let grade_modules = List.map (fun e -> (e.name, e.grade)) entries
 let default_name = fst (List.hd grade_modules)
 
-let understands lit (module G : Grade.S) =
-  Result.is_ok (Grade.read_lit G.of_lit lit)
-
 let accepting lit =
   List.filter_map
     (fun e ->
-      if e.info.visibility = Everywhere && understands lit e.grade then
-        Some e.name
+      let (module G : Grade.S) = e.grade in
+      if e.info.visibility = Everywhere && G.accepts lit then Some e.name
       else None)
     entries
 

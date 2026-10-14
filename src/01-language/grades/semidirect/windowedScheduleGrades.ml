@@ -73,10 +73,11 @@ module Durations = struct
   let inhabited _bounds _ = true
   let events _ = []
 
-  (** [of_interval lit lo hi] is the set of the durations in the interval
-      literal [lit] from [lo] to [hi], an open endpoint abbreviating a closed
-      one by {!Grade.integer_ends}. *)
-  let of_interval lit lo hi =
+  (** [of_interval ~interval ~from lit lo hi] is the set of the durations in the
+      interval literal [lit] from [lo] to [hi], an open endpoint abbreviating a
+      closed one by {!Grade.integer_ends}: [interval n m] for [[n, m]] and
+      [from n] for [\[n, ∞)]. *)
+  let of_interval ~interval ~from lit lo hi =
     match (lo, hi) with
     | (Grade.Closed (Grade.Int n) | Grade.Open (Grade.Int n)), _ when n < 0 ->
         Grade.invalid_lit lit "durations must be non-negative"
@@ -94,7 +95,7 @@ module Durations = struct
     | Grade.Int n when n < 0 ->
         Grade.invalid_lit (Grade.Int n) "durations must be non-negative"
     | Grade.Int n -> R.ticks n
-    | Grade.Interval (lo, hi) -> of_interval lit lo hi
+    | Grade.Interval (lo, hi) -> of_interval ~interval ~from lit lo hi
     | Grade.Braces r ->
         let rho = of_braces lit r in
         if R.is_empty rho then
@@ -105,6 +106,16 @@ module Durations = struct
           "durations are plain integers, intervals %s or brace literals \
            `{...}`, not %s"
           Grade.interval_forms (Grade.describe_lit lit)
+
+  let accepts lit =
+    match Grade.open_pair lit with
+    | Grade.Interval (lo, hi) ->
+        Grade.reads_lit
+          (fun lit ->
+            of_interval ~interval:(fun _ _ -> ()) ~from:ignore lit lo hi)
+          lit
+    | Grade.Braces r when Grade.positive r -> Grade.whole_braces ~names:false r
+    | _ -> Grade.reads_lit of_lit lit
 
   let of_bounds b =
     let lo, hi = Grade.hull b in
@@ -149,6 +160,10 @@ module Times = struct
         Grade.invalid_lit lit "times are brace literals `{...}`, not %s"
           (Grade.describe_lit lit)
 
+  let accepts = function
+    | Grade.Braces r -> Grade.whole_braces ~names:false r
+    | _ -> false
+
   let show = RegularTraceGradeDerivative.show
 end
 
@@ -189,6 +204,25 @@ module WindowedSchedules = struct
               "times are given by operation, e.g. `(1, (Send, {0}))` for \
                `Send` at the start, or `(1, (_, {0}))` for any operation"
         | Error (lit, reason), _ -> raise (Grade.Invalid_literal (lit, reason)))
+
+  let accepts = function
+    | Grade.Top -> true
+    | lit -> (
+        Durations.accepts lit
+        ||
+        match lit with
+        | Grade.Tuple (durations :: (_ :: _ as entries))
+          when List.for_all is_entry entries ->
+            Durations.accepts durations
+            && Grade.reads_lit
+                 (fun lit ->
+                   Indexed.of_entries_lit
+                     ~compare:(fun () () -> 0)
+                     ~default:()
+                     (Grade.require Times.accepts)
+                     lit entries)
+                 lit
+        | _ -> false)
 
   let show ((durations, times) as c) =
     if compare c top = 0 then "⊤"

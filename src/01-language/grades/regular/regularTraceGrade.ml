@@ -146,6 +146,8 @@ let of_lit =
     ~top ~of_regex
     ~is_empty:(fun rho -> Dfa.is_empty rho.dfa)
 
+let accepts = Expression.accepts_with of_lit
+
 (** {1 Printing} *)
 
 (** [symbolic rho] is the automaton of [rho] over letter sets. *)

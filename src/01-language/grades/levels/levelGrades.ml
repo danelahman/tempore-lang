@@ -126,6 +126,8 @@ module Make (D : Delay.S) = struct
                  outputs written"
                 reason)
 
+    let accepts = Grade.reads_lit of_lit
+
     let show ((l, o) as c) =
       if compare c top = 0 then "⊤"
       else if Outputs.compare o Outputs.bottom = 0 then LowHigh.show l
