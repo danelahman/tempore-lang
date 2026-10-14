@@ -1,0 +1,21 @@
+(* Two calls of the same function, one inside the other, under the
+   'time-lower-bound' grading monoid: the continuation of the inner call of
+   Inc contains the binder of the continuation of the outer call, and each
+   resumption returns the value it is given. *)
+
+operation Inc : nat ~> nat # 0
+
+let increment =
+  handler
+  | x -> x
+  | Inc n k -> continue k with n + 1
+
+let incremented u =
+  let z = u () in
+  perform Inc z
+
+run handle incremented (fun () -> incremented (fun () -> 0)) with increment
+
+run
+  handle incremented (fun () -> incremented (fun () -> incremented (fun () -> 5)))
+  with increment

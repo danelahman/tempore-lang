@@ -104,6 +104,17 @@ Continuations dropped, with the frames inside the handler.
   return (Some 43)
   
 
+Continuations that bind the same variable one inside the other, as the calls
+of one function nested in each other give them.
+
+  $ parity time-lower-bound handlers_shadowing.tpe
+  === Run 1 ===
+  return 2
+  
+  === Run 2 ===
+  return 8
+  
+
 Default implementations: those declared above a run, run outside every
 handler; and runs that end at an unhandled operation call.
 

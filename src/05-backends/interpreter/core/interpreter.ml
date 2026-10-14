@@ -99,8 +99,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
       op_defaults = Ast.OpNameMap.empty;
     }
 
-  exception PatternMismatch
-
   (** [rho_of_eps eps] is the resource grade [∣eps∣] of the effect grade [eps]
       of an operation signature. *)
   let rec rho_of_eps = function
@@ -166,36 +164,49 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Handler _ ->
         expr
 
-  let rec match_pattern_with_expression env (pat : _ Ast.pattern) expr =
+  (* The substitution of the variables of the pattern [pat] by the parts of
+     the value [expr] they match, if [pat] matches [expr]. *)
+  let rec match_pattern env (pat : _ Ast.pattern) expr =
     match pat.it with
-    | Ast.PVar x -> Ast.VariableMap.singleton x expr
-    | Ast.PAnnotated (pat, _) -> match_pattern_with_expression env pat expr
+    | Ast.PVar x -> Some (Ast.VariableMap.singleton x expr)
+    | Ast.PAnnotated (pat, _) -> match_pattern env pat expr
     | Ast.PAs (pat, x) ->
-        let subst = match_pattern_with_expression env pat expr in
-        Ast.VariableMap.add x expr subst
+        Option.map (Ast.VariableMap.add x expr) (match_pattern env pat expr)
     | Ast.PTuple pats ->
-        let exprs = eval_tuple env expr in
         List.fold_left2
           (fun subst pat expr ->
-            let subst' = match_pattern_with_expression env pat expr in
-            Ast.VariableMap.union (fun _ _ _ -> assert false) subst subst')
-          Ast.VariableMap.empty pats exprs
+            Option.bind subst (fun subst ->
+                Option.map
+                  (Ast.VariableMap.union (fun _ _ _ -> assert false) subst)
+                  (match_pattern env pat expr)))
+          (Some Ast.VariableMap.empty) pats (eval_tuple env expr)
     | Ast.PVariant (label, pat) -> (
         match (pat, eval_variant env expr) with
-        | None, (label', None) when label = label' -> Ast.VariableMap.empty
-        | Some pat, (label', Some expr) when label = label' ->
-            match_pattern_with_expression env pat expr
-        | _, _ -> raise PatternMismatch)
-    | Ast.PConst c when Const.equal c (eval_const env expr) ->
-        Ast.VariableMap.empty
+        | None, (label', None) when Ast.Label.equal label label' ->
+            Some Ast.VariableMap.empty
+        | Some pat, (label', Some expr) when Ast.Label.equal label label' ->
+            match_pattern env pat expr
+        | _, _ -> None)
+    | Ast.PConst c ->
+        if Const.equal c (eval_const env expr) then Some Ast.VariableMap.empty
+        else None
     | Ast.PSucc (pat, k) -> (
         match eval_const env expr with
         | Const.Nat n when Z.geq n k ->
-            match_pattern_with_expression env pat
+            match_pattern env pat
               { expr with it = Ast.Const (Const.Nat (Z.sub n k)) }
-        | _ -> raise PatternMismatch)
-    | Ast.PNonbinding -> Ast.VariableMap.empty
-    | _ -> raise PatternMismatch
+        | _ -> None)
+    | Ast.PNonbinding -> Some Ast.VariableMap.empty
+
+  (* The substitution of the variables of the irrefutable pattern [pat] by the
+     parts of the value [expr] they match. *)
+  let bind env pat expr =
+    match match_pattern env pat expr with
+    | Some subst -> subst
+    | None ->
+        Error.runtime "Value `%t` does not match the pattern `%t`"
+          (PrettyPrint.print_expression (module GS.R) expr)
+          (PrettyPrint.print_pattern pat)
 
   let rec remove_pattern_bound_variables subst (pat : _ Ast.pattern) =
     match pat.it with
@@ -212,37 +223,42 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.PConst _ -> subst
     | Ast.PNonbinding -> subst
 
-  (* Refreshing rebuilds the pattern, but every node keeps the span it was
-     written at: the variables change, the source they came from does not. *)
-  let rec refresh_pattern (pat : _ Ast.pattern) =
+  (* [refresh_pattern renaming pat] is [pat] with fresh variables, and
+     [renaming] extended by the renaming of its variables to them. Every node
+     keeps the span it was written at: the variables change, the source they
+     came from does not. *)
+  let rec refresh_pattern renaming (pat : _ Ast.pattern) =
     match pat.it with
     | Ast.PVar x ->
         let x' = Ast.Variable.refresh x in
-        ({ pat with it = Ast.PVar x' }, [ (x, x') ])
-    | Ast.PAnnotated (pat', _) -> refresh_pattern pat'
+        ({ pat with it = Ast.PVar x' }, Ast.VariableMap.add x x' renaming)
+    | Ast.PAnnotated (pat', _) -> refresh_pattern renaming pat'
     | Ast.PAs (pat', x) ->
-        let pat'', vars = refresh_pattern pat' in
+        let pat'', renaming = refresh_pattern renaming pat' in
         let x' = Ast.Variable.refresh x in
-        ({ pat with it = Ast.PAs (pat'', x') }, (x, x') :: vars)
+        ( { pat with it = Ast.PAs (pat'', x') },
+          Ast.VariableMap.add x x' renaming )
     | Ast.PTuple pats ->
-        let fold pat' (pats', vars) =
-          let pat'', vars' = refresh_pattern pat' in
-          (pat'' :: pats', vars' @ vars)
+        let refresh pat' (pats', renaming) =
+          let pat'', renaming = refresh_pattern renaming pat' in
+          (pat'' :: pats', renaming)
         in
-        let pats', vars = List.fold_right fold pats ([], []) in
-        ({ pat with it = Ast.PTuple pats' }, vars)
+        let pats', renaming = List.fold_right refresh pats ([], renaming) in
+        ({ pat with it = Ast.PTuple pats' }, renaming)
     | Ast.PVariant (lbl, Some pat') ->
-        let pat'', vars = refresh_pattern pat' in
-        ({ pat with it = Ast.PVariant (lbl, Some pat'') }, vars)
+        let pat'', renaming = refresh_pattern renaming pat' in
+        ({ pat with it = Ast.PVariant (lbl, Some pat'') }, renaming)
     | Ast.PSucc (pat', k) ->
-        let pat'', vars = refresh_pattern pat' in
-        ({ pat with it = Ast.PSucc (pat'', k) }, vars)
-    | Ast.PVariant (_, None) | Ast.PConst _ | Ast.PNonbinding -> (pat, [])
+        let pat'', renaming = refresh_pattern renaming pat' in
+        ({ pat with it = Ast.PSucc (pat'', k) }, renaming)
+    | Ast.PVariant (_, None) | Ast.PConst _ | Ast.PNonbinding -> (pat, renaming)
 
+  (* The terms below have their bound variables replaced by fresh ones and
+     their free variables renamed by [vars]. *)
   let rec refresh_expression vars (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Var x -> (
-        match List.assoc_opt x vars with
+        match Ast.VariableMap.find_opt x vars with
         | None -> expr
         | Some x' -> { expr with it = Ast.Var x' })
     | Ast.Const _ -> expr
@@ -263,7 +279,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let x' = Ast.Variable.refresh x in
         {
           expr with
-          it = Ast.RecLambda (x', eps, refresh_abstraction ((x, x') :: vars) abs);
+          it =
+            Ast.RecLambda
+              (x', eps, refresh_abstraction (Ast.VariableMap.add x x' vars) abs);
         }
     | Ast.Handler (ret_case, op_cases) ->
         let ret_case' = refresh_abstraction vars ret_case in
@@ -318,8 +336,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
         { comp with it = Ast.Handle (c', h') }
 
   and refresh_abstraction vars (pat, comp) =
-    let pat', vars' = refresh_pattern pat in
-    (pat', refresh_computation (vars @ vars') comp)
+    let pat', vars = refresh_pattern vars pat in
+    (pat', refresh_computation vars comp)
 
   (* A substituted variable takes the span of the value bound to it; every
      other node keeps its own. *)
@@ -349,7 +367,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.RecLambda (x, eps, abs) ->
         {
           expr with
-          it = Ast.RecLambda (x, eps, substitute_abstraction subst abs);
+          it =
+            Ast.RecLambda
+              ( x,
+                eps,
+                substitute_abstraction (Ast.VariableMap.remove x subst) abs );
         }
     | Ast.Handler (ret_case, op_cases) ->
         {
@@ -429,25 +451,23 @@ module Make (GS : Grades.GradeSystem.S) = struct
     (pat, substitute_computation subst' comp)
 
   let substitute subst comp =
-    let subst = Ast.VariableMap.map (refresh_expression []) subst in
+    let subst =
+      Ast.VariableMap.map (refresh_expression Ast.VariableMap.empty) subst
+    in
     substitute_computation subst comp
 
   let rec eval_function env (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Annotated (expr', _) -> eval_function env expr'
-    | Ast.Lambda (pat, comp) ->
-        fun arg ->
-          let subst = match_pattern_with_expression env pat arg in
-          substitute subst comp
-    | Ast.PureLambda (pat, comp) ->
-        fun arg ->
-          let subst = match_pattern_with_expression env pat arg in
-          substitute subst comp
+    | Ast.Lambda (pat, comp) | Ast.PureLambda (pat, comp) ->
+        fun arg -> substitute (bind env pat arg) comp
+    (* A variable of the parameter shadows the function. *)
     | Ast.RecLambda (f, _, (pat, comp)) ->
         fun arg ->
           let subst =
-            match_pattern_with_expression env pat arg
-            |> Ast.VariableMap.add f expr
+            Ast.VariableMap.update f
+              (function None -> Some expr | value -> value)
+              (bind env pat arg)
           in
           substitute subst comp
     | Ast.Var x -> (
@@ -585,27 +605,25 @@ module Make (GS : Grades.GradeSystem.S) = struct
     match comp.it with
     | Ast.Return _ -> []
     | Ast.Match (expr, cases) ->
-        let rec find_case = function
-          | (env, pat, comp) :: cases -> (
-              match match_pattern_with_expression env pat expr with
-              | subst ->
-                  [
-                    ( name_resources env subst,
-                      Match,
-                      fun () -> substitute subst comp );
-                  ]
-              | exception PatternMismatch -> find_case cases)
-          | [] -> []
-        in
-        let cases' =
-          List.map
-            (fun (pat, comp) ->
-              let pat', vars = refresh_pattern pat in
-              let comp' = refresh_computation vars comp in
-              (env, pat', comp'))
-            cases
-        in
-        find_case cases'
+        (* The first case whose pattern matches, its variables refreshed. *)
+        List.find_map
+          (fun (pat, comp) ->
+            Option.map
+              (fun subst ->
+                let _, renaming = refresh_pattern Ast.VariableMap.empty pat in
+                let subst =
+                  Ast.VariableMap.fold
+                    (fun x expr ->
+                      Ast.VariableMap.add (Ast.VariableMap.find x renaming) expr)
+                    subst Ast.VariableMap.empty
+                in
+                ( name_resources env subst,
+                  Match,
+                  fun () -> substitute subst (refresh_computation renaming comp)
+                ))
+              (match_pattern env pat expr))
+          cases
+        |> Option.to_list
     | Ast.Apply (expr1, expr2) ->
         let f = eval_function env expr1 in
         [ (env, ApplyFun, fun () -> f expr2) ]
@@ -613,7 +631,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         match comp1.it with
         | Ast.Return expr ->
             let pat, comp2' = comp2 in
-            let subst = match_pattern_with_expression env pat expr in
+            let subst = bind env pat expr in
             let env' = name_resources env subst in
             (* At the root, while a default implementation runs, the binding
                of its result ends the innermost call. *)
@@ -675,7 +693,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
                      else env.continuations);
                 }
               in
-              [ (env', Box, fun () -> refresh_computation [ (x, x') ] body) ]
+              [
+                ( env',
+                  Box,
+                  fun () ->
+                    refresh_computation (Ast.VariableMap.singleton x x') body );
+              ]
           | Ast.PAnnotated (pat', _) -> doBox rho expr pat' body
           | _ ->
               Error.runtime "Box expected a variable but got pattern %t"
@@ -689,7 +712,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
               let _rho', expr' =
                 ContextHolderModule.find_variable x env.state
               in
-              let subst = match_pattern_with_expression env pat expr' in
+              let subst = bind env pat expr' in
               [ (env, Unbox, fun () -> substitute subst body) ]
           | Ast.Annotated (expr', _) -> doUnbox expr' pat body
           | _ ->
@@ -703,7 +726,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let (pat, ret_comp), op_cases = eval_handler env handler in
         match body.it with
         | Ast.Return expr ->
-            let subst = match_pattern_with_expression env pat expr in
+            let subst = bind env pat expr in
             ( name_resources env subst,
               HandleReturn,
               fun () -> substitute subst ret_comp )
@@ -728,12 +751,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
                         continuations = Ast.VariableSet.add x env.continuations;
                       }
                     in
-                    let arg_subst =
-                      match_pattern_with_expression env' op_arg_pat expr
-                    in
+                    let arg_subst = bind env' op_arg_pat expr in
                     let cont_subst =
-                      match_pattern_with_expression env' op_cont_pat
-                        (Ast.located at (Ast.Var x))
+                      bind env' op_cont_pat (Ast.located at (Ast.Var x))
                     in
                     (* The continuation is boxed at the resource grade the
                        operation's effect grade maps to. *)
@@ -907,9 +927,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
       }
       when Ast.OpNameMap.mem op environment.op_defaults ->
         let dpat, dcomp = Ast.OpNameMap.find op environment.op_defaults in
-        let dpat', vars = refresh_pattern dpat in
-        let dcomp' = refresh_computation vars dcomp in
-        let subst = match_pattern_with_expression environment dpat' expr in
+        let dpat', dcomp' =
+          refresh_abstraction Ast.VariableMap.empty (dpat, dcomp)
+        in
+        let subst = bind environment dpat' expr in
         (* The grade of the signature of the call is added to the accumulated
            grade at the top level; a call inside a default implementation is
            counted in the grade of that. *)
