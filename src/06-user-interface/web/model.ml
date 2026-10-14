@@ -95,8 +95,8 @@ let example_of_title group title =
 let default_example key =
   Option.bind (List.assoc_opt key Examples_tpe.defaults) example_of_path
 
-(** The editor as the page opens: the manifest's default example loaded, its
-    grades selected. *)
+(* The editor as the page opens: the manifest's default example loaded, its
+   grades selected. *)
 let edit_init =
   let empty =
     {
@@ -315,8 +315,8 @@ let edits_program = function
       true
   | SelectBackend _ | SetInput _ -> false
 
-(** How long the inputs of a backend rest before the program is compiled with
-    them, in milliseconds. *)
+(* How long the inputs of a backend rest before the program is compiled with
+   them, in milliseconds. *)
 let compile_delay = 300
 
 (* Whether the program, unchanged since its last check, was checked with
@@ -635,8 +635,8 @@ let link_at links offset =
     (fun { use = start, stop; _ } -> start <= offset && offset <= stop)
     links
 
-(** [utf16_offset source byte] is the offset of the browser's UTF-16 code units
-    at the byte [byte] of [source], the inverse of [byte_offset]. *)
+(* [utf16_offset source byte] is the offset of the browser's UTF-16 code units
+   at the byte [byte] of [source], the inverse of [byte_offset]. *)
 let utf16_offset source byte =
   let rec go i units =
     if i >= byte || i >= String.length source then units
@@ -681,12 +681,12 @@ let recompiled model compiled =
       }
   | _ -> model
 
-(** What the program was undergoing when an exception was raised. *)
+(* What the program was undergoing when an exception was raised. *)
 type stage = Checking | Running
 
-(** [errors_of_exception stage exn] is the errors reported for the exception
-    [exn] raised at [stage]: the diagnostic of an error of the language, a
-    run-time error among them, and a fatal error otherwise. *)
+(* [errors_of_exception stage exn] is the errors reported for the exception
+   [exn] raised at [stage]: the diagnostic of an error of the language, a
+   run-time error among them, and a fatal error otherwise. *)
 let errors_of_exception stage exn =
   match exn with
   | Error.Error diagnostic -> [ { diagnostic; hovered_label = None } ]
@@ -705,386 +705,7 @@ let errors_of_exception stage exn =
           ])
   | exn -> [ fatal (Printexc.to_string exn) ]
 
-(* The update of the model proper; [update] adds the effects. *)
-let rec update_model model = function
-  (* A backend is selected with its default example, loaded as from the
-     gallery. *)
-  | EditMsg (SelectBackend key) when default_example key <> None ->
-      Option.fold ~none:model
-        ~some:(fun (group, e) ->
-          update_model model (EditMsg (LoadExample (group, e))))
-        (default_example key)
-  | EditMsg ((SelectBackend _ | SetInput _) as edit_msg) -> (
-      (* The program stays checked: another backend compiles it at once, and
-         a changed input after a rest (see [update]). *)
-      let model =
-        { model with edit_model = edit_update model.edit_model edit_msg }
-      in
-      match edit_msg with
-      | SelectBackend _ -> recompiled model (compile model)
-      | _ ->
-          {
-            model with
-            compilation =
-              {
-                model.compilation with
-                compiled =
-                  Option.map
-                    (fun compiled -> { compiled with up_to_date = false })
-                    model.compilation.compiled;
-              };
-          })
-  | EditMsg edit_msg ->
-      (* A loaded example replaces the program, so the errors of the old one
-         go with it; an edit only makes them out of date. *)
-      let loaded = match edit_msg with LoadExample _ -> true | _ -> false in
-      let run_model, stale_errors =
-        if loaded then (Error [], false)
-        else
-          ( model.run_model,
-            model.error_view.stale_errors || edits_source edit_msg )
-      in
-      let edited = edits_program edit_msg in
-      let model = without_popover model in
-      (* Examples are also linked from the documentation, where loading one is a
-         request to go and look at it; an example picked in the gallery closes
-         it. The schemes hold of the program and options they were inferred
-         under only. *)
-      {
-        edit_model = edit_update model.edit_model edit_msg;
-        run_model;
-        error_view = { active_error = None; hovered_error = None; stale_errors };
-        navigation =
-          (if loaded then
-             { model.navigation with page = Editor; gallery = None }
-           else model.navigation);
-        checked =
-          {
-            model.checked with
-            definitions = [];
-            links = [];
-            accepted = (if edited then None else model.checked.accepted);
-          };
-        popovers = { model.popovers with link = None };
-        notices = unflashed model.notices;
-        declarations =
-          (if loaded then { model.declarations with declarations_open = false }
-           else model.declarations);
-        status =
-          {
-            model.status with
-            last_check =
-              (if loaded then None
-               else
-                 Option.map
-                   (fun check -> { check with current = false })
-                   model.status.last_check);
-          };
-        compilation =
-          {
-            model.compilation with
-            reports_compilation =
-              model.compilation.reports_compilation && not edited;
-            code_view = (if loaded then Source else model.compilation.code_view);
-            compiled =
-              (if loaded then None
-               else
-                 Option.map
-                   (fun compiled -> { compiled with up_to_date = false })
-                   model.compilation.compiled);
-          };
-      }
-  | RunMsg run_msg -> (
-      match model.run_model with
-      | Ok run_model -> (
-          match run_update run_model run_msg with
-          | run_model -> { model with run_model = Ok run_model }
-          | exception exn ->
-              let model = without_popover model in
-              {
-                model with
-                run_model = Error (errors_of_exception Running exn);
-                error_view = unselected model.error_view;
-                compilation =
-                  { model.compilation with reports_compilation = false };
-              })
-      | Error _ -> model)
-  | Perform action ->
-      let run = action = Run in
-      let entry = backend model.edit_model in
-      let declared =
-        match declarations model.edit_model with
-        | Ok sources -> sources
-        | Error _ -> []
-      in
-      let run_model, definitions, links, accepted =
-        try
-          match
-            ( List.assoc_opt model.edit_model.selected_grades
-                Grades.GradeRegistry.grade_modules,
-              declarations model.edit_model )
-          with
-          | None, _ ->
-              ( Error
-                  [
-                    fatal
-                      (Printf.sprintf "Unknown grades `%s`"
-                         model.edit_model.selected_grades);
-                  ],
-                [],
-                [],
-                None )
-          | _, Error message -> (Error [ fatal message ], [], [], None)
-          | Some (module G : Grades.Grade.S), Ok _ ->
-              let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
-              let module L = Loader.Loader (B) in
-              (* The standard library is loaded as a source of its own, so
-                 that an editor location is a location in what the user
-                 typed. *)
-              let program =
-                L.load_program ~use_stdlib:model.edit_model.use_stdlib
-                  (List.map
-                     (fun (d : BackendRegistry.source) ->
-                       L.parse_source ~filename:d.filename
-                         ~running_times:d.running_times d.text)
-                     declared
-                  @ [ L.parse_source model.edit_model.unparsed_code ])
-              in
-              let state = program.loaded
-              and diagnostics = program.diagnostics
-              and accepted = program.definitions
-              and library_definitions = program.library_definitions
-              and references = program.links in
-              let triple (d : L.definition) = (d.variable, d.at, d.scheme) in
-              let definitions =
-                defined ~source:model.edit_model.unparsed_code
-                  ~name:Language.Ast.Variable.string_of
-                  ~scheme_layout:(L.TC.scheme_layout state.typechecker)
-                  (List.map triple accepted)
-              and links =
-                linked ~library:L.stdlib_source
-                  ~library_definitions:(List.map triple library_definitions)
-                  ~declarations:
-                    (List.map
-                       (fun (d : BackendRegistry.source) ->
-                         {
-                           WebDeclarations.filename = d.filename;
-                           text = d.text;
-                         })
-                       declared)
-                  ~definitions:(List.map triple accepted)
-                  ~name:Language.Ast.Variable.string_of
-                  ~scheme_layout:(L.TC.scheme_layout state.typechecker)
-                  references
-              in
-              (* The run model state of a run state of [B], the types of the
-                 grades hidden in closures. *)
-              let rec make_run_state ~completed_runs ~observer
-                  (rs : B.run_state) : run_model_state =
-                {
-                  steps =
-                    List.map
-                      (fun (step : B.step) ->
-                        (* the observer observes the step once it is
-                           taken *)
-                        let next_observer () =
-                          Option.map
-                            (fun (o : BackendRegistry.observer) ->
-                              List.fold_left
-                                (fun (o : BackendRegistry.observer) ->
-                                  o.observe)
-                                o (B.observe rs step))
-                            observer
-                        in
-                        let next_completed_runs =
-                          if B.is_end_of_run_label step.label then
-                            completed_runs
-                            @ [
-                                {
-                                  view_completed =
-                                    (fun () -> B.view_run_state rs None);
-                                };
-                              ]
-                          else completed_runs
-                        in
-                        {
-                          label_vdom =
-                            (B.view_step_label step.label : msg Vdom.vdom);
-                          view_highlighted =
-                            (fun () -> B.view_run_state rs (Some step.label));
-                          next_state =
-                            (fun () ->
-                              make_run_state ~completed_runs:next_completed_runs
-                                ~observer:(next_observer ())
-                                (step.next_state ()));
-                        })
-                      (B.steps rs);
-                  view = (fun () -> B.view_run_state rs None);
-                  completed_runs;
-                  is_done = B.is_done rs;
-                  observer;
-                }
-              in
-              let commands = program.commands
-              and operations = program.operations
-              and compound = program.compound_operations in
-              let effect_definitions =
-                List.map
-                  (fun (d : L.definition) ->
-                    ( d.variable,
-                      match L.TC.function_effect state.typechecker d.scheme with
-                      | Typechecker.Not_a_function ->
-                          BackendRegistry.Not_a_function
-                      | Typechecker.Effect_variable -> Effect_variable
-                      | Typechecker.Effect { grade; durations } ->
-                          Effect { grade; durations } ))
-                  accepted
-              in
-              let accepted (compiler : BackendRegistry.compiler) settings =
-                compiler.compile settings ~operations ~compound
-                  ~definitions:effect_definitions commands
-              in
-              if diagnostics <> [] then
-                ( Error
-                    (List.map
-                       (fun diagnostic -> { diagnostic; hovered_label = None })
-                       diagnostics),
-                  definitions,
-                  links,
-                  None )
-              else if run then
-                let observer =
-                  Option.map
-                    (fun observer -> observer (settings model.edit_model))
-                    entry.observer
-                in
-                ( Ok
-                    (run_init
-                       (make_run_state ~completed_runs:[] ~observer
-                          (B.run state.backend))),
-                  definitions,
-                  links,
-                  Some accepted )
-              else (Error [], definitions, links, Some accepted)
-        with exn -> (Error (errors_of_exception Checking exn), [], [], None)
-      in
-      (* A program accepted by a check, not run, reports the errors of its
-         compilation. *)
-      let reports_compilation = (not run) && Option.is_some accepted in
-      let model =
-        { model with checked = { definitions; links; accepted; declared } }
-      in
-      let compiled = compile model in
-      let run_model =
-        if reports_compilation then Error (compilation_errors compiled)
-        else run_model
-      in
-      let model = without_popover model in
-      {
-        model with
-        run_model;
-        compilation = { model.compilation with reports_compilation; compiled };
-        error_view =
-          { active_error = None; hovered_error = None; stale_errors = false };
-        popovers = { model.popovers with link = None };
-        notices = unflashed model.notices;
-        status =
-          {
-            model.status with
-            checking = None;
-            last_check =
-              (let errors, warnings =
-                 match run_model with
-                 | Error reported -> counted reported
-                 | Ok _ -> (0, 0)
-               in
-               Some
-                 {
-                   errors;
-                   warnings;
-                   definitions = List.length definitions;
-                   current = true;
-                 });
-          };
-      }
-  | EditCode ->
-      let model = without_popover model in
-      {
-        model with
-        run_model = Error [];
-        compilation = { model.compilation with reports_compilation = false };
-        error_view =
-          { active_error = None; hovered_error = None; stale_errors = false };
-      }
-  | HoverLabel hovered -> (
-      match model.run_model with
-      | Error errors ->
-          let errors =
-            List.mapi
-              (fun i error ->
-                let hovered_label =
-                  match hovered with
-                  | Some (i', j) when i' = i -> Some j
-                  | _ -> None
-                in
-                { error with hovered_label })
-              errors
-          in
-          { model with run_model = Error errors }
-      | Ok _ -> model)
-  | ShowPage page ->
-      let model = without_popover model in
-      { model with navigation = { model.navigation with page } }
-  | ShowCode code_view ->
-      let model = without_popover model in
-      { model with compilation = { model.compilation with code_view } }
-  | HoverError hovered_error ->
-      { model with error_view = { model.error_view with hovered_error } }
-  | OpenGallery ->
-      let model = without_popover model in
-      {
-        model with
-        navigation =
-          { model.navigation with gallery = Some ""; gallery_group = None };
-      }
-  | CloseGallery ->
-      { model with navigation = { model.navigation with gallery = None } }
-  | SearchGallery query ->
-      { model with navigation = { model.navigation with gallery = Some query } }
-  | ReachHeading id ->
-      {
-        model with
-        navigation = { model.navigation with docs_heading = Some id };
-      }
-  | ReachGroup id ->
-      {
-        model with
-        navigation = { model.navigation with gallery_group = Some id };
-      }
-  | OverLink link -> { model with popovers = { model.popovers with link } }
-  | ShowDeclarations declarations_open ->
-      {
-        model with
-        declarations = { model.declarations with declarations_open };
-      }
-  | Abbreviate abbreviated ->
-      { model with status = { model.status with abbreviated } }
-  | Unflash serial when serial = model.notices.flash_serial ->
-      { model with notices = unflashed model.notices }
-  | Unnotice serial when serial = model.notices.notice_serial ->
-      { model with notices = { model.notices with notice = None } }
-  (* A program edited since its check keeps its code, out of date. *)
-  | Recompile serial when serial = model.compilation.compile_serial -> (
-      match compile model with
-      | Some compiled -> recompiled model (Some compiled)
-      | None -> model)
-  | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
-  | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
-  | GoToError _ | Recompile _ | CopyLink | CopyLineLink _ | Copied _
-  | Unnotice _ | ShowDocs _ ->
-      model
-
-(** How long the confirmation of a copied link is shown, in milliseconds. *)
+(* How long the confirmation of a copied link is shown, in milliseconds. *)
 let notice_duration = 2000
 
 (* The notice [notice] shown, replacing any earlier one; the confirmation of a
@@ -1218,157 +839,560 @@ let go_to_error model i =
 let line_links model =
   model.compilation.code_view = Source && unedited model.edit_model
 
+(* Checks and runs *)
+
+(* The run model state of the run state [rs] of [B], after the runs
+   [completed_runs] and observed by [observer], the types of the grades hidden
+   in closures. The observer observes a step once it is taken. *)
+let rec make_run_state : type run_state.
+    (module WebBackend.S with type run_state = run_state) ->
+    completed_runs:completed_run_view list ->
+    observer:BackendRegistry.observer option ->
+    run_state ->
+    run_model_state =
+ fun (module B) ~completed_runs ~observer rs ->
+  let concrete (step : B.step) =
+    let next_observer () =
+      Option.map
+        (fun (o : BackendRegistry.observer) ->
+          List.fold_left
+            (fun (o : BackendRegistry.observer) -> o.observe)
+            o (B.observe rs step))
+        observer
+    in
+    let next_completed_runs =
+      if B.is_end_of_run_label step.label then
+        completed_runs
+        @ [ { view_completed = (fun () -> B.view_run_state rs None) } ]
+      else completed_runs
+    in
+    {
+      label_vdom = (B.view_step_label step.label : msg Vdom.vdom);
+      view_highlighted = (fun () -> B.view_run_state rs (Some step.label));
+      next_state =
+        (fun () ->
+          make_run_state
+            (module B)
+            ~completed_runs:next_completed_runs ~observer:(next_observer ())
+            (step.next_state ()));
+    }
+  in
+  {
+    steps = List.map concrete (B.steps rs);
+    view = (fun () -> B.view_run_state rs None);
+    completed_runs;
+    is_done = B.is_done rs;
+    observer;
+  }
+
+(* The program of [edit_model] loaded under the grades [G] after the
+   declarations [declared], and, under [run] and without errors, run: the run
+   or the errors reported, and what the check has found. *)
+let check_with (module G : Grades.Grade.S) ~run edit_model declared =
+  let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
+  let module L = Loader.Loader (B) in
+  (* The standard library is loaded as a source of its own, so that an editor
+     location is a location in what the user typed. *)
+  let program =
+    L.load_program ~use_stdlib:edit_model.use_stdlib
+      (List.map
+         (fun (d : BackendRegistry.source) ->
+           L.parse_source ~filename:d.filename ~running_times:d.running_times
+             d.text)
+         declared
+      @ [ L.parse_source edit_model.unparsed_code ])
+  in
+  let state = program.loaded in
+  let scheme_layout = L.TC.scheme_layout state.typechecker in
+  let triple (d : L.definition) = (d.variable, d.at, d.scheme) in
+  let definitions =
+    defined ~source:edit_model.unparsed_code
+      ~name:Language.Ast.Variable.string_of ~scheme_layout
+      (List.map triple program.definitions)
+  and links =
+    linked ~library:L.stdlib_source
+      ~library_definitions:(List.map triple program.library_definitions)
+      ~declarations:
+        (List.map
+           (fun (d : BackendRegistry.source) ->
+             { WebDeclarations.filename = d.filename; text = d.text })
+           declared)
+      ~definitions:(List.map triple program.definitions)
+      ~name:Language.Ast.Variable.string_of ~scheme_layout program.links
+  in
+  let effect_definitions =
+    List.map
+      (fun (d : L.definition) ->
+        ( d.variable,
+          match L.TC.function_effect state.typechecker d.scheme with
+          | Typechecker.Not_a_function -> BackendRegistry.Not_a_function
+          | Typechecker.Effect_variable -> Effect_variable
+          | Typechecker.Effect { grade; durations } ->
+              Effect { grade; durations } ))
+      program.definitions
+  in
+  let accepted (compiler : BackendRegistry.compiler) settings =
+    compiler.compile settings ~operations:program.operations
+      ~compound:program.compound_operations ~definitions:effect_definitions
+      program.commands
+  in
+  let checked accepted = { definitions; links; accepted; declared } in
+  if program.diagnostics <> [] then
+    ( Error
+        (List.map
+           (fun diagnostic -> { diagnostic; hovered_label = None })
+           program.diagnostics),
+      checked None )
+  else if run then
+    let observer =
+      Option.map
+        (fun observer -> observer (settings edit_model))
+        (backend edit_model).observer
+    in
+    ( Ok
+        (run_init
+           (make_run_state
+              (module B)
+              ~completed_runs:[] ~observer (B.run state.backend))),
+      checked (Some accepted) )
+  else (Error [], checked (Some accepted))
+
+(* The program of [edit_model] checked under the grades selected after the
+   declarations of the selected backend, and run under [run]; an exception
+   raised meanwhile is reported as an error. *)
+let check_program ~run edit_model =
+  let declared =
+    match declarations edit_model with Ok sources -> sources | Error _ -> []
+  in
+  let failed errors =
+    (Error errors, { definitions = []; links = []; accepted = None; declared })
+  in
+  try
+    match
+      ( List.assoc_opt edit_model.selected_grades
+          Grades.GradeRegistry.grade_modules,
+        declarations edit_model )
+    with
+    | None, _ ->
+        failed
+          [
+            fatal
+              (Printf.sprintf "Unknown grades `%s`" edit_model.selected_grades);
+          ]
+    | _, Error message -> failed [ fatal message ]
+    | Some grades, Ok _ -> check_with grades ~run edit_model declared
+  with exn -> failed (errors_of_exception Checking exn)
+
+(* Updates of the model without effects *)
+
+(* The code compiled, out of date. *)
+let outdated compilation =
+  {
+    compilation with
+    compiled =
+      Option.map
+        (fun compiled -> { compiled with up_to_date = false })
+        compilation.compiled;
+  }
+
+(* The model after [edit_msg]. A backend is selected with its default
+   example, loaded as from the gallery; otherwise the program stays checked
+   under another backend, which compiles it at once, and under a changed input,
+   compiled after a rest (see [edit]). Any other edit changes the program or
+   the options it is checked under (see [edited_program]). *)
+let rec edited model edit_msg =
+  match edit_msg with
+  | SelectBackend key -> (
+      match default_example key with
+      | Some (group, e) -> edited model (LoadExample (group, e))
+      | None ->
+          let model =
+            { model with edit_model = edit_update model.edit_model edit_msg }
+          in
+          recompiled model (compile model))
+  | SetInput _ ->
+      {
+        model with
+        edit_model = edit_update model.edit_model edit_msg;
+        compilation = outdated model.compilation;
+      }
+  | UseStdlib _ | ChangeSource _ | InsertIndent _ | LoadExample _
+  | SelectGrades _ ->
+      edited_program model edit_msg
+
+(* The model after [edit_msg], which changes the program or its options. A
+   loaded example replaces the program, so the errors of the old one go with
+   it; an edit only makes them out of date. Examples are also linked from the
+   documentation, where loading one is a request to go and look at it; an
+   example picked in the gallery closes it. The schemes hold of the program and
+   options they were inferred under only. *)
+and edited_program model edit_msg =
+  let loaded = match edit_msg with LoadExample _ -> true | _ -> false in
+  let run_model, stale_errors =
+    if loaded then (Error [], false)
+    else
+      (model.run_model, model.error_view.stale_errors || edits_source edit_msg)
+  in
+  let edited = edits_program edit_msg in
+  let model = without_popover model in
+  {
+    edit_model = edit_update model.edit_model edit_msg;
+    run_model;
+    error_view = { active_error = None; hovered_error = None; stale_errors };
+    navigation =
+      (if loaded then { model.navigation with page = Editor; gallery = None }
+       else model.navigation);
+    checked =
+      {
+        model.checked with
+        definitions = [];
+        links = [];
+        accepted = (if edited then None else model.checked.accepted);
+      };
+    popovers = { model.popovers with link = None };
+    notices = unflashed model.notices;
+    declarations =
+      (if loaded then { model.declarations with declarations_open = false }
+       else model.declarations);
+    status =
+      {
+        model.status with
+        last_check =
+          (if loaded then None
+           else
+             Option.map
+               (fun check -> { check with current = false })
+               model.status.last_check);
+      };
+    compilation =
+      (if loaded then
+         {
+           model.compilation with
+           reports_compilation = false;
+           code_view = Source;
+           compiled = None;
+         }
+       else
+         {
+           (outdated model.compilation) with
+           reports_compilation =
+             model.compilation.reports_compilation && not edited;
+         });
+  }
+
+(* The model after [run_msg] of the run; an exception raised by the step is
+   reported as an error. *)
+let stepped model run_msg =
+  match model.run_model with
+  | Ok run_model -> (
+      match run_update run_model run_msg with
+      | run_model -> { model with run_model = Ok run_model }
+      | exception exn ->
+          let model = without_popover model in
+          {
+            model with
+            run_model = Error (errors_of_exception Running exn);
+            error_view = unselected model.error_view;
+            compilation = { model.compilation with reports_compilation = false };
+          })
+  | Error _ -> model
+
+(* The model after the check [action] of the program. A program accepted by a
+   check, not run, reports the errors of its compilation. *)
+let performed model action =
+  let run = action = Run in
+  let run_model, checked = check_program ~run model.edit_model in
+  let reports_compilation = (not run) && Option.is_some checked.accepted in
+  let model = { model with checked } in
+  let compiled = compile model in
+  let run_model =
+    if reports_compilation then Error (compilation_errors compiled)
+    else run_model
+  in
+  let errors, warnings =
+    match run_model with Error reported -> counted reported | Ok _ -> (0, 0)
+  in
+  let model = without_popover model in
+  {
+    model with
+    run_model;
+    compilation = { model.compilation with reports_compilation; compiled };
+    error_view =
+      { active_error = None; hovered_error = None; stale_errors = false };
+    popovers = { model.popovers with link = None };
+    notices = unflashed model.notices;
+    status =
+      {
+        model.status with
+        checking = None;
+        last_check =
+          Some
+            {
+              errors;
+              warnings;
+              definitions = List.length checked.definitions;
+              current = true;
+            };
+      };
+  }
+
+(* The editor shown again after a run. *)
+let edit_code model =
+  let model = without_popover model in
+  {
+    model with
+    run_model = Error [];
+    compilation = { model.compilation with reports_compilation = false };
+    error_view =
+      { active_error = None; hovered_error = None; stale_errors = false };
+  }
+
+(* The label [j] of the [i]th error under the pointer, or none. *)
+let hover_label model hovered =
+  match model.run_model with
+  | Error errors ->
+      let errors =
+        List.mapi
+          (fun i error ->
+            let hovered_label =
+              match hovered with
+              | Some (i', j) when i' = i -> Some j
+              | _ -> None
+            in
+            { error with hovered_label })
+          errors
+      in
+      { model with run_model = Error errors }
+  | Ok _ -> model
+
+let map_navigation f model = { model with navigation = f model.navigation }
+
+(* The example gallery open with an empty search. *)
+let open_gallery model =
+  map_navigation
+    (fun n -> { n with gallery = Some ""; gallery_group = None })
+    (without_popover model)
+
+(* Updates of the model with effects *)
+
+(* The check [action] asked for, performed once the page shows it under way;
+   ignored while one is under way. *)
+let request action model =
+  if model.status.checking <> None then (model, [])
+  else
+    ( { model with status = { model.status with checking = Some action } },
+      [ Perform_after_paint action ] )
+
+(* The model after [edit_msg]; a changed input is compiled after a rest. *)
+let edit model edit_msg =
+  match edit_msg with
+  | SetInput _ ->
+      let compile_serial = model.compilation.compile_serial + 1 in
+      ( edited
+          { model with compilation = { model.compilation with compile_serial } }
+          edit_msg,
+        [ After (compile_delay, Recompile compile_serial) ] )
+  | UseStdlib _ | ChangeSource _ | InsertIndent _ | LoadExample _
+  | SelectGrades _ | SelectBackend _ ->
+      (edited model edit_msg, [])
+
+(* The inputs of the backend at rest since the change of [serial], unless
+   superseded. Inputs that change the declarations of the backend, such as the
+   packages of a device manifest, change the program: it is checked again.
+   Otherwise the program is compiled with them; a program edited since its
+   check keeps its code, out of date. *)
+let recompile model serial =
+  if serial <> model.compilation.compile_serial then (model, [])
+  else if model.status.checking = None && declarations_changed model then
+    request Check model
+  else
+    match compile model with
+    | Some compiled -> (recompiled model (Some compiled), [])
+    | None -> (model, [])
+
+(* The pointer moved onto [pointer] at [point] of the viewport, with the link
+   [link] under it while the modifier of links is held. *)
+let point model pointer link point =
+  if pointer = model.popovers.pointer then
+    ( (if link = model.popovers.link then model
+       else map_popovers (fun p -> { p with link }) model),
+      [] )
+  else
+    let model = map_popovers (fun p -> { p with pointer; link }) model in
+    match (pointer, model.popovers.popover) with
+    | Over_popover, _ ->
+        ((if model.popovers.closing then disarm model else model), [])
+    | Over_target t, Some p when p.target = t ->
+        ((if p.shown then disarm model else model), [])
+    (* from one target to another while a popover is open: no delay *)
+    | Over_target t, Some { shown = true; _ } -> show ~point t model
+    | Over_target t, _ ->
+        let model, effects = arm ~closing:false open_delay model in
+        ( map_popovers
+            (fun p ->
+              {
+                p with
+                popover =
+                  Some
+                    {
+                      target = t;
+                      point = Some point;
+                      shown = false;
+                      placement = None;
+                    };
+              })
+            model,
+          effects )
+    | Nowhere, Some { shown = true; _ } ->
+        if model.popovers.closing then (model, [])
+        else arm ~closing:true close_delay model
+    | Nowhere, Some _ -> (close model, [])
+    | Nowhere, None -> (model, [])
+
+(* The popover timer of [timer] run out, unless superseded. *)
+let elapse model timer =
+  if timer <> model.popovers.timer then (model, [])
+  else
+    match model.popovers.popover with
+    | Some _ when model.popovers.closing -> (close model, [])
+    | Some p when not p.shown ->
+        ( map_popovers
+            (fun ps -> { ps with popover = Some { p with shown = true } })
+            model,
+          [ Measure_popover ] )
+    | _ -> (model, [])
+
+(* The drawn popover of [target] measured as [placement]. A scheme laid out
+   for another width is laid out again first. *)
+let place model target (placement : placement option) =
+  match (model.popovers.popover, placement) with
+  | Some p, Some { columns = Some _ as columns; _ }
+    when p.shown && p.target = target && columns <> model.popovers.columns ->
+      (map_popovers (fun ps -> { ps with columns }) model, [ Measure_popover ])
+  | Some p, Some _ when p.shown && p.target = target ->
+      ( map_popovers
+          (fun ps -> { ps with popover = Some { p with placement } })
+          model,
+        [] )
+  | Some p, None when p.target = target -> (close model, [])
+  | _ -> (model, [])
+
+(* The caret placed at [offset] of the editor, in UTF-16 code units. Edited
+   source: the spans no longer say where the caret is. The popover of the
+   target the caret enters opens, and one it opened closes as the caret
+   leaves; the caret staying within a target leaves it alone, so that Escape
+   keeps the popover closed. *)
+let caret_at model offset =
+  match model.run_model with
+  | Error errors when not model.error_view.stale_errors -> (
+      let offset = byte_offset model.edit_model.unparsed_code offset in
+      let target =
+        target_at errors model.checked.definitions model.checked.links offset
+      in
+      let model =
+        {
+          model with
+          error_view =
+            { model.error_view with active_error = error_at errors offset };
+        }
+      in
+      if target = model.popovers.caret_target then (model, [])
+      else
+        let model =
+          map_popovers (fun p -> { p with caret_target = target }) model
+        in
+        match (target, model.popovers.popover) with
+        | Some t, _ -> show t model
+        | None, Some { point = None; _ } -> (close model, [])
+        | None, _ -> (model, []))
+  | _ -> (model, [])
+
+(* The definition of the name at [offset] of the editor, in UTF-16 code units,
+   gone to. *)
+let follow_at model offset =
+  match
+    link_at model.checked.links
+      (byte_offset model.edit_model.unparsed_code offset)
+  with
+  | Some k when not model.error_view.stale_errors -> follow model k
+  | _ -> (model, [])
+
+(* The page [docs_page] of the documentation shown at [heading]. *)
+let show_docs model docs_page heading =
+  ( map_navigation
+      (fun n -> { n with page = Docs; docs_page; docs_heading = heading })
+      (without_popover model),
+    [ Scroll_to_heading heading ] )
+
 (* The model after [msg] and the effects it asks for, except the remembering
    of the choices, which [update] adds. *)
 let respond model msg =
+  let pure model = (model, []) in
   match msg with
-  | Point (pointer, link, _) when pointer = model.popovers.pointer ->
-      ( (if link = model.popovers.link then model
-         else map_popovers (fun p -> { p with link }) model),
-        [] )
-  | Point (pointer, link, point) -> (
-      let model = map_popovers (fun p -> { p with pointer; link }) model in
-      match (pointer, model.popovers.popover) with
-      | Over_popover, _ ->
-          ((if model.popovers.closing then disarm model else model), [])
-      | Over_target t, Some p when p.target = t ->
-          ((if p.shown then disarm model else model), [])
-      (* from one target to another while a popover is open: no delay *)
-      | Over_target t, Some { shown = true; _ } -> show ~point t model
-      | Over_target t, _ ->
-          let model, effects = arm ~closing:false open_delay model in
-          ( map_popovers
-              (fun p ->
-                {
-                  p with
-                  popover =
-                    Some
-                      {
-                        target = t;
-                        point = Some point;
-                        shown = false;
-                        placement = None;
-                      };
-                })
-              model,
-            effects )
-      | Nowhere, Some { shown = true; _ } ->
-          if model.popovers.closing then (model, [])
-          else arm ~closing:true close_delay model
-      | Nowhere, Some _ -> (close model, [])
-      | Nowhere, None -> (model, []))
-  | Reveal target -> show target model
-  | Conceal -> (close model, [])
-  | Elapsed timer when timer = model.popovers.timer -> (
-      match model.popovers.popover with
-      | Some _ when model.popovers.closing -> (close model, [])
-      | Some p when not p.shown ->
-          ( map_popovers
-              (fun ps -> { ps with popover = Some { p with shown = true } })
-              model,
-            [ Measure_popover ] )
-      | _ -> (model, []))
-  | Elapsed _ -> (model, [])
-  | Place (target, placement) -> (
-      match (model.popovers.popover, placement) with
-      (* a scheme laid out for another width is laid out again first *)
-      | Some p, Some { columns = Some _ as columns; _ }
-        when p.shown && p.target = target && columns <> model.popovers.columns
-        ->
-          ( map_popovers (fun ps -> { ps with columns }) model,
-            [ Measure_popover ] )
-      | Some p, Some _ when p.shown && p.target = target ->
-          ( map_popovers
-              (fun ps -> { ps with popover = Some { p with placement } })
-              model,
-            [] )
-      | Some p, None when p.target = target -> (close model, [])
-      | _ -> (model, []))
+  | EditMsg edit_msg -> edit model edit_msg
+  | RunMsg run_msg -> pure (stepped model run_msg)
+  | CheckCode -> request Check model
+  | RunCode -> request Run model
+  | Perform action -> pure (performed model action)
+  | EditCode -> pure (edit_code model)
+  | Recompile serial -> recompile model serial
+  | HoverLabel hovered -> pure (hover_label model hovered)
+  | HoverError hovered_error ->
+      pure { model with error_view = { model.error_view with hovered_error } }
+  | GoToError i -> go_to_error model i
   | ShowFullError i ->
       let model, effects = flash (Message i) (close model) in
       (model, Scroll_to_error i :: effects)
-  | GoToError i -> go_to_error model i
-  (* The check is performed once the page shows it under way; a press while
-     one is under way is ignored. *)
-  | (CheckCode | RunCode) when model.status.checking <> None -> (model, [])
-  | CheckCode | RunCode ->
-      let action = match msg with RunCode -> Run | _ -> Check in
-      ( { model with status = { model.status with checking = Some action } },
-        [ Perform_after_paint action ] )
-  | CaretAt offset -> (
-      (* Edited source: the spans no longer say where the caret is. The popover
-         of the target the caret enters opens, and one it opened closes as the
-         caret leaves; the caret staying within a target leaves it alone, so
-         that Escape keeps the popover closed. *)
-      match model.run_model with
-      | Error errors when not model.error_view.stale_errors -> (
-          let offset = byte_offset model.edit_model.unparsed_code offset in
-          let target =
-            target_at errors model.checked.definitions model.checked.links
-              offset
-          in
-          let model =
-            {
-              model with
-              error_view =
-                { model.error_view with active_error = error_at errors offset };
-            }
-          in
-          if target = model.popovers.caret_target then (model, [])
-          else
-            let model =
-              map_popovers (fun p -> { p with caret_target = target }) model
-            in
-            match (target, model.popovers.popover) with
-            | Some t, _ -> show t model
-            | None, Some { point = None; _ } -> (close model, [])
-            | None, _ -> (model, []))
-      | _ -> (model, []))
+  | Abbreviate abbreviated ->
+      pure { model with status = { model.status with abbreviated } }
+  | ShowPage page ->
+      pure (map_navigation (fun n -> { n with page }) (without_popover model))
+  | ShowDocs (docs_page, heading) -> show_docs model docs_page heading
+  | ReachHeading id ->
+      pure (map_navigation (fun n -> { n with docs_heading = Some id }) model)
+  | OpenGallery ->
+      ( open_gallery model,
+        if model.edit_model.selected_example <> None then
+          [ Focus_current_example ]
+        else [] )
+  | CloseGallery ->
+      pure (map_navigation (fun n -> { n with gallery = None }) model)
+  | SearchGallery query ->
+      pure (map_navigation (fun n -> { n with gallery = Some query }) model)
+  | ReachGroup id ->
+      pure (map_navigation (fun n -> { n with gallery_group = Some id }) model)
+  | Point (pointer, link, at) -> point model pointer link at
+  | OverLink link -> pure (map_popovers (fun p -> { p with link }) model)
+  | Reveal target -> show target model
+  | Conceal -> pure (close model)
+  | Elapsed timer -> elapse model timer
+  | Place (target, placement) -> place model target placement
+  | CaretAt offset -> caret_at model offset
   | Follow k -> follow model k
-  | FollowAt offset -> (
-      match
-        link_at model.checked.links
-          (byte_offset model.edit_model.unparsed_code offset)
-      with
-      | Some k when not model.error_view.stale_errors -> follow model k
-      | _ -> (model, []))
-  (* Inputs that change the declarations of the backend, such as the
-     packages of a device manifest, change the program: it is checked
-     again. *)
-  | Recompile serial
-    when serial = model.compilation.compile_serial
-         && model.status.checking = None
-         && declarations_changed model ->
-      ( { model with status = { model.status with checking = Some Check } },
-        [ Perform_after_paint Check ] )
-  | EditMsg (SetInput _) ->
-      let compile_serial = model.compilation.compile_serial + 1 in
-      ( update_model
-          { model with compilation = { model.compilation with compile_serial } }
-          msg,
-        [ After (compile_delay, Recompile compile_serial) ] )
-  | OpenGallery when model.edit_model.selected_example <> None ->
-      (update_model model msg, [ Focus_current_example ])
-  | ShowDocs (docs_page, heading) ->
-      let model = without_popover model in
-      ( {
+  | FollowAt offset -> follow_at model offset
+  | Unflash serial when serial = model.notices.flash_serial ->
+      pure { model with notices = unflashed model.notices }
+  | Unflash _ -> pure model
+  | ShowCode code_view ->
+      pure
+        (let model = without_popover model in
+         { model with compilation = { model.compilation with code_view } })
+  | ShowDeclarations declarations_open ->
+      pure
+        {
           model with
-          navigation =
-            {
-              model.navigation with
-              page = Docs;
-              docs_page;
-              docs_heading = heading;
-            };
-        },
-        [ Scroll_to_heading heading ] )
+          declarations = { model.declarations with declarations_open };
+        }
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
   | CopyLineLink line when line_links model ->
       let model, effects = flash (Copied_line line) model in
       (model, Copy_link (link ~line model.edit_model) :: effects)
+  | CopyLineLink _ -> pure model
   | Copied (url, copied) ->
       notify model (if copied then Link_copied else Copy_failed url)
-  | _ -> (update_model model msg, [])
+  | Unnotice serial when serial = model.notices.notice_serial ->
+      pure { model with notices = { model.notices with notice = None } }
+  | Unnotice _ -> pure model
 
 (* Whether a message changes the choices the browser remembers. *)
 let changes_choices = function
