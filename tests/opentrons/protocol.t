@@ -433,7 +433,7 @@ implementation, is a warning, and such a compound operation is not.
 
   $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons atomic_handled.py \
   >   --bind protocol_bindings.py protocol_atomic_handled.tpe
-  Warning: operation `Probe`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
+  Warning: Operation `Probe`, which run 1 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
   Wrote _opentrons/protocols/atomic_handled.py
 
 An atomic operation that a handler in a run's code has a case for, but that
@@ -442,7 +442,7 @@ definition that no run uses is not compiled, nor are its operations checked.
 
   $ ../../tempore --grades time-interval --emit-opentrons ok.py \
   >   --bind protocol_bindings.py protocol_ok.tpe
-  Warning: operation `Probe`, which run 2 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
+  Warning: Operation `Probe`, which run 2 may perform, has neither a binding function nor a default implementation; a handler in the run's code has a case for it, so the run fails only if it performs it outside every such handler
   Wrote _opentrons/protocols/ok.py
   $ simulate ok.py
   requirements: {'robotType': 'Flex', 'apiLevel': '2.30'}
@@ -517,8 +517,8 @@ implementation declared above the run, refuses the protocol.
 
   $ ../../tempore --grades time-interval --emit-opentrons lost.py \
   >   --bind protocol_bindings.py protocol_lost.tpe
-  Error: operation `Lost`, which run 1 may perform, has neither a binding function nor a default implementation
-  Error: operation `Shake`, which run 1 may perform, has neither a binding function nor a default implementation
+  Error: Operation `Lost`, which run 1 may perform, has neither a binding function nor a default implementation
+  Error: Operation `Shake`, which run 1 may perform, has neither a binding function nor a default implementation
   [1]
   $ test -e _opentrons/protocols/lost.py
   [1]
@@ -535,8 +535,8 @@ of the protocol or those of the compiled program, and must define setup.
   Error: protocol_bad_bindings.py, line 11: the name `run` is defined by the protocol
   Error: protocol_bad_bindings.py, line 15: the name `probe_0` is defined by the compiled program
   Error: protocol_bad_bindings.py: no function `setup` is defined
-  Error: operation `Pipette`, which run 1 may perform, has neither a binding function nor a default implementation
-  Error: operation `Pipette`, which run 3 may perform, has neither a binding function nor a default implementation
+  Error: Operation `Pipette`, which run 1 may perform, has neither a binding function nor a default implementation
+  Error: Operation `Pipette`, which run 3 may perform, has neither a binding function nor a default implementation
   [1]
 
 The Flex is the only robot.

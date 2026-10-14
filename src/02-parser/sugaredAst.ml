@@ -27,13 +27,12 @@ and ('rho, 'eps) plain_ty =
       (** [(ty1, ty2, ..., tyn) type_name] *)
   | TyParam of ty_param  (** ['a] *)
   | TyArrow of ('rho, 'eps) ty * ('rho, 'eps) plain_comp_ty
-      (** [ty1 -> ty2 ! eps] *)
+      (** [ty1 -> ty2 # eps] *)
   | TyTuple of ('rho, 'eps) ty list  (** [ty1 * ty2 * ... * tyn] *)
   | TyBox of 'rho * ('rho, 'eps) ty  (** [ [rho]ty ] *)
-  | TyHandler of ('rho, 'eps) plain_comp_ty * ('rho, 'eps) plain_comp_ty
 
 and ('rho, 'eps) plain_comp_ty =
-  | CompTy of ('rho, 'eps) ty * 'eps  (** [ty ! eps] *)
+  | CompTy of ('rho, 'eps) ty * 'eps  (** [ty # eps] *)
 
 type variable = string
 type label = string
@@ -58,13 +57,16 @@ type ('rho, 'eps) term = ('rho, 'eps) plain_term annotated
 
 and ('rho, 'eps) plain_term =
   | Var of variable  (** variables *)
-  | Const of Language.Const.t  (** integers, strings, booleans, and floats *)
+  | Const of Language.Const.t
+      (** natural numbers, integers, strings, booleans and floats *)
   | Annotated of ('rho, 'eps) term * ('rho, 'eps) ty
   | Tuple of ('rho, 'eps) term list  (** [(t1, t2, ..., tn)] *)
   | Variant of label annotated * ('rho, 'eps) term option
       (** [Label] or [Label t] *)
-  | Lambda of ('rho, 'eps) abstraction  (** [fun p1 p2 ... pn -> t] *)
-  | PureLambda of ('rho, 'eps) abstraction  (** [fun p1 p2 ... pn -> t] *)
+  | Lambda of ('rho, 'eps) abstraction
+      (** [fun p1 p2 ... pn -> t], or a parameter of [let f p1 p2 ... pn = t] *)
+  | PureLambda of ('rho, 'eps) abstraction
+      (** [let rec f p1 p2 ... pn = t]: a parameter of a recursive definition *)
   | Function of ('rho, 'eps) abstraction list
       (** [function p1 -> t1 | ... | pn -> tn] *)
   | Let of ('rho, 'eps) pattern * ('rho, 'eps) term * ('rho, 'eps) term
@@ -76,7 +78,7 @@ and ('rho, 'eps) plain_term =
   | Conditional of ('rho, 'eps) term * ('rho, 'eps) term * ('rho, 'eps) term
       (** [if t then t1 else t2] *)
   | Apply of ('rho, 'eps) term * ('rho, 'eps) term  (** [t1 t2] *)
-  | Delay of Grades.Rational.t  (** [delay q] **)
+  | Delay of Grades.Rational.t  (** [delay q] *)
   | Box of 'rho * ('rho, 'eps) term * ('rho, 'eps) abstraction
       (** [box rho expr as v in n] *)
   | GenBox of 'rho * ('rho, 'eps) term  (** [box rho expr] *)
@@ -88,7 +90,7 @@ and ('rho, 'eps) plain_term =
       ('rho, 'eps) abstraction * (operation * ('rho, 'eps) abstraction) list
   | Continue of ('rho, 'eps) term * ('rho, 'eps) term
   | AnnotatedComp of ('rho, 'eps) term * ('rho, 'eps) ty * 'eps
-      (** [fun p -> t : ty # eps]: the body of a function annotated with its
+      (** [fun p : ty # eps -> t]: the body of a function annotated with its
           computation type, result type and grade *)
   | Handle of ('rho, 'eps) term * ('rho, 'eps) term
 
@@ -114,7 +116,7 @@ and ('rho, 'eps) plain_command =
       * ('rho, 'eps) ty
       * 'eps
       * Grades.Grade.running_time option)
-      (** [operation op : t1 -> t2 # rho within [lo, hi]]; the running-time
+      (** [operation Op : t1 ~> t2 # eps within [lo, hi]]; the running-time
           bounds are optional, read only by the grading monoids of timed
           operations *)
   | OpDefault of operation * ('rho, 'eps) abstraction
@@ -122,4 +124,4 @@ and ('rho, 'eps) plain_command =
           when it reaches the top level unhandled *)
   | TopLet of variable annotated * ('rho, 'eps) term  (** [let x = t] *)
   | TopLetRec of variable annotated * ('rho, 'eps) term  (** [let rec f = t] *)
-  | TopDo of ('rho, 'eps) term  (** [do t] *)
+  | TopDo of ('rho, 'eps) term  (** [run t] *)

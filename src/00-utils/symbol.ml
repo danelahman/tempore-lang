@@ -4,16 +4,8 @@ module type S = sig
   val compare : t -> t -> int
   val equal : t -> t -> bool
   val fresh : string -> t
-
   val fresh_synthetic : string -> t
-  (** A symbol the compiler invented rather than read from the source, such as a
-      variable the desugarer binds to hoist a subcomputation. Error messages
-      must never name one. *)
-
   val is_synthetic : t -> bool
-  (** Whether the symbol came from {!fresh_synthetic}, directly or through
-      {!refresh}. *)
-
   val refresh : t -> t
   val print : t -> Format.formatter -> unit
   val string_of : t -> string

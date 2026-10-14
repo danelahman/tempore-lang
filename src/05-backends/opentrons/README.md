@@ -148,12 +148,7 @@ Further targets and variables:
 
 - `make opentrons-simulate-all` simulates every example;
 - `make examples-help` lists the targets;
-- `MONITOR=warn` sets the monitor policy;
-- `scripts/opentrons-simulate.sh [VENV_DIR]` simulates every example with
-  the virtual environment `VENV_DIR` (default `_opentrons`), which it
-  creates and installs the package in if needed (the network is then
-  needed), writing the protocols and logs to the directory of the
-  environment.
+- `MONITOR=warn` sets the monitor policy.
 
 ### Fragments
 

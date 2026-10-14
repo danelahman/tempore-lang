@@ -33,7 +33,7 @@ type config = {
   use_stdlib : bool;
   debug : bool;
   typecheck_only : bool;
-  resource_type : string;
+  grades : string;
   emit_opentrons : string option;
   emit_arduino : string option;
   device : string option;
@@ -95,7 +95,7 @@ let duration_of_string option s =
       Z.to_int (Z.fdiv (Grades.Rational.num us) (Grades.Rational.den us))
   | _ | (exception Invalid_argument _) -> bad ()
 
-let accepted_resource_names = List.map fst Grades.GradeRegistry.grade_modules
+let accepted_grade_names = List.map fst Grades.GradeRegistry.grade_modules
 
 (* The accepted grades, one per line and grouped as the web selector groups
    them, each with its title in a column after the longest name and, for a
@@ -137,7 +137,7 @@ let parse_args_to_config () =
   and use_stdlib = ref true
   and debug = ref false
   and typecheck_only = ref false
-  and resource_type = ref Grades.GradeRegistry.default_name
+  and grades = ref Grades.GradeRegistry.default_name
   and emit_opentrons = ref None
   and emit_arduino = ref None
   and device = ref None
@@ -234,7 +234,7 @@ let parse_args_to_config () =
            given file, without running them; a file name without a directory \
            names a file in _opentrons/protocols" );
         ( "--grades",
-          Arg.Set_string resource_type,
+          Arg.Set_string grades,
           Printf.sprintf " Selects the grades (default: %s); accepted:%s"
             Grades.GradeRegistry.default_name accepted_grades_help );
         ( "--help",
@@ -436,7 +436,7 @@ let parse_args_to_config () =
     use_stdlib = !use_stdlib;
     debug = !debug;
     typecheck_only = !typecheck_only;
-    resource_type = !resource_type;
+    grades = !grades;
     emit_opentrons = !emit_opentrons;
     emit_arduino = !emit_arduino;
     device = !device;
@@ -981,7 +981,7 @@ let run_with (module G : Grades.Grade.S) config =
       | None -> config.board
     in
     let checked ~refuse (package : Package.t) =
-      match Package.files_for ~grades:config.resource_type ?board package with
+      match Package.files_for ~grades:config.grades ?board package with
       | Ok files -> (package, files)
       | Error message -> refuse message
     in
@@ -1101,14 +1101,12 @@ let run_with (module G : Grades.Grade.S) config =
 
 let main () =
   let config = parse_args_to_config () in
-  match
-    List.assoc_opt config.resource_type Grades.GradeRegistry.grade_modules
-  with
+  match List.assoc_opt config.grades Grades.GradeRegistry.grade_modules with
   | Some grade -> run_with grade config
   | None ->
-      Printf.eprintf "Unknown grades '%s'. Accepted: %s\n" config.resource_type
+      Printf.eprintf "Unknown grades `%s`. Accepted: %s\n" config.grades
         (String.concat ", "
-           (List.map (fun s -> "'" ^ s ^ "'") accepted_resource_names));
+           (List.map (fun s -> "`" ^ s ^ "`") accepted_grade_names));
       exit 1
 
 let _ = main ()

@@ -203,17 +203,4 @@ module Make (C : Constraint.S) = struct
       execute_both { reported = env; unsimplified = env } cmd
     in
     (envs.reported, verdict, next)
-
-  let print_outcome outcome ppf =
-    match outcome with
-    | Accepted -> Format.pp_print_string ppf "accepted"
-    | Defined (x, scheme) ->
-        Format.fprintf ppf "@[<hov 2>%t :@ %t@]" (Ast.Variable.print x)
-          (C.print_scheme scheme)
-    | Rejected (Malformed d) ->
-        Format.fprintf ppf "rejected: %s" d.Diagnostic.message
-    | Rejected (Refuted failure) ->
-        Format.fprintf ppf "rejected: %t" (R.print_failure failure)
-    | Rejected (Stuck stuck) ->
-        Format.fprintf ppf "rejected: %t" (S.print_outcome (S.Stuck stuck))
 end

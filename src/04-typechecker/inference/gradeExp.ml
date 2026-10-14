@@ -41,11 +41,7 @@ module type S = sig
     val mem_var : Eps_var.t -> t -> bool
     val fold_vars : (Eps_var.t -> 'a -> 'a) -> t -> 'a -> 'a
     val subst : subst -> t -> t
-
     val constants : t -> GS.E.t list
-    (** [constants eps] is the constants of [eps], each occurrence once, from
-        left to right. *)
-
     val value : t -> GS.E.t option
     val equal : Grades.Grade.bounds -> t -> t -> bool
     val print : t -> Format.formatter -> unit
@@ -76,11 +72,7 @@ module type S = sig
       'a
 
     val subst : subst -> t -> t
-
     val constants : t -> GS.R.t list * GS.E.t list
-    (** [constants rho] is the constants of [rho] of either sort, those of the
-        effect sort under images, each occurrence once, from left to right. *)
-
     val value : t -> GS.R.t option
     val equal : Grades.Grade.bounds -> t -> t -> bool
     val print : t -> Format.formatter -> unit

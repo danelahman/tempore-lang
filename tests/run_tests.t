@@ -819,7 +819,7 @@
   File "default_reject_duplicate.tpe", line 8, characters 0-25:
   8 | default Log msg = delay 2
       ^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: operation `Log` already has a default implementation
+  Typing error: Operation `Log` already has a default implementation
   ======================================================================
   default_reject_global.tpe
   ======================================================================
@@ -892,21 +892,21 @@
   File "delay_reject_expression.tpe", line 4, characters 20-21:
   4 | let wait () = delay (1 + 1)
                           ^
-  Syntax error: the argument of 'delay' is a duration literal, such as '2', '1/2' or '0.25'
+  Syntax error: The argument of `delay` is a duration literal, such as `2`, `1/2` or `0.25`
   ======================================================================
   delay_reject_fraction.tpe
   ======================================================================
   File "delay_reject_fraction.tpe", line 4, characters 20-23:
   4 | let wait () = delay 0.5
                           ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, delays are whole numbers of time steps; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'time-interval-rational', 'traces-upper-bound-rational', 'traces-timed-lower-bound-rational', 'traces-timed-upper-bound-rational', 'traces-timed-interval-rational', 'regex-upper-bound-rational-symbolic', 'regex-timed-lower-bound-rational-symbolic', 'regex-timed-upper-bound-rational-symbolic', 'regex-timed-interval-rational-symbolic', 'security-levels' or 'flow-levels' grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `security-levels` or `flow-levels` grading monoids?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
   File "delay_reject_negative.tpe", line 3, characters 10-14:
   3 | run delay -0.5
                 ^^^^
-  Syntax error: durations must be non-negative
+  Syntax error: Durations must be non-negative
   ======================================================================
   delay_reject_overflow.tpe
   ======================================================================
@@ -920,7 +920,7 @@
   File "delay_reject_variable.tpe", line 6, characters 8-9:
   6 |   delay n
               ^
-  Syntax error: the argument of 'delay' is a duration literal, such as '2', '1/2' or '0.25'
+  Syntax error: The argument of `delay` is a duration literal, such as `2`, `1/2` or `0.25`
   ======================================================================
   diagnostic_reject_utf8_columns.tpe
   ======================================================================
@@ -1708,7 +1708,7 @@
   File "levels_reject_literal.tpe", line 3, characters 19-20:
   3 | let claim () = box 3 1
                          ^
-  Syntax error: in the 'security-levels' grading monoid, grades are the levels 'Low' and 'High', not plain integers; did you mean to use one of the 'time-lower-bound', 'time-upper-bound', 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound', 'traces-upper-bound-rational', 'traces-timed-lower-bound', 'traces-timed-upper-bound', 'traces-timed-interval', 'traces-timed-lower-bound-rational', 'traces-timed-upper-bound-rational', 'traces-timed-interval-rational', 'regex-upper-bound-symbolic', 'regex-upper-bound-rational-symbolic', 'regex-timed-lower-bound-symbolic', 'regex-timed-upper-bound-symbolic', 'regex-timed-interval-symbolic', 'regex-timed-lower-bound-rational-symbolic', 'regex-timed-upper-bound-rational-symbolic', 'regex-timed-interval-rational-symbolic', 'windowed-schedules', 'mode-switch-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs` or `counts-upper-bound` grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1905,7 +1905,7 @@
   File "lexer_reject_unknown_character.tpe", line 3, characters 7-9:
   3 | let café = 1
              ^
-  Syntax error: Unexpected character 'é'
+  Syntax error: Unexpected character `é`
   ======================================================================
   list_constructor_reject.tpe
   ======================================================================
@@ -2115,91 +2115,91 @@
   File "literals_reject_complement.tpe", line 4, characters 19-32:
   4 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
-  Syntax error: in the 'traces-timed-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without complement '~'; did you mean to use one of the 'regex-upper-bound-symbolic', 'regex-upper-bound-rational-symbolic', 'regex-timed-lower-bound-symbolic', 'regex-timed-upper-bound-symbolic', 'regex-timed-interval-symbolic', 'regex-timed-lower-bound-rational-symbolic', 'regex-timed-upper-bound-rational-symbolic' or 'regex-timed-interval-rational-symbolic' grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without complement `~`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
   File "literals_reject_component.tpe", line 3, characters 19-30:
   3 | let claim () = box (3, Medium) 1
                          ^^^^^^^^^^^
-  Syntax error: in the 'time-lower-bound-levels' grading monoid, in the second component ('security-levels'), unknown level 'Medium'; the levels are 'Low' and 'High'
+  Syntax error: In the `time-lower-bound-levels` grading monoid, in the second component (`security-levels`), unknown level `Medium`; the levels are `Low` and `High`
   ======================================================================
   literals_reject_counts.tpe
   ======================================================================
   File "literals_reject_counts.tpe", line 3, characters 19-29:
   3 | let claim () = box (Send, -1) 1
                          ^^^^^^^^^^
-  Syntax error: in the 'counts-upper-bound' grading monoid, in the entry of 'Send', grades must be non-negative
+  Syntax error: In the `counts-upper-bound` grading monoid, in the entry of `Send`, grades must be non-negative
   ======================================================================
   literals_reject_empty.tpe
   ======================================================================
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'regex-upper-bound-symbolic' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: In the `regex-upper-bound-symbolic` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_reject_flow.tpe
   ======================================================================
   File "literals_reject_flow.tpe", line 3, characters 19-54:
   3 | let claim () = box (High, (Board, Low), (Board, High)) 1
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Syntax error: in the 'flow-levels' grading monoid, the output 'Board' is listed twice
+  Syntax error: In the `flow-levels` grading monoid, the output `Board` is listed twice
   ======================================================================
   literals_reject_fraction.tpe
   ======================================================================
   File "literals_reject_fraction.tpe", line 4, characters 19-22:
   4 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: in the 'time-upper-bound' grading monoid, grades are plain integers or '∞', not fractions such as '3/2'; did you mean to use one of the 'time-lower-bound-rational', 'time-upper-bound-rational', 'traces-upper-bound-rational', 'traces-timed-lower-bound-rational', 'traces-timed-upper-bound-rational', 'traces-timed-interval-rational', 'regex-upper-bound-rational-symbolic', 'regex-timed-lower-bound-rational-symbolic', 'regex-timed-upper-bound-rational-symbolic' or 'regex-timed-interval-rational-symbolic' grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
   File "literals_reject_fraction_operator.tpe", line 3, characters 20-21:
   3 | let claim () = box 3%2 1
                           ^
-  Syntax error: unknown operator '%' in a fraction
+  Syntax error: Unknown operator `%` in a fraction
   ======================================================================
   literals_reject_fraction_zero.tpe
   ======================================================================
   File "literals_reject_fraction_zero.tpe", line 3, characters 21-22:
   3 | let claim () = box 1/0 1
                            ^
-  Syntax error: fractions have positive denominators
+  Syntax error: Fractions have positive denominators
   ======================================================================
   literals_reject_inf.tpe
   ======================================================================
   File "literals_reject_inf.tpe", line 3, characters 19-22:
   3 | let claim () = box ∞ 1
                          ^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not '∞'; did you mean to use one of the 'time-upper-bound', 'time-upper-bound-rational', 'mode-switch-costs' or 'counts-upper-bound' grading monoids?
+  Syntax error: In the `time-lower-bound` grading monoid, grades are plain integers, not `∞`; did you mean to use one of the `time-upper-bound`, `time-upper-bound-rational`, `mode-switch-costs` or `counts-upper-bound` grading monoids?
   ======================================================================
   literals_reject_interval_closed_infinity.tpe
   ======================================================================
   File "literals_reject_interval_closed_infinity.tpe", line 4, characters 19-27:
   4 | let claim () = box [2, ∞] 1
                          ^^^^^^
-  Syntax error: an infinite endpoint of an interval is written with a parenthesis, as in '[n, ∞)'
+  Syntax error: An infinite endpoint of an interval is written with a parenthesis, as in `[n, ∞)`
   ======================================================================
   literals_reject_interval_empty.tpe
   ======================================================================
   File "literals_reject_interval_empty.tpe", line 4, characters 19-25:
   4 | let claim () = box [2, 2) 1
                          ^^^^^^
-  Syntax error: in the 'time-interval' grading monoid, interval endpoints must satisfy n < m at an open endpoint
+  Syntax error: In the `time-interval` grading monoid, interval endpoints must satisfy n < m at an open endpoint
   ======================================================================
   literals_reject_interval_no_step.tpe
   ======================================================================
   File "literals_reject_interval_no_step.tpe", line 4, characters 19-25:
   4 | let claim () = box (1, 2) 1
                          ^^^^^^
-  Syntax error: in the 'time-interval' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-timed-interval-rational-symbolic' or 'resource-levels' grading monoids?
+  Syntax error: In the `time-interval` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic` or `resource-levels` grading monoids?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
   File "literals_reject_interval_reversed.tpe", line 3, characters 19-25:
   3 | let claim () = box [5, 2] 1
                          ^^^^^^
-  Syntax error: in the 'time-interval' grading monoid, interval endpoints must satisfy n <= m
+  Syntax error: In the `time-interval` grading monoid, interval endpoints must satisfy n <= m
   ======================================================================
   literals_reject_large.tpe
   ======================================================================
@@ -2213,84 +2213,84 @@
   File "literals_reject_modes.tpe", line 3, characters 19-31:
   3 | let claim () = box (On, Off, 0) 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'mode-switch-costs' grading monoid, in the cost from 'On' to 'Off', a change of mode costs at least 1
+  Syntax error: In the `mode-switch-costs` grading monoid, in the cost from `On` to `Off`, a change of mode costs at least 1
   ======================================================================
   literals_reject_name.tpe
   ======================================================================
   File "literals_reject_name.tpe", line 3, characters 19-22:
   3 | let claim () = box Low 1
                          ^^^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades are plain integers, not names such as 'Low'; did you mean to use one of the 'security-levels' or 'flow-levels' grading monoids?
+  Syntax error: In the `time-lower-bound` grading monoid, grades are plain integers, not names such as `Low`; did you mean to use one of the `security-levels` or `flow-levels` grading monoids?
   ======================================================================
   literals_reject_negative.tpe
   ======================================================================
   File "literals_reject_negative.tpe", line 3, characters 19-21:
   3 | let claim () = box -1 1
                          ^^
-  Syntax error: in the 'time-lower-bound' grading monoid, grades must be non-negative
+  Syntax error: In the `time-lower-bound` grading monoid, grades must be non-negative
   ======================================================================
   literals_reject_peak.tpe
   ======================================================================
   File "literals_reject_peak.tpe", line 3, characters 19-25:
   3 | let claim () = box (2, 1) 1
                          ^^^^^^
-  Syntax error: in the 'resource-levels' grading monoid, the peak must be at least 0 and at least the net change
+  Syntax error: In the `resource-levels` grading monoid, the peak must be at least 0 and at least the net change
   ======================================================================
   literals_reject_rational_negative.tpe
   ======================================================================
   File "literals_reject_rational_negative.tpe", line 3, characters 19-23:
   3 | let claim () = box -0.5 1
                          ^^^^
-  Syntax error: in the 'time-upper-bound-rational' grading monoid, grades must be non-negative
+  Syntax error: In the `time-upper-bound-rational` grading monoid, grades must be non-negative
   ======================================================================
   literals_reject_resource_levels_range_empty.tpe
   ======================================================================
   File "literals_reject_resource_levels_range_empty.tpe", line 3, characters 19-30:
   3 | let claim () = box ((0, 1), 1) 1
                          ^^^^^^^^^^^
-  Syntax error: in the 'resource-levels' grading monoid, in the net change, the interval contains no integer
+  Syntax error: In the `resource-levels` grading monoid, in the net change, the interval contains no integer
   ======================================================================
   literals_reject_star.tpe
   ======================================================================
   File "literals_reject_star.tpe", line 3, characters 19-31:
   3 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
-  Syntax error: in the 'traces-timed-upper-bound' grading monoid, sets of traces are built from operation names and delays with ';' and '|' only, without repetition '*'; did you mean to use one of the 'regex-upper-bound-symbolic', 'regex-upper-bound-rational-symbolic', 'regex-timed-lower-bound-symbolic', 'regex-timed-upper-bound-symbolic', 'regex-timed-interval-symbolic', 'regex-timed-lower-bound-rational-symbolic', 'regex-timed-upper-bound-rational-symbolic' or 'regex-timed-interval-rational-symbolic' grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without repetition `*`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_unknown.tpe
   ======================================================================
   File "literals_reject_unknown.tpe", line 3, characters 19-26:
   3 | let claim () = box forever 1
                          ^^^^^^^
-  Syntax error: 'forever' is no grade literal; grades are written as integers, fractions such as '3/2' or '1.5', names such as 'High', '⊤' (ASCII 'top'), '∞' (ASCII 'inf'), tuples '(...)', intervals '[...]' and brace literals '{...}'
+  Syntax error: `forever` is no grade literal; grades are written as integers, fractions such as `3/2` or `1.5`, names such as `High`, `⊤` (ASCII `top`), `∞` (ASCII `inf`), tuples `(...)`, intervals `[...]` and brace literals `{...}`
   ======================================================================
   literals_reject_windowed_schedules.tpe
   ======================================================================
   File "literals_reject_windowed_schedules.tpe", line 3, characters 19-27:
   3 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
-  Syntax error: in the 'windowed-schedules' grading monoid, times are given by operation, e.g. '(1, (Send, {0}))' for 'Send' at the start, or '(1, (_, {0}))' for any operation
+  Syntax error: In the `windowed-schedules` grading monoid, times are given by operation, e.g. `(1, (Send, {0}))` for `Send` at the start, or `(1, (_, {0}))` for any operation
   ======================================================================
   literals_reject_windowed_schedules_empty.tpe
   ======================================================================
   File "literals_reject_windowed_schedules_empty.tpe", line 4, characters 19-25:
   4 | let claim () = box (2, 3) 1
                          ^^^^^^
-  Syntax error: in the 'windowed-schedules' grading monoid, the interval contains no integer; did you mean to use one of the 'time-interval-rational', 'regex-timed-interval-rational-symbolic' or 'resource-levels' grading monoids?
+  Syntax error: In the `windowed-schedules` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic` or `resource-levels` grading monoids?
   ======================================================================
   literals_reject_within_empty.tpe
   ======================================================================
   File "literals_reject_within_empty.tpe", line 4, characters 46-52:
   4 | operation Send : unit ~> unit # {Send} within [2, 2)
                                                     ^^^^^^
-  Syntax error: interval endpoints must satisfy n < m at an open endpoint
+  Syntax error: Interval endpoints must satisfy n < m at an open endpoint
   ======================================================================
   literals_reject_within_no_step.tpe
   ======================================================================
   File "literals_reject_within_no_step.tpe", line 4, characters 46-52:
   4 | operation Send : unit ~> unit # {Send} within (1, 2)
                                                     ^^^^^^
-  Syntax error: in the 'traces-timed-upper-bound' grading monoid, the interval '(1, 2)' contains no whole number of time steps
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, the interval `(1, 2)` contains no whole number of time steps
   ======================================================================
   literals_time_interval.tpe
   ======================================================================
@@ -2546,7 +2546,7 @@
   File "nat_reject_negative.tpe", line 3, characters 4-18:
   3 | run -1_000_000_000
           ^^^^^^^^^^^^^^
-  Syntax error: Natural numbers have no negation; floats are negated with '-.' and integers with '~-!'
+  Syntax error: Natural numbers have no negation; floats are negated with `-.` and integers with `~-!`
   ======================================================================
   nat_reject_successor_pattern.tpe
   ======================================================================
@@ -2655,7 +2655,7 @@
   File "noneternal_reject_alias.tpe", line 5, characters 0-29:
   5 | noneternal type seconds = nat
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: type `seconds` is an alias and cannot be declared noneternal; wrap it in a constructor, as in `noneternal type seconds = Seconds of ...`
+  Typing error: Type `seconds` is an alias and cannot be declared noneternal; wrap it in a constructor, as in `noneternal type seconds = Seconds of ...`
   ======================================================================
   noneternal_reject_unknown_grade.tpe
   ======================================================================
@@ -3154,7 +3154,7 @@
   File "rational_time_intervals_reject_within.tpe", line 5, characters 0-60:
   5 | operation Dose : unit ~> unit # [0.5, 1.5] within [1/2, 3/2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `time-interval-rational` grading monoid
+  Typing error: Running-time bounds must not be declared under the `time-interval-rational` grading monoid, which does not use them
   ======================================================================
   rational_time_lower.tpe
   ======================================================================
@@ -3330,7 +3330,7 @@
   File "rational_traces_intervals_reject_open.tpe", line 5, characters 19-27:
   5 | let claim () = box (1/2, 2] 1
                          ^^^^^^^^
-  Syntax error: in the 'traces-timed-interval-rational' grading monoid, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the 'time-interval-rational' or 'regex-timed-interval-rational-symbolic' grading monoids?
+  Syntax error: In the `traces-timed-interval-rational` grading monoid, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the `time-interval-rational` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   rational_traces_upper.tpe
   ======================================================================
@@ -4181,7 +4181,7 @@
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-symbolic` grading monoid
+  Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe
   ======================================================================
@@ -5143,7 +5143,7 @@
   File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `time-lower-bound` grading monoid
+  Typing error: Running-time bounds must not be declared under the `time-lower-bound` grading monoid, which does not use them
   ======================================================================
   time_upper.tpe
   ======================================================================
@@ -5359,21 +5359,21 @@
   File "traces_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Heat : unit ~> unit # {Heat} within [3, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: the running-time bounds of operation `Heat` must satisfy `lo <= hi`
+  Typing error: The running-time bounds of operation `Heat` must satisfy `lo <= hi`
   ======================================================================
   traces_reject_bounds_declared.tpe
   ======================================================================
   File "traces_reject_bounds_declared.tpe", line 6, characters 0-61:
   6 | operation Send : string ~> unit # {Tx | Tx; Tx} within [2, 6]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: operation `Send` is compound, so its running-time bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
+  Typing error: Operation `Send` is compound, so its running-time bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
   ======================================================================
   traces_reject_bounds_zero.tpe
   ======================================================================
   File "traces_reject_bounds_zero.tpe", line 4, characters 0-52:
   4 | operation Heat : unit ~> unit # {Heat} within [0, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: the upper running-time bound of operation `Heat` must be positive
+  Typing error: The upper running-time bound of operation `Heat` must be positive
   ======================================================================
   traces_reject_default_bounds.tpe
   ======================================================================
@@ -5392,21 +5392,21 @@
   File "traces_reject_default_nonatomic.tpe", line 14, characters 0-39:
   14 | default PrintModel m = delay 6; Fresh m
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: a default implementation may only be given for an atomic operation, but the grade of `PrintModel` is `{Heat; Extrude; Cool}`; handle it with a handler in terms of the operations it names
+  Typing error: A default implementation may only be given for an atomic operation, but the grade of `PrintModel` is `{Heat; Extrude; Cool}`; handle it with a handler in terms of the operations it names
   ======================================================================
   traces_reject_fractional_bound.tpe
   ======================================================================
   File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
   5 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
                                                      ^^^
-  Syntax error: in the 'traces-timed-upper-bound' grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the 'traces-timed-lower-bound-rational', 'traces-timed-upper-bound-rational', 'traces-timed-interval-rational', 'regex-timed-lower-bound-rational-symbolic', 'regex-timed-upper-bound-rational-symbolic' or 'regex-timed-interval-rational-symbolic' grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
   File "traces_reject_missing_within.tpe", line 5, characters 0-38:
   5 | operation Heat : unit ~> unit # {Heat}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: atomic operation `Heat` needs running-time bounds `within [lo, hi]` under the `traces-timed-upper-bound` grading monoid
+  Typing error: Atomic operation `Heat` needs running-time bounds `within [lo, hi]` under the `traces-timed-upper-bound` grading monoid
   ======================================================================
   traces_reject_order.tpe
   ======================================================================
@@ -5437,7 +5437,7 @@
   File "traces_reject_self_retry.tpe", line 6, characters 0-53:
   6 | operation Send : string ~> unit # {Send | Send; Send}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: compound operation `Send` may not name itself in its grade `{Send | Send; Send}`
+  Typing error: Compound operation `Send` may not name itself in its grade `{Send | Send; Send}`
   ======================================================================
   traces_reject_undecided_condition.tpe
   ======================================================================
@@ -5468,7 +5468,7 @@
   File "traces_reject_unknown_event.tpe", line 6, characters 0-53:
   6 | operation PrintModel : unit ~> unit # {Heat; Extrude}
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: unknown event `Extrude` in the grade of operation `PrintModel`
+  Typing error: Unknown event `Extrude` in the grade of operation `PrintModel`
   ======================================================================
   traces_upper.tpe
   ======================================================================
@@ -5662,7 +5662,7 @@ automata, 'regex-upper-bound-letter-automata':
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'regex-upper-bound-letter-automata' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: In the `regex-upper-bound-letter-automata` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_regular.tpe (regex-upper-bound-letter-automata)
   ======================================================================
@@ -5829,7 +5829,7 @@ automata, 'regex-upper-bound-letter-automata':
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-letter-automata` grading monoid
+  Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-automata` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-letter-automata)
   ======================================================================
@@ -6730,14 +6730,14 @@ implementations above, the examples over rational delays excepted:
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'regex-upper-bound-symbolic-by-letters' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: In the `regex-upper-bound-symbolic-by-letters` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_reject_empty.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
   File "literals_reject_empty.tpe", line 4, characters 19-33:
   4 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
-  Syntax error: in the 'regex-upper-bound-letter-derivatives' grading monoid, this regular expression denotes the empty language, but grades are non-empty
+  Syntax error: In the `regex-upper-bound-letter-derivatives` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_regular.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
@@ -7064,14 +7064,14 @@ implementations above, the examples over rational delays excepted:
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-symbolic-by-letters` grading monoid
+  Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic-by-letters` grading monoid, which does not use them
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
   File "regular_reject_bounds.tpe", line 4, characters 0-52:
   4 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: running-time bounds are only used by the trace and the regular expression grading monoids of timed operations, and must not be declared under the `regex-upper-bound-letter-derivatives` grading monoid
+  Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-derivatives` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================

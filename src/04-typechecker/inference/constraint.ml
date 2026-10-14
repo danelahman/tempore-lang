@@ -57,7 +57,6 @@ module type S = sig
   val empty_subst : subst
   val subst_ty : subst -> ty -> ty
   val subst_reason : subst -> reason -> reason
-  val subst : subst -> t -> t
   val freshen : subst -> t -> t
 
   type free = {
@@ -204,34 +203,6 @@ module Make (X : GradeExp.S) = struct
         };
     }
 
-  let remove_eps_var eps_var sigma =
-    let g = sigma.grade_subst in
-    {
-      sigma with
-      grade_subst =
-        { g with eps_subst = X.Eps_var.Map.remove eps_var g.eps_subst };
-    }
-
-  let remove_vars vs sigma =
-    let g = sigma.grade_subst in
-    {
-      ty_subst =
-        List.fold_left
-          (fun m a -> Ast.TyParamMap.remove a m)
-          sigma.ty_subst vs.ty_vars;
-      grade_subst =
-        {
-          rho_subst =
-            List.fold_left
-              (fun m r -> X.Rho_var.Map.remove r m)
-              g.rho_subst vs.rho_vars;
-          eps_subst =
-            List.fold_left
-              (fun m e -> X.Eps_var.Map.remove e m)
-              g.eps_subst vs.eps_vars;
-        };
-    }
-
   let fresh_ty_var () = Ast.TyParamModule.fresh "ty"
 
   (* [rename_vars vs sigma] is fresh unknowns for [vs] and [sigma] extended to
@@ -255,13 +226,9 @@ module Make (X : GradeExp.S) = struct
     in
     ({ ty_vars; rho_vars; eps_vars }, sigma)
 
-  (* How a traversal treats a binder: [Keep] leaves its unknowns and removes
-     them from the substitution, [Rename] renames them afresh. *)
-  type binders = Keep | Rename
-
-  let rec apply binders sigma = function
+  let rec freshen sigma = function
     | True -> True
-    | And (c, d) -> And (apply binders sigma c, apply binders sigma d)
+    | And (c, d) -> And (freshen sigma c, freshen sigma d)
     | Sub (r, a, b) ->
         Sub (subst_reason sigma r, subst_ty sigma a, subst_ty sigma b)
     | Rho_leq (r, rho, rho') ->
@@ -272,22 +239,12 @@ module Make (X : GradeExp.S) = struct
     | Eternal_or_unit (r, a, rho) ->
         Eternal_or_unit
           (subst_reason sigma r, subst_ty sigma a, subst_rho sigma rho)
-    | Exists (vs, c) -> (
-        match binders with
-        | Keep -> Exists (vs, apply binders (remove_vars vs sigma) c)
-        | Rename ->
-            let vs', sigma' = rename_vars vs sigma in
-            Exists (vs', apply binders sigma' c))
-    | Forall_eps (e, origin, c) -> (
-        match binders with
-        | Keep ->
-            Forall_eps (e, origin, apply binders (remove_eps_var e sigma) c)
-        | Rename ->
-            let e' = X.Eps_var.fresh_indexed () in
-            Forall_eps (e', origin, apply binders (add_eps_var e e' sigma) c))
-
-  let subst sigma c = apply Keep sigma c
-  let freshen sigma c = apply Rename sigma c
+    | Exists (vs, c) ->
+        let vs', sigma' = rename_vars vs sigma in
+        Exists (vs', freshen sigma' c)
+    | Forall_eps (e, origin, c) ->
+        let e' = X.Eps_var.fresh_indexed () in
+        Forall_eps (e', origin, freshen (add_eps_var e e' sigma) c)
 
   (* ------------------------------------------------------------------ *)
   (* Free unknowns                                                       *)

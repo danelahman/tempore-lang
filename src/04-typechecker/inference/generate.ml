@@ -419,7 +419,7 @@ module Make (C : Constraint.S) = struct
     | Ast.TyInline _ ->
         let name = Ast.TyName.string_of name in
         Error.typing ~loc
-          "type `%s` is an alias and cannot be declared noneternal; wrap it in \
+          "Type `%s` is an alias and cannot be declared noneternal; wrap it in \
            a constructor, as in `noneternal type %s = %s of ...`"
           name name
           (String.capitalize_ascii name)
@@ -515,27 +515,26 @@ module Make (C : Constraint.S) = struct
       match StringMap.find_opt ev env.op_bounds with
       | Some bounds -> bounds
       | None ->
-          Error.typing ~loc "unknown event `%s` in the grade of operation `%s`"
+          Error.typing ~loc "Unknown event `%s` in the grade of operation `%s`"
             ev op_name
     in
     match (GS.E.needs_op_bounds, grade, bounds) with
     | false, _, Some _ ->
         Error.typing ~loc
-          "running-time bounds are only used by the trace and the regular \
-           expression grading monoids of timed operations, and must not be \
-           declared under the `%s` grading monoid"
+          "Running-time bounds must not be declared under the `%s` grading \
+           monoid, which does not use them"
           GS.E.name
     | false, _, None -> env.op_bounds
     | true, (Ast.EpsAdd _ | Ast.EpsVar _), _ ->
         Error.typing ~loc
-          "the grade of operation `%s` must be a literal under the `%s` \
+          "The grade of operation `%s` must be a literal under the `%s` \
            grading monoid"
           op_name GS.E.name
     | true, Ast.EpsConst (c, _), _ when GS.E.is_atomic op_name c -> (
         match bounds with
         | None ->
             Error.typing ~loc
-              "atomic operation `%s` needs running-time bounds `within [lo, \
+              "Atomic operation `%s` needs running-time bounds `within [lo, \
                hi]` under the `%s` grading monoid"
               op_name GS.E.name
         | Some (lo, hi)
@@ -544,24 +543,24 @@ module Make (C : Constraint.S) = struct
                  (Grades.Grade.end_value hi)
                > 0 ->
             Error.typing ~loc
-              "the running-time bounds of operation `%s` must satisfy `lo <= \
+              "The running-time bounds of operation `%s` must satisfy `lo <= \
                hi`"
               op_name
         | Some (_, hi)
           when Grades.Rational.sign (Grades.Grade.end_value hi) <= 0 ->
             Error.typing ~loc
-              "the upper running-time bound of operation `%s` must be positive"
+              "The upper running-time bound of operation `%s` must be positive"
               op_name
         | Some bounds -> StringMap.add op_name bounds env.op_bounds)
     | true, Ast.EpsConst (c, _), Some _ ->
         Error.typing ~loc
-          "operation `%s` is compound, so its running-time bounds follow from \
+          "Operation `%s` is compound, so its running-time bounds follow from \
            its grade `%s` and must not be declared"
           op_name (GS.E.show c)
     | true, Ast.EpsConst (c, _), None -> (
         if List.mem op_name (GS.E.events c) then
           Error.typing ~loc
-            "compound operation `%s` may not name itself in its grade `%s`"
+            "Compound operation `%s` may not name itself in its grade `%s`"
             op_name (GS.E.show c);
         match
           finite_durations
@@ -1563,18 +1562,18 @@ module Make (C : Constraint.S) = struct
     match find_op_signature env op with
     | Some signature -> signature
     | None ->
-        Error.typing ~loc "unknown operation `%s`" (Ast.OpName.string_of op)
+        Error.typing ~loc "Unknown operation `%s`" (Ast.OpName.string_of op)
 
   let generate_default env ~loc op abs =
     let op_name = Ast.OpName.string_of op in
     let signature = signature_of_default env ~loc op in
     if Ast.OpNameMap.mem op env.op_defaults then
-      Error.typing ~loc "operation `%s` already has a default implementation"
+      Error.typing ~loc "Operation `%s` already has a default implementation"
         op_name;
     (match signature.op_grade with
     | X.Eps_const c when not (GS.E.is_atomic op_name c) ->
         Error.typing ~loc
-          "a default implementation may only be given for an atomic operation, \
+          "A default implementation may only be given for an atomic operation, \
            but the grade of `%s` is `%s`; handle it with a handler in terms of \
            the operations it names"
           op_name (GS.E.show c)

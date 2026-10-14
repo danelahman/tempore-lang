@@ -61,7 +61,7 @@ needs Python 3.10 or later and the network:
 
     make opentrons-deps
 
-Tempore is fully usable without it; only the option `--simulate` needs it.
+Only the option `--simulate` needs it.
 
 Build the language:
 

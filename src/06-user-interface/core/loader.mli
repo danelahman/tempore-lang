@@ -82,8 +82,8 @@ module Loader (Backend : Backend.S) : sig
   val declare : ('a, 'b) SugaredAst.command list list -> state -> state
   (** [declare sources state] is [state] in the program made of the parsed
       [sources], all of which are to be loaded into it: the grades of every
-      command are read over the operations these sources declare, before or
-      after the command. *)
+      command are read over the operations these sources declare
+      ({!Typechecker.Make.declare_operations}), before or after the command. *)
 
   val initial_state : state
   (** The state with the primitives loaded and nothing else. *)

@@ -275,10 +275,10 @@ struct
       rejects "{Read & Send}" "empty language";
       rejects "{~_*}" "empty language";
       rejects "{3 & 2}" "empty language";
-      rejects "Read" "not names such as 'Read'";
-      rejects "∞" "not '∞'";
+      rejects "Read" "not names such as `Read`";
+      rejects "∞" "not `∞`";
       rejects "(1, 2)" "not pairs";
-      rejects "{(1, 2)}" "'(1, 2)' contains no whole number of time steps";
+      rejects "{(1, 2)}" "`(1, 2)` contains no whole number of time steps";
       rejects "{[1/2, 2]}" "whole numbers of time steps";
       rejects "{(1, 1]}" "n < m at an open endpoint";
       rejects "{<1}" "parser error";

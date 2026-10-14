@@ -129,8 +129,8 @@ struct
         else rho
     | lit ->
         invalid_lit lit
-          "grades are regular expressions '{...}', non-negative numbers or \
-           '⊤', not %s"
+          "grades are regular expressions `{...}`, non-negative numbers or \
+           `⊤`, not %s"
           (describe_lit lit)
 
   let show rho =

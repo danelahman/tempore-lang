@@ -53,7 +53,7 @@ let of_lit_with ~ticks ~top ~of_regex ~is_empty = function
       else rho
   | lit ->
       invalid_lit lit
-        "grades are regular expressions '{...}', plain integers or '⊤', not %s"
+        "grades are regular expressions `{...}`, plain integers or `⊤`, not %s"
         (describe_lit lit)
 
 (** [representative m] is the least letter of the block [m] of an alphabet:

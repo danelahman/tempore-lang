@@ -31,11 +31,6 @@ val delays : GradeLiteral.regex -> DelaySet.t
     operations relative to [ℚ≥0] for [|], [&] and [~], and the repetition for
     [*]. *)
 
-val of_class : DelayAutomaton.Class.t -> GradeLiteral.regex
-(** [of_class c] is an expression of the one-operation words of [c]: a name, a
-    union of names, or [_ & ~((0, ∞) | A | …)] for the names other than [A], ….
-*)
-
 val of_word : DelayAutomaton.symbol list -> GradeLiteral.regex
 (** [of_word w] is the expression of the timed word [w], a concatenation of its
     non-zero delays and its classes, or [0] if it has neither. *)

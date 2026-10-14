@@ -66,7 +66,7 @@ let checked_setting (backend : BackendRegistry.entry) path (key, value) =
   | None ->
       failwith
         (Printf.sprintf
-           "the manifest sets the input '%s', unknown to %s, for %s" key
+           "the manifest sets the input `%s`, unknown to %s, for %s" key
            backend.name path)
   | Some { kind = Text; _ } -> (key, "examples/" ^ value)
   | Some { kind = Choice choices; _ } ->
@@ -74,19 +74,19 @@ let checked_setting (backend : BackendRegistry.entry) path (key, value) =
       else
         failwith
           (Printf.sprintf
-             "the manifest sets the input '%s' to '%s', not one of its \
+             "the manifest sets the input `%s` to `%s`, not one of its \
               choices, for %s"
              key value path)
 
 let checked (entry : entry) =
   if not (List.mem_assoc entry.grade Grades.GradeRegistry.grade_modules) then
     failwith
-      (Printf.sprintf "the manifest names the unknown grade '%s' for %s"
+      (Printf.sprintf "the manifest names the unknown grade `%s` for %s"
          entry.grade entry.path);
   match BackendRegistry.find entry.backend with
   | None ->
       failwith
-        (Printf.sprintf "the manifest names the unknown backend '%s' for %s"
+        (Printf.sprintf "the manifest names the unknown backend `%s` for %s"
            entry.backend entry.path)
   | Some backend ->
       {
@@ -124,7 +124,7 @@ let summarised summaries groups =
     (fun { label; short; _ } ->
       if not (List.mem_assoc label groups) then
         failwith
-          (Printf.sprintf "the manifest summarises the group '%s' of no example"
+          (Printf.sprintf "the manifest summarises the group `%s` of no example"
              label);
       if
         List.exists
@@ -132,7 +132,7 @@ let summarised summaries groups =
           summaries
       then
         failwith
-          (Printf.sprintf "the manifest gives the short form '%s' to two groups"
+          (Printf.sprintf "the manifest gives the short form `%s` to two groups"
              short))
     summaries;
   List.map
@@ -141,12 +141,12 @@ let summarised summaries groups =
       | [ summary ] -> (summary, entries)
       | [] ->
           failwith
-            (Printf.sprintf "the manifest gives no summary of the group '%s'"
+            (Printf.sprintf "the manifest gives no summary of the group `%s`"
                label)
       | _ ->
           failwith
             (Printf.sprintf
-               "the manifest gives more than one summary of the group '%s'"
+               "the manifest gives more than one summary of the group `%s`"
                label))
     groups
 
@@ -170,12 +170,12 @@ let defaults entries paths =
         failwith
           (Printf.sprintf
              "the manifest gives more than one default example of the backend \
-              '%s'"
+              `%s`"
              backend))
     pairs;
   if not (List.mem_assoc BackendRegistry.default.key pairs) then
     failwith
       (Printf.sprintf
-         "the manifest gives no default example of the backend '%s'"
+         "the manifest gives no default example of the backend `%s`"
          BackendRegistry.default.key);
   pairs

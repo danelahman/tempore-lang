@@ -102,7 +102,7 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
 
     let of_lit = function
       | Top | Inf -> top
-      | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or '∞'") lit)
+      | lit -> Ext.Fin (duration_of_lit ("plain " ^ N.numbers ^ " or `∞`") lit)
 
     let of_delay d = Ext.Fin d
     let of_bounds b = Ext.Fin (snd (hull b))

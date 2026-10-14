@@ -45,7 +45,6 @@ let rec ty env links { Sugared.it; _ } =
   | Sugared.TyTuple tys -> List.fold_left (ty env) links tys
   | Sugared.TyArrow (a, c) -> comp_ty env (ty env links a) c
   | Sugared.TyBox (_, a) -> ty env links a
-  | Sugared.TyHandler (c, d) -> comp_ty env (comp_ty env links c) d
 
 and comp_ty env links (Sugared.CompTy (a, _)) = ty env links a
 

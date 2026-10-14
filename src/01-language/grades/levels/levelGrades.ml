@@ -19,9 +19,9 @@ module LowHigh = struct
     | Grade.Name "High" -> High
     | Grade.Name name as lit ->
         Grade.invalid_lit lit
-          "unknown level '%s'; the levels are 'Low' and 'High'" name
+          "unknown level `%s`; the levels are `Low` and `High`" name
     | lit ->
-        Grade.invalid_lit lit "grades are the levels 'Low' and 'High', not %s"
+        Grade.invalid_lit lit "grades are the levels `Low` and `High`, not %s"
           (Grade.describe_lit lit)
 
   let show = function Low -> "Low" | High -> "High"
@@ -81,7 +81,7 @@ let written = function
           LowHigh.of_lit level )
   | lit ->
       Grade.invalid_lit lit
-        "outputs are pairs '(Sink, l)' of a sink and a level, not %s"
+        "outputs are pairs `(Sink, l)` of a sink and a level, not %s"
         (Grade.describe_lit lit)
 
 (** [of_written lit ws] is the outputs [ws], each sink listed once in the
@@ -91,7 +91,7 @@ let of_written lit ws =
   let rec check = function
     | (s, _) :: ((s', _) :: _ as rest) ->
         if String.equal s s' then
-          Grade.invalid_lit lit "the output '%s' is listed twice" s
+          Grade.invalid_lit lit "the output `%s` is listed twice" s
         else check rest
     | [ _ ] | [] ->
         let defaults, named =
@@ -127,7 +127,7 @@ module Make (D : Delay.S) = struct
           | l -> (l, Outputs.bottom)
           | exception Grade.Invalid_literal (_, reason) ->
               Grade.invalid_lit lit
-                "%s, or tuples '(l, (Sink, l1), ...)' of a level and the \
+                "%s, or tuples `(l, (Sink, l1), ...)` of a level and the \
                  outputs written"
                 reason)
 

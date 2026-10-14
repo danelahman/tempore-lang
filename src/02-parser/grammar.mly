@@ -6,7 +6,7 @@
 
   (* The hint naming the grades [names]. *)
   let suggestion names =
-    let quote name = "'" ^ name ^ "'" in
+    let quote name = "`" ^ name ^ "`" in
     match List.map quote names with
     | [] -> ""
     | [ name ] -> "; did you mean to use the " ^ name ^ " grading monoid?"
@@ -23,7 +23,7 @@
   let grade ~loc name of_lit lit =
     try of_lit lit with
     | Grade.Invalid_literal (lit, reason) ->
-      Error.syntax ~loc "in the '%s' grading monoid, %s%s" name reason
+      Error.syntax ~loc "In the `%s` grading monoid, %s%s" name reason
         (suggestion (Grades.GradeRegistry.accepting lit))
     | Error.Error ({ Diagnostic.primary = None; _ } as d) ->
       raise (Error.Error { d with Diagnostic.primary = Some loc })
@@ -35,7 +35,7 @@
     match GS.R.Delay.read lit with
     | Some _ -> q
     | None ->
-        Error.syntax ~loc "in the '%s' grading monoid, %s%s" GS.R.name
+        Error.syntax ~loc "In the `%s` grading monoid, %s%s" GS.R.name
           (GS.R.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_delay lit))
 
@@ -50,7 +50,7 @@
     | None when not GS.E.needs_op_bounds -> q
     | None ->
         Error.syntax ~loc
-          "in the '%s' grading monoid, running-time bounds are delays, and %s%s"
+          "In the `%s` grading monoid, running-time bounds are delays, and %s%s"
           GS.E.name
           (GS.E.Delay.rejection lit)
           (suggestion (Grades.GradeRegistry.accepting_bounds lit))
@@ -62,14 +62,14 @@
      an interval without a delay a syntax error. *)
   let open_running_time ~loc lo hi =
     match Grade.emptiness lo hi with
-    | Some reason -> Error.syntax ~loc "%s" reason
+    | Some reason -> Error.syntax ~loc "%s" (String.capitalize_ascii reason)
     | None when not GS.E.needs_op_bounds -> (lo, hi)
     | None -> (
         let lo', hi' = Grade.close_running_time GS.E.Delay.adjacent (lo, hi) in
         match Grade.emptiness lo' hi' with
         | Some _ ->
             Error.syntax ~loc
-              "in the '%s' grading monoid, the interval '%s' contains no \
+              "In the `%s` grading monoid, the interval `%s` contains no \
                whole number of time steps"
               GS.E.name
               (Grade.show_interval Rational.show lo hi)
@@ -88,8 +88,8 @@
      endpoint written with a bracket. *)
   let infinite_endpoint ~loc =
     Error.syntax ~loc
-      "an infinite endpoint of an interval is written with a parenthesis, \
-       as in '[n, ∞)'"
+      "An infinite endpoint of an interval is written with a parenthesis, \
+       as in `[n, ∞)`"
 
   (* [interval ~loc ~lower_open ends ~upper_open] is the interval literal at
      [loc] with the endpoints [ends], open below iff [lower_open] and above iff
@@ -98,8 +98,8 @@
   let interval ~loc ~lower_open ends ~upper_open =
     let forms () =
       Error.syntax ~loc
-        "intervals are written '[n, m]', '(n, m)', '[n, m)' or '(n, m]', \
-         with an infinite endpoint as in '[n, ∞)' or '(-∞, m]'"
+        "Intervals are written `[n, m]`, `(n, m)`, `[n, m)` or `(n, m]`, \
+         with an infinite endpoint as in `[n, ∞)` or `(-∞, m]`"
     in
     match ends with
     | [ lo; hi ] ->
@@ -136,7 +136,7 @@
       | Some hi, false -> Grade.Closed hi
     in
     match Grade.emptiness lower upper with
-    | Some reason -> Error.syntax ~loc "%s" reason
+    | Some reason -> Error.syntax ~loc "%s" (String.capitalize_ascii reason)
     | None -> Grade.Delays (lower, upper)
 
   (* The name of the operator [op] in parentheses, as in OCaml separated from
@@ -152,10 +152,10 @@
     | "inf" -> Grade.Inf
     | name ->
         Error.syntax ~loc
-          "'%s' is no grade literal; grades are written as integers, \
-           fractions such as '3/2' or '1.5', names such as 'High', '⊤' (ASCII \
-           'top'), '∞' (ASCII 'inf'), tuples '(...)', intervals '[...]' and \
-           brace literals '{...}'" name
+          "`%s` is no grade literal; grades are written as integers, \
+           fractions such as `3/2` or `1.5`, names such as `High`, `⊤` (ASCII \
+           `top`), `∞` (ASCII `inf`), tuples `(...)`, intervals `[...]` and \
+           brace literals `{...}`" name
 %}
 
 %parameter<GS : Grades.GradeSystem.S>
@@ -218,8 +218,8 @@
 
 (* Toplevel syntax *)
 
-(* If you're going to "optimize" this, please make sure we don't require ;; at the
-   end of the file. *)
+(* A program is a sequence of commands up to the end of the file, with no
+   terminator after the last. *)
 commands:
   | EOF
      { [] }
@@ -273,8 +273,8 @@ plain_term:
      duration. *)
   | DELAY error
     { Error.syntax ~loc:(Location.of_lexing $startpos($2) $endpos($2))
-        "the argument of 'delay' is a duration literal, such as '2', '1/2' \
-         or '0.25'" }
+        "The argument of `delay` is a duration literal, such as `2`, `1/2` \
+         or `0.25`" }
   | BOX rho = rho_grade e = term AS p = pattern IN c = term
     { Box (rho, e, (p, c)) }
   | BOX rho = rho_grade e = term %prec below_AS
@@ -323,8 +323,8 @@ plain_uminus_term:
       | Const (Language.Const.Int n) -> Const (Language.Const.of_int (Z.neg n))
       | _ ->
           Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
-            "Natural numbers have no negation; floats are negated with '-.' \
-             and integers with '~-!'" }
+            "Natural numbers have no negation; floats are negated with `-.` \
+             and integers with `~-!`" }
   | MINUSDOT t = uminus_term
     { let op_loc = Location.of_lexing $startpos($1) $endpos($1) in
       Apply ({it= Var "(~-.)"; at= op_loc}, t) }
@@ -732,7 +732,7 @@ duration:
   | q = fraction { q }
   | MINUS INT | MINUS fraction
     { Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
-        "durations must be non-negative" }
+        "Durations must be non-negative" }
 
 (* A fraction, exact: a decimal, or the quotient of two integers. *)
 fraction:
@@ -740,10 +740,10 @@ fraction:
   | n = INT op = INFIXOP3 d = INT
     { if op <> "/" then
         Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
-          "unknown operator '%s' in a fraction" op
+          "Unknown operator `%s` in a fraction" op
       else if Z.equal d Z.zero then
         Error.syntax ~loc:(Location.of_lexing $startpos(d) $endpos(d))
-          "fractions have positive denominators"
+          "Fractions have positive denominators"
       else Rational.make_z n d }
 
 (* A grade literal, shared by all grades; each grade reads the forms it
@@ -800,7 +800,7 @@ minus_infinity:
     { if name = "inf" then Minus_infinity
       else
         Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
-          "'-%s' is no grade literal" name }
+          "`-%s` is no grade literal" name }
 
 (* The regular expressions of brace literals, by increasing precedence: union
    [|], intersection [&], concatenation [;], complement [~] and repetition
@@ -826,7 +826,7 @@ regex_unary:
     { if op = "~" then Grade.Compl r
       else
         Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
-          "unknown operator '%s' in a brace literal" op }
+          "Unknown operator `%s` in a brace literal" op }
 
 regex_postfix:
   | r = regex_atom { r }
@@ -862,6 +862,6 @@ delay_end:
     { if name = "inf" then None
       else
         Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
-          "'%s' is no delay" name }
+          "`%s` is no delay" name }
 
 %%

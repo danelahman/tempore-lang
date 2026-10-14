@@ -100,7 +100,7 @@ module ByLetters (L : LANGUAGE) = struct
     let hash (names, rho) = combine (hash_list String.hash names) (L.hash rho)
   end)
 
-  (** [traces names rho] is [L.traces names rho], tabulated by its arguments. *)
+  (* [L.traces names rho], tabulated by its arguments. *)
   let traces =
     let table = Tables.create 16 in
     fun names rho ->

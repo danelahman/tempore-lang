@@ -46,11 +46,6 @@ val default_api_level : robot -> string
 (** [default_api_level robot] is the latest [apiLevel] of [robot]: ["2.30"] for
     the Flex. *)
 
-val top_level_names : string -> (string * int) list
-(** [top_level_names source] is the names the lines of the Python [source]
-    define at the top level, each with its line number, by the line-based check
-    described above. *)
-
 val protocol :
   options ->
   operations:

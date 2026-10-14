@@ -1,5 +1,3 @@
-(** Desugaring of syntax into the core language. *)
-
 module Error = Utils.Error
 module Sugared = SugaredAst
 module Untyped = Language.Ast
@@ -110,8 +108,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         comp_ty_annotation_names (ty_annotation_names names ty) cty
     | Sugared.TyBox (rho, ty) ->
         ty_annotation_names (grade_name ~in_effect:false names rho) ty
-    | Sugared.TyHandler (cty, cty') ->
-        comp_ty_annotation_names (comp_ty_annotation_names names cty) cty'
 
   and comp_ty_annotation_names names (Sugared.CompTy (ty, eps)) =
     grade_name ~in_effect:true (ty_annotation_names names ty) eps
@@ -277,12 +273,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let rho' = rho_grade state rho in
         let ty' = desugar_ty state ty in
         Untyped.TyBox (rho', ty')
-    | Sugared.TyHandler (CompTy (ty1, eps1), CompTy (ty2, eps2)) ->
-        let ty1' = desugar_ty state ty1 in
-        let eps1' = eps_grade state eps1 in
-        let ty2' = desugar_ty state ty2 in
-        let eps2' = eps_grade state eps2 in
-        Untyped.TyHandler (CompTy (ty1', eps1'), CompTy (ty2', eps2'))
 
   (* A pattern, with the variables it binds. *)
   let rec desugar_pattern state { Sugared.it = pat; at = loc } =

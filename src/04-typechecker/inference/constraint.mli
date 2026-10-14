@@ -121,13 +121,10 @@ module type S = sig
   val subst_reason : subst -> reason -> reason
   (** [subst_reason sigma reason] applies [sigma] to the grades of [reason]. *)
 
-  val subst : subst -> t -> t
-  (** [subst sigma c] applies [sigma] to the free unknowns of [c] and to the
-      grades of its reasons. *)
-
   val freshen : subst -> t -> t
-  (** [freshen sigma c] is [subst sigma c] with every unknown bound in [c]
-      renamed to a fresh one. *)
+  (** [freshen sigma c] applies [sigma] to the free unknowns of [c] and to the
+      grades of its reasons, and renames every unknown bound in [c] to a fresh
+      one. *)
 
   type free = {
     free_tys : Ast.TyParamSet.t;

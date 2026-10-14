@@ -92,7 +92,7 @@ struct
     | Grade.Top -> top
     | Grade.Tuple [ l1; l2 ] as lit ->
         let component ordinal name =
-          Printf.sprintf "in the %s component ('%s'), " ordinal name
+          Printf.sprintf "in the %s component (`%s`), " ordinal name
         in
         let a =
           Grade.component_of_lit lit
@@ -107,7 +107,7 @@ struct
         (a, b)
     | lit ->
         Grade.invalid_lit lit
-          "grades are pairs '(g1, g2)' of a '%s' and a '%s' grade, not %s"
+          "grades are pairs `(g1, g2)` of a `%s` and a `%s` grade, not %s"
           G1.name G2.name (Grade.describe_lit lit)
 
   let of_bounds b = (G1.of_bounds b, G2.of_bounds b)
@@ -199,7 +199,7 @@ struct
             match lit with
             | Grade.Tuple [ l1; l2 ] ->
                 let component ordinal name =
-                  Printf.sprintf "in the %s component ('%s'), " ordinal name
+                  Printf.sprintf "in the %s component (`%s`), " ordinal name
                 in
                 let m =
                   Grade.component_of_lit lit ~context:(component "first" M.name)
@@ -337,11 +337,11 @@ module Indexed = struct
         let component = match rest with [ l ] -> l | ls -> Grade.Tuple ls in
         ( s,
           Grade.component_of_lit lit
-            ~context:(Printf.sprintf "in the entry of '%s', " s)
+            ~context:(Printf.sprintf "in the entry of `%s`, " s)
             of_lit component )
     | lit ->
         Grade.invalid_lit lit
-          "entries are tuples '(Name, ...)' of a name and its grade, not %s"
+          "entries are tuples `(Name, ...)` of a name and its grade, not %s"
           (Grade.describe_lit lit)
 
   let of_entries ~compare ~others lit entries =
@@ -349,7 +349,7 @@ module Indexed = struct
     let rec check = function
       | (s, _) :: ((s', _) :: _ as rest) ->
           if String.equal s s' then
-            Grade.invalid_lit lit "the name '%s' is listed twice" s
+            Grade.invalid_lit lit "the name `%s` is listed twice" s
           else check rest
       | [ _ ] | [] ->
           let defaults, named =

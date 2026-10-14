@@ -144,7 +144,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x ->
         eval_const env (ContextHolderModule.find_variable x env.variables)
     | _ ->
-        Error.runtime "Const expected but got %t"
+        Error.runtime "Constant expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   (* The argument [expr] of a primitive, its annotations dropped and its
@@ -468,8 +468,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
         match ContextHolderModule.find_variable_opt x env.variables with
         | Some expr' -> eval_handler env expr'
         | None ->
-            Error.runtime
-              "Handler expected but did not find it from environment")
+            Error.runtime "Handler expected but not found in the environment")
     | _ ->
         Error.runtime "Handler expected but got %t"
           (PrettyPrint.print_expression (module GS.R) expr)
@@ -486,7 +485,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | DoFrame (at, abs) -> Ast.located at (Ast.Do (comp, abs))
     | HandleFrame (at, handler) -> Ast.located at (Ast.Handle (comp, handler))
 
-  (** [computation focus] is the computation [focus] decomposes. *)
   let computation { frames; subject } =
     List.fold_left (Fun.flip plug) subject frames
 
@@ -778,9 +776,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
                 :: [])
         | _ -> [])
 
-  (** [returned_value env comp] is [comp] with the value it returns, if it is a
-      [return], given by {!eval_value}: its top-level variables are replaced by
-      their values in [env]. *)
   let returned_value env (comp : _ Ast.computation) =
     match comp.it with
     | Ast.Return expr -> { comp with it = Ast.Return (eval_value env expr) }

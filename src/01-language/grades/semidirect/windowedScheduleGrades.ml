@@ -22,7 +22,7 @@ let of_braces lit r =
     | Grade.Letter name ->
         Grade.invalid_lit lit
           "the times of windowed schedules are sets of numbers of ticks, and \
-           name no operation such as '%s'"
+           name no operation such as `%s`"
           name
     | Grade.Tick n -> R.ticks n
     | Grade.Frac q ->
@@ -103,7 +103,7 @@ module Durations = struct
     | lit ->
         Grade.invalid_lit lit
           "durations are plain integers, intervals %s or brace literals \
-           '{...}', not %s"
+           `{...}`, not %s"
           Grade.interval_forms (Grade.describe_lit lit)
 
   let of_bounds b =
@@ -146,7 +146,7 @@ module Times = struct
   let of_lit = function
     | Grade.Braces r as lit -> of_braces lit r
     | lit ->
-        Grade.invalid_lit lit "times are brace literals '{...}', not %s"
+        Grade.invalid_lit lit "times are brace literals `{...}`, not %s"
           (Grade.describe_lit lit)
 
   let show = RegularTraceGradeDerivative.show
@@ -188,8 +188,8 @@ module WindowedSchedules = struct
                     ~default:Times.bottom Times.of_lit lit entries )
             | Grade.Tuple [ _; Grade.Braces _ ] ->
                 Grade.invalid_lit lit
-                  "times are given by operation, e.g. '(1, (Send, {0}))' for \
-                   'Send' at the start, or '(1, (_, {0}))' for any operation"
+                  "times are given by operation, e.g. `(1, (Send, {0}))` for \
+                   `Send` at the start, or `(1, (_, {0}))` for any operation"
             | _ -> raise rejection))
 
   let show ((durations, times) as c) =

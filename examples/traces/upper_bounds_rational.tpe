@@ -86,9 +86,8 @@ let cycle_brief () : sample # {Read; 1/2; Beep} =
    operation, which these grades, unlike the trace grades of timed operations,
    do not admit:
 
-     Typing error: running-time bounds are only used by the trace and the
-       regular expression grading monoids of timed operations, and must not
-       be declared under the `traces-upper-bound-rational` grading monoid
+     Typing error: Running-time bounds must not be declared under the
+       `traces-upper-bound-rational` grading monoid, which does not use them
 *)
 (*
 operation ReadBounded : unit ~> sample # {Read} within [0, 1]

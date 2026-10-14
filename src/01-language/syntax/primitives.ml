@@ -33,7 +33,7 @@ type primitive =
   | IntOfFloat
   | ToString
 
-(* Keep this list up to date with the type above, otherwise the missing primitives will not be loaded *)
+(* Every constructor of [primitive], in order; only those listed are loaded. *)
 let primitives =
   [
     CompareEq;

@@ -1422,7 +1422,7 @@ let view_compiler (model : Model.model) =
           if choices = [] then []
           else [ div ~a:[ class_ "backend-choices" ] choices ]);
       ]
-  and select_resource =
+  and select_grades =
     div
       ~a:[ class_ "panel-block" ]
       [
@@ -1442,7 +1442,7 @@ let view_compiler (model : Model.model) =
                 grouped_select
                   ~a:[ class_ "select is-fullwidth choice-select" ]
                   ~id:"grades-select" "Select grades"
-                  (fun (name, _) -> Model.EditMsg (Model.SelectResource name))
+                  (fun (name, _) -> Model.EditMsg (Model.SelectGrades name))
                   (fun (_, (info : Grades.GradeRegistry.info)) -> info.title)
                   (fun (_, (info : Grades.GradeRegistry.info)) ->
                     match info.implementation with
@@ -1450,7 +1450,7 @@ let view_compiler (model : Model.model) =
                         info.description ^ " "
                         ^ Grades.GradeRegistry.implementation_text i
                     | None -> info.description)
-                  (fun (name, _) -> name = model.edit_model.selected_resource)
+                  (fun (name, _) -> name = model.edit_model.selected_grades)
                   (List.map
                      (fun (g : Grades.GradeRegistry.group) ->
                        (g.label, g.short, Grades.GradeRegistry.listed g))
@@ -1458,7 +1458,7 @@ let view_compiler (model : Model.model) =
               ];
             (* The description of the selected grades, the tooltip adding how
                a regular grade is decided and the command running them. *)
-            (let name = model.edit_model.selected_resource in
+            (let name = model.edit_model.selected_grades in
              let info =
                List.find_map
                  (fun (g : Grades.GradeRegistry.group) ->
@@ -1568,7 +1568,7 @@ let view_compiler (model : Model.model) =
       ]
   in
   panel ~action:(page_link Model.Docs) "Code options"
-    [ select_backend; use_stdlib; load_example; select_resource; run_process ]
+    [ select_backend; use_stdlib; load_example; select_grades; run_process ]
 
 (* The view of a backend with a compiler in the editor's place: the text
    inputs of the backend, the messages of the compilation and the code

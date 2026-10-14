@@ -116,6 +116,8 @@ let line_names line =
           match target_names targets with Some names -> names | None -> [])
       | None -> [])
 
+(* [top_level_names source] is the names the lines of the Python [source]
+   define at the top level, each with its line number. *)
 let top_level_names source =
   List.concat
     (List.mapi
@@ -165,7 +167,7 @@ let operation_diagnostics ~bound ~compound commands =
     else
       let message =
         Printf.sprintf
-          "operation `%s`, which run %d may perform, has neither a binding \
+          "Operation `%s`, which run %d may perform, has neither a binding \
            function nor a default implementation%s"
           op (i + 1)
           (if handled then

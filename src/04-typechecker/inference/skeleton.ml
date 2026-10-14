@@ -52,13 +52,6 @@ let rec fold_vars f t acc =
 
 let free_vars t = fold_vars TyParamSet.add t TyParamSet.empty
 
-let rec occurs a = function
-  | Var b -> TyParam.compare a b = 0
-  | Const _ -> false
-  | Apply (_, ts) | Tuple ts -> List.exists (occurs a) ts
-  | Arrow (t, u) | Handler (t, u) -> occurs a t || occurs a u
-  | Box t -> occurs a t
-
 (* The type of [t] with every grade [()]. *)
 let rec to_ty : t -> (unit, unit) Ast.ty = function
   | Var a -> Ast.TyParam a

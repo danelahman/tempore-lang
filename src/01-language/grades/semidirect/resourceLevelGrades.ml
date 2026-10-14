@@ -115,7 +115,7 @@ module Upward = struct
     | Grade.Int d -> Fin d
     | Grade.Inf | Grade.Top -> Plus_inf
     | lit ->
-        Grade.invalid_lit lit "%s are integers or '∞', not %s" expected
+        Grade.invalid_lit lit "%s are integers or `∞`, not %s" expected
           (Grade.describe_lit lit)
 
   let show = function
@@ -137,7 +137,7 @@ module Downward = struct
     | Grade.Int d -> Fin d
     | Grade.Top -> Minus_inf
     | lit ->
-        Grade.invalid_lit lit "%s are integers or '⊤', not %s" expected
+        Grade.invalid_lit lit "%s are integers or `⊤`, not %s" expected
           (Grade.describe_lit lit)
 
   let show = function
@@ -189,7 +189,7 @@ module Make (D : Delay.S) = struct
           (net_end Minus_inf lo, net_end Plus_inf hi)
       | lit ->
           Grade.invalid_lit lit
-            "net changes are integers or ranges '[d1, d2]', not %s"
+            "net changes are integers or ranges `[d1, d2]`, not %s"
             (Grade.describe_lit lit)
 
     (* The grade of the literal [lit] of the trough [t], if given, the net change
@@ -212,7 +212,7 @@ module Make (D : Delay.S) = struct
               Upper.Extreme.of_lit l
           with
           | Plus_inf -> top
-          | _ -> Grade.invalid_lit lit "a net change '∞' needs a peak '∞'")
+          | _ -> Grade.invalid_lit lit "a net change `∞` needs a peak `∞`")
       | Grade.Tuple [ l1; l2 ] as lit -> of_components lit None l1 l2
       | Grade.Tuple [ l0; l1; l2 ] as lit ->
           let t =
@@ -222,7 +222,7 @@ module Make (D : Delay.S) = struct
           of_components lit (Some t) l1 l2
       | lit ->
           Grade.invalid_lit lit
-            "grades are tuples '(d, h)' or '(t, d, h)' of a trough, a net \
+            "grades are tuples `(d, h)` or `(t, d, h)` of a trough, a net \
              change and a peak, not %s"
             (Grade.describe_lit lit)
 
