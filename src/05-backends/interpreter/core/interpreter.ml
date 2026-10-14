@@ -595,206 +595,205 @@ module Make (GS : Grades.GradeSystem.S) = struct
       resource_names = Ast.VariableMap.fold name subst env.resource_names;
     }
 
+  (* A fresh resource variable, named after the counter of [env], and [env]
+     with the counter advanced. *)
+  let fresh_resource env =
+    ( Ast.Variable.fresh (resource_id env.resource_counter),
+      { env with resource_counter = env.resource_counter + 1 } )
+
+  (* The reductions below are those of [contract] at each kind of redex. *)
+
+  (* The first case whose pattern matches [expr], its variables refreshed. *)
+  let contract_match env expr cases =
+    List.find_map
+      (fun (pat, comp) ->
+        Option.map
+          (fun subst ->
+            let _, renaming = refresh_pattern Ast.VariableMap.empty pat in
+            let subst =
+              Ast.VariableMap.fold
+                (fun x expr ->
+                  Ast.VariableMap.add (Ast.VariableMap.find x renaming) expr)
+                subst Ast.VariableMap.empty
+            in
+            ( name_resources env subst,
+              Match,
+              fun () -> substitute subst (refresh_computation renaming comp) ))
+          (match_pattern env pat expr))
+      cases
+    |> Option.to_list
+
+  let contract_do env frames at (comp1 : _ Ast.computation) abs =
+    match comp1.it with
+    | Ast.Return expr ->
+        let pat, comp2 = abs in
+        let subst = bind env pat expr in
+        let env' = name_resources env subst in
+        (* At the root, while a default implementation runs, the binding of its
+           result ends the innermost call. *)
+        let env' =
+          match frames with
+          | [] when env'.calls > 0 -> { env' with calls = env'.calls - 1 }
+          | _ -> env'
+        in
+        [ (env', DoReturn, fun () -> substitute subst comp2) ]
+    | Ast.Perform (op, expr, (pat, cont)) ->
+        [
+          ( env,
+            DoOp,
+            fun () ->
+              Ast.located at
+                (Ast.Perform
+                   (op, expr, (pat, Ast.located at (Ast.Do (cont, abs))))) );
+        ]
+    | _ -> []
+
+  let contract_delay env q comp =
+    let grade = GS.R.of_delay (delay q) in
+    let env =
+      {
+        env with
+        state =
+          ContextHolderModule.add_temp (Ast.RhoConst (grade, None)) env.state;
+      }
+    in
+    let env =
+      if env.calls = 0 then
+        { env with accumulated = GS.R.mul env.accumulated grade }
+      else env
+    in
+    [ (env, Delay, fun () -> comp) ]
+
+  (* The value [expr] boxed at [rho] as a fresh resource, which the variable
+     of [pat] stands for in [body]. *)
+  let contract_box env frames rho expr ((pat : _ Ast.pattern), body) =
+    match bound_variable pat with
+    | Some x ->
+        let x', env' = fresh_resource env in
+        let continuation = binds_continuation env pat in
+        let env' =
+          {
+            env' with
+            state = ContextHolderModule.add_variable x' (rho, expr) env.state;
+            resource_names =
+              (match pattern_name pat body frames with
+              | Some name when not continuation ->
+                  Ast.VariableMap.add x' name env.resource_names
+              | Some _ | None -> env.resource_names);
+            continuations =
+              (if continuation then Ast.VariableSet.add x' env.continuations
+               else env.continuations);
+          }
+        in
+        [
+          ( env',
+            Box,
+            fun () -> refresh_computation (Ast.VariableMap.singleton x x') body
+          );
+        ]
+    | None ->
+        Error.runtime "Box expected a variable but got the pattern `%t`"
+          (PrettyPrint.print_pattern pat)
+
+  (* The value of the resource [expr] bound to [pat] in [body]. *)
+  let contract_unbox env expr (pat, body) =
+    match resource_variable expr with
+    | Some x ->
+        let _, value = ContextHolderModule.find_variable x env.state in
+        let subst = bind env pat value in
+        [ (env, Unbox, fun () -> substitute subst body) ]
+    | None ->
+        Error.runtime "Unbox expected a variable but got the expression `%t`"
+          (PrettyPrint.print_expression (module GS.R) expr)
+
+  (* The patterns of the argument and of the continuation of the case [pat] of
+     an operation. *)
+  let rec operation_case_patterns (pat : _ Ast.pattern) =
+    match pat.it with
+    | Ast.PTuple [ arg_pat; cont_pat ] -> Some (arg_pat, cont_pat)
+    | Ast.PAnnotated (pat', _) -> operation_case_patterns pat'
+    | _ -> None
+
+  (* The call of [op] on [expr] with the continuation [(pat, cont)] inside the
+     handler [handler]: handled by the case of [op] of [handler], given the
+     continuation boxed at the resource grade of the effect grade of [op], or
+     else passed to the enclosing handlers with [handler] in its continuation. *)
+  let contract_handled_operation env at handler op_cases op expr (pat, cont) =
+    let resumed = Ast.located at (Ast.Handle (cont, handler)) in
+    match Ast.OpNameMap.find_opt op op_cases with
+    | None ->
+        [
+          ( env,
+            HandleOp,
+            fun () -> Ast.located at (Ast.Perform (op, expr, (pat, resumed))) );
+        ]
+    | Some (case_pat, case) ->
+        let arg_pat, cont_pat =
+          match operation_case_patterns case_pat with
+          | Some pats -> pats
+          | None ->
+              Error.runtime
+                "The case of the operation `%t` does not bind an argument and \
+                 a continuation"
+                (Ast.OpName.print op)
+        in
+        let eps =
+          match Ast.OpNameMap.find_opt op env.op_signatures with
+          | Some eps -> eps
+          | None ->
+              Error.runtime "The operation `%t` has no signature"
+                (Ast.OpName.print op)
+        in
+        let x, env' = fresh_resource env in
+        let env' =
+          { env' with continuations = Ast.VariableSet.add x env.continuations }
+        in
+        let arg_subst = bind env' arg_pat expr in
+        let cont_subst = bind env' cont_pat (Ast.located at (Ast.Var x)) in
+        [
+          ( env',
+            HandleOp,
+            fun () ->
+              Ast.located at
+                (Ast.Box
+                   ( rho_of_eps eps,
+                     Ast.located at (Ast.Lambda (pat, resumed)),
+                     ( Ast.located at (Ast.PVar x),
+                       substitute cont_subst (substitute arg_subst case) ) )) );
+        ]
+
+  let contract_handle env at (body : _ Ast.computation) handler =
+    let (pat, ret_comp), op_cases = eval_handler env handler in
+    match body.it with
+    | Ast.Return expr ->
+        let subst = bind env pat expr in
+        [
+          ( name_resources env subst,
+            HandleReturn,
+            fun () -> substitute subst ret_comp );
+        ]
+    | Ast.Perform (op, expr, cont) ->
+        contract_handled_operation env at handler op_cases op expr cont
+    | _ -> []
+
   (* The reductions of the computation [comp] at its top, in the context
      [frames], each with the environment after it, the redex and the
      contractum. A [do] or a [handle] reduces at its top only when its body is
-     terminal. Every computation the interpreter builds is a contraction of the
-     redex it is reducing, so it is reported at the redex's span. *)
+     terminal; an operation call at the top of a run is reduced by [steps].
+     Every computation the interpreter builds is a contraction of the redex it
+     is reducing, so it is reported at the redex's span. *)
   let contract env frames (comp : _ Ast.computation) =
-    let at = comp.at in
     match comp.it with
-    | Ast.Return _ -> []
-    | Ast.Match (expr, cases) ->
-        (* The first case whose pattern matches, its variables refreshed. *)
-        List.find_map
-          (fun (pat, comp) ->
-            Option.map
-              (fun subst ->
-                let _, renaming = refresh_pattern Ast.VariableMap.empty pat in
-                let subst =
-                  Ast.VariableMap.fold
-                    (fun x expr ->
-                      Ast.VariableMap.add (Ast.VariableMap.find x renaming) expr)
-                    subst Ast.VariableMap.empty
-                in
-                ( name_resources env subst,
-                  Match,
-                  fun () -> substitute subst (refresh_computation renaming comp)
-                ))
-              (match_pattern env pat expr))
-          cases
-        |> Option.to_list
+    | Ast.Return _ | Ast.Perform _ -> []
+    | Ast.Match (expr, cases) -> contract_match env expr cases
     | Ast.Apply (expr1, expr2) ->
         let f = eval_function env expr1 in
         [ (env, ApplyFun, fun () -> f expr2) ]
-    | Ast.Do (comp1, comp2) -> (
-        match comp1.it with
-        | Ast.Return expr ->
-            let pat, comp2' = comp2 in
-            let subst = bind env pat expr in
-            let env' = name_resources env subst in
-            (* At the root, while a default implementation runs, the binding
-               of its result ends the innermost call. *)
-            let env' =
-              match frames with
-              | [] when env'.calls > 0 -> { env' with calls = env'.calls - 1 }
-              | _ -> env'
-            in
-            [ (env', DoReturn, fun () -> substitute subst comp2') ]
-        | Ast.Perform (op, expr, (pat, cont)) ->
-            [
-              ( env,
-                DoOp,
-                fun () ->
-                  Ast.located at
-                    (Ast.Perform
-                       (op, expr, (pat, Ast.located at (Ast.Do (cont, comp2)))))
-              );
-            ]
-        | _ -> [])
-    | Ast.Delay (q, comp) ->
-        let grade = GS.R.of_delay (delay q) in
-        let rho = Ast.RhoConst (grade, None) in
-        let env' =
-          let env =
-            { env with state = ContextHolderModule.add_temp rho env.state }
-          in
-          if env.calls = 0 then
-            { env with accumulated = GS.R.mul env.accumulated grade }
-          else env
-        in
-        [ (env', Delay, fun () -> comp) ]
-    | Ast.Box (rho, expr, (pat, body)) ->
-        let rec doBox rho expr (pat : _ Ast.pattern) body =
-          match pat.it with
-          | Ast.PVar x ->
-              let resource_counter = env.resource_counter in
-              let x' =
-                Ast.Variable.fresh ("resource_" ^ string_of_int resource_counter)
-              in
-              let state' =
-                ContextHolderModule.add_variable x' (rho, expr) env.state
-              in
-              let env' =
-                {
-                  env with
-                  state = state';
-                  resource_counter = resource_counter + 1;
-                  resource_names =
-                    (match
-                       (binds_continuation env pat, pattern_name pat body frames)
-                     with
-                    | false, Some name ->
-                        Ast.VariableMap.add x' name env.resource_names
-                    | true, _ | false, None -> env.resource_names);
-                  continuations =
-                    (if binds_continuation env pat then
-                       Ast.VariableSet.add x' env.continuations
-                     else env.continuations);
-                }
-              in
-              [
-                ( env',
-                  Box,
-                  fun () ->
-                    refresh_computation (Ast.VariableMap.singleton x x') body );
-              ]
-          | Ast.PAnnotated (pat', _) -> doBox rho expr pat' body
-          | _ ->
-              Error.runtime "Box expected a variable but got pattern %t"
-                (PrettyPrint.print_pattern pat)
-        in
-        doBox rho expr pat body
-    | Ast.Unbox (expr, (pat, body)) ->
-        let rec doUnbox (expr : _ Ast.expression) pat body =
-          match expr.it with
-          | Ast.Var x ->
-              let _rho', expr' =
-                ContextHolderModule.find_variable x env.state
-              in
-              let subst = bind env pat expr' in
-              [ (env, Unbox, fun () -> substitute subst body) ]
-          | Ast.Annotated (expr', _) -> doUnbox expr' pat body
-          | _ ->
-              Error.runtime "Unbox expected a variable but got expression %t"
-                (PrettyPrint.print_expression (module GS.R) expr)
-        in
-        doUnbox expr pat body
-    (* An operation call at the top of a run is reduced by [steps]. *)
-    | Ast.Perform _ -> []
-    | Ast.Handle (body, handler) -> (
-        let (pat, ret_comp), op_cases = eval_handler env handler in
-        match body.it with
-        | Ast.Return expr ->
-            let subst = bind env pat expr in
-            ( name_resources env subst,
-              HandleReturn,
-              fun () -> substitute subst ret_comp )
-            :: []
-        | Ast.Perform (op, expr, (op_pat, op_cont)) -> (
-            let op_case = Ast.OpNameMap.find_opt op op_cases in
-            match op_case with
-            | Some ({ it = Ast.PTuple [ op_arg_pat; op_cont_pat ]; _ }, op_case)
-              -> (
-                let op_sig = Ast.OpNameMap.find_opt op env.op_signatures in
-                match op_sig with
-                | Some eps ->
-                    let resource_counter = env.resource_counter in
-                    let x =
-                      Ast.Variable.fresh
-                        ("resource_" ^ string_of_int resource_counter)
-                    in
-                    let env' =
-                      {
-                        env with
-                        resource_counter = resource_counter + 1;
-                        continuations = Ast.VariableSet.add x env.continuations;
-                      }
-                    in
-                    let arg_subst = bind env' op_arg_pat expr in
-                    let cont_subst =
-                      bind env' op_cont_pat (Ast.located at (Ast.Var x))
-                    in
-                    (* The continuation is boxed at the resource grade the
-                       operation's effect grade maps to. *)
-                    ( env',
-                      HandleOp,
-                      fun () ->
-                        Ast.located at
-                          (Ast.Box
-                             ( rho_of_eps eps,
-                               Ast.located at
-                                 (Ast.Lambda
-                                    ( op_pat,
-                                      Ast.located at
-                                        (Ast.Handle (op_cont, handler)) )),
-                               ( Ast.located at (Ast.PVar x),
-                                 substitute cont_subst
-                                   (substitute arg_subst op_case) ) )) )
-                    :: []
-                | None ->
-                    Error.runtime
-                      "Internal error: operation %t has no signature in the \
-                       runtime state"
-                      (Ast.OpName.print op))
-            | Some _ ->
-                Error.runtime
-                  "Internal error: the case of operation %t does not bind an \
-                   argument and a continuation"
-                  (Ast.OpName.print op)
-            | _ ->
-                ( env,
-                  HandleOp,
-                  fun () ->
-                    Ast.located at
-                      (Ast.Perform
-                         ( op,
-                           expr,
-                           ( op_pat,
-                             Ast.located at (Ast.Handle (op_cont, handler)) ) ))
-                )
-                :: [])
-        | _ -> [])
+    | Ast.Do (comp1, abs) -> contract_do env frames comp.at comp1 abs
+    | Ast.Delay (q, comp) -> contract_delay env q comp
+    | Ast.Box (rho, expr, abs) -> contract_box env frames rho expr abs
+    | Ast.Unbox (expr, abs) -> contract_unbox env expr abs
+    | Ast.Handle (body, handler) -> contract_handle env comp.at body handler
 
   let returned_value env (comp : _ Ast.computation) =
     match comp.it with
