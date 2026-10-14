@@ -63,7 +63,8 @@ ARDUINO_EXAMPLES := $(call example_names,arduino)
 
 # Reads the fragment of the example $(2) of the backend $(1) and defines its
 # targets by the template $(1)_example, applied to the name and the
-# directory of the example.
+# directory of the example. Its expansion is passed to eval, since make 3.81
+# rejects a multi-line expansion at the top level.
 define load_example
 $(foreach field,$(EXAMPLE_FIELDS),$(eval $(field) :=))
 $(eval include $(call $(1)_fragment,$(2)))
@@ -219,8 +220,10 @@ arduino_example = $(call arduino_template,$(1),$(2),$(call \
 port = $(or $(PORT),$($(call port_variable,$(1))),$(error No serial port \
   is set for the board $(1): set PORT or $(call port_variable,$(1))))
 
-$(foreach name,$(OPENTRONS_EXAMPLES),$(call load_example,opentrons,$(name)))
-$(foreach name,$(ARDUINO_EXAMPLES),$(call load_example,arduino,$(name)))
+$(foreach name,$(OPENTRONS_EXAMPLES),$(eval $(call \
+  load_example,opentrons,$(name))))
+$(foreach name,$(ARDUINO_EXAMPLES),$(eval $(call \
+  load_example,arduino,$(name))))
 
 opentrons-simulate-all: $(OPENTRONS_EXAMPLES:%=opentrons-%-simulate)
 arduino-simulate-all: $(ARDUINO_EXAMPLES:%=arduino-%-simulate)

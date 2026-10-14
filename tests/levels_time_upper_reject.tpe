@@ -1,4 +1,9 @@
-(* Time upper bounds paired with security levels: rejected uses of an expiring
+(* Run this test with the 'time-upper-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-levels \
+       tests/levels_time_upper_reject.tpe
+
+   Time upper bounds paired with security levels: rejected uses of an expiring
    capability. *)
 
 operation Leak : string ~> unit # (1, High)

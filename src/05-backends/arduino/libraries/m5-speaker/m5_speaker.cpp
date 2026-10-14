@@ -9,9 +9,8 @@
 #include "tempore_bindings.h"
 
 void m5_speaker_init() {
-  tempore_i2c_lock();
+  const tempore_i2c_guard guard;
   M5.Speaker.begin();
-  tempore_i2c_unlock();
 }
 
 #ifdef TEMPORE_PERFORMS_Beep

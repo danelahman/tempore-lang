@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/traces_reject_self_retry.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: a compound operation may not name itself, since its
    running-time bounds are computed from those of the operations its grade
    names. A retry has to be expressed through a smaller operation instead. *)

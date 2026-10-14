@@ -1,3 +1,7 @@
+(* A variant of examples/basics/delay.tpe: the box of 'higher' is bound by
+   'box e as x in', the triple is unboxed by 'unbox e as p in', and the
+   functional arguments of 'foo' are applied several times. *)
+
 type unary =
   | Zero
   | Succ of unary

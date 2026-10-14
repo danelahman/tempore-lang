@@ -20,6 +20,7 @@ typedef void (*TaskFunction_t)(void *);
 #define portMAX_DELAY (static_cast<TickType_t>(0xffffffffUL))
 #define pdPASS 1
 #define pdTRUE 1
+#define pdFALSE 0
 #define tskNO_AFFINITY 0x7fffffff
 #define tskIDLE_PRIORITY 0
 

@@ -1,4 +1,9 @@
-(* Accepted under the 'regex-timed-lower-bound-rational-symbolic' grading monoid:
+(* Run this test with the 'regex-timed-lower-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-lower-bound-rational-symbolic \
+       tests/regex_timed_rational_lower.tpe
+
+   Accepted under the 'regex-timed-lower-bound-rational-symbolic' grading monoid:
    regular lower bounds over rational delays, covered by traces whose operations
    bank their fractional lower running-time bounds. *)
 

@@ -6,10 +6,8 @@ module GradeSystem = Grades.GradeSystem
 module GradeExp = Inference.GradeExp
 module GradeNormal = Inference.GradeNormal
 module Reach = Inference.Reach
+open TestSupport.Checks
 
-type check = { name : string; passed : bool; detail : string }
-
-let check name passed detail = { name; passed; detail }
 let show_option show = function Some v -> "Some " ^ show v | None -> "None"
 
 let show_ints used =
@@ -17,11 +15,6 @@ let show_ints used =
 
 let show_used = show_option show_ints
 let show_bool = string_of_bool
-
-(* [expect name show ~expected actual] passes when the two agree. *)
-let expect name show ~expected actual =
-  check name (expected = actual)
-    ("expected " ^ show expected ^ ", got " ^ show actual)
 
 let bounds =
   {
@@ -551,9 +544,4 @@ let () =
           S.run ())
         Grades.GradeRegistry.grade_modules
   in
-  let failures = List.filter (fun c -> not c.passed) checks in
-  List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
-  Printf.printf "%d of %d checks passed\n"
-    (List.length checks - List.length failures)
-    (List.length checks);
-  if failures <> [] then exit 1
+  report checks

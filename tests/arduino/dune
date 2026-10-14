@@ -9,6 +9,8 @@
   (= %{read:../cxx/cxx-available} "true\n"))
  (deps
   %{project_root}/tempore
+  %{project_root}/tests/helpers.sh
+  %{project_root}/tests/support/header_options.exe
   (glob_files *.tpe)
   (glob_files toy/*)
   (glob_files packages/*)

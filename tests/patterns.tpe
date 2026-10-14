@@ -11,3 +11,9 @@ run let ((Moo x) as y) = Moo 10 in (x,y)
 run let ((x as y) as z) = 42 in (x,y,z)
 run let ((x,y,z) as a) = (1,2,3) in (x,y,z,a)
 run let ((x as y), z) = ("foo", "bar") in (x,y,z)
+
+(* Functions are printed with the parentheses their patterns require. *)
+run fun (Moo x) -> x
+run fun o -> match o with Some (x :: xs) -> xs | Some [] -> [] | None -> []
+run fun l -> match l with ((x as y) :: _) as z -> (x, y, z) | [] -> (0, 0, [])
+run fun l -> match l with (x + 1) :: _ -> x | _ -> 0

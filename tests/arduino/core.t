@@ -4,7 +4,7 @@ resources of each run, which is dropped before the comparison. The generated
 code compiles without warnings, here, as for the host simulation, without the
 contraction of floating-point expressions into fused multiply-adds.
 
-  $ strip_state () { awk '/^State:/ { skip = 1 } /^$/ { skip = 0 } !skip'; }
+  $ . ../helpers.sh
   $ compile () {
   >   ../../tempore --emit-arduino "${1%.tpe}" --host-runs "$1" > /dev/null &&
   >   c++ -std=c++17 -Wall -Wextra -Werror -O2 -ffp-contract=off -o "${1%.tpe}.host" \

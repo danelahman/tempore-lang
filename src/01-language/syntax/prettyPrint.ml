@@ -31,9 +31,6 @@ let type_symbol n =
 
 let rho_symbol n = "ρ" ^ Print.subscript n
 let eps_symbol n = "ε" ^ Print.subscript n
-
-(** [rigid_symbol op] is the name of an effect variable bound by a handler case
-    for the operation [op], [ε_op]. *)
 let rigid_symbol op = "ε_" ^ op
 
 module MakeParamPrinter
@@ -42,9 +39,6 @@ module MakeParamPrinter
       val symbol_for_index : int -> string
     end) =
 struct
-  (** [create_with ~named ()] names the parameters in the order they are first
-      printed: by the next index, or by [base] where [named] gives [base], with
-      as many primes [′] as parameters named [base] before it. *)
   let create_with ~named () =
     let names = ref ParamMap.empty in
     let counter = ref 0 in
@@ -93,27 +87,15 @@ type ('rho, 'eps) grade_printer = {
   eps : 'eps -> Format.formatter -> unit;
   pure : 'eps -> bool;
 }
-(** How the grades of a type are printed: its resource grades by [rho] and its
-    effect grades by [eps]. A computation type whose effect grade is [pure], the
-    unit, is printed without it. *)
 
 type 'a arrows = {
   domains : 'a list;
   codomain : 'a codomain;
   grade : 'a option;
 }
-(** A type as printed, in parts around its arrows: the [domains] of its
-    outermost chain of arrows, in order, the [codomain] of the last arrow, and
-    the effect grade of the last arrow where it is printed; the other arrows of
-    a chain are printed without one. A type other than a function type has no
-    domains and no grade. *)
 
-(** A codomain, printed as it is or, where it is a function or handler type that
-    {!parenthesised_codomain} selects, in parentheses. *)
 and 'a codomain = Plain of 'a | Parenthesised of 'a arrows
 
-(** [map_arrows f arrows] applies [f] to the parts of [arrows] in the order they
-    are printed. *)
 let rec map_arrows f { domains; codomain; grade } =
   let domains = List.map f domains in
   let codomain =
@@ -142,10 +124,6 @@ let parenthesised_codomain grades eps = function
   | TyHandler _ -> true
   | TyConst _ | TyApply _ | TyParam _ | TyTuple _ | TyBox _ -> false
 
-(** [print_ty grades ty_print_param ty] prints [ty], its grades by [grades],
-    with the parentheses the precedences of the types require: by decreasing
-    precedence, application of a type constructor (level 1), the box (2),
-    products (3), and arrows and handler types (4). *)
 let rec print_ty ?max_level grades ty_print_param ty ppf =
   let aux ?max_level ty = print_ty ?max_level grades ty_print_param ty in
   let print ?at_level = Print.print ?max_level ?at_level ppf in
@@ -174,9 +152,6 @@ let rec print_ty ?max_level grades ty_print_param ty ppf =
       in
       print ~at_level:4 "%t ⇒ %t" (computation ty1 eps1) (computation ty2 eps2)
 
-(** [arrow_parts grades ty_print_param ty] is [ty] as
-    [print_ty grades ty_print_param ty] prints it, in parts around its arrows.
-*)
 and arrow_parts grades ty_print_param ty =
   let print ?max_level = print_ty ?max_level grades ty_print_param in
   match ty with
@@ -205,7 +180,10 @@ let rec print_pattern ?max_level p ppf =
   let print ?at_level = Print.print ?max_level ?at_level ppf in
   match p.it with
   | PVar x -> print "%t" (Variable.print x)
-  | PAs (p, x) -> print "%t as %t" (print_pattern p) (Variable.print x)
+  | PAs (p, x) ->
+      print ~at_level:5 "%t as %t"
+        (print_pattern ~max_level:5 p)
+        (Variable.print x)
   | PAnnotated (p, _ty) -> print_pattern ?max_level p ppf
   | PConst c -> Const.print c ppf
   | PSucc (p, k) ->
@@ -215,7 +193,9 @@ let rec print_pattern ?max_level p ppf =
   | PVariant (lbl, None) -> print "%t" (Label.print lbl)
   | PVariant (lbl, Some { it = PTuple [ v1; v2 ]; _ })
     when Label.equal lbl cons_label ->
-      print "%t::%t" (print_pattern v1) (print_pattern v2)
+      print ~at_level:3 "%t::%t"
+        (print_pattern ~max_level:2 v1)
+        (print_pattern ~max_level:3 v2)
   | PVariant (lbl, Some p) ->
       print ~at_level:1 "%t @[<hov>%t@]" (Label.print lbl)
         (print_pattern ~max_level:0 p)
@@ -240,7 +220,8 @@ and print_expression ?(abbreviated = false) resource_grade =
     | (Lambda _ | PureLambda _ | RecLambda _) when abbreviated -> print "<fun>"
     | Handler _ when abbreviated -> print "<handler>"
     | Lambda (p, c) | PureLambda (p, c) ->
-        print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]" (print_pattern p)
+        print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]"
+          (print_pattern ~max_level:0 p)
           (print_computation resource_grade ?max_level:None c)
     | RecLambda (f, _, _) -> print ~at_level:2 "rec %t ..." (Variable.print f)
     | Handler (ret_case, op_cases) ->

@@ -41,6 +41,12 @@ let render_label_text ~place:shown text =
 (* Backticks alternate between prose and code, so the pieces a split yields do
    too. An odd count leaves a piece with no closing backtick: it is prose, and
    keeps the backtick it opened with, as that is what a terminal shows. *)
+let code s = "`" ^ s ^ "`"
+
+let code_list = function
+  | [] -> "none"
+  | ss -> String.concat ", " (List.map code ss)
+
 let segments text =
   let rec go acc code = function
     | [] -> List.rev acc

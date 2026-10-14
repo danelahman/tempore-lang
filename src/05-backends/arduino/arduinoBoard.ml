@@ -21,7 +21,14 @@ type t = {
   init : string list;
 }
 
-let names = List.sort String.compare (List.map fst Arduino_boards.profiles)
+(* The texts of the embedded board profiles, each with the name of its
+   board. *)
+let texts =
+  List.map
+    (fun (file, text) -> (Filename.chop_suffix file ".json", text))
+    Arduino_boards.files
+
+let names = List.sort String.compare (List.map fst texts)
 
 let i2c ~what v =
   let f = Json.fields ~what ~accepted:[ "port"; "sda"; "scl"; "frequency" ] v in
@@ -63,7 +70,7 @@ let parse name text =
   if imu_frequency <> None && not m5unified then
     Utils.Error.compilation
       ~loc:(Json.location f "imu_frequency")
-      "The member 'imu_frequency' of a board profile requires 'm5unified'";
+      "The member `imu_frequency` of a board profile requires `m5unified`";
   {
     name;
     title = Json.required f "title" Json.string;
@@ -86,8 +93,11 @@ let parse name text =
     init = Json.required f "init" strings;
   }
 
-let find name =
-  Option.map (parse name) (List.assoc_opt name Arduino_boards.profiles)
+(* The board profiles, each parsed at its first use. *)
+let profiles =
+  List.map (fun (name, text) -> (name, lazy (parse name text))) texts
+
+let find name = Option.map Lazy.force (List.assoc_opt name profiles)
 
 let platformio_ini board =
   let list key = function

@@ -3,8 +3,8 @@ packages m5-imu, m5-display and bala2-base, its rejected variants, and its
 closed loop with the host model of the robot.
 
   $ app=../../examples/arduino/bala2
-  $ tempore () { ../../tempore --grades time-interval-rational "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
+  $ . ../helpers.sh
+  $ from_header $app/balance.tpe
 
 The interpreter, with the declarations of the packages under their
 running-time bounds on the M5Stack Gray, the board of the manifest, as for
@@ -94,7 +94,7 @@ The PlatformIO project for the M5Stack Gray, its C++ sources checked without
 exceptions and run-time type information, and its host build:
 
   $ tempore --emit-arduino balance --device $app/balance.device.json $app/balance.tpe | grep -c Wrote
-  31
+  32
   $ cd _arduino/projects/balance
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ build () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
@@ -188,8 +188,8 @@ the robot falls:
   [1540.865 ms] Display: Armed
   [2441.865 ms] Display: -0.044
   [3442.865 ms] Display: 0.084
-  [4005.071 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
-  [4005.071 ms] Safe state
+  [4005.316 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
+  [4005.316 ms] Safe state entered
   [4017.604 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [4019.044 ms] Display at (28, 84): Stopped by the monitor
   [4020.384 ms] Display at (58, 112): Publish took 3 ms

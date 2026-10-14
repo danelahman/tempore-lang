@@ -120,6 +120,10 @@ val source : string -> string option
 (** [source filename] is the text of the file of a package, definitions or
     declarations, whose {!file.filename} is [filename], if any. *)
 
+val shared_binding : t -> t -> string option
+(** [shared_binding p q] is the first operation that [p] binds and [q] binds, if
+    any. *)
+
 val running_times :
   ?board:string -> t -> (string * Grades.Grade.running_time) list
 (** [running_times ?board package] is the running-time bounds of the operations

@@ -26,6 +26,15 @@ void vTaskDelayUntil(TickType_t *previous, TickType_t increment);
 void vTaskSuspend(TaskHandle_t task);
 void vTaskDelete(TaskHandle_t task);
 
+// Increments the notification value of the task, unblocking it if it waits
+// for a notification.
+BaseType_t xTaskNotifyGive(TaskHandle_t task);
+
+// Blocks the calling task until its notification value is positive, and
+// returns it, setting it to 0 if clear and else decrementing it; the time
+// limit is ignored.
+uint32_t ulTaskNotifyTake(BaseType_t clear, TickType_t ticks);
+
 // The name of the calling task for nullptr.
 char *pcTaskGetName(TaskHandle_t task);
 

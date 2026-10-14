@@ -28,9 +28,6 @@ val equal : t -> t -> bool
 val free_vars : t -> Language.Ast.TyParamSet.t
 (** [free_vars t] is the set of type unknowns of [t]. *)
 
-val occurs : Language.Ast.ty_param -> t -> bool
-(** [occurs a t] is whether the type unknown [a] occurs in [t]. *)
-
 val print : t -> Format.formatter -> unit
 (** [print t ppf] prints [t] in the notation of types, without grades. *)
 

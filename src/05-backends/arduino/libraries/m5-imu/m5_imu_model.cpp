@@ -14,9 +14,9 @@
 #include "tempore_scaffold.h"
 #include "tempore_world.h"
 
-static const double m5_imu_degrees = 180.0 / 3.14159265358979323846;
+static const double m5_imu_degrees = 180.0 / PI;
 
-int tempore_m5_imu::update() {
+m5::IMU_Class::sensor_mask_t tempore_m5_imu::update() {
   delayMicroseconds(603);
   const tempore_world &w = tempore_world_now();
   accel[0] = static_cast<float>(w.load * sin(w.roll));
@@ -27,7 +27,8 @@ int tempore_m5_imu::update() {
   gyro[2] = 0.0f;
   tempore_trace("IMU accel %.3f %.3f %.3f g, gyro %.2f %.2f %.2f deg/s",
                 accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
-  return 1;
+  return static_cast<m5::IMU_Class::sensor_mask_t>(
+      m5::IMU_Class::sensor_mask_accel | m5::IMU_Class::sensor_mask_gyro);
 }
 
 void tempore_m5_imu::getImuData(m5::imu_data_t *data) {

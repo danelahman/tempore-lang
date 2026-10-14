@@ -1,4 +1,9 @@
-(* Rejected under the regular trace grading monoids: a session that reads
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-symbolic \
+       tests/regular_reject_protocol.tpe
+
+   Rejected under the regular trace grading monoids: a session that reads
    after closing, and one that is never closed. *)
 
 operation Open : unit ~> unit # {Open}

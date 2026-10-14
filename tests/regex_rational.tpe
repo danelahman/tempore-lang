@@ -1,4 +1,9 @@
-(* Correctly accepted by the typechecker, under the
+(* Run this test with the 'regex-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-rational-symbolic \
+       tests/regex_rational.tpe
+
+   Correctly accepted by the typechecker, under the
    'regex-upper-bound-rational-symbolic' grading monoid: timed regular
    expressions over rational delays, adjacent delays being added, with intervals
    of delays, complements over all traces and repetitions of fractional

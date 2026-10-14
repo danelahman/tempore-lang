@@ -1,4 +1,8 @@
-(* Windowed schedules: the durations of a computation and the times at which
+(* Run this test with the 'windowed-schedules' grading monoid, e.g.
+
+     ./tempore --grades windowed-schedules tests/windowed_schedules.tpe
+
+   Windowed schedules: the durations of a computation and the times at which
    each of its operations happens. *)
 
 operation Send : unit ~> unit # (1, (Send, {0}))

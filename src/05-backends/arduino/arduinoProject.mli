@@ -21,8 +21,9 @@
     - [src/tempore_bindings.h]: for each operation [Op] the program performs,
       the macro [TEMPORE_PERFORMS_Op], the types [tempore_argument_Op] and
       [tempore_result_Op] of its argument and result, and the declaration of its
-      binding function; and the declaration of the safe-state hook; the binding
-      file and the sources of the packages include it;
+      binding function; the declaration of the safe-state hook, and those of the
+      initialisation and safe-state functions of the packages; the binding file
+      and the sources of the packages include it;
     - [src/tempore_operations.cpp]: the function [tempore_op_Op] of each
       operation [Op] the program performs, which calls the binding function
       [binding_Op] ({!ArduinoNames.binding}) and checks its running time against
@@ -50,10 +51,14 @@
 
     A periodic task of period [P] calls the initial function, if any, once, and
     then its function at every release, from the tick at which it starts, with
-    [vTaskDelayUntil]; the running time of each call is checked against [P]. A
-    free task calls its function once and is deleted when it returns, or, if it
-    is repeated, calls it again each time it returns. Each task first checks
-    whether the tasks are halted, and stops if they are.
+    [vTaskDelayUntil]; the running time of each call is checked against [P].
+    When a release is missed, as after an overrun, the next release follows [P]
+    after the end of the late call, without calls that follow one another at
+    once. A free task calls its function once and is deleted when it returns,
+    or, if it is repeated, calls it again each time it returns, after a wait of
+    one tick by [vTaskDelay(1)], so that the idle task of its core runs also
+    when its function waits only actively, as for a delay below a millisecond.
+    Each task first checks whether the tasks are halted, and stops if they are.
 
     {2 Time}
 
@@ -69,10 +74,18 @@
 
     Under the policy [Abort], a running time outside the bounds of its
     operation, a step of a periodic task that takes its period or longer, and a
-    run-time error log their cause, call the safe-state hook once and halt the
-    tasks; under [Warn] the first two are logged and the tasks go on, and under
-    [Off] they are not checked. A run-time error halts the tasks under every
-    policy.
+    run-time error call the safe-state hook once, then log their cause, and halt
+    the tasks; under [Warn] the first two are logged and the tasks go on, and
+    under [Off] they are not checked. A run-time error halts the tasks under
+    every policy.
+
+    {2 Log}
+
+    [setup()] starts the serial port by [tempore_log_begin]. The lines of the
+    log are added to a buffer without waiting, and a task of priority 1 writes
+    them to the serial port, so that a timed call or step does not wait for the
+    port; a line logged while the buffer is full is dropped, and the number of
+    the lines dropped is logged.
 
     {2 Profile}
 
@@ -87,8 +100,6 @@
     [TEMPORE_TRACE], which logs each event, the profile does not lengthen the
     times it measures. *)
 
-type monitor = Abort | Warn | Off
-
 (** The effect of a top-level function, as the typechecker infers it. *)
 type function_effect =
   | Not_a_function
@@ -100,7 +111,7 @@ type function_effect =
 
 type input = {
   device : ArduinoDevice.t;
-  monitor : monitor;
+  monitor : Utils.Monitor.t;
   source : string;  (** the name of the source file of the program *)
   definitions : (Language.Ast.variable * function_effect) list;
       (** the top-level definitions of the program's sources, in order, each
@@ -113,10 +124,9 @@ type input = {
     list;
       (** the declared operations, each with the bounds of its running time, if
           any *)
-  bindings : (string * string) option;
-      (** the name and the text of the binding file of the manifest, if any *)
-  host_models : (string * string) list;
-      (** the name and the text of each host model of the manifest, in order *)
+  file_text : ArduinoDevice.name -> string;
+      (** the text of a file the manifest names: its binding file or one of its
+          host models *)
   profile : bool;
       (** whether the project is built with the profile ([TEMPORE_PROFILE]) *)
 }
@@ -142,17 +152,14 @@ val files : input -> ArduinoFragment.program -> (string * string) list
       file does not mention, a binding function of a package that the binding
       file mentions, and a binding file or host model that is not a C++ file
       ending in .cpp or has the name of a file of a package or of another host
-      model.
+      model, or a package binding an operation that another package of the
+      manifest binds.
 
     Under a grade system that does not bound durations
     ({!Grades.Grade.Untimed}), the durations of the functions of periodic and
     repeated free tasks are not checked: the period of a step is checked only by
     the monitor of the device, and a repeated free task is not shown to yield.
 *)
-
-val host_sources : (string * string) list -> string list
-(** [host_sources files] is the paths of the C++ sources of the project [files]
-    that its host build compiles: those of [src/] and of [host/]. *)
 
 val host_build_command :
   ?profile:bool ->
@@ -162,11 +169,11 @@ val host_build_command :
   string list
 (** [host_build_command ~directory ~output files] is the command, as a list of
     its words, that compiles the project [files] written to [directory] for the
-    host simulation into the executable [output], with [c++] under C++17 without
-    the contraction of floating-point expressions into fused multiply-adds,
-    [TEMPORE_HOST] and [TEMPORE_TRACE] defined, and threads; under [~profile]
-    (default [false]), with [TEMPORE_PROFILE] in place of [TEMPORE_TRACE]. The
-    executable takes the simulated duration in microseconds as its argument and
-    prints the log of the device, with the events of the tasks traced, or under
-    [~profile] with the profile every 5 simulated seconds and at the end of the
-    simulation. *)
+    host simulation, its C++ sources of [src/] and [host/], into the executable
+    [output], with [c++] under C++17 without the contraction of floating-point
+    expressions into fused multiply-adds, [TEMPORE_HOST] and [TEMPORE_TRACE]
+    defined, and threads; under [~profile] (default [false]), with
+    [TEMPORE_PROFILE] in place of [TEMPORE_TRACE]. The executable takes the
+    simulated duration in microseconds as its argument and prints the log of the
+    device, with the events of the tasks traced, or under [~profile] with the
+    profile every 5 simulated seconds and at the end of the simulation. *)

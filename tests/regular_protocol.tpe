@@ -1,4 +1,8 @@
-(* Accepted under the regular trace grading monoids: a file protocol whose
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-symbolic tests/regular_protocol.tpe
+
+   Accepted under the regular trace grading monoids: a file protocol whose
    sessions open, read and write any number of times, and close, in that
    order. *)
 

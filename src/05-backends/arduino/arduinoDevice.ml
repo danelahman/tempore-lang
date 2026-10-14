@@ -38,6 +38,11 @@ type t = {
 let located decode ~what (v : Json.t) =
   { Location.it = decode ~what v; at = v.at }
 
+(* The bound of the numerator and the denominator of the time unit, 2^30, under
+   which the conversion of a delay to microseconds in 64-bit unsigned
+   arithmetic does not overflow. *)
+let unit_term_bound = Z.shift_left Z.one 30
+
 let time_unit ~what (v : Json.t) =
   match v.value with
   | Json.String "ms" -> Rational.of_int 1000
@@ -47,31 +52,33 @@ let time_unit ~what (v : Json.t) =
       match Json.rational ~what v with
       | q
         when Rational.sign q > 0
-             && Rational.compare q (Rational.of_int 1_000_000_000) <= 0 ->
+             && Rational.compare q (Rational.of_int 1_000_000_000) <= 0
+             && Z.lt (Rational.num q) unit_term_bound
+             && Z.lt (Rational.den q) unit_term_bound ->
           q
       | _ ->
           Error.compilation ~loc:v.at
-            "The time unit must be positive and at most 10^9 microseconds")
+            "The time unit must be a positive number of microseconds, at most \
+             10^9, whose numerator and denominator in lowest terms are below \
+             2^30")
   | _ ->
       Error.compilation ~loc:v.at
-        "The time unit must be ms, us, s or a positive number of microseconds"
+        "The time unit must be `ms`, `us`, `s` or a positive number of \
+         microseconds"
 
 (* A C++ identifier that is not reserved for the compiler. *)
 let identifier ~what (v : Json.t) =
   let s = Json.string ~what v in
   let ok =
     s <> ""
-    && (match s.[0] with 'a' .. 'z' | 'A' .. 'Z' | '_' -> true | _ -> false)
-    && String.for_all
-         (function
-           | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> true | _ -> false)
-         s
+    && ArduinoCpp.is_identifier_start s.[0]
+    && String.for_all ArduinoCpp.is_identifier_char s
     && not (String.starts_with ~prefix:"tempore" s)
   in
   if ok then s
   else
     Error.compilation ~loc:v.at
-      "%s must be a C++ identifier that does not start with tempore"
+      "%s must be a C++ identifier that does not start with `tempore`"
       (String.capitalize_ascii what)
 
 let in_range ~what ~lo ~hi fields name default =
@@ -109,10 +116,10 @@ let task ~unit_us ~what v =
   let kind =
     match (kind_name.it, period) with
     | "periodic", None ->
-        Error.compilation ~loc:v.at "A periodic task needs the member 'period'"
+        Error.compilation ~loc:v.at "A periodic task needs the member `period`"
     | "periodic", Some _ when repeat <> None ->
         Error.compilation ~loc:(Json.location f "repeat")
-          "A periodic task is repeated by its period; the member 'repeat' is \
+          "A periodic task is repeated by its period; the member `repeat` is \
            for free tasks"
     | "periodic", Some period ->
         let us = Rational.mul period unit_us in
@@ -139,7 +146,8 @@ let task ~unit_us ~what v =
         | None -> Free { repeat = Option.value repeat ~default:false })
     | other, _ ->
         Error.compilation ~loc:kind_name.at
-          "Unknown kind of task '%s'; accepted: periodic, free" other
+          "Unknown kind of task `%s`; accepted: %s" other
+          (Utils.Diagnostic.code_list [ "periodic"; "free" ])
   in
   {
     function_name;

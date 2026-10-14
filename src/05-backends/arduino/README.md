@@ -51,8 +51,11 @@ physical world used only by the host simulation:
     }
 
 A periodic task calls its function, of type `s -> s`, once per period, from
-the state its `initial` function returns; a free task calls its function, of
-type `unit -> unit`, once, or, with `repeat`, each time it returns.
+the state its `initial` function returns, and after a missed release, as
+after an overrun, a period after the end of the late step; a free task calls its function, of
+type `unit -> unit`, once, or, with `repeat`, each time it returns, after a
+wait of one tick, so that the idle task of its core runs also when the
+function waits only actively, as for a delay below a millisecond.
 
 ## Peripheral packages
 
@@ -164,7 +167,10 @@ how the bounds not measured directly, such as those of `i2c`, are derived.
 The program is a `.tpe` file with a binding file, which defines, for each
 operation `Op` not bound by a package, the function
 `tempore_result_Op binding_Op(tempore_argument_Op)`, and the safe-state
-function.
+function. A name `Op` other than of ASCII letters and digits with single
+underscores between them is spelt there as a C++ identifier followed by `_`,
+its bytes in hexadecimal and `_`, so that distinct names stay distinct: the
+binding function of `Show'` is `binding_Show_p_53686f7727_`.
 
 Under a device manifest, the definitions checked and compiled are those
 reached from the task functions and the `initial` functions of the manifest;
@@ -336,6 +342,13 @@ shown:
 - under `warn`, a yellow line above the footer, with the number of the
   warnings and the last of them, drawn every 500 ms by a task of the lowest
   priority.
+
+Under `abort` the safe state is entered before the violation is logged. The
+log is written to the serial port by a task of priority 1 from a buffer of 32
+lines (`TEMPORE_LOG_LINES`), so that a timed call or step does not wait for
+the port, whose transmit buffer is 1024 bytes (`TEMPORE_SERIAL_TX_BUFFER`). A
+line logged while the buffer is full is dropped, and the number of the lines
+dropped is logged.
 
 Watchdogs, cut-offs and the safe state are mechanisms of the C++ packages and
 of the application, outside the typing.

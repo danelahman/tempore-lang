@@ -101,8 +101,8 @@ module Nat = struct
   let min = Int.min
   let max = Int.max
 
-  (** [0, ..., s+1], [s] the sum of [cs], and a [Partial] sample of [0], [1],
-      [cs] and [max_int] if [s+2] is not representable. *)
+  (* The delays [0], …, [s + 1], [s] the sum of [cs], or a [Partial] sample of
+     [0], [1], [cs] and [max_int] if [s + 2] is not representable. *)
   let witnesses ~degree:_ cs =
     let s = List.fold_left (fun s c -> Z.add s (Z.of_int c)) Z.zero cs in
     if Z.fits_int (Z.add s (Z.of_int 2)) then

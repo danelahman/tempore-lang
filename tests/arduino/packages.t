@@ -41,7 +41,7 @@ package under other grades, and --package with --device are refused:
   $ ../../tempore --grades time-interval-rational --package m5-gyro filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
   option '--package': 'm5-gyro' is not one of bala2-base, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
   $ ../../tempore --grades time-interval --package m5-imu filter.tpe
-  Error: The package m5-imu declares its operations under the grades time-interval-rational, regex-timed-lower-bound-rational-symbolic, regex-timed-upper-bound-rational-symbolic, regex-timed-interval-rational-symbolic, counts-upper-bound, not time-interval
+  Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `counts-upper-bound`, not `time-interval`
   [1]
   $ emit tilt --device packages/tilt.device.json --package m5-imu packages/tilt.tpe
   ../../tempore: option '--package' cannot be used with '--device'.
@@ -85,8 +85,8 @@ The option --board needs --package and names a board profile:
 The tilt display on an M5Stack Gray, with the packages m5-imu and m5-display:
 the sources of the packages are copied to src/ and their host models to host/,
 the binding functions of the operations performed are declared with the
-types of their arguments and results, and the initialisation of the display
-is called by setup():
+types of their arguments and results, as are the initialisation functions of
+the packages, and these are called by setup():
 
   $ emit tilt --device packages/tilt.device.json packages/tilt.tpe | grep -v 'host/\(tempore\|freertos\|[A-Z]\|esp\)'
   Wrote _arduino/projects/tilt/src/tempore_arduino.h
@@ -96,9 +96,10 @@ is called by setup():
   Wrote _arduino/projects/tilt/src/main.cpp
   Wrote _arduino/projects/tilt/src/tempore_bindings.h
   Wrote _arduino/projects/tilt/src/tempore_operations.cpp
-  Wrote _arduino/projects/tilt/src/tempore_scaffold.h
-  Wrote _arduino/projects/tilt/src/tempore_scaffold.cpp
   Wrote _arduino/projects/tilt/src/tempore_m5_monitor.cpp
+  Wrote _arduino/projects/tilt/src/tempore_i2c.h
+  Wrote _arduino/projects/tilt/src/tempore_scaffold.cpp
+  Wrote _arduino/projects/tilt/src/tempore_scaffold.h
   Wrote _arduino/projects/tilt/src/m5_imu.cpp
   Wrote _arduino/projects/tilt/host/m5_imu_model.cpp
   Wrote _arduino/projects/tilt/src/m5_display.cpp
@@ -126,12 +127,12 @@ is called by setup():
   typedef tempore_unit tempore_result_ClearDisplay;
   tempore_unit binding_ClearDisplay(tempore_unit);
   
-  #endif
-  $ grep -B 1 -A 12 'The hooks' src/main.cpp
-  
-  // The hooks of the packages.
+  // The initialisation and safe-state functions of the packages.
   void m5_imu_init();
   void m5_display_init();
+  
+  #endif
+  $ grep -B 1 -A 8 'The display of the events' src/main.cpp
   
   // The display of the events of the monitor on the screen.
   extern const tempore_monitor_display tempore_m5_monitor_display;
@@ -150,12 +151,12 @@ The monitors of the device check the running-time bounds of the board of
 the manifest, those of ReadImu on the M5Stack Gray and, for the same
 manifest on the M5Stack CoreS3, those on the CoreS3:
 
-  $ grep 'ReadImu_bounds = ' _arduino/projects/tilt/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {550, false, 1250, false, true};
+  $ grep 'bounds_ReadImu = ' _arduino/projects/tilt/src/tempore_operations.cpp
+  static const tempore_bounds tempore_bounds_ReadImu = {550, false, 1250, false, true};
   $ sed 's/m5stack-gray/m5stack-cores3/' packages/tilt.device.json > cores3.device.json
   $ emit cores3 --device cores3.device.json packages/tilt.tpe > /dev/null
-  $ grep 'ReadImu_bounds = ' _arduino/projects/cores3/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 1500, false, true};
+  $ grep 'bounds_ReadImu = ' _arduino/projects/cores3/src/tempore_operations.cpp
+  static const tempore_bounds tempore_bounds_ReadImu = {200, false, 1500, false, true};
 
 Its host simulation: the model of the unit reads the default world, a body
 swinging about the x axis with an amplitude of 0.1 radians; the display writes
@@ -174,7 +175,7 @@ its lines to the log:
   [33.000 ms] Display: 0.571
   [33.000 ms] Operation ShowNumber took 32397 us
   [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
-  [33.000 ms] Safe state
+  [33.000 ms] Safe state entered
   [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [46.728 ms] Display at (28, 84): Stopped by the monitor
   [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
@@ -198,7 +199,7 @@ world:
   [33.000 ms] Display: 2.865
   [33.000 ms] Operation ShowNumber took 32397 us
   [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
-  [33.000 ms] Safe state
+  [33.000 ms] Safe state entered
   [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [46.728 ms] Display at (28, 84): Stopped by the monitor
   [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
@@ -231,8 +232,8 @@ the safe-state hook of the application:
   [103.293 ms] Display: -34.000
   [103.293 ms] Operation ShowNumber took 1000 us
   [103.293 ms] Delay 300000 us
-  [210.000 ms] BALA2 base: no motor setpoint for 200 ms; motors stopped
   [210.000 ms] I2C 0x3a write 00 00 00 00 00
+  [210.245 ms] BALA2 base: no motor setpoint for 200 ms; motors stopped
   [403.293 ms] I2C 0x3a write 10
   [403.293 ms] I2C 0x3a read ff ff ff 74 00 00 00 47
   [403.761 ms] Operation ReadEncoders took 468 us
@@ -242,16 +243,12 @@ the safe-state hook of the application:
   [405.761 ms] Operation ShowNumber took 1000 us
   [405.761 ms] End drive
   [500.000 ms] End of the simulation
-  $ grep -A 6 'The hooks' _arduino/projects/drive/src/main.cpp
-  // The hooks of the packages.
+  $ grep -A 3 'functions of the packages' _arduino/projects/drive/src/tempore_bindings.h
+  // The initialisation and safe-state functions of the packages.
   void bala2_base_init();
   void m5_display_init();
   void bala2_base_safe_state();
-  
-  // The display of the events of the monitor on the screen.
-  extern const tempore_monitor_display tempore_m5_monitor_display;
   $ grep 'bala2_base_init' _arduino/projects/drive/src/main.cpp
-  void bala2_base_init();
     bala2_base_init();
   $ cd _arduino/projects/drive
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
@@ -304,9 +301,9 @@ an address without a device is a run-time error, which enters the safe state:
   [2.798 ms] Report 318723704
   [2.798 ms] Operation ReportInt took 0 us
   [2.798 ms] I2C 0x51 write 00: not acknowledged
-  [2.931 ms] Run-time error: I2C: read not acknowledged
-  [2.931 ms] Safe state
   [2.931 ms] Memory check stopped
+  [2.931 ms] Run-time error: I2C: read not acknowledged
+  [2.931 ms] Safe state entered
   [2.931 ms] Task check stopped
   [10.000 ms] End of the simulation
   $ cd _arduino/projects/memory
@@ -333,7 +330,8 @@ the transaction of the first ends:
   [0.756 ms] End probe
   [10.000 ms] End of the simulation
 
-A repeated free task calls its function again each time it returns:
+A repeated free task calls its function again each time it returns, after a
+wait of one tick:
 
   $ simulate tick tick 0.35
   [0.000 ms] Start tick
@@ -341,20 +339,20 @@ A repeated free task calls its function again each time it returns:
   [1.000 ms] Operation ShowText took 1000 us
   [1.000 ms] Delay 100000 us
   [101.000 ms] End tick
-  [101.000 ms] Start tick
-  [102.000 ms] Display: Tick
-  [102.000 ms] Operation ShowText took 1000 us
-  [102.000 ms] Delay 100000 us
-  [202.000 ms] End tick
-  [202.000 ms] Start tick
-  [203.000 ms] Display: Tick
-  [203.000 ms] Operation ShowText took 1000 us
-  [203.000 ms] Delay 100000 us
-  [303.000 ms] End tick
-  [303.000 ms] Start tick
-  [304.000 ms] Display: Tick
-  [304.000 ms] Operation ShowText took 1000 us
-  [304.000 ms] Delay 100000 us
+  [102.000 ms] Start tick
+  [103.000 ms] Display: Tick
+  [103.000 ms] Operation ShowText took 1000 us
+  [103.000 ms] Delay 100000 us
+  [203.000 ms] End tick
+  [204.000 ms] Start tick
+  [205.000 ms] Display: Tick
+  [205.000 ms] Operation ShowText took 1000 us
+  [205.000 ms] Delay 100000 us
+  [305.000 ms] End tick
+  [306.000 ms] Start tick
+  [307.000 ms] Display: Tick
+  [307.000 ms] Operation ShowText took 1000 us
+  [307.000 ms] Delay 100000 us
   [350.000 ms] End of the simulation
   $ grep -A 9 'The repeated free task' _arduino/projects/tick/src/main.cpp
   // The repeated free task tick.
@@ -364,9 +362,9 @@ A repeated free task calls its function again each time it returns:
       tempore_trace("Start %s", "tick");
       tick_0(tempore_unit{});
       tempore_trace("End %s", "tick");
+      vTaskDelay(1);
     }
   }
-  
 
 A repeated free task whose function may take no time, a periodic task with
 the member 'repeat', a package whose capability the board lacks, a package
@@ -379,28 +377,28 @@ unknown package and a package under other grades are refused:
   File "m.json", line 3, characters 27-33:
   3 |   "tasks": [ { "function": "spin", "kind": "free", "repeat": true } ],
                                  ^^^^^^
-  Compilation error: The effect `[0, 0]` of the function 'spin' of a repeated free task does not bound its durations below by a positive time, so that the task may never yield
+  Compilation error: The effect `[0, 0]` of the function `spin` of a repeated free task does not bound its durations below by a positive time, so that the task may never yield
   exit 1
   $ printf '{ "board": "m5stack-gray", "tasks": [ { "function": "tick", "kind": "periodic", "period": 200, "repeat": false } ], "packages": ["m5-display"] }\n' > m.json
   $ reject m.json packages/tick.tpe
   File "m.json", line 1, characters 105-110:
   1 | { "board": "m5stack-gray", "tasks": [ { "function": "tick", "kind": "periodic", "period": 200, "repeat": false } ], "packages": ["m5-display"] }
                                                                                                                ^^^^^
-  Compilation error: A periodic task is repeated by its period; the member 'repeat' is for free tasks
+  Compilation error: A periodic task is repeated by its period; the member `repeat` is for free tasks
   exit 1
   $ sed 's/m5stack-gray/esp32-devkit/' packages/tilt.device.json > m.json
   $ reject m.json packages/tilt.tpe
   File "m.json", line 8, characters 15-23:
   8 |   "packages": ["m5-imu", "m5-display"]
                      ^^^^^^^^
-  Compilation error: The package m5-imu requires the capability m5unified, which the board esp32-devkit lacks; its capabilities are: i2c
+  Compilation error: The package `m5-imu` requires the capability `m5unified`, which the board `esp32-devkit` lacks; its capabilities are: `i2c`
   exit 1
   $ sed 's/"m5-display"]/"m5-display", "m5-imu"]/' packages/tilt.device.json > m.json
   $ reject m.json packages/tilt.tpe
   File "m.json", line 8, characters 39-47:
   8 |   "packages": ["m5-imu", "m5-display", "m5-imu"]
                                              ^^^^^^^^
-  Compilation error: The package 'm5-imu' is listed twice
+  Compilation error: The package `m5-imu` is listed twice
   exit 1
   $ cp packages/memory_model.cpp .
   $ sed 's|memory_bindings.cpp|bindings.cpp|' packages/memory.device.json > m.json
@@ -409,18 +407,18 @@ unknown package and a package under other grades are refused:
   File "m.json", line 5, characters 14-28:
   5 |   "bindings": "bindings.cpp",
                     ^^^^^^^^^^^^^^
-  Compilation error: The binding file bindings.cpp defines the function binding_I2cRead8 of the operation I2cRead8, which the package i2c defines
+  Compilation error: The binding file `bindings.cpp` defines the function `binding_I2cRead8` of the operation `I2cRead8`, which the package `i2c` defines
   exit 1
   $ sed 's/"i2c"/"spi"/' packages/memory.device.json > m.json
   $ reject m.json packages/memory.tpe
   File "m.json", line 4, characters 15-20:
   4 |   "packages": ["spi"],
                      ^^^^^
-  Compilation error: Unknown package 'spi'; accepted: bala2-base, i2c, m5-display, m5-imu, m5-speaker, m5-touch
+  Compilation error: Unknown package `spi`; accepted: `bala2-base`, `i2c`, `m5-display`, `m5-imu`, `m5-speaker`, `m5-touch`
   exit 1
   $ reject packages/memory.device.json packages/memory.tpe time-interval
   File "packages/memory.device.json", line 4, characters 15-20:
   4 |   "packages": ["i2c"],
                      ^^^^^
-  Compilation error: The package i2c declares its operations under the grades time-interval-rational, regex-timed-lower-bound-rational-symbolic, regex-timed-upper-bound-rational-symbolic, regex-timed-interval-rational-symbolic, counts-upper-bound, not time-interval
+  Compilation error: The package `i2c` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `counts-upper-bound`, not `time-interval`
   exit 1

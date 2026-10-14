@@ -147,7 +147,7 @@ rule token = parse
   | infixop3            { INFIXOP3(Lexing.lexeme lexbuf) }
   | eof                 { EOF }
   | utf8char | _        { Error.syntax ~loc:(Location.of_lexbuf lexbuf)
-                            "Unexpected character '%s'" (Lexing.lexeme lexbuf) }
+                            "Unexpected character `%s`" (Lexing.lexeme lexbuf) }
 
 (* Inside a brace literal each of the regular-expression operators [*], [|], [&]
    and [~] is a token of its own, so that, e.g., [A*|~B] needs no spaces; any

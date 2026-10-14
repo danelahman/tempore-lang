@@ -87,8 +87,4 @@ module Make (C : Constraint.S) : sig
   (** [execute_both envs cmd] is {!execute} on [envs.reported], the environments
       after [cmd] extended alike except that a definition enters [unsimplified]
       with its unsimplified scheme. *)
-
-  val print_outcome : outcome -> Format.formatter -> unit
-  (** [print_outcome outcome ppf] prints [outcome]: a definition with its scheme
-      ({!Constraint.S.print_scheme}), a rejection with its failure. *)
 end

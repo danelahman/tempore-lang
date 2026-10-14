@@ -1,4 +1,8 @@
-(* Rejected: a value boxed at Low cannot be claimed once Send has raised the
+(* Run this test with the 'security-levels' grading monoid, e.g.
+
+     ./tempore --grades security-levels tests/levels_reject.tpe
+
+   Rejected: a value boxed at Low cannot be claimed once Send has raised the
    level to High. *)
 
 operation Send : string ~> unit # High

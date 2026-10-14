@@ -1,4 +1,8 @@
-(* Rejected: delays under time-upper-bound are whole numbers of ticks, and
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/delay_reject_fraction.tpe
+
+   Rejected: delays under time-upper-bound are whole numbers of ticks, and
    the hint names the grades with a delay of 0.5. *)
 
 let wait () = delay 0.5

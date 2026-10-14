@@ -53,15 +53,9 @@ let keys_of ~prefix element =
              (String.length cls - String.length prefix))
       else None)
 
-(** The prefix of the class naming the popover target of a marked span. *)
 let key_prefix = "pop-"
-
-(** The viewport position of a mouse [event]. *)
 let point event = (number event "clientX", number event "clientY")
 
-(** What the pointer of a mouse [event] is over: [`Popover], a gutter marker or
-    a marked span by the key of its target, the first of [precedence] among the
-    keys of the spans at the point, or [`Nothing]. *)
 let under ~precedence event =
   let target = get event "target" and point = point event in
   match closest target ".code-popover" with
@@ -87,8 +81,6 @@ let under ~precedence event =
           | Some key -> `Key key
           | None -> `Nothing))
 
-(** Whether the element a mouse [event] moves to, if any, lies in an element
-    matching [selector]. *)
 let moves_within selector event =
   Option.is_some (closest (get event "relatedTarget") selector)
 
@@ -125,11 +117,6 @@ let scheme_columns card =
     ignore (call scheme "removeChild" [ probe ]);
     if character <= 0. then None else Some (int_of_float (content /. character))
 
-(** [placement ~key ~point] places the drawn popover by the first line of the
-    span of target [key], or its line at [point] when there is one: centred
-    under it, within the editor and away from its sides, and above it when the
-    viewport has no room below and more above. [None] when the card or the span
-    is not drawn. *)
 let placement ~key ~point : Model.placement option =
   let card =
     call document "getElementById" [ Ojs.string_to_js "code-popover" ]
@@ -187,22 +174,13 @@ let apple =
           (fun prefix -> String.starts_with ~prefix (Ojs.string_of_js platform))
           [ "Mac"; "iPhone"; "iPad"; "iPod" ])
 
-(** Whether the modifier that turns names into links, ⌘ on Apple's platforms and
-    Ctrl elsewhere, is held in the mouse or keyboard [event]. *)
 let modifier_held event =
   Ojs.bool_of_js (get event (if Lazy.force apple then "metaKey" else "ctrlKey"))
 
-(** Whether [key], the key of a keyboard event, is that modifier. *)
 let is_modifier key = key = if Lazy.force apple then "Meta" else "Control"
-
-(** The prefix of the class naming the link of a name. *)
 let link_prefix = "ref-"
-
-(** The id of the definition flashed after going to it. *)
 let flash_id = "goto-flash"
 
-(** [link_at point] is the link whose name lies at [point] of the viewport, by
-    its index. *)
 let link_at point =
   List.find_map
     (fun element ->
@@ -217,10 +195,6 @@ let comfortable_top = 0.15
 let comfortable_bottom = 0.85
 let scrolled_top = 0.25
 
-(** [jump offset] places the caret of the editor at [offset], in UTF-16 code
-    units, without scrolling, and scrolls the flashed definition to the upper
-    part of the viewport when it lies outside its middle part; smoothly unless
-    reduced motion is preferred. *)
 let jump offset =
   let editor =
     call document "querySelector" [ Ojs.string_to_js ".code-editor-input" ]
@@ -303,13 +277,6 @@ let last_with p tops =
     (fun found (id, top) -> if p top then Some id else found)
     None tops
 
-(** [reached ~headings ~area ~followed] is the identifier of the heading whose
-    section has been scrolled to: the last of the elements matching [headings]
-    whose top has passed [reading_offset] below the top of the area, the first
-    when none has. Scrolled to the end, where the last sections cannot reach the
-    top, it is [followed] when that heading is in view, and else the last
-    heading whose top is in view. The area is the window, or the element
-    matching [area]. [None] when the area or the headings are not drawn. *)
 let reached ~headings ~area ~followed =
   let area =
     match area with

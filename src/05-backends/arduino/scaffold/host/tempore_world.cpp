@@ -8,6 +8,7 @@
 
 #include "tempore_world.h"
 
+#include <Arduino.h>
 #include <esp_timer.h>
 
 // Whether tempore_world_now has been called.
@@ -35,7 +36,7 @@ tempore_world &tempore_world_now() {
 __attribute__((weak)) void world_start(tempore_world &w) { w.tilt = 0.1; }
 
 __attribute__((weak)) void world_advance(tempore_world &w, double dt) {
-  const double omega = 3.14159265358979323846;
+  const double omega = PI;
   w.tilt_rate -= omega * omega * w.tilt * dt;
   w.tilt += w.tilt_rate * dt;
   for (int i = 0; i < 2; ++i) {

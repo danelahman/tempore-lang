@@ -152,18 +152,18 @@ let rational_tick q =
     as "grades are plain integers, not pairs". *)
 let describe_lit = function
   | Int _ -> "plain integers"
-  | Rat _ -> "fractions such as '3/2'"
-  | Name name -> "names such as '" ^ name ^ "'"
-  | Top -> "'⊤'"
-  | Inf -> "'∞'"
+  | Rat _ -> "fractions such as `3/2`"
+  | Name name -> "names such as `" ^ name ^ "`"
+  | Top -> "`⊤`"
+  | Inf -> "`∞`"
   | Tuple [ _; _ ] -> "pairs"
   | Tuple _ -> "tuples"
-  | Interval _ -> "intervals '[...]'"
-  | Braces _ -> "brace literals '{...}'"
+  | Interval _ -> "intervals `[...]`"
+  | Braces _ -> "brace literals `{...}`"
 
 (** The interval literals of the grades whose intervals are bounded below. *)
 let interval_forms =
-  "'[n, m]', '(n, m)', '[n, m)', '(n, m]', '[n, ∞)' or '(n, ∞)'"
+  "`[n, m]`, `(n, m)`, `[n, m)`, `(n, m]`, `[n, ∞)` or `(n, ∞)`"
 
 (** [numeric lit] is the value of the numeric literal [lit]. *)
 let numeric = function
@@ -237,7 +237,7 @@ let integer_ends lit lo hi =
 
 (** The interval literals of the grades whose intervals are bounded below by a
     grade and above by a grade or [∞]. *)
-let bound_forms = "'[L, U]' or '[L, ∞)'"
+let bound_forms = "`[L, U]` or `[L, ∞)`"
 
 (** [bounds_of_lit lit ~number ~close ~lower ~upper ~unbounded ~bounds] is the
     pair of the lower bound [lower l] and the upper bound [upper u] the interval
@@ -279,11 +279,11 @@ let bounds_of_lit lit ~number ~close ~lower ~upper ~unbounded ~bounds =
       in
       (lo, hi)
   | Tuple [ _; _ ] ->
-      invalid_lit lit "intervals are written %s, not as pairs '(L, U)'"
+      invalid_lit lit "intervals are written %s, not as pairs `(L, U)`"
         bound_forms
   | _ ->
       invalid_lit lit
-        "grades are intervals '[{...}, {...}]' of %s, or abbreviations of \
+        "grades are intervals `[{...}, {...}]` of %s, or abbreviations of \
          them, not %s"
         bounds (describe_lit lit)
 

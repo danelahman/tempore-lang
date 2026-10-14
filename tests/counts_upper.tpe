@@ -1,4 +1,8 @@
-(* Operation counts: at most n calls of each operation. *)
+(* Run this test with the 'counts-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades counts-upper-bound tests/counts_upper.tpe
+
+   Operation counts: at most n calls of each operation. *)
 
 operation Send : nat ~> unit # (Send, 1)
 operation Auth : unit ~> unit # (Auth, 1)

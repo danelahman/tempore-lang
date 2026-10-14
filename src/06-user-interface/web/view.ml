@@ -1422,7 +1422,7 @@ let view_compiler (model : Model.model) =
           if choices = [] then []
           else [ div ~a:[ class_ "backend-choices" ] choices ]);
       ]
-  and select_resource =
+  and select_grades =
     div
       ~a:[ class_ "panel-block" ]
       [
@@ -1442,7 +1442,7 @@ let view_compiler (model : Model.model) =
                 grouped_select
                   ~a:[ class_ "select is-fullwidth choice-select" ]
                   ~id:"grades-select" "Select grades"
-                  (fun (name, _) -> Model.EditMsg (Model.SelectResource name))
+                  (fun (name, _) -> Model.EditMsg (Model.SelectGrades name))
                   (fun (_, (info : Grades.GradeRegistry.info)) -> info.title)
                   (fun (_, (info : Grades.GradeRegistry.info)) ->
                     match info.implementation with
@@ -1450,7 +1450,7 @@ let view_compiler (model : Model.model) =
                         info.description ^ " "
                         ^ Grades.GradeRegistry.implementation_text i
                     | None -> info.description)
-                  (fun (name, _) -> name = model.edit_model.selected_resource)
+                  (fun (name, _) -> name = model.edit_model.selected_grades)
                   (List.map
                      (fun (g : Grades.GradeRegistry.group) ->
                        (g.label, g.short, Grades.GradeRegistry.listed g))
@@ -1458,7 +1458,7 @@ let view_compiler (model : Model.model) =
               ];
             (* The description of the selected grades, the tooltip adding how
                a regular grade is decided and the command running them. *)
-            (let name = model.edit_model.selected_resource in
+            (let name = model.edit_model.selected_grades in
              let info =
                List.find_map
                  (fun (g : Grades.GradeRegistry.group) ->
@@ -1568,7 +1568,7 @@ let view_compiler (model : Model.model) =
       ]
   in
   panel ~action:(page_link Model.Docs) "Code options"
-    [ select_backend; use_stdlib; load_example; select_resource; run_process ]
+    [ select_backend; use_stdlib; load_example; select_grades; run_process ]
 
 (* The view of a backend with a compiler in the editor's place: the text
    inputs of the backend, the messages of the compilation and the code
@@ -1851,6 +1851,7 @@ type editor_key = {
   links : Model.link list;
   link : int option;
   flash : Model.flash option;
+  line_links : bool;  (** whether the line numbers copy links to their lines *)
 }
 
 let editor_key (model : Model.model) =
@@ -1869,6 +1870,7 @@ let editor_key (model : Model.model) =
     links = model.links;
     link = model.link;
     flash = model.flash;
+    line_links = Model.line_links model;
   }
 
 (* The lists are compared physically: a model keeps each list until it replaces
@@ -1881,6 +1883,7 @@ let equal_editor_key k k' =
   && k.active_error = k'.active_error
   && k.definitions == k'.definitions
   && k.links == k'.links && k.link = k'.link && k.flash = k'.flash
+  && k.line_links = k'.line_links
 
 (* [interned key] is the last key given if it equals [key], and [key]
    otherwise, so that [Vdom.memo], which compares its argument physically,
@@ -1988,14 +1991,33 @@ let editor_marks
             marker = None;
           };
         ]
+    | Some (Model.Line (from, until)) ->
+        [
+          {
+            SyntaxHighlight.from;
+            until;
+            mark_cls = "line-flash";
+            id = Some EditorDom.flash_id;
+            marker = None;
+          };
+        ]
     | Some (Model.Message _ | Model.Declaration _) | None -> []
 
+(* The number [n] of a line, copying the link to the line when clicked. *)
+let line_link n =
+  [
+    attr "title" (Printf.sprintf "Copy a link to line %d" n);
+    onclick (fun _ -> Model.CopyLineLink n);
+  ]
+
 (* The editor's text, highlighted with its marks, and a newline the source has
-   not got, so that a last empty line keeps its height. *)
+   not got, so that a last empty line keeps its height. The line numbers copy
+   links to their lines while [key.line_links] holds. *)
 let view_highlighted (key : editor_key) =
   elt "pre"
     ~a:[ class_ "code-editor-display syn-ml" ]
     (SyntaxHighlight.highlight_with_marks ~line_numbers:true
+       ?line_link:(if key.line_links then Some line_link else None)
        ~marks:(editor_marks key) (key.source ^ "\n"))
 
 (* Declarations loaded before the program *)

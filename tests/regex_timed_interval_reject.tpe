@@ -1,4 +1,9 @@
-(* Rejected under the 'regex-timed-interval-letter-automata' grading monoid: each
+(* Run this test with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-symbolic \
+       tests/regex_timed_interval_reject.tpe
+
+   Rejected under the 'regex-timed-interval-letter-automata' grading monoid: each
    component is checked at its own end of the running-time bounds. *)
 
 type token = Token of string

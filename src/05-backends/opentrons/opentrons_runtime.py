@@ -169,10 +169,6 @@ class tempore_Con:
         self.tag = tag
         self.arg = arg
 
-    @property
-    def name(self):
-        return tempore_LABELS[self.tag]
-
 
 # The names of the labels, indexed by tag, and the tags of the list
 # constructors.
@@ -579,10 +575,6 @@ def _tempore_float_compare(x, y):
     if x_nan and y_nan:
         return 0
     return -1 if x_nan else 1
-
-
-def _tempore_sign(c):
-    return (c > 0) - (c < 0)
 
 
 def tempore_compare(a, b):

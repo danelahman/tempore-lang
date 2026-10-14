@@ -23,8 +23,6 @@ let hash l =
 let range n = List.init n Fun.id
 let sort_uniq = List.sort_uniq Int.compare
 
-(** First-in first-out queues, as a front list and a reversed back list, with
-    amortised constant-time operations (Burton, IPL 1982). *)
 module Fifo = struct
   type 'a t = 'a list * 'a list
 

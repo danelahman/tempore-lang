@@ -1,4 +1,8 @@
-(* Security levels: a computation's level is the highest level it touches, and
+(* Run this test with the 'security-levels' grading monoid, e.g.
+
+     ./tempore --grades security-levels tests/levels.tpe
+
+   Security levels: a computation's level is the highest level it touches, and
    a box at level l may be unboxed only while the level has not risen above l
    since boxing. *)
 

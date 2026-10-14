@@ -150,7 +150,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
      over the unsimplified schemes of the definitions, whose unknowns the
      failures of solving it again mention: the failing requirement met first
      in reading order, explained against the constraint it is found in;
-     against the failure alone where solving again does not reproduce it. *)
+     against the failure alone where solving again does not reproduce it, or
+     where generating it again raises a typing error. *)
   let explain (envs : P.envs) (cmd : command) error =
     let env = envs.unsimplified in
     let context = P.context ~loc:cmd.at env in
@@ -158,7 +159,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
       match constraint_of env cmd with
       | Some constr -> failures cmd context constr
       | None -> []
-      | exception Error.Error _ -> []
+      | exception Error.Error { kind = Diagnostic.Typing; _ } -> []
     in
     match first_met cmd found with
     | Some d -> d

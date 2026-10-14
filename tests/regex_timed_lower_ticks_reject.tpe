@@ -1,4 +1,9 @@
-(* Rejected under the 'regex-timed-lower-bound-letter-automata' grading monoid: a
+(* Run this test with the 'regex-timed-lower-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-lower-bound-symbolic \
+       tests/regex_timed_lower_ticks_reject.tpe
+
+   Rejected under the 'regex-timed-lower-bound-letter-automata' grading monoid: a
    grade must demand at least one trace of the operations the program declares. *)
 
 type token = Token of string

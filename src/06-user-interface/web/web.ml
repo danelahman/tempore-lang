@@ -449,6 +449,7 @@ let watch_reading app =
         (EditorDom.closest (EditorDom.get event "target") "a[href^='#']"))
 
 let run () =
+  Random.self_init ();
   let app = Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app in
   watch_modifier app;
   watch_reading app;

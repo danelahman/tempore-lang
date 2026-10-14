@@ -275,10 +275,10 @@ struct
       rejects "{Read & Send}" "empty language";
       rejects "{~_*}" "empty language";
       rejects "{3 & 2}" "empty language";
-      rejects "Read" "not names such as 'Read'";
-      rejects "∞" "not '∞'";
+      rejects "Read" "not names such as `Read`";
+      rejects "∞" "not `∞`";
       rejects "(1, 2)" "not pairs";
-      rejects "{(1, 2)}" "'(1, 2)' contains no whole number of time steps";
+      rejects "{(1, 2)}" "`(1, 2)` contains no whole number of time steps";
       rejects "{[1/2, 2]}" "whole numbers of time steps";
       rejects "{(1, 1]}" "n < m at an open endpoint";
       rejects "{<1}" "parser error";
@@ -916,9 +916,9 @@ module Runs = struct
       List.filter_map
         (fun m ->
           let d' = R.derivative m d in
-          if Hashtbl.mem seen (R.hash d') then None
+          if Hashtbl.mem seen (R.id d') then None
           else begin
-            Hashtbl.add seen (R.hash d') ();
+            Hashtbl.add seen (R.id d') ();
             Some (d', m :: rev_word)
           end)
         ms
@@ -930,7 +930,7 @@ module Runs = struct
           | Some (_, rev_word) -> Some (List.rev rev_word)
           | None -> go (List.concat_map visit level))
     in
-    Hashtbl.add seen (R.hash r) ();
+    Hashtbl.add seen (R.id r) ();
     go [ (r, []) ]
 
   (* The pairs of each expression with the next. *)

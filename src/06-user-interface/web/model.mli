@@ -74,6 +74,9 @@ type flash =
   | Declaration of string * int * int
       (** the bytes of the declarations of the given file name from a start up
           to a stop *)
+  | Line of int * int
+      (** the bytes of the editor's text of a line the page's address names,
+          from a start up to a stop *)
 
 (** A notice shown under the example. *)
 type notice =
@@ -98,40 +101,36 @@ type placement = {
 (** Where a popover is drawn, in pixels from the top-left corner of the editor.
 *)
 
-(* Abstract representation of a single reduction step, with all resource-grade-specific
-   types captured in closures. This allows the model to work with any resource grade
-   without fixing the type at module-definition time. *)
 type concrete_step = {
   label_vdom : msg Vdom.vdom;
-      (** Pre-rendered step label. Produces [msg] events (in practice none,
-          since [view_step_label] is parametrically polymorphic and event-free).
-      *)
+      (** The label of the step, rendered, without events. *)
   view_highlighted : 'a. unit -> 'a Vdom.vdom;
-      (** Render the current run state with this step's redex highlighted. *)
-  next_state : unit -> run_model_state;
-      (** Advance to the next run state by performing this step. *)
+      (** The view of the run state, the redex of the step highlighted. *)
+  next_state : unit -> run_model_state;  (** The run state after the step. *)
 }
+(** A reduction step, the types of the grades of the selected grade system
+    hidden in closures. *)
 
 and completed_run_view = { view_completed : 'a. unit -> 'a Vdom.vdom }
 
 and run_model_state = {
   steps : concrete_step list;
   view : 'a. unit -> 'a Vdom.vdom;
-      (** Render the current run state with no redex highlighted. *)
+      (** The view of the run state, no redex highlighted. *)
   completed_runs : completed_run_view list;
       (** Snapshots of previously finished [run] blocks, in chronological order.
           Each snapshot is the view of the run-state at the moment its final
           step, at a returned value or an unhandled operation call, was about to
           be taken. *)
   is_done : bool;
-      (** True when there are no computations left to run (i.e. all [run] blocks
-          have completed and their snapshots are in [completed_runs]). *)
+      (** Whether no computation is left to run: every [run] block has
+          completed, its snapshot in [completed_runs]. *)
   observer : BackendRegistry.observer option;
-      (** The operation model of the selected backend, having observed the steps
-          taken so far, if the backend has one. *)
+      (** The observer of the selected backend, having observed the steps taken
+          so far, if the backend has one. *)
 }
-(** A snapshot of an interpreter run state together with its available steps,
-    all resource-grade types hidden behind closures. *)
+(** A run state of the interpreter with its steps, the types of the grades
+    hidden in closures. *)
 
 and edit_msg =
   | UseStdlib of bool
@@ -145,7 +144,7 @@ and edit_msg =
           the grades it is meant to be run with, and its backend with the
           settings of its inputs. The group is carried along with the example
           because two examples of different groups may share a title. *)
-  | SelectResource of string
+  | SelectGrades of string
       (** Select the grades to use (by name from [grade_modules]). *)
   | SelectBackend of string
       (** Select the backend (by key from {!BackendRegistry.entries}). *)
@@ -233,6 +232,9 @@ and msg =
   | CopyLink
       (** Copy the link to the example, the grades and the backend selected to
           the clipboard. *)
+  | CopyLineLink of int
+      (** Copy the link to the given line of the example, unedited, with the
+          grades and the backend selected to the clipboard. *)
   | ShowDeclarations of bool
       (** The declarations shown above the program have been unfolded, or
           folded. *)
@@ -252,7 +254,7 @@ and code_view = Source | Compiled
 type edit_model = {
   use_stdlib : bool;
   unparsed_code : string;
-  selected_resource : string;
+  selected_grades : string;
       (** Name of the currently selected grades (key in [grade_modules]). *)
   selected_example : (string * string) option;
       (** Group and title of the bundled example last loaded; editing it keeps
@@ -445,22 +447,26 @@ val choices : edit_model -> WebChoices.t
 (** [choices edit_model] is the choices of [edit_model] the browser remembers.
 *)
 
-val restored : string option -> model
-(** [restored stored] is the model as the page opens, with the choices encoded
-    by [stored] ({!WebChoices.encode}) restored as far as they are still valid:
-    the example, found by its path or else by its group and title, loaded as
-    from the gallery, or else the default one; then the grades and the backend
-    selected, if known, the latter without loading its default example; then the
-    inputs set. Without [stored], or if it encodes no choices, {!init}. *)
-
 val opened : query:string -> string option -> model * side_effect list
 (** [opened ~query stored] is the model as the page opens at an address of query
     [query] ({!WebLink}), with the choices encoded by [stored], and the effects
     it asks for: the query replaced by the one naming the resulting choices,
-    which are remembered if [query] has parameters. Without parameters,
-    [restored stored]; with them, the choices {!WebLink.resolve} yields,
-    restored as [restored] restores them, with a notice of the parameters
-    ignored. *)
+    which are remembered if [query] has parameters. Without parameters, the
+    choices encoded by [stored] ({!WebChoices.encode}) are restored as far as
+    they are still valid: the example, found by its path or else by its group
+    and title, loaded as from the gallery, or else the default one; then the
+    grades and the backend selected, if known, the latter without loading its
+    default example; then the inputs set; without [stored], or if it encodes no
+    choices, the model is {!init}. With parameters, the choices
+    {!WebLink.resolve} yields are restored likewise, with a notice of the
+    parameters ignored. A [line] of the example loaded is kept in the query,
+    scrolled to with the caret placed at its start, and highlighted briefly; a
+    [line] the example has not got is ignored. *)
+
+val line_links : model -> bool
+(** [line_links model] holds when a click on a line number of the editor copies
+    the link to that line: the editor shows the program, and the program is the
+    example last loaded, unedited. *)
 
 val indentation : string
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)

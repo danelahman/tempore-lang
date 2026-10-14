@@ -1,3 +1,7 @@
-(* Rejected: a count is non-negative. *)
+(* Run this test with the 'counts-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades counts-upper-bound tests/literals_reject_counts.tpe
+
+   Rejected: a count is non-negative. *)
 
 let claim () = box (Send, -1) 1

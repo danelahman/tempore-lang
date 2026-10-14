@@ -93,6 +93,8 @@ let delays_atom s =
 (** The set of all names. *)
 let all_names = Letters.others []
 
+(* [names_atom p] is the language of the one-operation words of the names of
+   [p], [tick] left out. *)
 let names_atom p =
   let p = Letters.inter p all_names in
   if Letters.is_empty p then empty else make (Names p)

@@ -2,7 +2,7 @@ Programs compiled to Python print the results of their runs as the interpreter
 prints them. The interpreter also prints the final state of the resources of
 each run, which is dropped before the comparison.
 
-  $ strip_state () { awk '/^State:/ { skip = 1 } /^$/ { skip = 0 } !skip'; }
+  $ . ../helpers.sh
   $ parity () {
   >   ../../tempore "$1" 2>&1 | strip_state > interpreter.out
   >   ../../tempore --emit-opentrons "${1%.tpe}.py" "$1" > /dev/null &&

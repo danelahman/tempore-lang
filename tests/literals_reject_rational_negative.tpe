@@ -1,3 +1,8 @@
-(* Rejected: a negative fraction is no upper bound on time. *)
+(* Run this test with the 'time-upper-bound-rational' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-rational \
+       tests/literals_reject_rational_negative.tpe
+
+   Rejected: a negative fraction is no upper bound on time. *)
 
 let claim () = box -0.5 1

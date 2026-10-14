@@ -1,4 +1,9 @@
-(* Accepted under the 'regex-timed-interval-rational-symbolic' grading monoid:
+(* Run this test with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       tests/regex_timed_rational_interval.tpe
+
+   Accepted under the 'regex-timed-interval-rational-symbolic' grading monoid:
    intervals of a regular lower bound over rational delays, at the fractional
    lower running-time bounds, and a regular upper bound, at the upper ones. *)
 

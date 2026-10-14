@@ -1,4 +1,9 @@
-(* Rejected: an interval with no upper bound is open at '∞', '[2, ∞)', not
+(* Run this test with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval \
+       tests/literals_reject_interval_closed_infinity.tpe
+
+   Rejected: an interval with no upper bound is open at '∞', '[2, ∞)', not
    closed. *)
 
 let claim () = box [2, ∞] 1

@@ -126,9 +126,10 @@ module Make (D : Delay.MONUS) : sig
 
   val lower_bound_le : (string -> D.t) -> traces -> traces -> bool
   (** [lower_bound_le running_time p q] is the Smyth lift of the coverage order,
-      the order of the upper powerdomain: every guarantee listed by [p] has an
-      easier one listed by [q]. Note the direction: the universal quantifier
-      ranges over [p], but each witness [t] is compared against [s] the other
-      way round, as an argument to {!coverage} with [t] and [s] swapped. This is
-      the sub-grade order of the lower-bound (left-sided) grade. *)
+      the order of the upper powerdomain (Smyth, JCSS 1978): every guarantee
+      listed by [p] has an easier one listed by [q]. Note the direction: the
+      universal quantifier ranges over [p], but each witness [t] is compared
+      against [s] the other way round, as an argument to {!coverage} with [t]
+      and [s] swapped. This is the sub-grade order of the lower-bound
+      (left-sided) grade. *)
 end

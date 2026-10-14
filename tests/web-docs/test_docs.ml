@@ -5,8 +5,7 @@
 
 open WebDocPages
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 
 let show = function
   | Anchor id -> "Anchor " ^ id
@@ -95,9 +94,4 @@ let () =
         fail "Tempore: no link to the page %s" (label p))
     [ Arduino; Opentrons ]
 
-let () =
-  match List.rev !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline failures;
-      exit 1
+let () = TestSupport.Failures.finish ()

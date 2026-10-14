@@ -5,7 +5,7 @@
 (tests
  (names test_gradeNormal test_skeleton)
  (modules test_gradeNormal test_skeleton)
- (libraries language grades inference))
+ (libraries language grades inference testSupport))
 
 (test
  (name test_generate)
@@ -18,11 +18,11 @@
   desugarer
   loader
   inference
-  arduinoBackend)
+  testSupport
+  testPrograms)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)
-  (glob_files %{project_root}/tests/*.tpe)
-  %{project_root}/tests/run_tests.t))
+  (glob_files %{project_root}/tests/*.tpe)))
 
 (test
  (name test_solve)
@@ -35,7 +35,8 @@
   desugarer
   loader
   inference
-  arduinoBackend
+  testSupport
+  testPrograms
   unix)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)
@@ -45,10 +46,20 @@
 (test
  (name test_report)
  (modules test_report)
- (libraries utils language grades parser desugarer loader inference))
+ (libraries
+  utils
+  language
+  grades
+  parser
+  desugarer
+  loader
+  inference
+  testSupport
+  testPrograms))
 
 (test
  (name test_headers)
  (modules test_headers)
+ (libraries testSupport)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)))

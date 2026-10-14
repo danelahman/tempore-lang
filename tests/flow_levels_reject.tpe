@@ -1,4 +1,8 @@
-(* Flow-sensitive levels: rejected programs. *)
+(* Run this test with the 'flow-levels' grading monoid, e.g.
+
+     ./tempore --grades flow-levels tests/flow_levels_reject.tpe
+
+   Flow-sensitive levels: rejected programs. *)
 
 operation ReadSecret : unit ~> nat # High
 operation Post : nat ~> unit # (Low, (Board, Low))

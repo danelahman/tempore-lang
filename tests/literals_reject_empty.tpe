@@ -1,4 +1,9 @@
-(* Rejected under the regular trace grading monoids: grades are non-empty
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-symbolic \
+       tests/literals_reject_empty.tpe
+
+   Rejected under the regular trace grading monoids: grades are non-empty
    languages. *)
 
 let claim () = box {Read & Write} 1

@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/traces_reject_unknown_event.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: the events of a grade must be operations that have already
    been declared. *)
 

@@ -1,4 +1,8 @@
-(* Flow-sensitive levels: the level touched, and the level at which each output
+(* Run this test with the 'flow-levels' grading monoid, e.g.
+
+     ./tempore --grades flow-levels tests/flow_levels.tpe
+
+   Flow-sensitive levels: the level touched, and the level at which each output
    is written. *)
 
 operation ReadSecret : unit ~> nat # High

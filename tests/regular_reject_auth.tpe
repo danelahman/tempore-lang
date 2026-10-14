@@ -1,4 +1,8 @@
-(* Rejected under the regular trace grading monoids: a token used before
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-symbolic tests/regular_reject_auth.tpe
+
+   Rejected under the regular trace grading monoids: a token used before
    authenticating, a capability used after its revocation, and a grade whose
    traces must begin with delays unboxed after an operation. The top is not
    absorbing: '{3}' followed by '⊤' is '{3; _*}', not '⊤'. *)

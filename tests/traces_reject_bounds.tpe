@@ -1,4 +1,8 @@
-(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound tests/traces_reject_bounds.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: the running-time bounds of an operation must be ordered. *)
 
 operation Heat : unit ~> unit # {Heat} within [3, 0]

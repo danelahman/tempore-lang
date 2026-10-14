@@ -48,7 +48,7 @@ let other = "_x"
 let another = "_y"
 let yet_another = "_z"
 
-(** [cost m p q] is the cost of the traces from the mode [p] to the mode [q]. *)
+(* [cost m p q] is the cost of the traces from the mode [p] to the mode [q]. *)
 let cost m p q =
   let named p = List.mem p m.modes in
   let find key entries =
@@ -230,7 +230,7 @@ let cost_of_lit = function
   | Grade.Int n -> Cost n
   | Grade.Inf -> Unbounded
   | lit ->
-      Grade.invalid_lit lit "costs are plain integers or '∞', not %s"
+      Grade.invalid_lit lit "costs are plain integers or `∞`, not %s"
         (Grade.describe_lit lit)
 
 (* The names of the literals standing for a mode not named, and for a mode
@@ -246,7 +246,7 @@ let entry = function
   | Grade.Tuple [ Grade.Name p; Grade.Name q; c ] as lit ->
       let c =
         Grade.component_of_lit lit
-          ~context:(Printf.sprintf "in the cost from '%s' to '%s', " p q)
+          ~context:(Printf.sprintf "in the cost from `%s` to `%s`, " p q)
           cost_of_lit c
       in
       let change =
@@ -258,19 +258,19 @@ let entry = function
         String.equal p unnamed_other
         || (String.equal q unnamed_other && not (String.equal p unnamed))
       then
-        Grade.invalid_lit lit "only an entry from '%s' ends in '%s'" unnamed
+        Grade.invalid_lit lit "only an entry from `%s` ends in `%s`" unnamed
           unnamed_other
       else if String.equal p stuck && not (String.equal q stuck && c = Cost 0)
       then
         Grade.invalid_lit lit
-          "no trace leaves the mode '%s', which it keeps at cost 0" stuck
+          "no trace leaves the mode `%s`, which it keeps at cost 0" stuck
       else if change && c = Cost 0 then
         Grade.invalid_lit lit
-          "in the cost from '%s' to '%s', a change of mode costs at least 1" p q
+          "in the cost from `%s` to `%s`, a change of mode costs at least 1" p q
       else ((p, q), c)
   | lit ->
       Grade.invalid_lit lit
-        "entries are triples '(From, To, n)' of two modes and a cost, not %s"
+        "entries are triples `(From, To, n)` of two modes and a cost, not %s"
         (Grade.describe_lit lit)
 
 (** [of_entries lit entries] is the grade whose traces are those of [entries],
@@ -282,7 +282,7 @@ let of_entries lit entries =
   let rec check = function
     | ((p, q), _) :: ((key', _) :: _ as rest) ->
         if (p, q) = key' then
-          Grade.invalid_lit lit "the modes '%s' to '%s' are listed twice" p q
+          Grade.invalid_lit lit "the modes `%s` to `%s` are listed twice" p q
         else check rest
     | [ _ ] | [] -> ()
   in
@@ -321,7 +321,7 @@ let of_lit = function
         (List.map (Grade.component_of_lit lit ~context:"" entry) lits)
   | lit ->
       Grade.invalid_lit lit
-        "grades are costs 'n', entries '(From, To, n)' of two modes and a \
+        "grades are costs `n`, entries `(From, To, n)` of two modes and a \
          cost, or tuples of entries, not %s"
         (Grade.describe_lit lit)
 

@@ -3,20 +3,18 @@ module Reach = OpentronsReach
 module OperationSet = Reach.OperationSet
 
 type robot = Flex
-type monitor = Abort | Warn | Off
 
 type options = {
   robot : robot;
   api_level : string;
   time_unit : Grades.Rational.t;
-  monitor : monitor;
+  monitor : Utils.Monitor.t;
   name : string;
   source : string;
 }
 
 let default_api_level = function Flex -> "2.30"
 let robot_type = function Flex -> "Flex"
-let monitor_policy = function Abort -> "abort" | Warn -> "warn" | Off -> "off"
 let reserved_prefixes = [ "tempore_"; "_tempore_" ]
 let protocol_names = [ "metadata"; "requirements"; "run" ]
 
@@ -116,6 +114,8 @@ let line_names line =
           match target_names targets with Some names -> names | None -> [])
       | None -> [])
 
+(* [top_level_names source] is the names the lines of the Python [source]
+   define at the top level, each with its line number. *)
 let top_level_names source =
   List.concat
     (List.mapi
@@ -165,7 +165,7 @@ let operation_diagnostics ~bound ~compound commands =
     else
       let message =
         Printf.sprintf
-          "operation `%s`, which run %d may perform, has neither a binding \
+          "Operation `%s`, which run %d may perform, has neither a binding \
            function nor a default implementation%s"
           op (i + 1)
           (if handled then
@@ -245,7 +245,7 @@ let protocol options ~operations ~compound ~binding_name ~binding commands =
             ^ OpentronsEmit.fraction options.time_unit
             ^ ",";
             "        monitor="
-            ^ python_string (monitor_policy options.monitor)
+            ^ python_string (Utils.Monitor.name options.monitor)
             ^ ",";
             "    )";
             "";

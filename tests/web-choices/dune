@@ -3,4 +3,4 @@
 
 (test
  (name test_choices)
- (libraries grades backendRegistry webChoices))
+ (libraries grades backendRegistry webChoices testSupport))

@@ -5,11 +5,13 @@
 // the button "Set reference" at 1 s, 6 s and 8 s, and on the button
 // "Reconfigure sensor" at 5 s.
 
+#include <Arduino.h>
+
 #include "tempore_world.h"
 
 namespace {
 
-const double radian = 3.14159265358979323846 / 180;
+const double radian = PI / 180;
 
 // Whether the time t, in seconds, lies within a tap starting at start.
 bool within(double t, double start) { return t >= start && t < start + 0.3; }
@@ -30,5 +32,3 @@ void world_advance(tempore_world &w, double) {
   w.touch[0] = within(t, 5.0) ? 240 : 70;
   w.touch[1] = 210;
 }
-
-void world_finish(const tempore_world &) {}

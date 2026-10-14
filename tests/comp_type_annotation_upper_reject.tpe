@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under 'time-upper-bound': the body
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound \
+       tests/comp_type_annotation_upper_reject.tpe
+
+   Correctly rejected by the typechecker, under 'time-upper-bound': the body
    takes 3 ticks, more than the 2 the annotation allows. *)
 let f () : nat # 2 = delay 3; 1
 

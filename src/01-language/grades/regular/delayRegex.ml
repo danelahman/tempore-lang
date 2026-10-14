@@ -42,6 +42,8 @@ let unions = function
   | [] -> None
   | r :: rs -> Some (List.fold_left (fun r s -> Union (r, s)) r rs)
 
+(* [of_class c] is an expression of the one-operation words of [c]: a name, a
+   union of names, or [_ & ~((0, ∞) | A | …)] for the names other than [A], …. *)
 let of_class (c : A.Class.t) =
   match c.names with
   | SymbolicRegex.Letters.Only names ->

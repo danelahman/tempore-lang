@@ -1,4 +1,8 @@
-(* Correctly rejected by the typechecker, under the 'traces-upper-bound'
+(* Run this test with the 'traces-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-upper-bound tests/plain_traces_upper_reject.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-upper-bound'
    grading monoid, whose order is the inclusion of sets of traces: a delay
    pays for no operation, so a heating is not below the one tick a box allows,
    whereas under 'traces-timed-upper-bound', with 'Heat' declared

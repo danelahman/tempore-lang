@@ -27,5 +27,3 @@ void world_advance(tempore_world &w, double) {
   w.touch[0] = 160;
   w.touch[1] = 120;
 }
-
-void world_finish(const tempore_world &) {}

@@ -16,8 +16,6 @@
 
 namespace {
 
-const double pi = 3.14159265358979323846;
-
 // Waits for the transfer of n pixels.
 void transfer(double n) {
   delayMicroseconds(static_cast<uint32_t>(n > 0 ? n * 16 / 40 : 0));
@@ -63,7 +61,7 @@ void tempore_m5_display::drawRoundRect(int32_t, int32_t, int32_t w, int32_t h,
 
 void tempore_m5_display::fillCircle(int32_t x, int32_t y, int32_t r,
                                     uint32_t color) {
-  transfer(pi * r * r);
+  transfer(PI * r * r);
   if (color != 0)
     tempore_log("Display disc at (%d, %d), radius %d: 0x%06x",
                 static_cast<int>(x), static_cast<int>(y), static_cast<int>(r),
@@ -71,7 +69,7 @@ void tempore_m5_display::fillCircle(int32_t x, int32_t y, int32_t r,
 }
 
 void tempore_m5_display::drawCircle(int32_t, int32_t, int32_t r, uint32_t) {
-  transfer(2 * pi * r);
+  transfer(2 * PI * r);
 }
 
 void tempore_m5_display::clear() {

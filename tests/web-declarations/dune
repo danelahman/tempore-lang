@@ -12,6 +12,7 @@
   loader
   webInterpreter
   backendRegistry
-  webDeclarations)
+  webDeclarations
+  testSupport)
  (deps
   (glob_files_rec %{project_root}/examples/arduino/*)))

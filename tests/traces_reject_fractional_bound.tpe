@@ -1,4 +1,9 @@
-(* Rejected: running-time bounds are delays, and those of
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/traces_reject_fractional_bound.tpe
+
+   Rejected: running-time bounds are delays, and those of
    traces-timed-upper-bound are whole numbers of ticks; the error names the
    trace grades of timed operations whose delays are rationals. *)
 

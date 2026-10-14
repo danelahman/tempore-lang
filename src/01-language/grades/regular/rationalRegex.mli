@@ -87,10 +87,6 @@ val top : t
 val delays_atom : DelaySet.t -> t
 (** [delays_atom s] is the atom of the delays [s]. *)
 
-val names_atom : SymbolicRegex.Letters.t -> t
-(** [names_atom p] is the language of the one-operation words of the names of
-    [p], [tick] left out. *)
-
 val concat : t -> t -> t
 val union : t list -> t
 val inter : t list -> t

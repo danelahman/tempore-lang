@@ -1,7 +1,7 @@
 (** Compilation of the fragment of {!ArduinoFragment} to C++.
 
     The code is C++17 without heap allocation, exceptions or run-time type
-    information, over the runtime header {!runtime}. Grades are erased.
+    information, over the runtime header [tempore_arduino.h]. Grades are erased.
 
     {2 Values}
 
@@ -12,8 +12,9 @@
     [const char *] and the unit value [tempore_unit{}]. A tuple is a struct with
     the members [c0], [c1], ...; a value of a datatype is a struct with a tag,
     the enumeration of the constructors in the order of their labels, and the
-    union [arg] of the arguments of the constructors. Each struct has a function
-    [tempore_compare] that orders its values as the comparison primitives do.
+    union [arg] of the arguments of the constructors. Each struct without a
+    string component has a function [tempore_compare] that orders its values as
+    the comparison primitives do.
 
     {2 Functions}
 
@@ -54,9 +55,6 @@
     Variables, datatypes and constructors are named by
     {!ArduinoNames.identifier}; the tuple types, the temporaries and the other
     names the compiler introduces start with [tempore_]. *)
-
-val runtime : string
-(** The source of the runtime header [tempore_arduino.h]. *)
 
 type compiled = {
   files : (string * string) list;  (** the files, each with its name *)

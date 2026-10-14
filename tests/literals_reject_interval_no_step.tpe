@@ -1,4 +1,8 @@
-(* Rejected: in whole ticks, the open interval '(1, 2)' contains no
+(* Run this test with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval tests/literals_reject_interval_no_step.tpe
+
+   Rejected: in whole ticks, the open interval '(1, 2)' contains no
    delay. *)
 
 let claim () = box (1, 2) 1

@@ -1,4 +1,9 @@
-(* Correctly accepted by the typechecker, under the
+(* Run this test with the 'regex-timed-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-rational-symbolic \
+       tests/regex_timed_rational_upper_open.tpe
+
+   Correctly accepted by the typechecker, under the
    'regex-timed-upper-bound-rational-symbolic' grading monoid: a sample within
    [1/2, 2) takes less than 2 time units, so it is permitted by the delays of
    [0, 2), and so is a default of 1.9; the compound 'Poll', a sample and a delay

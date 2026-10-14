@@ -2,9 +2,9 @@
 // each under the lock of the I2C buses of the scaffold.
 
 #include <Arduino.h>
-#include <Wire.h>
 
 #include "tempore_bindings.h"
+#include "tempore_i2c.h"
 
 // Checks the addresses of a device and of a register.
 static inline void i2c_check(uint32_t device, uint32_t reg) {
@@ -17,30 +17,31 @@ static inline void i2c_check(uint32_t device, uint32_t reg) {
 static inline void i2c_write(uint32_t device, uint32_t reg, uint32_t value,
                              int bytes) {
   i2c_check(device, reg);
-  tempore_i2c_lock();
-  Wire.beginTransmission(static_cast<int>(device));
-  Wire.write(static_cast<uint8_t>(reg));
-  for (int i = bytes - 1; i >= 0; --i)
-    Wire.write(static_cast<uint8_t>(value >> (8 * i)));
-  const bool acknowledged = Wire.endTransmission() == 0;
-  tempore_i2c_unlock();
+  uint8_t data[4];
+  for (int i = 0; i < bytes; ++i)
+    data[i] = static_cast<uint8_t>(value >> (8 * (bytes - 1 - i)));
+  bool acknowledged;
+  {
+    const tempore_i2c_guard guard;
+    acknowledged = tempore_i2c_write(static_cast<int>(device),
+                                     static_cast<uint8_t>(reg), data, bytes);
+  }
   if (!acknowledged) tempore_fault("I2C: write not acknowledged");
 }
 
 // Reads bytes big-endian from the registers of device from reg on.
 static inline uint32_t i2c_read(uint32_t device, uint32_t reg, int bytes) {
   i2c_check(device, reg);
-  tempore_i2c_lock();
-  Wire.beginTransmission(static_cast<int>(device));
-  Wire.write(static_cast<uint8_t>(reg));
-  const bool acknowledged =
-      Wire.endTransmission(false) == 0 &&
-      Wire.requestFrom(static_cast<int>(device), bytes) == bytes;
-  uint32_t value = 0;
-  for (int i = 0; acknowledged && i < bytes; ++i)
-    value = (value << 8) | static_cast<uint8_t>(Wire.read());
-  tempore_i2c_unlock();
+  uint8_t data[4];
+  bool acknowledged;
+  {
+    const tempore_i2c_guard guard;
+    acknowledged = tempore_i2c_read(static_cast<int>(device),
+                                    static_cast<uint8_t>(reg), data, bytes);
+  }
   if (!acknowledged) tempore_fault("I2C: read not acknowledged");
+  uint32_t value = 0;
+  for (int i = 0; i < bytes; ++i) value = (value << 8) | data[i];
   return value;
 }
 

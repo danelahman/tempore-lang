@@ -1,24 +1,9 @@
-(** Loading programs: parsing, desugaring, typechecking and running their
-    commands.
-
-    A program is loaded in two passes. First all its sources, the standard
-    library included, are parsed, and the operation declarations are collected
-    from them, the name and running-time bounds of each operation only
-    ([Loader.declare]); the grades of every command are read over these
-    operations, whether declared before or after the command. Then the sources
-    are desugared, typechecked and run command by command, in order, so that an
-    operation is still performed only after its declaration. *)
-
 module Location = Utils.Location
 module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
 module Ast = Language.Ast
 open Backend
 
-(** [declared_operations commands] is the operation declarations of [commands],
-    in order, each the name of the operation with its running-time bounds if it
-    declares them. Only these are read, so that an operation declared with a
-    malformed or ill-typed signature is listed all the same. *)
 let declared_operations commands =
   List.filter_map
     (fun (cmd : _ SugaredAst.command) ->
@@ -29,17 +14,6 @@ let declared_operations commands =
           None)
     commands
 
-(** [with_running_times (module E) ~filename running_times commands] is
-    [commands] with the running-time bounds of each operation of [running_times]
-    replaced: those of its [within], if it declares them, and else those of its
-    grade, if it is the grade of its bounds under the effect grades [E]
-    ({!Grades.Grade.S.of_bounds}); an operation whose grade bounds no durations
-    keeps its declaration.
-
-    @raise Utils.Error.Error
-      if [commands], the source [filename], declare no operation of
-      [running_times], if a grade bounds durations but is not that of its
-      bounds, or if the delays of [E] do not read a bound. *)
 let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
     ~filename running_times
     (commands : ('r, e SugaredAst.grade Ast.located) SugaredAst.command list) =
@@ -66,7 +40,7 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
           | Some d -> d
           | None ->
               Error.compilation ~loc
-                "In the '%s' grading monoid, the running-time bound %s is not \
+                "In the `%s` grading monoid, the running-time bound %s is not \
                  a delay: %s"
                 E.name (Grades.Rational.show q)
                 (E.Delay.rejection (Grades.Grade.rational_lit q)))
@@ -118,8 +92,6 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
           cmd)
     commands
 
-(** The file name the standard library's locations are reported under, since it
-    is loaded from a string rather than from a file. *)
 let stdlib_filename = "stdlib.tpe"
 
 module Loader (Backend : Backend.S) = struct
@@ -139,10 +111,6 @@ module Loader (Backend : Backend.S) = struct
     typechecker : TC.state;
   }
 
-  (** [declare sources state] is [state] in the program made of the parsed
-      [sources], all of which are to be loaded into it: the grades of every
-      command are read over the operations these sources declare
-      ({!Typechecker.Make.declare_operations}), before or after the command. *)
   let declare sources state =
     {
       state with
@@ -174,7 +142,7 @@ module Loader (Backend : Backend.S) = struct
   let parse_commands lexbuf =
     try Grammar.commands (Parser.Lexer.tokens ()) lexbuf
     with Grammar.Error ->
-      Error.syntax ~loc:(Location.of_lexbuf lexbuf) "parser error"
+      Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Parser error"
 
   (* The backend loads a command the typechecker has accepted. *)
   let load_backend backend (cmd : _ Ast.command) =
@@ -205,10 +173,9 @@ module Loader (Backend : Backend.S) = struct
 
   type definition = {
     variable : Ast.variable;
-    at : Location.t;  (** the location of the defining command *)
+    at : Location.t;
     scheme : TC.scheme;
   }
-  (** A top-level definition the typechecker has accepted. *)
 
   (** Execute [cmds] in order, returning the state they leave behind, the
       diagnostics they produced and the top-level definitions accepted before
@@ -276,8 +243,6 @@ module Loader (Backend : Backend.S) = struct
     in
     (state'', diagnostics, defined, links, accepted)
 
-  (** As {!load_commands_defining}, without the definitions, links and accepted
-      commands. *)
   let load_commands_all state cmds =
     let state', diagnostics, _, _, _ = load_commands_defining state cmds in
     (state', diagnostics)
@@ -301,39 +266,24 @@ module Loader (Backend : Backend.S) = struct
         ~filename running_times commands
 
   let parse_file filename = Parser.Lexer.read_file parse_commands filename
-
-  (** The module Stdlib_tpe is automatically generated from stdlib.tpe. Check
-      the dune file for details. *)
   let stdlib_source = Stdlib_tpe.contents
 
   type 'link program = {
-    library : state;  (** the state after the standard library *)
+    library : state;
     library_definitions : definition list;
-        (** the top-level definitions of the standard library *)
-    loaded : state;  (** the state after every source *)
-    diagnostics : Diagnostic.t list;  (** those of the sources, in order *)
+    loaded : state;
+    diagnostics : Diagnostic.t list;
     definitions : definition list;
-        (** the top-level definitions of the sources accepted before the first
-            error of each *)
     links : 'link list;
-        (** the links of the names of the sources to their definitions *)
     commands : Ast.Graded(Backend.Grades).command list;
-        (** the desugared commands the typechecker accepted, those of the
-            standard library first, in order *)
     operations :
       (Ast.operation
       * (Grades.Rational.t Grades.Grade.bound
         * Grades.Rational.t Grades.Grade.bound)
         option)
       list;
-        (** the operations the accepted commands declare, in order, each with
-            the bounds of its running time, if any: those it declares, or else
-            those its grade implies ({!Grades.Grade.S.duration_bounds}) *)
     compound_operations : Ast.operation list;
-        (** the operations the accepted commands declare whose grade is not that
-            of an atomic operation ({!Grades.Grade.S.is_atomic}), in order *)
   }
-  (** A program loaded by {!load_program}. *)
 
   (* The operations [cmds] declare, each with the bounds of its running time:
      those it declares, or else those its grade implies
@@ -394,11 +344,6 @@ module Loader (Backend : Backend.S) = struct
             None)
       cmds
 
-  (** [load_program ~use_stdlib sources] loads the parsed [sources] in order,
-      preceded by the standard library if [use_stdlib], all of them {!declare}d
-      first. Every source is loaded even when an earlier one has errors, so that
-      all of them are reported at once. An error in the standard library is
-      fatal. *)
   let load_program ~use_stdlib sources =
     let stdlib =
       if use_stdlib then parse_source ~filename:stdlib_filename stdlib_source
@@ -440,6 +385,4 @@ module Loader (Backend : Backend.S) = struct
     }
 end
 
-(** The standard library's source, independently of any backend, for callers
-    that need to know what precedes a program's own source. *)
 let stdlib_source = Stdlib_tpe.contents

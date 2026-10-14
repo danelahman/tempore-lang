@@ -20,8 +20,9 @@
       M5Unified, 400 kHz;
     - ["capabilities"]: an array of names of further capabilities of the board
       that peripheral packages may require ({!ArduinoPackage}): ["imu"], an
-      inertial measurement unit read through M5Unified, and ["display"], a
-      display driven through M5Unified;
+      inertial measurement unit read through M5Unified, ["display"], a display
+      driven through M5Unified, ["touch"], a touch screen read through
+      M5Unified, and ["speaker"], a speaker driven through M5Unified;
     - ["serial_baud"]: the baud rate of the serial port of the log;
     - ["i2c"]: an array of I2C buses, each an object of the ["port"] (the
       [TwoWire] object, e.g. ["Wire"]), the pins ["sda"] and ["scl"] and the

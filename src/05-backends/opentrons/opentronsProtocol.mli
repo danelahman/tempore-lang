@@ -27,17 +27,16 @@
 
 type robot = Flex  (** the Opentrons Flex, robot type ["Flex"] *)
 
-type monitor =
-  | Abort  (** a call outside its bounds ends the protocol with an error *)
-  | Warn  (** a call outside its bounds is reported by a comment *)
-  | Off  (** calls are neither checked nor recorded *)
-
 type options = {
   robot : robot;
   api_level : string;  (** the [apiLevel] requirement, e.g. ["2.30"] *)
   time_unit : Grades.Rational.t;
       (** the length in seconds of one unit of duration of the program *)
-  monitor : monitor;  (** the policy of the monitors of running-time bounds *)
+  monitor : Utils.Monitor.t;
+      (** the policy of the monitors of running-time bounds: under [Abort] a
+          call outside its bounds ends the protocol with an error, under [Warn]
+          it is reported by a comment, and under [Off] calls are neither checked
+          nor recorded *)
   name : string;  (** the [protocolName] of the metadata *)
   source : string;  (** the source file named by the metadata's description *)
 }
@@ -45,11 +44,6 @@ type options = {
 val default_api_level : robot -> string
 (** [default_api_level robot] is the latest [apiLevel] of [robot]: ["2.30"] for
     the Flex. *)
-
-val top_level_names : string -> (string * int) list
-(** [top_level_names source] is the names the lines of the Python [source]
-    define at the top level, each with its line number, by the line-based check
-    described above. *)
 
 val protocol :
   options ->

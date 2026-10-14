@@ -16,13 +16,13 @@
 // bala2_last_drives and bala2_last_counts of bala2_base.h.
 
 #include <Arduino.h>
-#include <Wire.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <atomic>
 
 #include "bala2_base.h"
 #include "tempore_bindings.h"
+#include "tempore_i2c.h"
 
 #ifndef BALA2_WATCHDOG_MS
 #define BALA2_WATCHDOG_MS 200
@@ -54,36 +54,21 @@ void bala2_last_counts(int32_t *left, int32_t *right) {
   *right = bala2_counts[1].load();
 }
 
-// Writes the bytes data to the registers from reg on, under the I2C lock;
-// whether the base acknowledged them.
-static bool bala2_transmit(uint8_t reg, const uint8_t *data, size_t length) {
-  Wire.beginTransmission(bala2_address);
-  Wire.write(reg);
-  Wire.write(data, length);
-  return Wire.endTransmission() == 0;
-}
-
-// Writes the bytes data to the registers from reg on; whether the base
-// acknowledged them.
-static bool bala2_write(uint8_t reg, const uint8_t *data, size_t length) {
-  tempore_i2c_lock();
-  const bool acknowledged = bala2_transmit(reg, data, length);
-  tempore_i2c_unlock();
-  return acknowledged;
-}
-
 // Sets the drives of the motors, or stops them if the tasks are halted, so
 // that a setpoint does not follow the stop of the safe state.
 static bool bala2_set(int16_t left, int16_t right) {
-  tempore_i2c_lock();
-  if (tempore_halted()) left = right = 0;
-  const uint8_t data[4] = {
-      static_cast<uint8_t>(static_cast<uint16_t>(left) >> 8),
-      static_cast<uint8_t>(left),
-      static_cast<uint8_t>(static_cast<uint16_t>(right) >> 8),
-      static_cast<uint8_t>(right)};
-  const bool acknowledged = bala2_transmit(bala2_motors, data, sizeof data);
-  tempore_i2c_unlock();
+  bool acknowledged;
+  {
+    const tempore_i2c_guard guard;
+    if (tempore_halted()) left = right = 0;
+    const uint8_t data[4] = {
+        static_cast<uint8_t>(static_cast<uint16_t>(left) >> 8),
+        static_cast<uint8_t>(left),
+        static_cast<uint8_t>(static_cast<uint16_t>(right) >> 8),
+        static_cast<uint8_t>(right)};
+    acknowledged =
+        tempore_i2c_write(bala2_address, bala2_motors, data, sizeof data);
+  }
   if (acknowledged) {
     bala2_drives[0].store(left);
     bala2_drives[1].store(right);
@@ -109,9 +94,9 @@ static void bala2_watchdog(void *) {
     vTaskDelay(pdMS_TO_TICKS(BALA2_WATCHDOG_CHECK_MS));
     const int64_t silent = tempore_clock_us() - bala2_setpoint_us.load();
     if (bala2_driven.load() && silent > BALA2_WATCHDOG_MS * 1000LL) {
+      bala2_stop();
       tempore_log("BALA2 base: no motor setpoint for %d ms; motors stopped",
                   BALA2_WATCHDOG_MS);
-      bala2_stop();
     }
   }
 }
@@ -138,20 +123,20 @@ tempore_result_SetMotors binding_SetMotors(tempore_argument_SetMotors a) {
 #ifdef TEMPORE_PERFORMS_ReadEncoders
 tempore_result_ReadEncoders binding_ReadEncoders(
     tempore_argument_ReadEncoders) {
-  tempore_i2c_lock();
-  Wire.beginTransmission(bala2_address);
-  Wire.write(static_cast<uint8_t>(bala2_encoders));
-  const bool acknowledged = Wire.endTransmission(false) == 0 &&
-                            Wire.requestFrom(bala2_address, 8) == 8;
-  int32_t counts[2] = {0, 0};
-  for (int32_t &count : counts) {
-    uint32_t u = 0;
-    for (int i = 0; acknowledged && i < 4; ++i)
-      u = (u << 8) | static_cast<uint8_t>(Wire.read());
-    count = tempore_int_neg(tempore_int_of_bits(u));
+  uint8_t data[8];
+  bool acknowledged;
+  {
+    const tempore_i2c_guard guard;
+    acknowledged =
+        tempore_i2c_read(bala2_address, bala2_encoders, data, 8);
   }
-  tempore_i2c_unlock();
   if (!acknowledged) tempore_fault("BALA2 base: encoder read not acknowledged");
+  int32_t counts[2];
+  for (int k = 0; k < 2; ++k) {
+    uint32_t u = 0;
+    for (int i = 0; i < 4; ++i) u = (u << 8) | data[4 * k + i];
+    counts[k] = tempore_int_neg(tempore_int_of_bits(u));
+  }
   bala2_counts[0].store(counts[0]);
   bala2_counts[1].store(counts[1]);
   return {counts[0], counts[1]};
@@ -162,8 +147,13 @@ tempore_result_ReadEncoders binding_ReadEncoders(
 tempore_result_ResetEncoders binding_ResetEncoders(
     tempore_argument_ResetEncoders) {
   const uint8_t zeros[8] = {};
-  if (!bala2_write(bala2_encoders, zeros, sizeof zeros))
-    tempore_fault("BALA2 base: encoder reset not acknowledged");
+  bool acknowledged;
+  {
+    const tempore_i2c_guard guard;
+    acknowledged =
+        tempore_i2c_write(bala2_address, bala2_encoders, zeros, sizeof zeros);
+  }
+  if (!acknowledged) tempore_fault("BALA2 base: encoder reset not acknowledged");
   return {};
 }
 #endif

@@ -40,9 +40,15 @@ val highlight_text : string -> 'a Vdom.vdom list
 (** [highlight_text s] is [s] as nodes, each token in the class of its kind. *)
 
 val highlight_with_marks :
-  ?line_numbers:bool -> marks:'a mark list -> string -> 'a Vdom.vdom list
+  ?line_numbers:bool ->
+  ?line_link:(int -> 'a Vdom.attribute list) ->
+  marks:'a mark list ->
+  string ->
+  'a Vdom.vdom list
 (** [highlight_with_marks ~marks s] highlights [s] as {!highlight_text} does and
     wraps each mark's range in its class. Cutting at every token and mark
     boundary makes each segment lie inside one token and wholly inside or
     outside each mark, so it carries that token's class and every mark's. With
-    [line_numbers], each line is preceded by its number. *)
+    [line_numbers], each line is preceded by its number; with [line_link] as
+    well, the number [n] of a line no marker links carries [line_link n], such
+    as the handler of a click and a title. *)

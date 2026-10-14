@@ -1,9 +1,7 @@
 (** Desugaring of [Parser.SugaredAst] commands into [Language.Ast] commands.
 
     [Make] is parameterised by a grade system, whose resource and effect grades
-    grade the commands on either side. Internal helpers ([desugar_ty],
-    [desugar_pattern], etc.) are intentionally hidden — only the command-level
-    entry points are part of the public API. *)
+    grade the commands on either side. *)
 
 module References = References
 

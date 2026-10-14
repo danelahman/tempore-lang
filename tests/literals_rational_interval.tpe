@@ -1,4 +1,9 @@
-(* Intervals with fractional endpoints under time-interval-rational, among them
+(* Run this test with the 'time-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades time-interval-rational \
+       tests/literals_rational_interval.tpe
+
+   Intervals with fractional endpoints under time-interval-rational, among them
    '[1/3, ∞)' with no upper bound, and intervals open at an endpoint: the open
    interval '(0, 1)', written as a pair, and the half-open '(1/2, 3/2]',
    '[0, 1/2)' and '(1/3, ∞)'. *)

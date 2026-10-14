@@ -1,4 +1,9 @@
-(* Correctly accepted by the typechecker, under the
+(* Run this test with the 'traces-timed-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-interval-rational \
+       tests/rational_traces_intervals_default_open.tpe
+
+   Correctly accepted by the typechecker, under the
    'traces-timed-interval-rational' grading monoid: each default implementation
    takes a duration within the running-time bounds of its operation, strictly
    inside an open end and at most at a closed one. *)

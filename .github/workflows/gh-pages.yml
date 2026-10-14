@@ -1,9 +1,10 @@
 name: github pages
 
+# Every push and pull request is checked, built and tested; a push to main
+# also deploys the web interface, built with the release profile.
 on:
   push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
   deploy:
@@ -14,18 +15,27 @@ jobs:
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 5
+          ocaml-compiler: "5.5"
 
       - name: Install Opam packages
         run: opam install --deps-only --with-dev-setup .
 
+      - name: Check formatting
+        run: opam exec -- make check-format
+
       - name: Build
-        run: opam exec -- make release
+        run: opam exec -- dune build
 
       - name: Test
-        run: opam exec -- make test
+        run: opam exec -- dune test
+
+      # The release build runs last: it promotes the release web.bc.js into
+      # web/, replacing the bundle of the development build.
+      - name: Release build
+        run: opam exec -- make release
 
       - name: Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

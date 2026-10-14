@@ -122,9 +122,6 @@ uint8_t TwoWire::requestFrom(int address, int quantity) {
   return static_cast<uint8_t>(received_length_);
 }
 
-int TwoWire::available() {
-  return static_cast<int>(received_length_ - received_position_);
-}
 
 int TwoWire::read() {
   return received_position_ < received_length_

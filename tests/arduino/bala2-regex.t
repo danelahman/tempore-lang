@@ -6,8 +6,8 @@ interpreter, its rejected variants, and its closed loop with the host model
 of the robot.
 
   $ app=../../examples/arduino/bala2-regex
-  $ tempore () { ../../tempore --grades regex-timed-interval-rational-symbolic "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
+  $ . ../helpers.sh
+  $ from_header $app/balance_regex.tpe
 
 The interpreter, with the declarations of the packages under their
 running-time bounds on the M5Stack Gray, the board of the manifest, as for
@@ -112,7 +112,7 @@ exceptions and run-time type information:
   346 |       let s, _ = continue k with () in
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
-  31
+  32
   $ cd _arduino/projects/balance_regex
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..

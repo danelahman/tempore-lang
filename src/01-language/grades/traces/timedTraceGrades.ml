@@ -16,9 +16,7 @@ end
 module Bounded (D : Delay.S) = struct
   module Sets = TimedTrace.Base (D)
 
-  type t =
-    | Within of Sets.traces  (** every trace is within a listed one *)
-    | Unbounded  (** any trace; printed as [⊤] *)
+  type t = Within of Sets.traces | Unbounded
 
   let one = Within (Sets.of_delay D.zero)
 
@@ -32,7 +30,6 @@ module Bounded (D : Delay.S) = struct
     | Within p, Within q -> Within (Sets.union p q)
     | _ -> Unbounded
 
-  (** No set of traces is the top. *)
   let is_top _bounds = function Unbounded -> true | Within _ -> false
 
   let compare p q =
@@ -46,8 +43,6 @@ module Bounded (D : Delay.S) = struct
   let events = function Within p -> Sets.events p | Unbounded -> []
   let of_delay d = Within (Sets.of_delay d)
 
-  (** [of_lit ~number lit] is the grade of the literal [lit], [number] naming
-      the literals of the delays in the singular. *)
   let of_lit ~number = function
     | Top -> Unbounded
     | lit -> Within (Sets.of_lit ~number lit)

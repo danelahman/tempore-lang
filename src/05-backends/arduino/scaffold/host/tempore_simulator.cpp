@@ -9,7 +9,8 @@
 // time (vTaskDelay, vTaskDelayUntil, delay, delayMicroseconds) blocks the task
 // until its end, while the other tasks run, as if each task had a processor
 // of its own. A task that takes a mutex held by another task blocks until it
-// is released.
+// is released, and a task that waits for a notification until it is
+// notified.
 //
 // Usage: simulation [DURATION_US] runs setup() and then the tasks for the
 // given simulated time in microseconds (default: one second), the events at
@@ -36,7 +37,6 @@ void setup();
 
 HardwareSerial Serial;
 TwoWire Wire;
-TwoWire Wire1;
 tempore_m5_unified M5;
 
 namespace {
@@ -49,6 +49,8 @@ struct Task {
   size_t index;
   int64_t wake;
   void *waiting;  // the mutex the task waits for, if any
+  uint32_t notification;  // the notification value
+  bool notifiable;        // whether the task waits for a notification
   bool stopped;
   bool resumed;
   std::condition_variable resume;
@@ -79,6 +81,7 @@ void wait_resumed(std::unique_lock<std::mutex> &lock, Task *task) {
 // ends the program.
 [[noreturn]] void finish(int64_t duration) {
   if (now < duration) now = duration;
+  tempore_log_end();
   printf("[%lld.%03lld ms] End of the simulation\n",
          static_cast<long long>(now / 1000), static_cast<long long>(now % 1000));
   tempore_world_finish();
@@ -128,7 +131,7 @@ BaseType_t xTaskCreatePinnedToCore(TaskFunction_t code, const char *name,
     std::lock_guard<std::mutex> lock(mutex);
     tasks.push_back(std::unique_ptr<Task>(
         new Task{name, code, parameter, priority, tasks.size(), now, nullptr,
-                 false, false, {}}));
+                 0, false, false, false, {}}));
     task = tasks.back().get();
   }
   if (handle != nullptr) *handle = task;
@@ -179,9 +182,7 @@ SemaphoreHandle_t xSemaphoreCreateMutex() { return new Mutex{false, nullptr}; }
 BaseType_t xSemaphoreTake(SemaphoreHandle_t handle, TickType_t) {
   Mutex *m = static_cast<Mutex *>(handle);
   if (m->held && self != nullptr && m->holder == self) {
-    printf("[%lld.%03lld ms] Task %s takes a mutex it holds and blocks\n",
-           static_cast<long long>(now / 1000),
-           static_cast<long long>(now % 1000), self->name);
+    tempore_log("Task %s takes a mutex it holds and blocks", self->name);
     block(0, true);
   }
   while (m->held && self != nullptr) {
@@ -206,9 +207,34 @@ BaseType_t xSemaphoreGive(SemaphoreHandle_t handle) {
   return pdTRUE;
 }
 
+BaseType_t xTaskNotifyGive(TaskHandle_t handle) {
+  Task *task = static_cast<Task *>(handle);
+  std::lock_guard<std::mutex> lock(mutex);
+  ++task->notification;
+  if (task->notifiable) {
+    task->notifiable = false;
+    task->wake = now;
+  }
+  return pdPASS;
+}
+
+uint32_t ulTaskNotifyTake(BaseType_t clear, TickType_t) {
+  for (;;) {
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      const uint32_t value = self->notification;
+      if (value > 0) {
+        self->notification = clear ? 0 : value - 1;
+        return value;
+      }
+      self->notifiable = true;
+    }
+    block(INT64_MAX, false);
+  }
+}
+
 unsigned long millis() { return static_cast<unsigned long>(now / 1000); }
 
-unsigned long micros() { return static_cast<unsigned long>(now); }
 
 size_t HardwareSerial::print(const char *text) {
   return static_cast<size_t>(fputs(text, stdout) >= 0 ? strlen(text) : 0);
@@ -220,7 +246,6 @@ size_t HardwareSerial::println(const char *text) {
   return n + 1;
 }
 
-void HardwareSerial::flush() { fflush(stdout); }
 
 int main(int argc, char **argv) {
   const int64_t duration = argc > 1 ? strtoll(argv[1], nullptr, 10) : 1000000;

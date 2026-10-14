@@ -14,8 +14,6 @@ module type S = sig
   val find_variable_opt : var -> 'a t -> 'a option
 end
 
-(** The elapsed grades a context stores: a payload of which the context only
-    tests whether it is the unit. *)
 module type ELAPSED = sig
   type t
 

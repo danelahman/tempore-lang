@@ -6,8 +6,8 @@ whose periodic task is not checked against its period by the typechecker,
 and its host simulation.
 
   $ app=../../examples/arduino/peak
-  $ tempore () { ../../tempore --grades counts-upper-bound "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --board m5stack-cores3 "$@"; }
+  $ . ../helpers.sh
+  $ from_header $app/peak.tpe
 
 The interpreter runs a step and an iteration of the recorder with the
 default implementations of the operations:
@@ -60,7 +60,7 @@ task against its period by the monitor only; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json $app/peak.tpe | grep -c Wrote
-  27
+  28
   $ grep -c 'tempore_operation_monitor .*, nullptr);' _arduino/projects/peak/src/tempore_operations.cpp
   9
   $ grep 'The periodic task\|tempore_monitor_period' _arduino/projects/peak/src/main.cpp
@@ -80,17 +80,17 @@ between the name of the example and the footer:
   [35.920 ms] Display: Peak tilt
   [36.920 ms] Display: 0.000
   [39.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
-  [1039.680 ms] Flash: record 5.639 degrees
-  [1070.680 ms] Display cleared
-  [1074.600 ms] Display at (0, 0): Peak tilt recorder
-  [1075.600 ms] Display: Peak tilt
-  [1076.600 ms] Display: 5.639
-  [1079.360 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
-  [2110.360 ms] Display cleared
-  [2114.280 ms] Display at (0, 0): Peak tilt recorder
-  [2115.280 ms] Display: Peak tilt
-  [2116.280 ms] Display: 5.639
-  [2119.040 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [1040.000 ms] Flash: record 5.639 degrees
+  [1071.000 ms] Display cleared
+  [1074.920 ms] Display at (0, 0): Peak tilt recorder
+  [1075.920 ms] Display: Peak tilt
+  [1076.920 ms] Display: 5.639
+  [1079.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [2111.000 ms] Display cleared
+  [2114.920 ms] Display at (0, 0): Peak tilt recorder
+  [2115.920 ms] Display: Peak tilt
+  [2116.920 ms] Display: 5.639
+  [2119.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep -c 'Release step'
   150

@@ -1,10 +1,7 @@
-(** Error reporting *)
-
 exception Error of Diagnostic.t
 
-(** [error ~loc ~labels ~notes kind fmt] raises an [Error] of [kind]. The
-    message goes through [Format.kasprintf] into a fresh buffer rather than the
-    shared [Format.str_formatter], which is not multidomain-safe. *)
+(* The message is formatted by [Format.kasprintf] into a fresh buffer rather
+   than the shared [Format.str_formatter], which is not domain-safe. *)
 let error ?loc ?(labels = []) ?(notes = []) kind fmt =
   Format.kasprintf
     (fun message ->

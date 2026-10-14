@@ -1,4 +1,9 @@
-(* Rejected: an open endpoint of an interval of sets of traces denotes
+(* Run this test with the 'traces-timed-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-interval-rational \
+       tests/rational_traces_intervals_reject_open.tpe
+
+   Rejected: an open endpoint of an interval of sets of traces denotes
    infinitely many traces, which the finite sets of traces of
    'traces-timed-interval-rational' do not express. *)
 

@@ -1,0 +1,19 @@
+; Helpers shared by the tests: the recording of failures and checks, the
+; options named by the header of a source file, with an executable printing
+; them for the cram tests, and the source files of the examples and tests with
+; the grades and packages their headers name.
+
+(library
+ (name testSupport)
+ (modules failures checks header)
+ (libraries grades))
+
+(library
+ (name testPrograms)
+ (modules testPrograms)
+ (libraries grades testSupport arduinoBackend))
+
+(executable
+ (name header_options)
+ (modules header_options)
+ (libraries testSupport))

@@ -302,7 +302,7 @@ let literals =
     rejects "negative integer" time_lower (Int (-1)) "must be non-negative";
     rejects "fraction, whole steps" time_upper
       (Rat (Rational.make 3 2))
-      "not fractions such as '3/2'";
+      "not fractions such as `3/2`";
     rejects "fractional endpoint, whole steps" time_interval
       (Interval (Closed (Rat (Rational.make 1 3)), Unbounded))
       "endpoints are integers";
@@ -324,7 +324,7 @@ let literals =
       "must satisfy n <= m";
     rejects "pair, rational" rational_upper
       (Tuple [ Int 1; Int 2 ])
-      "grades are plain numbers or '∞', not pairs";
+      "grades are plain numbers or `∞`, not pairs";
     rejects "negative interval endpoint" time_interval
       (Interval (Closed (Int (-1)), Closed (Int 5)))
       "must be non-negative";
@@ -447,10 +447,10 @@ let literals =
       "the peak must be at least 0 and at least the net change";
     rejects "infinite trough" resource_levels
       (Tuple [ Inf; Int 0; Int 0 ])
-      "in the trough, troughs are integers or '⊤', not '∞'";
+      "in the trough, troughs are integers or `⊤`, not `∞`";
     rejects "infinite least net change" resource_levels
       (Tuple [ Interval (Closed Inf, Closed (Int 1)); Int 1 ])
-      "in the net change, the ends of net changes are integers, not '∞'";
+      "in the net change, the ends of net changes are integers, not `∞`";
     rejects "infinite exact net change with a trough" resource_levels
       (Tuple [ Int 0; Inf; Inf ])
       "in the net change, net changes are integers or ranges";
@@ -475,13 +475,13 @@ let literals =
       "((Files, 0, 2), (_, -1, 0, 0))";
     rejects "resource trough above 0" resource_levels
       (Tuple [ Name "Files"; Int 1; Int 1; Int 1 ])
-      "in the entry of 'Files', the trough must be at most 0";
+      "in the entry of `Files`, the trough must be at most 0";
     reads "resource at the unit" resource_levels
       (Tuple [ Name "Files"; Int 0; Int 0 ])
       "(0, 0)";
     rejects "resource peak below the change" resource_levels
       (Tuple [ Name "Files"; Int 2; Int 1 ])
-      "in the entry of 'Files', the peak must be at least 0";
+      "in the entry of `Files`, the peak must be at least 0";
     rejects "resource listed twice" resource_levels
       (Tuple
          [
@@ -543,7 +543,7 @@ let literals =
     reads "top" windowed_schedules Top "⊤";
     rejects "operation in the times" windowed_schedules
       (Tuple [ Int 1; Tuple [ Name "Send"; Braces send ] ])
-      "name no operation such as 'Send'";
+      "name no operation such as `Send`";
     rejects "unnamed times" windowed_schedules
       (Tuple [ Int 1; Braces (Tick 0) ])
       "times are given by operation";
@@ -563,7 +563,7 @@ let literals =
     rejects "no durations" windowed_schedules
       (Braces (Inter (Tick 1, Tick 2)))
       "is empty";
-    rejects "level" windowed_schedules (Name "Low") "not names such as 'Low'";
+    rejects "level" windowed_schedules (Name "Low") "not names such as `Low`";
     reads "level" flow_levels (Name "High") "High";
     reads "outputs" flow_levels
       (Tuple
@@ -592,11 +592,11 @@ let literals =
       "listed twice";
     rejects "unknown level of an output" flow_levels
       (Tuple [ Name "Low"; Tuple [ Name "Board"; Name "Medium" ] ])
-      "unknown level 'Medium'";
+      "unknown level `Medium`";
     rejects "output without a level" flow_levels
       (Tuple [ Name "Low"; Name "Board" ])
       "outputs are pairs";
-    rejects "integer" flow_levels (Int 3) "tuples '(l, (Sink, l1), ...)'";
+    rejects "integer" flow_levels (Int 3) "tuples `(l, (Sink, l1), ...)`";
     reads "count" counts_upper (Tuple [ Name "Send"; Int 3 ]) "(Send, 3)";
     reads "counts" counts_upper
       (Tuple [ Tuple [ Name "Send"; Int 3 ]; Tuple [ Name "Auth"; Int 1 ] ])
@@ -608,8 +608,8 @@ let literals =
     reads "top" counts_upper Top "∞";
     rejects "negative count" counts_upper
       (Tuple [ Name "Send"; Int (-1) ])
-      "in the entry of 'Send', grades must be non-negative";
-    rejects "level" counts_upper (Name "Low") "not names such as 'Low'";
+      "in the entry of `Send`, grades must be non-negative";
+    rejects "level" counts_upper (Name "Low") "not names such as `Low`";
     reads "cost in every mode" mode_switch_costs (Int 3) "3";
     reads "transition" mode_switch_costs
       (Tuple [ Name "Off"; Name "On"; Int 2 ])
@@ -658,16 +658,16 @@ let literals =
     reads "top" mode_switch_costs Top "⊤";
     rejects "change of mode at no cost" mode_switch_costs
       (Tuple [ Name "On"; Name "Off"; Int 0 ])
-      "in the cost from 'On' to 'Off', a change of mode costs at least 1";
+      "in the cost from `On` to `Off`, a change of mode costs at least 1";
     rejects "leaving the stuck mode" mode_switch_costs
       (Tuple [ Name "Stuck"; Name "On"; Int 1 ])
-      "no trace leaves the mode 'Stuck'";
+      "no trace leaves the mode `Stuck`";
     rejects "staying stuck at a cost" mode_switch_costs
       (Tuple [ Name "Stuck"; Name "Stuck"; Int 1 ])
       "which it keeps at cost 0";
     rejects "negative cost" mode_switch_costs
       (Tuple [ Name "Off"; Name "On"; Int (-1) ])
-      "in the cost from 'Off' to 'On', costs must be non-negative";
+      "in the cost from `Off` to `On`, costs must be non-negative";
     rejects "pair listed twice" mode_switch_costs
       (Tuple
          [
@@ -693,21 +693,21 @@ let literals =
       "((On, _, 1), (_, On, 2), (_, ≠, ∞))";
     rejects "change to a mode not named at no cost" mode_switch_costs
       (Tuple [ Name "On"; Name "_"; Int 0 ])
-      "in the cost from 'On' to '_', a change of mode costs at least 1";
+      "in the cost from `On` to `_`, a change of mode costs at least 1";
     rejects "change between modes not named at no cost" mode_switch_costs
       (Tuple [ Name "_"; Name "≠"; Int 0 ])
       "a change of mode costs at least 1";
     rejects "another mode not named after a mode named" mode_switch_costs
       (Tuple [ Name "On"; Name "≠"; Int 1 ])
-      "only an entry from '_' ends in '≠'";
+      "only an entry from `_` ends in `≠`";
     rejects "pair" mode_switch_costs (Tuple [ Int 1; Int 2 ]) "not pairs";
     reads "integer" time_lower (Int 3) "3";
     reads "top" time_lower Top "0";
-    rejects "infinity" time_lower Inf "not '∞'";
+    rejects "infinity" time_lower Inf "not `∞`";
     rejects "pair" time_lower (Tuple [ Int 1; Int 5 ]) "not pairs";
     reads "infinity" time_upper Inf "∞";
     reads "top" time_upper Top "∞";
-    rejects "name" time_upper (Name "Low") "not names such as 'Low'";
+    rejects "name" time_upper (Name "Low") "not names such as `Low`";
     reads "interval" time_interval
       (Interval (Closed (Int 1), Closed (Int 5)))
       "[1, 5]";
@@ -734,10 +734,10 @@ let literals =
     reads "concatenation of a union" traces_upper
       (Braces (seq (union send (Tick 2)) (Tick 1)))
       "{Send; 1 | 3}";
-    rejects "repetition" traces_upper (Braces (Star send)) "repetition '*'";
-    rejects "intersection" traces_upper (Braces (Inter (send, send))) "'&'";
-    rejects "complement" traces_upper (Braces (Compl send)) "'~'";
-    rejects "wildcard" traces_upper (Braces (seq Any send)) "'_'";
+    rejects "repetition" traces_upper (Braces (Star send)) "repetition `*`";
+    rejects "intersection" traces_upper (Braces (Inter (send, send))) "`&`";
+    rejects "complement" traces_upper (Braces (Compl send)) "`~`";
+    rejects "wildcard" traces_upper (Braces (seq Any send)) "`_`";
     rejects "pair" traces_upper (Tuple [ Int 1; Int 2 ]) "not pairs";
     reads "top" traces_interval Top "[{0}, ∞)";
     reads "unbounded upper component" traces_interval (span (Braces send) Inf)
@@ -763,16 +763,16 @@ let literals =
       "an endpoint that is not a number is closed";
     rejects "pair" traces_interval
       (Tuple [ Braces send; Braces send ])
-      "intervals are written '[L, U]' or '[L, ∞)', not as pairs '(L, U)'";
+      "intervals are written `[L, U]` or `[L, ∞)`, not as pairs `(L, U)`";
     rejects "interval unbounded below" traces_interval (span Top (Braces send))
-      "intervals are bounded below, written '[L, U]' or '[L, ∞)'";
+      "intervals are bounded below, written `[L, U]` or `[L, ∞)`";
     rejects "fractional delay" traces_upper
       (Braces (seq send (Frac (Rational.make 1 2))))
       "whole numbers of time steps";
     rejects "fraction" traces_lower (Rat (Rational.make 1 2)) "not fractions";
     rejects "fraction" traces_interval (Rat (Rational.make 1 2)) "not fractions";
     rejects "name" traces_interval (Name "Send")
-      "grades are intervals '[{...}, {...}]' of sets of traces";
+      "grades are intervals `[{...}, {...}]` of sets of traces";
     rejects "fractional delay" regex_upper
       (Braces (Star (Frac (Rational.make 1 2))))
       "whole numbers of time steps";
@@ -786,7 +786,7 @@ let literals =
     rejects "interval of no whole delay" regex_upper
       (Braces
          (Seq (send, Delays (Open Rational.zero, Open (Rational.of_int 1)))))
-      "the interval '(0, 1)' contains no whole number of time steps";
+      "the interval `(0, 1)` contains no whole number of time steps";
     reads "interval of ticks" windowed_schedules
       (Braces (Delays (Open (Rational.of_int 1), Unbounded)))
       "[2, ∞)";
@@ -795,7 +795,7 @@ let literals =
       "[2, 4]";
     rejects "interval of delays" rational_traces_upper
       (Braces (Delays (Closed Rational.zero, Closed (Rational.make 1 2))))
-      "without the interval of delays '[0, 0.5]'";
+      "without the interval of delays `[0, 0.5]`";
     reads "interval of delays" rational_regex_upper
       (Braces
          (Seq (send, Delays (Open Rational.zero, Closed (Rational.make 1 2)))))
@@ -835,7 +835,7 @@ let literals =
       (Rat (Rational.make (-1) 2))
       "must be non-negative";
     rejects "repetition" rational_traces_upper (Braces (Star send))
-      "repetition '*'";
+      "repetition `*`";
     reads "interval of fractions" rational_traces_interval
       (span (Rat (Rational.make 1 2)) (Rat (Rational.make 3 2)))
       "[{0.5}, {1.5}]";
@@ -857,7 +857,7 @@ let literals =
       (Braces (seq (union send (Tick 2)) (Tick 1)))
       "{Send; 1 | 3}";
     reads "integer" inclusion_upper (Int 2) "{2}";
-    rejects "repetition" inclusion_upper (Braces (Star send)) "repetition '*'";
+    rejects "repetition" inclusion_upper (Braces (Star send)) "repetition `*`";
     rejects "pair" inclusion_upper (Tuple [ Int 1; Int 2 ]) "not pairs";
     rejects "negative integer" inclusion_upper (Int (-1)) "must be non-negative";
     rejects "fraction" inclusion_upper (Rat (Rational.make 1 2)) "not fractions";
@@ -869,7 +869,7 @@ let literals =
     reads "High" security_levels (Name "High") "High";
     reads "top" security_levels Top "High";
     rejects "unknown level" security_levels (Name "Medium")
-      "unknown level 'Medium'";
+      "unknown level `Medium`";
     rejects "integer" security_levels (Int 0) "not plain integers";
     reads "pair" time_lower_levels (lit_of_pair 3 "High") "(3, High)";
     reads "top" time_lower_levels Top "(0, High)";
@@ -878,9 +878,9 @@ let literals =
     reads "top" time_upper_levels Top "(∞, High)";
     rejects "first component" time_lower_levels
       (Tuple [ Name "Low"; Name "Low" ])
-      "in the first component ('time-lower-bound')";
+      "in the first component (`time-lower-bound`)";
     rejects "second component" time_upper_levels (lit_of_pair 3 "Medium")
-      "in the second component ('security-levels'), unknown level";
+      "in the second component (`security-levels`), unknown level";
     rejects "integer" time_lower_levels (Int 3) "grades are pairs";
     rejects "triple" time_lower_levels
       (Tuple [ Int 3; Name "Low"; Int 1 ])
@@ -973,7 +973,7 @@ let registry =
       (GradeRegistry.accepting
          (Grade.Tuple
             [ Grade.Braces (Grade.Letter "A"); Grade.Braces (Grade.Letter "B") ]));
-    expect "registry: grades reading a pair of a number and '∞'" show_names
+    expect "registry: grades reading a pair of a number and `∞`" show_names
       ~expected:
         [
           "time-interval";
@@ -2266,11 +2266,11 @@ let indexed =
       "(A, [2, 3])";
     rejects "entry of an empty pair" intervals
       (Tuple [ Name "A"; Int 1; Int 2 ])
-      "in the entry of 'A', the interval contains no integer";
+      "in the entry of `A`, the interval contains no integer";
     rejects "name listed twice" by_name
       (Tuple [ entry "A" (Int 1); entry "A" (Int 2) ])
       "listed twice";
-    rejects "component" by_name (entry "A" (Name "Low")) "in the entry of 'A'";
+    rejects "component" by_name (entry "A" (Name "Low")) "in the entry of `A`";
     expect "default printed as an entry" Fun.id ~expected:"((A, 1), (_, 3))"
       (ByName.show
          (Indexed.of_list ~compare:TimeGrades.UpperBound.compare

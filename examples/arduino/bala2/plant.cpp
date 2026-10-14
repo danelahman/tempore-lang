@@ -49,6 +49,7 @@
 // the largest tilt from one second after the release on, and the largest
 // drive of the motors.
 
+#include <Arduino.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -109,7 +110,7 @@ const double dead_band[2] = {PLANT_DEAD_BAND / 1023.0,
                              PLANT_RIGHT_DEAD_BAND / 1023.0};
 const double strength[2] = {1.0, PLANT_RIGHT_STRENGTH};
 const double gravity = 9.81;
-const double degrees = 180 / 3.14159265358979323846;
+const double degrees = 180 / PI;
 
 // The time of the release, and whether the body is released.
 double release = PLANT_RELEASE_MS * 1e-3;

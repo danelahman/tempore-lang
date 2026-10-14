@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/traces_reject_allowance.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: one tick of allowance does not buy a 'Heat', which may take
    up to two. *)
 

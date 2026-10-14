@@ -5,7 +5,8 @@
 
     - ["board"] (required): the name of a board profile ({!ArduinoBoard});
     - ["time_unit"]: the length of one time unit of the program, ["ms"]
-      (default), ["us"] or ["s"], or a positive number of microseconds;
+      (default), ["us"] or ["s"], or a positive number of microseconds, at most
+      10^9, whose numerator and denominator in lowest terms are below 2^30;
     - ["tasks"] (required): a non-empty array of tasks;
     - ["packages"]: an array of names of peripheral packages ({!ArduinoPackage},
       default none);

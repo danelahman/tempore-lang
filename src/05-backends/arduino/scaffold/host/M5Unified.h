@@ -32,6 +32,17 @@ struct touch_detail_t {
   bool isPressed() const { return pressed; }
 };
 
+// The sensors of the inertial measurement unit whose readings an update
+// renews, as a mask.
+struct IMU_Class {
+  enum sensor_mask_t {
+    sensor_mask_none = 0,
+    sensor_mask_accel = 1,
+    sensor_mask_gyro = 2,
+    sensor_mask_mag = 4
+  };
+};
+
 }  // namespace m5
 
 // The inertial measurement unit: update reads the sensors and getImuData
@@ -40,7 +51,7 @@ struct touch_detail_t {
 class tempore_m5_imu {
  public:
   void setClock(uint32_t) {}
-  int update();
+  m5::IMU_Class::sensor_mask_t update();
   void getImuData(m5::imu_data_t *data);
   // Sets the output data rate of the accelerometer, in hertz; the host model
   // logs it.
@@ -107,7 +118,6 @@ class tempore_m5_unified {
  public:
   tempore_m5_config config() { return {}; }
   void begin(tempore_m5_config) {}
-  void update() {}
   tempore_m5_imu Imu;
   tempore_m5_display Display;
   tempore_m5_touch Touch;

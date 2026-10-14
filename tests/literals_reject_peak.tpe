@@ -1,3 +1,7 @@
-(* Rejected: a peak below the net change. *)
+(* Run this test with the 'resource-levels' grading monoid, e.g.
+
+     ./tempore --grades resource-levels tests/literals_reject_peak.tpe
+
+   Rejected: a peak below the net change. *)
 
 let claim () = box (2, 1) 1

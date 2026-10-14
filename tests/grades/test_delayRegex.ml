@@ -105,15 +105,15 @@ let literals =
     reads "top" ~expected:"⊤";
     rejects "{<1}" "parser error";
     rejects "{>0 & <1}" "parser error";
-    rejects "{[2, 1]}" "interval endpoints must satisfy n <= m";
+    rejects "{[2, 1]}" "Interval endpoints must satisfy n <= m";
     rejects "{(1, 1)}"
-      "interval endpoints must satisfy n < m at an open endpoint";
+      "Interval endpoints must satisfy n < m at an open endpoint";
     rejects "{[1, 1)}"
-      "interval endpoints must satisfy n < m at an open endpoint";
+      "Interval endpoints must satisfy n < m at an open endpoint";
     rejects "{[1, ∞]}"
-      "an infinite endpoint of an interval is written with a parenthesis";
+      "An infinite endpoint of an interval is written with a parenthesis";
     rejects "{Read & [0, 1)}" "denotes the empty language";
-    rejects "{Read; [-0.5, 1]}" "durations must be non-negative";
+    rejects "{Read; [-0.5, 1]}" "Durations must be non-negative";
   ]
 
 (* The intervals of delays with fractional endpoints, or without a whole number
@@ -138,17 +138,17 @@ let whole_step_rejections =
      check "whole steps: a fractional endpoint rejected"
        (contains reason
           "delays are whole numbers of time steps; did you mean to use one of \
-           the 'regex-upper-bound-rational-symbolic', \
-           'regex-timed-lower-bound-rational-symbolic', \
-           'regex-timed-upper-bound-rational-symbolic' or \
-           'regex-timed-interval-rational-symbolic' grading monoids?")
+           the `regex-upper-bound-rational-symbolic`, \
+           `regex-timed-lower-bound-rational-symbolic`, \
+           `regex-timed-upper-bound-rational-symbolic` or \
+           `regex-timed-interval-rational-symbolic` grading monoids?")
        reason);
     (let reason =
        match parse "{Read; (0, 1)}" with Error reason -> reason | Ok () -> ""
      in
      check "whole steps: an interval of no whole delay rejected"
        (contains reason
-          "the interval '(0, 1)' contains no whole number of time steps")
+          "the interval `(0, 1)` contains no whole number of time steps")
        reason);
   ]
 

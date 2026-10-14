@@ -22,8 +22,7 @@ let word = function
   | '#' -> Some "hash"
   | _ -> None
 
-let is_alphanumeric c =
-  (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+let is_alphanumeric c = c <> '_' && ArduinoCpp.is_identifier_char c
 
 (* The spelling of the Unicode scalar value [u], with [_] separating the words
    of the spellings of other characters. *)
@@ -40,7 +39,9 @@ let spelling u =
           else Printf.sprintf "_u%x_" code
   else Printf.sprintf "_u%x_" code
 
-let base name =
+(* The spelling of [name] by the spelling of its characters, the words
+   separated by single underscores, without an underscore at either end. *)
+let spelt name =
   let rec spelt i acc =
     if i >= String.length name then String.concat "" (List.rev acc)
     else
@@ -49,28 +50,49 @@ let base name =
         (i + Uchar.utf_decode_length d)
         (spelling (Uchar.utf_decode_uchar d) :: acc)
   in
-  let parts =
-    List.filter (fun s -> s <> "") (String.split_on_char '_' (spelt 0 []))
-  in
-  match String.concat "_" parts with
-  | "" -> "v"
-  | s
-    when (s.[0] >= '0' && s.[0] <= '9')
-         || String.starts_with ~prefix:"tempore" s ->
-      "v" ^ s
-  | s -> s
+  String.concat "_"
+    (List.filter (fun s -> s <> "") (String.split_on_char '_' (spelt 0 [])))
 
-let identifier name index = Printf.sprintf "%s_%d" (base name) index
+let identifier name index =
+  let s = spelt name in
+  let lower = String.lowercase_ascii s in
+  let s =
+    if
+      s = ""
+      || (s.[0] >= '0' && s.[0] <= '9')
+      || String.starts_with ~prefix:"tempore" lower
+      || String.starts_with ~prefix:"binding" lower
+    then "v" ^ s
+    else s
+  in
+  Printf.sprintf "%s_%d" s index
+
+(* Whether [name] consists of ASCII letters and digits, with single
+   underscores between them. *)
+let is_plain name =
+  name <> ""
+  && List.for_all
+       (fun part -> part <> "" && String.for_all is_alphanumeric part)
+       (String.split_on_char '_' name)
+
+(* The bytes of [name] in hexadecimal, two lower-case digits each. *)
+let hexadecimal name =
+  String.concat ""
+    (List.map
+       (fun c -> Printf.sprintf "%02x" (Char.code c))
+       (List.of_seq (String.to_seq name)))
+
+let base name =
+  if is_plain name then name
+  else
+    match spelt name with
+    | "" -> hexadecimal name ^ "_"
+    | s -> s ^ "_" ^ hexadecimal name ^ "_"
+
 let operation name = "tempore_op_" ^ base name
+let monitor name = "tempore_monitor_" ^ base name
+let bounds name = "tempore_bounds_" ^ base name
 let binding name = "binding_" ^ base name
-
-let string_literal s =
-  let char c =
-    match c with
-    | '"' -> "\\\""
-    | '\\' -> "\\\\"
-    | '?' -> "\\?"
-    | c when c >= ' ' && c < '\127' -> String.make 1 c
-    | c -> Printf.sprintf "\\%03o" (Char.code c)
-  in
-  "\"" ^ String.concat "" (List.map char (List.of_seq (String.to_seq s))) ^ "\""
+let performs name = "TEMPORE_PERFORMS_" ^ base name
+let argument_type name = "tempore_argument_" ^ base name
+let result_type name = "tempore_result_" ^ base name

@@ -5,11 +5,8 @@ variants, its project and its host simulation, over the falls and the taps
 of its host model.
 
   $ app=../../examples/arduino/fall
-  $ tempore () { ../../tempore --grades regex-timed-interval-rational-symbolic "$@"; }
-  $ packages () {
-  >   tempore --package m5-imu --package m5-display --package m5-touch \
-  >     --package m5-speaker --board m5stack-cores3 "$@"
-  > }
+  $ . ../helpers.sh
+  $ from_header $app/fall.tpe
 
 The interpreter runs a suspected fall with the default implementations of
 the operations, which read a unit at rest:
@@ -94,7 +91,7 @@ The project, for the board m5stack-cores3; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino fall --device $app/fall.device.json $app/fall.tpe | grep -c Wrote
-  32
+  33
   $ cd _arduino/projects/fall
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..

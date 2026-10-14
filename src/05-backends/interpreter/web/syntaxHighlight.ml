@@ -16,9 +16,9 @@ let is_digit c = c >= '0' && c <= '9'
 let is_ident_start c = is_lower c || is_upper c || c = '_'
 let is_ident_char c = is_ident_start c || is_digit c || c = '\''
 
-(* Greek letters used by the type printer occupy two bytes in UTF-8 (0xCE/0xCF
-   lead byte).  We treat the byte sequence as a single ident-like token so the
-   highlighter does not split it. *)
+(* The lead bytes 0xCE and 0xCF of the two-byte UTF-8 sequences of the Greek
+   letters the type printer uses, each sequence read as one identifier
+   character. *)
 let is_greek_lead b = b = 0xCE || b = 0xCF
 
 (* The grade constants written as symbols, the top and infinity, highlighted as
@@ -195,14 +195,7 @@ let tokens s =
   done;
   List.rev !toks
 
-type 'msg marker = {
-  href : string;  (** where it links to, such as the message explaining it *)
-  attrs : 'msg Vdom.attribute list;
-      (** What else goes on every one of the numbers, such as the handlers and
-          the class by which the view makes them light up as one block. A class
-          here is merged into the numbers' own. *)
-}
-(** What the line numbers of the lines a mark covers link to. *)
+type 'msg marker = { href : string; attrs : 'msg Vdom.attribute list }
 
 type 'msg mark = {
   from : int;
@@ -211,9 +204,6 @@ type 'msg mark = {
   id : string option;
   marker : 'msg marker option;
 }
-(** A range of the text to wrap in a class of its own, such as the span of an
-    error, with an optional element id to scroll to or link to. Unlike tokens,
-    marks may nest, overlap and be given in any order. *)
 
 (* The markers the state printer brackets resource names with are consumed by
    the tokenizer and must not reach the page. *)
@@ -240,17 +230,22 @@ let node ?id classes text =
 (* Out of the flow, so that the overlay goes on measuring as the textarea laid
    over it does; positioned against the <pre>, so that it lands in the gutter.
    See the [.line-number] rules in web/index.html. *)
-let line_number_node ?link n =
+let line_number_node ?line_link ?link n =
   let number =
-    match link with
-    | None ->
+    match (link, line_link) with
+    | None, None ->
         Vdom.elt "span"
           ~a:[ Vdom.class_ "line-number" ]
+          [ Vdom.text (string_of_int n) ]
+    (* A line linked to itself: the number takes the clicks as well. *)
+    | None, Some attrs ->
+        Vdom.elt "span"
+          ~a:(Vdom.add_class "line-number is-line-link" (attrs n))
           [ Vdom.text (string_of_int n) ]
     (* A line an error covers: the number itself is the link to the message,
        which is why it must stay clickable through the textarea. The ends of
        the span are marked so that the gutter bar can be inset there. *)
-    | Some ({ href; attrs }, first, last) ->
+    | Some ({ href; attrs }, first, last), _ ->
         let classes =
           "line-number is-error"
           ^ (if first then " is-error-start" else "")
@@ -296,11 +291,7 @@ let rec insert_active i = function
   | j :: rest when j < i -> j :: insert_active i rest
   | active -> i :: active
 
-(** [highlight_with_marks ~marks s] highlights [s] as [highlight_text] does and
-    wraps each mark's range in its class. Cutting at every token and mark
-    boundary makes each segment lie inside one token and wholly inside or
-    outside each mark, so it carries that token's class and every mark's. *)
-let highlight_with_marks ?(line_numbers = false) ~marks s =
+let highlight_with_marks ?(line_numbers = false) ?line_link ~marks s =
   let n = String.length s in
   let clamp i = max 0 (min n i) in
   let marks =
@@ -423,7 +414,7 @@ let highlight_with_marks ?(line_numbers = false) ~marks s =
           toks := List.tl !toks
         done;
         if line_numbers && !line < lines && starts.(!line) = start then begin
-          push (line_number_node ?link:linked.(!line) (!line + 1));
+          push (line_number_node ?line_link ?link:linked.(!line) (!line + 1));
           incr line
         end;
         while !next < total && pieces.(by_start.(!next)).p_from <= start do

@@ -63,7 +63,7 @@ let rec skip_space src i =
 let expect src i c =
   match peek src i with
   | Some c' when c' = c -> i + 1
-  | _ -> fail src i "Expected '%c'" c
+  | _ -> fail src i "Expected `%c`" c
 
 let literal src i word value =
   let n = String.length word in
@@ -105,13 +105,16 @@ let number src i =
   in
   (String.sub src.text i (j - i), j)
 
+let hex_digit = function
+  | '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true
+  | _ -> false
+
 let hex4 src i =
-  if i + 4 > String.length src.text then
-    fail src i "Expected four hexadecimal digits"
-  else
-    match int_of_string_opt ("0x" ^ String.sub src.text i 4) with
-    | Some n -> n
-    | None -> fail src i "Expected four hexadecimal digits"
+  if
+    i + 4 > String.length src.text
+    || not (String.for_all hex_digit (String.sub src.text i 4))
+  then fail src i "Expected four hexadecimal digits"
+  else int_of_string ("0x" ^ String.sub src.text i 4)
 
 (* A string, its first character after the opening quotation mark at [i]. *)
 let string_body src i =
@@ -190,7 +193,7 @@ and elements src i =
         match peek src i with
         | Some ',' -> go (v :: acc) (i + 1)
         | Some ']' -> (Array (List.rev (v :: acc)), i + 1)
-        | _ -> fail src i "Expected ',' or ']'"
+        | _ -> fail src i "Expected `,` or `]`"
       in
       go [] i
 
@@ -213,18 +216,18 @@ and members src i =
         match peek src j with
         | Some ',' -> go ((name, v) :: acc) (j + 1)
         | Some '}' -> (Object (List.rev ((name, v) :: acc)), j + 1)
-        | _ -> fail src j "Expected ',' or '}'"
+        | _ -> fail src j "Expected `,` or `}`"
       in
       go [] i
 
 let parse ~filename text =
-  let line_starts =
-    Array.of_list
-      (0
-      :: List.filter_map
-           (fun i -> if text.[i] = '\n' then Some (i + 1) else None)
-           (List.init (String.length text) Fun.id))
+  let _, starts =
+    String.fold_left
+      (fun (i, starts) c ->
+        (i + 1, if c = '\n' then (i + 1) :: starts else starts))
+      (0, [ 0 ]) text
   in
+  let line_starts = Array.of_list (List.rev starts) in
   let src = { filename; text; line_starts } in
   let v, i = value src 0 in
   let i = skip_space src i in
@@ -245,23 +248,23 @@ let wrong ~what (v : t) expected =
     (String.capitalize_ascii what)
     (kind v) expected
 
+module StringSet = Set.Make (String)
+
 let fields ~what ~accepted (v : t) =
   match v.value with
   | Object members ->
-      List.iteri
-        (fun i ((name : string Location.located), _) ->
-          if not (List.mem name.it accepted) then
-            Error.compilation ~loc:name.at
-              "Unknown member '%s' of %s; accepted: %s" name.it what
-              (String.concat ", " accepted);
-          if
-            List.exists
-              (fun ((other : string Location.located), _) -> other.it = name.it)
-              (List.filteri (fun j _ -> j < i) members)
-          then
-            Error.compilation ~loc:name.at "Member '%s' of %s given twice"
-              name.it what)
-        members;
+      ignore
+        (List.fold_left
+           (fun seen ((name : string Location.located), _) ->
+             if not (List.mem name.it accepted) then
+               Error.compilation ~loc:name.at
+                 "Unknown member `%s` of %s; accepted: %s" name.it what
+                 (Utils.Diagnostic.code_list accepted);
+             if StringSet.mem name.it seen then
+               Error.compilation ~loc:name.at
+                 "The member `%s` of %s is given twice" name.it what;
+             StringSet.add name.it seen)
+           StringSet.empty members);
       { what; at = v.at; members }
   | _ -> wrong ~what v "an object"
 
@@ -272,7 +275,7 @@ let find fields name =
     fields.members
 
 let member_what fields name =
-  Printf.sprintf "the member '%s' of %s" name fields.what
+  Printf.sprintf "the member `%s` of %s" name fields.what
 
 let optional fields name decode =
   Option.map (decode ~what:(member_what fields name)) (find fields name)
@@ -281,7 +284,7 @@ let required fields name decode =
   match find fields name with
   | Some v -> decode ~what:(member_what fields name) v
   | None ->
-      Error.compilation ~loc:fields.at "The member '%s' of %s is missing" name
+      Error.compilation ~loc:fields.at "The member `%s` of %s is missing" name
         fields.what
 
 let location fields name =
@@ -307,6 +310,23 @@ let int ~what (v : t) =
       | Some i when i <= 0x7FFF_FFFF -> i
       | _ -> wrong ~what v "an integer below 2^31")
   | _ -> wrong ~what v "a non-negative integer"
+
+let assoc decode ~what (v : t) =
+  match v.value with
+  | Object members ->
+      let f =
+        fields ~what
+          ~accepted:
+            (List.map
+               (fun ((name : string Location.located), _) -> name.it)
+               members)
+          v
+      in
+      List.map
+        (fun ((name : string Location.located), _) ->
+          (name, required f name.it decode))
+        members
+  | _ -> wrong ~what v "an object"
 
 let list decode ~what (v : t) =
   match v.value with

@@ -319,7 +319,7 @@ let tick_interval lo hi =
   | Some b when b < a ->
       invalid_lit
         (Braces (Delays (lo, hi)))
-        "the interval '%s' contains no whole number of time steps"
+        "the interval `%s` contains no whole number of time steps"
         (show_interval Rational.show lo hi)
   | b -> (a, b)
 
