@@ -92,6 +92,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     let compare = Trace.compare
     let hash = Trace.hash
     let of_lit = function Top -> top | lit -> traces_of_lit lit
+    let accepts = reads_lit of_lit
   end
 
   (** Sets of traces read as upper bounds, in the allowance order, with a
@@ -100,6 +101,7 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
     include Bounded (D)
 
     let of_lit = of_lit ~number:N.number
+    let accepts = reads_lit of_lit
 
     (** Allowance order lifted to sets: every bound listed on the left stays
         within some bound listed on the right. An operation's [hi] bound is what
@@ -257,6 +259,8 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
           bounds_of_lit lit ~number:Trace.number ~close:N.close
             ~lower:LowerTraces.of_lit ~upper:UpperTraces.of_lit
             ~unbounded:UpperTraces.Unbounded ~bounds:"sets of traces"
+
+    let accepts = reads_lit of_lit
 
     let of_delay d =
       let ts = Trace.of_delay d in

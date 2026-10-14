@@ -39,6 +39,7 @@ module OfLattice (D : Delay.S) (L : LATTICE) = struct
   let inhabited _bounds _ = true
   let events _ = []
   let of_lit = function Grade.Top -> L.top | lit -> L.of_lit lit
+  let accepts = Grade.reads_lit of_lit
   let of_bounds _ = L.bottom
   let is_atomic _name _ = true
   let show = L.show
@@ -109,6 +110,11 @@ struct
         Grade.invalid_lit lit
           "grades are pairs `(g1, g2)` of a `%s` and a `%s` grade, not %s"
           G1.name G2.name (Grade.describe_lit lit)
+
+  let accepts = function
+    | Grade.Top -> true
+    | Grade.Tuple [ l1; l2 ] -> G1.accepts l1 && G2.accepts l2
+    | _ -> false
 
   let of_bounds b = (G1.of_bounds b, G2.of_bounds b)
   let is_atomic name (a, b) = G1.is_atomic name a && G2.is_atomic name b
@@ -225,6 +231,20 @@ struct
             in
             (m, n)
         | Error rejection, _ -> reject rejection)
+
+  let accepts = function
+    | Grade.Top -> true
+    | lit -> (
+        M.accepts lit
+        ||
+        match lit with
+        | Grade.Tuple [ l1; l2 ] -> (
+            M.accepts l1
+            &&
+            match l2 with
+            | Grade.Top -> true
+            | l2 -> Grade.reads_lit N.of_lit l2)
+        | _ -> false)
 
   let of_bounds b = (M.of_bounds b, N.bottom)
   let is_atomic name (m, _) = M.is_atomic name m
@@ -375,6 +395,19 @@ module Indexed = struct
     | Some lits -> of_entries_lit ~compare ~default of_lit lit lits
     | None -> all (of_lit lit)
 
+  (* Whether [of_lit] reads the literal [lit], its elements read by a reader
+     that accepts the literals [accepts] does. *)
+  let accepts_lit accepts lit =
+    match entries_of_lit lit with
+    | Some lits ->
+        Grade.reads_lit
+          (fun lit ->
+            of_entries_lit
+              ~compare:(fun () () -> 0)
+              ~default:() (Grade.require accepts) lit lits)
+          lit
+    | None -> accepts lit
+
   module OfSemilattice (C : SEMILATTICE) = struct
     type nonrec t = C.t t
 
@@ -452,6 +485,10 @@ module Indexed = struct
     let of_lit = function
       | Grade.Top -> top
       | lit -> of_lit ~compare:G.compare ~default:G.one ~everywhere G.of_lit lit
+
+    let accepts = function
+      | Grade.Top -> true
+      | lit -> accepts_lit G.accepts lit
 
     let of_bounds b = everywhere (G.of_bounds b)
     let is_atomic name = for_all (G.is_atomic name)

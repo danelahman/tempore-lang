@@ -56,6 +56,10 @@ let of_lit_with ~ticks ~top ~of_regex ~is_empty = function
         "grades are regular expressions `{...}`, plain integers or `⊤`, not %s"
         (describe_lit lit)
 
+let accepts_with of_lit = function
+  | Braces r when positive r -> whole_braces ~names:true r
+  | lit -> reads_lit of_lit lit
+
 (** [representative m] is the least letter of the block [m] of an alphabet:
     [tick], else its least name, else the block itself, the names the grades
     compared do not mention. *)
@@ -152,6 +156,7 @@ struct
     D.shortest (R.inter [ rho; R.compl rho' ])
 
   let of_lit = of_lit_with ~ticks ~top ~of_regex ~is_empty:D.is_empty
+  let accepts = accepts_with of_lit
 
   (** {1 Traces over given names} *)
 

@@ -515,7 +515,9 @@ The two variants are:
   operation after it in one step, by sets of delays and minterms. Literals:
 
   - an integer `n` denotes `n` ticks, an interval `[n, m]` any number of ticks
-    from `n` to `m` and `[n, ∞)` at least `n`;
+    from `n` to `m` and `[n, ∞)` at least `n`; an interval is expanded into
+    `m - n` optional ticks, and reading it takes time quadratic in `m - n`
+    (about a minute for `[10000, 30000]`), unlike under the rational variant;
   - an open endpoint abbreviates a closed one: `(1, 4)` is `2 | 3`;
   - `_` is any single letter, including operations the grade does not name.
 
@@ -892,7 +894,8 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
 
   `T` is written `n`, `[n, m]`, `[n, ∞)`, with open endpoints as for
   `time-interval`, or as a brace literal over ticks, `{0 | 10}`, and `T` alone
-  performs no operation. `E_A` is a brace literal, `{(4 | 5); 10*}` being
+  performs no operation. An interval inside a brace literal is read as under
+  `regex-upper-bound-symbolic`, in time quadratic in its width. `E_A` is a brace literal, `{(4 | 5); 10*}` being
   ticks 4 and 5 of every ten, and an entry `(_, E)` bounds every operation not
   listed. An operation `Send` taking a tick and happening at its start has
   grade `(1, (Send, {0}))`.

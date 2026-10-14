@@ -12,7 +12,9 @@
 
     The sets are the regular languages over the letter [tick] alone, a number
     [n] being the word of [n] ticks, in the representation of
-    {!RegularTraceGradeDerivative}: [+] is concatenation and [∪] union. *)
+    {!RegularTraceGradeDerivative}: [+] is concatenation and [∪] union. An
+    interval atom [[n, m]] of a brace literal is read in time quadratic in
+    [m - n], as in {!RegularTraceGrade}. *)
 
 (** The durations, ["durations"]: non-empty sets of natural numbers under
     elementwise addition, ordered by inclusion, the join being the union; the

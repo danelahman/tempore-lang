@@ -109,6 +109,14 @@ val of_lit_with :
 
     @raise Grade.Invalid_literal on the other literals. *)
 
+val accepts_with : (Grade.lit -> 'a) -> Grade.lit -> bool
+(** [accepts_with of_lit lit] is whether the reader [of_lit] of a regular trace
+    grade over whole time steps, an instance of {!of_lit_with}, reads [lit]. A
+    brace literal free of intersections and complements ({!Grade.positive})
+    denotes a non-empty language if its delays are read ({!Grade.whole_braces}),
+    which decides it without [of_lit]; the other literals are read by [of_lit].
+*)
+
 (** A regular trace grade by derivatives. *)
 module type S = sig
   include Grade.S with type t = SymbolicRegex.t and type Delay.t = Delay.Nat.t

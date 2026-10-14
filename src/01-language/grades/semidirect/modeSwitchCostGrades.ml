@@ -400,6 +400,7 @@ module Make (D : Delay.S) = struct
   let inhabited _bounds _ = true
   let events _ = []
   let of_lit = of_lit
+  let accepts = Grade.reads_lit of_lit
   let of_bounds _ = one
   let is_atomic _name _ = true
   let show = show

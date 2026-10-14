@@ -46,3 +46,12 @@
  (name test_delayTimedClosure)
  (modules test_delayTimedClosure)
  (libraries grades parser sugaredAst))
+
+(test
+ (name test_accepts)
+ (modules test_accepts)
+ (deps
+  (source_tree ..)
+  (source_tree ../../examples)
+  ../../src/06-loader/stdlib.tpe)
+ (libraries grades lawChecks parser))

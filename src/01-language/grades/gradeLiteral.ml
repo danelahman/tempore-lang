@@ -101,6 +101,9 @@ let read_lit of_lit lit =
   | v -> Ok v
   | exception Invalid_literal (lit', reason) -> Error (lit', reason)
 
+let reads_lit of_lit lit = Result.is_ok (read_lit of_lit lit)
+let require accepts lit = if not (accepts lit) then invalid_lit lit "rejected"
+
 let component_of_lit lit ~context of_lit component =
   try of_lit component
   with Invalid_literal (_, reason) -> invalid_lit lit "%s%s" context reason

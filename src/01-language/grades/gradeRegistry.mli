@@ -10,7 +10,8 @@ val default_name : string
 
 val accepting : Grade.lit -> string list
 (** [accepting lit] lists the names of the grades shown {!Everywhere} that
-    understand the literal [lit], in the order of {!grade_modules}. *)
+    understand the literal [lit] ({!Grade.S.accepts}), in the order of
+    {!grade_modules}. *)
 
 val accepting_delay : Grade.lit -> string list
 (** [accepting_delay lit] lists the names of the grades shown {!Everywhere}

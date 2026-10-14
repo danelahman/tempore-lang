@@ -78,6 +78,12 @@
     [{n}], and [⊤] (ASCII [top]) is [Σ*]. A literal denoting the empty language
     is rejected, since grades are non-empty.
 
+    Every implementation of the grade, and those of {!RegularTimedTraceGrades},
+    reads an interval atom [[n, m]] in time quadratic in [m - n]: under
+    ["regex-upper-bound-symbolic"], [{Read; [10000, 30000]}] takes about a
+    minute. {!Grade.S.accepts} decides a literal free of intersections and
+    complements without reading it.
+
     {2 Running-time bounds}
 
     The order does not read the running-time bounds of operations, which
