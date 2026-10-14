@@ -39,6 +39,7 @@ let regex_timed =
 let security = ("Security levels", "Security")
 let semidirect = ("Semidirect products", "Semidirect")
 let counts = ("Operation counts", "Counts")
+let separation = ("Separation of timed operations", "Separation (timed ops)")
 
 let entry ?(visibility = Everywhere) ?implementation (module G : Grade.S) group
     title description =
@@ -440,10 +441,23 @@ let entries =
        2); an operation gets stuck from the modes its grade does not start \
        from, and a change of mode costs at least 1.";
     entry
+      (module ModeTimeGrades.ModeTimes)
+      semidirect "Mode times"
+      "The time spent in each mode of a device or a material, over traces that \
+       change modes, such as (Cold, Cold, (Out, [0, 30])); an operation runs \
+       in the mode it starts from, and its change of mode takes effect at its \
+       end.";
+    entry
       (module CountGrades.UpperBound)
       counts "Upper bounds"
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \
        3)); delays count nothing.";
+    entry
+      (module EventSeparationGrades)
+      separation "Event separation"
+      "How often an operation recurs: the time between consecutive \
+       occurrences, at most and at least, such as (Beat, [0, 20]); operations \
+       take their running times, occurring at their start.";
   ]
 
 let grade_modules = List.map (fun e -> (e.name, e.grade)) entries

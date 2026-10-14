@@ -80,9 +80,9 @@ The descriptor maps each grade system the package supports to a file of
 declarations, and may name a file of definitions, types and functions shared
 by all of them, such as the tilt filters of `m5-imu`. Every package is
 declared under `time-interval-rational`, under the regular expressions of
-timed operations over rational delays (`regex-timed-*-rational-symbolic`),
-with running-time bounds in milliseconds, and under `counts-upper-bound`,
-each call counting once.
+timed operations over rational delays (`regex-timed-*-rational-symbolic`) and
+`event-separation`, with running-time bounds in milliseconds, and under
+`counts-upper-bound`, each call counting once.
 
 ### The packages
 
@@ -142,7 +142,7 @@ closed intervals in the time unit of the declarations:
 For the board of a manifest, these bounds replace those of the declarations
 under every grade system that bounds durations: the interval grade of the
 operation under `time-interval-rational`, and its `within` bounds under the
-regular expressions of timed operations.
+regular expressions of timed operations and `event-separation`.
 
 - The program is typed, and the monitors are generated, under the bounds of
   its board.
@@ -668,6 +668,10 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     seconds after the prompt unless a tap cancels, and stopped by a tap.
   - While watching, in green, the screen shows the falls counted, the time
     since the last event and a bar of the acceleration.
+- [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter,
+  under `event-separation`: one loop reads the unit at least every 50 ms
+  while it redraws the screen, one band per reading, the steps counted or
+  the bar of the acceleration.
 
 #### Using the digital level
 
@@ -695,13 +699,13 @@ unit.
 The CoreS3 examples show their name at the top of the screen, in text of
 size 2, and a footer at the bottom right, in text of size 1, by
 `ShowTextAt`: the line "Typechecked by Tempore (tempore-lang.ee)" at the
-column 320 − 6 · 40 = 80 of its 40 characters of 6 pixels. In `level` and
-`fall` the footer is below a line of size 1 under the name that states the
-guarantee of the example.
+column 320 − 6 · 40 = 80 of its 40 characters of 6 pixels. In `level`,
+`fall` and `steps` the footer is below a line of size 1 under the name that
+states the guarantee of the example.
 
-The name and the footer are drawn after each clearing in `tilt`, `peak` and
-`fall`, outside their boxes, and once by the initial function in `level`,
-which redraws its values by bands and does not clear.
+The name and the footer are drawn after each clearing in `tilt`, `peak`,
+`fall` and `steps`, outside their boxes, and once by the initial function in
+`level`, which redraws its values by bands and does not clear.
 
 ## Adding a board, a package or an example
 

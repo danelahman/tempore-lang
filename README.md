@@ -957,6 +957,41 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
       This function's body has grade `(Off, On, 10)`, which does not match its
       annotated grade `(Off, On, 6)`
 
+- `mode-times`: the matrices of `mode-switch-costs` with the costs replaced by
+  the time spent in each mode and the total time, each bounded by an interval.
+
+  A delay keeps the mode and its time is spent in it. An operation takes its
+  running time `within [lo, hi]` in the mode it starts from, and its change of
+  mode takes effect at its end. As in `mode-switch-costs`, an operation gets
+  stuck from the modes its grade does not start from, at no time.
+
+  An operation names itself: `{Log}` in every mode, `({Take}, Cold, Out)` from
+  `Cold` to `Out`, `({Mix}, (Cold, Cold), (Out, Out))` in either mode. A
+  specification `(From, To, (M, [lo, hi]), …, [lo, hi])` bounds the time in each
+  listed mode and, by a bare interval, the total; the modes not named are
+  written `_` as in `mode-switch-costs`, and `(_, [lo, hi])` bounds the time in
+  each of them. A number `d` or an interval is a delay.
+
+  For example, where taking an enzyme out of the cold block takes 1 to 2
+  minutes and a pipetting 3 to 5, the program
+
+  ```
+  operation Take : unit ~> unit # ({Take}, Cold, Out) within [1, 2]
+  operation Pipette : unit ~> unit # ({Pipette}, Out, Out) within [3, 5]
+  operation Return : unit ~> unit # ({Return}, Out, Cold) within [1, 1]
+
+  let round () : unit # (Cold, Cold, (Out, [0, 10])) =
+    perform Take ();
+    perform Pipette ();
+    delay 4;
+    perform Return ()
+  ```
+
+  is accepted, as the enzyme is out of the cold block at most 10 minutes, the
+  taking counted in the cold block, while a second pipetting would be rejected,
+  as the enzyme may then be out for 15. See
+  [`examples/opentrons/enzyme.tpe`](examples/opentrons/enzyme.tpe).
+
 An (external) operation whose grade no code inside Tempore can meet, such as
 opening or closing a file under `resource-levels`, has no default
 implementation, and a run stops at its first call.
@@ -995,6 +1030,45 @@ sends would be rejected, as they make four:
     match its annotated grade `((Auth, 1), (Send, 3))`
 
 See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
+
+### Event separation
+
+In `event-separation`, a grade bounds how often each operation recurs: the
+time between the starts of consecutive calls of an operation `X`, at most and
+at least, as for heartbeats, sampling rates and rate limits. Delays are
+rational, and an operation occurs at its start and takes a time within its
+`within` bounds; its grade is `{X}`.
+
+For each operation, a computation either performs no `X`, taking some time, or
+has a lead before the first `X`, gaps between consecutive `X`s and a tail after
+the last. A grade bounds these by intervals, with the total duration;
+sequencing joins the tail of one part and the lead of the next into a gap.
+
+- `(X, [s, t])`: gaps in `[s, t]`, and no stretch without `X` longer than `t`
+  at the start or the end; `(Beep, [2, ∞))` is a rate limit.
+- `(X, lead, gaps, tail)`: each part bounded on its own; the invariant of a
+  loop whose body starts with `X` and takes at most `t` is
+  `(X, [0, 0], [0, t], [0, t])`. The short form is no loop invariant, as two
+  stretches of `t` may meet.
+- A tuple of such entries and at most one interval, the total duration, as in
+  `((Read, [0, 20]), (Draw, [0, 50]), [0, 100])`; operations not listed are
+  unconstrained.
+- A brace literal `{Beat; Work | Beat}` of operations and delays, a number or
+  an interval is a computation, without occurrences besides those it names.
+
+For example, where `Beat` takes 0.1 to 0.5 and `Work` 1 to 3, the program
+
+```
+let rec heartbeat n : unit # (Beat, [0, 0], [0, 5], [0, 5]) =
+  match n with
+  | 0 -> ()
+  | m + 1 -> perform Beat (); perform Work (); heartbeat m
+```
+
+is accepted, as a round takes at most 3.5, while a second `perform Work ()`
+would be rejected, as a gap may then be 6.5. See
+[`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
+[`examples/arduino/steps/steps.tpe`](examples/arduino/steps/steps.tpe).
 
 ## Eternal types
 
@@ -1385,7 +1459,8 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a
   gyroscope bias removed by a handler; [`peak`](examples/arduino/peak/peak.tpe),
   a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
-  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector.
+  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector;
+  [`steps`](examples/arduino/steps/steps.tpe), a step counter.
 
 #### Quick start
 <!-- web-skip -->
@@ -1434,6 +1509,10 @@ binding file and a rejected variant:
 - [`staggered`](examples/opentrons/staggered.tpe), a fixation of columns at
   staggered times;
 - [`beads`](examples/opentrons/beads.tpe), a bead clean-up with boxed beads;
+- [`binding`](examples/opentrons/binding.tpe), a bead binding with the beads
+  mixed every 2 to 5 minutes;
+- [`enzyme`](examples/opentrons/enzyme.tpe), a reaction set-up with an
+  enzyme mix at most 30 minutes out of the cold block;
 - [`stopread`](examples/opentrons/stopread.tpe), a stop and read with boxed
   plates;
 - [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound

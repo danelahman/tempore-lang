@@ -231,6 +231,26 @@ module Indexed : sig
   (** [names ms] is the names given their own element by some of [ms], and
       {!fresh}, in increasing order. *)
 
+  val map2 : ('c -> 'c -> int) -> ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  (** [map2 compare f m m'] gives each name [s] the element
+      [f (at m s) (at m' s)]; [compare] tells the elements equal to the default.
+  *)
+
+  val for_all2 : ('a -> 'b -> bool) -> 'a t -> 'b t -> bool
+  (** [for_all2 p m m'] is whether [p (at m s) (at m' s)] holds at every name
+      [s]. *)
+
+  val for_all : ('a -> bool) -> 'a t -> bool
+  (** [for_all p m] is whether [p (at m s)] holds at every name [s]. *)
+
+  val compare_with : ('a -> 'a -> int) -> 'a t -> 'a t -> int
+  (** [compare_with compare] is a total order on the maps whose elements are
+      ordered by [compare], built with the same [compare] for their defaults. *)
+
+  val hash_with : ('a -> int) -> 'a t -> int
+  (** [hash_with hash] is a hash compatible with [compare_with compare] for a
+      [hash] compatible with [compare]. *)
+
   val of_entries_lit :
     compare:('a -> 'a -> int) ->
     default:'a ->

@@ -21,7 +21,8 @@
 
     The modes are the capitalised names of the literals, [Stuck] naming the
     absorbing mode, a grade naming finitely many and treating all the others
-    alike. *)
+    alike. The matrices are those of {!ModeMatrices} over the max-plus semiring
+    of the costs. *)
 
 (** The costs: no trace, below the natural numbers, below [∞]. *)
 type cost = No_trace | Cost of int | Unbounded

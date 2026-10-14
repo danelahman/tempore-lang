@@ -69,6 +69,12 @@ tests show those runs in detail.
   return ()
   
   ======================================================================
+  ../examples/arduino/steps/steps.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  
+  ======================================================================
   ../examples/arduino/tilt/tilt.tpe
   ======================================================================
   === Run 1 ===
@@ -791,6 +797,35 @@ tests show those runs in detail.
     grade `[0, 1]` accumulates here (operation `MagnetOff`)
     Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
   ======================================================================
+  ../examples/opentrons/binding.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    1,
+    2,
+    1,
+    2,
+    1,
+    2,
+    1,
+    2,
+    1,
+    3,
+    1,
+    1
+  ]
+  
+  ======================================================================
+  ../examples/opentrons/binding_reject.tpe
+  ======================================================================
+  File "../examples/opentrons/binding_reject.tpe", lines 40-45, characters 25-12:
+  40 | let binding_late_wash () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `{AddBeads; Mix; 2; FillWashPlate} · (Mix, [0, 0], [2, 5], [0, 5])`, which does not match its annotated grade `(Mix, [1, 2], [2, 5], [0, 5])`
+    Note: the effect inequality `{AddBeads; Mix; 2; FillWashPlate} · (Mix, [0, 0], [2, 5], [0, 5]) <= (Mix, [1, 2], [2, 5], [0, 5])` does not hold
+  ======================================================================
   ../examples/opentrons/cleanup.tpe
   ======================================================================
   === Run 1 ===
@@ -963,6 +998,49 @@ tests show those runs in detail.
            ^^^^^^^^
     grade `[30, 30]` accumulates here (delay)
     Note: the resource inequality `[30, 30] <= [60, ∞)` does not hold
+  ======================================================================
+  ../examples/opentrons/enzyme.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    1,
+    1,
+    3,
+    1,
+    1,
+    1,
+    1,
+    3,
+    1,
+    1,
+    1,
+    1,
+    3,
+    1,
+    1,
+    1,
+    1,
+    3,
+    1,
+    1
+  ]
+  
+  ======================================================================
+  ../examples/opentrons/enzyme_reject.tpe
+  ======================================================================
+  File "../examples/opentrons/enzyme_reject.tpe", line 45, characters 2-7:
+  45 |   round 1;
+         ^^^^^
+  Typing error: The effect inequality `(Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) <= (Cold, Cold, (Out, [0, 30]))` does not hold
+    File "../examples/opentrons/enzyme_reject.tpe", lines 28-33, characters 0-25:
+    28 | let round (plate : nat) : unit # (Cold, Cold, (Out, [0, 7])) =
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    `round` is defined here
+    File "../examples/opentrons/enzyme_reject.tpe", lines 44-49, characters 19-9:
+    44 | let set_up_five () : unit # (Cold, Cold, (Out, [0, 30])) =
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    the inequality goes through the annotation here
   ======================================================================
   ../examples/opentrons/reagents.tpe
   ======================================================================
