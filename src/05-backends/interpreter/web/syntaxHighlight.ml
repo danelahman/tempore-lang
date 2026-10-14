@@ -229,7 +229,7 @@ let node ?id classes text =
 
 (* Out of the flow, so that the overlay goes on measuring as the textarea laid
    over it does; positioned against the <pre>, so that it lands in the gutter.
-   See the [.line-number] rules in web/index.html. *)
+   See the [.line-number] rules in web/style.css. *)
 let line_number_node ?line_link ?link ?lit ?id n =
   let number =
     match (link, line_link) with
