@@ -10,53 +10,6 @@ it names none:
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
-  3dprint_traces.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
-  State: [
-    [{1}, {1}],
-    { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
-    },
-    [{1}, {1}],
-    [{3}, {3}],
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
-    [{2}, {2}],
-    { resource_4 ↦
-        Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # [{2}, {8}]
-    },
-    [{2}, {2}],
-    [{1}, {1}]
-  ]
-  
-  === Run 2 ===
-  return ("Sword #1", Printed (Cooled (Extruded (Heated (Model "Sword")))))
-  State: [
-    { resource_1 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
-    [{1}, {1}],
-    [{3}, {3}],
-    { resource_2 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
-    [{2}, {2}],
-    { resource_3 ↦
-        Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # [{2}, {8}]
-    },
-    [{2}, {2}]
-  ]
-  
-  === Run 3 ===
-  return (Model "Sword")
-  State: [
-    [{1}, {1}]
-  ]
-  
-  === Run 4 ===
-  return Epoxy
-  State: []
-  
-  ======================================================================
   alias_cyclic_reject.tpe
   ======================================================================
   File "alias_cyclic_reject.tpe", line 3, characters 0-16:
@@ -1022,53 +975,6 @@ it names none:
            ^^^^^^^
     grade `5` accumulates here (delay)
     Note: the resource inequality `5 <= 0` does not hold
-  ======================================================================
-  eternal_types.tpe
-  ======================================================================
-  === Run 1 ===
-  return 5
-  State: [
-    1
-  ]
-  
-  === Run 2 ===
-  return (Stamp 1)
-  State: [
-    1
-  ]
-  
-  === Run 3 ===
-  return Tag
-  State: [
-    1
-  ]
-  
-  === Run 4 ===
-  return 5
-  State: [
-    2
-  ]
-  
-  === Run 5 ===
-  return (fun () ↦ return ())
-  State: []
-  
-  === Run 6 ===
-  return 2
-  State: [
-    { resource_1 ↦ <fun> # 1 }
-  ]
-  
-  === Run 7 ===
-  return (Stamp 42)
-  State: [
-    3
-  ]
-  
-  === Run 8 ===
-  return (Ticket Token)
-  State: []
-  
   ======================================================================
   eternal_tyvars.tpe
   ======================================================================
@@ -2426,13 +2332,6 @@ it names none:
     operation `On` is declared here
     Note: the effect inequality `0 <= (Off, On, 1)` does not hold
   ======================================================================
-  nat.tpe
-  ======================================================================
-  === Run 1 ===
-  return 42
-  State: []
-  
-  ======================================================================
   nat_division_by_zero.tpe
   ======================================================================
   Run-time error: Division by zero
@@ -3314,13 +3213,6 @@ it names none:
     {0.25},
     {0.25}
   ]
-  
-  ======================================================================
-  recursion.tpe
-  ======================================================================
-  === Run 1 ===
-  return (3628800, 55, 120)
-  State: []
   
   ======================================================================
   recursion_effect_levels.tpe
@@ -4523,23 +4415,6 @@ it names none:
   ]
   
   ======================================================================
-  test_op_handling.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
-          Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
-  State: [
-    { resource_1 ↦ <fun> # 7 },
-    7,
-    { resource_2 ↦ Fresh (Model "Sword") # 5, resource_4 ↦ <fun> # 7 },
-    7,
-    { resource_5 ↦ Fresh (Model "Hammer") # 5, resource_7 ↦ <fun> # 5 },
-    5,
-    { resource_9 ↦ <fun> # 5 },
-    5
-  ]
-  
-  ======================================================================
   test_precedence_and_associativity.tpe
   ======================================================================
   === Run 1 ===
@@ -5018,73 +4893,12 @@ it names none:
   ]
   
   ======================================================================
-  time_intervals.tpe
-  ======================================================================
-  === Run 1 ===
-  return 1
-  State: [
-    { resource_0 ↦ 1 # [1, 4] },
-    [1, 1],
-    [2, 2]
-  ]
-  
-  === Run 2 ===
-  return 1
-  State: [
-    { resource_0 ↦ 1 # [1, 4] },
-    [1, 1],
-    [2, 2]
-  ]
-  
-  === Run 3 ===
-  return 4
-  State: [
-    { resource_0 ↦ 1 # [1, 4] },
-    [1, 1],
-    [2, 2]
-  ]
-  
-  === Run 4 ===
-  return 8
-  State: [
-    { resource_0 ↦ 1 # [1, 4] },
-    [1, 1],
-    [2, 2]
-  ]
-  
-  === Run 5 ===
-  return 15
-  State: [
-    { resource_0 ↦ 7 # [2, 5], resource_1 ↦ 1 # [1, 4] },
-    [1, 1],
-    [2, 2]
-  ]
-  
-  ======================================================================
   time_reject_within.tpe
   ======================================================================
   File "time_reject_within.tpe", line 6, characters 0-47:
   6 | operation Heat : unit ~> unit # 2 within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `time-lower-bound` grading monoid, which does not use them
-  ======================================================================
-  time_upper.tpe
-  ======================================================================
-  === Run 1 ===
-  return 1
-  State: [
-    { resource_0 ↦ 1 # 3 },
-    1,
-    2
-  ]
-  
-  === Run 2 ===
-  return 1
-  State: [
-    { resource_0 ↦ 1 # 3 },
-    2
-  ]
-  
   ======================================================================
   toplevel_let_scope.tpe
   ======================================================================
@@ -5137,28 +4951,6 @@ it names none:
   ]
   
   ======================================================================
-  traces_intervals.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
-  State: [
-    [{1}, {1}],
-    { resource_0 ↦ Epoxy # [{8}, {11}],
-      resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
-    },
-    [{1}, {1}],
-    [{3}, {3}],
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
-    [{2}, {2}],
-    { resource_4 ↦
-        Printed (Cooled (Extruded (Heated (Model "Sword"))))
-        # [{2}, {8}]
-    },
-    [{2}, {2}],
-    [{1}, {1}]
-  ]
-  
-  ======================================================================
   traces_intervals_bounds.tpe
   ======================================================================
   === Run 1 ===
@@ -5199,23 +4991,6 @@ it names none:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{2}, {3}]` does not hold
-  ======================================================================
-  traces_lower.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Mounted (Printed (Cooled (Extruded (Heated (Model "Sword"))))))
-  State: [
-    {1},
-    { resource_0 ↦ Epoxy # {8}, resource_2 ↦ <fun> # {Heat; Extrude; Cool} },
-    {1},
-    {3},
-    { resource_3 ↦ Extruded (Heated (Model "Sword")) # {2} },
-    {2},
-    { resource_4 ↦ Printed (Cooled (Extruded (Heated (Model "Sword")))) # {2} },
-    {2},
-    {1}
-  ]
-  
   ======================================================================
   traces_normalise.tpe
   ======================================================================
@@ -5392,19 +5167,6 @@ it names none:
   11 | operation PrintModel : unit ~> unit # {Heat; Extrude}
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Extrude` in the grade of operation `PrintModel`
-  ======================================================================
-  traces_upper.tpe
-  ======================================================================
-  === Run 1 ===
-  return (Receipt "telemetry")
-  State: [
-    { resource_0 ↦ Receipt "telemetry" # {6},
-      resource_2 ↦ <fun> # {Tx | Tx; Tx}
-    },
-    {2},
-    {2}
-  ]
-  
   ======================================================================
   tydef.tpe
   ======================================================================
@@ -7589,7 +7351,7 @@ implementations above, the examples over rational delays excepted:
 The options: typechecking only reports errors and runs nothing, and the
 single-dash form of the help option is not accepted.
 
-  $ ../tempore --typecheck-only nat.tpe
+  $ ../tempore --typecheck-only ../examples/basics/nat.tpe
   $ ../tempore --typecheck-only comp_type_annotation_reject.tpe
   File "comp_type_annotation_reject.tpe", line 3, characters 9-31:
   3 | let f () : nat # 5 = delay 3; 1
@@ -7675,187 +7437,3 @@ single-dash form of the help option is not accepted.
     --typecheck-only  Typecheck the files without running them
     --upload          Build the project written with --device with PlatformIO and upload it to the board, passing its output through and exiting with its exit code
   [2]
-
-The rational-time example runs to its values under its intervals of hours.
-
-  $ ../tempore --grades time-interval-rational ../examples/time/intervals_rational.tpe
-  === Run 1 ===
-  return 500
-  State: [
-    { resource_0 ↦ 500 # [4, 6] },
-    [3.75, 3.75],
-    [0.25, 0.25]
-  ]
-  
-  === Run 2 ===
-  return 25
-  State: [
-    { resource_0 ↦ 25 # (4, 6] },
-    [4, 4],
-    [0.25, 0.25]
-  ]
-  
-  === Run 3 ===
-  return 72
-  State: [
-    { resource_0 ↦ 72 # [1, 1] },
-    [1/3, 1/3],
-    [1/3, 1/3],
-    [1/3, 1/3]
-  ]
-  
-
-The staged-release example runs to its values; the resource states are
-omitted.
-
-  $ ../tempore --grades time-lower-bound-levels ../examples/levels/staged_release.tpe | awk '/^State:/ { s = 1 } /^=== Run/ { s = 0 } !s'
-  === Run 1 ===
-  return (Stage ((Host "web-1")::[], 
-                 Stage ((Host "web-2")::(Host "web-3")::[], 
-                        Stage ((Host "db-1")::(Host "db-2")::[], Empty))))
-  === Run 2 ===
-  return 7
-  === Run 3 ===
-  return (Completed 5, 
-          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Retried (Host "db-2"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
-  === Run 4 ===
-  return (HostFailed (Host "db-2", 5), 
-          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Reverted (Host "db-2"))::(Reverted (Host "db-1"))::(Reverted (Host "web-3"))::(Reverted (Host "web-2"))::(Reverted (Host "web-1"))::[])
-  === Run 5 ===
-  return (ErrorsObserved (1, 1), 
-          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "cache-1"))::(Observed 1)::(Reverted (Host "cache-1"))::[])
-  === Run 6 ===
-  return (Completed 2, 
-          (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Retried (Host "db-3"))::(Retried (Host "db-3"))::(Reverted (Host "db-3"))::(Reverted (Host "web-1"))::(HotfixFetched 8)::(Built 8)::(Approved 8)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
-  === Run 7 ===
-  return (HostFailed (Host "db-3", 2))
-  === Run 8 ===
-  return (Completed 5, "release notes")
-
-The mail-session example performs its operations by their defaults.
-
-  $ ../tempore --grades regex-timed-upper-bound-symbolic ../examples/regular_timed_ops/mail_session.tpe
-  === Run 1 ===
-  return (Checkpoint 5, 2)
-  State: [
-    { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
-    {2},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1}
-  ]
-  
-  === Run 2 ===
-  return (Message (1, "Agenda", false))
-  State: [
-    {2},
-    {1},
-    {1}
-  ]
-  
-  === Run 3 ===
-  return 3
-  State: [
-    { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
-    {2},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1},
-    {1}
-  ]
-  
-  === Run 4 ===
-  return 1
-  State: [
-    {1},
-    {1},
-    {1},
-    {1}
-  ]
-  
-
-The example of the trace grades without running times runs to its value under
-a grade whose adjacent delays are merged.
-
-  $ ../tempore --grades traces-upper-bound ../examples/traces/upper_bounds.tpe
-  === Run 1 ===
-  return "closed"
-  State: [
-    { resource_0 ↦ "closed" # {3 | 4} },
-    {3}
-  ]
-  
-
-
-The example of the trace grades without running times over rational delays
-runs to its value under a grade whose adjacent delays are merged.
-
-  $ ../tempore --grades traces-upper-bound-rational ../examples/traces/upper_bounds_rational.tpe
-  === Run 1 ===
-  return "ready"
-  State: [
-    { resource_0 ↦ "ready" # {1.5 | 2.5} },
-    {1.5}
-  ]
-  
-
-The first introductory example runs to its value under a handler of its scan
-and the defaults of its other operations; the second stops at its first
-operation, which no default implements.
-
-  $ ../tempore --grades time-interval-rational ../examples/introduction/sensor_reading.tpe
-  === Run 1 ===
-  return ()
-  State: [
-    { resource_1 ↦ <fun> # (0, 0.5] },
-    [0.1, 0.1],
-    { resource_2 ↦ Sample 42 # [5, 10) },
-    [7, 7],
-    [0.5, 0.5],
-    [1.5, 1.5]
-  ]
-  
-  $ ../tempore --grades regex-upper-bound-rational-symbolic ../examples/introduction/stale_calibration.tpe
-  === Run 1 (unhandled operation) ===
-  perform Calibrate () (op_var.
-    (let calibration = return op_var in
-     perform HighwayMode () (op_var. return op_var);
-     let reading = perform Scan () (op_var. return op_var) in
-     unbox calibration as offset in
-     unbox reading as sample in
-     let angle = perform AngleOf sample (op_var. return op_var) in
-     perform SetOffsetAngle (offset, angle) (op_var. return op_var)))
-  
-
-The example of the regular trace grade over rational delays runs to its value
-under a grade permitting the delays of more than a second that are not whole.
-
-  $ ../tempore --grades regex-upper-bound-rational-symbolic ../examples/regular/upper_bounds_rational.tpe
-  === Run 1 ===
-  return "settled"
-  State: [
-    { resource_0 ↦ "settled" # {(1, ∞) & ~1*} },
-    {0.5},
-    {1.25}
-  ]
-  
-
-The example of the regular grades of timed operations over rational delays,
-graded by intervals, runs to its value, its operations performed by their
-defaults.
-
-  $ ../tempore --grades regex-timed-interval-rational-symbolic ../examples/regular_timed_ops/intervals_rational.tpe
-  === Run 1 ===
-  return ()
-  State: [
-    [{0.75}, {0.75}],
-    [{0.25}, {0.25}],
-    [{0.75}, {0.75}]
-  ]
-  
