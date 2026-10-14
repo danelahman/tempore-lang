@@ -1469,6 +1469,39 @@ then restart VS Code. Uninstall with
 To work on the extension itself, open `editors/vscode` in VS Code and press F5
 for an Extension Development Host with the extension loaded.
 
+## Repository layout
+<!-- web-skip -->
+
+The sources in `src/` are numbered by the stages of the pipeline:
+
+- `00-utils`: locations, diagnostics, errors, symbols and printing.
+- `01-language`: the abstract syntax and the grading monoids.
+- `02-parser`: the lexer and the grammar.
+- `03-desugarer`: the desugaring of parsed programs and the resolution of
+  names.
+- `04-typechecker`: the type and grade inference and the explanation of
+  diagnostics.
+- `05-backends`: the interpreter, the Arduino and Opentrons backends, and the
+  run timelines.
+- `06-loader`: the loading of programs through the stages above, with the
+  standard library `stdlib.tpe`.
+- `07-user-interface`: the command line interface (`cli/`) and the web
+  interface (`web/`).
+
+`tests/` holds the cram tests of the command line and the unit tests: the
+programs and expected outputs of the language at its top level, and one
+directory per component (`grades/`, `inference/`, `references/`, `headers/`
+for the headers of the examples, `arduino/`, `opentrons/`, `make/`, and
+`web/` for the web interface), with the shared helpers in `support/` and the
+probes for optional tools in `probes/`.
+
+`examples/` holds the example programs, grouped by topic and backend, with the
+index the web interface reads and the make targets of the backend examples.
+
+`web/` holds the page of the web interface and its assets, into which the build
+promotes `web.bc.js`. `bench/` holds the benchmarks, `editors/` the VS Code
+extension, and `scripts/` the auxiliary scripts.
+
 ## License
 <!-- web-skip -->
 

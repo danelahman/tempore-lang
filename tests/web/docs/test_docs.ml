@@ -40,7 +40,7 @@ let destinations source =
   scan 0 []
 
 let read path = In_channel.with_open_bin path In_channel.input_all
-let root = "../../"
+let root = "../../../"
 
 let () =
   (* normalisation *)

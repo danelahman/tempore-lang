@@ -4,7 +4,7 @@
    files of the text inputs its examples set, and prints an OCaml module of the
    groups and examples it describes, in the order of the index, and the example
    loaded when the page is opened; invoked by a dune rule, see
-   src/06-user-interface/web/dune. It fails on a grade or a backend the
+   src/07-user-interface/web/dune. It fails on a grade or a backend the
    registries do not list, on a setting of an input its backend does not have
    or of a choice the input does not offer, on a group without exactly one
    summary or a summary without a group, on two groups of one short form, and
@@ -87,7 +87,7 @@ let print_group buf root
 
 let preamble =
   "(* Generated from examples/index by gen_examples; see \
-   src/06-user-interface/web/dune. [examples] lists the groups of the web \
+   src/07-user-interface/web/dune. [examples] lists the groups of the web \
    interface's gallery, in order, each with its examples; [defaults] pairs the \
    key of a backend with the path of the example loaded when it is selected, \
    one of theirs, and [default] is that of the default backend, loaded when \

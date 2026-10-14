@@ -71,7 +71,7 @@ let () =
       "G | T | time-interval | a.tpe | D. | interpreter | binding=b.py";
     ];
   (* the example index of the repository *)
-  let root = Filename.concat (Sys.getcwd ()) "../.." in
+  let root = Filename.concat (Sys.getcwd ()) "../../.." in
   let summaries, entries, defaults =
     ExampleIndex.read (Filename.concat root "examples/index")
   in

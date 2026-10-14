@@ -4,7 +4,7 @@
    its manifest. *)
 
 let fail = TestSupport.Failures.fail
-let root = Filename.concat (Sys.getcwd ()) "../.."
+let root = Filename.concat (Sys.getcwd ()) "../../.."
 
 let read path =
   In_channel.with_open_bin (Filename.concat root path) In_channel.input_all
