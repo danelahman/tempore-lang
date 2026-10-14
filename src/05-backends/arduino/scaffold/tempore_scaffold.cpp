@@ -36,17 +36,126 @@ static const tempore_monitor_display *tempore_monitor_screen = nullptr;
 
 int64_t tempore_clock_us() { return esp_timer_get_time(); }
 
+#ifndef TEMPORE_LOG_LINES
+#ifdef TEMPORE_HOST
+#define TEMPORE_LOG_LINES 4096
+#else
+#define TEMPORE_LOG_LINES 32
+#endif
+#endif
+
+#ifndef TEMPORE_SERIAL_TX_BUFFER
+#define TEMPORE_SERIAL_TX_BUFFER 1024
+#endif
+
+// The length of a line of the log, with its terminating null character.
+static const size_t tempore_log_line_size = 192;
+
+// The lines of the log not yet written, a ring buffer of TEMPORE_LOG_LINES
+// lines from the index tempore_log_first, and the number of lines dropped
+// while it was full, updated in a critical section.
+static portMUX_TYPE tempore_log_lock = portMUX_INITIALIZER_UNLOCKED;
+static char tempore_log_lines[TEMPORE_LOG_LINES][tempore_log_line_size];
+static size_t tempore_log_first = 0;
+static size_t tempore_log_count = 0;
+static uint32_t tempore_log_dropped = 0;
+
+// The task that writes the log, and whether the lines are written at once,
+// as before tempore_log_begin and after tempore_log_end.
+static TaskHandle_t tempore_log_writer = nullptr;
+static std::atomic<bool> tempore_log_direct{true};
+
+// Removes the first line of the buffer into line; false if it is empty.
+static bool tempore_log_take(char *line) {
+  portENTER_CRITICAL(&tempore_log_lock);
+  const bool taken = tempore_log_count > 0;
+  if (taken) {
+    memcpy(line, tempore_log_lines[tempore_log_first], tempore_log_line_size);
+    tempore_log_first = (tempore_log_first + 1) % TEMPORE_LOG_LINES;
+    --tempore_log_count;
+  }
+  portEXIT_CRITICAL(&tempore_log_lock);
+  return taken;
+}
+
+// Writes the lines of the buffer to the serial port, and then the number of
+// the lines dropped since the last report, if any.
+static void tempore_log_drain() {
+  char line[tempore_log_line_size];
+  while (tempore_log_take(line)) Serial.println(line);
+  portENTER_CRITICAL(&tempore_log_lock);
+  const uint32_t dropped = tempore_log_dropped;
+  tempore_log_dropped = 0;
+  portEXIT_CRITICAL(&tempore_log_lock);
+  if (dropped > 0) {
+    const long long t = tempore_clock_us();
+    snprintf(line, sizeof line, "[%lld.%03lld ms] Log: %lu lines dropped",
+             t / 1000, t % 1000, static_cast<unsigned long>(dropped));
+    Serial.println(line);
+  }
+}
+
+// Adds line to the log: written at once before tempore_log_begin and after
+// tempore_log_end, and else added to the buffer, and the writer notified. If
+// the buffer is full, the line is dropped, or, if wait, added once a place is
+// free.
+static void tempore_log_line(const char *line, bool wait) {
+  if (tempore_log_direct.load()) {
+    Serial.println(line);
+    return;
+  }
+  const size_t length = strnlen(line, tempore_log_line_size - 1);
+  for (;;) {
+    portENTER_CRITICAL(&tempore_log_lock);
+    const bool added = tempore_log_count < TEMPORE_LOG_LINES;
+    if (added) {
+      char *slot = tempore_log_lines[(tempore_log_first + tempore_log_count) %
+                                     TEMPORE_LOG_LINES];
+      memcpy(slot, line, length);
+      slot[length] = '\0';
+      ++tempore_log_count;
+    } else if (!wait)
+      ++tempore_log_dropped;
+    portEXIT_CRITICAL(&tempore_log_lock);
+    if (added || !wait) break;
+    vTaskDelay(1);
+  }
+  xTaskNotifyGive(tempore_log_writer);
+}
+
+// The task that writes the log, woken by each line added.
+static void tempore_log_write(void *) {
+  for (;;) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    tempore_log_drain();
+  }
+}
+
+void tempore_log_begin(unsigned long baud) {
+  Serial.setTxBufferSize(TEMPORE_SERIAL_TX_BUFFER);
+  Serial.begin(baud);
+  xTaskCreatePinnedToCore(tempore_log_write, "tempore-log", 4096, nullptr,
+                          tskIDLE_PRIORITY + 1, &tempore_log_writer,
+                          tskNO_AFFINITY);
+  tempore_log_direct.store(false);
+}
+
+void tempore_log_end() {
+  tempore_log_direct.store(true);
+  tempore_log_drain();
+}
+
 void tempore_log(const char *format, ...) {
   char message[160];
   va_list arguments;
   va_start(arguments, format);
   vsnprintf(message, sizeof message, format, arguments);
   va_end(arguments);
-  char line[192];
+  char line[tempore_log_line_size];
   const long long t = tempore_clock_us();
   snprintf(line, sizeof line, "[%lld.%03lld ms] %s", t / 1000, t % 1000,
            message);
-  Serial.println(line);
+  tempore_log_line(line, false);
 }
 
 void tempore_stop_task() {
@@ -60,16 +169,18 @@ void tempore_check_halt() {
   if (tempore_halt.load()) tempore_stop_task();
 }
 
-// Logs reason and, unless the tasks are already halted, enters the safe state
-// and then draws the banner of the lines first and second, if first is not
-// nullptr and the board has a screen; halts the tasks.
+// Enters the safe state unless the tasks are already halted, logs reason,
+// and, if it entered the safe state, logs it and draws the banner of the
+// lines first and second, if first is not nullptr and the board has a screen;
+// halts the tasks.
 [[noreturn]] static void tempore_halt_tasks(const char *reason,
                                             const char *first,
                                             const char *second) {
+  const bool halted = tempore_halt.exchange(true);
+  if (!halted) tempore_safe_state();
   tempore_log("%s", reason);
-  if (!tempore_halt.exchange(true)) {
-    tempore_log("Safe state");
-    tempore_safe_state();
+  if (!halted) {
+    tempore_log("Safe state entered");
     if (first != nullptr && tempore_monitor_screen != nullptr) {
       tempore_display_lock();
       tempore_monitor_screen->stop(first, second);
@@ -308,7 +419,7 @@ static void tempore_profile_row(const char *format, ...) {
   va_end(arguments);
   char line[164];
   snprintf(line, sizeof line, "  %s", row);
-  Serial.println(line);
+  tempore_log_line(line, true);
 }
 
 // The least, mean and greatest time of s as text, in columns, or dashes if s

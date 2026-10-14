@@ -109,9 +109,9 @@ static void bala2_watchdog(void *) {
     vTaskDelay(pdMS_TO_TICKS(BALA2_WATCHDOG_CHECK_MS));
     const int64_t silent = tempore_clock_us() - bala2_setpoint_us.load();
     if (bala2_driven.load() && silent > BALA2_WATCHDOG_MS * 1000LL) {
+      bala2_stop();
       tempore_log("BALA2 base: no motor setpoint for %d ms; motors stopped",
                   BALA2_WATCHDOG_MS);
-      bala2_stop();
     }
   }
 }

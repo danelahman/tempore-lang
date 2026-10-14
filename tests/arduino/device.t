@@ -88,7 +88,7 @@ tasks of the manifest, and the stubs of the host simulation.
       nullptr};
   
   void setup() {
-    Serial.begin(115200);
+    tempore_log_begin(115200);
     Wire.begin(21, 22, 400000);
     Wire.setClock(400000);
     xTaskCreatePinnedToCore(tempore_task0, "step", 4096, nullptr, 2, nullptr, 1);
@@ -167,7 +167,7 @@ A board with M5Unified initialises it, and its sources build with the stubs:
   $ emit gray --device toy/gray.device.json toy/toy.tpe > /dev/null
   $ grep -A 5 'void setup' _arduino/projects/gray/src/main.cpp
   void setup() {
-    Serial.begin(115200);
+    tempore_log_begin(115200);
     auto m5_config = M5.config();
     M5.begin(m5_config);
     Wire.begin(21, 22, 400000);
@@ -237,9 +237,9 @@ task at its next release; under warn the violations are logged.
   [0.150 ms] Operation Show took 150 us
   [0.600 ms] Blink 4
   [0.600 ms] Operation Blink took 600 us
-  [0.600 ms] Monitor: operation Blink took 600 us, outside its running-time bounds [200, 500] us
-  [0.600 ms] Safe state
   [0.600 ms] Lights off
+  [0.600 ms] Monitor: operation Blink took 600 us, outside its running-time bounds [200, 500] us
+  [0.600 ms] Safe state entered
   [0.600 ms] Task blinker stopped
   [10.000 ms] Task step stopped
   [60.000 ms] End of the simulation
@@ -313,9 +313,9 @@ operation outside its bounds, which under abort halts the tasks first.
   [0.300 ms] Delay 50000 us
   [12.000 ms] Show 0
   [12.000 ms] Operation Show took 12000 us
-  [12.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
-  [12.000 ms] Safe state
   [12.000 ms] Lights off
+  [12.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
+  [12.000 ms] Safe state entered
   [12.000 ms] Task step stopped
   [40.000 ms] End of the simulation
 

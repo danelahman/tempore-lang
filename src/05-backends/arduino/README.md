@@ -340,6 +340,13 @@ shown:
   warnings and the last of them, drawn every 500 ms by a task of the lowest
   priority.
 
+Under `abort` the safe state is entered before the violation is logged. The
+log is written to the serial port by a task of priority 1 from a buffer of 32
+lines (`TEMPORE_LOG_LINES`), so that a timed call or step does not wait for
+the port, whose transmit buffer is 1024 bytes (`TEMPORE_SERIAL_TX_BUFFER`). A
+line logged while the buffer is full is dropped, and the number of the lines
+dropped is logged.
+
 Watchdogs, cut-offs and the safe state are mechanisms of the C++ packages and
 of the application, outside the typing.
 

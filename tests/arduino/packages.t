@@ -174,7 +174,7 @@ its lines to the log:
   [33.000 ms] Display: 0.571
   [33.000 ms] Operation ShowNumber took 32397 us
   [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
-  [33.000 ms] Safe state
+  [33.000 ms] Safe state entered
   [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [46.728 ms] Display at (28, 84): Stopped by the monitor
   [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
@@ -198,7 +198,7 @@ world:
   [33.000 ms] Display: 2.865
   [33.000 ms] Operation ShowNumber took 32397 us
   [33.000 ms] Monitor: operation ShowNumber took 32397 us, outside its running-time bounds [50, 12500] us
-  [33.000 ms] Safe state
+  [33.000 ms] Safe state entered
   [45.288 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [46.728 ms] Display at (28, 84): Stopped by the monitor
   [48.228 ms] Display at (10, 112): ShowNumber took 32.397 ms
@@ -231,8 +231,8 @@ the safe-state hook of the application:
   [103.293 ms] Display: -34.000
   [103.293 ms] Operation ShowNumber took 1000 us
   [103.293 ms] Delay 300000 us
-  [210.000 ms] BALA2 base: no motor setpoint for 200 ms; motors stopped
   [210.000 ms] I2C 0x3a write 00 00 00 00 00
+  [210.245 ms] BALA2 base: no motor setpoint for 200 ms; motors stopped
   [403.293 ms] I2C 0x3a write 10
   [403.293 ms] I2C 0x3a read ff ff ff 74 00 00 00 47
   [403.761 ms] Operation ReadEncoders took 468 us
@@ -304,9 +304,9 @@ an address without a device is a run-time error, which enters the safe state:
   [2.798 ms] Report 318723704
   [2.798 ms] Operation ReportInt took 0 us
   [2.798 ms] I2C 0x51 write 00: not acknowledged
-  [2.931 ms] Run-time error: I2C: read not acknowledged
-  [2.931 ms] Safe state
   [2.931 ms] Memory check stopped
+  [2.931 ms] Run-time error: I2C: read not acknowledged
+  [2.931 ms] Safe state entered
   [2.931 ms] Task check stopped
   [10.000 ms] End of the simulation
   $ cd _arduino/projects/memory

@@ -126,9 +126,9 @@ and a red banner across the middle of the screen states the violation:
   $ tighten && build && ./simulation 1000000 | grep -v '\] Operation'
   [31.000 ms] Display cleared
   [34.800 ms] Display at (0, 0): Tilt display
-  [34.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
-  [34.800 ms] Safe state
   [34.800 ms] Tilt display stopped
+  [34.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [34.800 ms] Safe state entered
   [47.088 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [48.528 ms] Display at (28, 84): Stopped by the monitor
   [49.968 ms] Display at (28, 112): ShowTextAt took 3.8 ms

@@ -27,6 +27,7 @@ unsigned long micros();
 class HardwareSerial {
  public:
   void begin(unsigned long) {}
+  void setTxBufferSize(size_t) {}
   size_t print(const char *text);
   size_t println(const char *text);
   void flush();

@@ -500,7 +500,7 @@ let main_source input board packages tasks =
         "    nullptr};";
         "";
         "void setup() {";
-        Printf.sprintf "  Serial.begin(%d);" board.serial_baud;
+        Printf.sprintf "  tempore_log_begin(%d);" board.serial_baud;
       ]
     @ (if board.m5unified then
          [ "  auto m5_config = M5.config();"; "  M5.begin(m5_config);" ]

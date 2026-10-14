@@ -29,9 +29,23 @@ void tempore_safe_state();
 // The time since start-up, in microseconds.
 int64_t tempore_clock_us();
 
-// Writes a line to the log, preceded by the time in milliseconds.
+// Writes a line to the log, preceded by the time in milliseconds, the message
+// truncated to 159 characters. From tempore_log_begin on, the line is added to a buffer of
+// TEMPORE_LOG_LINES lines (32 on the device, 4096 on the host) without
+// waiting, and a task of priority 1 writes the buffer to the serial port; a
+// line logged while the buffer is full is dropped, and the number of the
+// lines dropped is logged once the buffer is written.
 void tempore_log(const char *format, ...)
     __attribute__((format(printf, 1, 2)));
+
+// Sets the transmit buffer of the serial port to TEMPORE_SERIAL_TX_BUFFER
+// bytes (default 1024), starts the port at baud and creates the task that
+// writes the log, called by setup() first.
+void tempore_log_begin(unsigned long baud);
+
+// Writes the lines of the buffer, and the later lines at once, called by the
+// host simulation at its end.
+void tempore_log_end();
 
 // The events of the tasks are logged when TEMPORE_TRACE is defined.
 #ifdef TEMPORE_TRACE
@@ -99,9 +113,9 @@ void tempore_check_halt();
 // Stops the calling task.
 [[noreturn]] void tempore_stop_task();
 
-// Logs reason, enters the safe state unless the tasks are already halted, and
-// halts the tasks: the calling task stops at once, the others at their next
-// release, delay or operation call.
+// Enters the safe state unless the tasks are already halted, then logs
+// reason, and halts the tasks: the calling task stops at once, the others at
+// their next release, delay or operation call.
 [[noreturn]] void tempore_abort(const char *reason);
 
 // Checks the running time of a call of the operation against its bounds, if

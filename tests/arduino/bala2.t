@@ -188,8 +188,8 @@ the robot falls:
   [1540.865 ms] Display: Armed
   [2441.865 ms] Display: -0.044
   [3442.865 ms] Display: 0.084
-  [4005.071 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
-  [4005.071 ms] Safe state
+  [4005.316 ms] Monitor: operation Publish took 3000 us, outside its running-time bounds [0, 50] us
+  [4005.316 ms] Safe state entered
   [4017.604 ms] Display fill at (0, 72), 320 by 96: 0xc00000
   [4019.044 ms] Display at (28, 84): Stopped by the monitor
   [4020.384 ms] Display at (58, 112): Publish took 3 ms

@@ -69,10 +69,18 @@
 
     Under the policy [Abort], a running time outside the bounds of its
     operation, a step of a periodic task that takes its period or longer, and a
-    run-time error log their cause, call the safe-state hook once and halt the
-    tasks; under [Warn] the first two are logged and the tasks go on, and under
-    [Off] they are not checked. A run-time error halts the tasks under every
-    policy.
+    run-time error call the safe-state hook once, then log their cause, and halt
+    the tasks; under [Warn] the first two are logged and the tasks go on, and
+    under [Off] they are not checked. A run-time error halts the tasks under
+    every policy.
+
+    {2 Log}
+
+    [setup()] starts the serial port by [tempore_log_begin]. The lines of the
+    log are added to a buffer without waiting, and a task of priority 1 writes
+    them to the serial port, so that a timed call or step does not wait for the
+    port; a line logged while the buffer is full is dropped, and the number of
+    the lines dropped is logged.
 
     {2 Profile}
 
