@@ -97,106 +97,112 @@ module Make (C : Constraint.S) = struct
   let both f envs =
     { reported = f envs.reported; unsimplified = f envs.unsimplified }
 
+  (* A declaration extends both environments by [extend]; a rejected one
+     stops the program. *)
+  let declaration verdict envs extend =
+    match attempt (fun () -> Ok (both extend envs)) with
+    | Ok envs -> (envs, verdict Accepted, Continue)
+    | Error e -> (envs, verdict (Rejected e), Stop)
+
+  (* A default implementation [abs] of [op], recorded with the operations it
+     may perform once accepted. *)
+  let default verdict envs (cmd : command) op abs =
+    let loc = cmd.at and env = envs.reported in
+    let performed =
+      DefaultGraph.abstraction ~global:(Gen.global_performs env) abs
+    in
+    match
+      attempt (fun () ->
+          solved cmd env (Gen.generate_default env ~loc op abs)
+          |> terminating (fun () ->
+              Termination.check_abstraction abs;
+              DefaultGraph.check_default
+                ~default:(Gen.find_operation_default env)
+                ~loc op performed;
+              Exhaustiveness.check_abstraction
+                ~constructors:(Gen.datatype_constructors env)
+                abs;
+              check_duration ~loc env op abs))
+    with
+    | Ok _ ->
+        let default =
+          {
+            DefaultGraph.performs = DefaultGraph.operations performed;
+            default_at = loc;
+          }
+        in
+        ( both (fun env -> Gen.add_operation_default env op default) envs,
+          verdict Accepted,
+          Continue )
+    | Error e -> (envs, verdict (Rejected e), Continue)
+
+  (* A top-level definition [let x = e], of its generalised scheme in the
+     reported environment and of its unsimplified one in the other; a rejected
+     one is assumed of the scheme [∀α. α]. *)
+  let top_let verdict envs (cmd : command) x e =
+    let loc = cmd.at and env = envs.reported in
+    let performs =
+      DefaultGraph.operations
+        (DefaultGraph.expression ~global:(Gen.global_performs env) e)
+    in
+    let add reported unsimplified =
+      {
+        reported =
+          Gen.add_global envs.reported x ~defined_at:(Some loc) ~performs
+            reported;
+        unsimplified =
+          Gen.add_global envs.unsimplified x ~defined_at:(Some loc) ~performs
+            unsimplified;
+      }
+    in
+    match
+      attempt (fun () ->
+          let ty, constr = Gen.generate_top_let env ~loc x e in
+          Result.map
+            (fun solution ->
+              (S.generalise ty solution, S.unsimplified ty solution))
+            (solved cmd env constr
+            |> terminating (fun () ->
+                Termination.check_expression e;
+                Exhaustiveness.check_expression
+                  ~constructors:(Gen.datatype_constructors env)
+                  e)))
+    with
+    | Ok (scheme, unsimplified) ->
+        (add scheme unsimplified, verdict (Defined (x, scheme)), Continue)
+    | Error e ->
+        let scheme = assumed () in
+        (add scheme scheme, verdict (Rejected e), Continue)
+
+  (* A run [run c]. *)
+  let run verdict envs (cmd : command) c =
+    let loc = cmd.at and env = envs.reported in
+    match
+      attempt (fun () ->
+          let _, constr = Gen.generate_run env ~loc c in
+          solved cmd env constr
+          |> terminating (fun () ->
+              Termination.check_computation c;
+              Exhaustiveness.check_computation
+                ~constructors:(Gen.datatype_constructors env)
+                c))
+    with
+    | Ok _ -> (envs, verdict Accepted, Continue)
+    | Error e -> (envs, verdict (Rejected e), Continue)
+
   let execute_both envs (cmd : command) =
     let loc = cmd.at in
     let verdict outcome = { at = loc; outcome } in
-    let env = envs.reported in
     match cmd.it with
-    | Ast.TyDef (eternality, defs) -> (
-        match
-          attempt (fun () ->
-              Ok
-                (both
-                   (fun env ->
-                     Gen.add_type_definitions ~loc env (eternality, defs))
-                   envs))
-        with
-        | Ok envs -> (envs, verdict Accepted, Continue)
-        | Error e -> (envs, verdict (Rejected e), Stop))
-    | Ast.OpSig signature -> (
-        match
-          attempt (fun () ->
-              Ok
-                (both
-                   (fun env -> Gen.add_operation_signature ~loc env signature)
-                   envs))
-        with
-        | Ok envs -> (envs, verdict Accepted, Continue)
-        | Error e -> (envs, verdict (Rejected e), Stop))
-    | Ast.OpDefault (op, abs) -> (
-        let performed =
-          DefaultGraph.abstraction ~global:(Gen.global_performs env) abs
-        in
-        match
-          attempt (fun () ->
-              solved cmd env (Gen.generate_default env ~loc op abs)
-              |> terminating (fun () ->
-                  Termination.check_abstraction abs;
-                  DefaultGraph.check_default
-                    ~default:(Gen.find_operation_default env)
-                    ~loc op performed;
-                  Exhaustiveness.check_abstraction
-                    ~constructors:(Gen.datatype_constructors env)
-                    abs;
-                  check_duration ~loc env op abs))
-        with
-        | Ok _ ->
-            let default =
-              {
-                DefaultGraph.performs = DefaultGraph.operations performed;
-                default_at = loc;
-              }
-            in
-            ( both (fun env -> Gen.add_operation_default env op default) envs,
-              verdict Accepted,
-              Continue )
-        | Error e -> (envs, verdict (Rejected e), Continue))
-    | Ast.TopLet (x, e) -> (
-        let performs =
-          DefaultGraph.operations
-            (DefaultGraph.expression ~global:(Gen.global_performs env) e)
-        in
-        let add reported unsimplified =
-          {
-            reported =
-              Gen.add_global envs.reported x ~defined_at:(Some loc) ~performs
-                reported;
-            unsimplified =
-              Gen.add_global envs.unsimplified x ~defined_at:(Some loc)
-                ~performs unsimplified;
-          }
-        in
-        match
-          attempt (fun () ->
-              let ty, constr = Gen.generate_top_let env ~loc x e in
-              Result.map
-                (fun solution ->
-                  (S.generalise ty solution, S.unsimplified ty solution))
-                (solved cmd env constr
-                |> terminating (fun () ->
-                    Termination.check_expression e;
-                    Exhaustiveness.check_expression
-                      ~constructors:(Gen.datatype_constructors env)
-                      e)))
-        with
-        | Ok (scheme, unsimplified) ->
-            (add scheme unsimplified, verdict (Defined (x, scheme)), Continue)
-        | Error e ->
-            let scheme = assumed () in
-            (add scheme scheme, verdict (Rejected e), Continue))
-    | Ast.TopDo c -> (
-        match
-          attempt (fun () ->
-              let _, constr = Gen.generate_run env ~loc c in
-              solved cmd env constr
-              |> terminating (fun () ->
-                  Termination.check_computation c;
-                  Exhaustiveness.check_computation
-                    ~constructors:(Gen.datatype_constructors env)
-                    c))
-        with
-        | Ok _ -> (envs, verdict Accepted, Continue)
-        | Error e -> (envs, verdict (Rejected e), Continue))
+    | Ast.TyDef (eternality, defs) ->
+        declaration verdict envs (fun env ->
+            Gen.add_type_definitions ~loc env (eternality, defs))
+    | Ast.OpSig signature ->
+        declaration verdict envs (fun env ->
+            Gen.add_operation_signature ~loc env signature)
+    | Ast.OpDefault (op, abs) -> default verdict envs cmd op abs
+    | Ast.TopLet (x, e) -> top_let verdict envs cmd x e
+    | Ast.TopDo c -> run verdict envs cmd c
 
   let execute env cmd =
     let envs, verdict, next =
