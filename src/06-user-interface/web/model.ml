@@ -45,7 +45,7 @@ type flash =
   | Message of int
   | Declaration of string * int * int
   | Line of int * int
-  | Copied_line of int * int
+  | Copied_line of int
 
 type notice =
   | Ignored of WebLink.parameter list
@@ -1471,11 +1471,7 @@ let respond model msg =
         [ Scroll_to_heading heading ] )
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
   | CopyLineLink line when line_links model ->
-      let model, effects =
-        match WebLink.line_bytes model.edit_model.unparsed_code line with
-        | Some (start, stop) -> flash (Copied_line (start, stop)) model
-        | None -> (model, [])
-      in
+      let model, effects = flash (Copied_line line) model in
       (model, Copy_link (link ~line model.edit_model) :: effects)
   | Copied (url, copied) ->
       notify model (if copied then Link_copied else Copy_failed url)
