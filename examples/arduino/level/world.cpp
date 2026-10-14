@@ -2,8 +2,8 @@
 // tilts it by 1.1 degrees about its x axis and by -0.7 degrees about its y axis,
 // moved from 3 to 4.5 s onto a surface 3.1 degrees steeper and shaken, at a
 // load of 1.3 g, from 7.25 to 7.45 s, and taps of 300 ms on the screen: on
-// the button "Set reference" at 1 s, 6 s and 8 s, and on the button
-// "Reconfigure sensor" at 5 s.
+// the button "Set reference" at 1 s, 6 s and 8 s, and on the sensor button
+// at 5 s.
 
 #include <Arduino.h>
 

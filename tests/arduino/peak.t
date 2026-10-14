@@ -60,7 +60,7 @@ task against its period by the monitor only; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json $app/peak.tpe | grep -c Wrote
-  28
+  30
   $ grep -c 'tempore_operation_monitor .*, nullptr);' _arduino/projects/peak/src/tempore_operations.cpp
   9
   $ grep 'The periodic task\|tempore_monitor_period' _arduino/projects/peak/src/main.cpp
@@ -72,7 +72,9 @@ exceptions and run-time type information:
 
 Three seconds of simulated time: the recorder writes the flash once, when
 the tilt first exceeds the record, and shows the record every second,
-between the name of the example and the footer:
+between the name of the example and the footer, and the battery indicator of
+the scaffold, drawn again in the top right corner once the screen has been
+drawn over it:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep '\] \(Display\|Flash\)\|simulation'
   [31.000 ms] Display cleared
@@ -80,17 +82,20 @@ between the name of the example and the footer:
   [35.920 ms] Display: Peak tilt
   [36.920 ms] Display: 0.000
   [39.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [40.938 ms] Display at (254, 0): Battery 87%
   [1040.000 ms] Flash: record 5.639 degrees
   [1071.000 ms] Display cleared
   [1074.920 ms] Display at (0, 0): Peak tilt recorder
   [1075.920 ms] Display: Peak tilt
   [1076.920 ms] Display: 5.639
   [1079.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [1080.938 ms] Display at (254, 0): Battery 87%
   [2111.000 ms] Display cleared
   [2114.920 ms] Display at (0, 0): Peak tilt recorder
   [2115.920 ms] Display: Peak tilt
   [2116.920 ms] Display: 5.639
   [2119.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [2120.938 ms] Display at (254, 0): Battery 87%
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep -c 'Release step'
   150

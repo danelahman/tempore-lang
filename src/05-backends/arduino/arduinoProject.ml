@@ -411,6 +411,7 @@ let has_screen (board : Board.t) =
   board.m5unified && List.mem "display" board.capabilities
 
 let m5_directory = "m5/"
+let battery_directory = "battery/"
 let task_monitor i = Printf.sprintf "tempore_task%d_monitor" i
 let task_name i = Printf.sprintf "tempore_task%d" i
 let check_halt = Cpp.statement (Cpp.call "tempore_check_halt" [])
@@ -500,8 +501,8 @@ let task_function i { task; step; initial } =
 
 (* The body of [setup()]: the log, the board, its I2C buses and its own
    initialisation, the initialisation functions [inits] of the packages, the
-   display of the monitor, the tasks and the profile. *)
-let setup_body (board : Board.t) inits tasks =
+   display of the monitor, the battery indicator, the tasks and the profile. *)
+let setup_body (board : Board.t) (device : Device.t) inits tasks =
   let m5unified =
     if board.m5unified then
       [
@@ -548,6 +549,9 @@ let setup_body (board : Board.t) inits tasks =
            (Cpp.call "tempore_monitor_display_begin"
               [ "&tempore_m5_monitor_display" ]);
        ]
+     else [])
+  @ (if device.battery then
+       [ Cpp.statement (Cpp.call "tempore_battery_begin" []) ]
      else [])
   @ List.mapi create tasks
   @ [ Cpp.statement (Cpp.call "tempore_profile_begin" []) ]
@@ -632,7 +636,8 @@ let main_source input (board : Board.t) packages tasks =
                  tasks))
     @ [
         Cpp.blank;
-        Cpp.definition "void" "setup" [] (setup_body board inits tasks);
+        Cpp.definition "void" "setup" []
+          (setup_body board input.device inits tasks);
         Cpp.blank;
         Cpp.Line "void loop() { vTaskDelete(nullptr); }";
       ])
@@ -678,6 +683,20 @@ let packages_of (board : Board.t) (device : Device.t) =
     package :: packages
   in
   List.rev (List.fold_left add [] device.packages)
+
+(* Checks that [board] has the capabilities of the battery indicator, if the
+   manifest requests it. *)
+let check_battery (board : Board.t) (device : Device.t) =
+  if device.battery then
+    List.iter
+      (fun capability ->
+        if not (List.mem capability board.capabilities) then
+          Error.compilation ~loc:device.battery_at
+            "The member `battery` of the manifest requires the capability \
+             `%s`, which the board `%s` lacks; its capabilities are: %s"
+            capability board.name
+            (Diagnostic.code_list board.capabilities))
+      [ "m5unified"; "display"; "battery" ]
 
 let check_cores (board : Board.t) (device : Device.t) =
   List.iter
@@ -799,20 +818,28 @@ let platformio_ini input (board : Board.t) =
   in
   Board.platformio_ini { board with build_flags = board.build_flags @ flags }
 
-(* The files of the scaffold for [board], each with its path in the project:
-   its sources in src/, then the files of the host simulation in host/. *)
-let scaffold_files board =
+(* The files of the scaffold for [board] and [device], each with its path in
+   the project: its sources in src/, those of m5/ on a board with a screen and
+   those of battery/ under the member [battery] of the manifest, then the
+   files of the host simulation in host/. *)
+let scaffold_files board (device : Device.t) =
   let host, sources =
     List.partition
       (fun (path, _) -> String.starts_with ~prefix:host_directory path)
       Arduino_scaffold.files
   in
+  let included path =
+    if String.starts_with ~prefix:m5_directory path then Some (has_screen board)
+    else if String.starts_with ~prefix:battery_directory path then
+      Some device.battery
+    else None
+  in
   List.filter_map
     (fun (path, text) ->
-      if String.starts_with ~prefix:m5_directory path then
-        if has_screen board then Some ("src/" ^ Filename.basename path, text)
-        else None
-      else Some ("src/" ^ path, text))
+      match included path with
+      | Some true -> Some ("src/" ^ Filename.basename path, text)
+      | Some false -> None
+      | None -> Some ("src/" ^ path, text))
     sources
   @ host
 
@@ -820,6 +847,7 @@ let files input (program : F.program) =
   let board = board_of input.device in
   let packages = packages_of board input.device in
   check_cores board input.device;
+  check_battery board input.device;
   let compiled = ArduinoEmit.compile ~source:input.source program in
   let tasks =
     List.map (task_code input program compiled.entries) input.device.tasks
@@ -838,7 +866,7 @@ let files input (program : F.program) =
       ("src/tempore_bindings.h", bindings_header input packages compiled);
       ("src/tempore_operations.cpp", operations_source input compiled);
     ]
-  @ scaffold_files board
+  @ scaffold_files board input.device
   @ List.concat_map
       (fun (p : Package.t) -> src p.sources @ host p.host_models)
       packages

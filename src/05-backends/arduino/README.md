@@ -18,8 +18,9 @@ manifest, peripheral packages, and the program with its binding file.
 A profile [`boards/NAME.json`](boards/) gives the PlatformIO platform, board,
 libraries and build flags, the number of cores, the I2C buses, the baud rate
 of the serial port and the capabilities of a board (`imu`, `display`,
-`touch`, `speaker`, ...). The profiles are `m5stack-gray`, `m5stack-fire`,
-`m5stack-core2`, `m5stack-cores3`, `esp32-devkit` and `esp32s3-devkit`.
+`touch`, `speaker`, `battery`, ...). The profiles are `m5stack-gray`,
+`m5stack-fire`, `m5stack-core2`, `m5stack-cores3`, `esp32-devkit` and
+`esp32s3-devkit`.
 
 The I2C buses of a profile are started after M5Unified and then set to their
 frequency, since M5Unified may already have started a bus that shares their
@@ -56,6 +57,14 @@ after an overrun, a period after the end of the late step; a free task calls its
 type `unit -> unit`, once, or, with `repeat`, each time it returns, after a
 wait of one tick, so that the idle task of its core runs also when the
 function waits only actively, as for a delay below a millisecond.
+
+With `"battery": true`, on a board with the capabilities `display` and
+`battery` (the M5Stack cores), the scaffold draws the charge of the battery,
+`Battery 87%`, followed by `+` while it charges, in grey in the top right
+corner of the screen, outside the program. A task of priority 1 reads the
+gauge every 5 seconds under the I2C lock, and redraws the text when it
+changes or when a drawing of `m5-display` covers the corner. The examples on
+the CoreS3 enable it.
 
 ## Peripheral packages
 
@@ -643,8 +652,8 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   record is used only while no write of the flash has followed it.
 - [`level`](../../../examples/arduino/level/level.tpe): a digital level,
   under the regular expressions of timed operations: a bubble vial, the pitch
-  and the roll less the offsets of a reference, and the buttons "Set
-  reference" and "Reconfigure sensor".
+  and the roll less the offsets of a reference, the button "Set reference"
+  and the sensor button, labelled with the current and the next rate.
   - A reference is taken after the unit is held still for a second and
     installed only after a check at rest.
   - The reconfiguration of the unit invalidates it.
@@ -672,9 +681,9 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
 The reference becomes invalid, and must be set again,
 
 - when it is rejected;
-- when "Reconfigure sensor" reconfigures the unit, which switches the output
-  data rate of its accelerometer between 100 and 400 Hz, shown at the top
-  right;
+- when the sensor button reconfigures the unit, which switches the output
+  data rate of its accelerometer between 100 and 400 Hz, the current and the
+  next rate shown on the button (`Sensor 100->400Hz`);
 - when it expires 30 seconds after it was set, its time left shown
   meanwhile.
 

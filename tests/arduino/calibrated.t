@@ -86,7 +86,7 @@ handler, a function of the bias, in place of the operation, and the case
 calls the monitored operation:
 
   $ tempore --emit-arduino calibrated --device $app/calibrated.device.json $app/calibrated.tpe | grep -c Wrote
-  29
+  31
   $ cd _arduino/projects/calibrated
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ sed -n '/^static .* calibrated_ReadImu.*{/,/^}/p' src/tempore_program.cpp

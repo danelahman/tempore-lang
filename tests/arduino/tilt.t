@@ -73,7 +73,7 @@ The project, for the board m5stack-cores3; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino tilt --device $app/tilt.device.json $app/tilt.tpe | grep -c Wrote
-  28
+  30
   $ grep -A3 '^\[env' _arduino/projects/tilt/platformio.ini
   [env:m5stack-cores3]
   platform = espressif32@7.1.3
@@ -87,7 +87,8 @@ One second of simulated time: the step every 20 ms and the display every
 289.56 ms (the clearing 31 ms, two lines of 1 ms each, the name of the
 example, 3.8 ms, and the footer, 2.76 ms, with the filling of their bands,
 and the wait of 250 ms), which shows the tilt of the world filtered from the
-readings:
+readings, and the battery indicator of the scaffold, drawn again in the top
+right corner once the display has drawn over it:
 
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep '\] Display\|simulation'
   [31.000 ms] Display cleared
@@ -95,21 +96,25 @@ readings:
   [35.800 ms] Display: Tilt (degrees)
   [36.800 ms] Display: 5.706
   [39.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [40.818 ms] Display at (254, 0): Battery 87%
   [321.000 ms] Display cleared
   [324.800 ms] Display at (0, 0): Tilt display
   [325.800 ms] Display: Tilt (degrees)
   [326.800 ms] Display: 2.997
   [329.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [330.818 ms] Display at (254, 0): Battery 87%
   [611.000 ms] Display cleared
   [614.800 ms] Display at (0, 0): Tilt display
   [615.800 ms] Display: Tilt (degrees)
   [616.800 ms] Display: -1.797
   [619.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [620.818 ms] Display at (254, 0): Battery 87%
   [901.000 ms] Display cleared
   [904.800 ms] Display at (0, 0): Tilt display
   [905.800 ms] Display: Tilt (degrees)
   [906.800 ms] Display: -5.394
   [909.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [910.818 ms] Display at (254, 0): Battery 87%
   [1000.000 ms] End of the simulation
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep -c 'Release step'
   50

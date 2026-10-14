@@ -218,7 +218,10 @@ BaseType_t xTaskNotifyGive(TaskHandle_t handle) {
   return pdPASS;
 }
 
-uint32_t ulTaskNotifyTake(BaseType_t clear, TickType_t) {
+uint32_t ulTaskNotifyTake(BaseType_t clear, TickType_t ticks) {
+  const int64_t limit = ticks == portMAX_DELAY
+                            ? INT64_MAX
+                            : (now / 1000 + static_cast<int64_t>(ticks)) * 1000;
   for (;;) {
     {
       std::lock_guard<std::mutex> lock(mutex);
@@ -227,9 +230,13 @@ uint32_t ulTaskNotifyTake(BaseType_t clear, TickType_t) {
         self->notification = clear ? 0 : value - 1;
         return value;
       }
+      if (now >= limit) {
+        self->notifiable = false;
+        return 0;
+      }
       self->notifiable = true;
     }
-    block(INT64_MAX, false);
+    block(limit, false);
   }
 }
 

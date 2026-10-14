@@ -7,6 +7,7 @@
 #define TEMPORE_SCAFFOLD_H
 
 #include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <stdint.h>
 
 #include "tempore_arduino.h"
@@ -209,6 +210,21 @@ struct tempore_monitor_display {
 // TEMPORE_MONITOR_DISPLAY_INTERVAL_MS milliseconds (default 500), the monitors
 // only recording them.
 void tempore_monitor_display_begin(const tempore_monitor_display *display);
+
+// The overlay of the display: a rectangle that a task of the scaffold draws
+// over the drawings of the application. tempore_display_overlay_begin, called
+// before the tasks of the manifest are created, sets the rectangle from
+// (x, y), w by h pixels, and the task to notify; tempore_display_drawn, called
+// by the bindings with the lock of the display held, notifies that task if
+// the rectangle from (x, y), w by h pixels, intersects the overlay.
+void tempore_display_overlay_begin(int32_t x, int32_t y, int32_t w, int32_t h,
+                                   TaskHandle_t task);
+void tempore_display_drawn(int32_t x, int32_t y, int32_t w, int32_t h);
+
+// Creates the task of the battery indicator and sets the overlay of the
+// display to its corner, called by setup() under the member battery of the
+// manifest before the tasks are created, defined by tempore_battery.cpp.
+void tempore_battery_begin();
 
 // Declares the nominal duration of the action of a binding function. Under
 // host simulation the simulated clock advances by it; on the device nothing

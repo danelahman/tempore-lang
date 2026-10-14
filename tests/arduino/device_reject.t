@@ -23,7 +23,7 @@ An unknown member, a member of the wrong kind, a missing member and no task:
   File "m.json", line 1, characters 27-33:
   1 | { "board": "esp32-devkit", "task": [] }
                                  ^^^^^^
-  Compilation error: Unknown member `task` of the manifest; accepted: `board`, `time_unit`, `tasks`, `packages`, `bindings`, `safe_state`, `host_models`
+  Compilation error: Unknown member `task` of the manifest; accepted: `board`, `time_unit`, `tasks`, `packages`, `bindings`, `safe_state`, `host_models`, `battery`
   exit 1
   $ printf '{ "board": 32, "tasks": [ { "function": "blinker", "kind": "free" } ] }\n' > m.json
   $ reject m.json
@@ -47,7 +47,8 @@ An unknown member, a member of the wrong kind, a missing member and no task:
   Compilation error: The manifest declares no task
   exit 1
 
-An unknown board, package and time unit:
+An unknown board, a package and the battery indicator on a board without
+their capabilities, and an unknown time unit:
 
   $ sed 's/esp32-devkit/esp8266/; s/toy_bindings/toy\/toy_bindings/' toy/toy.device.json > m.json
   $ reject m.json
@@ -62,6 +63,13 @@ An unknown board, package and time unit:
   3 |   "time_unit": "ms", "packages": ["m5-imu"],
                                         ^^^^^^^^
   Compilation error: The package `m5-imu` requires the capability `m5unified`, which the board `esp32-devkit` lacks; its capabilities are: `i2c`
+  exit 1
+  $ sed 's/"time_unit": "ms",/"time_unit": "ms", "battery": true,/' toy/toy.device.json | sed 's/toy_bindings/toy\/toy_bindings/' > m.json
+  $ reject m.json
+  File "m.json", line 3, characters 32-36:
+  3 |   "time_unit": "ms", "battery": true,
+                                      ^^^^
+  Compilation error: The member `battery` of the manifest requires the capability `m5unified`, which the board `esp32-devkit` lacks; its capabilities are: `i2c`
   exit 1
   $ sed 's/"time_unit": "ms"/"time_unit": "min"/' toy/toy.device.json > m.json
   $ reject m.json

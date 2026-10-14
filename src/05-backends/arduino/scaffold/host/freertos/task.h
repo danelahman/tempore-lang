@@ -31,8 +31,9 @@ void vTaskDelete(TaskHandle_t task);
 BaseType_t xTaskNotifyGive(TaskHandle_t task);
 
 // Blocks the calling task until its notification value is positive, and
-// returns it, setting it to 0 if clear and else decrementing it; the time
-// limit is ignored.
+// returns it, setting it to 0 if clear and else decrementing it, or until the
+// ticks-th tick from now, and returns 0; portMAX_DELAY waits without a
+// limit.
 uint32_t ulTaskNotifyTake(BaseType_t clear, TickType_t ticks);
 
 // The name of the calling task for nullptr.

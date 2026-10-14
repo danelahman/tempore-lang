@@ -18,6 +18,8 @@
       ["display"]: the display of the events of the monitors on the screen, the
       banner of a violation under the policy [abort] and the line of the
       warnings under [warn];
+    - [src/tempore_battery.cpp], under the member ["battery"] of the manifest:
+      the battery indicator (see below);
     - [src/tempore_bindings.h]: for each operation [Op] the program performs,
       the macro [TEMPORE_PERFORMS_Op], the types [tempore_argument_Op] and
       [tempore_result_Op] of its argument and result, and the declaration of its
@@ -34,18 +36,19 @@
       application, the array [tempore_task_monitors] of the monitors of the
       periodic tasks, [setup()], which initialises the board, calls the
       initialisation functions of the packages, starts the display of the events
-      of the monitors on a board with a screen, creates a FreeRTOS task for each
-      task of the manifest and starts the profile, and [loop()], which deletes
-      its own task;
+      of the monitors on a board with a screen and the battery indicator, if
+      any, creates a FreeRTOS task for each task of the manifest and starts the
+      profile, and [loop()], which deletes its own task;
     - the sources of the packages ({!ArduinoPackage}) and the binding file of
       the manifest, in [src/];
     - [host/]: the stubs of Arduino, FreeRTOS, the timer of the ESP32, [Wire]
-      and M5Unified, the model of the display of M5Unified
-      ([tempore_m5_display.cpp]), the I2C buses with their device models
-      ([tempore_i2c_model.h]), the world of the simulation ([tempore_world.h]),
-      the discrete-event simulator [tempore_simulator.cpp], and the host models
-      of the packages and of the manifest, with which the sources of [src/]
-      build and run on the host ({!host_build_command}).
+      and M5Unified, the models of the display and of the power management of
+      M5Unified ([tempore_m5_display.cpp], [tempore_m5_power.cpp]), the I2C
+      buses with their device models ([tempore_i2c_model.h]), the world of the
+      simulation ([tempore_world.h]), the discrete-event simulator
+      [tempore_simulator.cpp], and the host models of the packages and of the
+      manifest, with which the sources of [src/] build and run on the host
+      ({!host_build_command}).
 
     {2 Tasks}
 
@@ -86,6 +89,20 @@
     them to the serial port, so that a timed call or step does not wait for the
     port; a line logged while the buffer is full is dropped, and the number of
     the lines dropped is logged.
+
+    {2 Battery indicator}
+
+    Under the member ["battery"] of the manifest, a task of the idle priority,
+    below every task of the application, reads the charge of the battery by
+    [M5.Power.getBatteryLevel] and [M5.Power.isCharging], each under the lock of
+    the I2C buses, at start-up and every [TEMPORE_BATTERY_INTERVAL_MS]
+    milliseconds (default 5000), and draws it as [Battery 87%], followed by [+]
+    while the battery charges, in grey on black in text of size 1, right-aligned
+    in the top right corner of the screen, a rectangle 78 pixels wide and 8
+    high, under the lock of the display. It draws the text when it changes and
+    when a drawing of the package m5-display intersects the rectangle, which
+    notifies the task; it draws nothing while the gauge reports no battery, and
+    stops once the tasks are halted.
 
     {2 Profile}
 
@@ -139,11 +156,12 @@ val files : input -> ArduinoFragment.program -> (string * string) list
     @raise Utils.Error.Error
       at the place of the manifest that does not fit the program: an unknown
       board, package or function, a package listed twice or requiring a
-      capability the board lacks, a core beyond those of the board, a task
-      function of the wrong type, the function of a repeated free task whose
-      effect does not bound its durations below by a positive time, the function
-      of a periodic task whose effect has a variable or does not bound its
-      durations below the period (the upper end of
+      capability the board lacks, a core beyond those of the board, the member
+      ["battery"] on a board without M5Unified or the capabilities ["display"]
+      and ["battery"], a task function of the wrong type, the function of a
+      repeated free task whose effect does not bound its durations below by a
+      positive time, the function of a periodic task whose effect has a variable
+      or does not bound its durations below the period (the upper end of
       {!Grades.Grade.S.duration_bounds} of the effect is below the period, or
       equal to it and open, so that the effect is below the durations from 0 to
       [P], [P] excluded), a periodic task with a state other than [unit] and no

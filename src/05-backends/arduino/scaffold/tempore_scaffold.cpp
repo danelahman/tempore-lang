@@ -37,6 +37,27 @@ void tempore_display_unlock() { xSemaphoreGive(tempore_display_mutex); }
 // The display of the events of the monitor, if any.
 static const tempore_monitor_display *tempore_monitor_screen = nullptr;
 
+// The overlay of the display: its rectangle and the task to notify, if any.
+static int32_t tempore_overlay_x = 0, tempore_overlay_y = 0;
+static int32_t tempore_overlay_w = 0, tempore_overlay_h = 0;
+static TaskHandle_t tempore_overlay_task = nullptr;
+
+void tempore_display_overlay_begin(int32_t x, int32_t y, int32_t w, int32_t h,
+                                   TaskHandle_t task) {
+  tempore_overlay_x = x;
+  tempore_overlay_y = y;
+  tempore_overlay_w = w;
+  tempore_overlay_h = h;
+  tempore_overlay_task = task;
+}
+
+void tempore_display_drawn(int32_t x, int32_t y, int32_t w, int32_t h) {
+  if (tempore_overlay_task != nullptr &&
+      x < tempore_overlay_x + tempore_overlay_w && tempore_overlay_x < x + w &&
+      y < tempore_overlay_y + tempore_overlay_h && tempore_overlay_y < y + h)
+    xTaskNotifyGive(tempore_overlay_task);
+}
+
 int64_t tempore_clock_us() { return esp_timer_get_time(); }
 
 #ifndef TEMPORE_LOG_LINES

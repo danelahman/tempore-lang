@@ -33,6 +33,8 @@ type t = {
   bindings : name option;
   safe_state : name option;
   host_models : name list;
+  battery : bool;
+  battery_at : Location.t;
 }
 
 let located decode ~what (v : Json.t) =
@@ -185,6 +187,7 @@ let parse ~filename text =
           "bindings";
           "safe_state";
           "host_models";
+          "battery";
         ]
       v
   in
@@ -216,4 +219,6 @@ let parse ~filename text =
     host_models =
       Option.value ~default:[]
         (Json.optional f "host_models" (Json.list (located Json.string)));
+    battery = Option.value ~default:false (Json.optional f "battery" Json.bool);
+    battery_at = Json.location f "battery";
   }

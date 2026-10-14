@@ -2,7 +2,9 @@
 // M5Stack core, through M5Unified, written below one another in text of size
 // 2, or at a position in a given size over a band of the display filled with
 // the background; buttons, bars and a bubble level. Each binding holds the lock
-// of the display while it draws.
+// of the display while it draws, and reports the rectangle it draws over to
+// the overlay of the scaffold (tempore_display_drawn); a line of text is taken
+// to cover the display from its top to the bottom, since it may wrap.
 
 #include <M5Unified.h>
 #include <math.h>
@@ -27,6 +29,14 @@ enum : uint32_t {
   m5_display_grey = 0x808080
 };
 
+#if defined(TEMPORE_PERFORMS_ShowText) || defined(TEMPORE_PERFORMS_ShowNumber)
+// Reports the line about to be written at the cursor.
+static inline void m5_display_line_drawn() {
+  const int32_t top = M5.Display.getCursorY();
+  tempore_display_drawn(0, top, M5.Display.width(), M5.Display.height() - top);
+}
+#endif
+
 #if defined(TEMPORE_PERFORMS_ShowTextAt) ||   \
     defined(TEMPORE_PERFORMS_ShowNumberAt) || \
     defined(TEMPORE_PERFORMS_ShowTimeAt) ||   \
@@ -39,6 +49,7 @@ static inline void m5_display_at(uint32_t x, uint32_t y, uint32_t size,
                                  const char *text) {
   const int32_t s = size < 1 ? 1 : size > 4 ? 4 : static_cast<int32_t>(size);
   const int32_t left = static_cast<int32_t>(x), top = static_cast<int32_t>(y);
+  tempore_display_drawn(left, top, M5.Display.width() - left, 10 * s);
   M5.Display.fillRect(left, top, M5.Display.width() - left, 10 * s, background);
   M5.Display.setTextColor(foreground, background);
   M5.Display.setTextSize(s);
@@ -53,6 +64,7 @@ static inline void m5_display_at(uint32_t x, uint32_t y, uint32_t size,
 #ifdef TEMPORE_PERFORMS_ShowText
 tempore_result_ShowText binding_ShowText(tempore_argument_ShowText text) {
   const tempore_display_guard guard;
+  m5_display_line_drawn();
   M5.Display.println(text);
   return {};
 }
@@ -63,6 +75,7 @@ tempore_result_ShowNumber binding_ShowNumber(tempore_argument_ShowNumber x) {
   const tempore_display_guard guard;
   char line[24];
   snprintf(line, sizeof line, "%.3f", static_cast<double>(x));
+  m5_display_line_drawn();
   M5.Display.println(line);
   return {};
 }
@@ -71,6 +84,7 @@ tempore_result_ShowNumber binding_ShowNumber(tempore_argument_ShowNumber x) {
 #ifdef TEMPORE_PERFORMS_ClearDisplay
 tempore_result_ClearDisplay binding_ClearDisplay(tempore_argument_ClearDisplay) {
   const tempore_display_guard guard;
+  tempore_display_drawn(0, 0, M5.Display.width(), M5.Display.height());
   M5.Display.clear();
   M5.Display.setCursor(0, 0);
   return {};
@@ -125,6 +139,7 @@ tempore_result_DrawButton binding_DrawButton(tempore_argument_DrawButton a) {
   const tempore_display_guard guard;
   const int32_t x = static_cast<int32_t>(a.c0), y = static_cast<int32_t>(a.c1);
   const int32_t w = static_cast<int32_t>(a.c2), h = static_cast<int32_t>(a.c3);
+  tempore_display_drawn(x, y, w, h);
   M5.Display.fillRoundRect(x, y, w, h, m5_display_corner, m5_display_dark_grey);
   M5.Display.drawRoundRect(x, y, w, h, m5_display_corner, m5_display_white);
   static const float sizes[] = {2.0f, 1.5f, 1.0f};
@@ -149,6 +164,7 @@ tempore_result_DrawBar binding_DrawBar(tempore_argument_DrawBar a) {
   const int32_t x = static_cast<int32_t>(a.c0), y = static_cast<int32_t>(a.c1);
   const int32_t w = static_cast<int32_t>(a.c2), h = static_cast<int32_t>(a.c3);
   const int32_t n = a.c4 > a.c2 ? w : static_cast<int32_t>(a.c4);
+  tempore_display_drawn(x, y, w, h);
   if (n > 0) M5.Display.fillRect(x, y, n, h, a.c5);
   if (n < w) M5.Display.fillRect(x + n, y, w - n, h, m5_display_dark_grey);
   return {};
@@ -184,6 +200,7 @@ tempore_result_DrawLevel binding_DrawLevel(tempore_argument_DrawLevel a) {
   const bool same_vial = last.drawn && last.x == x && last.y == y && last.r == r;
   if (same_vial && last.bx == bx && last.by == by && last.colour == a.c5)
     return {};
+  tempore_display_drawn(x - r, y - r, 2 * r + 1, 2 * r + 1);
   if (same_vial) M5.Display.fillCircle(last.bx, last.by, rb, m5_display_black);
   M5.Display.drawCircle(x, y, r, m5_display_white);
   M5.Display.drawCircle(x, y, r / 4, m5_display_grey);

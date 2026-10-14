@@ -1,5 +1,6 @@
 {
   "board": "m5stack-cores3",
+  "battery": true,
   "tasks": [
     { "function": "watch", "kind": "free", "repeat": true, "priority": 1 }
   ],

@@ -12,6 +12,7 @@
   backendRegistry
   webDeclarations
   webChoices
+  webCheckCache
   webLink
   webDocPages
   webBackend

@@ -1,0 +1,6 @@
+; The reuse of the last successful check of the program in the web interface,
+; without a dependency on the browser, so that the tests link it.
+
+(library
+ (name webCheckCache)
+ (libraries backendRegistry))
