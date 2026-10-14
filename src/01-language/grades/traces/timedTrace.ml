@@ -19,8 +19,8 @@ module Base (D : Delay.S) = struct
   let compare = List.compare compare_trace
   let equal p q = compare p q = 0
   let hash_event = function Ev o -> String.hash o | Wait n -> D.hash n
-  let hash_trace = Grade.hash_list hash_event
-  let hash = Grade.hash_list hash_trace
+  let hash_trace = Hashing.list hash_event
+  let hash = Hashing.list hash_trace
 
   let normalise evs =
     let rec go acc = function
@@ -146,7 +146,7 @@ module Make (D : Delay.MONUS) = struct
     let equal (k, i, j) (k', i', j') =
       Int.equal i i' && Int.equal j j' && D.equal k k'
 
-    let hash (k, i, j) = Grade.combine (Grade.combine (D.hash k) i) j
+    let hash (k, i, j) = Hashing.combine (Hashing.combine (D.hash k) i) j
   end)
 
   (** [decide rules k s t] is [rules go k 0 0], where [rules go k i j] decides

@@ -16,9 +16,9 @@ let equal l m = compare l m = 0
 
 let hash l =
   let finals =
-    Array.fold_left (fun h f -> Grade.combine h (Bool.to_int f)) 0 l.finals
+    Array.fold_left (fun h f -> Hashing.combine h (Bool.to_int f)) 0 l.finals
   in
-  Array.fold_left (Array.fold_left Grade.combine) finals l.rows
+  Array.fold_left (Array.fold_left Hashing.combine) finals l.rows
 
 let range n = List.init n Fun.id
 let sort_uniq = List.sort_uniq Int.compare

@@ -83,9 +83,9 @@ module Letters = struct
     let names, cofinite =
       match p.names with Only a -> (a, false) | Except a -> (a, true)
     in
-    Grade.combine
-      (Grade.combine (Bool.to_int p.tick) (Bool.to_int cofinite))
-      (Grade.hash_list String.hash names)
+    Hashing.combine
+      (Hashing.combine (Bool.to_int p.tick) (Bool.to_int cofinite))
+      (Hashing.list String.hash names)
 
   (* [least p] is the least letter of [p]: [tick], then the names listed in
      increasing order, then the names not listed. *)
@@ -277,7 +277,7 @@ struct
           | Empty -> 0
           | Eps -> 1
           | Letters p -> Letters.hash p
-          | Ticks n -> Grade.combine 7 n
+          | Ticks n -> Hashing.combine 7 n
           | Concat (r, s) -> combine 2 [ r; s ]
           | Union rs -> combine 3 rs
           | Inter rs -> combine 4 rs

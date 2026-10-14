@@ -1,5 +1,5 @@
 let combine_ids id tag rs =
-  List.fold_left (fun h r -> (h * 65599) + id r) tag rs
+  List.fold_left (fun h r -> Hashing.combine h (id r)) tag rs
 
 module HashCons
     (View : Hashtbl.HashedType)

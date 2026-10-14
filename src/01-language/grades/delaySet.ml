@@ -340,20 +340,20 @@ let hash_runs g r =
   let hash k = Rational.hash_fraction k g in
   fold_runs
     (fun h s e ->
-      Grade.combine h
-        (Grade.combine
-           (Grade.combine (hash (half s)) (Bool.to_int (Z.is_even s)))
-           (Grade.combine (hash (half e)) (Bool.to_int (Z.is_odd e)))))
+      Hashing.combine h
+        (Hashing.combine
+           (Hashing.combine (hash (half s)) (Bool.to_int (Z.is_even s)))
+           (Hashing.combine (hash (half e)) (Bool.to_int (Z.is_odd e)))))
     0 r
 
 let form ~grid ~threshold ~period ~base ~tail =
   let hash =
     lazy
-      (Grade.combine
-         (Grade.combine
+      (Hashing.combine
+         (Hashing.combine
             (Rational.hash_fraction threshold grid)
             (Rational.hash_fraction period grid))
-         (Grade.combine (hash_runs grid base) (hash_runs grid tail)))
+         (Hashing.combine (hash_runs grid base) (hash_runs grid tail)))
   in
   { grid; threshold; period; base; tail; hash }
 
@@ -1217,7 +1217,7 @@ let equal_extremum x y =
   | Finite _, Infinite | Infinite, Finite _ -> false
 
 let hash_extremum = function
-  | Finite (a, f) -> Grade.combine (Rational.hash a) (Bool.to_int f)
+  | Finite (a, f) -> Hashing.combine (Rational.hash a) (Bool.to_int f)
   | Infinite -> -1
 
 (* [components s] is the number of the intervals of [s] below its threshold

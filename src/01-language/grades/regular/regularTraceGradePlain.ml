@@ -106,7 +106,8 @@ let compare rho rho' =
   | 0 -> Regex.compare_form rho.regex rho'.regex
   | c -> c
 
-let hash rho = combine (hash_list String.hash rho.names) (Regex.hash rho.regex)
+let hash rho =
+  Hashing.combine (Hashing.list String.hash rho.names) (Regex.hash rho.regex)
 
 include RegularTraceGradeDerivative.Constants
 

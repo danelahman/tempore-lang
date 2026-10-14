@@ -63,7 +63,7 @@ module ByGaps = struct
       List.equal String.equal names names' && RationalRegex.equal_form r r'
 
     let hash (names, r) =
-      Grade.combine (Grade.hash_list String.hash names) (RationalRegex.hash r)
+      Hashing.combine (Hashing.list String.hash names) (RationalRegex.hash r)
   end)
 
   (* [graph names rho] is {!RationalRegex.graph}, tabulated by its arguments. *)
@@ -91,11 +91,12 @@ module ByGaps = struct
            w w'
 
     let hash (w, i, j) =
-      combine
-        (hash_list
-           (fun (n, c) -> combine (String.hash n) (DelaySet.hash_extremum c))
+      Hashing.combine
+        (Hashing.list
+           (fun (n, c) ->
+             Hashing.combine (String.hash n) (DelaySet.hash_extremum c))
            w)
-        (combine i j)
+        (Hashing.combine i j)
   end)
 
   (* [tabulated f] is [f], its results tabulated by its arguments in a table of

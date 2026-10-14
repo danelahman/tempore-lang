@@ -633,12 +633,12 @@ module Arguments = Memo.Make (struct
     && A.equal l l' && A.equal m m'
 
   let hash (world, l, m) =
-    Grade.combine
-      (Grade.hash_list
+    Hashing.combine
+      (Hashing.list
          (fun (n, c) ->
-           Grade.combine (String.hash n) (DelaySet.hash_extremum c))
+           Hashing.combine (String.hash n) (DelaySet.hash_extremum c))
          world)
-      (Grade.combine (A.hash l) (A.hash m))
+      (Hashing.combine (A.hash l) (A.hash m))
 end)
 
 (* [tabulated decide] is [decide] on the graphs of the automata compared over

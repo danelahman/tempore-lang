@@ -165,7 +165,7 @@ module Subsets = Hashtbl.Make (struct
   type t = IntSet.t
 
   let equal = IntSet.equal
-  let hash s = IntSet.fold (fun q h -> Grade.combine h q) s 0
+  let hash s = IntSet.fold (fun q h -> Hashing.combine h q) s 0
 end)
 
 (* Brzozowski's reversal (Brzozowski, Symp. Math. Theory of Automata 1962): the

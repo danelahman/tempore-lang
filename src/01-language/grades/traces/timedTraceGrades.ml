@@ -229,7 +229,9 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) = struct
       | 0 -> UpperTraces.compare hi hi'
       | c -> c
 
-    let hash (lo, hi) = combine (LowerTraces.hash lo) (UpperTraces.hash hi)
+    let hash (lo, hi) =
+      Hashing.combine (LowerTraces.hash lo) (UpperTraces.hash hi)
+
     let counterexample _bounds _ _ = None
     let unit_least = false
     let commutative = false

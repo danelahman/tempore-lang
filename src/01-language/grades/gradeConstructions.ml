@@ -69,7 +69,7 @@ struct
   let compare (a, b) (a', b') =
     match G1.compare a a' with 0 -> G2.compare b b' | c -> c
 
-  let hash (a, b) = Grade.combine (G1.hash a) (G2.hash b)
+  let hash (a, b) = Hashing.combine (G1.hash a) (G2.hash b)
 
   let counterexample bounds (a, b) (a', b') =
     match G1.counterexample bounds a a' with
@@ -176,7 +176,7 @@ struct
   let compare (m, n) (m', n') =
     match M.compare m m' with 0 -> N.compare n n' | c -> c
 
-  let hash (m, n) = Grade.combine (M.hash m) (N.hash n)
+  let hash (m, n) = Hashing.combine (M.hash m) (N.hash n)
 
   let counterexample bounds (m, n) (m', n') =
     match M.counterexample bounds m m' with
@@ -296,9 +296,9 @@ module Indexed = struct
     | d -> d
 
   let hash_with hash m =
-    Grade.combine (hash m.others)
-      (Grade.hash_list
-         (fun (s, c) -> Grade.combine (Hashtbl.hash s) (hash c))
+    Hashing.combine (hash m.others)
+      (Hashing.list
+         (fun (s, c) -> Hashing.combine (Hashtbl.hash s) (hash c))
          m.named)
 
   (* The text [text] without its outer parentheses, if they match; brackets

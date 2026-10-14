@@ -41,11 +41,11 @@ struct
       && G.compare sigma sigma' = 0
 
     let hash (names, running_times, rho, sigma) =
-      combine
-        (combine
-           (hash_list String.hash names)
-           (hash_list Int.hash running_times))
-        (combine (G.hash rho) (G.hash sigma))
+      Hashing.combine
+        (Hashing.combine
+           (Hashing.list String.hash names)
+           (Hashing.list Int.hash running_times))
+        (Hashing.combine (G.hash rho) (G.hash sigma))
   end)
 
   (** [tabulated f] is [f], its results tabulated by its arguments in a table of
@@ -93,7 +93,8 @@ module ByLetters (L : LANGUAGE) = struct
     let equal (names, rho) (names', rho') =
       List.equal String.equal names names' && L.compare rho rho' = 0
 
-    let hash (names, rho) = combine (hash_list String.hash names) (L.hash rho)
+    let hash (names, rho) =
+      Hashing.combine (Hashing.list String.hash names) (L.hash rho)
   end)
 
   (* [L.traces names rho], tabulated by its arguments. *)
@@ -176,7 +177,7 @@ module ByGaps = struct
       List.equal String.equal names names' && SymbolicRegex.equal_form rho rho'
 
     let hash (names, rho) =
-      combine (hash_list String.hash names) (SymbolicRegex.hash rho)
+      Hashing.combine (Hashing.list String.hash names) (SymbolicRegex.hash rho)
   end)
 
   (** [graph names rho] is {!GapGraph.graph}, tabulated by its arguments. *)
@@ -347,7 +348,7 @@ module Derivatives = struct
     type t = int list
 
     let equal = List.equal Int.equal
-    let hash = Grade.hash_list Fun.id
+    let hash = Hashing.list Fun.id
   end)
 
   (** [blocks rhos] is the names listed by the finite minterms of the letter

@@ -61,15 +61,13 @@ module Weak (K : Hashtbl.HashedType) = Table (Ephemeron.K1.Make (K))
 module Weak2 (K1 : Hashtbl.HashedType) (K2 : Hashtbl.HashedType) =
   Table (Ephemeron.K2.Make (K1) (K2))
 
-let combine h h' = (h * 65599) + h'
-
 module Ints = Make (Int)
 
 module Pairs = Make (struct
   type t = int * int
 
   let equal (i, j) (i', j') = Int.equal i i' && Int.equal j j'
-  let hash (i, j) = combine i j
+  let hash (i, j) = Hashing.combine i j
 end)
 
 module Triples = Make (struct
@@ -78,5 +76,5 @@ module Triples = Make (struct
   let equal (i, j, k) (i', j', k') =
     Int.equal i i' && Int.equal j j' && Int.equal k k'
 
-  let hash (i, j, k) = combine (combine i j) k
+  let hash (i, j, k) = Hashing.combine (Hashing.combine i j) k
 end)

@@ -165,7 +165,7 @@ struct
     let compare (lo, hi) (lo', hi') =
       match L.compare lo lo' with 0 -> L.compare hi hi' | c -> c
 
-    let hash (lo, hi) = combine (L.hash lo) (L.hash hi)
+    let hash (lo, hi) = Hashing.combine (L.hash lo) (L.hash hi)
 
     let counterexample bounds (lo, hi) (lo', hi') =
       match Lower.counterexample bounds lo lo' with

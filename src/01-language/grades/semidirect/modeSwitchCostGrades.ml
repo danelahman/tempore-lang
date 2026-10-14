@@ -202,19 +202,20 @@ let compare m m' =
     ]
 
 let hash m =
-  let open Grade in
   let cost = function
     | No_trace -> 0
     | Unbounded -> 1
-    | Cost n -> combine 2 n
+    | Cost n -> Hashing.combine 2 n
   in
   let entries hash_key =
-    hash_list (fun (k, c) -> combine (hash_key k) (cost c))
+    Hashing.list (fun (k, c) -> Hashing.combine (hash_key k) (cost c))
   in
-  List.fold_left combine
-    (hash_list String.hash m.modes)
+  List.fold_left Hashing.combine
+    (Hashing.list String.hash m.modes)
     [
-      entries (fun (p, q) -> combine (String.hash p) (String.hash q)) m.within;
+      entries
+        (fun (p, q) -> Hashing.combine (String.hash p) (String.hash q))
+        m.within;
       entries String.hash m.leaving;
       entries String.hash m.entering;
       cost m.staying;
