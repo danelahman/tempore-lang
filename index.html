@@ -1223,6 +1223,20 @@
       background: #cc0f35;
     }
 
+    /* The number of a line of an unedited example, copying the link to the
+       line when clicked: it takes the clicks the textarea over it would
+       swallow. */
+    .line-number.is-line-link {
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    .line-number.is-line-link:hover {
+      color: #485fc7;
+      text-decoration: underline;
+    }
+
     .line-number.is-error:focus-visible {
       outline: 2px solid #485fc7;
       outline-offset: 1px;
@@ -1258,6 +1272,13 @@
         background-color: rgba(201, 214, 247, 0);
         box-shadow: 0 0 0 2px rgba(201, 214, 247, 0);
       }
+    }
+
+    /* The line the page's address names, lit briefly on opening, in the
+       colour of a definition just gone to. */
+    pre.syn-ml .line-flash {
+      border-radius: 2px;
+      animation: goto-flash 1500ms ease-out forwards;
     }
 
     /* The name of a definition, or of one in the standard library, while its
@@ -1466,7 +1487,8 @@
       }
 
       /* lit without fading, for as long */
-      pre.syn-ml .goto-flash {
+      pre.syn-ml .goto-flash,
+      pre.syn-ml .line-flash {
         animation: none;
         background-color: #dde6fb;
       }
