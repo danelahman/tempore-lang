@@ -2001,6 +2001,16 @@ let editor_marks
             marker = None;
           };
         ]
+    | Some (Model.Copied_line (from, until)) ->
+        [
+          {
+            SyntaxHighlight.from;
+            until;
+            mark_cls = "line-copied";
+            id = None;
+            marker = None;
+          };
+        ]
     | Some (Model.Message _ | Model.Declaration _) | None -> []
 
 (* The number [n] of a line, copying the link to the line when clicked. *)

@@ -77,6 +77,9 @@ type flash =
   | Line of int * int
       (** the bytes of the editor's text of a line the page's address names,
           from a start up to a stop *)
+  | Copied_line of int * int
+      (** the bytes of the editor's text of a line whose link has been copied,
+          from a start up to a stop *)
 
 (** A notice shown under the example. *)
 type notice =

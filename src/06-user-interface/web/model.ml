@@ -45,6 +45,7 @@ type flash =
   | Message of int
   | Declaration of string * int * int
   | Line of int * int
+  | Copied_line of int * int
 
 type notice =
   | Ignored of WebLink.parameter list
@@ -1288,6 +1289,7 @@ let flash_duration = function
   | Span _ | Declaration _ -> 800
   | Message _ -> 900
   | Line _ -> 1500
+  | Copied_line _ -> 600
 
 (* [target] highlighted briefly, replacing any earlier flash. *)
 let flash target model =
@@ -1469,7 +1471,12 @@ let respond model msg =
         [ Scroll_to_heading heading ] )
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
   | CopyLineLink line when line_links model ->
-      (model, [ Copy_link (link ~line model.edit_model) ])
+      let model, effects =
+        match WebLink.line_bytes model.edit_model.unparsed_code line with
+        | Some (start, stop) -> flash (Copied_line (start, stop)) model
+        | None -> (model, [])
+      in
+      (model, Copy_link (link ~line model.edit_model) :: effects)
   | Copied (url, copied) ->
       notify model (if copied then Link_copied else Copy_failed url)
   | _ -> (update_model model msg, [])
