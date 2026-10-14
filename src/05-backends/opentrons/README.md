@@ -179,6 +179,11 @@ each is a minute.
   of columns at staggered times, under `time-interval`.
 - [`beads.tpe`](../../../examples/opentrons/beads.tpe): a bead clean-up with
   beads boxed `[3, ∞)` and `[2, 3]`, under `time-interval`.
+- [`binding.tpe`](../../../examples/opentrons/binding.tpe): a bead binding
+  whose beads are mixed every 2 to 5 minutes, under `event-separation`.
+- [`enzyme.tpe`](../../../examples/opentrons/enzyme.tpe): a reaction set-up
+  whose enzyme mix is at most 30 minutes out of the cold block in total,
+  under `mode-times`.
 - [`stopread.tpe`](../../../examples/opentrons/stopread.tpe): a stop and
   read with plates boxed `[0, 30]`, under `time-interval`.
 - [`cleanup.tpe`](../../../examples/opentrons/cleanup.tpe): a bead clean-up

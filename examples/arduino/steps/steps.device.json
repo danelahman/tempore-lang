@@ -1,0 +1,11 @@
+{
+  "board": "m5stack-cores3",
+  "battery": true,
+  "tasks": [
+    { "function": "watch", "kind": "free", "repeat": true, "priority": 1 }
+  ],
+  "packages": ["m5-imu", "m5-display"],
+  "bindings": "bindings.cpp",
+  "safe_state": "steps_safe_state",
+  "host_models": ["world.cpp"]
+}

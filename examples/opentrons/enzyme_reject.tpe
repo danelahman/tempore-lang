@@ -1,0 +1,51 @@
+(* As the enzyme mix example, with a fifth plate of reactions.
+
+   Run this example with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times examples/opentrons/enzyme_reject.tpe
+
+   Grades (P, Q, (M, [lo, hi]), ...): the traces from mode P to mode Q, the
+   time in each mode M within [lo, hi]
+     - Unit 0: keeps every mode, no time spent
+     - Top ⊤: any times between any two modes, and into Stuck
+     - Product: the matrix product, the times in each mode added *)
+
+operation TakeOut : unit ~> unit # ({TakeOut}, Cold, Out) within [0, 1]
+default TakeOut () = delay 1
+
+operation ReturnToCold : unit ~> unit # ({ReturnToCold}, Out, Cold) within [0, 1]
+default ReturnToCold () = delay 1
+
+operation LoadPlate : nat ~> unit # ({LoadPlate}, Out, Out) within [0, 1]
+default LoadPlate _ = delay 1
+
+operation Dispense : nat ~> unit # ({Dispense}, Out, Out) within [3, 4]
+default Dispense _ = delay 3
+
+operation UnloadPlate : nat ~> unit # ({UnloadPlate}, Out, Out) within [0, 1]
+default UnloadPlate _ = delay 1
+
+let round (plate : nat) : unit # (Cold, Cold, (Out, [0, 7])) =
+  perform TakeOut ();
+  perform LoadPlate plate;
+  perform Dispense plate;
+  perform UnloadPlate plate;
+  perform ReturnToCold ()
+
+(* Correctly rejected by the typechecker: a fifth plate, which may leave the
+   enzyme mix out of the cold block for 35 minutes:
+
+     Typing error: The effect inequality `(Cold, Cold, (Out, [0, 7])) ·
+       (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) ·
+       (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) <=
+       (Cold, Cold, (Out, [0, 30]))` does not hold
+       ...
+*)
+let set_up_five () : unit # (Cold, Cold, (Out, [0, 30])) =
+  round 1;
+  round 2;
+  round 3;
+  round 4;
+  round 5
+
+run set_up_five ()

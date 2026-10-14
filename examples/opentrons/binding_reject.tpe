@@ -1,0 +1,47 @@
+(* As the bead binding example, with the wash plate filled too late.
+
+   Run this example with the 'event-separation' grading monoid, e.g.
+
+     ./tempore --grades event-separation examples/opentrons/binding_reject.tpe
+
+   Grades (X, lead, gaps, tail): the times before the first X, between the
+   starts of consecutive Xs and from the start of the last X to the end
+     - Unit 0: no operation, no time spent
+     - Top ⊤: any times before, between and after the operations
+     - Product: (a, G, b) · (a', G', b') = (a, G ∪ G' ∪ {b + a'}, b') *)
+
+operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
+default AddBeads () = delay 1
+
+operation Mix : unit ~> unit # {Mix} within [1, 2]
+default Mix () = delay 1
+
+operation FillWashPlate : unit ~> unit # {FillWashPlate} within [2, 3]
+default FillWashPlate () = delay 2
+
+let rec incubate (n : nat) : unit # (Mix, [0, 0], [2, 5], [0, 5]) =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      perform Mix ();
+      delay 2;
+      incubate m
+
+(* Correctly rejected by the typechecker: the wash plate is filled after the
+   two minutes of incubation that follow the first mix, which leaves the
+   beads unmixed for 5 to 7 minutes:
+
+     Typing error: This function's body has grade
+       `{AddBeads; Mix; 2; FillWashPlate} · (Mix, [0, 0], [2, 5], [0, 5])`,
+       which does not match its annotated grade
+       `(Mix, [1, 2], [2, 5], [0, 5])`
+       ...
+*)
+let binding_late_wash () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
+  perform AddBeads ();
+  perform Mix ();
+  delay 2;
+  perform FillWashPlate ();
+  incubate 3
+
+run binding_late_wash ()

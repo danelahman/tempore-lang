@@ -245,9 +245,11 @@ let expected_rejections =
     ("examples/basics/basic_unbox.tpe", [ 20; 30 ]);
     ("examples/handlers/nested_reject.tpe", [ 18 ]);
     ("examples/opentrons/beads_reject.tpe", [ 32 ]);
+    ("examples/opentrons/binding_reject.tpe", [ 40 ]);
     ("examples/opentrons/cleanup_reject.tpe", [ 29 ]);
     ("examples/opentrons/contamination_reject.tpe", [ 39 ]);
     ("examples/opentrons/elisa_reject.tpe", [ 31 ]);
+    ("examples/opentrons/enzyme_reject.tpe", [ 44 ]);
     ("examples/opentrons/reagents_reject.tpe", [ 41 ]);
     ("examples/opentrons/staggered_reject.tpe", [ 30 ]);
     ("examples/opentrons/stopread_reject.tpe", [ 41 ]);

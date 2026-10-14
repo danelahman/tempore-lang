@@ -989,7 +989,8 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
 
   is accepted, as the enzyme is out of the cold block at most 10 minutes, the
   taking counted in the cold block, while a second pipetting would be rejected,
-  as the enzyme may then be out for 15.
+  as the enzyme may then be out for 15. See
+  [`examples/opentrons/enzyme.tpe`](examples/opentrons/enzyme.tpe).
 
 An (external) operation whose grade no code inside Tempore can meet, such as
 opening or closing a file under `resource-levels`, has no default
@@ -1065,7 +1066,9 @@ let rec heartbeat n : unit # (Beat, [0, 0], [0, 5], [0, 5]) =
 ```
 
 is accepted, as a round takes at most 3.5, while a second `perform Work ()`
-would be rejected, as a gap may then be 6.5.
+would be rejected, as a gap may then be 6.5. See
+[`examples/opentrons/binding.tpe`](examples/opentrons/binding.tpe) and
+[`examples/arduino/steps/steps.tpe`](examples/arduino/steps/steps.tpe).
 
 ## Eternal types
 
@@ -1456,7 +1459,8 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a
   gyroscope bias removed by a handler; [`peak`](examples/arduino/peak/peak.tpe),
   a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
-  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector.
+  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector;
+  [`steps`](examples/arduino/steps/steps.tpe), a step counter.
 
 #### Quick start
 <!-- web-skip -->
@@ -1505,6 +1509,10 @@ binding file and a rejected variant:
 - [`staggered`](examples/opentrons/staggered.tpe), a fixation of columns at
   staggered times;
 - [`beads`](examples/opentrons/beads.tpe), a bead clean-up with boxed beads;
+- [`binding`](examples/opentrons/binding.tpe), a bead binding with the beads
+  mixed every 2 to 5 minutes;
+- [`enzyme`](examples/opentrons/enzyme.tpe), a reaction set-up with an
+  enzyme mix at most 30 minutes out of the cold block;
 - [`stopread`](examples/opentrons/stopread.tpe), a stop and read with boxed
   plates;
 - [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound

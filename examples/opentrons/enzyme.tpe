@@ -1,0 +1,108 @@
+(* An enzyme mix on the Opentrons Flex: at most 30 minutes out of the cold block in total.
+
+   Run this example with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times examples/opentrons/enzyme.tpe
+
+   Grades (P, Q, (M, [lo, hi]), ...): the traces from mode P to mode Q, the
+   time in each mode M within [lo, hi]
+     - Unit 0: keeps every mode, no time spent
+     - Top ⊤: any times between any two modes, and into Stuck
+     - Product: the matrix product, the times in each mode added *)
+
+(* A unit of duration is a minute. The protocol for the Flex, with the
+   operations performed by the functions of 'enzyme_bindings.py', is written
+   by
+
+     ./tempore --grades mode-times \
+       --emit-opentrons enzyme.py \
+       --bind examples/opentrons/enzyme_bindings.py \
+       --time-unit minutes \
+       --simulate \
+       examples/opentrons/enzyme.tpe
+
+   and run by the Opentrons simulator, installed by 'make opentrons-deps'.
+   The target opentrons-enzyme-simulate of 'make' runs this command.
+
+   The plate of an enzyme mix is kept on the temperature module, at 4 °C,
+   the mode Cold. The reactions are set up on the cold block too, a plate
+   at a time: the gripper moves the enzyme mix out onto the deck, the mode
+   Out, puts the plate of the reactions on the block, and returns the enzyme
+   mix once the mix is dispensed and the plate taken off. The enzyme mix
+   tolerates at most 30 minutes out of the cold in total; the bound is the
+   example's own. *)
+
+(* The gripper moves a plate in at most a minute; dispensing the enzyme mix
+   into the twelve columns of a plate takes three to four minutes. Taking
+   the enzyme mix out is performed only from the cold block, and its time
+   counted there; returning it only from the deck, and its time counted
+   out. A plate of reactions is loaded, filled and unloaded only while the
+   enzyme mix is out, the block being free. *)
+operation TakeOut : unit ~> unit # ({TakeOut}, Cold, Out) within [0, 1]
+default TakeOut () = delay 1
+
+operation ReturnToCold : unit ~> unit # ({ReturnToCold}, Out, Cold) within [0, 1]
+default ReturnToCold () = delay 1
+
+operation LoadPlate : nat ~> unit # ({LoadPlate}, Out, Out) within [0, 1]
+default LoadPlate _ = delay 1
+
+operation Dispense : nat ~> unit # ({Dispense}, Out, Out) within [3, 4]
+default Dispense _ = delay 3
+
+operation UnloadPlate : nat ~> unit # ({UnloadPlate}, Out, Out) within [0, 1]
+default UnloadPlate _ = delay 1
+
+(* Correctly accepted by the typechecker: a round takes the enzyme mix out
+   of the cold block and returns it, at most 7 minutes later. *)
+let round (plate : nat) : unit # (Cold, Cold, (Out, [0, 7])) =
+  perform TakeOut ();
+  perform LoadPlate plate;
+  perform Dispense plate;
+  perform UnloadPlate plate;
+  perform ReturnToCold ()
+
+(* Correctly accepted by the typechecker: four plates, the enzyme mix out of
+   the cold block at most 28 minutes in total. *)
+let set_up () : unit # (Cold, Cold, (Out, [0, 30])) =
+  round 1;
+  round 2;
+  round 3;
+  round 4
+
+(* Correctly rejected by the typechecker: a fifth plate, which may leave the
+   enzyme mix out of the cold block for 35 minutes:
+
+     Typing error: The effect inequality `(Cold, Cold, (Out, [0, 7])) ·
+       (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) ·
+       (Cold, Cold, (Out, [0, 7])) · (Cold, Cold, (Out, [0, 7])) <=
+       (Cold, Cold, (Out, [0, 30]))` does not hold
+       ...
+*)
+(*
+let set_up_five () : unit # (Cold, Cold, (Out, [0, 30])) =
+  round 1;
+  round 2;
+  round 3;
+  round 4;
+  round 5
+*)
+
+(* Correctly rejected by the typechecker: the plate of the reactions is
+   loaded before the enzyme mix is taken out, onto the block it occupies:
+
+     Typing error: This function's body has grade `({LoadPlate}, Out, Out)
+       · ({TakeOut}, Cold, Out) · ...`, which does not match its annotated
+       grade `(Cold, Cold, (Out, [0, 7]))`
+       ...
+*)
+(*
+let round_loaded_first (plate : nat) : unit # (Cold, Cold, (Out, [0, 7])) =
+  perform LoadPlate plate;
+  perform TakeOut ();
+  perform Dispense plate;
+  perform UnloadPlate plate;
+  perform ReturnToCold ()
+*)
+
+run set_up ()
