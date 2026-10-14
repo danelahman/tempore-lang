@@ -1,5 +1,5 @@
 module Ast = Language.Ast
-module VariableSet = Set.Make (Ast.Variable)
+module VariableSet = Ast.VariableSet
 
 let rec pattern_variables (p : _ Ast.pattern) =
   match p.it with
@@ -127,14 +127,12 @@ type run_operations = {
   defaults : OperationSet.t;
 }
 
-module VariableMap = Map.Make (Ast.Variable)
-
 (* The usage of a term of usage [own] and free variables [free], with that of
    the top-level definitions among [free], by [definitions]. *)
 let closed definitions own free =
   VariableSet.fold
     (fun x acc ->
-      match VariableMap.find_opt x definitions with
+      match Ast.VariableMap.find_opt x definitions with
       | Some u -> union acc u
       | None -> acc)
     free own
@@ -163,7 +161,7 @@ let run_operations ~bound commands =
         let u =
           closed definitions (expression_usage e) (free_in_expression e)
         in
-        (VariableMap.add x u definitions, defaults, runs)
+        (Ast.VariableMap.add x u definitions, defaults, runs)
     | Ast.OpDefault (op, abs) ->
         let u =
           closed definitions (abstraction_usage abs) (free_in_abstraction abs)
@@ -184,5 +182,7 @@ let run_operations ~bound commands =
         (definitions, defaults, run :: runs)
     | Ast.TyDef _ | Ast.OpSig _ -> (definitions, defaults, runs)
   in
-  let _, _, runs = List.fold_left step (VariableMap.empty, [], []) commands in
+  let _, _, runs =
+    List.fold_left step (Ast.VariableMap.empty, [], []) commands
+  in
   List.rev runs

@@ -3,18 +3,20 @@ module LabelMap = Map.Make (Ast.Label)
 
 type t = string Ast.VariableMap.t
 
-(* An identifier character of Python kept as it is. *)
-let is_kept c =
-  (c >= 'a' && c <= 'z')
-  || (c >= 'A' && c <= 'Z')
-  || (c >= '0' && c <= '9')
-  || c = '_'
+let is_identifier_start = function
+  | 'a' .. 'z' | 'A' .. 'Z' | '_' -> true
+  | _ -> false
+
+let is_identifier_char = function
+  | '0' .. '9' -> true
+  | c -> is_identifier_start c
 
 (* The escape of the Unicode scalar value [u]: a prime as [_p], any other
    character that is not kept as [_u] followed by its code point in hex. *)
 let escape u =
   let code = Uchar.to_int u in
-  if code < 128 && is_kept (Char.chr code) then String.make 1 (Char.chr code)
+  if code < 128 && is_identifier_char (Char.chr code) then
+    String.make 1 (Char.chr code)
   else if code = Char.code '\'' then "_p"
   else Printf.sprintf "_u%x" code
 
@@ -29,7 +31,7 @@ let base name =
   in
   match escaped 0 [] with
   | "" -> "v"
-  | s when s.[0] >= '0' && s.[0] <= '9' -> "v" ^ s
+  | s when not (is_identifier_start s.[0]) -> "v" ^ s
   | s -> s
 
 let identifier name index = Printf.sprintf "%s_%d" (base name) index

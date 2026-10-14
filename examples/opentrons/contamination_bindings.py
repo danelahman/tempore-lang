@@ -6,7 +6,9 @@
 # holds the buffer (A1), the master mix components (A2, A3, mixed into A4),
 # the test article (A5) and the water (A6). The tips are filter tips. The
 # pipette keeps its tip between operations; ChangeTip replaces it, picking up
-# the first. A tip is passed to the functions as the Tempore value of type
+# the first, PrepareMix uses a tip of its own and AddWater drops the tip after
+# the water. The entry "has_tip" of the context records whether the pipette
+# holds a tip. A tip is passed to the functions as the Tempore value of type
 # tip, which they ignore. Each function declares the nominal duration of its
 # action in seconds by tempore_elapse, the duration the virtual clock of a
 # simulation advances by.
@@ -26,8 +28,21 @@ def setup(protocol):
         "reservoir": reservoir,
         "preparation": preparation,
         "final": final,
-        "tip": False,
+        "has_tip": False,
     }
+
+
+def pick_up_tip(ctx):
+    if ctx["has_tip"]:
+        ctx["pipette"].drop_tip()
+    ctx["pipette"].pick_up_tip()
+    ctx["has_tip"] = True
+
+
+def drop_tip(ctx):
+    if ctx["has_tip"]:
+        ctx["pipette"].drop_tip()
+    ctx["has_tip"] = False
 
 
 def column(ctx, plate, number):
@@ -43,59 +58,60 @@ def transfer_column(ctx, volume, source, target, mix_after):
         ctx["pipette"].transfer(volume, well, destination, mix_after=mix_after, new_tip="never")
 
 
-def ChangeTip(ctx, arg):
-    if ctx["tip"]:
-        ctx["pipette"].drop_tip()
-    ctx["pipette"].pick_up_tip()
-    ctx["tip"] = True
+def ChangeTip(ctx, unit):
+    pick_up_tip(ctx)
     tempore_elapse(15)
     return ()
 
 
-def AddBuffer(ctx, arg):
-    dispense(ctx, 20, "A1", "preparation", arg[1])
+def AddBuffer(ctx, tip_and_column):
+    _, number = tip_and_column
+    dispense(ctx, 20, "A1", "preparation", number)
     tempore_elapse(40)
     return ()
 
 
-def PrepareMix(ctx, arg):
+def PrepareMix(ctx, unit):
     pipette = ctx["pipette"]
-    pipette.pick_up_tip()
+    pick_up_tip(ctx)
     pipette.transfer(100, ctx["reservoir"]["A2"], ctx["reservoir"]["A4"], new_tip="never")
     pipette.transfer(100, ctx["reservoir"]["A3"], ctx["reservoir"]["A4"], mix_after=(5, 150), new_tip="never")
-    pipette.drop_tip()
+    drop_tip(ctx)
     tempore_elapse(180)
     return "master mix"
 
 
-def AddMix(ctx, arg):
-    dispense(ctx, 20, "A4", "final", arg[1])
+def AddMix(ctx, tip_and_column):
+    _, number = tip_and_column
+    dispense(ctx, 20, "A4", "final", number)
     tempore_elapse(40)
     return ()
 
 
-def AddArticle(ctx, arg):
-    dispense(ctx, 20, "A5", "preparation", arg[1])
+def AddArticle(ctx, tip_and_column):
+    _, number = tip_and_column
+    dispense(ctx, 20, "A5", "preparation", number)
     tempore_elapse(40)
     return ()
 
 
-def Dilute(ctx, arg):
-    source, target = arg[1]
+def Dilute(ctx, tip_and_columns):
+    _, (source, target) = tip_and_columns
     transfer_column(ctx, 10, ("preparation", source), ("preparation", target), (3, 20))
     tempore_elapse(90)
     return ()
 
 
-def AddDilution(ctx, arg):
-    source, target = arg[1]
+def AddDilution(ctx, tip_and_columns):
+    _, (source, target) = tip_and_columns
     transfer_column(ctx, 5, ("preparation", source), ("final", target), (3, 15))
     tempore_elapse(40)
     return ()
 
 
-def AddWater(ctx, arg):
-    dispense(ctx, 5, "A6", "final", arg[1])
-    ctx["pipette"].drop_tip()
+def AddWater(ctx, tip_and_column):
+    _, number = tip_and_column
+    dispense(ctx, 5, "A6", "final", number)
+    drop_tip(ctx)
     tempore_elapse(40)
     return ()

@@ -3,19 +3,22 @@ module Const = Language.Const
 module Primitives = Language.Primitives
 module Names = OpentronsNames
 module Reach = OpentronsReach
-module VariableSet = Reach.VariableSet
+module VariableSet = Ast.VariableSet
 
 let runtime = Opentrons_runtime.contents
 
 (* Python source: lines, and blocks of a header line and an indented body. *)
 type stmt = Line of string | Block of string * stmt list
 
-let rec lines indent = function
-  | Line s -> [ indent ^ s ]
+(* The lines of a statement, indented by [indent], prepended to [acc] in
+   reverse order. *)
+let rec lines indent acc = function
+  | Line s -> (indent ^ s) :: acc
   | Block (header, body) ->
-      (indent ^ header) :: List.concat_map (lines (indent ^ "    ")) body
+      List.fold_left (lines (indent ^ "    ")) ((indent ^ header) :: acc) body
 
-let render stmts = String.concat "\n" (List.concat_map (lines "") stmts) ^ "\n"
+let render stmts =
+  String.concat "\n" (List.rev (List.fold_left (lines "") [] stmts)) ^ "\n"
 
 (* Literals. *)
 
@@ -114,13 +117,16 @@ let primitive_function = function
    lifted definitions, [local]; the others it reads from the enclosing
    function. [in_lifted] is whether the code emitted is in a lifted
    definition, and [top] whether it is at the top level of the module, where
-   the names of the definitions it introduces bear the prefix [tempore_]. *)
+   the names of the definitions it introduces bear the prefix [tempore_].
+   [depth] is the number of blocks of cases around the code emitted inside the
+   body of the current definition. *)
 type context = {
   names : Names.t;
   labels : Names.labels;
   local : VariableSet.t;
   in_lifted : bool;
   top : bool;
+  depth : int;
 }
 
 (* The emission state: the supply of fresh names, which consist of a lowercase
@@ -230,6 +236,11 @@ let parameter ctx st p =
    temporaries. CPython accepts at most 200 nested parentheses. *)
 let max_nesting = 40
 
+(* The greatest number of blocks of cases around a statement of the body of a
+   definition; the cases of a match nested deeper are lifted. CPython accepts
+   at most 100 levels of indentation. *)
+let max_depth = 40
+
 (* Values: each expression is a Python expression, preceded by the
    definitions of the functions, handlers and temporaries in it. *)
 let rec expression ctx st e =
@@ -296,27 +307,33 @@ and components ctx st es =
         let st, defs', e, nesting' = nested_expression ctx st e in
         if nesting' > max_nesting then
           let v, st = fresh (definition_prefix ctx "v") st in
-          (st, defs @ defs' @ [ Line (v ^ " = " ^ e) ], v :: es, nesting)
-        else (st, defs @ defs', e :: es, max nesting nesting'))
+          (st, [ Line (v ^ " = " ^ e) ] :: defs' :: defs, v :: es, nesting)
+        else (st, defs' :: defs, e :: es, max nesting nesting'))
       (st, [], [], 0) es
   in
-  (st, defs, List.rev es, nesting)
+  (st, List.concat (List.rev defs), List.rev es, nesting)
 
 and expressions ctx st es =
   let st, defs, es =
     List.fold_left
       (fun (st, defs, es) e ->
         let st, defs', e = expression ctx st e in
-        (st, defs @ defs', e :: es))
+        (st, defs' :: defs, e :: es))
       (st, [], []) es
   in
-  (st, defs, List.rev es)
+  (st, List.concat (List.rev defs), List.rev es)
 
 (* A function, its body a new scope. *)
 and function_definition ctx st name (p, c) =
   let st, param, binds = parameter ctx st p in
   let ctx =
-    { ctx with local = VariableSet.empty; in_lifted = false; top = false }
+    {
+      ctx with
+      local = VariableSet.empty;
+      in_lifted = false;
+      top = false;
+      depth = 0;
+    }
   in
   let st, body = in_scope st (fun st -> computation ctx st c) in
   (st, Block (Printf.sprintf "def %s(%s):" name param, binds @ body))
@@ -394,12 +411,20 @@ and subject ctx st e =
       let s, st = fresh "s" st in
       (st, defs @ [ Line (s ^ " = " ^ e') ], s)
 
+(* The cases of a match, each in a block; in a match nested in more than
+   [max_depth] cases, the computation of each case is lifted. *)
 and match_cases ctx st e cases =
   let st, defs, path = subject ctx st e in
+  let case_ctx = { ctx with depth = ctx.depth + 1 } in
   let st, branches =
     List.fold_left
       (fun (st, branches) (p, c) ->
-        let st, body = computation (bind_local ctx p) st c in
+        let st, body =
+          if case_ctx.depth > max_depth then
+            let st, defs, node = node (bind_local case_ctx p) st c in
+            (st, defs @ [ Line ("return " ^ node) ])
+          else computation (bind_local case_ctx p) st c
+        in
         ( st,
           (pattern_tests ctx path p, pattern_bindings ctx path p @ body)
           :: branches ))
@@ -433,7 +458,12 @@ and node ctx st (c : _ Ast.computation) =
       let name, st = fresh "c" st in
       let params = captured ctx (Reach.free_in_computation c) in
       let ctx' =
-        { ctx with local = VariableSet.of_list params; in_lifted = true }
+        {
+          ctx with
+          local = VariableSet.of_list params;
+          in_lifted = true;
+          depth = 0;
+        }
       in
       let st, body = computation ctx' st c in
       let args = String.concat ", " (List.map (variable ctx) params) in
@@ -454,6 +484,7 @@ and continuation ctx st (p, c) =
           (VariableSet.of_list params)
           (Reach.pattern_variables p);
       in_lifted = true;
+      depth = 0;
     }
   in
   let st, body = computation ctx' st c in
@@ -545,6 +576,7 @@ let compile ~operations commands =
       local = VariableSet.empty;
       in_lifted = false;
       top = true;
+      depth = 0;
     }
   in
   let _, { stmts; runs; _ } =

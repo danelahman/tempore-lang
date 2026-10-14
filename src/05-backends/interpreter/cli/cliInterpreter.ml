@@ -20,8 +20,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
              (module GS.R)
              environment.state);
         true
-    (* An operation with a default implementation is not stuck here: the
-       default is about to fire, so there is nothing to report yet. *)
+    (* An operation call with a default implementation is reduced by it, and
+       the run goes on. *)
     | {
      current =
        Some

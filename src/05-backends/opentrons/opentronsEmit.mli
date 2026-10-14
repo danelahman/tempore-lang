@@ -29,8 +29,10 @@
     resumed more than once. Handlers are deep, as in the interpreter. A
     function's body is a sequence of statements that returns the effect tree of
     the body: a match is a chain of tests of its subject and bindings of the
-    pattern's variables. Continuations of [do] are lifted out of their function
-    to definitions at the level of its body, each taking as parameters the
+    pattern's variables, and the computations of the cases of a match nested in
+    more than a fixed number of cases are lifted, as Python limits the levels of
+    indentation. Continuations of [do] are lifted out of their function to
+    definitions at the level of its body, each taking as parameters the
     variables it uses that other lifted definitions bind, so that the nesting of
     the Python source follows that of the functions and cases of the program and
     not the length of its sequences.

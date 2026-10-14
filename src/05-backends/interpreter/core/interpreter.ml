@@ -19,22 +19,15 @@ module Types = struct
     | HandleOp
     | DefaultOp
 
-  (* A frame of a reduction context: a [do] or a [handle] around the hole, with
-     the location of that node and its part outside the hole. *)
   type ('abstraction, 'expression) context_frame =
     | DoFrame of Utils.Location.t * 'abstraction
     | HandleFrame of Utils.Location.t * 'expression
 
-  (* A reduction: a redex in a reduction context, given by its frames, the
-     innermost first. *)
   type 'frame computation_reduction = {
     context : 'frame list;
     redex : computation_redex;
   }
 
-  (* A step of a top-level [run] command: a reduction of its computation, or
-     the end of the command at a returned value or at an unhandled operation
-     call. *)
   type 'frame run_step_label =
     | ComputationReduction of 'frame computation_reduction
     | Return
@@ -45,8 +38,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   module Grades = GS
   module Graded = Ast.Graded (GS)
 
-  (* The interpreter has no use for anything but the accumulated resource grade
-     itself, so its contexts record just that. *)
+  (* The elapsed grades of the contexts of the interpreter: resource grades. *)
   module Elapsed = struct
     type t = Graded.rho
 
@@ -67,10 +59,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Some d -> d
     | None -> invalid_arg ("Interpreter.delay: " ^ Rational.show q)
 
-  (* The state holds each resource with the resource grade it was boxed at,
-     interleaved with the resource grades that have passed; operations are
-     graded by effect grades. The resource names, the continuations, the
-     accumulated grade and the depth of the calls serve the observations of steps. *)
   type evaluation_environment = {
     state : (Graded.rho * Graded.expression) ContextHolderModule.t;
     variables : Graded.expression ContextHolderModule.t;
@@ -99,8 +87,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
       op_defaults = Ast.OpNameMap.empty;
     }
 
-  (** [rho_of_eps eps] is the resource grade [∣eps∣] of the effect grade [eps]
-      of an operation signature. *)
+  (* The resource grade [∣eps∣] of the effect grade [eps] of an operation
+     signature. *)
   let rec rho_of_eps = function
     | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map c, at)
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
@@ -121,7 +109,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x ->
         eval_tuple env (ContextHolderModule.find_variable x env.variables)
     | _ ->
-        Error.runtime "Tuple expected but got %t"
+        Error.runtime "Tuple expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_variant (env : evaluation_environment) (expr : _ Ast.expression)
@@ -132,7 +120,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x ->
         eval_variant env (ContextHolderModule.find_variable x env.variables)
     | _ ->
-        Error.runtime "Variant expected but got %t"
+        Error.runtime "Variant expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_const (env : evaluation_environment) (expr : _ Ast.expression) =
@@ -142,7 +130,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x ->
         eval_const env (ContextHolderModule.find_variable x env.variables)
     | _ ->
-        Error.runtime "Constant expected but got %t"
+        Error.runtime "Constant expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   (* The argument [expr] of a primitive, its annotations dropped and its
@@ -477,7 +465,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
             let f = ContextHolderModule.find_variable x env.builtin_functions in
             fun arg -> f (eval_value env arg))
     | _ ->
-        Error.runtime "Function expected but got %t"
+        Error.runtime "Function expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_handler env (expr : _ Ast.expression) =
@@ -488,16 +476,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
         match ContextHolderModule.find_variable_opt x env.variables with
         | Some expr' -> eval_handler env expr'
         | None ->
-            Error.runtime "Handler expected but not found in the environment")
+            Error.runtime "Handler `%t` expected but not bound"
+              (Ast.Variable.print x))
     | _ ->
-        Error.runtime "Handler expected but got %t"
+        Error.runtime "Handler expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   type frame = (Graded.abstraction, Graded.expression) context_frame
-
-  (* A computation decomposed into a reduction context, its frames the
-     innermost first, and the subcomputation in its hole. Unless the context
-     is empty, the subcomputation is not a [return] or an operation call. *)
   type focus = { frames : frame list; subject : Graded.computation }
 
   let plug frame (comp : _ Ast.computation) =
@@ -861,9 +846,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         };
     }
 
-  (* The computation of the current [run] command, if any, decomposed at its
-     redex, with its environment, and the [run] commands after it, each with
-     the environment of the commands above it. *)
   type run_state = {
     environment : evaluation_environment;
     current : focus option;
@@ -908,12 +890,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
         pending;
       } ->
         [ end_run Return environment pending ]
-    (* A default implementation fires only here, where the operation call has
-       bubbled out of every enclosing [do] and [handle] and so is known to be
-       unhandled; [contract] deliberately gets no [Perform] rule. The body runs
-       in place of the call and its result is passed to the continuation,
-       exactly as a handled operation's result would be. Only the defaults
-       declared above the [run] command are in its environment. *)
+    (* An operation call outside every [do] and [handle] is unhandled, and is
+       reduced here rather than by [contract]: by its default implementation,
+       which runs in place of the call, its result passed to the continuation
+       of the call. The defaults of the environment are those declared above
+       the [run] command. *)
     | {
         current =
           Some
@@ -966,9 +947,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
                 });
           };
         ]
-    (* An operation call without a default that has bubbled out of every
-       enclosing [do] and [handle] is unhandled: the run stops there and
-       execution passes to the next top-level [run] command. *)
+    (* An unhandled operation call without a default implementation ends the
+       run; the next [run] command follows. *)
     | {
         current = Some { frames = []; subject = { it = Ast.Perform _; _ } };
         environment;

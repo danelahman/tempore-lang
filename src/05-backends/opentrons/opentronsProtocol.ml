@@ -1,4 +1,5 @@
 module Ast = Language.Ast
+module Names = OpentronsNames
 module Reach = OpentronsReach
 module OperationSet = Reach.OperationSet
 
@@ -20,18 +21,13 @@ let protocol_names = [ "metadata"; "requirements"; "run" ]
 
 (* Identifiers. *)
 
-let is_identifier_start c =
-  (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c = '_'
-
-let is_identifier_char c = is_identifier_start c || (c >= '0' && c <= '9')
-
 (* The identifier at the start of [s], if any, and the rest of [s]. *)
 let identifier s =
   let n = String.length s in
   let rec stop i =
-    if i < n && is_identifier_char s.[i] then stop (i + 1) else i
+    if i < n && Names.is_identifier_char s.[i] then stop (i + 1) else i
   in
-  if n > 0 && is_identifier_start s.[0] then
+  if n > 0 && Names.is_identifier_start s.[0] then
     let i = stop 1 in
     Some (String.sub s 0 i, String.sub s i (n - i))
   else None
@@ -127,30 +123,30 @@ let top_level_names source =
 let binding_errors ~compiled ~binding_name binding =
   let defined = top_level_names binding in
   let compiled_names = List.map fst (top_level_names compiled) in
-  let error = Printf.sprintf in
   let check (x, line) =
     if
       List.exists (fun prefix -> String.starts_with ~prefix x) reserved_prefixes
     then
       Some
-        (error
+        (Printf.sprintf
            "%s, line %d: the name `%s` begins with `tempore_` or `_tempore_`, \
             which are reserved for the runtime and the compiled program"
            binding_name line x)
     else if List.mem x protocol_names then
       Some
-        (error "%s, line %d: the name `%s` is defined by the protocol"
+        (Printf.sprintf "%s, line %d: the name `%s` is defined by the protocol"
            binding_name line x)
     else if List.mem x compiled_names then
       Some
-        (error "%s, line %d: the name `%s` is defined by the compiled program"
+        (Printf.sprintf
+           "%s, line %d: the name `%s` is defined by the compiled program"
            binding_name line x)
     else None
   in
   List.filter_map check defined
   @
   if List.mem_assoc "setup" defined then []
-  else [ error "%s: no function `setup` is defined" binding_name ]
+  else [ Printf.sprintf "%s: no function `setup` is defined" binding_name ]
 
 (* The checks of the operations of the runs. *)
 

@@ -1,6 +1,14 @@
 (** Python identifiers for the variables of a program, and tags for its labels.
 *)
 
+val is_identifier_start : char -> bool
+(** [is_identifier_start c] holds if [c] is an ASCII letter or [_], a character
+    that may start a Python identifier in ASCII. *)
+
+val is_identifier_char : char -> bool
+(** [is_identifier_char c] holds if [c] is an ASCII letter, digit or [_], a
+    character of a Python identifier in ASCII. *)
+
 type t
 (** The identifiers of the variables bound in a program. *)
 

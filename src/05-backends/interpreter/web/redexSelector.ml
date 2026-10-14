@@ -17,9 +17,8 @@ let highlight_delimited marker s =
 module Make (GS : Grades.GradeSystem.S) = struct
   open Interpreter.Types
 
-  (* A NUL byte is used as the redex marker because it cannot appear in any
-     output produced by [Format] and so makes a single-character separator
-     suitable for [String.split_on_char]. *)
+  (* The redex marker, a NUL byte, which printed computations do not
+     contain. *)
   let tag_marker = '\x00'
   let print_mark ppf = Format.pp_print_as ppf 0 (String.make 1 tag_marker)
 

@@ -370,6 +370,17 @@ the nesting of parentheses in an expression.
   return 119
   
 
+Matches nested deeper than a bound have their cases lifted out of the
+definition, as Python limits the levels of indentation.
+
+  $ parity nested_matches.tpe
+  === Run 1 ===
+  return 120
+  
+  === Run 2 ===
+  return 0
+  
+
 Recursion 100000 deep, beyond the reach of the interpreter in a test, runs in
 Python without a bound on the depth of the stack.
 
