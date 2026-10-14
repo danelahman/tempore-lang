@@ -249,7 +249,7 @@ let read path =
 
 let text_of_row (row : BackendRegistry.row) = String.concat " | " row.cells
 
-let run_example (entry : Manifest.entry) =
+let run_example (entry : ExampleIndex.entry) =
   match List.assoc_opt entry.grade Grades.GradeRegistry.grade_modules with
   | None -> fail "%s: unknown grade" entry.path
   | Some (module G : Grade.S) -> (
@@ -764,7 +764,7 @@ let arduino_program ~name ~grade ~settings ?(observed = false) variants source =
    manifest; without a manifest, compiled to the program alone, or, if the
    program defines a handler that is not tail-resumptive, which only the
    definitions of the tasks of the manifest may leave out, refused at it. *)
-let arduino_example (entry : Manifest.entry) =
+let arduino_example (entry : ExampleIndex.entry) =
   let settings = List.map (fun (k, v) -> (k, read v)) entry.settings in
   let source = read entry.path in
   let has_files names (output : BackendRegistry.compiled) =
@@ -964,11 +964,15 @@ let () =
   | _ -> fail "the declarations of a malformed manifest"
 
 let () =
-  let _, entries, _ = Manifest.read (Filename.concat root "examples/index") in
+  let _, entries, _ =
+    ExampleIndex.read (Filename.concat root "examples/index")
+  in
   List.iter run_example
-    (List.filter (fun (e : Manifest.entry) -> e.backend = "opentrons") entries);
+    (List.filter
+       (fun (e : ExampleIndex.entry) -> e.backend = "opentrons")
+       entries);
   let arduino =
-    List.filter (fun (e : Manifest.entry) -> e.backend = "arduino") entries
+    List.filter (fun (e : ExampleIndex.entry) -> e.backend = "arduino") entries
   in
   if List.length arduino < 2 then fail "the Arduino examples are missing";
   List.iter arduino_example arduino;

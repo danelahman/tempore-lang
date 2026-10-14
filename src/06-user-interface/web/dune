@@ -61,10 +61,10 @@
    (cat ../../05-backends/opentrons/README.md)
    (echo "|md}"))))
 
-;; The module Examples_tpe, generated from the example manifest
+;; The module Examples_tpe, generated from the example index
 ;; examples/index and the source of the examples it names by gen_examples
 ;; (see gen_examples/gen_examples.ml); the rule depends on the whole examples
-;; tree, so that editing the manifest or any example rebuilds it.
+;; tree, so that editing the index or any example rebuilds it.
 
 (rule
  (target examples_tpe.ml)

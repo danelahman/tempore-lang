@@ -12,7 +12,7 @@
   language
   loader
   webInterpreter
-  manifest
+  exampleIndex
   backendRegistry
   backend
   timeline

@@ -1,5 +1,5 @@
-(** The example manifest [examples/index], which lists the examples of the web
-    interface's gallery; its format is described in the manifest's header. *)
+(** The example index [examples/index], which lists the examples of the web
+    interface's gallery; its format is described in its header. *)
 
 type entry = {
   group : string;
@@ -19,12 +19,12 @@ type summary = { label : string; short : string; summary : string }
 (** A group's summary line: its label, the label's short form and the one-line
     summary. *)
 
-(** A line of the manifest. *)
+(** A line of the example index. *)
 type line = Example of entry | Summary of summary | Default of string
 
 val line_of_string : string -> line option
-(** [line_of_string line] is the manifest line [line], its fields trimmed;
-    [None] for a blank line or a comment.
+(** [line_of_string line] is the line [line], its fields trimmed; [None] for a
+    blank line or a comment.
 
     Raises [Failure] if the line is malformed. *)
 
@@ -38,12 +38,12 @@ val checked : entry -> entry
 
 val read : string -> summary list * entry list * string list
 (** [read path] is the summaries, the {!checked} examples and the default paths
-    of the manifest at [path], each in the manifest's order. *)
+    of the example index at [path], each in the order of the index. *)
 
 val group_entries : entry list -> (string * entry list) list
 (** [group_entries entries] is [entries] grouped by [group], in the order of the
-    manifest, both of the groups and within them; entries of one group are
-    expected to be consecutive. *)
+    index, both of the groups and within them; entries of one group are expected
+    to be consecutive. *)
 
 val summarised :
   summary list -> (string * entry list) list -> (summary * entry list) list

@@ -20,8 +20,8 @@ type input = {
   kind : input_kind;
   default : string;
 }
-(** An input of a backend: its key, by which settings and the example manifest
-    name it, its label and its value unless set. *)
+(** An input of a backend: its key, by which settings and the example index name
+    it, its label and its value unless set. *)
 
 type settings = (string * string) list
 (** Values of inputs, by key. *)
@@ -139,7 +139,7 @@ type source = {
 (** A source loaded before the program, under its file name. *)
 
 type entry = {
-  key : string;  (** by which the example manifest names the backend *)
+  key : string;  (** by which the example index names the backend *)
   name : string;  (** shown in the selector *)
   description : string;  (** one sentence *)
   inputs : input list;
