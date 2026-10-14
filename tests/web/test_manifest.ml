@@ -3,8 +3,7 @@
    backends and settings, and the manifest of the repository. Silent on
    success. *)
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 let raises f = match f () with _ -> false | exception Failure _ -> true
 
 let example line =
@@ -120,8 +119,4 @@ let () =
              es)
          groups)
   then fail "a group of the manifest mixes backends";
-  match !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline (List.rev failures);
-      exit 1
+  TestSupport.Failures.finish ()

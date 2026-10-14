@@ -6,8 +6,8 @@ whose periodic task is not checked against its period by the typechecker,
 and its host simulation.
 
   $ app=../../examples/arduino/peak
-  $ tempore () { ../../tempore --grades counts-upper-bound "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --board m5stack-cores3 "$@"; }
+  $ . ../helpers.sh
+  $ from_header $app/peak.tpe
 
 The interpreter runs a step and an iteration of the recorder with the
 default implementations of the operations:

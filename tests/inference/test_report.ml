@@ -8,8 +8,7 @@ module Ast = Language.Ast
 module Grade = Grades.Grade
 module GradeSystem = Grades.GradeSystem
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 let verbose = Array.exists (( = ) "-v") Sys.argv
 
 (* ------------------------------------------------------------------ *)
@@ -153,11 +152,6 @@ module Programs (G : Grade.S) = struct
           [ ("none", []); ("argument", [ a ]); ("result", [ b ]) ]
     | S.Refuted _ | S.Stuck _ -> [ ("solved", "no solution") ]
 end
-
-let grade_module name =
-  match List.assoc_opt name Grades.GradeRegistry.grade_modules with
-  | Some g -> g
-  | None -> failwith ("unknown grades " ^ name)
 
 (* ------------------------------------------------------------------ *)
 (* The programs, in the surface syntax                                 *)
@@ -438,7 +432,7 @@ let compare_schemes grades actual expected =
     expected
 
 let check grades =
-  let (module G) = grade_module grades in
+  let (module G) = TestPrograms.grade_module grades in
   let module T = Programs (G) in
   let traces = String.starts_with ~prefix:"traces" grades in
   let lit n = if traces then Printf.sprintf "{%d}" n else string_of_int n in
@@ -466,7 +460,7 @@ let check grades =
    is kept with its lower bound, the argument quantified. The fixed unknowns
    are printed first, named [α]. *)
 let check_fixed () =
-  let (module G) = grade_module "time-lower-bound" in
+  let (module G) = TestPrograms.grade_module "time-lower-bound" in
   let module T = Programs (G) in
   List.iter
     (fun ((label, actual), expected) ->
@@ -498,7 +492,7 @@ let recursive_programs =
 
 let check_recursive () =
   let grades = "time-upper-bound" in
-  let (module G) = grade_module grades in
+  let (module G) = TestPrograms.grade_module grades in
   let module T = Programs (G) in
   compare_schemes grades
     (T.schemes (String.concat "\n" recursive_programs))
@@ -539,7 +533,7 @@ let annotations =
   ]
 
 let check_round_trip () =
-  let (module G) = grade_module "time-upper-bound" in
+  let (module G) = TestPrograms.grade_module "time-upper-bound" in
   let module T = Programs (G) in
   let name i = Printf.sprintf "annotated_%d" i in
   let actual =
@@ -564,8 +558,4 @@ let () =
   check_fixed ();
   check_recursive ();
   check_round_trip ();
-  match List.rev !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline failures;
-      exit 1
+  TestSupport.Failures.finish ()

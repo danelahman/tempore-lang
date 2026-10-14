@@ -5,11 +5,8 @@ variants, its project and its host simulation, over the surface and the taps
 of its host model.
 
   $ app=../../examples/arduino/level
-  $ tempore () { ../../tempore --grades regex-timed-interval-rational-symbolic "$@"; }
-  $ packages () {
-  >   tempore --package m5-imu --package m5-display --package m5-touch \
-  >     --package m5-speaker --board m5stack-cores3 "$@"
-  > }
+  $ . ../helpers.sh
+  $ from_header $app/level.tpe
 
 The interpreter runs a step from the initial state and the taking of a
 reference with the default implementations of the operations:

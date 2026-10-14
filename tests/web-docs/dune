@@ -4,7 +4,7 @@
 
 (test
  (name test_docs)
- (libraries webDocPages)
+ (libraries webDocPages testSupport)
  (deps
   %{project_root}/README.md
   %{project_root}/src/05-backends/arduino/README.md

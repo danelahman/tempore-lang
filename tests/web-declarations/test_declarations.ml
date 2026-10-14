@@ -3,8 +3,7 @@
    an example of the Arduino backend to the declarations of the packages of
    its manifest. *)
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 let root = Filename.concat (Sys.getcwd ()) "../.."
 
 let read path =
@@ -169,8 +168,4 @@ let () =
     ~program:"examples/arduino/bala2-regex/balance_regex.tpe"
 
 let () =
-  match !failures with
-  | [] -> print_endline "web declarations: all tests passed"
-  | failures ->
-      List.iter prerr_endline (List.rev failures);
-      exit 1
+  TestSupport.Failures.finish ~success:"web declarations: all tests passed" ()

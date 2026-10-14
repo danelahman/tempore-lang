@@ -6,8 +6,8 @@ interpreter, its rejected variants, and its closed loop with the host model
 of the robot.
 
   $ app=../../examples/arduino/bala2-regex
-  $ tempore () { ../../tempore --grades regex-timed-interval-rational-symbolic "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
+  $ . ../helpers.sh
+  $ from_header $app/balance_regex.tpe
 
 The interpreter, with the declarations of the packages under their
 running-time bounds on the M5Stack Gray, the board of the manifest, as for

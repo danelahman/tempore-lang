@@ -6,8 +6,8 @@ its period from the durations of a trace, and its host simulation on a
 stand, with a stalled wheel.
 
   $ app=../../examples/arduino/wheels
-  $ tempore () { ../../tempore --grades regex-timed-interval-rational-symbolic "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
+  $ . ../helpers.sh
+  $ from_header $app/wheels.tpe
 
 The interpreter, with the declarations of the packages under their
 running-time bounds on the M5Stack Gray, the board of the manifest, as for

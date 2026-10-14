@@ -20,6 +20,7 @@
   opentronsBackend
   arduinoBackend
   typechecker
+  testSupport
   zarith_stubs_js)
  (link_flags -no-check-prims))
 

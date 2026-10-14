@@ -2,8 +2,7 @@
    encoding, the refusal of malformed encodings, and the removal of unknown
    grades, backends and inputs. Silent on success. *)
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 
 let choices =
   {
@@ -90,9 +89,4 @@ let () =
   then fail "unknown settings kept";
   if WebChoices.sanitise choices <> choices then fail "known choices changed"
 
-let () =
-  match List.rev !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline failures;
-      exit 1
+let () = TestSupport.Failures.finish ()

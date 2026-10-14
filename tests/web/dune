@@ -16,7 +16,8 @@
   cliInterpreter
   opentronsBackend
   arduinoBackend
-  typechecker)
+  typechecker
+  testSupport)
  (deps
   %{project_root}/examples/index
   %{project_root}/tests/default_chain.tpe

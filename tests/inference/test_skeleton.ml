@@ -7,11 +7,7 @@ module Grade = Grades.Grade
 module GradeSystem = Grades.GradeSystem
 module GradeExp = Inference.GradeExp
 module Skeleton = Inference.Skeleton
-
-type check = { name : string; passed : bool; detail : string }
-
-let check name passed detail = { name; passed; detail }
-
+open TestSupport.Checks
 module G = (val snd (List.hd Grades.GradeRegistry.grade_modules) : Grade.S)
 module GS = GradeSystem.Identity (G)
 module X = GradeExp.Make (GS)
@@ -361,9 +357,4 @@ let expansion =
 
 let () =
   let checks = unification @ decoration @ expansion in
-  let failures = List.filter (fun c -> not c.passed) checks in
-  List.iter (fun c -> Printf.printf "FAIL %s: %s\n" c.name c.detail) failures;
-  Printf.printf "%d of %d checks passed\n"
-    (List.length checks - List.length failures)
-    (List.length checks);
-  if failures <> [] then exit 1
+  report checks

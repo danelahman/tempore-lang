@@ -6,8 +6,7 @@
 
 module Grade = Grades.Grade
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 let verbose = Array.exists (( = ) "-v") Sys.argv
 
 (* Timelines *)
@@ -973,8 +972,4 @@ let () =
   in
   if List.length arduino < 2 then fail "the Arduino examples are missing";
   List.iter arduino_example arduino;
-  match !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline (List.rev failures);
-      exit 1
+  TestSupport.Failures.finish ()

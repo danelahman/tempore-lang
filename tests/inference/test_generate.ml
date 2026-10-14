@@ -10,31 +10,7 @@ module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
 module Reason = Inference.Reason
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
-
-(* ------------------------------------------------------------------ *)
-(* Grade systems of the files                                          *)
-(* ------------------------------------------------------------------ *)
-
-(* The peripheral packages of the Arduino backend that the header of the file
-   at [path] names by [--package NAME] options: the files of each under the
-   grades [grades], each with its name, its text and the running-time bounds
-   of the board named by a [--board NAME] option, if any. *)
-let header_packages ~grades path =
-  let board = List.nth_opt (TestSupport.Header.options path "--board") 0 in
-  TestSupport.Header.options path "--package"
-  |> List.concat_map (fun name ->
-      let module Package = ArduinoBackend.ArduinoPackage in
-      match
-        Option.map (Package.files_for ~grades ?board) (Package.find name)
-      with
-      | Some (Ok files) ->
-          List.map
-            (fun (f : Package.file) -> (f.filename, f.text, f.running_times))
-            files
-      | Some (Error message) -> failwith message
-      | None -> failwith ("unknown package " ^ name))
+let fail = TestSupport.Failures.fail
 
 (* The files with a program that a correct front end or generation rejects,
    with an error of their own rather than one of the solver. *)
@@ -240,15 +216,10 @@ module Program (G : Grade.S) = struct
     | exception Grammar.Error when expect_errors -> true
 end
 
-let grade_module name =
-  match List.assoc_opt name Grades.GradeRegistry.grade_modules with
-  | Some g -> g
-  | None -> failwith ("unknown grades " ^ name)
-
 let check_file ?packages path grades =
   let name = Filename.basename path in
   let expect_errors = List.mem name malformed in
-  let (module G) = grade_module grades in
+  let (module G) = TestPrograms.grade_module grades in
   let module P = Program (G) in
   match P.file ?packages path ~expect_errors with
   | rejected ->
@@ -259,26 +230,14 @@ let check_file ?packages path grades =
   | exception e ->
       fail "%s (%s): unexpected exception %s" name grades (Printexc.to_string e)
 
-(* The '.tpe' files under [dir], recursing into subdirectories (examples are
-   grouped into some) if [recursive], each named entries sorted within its own
-   directory. The tests are those directly under [tests/], the files the test
-   depends on; those of its subdirectories belong to other tests. *)
-let rec tpe_files ?(recursive = true) dir =
-  Sys.readdir dir |> Array.to_list |> List.sort String.compare
-  |> List.concat_map (fun name ->
-      let path = Filename.concat dir name in
-      if Sys.is_directory path then if recursive then tpe_files path else []
-      else if Filename.check_suffix name ".tpe" then [ path ]
-      else [])
-
 let programs () =
   let root = "../.." in
   List.iter
     (fun path ->
       let grades = TestSupport.Header.grades path in
-      check_file ~packages:(header_packages ~grades path) path grades)
-    (tpe_files (Filename.concat root "examples")
-    @ tpe_files ~recursive:false (Filename.concat root "tests"))
+      check_file ~packages:(TestPrograms.packages ~grades path) path grades)
+    (TestPrograms.tpe_files (Filename.concat root "examples")
+    @ TestPrograms.tpe_files ~recursive:false (Filename.concat root "tests"))
 
 (* ------------------------------------------------------------------ *)
 (* Constraints of small terms                                          *)
@@ -589,8 +548,4 @@ end
 let () =
   programs ();
   Small.run ();
-  match List.rev !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline failures;
-      exit 1
+  TestSupport.Failures.finish ()

@@ -10,32 +10,8 @@ module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
 module Reason = Inference.Reason
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 let verbose = Array.exists (( = ) "-v") Sys.argv
-
-(* ------------------------------------------------------------------ *)
-(* Grade systems of the files                                          *)
-(* ------------------------------------------------------------------ *)
-
-(* The peripheral packages of the Arduino backend that the header of the file
-   at [path] names by [--package NAME] options: the files of each under the
-   grades [grades], each with its name, its text and the running-time bounds
-   of the board named by a [--board NAME] option, if any. *)
-let header_packages ~grades path =
-  let board = List.nth_opt (TestSupport.Header.options path "--board") 0 in
-  TestSupport.Header.options path "--package"
-  |> List.concat_map (fun name ->
-      let module Package = ArduinoBackend.ArduinoPackage in
-      match
-        Option.map (Package.files_for ~grades ?board) (Package.find name)
-      with
-      | Some (Ok files) ->
-          List.map
-            (fun (f : Package.file) -> (f.filename, f.text, f.running_times))
-            files
-      | Some (Error message) -> failwith message
-      | None -> failwith ("unknown package " ^ name))
 
 (* The expected output of each test file in the cram test: whether it shows a
    typing error, and whether a syntax error. *)
@@ -224,11 +200,6 @@ module Programs (G : Grade.S) = struct
     | exception Grammar.Error -> None
 end
 
-let grade_module name =
-  match List.assoc_opt name Grades.GradeRegistry.grade_modules with
-  | Some g -> g
-  | None -> failwith ("unknown grades " ^ name)
-
 module type PROGRAMS = sig
   val file :
     ?packages:(string * string * (string * Grade.running_time) list) list ->
@@ -245,7 +216,7 @@ let programs_of =
     match Hashtbl.find_opt table grades with
     | Some p -> p
     | None ->
-        let (module G) = grade_module grades in
+        let (module G) = TestPrograms.grade_module grades in
         let p = (module Programs (G) : PROGRAMS) in
         Hashtbl.add table grades p;
         p
@@ -255,18 +226,6 @@ let file_verdicts ?packages path grades =
   let start = Unix.gettimeofday () in
   let verdicts = P.file ?packages path in
   (verdicts, Unix.gettimeofday () -. start)
-
-(* The '.tpe' files under [dir], recursing into subdirectories (examples are
-   grouped into some) if [recursive], each named entries sorted within its own
-   directory. The tests are those directly under [tests/], the files the test
-   depends on; those of its subdirectories belong to other tests. *)
-let rec tpe_files ?(recursive = true) dir =
-  Sys.readdir dir |> Array.to_list |> List.sort String.compare
-  |> List.concat_map (fun name ->
-      let path = Filename.concat dir name in
-      if Sys.is_directory path then if recursive then tpe_files path else []
-      else if Filename.check_suffix name ".tpe" then [ path ]
-      else [])
 
 (* The lines of the commands the solver rejects, by file, a path relative to
    the project root: every other command of the examples and the tests is
@@ -469,8 +428,8 @@ let programs () =
   List.iter
     (fun path ->
       let grades = TestSupport.Header.grades path in
-      ignore (check ~packages:(header_packages ~grades path) path grades))
-    (tpe_files (Filename.concat root "examples"));
+      ignore (check ~packages:(TestPrograms.packages ~grades path) path grades))
+    (TestPrograms.tpe_files (Filename.concat root "examples"));
   List.iter
     (fun path ->
       let name = Filename.basename path in
@@ -483,7 +442,7 @@ let programs () =
             fail "%s: the cram test shows it %s, the solver %s" name
               (if e.typing_error then "rejected" else "accepted")
               (if rejected then "rejects" else "accepts"))
-    (tpe_files ~recursive:false (Filename.concat root "tests"))
+    (TestPrograms.tpe_files ~recursive:false (Filename.concat root "tests"))
 
 (* ------------------------------------------------------------------ *)
 (* The solver on small constraints                                     *)
@@ -1071,7 +1030,7 @@ let small_program_verdicts =
   ]
 
 let check_small_programs grades =
-  let (module G) = grade_module grades in
+  let (module G) = TestPrograms.grade_module grades in
   let (module P) = programs_of grades in
   let traces = String.starts_with ~prefix:"traces" grades in
   let lit n = if traces then Printf.sprintf "{%d}" n else string_of_int n in
@@ -1111,15 +1070,11 @@ let four_grades =
 let () =
   List.iter
     (fun grades ->
-      let (module G) = grade_module grades in
+      let (module G) = TestPrograms.grade_module grades in
       let module T = Small (G) in
       T.run ();
       check_small_programs grades)
     four_grades;
   programs ();
   List.iter (fun (name, time) -> fail "%s is slow: %.1fs" name time) !slow;
-  match List.rev !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline failures;
-      exit 1
+  TestSupport.Failures.finish ()

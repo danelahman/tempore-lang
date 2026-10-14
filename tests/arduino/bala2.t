@@ -3,8 +3,8 @@ packages m5-imu, m5-display and bala2-base, its rejected variants, and its
 closed loop with the host model of the robot.
 
   $ app=../../examples/arduino/bala2
-  $ tempore () { ../../tempore --grades time-interval-rational "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --package bala2-base --board m5stack-gray "$@"; }
+  $ . ../helpers.sh
+  $ from_header $app/balance.tpe
 
 The interpreter, with the declarations of the packages under their
 running-time bounds on the M5Stack Gray, the board of the manifest, as for

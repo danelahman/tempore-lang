@@ -31,8 +31,7 @@
    runs it, and its grades: what a grade denotes, and the unit, top and
    product of the monoid. Silent on success. *)
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 
 (* The '.tpe' files under [dir], recursing into subdirectories, each paired
    with its path relative to the project root (e.g. "examples/basics/nat.tpe"),
@@ -251,8 +250,4 @@ let () =
   List.iter
     (fun (name, path) -> check_header name path)
     (tpe_files ~label:"examples" (Filename.concat root "examples"));
-  match List.rev !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline failures;
-      exit 1
+  TestSupport.Failures.finish ()

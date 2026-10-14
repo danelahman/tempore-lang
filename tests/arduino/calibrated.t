@@ -6,9 +6,8 @@ unit at rest at a tilt of 0.1 rad, whose gyroscope reads a bias of 2
 degrees per second.
 
   $ app=../../examples/arduino/calibrated
-  $ tempore () { ../../tempore --grades time-interval-rational "$@"; }
-  $ packages () { tempore --package m5-imu --package m5-display --board m5stack-cores3 "$@"; }
-  $ strip_state () { awk '/^State:/ { skip = 1 } /^$/ { skip = 0 } !skip'; }
+  $ . ../helpers.sh
+  $ from_header $app/calibrated.tpe
 
 The interpreter runs a step from the initial state and an iteration of the
 display with the default implementations of the operations:

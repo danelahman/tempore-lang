@@ -4,8 +4,7 @@
    choices the page opens with under parameters and remembered choices, with
    unknown examples, grades and backends ignored. Silent on success. *)
 
-let failures = ref []
-let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
+let fail = TestSupport.Failures.fail
 let grades_a = Grades.GradeRegistry.default_name
 let grades_b = fst (List.nth Grades.GradeRegistry.grade_modules 1)
 
@@ -287,9 +286,4 @@ let () =
       ("elisa", remembered);
     ]
 
-let () =
-  match List.rev !failures with
-  | [] -> ()
-  | failures ->
-      List.iter prerr_endline failures;
-      exit 1
+let () = TestSupport.Failures.finish ()
