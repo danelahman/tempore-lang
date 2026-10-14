@@ -160,7 +160,7 @@ module Make (C : Constraint.S) = struct
     List.map
       (fun a ->
         let target = function
-          | Ast.TyParam b when Ast.TyParamModule.compare a b = 0 -> Some ()
+          | Ast.TyParam b when Ast.TyParamModule.equal a b -> Some ()
           | _ -> None
         in
         List.for_all
@@ -214,7 +214,7 @@ module Make (C : Constraint.S) = struct
      inductive types (Coquand and Paulin, COLOG-88, 1990). *)
   let check_strictly_positive ~loc env group =
     let grouped name =
-      List.exists (fun (name', _) -> Ast.TyName.compare name name' = 0) group
+      List.exists (fun (name', _) -> Ast.TyName.equal name name') group
     in
     let target = function
       | Ast.TyApply (name, _) when grouped name -> Some name
@@ -461,7 +461,7 @@ module Make (C : Constraint.S) = struct
     | Ast.TyApply (name, tys) -> (
         match find_type_definition env name with
         | Some { params; definition = Ast.TyInline body; _ } ->
-            List.exists (fun name' -> Ast.TyName.compare name name' = 0) path
+            List.exists (fun name' -> Ast.TyName.equal name name') path
             ||
             let args' =
               List.fold_left2
@@ -598,8 +598,7 @@ module Make (C : Constraint.S) = struct
     | Ast.TyApply (name, tys) -> (
         match List.find_map (higher_order env ~unfolding) tys with
         | Some _ as found -> found
-        | None
-          when List.exists (fun n -> Ast.TyName.compare n name = 0) unfolding ->
+        | None when List.exists (fun n -> Ast.TyName.equal n name) unfolding ->
             None
         | None ->
             Option.bind (find_type_definition env name) (fun def ->
@@ -688,9 +687,9 @@ module Make (C : Constraint.S) = struct
 
   let lookup ~loc env x =
     let rec find locks = function
-      | Bound (y, ty, bound_at) :: _ when Ast.Variable.compare x y = 0 ->
+      | Bound (y, ty, bound_at) :: _ when Ast.Variable.equal x y ->
           Local { ty; bound_at; locks }
-      | Persistent (y, ty, bound_at) :: _ when Ast.Variable.compare x y = 0 ->
+      | Persistent (y, ty, bound_at) :: _ when Ast.Variable.equal x y ->
           Persistent_local { ty; bound_at }
       | (Bound _ | Persistent _) :: context -> find locks context
       | Lock e :: context -> find (e :: locks) context

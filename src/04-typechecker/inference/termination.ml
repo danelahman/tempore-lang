@@ -71,7 +71,7 @@ let rec without_partials = function
    the caller either tracks or records as escaping. *)
 let rec expression env (e : ('rho, 'eps) Ast.expression) acc =
   match e.it with
-  | Ast.Var x when Ast.Variable.compare x env.self = 0 ->
+  | Ast.Var x when Ast.Variable.equal x env.self ->
       (Partial { args = []; at = e.at }, acc)
   | Ast.Var x -> (
       match VariableMap.find_opt x env.values with
@@ -222,7 +222,7 @@ let guard ~defined_at f abs =
     else best
   in
   match failures with
-  | _ when List.exists (fun (_, fs) -> fs = []) failures -> ()
+  | _ when List.exists (fun (_, fs) -> List.is_empty fs) failures -> ()
   | [] -> ()
   | first :: rest -> (
       match List.fold_left (fun best c -> fewer c best) first rest with

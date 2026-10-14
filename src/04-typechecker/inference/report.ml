@@ -26,7 +26,7 @@ module Make (C : Constraint.S) = struct
   (* An unknown of any sort. *)
   type unknown = Ty_unknown of Ast.ty_param | Grade_unknown of R.grade_unknown
 
-  let same_param a b = TyParam.compare a b = 0
+  let same_param a b = TyParam.equal a b
 
   let is_param u (ty : C.ty) =
     match (u, ty) with
@@ -105,7 +105,7 @@ module Make (C : Constraint.S) = struct
     | Ast.TyConst c, Ast.TyConst c' -> c = c'
     | Ast.TyParam a, Ast.TyParam b -> same_param a b
     | Ast.TyApply (name, tys), Ast.TyApply (name', tys') ->
-        Ast.TyName.compare name name' = 0 && same_tys context tys tys'
+        Ast.TyName.equal name name' && same_tys context tys tys'
     | Ast.TyTuple tys, Ast.TyTuple tys' -> same_tys context tys tys'
     | Ast.TyArrow (ty, cty), Ast.TyArrow (ty', cty') ->
         same_ty context ty ty' && same_comp_ty context cty cty'

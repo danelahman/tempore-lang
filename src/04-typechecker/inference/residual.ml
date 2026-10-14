@@ -246,8 +246,8 @@ module Make (C : Constraint.S) = struct
       | Ast.TyTuple tys -> all visited tys acc
       | Ast.TyApply (name, args) -> (
           if context.is_noneternal name then None
-          else if List.exists (fun n -> Ast.TyName.compare n name = 0) visited
-          then all visited args acc
+          else if List.exists (fun n -> Ast.TyName.equal n name) visited then
+            all visited args acc
           else
             let visited = name :: visited in
             match
@@ -285,7 +285,7 @@ module Make (C : Constraint.S) = struct
     | None -> Ok { r with eps_orderings = o :: r.eps_orderings }
 
   let is_param a = function
-    | { eternal_ty = Ast.TyParam b; _ } -> TyParam.compare a b = 0
+    | { eternal_ty = Ast.TyParam b; _ } -> TyParam.equal a b
     | { eternal_ty = _; _ } -> false
 
   let push_eternal context e r =
@@ -386,7 +386,7 @@ module Make (C : Constraint.S) = struct
         | None -> (
             match (s.lhs, s.rhs) with
             | Ast.TyParam a, Ast.TyParam b ->
-                if TyParam.compare a b = 0 then Ok r
+                if TyParam.equal a b then Ok r
                 else Ok { r with subs = s :: r.subs }
             | lhs, rhs -> (
                 match

@@ -131,7 +131,7 @@ module Make (C : Inference.Constraint.S) = struct
     | Reason.Rec_capture _ | Reason.Instance_of _ | Reason.Continuation_grade _
     | Reason.Default_of _ ->
         true
-    | Reason.Annotation -> r.path = [ Reason.Effect ]
+    | Reason.Annotation -> List.equal Reason.equal_step r.path [ Reason.Effect ]
     | Reason.Application _ | Reason.Match_scrutinee _ | Reason.Match_branch
     | Reason.Pattern_annotation | Reason.Variant_argument _
     | Reason.Successor_pattern | Reason.Boxed_value | Reason.Handler_case _
@@ -225,7 +225,7 @@ module Make (C : Inference.Constraint.S) = struct
             (subject var) unit_word (rho_code p total) (g s2)
         in
         (reason.at, message, ineq_notes p f)
-    | Reason.Continuation_grade { op; _ }, _ when rs <> [] ->
+    | Reason.Continuation_grade { op; _ }, _ when not (List.is_empty rs) ->
         let quantifier = String.capitalize_ascii (for_every p rs) in
         let g2 = g s2 in
         let g1 = g s1 in
@@ -268,7 +268,7 @@ module Make (C : Inference.Constraint.S) = struct
             (quantified p rs (ineq_text p f.sort f.stated))
         in
         let witness =
-          if rs = [] then counterexample_notes p f else ineq_notes p f
+          if List.is_empty rs then counterexample_notes p f else ineq_notes p f
         in
         match root source reason with
         | Some ((r : C.reason), a, b, _)

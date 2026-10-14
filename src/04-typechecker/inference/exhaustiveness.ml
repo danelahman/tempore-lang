@@ -50,8 +50,7 @@ let head = function
 
 let same_head h h' =
   match (h, h') with
-  | Constructor (lbl, _), Constructor (lbl', _) ->
-      Ast.Label.compare lbl lbl' = 0
+  | Constructor (lbl, _), Constructor (lbl', _) -> Ast.Label.equal lbl lbl'
   | Components n, Components n' -> n = n'
   | Zero, Zero | Successor, Successor -> true
   | Constant c, Constant c' -> Const.equal c c'
@@ -100,8 +99,8 @@ let specialise h row =
   | p :: rest -> (
       match (p, h) with
       | Any, _ -> Some (List.init (arity h) (fun _ -> Any) @ rest)
-      | Variant (lbl, arg), Constructor (lbl', _)
-        when Ast.Label.compare lbl lbl' = 0 ->
+      | Variant (lbl, arg), Constructor (lbl', _) when Ast.Label.equal lbl lbl'
+        ->
           Some (Option.to_list arg @ rest)
       | Tuple ps, Components _ -> Some (ps @ rest)
       | Nat n, Zero when Z.equal n Z.zero -> Some rest
@@ -191,7 +190,7 @@ let rec missing ~constructors rows n =
 
 (* Printing, in the surface syntax. *)
 
-let is_label lbl lbl' = Ast.Label.compare lbl lbl' = 0
+let is_label lbl lbl' = Ast.Label.equal lbl lbl'
 
 (* The head and the tail of the argument of [::]. *)
 let cons_parts = function Tuple [ hd; tl ] -> (hd, tl) | _ -> (Any, Any)

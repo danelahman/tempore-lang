@@ -55,13 +55,17 @@ let operations performed =
 
 (* A shortest path [B₀; …; Bₖ] of the graph from an operation [B₀] of
    [performed] to [target = Bₖ], by breadth-first search (Moore, 1959); each
-   queued operation carries the path before it, newest first. *)
+   queued operation carries the path before it, newest first, and the queue is
+   a list of the operations to visit first and a reversed one of those queued
+   after them. *)
 let path ~default performed target =
-  let rec search visited = function
-    | [] -> None
-    | (op, before) :: _ when Ast.OpName.compare op target = 0 ->
+  let rec search visited front back =
+    match (front, back) with
+    | [], [] -> None
+    | [], back -> search visited (List.rev back) []
+    | (op, before) :: _, _ when Ast.OpName.equal op target ->
         Some (List.rev (op :: before))
-    | (op, before) :: queue ->
+    | (op, before) :: front, back ->
         let next =
           match default op with
           | Some { performs; _ } -> OpNameSet.diff performs visited
@@ -69,12 +73,15 @@ let path ~default performed target =
         in
         search
           (OpNameSet.union visited next)
-          (queue
-          @ List.map (fun op' -> (op', op :: before)) (OpNameSet.elements next)
-          )
+          front
+          (List.rev_append
+             (List.map
+                (fun op' -> (op', op :: before))
+                (OpNameSet.elements next))
+             back)
   in
   let start = operations performed in
-  search start (List.map (fun op -> (op, [])) (OpNameSet.elements start))
+  search start (List.map (fun op -> (op, [])) (OpNameSet.elements start)) []
 
 let name op = Printf.sprintf "`%s`" (Ast.OpName.string_of op)
 

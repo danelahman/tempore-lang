@@ -222,9 +222,8 @@ let print_step s ppf =
   | Handler_input -> Format.pp_print_string ppf "handler input"
   | Handler_output -> Format.pp_print_string ppf "handler output"
 
-let equal_symbol compare x y = compare x y = 0
-let equal_variable = equal_symbol Ast.Variable.compare
-let equal_operation = equal_symbol Ast.OpName.compare
+let equal_variable = Ast.Variable.equal
+let equal_operation = Ast.OpName.equal
 
 let equal_clause c c' =
   equal_operation c.op c'.op
@@ -301,8 +300,7 @@ and equal_why equal_rho equal_eps why why' =
   | Top_computation, Top_computation
   | Compared_values, Compared_values ->
       true
-  | Variant_argument lbl, Variant_argument lbl' ->
-      equal_symbol Ast.Label.compare lbl lbl'
+  | Variant_argument lbl, Variant_argument lbl' -> Ast.Label.equal lbl lbl'
   | Unboxed u, Unboxed u' ->
       equal_variable u.var u'.var
       && Option.equal Location.equal u.bound_at u'.bound_at

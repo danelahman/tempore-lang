@@ -119,7 +119,8 @@ struct
     Option.bind source.constr (fun c ->
         List.find_map
           (function
-            | C.Sub (r, a, b) when r.path = [] && same_origin r generated ->
+            | C.Sub (r, a, b)
+              when List.is_empty r.path && same_origin r generated ->
                 Some (a, b)
             | _ -> None)
           (atoms c))
@@ -142,7 +143,10 @@ struct
      subject's and the expected type's: under an odd number of function
      domains. *)
   let flipped reason path =
-    List.length (List.filter (( = ) Reason.Argument) (solver_steps reason path))
+    List.length
+      (List.filter
+         (Reason.equal_step Reason.Argument)
+         (solver_steps reason path))
     mod 2
     = 1
 
@@ -345,20 +349,21 @@ struct
      than the construct [at] of the failing atom and the places already
      pointed at. *)
   let decided_labels ~primary ~at ~labels sides =
-    List.fold_left
-      (fun acc (shown, decision) ->
-        match decision with
-        | Some (d : S.decision)
-          when not
-                 (Location.equal d.reason.at primary
-                 || Location.equal d.reason.at at
-                 || List.exists
-                      (fun (l : Diagnostic.label) ->
-                        Location.equal l.span d.reason.at)
-                      (labels @ acc)) ->
-            acc @ [ label d.reason.at (shown ^ " was inferred " ^ here) ]
-        | Some _ | None -> acc)
-      [] sides
+    List.rev
+    @@ List.fold_left
+         (fun acc (shown, decision) ->
+           match decision with
+           | Some (d : S.decision)
+             when not
+                    (Location.equal d.reason.at primary
+                    || Location.equal d.reason.at at
+                    || List.exists
+                         (fun (l : Diagnostic.label) ->
+                           Location.equal l.span d.reason.at)
+                         (labels @ acc)) ->
+               label d.reason.at (shown ^ " was inferred " ^ here) :: acc
+           | Some _ | None -> acc)
+         [] sides
 
   (* Whether the span [outer] encloses the span [inner]. *)
   let encloses (outer : Location.t) (inner : Location.t) =
@@ -428,8 +433,7 @@ struct
         given (leading_part path "this expression") "the annotated type"
     | Reason.Pattern_annotation, _ ->
         given (leading_part path "this pattern") "the annotated type"
-    | Reason.Variant_argument lbl, _
-      when Ast.Label.compare lbl Ast.cons_label = 0 ->
+    | Reason.Variant_argument lbl, _ when Ast.Label.equal lbl Ast.cons_label ->
         Printf.sprintf "the elements of this list are given one type %s" here
     | Reason.Variant_argument lbl, _ ->
         given "this argument"
@@ -512,32 +516,31 @@ struct
       primary :: at :: List.map (fun (l : Diagnostic.label) -> l.span) labels
     in
     let nested place place' = encloses place place' || encloses place' place in
-    List.fold_left
-      (fun acc ((d : S.decision), joined) ->
-        let place = d.reason.at in
-        if
-          List.exists (nested place) pointed
-          || List.exists
-               (fun place' ->
-                 encloses place' place && not (Location.equal place' place))
-               places
-          || List.exists
-               (fun (l : Diagnostic.label) -> Location.equal l.span place)
-               acc
-        then acc
-        else
-          acc
-          @ [
-              label place
-                (use_text p d.reason
-                   (d.reason.path @ List.map Reason.of_ast_step d.path)
-                   joined);
-            ])
-      []
-      (List.stable_sort
-         (fun ((d : S.decision), _) ((d' : S.decision), _) ->
-           Location.compare d.reason.at d'.reason.at)
-         related)
+    List.rev
+    @@ List.fold_left
+         (fun acc ((d : S.decision), joined) ->
+           let place = d.reason.at in
+           if
+             List.exists (nested place) pointed
+             || List.exists
+                  (fun place' ->
+                    encloses place' place && not (Location.equal place' place))
+                  places
+             || List.exists
+                  (fun (l : Diagnostic.label) -> Location.equal l.span place)
+                  acc
+           then acc
+           else
+             label place
+               (use_text p d.reason
+                  (d.reason.path @ List.map Reason.of_ast_step d.path)
+                  joined)
+             :: acc)
+         []
+         (List.stable_sort
+            (fun ((d : S.decision), _) ((d' : S.decision), _) ->
+              Location.compare d.reason.at d'.reason.at)
+            related)
 
   (* The application of a function to an argument as one subtyping: the
      function's type against the argument's type to the result. *)
@@ -569,7 +572,7 @@ struct
       | Skeleton.Occurs a ->
           let other =
             match f.lhs with
-            | Skeleton.Var b when Ast.TyParamModule.compare a b = 0 -> f.rhs
+            | Skeleton.Var b when Ast.TyParamModule.equal a b -> f.rhs
             | _ -> f.lhs
           in
           let a = skeleton_raw p (Skeleton.Var a) in
@@ -638,7 +641,7 @@ struct
       | _, _, Some ((r : C.reason), a, b, _)
         when List.length r.path < List.length path ->
           matching (a, b)
-      | _, _, None when f.path <> [] ->
+      | _, _, None when not (List.is_empty f.path) ->
           Option.fold ~none:[]
             ~some:(fun (m : S.mismatch) -> matching (m.atom.lhs, m.atom.rhs))
             recorded

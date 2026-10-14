@@ -29,11 +29,13 @@ module Make (C : Constraint.S) = struct
 
   (* [∀a. Et(a) ⇒ a × a → bool] *)
   let comparison =
-    let scheme = poly (fun a -> arrow (Ast.TyTuple [ a; a ]) bool) in
-    let a = List.hd scheme.C.ty_params in
+    let a = Ast.TyParamModule.fresh "poly" in
     {
-      scheme with
-      C.qualifier =
+      (C.monomorphic
+         (arrow (Ast.TyTuple [ Ast.TyParam a; Ast.TyParam a ]) bool))
+      with
+      C.ty_params = [ a ];
+      qualifier =
         C.Eternal (Reason.because nowhere Reason.Compared_values, Ast.TyParam a);
     }
 

@@ -641,7 +641,7 @@ module Make (X : GradeExp.S) = struct
       {
         ty_vars =
           ordered
-            (fun a b -> Ast.TyParamModule.compare a b = 0)
+            (fun a b -> Ast.TyParamModule.equal a b)
             scheme.ty_params occ.ty_occ;
         rho_vars = ordered X.Rho_var.equal scheme.rho_params occ.rho_occ;
         eps_vars = ordered X.Eps_var.equal scheme.eps_params occ.eps_occ;

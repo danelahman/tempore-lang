@@ -51,7 +51,7 @@ let decompose f g =
       Some
         [ Rho (Contravariant, rho, rho'); Ty (Covariant, Ast.BoxContent, t, u) ]
   | Apply (name, ts), Apply (name', us)
-    when Ast.TyName.compare name name' = 0 && List.compare_lengths ts us = 0 ->
+    when Ast.TyName.equal name name' && List.compare_lengths ts us = 0 ->
       Some (pairwise Invariant (fun i -> Ast.TypeArgument i) ts us)
   | Handler ((t, eps), (t', delta)), Handler ((u, eps'), (u', delta')) ->
       Some

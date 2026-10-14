@@ -100,7 +100,7 @@ struct
     let names_f (e : C.rho Reason.lock) =
       match e.kind with
       | Reason.Recursive_lock g ->
-          Ast.Variable.compare f g = 0 && not (is_unit_rho p (lock_grade p e))
+          Ast.Variable.equal f g && not (is_unit_rho p (lock_grade p e))
       | _ -> false
     in
     let spent = lock_labels p locks in
@@ -262,33 +262,33 @@ struct
            (fun (l : Diagnostic.label) -> Location.equal l.span at)
            labels
     in
-    List.fold_left
-      (fun acc (r : C.reason) ->
-        if
-          (not (is_source r))
-          || pointed_at r.at
-          || List.exists
-               (fun (l : Diagnostic.label) -> Location.equal l.span r.at)
-               acc
-        then acc
-        else
-          acc
-          @ [
-              label r.at
-                (Printf.sprintf "the inequality goes through %s %s"
-                   (construct r) here);
-            ])
-      [] reasons
+    List.rev
+    @@ List.fold_left
+         (fun acc (r : C.reason) ->
+           if
+             (not (is_source r))
+             || pointed_at r.at
+             || List.exists
+                  (fun (l : Diagnostic.label) -> Location.equal l.span r.at)
+                  acc
+           then acc
+           else
+             label r.at
+               (Printf.sprintf "the inequality goes through %s %s" (construct r)
+                  here)
+             :: acc)
+         [] reasons
 
   let dedup labels =
-    List.fold_left
-      (fun acc (l : Diagnostic.label) ->
-        if
-          List.exists
-            (fun (l' : Diagnostic.label) ->
-              Location.equal l.span l'.span && l.text = l'.text)
-            acc
-        then acc
-        else acc @ [ l ])
-      [] labels
+    List.rev
+    @@ List.fold_left
+         (fun acc (l : Diagnostic.label) ->
+           if
+             List.exists
+               (fun (l' : Diagnostic.label) ->
+                 Location.equal l.span l'.span && String.equal l.text l'.text)
+               acc
+           then acc
+           else l :: acc)
+         [] labels
 end

@@ -206,19 +206,19 @@ module Make (C : Constraint.S) = struct
      reasons, so that the two subtyping atoms of an equation, which share
      theirs, count once. *)
   let related site (links : site Skeleton.link list) =
-    List.fold_left
-      (fun acc (l : site Skeleton.link) ->
-        if
-          l.joined_by == site
-          || List.exists (fun (d, _) -> d.reason == l.joined_by.site_reason) acc
-        then acc
-        else
-          acc
-          @ [
-              ( { reason = l.joined_by.site_reason; path = l.joined_at },
-                l.joined );
-            ])
-      [] links
+    List.rev
+    @@ List.fold_left
+         (fun acc (l : site Skeleton.link) ->
+           if
+             l.joined_by == site
+             || List.exists
+                  (fun (d, _) -> d.reason == l.joined_by.site_reason)
+                  acc
+           then acc
+           else
+             ({ reason = l.joined_by.site_reason; path = l.joined_at }, l.joined)
+             :: acc)
+         [] links
 
   (* The mismatch of a failed expansion at the state [st]. *)
   let mismatch_of context st (trace : site Skeleton.trace)
