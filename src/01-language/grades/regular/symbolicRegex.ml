@@ -776,10 +776,6 @@ struct
             "SymbolicRegex.Decide.tick_block: a partition without a block \
              holding tick"
 
-    (* The emptiness of the expressions explored, by their numbers. *)
-    let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
-    let known_empty r = Hashtbl.find_opt emptiness r.id = Some true
-
     (** [moves ms k d] is the derivatives of [d] a search explores, each with
         the blocks of [ms] of the word it is taken by, reversed: by the word
         [tickᵏ] alone if [k ≥ 1] is at most the lead of [d], the derivatives of
@@ -796,6 +792,32 @@ struct
     let successors ms k d =
       if k = 0 then List.map (fun m -> derive m d) ms
       else [ leap_by (tick_block ms) k d ]
+
+    (* The emptiness by depth-first exploration, an expression of lead
+       [k ≥ 1] followed by its derivative by [tickᵏ] alone; the equivalence by
+       Hopcroft and Karp's algorithm, a pair whose expressions both have a lead
+       of at least [k ≥ 1] followed by their derivatives by [tickᵏ] alone: they
+       denote the same language iff these do. *)
+    include LanguageDecisions.Make (struct
+      type nonrec t = t
+      type block = minterm
+
+      let id r = r.id
+      let empty = empty
+      let is_top = is_top
+      let inter = inter
+      let compl = compl
+      let nullable = nullable
+      let final = nullable
+      let agree r s = Bool.equal r.nullable s.nullable
+      let blocks = blocks
+
+      let pairs ms r s =
+        let k = min r.lead s.lead in
+        List.combine (successors ms k r) (successors ms k s)
+
+      let successors ms d = successors ms d.lead d
+    end)
 
     (** The outcome of the exploration of one depth of a breadth-first search: a
         word found, or the expressions of the next depth. *)
@@ -849,100 +871,11 @@ struct
       in
       Hashtbl.add seen r.id ();
       let found = go [ (r, []) ] in
-      if Option.is_none found then
-        Hashtbl.iter (fun id () -> Hashtbl.replace emptiness id true) seen
-      else Hashtbl.replace emptiness r.id false;
+      record r seen (Option.is_some found);
       found
 
     let shortest r =
       if r.nullable then Some [] else if known_empty r then None else search r
-
-    (** [inhabited r] is whether some derivative of [r] is nullable, found by
-        depth-first exploration of its derivatives, an expression of lead
-        [k ≥ 1] by its derivative by [tickᵏ] alone; the derivatives known to be
-        empty are not explored, and if none is nullable every expression
-        explored is recorded as empty. *)
-    let inhabited r =
-      let ms = blocks [ r ] in
-      let seen = Hashtbl.create 64 in
-      let fresh d =
-        not (Hashtbl.mem seen d.id || known_empty d || equal_form d empty)
-      in
-      let rec go = function
-        | [] -> false
-        | d :: _ when d.nullable -> true
-        | d :: stack ->
-            let next = List.filter fresh (successors ms d.lead d) in
-            List.iter (fun d -> Hashtbl.replace seen d.id ()) next;
-            go (next @ stack)
-      in
-      Hashtbl.add seen r.id ();
-      let found = (not (equal_form r empty)) && go [ r ] in
-      if found then Hashtbl.replace emptiness r.id false
-      else Hashtbl.iter (fun id () -> Hashtbl.replace emptiness id true) seen;
-      found
-
-    let is_empty r =
-      match Hashtbl.find_opt emptiness r.id with
-      | Some e -> e
-      | None -> not (inhabited r)
-
-    let subset r s =
-      equal_form r s || is_top s || is_empty (inter [ r; compl s ])
-
-    (* The pairs of expressions compared, by their numbers, the lesser first. *)
-    let equalities : bool Pairs.t = Pairs.create 1024
-
-    (** [bisimilar r s] explores the pairs of derivatives of [r] and [s] by the
-        same words, merging the classes of the two expressions of each pair,
-        until two expressions of a pair differ in nullability or no pair is
-        left: Hopcroft and Karp's algorithm (Cornell TR 1971), a bisimulation up
-        to equivalence, the classes kept in a union–find forest with path
-        compression. A pair whose expressions both have a lead of at least
-        [k ≥ 1] is followed by their derivatives by [tickᵏ] alone: they denote
-        the same language iff these do. *)
-    let bisimilar r s =
-      let ms = blocks [ r; s ] in
-      let parent = Hashtbl.create 64 in
-      let rec find x =
-        match Hashtbl.find_opt parent x with
-        | Some p ->
-            let root = find p in
-            Hashtbl.replace parent x root;
-            root
-        | None -> x
-      in
-      let queue = Queue.create () in
-      Queue.push (r, s) queue;
-      let rec go () =
-        match Queue.take_opt queue with
-        | None -> true
-        | Some (r, s) ->
-            let x = find r.id and y = find s.id in
-            if x = y then go ()
-            else if r.nullable <> s.nullable then false
-            else begin
-              Hashtbl.replace parent x y;
-              let k = min r.lead s.lead in
-              List.iter2
-                (fun d d' -> Queue.push (d, d') queue)
-                (successors ms k r) (successors ms k s);
-              go ()
-            end
-      in
-      go ()
-
-    let equal r s =
-      equal_form r s
-      || r.nullable = s.nullable
-         &&
-         let key = if r.id < s.id then (r.id, s.id) else (s.id, r.id) in
-         match Pairs.find_opt equalities key with
-         | Some e -> e
-         | None ->
-             let e = bisimilar r s in
-             Pairs.add equalities key e;
-             e
   end
 
   (** {1 Decisions in gap form} *)

@@ -39,7 +39,9 @@ module type EXPRESSION = sig
 end
 
 (** The decisions over [E], with their own tables of the emptiness and equality
-    of the expressions explored. *)
+    of the expressions explored: those of {!LanguageDecisions.Make} on the graph
+    of the gap derivatives, a state final if it is nullable or has a delay, and
+    two states agreeing if they have the same nullability and delays. *)
 module Make (E : EXPRESSION) : sig
   val edges : E.block list -> E.t -> (DelaySet.t * E.block * E.t) list
   (** [edges ms r] is the gap derivatives of [r] by the blocks [ms], as triples
