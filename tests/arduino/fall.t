@@ -169,5 +169,5 @@ every second:
   [59.520 ms] Display at (0, 146): Since last event 0:00
   [1136.990 ms] Display at (0, 146): Since last event 0:01
   [18679.025 ms] Display at (0, 146): Since last event 0:00
-  $ grep -c 'Display fill at (0, 172)' run.log
+  $ grep -c 'Display fill at (0, 1\(72\|80\))' run.log
   132

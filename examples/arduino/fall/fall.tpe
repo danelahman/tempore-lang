@@ -277,7 +277,7 @@ let idle (falls : nat) =
   perform ShowTextAt (0, 100, 2, "Falls");
   perform ShowNumberAt (160, 100, 2, 0, float_of_nat falls);
   perform ShowTimeAt (0, 146, 2, "Since last event ", 0);
-  perform ShowTextAt (0, 160, 1, "Acceleration, 0 to 3 g")
+  perform ShowTextAt (0, 168, 1, "Acceleration, 0 to 3 g")
 
 (* The length of the bar of an acceleration of a g, in pixels: 320 for
    3 g. *)
@@ -300,7 +300,7 @@ let rec monitor (n : nat) (falls : nat) (since : nat) : unit # {_*} =
           monitor m counted 0)
         else monitor m falls since)
       else (
-        (if since mod 10 = 0 then perform DrawBar (0, 172, 320, 16, bar a, blue)
+        (if since mod 10 = 0 then perform DrawBar (0, 180, 320, 16, bar a, blue)
          else ());
         (if since mod 100 = 99 then
            perform ShowTimeAt (0, 146, 2, "Since last event ", (since + 1) / 100)
