@@ -76,14 +76,15 @@ let example_of_path path =
            g.examples))
     Examples_tpe.examples
 
+let example_group label =
+  List.find_opt
+    (fun (g : Examples_tpe.group) -> g.label = label)
+    Examples_tpe.examples
+
 (* The group label and the bundled example in the group of label [group] with
    title [title], if there is one. *)
 let example_of_title group title =
-  Option.bind
-    (List.find_opt
-       (fun (g : Examples_tpe.group) -> g.label = group)
-       Examples_tpe.examples)
-    (fun (g : Examples_tpe.group) ->
+  Option.bind (example_group group) (fun (g : Examples_tpe.group) ->
       Option.map
         (fun e -> (g.label, e))
         (List.find_opt

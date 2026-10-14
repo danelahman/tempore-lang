@@ -25,9 +25,8 @@ type context = {
   defs : Cmarkit.Label.defs;
 }
 
-(* The repository against which the relative links of the READMEs are
-   resolved. *)
-let repository = "https://github.com/danelahman/tempore-lang/blob/main/"
+let repository = "https://github.com/danelahman/tempore-lang"
+let repository_file path = repository ^ "/blob/main/" ^ path
 
 (* The comment that marks a README section as belonging to the repository only. *)
 let skip_marker = "web-skip"
@@ -94,7 +93,7 @@ let link_to page dest content =
       match Model.example_of_path path with
       | Some (group, e) ->
           message_link (Model.EditMsg (Model.LoadExample (group, e))) content
-      | None -> external_link (repository ^ path) content)
+      | None -> external_link (repository_file path) content)
 
 let link_destination defs link =
   let definition =

@@ -55,6 +55,10 @@ val example_of_path : string -> (string * Examples_tpe.example) option
 (** [example_of_path path] is the group label and the bundled example at [path],
     relative to the project root, if there is one. *)
 
+val example_group : string -> Examples_tpe.group option
+(** [example_group label] is the group of bundled examples of label [label], if
+    there is one. *)
+
 val link_at : link list -> int -> int option
 (** [link_at links offset] is the index of the first of [links] whose name
     covers the byte [offset] of the editor's text, its end included. *)

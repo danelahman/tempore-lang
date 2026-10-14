@@ -68,6 +68,9 @@ type definitions = (Language.Ast.variable * function_effect) list
 (** The top-level definitions of a program, the standard library's excepted, in
     order, each with the effect of its type. *)
 
+(** The icon by which the web interface marks the view of compiled code. *)
+type mark = Pipette | Chip
+
 type compiler = {
   compile :
     'rho 'eps.
@@ -80,6 +83,7 @@ type compiler = {
   code_name : string;
       (** the name of the compiled code, by which the web interface labels the
           view of it *)
+  mark : mark;  (** the icon of the view of the compiled code *)
 }
 (** [compile settings ~operations ~compound ~definitions commands] compiles the
     desugared [commands], accepted by the typechecker, of a program, the

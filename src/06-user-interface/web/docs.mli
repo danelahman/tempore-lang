@@ -1,6 +1,14 @@
 (** The documentation view of the web interface: its pages, the READMEs of the
     project and of its backends, rendered from their Markdown sources. *)
 
+val repository : string
+(** The URL of the public repository of the project. *)
+
+val repository_file : string -> string
+(** [repository_file path] is the URL of the file at [path], relative to the
+    project root, at the tip of [main] in {!repository}; the relative links of
+    the READMEs are resolved against it. *)
+
 val readme_class : string
 (** The class of the element holding the README shown. *)
 

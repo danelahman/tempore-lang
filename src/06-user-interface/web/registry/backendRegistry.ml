@@ -43,6 +43,7 @@ type function_effect = ArduinoBackend.ArduinoProject.function_effect =
   | Effect of { grade : string; durations : Grades.Grade.durations }
 
 type definitions = (Language.Ast.variable * function_effect) list
+type mark = Pipette | Chip
 
 type compiler = {
   compile :
@@ -54,6 +55,7 @@ type compiler = {
     ('rho, 'eps) Language.Ast.command list ->
     compiled;
   code_name : string;
+  mark : mark;
 }
 
 type source = {
@@ -255,7 +257,12 @@ let opentrons =
        operations; interpreter runs record a timeline.";
     inputs = opentrons_inputs;
     compiler =
-      Some { compile = opentrons_compile; code_name = "Opentrons protocol" };
+      Some
+        {
+          compile = opentrons_compile;
+          code_name = "Opentrons protocol";
+          mark = Pipette;
+        };
     observer = Some opentrons_observer;
     declarations = no_declarations;
     files = [];
@@ -478,7 +485,8 @@ let arduino =
        manifest, with the declarations of its peripheral packages and monitors \
        of the running times of operations; interpreter runs record a timeline.";
     inputs = arduino_inputs;
-    compiler = Some { compile = arduino_compile; code_name = "C++ project" };
+    compiler =
+      Some { compile = arduino_compile; code_name = "C++ project"; mark = Chip };
     observer = Some (fun _ -> timeline ~expanded:true ());
     declarations = arduino_declarations;
     files = [ (manifest_filename, "manifest") ];
