@@ -91,13 +91,13 @@ let example_of_title group title =
            (fun (e : Examples_tpe.example) -> e.title = title)
            g.examples))
 
-(* The group label and the example the manifest names as the default of the
-   backend [key], if it names one. *)
+(* The group label and the example the example index names as the default of
+   the backend [key], if it names one. *)
 let default_example key =
   Option.bind (List.assoc_opt key Examples_tpe.defaults) example_of_path
 
-(* The editor as the page opens: the manifest's default example loaded, its
-   grades selected. *)
+(* The editor as the page opens: the default example of the example index
+   loaded, its grades selected. *)
 let edit_init =
   let empty =
     {
