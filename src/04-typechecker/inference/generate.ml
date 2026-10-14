@@ -654,9 +654,11 @@ module Make (C : Constraint.S) = struct
       global_performs = Ast.VariableMap.add x performs env.global_performs;
     }
 
+  let add_primitive env x scheme =
+    add_global env x ~defined_at:None ~performs:Ast.OpNameSet.empty scheme
+
   let load_primitive env x prim =
-    add_global env x ~defined_at:None ~performs:Ast.OpNameSet.empty
-      (Primitive_schemes.scheme prim)
+    add_primitive env x (Primitive_schemes.scheme prim)
 
   let add_operation_default env op default =
     { env with op_defaults = Ast.OpNameMap.add op default env.op_defaults }
@@ -673,7 +675,8 @@ module Make (C : Constraint.S) = struct
   let bind_persistent env x ty ~bound_at =
     { env with context = Persistent (x, ty, bound_at) :: env.context }
 
-  let lock env l = { env with context = Lock l :: env.context }
+  let lock ?declared env ~at kind grade =
+    { env with context = Lock { grade; at; kind; declared } :: env.context }
 
   (* A variable in the environment: bound in the context, with the locks since
      its binding, oldest first, bound persistently in the context, or a
@@ -750,6 +753,10 @@ module Make (C : Constraint.S) = struct
 
   let expect bound because = { bound; because }
 
+  (* [let@ x = k in body] is [k (fun x -> body)], by which the binders of
+     unknowns below are applied. *)
+  let ( let@ ) k body = k body
+
   (* [exists_ty k] is [∃α. k α]; likewise for the other sorts. *)
   let exists_ty k =
     let a = Ast.TyParamModule.fresh "ty" in
@@ -784,8 +791,8 @@ module Make (C : Constraint.S) = struct
      name [name] and parameters [params], [σ] sending [params] to [β̄]; type
      arguments are invariant, so an instance is determined by [β̄]. *)
   let exists_instance name params k =
-    exists_tys (List.length params) (fun args ->
-        k (Ast.TyApply (name, args)) (instance_subst params args))
+    let@ args = exists_tys (List.length params) in
+    k (Ast.TyApply (name, args)) (instance_subst params args)
 
   (* ------------------------------------------------------------------ *)
   (* Atoms against an expected bound                                     *)
@@ -994,11 +1001,12 @@ module Make (C : Constraint.S) = struct
             (find_op_signature env op) )
     | _ -> (Reason.Sequenced, None)
 
-  let signature ~loc env op =
+  (* The signature of the operation [op] named at [loc], an undeclared one
+     rejected as [unknown]. *)
+  let signature ?(unknown = "Unknown operation") ~loc env op =
     match find_op_signature env op with
     | Some signature -> signature
-    | None ->
-        Error.typing ~loc "Unknown operation `%s`" (Ast.OpName.string_of op)
+    | None -> Error.typing ~loc "%s `%s`" unknown (Ast.OpName.string_of op)
 
   (* The qualifier [Q ∧ R] of a scheme, its atoms and obligations owed by the
      use of [x] at [at]. *)
@@ -1049,17 +1057,15 @@ module Make (C : Constraint.S) = struct
           (sub_expected at ty expected)
     | Ast.Tuple es ->
         (* [α₁ × … × αₙ] equals the expected type, component [i] against [αᵢ] *)
-        exists_tys (List.length es) (fun tys ->
-            C.conj_all
-              (eq_expected at (Ast.TyTuple tys) expected
-              :: List.mapi
-                   (fun i (e, ty) ->
-                     generate_expression env e
-                       (expect ty
-                          (Reason.step
-                             (Reason.Component (i + 1))
-                             expected.because)))
-                   (List.combine es tys)))
+        let@ tys = exists_tys (List.length es) in
+        C.conj_all
+          (eq_expected at (Ast.TyTuple tys) expected
+          :: List.mapi
+               (fun i (e, ty) ->
+                 generate_expression env e
+                   (expect ty
+                      (Reason.step (Reason.Component (i + 1)) expected.because)))
+               (List.combine es tys))
     | Ast.Variant (lbl, arg) -> variant env at lbl arg expected
     | Ast.Lambda abs -> function_ env at Impure abs expected
     | Ast.PureLambda abs -> function_ env at Pure abs expected
@@ -1097,48 +1103,39 @@ module Make (C : Constraint.S) = struct
      function itself bound persistently at that arrow after it; the body of a
      pure or recursive function has effect the unit, as two orderings. *)
   and function_ env at kind (pat, body) expected =
-    exists_ty (fun param_ty ->
-        exists_ty (fun result_ty ->
-            exists_eps (fun eps ->
-                let arrow =
-                  Ast.TyArrow (param_ty, Ast.CompTy (result_ty, eps))
-                in
-                let because =
-                  match kind with
-                  | Recursive f ->
-                      Reason.because at (Reason.Recursive_definition f)
-                  | Impure | Pure -> Reason.because at Reason.Function_body
-                in
-                let env_body =
-                  match kind with
-                  | Recursive f -> recursive_env env at f arrow
-                  | Impure | Pure -> env
-                in
-                C.conj_all
-                  [
-                    sub_expected at arrow expected;
-                    with_pattern env_body pat
-                      (expect param_ty
-                         (Reason.because pat.Ast.at Reason.Function_parameter))
-                      (fun env' ->
-                        generate_computation env' body
-                          (expect result_ty because) (expect eps because));
-                    (match kind with
-                    | Impure -> C.True
-                    | Pure | Recursive _ -> pure_body at eps);
-                  ])))
+    let@ param_ty = exists_ty in
+    let@ result_ty = exists_ty in
+    let@ eps = exists_eps in
+    let arrow = Ast.TyArrow (param_ty, Ast.CompTy (result_ty, eps)) in
+    let because =
+      match kind with
+      | Recursive f -> Reason.because at (Reason.Recursive_definition f)
+      | Impure | Pure -> Reason.because at Reason.Function_body
+    in
+    let env_body =
+      match kind with
+      | Recursive f -> recursive_env env at f arrow
+      | Impure | Pure -> env
+    in
+    C.conj_all
+      [
+        sub_expected at arrow expected;
+        with_pattern env_body pat
+          (expect param_ty
+             (Reason.because pat.Ast.at Reason.Function_parameter))
+          (fun env' ->
+            generate_computation env' body (expect result_ty because)
+              (expect eps because));
+        (match kind with
+        | Impure -> C.True
+        | Pure | Recursive _ -> pure_body at eps);
+      ]
 
   (* The context of the body of the recursive function [f] of type [ty]: the
      surrounding context behind the lock [⟨⊤⟩], then [f] bound persistently. *)
   and recursive_env env at f ty =
     bind_persistent
-      (lock env
-         {
-           grade = Rho.top;
-           at;
-           kind = Reason.Recursive_lock f;
-           declared = None;
-         })
+      (lock env ~at (Reason.Recursive_lock f) Rho.top)
       f ty ~bound_at:at
 
   (* A recursive function [rec f p₁ … pₙ] annotated with the effect [ε] of its
@@ -1148,71 +1145,53 @@ module Make (C : Constraint.S) = struct
      the inner arrows of [T]. *)
   and annotated_recursive env at f eps ((pat, body) as abs) expected =
     let inner_layers = List.length (fst (Ast.curried_layers abs)) - 1 in
-    exists_ty (fun param_ty ->
-        exists_tys inner_layers (fun inner_params ->
-            exists_ty (fun result_ty ->
-                let (Ast.CompTy (body_ty, body_eps) as body_comp_ty) =
-                  List.fold_right
-                    (fun a cty -> Ast.CompTy (Ast.TyArrow (a, cty), Eps.unit))
-                    inner_params
-                    (Ast.CompTy (result_ty, eps))
-                in
-                let arrow = Ast.TyArrow (param_ty, body_comp_ty) in
-                let because =
-                  Reason.because at (Reason.Recursive_definition f)
-                in
-                C.conj
-                  (sub_expected at arrow expected)
-                  (with_pattern
-                     (recursive_env env at f arrow)
-                     pat
-                     (expect param_ty
-                        (Reason.because pat.Ast.at Reason.Function_parameter))
-                     (fun env' ->
-                       generate_computation env' body (expect body_ty because)
-                         (expect body_eps because))))))
+    let@ param_ty = exists_ty in
+    let@ inner_params = exists_tys inner_layers in
+    let@ result_ty = exists_ty in
+    let (Ast.CompTy (body_ty, body_eps) as body_comp_ty) =
+      List.fold_right
+        (fun a cty -> Ast.CompTy (Ast.TyArrow (a, cty), Eps.unit))
+        inner_params
+        (Ast.CompTy (result_ty, eps))
+    in
+    let arrow = Ast.TyArrow (param_ty, body_comp_ty) in
+    let because = Reason.because at (Reason.Recursive_definition f) in
+    C.conj
+      (sub_expected at arrow expected)
+      (with_pattern
+         (recursive_env env at f arrow)
+         pat
+         (expect param_ty (Reason.because pat.Ast.at Reason.Function_parameter))
+         (fun env' ->
+           generate_computation env' body (expect body_ty because)
+             (expect body_eps because)))
 
   (* A handler value of type [α ! ε_in ⇒ β ! ε_out]: the return clause under
      the lock [⟨∣ε_in∣⟩], each clause under [∀ε'']. *)
   and handler env at (ret_pat, ret_body) op_cases expected =
-    exists_ty (fun input_ty ->
-        exists_eps (fun input_eps ->
-            exists_ty (fun output_ty ->
-                exists_eps (fun output_eps ->
-                    let handler_ty =
-                      Ast.TyHandler
-                        ( Ast.CompTy (input_ty, input_eps),
-                          Ast.CompTy (output_ty, output_eps) )
-                    in
-                    let env_ret =
-                      lock env
-                        {
-                          grade = Rho.map input_eps;
-                          at;
-                          kind = Reason.Handled;
-                          declared = None;
-                        }
-                    in
-                    let because =
-                      Reason.because ret_body.Ast.at Reason.Return_clause
-                    in
-                    let return_clause =
-                      with_pattern env_ret ret_pat
-                        (expect input_ty
-                           (Reason.because ret_pat.Ast.at Reason.Return_clause))
-                        (fun env' ->
-                          generate_computation env' ret_body
-                            (expect output_ty because)
-                            (expect output_eps because))
-                    in
-                    let clauses =
-                      List.map
-                        (fun (op, abs) -> clause env ~output_ty op abs)
-                        (Ast.OpNameMap.bindings op_cases)
-                    in
-                    C.conj_all
-                      (sub_expected at handler_ty expected
-                      :: return_clause :: clauses)))))
+    let@ input_ty = exists_ty in
+    let@ input_eps = exists_eps in
+    let@ output_ty = exists_ty in
+    let@ output_eps = exists_eps in
+    let handler_ty =
+      Ast.TyHandler
+        (Ast.CompTy (input_ty, input_eps), Ast.CompTy (output_ty, output_eps))
+    in
+    let env_ret = lock env ~at Reason.Handled (Rho.map input_eps) in
+    let because = Reason.because ret_body.Ast.at Reason.Return_clause in
+    let return_clause =
+      with_pattern env_ret ret_pat
+        (expect input_ty (Reason.because ret_pat.Ast.at Reason.Return_clause))
+        (fun env' ->
+          generate_computation env' ret_body (expect output_ty because)
+            (expect output_eps because))
+    in
+    let clauses =
+      List.map
+        (fun (op, abs) -> clause env ~output_ty op abs)
+        (Ast.OpNameMap.bindings op_cases)
+    in
+    C.conj_all (sub_expected at handler_ty expected :: return_clause :: clauses)
 
   (* The clause for [op], under the lock [⟨⊤⟩], for every continuation effect
      [ε'']: its parameter and continuation [[∣op∣](arity → β ! ε'')], its
@@ -1220,23 +1199,11 @@ module Make (C : Constraint.S) = struct
   and clause env ~output_ty op ((pat, body) as abs) =
     let case_at = abstraction_span abs in
     let { param; arity; op_grade; signature_at } =
-      match find_op_signature env op with
-      | Some signature -> signature
-      | None ->
-          Error.typing ~loc:case_at "Case for an unknown operation `%s`"
-            (Ast.OpName.string_of op)
+      signature ~unknown:"Case for an unknown operation" ~loc:case_at env op
     in
     let clause = { Reason.op; signature_at; case_at } in
     let rigid = X.Eps_var.fresh_indexed () in
-    let env_clause =
-      lock env
-        {
-          grade = Rho.top;
-          at = case_at;
-          kind = Reason.Clause_lock clause;
-          declared = None;
-        }
-    in
+    let env_clause = lock env ~at:case_at (Reason.Clause_lock clause) Rho.top in
     let continuation_ty =
       Ast.TyBox
         ( Rho.map op_grade,
@@ -1272,16 +1239,15 @@ module Make (C : Constraint.S) = struct
         (* [delay q c]: [c] under the lock [⟨q⟩], the effect [q · ε] below the
            expected one *)
         let d = delay q in
-        exists_eps (fun eps' ->
-            let kind = Reason.Delayed q in
-            C.conj
-              (generate_computation
-                 (lock env
-                    { grade = Rho.of_delay d; at; kind; declared = None })
-                 c' ty
-                 (expect eps'
-                    (Reason.because c'.Ast.at (Reason.Continuation_effect kind))))
-              (leq_expected at (Eps.mul (Eps.of_delay d) eps') eps))
+        let@ eps' = exists_eps in
+        let kind = Reason.Delayed q in
+        C.conj
+          (generate_computation
+             (lock env ~at kind (Rho.of_delay d))
+             c' ty
+             (expect eps'
+                (Reason.because c'.Ast.at (Reason.Continuation_effect kind))))
+          (leq_expected at (Eps.mul (Eps.of_delay d) eps') eps)
     | Ast.Box (rho, e, (pat, c')) ->
         box env at (open_rho env rho) e pat c' ty eps
     | Ast.Unbox (e, (pat, c')) -> unbox env at e pat c' ty eps
@@ -1291,115 +1257,104 @@ module Make (C : Constraint.S) = struct
   (* [let p = c₁ in c₂]: the continuation under the lock [⟨∣ε₁∣⟩], the effect
      [ε₁ · ε₂] below the expected one. *)
   and sequence env at c1 pat c2 ty eps =
-    exists_ty (fun ty1 ->
-        exists_eps (fun eps1 ->
-            exists_eps (fun eps2 ->
-                let kind, declared = sequenced_kind env c1 in
-                let bound =
-                  Reason.because c1.Ast.at
-                    (Reason.Sequencing (pattern_variable pat))
-                in
-                let env' =
-                  lock env
-                    { grade = Rho.map eps1; at = c1.Ast.at; kind; declared }
-                in
-                C.conj_all
-                  [
-                    generate_computation env c1 (expect ty1 bound)
-                      (expect eps1 bound);
-                    with_pattern env' pat
-                      (expect ty1
-                         (Reason.because pat.Ast.at
-                            (Reason.Match_scrutinee { scrutinee_at = c1.Ast.at })))
-                      (fun env'' ->
-                        generate_computation env'' c2 ty
-                          (expect eps2
-                             (Reason.because c2.Ast.at
-                                (Reason.Continuation_effect kind))));
-                    leq_expected at (Eps.mul eps1 eps2) eps;
-                  ])))
+    let@ ty1 = exists_ty in
+    let@ eps1 = exists_eps in
+    let@ eps2 = exists_eps in
+    let kind, declared = sequenced_kind env c1 in
+    let bound =
+      Reason.because c1.Ast.at (Reason.Sequencing (pattern_variable pat))
+    in
+    let env' = lock ?declared env ~at:c1.Ast.at kind (Rho.map eps1) in
+    C.conj_all
+      [
+        generate_computation env c1 (expect ty1 bound) (expect eps1 bound);
+        with_pattern env' pat
+          (expect ty1
+             (Reason.because pat.Ast.at
+                (Reason.Match_scrutinee { scrutinee_at = c1.Ast.at })))
+          (fun env'' ->
+            generate_computation env'' c2 ty
+              (expect eps2
+                 (Reason.because c2.Ast.at (Reason.Continuation_effect kind))));
+        leq_expected at (Eps.mul eps1 eps2) eps;
+      ]
 
   (* [e₁ e₂]: the function's result type is a subtype of the expected type,
      its latent effect below the expected effect. *)
   and apply env at e1 e2 ty eps =
-    exists_ty (fun arg_ty ->
-        exists_ty (fun result_ty ->
-            exists_eps (fun latent ->
-                let because =
-                  Reason.because at
-                    (Reason.Application
-                       {
-                         func_at = e1.Ast.at;
-                         arg_at = e2.Ast.at;
-                         func = expression_variable e1;
-                         arg = expression_variable e2;
-                       })
-                in
-                C.conj_all
-                  [
-                    generate_expression env e1
-                      (expect
-                         (Ast.TyArrow (arg_ty, Ast.CompTy (result_ty, latent)))
-                         because);
-                    generate_expression env e2
-                      (expect arg_ty (Reason.step Reason.Argument because));
-                    sub_expected at result_ty ty;
-                    leq_expected at latent eps;
-                  ])))
+    let@ arg_ty = exists_ty in
+    let@ result_ty = exists_ty in
+    let@ latent = exists_eps in
+    let because =
+      Reason.because at
+        (Reason.Application
+           {
+             func_at = e1.Ast.at;
+             arg_at = e2.Ast.at;
+             func = expression_variable e1;
+             arg = expression_variable e2;
+           })
+    in
+    C.conj_all
+      [
+        generate_expression env e1
+          (expect
+             (Ast.TyArrow (arg_ty, Ast.CompTy (result_ty, latent)))
+             because);
+        generate_expression env e2
+          (expect arg_ty (Reason.step Reason.Argument because));
+        sub_expected at result_ty ty;
+        leq_expected at latent eps;
+      ]
 
   (* [match e with …]: the scrutinee against a fresh type, each branch against
      a shared type and effect below the expected ones. A match without cases
      has a scrutinee of type [empty]. *)
   and match_ env at e cases ty eps =
-    exists_ty (fun scrutinee_ty ->
-        exists_ty (fun branch_ty ->
-            exists_eps (fun branch_eps ->
-                let scrutinee_at = e.Ast.at in
-                let branch (pat, body) =
-                  let because =
-                    Reason.because body.Ast.at Reason.Match_branch
-                  in
-                  with_pattern env pat
-                    (expect scrutinee_ty
-                       (Reason.because pat.Ast.at
-                          (Reason.Match_scrutinee { scrutinee_at })))
-                    (fun env' ->
-                      generate_computation env' body (expect branch_ty because)
-                        (expect branch_eps because))
-                in
-                let because =
-                  Reason.because scrutinee_at
-                    (Reason.Match_scrutinee { scrutinee_at })
-                in
-                let empty =
-                  match cases with
-                  | [] ->
-                      [
-                        sub_expected scrutinee_at scrutinee_ty
-                          (expect (Ast.TyApply (Ast.empty_ty_name, [])) because);
-                      ]
-                  | _ :: _ -> []
-                in
-                C.conj_all
-                  (generate_expression env e (expect scrutinee_ty because)
-                  :: sub_expected at branch_ty ty
-                  :: leq_expected at branch_eps eps
-                  :: (empty @ List.map branch cases)))))
+    let@ scrutinee_ty = exists_ty in
+    let@ branch_ty = exists_ty in
+    let@ branch_eps = exists_eps in
+    let scrutinee_at = e.Ast.at in
+    let branch (pat, body) =
+      let because = Reason.because body.Ast.at Reason.Match_branch in
+      with_pattern env pat
+        (expect scrutinee_ty
+           (Reason.because pat.Ast.at (Reason.Match_scrutinee { scrutinee_at })))
+        (fun env' ->
+          generate_computation env' body (expect branch_ty because)
+            (expect branch_eps because))
+    in
+    let because =
+      Reason.because scrutinee_at (Reason.Match_scrutinee { scrutinee_at })
+    in
+    let empty =
+      match cases with
+      | [] ->
+          [
+            sub_expected scrutinee_at scrutinee_ty
+              (expect (Ast.TyApply (Ast.empty_ty_name, [])) because);
+          ]
+      | _ :: _ -> []
+    in
+    C.conj_all
+      (generate_expression env e (expect scrutinee_ty because)
+      :: sub_expected at branch_ty ty
+      :: leq_expected at branch_eps eps
+      :: (empty @ List.map branch cases))
 
   (* [box ρ e as p in c]: the payload under the lock [⟨ρ⟩], the pattern
      against [[ρ] α]. *)
   and box env at rho e pat c' ty eps =
-    exists_ty (fun payload_ty ->
-        let because = Reason.because at Reason.Boxed_value in
-        C.conj
-          (generate_expression
-             (lock env
-                { grade = rho; at; kind = Reason.Boxed; declared = None })
-             e
-             (expect payload_ty because))
-          (with_pattern env pat
-             (expect (Ast.TyBox (rho, payload_ty)) because)
-             (fun env' -> generate_computation env' c' ty eps)))
+    let@ payload_ty = exists_ty in
+    let because = Reason.because at Reason.Boxed_value in
+    C.conj
+      (generate_expression
+         (lock env ~at Reason.Boxed rho)
+         e
+         (expect payload_ty because))
+      (with_pattern env pat
+         (expect (Ast.TyBox (rho, payload_ty)) because)
+         (fun env' -> generate_computation env' c' ty eps))
 
   (* [unbox x as p in c], of a variable only: its type is a box [[r] α] whose
      grade covers the grade accumulated since its binding, the pattern against
@@ -1436,73 +1391,68 @@ module Make (C : Constraint.S) = struct
             :: atoms ))
         anns (var_ty, [])
     in
-    exists_ty (fun payload_ty ->
-        exists_rho (fun rho ->
-            let because =
-              Reason.because at (Reason.Unboxed { var = x; bound_at; locks })
-            in
-            C.conj_all
-              (annotations
-              @ [
-                  C.equal_ty because var_ty (Ast.TyBox (rho, payload_ty));
-                  C.Rho_leq (because, accumulated_grade locks, rho);
-                  with_pattern env pat
-                    (expect payload_ty
-                       (Reason.because pat.Ast.at
-                          (Reason.Unboxed { var = x; bound_at; locks })))
-                    (fun env' -> generate_computation env' c' ty eps);
-                  instance;
-                ])))
+    let@ payload_ty = exists_ty in
+    let@ rho = exists_rho in
+    let because =
+      Reason.because at (Reason.Unboxed { var = x; bound_at; locks })
+    in
+    C.conj_all
+      (annotations
+      @ [
+          C.equal_ty because var_ty (Ast.TyBox (rho, payload_ty));
+          C.Rho_leq (because, accumulated_grade locks, rho);
+          with_pattern env pat
+            (expect payload_ty
+               (Reason.because pat.Ast.at
+                  (Reason.Unboxed { var = x; bound_at; locks })))
+            (fun env' -> generate_computation env' c' ty eps);
+          instance;
+        ])
 
   (* [perform op e]: the continuation under the lock [⟨∣op∣⟩], the effect
      [op · ε] below the expected one. *)
   and perform env at op e pat c' ty eps =
     let { param; arity; op_grade; signature_at } = signature ~loc:at env op in
-    exists_eps (fun eps' ->
-        let kind = Reason.Performed op in
-        let env' =
-          lock env { grade = Rho.map op_grade; at; kind; declared = None }
-        in
-        C.conj_all
-          [
-            generate_expression env e
-              (expect param
-                 (Reason.because e.Ast.at
-                    (Reason.Perform_argument { op; signature_at })));
-            with_pattern env' pat
-              (expect arity
-                 (Reason.because pat.Ast.at
-                    (Reason.Perform_continuation { op; signature_at })))
-              (fun env'' ->
-                generate_computation env'' c' ty
-                  (expect eps'
-                     (Reason.because c'.Ast.at (Reason.Continuation_effect kind))));
-            leq_expected at (Eps.mul op_grade eps') eps;
-          ])
+    let@ eps' = exists_eps in
+    let kind = Reason.Performed op in
+    let env' = lock env ~at kind (Rho.map op_grade) in
+    C.conj_all
+      [
+        generate_expression env e
+          (expect param
+             (Reason.because e.Ast.at
+                (Reason.Perform_argument { op; signature_at })));
+        with_pattern env' pat
+          (expect arity
+             (Reason.because pat.Ast.at
+                (Reason.Perform_continuation { op; signature_at })))
+          (fun env'' ->
+            generate_computation env'' c' ty
+              (expect eps'
+                 (Reason.because c'.Ast.at (Reason.Continuation_effect kind))));
+        leq_expected at (Eps.mul op_grade eps') eps;
+      ]
 
   (* [handle c with h]: [c : α ! ε₁], [h : α ! ε₁ ⇒ γ ! ε₂], [γ] below the
      expected type and [ε₁ · ε₂] below the expected effect. *)
   and handle env at c' h ty eps =
-    exists_ty (fun input_ty ->
-        exists_ty (fun output_ty ->
-            exists_eps (fun eps1 ->
-                exists_eps (fun eps2 ->
-                    let handled =
-                      Reason.because c'.Ast.at Reason.Handled_computation
-                    in
-                    C.conj_all
-                      [
-                        generate_computation env c' (expect input_ty handled)
-                          (expect eps1 handled);
-                        generate_expression env h
-                          (expect
-                             (Ast.TyHandler
-                                ( Ast.CompTy (input_ty, eps1),
-                                  Ast.CompTy (output_ty, eps2) ))
-                             (Reason.because h.Ast.at Reason.Handle_with));
-                        sub_expected at output_ty ty;
-                        leq_expected at (Eps.mul eps1 eps2) eps;
-                      ]))))
+    let@ input_ty = exists_ty in
+    let@ output_ty = exists_ty in
+    let@ eps1 = exists_eps in
+    let@ eps2 = exists_eps in
+    let handled = Reason.because c'.Ast.at Reason.Handled_computation in
+    C.conj_all
+      [
+        generate_computation env c' (expect input_ty handled)
+          (expect eps1 handled);
+        generate_expression env h
+          (expect
+             (Ast.TyHandler
+                (Ast.CompTy (input_ty, eps1), Ast.CompTy (output_ty, eps2)))
+             (Reason.because h.Ast.at Reason.Handle_with));
+        sub_expected at output_ty ty;
+        leq_expected at (Eps.mul eps1 eps2) eps;
+      ]
 
   (* ------------------------------------------------------------------ *)
   (* Top-level commands                                                  *)
@@ -1551,15 +1501,7 @@ module Make (C : Constraint.S) = struct
     let clause =
       { Reason.op; signature_at = signature.signature_at; case_at = loc }
     in
-    let env' =
-      lock env
-        {
-          grade = Rho.top;
-          at = loc;
-          kind = Reason.Clause_lock clause;
-          declared = None;
-        }
-    in
+    let env' = lock env ~at:loc (Reason.Clause_lock clause) Rho.top in
     let default =
       Reason.because loc
         (Reason.Default_of { op; signature_at = signature.signature_at })
@@ -1571,16 +1513,9 @@ module Make (C : Constraint.S) = struct
           (expect signature.arity (Reason.step Reason.Result default))
           (expect eps (Reason.step Reason.Effect default)))
 
-  (* The signature of the operation [op] of a default implementation at [loc]. *)
-  let signature_of_default env ~loc op =
-    match find_op_signature env op with
-    | Some signature -> signature
-    | None ->
-        Error.typing ~loc "Unknown operation `%s`" (Ast.OpName.string_of op)
-
   let generate_default env ~loc op abs =
     let op_name = Ast.OpName.string_of op in
-    let signature = signature_of_default env ~loc op in
+    let signature = signature ~loc env op in
     if Ast.OpNameMap.mem op env.op_defaults then
       Error.typing ~loc "Operation `%s` already has a default implementation"
         op_name;
@@ -1605,7 +1540,7 @@ module Make (C : Constraint.S) = struct
       (default_constraint env ~loc op signature abs bound)
 
   let generate_default_effect env ~loc op abs =
-    let signature = signature_of_default env ~loc op in
+    let signature = signature ~loc env op in
     let eps = Eps.var (X.Eps_var.fresh_indexed ()) in
     let ty = Ast.TyArrow (signature.param, Ast.CompTy (signature.arity, eps)) in
     ( ty,

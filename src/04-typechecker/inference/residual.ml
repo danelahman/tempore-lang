@@ -454,6 +454,16 @@ module Make (C : Constraint.S) = struct
     disj_hyps : disjunction list;
   }
 
+  let of_hyps hyps deferred =
+    {
+      rho_orderings = hyps.rho_hyps;
+      eps_orderings = hyps.eps_hyps;
+      eternals = hyps.eternal_hyps;
+      subs = hyps.sub_vars;
+      disjunctions = hyps.disj_hyps;
+      deferred;
+    }
+
   let to_hyps context r =
     Result.map
       (fun r ->
@@ -523,6 +533,10 @@ module Make (C : Constraint.S) = struct
       (C.conj_all
          (List.map rho_atom d.rho_conditions
          @ List.map eps_atom d.eps_conditions))
+
+  let qualifier hyps obligations =
+    C.conj (hyps_to_constraint hyps)
+      (C.conj_all (List.map deferred_to_constraint obligations))
 
   let free_vars_deferred d = C.free_vars (deferred_to_constraint d)
 

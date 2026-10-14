@@ -70,17 +70,8 @@ module Make (C : Inference.Constraint.S) = struct
     | None -> false
 
   let instance_values (context : S.context) (solution : S.solution) =
-    let hyps = solution.hyps in
     let values, _ =
-      RS.localise_all context
-        {
-          R.rho_orderings = hyps.rho_hyps;
-          eps_orderings = hyps.eps_hyps;
-          eternals = hyps.eternal_hyps;
-          subs = hyps.sub_vars;
-          disjunctions = hyps.disj_hyps;
-          deferred = solution.obligations;
-        }
+      RS.localise_all context (R.of_hyps solution.hyps solution.obligations)
     in
     let bounds = context.bounds in
     {

@@ -376,6 +376,14 @@ module Make (GS : Grades.GradeSystem.S) = struct
       let false_p = Untyped.located loc (Untyped.PConst Const.of_false) in
       Untyped.Match (e, [ (true_p, c1); (false_p, c2) ])
     in
+    (* The abstraction [x -> return x] of a fresh variable [x] named after
+       [name]. *)
+    let identity name =
+      let x = Untyped.Variable.fresh_synthetic name in
+      ( Untyped.located loc (Untyped.PVar x),
+        Untyped.located loc
+          (Untyped.Return (Untyped.located loc (Untyped.Var x))) )
+    in
     function
     | Sugared.Apply (t1, t2) ->
         let binds1, e1 = desugar_expression state t1 in
@@ -413,41 +421,18 @@ module Make (GS : Grades.GradeSystem.S) = struct
         (binds, Untyped.Box (rho_const rho, e', abs))
     | Sugared.GenBox (rho, e) ->
         let binds, e' = desugar_expression state e in
-        let var = Untyped.Variable.fresh_synthetic "box_var" in
-        ( binds,
-          Untyped.Box
-            ( rho_const rho,
-              e',
-              ( Untyped.located loc (Untyped.PVar var),
-                Untyped.located loc
-                  (Untyped.Return (Untyped.located loc (Untyped.Var var))) ) )
-        )
+        (binds, Untyped.Box (rho_const rho, e', identity "box_var"))
     | Sugared.Unbox (e, (p, c)) ->
         let binds, e' = desugar_expression state e in
         let abs = desugar_abstraction state (p, c) in
         (binds, Untyped.Unbox (e', abs))
     | Sugared.GenUnbox e ->
         let binds, e' = desugar_expression state e in
-        let var = Untyped.Variable.fresh_synthetic "unbox_var" in
-        ( binds,
-          Untyped.Unbox
-            ( e',
-              ( Untyped.located loc (Untyped.PVar var),
-                Untyped.located loc
-                  (Untyped.Return (Untyped.located loc (Untyped.Var var))) ) )
-        )
+        (binds, Untyped.Unbox (e', identity "unbox_var"))
     | Sugared.Perform (op, e) ->
         let operation = lookup_operation ~loc state op.it in
         let binds, expr = desugar_expression state e in
-        let var = Untyped.Variable.fresh_synthetic "op_var" in
-        ( binds,
-          Untyped.Perform
-            ( operation,
-              expr,
-              ( Untyped.located loc (Untyped.PVar var),
-                Untyped.located loc
-                  (Untyped.Return (Untyped.located loc (Untyped.Var var))) ) )
-        )
+        (binds, Untyped.Perform (operation, expr, identity "op_var"))
     | Sugared.Handle (c, h) ->
         let c' = desugar_computation state c in
         let binds, h' = desugar_expression state h in

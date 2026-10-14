@@ -67,6 +67,7 @@ module type S = sig
 
   val no_free : free
   val union_free : free -> free -> free
+  val diff_free : free -> free -> free
   val free_vars_ty : ty -> free
   val free_vars_comp_ty : comp_ty -> free
   val free_vars : t -> free
@@ -80,6 +81,7 @@ module type S = sig
   }
 
   val monomorphic : ty -> scheme
+  val close : fixed:free -> ty -> t -> scheme
   val instantiate : scheme -> ty * t
 
   type names
@@ -269,6 +271,13 @@ module Make (X : GradeExp.S) = struct
       free_eps = X.Eps_var.Set.union f.free_eps f'.free_eps;
     }
 
+  let diff_free f f' =
+    {
+      free_tys = Ast.TyParamSet.diff f.free_tys f'.free_tys;
+      free_rhos = X.Rho_var.Set.diff f.free_rhos f'.free_rhos;
+      free_eps = X.Eps_var.Set.diff f.free_eps f'.free_eps;
+    }
+
   let free_rho rho acc =
     {
       acc with
@@ -341,6 +350,18 @@ module Make (X : GradeExp.S) = struct
 
   let monomorphic ty =
     { ty_params = []; rho_params = []; eps_params = []; qualifier = True; ty }
+
+  let close ~fixed ty qualifier =
+    let params =
+      diff_free (union_free (free_vars_ty ty) (free_vars qualifier)) fixed
+    in
+    {
+      ty_params = Ast.TyParamSet.elements params.free_tys;
+      rho_params = X.Rho_var.Set.elements params.free_rhos;
+      eps_params = X.Eps_var.Set.elements params.free_eps;
+      qualifier;
+      ty;
+    }
 
   let instantiate scheme =
     let _, sigma =

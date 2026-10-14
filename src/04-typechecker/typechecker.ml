@@ -39,12 +39,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let load_primitive state x prim =
     let scheme = Primitive_schemes.scheme prim in
     {
-      envs =
-        P.both
-          (fun env ->
-            Gen.add_global env x ~defined_at:None ~performs:Ast.OpNameSet.empty
-              scheme)
-          state.envs;
+      envs = P.both (fun env -> Gen.add_primitive env x scheme) state.envs;
       definitions = (x, scheme) :: state.definitions;
     }
 

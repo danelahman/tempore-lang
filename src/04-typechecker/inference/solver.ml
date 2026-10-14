@@ -59,7 +59,9 @@ module Make (C : Constraint.S) = struct
 
   (* The failures of [result], none of them a mismatch. *)
   let refused result = Result.map_error (fun f -> (RS.Refused f, None)) result
-  let failed result = Result.map_error (fun e -> (e, None)) result
+
+  (* The failures of [result], without provenance. *)
+  let untraced result = Result.map_error (fun f -> (f, None)) result
 
   (* The failures of an expansion. *)
   let expansion_refused result =
@@ -244,9 +246,6 @@ module Make (C : Constraint.S) = struct
     | Skeleton.Clash -> R.Shape_mismatch f
     | Skeleton.Occurs _ -> R.Occurs_check f
 
-  (* The failures of [result], without provenance. *)
-  let untraced result = Result.map_error (fun f -> (f, None)) result
-
   (* The subtyping atom [s], whose sides as generated are [generated], unified
      under the unifier of the state; the unknowns of the classes it binds are
      instantiated, the residual is decomposed again under the instantiation,
@@ -410,7 +409,7 @@ module Make (C : Constraint.S) = struct
       TyParamMap.cardinal inner.theta.ty_subst
       > TyParamMap.cardinal st.theta.ty_subst
     in
-    let* kept = failed (RS.split context scope origin residual) in
+    let* kept = untraced (RS.split context scope origin residual) in
     let outside = R.subst inner.theta st.residual in
     let* residual = refused (merge context outside kept) in
     let st =
@@ -466,17 +465,8 @@ module Make (C : Constraint.S) = struct
   (* The residual of the search for a closed instance of the qualifier. *)
   let search context solution =
     let open Result.Syntax in
-    let hyps = solution.hyps in
     let _, residual =
-      RS.localise_all context
-        {
-          rho_orderings = hyps.rho_hyps;
-          eps_orderings = hyps.eps_hyps;
-          eternals = hyps.eternal_hyps;
-          subs = hyps.sub_vars;
-          disjunctions = hyps.disj_hyps;
-          deferred = solution.obligations;
-        }
+      RS.localise_all context (R.of_hyps solution.hyps solution.obligations)
     in
     let* residual = RS.retry context residual in
     let* hyps = R.to_hyps context residual in
@@ -500,10 +490,7 @@ module Make (C : Constraint.S) = struct
   (* Generalisation                                                      *)
   (* ------------------------------------------------------------------ *)
 
-  let qualifier solution =
-    C.conj
-      (R.hyps_to_constraint solution.hyps)
-      (C.conj_all (List.map R.deferred_to_constraint solution.obligations))
+  let qualifier solution = R.qualifier solution.hyps solution.obligations
 
   let generalise ?(fixed = C.no_free) ty solution =
     Rep.scheme ~fixed
@@ -512,18 +499,7 @@ module Make (C : Constraint.S) = struct
          solution.hyps solution.obligations)
 
   let unsimplified ?(fixed = C.no_free) ty solution =
-    let ty = C.subst_ty solution.subst ty in
-    let qualifier = qualifier solution in
-    let free = C.union_free (C.free_vars_ty ty) (C.free_vars qualifier) in
-    {
-      C.ty_params =
-        TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys);
-      rho_params =
-        Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos);
-      eps_params = Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps);
-      qualifier;
-      ty;
-    }
+    C.close ~fixed (C.subst_ty solution.subst ty) (qualifier solution)
 
   let print_outcome outcome ppf =
     match outcome with

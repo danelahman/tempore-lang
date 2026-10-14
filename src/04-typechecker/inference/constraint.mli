@@ -139,6 +139,9 @@ module type S = sig
   val union_free : free -> free -> free
   (** [union_free f f'] is the sortwise union. *)
 
+  val diff_free : free -> free -> free
+  (** [diff_free f f'] is the sortwise difference. *)
+
   val free_vars_ty : ty -> free
   (** [free_vars_ty a] is the unknowns of [a]. *)
 
@@ -161,6 +164,10 @@ module type S = sig
 
   val monomorphic : ty -> scheme
   (** [monomorphic a] is [a] as a scheme without parameters or qualifier. *)
+
+  val close : fixed:free -> ty -> t -> scheme
+  (** [close ~fixed a q] is the scheme [∀ᾱ ρ̄ ε̄. q ⇒ a] over the unknowns of [a]
+      and [q] outside [fixed]. *)
 
   val instantiate : scheme -> ty * t
   (** [instantiate scheme] renames the parameters of [scheme] and the unknowns

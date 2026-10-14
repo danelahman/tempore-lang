@@ -260,6 +260,10 @@ module Make (C : Constraint.S) : sig
   }
   (** Assumptions on the unknowns: the atoms a solution leaves. *)
 
+  val of_hyps : hyps -> deferred list -> t
+  (** [of_hyps hyps deferred] is the residual of the atoms of [hyps] and the
+      deferred conditions [deferred]. *)
+
   val to_hyps : context -> t -> (hyps, failure) result
   (** [to_hyps context r] reads the atoms of [r] other than its deferred
       conditions as hypotheses, decomposing them first. *)
@@ -283,6 +287,10 @@ module Make (C : Constraint.S) : sig
   val deferred_to_constraint : deferred -> C.t
   (** [deferred_to_constraint d] is the conditions of [d] under a rigid scope of
       each of its rigids. *)
+
+  val qualifier : hyps -> deferred list -> C.t
+  (** [qualifier hyps obligations] is the qualifier [Q ∧ R] of the hypotheses
+      [Q] of [hyps] and the obligations [R]. *)
 
   (** {1 Printing} *)
 
