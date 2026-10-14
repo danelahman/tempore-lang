@@ -140,7 +140,7 @@ module Make (D : Delay.MONUS) = struct
   include Base (D)
 
   (** Tables by a budget and two positions. *)
-  module Positions = Hashtbl.Make (struct
+  module Positions = Memo.Make (struct
     type t = D.t * int * int
 
     let equal (k, i, j) (k', i', j') =
@@ -159,13 +159,8 @@ module Make (D : Delay.MONUS) = struct
     let at trace i = if i < Array.length trace then Some trace.(i) else None in
     let table = Positions.create 64 in
     let rec go k i j =
-      let key = (k, i, j) in
-      match Positions.find_opt table key with
-      | Some b -> b
-      | None ->
-          let b = rules go k i j (at s i) (at t j) in
-          Positions.add table key b;
-          b
+      Positions.find_or_add table (k, i, j) (fun () ->
+          rules go k i j (at s i) (at t j))
     in
     go k 0 0
 

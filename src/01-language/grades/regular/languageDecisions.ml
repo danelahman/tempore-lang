@@ -15,18 +15,16 @@ module type GRAPH = sig
   val pairs : block list -> t -> t -> (t * t) list
 end
 
-module Pairs = NormalForms.Pairs
-
 module Make (G : GRAPH) = struct
   let equal_form r s = Int.equal (G.id r) (G.id s)
 
   (* The emptiness of the expressions explored, by their numbers. *)
-  let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
-  let known_empty r = Hashtbl.find_opt emptiness (G.id r) = Some true
+  let emptiness : bool Memo.Ints.t = Memo.Ints.create 4096
+  let known_empty r = Memo.Ints.find_opt emptiness (G.id r) = Some true
 
   let record r seen found =
-    if found then Hashtbl.replace emptiness (G.id r) false
-    else Hashtbl.iter (fun id _ -> Hashtbl.replace emptiness id true) seen
+    if found then Memo.Ints.replace emptiness (G.id r) false
+    else Hashtbl.iter (fun id _ -> Memo.Ints.replace emptiness id true) seen
 
   (* Depth-first exploration, the first successor of an expression explored
      first. *)
@@ -56,7 +54,7 @@ module Make (G : GRAPH) = struct
     found
 
   let is_empty r =
-    match Hashtbl.find_opt emptiness (G.id r) with
+    match Memo.Ints.find_opt emptiness (G.id r) with
     | Some e -> e
     | None -> not (inhabited r)
 
@@ -64,7 +62,7 @@ module Make (G : GRAPH) = struct
     equal_form r s || G.is_top s || is_empty (G.inter [ r; G.compl s ])
 
   (* The pairs of expressions compared, by their numbers, the lesser first. *)
-  let equalities : bool Pairs.t = Pairs.create 1024
+  let equalities : bool Memo.Pairs.t = Memo.Pairs.create 1024
 
   let bisimilar r s =
     let ms = G.blocks [ r; s ] in
@@ -100,10 +98,5 @@ module Make (G : GRAPH) = struct
        &&
        let i = G.id r and j = G.id s in
        let key = if i < j then (i, j) else (j, i) in
-       match Pairs.find_opt equalities key with
-       | Some e -> e
-       | None ->
-           let e = bisimilar r s in
-           Pairs.add equalities key e;
-           e
+       Memo.Pairs.find_or_add equalities key (fun () -> bisimilar r s)
 end

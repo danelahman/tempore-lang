@@ -46,14 +46,9 @@ module Rebuild (T : SymbolicRegex.S) = struct
       [letter] that maps [tick] to itself, so that runs of ticks are kept; the
       shared subexpressions of [r] are rebuilt once. *)
   let map letter r =
-    let table = Hashtbl.create 64 in
+    let table = Memo.Ints.create 64 in
     let rec go r =
-      match Hashtbl.find_opt table (Regex.id r) with
-      | Some r' -> r'
-      | None ->
-          let r' = rebuild r in
-          Hashtbl.add table (Regex.id r) r';
-          r'
+      Memo.Ints.find_or_add table (Regex.id r) (fun () -> rebuild r)
     and rebuild r =
       match Regex.view r with
       | Empty -> T.empty
@@ -157,15 +152,11 @@ module Conversion = Rebuild (SymbolicRegex)
 
 (* The expressions over letter sets of the grades converted, by the numbers of
    their expressions. *)
-let converted : (int, SymbolicRegex.t) Hashtbl.t = Hashtbl.create 64
+let converted : SymbolicRegex.t Memo.Ints.t = Memo.Ints.create 64
 
 let symbolic rho =
-  match Hashtbl.find_opt converted (Regex.id rho.regex) with
-  | Some r -> r
-  | None ->
-      let r = Conversion.map SymbolicRegex.letters rho.regex in
-      Hashtbl.add converted (Regex.id rho.regex) r;
-      r
+  Memo.Ints.find_or_add converted (Regex.id rho.regex) (fun () ->
+      Conversion.map SymbolicRegex.letters rho.regex)
 
 let events rho = SymbolicRegex.names (symbolic rho)
 let canonical rho = RegularTraceGradeDerivative.canonical (symbolic rho)

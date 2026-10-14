@@ -623,7 +623,7 @@ let inhabited world l = Graph.inhabited (of_automaton (names world) l)
 let permits world m = on_automaton Graph.permits world m
 let covers world m = on_automaton Graph.covers world m
 
-module Arguments = Hashtbl.Make (struct
+module Arguments = Memo.Make (struct
   type t = world * A.t * A.t
 
   let equal (world, l, m) (world', l', m') =
@@ -644,15 +644,12 @@ end)
 (* [tabulated decide] is [decide] on the graphs of the automata compared over
    the names of the comparison, tabulated by its arguments. *)
 let tabulated decide =
-  let table = Arguments.create 64 in
-  fun world l m ->
-    match Arguments.find_opt table (world, l, m) with
-    | Some r -> r
-    | None ->
+  let decide =
+    Arguments.memoise (fun (world, l, m) ->
         let names = names world in
-        let r = decide world (of_automaton names l) (of_automaton names m) in
-        Arguments.add table (world, l, m) r;
-        r
+        decide world (of_automaton names l) (of_automaton names m))
+  in
+  fun world l m -> decide (world, l, m)
 
 let allowance = tabulated Graph.allowance
 let coverage = tabulated Graph.coverage

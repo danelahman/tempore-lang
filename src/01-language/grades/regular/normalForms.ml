@@ -1,10 +1,3 @@
-module Pairs = Hashtbl.Make (struct
-  type t = int * int
-
-  let equal (i, j) (i', j') = Int.equal i i' && Int.equal j j'
-  let hash (i, j) = Grade.combine i j
-end)
-
 let combine_ids id tag rs =
   List.fold_left (fun h r -> (h * 65599) + id r) tag rs
 
@@ -114,15 +107,10 @@ module Delays (E : sig
 end) =
 struct
   (* The sets of delays of the expressions computed, by their numbers. *)
-  let delay_sets : (int, DelaySet.t) Hashtbl.t = Hashtbl.create 1024
+  let delay_sets : DelaySet.t Memo.Ints.t = Memo.Ints.create 1024
 
   let rec delays r =
-    match Hashtbl.find_opt delay_sets (E.id r) with
-    | Some n -> n
-    | None ->
-        let n = delays_node r in
-        Hashtbl.add delay_sets (E.id r) n;
-        n
+    Memo.Ints.find_or_add delay_sets (E.id r) (fun () -> delays_node r)
 
   and delays_node r =
     let fold op rs =
@@ -176,16 +164,12 @@ struct
 
   (* The gap derivatives computed, by the key of the block and the number of
      the expression. *)
-  let gap_derivatives : E.t GapMap.t Pairs.t = Pairs.create 1024
+  let gap_derivatives : E.t GapMap.t Memo.Pairs.t = Memo.Pairs.create 1024
 
   let rec gap m r =
-    let key = (E.key m, E.id r) in
-    match Pairs.find_opt gap_derivatives key with
-    | Some f -> f
-    | None ->
-        let f = gap_node m r in
-        Pairs.add gap_derivatives key f;
-        f
+    Memo.Pairs.find_or_add gap_derivatives
+      (E.key m, E.id r)
+      (fun () -> gap_node m r)
 
   and gap_node m r =
     match E.node r with

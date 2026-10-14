@@ -247,10 +247,10 @@ let hash l = l.hash
 (* {2 Tables}
 
    The results of the binary operations and of the inclusion search, tabulated
-   by their arguments in module-level tables, which only ever grow; an
-   implementation device invisible through the interface. *)
+   by their arguments in module-level tables ({!Memo}); an implementation device
+   invisible through the interface. *)
 
-module Pairs = Hashtbl.Make (struct
+module Pairs = Memo.Make (struct
   type nonrec t = t * t
 
   let equal (l, m) (l', m') = equal l l' && equal m m'
@@ -258,14 +258,8 @@ module Pairs = Hashtbl.Make (struct
 end)
 
 let tabulated f =
-  let table = Pairs.create 64 in
-  fun l m ->
-    match Pairs.find_opt table (l, m) with
-    | Some r -> r
-    | None ->
-        let r = f l m in
-        Pairs.add table (l, m) r;
-        r
+  let f = Pairs.memoise (fun (l, m) -> f l m) in
+  fun l m -> f (l, m)
 
 (* {1 Raw automata} *)
 

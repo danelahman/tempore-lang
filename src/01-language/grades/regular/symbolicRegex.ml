@@ -489,23 +489,15 @@ struct
 
   let minterm set = { set; key = (letters set).id }
 
-  module Pairs = NormalForms.Pairs
-
   (* The derivatives computed, by the key of the block and the number of the
      expression. *)
-  let derivatives : t Pairs.t = Pairs.create 4096
+  let derivatives : t Memo.Pairs.t = Memo.Pairs.create 4096
 
   (* The derivative (Brzozowski, JACM 1964) of an extended regular expression
      by a block of letters rather than a letter, as in RE# (Varatalu, Veanes
      and Ernits, POPL 2025), memoised by block and expression. *)
   let rec derive m r =
-    let key = (m.key, r.id) in
-    match Pairs.find_opt derivatives key with
-    | Some d -> d
-    | None ->
-        let d = derive_view m r in
-        Pairs.add derivatives key d;
-        d
+    Memo.Pairs.find_or_add derivatives (m.key, r.id) (fun () -> derive_view m r)
 
   and derive_view m r =
     match r.view with
@@ -523,19 +515,9 @@ struct
 
   let derivative set r = derive (minterm set) r
 
-  (** Tables by triples of numbers. *)
-  module Triples = Hashtbl.Make (struct
-    type t = int * int * int
-
-    let equal (i, j, k) (i', j', k') =
-      Int.equal i i' && Int.equal j j' && Int.equal k k'
-
-    let hash (i, j, k) = Grade.combine (Grade.combine i j) k
-  end)
-
   (* The leaps computed, by the key of the block, the number of ticks and the
      number of the expression. *)
-  let leaps : t Triples.t = Triples.create 1024
+  let leaps : t Memo.Triples.t = Memo.Triples.create 1024
 
   module Positions = Map.Make (Int)
   (** Maps by positions in an orbit, or by numbers of expressions. *)
@@ -559,7 +541,7 @@ struct
 
   (* The orbits explored, by the key of the block and the number of the
      expression. *)
-  let orbits : orbit Pairs.t = Pairs.create 64
+  let orbits : orbit Memo.Pairs.t = Memo.Pairs.create 64
 
   (* The derivative by [mᵏ], [m] the block of [tick], taken at once where the
      form of the expression tells it and off the orbit of the expression
@@ -571,13 +553,8 @@ struct
   let rec leap_by m k r =
     if k = 0 then r
     else
-      let key = (m.key, k, r.id) in
-      match Triples.find_opt leaps key with
-      | Some d -> d
-      | None ->
-          let d = leap_view m k r in
-          Triples.add leaps key d;
-          d
+      Memo.Triples.find_or_add leaps (m.key, k, r.id) (fun () ->
+          leap_view m k r)
 
   and leap_view m k r =
     match r.view with
@@ -606,7 +583,7 @@ struct
   and steps m k r =
     let key = (m.key, r.id) in
     let o =
-      match Pairs.find_opt orbits key with
+      match Memo.Pairs.find_opt orbits key with
       | Some o -> o
       | None ->
           {
@@ -617,7 +594,7 @@ struct
           }
     in
     let o, d = along m k o in
-    Pairs.replace orbits key o;
+    Memo.Pairs.replace orbits key o;
     d
 
   (** [along m k o] is the orbit [o] extended as far as the derivative by [mᵏ]

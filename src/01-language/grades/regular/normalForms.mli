@@ -1,11 +1,8 @@
 (** The parts of the normal forms of extended regular expressions shared by
     {!SymbolicRegex}, over letter sets and runs of ticks, and {!RationalRegex},
-    over sets of names and sets of delays: their tables by numbers, their
-    hash-consing, and the rules of their Boolean normalisation that do not read
-    the atoms. *)
-
-module Pairs : Hashtbl.S with type key = int * int
-(** Tables by pairs of numbers. *)
+    over sets of names and sets of delays: their hash-consing, the rules of
+    their Boolean normalisation that do not read the atoms, and their delays and
+    gap derivatives. *)
 
 val combine_ids : ('t -> int) -> int -> 't list -> int
 (** [combine_ids id tag rs] is a hash of the numbers [id r] of the operands [rs]

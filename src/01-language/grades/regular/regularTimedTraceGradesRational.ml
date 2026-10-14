@@ -56,7 +56,7 @@ module ByGaps = struct
   type t = L.t
 
   (* Tables by lists of names and normal forms. *)
-  module Graphs = Hashtbl.Make (struct
+  module Graphs = Memo.Make (struct
     type t = string list * RationalRegex.t
 
     let equal (names, r) (names', r') =
@@ -68,15 +68,10 @@ module ByGaps = struct
 
   (* [graph names rho] is {!RationalRegex.graph}, tabulated by its arguments. *)
   let graph =
-    let table = Graphs.create 16 in
-    fun names rho ->
-      let key = (names, L.form rho) in
-      match Graphs.find_opt table key with
-      | Some g -> g
-      | None ->
-          let g = RationalRegex.graph names (L.form rho) in
-          Graphs.add table key g;
-          g
+    let graph =
+      Graphs.memoise (fun (names, r) -> RationalRegex.graph names r)
+    in
+    fun names rho -> graph (names, L.form rho)
 
   let names world = List.map fst world
   let on decide world rho = decide world (graph (names world) rho)
@@ -85,7 +80,7 @@ module ByGaps = struct
     decide world (graph (names world) rho) (graph (names world) rho')
 
   (* The verdicts and searches decided, by the world and the grades. *)
-  module Comparisons = Hashtbl.Make (struct
+  module Comparisons = Memo.Make (struct
     type t = Closure.world * int * int
 
     let equal (w, i, j) (w', i', j') =
@@ -108,17 +103,11 @@ module ByGaps = struct
   let tabulated f =
     let table = Comparisons.create 64 in
     fun world rho rho' ->
-      let key =
+      Comparisons.find_or_add table
         ( world,
           RationalRegex.hash (L.form rho),
           RationalRegex.hash (L.form rho') )
-      in
-      match Comparisons.find_opt table key with
-      | Some r -> r
-      | None ->
-          let r = f world rho rho' in
-          Comparisons.add table key r;
-          r
+        (fun () -> f world rho rho')
 
   let in_allowance = tabulated (on_pair Closure.Graph.in_allowance)
   let in_coverage = tabulated (on_pair Closure.Graph.in_coverage)

@@ -918,7 +918,8 @@ let mem x s =
 (* The sums and repetitions computed, recorded in module-level tables by their
    arguments: they are the costliest operations, and the gap closures of
    automata take them of the same sets repeatedly. The tables hold their
-   arguments weakly, an entry lasting while its arguments are reachable. *)
+   arguments weakly ({!Memo.Weak}), an entry lasting while its arguments are
+   reachable. *)
 module Key = struct
   type nonrec t = t
 
@@ -926,8 +927,8 @@ module Key = struct
   let hash = hash
 end
 
-module Sets = Ephemeron.K1.Make (Key)
-module Pairs = Ephemeron.K2.Make (Key) (Key)
+module Sets = Memo.Weak (Key)
+module Pairs = Memo.Weak2 (Key) (Key)
 
 (* [multiples_from s e] is, for the interval [⟨a, b⟩] of the run [[s, e)], the
    least [c = n₀a] such that the multiples [n⟨a, b⟩], [n ≥ n₀], cover
@@ -1116,16 +1117,7 @@ let repetition s =
     in
     match least with None -> star_discrete s | Some c -> star_dense s c
 
-let star =
-  let table = Sets.create 16 in
-  fun s ->
-    match Sets.find_opt table s with
-    | Some r -> r
-    | None ->
-        let r = repetition s in
-        Sets.replace table s r;
-        r
-
+let star = Sets.memoise repetition
 let naturals = star (point (Rational.of_int 1))
 
 (* {2 Sums} *)
@@ -1211,14 +1203,8 @@ let minkowski s r =
           ]
 
 let sum =
-  let table = Pairs.create 64 in
-  fun s r ->
-    match Pairs.find_opt table (s, r) with
-    | Some u -> u
-    | None ->
-        let u = minkowski s r in
-        Pairs.replace table (s, r) u;
-        u
+  let sum = Pairs.memoise (fun (s, r) -> minkowski s r) in
+  fun s r -> sum (s, r)
 
 (* {1 Queries} *)
 
