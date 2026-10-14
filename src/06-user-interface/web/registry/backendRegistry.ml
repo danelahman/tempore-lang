@@ -400,11 +400,11 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
             ];
         }
     | Some device ->
-        let bindings =
-          Option.map
-            (fun (name : Device.name) ->
-              (name.it, arduino_setting settings "bindings"))
-            device.bindings
+        let file_text (name : Device.name) =
+          match device.bindings with
+          | Some bindings when bindings.it = name.it ->
+              arduino_setting settings "bindings"
+          | _ -> ""
         and monitor =
           match arduino_setting settings "monitor" with
           | "warn" -> Project.Warn
@@ -419,11 +419,7 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
               source;
               definitions;
               operations;
-              bindings;
-              host_models =
-                List.map
-                  (fun (name : Device.name) -> (name.it, ""))
-                  device.host_models;
+              file_text;
               profile = false;
             }
             program

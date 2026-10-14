@@ -131,7 +131,35 @@ let replacements () =
       ("time-interval", a, "operation A : unit ~> unit # [0, 1]\n");
     ]
 
+(* The operations bound by both of two packages. *)
+let shared () =
+  let package name bindings =
+    Package.parse
+      ~files:
+        [
+          ( name ^ "/package.json",
+            Printf.sprintf
+              {|{ "description": "A package", "declarations": "%s.tpe",
+  "grades": ["time-interval-rational"], "bindings": [%s] }|}
+              name
+              (String.concat ", " (List.map (Printf.sprintf "%S") bindings)) );
+          ( name ^ "/" ^ name ^ ".tpe",
+            String.concat ""
+              (List.map
+                 (Printf.sprintf "operation %s : unit ~> unit # [0, 1]\n")
+                 bindings) );
+        ]
+      name
+  in
+  let p = package "p" [ "A"; "B" ] in
+  List.iter
+    (fun q ->
+      Printf.printf "p and %s share: %s\n" q.Package.name
+        (Option.value ~default:"none" (Package.shared_binding p q)))
+    [ package "q" [ "C"; "B" ]; package "r" [ "C" ] ]
+
 let () =
   selection ();
   descriptors ();
-  replacements ()
+  replacements ();
+  shared ()

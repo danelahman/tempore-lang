@@ -105,13 +105,16 @@ let number src i =
   in
   (String.sub src.text i (j - i), j)
 
+let hex_digit = function
+  | '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true
+  | _ -> false
+
 let hex4 src i =
-  if i + 4 > String.length src.text then
-    fail src i "Expected four hexadecimal digits"
-  else
-    match int_of_string_opt ("0x" ^ String.sub src.text i 4) with
-    | Some n -> n
-    | None -> fail src i "Expected four hexadecimal digits"
+  if
+    i + 4 > String.length src.text
+    || not (String.for_all hex_digit (String.sub src.text i 4))
+  then fail src i "Expected four hexadecimal digits"
+  else int_of_string ("0x" ^ String.sub src.text i 4)
 
 (* A string, its first character after the opening quotation mark at [i]. *)
 let string_body src i =

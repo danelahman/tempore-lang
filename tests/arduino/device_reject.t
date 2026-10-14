@@ -71,6 +71,24 @@ An unknown board, package and time unit:
   Compilation error: The time unit must be ms, us, s or a positive number of microseconds
   exit 1
 
+A time unit whose denominator in lowest terms is not below 2^30, and an escape
+of a string that is not of four hexadecimal digits:
+
+  $ sed 's/"time_unit": "ms"/"time_unit": 0.0000000001/' toy/toy.device.json > m.json
+  $ reject m.json
+  File "m.json", line 3, characters 15-27:
+  3 |   "time_unit": 0.0000000001,
+                     ^^^^^^^^^^^^
+  Compilation error: The time unit must be a positive number of microseconds, at most 10^9, whose numerator and denominator in lowest terms are below 2^30
+  exit 1
+  $ printf '{ "board": "esp\\u00_4" }\n' > m.json
+  $ reject m.json
+  File "m.json", line 1, characters 17-18:
+  1 | { "board": "esp\u00_4" }
+                       ^
+  Syntax error: Expected four hexadecimal digits
+  exit 1
+
 Tasks: an unknown kind, a periodic task without a period, a period that is not
 a whole number of milliseconds, a free task with a period, a core beyond those
 of the board and a priority out of range:

@@ -24,8 +24,7 @@ type input = {
   operations :
     (Ast.operation * (Rational.t Grade.bound * Rational.t Grade.bound) option)
     list;
-  bindings : (string * string) option;
-  host_models : (string * string) list;
+  file_text : Device.name -> string;
   profile : bool;
 }
 
@@ -563,6 +562,16 @@ let files input (program : F.program) =
           Error.compilation ~loc:name.at "The package '%s' is listed twice"
             name.it;
         List.iter
+          (fun (p : Package.t) ->
+            Option.iter
+              (fun op ->
+                Error.compilation ~loc:name.at
+                  "The package %s binds the operation %s, which the package %s \
+                   binds"
+                  package.name op p.name)
+              (Package.shared_binding package p))
+          packages;
+        List.iter
           (fun capability ->
             if not (List.mem capability board.capabilities) then
               Error.compilation ~loc:name.at
@@ -647,24 +656,23 @@ let files input (program : F.program) =
     base
   in
   let binding_file =
-    match (device.bindings, input.bindings) with
-    | Some name, Some (_, text) ->
-        Some
-          ( name,
-            check_file ~what:"The binding file" ~taken:source_names name,
-            text )
-    | _ -> None
+    Option.map
+      (fun name ->
+        ( name,
+          check_file ~what:"The binding file" ~taken:source_names name,
+          input.file_text name ))
+      device.bindings
   in
   let host_models =
-    List.fold_left2
-      (fun acc (name : Device.name) (_, text) ->
+    List.fold_left
+      (fun acc (name : Device.name) ->
         let base =
           check_file ~what:"A host model"
             ~taken:(host_names @ List.map fst acc)
             name
         in
-        (base, text) :: acc)
-      [] device.host_models input.host_models
+        (base, input.file_text name) :: acc)
+      [] device.host_models
     |> List.rev
   in
   let provider name =

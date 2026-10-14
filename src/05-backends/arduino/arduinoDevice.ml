@@ -38,6 +38,11 @@ type t = {
 let located decode ~what (v : Json.t) =
   { Location.it = decode ~what v; at = v.at }
 
+(* The bound of the numerator and the denominator of the time unit, 2^30, under
+   which the conversion of a delay to microseconds in 64-bit unsigned
+   arithmetic does not overflow. *)
+let unit_term_bound = Z.shift_left Z.one 30
+
 let time_unit ~what (v : Json.t) =
   match v.value with
   | Json.String "ms" -> Rational.of_int 1000
@@ -47,11 +52,15 @@ let time_unit ~what (v : Json.t) =
       match Json.rational ~what v with
       | q
         when Rational.sign q > 0
-             && Rational.compare q (Rational.of_int 1_000_000_000) <= 0 ->
+             && Rational.compare q (Rational.of_int 1_000_000_000) <= 0
+             && Z.lt (Rational.num q) unit_term_bound
+             && Z.lt (Rational.den q) unit_term_bound ->
           q
       | _ ->
           Error.compilation ~loc:v.at
-            "The time unit must be positive and at most 10^9 microseconds")
+            "The time unit must be a positive number of microseconds, at most \
+             10^9, whose numerator and denominator in lowest terms are below \
+             2^30")
   | _ ->
       Error.compilation ~loc:v.at
         "The time unit must be ms, us, s or a positive number of microseconds"

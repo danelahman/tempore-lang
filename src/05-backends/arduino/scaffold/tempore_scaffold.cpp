@@ -98,7 +98,9 @@ static const uint64_t tempore_delay_chunk_ms = 3600000;
 // tempore_delay_chunk_ms, which yields the processor, and the remainder by
 // delayMicroseconds, which waits actively. vTaskDelay(k) returns at the k-th
 // tick from now, after at least k - 1 milliseconds, so that the remainder is
-// under one millisecond per wait and one more.
+// under one millisecond per wait and one more. The numerator and the
+// denominator of the time unit are below 2^30, so that the arithmetic in 64
+// bits does not overflow.
 void tempore_delay(uint32_t numerator, uint32_t denominator) {
   tempore_check_halt();
   const uint64_t d = static_cast<uint64_t>(denominator) *

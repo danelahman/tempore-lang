@@ -821,10 +821,8 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
               Filename.concat (Filename.dirname manifest) name.it
             else name.it
           in
-          (path, read_file path)
+          read_file path
         in
-        let bindings = Option.map read device.bindings in
-        let host_models = List.map read device.host_models in
         let monitor =
           match config.monitor with
           | None | Some OpentronsBackend.OpentronsProtocol.Abort ->
@@ -839,8 +837,7 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
             source;
             definitions;
             operations;
-            bindings;
-            host_models;
+            file_text = read;
             profile = config.profile;
           }
           program

@@ -218,6 +218,9 @@ let source filename =
             (package_files p)))
     names
 
+let shared_binding p q =
+  List.find_opt (fun op -> List.mem op q.bindings) p.bindings
+
 let running_times ?board package =
   Option.value ~default:[]
     (Option.bind board (fun board -> List.assoc_opt board package.bounds))

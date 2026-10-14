@@ -113,10 +113,9 @@ type input = {
     list;
       (** the declared operations, each with the bounds of its running time, if
           any *)
-  bindings : (string * string) option;
-      (** the name and the text of the binding file of the manifest, if any *)
-  host_models : (string * string) list;
-      (** the name and the text of each host model of the manifest, in order *)
+  file_text : ArduinoDevice.name -> string;
+      (** the text of a file the manifest names: its binding file or one of its
+          host models *)
   profile : bool;
       (** whether the project is built with the profile ([TEMPORE_PROFILE]) *)
 }
@@ -142,7 +141,8 @@ val files : input -> ArduinoFragment.program -> (string * string) list
       file does not mention, a binding function of a package that the binding
       file mentions, and a binding file or host model that is not a C++ file
       ending in .cpp or has the name of a file of a package or of another host
-      model.
+      model, or a package binding an operation that another package of the
+      manifest binds.
 
     Under a grade system that does not bound durations
     ({!Grades.Grade.Untimed}), the durations of the functions of periodic and
