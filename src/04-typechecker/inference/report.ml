@@ -26,7 +26,7 @@ module Make (C : Constraint.S) = struct
   (* An unknown of any sort. *)
   type unknown = Ty_unknown of Ast.ty_param | Grade_unknown of R.grade_unknown
 
-  let same_param a b = TyParam.compare a b = 0
+  let same_param a b = TyParam.equal a b
 
   let is_param u (ty : C.ty) =
     match (u, ty) with
@@ -105,7 +105,7 @@ module Make (C : Constraint.S) = struct
     | Ast.TyConst c, Ast.TyConst c' -> c = c'
     | Ast.TyParam a, Ast.TyParam b -> same_param a b
     | Ast.TyApply (name, tys), Ast.TyApply (name', tys') ->
-        Ast.TyName.compare name name' = 0 && same_tys context tys tys'
+        Ast.TyName.equal name name' && same_tys context tys tys'
     | Ast.TyTuple tys, Ast.TyTuple tys' -> same_tys context tys tys'
     | Ast.TyArrow (ty, cty), Ast.TyArrow (ty', cty') ->
         same_ty context ty ty' && same_comp_ty context cty cty'
@@ -1150,18 +1150,18 @@ module Make (C : Constraint.S) = struct
         | st, None -> next env st kinds)
 
   (* The unknowns of [ty] and [hyps] outside [fixed]. *)
-  let unknowns (fixed : C.free) ty hyps =
-    let free = C.union_free (C.free_vars_ty ty) (free_hyps hyps) in
+  let unknowns fixed ty hyps =
+    let free =
+      C.diff_free (C.union_free (C.free_vars_ty ty) (free_hyps hyps)) fixed
+    in
     Unknown_set.of_list
-      (List.map
-         (fun a -> Ty_unknown a)
-         (TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys))
+      (List.map (fun a -> Ty_unknown a) (TyParamSet.elements free.free_tys)
       @ List.map
           (fun k -> Grade_unknown (R.Rho_unknown k))
-          (Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos))
+          (Rho_set.elements free.free_rhos)
       @ List.map
           (fun k -> Grade_unknown (R.Eps_unknown k))
-          (Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps)))
+          (Eps_set.elements free.free_eps))
 
   (* The unknowns outside [fixed] tested by each kind of step. *)
   let tested candidates =
@@ -1309,22 +1309,6 @@ module Make (C : Constraint.S) = struct
       obligations = List.map (canon_deferred context) obligations;
     }
 
-  let scheme ~(fixed : C.free) (report : t) =
-    let qualifier =
-      C.conj
-        (R.hyps_to_constraint report.hyps)
-        (C.conj_all (List.map R.deferred_to_constraint report.obligations))
-    in
-    let free =
-      C.union_free (C.free_vars_ty report.ty) (C.free_vars qualifier)
-    in
-    {
-      C.ty_params =
-        TyParamSet.elements (TyParamSet.diff free.free_tys fixed.free_tys);
-      rho_params =
-        Rho_set.elements (Rho_set.diff free.free_rhos fixed.free_rhos);
-      eps_params = Eps_set.elements (Eps_set.diff free.free_eps fixed.free_eps);
-      qualifier;
-      ty = report.ty;
-    }
+  let scheme ~fixed (report : t) =
+    C.close ~fixed report.ty (R.qualifier report.hyps report.obligations)
 end

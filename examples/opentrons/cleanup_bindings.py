@@ -33,49 +33,49 @@ def setup(protocol):
     }
 
 
-def AddBeads(ctx, arg):
+def AddBeads(ctx, unit):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A1"], ctx["samples"], mix_after=(5, 40), new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def Engage(ctx, arg):
+def Engage(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], ctx["magnet"], use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def Disengage(ctx, arg):
+def Disengage(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def RemoveSupernatant(ctx, arg):
+def RemoveSupernatant(ctx, unit):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def AddEthanol(ctx, arg):
+def AddEthanol(ctx, unit):
     ctx["pipette"].transfer(150, ctx["reservoir"]["A2"], [sample.top() for sample in ctx["samples"]], new_tip="once")
     tempore_elapse(45)
     return ()
 
 
-def RemoveEthanol(ctx, arg):
+def RemoveEthanol(ctx, unit):
     ctx["pipette"].transfer(150, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def AddBuffer(ctx, arg):
+def AddBuffer(ctx, unit):
     ctx["pipette"].transfer(25, ctx["reservoir"]["A3"], ctx["samples"], mix_after=(5, 20), new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def Transfer(ctx, arg):
+def Transfer(ctx, unit):
     ctx["pipette"].transfer(20, ctx["samples"], ctx["eluates"], new_tip="always")
     tempore_elapse(90)
     return ()

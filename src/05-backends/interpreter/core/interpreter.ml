@@ -19,22 +19,15 @@ module Types = struct
     | HandleOp
     | DefaultOp
 
-  (* A frame of a reduction context: a [do] or a [handle] around the hole, with
-     the location of that node and its part outside the hole. *)
   type ('abstraction, 'expression) context_frame =
     | DoFrame of Utils.Location.t * 'abstraction
     | HandleFrame of Utils.Location.t * 'expression
 
-  (* A reduction: a redex in a reduction context, given by its frames, the
-     innermost first. *)
   type 'frame computation_reduction = {
     context : 'frame list;
     redex : computation_redex;
   }
 
-  (* A step of a top-level [run] command: a reduction of its computation, or
-     the end of the command at a returned value or at an unhandled operation
-     call. *)
   type 'frame run_step_label =
     | ComputationReduction of 'frame computation_reduction
     | Return
@@ -45,8 +38,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   module Grades = GS
   module Graded = Ast.Graded (GS)
 
-  (* The interpreter has no use for anything but the accumulated resource grade
-     itself, so its contexts record just that. *)
+  (* The elapsed grades of the contexts of the interpreter: resource grades. *)
   module Elapsed = struct
     type t = Graded.rho
 
@@ -67,10 +59,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Some d -> d
     | None -> invalid_arg ("Interpreter.delay: " ^ Rational.show q)
 
-  (* The state holds each resource with the resource grade it was boxed at,
-     interleaved with the resource grades that have passed; operations are
-     graded by effect grades. The resource names, the continuations, the
-     accumulated grade and the depth of the calls serve the observations of steps. *)
   type evaluation_environment = {
     state : (Graded.rho * Graded.expression) ContextHolderModule.t;
     variables : Graded.expression ContextHolderModule.t;
@@ -99,10 +87,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
       op_defaults = Ast.OpNameMap.empty;
     }
 
-  exception PatternMismatch
-
-  (** [rho_of_eps eps] is the resource grade [∣eps∣] of the effect grade [eps]
-      of an operation signature. *)
+  (* The resource grade [∣eps∣] of the effect grade [eps] of an operation
+     signature. *)
   let rec rho_of_eps = function
     | Ast.EpsConst (c, at) -> Ast.RhoConst (GS.map c, at)
     | Ast.EpsAdd (eps, eps') -> Ast.RhoAdd (rho_of_eps eps, rho_of_eps eps')
@@ -123,7 +109,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x ->
         eval_tuple env (ContextHolderModule.find_variable x env.variables)
     | _ ->
-        Error.runtime "Tuple expected but got %t"
+        Error.runtime "Tuple expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_variant (env : evaluation_environment) (expr : _ Ast.expression)
@@ -134,7 +120,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x ->
         eval_variant env (ContextHolderModule.find_variable x env.variables)
     | _ ->
-        Error.runtime "Variant expected but got %t"
+        Error.runtime "Variant expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_const (env : evaluation_environment) (expr : _ Ast.expression) =
@@ -144,7 +130,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Var x ->
         eval_const env (ContextHolderModule.find_variable x env.variables)
     | _ ->
-        Error.runtime "Constant expected but got %t"
+        Error.runtime "Constant expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   (* The argument [expr] of a primitive, its annotations dropped and its
@@ -166,36 +152,49 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.Handler _ ->
         expr
 
-  let rec match_pattern_with_expression env (pat : _ Ast.pattern) expr =
+  (* The substitution of the variables of the pattern [pat] by the parts of
+     the value [expr] they match, if [pat] matches [expr]. *)
+  let rec match_pattern env (pat : _ Ast.pattern) expr =
     match pat.it with
-    | Ast.PVar x -> Ast.VariableMap.singleton x expr
-    | Ast.PAnnotated (pat, _) -> match_pattern_with_expression env pat expr
+    | Ast.PVar x -> Some (Ast.VariableMap.singleton x expr)
+    | Ast.PAnnotated (pat, _) -> match_pattern env pat expr
     | Ast.PAs (pat, x) ->
-        let subst = match_pattern_with_expression env pat expr in
-        Ast.VariableMap.add x expr subst
+        Option.map (Ast.VariableMap.add x expr) (match_pattern env pat expr)
     | Ast.PTuple pats ->
-        let exprs = eval_tuple env expr in
         List.fold_left2
           (fun subst pat expr ->
-            let subst' = match_pattern_with_expression env pat expr in
-            Ast.VariableMap.union (fun _ _ _ -> assert false) subst subst')
-          Ast.VariableMap.empty pats exprs
+            Option.bind subst (fun subst ->
+                Option.map
+                  (Ast.VariableMap.union (fun _ _ _ -> assert false) subst)
+                  (match_pattern env pat expr)))
+          (Some Ast.VariableMap.empty) pats (eval_tuple env expr)
     | Ast.PVariant (label, pat) -> (
         match (pat, eval_variant env expr) with
-        | None, (label', None) when label = label' -> Ast.VariableMap.empty
-        | Some pat, (label', Some expr) when label = label' ->
-            match_pattern_with_expression env pat expr
-        | _, _ -> raise PatternMismatch)
-    | Ast.PConst c when Const.equal c (eval_const env expr) ->
-        Ast.VariableMap.empty
+        | None, (label', None) when Ast.Label.equal label label' ->
+            Some Ast.VariableMap.empty
+        | Some pat, (label', Some expr) when Ast.Label.equal label label' ->
+            match_pattern env pat expr
+        | _, _ -> None)
+    | Ast.PConst c ->
+        if Const.equal c (eval_const env expr) then Some Ast.VariableMap.empty
+        else None
     | Ast.PSucc (pat, k) -> (
         match eval_const env expr with
         | Const.Nat n when Z.geq n k ->
-            match_pattern_with_expression env pat
+            match_pattern env pat
               { expr with it = Ast.Const (Const.Nat (Z.sub n k)) }
-        | _ -> raise PatternMismatch)
-    | Ast.PNonbinding -> Ast.VariableMap.empty
-    | _ -> raise PatternMismatch
+        | _ -> None)
+    | Ast.PNonbinding -> Some Ast.VariableMap.empty
+
+  (* The substitution of the variables of the irrefutable pattern [pat] by the
+     parts of the value [expr] they match. *)
+  let bind env pat expr =
+    match match_pattern env pat expr with
+    | Some subst -> subst
+    | None ->
+        Error.runtime "Value `%t` does not match the pattern `%t`"
+          (PrettyPrint.print_expression (module GS.R) expr)
+          (PrettyPrint.print_pattern pat)
 
   let rec remove_pattern_bound_variables subst (pat : _ Ast.pattern) =
     match pat.it with
@@ -212,37 +211,42 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.PConst _ -> subst
     | Ast.PNonbinding -> subst
 
-  (* Refreshing rebuilds the pattern, but every node keeps the span it was
-     written at: the variables change, the source they came from does not. *)
-  let rec refresh_pattern (pat : _ Ast.pattern) =
+  (* [refresh_pattern renaming pat] is [pat] with fresh variables, and
+     [renaming] extended by the renaming of its variables to them. Every node
+     keeps the span it was written at: the variables change, the source they
+     came from does not. *)
+  let rec refresh_pattern renaming (pat : _ Ast.pattern) =
     match pat.it with
     | Ast.PVar x ->
         let x' = Ast.Variable.refresh x in
-        ({ pat with it = Ast.PVar x' }, [ (x, x') ])
-    | Ast.PAnnotated (pat', _) -> refresh_pattern pat'
+        ({ pat with it = Ast.PVar x' }, Ast.VariableMap.add x x' renaming)
+    | Ast.PAnnotated (pat', _) -> refresh_pattern renaming pat'
     | Ast.PAs (pat', x) ->
-        let pat'', vars = refresh_pattern pat' in
+        let pat'', renaming = refresh_pattern renaming pat' in
         let x' = Ast.Variable.refresh x in
-        ({ pat with it = Ast.PAs (pat'', x') }, (x, x') :: vars)
+        ( { pat with it = Ast.PAs (pat'', x') },
+          Ast.VariableMap.add x x' renaming )
     | Ast.PTuple pats ->
-        let fold pat' (pats', vars) =
-          let pat'', vars' = refresh_pattern pat' in
-          (pat'' :: pats', vars' @ vars)
+        let refresh pat' (pats', renaming) =
+          let pat'', renaming = refresh_pattern renaming pat' in
+          (pat'' :: pats', renaming)
         in
-        let pats', vars = List.fold_right fold pats ([], []) in
-        ({ pat with it = Ast.PTuple pats' }, vars)
+        let pats', renaming = List.fold_right refresh pats ([], renaming) in
+        ({ pat with it = Ast.PTuple pats' }, renaming)
     | Ast.PVariant (lbl, Some pat') ->
-        let pat'', vars = refresh_pattern pat' in
-        ({ pat with it = Ast.PVariant (lbl, Some pat'') }, vars)
+        let pat'', renaming = refresh_pattern renaming pat' in
+        ({ pat with it = Ast.PVariant (lbl, Some pat'') }, renaming)
     | Ast.PSucc (pat', k) ->
-        let pat'', vars = refresh_pattern pat' in
-        ({ pat with it = Ast.PSucc (pat'', k) }, vars)
-    | Ast.PVariant (_, None) | Ast.PConst _ | Ast.PNonbinding -> (pat, [])
+        let pat'', renaming = refresh_pattern renaming pat' in
+        ({ pat with it = Ast.PSucc (pat'', k) }, renaming)
+    | Ast.PVariant (_, None) | Ast.PConst _ | Ast.PNonbinding -> (pat, renaming)
 
+  (* The terms below have their bound variables replaced by fresh ones and
+     their free variables renamed by [vars]. *)
   let rec refresh_expression vars (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Var x -> (
-        match List.assoc_opt x vars with
+        match Ast.VariableMap.find_opt x vars with
         | None -> expr
         | Some x' -> { expr with it = Ast.Var x' })
     | Ast.Const _ -> expr
@@ -263,7 +267,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
         let x' = Ast.Variable.refresh x in
         {
           expr with
-          it = Ast.RecLambda (x', eps, refresh_abstraction ((x, x') :: vars) abs);
+          it =
+            Ast.RecLambda
+              (x', eps, refresh_abstraction (Ast.VariableMap.add x x' vars) abs);
         }
     | Ast.Handler (ret_case, op_cases) ->
         let ret_case' = refresh_abstraction vars ret_case in
@@ -318,8 +324,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
         { comp with it = Ast.Handle (c', h') }
 
   and refresh_abstraction vars (pat, comp) =
-    let pat', vars' = refresh_pattern pat in
-    (pat', refresh_computation (vars @ vars') comp)
+    let pat', vars = refresh_pattern vars pat in
+    (pat', refresh_computation vars comp)
 
   (* A substituted variable takes the span of the value bound to it; every
      other node keeps its own. *)
@@ -349,7 +355,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Ast.RecLambda (x, eps, abs) ->
         {
           expr with
-          it = Ast.RecLambda (x, eps, substitute_abstraction subst abs);
+          it =
+            Ast.RecLambda
+              ( x,
+                eps,
+                substitute_abstraction (Ast.VariableMap.remove x subst) abs );
         }
     | Ast.Handler (ret_case, op_cases) ->
         {
@@ -429,25 +439,23 @@ module Make (GS : Grades.GradeSystem.S) = struct
     (pat, substitute_computation subst' comp)
 
   let substitute subst comp =
-    let subst = Ast.VariableMap.map (refresh_expression []) subst in
+    let subst =
+      Ast.VariableMap.map (refresh_expression Ast.VariableMap.empty) subst
+    in
     substitute_computation subst comp
 
   let rec eval_function env (expr : _ Ast.expression) =
     match expr.it with
     | Ast.Annotated (expr', _) -> eval_function env expr'
-    | Ast.Lambda (pat, comp) ->
-        fun arg ->
-          let subst = match_pattern_with_expression env pat arg in
-          substitute subst comp
-    | Ast.PureLambda (pat, comp) ->
-        fun arg ->
-          let subst = match_pattern_with_expression env pat arg in
-          substitute subst comp
+    | Ast.Lambda (pat, comp) | Ast.PureLambda (pat, comp) ->
+        fun arg -> substitute (bind env pat arg) comp
+    (* A variable of the parameter shadows the function. *)
     | Ast.RecLambda (f, _, (pat, comp)) ->
         fun arg ->
           let subst =
-            match_pattern_with_expression env pat arg
-            |> Ast.VariableMap.add f expr
+            Ast.VariableMap.update f
+              (function None -> Some expr | value -> value)
+              (bind env pat arg)
           in
           substitute subst comp
     | Ast.Var x -> (
@@ -457,7 +465,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
             let f = ContextHolderModule.find_variable x env.builtin_functions in
             fun arg -> f (eval_value env arg))
     | _ ->
-        Error.runtime "Function expected but got %t"
+        Error.runtime "Function expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   let rec eval_handler env (expr : _ Ast.expression) =
@@ -468,16 +476,13 @@ module Make (GS : Grades.GradeSystem.S) = struct
         match ContextHolderModule.find_variable_opt x env.variables with
         | Some expr' -> eval_handler env expr'
         | None ->
-            Error.runtime "Handler expected but not found in the environment")
+            Error.runtime "Handler `%t` expected but not bound"
+              (Ast.Variable.print x))
     | _ ->
-        Error.runtime "Handler expected but got %t"
+        Error.runtime "Handler expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
   type frame = (Graded.abstraction, Graded.expression) context_frame
-
-  (* A computation decomposed into a reduction context, its frames the
-     innermost first, and the subcomputation in its hole. Unless the context
-     is empty, the subcomputation is not a [return] or an operation call. *)
   type focus = { frames : frame list; subject : Graded.computation }
 
   let plug frame (comp : _ Ast.computation) =
@@ -575,206 +580,205 @@ module Make (GS : Grades.GradeSystem.S) = struct
       resource_names = Ast.VariableMap.fold name subst env.resource_names;
     }
 
+  (* A fresh resource variable, named after the counter of [env], and [env]
+     with the counter advanced. *)
+  let fresh_resource env =
+    ( Ast.Variable.fresh (resource_id env.resource_counter),
+      { env with resource_counter = env.resource_counter + 1 } )
+
+  (* The reductions below are those of [contract] at each kind of redex. *)
+
+  (* The first case whose pattern matches [expr], its variables refreshed. *)
+  let contract_match env expr cases =
+    List.find_map
+      (fun (pat, comp) ->
+        Option.map
+          (fun subst ->
+            let _, renaming = refresh_pattern Ast.VariableMap.empty pat in
+            let subst =
+              Ast.VariableMap.fold
+                (fun x expr ->
+                  Ast.VariableMap.add (Ast.VariableMap.find x renaming) expr)
+                subst Ast.VariableMap.empty
+            in
+            ( name_resources env subst,
+              Match,
+              fun () -> substitute subst (refresh_computation renaming comp) ))
+          (match_pattern env pat expr))
+      cases
+    |> Option.to_list
+
+  let contract_do env frames at (comp1 : _ Ast.computation) abs =
+    match comp1.it with
+    | Ast.Return expr ->
+        let pat, comp2 = abs in
+        let subst = bind env pat expr in
+        let env' = name_resources env subst in
+        (* At the root, while a default implementation runs, the binding of its
+           result ends the innermost call. *)
+        let env' =
+          match frames with
+          | [] when env'.calls > 0 -> { env' with calls = env'.calls - 1 }
+          | _ -> env'
+        in
+        [ (env', DoReturn, fun () -> substitute subst comp2) ]
+    | Ast.Perform (op, expr, (pat, cont)) ->
+        [
+          ( env,
+            DoOp,
+            fun () ->
+              Ast.located at
+                (Ast.Perform
+                   (op, expr, (pat, Ast.located at (Ast.Do (cont, abs))))) );
+        ]
+    | _ -> []
+
+  let contract_delay env q comp =
+    let grade = GS.R.of_delay (delay q) in
+    let env =
+      {
+        env with
+        state =
+          ContextHolderModule.add_temp (Ast.RhoConst (grade, None)) env.state;
+      }
+    in
+    let env =
+      if env.calls = 0 then
+        { env with accumulated = GS.R.mul env.accumulated grade }
+      else env
+    in
+    [ (env, Delay, fun () -> comp) ]
+
+  (* The value [expr] boxed at [rho] as a fresh resource, which the variable
+     of [pat] stands for in [body]. *)
+  let contract_box env frames rho expr ((pat : _ Ast.pattern), body) =
+    match bound_variable pat with
+    | Some x ->
+        let x', env' = fresh_resource env in
+        let continuation = binds_continuation env pat in
+        let env' =
+          {
+            env' with
+            state = ContextHolderModule.add_variable x' (rho, expr) env.state;
+            resource_names =
+              (match pattern_name pat body frames with
+              | Some name when not continuation ->
+                  Ast.VariableMap.add x' name env.resource_names
+              | Some _ | None -> env.resource_names);
+            continuations =
+              (if continuation then Ast.VariableSet.add x' env.continuations
+               else env.continuations);
+          }
+        in
+        [
+          ( env',
+            Box,
+            fun () -> refresh_computation (Ast.VariableMap.singleton x x') body
+          );
+        ]
+    | None ->
+        Error.runtime "Box expected a variable but got the pattern `%t`"
+          (PrettyPrint.print_pattern pat)
+
+  (* The value of the resource [expr] bound to [pat] in [body]. *)
+  let contract_unbox env expr (pat, body) =
+    match resource_variable expr with
+    | Some x ->
+        let _, value = ContextHolderModule.find_variable x env.state in
+        let subst = bind env pat value in
+        [ (env, Unbox, fun () -> substitute subst body) ]
+    | None ->
+        Error.runtime "Unbox expected a variable but got the expression `%t`"
+          (PrettyPrint.print_expression (module GS.R) expr)
+
+  (* The patterns of the argument and of the continuation of the case [pat] of
+     an operation. *)
+  let rec operation_case_patterns (pat : _ Ast.pattern) =
+    match pat.it with
+    | Ast.PTuple [ arg_pat; cont_pat ] -> Some (arg_pat, cont_pat)
+    | Ast.PAnnotated (pat', _) -> operation_case_patterns pat'
+    | _ -> None
+
+  (* The call of [op] on [expr] with the continuation [(pat, cont)] inside the
+     handler [handler]: handled by the case of [op] of [handler], given the
+     continuation boxed at the resource grade of the effect grade of [op], or
+     else passed to the enclosing handlers with [handler] in its continuation. *)
+  let contract_handled_operation env at handler op_cases op expr (pat, cont) =
+    let resumed = Ast.located at (Ast.Handle (cont, handler)) in
+    match Ast.OpNameMap.find_opt op op_cases with
+    | None ->
+        [
+          ( env,
+            HandleOp,
+            fun () -> Ast.located at (Ast.Perform (op, expr, (pat, resumed))) );
+        ]
+    | Some (case_pat, case) ->
+        let arg_pat, cont_pat =
+          match operation_case_patterns case_pat with
+          | Some pats -> pats
+          | None ->
+              Error.runtime
+                "The case of the operation `%t` does not bind an argument and \
+                 a continuation"
+                (Ast.OpName.print op)
+        in
+        let eps =
+          match Ast.OpNameMap.find_opt op env.op_signatures with
+          | Some eps -> eps
+          | None ->
+              Error.runtime "The operation `%t` has no signature"
+                (Ast.OpName.print op)
+        in
+        let x, env' = fresh_resource env in
+        let env' =
+          { env' with continuations = Ast.VariableSet.add x env.continuations }
+        in
+        let arg_subst = bind env' arg_pat expr in
+        let cont_subst = bind env' cont_pat (Ast.located at (Ast.Var x)) in
+        [
+          ( env',
+            HandleOp,
+            fun () ->
+              Ast.located at
+                (Ast.Box
+                   ( rho_of_eps eps,
+                     Ast.located at (Ast.Lambda (pat, resumed)),
+                     ( Ast.located at (Ast.PVar x),
+                       substitute cont_subst (substitute arg_subst case) ) )) );
+        ]
+
+  let contract_handle env at (body : _ Ast.computation) handler =
+    let (pat, ret_comp), op_cases = eval_handler env handler in
+    match body.it with
+    | Ast.Return expr ->
+        let subst = bind env pat expr in
+        [
+          ( name_resources env subst,
+            HandleReturn,
+            fun () -> substitute subst ret_comp );
+        ]
+    | Ast.Perform (op, expr, cont) ->
+        contract_handled_operation env at handler op_cases op expr cont
+    | _ -> []
+
   (* The reductions of the computation [comp] at its top, in the context
      [frames], each with the environment after it, the redex and the
      contractum. A [do] or a [handle] reduces at its top only when its body is
-     terminal. Every computation the interpreter builds is a contraction of the
-     redex it is reducing, so it is reported at the redex's span. *)
+     terminal; an operation call at the top of a run is reduced by [steps].
+     Every computation the interpreter builds is a contraction of the redex it
+     is reducing, so it is reported at the redex's span. *)
   let contract env frames (comp : _ Ast.computation) =
-    let at = comp.at in
     match comp.it with
-    | Ast.Return _ -> []
-    | Ast.Match (expr, cases) ->
-        let rec find_case = function
-          | (env, pat, comp) :: cases -> (
-              match match_pattern_with_expression env pat expr with
-              | subst ->
-                  [
-                    ( name_resources env subst,
-                      Match,
-                      fun () -> substitute subst comp );
-                  ]
-              | exception PatternMismatch -> find_case cases)
-          | [] -> []
-        in
-        let cases' =
-          List.map
-            (fun (pat, comp) ->
-              let pat', vars = refresh_pattern pat in
-              let comp' = refresh_computation vars comp in
-              (env, pat', comp'))
-            cases
-        in
-        find_case cases'
+    | Ast.Return _ | Ast.Perform _ -> []
+    | Ast.Match (expr, cases) -> contract_match env expr cases
     | Ast.Apply (expr1, expr2) ->
         let f = eval_function env expr1 in
         [ (env, ApplyFun, fun () -> f expr2) ]
-    | Ast.Do (comp1, comp2) -> (
-        match comp1.it with
-        | Ast.Return expr ->
-            let pat, comp2' = comp2 in
-            let subst = match_pattern_with_expression env pat expr in
-            let env' = name_resources env subst in
-            (* At the root, while a default implementation runs, the binding
-               of its result ends the innermost call. *)
-            let env' =
-              match frames with
-              | [] when env'.calls > 0 -> { env' with calls = env'.calls - 1 }
-              | _ -> env'
-            in
-            [ (env', DoReturn, fun () -> substitute subst comp2') ]
-        | Ast.Perform (op, expr, (pat, cont)) ->
-            [
-              ( env,
-                DoOp,
-                fun () ->
-                  Ast.located at
-                    (Ast.Perform
-                       (op, expr, (pat, Ast.located at (Ast.Do (cont, comp2)))))
-              );
-            ]
-        | _ -> [])
-    | Ast.Delay (q, comp) ->
-        let grade = GS.R.of_delay (delay q) in
-        let rho = Ast.RhoConst (grade, None) in
-        let env' =
-          let env =
-            { env with state = ContextHolderModule.add_temp rho env.state }
-          in
-          if env.calls = 0 then
-            { env with accumulated = GS.R.mul env.accumulated grade }
-          else env
-        in
-        [ (env', Delay, fun () -> comp) ]
-    | Ast.Box (rho, expr, (pat, body)) ->
-        let rec doBox rho expr (pat : _ Ast.pattern) body =
-          match pat.it with
-          | Ast.PVar x ->
-              let resource_counter = env.resource_counter in
-              let x' =
-                Ast.Variable.fresh ("resource_" ^ string_of_int resource_counter)
-              in
-              let state' =
-                ContextHolderModule.add_variable x' (rho, expr) env.state
-              in
-              let env' =
-                {
-                  env with
-                  state = state';
-                  resource_counter = resource_counter + 1;
-                  resource_names =
-                    (match
-                       (binds_continuation env pat, pattern_name pat body frames)
-                     with
-                    | false, Some name ->
-                        Ast.VariableMap.add x' name env.resource_names
-                    | true, _ | false, None -> env.resource_names);
-                  continuations =
-                    (if binds_continuation env pat then
-                       Ast.VariableSet.add x' env.continuations
-                     else env.continuations);
-                }
-              in
-              [ (env', Box, fun () -> refresh_computation [ (x, x') ] body) ]
-          | Ast.PAnnotated (pat', _) -> doBox rho expr pat' body
-          | _ ->
-              Error.runtime "Box expected a variable but got pattern %t"
-                (PrettyPrint.print_pattern pat)
-        in
-        doBox rho expr pat body
-    | Ast.Unbox (expr, (pat, body)) ->
-        let rec doUnbox (expr : _ Ast.expression) pat body =
-          match expr.it with
-          | Ast.Var x ->
-              let _rho', expr' =
-                ContextHolderModule.find_variable x env.state
-              in
-              let subst = match_pattern_with_expression env pat expr' in
-              [ (env, Unbox, fun () -> substitute subst body) ]
-          | Ast.Annotated (expr', _) -> doUnbox expr' pat body
-          | _ ->
-              Error.runtime "Unbox expected a variable but got expression %t"
-                (PrettyPrint.print_expression (module GS.R) expr)
-        in
-        doUnbox expr pat body
-    (* An operation call at the top of a run is reduced by [steps]. *)
-    | Ast.Perform _ -> []
-    | Ast.Handle (body, handler) -> (
-        let (pat, ret_comp), op_cases = eval_handler env handler in
-        match body.it with
-        | Ast.Return expr ->
-            let subst = match_pattern_with_expression env pat expr in
-            ( name_resources env subst,
-              HandleReturn,
-              fun () -> substitute subst ret_comp )
-            :: []
-        | Ast.Perform (op, expr, (op_pat, op_cont)) -> (
-            let op_case = Ast.OpNameMap.find_opt op op_cases in
-            match op_case with
-            | Some ({ it = Ast.PTuple [ op_arg_pat; op_cont_pat ]; _ }, op_case)
-              -> (
-                let op_sig = Ast.OpNameMap.find_opt op env.op_signatures in
-                match op_sig with
-                | Some eps ->
-                    let resource_counter = env.resource_counter in
-                    let x =
-                      Ast.Variable.fresh
-                        ("resource_" ^ string_of_int resource_counter)
-                    in
-                    let env' =
-                      {
-                        env with
-                        resource_counter = resource_counter + 1;
-                        continuations = Ast.VariableSet.add x env.continuations;
-                      }
-                    in
-                    let arg_subst =
-                      match_pattern_with_expression env' op_arg_pat expr
-                    in
-                    let cont_subst =
-                      match_pattern_with_expression env' op_cont_pat
-                        (Ast.located at (Ast.Var x))
-                    in
-                    (* The continuation is boxed at the resource grade the
-                       operation's effect grade maps to. *)
-                    ( env',
-                      HandleOp,
-                      fun () ->
-                        Ast.located at
-                          (Ast.Box
-                             ( rho_of_eps eps,
-                               Ast.located at
-                                 (Ast.Lambda
-                                    ( op_pat,
-                                      Ast.located at
-                                        (Ast.Handle (op_cont, handler)) )),
-                               ( Ast.located at (Ast.PVar x),
-                                 substitute cont_subst
-                                   (substitute arg_subst op_case) ) )) )
-                    :: []
-                | None ->
-                    Error.runtime
-                      "Internal error: operation %t has no signature in the \
-                       runtime state"
-                      (Ast.OpName.print op))
-            | Some _ ->
-                Error.runtime
-                  "Internal error: the case of operation %t does not bind an \
-                   argument and a continuation"
-                  (Ast.OpName.print op)
-            | _ ->
-                ( env,
-                  HandleOp,
-                  fun () ->
-                    Ast.located at
-                      (Ast.Perform
-                         ( op,
-                           expr,
-                           ( op_pat,
-                             Ast.located at (Ast.Handle (op_cont, handler)) ) ))
-                )
-                :: [])
-        | _ -> [])
+    | Ast.Do (comp1, abs) -> contract_do env frames comp.at comp1 abs
+    | Ast.Delay (q, comp) -> contract_delay env q comp
+    | Ast.Box (rho, expr, abs) -> contract_box env frames rho expr abs
+    | Ast.Unbox (expr, abs) -> contract_unbox env expr abs
+    | Ast.Handle (body, handler) -> contract_handle env comp.at body handler
 
   let returned_value env (comp : _ Ast.computation) =
     match comp.it with
@@ -842,9 +846,6 @@ module Make (GS : Grades.GradeSystem.S) = struct
         };
     }
 
-  (* The computation of the current [run] command, if any, decomposed at its
-     redex, with its environment, and the [run] commands after it, each with
-     the environment of the commands above it. *)
   type run_state = {
     environment : evaluation_environment;
     current : focus option;
@@ -889,12 +890,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
         pending;
       } ->
         [ end_run Return environment pending ]
-    (* A default implementation fires only here, where the operation call has
-       bubbled out of every enclosing [do] and [handle] and so is known to be
-       unhandled; [contract] deliberately gets no [Perform] rule. The body runs
-       in place of the call and its result is passed to the continuation,
-       exactly as a handled operation's result would be. Only the defaults
-       declared above the [run] command are in its environment. *)
+    (* An operation call outside every [do] and [handle] is unhandled, and is
+       reduced here rather than by [contract]: by its default implementation,
+       which runs in place of the call, its result passed to the continuation
+       of the call. The defaults of the environment are those declared above
+       the [run] command. *)
     | {
         current =
           Some
@@ -907,9 +907,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
       }
       when Ast.OpNameMap.mem op environment.op_defaults ->
         let dpat, dcomp = Ast.OpNameMap.find op environment.op_defaults in
-        let dpat', vars = refresh_pattern dpat in
-        let dcomp' = refresh_computation vars dcomp in
-        let subst = match_pattern_with_expression environment dpat' expr in
+        let dpat', dcomp' =
+          refresh_abstraction Ast.VariableMap.empty (dpat, dcomp)
+        in
+        let subst = bind environment dpat' expr in
         (* The grade of the signature of the call is added to the accumulated
            grade at the top level; a call inside a default implementation is
            counted in the grade of that. *)
@@ -946,9 +947,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
                 });
           };
         ]
-    (* An operation call without a default that has bubbled out of every
-       enclosing [do] and [handle] is unhandled: the run stops there and
-       execution passes to the next top-level [run] command. *)
+    (* An unhandled operation call without a default implementation ends the
+       run; the next [run] command follows. *)
     | {
         current = Some { frames = []; subject = { it = Ast.Perform _; _ } };
         environment;
@@ -983,13 +983,17 @@ module Make (GS : Grades.GradeSystem.S) = struct
     in
     let show grade = show_rho (Ast.RhoConst (grade, None)) in
     let at = show env.accumulated in
+    (* The names the step gives; a step that gives none leaves the map of
+       names physically unchanged. *)
     let named =
-      List.filter_map
-        (fun (r, name) ->
-          if Ast.VariableMap.mem r env.resource_names then None
-          else
-            Some (Backend.Named { resource = Ast.Variable.string_of r; name }))
-        (Ast.VariableMap.bindings step.environment.resource_names)
+      if step.environment.resource_names == env.resource_names then []
+      else
+        List.filter_map
+          (fun (r, name) ->
+            if Ast.VariableMap.mem r env.resource_names then None
+            else
+              Some (Backend.Named { resource = Ast.Variable.string_of r; name }))
+          (Ast.VariableMap.bindings step.environment.resource_names)
     in
     match (step.label, run_state.current) with
     | ( ComputationReduction { redex = Delay; _ },

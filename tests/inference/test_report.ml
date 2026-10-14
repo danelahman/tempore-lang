@@ -129,7 +129,7 @@ module Programs (G : Grade.S) = struct
     let fixing params : C.free =
       { C.no_free with free_tys = Ast.TyParamSet.of_list params }
     in
-    let context = P.context ~loc Gen.initial_env in
+    let context = P.context Gen.initial_env in
     match S.solve context (C.Sub (because, Ast.TyParam a, Ast.TyParam b)) with
     | S.Solved solution ->
         List.map

@@ -758,9 +758,9 @@ it names none:
   ======================================================================
   default_reject_unknown.tpe
   ======================================================================
-  File "default_reject_unknown.tpe", line 5, characters 0-25:
+  File "default_reject_unknown.tpe", line 5, characters 8-11:
   5 | default Log msg = delay 1
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+              ^^^
   Syntax error: Unknown name `Log`
   ======================================================================
   delay_reject_expression.tpe
@@ -807,9 +807,9 @@ it names none:
   ======================================================================
   duplicate_variant_tydef_sum.tpe
   ======================================================================
-  File "duplicate_variant_tydef_sum.tpe", line 3, characters 0-39:
+  File "duplicate_variant_tydef_sum.tpe", line 3, characters 25-29:
   3 | type cow = Horn of nat | Horn of string
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                               ^^^^
   Syntax error: Label `Horn` defined multiple times
   ======================================================================
   error_apply_arg.tpe
@@ -3412,6 +3412,16 @@ it names none:
     Note: the resource inequality `{2 | 0.5} <= {[1, ∞)}` does not hold
     Note: the grade `{0.5}` is below `{2 | 0.5}` but not below `{[1, ∞)}`
   ======================================================================
+  regex_timed_compound_named_later_reject.tpe
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_wildcard.tpe
+  ======================================================================
+  ======================================================================
   regex_timed_interval.tpe
   ======================================================================
   === Run 1 ===
@@ -4188,16 +4198,16 @@ it names none:
   ======================================================================
   shadow_label.tpe
   ======================================================================
-  File "shadow_label.tpe", line 2, characters 0-41:
+  File "shadow_label.tpe", line 2, characters 29-33:
   2 | type bull = Tail of string | Horn of bull
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                   ^^^^
   Syntax error: Label `Horn` defined multiple times
   ======================================================================
   shadow_type.tpe
   ======================================================================
-  File "shadow_type.tpe", line 3, characters 0-23:
+  File "shadow_type.tpe", line 3, characters 5-8:
   3 | type cow = Hoof of bool
-      ^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^
   Syntax error: Type `cow` defined multiple times
   ======================================================================
   string_reject_newline_location.tpe
@@ -5587,6 +5597,16 @@ automata, the programs over rational delays excepted:
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
+  regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-automata)
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_wildcard.tpe (regex-timed-interval-letter-automata)
+  ======================================================================
+  ======================================================================
   regex_timed_interval.tpe (regex-timed-interval-letter-automata)
   ======================================================================
   === Run 1 ===
@@ -6853,6 +6873,26 @@ implementations above, the examples over rational delays excepted:
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
+  ======================================================================
+  regex_timed_compound_named_later_reject.tpe (regex-timed-interval-symbolic-by-letters)
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_named_later_reject.tpe (regex-timed-interval-letter-derivatives)
+  ======================================================================
+  File "regex_timed_compound_named_later_reject.tpe", line 10, characters 0-45:
+  10 | operation Two : unit ~> unit # {Fetch; Later}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Later` in the grade of operation `Two`
+  ======================================================================
+  regex_timed_compound_wildcard.tpe (regex-timed-interval-symbolic-by-letters)
+  ======================================================================
+  ======================================================================
+  regex_timed_compound_wildcard.tpe (regex-timed-interval-letter-derivatives)
+  ======================================================================
   ======================================================================
   regex_timed_interval.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================

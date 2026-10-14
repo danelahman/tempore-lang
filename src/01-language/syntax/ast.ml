@@ -191,6 +191,40 @@ and ('rho, 'eps) plain_computation =
 
 and ('rho, 'eps) abstraction = ('rho, 'eps) pattern * ('rho, 'eps) computation
 
+(** [fold_expression ~expression ~abstraction e acc] folds [expression] over the
+    immediate subexpressions of [e] and [abstraction] over its immediate
+    abstractions, from left to right, the return case of a handler before its
+    operation cases. *)
+let fold_expression ~expression ~abstraction (e : ('rho, 'eps) expression) acc =
+  match e.it with
+  | Var _ | Const _ | Variant (_, None) -> acc
+  | Annotated (e, _) | Variant (_, Some e) -> expression e acc
+  | Tuple es -> List.fold_left (fun acc e -> expression e acc) acc es
+  | Lambda abs | PureLambda abs | RecLambda (_, _, abs) -> abstraction abs acc
+  | Handler (ret, ops) ->
+      OpNameMap.fold
+        (fun _ abs acc -> abstraction abs acc)
+        ops (abstraction ret acc)
+
+(** [fold_computation ~expression ~computation ~abstraction c acc] folds
+    [expression], [computation] and [abstraction] over the immediate
+    subexpressions, subcomputations and abstractions of [c], from left to right.
+*)
+let fold_computation ~expression ~computation ~abstraction
+    (c : ('rho, 'eps) computation) acc =
+  match c.it with
+  | Return e -> expression e acc
+  | Do (c, abs) -> abstraction abs (computation c acc)
+  | Match (e, cases) ->
+      List.fold_left
+        (fun acc abs -> abstraction abs acc)
+        (expression e acc) cases
+  | Apply (e1, e2) -> expression e2 (expression e1 acc)
+  | Delay (_, c) -> computation c acc
+  | Box (_, e, abs) | Unbox (e, abs) | Perform (_, e, abs) ->
+      abstraction abs (expression e acc)
+  | Handle (c, e) -> expression e (computation c acc)
+
 (** [curried_layers (p, c)] is the parameters [p; p₁; …; pₙ] of the curried
     function [fun p -> fun p₁ -> … -> fun pₙ -> c'] and its innermost body [c']:
     [c] is followed while it returns a function, looking through annotations. *)

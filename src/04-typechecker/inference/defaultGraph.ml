@@ -25,39 +25,22 @@ let rec expression_into ~global (e : ('rho, 'eps) Ast.expression) acc =
       OpNameSet.fold
         (fun op acc -> add op (Through (x, e.at)) acc)
         (global x) acc
-  | Ast.Const _ | Ast.Variant (_, None) -> acc
-  | Ast.Annotated (e, _) | Ast.Variant (_, Some e) ->
-      expression_into ~global e acc
-  | Ast.Tuple es ->
-      List.fold_left (fun acc e -> expression_into ~global e acc) acc es
-  | Ast.Lambda abs | Ast.PureLambda abs | Ast.RecLambda (_, _, abs) ->
-      abstraction_into ~global abs acc
-  | Ast.Handler (ret, ops) ->
-      OpNameMap.fold
-        (fun _ abs acc -> abstraction_into ~global abs acc)
-        ops
-        (abstraction_into ~global ret acc)
+  | Ast.Const _ | Ast.Annotated _ | Ast.Tuple _ | Ast.Variant _ | Ast.Lambda _
+  | Ast.PureLambda _ | Ast.RecLambda _ | Ast.Handler _ ->
+      Ast.fold_expression ~expression:(expression_into ~global)
+        ~abstraction:(abstraction_into ~global) e acc
 
 and computation_into ~global (c : ('rho, 'eps) Ast.computation) acc =
-  match c.it with
-  | Ast.Return e -> expression_into ~global e acc
-  | Ast.Do (c1, abs) ->
-      abstraction_into ~global abs (computation_into ~global c1 acc)
-  | Ast.Match (e, cases) ->
-      List.fold_left
-        (fun acc abs -> abstraction_into ~global abs acc)
-        (expression_into ~global e acc)
-        cases
-  | Ast.Apply (e1, e2) ->
-      expression_into ~global e2 (expression_into ~global e1 acc)
-  | Ast.Delay (_, c) -> computation_into ~global c acc
-  | Ast.Box (_, e, abs) | Ast.Unbox (e, abs) ->
-      abstraction_into ~global abs (expression_into ~global e acc)
-  | Ast.Perform (op, e, abs) ->
-      abstraction_into ~global abs
-        (expression_into ~global e (add op (Performed c.at) acc))
-  | Ast.Handle (c, e) ->
-      expression_into ~global e (computation_into ~global c acc)
+  let acc =
+    match c.it with
+    | Ast.Perform (op, _, _) -> add op (Performed c.at) acc
+    | Ast.Return _ | Ast.Do _ | Ast.Match _ | Ast.Apply _ | Ast.Delay _
+    | Ast.Box _ | Ast.Unbox _ | Ast.Handle _ ->
+        acc
+  in
+  Ast.fold_computation ~expression:(expression_into ~global)
+    ~computation:(computation_into ~global)
+    ~abstraction:(abstraction_into ~global) c acc
 
 and abstraction_into ~global ((_, c) : ('rho, 'eps) Ast.abstraction) acc =
   computation_into ~global c acc
@@ -72,13 +55,17 @@ let operations performed =
 
 (* A shortest path [B₀; …; Bₖ] of the graph from an operation [B₀] of
    [performed] to [target = Bₖ], by breadth-first search (Moore, 1959); each
-   queued operation carries the path before it, newest first. *)
+   queued operation carries the path before it, newest first, and the queue is
+   a list of the operations to visit first and a reversed one of those queued
+   after them. *)
 let path ~default performed target =
-  let rec search visited = function
-    | [] -> None
-    | (op, before) :: _ when Ast.OpName.compare op target = 0 ->
+  let rec search visited front back =
+    match (front, back) with
+    | [], [] -> None
+    | [], back -> search visited (List.rev back) []
+    | (op, before) :: _, _ when Ast.OpName.equal op target ->
         Some (List.rev (op :: before))
-    | (op, before) :: queue ->
+    | (op, before) :: front, back ->
         let next =
           match default op with
           | Some { performs; _ } -> OpNameSet.diff performs visited
@@ -86,12 +73,15 @@ let path ~default performed target =
         in
         search
           (OpNameSet.union visited next)
-          (queue
-          @ List.map (fun op' -> (op', op :: before)) (OpNameSet.elements next)
-          )
+          front
+          (List.rev_append
+             (List.map
+                (fun op' -> (op', op :: before))
+                (OpNameSet.elements next))
+             back)
   in
   let start = operations performed in
-  search start (List.map (fun op -> (op, [])) (OpNameSet.elements start))
+  search start (List.map (fun op -> (op, [])) (OpNameSet.elements start)) []
 
 let name op = Printf.sprintf "`%s`" (Ast.OpName.string_of op)
 

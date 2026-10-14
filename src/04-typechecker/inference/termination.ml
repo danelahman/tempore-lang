@@ -71,7 +71,7 @@ let rec without_partials = function
    the caller either tracks or records as escaping. *)
 let rec expression env (e : ('rho, 'eps) Ast.expression) acc =
   match e.it with
-  | Ast.Var x when Ast.Variable.compare x env.self = 0 ->
+  | Ast.Var x when Ast.Variable.equal x env.self ->
       (Partial { args = []; at = e.at }, acc)
   | Ast.Var x -> (
       match VariableMap.find_opt x env.values with
@@ -222,7 +222,7 @@ let guard ~defined_at f abs =
     else best
   in
   match failures with
-  | _ when List.exists (fun (_, fs) -> fs = []) failures -> ()
+  | _ when List.exists (fun (_, fs) -> List.is_empty fs) failures -> ()
   | [] -> ()
   | first :: rest -> (
       match List.fold_left (fun best c -> fewer c best) first rest with
@@ -230,37 +230,22 @@ let guard ~defined_at f abs =
       | _, [] -> ())
 
 let rec check_expression (e : ('rho, 'eps) Ast.expression) =
-  match e.it with
-  | Ast.Var _ | Ast.Const _ | Ast.Variant (_, None) -> ()
-  | Ast.Annotated (e, _) | Ast.Variant (_, Some e) -> check_expression e
-  | Ast.Tuple es -> List.iter check_expression es
-  | Ast.Lambda abs | Ast.PureLambda abs -> check_abstraction abs
-  | Ast.RecLambda (f, _, abs) ->
-      guard ~defined_at:e.at f abs;
-      check_abstraction abs
-  | Ast.Handler (ret, ops) ->
-      check_abstraction ret;
-      Ast.OpNameMap.iter (fun _ abs -> check_abstraction abs) ops
+  (match e.it with
+  | Ast.RecLambda (f, _, abs) -> guard ~defined_at:e.at f abs
+  | Ast.Var _ | Ast.Const _ | Ast.Annotated _ | Ast.Tuple _ | Ast.Variant _
+  | Ast.Lambda _ | Ast.PureLambda _ | Ast.Handler _ ->
+      ());
+  Ast.fold_expression
+    ~expression:(fun e () -> check_expression e)
+    ~abstraction:(fun abs () -> check_abstraction abs)
+    e ()
 
 and check_computation (c : ('rho, 'eps) Ast.computation) =
-  match c.it with
-  | Ast.Return e -> check_expression e
-  | Ast.Do (c1, abs) ->
-      check_computation c1;
-      check_abstraction abs
-  | Ast.Match (e, cases) ->
-      check_expression e;
-      List.iter check_abstraction cases
-  | Ast.Apply (e1, e2) ->
-      check_expression e1;
-      check_expression e2
-  | Ast.Delay (_, c) -> check_computation c
-  | Ast.Box (_, e, abs) | Ast.Unbox (e, abs) | Ast.Perform (_, e, abs) ->
-      check_expression e;
-      check_abstraction abs
-  | Ast.Handle (c, e) ->
-      check_computation c;
-      check_expression e
+  Ast.fold_computation
+    ~expression:(fun e () -> check_expression e)
+    ~computation:(fun c () -> check_computation c)
+    ~abstraction:(fun abs () -> check_abstraction abs)
+    c ()
 
 and check_abstraction ((_, c) : ('rho, 'eps) Ast.abstraction) =
   check_computation c

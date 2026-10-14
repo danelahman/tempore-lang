@@ -180,8 +180,9 @@ and string buf = parse
 
 and escaped = parse
   | _                   { let str = Lexing.lexeme lexbuf in
-                          try List.assoc str escaped_characters
-                          with Not_found -> Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unknown escaped character %s" str
+                          match List.assoc_opt str escaped_characters with
+                          | Some c -> c
+                          | None -> Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unknown escaped character %s" str
                         }
   | eof                 { Error.syntax ~loc:(Location.of_lexbuf lexbuf) "Unterminated string" }
 

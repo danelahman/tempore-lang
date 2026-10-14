@@ -30,10 +30,10 @@ and of_comp_ty : ('rho, 'eps) Ast.comp_ty -> t = function
 
 let rec equal t u =
   match (t, u) with
-  | Var a, Var b -> TyParam.compare a b = 0
+  | Var a, Var b -> TyParam.equal a b
   | Const c, Const c' -> c = c'
   | Apply (name, ts), Apply (name', us) ->
-      Ast.TyName.compare name name' = 0 && List.equal equal ts us
+      Ast.TyName.equal name name' && List.equal equal ts us
   | Tuple ts, Tuple us -> List.equal equal ts us
   | Arrow (t1, t2), Arrow (u1, u2) | Handler (t1, t2), Handler (u1, u2) ->
       equal t1 u1 && equal t2 u2
@@ -224,7 +224,7 @@ let rec value u t =
 let rec occurrence u a = function
   | Var b -> (
       let root = find u b in
-      if TyParam.compare root a = 0 then Some (b, [])
+      if TyParam.equal root a then Some (b, [])
       else
         match TyParamMap.find_opt root u.shapes with
         | Some { shape; binder; _ } ->
@@ -237,7 +237,7 @@ let rec occurrence u a = function
 let substitution u =
   let add a _ sigma =
     match value u (Var a) with
-    | Var b when TyParam.compare a b = 0 -> sigma
+    | Var b when TyParam.equal a b -> sigma
     | t -> TyParamMap.add a t sigma
   in
   TyParamMap.empty
@@ -352,7 +352,7 @@ let former : t -> (t, unit, unit) Former.t = function
 let rec unify_at unfold site st lhs rhs =
   let site = enter st.unifier (enter st.unifier site lhs) rhs in
   match (resolve st.unifier lhs, resolve st.unifier rhs) with
-  | Var a, Var b when TyParam.compare a b = 0 -> Ok st
+  | Var a, Var b when TyParam.equal a b -> Ok st
   | Var a, Var b ->
       let labels = (site.info, List.rev site.rev_path) :: site.because in
       Ok

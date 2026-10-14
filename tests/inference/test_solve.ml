@@ -336,6 +336,7 @@ let expected_rejections =
     ("tests/recursion_effect_reject_unannotated.tpe", [ 8 ]);
     ("tests/recursion_effect_reject_unannotated_regular.tpe", [ 16 ]);
     ("tests/recursion_lock_reject.tpe", [ 8 ]);
+    ("tests/regex_timed_compound_named_later_reject.tpe", [ 10 ]);
     ("tests/regex_timed_interval_reject.tpe", [ 15; 22 ]);
     ("tests/regex_timed_interval_ticks_reject.tpe", [ 16; 24 ]);
     ("tests/regex_timed_lower_reject.tpe", [ 16; 24; 31 ]);
@@ -501,7 +502,7 @@ module Small (G : Grade.S) = struct
       continuation_at = at line;
     }
 
-  let solve ?(env = Gen.initial_env) c = S.solve (P.context ~loc:(at 0) env) c
+  let solve ?(env = Gen.initial_env) c = S.solve (P.context env) c
 
   let solved label c =
     match solve c with
@@ -874,7 +875,7 @@ module Small (G : Grade.S) = struct
             ( leq 1 (v e * X.Eps.const (delay 1)) (v e),
               leq 2 (v e) (X.Eps.const (delay 3)) ) )
     in
-    let context = P.context ~loc:(at 0) Gen.initial_env in
+    let context = P.context Gen.initial_env in
     Option.iter
       (fun (s : S.solution) ->
         (match (S.satisfiable context s, S.established context s) with

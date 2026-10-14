@@ -1,17 +1,19 @@
 (** Free variables of terms, and the top-level definitions a program uses. *)
 
-module VariableSet : Set.S with type elt = Language.Ast.variable
-
-val pattern_variables : ('rho, 'eps) Language.Ast.pattern -> VariableSet.t
+val pattern_variables :
+  ('rho, 'eps) Language.Ast.pattern -> Language.Ast.VariableSet.t
 (** [pattern_variables p] is the variables [p] binds. *)
 
-val free_in_expression : ('rho, 'eps) Language.Ast.expression -> VariableSet.t
+val free_in_expression :
+  ('rho, 'eps) Language.Ast.expression -> Language.Ast.VariableSet.t
 (** [free_in_expression e] is the free variables of [e]. *)
 
-val free_in_computation : ('rho, 'eps) Language.Ast.computation -> VariableSet.t
+val free_in_computation :
+  ('rho, 'eps) Language.Ast.computation -> Language.Ast.VariableSet.t
 (** [free_in_computation c] is the free variables of [c]. *)
 
-val free_in_abstraction : ('rho, 'eps) Language.Ast.abstraction -> VariableSet.t
+val free_in_abstraction :
+  ('rho, 'eps) Language.Ast.abstraction -> Language.Ast.VariableSet.t
 (** [free_in_abstraction (p, c)] is the free variables of [c] that [p] does not
     bind. *)
 

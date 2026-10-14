@@ -54,10 +54,9 @@ module Make (C : Constraint.S) : sig
   type verdict = { at : Utils.Location.t; outcome : outcome }
   (** The outcome of the command at [at]. *)
 
-  val context : loc:Utils.Location.t -> env -> Solver.Make(C).context
-  (** [context ~loc env] is the pair of the running times
-      ({!Generate.Make.running_times}) and the type definitions of [env]; the
-      running time of an undeclared event is a typing error at [loc]. *)
+  val context : env -> Solver.Make(C).context
+  (** [context env] is the pair of the running times
+      ({!Generate.Make.running_times}) and the type definitions of [env]. *)
 
   val check :
     command ->

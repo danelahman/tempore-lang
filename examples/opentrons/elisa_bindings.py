@@ -45,14 +45,14 @@ def Wash(ctx, plate):
     return plate
 
 
-def Dilute(ctx, arg):
+def Dilute(ctx, unit):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A3"], ctx["reservoir"]["A4"], mix_after=(3, 500))
     tempore_elapse(90)
     return "detection antibody"
 
 
-def Detect(ctx, arg):
-    plate, antibody = arg
+def Detect(ctx, plate_and_antibody):
+    plate, antibody = plate_and_antibody
     dispense_to_samples(ctx, 50, "A4")
     tempore_elapse(120)
     return plate

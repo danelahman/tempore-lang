@@ -7,11 +7,11 @@ module Make (GS : Grades.GradeSystem.S) = struct
   module PrettyPrint = Language.PrettyPrint
   module RS = RedexSelector.Make (GS)
 
-  (* Renders the interpreter state with markers around binding-position
-     resource names so the syntax highlighter colors only those (and not
-     resource references inside stored values). If [active] is set, the
-     binding whose label equals it is additionally bracketed by the active
-     marker so the web interface can highlight it like the active redex. *)
+  (* The state printed with the resource names in binding positions between
+     resource label markers, so that only those, and not the references to
+     resources in stored values, are highlighted as resources, and with the
+     binding of [active], if any, between active state markers, so that it is
+     highlighted as the active redex is. *)
   let string_of_state ?active state =
     let label_mark ppf =
       Format.pp_print_as ppf 0
@@ -88,16 +88,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
           | Some red -> active_unbox_var red focus
           | None -> None
         in
-        let state_string = string_of_state ?active environment.state in
-        (* The segments between active markers alternate between inactive
-           and active text, starting with inactive text. *)
         let state_nodes =
-          String.split_on_char SyntaxHighlight.active_state_marker state_string
-          |> List.mapi (fun i segment ->
-              let nodes = SyntaxHighlight.highlight_text segment in
-              if i mod 2 = 0 then nodes
-              else [ elt "span" ~a:[ class_ "active-redex" ] nodes ])
-          |> List.concat
+          RedexSelector.highlight_delimited SyntaxHighlight.active_state_marker
+            (string_of_state ?active environment.state)
         in
         let computation_tree =
           RS.view_computation_with_redexes reduction

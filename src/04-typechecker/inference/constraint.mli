@@ -139,6 +139,9 @@ module type S = sig
   val union_free : free -> free -> free
   (** [union_free f f'] is the sortwise union. *)
 
+  val diff_free : free -> free -> free
+  (** [diff_free f f'] is the sortwise difference. *)
+
   val free_vars_ty : ty -> free
   (** [free_vars_ty a] is the unknowns of [a]. *)
 
@@ -162,6 +165,10 @@ module type S = sig
   val monomorphic : ty -> scheme
   (** [monomorphic a] is [a] as a scheme without parameters or qualifier. *)
 
+  val close : fixed:free -> ty -> t -> scheme
+  (** [close ~fixed a q] is the scheme [∀ᾱ ρ̄ ε̄. q ⇒ a] over the unknowns of [a]
+      and [q] outside [fixed]. *)
+
   val instantiate : scheme -> ty * t
   (** [instantiate scheme] renames the parameters of [scheme] and the unknowns
       bound in its qualifier to fresh ones, and is the renamed type and
@@ -170,14 +177,12 @@ module type S = sig
   type names
   (** The names a printer gives to unknowns, by order of first occurrence. *)
 
-  val is_unit_eps : Grades.Grade.bounds -> eps -> bool
-  (** [is_unit_eps bounds eps] decides whether the canonical form of [eps] is a
-      constant equal to the unit under the running times [bounds]. *)
-
   val names : ?bounds:Grades.Grade.bounds -> unit -> names
   (** [names ~bounds ()] is a fresh naming. A computation type whose effect is
-      the unit ({!is_unit_eps} under [bounds], by default the running times of
-      no operations) is printed without its effect. *)
+      the unit, its canonical form a constant equal to the unit under the
+      running times [bounds], is printed without its effect. Without [bounds],
+      no operation is declared, and an effect that names an event under grades
+      that read running times is not the unit. *)
 
   val print_rho : ?names:names -> rho -> Format.formatter -> unit
   (** [print_rho ~names rho ppf] prints [rho]. *)

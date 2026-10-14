@@ -31,6 +31,7 @@
 import math as tempore_math
 import sys as tempore_sys
 import time as tempore_time
+from collections.abc import Callable as tempore_Callable
 from fractions import Fraction as tempore_Fraction
 from functools import partial as tempore_partial
 
@@ -49,9 +50,9 @@ class tempore_UnhandledOperation(Exception):
     implementation handles."""
 
     def __init__(self, op, arg):
-        Exception.__init__(
-            self,
-            "Operation `%s` has no handler, binding function or default implementation" % op,
+        super().__init__(
+            "Operation `%s` has no handler, binding function or default "
+            "implementation" % op
         )
         self.op = op
         self.arg = arg
@@ -62,7 +63,7 @@ class tempore_BoundViolation(Exception):
     running-time bounds of its operation."""
 
     def __init__(self, op, elapsed, bounds):
-        Exception.__init__(self, tempore_violation_message(op, elapsed, bounds))
+        super().__init__(tempore_violation_message(op, elapsed, bounds))
         self.op = op
         self.elapsed = elapsed
         self.bounds = bounds
@@ -203,7 +204,9 @@ class tempore_Bounds:
     def scaled(self, unit):
         """The bounds with their ends multiplied by `unit`."""
         hi = None if self.hi is None else self.hi * unit
-        return tempore_Bounds(self.lo * unit, self.lo_closed, hi, self.hi_closed)
+        return tempore_Bounds(
+            self.lo * unit, self.lo_closed, hi, self.hi_closed
+        )
 
     def contains(self, x):
         above = self.lo <= x if self.lo_closed else self.lo < x
@@ -270,10 +273,15 @@ def tempore_violation_message(op, elapsed, bounds):
 
 # Clocks, in seconds.
 
+# A number of seconds: an integer, a float, a pair (n, d) of integers, read as
+# n/d, or a Fraction.
+tempore_Seconds = int | float | tuple[int, int] | tempore_Fraction
 
-def tempore_exact(x):
+
+def tempore_exact(x: tempore_Seconds) -> tempore_Fraction:
     """The number `x` as an exact rational: a pair (n, d) as n/d, a float as
-    the rational it represents."""
+    the binary fraction it represents exactly, so that 0.1 is not 1/10 but
+    3602879701896397/36028797018963968."""
     if isinstance(x, tuple):
         return tempore_Fraction(x[0], x[1])
     return tempore_Fraction(x)
@@ -326,7 +334,10 @@ class tempore_Event:
         return self.bounds.contains(self.elapsed)
 
     def __str__(self):
-        text = "At %s s: operation `%s` took %s s, %s its running-time bounds %s s"
+        text = (
+            "At %s s: operation `%s` took %s s, %s its running-time bounds "
+            "%s s"
+        )
         return text % (
             tempore_format_quantity(self.start),
             self.op,
@@ -368,9 +379,10 @@ class tempore_Runtime:
     ctx: the context passed to the binding functions;
     clock: the clock, tempore_VirtualClock() unless given;
     time_unit: the length of one unit of duration of the program in seconds;
-    monitor: what a call of a binding function outside the running-time bounds
-      of its operation does: "abort" raises tempore_BoundViolation, "warn" records
-      it and reports it by `report`, "off" neither checks nor records calls;
+    monitor: what a call of a binding function outside the running-time
+      bounds of its operation does: "abort" raises tempore_BoundViolation,
+      "warn" records it and reports it by `report`, "off" neither checks nor
+      records calls;
     on_delay: a function called with the length in seconds of each delay,
       which waits that long, or None;
     on_event: a function called with each monitored call as it completes,
@@ -387,16 +399,16 @@ class tempore_Runtime:
 
     def configure(
         self,
-        binding=None,
-        ctx=None,
-        clock=None,
-        time_unit=1,
-        monitor="abort",
-        on_delay=None,
-        on_event=None,
-        on_wait=None,
-        report=_tempore_warn_to_stderr,
-    ):
+        binding: dict[str, tempore_Callable] | None = None,
+        ctx: object = None,
+        clock: object = None,
+        time_unit: tempore_Seconds = 1,
+        monitor: str = "abort",
+        on_delay: tempore_Callable[[float], object] | None = None,
+        on_event: tempore_Callable[[tempore_Event], object] | None = None,
+        on_wait: tempore_Callable[[tempore_Wait], object] | None = None,
+        report: tempore_Callable[[str], object] = _tempore_warn_to_stderr,
+    ) -> None:
         if monitor not in tempore_MONITOR_POLICIES:
             raise ValueError("unknown monitor policy " + repr(monitor))
         self.binding = dict(binding or {})
@@ -428,7 +440,7 @@ class tempore_Runtime:
             self.on_delay(float(seconds))
         self.clock.advance(seconds)
 
-    def elapse(self, seconds):
+    def elapse(self, seconds: tempore_Seconds) -> None:
         """Declares that `seconds` seconds pass, as a binding function does for
         the nominal duration of the action it performs."""
         self.clock.advance(seconds)
@@ -442,7 +454,9 @@ class tempore_Runtime:
         start = self.clock.now()
         value = function(self.ctx, arg)
         elapsed = self.clock.now() - start
-        event = tempore_Event(start, op, elapsed, bounds.scaled(self.time_unit))
+        event = tempore_Event(
+            start, op, elapsed, bounds.scaled(self.time_unit)
+        )
         self.timeline.append(event)
         if self.on_event is not None:
             self.on_event(event)
@@ -450,7 +464,9 @@ class tempore_Runtime:
             if self.monitor == "abort":
                 raise tempore_BoundViolation(op, event.elapsed, event.bounds)
             self.violations.append(event)
-            self.report(tempore_violation_message(op, event.elapsed, event.bounds))
+            self.report(
+                tempore_violation_message(op, event.elapsed, event.bounds)
+            )
         return value
 
 
@@ -460,7 +476,9 @@ tempore_rt = tempore_Runtime()
 # The abstract machine.
 
 
-def tempore_execute(comp, defaults=None):
+def tempore_execute(
+    comp: object, defaults: dict[str, tempore_Callable] | None = None
+) -> object:
     """The value the computation `comp` returns, its unhandled operations
     performed by their binding functions in `tempore_rt` or else their default
     implementations in `defaults`, a mapping from operation names to
@@ -524,7 +542,10 @@ def tempore_execute(comp, defaults=None):
                 frames = (comp.cont, frames)
                 comp = tempore_Ret(value)
             elif op in defaults:
-                frames = (tempore_partial(tempore_Reinstate, (comp.cont, frames), segments), None)
+                reinstate = tempore_partial(
+                    tempore_Reinstate, (comp.cont, frames), segments
+                )
+                frames = (reinstate, None)
                 segments = None
                 running += 1
                 comp = defaults[op](comp.arg)
@@ -578,8 +599,9 @@ def _tempore_float_compare(x, y):
 
 
 def tempore_compare(a, b):
-    """-1, 0 or 1 as a is less than, equal to or greater than b. Tuples are
-    ordered lexicographically, constructors by tag and then by argument."""
+    """-1, 0 or 1 as a is less than, equal to or greater than b, two values
+    of one type. Tuples are ordered lexicographically, constructors by tag and
+    then by argument."""
     pending = [(a, b)]
     while pending:
         x, y = pending.pop()
@@ -594,12 +616,7 @@ def tempore_compare(a, b):
             if c != 0:
                 return c
         elif cls is tuple:
-            if len(x) != len(y):
-                n = min(len(x), len(y))
-                pending.append((len(x), len(y)))
-            else:
-                n = len(x)
-            for i in range(n - 1, -1, -1):
+            for i in range(len(x) - 1, -1, -1):
                 pending.append((x[i], y[i]))
         elif cls is tempore_Con:
             if x.tag != y.tag:
@@ -611,7 +628,9 @@ def tempore_compare(a, b):
             else:
                 pending.append((x.arg, y.arg))
         else:
-            raise tempore_RuntimeError("Incomparable expression " + tempore_to_string(x))
+            raise tempore_RuntimeError(
+                "Incomparable expression `%s`" % tempore_to_string(x)
+            )
     return 0
 
 
@@ -678,7 +697,8 @@ def _tempore_float_div(x, y):
         return x / y
     if x != x or x == 0.0:
         return tempore_math.nan
-    return tempore_math.copysign(tempore_math.inf, x) * tempore_math.copysign(1.0, y)
+    sign = tempore_math.copysign(1.0, y)
+    return tempore_math.copysign(tempore_math.inf, x) * sign
 
 
 def tempore_prim_float_div(v):
@@ -686,17 +706,25 @@ def tempore_prim_float_div(v):
 
 
 def _tempore_is_odd_integer(y):
-    return tempore_math.isfinite(y) and y == tempore_math.floor(y) and tempore_math.fmod(y, 2.0) != 0.0
+    return (
+        tempore_math.isfinite(y)
+        and y == tempore_math.floor(y)
+        and tempore_math.fmod(y, 2.0) != 0.0
+    )
 
 
 def _tempore_float_pow(x, y):
     try:
         return tempore_math.pow(x, y)
     except OverflowError:
-        return -tempore_math.inf if x < 0.0 and _tempore_is_odd_integer(y) else tempore_math.inf
+        negative = x < 0.0 and _tempore_is_odd_integer(y)
+        return -tempore_math.inf if negative else tempore_math.inf
     except ValueError:
         if x == 0.0:
-            negative = tempore_math.copysign(1.0, x) < 0.0 and _tempore_is_odd_integer(y)
+            negative = (
+                tempore_math.copysign(1.0, x) < 0.0
+                and _tempore_is_odd_integer(y)
+            )
             return -tempore_math.inf if negative else tempore_math.inf
         return tempore_math.nan
 
@@ -738,7 +766,9 @@ def tempore_prim_nat_of_float(v):
     if not v > 0.0:
         return tempore_Ret(0)
     if v == tempore_math.inf:
-        raise tempore_RuntimeError("Conversion of infinity to a natural number")
+        raise tempore_RuntimeError(
+            "Conversion of infinity to a natural number"
+        )
     return tempore_Ret(int(v))
 
 
@@ -777,7 +807,8 @@ def tempore_prim_int_div(v):
 def tempore_prim_int_mod(v):
     if v[1] == 0:
         raise tempore_RuntimeError("Modulo by zero")
-    return tempore_Ret(tempore_Int(v[0] - v[1] * _tempore_int_quotient(v[0], v[1])))
+    quotient = _tempore_int_quotient(v[0], v[1])
+    return tempore_Ret(tempore_Int(v[0] - v[1] * quotient))
 
 
 def tempore_prim_int_neg(v):
@@ -821,7 +852,14 @@ def tempore_prim_to_string(v):
 # 1980), restricted to text, break hints and boxes, with Format's default
 # margin 78 and maximal indentation 68. Widths count Unicode scalar values.
 
-_tempore_HBOX, _tempore_VBOX, _tempore_HVBOX, _tempore_HOVBOX, _tempore_BOX, _tempore_FITS = range(6)
+(
+    _tempore_HBOX,
+    _tempore_VBOX,
+    _tempore_HVBOX,
+    _tempore_HOVBOX,
+    _tempore_BOX,
+    _tempore_FITS,
+) = range(6)
 _tempore_PP_INFINITY = 1000000010
 _tempore_TEXT, _tempore_BREAK, _tempore_BEGIN, _tempore_END = range(4)
 
@@ -875,7 +913,8 @@ class _tempore_Formatter:
             self.out.append("\n")
             return
         box_type, width = self.format_stack[-1]
-        if width > self.space_left and box_type not in (_tempore_FITS, _tempore_HBOX):
+        fits = box_type in (_tempore_FITS, _tempore_HBOX)
+        if width > self.space_left and not fits:
             self._break_new_line(0, width)
 
     def _format_token(self, size, token):
@@ -971,7 +1010,9 @@ class _tempore_Formatter:
 
     def open_box(self, indent, box_type):
         self.depth += 1
-        token = _tempore_Token(-self.right_total, _tempore_BEGIN, (indent, box_type), 0)
+        token = _tempore_Token(
+            -self.right_total, _tempore_BEGIN, (indent, box_type), 0
+        )
         self._scan_push(False, token)
 
     def close_box(self):
@@ -985,7 +1026,9 @@ class _tempore_Formatter:
         self.brk(0, 0)
 
     def brk(self, fits, offset):
-        token = _tempore_Token(-self.right_total, _tempore_BREAK, (fits, offset), fits)
+        token = _tempore_Token(
+            -self.right_total, _tempore_BREAK, (fits, offset), fits
+        )
         self._scan_push(True, token)
 
     def flush(self, newline):
@@ -1040,7 +1083,13 @@ def tempore_float_to_string(x):
 
 
 _tempore_MAX_LEVEL = tempore_sys.maxsize
-_tempore_PRINT_VALUE, _tempore_PRINT_TEXT, _tempore_PRINT_OPEN, _tempore_PRINT_CLOSE, _tempore_PRINT_CUT = range(5)
+(
+    _tempore_PRINT_VALUE,
+    _tempore_PRINT_TEXT,
+    _tempore_PRINT_OPEN,
+    _tempore_PRINT_CLOSE,
+    _tempore_PRINT_CUT,
+) = range(5)
 
 
 def _tempore_print_value(fmt, value, max_level):
@@ -1070,15 +1119,19 @@ def _tempore_print_value(fmt, value, max_level):
                     if i > 0:
                         items.append((_tempore_PRINT_TEXT, ", "))
                         items.append((_tempore_PRINT_CUT,))
-                    items.append((_tempore_PRINT_VALUE, component, _tempore_MAX_LEVEL))
+                    items.append(
+                        (_tempore_PRINT_VALUE, component, _tempore_MAX_LEVEL)
+                    )
                 items.append((_tempore_PRINT_CLOSE,))
                 items.append((_tempore_PRINT_TEXT, ")"))
                 work.extend(reversed(items))
             elif cls is tempore_Con:
                 if v.arg is None:
-                    fmt.text("[]" if v.tag == tempore_NIL else tempore_LABELS[v.tag])
+                    nil = v.tag == tempore_NIL
+                    fmt.text("[]" if nil else tempore_LABELS[v.tag])
                     continue
-                if v.tag == tempore_CONS and v.arg.__class__ is tuple and len(v.arg) == 2:
+                pair = v.arg.__class__ is tuple and len(v.arg) == 2
+                if v.tag == tempore_CONS and pair:
                     items = [
                         (_tempore_PRINT_VALUE, v.arg[0], 0),
                         (_tempore_PRINT_TEXT, "::"),
@@ -1090,7 +1143,11 @@ def _tempore_print_value(fmt, value, max_level):
                         (_tempore_PRINT_VALUE, v.arg, 0),
                     ]
                 if level < 1:
-                    items = [(_tempore_PRINT_TEXT, "(")] + items + [(_tempore_PRINT_TEXT, ")")]
+                    items = (
+                        [(_tempore_PRINT_TEXT, "(")]
+                        + items
+                        + [(_tempore_PRINT_TEXT, ")")]
+                    )
                 work.extend(reversed(items))
             elif cls is tempore_Handler:
                 fmt.text("<handler>")
@@ -1149,12 +1206,13 @@ class tempore_Run:
         self.defaults = defaults
 
 
-def tempore_execute_run(run):
-    """The value of the run command `run`, executed by the runtime `tempore_rt`."""
+def tempore_execute_run(run: tempore_Run) -> object:
+    """The value of the run command `run`, executed by the runtime
+    `tempore_rt`."""
     return tempore_execute(run.comp(), run.defaults)
 
 
-def tempore_run_plain(runs, **configuration):
+def tempore_run_plain(runs: tuple[tempore_Run, ...], **configuration) -> None:
     """Executes the run commands `runs` in order with the runtime `tempore_rt`
     configured by `configuration`, by default on a virtual clock that delays do
     not wait for, and reports each as the command-line interpreter reports it,
@@ -1167,7 +1225,9 @@ def tempore_run_plain(runs, **configuration):
         try:
             value = tempore_execute_run(run)
         except tempore_UnhandledOperation as call:
-            tempore_sys.stdout.write("=== Run %d (unhandled operation) ===\n" % number)
+            tempore_sys.stdout.write(
+                "=== Run %d (unhandled operation) ===\n" % number
+            )
             tempore_sys.stdout.write(tempore_unhandled(call.op, call.arg))
             tempore_sys.stdout.write("\n")
             continue
@@ -1186,15 +1246,23 @@ def tempore_run_plain(runs, **configuration):
         tempore_sys.stdout.write("\n")
 
 
-def tempore_elapse(seconds):
+def tempore_elapse(seconds: tempore_Seconds) -> None:
     """Declares that `seconds` seconds pass on the clock of the runtime, as a
     binding function does for the nominal duration of the action it
     performs; on the real clock, which measures the time that passes, it has
-    no effect."""
+    no effect. A float counts as the binary fraction it represents exactly,
+    and a pair (n, d) of integers as n/d."""
     tempore_rt.elapse(seconds)
 
 
-def tempore_run_protocol(protocol, runs, setup, binding, time_unit=1, monitor="abort"):
+def tempore_run_protocol(
+    protocol: object,
+    runs: tuple[tempore_Run, ...],
+    setup: tempore_Callable[[object], object],
+    binding: dict[str, tempore_Callable],
+    time_unit: tempore_Seconds = 1,
+    monitor: str = "abort",
+) -> None:
     """Executes the run commands `runs` in order as the Opentrons protocol
     `protocol`, the binding functions `binding`, by operation name, given the
     context `setup(protocol)` returns. In simulation the clock is virtual,
@@ -1207,7 +1275,10 @@ def tempore_run_protocol(protocol, runs, setup, binding, time_unit=1, monitor="a
     included, ends the protocol with that error, after the comment of the
     call that violated them."""
     ctx = setup(protocol)
-    clock = tempore_VirtualClock() if protocol.is_simulating() else tempore_RealClock()
+    if protocol.is_simulating():
+        clock = tempore_VirtualClock()
+    else:
+        clock = tempore_RealClock()
     tempore_rt.configure(
         binding=binding,
         ctx=ctx,
@@ -1215,11 +1286,17 @@ def tempore_run_protocol(protocol, runs, setup, binding, time_unit=1, monitor="a
         time_unit=time_unit,
         monitor=monitor,
         on_delay=lambda seconds: protocol.delay(seconds=seconds),
-        on_event=lambda event: protocol.comment("Tempore timeline: %s" % event),
+        on_event=lambda event: protocol.comment(
+            "Tempore timeline: %s" % event
+        ),
         on_wait=lambda wait: protocol.comment("Tempore timeline: %s" % wait),
-        report=lambda message: protocol.comment("Tempore warning: " + message),
+        report=lambda message: protocol.comment(
+            "Tempore warning: " + message
+        ),
     )
     for number, run in enumerate(runs, 1):
         protocol.comment("Tempore run %d" % number)
         value = tempore_execute_run(run)
-        protocol.comment("Tempore run %d returns %s" % (number, tempore_to_string(value)))
+        protocol.comment(
+            "Tempore run %d returns %s" % (number, tempore_to_string(value))
+        )

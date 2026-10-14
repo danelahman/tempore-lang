@@ -35,31 +35,31 @@ def setup(protocol):
     }
 
 
-def AddBeads(ctx, arg):
+def AddBeads(ctx, unit):
     ctx["pipette"].transfer(50, ctx["reservoir"]["A1"], ctx["samples"], mix_after=(5, 40), new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def Engage(ctx, arg):
+def Engage(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], ctx["magnet"], use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def Disengage(ctx, arg):
+def Disengage(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def RemoveSupernatant(ctx, arg):
+def RemoveSupernatant(ctx, unit):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def Ethanol(ctx, arg):
+def Ethanol(ctx, unit):
     pipette = ctx["pipette"]
     if not ctx["tip"]:
         pipette.pick_up_tip()
@@ -74,7 +74,7 @@ def Ethanol(ctx, arg):
     return ()
 
 
-def ChangeTip(ctx, arg):
+def ChangeTip(ctx, unit):
     if ctx["tip"]:
         ctx["pipette"].drop_tip()
     ctx["pipette"].pick_up_tip()
@@ -83,7 +83,7 @@ def ChangeTip(ctx, arg):
     return ()
 
 
-def Elute(ctx, arg):
+def Elute(ctx, unit):
     pipette = ctx["pipette"]
     for sample in ctx["samples"]:
         if not ctx["tip"]:
@@ -95,7 +95,7 @@ def Elute(ctx, arg):
     return ()
 
 
-def Transfer(ctx, arg):
+def Transfer(ctx, unit):
     ctx["pipette"].transfer(20, ctx["samples"], ctx["eluates"], new_tip="always")
     tempore_elapse(90)
     return ()

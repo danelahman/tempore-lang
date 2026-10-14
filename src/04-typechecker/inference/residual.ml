@@ -246,8 +246,8 @@ module Make (C : Constraint.S) = struct
       | Ast.TyTuple tys -> all visited tys acc
       | Ast.TyApply (name, args) -> (
           if context.is_noneternal name then None
-          else if List.exists (fun n -> Ast.TyName.compare n name = 0) visited
-          then all visited args acc
+          else if List.exists (fun n -> Ast.TyName.equal n name) visited then
+            all visited args acc
           else
             let visited = name :: visited in
             match
@@ -285,7 +285,7 @@ module Make (C : Constraint.S) = struct
     | None -> Ok { r with eps_orderings = o :: r.eps_orderings }
 
   let is_param a = function
-    | { eternal_ty = Ast.TyParam b; _ } -> TyParam.compare a b = 0
+    | { eternal_ty = Ast.TyParam b; _ } -> TyParam.equal a b
     | { eternal_ty = _; _ } -> false
 
   let push_eternal context e r =
@@ -386,7 +386,7 @@ module Make (C : Constraint.S) = struct
         | None -> (
             match (s.lhs, s.rhs) with
             | Ast.TyParam a, Ast.TyParam b ->
-                if TyParam.compare a b = 0 then Ok r
+                if TyParam.equal a b then Ok r
                 else Ok { r with subs = s :: r.subs }
             | lhs, rhs -> (
                 match
@@ -453,6 +453,16 @@ module Make (C : Constraint.S) = struct
     eps_hyps : eps_ordering list;
     disj_hyps : disjunction list;
   }
+
+  let of_hyps hyps deferred =
+    {
+      rho_orderings = hyps.rho_hyps;
+      eps_orderings = hyps.eps_hyps;
+      eternals = hyps.eternal_hyps;
+      subs = hyps.sub_vars;
+      disjunctions = hyps.disj_hyps;
+      deferred;
+    }
 
   let to_hyps context r =
     Result.map
@@ -523,6 +533,10 @@ module Make (C : Constraint.S) = struct
       (C.conj_all
          (List.map rho_atom d.rho_conditions
          @ List.map eps_atom d.eps_conditions))
+
+  let qualifier hyps obligations =
+    C.conj (hyps_to_constraint hyps)
+      (C.conj_all (List.map deferred_to_constraint obligations))
 
   let free_vars_deferred d = C.free_vars (deferred_to_constraint d)
 

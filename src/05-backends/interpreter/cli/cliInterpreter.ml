@@ -12,19 +12,16 @@ module Make (GS : Grades.GradeSystem.S) = struct
      environment;
      _;
     } ->
-        Format.printf "=== Run %d ===@." run_num;
-        Format.printf "%t@."
+        Format.printf "=== Run %d ===@.%t@.%s@." run_num
           (PrettyPrint.print_computation
              (module GS.R)
-             (returned_value environment comp));
-        print_string
+             (returned_value environment comp))
           (PrettyPrint.string_of_interpreter_state
              (module GS.R)
              environment.state);
-        print_newline ();
         true
-    (* An operation with a default implementation is not stuck here: the
-       default is about to fire, so there is nothing to report yet. *)
+    (* An operation call with a default implementation is reduced by it, and
+       the run goes on. *)
     | {
      current =
        Some
@@ -33,9 +30,8 @@ module Make (GS : Grades.GradeSystem.S) = struct
      _;
     }
       when not (Ast.OpNameMap.mem op environment.op_defaults) ->
-        Format.printf "=== Run %d (unhandled operation) ===@." run_num;
-        Format.printf "%t@." (PrettyPrint.print_computation (module GS.R) comp);
-        print_newline ();
+        Format.printf "=== Run %d (unhandled operation) ===@.%t@.@." run_num
+          (PrettyPrint.print_computation (module GS.R) comp);
         true
     | _ -> false
 end

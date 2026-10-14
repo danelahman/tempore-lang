@@ -4,17 +4,27 @@
   module Grade = Grades.Grade
   module Rational = Grades.Rational
 
+  (* The location of a pair of positions, such as [$loc]. *)
+  let location (start, stop) = Location.of_lexing start stop
+
+  (* [abstractions lambda (ps, t)] is the function [lambda] of the parameters
+     [ps] and the body [t], each abstraction spanning from its parameter to the
+     end of [t]. *)
+  let abstractions lambda (ps, t) =
+    List.fold_right
+      (fun p t -> { it = lambda (p, t); at = Location.merge p.at t.at })
+      ps t
+
   (* The hint naming the grades [names]. *)
   let suggestion names =
     let quote name = "`" ^ name ^ "`" in
-    match List.map quote names with
+    match List.rev_map quote names with
     | [] -> ""
     | [ name ] -> "; did you mean to use the " ^ name ^ " grading monoid?"
-    | names ->
-        let rev = List.rev names in
+    | last :: rest ->
         "; did you mean to use one of the "
-        ^ String.concat ", " (List.rev (List.tl rev))
-        ^ " or " ^ List.hd rev ^ " grading monoids?"
+        ^ String.concat ", " (List.rev rest)
+        ^ " or " ^ last ^ " grading monoids?"
 
   (* [grade ~loc name of_lit lit] is the grade [of_lit] reads the literal [lit]
      as. A rejection, the usual symptom of running a file under the wrong
@@ -160,33 +170,6 @@
 
 %parameter<GS : Grades.GradeSystem.S>
 
-%token LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE
-%token COLON COMMA SEMI EQUAL CONS
-%token BEGIN END
-%token <string> LNAME
-%token UNDERSCORE AS
-%token <Z.t> INT
-%token <Z.t> INTEGER
-%token <string> STRING
-%token <bool> BOOL
-%token <string> FLOAT
-%token <SugaredAst.label> UNAME
-%token <SugaredAst.ty_param> PARAM
-%token TYPE NONETERNAL OPERATION DEFAULT WITHIN ARROW SIGARROW OF HASH
-%token MATCH WITH FUNCTION HANDLER HANDLE CONTINUE
-%token RUN LET REC AND IN
-%token DELAY BOX UNBOX PERFORM
-%token FUN BAR BARBAR
-%token IF THEN ELSE
-%token PLUS STAR MINUS MINUSDOT
-%token LSL LSR ASR
-%token MOD OR
-%token AMPER AMPERAMPER
-%token LAND LOR LXOR
-%token <string> PREFIXOP INFIXOP0 INFIXOP1 INFIXOP2 INFIXOP3 INFIXOP4
-%token TOP INFINITY NEQ
-%token EOF
-
 (* Precedences, by increasing strength. As in OCaml, a [let], [match],
    [function], [fun] or [handler] extends as far to the right as possible, and
    so does a nested [match], [function] or [handler] over the cases [| ...]
@@ -236,7 +219,7 @@ plain_command:
   | OPERATION op = mark_position(UNAME) COLON ty1 = ty SIGARROW ty2 = ty HASH eps = eps_grade
     bounds = option(op_bounds)
     { OpSig (op, ty1, ty2, eps, bounds) }
-  | DEFAULT op = UNAME p = simple_pattern EQUAL t = term
+  | DEFAULT op = mark_position(UNAME) p = simple_pattern EQUAL t = term
     { OpDefault (op, (p, t)) }
   | LET x = mark_position(ident) t = lambdas0(EQUAL, ty)
     { TopLet (x, t) }
@@ -268,11 +251,11 @@ plain_term:
   | IF t_cond = comma_term THEN t_true = term ELSE t_false = term
     { Conditional (t_cond, t_true, t_false) }
   | DELAY q = duration
-    { Delay (delay ~loc:(Location.of_lexing $startpos(q) $endpos(q)) q) }
+    { Delay (delay ~loc:(location $loc(q)) q) }
   (* Any other argument of [delay], read up to the token that ends the
      duration. *)
   | DELAY error
-    { Error.syntax ~loc:(Location.of_lexing $startpos($2) $endpos($2))
+    { Error.syntax ~loc:(location $loc($2))
         "The argument of `delay` is a duration literal, such as `2`, `1/2` \
          or `0.25`" }
   | BOX rho = rho_grade e = term AS p = pattern IN c = term
@@ -306,11 +289,11 @@ plain_comma_term:
 binop_term: mark_position(plain_binop_term) { $1 }
 plain_binop_term:
   | t1 = binop_term op = binop t2 = binop_term
-    { let op_loc = Location.of_lexing $startpos(op) $endpos(op) in
+    { let op_loc = location $loc(op) in
       Apply ({it= Apply ({it= Var op; at= op_loc}, t1); at= Location.merge op_loc t1.at}, t2) }
   | t1 = binop_term CONS t2 = binop_term
-    { let tuple = {it= Tuple [t1; t2]; at= Location.of_lexing $startpos $endpos} in
-      Variant ({it= cons_label; at= Location.of_lexing $startpos($2) $endpos($2)}, Some tuple) }
+    { let tuple = {it= Tuple [t1; t2]; at= location $loc} in
+      Variant ({it= cons_label; at= location $loc($2)}, Some tuple) }
   | t = plain_uminus_term
     { t }
 
@@ -322,11 +305,11 @@ plain_uminus_term:
       | Const (Language.Const.Float f) -> Const (Language.Const.of_float (-. f))
       | Const (Language.Const.Int n) -> Const (Language.Const.of_int (Z.neg n))
       | _ ->
-          Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+          Error.syntax ~loc:(location $loc)
             "Natural numbers have no negation; floats are negated with `-.` \
              and integers with `~-!`" }
   | MINUSDOT t = uminus_term
-    { let op_loc = Location.of_lexing $startpos($1) $endpos($1) in
+    { let op_loc = location $loc($1) in
       Apply ({it= Var "(~-.)"; at= op_loc}, t) }
   | t = plain_app_term
     { t }
@@ -348,7 +331,7 @@ prefix_term: mark_position(plain_prefix_term) { $1 }
 plain_prefix_term:
   | op = prefixop t = simple_term
     {
-      let op_loc = Location.of_lexing $startpos(op) $endpos(op) in
+      let op_loc = location $loc(op) in
       Apply ({it= Var op; at= op_loc}, t)
     }
   | t = plain_simple_term
@@ -404,41 +387,42 @@ case:
    simple, as the arguments of a constructor are. *)
 op_case:
   | op = UNAME p = simple_pattern k = simple_pattern ARROW t = term
-    { (op, ({it= PTuple [p; k]; at= Location.of_lexing $startpos $endpos}, t)) }
+    { (op, ({it= PTuple [p; k]; at= location $loc}, t)) }
 
 (* Parameters, an optional annotation of the result by a type of [TY], and the
-   body after [SEP]. After [fun] the annotation is a type without an arrow at
-   its top, as the arrow of [fun] would otherwise be read as one of the type;
-   an arrow type is parenthesised there. *)
-lambdas0(SEP, TY):
+   body after [SEP]: the parameters, and the body with its annotation. After
+   [fun] the annotation is a type without an arrow at its top, as the arrow of
+   [fun] would otherwise be read as one of the type; an arrow type is
+   parenthesised there. *)
+parameters(SEP, TY):
   | SEP t = term
-    { t }
-  | p = simple_pattern t = lambdas0(SEP, TY)
-    { {it= Lambda (p, t); at= Location.of_lexing $startpos $endpos} }
+    { ([], t) }
+  | p = simple_pattern ps = parameters(SEP, TY)
+    { let ps, t = ps in (p :: ps, t) }
   | COLON ty = TY SEP t = term
-    { {it= Annotated (t, ty); at= Location.of_lexing $startpos $endpos} }
+    { ([], {it= Annotated (t, ty); at= location $loc}) }
   | COLON ty = TY HASH eps = eps_grade SEP t = term
-    { {it= AnnotatedComp (t, ty, eps); at= Location.of_lexing $startpos $endpos} }
+    { ([], {it= AnnotatedComp (t, ty, eps); at= location $loc}) }
+
+(* A function of any number of parameters, and of one at least. *)
+lambdas0(SEP, TY):
+  | ps = parameters(SEP, TY)
+    { abstractions (fun abs -> Lambda abs) ps }
 
 lambdas1(SEP, TY):
-  | p = simple_pattern t = lambdas0(SEP, TY)
-    { {it= Lambda (p, t); at= Location.of_lexing $startpos $endpos} }
+  | p = simple_pattern ps = parameters(SEP, TY)
+    { let ps, t = ps in abstractions (fun abs -> Lambda abs) (p :: ps, t) }
 
+(* The parameters of a recursive function. *)
 pure_lambdas(SEP):
-  | SEP t = term
-    { t }
-  | p = simple_pattern t = pure_lambdas(SEP)
-    { {it= PureLambda (p, t); at= Location.of_lexing $startpos $endpos} }
-  | COLON ty = ty SEP t = term
-    { {it= Annotated (t, ty); at= Location.of_lexing $startpos $endpos} }
-  | COLON ty = ty HASH eps = eps_grade SEP t = term
-    { {it= AnnotatedComp (t, ty, eps); at= Location.of_lexing $startpos $endpos} }
+  | ps = parameters(SEP, ty)
+    { abstractions (fun abs -> PureLambda abs) ps }
 
 let_def:
   | p = pattern EQUAL t = term
     { (p, t) }
   | p = pattern COLON ty= ty EQUAL t = term
-    { (p, {it= Annotated(t, ty); at= Location.of_lexing $startpos $endpos}) }
+    { (p, {it= Annotated(t, ty); at= location $loc}) }
   | x = mark_position(ident) t = lambdas1(EQUAL, ty)
     { ({it= PVar x.it; at= x.at}, t) }
 
@@ -463,8 +447,8 @@ plain_cons_pattern:
   | p = succ_pattern
     { p.it }
   | p1 = succ_pattern CONS p2 = cons_pattern
-    { let ptuple = {it= PTuple [p1; p2]; at= Location.of_lexing $startpos $endpos} in
-      PVariant ({it= cons_label; at= Location.of_lexing $startpos($2) $endpos($2)}, Some ptuple) }
+    { let ptuple = {it= PTuple [p1; p2]; at= location $loc} in
+      PVariant ({it= cons_label; at= location $loc($2)}, Some ptuple) }
 
 succ_pattern: mark_position(plain_succ_pattern) { $1 }
 plain_succ_pattern:
@@ -473,7 +457,7 @@ plain_succ_pattern:
   | p = succ_pattern PLUS k = INT
     { if Z.sign k > 0 then PSucc (p, k)
       else
-        Error.syntax ~loc:(Location.of_lexing $startpos(k) $endpos(k))
+        Error.syntax ~loc:(location $loc(k))
           "The number added in a successor pattern must be positive" }
 
 variant_pattern: mark_position(plain_variant_pattern) { $1 }
@@ -611,7 +595,7 @@ case_list(case):
 
 mark_position(X):
   x = X
-  { {it= x; at= Location.of_lexing $startpos $endpos}}
+  { {it= x; at= location $loc}}
 
 params:
   |
@@ -640,7 +624,7 @@ plain_ty:
   | t1 = prod_ty ARROW t2 = ty HASH eps = eps_grade
     { TyArrow (t1, CompTy (t2, eps)) }
   | t1 = prod_ty ARROW t2 = ty
-    { let at = Location.of_lexing $startpos $endpos in
+    { let at = location $loc in
       TyArrow (t1, CompTy (t2, { it = GradeLit GS.E.one; at })) }
   | t = prod_ty
     { t.it }
@@ -650,9 +634,8 @@ plain_prod_ty:
   | ts = separated_nonempty_list(STAR, box_ty)
     {
       match ts with
-      | [] -> assert false
       | [t] -> t.it
-      | _ -> TyTuple ts
+      | ts -> TyTuple ts
      }
 
 box_ty: mark_position(plain_box_ty) { $1 }
@@ -706,32 +689,32 @@ op_bounds:
 (* A running-time bound, a duration read as a delay. *)
 running_time_bound:
   | q = duration
-    { running_time_bound ~loc:(Location.of_lexing $startpos $endpos) q }
+    { running_time_bound ~loc:(location $loc) q }
 
 (* A resource grade, a literal read by the resource grades of the grade system
    or a grade variable, at its location. *)
 rho_grade:
   | lit = grade_lit
-    { let at = Location.of_lexing $startpos $endpos in
+    { let at = location $loc in
       { it = GradeLit (grade ~loc:at GS.R.name GS.R.of_lit lit); at } }
   | p = PARAM
-    { { it = GradeParam p; at = Location.of_lexing $startpos $endpos } }
+    { { it = GradeParam p; at = location $loc } }
 
 (* An effect grade, a literal read by the effect grades of the grade system or
    a grade variable, at its location. *)
 eps_grade:
   | lit = grade_lit
-    { let at = Location.of_lexing $startpos $endpos in
+    { let at = location $loc in
       { it = GradeLit (grade ~loc:at GS.E.name GS.E.of_lit lit); at } }
   | p = PARAM
-    { { it = GradeParam p; at = Location.of_lexing $startpos $endpos } }
+    { { it = GradeParam p; at = location $loc } }
 
 (* A non-negative duration: an integer or a fraction. *)
 duration:
   | n = INT { Rational.of_z n }
   | q = fraction { q }
   | MINUS INT | MINUS fraction
-    { Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+    { Error.syntax ~loc:(location $loc)
         "Durations must be non-negative" }
 
 (* A fraction, exact: a decimal, or the quotient of two integers. *)
@@ -739,10 +722,10 @@ fraction:
   | f = FLOAT { Rational.of_decimal f }
   | n = INT op = INFIXOP3 d = INT
     { if op <> "/" then
-        Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
+        Error.syntax ~loc:(location $loc(op))
           "Unknown operator `%s` in a fraction" op
       else if Z.equal d Z.zero then
-        Error.syntax ~loc:(Location.of_lexing $startpos(d) $endpos(d))
+        Error.syntax ~loc:(location $loc(d))
           "Fractions have positive denominators"
       else Rational.make_z n d }
 
@@ -750,17 +733,17 @@ fraction:
    understands. *)
 grade_lit:
   | n = INT
-    { Grade.Int (small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
+    { Grade.Int (small ~loc:(location $loc) "Grade literal" n) }
   | q = fraction { Grade.rational_lit q }
   | MINUS n = INT
-    { Grade.Int (- small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
+    { Grade.Int (- small ~loc:(location $loc) "Grade literal" n) }
   | MINUS q = fraction { Grade.rational_lit (Rational.neg q) }
   | UNDERSCORE { Grade.Name "_" }
   | name = UNAME { Grade.Name name }
   | TOP { Grade.Top }
   | INFINITY { Grade.Inf }
   | NEQ { Grade.Name "≠" }
-  | name = LNAME { named_lit ~loc:(Location.of_lexing $startpos $endpos) name }
+  | name = LNAME { named_lit ~loc:(location $loc) name }
   | LPAREN lit = grade_lit COMMA lits = separated_nonempty_list(COMMA, grade_lit) RPAREN
     { Grade.Tuple (lit :: lits) }
   | lit = interval_lit { lit }
@@ -773,19 +756,19 @@ grade_lit:
    such. Any other bracketing of two endpoints is a syntax error. *)
 interval_lit:
   | LBRACK ends = separated_nonempty_list(COMMA, endpoint) RBRACK
-    { interval ~loc:(Location.of_lexing $startpos $endpos)
+    { interval ~loc:(location $loc)
         ~lower_open:false ends ~upper_open:false }
   | LBRACK ends = separated_nonempty_list(COMMA, endpoint) RPAREN
-    { interval ~loc:(Location.of_lexing $startpos $endpos)
+    { interval ~loc:(location $loc)
         ~lower_open:false ends ~upper_open:true }
   | LPAREN lo = minus_infinity COMMA ends = separated_nonempty_list(COMMA, endpoint) RBRACK
-    { interval ~loc:(Location.of_lexing $startpos $endpos)
+    { interval ~loc:(location $loc)
         ~lower_open:true (lo :: ends) ~upper_open:false }
   | LPAREN lo = minus_infinity COMMA ends = separated_nonempty_list(COMMA, endpoint) RPAREN
-    { interval ~loc:(Location.of_lexing $startpos $endpos)
+    { interval ~loc:(location $loc)
         ~lower_open:true (lo :: ends) ~upper_open:true }
   | LPAREN lit = grade_lit COMMA lits = separated_nonempty_list(COMMA, grade_lit) RBRACK
-    { interval ~loc:(Location.of_lexing $startpos $endpos)
+    { interval ~loc:(location $loc)
         ~lower_open:true (List.map (fun lit -> Lit lit) (lit :: lits))
         ~upper_open:false }
 
@@ -799,7 +782,7 @@ minus_infinity:
   | MINUS name = LNAME
     { if name = "inf" then Minus_infinity
       else
-        Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+        Error.syntax ~loc:(location $loc)
           "`-%s` is no grade literal" name }
 
 (* The regular expressions of brace literals, by increasing precedence: union
@@ -825,7 +808,7 @@ regex_unary:
   | op = PREFIXOP r = regex_unary
     { if op = "~" then Grade.Compl r
       else
-        Error.syntax ~loc:(Location.of_lexing $startpos(op) $endpos(op))
+        Error.syntax ~loc:(location $loc(op))
           "Unknown operator `%s` in a brace literal" op }
 
 regex_postfix:
@@ -835,19 +818,19 @@ regex_postfix:
 regex_atom:
   | name = UNAME { Grade.Letter name }
   | n = INT
-    { Grade.Tick (small ~loc:(Location.of_lexing $startpos $endpos) "Grade literal" n) }
+    { Grade.Tick (small ~loc:(location $loc) "Grade literal" n) }
   | q = fraction { Grade.rational_tick q }
   | LBRACK lo = duration COMMA hi = delay_end RBRACK
-    { delays ~loc:(Location.of_lexing $startpos $endpos)
+    { delays ~loc:(location $loc)
         ~lower_open:false lo hi ~upper_open:false }
   | LBRACK lo = duration COMMA hi = delay_end RPAREN
-    { delays ~loc:(Location.of_lexing $startpos $endpos)
+    { delays ~loc:(location $loc)
         ~lower_open:false lo hi ~upper_open:true }
   | LPAREN lo = duration COMMA hi = delay_end RBRACK
-    { delays ~loc:(Location.of_lexing $startpos $endpos)
+    { delays ~loc:(location $loc)
         ~lower_open:true lo hi ~upper_open:false }
   | LPAREN lo = duration COMMA hi = delay_end RPAREN
-    { delays ~loc:(Location.of_lexing $startpos $endpos)
+    { delays ~loc:(location $loc)
         ~lower_open:true lo hi ~upper_open:true }
   | UNDERSCORE { Grade.Any }
   | LPAREN r = regex RPAREN { r }
@@ -861,7 +844,7 @@ delay_end:
   | name = LNAME
     { if name = "inf" then None
       else
-        Error.syntax ~loc:(Location.of_lexing $startpos $endpos)
+        Error.syntax ~loc:(location $loc)
           "`%s` is no delay" name }
 
 %%

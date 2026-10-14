@@ -14,63 +14,49 @@ module Make (GS : Grades.GradeSystem.S) = struct
     match expr.it with
     | Ast.Tuple [ expr1; expr2 ] -> f expr1 expr2
     | _ ->
-        Error.runtime "Pair expected but got %t"
+        Error.runtime "Pair expected but got `%t`"
           (PrettyPrint.print_expression (module GS.R) expr)
 
-  let get_nat (expr : _ Ast.expression) =
-    match expr.it with
-    | Ast.Const (Const.Nat n) -> n
-    | _ ->
-        Error.runtime "Natural number expected but got %t"
+  (* The constant of [expr] read by [get], or a run-time error naming
+     [expected]. *)
+  let constant expected get (expr : _ Ast.expression) =
+    match match expr.it with Ast.Const c -> get c | _ -> None with
+    | Some x -> x
+    | None ->
+        Error.runtime "%s expected but got `%t`" expected
           (PrettyPrint.print_expression (module GS.R) expr)
 
-  let get_int (expr : _ Ast.expression) =
-    match expr.it with
-    | Ast.Const (Const.Int n) -> n
-    | _ ->
-        Error.runtime "Integer expected but got %t"
-          (PrettyPrint.print_expression (module GS.R) expr)
-
-  let get_float (expr : _ Ast.expression) =
-    match expr.it with
-    | Ast.Const (Const.Float n) -> n
-    | _ ->
-        Error.runtime "Float expected but got %t"
-          (PrettyPrint.print_expression (module GS.R) expr)
-
-  let nat_nat_to f expr =
-    binary_function
-      (fun expr1 expr2 ->
-        let n1 = get_nat expr1 in
-        let n2 = get_nat expr2 in
-        f n1 n2)
+  let get_nat expr =
+    constant "Natural number"
+      (function Const.Nat n -> Some n | _ -> None)
       expr
 
-  let int_int_to_int f expr =
-    return_const expr.Ast.at
-      (Const.Int
-         (binary_function (fun e1 e2 -> f (get_int e1) (get_int e2)) expr))
+  let get_int expr =
+    constant "Integer" (function Const.Int n -> Some n | _ -> None) expr
 
-  let float_to f expr =
-    let n = get_float expr in
-    f n
+  let get_float expr =
+    constant "Float" (function Const.Float x -> Some x | _ -> None) expr
 
-  let float_float_to f expr =
+  (* The primitive returning the constant [make (f x)] of the argument read by
+     [get] as [x]. *)
+  let unary get make f expr = return_const expr.Ast.at (make (f (get expr)))
+
+  (* The primitive returning the constant [make (f x1 x2)] of the pair of
+     arguments read by [get] as [x1] and [x2]. *)
+  let binary get make f expr =
     binary_function
       (fun expr1 expr2 ->
-        let n1 = get_float expr1 in
-        let n2 = get_float expr2 in
-        f n1 n2)
+        let x1 = get expr1 in
+        let x2 = get expr2 in
+        return_const expr.Ast.at (make (f x1 x2)))
       expr
 
-  let nat_nat_to_nat f expr =
-    return_const expr.Ast.at (Const.Nat (nat_nat_to f expr))
-
-  let float_to_float f expr =
-    return_const expr.Ast.at (Const.Float (float_to f expr))
+  let nat_nat_to_nat f expr = binary get_nat (fun n -> Const.Nat n) f expr
+  let int_int_to_int f expr = binary get_int (fun n -> Const.Int n) f expr
+  let float_to_float f expr = unary get_float (fun x -> Const.Float x) f expr
 
   let float_float_to_float f expr =
-    return_const expr.Ast.at (Const.Float (float_float_to f expr))
+    binary get_float (fun x -> Const.Float x) f expr
 
   (* The natural number of a float, truncated toward zero; zero for a
      negative float and for NaN, and a run-time error for infinity. *)
@@ -105,10 +91,10 @@ module Make (GS : Grades.GradeSystem.S) = struct
     binary_function
       (fun e1 e2 ->
         if not (comparable_expression e1) then
-          Error.runtime "Incomparable expression %t"
+          Error.runtime "Incomparable expression `%t`"
             (PrettyPrint.print_expression (module GS.R) ~max_level:0 e1)
         else if not (comparable_expression e2) then
-          Error.runtime "Incomparable expression %t"
+          Error.runtime "Incomparable expression `%t`"
             (PrettyPrint.print_expression (module GS.R) ~max_level:0 e2)
         else
           return_const expr.at
@@ -139,12 +125,9 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Primitives.FloatDiv -> float_float_to_float ( /. )
     | Primitives.FloatPow -> float_float_to_float ( ** )
     | Primitives.FloatNeg -> float_to_float ( ~-. )
-    | Primitives.FloatOfNat ->
-        fun expr ->
-          return_const expr.Ast.at (Const.Float (Z.to_float (get_nat expr)))
+    | Primitives.FloatOfNat -> unary get_nat (fun x -> Const.Float x) Z.to_float
     | Primitives.NatOfFloat ->
-        fun expr ->
-          return_const expr.Ast.at (Const.Nat (float_to nat_of_float expr))
+        unary get_float (fun n -> Const.Nat n) nat_of_float
     | Primitives.FloatSqrt -> float_to_float Float.sqrt
     | Primitives.FloatAtan -> float_to_float Float.atan
     | Primitives.FloatAtan2 -> float_float_to_float Float.atan2
@@ -159,19 +142,12 @@ module Make (GS : Grades.GradeSystem.S) = struct
         int_int_to_int (fun m n ->
             if Z.equal n Z.zero then Error.runtime "Modulo by zero"
             else Z.rem m n)
-    | Primitives.IntNeg ->
-        fun expr -> return_const expr.Ast.at (Const.Int (Z.neg (get_int expr)))
-    | Primitives.IntOfNat ->
-        fun expr -> return_const expr.Ast.at (Const.Int (get_nat expr))
-    | Primitives.NatOfInt ->
-        fun expr ->
-          return_const expr.Ast.at (Const.Nat (Z.max Z.zero (get_int expr)))
-    | Primitives.FloatOfInt ->
-        fun expr ->
-          return_const expr.Ast.at (Const.Float (Z.to_float (get_int expr)))
+    | Primitives.IntNeg -> unary get_int (fun n -> Const.Int n) Z.neg
+    | Primitives.IntOfNat -> unary get_nat (fun n -> Const.Int n) Fun.id
+    | Primitives.NatOfInt -> unary get_int (fun n -> Const.Nat n) (Z.max Z.zero)
+    | Primitives.FloatOfInt -> unary get_int (fun x -> Const.Float x) Z.to_float
     | Primitives.IntOfFloat ->
-        fun expr ->
-          return_const expr.Ast.at (Const.Int (float_to int_of_float expr))
+        unary get_float (fun n -> Const.Int n) int_of_float
     | Primitives.ToString ->
         fun expr ->
           return_const expr.Ast.at

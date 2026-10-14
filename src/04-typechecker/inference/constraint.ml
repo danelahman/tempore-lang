@@ -67,6 +67,7 @@ module type S = sig
 
   val no_free : free
   val union_free : free -> free -> free
+  val diff_free : free -> free -> free
   val free_vars_ty : ty -> free
   val free_vars_comp_ty : comp_ty -> free
   val free_vars : t -> free
@@ -80,11 +81,11 @@ module type S = sig
   }
 
   val monomorphic : ty -> scheme
+  val close : fixed:free -> ty -> t -> scheme
   val instantiate : scheme -> ty * t
 
   type names
 
-  val is_unit_eps : Grades.Grade.bounds -> eps -> bool
   val names : ?bounds:Grades.Grade.bounds -> unit -> names
   val print_rho : ?names:names -> rho -> Format.formatter -> unit
   val print_eps : ?names:names -> eps -> Format.formatter -> unit
@@ -270,6 +271,13 @@ module Make (X : GradeExp.S) = struct
       free_eps = X.Eps_var.Set.union f.free_eps f'.free_eps;
     }
 
+  let diff_free f f' =
+    {
+      free_tys = Ast.TyParamSet.diff f.free_tys f'.free_tys;
+      free_rhos = X.Rho_var.Set.diff f.free_rhos f'.free_rhos;
+      free_eps = X.Eps_var.Set.diff f.free_eps f'.free_eps;
+    }
+
   let free_rho rho acc =
     {
       acc with
@@ -343,6 +351,18 @@ module Make (X : GradeExp.S) = struct
   let monomorphic ty =
     { ty_params = []; rho_params = []; eps_params = []; qualifier = True; ty }
 
+  let close ~fixed ty qualifier =
+    let params =
+      diff_free (union_free (free_vars_ty ty) (free_vars qualifier)) fixed
+    in
+    {
+      ty_params = Ast.TyParamSet.elements params.free_tys;
+      rho_params = X.Rho_var.Set.elements params.free_rhos;
+      eps_params = X.Eps_var.Set.elements params.free_eps;
+      qualifier;
+      ty;
+    }
+
   let instantiate scheme =
     let _, sigma =
       rename_vars
@@ -395,30 +415,42 @@ module Make (X : GradeExp.S) = struct
 
   module N = GradeNormal.Make (X)
 
+  (* Whether the canonical form of [eps] is the unit under [bounds], which give
+     the running time of every event of [eps]. *)
   let is_unit_eps bounds eps =
-    let canonical =
-      match N.Eps.canon bounds eps with
-      | eps -> eps
-      | exception Utils.Error.Error _ -> eps
-    in
-    match X.Eps.value canonical with
-    | Some c -> (
-        try X.GS.E.equal bounds c X.GS.E.one with Utils.Error.Error _ -> false)
+    match X.Eps.value (N.Eps.canon bounds eps) with
+    | Some c -> X.GS.E.equal bounds c X.GS.E.one
     | None -> false
 
   (* The running times of a program that declares no operations. *)
   let no_operations =
     {
       Grades.Grade.running_time =
-        (fun event -> Utils.Error.typing "Unknown event `%s`" event);
+        (fun event ->
+          invalid_arg
+            ("Constraint.no_operations: the event " ^ event
+           ^ " is not a declared operation"));
       operations = [];
     }
 
+  (* Without declared operations, an effect that names an event under grades
+     that read running times is not the unit. *)
+  let is_unit_eps_without_operations eps =
+    (not
+       (X.GS.E.needs_op_bounds
+       && List.exists
+            (fun c -> not (List.is_empty (X.GS.E.events c)))
+            (X.Eps.constants eps)))
+    && is_unit_eps no_operations eps
+
   (* A rigid variable is named after the operation of its clause. *)
-  let names ?(bounds = no_operations) () =
+  let names ?bounds () =
     let rigid_ops = ref X.Eps_var.Map.empty in
     {
-      unit_eps = is_unit_eps bounds;
+      unit_eps =
+        (match bounds with
+        | Some bounds -> is_unit_eps bounds
+        | None -> is_unit_eps_without_operations);
       ty_name = Ty_names.create ();
       rho_name = Rho_names.create ();
       eps_name =
@@ -609,7 +641,7 @@ module Make (X : GradeExp.S) = struct
       {
         ty_vars =
           ordered
-            (fun a b -> Ast.TyParamModule.compare a b = 0)
+            (fun a b -> Ast.TyParamModule.equal a b)
             scheme.ty_params occ.ty_occ;
         rho_vars = ordered X.Rho_var.equal scheme.rho_params occ.rho_occ;
         eps_vars = ordered X.Eps_var.equal scheme.eps_params occ.eps_occ;

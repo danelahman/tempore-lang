@@ -57,8 +57,8 @@ def Thaw(ctx, name):
     return name
 
 
-def Dispense(ctx, arg):
-    name, number = arg
+def Dispense(ctx, reagent_and_column):
+    name, number = reagent_and_column
     ctx["pipette"].transfer(VOLUMES[name], ctx["tubes"][TUBES[name]], column(ctx, "plate", number), new_tip="always")
     tempore_elapse(90)
     return ()

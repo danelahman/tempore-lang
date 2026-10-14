@@ -97,13 +97,14 @@ module Make (C : Constraint.S) : sig
       operations under the grades that read them, are the closed world of
       {!running_times}, whichever command is checked. *)
 
-  val running_times : loc:Location.t -> env -> Grades.Grade.bounds
-  (** [running_times ~loc env] are the running times of the program of [env]:
-      its operations are those the program declares with running-time bounds
+  val running_times : env -> Grades.Grade.bounds
+  (** [running_times env] are the running times of the program of [env]: its
+      operations are those the program declares with running-time bounds
       ({!declare_operations}), and the running time of an event is its declared
       running-time bounds, or else those implied by the grade of a compound
-      operation declared so far; the running time of any other event is a typing
-      error at [loc]. *)
+      operation declared so far. The grades of the program are checked to name
+      no other event where they are read, under the grades that read running
+      times; the running time of any other event raises [Invalid_argument]. *)
 
   val add_type_definitions :
     loc:Location.t ->
@@ -151,9 +152,14 @@ module Make (C : Constraint.S) : sig
       definition or primitive [x] of scheme [scheme], which may perform the
       operations [performs] ({!DefaultGraph.expression}). *)
 
+  val add_primitive : env -> Ast.variable -> C.scheme -> env
+  (** [add_primitive env x scheme] adds the primitive [x] of scheme [scheme],
+      which performs no operation. *)
+
   val load_primitive :
     env -> Ast.variable -> Language.Primitives.primitive -> env
-  (** [load_primitive env x prim] adds the primitive [prim] as [x]. *)
+  (** [load_primitive env x prim] adds the primitive [prim] as [x], of the
+      scheme {!PrimitiveSchemes} gives it. *)
 
   val add_operation_default :
     env -> Ast.operation -> DefaultGraph.default -> env
@@ -172,8 +178,11 @@ module Make (C : Constraint.S) : sig
   val bind : env -> Ast.variable -> ty -> bound_at:Location.t -> env
   (** [bind env x ty ~bound_at] extends the context by [x : ty]. *)
 
-  val lock : env -> rho Reason.lock -> env
-  (** [lock env l] extends the context by the lock [⟨l.grade⟩]. *)
+  val lock :
+    ?declared:rho -> env -> at:Location.t -> Reason.lock_kind -> rho -> env
+  (** [lock ~declared env ~at kind grade] extends the context by the lock
+      [⟨grade⟩] of [kind] at [at], [declared] being the grade its construct
+      declares, if any ({!Reason.type-lock}). *)
 
   val find_type_definition : env -> Ast.ty_name -> ty_definition option
   (** [find_type_definition env name] is the definition of [name]. *)
