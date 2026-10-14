@@ -1003,13 +1003,17 @@ module Make (GS : Grades.GradeSystem.S) = struct
     in
     let show grade = show_rho (Ast.RhoConst (grade, None)) in
     let at = show env.accumulated in
+    (* The names the step gives; a step that gives none leaves the map of
+       names physically unchanged. *)
     let named =
-      List.filter_map
-        (fun (r, name) ->
-          if Ast.VariableMap.mem r env.resource_names then None
-          else
-            Some (Backend.Named { resource = Ast.Variable.string_of r; name }))
-        (Ast.VariableMap.bindings step.environment.resource_names)
+      if step.environment.resource_names == env.resource_names then []
+      else
+        List.filter_map
+          (fun (r, name) ->
+            if Ast.VariableMap.mem r env.resource_names then None
+            else
+              Some (Backend.Named { resource = Ast.Variable.string_of r; name }))
+          (Ast.VariableMap.bindings step.environment.resource_names)
     in
     match (step.label, run_state.current) with
     | ( ComputationReduction { redex = Delay; _ },

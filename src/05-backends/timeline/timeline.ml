@@ -1,4 +1,5 @@
 module IntMap = Map.Make (Int)
+module StringMap = Map.Make (String)
 
 type event =
   | Call of { op : string; grade : string; returned : bool }
@@ -10,31 +11,65 @@ type entry = { run : int; depth : int; start : string; event : event }
 type outcome = Returned of string | Stopped of string
 type finished = { index : int; at : string; outcome : outcome }
 
-(* The entries by their position in the order of starts; [running] holds the
-   positions of the calls whose default implementations have not returned,
-   the innermost first. *)
+(* The entries by their position in the order of starts, [count] of them;
+   [running] holds the positions of the calls whose default implementations
+   have not returned, the innermost first, [depth] of them, the outermost
+   starting at [outer_start]; [boxes] holds the positions of the boxes and
+   unboxes of the current run, by resource. *)
 type t = {
   run : int;
+  count : int;
   entries : entry IntMap.t;
   running : int list;
+  depth : int;
+  outer_start : string;
+  boxes : int list StringMap.t;
   finished : finished list;  (** the latest first *)
 }
 
-let empty = { run = 1; entries = IntMap.empty; running = []; finished = [] }
+let empty =
+  {
+    run = 1;
+    count = 0;
+    entries = IntMap.empty;
+    running = [];
+    depth = 0;
+    outer_start = "";
+    boxes = StringMap.empty;
+    finished = [];
+  }
 
 (* An entry inside a default implementation starts at the start of the
    outermost call still running. *)
 let add ~at event t =
-  let index = IntMap.cardinal t.entries in
-  let start =
-    match List.rev t.running with
-    | [] -> at
-    | outermost :: _ -> (IntMap.find outermost t.entries).start
-  in
-  let entry = { run = t.run; depth = List.length t.running; start; event } in
-  (index, { t with entries = IntMap.add index entry t.entries })
+  let start = if t.depth = 0 then at else t.outer_start in
+  let entry = { run = t.run; depth = t.depth; start; event } in
+  ( t.count,
+    { t with count = t.count + 1; entries = IntMap.add t.count entry t.entries }
+  )
 
 let record ~at event t = snd (add ~at event t)
+
+(* The box or unbox [event] of [resource], recorded among the boxes of the
+   current run. *)
+let record_box ~at ~resource event t =
+  let index, t = add ~at event t in
+  {
+    t with
+    boxes =
+      StringMap.update resource
+        (fun indices -> Some (index :: Option.value indices ~default:[]))
+        t.boxes;
+  }
+
+let call ~at event t =
+  let index, t = add ~at event t in
+  {
+    t with
+    running = index :: t.running;
+    depth = t.depth + 1;
+    outer_start = (if t.depth = 0 then at else t.outer_start);
+  }
 
 let resume t =
   match t.running with
@@ -49,26 +84,33 @@ let resume t =
         t with
         entries = IntMap.update index (Option.map close) t.entries;
         running;
+        depth = t.depth - 1;
       }
 
 (* The boxes and unboxes of [resource] in the current run, named [name]. *)
 let rename ~resource ~name t =
-  let current (entry : entry) r = entry.run = t.run && r = resource in
   let rename (entry : entry) =
     match entry.event with
-    | Box r when current entry r.resource ->
-        { entry with event = Box { r with name } }
-    | Unbox r when current entry r.resource ->
-        { entry with event = Unbox { r with name } }
-    | Box _ | Unbox _ | Call _ | Delay _ -> entry
+    | Box r -> { entry with event = Box { r with name } }
+    | Unbox r -> { entry with event = Unbox { r with name } }
+    | Call _ | Delay _ -> entry
   in
-  { t with entries = IntMap.map rename t.entries }
+  {
+    t with
+    entries =
+      List.fold_left
+        (fun entries index -> IntMap.update index (Option.map rename) entries)
+        t.entries
+        (Option.value (StringMap.find_opt resource t.boxes) ~default:[]);
+  }
 
 let finish ~at outcome t =
   {
     t with
     run = t.run + 1;
     running = [];
+    depth = 0;
+    boxes = StringMap.empty;
     finished = { index = t.run; at; outcome } :: t.finished;
   }
 
@@ -76,12 +118,12 @@ let observe (observation : Backend.observation) t =
   match observation with
   | Delayed { at; grade } -> record ~at (Delay { grade }) t
   | Performed { at; op; grade } ->
-      let index, t = add ~at (Call { op; grade; returned = false }) t in
-      { t with running = index :: t.running }
+      call ~at (Call { op; grade; returned = false }) t
   | Resumed -> resume t
   | Boxed { at; resource; name; grade } ->
-      record ~at (Box { resource; name; grade }) t
-  | Unboxed { at; resource; name } -> record ~at (Unbox { resource; name }) t
+      record_box ~at ~resource (Box { resource; name; grade }) t
+  | Unboxed { at; resource; name } ->
+      record_box ~at ~resource (Unbox { resource; name }) t
   | Named { resource; name } -> rename ~resource ~name t
   | Returned { at; value } -> finish ~at (Returned value) t
   | Stopped { at; op } -> finish ~at (Stopped op) t
@@ -198,8 +240,17 @@ let group keep k (c, items) =
       "{" ^ String.concat "; " kept ^ "}"
   | Some _ | None -> c
 
-(* The ends of the interval [s], the largest number of items in a group, the
-   ends and the interval with every group reduced to [k] items. *)
+(* The interval [s] read as ends and groups of items: [ends] are its ends,
+   [most] the largest number of items in a group, and [ends_at k] and
+   [interval_at k] the ends and the interval with every group reduced to [k]
+   items. *)
+type reduced = {
+  ends : string list;
+  most : int;
+  ends_at : int -> string list;
+  interval_at : int -> string;
+}
+
 let reduced keep s =
   let opening, ends, closing = components s in
   let groups = List.map (fun c -> (c, items c)) ends in
@@ -211,7 +262,7 @@ let reduced keep s =
   in
   let ends_at k = List.map (group keep k) groups in
   let at k = opening ^ String.concat ", " (ends_at k) ^ closing in
-  (ends, most, ends_at, at)
+  { ends; most; ends_at; interval_at = at }
 
 (* The first or last [n - 1] characters of [s] with the ellipsis. *)
 let cut_ellipsis keep n s =
@@ -220,7 +271,7 @@ let cut_ellipsis keep n s =
   | End -> ellipsis ^ cut End (n - 1) s
 
 let shorten keep s =
-  let ends, most, ends_at, at = reduced keep s in
+  let { ends; most; ends_at; interval_at = at } = reduced keep s in
   if List.for_all (fun c -> length c <= limit) ends then s
   else if most = 0 then cut_ellipsis keep limit s
   else
@@ -231,7 +282,7 @@ let shorten keep s =
 let shorten_total keep n s =
   if length s <= n then Some s
   else
-    let _, most, _, at = reduced keep s in
+    let { most; interval_at = at; _ } = reduced keep s in
     if most = 0 then if n >= 2 then Some (cut_ellipsis keep n s) else None
     else
       let rec fit k =

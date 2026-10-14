@@ -7,6 +7,5 @@
   grades
   vdom
   vdom.base
-  backend
   webBackend
   interpreter))
