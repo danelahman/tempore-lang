@@ -1,4 +1,9 @@
-(* Accepted under the 'regex-timed-upper-bound-letter-automata' grading monoid:
+(* Run this test with the 'regex-timed-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-symbolic \
+       tests/regex_timed_upper.tpe
+
+   Accepted under the 'regex-timed-upper-bound-letter-automata' grading monoid:
    regular upper bounds whose delays pay for operations at their upper
    running-time bounds. *)
 

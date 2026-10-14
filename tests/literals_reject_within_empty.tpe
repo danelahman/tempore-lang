@@ -1,4 +1,9 @@
-(* Rejected: running-time bounds open at an end have ends lo < hi, and
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/literals_reject_within_empty.tpe
+
+   Rejected: running-time bounds open at an end have ends lo < hi, and
    'within [2, 2)' is empty. *)
 
 operation Send : unit ~> unit # {Send} within [2, 2)

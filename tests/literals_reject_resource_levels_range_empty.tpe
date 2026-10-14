@@ -1,3 +1,8 @@
-(* Rejected: the open range of net changes '(0, 1)' contains no integer. *)
+(* Run this test with the 'resource-levels' grading monoid, e.g.
+
+     ./tempore --grades resource-levels \
+       tests/literals_reject_resource_levels_range_empty.tpe
+
+   Rejected: the open range of net changes '(0, 1)' contains no integer. *)
 
 let claim () = box ((0, 1), 1) 1

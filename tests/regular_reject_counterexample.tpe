@@ -1,4 +1,9 @@
-(* Rejected under the regular trace grading monoids: orderings refuted by
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-symbolic \
+       tests/regular_reject_counterexample.tpe
+
+   Rejected under the regular trace grading monoids: orderings refuted by
    words of the lesser grade that the greater grade does not contain, which a
    note names when the lesser grade has more than one word. *)
 

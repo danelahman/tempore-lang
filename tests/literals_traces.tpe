@@ -1,4 +1,8 @@
-(* The top '⊤' (ASCII 'top') under traces-timed-interval is '[{0}, ∞)', an
+(* Run this test with the 'traces-timed-interval' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-interval tests/literals_traces.tpe
+
+   The top '⊤' (ASCII 'top') under traces-timed-interval is '[{0}, ∞)', an
    interval unbounded above. *)
 
 operation Send : unit ~> unit # {Send} within [1, 2]

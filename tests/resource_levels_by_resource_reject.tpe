@@ -1,4 +1,9 @@
-(* Resource levels by resource: rejected programs. *)
+(* Run this test with the 'resource-levels' grading monoid, e.g.
+
+     ./tempore --grades resource-levels \
+       tests/resource_levels_by_resource_reject.tpe
+
+   Resource levels by resource: rejected programs. *)
 
 type file = File of string
 

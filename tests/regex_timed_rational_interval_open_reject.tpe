@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the
+(* Run this test with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       tests/regex_timed_rational_interval_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
    'regex-timed-interval-rational-symbolic' grading monoid: a default of exactly 1
    time unit is faster than the running-time bounds (1, 2] of its operation. *)
 

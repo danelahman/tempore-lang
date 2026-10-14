@@ -1,6 +1,7 @@
 (cram
  (deps
   ../tempore
+  support/header_options.exe
   (source_tree .)
   (source_tree ../examples/handlers)
   (source_tree ../examples/introduction)

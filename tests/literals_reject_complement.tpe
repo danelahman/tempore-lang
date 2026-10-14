@@ -1,4 +1,9 @@
-(* Rejected under the 'traces-timed-upper-bound' grading monoid, whose finite
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/literals_reject_complement.tpe
+
+   Rejected under the 'traces-timed-upper-bound' grading monoid, whose finite
    sets of traces have no complement. *)
 
 let claim () = box {Send; ~Read} 1

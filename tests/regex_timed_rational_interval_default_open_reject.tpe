@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the
+(* Run this test with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       tests/regex_timed_rational_interval_default_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
    'regex-timed-interval-rational-symbolic' grading monoid: the grades of the
    running-time bounds [1, 2) and (1, 2] have open ends, so a default
    implementation taking exactly the open end is rejected by them. *)

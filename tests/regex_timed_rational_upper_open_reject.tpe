@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the
+(* Run this test with the 'regex-timed-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-rational-symbolic \
+       tests/regex_timed_rational_upper_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
    'regex-timed-upper-bound-rational-symbolic' grading monoid: a sample within
    [1/2, 2] may take 2 time units, which no delay of [0, 2) permits, and a
    default of exactly 2 exceeds [1/2, 2). *)

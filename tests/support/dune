@@ -1,0 +1,12 @@
+; Helpers shared by the tests: the options named by the header of a source
+; file, and an executable printing them for the cram tests.
+
+(library
+ (name testSupport)
+ (modules header)
+ (libraries grades))
+
+(executable
+ (name header_options)
+ (modules header_options)
+ (libraries testSupport))

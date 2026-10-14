@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the
+(* Run this test with the 'regex-timed-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-symbolic \
+       tests/regex_timed_upper_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
    'regex-timed-upper-bound-symbolic' grading monoid: 'Tx' within (1, 4) takes
    up to three ticks, more than the two the box allows, and a default of three
    ticks exceeds [1, 3). *)

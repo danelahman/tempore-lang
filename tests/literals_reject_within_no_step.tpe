@@ -1,4 +1,9 @@
-(* Rejected: in whole ticks, an open end of running-time bounds abbreviates a
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/literals_reject_within_no_step.tpe
+
+   Rejected: in whole ticks, an open end of running-time bounds abbreviates a
    closed one, and 'within (1, 2)' contains no whole number of ticks. *)
 
 operation Send : unit ~> unit # {Send} within (1, 2)

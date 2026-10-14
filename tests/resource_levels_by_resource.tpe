@@ -1,4 +1,8 @@
-(* Resource levels by resource: each resource named in an entry (R, d, h). No
+(* Run this test with the 'resource-levels' grading monoid, e.g.
+
+     ./tempore --grades resource-levels tests/resource_levels_by_resource.tpe
+
+   Resource levels by resource: each resource named in an entry (R, d, h). No
    code meets the grades of the operations, so none has a default
    implementation, and a run stops at its first operation. *)
 

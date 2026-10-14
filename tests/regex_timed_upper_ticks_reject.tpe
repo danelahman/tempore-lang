@@ -1,4 +1,9 @@
-(* Rejected under the 'regex-timed-upper-bound-letter-automata' grading monoid: a
+(* Run this test with the 'regex-timed-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-symbolic \
+       tests/regex_timed_upper_ticks_reject.tpe
+
+   Rejected under the 'regex-timed-upper-bound-letter-automata' grading monoid: a
    grade must permit at least one trace of the operations the program declares,
    wherever it is written. *)
 

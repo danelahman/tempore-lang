@@ -1,89 +1,12 @@
+Every test file, run under the grades its header names, the default grades if
+it names none:
+
   $ for f in *.tpe
   > do
   >   echo "======================================================================"
   >   echo $f
   >   echo "======================================================================"
-  >   case $f in
-  >     time_intervals.tpe) ../tempore --grades time-interval $f;;
-  >     rational_time_lower*.tpe) ../tempore --grades time-lower-bound-rational $f;;
-  >     rational_time_upper*.tpe) ../tempore --grades time-upper-bound-rational $f;;
-  >     rational_time_intervals*.tpe) ../tempore --grades time-interval-rational $f;;
-  >     rational_traces_upper*.tpe) ../tempore --grades traces-timed-upper-bound-rational $f;;
-  >     rational_traces_intervals*.tpe) ../tempore --grades traces-timed-interval-rational $f;;
-  >     plain_traces_upper*.tpe) ../tempore --grades traces-upper-bound $f;;
-  >     plain_rational_traces_upper*.tpe) ../tempore --grades traces-upper-bound-rational $f;;
-  >     literals_rational_upper.tpe) ../tempore --grades time-upper-bound-rational $f;;
-  >     literals_rational_interval.tpe) ../tempore --grades time-interval-rational $f;;
-  >     literals_reject_rational_negative.tpe) ../tempore --grades time-upper-bound-rational $f;;
-  >     literals_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
-  >     delay_reject_fraction.tpe) ../tempore --grades time-upper-bound $f;;
-  >     delay_reject_overflow.tpe) ../tempore --grades time-upper-bound $f;;
-  >     default_reject_unestablished.tpe) ../tempore --grades time-upper-bound $f;;
-  >     time_upper.tpe) ../tempore --grades time-upper-bound $f;;
-  >     comp_type_annotation_upper*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     annotation_grade_variables_interval_reject.tpe) ../tempore --grades time-interval $f;;
-  >     annotation_grade_variables*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     eternal_lower.tpe) ../tempore $f;;
-  >     eternal_*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     noneternal_lower.tpe) ../tempore $f;;
-  >     noneternal*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     continuation_discard_reject_lower.tpe) ../tempore $f;;
-  >     continuation_discard_abort_reject_lower.tpe) ../tempore $f;;
-  >     continuation_discard_delay_reject_lower.tpe) ../tempore $f;;
-  >     continuation_obligation_lower.tpe) ../tempore $f;;
-  >     continuation_nested_discard_reject_lower.tpe) ../tempore $f;;
-  >     continuation_twice_lower.tpe) ../tempore $f;;
-  >     continuation_*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     error_use_after_delay.tpe) ../tempore --grades time-upper-bound $f;;
-  >     traces_lower.tpe) ../tempore --grades traces-timed-lower-bound $f;;
-  >     3dprint_traces.tpe) ../tempore --grades traces-timed-interval $f;;
-  >     traces_intervals.tpe) ../tempore --grades traces-timed-interval $f;;
-  >     traces_intervals_bounds.tpe) ../tempore --grades traces-timed-interval $f;;
-  >     traces_intervals_default_bounds.tpe) ../tempore --grades traces-timed-interval $f;;
-  >     traces_intervals_default_open_reject.tpe) ../tempore --grades traces-timed-interval $f;;
-  >     traces_*.tpe) ../tempore --grades traces-timed-upper-bound $f;;
-  >     levels_time_lower*.tpe) ../tempore --grades time-lower-bound-levels $f;;
-  >     levels_time_upper*.tpe) ../tempore --grades time-upper-bound-levels $f;;
-  >     levels*.tpe) ../tempore --grades security-levels $f;;
-  >     literals_time_upper.tpe) ../tempore --grades time-upper-bound $f;;
-  >     literals_time_interval.tpe) ../tempore --grades time-interval $f;;
-  >     literals_reject_interval_*.tpe) ../tempore --grades time-interval $f;;
-  >     literals_reject_within_*.tpe) ../tempore --grades traces-timed-upper-bound $f;;
-  >     literals_traces.tpe) ../tempore --grades traces-timed-interval $f;;
-  >     literals_reject_star.tpe) ../tempore --grades traces-timed-upper-bound $f;;
-  >     literals_reject_component.tpe) ../tempore --grades time-lower-bound-levels $f;;
-  >     literals_reject_complement.tpe) ../tempore --grades traces-timed-upper-bound $f;;
-  >     literals_reject_empty.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
-  >     literals_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
-  >     regular_*.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
-  >     regex_rational*.tpe) ../tempore --grades regex-upper-bound-rational-symbolic $f;;
-  >     regex_timed_rational_lower*.tpe) ../tempore --grades regex-timed-lower-bound-rational-symbolic $f;;
-  >     regex_timed_rational_upper*.tpe) ../tempore --grades regex-timed-upper-bound-rational-symbolic $f;;
-  >     regex_timed_rational_interval*.tpe) ../tempore --grades regex-timed-interval-rational-symbolic $f;;
-  >     regex_timed_lower*.tpe) ../tempore --grades regex-timed-lower-bound-symbolic $f;;
-  >     regex_timed_upper*.tpe) ../tempore --grades regex-timed-upper-bound-symbolic $f;;
-  >     regex_timed_interval*.tpe) ../tempore --grades regex-timed-interval-symbolic $f;;
-  >     resource_levels*.tpe) ../tempore --grades resource-levels $f;;
-  >     literals_reject_peak.tpe) ../tempore --grades resource-levels $f;;
-  >     literals_reject_resource_levels_range_empty.tpe) ../tempore --grades resource-levels $f;;
-  >     windowed_schedules*.tpe) ../tempore --grades windowed-schedules $f;;
-  >     literals_reject_windowed_schedules.tpe) ../tempore --grades windowed-schedules $f;;
-  >     literals_reject_windowed_schedules_empty.tpe) ../tempore --grades windowed-schedules $f;;
-  >     flow_levels*.tpe) ../tempore --grades flow-levels $f;;
-  >     literals_reject_flow.tpe) ../tempore --grades flow-levels $f;;
-  >     counts*.tpe) ../tempore --grades counts-upper-bound $f;;
-  >     literals_reject_counts.tpe) ../tempore --grades counts-upper-bound $f;;
-  >     mode_switch_costs*.tpe) ../tempore --grades mode-switch-costs $f;;
-  >     literals_reject_modes.tpe) ../tempore --grades mode-switch-costs $f;;
-  >     recursion_lock_lower.tpe) ../tempore $f;;
-  >     recursion_lock*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     recursion_effect_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
-  >     recursion_effect_reject_unannotated_regular.tpe) ../tempore --grades regex-upper-bound-symbolic $f;;
-  >     recursion_effect_levels.tpe) ../tempore --grades security-levels $f;;
-  >     recursion_effect_reject_lower.tpe) ../tempore $f;;
-  >     recursion_effect_*.tpe) ../tempore --grades time-upper-bound $f;;
-  >     *) ../tempore $f;;
-  >   esac
+  >   ../tempore $(support/header_options.exe $f) $f
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
@@ -426,8 +349,8 @@
   ======================================================================
   comp_type_annotation_upper_reject.tpe
   ======================================================================
-  File "comp_type_annotation_upper_reject.tpe", line 3, characters 9-31:
-  3 | let f () : nat # 2 = delay 3; 1
+  File "comp_type_annotation_upper_reject.tpe", line 8, characters 9-31:
+  8 | let f () : nat # 2 = delay 3; 1
                ^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `3`, which does not match its annotated grade `2`
     Note: the effect inequality `3 <= 2` does not hold
@@ -684,50 +607,50 @@
   ======================================================================
   counts_upper_reject.tpe
   ======================================================================
-  File "counts_upper_reject.tpe", lines 7-11, characters 12-16:
-  7 | let four () : unit # (Send, 3) =
-                  ^^^^^^^^^^^^^^^^^^^^
+  File "counts_upper_reject.tpe", lines 11-15, characters 12-16:
+  11 | let four () : unit # (Send, 3) =
+                   ^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Send, 4)`, which does not match its annotated grade `(Send, 3)`
     Note: the effect inequality `(Send, 4) <= (Send, 3)` does not hold
   
-  File "counts_upper_reject.tpe", lines 14-16, characters 16-16:
-  14 | let unlisted () : unit # (Send, 3) =
+  File "counts_upper_reject.tpe", lines 18-20, characters 16-16:
+  18 | let unlisted () : unit # (Send, 3) =
                        ^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `((Auth, 1), (Send, 1))`, which does not match its annotated grade `(Send, 3)`
     Note: the effect inequality `((Auth, 1), (Send, 1)) <= (Send, 3)` does not hold
   
-  File "counts_upper_reject.tpe", lines 23-24, characters 2-3:
-  23 |   unbox x as n in
+  File "counts_upper_reject.tpe", lines 27-28, characters 2-3:
+  27 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `(Send, 2)` accumulated since it was bound, which is not below its box grade `(Send, 1)`
-    File "counts_upper_reject.tpe", line 20, characters 21-22:
-    20 |   box (Send, 1) 7 as x in
+    File "counts_upper_reject.tpe", line 24, characters 21-22:
+    24 |   box (Send, 1) 7 as x in
                               ^
     `x` is bound here
-    File "counts_upper_reject.tpe", line 21, characters 2-16:
-    21 |   perform Send 1;
+    File "counts_upper_reject.tpe", line 25, characters 2-16:
+    25 |   perform Send 1;
            ^^^^^^^^^^^^^^
     grade `(Send, 1)` accumulates here (operation `Send`)
-    File "counts_upper_reject.tpe", line 22, characters 2-16:
-    22 |   perform Send 2;
+    File "counts_upper_reject.tpe", line 26, characters 2-16:
+    26 |   perform Send 2;
            ^^^^^^^^^^^^^^
     grade `(Send, 1)` accumulates here (operation `Send`)
     Note: the resource inequality `(Send, 2) <= (Send, 1)` does not hold
   
-  File "counts_upper_reject.tpe", line 31, characters 48-66:
-  31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+  File "counts_upper_reject.tpe", line 35, characters 48-66:
+  35 |   | Send n k -> perform Send n; perform Send n; continue k with ()
                                                        ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `(Send, 2)` accumulated since it was bound, which is not below its box grade `(Send, 1)`
-    File "counts_upper_reject.tpe", line 31, characters 11-12:
-    31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+    File "counts_upper_reject.tpe", line 35, characters 11-12:
+    35 |   | Send n k -> perform Send n; perform Send n; continue k with ()
                     ^
     `k` is bound here
-    File "counts_upper_reject.tpe", line 31, characters 16-30:
-    31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+    File "counts_upper_reject.tpe", line 35, characters 16-30:
+    35 |   | Send n k -> perform Send n; perform Send n; continue k with ()
                          ^^^^^^^^^^^^^^
     grade `(Send, 1)` accumulates here (operation `Send`)
-    File "counts_upper_reject.tpe", line 31, characters 32-46:
-    31 |   | Send n k -> perform Send n; perform Send n; continue k with ()
+    File "counts_upper_reject.tpe", line 35, characters 32-46:
+    35 |   | Send n k -> perform Send n; perform Send n; continue k with ()
                                          ^^^^^^^^^^^^^^
     grade `(Send, 1)` accumulates here (operation `Send`)
     Note: the resource inequality `(Send, 2) <= (Send, 1)` does not hold
@@ -896,8 +819,8 @@
   ======================================================================
   delay_reject_fraction.tpe
   ======================================================================
-  File "delay_reject_fraction.tpe", line 4, characters 20-23:
-  4 | let wait () = delay 0.5
+  File "delay_reject_fraction.tpe", line 8, characters 20-23:
+  8 | let wait () = delay 0.5
                           ^^^
   Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `security-levels` or `flow-levels` grading monoids?
   ======================================================================
@@ -910,8 +833,8 @@
   ======================================================================
   delay_reject_overflow.tpe
   ======================================================================
-  File "delay_reject_overflow.tpe", line 4, characters 0-49:
-  4 | let f () = delay 4611686018427387903; delay 1; ()
+  File "delay_reject_overflow.tpe", line 8, characters 0-49:
+  8 | let f () = delay 4611686018427387903; delay 1; ()
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The duration exceeds the supported range
   ======================================================================
@@ -1509,46 +1432,46 @@
   ======================================================================
   flow_levels_reject.tpe
   ======================================================================
-  File "flow_levels_reject.tpe", lines 8-10, characters 18-16:
-  8 | let post_after () : unit # (High, (Board, Low)) =
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "flow_levels_reject.tpe", lines 12-14, characters 18-16:
+  12 | let post_after () : unit # (High, (Board, Low)) =
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(High, (Board, High))`, which does not match its annotated grade `(High, (Board, Low))`
     Note: the effect inequality `(High, (Board, High)) <= (High, (Board, Low))` does not hold
   
-  File "flow_levels_reject.tpe", lines 13-15, characters 16-15:
-  13 | let unlisted () : unit # (Low, (Board, Low)) =
+  File "flow_levels_reject.tpe", lines 17-19, characters 16-15:
+  17 | let unlisted () : unit # (Low, (Board, Low)) =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Low, (Audit, Low), (Board, Low))`, which does not match its annotated grade `(Low, (Board, Low))`
     Note: the effect inequality `(Low, (Audit, Low), (Board, Low)) <= (Low, (Board, Low))` does not hold
   
-  File "flow_levels_reject.tpe", lines 22-23, characters 2-3:
-  22 |   unbox x as n in
+  File "flow_levels_reject.tpe", lines 26-27, characters 2-3:
+  26 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `(High, (Board, High))` accumulated since it was bound, which is not below its box grade `(High, (Board, Low))`
-    File "flow_levels_reject.tpe", line 19, characters 32-33:
-    19 |   box (High, (Board, Low)) 7 as x in
+    File "flow_levels_reject.tpe", line 23, characters 32-33:
+    23 |   box (High, (Board, Low)) 7 as x in
                                          ^
     `x` is bound here
-    File "flow_levels_reject.tpe", line 20, characters 10-31:
-    20 |   let s = perform ReadSecret () in
+    File "flow_levels_reject.tpe", line 24, characters 10-31:
+    24 |   let s = perform ReadSecret () in
                    ^^^^^^^^^^^^^^^^^^^^^
     grade `High` accumulates here (operation `ReadSecret`)
-    File "flow_levels_reject.tpe", line 21, characters 2-16:
-    21 |   perform Post s;
+    File "flow_levels_reject.tpe", line 25, characters 2-16:
+    25 |   perform Post s;
            ^^^^^^^^^^^^^^
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
     Note: the resource inequality `(High, (Board, High)) <= (High, (Board, Low))` does not hold
   
-  File "flow_levels_reject.tpe", line 30, characters 31-49:
-  30 |   | Log n k -> perform Post n; continue k with ()
+  File "flow_levels_reject.tpe", line 34, characters 31-49:
+  34 |   | Log n k -> perform Post n; continue k with ()
                                       ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `(Low, (Board, Low))` accumulated since it was bound, which is not below its box grade `(Low, (Audit, Low))`
-    File "flow_levels_reject.tpe", line 30, characters 10-11:
-    30 |   | Log n k -> perform Post n; continue k with ()
+    File "flow_levels_reject.tpe", line 34, characters 10-11:
+    34 |   | Log n k -> perform Post n; continue k with ()
                    ^
     `k` is bound here
-    File "flow_levels_reject.tpe", line 30, characters 15-29:
-    30 |   | Log n k -> perform Post n; continue k with ()
+    File "flow_levels_reject.tpe", line 34, characters 15-29:
+    34 |   | Log n k -> perform Post n; continue k with ()
                         ^^^^^^^^^^^^^^
     grade `(Low, (Board, Low))` accumulates here (operation `Post`)
     Note: the resource inequality `(Low, (Board, Low)) <= (Low, (Audit, Low))` does not hold
@@ -1689,24 +1612,24 @@
   ======================================================================
   levels_reject.tpe
   ======================================================================
-  File "levels_reject.tpe", lines 11-12, characters 2-3:
-  11 |   unbox r as y in
+  File "levels_reject.tpe", lines 15-16, characters 2-3:
+  15 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `High` accumulated since it was bound, which is not below its box grade `Low`
-    File "levels_reject.tpe", line 9, characters 22-23:
-    9 |   box Low "public" as r in
-                              ^
+    File "levels_reject.tpe", line 13, characters 22-23:
+    13 |   box Low "public" as r in
+                               ^
     `r` is bound here
-    File "levels_reject.tpe", line 10, characters 2-23:
-    10 |   perform Send "secret";
+    File "levels_reject.tpe", line 14, characters 2-23:
+    14 |   perform Send "secret";
            ^^^^^^^^^^^^^^^^^^^^^
     grade `High` accumulates here (operation `Send`)
     Note: the resource inequality `High <= Low` does not hold
   ======================================================================
   levels_reject_literal.tpe
   ======================================================================
-  File "levels_reject_literal.tpe", line 3, characters 19-20:
-  3 | let claim () = box 3 1
+  File "levels_reject_literal.tpe", line 7, characters 19-20:
+  7 | let claim () = box 3 1
                          ^
   Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs` or `counts-upper-bound` grading monoids?
   ======================================================================
@@ -1745,34 +1668,34 @@
   ======================================================================
   levels_time_lower_reject.tpe
   ======================================================================
-  File "levels_time_lower_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox r as y in
+  File "levels_time_lower_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `(2, Low)` accumulated since it was bound, which is not below its box grade `(3, Low)`
-    File "levels_time_lower_reject.tpe", line 10, characters 27-28:
-    10 |   box (3, Low) "report" as r in
+    File "levels_time_lower_reject.tpe", line 15, characters 27-28:
+    15 |   box (3, Low) "report" as r in
                                     ^
     `r` is bound here
-    File "levels_time_lower_reject.tpe", line 11, characters 2-9:
-    11 |   delay 2;
+    File "levels_time_lower_reject.tpe", line 16, characters 2-9:
+    16 |   delay 2;
            ^^^^^^^
     grade `(2, Low)` accumulates here (delay)
     Note: the resource inequality `(2, Low) ≾ (3, Low)` does not hold
   
-  File "levels_time_lower_reject.tpe", lines 20-21, characters 2-3:
-  20 |   unbox r as y in
+  File "levels_time_lower_reject.tpe", lines 25-26, characters 2-3:
+  25 |   unbox r as y in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `(3, High)` accumulated since it was bound, which is not below its box grade `(3, Low)`
-    File "levels_time_lower_reject.tpe", line 17, characters 27-28:
-    17 |   box (3, Low) "report" as r in
+    File "levels_time_lower_reject.tpe", line 22, characters 27-28:
+    22 |   box (3, Low) "report" as r in
                                     ^
     `r` is bound here
-    File "levels_time_lower_reject.tpe", line 18, characters 2-24:
-    18 |   perform Publish "news";
+    File "levels_time_lower_reject.tpe", line 23, characters 2-24:
+    23 |   perform Publish "news";
            ^^^^^^^^^^^^^^^^^^^^^^
     grade `(1, High)` accumulates here (operation `Publish`)
-    File "levels_time_lower_reject.tpe", line 19, characters 2-9:
-    19 |   delay 2;
+    File "levels_time_lower_reject.tpe", line 24, characters 2-9:
+    24 |   delay 2;
            ^^^^^^^
     grade `(2, Low)` accumulates here (delay)
     Note: the resource inequality `(3, High) ≾ (3, Low)` does not hold
@@ -1805,30 +1728,30 @@
   ======================================================================
   levels_time_upper_reject.tpe
   ======================================================================
-  File "levels_time_upper_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox c as t in
+  File "levels_time_upper_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox c as t in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `(6, Low)` accumulated since it was bound, which is not below its box grade `(5, Low)`
-    File "levels_time_upper_reject.tpe", line 10, characters 26-27:
-    10 |   box (5, Low) "token" as c in
+    File "levels_time_upper_reject.tpe", line 15, characters 26-27:
+    15 |   box (5, Low) "token" as c in
                                    ^
     `c` is bound here
-    File "levels_time_upper_reject.tpe", line 11, characters 2-9:
-    11 |   delay 6;
+    File "levels_time_upper_reject.tpe", line 16, characters 2-9:
+    16 |   delay 6;
            ^^^^^^^
     grade `(6, Low)` accumulates here (delay)
     Note: the resource inequality `(6, Low) <= (5, Low)` does not hold
   
-  File "levels_time_upper_reject.tpe", lines 19-20, characters 2-3:
-  19 |   unbox c as t in
+  File "levels_time_upper_reject.tpe", lines 24-25, characters 2-3:
+  24 |   unbox c as t in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `(1, High)` accumulated since it was bound, which is not below its box grade `(5, Low)`
-    File "levels_time_upper_reject.tpe", line 17, characters 26-27:
-    17 |   box (5, Low) "token" as c in
+    File "levels_time_upper_reject.tpe", line 22, characters 26-27:
+    22 |   box (5, Low) "token" as c in
                                    ^
     `c` is bound here
-    File "levels_time_upper_reject.tpe", line 18, characters 2-23:
-    18 |   perform Leak "secret";
+    File "levels_time_upper_reject.tpe", line 23, characters 2-23:
+    23 |   perform Leak "secret";
            ^^^^^^^^^^^^^^^^^^^^^
     grade `(1, High)` accumulates here (operation `Leak`)
     Note: the resource inequality `(1, High) <= (5, Low)` does not hold
@@ -2112,43 +2035,43 @@
   ======================================================================
   literals_reject_complement.tpe
   ======================================================================
-  File "literals_reject_complement.tpe", line 4, characters 19-32:
-  4 | let claim () = box {Send; ~Read} 1
+  File "literals_reject_complement.tpe", line 9, characters 19-32:
+  9 | let claim () = box {Send; ~Read} 1
                          ^^^^^^^^^^^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without complement `~`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   literals_reject_component.tpe
   ======================================================================
-  File "literals_reject_component.tpe", line 3, characters 19-30:
-  3 | let claim () = box (3, Medium) 1
+  File "literals_reject_component.tpe", line 8, characters 19-30:
+  8 | let claim () = box (3, Medium) 1
                          ^^^^^^^^^^^
   Syntax error: In the `time-lower-bound-levels` grading monoid, in the second component (`security-levels`), unknown level `Medium`; the levels are `Low` and `High`
   ======================================================================
   literals_reject_counts.tpe
   ======================================================================
-  File "literals_reject_counts.tpe", line 3, characters 19-29:
-  3 | let claim () = box (Send, -1) 1
+  File "literals_reject_counts.tpe", line 7, characters 19-29:
+  7 | let claim () = box (Send, -1) 1
                          ^^^^^^^^^^
   Syntax error: In the `counts-upper-bound` grading monoid, in the entry of `Send`, grades must be non-negative
   ======================================================================
   literals_reject_empty.tpe
   ======================================================================
-  File "literals_reject_empty.tpe", line 4, characters 19-33:
-  4 | let claim () = box {Read & Write} 1
+  File "literals_reject_empty.tpe", line 9, characters 19-33:
+  9 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
   Syntax error: In the `regex-upper-bound-symbolic` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_reject_flow.tpe
   ======================================================================
-  File "literals_reject_flow.tpe", line 3, characters 19-54:
-  3 | let claim () = box (High, (Board, Low), (Board, High)) 1
+  File "literals_reject_flow.tpe", line 7, characters 19-54:
+  7 | let claim () = box (High, (Board, Low), (Board, High)) 1
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Syntax error: In the `flow-levels` grading monoid, the output `Board` is listed twice
   ======================================================================
   literals_reject_fraction.tpe
   ======================================================================
-  File "literals_reject_fraction.tpe", line 4, characters 19-22:
-  4 | let claim () = box 3/2 1
+  File "literals_reject_fraction.tpe", line 8, characters 19-22:
+  8 | let claim () = box 3/2 1
                          ^^^
   Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
@@ -2175,29 +2098,29 @@
   ======================================================================
   literals_reject_interval_closed_infinity.tpe
   ======================================================================
-  File "literals_reject_interval_closed_infinity.tpe", line 4, characters 19-27:
-  4 | let claim () = box [2, ∞] 1
+  File "literals_reject_interval_closed_infinity.tpe", line 9, characters 19-27:
+  9 | let claim () = box [2, ∞] 1
                          ^^^^^^
   Syntax error: An infinite endpoint of an interval is written with a parenthesis, as in `[n, ∞)`
   ======================================================================
   literals_reject_interval_empty.tpe
   ======================================================================
-  File "literals_reject_interval_empty.tpe", line 4, characters 19-25:
-  4 | let claim () = box [2, 2) 1
+  File "literals_reject_interval_empty.tpe", line 8, characters 19-25:
+  8 | let claim () = box [2, 2) 1
                          ^^^^^^
   Syntax error: In the `time-interval` grading monoid, interval endpoints must satisfy n < m at an open endpoint
   ======================================================================
   literals_reject_interval_no_step.tpe
   ======================================================================
-  File "literals_reject_interval_no_step.tpe", line 4, characters 19-25:
-  4 | let claim () = box (1, 2) 1
+  File "literals_reject_interval_no_step.tpe", line 8, characters 19-25:
+  8 | let claim () = box (1, 2) 1
                          ^^^^^^
   Syntax error: In the `time-interval` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic` or `resource-levels` grading monoids?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
-  File "literals_reject_interval_reversed.tpe", line 3, characters 19-25:
-  3 | let claim () = box [5, 2] 1
+  File "literals_reject_interval_reversed.tpe", line 8, characters 19-25:
+  8 | let claim () = box [5, 2] 1
                          ^^^^^^
   Syntax error: In the `time-interval` grading monoid, interval endpoints must satisfy n <= m
   ======================================================================
@@ -2210,8 +2133,8 @@
   ======================================================================
   literals_reject_modes.tpe
   ======================================================================
-  File "literals_reject_modes.tpe", line 3, characters 19-31:
-  3 | let claim () = box (On, Off, 0) 1
+  File "literals_reject_modes.tpe", line 7, characters 19-31:
+  7 | let claim () = box (On, Off, 0) 1
                          ^^^^^^^^^^^^
   Syntax error: In the `mode-switch-costs` grading monoid, in the cost from `On` to `Off`, a change of mode costs at least 1
   ======================================================================
@@ -2231,29 +2154,29 @@
   ======================================================================
   literals_reject_peak.tpe
   ======================================================================
-  File "literals_reject_peak.tpe", line 3, characters 19-25:
-  3 | let claim () = box (2, 1) 1
+  File "literals_reject_peak.tpe", line 7, characters 19-25:
+  7 | let claim () = box (2, 1) 1
                          ^^^^^^
   Syntax error: In the `resource-levels` grading monoid, the peak must be at least 0 and at least the net change
   ======================================================================
   literals_reject_rational_negative.tpe
   ======================================================================
-  File "literals_reject_rational_negative.tpe", line 3, characters 19-23:
-  3 | let claim () = box -0.5 1
+  File "literals_reject_rational_negative.tpe", line 8, characters 19-23:
+  8 | let claim () = box -0.5 1
                          ^^^^
   Syntax error: In the `time-upper-bound-rational` grading monoid, grades must be non-negative
   ======================================================================
   literals_reject_resource_levels_range_empty.tpe
   ======================================================================
-  File "literals_reject_resource_levels_range_empty.tpe", line 3, characters 19-30:
-  3 | let claim () = box ((0, 1), 1) 1
+  File "literals_reject_resource_levels_range_empty.tpe", line 8, characters 19-30:
+  8 | let claim () = box ((0, 1), 1) 1
                          ^^^^^^^^^^^
   Syntax error: In the `resource-levels` grading monoid, in the net change, the interval contains no integer
   ======================================================================
   literals_reject_star.tpe
   ======================================================================
-  File "literals_reject_star.tpe", line 3, characters 19-31:
-  3 | let claim () = box {(Send; 2)*} 1
+  File "literals_reject_star.tpe", line 7, characters 19-31:
+  7 | let claim () = box {(Send; 2)*} 1
                          ^^^^^^^^^^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, sets of traces are built from operation names and delays with `;` and `|` only, without repetition `*`; did you mean to use one of the `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
@@ -2266,29 +2189,29 @@
   ======================================================================
   literals_reject_windowed_schedules.tpe
   ======================================================================
-  File "literals_reject_windowed_schedules.tpe", line 3, characters 19-27:
-  3 | let claim () = box (1, {0}) 1
+  File "literals_reject_windowed_schedules.tpe", line 8, characters 19-27:
+  8 | let claim () = box (1, {0}) 1
                          ^^^^^^^^
   Syntax error: In the `windowed-schedules` grading monoid, times are given by operation, e.g. `(1, (Send, {0}))` for `Send` at the start, or `(1, (_, {0}))` for any operation
   ======================================================================
   literals_reject_windowed_schedules_empty.tpe
   ======================================================================
-  File "literals_reject_windowed_schedules_empty.tpe", line 4, characters 19-25:
-  4 | let claim () = box (2, 3) 1
+  File "literals_reject_windowed_schedules_empty.tpe", line 9, characters 19-25:
+  9 | let claim () = box (2, 3) 1
                          ^^^^^^
   Syntax error: In the `windowed-schedules` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic` or `resource-levels` grading monoids?
   ======================================================================
   literals_reject_within_empty.tpe
   ======================================================================
-  File "literals_reject_within_empty.tpe", line 4, characters 46-52:
-  4 | operation Send : unit ~> unit # {Send} within [2, 2)
+  File "literals_reject_within_empty.tpe", line 9, characters 46-52:
+  9 | operation Send : unit ~> unit # {Send} within [2, 2)
                                                     ^^^^^^
   Syntax error: Interval endpoints must satisfy n < m at an open endpoint
   ======================================================================
   literals_reject_within_no_step.tpe
   ======================================================================
-  File "literals_reject_within_no_step.tpe", line 4, characters 46-52:
-  4 | operation Send : unit ~> unit # {Send} within (1, 2)
+  File "literals_reject_within_no_step.tpe", line 9, characters 46-52:
+  9 | operation Send : unit ~> unit # {Send} within (1, 2)
                                                     ^^^^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, the interval `(1, 2)` contains no whole number of time steps
   ======================================================================
@@ -2465,40 +2388,40 @@
   ======================================================================
   mode_switch_costs_reject.tpe
   ======================================================================
-  File "mode_switch_costs_reject.tpe", line 9, characters 14-52:
-  9 | let tx_off () : unit # (Off, Off, 2) = perform Tx ()
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "mode_switch_costs_reject.tpe", line 13, characters 14-52:
+  13 | let tx_off () : unit # (Off, Off, 2) = perform Tx ()
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(On, On, 2)`, which does not match its annotated grade `(Off, Off, 2)`
     Note: the effect inequality `(On, On, 2) <= (Off, Off, 2)` does not hold
   
-  File "mode_switch_costs_reject.tpe", lines 12-16, characters 11-16:
-  12 | let two () : unit # (Off, Off, 4) =
+  File "mode_switch_costs_reject.tpe", lines 16-20, characters 11-16:
+  16 | let two () : unit # (Off, Off, 4) =
                   ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Off, Off, 6)`, which does not match its annotated grade `(Off, Off, 4)`
     Note: the effect inequality `(Off, Off, 6) <= (Off, Off, 4)` does not hold
   
-  File "mode_switch_costs_reject.tpe", lines 19-20, characters 17-46:
-  19 | let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
+  File "mode_switch_costs_reject.tpe", lines 23-24, characters 17-46:
+  23 | let idle_or_tx b : unit # ((On, On, 2), (Off, Off, 1)) =
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `((On, On, 2), (_, _, 1), (_, Stuck, 0))`, which does not match its annotated grade `((Off, Off, 1), (On, On, 2))`
     Note: the effect inequality `((On, On, 2), (_, _, 1), (_, Stuck, 0)) <= ((Off, Off, 1), (On, On, 2))` does not hold
   
-  File "mode_switch_costs_reject.tpe", line 28, characters 15-33:
-  28 |   | Tx () k -> continue k with ()
+  File "mode_switch_costs_reject.tpe", line 32, characters 15-33:
+  32 |   | Tx () k -> continue k with ()
                       ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with the unit grade `0` accumulated since it was bound, which is not below its box grade `(On, On, 2)`
-    File "mode_switch_costs_reject.tpe", line 28, characters 10-11:
-    28 |   | Tx () k -> continue k with ()
+    File "mode_switch_costs_reject.tpe", line 32, characters 10-11:
+    32 |   | Tx () k -> continue k with ()
                    ^
     `k` is bound here
     Note: the resource inequality `0 <= (On, On, 2)` does not hold
   
-  File "mode_switch_costs_reject.tpe", line 31, characters 0-18:
-  31 | default On () = ()
+  File "mode_switch_costs_reject.tpe", line 35, characters 0-18:
+  35 | default On () = ()
        ^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `On` has grade `0`, which does not match the declared grade `(Off, On, 1)` of `On`
-    File "mode_switch_costs_reject.tpe", line 3, characters 0-42:
-    3 | operation On : unit ~> unit # (Off, On, 1)
+    File "mode_switch_costs_reject.tpe", line 7, characters 0-42:
+    7 | operation On : unit ~> unit # (Off, On, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `On` is declared here
     Note: the effect inequality `0 <= (Off, On, 1)` does not hold
@@ -2652,8 +2575,8 @@
   ======================================================================
   noneternal_reject_alias.tpe
   ======================================================================
-  File "noneternal_reject_alias.tpe", line 5, characters 0-29:
-  5 | noneternal type seconds = nat
+  File "noneternal_reject_alias.tpe", line 9, characters 0-29:
+  9 | noneternal type seconds = nat
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Type `seconds` is an alias and cannot be declared noneternal; wrap it in a constructor, as in `noneternal type seconds = Seconds of ...`
   ======================================================================
@@ -2996,22 +2919,22 @@
   ======================================================================
   plain_traces_upper_reject.tpe
   ======================================================================
-  File "plain_traces_upper_reject.tpe", lines 15-16, characters 2-3:
-  15 |   unbox r as x in
+  File "plain_traces_upper_reject.tpe", lines 19-20, characters 2-3:
+  19 |   unbox r as x in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `{Heat}` accumulated since it was bound, which is not below its box grade `{1}`
-    File "plain_traces_upper_reject.tpe", line 13, characters 14-15:
-    13 |   box 1 42 as r in
+    File "plain_traces_upper_reject.tpe", line 17, characters 14-15:
+    17 |   box 1 42 as r in
                        ^
     `r` is bound here
-    File "plain_traces_upper_reject.tpe", line 14, characters 2-17:
-    14 |   perform Heat ();
+    File "plain_traces_upper_reject.tpe", line 18, characters 2-17:
+    18 |   perform Heat ();
            ^^^^^^^^^^^^^^^
     grade `{Heat}` accumulates here (operation `Heat`)
     Note: the resource inequality `{Heat} <= {1}` does not hold
   
-  File "plain_traces_upper_reject.tpe", lines 18-19, characters 32-67:
-  18 | let read_or_send (fresh : bool) : unit # {Read} =
+  File "plain_traces_upper_reject.tpe", lines 22-23, characters 32-67:
+  22 | let read_or_send (fresh : bool) : unit # {Read} =
                                        ^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Read | Send}`, which does not match its annotated grade `{Read}`
     Note: the effect inequality `{Read | Send} <= {Read}` does not hold
@@ -3151,9 +3074,9 @@
   ======================================================================
   rational_time_intervals_reject_within.tpe
   ======================================================================
-  File "rational_time_intervals_reject_within.tpe", line 5, characters 0-60:
-  5 | operation Dose : unit ~> unit # [0.5, 1.5] within [1/2, 3/2]
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "rational_time_intervals_reject_within.tpe", line 10, characters 0-60:
+  10 | operation Dose : unit ~> unit # [0.5, 1.5] within [1/2, 3/2]
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `time-interval-rational` grading monoid, which does not use them
   ======================================================================
   rational_time_lower.tpe
@@ -3287,49 +3210,49 @@
   ======================================================================
   rational_traces_intervals_default_open_reject.tpe
   ======================================================================
-  File "rational_traces_intervals_default_open_reject.tpe", line 10, characters 0-25:
-  10 | default Send () = delay 2
+  File "rational_traces_intervals_default_open_reject.tpe", line 15, characters 0-25:
+  15 | default Send () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` takes a duration in `[2, 2]`, which is not within the running-time bounds `[1, 2)` of `Send`
-    File "rational_traces_intervals_default_open_reject.tpe", line 7, characters 0-62:
-    7 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "rational_traces_intervals_default_open_reject.tpe", line 12, characters 0-62:
+    12 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
   
-  File "rational_traces_intervals_default_open_reject.tpe", line 11, characters 0-25:
-  11 | default Beep () = delay 1
+  File "rational_traces_intervals_default_open_reject.tpe", line 16, characters 0-25:
+  16 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` takes a duration in `[1, 1]`, which is not within the running-time bounds `(1, 2]` of `Beep`
-    File "rational_traces_intervals_default_open_reject.tpe", line 8, characters 0-62:
-    8 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "rational_traces_intervals_default_open_reject.tpe", line 13, characters 0-62:
+    13 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
   ======================================================================
   rational_traces_intervals_reject.tpe
   ======================================================================
-  File "rational_traces_intervals_reject.tpe", lines 13-14, characters 2-3:
-  13 |   unbox due as u in
+  File "rational_traces_intervals_reject.tpe", lines 18-19, characters 2-3:
+  18 |   unbox due as u in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `due` is unboxed with grade `[{Sample; 0.125}, {Sample; 0.125}]` accumulated since it was bound, which is not below its box grade `[{0.75}, {2}]`
-    File "rational_traces_intervals_reject.tpe", line 10, characters 21-24:
-    10 |   box [3/4, 2] () as due in
+    File "rational_traces_intervals_reject.tpe", line 15, characters 21-24:
+    15 |   box [3/4, 2] () as due in
                               ^^^
     `due` is bound here
-    File "rational_traces_intervals_reject.tpe", line 11, characters 10-27:
-    11 |   let v = perform Sample () in
+    File "rational_traces_intervals_reject.tpe", line 16, characters 10-27:
+    16 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
-    File "rational_traces_intervals_reject.tpe", line 12, characters 2-11:
-    12 |   delay 1/8;
+    File "rational_traces_intervals_reject.tpe", line 17, characters 2-11:
+    17 |   delay 1/8;
            ^^^^^^^^^
     grade `[{0.125}, {0.125}]` accumulates here (delay)
     Note: the resource inequality `[{Sample; 0.125}, {Sample; 0.125}] <= [{0.75}, {2}]` does not hold
   ======================================================================
   rational_traces_intervals_reject_open.tpe
   ======================================================================
-  File "rational_traces_intervals_reject_open.tpe", line 5, characters 19-27:
-  5 | let claim () = box (1/2, 2] 1
-                         ^^^^^^^^
+  File "rational_traces_intervals_reject_open.tpe", line 10, characters 19-27:
+  10 | let claim () = box (1/2, 2] 1
+                          ^^^^^^^^
   Syntax error: In the `traces-timed-interval-rational` grading monoid, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the `time-interval-rational` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   rational_traces_upper.tpe
@@ -3349,36 +3272,36 @@
   ======================================================================
   rational_traces_upper_open_reject.tpe
   ======================================================================
-  File "rational_traces_upper_open_reject.tpe", lines 11-12, characters 2-3:
-  11 |   unbox slot as r in
+  File "rational_traces_upper_open_reject.tpe", lines 16-17, characters 2-3:
+  16 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Sample}` accumulated since it was bound, which is not below its box grade `{1.4}`
-    File "rational_traces_upper_open_reject.tpe", line 9, characters 17-21:
-    9 |   box {1.4} 1 as slot in
-                         ^^^^
+    File "rational_traces_upper_open_reject.tpe", line 14, characters 17-21:
+    14 |   box {1.4} 1 as slot in
+                          ^^^^
     `slot` is bound here
-    File "rational_traces_upper_open_reject.tpe", line 10, characters 2-19:
-    10 |   perform Sample ();
+    File "rational_traces_upper_open_reject.tpe", line 15, characters 2-19:
+    15 |   perform Sample ();
            ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
     Note: the resource inequality `{Sample} <= {1.4}` does not hold
   ======================================================================
   rational_traces_upper_reject.tpe
   ======================================================================
-  File "rational_traces_upper_reject.tpe", lines 13-14, characters 2-3:
-  13 |   unbox due as u in
+  File "rational_traces_upper_reject.tpe", lines 18-19, characters 2-3:
+  18 |   unbox due as u in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `due` is unboxed with grade `{Sample; 0.5}` accumulated since it was bound, which is not below its box grade `{1.75}`
-    File "rational_traces_upper_reject.tpe", line 10, characters 18-21:
-    10 |   box {7/4} () as due in
+    File "rational_traces_upper_reject.tpe", line 15, characters 18-21:
+    15 |   box {7/4} () as due in
                            ^^^
     `due` is bound here
-    File "rational_traces_upper_reject.tpe", line 11, characters 10-27:
-    11 |   let v = perform Sample () in
+    File "rational_traces_upper_reject.tpe", line 16, characters 10-27:
+    16 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
-    File "rational_traces_upper_reject.tpe", line 12, characters 2-11:
-    12 |   delay 1/2;
+    File "rational_traces_upper_reject.tpe", line 17, characters 2-11:
+    17 |   delay 1/2;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
     Note: the resource inequality `{Sample; 0.5} <= {1.75}` does not hold
@@ -3532,66 +3455,66 @@
   ======================================================================
   regex_rational_reject.tpe
   ======================================================================
-  File "regex_rational_reject.tpe", lines 14-15, characters 2-3:
-  14 |   unbox t as n in
+  File "regex_rational_reject.tpe", lines 19-20, characters 2-3:
+  19 |   unbox t as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{1}` accumulated since it was bound, which is not below its box grade `{~1}`
-    File "regex_rational_reject.tpe", line 11, characters 16-17:
-    11 |   box {~1} 7 as t in
+    File "regex_rational_reject.tpe", line 16, characters 16-17:
+    16 |   box {~1} 7 as t in
                          ^
     `t` is bound here
-    File "regex_rational_reject.tpe", line 12, characters 2-11:
-    12 |   delay 1/2;
+    File "regex_rational_reject.tpe", line 17, characters 2-11:
+    17 |   delay 1/2;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
-    File "regex_rational_reject.tpe", line 13, characters 2-11:
-    13 |   delay 0.5;
+    File "regex_rational_reject.tpe", line 18, characters 2-11:
+    18 |   delay 0.5;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
     Note: the resource inequality `{1} <= {~1}` does not hold
   
-  File "regex_rational_reject.tpe", lines 23-24, characters 2-3:
-  23 |   unbox due as u in
+  File "regex_rational_reject.tpe", lines 28-29, characters 2-3:
+  28 |   unbox due as u in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `due` is unboxed with grade `{Sample; 1; Send}` accumulated since it was bound, which is not below its box grade `{Sample; [0, 1); Send}`
-    File "regex_rational_reject.tpe", line 18, characters 35-38:
-    18 |   box {Sample; [0, 1); Send} () as due in
+    File "regex_rational_reject.tpe", line 23, characters 35-38:
+    23 |   box {Sample; [0, 1); Send} () as due in
                                             ^^^
     `due` is bound here
-    File "regex_rational_reject.tpe", line 19, characters 10-27:
-    19 |   let v = perform Sample () in
+    File "regex_rational_reject.tpe", line 24, characters 10-27:
+    24 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
-    File "regex_rational_reject.tpe", line 20, characters 2-11:
-    20 |   delay 1/2;
+    File "regex_rational_reject.tpe", line 25, characters 2-11:
+    25 |   delay 1/2;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
-    File "regex_rational_reject.tpe", line 21, characters 2-11:
-    21 |   delay 1/2;
+    File "regex_rational_reject.tpe", line 26, characters 2-11:
+    26 |   delay 1/2;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
-    File "regex_rational_reject.tpe", line 22, characters 2-16:
-    22 |   perform Send v;
+    File "regex_rational_reject.tpe", line 27, characters 2-16:
+    27 |   perform Send v;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
     Note: the resource inequality `{Sample; 1; Send} <= {Sample; [0, 1); Send}` does not hold
   
-  File "regex_rational_reject.tpe", line 26, characters 14-43:
-  26 | let thirds () : unit # {(1/2)*} = delay 1/3
+  File "regex_rational_reject.tpe", line 31, characters 14-43:
+  31 | let thirds () : unit # {(1/2)*} = delay 1/3
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{1/3}`, which does not match its annotated grade `{(0.5)*}`
     Note: the effect inequality `{1/3} <= {(0.5)*}` does not hold
   
-  File "regex_rational_reject.tpe", lines 31-32, characters 2-3:
-  31 |   unbox w as u in
+  File "regex_rational_reject.tpe", lines 36-37, characters 2-3:
+  36 |   unbox w as u in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `w` is unboxed with grade `{2 | 0.5}` accumulated since it was bound, which is not below its box grade `{[1, ∞)}`
-    File "regex_rational_reject.tpe", line 29, characters 23-24:
-    29 |   box {[1, ∞)} () as w in
+    File "regex_rational_reject.tpe", line 34, characters 23-24:
+    34 |   box {[1, ∞)} () as w in
                               ^
     `w` is bound here
-    File "regex_rational_reject.tpe", line 30, characters 2-34:
-    30 |   if b then delay 1/2 else delay 2;
+    File "regex_rational_reject.tpe", line 35, characters 2-34:
+    35 |   if b then delay 1/2 else delay 2;
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{2 | 0.5}` accumulates here (this computation)
     Note: the resource inequality `{2 | 0.5} <= {[1, ∞)}` does not hold
@@ -3609,43 +3532,43 @@
   ======================================================================
   regex_timed_interval_reject.tpe
   ======================================================================
-  File "regex_timed_interval_reject.tpe", lines 13-14, characters 2-5:
-  13 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 18-19, characters 2-5:
+  18 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
-    File "regex_timed_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box [3, 4] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 16, characters 28-29:
+    16 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 12, characters 2-18:
-    12 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 17, characters 2-18:
+    17 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
-  File "regex_timed_interval_reject.tpe", lines 20-21, characters 2-5:
-  20 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 25-26, characters 2-5:
+  25 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
-    File "regex_timed_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box [2, 3] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 23, characters 28-29:
+    23 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 19, characters 2-18:
-    19 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 24, characters 2-18:
+    24 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_timed_interval_ticks_reject.tpe
   ======================================================================
-  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
-  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
+  File "regex_timed_interval_ticks_reject.tpe", line 17, characters 6-34:
+  17 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
+  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -3663,48 +3586,48 @@
   ======================================================================
   regex_timed_lower_reject.tpe
   ======================================================================
-  File "regex_timed_lower_reject.tpe", lines 15-16, characters 2-5:
-  15 |   unbox t as tok in
+  File "regex_timed_lower_reject.tpe", lines 20-21, characters 2-5:
+  20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Ping; 2}` accumulated since it was bound, which is not below its box grade `{Ping; 3}`
-    File "regex_timed_lower_reject.tpe", line 12, characters 31-32:
-    12 |   box {Ping; 3} (Token "t") as t in
+    File "regex_timed_lower_reject.tpe", line 17, characters 31-32:
+    17 |   box {Ping; 3} (Token "t") as t in
                                         ^
     `t` is bound here
-    File "regex_timed_lower_reject.tpe", line 13, characters 2-17:
-    13 |   perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 18, characters 2-17:
+    18 |   perform Ping ();
            ^^^^^^^^^^^^^^^
     grade `{Ping}` accumulates here (operation `Ping`)
-    File "regex_timed_lower_reject.tpe", line 14, characters 2-9:
-    14 |   delay 2;
+    File "regex_timed_lower_reject.tpe", line 19, characters 2-9:
+    19 |   delay 2;
            ^^^^^^^
     grade `{2}` accumulates here (delay)
     Note: the resource inequality `{Ping; 2} <= {Ping; 3}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 22-23, characters 2-5:
-  22 |   unbox f as tok in
+  File "regex_timed_lower_reject.tpe", lines 27-28, characters 2-5:
+  27 |   unbox f as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `f` is unboxed with grade `{10}` accumulated since it was bound, which is not below its box grade `{Fetch}`
-    File "regex_timed_lower_reject.tpe", line 20, characters 29-30:
-    20 |   box {Fetch} (Token "f") as f in
+    File "regex_timed_lower_reject.tpe", line 25, characters 29-30:
+    25 |   box {Fetch} (Token "f") as f in
                                       ^
     `f` is bound here
-    File "regex_timed_lower_reject.tpe", line 21, characters 2-10:
-    21 |   delay 10;
+    File "regex_timed_lower_reject.tpe", line 26, characters 2-10:
+    26 |   delay 10;
            ^^^^^^^^
     grade `{10}` accumulates here (delay)
     Note: the resource inequality `{10} <= {Fetch}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 29-30, characters 2-5:
-  29 |   unbox q as tok in
+  File "regex_timed_lower_reject.tpe", lines 34-35, characters 2-5:
+  34 |   unbox q as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `q` is unboxed with grade `{Ping | Fetch; 1}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_lower_reject.tpe", line 27, characters 25-26:
-    27 |   box {3} (Token "q") as q in
+    File "regex_timed_lower_reject.tpe", line 32, characters 25-26:
+    32 |   box {3} (Token "q") as q in
                                   ^
     `q` is bound here
-    File "regex_timed_lower_reject.tpe", line 28, characters 2-58:
-    28 |   if b then perform Fetch (); delay 1 else perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 33, characters 2-58:
+    33 |   if b then perform Fetch (); delay 1 else perform Ping ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Ping | Fetch; 1}` accumulates here (this computation)
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
@@ -3712,8 +3635,8 @@
   ======================================================================
   regex_timed_lower_ticks_reject.tpe
   ======================================================================
-  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
-  11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
+  File "regex_timed_lower_ticks_reject.tpe", line 16, characters 6-30:
+  16 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
@@ -3729,68 +3652,68 @@
   ======================================================================
   regex_timed_rational_interval_default_open_reject.tpe
   ======================================================================
-  File "regex_timed_rational_interval_default_open_reject.tpe", line 9, characters 0-25:
-  9 | default Send () = delay 2
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "regex_timed_rational_interval_default_open_reject.tpe", line 14, characters 0-25:
+  14 | default Send () = delay 2
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
-    File "regex_timed_rational_interval_default_open_reject.tpe", line 6, characters 0-62:
-    6 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
+    11 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{2}, {2}] <= [{1}, {[0, 2)}]` does not hold
   
-  File "regex_timed_rational_interval_default_open_reject.tpe", line 10, characters 0-25:
-  10 | default Beep () = delay 1
+  File "regex_timed_rational_interval_default_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
-    File "regex_timed_rational_interval_default_open_reject.tpe", line 7, characters 0-62:
-    7 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
+    12 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
   ======================================================================
   regex_timed_rational_interval_open_reject.tpe
   ======================================================================
-  File "regex_timed_rational_interval_open_reject.tpe", line 7, characters 0-25:
-  7 | default Beep () = delay 1
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "regex_timed_rational_interval_open_reject.tpe", line 12, characters 0-25:
+  12 | default Beep () = delay 1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
-    File "regex_timed_rational_interval_open_reject.tpe", line 5, characters 0-62:
-    5 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_interval_open_reject.tpe", line 10, characters 0-62:
+    10 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
   ======================================================================
   regex_timed_rational_interval_reject.tpe
   ======================================================================
-  File "regex_timed_rational_interval_reject.tpe", lines 13-14, characters 2-5:
-  13 |   unbox t as tok in
+  File "regex_timed_rational_interval_reject.tpe", lines 18-19, characters 2-5:
+  18 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Sample}, {Sample}]` accumulated since it was bound, which is not below its box grade `[{0.75}, {2}]`
-    File "regex_timed_rational_interval_reject.tpe", line 11, characters 30-31:
-    11 |   box [3/4, 2] (Token "t") as t in
+    File "regex_timed_rational_interval_reject.tpe", line 16, characters 30-31:
+    16 |   box [3/4, 2] (Token "t") as t in
                                        ^
     `t` is bound here
-    File "regex_timed_rational_interval_reject.tpe", line 12, characters 10-27:
-    12 |   let v = perform Sample () in
+    File "regex_timed_rational_interval_reject.tpe", line 17, characters 10-27:
+    17 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
     Note: the resource inequality `[{Sample}, {Sample}] <= [{0.75}, {2}]` does not hold
   
-  File "regex_timed_rational_interval_reject.tpe", lines 22-23, characters 2-5:
-  22 |   unbox t as tok in
+  File "regex_timed_rational_interval_reject.tpe", lines 27-28, characters 2-5:
+  27 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{0.5; Sample}, {0.5; Sample}]` accumulated since it was bound, which is not below its box grade `[{0.5}, {[0, 1)}]`
-    File "regex_timed_rational_interval_reject.tpe", line 19, characters 39-40:
-    19 |   box [{1/2}, {[0, 1)}] (Token "t") as t in
+    File "regex_timed_rational_interval_reject.tpe", line 24, characters 39-40:
+    24 |   box [{1/2}, {[0, 1)}] (Token "t") as t in
                                                 ^
     `t` is bound here
-    File "regex_timed_rational_interval_reject.tpe", line 20, characters 2-11:
-    20 |   delay 1/2;
+    File "regex_timed_rational_interval_reject.tpe", line 25, characters 2-11:
+    25 |   delay 1/2;
            ^^^^^^^^^
     grade `[{0.5}, {0.5}]` accumulates here (delay)
-    File "regex_timed_rational_interval_reject.tpe", line 21, characters 10-27:
-    21 |   let v = perform Sample () in
+    File "regex_timed_rational_interval_reject.tpe", line 26, characters 10-27:
+    26 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
     Note: the resource inequality `[{0.5; Sample}, {0.5; Sample}] <= [{0.5}, {[0, 1)}]` does not hold
@@ -3807,51 +3730,51 @@
   ======================================================================
   regex_timed_rational_lower_reject.tpe
   ======================================================================
-  File "regex_timed_rational_lower_reject.tpe", lines 14-15, characters 2-5:
-  14 |   unbox t as tok in
+  File "regex_timed_rational_lower_reject.tpe", lines 19-20, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{0.25}` accumulated since it was bound, which is not below its box grade `{0.5}`
-    File "regex_timed_rational_lower_reject.tpe", line 12, characters 27-28:
-    12 |   box {1/2} (Token "t") as t in
+    File "regex_timed_rational_lower_reject.tpe", line 17, characters 27-28:
+    17 |   box {1/2} (Token "t") as t in
                                     ^
     `t` is bound here
-    File "regex_timed_rational_lower_reject.tpe", line 13, characters 2-11:
-    13 |   delay 1/4;
+    File "regex_timed_rational_lower_reject.tpe", line 18, characters 2-11:
+    18 |   delay 1/4;
            ^^^^^^^^^
     grade `{0.25}` accumulates here (delay)
     Note: the resource inequality `{0.25} <= {0.5}` does not hold
   
-  File "regex_timed_rational_lower_reject.tpe", lines 21-22, characters 2-5:
-  21 |   unbox s as tok in
+  File "regex_timed_rational_lower_reject.tpe", lines 26-27, characters 2-5:
+  26 |   unbox s as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `s` is unboxed with grade `{3}` accumulated since it was bound, which is not below its box grade `{Send}`
-    File "regex_timed_rational_lower_reject.tpe", line 19, characters 28-29:
-    19 |   box {Send} (Token "s") as s in
+    File "regex_timed_rational_lower_reject.tpe", line 24, characters 28-29:
+    24 |   box {Send} (Token "s") as s in
                                      ^
     `s` is bound here
-    File "regex_timed_rational_lower_reject.tpe", line 20, characters 2-9:
-    20 |   delay 3;
+    File "regex_timed_rational_lower_reject.tpe", line 25, characters 2-9:
+    25 |   delay 3;
            ^^^^^^^
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{3} <= {Send}` does not hold
   
-  File "regex_timed_rational_lower_reject.tpe", lines 31-32, characters 2-5:
-  31 |   unbox p as tok in
+  File "regex_timed_rational_lower_reject.tpe", lines 36-37, characters 2-5:
+  36 |   unbox p as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `p` is unboxed with grade `{(0, 1)}` accumulated since it was bound, which is not below its box grade `{0.5}`
-    File "regex_timed_rational_lower_reject.tpe", line 29, characters 27-28:
-    29 |   box {1/2} (Token "p") as p in
+    File "regex_timed_rational_lower_reject.tpe", line 34, characters 27-28:
+    34 |   box {1/2} (Token "p") as p in
                                     ^
     `p` is bound here
-    File "regex_timed_rational_lower_reject.tpe", line 30, characters 2-15:
-    30 |   some_delay ();
+    File "regex_timed_rational_lower_reject.tpe", line 35, characters 2-15:
+    35 |   some_delay ();
            ^^^^^^^^^^^^^
     grade `{(0, 1)}` accumulates here (this computation)
     Note: the resource inequality `{(0, 1)} <= {0.5}` does not hold
     Note: the grade `{1/3}` is below `{(0, 1)}` but not below `{0.5}`
   
-  File "regex_timed_rational_lower_reject.tpe", line 35, characters 13-44:
-  35 | let quick () : nat # {1} = perform Sample ()
+  File "regex_timed_rational_lower_reject.tpe", line 40, characters 13-44:
+  40 | let quick () : nat # {1} = perform Sample ()
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample}`, which does not match its annotated grade `{1}`
     Note: the effect inequality `{Sample} <= {1}` does not hold
@@ -3879,111 +3802,111 @@
   ======================================================================
   regex_timed_rational_upper_open_reject.tpe
   ======================================================================
-  File "regex_timed_rational_upper_open_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox slot as r in
+  File "regex_timed_rational_upper_open_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Sample}` accumulated since it was bound, which is not below its box grade `{[0, 2)}`
-    File "regex_timed_rational_upper_open_reject.tpe", line 10, characters 20-24:
-    10 |   box {[0, 2)} 1 as slot in
+    File "regex_timed_rational_upper_open_reject.tpe", line 15, characters 20-24:
+    15 |   box {[0, 2)} 1 as slot in
                              ^^^^
     `slot` is bound here
-    File "regex_timed_rational_upper_open_reject.tpe", line 11, characters 2-19:
-    11 |   perform Sample ();
+    File "regex_timed_rational_upper_open_reject.tpe", line 16, characters 2-19:
+    16 |   perform Sample ();
            ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
     Note: the resource inequality `{Sample} <= {[0, 2)}` does not hold
   
-  File "regex_timed_rational_upper_open_reject.tpe", line 15, characters 0-25:
-  15 | default Beep () = delay 2
+  File "regex_timed_rational_upper_open_reject.tpe", line 20, characters 0-25:
+  20 | default Beep () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
-    File "regex_timed_rational_upper_open_reject.tpe", line 7, characters 0-54:
-    7 | operation Beep : unit ~> unit # {Beep} within [1/2, 2)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_upper_open_reject.tpe", line 12, characters 0-54:
+    12 | operation Beep : unit ~> unit # {Beep} within [1/2, 2)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{2} <= {[0, 2)}` does not hold
   ======================================================================
   regex_timed_rational_upper_reject.tpe
   ======================================================================
-  File "regex_timed_rational_upper_reject.tpe", lines 16-17, characters 2-5:
-  16 |   unbox t as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 21-22, characters 2-5:
+  21 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Sample; 1/3}` accumulated since it was bound, which is not below its box grade `{1.75}`
-    File "regex_timed_rational_upper_reject.tpe", line 13, characters 27-28:
-    13 |   box {7/4} (Token "t") as t in
+    File "regex_timed_rational_upper_reject.tpe", line 18, characters 27-28:
+    18 |   box {7/4} (Token "t") as t in
                                     ^
     `t` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 14, characters 10-27:
-    14 |   let v = perform Sample () in
+    File "regex_timed_rational_upper_reject.tpe", line 19, characters 10-27:
+    19 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
-    File "regex_timed_rational_upper_reject.tpe", line 15, characters 2-11:
-    15 |   delay 1/3;
+    File "regex_timed_rational_upper_reject.tpe", line 20, characters 2-11:
+    20 |   delay 1/3;
            ^^^^^^^^^
     grade `{1/3}` accumulates here (delay)
     Note: the resource inequality `{Sample; 1/3} <= {1.75}` does not hold
   
-  File "regex_timed_rational_upper_reject.tpe", lines 25-26, characters 2-5:
-  25 |   unbox t as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 30-31, characters 2-5:
+  30 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Sample; Send}` accumulated since it was bound, which is not below its box grade `{Send; 2}`
-    File "regex_timed_rational_upper_reject.tpe", line 22, characters 31-32:
-    22 |   box {Send; 2} (Token "t") as t in
+    File "regex_timed_rational_upper_reject.tpe", line 27, characters 31-32:
+    27 |   box {Send; 2} (Token "t") as t in
                                         ^
     `t` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 23, characters 10-27:
-    23 |   let v = perform Sample () in
+    File "regex_timed_rational_upper_reject.tpe", line 28, characters 10-27:
+    28 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
-    File "regex_timed_rational_upper_reject.tpe", line 24, characters 2-16:
-    24 |   perform Send v;
+    File "regex_timed_rational_upper_reject.tpe", line 29, characters 2-16:
+    29 |   perform Send v;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
     Note: the resource inequality `{Sample; Send} <= {Send; 2}` does not hold
   
-  File "regex_timed_rational_upper_reject.tpe", lines 37-38, characters 2-5:
-  37 |   unbox b as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 42-43, characters 2-5:
+  42 |   unbox b as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `b` is unboxed with grade `{[0, 0.5); Send; [0, 0.5)}` accumulated since it was bound, which is not below its box grade `{1.99}`
-    File "regex_timed_rational_upper_reject.tpe", line 33, characters 28-29:
-    33 |   box {1.99} (Token "b") as b in
+    File "regex_timed_rational_upper_reject.tpe", line 38, characters 28-29:
+    38 |   box {1.99} (Token "b") as b in
                                      ^
     `b` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 34, characters 2-16:
-    34 |   short_delay ();
+    File "regex_timed_rational_upper_reject.tpe", line 39, characters 2-16:
+    39 |   short_delay ();
            ^^^^^^^^^^^^^^
     grade `{[0, 0.5)}` accumulates here (this computation)
-    File "regex_timed_rational_upper_reject.tpe", line 35, characters 2-16:
-    35 |   perform Send n;
+    File "regex_timed_rational_upper_reject.tpe", line 40, characters 2-16:
+    40 |   perform Send n;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
-    File "regex_timed_rational_upper_reject.tpe", line 36, characters 2-16:
-    36 |   short_delay ();
+    File "regex_timed_rational_upper_reject.tpe", line 41, characters 2-16:
+    41 |   short_delay ();
            ^^^^^^^^^^^^^^
     grade `{[0, 0.5)}` accumulates here (this computation)
     Note: the resource inequality `{[0, 0.5); Send; [0, 0.5)} <= {1.99}` does not hold
     Note: the grade `{64/129; Send; 64/129}` is below `{[0, 0.5); Send; [0, 0.5)}` but not below `{1.99}`
   
-  File "regex_timed_rational_upper_reject.tpe", lines 46-47, characters 2-5:
-  46 |   unbox l as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 51-52, characters 2-5:
+  51 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `l` is unboxed with grade `{Send; 1}` accumulated since it was bound, which is not below its box grade `{Send; ([0, 1] & ~1)}`
-    File "regex_timed_rational_upper_reject.tpe", line 43, characters 43-44:
-    43 |   box {Send; ([0, 1] & ~1)} (Token "l") as l in
+    File "regex_timed_rational_upper_reject.tpe", line 48, characters 43-44:
+    48 |   box {Send; ([0, 1] & ~1)} (Token "l") as l in
                                                     ^
     `l` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 44, characters 2-16:
-    44 |   perform Send n;
+    File "regex_timed_rational_upper_reject.tpe", line 49, characters 2-16:
+    49 |   perform Send n;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
-    File "regex_timed_rational_upper_reject.tpe", line 45, characters 2-9:
-    45 |   delay 1;
+    File "regex_timed_rational_upper_reject.tpe", line 50, characters 2-9:
+    50 |   delay 1;
            ^^^^^^^
     grade `{1}` accumulates here (delay)
     Note: the resource inequality `{Send; 1} <= {Send; ([0, 1] & ~1)}` does not hold
   
-  File "regex_timed_rational_upper_reject.tpe", lines 51-53, characters 19-19:
-  51 | let two_samples () : nat # {5/2} =
+  File "regex_timed_rational_upper_reject.tpe", lines 56-58, characters 19-19:
+  56 | let two_samples () : nat # {5/2} =
                           ^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample; Sample}`, which does not match its annotated grade `{2.5}`
     Note: the effect inequality `{Sample; Sample} <= {2.5}` does not hold
@@ -4009,81 +3932,81 @@
   ======================================================================
   regex_timed_upper_open_reject.tpe
   ======================================================================
-  File "regex_timed_upper_open_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox slot as r in
+  File "regex_timed_upper_open_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
-    File "regex_timed_upper_open_reject.tpe", line 10, characters 15-19:
-    10 |   box {2} 1 as slot in
+    File "regex_timed_upper_open_reject.tpe", line 15, characters 15-19:
+    15 |   box {2} 1 as slot in
                         ^^^^
     `slot` is bound here
-    File "regex_timed_upper_open_reject.tpe", line 11, characters 2-15:
-    11 |   perform Tx ();
+    File "regex_timed_upper_open_reject.tpe", line 16, characters 2-15:
+    16 |   perform Tx ();
            ^^^^^^^^^^^^^
     grade `{Tx}` accumulates here (operation `Tx`)
     Note: the resource inequality `{Tx} <= {2}` does not hold
   
-  File "regex_timed_upper_open_reject.tpe", line 15, characters 0-25:
-  15 | default Beep () = delay 3
+  File "regex_timed_upper_open_reject.tpe", line 20, characters 0-25:
+  20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
-    File "regex_timed_upper_open_reject.tpe", line 7, characters 0-52:
-    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
+    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   regex_timed_upper_reject.tpe
   ======================================================================
-  File "regex_timed_upper_reject.tpe", lines 14-15, characters 2-5:
-  14 |   unbox t as tok in
+  File "regex_timed_upper_reject.tpe", lines 19-20, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_upper_reject.tpe", line 12, characters 25-26:
-    12 |   box {3} (Token "t") as t in
+    File "regex_timed_upper_reject.tpe", line 17, characters 25-26:
+    17 |   box {3} (Token "t") as t in
                                   ^
     `t` is bound here
-    File "regex_timed_upper_reject.tpe", line 13, characters 2-18:
-    13 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {3}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 23-24, characters 2-5:
-  23 |   unbox l as tok in
+  File "regex_timed_upper_reject.tpe", lines 28-29, characters 2-5:
+  28 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `l` is unboxed with grade `{Fetch; Log}` accumulated since it was bound, which is not below its box grade `{Log; 4}`
-    File "regex_timed_upper_reject.tpe", line 20, characters 30-31:
-    20 |   box {Log; 4} (Token "l") as l in
+    File "regex_timed_upper_reject.tpe", line 25, characters 30-31:
+    25 |   box {Log; 4} (Token "l") as l in
                                        ^
     `l` is bound here
-    File "regex_timed_upper_reject.tpe", line 21, characters 2-18:
-    21 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 26, characters 2-18:
+    26 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regex_timed_upper_reject.tpe", line 22, characters 2-16:
-    22 |   perform Log ();
+    File "regex_timed_upper_reject.tpe", line 27, characters 2-16:
+    27 |   perform Log ();
            ^^^^^^^^^^^^^^
     grade `{Log}` accumulates here (operation `Log`)
     Note: the resource inequality `{Fetch; Log} <= {Log; 4}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 30-31, characters 2-5:
-  30 |   unbox c as tok in
+  File "regex_timed_upper_reject.tpe", lines 35-36, characters 2-5:
+  35 |   unbox c as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Fetch | Ping}` accumulated since it was bound, which is not below its box grade `{(Log | Ping)*}`
-    File "regex_timed_upper_reject.tpe", line 28, characters 37-38:
-    28 |   box {(Ping | Log)*} (Token "c") as c in
+    File "regex_timed_upper_reject.tpe", line 33, characters 37-38:
+    33 |   box {(Ping | Log)*} (Token "c") as c in
                                               ^
     `c` is bound here
-    File "regex_timed_upper_reject.tpe", line 29, characters 2-49:
-    29 |   if b then perform Ping () else perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 34, characters 2-49:
+    34 |   if b then perform Ping () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Fetch | Ping}` accumulates here (this computation)
     Note: the resource inequality `{Fetch | Ping} <= {(Log | Ping)*}` does not hold
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
-  File "regex_timed_upper_reject.tpe", lines 34-36, characters 17-17:
-  34 | let two_pings () : unit # {3} =
+  File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
+  39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
@@ -4100,18 +4023,18 @@
   ======================================================================
   regex_timed_upper_ticks_reject.tpe
   ======================================================================
-  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
-  12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 6-23:
+  17 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
-  17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
+  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
-  20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
+  File "regex_timed_upper_ticks_reject.tpe", line 25, characters 27-44:
+  25 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   ======================================================================
@@ -4130,78 +4053,78 @@
   ======================================================================
   regular_reject_auth.tpe
   ======================================================================
-  File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
-  15 |   unbox t as tok in
+  File "regular_reject_auth.tpe", lines 19-21, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{~(_ & ~Auth)*}`
-    File "regular_reject_auth.tpe", line 13, characters 36-37:
-    13 |   box {_*; Auth; _*} (Token "t") as t in
+    File "regular_reject_auth.tpe", line 17, characters 36-37:
+    17 |   box {_*; Auth; _*} (Token "t") as t in
                                              ^
     `t` is bound here
-    File "regular_reject_auth.tpe", line 14, characters 2-18:
-    14 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {~(_ & ~Auth)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
-  22 |   unbox c as cap in
+  File "regular_reject_auth.tpe", lines 26-27, characters 2-5:
+  26 |   unbox c as cap in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
-    File "regular_reject_auth.tpe", line 20, characters 41-42:
-    20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
+    File "regular_reject_auth.tpe", line 24, characters 41-42:
+    24 |   box {~(_*; Revoke; _*)} (Token "c") as c in
                                                   ^
     `c` is bound here
-    File "regular_reject_auth.tpe", line 21, characters 2-19:
-    21 |   perform Revoke ();
+    File "regular_reject_auth.tpe", line 25, characters 2-19:
+    25 |   perform Revoke ();
            ^^^^^^^^^^^^^^^^^
     grade `{Revoke}` accumulates here (operation `Revoke`)
     Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
-  29 |   unbox x as n in
+  File "regular_reject_auth.tpe", lines 33-34, characters 2-3:
+  33 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `{Fetch; 3}` accumulated since it was bound, which is not below its box grade `{3; _*}`
-    File "regular_reject_auth.tpe", line 26, characters 20-21:
-    26 |   box {3; _*} 42 as x in
+    File "regular_reject_auth.tpe", line 30, characters 20-21:
+    30 |   box {3; _*} 42 as x in
                              ^
     `x` is bound here
-    File "regular_reject_auth.tpe", line 27, characters 2-18:
-    27 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 31, characters 2-18:
+    31 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regular_reject_auth.tpe", line 28, characters 2-9:
-    28 |   delay 3;
+    File "regular_reject_auth.tpe", line 32, characters 2-9:
+    32 |   delay 3;
            ^^^^^^^
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
   regular_reject_bounds.tpe
   ======================================================================
-  File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within [1, 2]
+  File "regular_reject_bounds.tpe", line 9, characters 0-52:
+  9 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe
   ======================================================================
-  File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : nat # {Open; Read*; Close} =
+  File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
+  18 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
     Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
   
-  File "regular_reject_counterexample.tpe", lines 24-25, characters 2-5:
-  24 |   unbox t as tok in
+  File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
+  29 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated since it was bound, which is not below its box grade `{Auth; _*}`
-    File "regular_reject_counterexample.tpe", line 22, characters 23-24:
-    22 |   box {Auth; _*} 42 as t in
+    File "regular_reject_counterexample.tpe", line 27, characters 23-24:
+    27 |   box {Auth; _*} 42 as t in
                                 ^
     `t` is bound here
-    File "regular_reject_counterexample.tpe", line 23, characters 2-49:
-    23 |   if b then perform Auth () else perform Fetch ();
+    File "regular_reject_counterexample.tpe", line 28, characters 2-49:
+    28 |   if b then perform Auth () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Auth | Fetch}` accumulates here (this computation)
     Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
@@ -4209,30 +4132,30 @@
   ======================================================================
   regular_reject_protocol.tpe
   ======================================================================
-  File "regular_reject_protocol.tpe", line 16, characters 6-23:
-  16 |       continue k with x
+  File "regular_reject_protocol.tpe", line 21, characters 6-23:
+  21 |       continue k with x
              ^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `{Open; Close; Read}` accumulated since it was bound, which is not below its box grade `{Open; Read*; Close}`
-    File "regular_reject_protocol.tpe", line 12, characters 15-16:
-    12 |   | Session () k ->
+    File "regular_reject_protocol.tpe", line 17, characters 15-16:
+    17 |   | Session () k ->
                         ^
     `k` is bound here
-    File "regular_reject_protocol.tpe", line 13, characters 6-21:
-    13 |       perform Open ();
+    File "regular_reject_protocol.tpe", line 18, characters 6-21:
+    18 |       perform Open ();
                ^^^^^^^^^^^^^^^
     grade `{Open}` accumulates here (operation `Open`)
-    File "regular_reject_protocol.tpe", line 14, characters 6-22:
-    14 |       perform Close ();
+    File "regular_reject_protocol.tpe", line 19, characters 6-22:
+    19 |       perform Close ();
                ^^^^^^^^^^^^^^^^
     grade `{Close}` accumulates here (operation `Close`)
-    File "regular_reject_protocol.tpe", line 15, characters 14-29:
-    15 |       let x = perform Read () in
+    File "regular_reject_protocol.tpe", line 20, characters 14-29:
+    20 |       let x = perform Read () in
                        ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
-  File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : nat # {Open; Read*; Close} =
+  File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
+  23 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -4266,28 +4189,28 @@
   ======================================================================
   resource_levels_by_resource_reject.tpe
   ======================================================================
-  File "resource_levels_by_resource_reject.tpe", lines 11-15, characters 14-19:
-  11 | let relock () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
+  File "resource_levels_by_resource_reject.tpe", lines 16-20, characters 14-19:
+  16 | let relock () : unit # ((Files, 0, 2), (Locks, 0, 1)) =
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Locks, 0, 2)`, which does not match its annotated grade `((Files, 0, 2), (Locks, 0, 1))`
     Note: the effect inequality `(Locks, 0, 2) <= ((Files, 0, 2), (Locks, 0, 1))` does not hold
   
-  File "resource_levels_by_resource_reject.tpe", lines 18-24, characters 19-17:
-  18 | let three_files () : unit # (0, 2) =
+  File "resource_levels_by_resource_reject.tpe", lines 23-29, characters 19-17:
+  23 | let three_files () : unit # (0, 2) =
                           ^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(Files, 0, 3)`, which does not match its annotated grade `(0, 2)`
     Note: the effect inequality `(Files, 0, 3) <= (0, 2)` does not hold
   
-  File "resource_levels_by_resource_reject.tpe", lines 31-32, characters 2-3:
-  31 |   unbox x as n in
+  File "resource_levels_by_resource_reject.tpe", lines 36-37, characters 2-3:
+  36 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `(Locks, 1, 1)` accumulated since it was bound, which is not below its box grade `(Files, 0, 1)`
-    File "resource_levels_by_resource_reject.tpe", line 29, characters 25-26:
-    29 |   box (Files, 0, 1) 7 as x in
+    File "resource_levels_by_resource_reject.tpe", line 34, characters 25-26:
+    34 |   box (Files, 0, 1) 7 as x in
                                   ^
     `x` is bound here
-    File "resource_levels_by_resource_reject.tpe", line 30, characters 2-17:
-    30 |   perform Lock ();
+    File "resource_levels_by_resource_reject.tpe", line 35, characters 2-17:
+    35 |   perform Lock ();
            ^^^^^^^^^^^^^^^
     grade `(Locks, 1, 1)` accumulates here (operation `Lock`)
     Note: the resource inequality `(Locks, 1, 1) <= (Files, 0, 1)` does not hold
@@ -4301,72 +4224,72 @@
   ======================================================================
   resource_levels_reject.tpe
   ======================================================================
-  File "resource_levels_reject.tpe", lines 9-15, characters 13-17:
-  9 | let three () : unit # (0, 2) =
-                   ^^^^^^^^^^^^^^^^^
+  File "resource_levels_reject.tpe", lines 13-19, characters 13-17:
+  13 | let three () : unit # (0, 2) =
+                    ^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(0, 3)`, which does not match its annotated grade `(0, 2)`
     Note: the effect inequality `(0, 3) <= (0, 2)` does not hold
   
-  File "resource_levels_reject.tpe", lines 22-23, characters 2-3:
-  22 |   unbox x as n in
+  File "resource_levels_reject.tpe", lines 26-27, characters 2-3:
+  26 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `(0, 1)` accumulated since it was bound, which is not below its box grade `(0, 0)`
-    File "resource_levels_reject.tpe", line 19, characters 18-19:
-    19 |   box (0, 0) 7 as x in
+    File "resource_levels_reject.tpe", line 23, characters 18-19:
+    23 |   box (0, 0) 7 as x in
                            ^
     `x` is bound here
-    File "resource_levels_reject.tpe", line 20, characters 10-26:
-    20 |   let f = perform Open "f" in
+    File "resource_levels_reject.tpe", line 24, characters 10-26:
+    24 |   let f = perform Open "f" in
                    ^^^^^^^^^^^^^^^^
     grade `(1, 1)` accumulates here (operation `Open`)
-    File "resource_levels_reject.tpe", line 21, characters 2-17:
-    21 |   perform Close f;
+    File "resource_levels_reject.tpe", line 25, characters 2-17:
+    25 |   perform Close f;
            ^^^^^^^^^^^^^^^
     grade `(-1, 0)` accumulates here (operation `Close`)
     Note: the resource inequality `(0, 1) <= (0, 0)` does not hold
   
-  File "resource_levels_reject.tpe", line 27, characters 0-20:
-  27 | default Close f = ()
+  File "resource_levels_reject.tpe", line 31, characters 0-20:
+  31 | default Close f = ()
        ^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Close` has grade `(0, 0)`, which does not match the declared grade `(-1, 0)` of `Close`
-    File "resource_levels_reject.tpe", line 6, characters 0-40:
-    6 | operation Close : file ~> unit # (-1, 0)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "resource_levels_reject.tpe", line 10, characters 0-40:
+    10 | operation Close : file ~> unit # (-1, 0)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Close` is declared here
     Note: the effect inequality `(0, 0) <= (-1, 0)` does not hold
   
-  File "resource_levels_reject.tpe", line 34, characters 17-35:
-  34 |   | Close f k -> continue k with ()
+  File "resource_levels_reject.tpe", line 38, characters 17-35:
+  38 |   | Close f k -> continue k with ()
                         ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with the unit grade `(0, 0)` accumulated since it was bound, which is not below its box grade `(-1, 0)`
-    File "resource_levels_reject.tpe", line 34, characters 12-13:
-    34 |   | Close f k -> continue k with ()
+    File "resource_levels_reject.tpe", line 38, characters 12-13:
+    38 |   | Close f k -> continue k with ()
                      ^
     `k` is bound here
     Note: the resource inequality `(0, 0) <= (-1, 0)` does not hold
   
-  File "resource_levels_reject.tpe", line 38, characters 0-29:
-  38 | default Open name = File name
+  File "resource_levels_reject.tpe", line 42, characters 0-29:
+  42 | default Open name = File name
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Open` has grade `(0, 0)`, which does not match the declared grade `(1, 1)` of `Open`
-    File "resource_levels_reject.tpe", line 5, characters 0-40:
-    5 | operation Open : string ~> file # (1, 1)
+    File "resource_levels_reject.tpe", line 9, characters 0-40:
+    9 | operation Open : string ~> file # (1, 1)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Open` is declared here
     Note: the effect inequality `(0, 0) <= (1, 1)` does not hold
   
-  File "resource_levels_reject.tpe", line 45, characters 19-44:
-  45 |   | Open name k -> continue k with File name
+  File "resource_levels_reject.tpe", line 49, characters 19-44:
+  49 |   | Open name k -> continue k with File name
                           ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with the unit grade `(0, 0)` accumulated since it was bound, which is not below its box grade `(1, 1)`
-    File "resource_levels_reject.tpe", line 45, characters 14-15:
-    45 |   | Open name k -> continue k with File name
+    File "resource_levels_reject.tpe", line 49, characters 14-15:
+    49 |   | Open name k -> continue k with File name
                        ^
     `k` is bound here
     Note: the resource inequality `(0, 0) <= (1, 1)` does not hold
   
-  File "resource_levels_reject.tpe", lines 49-52, characters 18-3:
-  49 | let rotate_late f : file # (-1, 0, 0) =
+  File "resource_levels_reject.tpe", lines 53-56, characters 18-3:
+  53 | let rotate_late f : file # (-1, 0, 0) =
                          ^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(0, 1)`, which does not match its annotated grade `(-1, 0, 0)`
     Note: the effect inequality `(0, 1) <= (-1, 0, 0)` does not hold
@@ -5245,35 +5168,35 @@
   ======================================================================
   traces_intervals_default_bounds.tpe
   ======================================================================
-  File "traces_intervals_default_bounds.tpe", line 9, characters 0-28:
-  9 | default Extrude () = delay 1
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "traces_intervals_default_bounds.tpe", line 14, characters 0-28:
+  14 | default Extrude () = delay 1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `[{1}, {1}]`, which does not match the declared grade `[{3}, {5}]` of `Extrude`
-    File "traces_intervals_default_bounds.tpe", line 7, characters 0-71:
-    7 | operation Extrude : unit ~> unit # [{Extrude}, {Extrude}] within [3, 5]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "traces_intervals_default_bounds.tpe", line 12, characters 0-71:
+    12 | operation Extrude : unit ~> unit # [{Extrude}, {Extrude}] within [3, 5]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{3}, {5}]` does not hold
   ======================================================================
   traces_intervals_default_open_reject.tpe
   ======================================================================
-  File "traces_intervals_default_open_reject.tpe", line 9, characters 0-25:
-  9 | default Send () = delay 3
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "traces_intervals_default_open_reject.tpe", line 14, characters 0-25:
+  14 | default Send () = delay 3
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{3}, {3}]`, which does not match the declared grade `[{1}, {2}]` of `Send`
-    File "traces_intervals_default_open_reject.tpe", line 6, characters 0-62:
-    6 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 3)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "traces_intervals_default_open_reject.tpe", line 11, characters 0-62:
+    11 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 3)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{3}, {3}] <= [{1}, {2}]` does not hold
   
-  File "traces_intervals_default_open_reject.tpe", line 10, characters 0-25:
-  10 | default Beep () = delay 1
+  File "traces_intervals_default_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{2}, {3}]` of `Beep`
-    File "traces_intervals_default_open_reject.tpe", line 7, characters 0-62:
-    7 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 3]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "traces_intervals_default_open_reject.tpe", line 12, characters 0-62:
+    12 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 3]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{2}, {3}]` does not hold
   ======================================================================
@@ -5314,160 +5237,160 @@
   ======================================================================
   traces_open_bounds_reject.tpe
   ======================================================================
-  File "traces_open_bounds_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox slot as r in
+  File "traces_open_bounds_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
-    File "traces_open_bounds_reject.tpe", line 10, characters 15-19:
-    10 |   box {2} 1 as slot in
+    File "traces_open_bounds_reject.tpe", line 15, characters 15-19:
+    15 |   box {2} 1 as slot in
                         ^^^^
     `slot` is bound here
-    File "traces_open_bounds_reject.tpe", line 11, characters 2-15:
-    11 |   perform Tx ();
+    File "traces_open_bounds_reject.tpe", line 16, characters 2-15:
+    16 |   perform Tx ();
            ^^^^^^^^^^^^^
     grade `{Tx}` accumulates here (operation `Tx`)
     Note: the resource inequality `{Tx} <= {2}` does not hold
   
-  File "traces_open_bounds_reject.tpe", line 15, characters 0-25:
-  15 | default Beep () = delay 3
+  File "traces_open_bounds_reject.tpe", line 20, characters 0-25:
+  20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
-    File "traces_open_bounds_reject.tpe", line 7, characters 0-52:
-    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "traces_open_bounds_reject.tpe", line 12, characters 0-52:
+    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   traces_reject_allowance.tpe
   ======================================================================
-  File "traces_reject_allowance.tpe", lines 10-11, characters 2-3:
-  10 |   unbox r as x in
+  File "traces_reject_allowance.tpe", lines 15-16, characters 2-3:
+  15 |   unbox r as x in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `r` is unboxed with grade `{Heat}` accumulated since it was bound, which is not below its box grade `{1}`
-    File "traces_reject_allowance.tpe", line 8, characters 14-15:
-    8 |   box 1 42 as r in
-                      ^
+    File "traces_reject_allowance.tpe", line 13, characters 14-15:
+    13 |   box 1 42 as r in
+                       ^
     `r` is bound here
-    File "traces_reject_allowance.tpe", line 9, characters 2-17:
-    9 |   perform Heat ();
-          ^^^^^^^^^^^^^^^
+    File "traces_reject_allowance.tpe", line 14, characters 2-17:
+    14 |   perform Heat ();
+           ^^^^^^^^^^^^^^^
     grade `{Heat}` accumulates here (operation `Heat`)
     Note: the resource inequality `{Heat} <= {1}` does not hold
   ======================================================================
   traces_reject_bounds.tpe
   ======================================================================
-  File "traces_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Heat : unit ~> unit # {Heat} within [3, 0]
+  File "traces_reject_bounds.tpe", line 8, characters 0-52:
+  8 | operation Heat : unit ~> unit # {Heat} within [3, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The running-time bounds of operation `Heat` must satisfy `lo <= hi`
   ======================================================================
   traces_reject_bounds_declared.tpe
   ======================================================================
-  File "traces_reject_bounds_declared.tpe", line 6, characters 0-61:
-  6 | operation Send : string ~> unit # {Tx | Tx; Tx} within [2, 6]
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "traces_reject_bounds_declared.tpe", line 11, characters 0-61:
+  11 | operation Send : string ~> unit # {Tx | Tx; Tx} within [2, 6]
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Operation `Send` is compound, so its running-time bounds follow from its grade `{Tx | Tx; Tx}` and must not be declared
   ======================================================================
   traces_reject_bounds_zero.tpe
   ======================================================================
-  File "traces_reject_bounds_zero.tpe", line 4, characters 0-52:
-  4 | operation Heat : unit ~> unit # {Heat} within [0, 0]
+  File "traces_reject_bounds_zero.tpe", line 9, characters 0-52:
+  9 | operation Heat : unit ~> unit # {Heat} within [0, 0]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The upper running-time bound of operation `Heat` must be positive
   ======================================================================
   traces_reject_default_bounds.tpe
   ======================================================================
-  File "traces_reject_default_bounds.tpe", line 8, characters 0-28:
-  8 | default Extrude () = delay 6
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "traces_reject_default_bounds.tpe", line 13, characters 0-28:
+  13 | default Extrude () = delay 6
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Extrude` has grade `{6}`, which does not match the declared grade `{5}` of `Extrude`
-    File "traces_reject_default_bounds.tpe", line 6, characters 0-58:
-    6 | operation Extrude : unit ~> unit # {Extrude} within [3, 5]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "traces_reject_default_bounds.tpe", line 11, characters 0-58:
+    11 | operation Extrude : unit ~> unit # {Extrude} within [3, 5]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Extrude` is declared here
     Note: the effect inequality `{6} <= {5}` does not hold
   ======================================================================
   traces_reject_default_nonatomic.tpe
   ======================================================================
-  File "traces_reject_default_nonatomic.tpe", line 14, characters 0-39:
-  14 | default PrintModel m = delay 6; Fresh m
+  File "traces_reject_default_nonatomic.tpe", line 19, characters 0-39:
+  19 | default PrintModel m = delay 6; Fresh m
        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: A default implementation may only be given for an atomic operation, but the grade of `PrintModel` is `{Heat; Extrude; Cool}`; handle it with a handler in terms of the operations it names
   ======================================================================
   traces_reject_fractional_bound.tpe
   ======================================================================
-  File "traces_reject_fractional_bound.tpe", line 5, characters 47-50:
-  5 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
-                                                     ^^^
+  File "traces_reject_fractional_bound.tpe", line 10, characters 47-50:
+  10 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
+                                                      ^^^
   Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
-  File "traces_reject_missing_within.tpe", line 5, characters 0-38:
-  5 | operation Heat : unit ~> unit # {Heat}
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "traces_reject_missing_within.tpe", line 10, characters 0-38:
+  10 | operation Heat : unit ~> unit # {Heat}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Atomic operation `Heat` needs running-time bounds `within [lo, hi]` under the `traces-timed-upper-bound` grading monoid
   ======================================================================
   traces_reject_order.tpe
   ======================================================================
-  File "traces_reject_order.tpe", line 20, characters 6-31:
-  20 |       continue k with (Fresh m)
+  File "traces_reject_order.tpe", line 24, characters 6-31:
+  24 |       continue k with (Fresh m)
              ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `{Cool; Extrude; Heat}` accumulated since it was bound, which is not below its box grade `{Heat; Extrude; Cool}`
-    File "traces_reject_order.tpe", line 16, characters 17-18:
-    16 |   | PrintModel m k ->
+    File "traces_reject_order.tpe", line 20, characters 17-18:
+    20 |   | PrintModel m k ->
                           ^
     `k` is bound here
-    File "traces_reject_order.tpe", line 17, characters 6-21:
-    17 |       perform Cool ();
+    File "traces_reject_order.tpe", line 21, characters 6-21:
+    21 |       perform Cool ();
                ^^^^^^^^^^^^^^^
     grade `{Cool}` accumulates here (operation `Cool`)
-    File "traces_reject_order.tpe", line 18, characters 6-24:
-    18 |       perform Extrude ();
+    File "traces_reject_order.tpe", line 22, characters 6-24:
+    22 |       perform Extrude ();
                ^^^^^^^^^^^^^^^^^^
     grade `{Extrude}` accumulates here (operation `Extrude`)
-    File "traces_reject_order.tpe", line 19, characters 6-21:
-    19 |       perform Heat ();
+    File "traces_reject_order.tpe", line 23, characters 6-21:
+    23 |       perform Heat ();
                ^^^^^^^^^^^^^^^
     grade `{Heat}` accumulates here (operation `Heat`)
     Note: the resource inequality `{Cool; Extrude; Heat} <= {Heat; Extrude; Cool}` does not hold
   ======================================================================
   traces_reject_self_retry.tpe
   ======================================================================
-  File "traces_reject_self_retry.tpe", line 6, characters 0-53:
-  6 | operation Send : string ~> unit # {Send | Send; Send}
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "traces_reject_self_retry.tpe", line 11, characters 0-53:
+  11 | operation Send : string ~> unit # {Send | Send; Send}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Compound operation `Send` may not name itself in its grade `{Send | Send; Send}`
   ======================================================================
   traces_reject_undecided_condition.tpe
   ======================================================================
-  File "traces_reject_undecided_condition.tpe", line 15, characters 49-50:
-  15 | run handle (perform Op (); perform Tick ()) with h
+  File "traces_reject_undecided_condition.tpe", line 20, characters 49-50:
+  20 | run handle (perform Op (); perform Tick ()) with h
                                                         ^
   Typing error: The condition `∀ε_Op. ε_Op · {1} <= {1} · ε_Op` of the case for `Op` cannot be established
-    File "traces_reject_undecided_condition.tpe", line 13, characters 0-78:
-    13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
+    File "traces_reject_undecided_condition.tpe", line 18, characters 0-78:
+    18 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     `h` is defined here
-    File "traces_reject_undecided_condition.tpe", line 11, characters 0-31:
-    11 | operation Op : unit ~> unit # 1
+    File "traces_reject_undecided_condition.tpe", line 16, characters 0-31:
+    16 | operation Op : unit ~> unit # 1
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Op` is declared here
-    File "traces_reject_undecided_condition.tpe", line 13, characters 33-34:
-    13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
+    File "traces_reject_undecided_condition.tpe", line 18, characters 33-34:
+    18 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
                                           ^
     `k` may have any grade `ε_Op`
-    File "traces_reject_undecided_condition.tpe", line 13, characters 27-78:
-    13 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
+    File "traces_reject_undecided_condition.tpe", line 18, characters 27-78:
+    18 | let h = handler | x -> x | Op () k -> let r = continue k with () in delay 1; r
                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     the case for `Op` begins here
     Note: a run requires the effect inequality to hold for every grade the continuation `k` may have, and it is neither derived nor refuted
   ======================================================================
   traces_reject_unknown_event.tpe
   ======================================================================
-  File "traces_reject_unknown_event.tpe", line 6, characters 0-53:
-  6 | operation PrintModel : unit ~> unit # {Heat; Extrude}
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "traces_reject_unknown_event.tpe", line 11, characters 0-53:
+  11 | operation PrintModel : unit ~> unit # {Heat; Extrude}
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Unknown event `Extrude` in the grade of operation `PrintModel`
   ======================================================================
   traces_upper.tpe
@@ -5590,56 +5513,56 @@
   ======================================================================
   windowed_schedules_reject.tpe
   ======================================================================
-  File "windowed_schedules_reject.tpe", lines 7-9, characters 17-17:
-  7 | let late_send () : unit # (4, (Send, {2})) =
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "windowed_schedules_reject.tpe", lines 11-13, characters 17-17:
+  11 | let late_send () : unit # (4, (Send, {2})) =
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(4, (Send, {3}))`, which does not match its annotated grade `(4, (Send, {2}))`
     Note: the effect inequality `(4, (Send, {3})) <= (4, (Send, {2}))` does not hold
   
-  File "windowed_schedules_reject.tpe", lines 12-14, characters 12-17:
-  12 | let slow () : unit # ([2, 3], (Send, {1 | 2})) =
+  File "windowed_schedules_reject.tpe", lines 16-18, characters 12-17:
+  16 | let slow () : unit # ([2, 3], (Send, {1 | 2})) =
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `([2, 4], (Send, {1; (0 | 1 | 2)}))`, which does not match its annotated grade `([2, 3], (Send, {1 | 2}))`
     Note: the effect inequality `([2, 4], (Send, {1; (0 | 1 | 2)})) <= ([2, 3], (Send, {1 | 2}))` does not hold
   
-  File "windowed_schedules_reject.tpe", lines 21-22, characters 2-3:
-  21 |   unbox x as n in
+  File "windowed_schedules_reject.tpe", lines 25-26, characters 2-3:
+  25 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `(2, (Send, {0}))` accumulated since it was bound, which is not below its box grade `[2, 4]`
-    File "windowed_schedules_reject.tpe", line 18, characters 18-19:
-    18 |   box [2, 4] 7 as x in
+    File "windowed_schedules_reject.tpe", line 22, characters 18-19:
+    22 |   box [2, 4] 7 as x in
                            ^
     `x` is bound here
-    File "windowed_schedules_reject.tpe", line 19, characters 2-17:
-    19 |   perform Send ();
+    File "windowed_schedules_reject.tpe", line 23, characters 2-17:
+    23 |   perform Send ();
            ^^^^^^^^^^^^^^^
     grade `(1, (Send, {0}))` accumulates here (operation `Send`)
-    File "windowed_schedules_reject.tpe", line 20, characters 2-9:
-    20 |   delay 1;
+    File "windowed_schedules_reject.tpe", line 24, characters 2-9:
+    24 |   delay 1;
            ^^^^^^^
     grade `1` accumulates here (delay)
     Note: the resource inequality `(2, (Send, {0})) <= [2, 4]` does not hold
   
-  File "windowed_schedules_reject.tpe", line 29, characters 51-69:
-  29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+  File "windowed_schedules_reject.tpe", line 33, characters 51-69:
+  33 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                                                           ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `(2, (Send, {0 | 1}))` accumulated since it was bound, which is not below its box grade `(1, (Send, {0}))`
-    File "windowed_schedules_reject.tpe", line 29, characters 12-13:
-    29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+    File "windowed_schedules_reject.tpe", line 33, characters 12-13:
+    33 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                      ^
     `k` is bound here
-    File "windowed_schedules_reject.tpe", line 29, characters 17-32:
-    29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+    File "windowed_schedules_reject.tpe", line 33, characters 17-32:
+    33 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                           ^^^^^^^^^^^^^^^
     grade `(1, (Send, {0}))` accumulates here (operation `Send`)
-    File "windowed_schedules_reject.tpe", line 29, characters 34-49:
-    29 |   | Send () k -> perform Send (); perform Send (); continue k with ()
+    File "windowed_schedules_reject.tpe", line 33, characters 34-49:
+    33 |   | Send () k -> perform Send (); perform Send (); continue k with ()
                                            ^^^^^^^^^^^^^^^
     grade `(1, (Send, {0}))` accumulates here (operation `Send`)
     Note: the resource inequality `(2, (Send, {0 | 1})) <= (1, (Send, {0}))` does not hold
   
-  File "windowed_schedules_reject.tpe", line 32, characters 15-58:
-  32 | let renamed () : unit # (1, (Recv, {0})) = perform Send ()
+  File "windowed_schedules_reject.tpe", line 36, characters 15-58:
+  36 | let renamed () : unit # (1, (Recv, {0})) = perform Send ()
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `(1, (Send, {0}))`, which does not match its annotated grade `(1, (Recv, {0}))`
     Note: the effect inequality `(1, (Send, {0})) <= (1, (Recv, {0}))` does not hold
@@ -5653,14 +5576,15 @@ automata, 'regex-upper-bound-letter-automata':
   >   echo "======================================================================"
   >   echo "$f (regex-upper-bound-letter-automata)"
   >   echo "======================================================================"
-  >   ../tempore --grades regex-upper-bound-letter-automata $f
+  >   g=$(support/header_options.exe -grades $f)
+  >   ../tempore --grades ${g%-symbolic}-letter-automata $f
   >   :  # this command is here to suppress potential non-zero exit codes in the output
   > done
   ======================================================================
   literals_reject_empty.tpe (regex-upper-bound-letter-automata)
   ======================================================================
-  File "literals_reject_empty.tpe", line 4, characters 19-33:
-  4 | let claim () = box {Read & Write} 1
+  File "literals_reject_empty.tpe", line 9, characters 19-33:
+  9 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
   Syntax error: In the `regex-upper-bound-letter-automata` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
@@ -5778,78 +5702,78 @@ automata, 'regex-upper-bound-letter-automata':
   ======================================================================
   regular_reject_auth.tpe (regex-upper-bound-letter-automata)
   ======================================================================
-  File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
-  15 |   unbox t as tok in
+  File "regular_reject_auth.tpe", lines 19-21, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{~(_ & ~Auth)*}`
-    File "regular_reject_auth.tpe", line 13, characters 36-37:
-    13 |   box {_*; Auth; _*} (Token "t") as t in
+    File "regular_reject_auth.tpe", line 17, characters 36-37:
+    17 |   box {_*; Auth; _*} (Token "t") as t in
                                              ^
     `t` is bound here
-    File "regular_reject_auth.tpe", line 14, characters 2-18:
-    14 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {~(_ & ~Auth)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
-  22 |   unbox c as cap in
+  File "regular_reject_auth.tpe", lines 26-27, characters 2-5:
+  26 |   unbox c as cap in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
-    File "regular_reject_auth.tpe", line 20, characters 41-42:
-    20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
+    File "regular_reject_auth.tpe", line 24, characters 41-42:
+    24 |   box {~(_*; Revoke; _*)} (Token "c") as c in
                                                   ^
     `c` is bound here
-    File "regular_reject_auth.tpe", line 21, characters 2-19:
-    21 |   perform Revoke ();
+    File "regular_reject_auth.tpe", line 25, characters 2-19:
+    25 |   perform Revoke ();
            ^^^^^^^^^^^^^^^^^
     grade `{Revoke}` accumulates here (operation `Revoke`)
     Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
-  29 |   unbox x as n in
+  File "regular_reject_auth.tpe", lines 33-34, characters 2-3:
+  33 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `{Fetch; 3}` accumulated since it was bound, which is not below its box grade `{3; _*}`
-    File "regular_reject_auth.tpe", line 26, characters 20-21:
-    26 |   box {3; _*} 42 as x in
+    File "regular_reject_auth.tpe", line 30, characters 20-21:
+    30 |   box {3; _*} 42 as x in
                              ^
     `x` is bound here
-    File "regular_reject_auth.tpe", line 27, characters 2-18:
-    27 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 31, characters 2-18:
+    31 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regular_reject_auth.tpe", line 28, characters 2-9:
-    28 |   delay 3;
+    File "regular_reject_auth.tpe", line 32, characters 2-9:
+    32 |   delay 3;
            ^^^^^^^
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-letter-automata)
   ======================================================================
-  File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within [1, 2]
+  File "regular_reject_bounds.tpe", line 9, characters 0-52:
+  9 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-automata` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-letter-automata)
   ======================================================================
-  File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : nat # {Open; Read*; Close} =
+  File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
+  18 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
     Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
   
-  File "regular_reject_counterexample.tpe", lines 24-25, characters 2-5:
-  24 |   unbox t as tok in
+  File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
+  29 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated since it was bound, which is not below its box grade `{Auth; _*}`
-    File "regular_reject_counterexample.tpe", line 22, characters 23-24:
-    22 |   box {Auth; _*} 42 as t in
+    File "regular_reject_counterexample.tpe", line 27, characters 23-24:
+    27 |   box {Auth; _*} 42 as t in
                                 ^
     `t` is bound here
-    File "regular_reject_counterexample.tpe", line 23, characters 2-49:
-    23 |   if b then perform Auth () else perform Fetch ();
+    File "regular_reject_counterexample.tpe", line 28, characters 2-49:
+    28 |   if b then perform Auth () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Auth | Fetch}` accumulates here (this computation)
     Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
@@ -5857,30 +5781,30 @@ automata, 'regex-upper-bound-letter-automata':
   ======================================================================
   regular_reject_protocol.tpe (regex-upper-bound-letter-automata)
   ======================================================================
-  File "regular_reject_protocol.tpe", line 16, characters 6-23:
-  16 |       continue k with x
+  File "regular_reject_protocol.tpe", line 21, characters 6-23:
+  21 |       continue k with x
              ^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `{Open; Close; Read}` accumulated since it was bound, which is not below its box grade `{Open; Read*; Close}`
-    File "regular_reject_protocol.tpe", line 12, characters 15-16:
-    12 |   | Session () k ->
+    File "regular_reject_protocol.tpe", line 17, characters 15-16:
+    17 |   | Session () k ->
                         ^
     `k` is bound here
-    File "regular_reject_protocol.tpe", line 13, characters 6-21:
-    13 |       perform Open ();
+    File "regular_reject_protocol.tpe", line 18, characters 6-21:
+    18 |       perform Open ();
                ^^^^^^^^^^^^^^^
     grade `{Open}` accumulates here (operation `Open`)
-    File "regular_reject_protocol.tpe", line 14, characters 6-22:
-    14 |       perform Close ();
+    File "regular_reject_protocol.tpe", line 19, characters 6-22:
+    19 |       perform Close ();
                ^^^^^^^^^^^^^^^^
     grade `{Close}` accumulates here (operation `Close`)
-    File "regular_reject_protocol.tpe", line 15, characters 14-29:
-    15 |       let x = perform Read () in
+    File "regular_reject_protocol.tpe", line 20, characters 14-29:
+    20 |       let x = perform Read () in
                        ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
-  File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : nat # {Open; Read*; Close} =
+  File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
+  23 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -5891,12 +5815,9 @@ automata, the programs over rational delays excepted:
 
   $ for f in regex_timed_*.tpe
   > do
-  >   case $f in
-  >     regex_timed_rational_*.tpe) continue;;
-  >     regex_timed_lower*.tpe) grades=regex-timed-lower-bound-letter-automata;;
-  >     regex_timed_upper*.tpe) grades=regex-timed-upper-bound-letter-automata;;
-  >     regex_timed_interval*.tpe) grades=regex-timed-interval-letter-automata;;
-  >   esac
+  >   g=$(support/header_options.exe -grades $f)
+  >   case $g in *-rational-symbolic) continue;; esac
+  >   grades=${g%-symbolic}-letter-automata
   >   echo "======================================================================"
   >   echo "$f ($grades)"
   >   echo "======================================================================"
@@ -5916,43 +5837,43 @@ automata, the programs over rational delays excepted:
   ======================================================================
   regex_timed_interval_reject.tpe (regex-timed-interval-letter-automata)
   ======================================================================
-  File "regex_timed_interval_reject.tpe", lines 13-14, characters 2-5:
-  13 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 18-19, characters 2-5:
+  18 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
-    File "regex_timed_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box [3, 4] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 16, characters 28-29:
+    16 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 12, characters 2-18:
-    12 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 17, characters 2-18:
+    17 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
-  File "regex_timed_interval_reject.tpe", lines 20-21, characters 2-5:
-  20 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 25-26, characters 2-5:
+  25 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
-    File "regex_timed_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box [2, 3] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 23, characters 28-29:
+    23 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 19, characters 2-18:
-    19 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 24, characters 2-18:
+    24 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_timed_interval_ticks_reject.tpe (regex-timed-interval-letter-automata)
   ======================================================================
-  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
-  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
+  File "regex_timed_interval_ticks_reject.tpe", line 17, characters 6-34:
+  17 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
+  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -5970,48 +5891,48 @@ automata, the programs over rational delays excepted:
   ======================================================================
   regex_timed_lower_reject.tpe (regex-timed-lower-bound-letter-automata)
   ======================================================================
-  File "regex_timed_lower_reject.tpe", lines 15-16, characters 2-5:
-  15 |   unbox t as tok in
+  File "regex_timed_lower_reject.tpe", lines 20-21, characters 2-5:
+  20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Ping; 2}` accumulated since it was bound, which is not below its box grade `{Ping; 3}`
-    File "regex_timed_lower_reject.tpe", line 12, characters 31-32:
-    12 |   box {Ping; 3} (Token "t") as t in
+    File "regex_timed_lower_reject.tpe", line 17, characters 31-32:
+    17 |   box {Ping; 3} (Token "t") as t in
                                         ^
     `t` is bound here
-    File "regex_timed_lower_reject.tpe", line 13, characters 2-17:
-    13 |   perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 18, characters 2-17:
+    18 |   perform Ping ();
            ^^^^^^^^^^^^^^^
     grade `{Ping}` accumulates here (operation `Ping`)
-    File "regex_timed_lower_reject.tpe", line 14, characters 2-9:
-    14 |   delay 2;
+    File "regex_timed_lower_reject.tpe", line 19, characters 2-9:
+    19 |   delay 2;
            ^^^^^^^
     grade `{2}` accumulates here (delay)
     Note: the resource inequality `{Ping; 2} <= {Ping; 3}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 22-23, characters 2-5:
-  22 |   unbox f as tok in
+  File "regex_timed_lower_reject.tpe", lines 27-28, characters 2-5:
+  27 |   unbox f as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `f` is unboxed with grade `{10}` accumulated since it was bound, which is not below its box grade `{Fetch}`
-    File "regex_timed_lower_reject.tpe", line 20, characters 29-30:
-    20 |   box {Fetch} (Token "f") as f in
+    File "regex_timed_lower_reject.tpe", line 25, characters 29-30:
+    25 |   box {Fetch} (Token "f") as f in
                                       ^
     `f` is bound here
-    File "regex_timed_lower_reject.tpe", line 21, characters 2-10:
-    21 |   delay 10;
+    File "regex_timed_lower_reject.tpe", line 26, characters 2-10:
+    26 |   delay 10;
            ^^^^^^^^
     grade `{10}` accumulates here (delay)
     Note: the resource inequality `{10} <= {Fetch}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 29-30, characters 2-5:
-  29 |   unbox q as tok in
+  File "regex_timed_lower_reject.tpe", lines 34-35, characters 2-5:
+  34 |   unbox q as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `q` is unboxed with grade `{Ping | Fetch; 1}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_lower_reject.tpe", line 27, characters 25-26:
-    27 |   box {3} (Token "q") as q in
+    File "regex_timed_lower_reject.tpe", line 32, characters 25-26:
+    32 |   box {3} (Token "q") as q in
                                   ^
     `q` is bound here
-    File "regex_timed_lower_reject.tpe", line 28, characters 2-58:
-    28 |   if b then perform Fetch (); delay 1 else perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 33, characters 2-58:
+    33 |   if b then perform Fetch (); delay 1 else perform Ping ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Ping | Fetch; 1}` accumulates here (this computation)
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
@@ -6019,8 +5940,8 @@ automata, the programs over rational delays excepted:
   ======================================================================
   regex_timed_lower_ticks_reject.tpe (regex-timed-lower-bound-letter-automata)
   ======================================================================
-  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
-  11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
+  File "regex_timed_lower_ticks_reject.tpe", line 16, characters 6-30:
+  16 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
@@ -6045,81 +5966,81 @@ automata, the programs over rational delays excepted:
   ======================================================================
   regex_timed_upper_open_reject.tpe (regex-timed-upper-bound-letter-automata)
   ======================================================================
-  File "regex_timed_upper_open_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox slot as r in
+  File "regex_timed_upper_open_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
-    File "regex_timed_upper_open_reject.tpe", line 10, characters 15-19:
-    10 |   box {2} 1 as slot in
+    File "regex_timed_upper_open_reject.tpe", line 15, characters 15-19:
+    15 |   box {2} 1 as slot in
                         ^^^^
     `slot` is bound here
-    File "regex_timed_upper_open_reject.tpe", line 11, characters 2-15:
-    11 |   perform Tx ();
+    File "regex_timed_upper_open_reject.tpe", line 16, characters 2-15:
+    16 |   perform Tx ();
            ^^^^^^^^^^^^^
     grade `{Tx}` accumulates here (operation `Tx`)
     Note: the resource inequality `{Tx} <= {2}` does not hold
   
-  File "regex_timed_upper_open_reject.tpe", line 15, characters 0-25:
-  15 | default Beep () = delay 3
+  File "regex_timed_upper_open_reject.tpe", line 20, characters 0-25:
+  20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
-    File "regex_timed_upper_open_reject.tpe", line 7, characters 0-52:
-    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
+    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   regex_timed_upper_reject.tpe (regex-timed-upper-bound-letter-automata)
   ======================================================================
-  File "regex_timed_upper_reject.tpe", lines 14-15, characters 2-5:
-  14 |   unbox t as tok in
+  File "regex_timed_upper_reject.tpe", lines 19-20, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_upper_reject.tpe", line 12, characters 25-26:
-    12 |   box {3} (Token "t") as t in
+    File "regex_timed_upper_reject.tpe", line 17, characters 25-26:
+    17 |   box {3} (Token "t") as t in
                                   ^
     `t` is bound here
-    File "regex_timed_upper_reject.tpe", line 13, characters 2-18:
-    13 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {3}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 23-24, characters 2-5:
-  23 |   unbox l as tok in
+  File "regex_timed_upper_reject.tpe", lines 28-29, characters 2-5:
+  28 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `l` is unboxed with grade `{Fetch; Log}` accumulated since it was bound, which is not below its box grade `{Log; 4}`
-    File "regex_timed_upper_reject.tpe", line 20, characters 30-31:
-    20 |   box {Log; 4} (Token "l") as l in
+    File "regex_timed_upper_reject.tpe", line 25, characters 30-31:
+    25 |   box {Log; 4} (Token "l") as l in
                                        ^
     `l` is bound here
-    File "regex_timed_upper_reject.tpe", line 21, characters 2-18:
-    21 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 26, characters 2-18:
+    26 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regex_timed_upper_reject.tpe", line 22, characters 2-16:
-    22 |   perform Log ();
+    File "regex_timed_upper_reject.tpe", line 27, characters 2-16:
+    27 |   perform Log ();
            ^^^^^^^^^^^^^^
     grade `{Log}` accumulates here (operation `Log`)
     Note: the resource inequality `{Fetch; Log} <= {Log; 4}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 30-31, characters 2-5:
-  30 |   unbox c as tok in
+  File "regex_timed_upper_reject.tpe", lines 35-36, characters 2-5:
+  35 |   unbox c as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Fetch | Ping}` accumulated since it was bound, which is not below its box grade `{(Log | Ping)*}`
-    File "regex_timed_upper_reject.tpe", line 28, characters 37-38:
-    28 |   box {(Ping | Log)*} (Token "c") as c in
+    File "regex_timed_upper_reject.tpe", line 33, characters 37-38:
+    33 |   box {(Ping | Log)*} (Token "c") as c in
                                               ^
     `c` is bound here
-    File "regex_timed_upper_reject.tpe", line 29, characters 2-49:
-    29 |   if b then perform Ping () else perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 34, characters 2-49:
+    34 |   if b then perform Ping () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Fetch | Ping}` accumulates here (this computation)
     Note: the resource inequality `{Fetch | Ping} <= {(Log | Ping)*}` does not hold
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
-  File "regex_timed_upper_reject.tpe", lines 34-36, characters 17-17:
-  34 | let two_pings () : unit # {3} =
+  File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
+  39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
@@ -6136,18 +6057,18 @@ automata, the programs over rational delays excepted:
   ======================================================================
   regex_timed_upper_ticks_reject.tpe (regex-timed-upper-bound-letter-automata)
   ======================================================================
-  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
-  12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 6-23:
+  17 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
-  17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
+  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
-  20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
+  File "regex_timed_upper_ticks_reject.tpe", line 25, characters 27-44:
+  25 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
 
@@ -6157,12 +6078,8 @@ their visible implementations, under their implementations by automata
 
   $ for f in regex_rational*.tpe regex_timed_rational_*.tpe
   > do
-  >   case $f in
-  >     regex_rational*.tpe) grades=regex-upper-bound-rational-automata;;
-  >     regex_timed_rational_lower*.tpe) grades=regex-timed-lower-bound-rational-automata;;
-  >     regex_timed_rational_upper*.tpe) grades=regex-timed-upper-bound-rational-automata;;
-  >     regex_timed_rational_interval*.tpe) grades=regex-timed-interval-rational-automata;;
-  >   esac
+  >   g=$(support/header_options.exe -grades $f)
+  >   grades=${g%-symbolic}-automata
   >   echo "======================================================================"
   >   echo "$f ($grades)"
   >   echo "======================================================================"
@@ -6175,66 +6092,66 @@ their visible implementations, under their implementations by automata
   ======================================================================
   regex_rational_reject.tpe (regex-upper-bound-rational-automata)
   ======================================================================
-  File "regex_rational_reject.tpe", lines 14-15, characters 2-3:
-  14 |   unbox t as n in
+  File "regex_rational_reject.tpe", lines 19-20, characters 2-3:
+  19 |   unbox t as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{1}` accumulated since it was bound, which is not below its box grade `{~1}`
-    File "regex_rational_reject.tpe", line 11, characters 16-17:
-    11 |   box {~1} 7 as t in
+    File "regex_rational_reject.tpe", line 16, characters 16-17:
+    16 |   box {~1} 7 as t in
                          ^
     `t` is bound here
-    File "regex_rational_reject.tpe", line 12, characters 2-11:
-    12 |   delay 1/2;
+    File "regex_rational_reject.tpe", line 17, characters 2-11:
+    17 |   delay 1/2;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
-    File "regex_rational_reject.tpe", line 13, characters 2-11:
-    13 |   delay 0.5;
+    File "regex_rational_reject.tpe", line 18, characters 2-11:
+    18 |   delay 0.5;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
     Note: the resource inequality `{1} <= {~1}` does not hold
   
-  File "regex_rational_reject.tpe", lines 23-24, characters 2-3:
-  23 |   unbox due as u in
+  File "regex_rational_reject.tpe", lines 28-29, characters 2-3:
+  28 |   unbox due as u in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `due` is unboxed with grade `{Sample; 1; Send}` accumulated since it was bound, which is not below its box grade `{Sample; [0, 1); Send}`
-    File "regex_rational_reject.tpe", line 18, characters 35-38:
-    18 |   box {Sample; [0, 1); Send} () as due in
+    File "regex_rational_reject.tpe", line 23, characters 35-38:
+    23 |   box {Sample; [0, 1); Send} () as due in
                                             ^^^
     `due` is bound here
-    File "regex_rational_reject.tpe", line 19, characters 10-27:
-    19 |   let v = perform Sample () in
+    File "regex_rational_reject.tpe", line 24, characters 10-27:
+    24 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
-    File "regex_rational_reject.tpe", line 20, characters 2-11:
-    20 |   delay 1/2;
+    File "regex_rational_reject.tpe", line 25, characters 2-11:
+    25 |   delay 1/2;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
-    File "regex_rational_reject.tpe", line 21, characters 2-11:
-    21 |   delay 1/2;
+    File "regex_rational_reject.tpe", line 26, characters 2-11:
+    26 |   delay 1/2;
            ^^^^^^^^^
     grade `{0.5}` accumulates here (delay)
-    File "regex_rational_reject.tpe", line 22, characters 2-16:
-    22 |   perform Send v;
+    File "regex_rational_reject.tpe", line 27, characters 2-16:
+    27 |   perform Send v;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
     Note: the resource inequality `{Sample; 1; Send} <= {Sample; [0, 1); Send}` does not hold
   
-  File "regex_rational_reject.tpe", line 26, characters 14-43:
-  26 | let thirds () : unit # {(1/2)*} = delay 1/3
+  File "regex_rational_reject.tpe", line 31, characters 14-43:
+  31 | let thirds () : unit # {(1/2)*} = delay 1/3
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{1/3}`, which does not match its annotated grade `{(0.5)*}`
     Note: the effect inequality `{1/3} <= {(0.5)*}` does not hold
   
-  File "regex_rational_reject.tpe", lines 31-32, characters 2-3:
-  31 |   unbox w as u in
+  File "regex_rational_reject.tpe", lines 36-37, characters 2-3:
+  36 |   unbox w as u in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `w` is unboxed with grade `{2 | 0.5}` accumulated since it was bound, which is not below its box grade `{[1, ∞)}`
-    File "regex_rational_reject.tpe", line 29, characters 23-24:
-    29 |   box {[1, ∞)} () as w in
+    File "regex_rational_reject.tpe", line 34, characters 23-24:
+    34 |   box {[1, ∞)} () as w in
                               ^
     `w` is bound here
-    File "regex_rational_reject.tpe", line 30, characters 2-34:
-    30 |   if b then delay 1/2 else delay 2;
+    File "regex_rational_reject.tpe", line 35, characters 2-34:
+    35 |   if b then delay 1/2 else delay 2;
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{2 | 0.5}` accumulates here (this computation)
     Note: the resource inequality `{2 | 0.5} <= {[1, ∞)}` does not hold
@@ -6252,68 +6169,68 @@ their visible implementations, under their implementations by automata
   ======================================================================
   regex_timed_rational_interval_default_open_reject.tpe (regex-timed-interval-rational-automata)
   ======================================================================
-  File "regex_timed_rational_interval_default_open_reject.tpe", line 9, characters 0-25:
-  9 | default Send () = delay 2
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "regex_timed_rational_interval_default_open_reject.tpe", line 14, characters 0-25:
+  14 | default Send () = delay 2
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Send` has grade `[{2}, {2}]`, which does not match the declared grade `[{1}, {[0, 2)}]` of `Send`
-    File "regex_timed_rational_interval_default_open_reject.tpe", line 6, characters 0-62:
-    6 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_interval_default_open_reject.tpe", line 11, characters 0-62:
+    11 | operation Send : unit ~> unit # [{Send}, {Send}] within [1, 2)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Send` is declared here
     Note: the effect inequality `[{2}, {2}] <= [{1}, {[0, 2)}]` does not hold
   
-  File "regex_timed_rational_interval_default_open_reject.tpe", line 10, characters 0-25:
-  10 | default Beep () = delay 1
+  File "regex_timed_rational_interval_default_open_reject.tpe", line 15, characters 0-25:
+  15 | default Beep () = delay 1
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
-    File "regex_timed_rational_interval_default_open_reject.tpe", line 7, characters 0-62:
-    7 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_interval_default_open_reject.tpe", line 12, characters 0-62:
+    12 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
   ======================================================================
   regex_timed_rational_interval_open_reject.tpe (regex-timed-interval-rational-automata)
   ======================================================================
-  File "regex_timed_rational_interval_open_reject.tpe", line 7, characters 0-25:
-  7 | default Beep () = delay 1
-      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "regex_timed_rational_interval_open_reject.tpe", line 12, characters 0-25:
+  12 | default Beep () = delay 1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `[{1}, {1}]`, which does not match the declared grade `[{(1, ∞)}, {2}]` of `Beep`
-    File "regex_timed_rational_interval_open_reject.tpe", line 5, characters 0-62:
-    5 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_interval_open_reject.tpe", line 10, characters 0-62:
+    10 | operation Beep : unit ~> unit # [{Beep}, {Beep}] within (1, 2]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `[{1}, {1}] <= [{(1, ∞)}, {2}]` does not hold
   ======================================================================
   regex_timed_rational_interval_reject.tpe (regex-timed-interval-rational-automata)
   ======================================================================
-  File "regex_timed_rational_interval_reject.tpe", lines 13-14, characters 2-5:
-  13 |   unbox t as tok in
+  File "regex_timed_rational_interval_reject.tpe", lines 18-19, characters 2-5:
+  18 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Sample}, {Sample}]` accumulated since it was bound, which is not below its box grade `[{0.75}, {2}]`
-    File "regex_timed_rational_interval_reject.tpe", line 11, characters 30-31:
-    11 |   box [3/4, 2] (Token "t") as t in
+    File "regex_timed_rational_interval_reject.tpe", line 16, characters 30-31:
+    16 |   box [3/4, 2] (Token "t") as t in
                                        ^
     `t` is bound here
-    File "regex_timed_rational_interval_reject.tpe", line 12, characters 10-27:
-    12 |   let v = perform Sample () in
+    File "regex_timed_rational_interval_reject.tpe", line 17, characters 10-27:
+    17 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
     Note: the resource inequality `[{Sample}, {Sample}] <= [{0.75}, {2}]` does not hold
   
-  File "regex_timed_rational_interval_reject.tpe", lines 22-23, characters 2-5:
-  22 |   unbox t as tok in
+  File "regex_timed_rational_interval_reject.tpe", lines 27-28, characters 2-5:
+  27 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{0.5; Sample}, {0.5; Sample}]` accumulated since it was bound, which is not below its box grade `[{0.5}, {[0, 1)}]`
-    File "regex_timed_rational_interval_reject.tpe", line 19, characters 39-40:
-    19 |   box [{1/2}, {[0, 1)}] (Token "t") as t in
+    File "regex_timed_rational_interval_reject.tpe", line 24, characters 39-40:
+    24 |   box [{1/2}, {[0, 1)}] (Token "t") as t in
                                                 ^
     `t` is bound here
-    File "regex_timed_rational_interval_reject.tpe", line 20, characters 2-11:
-    20 |   delay 1/2;
+    File "regex_timed_rational_interval_reject.tpe", line 25, characters 2-11:
+    25 |   delay 1/2;
            ^^^^^^^^^
     grade `[{0.5}, {0.5}]` accumulates here (delay)
-    File "regex_timed_rational_interval_reject.tpe", line 21, characters 10-27:
-    21 |   let v = perform Sample () in
+    File "regex_timed_rational_interval_reject.tpe", line 26, characters 10-27:
+    26 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `[{Sample}, {Sample}]` accumulates here (operation `Sample`)
     Note: the resource inequality `[{0.5; Sample}, {0.5; Sample}] <= [{0.5}, {[0, 1)}]` does not hold
@@ -6330,51 +6247,51 @@ their visible implementations, under their implementations by automata
   ======================================================================
   regex_timed_rational_lower_reject.tpe (regex-timed-lower-bound-rational-automata)
   ======================================================================
-  File "regex_timed_rational_lower_reject.tpe", lines 14-15, characters 2-5:
-  14 |   unbox t as tok in
+  File "regex_timed_rational_lower_reject.tpe", lines 19-20, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{0.25}` accumulated since it was bound, which is not below its box grade `{0.5}`
-    File "regex_timed_rational_lower_reject.tpe", line 12, characters 27-28:
-    12 |   box {1/2} (Token "t") as t in
+    File "regex_timed_rational_lower_reject.tpe", line 17, characters 27-28:
+    17 |   box {1/2} (Token "t") as t in
                                     ^
     `t` is bound here
-    File "regex_timed_rational_lower_reject.tpe", line 13, characters 2-11:
-    13 |   delay 1/4;
+    File "regex_timed_rational_lower_reject.tpe", line 18, characters 2-11:
+    18 |   delay 1/4;
            ^^^^^^^^^
     grade `{0.25}` accumulates here (delay)
     Note: the resource inequality `{0.25} <= {0.5}` does not hold
   
-  File "regex_timed_rational_lower_reject.tpe", lines 21-22, characters 2-5:
-  21 |   unbox s as tok in
+  File "regex_timed_rational_lower_reject.tpe", lines 26-27, characters 2-5:
+  26 |   unbox s as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `s` is unboxed with grade `{3}` accumulated since it was bound, which is not below its box grade `{Send}`
-    File "regex_timed_rational_lower_reject.tpe", line 19, characters 28-29:
-    19 |   box {Send} (Token "s") as s in
+    File "regex_timed_rational_lower_reject.tpe", line 24, characters 28-29:
+    24 |   box {Send} (Token "s") as s in
                                      ^
     `s` is bound here
-    File "regex_timed_rational_lower_reject.tpe", line 20, characters 2-9:
-    20 |   delay 3;
+    File "regex_timed_rational_lower_reject.tpe", line 25, characters 2-9:
+    25 |   delay 3;
            ^^^^^^^
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{3} <= {Send}` does not hold
   
-  File "regex_timed_rational_lower_reject.tpe", lines 31-32, characters 2-5:
-  31 |   unbox p as tok in
+  File "regex_timed_rational_lower_reject.tpe", lines 36-37, characters 2-5:
+  36 |   unbox p as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `p` is unboxed with grade `{(0, 1)}` accumulated since it was bound, which is not below its box grade `{0.5}`
-    File "regex_timed_rational_lower_reject.tpe", line 29, characters 27-28:
-    29 |   box {1/2} (Token "p") as p in
+    File "regex_timed_rational_lower_reject.tpe", line 34, characters 27-28:
+    34 |   box {1/2} (Token "p") as p in
                                     ^
     `p` is bound here
-    File "regex_timed_rational_lower_reject.tpe", line 30, characters 2-15:
-    30 |   some_delay ();
+    File "regex_timed_rational_lower_reject.tpe", line 35, characters 2-15:
+    35 |   some_delay ();
            ^^^^^^^^^^^^^
     grade `{(0, 1)}` accumulates here (this computation)
     Note: the resource inequality `{(0, 1)} <= {0.5}` does not hold
     Note: the grade `{1/3}` is below `{(0, 1)}` but not below `{0.5}`
   
-  File "regex_timed_rational_lower_reject.tpe", line 35, characters 13-44:
-  35 | let quick () : nat # {1} = perform Sample ()
+  File "regex_timed_rational_lower_reject.tpe", line 40, characters 13-44:
+  40 | let quick () : nat # {1} = perform Sample ()
                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample}`, which does not match its annotated grade `{1}`
     Note: the effect inequality `{Sample} <= {1}` does not hold
@@ -6402,111 +6319,111 @@ their visible implementations, under their implementations by automata
   ======================================================================
   regex_timed_rational_upper_open_reject.tpe (regex-timed-upper-bound-rational-automata)
   ======================================================================
-  File "regex_timed_rational_upper_open_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox slot as r in
+  File "regex_timed_rational_upper_open_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Sample}` accumulated since it was bound, which is not below its box grade `{[0, 2)}`
-    File "regex_timed_rational_upper_open_reject.tpe", line 10, characters 20-24:
-    10 |   box {[0, 2)} 1 as slot in
+    File "regex_timed_rational_upper_open_reject.tpe", line 15, characters 20-24:
+    15 |   box {[0, 2)} 1 as slot in
                              ^^^^
     `slot` is bound here
-    File "regex_timed_rational_upper_open_reject.tpe", line 11, characters 2-19:
-    11 |   perform Sample ();
+    File "regex_timed_rational_upper_open_reject.tpe", line 16, characters 2-19:
+    16 |   perform Sample ();
            ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
     Note: the resource inequality `{Sample} <= {[0, 2)}` does not hold
   
-  File "regex_timed_rational_upper_open_reject.tpe", line 15, characters 0-25:
-  15 | default Beep () = delay 2
+  File "regex_timed_rational_upper_open_reject.tpe", line 20, characters 0-25:
+  20 | default Beep () = delay 2
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{2}`, which does not match the declared grade `{[0, 2)}` of `Beep`
-    File "regex_timed_rational_upper_open_reject.tpe", line 7, characters 0-54:
-    7 | operation Beep : unit ~> unit # {Beep} within [1/2, 2)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_rational_upper_open_reject.tpe", line 12, characters 0-54:
+    12 | operation Beep : unit ~> unit # {Beep} within [1/2, 2)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{2} <= {[0, 2)}` does not hold
   ======================================================================
   regex_timed_rational_upper_reject.tpe (regex-timed-upper-bound-rational-automata)
   ======================================================================
-  File "regex_timed_rational_upper_reject.tpe", lines 16-17, characters 2-5:
-  16 |   unbox t as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 21-22, characters 2-5:
+  21 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Sample; 1/3}` accumulated since it was bound, which is not below its box grade `{1.75}`
-    File "regex_timed_rational_upper_reject.tpe", line 13, characters 27-28:
-    13 |   box {7/4} (Token "t") as t in
+    File "regex_timed_rational_upper_reject.tpe", line 18, characters 27-28:
+    18 |   box {7/4} (Token "t") as t in
                                     ^
     `t` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 14, characters 10-27:
-    14 |   let v = perform Sample () in
+    File "regex_timed_rational_upper_reject.tpe", line 19, characters 10-27:
+    19 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
-    File "regex_timed_rational_upper_reject.tpe", line 15, characters 2-11:
-    15 |   delay 1/3;
+    File "regex_timed_rational_upper_reject.tpe", line 20, characters 2-11:
+    20 |   delay 1/3;
            ^^^^^^^^^
     grade `{1/3}` accumulates here (delay)
     Note: the resource inequality `{Sample; 1/3} <= {1.75}` does not hold
   
-  File "regex_timed_rational_upper_reject.tpe", lines 25-26, characters 2-5:
-  25 |   unbox t as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 30-31, characters 2-5:
+  30 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Sample; Send}` accumulated since it was bound, which is not below its box grade `{Send; 2}`
-    File "regex_timed_rational_upper_reject.tpe", line 22, characters 31-32:
-    22 |   box {Send; 2} (Token "t") as t in
+    File "regex_timed_rational_upper_reject.tpe", line 27, characters 31-32:
+    27 |   box {Send; 2} (Token "t") as t in
                                         ^
     `t` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 23, characters 10-27:
-    23 |   let v = perform Sample () in
+    File "regex_timed_rational_upper_reject.tpe", line 28, characters 10-27:
+    28 |   let v = perform Sample () in
                    ^^^^^^^^^^^^^^^^^
     grade `{Sample}` accumulates here (operation `Sample`)
-    File "regex_timed_rational_upper_reject.tpe", line 24, characters 2-16:
-    24 |   perform Send v;
+    File "regex_timed_rational_upper_reject.tpe", line 29, characters 2-16:
+    29 |   perform Send v;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
     Note: the resource inequality `{Sample; Send} <= {Send; 2}` does not hold
   
-  File "regex_timed_rational_upper_reject.tpe", lines 37-38, characters 2-5:
-  37 |   unbox b as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 42-43, characters 2-5:
+  42 |   unbox b as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `b` is unboxed with grade `{[0, 0.5); Send; [0, 0.5)}` accumulated since it was bound, which is not below its box grade `{1.99}`
-    File "regex_timed_rational_upper_reject.tpe", line 33, characters 28-29:
-    33 |   box {1.99} (Token "b") as b in
+    File "regex_timed_rational_upper_reject.tpe", line 38, characters 28-29:
+    38 |   box {1.99} (Token "b") as b in
                                      ^
     `b` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 34, characters 2-16:
-    34 |   short_delay ();
+    File "regex_timed_rational_upper_reject.tpe", line 39, characters 2-16:
+    39 |   short_delay ();
            ^^^^^^^^^^^^^^
     grade `{[0, 0.5)}` accumulates here (this computation)
-    File "regex_timed_rational_upper_reject.tpe", line 35, characters 2-16:
-    35 |   perform Send n;
+    File "regex_timed_rational_upper_reject.tpe", line 40, characters 2-16:
+    40 |   perform Send n;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
-    File "regex_timed_rational_upper_reject.tpe", line 36, characters 2-16:
-    36 |   short_delay ();
+    File "regex_timed_rational_upper_reject.tpe", line 41, characters 2-16:
+    41 |   short_delay ();
            ^^^^^^^^^^^^^^
     grade `{[0, 0.5)}` accumulates here (this computation)
     Note: the resource inequality `{[0, 0.5); Send; [0, 0.5)} <= {1.99}` does not hold
     Note: the grade `{64/129; Send; 64/129}` is below `{[0, 0.5); Send; [0, 0.5)}` but not below `{1.99}`
   
-  File "regex_timed_rational_upper_reject.tpe", lines 46-47, characters 2-5:
-  46 |   unbox l as tok in
+  File "regex_timed_rational_upper_reject.tpe", lines 51-52, characters 2-5:
+  51 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `l` is unboxed with grade `{Send; 1}` accumulated since it was bound, which is not below its box grade `{Send; ([0, 1] & ~1)}`
-    File "regex_timed_rational_upper_reject.tpe", line 43, characters 43-44:
-    43 |   box {Send; ([0, 1] & ~1)} (Token "l") as l in
+    File "regex_timed_rational_upper_reject.tpe", line 48, characters 43-44:
+    48 |   box {Send; ([0, 1] & ~1)} (Token "l") as l in
                                                     ^
     `l` is bound here
-    File "regex_timed_rational_upper_reject.tpe", line 44, characters 2-16:
-    44 |   perform Send n;
+    File "regex_timed_rational_upper_reject.tpe", line 49, characters 2-16:
+    49 |   perform Send n;
            ^^^^^^^^^^^^^^
     grade `{Send}` accumulates here (operation `Send`)
-    File "regex_timed_rational_upper_reject.tpe", line 45, characters 2-9:
-    45 |   delay 1;
+    File "regex_timed_rational_upper_reject.tpe", line 50, characters 2-9:
+    50 |   delay 1;
            ^^^^^^^
     grade `{1}` accumulates here (delay)
     Note: the resource inequality `{Send; 1} <= {Send; ([0, 1] & ~1)}` does not hold
   
-  File "regex_timed_rational_upper_reject.tpe", lines 51-53, characters 19-19:
-  51 | let two_samples () : nat # {5/2} =
+  File "regex_timed_rational_upper_reject.tpe", lines 56-58, characters 19-19:
+  56 | let two_samples () : nat # {5/2} =
                           ^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Sample; Sample}`, which does not match its annotated grade `{2.5}`
     Note: the effect inequality `{Sample; Sample} <= {2.5}` does not hold
@@ -6520,15 +6437,9 @@ implementations above, the examples over rational delays excepted:
   $ for f in ../examples/regular/*.tpe ../examples/regular_timed_ops/*.tpe \
   >   literals_reject_empty.tpe literals_regular.tpe regular_*.tpe regex_timed_*.tpe
   > do
-  >   case $f in
-  >     *_rational.tpe) continue;;
-  >     regex_timed_rational_*.tpe) continue;;
-  >     */regular_timed_ops/lower_bounds.tpe | *timed_lower*.tpe) grades=regex-timed-lower-bound;;
-  >     */regular_timed_ops/upper_bounds.tpe | */regular_timed_ops/mail_session.tpe \
-  >     | *timed_upper*.tpe) grades=regex-timed-upper-bound;;
-  >     */regular_timed_ops/intervals*.tpe | *timed_interval*.tpe) grades=regex-timed-interval;;
-  >     *) grades=regex-upper-bound;;
-  >   esac
+  >   g=$(support/header_options.exe -grades $f)
+  >   case $g in *-rational-symbolic) continue;; esac
+  >   grades=${g%-symbolic}
   >   for variant in symbolic-by-letters letter-derivatives
   >   do
   >     echo "======================================================================"
@@ -6727,15 +6638,15 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   literals_reject_empty.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "literals_reject_empty.tpe", line 4, characters 19-33:
-  4 | let claim () = box {Read & Write} 1
+  File "literals_reject_empty.tpe", line 9, characters 19-33:
+  9 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
   Syntax error: In the `regex-upper-bound-symbolic-by-letters` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
   literals_reject_empty.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
-  File "literals_reject_empty.tpe", line 4, characters 19-33:
-  4 | let claim () = box {Read & Write} 1
+  File "literals_reject_empty.tpe", line 9, characters 19-33:
+  9 | let claim () = box {Read & Write} 1
                          ^^^^^^^^^^^^^^
   Syntax error: In the `regex-upper-bound-letter-derivatives` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
@@ -6965,133 +6876,133 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regular_reject_auth.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
-  15 |   unbox t as tok in
+  File "regular_reject_auth.tpe", lines 19-21, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{~(_ & ~Auth)*}`
-    File "regular_reject_auth.tpe", line 13, characters 36-37:
-    13 |   box {_*; Auth; _*} (Token "t") as t in
+    File "regular_reject_auth.tpe", line 17, characters 36-37:
+    17 |   box {_*; Auth; _*} (Token "t") as t in
                                              ^
     `t` is bound here
-    File "regular_reject_auth.tpe", line 14, characters 2-18:
-    14 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {~(_ & ~Auth)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
-  22 |   unbox c as cap in
+  File "regular_reject_auth.tpe", lines 26-27, characters 2-5:
+  26 |   unbox c as cap in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
-    File "regular_reject_auth.tpe", line 20, characters 41-42:
-    20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
+    File "regular_reject_auth.tpe", line 24, characters 41-42:
+    24 |   box {~(_*; Revoke; _*)} (Token "c") as c in
                                                   ^
     `c` is bound here
-    File "regular_reject_auth.tpe", line 21, characters 2-19:
-    21 |   perform Revoke ();
+    File "regular_reject_auth.tpe", line 25, characters 2-19:
+    25 |   perform Revoke ();
            ^^^^^^^^^^^^^^^^^
     grade `{Revoke}` accumulates here (operation `Revoke`)
     Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
-  29 |   unbox x as n in
+  File "regular_reject_auth.tpe", lines 33-34, characters 2-3:
+  33 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `{Fetch; 3}` accumulated since it was bound, which is not below its box grade `{3; _*}`
-    File "regular_reject_auth.tpe", line 26, characters 20-21:
-    26 |   box {3; _*} 42 as x in
+    File "regular_reject_auth.tpe", line 30, characters 20-21:
+    30 |   box {3; _*} 42 as x in
                              ^
     `x` is bound here
-    File "regular_reject_auth.tpe", line 27, characters 2-18:
-    27 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 31, characters 2-18:
+    31 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regular_reject_auth.tpe", line 28, characters 2-9:
-    28 |   delay 3;
+    File "regular_reject_auth.tpe", line 32, characters 2-9:
+    32 |   delay 3;
            ^^^^^^^
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
   regular_reject_auth.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
-  File "regular_reject_auth.tpe", lines 15-17, characters 2-5:
-  15 |   unbox t as tok in
+  File "regular_reject_auth.tpe", lines 19-21, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{~(_ & ~Auth)*}`
-    File "regular_reject_auth.tpe", line 13, characters 36-37:
-    13 |   box {_*; Auth; _*} (Token "t") as t in
+    File "regular_reject_auth.tpe", line 17, characters 36-37:
+    17 |   box {_*; Auth; _*} (Token "t") as t in
                                              ^
     `t` is bound here
-    File "regular_reject_auth.tpe", line 14, characters 2-18:
-    14 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {~(_ & ~Auth)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 22-23, characters 2-5:
-  22 |   unbox c as cap in
+  File "regular_reject_auth.tpe", lines 26-27, characters 2-5:
+  26 |   unbox c as cap in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Revoke}` accumulated since it was bound, which is not below its box grade `{(_ & ~Revoke)*}`
-    File "regular_reject_auth.tpe", line 20, characters 41-42:
-    20 |   box {~(_*; Revoke; _*)} (Token "c") as c in
+    File "regular_reject_auth.tpe", line 24, characters 41-42:
+    24 |   box {~(_*; Revoke; _*)} (Token "c") as c in
                                                   ^
     `c` is bound here
-    File "regular_reject_auth.tpe", line 21, characters 2-19:
-    21 |   perform Revoke ();
+    File "regular_reject_auth.tpe", line 25, characters 2-19:
+    25 |   perform Revoke ();
            ^^^^^^^^^^^^^^^^^
     grade `{Revoke}` accumulates here (operation `Revoke`)
     Note: the resource inequality `{Revoke} <= {(_ & ~Revoke)*}` does not hold
   
-  File "regular_reject_auth.tpe", lines 29-30, characters 2-3:
-  29 |   unbox x as n in
+  File "regular_reject_auth.tpe", lines 33-34, characters 2-3:
+  33 |   unbox x as n in
          ^^^^^^^^^^^^^^^
   Typing error: Variable `x` is unboxed with grade `{Fetch; 3}` accumulated since it was bound, which is not below its box grade `{3; _*}`
-    File "regular_reject_auth.tpe", line 26, characters 20-21:
-    26 |   box {3; _*} 42 as x in
+    File "regular_reject_auth.tpe", line 30, characters 20-21:
+    30 |   box {3; _*} 42 as x in
                              ^
     `x` is bound here
-    File "regular_reject_auth.tpe", line 27, characters 2-18:
-    27 |   perform Fetch ();
+    File "regular_reject_auth.tpe", line 31, characters 2-18:
+    31 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regular_reject_auth.tpe", line 28, characters 2-9:
-    28 |   delay 3;
+    File "regular_reject_auth.tpe", line 32, characters 2-9:
+    32 |   delay 3;
            ^^^^^^^
     grade `{3}` accumulates here (delay)
     Note: the resource inequality `{Fetch; 3} <= {3; _*}` does not hold
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within [1, 2]
+  File "regular_reject_bounds.tpe", line 9, characters 0-52:
+  9 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-symbolic-by-letters` grading monoid, which does not use them
   ======================================================================
   regular_reject_bounds.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
-  File "regular_reject_bounds.tpe", line 4, characters 0-52:
-  4 | operation Send : unit ~> unit # {Send} within [1, 2]
+  File "regular_reject_bounds.tpe", line 9, characters 0-52:
+  9 | operation Send : unit ~> unit # {Send} within [1, 2]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Running-time bounds must not be declared under the `regex-upper-bound-letter-derivatives` grading monoid, which does not use them
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : nat # {Open; Read*; Close} =
+  File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
+  18 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
     Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
   
-  File "regular_reject_counterexample.tpe", lines 24-25, characters 2-5:
-  24 |   unbox t as tok in
+  File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
+  29 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated since it was bound, which is not below its box grade `{Auth; _*}`
-    File "regular_reject_counterexample.tpe", line 22, characters 23-24:
-    22 |   box {Auth; _*} 42 as t in
+    File "regular_reject_counterexample.tpe", line 27, characters 23-24:
+    27 |   box {Auth; _*} 42 as t in
                                 ^
     `t` is bound here
-    File "regular_reject_counterexample.tpe", line 23, characters 2-49:
-    23 |   if b then perform Auth () else perform Fetch ();
+    File "regular_reject_counterexample.tpe", line 28, characters 2-49:
+    28 |   if b then perform Auth () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Auth | Fetch}` accumulates here (this computation)
     Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
@@ -7099,23 +7010,23 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regular_reject_counterexample.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
-  File "regular_reject_counterexample.tpe", lines 13-18, characters 23-3:
-  13 | let session (b : bool) : nat # {Open; Read*; Close} =
+  File "regular_reject_counterexample.tpe", lines 18-23, characters 23-3:
+  18 | let session (b : bool) : nat # {Open; Read*; Close} =
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read; (0 | Write); Close}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read; (0 | Write); Close} <= {Open; Read*; Close}` does not hold
     Note: the grade `{Open; Read; Write; Close}` is below `{Open; Read; (0 | Write); Close}` but not below `{Open; Read*; Close}`
   
-  File "regular_reject_counterexample.tpe", lines 24-25, characters 2-5:
-  24 |   unbox t as tok in
+  File "regular_reject_counterexample.tpe", lines 29-30, characters 2-5:
+  29 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Auth | Fetch}` accumulated since it was bound, which is not below its box grade `{Auth; _*}`
-    File "regular_reject_counterexample.tpe", line 22, characters 23-24:
-    22 |   box {Auth; _*} 42 as t in
+    File "regular_reject_counterexample.tpe", line 27, characters 23-24:
+    27 |   box {Auth; _*} 42 as t in
                                 ^
     `t` is bound here
-    File "regular_reject_counterexample.tpe", line 23, characters 2-49:
-    23 |   if b then perform Auth () else perform Fetch ();
+    File "regular_reject_counterexample.tpe", line 28, characters 2-49:
+    28 |   if b then perform Auth () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Auth | Fetch}` accumulates here (this computation)
     Note: the resource inequality `{Auth | Fetch} <= {Auth; _*}` does not hold
@@ -7123,60 +7034,60 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regular_reject_protocol.tpe (regex-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regular_reject_protocol.tpe", line 16, characters 6-23:
-  16 |       continue k with x
+  File "regular_reject_protocol.tpe", line 21, characters 6-23:
+  21 |       continue k with x
              ^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `{Open; Close; Read}` accumulated since it was bound, which is not below its box grade `{Open; Read*; Close}`
-    File "regular_reject_protocol.tpe", line 12, characters 15-16:
-    12 |   | Session () k ->
+    File "regular_reject_protocol.tpe", line 17, characters 15-16:
+    17 |   | Session () k ->
                         ^
     `k` is bound here
-    File "regular_reject_protocol.tpe", line 13, characters 6-21:
-    13 |       perform Open ();
+    File "regular_reject_protocol.tpe", line 18, characters 6-21:
+    18 |       perform Open ();
                ^^^^^^^^^^^^^^^
     grade `{Open}` accumulates here (operation `Open`)
-    File "regular_reject_protocol.tpe", line 14, characters 6-22:
-    14 |       perform Close ();
+    File "regular_reject_protocol.tpe", line 19, characters 6-22:
+    19 |       perform Close ();
                ^^^^^^^^^^^^^^^^
     grade `{Close}` accumulates here (operation `Close`)
-    File "regular_reject_protocol.tpe", line 15, characters 14-29:
-    15 |       let x = perform Read () in
+    File "regular_reject_protocol.tpe", line 20, characters 14-29:
+    20 |       let x = perform Read () in
                        ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
-  File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : nat # {Open; Read*; Close} =
+  File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
+  23 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
   ======================================================================
   regular_reject_protocol.tpe (regex-upper-bound-letter-derivatives)
   ======================================================================
-  File "regular_reject_protocol.tpe", line 16, characters 6-23:
-  16 |       continue k with x
+  File "regular_reject_protocol.tpe", line 21, characters 6-23:
+  21 |       continue k with x
              ^^^^^^^^^^^^^^^^^
   Typing error: Variable `k` is unboxed with grade `{Open; Close; Read}` accumulated since it was bound, which is not below its box grade `{Open; Read*; Close}`
-    File "regular_reject_protocol.tpe", line 12, characters 15-16:
-    12 |   | Session () k ->
+    File "regular_reject_protocol.tpe", line 17, characters 15-16:
+    17 |   | Session () k ->
                         ^
     `k` is bound here
-    File "regular_reject_protocol.tpe", line 13, characters 6-21:
-    13 |       perform Open ();
+    File "regular_reject_protocol.tpe", line 18, characters 6-21:
+    18 |       perform Open ();
                ^^^^^^^^^^^^^^^
     grade `{Open}` accumulates here (operation `Open`)
-    File "regular_reject_protocol.tpe", line 14, characters 6-22:
-    14 |       perform Close ();
+    File "regular_reject_protocol.tpe", line 19, characters 6-22:
+    19 |       perform Close ();
                ^^^^^^^^^^^^^^^^
     grade `{Close}` accumulates here (operation `Close`)
-    File "regular_reject_protocol.tpe", line 15, characters 14-29:
-    15 |       let x = perform Read () in
+    File "regular_reject_protocol.tpe", line 20, characters 14-29:
+    20 |       let x = perform Read () in
                        ^^^^^^^^^^^^^^^
     grade `{Read}` accumulates here (operation `Read`)
     Note: the resource inequality `{Open; Close; Read} <= {Open; Read*; Close}` does not hold
   
-  File "regular_reject_protocol.tpe", lines 18-19, characters 16-34:
-  18 | let unclosed () : nat # {Open; Read*; Close} =
+  File "regular_reject_protocol.tpe", lines 23-24, characters 16-34:
+  23 | let unclosed () : nat # {Open; Read*; Close} =
                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Open; Read}`, which does not match its annotated grade `{Open; Read*; Close}`
     Note: the effect inequality `{Open; Read} <= {Open; Read*; Close}` does not hold
@@ -7203,85 +7114,85 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regex_timed_interval_reject.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_interval_reject.tpe", lines 13-14, characters 2-5:
-  13 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 18-19, characters 2-5:
+  18 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
-    File "regex_timed_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box [3, 4] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 16, characters 28-29:
+    16 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 12, characters 2-18:
-    12 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 17, characters 2-18:
+    17 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
-  File "regex_timed_interval_reject.tpe", lines 20-21, characters 2-5:
-  20 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 25-26, characters 2-5:
+  25 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
-    File "regex_timed_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box [2, 3] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 23, characters 28-29:
+    23 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 19, characters 2-18:
-    19 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 24, characters 2-18:
+    24 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_timed_interval_reject.tpe (regex-timed-interval-letter-derivatives)
   ======================================================================
-  File "regex_timed_interval_reject.tpe", lines 13-14, characters 2-5:
-  13 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 18-19, characters 2-5:
+  18 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{3}, {4}]`
-    File "regex_timed_interval_reject.tpe", line 11, characters 28-29:
-    11 |   box [3, 4] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 16, characters 28-29:
+    16 |   box [3, 4] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 12, characters 2-18:
-    12 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 17, characters 2-18:
+    17 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{3}, {4}]` does not hold
   
-  File "regex_timed_interval_reject.tpe", lines 20-21, characters 2-5:
-  20 |   unbox t as tok in
+  File "regex_timed_interval_reject.tpe", lines 25-26, characters 2-5:
+  25 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `[{Fetch}, {Fetch}]` accumulated since it was bound, which is not below its box grade `[{2}, {3}]`
-    File "regex_timed_interval_reject.tpe", line 18, characters 28-29:
-    18 |   box [2, 3] (Token "t") as t in
+    File "regex_timed_interval_reject.tpe", line 23, characters 28-29:
+    23 |   box [2, 3] (Token "t") as t in
                                      ^
     `t` is bound here
-    File "regex_timed_interval_reject.tpe", line 19, characters 2-18:
-    19 |   perform Fetch ();
+    File "regex_timed_interval_reject.tpe", line 24, characters 2-18:
+    24 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `[{Fetch}, {Fetch}]` accumulates here (operation `Fetch`)
     Note: the resource inequality `[{Fetch}, {Fetch}] <= [{2}, {3}]` does not hold
   ======================================================================
   regex_timed_interval_ticks_reject.tpe (regex-timed-interval-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
-  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
+  File "regex_timed_interval_ticks_reject.tpe", line 17, characters 6-34:
+  17 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
+  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
   regex_timed_interval_ticks_reject.tpe (regex-timed-interval-letter-derivatives)
   ======================================================================
-  File "regex_timed_interval_ticks_reject.tpe", line 12, characters 6-34:
-  12 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
+  File "regex_timed_interval_ticks_reject.tpe", line 17, characters 6-34:
+  17 |   box [{Fetch}, {_ & ~1 & ~Fetch}] (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   
-  File "regex_timed_interval_ticks_reject.tpe", line 19, characters 33-61:
-  19 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
+  File "regex_timed_interval_ticks_reject.tpe", line 24, characters 33-61:
+  24 | operation Other : unit ~> unit # [{Fetch}, {_ & ~1 & ~Fetch}]
                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `[{Fetch}, {_ & ~(1 | Fetch)}]` permits no trace over the declared operations
   ======================================================================
@@ -7311,48 +7222,48 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regex_timed_lower_reject.tpe (regex-timed-lower-bound-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_lower_reject.tpe", lines 15-16, characters 2-5:
-  15 |   unbox t as tok in
+  File "regex_timed_lower_reject.tpe", lines 20-21, characters 2-5:
+  20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Ping; 2}` accumulated since it was bound, which is not below its box grade `{Ping; 3}`
-    File "regex_timed_lower_reject.tpe", line 12, characters 31-32:
-    12 |   box {Ping; 3} (Token "t") as t in
+    File "regex_timed_lower_reject.tpe", line 17, characters 31-32:
+    17 |   box {Ping; 3} (Token "t") as t in
                                         ^
     `t` is bound here
-    File "regex_timed_lower_reject.tpe", line 13, characters 2-17:
-    13 |   perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 18, characters 2-17:
+    18 |   perform Ping ();
            ^^^^^^^^^^^^^^^
     grade `{Ping}` accumulates here (operation `Ping`)
-    File "regex_timed_lower_reject.tpe", line 14, characters 2-9:
-    14 |   delay 2;
+    File "regex_timed_lower_reject.tpe", line 19, characters 2-9:
+    19 |   delay 2;
            ^^^^^^^
     grade `{2}` accumulates here (delay)
     Note: the resource inequality `{Ping; 2} <= {Ping; 3}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 22-23, characters 2-5:
-  22 |   unbox f as tok in
+  File "regex_timed_lower_reject.tpe", lines 27-28, characters 2-5:
+  27 |   unbox f as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `f` is unboxed with grade `{10}` accumulated since it was bound, which is not below its box grade `{Fetch}`
-    File "regex_timed_lower_reject.tpe", line 20, characters 29-30:
-    20 |   box {Fetch} (Token "f") as f in
+    File "regex_timed_lower_reject.tpe", line 25, characters 29-30:
+    25 |   box {Fetch} (Token "f") as f in
                                       ^
     `f` is bound here
-    File "regex_timed_lower_reject.tpe", line 21, characters 2-10:
-    21 |   delay 10;
+    File "regex_timed_lower_reject.tpe", line 26, characters 2-10:
+    26 |   delay 10;
            ^^^^^^^^
     grade `{10}` accumulates here (delay)
     Note: the resource inequality `{10} <= {Fetch}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 29-30, characters 2-5:
-  29 |   unbox q as tok in
+  File "regex_timed_lower_reject.tpe", lines 34-35, characters 2-5:
+  34 |   unbox q as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `q` is unboxed with grade `{Ping | Fetch; 1}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_lower_reject.tpe", line 27, characters 25-26:
-    27 |   box {3} (Token "q") as q in
+    File "regex_timed_lower_reject.tpe", line 32, characters 25-26:
+    32 |   box {3} (Token "q") as q in
                                   ^
     `q` is bound here
-    File "regex_timed_lower_reject.tpe", line 28, characters 2-58:
-    28 |   if b then perform Fetch (); delay 1 else perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 33, characters 2-58:
+    33 |   if b then perform Fetch (); delay 1 else perform Ping ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Ping | Fetch; 1}` accumulates here (this computation)
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
@@ -7360,48 +7271,48 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regex_timed_lower_reject.tpe (regex-timed-lower-bound-letter-derivatives)
   ======================================================================
-  File "regex_timed_lower_reject.tpe", lines 15-16, characters 2-5:
-  15 |   unbox t as tok in
+  File "regex_timed_lower_reject.tpe", lines 20-21, characters 2-5:
+  20 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Ping; 2}` accumulated since it was bound, which is not below its box grade `{Ping; 3}`
-    File "regex_timed_lower_reject.tpe", line 12, characters 31-32:
-    12 |   box {Ping; 3} (Token "t") as t in
+    File "regex_timed_lower_reject.tpe", line 17, characters 31-32:
+    17 |   box {Ping; 3} (Token "t") as t in
                                         ^
     `t` is bound here
-    File "regex_timed_lower_reject.tpe", line 13, characters 2-17:
-    13 |   perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 18, characters 2-17:
+    18 |   perform Ping ();
            ^^^^^^^^^^^^^^^
     grade `{Ping}` accumulates here (operation `Ping`)
-    File "regex_timed_lower_reject.tpe", line 14, characters 2-9:
-    14 |   delay 2;
+    File "regex_timed_lower_reject.tpe", line 19, characters 2-9:
+    19 |   delay 2;
            ^^^^^^^
     grade `{2}` accumulates here (delay)
     Note: the resource inequality `{Ping; 2} <= {Ping; 3}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 22-23, characters 2-5:
-  22 |   unbox f as tok in
+  File "regex_timed_lower_reject.tpe", lines 27-28, characters 2-5:
+  27 |   unbox f as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `f` is unboxed with grade `{10}` accumulated since it was bound, which is not below its box grade `{Fetch}`
-    File "regex_timed_lower_reject.tpe", line 20, characters 29-30:
-    20 |   box {Fetch} (Token "f") as f in
+    File "regex_timed_lower_reject.tpe", line 25, characters 29-30:
+    25 |   box {Fetch} (Token "f") as f in
                                       ^
     `f` is bound here
-    File "regex_timed_lower_reject.tpe", line 21, characters 2-10:
-    21 |   delay 10;
+    File "regex_timed_lower_reject.tpe", line 26, characters 2-10:
+    26 |   delay 10;
            ^^^^^^^^
     grade `{10}` accumulates here (delay)
     Note: the resource inequality `{10} <= {Fetch}` does not hold
   
-  File "regex_timed_lower_reject.tpe", lines 29-30, characters 2-5:
-  29 |   unbox q as tok in
+  File "regex_timed_lower_reject.tpe", lines 34-35, characters 2-5:
+  34 |   unbox q as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `q` is unboxed with grade `{Ping | Fetch; 1}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_lower_reject.tpe", line 27, characters 25-26:
-    27 |   box {3} (Token "q") as q in
+    File "regex_timed_lower_reject.tpe", line 32, characters 25-26:
+    32 |   box {3} (Token "q") as q in
                                   ^
     `q` is bound here
-    File "regex_timed_lower_reject.tpe", line 28, characters 2-58:
-    28 |   if b then perform Fetch (); delay 1 else perform Ping ();
+    File "regex_timed_lower_reject.tpe", line 33, characters 2-58:
+    33 |   if b then perform Fetch (); delay 1 else perform Ping ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Ping | Fetch; 1}` accumulates here (this computation)
     Note: the resource inequality `{Ping | Fetch; 1} <= {3}` does not hold
@@ -7409,15 +7320,15 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regex_timed_lower_ticks_reject.tpe (regex-timed-lower-bound-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
-  11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
+  File "regex_timed_lower_ticks_reject.tpe", line 16, characters 6-30:
+  16 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
   regex_timed_lower_ticks_reject.tpe (regex-timed-lower-bound-letter-derivatives)
   ======================================================================
-  File "regex_timed_lower_ticks_reject.tpe", line 11, characters 6-30:
-  11 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
+  File "regex_timed_lower_ticks_reject.tpe", line 16, characters 6-30:
+  16 |   box {Ping; (_ & ~1 & ~Ping)} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The grade `{Ping; (_ & ~(1 | Ping))}` permits no trace over the declared operations
   ======================================================================
@@ -7461,162 +7372,162 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regex_timed_upper_open_reject.tpe (regex-timed-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_upper_open_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox slot as r in
+  File "regex_timed_upper_open_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
-    File "regex_timed_upper_open_reject.tpe", line 10, characters 15-19:
-    10 |   box {2} 1 as slot in
+    File "regex_timed_upper_open_reject.tpe", line 15, characters 15-19:
+    15 |   box {2} 1 as slot in
                         ^^^^
     `slot` is bound here
-    File "regex_timed_upper_open_reject.tpe", line 11, characters 2-15:
-    11 |   perform Tx ();
+    File "regex_timed_upper_open_reject.tpe", line 16, characters 2-15:
+    16 |   perform Tx ();
            ^^^^^^^^^^^^^
     grade `{Tx}` accumulates here (operation `Tx`)
     Note: the resource inequality `{Tx} <= {2}` does not hold
   
-  File "regex_timed_upper_open_reject.tpe", line 15, characters 0-25:
-  15 | default Beep () = delay 3
+  File "regex_timed_upper_open_reject.tpe", line 20, characters 0-25:
+  20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
-    File "regex_timed_upper_open_reject.tpe", line 7, characters 0-52:
-    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
+    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   regex_timed_upper_open_reject.tpe (regex-timed-upper-bound-letter-derivatives)
   ======================================================================
-  File "regex_timed_upper_open_reject.tpe", lines 12-13, characters 2-3:
-  12 |   unbox slot as r in
+  File "regex_timed_upper_open_reject.tpe", lines 17-18, characters 2-3:
+  17 |   unbox slot as r in
          ^^^^^^^^^^^^^^^^^^
   Typing error: Variable `slot` is unboxed with grade `{Tx}` accumulated since it was bound, which is not below its box grade `{2}`
-    File "regex_timed_upper_open_reject.tpe", line 10, characters 15-19:
-    10 |   box {2} 1 as slot in
+    File "regex_timed_upper_open_reject.tpe", line 15, characters 15-19:
+    15 |   box {2} 1 as slot in
                         ^^^^
     `slot` is bound here
-    File "regex_timed_upper_open_reject.tpe", line 11, characters 2-15:
-    11 |   perform Tx ();
+    File "regex_timed_upper_open_reject.tpe", line 16, characters 2-15:
+    16 |   perform Tx ();
            ^^^^^^^^^^^^^
     grade `{Tx}` accumulates here (operation `Tx`)
     Note: the resource inequality `{Tx} <= {2}` does not hold
   
-  File "regex_timed_upper_open_reject.tpe", line 15, characters 0-25:
-  15 | default Beep () = delay 3
+  File "regex_timed_upper_open_reject.tpe", line 20, characters 0-25:
+  20 | default Beep () = delay 3
        ^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: The default implementation of `Beep` has grade `{3}`, which does not match the declared grade `{2}` of `Beep`
-    File "regex_timed_upper_open_reject.tpe", line 7, characters 0-52:
-    7 | operation Beep : unit ~> unit # {Beep} within [1, 3)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "regex_timed_upper_open_reject.tpe", line 12, characters 0-52:
+    12 | operation Beep : unit ~> unit # {Beep} within [1, 3)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     operation `Beep` is declared here
     Note: the effect inequality `{3} <= {2}` does not hold
   ======================================================================
   regex_timed_upper_reject.tpe (regex-timed-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_upper_reject.tpe", lines 14-15, characters 2-5:
-  14 |   unbox t as tok in
+  File "regex_timed_upper_reject.tpe", lines 19-20, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_upper_reject.tpe", line 12, characters 25-26:
-    12 |   box {3} (Token "t") as t in
+    File "regex_timed_upper_reject.tpe", line 17, characters 25-26:
+    17 |   box {3} (Token "t") as t in
                                   ^
     `t` is bound here
-    File "regex_timed_upper_reject.tpe", line 13, characters 2-18:
-    13 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {3}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 23-24, characters 2-5:
-  23 |   unbox l as tok in
+  File "regex_timed_upper_reject.tpe", lines 28-29, characters 2-5:
+  28 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `l` is unboxed with grade `{Fetch; Log}` accumulated since it was bound, which is not below its box grade `{Log; 4}`
-    File "regex_timed_upper_reject.tpe", line 20, characters 30-31:
-    20 |   box {Log; 4} (Token "l") as l in
+    File "regex_timed_upper_reject.tpe", line 25, characters 30-31:
+    25 |   box {Log; 4} (Token "l") as l in
                                        ^
     `l` is bound here
-    File "regex_timed_upper_reject.tpe", line 21, characters 2-18:
-    21 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 26, characters 2-18:
+    26 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regex_timed_upper_reject.tpe", line 22, characters 2-16:
-    22 |   perform Log ();
+    File "regex_timed_upper_reject.tpe", line 27, characters 2-16:
+    27 |   perform Log ();
            ^^^^^^^^^^^^^^
     grade `{Log}` accumulates here (operation `Log`)
     Note: the resource inequality `{Fetch; Log} <= {Log; 4}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 30-31, characters 2-5:
-  30 |   unbox c as tok in
+  File "regex_timed_upper_reject.tpe", lines 35-36, characters 2-5:
+  35 |   unbox c as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Fetch | Ping}` accumulated since it was bound, which is not below its box grade `{(Log | Ping)*}`
-    File "regex_timed_upper_reject.tpe", line 28, characters 37-38:
-    28 |   box {(Ping | Log)*} (Token "c") as c in
+    File "regex_timed_upper_reject.tpe", line 33, characters 37-38:
+    33 |   box {(Ping | Log)*} (Token "c") as c in
                                               ^
     `c` is bound here
-    File "regex_timed_upper_reject.tpe", line 29, characters 2-49:
-    29 |   if b then perform Ping () else perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 34, characters 2-49:
+    34 |   if b then perform Ping () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Fetch | Ping}` accumulates here (this computation)
     Note: the resource inequality `{Fetch | Ping} <= {(Log | Ping)*}` does not hold
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
-  File "regex_timed_upper_reject.tpe", lines 34-36, characters 17-17:
-  34 | let two_pings () : unit # {3} =
+  File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
+  39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
   ======================================================================
   regex_timed_upper_reject.tpe (regex-timed-upper-bound-letter-derivatives)
   ======================================================================
-  File "regex_timed_upper_reject.tpe", lines 14-15, characters 2-5:
-  14 |   unbox t as tok in
+  File "regex_timed_upper_reject.tpe", lines 19-20, characters 2-5:
+  19 |   unbox t as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `t` is unboxed with grade `{Fetch}` accumulated since it was bound, which is not below its box grade `{3}`
-    File "regex_timed_upper_reject.tpe", line 12, characters 25-26:
-    12 |   box {3} (Token "t") as t in
+    File "regex_timed_upper_reject.tpe", line 17, characters 25-26:
+    17 |   box {3} (Token "t") as t in
                                   ^
     `t` is bound here
-    File "regex_timed_upper_reject.tpe", line 13, characters 2-18:
-    13 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 18, characters 2-18:
+    18 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
     Note: the resource inequality `{Fetch} <= {3}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 23-24, characters 2-5:
-  23 |   unbox l as tok in
+  File "regex_timed_upper_reject.tpe", lines 28-29, characters 2-5:
+  28 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `l` is unboxed with grade `{Fetch; Log}` accumulated since it was bound, which is not below its box grade `{Log; 4}`
-    File "regex_timed_upper_reject.tpe", line 20, characters 30-31:
-    20 |   box {Log; 4} (Token "l") as l in
+    File "regex_timed_upper_reject.tpe", line 25, characters 30-31:
+    25 |   box {Log; 4} (Token "l") as l in
                                        ^
     `l` is bound here
-    File "regex_timed_upper_reject.tpe", line 21, characters 2-18:
-    21 |   perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 26, characters 2-18:
+    26 |   perform Fetch ();
            ^^^^^^^^^^^^^^^^
     grade `{Fetch}` accumulates here (operation `Fetch`)
-    File "regex_timed_upper_reject.tpe", line 22, characters 2-16:
-    22 |   perform Log ();
+    File "regex_timed_upper_reject.tpe", line 27, characters 2-16:
+    27 |   perform Log ();
            ^^^^^^^^^^^^^^
     grade `{Log}` accumulates here (operation `Log`)
     Note: the resource inequality `{Fetch; Log} <= {Log; 4}` does not hold
   
-  File "regex_timed_upper_reject.tpe", lines 30-31, characters 2-5:
-  30 |   unbox c as tok in
+  File "regex_timed_upper_reject.tpe", lines 35-36, characters 2-5:
+  35 |   unbox c as tok in
          ^^^^^^^^^^^^^^^^^
   Typing error: Variable `c` is unboxed with grade `{Fetch | Ping}` accumulated since it was bound, which is not below its box grade `{(Log | Ping)*}`
-    File "regex_timed_upper_reject.tpe", line 28, characters 37-38:
-    28 |   box {(Ping | Log)*} (Token "c") as c in
+    File "regex_timed_upper_reject.tpe", line 33, characters 37-38:
+    33 |   box {(Ping | Log)*} (Token "c") as c in
                                               ^
     `c` is bound here
-    File "regex_timed_upper_reject.tpe", line 29, characters 2-49:
-    29 |   if b then perform Ping () else perform Fetch ();
+    File "regex_timed_upper_reject.tpe", line 34, characters 2-49:
+    34 |   if b then perform Ping () else perform Fetch ();
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     grade `{Fetch | Ping}` accumulates here (this computation)
     Note: the resource inequality `{Fetch | Ping} <= {(Log | Ping)*}` does not hold
     Note: the grade `{Fetch}` is below `{Fetch | Ping}` but not below `{(Log | Ping)*}`
   
-  File "regex_timed_upper_reject.tpe", lines 34-36, characters 17-17:
-  34 | let two_pings () : unit # {3} =
+  File "regex_timed_upper_reject.tpe", lines 39-41, characters 17-17:
+  39 | let two_pings () : unit # {3} =
                         ^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{Ping; Ping}`, which does not match its annotated grade `{3}`
     Note: the effect inequality `{Ping; Ping} <= {3}` does not hold
@@ -7643,35 +7554,35 @@ implementations above, the examples over rational delays excepted:
   ======================================================================
   regex_timed_upper_ticks_reject.tpe (regex-timed-upper-bound-symbolic-by-letters)
   ======================================================================
-  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
-  12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 6-23:
+  17 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
-  17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
+  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
-  20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
+  File "regex_timed_upper_ticks_reject.tpe", line 25, characters 27-44:
+  25 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   ======================================================================
   regex_timed_upper_ticks_reject.tpe (regex-timed-upper-bound-letter-derivatives)
   ======================================================================
-  File "regex_timed_upper_ticks_reject.tpe", line 12, characters 6-23:
-  12 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
+  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 6-23:
+  17 |   box {_ & ~1 & ~Fetch} (Token "o") as o in
              ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 17, characters 26-43:
-  17 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
+  File "regex_timed_upper_ticks_reject.tpe", line 22, characters 26-43:
+  22 | let annotated () : unit # {_ & ~1 & ~Fetch} = perform Fetch ()
                                  ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
   
-  File "regex_timed_upper_ticks_reject.tpe", line 20, characters 27-44:
-  20 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
+  File "regex_timed_upper_ticks_reject.tpe", line 25, characters 27-44:
+  25 | type pending = Pending of [{_ & ~1 & ~Fetch}]token
                                   ^^^^^^^^^^^^^^^^^
   Typing error: The grade `{_ & ~(1 | Fetch)}` permits no trace over the declared operations
 

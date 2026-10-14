@@ -1,4 +1,8 @@
-(* Time upper bounds paired with security levels: a capability boxed at
+(* Run this test with the 'time-upper-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound-levels tests/levels_time_upper.tpe
+
+   Time upper bounds paired with security levels: a capability boxed at
    (5, Low) expires after five ticks, and only works while nothing above Low
    has been touched since it was issued. *)
 

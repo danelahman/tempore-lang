@@ -1,4 +1,9 @@
-(* Correctly accepted by the typechecker, under the
+(* Run this test with the 'traces-timed-interval-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-interval-rational \
+       tests/rational_traces_intervals.tpe
+
+   Correctly accepted by the typechecker, under the
    'traces-timed-interval-rational' grading monoid: delays and running-time
    bounds are non-negative rationals; the coverage order banks operations at
    their lower bounds and the allowance order buys them at the upper. *)

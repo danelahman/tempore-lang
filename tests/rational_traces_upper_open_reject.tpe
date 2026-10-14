@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the
+(* Run this test with the 'traces-timed-upper-bound-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound-rational \
+       tests/rational_traces_upper_open_reject.tpe
+
+   Correctly rejected by the typechecker, under the
    'traces-timed-upper-bound-rational' grading monoid: a sample within
    [1/2, 3/2) takes up to nearly 3/2 time units, more than the 1.4 the box
    allows. *)

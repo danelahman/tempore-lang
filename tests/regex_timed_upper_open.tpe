@@ -1,4 +1,9 @@
-(* Correctly accepted by the typechecker, under the
+(* Run this test with the 'regex-timed-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-symbolic \
+       tests/regex_timed_upper_open.tpe
+
+   Correctly accepted by the typechecker, under the
    'regex-timed-upper-bound-symbolic' grading monoid: in whole ticks, an open
    end of running-time bounds abbreviates the closed one a tick inside it, so
    'Tx' within (1, 4) takes two or three ticks, and a default of two ticks

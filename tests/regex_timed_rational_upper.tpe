@@ -1,4 +1,9 @@
-(* Accepted under the 'regex-timed-upper-bound-rational-symbolic' grading monoid:
+(* Run this test with the 'regex-timed-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-upper-bound-rational-symbolic \
+       tests/regex_timed_rational_upper.tpe
+
+   Accepted under the 'regex-timed-upper-bound-rational-symbolic' grading monoid:
    regular upper bounds over rational delays whose delays pay for operations at
    their fractional upper running-time bounds, with intervals of delays and
    complements. *)

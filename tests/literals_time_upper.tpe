@@ -1,4 +1,8 @@
-(* Infinity '∞' (ASCII 'inf') is the top '⊤' (ASCII 'top') under
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/literals_time_upper.tpe
+
+   Infinity '∞' (ASCII 'inf') is the top '⊤' (ASCII 'top') under
    time-upper-bound: a box that never expires. *)
 
 let claim_late () =

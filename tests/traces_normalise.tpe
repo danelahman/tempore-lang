@@ -1,4 +1,8 @@
-(* Correctly accepted by the typechecker, under the 'traces-timed-upper-bound'
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound tests/traces_normalise.tpe
+
+   Correctly accepted by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid. Trace literals are normalised: zero delays are dropped and
    adjacent delays are merged, and the alternatives of a set are sorted and
    deduplicated. The state printed below therefore shows the grade of the

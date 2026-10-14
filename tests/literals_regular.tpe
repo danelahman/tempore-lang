@@ -1,4 +1,8 @@
-(* The regular expressions of the regular trace grading monoids, their
+(* Run this test with the 'regex-upper-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-symbolic tests/literals_regular.tpe
+
+   The regular expressions of the regular trace grading monoids, their
    operators written with and without spaces, braces grouping as parentheses
    do, and intervals of delays abbreviating sets of numbers of ticks, printed
    back in the state of a run. *)

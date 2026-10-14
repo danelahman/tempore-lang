@@ -1,3 +1,8 @@
-(* Rejected: the endpoints of an interval satisfy n <= m. *)
+(* Run this test with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval \
+       tests/literals_reject_interval_reversed.tpe
+
+   Rejected: the endpoints of an interval satisfy n <= m. *)
 
 let claim () = box [5, 2] 1

@@ -1,4 +1,9 @@
-(* Accepted under the 'regex-timed-interval-letter-automata' grading monoid:
+(* Run this test with the 'regex-timed-interval-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-symbolic \
+       tests/regex_timed_interval.tpe
+
+   Accepted under the 'regex-timed-interval-letter-automata' grading monoid:
    intervals of a regular lower bound, at the lower running-time bounds, and a
    regular upper bound, at the upper ones. *)
 

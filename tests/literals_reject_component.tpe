@@ -1,3 +1,8 @@
-(* Rejected: Medium is no security level. *)
+(* Run this test with the 'time-lower-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound-levels \
+       tests/literals_reject_component.tpe
+
+   Rejected: Medium is no security level. *)
 
 let claim () = box (3, Medium) 1

@@ -18,11 +18,11 @@
   desugarer
   loader
   inference
-  arduinoBackend)
+  arduinoBackend
+  testSupport)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)
-  (glob_files %{project_root}/tests/*.tpe)
-  %{project_root}/tests/run_tests.t))
+  (glob_files %{project_root}/tests/*.tpe)))
 
 (test
  (name test_solve)
@@ -36,6 +36,7 @@
   loader
   inference
   arduinoBackend
+  testSupport
   unix)
  (deps
   (glob_files_rec %{project_root}/examples/*.tpe)

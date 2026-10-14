@@ -1,4 +1,8 @@
-(* Rejected: an interval open at an endpoint has endpoints n < m, and '[2, 2)'
+(* Run this test with the 'time-interval' grading monoid, e.g.
+
+     ./tempore --grades time-interval tests/literals_reject_interval_empty.tpe
+
+   Rejected: an interval open at an endpoint has endpoints n < m, and '[2, 2)'
    is empty. *)
 
 let claim () = box [2, 2) 1

@@ -18,63 +18,13 @@ let verbose = Array.exists (( = ) "-v") Sys.argv
 (* Grade systems of the files                                          *)
 (* ------------------------------------------------------------------ *)
 
-let default_grades = "time-lower-bound"
-
-let glob pattern name =
-  match String.index_opt pattern '*' with
-  | None -> pattern = name
-  | Some i ->
-      let prefix = String.sub pattern 0 i
-      and suffix = String.sub pattern (i + 1) (String.length pattern - i - 1) in
-      String.length name >= String.length prefix + String.length suffix
-      && String.starts_with ~prefix name
-      && String.ends_with ~suffix name
-
-let words line = List.filter (( <> ) "") (String.split_on_char ' ' line)
-
-let rec grades_option = function
-  | "--grades" :: name :: _ -> Some name
-  | _ :: rest -> grades_option rest
-  | [] -> None
-
-let case_table lines =
-  List.filter_map
-    (fun line ->
-      match words line with
-      | ">" :: pattern :: rest
-        when String.ends_with ~suffix:")" pattern && List.mem "../tempore" rest
-        ->
-          let pattern = String.sub pattern 0 (String.length pattern - 1) in
-          Some
-            (pattern, Option.value (grades_option rest) ~default:default_grades)
-      | _ -> None)
-    lines
-
-let header_grades path =
-  In_channel.with_open_text path In_channel.input_lines
-  |> List.filteri (fun i _ -> i < 12)
-  |> List.find_map (fun line -> grades_option (words line))
-
-(* The peripheral packages of the Arduino backend that a file names by
-   [--package NAME] options in the run command of its header, before its
-   "Grades" line: the files of each under the grades [grades], each with its
-   name, its text and the running-time bounds of the board named by a
-   [--board NAME] option, if any, which precede the file. *)
+(* The peripheral packages of the Arduino backend that the header of the file
+   at [path] names by [--package NAME] options: the files of each under the
+   grades [grades], each with its name, its text and the running-time bounds
+   of the board named by a [--board NAME] option, if any. *)
 let header_packages ~grades path =
-  let words =
-    In_channel.with_open_text path In_channel.input_lines
-    |> List.to_seq
-    |> Seq.take_while (fun line ->
-        not (String.starts_with ~prefix:"   Grades " line))
-    |> List.of_seq |> List.concat_map words
-  in
-  let rec options option = function
-    | o :: value :: rest when o = option -> value :: options option rest
-    | _ :: rest -> options option rest
-    | [] -> []
-  in
-  let board = List.nth_opt (options "--board" words) 0 in
-  options "--package" words
+  let board = List.nth_opt (TestSupport.Header.options path "--board") 0 in
+  TestSupport.Header.options path "--package"
   |> List.concat_map (fun name ->
       let module Package = ArduinoBackend.ArduinoPackage in
       match
@@ -86,12 +36,6 @@ let header_packages ~grades path =
             files
       | Some (Error message) -> failwith message
       | None -> failwith ("unknown package " ^ name))
-
-let grades_of_test table name =
-  List.find_map
-    (fun (pattern, grades) -> if glob pattern name then Some grades else None)
-    table
-  |> Option.value ~default:default_grades
 
 (* The expected output of each test file in the cram test: whether it shows a
    typing error, and whether a syntax error. *)
@@ -353,7 +297,7 @@ let expected_rejections =
     ("tests/comparison_reject_box.tpe", [ 3 ]);
     ("tests/comparison_reject_function.tpe", [ 5 ]);
     ("tests/comparison_reject_recursive_argument.tpe", [ 5 ]);
-    ("tests/comp_type_annotation_upper_reject.tpe", [ 3 ]);
+    ("tests/comp_type_annotation_upper_reject.tpe", [ 8 ]);
     ("tests/continuation_discard_abort_reject_lower.tpe", [ 13 ]);
     ("tests/continuation_discard_delay_reject_lower.tpe", [ 11 ]);
     ("tests/continuation_discard_reject_lower.tpe", [ 10 ]);
@@ -362,23 +306,23 @@ let expected_rejections =
     ("tests/continuation_nested_escape_reject.tpe", [ 14 ]);
     ("tests/continuation_nested_twice_reject_upper.tpe", [ 12 ]);
     ("tests/continuation_twice_reject_upper.tpe", [ 11 ]);
-    ("tests/counts_upper_reject.tpe", [ 7; 14; 19; 27 ]);
+    ("tests/counts_upper_reject.tpe", [ 11; 18; 23; 31 ]);
     ("tests/default_reject_bounds.tpe", [ 7 ]);
     ("tests/rational_time_intervals_reject.tpe", [ 10 ]);
-    ("tests/rational_time_intervals_reject_within.tpe", [ 5 ]);
+    ("tests/rational_time_intervals_reject_within.tpe", [ 10 ]);
     ("tests/rational_time_lower_reject.tpe", [ 11; 15 ]);
     ("tests/rational_time_upper_reject.tpe", [ 8 ]);
-    ("tests/rational_traces_intervals_default_open_reject.tpe", [ 10; 11 ]);
-    ("tests/rational_traces_intervals_reject.tpe", [ 9 ]);
-    ("tests/rational_traces_upper_open_reject.tpe", [ 8 ]);
-    ("tests/rational_traces_upper_reject.tpe", [ 9 ]);
+    ("tests/rational_traces_intervals_default_open_reject.tpe", [ 15; 16 ]);
+    ("tests/rational_traces_intervals_reject.tpe", [ 14 ]);
+    ("tests/rational_traces_upper_open_reject.tpe", [ 13 ]);
+    ("tests/rational_traces_upper_reject.tpe", [ 14 ]);
     ("tests/default_reject_cycle.tpe", [ 9 ]);
     ("tests/default_reject_duplicate.tpe", [ 8 ]);
     ("tests/default_reject_global.tpe", [ 11 ]);
     ("tests/default_reject_loop.tpe", [ 6 ]);
     ("tests/default_reject_type.tpe", [ 7 ]);
     ("tests/default_reject_unestablished.tpe", [ 18 ]);
-    ("tests/delay_reject_overflow.tpe", [ 4 ]);
+    ("tests/delay_reject_overflow.tpe", [ 8 ]);
     ("tests/error_apply_arg.tpe", [ 8 ]);
     ("tests/float_literals_reject_subtraction.tpe", [ 4 ]);
     ("tests/exhaustiveness_reject_bool.tpe", [ 3 ]);
@@ -401,19 +345,19 @@ let expected_rejections =
     ("tests/eternal_tyvars_reject_higher_order.tpe", [ 10 ]);
     ("tests/eternal_tyvars_reject_noneternal.tpe", [ 12 ]);
     ("tests/invalid_match_type.tpe", [ 4 ]);
-    ("tests/flow_levels_reject.tpe", [ 8; 13; 18; 26 ]);
+    ("tests/flow_levels_reject.tpe", [ 12; 17; 22; 30 ]);
     ("tests/iterative_unbox.tpe", [ 4 ]);
     ("tests/unbox_annotation_reject.tpe", [ 4 ]);
     ("tests/less_than_function.tpe", [ 1 ]);
-    ("tests/levels_reject.tpe", [ 8 ]);
-    ("tests/levels_time_lower_reject.tpe", [ 9; 16 ]);
-    ("tests/levels_time_upper_reject.tpe", [ 9; 16 ]);
+    ("tests/levels_reject.tpe", [ 12 ]);
+    ("tests/levels_time_lower_reject.tpe", [ 14; 21 ]);
+    ("tests/levels_time_upper_reject.tpe", [ 14; 21 ]);
     ("tests/list_constructor_reject.tpe", [ 3 ]);
     ("tests/malformed_type_application.tpe", [ 4 ]);
-    ("tests/mode_switch_costs_reject.tpe", [ 9; 12; 19; 24; 31 ]);
+    ("tests/mode_switch_costs_reject.tpe", [ 13; 16; 23; 28; 35 ]);
     ("tests/nat_reject_successor_pattern.tpe", [ 3; 5 ]);
     ("tests/noneternal_reject_after_delay.tpe", [ 11 ]);
-    ("tests/noneternal_reject_alias.tpe", [ 5 ]);
+    ("tests/noneternal_reject_alias.tpe", [ 9 ]);
     ("tests/noneternal_reject_unknown_grade.tpe", [ 18; 35 ]);
     ("tests/occurs_check.tpe", [ 1 ]);
     ("tests/occurs_check_related_annotation.tpe", [ 6 ]);
@@ -421,7 +365,7 @@ let expected_rejections =
     ("tests/occurs_check_related_pattern.tpe", [ 7 ]);
     ("tests/operation_reject_datatype.tpe", [ 5 ]);
     ("tests/operation_reject_higher_order.tpe", [ 8 ]);
-    ("tests/plain_traces_upper_reject.tpe", [ 12; 18 ]);
+    ("tests/plain_traces_upper_reject.tpe", [ 16; 22 ]);
     ("tests/polymorphism_id_id.tpe", [ 2 ]);
     ("tests/positivity_reject_list.tpe", [ 3 ]);
     ("tests/positivity_reject_mutual.tpe", [ 3 ]);
@@ -433,26 +377,26 @@ let expected_rejections =
     ("tests/recursion_effect_reject_unannotated.tpe", [ 8 ]);
     ("tests/recursion_effect_reject_unannotated_regular.tpe", [ 16 ]);
     ("tests/recursion_lock_reject.tpe", [ 8 ]);
-    ("tests/regex_timed_interval_reject.tpe", [ 10; 17 ]);
-    ("tests/regex_timed_interval_ticks_reject.tpe", [ 11; 19 ]);
-    ("tests/regex_timed_lower_reject.tpe", [ 11; 19; 26 ]);
-    ("tests/regex_timed_lower_ticks_reject.tpe", [ 10 ]);
-    ("tests/regex_timed_rational_interval_default_open_reject.tpe", [ 9; 10 ]);
-    ("tests/regex_timed_rational_interval_open_reject.tpe", [ 7 ]);
-    ("tests/regex_timed_rational_interval_reject.tpe", [ 10; 18 ]);
-    ("tests/regex_timed_rational_lower_reject.tpe", [ 11; 18; 28; 35 ]);
-    ("tests/regex_timed_rational_upper_open_reject.tpe", [ 9; 15 ]);
-    ("tests/regex_timed_rational_upper_reject.tpe", [ 12; 21; 32; 42; 51 ]);
-    ("tests/regex_timed_upper_open_reject.tpe", [ 9; 15 ]);
-    ("tests/regex_timed_upper_reject.tpe", [ 11; 19; 27; 34 ]);
-    ("tests/regex_timed_upper_ticks_reject.tpe", [ 11; 17; 20 ]);
-    ("tests/regex_rational_reject.tpe", [ 10; 17; 26; 28 ]);
-    ("tests/regular_reject_auth.tpe", [ 12; 19; 25 ]);
-    ("tests/regular_reject_bounds.tpe", [ 4 ]);
-    ("tests/regular_reject_counterexample.tpe", [ 13; 21 ]);
-    ("tests/regular_reject_protocol.tpe", [ 9; 18 ]);
-    ("tests/resource_levels_by_resource_reject.tpe", [ 11; 18; 28 ]);
-    ("tests/resource_levels_reject.tpe", [ 9; 18; 27; 30; 38; 41; 49 ]);
+    ("tests/regex_timed_interval_reject.tpe", [ 15; 22 ]);
+    ("tests/regex_timed_interval_ticks_reject.tpe", [ 16; 24 ]);
+    ("tests/regex_timed_lower_reject.tpe", [ 16; 24; 31 ]);
+    ("tests/regex_timed_lower_ticks_reject.tpe", [ 15 ]);
+    ("tests/regex_timed_rational_interval_default_open_reject.tpe", [ 14; 15 ]);
+    ("tests/regex_timed_rational_interval_open_reject.tpe", [ 12 ]);
+    ("tests/regex_timed_rational_interval_reject.tpe", [ 15; 23 ]);
+    ("tests/regex_timed_rational_lower_reject.tpe", [ 16; 23; 33; 40 ]);
+    ("tests/regex_timed_rational_upper_open_reject.tpe", [ 14; 20 ]);
+    ("tests/regex_timed_rational_upper_reject.tpe", [ 17; 26; 37; 47; 56 ]);
+    ("tests/regex_timed_upper_open_reject.tpe", [ 14; 20 ]);
+    ("tests/regex_timed_upper_reject.tpe", [ 16; 24; 32; 39 ]);
+    ("tests/regex_timed_upper_ticks_reject.tpe", [ 16; 22; 25 ]);
+    ("tests/regex_rational_reject.tpe", [ 15; 22; 31; 33 ]);
+    ("tests/regular_reject_auth.tpe", [ 16; 23; 29 ]);
+    ("tests/regular_reject_bounds.tpe", [ 9 ]);
+    ("tests/regular_reject_counterexample.tpe", [ 18; 26 ]);
+    ("tests/regular_reject_protocol.tpe", [ 14; 23 ]);
+    ("tests/resource_levels_by_resource_reject.tpe", [ 16; 23; 33 ]);
+    ("tests/resource_levels_reject.tpe", [ 13; 22; 31; 34; 42; 45; 53 ]);
     ("tests/termination_reject_ackermann.tpe", [ 4 ]);
     ("tests/termination_reject_countdown.tpe", [ 4 ]);
     ("tests/termination_reject_escape.tpe", [ 4 ]);
@@ -460,21 +404,21 @@ let expected_rejections =
     ("tests/termination_reject_loop.tpe", [ 3 ]);
     ("tests/termination_reject_spin.tpe", [ 3 ]);
     ("tests/time_reject_within.tpe", [ 6 ]);
-    ("tests/traces_intervals_default_bounds.tpe", [ 9 ]);
-    ("tests/traces_intervals_default_open_reject.tpe", [ 9; 10 ]);
-    ("tests/traces_open_bounds_reject.tpe", [ 9; 15 ]);
-    ("tests/traces_reject_allowance.tpe", [ 7 ]);
-    ("tests/traces_reject_bounds.tpe", [ 4 ]);
-    ("tests/traces_reject_bounds_declared.tpe", [ 6 ]);
-    ("tests/traces_reject_bounds_zero.tpe", [ 4 ]);
-    ("tests/traces_reject_default_bounds.tpe", [ 8 ]);
-    ("tests/traces_reject_default_nonatomic.tpe", [ 14 ]);
-    ("tests/traces_reject_missing_within.tpe", [ 5 ]);
-    ("tests/traces_reject_order.tpe", [ 13 ]);
-    ("tests/traces_reject_self_retry.tpe", [ 6 ]);
-    ("tests/traces_reject_undecided_condition.tpe", [ 15 ]);
-    ("tests/traces_reject_unknown_event.tpe", [ 6 ]);
-    ("tests/windowed_schedules_reject.tpe", [ 7; 12; 17; 25; 32 ]);
+    ("tests/traces_intervals_default_bounds.tpe", [ 14 ]);
+    ("tests/traces_intervals_default_open_reject.tpe", [ 14; 15 ]);
+    ("tests/traces_open_bounds_reject.tpe", [ 14; 20 ]);
+    ("tests/traces_reject_allowance.tpe", [ 12 ]);
+    ("tests/traces_reject_bounds.tpe", [ 8 ]);
+    ("tests/traces_reject_bounds_declared.tpe", [ 11 ]);
+    ("tests/traces_reject_bounds_zero.tpe", [ 9 ]);
+    ("tests/traces_reject_default_bounds.tpe", [ 13 ]);
+    ("tests/traces_reject_default_nonatomic.tpe", [ 19 ]);
+    ("tests/traces_reject_missing_within.tpe", [ 10 ]);
+    ("tests/traces_reject_order.tpe", [ 17 ]);
+    ("tests/traces_reject_self_retry.tpe", [ 11 ]);
+    ("tests/traces_reject_undecided_condition.tpe", [ 20 ]);
+    ("tests/traces_reject_unknown_event.tpe", [ 11 ]);
+    ("tests/windowed_schedules_reject.tpe", [ 11; 16; 21; 29; 36 ]);
   ]
 
 let slow = ref []
@@ -521,16 +465,16 @@ let programs () =
       (Filename.concat root "tests/run_tests.t")
       In_channel.input_lines
   in
-  let table = case_table cram and expected = expectations cram in
+  let expected = expectations cram in
   List.iter
     (fun path ->
-      let grades = Option.value (header_grades path) ~default:default_grades in
+      let grades = TestSupport.Header.grades path in
       ignore (check ~packages:(header_packages ~grades path) path grades))
     (tpe_files (Filename.concat root "examples"));
   List.iter
     (fun path ->
       let name = Filename.basename path in
-      let grades = grades_of_test table name in
+      let grades = TestSupport.Header.grades path in
       match (check path grades, List.assoc_opt name expected) with
       | None, _ | _, None -> ()
       | Some verdicts, Some e ->

@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the
+(* Run this test with the 'regex-upper-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-upper-bound-rational-symbolic \
+       tests/regex_rational_reject.tpe
+
+   Correctly rejected by the typechecker, under the
    'regex-upper-bound-rational-symbolic' grading monoid: two delays adding up to
    the one delay a complement excludes, a reading sent too late, a delay off the
    period of a timer, and a trace too short for a lower bound on its delay,

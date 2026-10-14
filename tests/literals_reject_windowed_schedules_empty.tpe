@@ -1,4 +1,9 @@
-(* Rejected: the open interval of durations '(2, 3)' contains no whole number
+(* Run this test with the 'windowed-schedules' grading monoid, e.g.
+
+     ./tempore --grades windowed-schedules \
+       tests/literals_reject_windowed_schedules_empty.tpe
+
+   Rejected: the open interval of durations '(2, 3)' contains no whole number
    of ticks. *)
 
 let claim () = box (2, 3) 1

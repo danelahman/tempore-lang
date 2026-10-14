@@ -1,4 +1,9 @@
-(* Accepted under the 'regex-timed-lower-bound-letter-automata' grading monoid:
+(* Run this test with the 'regex-timed-lower-bound-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-lower-bound-symbolic \
+       tests/regex_timed_lower.tpe
+
+   Accepted under the 'regex-timed-lower-bound-letter-automata' grading monoid:
    regular lower bounds covered by traces whose operations bank their lower
    running-time bounds. *)
 

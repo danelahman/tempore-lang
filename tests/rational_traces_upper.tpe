@@ -1,4 +1,9 @@
-(* Correctly accepted by the typechecker, under the
+(* Run this test with the 'traces-timed-upper-bound-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound-rational \
+       tests/rational_traces_upper.tpe
+
+   Correctly accepted by the typechecker, under the
    'traces-timed-upper-bound-rational' grading monoid: delays and running-time
    bounds are non-negative rationals, and the allowance order buys operations
    at their upper running-time bounds with the delays a bound banks. *)

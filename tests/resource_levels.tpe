@@ -1,4 +1,8 @@
-(* Resource levels: the trough, the net change of the descriptors held and
+(* Run this test with the 'resource-levels' grading monoid, e.g.
+
+     ./tempore --grades resource-levels tests/resource_levels.tpe
+
+   Resource levels: the trough, the net change of the descriptors held and
    their peak. *)
 
 type file = File of string

@@ -1,4 +1,8 @@
-(* Rejected: time-upper-bound counts whole ticks, and the hint names the
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/literals_reject_fraction.tpe
+
+   Rejected: time-upper-bound counts whole ticks, and the hint names the
    grades reading fractions. *)
 
 let claim () = box 3/2 1

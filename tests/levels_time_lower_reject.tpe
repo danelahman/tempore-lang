@@ -1,4 +1,9 @@
-(* Time lower bounds paired with security levels: rejected claims of an
+(* Run this test with the 'time-lower-bound-levels' grading monoid, e.g.
+
+     ./tempore --grades time-lower-bound-levels \
+       tests/levels_time_lower_reject.tpe
+
+   Time lower bounds paired with security levels: rejected claims of an
    embargoed report. *)
 
 operation Publish : string ~> unit # (1, High)

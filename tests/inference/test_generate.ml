@@ -17,67 +17,13 @@ let fail fmt = Format.kasprintf (fun msg -> failures := msg :: !failures) fmt
 (* Grade systems of the files                                          *)
 (* ------------------------------------------------------------------ *)
 
-let default_grades = "time-lower-bound"
-
-(* [glob pattern name] matches [name] against [pattern], whose [*] stands for
-   any string. *)
-let glob pattern name =
-  match String.index_opt pattern '*' with
-  | None -> pattern = name
-  | Some i ->
-      let prefix = String.sub pattern 0 i
-      and suffix = String.sub pattern (i + 1) (String.length pattern - i - 1) in
-      String.length name >= String.length prefix + String.length suffix
-      && String.starts_with ~prefix name
-      && String.ends_with ~suffix name
-
-let words line = List.filter (( <> ) "") (String.split_on_char ' ' line)
-
-(* The grades named by [--grades NAME] in [words], the default if none. *)
-let rec grades_option = function
-  | "--grades" :: name :: _ -> Some name
-  | _ :: rest -> grades_option rest
-  | [] -> None
-
-(* The case table of the cram test: the file patterns and their grades. *)
-let case_table path =
-  In_channel.with_open_text path In_channel.input_lines
-  |> List.filter_map (fun line ->
-      match words line with
-      | ">" :: pattern :: rest
-        when String.ends_with ~suffix:")" pattern && List.mem "../tempore" rest
-        ->
-          let pattern = String.sub pattern 0 (String.length pattern - 1) in
-          Some
-            (pattern, Option.value (grades_option rest) ~default:default_grades)
-      | _ -> None)
-
-(* The grades a file names in its header comment. *)
-let header_grades path =
-  In_channel.with_open_text path In_channel.input_lines
-  |> List.filteri (fun i _ -> i < 12)
-  |> List.find_map (fun line -> grades_option (words line))
-
-(* The peripheral packages of the Arduino backend that a file names by
-   [--package NAME] options in the run command of its header, before its
-   "Grades" line: the files of each under the grades [grades], each with its
-   name, its text and the running-time bounds of the board named by a
-   [--board NAME] option, if any, which precede the file. *)
+(* The peripheral packages of the Arduino backend that the header of the file
+   at [path] names by [--package NAME] options: the files of each under the
+   grades [grades], each with its name, its text and the running-time bounds
+   of the board named by a [--board NAME] option, if any. *)
 let header_packages ~grades path =
-  let words =
-    In_channel.with_open_text path In_channel.input_lines
-    |> List.to_seq
-    |> Seq.take_while (fun line ->
-        not (String.starts_with ~prefix:"   Grades " line))
-    |> List.of_seq |> List.concat_map words
-  in
-  let rec options option = function
-    | o :: value :: rest when o = option -> value :: options option rest
-    | _ :: rest -> options option rest
-    | [] -> []
-  in
-  let board = List.nth_opt (options "--board" words) 0 in
-  options "--package" words
+  let board = List.nth_opt (TestSupport.Header.options path "--board") 0 in
+  TestSupport.Header.options path "--package"
   |> List.concat_map (fun name ->
       let module Package = ArduinoBackend.ArduinoPackage in
       match
@@ -89,12 +35,6 @@ let header_packages ~grades path =
             files
       | Some (Error message) -> failwith message
       | None -> failwith ("unknown package " ^ name))
-
-let grades_of_test table name =
-  List.find_map
-    (fun (pattern, grades) -> if glob pattern name then Some grades else None)
-    table
-  |> Option.value ~default:default_grades
 
 (* The files with a program that a correct front end or generation rejects,
    with an error of their own rather than one of the solver. *)
@@ -333,16 +273,12 @@ let rec tpe_files ?(recursive = true) dir =
 
 let programs () =
   let root = "../.." in
-  let table = case_table (Filename.concat root "tests/run_tests.t") in
   List.iter
     (fun path ->
-      let grades = Option.value (header_grades path) ~default:default_grades in
+      let grades = TestSupport.Header.grades path in
       check_file ~packages:(header_packages ~grades path) path grades)
-    (tpe_files (Filename.concat root "examples"));
-  List.iter
-    (fun path ->
-      check_file path (grades_of_test table (Filename.basename path)))
-    (tpe_files ~recursive:false (Filename.concat root "tests"))
+    (tpe_files (Filename.concat root "examples")
+    @ tpe_files ~recursive:false (Filename.concat root "tests"))
 
 (* ------------------------------------------------------------------ *)
 (* Constraints of small terms                                          *)

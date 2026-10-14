@@ -1,3 +1,7 @@
-(* Rejected: the trace grades do not accept repetition. *)
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound tests/literals_reject_star.tpe
+
+   Rejected: the trace grades do not accept repetition. *)
 
 let claim () = box {(Send; 2)*} 1

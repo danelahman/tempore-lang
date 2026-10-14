@@ -1,4 +1,8 @@
-(* Windowed schedules: rejected programs. *)
+(* Run this test with the 'windowed-schedules' grading monoid, e.g.
+
+     ./tempore --grades windowed-schedules tests/windowed_schedules_reject.tpe
+
+   Windowed schedules: rejected programs. *)
 
 operation Send : unit ~> unit # (1, (Send, {0}))
 operation Wait : unit ~> unit # [1, 3]

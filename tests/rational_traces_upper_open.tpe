@@ -1,4 +1,9 @@
-(* Correctly accepted by the typechecker, under the
+(* Run this test with the 'traces-timed-upper-bound-rational' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound-rational \
+       tests/rational_traces_upper_open.tpe
+
+   Correctly accepted by the typechecker, under the
    'traces-timed-upper-bound-rational' grading monoid: a sample within
    [1/2, 3/2) takes less than 3/2 time units, so it fits a box of 3/2, and the
    compound 'Poll', a sample and a delay of 1/2, has the running-time bounds

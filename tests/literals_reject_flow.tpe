@@ -1,3 +1,7 @@
-(* Rejected: a sink is listed twice. *)
+(* Run this test with the 'flow-levels' grading monoid, e.g.
+
+     ./tempore --grades flow-levels tests/literals_reject_flow.tpe
+
+   Rejected: a sink is listed twice. *)
 
 let claim () = box (High, (Board, Low), (Board, High)) 1

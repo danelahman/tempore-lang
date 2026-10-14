@@ -1,4 +1,9 @@
-(* Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound \
+       tests/traces_reject_default_bounds.tpe
+
+   Correctly rejected by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: a default implementation is checked against the
    running-time bounds of its operation, and 'Extrude' promises to be done
    within five ticks. *)

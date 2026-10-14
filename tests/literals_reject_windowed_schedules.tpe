@@ -1,3 +1,8 @@
-(* Rejected: the times of windowed schedules are given by operation. *)
+(* Run this test with the 'windowed-schedules' grading monoid, e.g.
+
+     ./tempore --grades windowed-schedules \
+       tests/literals_reject_windowed_schedules.tpe
+
+   Rejected: the times of windowed schedules are given by operation. *)
 
 let claim () = box (1, {0}) 1

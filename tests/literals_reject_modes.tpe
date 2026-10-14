@@ -1,3 +1,7 @@
-(* Rejected: a change of mode costs at least 1. *)
+(* Run this test with the 'mode-switch-costs' grading monoid, e.g.
+
+     ./tempore --grades mode-switch-costs tests/literals_reject_modes.tpe
+
+   Rejected: a change of mode costs at least 1. *)
 
 let claim () = box (On, Off, 0) 1

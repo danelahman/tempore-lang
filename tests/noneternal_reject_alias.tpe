@@ -1,4 +1,8 @@
-(* Correctly rejected by the typechecker: 'noneternal' may only be put on an
+(* Run this test with the 'time-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades time-upper-bound tests/noneternal_reject_alias.tpe
+
+   Correctly rejected by the typechecker: 'noneternal' may only be put on an
    algebraic type. An alias is transparent and is unfolded by the unifier long
    before the eternality check ever sees it, so a flag on one could not be
    honoured. *)

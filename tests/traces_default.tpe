@@ -1,4 +1,8 @@
-(* Correctly accepted by the typechecker, under the 'traces-timed-upper-bound'
+(* Run this test with the 'traces-timed-upper-bound' grading monoid, e.g.
+
+     ./tempore --grades traces-timed-upper-bound tests/traces_default.tpe
+
+   Correctly accepted by the typechecker, under the 'traces-timed-upper-bound'
    grading monoid: the three atomic operations of a print are given default
    implementations, checked against their running-time bounds rather than
    against their grades, and the compound operation 'PrintModel' is handled by

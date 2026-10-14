@@ -1,4 +1,9 @@
-(* Rejected under the 'regex-timed-interval-rational-symbolic' grading monoid: each
+(* Run this test with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       tests/regex_timed_rational_interval_reject.tpe
+
+   Rejected under the 'regex-timed-interval-rational-symbolic' grading monoid: each
    component is checked at its own end of the fractional running-time bounds. *)
 
 type token = Token of string
