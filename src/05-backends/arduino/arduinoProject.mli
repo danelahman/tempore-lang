@@ -50,10 +50,12 @@
 
     A periodic task of period [P] calls the initial function, if any, once, and
     then its function at every release, from the tick at which it starts, with
-    [vTaskDelayUntil]; the running time of each call is checked against [P]. A
-    free task calls its function once and is deleted when it returns, or, if it
-    is repeated, calls it again each time it returns. Each task first checks
-    whether the tasks are halted, and stops if they are.
+    [vTaskDelayUntil]; the running time of each call is checked against [P].
+    When a release is missed, as after an overrun, the next release follows [P]
+    after the end of the late call, without calls that follow one another at
+    once. A free task calls its function once and is deleted when it returns,
+    or, if it is repeated, calls it again each time it returns. Each task first
+    checks whether the tasks are halted, and stops if they are.
 
     {2 Time}
 

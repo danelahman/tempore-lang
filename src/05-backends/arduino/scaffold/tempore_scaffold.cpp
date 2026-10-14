@@ -401,6 +401,12 @@ void tempore_monitor_period(tempore_task_monitor *task, int64_t start_us,
   tempore_record_warning(first);
 }
 
+void tempore_wait_release(TickType_t *release, TickType_t period) {
+  const TickType_t now = xTaskGetTickCount();
+  if (static_cast<TickType_t>(now - *release) > period) *release = now;
+  vTaskDelayUntil(release, period);
+}
+
 #ifdef TEMPORE_PROFILE
 
 #ifndef TEMPORE_PROFILE_INTERVAL_MS

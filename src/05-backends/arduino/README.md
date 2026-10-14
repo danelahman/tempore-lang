@@ -51,7 +51,8 @@ physical world used only by the host simulation:
     }
 
 A periodic task calls its function, of type `s -> s`, once per period, from
-the state its `initial` function returns; a free task calls its function, of
+the state its `initial` function returns, and after a missed release, as
+after an overrun, a period after the end of the late step; a free task calls its function, of
 type `unit -> unit`, once, or, with `repeat`, each time it returns.
 
 ## Peripheral packages

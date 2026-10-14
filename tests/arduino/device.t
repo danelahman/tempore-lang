@@ -70,7 +70,7 @@ tasks of the manifest, and the stubs of the host simulation.
       const int64_t start = tempore_clock_us();
       state = step_2(state);
       tempore_monitor_period(&tempore_task0_monitor, start, tempore_clock_us());
-      vTaskDelayUntil(&release, pdMS_TO_TICKS(10));
+      tempore_wait_release(&release, pdMS_TO_TICKS(10));
     }
   }
   
@@ -279,7 +279,7 @@ Under --monitor off nothing is checked:
   [1]
 
 A step that takes its period or longer is an overrun, and the next release
-follows at once. Since the typing of the step bounds its running time below
+follows a period after its end, the releases missed being skipped. Since the typing of the step bounds its running time below
 the period under the bounds of its operations, an overrun comes with an
 operation outside its bounds, which under abort halts the tasks first.
 
@@ -293,17 +293,11 @@ operation outside its bounds, which under abort halts the tasks first.
   [12.000 ms] Operation Show took 12000 us
   [12.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
   [12.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
-  [12.000 ms] Release step
-  [24.000 ms] Show 1
-  [24.000 ms] Operation Show took 12000 us
-  [24.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
-  [24.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
-  [24.000 ms] Release step
-  [36.000 ms] Show 2
-  [36.000 ms] Operation Show took 12000 us
-  [36.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
-  [36.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
-  [36.000 ms] Release step
+  [22.000 ms] Release step
+  [34.000 ms] Show 1
+  [34.000 ms] Operation Show took 12000 us
+  [34.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
+  [34.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
   [40.000 ms] End of the simulation
   $ emit overrun --device toy/overrun.device.json toy/toy.tpe --host-simulate 0.04 | grep -v '^Wrote'
   [0.000 ms] Release step
@@ -329,22 +323,16 @@ between the starts of the steps and the overruns, every 5 s and at its end:
   [12.000 ms] Show 0
   [12.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
   [12.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
-  [24.000 ms] Show 1
-  [24.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
-  [24.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
-  [36.000 ms] Show 2
-  [36.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
-  [36.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
-  [48.000 ms] Show 3
-  [48.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
-  [48.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
+  [34.000 ms] Show 1
+  [34.000 ms] Monitor: operation Show took 12000 us, outside its running-time bounds [100, 200] us
+  [34.000 ms] Monitor: a step of the task step took 12000 us, not below its period 10000 us
   [50.000 ms] End of the simulation
   [50.000 ms] Profile since start-up, times in microseconds
     operation    calls       min       mean       max
-    Show             4     12000    12000.0     12000
+    Show             2     12000    12000.0     12000
     Blink            1       300      300.0       300
     task         steps       min       mean       max    period  min interval  max interval  overruns
-    step             4     12000    12000.0     12000     10000         12000         12000         4
+    step             2     12000    12000.0     12000     10000         22000         22000         2
   [50.000 ms] End of the profile
   $ grep -A 2 'build_flags' _arduino/projects/overrun/platformio.ini
   build_flags =

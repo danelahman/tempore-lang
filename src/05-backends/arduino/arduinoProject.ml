@@ -400,8 +400,8 @@ let main_source input board packages tasks =
           Printf.sprintf
             "    tempore_monitor_period(&%s, start, tempore_clock_us());"
             (task_monitor i);
-          Printf.sprintf "    vTaskDelayUntil(&release, pdMS_TO_TICKS(%d));"
-            period_ms;
+          Printf.sprintf
+            "    tempore_wait_release(&release, pdMS_TO_TICKS(%d));" period_ms;
           "  }";
           "}";
         ]

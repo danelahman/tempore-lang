@@ -6,6 +6,7 @@
 #ifndef TEMPORE_SCAFFOLD_H
 #define TEMPORE_SCAFFOLD_H
 
+#include <freertos/FreeRTOS.h>
 #include <stdint.h>
 
 #include "tempore_arduino.h"
@@ -128,6 +129,13 @@ void tempore_monitor_operation(tempore_operation_monitor *operation,
 // profile: an overrun is a step that takes the period or longer.
 void tempore_monitor_period(tempore_task_monitor *task, int64_t start_us,
                             int64_t end_us);
+
+// Blocks the calling periodic task until its next release, period ticks after
+// the release *release, which becomes the new *release. If the tick of that
+// release has passed, the task is resynchronised: the current tick becomes
+// *release, and the next release follows a period after it, so that missed
+// releases are not made up by steps that follow one another at once.
+void tempore_wait_release(TickType_t *release, TickType_t period);
 
 // The profile, when TEMPORE_PROFILE is defined: the statistics of the running
 // times of the operations, and of the steps of the periodic tasks, the
