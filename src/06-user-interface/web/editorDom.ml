@@ -10,6 +10,29 @@ let window = Ojs.global
 let is_nothing obj = Ojs.is_null obj || obj = Ojs.unit_to_js ()
 let number obj key = Ojs.float_of_js (get obj key)
 
+let by_id id =
+  let element = call document "getElementById" [ Ojs.string_to_js id ] in
+  if is_nothing element then None else Some element
+
+let listen ~capture kind f =
+  ignore
+    (call window "addEventListener"
+       [ Ojs.string_to_js kind; Ojs.fun_to_js 1 f; Ojs.bool_to_js capture ])
+
+let set_timeout f delay =
+  ignore
+    (call window "setTimeout"
+       [ Ojs.fun_to_js 1 (fun _ -> f ()); Ojs.int_to_js delay ])
+
+let reduced_motion () =
+  let match_media = get window "matchMedia" in
+  (not (is_nothing match_media))
+  && Ojs.bool_of_js
+       (get
+          (call window "matchMedia"
+             [ Ojs.string_to_js "(prefers-reduced-motion: reduce)" ])
+          "matches")
+
 (* The elements or rectangles of a DOM collection. *)
 let items collection =
   Ojs.array_of_js Fun.id (call (get Ojs.global "Array") "from" [ collection ])
@@ -214,13 +237,6 @@ let jump offset =
       r.top < comfortable_top *. height
       || r.bottom > comfortable_bottom *. height
     then
-      let reduced =
-        Ojs.bool_of_js
-          (get
-             (call window "matchMedia"
-                [ Ojs.string_to_js "(prefers-reduced-motion: reduce)" ])
-             "matches")
-      in
       ignore
         (call window "scrollTo"
            [
@@ -231,7 +247,8 @@ let jump offset =
                      (number window "scrollY" +. r.top
                     -. (scrolled_top *. height)) );
                  ( "behavior",
-                   Ojs.string_to_js (if reduced then "instant" else "smooth") );
+                   Ojs.string_to_js
+                     (if reduced_motion () then "instant" else "smooth") );
                |];
            ])
 
