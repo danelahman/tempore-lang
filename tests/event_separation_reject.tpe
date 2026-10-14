@@ -44,3 +44,19 @@ let rec short n : unit # (Beat, [0, 5]) =
       perform Beat ();
       perform Work ();
       short m
+
+(* Rejected: a value boxed for exactly two beats is used after three. *)
+let three_beats () =
+  box (2, Beat, [0, 1]) 7 as x in
+  perform Beat ();
+  perform Beat ();
+  perform Beat ();
+  unbox x as n in
+  n
+
+(* Rejected: a value boxed for exactly two beats is used after one. *)
+let one_beat () =
+  box (2, Beat, [0, 1]) 7 as x in
+  perform Beat ();
+  unbox x as n in
+  n

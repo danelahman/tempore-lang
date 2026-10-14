@@ -10,7 +10,8 @@
        examples/arduino/steps/steps.tpe
 
    Grades (X, lead, gaps, tail): the times before the first X, between the
-   starts of consecutive Xs and from the start of the last X to the end
+   starts of consecutive Xs and from the start of the last X to the end;
+   (n, X, lead, tail): exactly n Xs, the counts added by the product
      - Unit 0: no operation, no time spent
      - Top ⊤: any times before, between and after the operations
      - Product: (a, G, b) · (a', G', b') = (a, G ∪ G' ∪ {b + a'}, b') *)
@@ -66,10 +67,12 @@ let screen (steps : nat) =
    number of rounds, and of the repetitions of the task, up to the tick of
    the scheduler between them.
 
-   The first reading is boxed until the second: one reading, started 10 to
-   45 ms after the first ended, and the decision at its end. The unit
-   samples at 100 Hz, and a reading within 10 ms of another may return the
-   same sample; the second reading is thus a new sample, taken within the
+   The first reading is boxed until the second, with a count: exactly one
+   reading, started 10 to 45 ms after the first ended, and the decision at
+   its end. Counts add under sequencing, so that the invariant states the
+   spacing alone and the box the count with the times. The unit samples at
+   100 Hz, and a reading within 10 ms of another may return the same
+   sample; the second reading is thus a new sample, taken within the
    rise. *)
 let rec count (n : nat) (steps : nat) (armed : bool)
     : unit # (ReadImu, [0, 0], [0, 50], [0, 50]) =
@@ -77,7 +80,8 @@ let rec count (n : nat) (steps : nat) (armed : bool)
   | 0 -> ()
   | m + 1 ->
       let a = load () in
-      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      (* Exactly one reading, 10 to 45 ms on, at most 1.5 ms before the use. *)
+      box (1, ReadImu, [10, 45], [0, 1.5]) a as first in
       perform DrawBar (0, 180, 320, 16, bar a, blue);
       delay 10;
       let b = load () in
@@ -99,8 +103,8 @@ let rec count (n : nat) (steps : nat) (armed : bool)
        [0, 0], [0, 50], [0, 50])`, which does not match its annotated grade
        `(ReadImu, [0, 0], [0, 50], [0, 50])`
        ...
-       Note: the grade `⟨...; ReadImu: active ([0, 0], [0, 257.5],
-       [0, 257.5]); ...⟩` is below ... but not below
+       Note: the grade `⟨...; ReadImu: active ([2, ∞), [0, 0],
+       [0, 257.5], [0, 257.5]); ...⟩` is below ... but not below
        `(ReadImu, [0, 0], [0, 50], [0, 50])`
 *)
 (*
@@ -110,7 +114,7 @@ let rec count_redrawn (n : nat) (steps : nat) (armed : bool)
   | 0 -> ()
   | m + 1 ->
       let a = load () in
-      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      box (1, ReadImu, [10, 45], [0, 1.5]) a as first in
       perform DrawBar (0, 180, 320, 16, bar a, blue);
       delay 10;
       let b = load () in
@@ -130,10 +134,10 @@ let rec count_redrawn (n : nat) (steps : nat) (armed : bool)
 
      Typing error: Variable `first` is unboxed with grade `{ReadImu}`
        accumulated since it was bound, which is not below its box grade
-       `(ReadImu, [10, 45], [0, 0], [0, 1.5])`
+       `(1, ReadImu, [10, 45], [0, 1.5])`
        ...
-       Note: the resource inequality `{ReadImu} <= (ReadImu, [10, 45],
-       [0, 0], [0, 1.5])` does not hold
+       Note: the resource inequality `{ReadImu} <= (1, ReadImu, [10, 45],
+       [0, 1.5])` does not hold
 *)
 (*
 let rec count_at_once (n : nat) (steps : nat) (armed : bool)
@@ -142,7 +146,7 @@ let rec count_at_once (n : nat) (steps : nat) (armed : bool)
   | 0 -> ()
   | m + 1 ->
       let a = load () in
-      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      box (1, ReadImu, [10, 45], [0, 1.5]) a as first in
       let b = load () in
       unbox first as a in
       let stepped = armed && a > high && b > high in

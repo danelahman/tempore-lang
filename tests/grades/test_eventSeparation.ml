@@ -46,31 +46,49 @@ let random_interval ?(unbounded = false) ?(positive = false) st =
 let random_bounds st =
   bounds_of (List.map (fun o -> (o, random_interval ~positive:true st)) names)
 
-(* A random specification of one or two names, with a total duration or
-   none. *)
-let random_specification st =
+(* A random specification of one or two names, each entry of a form with or
+   without a count, with a total duration or none; an entry of count [0]
+   without silent durations is drawn again. *)
+let rec random_specification st =
   let interval () =
     let lo, hi = random_interval ~unbounded:true st in
     Grade.Interval
       (Grade.map_end Grade.rational_lit lo, Grade.map_end Grade.rational_lit hi)
   in
+  let count () =
+    let n = Random.State.int st 4 in
+    match Random.State.int st 3 with
+    | 0 -> Grade.Int n
+    | 1 -> Grade.Interval (Grade.Closed (Grade.Int n), Grade.Unbounded)
+    | _ ->
+        Grade.Interval
+          ( Grade.Closed (Grade.Int n),
+            Grade.Closed (Grade.Int (n + Random.State.int st 3)) )
+  in
   let entry name =
     Grade.Tuple
-      (Grade.Name name
-      ::
-      (if Random.State.bool st then [ interval () ]
-       else [ interval (); interval (); interval () ]))
+      (match Random.State.int st 5 with
+      | 0 -> [ Grade.Name name; interval () ]
+      | 1 -> [ Grade.Name name; interval (); interval (); interval () ]
+      | 2 -> [ count (); Grade.Name name; interval () ]
+      | 3 -> [ count (); Grade.Name name; interval (); interval () ]
+      | _ ->
+          [ count (); Grade.Name name; interval (); interval (); interval () ])
   in
   let entries =
     List.map entry (List.filter (fun _ -> Random.State.bool st) names)
   in
   let entries = if entries = [] then [ entry "A" ] else entries in
-  E.of_lit
-    (match entries with
-    | [ entry ] when Random.State.bool st -> entry
-    | entries ->
-        Grade.Tuple
-          (entries @ if Random.State.bool st then [] else [ interval () ]))
+  match
+    E.of_lit
+      (match entries with
+      | [ entry ] when Random.State.bool st -> entry
+      | entries ->
+          Grade.Tuple
+            (entries @ if Random.State.bool st then [] else [ interval () ]))
+  with
+  | c -> c
+  | exception Grade.Invalid_literal _ -> random_specification st
 
 (* A random term of depth at most [depth], with specifications if [specs]. *)
 let rec random_term ~specs st depth =
@@ -170,7 +188,8 @@ let rec concrete (bounds : Grade.bounds) st c =
 let duration = function Occurrence (_, d) | Wait d -> d
 
 (* The summary of the name [name] in the computation [steps], directly: the
-   total duration, and [None] if silent, or the lead, the gaps and the tail. *)
+   total duration, and [None] if silent, or the count, the lead, the gaps and
+   the tail. *)
 let observe name steps =
   let total, starts =
     List.fold_left
@@ -189,7 +208,9 @@ let observe name steps =
         | [ _ ] | [] -> []
       in
       let last = List.hd (List.rev starts) in
-      (total, Some (first, gaps starts, Rational.sub total last))
+      ( total,
+        Some (List.length starts, first, gaps starts, Rational.sub total last)
+      )
 
 (* Whether the summary of [name] in [steps] lies within the entry [e] and
    [total]. *)
@@ -200,8 +221,10 @@ let within name steps (e : E.Summary.entry) total =
   match (active, e) with
   | None, { silent = Some i; _ } -> member d i
   | None, { silent = None; _ } -> false
-  | Some (a, gaps, b), { active = Some x; _ } -> (
-      member a x.lead && member b x.tail
+  | Some (k, a, gaps, b), { active = Some x; _ } -> (
+      x.count.least <= k
+      && Option.fold ~none:true ~some:(fun m -> k <= m) x.count.most
+      && member a x.lead && member b x.tail
       &&
       match (gaps, x.gaps) with
       | [], _ -> true
@@ -233,8 +256,8 @@ let oracle =
         (E.show c ^ " by " ^ show_steps steps))
 
 (* Under exact running times, the term of a concrete computation is below a
-   specification iff the gaps, leads, tails, silent durations and the total
-   duration of the computation satisfy it. *)
+   specification iff the counts, gaps, leads, tails, silent durations and the
+   total duration of the computation satisfy it. *)
 let exact_specifications =
   let st = Random.State.make [| 17 |] in
   let table =
@@ -410,6 +433,53 @@ let examples =
     fails "a total duration exceeded" "{Beat; 3}" "((Beat, [0, 10]), [2, 3])";
     rejected "an entry of the others" "((Beat, [0, 1]), (_, [0, 5]))"
       "the others being unconstrained";
+    holds "exactly two beeps" "{1; Beep; 2; Beep}"
+      "(2, Beep, [1, 3], [2, 3], [0, 1])";
+    fails "one beep for exactly two" "{1; Beep}"
+      "(2, Beep, [1, 3], [2, 3], [0, 1])";
+    fails "three beeps for exactly two" "{1; Beep; 2; Beep; 2; Beep}"
+      "(2, Beep, [1, 3], [2, 3], [0, 1])";
+    holds "exactly one with a lead and a tail" "{Beat; 1; Beep}"
+      "(1, Beep, [1, 2], [0, 0.5])";
+    fails "a late single beep" "{Beat; 3; Beep}" "(1, Beep, [1, 2], [0, 0.5])";
+    holds "the single reading of the indirect form"
+      "(1, Beep, [1, 2], [0, 0.5])" "(Beep, [1, 2], [0, 0], [0, 0.5])";
+    holds "the indirect form within the count" "{Beat; 1; Beep}"
+      "(Beep, [1, 2], [0, 0], [0, 0.5])";
+    holds "a count interval" "{Beep; 1; Beep}" "([1, 3], Beep, [0, 2])";
+    fails "a count interval exceeded" "{Beep; Beep; Beep; Beep}"
+      "([1, 3], Beep, [0, 2])";
+    holds "no occurrence" "{Beat; 2}" "(0, Beep, [0, ∞))";
+    fails "an occurrence for none" "{Beep}" "(0, Beep, [0, ∞))";
+    holds "a count added up to an unbounded one"
+      "{Beep} · ([1, ∞), Beep, [0, ∞))" "([2, ∞), Beep, [0, ∞))";
+    fails "a count added beyond an unbounded one"
+      "{Beep} · ([1, ∞), Beep, [0, ∞))" "([3, ∞), Beep, [0, ∞))";
+    rejected "a count of 0 without silent durations" "(0, Beep, [0, 0], [1, 1])"
+      "admits no computation";
+    fails "counts add under sequencing"
+      "(1, Beep, [0, 1], [0, 1]) · (1, Beep, [0, 1], [0, 1])"
+      "(1, Beep, [0, 1], [0, 2])";
+    check "event-separation: too many occurrences are not inhabited"
+      (not
+         (E.inhabited bounds
+            (parse "((3, Beep, [0, 1], [1, 2], [0, 1]), [0, 1])")))
+      "";
+    rejected "a count without an interval" "(2, Beep)" "lists one interval";
+    rejected "a negative count" "(-1, Beep, [0, 1])" "non-negative";
+    rejected "a fractional count" "(1.5, Beep, [0, 1])" "natural numbers";
+    rejected "a count of six components" "(1, Beep, 0, 1, 2, 3)"
+      "lists one interval";
+    expect "event-separation: printing a count" Fun.id
+      ~expected:"((1, Beep, [1, 2], [0, 0.5]), ([2, 3], Work, [0, 5]), [0, 20])"
+      (E.show
+         (parse "((1, Beep, [1, 2], [0, 0.5]), ([2, 3], Work, [0, 5]), [0, 20])"));
+    expect "event-separation: printing an unbounded count" Fun.id
+      ~expected:"([2, ∞), Beep, [0, 1], [1, 2], [0, 1])"
+      (E.show (parse "([2, ∞), Beep, [0, 1], [1, 2], [0, 1])"));
+    expect "event-separation: an unconstrained count not printed" Fun.id
+      ~expected:"(Beep, [0, 2])"
+      (E.show (parse "([0, ∞), Beep, [0, 2])"));
     expect "event-separation: the durations of a sequence" Fun.id
       ~expected:"[3.1, 5.5]"
       (Option.fold ~none:"none" ~some:I.show
@@ -433,9 +503,9 @@ let examples =
       (E.show (E.mul (parse "{Beat; 2}") (parse invariant)));
     expect "event-separation: the counterexample of a slow body" Fun.id
       ~expected:
-        "⟨Beat: active ([0, 0], [0, 6.5], [0, 6.5]); Work: active ([0.1, 0.5], \
-         [0, ∞), [0, ∞)); _: silent [2.1, ∞), active ([2.1, ∞), [0, ∞), [0, \
-         ∞)); total [2.1, ∞)⟩"
+        "⟨Beat: active ([0, 0], [0, 6.5], [0, 6.5]); Work: active ([2, ∞), \
+         [0.1, 0.5], [0, ∞), [0, ∞)); _: silent [2.1, ∞), active ([2.1, ∞), \
+         [0, ∞), [0, ∞)); total [2.1, ∞)⟩"
       (Option.fold ~none:"none" ~some:E.show
          (E.counterexample bounds
             (E.mul (parse "{Beat; Work; Work}") (parse invariant))

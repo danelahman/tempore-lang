@@ -6,7 +6,7 @@ let rec count_at_once (n : nat) (steps : nat) (armed : bool)
   | 0 -> ()
   | m + 1 ->
       let a = load () in
-      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      box (1, ReadImu, [10, 45], [0, 1.5]) a as first in
       let b = load () in
       unbox first as a in
       let stepped = armed && a > high && b > high in

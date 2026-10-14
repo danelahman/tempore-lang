@@ -11,27 +11,30 @@
     An operation occurs at its start, and takes a time within its running-time
     bounds [within [lo, hi]]; delays are non-negative rationals. For a name [X],
     a computation has one of two summaries:
-    - [Silent d]: it performs no [X] and takes the time [d];
-    - [Active (a, G, b)]: it takes the time [a] before the first [X], the times
-      [G] between the starts of consecutive [X]s, none with one [X], and the
-      time [b] from the start of the last [X] to its end.
+    - [Silent d]: it performs no [X] and takes the time [d], [0] occurrences;
+    - [Active (k, a, G, b)]: it performs [k ≥ 1] [X]s, takes the time [a] before
+      the first, the times [G] between the starts of consecutive [X]s, none with
+      one [X], and the time [b] from the start of the last [X] to its end.
 
-    Sequencing is the longest-gap monoid: [Silent d · Silent d'] is
-    [Silent (d + d')], [Silent d · Active (a, G, b)] is [Active (d + a, G, b)],
-    [Active (a, G, b) · Silent d] is [Active (a, G, b + d)], and
-    [Active (a, G, b) · Active (a', G', b')] is
-    [Active (a, G ∪ G' ∪ {b + a'}, b')], the tail of the first part and the lead
-    of the second forming a gap.
+    Sequencing is the longest-gap monoid with the counts added:
+    [Silent d · Silent d'] is [Silent (d + d')],
+    [Silent d · Active (k, a, G, b)] is [Active (k, d + a, G, b)],
+    [Active (k, a, G, b) · Silent d] is [Active (k, a, G, b + d)], and
+    [Active (k, a, G, b) · Active (k', a', G', b')] is
+    [Active (k + k', a, G ∪ G' ∪ {b + a'}, b')], the tail of the first part and
+    the lead of the second forming a gap.
 
     A grade over-approximates a set of computations by, for each name, an
-    interval of their silent durations or none, and a triple of intervals
-    containing their leads, their gaps (or none, without gaps) and their tails,
-    or none; and by an interval of their total durations. Products and joins are
-    taken case by case with the Minkowski sums and the hulls of intervals; the
+    interval of their silent durations or none, and intervals containing their
+    counts, natural numbers of at least [1], their leads, their gaps (or none,
+    with one occurrence) and their tails, or none; and by an interval of their
+    total durations. Products and joins are taken case by case with the
+    Minkowski sums and the hulls of intervals, of durations and of counts; the
     sums distribute over the hulls, so that the product is associative and
     distributes over the join. The order is inclusion, component by component
-    and name by name. The unit is silent for every name, of duration [0]; it is
-    not least, and the product does not commute. The top bounds nothing.
+    and name by name. The unit is silent for every name, of duration [0] and
+    count [0]; it is not least, and the product does not commute. The top bounds
+    nothing.
 
     An interval {!DurationIntervals.t} has a finite lower end and possibly an
     infinite upper one, each finite end closed or open.
@@ -60,7 +63,17 @@
     - [(X, lead, gaps, tail)] bounds the three components of the active
       computations by the intervals [lead], [gaps] and [tail], and the silent
       durations by the intersection of [lead] and [tail].
-    - A tuple of entries of either form, each name listed once, and at most one
+    - These two forms state no count: any number of [X]s, spaced as stated. With
+      a count [n] first, a natural number or an interval [[n, m]] or [\[n, ∞)]
+      of them, [(n, X, ...)] bounds the number of [X]s by [n] as well, its
+      silent computations being those of count [0]: [(n, X, gaps)] is the short
+      form, [(n, X, lead, tail)] leaves the gaps unconstrained and
+      [(n, X, lead, gaps, tail)] is the full form. E.g.
+      [(1, Read, [10, 45], [0, 1.5])] is exactly one [Read], started [10] to
+      [45] after the start, the end at most [1.5] after it; [(0, Send, \[0, ∞))]
+      performs no [Send]. A pair [(n, X)] is rejected, as is an entry of count
+      [0] whose lead and tail do not meet, which admits no computation.
+    - A tuple of entries of these forms, each name listed once, and at most one
       interval, the total duration, e.g.
       [((Read, [0, 20]), (Draw, 5), [0, 100])]; the names not listed are
       unconstrained, and an entry [(_, ...)] is rejected. The components of an
@@ -79,6 +92,14 @@
     first [X], gaps and tail at most [t]; it is closed under sequencing. A rate
     limit [(X, \[s, ∞))] is closed under sequencing.
 
+    Counts add under sequencing, so that an invariant states none, or [\[0, ∞)];
+    a count suits a bounded stretch, such as the time from a box to its
+    unboxing: [(1, X, lead, tail)] is exactly one [X] between them.
+
+    The grade ["counts-upper-bound"] bounds the numbers of calls from above
+    alone, without their times; this one bounds the counts of the occurrences
+    together with the times before, between and after them.
+
     {2 Printing}
 
     A term built from literals is printed as one: a sequence or a union of
@@ -88,8 +109,11 @@
     with [⊔]. A summary that is no specification, such as a counterexample, is
     printed as [⟨X: silent S, active (L, G, T); _: ...; total D⟩], an entry by
     name and one for the names not listed, [_], an absent case being omitted, no
-    gaps written [∅] and the total omitted where it is [\[0, ∞)]. These forms do
-    not read back.
+    gaps written [∅] and the total omitted where it is [\[0, ∞)]; the count [K]
+    of an active case is written first, [active (K, L, G, T)], where it is
+    neither [\[1, ∞)] nor [1], which [∅] shows. These forms do not read back. An
+    entry is printed in the first of the forms above that denotes it, those
+    without a count first, so that an entry without a count prints without one.
 
     {2 Running times, durations and inhabitation}
 
@@ -97,8 +121,9 @@
     bounds, its grade being its occurrence [{X}]. [duration_bounds] is the
     interval of the total durations, [\[0, ∞)] where a specification bounds
     none, and [of_bounds b] the delay of a duration in [b]. [inhabited] is
-    decided name by name: some silent duration, or the shortest active
-    computation, lies within the total durations.
+    decided name by name: some silent duration, or the hull of the durations
+    [lead + (k - 1) gaps + tail] of the active computations over their counts
+    [k], meets the total durations.
 
     {2 Counterexamples and witnesses}
 
@@ -108,13 +133,19 @@
     and are partial. *)
 
 module Summary : sig
+  type count = { least : int; most : int option }
+  (** An interval [[least, most]] of natural numbers, [most] being [None] where
+      it is unbounded. *)
+
   type active = {
+    count : count;
     lead : DurationIntervals.t;
     gaps : DurationIntervals.t option;
     tail : DurationIntervals.t;
   }
-  (** The active computations of a name: intervals of the leads, of the gaps,
-      [None] without gaps, and of the tails. *)
+  (** The active computations of a name: an interval of their numbers of
+      occurrences, at least [1], and intervals of the leads, of the gaps, [None]
+      exactly where the count is [1], and of the tails. *)
 
   type entry = { silent : DurationIntervals.t option; active : active option }
   (** The summary of a name: the silent durations and the active computations,
