@@ -48,11 +48,11 @@ module Rebuild (T : SymbolicRegex.S) = struct
   let map letter r =
     let table = Hashtbl.create 64 in
     let rec go r =
-      match Hashtbl.find_opt table (Regex.hash r) with
+      match Hashtbl.find_opt table (Regex.id r) with
       | Some r' -> r'
       | None ->
           let r' = rebuild r in
-          Hashtbl.add table (Regex.hash r) r';
+          Hashtbl.add table (Regex.id r) r';
           r'
     and rebuild r =
       match Regex.view r with
@@ -160,11 +160,11 @@ module Conversion = Rebuild (SymbolicRegex)
 let converted : (int, SymbolicRegex.t) Hashtbl.t = Hashtbl.create 64
 
 let symbolic rho =
-  match Hashtbl.find_opt converted (Regex.hash rho.regex) with
+  match Hashtbl.find_opt converted (Regex.id rho.regex) with
   | Some r -> r
   | None ->
       let r = Conversion.map SymbolicRegex.letters rho.regex in
-      Hashtbl.add converted (Regex.hash rho.regex) r;
+      Hashtbl.add converted (Regex.id rho.regex) r;
       r
 
 let events rho = SymbolicRegex.names (symbolic rho)

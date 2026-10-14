@@ -77,14 +77,14 @@ let canonical rho =
 let printed : (int, string) Hashtbl.t = Hashtbl.create 64
 
 let show rho =
-  match Hashtbl.find_opt printed (R.hash rho) with
+  match Hashtbl.find_opt printed (R.id rho) with
   | Some text -> text
   | None ->
       let text =
         LetterRegex.literal
           (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho))
       in
-      Hashtbl.add printed (R.hash rho) text;
+      Hashtbl.add printed (R.id rho) text;
       text
 
 module type DECISIONS = sig

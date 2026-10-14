@@ -382,7 +382,7 @@ module Derivatives = struct
     in
     let table = Roots.create 64 in
     fun rhos ->
-      let key = List.map SymbolicRegex.hash rhos in
+      let key = List.map SymbolicRegex.id rhos in
       match Roots.find_opt table key with
       | Some blocks -> blocks
       | None ->
