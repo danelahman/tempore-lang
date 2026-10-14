@@ -194,8 +194,8 @@ SOFTWARE.
 `web/index.html` loads Bulma 0.9.0 from the jsDelivr CDN
 (`https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css`), the only
 external resource the page fetches. The stylesheet is linked at page-load
-time, not redistributed with the project. MIT licensed, Copyright (c) 2020
-Jeremy Thomas:
+time with a Subresource Integrity hash, not redistributed with the project.
+MIT licensed, Copyright (c) 2020 Jeremy Thomas:
 
 ```
 The MIT License (MIT)
