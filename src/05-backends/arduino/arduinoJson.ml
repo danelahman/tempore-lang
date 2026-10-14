@@ -221,13 +221,13 @@ and members src i =
       go [] i
 
 let parse ~filename text =
-  let line_starts =
-    Array.of_list
-      (0
-      :: List.filter_map
-           (fun i -> if text.[i] = '\n' then Some (i + 1) else None)
-           (List.init (String.length text) Fun.id))
+  let _, starts =
+    String.fold_left
+      (fun (i, starts) c ->
+        (i + 1, if c = '\n' then (i + 1) :: starts else starts))
+      (0, [ 0 ]) text
   in
+  let line_starts = Array.of_list (List.rev starts) in
   let src = { filename; text; line_starts } in
   let v, i = value src 0 in
   let i = skip_space src i in
@@ -248,23 +248,23 @@ let wrong ~what (v : t) expected =
     (String.capitalize_ascii what)
     (kind v) expected
 
+module StringSet = Set.Make (String)
+
 let fields ~what ~accepted (v : t) =
   match v.value with
   | Object members ->
-      List.iteri
-        (fun i ((name : string Location.located), _) ->
-          if not (List.mem name.it accepted) then
-            Error.compilation ~loc:name.at
-              "Unknown member '%s' of %s; accepted: %s" name.it what
-              (String.concat ", " accepted);
-          if
-            List.exists
-              (fun ((other : string Location.located), _) -> other.it = name.it)
-              (List.filteri (fun j _ -> j < i) members)
-          then
-            Error.compilation ~loc:name.at "Member '%s' of %s given twice"
-              name.it what)
-        members;
+      ignore
+        (List.fold_left
+           (fun seen ((name : string Location.located), _) ->
+             if not (List.mem name.it accepted) then
+               Error.compilation ~loc:name.at
+                 "Unknown member '%s' of %s; accepted: %s" name.it what
+                 (String.concat ", " accepted);
+             if StringSet.mem name.it seen then
+               Error.compilation ~loc:name.at "Member '%s' of %s given twice"
+                 name.it what;
+             StringSet.add name.it seen)
+           StringSet.empty members);
       { what; at = v.at; members }
   | _ -> wrong ~what v "an object"
 
@@ -310,6 +310,23 @@ let int ~what (v : t) =
       | Some i when i <= 0x7FFF_FFFF -> i
       | _ -> wrong ~what v "an integer below 2^31")
   | _ -> wrong ~what v "a non-negative integer"
+
+let assoc decode ~what (v : t) =
+  match v.value with
+  | Object members ->
+      let f =
+        fields ~what
+          ~accepted:
+            (List.map
+               (fun ((name : string Location.located), _) -> name.it)
+               members)
+          v
+      in
+      List.map
+        (fun ((name : string Location.located), _) ->
+          (name, required f name.it decode))
+        members
+  | _ -> wrong ~what v "an object"
 
 let list decode ~what (v : t) =
   match v.value with

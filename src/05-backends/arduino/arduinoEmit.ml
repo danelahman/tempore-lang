@@ -3,6 +3,7 @@ module Const = Language.Const
 module Primitives = Language.Primitives
 module F = ArduinoFragment
 module Names = ArduinoNames
+module Cpp = ArduinoCpp
 
 let runtime = Tempore_arduino_h.contents
 let runtime_file = "tempore_arduino.h"
@@ -10,11 +11,18 @@ let header_file = "tempore_program.h"
 let source_file = "tempore_program.cpp"
 let host_main_file = "tempore_host_main.cpp"
 
-module TyMap = Map.Make (struct
+module Ty = struct
   type t = F.ty
 
   let compare = F.compare_ty
-end)
+end
+
+module TyMap = Map.Make (Ty)
+module TySet = Set.Make (Ty)
+
+(* The lexicographic combination of the comparison [c] with the comparison
+   [next], computed only if [c] is 0. *)
+let ( <?> ) c next = if c <> 0 then c else next ()
 
 (* An instance of a definition: the definition and the types of its
    quantified type variables. *)
@@ -22,44 +30,12 @@ module Key = struct
   type t = Ast.variable * F.ty list
 
   let compare (x1, tys1) (x2, tys2) =
-    match Ast.Variable.compare x1 x2 with
-    | 0 -> List.compare F.compare_ty tys1 tys2
-    | c -> c
+    Ast.Variable.compare x1 x2 <?> fun () -> List.compare F.compare_ty tys1 tys2
 end
 
 module KeyMap = Map.Make (Key)
 module LabelMap = Map.Make (Ast.Label)
-module VariableSet = Set.Make (Ast.Variable)
-
-(* C++ source: lines, blocks of a header line, an indented body and a closing
-   line, and chains of [if], [else if] and [else]. *)
-type stmt =
-  | Line of string
-  | Block of string * stmt list * string
-  | If of (string option * stmt list) list
-
-let block header body = Block (header, body, "}")
-
-let rec lines indent = function
-  | Line s -> [ indent ^ s ]
-  | Block (header, body, closing) ->
-      ((indent ^ header ^ " {") :: List.concat_map (lines (indent ^ "  ")) body)
-      @ [ indent ^ closing ]
-  | If branches ->
-      List.concat
-        (List.mapi
-           (fun i (condition, body) ->
-             let opening =
-               match (i, condition) with
-               | 0, Some c -> "if (" ^ c ^ ") {"
-               | _, Some c -> "} else if (" ^ c ^ ") {"
-               | _, None -> "} else {"
-             in
-             (indent ^ opening) :: List.concat_map (lines (indent ^ "  ")) body)
-           branches)
-      @ [ indent ^ "}" ]
-
-let render stmts = String.concat "\n" (List.concat_map (lines "") stmts) ^ "\n"
+module VariableSet = Ast.VariableSet
 
 (* Types. *)
 
@@ -289,19 +265,17 @@ module UnitKey = struct
 
   let compare u1 u2 =
     match (u1, u2) with
-    | Instance (k1, c1), Instance (k2, c2) -> (
-        match Key.compare k1 k2 with 0 -> keys c1 c2 | c -> c)
-    | Case (k1, op1, c1), Case (k2, op2, c2) -> (
-        match Key.compare k1 k2 with
-        | 0 -> (
-            match Ast.OpName.compare op1 op2 with 0 -> keys c1 c2 | c -> c)
-        | c -> c)
-    | Return_case (k1, c1), Return_case (k2, c2) -> (
-        match Key.compare k1 k2 with 0 -> keys c1 c2 | c -> c)
+    | Instance (k1, c1), Instance (k2, c2)
+    | Return_case (k1, c1), Return_case (k2, c2) ->
+        Key.compare k1 k2 <?> fun () -> keys c1 c2
+    | Case (k1, op1, c1), Case (k2, op2, c2) ->
+        Key.compare k1 k2 <?> fun () ->
+        Ast.OpName.compare op1 op2 <?> fun () -> keys c1 c2
     | _ -> Int.compare (rank u1) (rank u2)
 end
 
 module UnitMap = Map.Make (UnitKey)
+module UnitSet = Set.Make (UnitKey)
 
 let frame_keys frames = List.map (fun frame -> frame.frame_key) frames
 
@@ -387,21 +361,22 @@ let context_frames handlers context =
       })
     context
 
-(* The units a computation in [frames] uses, in the order of their first use,
-   prepended to [acc] in reverse, and the handlers of its [handle]s added to
-   [handlers]. The operations it performs outside the handlers of [frames]
-   are added to [external_ops]. *)
+(* What a computation in [frames] uses: the units, in the order of their
+   first use, in reverse; the handlers of its [handle]s, by their keys; and
+   the operations it performs outside the handlers of [frames]. *)
 type uses = {
   used : unit_key list;
-  handlers : F.handler KeyMap.t;
-  external_ops : OpNameSet.t;
+  handled : F.handler KeyMap.t;
+  unhandled : OpNameSet.t;
 }
+
+let no_uses = { used = []; handled = KeyMap.empty; unhandled = OpNameSet.empty }
+let use key acc = { acc with used = key :: acc.used }
 
 let rec value_uses acc (v : F.value) =
   match v.value with
   | F.Local _ | F.Constant _ -> acc
-  | F.Global g ->
-      { acc with used = Instance ((g.variable, g.instance), []) :: acc.used }
+  | F.Global g -> use (Instance ((g.variable, g.instance), [])) acc
   | F.Tuple_value vs -> List.fold_left value_uses acc vs
   | F.Construct (_, arg) -> Option.fold ~none:acc ~some:(value_uses acc) arg
 
@@ -412,16 +387,15 @@ let rec computation_uses ops frames acc (c : F.computation) =
   | F.Perform (op, v) -> (
       let acc = value_uses acc v in
       match case_unit ops frames op with
-      | Some (key, _, _) -> { acc with used = key :: acc.used }
-      | None -> { acc with external_ops = OpNameSet.add op acc.external_ops })
+      | Some (key, _, _) -> use key acc
+      | None -> { acc with unhandled = OpNameSet.add op acc.unhandled })
   | F.Bind (_, c1, c2) -> uses (uses acc c1) c2
   | F.Match (v, cases) ->
       List.fold_left (fun acc (_, c) -> uses acc c) (value_uses acc v) cases
   | F.Call (callee, vs) ->
       let acc =
         match callee with
-        | F.Function g ->
-            { acc with used = fst (call_unit ops frames g) :: acc.used }
+        | F.Function g -> use (fst (call_unit ops frames g)) acc
         | F.Self | F.Primitive _ -> acc
       in
       List.fold_left value_uses acc vs
@@ -432,19 +406,19 @@ let rec computation_uses ops frames acc (c : F.computation) =
       let acc =
         {
           acc with
-          handlers =
+          handled =
             KeyMap.add frame.frame_key frame.code
-              (KeyMap.add frame.return_key frame.code acc.handlers);
+              (KeyMap.add frame.return_key frame.code acc.handled);
         }
       in
       let acc = computation_uses ops (frame :: frames) acc c in
       if returns_input frame.code then acc
-      else { acc with used = fst (return_unit ops frames frame) :: acc.used }
+      else use (fst (return_unit ops frames frame)) acc
 
-let body_uses ops frames acc = function
-  | F.Function_body { body; _ } -> computation_uses ops frames acc body
-  | F.Constant_body v -> value_uses acc v
-  | F.Handler_body _ -> acc
+let body_uses ops frames = function
+  | F.Function_body { body; _ } -> computation_uses ops frames no_uses body
+  | F.Constant_body v -> value_uses no_uses v
+  | F.Handler_body _ -> no_uses
 
 (* The unit of [key], with the handlers known so far. *)
 let instance definitions handlers ~entries key =
@@ -478,36 +452,56 @@ let instance definitions handlers ~entries key =
       let p, c = (KeyMap.find hk handlers).return_case in
       unit_of_case hk context p c
 
+(* The closure of the units visited: the units, the last first, the handlers
+   of their [handle]s, and the operations they perform outside all
+   handlers. *)
+type closure = {
+  seen : UnitSet.t;
+  order : instance list;
+  handlers : F.handler KeyMap.t;
+  external_ops : OpNameSet.t;
+}
+
+(* [closure] with the handlers and the operations of [uses]. *)
+let record closure uses =
+  {
+    closure with
+    handlers = KeyMap.union (fun _ _ h -> Some h) closure.handlers uses.handled;
+    external_ops = OpNameSet.union closure.external_ops uses.unhandled;
+  }
+
 (* The units of [roots] and of the units they use, each after the units it
    uses, the handlers of their contexts, and the operations performed outside
-   all handlers. *)
+   all handlers, those of [runs] included. *)
 let instances ops ~entries ~runs roots =
-  let rec visit (seen, order, acc) key =
-    if UnitMap.mem key seen then (seen, order, acc)
+  let rec visit closure key =
+    if UnitSet.mem key closure.seen then closure
     else
-      let inst = instance ops.definitions acc.handlers ~entries key in
-      let frames = context_frames acc.handlers inst.context in
-      let used = body_uses ops frames { acc with used = [] } inst.body in
-      let seen = UnitMap.add key () seen in
-      let seen, order, acc =
-        List.fold_left visit
-          (seen, order, { used with used = [] })
-          (List.rev used.used)
+      let inst = instance ops.definitions closure.handlers ~entries key in
+      let uses =
+        body_uses ops (context_frames closure.handlers inst.context) inst.body
       in
-      (seen, inst :: order, acc)
+      let closure =
+        List.fold_left visit
+          (record { closure with seen = UnitSet.add key closure.seen } uses)
+          (List.rev uses.used)
+      in
+      { closure with order = inst :: closure.order }
   in
-  let initial =
-    { used = []; handlers = KeyMap.empty; external_ops = OpNameSet.empty }
-  in
-  let acc =
-    List.fold_left (fun acc c -> computation_uses ops [] acc c) initial runs
-  in
-  let _, order, acc =
+  let runs_uses = List.fold_left (computation_uses ops []) no_uses runs in
+  let closure =
     List.fold_left visit
-      (UnitMap.empty, [], { acc with used = [] })
-      (roots @ List.rev acc.used)
+      (record
+         {
+           seen = UnitSet.empty;
+           order = [];
+           handlers = KeyMap.empty;
+           external_ops = OpNameSet.empty;
+         }
+         runs_uses)
+      (roots @ List.rev runs_uses.used)
   in
-  (List.rev order, acc.handlers, acc.external_ops)
+  (List.rev closure.order, closure.handlers, closure.external_ops)
 
 (* The types a struct of type [ty] has members of. *)
 let components datatypes ty =
@@ -526,19 +520,14 @@ let is_struct = function
    its members. *)
 let structs datatypes tys =
   let rec visit (seen, order) ty =
-    if (not (is_struct ty)) || TyMap.mem ty seen then (seen, order)
+    if (not (is_struct ty)) || TySet.mem ty seen then (seen, order)
     else
       let seen, order =
         List.fold_left visit (seen, order) (components datatypes ty)
       in
-      (TyMap.add ty () seen, ty :: order)
+      (TySet.add ty seen, ty :: order)
   in
-  List.rev (snd (List.fold_left visit (TyMap.empty, []) tys))
-
-let rec has_string datatypes ty =
-  match ty with
-  | F.String -> true
-  | _ -> List.exists (has_string datatypes) (components datatypes ty)
+  List.rev (snd (List.fold_left visit (TySet.empty, []) tys))
 
 (* Names. *)
 
@@ -641,11 +630,12 @@ let names datatypes instances runs structs =
       (List.fold_left (fun acc inst -> body_binders acc inst.body) [] instances)
       runs
   in
-  let locals =
+  let _, locals =
     List.fold_left
-      (fun acc x ->
-        if List.exists (Ast.Variable.equal x) acc then acc else x :: acc)
-      [] (List.rev binders)
+      (fun (seen, acc) x ->
+        if VariableSet.mem x seen then (seen, acc)
+        else (VariableSet.add x seen, x :: acc))
+      (VariableSet.empty, []) (List.rev binders)
   in
   let named =
     List.map (fun (ty, n) -> Named_type (ty, Ast.TyName.string_of n)) data
@@ -753,7 +743,7 @@ let constant = function
   | Const.Int n -> Printf.sprintf "INT32_C(%s)" (Z.to_string n)
   | Const.Float f -> float_literal f
   | Const.Boolean b -> if b then "true" else "false"
-  | Const.String s -> Names.string_literal s
+  | Const.String s -> Cpp.string_literal s
 
 (* Values. *)
 
@@ -914,11 +904,7 @@ let rec tests names path (p : F.pattern) acc =
 let rec bindings names used path (p : F.pattern) acc =
   let declare x acc =
     if VariableSet.mem x used then
-      Line
-        (Printf.sprintf "const %s %s = %s;"
-           (ty_name names p.pattern_ty)
-           (local names x) path)
-      :: acc
+      Cpp.constant (ty_name names p.pattern_ty) (local names x) path :: acc
     else acc
   in
   match p.pattern with
@@ -1010,9 +996,10 @@ let expression_of ctx (c : F.computation) =
 
 let deliver destination ~pure e =
   match destination with
-  | Tail -> [ Line ("return " ^ e ^ ";") ]
-  | Assign x -> [ Line (x ^ " = " ^ e ^ ";") ]
-  | Discard -> if pure then [] else [ Line ("static_cast<void>(" ^ e ^ ");") ]
+  | Tail -> [ Cpp.return e ]
+  | Assign x -> [ Cpp.assign x e ]
+  | Discard ->
+      if pure then [] else [ Cpp.statement ("static_cast<void>(" ^ e ^ ")") ]
 
 let rec statements ctx next destination (c : F.computation) =
   match (c.computation, expression_of ctx c) with
@@ -1028,10 +1015,12 @@ let rec statements ctx next destination (c : F.computation) =
   | F.Delay (q, c), None ->
       let next, rest = statements ctx next destination c in
       ( next,
-        Line
-          (Printf.sprintf "tempore_delay(%su, %su);"
-             (Z.to_string (Grades.Rational.num q))
-             (Z.to_string (Grades.Rational.den q)))
+        Cpp.statement
+          (Cpp.call "tempore_delay"
+             [
+               Z.to_string (Grades.Rational.num q) ^ "u";
+               Z.to_string (Grades.Rational.den q) ^ "u";
+             ])
         :: rest )
   | F.Handle (u, body), None -> handle ctx next destination u body
   | (F.Return _ | F.Call _ | F.Perform _), None -> assert false
@@ -1046,24 +1035,19 @@ and bind ctx next used (p : F.pattern) c1 =
         deliver Discard
           ~pure:(match c1.computation with F.Return _ -> true | _ -> false)
           e )
-  | Some e, F.PVar x, true ->
-      (next, [ Line (Printf.sprintf "const %s %s = %s;" ty (local names x) e) ])
+  | Some e, F.PVar x, true -> (next, [ Cpp.constant ty (local names x) e ])
   | Some e, _, true ->
       let t, next = fresh "t" next in
-      ( next,
-        Line (Printf.sprintf "const %s %s = %s;" ty t e)
-        :: pattern_bindings names used t p )
+      (next, Cpp.constant ty t e :: pattern_bindings names used t p)
   | None, _, false -> statements ctx next Discard c1
   | None, F.PVar x, true ->
       let x = local names x in
       let next, stmts = statements ctx next (Assign x) c1 in
-      (next, Line (Printf.sprintf "%s %s{};" ty x) :: stmts)
+      (next, Cpp.variable ty x :: stmts)
   | None, _, true ->
       let t, next = fresh "t" next in
       let next, stmts = statements ctx next (Assign t) c1 in
-      ( next,
-        (Line (Printf.sprintf "%s %s{};" ty t) :: stmts)
-        @ pattern_bindings names used t p )
+      (next, (Cpp.variable ty t :: stmts) @ pattern_bindings names used t p)
 
 and match_cases ctx next destination (v : F.value) cases =
   let names = ctx.names in
@@ -1072,13 +1056,7 @@ and match_cases ctx next destination (v : F.value) cases =
     | F.Local _ | F.Global _ | F.Constant _ -> (next, [], expression names v)
     | F.Tuple_value _ | F.Construct _ ->
         let s, next = fresh "s" next in
-        ( next,
-          [
-            Line
-              (Printf.sprintf "const %s %s = %s;" (ty_name names v.ty) s
-                 (expression names v));
-          ],
-          s )
+        (next, [ Cpp.constant (ty_name names v.ty) s (expression names v) ], s)
   in
   (* The cases up to the first without tests; the last is taken when no case
      before it applies. *)
@@ -1101,7 +1079,7 @@ and match_cases ctx next destination (v : F.value) cases =
   let next, chain = branches next cases in
   match chain with
   | [ (None, body) ] -> (next, subject @ body)
-  | _ -> (next, subject @ [ If chain ])
+  | _ -> (next, subject @ [ Cpp.If chain ])
 
 (* A [handle]: the body in the context extended by the handler, its result
    passed to the return case, unless the return case returns its input. *)
@@ -1117,7 +1095,7 @@ and handle ctx next destination (u : F.handler_use) body =
     let next, stmts = statements inner next (Assign t) body in
     let key, relevant = return_unit ctx.ops ctx.frames frame in
     ( next,
-      (Line (Printf.sprintf "%s %s{};" (ty_name names body.result) t) :: stmts)
+      (Cpp.variable (ty_name names body.result) t :: stmts)
       @ deliver destination ~pure:false
           (unit_call names key ((frame.captured @ [ t ]) @ captured relevant))
     )
@@ -1139,20 +1117,19 @@ and tail_call ctx vs =
   in
   let assignments =
     match assigned with
-    | [ (p, v) ] -> [ Line (Printf.sprintf "%s = %s;" p (expression names v)) ]
+    | [ (p, v) ] -> [ Cpp.assign p (expression names v) ]
     | _ ->
         let temporaries =
           List.map
             (fun (p, (v : F.value)) ->
-              ( Line
-                  (Printf.sprintf "const %s tempore_next_%s = %s;"
-                     (ty_name names v.ty) p (expression names v)),
-                Line (Printf.sprintf "%s = tempore_next_%s;" p p) ))
+              ( Cpp.constant (ty_name names v.ty) ("tempore_next_" ^ p)
+                  (expression names v),
+                Cpp.assign p ("tempore_next_" ^ p) ))
             assigned
         in
         List.map fst temporaries @ List.map snd temporaries
   in
-  assignments @ [ Line "continue;" ]
+  assignments @ [ Cpp.Line "continue;" ]
 
 (* Functions: the parameters of a function are named by their variables, or
    by [tempore_a] and their position when they are patterns whose variables
@@ -1184,24 +1161,10 @@ let function_definition ctx ~static ~name (parameters : F.pattern list) body
           frame.code.handler_parameters frame.captured)
       ctx.frames
   in
-  let signature =
-    Printf.sprintf "%s%s %s(%s)"
-      (if static then "static " else "")
-      (ty_name names body.F.result)
-      name
-      (String.concat ", "
-         (List.map
-            (fun (ty, name, _) ->
-              Option.fold ~none:ty ~some:(fun name -> ty ^ " " ^ name) name)
-            (parameters @ context)))
-  in
+  let result = ty_name names body.F.result in
+  let all = parameters @ context in
   let prototype =
-    Printf.sprintf "%s%s %s(%s);"
-      (if static then "static " else "")
-      (ty_name names body.F.result)
-      name
-      (String.concat ", "
-         (List.map (fun (ty, _, _) -> ty) (parameters @ context)))
+    Cpp.prototype ~static result name (List.map (fun (ty, _, _) -> ty) all)
   in
   let ctx =
     {
@@ -1214,7 +1177,9 @@ let function_definition ctx ~static ~name (parameters : F.pattern list) body
   let _, stmts = statements ctx 0 Tail body in
   let stmts = List.concat_map (fun (_, _, binds) -> binds) parameters @ stmts in
   ( prototype,
-    block signature (if recursive then [ block "for (;;)" stmts ] else stmts) )
+    Cpp.definition ~static result name
+      (List.map (fun (ty, name, _) -> (ty, name)) all)
+      (if recursive then [ Cpp.block "for (;;)" stmts ] else stmts) )
 
 (* Structs: a tuple has the members [c0], [c1], ...; a datatype has a tag, the
    enumeration of its constructors in the order of their labels, the union
@@ -1222,6 +1187,7 @@ let function_definition ctx ~static ~name (parameters : F.pattern list) body
    each constructor. *)
 let struct_definition names datatypes ty =
   let name = ty_name names ty in
+  let member ty x = Cpp.Line (ty_name names ty ^ " " ^ x ^ ";") in
   match ty with
   | F.Data n ->
       let constructors =
@@ -1231,45 +1197,38 @@ let struct_definition names datatypes ty =
       in
       let arguments =
         List.filter_map
-          (fun (tag, arg) ->
-            Option.map
-              (fun ty -> Line (Printf.sprintf "%s %s;" (ty_name names ty) tag))
-              arg)
+          (fun (tag, arg) -> Option.map (fun ty -> member ty tag) arg)
           constructors
       in
       let make (tag, arg) =
-        block
-          (Printf.sprintf "static %s make_%s(%s)" name tag
-             (Option.fold ~none:""
-                ~some:(fun ty -> ty_name names ty ^ " a")
-                arg))
-          ([
-             Line (Printf.sprintf "%s v{};" name);
-             Line (Printf.sprintf "v.tag = Tag::%s;" tag);
-           ]
+        Cpp.definition ~static:true name ("make_" ^ tag)
+          (Option.fold ~none:[]
+             ~some:(fun ty -> [ (ty_name names ty, Some "a") ])
+             arg)
+          ([ Cpp.variable name "v"; Cpp.assign "v.tag" ("Tag::" ^ tag) ]
           @ (match arg with
-            | Some _ -> [ Line (Printf.sprintf "v.arg.%s = a;" tag) ]
+            | Some _ -> [ Cpp.assign ("v.arg." ^ tag) "a" ]
             | None -> [])
-          @ [ Line "return v;" ])
+          @ [ Cpp.return "v" ])
       in
-      Block
+      Cpp.Block
         ( "struct " ^ name,
           [
-            Line
+            Cpp.Line
               (Printf.sprintf "enum class Tag : uint8_t { %s };"
                  (String.concat ", " (List.map fst constructors)));
-            Line "Tag tag;";
+            Cpp.Line "Tag tag;";
           ]
           @ (match arguments with
             | [] -> []
-            | _ -> [ Block ("union", arguments, "} arg;") ])
+            | _ -> [ Cpp.Block ("union", arguments, "} arg;") ])
           @ List.map make constructors,
           "};" )
   | _ ->
-      Block
+      Cpp.Block
         ( "struct " ^ name,
           List.mapi
-            (fun i ty -> Line (Printf.sprintf "%s c%d;" (ty_name names ty) i))
+            (fun i ty -> member ty (Printf.sprintf "c%d" i))
             (components datatypes ty),
           "};" )
 
@@ -1278,11 +1237,11 @@ let struct_definition names datatypes ty =
    constructors and then of their arguments. *)
 let compare_definition names datatypes ty =
   let name = ty_name names ty in
-  let header =
-    Printf.sprintf "inline int tempore_compare(const %s &a, const %s &b)" name
-      name
+  let definition =
+    Cpp.definition ~inline:true "int" "tempore_compare"
+      [ ("const " ^ name, Some "&a"); ("const " ^ name, Some "&b") ]
   in
-  let compare ty a b = Printf.sprintf "%s(%s, %s)" (compare_function ty) a b in
+  let compare ty a b = Cpp.call (compare_function ty) [ a; b ] in
   match ty with
   | F.Data n -> (
       let constructors =
@@ -1294,41 +1253,41 @@ let compare_definition names datatypes ty =
       let tag_order = "a.tag < b.tag ? -1 : 1" in
       match constructors with
       | [] ->
-          block header
+          definition
             [
-              Line
-                (Printf.sprintf "return a.tag == b.tag ? 0 : (%s);" tag_order);
+              Cpp.return (Printf.sprintf "a.tag == b.tag ? 0 : (%s)" tag_order);
             ]
       | _ ->
-          block header
+          definition
             [
-              Line (Printf.sprintf "if (a.tag != b.tag) return %s;" tag_order);
-              block "switch (a.tag)"
+              Cpp.Line ("if (a.tag != b.tag) return " ^ tag_order ^ ";");
+              Cpp.block "switch (a.tag)"
                 (List.concat_map
                    (fun (tag, ty) ->
                      [
-                       Line (Printf.sprintf "case %s::Tag::%s:" name tag);
-                       Line
-                         (Printf.sprintf "  return %s;"
-                            (compare ty ("a.arg." ^ tag) ("b.arg." ^ tag)));
+                       Cpp.Line (Printf.sprintf "case %s::Tag::%s:" name tag);
+                       Cpp.Line
+                         ("  return "
+                         ^ compare ty ("a.arg." ^ tag) ("b.arg." ^ tag)
+                         ^ ";");
                      ])
                    constructors
-                @ [ Line "default:"; Line "  return 0;" ]);
+                @ [ Cpp.Line "default:"; Cpp.Line "  return 0;" ]);
             ])
   | _ ->
       let members = List.mapi (fun i ty -> (i, ty)) (components datatypes ty) in
       let last = List.length members - 1 in
-      block header
+      definition
         (List.concat_map
            (fun (i, ty) ->
              let c =
                compare ty (Printf.sprintf "a.c%d" i) (Printf.sprintf "b.c%d" i)
              in
-             if i = last then [ Line (Printf.sprintf "return %s;" c) ]
+             if i = last then [ Cpp.return c ]
              else
                [
-                 Line (Printf.sprintf "const int c%d = %s;" i c);
-                 Line (Printf.sprintf "if (c%d != 0) return c%d;" i i);
+                 Cpp.constant "int" (Printf.sprintf "c%d" i) c;
+                 Cpp.Line (Printf.sprintf "if (c%d != 0) return c%d;" i i);
                ])
            members)
 
@@ -1344,12 +1303,13 @@ let printer = function
 
 let print_definition names datatypes ty =
   let name = ty_name names ty in
-  let header =
-    Printf.sprintf "inline void tempore_print(const %s &v, bool parenthesised)"
-      name
+  let definition parenthesised =
+    Cpp.definition ~inline:true "void" "tempore_print"
+      [ ("const " ^ name, Some "&v"); ("bool", parenthesised) ]
   in
+  let printf arguments = Cpp.statement (Cpp.call "printf" arguments) in
   let print_string s =
-    Line (Printf.sprintf "printf(\"%%s\", %s);" (Names.string_literal s))
+    printf [ Cpp.string_literal "%s"; Cpp.string_literal s ]
   in
   match ty with
   | F.Data n ->
@@ -1359,40 +1319,42 @@ let print_definition names datatypes ty =
       let uses_parentheses =
         List.exists (fun (_, arg) -> arg <> None) constructors
       in
-      block
-        (if uses_parentheses then header
-         else Printf.sprintf "inline void tempore_print(const %s &v, bool)" name)
+      definition
+        (if uses_parentheses then Some "parenthesised" else None)
         [
-          block "switch (v.tag)"
+          Cpp.block "switch (v.tag)"
             (List.concat_map
                (fun (l, arg) ->
                  let tag = LabelMap.find l names.tags in
-                 Line (Printf.sprintf "case %s::Tag::%s:" name tag)
+                 Cpp.Line (Printf.sprintf "case %s::Tag::%s:" name tag)
                  ::
                  (match arg with
                  | None -> [ print_string (Ast.Label.string_of l) ]
                  | Some ty ->
                      [
-                       Line "if (parenthesised) printf(\"(\");";
+                       Cpp.Line "if (parenthesised) printf(\"(\");";
                        print_string (Ast.Label.string_of l ^ " ");
-                       Line
-                         (Printf.sprintf "%s(v.arg.%s, true);" (printer ty) tag);
-                       Line "if (parenthesised) printf(\")\");";
+                       Cpp.statement
+                         (Cpp.call (printer ty) [ "v.arg." ^ tag; "true" ]);
+                       Cpp.Line "if (parenthesised) printf(\")\");";
                      ])
-                 @ [ Line "return;" ])
+                 @ [ Cpp.Line "return;" ])
                constructors);
         ]
   | _ ->
       let members = List.mapi (fun i ty -> (i, ty)) (components datatypes ty) in
-      block
-        (Printf.sprintf "inline void tempore_print(const %s &v, bool)" name)
-        (Line "printf(\"(\");"
+      definition None
+        (printf [ Cpp.string_literal "(" ]
          :: List.concat_map
               (fun (i, ty) ->
-                (if i > 0 then [ Line "printf(\", \");" ] else [])
-                @ [ Line (Printf.sprintf "%s(v.c%d, false);" (printer ty) i) ])
+                (if i > 0 then [ printf [ Cpp.string_literal ", " ] ] else [])
+                @ [
+                    Cpp.statement
+                      (Cpp.call (printer ty)
+                         [ Printf.sprintf "v.c%d" i; "false" ]);
+                  ])
               members
-        @ [ Line "printf(\")\");" ])
+        @ [ printf [ Cpp.string_literal ")" ] ])
 
 let host_prelude =
   {|#include <stdio.h>
@@ -1442,21 +1404,49 @@ type compiled = {
   operation_types : (Ast.operation * (string * string)) list;
 }
 
-let compile ?(host_runs = false) ~source (program : F.program) =
+(* A compiled operation performed outside all handlers: the operation, the
+   C++ types of its result and its argument, and its external function. *)
+type external_operation = {
+  operation : F.operation;
+  result : string;
+  argument : string;
+  function_name : string;
+}
+
+(* The C++ definitions of a program, before they are laid out in files. *)
+type definitions = {
+  names : names;
+  datatypes : F.datatype Ast.TyNameMap.t;
+  structs : F.ty list;  (** the struct types, each after its members *)
+  comparable : F.ty list;  (** the structs without strings *)
+  externals : external_operation list;
+  functions : (bool * (Cpp.stmt * Cpp.stmt)) list;
+      (** the functions, each with whether it is an entry point, its prototype
+          and its definition *)
+  constants : Cpp.stmt list;
+  runs : F.computation list;
+  run_functions : (Cpp.stmt * Cpp.stmt) list;
+  entries : Key.t list;
+}
+
+(* The instances of the top-level functions of the program's sources whose
+   types have no type variables. *)
+let entry_keys (program : F.program) =
+  List.filter_map
+    (fun (d : F.definition) ->
+      match (d.in_sources, d.quantified, d.definition_body) with
+      | true, [], F.Function_body _ -> Some (d.variable, [])
+      | _ -> None)
+    program.definitions
+
+let definitions ~host_runs (program : F.program) =
   let datatypes =
     List.fold_left
       (fun map (d : F.datatype) -> Ast.TyNameMap.add d.type_name d map)
       Ast.TyNameMap.empty program.datatypes
   in
   let ops = operations program.definitions in
-  let entries =
-    List.filter_map
-      (fun (d : F.definition) ->
-        match (d.in_sources, d.quantified, d.definition_body) with
-        | true, [], F.Function_body _ -> Some (d.variable, [])
-        | _ -> None)
-      program.definitions
-  in
+  let entries = entry_keys program in
   let runs =
     if host_runs then List.map ground_computation program.runs else []
   in
@@ -1464,7 +1454,6 @@ let compile ?(host_runs = false) ~source (program : F.program) =
     instances ops ~entries ~runs
       (List.map (fun key -> Instance (key, [])) entries)
   in
-  (* The operations performed outside all handlers. *)
   let performed =
     List.filter
       (fun (op : F.operation) -> OpNameSet.mem op.operation external_ops)
@@ -1483,167 +1472,175 @@ let compile ?(host_runs = false) ~source (program : F.program) =
   in
   let names = names datatypes instances runs structs in
   let context frames = { names; self = None; ops; frames } in
-  let comparable =
-    List.filter (fun ty -> not (has_string datatypes ty)) structs
+  let function_of inst =
+    match inst.body with
+    | F.Function_body _ when UnitMap.mem inst.key names.wrappers -> None
+    | F.Function_body { parameters; body; recursive } ->
+        Some
+          ( inst.entry,
+            function_definition
+              (context (context_frames handlers inst.context))
+              ~static:(not inst.entry)
+              ~name:(instance_name names inst.key)
+              parameters body ~recursive )
+    | F.Constant_body _ | F.Handler_body _ -> None
   in
-  let operations =
-    List.map
-      (fun (op : F.operation) ->
-        Printf.sprintf "%s %s(%s)"
-          (ty_name names op.result_ty)
-          (operation_function op.operation)
-          (ty_name names op.argument))
-      performed
+  let constant_of inst =
+    match inst.body with
+    | F.Constant_body v ->
+        Some
+          (Cpp.constant ~static:true (ty_name names v.ty)
+             (instance_name names inst.key)
+             (expression names v))
+    | F.Function_body _ | F.Handler_body _ -> None
   in
-  let functions =
-    List.filter_map
-      (fun inst ->
-        match inst.body with
-        | F.Function_body _ when UnitMap.mem inst.key names.wrappers -> None
-        | F.Function_body { parameters; body; recursive } ->
-            Some
-              ( inst.entry,
-                function_definition
-                  (context (context_frames handlers inst.context))
-                  ~static:(not inst.entry)
-                  ~name:(instance_name names inst.key)
-                  parameters body ~recursive )
-        | F.Constant_body _ | F.Handler_body _ -> None)
-      instances
-  in
-  let constants =
-    List.filter_map
-      (fun inst ->
-        match inst.body with
-        | F.Constant_body v ->
-            Some
-              (Line
-                 (Printf.sprintf "static const %s %s = %s;" (ty_name names v.ty)
-                    (instance_name names inst.key)
-                    (expression names v)))
-        | F.Function_body _ | F.Handler_body _ -> None)
-      instances
-  in
-  let run_functions =
-    List.mapi
-      (fun i c ->
-        function_definition (context []) ~static:false
-          ~name:(Printf.sprintf "tempore_run%d" (i + 1))
-          [] c ~recursive:false)
-      runs
-  in
-  let separated stmts =
-    List.concat
-      (List.mapi (fun i s -> if i = 0 then [ s ] else [ Line ""; s ]) stmts)
-  in
-  let section comment stmts =
-    match stmts with
-    | [] -> []
-    | _ -> Line "" :: Line ("// " ^ comment) :: stmts
-  in
-  let header =
-    [
-      Line ("// The program " ^ source ^ ", compiled by Tempore.");
-      Line "";
-      Line "#ifndef TEMPORE_PROGRAM_H";
-      Line "#define TEMPORE_PROGRAM_H";
-      Line "";
-      Line ("#include \"" ^ runtime_file ^ "\"");
-    ]
+  {
+    names;
+    datatypes;
+    structs;
+    comparable = List.filter (fun ty -> not (F.has_string ty)) structs;
+    externals =
+      List.map
+        (fun (op : F.operation) ->
+          {
+            operation = op;
+            result = ty_name names op.result_ty;
+            argument = ty_name names op.argument;
+            function_name = operation_function op.operation;
+          })
+        performed;
+    functions = List.filter_map function_of instances;
+    constants = List.filter_map constant_of instances;
+    runs;
+    run_functions =
+      List.mapi
+        (fun i c ->
+          function_definition (context []) ~static:false
+            ~name:(Printf.sprintf "tempore_run%d" (i + 1))
+            [] c ~recursive:false)
+        runs;
+    entries;
+  }
+
+(* [stmts] separated by empty lines. *)
+let separated stmts =
+  List.concat
+    (List.mapi (fun i s -> if i = 0 then [ s ] else [ Cpp.blank; s ]) stmts)
+
+(* A section of [stmts] under [comment], if [stmts] is not empty. *)
+let section comment stmts =
+  match stmts with [] -> [] | _ -> Cpp.blank :: Cpp.comment comment :: stmts
+
+let program_comment source =
+  Cpp.comment ("The program " ^ source ^ ", compiled by Tempore.")
+
+let header_text ~source d =
+  Cpp.render
+    ([
+       program_comment source;
+       Cpp.blank;
+       Cpp.Line "#ifndef TEMPORE_PROGRAM_H";
+       Cpp.define "TEMPORE_PROGRAM_H";
+       Cpp.blank;
+       Cpp.local_include runtime_file;
+     ]
     @ section "Types."
-        (separated (List.map (struct_definition names datatypes) structs))
+        (separated (List.map (struct_definition d.names d.datatypes) d.structs))
     @ section "Comparisons."
-        (separated (List.map (compare_definition names datatypes) comparable))
+        (separated
+           (List.map (compare_definition d.names d.datatypes) d.comparable))
     @ section "Operations, implemented outside the program."
-        (List.map (fun s -> Line (s ^ ";")) operations)
+        (List.map
+           (fun e -> Cpp.prototype e.result e.function_name [ e.argument ])
+           d.externals)
     @ section "Entry points."
         (List.filter_map
            (fun (entry, (prototype, _)) ->
-             if entry then Some (Line prototype) else None)
-           functions)
-    @ section "Runs."
-        (List.map (fun (prototype, _) -> Line prototype) run_functions)
-    @ [ Line ""; Line "#endif" ]
-  in
-  let source_stmts =
-    [
-      Line ("// The program " ^ source ^ ", compiled by Tempore.");
-      Line "";
-      Line ("#include \"" ^ header_file ^ "\"");
-    ]
-    @ section "Constants." constants
+             if entry then Some prototype else None)
+           d.functions)
+    @ section "Runs." (List.map fst d.run_functions)
+    @ [ Cpp.blank; Cpp.Line "#endif" ])
+
+let source_text ~source d =
+  Cpp.render
+    ([ program_comment source; Cpp.blank; Cpp.local_include header_file ]
+    @ section "Constants." d.constants
     @ section "Functions."
         (List.filter_map
            (fun (entry, (prototype, _)) ->
-             if entry then None else Some (Line prototype))
-           functions)
-    @ List.concat_map (fun (_, (_, def)) -> [ Line ""; def ]) functions
-    @ List.concat_map (fun (_, def) -> [ Line ""; def ]) run_functions
-  in
-  let host_main =
-    [
-      Line
-        ("// The runs of the program " ^ source
-       ^ ", compiled by Tempore, on the host.");
-      Line "";
-      Line ("#include \"" ^ header_file ^ "\"");
-      Line "";
-      Line host_prelude;
-    ]
+             if entry then None else Some prototype)
+           d.functions)
+    @ List.concat_map (fun (_, (_, def)) -> [ Cpp.blank; def ]) d.functions
+    @ List.concat_map (fun (_, def) -> [ Cpp.blank; def ]) d.run_functions)
+
+(* The [main] of the runs on the host: each run in a block that prints its
+   result. *)
+let host_main_function d =
+  Cpp.block "int main()"
+    (List.mapi
+       (fun i (c : F.computation) ->
+         Cpp.block ""
+           [
+             Cpp.constant (ty_name d.names c.result) "r"
+               (Cpp.call (Printf.sprintf "tempore_run%d" (i + 1)) []);
+             Cpp.Line
+               (Printf.sprintf "printf(\"=== Run %d ===\\nreturn \");" (i + 1));
+             Cpp.statement (Cpp.call (printer c.result) [ "r"; "true" ]);
+             Cpp.Line "printf(\"\\n\\n\");";
+           ])
+       d.runs
+    @ [ Cpp.return "0" ])
+
+let host_main_text ~source d =
+  Cpp.render
+    ([
+       Cpp.comment
+         ("The runs of the program " ^ source
+        ^ ", compiled by Tempore, on the host.");
+       Cpp.blank;
+       Cpp.local_include header_file;
+       Cpp.blank;
+       Cpp.Line host_prelude;
+     ]
     @ List.concat_map
-        (fun ((op : F.operation), signature) ->
+        (fun e ->
           [
-            block signature
+            Cpp.definition e.result e.function_name
+              [ (e.argument, None) ]
               [
-                Line
-                  (Printf.sprintf "tempore_fault(%s);"
-                     (Names.string_literal
-                        ("Unhandled operation "
-                        ^ Ast.OpName.string_of op.operation)));
+                Cpp.statement
+                  (Cpp.call "tempore_fault"
+                     [
+                       Cpp.string_literal
+                         ("Unhandled operation "
+                         ^ Ast.OpName.string_of e.operation.operation);
+                     ]);
               ];
-            Line "";
+            Cpp.blank;
           ])
-        (List.combine performed operations)
+        d.externals
     @ List.concat_map
-        (fun ty -> [ print_definition names datatypes ty; Line "" ])
-        comparable
-    @ [
-        block "int main()"
-          (List.concat
-             (List.mapi
-                (fun i (c : F.computation) ->
-                  [
-                    block ""
-                      [
-                        Line
-                          (Printf.sprintf "const %s r = tempore_run%d();"
-                             (ty_name names c.result) (i + 1));
-                        Line
-                          (Printf.sprintf
-                             "printf(\"=== Run %d ===\\nreturn \");" (i + 1));
-                        Line (Printf.sprintf "%s(r, true);" (printer c.result));
-                        Line "printf(\"\\n\\n\");";
-                      ];
-                  ])
-                runs)
-          @ [ Line "return 0;" ]);
-      ]
-  in
+        (fun ty -> [ print_definition d.names d.datatypes ty; Cpp.blank ])
+        d.comparable
+    @ [ host_main_function d ])
+
+let compile ?(host_runs = false) ~source (program : F.program) =
+  let d = definitions ~host_runs program in
   {
     files =
       ([
          (runtime_file, runtime);
-         (header_file, render header);
-         (source_file, render source_stmts);
+         (header_file, header_text ~source d);
+         (source_file, source_text ~source d);
        ]
-      @ if host_runs then [ (host_main_file, render host_main) ] else []);
+      @ if host_runs then [ (host_main_file, host_main_text ~source d) ] else []
+      );
     entries =
       List.map
-        (fun key -> (fst key, instance_name names (Instance (key, []))))
-        entries;
+        (fun key -> (fst key, instance_name d.names (Instance (key, []))))
+        d.entries;
     operation_types =
       List.map
-        (fun (op : F.operation) ->
-          (op.operation, (ty_name names op.argument, ty_name names op.result_ty)))
-        performed;
+        (fun e -> (e.operation.operation, (e.argument, e.result)))
+        d.externals;
   }

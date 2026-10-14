@@ -1,4 +1,4 @@
-(** C++ identifiers for the names of a program, and C++ literals. *)
+(** C++ identifiers for the names of a program. *)
 
 val identifier : string -> int -> string
 (** [identifier name index] is [name] made a C++ identifier, followed by [_] and
@@ -55,7 +55,3 @@ val argument_type : string -> string
 val result_type : string -> string
 (** [result_type name] is the type of the result of the operation [name],
     [tempore_result_] followed by its base. *)
-
-val string_literal : string -> string
-(** [string_literal s] is a C++ string literal, in printable ASCII, of the bytes
-    of [s]. *)

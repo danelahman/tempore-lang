@@ -65,6 +65,14 @@ val int : what:string -> t -> int
 val rational : what:string -> t -> Grades.Rational.t
 (** A non-negative number without exponent, read exactly. *)
 
+val assoc :
+  (what:string -> t -> 'a) ->
+  what:string ->
+  t ->
+  (string Utils.Location.located * 'a) list
+(** [assoc decode ~what v] is the members of the object [v], in order, each with
+    its name and its value decoded by [decode], none twice. *)
+
 val list : (what:string -> t -> 'a) -> what:string -> t -> 'a list
 (** [list decode ~what v] is the elements of the array [v], each decoded by
     [decode]. *)

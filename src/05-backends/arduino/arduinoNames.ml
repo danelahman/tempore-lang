@@ -22,8 +22,7 @@ let word = function
   | '#' -> Some "hash"
   | _ -> None
 
-let is_alphanumeric c =
-  (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+let is_alphanumeric c = c <> '_' && ArduinoCpp.is_identifier_char c
 
 (* The spelling of the Unicode scalar value [u], with [_] separating the words
    of the spellings of other characters. *)
@@ -97,14 +96,3 @@ let binding name = "binding_" ^ base name
 let performs name = "TEMPORE_PERFORMS_" ^ base name
 let argument_type name = "tempore_argument_" ^ base name
 let result_type name = "tempore_result_" ^ base name
-
-let string_literal s =
-  let char c =
-    match c with
-    | '"' -> "\\\""
-    | '\\' -> "\\\\"
-    | '?' -> "\\?"
-    | c when c >= ' ' && c < '\127' -> String.make 1 c
-    | c -> Printf.sprintf "\\%03o" (Char.code c)
-  in
-  "\"" ^ String.concat "" (List.map char (List.of_seq (String.to_seq s))) ^ "\""

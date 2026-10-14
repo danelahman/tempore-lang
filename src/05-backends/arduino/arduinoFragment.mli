@@ -80,6 +80,14 @@ val substitute : (int -> ty option) -> ty -> ty
 (** [substitute f ty] replaces each type variable [Meta i] of [ty] for which [f]
     gives a type by that type. *)
 
+val has_string : ty -> bool
+(** [has_string ty] is whether [ty] has a string component. The datatypes of the
+    fragment have none. *)
+
+val type_variables : ty list -> int list
+(** [type_variables tys] is the type variables of [tys], in the order of their
+    first occurrences. *)
+
 (** {1 Terms} *)
 
 type global = {
@@ -183,6 +191,10 @@ type definition = {
   quantified : int list;  (** the type variables the type is generalised over *)
   definition_body : body;
 }
+
+val function_type : definition -> (ty list * ty) option
+(** [function_type d] is the types of the parameters and of the result of [d],
+    if it is a function. *)
 
 type datatype = {
   type_name : Language.Ast.ty_name;

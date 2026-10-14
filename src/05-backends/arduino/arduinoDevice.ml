@@ -70,11 +70,8 @@ let identifier ~what (v : Json.t) =
   let s = Json.string ~what v in
   let ok =
     s <> ""
-    && (match s.[0] with 'a' .. 'z' | 'A' .. 'Z' | '_' -> true | _ -> false)
-    && String.for_all
-         (function
-           | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> true | _ -> false)
-         s
+    && ArduinoCpp.is_identifier_start s.[0]
+    && String.for_all ArduinoCpp.is_identifier_char s
     && not (String.starts_with ~prefix:"tempore" s)
   in
   if ok then s

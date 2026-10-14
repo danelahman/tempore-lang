@@ -94,19 +94,11 @@ let parse ~files name =
         if members = [] then
           Error.compilation ~loc:member.at
             "The member 'declarations' of a package descriptor names no grades";
-        (* The grades, none twice. *)
-        let g =
-          Json.fields ~what:"the member 'declarations' of a package descriptor"
-            ~accepted:
-              (List.map
-                 (fun ((key : string Location.located), _) -> key.it)
-                 members)
-            member
-        in
         List.map
-          (fun ((key : string Location.located), _) ->
-            (key.it, tpe ~what (Json.required g key.it Json.string)))
-          members
+          (fun ((grades : string Location.located), filename) ->
+            (grades.it, tpe ~what filename))
+          (Json.assoc Json.string
+             ~what:"the member 'declarations' of a package descriptor" member)
     | Json.Object _, Some _ ->
         Error.compilation ~loc:(Json.location f "grades")
           "A package descriptor whose declarations map grades to files has no \
@@ -134,24 +126,6 @@ let parse ~files name =
           (String.capitalize_ascii what)
           (Json.kind v)
   in
-  (* The members of the object [v], each with its name, decoded by
-     [decode]. *)
-  let members decode ~what (v : Json.t) =
-    match v.value with
-    | Json.Object members ->
-        let names =
-          List.map (fun ((key : string Location.located), _) -> key.it) members
-        in
-        let g = Json.fields ~what ~accepted:names v in
-        List.map
-          (fun ((key : string Location.located), _) ->
-            (key, Json.required g key.it decode))
-          members
-    | _ ->
-        Error.compilation ~loc:v.at "%s is %s, not an object"
-          (String.capitalize_ascii what)
-          (Json.kind v)
-  in
   let operations ~what v =
     List.map
       (fun ((op : string Location.located), bounds) ->
@@ -162,7 +136,7 @@ let parse ~files name =
             op.it name
             (match bindings with [] -> "none" | ops -> String.concat ", " ops);
         (op.it, bounds))
-      (members interval ~what v)
+      (Json.assoc interval ~what v)
   in
   let boards ~what v =
     List.map
@@ -173,7 +147,7 @@ let parse ~files name =
             board.it name
             (String.concat ", " Board.names);
         (board.it, operations))
-      (members operations ~what v)
+      (Json.assoc operations ~what v)
   in
   let bounds = Option.value ~default:[] (Json.optional f "bounds" boards) in
   {
@@ -193,10 +167,9 @@ let parse ~files name =
     bounds;
   }
 
-let find name =
-  if List.mem_assoc (name ^ "/" ^ descriptor) files then
-    Some (parse ~files name)
-  else None
+(* The packages, each parsed at its first use. *)
+let packages = List.map (fun name -> (name, lazy (parse ~files name))) names
+let find name = Option.map Lazy.force (List.assoc_opt name packages)
 
 let resolve (name : string Location.located) =
   match find name.it with

@@ -86,8 +86,13 @@ let parse name text =
     init = Json.required f "init" strings;
   }
 
-let find name =
-  Option.map (parse name) (List.assoc_opt name Arduino_boards.profiles)
+(* The board profiles, each parsed at its first use. *)
+let profiles =
+  List.map
+    (fun (name, text) -> (name, lazy (parse name text)))
+    Arduino_boards.profiles
+
+let find name = Option.map Lazy.force (List.assoc_opt name profiles)
 
 let platformio_ini board =
   let list key = function

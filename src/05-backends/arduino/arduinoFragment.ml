@@ -137,11 +137,13 @@ let fits_int n =
 
 (* Maps of the types of terms. *)
 
+let map_global f g = { g with instance = List.map f g.instance }
+
 let rec map_value f v =
   let value =
     match v.value with
     | (Local _ | Constant _) as node -> node
-    | Global g -> Global { g with instance = List.map f g.instance }
+    | Global g -> Global (map_global f g)
     | Tuple_value vs -> Tuple_value (List.map (map_value f) vs)
     | Construct (l, arg) -> Construct (l, Option.map (map_value f) arg)
   in
@@ -157,8 +159,6 @@ let rec map_pattern f p =
     | PSucc (p, k) -> PSucc (map_pattern f p, k)
   in
   { pattern; pattern_ty = f p.pattern_ty }
-
-let map_global f g = { g with instance = List.map f g.instance }
 
 let map_callee f = function
   | Function g -> Function (map_global f g)
@@ -282,6 +282,9 @@ type ('rho, 'eps) environment = {
     * Location.t)
     Ast.TyNameMap.t;
   labels : Ast.ty_name LabelMap.t;
+  data : (unit, string) result Ast.TyNameMap.t;
+      (** for each datatype without type parameters, whether it is in the
+          fragment, or else why not *)
   signatures : (('rho, 'eps) Ast.ty * ('rho, 'eps) Ast.ty) Ast.OpNameMap.t;
   locals : local Ast.VariableMap.t;
   self : (Ast.variable * ty list * ty) option;
@@ -304,7 +307,6 @@ let rec substituted st ty =
   | Tuple tys -> Tuple (List.map (substituted st) tys)
   | ty -> ty
 
-(* Whether a converted type has a string component. *)
 let rec has_string = function
   | String -> true
   | Tuple tys -> List.exists has_string tys
@@ -344,6 +346,17 @@ exception Unsupported_type of string
 
 let ty_name_string = Ast.TyName.string_of
 
+(* The types of the fragment named by the type names of the language. *)
+let builtin_types =
+  [
+    (Ast.bool_ty_name, Bool);
+    (Ast.nat_ty_name, Nat);
+    (Ast.unit_ty_name, Tuple []);
+    (Ast.string_ty_name, String);
+    (Ast.float_ty_name, Float);
+    (Ast.int_ty_name, Int);
+  ]
+
 (* [convert env ~visiting st ty] is the type of the fragment of [ty], with
    the type parameters of annotations given types by [st]. The datatypes in
    [visiting] are those whose definitions are being converted. *)
@@ -371,17 +384,9 @@ let rec convert env ?(visiting = Ast.TyNameSet.empty) st (ty : _ Ast.ty) =
   | Ast.TyArrow _ -> raise (Unsupported_type "function types")
   | Ast.TyHandler _ -> raise (Unsupported_type "handler types")
   | Ast.TyApply (name, args) -> (
-      let builtin =
-        [
-          (Ast.bool_ty_name, Bool);
-          (Ast.nat_ty_name, Nat);
-          (Ast.unit_ty_name, Tuple []);
-          (Ast.string_ty_name, String);
-          (Ast.float_ty_name, Float);
-          (Ast.int_ty_name, Int);
-        ]
-      in
-      match List.find_opt (fun (n, _) -> Ast.TyName.equal n name) builtin with
+      match
+        List.find_opt (fun (n, _) -> Ast.TyName.equal n name) builtin_types
+      with
       | Some (_, ty) -> (st, ty)
       | None when Ast.TyName.equal name Ast.list_ty_name ->
           raise (Unsupported_type "lists")
@@ -398,35 +403,45 @@ let rec convert env ?(visiting = Ast.TyNameSet.empty) st (ty : _ Ast.ty) =
               in
               convert env ~visiting st
                 (Ast.substitute_ty subst ~on_rho:Fun.id ~on_eps:Fun.id body)
-          | None, Some (_ :: _, _, _) ->
-              raise
-                (Unsupported_type
-                   (Printf.sprintf "the type `%s`, which has type parameters"
-                      (ty_name_string name)))
-          | None, Some ([], constructors, _) ->
-              if Ast.TyNameSet.mem name visiting then
-                raise
-                  (Unsupported_type
-                     (Printf.sprintf "the recursive type `%s`"
-                        (ty_name_string name)));
-              let visiting = Ast.TyNameSet.add name visiting in
-              List.iter
-                (fun (_, arg) ->
-                  Option.iter
-                    (fun ty ->
-                      if has_string (snd (convert env ~visiting st ty)) then
-                        raise
-                          (Unsupported_type
-                             (Printf.sprintf
-                                "the type `%s`, whose constructors take strings"
-                                (ty_name_string name))))
-                    arg)
-                constructors;
-              (st, Data name)
+          | None, Some (params, constructors, _) ->
+              (st, convert_sum env ~visiting st name params constructors)
           | None, None ->
               raise
                 (Unsupported_type
                    (Printf.sprintf "the type `%s`" (ty_name_string name)))))
+
+(* The datatype [name] of the type parameters [params] and the constructors
+   [constructors], if it is in the fragment: without type parameters, not
+   recursive, and without strings in the arguments of its constructors. The
+   result of a datatype in [env.data] is taken from there. *)
+and convert_sum env ~visiting st name params constructors =
+  match (params, Ast.TyNameMap.find_opt name env.data) with
+  | _ :: _, _ ->
+      raise
+        (Unsupported_type
+           (Printf.sprintf "the type `%s`, which has type parameters"
+              (ty_name_string name)))
+  | [], Some (Ok ()) -> Data name
+  | [], Some (Error what) -> raise (Unsupported_type what)
+  | [], None ->
+      if Ast.TyNameSet.mem name visiting then
+        raise
+          (Unsupported_type
+             (Printf.sprintf "the recursive type `%s`" (ty_name_string name)));
+      let visiting = Ast.TyNameSet.add name visiting in
+      List.iter
+        (fun (_, arg) ->
+          Option.iter
+            (fun ty ->
+              if has_string (snd (convert env ~visiting st ty)) then
+                raise
+                  (Unsupported_type
+                     (Printf.sprintf
+                        "the type `%s`, whose constructors take strings"
+                        (ty_name_string name))))
+            arg)
+        constructors;
+      Data name
 
 let convert_at at env st ty =
   try convert env st ty with Unsupported_type what -> unsupported at "%s" what
@@ -525,12 +540,19 @@ let instantiate st d =
   let f i = List.assoc_opt i assoc in
   (st, { variable = d.variable; instance }, substitute f)
 
-(* The type variables of [ty], prepended to [acc] unless already in it. *)
-let rec metas acc ty =
-  match ty with
-  | Meta i -> if List.mem i acc then acc else i :: acc
-  | Tuple tys -> List.fold_left metas acc tys
-  | Nat | Int | Float | Bool | String | Data _ -> acc
+let type_variables tys =
+  let rec collect acc = function
+    | Meta i -> if List.mem i acc then acc else i :: acc
+    | Tuple tys -> List.fold_left collect acc tys
+    | Nat | Int | Float | Bool | String | Data _ -> acc
+  in
+  List.rev (List.fold_left collect [] tys)
+
+let function_type d =
+  match d.definition_body with
+  | Function_body { parameters; body; _ } ->
+      Some (List.map (fun p -> p.pattern_ty) parameters, body.result)
+  | Constant_body _ | Handler_body _ -> None
 
 let rec strip_expression (e : _ Ast.expression) =
   match e.it with Ast.Annotated (e, _) -> strip_expression e | _ -> e
@@ -624,6 +646,25 @@ let rec bound_variable (p : _ Ast.pattern) =
   | Ast.PVar x -> Some x
   | Ast.PAnnotated (p, _) -> bound_variable p
   | _ -> None
+
+(* The patterns of the argument and of the continuation of the pattern [p] of
+   an operation case, if it is a pair. *)
+let case_patterns (p : _ Ast.pattern) =
+  match (strip_pattern p).it with
+  | Ast.PTuple [ argument; continuation ] -> Some (argument, continuation)
+  | _ -> None
+
+(* The continuation that the pattern [k] binds: [Some (Some x)] for a variable
+   [x], [Some None] for [_], and [None] for any other pattern. *)
+let continuation_variable (k : _ Ast.pattern) =
+  match (strip_pattern k).it with
+  | Ast.PVar x -> Some (Some x)
+  | Ast.PNonbinding -> Some None
+  | _ -> None
+
+(* The variables denoting the continuation [k], if it is named. *)
+let continuation_set k =
+  Option.fold ~none:Ast.VariableSet.empty ~some:Ast.VariableSet.singleton k
 
 (* Why a case of a handler is not tail-resumptive: its continuation is
    resumed outside tail position, used other than by a resumption, or not
@@ -803,23 +844,15 @@ and computation_handlers acc (c : _ Ast.computation) =
    other than a variable or [_] is not checked. *)
 let first_not_tail_resumptive cases =
   List.find_map
-    (fun (op, ((p : _ Ast.pattern), body)) ->
-      let check k =
-        let ks =
-          Option.fold ~none:Ast.VariableSet.empty
-            ~some:Ast.VariableSet.singleton k
-        in
-        match resumed ~op ~k ks body with
-        | _ -> None
-        | exception Not_tail_resumptive failure -> Some failure
-      in
-      match (strip_pattern p).it with
-      | Ast.PTuple [ _; continuation ] -> (
-          match (strip_pattern continuation).it with
-          | Ast.PVar k -> check (Some k)
-          | Ast.PNonbinding -> check None
-          | _ -> None)
-      | _ -> None)
+    (fun (op, (p, body)) ->
+      match
+        Option.bind (case_patterns p) (fun (_, k) -> continuation_variable k)
+      with
+      | Some k -> (
+          match resumed ~op ~k (continuation_set k) body with
+          | _ -> None
+          | exception Not_tail_resumptive failure -> Some failure)
+      | None -> None)
     (Ast.OpNameMap.bindings cases)
 
 (* The warnings of the handlers that are not tail-resumptive among those
@@ -913,14 +946,15 @@ let free_variables (h : handler) =
       (computation (pattern ([], []) ret_p) ret_c)
       h.operation_cases
   in
-  List.fold_left
-    (fun free x ->
-      if
-        List.exists (Ast.Variable.equal x) binders
-        || List.exists (Ast.Variable.equal x) free
-      then free
-      else free @ [ x ])
-    [] (List.rev refs)
+  let _, free =
+    List.fold_left
+      (fun (excluded, free) x ->
+        if Ast.VariableSet.mem x excluded then (excluded, free)
+        else (Ast.VariableSet.add x excluded, x :: free))
+      (Ast.VariableSet.of_list binders, [])
+      (List.rev refs)
+  in
+  List.rev free
 
 let rec resolve_variable env st at x =
   let name = Ast.Variable.string_of x in
@@ -990,12 +1024,7 @@ and define env st x at in_sources e =
   let definition_body = map_body (substituted st) definition_body in
   let d = { variable = x; at; in_sources; quantified = []; definition_body } in
   let params, results = signature d in
-  let d =
-    {
-      d with
-      quantified = List.rev (List.fold_left metas [] (params @ results));
-    }
-  in
+  let d = { d with quantified = type_variables (params @ results) } in
   ( {
       st with
       type_parameters = saved;
@@ -1067,22 +1096,17 @@ and handler env st parameters (ret_pattern, ret_body) op_cases =
    value it resumes with. *)
 and operation_case env st op ((p, body) : _ Ast.abstraction) =
   let st, argument, result = operation_types p.at env st op in
-  match (strip_pattern p).it with
-  | Ast.PTuple [ argument_pattern; continuation_pattern ] ->
+  match case_patterns p with
+  | Some (argument_pattern, continuation_pattern) ->
       let k =
-        match (strip_pattern continuation_pattern).it with
-        | Ast.PVar k -> Some k
-        | Ast.PNonbinding -> None
-        | _ ->
+        match continuation_variable continuation_pattern with
+        | Some k -> k
+        | None ->
             unsupported continuation_pattern.at
               "patterns of continuations other than variables"
       in
-      let ks =
-        Option.fold ~none:Ast.VariableSet.empty ~some:Ast.VariableSet.singleton
-          k
-      in
       let body =
-        try resumed ~op ~k ks body
+        try resumed ~op ~k (continuation_set k) body
         with Not_tail_resumptive failure -> reject_not_tail_resumptive failure
       in
       let st, case_parameter, env = pattern env st argument_pattern argument in
@@ -1090,7 +1114,7 @@ and operation_case env st op ((p, body) : _ Ast.abstraction) =
       let case_body = as_computation case_body in
       let st = unify_at body.at st result case_body.result in
       (st, { case_operation = op; case_parameter; case_body })
-  | _ -> invalid_arg "operation case without an argument and a continuation"
+  | None -> invalid_arg "operation case without an argument and a continuation"
 
 (* The types of the argument and the result of the operation [op]. *)
 and operation_types at env st op =
@@ -1359,51 +1383,59 @@ and apply env st ~tail at p e =
                 at ) )
       | _ :: _, _ -> (st, Applied ({ p with arguments; remaining }, at)))
 
-let check ?roots ~runs ~library sources =
-  let environment =
-    let add_command env (in_sources, (cmd : _ Ast.command)) =
-      match cmd.it with
-      | Ast.TopLet (x, e) ->
-          {
-            env with
-            commands =
-              Ast.VariableMap.add x (cmd.at, in_sources, e) env.commands;
-          }
-      | Ast.TyDef (_, defs) ->
-          List.fold_left
-            (fun env (params, name, def) ->
-              match def with
-              | Ast.TyInline ty ->
-                  {
-                    env with
-                    aliases = Ast.TyNameMap.add name (params, ty) env.aliases;
-                  }
-              | Ast.TySum constructors ->
-                  {
-                    env with
-                    sums =
-                      Ast.TyNameMap.add name
-                        (params, constructors, cmd.at)
-                        env.sums;
-                    labels =
-                      List.fold_left
-                        (fun labels (l, _) -> LabelMap.add l name labels)
-                        env.labels constructors;
-                  })
-            env defs
-      | Ast.OpSig (op, ty1, ty2, _, _) ->
-          {
-            env with
-            signatures = Ast.OpNameMap.add op (ty1, ty2) env.signatures;
-          }
-      | Ast.OpDefault _ | Ast.TopDo _ -> env
-    in
+(* The environment of the commands, each with whether it is in the sources. *)
+let add_command env (in_sources, (cmd : _ Ast.command)) =
+  match cmd.it with
+  | Ast.TopLet (x, e) ->
+      {
+        env with
+        commands = Ast.VariableMap.add x (cmd.at, in_sources, e) env.commands;
+      }
+  | Ast.TyDef (_, defs) ->
+      List.fold_left
+        (fun env (params, name, def) ->
+          match def with
+          | Ast.TyInline ty ->
+              {
+                env with
+                aliases = Ast.TyNameMap.add name (params, ty) env.aliases;
+              }
+          | Ast.TySum constructors ->
+              {
+                env with
+                sums =
+                  Ast.TyNameMap.add name (params, constructors, cmd.at) env.sums;
+                labels =
+                  List.fold_left
+                    (fun labels (l, _) -> LabelMap.add l name labels)
+                    env.labels constructors;
+              })
+        env defs
+  | Ast.OpSig (op, ty1, ty2, _, _) ->
+      { env with signatures = Ast.OpNameMap.add op (ty1, ty2) env.signatures }
+  | Ast.OpDefault _ | Ast.TopDo _ -> env
+
+let initial_state =
+  {
+    substitution = IntMap.empty;
+    next = 0;
+    type_parameters = Ast.TyParamMap.empty;
+    definitions = Ast.VariableMap.empty;
+    order = [];
+    performed = Ast.OpNameMap.empty;
+  }
+
+(* The environment of [library] and [sources], with the datatypes without type
+   parameters checked against the fragment once. *)
+let environment ~library sources =
+  let env =
     List.fold_left add_command
       {
         commands = Ast.VariableMap.empty;
         aliases = Ast.TyNameMap.empty;
         sums = Ast.TyNameMap.empty;
         labels = LabelMap.empty;
+        data = Ast.TyNameMap.empty;
         signatures = Ast.OpNameMap.empty;
         locals = Ast.VariableMap.empty;
         self = None;
@@ -1411,89 +1443,96 @@ let check ?roots ~runs ~library sources =
       (List.map (fun c -> (false, c)) library
       @ List.map (fun c -> (true, c)) sources)
   in
-  let initial =
-    {
-      substitution = IntMap.empty;
-      next = 0;
-      type_parameters = Ast.TyParamMap.empty;
-      definitions = Ast.VariableMap.empty;
-      order = [];
-      performed = Ast.OpNameMap.empty;
-    }
+  let data =
+    Ast.TyNameMap.filter_map
+      (fun name (params, _, _) ->
+        match params with
+        | _ :: _ -> None
+        | [] -> (
+            match convert env initial_state (Ast.TyApply (name, [])) with
+            | _ -> Some (Ok ())
+            | exception Unsupported_type what -> Some (Error what)))
+      env.sums
   in
-  (* The definitions of [sources] satisfying [included], in order, and the
-     [run] commands if [runs]. *)
-  let reconstruct included =
+  { env with data }
+
+(* The reconstruction of the definitions of [sources] satisfying [included],
+   in order, and of the [run] commands if [runs], the latter in reverse. *)
+let reconstruct env ~runs included sources =
+  List.fold_left
+    (fun (st, runs_rev) (cmd : _ Ast.command) ->
+      match cmd.it with
+      | Ast.TopLet (x, _) when included x -> (fst (ensure env st x), runs_rev)
+      | Ast.TopDo c when runs ->
+          let st = { st with type_parameters = Ast.TyParamMap.empty } in
+          let st, c = computation env st ~tail:true c in
+          let c = map_computation (substituted st) (as_computation c) in
+          (st, c :: runs_rev)
+      | Ast.TopLet _ | Ast.TopDo _ | Ast.TyDef _ | Ast.OpSig _ | Ast.OpDefault _
+        ->
+          (st, runs_rev))
+    (initial_state, []) sources
+
+(* The variables of the last definitions of [sources] of the names [names]. *)
+let root_variables names sources =
+  let named =
     List.fold_left
-      (fun (st, runs_rev) (cmd : _ Ast.command) ->
+      (fun named (cmd : _ Ast.command) ->
         match cmd.it with
-        | Ast.TopLet (x, _) when included x ->
-            (fst (ensure environment st x), runs_rev)
-        | Ast.TopDo c when runs ->
-            let st = { st with type_parameters = Ast.TyParamMap.empty } in
-            let st, c = computation environment st ~tail:true c in
-            let c = map_computation (substituted st) (as_computation c) in
-            (st, c :: runs_rev)
-        | Ast.TopLet _ | Ast.TopDo _ | Ast.TyDef _ | Ast.OpSig _
-        | Ast.OpDefault _ ->
-            (st, runs_rev))
-      (initial, []) sources
+        | Ast.TopLet (x, _) when List.mem (Ast.Variable.string_of x) names ->
+            StringMap.add (Ast.Variable.string_of x) x named
+        | _ -> named)
+      StringMap.empty sources
   in
+  StringMap.fold (fun _ x -> Ast.VariableSet.add x) named Ast.VariableSet.empty
+
+(* The datatypes of [env] in the fragment, their constructors in the order of
+   their labels. *)
+let datatypes env =
+  Ast.TyNameMap.fold
+    (fun type_name result acc ->
+      match result with
+      | Error _ -> acc
+      | Ok () ->
+          let _, constructors, type_at =
+            Ast.TyNameMap.find type_name env.sums
+          in
+          let constructors =
+            List.sort
+              (fun (l1, _) (l2, _) -> Ast.Label.compare l1 l2)
+              (List.map
+                 (fun (l, arg) ->
+                   ( l,
+                     Option.map
+                       (fun ty -> snd (convert env initial_state ty))
+                       arg ))
+                 constructors)
+          in
+          { type_name; constructors; type_at } :: acc)
+    env.data []
+
+let check ?roots ~runs ~library sources =
+  let env = environment ~library sources in
   let st, runs_rev =
     match roots with
-    | None -> reconstruct (fun _ -> true)
+    | None -> reconstruct env ~runs (fun _ -> true) sources
     | Some names ->
-        (* The last definition of [sources] of each name of [roots]. *)
-        let named =
-          List.fold_left
-            (fun named (cmd : _ Ast.command) ->
-              match cmd.it with
-              | Ast.TopLet (x, _) when List.mem (Ast.Variable.string_of x) names
-                ->
-                  StringMap.add (Ast.Variable.string_of x) x named
-              | _ -> named)
-            StringMap.empty sources
-        in
-        let root_variables =
-          StringMap.fold
-            (fun _ x -> Ast.VariableSet.add x)
-            named Ast.VariableSet.empty
-        in
+        (* The definitions reached from the roots are reconstructed again in
+           the order of the sources, so that the order of the definitions, and
+           with it that of the compiled program and its names, does not depend
+           on the order in which they are reached. *)
+        let roots = root_variables names sources in
         let reached, _ =
-          reconstruct (fun x -> Ast.VariableSet.mem x root_variables)
+          reconstruct env ~runs (fun x -> Ast.VariableSet.mem x roots) sources
         in
-        reconstruct (fun x -> Ast.VariableMap.mem x reached.definitions)
-  in
-  let datatypes =
-    Ast.TyNameMap.fold
-      (fun type_name (params, _, type_at) acc ->
-        match params with
-        | _ :: _ -> acc
-        | [] -> (
-            match convert environment initial (Ast.TyApply (type_name, [])) with
-            | exception Unsupported_type _ -> acc
-            | _ ->
-                let constructors =
-                  let _, constructors, _ =
-                    Ast.TyNameMap.find type_name environment.sums
-                  in
-                  List.sort
-                    (fun (l1, _) (l2, _) -> Ast.Label.compare l1 l2)
-                    (List.map
-                       (fun (l, arg) ->
-                         ( l,
-                           Option.map
-                             (fun ty -> snd (convert environment initial ty))
-                             arg ))
-                       constructors)
-                in
-                { type_name; constructors; type_at } :: acc))
-      environment.sums []
+        reconstruct env ~runs
+          (fun x -> Ast.VariableMap.mem x reached.definitions)
+          sources
   in
   {
     definitions = List.rev st.order;
     runs = List.rev runs_rev;
-    datatypes;
+    datatypes = datatypes env;
     operations =
       List.map
         (fun (operation, (argument, result_ty)) ->
