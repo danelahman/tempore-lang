@@ -1,9 +1,10 @@
 // The battery indicator of a board driven through M5Unified with a screen and
 // a battery gauge: the charge of the battery in percent, followed by "+" while
 // it charges, in grey on black in text of size 1, right-aligned in the top
-// right corner of the screen. A task of priority 1 reads the gauge at start-up
-// and every TEMPORE_BATTERY_INTERVAL_MS milliseconds (default 5000), each
-// read under the lock of the I2C buses, and draws the text, under the lock of
+// right corner of the screen. A task of the idle priority, below every task of
+// the application, reads the gauge at start-up and every
+// TEMPORE_BATTERY_INTERVAL_MS milliseconds (default 5000), each read under the
+// lock of the I2C buses, and draws the text, under the lock of
 // the display, when it changes or when a drawing of the application
 // intersects the corner (tempore_display_drawn), until the tasks are halted.
 // The text is drawn over its own background and the rest of the corner
@@ -104,7 +105,7 @@ void indicator(void *) {
 void tempore_battery_begin() {
   TaskHandle_t task = nullptr;
   xTaskCreatePinnedToCore(indicator, "tempore-battery", 4096, nullptr,
-                          tskIDLE_PRIORITY + 1, &task, tskNO_AFFINITY);
+                          tskIDLE_PRIORITY, &task, tskNO_AFFINITY);
   tempore_display_overlay_begin(M5.Display.width() - corner_width, 0,
                                 corner_width, corner_height, task);
 }

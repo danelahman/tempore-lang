@@ -92,17 +92,17 @@
 
     {2 Battery indicator}
 
-    Under the member ["battery"] of the manifest, a task of priority 1 reads the
-    charge of the battery by [M5.Power.getBatteryLevel] and
-    [M5.Power.isCharging], each under the lock of the I2C buses, at start-up and
-    every [TEMPORE_BATTERY_INTERVAL_MS] milliseconds (default 5000), and draws
-    it as [Battery 87%], followed by [+] while the battery charges, in grey on
-    black in text of size 1, right-aligned in the top right corner of the
-    screen, a rectangle 78 pixels wide and 8 high, under the lock of the
-    display. It draws the text when it changes and when a drawing of the package
-    m5-display intersects the rectangle, which notifies the task; it draws
-    nothing while the gauge reports no battery, and stops once the tasks are
-    halted.
+    Under the member ["battery"] of the manifest, a task of the idle priority,
+    below every task of the application, reads the charge of the battery by
+    [M5.Power.getBatteryLevel] and [M5.Power.isCharging], each under the lock of
+    the I2C buses, at start-up and every [TEMPORE_BATTERY_INTERVAL_MS]
+    milliseconds (default 5000), and draws it as [Battery 87%], followed by [+]
+    while the battery charges, in grey on black in text of size 1, right-aligned
+    in the top right corner of the screen, a rectangle 78 pixels wide and 8
+    high, under the lock of the display. It draws the text when it changes and
+    when a drawing of the package m5-display intersects the rectangle, which
+    notifies the task; it draws nothing while the gauge reports no battery, and
+    stops once the tasks are halted.
 
     {2 Profile}
 
