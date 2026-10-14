@@ -54,6 +54,9 @@ let malformed =
     "literals_reject_inf.tpe";
     "literals_reject_large.tpe";
     "literals_reject_modes.tpe";
+    "literals_reject_mode_times.tpe";
+    "literals_reject_mode_times_bound.tpe";
+    "literals_reject_mode_times_operation.tpe";
     "literals_reject_name.tpe";
     "literals_reject_negative.tpe";
     "literals_reject_peak.tpe";

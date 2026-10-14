@@ -440,6 +440,13 @@ let entries =
        2); an operation gets stuck from the modes its grade does not start \
        from, and a change of mode costs at least 1.";
     entry
+      (module ModeTimeGrades.ModeTimes)
+      semidirect "Mode times"
+      "The time spent in each mode of a device or a material, over traces that \
+       change modes, such as (Cold, Cold, (Out, [0, 30])); an operation runs \
+       in the mode it starts from, and its change of mode takes effect at its \
+       end.";
+    entry
       (module CountGrades.UpperBound)
       counts "Upper bounds"
       "At most n calls of each operation, by name, such as ((Auth, 1), (Send, \

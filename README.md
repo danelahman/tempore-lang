@@ -957,6 +957,40 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
       This function's body has grade `(Off, On, 10)`, which does not match its
       annotated grade `(Off, On, 6)`
 
+- `mode-times`: the matrices of `mode-switch-costs` with the costs replaced by
+  the time spent in each mode and the total time, each bounded by an interval.
+
+  A delay keeps the mode and its time is spent in it. An operation takes its
+  running time `within [lo, hi]` in the mode it starts from, and its change of
+  mode takes effect at its end. As in `mode-switch-costs`, an operation gets
+  stuck from the modes its grade does not start from, at no time.
+
+  An operation names itself: `{Log}` in every mode, `({Take}, Cold, Out)` from
+  `Cold` to `Out`, `({Mix}, (Cold, Cold), (Out, Out))` in either mode. A
+  specification `(From, To, (M, [lo, hi]), …, [lo, hi])` bounds the time in each
+  listed mode and, by a bare interval, the total; the modes not named are
+  written `_` as in `mode-switch-costs`, and `(_, [lo, hi])` bounds the time in
+  each of them. A number `d` or an interval is a delay.
+
+  For example, where taking an enzyme out of the cold block takes 1 to 2
+  minutes and a pipetting 3 to 5, the program
+
+  ```
+  operation Take : unit ~> unit # ({Take}, Cold, Out) within [1, 2]
+  operation Pipette : unit ~> unit # ({Pipette}, Out, Out) within [3, 5]
+  operation Return : unit ~> unit # ({Return}, Out, Cold) within [1, 1]
+
+  let round () : unit # (Cold, Cold, (Out, [0, 10])) =
+    perform Take ();
+    perform Pipette ();
+    delay 4;
+    perform Return ()
+  ```
+
+  is accepted, as the enzyme is out of the cold block at most 10 minutes, the
+  taking counted in the cold block, while a second pipetting would be rejected,
+  as the enzyme may then be out for 15.
+
 An (external) operation whose grade no code inside Tempore can meet, such as
 opening or closing a file under `resource-levels`, has no default
 implementation, and a run stops at its first call.

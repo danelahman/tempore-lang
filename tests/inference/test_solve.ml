@@ -314,6 +314,7 @@ let expected_rejections =
     ("tests/list_constructor_reject.tpe", [ 3 ]);
     ("tests/malformed_type_application.tpe", [ 4 ]);
     ("tests/mode_switch_costs_reject.tpe", [ 13; 16; 23; 28; 35 ]);
+    ("tests/mode_times_reject.tpe", [ 18; 25; 29; 32 ]);
     ("tests/nat_reject_successor_pattern.tpe", [ 3; 5 ]);
     ("tests/noneternal_reject_after_delay.tpe", [ 11 ]);
     ("tests/noneternal_reject_alias.tpe", [ 9 ]);
