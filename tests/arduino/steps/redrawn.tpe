@@ -6,9 +6,14 @@ let rec count_redrawn (n : nat) (steps : nat) (armed : bool)
   | 0 -> ()
   | m + 1 ->
       let a = load () in
-      let stepped = armed && a > high in
+      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      perform DrawBar (0, 180, 320, 16, bar a, blue);
+      delay 10;
+      let b = load () in
+      unbox first as a in
+      let stepped = armed && a > high && b > high in
       let steps = if stepped then steps + 1 else steps in
       (if stepped then screen steps
-       else perform DrawBar (0, 180, 320, 16, bar a, blue));
+       else perform DrawBar (0, 180, 320, 16, bar b, blue));
       delay 10;
-      count_redrawn m steps ((armed && not stepped) || a < low)
+      count_redrawn m steps ((armed && not stepped) || a < low || b < low)

@@ -672,6 +672,8 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   under `event-separation`: one loop reads the unit at least every 50 ms
   while it redraws the screen, one band per reading, the steps counted or
   the bar of the acceleration.
+  - A step is confirmed by a second reading, boxed 10 to 45 ms after the
+    first, a new sample of the unit at 100 Hz.
 
 #### Using the digital level
 

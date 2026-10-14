@@ -1,0 +1,17 @@
+(* A rejected variant of examples/arduino/steps/steps.tpe. *)
+
+let rec count_at_once (n : nat) (steps : nat) (armed : bool)
+    : unit # (ReadImu, [0, 0], [0, 50], [0, 50]) =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let a = load () in
+      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      let b = load () in
+      unbox first as a in
+      let stepped = armed && a > high && b > high in
+      let steps = if stepped then steps + 1 else steps in
+      (if stepped then perform ShowNumberAt (120, 60, 4, 0, float_of_nat steps)
+       else perform DrawBar (0, 180, 320, 16, bar b, blue));
+      delay 10;
+      count_at_once m steps ((armed && not stepped) || a < low || b < low)
