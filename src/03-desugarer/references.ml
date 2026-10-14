@@ -64,36 +64,32 @@ let rec pattern env (links, bound) { Sugared.it; at } =
   | Sugared.PSucc (p, _) -> pattern env (links, bound) p
   | Sugared.PConst _ | Sugared.PNonbinding -> (links, bound)
 
-let rec term env links { Sugared.it; at } =
-  let terms = List.fold_left (term env) in
-  let abstractions = List.fold_left (abstraction env) in
+(* The subterms of a term are read in the scope of its own bindings: those of
+   its abstractions, and of [let rec f = t1 in t2] the function [f] in [t1]
+   and [t2]. *)
+let rec term env links ({ Sugared.it; at } as t) =
+  let subterms env links =
+    Sugared.fold_term
+      ~term:(fun t links -> term env links t)
+      ~abstraction:(fun abs links -> abstraction env links abs)
+      t links
+  in
   match it with
   | Sugared.Var x -> refer Value env.values { it = x; at } links
-  | Sugared.Const _ | Sugared.Delay _ -> links
-  | Sugared.Annotated (t, a) | Sugared.AnnotatedComp (t, a, _) ->
-      ty env (term env links t) a
-  | Sugared.Tuple ts -> terms links ts
-  | Sugared.Variant (label, t) ->
-      let links = refer Constructor env.constructors label links in
-      Option.fold ~none:links ~some:(term env links) t
-  | Sugared.Lambda abs | Sugared.PureLambda abs -> abstraction env links abs
-  | Sugared.Function cases -> abstractions links cases
-  | Sugared.Let (p, t1, t2) -> abstraction env (term env links t1) (p, t2)
-  | Sugared.LetRec (f, t1, t2) ->
-      let env' = bind env (define f StringMap.empty) in
-      term env' (term env' links t1) t2
-  | Sugared.Match (t, cases) -> abstractions (term env links t) cases
-  | Sugared.Conditional (t, t1, t2) -> terms links [ t; t1; t2 ]
-  | Sugared.Apply (t1, t2) | Sugared.Handle (t1, t2) | Sugared.Continue (t1, t2)
-    ->
-      terms links [ t1; t2 ]
-  | Sugared.Box (_, t, abs) | Sugared.Unbox (t, abs) ->
-      abstraction env (term env links t) abs
-  | Sugared.GenBox (_, t) | Sugared.GenUnbox t -> term env links t
-  | Sugared.Perform (op, t) ->
-      term env (refer Operation env.operations op links) t
-  | Sugared.Handler (ret_case, op_cases) ->
-      abstractions (abstraction env links ret_case) (List.map snd op_cases)
+  | Sugared.Annotated (_, a) | Sugared.AnnotatedComp (_, a, _) ->
+      ty env (subterms env links) a
+  | Sugared.Variant (label, _) ->
+      subterms env (refer Constructor env.constructors label links)
+  | Sugared.LetRec (f, _, _) ->
+      subterms (bind env (define f StringMap.empty)) links
+  | Sugared.Perform (op, _) ->
+      subterms env (refer Operation env.operations op links)
+  | Sugared.Const _ | Sugared.Tuple _ | Sugared.Lambda _ | Sugared.PureLambda _
+  | Sugared.Function _ | Sugared.Let _ | Sugared.Match _ | Sugared.Conditional _
+  | Sugared.Apply _ | Sugared.Delay _ | Sugared.Box _ | Sugared.GenBox _
+  | Sugared.Unbox _ | Sugared.GenUnbox _ | Sugared.Handler _
+  | Sugared.Continue _ | Sugared.Handle _ ->
+      subterms env links
 
 and abstraction env links (p, t) =
   let links, bound = pattern env (links, StringMap.empty) p in

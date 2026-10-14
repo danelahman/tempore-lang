@@ -96,6 +96,34 @@ and ('rho, 'eps) plain_term =
 
 and ('rho, 'eps) abstraction = ('rho, 'eps) pattern * ('rho, 'eps) term
 
+(** [fold_term ~term ~abstraction t acc] folds [term] over the immediate
+    subterms of [t] and [abstraction] over its immediate abstractions, from left
+    to right: [let p = t1 in t2] has the subterm [t1] and the abstraction
+    [(p, t2)], and a handler its return case before its operation cases. *)
+let fold_term ~term ~abstraction (t : ('rho, 'eps) term) acc =
+  let abstractions acc cases =
+    List.fold_left (fun acc abs -> abstraction abs acc) acc cases
+  in
+  match t.it with
+  | Var _ | Const _ | Delay _ | Variant (_, None) -> acc
+  | Annotated (t, _)
+  | AnnotatedComp (t, _, _)
+  | Variant (_, Some t)
+  | GenBox (_, t)
+  | GenUnbox t
+  | Perform (_, t) ->
+      term t acc
+  | Tuple ts -> List.fold_left (fun acc t -> term t acc) acc ts
+  | Apply (t1, t2) | LetRec (_, t1, t2) | Handle (t1, t2) | Continue (t1, t2) ->
+      term t2 (term t1 acc)
+  | Conditional (t, t1, t2) -> term t2 (term t1 (term t acc))
+  | Let (p, t1, t2) -> abstraction (p, t2) (term t1 acc)
+  | Lambda abs | PureLambda abs -> abstraction abs acc
+  | Function cases -> abstractions acc cases
+  | Match (t, cases) -> abstractions (term t acc) cases
+  | Box (_, t, abs) | Unbox (t, abs) -> abstraction abs (term t acc)
+  | Handler (ret, ops) -> abstractions (abstraction ret acc) (List.map snd ops)
+
 type ('rho, 'eps) ty_def =
   | TySum of (label annotated * ('rho, 'eps) ty option) list
       (** [Label1 of ty1 | Label2 of ty2 | ... | Labeln of tyn | Label' |

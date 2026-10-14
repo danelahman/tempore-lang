@@ -126,44 +126,24 @@ module Make (GS : Grades.GradeSystem.S) = struct
     | Sugared.PConst _ | Sugared.PNonbinding ->
         names
 
-  let rec term_annotation_names names { Sugared.it = term; _ } =
-    let terms = List.fold_left term_annotation_names in
-    let abstractions = List.fold_left abstraction_annotation_names in
-    match term with
-    | Sugared.Var _ | Sugared.Const _ | Sugared.Delay _
-    | Sugared.Variant (_, None) ->
+  let rec term_annotation_names names (term : _ Sugared.term) =
+    let names =
+      Sugared.fold_term
+        ~term:(fun t names -> term_annotation_names names t)
+        ~abstraction:(fun abs names -> abstraction_annotation_names names abs)
+        term names
+    in
+    match term.it with
+    | Sugared.Annotated (_, ty) -> ty_annotation_names names ty
+    | Sugared.AnnotatedComp (_, ty, eps) ->
+        comp_ty_annotation_names names (Sugared.CompTy (ty, eps))
+    | Sugared.Var _ | Sugared.Const _ | Sugared.Tuple _ | Sugared.Variant _
+    | Sugared.Lambda _ | Sugared.PureLambda _ | Sugared.Function _
+    | Sugared.Let _ | Sugared.LetRec _ | Sugared.Match _ | Sugared.Conditional _
+    | Sugared.Apply _ | Sugared.Delay _ | Sugared.Box _ | Sugared.GenBox _
+    | Sugared.Unbox _ | Sugared.GenUnbox _ | Sugared.Perform _
+    | Sugared.Handler _ | Sugared.Continue _ | Sugared.Handle _ ->
         names
-    | Sugared.Annotated (t, ty) ->
-        ty_annotation_names (term_annotation_names names t) ty
-    | Sugared.AnnotatedComp (t, ty, eps) ->
-        comp_ty_annotation_names
-          (term_annotation_names names t)
-          (Sugared.CompTy (ty, eps))
-    | Sugared.Variant (_, Some t)
-    | Sugared.GenBox (_, t)
-    | Sugared.GenUnbox t
-    | Sugared.Perform (_, t) ->
-        term_annotation_names names t
-    | Sugared.Tuple ts -> terms names ts
-    | Sugared.Apply (t1, t2)
-    | Sugared.LetRec (_, t1, t2)
-    | Sugared.Handle (t1, t2)
-    | Sugared.Continue (t1, t2) ->
-        terms names [ t1; t2 ]
-    | Sugared.Conditional (t, t1, t2) -> terms names [ t; t1; t2 ]
-    | Sugared.Let (pat, t1, t2) ->
-        terms (pattern_annotation_names names pat) [ t1; t2 ]
-    | Sugared.Lambda abs | Sugared.PureLambda abs ->
-        abstraction_annotation_names names abs
-    | Sugared.Function cases -> abstractions names cases
-    | Sugared.Match (t, cases) ->
-        abstractions (term_annotation_names names t) cases
-    | Sugared.Box (_, t, abs) | Sugared.Unbox (t, abs) ->
-        abstraction_annotation_names (term_annotation_names names t) abs
-    | Sugared.Handler (ret_case, op_cases) ->
-        abstractions
-          (abstraction_annotation_names names ret_case)
-          (List.map snd op_cases)
 
   and abstraction_annotation_names names (pat, t) =
     term_annotation_names (pattern_annotation_names names pat) t

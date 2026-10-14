@@ -278,37 +278,25 @@ let check_pattern ~constructors (p : ('rho, 'eps) Ast.pattern) =
   | Some [] | None -> ()
 
 let rec check_expression ~constructors (e : ('rho, 'eps) Ast.expression) =
-  match e.it with
-  | Ast.Var _ | Ast.Const _ | Ast.Variant (_, None) -> ()
-  | Ast.Annotated (e, _) | Ast.Variant (_, Some e) ->
-      check_expression ~constructors e
-  | Ast.Tuple es -> List.iter (check_expression ~constructors) es
-  | Ast.Lambda abs | Ast.PureLambda abs | Ast.RecLambda (_, _, abs) ->
-      check_abstraction ~constructors abs
-  | Ast.Handler (ret, ops) ->
-      check_abstraction ~constructors ret;
-      Ast.OpNameMap.iter (fun _ abs -> check_abstraction ~constructors abs) ops
+  Ast.fold_expression
+    ~expression:(fun e () -> check_expression ~constructors e)
+    ~abstraction:(fun abs () -> check_abstraction ~constructors abs)
+    e ()
 
+(* The cases of a match are checked together, and their bodies apart. *)
 and check_computation ~constructors (c : ('rho, 'eps) Ast.computation) =
   match c.it with
-  | Ast.Return e -> check_expression ~constructors e
-  | Ast.Do (c1, abs) ->
-      check_computation ~constructors c1;
-      check_abstraction ~constructors abs
   | Ast.Match (e, cases) ->
       check_expression ~constructors e;
       check_match ~constructors ~at:c.at cases;
       List.iter (fun (_, c) -> check_computation ~constructors c) cases
-  | Ast.Apply (e1, e2) ->
-      check_expression ~constructors e1;
-      check_expression ~constructors e2
-  | Ast.Delay (_, c) -> check_computation ~constructors c
-  | Ast.Box (_, e, abs) | Ast.Unbox (e, abs) | Ast.Perform (_, e, abs) ->
-      check_expression ~constructors e;
-      check_abstraction ~constructors abs
-  | Ast.Handle (c, e) ->
-      check_computation ~constructors c;
-      check_expression ~constructors e
+  | Ast.Return _ | Ast.Do _ | Ast.Apply _ | Ast.Delay _ | Ast.Box _
+  | Ast.Unbox _ | Ast.Perform _ | Ast.Handle _ ->
+      Ast.fold_computation
+        ~expression:(fun e () -> check_expression ~constructors e)
+        ~computation:(fun c () -> check_computation ~constructors c)
+        ~abstraction:(fun abs () -> check_abstraction ~constructors abs)
+        c ()
 
 and check_abstraction ~constructors ((p, c) : ('rho, 'eps) Ast.abstraction) =
   check_pattern ~constructors p;
