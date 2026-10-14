@@ -1,65 +1,11 @@
-(* ------------------------------------------------------------------ *)
-(* Intervals of times                                                  *)
-(* ------------------------------------------------------------------ *)
+module I = DurationIntervals
 
-type interval = { lo : Rational.t; hi : Rational.t option }
-
-let point d = { lo = d; hi = Some d }
-let nothing = point Rational.zero
-let anything = { lo = Rational.zero; hi = None }
-
-let sum i i' =
-  {
-    lo = Rational.add i.lo i'.lo;
-    hi =
-      (match (i.hi, i'.hi) with
-      | Some h, Some h' -> Some (Rational.add h h')
-      | _ -> None);
-  }
-
-let hull i i' =
-  {
-    lo = (if Rational.compare i.lo i'.lo <= 0 then i.lo else i'.lo);
-    hi =
-      (match (i.hi, i'.hi) with
-      | Some h, Some h' -> Some (if Rational.compare h h' >= 0 then h else h')
-      | _ -> None);
-  }
-
-(* [below h h'] is whether the upper end [h] is at most [h'], [None] being
-   infinite. *)
-let below h h' =
-  match (h, h') with
-  | _, None -> true
-  | None, Some _ -> false
-  | Some h, Some h' -> Rational.compare h h' <= 0
-
-let included i i' = Rational.compare i'.lo i.lo <= 0 && below i.hi i'.hi
-
-let compare_interval i i' =
-  match Rational.compare i.lo i'.lo with
-  | 0 -> (
-      match (i.hi, i'.hi) with
-      | Some h, Some h' -> Rational.compare h h'
-      | None, None -> 0
-      | None, Some _ -> 1
-      | Some _, None -> -1)
-  | c -> c
-
-let equal_interval i i' = compare_interval i i' = 0
-
-let hash_interval i =
-  Hashing.combine (Rational.hash i.lo)
-    (match i.hi with Some h -> Rational.hash h | None -> -1)
-
-(* [cap h i] is [i] with its upper end at most [h]. *)
-let cap h i = if below i.hi h then i else { i with hi = h }
-
-let show_interval i =
-  match i.hi with
-  | Some h when Rational.equal h i.lo -> Rational.show h
-  | Some h -> "[" ^ Rational.show i.lo ^ ", " ^ Rational.show h ^ "]"
-  | None -> "[" ^ Rational.show i.lo ^ ", ∞)"
+(* [cap total i] is [i] with its upper end lowered to that of [total], where
+   [i] meets [I.upto total]. *)
+let cap total i =
+  match I.inter i (I.upto total) with
+  | Some i -> i
+  | None -> invalid_arg "ModeTimeGrades.cap"
 
 (* ------------------------------------------------------------------ *)
 (* Entries: the times of the traces between two modes                  *)
@@ -70,16 +16,11 @@ let show_interval i =
     vectors with the hull as its sum and the componentwise sum as its product.
     A summary names some modes; the others are bounded by [rest]. *)
 module Times = struct
-  type summary = {
-    times : (string * interval) list;
-    rest : interval;
-    total : interval;
-  }
-
+  type summary = { times : (string * I.t) list; rest : I.t; total : I.t }
   type t = No_trace | Traces of summary
 
   let zero = No_trace
-  let one = Traces { times = []; rest = nothing; total = nothing }
+  let one = Traces { times = []; rest = I.zero; total = I.zero }
   let is_zero = function No_trace -> true | Traces _ -> false
   let time s p = Option.value (List.assoc_opt p s.times) ~default:s.rest
 
@@ -96,20 +37,20 @@ module Times = struct
   let add e e' =
     match (e, e') with
     | No_trace, e | e, No_trace -> e
-    | Traces s, Traces s' -> Traces (pointwise hull s s')
+    | Traces s, Traces s' -> Traces (pointwise I.hull s s')
 
   let mul e e' =
     match (e, e') with
     | No_trace, _ | _, No_trace -> No_trace
-    | Traces s, Traces s' -> Traces (pointwise sum s s')
+    | Traces s, Traces s' -> Traces (pointwise I.add s s')
 
   let leq e e' =
     match (e, e') with
     | No_trace, _ -> true
     | Traces _, No_trace -> false
     | Traces s, Traces s' ->
-        included s.total s'.total && included s.rest s'.rest
-        && List.for_all (fun p -> included (time s p) (time s' p)) (keys s s')
+        I.subset s.total s'.total && I.subset s.rest s'.rest
+        && List.for_all (fun p -> I.subset (time s p) (time s' p)) (keys s s')
 
   let equal e e' = leq e e' && leq e' e
 
@@ -120,12 +61,12 @@ module Times = struct
     | Traces _, No_trace -> 1
     | Traces s, Traces s' -> (
         let time (p, i) (p', i') =
-          match String.compare p p' with 0 -> compare_interval i i' | c -> c
+          match String.compare p p' with 0 -> I.compare i i' | c -> c
         in
         match List.compare time s.times s'.times with
         | 0 -> (
-            match compare_interval s.rest s'.rest with
-            | 0 -> compare_interval s.total s'.total
+            match I.compare s.rest s'.rest with
+            | 0 -> I.compare s.total s'.total
             | c -> c)
         | c -> c)
 
@@ -134,9 +75,9 @@ module Times = struct
     | Traces s ->
         List.fold_left Hashing.combine
           (Hashing.list
-             (fun (p, i) -> Hashing.combine (String.hash p) (hash_interval i))
+             (fun (p, i) -> Hashing.combine (String.hash p) (I.hash i))
              s.times)
-          [ hash_interval s.rest; hash_interval s.total ]
+          [ I.hash s.rest; I.hash s.total ]
 
   let rename f = function
     | No_trace -> No_trace
@@ -162,7 +103,7 @@ module Times = struct
             times = List.map (fun p -> (p, time s p)) modes;
             rest =
               List.fold_left
-                (fun r (p, i) -> if List.mem p modes then r else hull r i)
+                (fun r (p, i) -> if List.mem p modes then r else I.hull r i)
                 s.rest s.times;
           }
 end
@@ -238,12 +179,12 @@ module Summary = struct
 
   let top =
     Matrices.make [] (fun _ _ ->
-        Times.Traces { times = []; rest = anything; total = anything })
+        Times.Traces { times = []; rest = I.unbounded; total = I.unbounded })
 
   let delays i =
     Matrices.make [] (fun p q ->
         if String.equal p q then
-          Times.Traces { times = [ (p, i) ]; rest = nothing; total = i }
+          Times.Traces { times = [ (p, i) ]; rest = I.zero; total = i }
         else Times.zero)
 
   let behaviour_modes behaviour =
@@ -254,8 +195,7 @@ module Summary = struct
   (* The running time of an operation is the closed hull of its running-time
      bounds. *)
   let occurrence _name behaviour bounds =
-    let lo, hi = Grade.hull bounds in
-    let running_time = { lo; hi = Some hi } in
+    let running_time = I.closure bounds in
     tabulate
       (behaviour_modes behaviour)
       (List.map (fun pair -> (pair, ())) behaviour)
@@ -265,7 +205,7 @@ module Summary = struct
           Times.Traces
             {
               times = [ (p, running_time) ];
-              rest = nothing;
+              rest = I.zero;
               total = running_time;
             })
 
@@ -282,7 +222,9 @@ module Summary = struct
         (List.map snd m.within @ List.map snd m.leaving
        @ List.map snd m.entering @ [ m.staying; m.moving ])
     in
-    match totals with [] -> None | i :: is -> Some (List.fold_left hull i is)
+    match totals with
+    | [] -> None
+    | i :: is -> Some (List.fold_left I.hull i is)
 
   let inhabited _ = true
   let events _ = []
@@ -296,9 +238,9 @@ end
 (* The bounds of an entry of a specification: of the time in modes named, in
    each mode not named, and of the total time, each unconstrained if absent. *)
 type bounds = {
-  named : (string * interval) list;
-  others : interval option;
-  total : interval option;
+  named : (string * I.t) list;
+  others : I.t option;
+  total : I.t option;
 }
 
 (* [specification entries] is the matrix of the entries [entries] of a
@@ -315,8 +257,8 @@ let specification entries =
   in
   let modes = List.sort_uniq String.compare modes in
   tabulate modes entries (fun b p q ->
-      let total = Option.value b.total ~default:anything in
-      let bounded i = cap total.hi (Option.value i ~default:anything) in
+      let total = Option.value b.total ~default:I.unbounded in
+      let bounded i = cap total (Option.value i ~default:I.unbounded) in
       let rest = bounded b.others in
       Times.Traces
         {
@@ -336,9 +278,9 @@ let show_specification (m : Matrices.t) =
   let bounded = function
     | Times.No_trace -> []
     | Times.Traces s ->
-        let default = cap s.total.hi anything in
+        let default = I.upto s.total in
         List.filter
-          (fun (r, i) -> List.mem r m.modes && not (equal_interval i default))
+          (fun (r, i) -> List.mem r m.modes && I.compare i default <> 0)
           s.times
   in
   let entry p q e =
@@ -346,13 +288,13 @@ let show_specification (m : Matrices.t) =
       match e with
       | Times.No_trace -> []
       | Times.Traces s ->
-          let bound (name, i) = "(" ^ name ^ ", " ^ show_interval i ^ ")" in
+          let bound (name, i) = "(" ^ name ^ ", " ^ I.show_point i ^ ")" in
           List.map bound (bounded e)
-          @ (if equal_interval s.rest (cap s.total.hi anything) then []
+          @ (if I.compare s.rest (I.upto s.total) = 0 then []
              else [ bound (unnamed, s.rest) ])
           @
-          if equal_interval s.total anything then []
-          else [ show_interval s.total ]
+          if I.compare s.total I.unbounded = 0 then []
+          else [ I.show_point s.total ]
     in
     "(" ^ String.concat ", " (p :: q :: bounds) ^ ")"
   in
@@ -427,14 +369,15 @@ let interval_of_lit lit =
   in
   match lit with
   | (Grade.Int _ | Grade.Rat _) as n ->
-      point (non_negative (Option.get (number n)))
+      I.point (non_negative (Option.get (number n)))
   | Grade.Interval (Grade.Closed lo, hi) -> (
       match (number lo, hi) with
-      | Some lo, Grade.Unbounded -> { lo = non_negative lo; hi = None }
+      | Some lo, Grade.Unbounded ->
+          (Grade.Closed (non_negative lo), Grade.Unbounded)
       | Some lo, Grade.Closed hi -> (
           match number hi with
           | Some hi when Rational.compare lo hi <= 0 ->
-              { lo = non_negative lo; hi = Some hi }
+              (Grade.Closed (non_negative lo), Grade.Closed hi)
           | Some _ -> Grade.invalid_lit lit "intervals `[lo, hi]` need lo <= hi"
           | None ->
               Grade.invalid_lit lit "the endpoints of intervals are numbers")
@@ -527,12 +470,12 @@ let bounds_of_lit lit (p, q) components =
   let others = List.assoc_opt unnamed named in
   let named = List.filter (fun (m, _) -> not (String.equal m unnamed)) named in
   (match total with
-  | Some { hi = Some h; _ } when is_change (p, q) && Rational.sign h = 0 ->
+  | Some t when is_change (p, q) && I.is_zero t ->
       Grade.invalid_lit lit "%sa change of mode takes a positive time" context
   | Some t -> (
       match
         List.find_opt
-          (fun (_, i) -> not (below (Some i.lo) t.hi))
+          (fun (_, i) -> not (I.meets i (I.upto t)))
           (named @ Option.fold ~none:[] ~some:(fun i -> [ (unnamed, i) ]) others)
       with
       | Some (m, _) ->
@@ -601,110 +544,15 @@ let occurrence_of_lit lit =
 (* Terms evaluated under the running times                             *)
 (* ------------------------------------------------------------------ *)
 
-type term =
-  | Delay of interval
-  | Specification of Summary.t
-  | Occurrence of string * (string * string) list
-  | Mul of term * term
-  | Join of term * term
-
-let rec compare_term t t' =
-  let rank = function
-    | Delay _ -> 0
-    | Specification _ -> 1
-    | Occurrence _ -> 2
-    | Mul _ -> 3
-    | Join _ -> 4
-  in
-  match (t, t') with
-  | Delay i, Delay i' -> compare_interval i i'
-  | Specification m, Specification m' -> Summary.compare m m'
-  | Occurrence (x, b), Occurrence (x', b') -> (
-      match String.compare x x' with 0 -> Summary.compare_op b b' | c -> c)
-  | Mul (a, b), Mul (a', b') | Join (a, b), Join (a', b') -> (
-      match compare_term a a' with 0 -> compare_term b b' | c -> c)
-  | _ -> Int.compare (rank t) (rank t')
-
-let rec hash_term = function
-  | Delay i -> Hashing.combine 0 (hash_interval i)
-  | Specification m -> Hashing.combine 1 (Summary.hash m)
-  | Occurrence (x, b) ->
-      Hashing.combine 2 (Hashing.combine (String.hash x) (Summary.hash_op b))
-  | Mul (a, b) ->
-      Hashing.combine 3 (Hashing.combine (hash_term a) (hash_term b))
-  | Join (a, b) ->
-      Hashing.combine 4 (Hashing.combine (hash_term a) (hash_term b))
-
-let rec events = function
-  | Delay _ | Specification _ -> []
-  | Occurrence (x, _) -> [ x ]
-  | Mul (a, b) | Join (a, b) ->
-      List.sort_uniq String.compare (events a @ events b)
-
-let rec evaluate_with running_time = function
-  | Delay i -> Summary.delays i
-  | Specification m -> m
-  | Occurrence (x, b) -> Summary.occurrence x b (running_time x)
-  | Mul (a, b) ->
-      Summary.mul (evaluate_with running_time a) (evaluate_with running_time b)
-  | Join (a, b) ->
-      Summary.join (evaluate_with running_time a) (evaluate_with running_time b)
-
-(* The evaluations, by the term and the running times of its operations. *)
-module Evaluations = Memo.Make (struct
-  type t = term * (string * interval) list
-
-  let equal (t, r) (t', r') =
-    compare_term t t' = 0
-    && List.equal
-         (fun (x, i) (x', i') -> String.equal x x' && equal_interval i i')
-         r r'
-
-  let hash (t, r) =
-    Hashing.combine (hash_term t)
-      (Hashing.list
-         (fun (x, i) -> Hashing.combine (String.hash x) (hash_interval i))
-         r)
-end)
-
-let evaluations = Evaluations.create 64
-
-(* The evaluations are recorded by the closed hulls of the running-time bounds
-   of the operations, which the summaries read. *)
-let evaluate (bounds : Grade.bounds) t =
-  let running_times =
-    List.map
-      (fun x ->
-        let lo, hi = Grade.hull (bounds.running_time x) in
-        (x, { lo; hi = Some hi }))
-      (events t)
-  in
-  Evaluations.find_or_add evaluations (t, running_times) (fun () ->
-      evaluate_with
-        (fun x ->
-          let i = List.assoc x running_times in
-          (Grade.Closed i.lo, Grade.Closed (Option.get i.hi)))
-        t)
-
-let one = Delay nothing
-let top = Specification Summary.top
-
-let mul t t' =
-  match (t, t') with
-  | Delay i, Delay i' -> Delay (sum i i')
-  | (Delay i, t | t, Delay i) when equal_interval i nothing -> t
-  | _ -> Mul (t, t')
-
-let join t t' = if compare_term t t' = 0 then t else Join (t, t')
+module Terms = SummaryTerms.Make (Summary)
 
 let of_lit = function
-  | Grade.Top -> top
+  | Grade.Top -> Terms.top
   | (Grade.Int _ | Grade.Rat _ | Grade.Interval _) as lit ->
-      Delay (interval_of_lit lit)
-  | lit when is_spec_entry lit ->
-      Specification (specification [ spec_entry lit ])
+      Terms.delays (interval_of_lit lit)
+  | lit when is_spec_entry lit -> Terms.fixed (specification [ spec_entry lit ])
   | Grade.Tuple (first :: _ as lits) as lit when is_spec_entry first ->
-      Specification
+      Terms.fixed
         (specification
            (distinct lit
               (List.map
@@ -712,7 +560,7 @@ let of_lit = function
                  lits)))
   | (Grade.Braces _ | Grade.Tuple (Grade.Braces _ :: _)) as lit ->
       let x, b = occurrence_of_lit lit in
-      Occurrence (x, b)
+      Terms.op x b
   | lit ->
       Grade.invalid_lit lit
         "grades are operations `({X}, From, To)`, delays `d` or `[lo, hi]`, \
@@ -730,63 +578,37 @@ let show_occurrence x = function
       ^ String.concat ", " (List.map (fun (p, q) -> "(" ^ p ^ ", " ^ q ^ ")") b)
       ^ ")"
 
-(* Products bind tighter than joins, and both associate. *)
-let rec show_at level = function
-  | Delay i -> show_interval i
-  | Specification m ->
+(* Products bind tighter than joins. *)
+let rec show c =
+  match Terms.view c with
+  | Terms.Delays i -> I.show_point i
+  | Terms.Fixed m ->
       if Summary.equal m Summary.top then "⊤" else show_specification m
-  | Occurrence (x, b) -> show_occurrence x b
-  | Mul (a, b) ->
-      let s = show_at 1 a ^ " · " ^ show_at 1 b in
-      if level > 1 then "(" ^ s ^ ")" else s
-  | Join (a, b) ->
-      let s = show_at 0 a ^ " ⊔ " ^ show_at 0 b in
-      if level > 0 then "(" ^ s ^ ")" else s
+  | Terms.Op (x, b) -> show_occurrence x b
+  | Terms.Mul cs ->
+      String.concat " · "
+        (List.map
+           (fun c ->
+             match Terms.view c with
+             | Terms.Join _ -> "(" ^ show c ^ ")"
+             | _ -> show c)
+           cs)
+  | Terms.Join cs -> String.concat " ⊔ " (List.map show cs)
 
-let show = show_at 0
+let evaluate = Terms.evaluate
 
 module ModeTimes = struct
-  type t = term
-
+  include Terms
   module Delay = Delay.Rational
 
   let name = "mode-times"
-  let one = one
-  let mul = mul
-  let leq bounds t t' = Summary.leq (evaluate bounds t) (evaluate bounds t')
   let leq_symbol = "<="
-  let top = top
-  let join = join
-  let of_delay d = Delay (point d)
-  let equal bounds t t' = Summary.equal (evaluate bounds t) (evaluate bounds t')
-  let is_top bounds t = Summary.leq Summary.top (evaluate bounds t)
-  let compare = compare_term
-  let hash = hash_term
-  let counterexample _bounds _ _ = None
   let unit_least = false
   let commutative = false
   let needs_op_bounds = true
-
-  let duration_bounds bounds t =
-    Option.map
-      (fun i ->
-        ( Grade.Closed i.lo,
-          match i.hi with Some h -> Grade.Closed h | None -> Grade.Unbounded ))
-      (Summary.duration (evaluate bounds t))
-
-  let inhabited _bounds _ = true
-  let events = events
   let of_lit = of_lit
   let accepts = Grade.reads_lit of_lit
-
-  let of_bounds b =
-    let lo, hi = Grade.hull b in
-    Delay { lo; hi = Some hi }
-
-  let is_atomic name = function
-    | Occurrence (x, _) -> String.equal x name
-    | _ -> false
-
+  let of_bounds b = delays (I.closure b)
   let show = show
   let witnesses ~degree:_ _bounds = Grade.sampled mul
 end

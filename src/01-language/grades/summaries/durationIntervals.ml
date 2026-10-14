@@ -35,6 +35,11 @@ let inter (lo, hi) (lo', hi') =
 
 let meets i j = Option.is_some (inter i j)
 let from (lo, _) = (lo, Unbounded)
+let upto (_, hi) = (Closed Rational.zero, hi)
+
+let closure (lo, hi) =
+  let close = function Open q -> Closed q | b -> b in
+  (close lo, close hi)
 
 let compare_bound b b' =
   match (b, b') with

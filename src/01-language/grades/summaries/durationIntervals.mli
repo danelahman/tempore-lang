@@ -38,6 +38,13 @@ val from : t -> t
 (** [from i] is the interval of the durations at least those of [i], from its
     lower end on: [i + \[0, ∞)]. *)
 
+val upto : t -> t
+(** [upto i] is the interval of the durations at most those of [i], up to its
+    upper end: [[0, hi]] for [i] ending at [hi]. *)
+
+val closure : t -> t
+(** [closure i] is the closed hull of [i]: its finite open ends closed. *)
+
 val compare : t -> t -> int
 (** A total order on intervals, [0] exactly on equal intervals. *)
 

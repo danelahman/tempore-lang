@@ -95,7 +95,8 @@ module type SUMMARY = sig
 
   val counterexample : t -> t -> t option
   (** [counterexample s s'], for [s] not below [s'], is a summary below [s] and
-      not below [s'], if one is found that is smaller than [s]. *)
+      not below [s'] that witnesses the failure, if one is offered; [s] itself
+      is one. *)
 end
 
 (** The terms over the summaries [S]. *)
@@ -167,8 +168,8 @@ module Make (S : SUMMARY) : sig
 
   val counterexample : Grade.bounds -> t -> t -> t option
   (** [counterexample bounds c d] is [None] if [c] is below [d], and otherwise
-      the fixed summary {!SUMMARY.counterexample} finds below the evaluation of
-      [c], or that evaluation itself. *)
+      the fixed summary {!SUMMARY.counterexample} offers below the evaluation of
+      [c], if any. *)
 
   val duration_bounds : Grade.bounds -> t -> DurationIntervals.t option
   (** The {!SUMMARY.duration} of the evaluation. *)

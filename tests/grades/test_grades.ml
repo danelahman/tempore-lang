@@ -2721,10 +2721,7 @@ let mode_time_laws =
                   Rational.add total d )))
       (start, [], Rational.zero) steps
   in
-  let member q (i : Grades.ModeTimeGrades.interval) =
-    Rational.compare i.lo q <= 0
-    && match i.hi with Some h -> Rational.compare q h <= 0 | None -> true
-  in
+  let member q i = Grades.DurationIntervals.(subset (point q) i) in
   let sound steps =
     let g = Grades.ModeTimeGrades.evaluate (bounds_of steps) (grade_of steps) in
     List.for_all
@@ -2765,19 +2762,8 @@ let mode_time_laws =
     | [ e ] -> e
     | es -> Tuple es
   in
-  let read_interval = function
-    | Int n ->
-        {
-          Grades.ModeTimeGrades.lo = Rational.of_int n;
-          hi = Some (Rational.of_int n);
-        }
-    | Interval (Closed (Int lo), Closed (Int hi)) ->
-        { lo = Rational.of_int lo; hi = Some (Rational.of_int hi) }
-    | Interval (Closed (Int lo), Unbounded) ->
-        { lo = Rational.of_int lo; hi = None }
-    | _ -> invalid_arg "read_interval"
-  in
-  let unconstrained = { Grades.ModeTimeGrades.lo = Rational.zero; hi = None } in
+  let read_interval = Grades.DurationIntervals.of_lit in
+  let unconstrained = Grades.DurationIntervals.unbounded in
   (* Whether the trace from [s] to [e] satisfies the specification [lit]: an
      entry of the pair of modes bounds the time in each mode and the total; a
      mode from which no entry starts gets stuck at no time. *)
@@ -2854,9 +2840,8 @@ let mode_time_laws =
   in
   let programs = List.init 300 program in
   let acceptances = List.concat_map accepted programs in
-  let show_point (i : Grades.ModeTimeGrades.interval) =
-    match i.hi with
-    | Some h when Rational.equal h i.lo -> Rational.show h
+  let show_point = function
+    | Closed q, Closed q' when Rational.equal q q' -> Rational.show q
     | _ -> "an interval"
   in
   [

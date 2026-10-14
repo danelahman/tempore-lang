@@ -42,11 +42,11 @@
     {2:representation Representation}
 
     The product does not receive the running times, so a grade is kept as a term
-    of delays, operations, specifications, products and joins, and evaluated to
-    its matrix ({!Summary}) by the order, the equality and the durations, which
-    receive them. The evaluations are memoised by the term and the running times
-    of the operations it names. An operation's running time is the closed hull
-    of its running-time bounds, an open end being read as its value.
+    of {!SummaryTerms} over the matrices ({!Summary}): delays, operations,
+    specifications as fixed matrices, products and joins, evaluated by the
+    order, the equality and the durations, which receive them. An operation's
+    running time is the closed hull of its running-time bounds, an open end
+    being read as its value.
 
     {2 Literals}
 
@@ -84,12 +84,6 @@
     The grades are those of {!ModeSwitchCostGrades} with the costs replaced by
     the times in the modes, over the same matrices; delays cost nothing there,
     and are counted here. *)
-
-type interval = {
-  lo : Rational.t;  (** the lower end, attained *)
-  hi : Rational.t option;  (** the upper end, attained, or [None] if infinite *)
-}
-(** A closed interval of non-negative times. *)
 
 (** The matrices of the boxes between the modes, the values of the grades under
     the running times. *)
@@ -131,7 +125,7 @@ module Summary : sig
   val hash_op : op -> int
   (** A hash compatible with {!compare_op}. *)
 
-  val delays : interval -> t
+  val delays : DurationIntervals.t -> t
   (** [delays i] keeps every mode, spending a time in [i] in it. *)
 
   val occurrence : string -> op -> Grade.running_time -> t
@@ -140,12 +134,16 @@ module Summary : sig
       in the mode it starts from; it gets stuck at no time from a mode [op] does
       not start from. *)
 
-  val times : t -> string -> string -> ((string -> interval) * interval) option
+  val times :
+    t ->
+    string ->
+    string ->
+    ((string -> DurationIntervals.t) * DurationIntervals.t) option
   (** [times m p q] is the entry of [m] from the mode [p] to the mode [q]: the
       interval of the time in each mode and the interval of the total time, or
       [None] if it has no trace. *)
 
-  val duration : t -> interval option
+  val duration : t -> DurationIntervals.t option
   (** [duration m] is the hull of the total times of the entries of [m] other
       than those into [Stuck], from every mode, or [None] if there are none. *)
 

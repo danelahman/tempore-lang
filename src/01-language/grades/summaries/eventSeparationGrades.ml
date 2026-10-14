@@ -182,20 +182,22 @@ module Summary = struct
     { c with entries }
 
   (* The lesser summary with, at the first name where the order fails, the
-     case that fails alone. *)
+     case that fails alone, or the summary itself. *)
   let counterexample c d =
-    List.find_map
-      (fun s ->
-        let e = Indexed.at c.entries s and e' = Indexed.at d.entries s in
-        if leq_entry e e' then None
-        else if not (subset_opt I.subset e.silent e'.silent) then
-          if Option.is_some e.active then
-            Some (with_entry c s { e with active = None })
-          else None
-        else if Option.is_some e.silent then
-          Some (with_entry c s { e with silent = None })
-        else None)
-      (Indexed.names [ c.entries; d.entries ])
+    let failing s =
+      let e = Indexed.at c.entries s and e' = Indexed.at d.entries s in
+      if leq_entry e e' then None
+      else if not (subset_opt I.subset e.silent e'.silent) then
+        if Option.is_some e.active then
+          Some (with_entry c s { e with active = None })
+        else None
+      else if Option.is_some e.silent then
+        Some (with_entry c s { e with silent = None })
+      else None
+    in
+    Some
+      (Option.value ~default:c
+         (List.find_map failing (Indexed.names [ c.entries; d.entries ])))
 end
 
 module Terms = SummaryTerms.Make (Summary)

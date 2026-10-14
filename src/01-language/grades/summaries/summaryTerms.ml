@@ -144,10 +144,8 @@ module Make (S : SUMMARY) = struct
   let counterexample bounds c d =
     if leq bounds c d then None
     else
-      let s = evaluate bounds c in
-      Some
-        (fixed
-           (Option.value (S.counterexample s (evaluate bounds d)) ~default:s))
+      Option.map fixed
+        (S.counterexample (evaluate bounds c) (evaluate bounds d))
 
   let duration_bounds bounds c = S.duration (evaluate bounds c)
   let inhabited bounds c = S.inhabited (evaluate bounds c)
