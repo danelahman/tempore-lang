@@ -40,3 +40,7 @@ val primitives : primitive list
 
 val primitive_name : primitive -> string
 (** The name by which the standard library refers to a primitive. *)
+
+val of_name : string -> primitive option
+(** [of_name name] is the primitive of the name [name] ({!primitive_name}), if
+    any. *)

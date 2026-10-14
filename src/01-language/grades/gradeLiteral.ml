@@ -96,9 +96,23 @@ exception Invalid_literal of lit * string
 let invalid_lit lit fmt =
   Printf.ksprintf (fun reason -> raise (Invalid_literal (lit, reason))) fmt
 
+let read_lit of_lit lit =
+  match of_lit lit with
+  | v -> Ok v
+  | exception Invalid_literal (lit', reason) -> Error (lit', reason)
+
 let component_of_lit lit ~context of_lit component =
   try of_lit component
   with Invalid_literal (_, reason) -> invalid_lit lit "%s%s" context reason
+
+let distinct_entries lit ~compare ~twice entries =
+  let sorted = List.sort (fun (k, _) (k', _) -> compare k k') entries in
+  let rec check = function
+    | (k, _) :: ((k', _) :: _ as rest) ->
+        if compare k k' = 0 then invalid_lit lit "%s" (twice k) else check rest
+    | [ _ ] | [] -> sorted
+  in
+  check sorted
 
 let rational_lit q =
   match Rational.to_int q with Some n -> Int n | None -> Rat q

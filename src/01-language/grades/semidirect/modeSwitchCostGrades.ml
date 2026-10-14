@@ -279,15 +279,11 @@ let entry = function
     that [entries] do not start from, the modes not named starting from
     [unnamed], is stuck at cost [0]. *)
 let of_entries lit entries =
-  let sorted = List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') entries in
-  let rec check = function
-    | ((p, q), _) :: ((key', _) :: _ as rest) ->
-        if (p, q) = key' then
-          Grade.invalid_lit lit "the modes `%s` to `%s` are listed twice" p q
-        else check rest
-    | [ _ ] | [] -> ()
-  in
-  check sorted;
+  ignore
+    (Grade.distinct_entries lit ~compare:Stdlib.compare
+       ~twice:(fun (p, q) ->
+         Printf.sprintf "the modes `%s` to `%s` are listed twice" p q)
+       entries);
   let modes =
     List.filter
       (fun p -> not (List.mem p [ stuck; unnamed; unnamed_other ]))

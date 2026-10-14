@@ -190,37 +190,41 @@ struct
   let inhabited bounds (m, _) = M.inhabited bounds m
   let events (m, _) = M.events m
 
+  (* A literal of the first component, a pair of literals of the components,
+     or [⊤]; a second component that is a literal of the first is the
+     rejection of the literal as one of the first component. *)
   let of_lit = function
     | Grade.Top -> top
     | lit -> (
-        match M.of_lit lit with
-        | m -> (m, N.bottom)
-        | exception (Grade.Invalid_literal _ as rejection) -> (
-            match lit with
-            | Grade.Tuple [ l1; l2 ] ->
-                let component ordinal name =
-                  Printf.sprintf "in the %s component (`%s`), " ordinal name
-                in
-                let m =
-                  Grade.component_of_lit lit ~context:(component "first" M.name)
-                    M.of_lit l1
-                in
-                let n =
-                  match l2 with
-                  | Grade.Top -> N.top
-                  | l2 -> (
-                      match N.of_lit l2 with
-                      | n -> n
-                      | exception Grade.Invalid_literal (_, reason) -> (
-                          match M.of_lit l2 with
-                          | _ -> raise rejection
-                          | exception Grade.Invalid_literal _ ->
-                              Grade.invalid_lit lit "%s%s"
-                                (component "second" N.name)
-                                reason))
-                in
-                (m, n)
-            | _ -> raise rejection))
+        let reject (lit, reason) =
+          raise (Grade.Invalid_literal (lit, reason))
+        in
+        match (Grade.read_lit M.of_lit lit, lit) with
+        | Ok m, _ -> (m, N.bottom)
+        | Error rejection, Grade.Tuple [ l1; l2 ] ->
+            let component ordinal name =
+              Printf.sprintf "in the %s component (`%s`), " ordinal name
+            in
+            let m =
+              Grade.component_of_lit lit ~context:(component "first" M.name)
+                M.of_lit l1
+            in
+            let n =
+              match l2 with
+              | Grade.Top -> N.top
+              | l2 -> (
+                  match Grade.read_lit N.of_lit l2 with
+                  | Ok n -> n
+                  | Error (_, reason) ->
+                      if Result.is_ok (Grade.read_lit M.of_lit l2) then
+                        reject rejection
+                      else
+                        Grade.invalid_lit lit "%s%s"
+                          (component "second" N.name)
+                          reason)
+            in
+            (m, n)
+        | Error rejection, _ -> reject rejection)
 
   let of_bounds b = (M.of_bounds b, N.bottom)
   let is_atomic name (m, _) = M.is_atomic name m
@@ -345,20 +349,15 @@ module Indexed = struct
           (Grade.describe_lit lit)
 
   let of_entries ~compare ~others lit entries =
-    let sorted = List.sort by_name entries in
-    let rec check = function
-      | (s, _) :: ((s', _) :: _ as rest) ->
-          if String.equal s s' then
-            Grade.invalid_lit lit "the name `%s` is listed twice" s
-          else check rest
-      | [ _ ] | [] ->
-          let defaults, named =
-            List.partition (fun (s, _) -> String.equal s fresh) sorted
-          in
-          let others = match defaults with (_, c) :: _ -> c | [] -> others in
-          trim compare { named; others }
+    let defaults, named =
+      List.partition
+        (fun (s, _) -> String.equal s fresh)
+        (Grade.distinct_entries lit ~compare:String.compare
+           ~twice:(Printf.sprintf "the name `%s` is listed twice")
+           entries)
     in
-    check sorted
+    let others = match defaults with (_, c) :: _ -> c | [] -> others in
+    trim compare { named; others }
 
   (* The entries of the literal [lit]: itself if it is one, its components if
      it is a tuple of them, and none otherwise. *)

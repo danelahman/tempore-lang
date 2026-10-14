@@ -67,10 +67,27 @@ val invalid_lit : lit -> ('a, unit, string, 'b) format4 -> 'a
 (** [invalid_lit lit fmt] raises {!Invalid_literal} on [lit] with the reason
     formatted by [fmt]. *)
 
+val read_lit : (lit -> 'a) -> lit -> ('a, lit * string) result
+(** [read_lit of_lit lit] is [Ok (of_lit lit)], and [Error (lit', reason)] if
+    [of_lit] rejects [lit'] with [reason] instead. *)
+
 val component_of_lit : lit -> context:string -> ('a -> 'b) -> 'a -> 'b
 (** [component_of_lit lit ~context of_lit component] is [of_lit component], a
     rejection being reported against the enclosing literal [lit], its reason
     prefixed by [context]. *)
+
+val distinct_entries :
+  lit ->
+  compare:('k -> 'k -> int) ->
+  twice:('k -> string) ->
+  ('k * 'a) list ->
+  ('k * 'a) list
+(** [distinct_entries lit ~compare ~twice entries] is [entries] sorted by their
+    keys in the order [compare].
+
+    @raise Invalid_literal
+      on [lit] with the reason [twice k] if two entries have the same key [k].
+*)
 
 val rational_lit : Rational.t -> lit
 (** [rational_lit q] is the literal of the rational [q]: [Int n] if [q] is an

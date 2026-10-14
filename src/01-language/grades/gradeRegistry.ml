@@ -450,9 +450,7 @@ let grade_modules = List.map (fun e -> (e.name, e.grade)) entries
 let default_name = fst (List.hd grade_modules)
 
 let understands lit (module G : Grade.S) =
-  match G.of_lit lit with
-  | _ -> true
-  | exception Grade.Invalid_literal _ -> false
+  Result.is_ok (Grade.read_lit G.of_lit lit)
 
 let accepting lit =
   List.filter_map
