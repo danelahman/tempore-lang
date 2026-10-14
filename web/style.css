@@ -1742,6 +1742,13 @@ code.diag-code {
   white-space: nowrap;
 }
 
+/* The mark, a link that loads the page anew, sized by the image it holds. */
+.navbar-brand .brand-home {
+  display: block;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
 .navbar-brand .brand-logo {
   /* Bulma caps navbar images at 1.75rem; the mark spans both lines of
      the brand text. */

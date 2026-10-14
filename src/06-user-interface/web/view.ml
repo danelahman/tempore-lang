@@ -2319,16 +2319,26 @@ let view_navbar =
         div
           ~a:[ class_ "navbar-item brand-title" ]
           [
-            elt "img"
+            (* A link to the page's own address, which loads the page anew. *)
+            elt "a"
               ~a:
                 [
-                  class_ "brand-logo";
-                  attr "src" "logo/tempore-logo.svg";
-                  attr "alt" "";
-                  attr "width" "56";
-                  attr "height" "56";
+                  class_ "brand-home";
+                  attr "href" "";
+                  attr "title" "Reload the page";
                 ]
-              [];
+              [
+                elt "img"
+                  ~a:
+                    [
+                      class_ "brand-logo";
+                      attr "src" "logo/tempore-logo.svg";
+                      attr "alt" "Reload the page";
+                      attr "width" "56";
+                      attr "height" "56";
+                    ]
+                  [];
+              ];
             div
               ~a:[ class_ "brand-text" ]
               [
