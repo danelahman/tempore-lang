@@ -2,11 +2,11 @@
 
 Tempore itself is released under the MIT license, see [`LICENSE`](LICENSE).
 This file collects the notices of the third-party code that the project's
-distributed builds include or load. The relevant artifact is the web
-interface (`web/web.bc.js` and `web/index.html`), published to GitHub Pages;
-building the project from source instead installs its dependencies as their
-own opam packages, each carrying its own license, so no separate notice is
-needed for that case.
+distributed builds include. The relevant artifact is the web interface
+(`web/web.bc.js`, `web/index.html`, `web/style.css` and `web/vendor/`),
+published to GitHub Pages; building the project from source instead installs
+its dependencies as their own opam packages, each carrying its own license, so
+no separate notice is needed for that case.
 
 ## Bundled in the web interface (web/web.bc.js)
 
@@ -189,13 +189,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Loaded by the web page
+## Distributed with the web page (web/vendor)
 
-`web/index.html` loads Bulma 0.9.0 from the jsDelivr CDN
-(`https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css`), the only
-external resource the page fetches. The stylesheet is linked at page-load
-time with a Subresource Integrity hash, not redistributed with the project.
-MIT licensed, Copyright (c) 2020 Jeremy Thomas:
+### Bulma 0.9.0
+
+`web/index.html` loads the stylesheet of Bulma 0.9.0 from
+`web/vendor/bulma/bulma.min.css`, a copy, unmodified, of the file published at
+`https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css` (SHA-256
+`aPeK/N8IHpHsvPBCf49iVKMdusfobKo2oxF8lRruWJg=`, as jsDelivr lists it), with
+its license in `web/vendor/bulma/LICENSE`. The page fetches no external
+resource. MIT licensed, Copyright (c) 2020 Jeremy Thomas:
 
 ```
 The MIT License (MIT)
