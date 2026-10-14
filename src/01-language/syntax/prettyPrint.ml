@@ -205,7 +205,10 @@ let rec print_pattern ?max_level p ppf =
   let print ?at_level = Print.print ?max_level ?at_level ppf in
   match p.it with
   | PVar x -> print "%t" (Variable.print x)
-  | PAs (p, x) -> print "%t as %t" (print_pattern p) (Variable.print x)
+  | PAs (p, x) ->
+      print ~at_level:5 "%t as %t"
+        (print_pattern ~max_level:5 p)
+        (Variable.print x)
   | PAnnotated (p, _ty) -> print_pattern ?max_level p ppf
   | PConst c -> Const.print c ppf
   | PSucc (p, k) ->
@@ -215,7 +218,9 @@ let rec print_pattern ?max_level p ppf =
   | PVariant (lbl, None) -> print "%t" (Label.print lbl)
   | PVariant (lbl, Some { it = PTuple [ v1; v2 ]; _ })
     when Label.equal lbl cons_label ->
-      print "%t::%t" (print_pattern v1) (print_pattern v2)
+      print ~at_level:3 "%t::%t"
+        (print_pattern ~max_level:2 v1)
+        (print_pattern ~max_level:3 v2)
   | PVariant (lbl, Some p) ->
       print ~at_level:1 "%t @[<hov>%t@]" (Label.print lbl)
         (print_pattern ~max_level:0 p)
@@ -240,7 +245,8 @@ and print_expression ?(abbreviated = false) resource_grade =
     | (Lambda _ | PureLambda _ | RecLambda _) when abbreviated -> print "<fun>"
     | Handler _ when abbreviated -> print "<handler>"
     | Lambda (p, c) | PureLambda (p, c) ->
-        print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]" (print_pattern p)
+        print ~at_level:2 "@[<hv 2>fun %t ↦@ %t@]"
+          (print_pattern ~max_level:0 p)
           (print_computation resource_grade ?max_level:None c)
     | RecLambda (f, _, _) -> print ~at_level:2 "rec %t ..." (Variable.print f)
     | Handler (ret_case, op_cases) ->

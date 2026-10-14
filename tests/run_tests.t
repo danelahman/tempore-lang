@@ -2962,6 +2962,31 @@
   return ("foo", "foo", "bar")
   State: []
   
+  === Run 10 ===
+  return (fun (Moo x) ↦ return x)
+  State: []
+  
+  === Run 11 ===
+  return (fun o ↦
+            match o with
+            | Some (x::xs) ↦ return xs
+            | Some [] ↦ return []
+            | None ↦ return [])
+  State: []
+  
+  === Run 12 ===
+  return (fun l ↦
+            match l with
+            | (x as y)::_ as z ↦ return (x, y, z)
+            | [] ↦ return (0, 0, []))
+  State: []
+  
+  === Run 13 ===
+  return (fun l ↦ match l with
+                  | x + 1::_ ↦ return x
+                  | _ ↦ return 0)
+  State: []
+  
   ======================================================================
   plain_rational_traces_upper.tpe
   ======================================================================
