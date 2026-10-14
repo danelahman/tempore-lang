@@ -294,6 +294,8 @@ type check = {
   definitions : int;  (** the number of top-level definitions of the program *)
   current : bool;
       (** whether neither the program nor the options have changed since *)
+  reused : bool;
+      (** whether the outcome is that of an earlier check of the same inputs *)
 }
 (** The outcome of a check of the program. *)
 
@@ -359,6 +361,15 @@ type checked = {
           last checked. *)
 }
 (** What the last check of the program has found. *)
+
+type loaded = {
+  found : checked;  (** what the check has found *)
+  start_run : BackendRegistry.observer option -> run_model_state;
+      (** the run of the program from its loaded state, observed by the given
+          observer *)
+}
+(** A program checked without errors and loaded, the types of the grades hidden
+    in closures. *)
 
 type navigation = {
   page : page;
@@ -441,6 +452,9 @@ type model = {
   compilation : compilation;
   declarations : declarations;
   notices : notices;
+  check_cache : loaded WebCheckCache.t;
+      (** The last check without errors, reused while its inputs are unchanged.
+      *)
 }
 
 (** A side effect the update asks for, performed by the page. *)
