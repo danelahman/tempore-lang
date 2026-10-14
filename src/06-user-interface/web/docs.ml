@@ -268,26 +268,54 @@ let rec subsections acc = function
   | ((3, _, _) as entry) :: rest -> subsections (entry :: acc) rest
   | rest -> (List.rev acc, rest)
 
-let rec contents_items page = function
+(* An entry of the table of contents, a link to its heading in the page, with
+   the class [mark] when there is one. *)
+let entry ~mark (_, id, title) =
+  elt "a"
+    ~a:(attr "href" ("#" ^ id) :: Option.to_list (Option.map class_ mark))
+    [ text title ]
+
+(* The entry of the heading [current] is lit, as Bulma's [menu-list] lights an
+   entry, and the entry of the section it lies in is marked. *)
+let rec contents_items ~current = function
   | [] -> []
-  | (level, id, title) :: rest ->
-      let entry = link_to page ("#" ^ id) [ text title ] in
+  | ((level, id, _) as heading) :: rest ->
+      let lit = if id = current then Some "is-active" else None in
       if level = 2 then
         let subs, rest = subsections [] rest in
+        let mark =
+          if List.exists (fun (_, id', _) -> id' = current) subs then
+            Some "has-active-entry"
+          else lit
+        in
         let nested =
           match subs with
           | [] -> []
-          | subs -> [ elt "ul" (contents_items page subs) ]
+          | subs -> [ elt "ul" (contents_items ~current subs) ]
         in
-        elt "li" (entry :: nested) :: contents_items page rest
-      else elt "li" [ entry ] :: contents_items page rest
+        elt "li" (entry ~mark heading :: nested) :: contents_items ~current rest
+      else elt "li" [ entry ~mark:lit heading ] :: contents_items ~current rest
+
+(* The table of contents of [entries], the section of the heading [current]
+   lit, or the first section without one. *)
+let contents_menu entries current =
+  let current =
+    match (current, entries) with
+    | Some id, _ -> id
+    | None, (_, id, _) :: _ -> id
+    | None, [] -> ""
+  in
+  elt "ul" ~a:[ class_ "menu-list" ] (contents_items ~current entries)
 
 (* A page prepared for rendering: the context of its blocks, the blocks of its
-   README shown, and the entries of its table of contents. *)
+   README shown, the entries of its table of contents, and the table drawn with
+   a section lit. The last is built once per page, so that [Vdom.memo] can
+   compare it physically. *)
 type prepared = {
   ctx : context;
   blocks : Block.t list;
   entries : (int * string * string) list;
+  menu : string option -> Model.msg vdom;
 }
 
 let prepare page =
@@ -295,26 +323,28 @@ let prepare page =
   let blocks =
     filter ~title:(page <> WebDocPages.Main) (flatten (Cmarkit.Doc.block doc))
   in
+  let entries = headings blocks in
   {
     ctx = { page; text = source page; defs = Cmarkit.Doc.defs doc };
     blocks;
-    entries = headings blocks;
+    entries;
+    menu = contents_menu entries;
   }
 
 (* Each page is parsed once, when it is first shown. *)
 let cache = List.map (fun page -> (page, lazy (prepare page))) WebDocPages.all
 let prepared page = Lazy.force (List.assoc page cache)
 
-(* The README rendered, and its table of contents. [view] passes both to
-   [Vdom.memo], which renders them once for as long as the page is shown. *)
+(** The class of the element holding the README shown. *)
+let readme_class = "docs-readme"
+
+(* The README rendered, which [view] passes to [Vdom.memo], so that it is
+   rendered once for as long as the page is shown. *)
 let readme page =
   let { ctx; blocks; _ } = prepared page in
-  div ~a:[ class_ "content" ] (List.concat_map (block ctx) blocks)
-
-let contents_menu page =
-  elt "ul"
-    ~a:[ class_ "menu-list" ]
-    (contents_items page (prepared page).entries)
+  div
+    ~a:[ class_ ("content " ^ readme_class) ]
+    (List.concat_map (block ctx) blocks)
 
 (* The pages, one tab each, the tab of [page] active. *)
 let tabs page =
@@ -335,17 +365,20 @@ let tabs page =
 
 (* Bulma's [menu-list] indents a nested list and lights one entry at a time.
    The body is padded by hand to the measure of a [panel-block] rather than
-   being one, since a panel block lights all of its contents at once. *)
-let contents page ~action =
-  let menu =
-    match (prepared page).entries with
+   being one, since a panel block lights all of its contents at once. The table
+   is drawn anew only when the page or the section scrolled to changes. *)
+let contents page ~current ~action =
+  let { entries; menu; _ } = prepared page in
+  let body =
+    match entries with
     | [] -> []
-    | _ :: _ ->
-        [ div ~a:[ class_ "px-3 py-2" ] [ Vdom.memo contents_menu page ] ]
+    | _ :: _ -> [ div ~a:[ class_ "px-3 py-2" ] [ Vdom.memo menu current ] ]
   in
-  [ Widgets.panel ~action "Contents" (Vdom.memo tabs page :: menu) ]
+  [ Widgets.panel ~action "Contents" (Vdom.memo tabs page :: body) ]
 
 (** The documentation view showing [page]: the blocks of its main column, the
     README of [page] rendered from its Markdown source, and those of its side
-    column, the tabs of the pages and a table of contents of the README. *)
-let view page action = ([ Vdom.memo readme page ], contents page ~action)
+    column, the tabs of the pages and a table of contents of the README, the
+    section of the heading [current] lit. *)
+let view page ~current action =
+  ([ Vdom.memo readme page ], contents page ~current ~action)

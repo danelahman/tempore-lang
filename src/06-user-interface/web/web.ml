@@ -242,6 +242,40 @@ let fit_status (model : Model.model) () =
         Some (Model.Abbreviate abbreviated)
       else None)
 
+(* The section scrolled to, in the documentation and in the example gallery
+   (see [EditorDom.reached]), and the heading last followed by a link, which
+   the end of a page lights when its last sections cannot reach the top. *)
+let followed = ref None
+
+let docs_headings =
+  Printf.sprintf ".%s h2[id], .%s h3[id]" Docs.readme_class Docs.readme_class
+
+let gallery_list = ".example-gallery-list"
+let gallery_groups = gallery_list ^ " > .example-group[id]"
+
+(* The message of the section of the documentation scrolled to, when that has
+   changed. *)
+let reached_heading (model : Model.model) () =
+  if model.page <> Model.Docs then None
+  else
+    match
+      EditorDom.reached ~headings:docs_headings ~area:None ~followed:!followed
+    with
+    | Some id when model.docs_heading <> Some id -> Some (Model.ReachHeading id)
+    | _ -> None
+
+(* The message of the group of the example gallery scrolled to, when that has
+   changed. *)
+let reached_group (model : Model.model) () =
+  if model.gallery = None then None
+  else
+    match
+      EditorDom.reached ~headings:gallery_groups ~area:(Some gallery_list)
+        ~followed:!followed
+    with
+    | Some id when model.gallery_group <> Some id -> Some (Model.ReachGroup id)
+    | _ -> None
+
 let command (model : Model.model) = function
   | Model.After (delay, msg) -> Send_after (delay, msg)
   | Model.Measure_popover ->
@@ -259,6 +293,7 @@ let command (model : Model.model) = function
   | Model.Scroll_to_heading heading ->
       After_redraw
         (fun () ->
+          followed := heading;
           scroll_to_heading heading;
           None)
   | Model.Perform_after_paint action -> After_paint (Model.Perform action)
@@ -297,8 +332,23 @@ let update model msg =
     then [ After_redraw (fit_status model') ]
     else []
   in
+  (* the documentation or the gallery drawn anew, unless scrolled to a heading,
+     which the scrolling reports *)
+  let reading =
+    match msg with
+    | Model.ShowDocs _ -> []
+    | _ ->
+        (if model.page <> model'.page || model.docs_page <> model'.docs_page
+         then [ After_redraw (reached_heading model') ]
+         else [])
+        @
+        if model.gallery <> model'.gallery then
+          [ After_redraw (reached_group model') ]
+        else []
+  in
   ( model',
-    Vdom.Cmd.batch ((cmd :: status) @ List.map (command model') side_effects) )
+    Vdom.Cmd.batch
+      ((cmd :: status) @ reading @ List.map (command model') side_effects) )
 
 let app =
   let query =
@@ -359,9 +409,49 @@ let observe_status app =
                    (status_line ()));
            |])
 
+(* The section scrolled to is found once per animation frame in which the
+   window or an element of the page has scrolled, or the window has been
+   resized, since scroll events do not bubble but are captured by the window. A
+   link to a heading of the page clicked is the heading followed. *)
+let watch_reading app =
+  let scheduled = ref false in
+  let reach () =
+    scheduled := false;
+    let model = Vdom_blit.get app in
+    List.iter
+      (fun reached -> Option.iter (Vdom_blit.process app) (reached model ()))
+      [ reached_heading; reached_group ]
+  in
+  let schedule _ =
+    if not !scheduled then begin
+      scheduled := true;
+      ignore
+        (EditorDom.call Ojs.global "requestAnimationFrame"
+           [ Ojs.fun_to_js 1 (fun _ -> reach ()) ])
+    end
+  in
+  let listen kind f =
+    Js_browser.Window.add_event_listener Js_browser.window kind
+      (fun event -> f (Js_browser.Event.t_to_js event))
+      true
+  in
+  listen Js_browser.Event.Scroll schedule;
+  listen Js_browser.Event.Resize schedule;
+  listen Js_browser.Event.Click (fun event ->
+      Option.iter
+        (fun link ->
+          let href =
+            Ojs.string_of_js
+              (EditorDom.call link "getAttribute" [ Ojs.string_to_js "href" ])
+          in
+          if String.length href > 1 then
+            followed := Some (String.sub href 1 (String.length href - 1)))
+        (EditorDom.closest (EditorDom.get event "target") "a[href^='#']"))
+
 let run () =
   let app = Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app in
   watch_modifier app;
+  watch_reading app;
   observe_status app;
   Vdom_blit.dom app
   |> Js_browser.Element.append_child

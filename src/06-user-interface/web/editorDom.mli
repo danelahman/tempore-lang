@@ -77,3 +77,16 @@ val jump : int -> unit
     units, without scrolling, and scrolls the flashed definition to the upper
     part of the viewport when it lies outside its middle part; smoothly unless
     reduced motion is preferred. *)
+
+val reached :
+  headings:string ->
+  area:string option ->
+  followed:string option ->
+  string option
+(** [reached ~headings ~area ~followed] is the identifier of the heading whose
+    section has been scrolled to: the last of the elements matching [headings]
+    whose top has passed a small offset below the top of the area, the first
+    when none has. Scrolled to the end, where the last sections cannot reach the
+    top, it is [followed] when that heading is in view, and else the last
+    heading whose top is in view. The area is the window, or the element
+    matching [area]. [None] when the area or the headings are not drawn. *)

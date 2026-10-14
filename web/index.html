@@ -47,6 +47,13 @@
       flex-wrap: wrap;
     }
 
+    /* The entry of the section whose subsection is lit in the table of
+       contents: the colour of Bulma's lit entry, without its background. */
+    .menu-list a.has-active-entry {
+      color: #3273dc;
+      font-weight: 600;
+    }
+
     /* The mark stands alone here, so it is given a hit area of its own and the
        panel heading's colour rather than a link's. */
     .panel-action {
@@ -936,6 +943,13 @@
 
     .example-gallery-toc a:hover {
       background: #fafbfc;
+    }
+
+    /* the group scrolled to */
+    .example-gallery-toc a.is-active {
+      background: #f5fafe;
+      box-shadow: inset 3px 0 0 #3298dc;
+      font-weight: 600;
     }
 
     .example-gallery-toc a span {

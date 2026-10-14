@@ -196,6 +196,12 @@ and msg =
   | CloseGallery  (** Hide the example gallery without loading an example. *)
   | SearchGallery of string
       (** The text of the gallery's search field has changed. *)
+  | ReachHeading of string
+      (** The documentation has been scrolled to the section of the heading of
+          the given identifier. *)
+  | ReachGroup of string
+      (** The list of the example gallery has been scrolled to the group of the
+          given identifier. *)
   | Point of pointer * int option * (float * float)
       (** The pointer, at the given position of the viewport, has moved onto a
           popover target, onto the popover or off both, or onto or off the name
@@ -320,9 +326,14 @@ type model = {
   page : page;
   docs_page : WebDocPages.page;
       (** The page of the documentation shown, kept while the editor is. *)
+  docs_heading : string option;
+      (** The heading of the section of the documentation scrolled to, [None]
+          for the first. *)
   gallery : string option;
       (** The search of the example gallery while it is open, [None] while it is
           closed. *)
+  gallery_group : string option;
+      (** The group of the example gallery scrolled to, [None] for the first. *)
   definitions : definition list;
       (** The definitions of the program as last checked, those accepted before
           its first error; none once the source or the options change. *)

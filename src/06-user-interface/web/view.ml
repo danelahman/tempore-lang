@@ -2177,7 +2177,7 @@ let onescape msg =
    click on the backdrop beside the panel. The search field takes the focus
    when the gallery opens with no example loaded; otherwise the page focuses
    the card of the example last loaded. *)
-let view_gallery ~selected ~backend query =
+let view_gallery ~selected ~backend ~current query =
   let groups =
     List.filter_map
       (fun (k, (g : Examples_tpe.group)) ->
@@ -2191,9 +2191,19 @@ let view_gallery ~selected ~backend query =
         | examples -> Some (k, g, examples))
       (List.mapi (fun k g -> (k, g)) Examples_tpe.examples)
   in
+  (* The group scrolled to, or the first group shown. *)
+  let current =
+    match (current, groups) with
+    | Some id, _ -> id
+    | None, (k, _, _) :: _ -> example_group_id k
+    | None, [] -> ""
+  in
   let view_toc_entry (k, (g : Examples_tpe.group), examples) =
+    let id = example_group_id k in
     elt "a"
-      ~a:[ attr "href" ("#" ^ example_group_id k) ]
+      ~a:
+        (attr "href" ("#" ^ id)
+        :: (if id = current then [ class_ "is-active" ] else []))
       [
         text (g.label ^ " ");
         elt "span" [ text (Printf.sprintf "(%d)" (List.length examples)) ];
@@ -2541,7 +2551,8 @@ let view (model : Model.model) =
       (match model.page with
       | Model.Docs ->
           let main, aside =
-            Docs.view model.docs_page (page_link Model.Editor)
+            Docs.view model.docs_page ~current:model.docs_heading
+              (page_link Model.Editor)
           in
           view_contents main aside
       | Model.Editor -> (
@@ -2552,6 +2563,7 @@ let view (model : Model.model) =
       (match model.gallery with
       | Some query ->
           view_gallery ~selected:model.edit_model.selected_example
-            ~backend:(Model.backend model.edit_model).key query
+            ~backend:(Model.backend model.edit_model).key
+            ~current:model.gallery_group query
       | None -> nil);
     ]
