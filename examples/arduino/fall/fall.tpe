@@ -1,0 +1,374 @@
+(* A fall detector on the M5Stack CoreS3 Lite: a free fall and an impact
+   within a second, and an alarm raised 10 to 30 s after a prompt
+
+   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-interval-rational-symbolic \
+       --package m5-imu \
+       --package m5-display \
+       --package m5-touch \
+       --package m5-speaker \
+       --board m5stack-cores3 \
+       examples/arduino/fall/fall.tpe
+
+   Grades [L, U]: a lower and upper regular-language bound on the traces with
+   rational durations
+     - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
+     - Top [{0}, ∞): nothing demanded, every trace allowed
+     - Product: concatenation of traces, componentwise *)
+
+(* Runs on the M5Stack CoreS3 Lite carried by a person (fall.device.json):
+   'watch' as a free task, reading the unit every 10 ms. A fall is a free
+   fall below 0.3 g for at least 100 ms and an impact above 2.5 g within a
+   second. The screen shows, in green, that falls are watched for, with the
+   falls counted, the time since the last event and a bar of the
+   acceleration; after a fall, in orange, "Are you OK?", a countdown of 10
+   seconds and a shrinking bar, which a tap cancels; and otherwise, in red,
+   a flashing alarm sounding every second until a tap stops it.
+   bindings.cpp defines the safe state and world.cpp models the falls and
+   the taps. The figures below are those under the bounds of the CoreS3,
+   some of them provisional.
+
+   On the board: make arduino-fall-upload; simulated on the host: make
+   arduino-fall-simulate ('make examples-help',
+   src/05-backends/arduino/README.md). *)
+
+(* A fall: the least magnitude of the acceleration at the start of its free
+   fall and the peak magnitude of its impact, in g. *)
+type fall = Fall of float * float
+
+let free_fall = 0.3
+let impact = 2.5
+
+(* The colours of the states, of 24 bits: watching, a fall detected, the
+   alarm, the text on them, and the bar of the acceleration. *)
+let green = 0x00c000
+let orange = 0xff8000
+let red = 0xe00000
+let black = 0x000000
+let white = 0xffffff
+let blue = 0x00a0ff
+
+(* The magnitude of the acceleration, in g. *)
+let load () : float # {ReadImu} =
+  let (ax, ay, az), _ = perform ReadImu () in
+  sqrt ((ax *. ax) +. (ay *. ay) +. (az *. az))
+
+(* The phases of a fall are bounded by boxes, each checked from its binding
+   to its unboxing within one function body. A recursion has a grade whose
+   repetitions it includes, which bounds no duration; the phases are
+   therefore written out as fixed sequences of readings and of polls of the
+   screen, each sequence annotated with the interval of its durations,
+   which the callers see in place of its operations. *)
+
+(* A reading 10 ms after the last, and whether the free fall continues. *)
+let low (falling : bool) : bool # {10; ReadImu} =
+  delay 10;
+  let a = load () in
+  falling && a < free_fall
+
+(* Ten readings 10 ms apart: whether the free fall lasts throughout, 102 to
+   115 ms. *)
+let confirm () : bool # {[100, 120]} =
+  let falling = true in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  let falling = low falling in
+  falling
+
+(* A reading 10 ms after the last unless an impact was found: the greatest
+   magnitude so far. *)
+let strike (peak : float) : float # {0 | 10; ReadImu} =
+  if peak > impact then peak
+  else (
+    delay 10;
+    let a = load () in
+    if a > peak then a else peak)
+
+let strikes (peak : float) : float # {[0, 115]} =
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  let peak = strike peak in
+  peak
+
+(* Up to eighty readings 10 ms apart, until an impact: at most 920 ms. *)
+let search () : float # {[0, 920]} =
+  let peak = 0.0 in
+  let peak = strikes peak in
+  let peak = strikes peak in
+  let peak = strikes peak in
+  let peak = strikes peak in
+  let peak = strikes peak in
+  let peak = strikes peak in
+  let peak = strikes peak in
+  let peak = strikes peak in
+  peak
+
+(* A poll of the screen, and whether it was touched during the polls so
+   far. *)
+let poll (tapped : bool) : bool # {Touched; 50} =
+  let touched, _, _ = perform Touched () in
+  delay 50;
+  tapped || touched
+
+(* Twenty polls 50 ms apart: 1000 to 1030 ms. *)
+let polls (tapped : bool) : bool # {[1000, 1030]} =
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  let tapped = poll tapped in
+  tapped
+
+(* The frame of every screen: the display cleared, the title, the guarantee
+   and the footer. *)
+let frame () =
+  perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Fall detector");
+  perform ShowTextAt (0, 24, 1, "Alarm only 10-30 s after a fall, after asking you");
+  perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
+
+(* A second of the countdown: the seconds left, large, a bar of their
+   length, and twenty polls. *)
+let second (left : nat) =
+  perform ShowNumberAt (0, 100, 4, 0, float_of_nat left);
+  perform DrawBar (0, 172, 320, 16, 32 * left, orange);
+  polls false
+
+(* A fall cancelled by a tap: a tone acknowledges the tap, and the screen
+   shows it for two seconds. *)
+let cancel () =
+  perform Beep (1500, 100);
+  perform ShowColourTextAt (0, 44, 3, black, green, "Cancelled");
+  perform ShowColourTextAt (0, 76, 2, black, green, "Glad you're OK");
+  delay 2000
+
+(* The alarm, raised: a tone every second, the alarm flashing and the time
+   since it was raised, until a tap stops it, for at most n seconds. It
+   needs no box: the box of the fall licenses raising it, and the alarm
+   then lasts until it is stopped. *)
+let rec alarm (n : nat) (seconds : nat) : unit # {_*} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let tapped = polls false in
+      if tapped then (
+        perform Beep (1500, 100);
+        perform ShowColourTextAt (0, 44, 3, black, green, "Alarm stopped");
+        perform ShowColourTextAt (0, 76, 2, black, green, "");
+        delay 2000)
+      else (
+        (if seconds mod 2 = 0 then
+           perform ShowColourTextAt (0, 44, 3, red, white, "ALARM")
+         else perform ShowColourTextAt (0, 44, 3, white, red, "ALARM"));
+        perform ShowTimeAt (0, 146, 2, "Alarm for ", seconds + 1);
+        perform Beep (2000, 500);
+        alarm m (seconds + 1))
+
+(* Raises the alarm for a fall: the alarm on the screen, in red, with the
+   peak of the impact, and the first tone. *)
+let raise ((Fall (_, peak)) : fall) =
+  frame ();
+  perform ShowColourTextAt (0, 44, 3, white, red, "ALARM");
+  perform ShowColourTextAt (0, 76, 2, white, red, "Tap to stop");
+  perform ShowTextAt (0, 100, 2, "Impact (g)");
+  perform ShowNumberAt (160, 100, 2, 1, peak);
+  perform ShowTimeAt (0, 146, 2, "Alarm for ", 0);
+  perform Beep (2000, 500);
+  alarm 4000000000 0
+
+(* Correctly accepted by the typechecker: the response to a fall redraws the
+   screen, shows the prompt, in orange, sounds a tone and counts down 10
+   seconds, polling the screen. The fall is boxed with the two lines of the
+   prompt, the tone and a delay of 10 to 30 seconds: the alarm is raised
+   only after the prompt and the tone, at least 10 and at most 30 seconds
+   after them. The countdown is written out, so that the alarm is raised
+   only on the path on which no second was tapped, 10018 to 10960 ms after
+   the tone. Within the delay '[10000, 30000]' of the box grade any
+   operation may come, at the upper bound of its running time: the box
+   bounds the time to the alarm, and the operations it names before that
+   delay, but not those within it. *)
+let respond (fall : fall) =
+  frame ();
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+  perform ShowColourTextAt (0, 44, 3, black, orange, "Are you OK?");
+  perform ShowColourTextAt (0, 76, 2, black, orange, "Tap to cancel");
+  perform Beep (1000, 300);
+  let tapped = second 10 in
+  if tapped then cancel () else
+  let tapped = second 9 in
+  if tapped then cancel () else
+  let tapped = second 8 in
+  if tapped then cancel () else
+  let tapped = second 7 in
+  if tapped then cancel () else
+  let tapped = second 6 in
+  if tapped then cancel () else
+  let tapped = second 5 in
+  if tapped then cancel () else
+  let tapped = second 4 in
+  if tapped then cancel () else
+  let tapped = second 3 in
+  if tapped then cancel () else
+  let tapped = second 2 in
+  if tapped then cancel () else
+  let tapped = second 1 in
+  if tapped then cancel () else
+  unbox event as fall in
+  raise fall
+
+(* Correctly accepted by the typechecker: a suspected fall, from the reading
+   'first' below 0.3 g. The reading is boxed with a delay of at least 100 ms:
+   the free fall is confirmed only after ten further readings, at least
+   102 ms. An impact is then searched for, and the end of the free fall
+   boxed with a delay of at most a second: a fall is reported only if the
+   search, of at most 920 ms, finds an impact. The result is the number of
+   falls, counted or not. *)
+let suspect (falls : nat) (first : float) : nat =
+  box [100, ∞) first as onset in
+  let falling = confirm () in
+  if falling then (
+    unbox onset as least in
+    box [0, 1000] least as window in
+    let peak = search () in
+    if peak > impact then (
+      unbox window as least in
+      respond (Fall (least, peak));
+      falls + 1)
+    else falls)
+  else falls
+
+(* The screen of the detector: the frame, the state, in green, the falls
+   detected, the time since the last event and the label of the bar of the
+   acceleration. *)
+let idle (falls : nat) =
+  frame ();
+  perform ShowColourTextAt (0, 44, 3, black, green, "Watching");
+  perform ShowColourTextAt (0, 76, 2, black, green, "for falls");
+  perform ShowTextAt (0, 100, 2, "Falls");
+  perform ShowNumberAt (160, 100, 2, 0, float_of_nat falls);
+  perform ShowTimeAt (0, 146, 2, "Since last event ", 0);
+  perform ShowTextAt (0, 160, 1, "Acceleration, 0 to 3 g")
+
+(* The length of the bar of an acceleration of a g, in pixels: 320 for
+   3 g. *)
+let bar (a : float) = nat_of_float (a *. 320.0 /. 3.0)
+
+(* Correctly accepted by the typechecker: n readings 10 ms apart, each
+   below 0.3 g starting a suspected fall. The bar of the acceleration is
+   redrawn every tenth reading and the time since the last event, counted
+   in readings, every hundredth: at 10 ms a reading, it falls short of the
+   time by the running times of the operations, about a tenth. *)
+let rec monitor (n : nat) (falls : nat) (since : nat) : unit # {_*} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let a = load () in
+      if a < free_fall then (
+        let counted = suspect falls a in
+        if counted > falls then (
+          idle counted;
+          monitor m counted 0)
+        else monitor m falls since)
+      else (
+        (if since mod 10 = 0 then perform DrawBar (0, 172, 320, 16, bar a, blue)
+         else ());
+        (if since mod 100 = 99 then
+           perform ShowTimeAt (0, 146, 2, "Since last event ", (since + 1) / 100)
+         else ());
+        delay 10;
+        monitor m falls (since + 1))
+
+(* The task: the screen, and readings for about 460 days. *)
+let watch () =
+  idle 0;
+  monitor 4000000000 0 0
+
+(* Correctly rejected by the typechecker: the free fall is confirmed after
+   five readings, 51 to 57.5 ms, shorter than 100 ms:
+
+     Typing error: Variable `onset` is unboxed with grade
+       `[{10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu},
+       {10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{100}, ∞)`
+       ...
+*)
+(*
+let suspect_brief (first : float) =
+  box [100, ∞) first as onset in
+  let falling = low (low (low (low (low true)))) in
+  if falling then (unbox onset as least in least) else first
+*)
+
+(* Correctly rejected by the typechecker: the impact is searched for over a
+   hundred readings, up to 1150 ms after the end of the free fall:
+
+     Typing error: Variable `window` is unboxed with grade
+       `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}]`
+       accumulated since it was bound, which is not below its box grade
+       `[{0}, {1000}]`
+       ...
+       Note: the resource inequality
+         `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}] <=
+         [{0}, {1000}]` does not hold
+*)
+(*
+let suspect_late (least : float) =
+  box [0, 1000] least as window in
+  let peak = strikes (strikes (search ())) in
+  if peak > impact then (unbox window as least in Fall (least, peak))
+  else Fall (least, 0.0)
+*)
+
+(* Correctly rejected by the typechecker: the response waits ten seconds and
+   raises the alarm without the prompt and the tone that ask for a tap:
+
+     Typing error: Variable `event` is unboxed with grade
+       `[{10000}, {10000}]` accumulated since it was bound, which is not
+       below its box grade
+       `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
+       {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
+       ...
+*)
+(*
+let respond_silent (fall : fall) =
+  box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
+  delay 10000;
+  unbox event as fall in
+  raise fall
+*)
+
+(* A suspected fall from a reading of 0.1 g, with the default
+   implementations, which read a unit at rest: the free fall is not
+   confirmed, and no fall is counted. *)
+run suspect 0 0.1

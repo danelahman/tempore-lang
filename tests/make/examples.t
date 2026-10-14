@@ -3,7 +3,7 @@ fragment of each example, shown by dry runs, which need neither PlatformIO
 nor Python. The variables of the targets are those of the Makefile.
 
   $ unset MAKEFLAGS MFLAGS MAKELEVEL PORT PORT_M5STACK_GRAY PORT_M5STACK_CORES3 \
-  >   CAPTURE SIMULATE MONITOR BALANCE_LOG PLATFORMIO_BUILD_FLAGS
+  >   CAPTURE SIMULATE MONITOR BALANCE_LOG BALANCE_RECORD PLATFORMIO_BUILD_FLAGS
   $ cd ../..
   $ dry () {
   >   make -s --no-print-directory -n "$@" |
@@ -23,7 +23,8 @@ example has its fragment:
   >   [ -f "${d}example.mk" ] || echo "$d: no fragment example.mk"
   > done
 
-The commands of the headers of the examples, their lines joined:
+The commands of a file, the headers of the examples or the README of the
+Arduino backend, their lines joined:
 
   $ commands () {
   >   awk '!c && /^ *(PLATFORMIO_BUILD_FLAGS=[^ ]* \\$|\.\/tempore )/ { c = 1; s = "" }
@@ -41,29 +42,63 @@ that simulates it:
   >   [ "$header" = "$made" ] || printf '%s:\n  %s\n  %s\n' "$n" "$header" "$made"
   > done
 
-The target -simulate of an Arduino example runs the command of its header
-that simulates it on the host, with the monitor policy abort, the default,
-given explicitly; the target -log of bala2 runs that of its header under
-CAPTURE=60:
+The header of an Arduino example names its make targets instead of their
+commands, which the README of the Arduino backend documents. Each target
+that the header names is defined, and the header names the targets -simulate
+and -upload of its example:
 
   $ for d in examples/arduino/*/; do
   >   n=$(basename "$d"); p=$(basename "$d"*.device.json .device.json)
-  >   header=$(commands "$d$p.tpe" | grep -e '--host-simulate')
-  >   made=$(dry "arduino-$n-simulate" | sed 's/ --monitor abort//')
-  >   [ "$header" = "$made" ] || printf '%s:\n  %s\n  %s\n' "$n" "$header" "$made"
+  >   targets=$(awk '{ print } /\*\)$/ && ++c == 2 { exit }' "$d$p.tpe" |
+  >     grep -o 'arduino-[a-z0-9-]*' | sort -u)
+  >   for t in $targets; do
+  >     make -s --no-print-directory -n "$t" > /dev/null 2>&1 ||
+  >       echo "$n: no target $t"
+  >   done
+  >   for t in "arduino-$n-simulate" "arduino-$n-upload"; do
+  >     echo "$targets" | grep -qx "$t" || echo "$n: the header does not name $t"
+  >   done
   > done
-  $ header=$(commands examples/arduino/bala2/balance.tpe | grep -e '-log')
-  $ made=$(dry arduino-bala2-log CAPTURE=60 | tr -d '"')
-  $ [ "$header" = "$made" ] || printf '%s\n%s\n' "$header" "$made"
+
+The run command of the header of an Arduino example has the grades of its
+target -simulate, and the packages and the board of its manifest:
+
+  $ for d in examples/arduino/*/; do
+  >   n=$(basename "$d"); p=$(basename "$d"*.device.json .device.json)
+  >   header=$(commands "$d$p.tpe" | head -n 1)
+  >   grades=$(dry "arduino-$n-simulate" | grep -o -e '--grades [^ ]*')
+  >   packages=$(sed -n 's/.*"packages": *\[\(.*\)\].*/\1/p' "$d$p.device.json" |
+  >     tr -d '" ' | tr ',' '\n' | sed 's/^/--package /' | tr '\n' ' ')
+  >   board=$(sed -n 's/.*"board": *"\([^"]*\)".*/\1/p' "$d$p.device.json")
+  >   expected="./tempore $grades ${packages}--board $board $d$p.tpe"
+  >   [ "$header" = "$expected" ] ||
+  >     printf '%s:\n  %s\n  %s\n' "$n" "$header" "$expected"
+  > done
+
+The commands of the README of the Arduino backend, their lines joined: the
+target -simulate of bala2 runs the command of the README that simulates it on
+the host, with the monitor policy abort, the default, given explicitly, and
+the target -profile runs that of the README under CAPTURE=60:
+
+  $ readme=$(commands src/05-backends/arduino/README.md |
+  >   grep -e '--emit-arduino balance')
+  $ echo "$readme" | wc -l | tr -d ' '
+  2
+  $ made=$(dry arduino-bala2-simulate | sed 's/ --monitor abort//')
+  $ echo "$readme" | grep -qxF "$made" || echo "$made"
+  $ made=$(dry arduino-bala2-profile CAPTURE=60)
+  $ echo "$readme" | grep -qxF "$made" || echo "$made"
 
 The uploads go to the port of the board of the manifest, PORT_BOARD, or else
 to PORT:
 
-  $ for n in bala2 bala2-regex peak tilt wheels; do
+  $ for n in bala2 bala2-regex fall level peak tilt wheels; do
   >   dry "arduino-$n-upload" | grep -o -e '--port [^ ]*' | sed "s|^|$n: |"
   > done
   bala2: --port /dev/cu.usbserial-02012C91
   bala2-regex: --port /dev/cu.usbserial-02012C91
+  fall: --port /dev/cu.usbmodem101
+  level: --port /dev/cu.usbmodem101
   peak: --port /dev/cu.usbmodem101
   tilt: --port /dev/cu.usbmodem101
   wheels: --port /dev/cu.usbserial-02012C91
@@ -85,6 +120,16 @@ Further targets, under variables set on the command line:
   ./tempore --grades time-interval-rational --emit-arduino balance-profile --device examples/arduino/bala2/balance.device.json --monitor warn --profile --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
   $ dry arduino-bala2-regex-log BALANCE_LOG=50 MONITOR=abort
   PLATFORMIO_BUILD_FLAGS="-DBALANCE_LOG=50" ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino balance_regex-log --device examples/arduino/bala2-regex/balance_regex.device.json --monitor abort --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2-regex/balance_regex.tpe
+  $ dry arduino-bala2-record BALANCE_RECORD=50
+  PLATFORMIO_BUILD_FLAGS="-DBALANCE_RECORD=50" ./tempore --grades time-interval-rational --emit-arduino balance-record --device examples/arduino/bala2/balance.device.json --monitor warn --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
+
+The target -capture reads the port without an upload, into a log under
+_arduino/recordings, and extracts the recordings from the log:
+
+  $ make -s --no-print-directory -n arduino-bala2-regex-capture CAPTURE=60 |
+  >   grep -o -e '\./tempore .*tpe' -e 'awk -f [^ ]*'
+  ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino balance_regex-record --device examples/arduino/bala2-regex/balance_regex.device.json --capture 60 --port /dev/cu.usbserial-02012C91 examples/arduino/bala2-regex/balance_regex.tpe
+  awk -f examples/arduino/bala2/recordings.awk
   $ dry arduino-tilt-build SIMULATE=5
   ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --build examples/arduino/tilt/tilt.tpe
   $ dry arduino-tilt-simulate SIMULATE=5
@@ -97,6 +142,6 @@ The aggregate targets cover every example:
   $ dry opentrons-simulate-all | grep -c tempore
   8
   $ dry arduino-simulate-all | grep -c tempore
-  5
+  8
   $ dry arduino-build-all | grep -c tempore
-  5
+  8

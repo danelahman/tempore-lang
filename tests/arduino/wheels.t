@@ -153,7 +153,7 @@ the operations, which the monitors check; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json $app/wheels.tpe | grep -c Wrote
-  30
+  31
   $ grep -A3 '^\[env' _arduino/projects/wheels/platformio.ini
   [env:m5stack-gray]
   platform = espressif32@7.1.3
@@ -161,9 +161,10 @@ exceptions and run-time type information:
   framework = arduino
   $ grep 'bounds = ' _arduino/projects/wheels/src/tempore_operations.cpp
   static const tempore_bounds tempore_op_ReadImu_bounds = {550, false, 1250, false, true};
-  static const tempore_bounds tempore_op_ShowText_bounds = {100, false, 12500, false, true};
-  static const tempore_bounds tempore_op_ShowNumber_bounds = {100, false, 12500, false, true};
+  static const tempore_bounds tempore_op_ShowText_bounds = {50, false, 12500, false, true};
+  static const tempore_bounds tempore_op_ShowNumber_bounds = {50, false, 12500, false, true};
   static const tempore_bounds tempore_op_ClearDisplay_bounds = {31000, false, 48000, false, true};
+  static const tempore_bounds tempore_op_ShowTextAt_bounds = {50, false, 33000, false, true};
   static const tempore_bounds tempore_op_SetMotors_bounds = {200, false, 450, false, true};
   static const tempore_bounds tempore_op_ReadEncoders_bounds = {450, false, 1000, false, true};
   static const tempore_bounds tempore_op_ResetEncoders_bounds = {300, false, 600, false, true};
@@ -180,20 +181,24 @@ repeats after two seconds; the step runs every 10 ms:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep '\] \(Display\|Operation SetMotors\|Operation ReadEncoders\)\|simulation'
   [31.245 ms] Display cleared
-  [31.825 ms] Operation SetMotors took 245 us
-  [132.293 ms] Operation ReadEncoders took 468 us
-  [132.538 ms] Operation SetMotors took 245 us
-  [433.118 ms] Operation SetMotors took 245 us
-  [533.586 ms] Operation ReadEncoders took 468 us
-  [533.831 ms] Operation SetMotors took 245 us
-  [534.831 ms] Display: Wheels turn
-  [535.831 ms] Display: 310.000
-  [536.831 ms] Display: 310.000
-  [2567.831 ms] Display cleared
-  [2568.411 ms] Operation SetMotors took 245 us
-  [2668.879 ms] Operation ReadEncoders took 468 us
-  [2669.124 ms] Operation SetMotors took 245 us
-  [2969.704 ms] Operation SetMotors took 245 us
+  [35.025 ms] Display at (0, 0): Wheel check
+  [37.785 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [38.365 ms] Operation SetMotors took 245 us
+  [138.833 ms] Operation ReadEncoders took 468 us
+  [139.078 ms] Operation SetMotors took 245 us
+  [439.658 ms] Operation SetMotors took 245 us
+  [540.126 ms] Operation ReadEncoders took 468 us
+  [540.371 ms] Operation SetMotors took 245 us
+  [541.371 ms] Display: Wheels turn
+  [542.371 ms] Display: 310.000
+  [543.371 ms] Display: 310.000
+  [2574.371 ms] Display cleared
+  [2578.151 ms] Display at (0, 0): Wheel check
+  [2580.911 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [2581.491 ms] Operation SetMotors took 245 us
+  [2681.959 ms] Operation ReadEncoders took 468 us
+  [2682.204 ms] Operation SetMotors took 245 us
+  [2982.784 ms] Operation SetMotors took 245 us
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep -c 'Release watch'
   300
@@ -204,7 +209,11 @@ With the right wheel stalled, the check reports its fault:
   $ c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -DTEMPORE_TRACE -DSTAND_STALLED_WHEEL -pthread -I host -I src src/*.cpp host/*.cpp -o simulation
   $ ./simulation 3000000 | grep '\] Display'
   [31.245 ms] Display cleared
-  [534.831 ms] Display: Right wheel fault
-  [535.831 ms] Display: 310.000
-  [536.831 ms] Display: 0.000
-  [2567.831 ms] Display cleared
+  [35.025 ms] Display at (0, 0): Wheel check
+  [37.785 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [541.371 ms] Display: Right wheel fault
+  [542.371 ms] Display: 310.000
+  [543.371 ms] Display: 0.000
+  [2574.371 ms] Display cleared
+  [2578.151 ms] Display at (0, 0): Wheel check
+  [2580.911 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)

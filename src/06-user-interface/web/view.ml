@@ -210,11 +210,15 @@ let view_contents main aside =
    and is neither shown nor editable; only editor spans can be marked. *)
 let in_editor (loc : Location.t) = loc.filename = ""
 
-(* The source of a span outside the editor: the standard library, or the file
-   of declarations a backend loads before the program. *)
+(* The source of a span outside the editor: the standard library, an input of
+   a backend, or the file of declarations a backend loads before the
+   program. *)
 let source_name (loc : Location.t) =
   if loc.filename = Loader.stdlib_filename then "the standard library"
-  else loc.filename
+  else
+    match BackendRegistry.input_of_file loc.filename with
+    | Some input -> "the " ^ String.uncapitalize_ascii input.label
+    | None -> loc.filename
 
 (* The ids the error's spans are given in the editor, so that the message
    under it can link to them and the page can scroll to them. *)
@@ -223,16 +227,31 @@ let label_id i j = Printf.sprintf "error-label-%d-%d" i j
 let error_id i = Printf.sprintf "editor-error-%d" i
 
 (* The kind of error and where it points: an editor span by its line and
-   characters, a standard-library span by its file as well. *)
+   characters, a standard-library span by its file as well. A warning is
+   named by where it points alone. *)
 let load_error_header (error : Model.load_error) =
   let kind = Diagnostic.kind_to_string error.diagnostic.kind in
+  let warning = Model.is_warning error in
   match error.diagnostic.primary with
-  | None -> kind
+  | None -> if warning then "" else kind
   | Some loc when in_editor loc ->
-      Format.asprintf "%s at %t" kind (Location.print_short loc)
+      if warning then Format.asprintf "%t" (Location.print_short loc)
+      else Format.asprintf "%s at %t" kind (Location.print_short loc)
   | Some loc ->
-      Format.asprintf "%s in %s (%t)" kind (source_name loc)
-        (Location.print loc)
+      if warning then
+        Format.asprintf "in %s (%t)" (source_name loc) (Location.print loc)
+      else
+        Format.asprintf "%s in %s (%t)" kind (source_name loc)
+          (Location.print loc)
+
+(* The attribute of the classes [names], none if there are none. *)
+let classes = function
+  | [] -> []
+  | names -> [ class_ (String.concat " " names) ]
+
+(* The class of the marks of an error, [is-warning] for a warning. *)
+let severity_classes (error : Model.load_error) =
+  if Model.is_warning error then [ "is-warning" ] else []
 
 (* The same, cut down for the side panel's list: no characters, no file. *)
 let load_error_summary (error : Model.load_error) =
@@ -338,7 +357,7 @@ let popover_target (model : Model.model) =
    open the error's popover as well, by the pointer or the keyboard focus, and
    are described by it while it is open. *)
 let error_number_attrs ~hovered ~described i (error : Model.load_error) =
-  (if hovered then [ class_ "is-hover" ] else [])
+  classes ((if hovered then [ "is-hover" ] else []) @ severity_classes error)
   @ (if described then [ attr "aria-describedby" popover_id ] else [])
   @ [
       attr "aria-label"
@@ -372,9 +391,10 @@ let marks_of_error ~hovered ~with_labels ~popover i (error : Model.load_error) =
   (match error.diagnostic.primary with
     | Some loc ->
         mark
-          ((if hovered then "error-primary is-hover" else "error-primary")
-          ^ " "
-          ^ popover_classes (Model.Error_span i))
+          (String.concat " "
+             (("error-primary" :: (if hovered then [ "is-hover" ] else []))
+             @ severity_classes error
+             @ [ popover_classes (Model.Error_span i) ]))
           (primary_id i) loc
           ~marker:
             {
@@ -482,7 +502,11 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
   in
   let classes =
     String.concat " "
-      ([ "message"; "is-danger"; "editor-error" ]
+      ([
+         "message";
+         (if Model.is_warning error then "is-warning" else "is-danger");
+         "editor-error";
+       ]
       @ (if active then [ "is-active" ] else [])
       @ (if flashed then [ "is-flashed" ] else [])
       @ if stale then [ "is-stale" ] else [])
@@ -501,8 +525,11 @@ let view_load_error ~stale ~active ~flashed i (error : Model.load_error) =
           elt "p"
             [
               text
-                (Printf.sprintf "Error %d — %s" (i + 1)
-                   (load_error_header error));
+                (match (Model.is_warning error, load_error_header error) with
+                | true, "" -> Printf.sprintf "Warning %d" (i + 1)
+                | true, header ->
+                    Printf.sprintf "Warning %d — %s" (i + 1) header
+                | false, header -> Printf.sprintf "Error %d — %s" (i + 1) header);
             ];
           header_aside;
         ];
@@ -713,10 +740,49 @@ let view_library_entry ~columns (entry : Model.library_entry) =
       [ elt "p" ~a:[ class_ "code-popover-scheme" ] (view_scheme ~columns d) ]
   | None -> []
 
+(* The id of the definition of the declarations loaded before the program
+   flashed after going to it. *)
+let declaration_flash_id = "declaration-flash"
+
+(* A definition of the declarations loaded before the program, that of the
+   [k]th link: its package or file and line, its command, highlighted as the
+   editor highlights, the scheme of a value, and a link going to it. *)
+let view_declaration_entry ~columns k (entry : Model.declaration_entry) =
+  let { WebDeclarations.filename; line; text = command; _ } = entry.place in
+  let package = WebDeclarations.package filename in
+  let place =
+    if package = filename then Printf.sprintf "File %s, line %d" filename line
+    else
+      Printf.sprintf "Package %s, file %s, line %d" package
+        (Filename.basename filename)
+        line
+  in
+  [
+    elt "p" ~a:[ class_ "code-popover-place" ] [ text place ];
+    elt "pre"
+      ~a:[ class_ "code-popover-source syn-ml" ]
+      (SyntaxHighlight.highlight_text command);
+  ]
+  @ (match entry.defined with
+    | Some d ->
+        [ elt "p" ~a:[ class_ "code-popover-scheme" ] (view_scheme ~columns d) ]
+    | None -> [])
+  @ [
+      elt "a"
+        ~a:
+          [
+            class_ "code-popover-link";
+            attr "href" ("#" ^ declaration_flash_id);
+            onclick ~prevent_default:() (fun _ -> Model.Follow k);
+          ]
+        [ text "Show declaration" ];
+    ]
+
 (* The open popover: for an error's span, its kind and headline, then the
    label of the span when it is one of the error's labels and otherwise the
    error's first note, and a link to its message; for a definition's name, its
-   scheme; for a name defined in the standard library, its definition. It is
+   scheme; for a name defined in the standard library or in the declarations
+   loaded before the program, its definition. It is
    drawn hidden until measured, and then placed under or above its span, a
    scheme laid out again first when the measured width differs. *)
 let view_popover (model : Model.model) errors =
@@ -743,7 +809,12 @@ let view_popover (model : Model.model) errors =
             elt "p"
               ~a:[ class_ "code-popover-title" ]
               (elt "span"
-                 ~a:[ class_ "code-popover-kind" ]
+                 ~a:
+                   [
+                     class_
+                       (String.concat " "
+                          ("code-popover-kind" :: severity_classes error));
+                   ]
                  [ text (Diagnostic.kind_to_string d.kind ^ ":") ]
               :: text " " :: rendered d.message);
           ]
@@ -756,7 +827,11 @@ let view_popover (model : Model.model) errors =
                     attr "href" ("#" ^ error_id i);
                     onclick ~prevent_default:() (fun _ -> Model.ShowFullError i);
                   ]
-                [ text "Show full error" ];
+                [
+                  text
+                    (if Model.is_warning error then "Show full warning"
+                     else "Show full error");
+                ];
             ] ))
       (List.nth_opt errors i)
   in
@@ -778,6 +853,8 @@ let view_popover (model : Model.model) errors =
         match List.nth_opt model.links k with
         | Some { destination = Model.In_library entry; _ } ->
             Some ("is-type", view_library_entry ~columns entry)
+        | Some { destination = Model.In_declarations entry; _ } ->
+            Some ("is-type", view_declaration_entry ~columns k entry)
         | Some { destination = Model.In_editor _; _ } | None -> None)
   in
   match model.popover with
@@ -845,6 +922,13 @@ let onescape_popover (model : Model.model) =
           else None)
         (field "key" String))
 
+(* The gutter of a text of [lines] lines: a small inset, the line numbers
+   (0.558rem a digit at the editor's 0.9rem) and a gap; in rem so the marker's
+   smaller font can use it. *)
+let gutter lines =
+  Printf.sprintf "calc(0.36rem + %d * 0.558rem + 0.63rem)"
+    (String.length (string_of_int lines))
+
 (* The editor proper: the highlighted text, with the errors' spans and the
    definitions' names marked, the transparent textarea stretched over it, and
    the open popover. *)
@@ -854,12 +938,7 @@ let view_editor ~highlighted ~errors (model : Model.model) =
     String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 1 source
   in
   let rows = max 10 lines in
-  (* The gutter is a small inset, the line numbers (0.558rem a digit at the
-     editor's 0.9rem) and a gap; in rem so the marker's smaller font can use it. *)
-  let gutter =
-    Printf.sprintf "calc(0.36rem + %d * 0.558rem + 0.63rem)"
-      (String.length (string_of_int lines))
-  in
+  let gutter = gutter lines in
   let described =
     match (popover_target model, model.caret_target) with
     | Some target, Some target' when target = target' ->
@@ -987,11 +1066,40 @@ let view_check_status (model : Model.model) =
              else cross "is-danger is-dimmed")
             [ [ text "Edited since the last check" ] ];
         ]
-    | Some { errors = 0; definitions; _ } ->
+    | Some { errors = 0; warnings = 0; definitions; _ } ->
         [
           outcome (tick "is-success")
             [
               [ text "Checked \xE2\x80\x94 no errors" ];
+              view_definitions definitions;
+            ];
+        ]
+    | Some { errors = 0; warnings; definitions; _ } ->
+        let target =
+          match model.run_model with
+          | Error (warning :: _) -> load_error_target 0 warning
+          | _ -> error_id 0
+        in
+        [
+          outcome (tick "is-warning")
+            [
+              [
+                text "Checked \xE2\x80\x94 ";
+                elt "a"
+                  ~a:
+                    [
+                      class_ "check-status-warnings";
+                      attr "href" ("#" ^ target);
+                      attr "title" "Go to the first warning";
+                      onclick ~prevent_default:() (fun _ -> Model.GoToError 0);
+                    ]
+                  [
+                    text (count warnings "warning");
+                    elt "span"
+                      ~a:[ class_ "is-sr-only" ]
+                      [ text ", go to the first" ];
+                  ];
+              ];
               view_definitions definitions;
             ];
         ]
@@ -1426,8 +1534,10 @@ let view_compiler (model : Model.model) =
             let view_entry i error =
               elt "li"
                 ~a:
-                  ((if model.active_error = Some i then [ class_ "is-active" ]
-                    else [])
+                  (classes
+                     ((if model.active_error = Some i then [ "is-active" ]
+                       else [])
+                     @ severity_classes error)
                   @ [
                       onmouseenter (fun _ -> Model.HoverError (Some i));
                       onmouseleave (fun _ -> Model.HoverError None);
@@ -1481,7 +1591,7 @@ let view_compiled (model : Model.model) (entry : BackendRegistry.entry)
   in
   let errors =
     match model.run_model with
-    | Error (_ :: _ as errors) ->
+    | Error (_ :: _ as errors) when not model.reports_compilation ->
         [
           elt "p"
             ~a:[ class_ "backend-note" ]
@@ -1841,9 +1951,10 @@ let editor_marks
              | None -> [])
            definitions)
     (* the names of the links, one of them underlined while the modifier of
-         links is held with the pointer on it *)
+         links is held with the pointer on it, those defined in the
+         declarations loaded before the program described by popovers *)
     @ List.mapi
-        (fun k ({ use = from, until; _ } : Model.link) ->
+        (fun k ({ use = from, until; destination } : Model.link) ->
           {
             SyntaxHighlight.from;
             until;
@@ -1851,10 +1962,16 @@ let editor_marks
               String.concat " "
                 ([ "name-ref"; EditorDom.link_prefix ^ string_of_int k ]
                 @ (if link = Some k then [ "is-link" ] else [])
+                @ (if popover = Some (Model.Reference k) then [ "is-hover" ]
+                   else [])
                 @
-                if popover = Some (Model.Reference k) then
-                  [ "is-hover"; popover_classes (Model.Reference k) ]
-                else []);
+                match destination with
+                | Model.In_declarations _ ->
+                    [ popover_classes (Model.Reference k) ]
+                | Model.In_editor _ | Model.In_library _ ->
+                    if popover = Some (Model.Reference k) then
+                      [ popover_classes (Model.Reference k) ]
+                    else []);
             id = None;
             marker = None;
           })
@@ -1871,7 +1988,7 @@ let editor_marks
             marker = None;
           };
         ]
-    | Some (Model.Message _) | None -> []
+    | Some (Model.Message _ | Model.Declaration _) | None -> []
 
 (* The editor's text, highlighted with its marks, and a newline the source has
    not got, so that a last empty line keeps its height. *)
@@ -1880,6 +1997,86 @@ let view_highlighted (key : editor_key) =
     ~a:[ class_ "code-editor-display syn-ml" ]
     (SyntaxHighlight.highlight_with_marks ~line_numbers:true
        ~marks:(editor_marks key) (key.source ^ "\n"))
+
+(* Declarations loaded before the program *)
+
+(* A source of the declarations loaded before the program, under its file
+   name, highlighted as the editor highlights, with line numbers; [flash] is
+   the bytes of it just gone to, if any. *)
+let view_declaration_source ?flash (source : WebDeclarations.source) =
+  let code =
+    if String.ends_with ~suffix:"\n" source.text then
+      String.sub source.text 0 (String.length source.text - 1)
+    else source.text
+  in
+  let lines =
+    String.fold_left (fun n c -> if c = '\n' then n + 1 else n) 1 code
+  in
+  let marks =
+    Option.fold ~none:[]
+      ~some:(fun (from, until) ->
+        [
+          {
+            SyntaxHighlight.from;
+            until = max until (from + 1);
+            mark_cls = "goto-flash";
+            id = Some declaration_flash_id;
+            marker = None;
+          };
+        ])
+      flash
+  in
+  div
+    ~a:[ class_ "declarations-file" ]
+    [
+      elt "p" ~a:[ class_ "declarations-filename" ] [ text source.filename ];
+      elt "pre"
+        ~a:
+          [
+            class_ "declarations-source syn-ml"; style "--gutter" (gutter lines);
+          ]
+        (SyntaxHighlight.highlight_with_marks ~line_numbers:true ~marks code);
+    ]
+
+(* [view_declaration_source] without a flash, as a function of the source
+   alone, which [Vdom.memo] compares. *)
+let view_unflashed_declaration_source source = view_declaration_source source
+
+(* The declarations the selected backend loads before the program, folded
+   above it under their packages, read-only; a container without them, so
+   that the editor keeps its place among the children of the box. *)
+let view_declarations (model : Model.model) =
+  div
+    ~a:[ class_ "editor-declarations" ]
+    (match model.shown_declarations with
+    | [] -> []
+    | sources ->
+        [
+          elt "details"
+            ~a:
+              [
+                class_ "declarations";
+                bool_prop "open" model.declarations_open;
+                on "toggle"
+                  Vdom.Decoder.(
+                    map
+                      (fun shown ->
+                        if shown = model.declarations_open then None
+                        else Some (Model.ShowDeclarations shown))
+                      (field "target.open" Bool));
+              ]
+            (elt "summary"
+               ~a:[ class_ "declarations-title" ]
+               [ text (WebDeclarations.title sources) ]
+            :: List.map
+                 (fun (source : WebDeclarations.source) ->
+                   match model.flash with
+                   | Some (Model.Declaration (filename, start, stop))
+                     when filename = source.filename ->
+                       view_declaration_source ~flash:(start, stop) source
+                   | _ -> Vdom.memo view_unflashed_declaration_source source)
+                 sources);
+        ])
 
 (* The editor's box: the program, with the errors of its check, or, under a
    backend with a compiler, the view of the code compiled, with the switch
@@ -1893,7 +2090,10 @@ let edit_view (model : Model.model) =
     | _ ->
         let key = interned (editor_key model) in
         let errors = key.errors and stale = key.stale in
-        view_editor ~highlighted:(Vdom.memo view_highlighted key) ~errors model
+        view_declarations model
+        :: view_editor
+             ~highlighted:(Vdom.memo view_highlighted key)
+             ~errors model
         :: List.mapi
              (fun i error ->
                view_load_error ~stale
@@ -1977,7 +2177,7 @@ let onescape msg =
    click on the backdrop beside the panel. The search field takes the focus
    when the gallery opens with no example loaded; otherwise the page focuses
    the card of the example last loaded. *)
-let view_gallery ~selected ~backend query =
+let view_gallery ~selected ~backend ~current query =
   let groups =
     List.filter_map
       (fun (k, (g : Examples_tpe.group)) ->
@@ -1991,9 +2191,19 @@ let view_gallery ~selected ~backend query =
         | examples -> Some (k, g, examples))
       (List.mapi (fun k g -> (k, g)) Examples_tpe.examples)
   in
+  (* The group scrolled to, or the first group shown. *)
+  let current =
+    match (current, groups) with
+    | Some id, _ -> id
+    | None, (k, _, _) :: _ -> example_group_id k
+    | None, [] -> ""
+  in
   let view_toc_entry (k, (g : Examples_tpe.group), examples) =
+    let id = example_group_id k in
     elt "a"
-      ~a:[ attr "href" ("#" ^ example_group_id k) ]
+      ~a:
+        (attr "href" ("#" ^ id)
+        :: (if id = current then [ class_ "is-active" ] else []))
       [
         text (g.label ^ " ");
         elt "span" [ text (Printf.sprintf "(%d)" (List.length examples)) ];
@@ -2340,7 +2550,10 @@ let view (model : Model.model) =
       view_navbar;
       (match model.page with
       | Model.Docs ->
-          let main, aside = Docs.view (page_link Model.Editor) in
+          let main, aside =
+            Docs.view model.docs_page ~current:model.docs_heading
+              (page_link Model.Editor)
+          in
           view_contents main aside
       | Model.Editor -> (
           match model.run_model with
@@ -2350,6 +2563,7 @@ let view (model : Model.model) =
       (match model.gallery with
       | Some query ->
           view_gallery ~selected:model.edit_model.selected_example
-            ~backend:(Model.backend model.edit_model).key query
+            ~backend:(Model.backend model.edit_model).key
+            ~current:model.gallery_group query
       | None -> nil);
     ]

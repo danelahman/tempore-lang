@@ -1,0 +1,10 @@
+(* A supervision that arms the robot 100 ms after the message, after
+   balance.tpe. *)
+
+let supervise_hasty () =
+  let token = calibrate () in
+  perform ShowText "Hold upright";
+  delay 100;
+  unbox token as calibration in
+  perform Arm calibration;
+  drive 4000000000

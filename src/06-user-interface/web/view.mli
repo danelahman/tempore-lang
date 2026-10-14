@@ -17,6 +17,10 @@ val load_error_target : int -> Model.load_error -> string
     error: its highlighted primary span when it has one in the editor, otherwise
     its message block under the editor. *)
 
+val declaration_flash_id : string
+(** The id of the definition of the declarations loaded before the program
+    flashed after going to it. *)
+
 val status_id : string
 (** The id of the status line of the last check. *)
 

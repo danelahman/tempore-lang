@@ -27,6 +27,28 @@
     function {!ArduinoNames.operation} of the operation, and [delay q] a call of
     [tempore_delay] with the numerator and the denominator of [q].
 
+    {2 Handlers}
+
+    A tail-resumptive handler is compiled by specialisation to direct calls of
+    its cases. Each operation case is a C++ function of the parameters of the
+    handler and the argument of the operation, whose result is the value the
+    continuation is resumed with; the return case, unless it returns its input,
+    is a C++ function of the parameters of the handler and the result of the
+    handled computation, applied to that result. As in the interpreter, the
+    handlers are deep and a case runs outside its handler: an operation
+    performed in the body of a [handle], and in the functions it calls,
+    transitively, calls the case of the innermost handler of the operation in
+    the context of the handlers outside that handler, or the external function
+    of the operation if no handler around it handles it.
+
+    A function is compiled once for each instance of its type and each context
+    of the handlers that its operations reach, the values of the parameters of
+    those handlers following its own parameters; the cases of a handler are
+    compiled once for each instance of the types of its parameters and its
+    cases, and each context outside it. An operation handled by a case is not a
+    call of its external function, and is not monitored on a device; the
+    operations of the case are.
+
     {2 Names}
 
     Variables, datatypes and constructors are named by
@@ -41,8 +63,8 @@ type compiled = {
   entries : (Language.Ast.variable * string) list;
       (** the entry points, each with the name of its C++ function *)
   operation_types : (Language.Ast.operation * (string * string)) list;
-      (** the operations performed, each with the C++ types of its argument and
-          its result *)
+      (** the operations performed outside all handlers, each with the C++ types
+          of its argument and its result *)
 }
 (** A compiled program. *)
 
@@ -63,4 +85,5 @@ val compile :
     line [return v] and an empty line. It also defines [tempore_fault], which
     reports a run-time error on the standard error as the interpreter reports it
     and ends the program with exit code 1, a [tempore_delay] that returns at
-    once, and functions for the operations that report a run-time error. *)
+    once, and functions for the operations performed outside all handlers that
+    report a run-time error. *)

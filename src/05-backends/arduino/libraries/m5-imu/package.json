@@ -11,7 +11,7 @@
   "requires": ["m5unified", "imu"],
   "sources": ["m5_imu.cpp"],
   "host_models": ["m5_imu_model.cpp"],
-  "bindings": ["ReadImu"],
+  "bindings": ["ReadImu", "ConfigureImu", "CheckAtRest"],
   "init": "m5_imu_init",
   "bounds": {
     "m5stack-gray": { "ReadImu": [0.55, 1.25] },

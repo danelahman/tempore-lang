@@ -10,8 +10,10 @@
   ojs
   backend
   backendRegistry
+  webDeclarations
   webChoices
   webLink
+  webDocPages
   webBackend
   webInterpreter
   desugarer
@@ -29,10 +31,10 @@
   (into ../../../web)
   (only web.bc.js)))
 
-;; The same trick as in src/core/dune, generating the module Readme_md with the
-;; README's source, which the documentation view renders. The {md| |md} delimiter
-;; is used rather than {| |}, so that a "|}" written in the README some day does
-;; not silently terminate the literal.
+;; The same trick as in src/core/dune, generating the modules Readme_md,
+;; Arduino_readme_md and Opentrons_readme_md with the sources of the READMEs
+;; the documentation view renders. The {md| |md} delimiter is used rather than
+;; {| |}, so that a "|}" written in a README does not terminate the literal.
 
 (rule
  (with-stdout-to
@@ -40,6 +42,22 @@
   (progn
    (echo "let contents = {md|")
    (cat ../../../README.md)
+   (echo "|md}"))))
+
+(rule
+ (with-stdout-to
+  arduino_readme_md.ml
+  (progn
+   (echo "let contents = {md|")
+   (cat ../../05-backends/arduino/README.md)
+   (echo "|md}"))))
+
+(rule
+ (with-stdout-to
+  opentrons_readme_md.ml
+  (progn
+   (echo "let contents = {md|")
+   (cat ../../05-backends/opentrons/README.md)
    (echo "|md}"))))
 
 ;; The module Examples_tpe, generated from the example manifest

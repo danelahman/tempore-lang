@@ -17,6 +17,7 @@ tempore_world &tempore_world_now() {
   tempore_world_observed = true;
   static tempore_world w = [] {
     tempore_world initial{};
+    initial.load = 1;
     world_start(initial);
     initial.time = 0;
     return initial;

@@ -29,6 +29,7 @@ type definition = {
 type destination =
   | In_editor of int * int  (** the bytes of the editor's text naming it *)
   | In_library of library_entry
+  | In_declarations of declaration_entry
 
 and library_entry = {
   line : int;  (** the line of the standard library naming it, from 1 *)
@@ -36,6 +37,14 @@ and library_entry = {
   value : definition option;  (** the definition, when the name is a value's *)
 }
 (** A definition of the standard library, which the editor does not show. *)
+
+and declaration_entry = {
+  place : WebDeclarations.place;
+      (** where it lies among the declarations the selected backend loads *)
+  defined : definition option;  (** the definition, when the name is a value's *)
+}
+(** A definition of the declarations loaded before the program, which the editor
+    shows above it. *)
 
 type link = {
   use : int * int;  (** the bytes of the editor's text where the name occurs *)
@@ -49,7 +58,8 @@ type popover_target =
   | Error_label of int * int  (** the span of label [j] of the [i]th error *)
   | Definition of int  (** the name of the [k]th definition *)
   | Reference of int
-      (** the name of the [k]th link, defined in the standard library *)
+      (** the name of the [k]th link, defined in the standard library or in the
+          declarations loaded before the program *)
 
 (** What a button of the code options asks for. *)
 type action =
@@ -61,6 +71,9 @@ type flash =
   | Span of int * int
       (** the bytes of the editor's text from a start up to a stop *)
   | Message of int  (** the message of the [i]th error *)
+  | Declaration of string * int * int
+      (** the bytes of the declarations of the given file name from a start up
+          to a stop *)
 
 (** A notice shown under the example. *)
 type notice =
@@ -164,6 +177,9 @@ and msg =
   | ShowPage of page
       (** Switch between the editor and the documentation. The rest of the model
           is left alone, so the source and any run survive the detour. *)
+  | ShowDocs of WebDocPages.page * string option
+      (** Show the given page of the documentation, at the heading of the given
+          identifier or else at its top. *)
   | HoverLabel of (int * int) option
       (** The pointer has entered label [j] of reported error [i], or left the
           labels. Top-level, since the error display belongs to neither the
@@ -180,6 +196,12 @@ and msg =
   | CloseGallery  (** Hide the example gallery without loading an example. *)
   | SearchGallery of string
       (** The text of the gallery's search field has changed. *)
+  | ReachHeading of string
+      (** The documentation has been scrolled to the section of the heading of
+          the given identifier. *)
+  | ReachGroup of string
+      (** The list of the example gallery has been scrolled to the group of the
+          given identifier. *)
   | Point of pointer * int option * (float * float)
       (** The pointer, at the given position of the viewport, has moved onto a
           popover target, onto the popover or off both, or onto or off the name
@@ -211,6 +233,9 @@ and msg =
   | CopyLink
       (** Copy the link to the example, the grades and the backend selected to
           the clipboard. *)
+  | ShowDeclarations of bool
+      (** The declarations shown above the program have been unfolded, or
+          folded. *)
   | Copied of string * bool
       (** The given link has been copied to the clipboard, or the clipboard has
           refused it. *)
@@ -256,10 +281,12 @@ type load_error = {
       (** The label the pointer is over, whose span is brightened in the editor.
       *)
 }
-(** An error the edit view reports, with the state of showing it. *)
+(** An error the edit view reports, or a warning, of the diagnostic kind
+    [Warning], with the state of showing it. *)
 
 type check = {
   errors : int;  (** the number of errors reported *)
+  warnings : int;  (** the number of warnings reported *)
   definitions : int;  (** the number of top-level definitions of the program *)
   current : bool;
       (** whether neither the program nor the options have changed since *)
@@ -297,9 +324,16 @@ type model = {
       (** Whether the source has been edited since the errors were reported, so
           that their spans point at bytes that have moved. *)
   page : page;
+  docs_page : WebDocPages.page;
+      (** The page of the documentation shown, kept while the editor is. *)
+  docs_heading : string option;
+      (** The heading of the section of the documentation scrolled to, [None]
+          for the first. *)
   gallery : string option;
       (** The search of the example gallery while it is open, [None] while it is
           closed. *)
+  gallery_group : string option;
+      (** The group of the example gallery scrolled to, [None] for the first. *)
   definitions : definition list;
       (** The definitions of the program as last checked, those accepted before
           its first error; none once the source or the options change. *)
@@ -342,11 +376,20 @@ type model = {
   declared : BackendRegistry.source list;
       (** The declarations of the selected backend loaded before the program as
           last checked. *)
+  shown_declarations : WebDeclarations.source list;
+      (** The declarations the selected backend loads before the program under
+          its inputs and the grades selected, shown above the program. *)
+  declarations_open : bool;
+      (** Whether the declarations shown above the program are unfolded. *)
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;
       (** The serial of the latest change of the inputs, which the debounce of
           the compilation awaits. *)
+  reports_compilation : bool;
+      (** Whether the errors reported are those of the compilation of the
+          program as last checked, which a compilation with other inputs or by
+          another backend replaces. *)
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)
@@ -370,6 +413,10 @@ type side_effect =
   | Focus_current_example
       (** focus the card of the example last loaded in the gallery and centre it
           in the gallery's list *)
+  | Scroll_to_declaration  (** scroll the flashed declaration into view *)
+  | Scroll_to_heading of string option
+      (** scroll the heading of the given identifier to the top of the window,
+          or the page to its top *)
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
@@ -379,6 +426,9 @@ type side_effect =
   | Copy_link of string
       (** copy the page's address with the given query to the clipboard and send
           [Copied] *)
+
+val is_warning : load_error -> bool
+(** [is_warning e] is whether [e] is a warning rather than an error. *)
 
 val backend : edit_model -> BackendRegistry.entry
 (** [backend edit_model] is the selected backend, or the default one if the key

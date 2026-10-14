@@ -1,0 +1,7 @@
+(* The package m5-speaker under the operation counts: tones on the speaker of
+   an M5Stack core, through M5Unified. Grades: counts-upper-bound; a tone
+   counts once, and its running time is not bounded. Beep and its default
+   implementation are those of m5_speaker.tpe. *)
+
+operation Beep : nat * nat ~> unit # (Beep, 1)
+default Beep _ = ()

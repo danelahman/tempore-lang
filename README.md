@@ -23,8 +23,8 @@ Most notably, Tempore adds to Temporal Millet the following:
    security levels to trough/peak usage of resources),
 4. a cleaner and more systematic treatment of type inference,
 5. [multiple backends](#backends): besides the interpreter, proof-of-concept
-   compilers of programs to protocols for Opentrons liquid-handling robots and
-   to C++ for Arduino and ESP32 boards, with run-time monitors of the running
+   compilers of programs to C++ for Arduino and ESP32 boards and to protocols
+   for Opentrons liquid-handling robots, with run-time monitors of the running
    times of operations, and
 6. various usability improvements in the web-based user interface.
 
@@ -45,16 +45,8 @@ Install the OCaml dependencies with opam:
 
     make tempore-deps
 
-The Opentrons simulator, used only to simulate the protocols of the
-proof-of-concept [Opentrons](#opentrons) backend, is installed separately; it
-needs Python 3.10 or later and the network:
-
-    make opentrons-deps
-
-Tempore is fully usable without it, only `--simulate` option would fail without.
-
 PlatformIO Core, used only to build and upload the projects of the Arduino
-backend, is likewise optional; it needs Python 3.10 or later and the network,
+backend, is optional; it needs Python 3.10 or later and the network,
 and is installed (version 6.2.0) in the virtual environment `_arduino/venv`,
 with its platforms, toolchains and libraries in `_arduino/platformio`:
 
@@ -62,6 +54,14 @@ with its platforms, toolchains and libraries in `_arduino/platformio`:
 
 Only the options `--build` and `--upload` need it; `make clean-arduino`
 removes `_arduino`, together with the projects written to `_arduino/projects`.
+
+The Opentrons simulator, used only to simulate the protocols of the
+proof-of-concept [Opentrons](#opentrons) backend, is installed separately; it
+needs Python 3.10 or later and the network:
+
+    make opentrons-deps
+
+Tempore is fully usable without it; only the option `--simulate` needs it.
 
 Build the language:
 
@@ -104,24 +104,27 @@ Command-line options:
   Opentrons protocol (see [Opentrons](#opentrons));
 - `--emit-arduino <directory>` typechecks the files and writes them, compiled to
   C++, to the given directory, without running them; a name without a
-  directory component names a directory in `_arduino/projects`; with
-  `--host-runs`, also the `run` commands and a main program for the host that
-  executes them; with `--device <manifest.json>`, a PlatformIO project of the
-  device the manifest describes, monitored under `--monitor abort|warn|off`
-  (default `abort`), which `--host-simulate <seconds>` builds and runs on the
-  host for the given simulated time; the declarations of the peripheral
-  packages the manifest lists (`i2c`, `m5-imu`, `m5-display`, `bala2-base`,
-  under `time-interval-rational` in milliseconds) are loaded before the files;
-  `--build` builds the project with PlatformIO (`pio run`), and `--upload`
-  builds it and uploads it to the board (`pio run -t upload`), through the
-  serial port of `--port <port>` if given, each passing the output of
-  PlatformIO through and exiting with its exit code; `--profile` builds the
-  project with the profile of its running times, and `--capture <seconds>`
-  reads the serial port after the upload; `--pio <path>` names the
-  executable, by default `pio` on the `PATH`, or else that of `_arduino/venv`
-  in the directory of `tempore` or in the current directory, run with
-  `PLATFORMIO_CORE_DIR` set to `_arduino/platformio` unless the environment
-  sets it;
+  directory component names a directory in `_arduino/projects`. Further
+  options of the Arduino backend (see [Arduino](#arduino)):
+  - `--host-runs` also writes the `run` commands and a main program for the
+    host that executes them;
+  - `--device <manifest.json>` writes a PlatformIO project of the device the
+    manifest describes, monitored under `--monitor abort|warn|off` (default
+    `abort`); the declarations of the peripheral packages the manifest lists
+    (`i2c`, `m5-imu`, `m5-display`, `bala2-base`, under
+    `time-interval-rational` in milliseconds) are loaded before the files;
+  - `--host-simulate <seconds>` builds the project and runs it on the host
+    for the given simulated time;
+  - `--build` builds the project with PlatformIO (`pio run`), and `--upload`
+    builds it and uploads it to the board (`pio run -t upload`), through the
+    serial port of `--port <port>` if given, each passing the output of
+    PlatformIO through and exiting with its exit code;
+  - `--profile` builds the project with the profile of its running times,
+    and `--capture <seconds>` reads the serial port after the upload;
+  - `--pio <path>` names the executable, by default `pio` on the `PATH`, or
+    else that of `_arduino/venv` in the directory of `tempore` or in the
+    current directory, run with `PLATFORMIO_CORE_DIR` set to
+    `_arduino/platformio` unless the environment sets it;
 - `--package <name>`, repeatable, loads the declarations of a peripheral
   package of the Arduino backend before the files, so that a program run by
   the interpreter performs its operations by their default implementations;
@@ -141,36 +144,61 @@ You can load an existing example or write your own program, choose which grading
 monoid to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
+The documentation page shows this README and those of the Arduino and Opentrons
+backends, chosen by the tabs of its side panel, each with its own table of
+contents.
+
+#### Backend selection
+
 The backend selector, first among the code options, chooses the backend,
-Interpreter, Opentrons or Arduino (see [Backends](#backends)).
+Interpreter, Arduino or Opentrons (see [Backends](#backends)).
 Selecting a backend loads its default example (the sensor reading for Interpreter,
-the ELISA for Opentrons, the tilt display for Arduino), and the gallery lists the
-examples of the backend selected. Under Opentrons, the robot, the time unit and
-the monitor policy are chosen under the selector, and the mark in the top right
-corner of the editor switches between the program and the Opentrons protocol:
-the binding file and the protocol compiled from the program once it typechecks.
+the tilt display for Arduino, the ELISA for Opentrons), and the gallery lists the
+examples of the backend selected.
+
 Under Arduino, the device manifest, the binding file and the monitor policy are
-the inputs; the declarations of the peripheral packages the manifest lists are
-loaded before the program, which is checked again when they change, and the
+the inputs. The declarations of the peripheral packages the manifest lists are
+loaded before the program, which is checked again when they change. The
 compiled code is the configuration, `main.cpp`, the program and the operation
 wrappers of the PlatformIO project, one file after another.
 
+These declarations are shown read-only above the program, folded under the
+names of their packages. Once the program is checked, a name it uses from them,
+such as an operation or a function, shows its declaration and scheme as a
+tooltip, and ⌘-click (Ctrl-click) or F12 on it unfolds the declarations at it.
+
+Under Opentrons, the robot, the time unit and the monitor policy are chosen
+under the selector. The mark in the top right corner of the editor switches
+between the program and the Opentrons protocol: the binding file and the
+protocol compiled from the program once it typechecks.
+
+#### Addresses
+
 The address of the page names the example, the grades and the backend selected,
-in the query parameters `example`, the path of the example relative to
-`examples` (as in `examples/index`), `grades`, a grading monoid, and `backend`,
-a backend's key (`interpreter`, `opentrons` or `arduino`), e.g.,
-<https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>. Opening such a
-link loads the example as the gallery does, with its own grades and backend
-unless `grades` or `backend` overrides them; `backend` without `example` selects
-the backend with its default example, unless the example last loaded is of that
-backend. The address follows the selection, `grades` and `backend` given only
-where they differ from the example's own, and the button beside the example
-copies it to the clipboard. The edited text of a program is not part of the
-address. Parameters of unknown or malformed values are ignored, with a notice;
-the choices not given by the address are those the browser remembers.
+in the query parameters
+
+- `example`, the path of the example relative to `examples` (as in
+  `examples/index`);
+- `grades`, a grading monoid;
+- `backend`, a backend's key (`interpreter`, `arduino` or `opentrons`),
+
+e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>.
+
+- Opening such a link loads the example as the gallery does, with its own
+  grades and backend unless `grades` or `backend` overrides them.
+- `backend` without `example` selects the backend with its default example,
+  unless the example last loaded is of that backend.
+- The address follows the selection, `grades` and `backend` given only where
+  they differ from the example's own, and the button beside the example
+  copies it to the clipboard.
+- The edited text of a program is not part of the address.
+- Parameters of unknown or malformed values are ignored, with a notice; the
+  choices not given by the address are those the browser remembers.
+
+#### Run timelines
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
-title under Interpreter and unfolded under Opentrons and Arduino; the events inside default
+title under Interpreter and unfolded under Arduino and Opentrons; the events inside default
 implementations are greyed; under Opentrons the title states the time unit,
 `Timeline (one time unit = 1 min)`. Long grades are shortened; a shortened cell shows
 its full text as a tooltip and, when clicked, in place.
@@ -241,10 +269,12 @@ expressions (`{...}`).
 An interval has the standard mathematical meaning: a bracket includes its finite
 endpoint and a parenthesis excludes it, as in `[1, 4]`, `(1, 4)`, `[1, 4)`,
 `(1/2, 4]`, `[1, ∞)`, `(1, ∞)`, `(-∞, 4]`, `(-∞, ∞)` (ASCII `inf` and `-inf`) or
-`[{A}, {A; B}]`; an infinite endpoint is always open, so `[1, ∞]` is a syntax
-error, and an empty interval, such as `(1, 1)`, `[1, 1)` or `[4, 1]`, is
-rejected. Over whole time steps an open endpoint abbreviates a closed one:
-`(1, 4)` is `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
+`[{A}, {A; B}]`.
+
+- An infinite endpoint is always open, so `[1, ∞]` is a syntax error.
+- An empty interval, such as `(1, 1)`, `[1, 1)` or `[4, 1]`, is rejected.
+- Over whole time steps an open endpoint abbreviates a closed one: `(1, 4)` is
+  `[2, 3]` and `(1, ∞)` is `[2, ∞)`.
 
 Each monoid accepts the literals it understands; any other literal is a syntax
 error naming the monoids that accept it. The greatest grade is `⊤` (ASCII
@@ -627,15 +657,17 @@ would be rejected:
 
 An upper bound stands for the traces that fit inside its traces, so the
 operations of its traces may be left out. With a leading `_*`, a bound allows
-any trace first and permits, without demanding, the rest: with `Ethanol`
-declared `within [1, 2]` and `ChangeTip` `within [1, 1]`, under
-`regex-timed-interval-symbolic` a value boxed with
+any trace first and permits, without demanding, the rest.
+
+For example, with `Ethanol` declared `within [1, 2]` and `ChangeTip`
+`within [1, 1]`, under `regex-timed-interval-symbolic` a value boxed with
 `{_*; Ethanol; _*; Ethanol; [2, 5]; ChangeTip}` may be unboxed after the calls
 of `Ethanol`, `ChangeTip` and `Ethanol`, a `delay 6` and a call of `ChangeTip`,
-whose gap of six ticks before `ChangeTip` exceeds `[2, 5]`. A maximum gap
-between given operations is stated by a fixed pattern: with the box grade
-`{Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip}`, the same unboxing is
-rejected, and accepted after `delay 3` in place of `delay 6`.
+whose gap of six ticks before `ChangeTip` exceeds `[2, 5]`.
+
+A maximum gap between given operations is stated by a fixed pattern: with the
+box grade `{Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip}`, the same unboxing
+is rejected, and accepted after `delay 3` in place of `delay 6`.
 
 See
 [`examples/regular_timed_ops/lower_bounds.tpe`](examples/regular_timed_ops/lower_bounds.tpe),
@@ -848,12 +880,14 @@ action of `m` on `n'`. The pairs are compared and joined componentwise. The
 - `windowed-schedules`: tuples `(T, (A, E_A), …)` of the possible durations `T`
   and the times `E_A` at which each operation `A` happens, all sets of numbers
   of ticks from the start; `(T, E) · (T', E') = (T + T', E ∪ (T + E'))`, `+`
-  adding elementwise, and the order is inclusion. `T` is written `n`, `[n, m]`,
-  `[n, ∞)`, with open endpoints as for `time-interval`, or as a brace literal
-  over ticks, `{0 | 10}`, and `T` alone performs no operation; `E_A` is a brace
-  literal, `{(4 | 5); 10*}` being ticks 4 and 5 of every ten, and an entry
-  `(_, E)` bounds every operation not listed. An operation `Send` taking a tick
-  and happening at its start has grade `(1, (Send, {0}))`.
+  adding elementwise, and the order is inclusion.
+
+  `T` is written `n`, `[n, m]`, `[n, ∞)`, with open endpoints as for
+  `time-interval`, or as a brace literal over ticks, `{0 | 10}`, and `T` alone
+  performs no operation. `E_A` is a brace literal, `{(4 | 5); 10*}` being
+  ticks 4 and 5 of every ten, and an entry `(_, E)` bounds every operation not
+  listed. An operation `Send` taking a tick and happening at its start has
+  grade `(1, (Send, {0}))`.
 
   For example, where `Send` takes a tick and must start at tick 4
   or 5, the program
@@ -955,8 +989,9 @@ See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
 A type is *eternal* if its values stay valid however much grade accumulates as a
 result of computations. Base types, tuples, and algebraic types built from
-eternal types are eternal; function, handler, and box types are not. A local
-variable of a non-eternal type may be used only while the grade accumulated
+eternal types are eternal; function, handler, and box types are not.
+
+A local variable of a non-eternal type may be used only while the grade accumulated
 since its binding is a sub-grade of the unit. Under `time-lower-bound` and
 `traces-timed-lower-bound` this always holds; under the other monoids such a
 variable must be used before any nontrivial delay or operation call.
@@ -1042,13 +1077,17 @@ and [`examples/handlers/3d_printing.tpe`](examples/handlers/3d_printing.tpe).
 ### Contexts of operation cases
 
 An operation case is typed with the top grade `⊤` accumulated for the variables
-bound outside it. Under `time-lower-bound` and `traces-timed-lower-bound` the
-top is the unit, which restricts nothing. Under the other monoids an outer
-variable of non-eternal type, including an outer continuation, cannot be used in
-the case, and an outer box can be unboxed only if `⊤` is below its grade. This
-is because operation cases need to be executable anywhere in the computation
-tree when handling. The case's own `p` and `k`, and top-level definitions, are
-unaffected. See [`examples/handlers/nested.tpe`](examples/handlers/nested.tpe)
+bound outside it, because operation cases need to be executable anywhere in
+the computation tree when handling.
+
+- Under `time-lower-bound` and `traces-timed-lower-bound` the top is the unit,
+  which restricts nothing.
+- Under the other monoids an outer variable of non-eternal type, including an
+  outer continuation, cannot be used in the case, and an outer box can be
+  unboxed only if `⊤` is below its grade.
+- The case's own `p` and `k`, and top-level definitions, are unaffected.
+
+See [`examples/handlers/nested.tpe`](examples/handlers/nested.tpe)
 and
 [`examples/handlers/nested_reject.tpe`](examples/handlers/nested_reject.tpe).
 
@@ -1060,14 +1099,19 @@ default Heat () = delay 1
 
 gives `Heat` a default, run only when a call reaches the top level unhandled
 in a `run` command below it, commands taking effect in the order of the file;
-here it simulates the running time of `Heat` by a delay. Where operations
-declare running-time bounds, only atomic operations have defaults, and a
-default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}` under
-upper bounds, and `[{lo}, {hi}]` under intervals; the running-time bounds its
-grade implies must moreover lie within the declared ones, an open end excluded,
-so that with `A` declared `within [1, 2)` the default `default A () = delay 2`
-is rejected under every monoid of timed operations. Elsewhere a default's grade
-must be a sub-grade of the operation's grade. See
+here it simulates the running time of `Heat` by a delay.
+
+Where operations declare running-time bounds:
+
+- only atomic operations have defaults;
+- a default's grade must be a sub-grade of `{lo}` under lower bounds, `{hi}`
+  under upper bounds, and `[{lo}, {hi}]` under intervals;
+- the running-time bounds its grade implies must moreover lie within the
+  declared ones, an open end excluded, so that with `A` declared
+  `within [1, 2)` the default `default A () = delay 2` is rejected under every
+  monoid of timed operations.
+
+Elsewhere a default's grade must be a sub-grade of the operation's grade. See
 [`examples/traces_timed_ops/3d_printing.tpe`](examples/traces_timed_ops/3d_printing.tpe).
 
 ## Recursion
@@ -1075,7 +1119,9 @@ must be a sub-grade of the operation's grade. See
 `let rec f p₁ … pₙ = c` must be structurally recursive: for a fixed position
 `d`, every call of `f` in `c` has a `d`-th argument that is a variable bound
 by a constructor, `x :: xs` or `m + k` pattern in a match on `p_d` or on such
-a variable. Like an operation case, `c` is typed with the top grade `⊤`
+a variable.
+
+Like an operation case, `c` is typed with the top grade `⊤`
 accumulated for the local variables bound outside it (see [Contexts of
 operation cases](#contexts-of-operation-cases)); `f` itself may be called
 anywhere in `c`, including after delays and in operation cases.
@@ -1103,18 +1149,26 @@ by `⊤` but by no `n`, as `1 · n ≾ n` fails.
 Types, grades and effects are inferred in the style of HM(X) (Odersky, Sulzmann
 and Wehr, TAPOS 1999). Types are compared by subtyping: functions are
 contravariant in the argument and covariant in the result and effect, and a box
-`[rho]a` is contravariant in `rho`. Top-level `let` definitions are generalised
-to qualified schemes,
+`[rho]a` is contravariant in `rho`.
+
+### Qualified schemes
+
+Top-level `let` definitions are generalised to qualified schemes,
 
     ∀ α ρ₀ ε₀. Q ∧ R ⇒ A
 
-where `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables, `R`
-lists the conditions of operation cases that must hold for every effect of
-their continuations, and `∣ε∣` is the resource grade accumulated while `ε`
-runs. A condition is printed `∀ε_Op. …`, `ε_Op` being the effect of the
+where
+
+- `Q` constrains the type, resource (`ρ`) and effect (`ε`) variables;
+- `R` lists the conditions of operation cases that must hold for every effect
+  of their continuations;
+- `∣ε∣` is the resource grade accumulated while `ε` runs.
+
+A condition is printed `∀ε_Op. …`, `ε_Op` being the effect of the
 continuation of a case for `Op`, primed (`ε_Op′`) for another case for `Op`.
-`--debug` prints the schemes. Under `time-upper-bound`, the standard library's
-`compose f g x = f (g x)` has
+`--debug` prints the schemes.
+
+Under `time-upper-bound`, the standard library's `compose f g x = f (g x)` has
 
     ∀ α β γ ε₀. (α → β # ε₀) → (γ → α) → (γ → β # ε₀)
 
@@ -1132,9 +1186,12 @@ has
 
 where `R`, `∀ε_Op. ε_Op · ε₀ ≾ 1 · ε_Op`, states that for every effect `ε_Op`
 of `k` the case, `f` followed by `k`, takes at least the time of `Op` followed
-by `k`. A `run` must establish every such condition: one without unknowns that
-the typechecker can neither derive nor refute rejects it, and one with
-unknowns must hold together with `Q` at a closed instance of the unknowns.
+by `k`.
+
+A `run` must establish every such condition: one without unknowns that the
+typechecker can neither derive nor refute rejects it, and one with unknowns
+must hold together with `Q` at a closed instance of the unknowns.
+
 Under the time grades, the security levels and their products, a condition in
 the effect of a single continuation is always decided; under the trace grades
 it may not be.
@@ -1153,11 +1210,14 @@ Type-constructor application binds tightest, then the box `[rho]`, then
 products `a * b`, which are n-ary and non-associative, and last arrows
 `a -> b # e`, which are right-associative: `[2]nat list * bool -> nat` takes
 a pair of a `[2](nat list)` and a `bool`, and a box of a function is written
-`[2](nat -> nat)`. An effect `# e` belongs to the innermost arrow, so
-`nat -> nat -> nat # 1` is `nat -> (nat -> nat # 1)`, and an arrow without
-one has the unit effect. Printed types use the same precedences and leave out
-an effect of the unit; a result that is a function type is printed in
-parentheses where either arrow shows its effect, `nat → (nat → nat # 1)`.
+`[2](nat -> nat)`.
+
+An effect `# e` belongs to the innermost arrow, so `nat -> nat -> nat # 1` is
+`nat -> (nat -> nat # 1)`, and an arrow without one has the unit effect.
+
+Printed types use the same precedences and leave out an effect of the unit; a
+result that is a function type is printed in parentheses where either arrow
+shows its effect, `nat → (nat → nat # 1)`.
 
 ### Sub-effecting
 
@@ -1202,39 +1262,56 @@ tracks the resource state: both the boxed resources and the accumulated grade. A
 `run` command prints its result with the final resource state. The web interface
 can also step through the individual reductions and shows the resource usage.
 
+#### Natural numbers and floats
+
 Natural numbers are unbounded and floats are of double precision. Besides the
-arithmetic operators, the standard library provides `float_of_nat`, the
-nearest float, infinity beyond the range; `nat_of_float`, truncated toward
-zero, 0 for a negative float and for NaN, and a run-time error for infinity,
-as division by zero; `sqrt`, NaN for a negative float; `atan`; and
-`atan2 (y, x)`, the angle of the point `(x, y)` from -π to π, with the
-special cases of C.
+arithmetic operators, the standard library provides
+
+- `float_of_nat`, the nearest float, infinity beyond the range;
+- `nat_of_float`, truncated toward zero, 0 for a negative float and for NaN,
+  and a run-time error for infinity, as division by zero;
+- `sqrt`, NaN for a negative float;
+- `atan`;
+- `atan2 (y, x)`, the angle of the point `(x, y)` from -π to π, with the
+  special cases of C.
+
+#### Integers
 
 Integers, of type `int`, are unbounded and written with the suffix `i`: `3i`,
 `0x1fi`, and, as the negation of a literal, `-3i`; as in OCaml, `x -3i` is the
-subtraction `x - 3i`. Their operators are `+!`, `-!`, `*!`, `/!` and `mod!`,
-of the precedences of `+`, `-`, `*`, `/` and `mod`, and the negation `~-!`.
-Division and `mod!` truncate toward zero, as in C, the remainder having the
-sign of the dividend, and division or modulo by zero is a run-time error. The
-conversions are `int_of_nat`; `nat_of_int`, 0 for a negative integer;
-`float_of_int`, the nearest float; and `int_of_float`, truncated toward zero,
-0 for NaN, and a run-time error for infinity. A match on integers needs a
-case for every other integer, such as a wildcard.
+subtraction `x - 3i`.
+
+- Their operators are `+!`, `-!`, `*!`, `/!` and `mod!`, of the precedences
+  of `+`, `-`, `*`, `/` and `mod`, and the negation `~-!`.
+- Division and `mod!` truncate toward zero, as in C, the remainder having the
+  sign of the dividend, and division or modulo by zero is a run-time error.
+- The conversions are `int_of_nat`; `nat_of_int`, 0 for a negative integer;
+  `float_of_int`, the nearest float; and `int_of_float`, truncated toward
+  zero, 0 for NaN, and a run-time error for infinity.
+- A match on integers needs a case for every other integer, such as a
+  wildcard.
+
+#### Timelines
 
 The timeline of a run lists, in grades, what reaches its top level: the delays,
 the calls of operations that no handler handles and that are performed by their
 default implementations, and the resources boxed and unboxed, by the name of the
-variable they are bound to. A delay or an operation has a grade: that of the
-delay, or the declared grade of the operation. Boxing and unboxing add nothing
-to the grade accumulated; a box row names the grade the resource is boxed at in
-its event, `box reading with grade [5, 10)`. The events of a
-default implementation, the operations it performs among them, are listed below
-its operation, indented by `·`. Each row at the top level
-starts at the grade accumulated before it, the product of the grades of the
-rows at the top level above it. Operations handled by handlers, and their
-continuations, are not listed; the steps of a handler's case are listed as they
-happen. The timeline displays the run and checks nothing, the program having
-been typechecked before it runs. The command-line option `--timeline` prints it
+variable they are bound to.
+
+- A delay or an operation has a grade: that of the delay, or the declared
+  grade of the operation.
+- Boxing and unboxing add nothing to the grade accumulated; a box row names
+  the grade the resource is boxed at in its event,
+  `box reading with grade [5, 10)`.
+- The events of a default implementation, the operations it performs among
+  them, are listed below its operation, indented by `·`.
+- Each row at the top level starts at the grade accumulated before it, the
+  product of the grades of the rows at the top level above it.
+- Operations handled by handlers, and their continuations, are not listed;
+  the steps of a handler's case are listed as they happen.
+
+The timeline displays the run and checks nothing, the program having been
+typechecked before it runs. The command-line option `--timeline` prints it
 after each run, e.g.
 
     ./tempore --grades time-interval-rational --timeline examples/introduction/sensor_reading.tpe
@@ -1261,447 +1338,104 @@ accumulated keeps its last events, `{…; 3; ChangeTip; Disengage; Elute}`, a bo
 grade its first, `{Ethanol; ChangeTip; Ethanol; 2; …}`. The grades themselves
 are unchanged; `--timeline-full` prints them in full.
 
-### Opentrons
-
-The proof-of-concept Opentrons backend compiles the program to a single-file
-Opentrons Python protocol, accepted by the Opentrons App and by
-`opentrons_simulate`. Grades are erased, and the program is executed by an
-abstract machine included in the file, so that handlers, continuations and
-recursion behave as in the small-step interpreter. The robot is the Flex.
-
-The program is paired with a binding file in Python. It defines `setup(protocol)`,
-which loads the labware, pipettes, and modules, and returns a context object, and,
-for an operation `Op`, a function `Op(ctx, arg)` that performs the operation and
-returns its result. Arguments and results are Python values: a `nat` is an
-`int`, an `int` a `tempore_Int`, a subclass of `int`, a `string` a `str`, a tuple a `tuple` and `()` the unit value. A binding
-function declares the nominal duration of its action by
-`tempore_elapse(seconds)`. An operation call that no handler handles calls the
-binding function of the operation, or else its default implementation, and
-`delay q` calls `protocol.delay` for `q` units of duration.
-
-Each call of a binding function is monitored against the running-time bounds of
-its operation: those it declares by `within`, or else the interval of durations
-its grade determines, such as `[2, 4]` for `# [2, 4]` under `time-interval`. An
-operation with neither is not monitored. A call outside its bounds ends the
-protocol with an error, is reported by a comment, or is not checked, according
-to the monitor policy `abort`, `warn` or `off`.
-
-The protocol is refused when the binding file defines no `setup` or defines a
-reserved name, or when the code of a `run` command may perform an operation that
-has neither a binding function nor a default implementation and that no handler
-in that code has a case for. Such an operation that a handler does have a case
-for is a warning if it is atomic, and is accepted silently if it is compound,
-since a compound operation is implemented by handlers only.
-
-The directory [`examples/opentrons/`](examples/opentrons/) holds the following
-examples, each with a binding file and a rejected variant:
-
-- [`elisa.tpe`](examples/opentrons/elisa.tpe): an enzyme-linked immunosorbent
-  assay under `time-interval`;
-- [`washes.tpe`](examples/opentrons/washes.tpe): a bead clean-up with exactly
-  two ethanol washes, under `regex-timed-interval-symbolic`;
-- [`contamination.tpe`](examples/opentrons/contamination.tpe): a ddPCR plate
-  set-up under `time-upper-bound-levels`;
-- [`reagents.tpe`](examples/opentrons/reagents.tpe): a tagmentation with reagents
-  boxed `[0, 30]`;
-- [`staggered.tpe`](examples/opentrons/staggered.tpe): a fixation of columns at
-  staggered times;
-- [`beads.tpe`](examples/opentrons/beads.tpe): a bead clean-up with beads boxed
-  `[3, ∞)` and `[2, 3]`;
-- [`stopread.tpe`](examples/opentrons/stopread.tpe): a stop and read with plates
-  boxed `[0, 30]`;
-- [`cleanup.tpe`](examples/opentrons/cleanup.tpe): a bead clean-up whose compound
-  operations are performed by a handler through the atomic operations.
-
-#### Command line
-<!-- web-skip -->
-
-    ./tempore --grades <grades> \
-      --emit-opentrons protocol.py \
-      --bind bindings.py \
-      file.tpe
-
-writes the protocol to `_opentrons/protocols/protocol.py`, creating the
-directory if needed, and prints the path written. A file name without a
-directory names a file in `_opentrons/protocols` of the current directory, which
-git does not track; a name with a directory, such as `./protocol.py`, is used as
-given. Run as a script, `python3 _opentrons/protocols/protocol.py` executes the
-program as the interpreter does, without the binding file. Without `--bind`,
-only the compiled program is written. The options below require `--bind`:
-
-- `--api-level <level>` sets the `apiLevel` (default 2.30);
-- `--time-unit <unit>` sets the length of a unit of duration: `seconds` (the
-  default), `minutes`, `hours` or a positive number of seconds;
-- `--monitor abort|warn|off` sets the monitor policy (default `abort`);
-- `--simulate` runs the protocol with the Opentrons simulator and exits with its
-  exit code; `--simulator <path>` names the executable, by default
-  `opentrons_simulate` on the `PATH`, or else that of the virtual environment
-  `_opentrons` in the directory of `tempore` or in the current directory.
-
-For example,
-
-    ./tempore --grades time-interval \
-      --emit-opentrons elisa.py \
-      --bind examples/opentrons/elisa_bindings.py \
-      --time-unit minutes \
-      --simulate \
-      examples/opentrons/elisa.tpe
-
-writes the ELISA protocol to `_opentrons/protocols/elisa.py` and simulates it.
-
-Each example `NAME` has the targets `make opentrons-NAME-emit`, which writes
-its protocol to `_opentrons/protocols/NAME.py`, and `make
-opentrons-NAME-simulate`, which also simulates it, installing the simulator by
-`make opentrons-deps` first; `make opentrons-simulate-all` simulates every
-example, and `make examples-help` lists the targets. `MONITOR=warn` sets the
-monitor policy. The targets are defined by
-[`examples/examples.mk`](examples/examples.mk) from a fragment
-`examples/opentrons/NAME.mk` next to the example, which sets its grades and
-its unit of duration:
-
-    EXAMPLE_GRADES = time-interval
-    EXAMPLE_TIME_UNIT = minutes
-
-A new example `NAME.tpe`, with its binding file `NAME_bindings.py`, gets its
-targets by such a fragment; `tests/make/examples.t` checks that every example
-has one and that its target runs the command of its header.
-
-Requirements:
-
-- the simulator is `opentrons_simulate` of the `opentrons` Python package
-  (tested with version 10.0.0), which needs Python 3.10 or later;
-- `make opentrons-deps` installs it in the virtual environment `_opentrons` of
-  the repository with the first of `python3.13`, `python3.12`, `python3.11`,
-  `python3.10` and `python3` of version 3.10 or later, and fails if there is
-  none; `make clean-opentrons` removes it,
-  together with the protocols written to `_opentrons/protocols`;
-- it can also be installed by hand, e.g.
-  `python3 -m venv venv && venv/bin/pip install opentrons==10.0.0`, and then
-  named by `--simulator` or placed on the `PATH`;
-- the simulator writes its configuration to `~/.opentrons` unless the
-  environment variable `OT_API_CONFIG_DIR` names another directory; for the
-  simulator of `_opentrons`, `--simulate` sets it to `_opentrons/config` unless
-  it is set;
-- a compiled protocol run as a script,
-  `python3 _opentrons/protocols/protocol.py`, needs Python 3.10 or later only,
-  not the `opentrons` package;
-- `scripts/opentrons-simulate.sh [VENV_DIR]` simulates every example with the
-  virtual environment `VENV_DIR` (default `_opentrons`), which it creates and
-  installs the package in if needed (the network is then needed), writing the
-  protocols and logs to the environment's directory.
-
 ### Arduino
 
 The proof-of-concept Arduino backend compiles a first-order fragment of
 Tempore to allocation-free C++ and generates a PlatformIO project for an
-Arduino or ESP32 board, with FreeRTOS tasks and run-time monitors. Grades are
-erased; boxes and unboxing generate no code.
+Arduino or ESP32 board, with FreeRTOS tasks. A device manifest names the
+board, the periodic and free tasks and the peripheral packages, which declare
+operations with running-time bounds measured on the boards. The program is
+typed against those bounds and the periods of its tasks. The details are in
+[`src/05-backends/arduino/README.md`](src/05-backends/arduino/README.md).
 
-The fragment consists of top-level functions, fully applied, `let`, `match`
-and `if`, natural numbers (32-bit, `+`, `*` and `nat_of_float` modulo 2^32),
-integers (32-bit two's complement, the arithmetic, `int_of_nat` and
-`int_of_float` modulo 2^32 into [-2^31, 2^31), so that `-2147483648i /! -1i`
-is `-2147483648i`; a literal outside that range is refused), single-precision
-floats, booleans, tuples, datatypes without type parameters
-that are not recursive, `delay`, operation calls and self calls in tail
-position, which become loops. Local functions, functions as values, partial
-application, handlers, lists, strings other than constant arguments of
-operations, and recursion other than self calls in tail position are refused,
-each with a `Compilation error` at the construct.
+- The guarantees of the typing, on effects, boxes and their grades, are
+  relative to the declared bounds of the operations. The grades are erased
+  in the compiled code, and run-time monitors on the device check those
+  bounds and the periods of the tasks: a violation puts it in its safe state,
+  is logged, or is not checked, under the monitor policy `abort`, `warn` or
+  `off`.
+- Watchdogs and the safe state are mechanisms of the C++
+  packages and of the application, outside the typing.
+- Local functions, functions as values, lists, recursion other than self
+  calls in tail position, and handlers that are not tail-resumptive are
+  refused; tail-resumptive handlers are compiled to direct calls.
 
-Under a device manifest, the definitions checked and compiled are those
-reached from the task functions and the `initial` functions of the manifest;
-the other definitions of the program, such as handlers used only by `run`
-commands of the interpreter, may lie outside the fragment. Without a manifest,
-every top-level definition of the program is checked and compiled, with its
-`run` commands under `--host-runs`.
+The examples in [`examples/arduino/`](examples/arduino/), by board:
 
-An application is described in four layers.
+- M5Stack Gray, the core of the BALA2 robot:
+  [`bala2`](examples/arduino/bala2/balance.tpe), a balancing step;
+  [`bala2-regex`](examples/arduino/bala2-regex/balance_regex.tpe), the same
+  under the regular expressions of timed operations;
+  [`wheels`](examples/arduino/wheels/wheels.tpe), a wheel check.
+- M5Stack CoreS3: [`tilt`](examples/arduino/tilt/tilt.tpe), a tilt display;
+  [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a
+  gyroscope bias removed by a handler; [`peak`](examples/arduino/peak/peak.tpe),
+  a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
+  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector.
 
-- A **board profile** gives the PlatformIO board, libraries and build flags,
-  the cores, the I2C buses and the capabilities of a board: `m5stack-gray`,
-  `m5stack-fire`, `m5stack-core2`, `m5stack-cores3`, `esp32-devkit` and
-  `esp32s3-devkit`.
-- A **device manifest**, in JSON, names the board, the tasks, the time unit of
-  the program (`ms` by default), the peripheral packages, the C++ binding file,
-  the C++ function of the safe state, and the C++ models of devices and of the
-  physical world used only by the host simulation:
-
-      {
-        "board": "m5stack-cores3",
-        "tasks": [
-          { "function": "step", "kind": "periodic", "period": 20,
-            "initial": "start", "priority": 2 },
-          { "function": "show", "kind": "free", "repeat": true,
-            "priority": 1, "core": 0 }
-        ],
-        "packages": ["m5-imu", "m5-display"],
-        "bindings": "bindings.cpp",
-        "safe_state": "tilt_safe_state"
-      }
-
-  A periodic task calls its function, of type `s -> s`, once per period, from
-  the state its `initial` function returns; a free task calls its function, of
-  type `unit -> unit`, once, or, with `repeat`, each time it returns.
-- A **peripheral package** declares operations, with their grades and default
-  implementations, and implements them in C++; the operations return plain
-  values, and the freshness of a reading is specified by the application,
-  which boxes it. A package declares its operations once for each grade
-  system it supports, in a file of its own, and may share types and
-  functions across them. The packages below are declared under
-  `time-interval-rational` and under the regular expressions of timed
-  operations over rational delays (`regex-timed-*-rational-symbolic`), with
-  their running-time bounds in milliseconds, and under `counts-upper-bound`,
-  each call counting once:
-  - `i2c`: `I2cWrite8`, `I2cWrite16`, `I2cWrite32`, `I2cRead8`, `I2cRead16`
-    and `I2cRead32`, register transactions on the bus `Wire`;
-  - `m5-imu`: `ReadImu`, the accelerometer and gyroscope of an M5Stack core,
-    with the tilt filters `tilt_x` and `tilt_y`; a unit of the MPU6886 family
-    is read in one transaction of 14 bytes and converted as by M5Unified,
-    any other unit, such as the BMI270 of the CoreS3, by one
-    `M5.Imu.update` followed by `M5.Imu.getImuData`, which converts the
-    readings of that update without the further update of `M5.Imu.getAccel`
-    and `M5.Imu.getGyro` when more than 256 µs have passed since the last
-    one; its running-time bounds are given per board, `[0.55, 1.25]` ms on
-    the Gray and `[0.2, 1.5]` ms on the CoreS3, and the declarations give
-    the bounds that cover both;
-  - `m5-display`: `ShowText`, `ShowNumber` and `ClearDisplay`;
-  - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base
-    of the M5Stack BALA2, with a watchdog of the motor setpoints; the counts
-    of the encoders increase in the direction in which a positive drive turns
-    the wheel (the registers of the base count the other way, and the package
-    negates them); its header `bala2_base.h` gives the application the drives
-    last written and the counts last read, for logging outside the timed
-    bindings.
-- The **application** is the program with its binding file, which defines,
-  for each further operation `Op`, the function
-  `tempore_result_Op binding_Op(tempore_argument_Op)`, and the safe-state
-  function.
-
-The typechecker checks the function of each periodic task against its period:
-the durations of its effect must lie below the period, as for
-`step : float -> float # [0, 20)`, and under the regular expressions of
-timed operations for `watch : float -> float # {ReadImu; Publish}`, whose
-durations are those of the operations of its trace. Under grades that bound
-no durations, such as the operation counts, the period is checked by the
-monitor of the device only, and the operations have no running-time bounds.
-Boxes specify how long a reading may be used and, under other grades, which
-operations must or may not precede its use. These guarantees are relative to
-the declared bounds of the operations. The bounds of the packages and of the
-examples are measured on the devices by their profile (`--profile` with
-`--capture`, below): the lower bound is the least time measured, rounded
-down, and the upper bound 1.5 times the greatest, rounded up. Each
-declaration states its measurements, and how the bounds not measured
-directly, such as those of the package `i2c`, are derived.
-
-The bounds a package declares hold on every board it supports. Where an
-operation is measured to run within narrower bounds on a particular board,
-the member `bounds` of the descriptor `package.json` gives them, by board and
-operation, as closed intervals in the time unit of the declarations:
-
-    "bounds": {
-      "m5stack-gray": { "ReadImu": [0.55, 1.25] },
-      "m5stack-cores3": { "ReadImu": [0.2, 1.5] }
-    }
-
-For the board of a manifest, these bounds replace those of the declarations
-under every grade system that bounds durations: the interval grade of the
-operation under `time-interval-rational`, and its `within` bounds under the
-regular expressions of timed operations; under `counts-upper-bound` the
-operations have no bounds to replace. The program is typed, and the monitors
-of the device are generated, under the bounds of its board. An interpreter
-run with `--package` takes those of the board named by `--board`, and else
-those of the declarations; the web interface takes those of the board of its
-manifest. Each board and operation of `bounds` must be a board profile and
-an operation the package binds, and the default implementations take a time
-within the bounds of every board. The examples name the board of their
-manifest by `--board` in the run command of their header, and the figures in
-their comments are those under its bounds. On the device,
-each call of a binding function is monitored against these bounds and each step of a
-periodic task against its period; a violation puts the device in its safe
-state and stops the tasks, is logged, or is not checked, according to the
-monitor policy `abort`, `warn` or `off`. Watchdogs, cut-offs and the safe
-state are mechanisms of the C++ packages and of the application, outside the
-typing.
-
-The project can be simulated on the host: the tasks run against host models
-of the devices and of the physical world, in simulated time, and the log is
-printed. The host model of the I2C bus charges a transaction with the
-transfer of its bytes at the frequency of the bus and a time per address
-phase measured on the M5Stack Gray, 110 microseconds unless the build flag
-`TEMPORE_I2C_MODEL_PHASE_US` sets it.
-
-The I2C buses of a board profile are started after M5Unified and then set to
-their frequency, since M5Unified may already have started a bus that shares
-their port at 100 kHz; the optional member `imu_frequency` of a profile sets
-the frequency of the transactions with the inertial measurement unit
-(`M5.Imu.setClock`, and the build flag `TEMPORE_IMU_FREQUENCY` of the package
-`m5-imu`; 400 kHz by default).
-
-Running times are measured on the device by its profile. With the build flag
-`TEMPORE_PROFILE`, set by `--profile`, the monitors collect the number and
-the least, mean and greatest running time of the calls of each operation and
-of the steps of each periodic task, with the least and greatest interval
-between the starts of consecutive steps and the overruns, since start-up; a
-task of the lowest priority logs them as a table every 5 seconds
-(`TEMPORE_PROFILE_INTERVAL_MS`). The statistics are updated after the clock
-is read and the table is printed outside the timed calls, so that the
-measurement does not lengthen what it measures. The trace of the build flag
-`TEMPORE_TRACE` (for example in `PLATFORMIO_BUILD_FLAGS`), which logs each
-event, lengthens the steps by the time of its serial output and is not
-suited to measurement.
-
-The directory [`examples/arduino/`](examples/arduino/) holds the following
-examples, each with its manifest and binding file, grouped by board. The board
-is that of the manifest, and its profile and serial port variable are named
-below.
-
-M5Stack Gray, the core of the M5Stack BALA2 self-balancing robot (profile
-`m5stack-gray`, port variable `PORT_M5STACK_GRAY`):
-
-- [`bala2/balance.tpe`](examples/arduino/bala2/balance.tpe): a 5 ms balancing
-  step of the M5Stack BALA2 robot with its supervision and calibration, and
-  the host model of a wheeled inverted pendulum; the build flag
-  `BALANCE_LOG` (an interval in milliseconds, e.g.
-  `PLATFORMIO_BUILD_FLAGS=-DBALANCE_LOG=20` with `--upload` and `--capture`)
-  logs its tilt, gyroscope rate, drives and encoder counts from a task of
-  the lowest priority;
-- [`bala2-regex/balance_regex.tpe`](examples/arduino/bala2-regex/balance_regex.tpe):
-  the same robot under the regular expressions of timed operations, sharing
-  the binding file and host model of `bala2`: the step reads the unit, the
-  encoders and the setpoints before it commands the motors, uses the reading
-  of the unit only if no other operation came between, and the supervision
-  disarms, calibrates, arms at least a second after its prompt and within ten
-  minutes, drives and disarms, in this order; handlers, which the device does
-  not use, simulate the robot and a fault of its gyroscope in the
-  interpreter, each case of an operation performing that operation;
-- [`wheels/wheels.tpe`](examples/arduino/wheels/wheels.tpe): a wheel check of
-  the M5Stack BALA2 on a stand, under the regular expressions of timed
-  operations: the counts of the encoders are divided by the length of the
-  window only after a drive command, 100 to 101 ms and a reading of the
-  encoders, in this order.
-
-M5Stack CoreS3 and CoreS3 Lite (profile `m5stack-cores3`, port variable
-`PORT_M5STACK_CORES3`):
-
-- [`tilt/tilt.tpe`](examples/arduino/tilt/tilt.tpe): a tilt display on the
-  M5Stack CoreS3 Lite, with a 20 ms filter step and a display task;
-- [`peak/peak.tpe`](examples/arduino/peak/peak.tpe): a recorder of the peak
-  tilt in the flash memory of the M5Stack CoreS3 Lite, under the operation
-  counts: the step performs one reading and one publication and no write of
-  the flash, and a copy of the record is used only while no write of the flash
-  has followed it.
-
-#### Command line
+#### Quick start
 <!-- web-skip -->
 
-    ./tempore --grades time-interval-rational \
-      --emit-arduino balance \
-      --device examples/arduino/bala2/balance.device.json \
-      --host-simulate 8 \
-      examples/arduino/bala2/balance.tpe
+    make arduino-deps
+    make examples-help
+    make arduino-tilt-simulate
+    make arduino-tilt-upload
 
-writes the PlatformIO project to `_arduino/projects/balance`, loading the
-declarations of the packages of the manifest before the file, and simulates
-it on the host for 8 seconds;
+install PlatformIO, list the targets of the examples, simulate the tilt
+display on the host, and build and upload it. Each example `NAME` has the
+targets `arduino-NAME-simulate` and `arduino-NAME-upload`; an upload goes to
+the port `PORT` when it is set, and else to that of the board of the
+manifest, such as `PORT_M5STACK_CORES3`.
 
-    ./tempore --grades time-interval-rational \
-      --emit-arduino balance-profile \
-      --device examples/arduino/bala2/balance.device.json \
-      --monitor warn --profile --upload --port /dev/cu.usbserial-02012C91 \
-      --capture 60 \
-      examples/arduino/bala2/balance.tpe
+### Opentrons
 
-builds the project with the profile, uploads it, and reads the serial port
-for 60 seconds, printing the last profile at the end. A name without a directory component names a
-directory in `_arduino/projects`. The options are:
+The proof-of-concept Opentrons backend compiles the program to a single-file
+Opentrons Python protocol for the Opentrons Flex, accepted by the Opentrons
+App and by the simulator `opentrons_simulate`. A binding file in Python loads
+the labware, pipettes and modules and implements the operations. The program
+is executed by an abstract machine included in the file, and run-time
+monitors check the running-time bounds of the operations. The details are in
+[`src/05-backends/opentrons/README.md`](src/05-backends/opentrons/README.md).
 
-- `--emit-arduino <directory>` writes the compiled program, and with
-  `--device <manifest.json>` the project of the manifest;
-- `--host-runs`, without `--device`, also compiles the `run` commands and a
-  main program for the host that executes them;
-- `--monitor abort|warn|off` sets the monitor policy (default `abort`);
-- `--host-simulate <seconds>` builds the project on the host with `c++` and
-  runs it for the given simulated time;
-- `--build` builds the project with PlatformIO; `--upload` builds it and
-  uploads it to the board, through the serial port `--port <port>` if given;
-  `--pio <path>` names the PlatformIO executable;
-- `--profile` builds the project with the profile (`-DTEMPORE_PROFILE` in
-  `platformio.ini`), and under `--host-simulate` logs it in place of the
-  trace, every 5 simulated seconds and at the end;
-- `--capture <seconds>`, with `--upload` and `--port`, reads the serial port
-  after the upload for the given time at the baud rate of the board, prints
-  its lines and, with `--profile`, then the last complete profile; the port
-  is opened in raw mode with its modem control lines as opening it sets them,
-  both asserted, which on the boards with an automatic reset circuit holds
-  neither the reset nor the boot pin, and they are left so when it is closed;
-- `--package <name>`, repeatable, loads the declarations of a package for the
-  interpreter, which performs its operations by their default implementations;
-  `--board <board>` gives them the running-time bounds of the packages on
-  that board.
+- Handlers, continuations and recursion behave as in the small-step
+  interpreter; grades are erased.
+- A call of a binding function outside the running-time bounds of its
+  operation ends the protocol with an error, is reported by a comment, or is
+  not checked, under the monitor policy `abort`, `warn` or `off`.
+- A protocol is refused when the code of a `run` command may perform an
+  operation that has neither a binding function, nor a default
+  implementation, nor a case in a handler of that code.
 
-Each example `NAME` has the targets `make arduino-NAME-simulate` (the host
-simulation), `arduino-NAME-build` (the PlatformIO build),
-`arduino-NAME-upload` (the build and upload), `arduino-NAME-profile` (the
-upload with `--profile`, then `--capture`), and, for `bala2` and
-`bala2-regex`, `arduino-NAME-log` (the upload with `-DBALANCE_LOG`, then
-`--capture`); `make arduino-simulate-all` and `make arduino-build-all` run
-the first two for every example, and `make examples-help` lists the targets
-with the values of their variables. The targets that need PlatformIO install
-it by `make arduino-deps` first. An upload goes to the serial port of the
-board of the manifest, `PORT_M5STACK_GRAY` (by default
-`/dev/cu.usbserial-02012C91`) or `PORT_M5STACK_CORES3` (by default
-`/dev/cu.usbmodem101`), the ports of the boards of the development machine,
-or else to `PORT` when it is set; the variables are set on the command line
-or in the environment:
+The examples in [`examples/opentrons/`](examples/opentrons/), each with a
+binding file and a rejected variant:
 
-    make arduino-bala2-upload PORT=/dev/ttyUSB0
-    make arduino-tilt-profile PORT_M5STACK_CORES3=/dev/ttyACM0 CAPTURE=60
+- [`elisa`](examples/opentrons/elisa.tpe), an enzyme-linked immunosorbent
+  assay;
+- [`washes`](examples/opentrons/washes.tpe), a bead clean-up with exactly two
+  ethanol washes;
+- [`contamination`](examples/opentrons/contamination.tpe), a ddPCR plate
+  set-up;
+- [`reagents`](examples/opentrons/reagents.tpe), a tagmentation with boxed
+  reagents;
+- [`staggered`](examples/opentrons/staggered.tpe), a fixation of columns at
+  staggered times;
+- [`beads`](examples/opentrons/beads.tpe), a bead clean-up with boxed beads;
+- [`stopread`](examples/opentrons/stopread.tpe), a stop and read with boxed
+  plates;
+- [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound
+  operations implemented by a handler.
 
-`CAPTURE` is the time, in seconds, for which the port is read (default 30),
-`SIMULATE` the simulated time of the host simulation (by default that of the
-example), `MONITOR` the monitor policy (by default `abort`, and `warn` for
-the targets that read the port) and `BALANCE_LOG` the interval of the log in
-milliseconds (default 20).
+#### Quick start
+<!-- web-skip -->
 
-The targets are defined by [`examples/examples.mk`](examples/examples.mk)
-from a fragment `example.mk` in the directory of the example, which holds one
-manifest `PROGRAM.device.json` and its program `PROGRAM.tpe`. The fragment
-sets the grades and the simulated time of the host simulation, in seconds,
-and optionally the build flags of the target `-log`:
+    make opentrons-deps
+    make examples-help
+    make opentrons-elisa-simulate
 
-    EXAMPLE_GRADES = time-interval-rational
-    EXAMPLE_SIMULATE = 8
-    BALANCE_LOG ?= 20
-    EXAMPLE_LOG_FLAGS = -DBALANCE_LOG=$(BALANCE_LOG)
-
-The board is that of the manifest, and its port the variable `PORT_BOARD`,
-the name of the board in upper case with `-` replaced by `_`, such as
-`PORT_ESP32_DEVKIT` for `esp32-devkit`; a board without a default port
-needs `PORT` or that variable. A new example gets its targets by such a
-fragment; `tests/make/examples.t` checks that every example has one and that
-its target `-simulate` runs the command of its header.
-
-Requirements:
-
-- `make arduino-deps` installs PlatformIO Core 6.2.0 in the virtual environment
-  `_arduino/venv`, with the first Python of version 3.10 or later; without
-  `--pio`, `pio` on the `PATH` is used, or else that of `_arduino/venv`;
-- PlatformIO keeps its platforms, toolchains and libraries in
-  `PLATFORMIO_CORE_DIR`, set to `_arduino/platformio` for the `pio` of
-  `_arduino/venv` unless the environment sets it; after building the examples,
-  `_arduino` takes about 3 GB, and `make clean-arduino` removes it;
-- the first build of a board downloads its platform and toolchain;
-- uploading needs the USB-serial driver of the board: its port is listed by
-  `ls /dev/cu.*` on macOS once the board is connected.
-
-A board is added as a profile `boards/NAME.json` in
-[`src/05-backends/arduino/`](src/05-backends/arduino/), a package as a
-directory `libraries/NAME/` with a descriptor `package.json`, which maps each
-grade system to a file of declarations and may give running-time bounds per
-board, and the declarations, C++ sources and host models; both are embedded in the compiler
-when it is built. An application is a `.tpe` file, a manifest and a binding
-file, with host models for the simulation if needed.
+install the Opentrons simulator, list the targets of the examples, and write
+the ELISA protocol to `_opentrons/protocols/elisa.py` and simulate it. Each
+example `NAME` has the targets `opentrons-NAME-emit` and
+`opentrons-NAME-simulate`; `MONITOR=warn` sets the monitor policy.
 
 ## Editor support
 <!-- web-skip -->

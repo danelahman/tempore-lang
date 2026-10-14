@@ -1,9 +1,11 @@
-; The make targets of the examples of the Opentrons and Arduino backends:
-; their fragments and the commands of their dry runs.
+; The make targets of the examples of the Arduino and Opentrons backends:
+; their fragments, the commands of their dry runs, and the commands of the
+; README of the Arduino backend that they run.
 
 (cram
  (deps
   %{project_root}/Makefile
+  %{project_root}/src/05-backends/arduino/README.md
   %{project_root}/examples/examples.mk
   (source_tree %{project_root}/examples/opentrons)
   (source_tree %{project_root}/examples/arduino)))

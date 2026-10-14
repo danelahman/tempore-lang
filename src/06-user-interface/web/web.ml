@@ -43,6 +43,15 @@ let scroll_to id =
            |])
   | None -> ()
 
+(* The heading of identifier [id] at the top of the window, as following an
+   anchor places it, or the page at its top without one. *)
+let scroll_to_heading = function
+  | Some id -> (
+      match Js_browser.Document.get_element_by_id Js_browser.document id with
+      | Some element -> Js_browser.Element.scroll_into_view element true
+      | None -> ())
+  | None -> Js_browser.Window.scroll_to Js_browser.window 0 0
+
 (* The card of the example last loaded, in the gallery just opened: focused
    without the browser's own scrolling, and centred at once in the gallery's
    list by scrolling the list alone, which leaves the page behind the gallery
@@ -233,6 +242,40 @@ let fit_status (model : Model.model) () =
         Some (Model.Abbreviate abbreviated)
       else None)
 
+(* The section scrolled to, in the documentation and in the example gallery
+   (see [EditorDom.reached]), and the heading last followed by a link, which
+   the end of a page lights when its last sections cannot reach the top. *)
+let followed = ref None
+
+let docs_headings =
+  Printf.sprintf ".%s h2[id], .%s h3[id]" Docs.readme_class Docs.readme_class
+
+let gallery_list = ".example-gallery-list"
+let gallery_groups = gallery_list ^ " > .example-group[id]"
+
+(* The message of the section of the documentation scrolled to, when that has
+   changed. *)
+let reached_heading (model : Model.model) () =
+  if model.page <> Model.Docs then None
+  else
+    match
+      EditorDom.reached ~headings:docs_headings ~area:None ~followed:!followed
+    with
+    | Some id when model.docs_heading <> Some id -> Some (Model.ReachHeading id)
+    | _ -> None
+
+(* The message of the group of the example gallery scrolled to, when that has
+   changed. *)
+let reached_group (model : Model.model) () =
+  if model.gallery = None then None
+  else
+    match
+      EditorDom.reached ~headings:gallery_groups ~area:(Some gallery_list)
+        ~followed:!followed
+    with
+    | Some id when model.gallery_group <> Some id -> Some (Model.ReachGroup id)
+    | _ -> None
+
 let command (model : Model.model) = function
   | Model.After (delay, msg) -> Send_after (delay, msg)
   | Model.Measure_popover ->
@@ -246,6 +289,13 @@ let command (model : Model.model) = function
             model.popover)
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
   | Model.Scroll_to_span i -> Scroll_to (View.primary_id i)
+  | Model.Scroll_to_declaration -> Scroll_to View.declaration_flash_id
+  | Model.Scroll_to_heading heading ->
+      After_redraw
+        (fun () ->
+          followed := heading;
+          scroll_to_heading heading;
+          None)
   | Model.Perform_after_paint action -> After_paint (Model.Perform action)
   | Model.Remember (key, value) -> Now (fun () -> remember key value)
   | Model.Focus_current_example ->
@@ -267,7 +317,7 @@ let update model msg =
   let model', side_effects = Model.update model msg in
   let cmd =
     match (msg, model'.Model.run_model) with
-    | Model.Perform _, Error (error :: _) ->
+    | Model.Perform _, Error (error :: _) when not (Model.is_warning error) ->
         Scroll_to (View.load_error_target 0 error)
     | Model.EditMsg (Model.InsertIndent (_, start, _)), _ ->
         Set_caret (start + String.length Model.indentation)
@@ -282,8 +332,23 @@ let update model msg =
     then [ After_redraw (fit_status model') ]
     else []
   in
+  (* the documentation or the gallery drawn anew, unless scrolled to a heading,
+     which the scrolling reports *)
+  let reading =
+    match msg with
+    | Model.ShowDocs _ -> []
+    | _ ->
+        (if model.page <> model'.page || model.docs_page <> model'.docs_page
+         then [ After_redraw (reached_heading model') ]
+         else [])
+        @
+        if model.gallery <> model'.gallery then
+          [ After_redraw (reached_group model') ]
+        else []
+  in
   ( model',
-    Vdom.Cmd.batch ((cmd :: status) @ List.map (command model') side_effects) )
+    Vdom.Cmd.batch
+      ((cmd :: status) @ reading @ List.map (command model') side_effects) )
 
 let app =
   let query =
@@ -344,9 +409,49 @@ let observe_status app =
                    (status_line ()));
            |])
 
+(* The section scrolled to is found once per animation frame in which the
+   window or an element of the page has scrolled, or the window has been
+   resized, since scroll events do not bubble but are captured by the window. A
+   link to a heading of the page clicked is the heading followed. *)
+let watch_reading app =
+  let scheduled = ref false in
+  let reach () =
+    scheduled := false;
+    let model = Vdom_blit.get app in
+    List.iter
+      (fun reached -> Option.iter (Vdom_blit.process app) (reached model ()))
+      [ reached_heading; reached_group ]
+  in
+  let schedule _ =
+    if not !scheduled then begin
+      scheduled := true;
+      ignore
+        (EditorDom.call Ojs.global "requestAnimationFrame"
+           [ Ojs.fun_to_js 1 (fun _ -> reach ()) ])
+    end
+  in
+  let listen kind f =
+    Js_browser.Window.add_event_listener Js_browser.window kind
+      (fun event -> f (Js_browser.Event.t_to_js event))
+      true
+  in
+  listen Js_browser.Event.Scroll schedule;
+  listen Js_browser.Event.Resize schedule;
+  listen Js_browser.Event.Click (fun event ->
+      Option.iter
+        (fun link ->
+          let href =
+            Ojs.string_of_js
+              (EditorDom.call link "getAttribute" [ Ojs.string_to_js "href" ])
+          in
+          if String.length href > 1 then
+            followed := Some (String.sub href 1 (String.length href - 1)))
+        (EditorDom.closest (EditorDom.get event "target") "a[href^='#']"))
+
 let run () =
   let app = Vdom_blit.run ~env:(Vdom_blit.cmd scroll_handler) app in
   watch_modifier app;
+  watch_reading app;
   observe_status app;
   Vdom_blit.dom app
   |> Js_browser.Element.append_child

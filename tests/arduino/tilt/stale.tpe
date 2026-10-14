@@ -2,8 +2,9 @@
 
 let show_stale () =
   let tilt = perform Latest () in
-  box [0, 5] tilt as fresh in
+  box [0, 20) tilt as fresh in
   perform ClearDisplay ();
+  perform ShowTextAt (0, 0, 2, "Tilt display");
   perform ShowText "Tilt (degrees)";
   unbox fresh as shown in
   perform ShowNumber shown;

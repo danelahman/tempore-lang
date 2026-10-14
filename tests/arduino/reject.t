@@ -48,19 +48,171 @@ A function used as a value:
   Compilation error: The Arduino backend does not support the function `id` used as a value
   exit 1
 
-A handler:
-  $ cat > handler.tpe <<'TPE'
-  > operation Ping : unit ~> unit # 1
-  > let f () =
-  >   handle perform Ping () with handler
+A handler that is not tail-resumptive is rejected at the occurrence of the
+continuation of a case outside a resumption in tail position, or at the end
+of a branch of a case that does not resume it. Cases that do not resume
+their continuation, which the typechecker accepts under upper bounds of
+time, are compiled under those grades:
+
+  $ reject_upper () { ../../tempore --grades time-upper-bound --emit-arduino rejected "$1"; echo "exit $?"; }
+
+A handler whose case resumes its continuation twice, so that the first
+resumption is not in tail position:
+  $ cat > twice.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let twice =
+  >   handler
   >   | x -> x
-  >   | Ping () k -> delay 1; continue k with ()
+  >   | Ping () k -> let a = continue k with 1 in continue k with a
   > TPE
-  $ reject handler.tpe
-  File "handler.tpe", lines 3-5, characters 2-44:
-  3 |   handle perform Ping () with handler
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Compilation error: The Arduino backend does not support handlers
+  $ reject twice.tpe
+  File "twice.tpe", line 5, characters 34-35:
+  5 |   | Ping () k -> let a = continue k with 1 in continue k with a
+                                        ^
+  Compilation error: The continuation `k` of the case of `Ping` is resumed outside tail position, so the handler cannot be compiled to direct calls
+  exit 1
+
+A handler whose case does not resume its continuation:
+  $ cat > never.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let abort =
+  >   handler
+  >   | x -> x
+  >   | Ping () k -> 0
+  > TPE
+  $ reject_upper never.tpe
+  File "never.tpe", line 5, characters 17-18:
+  5 |   | Ping () k -> 0
+                       ^
+  Compilation error: The case of `Ping` ends here without resuming its continuation `k`, so the handler cannot be compiled to direct calls
+  exit 1
+
+A handler whose case computes after the resumption:
+  $ cat > after.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let after =
+  >   handler
+  >   | x -> x
+  >   | Ping () k -> let r = continue k with 1 in r + 1
+  > TPE
+  $ reject after.tpe
+  File "after.tpe", line 5, characters 34-35:
+  5 |   | Ping () k -> let r = continue k with 1 in r + 1
+                                        ^
+  Compilation error: The continuation `k` of the case of `Ping` is resumed outside tail position, so the handler cannot be compiled to direct calls
+  exit 1
+
+A handler whose case resumes its continuation in one branch only:
+  $ cat > branch.tpe <<'TPE'
+  > operation Ping : nat ~> nat # 0
+  > let branch =
+  >   handler
+  >   | x -> x
+  >   | Ping n k -> if n = 0 then continue k with 1 else 0
+  > TPE
+  $ reject_upper branch.tpe
+  File "branch.tpe", line 5, characters 53-54:
+  5 |   | Ping n k -> if n = 0 then continue k with 1 else 0
+                                                           ^
+  Compilation error: The case of `Ping` ends here without resuming its continuation `k`, so the handler cannot be compiled to direct calls
+  exit 1
+
+A handler whose case resumes its continuation inside a handle:
+  $ cat > inner.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let inner =
+  >   handler
+  >   | x -> x
+  >   | Ping () k -> handle continue k with 1 with handler x -> x
+  > TPE
+  $ reject_upper inner.tpe
+  File "inner.tpe", line 5, characters 33-34:
+  5 |   | Ping () k -> handle continue k with 1 with handler x -> x
+                                       ^
+  Compilation error: The continuation `k` of the case of `Ping` is resumed outside tail position, so the handler cannot be compiled to direct calls
+  exit 1
+
+A handler whose case passes its continuation to a function:
+  $ cat > passed.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let passed =
+  >   handler
+  >   | x -> x
+  >   | Ping () k -> let resume c = continue c with 1 in resume k
+  > TPE
+  $ reject passed.tpe
+  File "passed.tpe", line 5, characters 60-61:
+  5 |   | Ping () k -> let resume c = continue c with 1 in resume k
+                                                                  ^
+  Compilation error: The continuation `k` of the case of `Ping` is used other than by its resumption in tail position, so the handler cannot be compiled to direct calls
+  exit 1
+
+A handler whose case stores its continuation in a tuple:
+  $ cat > stored.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let stored =
+  >   handler
+  >   | x -> x
+  >   | Ping () k -> let p = (k, 1) in let k2, n = p in continue k2 with n
+  > TPE
+  $ reject stored.tpe
+  File "stored.tpe", line 5, characters 26-27:
+  5 |   | Ping () k -> let p = (k, 1) in let k2, n = p in continue k2 with n
+                                ^
+  Compilation error: The continuation `k` of the case of `Ping` is used other than by its resumption in tail position, so the handler cannot be compiled to direct calls
+  exit 1
+
+A handler that is a parameter, not known at compilation:
+  $ cat > handler_parameter.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let with_handler h = handle perform Ping () with h
+  > TPE
+  $ reject handler_parameter.tpe
+  File "handler_parameter.tpe", line 2, characters 49-50:
+  2 | let with_handler h = handle perform Ping () with h
+                                                       ^
+  Compilation error: The Arduino backend does not support the handler `h`, which is not known at compilation
+  exit 1
+
+A handler chosen at run time:
+  $ cat > chosen.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let one = handler | x -> x | Ping () k -> continue k with 1
+  > let two = handler | x -> x | Ping () k -> continue k with 2
+  > let chosen b = handle perform Ping () with (if b then one else two)
+  > TPE
+  $ reject chosen.tpe
+  File "chosen.tpe", line 4, characters 54-57:
+  4 | let chosen b = handle perform Ping () with (if b then one else two)
+                                                            ^^^
+  Compilation error: The Arduino backend does not support the handler `one` used as a value
+  exit 1
+
+A handler stored in a tuple:
+  $ cat > data.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let one = handler | x -> x | Ping () k -> continue k with 1
+  > let pair () = (one, 1)
+  > TPE
+  $ reject data.tpe
+  File "data.tpe", line 3, characters 15-18:
+  3 | let pair () = (one, 1)
+                     ^^^
+  Compilation error: The Arduino backend does not support the handler `one` used as a value
+  exit 1
+
+A recursive call inside a handle, which is not in tail position:
+  $ cat > recursive_handle.tpe <<'TPE'
+  > operation Ping : unit ~> nat # 0
+  > let one = handler | x -> x | Ping () k -> continue k with 1
+  > let rec loop (n : nat) : nat # 0 =
+  >   match n with 0 -> 0 | m + 1 -> handle loop m with one
+  > TPE
+  $ reject recursive_handle.tpe
+  File "recursive_handle.tpe", line 4, characters 40-46:
+  4 |   match n with 0 -> 0 | m + 1 -> handle loop m with one
+                                              ^^^^^^
+  Compilation error: The Arduino backend does not support the recursive call of `loop` outside a tail position
   exit 1
 
 A list:

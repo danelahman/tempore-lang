@@ -21,6 +21,10 @@
         position: -webkit-sticky;
         top: 0;
         height: 100%;
+        /* A panel taller than the window, such as a long table of contents,
+           scrolls on its own. */
+        max-height: 100vh;
+        overflow-y: auto;
       }
     }
 
@@ -35,6 +39,34 @@
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
+    }
+
+    /* The tabs of the documentation pages wrap rather than overflow a narrow
+       side column. */
+    .panel-tabs {
+      flex-wrap: wrap;
+    }
+
+    /* The tabs of the documentation pages are in black, not in the colour of
+       a link. */
+    .panel-tabs a,
+    .panel-tabs a:hover {
+      color: #0a0a0a;
+    }
+
+    /* The lit entry of the table of contents, and the entry of the section
+       whose subsection is lit, are in bold in Bulma's is-info blue, as the
+       run button and the logo, without a background. */
+    .menu-list a.is-active,
+    .menu-list a.has-active-entry {
+      background-color: transparent;
+      color: #3298dc;
+      font-weight: 600;
+    }
+
+    .menu-list a.is-active:hover,
+    .menu-list a.has-active-entry:hover {
+      background-color: #f5f5f5;
     }
 
     /* The mark stands alone here, so it is given a hit area of its own and the
@@ -295,6 +327,38 @@
     /* The events inside a default implementation. */
     .backend-report tr.is-sub td {
       color: #888;
+    }
+
+    /* The declarations loaded before the program, folded above the editor,
+       read-only; the title leaves room for the switch floating over the top
+       right corner of the box. */
+    .editor-declarations:not(:empty) {
+      margin-bottom: 0.75rem;
+    }
+
+    .declarations > summary {
+      cursor: pointer;
+      padding-right: 3.5rem;
+      font-weight: 500;
+    }
+
+    .declarations-filename {
+      margin-top: 0.75rem;
+      color: #5f6873;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.8rem;
+    }
+
+    pre.syn-ml.declarations-source {
+      position: relative;
+      margin-top: 0.3rem;
+      padding: 0.75em 1em 0.75em var(--gutter, 2.1em);
+      border: 1px solid #dbdbdb;
+      border-radius: 4px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      tab-size: 2;
     }
 
     .editor-box .code-editor {
@@ -592,6 +656,10 @@
       color: #cc0f35;
     }
 
+    .check-status-mark.is-warning {
+      color: #946c00;
+    }
+
     .check-status-mark.is-dimmed {
       opacity: 0.45;
     }
@@ -616,6 +684,20 @@
       text-decoration: underline;
     }
 
+    /* The count of the warnings, in amber where the errors are in red. */
+    .check-status-warnings {
+      color: #946c00;
+      font-weight: 600;
+      text-decoration: underline dotted;
+      text-underline-offset: 0.15em;
+    }
+
+    .check-status-warnings:hover {
+      color: #946c00;
+      text-decoration: underline;
+    }
+
+    .check-status-warnings:focus-visible,
     .check-status-errors:focus-visible {
       outline: 2px solid #485fc7;
       outline-offset: 2px;
@@ -672,6 +754,12 @@
     .error-list a:hover {
       color: #cc0f35;
       text-decoration: underline;
+    }
+
+    /* a warning, in amber */
+    .error-list li.is-warning,
+    .error-list li.is-warning a:hover {
+      color: #946c00;
     }
 
     /* The example button: the example last loaded, after the short form of
@@ -872,6 +960,13 @@
       background: #fafbfc;
     }
 
+    /* the group scrolled to */
+    .example-gallery-toc a.is-active {
+      background: #f5fafe;
+      box-shadow: inset 3px 0 0 #3298dc;
+      font-weight: 600;
+    }
+
     .example-gallery-toc a span {
       color: #6a737d;
     }
@@ -1046,6 +1141,23 @@
       top: 3px;
     }
 
+    /* The lines of a warning: the same marks, in amber. */
+    .line-number.is-error.is-warning,
+    .line-number.is-error.is-warning:hover,
+    .line-number.is-error.is-warning.is-hover {
+      color: #946c00;
+    }
+
+    .line-number.is-error.is-warning::before,
+    .line-number.is-error.is-warning::after {
+      background: #e6b400;
+    }
+
+    .line-number.is-error.is-warning.is-hover::before,
+    .line-number.is-error.is-warning.is-hover::after {
+      background: #946c00;
+    }
+
     .line-number.is-error-end::before {
       bottom: 3px;
     }
@@ -1065,6 +1177,16 @@
     /* while the pointer is on the error's line numbers or message */
     pre.syn-ml .error-primary.is-hover {
       background: #fbd0d9;
+    }
+
+    /* The span a warning points at, in amber. */
+    pre.syn-ml .error-primary.is-warning {
+      background: #fff8e1;
+      text-decoration-color: #e6b400;
+    }
+
+    pre.syn-ml .error-primary.is-warning.is-hover {
+      background: #ffe9a8;
     }
 
     /* The span of a label: a place the message refers to, marked more
@@ -1236,6 +1358,10 @@
       color: #cc0f35;
     }
 
+    .code-popover-kind.is-warning {
+      color: #946c00;
+    }
+
     /* The span's own label, marked as the span is, in amber. */
     .code-popover-label {
       margin-top: 0.35rem !important;
@@ -1270,6 +1396,11 @@
     .code-popover-link:hover,
     .code-popover-link:focus-visible {
       color: #cc0f35;
+    }
+
+    .code-popover.is-type .code-popover-link:hover,
+    .code-popover.is-type .code-popover-link:focus-visible {
+      color: #485fc7;
     }
 
     /* A scheme in the popover: the quantifier and qualifier dimmer than the
@@ -1423,6 +1554,10 @@
       border-left: 4px solid #f14668;
       border-radius: 4px;
       animation: error-flash 900ms ease-out;
+    }
+
+    .editor-error.is-warning.is-active {
+      border-left-color: #e6b400;
     }
 
     /* The error just gone to, highlighted briefly. */

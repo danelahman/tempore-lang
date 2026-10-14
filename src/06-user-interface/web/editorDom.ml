@@ -260,3 +260,83 @@ let jump offset =
                    Ojs.string_to_js (if reduced then "instant" else "smooth") );
                |];
            ])
+
+(* Reading positions *)
+
+(* The distance below the top of a scrolling area that a heading passes to
+   begin its section. *)
+let reading_offset = 32.
+
+(* A scrolling area: the top of its visible part in the viewport, its visible
+   height, and whether it scrolls and is scrolled to its end. *)
+type area = { top : float; height : float; at_end : bool }
+
+let scrolled_to_end ~position ~height ~extent =
+  extent > height +. 1. && position +. height >= extent -. 1.
+
+let window_area () =
+  let height = number window "innerHeight" in
+  {
+    top = 0.;
+    height;
+    at_end =
+      scrolled_to_end ~position:(number window "scrollY") ~height
+        ~extent:(number (get document "documentElement") "scrollHeight");
+  }
+
+let element_area element =
+  let height = number element "clientHeight" in
+  {
+    top = (bounding element).top;
+    height;
+    at_end =
+      scrolled_to_end
+        ~position:(number element "scrollTop")
+        ~height
+        ~extent:(number element "scrollHeight");
+  }
+
+(* The identifier of the last heading, in document order, whose offset from
+   the top of the area satisfies [p]. *)
+let last_with p tops =
+  List.fold_left
+    (fun found (id, top) -> if p top then Some id else found)
+    None tops
+
+(** [reached ~headings ~area ~followed] is the identifier of the heading whose
+    section has been scrolled to: the last of the elements matching [headings]
+    whose top has passed [reading_offset] below the top of the area, the first
+    when none has. Scrolled to the end, where the last sections cannot reach the
+    top, it is [followed] when that heading is in view, and else the last
+    heading whose top is in view. The area is the window, or the element
+    matching [area]. [None] when the area or the headings are not drawn. *)
+let reached ~headings ~area ~followed =
+  let area =
+    match area with
+    | None -> Some (window_area ())
+    | Some selector ->
+        let element =
+          call document "querySelector" [ Ojs.string_to_js selector ]
+        in
+        if is_nothing element then None else Some (element_area element)
+  in
+  Option.bind area (fun area ->
+      let tops =
+        List.map
+          (fun heading ->
+            ( Ojs.string_of_js (get heading "id"),
+              (bounding heading).top -. area.top ))
+          (query_all document headings)
+      in
+      let first = match tops with (id, _) :: _ -> Some id | [] -> None in
+      let in_view top = top >= -.reading_offset && top < area.height in
+      let found =
+        if area.at_end then
+          match followed with
+          | Some id
+            when List.exists (fun (id', top) -> id' = id && in_view top) tops ->
+              followed
+          | _ -> last_with (fun top -> top < area.height) tops
+        else last_with (fun top -> top <= reading_offset) tops
+      in
+      match found with Some _ -> found | None -> first)

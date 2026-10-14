@@ -17,11 +17,17 @@
   (glob_files tilt/*)
   (glob_files wheels/*)
   (glob_files peak/*)
+  (glob_files level/*)
+  (glob_files fall/*)
+  (glob_files calibrated/*)
   (glob_files %{project_root}/examples/arduino/bala2/*)
   (glob_files %{project_root}/examples/arduino/bala2-regex/*)
   (glob_files %{project_root}/examples/arduino/tilt/*)
   (glob_files %{project_root}/examples/arduino/wheels/*)
-  (glob_files %{project_root}/examples/arduino/peak/*)))
+  (glob_files %{project_root}/examples/arduino/peak/*)
+  (glob_files %{project_root}/examples/arduino/level/*)
+  (glob_files %{project_root}/examples/arduino/fall/*)
+  (glob_files %{project_root}/examples/arduino/calibrated/*)))
 
 ; The running-time bounds of the peripheral packages by board, compared with
 ; test_package.expected.

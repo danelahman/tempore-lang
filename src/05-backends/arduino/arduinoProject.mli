@@ -14,6 +14,10 @@
     - [src/tempore_scaffold.h], [src/tempore_scaffold.cpp]: the scaffold, the
       same for every device: the clock ([esp_timer_get_time]), the log on the
       serial port, delays, the monitors, the profile and the halt of the tasks;
+    - [src/tempore_m5_monitor.cpp], on a board with M5Unified and the capability
+      ["display"]: the display of the events of the monitors on the screen, the
+      banner of a violation under the policy [abort] and the line of the
+      warnings under [warn];
     - [src/tempore_bindings.h]: for each operation [Op] the program performs,
       the macro [TEMPORE_PERFORMS_Op], the types [tempore_argument_Op] and
       [tempore_result_Op] of its argument and result, and the declaration of its
@@ -28,13 +32,15 @@
       safe-state functions of the packages and then the safe-state hook of the
       application, the array [tempore_task_monitors] of the monitors of the
       periodic tasks, [setup()], which initialises the board, calls the
-      initialisation functions of the packages, creates a FreeRTOS task for each
+      initialisation functions of the packages, starts the display of the events
+      of the monitors on a board with a screen, creates a FreeRTOS task for each
       task of the manifest and starts the profile, and [loop()], which deletes
       its own task;
     - the sources of the packages ({!ArduinoPackage}) and the binding file of
       the manifest, in [src/];
     - [host/]: the stubs of Arduino, FreeRTOS, the timer of the ESP32, [Wire]
-      and M5Unified, the I2C buses with their device models
+      and M5Unified, the model of the display of M5Unified
+      ([tempore_m5_display.cpp]), the I2C buses with their device models
       ([tempore_i2c_model.h]), the world of the simulation ([tempore_world.h]),
       the discrete-event simulator [tempore_simulator.cpp], and the host models
       of the packages and of the manifest, with which the sources of [src/]

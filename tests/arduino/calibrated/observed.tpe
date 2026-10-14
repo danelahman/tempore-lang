@@ -1,0 +1,14 @@
+(* The handler of calibrated.tpe pairing its result with whether the unit
+   was read, used by a step that replaces that of calibrated.tpe. *)
+
+let observed (bias : float) =
+  handler
+  | s -> (s, false)
+  | ReadImu () k ->
+      let accel, (gx, gy, gz) = perform ReadImu () in
+      let s, _ = continue k with (accel, (gx -. bias, gy, gz)) in
+      (s, true)
+
+let step ((bias, tilt) : float * float) : (float * float) # [0, 20) =
+  let tilt, _ = handle filter tilt with observed bias in
+  (bias, tilt)

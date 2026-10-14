@@ -1,7 +1,0 @@
-(* A supervision that arms the robot with the boxed calibration, after
-   balance.tpe. *)
-
-let supervise_unchecked () =
-  let token = calibrate () in
-  perform Arm token;
-  drive 4000000000

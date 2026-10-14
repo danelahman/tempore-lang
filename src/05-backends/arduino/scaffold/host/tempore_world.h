@@ -1,6 +1,6 @@
 // The physical world of a host simulation, which the device models observe
-// and act on: a body that tilts about one axis on two wheels driven by two
-// motors.
+// and act on: a body that tilts about two axes on two wheels driven by two
+// motors, under a specific force, with a touch screen.
 //
 // The world is advanced in steps of tempore_world_step_us microseconds of
 // simulated time, lazily: tempore_world_now advances it by the steps that end
@@ -22,6 +22,12 @@ struct tempore_world {
   double wheel[2];       // the angles of the wheels, in radians
   double wheel_rate[2];  // their rates, in radians per second
   double drive[2];       // the drives of the motors, from -1 to 1
+  double roll;           // the angle of the body about its second axis, in
+                         // radians
+  double load;           // the magnitude of the specific force on the body,
+                         // in g: 1 at rest, 0 in free fall
+  bool touched;          // whether the touch screen is touched
+  double touch[2];       // the point touched, in pixels
 };
 
 // The length of a step.
@@ -30,7 +36,8 @@ const int64_t tempore_world_step_us = 100;
 // The world at the last step that ends by the current simulated time.
 tempore_world &tempore_world_now();
 
-// Sets the initial state of the world, at time 0.
+// Sets the initial state of the world, at time 0, from the state at rest,
+// zero but for the load of 1.
 void world_start(tempore_world &w);
 
 // Advances the world by dt seconds; the time is advanced by the caller.

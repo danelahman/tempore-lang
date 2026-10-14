@@ -80,8 +80,8 @@ let () =
   (match Manifest.defaults entries defaults with
   | [
    ("interpreter", "examples/introduction/sensor_reading.tpe");
-   ("opentrons", "examples/opentrons/elisa.tpe");
    ("arduino", "examples/arduino/bala2/balance.tpe");
+   ("opentrons", "examples/opentrons/elisa.tpe");
   ] ->
       ()
   | _ -> fail "the manifest's defaults are not those expected");

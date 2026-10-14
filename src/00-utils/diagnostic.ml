@@ -1,4 +1,4 @@
-type kind = Syntax | Typing | Compilation | Runtime | Fatal
+type kind = Syntax | Typing | Compilation | Runtime | Fatal | Warning
 type label = { span : Location.t; text : string }
 
 type t = {
@@ -15,6 +15,7 @@ let kind_to_string = function
   | Compilation -> "Compilation error"
   | Runtime -> "Run-time error"
   | Fatal -> "Fatal error"
+  | Warning -> "Warning"
 
 let lines text = String.split_on_char '\n' text
 let place = "{here}"

@@ -135,6 +135,30 @@ void tempore_profile_report();
 void tempore_i2c_lock();
 void tempore_i2c_unlock();
 
+// Excludes the other tasks from the display, from the start of a drawing to
+// its end, until tempore_display_unlock. The bindings that draw on the display
+// enclose each drawing in these calls.
+void tempore_display_lock();
+void tempore_display_unlock();
+
+// The display of the events of the monitor on the screen of the board: stop
+// draws a banner that states that the monitor stopped the tasks, with the two
+// lines first and second of the violation; warnings draws the line of the
+// warnings. Each is called with the lock of the display held.
+struct tempore_monitor_display {
+  void (*stop)(const char *first, const char *second);
+  void (*warnings)(const char *line);
+};
+
+// Shows the events of the monitor on display, called by setup() on a board
+// with a screen before the tasks are created. Under the policy abort the
+// banner of the violation is drawn once the safe state is entered; under the
+// policy warn a task of the lowest priority draws the number of the warnings
+// and the last of them, once there is one, every
+// TEMPORE_MONITOR_DISPLAY_INTERVAL_MS milliseconds (default 500), the monitors
+// only recording them.
+void tempore_monitor_display_begin(const tempore_monitor_display *display);
+
 // Declares the nominal duration of the action of a binding function. Under
 // host simulation the simulated clock advances by it; on the device nothing
 // happens, the action taking its own time.

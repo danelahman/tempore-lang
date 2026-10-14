@@ -1,0 +1,6 @@
+; The pages of the documentation view of the web interface and the resolution
+; of the links between them, without a dependency on the browser, so that the
+; tests link it.
+
+(library
+ (name webDocPages))

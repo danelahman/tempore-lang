@@ -1,4 +1,4 @@
-# The targets of the examples of the Opentrons and Arduino backends, included
+# The targets of the examples of the Arduino and Opentrons backends, included
 # by the Makefile; 'make examples-help' lists them. Each example has a
 # fragment of variables, found here by its path, from which a template of its
 # backend defines its targets:
@@ -11,7 +11,10 @@
 #   PROGRAM.device.json and its program PROGRAM.tpe, has the fragment
 #   examples/arduino/NAME/example.mk, which sets EXAMPLE_GRADES, the grades of
 #   the program, EXAMPLE_SIMULATE, the seconds of its host simulation, and
-#   optionally EXAMPLE_LOG_FLAGS, the build flags of its target -log. The
+#   optionally EXAMPLE_LOG_FLAGS, the build flags of its target -log, and
+#   EXAMPLE_RECORD_FLAGS and EXAMPLE_RECORD_FILTER, the build flags of its
+#   target -record and the awk program that extracts the recordings from the
+#   serial output read by its target -capture. The
 #   board is that of the manifest, and its port the variable PORT_BOARD, the
 #   name of the board in upper case with '-' replaced by '_'. 'make
 #   examples-help' groups the Arduino targets by board, named by the member
@@ -26,7 +29,8 @@
 # the development machine: an M5Stack Gray, the core of the BALA2, through its
 # CP2104 USB-serial bridge, and an M5Stack CoreS3 Lite through its USB port.
 # PORT, when set, is the port of every upload. CAPTURE is the time, in
-# seconds, for which the serial port is read after an upload that captures;
+# seconds, for which the serial port is read after an upload that captures,
+# and by a target -capture;
 # SIMULATE, when set, the simulated time, in seconds, of every host
 # simulation, by default that of the example; MONITOR, when set, the monitor
 # policy, by default abort, and warn for the uploads that capture. Each can
@@ -45,7 +49,7 @@ tempore-cli:
 
 # The variables a fragment sets, emptied before each fragment is read.
 EXAMPLE_FIELDS = EXAMPLE_GRADES EXAMPLE_TIME_UNIT EXAMPLE_SIMULATE \
-  EXAMPLE_LOG_FLAGS
+  EXAMPLE_LOG_FLAGS EXAMPLE_RECORD_FLAGS EXAMPLE_RECORD_FILTER
 
 # The fragments of the Opentrons example $(1) and of the Arduino example $(1).
 opentrons_fragment = examples/opentrons/$(1).mk
@@ -106,7 +110,8 @@ port_variable = PORT_$(shell echo $(1) | tr a-z- A-Z_)
 # -profile builds and uploads the project _arduino/projects/$(3)-profile
 # with the profile and reads the serial port for CAPTURE seconds; -log, under
 # EXAMPLE_LOG_FLAGS, builds and uploads the project _arduino/projects/$(3)-log
-# with these build flags and reads the serial port for CAPTURE seconds.
+# with these build flags and reads the serial port for CAPTURE seconds; -record
+# and -capture, under EXAMPLE_RECORD_FLAGS, as in arduino_record.
 define arduino_template
 arduino-$(1)-simulate: tempore-cli
 	$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
@@ -146,6 +151,7 @@ ARDUINO_TARGETS += arduino-$(1)-simulate arduino-$(1)-build \
 ARDUINO_BOARDS += $(4)
 ARDUINO_EXAMPLES_$(4) += $(1)
 $(if $(EXAMPLE_LOG_FLAGS),$(call arduino_log,$(1),$(2),$(3),$(4)))
+$(if $(EXAMPLE_RECORD_FLAGS),$(call arduino_record,$(1),$(2),$(3),$(4)))
 endef
 
 # The target -log of the Arduino example $(1), as in arduino_template.
@@ -164,6 +170,46 @@ ARDUINO_LOGS += $(1)
 ARDUINO_LOGS_$(4) += $(1)
 ARDUINO_TARGETS += arduino-$(1)-log
 ARDUINO_LOG_FLAGS_$(1) = $(EXAMPLE_LOG_FLAGS)
+endef
+
+# The targets -record and -capture of the Arduino example $(1), as in
+# arduino_template: -record builds and uploads the project
+# _arduino/projects/$(3)-record with the build flags EXAMPLE_RECORD_FLAGS and
+# reads the serial port for CAPTURE seconds; -capture, without an upload,
+# reads the serial port for CAPTURE seconds into
+# _arduino/recordings/$(1)-TIME.log, TIME the date and time of the capture,
+# and writes the recordings extracted from it by the awk program
+# EXAMPLE_RECORD_FILTER, run under the locale C, to
+# _arduino/recordings/$(1)-TIME.csv, or reports that no recording was read in
+# full.
+define arduino_record
+arduino-$(1)-record: tempore-cli arduino-deps
+	PLATFORMIO_BUILD_FLAGS="$$(strip $$(PLATFORMIO_BUILD_FLAGS) $(EXAMPLE_RECORD_FLAGS))" \
+	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	  --emit-arduino $(3)-record \
+	  --device $(2)/$(3).device.json \
+	  --monitor $$(or $$(MONITOR),warn) \
+	  --upload --port $$(call port,$(4)) \
+	  --capture $$(CAPTURE) \
+	  $(2)/$(3).tpe
+
+arduino-$(1)-capture: tempore-cli
+	mkdir -p _arduino/recordings
+	name=_arduino/recordings/$(1)-$$$$(date +%Y%m%d-%H%M%S); \
+	$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	  --emit-arduino $(3)-record \
+	  --device $(2)/$(3).device.json \
+	  --capture $$(CAPTURE) --port $$(call port,$(4)) \
+	  $(2)/$(3).tpe | tee "$$$$name.log"; \
+	LC_ALL=C awk -f $(EXAMPLE_RECORD_FILTER) "$$$$name.log" > "$$$$name.csv"; \
+	if [ -s "$$$$name.csv" ]; then echo "Wrote $$$$name.csv"; \
+	else rm -f "$$$$name.csv"; \
+	  echo "No complete recording was read; the serial output is in $$$$name.log."; \
+	  exit 1; fi
+
+ARDUINO_RECORDS_$(4) += $(1)
+ARDUINO_TARGETS += arduino-$(1)-record arduino-$(1)-capture
+ARDUINO_RECORD_FLAGS_$(1) = $(EXAMPLE_RECORD_FLAGS)
 endef
 
 arduino_example = $(call arduino_template,$(1),$(2),$(call \
@@ -189,25 +235,30 @@ board_title = $(shell sed -n 's/^ *"title": *"\([^"]*\)".*/\1/p' \
 define arduino_board_help
 	@echo "$(call board_title,$(1)), port $(call port_variable,$(1)) = $($(call port_variable,$(1))):"
 	@echo "  NAME one of: $(ARDUINO_EXAMPLES_$(1))"
-	@echo "  arduino-NAME-simulate     simulates the project on the host"
-	@echo "  arduino-NAME-build        builds the project with PlatformIO"
-	@echo "  arduino-NAME-upload       builds the project and uploads it to the board"
-	@echo "  arduino-NAME-profile      uploads the project with the profile and reads the port"
-	@$(foreach name,$(ARDUINO_LOGS_$(1)),printf '  %-25s %s\n' \
+	@echo "  arduino-NAME-simulate         simulates the project on the host"
+	@echo "  arduino-NAME-build            builds the project with PlatformIO"
+	@echo "  arduino-NAME-upload           builds the project and uploads it to the board"
+	@echo "  arduino-NAME-profile          uploads the project with the profile and reads the port"
+	@$(foreach name,$(ARDUINO_LOGS_$(1)),printf '  %-29s %s\n' \
 	  "arduino-$(name)-log" \
 	  "uploads the project with $(ARDUINO_LOG_FLAGS_$(name)) and reads the port";)
+	@$(foreach name,$(ARDUINO_RECORDS_$(1)),printf '  %-29s %s\n' \
+	  "arduino-$(name)-record" \
+	  "uploads the project with $(ARDUINO_RECORD_FLAGS_$(name)) and reads the port" \
+	  "arduino-$(name)-capture" \
+	  "reads the recordings from the port into _arduino/recordings/$(name)-TIME.csv";)
 endef
 
 examples-help:
-	@echo "Opentrons examples, NAME one of: $(OPENTRONS_EXAMPLES)"
-	@echo "  opentrons-NAME-emit       writes the protocol to _opentrons/protocols/NAME.py"
-	@echo "  opentrons-NAME-simulate   writes the protocol and runs the Opentrons simulator"
-	@echo "  opentrons-simulate-all    opentrons-NAME-simulate for every example"
 	@echo "Arduino examples, by board:"
 	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_board_help,$(board)))
 	@echo "All Arduino examples:"
-	@echo "  arduino-simulate-all      arduino-NAME-simulate for every example"
-	@echo "  arduino-build-all         arduino-NAME-build for every example"
+	@echo "  arduino-simulate-all          arduino-NAME-simulate for every example"
+	@echo "  arduino-build-all             arduino-NAME-build for every example"
+	@echo "Opentrons examples, NAME one of: $(OPENTRONS_EXAMPLES)"
+	@echo "  opentrons-NAME-emit           writes the protocol to _opentrons/protocols/NAME.py"
+	@echo "  opentrons-NAME-simulate       writes the protocol and runs the Opentrons simulator"
+	@echo "  opentrons-simulate-all        opentrons-NAME-simulate for every example"
 	@echo "Variables, with their values:"
 	@printf '  %-44s %s\n' \
 	  "PORT=$(PORT)" "when set, the port of every upload" \

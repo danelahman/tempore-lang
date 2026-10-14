@@ -1,0 +1,7 @@
+(* A rejected variant of examples/arduino/fall/fall.tpe. *)
+
+let suspect_late (least : float) =
+  box [0, 1000] least as window in
+  let peak = strikes (strikes (search ())) in
+  if peak > impact then (unbox window as least in Fall (least, peak))
+  else Fall (least, 0.0)

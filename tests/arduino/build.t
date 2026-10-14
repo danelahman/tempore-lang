@@ -128,6 +128,14 @@ the second, and the start of a third profile:
   [0.1 ms] S
   No complete profile was read.
 
+Without --upload, the project is written and the port read without
+PlatformIO, as to read the output of a board already programmed:
+
+  $ run PATH="$PWD/bin:$PATH" $T toy --device toy/toy.device.json toy/toy.tpe \
+  >   --port serial.log --capture 2 | grep -v '^Wrote' | head -n 2
+  [0.1 ms] Start
+  [5000.0 ms] Profile since start-up, times in microseconds
+
 A failed upload is not followed by the capture, and a port that does not
 appear within the capture is an error:
 
@@ -152,7 +160,7 @@ The options of PlatformIO need a project.
   ../../tempore: option '--upload' requires '--device'.
   [2]
   $ $T toy --device toy/toy.device.json toy/toy.tpe --build --port /dev/ttyUSB0
-  ../../tempore: option '--port' requires '--upload'.
+  ../../tempore: option '--port' requires '--upload' or '--capture'.
   [2]
   $ $T toy --device toy/toy.device.json toy/toy.tpe --pio ./failing_pio
   ../../tempore: option '--pio' requires '--build' or '--upload'.
@@ -167,7 +175,16 @@ The options of PlatformIO need a project.
   ../../tempore: option '--capture' requires '--port'.
   [2]
   $ $T toy --device toy/toy.device.json toy/toy.tpe --build --capture 1
-  ../../tempore: option '--capture' requires '--upload'.
+  ../../tempore: option '--capture' requires '--port'.
+  [2]
+  $ $T toy --device toy/toy.device.json toy/toy.tpe --build --port p --capture 1
+  ../../tempore: option '--capture' cannot be used with '--build'.
+  [2]
+  $ $T toy --device toy/toy.device.json toy/toy.tpe --host-simulate 1 --port p --capture 1
+  ../../tempore: option '--capture' cannot be used with '--host-simulate'.
+  [2]
+  $ $T toy toy/toy.tpe --port p --capture 1
+  ../../tempore: option '--capture' requires '--device'.
   [2]
   $ $T toy toy/toy.tpe --profile
   ../../tempore: option '--profile' requires '--device'.

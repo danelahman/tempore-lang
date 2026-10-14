@@ -1,5 +1,5 @@
-(* The package m5-display: lines of text and numbers on the display of an
-   M5Stack core, through M5Unified. Grades: time-interval-rational, in
+(* The package m5-display: lines of text and numbers, buttons, bars and a
+   bubble level on the display of an M5Stack core, through M5Unified. Grades: time-interval-rational, in
    milliseconds.
 
    ShowText s and ShowNumber x write a line, the number with three decimals,
@@ -11,7 +11,7 @@
    an M5Stack CoreS3 Lite by the profile of the device (2026-10-14): the
    lower bound is the least time measured over both, rounded down, and the
    upper bound 1.5 times the greatest, rounded up. ClearDisplay took 31.354
-   to 31.814 ms. ShowText and ShowNumber took 0.858 to 2.561 ms and 0.104 to
+   to 31.814 ms. ShowText and ShowNumber took 0.858 to 2.561 ms and 0.061 to
    1.597 ms, on lines of at most 14 characters; a line written below the
    display, which draws nothing, takes the least time, and ShowText, which
    writes its line as ShowNumber does, has the lower bound of ShowNumber,
@@ -25,13 +25,87 @@
    The bounds hold on both boards, and the descriptor gives none per board:
    ClearDisplay took 31.354 to 31.469 ms on the Gray and 31.739 to 31.814 ms
    on the CoreS3, which give the same bounds, and those of ShowText and
-   ShowNumber are those of a full line. *)
+   ShowNumber are those of a full line.
 
-operation ShowText : string ~> unit # [0.1, 12.5]
+   ShowTextAt (x, y, size, s) writes s at the pixel (x, y) from the top left
+   corner, in text of the size 1 to 4 (a larger size is 4, a smaller 1),
+   over the band from x to the right edge of the display, 10 times the size
+   pixels high, which it fills with the background first, so that it
+   replaces the text of that band; ShowNumberAt (x, y, size, decimals, v)
+   writes v with the given number of decimals, at most 6, likewise. The next
+   line of ShowText or ShowNumber starts at the left edge below the band.
+   They leave the rest of the display as it is, and ClearDisplay clears it.
+
+   ShowTimeAt (x, y, size, s, t) writes s followed by the duration of t
+   seconds as minutes and seconds, m:ss, likewise. ShowColourTextAt (x, y,
+   size, foreground, background, s) writes s likewise in the colour
+   foreground over the band filled with the colour background, each a
+   colour of 24 bits, 0xRRGGBB.
+
+   The upper bound of ShowTextAt and ShowNumberAt assumes the widest band,
+   of size 4 from the left edge, 320 by 40 pixels of 16 bits at 40 MHz,
+   5.1 ms, and a full line of 13 characters of size 4, at four times the
+   greatest time per character measured at size 2, 1.28 ms each: 21.7 ms,
+   33 ms with the margin. A text that wraps over several lines is not within
+   these bounds. Their lower bound is that of ShowText. On an M5Stack CoreS3
+   Lite the profile of the device (2026-10-14) measured ShowTextAt at 2.599
+   to 5.498 ms and ShowNumberAt at 1.818 to 4.119 ms, on some texts of the
+   digital level only; a shorter text took 2.404 ms, below these, so the
+   least time depends on the text and the lower bound stays that of
+   ShowText on every board. ShowTimeAt and ShowColourTextAt have the bounds
+   of ShowTextAt, PROVISIONAL, not yet measured.
+
+   DrawButton (x, y, w, h, s) draws a button: a rectangle with rounded
+   corners from the pixel (x, y), w by h pixels, filled with dark grey and
+   outlined in white, with the label s centred in white, in the greatest
+   text size among 2, 1.5 and 1 at which it fits within the rectangle less
+   4 pixels on each side. DrawBar (x, y, w, h, n, colour) draws a horizontal
+   bar from the pixel (x, y), w by h pixels: its first n pixels from the
+   left, at most w, filled with the colour, and the rest with dark grey.
+   DrawLevel (x, y, r, dx, dy, colour) draws a bubble level: a vial, the
+   circle of radius r centred at the pixel (x, y), outlined in white, with a
+   circle of radius r / 4 at its centre outlined in grey, and a bubble, the
+   disc of radius r / 6 filled with the colour, at the offset (dx, dy) in
+   pixels from the centre, moved along it towards the centre so as to lie
+   within the vial. The vial is drawn by the first call and redrawn, with
+   the bubble, by a call that moves the bubble or changes its colour, the
+   previous bubble being erased; a call that does neither draws nothing.
+
+   The bounds of DrawButton, DrawBar and DrawLevel are PROVISIONAL, not yet
+   measured. DrawButton and DrawBar fill at most a rectangle of the display,
+   320 by 240 pixels of 16 bits at 40 MHz, 30.7 ms, and DrawButton writes a
+   label of a line: at most 33 ms, as ShowTextAt. DrawLevel fills two discs
+   of at most a sixth of the radius and outlines two circles, of at most
+   1000 pixels each if the vial lies within the display: at most 10 ms. Their
+   lower bound is 0, the time of a call of DrawLevel that draws nothing. *)
+
+operation ShowText : string ~> unit # [0.05, 12.5]
 default ShowText _ = delay 1
 
-operation ShowNumber : float ~> unit # [0.1, 12.5]
+operation ShowNumber : float ~> unit # [0.05, 12.5]
 default ShowNumber _ = delay 1
 
 operation ClearDisplay : unit ~> unit # [31, 48]
 default ClearDisplay () = delay 31
+
+operation ShowTextAt : nat * nat * nat * string ~> unit # [0.05, 33]
+default ShowTextAt _ = delay 3
+
+operation ShowNumberAt : nat * nat * nat * nat * float ~> unit # [0.05, 33]
+default ShowNumberAt _ = delay 3
+
+operation ShowTimeAt : nat * nat * nat * string * nat ~> unit # [0.05, 33]
+default ShowTimeAt _ = delay 3
+
+operation ShowColourTextAt : nat * nat * nat * nat * nat * string ~> unit
+    # [0.05, 33]
+default ShowColourTextAt _ = delay 3
+
+operation DrawButton : nat * nat * nat * nat * string ~> unit # [0, 33]
+default DrawButton _ = delay 3
+
+operation DrawBar : nat * nat * nat * nat * nat * nat ~> unit # [0, 33]
+default DrawBar _ = delay 1
+
+operation DrawLevel : nat * nat * nat * int * int * nat ~> unit # [0, 10]
+default DrawLevel _ = delay 1

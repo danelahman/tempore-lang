@@ -210,9 +210,10 @@ let parse_args_to_config () =
         ( "--capture",
           Arg.String
             (fun s -> capture := Some (duration_of_string "--capture" s)),
-          " After --upload, read the serial port of --port at the baud rate of \
-           the board for the given number of seconds, printing its lines, and \
-           then the last complete profile among them, if any" );
+          " After --upload, or without an upload with --device, read the \
+           serial port of --port at the baud rate of the board for the given \
+           number of seconds, printing its lines, and then the last complete \
+           profile among them, if any" );
         ( "--debug",
           Arg.Set debug,
           " Print the inferred type schemes of the top-level definitions \
@@ -288,7 +289,7 @@ let parse_args_to_config () =
         ( "--port",
           Arg.String (fun name -> port := Some name),
           " Upload through the given serial port under --upload (default: the \
-           port PlatformIO detects)" );
+           port PlatformIO detects), and read it under --capture" );
         ( "--profile",
           Arg.Set profile,
           " Build the project written with --device with the profile of the \
@@ -355,11 +356,20 @@ let parse_args_to_config () =
     (!device <> None);
   requires "--build" !build "--device" (!device <> None);
   requires "--upload" !upload "--device" (!device <> None);
-  requires "--port" (!port <> None) "--upload" !upload;
+  if !port <> None && not (!upload || !capture <> None) then begin
+    Printf.eprintf "%s: option '--port' requires '--upload' or '--capture'.\n"
+      Sys.argv.(0);
+    exit 2
+  end;
   requires "--board" (!board <> None) "--package" (!packages <> []);
   requires "--profile" !profile "--device" (!device <> None);
-  requires "--capture" (!capture <> None) "--upload" !upload;
+  requires "--capture" (!capture <> None) "--device" (!device <> None);
   requires "--capture" (!capture <> None) "--port" (!port <> None);
+  if !capture <> None && !build then begin
+    Printf.eprintf "%s: option '--capture' cannot be used with '--build'.\n"
+      Sys.argv.(0);
+    exit 2
+  end;
   if !pio <> None && not (!build || !upload) then begin
     Printf.eprintf "%s: option '--pio' requires '--build' or '--upload'.\n"
       Sys.argv.(0);
@@ -373,7 +383,9 @@ let parse_args_to_config () =
           Sys.argv.(0) option;
         exit 2
       end)
-    [ ("--build", !build); ("--upload", !upload) ];
+    [
+      ("--build", !build); ("--upload", !upload); ("--capture", !capture <> None);
+    ];
   if !build && !upload then begin
     Printf.eprintf "%s: option '--build' cannot be used with '--upload'.\n"
       Sys.argv.(0);
@@ -763,7 +775,8 @@ let host_simulate ~directory ~duration ~profile files =
    manifest [device], of the definitions reached from its task functions and
    initial functions, which are found among the [definitions] of the
    program's sources, each with the effect of its type, and whose operations
-   are monitored against the bounds of the declared [operations]. *)
+   are monitored against the bounds of the declared [operations]. The
+   warnings of the check are printed first. *)
 let emit_arduino config ~directory ~device ~declarations ~definitions
     ~operations commands =
   let library, sources =
@@ -781,6 +794,14 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
            device)
       ~runs:config.host_runs ~library sources
   in
+  (* The warnings go to the standard error, a blank line between two, and
+     leave the exit status as it is. *)
+  List.iteri
+    (fun i d ->
+      if i > 0 then Format.pp_print_newline Format.err_formatter ();
+      Diagnostic.print ~source d Format.err_formatter)
+    program.warnings;
+  Format.pp_print_flush Format.err_formatter ();
   let source =
     match List.rev config.filenames with
     | last :: _ -> Filename.basename last
@@ -840,13 +861,10 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
     (fun duration ->
       host_simulate ~directory ~duration ~profile:config.profile files)
     config.host_simulate;
-  if config.build || config.upload then begin
-    let code =
-      platformio ?pio:config.pio ~upload:config.upload ?port:config.port
-        directory
-    in
+  (* Reads the port of --capture, if given, and exits. *)
+  let read_port () =
     match (config.capture, config.port, device) with
-    | Some duration, Some port, Some (_, device) when code = 0 ->
+    | Some duration, Some port, Some (_, device) ->
         (* The board is known: the project was written for it. *)
         let board =
           Option.get (ArduinoBackend.ArduinoBoard.find device.board.it)
@@ -854,8 +872,17 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
         let baud = board.serial_baud in
         capture ~port ~baud ~duration ~profile:config.profile;
         exit 0
-    | _ -> exit code
+    | _ -> ()
+  in
+  if config.build || config.upload then begin
+    let code =
+      platformio ?pio:config.pio ~upload:config.upload ?port:config.port
+        directory
+    in
+    if code = 0 then read_port ();
+    exit code
   end
+  else read_port ()
 
 (* Writes to [filename] the Opentrons protocol of the [commands] of the
    program, with the binding file [binding_name], or reports the errors that

@@ -8,7 +8,7 @@
   "build_flags": ["-DBOARD_HAS_PSRAM"],
   "cores": 2,
   "m5unified": true,
-  "capabilities": ["imu", "display"],
+  "capabilities": ["imu", "display", "speaker"],
   "serial_baud": 115200,
   "i2c": [{ "port": "Wire", "sda": 21, "scl": 22, "frequency": 400000 }],
   "includes": [],

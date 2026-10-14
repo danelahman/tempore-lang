@@ -1,0 +1,9 @@
+(* The package m5-speaker under the regular expressions of timed operations:
+   tones on the speaker of an M5Stack core, through M5Unified. Grades: the
+   regular expressions of timed operations over rational delays, in
+   milliseconds; the operation is its own trace, within the bounds of its
+   running time. Beep, its bounds and its default implementation are those of
+   m5_speaker.tpe. *)
+
+operation Beep : nat * nat ~> unit # {Beep} within [0.05, 0.15]
+default Beep _ = delay 1/20

@@ -16,7 +16,32 @@
    0.224 to 1.000 ms: [0.2, 1.5]. The bounds below cover both
    boards; the descriptor package.json gives those of each board, which
    replace them for a device of that board. The default implementation
-   takes 0.6 ms, within the bounds of each. *)
+   takes 0.6 ms, within the bounds of each.
+
+   ConfigureImu rate sets the output data rate of the accelerometer to the
+   greatest rate supported not above rate hertz, without changing its range:
+   on the BMI270, 25 to 1600 Hz in powers of two, and on a unit of the MPU6886
+   family the sample rate of 1 kHz divided by an integer; on another unit it
+   does nothing. CheckAtRest () reads the unit four times, the readings
+   started 6 ms apart, and returns whether it is at rest: the magnitude of each acceleration between
+   0.9 and 1.1 g and that of each angular rate below 20 degrees per second.
+   It is a check of plausibility, not a self-test of the sensor. Their
+   default implementations take a time within the bounds; that of
+   CheckAtRest returns true.
+
+   The bounds of ConfigureImu and CheckAtRest are measured on an M5Stack
+   CoreS3 Lite by the profile of the device (2026-10-14), by the same rule:
+   ConfigureImu took 0.122 to 0.252 ms, [0.1, 0.4], and CheckAtRest 17.976 to
+   18.982 ms, [17.95, 28.5], with its readings then 5 ms apart from the end
+   of one to the start of the next. Started 6 ms apart, the readings take
+   18 ms and the last reading, within these bounds; they are not measured
+   so, nor on other boards. *)
 
 operation ReadImu : unit ~> imu # [0.2, 1.5]
 default ReadImu () = delay 3/5; ((0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+
+operation ConfigureImu : nat ~> unit # [0.1, 0.4]
+default ConfigureImu _ = delay 1/5
+
+operation CheckAtRest : unit ~> bool # [17.95, 28.5]
+default CheckAtRest () = delay 18; true

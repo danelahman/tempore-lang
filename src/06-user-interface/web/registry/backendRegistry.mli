@@ -34,7 +34,13 @@ val setting : input list -> settings -> string -> string
 
 type severity = Error | Warning | Note
 
-type message = { severity : severity; text : string }
+type message = {
+  severity : severity;
+  text : string;
+  diagnostic : Utils.Diagnostic.t option;
+      (** the diagnostic of an error or a warning, located in the program, its
+          declarations or the inputs, when the compiler reports one *)
+}
 (** A message of a compilation. *)
 
 type compiled = {
@@ -143,19 +149,14 @@ type entry = {
   declarations : settings -> grades:string -> (source list, string) result;
       (** the sources loaded before the program under the grades named [grades],
           in order, or else why they cannot be loaded under them *)
+  files : (string * string) list;
+      (** the file names under which the compiler locates the diagnostics of the
+          text of its inputs, each with the key of the input *)
 }
 
 val interpreter : entry
 (** The interpreter alone: no inputs and no compiled code. The observer is the
     timeline of the run ({!Timeline}), folded at first. *)
-
-val opentrons : entry
-(** Opentrons protocols ({!OpentronsBackend.OpentronsProtocol}). The inputs are
-    the binding file, the robot, the time unit and the monitor policy. Without a
-    binding file the program compiles to a plain Python program
-    ({!OpentronsBackend.OpentronsEmit.plain_program}). The observer is the
-    timeline of the run ({!Timeline}), unfolded at first; its cells are grades,
-    so the time unit does not apply to them. *)
 
 val arduino : entry
 (** PlatformIO projects of the Arduino backend
@@ -167,8 +168,18 @@ val arduino : entry
     malformed manifest. The compiled code is the configuration, [main.cpp], the
     program and the operation wrappers of the project, one file after another,
     each after a comment line naming it; a blank manifest compiles the program
-    alone ({!ArduinoBackend.ArduinoEmit}). The observer is the timeline of the
-    run ({!Timeline}), unfolded at first. *)
+    alone ({!ArduinoBackend.ArduinoEmit}). Under a manifest, the warnings of the
+    check ({!ArduinoBackend.ArduinoFragment.program}) are messages of severity
+    [Warning] with their diagnostics. The observer is the timeline of the run
+    ({!Timeline}), unfolded at first. *)
+
+val opentrons : entry
+(** Opentrons protocols ({!OpentronsBackend.OpentronsProtocol}). The inputs are
+    the binding file, the robot, the time unit and the monitor policy. Without a
+    binding file the program compiles to a plain Python program
+    ({!OpentronsBackend.OpentronsEmit.plain_program}). The observer is the
+    timeline of the run ({!Timeline}), unfolded at first; its cells are grades,
+    so the time unit does not apply to them. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)
@@ -178,3 +189,7 @@ val default : entry
 
 val find : string -> entry option
 (** [find key] is the backend of [key], if any. *)
+
+val input_of_file : string -> input option
+(** [input_of_file filename] is the input of a backend of {!entries} whose text
+    the compiler locates under [filename] ({!entry.files}), if any. *)

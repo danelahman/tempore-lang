@@ -296,3 +296,38 @@ into [-2^31, 2^31), where the interpreter keeps them whole.
   === Run 4 ===
   return (-2147483648i, 2147483392i, 1410065408i)
   
+
+A tail-resumptive handler compiles to direct calls of its cases: an
+operation calls the case of the innermost handler of the operation, which
+runs outside that handler, as in the interpreter, and the functions that the
+handled computation calls are compiled once for each context of handlers
+that their operations reach.
+
+  $ parity handlers.tpe
+  === Run 1 ===
+  return (0, 30)
+  
+  === Run 2 ===
+  return (7, 6)
+  
+  === Run 3 ===
+  return (1, 14)
+  
+  === Run 4 ===
+  return 24
+  
+  === Run 5 ===
+  return 12
+  
+  === Run 6 ===
+  return (9, 6., 0.5)
+  
+  === Run 7 ===
+  return 12
+  
+  === Run 8 ===
+  return (10, ((5, 5), (15, 5)))
+  
+  === Run 9 ===
+  return 84
+  

@@ -1,0 +1,112 @@
+(* Tail-resumptive handlers, compiled to direct calls of their cases:
+   replaced results, forwarding to an outer handler, nested handlers, a
+   handler in a loop and around one, parameters, return cases, a case with a
+   handle of its own, and handlers written at their handle or bound by
+   let. *)
+
+operation Read : unit ~> nat # 0
+operation Scale : float ~> float # 0
+operation Log : nat ~> unit # 0
+
+(* The result of Read replaced by a parameter. *)
+let constant (v : nat) =
+  handler
+  | x -> x
+  | Read () k -> continue k with v
+
+(* Read forwarded to the handler outside, its result offset by d. *)
+let offset (d : nat) =
+  handler
+  | x -> x
+  | Read () k ->
+      let v = perform Read () in
+      continue k with v + d
+
+(* The result paired with the parameter, Log ignored. *)
+let tagged (tag : nat) =
+  handler
+  | x -> (tag, x)
+  | Log _ k -> continue k with ()
+
+(* A handler of two operations, its cases branching before they resume. *)
+let both (factor : float) (small : nat) =
+  handler
+  | x -> x
+  | Read () k ->
+      let v = perform Read () in
+      if v < small then continue k with small else continue k with v
+  | Scale x k ->
+      delay 0;
+      match x > 1.0 with
+      | true -> continue k with factor *. x
+      | false -> continue k with x
+
+(* A case whose operation is handled inside it. *)
+let doubled =
+  handler
+  | x -> x
+  | Read () k ->
+      let v = handle perform Read () with constant 21 in
+      continue k with v + v
+
+(* Operations performed inside functions that the handled computation
+   calls. *)
+let reading () = perform Read ()
+
+let sum_of_two () =
+  let a = reading () in
+  let b = reading () in
+  perform Log a;
+  a + b
+
+let rec sum_reads (n : nat) (acc : nat) =
+  match n with
+  | 0 -> acc
+  | m + 1 ->
+      let r = perform Read () in
+      sum_reads m (acc + r)
+
+let scaled () =
+  let a = reading () in
+  let b = perform Scale 2.0 in
+  let c = perform Scale 0.5 in
+  (a, b, c)
+
+(* A handler in the body of a loop. *)
+let rec handled_loop (n : nat) (acc : nat) =
+  match n with
+  | 0 -> acc
+  | m + 1 ->
+      let r = handle sum_of_two () with tagged n in
+      let _, s = r in
+      handled_loop m (acc + s)
+
+(* A handler written at its handle, of the free variable base. *)
+let shifted (base : nat) =
+  handle reading () + reading () with handler
+  | x -> x
+  | Read () k -> continue k with base + 1
+
+(* A handler bound by let, used twice. *)
+let twice (base : nat) =
+  let h = handler
+    | x -> (x, base)
+    | Read () k -> continue k with base
+  in
+  let a = handle reading () with h in
+  let b = handle sum_reads 3 0 with h in
+  (a, b)
+
+run handle (handle (handle sum_of_two () with offset 10) with constant 5) with tagged 0
+run handle (handle sum_of_two () with tagged 7) with constant 3
+run
+  handle
+    handle (handle (handle sum_of_two () with offset 1) with offset 2)
+    with constant 4
+  with tagged 1
+run handle sum_reads 4 0 with constant 6
+run handle handled_loop 3 0 with constant 2
+run handle (handle scaled () with both 3.0 9) with constant 4
+run handle (handle reading () with both 3.0 9) with constant 12
+run (shifted 4, twice 5)
+run handle sum_reads 2 0 with doubled

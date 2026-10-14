@@ -1,0 +1,10 @@
+{
+  "board": "m5stack-cores3",
+  "tasks": [
+    { "function": "watch", "kind": "free", "repeat": true, "priority": 1 }
+  ],
+  "packages": ["m5-imu", "m5-display", "m5-touch", "m5-speaker"],
+  "bindings": "bindings.cpp",
+  "safe_state": "fall_safe_state",
+  "host_models": ["world.cpp"]
+}

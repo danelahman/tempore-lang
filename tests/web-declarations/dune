@@ -1,0 +1,17 @@
+; Unit tests of the declarations the web interface shows above the program:
+; their title, and the places of the definitions the names of a program link
+; to in them.
+
+(test
+ (name test_declarations)
+ (libraries
+  utils
+  language
+  grades
+  desugarer
+  loader
+  webInterpreter
+  backendRegistry
+  webDeclarations)
+ (deps
+  (glob_files_rec %{project_root}/examples/arduino/*)))

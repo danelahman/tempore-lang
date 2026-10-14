@@ -1,7 +1,8 @@
 (* A control step that uses the reading of the unit after two reads of the
    encoders 1.5 ms apart, after balance.tpe. *)
 
-let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
+let step_stale ((tilt, speed, integral, position, heading) : state) : state
+    # [0, 5) =
   let reading = perform ReadImu () in
   box [0, 2] reading as fresh in
   let left1, right1 = perform ReadEncoders () in
@@ -17,4 +18,4 @@ let step_stale ((tilt, speed, integral, position) : state) : state # [0, 5) =
     complementary gyro_weight period tilt (tilt_x_of_accel accel) (raw -. bias)
   in
   perform SetMotors (0i, 0i);
-  (tilt, speed, integral, (left +. right) /. 2.0)
+  (tilt, speed, integral, (left +. right) /. 2.0, heading)

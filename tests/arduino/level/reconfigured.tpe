@@ -1,0 +1,16 @@
+(* A rejected variant of examples/arduino/level/level.tpe. *)
+
+let step_reconfigured ((reference, age, rate, touching) : state) : state =
+  box {(ReadImu | Touched)*} reference as kept in
+  let accel, _ = perform ReadImu () in
+  let touched, x, y = perform Touched () in
+  let rate =
+    if touched && not touching && on_sensor x y then (
+      let rate = if rate = 100 then 400 else 100 in
+      perform ConfigureImu rate;
+      rate)
+    else rate
+  in
+  unbox kept as reference in
+  display reference (angles accel reference) age;
+  (reference, age, rate, touched)

@@ -23,6 +23,17 @@ void tempore_i2c_lock() { xSemaphoreTake(tempore_i2c_mutex, portMAX_DELAY); }
 
 void tempore_i2c_unlock() { xSemaphoreGive(tempore_i2c_mutex); }
 
+static SemaphoreHandle_t tempore_display_mutex = xSemaphoreCreateMutex();
+
+void tempore_display_lock() {
+  xSemaphoreTake(tempore_display_mutex, portMAX_DELAY);
+}
+
+void tempore_display_unlock() { xSemaphoreGive(tempore_display_mutex); }
+
+// The display of the events of the monitor, if any.
+static const tempore_monitor_display *tempore_monitor_screen = nullptr;
+
 int64_t tempore_clock_us() { return esp_timer_get_time(); }
 
 void tempore_log(const char *format, ...) {
@@ -49,13 +60,27 @@ void tempore_check_halt() {
   if (tempore_halt.load()) tempore_stop_task();
 }
 
-void tempore_abort(const char *reason) {
+// Logs reason and, unless the tasks are already halted, enters the safe state
+// and then draws the banner of the lines first and second, if first is not
+// nullptr and the board has a screen; halts the tasks.
+[[noreturn]] static void tempore_halt_tasks(const char *reason,
+                                            const char *first,
+                                            const char *second) {
   tempore_log("%s", reason);
   if (!tempore_halt.exchange(true)) {
     tempore_log("Safe state");
     tempore_safe_state();
+    if (first != nullptr && tempore_monitor_screen != nullptr) {
+      tempore_display_lock();
+      tempore_monitor_screen->stop(first, second);
+      tempore_display_unlock();
+    }
   }
   tempore_stop_task();
+}
+
+void tempore_abort(const char *reason) {
+  tempore_halt_tasks(reason, nullptr, nullptr);
 }
 
 void tempore_fault(const char *message) {
@@ -98,6 +123,71 @@ void tempore_delay(uint32_t numerator, uint32_t denominator) {
 // An end of an interval of microseconds, as text.
 static void tempore_print_end(char *buffer, size_t size, int64_t value) {
   snprintf(buffer, size, "%lld", static_cast<long long>(value));
+}
+
+// A time of microseconds, not negative, as milliseconds with at most three
+// decimals, without trailing zeros.
+static void tempore_print_ms(char *buffer, size_t size, int64_t us) {
+  const long long whole = us / 1000;
+  long long fraction = us % 1000;
+  if (fraction == 0) {
+    snprintf(buffer, size, "%lld", whole);
+    return;
+  }
+  int digits = 3;
+  for (; fraction % 10 == 0; fraction /= 10) --digits;
+  snprintf(buffer, size, "%lld.%0*lld", whole, digits, fraction);
+}
+
+#ifndef TEMPORE_MONITOR_DISPLAY_INTERVAL_MS
+#define TEMPORE_MONITOR_DISPLAY_INTERVAL_MS 500
+#endif
+
+// The warnings of the monitor under the policy warn: their number and the
+// last of them, updated in a critical section.
+static portMUX_TYPE tempore_warning_lock = portMUX_INITIALIZER_UNLOCKED;
+static uint32_t tempore_warning_count = 0;
+static char tempore_last_warning[64] = "";
+
+// Records the warning last, if the board has a screen.
+static void tempore_record_warning(const char *last) {
+  if (tempore_monitor_screen == nullptr) return;
+  char copy[sizeof tempore_last_warning];
+  snprintf(copy, sizeof copy, "%s", last);
+  portENTER_CRITICAL(&tempore_warning_lock);
+  ++tempore_warning_count;
+  memcpy(tempore_last_warning, copy, sizeof copy);
+  portEXIT_CRITICAL(&tempore_warning_lock);
+}
+
+// The task that draws the warnings, if any, every
+// TEMPORE_MONITOR_DISPLAY_INTERVAL_MS milliseconds, so that the line is drawn
+// again after the application clears the screen, until the tasks are halted.
+static void tempore_warning_display(void *) {
+  for (;;) {
+    vTaskDelay(pdMS_TO_TICKS(TEMPORE_MONITOR_DISPLAY_INTERVAL_MS));
+    tempore_check_halt();
+    char last[sizeof tempore_last_warning];
+    portENTER_CRITICAL(&tempore_warning_lock);
+    const uint32_t count = tempore_warning_count;
+    memcpy(last, tempore_last_warning, sizeof last);
+    portEXIT_CRITICAL(&tempore_warning_lock);
+    if (count == 0) continue;
+    char line[128];
+    snprintf(line, sizeof line, "Monitor: %lu warning%s, last %s",
+             static_cast<unsigned long>(count), count == 1 ? "" : "s", last);
+    tempore_display_lock();
+    tempore_monitor_screen->warnings(line);
+    tempore_display_unlock();
+  }
+}
+
+void tempore_monitor_display_begin(const tempore_monitor_display *display) {
+  tempore_monitor_screen = display;
+  if (tempore_monitor == tempore_monitor_policy::warn)
+    xTaskCreatePinnedToCore(tempore_warning_display, "tempore-monitor", 4096,
+                            nullptr, tskIDLE_PRIORITY, nullptr,
+                            tskNO_AFFINITY);
 }
 
 #ifdef TEMPORE_PROFILE
@@ -145,10 +235,22 @@ void tempore_monitor_operation(tempore_operation_monitor *operation,
            name, static_cast<long long>(elapsed_us),
            bounds->lower_open ? "(" : "[", lower, upper,
            bounds->upper_finite && !bounds->upper_open ? "]" : ")");
-  if (tempore_monitor == tempore_monitor_policy::abort)
-    tempore_abort(reason);
-  else
-    tempore_log("%s", reason);
+  char took[24], first[64], second[64];
+  tempore_print_ms(took, sizeof took, elapsed_us);
+  if (tempore_monitor == tempore_monitor_policy::abort) {
+    char lower_ms[24], upper_ms[24];
+    tempore_print_ms(lower_ms, sizeof lower_ms, bounds->lower);
+    snprintf(first, sizeof first, "%s took %s ms", name, took);
+    if (bounds->upper_finite) {
+      tempore_print_ms(upper_ms, sizeof upper_ms, bounds->upper);
+      snprintf(second, sizeof second, "bounds %s-%s ms", lower_ms, upper_ms);
+    } else
+      snprintf(second, sizeof second, "lower bound %s ms", lower_ms);
+    tempore_halt_tasks(reason, first, second);
+  }
+  tempore_log("%s", reason);
+  snprintf(first, sizeof first, "%s %s ms", name, took);
+  tempore_record_warning(first);
 }
 
 void tempore_monitor_period(tempore_task_monitor *task, int64_t start_us,
@@ -172,10 +274,18 @@ void tempore_monitor_period(tempore_task_monitor *task, int64_t start_us,
            "period %lld us",
            task->name, static_cast<long long>(elapsed_us),
            static_cast<long long>(task->period_us));
-  if (tempore_monitor == tempore_monitor_policy::abort)
-    tempore_abort(reason);
-  else
-    tempore_log("%s", reason);
+  char took[24], first[64], second[64];
+  tempore_print_ms(took, sizeof took, elapsed_us);
+  if (tempore_monitor == tempore_monitor_policy::abort) {
+    char period_ms[24];
+    tempore_print_ms(period_ms, sizeof period_ms, task->period_us);
+    snprintf(first, sizeof first, "%s step took %s ms", task->name, took);
+    snprintf(second, sizeof second, "period %s ms", period_ms);
+    tempore_halt_tasks(reason, first, second);
+  }
+  tempore_log("%s", reason);
+  snprintf(first, sizeof first, "%s step %s ms", task->name, took);
+  tempore_record_warning(first);
 }
 
 #ifdef TEMPORE_PROFILE

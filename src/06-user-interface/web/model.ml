@@ -31,6 +31,7 @@ type definition = {
 type destination =
   | In_editor of int * int  (** the bytes of the editor's text naming it *)
   | In_library of library_entry
+  | In_declarations of declaration_entry
 
 and library_entry = {
   line : int;  (** the line of the standard library naming it, from 1 *)
@@ -38,6 +39,14 @@ and library_entry = {
   value : definition option;  (** the definition, when the name is a value's *)
 }
 (** A definition of the standard library, which the editor does not show. *)
+
+and declaration_entry = {
+  place : WebDeclarations.place;
+      (** where it lies among the declarations the selected backend loads *)
+  defined : definition option;  (** the definition, when the name is a value's *)
+}
+(** A definition of the declarations loaded before the program, which the editor
+    shows above it. *)
 
 type link = {
   use : int * int;  (** the bytes of the editor's text where the name occurs *)
@@ -51,7 +60,8 @@ type popover_target =
   | Error_label of int * int  (** the span of label [j] of the [i]th error *)
   | Definition of int  (** the name of the [k]th definition *)
   | Reference of int
-      (** the name of the [k]th link, defined in the standard library *)
+      (** the name of the [k]th link, defined in the standard library or in the
+          declarations loaded before the program *)
 
 (** What a button of the code options asks for. *)
 type action =
@@ -63,6 +73,9 @@ type flash =
   | Span of int * int
       (** the bytes of the editor's text from a start up to a stop *)
   | Message of int  (** the message of the [i]th error *)
+  | Declaration of string * int * int
+      (** the bytes of the declarations of the given file name from a start up
+          to a stop *)
 
 (** A notice shown under the example. *)
 type notice =
@@ -166,6 +179,9 @@ and msg =
   | ShowPage of page
       (** Switch between the editor and the documentation. The rest of the model
           is left alone, so the source and any run survive the detour. *)
+  | ShowDocs of WebDocPages.page * string option
+      (** Show the given page of the documentation, at the heading of the given
+          identifier or else at its top. *)
   | HoverLabel of (int * int) option
       (** The pointer has entered label [j] of reported error [i], or left the
           labels. Top-level, since the error display belongs to neither the
@@ -182,6 +198,12 @@ and msg =
   | CloseGallery  (** Hide the example gallery without loading an example. *)
   | SearchGallery of string
       (** The text of the gallery's search field has changed. *)
+  | ReachHeading of string
+      (** The documentation has been scrolled to the section of the heading of
+          the given identifier. *)
+  | ReachGroup of string
+      (** The list of the example gallery has been scrolled to the group of the
+          given identifier. *)
   | Point of pointer * int option * (float * float)
       (** The pointer, at the given position of the viewport, has moved onto a
           popover target, onto the popover or off both, or onto or off the name
@@ -213,6 +235,9 @@ and msg =
   | CopyLink
       (** Copy the link to the example, the grades and the backend selected to
           the clipboard. *)
+  | ShowDeclarations of bool
+      (** The declarations shown above the program have been unfolded, or
+          folded. *)
   | Copied of string * bool
       (** The given link has been copied to the clipboard, or the clipboard has
           refused it. *)
@@ -483,10 +508,12 @@ type load_error = {
       (** The label the pointer is over, whose span is brightened in the editor.
       *)
 }
-(** An error the edit view reports, with the state of showing it. *)
+(** An error the edit view reports, or a warning, of the diagnostic kind
+    [Warning], with the state of showing it. *)
 
 type check = {
   errors : int;  (** the number of errors reported *)
+  warnings : int;  (** the number of warnings reported *)
   definitions : int;  (** the number of top-level definitions of the program *)
   current : bool;
       (** whether neither the program nor the options have changed since *)
@@ -524,9 +551,16 @@ type model = {
       (** Whether the source has been edited since the errors were reported, so
           that their spans point at bytes that have moved. *)
   page : page;
+  docs_page : WebDocPages.page;
+      (** The page of the documentation shown, kept while the editor is. *)
+  docs_heading : string option;
+      (** The heading of the section of the documentation scrolled to, [None]
+          for the first. *)
   gallery : string option;
       (** The search of the example gallery while it is open, [None] while it is
           closed. *)
+  gallery_group : string option;
+      (** The group of the example gallery scrolled to, [None] for the first. *)
   definitions : definition list;
       (** The definitions of the program as last checked, those accepted before
           its first error; none once the source or the options change. *)
@@ -569,11 +603,20 @@ type model = {
   declared : BackendRegistry.source list;
       (** The declarations of the selected backend loaded before the program as
           last checked. *)
+  shown_declarations : WebDeclarations.source list;
+      (** The declarations the selected backend loads before the program under
+          its inputs and the grades selected, shown above the program. *)
+  declarations_open : bool;
+      (** Whether the declarations shown above the program are unfolded. *)
   compiled : compiled option;
       (** The code of the program as last compiled by the selected backend. *)
   compile_serial : int;
       (** The serial of the latest change of the inputs, which the debounce of
           the compilation awaits. *)
+  reports_compilation : bool;
+      (** Whether the errors reported are those of the compilation of the
+          program as last checked, which a compilation with other inputs or by
+          another backend replaces. *)
   code_view : code_view;
       (** What the editor's box shows while the selected backend has a compiler;
           the program otherwise. *)
@@ -583,6 +626,27 @@ type model = {
           end of an earlier one is ignored. *)
 }
 
+(* The declarations the selected backend loads before the program under its
+   inputs and the grades selected, or else why it cannot load them. *)
+let declarations edit_model =
+  (backend edit_model).declarations (settings edit_model)
+    ~grades:edit_model.selected_resource
+
+(* The declarations of [edit_model] shown above the program, none where they
+   cannot be loaded; [shown] is kept while they equal it, so that their view
+   is drawn again only when they change. *)
+let shown_declarations ~shown edit_model =
+  let sources =
+    match declarations edit_model with
+    | Ok sources ->
+        List.map
+          (fun (s : BackendRegistry.source) ->
+            { WebDeclarations.filename = s.filename; text = s.text })
+          sources
+    | Error _ -> []
+  in
+  if sources = shown then shown else sources
+
 let init =
   {
     edit_model = edit_init;
@@ -591,7 +655,10 @@ let init =
     hovered_error = None;
     stale_errors = false;
     page = Editor;
+    docs_page = WebDocPages.Main;
+    docs_heading = None;
     gallery = None;
+    gallery_group = None;
     definitions = [];
     links = [];
     link = None;
@@ -608,8 +675,11 @@ let init =
     closing = false;
     accepted = None;
     declared = [];
+    shown_declarations = shown_declarations ~shown:[] edit_init;
+    declarations_open = false;
     compiled = None;
     compile_serial = 0;
+    reports_compilation = false;
     code_view = Source;
     notice = None;
     notice_serial = 0;
@@ -629,6 +699,10 @@ type side_effect =
   | Focus_current_example
       (** focus the card of the example last loaded in the gallery and centre it
           in the gallery's list *)
+  | Scroll_to_declaration  (** scroll the flashed declaration into view *)
+  | Scroll_to_heading of string option
+      (** scroll the heading of the given identifier to the top of the window,
+          or the page to its top *)
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
@@ -670,12 +744,6 @@ let edits_program = function
     them, in milliseconds. *)
 let compile_delay = 300
 
-(* The declarations the selected backend loads before the program under its
-   inputs and the grades selected, or else why it cannot load them. *)
-let declarations edit_model =
-  (backend edit_model).declarations (settings edit_model)
-    ~grades:edit_model.selected_resource
-
 (* Whether the program, unchanged since its last check, was checked with
    other declarations than those the selected backend now loads, and must be
    checked again. *)
@@ -692,23 +760,57 @@ let declarations_changed model =
 let compile model =
   match (model.accepted, (backend model.edit_model).compiler) with
   | Some accepted, Some compiler ->
+      let refused text diagnostic =
+        {
+          BackendRegistry.code = None;
+          language = "";
+          messages = [ { severity = BackendRegistry.Error; text; diagnostic } ];
+        }
+      in
       let output =
-        try accepted compiler (settings model.edit_model)
-        with exn ->
-          {
-            BackendRegistry.code = None;
-            language = "";
-            messages =
-              [
-                {
-                  severity = BackendRegistry.Error;
-                  text = Printexc.to_string exn;
-                };
-              ];
-          }
+        try accepted compiler (settings model.edit_model) with
+        | Error.Error d ->
+            refused
+              (String.trim (Format.asprintf "%t" (Diagnostic.print d)))
+              (Some d)
+        | exn -> refused (Printexc.to_string exn) None
       in
       Some { output; up_to_date = true }
   | _ -> None
+
+(* The errors and the warnings of a compilation, reported as those of a
+   check: the diagnostic of each, or else a diagnostic of its text alone. *)
+let compilation_errors = function
+  | None -> []
+  | Some { output; _ } ->
+      List.filter_map
+        (fun (m : BackendRegistry.message) ->
+          let reported kind =
+            let diagnostic =
+              Option.value m.diagnostic
+                ~default:
+                  {
+                    Diagnostic.kind;
+                    primary = None;
+                    message = m.text;
+                    labels = [];
+                    notes = [];
+                  }
+            in
+            Some { diagnostic; hovered_label = None }
+          in
+          match m.severity with
+          | BackendRegistry.Error -> reported Compilation
+          | Warning -> reported Warning
+          | Note -> None)
+        output.messages
+
+let is_warning (error : load_error) = error.diagnostic.kind = Diagnostic.Warning
+
+(* The numbers of errors and of warnings of [reported]. *)
+let counted reported =
+  let warnings = List.length (List.filter is_warning reported) in
+  (List.length reported - warnings, warnings)
 
 (* The first error whose primary span covers [offset], a byte of the editor's
    text. A point span is widened as the editor widens it when marking it. *)
@@ -726,9 +828,10 @@ let error_at errors offset =
 let within offset start stop = start <= offset && offset < max stop (start + 1)
 
 (* The popover target at [offset], a byte of the editor's text: a label of an
-   error, the primary span of one, or the name of a definition, in this order
-   of precedence, the first found of each. *)
-let target_at errors definitions offset =
+   error, the primary span of one, the name of a definition, or a name defined
+   in the declarations loaded before the program, in this order of
+   precedence, the first found of each. *)
+let target_at errors definitions links offset =
   let covers (loc : Location.t) =
     loc.filename = "" && within offset loc.start.offset loc.stop.offset
   in
@@ -758,11 +861,21 @@ let target_at errors definitions offset =
            | Some (start, stop) -> within offset start stop
            | None -> false)
          definitions)
+  and declared =
+    Option.map
+      (fun k -> Reference k)
+      (List.find_index
+         (fun { use = start, stop; destination } ->
+           match destination with
+           | In_declarations _ -> within offset start stop
+           | In_editor _ | In_library _ -> false)
+         links)
   in
-  match (label, primary) with
-  | Some _, _ -> label
-  | None, Some _ -> primary
-  | None, None -> definition
+  match (label, primary, definition) with
+  | Some _, _, _ -> label
+  | None, Some _, _ -> primary
+  | None, None, Some _ -> definition
+  | None, None, None -> declared
 
 (* [one_line print] is the text [print] prints, each line break a space and no
    break made for the margin's sake. *)
@@ -873,33 +986,44 @@ let within_span (span : Location.t) (loc : Location.t) =
   && loc.stop.offset <= span.stop.offset
 
 (* The links of the names of the editor's program among [links], each to a
-   definition in the editor or in the standard library, whose source is
-   [library] and whose top-level definitions are [library_definitions], each
-   a variable, the location of its command and its scheme. *)
-let linked ~library ~library_definitions ~name ~scheme_layout
-    (links : Desugarer.References.link list) =
+   definition in the editor, in the standard library, whose source is
+   [library] and whose top-level definitions are [library_definitions], or in
+   the sources [declarations] loaded before the program, whose top-level
+   definitions are among [definitions]; definitions are given as a variable,
+   the location of its command and its scheme. *)
+let linked ~library ~library_definitions ~declarations ~definitions ~name
+    ~scheme_layout (links : Desugarer.References.link list) =
   let lines = lazy (String.split_on_char '\n' library) in
+  (* the top-level value among [definitions] whose command covers
+     [definition] *)
+  let value definitions (definition : Location.t) = function
+    | Desugarer.References.Value ->
+        List.find_map
+          (fun (variable, at, scheme) ->
+            if within_span at definition then
+              Some
+                {
+                  name = name variable;
+                  scheme = scheme_text ~scheme_layout scheme;
+                  name_span = None;
+                }
+            else None)
+          definitions
+    | Constructor | Type | Operation -> None
+  in
   let entry (definition : Location.t) sort =
     let line = definition.start.line in
-    let value =
-      match (sort : Desugarer.References.sort) with
-      | Value ->
-          List.find_map
-            (fun (variable, at, scheme) ->
-              if within_span at definition then
-                Some
-                  {
-                    name = name variable;
-                    scheme = scheme_text ~scheme_layout scheme;
-                    name_span = None;
-                  }
-              else None)
-            library_definitions
-      | Constructor | Type | Operation -> None
-    in
     Option.map
-      (fun text -> In_library { line; text; value })
+      (fun text ->
+        In_library
+          { line; text; value = value library_definitions definition sort })
       (List.nth_opt (Lazy.force lines) (line - 1))
+  in
+  let declared (definition : Location.t) sort =
+    Option.map
+      (fun place ->
+        In_declarations { place; defined = value definitions definition sort })
+      (WebDeclarations.place declarations sort definition)
   in
   List.filter_map
     (fun ({ use; definition; sort } : Desugarer.References.link) ->
@@ -909,7 +1033,7 @@ let linked ~library ~library_definitions ~name ~scheme_layout
           Some (In_editor (definition.start.offset, definition.stop.offset))
         else if definition.filename = Loader.stdlib_filename then
           entry definition sort
-        else None
+        else declared definition sort
       in
       Option.map
         (fun destination ->
@@ -937,6 +1061,32 @@ let utf16_offset source byte =
       else go (i + 4) (units + 2)
   in
   go 0 0
+
+(* The model with the code [compiled]. Where the errors reported are those of
+   the compilation, the errors of [compiled] replace them, unless they are the
+   same, and the outcome of the check counts them. *)
+let recompiled model compiled =
+  let model = { model with compiled } in
+  let errors = compilation_errors compiled in
+  let diagnostics = List.map (fun (e : load_error) -> e.diagnostic) in
+  match model.run_model with
+  | Error reported
+    when model.reports_compilation && diagnostics reported <> diagnostics errors
+    ->
+      {
+        (without_popover model) with
+        run_model = Error errors;
+        active_error = None;
+        hovered_error = None;
+        flash = None;
+        last_check =
+          Option.map
+            (fun check ->
+              let errors, warnings = counted errors in
+              { check with errors; warnings })
+            model.last_check;
+      }
+  | _ -> model
 
 (** What the program was undergoing when an exception was raised. *)
 type stage = Checking | Running
@@ -971,21 +1121,22 @@ let rec update_model model = function
         ~some:(fun (group, e) ->
           update_model model (EditMsg (LoadExample (group, e))))
         (default_example key)
-  | EditMsg ((SelectBackend _ | SetInput _) as edit_msg) ->
+  | EditMsg ((SelectBackend _ | SetInput _) as edit_msg) -> (
       (* The program stays checked: another backend compiles it at once, and
          a changed input after a rest (see [update]). *)
       let model =
         { model with edit_model = edit_update model.edit_model edit_msg }
       in
-      let compiled =
-        match edit_msg with
-        | SelectBackend _ -> compile model
-        | _ ->
-            Option.map
-              (fun compiled -> { compiled with up_to_date = false })
-              model.compiled
-      in
-      { model with compiled }
+      match edit_msg with
+      | SelectBackend _ -> recompiled model (compile model)
+      | _ ->
+          {
+            model with
+            compiled =
+              Option.map
+                (fun compiled -> { compiled with up_to_date = false })
+                model.compiled;
+          })
   | EditMsg edit_msg ->
       (* A loaded example replaces the program, so the errors of the old one
          go with it; an edit only makes them out of date. *)
@@ -1018,6 +1169,10 @@ let rec update_model model = function
         links = [];
         link = None;
         flash = None;
+        declarations_open =
+          (match edit_msg with
+          | LoadExample _ -> false
+          | _ -> model.declarations_open);
         last_check =
           (match edit_msg with
           | LoadExample _ -> None
@@ -1026,6 +1181,8 @@ let rec update_model model = function
                 (fun check -> { check with current = false })
                 model.last_check);
         accepted = (if edits_program edit_msg then None else model.accepted);
+        reports_compilation =
+          model.reports_compilation && not (edits_program edit_msg);
         code_view =
           (match edit_msg with LoadExample _ -> Source | _ -> model.code_view);
         compiled =
@@ -1047,6 +1204,7 @@ let rec update_model model = function
                 run_model = Error (errors_of_exception Running exn);
                 active_error = None;
                 hovered_error = None;
+                reports_compilation = false;
               })
       | Error _ -> model)
   | Perform action ->
@@ -1104,6 +1262,15 @@ let rec update_model model = function
               and links =
                 linked ~library:L.stdlib_source
                   ~library_definitions:(List.map triple library_definitions)
+                  ~declarations:
+                    (List.map
+                       (fun (d : BackendRegistry.source) ->
+                         {
+                           WebDeclarations.filename = d.filename;
+                           text = d.text;
+                         })
+                       declared)
+                  ~definitions:(List.map triple accepted)
                   ~name:Language.Ast.Variable.string_of
                   ~scheme_layout:(L.TC.scheme_layout state.typechecker)
                   references
@@ -1200,10 +1367,19 @@ let rec update_model model = function
               else (Error [], definitions, links, Some accepted)
         with exn -> (Error (errors_of_exception Checking exn), [], [], None)
       in
+      (* A program accepted by a check, not run, reports the errors of its
+         compilation. *)
+      let reports_compilation = (not run) && Option.is_some accepted in
       let model = { model with accepted; declared } in
+      let compiled = compile model in
+      let run_model =
+        if reports_compilation then Error (compilation_errors compiled)
+        else run_model
+      in
       {
         (without_popover model) with
         run_model;
+        reports_compilation;
         active_error = None;
         hovered_error = None;
         stale_errors = false;
@@ -1212,22 +1388,26 @@ let rec update_model model = function
         link = None;
         flash = None;
         checking = None;
-        compiled = compile model;
+        compiled;
         last_check =
-          Some
-            {
-              errors =
-                (match run_model with
-                | Error errors -> List.length errors
-                | Ok _ -> 0);
-              definitions = List.length definitions;
-              current = true;
-            };
+          (let errors, warnings =
+             match run_model with
+             | Error reported -> counted reported
+             | Ok _ -> (0, 0)
+           in
+           Some
+             {
+               errors;
+               warnings;
+               definitions = List.length definitions;
+               current = true;
+             });
       }
   | EditCode ->
       {
         (without_popover model) with
         run_model = Error [];
+        reports_compilation = false;
         active_error = None;
         hovered_error = None;
         stale_errors = false;
@@ -1251,10 +1431,14 @@ let rec update_model model = function
   | ShowPage page -> { (without_popover model) with page }
   | ShowCode code_view -> { (without_popover model) with code_view }
   | HoverError hovered_error -> { model with hovered_error }
-  | OpenGallery -> { (without_popover model) with gallery = Some "" }
+  | OpenGallery ->
+      { (without_popover model) with gallery = Some ""; gallery_group = None }
   | CloseGallery -> { model with gallery = None }
   | SearchGallery query -> { model with gallery = Some query }
+  | ReachHeading id -> { model with docs_heading = Some id }
+  | ReachGroup id -> { model with gallery_group = Some id }
   | OverLink link -> { model with link }
+  | ShowDeclarations declarations_open -> { model with declarations_open }
   | Abbreviate abbreviated -> { model with abbreviated }
   | Unflash serial when serial = model.flash_serial ->
       { model with flash = None }
@@ -1263,11 +1447,11 @@ let rec update_model model = function
   (* A program edited since its check keeps its code, out of date. *)
   | Recompile serial when serial = model.compile_serial -> (
       match compile model with
-      | Some compiled -> { model with compiled = Some compiled }
+      | Some compiled -> recompiled model (Some compiled)
       | None -> model)
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
   | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
-  | GoToError _ | Recompile _ | CopyLink | Copied _ | Unnotice _ ->
+  | GoToError _ | Recompile _ | CopyLink | Copied _ | Unnotice _ | ShowDocs _ ->
       model
 
 (** How long the confirmation of a copied link is shown, in milliseconds. *)
@@ -1309,7 +1493,7 @@ let close model = { (disarm model) with popover = None }
 (* How long what has been gone to stays highlighted, in milliseconds, as long
    as the page's highlight fades: a span of the editor, or an error's
    message. *)
-let flash_duration = function Span _ -> 800 | Message _ -> 900
+let flash_duration = function Span _ | Declaration _ -> 800 | Message _ -> 900
 
 (* [target] highlighted briefly, replacing any earlier flash. *)
 let flash target model =
@@ -1318,9 +1502,10 @@ let flash target model =
     [ After (flash_duration target, Unflash flash_serial) ] )
 
 (* The definition of the [k]th link gone to: the caret placed at a definition
-   in the editor, which flashes, or the popover of a definition in the
-   standard library opened at the name, the caret being there too; the
-   editor's box shows the program. *)
+   in the editor, which flashes; the popover of a definition in the standard
+   library opened at the name, the caret being there too; or a definition in
+   the declarations loaded before the program unfolded, flashed and scrolled
+   to. The editor's box shows the program. *)
 let follow model k =
   let model = { model with code_view = Source } in
   match List.nth_opt model.links k with
@@ -1335,6 +1520,19 @@ let follow model k =
   | Some { destination = In_library _; _ } ->
       let target = Reference k in
       show target { model with link = None; caret_target = Some target }
+  | Some { destination = In_declarations { place; _ }; _ } ->
+      let start, stop = place.span in
+      let model, effects =
+        flash
+          (Declaration (place.filename, start, stop))
+          {
+            (close model) with
+            link = None;
+            caret_target = None;
+            declarations_open = true;
+          }
+      in
+      (model, Scroll_to_declaration :: effects)
   | None -> (model, [])
 
 (* The [i]th error gone to: its primary span in the editor while the errors
@@ -1435,7 +1633,7 @@ let respond model msg =
       match model.run_model with
       | Error errors when not model.stale_errors -> (
           let offset = byte_offset model.edit_model.unparsed_code offset in
-          let target = target_at errors model.definitions offset in
+          let target = target_at errors model.definitions model.links offset in
           let model = { model with active_error = error_at errors offset } in
           if target = model.caret_target then (model, [])
           else
@@ -1465,6 +1663,14 @@ let respond model msg =
         [ After (compile_delay, Recompile compile_serial) ] )
   | OpenGallery when model.edit_model.selected_example <> None ->
       (update_model model msg, [ Focus_current_example ])
+  | ShowDocs (docs_page, heading) ->
+      ( {
+          (without_popover model) with
+          page = Docs;
+          docs_page;
+          docs_heading = heading;
+        },
+        [ Scroll_to_heading heading ] )
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
   | Copied (url, copied) ->
       notify model (if copied then Link_copied else Copy_failed url)
@@ -1482,15 +1688,29 @@ let changes_choices = function
 let update model msg =
   let model, effects = respond model msg in
   if changes_choices msg then
-    ( { model with notice = None },
+    ( {
+        model with
+        notice = None;
+        shown_declarations =
+          shown_declarations ~shown:model.shown_declarations model.edit_model;
+      },
       Remember (WebChoices.key, WebChoices.encode (choices model.edit_model))
       :: Replace_query (link model.edit_model)
       :: effects )
   else (model, effects)
 
+(* The model opening with the editor [edit_model]. *)
+let opening edit_model =
+  {
+    init with
+    edit_model;
+    shown_declarations =
+      shown_declarations ~shown:init.shown_declarations edit_model;
+  }
+
 let restored stored =
   Option.fold ~none:init
-    ~some:(fun c -> { init with edit_model = restore_edit c })
+    ~some:(fun c -> opening (restore_edit c))
     (Option.bind stored WebChoices.decode)
 
 let opened ~query stored =
@@ -1503,7 +1723,7 @@ let opened ~query stored =
           (Option.bind stored WebChoices.decode)
           parameters
       in
-      ({ init with edit_model = restore_edit c }, unknown)
+      (opening (restore_edit c), unknown)
   in
   let model =
     match List.sort compare (malformed @ unknown) with
