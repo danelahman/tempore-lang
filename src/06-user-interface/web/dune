@@ -16,6 +16,7 @@
   webDocPages
   webBackend
   webInterpreter
+  syntaxHighlight
   desugarer
   inference
   loader

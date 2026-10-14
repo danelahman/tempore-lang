@@ -3,9 +3,9 @@
  (libraries
   utils
   language
-  parser
   grades
   vdom
   vdom.base
   webBackend
+  syntaxHighlight
   interpreter))
