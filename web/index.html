@@ -1274,15 +1274,9 @@
       }
     }
 
-    /* The line the page's address names, lit briefly on opening, in the
-       colour of a definition just gone to. */
-    pre.syn-ml .line-flash {
-      border-radius: 2px;
-      animation: goto-flash 1500ms ease-out forwards;
-    }
-
-    /* The line whose link has just been copied by a click on its number, lit
-       briefly in amber. */
+    /* The line whose link has just been copied by a click on its number, or
+       that the page's address names, lit briefly in amber, the latter for
+       longer, as it is scrolled to first. */
     @keyframes line-copied {
       from {
         background-color: #ffd98a;
@@ -1307,6 +1301,18 @@
       pointer-events: none;
       mix-blend-mode: multiply;
       animation: line-copied 600ms ease-out forwards;
+    }
+
+    .line-number-anchor.is-opened .line-number::after {
+      content: "";
+      position: absolute;
+      left: -0.36rem;
+      top: 0;
+      bottom: 0;
+      width: 400vw;
+      pointer-events: none;
+      mix-blend-mode: multiply;
+      animation: line-copied 1500ms ease-out forwards;
     }
 
     /* The name of a definition, or of one in the standard library, while its
@@ -1515,13 +1521,13 @@
       }
 
       /* lit without fading, for as long */
-      pre.syn-ml .goto-flash,
-      pre.syn-ml .line-flash {
+      pre.syn-ml .goto-flash {
         animation: none;
         background-color: #dde6fb;
       }
 
-      .line-number-anchor.is-copied .line-number::after {
+      .line-number-anchor.is-copied .line-number::after,
+      .line-number-anchor.is-opened .line-number::after {
         animation: none;
         background-color: #ffe8b8;
       }

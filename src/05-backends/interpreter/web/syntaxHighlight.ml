@@ -230,7 +230,7 @@ let node ?id classes text =
 (* Out of the flow, so that the overlay goes on measuring as the textarea laid
    over it does; positioned against the <pre>, so that it lands in the gutter.
    See the [.line-number] rules in web/index.html. *)
-let line_number_node ?line_link ?link ?lit n =
+let line_number_node ?line_link ?link ?lit ?id n =
   let number =
     match (link, line_link) with
     | None, None ->
@@ -262,7 +262,8 @@ let line_number_node ?line_link ?link ?lit n =
     | Some cls -> "line-number-anchor " ^ cls
     | None -> "line-number-anchor"
   in
-  Vdom.elt "span" ~a:[ Vdom.class_ cls ] [ number ]
+  let a = Vdom.class_ cls :: Option.to_list (Option.map (Vdom.attr "id") id) in
+  Vdom.elt "span" ~a [ number ]
 
 let highlight_text s =
   List.map
@@ -420,12 +421,12 @@ let highlight_with_marks ?(line_numbers = false) ?line_link ?lit_line ~marks s =
         done;
         if line_numbers && !line < lines && starts.(!line) = start then begin
           let n = !line + 1 in
-          let lit =
+          let lit, id =
             match lit_line with
-            | Some (k, cls) when k = n -> Some cls
-            | _ -> None
+            | Some (k, cls, id) when k = n -> (Some cls, id)
+            | _ -> (None, None)
           in
-          push (line_number_node ?line_link ?link:linked.(!line) ?lit n);
+          push (line_number_node ?line_link ?link:linked.(!line) ?lit ?id n);
           incr line
         end;
         while !next < total && pieces.(by_start.(!next)).p_from <= start do

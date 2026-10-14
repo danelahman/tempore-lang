@@ -1991,18 +1991,10 @@ let editor_marks
             marker = None;
           };
         ]
-    | Some (Model.Line (from, until)) ->
-        [
-          {
-            SyntaxHighlight.from;
-            until;
-            mark_cls = "line-flash";
-            id = Some EditorDom.flash_id;
-            marker = None;
-          };
-        ]
-    | Some (Model.Message _ | Model.Declaration _ | Model.Copied_line _) | None
-      ->
+    | Some
+        ( Model.Message _ | Model.Declaration _ | Model.Line _
+        | Model.Copied_line _ )
+    | None ->
         []
 
 (* The number [n] of a line, copying the link to the line when clicked. *)
@@ -2015,7 +2007,8 @@ let line_link n =
 (* The editor's text, highlighted with its marks, and a newline the source has
    not got, so that a last empty line keeps its height. The line numbers copy
    links to their lines while [key.line_links] holds; the line whose link has
-   just been copied is lit across the editor. *)
+   just been copied, or that the page's address names, is lit across the
+   editor, the latter scrolled to. *)
 let view_highlighted (key : editor_key) =
   elt "pre"
     ~a:[ class_ "code-editor-display syn-ml" ]
@@ -2023,7 +2016,8 @@ let view_highlighted (key : editor_key) =
        ?line_link:(if key.line_links then Some line_link else None)
        ?lit_line:
          (match key.flash with
-         | Some (Model.Copied_line n) -> Some (n, "is-copied")
+         | Some (Model.Copied_line n) -> Some (n, "is-copied", None)
+         | Some (Model.Line n) -> Some (n, "is-opened", Some EditorDom.flash_id)
          | _ -> None)
        ~marks:(editor_marks key) (key.source ^ "\n"))
 

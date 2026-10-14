@@ -44,7 +44,7 @@ type flash =
   | Span of int * int
   | Message of int
   | Declaration of string * int * int
-  | Line of int * int
+  | Line of int
   | Copied_line of int
 
 type notice =
@@ -1544,8 +1544,8 @@ let opened ~query stored =
   (* the line scrolled to with the caret placed at it, and highlighted *)
   let model, shown =
     match line with
-    | Some (_, (start, stop)) ->
-        let model, effects = flash (Line (start, stop)) model in
+    | Some (n, (start, _)) ->
+        let model, effects = flash (Line n) model in
         ( model,
           Jump (utf16_offset model.edit_model.unparsed_code start) :: effects )
     | None -> (model, [])
