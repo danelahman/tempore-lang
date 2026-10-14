@@ -55,7 +55,7 @@ def Disengage(ctx, beads):
     return ()
 
 
-def Ethanol(ctx, beads):
+def Wash(ctx, beads):
     pipette = ctx["pipette"]
     pipette.transfer(150, ctx["reservoir"]["A2"], [sample.top() for sample in ctx["samples"]])
     pipette.transfer(150, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
@@ -63,8 +63,8 @@ def Ethanol(ctx, beads):
     return ()
 
 
-def LastEthanol(ctx, beads):
-    Ethanol(ctx, beads)
+def FinalWash(ctx, beads):
+    Wash(ctx, beads)
     return beads
 
 

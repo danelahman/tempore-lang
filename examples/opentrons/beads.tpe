@@ -60,11 +60,11 @@ default Disengage beads = ()
 (* An ethanol wash adds and removes the ethanol in one to two minutes. The
    last wash leaves the beads to air-dry: the elution buffer is added two to
    three minutes after it, once the ethanol has evaporated. *)
-operation Ethanol : beads ~> unit # [1, 2]
-default Ethanol beads = delay 1
+operation Wash : beads ~> unit # [1, 2]
+default Wash beads = delay 1
 
-operation LastEthanol : beads ~> [[2, 3]]beads # [1, 2]
-default LastEthanol beads = delay 1; box [2, 3] beads
+operation FinalWash : beads ~> [[2, 3]]beads # [1, 2]
+default FinalWash beads = delay 1; box [2, 3] beads
 
 (* Adding the elution buffer and transferring the eluate take one to two
    minutes each. *)
@@ -84,8 +84,8 @@ let cleanup (beads : beads) =
   delay 3;
   unbox settling as beads in
   perform RemoveSupernatant beads;
-  perform Ethanol beads;
-  let drying = perform LastEthanol beads in
+  perform Wash beads;
+  let drying = perform FinalWash beads in
   delay 2;
   perform Disengage beads;
   unbox drying as beads in
@@ -106,7 +106,7 @@ let cleanup (beads : beads) =
 *)
 (*
 let cleanup_overdried (beads : beads) =
-  let drying = perform LastEthanol beads in
+  let drying = perform FinalWash beads in
   delay 4;
   perform Disengage beads;
   unbox drying as beads in

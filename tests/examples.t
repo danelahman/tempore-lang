@@ -778,7 +778,7 @@ tests show those runs in detail.
          ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
     File "../examples/opentrons/beads_reject.tpe", line 33, characters 6-12:
-    33 |   let drying = perform LastEthanol beads in
+    33 |   let drying = perform FinalWash beads in
                ^^^^^^
     `drying` is bound here
     File "../examples/opentrons/beads_reject.tpe", line 34, characters 2-9:
