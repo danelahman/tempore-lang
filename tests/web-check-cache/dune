@@ -1,0 +1,7 @@
+; Unit tests of the reuse of the last successful check of the program in the
+; web interface: a check of unchanged inputs reused, a change of any input
+; checked anew.
+
+(test
+ (name test_check_cache)
+ (libraries grades backendRegistry webCheckCache testSupport))

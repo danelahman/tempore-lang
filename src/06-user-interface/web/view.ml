@@ -1004,6 +1004,11 @@ let view_go_to_first ~cls ~noun n run_model =
       elt "span" ~a:[ class_ "is-sr-only" ] [ text ", go to the first" ];
     ]
 
+(* The statement that the program has been checked, or, under [reused], that
+   it is unchanged since an earlier check, whose outcome is reused. *)
+let checked reused =
+  if reused then "Unchanged since the last check" else "Checked"
+
 (* The outcome of the last check of [model], if any: its mark and the parts of
    its text, dimmed while a check is under way. *)
 let view_outcome (model : Model.model) =
@@ -1027,20 +1032,20 @@ let view_outcome (model : Model.model) =
            else Icons.cross "is-danger is-dimmed")
           [ [ text "Edited since the last check" ] ];
       ]
-  | Some { errors = 0; warnings = 0; definitions; _ } ->
+  | Some { errors = 0; warnings = 0; definitions; reused; _ } ->
       [
         outcome (Icons.tick "is-success")
           [
-            [ text "Checked \xE2\x80\x94 no errors" ];
+            [ text (checked reused ^ " \xE2\x80\x94 no errors") ];
             view_definitions definitions;
           ];
       ]
-  | Some { errors = 0; warnings; definitions; _ } ->
+  | Some { errors = 0; warnings; definitions; reused; _ } ->
       [
         outcome (Icons.tick "is-warning")
           [
             [
-              text "Checked \xE2\x80\x94 ";
+              text (checked reused ^ " \xE2\x80\x94 ");
               view_go_to_first ~cls:"check-status-warnings" ~noun:"warning"
                 warnings model.run_model;
             ];

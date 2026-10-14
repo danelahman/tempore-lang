@@ -287,6 +287,7 @@ let init =
       };
     notices =
       { flash = None; flash_serial = 0; notice = None; notice_serial = 0 };
+    check_cache = WebCheckCache.empty;
   }
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
@@ -887,9 +888,9 @@ let rec make_run_state : type run_state.
   }
 
 (* The program of [edit_model] loaded under the grades [G] after the
-   declarations [declared], and, under [run] and without errors, run: the run
-   or the errors reported, and what the check has found. *)
-let check_with (module G : Grades.Grade.S) ~run edit_model declared =
+   declarations [declared]: the program loaded, or else the errors reported
+   and what the check has found. *)
+let check_with (module G : Grades.Grade.S) edit_model declared =
   let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
   let module L = Loader.Loader (B) in
   (* The standard library is loaded as a source of its own, so that an editor
@@ -939,50 +940,78 @@ let check_with (module G : Grades.Grade.S) ~run edit_model declared =
   in
   let checked accepted = { definitions; links; accepted; declared } in
   if program.diagnostics <> [] then
-    ( Error
-        (List.map
-           (fun diagnostic -> { diagnostic; hovered_label = None })
-           program.diagnostics),
-      checked None )
-  else if run then
-    let observer =
-      Option.map
-        (fun observer -> observer (settings edit_model))
-        (backend edit_model).observer
-    in
-    ( Ok
-        (run_init
-           (make_run_state
+    Error
+      ( List.map
+          (fun diagnostic -> { diagnostic; hovered_label = None })
+          program.diagnostics,
+        checked None )
+  else
+    Ok
+      {
+        found = checked (Some accepted);
+        start_run =
+          (fun observer ->
+            make_run_state
               (module B)
-              ~completed_runs:[] ~observer (B.run state.backend))),
-      checked (Some accepted) )
-  else (Error [], checked (Some accepted))
+              ~completed_runs:[] ~observer (B.run state.backend));
+      }
+
+(* What a check that has failed with [errors] has found, after the
+   declarations [declared]. *)
+let failed declared errors =
+  (errors, { definitions = []; links = []; accepted = None; declared })
 
 (* The program of [edit_model] checked under the grades selected after the
-   declarations of the selected backend, and run under [run]; an exception
-   raised meanwhile is reported as an error. *)
-let check_program ~run edit_model =
-  let declared =
-    match declarations edit_model with Ok sources -> sources | Error _ -> []
+   declarations [declared] of the selected backend; an exception raised
+   meanwhile is reported as an error. *)
+let check_program edit_model declared =
+  match
+    List.assoc_opt edit_model.selected_grades Grades.GradeRegistry.grade_modules
+  with
+  | None ->
+      Error
+        (failed declared
+           [
+             fatal
+               (Printf.sprintf "Unknown grades `%s`" edit_model.selected_grades);
+           ])
+  | Some grades -> (
+      try check_with grades edit_model declared
+      with exn -> Error (failed declared (errors_of_exception Checking exn)))
+
+(* The program of [edit_model] checked as by [check_program], the check of
+   [cache] reused if its inputs are those of [edit_model]: the program loaded
+   or else the errors reported and what the check has found, whether the check
+   is reused, and the cache, replaced by a check without errors. The
+   declarations that cannot be loaded are reported as an error. *)
+let checked_program cache edit_model =
+  match declarations edit_model with
+  | Error message -> (Error (failed [] [ fatal message ]), false, cache)
+  | Ok declared ->
+      WebCheckCache.checked cache
+        {
+          source = edit_model.unparsed_code;
+          grades = edit_model.selected_grades;
+          use_stdlib = edit_model.use_stdlib;
+          declared;
+        } (fun () -> check_program edit_model declared)
+
+(* The run of the program [loaded], observed by the observer of the selected
+   backend of [edit_model] under its inputs; an exception raised by its start
+   is reported as an error, with what a failed check has found. *)
+let started edit_model loaded =
+  let observer =
+    Option.map
+      (fun observer -> observer (settings edit_model))
+      (backend edit_model).observer
   in
-  let failed errors =
-    (Error errors, { definitions = []; links = []; accepted = None; declared })
-  in
-  try
-    match
-      ( List.assoc_opt edit_model.selected_grades
-          Grades.GradeRegistry.grade_modules,
-        declarations edit_model )
-    with
-    | None, _ ->
-        failed
-          [
-            fatal
-              (Printf.sprintf "Unknown grades `%s`" edit_model.selected_grades);
-          ]
-    | _, Error message -> failed [ fatal message ]
-    | Some grades, Ok _ -> check_with grades ~run edit_model declared
-  with exn -> failed (errors_of_exception Checking exn)
+  match loaded.start_run observer with
+  | state -> (Ok (run_init state), loaded.found)
+  | exception exn ->
+      let errors, found =
+        failed loaded.found.declared (errors_of_exception Checking exn)
+      in
+      (Error errors, found)
 
 (* Updates of the model without effects *)
 
@@ -1040,6 +1069,7 @@ and edited_program model edit_msg =
     edit_model = edit_update model.edit_model edit_msg;
     run_model;
     error_view = { active_error = None; hovered_error = None; stale_errors };
+    check_cache = model.check_cache;
     navigation =
       (if loaded then { model.navigation with page = Editor; gallery = None }
        else model.navigation);
@@ -1102,9 +1132,17 @@ let stepped model run_msg =
    check, not run, reports the errors of its compilation. *)
 let performed model action =
   let run = action = Run in
-  let run_model, checked = check_program ~run model.edit_model in
+  let outcome, reused, check_cache =
+    checked_program model.check_cache model.edit_model
+  in
+  let run_model, checked =
+    match outcome with
+    | Ok loaded when run -> started model.edit_model loaded
+    | Ok loaded -> (Error [], loaded.found)
+    | Error (errors, found) -> (Error errors, found)
+  in
   let reports_compilation = (not run) && Option.is_some checked.accepted in
-  let model = { model with checked } in
+  let model = { model with checked; check_cache } in
   let compiled = compile model in
   let run_model =
     if reports_compilation then Error (compilation_errors compiled)
@@ -1133,6 +1171,7 @@ let performed model action =
               warnings;
               definitions = List.length checked.definitions;
               current = true;
+              reused;
             };
       };
   }

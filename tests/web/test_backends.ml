@@ -439,6 +439,43 @@ let () =
       ()
   | _ -> fail "nested: the runs ended"
 
+(* Two runs started from one loaded state of [source] under the grade
+   [grade], stepped alternately by the first step at each state: at each
+   state, the same number of steps, the same observations of each and the same
+   completion. *)
+let check_runs_alike name grade source =
+  match List.assoc_opt grade Grades.GradeRegistry.grade_modules with
+  | None -> fail "%s: unknown grade %s" name grade
+  | Some (module G : Grade.S) ->
+      let module B = WebInterpreter.Make (Grades.GradeSystem.Identity (G)) in
+      let module L = Loader.Loader (B) in
+      let program = L.load_program ~use_stdlib:true [ L.parse_source source ] in
+      if program.diagnostics <> [] then fail "%s: rejected" name
+      else
+        let observed rs = List.map (B.observe rs) (B.steps rs) in
+        let rec go n (rs : B.run_state) (rs' : B.run_state) =
+          let alike =
+            observed rs = observed rs' && B.is_done rs = B.is_done rs'
+          in
+          match (B.steps rs, B.steps rs') with
+          | step :: _, step' :: _ when alike ->
+              go (n + 1) (step.next_state ()) (step'.next_state ())
+          | _ ->
+              if not alike then fail "%s: the runs differ at step %d" name n;
+              n
+        in
+        let start = program.loaded.backend in
+        let first = go 0 (B.run start) (B.run start) in
+        (* a third run, started after the others have ended, alike *)
+        if go 0 (B.run start) (B.run start) <> first then
+          fail "%s: a later run differs" name;
+        if first = 0 then fail "%s: no step taken" name
+
+let () =
+  check_runs_alike "nested" "time-interval" nested;
+  check_runs_alike "default chain" "time-lower-bound"
+    (read "tests/default_chain.tpe")
+
 (* The chain of default implementations of tests/default_chain.tpe, through
    the observer of the interpreter's entry of the registry. *)
 let () =
