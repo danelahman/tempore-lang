@@ -54,18 +54,19 @@
       color: #0a0a0a;
     }
 
-    /* The lit entry of the table of contents is on the light blue of the
-       logo, in dark text. */
-    .menu-list a.is-active {
-      background-color: #cfe6f8;
-      color: #24292e;
+    /* The lit entry of the table of contents, and the entry of the section
+       whose subsection is lit, are in bold in Bulma's is-info blue, as the
+       run button and the logo, without a background. */
+    .menu-list a.is-active,
+    .menu-list a.has-active-entry {
+      background-color: transparent;
+      color: #3298dc;
+      font-weight: 600;
     }
 
-    /* The entry of the section whose subsection is lit in the table of
-       contents: the light blue of the lit entry, without its background. */
-    .menu-list a.has-active-entry {
-      color: #cfe6f8;
-      font-weight: 600;
+    .menu-list a.is-active:hover,
+    .menu-list a.has-active-entry:hover {
+      background-color: #f5f5f5;
     }
 
     /* The mark stands alone here, so it is given a hit area of its own and the
