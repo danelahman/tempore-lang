@@ -1,153 +1,7 @@
 module Error = Utils.Error
 module Diagnostic = Utils.Diagnostic
 module Location = Utils.Location
-
-type conjunct_text =
-  | Formula of string
-  | Ordering of { binder : string option; left : string; right : string }
-
-type scheme_text = {
-  parameters : string option;
-  conjuncts : conjunct_text list;
-  arrows : string Language.PrettyPrint.arrows;
-}
-
-type definition = {
-  name : string;
-  scheme : scheme_text;
-  name_span : (int * int) option;
-}
-
-type destination =
-  | In_editor of int * int
-  | In_library of library_entry
-  | In_declarations of declaration_entry
-
-and library_entry = { line : int; text : string; value : definition option }
-
-and declaration_entry = {
-  place : WebDeclarations.place;
-  defined : definition option;
-}
-
-type link = { use : int * int; destination : destination }
-
-type popover_target =
-  | Error_span of int
-  | Error_label of int * int
-  | Definition of int
-  | Reference of int
-
-type action = Check | Run
-
-type flash =
-  | Span of int * int
-  | Message of int
-  | Declaration of string * int * int
-  | Line of int
-  | Copied_line of int
-
-type notice =
-  | Ignored of WebLink.parameter list
-  | Link_copied
-  | Copy_failed of string
-
-type pointer = Nowhere | Over_target of popover_target | Over_popover
-
-type placement = {
-  left : float;
-  top : float;
-  width : float;
-  arrow : float;
-  above : bool;
-  columns : int option;
-}
-
-type concrete_step = {
-  label_vdom : msg Vdom.vdom;
-  view_highlighted : 'a. unit -> 'a Vdom.vdom;
-  next_state : unit -> run_model_state;
-}
-
-and completed_run_view = { view_completed : 'a. unit -> 'a Vdom.vdom }
-
-and run_model_state = {
-  steps : concrete_step list;
-  view : 'a. unit -> 'a Vdom.vdom;
-  completed_runs : completed_run_view list;
-  is_done : bool;
-  observer : BackendRegistry.observer option;
-}
-
-and edit_msg =
-  | UseStdlib of bool
-  | ChangeSource of string
-  | InsertIndent of string * int * int
-  | LoadExample of string * Examples_tpe.example
-  | SelectGrades of string
-  | SelectBackend of string
-  | SetInput of string * string
-
-and run_msg =
-  | SelectStepIndex of int option
-  | MakeStep of concrete_step
-  | RandomStep
-  | ChangeRandomStepSize of int
-  | Back
-
-and msg =
-  | EditMsg of edit_msg
-  | CheckCode
-  | RunCode
-  | Perform of action
-  | GoToError of int
-  | Abbreviate of bool
-  | RunMsg of run_msg
-  | EditCode
-  | ShowPage of page
-  | ShowDocs of WebDocPages.page * string option
-  | HoverLabel of (int * int) option
-  | HoverError of int option
-  | CaretAt of int
-  | OpenGallery
-  | CloseGallery
-  | SearchGallery of string
-  | ReachHeading of string
-  | ReachGroup of string
-  | Point of pointer * int option * (float * float)
-  | OverLink of int option
-  | Follow of int
-  | FollowAt of int
-  | Unflash of int
-  | Reveal of popover_target
-  | Conceal
-  | Elapsed of int
-  | Place of popover_target * placement option
-  | ShowFullError of int
-  | Recompile of int
-  | ShowCode of code_view
-  | CopyLink
-  | CopyLineLink of int
-  | ShowDeclarations of bool
-  | Copied of string * bool
-  | Unnotice of int
-
-(* Which of the two top-level pages is showing. [Editor] covers both editing and
-   running, which [run_model] distinguishes between. *)
-and page = Editor | Docs
-
-(* What the editor's box shows, under a backend with a compiler: the program,
-   or the code compiled from it with the inputs of the backend. *)
-and code_view = Source | Compiled
-
-type edit_model = {
-  use_stdlib : bool;
-  unparsed_code : string;
-  selected_grades : string;
-  selected_example : (string * string) option;
-  selected_backend : string;
-  backend_settings : (string * BackendRegistry.settings) list;
-}
+include ModelTypes
 
 let indentation = "  "
 
@@ -339,27 +193,17 @@ let restore_edit (c : WebChoices.t) =
           edit_model.backend_settings;
   }
 
-type run_model = {
-  current : run_model_state;
-  history : run_model_state list;
-  selected_step_index : int option;
-  (* The index of the step button under the pointer, which, unlike the step
-     itself, stays valid when the button is clicked without the pointer
-     moving. *)
-  random_step_size : int;
-}
-
 let run_init current =
   { current; history = []; selected_step_index = None; random_step_size = 1 }
 
-let run_model_make_step run_model (step : concrete_step) =
+let run_model_make_step (run_model : run_model) (step : concrete_step) =
   {
     run_model with
     current = step.next_state ();
     history = run_model.current :: run_model.history;
   }
 
-let rec run_model_make_random_steps run_model num_steps =
+let rec run_model_make_random_steps (run_model : run_model) num_steps =
   match (num_steps, run_model.current.steps) with
   | 0, _ | _, [] -> run_model
   | _, steps ->
@@ -368,7 +212,7 @@ let rec run_model_make_random_steps run_model num_steps =
       let run_model' = run_model_make_step run_model step in
       run_model_make_random_steps run_model' (num_steps - 1)
 
-let run_update run_model = function
+let run_update (run_model : run_model) = function
   | SelectStepIndex selected_step_index ->
       { run_model with selected_step_index }
   | MakeStep step -> run_model_make_step run_model step
@@ -380,59 +224,6 @@ let run_update run_model = function
           { run_model with current = current'; history = history' }
       | _ -> run_model)
   | ChangeRandomStepSize random_step_size -> { run_model with random_step_size }
-
-type load_error = { diagnostic : Diagnostic.t; hovered_label : int option }
-type check = { errors : int; warnings : int; definitions : int; current : bool }
-
-type popover = {
-  target : popover_target;
-  point : (float * float) option;
-  shown : bool;
-  placement : placement option;
-}
-
-type compiled = { output : BackendRegistry.compiled; up_to_date : bool }
-
-type model = {
-  edit_model : edit_model;
-  run_model : (run_model, load_error list) result;
-  active_error : int option;
-  hovered_error : int option;
-  stale_errors : bool;
-  page : page;
-  docs_page : WebDocPages.page;
-  docs_heading : string option;
-  gallery : string option;
-  gallery_group : string option;
-  definitions : definition list;
-  links : link list;
-  link : int option;
-  flash : flash option;
-  flash_serial : int;
-  checking : action option;
-  last_check : check option;
-  abbreviated : bool;
-  popover : popover option;
-  columns : int option;
-  pointer : pointer;
-  caret_target : popover_target option;
-  timer : int;
-  closing : bool;
-  accepted :
-    (BackendRegistry.compiler ->
-    BackendRegistry.settings ->
-    BackendRegistry.compiled)
-    option;
-  declared : BackendRegistry.source list;
-  shown_declarations : WebDeclarations.source list;
-  declarations_open : bool;
-  compiled : compiled option;
-  compile_serial : int;
-  reports_compilation : bool;
-  code_view : code_view;
-  notice : notice option;
-  notice_serial : int;
-}
 
 (* The declarations the selected backend loads before the program under its
    inputs and the grades selected, or else why it cannot load them. *)
@@ -492,20 +283,6 @@ let init =
     notice = None;
     notice_serial = 0;
   }
-
-type side_effect =
-  | After of int * msg
-  | Measure_popover
-  | Scroll_to_error of int
-  | Scroll_to_span of int
-  | Perform_after_paint of action
-  | Remember of string * string
-  | Focus_current_example
-  | Scroll_to_declaration
-  | Scroll_to_heading of string option
-  | Jump of int
-  | Replace_query of string
-  | Copy_link of string
 
 (* An error that is not a diagnostic of its own, such as an exception escaping
    the interpreter: there is nothing to point at, only what went wrong. *)
