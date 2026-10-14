@@ -1,7 +1,8 @@
 // The part of M5Unified that the scaffold and the packages use, on the host.
 // The initialisation does nothing; the display is defined by
-// tempore_m5_display.cpp, and the inertial measurement unit, the touch screen
-// and the speaker by the host models of the packages that use them.
+// tempore_m5_display.cpp, the power management by tempore_m5_power.cpp, and
+// the inertial measurement unit, the touch screen and the speaker by the host
+// models of the packages that use them.
 
 #ifndef TEMPORE_HOST_M5UNIFIED_H
 #define TEMPORE_HOST_M5UNIFIED_H
@@ -41,6 +42,15 @@ struct IMU_Class {
     sensor_mask_gyro = 2,
     sensor_mask_mag = 4
   };
+};
+
+// The power management: getBatteryLevel gives the charge of the battery in
+// percent, negative if there is none, and isCharging whether it charges.
+class Power_Class {
+ public:
+  enum is_charging_t { is_discharging = 0, is_charging, charge_unknown };
+  int32_t getBatteryLevel();
+  is_charging_t isCharging();
 };
 
 }  // namespace m5
@@ -122,6 +132,7 @@ class tempore_m5_unified {
   tempore_m5_display Display;
   tempore_m5_touch Touch;
   tempore_m5_speaker Speaker;
+  m5::Power_Class Power;
 };
 
 extern tempore_m5_unified M5;

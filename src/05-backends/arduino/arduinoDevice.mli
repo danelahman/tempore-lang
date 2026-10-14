@@ -16,7 +16,12 @@
       file that puts the device in its safe state;
     - ["host_models"]: an array of C++ files, relative to the directory of the
       manifest, compiled only by the host simulation: the models of the devices
-      and of the physical world of the application (default none).
+      and of the physical world of the application (default none);
+    - ["battery"]: whether the scaffold draws the battery indicator, the charge
+      of the battery in percent, in the top right corner of the screen (default
+      [false]); it requires a board with M5Unified and the capabilities
+      ["display"] and ["battery"] ({!ArduinoBoard}), and is drawn whether or not
+      the program uses the display ({!ArduinoProject}).
 
     A task is an object with the members:
 
@@ -86,6 +91,9 @@ type t = {
   bindings : name option;
   safe_state : name option;
   host_models : name list;
+  battery : bool;  (** whether the battery indicator is drawn *)
+  battery_at : Utils.Location.t;
+      (** the location of the member ["battery"], or else of the manifest *)
 }
 (** A manifest. *)
 

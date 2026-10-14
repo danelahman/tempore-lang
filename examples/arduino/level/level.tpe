@@ -22,11 +22,13 @@
    vial, the pitch and the roll, in degrees, less the offsets of a
    reference, "LEVEL" when both are within half a degree, the state of the
    reference, and two buttons: "Set reference" takes a reference, checked
-   at rest, and "Reconfigure sensor" switches the output data rate of the
-   accelerometer between 100 and 400 Hz, which invalidates it; a
-   reference expires after 30 seconds. bindings.cpp defines the safe state
-   and world.cpp models the surface and the taps. The figures below are
-   those under the bounds of the CoreS3, some of them provisional.
+   at rest, and the sensor button, labelled "Sensor 100->400Hz" or
+   "Sensor 400->100Hz", switches the output data rate of the accelerometer
+   between 100 and 400 Hz, which invalidates it; a reference expires after
+   30 seconds. The scaffold draws the charge of the battery at the top
+   right. bindings.cpp defines the safe state and world.cpp models the
+   surface and the taps. The figures below are those under the bounds of
+   the CoreS3, some of them provisional.
 
    On the board: make arduino-level-upload; simulated on the host: make
    arduino-level-simulate ('make examples-help',
@@ -67,8 +69,8 @@ let green = 0x00e000
 let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
 (* Whether a point of the screen, in pixels, lies on the button "Set
-   reference" at the bottom left or on the button "Reconfigure sensor" at
-   the bottom right. *)
+   reference" at the bottom left or on the sensor button at the bottom
+   right. *)
 let on_set (x : nat) (y : nat) = x < 146 && y >= 190
 let on_sensor (x : nat) (y : nat) = x >= 146 && y >= 190
 
@@ -110,12 +112,12 @@ let status (reference : reference) (age : nat) :
       perform ShowTimeAt (0, 150, 2, "Reference valid for ", (expiry - age) / 4);
       perform ShowTextAt (0, 172, 2, "(checked at rest)")
 
-(* The screen: the title, the rate of the accelerometer, the guarantee, the
-   labels, the buttons and the footer, drawn once by 'start', the rate
-   redrawn by a reconfiguration; the vial, whose bubble moves to the higher
-   side, grey without a valid reference and green when level, the angles,
-   the verdict and the state of the reference, redrawn by each step over
-   the bands of the previous. *)
+(* The screen: the title, the guarantee, the labels, the buttons and the
+   footer, drawn once by 'start', the sensor button, labelled with the
+   rate of the accelerometer, redrawn by a reconfiguration; the vial, whose
+   bubble moves to the higher side, grey without a valid reference and
+   green when level, the angles, the verdict and the state of the
+   reference, redrawn by each step over the bands of the previous. *)
 let display (reference : reference) (shown : float * float) (age : nat) :
     unit
     # {DrawLevel; ShowNumberAt; ShowNumberAt; ShowTextAt;
@@ -187,16 +189,16 @@ let take_unchecked () : reference =
 *)
 
 (* Correctly accepted by the typechecker: the step reads the unit and then
-   the touch screen; on a tap on "Reconfigure sensor", it reconfigures the
+   the touch screen; on a tap on the sensor button, it reconfigures the
    unit, setting the output data rate of its accelerometer to 400 or 100 Hz,
-   shows the rate, in grey, reads the unit anew and draws; at the end of the
-   hold after a tap on "Set reference", it takes the reference and shows its
-   state; and otherwise it draws the first reading. Its durations, 0.45 to
-   213 ms, lie below its period of 250 ms. The first reading is boxed with
-   the reading of the touch screen, and the reference of the state with any
-   number of readings of the unit and of the touch screen, without delays:
-   each is used only if no other operation came between, in particular no
-   reconfiguration and no new reference.
+   redraws the button with the rate, reads the unit anew and draws; at the
+   end of the hold after a tap on "Set reference", it takes the reference
+   and shows its state; and otherwise it draws the first reading. Its
+   durations, 0.45 to 213 ms, lie below its period of 250 ms. The first
+   reading is boxed with the reading of the touch screen, and the reference
+   of the state with any number of readings of the unit and of the touch
+   screen, without delays: each is used only if no other operation came
+   between, in particular no reconfiguration and no new reference.
 
    A box is checked from its binding to its unboxing, within one function
    body. The reference persists from step to step in the state, as data:
@@ -208,7 +210,7 @@ let take_unchecked () : reference =
    unchecked, which is plain data. *)
 let step ((reference, age, rate, touching) : state) : state
     # {ReadImu; Touched;
-       ((ConfigureImu; Beep; ShowColourTextAt; ReadImu | 0); DrawLevel;
+       ((ConfigureImu; Beep; DrawButton; ReadImu | 0); DrawLevel;
         ShowNumberAt; ShowNumberAt; ShowTextAt; (ShowTextAt | ShowTimeAt);
         ShowTextAt
        | ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; CheckAtRest; Beep;
@@ -222,8 +224,8 @@ let step ((reference, age, rate, touching) : state) : state
     let rate = if rate = 100 then 400 else 100 in
     perform ConfigureImu rate;
     perform Beep (600, 50);
-    (if rate = 100 then perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 100 Hz")
-     else perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 400 Hz"));
+    (if rate = 100 then perform DrawButton (148, 194, 172, 24, "Sensor 100->400Hz")
+     else perform DrawButton (148, 194, 172, 24, "Sensor 400->100Hz"));
     let accel, _ = perform ReadImu () in
     display (Reconfigured rate) (angles accel (Reconfigured rate)) 0;
     (Reconfigured rate, 0, rate, touched))
@@ -257,14 +259,13 @@ let start () : state =
   perform ShowTextAt (0, 24, 1, "Reference used only if at rest and not reconfigured");
   perform ShowTextAt (130, 45, 2, "Pitch");
   perform ShowTextAt (130, 85, 2, "Roll");
-  perform ShowColourTextAt (206, 6, 1, grey, 0, "Sensor rate: 100 Hz");
   perform DrawButton (0, 194, 144, 24, "Set reference");
-  perform DrawButton (148, 194, 172, 24, "Reconfigure sensor");
+  perform DrawButton (148, 194, 172, 24, "Sensor 100->400Hz");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)");
   perform ConfigureImu 100;
   (NoReference, 0, 100, false)
 
-(* Correctly rejected by the typechecker: a tap on "Reconfigure sensor"
+(* Correctly rejected by the typechecker: a tap on the sensor button
    reconfigures the unit, and the step keeps the reference and applies it
    to the reading, although it was taken at the former rate:
 

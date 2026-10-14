@@ -153,7 +153,7 @@ the operations, which the monitors check; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json $app/wheels.tpe | grep -c Wrote
-  32
+  33
   $ grep -A3 '^\[env' _arduino/projects/wheels/platformio.ini
   [env:m5stack-gray]
   platform = espressif32@7.1.3

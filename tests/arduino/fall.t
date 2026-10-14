@@ -91,7 +91,7 @@ The project, for the board m5stack-cores3; its sources compile without
 exceptions and run-time type information:
 
   $ tempore --emit-arduino fall --device $app/fall.device.json $app/fall.tpe | grep -c Wrote
-  33
+  35
   $ cd _arduino/projects/fall
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
@@ -109,52 +109,52 @@ watch, in green, shows the falls counted:
   [49.580 ms] Display at (0, 76): for falls
   [53.240 ms] Display at (0, 100): Falls
   [55.540 ms] Display at (160, 100): 0
-  [2353.773 ms] Display fill at (0, 44), 320 by 30: 0xff8000
-  [2354.993 ms] Display at (0, 44): Are you OK?
-  [2358.813 ms] Display at (0, 76): Tap to cancel
-  [2365.023 ms] Display at (0, 100): 10
-  [3379.211 ms] Display at (0, 100): 9
-  [4393.398 ms] Display at (0, 100): 8
-  [5407.585 ms] Display at (0, 100): 7
-  [6421.772 ms] Display at (0, 100): 6
-  [7435.959 ms] Display at (0, 100): 5
-  [8450.147 ms] Display at (0, 100): 4
-  [9464.334 ms] Display at (0, 100): 3
-  [10478.521 ms] Display at (0, 100): 2
-  [11492.708 ms] Display at (0, 100): 1
-  [12545.435 ms] Display fill at (0, 44), 320 by 30: 0xe00000
-  [12546.535 ms] Display at (0, 44): ALARM
-  [12550.315 ms] Display at (0, 76): Tap to stop
-  [12554.075 ms] Display at (0, 100): Impact (g)
-  [12556.415 ms] Display at (160, 100): 3.5
-  [13570.145 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [13571.245 ms] Display at (0, 44): ALARM
-  [14584.975 ms] Display fill at (0, 44), 320 by 30: 0xe00000
-  [14586.075 ms] Display at (0, 44): ALARM
-  [15599.805 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [15600.905 ms] Display at (0, 44): ALARM
-  [16614.685 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [16615.945 ms] Display at (0, 44): Alarm stopped
-  [16619.505 ms] Display at (0, 76):
-  [18664.185 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [18665.345 ms] Display at (0, 44): Watching
-  [18669.085 ms] Display at (0, 76): for falls
-  [18672.745 ms] Display at (0, 100): Falls
-  [18675.045 ms] Display at (160, 100): 1
-  [25346.134 ms] Display fill at (0, 44), 320 by 30: 0xff8000
-  [25347.354 ms] Display at (0, 44): Are you OK?
-  [25351.174 ms] Display at (0, 76): Tap to cancel
-  [25357.384 ms] Display at (0, 100): 10
-  [26371.572 ms] Display at (0, 100): 9
-  [27385.759 ms] Display at (0, 100): 8
-  [28397.696 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [28398.876 ms] Display at (0, 44): Cancelled
-  [28402.716 ms] Display at (0, 76): Glad you're OK
-  [30447.396 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [30448.556 ms] Display at (0, 44): Watching
-  [30452.296 ms] Display at (0, 76): for falls
-  [30455.956 ms] Display at (0, 100): Falls
-  [30458.256 ms] Display at (160, 100): 2
+  [2354.428 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [2355.648 ms] Display at (0, 44): Are you OK?
+  [2359.468 ms] Display at (0, 76): Tap to cancel
+  [2366.886 ms] Display at (0, 100): 10
+  [3381.074 ms] Display at (0, 100): 9
+  [4395.261 ms] Display at (0, 100): 8
+  [5409.448 ms] Display at (0, 100): 7
+  [6423.635 ms] Display at (0, 100): 6
+  [7437.822 ms] Display at (0, 100): 5
+  [8452.010 ms] Display at (0, 100): 4
+  [9466.197 ms] Display at (0, 100): 3
+  [10480.384 ms] Display at (0, 100): 2
+  [11494.571 ms] Display at (0, 100): 1
+  [12547.298 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [12548.398 ms] Display at (0, 44): ALARM
+  [12552.178 ms] Display at (0, 76): Tap to stop
+  [12555.938 ms] Display at (0, 100): Impact (g)
+  [12558.278 ms] Display at (160, 100): 3.5
+  [13572.008 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [13573.108 ms] Display at (0, 44): ALARM
+  [14586.838 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [14587.938 ms] Display at (0, 44): ALARM
+  [15601.668 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [15602.768 ms] Display at (0, 44): ALARM
+  [16616.548 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [16617.808 ms] Display at (0, 44): Alarm stopped
+  [16621.368 ms] Display at (0, 76):
+  [18666.048 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [18667.208 ms] Display at (0, 44): Watching
+  [18670.948 ms] Display at (0, 76): for falls
+  [18674.608 ms] Display at (0, 100): Falls
+  [18676.908 ms] Display at (160, 100): 1
+  [25348.652 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [25349.872 ms] Display at (0, 44): Are you OK?
+  [25353.692 ms] Display at (0, 76): Tap to cancel
+  [25361.110 ms] Display at (0, 100): 10
+  [26375.298 ms] Display at (0, 100): 9
+  [27389.485 ms] Display at (0, 100): 8
+  [28401.422 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [28402.602 ms] Display at (0, 44): Cancelled
+  [28406.442 ms] Display at (0, 76): Glad you're OK
+  [30451.122 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [30452.282 ms] Display at (0, 44): Watching
+  [30456.022 ms] Display at (0, 76): for falls
+  [30459.682 ms] Display at (0, 100): Falls
+  [30461.982 ms] Display at (160, 100): 2
   [35000.000 ms] End of the simulation
 The alarm sounds four tones, and a tone of 1500 Hz acknowledges each of the
 two taps; the time since the last event is redrawn every hundred readings,
@@ -167,7 +167,13 @@ every second:
   2
   $ grep 'Since last event' run.log | sed -n '1,3p'
   [59.520 ms] Display at (0, 146): Since last event 0:00
-  [1136.990 ms] Display at (0, 146): Since last event 0:01
-  [18679.025 ms] Display at (0, 146): Since last event 0:00
+  [1137.645 ms] Display at (0, 146): Since last event 0:01
+  [18680.888 ms] Display at (0, 146): Since last event 0:00
   $ grep -c 'Display fill at (0, 1\(72\|80\))' run.log
   132
+
+The scaffold draws the battery indicator in the top right corner after each
+drawing over it; the first time after the screen of the watch:
+
+  $ grep -m 1 'Battery' run.log
+  [63.498 ms] Display at (254, 0): Battery 87%

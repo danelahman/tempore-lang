@@ -24,6 +24,7 @@ tasks of the manifest, and the stubs of the host simulation.
   Wrote _arduino/projects/toy/host/tempore_i2c_bus.cpp
   Wrote _arduino/projects/toy/host/tempore_i2c_model.h
   Wrote _arduino/projects/toy/host/tempore_m5_display.cpp
+  Wrote _arduino/projects/toy/host/tempore_m5_power.cpp
   Wrote _arduino/projects/toy/host/tempore_simulator.cpp
   Wrote _arduino/projects/toy/host/tempore_world.cpp
   Wrote _arduino/projects/toy/host/tempore_world.h
@@ -182,6 +183,20 @@ A board with M5Unified initialises it, and its sources build with the stubs:
   $ cd _arduino/projects/gray
   $ c++ -std=c++17 -Wall -Wextra -Werror -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
+
+Under the member battery, on a board with a display and a battery gauge, the
+scaffold draws the battery indicator also for a program that does not use the
+display; the host model reports a charge of 87 percent:
+
+  $ sed 's/"esp32-devkit",/"m5stack-cores3", "battery": true,/' toy/toy.device.json > toy/battery.device.json
+  $ emit battery --device toy/battery.device.json toy/toy.tpe | grep battery.cpp
+  Wrote _arduino/projects/battery/src/tempore_battery.cpp
+  $ grep -B 1 -A 1 'tempore_battery_begin' _arduino/projects/battery/src/main.cpp
+    tempore_monitor_display_begin(&tempore_m5_monitor_display);
+    tempore_battery_begin();
+    xTaskCreatePinnedToCore(tempore_task0, "step", 4096, nullptr, 2, nullptr, 1);
+  $ emit battery --device toy/battery.device.json toy/toy.tpe --host-simulate 0.1 | grep 'Display'
+  [1.458 ms] Display at (254, 0): Battery 87%
 
 The host simulation of 100 ms: the periodic task shows its count every 10 ms,
 the free task blinks every 50 ms, and each operation call takes the nominal

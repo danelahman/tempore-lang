@@ -24,7 +24,8 @@
    falls counted, the time since the last event and a bar of the
    acceleration; after a fall, in orange, "Are you OK?", a countdown of 10
    seconds and a shrinking bar, which a tap cancels; and otherwise, in red,
-   a flashing alarm sounding every second until a tap stops it.
+   a flashing alarm sounding every second until a tap stops it. The
+   scaffold draws the charge of the battery at the top right.
    bindings.cpp defines the safe state and world.cpp models the falls and
    the taps. The figures below are those under the bounds of the CoreS3,
    some of them provisional.

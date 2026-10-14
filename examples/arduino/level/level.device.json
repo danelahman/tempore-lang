@@ -1,5 +1,6 @@
 {
   "board": "m5stack-cores3",
+  "battery": true,
   "tasks": [
     { "function": "step", "kind": "periodic", "period": 250,
       "initial": "start", "priority": 2 }

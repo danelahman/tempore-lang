@@ -23,7 +23,6 @@ reference with the default implementations of the operations:
     [{3}, {3}],
     [{3}, {3}],
     [{3}, {3}],
-    [{3}, {3}],
     [{0.2}, {0.2}],
     { resource_0 ↦
         NoReference
@@ -129,7 +128,7 @@ against its period; its sources compile without exceptions and run-time type
 information:
 
   $ tempore --emit-arduino level --device $app/level.device.json $app/level.tpe | grep -c Wrote
-  33
+  35
   $ cd _arduino/projects/level
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
@@ -138,7 +137,7 @@ Ten seconds of simulated time, the tones, the reconfiguration and the
 changes of the bubble, of the verdict and of the state of the reference:
 without a reference, held still after the tap on "Set reference" at 1 s and
 taken at about 2.36 s, the verdict lost on the steeper surface from 3 to
-4.5 s, invalidated by the tap on "Reconfigure sensor" at 5 s, rejected by its check
+4.5 s, invalidated by the tap on the sensor button at 5 s, which then shows the new rate, rejected by its check
 during the shaking at about 7.36 s, and taken again at about 9.36 s:
 
   $ changes () {
@@ -148,47 +147,47 @@ during the shaking at about 7.36 s, and taken again at about 9.36 s:
   >          if ($3 == "Display") last[k] = l }' | sed 's/ *$//'
   > }
   $ tempore --emit-arduino level --device $app/level.device.json --host-simulate 10 $app/level.tpe |
-  >   grep 'Display disc\|Display at (\(130, 120\|0, 150\|0, 172\|206, 6\))\|Speaker\|accelerometer\|simulation' | changes
-  [45.176 ms] Display at (206, 6): Sensor rate: 100 Hz
-  [54.079 ms] IMU: accelerometer at 100 Hz
-  [55.217 ms] Display disc at (55, 82), radius 8: 0x808080
-  [63.497 ms] Display at (130, 120):
-  [67.577 ms] Display at (0, 150): No reference: place on the
-  [71.657 ms] Display at (0, 172): surface, tap Set reference
-  [1067.003 ms] Display at (0, 150): Hold still...
-  [1070.563 ms] Display at (0, 172):
-  [2355.968 ms] Speaker: 2000 Hz for 100 ms
-  [2360.008 ms] Display at (0, 150): Reference valid for 0:30
-  [2363.908 ms] Display at (0, 172): (checked at rest)
-  [2555.218 ms] Display disc at (60, 90), radius 8: 0x00e000
-  [2563.598 ms] Display at (130, 120): LEVEL
-  [2567.638 ms] Display at (0, 150): Reference valid for 0:29
-  [3055.218 ms] Display disc at (60, 66), radius 8: 0xffffff
-  [3063.518 ms] Display at (130, 120):
-  [3567.243 ms] Display at (0, 150): Reference valid for 0:28
-  [4555.218 ms] Display disc at (60, 90), radius 8: 0x00e000
-  [4563.598 ms] Display at (130, 120): LEVEL
-  [4567.638 ms] Display at (0, 150): Reference valid for 0:27
-  [5055.103 ms] IMU: accelerometer at 400 Hz
-  [5055.153 ms] Speaker: 600 Hz for 50 ms
-  [5056.989 ms] Display at (206, 6): Sensor rate: 400 Hz
-  [5057.907 ms] Display disc at (55, 82), radius 8: 0x808080
-  [5066.187 ms] Display at (130, 120):
-  [5070.247 ms] Display at (0, 150): Reconfigured, now 400 Hz:
-  [5074.307 ms] Display at (0, 172): old reference not trusted
-  [6067.003 ms] Display at (0, 150): Hold still...
-  [6070.563 ms] Display at (0, 172):
-  [7355.968 ms] Speaker: 400 Hz for 400 ms
-  [7359.908 ms] Display at (0, 150): Moved during check:
-  [7363.828 ms] Display at (0, 172): reference rejected
-  [8067.003 ms] Display at (0, 150): Hold still...
-  [8070.563 ms] Display at (0, 172):
-  [9355.968 ms] Speaker: 2000 Hz for 100 ms
-  [9360.008 ms] Display at (0, 150): Reference valid for 0:30
-  [9363.908 ms] Display at (0, 172): (checked at rest)
-  [9555.218 ms] Display disc at (60, 90), radius 8: 0x00e000
-  [9563.598 ms] Display at (130, 120): LEVEL
-  [9567.638 ms] Display at (0, 150): Reference valid for 0:29
+  >   grep 'Display disc\|Display at (\(130, 120\|0, 150\|0, 172\|157, 200\))\|Speaker\|accelerometer\|simulation' | changes
+  [49.263 ms] Display at (157, 200): Sensor 100->400Hz
+  [52.223 ms] IMU: accelerometer at 100 Hz
+  [53.516 ms] Display disc at (55, 82), radius 8: 0x808080
+  [61.796 ms] Display at (130, 120):
+  [65.876 ms] Display at (0, 150): No reference: place on the
+  [69.956 ms] Display at (0, 172): surface, tap Set reference
+  [1065.003 ms] Display at (0, 150): Hold still...
+  [1068.563 ms] Display at (0, 172):
+  [2353.968 ms] Speaker: 2000 Hz for 100 ms
+  [2358.008 ms] Display at (0, 150): Reference valid for 0:30
+  [2361.908 ms] Display at (0, 172): (checked at rest)
+  [2553.218 ms] Display disc at (60, 90), radius 8: 0x00e000
+  [2561.598 ms] Display at (130, 120): LEVEL
+  [2565.638 ms] Display at (0, 150): Reference valid for 0:29
+  [3053.218 ms] Display disc at (60, 66), radius 8: 0xffffff
+  [3061.518 ms] Display at (130, 120):
+  [3565.243 ms] Display at (0, 150): Reference valid for 0:28
+  [4553.218 ms] Display disc at (60, 90), radius 8: 0x00e000
+  [4561.598 ms] Display at (130, 120): LEVEL
+  [4565.638 ms] Display at (0, 150): Reference valid for 0:27
+  [5053.103 ms] IMU: accelerometer at 400 Hz
+  [5053.153 ms] Speaker: 600 Hz for 50 ms
+  [5056.300 ms] Display at (157, 200): Sensor 400->100Hz
+  [5057.218 ms] Display disc at (55, 82), radius 8: 0x808080
+  [5065.498 ms] Display at (130, 120):
+  [5069.558 ms] Display at (0, 150): Reconfigured, now 400 Hz:
+  [5073.618 ms] Display at (0, 172): old reference not trusted
+  [6065.003 ms] Display at (0, 150): Hold still...
+  [6068.563 ms] Display at (0, 172):
+  [7353.968 ms] Speaker: 400 Hz for 400 ms
+  [7357.908 ms] Display at (0, 150): Moved during check:
+  [7361.828 ms] Display at (0, 172): reference rejected
+  [8065.003 ms] Display at (0, 150): Hold still...
+  [8068.563 ms] Display at (0, 172):
+  [9353.968 ms] Speaker: 2000 Hz for 100 ms
+  [9358.008 ms] Display at (0, 150): Reference valid for 0:30
+  [9361.908 ms] Display at (0, 172): (checked at rest)
+  [9553.218 ms] Display disc at (60, 90), radius 8: 0x00e000
+  [9561.598 ms] Display at (130, 120): LEVEL
+  [9565.638 ms] Display at (0, 150): Reference valid for 0:29
   [10000.000 ms] End of the simulation
 
 A run of 40 seconds: the time left of the reference taken at about 9.36 s,
@@ -197,14 +196,14 @@ shown here every five seconds, and its expiry after 120 steps:
   $ tempore --emit-arduino level --device $app/level.device.json --host-simulate 40 $app/level.tpe |
   >   grep 'Display at (0, 1[57][02])\|simulation' | changes |
   >   grep -v '^\[[0-8][0-9]\{0,3\}\.\|valid for 0:[0-9][1-46-9]'
-  [9360.008 ms] Display at (0, 150): Reference valid for 0:30
-  [9363.908 ms] Display at (0, 172): (checked at rest)
-  [13567.323 ms] Display at (0, 150): Reference valid for 0:25
-  [18567.323 ms] Display at (0, 150): Reference valid for 0:20
-  [23567.323 ms] Display at (0, 150): Reference valid for 0:15
-  [28567.323 ms] Display at (0, 150): Reference valid for 0:10
-  [33567.323 ms] Display at (0, 150): Reference valid for 0:05
-  [38567.323 ms] Display at (0, 150): Reference valid for 0:00
-  [39317.418 ms] Display at (0, 150): Reference expired:
-  [39321.318 ms] Display at (0, 172): tap Set reference
+  [9358.008 ms] Display at (0, 150): Reference valid for 0:30
+  [9361.908 ms] Display at (0, 172): (checked at rest)
+  [13565.323 ms] Display at (0, 150): Reference valid for 0:25
+  [18565.323 ms] Display at (0, 150): Reference valid for 0:20
+  [23565.323 ms] Display at (0, 150): Reference valid for 0:15
+  [28565.323 ms] Display at (0, 150): Reference valid for 0:10
+  [33565.323 ms] Display at (0, 150): Reference valid for 0:05
+  [38565.323 ms] Display at (0, 150): Reference valid for 0:00
+  [39315.418 ms] Display at (0, 150): Reference expired:
+  [39319.318 ms] Display at (0, 172): tap Set reference
   [40000.000 ms] End of the simulation
