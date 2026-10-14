@@ -1,0 +1,1818 @@
+/* Only from the tablet breakpoint up: below it the columns stack, and a
+   sticky panel would hover over the editor it is meant to sit beside. */
+@media screen and (min-width: 769px) {
+  .aside {
+    position: sticky;
+    /* Safari */
+    position: -webkit-sticky;
+    top: 0;
+    height: 100%;
+    /* A panel taller than the window, such as a long table of contents,
+       scrolls on its own. */
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+.panel-block {
+  display: block
+}
+
+/* The heading carries the name of the panel and, at its right, the link to
+   the other page. */
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* The tabs of the documentation pages wrap rather than overflow a narrow
+   side column. */
+.panel-tabs {
+  flex-wrap: wrap;
+}
+
+/* The tabs of the documentation pages are in black, not in the colour of
+   a link. */
+.panel-tabs a,
+.panel-tabs a:hover {
+  color: #0a0a0a;
+}
+
+/* The lit entry of the table of contents, and the entry of the section
+   whose subsection is lit, are in bold in Bulma's is-info blue, as the
+   run button and the logo, without a background. */
+.menu-list a.is-active,
+.menu-list a.has-active-entry {
+  background-color: transparent;
+  color: #3298dc;
+  font-weight: 600;
+}
+
+.menu-list a.is-active:hover,
+.menu-list a.has-active-entry:hover {
+  background-color: #f5f5f5;
+}
+
+/* The mark stands alone here, so it is given a hit area of its own and the
+   panel heading's colour rather than a link's. */
+.panel-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.35rem -0.35rem -0.35rem 0;
+  border-radius: 4px;
+  color: inherit;
+  opacity: 0.55;
+}
+
+.panel-action:hover {
+  color: inherit;
+  opacity: 1;
+  background-color: rgba(10, 10, 10, 0.07);
+}
+
+/* An inline <svg> reserves room under itself for descenders, which would
+   lift the mark off the centre of its box. The size is set here rather
+   than on the mark, so that it is a matter of how the panel reads. */
+.panel-action svg {
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* Bulma's box and panel shadows are offset downwards and so leave the
+   top edge bare; spread them evenly around all four edges instead. */
+.box,
+.panel {
+  box-shadow: 0 0 1em rgba(10, 10, 10, 0.12), 0 0 0 1px rgba(10, 10, 10, 0.02);
+}
+
+pre.syn-ml {
+  background: #f6f8fa;
+  color: #24292e;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+}
+
+pre.syn-ml .syn-kw {
+  color: #0366d6;
+  font-weight: 500;
+}
+
+pre.syn-ml .syn-ctor {
+  color: #267f99;
+}
+
+pre.syn-ml .syn-op {
+  color: #6f42c1;
+}
+
+pre.syn-ml .syn-str {
+  color: #a31515;
+}
+
+pre.syn-ml .syn-num {
+  color: #098658;
+}
+
+pre.syn-ml .syn-comment {
+  color: #008000;
+  font-style: italic;
+}
+
+pre.syn-ml .syn-resource {
+  color: #d97706;
+}
+
+pre.syn-ml .active-redex {
+  background-color: #fff3bf;
+  color: inherit;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #f0b500;
+  /* Make the background repeat on every visual line when the span wraps
+     across newlines (which is common inside <pre>). */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Let the editor box stretch to the height of the side panel, so that the
+   two start out level; a longer program still grows the box as before. */
+.contents.columns > .main.column {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-box {
+  position: relative;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The switch between the program and the code compiled from it: a button
+   floating over the top right corner of the code, so that the editor keeps
+   its place. */
+.view-switch {
+  position: absolute;
+  top: 1.75rem;
+  right: 1.75rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 8px;
+  color: inherit;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(10, 10, 10, 0.2);
+  opacity: 0.8;
+}
+
+.view-switch:hover,
+.view-switch:focus-visible {
+  color: inherit;
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(10, 10, 10, 0.3);
+}
+
+.view-switch svg,
+.view-switch img {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+}
+
+/* The Tempore logo, enlarged within the same button to match the pipette. */
+.view-switch img {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* The inputs of choices of the selected backend, in the side panel under
+   its description, wrapping within the column's width. */
+.aside .backend-choices {
+  margin-top: 0.75rem;
+}
+
+.aside .backend-choices .select,
+.aside .backend-choices .select select {
+  max-width: 100%;
+}
+
+/* The view of the code compiled in the editor's place, and the report of
+   the observer of the selected backend, above a run. */
+.backend-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.backend-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.backend-choices .field {
+  margin-bottom: 0;
+}
+
+.backend-input {
+  margin-top: 0.75rem;
+}
+
+.backend-input > summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.backend-input-size {
+  margin-left: 0.5em;
+  color: #6f6f6f;
+  font-size: 0.85em;
+  font-weight: normal;
+}
+
+.backend-text {
+  margin-top: 0.5rem;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.backend-code-heading {
+  margin-top: 0.75rem;
+  font-weight: 500;
+}
+
+pre.syn-ml.backend-code {
+  max-height: 70vh;
+  overflow: auto;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.backend-message {
+  margin-top: 0.75rem;
+}
+
+pre.backend-message-text {
+  padding: 0;
+  background: none;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.backend-note {
+  margin-top: 0.5rem;
+  color: #4a4a4a;
+  font-size: 0.9rem;
+}
+
+.backend-report td {
+  font-variant-numeric: tabular-nums;
+}
+
+.backend-report > summary {
+  cursor: pointer;
+}
+
+.backend-report:not([open]) > summary {
+  margin-bottom: 0;
+}
+
+.backend-report tr.is-pending td {
+  color: #946c00;
+}
+
+/* A shortened cell: the full text replaces the shortened one when
+   unfolded. */
+.backend-cell > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.backend-cell > summary::-webkit-details-marker {
+  display: none;
+}
+
+.backend-cell[open] .backend-cell-short,
+.backend-cell:not([open]) .backend-cell-full {
+  display: none;
+}
+
+.backend-cell-full {
+  overflow-wrap: anywhere;
+}
+
+/* The events inside a default implementation. */
+.backend-report tr.is-sub td {
+  color: #888;
+}
+
+/* The declarations loaded before the program, folded above the editor,
+   read-only; the title leaves room for the switch floating over the top
+   right corner of the box. */
+.editor-declarations:not(:empty) {
+  margin-bottom: 0.75rem;
+}
+
+.declarations > summary {
+  cursor: pointer;
+  padding-right: 3.5rem;
+  font-weight: 500;
+}
+
+.declarations-filename {
+  margin-top: 0.75rem;
+  color: #5f6873;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+pre.syn-ml.declarations-source {
+  position: relative;
+  margin-top: 0.3rem;
+  padding: 0.75em 1em 0.75em var(--gutter, 2.1em);
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  tab-size: 2;
+}
+
+.editor-box .code-editor {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The highlighted overlay sits in normal flow and sets the editor's height
+   from the text itself, wrapping included; the textarea is stretched over
+   it. Sizing by a row count instead lets browsers that round row heights
+   differently leave a gap after long programs. */
+.code-editor {
+  position: relative;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.code-editor pre.code-editor-display,
+.code-editor .code-editor-input {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: 0;
+  /* The left padding is the gutter the markers and line numbers sit in;
+     both layers carry it, so the caret stays over the text it is in. */
+  padding: 0.75em 1em 0.75em var(--gutter, 2.1em);
+  margin: 0;
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  tab-size: 2;
+  width: 100%;
+}
+
+.code-editor pre.code-editor-display {
+  position: relative;
+  flex-grow: 1;
+  min-height: calc(10 * 1.5em + 1.5em + 2px);
+  pointer-events: none;
+  overflow: hidden;
+  background: #f6f8fa;
+  color: #24292e;
+}
+
+.code-editor .code-editor-input {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  z-index: 2;
+  background: transparent;
+  color: transparent;
+  caret-color: #24292e;
+  resize: none;
+  overflow: hidden;
+  outline: none;
+  display: block;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Bulma adds 1.5rem under a message; the top margin alone is the gap. */
+.editor-error,
+.editor-error:not(:last-child) {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+/* The side panel gets narrow at intermediate window widths: let its
+   controls shrink and its labels wrap, rather than overflow the panel. */
+.aside .button {
+  white-space: normal;
+  height: auto;
+  min-height: 2.5em;
+}
+
+/* the step-size select gives way first, so that the button beside it keeps
+   its label on one line for as long as there is room */
+.aside .field.has-addons .control {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.aside .field.has-addons .control.is-expanded {
+  flex-shrink: 0;
+}
+
+.aside .field.has-addons .button {
+  white-space: nowrap;
+  padding-left: 0.6em;
+  padding-right: 0.6em;
+}
+
+.aside .field.has-addons .select {
+  width: 100%;
+  /* room for the widest step size and the arrow, and no less */
+  min-width: 4.2em;
+}
+
+.aside .field.has-addons .select select {
+  width: 100%;
+  min-width: 0;
+  padding-left: 0.5em;
+  padding-right: 1.7em;
+}
+
+.aside .field.has-addons .select:not(.is-multiple):not(.is-loading)::after {
+  right: 0.6em;
+}
+
+/* The entries of an opened dropdown in the size of its group headings,
+   where the browser styles the list (not the native menus of macOS). */
+select optgroup,
+select option {
+  font-size: 0.875rem;
+}
+
+/* Secondary text under a control: the note that a run has terminated
+   and the CLI command equivalent to the grades selector's current
+   value. */
+.terminated-note,
+.grades-summary {
+  width: 100%;
+  margin-top: 0.6rem;
+  color: #5f5f5f;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+/* While a check is under way, the pressed button shows a spinner and the
+   other is dimmed. The check blocks the page's scripts, so the delay is
+   left to CSS animations of opacity and rotation, which the browser runs
+   on its own: a check done within 150ms changes nothing on the screen. */
+@keyframes check-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes check-appear {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes check-disappear {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes check-dim {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.5;
+  }
+}
+
+.check-action.is-checking,
+.check-action.is-waiting {
+  cursor: progress;
+}
+
+.check-action.is-waiting {
+  pointer-events: none;
+  animation: check-dim 0.1s ease-out 150ms both;
+}
+
+.check-action.is-checking > span {
+  animation: check-disappear 0.1s ease-out 150ms both;
+}
+
+/* the spinner, in the button's text colour, as Bulma's is-loading */
+.check-action.is-checking::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 0.5em);
+  top: calc(50% - 0.5em);
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: check-spin 0.5s linear infinite,
+    check-appear 0.1s ease-out 150ms both;
+}
+
+/* Under the buttons: the outcome of the last check and, laid over it
+   while a check is under way, the note saying so, on one line. */
+.check-status {
+  display: grid;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #7a7a7a;
+}
+
+/* empty before the first check */
+.check-status:not(:empty) {
+  margin-top: 0.6rem;
+}
+
+.check-status-outcome,
+.check-status-progress {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: flex-start;
+  column-gap: 0.4em;
+  min-width: 0;
+}
+
+.check-status-outcome.is-superseded {
+  animation: check-disappear 0.1s ease-out 150ms both;
+}
+
+.check-status-progress {
+  animation: check-appear 0.1s ease-out 150ms both;
+}
+
+.check-status-text {
+  min-width: 0;
+}
+
+.check-status-text.is-clipped {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.check-status-abbreviated {
+  display: none;
+}
+
+/* The number of definitions abbreviated, the page having measured that
+   the line cannot hold it in full, except while it measures the line
+   anew. The full text stays, visually hidden, for assistive
+   technology. */
+.check-status.is-abbreviated:not([data-measuring]) .check-status-full {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.check-status.is-abbreviated:not([data-measuring]) .check-status-abbreviated {
+  display: inline;
+}
+
+/* A mark as tall as a line of text, centred on it. */
+.check-status-mark,
+.check-spinner {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  margin-top: 0.25em;
+}
+
+.check-status-mark.is-success {
+  color: #257942;
+}
+
+.check-status-mark.is-danger {
+  color: #cc0f35;
+}
+
+.check-status-mark.is-warning {
+  color: #946c00;
+}
+
+.check-status-mark.is-dimmed {
+  opacity: 0.45;
+}
+
+.check-spinner {
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: check-spin 0.6s linear infinite;
+}
+
+.check-status-errors {
+  color: #cc0f35;
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+}
+
+.check-status-errors:hover {
+  color: #cc0f35;
+  text-decoration: underline;
+}
+
+/* The count of the warnings, in amber where the errors are in red. */
+.check-status-warnings {
+  color: #946c00;
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+}
+
+.check-status-warnings:hover {
+  color: #946c00;
+  text-decoration: underline;
+}
+
+.check-status-warnings:focus-visible,
+.check-status-errors:focus-visible {
+  outline: 2px solid #485fc7;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Without rotation, the pressed button keeps its label and the note its
+   spinner as a still ring. */
+@media (prefers-reduced-motion: reduce) {
+  .check-action.is-checking > span {
+    animation: none;
+  }
+
+  .check-action.is-checking::after {
+    content: none;
+  }
+
+  .check-spinner {
+    animation: none;
+    border-color: currentColor;
+    opacity: 0.6;
+  }
+}
+
+/* Under the run button: every error reported, numbered as the messages
+   under the editor are, each a link into the editor. */
+.error-list {
+  margin-top: 0.6rem;
+  padding-left: 1.6em;
+  list-style: decimal outside;
+  font-size: 0.9rem;
+  color: #f14668;
+}
+
+.error-list li {
+  margin-top: 0.15em;
+  overflow-wrap: anywhere;
+}
+
+/* reported before the source was edited, as the messages are */
+.error-list.is-stale {
+  opacity: 0.55;
+}
+
+/* the error the caret is in */
+.error-list li.is-active {
+  font-weight: 600;
+}
+
+.error-list a {
+  color: inherit;
+}
+
+.error-list a:hover {
+  color: #cc0f35;
+  text-decoration: underline;
+}
+
+/* a warning, in amber */
+.error-list li.is-warning,
+.error-list li.is-warning a:hover {
+  color: #946c00;
+}
+
+/* The example button: the example last loaded, after the short form of
+   its group, at the left, an ellipsis at the right, since it opens the
+   gallery. */
+.example-button {
+  justify-content: space-between;
+  gap: 0.5em;
+  text-align: left;
+}
+
+.example-button > .choice-label {
+  flex: 1 1 auto;
+}
+
+/* The example button and, at its right, the button copying the link to
+   the example, the grades and the backend selected. */
+.example-field {
+  display: flex;
+  gap: 0.5em;
+}
+
+.example-field > .control.is-expanded {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* the label of the example, with the copy link at its right end */
+.example-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5em;
+}
+
+.example-label > .label {
+  margin-bottom: 0;
+}
+
+.copy-link {
+  display: inline-flex;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.copy-link:hover,
+.copy-link:focus-visible {
+  opacity: 1;
+}
+
+/* the notice under the example, which may hold a link */
+.link-notice {
+  overflow-wrap: anywhere;
+}
+
+/* The one-line label of a choice made under a heading: the heading in
+   grey, a dot, and the choice. The heading and the dot are kept whole;
+   the choice takes the remaining width, ending in an ellipsis where it
+   does not fit. */
+.choice-label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.choice-heading,
+.choice-separator {
+  flex: none;
+  color: #7a7a7a;
+}
+
+.choice-separator {
+  padding: 0 0.4em;
+}
+
+.choice-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A select whose closed control shows its choice as a choice label: the
+   select's own text is transparent, and the label is laid over it within
+   the select's padding, letting clicks and keys through. The options keep
+   Bulma's text colour where the browser draws the list. */
+.choice-select select {
+  color: transparent;
+}
+
+.choice-select select optgroup,
+.choice-select select option {
+  color: #363636;
+}
+
+.choice-select > .choice-label {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0.75em;
+  right: 2.5em;
+  pointer-events: none;
+  color: #363636;
+}
+
+/* The example gallery: a layer over the dimmed page, holding a panel
+   centred at the top that scrolls within the viewport. Bulma's navbar is
+   at z-index 30. */
+.example-gallery {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px;
+  overflow: auto;
+  background: rgba(27, 31, 35, 0.45);
+}
+
+.example-gallery:focus {
+  outline: none;
+}
+
+/* Beside the panel and under it: a click here closes the gallery. */
+.example-gallery-backdrop {
+  position: fixed;
+  inset: 0;
+}
+
+.example-gallery-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(980px, 100%);
+  max-height: calc(100vh - 80px);
+  border-radius: 10px;
+  background: #fff;
+  color: #24292e;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.example-gallery-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.example-gallery-head h2 {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.example-gallery-search {
+  flex: 1 1 280px;
+  padding: 8px 10px;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.example-gallery-close {
+  border: none;
+  background: none;
+  font-size: 22px;
+  color: #6a737d;
+  cursor: pointer;
+}
+
+.example-gallery-body {
+  display: flex;
+  min-height: 0;
+}
+
+/* The groups, each a link to its section, with its number of examples. */
+.example-gallery-toc {
+  flex: 0 0 200px;
+  padding: 12px 0;
+  border-right: 1px solid #e1e4e8;
+  overflow: auto;
+}
+
+.example-gallery-toc a {
+  display: block;
+  padding: 6px 18px;
+  font-size: 13px;
+  color: #24292e;
+}
+
+.example-gallery-toc a:hover {
+  background: #fafbfc;
+}
+
+/* the group scrolled to */
+.example-gallery-toc a.is-active {
+  background: #f5fafe;
+  box-shadow: inset 3px 0 0 #3298dc;
+  font-weight: 600;
+}
+
+.example-gallery-toc a span {
+  color: #6a737d;
+}
+
+/* Too narrow a page for both columns: the sections alone. */
+@media (max-width: 700px) {
+  .example-gallery-toc {
+    display: none;
+  }
+}
+
+.example-gallery-list {
+  flex: 1;
+  padding: 8px 20px 20px;
+  overflow: auto;
+}
+
+.example-group header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 16px 0 8px;
+}
+
+.example-group h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.example-group header p {
+  margin: 0;
+  color: #6a737d;
+  font-size: 13px;
+}
+
+.example-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+/* An example: its title, description, grade and path. */
+.example-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.example-card:hover {
+  border-color: #3298dc;
+  box-shadow: 0 0 0 2px #eef6fc;
+}
+
+/* the example last loaded */
+.example-card.is-current {
+  border-color: #3298dc;
+  background: #f5fafe;
+  box-shadow: inset 0 0 0 1px #3298dc;
+}
+
+.example-card:focus-visible {
+  outline: 2px solid #3298dc;
+  outline-offset: 2px;
+}
+
+.example-card-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.example-card-description {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #444;
+}
+
+.example-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.example-card-grade,
+.example-card-path {
+  font-family: 'SFMono-Regular', Menlo, monospace;
+  font-size: 11.5px;
+}
+
+.example-card-grade {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #eef6fc;
+  color: #1d6fa5;
+}
+
+.example-card-path {
+  color: #6a737d;
+}
+
+.example-gallery-empty {
+  padding: 20px 0;
+  color: #6a737d;
+}
+
+/* The line numbers, right-aligned in the gutter. Absolute against the
+   <pre> so that they cost the line no width. */
+.line-number {
+  position: absolute;
+  /* the number slot: from the inset to the gap before the text */
+  left: 0.36rem;
+  top: auto;
+  width: calc(var(--gutter, 2.1em) - 0.99rem);
+  text-align: right;
+  color: #b5b5b5;
+  font: inherit;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* The number of a line an error's span covers: red and a link to the
+   message, so it must take the clicks the textarea over it would swallow. */
+.line-number.is-error {
+  color: #f14668;
+  font-weight: 600;
+  text-decoration: none;
+  pointer-events: auto;
+  z-index: 3;
+}
+
+/* Every number of the error the pointer is on, the model saying which
+   that is: the numbers of one error are siblings, not a group CSS could
+   select from any one of them. */
+.line-number.is-error:hover,
+.line-number.is-error.is-hover {
+  color: #cc0f35;
+  text-decoration: underline;
+}
+
+.line-number.is-error.is-hover::before {
+  background: #cc0f35;
+}
+
+/* A bar down the gutter beside the lines of one error. The numbers are
+   absolute and as tall as their line box, so consecutive ones join up; the
+   inset ends leave a gap where one error meets the next. It follows the
+   number, so a wrapped source line gets the bar on its first row only. */
+.line-number.is-error::before {
+  content: "";
+  position: absolute;
+  left: -0.24rem;
+  /* Overlapping its neighbours by a pixel: abutting pieces leave a seam
+     wherever a line box does not land on a whole device pixel. */
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  border-radius: 1px;
+  background: #f14668;
+}
+
+.line-number.is-error-start::before {
+  top: 3px;
+}
+
+/* The lines of a warning: the same marks, in amber. */
+.line-number.is-error.is-warning,
+.line-number.is-error.is-warning:hover,
+.line-number.is-error.is-warning.is-hover {
+  color: #946c00;
+}
+
+.line-number.is-error.is-warning::before,
+.line-number.is-error.is-warning::after {
+  background: #e6b400;
+}
+
+.line-number.is-error.is-warning.is-hover::before,
+.line-number.is-error.is-warning.is-hover::after {
+  background: #946c00;
+}
+
+.line-number.is-error-end::before {
+  bottom: 3px;
+}
+
+/* The span an error points at: a soft band under a wavy red underline.
+   The decoration is cloned onto every visual line so that a span wrapping
+   or crossing a newline stays marked throughout. */
+pre.syn-ml .error-primary {
+  background: #feecf0;
+  text-decoration: underline wavy #f14668;
+  text-underline-offset: 3px;
+  border-radius: 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* while the pointer is on the error's line numbers or message */
+pre.syn-ml .error-primary.is-hover {
+  background: #fbd0d9;
+}
+
+/* The span a warning points at, in amber. */
+pre.syn-ml .error-primary.is-warning {
+  background: #fff8e1;
+  text-decoration-color: #e6b400;
+}
+
+pre.syn-ml .error-primary.is-warning.is-hover {
+  background: #ffe9a8;
+}
+
+/* The span of a label: a place the message refers to, marked more
+   quietly than the error itself. */
+pre.syn-ml .error-related {
+  background: #fff8e1;
+  text-decoration: underline dotted #b8860b;
+  text-underline-offset: 3px;
+  border-radius: 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* ... and the same span while the pointer is on its label. */
+pre.syn-ml .error-hover {
+  background: #ffe9a8;
+  text-decoration-style: solid;
+}
+
+/* The first line of an error's span carries a dot on its gutter bar; the
+   number it marks opens the error's popover. */
+.line-number.is-error-start::after {
+  content: "";
+  position: absolute;
+  left: calc(-0.24rem - 2px);
+  top: calc(0.75em - 3px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f14668;
+}
+
+.line-number.is-error.is-hover::after {
+  background: #cc0f35;
+}
+
+/* The number of a line of an unedited example, copying the link to the
+   line when clicked: it takes the clicks the textarea over it would
+   swallow. */
+.line-number.is-line-link {
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.line-number.is-line-link:hover {
+  color: #485fc7;
+  text-decoration: underline;
+}
+
+.line-number.is-error:focus-visible {
+  outline: 2px solid #485fc7;
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* While ⌘ (Ctrl) is held, the name under the pointer whose definition is
+   known: a link, in the colour of the page's links. */
+pre.syn-ml .name-ref.is-link {
+  color: #485fc7;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.code-editor.is-linking .code-editor-input {
+  cursor: pointer;
+}
+
+/* The name of a definition just gone to, lit briefly. */
+pre.syn-ml .goto-flash {
+  border-radius: 2px;
+  animation: goto-flash 800ms ease-out forwards;
+}
+
+@keyframes goto-flash {
+  from {
+    background-color: #c9d6f7;
+    box-shadow: 0 0 0 2px #c9d6f7;
+  }
+
+  to {
+    background-color: rgba(201, 214, 247, 0);
+    box-shadow: 0 0 0 2px rgba(201, 214, 247, 0);
+  }
+}
+
+/* The line whose link has just been copied by a click on its number, or
+   that the page's address names, lit briefly in amber, the latter for
+   longer, as it is scrolled to first. */
+@keyframes line-copied {
+  from {
+    background-color: #ffd98a;
+  }
+
+  to {
+    background-color: rgba(255, 217, 138, 0);
+  }
+}
+
+/* A band across the editor at the height of the line, hung from its
+   number, which is absolute against the <pre> and as tall as the line's
+   first row; the <pre> clips it at the right. Painted over the text,
+   which multiplying the colour leaves legible. */
+.line-number-anchor.is-copied .line-number::after {
+  content: "";
+  position: absolute;
+  left: -0.36rem;
+  top: 0;
+  bottom: 0;
+  width: 400vw;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  animation: line-copied 600ms ease-out forwards;
+}
+
+.line-number-anchor.is-opened .line-number::after {
+  content: "";
+  position: absolute;
+  left: -0.36rem;
+  top: 0;
+  bottom: 0;
+  width: 400vw;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  animation: line-copied 1500ms ease-out forwards;
+}
+
+/* The name of a definition, or of one in the standard library, while its
+   popover is open. */
+pre.syn-ml .def-name.is-hover,
+pre.syn-ml .name-ref.is-hover {
+  background: #e3effa;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #c3dcf2;
+}
+
+/* The popover of an error's span or a definition's name: a card under
+   the span, or above it where the viewport has no room below, its arrow
+   pointing at the span. It is laid out hidden, measured, and then placed.
+   The editor sets its text in a monospace font; the card is prose. */
+.code-popover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(46rem, calc(100% - 3rem));
+  padding: 0.55rem 0.75rem 0.5rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  background: #fff;
+  color: #24292e;
+  box-shadow: 0 6px 18px rgba(27, 31, 35, 0.12), 0 1px 3px rgba(27, 31, 35, 0.08);
+  font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  visibility: hidden;
+}
+
+.code-popover.is-type {
+  max-width: min(50rem, calc(100% - 3rem));
+}
+
+.code-popover.is-placed {
+  visibility: visible;
+  animation: popover-in 120ms ease-out;
+}
+
+.code-popover.is-placed.is-above {
+  animation-name: popover-in-above;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes popover-in-above {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* A square turned on its corner, half of it showing past the card's
+   edge, in the card's colours. */
+.code-popover-arrow {
+  position: absolute;
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: #fff;
+  border-top: 1px solid #e1e4e8;
+  border-left: 1px solid #e1e4e8;
+  border-top-left-radius: 2px;
+  transform: rotate(45deg);
+}
+
+.code-popover.is-above .code-popover-arrow {
+  top: auto;
+  bottom: -6px;
+  border: none;
+  border-bottom: 1px solid #e1e4e8;
+  border-right: 1px solid #e1e4e8;
+  border-radius: 0 0 2px 0;
+}
+
+.code-popover p {
+  margin: 0;
+}
+
+.code-popover-title {
+  font-weight: 600;
+}
+
+.code-popover-kind {
+  color: #cc0f35;
+}
+
+.code-popover-kind.is-warning {
+  color: #946c00;
+}
+
+/* The span's own label, marked as the span is, in amber. */
+.code-popover-label {
+  margin-top: 0.35rem !important;
+  padding-left: 0.5rem;
+  border-left: 2px solid #d4a017;
+}
+
+/* The first note, cut to three lines. */
+.code-popover-note {
+  margin-top: 0.35rem !important;
+  color: #5f6873;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.code-popover code.diag-code {
+  white-space: pre-wrap;
+}
+
+.code-popover-link {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: #5f6873;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.code-popover-link:hover,
+.code-popover-link:focus-visible {
+  color: #cc0f35;
+}
+
+.code-popover.is-type .code-popover-link:hover,
+.code-popover.is-type .code-popover-link:focus-visible {
+  color: #485fc7;
+}
+
+/* A scheme in the popover: the quantifier and qualifier dimmer than the
+   type. */
+.code-popover-scheme {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  /* laid out in lines by the page, which the card keeps */
+  white-space: pre-wrap;
+}
+
+/* A rigid variable, [ε] with the operation of its clause as a subscript;
+   the subscript leaves the height of the line alone. */
+.rigid sub {
+  font-size: 0.72em;
+  line-height: 0;
+  vertical-align: -0.3em;
+}
+
+.scheme-name {
+  font-weight: 600;
+}
+
+.scheme-qualifier {
+  color: #6a737d;
+}
+
+/* A definition of the standard library: where it is, and its line as the
+   editor shows it. */
+.code-popover-place {
+  font-size: 0.8rem;
+  color: #5f6873;
+}
+
+.code-popover pre.code-popover-source {
+  margin: 0.3rem 0 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background: #f6f8fa;
+  color: #24292e;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.code-popover-source + .code-popover-scheme {
+  margin-top: 0.4rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-popover.is-placed,
+  .editor-error.is-active {
+    animation: none;
+  }
+
+  /* ringed without fading, for as long */
+  .editor-error.is-flashed {
+    animation: none;
+    box-shadow: 0 0 0 4px rgba(241, 70, 104, 0.35);
+  }
+
+  /* lit without fading, for as long */
+  pre.syn-ml .goto-flash {
+    animation: none;
+    background-color: #dde6fb;
+  }
+
+  .line-number-anchor.is-copied .line-number::after,
+  .line-number-anchor.is-opened .line-number::after {
+    animation: none;
+    background-color: #ffe8b8;
+  }
+}
+
+.error-labels,
+.error-notes {
+  margin-top: 0.6em;
+  list-style: disc outside;
+  padding-left: 1.2em;
+}
+
+/* Labels and notes are two lists but one run of bullets, so the second
+   starts where an item would, not where a list would. */
+.error-labels + .error-notes {
+  margin-top: 0;
+}
+
+.error-labels li,
+.error-notes li {
+  margin-top: 0.2em;
+}
+
+.error-labels a {
+  color: inherit;
+  text-decoration: underline dotted;
+}
+
+.error-labels a:hover {
+  color: #cc0f35;
+}
+
+/* Only the line reference is muted: a note carries the constraint that
+   failed and its counterexample, which read with the message. */
+.error-labels .error-line-ref {
+  color: #7a7a7a;
+}
+
+/* The prose of a diagnostic is prose; only the code fragments it marks
+   are set in the editor's font, by .diag-code below. */
+.editor-error .message-body {
+  font-family: inherit;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  /* a long type is broken rather than let out of the viewport */
+  overflow-wrap: anywhere;
+}
+
+/* The element is named too, to outweigh Bulma's own rules for a <code>
+   inside a message body. */
+code.diag-code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
+  /* Bulma colours a bare <code> its own red; the fragment belongs to the
+     sentence around it, so it takes that sentence's colour. */
+  color: inherit;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  /* a fragment reads as one token, so it never breaks inside */
+  white-space: nowrap;
+}
+
+/* Inline code on the documentation page is treated as the diagnostics'
+   fragments are, and for the same reason: Bulma's red for a bare <code> is
+   the colour this interface reports errors in. */
+.content code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+}
+
+/* Bulma already strips the background inside a <pre>; the colour it leaves
+   is its own grey, where the block should read as strongly as the prose. */
+.content pre,
+.content pre code {
+  color: #24292e;
+}
+
+/* The error the caret sits in, singled out among the messages. */
+.editor-error.is-active {
+  border-left: 4px solid #f14668;
+  border-radius: 4px;
+  animation: error-flash 900ms ease-out;
+}
+
+.editor-error.is-warning.is-active {
+  border-left-color: #e6b400;
+}
+
+/* The error just gone to, highlighted briefly. */
+.editor-error.is-flashed {
+  border-radius: 4px;
+  animation: error-flash 900ms ease-out;
+}
+
+@keyframes error-flash {
+  from {
+    box-shadow: 0 0 0 4px rgba(241, 70, 104, 0.35);
+  }
+
+  to {
+    box-shadow: 0 0 0 4px rgba(241, 70, 104, 0);
+  }
+}
+
+/* Reported before the source was edited: greyed until it is run again. */
+.editor-error.is-stale {
+  opacity: 0.55;
+}
+
+.editor-error .message-header .show-in-editor,
+.editor-error .message-header .stale-note {
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.editor-error .message-header .show-in-editor {
+  color: inherit;
+  text-decoration: underline dotted;
+}
+
+.code-editor-input::placeholder {
+  color: #9aa0a6;
+  opacity: 1;
+}
+
+.code-editor-input:focus {
+  border-color: #485fc7;
+  box-shadow: 0 0 0 0.125em rgba(72, 95, 199, 0.25);
+}
+
+.completed-run-separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #888;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 1.25rem 0;
+}
+
+.completed-run-separator::before,
+.completed-run-separator::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px dashed #bbb;
+}
+
+.completed-run-separator span {
+  padding: 0 0.75rem;
+}
+
+/* Bulma paints the navbar white and above its neighbours, which would
+   hide the top of the shadow of the box right below it. */
+/* Bulma's section starts 3rem down; the header does not need that much. */
+.section {
+  padding-top: 1.5rem;
+}
+
+/* <navbar> is not an element the browser knows, so it is laid out inline
+   — dropping its vertical margin — until Bulma makes it a flex box at the
+   desktop breakpoint. Laid out the same way at every width instead, the
+   brand growing so that the page link sits opposite it. */
+.navbar {
+  background-color: transparent;
+  display: block;
+  min-height: 0;
+  margin-bottom: 1.5rem;
+}
+
+
+
+/* Bulma holds the brand 3.25rem tall and pads its items out, either of
+   which would leave the gap below the header wider than the margin. */
+.navbar-brand {
+  flex-grow: 1;
+  min-height: 0;
+  /* A flex item will not shrink past its contents unless told to, which
+     would let the tagline push the page link off the right of the page. */
+  min-width: 0;
+}
+
+
+
+
+
+
+.navbar-brand .brand-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  /* Line the mark up with the left edge of the editor box below. */
+  padding: 0;
+  /* Bulma holds a navbar item at its content width, which would push the
+     brand off the right of a narrow page. */
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.navbar-brand .brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.navbar-brand .brand-title .title {
+  margin: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* One line or none: a narrow page drops it rather than break it up. */
+.navbar-brand .brand-tagline {
+  margin: 0;
+  color: #7a7a7a;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.navbar-brand .brand-logo {
+  /* Bulma caps navbar images at 1.75rem; the mark spans both lines of
+     the brand text. */
+  max-height: 3.5rem;
+  height: 3.5rem;
+  width: 3.5rem;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* The one-line tagline needs 715px of page, so below the tablet
+   breakpoint the header keeps only the mark and the name, and the mark
+   shrinks to leave room for it. */
+
+@media screen and (max-width: 768px) {
+  .navbar-brand .brand-tagline {
+    display: none;
+  }
+
+  .navbar-brand .brand-logo {
+    max-height: 2.5rem;
+    height: 2.5rem;
+    width: 2.5rem;
+  }
+
+  /* The full size would tower over the smaller mark beside it. */
+  .navbar-brand .brand-title .title {
+    font-size: 1.5rem;
+  }
+
+  /* A one-line header needs less air around it than the two-line one. */
+  .section {
+    padding-top: 1rem;
+  }
+
+  .navbar {
+    margin-bottom: 1rem;
+  }
+}
+
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.site-footer .footer-link {
+  color: #7a7a7a;
+}
+
+.site-footer .footer-link:hover {
+  /* Bulma's is-info blue, as on the run button and in the logo. */
+  color: #3298dc;
+}
+
+.site-footer .github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.site-footer .github-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Punctuation, not a link: lighter than the links either side of it. */
+.site-footer .footer-separator {
+  color: #b5b5b5;
+}
