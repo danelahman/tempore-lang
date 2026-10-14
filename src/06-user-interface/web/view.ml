@@ -2,7 +2,6 @@ open Vdom
 module Ast = Language.Ast
 module Diagnostic = Utils.Diagnostic
 module Location = Utils.Location
-module SyntaxHighlight = WebInterpreter.SyntaxHighlight
 
 (* Auxiliary definitions *)
 let panel = Widgets.panel

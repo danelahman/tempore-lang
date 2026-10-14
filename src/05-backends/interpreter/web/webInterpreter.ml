@@ -1,5 +1,3 @@
-module SyntaxHighlight = SyntaxHighlight
-
 module Make (GS : Grades.GradeSystem.S) = struct
   include Interpreter.Make (GS)
   open Vdom
