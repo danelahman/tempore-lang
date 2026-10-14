@@ -47,10 +47,23 @@
       flex-wrap: wrap;
     }
 
+    /* The tabs of the documentation pages are in black, not in the colour of
+       a link. */
+    .panel-tabs a,
+    .panel-tabs a:hover {
+      color: #0a0a0a;
+    }
+
+    /* The lit entry of the table of contents is in Bulma's is-info blue, as
+       the run button and the logo. */
+    .menu-list a.is-active {
+      background-color: #3298dc;
+    }
+
     /* The entry of the section whose subsection is lit in the table of
-       contents: the colour of Bulma's lit entry, without its background. */
+       contents: the colour of the lit entry, without its background. */
     .menu-list a.has-active-entry {
-      color: #3273dc;
+      color: #3298dc;
       font-weight: 600;
     }
 
