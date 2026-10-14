@@ -379,6 +379,8 @@ let expected_rejections =
     ("tests/traces_reject_undecided_condition.tpe", [ 20 ]);
     ("tests/traces_reject_unknown_event.tpe", [ 11 ]);
     ("tests/windowed_schedules_reject.tpe", [ 11; 16; 21; 29; 36 ]);
+    ("tests/event_separation_reject.tpe", [ 18; 29; 40 ]);
+    ("tests/event_separation_reject_unknown.tpe", [ 11 ]);
   ]
 
 let slow = ref []
