@@ -80,9 +80,9 @@ The descriptor maps each grade system the package supports to a file of
 declarations, and may name a file of definitions, types and functions shared
 by all of them, such as the tilt filters of `m5-imu`. Every package is
 declared under `time-interval-rational`, under the regular expressions of
-timed operations over rational delays (`regex-timed-*-rational-symbolic`),
-with running-time bounds in milliseconds, and under `counts-upper-bound`,
-each call counting once.
+timed operations over rational delays (`regex-timed-*-rational-symbolic`) and
+`event-separation`, with running-time bounds in milliseconds, and under
+`counts-upper-bound`, each call counting once.
 
 ### The packages
 
@@ -142,7 +142,7 @@ closed intervals in the time unit of the declarations:
 For the board of a manifest, these bounds replace those of the declarations
 under every grade system that bounds durations: the interval grade of the
 operation under `time-interval-rational`, and its `within` bounds under the
-regular expressions of timed operations.
+regular expressions of timed operations and `event-separation`.
 
 - The program is typed, and the monitors are generated, under the bounds of
   its board.

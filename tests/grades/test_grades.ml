@@ -955,6 +955,7 @@ let registry =
           "regex-timed-interval-symbolic";
           "regex-timed-interval-rational-symbolic";
           "windowed-schedules";
+          "event-separation";
         ]
       (GradeRegistry.accepting (span (Grade.Int 3) Grade.Inf));
     expect "registry: grades reading an interval of brace literals" show_names
@@ -983,6 +984,7 @@ let registry =
           "regex-timed-interval-rational-symbolic";
           "resource-levels";
           "windowed-schedules";
+          "event-separation";
         ]
       (GradeRegistry.accepting (Grade.Tuple [ Grade.Int 3; Grade.Inf ]));
     expect "registry: grades reading an interval unbounded below" show_names
@@ -1001,6 +1003,7 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "event-separation";
         ]
       (GradeRegistry.accepting (Grade.Rat (Rational.make 3 2)));
     expect "registry: grades reading a fractional delay in braces" show_names
@@ -1014,6 +1017,7 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "event-separation";
         ]
       (GradeRegistry.accepting (Grade.Braces (Grade.Frac (Rational.make 1 2))));
     expect "registry: grades reading fractional running-time bounds" show_names
@@ -1025,6 +1029,7 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "event-separation";
         ]
       (GradeRegistry.accepting_bounds (Grade.Rat (Rational.make 1 2)));
     expect "registry: grades with a fractional delay" show_names
@@ -1043,6 +1048,7 @@ let registry =
           "regex-timed-interval-rational-symbolic";
           "security-levels";
           "flow-levels";
+          "event-separation";
         ]
       (GradeRegistry.accepting_delay (Grade.Rat (Rational.make 1 2)));
     expect "registry: every grade has a whole delay" show_names
@@ -1075,6 +1081,7 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "event-separation";
         ]
       (GradeRegistry.accepting
          (Grade.Braces
@@ -1549,6 +1556,7 @@ type family =
   | Schedules
   | Modes
   | Counts
+  | Separation
 
 (* [family name] is the family of the registered grade [name], if known. *)
 let family name =
@@ -1561,6 +1569,7 @@ let family name =
   | "windowed-schedules" -> Some Schedules
   | "mode-switch-costs" -> Some Modes
   | "counts-upper-bound" -> Some Counts
+  | "event-separation" -> Some Separation
   | "traces-upper-bound" -> Some Inclusion_traces
   | "traces-upper-bound-rational" -> Some Rational_inclusion_traces
   | "regex-upper-bound-rational-symbolic" -> Some Rational_regex
@@ -1594,8 +1603,10 @@ let letter_c = Grade.Letter "C"
    releases, acquisitions, ranges of net changes, explicit and unbounded troughs
    and the resources not named; durations with the times of named and other
    operations; partial operations, changes of mode, traces stuck at a cost,
-   round trips and the modes not named; and counts of several operations, of the
-   others, [0] and [∞]. *)
+   round trips and the modes not named; counts of several operations, of the
+   others, [0] and [∞]; and occurrences, delays, intervals of delays and
+   specifications of separation, of one operation and of several with a total
+   duration. *)
 let cover =
   let open Grade in
   let level l = Name l in
@@ -1831,6 +1842,21 @@ let cover =
         entry "C" [ Int 0 ];
         Tuple [ entry "A" [ Int 1 ]; entry "B" [ Inf ]; entry "C" [ Int 0 ] ];
       ]
+  | Separation ->
+      let gaps lo hi = closed (Int lo) (Int hi) in
+      [
+        Braces letter_a;
+        Braces (Seq (letter_a, Seq (Tick 1, letter_b)));
+        Braces (Union (letter_a, Seq (letter_b, Tick 2)));
+        rat 1 2;
+        closed (Int 1) (Int 2);
+        Interval (Open (Int 0), Closed (Int 3));
+        entry "A" [ gaps 0 5 ];
+        entry "A" [ Interval (Closed (Int 2), Unbounded) ];
+        entry "B" [ Int 0; gaps 0 4; gaps 0 4 ];
+        Tuple [ entry "A" [ gaps 0 6 ]; entry "B" [ gaps 1 8 ]; gaps 0 20 ];
+        entry "C" [ Interval (Closed (rat 1 2), Open (Int 3)) ];
+      ]
 
 (* [interval_atom k q] is the interval atom of the delays below, up to,
    above or from [q], for [k] = 0, 1, 2 or 3; no delay is below [0], and the
@@ -1998,6 +2024,26 @@ let random family st =
       else Tuple [ mode (); mode () ]
   | Counts ->
       entries [ "A"; "B"; "C"; "_" ] (fun () -> pick st [ Int (int 4); Inf ])
+  | Separation -> (
+      let interval () =
+        let lo = int 4 in
+        closed (Int lo) (Int (lo + int 6))
+      in
+      match int 3 with
+      | 0 -> Braces (fractional 2)
+      | 1 -> interval ()
+      | _ -> (
+          let separation name =
+            entry name
+              (if Random.State.bool st then [ interval () ]
+               else [ interval (); interval (); interval () ])
+          in
+          match
+            List.filter (fun _ -> Random.State.bool st) [ "A"; "B"; "C" ]
+          with
+          | [] -> separation "A"
+          | [ name ] -> separation name
+          | names -> Tuple (List.map separation names)))
 
 (* [distinct compare xs] is [xs] without the elements equal under [compare]
    to an earlier one. *)

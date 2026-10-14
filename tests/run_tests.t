@@ -775,7 +775,7 @@ it names none:
   File "delay_reject_fraction.tpe", line 8, characters 20-23:
   8 | let wait () = delay 0.5
                           ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `security-levels` or `flow-levels` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, delays are whole numbers of time steps; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `time-interval-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `security-levels`, `flow-levels` or `event-separation` grading monoids?
   ======================================================================
   delay_reject_negative.tpe
   ======================================================================
@@ -1123,6 +1123,74 @@ it names none:
                               ^
     `x` is used here with grade `1` accumulated since it was bound, which only an eternal type allows
     Note: the resource inequality `1 <= 0` does not hold
+  ======================================================================
+  event_separation.tpe
+  ======================================================================
+  === Run 1 ===
+  return ()
+  State: [
+    0.2,
+    2,
+    0.2,
+    2,
+    0.2,
+    2
+  ]
+  
+  === Run 2 ===
+  return ()
+  State: [
+    0.1,
+    2,
+    0.1,
+    2
+  ]
+  
+  === Run 3 ===
+  return ()
+  State: [
+    0.2,
+    2,
+    0.2
+  ]
+  
+  === Run 4 ===
+  return 7
+  State: [
+    { resource_0 ↦ 7 # [1, 3] },
+    2
+  ]
+  
+  ======================================================================
+  event_separation_reject.tpe
+  ======================================================================
+  File "event_separation_reject.tpe", lines 18-25, characters 15-12:
+  18 | let rec slow n : unit # (Beat, [0, 0], [0, 5], [0, 5]) =
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5])`, which does not match its annotated grade `(Beat, [0, 0], [0, 5], [0, 5])`
+    Note: the effect inequality `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5]) <= (Beat, [0, 0], [0, 5], [0, 5])` does not hold
+    Note: the grade `⟨Beat: active ([0, 0], [0, 6.5], [0, 6.5]); Work: silent [0, 0], active ([0.1, 0.5], [0, ∞), [0, ∞)); _: silent [0, ∞), active ([2.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beat; Work; Work} · (Beat, [0, 0], [0, 5], [0, 5])` but not below `(Beat, [0, 0], [0, 5], [0, 5])`
+  
+  File "event_separation_reject.tpe", lines 29-35, characters 16-13:
+  29 | let rec beeps n : unit # (Beep, [2, ∞)) =
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `0 ⊔ {Beep; 1} · (Beep, [2, ∞))`, which does not match its annotated grade `(Beep, [2, ∞))`
+    Note: the effect inequality `0 ⊔ {Beep; 1} · (Beep, [2, ∞)) <= (Beep, [2, ∞))` does not hold
+    Note: the grade `⟨Beep: active ([0, 0], [1.1, ∞), [0, ∞)); _: silent [0, ∞), active ([1.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beep; 1} · (Beep, [2, ∞))` but not below `(Beep, [2, ∞))`
+  
+  File "event_separation_reject.tpe", lines 40-46, characters 16-13:
+  40 | let rec short n : unit # (Beat, [0, 5]) =
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: This function's body has grade `0 ⊔ {Beat; Work} · (Beat, [0, 5])`, which does not match its annotated grade `(Beat, [0, 5])`
+    Note: the effect inequality `0 ⊔ {Beat; Work} · (Beat, [0, 5]) <= (Beat, [0, 5])` does not hold
+    Note: the grade `⟨Beat: active ([0, 0], [0, 8.5], [0, 8.5]); Work: silent [0, 0], active ([0.1, 0.5], [0, ∞), [0, ∞)); _: silent [0, ∞), active ([1.1, ∞), [0, ∞), [0, ∞))⟩` is below `0 ⊔ {Beat; Work} · (Beat, [0, 5])` but not below `(Beat, [0, 5])`
+  ======================================================================
+  event_separation_reject_unknown.tpe
+  ======================================================================
+  File "event_separation_reject_unknown.tpe", line 11, characters 21-36:
+  11 | let beat () : unit # (Bleat, [0, 5]) = perform Beat ()
+                            ^^^^^^^^^^^^^^^
+  Typing error: Unknown event `Bleat`; the events of a grade must be declared operations
   ======================================================================
   exhaustiveness.tpe
   ======================================================================
@@ -1537,7 +1605,7 @@ it names none:
   File "levels_reject_literal.tpe", line 7, characters 19-20:
   7 | let claim () = box 3 1
                          ^
-  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs` or `counts-upper-bound` grading monoids?
+  Syntax error: In the `security-levels` grading monoid, grades are the levels `Low` and `High`, not plain integers; did you mean to use one of the `time-lower-bound`, `time-upper-bound`, `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound`, `traces-upper-bound-rational`, `traces-timed-lower-bound`, `traces-timed-upper-bound`, `traces-timed-interval`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-symbolic`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-symbolic`, `regex-timed-upper-bound-symbolic`, `regex-timed-interval-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `windowed-schedules`, `mode-switch-costs`, `counts-upper-bound` or `event-separation` grading monoids?
   ======================================================================
   levels_time_lower.tpe
   ======================================================================
@@ -1967,6 +2035,13 @@ it names none:
                          ^^^^^^^^^^^^^^
   Syntax error: In the `regex-upper-bound-symbolic` grading monoid, this regular expression denotes the empty language, but grades are non-empty
   ======================================================================
+  literals_reject_event_separation.tpe
+  ======================================================================
+  File "literals_reject_event_separation.tpe", line 11, characters 21-43:
+  11 | let beat () : unit # (Beat, [0, 1], [0, 5]) = perform Beat ()
+                            ^^^^^^^^^^^^^^^^^^^^^^
+  Syntax error: In the `event-separation` grading monoid, an entry `(X, ...)` lists one interval, the gaps, or three, the lead, the gaps and the tail
+  ======================================================================
   literals_reject_flow.tpe
   ======================================================================
   File "literals_reject_flow.tpe", line 7, characters 19-54:
@@ -1979,7 +2054,7 @@ it names none:
   File "literals_reject_fraction.tpe", line 8, characters 19-22:
   8 | let claim () = box 3/2 1
                          ^^^
-  Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
+  Syntax error: In the `time-upper-bound` grading monoid, grades are plain integers or `∞`, not fractions such as `3/2`; did you mean to use one of the `time-lower-bound-rational`, `time-upper-bound-rational`, `traces-upper-bound-rational`, `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-upper-bound-rational-symbolic`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic` or `event-separation` grading monoids?
   ======================================================================
   literals_reject_fraction_operator.tpe
   ======================================================================
@@ -2021,7 +2096,7 @@ it names none:
   File "literals_reject_interval_no_step.tpe", line 8, characters 19-25:
   8 | let claim () = box (1, 2) 1
                          ^^^^^^
-  Syntax error: In the `time-interval` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic` or `resource-levels` grading monoids?
+  Syntax error: In the `time-interval` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic`, `resource-levels` or `event-separation` grading monoids?
   ======================================================================
   literals_reject_interval_reversed.tpe
   ======================================================================
@@ -2105,7 +2180,7 @@ it names none:
   File "literals_reject_windowed_schedules_empty.tpe", line 9, characters 19-25:
   9 | let claim () = box (2, 3) 1
                          ^^^^^^
-  Syntax error: In the `windowed-schedules` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic` or `resource-levels` grading monoids?
+  Syntax error: In the `windowed-schedules` grading monoid, the interval contains no integer; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic`, `resource-levels` or `event-separation` grading monoids?
   ======================================================================
   literals_reject_within_empty.tpe
   ======================================================================
@@ -3152,7 +3227,7 @@ it names none:
   File "rational_traces_intervals_reject_open.tpe", line 10, characters 19-27:
   10 | let claim () = box (1/2, 2] 1
                           ^^^^^^^^
-  Syntax error: In the `traces-timed-interval-rational` grading monoid, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the `time-interval-rational` or `regex-timed-interval-rational-symbolic` grading monoids?
+  Syntax error: In the `traces-timed-interval-rational` grading monoid, an open endpoint denotes an infinite set of traces, which these grades do not express; did you mean to use one of the `time-interval-rational`, `regex-timed-interval-rational-symbolic` or `event-separation` grading monoids?
   ======================================================================
   rational_traces_upper.tpe
   ======================================================================
@@ -5107,7 +5182,7 @@ it names none:
   File "traces_reject_fractional_bound.tpe", line 10, characters 47-50:
   10 | operation Heat : unit ~> unit # {Heat} within [1/2, 1]
                                                       ^^^
-  Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic` or `regex-timed-interval-rational-symbolic` grading monoids?
+  Syntax error: In the `traces-timed-upper-bound` grading monoid, running-time bounds are delays, and delays are whole numbers of time steps; did you mean to use one of the `traces-timed-lower-bound-rational`, `traces-timed-upper-bound-rational`, `traces-timed-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic` or `event-separation` grading monoids?
   ======================================================================
   traces_reject_missing_within.tpe
   ======================================================================
@@ -7458,6 +7533,8 @@ single-dash form of the help option is not accepted.
           mode-switch-costs                         Mode-switch costs
         Operation counts:
           counts-upper-bound                        Upper bounds
+        Separation of timed operations:
+          event-separation                          Event separation
         Further implementations of the regular grades, kept for benchmarking, are accepted by --grades with the suffixes -letter-automata, -symbolic-by-letters and -letter-derivatives in place of -symbolic, and -rational-automata in place of -rational-symbolic.
     --help            Display this list of options
     --host-runs       With --emit-arduino, also compile the run commands, and write a main program for the host that executes them and prints their results as the interpreter does

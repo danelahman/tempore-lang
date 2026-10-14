@@ -996,6 +996,43 @@ sends would be rejected, as they make four:
 
 See [`examples/counts/rate_limits.tpe`](examples/counts/rate_limits.tpe).
 
+### Event separation
+
+In `event-separation`, a grade bounds how often each operation recurs: the
+time between the starts of consecutive calls of an operation `X`, at most and
+at least, as for heartbeats, sampling rates and rate limits. Delays are
+rational, and an operation occurs at its start and takes a time within its
+`within` bounds; its grade is `{X}`.
+
+For each operation, a computation either performs no `X`, taking some time, or
+has a lead before the first `X`, gaps between consecutive `X`s and a tail after
+the last. A grade bounds these by intervals, with the total duration;
+sequencing joins the tail of one part and the lead of the next into a gap.
+
+- `(X, [s, t])`: gaps in `[s, t]`, and no stretch without `X` longer than `t`
+  at the start or the end; `(Beep, [2, ∞))` is a rate limit.
+- `(X, lead, gaps, tail)`: each part bounded on its own; the invariant of a
+  loop whose body starts with `X` and takes at most `t` is
+  `(X, [0, 0], [0, t], [0, t])`. The short form is no loop invariant, as two
+  stretches of `t` may meet.
+- A tuple of such entries and at most one interval, the total duration, as in
+  `((Read, [0, 20]), (Draw, [0, 50]), [0, 100])`; operations not listed are
+  unconstrained.
+- A brace literal `{Beat; Work | Beat}` of operations and delays, a number or
+  an interval is a computation, without occurrences besides those it names.
+
+For example, where `Beat` takes 0.1 to 0.5 and `Work` 1 to 3, the program
+
+```
+let rec heartbeat n : unit # (Beat, [0, 0], [0, 5], [0, 5]) =
+  match n with
+  | 0 -> ()
+  | m + 1 -> perform Beat (); perform Work (); heartbeat m
+```
+
+is accepted, as a round takes at most 3.5, while a second `perform Work ()`
+would be rejected, as a gap may then be 6.5.
+
 ## Eternal types
 
 A type is *eternal* if its values stay valid however much grade accumulates as a
