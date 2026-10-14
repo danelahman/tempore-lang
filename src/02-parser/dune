@@ -15,6 +15,14 @@
 
 (ocamllex lexer)
 
+;; The tokens are declared in token.mly, of which menhir generates the module
+;; Token, independent of the grade system the grammar is parameterised by.
+
 (menhir
- (modules grammar)
+ (modules token)
+ (flags --only-tokens))
+
+(menhir
+ (modules token grammar)
+ (merge_into grammar)
  (flags --external-tokens Token))
