@@ -97,13 +97,14 @@ module Make (C : Constraint.S) : sig
       operations under the grades that read them, are the closed world of
       {!running_times}, whichever command is checked. *)
 
-  val running_times : loc:Location.t -> env -> Grades.Grade.bounds
-  (** [running_times ~loc env] are the running times of the program of [env]:
-      its operations are those the program declares with running-time bounds
+  val running_times : env -> Grades.Grade.bounds
+  (** [running_times env] are the running times of the program of [env]: its
+      operations are those the program declares with running-time bounds
       ({!declare_operations}), and the running time of an event is its declared
       running-time bounds, or else those implied by the grade of a compound
-      operation declared so far; the running time of any other event is a typing
-      error at [loc]. *)
+      operation declared so far. The grades of the program are checked to name
+      no other event where they are read, under the grades that read running
+      times; the running time of any other event raises [Invalid_argument]. *)
 
   val add_type_definitions :
     loc:Location.t ->

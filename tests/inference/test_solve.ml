@@ -501,7 +501,7 @@ module Small (G : Grade.S) = struct
       continuation_at = at line;
     }
 
-  let solve ?(env = Gen.initial_env) c = S.solve (P.context ~loc:(at 0) env) c
+  let solve ?(env = Gen.initial_env) c = S.solve (P.context env) c
 
   let solved label c =
     match solve c with
@@ -874,7 +874,7 @@ module Small (G : Grade.S) = struct
             ( leq 1 (v e * X.Eps.const (delay 1)) (v e),
               leq 2 (v e) (X.Eps.const (delay 3)) ) )
     in
-    let context = P.context ~loc:(at 0) Gen.initial_env in
+    let context = P.context Gen.initial_env in
     Option.iter
       (fun (s : S.solution) ->
         (match (S.satisfiable context s, S.established context s) with

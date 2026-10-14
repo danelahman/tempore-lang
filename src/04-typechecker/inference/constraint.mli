@@ -170,14 +170,12 @@ module type S = sig
   type names
   (** The names a printer gives to unknowns, by order of first occurrence. *)
 
-  val is_unit_eps : Grades.Grade.bounds -> eps -> bool
-  (** [is_unit_eps bounds eps] decides whether the canonical form of [eps] is a
-      constant equal to the unit under the running times [bounds]. *)
-
   val names : ?bounds:Grades.Grade.bounds -> unit -> names
   (** [names ~bounds ()] is a fresh naming. A computation type whose effect is
-      the unit ({!is_unit_eps} under [bounds], by default the running times of
-      no operations) is printed without its effect. *)
+      the unit, its canonical form a constant equal to the unit under the
+      running times [bounds], is printed without its effect. Without [bounds],
+      no operation is declared, and an effect that names an event under grades
+      that read running times is not the unit. *)
 
   val print_rho : ?names:names -> rho -> Format.formatter -> unit
   (** [print_rho ~names rho ppf] prints [rho]. *)

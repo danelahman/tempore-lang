@@ -142,7 +142,8 @@ module Make (C : Inference.Constraint.S) = struct
     Format.pp_print_flush ppf ();
     Buffer.contents buffer
 
-  (* Grades are shown in canonical form. *)
+  (* Grades are shown in canonical form, and as they are where their delays
+     exceed the supported range. *)
   let canon_rho p rho =
     match N.Rho.canon p.bounds rho with
     | rho -> rho
@@ -191,14 +192,15 @@ module Make (C : Inference.Constraint.S) = struct
     | Some c -> GS.R.equal p.bounds c GS.R.one
     | None -> false
 
+  let is_unit_eps p eps =
+    match X.Eps.value (canon_eps p eps) with
+    | Some c -> GS.E.equal p.bounds c GS.E.one
+    | None -> false
+
   (* A computation's effect of the unit is not shown. *)
   let ty_raw p ty =
     let grades =
-      {
-        PrettyPrint.rho = print_rho p;
-        eps = print_eps p;
-        pure = C.is_unit_eps p.bounds;
-      }
+      { PrettyPrint.rho = print_rho p; eps = print_eps p; pure = is_unit_eps p }
     in
     render (PrettyPrint.print_ty grades p.ty_name ty)
 

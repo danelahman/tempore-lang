@@ -84,7 +84,6 @@ module type S = sig
 
   type names
 
-  val is_unit_eps : Grades.Grade.bounds -> eps -> bool
   val names : ?bounds:Grades.Grade.bounds -> unit -> names
   val print_rho : ?names:names -> rho -> Format.formatter -> unit
   val print_eps : ?names:names -> eps -> Format.formatter -> unit
@@ -395,30 +394,42 @@ module Make (X : GradeExp.S) = struct
 
   module N = GradeNormal.Make (X)
 
+  (* Whether the canonical form of [eps] is the unit under [bounds], which give
+     the running time of every event of [eps]. *)
   let is_unit_eps bounds eps =
-    let canonical =
-      match N.Eps.canon bounds eps with
-      | eps -> eps
-      | exception Utils.Error.Error _ -> eps
-    in
-    match X.Eps.value canonical with
-    | Some c -> (
-        try X.GS.E.equal bounds c X.GS.E.one with Utils.Error.Error _ -> false)
+    match X.Eps.value (N.Eps.canon bounds eps) with
+    | Some c -> X.GS.E.equal bounds c X.GS.E.one
     | None -> false
 
   (* The running times of a program that declares no operations. *)
   let no_operations =
     {
       Grades.Grade.running_time =
-        (fun event -> Utils.Error.typing "Unknown event `%s`" event);
+        (fun event ->
+          invalid_arg
+            ("Constraint.no_operations: the event " ^ event
+           ^ " is not a declared operation"));
       operations = [];
     }
 
+  (* Without declared operations, an effect that names an event under grades
+     that read running times is not the unit. *)
+  let is_unit_eps_without_operations eps =
+    (not
+       (X.GS.E.needs_op_bounds
+       && List.exists
+            (fun c -> not (List.is_empty (X.GS.E.events c)))
+            (X.Eps.constants eps)))
+    && is_unit_eps no_operations eps
+
   (* A rigid variable is named after the operation of its clause. *)
-  let names ?(bounds = no_operations) () =
+  let names ?bounds () =
     let rigid_ops = ref X.Eps_var.Map.empty in
     {
-      unit_eps = is_unit_eps bounds;
+      unit_eps =
+        (match bounds with
+        | Some bounds -> is_unit_eps bounds
+        | None -> is_unit_eps_without_operations);
       ty_name = Ty_names.create ();
       rho_name = Rho_names.create ();
       eps_name =

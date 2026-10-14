@@ -26,10 +26,15 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
            are given"
           filename op)
     running_times;
+  (* The running times of no operations, which the grades read only of
+     events, where they read running times. *)
   let no_operations =
     {
       Grades.Grade.running_time =
-        (fun event -> Error.typing "Unknown event `%s`" event);
+        (fun event ->
+          invalid_arg
+            ("Loader.with_running_times: the event " ^ event
+           ^ " is not a declared operation"));
       operations = [];
     }
   in
@@ -66,27 +71,32 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
                 it = SugaredAst.OpSig (name, t1, t2, eps, Some bounds);
               }
           | Some bounds, None, SugaredAst.GradeLit g -> (
-              match E.duration_bounds no_operations g with
-              | None -> cmd
-              | Some own
-                when E.equal no_operations g
-                       (E.of_bounds (read ~loc:eps.at (finite own bounds))) ->
-                  let g = E.of_bounds (read ~loc:eps.at bounds) in
-                  {
-                    cmd with
-                    it =
-                      SugaredAst.OpSig
-                        ( name,
-                          t1,
-                          t2,
-                          { eps with it = SugaredAst.GradeLit g },
-                          None );
-                  }
-              | Some _ ->
-                  Error.compilation ~loc:eps.at
-                    "The grade of the operation %s is not that of its \
-                     running-time bounds, which therefore cannot be replaced"
-                    name.it))
+              match if E.needs_op_bounds then E.events g else [] with
+              | event :: _ -> Error.typing "Unknown event `%s`" event
+              | [] -> (
+                  match E.duration_bounds no_operations g with
+                  | None -> cmd
+                  | Some own
+                    when E.equal no_operations g
+                           (E.of_bounds (read ~loc:eps.at (finite own bounds)))
+                    ->
+                      let g = E.of_bounds (read ~loc:eps.at bounds) in
+                      {
+                        cmd with
+                        it =
+                          SugaredAst.OpSig
+                            ( name,
+                              t1,
+                              t2,
+                              { eps with it = SugaredAst.GradeLit g },
+                              None );
+                      }
+                  | Some _ ->
+                      Error.compilation ~loc:eps.at
+                        "The grade of the operation %s is not that of its \
+                         running-time bounds, which therefore cannot be \
+                         replaced"
+                        name.it)))
       | SugaredAst.TyDef _ | SugaredAst.OpDefault _ | SugaredAst.TopLet _
       | SugaredAst.TopLetRec _ | SugaredAst.TopDo _ ->
           cmd)
@@ -289,7 +299,7 @@ module Loader (Backend : Backend.S) = struct
      those it declares, or else those its grade implies
      ({!Grades.Grade.S.duration_bounds}), read over the declared ones and those
      of the operations before it with finite bounds, as the typechecker reads
-     them. *)
+     them, where the grade names no other operation. *)
   let operations_of cmds =
     let signatures =
       List.filter_map
@@ -310,14 +320,16 @@ module Loader (Backend : Backend.S) = struct
       let bounds =
         match (bounds, eps) with
         | Some _, _ -> bounds
-        | None, Ast.EpsConst (grade, _) -> (
+        | None, Ast.EpsConst (grade, _)
+          when (not Backend.Grades.E.needs_op_bounds)
+               || List.for_all
+                    (fun name -> List.mem_assoc name known)
+                    (Backend.Grades.E.events grade) ->
             let running_time name = List.assoc name known in
-            try
-              Backend.Grades.E.duration_bounds
-                { Grades.Grade.running_time; operations }
-                grade
-            with Not_found -> None)
-        | None, (Ast.EpsAdd _ | Ast.EpsVar _) -> None
+            Backend.Grades.E.duration_bounds
+              { Grades.Grade.running_time; operations }
+              grade
+        | None, Ast.EpsConst _ | None, (Ast.EpsAdd _ | Ast.EpsVar _) -> None
       in
       let known =
         match bounds with

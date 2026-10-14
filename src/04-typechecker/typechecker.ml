@@ -154,7 +154,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
      where generating it again raises a typing error. *)
   let explain (envs : P.envs) (cmd : command) error =
     let env = envs.unsimplified in
-    let context = P.context ~loc:cmd.at env in
+    let context = P.context env in
     let found =
       match constraint_of env cmd with
       | Some constr -> failures cmd context constr
@@ -196,10 +196,7 @@ module Make (GS : Grades.GradeSystem.S) = struct
   let definitions state = List.rev state.definitions
 
   (* The running times of the operations the program declares. *)
-  let running_times state =
-    let pos = { Location.line = 1; column = 1; offset = 0 } in
-    let loc = { Location.filename = ""; start = pos; stop = pos } in
-    Gen.running_times ~loc state.envs.reported
+  let running_times state = Gen.running_times state.envs.reported
 
   (* The names of a scheme, the unit effect decided under the running times of
      the operations the program declares. *)

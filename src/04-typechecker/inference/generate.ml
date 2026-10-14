@@ -323,39 +323,54 @@ module Make (C : Constraint.S) = struct
   (* Program syntax                                                      *)
   (* ------------------------------------------------------------------ *)
 
-  let running_times ~loc env =
-    let bounds event =
-      match StringMap.find_opt event env.world with
-      | Some bounds -> Some bounds
-      | None -> StringMap.find_opt event env.op_bounds
-    in
+  (* The declared running-time bounds of [event], or else those implied by the
+     grade of a compound operation declared so far. *)
+  let event_bounds env event =
+    match StringMap.find_opt event env.world with
+    | Some _ as bounds -> bounds
+    | None -> StringMap.find_opt event env.op_bounds
+
+  let running_times env =
     {
       Grades.Grade.running_time =
         (fun event ->
-          match bounds event with
+          match event_bounds env event with
           | Some bounds -> bounds
           | None ->
-              Error.typing ~loc
-                "Unknown event `%s`; the events of a grade must be declared \
-                 operations"
-                event);
+              invalid_arg
+                ("Generate.running_times: the event " ^ event
+               ^ " is not a declared operation"));
       operations = List.map fst (StringMap.bindings env.world);
     }
 
-  (* A grade constant read from the source at [at] must denote a trace of the
-     operations declared in [env]. *)
-  let check_inhabited ~inhabited ~show env c = function
-    | Some loc when not (inhabited (running_times ~loc env) c) ->
-        Error.typing ~loc
-          "The grade `%s` permits no trace over the declared operations"
-          (show c)
-    | Some _ | None -> ()
+  (* A grade constant read from the source at [at] names declared operations
+     only, where its grades read running times, and denotes a trace of them. *)
+  let check_inhabited ~needs_op_bounds ~events ~inhabited ~show env c = function
+    | Some loc ->
+        (if needs_op_bounds then
+           match
+             List.find_opt
+               (fun event -> Option.is_none (event_bounds env event))
+               (events c)
+           with
+           | Some event ->
+               Error.typing ~loc
+                 "Unknown event `%s`; the events of a grade must be declared \
+                  operations"
+                 event
+           | None -> ());
+        if not (inhabited (running_times env) c) then
+          Error.typing ~loc
+            "The grade `%s` permits no trace over the declared operations"
+            (show c)
+    | None -> ()
 
   (* The grade variables of an annotation are unknowns of the command it
      belongs to, bound by [with_annotation_vars]. *)
   let rec open_rho env = function
     | Ast.RhoConst (c, at) ->
-        check_inhabited ~inhabited:GS.R.inhabited ~show:GS.R.show env c at;
+        check_inhabited ~needs_op_bounds:GS.R.needs_op_bounds
+          ~events:GS.R.events ~inhabited:GS.R.inhabited ~show:GS.R.show env c at;
         Rho.const c
     | Ast.RhoAdd (rho, rho') -> Rho.mul (open_rho env rho) (open_rho env rho')
     | Ast.RhoVar r -> Rho.var r
@@ -363,7 +378,8 @@ module Make (C : Constraint.S) = struct
 
   let rec open_eps env = function
     | Ast.EpsConst (c, at) ->
-        check_inhabited ~inhabited:GS.E.inhabited ~show:GS.E.show env c at;
+        check_inhabited ~needs_op_bounds:GS.E.needs_op_bounds
+          ~events:GS.E.events ~inhabited:GS.E.inhabited ~show:GS.E.show env c at;
         Eps.const c
     | Ast.EpsAdd (eps, eps') -> Eps.mul (open_eps env eps) (open_eps env eps')
     | Ast.EpsVar e -> Eps.var e
@@ -511,13 +527,6 @@ module Make (C : Constraint.S) = struct
   (* The running-time bounds of the operations, extended by those of [op_name],
      declared or implied by its grade. *)
   let checked_op_bounds ~loc env op_name grade bounds =
-    let event_bounds ev =
-      match StringMap.find_opt ev env.op_bounds with
-      | Some bounds -> bounds
-      | None ->
-          Error.typing ~loc "Unknown event `%s` in the grade of operation `%s`"
-            ev op_name
-    in
     match (GS.E.needs_op_bounds, grade, bounds) with
     | false, _, Some _ ->
         Error.typing ~loc
@@ -562,11 +571,16 @@ module Make (C : Constraint.S) = struct
           Error.typing ~loc
             "Compound operation `%s` may not name itself in its grade `%s`"
             op_name (GS.E.show c);
-        match
-          finite_durations
-            { (running_times ~loc env) with running_time = event_bounds }
-            c
-        with
+        (match
+           List.find_opt
+             (fun event -> not (StringMap.mem event env.op_bounds))
+             (GS.E.events c)
+         with
+        | Some event ->
+            Error.typing ~loc
+              "Unknown event `%s` in the grade of operation `%s`" event op_name
+        | None -> ());
+        match finite_durations (running_times env) c with
         | Some bounds -> StringMap.add op_name bounds env.op_bounds
         | None -> env.op_bounds)
 
@@ -1602,7 +1616,7 @@ module Make (C : Constraint.S) = struct
     let op_name = Ast.OpName.string_of op in
     match
       ( StringMap.find_opt op_name env.op_bounds,
-        finite_durations (running_times ~loc env) grade )
+        finite_durations (running_times env) grade )
     with
     | Some (lo, hi), Some (lo', hi')
       when Grades.Grade.compare_ends ~lower:true lo lo' > 0

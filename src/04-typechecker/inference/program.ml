@@ -30,9 +30,9 @@ module Make (C : Constraint.S) = struct
   type verdict = { at : Location.t; outcome : outcome }
   type next = Continue | Stop
 
-  let context ~loc env : S.context =
+  let context env : S.context =
     {
-      bounds = Gen.running_times ~loc env;
+      bounds = Gen.running_times env;
       find_definition =
         (fun name ->
           Option.map
@@ -54,7 +54,7 @@ module Make (C : Constraint.S) = struct
   (* The constraint of a command [cmd] solved and its qualifier checked: its
      solution, or why it has none. *)
   let solved (cmd : command) env constr =
-    let context = context ~loc:cmd.at env in
+    let context = context env in
     match S.solve context constr with
     | S.Solved solution ->
         Result.map_error
@@ -70,7 +70,7 @@ module Make (C : Constraint.S) = struct
   let check_duration ~loc env op abs =
     if C.X.GS.E.needs_op_bounds then
       let ty, constr = Gen.generate_default_effect env ~loc op abs in
-      match S.solve (context ~loc env) constr with
+      match S.solve (context env) constr with
       | S.Solved solution -> (
           match (S.generalise ty solution).C.ty with
           | Ast.TyArrow (_, Ast.CompTy (_, C.X.Eps_const grade)) ->
