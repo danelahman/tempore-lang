@@ -37,7 +37,6 @@ void setup();
 
 HardwareSerial Serial;
 TwoWire Wire;
-TwoWire Wire1;
 tempore_m5_unified M5;
 
 namespace {
@@ -236,7 +235,6 @@ uint32_t ulTaskNotifyTake(BaseType_t clear, TickType_t) {
 
 unsigned long millis() { return static_cast<unsigned long>(now / 1000); }
 
-unsigned long micros() { return static_cast<unsigned long>(now); }
 
 size_t HardwareSerial::print(const char *text) {
   return static_cast<size_t>(fputs(text, stdout) >= 0 ? strlen(text) : 0);
@@ -248,7 +246,6 @@ size_t HardwareSerial::println(const char *text) {
   return n + 1;
 }
 
-void HardwareSerial::flush() { fflush(stdout); }
 
 int main(int argc, char **argv) {
   const int64_t duration = argc > 1 ? strtoll(argv[1], nullptr, 10) : 1000000;

@@ -63,7 +63,7 @@ let rec skip_space src i =
 let expect src i c =
   match peek src i with
   | Some c' when c' = c -> i + 1
-  | _ -> fail src i "Expected '%c'" c
+  | _ -> fail src i "Expected `%c`" c
 
 let literal src i word value =
   let n = String.length word in
@@ -193,7 +193,7 @@ and elements src i =
         match peek src i with
         | Some ',' -> go (v :: acc) (i + 1)
         | Some ']' -> (Array (List.rev (v :: acc)), i + 1)
-        | _ -> fail src i "Expected ',' or ']'"
+        | _ -> fail src i "Expected `,` or `]`"
       in
       go [] i
 
@@ -216,7 +216,7 @@ and members src i =
         match peek src j with
         | Some ',' -> go ((name, v) :: acc) (j + 1)
         | Some '}' -> (Object (List.rev ((name, v) :: acc)), j + 1)
-        | _ -> fail src j "Expected ',' or '}'"
+        | _ -> fail src j "Expected `,` or `}`"
       in
       go [] i
 
@@ -258,11 +258,11 @@ let fields ~what ~accepted (v : t) =
            (fun seen ((name : string Location.located), _) ->
              if not (List.mem name.it accepted) then
                Error.compilation ~loc:name.at
-                 "Unknown member '%s' of %s; accepted: %s" name.it what
-                 (String.concat ", " accepted);
+                 "Unknown member `%s` of %s; accepted: %s" name.it what
+                 (Utils.Diagnostic.code_list accepted);
              if StringSet.mem name.it seen then
-               Error.compilation ~loc:name.at "Member '%s' of %s given twice"
-                 name.it what;
+               Error.compilation ~loc:name.at
+                 "The member `%s` of %s is given twice" name.it what;
              StringSet.add name.it seen)
            StringSet.empty members);
       { what; at = v.at; members }
@@ -275,7 +275,7 @@ let find fields name =
     fields.members
 
 let member_what fields name =
-  Printf.sprintf "the member '%s' of %s" name fields.what
+  Printf.sprintf "the member `%s` of %s" name fields.what
 
 let optional fields name decode =
   Option.map (decode ~what:(member_what fields name)) (find fields name)
@@ -284,7 +284,7 @@ let required fields name decode =
   match find fields name with
   | Some v -> decode ~what:(member_what fields name) v
   | None ->
-      Error.compilation ~loc:fields.at "The member '%s' of %s is missing" name
+      Error.compilation ~loc:fields.at "The member `%s` of %s is missing" name
         fields.what
 
 let location fields name =

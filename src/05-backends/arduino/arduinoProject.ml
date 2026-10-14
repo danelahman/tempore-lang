@@ -1,5 +1,4 @@
 module Ast = Language.Ast
-module Location = Utils.Location
 module Error = Utils.Error
 module Rational = Grades.Rational
 module Grade = Grades.Grade
@@ -10,8 +9,7 @@ module Names = ArduinoNames
 module Package = ArduinoPackage
 module Cpp = ArduinoCpp
 module StringSet = Set.Make (String)
-
-type monitor = Abort | Warn | Off
+module Diagnostic = Utils.Diagnostic
 
 type function_effect =
   | Not_a_function
@@ -20,7 +18,7 @@ type function_effect =
 
 type input = {
   device : Device.t;
-  monitor : monitor;
+  monitor : Utils.Monitor.t;
   source : string;
   definitions : (Ast.variable * function_effect) list;
   operations :
@@ -57,12 +55,16 @@ and show_atom metas = function
 
 let unit_ty = F.Tuple []
 
+(* The type of [d], as a clause of a message. *)
 let show_signature (d : F.definition) =
   match F.function_type d with
   | Some (parameters, result) ->
       let tys = parameters @ [ result ] in
-      String.concat " -> " (List.map (show_atom (F.type_variables tys)) tys)
-  | None -> "not that of a function"
+      Printf.sprintf "it has the type %s"
+        (Diagnostic.code
+           (String.concat " -> "
+              (List.map (show_atom (F.type_variables tys)) tys)))
+  | None -> "it is not a function"
 
 (* Task functions. *)
 
@@ -71,8 +73,8 @@ let show_signature (d : F.definition) =
 type expected = Exactly of F.ty * F.ty | State_step
 
 let show_expected = function
-  | Exactly (p, q) -> show_atom [] p ^ " -> " ^ show_atom [] q
-  | State_step -> "s -> s for a type s without type variables"
+  | Exactly (p, q) -> Diagnostic.code (show_atom [] p ^ " -> " ^ show_atom [] q)
+  | State_step -> "`s -> s` for a type `s` without type variables"
 
 (* A task function: its definition, its effect and its C++ function. *)
 type resolved = {
@@ -103,11 +105,9 @@ let resolve input (program : F.program) entries ~role ~expected
     (name : Device.name) =
   let unknown () =
     Error.compilation ~loc:name.at
-      "Unknown function '%s'; the top-level functions of the program are: %s"
+      "Unknown function `%s`; the top-level functions of the program are: %s"
       name.it
-      (match function_names input with
-      | [] -> "none"
-      | functions -> String.concat ", " functions)
+      (Diagnostic.code_list (function_names input))
   in
   let named =
     List.filter
@@ -142,9 +142,8 @@ let resolve input (program : F.program) entries ~role ~expected
           | Some cxx when fits -> { definition; function_effect; cxx }
           | _ ->
               Error.compilation ~loc:name.at
-                "The function '%s' of %s must have the type %s, but it has the \
-                 type %s"
-                name.it role (show_expected expected)
+                "The function `%s` of %s must have the type %s, but %s" name.it
+                role (show_expected expected)
                 (show_signature definition)))
 
 (* Whether the upper end [hi] of an interval of durations is below [period]:
@@ -160,20 +159,20 @@ let check_period (name : Device.name) r period =
   | Not_a_function -> ()
   | Effect_variable ->
       Error.compilation ~loc:name.at
-        "The effect of the function '%s' of a periodic task has a variable; \
+        "The effect of the function `%s` of a periodic task has a variable; \
          annotate the function with an effect whose durations are below its \
          period %s"
         name.it (Rational.show period)
   | Effect { durations = Grade.Untimed; _ } -> ()
   | Effect { grade; durations = Grade.Undetermined } ->
       Error.compilation ~loc:name.at
-        "The effect `%s` of the function '%s' of a periodic task does not \
+        "The effect `%s` of the function `%s` of a periodic task does not \
          bound its durations, so it is not below the period %s"
         grade name.it (Rational.show period)
   | Effect { grade; durations = Grade.Duration_interval (_, hi) } ->
       if not (below_period hi period) then
         Error.compilation ~loc:name.at
-          "The effect `%s` of the function '%s' of a periodic task is not \
+          "The effect `%s` of the function `%s` of a periodic task is not \
            below its period: its durations are not all below %s"
           grade name.it (Rational.show period)
 
@@ -185,7 +184,7 @@ let takes_time = function
 let check_repeat (name : Device.name) r =
   let fail grade =
     Error.compilation ~loc:name.at
-      "The effect `%s` of the function '%s' of a repeated free task does not \
+      "The effect `%s` of the function `%s` of a repeated free task does not \
        bound its durations below by a positive time, so that the task may \
        never yield"
       grade name.it
@@ -194,7 +193,7 @@ let check_repeat (name : Device.name) r =
   | Not_a_function -> ()
   | Effect_variable ->
       Error.compilation ~loc:name.at
-        "The effect of the function '%s' of a repeated free task has a \
+        "The effect of the function `%s` of a repeated free task has a \
          variable; annotate the function with an effect whose durations are \
          bounded below by a positive time"
         name.it
@@ -238,8 +237,8 @@ let task_code input program entries (task : Device.task) =
         | None ->
             if F.compare_ty state unit_ty <> 0 then
               Error.compilation ~loc:name.at
-                "The periodic task of the function '%s' has the state type %s, \
-                 so it needs the member 'initial'"
+                "The periodic task of the function `%s` has the state type \
+                 `%s`, so it needs the member `initial`"
                 name.it (show_ty [] state);
             None
       in
@@ -568,13 +567,11 @@ let safe_state_definition hooks =
 (* The configuration of the scaffold: the monitor policy and the time unit. *)
 let configuration input =
   let unit_us = input.device.unit_us in
-  let policy =
-    match input.monitor with Abort -> "abort" | Warn -> "warn" | Off -> "off"
-  in
+
   [
     Cpp.comment "The configuration.";
     Cpp.constant "tempore_monitor_policy" "tempore_monitor"
-      ("tempore_monitor_policy::" ^ policy);
+      ("tempore_monitor_policy::" ^ Utils.Monitor.name input.monitor);
     Cpp.constant "uint64_t" "tempore_unit_numerator_us"
       (Z.to_string (Rational.num unit_us) ^ "ULL");
     Cpp.constant "uint64_t" "tempore_unit_denominator_us"
@@ -648,9 +645,9 @@ let board_of (device : Device.t) =
   match Board.find device.board.it with
   | Some board -> board
   | None ->
-      Error.compilation ~loc:device.board.at "Unknown board '%s'; accepted: %s"
+      Error.compilation ~loc:device.board.at "Unknown board `%s`; accepted: %s"
         device.board.it
-        (String.concat ", " Board.names)
+        (Diagnostic.code_list Board.names)
 
 (* The packages of the manifest, in order, each checked against the packages
    before it and the capabilities of [board]. *)
@@ -658,14 +655,14 @@ let packages_of (board : Board.t) (device : Device.t) =
   let add packages (name : Device.name) =
     let package = Package.resolve name in
     if List.exists (fun (p : Package.t) -> p.name = name.it) packages then
-      Error.compilation ~loc:name.at "The package '%s' is listed twice" name.it;
+      Error.compilation ~loc:name.at "The package `%s` is listed twice" name.it;
     List.iter
       (fun (p : Package.t) ->
         Option.iter
           (fun op ->
             Error.compilation ~loc:name.at
-              "The package %s binds the operation %s, which the package %s \
-               binds"
+              "The package `%s` binds the operation `%s`, which the package \
+               `%s` binds"
               package.name op p.name)
           (Package.shared_binding package p))
       packages;
@@ -673,12 +670,10 @@ let packages_of (board : Board.t) (device : Device.t) =
       (fun capability ->
         if not (List.mem capability board.capabilities) then
           Error.compilation ~loc:name.at
-            "The package %s requires the capability %s, which the board %s \
-             lacks; its capabilities are: %s"
+            "The package `%s` requires the capability `%s`, which the board \
+             `%s` lacks; its capabilities are: %s"
             package.name capability board.name
-            (match board.capabilities with
-            | [] -> "none"
-            | cs -> String.concat ", " cs))
+            (Diagnostic.code_list board.capabilities))
       package.requires;
     package :: packages
   in
@@ -690,7 +685,7 @@ let check_cores (board : Board.t) (device : Device.t) =
       if task.core >= board.cores then
         Error.compilation ~loc:task.core_at
           "The core of a task must be below %d, the number of cores of the \
-           board %s"
+           board `%s`"
           board.cores board.name)
     device.tasks
 
@@ -704,12 +699,12 @@ let check_file ~what ~taken (name : Device.name) =
     || not (Filename.check_suffix base ".cpp")
   then
     Error.compilation ~loc:name.at
-      "%s must be a .cpp file whose name is neither main.cpp nor starts with \
-       tempore"
+      "%s must be a `.cpp` file whose name is neither `main.cpp` nor starts \
+       with `tempore`"
       what;
   if List.mem base taken then
     Error.compilation ~loc:name.at
-      "%s %s has the name of another file of the project; rename it" what base;
+      "%s `%s` has the name of another file of the project; rename it" what base;
   base
 
 (* The paths of the files [f] of [packages]. *)
@@ -757,7 +752,9 @@ let check_bindings input packages (compiled : ArduinoEmit.compiled) binding_file
         match provider name with
         | Some _ -> None
         | None ->
-            Some (Names.binding name, Printf.sprintf "the operation %s" name))
+            Some
+              ( Names.binding name,
+                Printf.sprintf "the operation %s" (Diagnostic.code name) ))
       compiled.operation_types
     @
     match device.safe_state with
@@ -772,8 +769,8 @@ let check_bindings input packages (compiled : ArduinoEmit.compiled) binding_file
           match provider op with
           | Some p when mentions text (Names.binding op) ->
               Error.compilation ~loc:name.at
-                "The binding file %s defines the function %s of the operation \
-                 %s, which the package %s defines"
+                "The binding file `%s` defines the function `%s` of the \
+                 operation `%s`, which the package `%s` defines"
                 base (Names.binding op) op p.name
           | _ -> ())
         compiled.operation_types)
@@ -784,12 +781,12 @@ let check_bindings input packages (compiled : ArduinoEmit.compiled) binding_file
       | Some (name, base, text) ->
           if not (mentions text id) then
             Error.compilation ~loc:name.at
-              "The binding file %s does not define the function %s of %s" base
-              id what
+              "The binding file `%s` does not define the function `%s` of %s"
+              base id what
       | None ->
           Error.compilation ~loc:device.at
-            "The function %s of %s needs a binding file, the member 'bindings' \
-             of the manifest"
+            "The function `%s` of %s needs a binding file, the member \
+             `bindings` of the manifest"
             id what)
     required
 

@@ -14,7 +14,7 @@
 #include "tempore_scaffold.h"
 #include "tempore_world.h"
 
-static const double m5_imu_degrees = 180.0 / 3.14159265358979323846;
+static const double m5_imu_degrees = 180.0 / PI;
 
 m5::IMU_Class::sensor_mask_t tempore_m5_imu::update() {
   delayMicroseconds(603);

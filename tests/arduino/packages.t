@@ -41,7 +41,7 @@ package under other grades, and --package with --device are refused:
   $ ../../tempore --grades time-interval-rational --package m5-gyro filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
   option '--package': 'm5-gyro' is not one of bala2-base, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
   $ ../../tempore --grades time-interval --package m5-imu filter.tpe
-  Error: The package m5-imu declares its operations under the grades time-interval-rational, regex-timed-lower-bound-rational-symbolic, regex-timed-upper-bound-rational-symbolic, regex-timed-interval-rational-symbolic, counts-upper-bound, not time-interval
+  Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `counts-upper-bound`, not `time-interval`
   [1]
   $ emit tilt --device packages/tilt.device.json --package m5-imu packages/tilt.tpe
   ../../tempore: option '--package' cannot be used with '--device'.
@@ -377,28 +377,28 @@ unknown package and a package under other grades are refused:
   File "m.json", line 3, characters 27-33:
   3 |   "tasks": [ { "function": "spin", "kind": "free", "repeat": true } ],
                                  ^^^^^^
-  Compilation error: The effect `[0, 0]` of the function 'spin' of a repeated free task does not bound its durations below by a positive time, so that the task may never yield
+  Compilation error: The effect `[0, 0]` of the function `spin` of a repeated free task does not bound its durations below by a positive time, so that the task may never yield
   exit 1
   $ printf '{ "board": "m5stack-gray", "tasks": [ { "function": "tick", "kind": "periodic", "period": 200, "repeat": false } ], "packages": ["m5-display"] }\n' > m.json
   $ reject m.json packages/tick.tpe
   File "m.json", line 1, characters 105-110:
   1 | { "board": "m5stack-gray", "tasks": [ { "function": "tick", "kind": "periodic", "period": 200, "repeat": false } ], "packages": ["m5-display"] }
                                                                                                                ^^^^^
-  Compilation error: A periodic task is repeated by its period; the member 'repeat' is for free tasks
+  Compilation error: A periodic task is repeated by its period; the member `repeat` is for free tasks
   exit 1
   $ sed 's/m5stack-gray/esp32-devkit/' packages/tilt.device.json > m.json
   $ reject m.json packages/tilt.tpe
   File "m.json", line 8, characters 15-23:
   8 |   "packages": ["m5-imu", "m5-display"]
                      ^^^^^^^^
-  Compilation error: The package m5-imu requires the capability m5unified, which the board esp32-devkit lacks; its capabilities are: i2c
+  Compilation error: The package `m5-imu` requires the capability `m5unified`, which the board `esp32-devkit` lacks; its capabilities are: `i2c`
   exit 1
   $ sed 's/"m5-display"]/"m5-display", "m5-imu"]/' packages/tilt.device.json > m.json
   $ reject m.json packages/tilt.tpe
   File "m.json", line 8, characters 39-47:
   8 |   "packages": ["m5-imu", "m5-display", "m5-imu"]
                                              ^^^^^^^^
-  Compilation error: The package 'm5-imu' is listed twice
+  Compilation error: The package `m5-imu` is listed twice
   exit 1
   $ cp packages/memory_model.cpp .
   $ sed 's|memory_bindings.cpp|bindings.cpp|' packages/memory.device.json > m.json
@@ -407,18 +407,18 @@ unknown package and a package under other grades are refused:
   File "m.json", line 5, characters 14-28:
   5 |   "bindings": "bindings.cpp",
                     ^^^^^^^^^^^^^^
-  Compilation error: The binding file bindings.cpp defines the function binding_I2cRead8 of the operation I2cRead8, which the package i2c defines
+  Compilation error: The binding file `bindings.cpp` defines the function `binding_I2cRead8` of the operation `I2cRead8`, which the package `i2c` defines
   exit 1
   $ sed 's/"i2c"/"spi"/' packages/memory.device.json > m.json
   $ reject m.json packages/memory.tpe
   File "m.json", line 4, characters 15-20:
   4 |   "packages": ["spi"],
                      ^^^^^
-  Compilation error: Unknown package 'spi'; accepted: bala2-base, i2c, m5-display, m5-imu, m5-speaker, m5-touch
+  Compilation error: Unknown package `spi`; accepted: `bala2-base`, `i2c`, `m5-display`, `m5-imu`, `m5-speaker`, `m5-touch`
   exit 1
   $ reject packages/memory.device.json packages/memory.tpe time-interval
   File "packages/memory.device.json", line 4, characters 15-20:
   4 |   "packages": ["i2c"],
                      ^^^^^
-  Compilation error: The package i2c declares its operations under the grades time-interval-rational, regex-timed-lower-bound-rational-symbolic, regex-timed-upper-bound-rational-symbolic, regex-timed-interval-rational-symbolic, counts-upper-bound, not time-interval
+  Compilation error: The package `i2c` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `counts-upper-bound`, not `time-interval`
   exit 1

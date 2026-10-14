@@ -9,9 +9,10 @@
 // of the gyroscope, the filtered speed of the wheels and the reference tilt of
 // the speed loop. In the safe state the robot is disarmed.
 //
-// Under the build flag BALANCE_SLOW_FROM_MS, the publication of the attitude
-// takes 3 ms from that time on, beyond the bounds of Publish, so that its
-// monitor stops the device.
+// Under the build flag BALANCE_SLOW_FROM_MS, in the host simulation, the
+// publication of the attitude takes 3 ms from that time on, beyond the bounds
+// of Publish, so that its monitor stops the device; on the device the flag has
+// no effect, since tempore_elapse_us does not wait there.
 //
 // Under the build flag BALANCE_LOG, an interval in milliseconds, the first
 // publication starts a task of the lowest priority on core 0, which logs at

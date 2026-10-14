@@ -345,7 +345,10 @@ type instance = {
 }
 
 (* The parameters of the handlers of a context, after the parameters of the
-   unit: the [i]-th parameter of the [j]-th handler is [tempore_cj_i]. *)
+   unit: the [i]-th parameter of the [j]-th handler is [tempore_cj_i]. A
+   handler of a context is known by the key of its cases, which stands for
+   that of its return case too: a unit in the context performs operations
+   that the handler handles, but no return case of it is compiled there. *)
 let context_frames handlers context =
   List.mapi
     (fun j key ->
@@ -564,8 +567,10 @@ let body_binders acc = function
       computation_binders (List.fold_left pattern_binders acc parameters) body
   | F.Constant_body _ | F.Handler_body _ -> acc
 
-(* A function of the standard library that applies a primitive to its
-   parameters, in order: its calls are applications of the primitive. *)
+(* The primitive that the body of a function applies to its parameters, in
+   order, if any, as in the functions of the standard library that name the
+   primitives: the calls of such a function are applications of the
+   primitive. *)
 let primitive_wrapper = function
   | F.Function_body
       {

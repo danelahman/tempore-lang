@@ -40,7 +40,7 @@ let with_running_times (type e) (module E : Grades.Grade.S with type t = e)
           | Some d -> d
           | None ->
               Error.compilation ~loc
-                "In the '%s' grading monoid, the running-time bound %s is not \
+                "In the `%s` grading monoid, the running-time bound %s is not \
                  a delay: %s"
                 E.name (Grades.Rational.show q)
                 (E.Delay.rejection (Grades.Grade.rational_lit q)))

@@ -44,6 +44,13 @@ val segments : string -> [ `Text of string | `Code of string ] list
     prints the text as it stands; a renderer that can set type uses this to show
     the fragments in a monospace font. *)
 
+val code : string -> string
+(** [code s] is [s] marked as code, in backticks, as {!segments} reads it. *)
+
+val code_list : string list -> string
+(** [code_list ss] is the elements of [ss], each marked as code, separated by
+    commas, or [none] if [ss] is empty. *)
+
 val print : ?source:(string -> string option) -> t -> Format.formatter -> unit
 (** [print ~source d] prints [d] for a terminal: the primary location in the
     compiler's format, so that editors can jump to it, then the headline, the

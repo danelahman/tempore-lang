@@ -27,17 +27,16 @@
 
 type robot = Flex  (** the Opentrons Flex, robot type ["Flex"] *)
 
-type monitor =
-  | Abort  (** a call outside its bounds ends the protocol with an error *)
-  | Warn  (** a call outside its bounds is reported by a comment *)
-  | Off  (** calls are neither checked nor recorded *)
-
 type options = {
   robot : robot;
   api_level : string;  (** the [apiLevel] requirement, e.g. ["2.30"] *)
   time_unit : Grades.Rational.t;
       (** the length in seconds of one unit of duration of the program *)
-  monitor : monitor;  (** the policy of the monitors of running-time bounds *)
+  monitor : Utils.Monitor.t;
+      (** the policy of the monitors of running-time bounds: under [Abort] a
+          call outside its bounds ends the protocol with an error, under [Warn]
+          it is reported by a comment, and under [Off] calls are neither checked
+          nor recorded *)
   name : string;  (** the [protocolName] of the metadata *)
   source : string;  (** the source file named by the metadata's description *)
 }

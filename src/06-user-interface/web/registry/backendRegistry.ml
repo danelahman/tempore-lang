@@ -138,6 +138,19 @@ let interpreter =
     files = [];
   }
 
+(* The monitor policy of a setting, [Abort] unless it names another. *)
+let monitor_policy s =
+  Option.value (Utils.Monitor.of_name s) ~default:Utils.Monitor.Abort
+
+(* The input of the monitor policy. *)
+let monitor_input =
+  {
+    key = "monitor";
+    label = "Monitor";
+    kind = Choice (List.map fst Utils.Monitor.policies);
+    default = "abort";
+  }
+
 (* Opentrons *)
 
 let opentrons_inputs =
@@ -155,12 +168,7 @@ let opentrons_inputs =
       kind = Choice [ "seconds"; "minutes"; "hours" ];
       default = "seconds";
     };
-    {
-      key = "monitor";
-      label = "Monitor";
-      kind = Choice [ "abort"; "warn"; "off" ];
-      default = "abort";
-    };
+    monitor_input;
   ]
 
 let opentrons_setting = setting opentrons_inputs
@@ -192,12 +200,7 @@ let opentrons_compile settings ~operations ~compound ~definitions:_ commands =
     }
   else
     let robot = Protocol.Flex
-    and monitor =
-      match opentrons_setting settings "monitor" with
-      | "warn" -> Protocol.Warn
-      | "off" -> Protocol.Off
-      | _ -> Protocol.Abort
-    in
+    and monitor = monitor_policy (opentrons_setting settings "monitor") in
     let options =
       {
         Protocol.robot;
@@ -268,12 +271,7 @@ let arduino_inputs =
   [
     { key = "manifest"; label = "Device manifest"; kind = Text; default = "" };
     { key = "bindings"; label = "Binding file"; kind = Text; default = "" };
-    {
-      key = "monitor";
-      label = "Monitor";
-      kind = Choice [ "abort"; "warn"; "off" ];
-      default = "abort";
-    };
+    monitor_input;
   ]
 
 let arduino_setting = setting arduino_inputs
@@ -405,12 +403,7 @@ let arduino_compile settings ~operations ~compound:_ ~definitions commands =
           | Some bindings when bindings.it = name.it ->
               arduino_setting settings "bindings"
           | _ -> ""
-        and monitor =
-          match arduino_setting settings "monitor" with
-          | "warn" -> Project.Warn
-          | "off" -> Project.Off
-          | _ -> Project.Abort
-        in
+        and monitor = monitor_policy (arduino_setting settings "monitor") in
         let files =
           Project.files
             {

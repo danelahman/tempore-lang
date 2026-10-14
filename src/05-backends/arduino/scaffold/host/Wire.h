@@ -29,7 +29,6 @@ class TwoWire {
   uint8_t endTransmission(bool stop = true);
   // The number of bytes received, 0 if no device answers at the address.
   uint8_t requestFrom(int address, int quantity);
-  int available();
   int read();
 
  private:
@@ -48,6 +47,5 @@ class TwoWire {
 };
 
 extern TwoWire Wire;
-extern TwoWire Wire1;
 
 #endif

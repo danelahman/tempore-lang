@@ -3,20 +3,18 @@ module Reach = OpentronsReach
 module OperationSet = Reach.OperationSet
 
 type robot = Flex
-type monitor = Abort | Warn | Off
 
 type options = {
   robot : robot;
   api_level : string;
   time_unit : Grades.Rational.t;
-  monitor : monitor;
+  monitor : Utils.Monitor.t;
   name : string;
   source : string;
 }
 
 let default_api_level = function Flex -> "2.30"
 let robot_type = function Flex -> "Flex"
-let monitor_policy = function Abort -> "abort" | Warn -> "warn" | Off -> "off"
 let reserved_prefixes = [ "tempore_"; "_tempore_" ]
 let protocol_names = [ "metadata"; "requirements"; "run" ]
 
@@ -247,7 +245,7 @@ let protocol options ~operations ~compound ~binding_name ~binding commands =
             ^ OpentronsEmit.fraction options.time_unit
             ^ ",";
             "        monitor="
-            ^ python_string (monitor_policy options.monitor)
+            ^ python_string (Utils.Monitor.name options.monitor)
             ^ ",";
             "    )";
             "";

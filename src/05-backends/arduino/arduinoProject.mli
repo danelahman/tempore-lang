@@ -100,8 +100,6 @@
     [TEMPORE_TRACE], which logs each event, the profile does not lengthen the
     times it measures. *)
 
-type monitor = Abort | Warn | Off
-
 (** The effect of a top-level function, as the typechecker infers it. *)
 type function_effect =
   | Not_a_function
@@ -113,7 +111,7 @@ type function_effect =
 
 type input = {
   device : ArduinoDevice.t;
-  monitor : monitor;
+  monitor : Utils.Monitor.t;
   source : string;  (** the name of the source file of the program *)
   definitions : (Language.Ast.variable * function_effect) list;
       (** the top-level definitions of the program's sources, in order, each
@@ -163,10 +161,6 @@ val files : input -> ArduinoFragment.program -> (string * string) list
     the monitor of the device, and a repeated free task is not shown to yield.
 *)
 
-val host_sources : (string * string) list -> string list
-(** [host_sources files] is the paths of the C++ sources of the project [files]
-    that its host build compiles: those of [src/] and of [host/]. *)
-
 val host_build_command :
   ?profile:bool ->
   directory:string ->
@@ -175,11 +169,11 @@ val host_build_command :
   string list
 (** [host_build_command ~directory ~output files] is the command, as a list of
     its words, that compiles the project [files] written to [directory] for the
-    host simulation into the executable [output], with [c++] under C++17 without
-    the contraction of floating-point expressions into fused multiply-adds,
-    [TEMPORE_HOST] and [TEMPORE_TRACE] defined, and threads; under [~profile]
-    (default [false]), with [TEMPORE_PROFILE] in place of [TEMPORE_TRACE]. The
-    executable takes the simulated duration in microseconds as its argument and
-    prints the log of the device, with the events of the tasks traced, or under
-    [~profile] with the profile every 5 simulated seconds and at the end of the
-    simulation. *)
+    host simulation, its C++ sources of [src/] and [host/], into the executable
+    [output], with [c++] under C++17 without the contraction of floating-point
+    expressions into fused multiply-adds, [TEMPORE_HOST] and [TEMPORE_TRACE]
+    defined, and threads; under [~profile] (default [false]), with
+    [TEMPORE_PROFILE] in place of [TEMPORE_TRACE]. The executable takes the
+    simulated duration in microseconds as its argument and prints the log of the
+    device, with the events of the tasks traced, or under [~profile] with the
+    profile every 5 simulated seconds and at the end of the simulation. *)

@@ -1,6 +1,7 @@
 // The package m5-imu: the inertial measurement unit of an M5Stack core,
-// through M5Unified, read under the I2C lock, since the internal bus may share
-// its controller with Wire.
+// through M5Unified, read under the I2C lock, which orders the transactions of
+// the tasks on the internal bus of M5Unified and on Wire, since the two may
+// share a controller of the ESP32, as on the M5Stack Gray.
 //
 // A unit of the MPU6886 family (MPU6886, MPU6050, MPU9250) in the axes of the
 // sensor is read directly: the accelerometer, the temperature and the

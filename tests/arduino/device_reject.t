@@ -23,21 +23,21 @@ An unknown member, a member of the wrong kind, a missing member and no task:
   File "m.json", line 1, characters 27-33:
   1 | { "board": "esp32-devkit", "task": [] }
                                  ^^^^^^
-  Compilation error: Unknown member 'task' of the manifest; accepted: board, time_unit, tasks, packages, bindings, safe_state, host_models
+  Compilation error: Unknown member `task` of the manifest; accepted: `board`, `time_unit`, `tasks`, `packages`, `bindings`, `safe_state`, `host_models`
   exit 1
   $ printf '{ "board": 32, "tasks": [ { "function": "blinker", "kind": "free" } ] }\n' > m.json
   $ reject m.json
   File "m.json", line 1, characters 11-13:
   1 | { "board": 32, "tasks": [ { "function": "blinker", "kind": "free" } ] }
                  ^^
-  Compilation error: The member 'board' of the manifest is a number, not a string
+  Compilation error: The member `board` of the manifest is a number, not a string
   exit 1
   $ printf '{ "tasks": [ { "function": "blinker", "kind": "free" } ] }\n' > m.json
   $ reject m.json
   File "m.json", line 1, characters 0-58:
   1 | { "tasks": [ { "function": "blinker", "kind": "free" } ] }
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Compilation error: The member 'board' of the manifest is missing
+  Compilation error: The member `board` of the manifest is missing
   exit 1
   $ printf '{ "board": "esp32-devkit", "tasks": [] }\n' > m.json
   $ reject m.json
@@ -54,21 +54,21 @@ An unknown board, package and time unit:
   File "m.json", line 2, characters 11-20:
   2 |   "board": "esp8266",
                  ^^^^^^^^^
-  Compilation error: Unknown board 'esp8266'; accepted: esp32-devkit, esp32s3-devkit, m5stack-core2, m5stack-cores3, m5stack-fire, m5stack-gray
+  Compilation error: Unknown board `esp8266`; accepted: `esp32-devkit`, `esp32s3-devkit`, `m5stack-core2`, `m5stack-cores3`, `m5stack-fire`, `m5stack-gray`
   exit 1
   $ sed 's/"time_unit": "ms",/"time_unit": "ms", "packages": ["m5-imu"],/' toy/toy.device.json | sed 's/toy_bindings/toy\/toy_bindings/' > m.json
   $ reject m.json
   File "m.json", line 3, characters 34-42:
   3 |   "time_unit": "ms", "packages": ["m5-imu"],
                                         ^^^^^^^^
-  Compilation error: The package m5-imu requires the capability m5unified, which the board esp32-devkit lacks; its capabilities are: i2c
+  Compilation error: The package `m5-imu` requires the capability `m5unified`, which the board `esp32-devkit` lacks; its capabilities are: `i2c`
   exit 1
   $ sed 's/"time_unit": "ms"/"time_unit": "min"/' toy/toy.device.json > m.json
   $ reject m.json
   File "m.json", line 3, characters 15-20:
   3 |   "time_unit": "min",
                      ^^^^^
-  Compilation error: The time unit must be ms, us, s or a positive number of microseconds
+  Compilation error: The time unit must be `ms`, `us`, `s` or a positive number of microseconds
   exit 1
 
 A time unit whose denominator in lowest terms is not below 2^30, and an escape
@@ -98,14 +98,14 @@ of the board and a priority out of range:
   File "m.json", line 2, characters 43-53:
   2 |   "tasks": [ { "function": "step", "kind": "sporadic" } ],
                                                  ^^^^^^^^^^
-  Compilation error: Unknown kind of task 'sporadic'; accepted: periodic, free
+  Compilation error: Unknown kind of task `sporadic`; accepted: `periodic`, `free`
   exit 1
   $ task '{ "function": "step", "kind": "periodic", "initial": "start" }'
   $ reject m.json
   File "m.json", line 2, characters 13-75:
   2 |   "tasks": [ { "function": "step", "kind": "periodic", "initial": "start" } ],
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Compilation error: A periodic task needs the member 'period'
+  Compilation error: A periodic task needs the member `period`
   exit 1
   $ task '{ "function": "step", "kind": "periodic", "period": 2.5, "initial": "start" }'
   $ reject m.json
@@ -126,7 +126,7 @@ of the board and a priority out of range:
   File "m.json", line 2, characters 62-63:
   2 |   "tasks": [ { "function": "blinker", "kind": "free", "core": 2 } ],
                                                                     ^
-  Compilation error: The core of a task must be below 2, the number of cores of the board esp32-devkit
+  Compilation error: The core of a task must be below 2, the number of cores of the board `esp32-devkit`
   exit 1
   $ task '{ "function": "blinker", "kind": "free", "priority": 25 }'
   $ reject m.json
@@ -144,49 +144,49 @@ periodic task whose state needs an initial function:
   File "m.json", line 2, characters 27-34:
   2 |   "tasks": [ { "function": "stepp", "kind": "periodic", "period": 10 } ],
                                  ^^^^^^^
-  Compilation error: Unknown function 'stepp'; the top-level functions of the program are: start, step, blink, blinker
+  Compilation error: Unknown function `stepp`; the top-level functions of the program are: `start`, `step`, `blink`, `blinker`
   exit 1
   $ task '{ "function": "step", "kind": "free" }'
   $ reject m.json
   File "m.json", line 2, characters 27-33:
   2 |   "tasks": [ { "function": "step", "kind": "free" } ],
                                  ^^^^^^
-  Compilation error: The function 'step' of a free task must have the type unit -> unit, but it has the type nat -> nat
+  Compilation error: The function `step` of a free task must have the type `unit -> unit`, but it has the type `nat -> nat`
   exit 1
   $ task '{ "function": "start", "kind": "periodic", "period": 10 }'
   $ reject m.json
   File "m.json", line 2, characters 27-34:
   2 |   "tasks": [ { "function": "start", "kind": "periodic", "period": 10 } ],
                                  ^^^^^^^
-  Compilation error: The function 'start' of a periodic task must have the type s -> s for a type s without type variables, but it has the type unit -> nat
+  Compilation error: The function `start` of a periodic task must have the type `s -> s` for a type `s` without type variables, but it has the type `unit -> nat`
   exit 1
   $ task '{ "function": "step", "kind": "periodic", "period": 10, "initial": "blinker" }'
   $ reject m.json
   File "m.json", line 2, characters 80-89:
   2 |   "tasks": [ { "function": "step", "kind": "periodic", "period": 10, "initial": "blinker" } ],
                                                                                       ^^^^^^^^^
-  Compilation error: The function 'blinker' of the initial state of a periodic task must have the type unit -> nat, but it has the type unit -> unit
+  Compilation error: The function `blinker` of the initial state of a periodic task must have the type `unit -> nat`, but it has the type `unit -> unit`
   exit 1
   $ task '{ "function": "step", "kind": "periodic", "period": 10 }'
   $ reject m.json
   File "m.json", line 2, characters 27-33:
   2 |   "tasks": [ { "function": "step", "kind": "periodic", "period": 10 } ],
                                  ^^^^^^
-  Compilation error: The periodic task of the function 'step' has the state type nat, so it needs the member 'initial'
+  Compilation error: The periodic task of the function `step` has the state type `nat`, so it needs the member `initial`
   exit 1
   $ task '{ "function": "add", "kind": "periodic", "period": 10 }'
   $ reject m.json toy/tasks.tpe
   File "m.json", line 2, characters 27-32:
   2 |   "tasks": [ { "function": "add", "kind": "periodic", "period": 10 } ],
                                  ^^^^^
-  Compilation error: The function 'add' of a periodic task must have the type s -> s for a type s without type variables, but it has the type nat -> nat -> nat
+  Compilation error: The function `add` of a periodic task must have the type `s -> s` for a type `s` without type variables, but it has the type `nat -> nat -> nat`
   exit 1
   $ task '{ "function": "swap", "kind": "periodic", "period": 10, "initial": "zero" }'
   $ reject m.json toy/tasks.tpe
   File "m.json", line 2, characters 27-33:
   2 |   "tasks": [ { "function": "swap", "kind": "periodic", "period": 10, "initial": "zero" } ],
                                  ^^^^^^
-  Compilation error: The function 'swap' of a periodic task must have the type s -> s for a type s without type variables, but it has the type ('a * 'b) -> ('b * 'a)
+  Compilation error: The function `swap` of a periodic task must have the type `s -> s` for a type `s` without type variables, but it has the type `('a * 'b) -> ('b * 'a)`
   exit 1
 
 The effect of the function of a periodic task must be below its period: the
@@ -198,14 +198,14 @@ blinker, whose state is the unit; slow fits a period of 13.
   File "m.json", line 2, characters 27-33:
   2 |   "tasks": [ { "function": "slow", "kind": "periodic", "period": 10, "initial": "zero" } ],
                                  ^^^^^^
-  Compilation error: The effect `[12, 12]` of the function 'slow' of a periodic task is not below its period: its durations are not all below 10
+  Compilation error: The effect `[12, 12]` of the function `slow` of a periodic task is not below its period: its durations are not all below 10
   exit 1
   $ task '{ "function": "blinker", "kind": "periodic", "period": 10 }'
   $ reject m.json
   File "m.json", line 2, characters 27-36:
   2 |   "tasks": [ { "function": "blinker", "kind": "periodic", "period": 10 } ],
                                  ^^^^^^^^^
-  Compilation error: The effect `[0, ∞)` of the function 'blinker' of a periodic task is not below its period: its durations are not all below 10
+  Compilation error: The effect `[0, ∞)` of the function `blinker` of a periodic task is not below its period: its durations are not all below 10
   exit 1
   $ task '{ "function": "slow", "kind": "periodic", "period": 13, "initial": "zero" }'
   $ sed -i.bak 's/toy_bindings/overrun_bindings/' m.json
@@ -231,7 +231,7 @@ binding functions, and the safe-state hook must be mentioned too:
   File "m.json", line 1, characters 0-83:
   1 | { "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ] }
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Compilation error: The function binding_Blink of the operation Blink needs a binding file, the member 'bindings' of the manifest
+  Compilation error: The function `binding_Blink` of the operation `Blink` needs a binding file, the member `bindings` of the manifest
   exit 1
   $ printf 'tempore_unit binding_Show(uint32_t) { return {}; }\n' > partial.cpp
   $ printf '{ "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ], "bindings": "partial.cpp" }\n' > m.json
@@ -239,14 +239,14 @@ binding functions, and the safe-state hook must be mentioned too:
   File "m.json", line 1, characters 95-108:
   1 | { "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ], "bindings": "partial.cpp" }
                                                                                                      ^^^^^^^^^^^^^
-  Compilation error: The binding file partial.cpp does not define the function binding_Blink of the operation Blink
+  Compilation error: The binding file `partial.cpp` does not define the function `binding_Blink` of the operation `Blink`
   exit 1
   $ printf '{ "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ], "bindings": "toy/toy_bindings.cpp", "safe_state": "motors_off" }\n' > m.json
   $ reject m.json
   File "m.json", line 1, characters 95-117:
   1 | { "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ], "bindings": "toy/toy_bindings.cpp", "safe_state": "motors_off" }
                                                                                                      ^^^^^^^^^^^^^^^^^^^^^^
-  Compilation error: The binding file toy_bindings.cpp does not define the function motors_off of the safe state
+  Compilation error: The binding file `toy_bindings.cpp` does not define the function `motors_off` of the safe state
   exit 1
   $ printf '{ "board": "esp32-devkit", "tasks": [ { "function": "blinker", "kind": "free" } ], "bindings": "toy/missing.cpp" }\n' > m.json
   $ reject m.json

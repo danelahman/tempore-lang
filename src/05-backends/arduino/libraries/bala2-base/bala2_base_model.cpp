@@ -7,6 +7,7 @@
 // written. As on the base, the counts decrease as a positive drive turns the
 // wheel.
 
+#include <Arduino.h>
 #include <Wire.h>
 #include <math.h>
 
@@ -24,7 +25,7 @@ const uint8_t encoders = 0x10;
 
 int64_t count(double angle) {
   return static_cast<int64_t>(floor(
-      angle * BALA2_MODEL_COUNTS_PER_REVOLUTION / (2 * 3.14159265358979323846)));
+      angle * BALA2_MODEL_COUNTS_PER_REVOLUTION / (2 * PI)));
 }
 
 class bala2_base_model : public tempore_i2c_registers {

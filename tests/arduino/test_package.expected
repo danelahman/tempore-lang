@@ -7,17 +7,17 @@ libraries/m5-imu/m5_imu.tpe under time-interval-rational on m5stack-gray: ReadIm
 libraries/m5-imu/m5_imu_filter.tpe under counts-upper-bound on m5stack-cores3: none
 libraries/m5-imu/m5_imu_counts.tpe under counts-upper-bound on m5stack-cores3: ReadImu [0.2, 1.5]
 A [0.5, 0.75]
-Error: Unknown board 'esp32-board' in the bounds of the package p; accepted: esp32-devkit, esp32s3-devkit, m5stack-core2, m5stack-cores3, m5stack-fire, m5stack-gray
-Error: The bounds of a board name the operation B, which the package p does not bind; it binds: A
-Error: The member 'A' of the member 'esp32-devkit' of the member 'bounds' of a package descriptor is an empty interval: its lower bound exceeds its upper bound
-Error: The member 'A' of the member 'esp32-devkit' of the member 'bounds' of a package descriptor is a number, not an array [lo, hi]
-Error: Member 'A' of the member 'esp32-devkit' of the member 'bounds' of a package descriptor given twice
-Error: The member 'bounds' of a package descriptor is an array, not an object
+Error: Unknown board `esp32-board` in the bounds of the package `p`; accepted: `esp32-devkit`, `esp32s3-devkit`, `m5stack-core2`, `m5stack-cores3`, `m5stack-fire`, `m5stack-gray`
+Error: The bounds of a board name the operation `B`, which the package `p` does not bind; it binds: `A`
+Error: The member `A` of the member `esp32-devkit` of the member `bounds` of a package descriptor is an empty interval: its lower bound exceeds its upper bound
+Error: The member `A` of the member `esp32-devkit` of the member `bounds` of a package descriptor is a number, not an array `[lo, hi]`
+Error: The member `A` of the member `esp32-devkit` of the member `bounds` of a package descriptor is given twice
+Error: The member `bounds` of a package descriptor is an array, not an object
 time-interval-rational: A # [0.5, 0.75]; B # [0, 1]
 time-lower-bound-rational: A # 0.5
 regex-timed-interval-rational-symbolic: A # [{A}, {A}] within [0.5, 0.75]
 counts-upper-bound: A # (A, 1)
 time-interval-rational: Error: The source source.tpe declares no operation C, whose running-time bounds are given
-time-interval: Error: In the 'time-interval' grading monoid, the running-time bound 0.5 is not a delay: delays are whole numbers of time steps
+time-interval: Error: In the `time-interval` grading monoid, the running-time bound 0.5 is not a delay: delays are whole numbers of time steps
 p and q share: B
 p and r share: none

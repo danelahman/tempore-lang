@@ -28,5 +28,3 @@ void world_advance(tempore_world &w, double dt) {
     w.wheel[i] += w.wheel_rate[i] * dt;
   }
 }
-
-void world_finish(const tempore_world &) {}

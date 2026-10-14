@@ -63,7 +63,8 @@ let time_unit ~what (v : Json.t) =
              2^30")
   | _ ->
       Error.compilation ~loc:v.at
-        "The time unit must be ms, us, s or a positive number of microseconds"
+        "The time unit must be `ms`, `us`, `s` or a positive number of \
+         microseconds"
 
 (* A C++ identifier that is not reserved for the compiler. *)
 let identifier ~what (v : Json.t) =
@@ -77,7 +78,7 @@ let identifier ~what (v : Json.t) =
   if ok then s
   else
     Error.compilation ~loc:v.at
-      "%s must be a C++ identifier that does not start with tempore"
+      "%s must be a C++ identifier that does not start with `tempore`"
       (String.capitalize_ascii what)
 
 let in_range ~what ~lo ~hi fields name default =
@@ -115,10 +116,10 @@ let task ~unit_us ~what v =
   let kind =
     match (kind_name.it, period) with
     | "periodic", None ->
-        Error.compilation ~loc:v.at "A periodic task needs the member 'period'"
+        Error.compilation ~loc:v.at "A periodic task needs the member `period`"
     | "periodic", Some _ when repeat <> None ->
         Error.compilation ~loc:(Json.location f "repeat")
-          "A periodic task is repeated by its period; the member 'repeat' is \
+          "A periodic task is repeated by its period; the member `repeat` is \
            for free tasks"
     | "periodic", Some period ->
         let us = Rational.mul period unit_us in
@@ -145,7 +146,8 @@ let task ~unit_us ~what v =
         | None -> Free { repeat = Option.value repeat ~default:false })
     | other, _ ->
         Error.compilation ~loc:kind_name.at
-          "Unknown kind of task '%s'; accepted: periodic, free" other
+          "Unknown kind of task `%s`; accepted: %s" other
+          (Utils.Diagnostic.code_list [ "periodic"; "free" ])
   in
   {
     function_name;

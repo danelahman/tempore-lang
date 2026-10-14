@@ -42,7 +42,8 @@ let parse ~files name =
     match List.assoc_opt (name ^ "/" ^ descriptor) files with
     | Some text -> text
     | None ->
-        Error.compilation "The package %s has no descriptor %s" name descriptor
+        Error.compilation "The package `%s` has no descriptor `%s`" name
+          descriptor
   in
   let v = Json.parse ~filename:(directory ^ descriptor) text in
   let f =
@@ -69,8 +70,8 @@ let parse ~files name =
     match List.assoc_opt (name ^ "/" ^ file) files with
     | Some text -> (file, text)
     | None ->
-        Error.compilation ~loc:v.at "The package %s has no file %s for %s" name
-          file what
+        Error.compilation ~loc:v.at "The package `%s` has no file `%s` for %s"
+          name file what
   in
   let tpe ~what filename =
     {
@@ -88,24 +89,24 @@ let parse ~files name =
         List.map (fun grades -> (grades, declarations)) grades
     | Json.String _, None ->
         Error.compilation ~loc:v.at
-          "The member 'grades' of a package descriptor is missing; it names \
+          "The member `grades` of a package descriptor is missing; it names \
            the grades under which the declarations are read"
     | Json.Object members, None ->
         if members = [] then
           Error.compilation ~loc:member.at
-            "The member 'declarations' of a package descriptor names no grades";
+            "The member `declarations` of a package descriptor names no grades";
         List.map
           (fun ((grades : string Location.located), filename) ->
             (grades.it, tpe ~what filename))
           (Json.assoc Json.string
-             ~what:"the member 'declarations' of a package descriptor" member)
+             ~what:"the member `declarations` of a package descriptor" member)
     | Json.Object _, Some _ ->
         Error.compilation ~loc:(Json.location f "grades")
           "A package descriptor whose declarations map grades to files has no \
-           member 'grades'"
+           member `grades`"
     | _ ->
         Error.compilation ~loc:member.at
-          "The member 'declarations' of a package descriptor must be a string \
+          "The member `declarations` of a package descriptor must be a string \
            or an object, but it is %s"
           (Json.kind member)
   in
@@ -122,7 +123,7 @@ let parse ~files name =
             (String.capitalize_ascii what);
         (Grades.Grade.Closed lo, Grades.Grade.Closed hi)
     | _ ->
-        Error.compilation ~loc:v.at "%s is %s, not an array [lo, hi]"
+        Error.compilation ~loc:v.at "%s is %s, not an array `[lo, hi]`"
           (String.capitalize_ascii what)
           (Json.kind v)
   in
@@ -131,10 +132,10 @@ let parse ~files name =
       (fun ((op : string Location.located), bounds) ->
         if not (List.mem op.it bindings) then
           Error.compilation ~loc:op.at
-            "The bounds of a board name the operation %s, which the package %s \
-             does not bind; it binds: %s"
+            "The bounds of a board name the operation `%s`, which the package \
+             `%s` does not bind; it binds: %s"
             op.it name
-            (match bindings with [] -> "none" | ops -> String.concat ", " ops);
+            (Utils.Diagnostic.code_list bindings);
         (op.it, bounds))
       (Json.assoc interval ~what v)
   in
@@ -143,9 +144,9 @@ let parse ~files name =
       (fun ((board : string Location.located), operations) ->
         if Board.find board.it = None then
           Error.compilation ~loc:board.at
-            "Unknown board '%s' in the bounds of the package %s; accepted: %s"
+            "Unknown board `%s` in the bounds of the package `%s`; accepted: %s"
             board.it name
-            (String.concat ", " Board.names);
+            (Utils.Diagnostic.code_list Board.names);
         (board.it, operations))
       (Json.assoc operations ~what v)
   in
@@ -175,8 +176,9 @@ let resolve (name : string Location.located) =
   match find name.it with
   | Some package -> package
   | None ->
-      Error.compilation ~loc:name.at "Unknown package '%s'; accepted: %s"
-        name.it (String.concat ", " names)
+      Error.compilation ~loc:name.at "Unknown package `%s`; accepted: %s"
+        name.it
+        (Utils.Diagnostic.code_list names)
 
 let package_files package =
   Option.to_list package.definitions @ List.map snd package.declarations
@@ -208,7 +210,8 @@ let files_for ~grades ?board package =
   | None ->
       Error
         (Printf.sprintf
-           "The package %s declares its operations under the grades %s, not %s"
+           "The package `%s` declares its operations under the grades %s, not \
+            `%s`"
            package.name
-           (String.concat ", " (List.map fst package.declarations))
+           (Utils.Diagnostic.code_list (List.map fst package.declarations))
            grades)

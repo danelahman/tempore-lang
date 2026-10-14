@@ -118,7 +118,6 @@ class tempore_m5_unified {
  public:
   tempore_m5_config config() { return {}; }
   void begin(tempore_m5_config) {}
-  void update() {}
   tempore_m5_imu Imu;
   tempore_m5_display Display;
   tempore_m5_touch Touch;

@@ -32,7 +32,7 @@ val kind : t -> string
 
     The decoders raise a compilation {!Utils.Error.Error} at the value that does
     not decode, its message naming the member by [what], e.g.
-    ["the member 'period' of a task"]. *)
+    ["the member `period` of a task"]. *)
 
 type fields
 (** The members of an object. *)

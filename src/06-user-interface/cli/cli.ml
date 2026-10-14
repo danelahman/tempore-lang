@@ -53,7 +53,7 @@ type config = {
   time_unit : Grades.Rational.t option;
   timeline : bool;
   timeline_full : bool;
-  monitor : OpentronsBackend.OpentronsProtocol.monitor option;
+  monitor : Utils.Monitor.t option;
   simulate : bool;
   simulator : string option;
 }
@@ -254,11 +254,7 @@ let parse_args_to_config () =
            tasks for the given number of seconds of simulated time, printing \
            the log of the device with the events of its tasks" );
         ( "--monitor",
-          Arg.String
-            (choice "--monitor"
-               OpentronsBackend.OpentronsProtocol.
-                 [ ("abort", Abort); ("warn", Warn); ("off", Off) ]
-               monitor),
+          Arg.String (choice "--monitor" Utils.Monitor.policies monitor),
           " Set what a protocol written with --bind or a device written with \
            --device does when an operation's running time is outside its \
            bounds, or a step of a periodic task takes its period or longer: \
@@ -823,17 +819,10 @@ let emit_arduino config ~directory ~device ~declarations ~definitions
           in
           read_file path
         in
-        let monitor =
-          match config.monitor with
-          | None | Some OpentronsBackend.OpentronsProtocol.Abort ->
-              Project.Abort
-          | Some Warn -> Project.Warn
-          | Some Off -> Project.Off
-        in
         Project.files
           {
             device;
-            monitor;
+            monitor = Option.value config.monitor ~default:Utils.Monitor.Abort;
             source;
             definitions;
             operations;
@@ -906,7 +895,7 @@ let emit_protocol config ~filename ~binding_name ~operations ~compound commands
         Option.value config.api_level ~default:(P.default_api_level robot);
       time_unit =
         Option.value config.time_unit ~default:(Grades.Rational.of_int 1);
-      monitor = Option.value config.monitor ~default:P.Abort;
+      monitor = Option.value config.monitor ~default:Utils.Monitor.Abort;
       name = Filename.remove_extension source;
       source;
     }

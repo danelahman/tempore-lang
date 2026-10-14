@@ -19,9 +19,12 @@ void delay(uint32_t ms);
 // Waits for us microseconds of simulated time.
 void delayMicroseconds(uint32_t us);
 
-// The simulated time since start-up, in milliseconds and in microseconds.
+// The simulated time since start-up, in milliseconds.
 unsigned long millis();
-unsigned long micros();
+
+// The ratio of the circumference of a circle to its diameter, as in the
+// Arduino API.
+#define PI 3.1415926535897932384626433832795
 
 // The serial port, written to the standard output.
 class HardwareSerial {
@@ -30,7 +33,6 @@ class HardwareSerial {
   void setTxBufferSize(size_t) {}
   size_t print(const char *text);
   size_t println(const char *text);
-  void flush();
 };
 
 extern HardwareSerial Serial;

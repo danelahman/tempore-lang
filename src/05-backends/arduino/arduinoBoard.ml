@@ -70,7 +70,7 @@ let parse name text =
   if imu_frequency <> None && not m5unified then
     Utils.Error.compilation
       ~loc:(Json.location f "imu_frequency")
-      "The member 'imu_frequency' of a board profile requires 'm5unified'";
+      "The member `imu_frequency` of a board profile requires `m5unified`";
   {
     name;
     title = Json.required f "title" Json.string;
