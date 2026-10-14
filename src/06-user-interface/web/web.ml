@@ -43,6 +43,15 @@ let scroll_to id =
            |])
   | None -> ()
 
+(* The heading of identifier [id] at the top of the window, as following an
+   anchor places it, or the page at its top without one. *)
+let scroll_to_heading = function
+  | Some id -> (
+      match Js_browser.Document.get_element_by_id Js_browser.document id with
+      | Some element -> Js_browser.Element.scroll_into_view element true
+      | None -> ())
+  | None -> Js_browser.Window.scroll_to Js_browser.window 0 0
+
 (* The card of the example last loaded, in the gallery just opened: focused
    without the browser's own scrolling, and centred at once in the gallery's
    list by scrolling the list alone, which leaves the page behind the gallery
@@ -247,6 +256,11 @@ let command (model : Model.model) = function
   | Model.Scroll_to_error i -> Scroll_to (View.error_id i)
   | Model.Scroll_to_span i -> Scroll_to (View.primary_id i)
   | Model.Scroll_to_declaration -> Scroll_to View.declaration_flash_id
+  | Model.Scroll_to_heading heading ->
+      After_redraw
+        (fun () ->
+          scroll_to_heading heading;
+          None)
   | Model.Perform_after_paint action -> After_paint (Model.Perform action)
   | Model.Remember (key, value) -> Now (fun () -> remember key value)
   | Model.Focus_current_example ->

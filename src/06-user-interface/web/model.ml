@@ -179,6 +179,9 @@ and msg =
   | ShowPage of page
       (** Switch between the editor and the documentation. The rest of the model
           is left alone, so the source and any run survive the detour. *)
+  | ShowDocs of WebDocPages.page * string option
+      (** Show the given page of the documentation, at the heading of the given
+          identifier or else at its top. *)
   | HoverLabel of (int * int) option
       (** The pointer has entered label [j] of reported error [i], or left the
           labels. Top-level, since the error display belongs to neither the
@@ -542,6 +545,8 @@ type model = {
       (** Whether the source has been edited since the errors were reported, so
           that their spans point at bytes that have moved. *)
   page : page;
+  docs_page : WebDocPages.page;
+      (** The page of the documentation shown, kept while the editor is. *)
   gallery : string option;
       (** The search of the example gallery while it is open, [None] while it is
           closed. *)
@@ -639,6 +644,7 @@ let init =
     hovered_error = None;
     stale_errors = false;
     page = Editor;
+    docs_page = WebDocPages.Main;
     gallery = None;
     definitions = [];
     links = [];
@@ -681,6 +687,9 @@ type side_effect =
       (** focus the card of the example last loaded in the gallery and centre it
           in the gallery's list *)
   | Scroll_to_declaration  (** scroll the flashed declaration into view *)
+  | Scroll_to_heading of string option
+      (** scroll the heading of the given identifier to the top of the window,
+          or the page to its top *)
   | Jump of int
       (** place the editor's caret at the given offset, in UTF-16 code units,
           and scroll the flashed definition into view *)
@@ -1426,7 +1435,7 @@ let rec update_model model = function
       | None -> model)
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
   | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
-  | GoToError _ | Recompile _ | CopyLink | Copied _ | Unnotice _ ->
+  | GoToError _ | Recompile _ | CopyLink | Copied _ | Unnotice _ | ShowDocs _ ->
       model
 
 (** How long the confirmation of a copied link is shown, in milliseconds. *)
@@ -1638,6 +1647,9 @@ let respond model msg =
         [ After (compile_delay, Recompile compile_serial) ] )
   | OpenGallery when model.edit_model.selected_example <> None ->
       (update_model model msg, [ Focus_current_example ])
+  | ShowDocs (docs_page, heading) ->
+      ( { (without_popover model) with page = Docs; docs_page },
+        [ Scroll_to_heading heading ] )
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
   | Copied (url, copied) ->
       notify model (if copied then Link_copied else Copy_failed url)

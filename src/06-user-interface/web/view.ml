@@ -2540,7 +2540,9 @@ let view (model : Model.model) =
       view_navbar;
       (match model.page with
       | Model.Docs ->
-          let main, aside = Docs.view (page_link Model.Editor) in
+          let main, aside =
+            Docs.view model.docs_page (page_link Model.Editor)
+          in
           view_contents main aside
       | Model.Editor -> (
           match model.run_model with

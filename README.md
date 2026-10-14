@@ -144,6 +144,10 @@ You can load an existing example or write your own program, choose which grading
 monoid to use, typecheck the program, and step through its reductions while
 watching resource usage.
 
+The documentation page shows this README and those of the Arduino and Opentrons
+backends, chosen by the tabs of its side panel, each with its own table of
+contents.
+
 #### Backend selection
 
 The backend selector, first among the code options, chooses the backend,

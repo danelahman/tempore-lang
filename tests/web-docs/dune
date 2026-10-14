@@ -1,0 +1,11 @@
+; Unit tests of the pages of the documentation view of the web interface: the
+; normalisation of relative paths, the targets of links, and the links of the
+; main README to the backend pages.
+
+(test
+ (name test_docs)
+ (libraries webDocPages)
+ (deps
+  %{project_root}/README.md
+  %{project_root}/src/05-backends/arduino/README.md
+  %{project_root}/src/05-backends/opentrons/README.md))
