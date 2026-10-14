@@ -167,8 +167,8 @@ during the shaking at about 7.36 s, and taken again at about 9.36 s:
   [2563.598 ms] Display at (130, 120): LEVEL
   [2567.638 ms] Display at (0, 150): Reference valid for 0:29
   [3055.218 ms] Display disc at (60, 66), radius 8: 0xffffff
-  [3063.498 ms] Display at (130, 120):
-  [3567.223 ms] Display at (0, 150): Reference valid for 0:28
+  [3063.518 ms] Display at (130, 120):
+  [3567.243 ms] Display at (0, 150): Reference valid for 0:28
   [4555.218 ms] Display disc at (60, 90), radius 8: 0x00e000
   [4563.598 ms] Display at (130, 120): LEVEL
   [4567.638 ms] Display at (0, 150): Reference valid for 0:27
