@@ -127,31 +127,31 @@ tasks of the manifest, and the stubs of the host simulation.
   
   #include "tempore_bindings.h"
   
-  static const tempore_bounds tempore_op_Show_bounds = {100, false, 200, false, true};
-  static tempore_operation_monitor tempore_op_Show_monitor("Show", &tempore_op_Show_bounds);
+  static const tempore_bounds tempore_bounds_Show = {100, false, 200, false, true};
+  static tempore_operation_monitor tempore_monitor_Show("Show", &tempore_bounds_Show);
   
   tempore_unit tempore_op_Show(uint32_t a) {
     tempore_check_halt();
     const int64_t start = tempore_clock_us();
     const auto r = binding_Show(a);
-    tempore_monitor_operation(&tempore_op_Show_monitor, tempore_clock_us() - start);
+    tempore_monitor_operation(&tempore_monitor_Show, tempore_clock_us() - start);
     return r;
   }
   
-  static const tempore_bounds tempore_op_Blink_bounds = {200, false, 500, false, true};
-  static tempore_operation_monitor tempore_op_Blink_monitor("Blink", &tempore_op_Blink_bounds);
+  static const tempore_bounds tempore_bounds_Blink = {200, false, 500, false, true};
+  static tempore_operation_monitor tempore_monitor_Blink("Blink", &tempore_bounds_Blink);
   
   tempore_unit tempore_op_Blink(uint32_t a) {
     tempore_check_halt();
     const int64_t start = tempore_clock_us();
     const auto r = binding_Blink(a);
-    tempore_monitor_operation(&tempore_op_Blink_monitor, tempore_clock_us() - start);
+    tempore_monitor_operation(&tempore_monitor_Blink, tempore_clock_us() - start);
     return r;
   }
   
   tempore_operation_monitor *const tempore_operation_monitors[] = {
-      &tempore_op_Show_monitor,
-      &tempore_op_Blink_monitor,
+      &tempore_monitor_Show,
+      &tempore_monitor_Blink,
       nullptr};
 
 The sources build without warnings, also without exceptions and run-time type
@@ -380,3 +380,56 @@ without a manifest, every top-level definition is checked and compiled:
     static_cast<void>(silent_Show_3(n_8));
   $ emit unmanifested toy/toy.tpe handled.tpe | tail -1
   Wrote _arduino/projects/unmanifested/tempore_program.cpp
+
+Operations whose names are spelt alike get distinct C++ names: a name of
+letters and digits with single underscores is kept, and any other name is
+followed by its bytes in hexadecimal; the monitors and the bounds have
+prefixes of their own:
+
+  $ emit names --device toy/names.device.json toy/names.tpe --host-simulate 0.01 | grep -v '^Wrote\|took'
+  [0.000 ms] Release step
+  [0.000 ms] Show' 0
+  [0.000 ms] Show_p 0
+  [0.000 ms] A__b 0
+  [0.000 ms] A_b 0
+  [0.000 ms] Count 0
+  [0.000 ms] Count_monitor 0
+  [10.000 ms] End of the simulation
+  $ grep 'binding_\|TEMPORE_PERFORMS' _arduino/projects/names/src/tempore_bindings.h
+  #define TEMPORE_PERFORMS_Show_p_53686f7727_
+  tempore_unit binding_Show_p_53686f7727_(uint32_t);
+  #define TEMPORE_PERFORMS_Show_p
+  tempore_unit binding_Show_p(uint32_t);
+  #define TEMPORE_PERFORMS_A_b_415f5f62_
+  tempore_unit binding_A_b_415f5f62_(uint32_t);
+  #define TEMPORE_PERFORMS_A_b
+  tempore_unit binding_A_b(uint32_t);
+  #define TEMPORE_PERFORMS_Count
+  tempore_unit binding_Count(uint32_t);
+  #define TEMPORE_PERFORMS_Count_monitor
+  tempore_unit binding_Count_monitor(uint32_t);
+  $ grep 'monitor_\|bounds_' _arduino/projects/names/src/tempore_operations.cpp
+  static const tempore_bounds tempore_bounds_Show_p_53686f7727_ = {0, false, 1000, false, true};
+  static tempore_operation_monitor tempore_monitor_Show_p_53686f7727_("Show'", &tempore_bounds_Show_p_53686f7727_);
+    tempore_monitor_operation(&tempore_monitor_Show_p_53686f7727_, tempore_clock_us() - start);
+  static const tempore_bounds tempore_bounds_Show_p = {0, false, 1000, false, true};
+  static tempore_operation_monitor tempore_monitor_Show_p("Show_p", &tempore_bounds_Show_p);
+    tempore_monitor_operation(&tempore_monitor_Show_p, tempore_clock_us() - start);
+  static const tempore_bounds tempore_bounds_A_b_415f5f62_ = {0, false, 1000, false, true};
+  static tempore_operation_monitor tempore_monitor_A_b_415f5f62_("A__b", &tempore_bounds_A_b_415f5f62_);
+    tempore_monitor_operation(&tempore_monitor_A_b_415f5f62_, tempore_clock_us() - start);
+  static const tempore_bounds tempore_bounds_A_b = {0, false, 1000, false, true};
+  static tempore_operation_monitor tempore_monitor_A_b("A_b", &tempore_bounds_A_b);
+    tempore_monitor_operation(&tempore_monitor_A_b, tempore_clock_us() - start);
+  static const tempore_bounds tempore_bounds_Count = {0, false, 1000, false, true};
+  static tempore_operation_monitor tempore_monitor_Count("Count", &tempore_bounds_Count);
+    tempore_monitor_operation(&tempore_monitor_Count, tempore_clock_us() - start);
+  static const tempore_bounds tempore_bounds_Count_monitor = {0, false, 1000, false, true};
+  static tempore_operation_monitor tempore_monitor_Count_monitor("Count_monitor", &tempore_bounds_Count_monitor);
+    tempore_monitor_operation(&tempore_monitor_Count_monitor, tempore_clock_us() - start);
+      &tempore_monitor_Show_p_53686f7727_,
+      &tempore_monitor_Show_p,
+      &tempore_monitor_A_b_415f5f62_,
+      &tempore_monitor_A_b,
+      &tempore_monitor_Count,
+      &tempore_monitor_Count_monitor,

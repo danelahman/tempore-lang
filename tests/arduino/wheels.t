@@ -159,17 +159,17 @@ exceptions and run-time type information:
   platform = espressif32@7.1.3
   board = m5stack-grey
   framework = arduino
-  $ grep 'bounds = ' _arduino/projects/wheels/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {550, false, 1250, false, true};
-  static const tempore_bounds tempore_op_ShowText_bounds = {50, false, 12500, false, true};
-  static const tempore_bounds tempore_op_ShowNumber_bounds = {50, false, 12500, false, true};
-  static const tempore_bounds tempore_op_ClearDisplay_bounds = {31000, false, 48000, false, true};
-  static const tempore_bounds tempore_op_ShowTextAt_bounds = {50, false, 33000, false, true};
-  static const tempore_bounds tempore_op_SetMotors_bounds = {200, false, 450, false, true};
-  static const tempore_bounds tempore_op_ReadEncoders_bounds = {450, false, 1000, false, true};
-  static const tempore_bounds tempore_op_ResetEncoders_bounds = {300, false, 600, false, true};
-  static const tempore_bounds tempore_op_Publish_bounds = {0, false, 50, false, true};
-  static const tempore_bounds tempore_op_Latest_bounds = {0, false, 50, false, true};
+  $ grep 'const tempore_bounds ' _arduino/projects/wheels/src/tempore_operations.cpp
+  static const tempore_bounds tempore_bounds_ReadImu = {550, false, 1250, false, true};
+  static const tempore_bounds tempore_bounds_ShowText = {50, false, 12500, false, true};
+  static const tempore_bounds tempore_bounds_ShowNumber = {50, false, 12500, false, true};
+  static const tempore_bounds tempore_bounds_ClearDisplay = {31000, false, 48000, false, true};
+  static const tempore_bounds tempore_bounds_ShowTextAt = {50, false, 33000, false, true};
+  static const tempore_bounds tempore_bounds_SetMotors = {200, false, 450, false, true};
+  static const tempore_bounds tempore_bounds_ReadEncoders = {450, false, 1000, false, true};
+  static const tempore_bounds tempore_bounds_ResetEncoders = {300, false, 600, false, true};
+  static const tempore_bounds tempore_bounds_Publish = {0, false, 50, false, true};
+  static const tempore_bounds tempore_bounds_Latest = {0, false, 50, false, true};
   $ cd _arduino/projects/wheels
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..

@@ -164,7 +164,10 @@ how the bounds not measured directly, such as those of `i2c`, are derived.
 The program is a `.tpe` file with a binding file, which defines, for each
 operation `Op` not bound by a package, the function
 `tempore_result_Op binding_Op(tempore_argument_Op)`, and the safe-state
-function.
+function. A name `Op` other than of ASCII letters and digits with single
+underscores between them is spelt there as a C++ identifier followed by `_`,
+its bytes in hexadecimal and `_`, so that distinct names stay distinct: the
+binding function of `Show'` is `binding_Show_p_53686f7727_`.
 
 Under a device manifest, the definitions checked and compiled are those
 reached from the task functions and the `initial` functions of the manifest;

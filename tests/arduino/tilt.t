@@ -119,7 +119,7 @@ lowered to 3 ms in the generated operations, which the name of the example,
 drawn in 3.8 ms, exceeds. Under the policy abort the safe state is entered
 and a red banner across the middle of the screen states the violation:
 
-  $ tighten () { sed 's/ShowTextAt_bounds = {50, false, 33000,/ShowTextAt_bounds = {50, false, 3000,/' src/tempore_operations.cpp > bounds.cpp && mv bounds.cpp src/tempore_operations.cpp; }
+  $ tighten () { sed 's/bounds_ShowTextAt = {50, false, 33000,/bounds_ShowTextAt = {50, false, 3000,/' src/tempore_operations.cpp > bounds.cpp && mv bounds.cpp src/tempore_operations.cpp; }
   $ build () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
   $ tempore --emit-arduino tilt_abort --device $app/tilt.device.json $app/tilt.tpe > /dev/null
   $ cd _arduino/projects/tilt_abort

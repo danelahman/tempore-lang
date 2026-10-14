@@ -150,12 +150,12 @@ The monitors of the device check the running-time bounds of the board of
 the manifest, those of ReadImu on the M5Stack Gray and, for the same
 manifest on the M5Stack CoreS3, those on the CoreS3:
 
-  $ grep 'ReadImu_bounds = ' _arduino/projects/tilt/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {550, false, 1250, false, true};
+  $ grep 'bounds_ReadImu = ' _arduino/projects/tilt/src/tempore_operations.cpp
+  static const tempore_bounds tempore_bounds_ReadImu = {550, false, 1250, false, true};
   $ sed 's/m5stack-gray/m5stack-cores3/' packages/tilt.device.json > cores3.device.json
   $ emit cores3 --device cores3.device.json packages/tilt.tpe > /dev/null
-  $ grep 'ReadImu_bounds = ' _arduino/projects/cores3/src/tempore_operations.cpp
-  static const tempore_bounds tempore_op_ReadImu_bounds = {200, false, 1500, false, true};
+  $ grep 'bounds_ReadImu = ' _arduino/projects/cores3/src/tempore_operations.cpp
+  static const tempore_bounds tempore_bounds_ReadImu = {200, false, 1500, false, true};
 
 Its host simulation: the model of the unit reads the default world, a body
 swinging about the x axis with an amplitude of 0.1 radians; the display writes

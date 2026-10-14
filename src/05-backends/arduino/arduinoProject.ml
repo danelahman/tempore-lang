@@ -282,13 +282,13 @@ let bindings_header input (compiled : ArduinoEmit.compiled) =
           :: List.concat_map
                (fun (op, (argument, result)) ->
                  let name = Ast.OpName.string_of op in
-                 let base = Names.base name in
                  [
                    "";
-                   "#define TEMPORE_PERFORMS_" ^ base;
-                   Printf.sprintf "typedef %s tempore_argument_%s;" argument
-                     base;
-                   Printf.sprintf "typedef %s tempore_result_%s;" result base;
+                   "#define " ^ Names.performs name;
+                   Printf.sprintf "typedef %s %s;" argument
+                     (Names.argument_type name);
+                   Printf.sprintf "typedef %s %s;" result
+                     (Names.result_type name);
                    Printf.sprintf "%s %s(%s);" result (Names.binding name)
                      argument;
                  ])
@@ -297,8 +297,6 @@ let bindings_header input (compiled : ArduinoEmit.compiled) =
       | None -> []
       | Some hook -> [ ""; "// The safe state."; "void " ^ hook.it ^ "();" ])
     @ [ ""; "#endif" ])
-
-let operation_monitor name = Names.operation name ^ "_monitor"
 
 let operations_source input (compiled : ArduinoEmit.compiled) =
   let unit_us = input.device.unit_us in
@@ -311,7 +309,7 @@ let operations_source input (compiled : ArduinoEmit.compiled) =
         input.operations
       |> Option.join
     in
-    let bounds_name = Names.operation name ^ "_bounds" in
+    let bounds_name = Names.bounds name in
     (match bounds with
       | Some b ->
           [
@@ -321,7 +319,7 @@ let operations_source input (compiled : ArduinoEmit.compiled) =
       | None -> [])
     @ [
         Printf.sprintf "static tempore_operation_monitor %s(%s, %s);"
-          (operation_monitor name)
+          (Names.monitor name)
           (Names.string_literal name)
           (match bounds with Some _ -> "&" ^ bounds_name | None -> "nullptr");
         "";
@@ -331,7 +329,7 @@ let operations_source input (compiled : ArduinoEmit.compiled) =
         Printf.sprintf "  const auto r = %s(a);" (Names.binding name);
         Printf.sprintf
           "  tempore_monitor_operation(&%s, tempore_clock_us() - start);"
-          (operation_monitor name);
+          (Names.monitor name);
         "  return r;";
         "}";
       ]
@@ -349,8 +347,7 @@ let operations_source input (compiled : ArduinoEmit.compiled) =
       ]
     @ List.map
         (fun (op, _) ->
-          Printf.sprintf "    &%s,"
-            (operation_monitor (Ast.OpName.string_of op)))
+          Printf.sprintf "    &%s," (Names.monitor (Ast.OpName.string_of op)))
         compiled.operation_types
     @ [ "    nullptr};" ])
 

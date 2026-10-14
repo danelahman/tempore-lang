@@ -1,0 +1,8 @@
+{
+  "board": "esp32-devkit",
+  "tasks": [
+    { "function": "step", "kind": "periodic", "period": 10,
+      "initial": "start" }
+  ],
+  "bindings": "names_bindings.cpp"
+}
