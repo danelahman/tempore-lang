@@ -333,7 +333,8 @@ the transaction of the first ends:
   [0.756 ms] End probe
   [10.000 ms] End of the simulation
 
-A repeated free task calls its function again each time it returns:
+A repeated free task calls its function again each time it returns, after a
+wait of one tick:
 
   $ simulate tick tick 0.35
   [0.000 ms] Start tick
@@ -341,20 +342,20 @@ A repeated free task calls its function again each time it returns:
   [1.000 ms] Operation ShowText took 1000 us
   [1.000 ms] Delay 100000 us
   [101.000 ms] End tick
-  [101.000 ms] Start tick
-  [102.000 ms] Display: Tick
-  [102.000 ms] Operation ShowText took 1000 us
-  [102.000 ms] Delay 100000 us
-  [202.000 ms] End tick
-  [202.000 ms] Start tick
-  [203.000 ms] Display: Tick
-  [203.000 ms] Operation ShowText took 1000 us
-  [203.000 ms] Delay 100000 us
-  [303.000 ms] End tick
-  [303.000 ms] Start tick
-  [304.000 ms] Display: Tick
-  [304.000 ms] Operation ShowText took 1000 us
-  [304.000 ms] Delay 100000 us
+  [102.000 ms] Start tick
+  [103.000 ms] Display: Tick
+  [103.000 ms] Operation ShowText took 1000 us
+  [103.000 ms] Delay 100000 us
+  [203.000 ms] End tick
+  [204.000 ms] Start tick
+  [205.000 ms] Display: Tick
+  [205.000 ms] Operation ShowText took 1000 us
+  [205.000 ms] Delay 100000 us
+  [305.000 ms] End tick
+  [306.000 ms] Start tick
+  [307.000 ms] Display: Tick
+  [307.000 ms] Operation ShowText took 1000 us
+  [307.000 ms] Delay 100000 us
   [350.000 ms] End of the simulation
   $ grep -A 9 'The repeated free task' _arduino/projects/tick/src/main.cpp
   // The repeated free task tick.
@@ -364,9 +365,9 @@ A repeated free task calls its function again each time it returns:
       tempore_trace("Start %s", "tick");
       tick_0(tempore_unit{});
       tempore_trace("End %s", "tick");
+      vTaskDelay(1);
     }
   }
-  
 
 A repeated free task whose function may take no time, a periodic task with
 the member 'repeat', a package whose capability the board lacks, a package

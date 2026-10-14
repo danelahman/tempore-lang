@@ -95,21 +95,21 @@ readings:
   [35.800 ms] Display: Tilt (degrees)
   [36.800 ms] Display: 5.706
   [39.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
-  [320.560 ms] Display cleared
-  [324.360 ms] Display at (0, 0): Tilt display
-  [325.360 ms] Display: Tilt (degrees)
-  [326.360 ms] Display: 2.997
-  [329.120 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
-  [610.120 ms] Display cleared
-  [613.920 ms] Display at (0, 0): Tilt display
-  [614.920 ms] Display: Tilt (degrees)
-  [615.920 ms] Display: -1.797
-  [618.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
-  [899.680 ms] Display cleared
-  [903.480 ms] Display at (0, 0): Tilt display
-  [904.480 ms] Display: Tilt (degrees)
-  [905.480 ms] Display: -5.394
-  [908.240 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [321.000 ms] Display cleared
+  [324.800 ms] Display at (0, 0): Tilt display
+  [325.800 ms] Display: Tilt (degrees)
+  [326.800 ms] Display: 2.997
+  [329.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [611.000 ms] Display cleared
+  [614.800 ms] Display at (0, 0): Tilt display
+  [615.800 ms] Display: Tilt (degrees)
+  [616.800 ms] Display: -1.797
+  [619.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [901.000 ms] Display cleared
+  [904.800 ms] Display at (0, 0): Tilt display
+  [905.800 ms] Display: Tilt (degrees)
+  [906.800 ms] Display: -5.394
+  [909.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
   [1000.000 ms] End of the simulation
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep -c 'Release step'
   50
@@ -143,12 +143,12 @@ warnings and the last of them in yellow above the footer every 500 ms:
   $ cd _arduino/projects/tilt_warn
   $ tighten && build && ./simulation 1600000 | grep 'Monitor\|(0, 218)'
   [34.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
-  [324.360 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [324.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [503.140 ms] Display at (0, 218): Monitor: 2 warnings, last ShowTextAt 3.8 ms
-  [613.920 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
-  [903.480 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [614.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [904.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [1006.140 ms] Display at (0, 218): Monitor: 4 warnings, last ShowTextAt 3.8 ms
-  [1193.040 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
-  [1482.600 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [1194.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
+  [1484.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [1509.140 ms] Display at (0, 218): Monitor: 6 warnings, last ShowTextAt 3.8 ms
   $ cd ../../..

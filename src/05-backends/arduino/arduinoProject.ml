@@ -425,6 +425,7 @@ let main_source input board packages tasks =
           Printf.sprintf "    tempore_trace(\"Start %%s\", %s);" name;
           Printf.sprintf "    %s(tempore_unit{});" step.cxx;
           Printf.sprintf "    tempore_trace(\"End %%s\", %s);" name;
+          "    vTaskDelay(1);";
           "  }";
           "}";
         ]

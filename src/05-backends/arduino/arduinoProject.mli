@@ -54,8 +54,10 @@
     When a release is missed, as after an overrun, the next release follows [P]
     after the end of the late call, without calls that follow one another at
     once. A free task calls its function once and is deleted when it returns,
-    or, if it is repeated, calls it again each time it returns. Each task first
-    checks whether the tasks are halted, and stops if they are.
+    or, if it is repeated, calls it again each time it returns, after a wait of
+    one tick by [vTaskDelay(1)], so that the idle task of its core runs also
+    when its function waits only actively, as for a delay below a millisecond.
+    Each task first checks whether the tasks are halted, and stops if they are.
 
     {2 Time}
 

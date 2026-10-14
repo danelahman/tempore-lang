@@ -16,6 +16,12 @@
 // reads the status and 20 bytes of data, the magnetometer included through
 // the auxiliary interface of the sensor.
 //
+// A direct read that fails is a run-time error, as is an update that brings
+// no new reading of the accelerometer or the gyroscope more than
+// TEMPORE_IMU_STALE_MS milliseconds (default 100) after the last update that
+// did; an update that brings none earlier, before the next sample of the
+// unit, gives the readings of the last one.
+//
 // ConfigureImu sets the output data rate of the accelerometer without
 // changing its range, so that the conversion of M5Unified remains valid: on
 // the BMI270 by its register ACC_CONF (0x40), in the filter performance mode
@@ -61,9 +67,6 @@ static bool m5_imu_direct = false;
 static float m5_imu_resolution[2] = {0, 0};
 static int32_t m5_imu_offset[6] = {0, 0, 0, 0, 0, 0};
 
-// The last readings of the accelerometer and of the gyroscope.
-static int16_t m5_imu_raw[6] = {0, 0, 0, 0, 0, 0};
-
 void m5_imu_init() {
   const m5::imu_t type = M5.Imu.getType();
   m5_imu_direct = (type == m5::imu_mpu6886 || type == m5::imu_mpu6050 ||
@@ -104,7 +107,21 @@ struct m5_imu_reading {
   float gyro[3];
 };
 
-// A reading of the unit, under the I2C lock.
+// The longest time, in milliseconds, for which an update of a unit not read
+// directly may bring no new reading of its accelerometer or gyroscope, as
+// when a transaction fails, longer than the period of the least output data
+// rate of the units, 25 Hz.
+#ifndef TEMPORE_IMU_STALE_MS
+#define TEMPORE_IMU_STALE_MS 100
+#endif
+
+// The time of the last update that brought a new reading, -1 before the
+// first update, under the I2C lock.
+static int64_t m5_imu_updated_us = -1;
+
+// A reading of the unit, under the I2C lock. A failed direct read, and an
+// update that brings no new reading TEMPORE_IMU_STALE_MS after the last one
+// that did, are run-time errors.
 static inline m5_imu_reading m5_imu_read() {
 #ifndef TEMPORE_HOST
   if (m5_imu_direct) {
@@ -114,25 +131,36 @@ static inline m5_imu_reading m5_imu_read() {
         m5_imu_address, m5_imu_accel_xout_h, data, sizeof data,
         m5_imu_frequency);
     tempore_i2c_unlock();
-    if (read)
-      for (int k = 0; k < 3; ++k) {
-        m5_imu_raw[k] = static_cast<int16_t>((data[2 * k] << 8) | data[2 * k + 1]);
-        m5_imu_raw[3 + k] =
-            static_cast<int16_t>((data[8 + 2 * k] << 8) | data[9 + 2 * k]);
-      }
-    return {{m5_imu_convert(0, 0, m5_imu_raw[0]),
-             m5_imu_convert(0, 1, m5_imu_raw[1]),
-             m5_imu_convert(0, 2, m5_imu_raw[2])},
-            {m5_imu_convert(1, 0, m5_imu_raw[3]),
-             m5_imu_convert(1, 1, m5_imu_raw[4]),
-             m5_imu_convert(1, 2, m5_imu_raw[5])}};
+    if (!read) tempore_fault("IMU: read not acknowledged");
+    int16_t raw[6];
+    for (int k = 0; k < 3; ++k) {
+      raw[k] = static_cast<int16_t>((data[2 * k] << 8) | data[2 * k + 1]);
+      raw[3 + k] =
+          static_cast<int16_t>((data[8 + 2 * k] << 8) | data[9 + 2 * k]);
+    }
+    return {{m5_imu_convert(0, 0, raw[0]), m5_imu_convert(0, 1, raw[1]),
+             m5_imu_convert(0, 2, raw[2])},
+            {m5_imu_convert(1, 0, raw[3]), m5_imu_convert(1, 1, raw[4]),
+             m5_imu_convert(1, 2, raw[5])}};
   }
 #endif
   m5::imu_data_t data;
   tempore_i2c_lock();
-  M5.Imu.update();
+  const bool updated =
+      (M5.Imu.update() & (m5::IMU_Class::sensor_mask_accel |
+                          m5::IMU_Class::sensor_mask_gyro)) != 0;
   M5.Imu.getImuData(&data);
+  const int64_t now = tempore_clock_us();
+  const bool stale = !updated && m5_imu_updated_us >= 0 &&
+                     now - m5_imu_updated_us > TEMPORE_IMU_STALE_MS * 1000LL;
+  if (updated || m5_imu_updated_us < 0) m5_imu_updated_us = now;
   tempore_i2c_unlock();
+  if (stale) {
+    char message[64];
+    snprintf(message, sizeof message, "IMU: no new reading for %d ms",
+             TEMPORE_IMU_STALE_MS);
+    tempore_fault(message);
+  }
   return {{data.accel.x, data.accel.y, data.accel.z},
           {data.gyro.x, data.gyro.y, data.gyro.z}};
 }
@@ -153,8 +181,10 @@ tempore_result_ConfigureImu binding_ConfigureImu(
   M5.Imu.configureAccel(rate);
 #else
   if (m5_imu_direct) {
-    // The sample rate of 1 kHz divided by 1 + SMPLRT_DIV.
-    const uint32_t divider = rate == 0 ? 255 : rate >= 1000 ? 0 : 1000 / rate - 1;
+    // The sample rate of 1 kHz divided by 1 + SMPLRT_DIV: the greatest not
+    // above rate, the divider rounded up, and 1000 / 256 Hz below that.
+    const uint32_t divider =
+        rate == 0 ? 255 : rate >= 1000 ? 0 : (1000 + rate - 1) / rate - 1;
     tempore_i2c_lock();
     M5.In_I2C.writeRegister8(m5_imu_address, m5_imu_smplrt_div,
                              static_cast<uint8_t>(divider > 255 ? 255 : divider),
