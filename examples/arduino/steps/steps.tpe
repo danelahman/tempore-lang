@@ -1,5 +1,5 @@
 (* A step counter on the M5Stack CoreS3 Lite: the accelerometer read at least
-   every 50 ms while the display is redrawn
+   every 50 ms while the display is redrawn, a step confirmed by a new sample
 
    Run this example with the 'event-separation' grading monoid, e.g.
 
@@ -18,13 +18,13 @@
 (* Runs on the M5Stack CoreS3 Lite carried by a walker (steps.device.json):
    'watch' as a free task, one loop that reads the unit and redraws the
    screen. A step is a rise of the magnitude of the acceleration above
-   1.2 g after it fell below 0.9 g. Readings at most 50 ms apart see every
-   rise that lasts 50 ms, as those of a walk do, of about a third of a
-   step. The screen shows the steps counted and a bar
-   of the acceleration; the scaffold draws the charge of the battery at the
-   top right. bindings.cpp defines the safe state and world.cpp models a
-   walk. The figures below are those under the bounds of the CoreS3, some
-   of them provisional.
+   1.2 g after it fell below 0.9 g, seen by two readings 10 to 45 ms apart.
+   Rounds of two readings start at most 89 ms apart and see every rise that
+   lasts 134 ms, as those of a walk do, of about a third of a step. The
+   screen shows the steps counted and a bar of the acceleration; the
+   scaffold draws the charge of the battery at the top right. bindings.cpp
+   defines the safe state and world.cpp models a walk. The figures below
+   are those under the bounds of the CoreS3, some of them provisional.
 
    On the board: make arduino-steps-upload; simulated on the host: make
    arduino-steps-simulate ('make examples-help',
@@ -54,37 +54,49 @@ let screen (steps : nat) =
   perform ShowTextAt (0, 168, 1, "Acceleration, 0 to 2 g");
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
 
-(* Correctly accepted by the typechecker: n readings, each followed by the
-   redrawing of one band of the screen, the steps counted if the reading
-   counts a step and else the bar of the acceleration, and a delay of 10 ms.
-   The grade is the invariant of the loop: it starts with a reading, and
-   the starts of consecutive readings are at most 50 ms apart, as is the
-   end from the start of the last. A round takes 10.2 to 44.5 ms: the
-   reading, 0.2 to 1.5 ms, a band, at most 33 ms, and the delay. The
-   invariant is closed under sequencing, so that it holds of any number of
-   rounds, and of the repetitions of the task, up to the tick of the
-   scheduler between them. *)
+(* Correctly accepted by the typechecker: n rounds of two readings, each
+   followed by the redrawing of one band of the screen and a delay of
+   10 ms; the first band is the bar of the acceleration, the second the
+   steps counted if the two readings count a step and else the bar. The
+   grade is the invariant of the loop: it starts with a reading, and the
+   starts of consecutive readings are at most 50 ms apart, as is the end
+   from the start of the last. A reading, a band and a delay take 10.2 to
+   44.5 ms: the reading, 0.2 to 1.5 ms, a band, at most 33 ms, and the
+   delay. The invariant is closed under sequencing, so that it holds of any
+   number of rounds, and of the repetitions of the task, up to the tick of
+   the scheduler between them.
+
+   The first reading is boxed until the second: one reading, started 10 to
+   45 ms after the first ended, and the decision at its end. The unit
+   samples at 100 Hz, and a reading within 10 ms of another may return the
+   same sample; the second reading is thus a new sample, taken within the
+   rise. *)
 let rec count (n : nat) (steps : nat) (armed : bool)
     : unit # (ReadImu, [0, 0], [0, 50], [0, 50]) =
   match n with
   | 0 -> ()
   | m + 1 ->
       let a = load () in
-      let stepped = armed && a > high in
+      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      perform DrawBar (0, 180, 320, 16, bar a, blue);
+      delay 10;
+      let b = load () in
+      unbox first as a in
+      let stepped = armed && a > high && b > high in
       let steps = if stepped then steps + 1 else steps in
       (if stepped then perform ShowNumberAt (120, 60, 4, 0, float_of_nat steps)
-       else perform DrawBar (0, 180, 320, 16, bar a, blue));
+       else perform DrawBar (0, 180, 320, 16, bar b, blue));
       delay 10;
-      count m steps ((armed && not stepped) || a < low)
+      count m steps ((armed && not stepped) || a < low || b < low)
 
 (* Correctly rejected by the typechecker: the screen is redrawn in full
    whenever a step is counted, which takes 31.3 to 246 ms, so that two
    readings may be 257.5 ms apart and a step pass unseen:
 
-     Typing error: This function's body has grade `0 ⊔ {ReadImu; (DrawBar |
-       ClearDisplay; ShowTextAt; ShowTextAt; ShowTextAt; ShowNumberAt;
-       ShowTextAt; ShowTextAt); 10} · (ReadImu, [0, 0], [0, 50], [0, 50])`,
-       which does not match its annotated grade
+     Typing error: This function's body has grade `0 ⊔ {ReadImu; DrawBar;
+       10; ReadImu; (DrawBar | ClearDisplay; ShowTextAt; ShowTextAt;
+       ShowTextAt; ShowNumberAt; ShowTextAt; ShowTextAt); 10} · (ReadImu,
+       [0, 0], [0, 50], [0, 50])`, which does not match its annotated grade
        `(ReadImu, [0, 0], [0, 50], [0, 50])`
        ...
        Note: the grade `⟨...; ReadImu: active ([0, 0], [0, 257.5],
@@ -98,19 +110,56 @@ let rec count_redrawn (n : nat) (steps : nat) (armed : bool)
   | 0 -> ()
   | m + 1 ->
       let a = load () in
-      let stepped = armed && a > high in
+      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      perform DrawBar (0, 180, 320, 16, bar a, blue);
+      delay 10;
+      let b = load () in
+      unbox first as a in
+      let stepped = armed && a > high && b > high in
       let steps = if stepped then steps + 1 else steps in
       (if stepped then screen steps
-       else perform DrawBar (0, 180, 320, 16, bar a, blue));
+       else perform DrawBar (0, 180, 320, 16, bar b, blue));
       delay 10;
-      count_redrawn m steps ((armed && not stepped) || a < low)
+      count_redrawn m steps ((armed && not stepped) || a < low || b < low)
 *)
 
-(* The task: the screen, and readings for about 460 days. *)
+(* Correctly rejected by the typechecker: the second reading follows the
+   first at once, so that it may return the same sample and confirm
+   nothing; the readings remain at most 44.5 ms apart, and the invariant of
+   the loop holds:
+
+     Typing error: Variable `first` is unboxed with grade `{ReadImu}`
+       accumulated since it was bound, which is not below its box grade
+       `(ReadImu, [10, 45], [0, 0], [0, 1.5])`
+       ...
+       Note: the resource inequality `{ReadImu} <= (ReadImu, [10, 45],
+       [0, 0], [0, 1.5])` does not hold
+*)
+(*
+let rec count_at_once (n : nat) (steps : nat) (armed : bool)
+    : unit # (ReadImu, [0, 0], [0, 50], [0, 50]) =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let a = load () in
+      box (ReadImu, [10, 45], [0, 0], [0, 1.5]) a as first in
+      let b = load () in
+      unbox first as a in
+      let stepped = armed && a > high && b > high in
+      let steps = if stepped then steps + 1 else steps in
+      (if stepped then perform ShowNumberAt (120, 60, 4, 0, float_of_nat steps)
+       else perform DrawBar (0, 180, 320, 16, bar b, blue));
+      delay 10;
+      count_at_once m steps ((armed && not stepped) || a < low || b < low)
+*)
+
+(* The task: the output data rate of the accelerometer set to 100 Hz, the
+   screen, and readings for about 460 days. *)
 let watch () =
+  perform ConfigureImu 100;
   screen 0;
   count 4000000000 0 false
 
-(* Five readings with the default implementations, which read a unit at
+(* Three rounds with the default implementations, which read a unit at
    rest: no step is counted. *)
-run count 5 0 false
+run count 3 0 false
