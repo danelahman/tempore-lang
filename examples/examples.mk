@@ -1,4 +1,4 @@
-# The targets of the examples of the Opentrons and Arduino backends, included
+# The targets of the examples of the Arduino and Opentrons backends, included
 # by the Makefile; 'make examples-help' lists them. Each example has a
 # fragment of variables, found here by its path, from which a template of its
 # backend defines its targets:
@@ -250,15 +250,15 @@ define arduino_board_help
 endef
 
 examples-help:
-	@echo "Opentrons examples, NAME one of: $(OPENTRONS_EXAMPLES)"
-	@echo "  opentrons-NAME-emit           writes the protocol to _opentrons/protocols/NAME.py"
-	@echo "  opentrons-NAME-simulate       writes the protocol and runs the Opentrons simulator"
-	@echo "  opentrons-simulate-all        opentrons-NAME-simulate for every example"
 	@echo "Arduino examples, by board:"
 	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_board_help,$(board)))
 	@echo "All Arduino examples:"
 	@echo "  arduino-simulate-all          arduino-NAME-simulate for every example"
 	@echo "  arduino-build-all             arduino-NAME-build for every example"
+	@echo "Opentrons examples, NAME one of: $(OPENTRONS_EXAMPLES)"
+	@echo "  opentrons-NAME-emit           writes the protocol to _opentrons/protocols/NAME.py"
+	@echo "  opentrons-NAME-simulate       writes the protocol and runs the Opentrons simulator"
+	@echo "  opentrons-simulate-all        opentrons-NAME-simulate for every example"
 	@echo "Variables, with their values:"
 	@printf '  %-44s %s\n' \
 	  "PORT=$(PORT)" "when set, the port of every upload" \

@@ -1,4 +1,4 @@
-; The make targets of the examples of the Opentrons and Arduino backends:
+; The make targets of the examples of the Arduino and Opentrons backends:
 ; their fragments, the commands of their dry runs, and the commands of the
 ; README of the Arduino backend that they run.
 

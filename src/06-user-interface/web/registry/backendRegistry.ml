@@ -495,7 +495,7 @@ let arduino =
     files = [ (manifest_filename, "manifest") ];
   }
 
-let entries = [ interpreter; opentrons; arduino ]
+let entries = [ interpreter; arduino; opentrons ]
 let default = interpreter
 let find key = List.find_opt (fun (entry : entry) -> entry.key = key) entries
 

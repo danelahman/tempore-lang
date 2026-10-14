@@ -158,14 +158,6 @@ val interpreter : entry
 (** The interpreter alone: no inputs and no compiled code. The observer is the
     timeline of the run ({!Timeline}), folded at first. *)
 
-val opentrons : entry
-(** Opentrons protocols ({!OpentronsBackend.OpentronsProtocol}). The inputs are
-    the binding file, the robot, the time unit and the monitor policy. Without a
-    binding file the program compiles to a plain Python program
-    ({!OpentronsBackend.OpentronsEmit.plain_program}). The observer is the
-    timeline of the run ({!Timeline}), unfolded at first; its cells are grades,
-    so the time unit does not apply to them. *)
-
 val arduino : entry
 (** PlatformIO projects of the Arduino backend
     ({!ArduinoBackend.ArduinoProject}). The inputs are the device manifest
@@ -180,6 +172,14 @@ val arduino : entry
     check ({!ArduinoBackend.ArduinoFragment.program}) are messages of severity
     [Warning] with their diagnostics. The observer is the timeline of the run
     ({!Timeline}), unfolded at first. *)
+
+val opentrons : entry
+(** Opentrons protocols ({!OpentronsBackend.OpentronsProtocol}). The inputs are
+    the binding file, the robot, the time unit and the monitor policy. Without a
+    binding file the program compiles to a plain Python program
+    ({!OpentronsBackend.OpentronsEmit.plain_program}). The observer is the
+    timeline of the run ({!Timeline}), unfolded at first; its cells are grades,
+    so the time unit does not apply to them. *)
 
 val entries : entry list
 (** The backends, in the order of the selector, {!interpreter} first. *)

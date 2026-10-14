@@ -23,8 +23,8 @@ Most notably, Tempore adds to Temporal Millet the following:
    security levels to trough/peak usage of resources),
 4. a cleaner and more systematic treatment of type inference,
 5. [multiple backends](#backends): besides the interpreter, proof-of-concept
-   compilers of programs to protocols for Opentrons liquid-handling robots and
-   to C++ for Arduino and ESP32 boards, with run-time monitors of the running
+   compilers of programs to C++ for Arduino and ESP32 boards and to protocols
+   for Opentrons liquid-handling robots, with run-time monitors of the running
    times of operations, and
 6. various usability improvements in the web-based user interface.
 
@@ -45,16 +45,8 @@ Install the OCaml dependencies with opam:
 
     make tempore-deps
 
-The Opentrons simulator, used only to simulate the protocols of the
-proof-of-concept [Opentrons](#opentrons) backend, is installed separately; it
-needs Python 3.10 or later and the network:
-
-    make opentrons-deps
-
-Tempore is fully usable without it; only the option `--simulate` needs it.
-
 PlatformIO Core, used only to build and upload the projects of the Arduino
-backend, is likewise optional; it needs Python 3.10 or later and the network,
+backend, is optional; it needs Python 3.10 or later and the network,
 and is installed (version 6.2.0) in the virtual environment `_arduino/venv`,
 with its platforms, toolchains and libraries in `_arduino/platformio`:
 
@@ -62,6 +54,14 @@ with its platforms, toolchains and libraries in `_arduino/platformio`:
 
 Only the options `--build` and `--upload` need it; `make clean-arduino`
 removes `_arduino`, together with the projects written to `_arduino/projects`.
+
+The Opentrons simulator, used only to simulate the protocols of the
+proof-of-concept [Opentrons](#opentrons) backend, is installed separately; it
+needs Python 3.10 or later and the network:
+
+    make opentrons-deps
+
+Tempore is fully usable without it; only the option `--simulate` needs it.
 
 Build the language:
 
@@ -151,15 +151,10 @@ contents.
 #### Backend selection
 
 The backend selector, first among the code options, chooses the backend,
-Interpreter, Opentrons or Arduino (see [Backends](#backends)).
+Interpreter, Arduino or Opentrons (see [Backends](#backends)).
 Selecting a backend loads its default example (the sensor reading for Interpreter,
-the ELISA for Opentrons, the tilt display for Arduino), and the gallery lists the
+the tilt display for Arduino, the ELISA for Opentrons), and the gallery lists the
 examples of the backend selected.
-
-Under Opentrons, the robot, the time unit and the monitor policy are chosen
-under the selector. The mark in the top right corner of the editor switches
-between the program and the Opentrons protocol: the binding file and the
-protocol compiled from the program once it typechecks.
 
 Under Arduino, the device manifest, the binding file and the monitor policy are
 the inputs. The declarations of the peripheral packages the manifest lists are
@@ -172,6 +167,11 @@ names of their packages. Once the program is checked, a name it uses from them,
 such as an operation or a function, shows its declaration and scheme as a
 tooltip, and ⌘-click (Ctrl-click) or F12 on it unfolds the declarations at it.
 
+Under Opentrons, the robot, the time unit and the monitor policy are chosen
+under the selector. The mark in the top right corner of the editor switches
+between the program and the Opentrons protocol: the binding file and the
+protocol compiled from the program once it typechecks.
+
 #### Addresses
 
 The address of the page names the example, the grades and the backend selected,
@@ -180,7 +180,7 @@ in the query parameters
 - `example`, the path of the example relative to `examples` (as in
   `examples/index`);
 - `grades`, a grading monoid;
-- `backend`, a backend's key (`interpreter`, `opentrons` or `arduino`),
+- `backend`, a backend's key (`interpreter`, `arduino` or `opentrons`),
 
 e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>.
 
@@ -198,7 +198,7 @@ e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>.
 #### Run timelines
 
 A run shows its [timeline](#interpreter) above the reductions, folded under its
-title under Interpreter and unfolded under Opentrons and Arduino; the events inside default
+title under Interpreter and unfolded under Arduino and Opentrons; the events inside default
 implementations are greyed; under Opentrons the title states the time unit,
 `Timeline (one time unit = 1 min)`. Long grades are shortened; a shortened cell shows
 its full text as a tooltip and, when clicked, in place.
@@ -1338,6 +1338,55 @@ accumulated keeps its last events, `{…; 3; ChangeTip; Disengage; Elute}`, a bo
 grade its first, `{Ethanol; ChangeTip; Ethanol; 2; …}`. The grades themselves
 are unchanged; `--timeline-full` prints them in full.
 
+### Arduino
+
+The proof-of-concept Arduino backend compiles a first-order fragment of
+Tempore to allocation-free C++ and generates a PlatformIO project for an
+Arduino or ESP32 board, with FreeRTOS tasks. A device manifest names the
+board, the periodic and free tasks and the peripheral packages, which declare
+operations with running-time bounds measured on the boards. The program is
+typed against those bounds and the periods of its tasks. The details are in
+[`src/05-backends/arduino/README.md`](src/05-backends/arduino/README.md).
+
+- The guarantees of the typing, on effects, boxes and their grades, are
+  relative to the declared bounds of the operations. The grades are erased
+  in the compiled code, and run-time monitors on the device check those
+  bounds and the periods of the tasks: a violation puts it in its safe state,
+  is logged, or is not checked, under the monitor policy `abort`, `warn` or
+  `off`.
+- Watchdogs and the safe state are mechanisms of the C++
+  packages and of the application, outside the typing.
+- Local functions, functions as values, lists, recursion other than self
+  calls in tail position, and handlers that are not tail-resumptive are
+  refused; tail-resumptive handlers are compiled to direct calls.
+
+The examples in [`examples/arduino/`](examples/arduino/), by board:
+
+- M5Stack Gray, the core of the BALA2 robot:
+  [`bala2`](examples/arduino/bala2/balance.tpe), a balancing step;
+  [`bala2-regex`](examples/arduino/bala2-regex/balance_regex.tpe), the same
+  under the regular expressions of timed operations;
+  [`wheels`](examples/arduino/wheels/wheels.tpe), a wheel check.
+- M5Stack CoreS3: [`tilt`](examples/arduino/tilt/tilt.tpe), a tilt display;
+  [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a
+  gyroscope bias removed by a handler; [`peak`](examples/arduino/peak/peak.tpe),
+  a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
+  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector.
+
+#### Quick start
+<!-- web-skip -->
+
+    make arduino-deps
+    make examples-help
+    make arduino-tilt-simulate
+    make arduino-tilt-upload
+
+install PlatformIO, list the targets of the examples, simulate the tilt
+display on the host, and build and upload it. Each example `NAME` has the
+targets `arduino-NAME-simulate` and `arduino-NAME-upload`; an upload goes to
+the port `PORT` when it is set, and else to that of the board of the
+manifest, such as `PORT_M5STACK_CORES3`.
+
 ### Opentrons
 
 The proof-of-concept Opentrons backend compiles the program to a single-file
@@ -1387,55 +1436,6 @@ install the Opentrons simulator, list the targets of the examples, and write
 the ELISA protocol to `_opentrons/protocols/elisa.py` and simulate it. Each
 example `NAME` has the targets `opentrons-NAME-emit` and
 `opentrons-NAME-simulate`; `MONITOR=warn` sets the monitor policy.
-
-### Arduino
-
-The proof-of-concept Arduino backend compiles a first-order fragment of
-Tempore to allocation-free C++ and generates a PlatformIO project for an
-Arduino or ESP32 board, with FreeRTOS tasks. A device manifest names the
-board, the periodic and free tasks and the peripheral packages, which declare
-operations with running-time bounds measured on the boards. The program is
-typed against those bounds and the periods of its tasks. The details are in
-[`src/05-backends/arduino/README.md`](src/05-backends/arduino/README.md).
-
-- The guarantees of the typing, on effects, boxes and their grades, are
-  relative to the declared bounds of the operations. The grades are erased
-  in the compiled code, and run-time monitors on the device check those
-  bounds and the periods of the tasks: a violation puts it in its safe state,
-  is logged, or is not checked, under the monitor policy `abort`, `warn` or
-  `off`.
-- Watchdogs and the safe state are mechanisms of the C++
-  packages and of the application, outside the typing.
-- Local functions, functions as values, lists, recursion other than self
-  calls in tail position, and handlers that are not tail-resumptive are
-  refused; tail-resumptive handlers are compiled to direct calls.
-
-The examples in [`examples/arduino/`](examples/arduino/), by board:
-
-- M5Stack Gray, the core of the BALA2 robot:
-  [`bala2`](examples/arduino/bala2/balance.tpe), a balancing step;
-  [`bala2-regex`](examples/arduino/bala2-regex/balance_regex.tpe), the same
-  under the regular expressions of timed operations;
-  [`wheels`](examples/arduino/wheels/wheels.tpe), a wheel check.
-- M5Stack CoreS3: [`tilt`](examples/arduino/tilt/tilt.tpe), a tilt display;
-  [`calibrated`](examples/arduino/calibrated/calibrated.tpe), with a
-  gyroscope bias removed by a handler; [`peak`](examples/arduino/peak/peak.tpe),
-  a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
-  level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector.
-
-#### Quick start
-<!-- web-skip -->
-
-    make arduino-deps
-    make examples-help
-    make arduino-tilt-simulate
-    make arduino-tilt-upload
-
-install PlatformIO, list the targets of the examples, simulate the tilt
-display on the host, and build and upload it. Each example `NAME` has the
-targets `arduino-NAME-simulate` and `arduino-NAME-upload`; an upload goes to
-the port `PORT` when it is set, and else to that of the board of the
-manifest, such as `PORT_M5STACK_CORES3`.
 
 ## Editor support
 <!-- web-skip -->
