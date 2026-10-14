@@ -193,7 +193,9 @@ module Nat : STEPPED with type t = int
 
     The witnesses of the constants summing to [s] are [0], ..., [s+1], whatever
     the degree, and are complete; if [s+2] exceeds [max_int], they are the
-    partial sample [0], [1], the constants and [max_int]. *)
+    partial sample [0], [1], the constants and [max_int]. Their number is
+    proportional to [s], so that the conditions under polymorphic grades with
+    large constants are slow to decide. *)
 
 module Rational : MEASURED with type t = Rational.t
 (** The non-negative rationals, written as integers and fractions: decimals such
@@ -205,4 +207,7 @@ module Rational : MEASURED with type t = Rational.t
     denominators, and [K ≥ 1] the degree. The witnesses are the grid
     [G = { x/(D·m) : x ∈ 0..s·D, m ∈ 1..K }], the midpoints of its consecutive
     elements and [s+1], and are complete; if the number of points of [G] exceeds
-    [max_int], they are the partial sample [0], the constants, [s] and [s+1]. *)
+    [max_int], they are the partial sample [0], the constants, [s] and [s+1].
+    Their number is proportional to [s·D·K], so that the conditions under
+    polymorphic grades with large constants or fine denominators are slow to
+    decide. *)
