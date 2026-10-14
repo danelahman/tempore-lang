@@ -41,25 +41,25 @@ def AddBeads(ctx, unit):
     return ()
 
 
-def Engage(ctx, unit):
+def MagnetOn(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], ctx["magnet"], use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def Disengage(ctx, unit):
+def MagnetOff(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def RemoveSupernatant(ctx, unit):
+def RemoveLiquid(ctx, unit):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
     return ()
 
 
-def Ethanol(ctx, unit):
+def Wash(ctx, unit):
     pipette = ctx["pipette"]
     if not ctx["tip"]:
         pipette.pick_up_tip()
@@ -83,7 +83,7 @@ def ChangeTip(ctx, unit):
     return ()
 
 
-def Elute(ctx, unit):
+def ReleaseDNA(ctx, unit):
     pipette = ctx["pipette"]
     for sample in ctx["samples"]:
         if not ctx["tip"]:

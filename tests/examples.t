@@ -773,7 +773,7 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/beads_reject.tpe
   ======================================================================
-  File "../examples/opentrons/beads_reject.tpe", lines 36-37, characters 2-21:
+  File "../examples/opentrons/beads_reject.tpe", lines 36-37, characters 2-26:
   36 |   unbox drying as beads in
          ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
@@ -786,9 +786,9 @@ tests show those runs in detail.
            ^^^^^^^
     grade `[4, 4]` accumulates here (delay)
     File "../examples/opentrons/beads_reject.tpe", line 35, characters 2-25:
-    35 |   perform Disengage beads;
+    35 |   perform MagnetOff beads;
            ^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[0, 1]` accumulates here (operation `Disengage`)
+    grade `[0, 1]` accumulates here (operation `MagnetOff`)
     Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
   ======================================================================
   ../examples/opentrons/cleanup.tpe
@@ -798,7 +798,7 @@ tests show those runs in detail.
   State: [
     { resource_1 ↦
         <fun>
-        # [{AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); Engage}, {AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); Engage}]
+        # [{AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}, {AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}]
     },
     [{1}, {1}],
     [{5}, {5}],
@@ -826,7 +826,7 @@ tests show those runs in detail.
     [{2}, {2}],
     { resource_9 ↦
         <fun>
-        # [{Disengage; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); Engage; 3; (0 | 1; (0 | 1)); Transfer}, {Disengage; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); Engage; 3; (0 | 1; (0 | 1)); Transfer}]
+        # [{MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}, {MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}]
     },
     [{1}, {1}],
     [{1}, {1}],
@@ -1086,7 +1086,7 @@ tests show those runs in detail.
     [{1}, {1}],
     { resource_1 ↦
         "beads"
-        # [{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}, {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]
+        # [{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]
     },
     [{1}, {1}],
     [{1}, {1}],
@@ -1102,18 +1102,18 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/washes_reject.tpe
   ======================================================================
-  File "../examples/opentrons/washes_reject.tpe", lines 35-36, characters 2-18:
+  File "../examples/opentrons/washes_reject.tpe", lines 35-36, characters 2-23:
   35 |   unbox washed as beads in
          ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `washed` is unboxed with grade `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}, {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]`
-    File "../examples/opentrons/washes_reject.tpe", line 31, characters 64-70:
-    31 |   box {Ethanol; ChangeTip; Ethanol; [2, 3]; ChangeTip} beads as washed in
-                                                                         ^^^^^^
+  Typing error: Variable `washed` is unboxed with grade `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]`
+    File "../examples/opentrons/washes_reject.tpe", line 31, characters 58-64:
+    31 |   box {Wash; ChangeTip; Wash; [2, 3]; ChangeTip} beads as washed in
+                                                                   ^^^^^^
     `washed` is bound here
-    File "../examples/opentrons/washes_reject.tpe", line 32, characters 2-20:
-    32 |   perform Ethanol ();
-           ^^^^^^^^^^^^^^^^^^
-    grade `[{Ethanol}, {Ethanol}]` accumulates here (operation `Ethanol`)
+    File "../examples/opentrons/washes_reject.tpe", line 32, characters 2-17:
+    32 |   perform Wash ();
+           ^^^^^^^^^^^^^^^
+    grade `[{Wash}, {Wash}]` accumulates here (operation `Wash`)
     File "../examples/opentrons/washes_reject.tpe", line 33, characters 2-9:
     33 |   delay 3;
            ^^^^^^^
@@ -1122,7 +1122,7 @@ tests show those runs in detail.
     34 |   perform ChangeTip ();
            ^^^^^^^^^^^^^^^^^^^^
     grade `[{ChangeTip}, {ChangeTip}]` accumulates here (operation `ChangeTip`)
-    Note: the resource inequality `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}] <= [{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}, {Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip}]` does not hold
+    Note: the resource inequality `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}] <= [{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]` does not hold
   ======================================================================
   ../examples/regular/upper_bounds.tpe
   ======================================================================

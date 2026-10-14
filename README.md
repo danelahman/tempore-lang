@@ -669,14 +669,14 @@ An upper bound stands for the traces that fit inside its traces, so the
 operations of its traces may be left out. With a leading `_*`, a bound allows
 any trace first and permits, without demanding, the rest.
 
-For example, with `Ethanol` declared `within [1, 2]` and `ChangeTip`
+For example, with `Wash` declared `within [1, 2]` and `ChangeTip`
 `within [1, 1]`, under `regex-timed-interval-symbolic` a value boxed with
-`{_*; Ethanol; _*; Ethanol; [2, 5]; ChangeTip}` may be unboxed after the calls
-of `Ethanol`, `ChangeTip` and `Ethanol`, a `delay 6` and a call of `ChangeTip`,
+`{_*; Wash; _*; Wash; [2, 5]; ChangeTip}` may be unboxed after the calls
+of `Wash`, `ChangeTip` and `Wash`, a `delay 6` and a call of `ChangeTip`,
 whose gap of six ticks before `ChangeTip` exceeds `[2, 5]`.
 
 A maximum gap between given operations is stated by a fixed pattern: with the
-box grade `{Ethanol; ChangeTip; Ethanol; [2, 5]; ChangeTip}`, the same unboxing
+box grade `{Wash; ChangeTip; Wash; [2, 5]; ChangeTip}`, the same unboxing
 is rejected, and accepted after `delay 3` in place of `delay 6`.
 
 See
@@ -1348,8 +1348,8 @@ prints
 Grades whose ends exceed 40 characters, such as the traces of the Opentrons
 examples under `regex-timed-interval-symbolic`, are shortened for display at
 the separators `; ` of their events, never inside an event: the grade
-accumulated keeps its last events, `{…; 3; ChangeTip; Disengage; Elute}`, a box
-grade its first, `{Ethanol; ChangeTip; Ethanol; 2; …}`. The grades themselves
+accumulated keeps its last events, `{…; 3; ChangeTip; MagnetOff; ReleaseDNA}`, a box
+grade its first, `{Wash; ChangeTip; Wash; 2; …}`. The grades themselves
 are unchanged; `--timeline-full` prints them in full.
 
 ### Arduino

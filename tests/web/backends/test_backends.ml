@@ -119,19 +119,18 @@ let () =
     if shortened <> expected then
       fail "shorten %s: %s, not %s" grade shortened expected
   in
-  let start = "{AddBeads; 5; Engage; 3; RemoveSupernatant}" in
+  let start = "{AddBeads; 5; MagnetOn; 3; RemoveLiquid}" in
   check End
     ("[" ^ start ^ ", " ^ start ^ "]")
-    "[{…; 5; Engage; 3; RemoveSupernatant}, {…; 5; Engage; 3; \
-     RemoveSupernatant}]";
+    "[{…; 5; MagnetOn; 3; RemoveLiquid}, {…; 5; MagnetOn; 3; RemoveLiquid}]";
   check Beginning
     ("[" ^ start ^ ", " ^ start ^ "]")
-    "[{AddBeads; 5; Engage; 3; …}, {AddBeads; 5; Engage; 3; …}]";
+    "[{AddBeads; 5; MagnetOn; 3; …}, {AddBeads; 5; MagnetOn; 3; …}]";
   let washed =
-    "{Ethanol; ChangeTip; Ethanol; 2; (0 | 1); ChangeTip; Ethanol; (0 | 1)}"
+    "{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip; Wash; (0 | 1)}"
   in
-  check Beginning washed "{Ethanol; ChangeTip; Ethanol; 2; …}";
-  check End washed "{…; ChangeTip; Ethanol; (0 | 1)}";
+  check Beginning washed "{Wash; ChangeTip; Wash; 2; …}";
+  check End washed "{…; ChangeTip; Wash; (0 | 1)}";
   check Beginning "{(Aaaa; Bbbb; Cccc; Dddd; Eeee; Ffff); Gggg; Hhhh}"
     "{(Aaaa; Bbbb; Cccc; Dddd; Eeee; Ffff); …}";
   check End "[{AddBeads; 5}, {AddBeads; 5}]" "[{AddBeads; 5}, {AddBeads; 5}]";
@@ -150,10 +149,9 @@ let () =
       fail "shorten_total %d %s: differs from the expectation" n grade
   in
   let both = "[" ^ washed ^ ", " ^ washed ^ "]" in
-  total Beginning 28 both (Some "[{Ethanol; …}, {Ethanol; …}]");
+  total Beginning 28 both (Some "[{Wash; …}, {Wash; …}]");
   total End 28 both (Some "[{…; (0 | 1)}, {…; (0 | 1)}]");
-  total Beginning 60 both
-    (Some "[{Ethanol; ChangeTip; …}, {Ethanol; ChangeTip; …}]");
+  total Beginning 60 both (Some "[{Wash; ChangeTip; …}, {Wash; ChangeTip; …}]");
   total Beginning 200 both (Some both);
   total Beginning 20 both None;
   total Beginning 20 long (Some (String.sub long 0 19 ^ "…"));
@@ -171,7 +169,7 @@ let () =
         fail "box row";
         ""
   in
-  if box "washed" <> "box washed with grade [{Ethanol; …}, {Ethanol; …}]" then
+  if box "washed" <> "box washed with grade [{Wash; …}, {Wash; …}]" then
     fail "box event: %s" (box "washed");
   if
     box "aVeryLongNameOfABoundResource"
