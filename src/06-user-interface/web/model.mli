@@ -74,6 +74,9 @@ type flash =
   | Declaration of string * int * int
       (** the bytes of the declarations of the given file name from a start up
           to a stop *)
+  | Line of int * int
+      (** the bytes of the editor's text of a line the page's address names,
+          from a start up to a stop *)
 
 (** A notice shown under the example. *)
 type notice =
@@ -229,6 +232,9 @@ and msg =
   | CopyLink
       (** Copy the link to the example, the grades and the backend selected to
           the clipboard. *)
+  | CopyLineLink of int
+      (** Copy the link to the given line of the example, unedited, with the
+          grades and the backend selected to the clipboard. *)
   | ShowDeclarations of bool
       (** The declarations shown above the program have been unfolded, or
           folded. *)
@@ -453,7 +459,14 @@ val opened : query:string -> string option -> model * side_effect list
     default example; then the inputs set; without [stored], or if it encodes no
     choices, the model is {!init}. With parameters, the choices
     {!WebLink.resolve} yields are restored likewise, with a notice of the
-    parameters ignored. *)
+    parameters ignored. A [line] of the example loaded is kept in the query,
+    scrolled to with the caret placed at its start, and highlighted briefly; a
+    [line] the example has not got is ignored. *)
+
+val line_links : model -> bool
+(** [line_links model] holds when a click on a line number of the editor copies
+    the link to that line: the editor shows the program, and the program is the
+    example last loaded, unedited. *)
 
 val indentation : string
 (** What a Tab in the editor inserts; the editor's [tab-size] matches. *)

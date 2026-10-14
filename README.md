@@ -175,25 +175,33 @@ protocol compiled from the program once it typechecks.
 #### Addresses
 
 The address of the page names the example, the grades and the backend selected,
-in the query parameters
+and a line of the example, in the query parameters
 
 - `example`, the path of the example relative to `examples` (as in
   `examples/index`);
 - `grades`, a grading monoid;
-- `backend`, a backend's key (`interpreter`, `arduino` or `opentrons`),
+- `backend`, a backend's key (`interpreter`, `arduino` or `opentrons`);
+- `line`, a line of the example, from 1,
 
-e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe>.
+e.g., <https://tempore-lang.ee/?example=arduino/bala2/balance.tpe&line=42>.
 
 - Opening such a link loads the example as the gallery does, with its own
   grades and backend unless `grades` or `backend` overrides them.
 - `backend` without `example` selects the backend with its default example,
   unless the example last loaded is of that backend.
+- `line` scrolls to that line of the example and highlights it briefly; it
+  stays in the address until another example, grades, backend or input is
+  selected.
+- While the editor shows an example unedited, a click on a line number copies
+  the address with that line to the clipboard.
 - The address follows the selection, `grades` and `backend` given only where
   they differ from the example's own, and the button beside the example
   copies it to the clipboard.
 - The edited text of a program is not part of the address.
-- Parameters of unknown or malformed values are ignored, with a notice; the
-  choices not given by the address are those the browser remembers.
+- Parameters of unknown or malformed values are ignored, with a notice; so is a
+  `line` other than a decimal number of a line of the example (leading zeros
+  allowed), or without `example`. The choices not given by the address are
+  those the browser remembers.
 
 #### Run timelines
 

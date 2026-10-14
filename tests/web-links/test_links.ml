@@ -1,5 +1,6 @@
 (* Tests of the parameters of the address of the web interface: parsing,
-   percent-decoding and repeated keys, the round trip of serialisation, and the
+   percent-decoding and repeated keys, the round trip of serialisation over
+   random byte strings, the line numbers and the lines they name, and the
    choices the page opens with under parameters and remembered choices, with
    unknown examples, grades and backends ignored. Silent on success. *)
 
@@ -55,7 +56,8 @@ let remembered =
       ];
   }
 
-let link ?example ?grades ?backend () = { WebLink.example; grades; backend }
+let link ?example ?grades ?backend ?line () =
+  { WebLink.example; grades; backend; line }
 
 let check_parse query expected =
   let parsed = WebLink.parse query in
@@ -102,6 +104,87 @@ let () =
       link ~example:"a+b %/\xC3\xBC?#&=" ~grades:grades_b ~backend:"arduino" ();
       link ~backend:"opentrons" ();
     ];
+  (* the round trip over random values: bytes of the reserved characters, of
+     the percent sign, the plus sign and the space, of letters and digits, and
+     arbitrary bytes, non-ASCII among them *)
+  let random = Random.State.make [| 7 |] in
+  let special = "&=#%+ ?/;:@!$'()*,[]\t\n" in
+  let value () =
+    String.init
+      (1 + Random.State.int random 12)
+      (fun _ ->
+        match Random.State.int random 4 with
+        | 0 -> special.[Random.State.int random (String.length special)]
+        | 1 -> Char.chr (Char.code 'a' + Random.State.int random 26)
+        | 2 -> Char.chr (Char.code '0' + Random.State.int random 10)
+        | _ -> Char.chr (Random.State.int random 256))
+  in
+  let optional f = if Random.State.bool random then Some (f ()) else None in
+  for _ = 1 to 2000 do
+    let l =
+      link ?example:(optional value) ?grades:(optional value)
+        ?backend:(optional value)
+        ?line:(optional (fun () -> 1 + Random.State.int random 100_000))
+        ()
+    in
+    if WebLink.parse (WebLink.serialise l) <> (l, []) then
+      fail "random round trip: %s" (WebLink.serialise l)
+  done;
+  (* an empty value is serialised, and read back as malformed *)
+  List.iter
+    (fun (l, p) ->
+      if WebLink.parse (WebLink.serialise l) <> (WebLink.empty, [ p ]) then
+        fail "empty value: %s" (WebLink.serialise l))
+    [
+      (link ~example:"" (), WebLink.Example);
+      (link ~grades:"" (), WebLink.Grades);
+      (link ~backend:"" (), WebLink.Backend);
+    ];
+  (* line numbers: positive decimal numbers, leading zeros allowed *)
+  check_parse "?example=e&line=42" (link ~example:"e" ~line:42 (), []);
+  check_parse "?example=e&line=007" (link ~example:"e" ~line:7 (), []);
+  check_parse "?example=e&line=%34%32" (link ~example:"e" ~line:42 (), []);
+  check_parse "?example=e&line=3&line=5" (link ~example:"e" ~line:3 (), []);
+  check_parse "?example=e&line=x&line=5" (link ~example:"e" (), [ WebLink.Line ]);
+  List.iter
+    (fun value ->
+      check_parse
+        ("?example=e&line" ^ value)
+        (link ~example:"e" (), [ WebLink.Line ]))
+    [
+      "=0";
+      "=000";
+      "=-1";
+      "=1e3";
+      "=0x10";
+      "=1_000";
+      "=+5";
+      "=%2B5";
+      "=5%20";
+      "=4.2";
+      "=";
+      "";
+      "=%3";
+      "=99999999999999999999999";
+    ];
+  if WebLink.serialise (link ~example:"e" ~line:42 ()) <> "?example=e&line=42"
+  then fail "serialise a line";
+  (* the lines a source has *)
+  let check_line source n expected =
+    if WebLink.line_bytes source n <> expected then
+      fail "line_bytes %S %d" source n
+  in
+  let source = "ab\n  cd\n\t\n" in
+  check_line source 1 (Some (0, 2));
+  check_line source 2 (Some (5, 7));
+  check_line source 3 (Some (9, 9));
+  check_line source 4 (Some (10, 10));
+  check_line source 5 None;
+  check_line source 0 None;
+  check_line source (-1) None;
+  check_line "" 1 (Some (0, 0));
+  check_line "" 2 None;
+  check_line "x" 1 (Some (0, 1));
   (* without parameters: the remembered choices, or else the defaults *)
   check_resolve "none" "" defaults [];
   check_resolve "none, remembered" ~remembered "" remembered [];
@@ -155,6 +238,16 @@ let () =
     [ WebLink.Grades; Backend ];
   check_resolve "unknown example, known backend" ~remembered
     "?example=no/such.tpe&backend=arduino" robot_choices [ WebLink.Example ];
+  (* a line, kept with a known example only *)
+  check_resolve "example and line" ~remembered
+    "?example=arduino/bala2/balance.tpe&line=42" robot_choices [];
+  check_resolve "line alone" ~remembered "?line=42" remembered [ WebLink.Line ];
+  check_resolve "line of an unknown example" ~remembered
+    "?example=no/such.tpe&line=42" remembered [ WebLink.Example; Line ];
+  check_resolve "line of a malformed example" ~remembered "?example=%zz&line=42"
+    remembered [ WebLink.Line ];
+  check_resolve "line with a backend alone" ~remembered
+    "?backend=arduino&line=42" robot_choices [ WebLink.Line ];
   (* the parameters naming choices *)
   let check_of_choices name choices expected =
     if WebLink.of_choices catalogue choices <> expected then

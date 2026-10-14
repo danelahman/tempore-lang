@@ -2,18 +2,27 @@ type t = {
   example : string option;
   grades : string option;
   backend : string option;
+  line : int option;
 }
 
-let empty = { example = None; grades = None; backend = None }
+let empty = { example = None; grades = None; backend = None; line = None }
 
-type parameter = Example | Grades | Backend
+type parameter = Example | Grades | Backend | Line
 
 let name = function
   | Example -> "example"
   | Grades -> "grades"
   | Backend -> "backend"
+  | Line -> "line"
 
-let parameters = [ Example; Grades; Backend ]
+let parameters = [ Example; Grades; Backend; Line ]
+
+(* A positive number in decimal digits, leading zeros allowed, within the range
+   of [int]. *)
+let line_number v =
+  if String.for_all (fun c -> '0' <= c && c <= '9') v then
+    Option.bind (int_of_string_opt v) (fun n -> if n > 0 then Some n else None)
+  else None
 
 (* Percent-decoding of a component of a query, [+] standing for a space; [None]
    on a [%] not followed by two hexadecimal digits. *)
@@ -84,11 +93,19 @@ let parse query =
     match List.assoc_opt (Some (name p)) pairs with
     | None -> `Absent
     | Some v -> (
-        match decode v with Some v when v <> "" -> `Value v | _ -> `Malformed)
+        match decode v with
+        | Some v when v <> "" && (p <> Line || line_number v <> None) ->
+            `Value v
+        | _ -> `Malformed)
   in
   let values = List.map (fun p -> (p, value p)) parameters in
   let get p = match List.assoc p values with `Value v -> Some v | _ -> None in
-  ( { example = get Example; grades = get Grades; backend = get Backend },
+  ( {
+      example = get Example;
+      grades = get Grades;
+      backend = get Backend;
+      line = Option.bind (get Line) line_number;
+    },
     List.filter_map
       (fun (p, v) -> match v with `Malformed -> Some p | _ -> None)
       values )
@@ -98,7 +115,10 @@ let serialise link =
     List.filter_map
       (fun (p, v) -> Option.map (fun v -> name p ^ "=" ^ encode v) v)
       [
-        (Example, link.example); (Grades, link.grades); (Backend, link.backend);
+        (Example, link.example);
+        (Grades, link.grades);
+        (Backend, link.backend);
+        (Line, Option.map string_of_int link.line);
       ]
   with
   | [] -> ""
@@ -144,6 +164,9 @@ let resolve catalogue ~defaults remembered (link : t) =
   in
   let grades, ignored_grades = checked Grades known_grades link.grades in
   let backend, ignored_backend = checked Backend known_backend link.backend in
+  let ignored_line =
+    if Option.is_some link.line && Option.is_none entry then [ Line ] else []
+  in
   (* the example the choices name, besides the remembered one *)
   let entry =
     match (entry, backend) with
@@ -175,7 +198,7 @@ let resolve catalogue ~defaults remembered (link : t) =
           backend = first backend base.backend;
         }
   in
-  (choices, ignored_example @ ignored_grades @ ignored_backend)
+  (choices, ignored_example @ ignored_grades @ ignored_backend @ ignored_line)
 
 let of_choices catalogue (choices : WebChoices.t) =
   let relative path =
@@ -197,6 +220,34 @@ let of_choices catalogue (choices : WebChoices.t) =
         example = Some (relative entry.example.path);
         grades = differing entry.grade choices.grade;
         backend = differing entry.backend choices.backend;
+        line = None;
       }
   | None ->
-      { example = None; grades = choices.grade; backend = choices.backend }
+      {
+        example = None;
+        grades = choices.grade;
+        backend = choices.backend;
+        line = None;
+      }
+
+let line_bytes source n =
+  (* the bytes the lines start at, in order *)
+  let starts =
+    String.fold_left
+      (fun (i, starts) c ->
+        (i + 1, if c = '\n' then (i + 1) :: starts else starts))
+      (0, [ 0 ]) source
+    |> snd |> List.rev
+  in
+  Option.map
+    (fun start ->
+      let stop =
+        Option.value ~default:(String.length source)
+          (String.index_from_opt source start '\n')
+      in
+      let rec first i =
+        if i < stop && (source.[i] = ' ' || source.[i] = '\t') then first (i + 1)
+        else i
+      in
+      (first start, stop))
+    (if n > 0 then List.nth_opt starts (n - 1) else None)

@@ -230,17 +230,22 @@ let node ?id classes text =
 (* Out of the flow, so that the overlay goes on measuring as the textarea laid
    over it does; positioned against the <pre>, so that it lands in the gutter.
    See the [.line-number] rules in web/index.html. *)
-let line_number_node ?link n =
+let line_number_node ?line_link ?link n =
   let number =
-    match link with
-    | None ->
+    match (link, line_link) with
+    | None, None ->
         Vdom.elt "span"
           ~a:[ Vdom.class_ "line-number" ]
+          [ Vdom.text (string_of_int n) ]
+    (* A line linked to itself: the number takes the clicks as well. *)
+    | None, Some attrs ->
+        Vdom.elt "span"
+          ~a:(Vdom.add_class "line-number is-line-link" (attrs n))
           [ Vdom.text (string_of_int n) ]
     (* A line an error covers: the number itself is the link to the message,
        which is why it must stay clickable through the textarea. The ends of
        the span are marked so that the gutter bar can be inset there. *)
-    | Some ({ href; attrs }, first, last) ->
+    | Some ({ href; attrs }, first, last), _ ->
         let classes =
           "line-number is-error"
           ^ (if first then " is-error-start" else "")
@@ -286,7 +291,7 @@ let rec insert_active i = function
   | j :: rest when j < i -> j :: insert_active i rest
   | active -> i :: active
 
-let highlight_with_marks ?(line_numbers = false) ~marks s =
+let highlight_with_marks ?(line_numbers = false) ?line_link ~marks s =
   let n = String.length s in
   let clamp i = max 0 (min n i) in
   let marks =
@@ -409,7 +414,7 @@ let highlight_with_marks ?(line_numbers = false) ~marks s =
           toks := List.tl !toks
         done;
         if line_numbers && !line < lines && starts.(!line) = start then begin
-          push (line_number_node ?link:linked.(!line) (!line + 1));
+          push (line_number_node ?line_link ?link:linked.(!line) (!line + 1));
           incr line
         end;
         while !next < total && pieces.(by_start.(!next)).p_from <= start do

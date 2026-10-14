@@ -44,6 +44,7 @@ type flash =
   | Span of int * int
   | Message of int
   | Declaration of string * int * int
+  | Line of int * int
 
 type notice =
   | Ignored of WebLink.parameter list
@@ -125,6 +126,7 @@ and msg =
   | Recompile of int
   | ShowCode of code_view
   | CopyLink
+  | CopyLineLink of int
   | ShowDeclarations of bool
   | Copied of string * bool
   | Unnotice of int
@@ -290,9 +292,19 @@ let catalogue =
   }
 
 (* The query of the page's address naming the example, the grades and the
-   backend of [edit_model]. *)
-let link edit_model =
-  WebLink.serialise (WebLink.of_choices catalogue (choices edit_model))
+   backend of [edit_model], and the line [line] of the example. *)
+let link ?line edit_model =
+  WebLink.serialise
+    { (WebLink.of_choices catalogue (choices edit_model)) with line }
+
+(* Whether the editor's text is the example last loaded, unedited. *)
+let unedited edit_model =
+  match edit_model.selected_example with
+  | Some (group, title) -> (
+      match example_of_title group title with
+      | Some (_, e) -> String.equal e.source edit_model.unparsed_code
+      | None -> false)
+  | None -> false
 
 (* The editor as the page opens with the choices [c] restored: the example
    loaded first, as it sets the grades, the backend and its inputs, which the
@@ -1229,7 +1241,8 @@ let rec update_model model = function
       | None -> model)
   | CaretAt _ | Point _ | Reveal _ | Conceal | Elapsed _ | Place _
   | ShowFullError _ | Follow _ | FollowAt _ | Unflash _ | CheckCode | RunCode
-  | GoToError _ | Recompile _ | CopyLink | Copied _ | Unnotice _ | ShowDocs _ ->
+  | GoToError _ | Recompile _ | CopyLink | CopyLineLink _ | Copied _
+  | Unnotice _ | ShowDocs _ ->
       model
 
 (** How long the confirmation of a copied link is shown, in milliseconds. *)
@@ -1269,9 +1282,12 @@ let show ?point target model =
 let close model = { (disarm model) with popover = None }
 
 (* How long what has been gone to stays highlighted, in milliseconds, as long
-   as the page's highlight fades: a span of the editor, or an error's
-   message. *)
-let flash_duration = function Span _ | Declaration _ -> 800 | Message _ -> 900
+   as the page's highlight fades: a span of the editor, an error's message, or
+   a line the page's address names. *)
+let flash_duration = function
+  | Span _ | Declaration _ -> 800
+  | Message _ -> 900
+  | Line _ -> 1500
 
 (* [target] highlighted briefly, replacing any earlier flash. *)
 let flash target model =
@@ -1339,6 +1355,8 @@ let go_to_error model i =
   in
   let model, effects = flash target model in
   (model, scroll :: effects)
+
+let line_links model = model.code_view = Source && unedited model.edit_model
 
 (* The model after [msg] and the effects it asks for, except the remembering
    of the choices, which [update] adds. *)
@@ -1450,6 +1468,8 @@ let respond model msg =
         },
         [ Scroll_to_heading heading ] )
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
+  | CopyLineLink line when line_links model ->
+      (model, [ Copy_link (link ~line model.edit_model) ])
   | Copied (url, copied) ->
       notify model (if copied then Link_copied else Copy_failed url)
   | _ -> (update_model model msg, [])
@@ -1504,16 +1524,35 @@ let opened ~query stored =
       in
       (opening (restore_edit c), unknown)
   in
+  (* the line named, within the example loaded, and the bytes it holds *)
+  let line, out_of_range =
+    match parameters.line with
+    | Some n when not (List.mem WebLink.Line unknown) -> (
+        match WebLink.line_bytes model.edit_model.unparsed_code n with
+        | Some bytes -> (Some (n, bytes), [])
+        | None -> (None, [ WebLink.Line ]))
+    | _ -> (None, [])
+  in
   let model =
-    match List.sort compare (malformed @ unknown) with
+    match List.sort compare (malformed @ unknown @ out_of_range) with
     | [] -> model
     | ignored -> fst (notify model (Ignored ignored))
   in
+  (* the line scrolled to with the caret placed at it, and highlighted *)
+  let model, shown =
+    match line with
+    | Some (_, (start, stop)) ->
+        let model, effects = flash (Line (start, stop)) model in
+        ( model,
+          Jump (utf16_offset model.edit_model.unparsed_code start) :: effects )
+    | None -> (model, [])
+  in
   ( model,
-    Replace_query (link model.edit_model)
+    Replace_query (link ?line:(Option.map fst line) model.edit_model)
     ::
     (if parameters = WebLink.empty then []
      else
        [
          Remember (WebChoices.key, WebChoices.encode (choices model.edit_model));
-       ]) )
+       ])
+    @ shown )
