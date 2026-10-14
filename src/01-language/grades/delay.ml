@@ -133,7 +133,8 @@ end
 (** [grid ~degree cs] is the sorted witnesses of the delays [cs] and a rigid
     occurring at most [degree] times on either side, [Complete], and a [Partial]
     sample of [0], [cs], [s] and [s+1] if the number of points of the grid is
-    not representable. *)
+    not representable. The grid has of the order of [s·D·K] points, [s] the sum
+    of [cs], [D] their common denominator and [K] the degree. *)
 let grid ~degree cs =
   let one = Rational.of_int 1 in
   let s = List.fold_left Rational.add Rational.zero cs in

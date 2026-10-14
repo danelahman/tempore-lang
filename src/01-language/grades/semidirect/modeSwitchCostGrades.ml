@@ -202,19 +202,20 @@ let compare m m' =
     ]
 
 let hash m =
-  let open Grade in
   let cost = function
     | No_trace -> 0
     | Unbounded -> 1
-    | Cost n -> combine 2 n
+    | Cost n -> Hashing.combine 2 n
   in
   let entries hash_key =
-    hash_list (fun (k, c) -> combine (hash_key k) (cost c))
+    Hashing.list (fun (k, c) -> Hashing.combine (hash_key k) (cost c))
   in
-  List.fold_left combine
-    (hash_list String.hash m.modes)
+  List.fold_left Hashing.combine
+    (Hashing.list String.hash m.modes)
     [
-      entries (fun (p, q) -> combine (String.hash p) (String.hash q)) m.within;
+      entries
+        (fun (p, q) -> Hashing.combine (String.hash p) (String.hash q))
+        m.within;
       entries String.hash m.leaving;
       entries String.hash m.entering;
       cost m.staying;
@@ -278,15 +279,11 @@ let entry = function
     that [entries] do not start from, the modes not named starting from
     [unnamed], is stuck at cost [0]. *)
 let of_entries lit entries =
-  let sorted = List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') entries in
-  let rec check = function
-    | ((p, q), _) :: ((key', _) :: _ as rest) ->
-        if (p, q) = key' then
-          Grade.invalid_lit lit "the modes `%s` to `%s` are listed twice" p q
-        else check rest
-    | [ _ ] | [] -> ()
-  in
-  check sorted;
+  ignore
+    (Grade.distinct_entries lit ~compare:Stdlib.compare
+       ~twice:(fun (p, q) ->
+         Printf.sprintf "the modes `%s` to `%s` are listed twice" p q)
+       entries);
   let modes =
     List.filter
       (fun p -> not (List.mem p [ stuck; unnamed; unnamed_other ]))

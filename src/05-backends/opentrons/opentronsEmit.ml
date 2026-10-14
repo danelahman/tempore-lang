@@ -144,11 +144,7 @@ let variable ctx x =
   match Names.variable ctx.names x with
   | Some name -> name
   | None -> (
-      match
-        List.find_opt
-          (fun p -> Primitives.primitive_name p = Ast.Variable.string_of x)
-          Primitives.primitives
-      with
+      match Primitives.of_name (Ast.Variable.string_of x) with
       | Some p -> primitive_function p
       | None -> invalid_arg ("unbound variable " ^ Ast.Variable.string_of x))
 

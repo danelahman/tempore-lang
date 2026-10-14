@@ -33,43 +33,45 @@ type primitive =
   | IntOfFloat
   | ToString
 
-(* Every constructor of [primitive], in order; only those listed are loaded. *)
+(* [next p] is the primitive declared after [p]: its exhaustive match places
+   every constructor in the order of [primitives]. *)
+let next = function
+  | CompareEq -> Some CompareLt
+  | CompareLt -> Some CompareGt
+  | CompareGt -> Some CompareLe
+  | CompareLe -> Some CompareGe
+  | CompareGe -> Some CompareNe
+  | CompareNe -> Some NatAdd
+  | NatAdd -> Some NatMul
+  | NatMul -> Some NatSub
+  | NatSub -> Some NatDiv
+  | NatDiv -> Some NatMod
+  | NatMod -> Some FloatAdd
+  | FloatAdd -> Some FloatMul
+  | FloatMul -> Some FloatSub
+  | FloatSub -> Some FloatDiv
+  | FloatDiv -> Some FloatPow
+  | FloatPow -> Some FloatNeg
+  | FloatNeg -> Some FloatOfNat
+  | FloatOfNat -> Some NatOfFloat
+  | NatOfFloat -> Some FloatSqrt
+  | FloatSqrt -> Some FloatAtan
+  | FloatAtan -> Some FloatAtan2
+  | FloatAtan2 -> Some IntAdd
+  | IntAdd -> Some IntMul
+  | IntMul -> Some IntSub
+  | IntSub -> Some IntDiv
+  | IntDiv -> Some IntMod
+  | IntMod -> Some IntNeg
+  | IntNeg -> Some IntOfNat
+  | IntOfNat -> Some NatOfInt
+  | NatOfInt -> Some FloatOfInt
+  | FloatOfInt -> Some IntOfFloat
+  | IntOfFloat -> Some ToString
+  | ToString -> None
+
 let primitives =
-  [
-    CompareEq;
-    CompareLt;
-    CompareGt;
-    CompareLe;
-    CompareGe;
-    CompareNe;
-    NatAdd;
-    NatMul;
-    NatSub;
-    NatDiv;
-    NatMod;
-    FloatAdd;
-    FloatMul;
-    FloatSub;
-    FloatDiv;
-    FloatPow;
-    FloatNeg;
-    FloatOfNat;
-    NatOfFloat;
-    FloatSqrt;
-    FloatAtan;
-    FloatAtan2;
-    IntAdd;
-    IntMul;
-    IntSub;
-    IntDiv;
-    IntMod;
-    IntNeg;
-    IntOfNat;
-    NatOfInt;
-    FloatOfInt;
-    IntOfFloat;
-    ToString;
-  ]
+  List.of_seq (Seq.unfold (Option.map (fun p -> (p, next p))) (Some CompareEq))
 
 let primitive_name = function
   | CompareEq -> "__compare_eq__"
@@ -105,3 +107,6 @@ let primitive_name = function
   | FloatOfInt -> "__float_of_int__"
   | IntOfFloat -> "__int_of_float__"
   | ToString -> "to_string"
+
+let of_name name =
+  List.find_opt (fun p -> String.equal (primitive_name p) name) primitives

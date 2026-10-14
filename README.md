@@ -1202,7 +1202,10 @@ must hold together with `Q` at a closed instance of the unknowns.
 
 Under the time grades, the security levels and their products, a condition in
 the effect of a single continuation is always decided; under the trace grades
-it may not be.
+it may not be. It is decided at finitely many witnesses of the effect, whose
+number is proportional to the sum of its constants, times their common
+denominator over rational delays: conditions with large constants or fine
+fractions are slow to decide.
 
 ### Annotations
 

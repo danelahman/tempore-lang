@@ -98,7 +98,8 @@ let compare rho rho' =
   | 0 -> Dfa.compare rho.dfa rho'.dfa
   | c -> c
 
-let hash rho = combine (hash_list String.hash rho.names) (Dfa.hash rho.dfa)
+let hash rho =
+  Hashing.combine (Hashing.list String.hash rho.names) (Dfa.hash rho.dfa)
 
 include Expression.Constants
 

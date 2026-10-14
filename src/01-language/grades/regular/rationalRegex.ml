@@ -52,7 +52,7 @@ module Forms =
       let hash = function
         | Empty -> 0
         | Eps -> 1
-        | Delays s -> Grade.combine 7 (DelaySet.hash s)
+        | Delays s -> Hashing.combine 7 (DelaySet.hash s)
         | Names p -> Letters.hash p
         | Concat (r, s) -> combine 2 [ r; s ]
         | Union rs -> combine 3 rs

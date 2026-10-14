@@ -74,9 +74,10 @@ type flash =
   | Declaration of string * int * int
       (** the bytes of the declarations of the given file name from a start up
           to a stop *)
-  | Line of int * int
-      (** the bytes of the editor's text of a line the page's address names,
-          from a start up to a stop *)
+  | Line of int
+      (** the line of the editor, counted from 1, the page's address names *)
+  | Copied_line of int
+      (** the line of the editor, counted from 1, whose link has been copied *)
 
 (** A notice shown under the example. *)
 type notice =

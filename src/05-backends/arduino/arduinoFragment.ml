@@ -484,10 +484,7 @@ let constant_ty at ~strings = function
         unsupported at "strings other than constant arguments of operations";
       String
 
-let primitive_of x =
-  List.find_opt
-    (fun p -> Primitives.primitive_name p = Ast.Variable.string_of x)
-    Primitives.primitives
+let primitive_of x = Primitives.of_name (Ast.Variable.string_of x)
 
 (* The parameter and result types of a primitive. *)
 let primitive_signature at st = function

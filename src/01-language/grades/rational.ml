@@ -49,12 +49,12 @@ let compare p q =
   else Q.compare p q
 
 let equal = Q.equal
-let hash_terms n d = (Z.hash n * 65599) + Z.hash d
+let hash_terms n d = Hashing.combine (Z.hash n) (Z.hash d)
 let hash q = hash_terms (Q.num q) (Q.den q)
 let hash_one = Z.hash Z.one
 
 let hash_fraction n d =
-  if Z.equal d Z.one then (Z.hash n * 65599) + hash_one
+  if Z.equal d Z.one then Hashing.combine (Z.hash n) hash_one
   else
     let g = Z.gcd n d in
     hash_terms (Z.divexact n g) (Z.divexact d g)

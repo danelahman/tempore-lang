@@ -184,9 +184,9 @@ module Make (D : Delay.MEASURED) (N : NAMES with type delay = D.t) = struct
     let is_top bounds = equal bounds top
 
     let hash c =
-      combine
-        (combine (D.hash c.lo) (Bool.to_int c.lo_closed))
-        (combine (Ext.hash c.hi) (Bool.to_int c.hi_closed))
+      Hashing.combine
+        (Hashing.combine (D.hash c.lo) (Bool.to_int c.lo_closed))
+        (Hashing.combine (Ext.hash c.hi) (Bool.to_int c.hi_closed))
 
     let counterexample _bounds _ _ = None
     let unit_least = false

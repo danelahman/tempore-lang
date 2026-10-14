@@ -5,8 +5,8 @@ let weight ~running_time a = if a = tick then 1 else running_time a
 let unbounded = Int.max_int
 
 (** Transition functions tabulated, over states ordered by [State.compare]. *)
-module Memo (State : Map.OrderedType) = struct
-  module Steps = Map.Make (struct
+module Tabulate (State : Map.OrderedType) = struct
+  module Steps = Memo.Ordered (struct
     type t = State.t * int
 
     let compare (q, a) (q', a') =
@@ -15,14 +15,8 @@ module Memo (State : Map.OrderedType) = struct
 
   (** [memoise step] is [step], its results tabulated. *)
   let memoise step =
-    let table = ref Steps.empty in
-    fun q a ->
-      match Steps.find_opt (q, a) !table with
-      | Some q' -> q'
-      | None ->
-          let q' = step q a in
-          table := Steps.add (q, a) q' !table;
-          q'
+    let step = Steps.memoise (fun (q, a) -> step q a) in
+    fun q a -> step (q, a)
 end
 
 (** The label of an edge explored: a letter, or a run of [k] ticks. *)
@@ -84,7 +78,7 @@ end
 module Allowance (State : Map.OrderedType) = struct
   include Explore (State)
 
-  include Memo (struct
+  include Tabulate (struct
     type t = State.t list
 
     let compare = List.compare State.compare
@@ -169,7 +163,7 @@ end
 module Coverage (State : Map.OrderedType) = struct
   include Explore (State)
 
-  include Memo (struct
+  include Tabulate (struct
     type t = State.t list
 
     let compare = List.compare State.compare

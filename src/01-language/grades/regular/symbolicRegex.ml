@@ -1,120 +1,4 @@
-module Letters = struct
-  type names = Only of string list | Except of string list
-  type t = { tick : bool; names : names }
-
-  let compare_names a b =
-    match (a, b) with
-    | Only a, Only b | Except a, Except b -> List.compare String.compare a b
-    | Only _, Except _ -> -1
-    | Except _, Only _ -> 1
-
-  let compare p q =
-    match Bool.compare p.tick q.tick with
-    | 0 -> compare_names p.names q.names
-    | c -> c
-
-  let equal p q = compare p q = 0
-  let empty = { tick = false; names = Only [] }
-  let any = { tick = true; names = Except [] }
-  let tick = { tick = true; names = Only [] }
-  let name n = { tick = false; names = Only [ n ] }
-
-  let others names =
-    { tick = false; names = Except (List.sort_uniq String.compare names) }
-
-  (* Set operations on lists in increasing order. *)
-
-  let rec merge xs ys =
-    match (xs, ys) with
-    | [], zs | zs, [] -> zs
-    | x :: xs', y :: ys' ->
-        let c = String.compare x y in
-        if c < 0 then x :: merge xs' ys
-        else if c > 0 then y :: merge xs ys'
-        else x :: merge xs' ys'
-
-  let rec meet xs ys =
-    match (xs, ys) with
-    | [], _ | _, [] -> []
-    | x :: xs', y :: ys' ->
-        let c = String.compare x y in
-        if c < 0 then meet xs' ys
-        else if c > 0 then meet xs ys'
-        else x :: meet xs' ys'
-
-  let rec minus xs ys =
-    match (xs, ys) with
-    | [], _ -> []
-    | xs, [] -> xs
-    | x :: xs', y :: ys' ->
-        let c = String.compare x y in
-        if c < 0 then x :: minus xs' ys
-        else if c > 0 then minus xs ys'
-        else minus xs' ys'
-
-  let union_names a b =
-    match (a, b) with
-    | Only a, Only b -> Only (merge a b)
-    | Only a, Except b | Except b, Only a -> Except (minus b a)
-    | Except a, Except b -> Except (meet a b)
-
-  let inter_names a b =
-    match (a, b) with
-    | Only a, Only b -> Only (meet a b)
-    | Only a, Except b | Except b, Only a -> Only (minus a b)
-    | Except a, Except b -> Except (merge a b)
-
-  let union p q =
-    { tick = p.tick || q.tick; names = union_names p.names q.names }
-
-  let inter p q =
-    { tick = p.tick && q.tick; names = inter_names p.names q.names }
-
-  let compl p =
-    {
-      tick = not p.tick;
-      names = (match p.names with Only a -> Except a | Except a -> Only a);
-    }
-
-  let is_empty p =
-    match p with { tick = false; names = Only [] } -> true | _ -> false
-
-  let hash p =
-    let names, cofinite =
-      match p.names with Only a -> (a, false) | Except a -> (a, true)
-    in
-    Grade.combine
-      (Grade.combine (Bool.to_int p.tick) (Bool.to_int cofinite))
-      (Grade.hash_list String.hash names)
-
-  (* [least p] is the least letter of [p]: [tick], then the names listed in
-     increasing order, then the names not listed. *)
-  let least p =
-    match p with
-    | { tick = true; _ } -> (0, "")
-    | { names = Only (n :: _); _ } -> (1, n)
-    | _ -> (2, "")
-
-  let order p q =
-    let (i, n), (j, m) = (least p, least q) in
-    match Int.compare i j with
-    | 0 -> ( match String.compare n m with 0 -> compare p q | c -> c)
-    | c -> c
-
-  let mentioned p = match p.names with Only a | Except a -> a
-
-  (* The minterms of [sets], the atoms of the Boolean algebra they generate, as
-     in symbolic automata (D'Antoni and Veanes, POPL 2014), by splitting every
-     block by each set in turn. *)
-  let partition sets =
-    let split block p =
-      List.filter
-        (fun b -> not (is_empty b))
-        [ inter block p; inter block (compl p) ]
-    in
-    let refine blocks p = List.concat_map (fun b -> split b p) blocks in
-    List.sort order (List.fold_left refine [ any ] sets)
-end
+module Letters = Letters
 
 type letters = Sets | Atoms
 
@@ -277,7 +161,7 @@ struct
           | Empty -> 0
           | Eps -> 1
           | Letters p -> Letters.hash p
-          | Ticks n -> Grade.combine 7 n
+          | Ticks n -> Hashing.combine 7 n
           | Concat (r, s) -> combine 2 [ r; s ]
           | Union rs -> combine 3 rs
           | Inter rs -> combine 4 rs
@@ -489,23 +373,15 @@ struct
 
   let minterm set = { set; key = (letters set).id }
 
-  module Pairs = NormalForms.Pairs
-
   (* The derivatives computed, by the key of the block and the number of the
      expression. *)
-  let derivatives : t Pairs.t = Pairs.create 4096
+  let derivatives : t Memo.Pairs.t = Memo.Pairs.create 4096
 
   (* The derivative (Brzozowski, JACM 1964) of an extended regular expression
      by a block of letters rather than a letter, as in RE# (Varatalu, Veanes
      and Ernits, POPL 2025), memoised by block and expression. *)
   let rec derive m r =
-    let key = (m.key, r.id) in
-    match Pairs.find_opt derivatives key with
-    | Some d -> d
-    | None ->
-        let d = derive_view m r in
-        Pairs.add derivatives key d;
-        d
+    Memo.Pairs.find_or_add derivatives (m.key, r.id) (fun () -> derive_view m r)
 
   and derive_view m r =
     match r.view with
@@ -523,19 +399,9 @@ struct
 
   let derivative set r = derive (minterm set) r
 
-  (** Tables by triples of numbers. *)
-  module Triples = Hashtbl.Make (struct
-    type t = int * int * int
-
-    let equal (i, j, k) (i', j', k') =
-      Int.equal i i' && Int.equal j j' && Int.equal k k'
-
-    let hash (i, j, k) = Grade.combine (Grade.combine i j) k
-  end)
-
   (* The leaps computed, by the key of the block, the number of ticks and the
      number of the expression. *)
-  let leaps : t Triples.t = Triples.create 1024
+  let leaps : t Memo.Triples.t = Memo.Triples.create 1024
 
   module Positions = Map.Make (Int)
   (** Maps by positions in an orbit, or by numbers of expressions. *)
@@ -559,7 +425,7 @@ struct
 
   (* The orbits explored, by the key of the block and the number of the
      expression. *)
-  let orbits : orbit Pairs.t = Pairs.create 64
+  let orbits : orbit Memo.Pairs.t = Memo.Pairs.create 64
 
   (* The derivative by [mᵏ], [m] the block of [tick], taken at once where the
      form of the expression tells it and off the orbit of the expression
@@ -571,13 +437,8 @@ struct
   let rec leap_by m k r =
     if k = 0 then r
     else
-      let key = (m.key, k, r.id) in
-      match Triples.find_opt leaps key with
-      | Some d -> d
-      | None ->
-          let d = leap_view m k r in
-          Triples.add leaps key d;
-          d
+      Memo.Triples.find_or_add leaps (m.key, k, r.id) (fun () ->
+          leap_view m k r)
 
   and leap_view m k r =
     match r.view with
@@ -606,7 +467,7 @@ struct
   and steps m k r =
     let key = (m.key, r.id) in
     let o =
-      match Pairs.find_opt orbits key with
+      match Memo.Pairs.find_opt orbits key with
       | Some o -> o
       | None ->
           {
@@ -617,7 +478,7 @@ struct
           }
     in
     let o, d = along m k o in
-    Pairs.replace orbits key o;
+    Memo.Pairs.replace orbits key o;
     d
 
   (** [along m k o] is the orbit [o] extended as far as the derivative by [mᵏ]
@@ -776,10 +637,6 @@ struct
             "SymbolicRegex.Decide.tick_block: a partition without a block \
              holding tick"
 
-    (* The emptiness of the expressions explored, by their numbers. *)
-    let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
-    let known_empty r = Hashtbl.find_opt emptiness r.id = Some true
-
     (** [moves ms k d] is the derivatives of [d] a search explores, each with
         the blocks of [ms] of the word it is taken by, reversed: by the word
         [tickᵏ] alone if [k ≥ 1] is at most the lead of [d], the derivatives of
@@ -796,6 +653,32 @@ struct
     let successors ms k d =
       if k = 0 then List.map (fun m -> derive m d) ms
       else [ leap_by (tick_block ms) k d ]
+
+    (* The emptiness by depth-first exploration, an expression of lead
+       [k ≥ 1] followed by its derivative by [tickᵏ] alone; the equivalence by
+       Hopcroft and Karp's algorithm, a pair whose expressions both have a lead
+       of at least [k ≥ 1] followed by their derivatives by [tickᵏ] alone: they
+       denote the same language iff these do. *)
+    include LanguageDecisions.Make (struct
+      type nonrec t = t
+      type block = minterm
+
+      let id r = r.id
+      let empty = empty
+      let is_top = is_top
+      let inter = inter
+      let compl = compl
+      let nullable = nullable
+      let final = nullable
+      let agree r s = Bool.equal r.nullable s.nullable
+      let blocks = blocks
+
+      let pairs ms r s =
+        let k = min r.lead s.lead in
+        List.combine (successors ms k r) (successors ms k s)
+
+      let successors ms d = successors ms d.lead d
+    end)
 
     (** The outcome of the exploration of one depth of a breadth-first search: a
         word found, or the expressions of the next depth. *)
@@ -849,100 +732,11 @@ struct
       in
       Hashtbl.add seen r.id ();
       let found = go [ (r, []) ] in
-      if Option.is_none found then
-        Hashtbl.iter (fun id () -> Hashtbl.replace emptiness id true) seen
-      else Hashtbl.replace emptiness r.id false;
+      record r seen (Option.is_some found);
       found
 
     let shortest r =
       if r.nullable then Some [] else if known_empty r then None else search r
-
-    (** [inhabited r] is whether some derivative of [r] is nullable, found by
-        depth-first exploration of its derivatives, an expression of lead
-        [k ≥ 1] by its derivative by [tickᵏ] alone; the derivatives known to be
-        empty are not explored, and if none is nullable every expression
-        explored is recorded as empty. *)
-    let inhabited r =
-      let ms = blocks [ r ] in
-      let seen = Hashtbl.create 64 in
-      let fresh d =
-        not (Hashtbl.mem seen d.id || known_empty d || equal_form d empty)
-      in
-      let rec go = function
-        | [] -> false
-        | d :: _ when d.nullable -> true
-        | d :: stack ->
-            let next = List.filter fresh (successors ms d.lead d) in
-            List.iter (fun d -> Hashtbl.replace seen d.id ()) next;
-            go (next @ stack)
-      in
-      Hashtbl.add seen r.id ();
-      let found = (not (equal_form r empty)) && go [ r ] in
-      if found then Hashtbl.replace emptiness r.id false
-      else Hashtbl.iter (fun id () -> Hashtbl.replace emptiness id true) seen;
-      found
-
-    let is_empty r =
-      match Hashtbl.find_opt emptiness r.id with
-      | Some e -> e
-      | None -> not (inhabited r)
-
-    let subset r s =
-      equal_form r s || is_top s || is_empty (inter [ r; compl s ])
-
-    (* The pairs of expressions compared, by their numbers, the lesser first. *)
-    let equalities : bool Pairs.t = Pairs.create 1024
-
-    (** [bisimilar r s] explores the pairs of derivatives of [r] and [s] by the
-        same words, merging the classes of the two expressions of each pair,
-        until two expressions of a pair differ in nullability or no pair is
-        left: Hopcroft and Karp's algorithm (Cornell TR 1971), a bisimulation up
-        to equivalence, the classes kept in a union–find forest with path
-        compression. A pair whose expressions both have a lead of at least
-        [k ≥ 1] is followed by their derivatives by [tickᵏ] alone: they denote
-        the same language iff these do. *)
-    let bisimilar r s =
-      let ms = blocks [ r; s ] in
-      let parent = Hashtbl.create 64 in
-      let rec find x =
-        match Hashtbl.find_opt parent x with
-        | Some p ->
-            let root = find p in
-            Hashtbl.replace parent x root;
-            root
-        | None -> x
-      in
-      let queue = Queue.create () in
-      Queue.push (r, s) queue;
-      let rec go () =
-        match Queue.take_opt queue with
-        | None -> true
-        | Some (r, s) ->
-            let x = find r.id and y = find s.id in
-            if x = y then go ()
-            else if r.nullable <> s.nullable then false
-            else begin
-              Hashtbl.replace parent x y;
-              let k = min r.lead s.lead in
-              List.iter2
-                (fun d d' -> Queue.push (d, d') queue)
-                (successors ms k r) (successors ms k s);
-              go ()
-            end
-      in
-      go ()
-
-    let equal r s =
-      equal_form r s
-      || r.nullable = s.nullable
-         &&
-         let key = if r.id < s.id then (r.id, s.id) else (s.id, r.id) in
-         match Pairs.find_opt equalities key with
-         | Some e -> e
-         | None ->
-             let e = bisimilar r s in
-             Pairs.add equalities key e;
-             e
   end
 
   (** {1 Decisions in gap form} *)

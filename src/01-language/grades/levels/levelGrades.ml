@@ -87,21 +87,16 @@ let written = function
 (** [of_written lit ws] is the outputs [ws], each sink listed once in the
     literal [lit]. *)
 let of_written lit ws =
-  let sorted = List.sort (fun (s, _) (s', _) -> String.compare s s') ws in
-  let rec check = function
-    | (s, _) :: ((s', _) :: _ as rest) ->
-        if String.equal s s' then
-          Grade.invalid_lit lit "the output `%s` is listed twice" s
-        else check rest
-    | [ _ ] | [] ->
-        let defaults, named =
-          List.partition (fun (s, _) -> String.equal s Indexed.fresh) sorted
-        in
-        Indexed.of_list ~compare:WrittenAt.compare
-          ~others:(match defaults with (_, l) :: _ -> Some l | [] -> None)
-          (List.map (fun (s, l) -> (s, Some l)) named)
+  let defaults, named =
+    List.partition
+      (fun (s, _) -> String.equal s Indexed.fresh)
+      (Grade.distinct_entries lit ~compare:String.compare
+         ~twice:(Printf.sprintf "the output `%s` is listed twice")
+         ws)
   in
-  check sorted
+  Indexed.of_list ~compare:WrittenAt.compare
+    ~others:(match defaults with (_, l) :: _ -> Some l | [] -> None)
+    (List.map (fun (s, l) -> (s, Some l)) named)
 
 module Make (D : Delay.S) = struct
   module SecurityLevels = GradeConstructions.OfLattice (D) (LowHigh)
@@ -123,9 +118,9 @@ module Make (D : Delay.S) = struct
           in
           (l, of_written lit ws)
       | lit -> (
-          match SecurityLevels.of_lit lit with
-          | l -> (l, Outputs.bottom)
-          | exception Grade.Invalid_literal (_, reason) ->
+          match Grade.read_lit SecurityLevels.of_lit lit with
+          | Ok l -> (l, Outputs.bottom)
+          | Error (_, reason) ->
               Grade.invalid_lit lit
                 "%s, or tuples `(l, (Sink, l1), ...)` of a level and the \
                  outputs written"

@@ -44,7 +44,8 @@ type flash =
   | Span of int * int
   | Message of int
   | Declaration of string * int * int
-  | Line of int * int
+  | Line of int
+  | Copied_line of int
 
 type notice =
   | Ignored of WebLink.parameter list
@@ -1288,6 +1289,7 @@ let flash_duration = function
   | Span _ | Declaration _ -> 800
   | Message _ -> 900
   | Line _ -> 1500
+  | Copied_line _ -> 600
 
 (* [target] highlighted briefly, replacing any earlier flash. *)
 let flash target model =
@@ -1469,7 +1471,8 @@ let respond model msg =
         [ Scroll_to_heading heading ] )
   | CopyLink -> (model, [ Copy_link (link model.edit_model) ])
   | CopyLineLink line when line_links model ->
-      (model, [ Copy_link (link ~line model.edit_model) ])
+      let model, effects = flash (Copied_line line) model in
+      (model, Copy_link (link ~line model.edit_model) :: effects)
   | Copied (url, copied) ->
       notify model (if copied then Link_copied else Copy_failed url)
   | _ -> (update_model model msg, [])
@@ -1541,8 +1544,8 @@ let opened ~query stored =
   (* the line scrolled to with the caret placed at it, and highlighted *)
   let model, shown =
     match line with
-    | Some (_, (start, stop)) ->
-        let model, effects = flash (Line (start, stop)) model in
+    | Some (n, (start, _)) ->
+        let model, effects = flash (Line n) model in
         ( model,
           Jump (utf16_offset model.edit_model.unparsed_code start) :: effects )
     | None -> (model, [])

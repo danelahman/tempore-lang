@@ -31,9 +31,8 @@ module Class = struct
 
   let hash (c : t) =
     match c.names with
-    | Letters.Only names -> Grade.hash_list String.hash names
-    | Letters.Except names ->
-        Grade.combine 1 (Grade.hash_list String.hash names)
+    | Letters.Only names -> Hashing.list String.hash names
+    | Letters.Except names -> Hashing.combine 1 (Hashing.list String.hash names)
 end
 
 (* {1 Deterministic automata} *)
@@ -54,16 +53,19 @@ type t = {
 let automaton ~gaps ~ops ~final =
   let row hash_label r =
     Array.fold_left
-      (fun h (label, t) -> Grade.combine h (Grade.combine (hash_label label) t))
+      (fun h (label, t) ->
+        Hashing.combine h (Hashing.combine (hash_label label) t))
       0 r
   in
   let table hash_label t =
-    Array.fold_left (fun h r -> Grade.combine h (row hash_label r)) 0 t
+    Array.fold_left (fun h r -> Hashing.combine h (row hash_label r)) 0 t
   in
   let hash =
-    Grade.combine (table DelaySet.hash gaps)
-      (Grade.combine (table Class.hash ops)
-         (Array.fold_left (fun h b -> Grade.combine h (Bool.to_int b)) 0 final))
+    Hashing.combine (table DelaySet.hash gaps)
+      (Hashing.combine (table Class.hash ops)
+         (Array.fold_left
+            (fun h b -> Hashing.combine h (Bool.to_int b))
+            0 final))
   in
   { gaps; ops; final; hash }
 
@@ -247,25 +249,19 @@ let hash l = l.hash
 (* {2 Tables}
 
    The results of the binary operations and of the inclusion search, tabulated
-   by their arguments in module-level tables, which only ever grow; an
-   implementation device invisible through the interface. *)
+   by their arguments in module-level tables ({!Memo}); an implementation device
+   invisible through the interface. *)
 
-module Pairs = Hashtbl.Make (struct
+module Pairs = Memo.Make (struct
   type nonrec t = t * t
 
   let equal (l, m) (l', m') = equal l l' && equal m m'
-  let hash (l, m) = Grade.combine (hash l) (hash m)
+  let hash (l, m) = Hashing.combine (hash l) (hash m)
 end)
 
 let tabulated f =
-  let table = Pairs.create 64 in
-  fun l m ->
-    match Pairs.find_opt table (l, m) with
-    | Some r -> r
-    | None ->
-        let r = f l m in
-        Pairs.add table (l, m) r;
-        r
+  let f = Pairs.memoise (fun (l, m) -> f l m) in
+  fun l m -> f (l, m)
 
 (* {1 Raw automata} *)
 

@@ -13,54 +13,26 @@ module type EXPRESSION = sig
   val blocks : t list -> block list
 end
 
-module Pairs = NormalForms.Pairs
-
 module Make (E : EXPRESSION) = struct
-  let equal_form r s = Int.equal (E.id r) (E.id s)
-
   let edges ms r =
     List.concat_map (fun m -> List.map (fun (n, e) -> (n, m, e)) (E.gap m r)) ms
 
-  (* The emptiness of the expressions explored, by their numbers. *)
-  let emptiness : (int, bool) Hashtbl.t = Hashtbl.create 4096
-  let known_empty r = Hashtbl.find_opt emptiness (E.id r) = Some true
+  include LanguageDecisions.Make (struct
+    include E
 
-  let record r seen found =
-    if found then Hashtbl.replace emptiness (E.id r) false
-    else Hashtbl.iter (fun id _ -> Hashtbl.replace emptiness id true) seen
+    let final r = E.nullable r || not (DelaySet.is_empty (E.delays r))
 
-  (** [inhabited r] is whether some gap derivative of [r] has a delay, found by
-      depth-first exploration; the expressions known to be empty are not
-      explored. *)
-  let inhabited r =
-    let ms = E.blocks [ r ] in
-    let seen = Hashtbl.create 64 in
-    let push stack (_, _, e) =
-      if Hashtbl.mem seen (E.id e) || known_empty e then stack
-      else begin
-        Hashtbl.add seen (E.id e) ();
-        e :: stack
-      end
-    in
-    let rec go = function
-      | [] -> false
-      | d :: stack ->
-          E.nullable d
-          || (not (DelaySet.is_empty (E.delays d)))
-          || go (List.fold_left push stack (edges ms d))
-    in
-    Hashtbl.add seen (E.id r) ();
-    let found = (not (equal_form r E.empty)) && go [ r ] in
-    record r seen found;
-    found
+    let agree r s =
+      Bool.equal (E.nullable r) (E.nullable s)
+      && DelaySet.equal (E.delays r) (E.delays s)
 
-  let is_empty r =
-    match Hashtbl.find_opt emptiness (E.id r) with
-    | Some e -> e
-    | None -> not (inhabited r)
+    let successors ms r = List.map (fun (_, _, e) -> e) (edges ms r)
 
-  let subset r s =
-    equal_form r s || E.is_top s || is_empty (E.inter [ r; E.compl s ])
+    let pairs ms r s =
+      List.concat_map
+        (fun m -> GapMap.targets ~absent:E.empty (E.gap m r) (E.gap m s))
+        ms
+  end)
 
   let fewest_operations r =
     let ms = E.blocks [ r ] in
@@ -90,56 +62,4 @@ module Make (E : EXPRESSION) = struct
     Hashtbl.add parent (E.id r) None;
     Queue.push r queue;
     go ()
-
-  (* The pairs of expressions compared, by their numbers, the lesser first. *)
-  let equalities : bool Pairs.t = Pairs.create 1024
-
-  let bisimilar r s =
-    let ms = E.blocks [ r; s ] in
-    let parent = Hashtbl.create 64 in
-    let rec find x =
-      match Hashtbl.find_opt parent x with
-      | Some p ->
-          let root = find p in
-          Hashtbl.replace parent x root;
-          root
-      | None -> x
-    in
-    let queue = Queue.create () in
-    Queue.push (r, s) queue;
-    let rec go () =
-      match Queue.take_opt queue with
-      | None -> true
-      | Some (r, s) ->
-          let x = find (E.id r) and y = find (E.id s) in
-          if x = y then go ()
-          else if
-            E.nullable r <> E.nullable s
-            || not (DelaySet.equal (E.delays r) (E.delays s))
-          then false
-          else begin
-            Hashtbl.replace parent x y;
-            List.iter
-              (fun m ->
-                List.iter
-                  (fun pair -> Queue.push pair queue)
-                  (GapMap.targets ~absent:E.empty (E.gap m r) (E.gap m s)))
-              ms;
-            go ()
-          end
-    in
-    go ()
-
-  let equal r s =
-    equal_form r s
-    || E.nullable r = E.nullable s
-       &&
-       let i = E.id r and j = E.id s in
-       let key = if i < j then (i, j) else (j, i) in
-       match Pairs.find_opt equalities key with
-       | Some e -> e
-       | None ->
-           let e = bisimilar r s in
-           Pairs.add equalities key e;
-           e
 end

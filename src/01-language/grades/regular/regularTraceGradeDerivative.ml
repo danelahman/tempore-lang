@@ -74,18 +74,12 @@ let canonical rho =
     (SymbolicAutomaton.canonical ~budget)
 
 (* The printed grades, by the numbers of their normal forms. *)
-let printed : (int, string) Hashtbl.t = Hashtbl.create 64
+let printed : string Memo.Ints.t = Memo.Ints.create 64
 
 let show rho =
-  match Hashtbl.find_opt printed (R.id rho) with
-  | Some text -> text
-  | None ->
-      let text =
-        LetterRegex.literal
-          (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho))
-      in
-      Hashtbl.add printed (R.id rho) text;
-      text
+  Memo.Ints.find_or_add printed (R.id rho) (fun () ->
+      LetterRegex.literal
+        (Option.value (canonical rho) ~default:(LetterRegex.of_symbolic rho)))
 
 module type DECISIONS = sig
   val is_empty : R.t -> bool

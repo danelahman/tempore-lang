@@ -30,7 +30,7 @@ module Tabulate (G : sig
   val hash : t -> int
 end) =
 struct
-  module Search = Hashtbl.Make (struct
+  module Search = Memo.Make (struct
     type t = string list * int list * G.t * G.t
 
     let equal (names, running_times, rho, sigma)
@@ -41,25 +41,21 @@ struct
       && G.compare sigma sigma' = 0
 
     let hash (names, running_times, rho, sigma) =
-      combine
-        (combine
-           (hash_list String.hash names)
-           (hash_list Int.hash running_times))
-        (combine (G.hash rho) (G.hash sigma))
+      Hashing.combine
+        (Hashing.combine
+           (Hashing.list String.hash names)
+           (Hashing.list Int.hash running_times))
+        (Hashing.combine (G.hash rho) (G.hash sigma))
   end)
 
   (** [tabulated f] is [f], its results tabulated by its arguments in a table of
       its own. *)
   let tabulated f =
-    let table = Search.create 64 in
-    fun names running_times rho rho' ->
-      let key = (names, running_times, rho, rho') in
-      match Search.find_opt table key with
-      | Some r -> r
-      | None ->
-          let r = f names running_times rho rho' in
-          Search.add table key r;
-          r
+    let f =
+      Search.memoise (fun (names, running_times, rho, rho') ->
+          f names running_times rho rho')
+    in
+    fun names running_times rho rho' -> f (names, running_times, rho, rho')
 end
 
 (** The decisions by the automata of traces of [L] and their closures, a verdict
@@ -91,25 +87,20 @@ module ByLetters (L : LANGUAGE) = struct
     fun a -> running_times.(a - 1)
 
   (** The grades over given least names, by their representations. *)
-  module Tables = Hashtbl.Make (struct
+  module Tables = Memo.Make (struct
     type t = string list * L.t
 
     let equal (names, rho) (names', rho') =
       List.equal String.equal names names' && L.compare rho rho' = 0
 
-    let hash (names, rho) = combine (hash_list String.hash names) (L.hash rho)
+    let hash (names, rho) =
+      Hashing.combine (Hashing.list String.hash names) (L.hash rho)
   end)
 
   (* [L.traces names rho], tabulated by its arguments. *)
   let traces =
-    let table = Tables.create 16 in
-    fun names rho ->
-      match Tables.find_opt table (names, rho) with
-      | Some a -> a
-      | None ->
-          let a = L.traces names rho in
-          Tables.add table (names, rho) a;
-          a
+    let traces = Tables.memoise (fun (names, rho) -> L.traces names rho) in
+    fun names rho -> traces (names, rho)
 
   let letters names = List.length names + 1
 
@@ -179,27 +170,20 @@ module ByGaps = struct
       names running_times
 
   (** Tables by lists of names and normal forms. *)
-  module Graphs = Hashtbl.Make (struct
+  module Graphs = Memo.Make (struct
     type t = string list * SymbolicRegex.t
 
     let equal (names, rho) (names', rho') =
       List.equal String.equal names names' && SymbolicRegex.equal_form rho rho'
 
     let hash (names, rho) =
-      combine (hash_list String.hash names) (SymbolicRegex.hash rho)
+      Hashing.combine (Hashing.list String.hash names) (SymbolicRegex.hash rho)
   end)
 
   (** [graph names rho] is {!GapGraph.graph}, tabulated by its arguments. *)
   let graph =
-    let table = Graphs.create 16 in
-    fun names rho ->
-      let key = (names, rho) in
-      match Graphs.find_opt table key with
-      | Some g -> g
-      | None ->
-          let g = GapGraph.graph names rho in
-          Graphs.add table key g;
-          g
+    let graph = Graphs.memoise (fun (names, rho) -> GapGraph.graph names rho) in
+    fun names rho -> graph (names, rho)
 
   (** [on_graphs decide names running_times rho rho'] is [decide] on the graphs
       of [rho] and [rho'] over [names] at [running_times]. *)
@@ -360,11 +344,11 @@ module Derivatives = struct
   let by_name (name, _) (name', _) = String.compare name name'
 
   (** The grades of a comparison, by the numbers of their normal forms. *)
-  module Roots = Hashtbl.Make (struct
+  module Roots = Memo.Make (struct
     type t = int list
 
     let equal = List.equal Int.equal
-    let hash = Grade.hash_list Fun.id
+    let hash = Hashing.list Fun.id
   end)
 
   (** [blocks rhos] is the names listed by the finite minterms of the letter
@@ -382,18 +366,9 @@ module Derivatives = struct
     in
     let table = Roots.create 64 in
     fun rhos ->
-      let key = List.map SymbolicRegex.id rhos in
-      match Roots.find_opt table key with
-      | Some blocks -> blocks
-      | None ->
-          let blocks =
-            List.fold_left number ([], 0)
-              (List.mapi
-                 (fun i m -> (i, m))
-                 (SymbolicRegex.Minterms.blocks rhos))
-          in
-          Roots.add table key blocks;
-          blocks
+      Roots.find_or_add table (List.map SymbolicRegex.id rhos) (fun () ->
+          List.fold_left number ([], 0)
+            (List.mapi (fun i m -> (i, m)) (SymbolicRegex.Minterms.blocks rhos)))
 
   (** [mem i running_time classes] is whether the class of the minterm [i] and
       the running time [running_time] is among [classes]. *)

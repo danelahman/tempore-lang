@@ -2,7 +2,7 @@
    implementation of the interface of [DelaySet] independent of its
    representation, and the oracle of the tests that compare the two. *)
 
-module Grade = Grades.Grade
+module Hashing = Grades.Hashing
 module GradeLiteral = Grades.GradeLiteral
 module Rational = Grades.Rational
 
@@ -223,14 +223,14 @@ type t = {
 
 let form ~threshold ~period ~base ~tail =
   let h i =
-    Grade.combine
-      (Grade.combine (Rational.hash i.lo) (Bool.to_int i.lo_closed))
-      (Grade.combine (Rational.hash i.hi) (Bool.to_int i.hi_closed))
+    Hashing.combine
+      (Hashing.combine (Rational.hash i.lo) (Bool.to_int i.lo_closed))
+      (Hashing.combine (Rational.hash i.hi) (Bool.to_int i.hi_closed))
   in
   let hash =
-    Grade.combine
-      (Grade.combine (Rational.hash threshold) (Rational.hash period))
-      (Grade.combine (Grade.hash_list h base) (Grade.hash_list h tail))
+    Hashing.combine
+      (Hashing.combine (Rational.hash threshold) (Rational.hash period))
+      (Hashing.combine (Hashing.list h base) (Hashing.list h tail))
   in
   { threshold; period; base; tail; hash }
 
@@ -586,7 +586,7 @@ module Pairs = Hashtbl.Make (struct
   type nonrec t = t * t
 
   let equal (s, r) (s', r') = equal s s' && equal r r'
-  let hash (s, r) = Grade.combine (hash s) (hash r)
+  let hash (s, r) = Hashing.combine (hash s) (hash r)
 end)
 
 (* [components_of s] is the sequence of the intervals of [s] below its
@@ -855,7 +855,7 @@ let equal_extremum x y =
   | Finite _, Infinite | Infinite, Finite _ -> false
 
 let hash_extremum = function
-  | Finite (a, f) -> Grade.combine (Rational.hash a) (Bool.to_int f)
+  | Finite (a, f) -> Hashing.combine (Rational.hash a) (Bool.to_int f)
   | Infinite -> -1
 
 let inf s =
