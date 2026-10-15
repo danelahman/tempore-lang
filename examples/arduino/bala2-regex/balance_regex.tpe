@@ -278,26 +278,23 @@ let calibrate () =
   let bias = measure_bias () in
   box {ShowText; [1000, ∞)} (Calibration bias)
 
-(* Correctly accepted by the typechecker: an iteration of the drive reads
-   the attitude, commands zero setpoints, shows the tilt every tenth
-   iteration and waits 100 ms, in this order. Each iteration is boxed with a
-   delay below 200 ms: it takes at most 112.6 ms, within the 200 ms after
-   which a command expires. *)
-let drive_step (n : nat) : unit # {Attitude; Command; (ShowNumber | 0); 100} =
-  let tilt, _ = perform Attitude () in
-  perform Command (0.0, 0.0);
-  (if n mod 10 = 0 then perform ShowNumber tilt else ());
-  delay 100
-
-let rec drive (n : nat) : unit
-    # {(Attitude; Command; (ShowNumber | 0); 100)*} =
+(* Correctly accepted by the typechecker: an iteration of the drive shows
+   the last tilt every tenth iteration, waits 100 ms, reads the attitude and
+   sends the command, in this order. The command is boxed with a delay below
+   200 ms from its sending, and the next iteration sends it unboxed: it is
+   renewed within at most 112.6 ms, before the step replaces it by zero
+   setpoints. *)
+let rec drive (n : nat) (tilt : float) (command : [[0, 200)](float * float))
+    : unit # {((ShowNumber | 0); 100; Attitude; Command)*} =
   match n with
   | 0 -> ()
   | m + 1 ->
-      box [0, 200) () as expiry in
-      drive_step m;
-      unbox expiry as _ in
-      drive m
+      (if m mod 10 = 0 then perform ShowNumber tilt else ());
+      delay 100;
+      let tilt, _ = perform Attitude () in
+      unbox command as setpoints in
+      perform Command setpoints;
+      drive m tilt (box [0, 200) setpoints)
 
 (* Correctly accepted by the typechecker: the robot is calibrated, held
    upright for a second, armed with a calibration 1000.05 to 1012.5 ms old,
@@ -306,15 +303,18 @@ let rec drive (n : nat) : unit
    this order. *)
 let supervise () : unit
     # {Disarm; ClearDisplay; ShowTextAt; ShowTextAt; ShowText;
-       (Attitude; 10)*; ShowText; 1000; Arm; ShowText;
-       (Attitude; Command; (ShowNumber | 0); 100)*; Disarm} =
+       (Attitude; 10)*; ShowText; 1000; Arm; ShowText; Attitude; Command;
+       ((ShowNumber | 0); 100; Attitude; Command)*; Disarm} =
   let token = calibrate () in
   perform ShowText "Hold upright";
   delay 1000;
   unbox token as calibration in
   perform Arm calibration;
   perform ShowText "Armed";
-  drive 4000000000;
+  let tilt, _ = perform Attitude () in
+  let setpoints = (0.0, 0.0) in
+  perform Command setpoints;
+  drive 4000000000 tilt (box [0, 200) setpoints);
   perform Disarm ()
 
 (* The box of the calibration demands the message and bounds the time to
@@ -403,28 +403,6 @@ let rec held (n : nat) (s : state) (drive : float) : state * float
         with simulated_robot 0.0 0.0 0.0
       in
       held m s drive
-
-(* Correctly rejected by the typechecker: the case of ReadImu also commands
-   the motors, so that its trace is not that of the operation:
-
-     Typing error: Variable `k` is unboxed with grade
-       `[{ReadImu; SetMotors}, {ReadImu; SetMotors}]` accumulated since it
-       was bound, which is not below its box grade
-       `[{ReadImu}, {ReadImu}]`
-       ...
-       Note: the resource inequality
-         `[{ReadImu; SetMotors}, {ReadImu; SetMotors}] <=
-         [{ReadImu}, {ReadImu}]` does not hold
-*)
-(*
-let commanding_robot =
-  handler
-  | s -> s
-  | ReadImu () k ->
-      let reading = perform ReadImu () in
-      perform SetMotors (0i, 0i);
-      continue k with reading
-*)
 
 (* The closed loop of 20 control steps, 100 ms, from a tilt of 3 degrees:
    the step brings the tilt of the model to 0.3 degrees. *)

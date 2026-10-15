@@ -718,7 +718,8 @@ port variable `PORT_M5STACK_GRAY`).
   - The bias is measured from readings of the attitude at most 10 ms apart,
     with no other operation between.
   - The supervision disarms, calibrates, arms at least a second after its
-    prompt, drives and disarms, in this order.
+    prompt, drives and disarms, in this order; while it drives, each command
+    is sent again from its box within 200 ms, before it expires.
   - Handlers, which the device does not use, simulate the robot and a fault
     of its gyroscope in the interpreter, each case of an operation performing
     that operation.
