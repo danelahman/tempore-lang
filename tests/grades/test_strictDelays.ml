@@ -566,7 +566,9 @@ let complements =
       ]
 
 (* Printing: the grade of a delay is strict, adjacent strict delays stay
-   apart, and a printed grade reads back as an equal one. *)
+   apart, a literal with strict delays prints as written, an inferred grade
+   prints as its normal form, and a printed grade reads back as an equal
+   one. *)
 let printing =
   let bounds = bounds_of [ ("A", (q 1, q 1)) ] in
   let prints (module G : Grade.S) text expected =
@@ -585,6 +587,14 @@ let printing =
     let rho = G.mul (G.of_delay d) (G.of_delay e) in
     expect (G.name ^ ": two delays print") Fun.id ~expected:text (G.show rho)
   in
+  let inferred (module G : Grade.S) text d =
+    let module R = Reader (G) in
+    let a = R.lit "{A}" in
+    let rho = G.mul a (G.mul (G.of_delay d) a) in
+    expect
+      (G.name ^ ": an inferred grade prints")
+      Fun.id ~expected:text (G.show rho)
+  in
   prints (module Rat.Rigid.Upper) "{A; !2; 1; B}" "{A; !2; 1; B}"
   @ prints (module Rat.Rigid.Upper) "{(!_ & ~A)*}" "{(!_ & ~A)*}"
   @ prints (module Rat.Rigid.Upper) "{!2; !3}" "{!2; !3}"
@@ -593,15 +603,28 @@ let printing =
       "{![0, 5] & ~(!2; !3)}" "{![0, 5] & ~(!2; !3)}"
   @ prints (module Whole.Symbolic.Rigid.Upper) "{!2; !3}" "{!2; !3}"
   @ prints (module Whole.Symbolic.Rigid.Upper) "{A; !2; 1; B}" "{A; !2; 1; B}"
-  @ prints (module Whole.Symbolic.Rigid.Upper) "{!3 | !5}" "{!5 | !3}"
+  @ prints (module Whole.Symbolic.Rigid.Upper) "{!3 | !5}" "{!3 | !5}"
+  @ prints (module Whole.Symbolic.Rigid.Upper) "{(!_ & ~A)*}" "{(!_ & ~A)*}"
   @ prints
       (module Whole.Symbolic.Rigid.Upper)
-      "{(!_ & ~A)*}" "{(_* & ~A & !_)*}"
+      "{A; ![5, 10]; B}" "{A; ![5, 10]; B}"
+  @ prints
+      (module Whole.Symbolic.Rigid.Upper)
+      "{!_* & ~(_*; A; (_ & ~B)*; A; _*)}" "{!_* & ~(_*; A; (_ & ~B)*; A; _*)}"
+  @ prints
+      (module Whole.Symbolic.Rigid.Lower)
+      "{A; ![5, 10]; B}" "{A; ![5, 10]; B}"
+  @ prints
+      (module Whole.Symbolic.Rigid.Interval)
+      "[{A; !2; B}, {(A; B)*; A; ![2, 3]; B}]"
+      "[{A; !2; B}, {(A; B)*; A; ![2, 3]; B}]"
   @ prints (module Whole.Symbolic.Rigid.Upper) "{_*}" "⊤"
   @ prints (module TimedTraceGrades.Rigid.UpperBound) "{A; !2; 1}" "{A; !2; 1}"
   @ [
       delays (module Rat.Rigid.Upper) "{!0.5; !2}" (qf 1 2) (q 2);
       delays (module Whole.Symbolic.Rigid.Upper) "{!2; !3}" 2 3;
+      inferred (module Whole.Symbolic.Rigid.Upper) "{A; !6; A}" 6;
+      inferred (module Rat.Rigid.Upper) "{A; !6; A}" (q 6);
       delays (module TimedTraceGrades.Rigid.UpperBound) "{!5}" 2 3;
       delays (module Rat.Upper) "{2.5}" (qf 1 2) (q 2);
     ]

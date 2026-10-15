@@ -343,7 +343,9 @@ module Over
           | r :: word -> r :: atoms word
           | [] -> []
         in
-        Braces (List.fold_left (fun r s -> Seq (r, s)) (Tick 0) (atoms word))
+        match atoms word with
+        | [] -> Braces (Tick 0)
+        | r :: rs -> Braces (List.fold_left (fun r s -> Seq (r, s)) r rs)
 
       let single = function Int _ | Braces _ -> true | _ -> false
       let number = function Int n -> Some (Rational.of_int n) | _ -> None

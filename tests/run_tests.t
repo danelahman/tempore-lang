@@ -4727,7 +4727,7 @@ it names none:
   File "strict_delays_whole_reject.tpe", lines 34-35, characters 2-5:
   34 |   unbox l as tok in
          ^^^^^^^^^^^^^^^^^
-  Typing error: Variable `l` is unboxed with grade `[{!2; Read; Log; !2; Read}, {!2; Read; Log; !2; Read}]` accumulated since it was bound, which is not below its box grade `[{(!(2; (0 | 1); (0 | 1)); Read)*}, {(!(2; (0 | 1); (0 | 1)); Read)*}]`
+  Typing error: Variable `l` is unboxed with grade `[{!2; Read; Log; !2; Read}, {!2; Read; Log; !2; Read}]` accumulated since it was bound, which is not below its box grade `[{(![2, 4]; Read)*}, {(![2, 4]; Read)*}]`
     File "strict_delays_whole_reject.tpe", line 28, characters 40-41:
     28 |   box {(![2, 4]; Read)*} (Token "l") as l in
                                                  ^
@@ -4752,7 +4752,7 @@ it names none:
     33 |   let b = perform Read () in
                    ^^^^^^^^^^^^^^^
     grade `[{Read}, {Read}]` accumulates here (operation `Read`)
-    Note: the resource inequality `[{!2; Read; Log; !2; Read}, {!2; Read; Log; !2; Read}] <= [{(!(2; (0 | 1); (0 | 1)); Read)*}, {(!(2; (0 | 1); (0 | 1)); Read)*}]` does not hold
+    Note: the resource inequality `[{!2; Read; Log; !2; Read}, {!2; Read; Log; !2; Read}] <= [{(![2, 4]; Read)*}, {(![2, 4]; Read)*}]` does not hold
   ======================================================================
   string_reject_newline_location.tpe
   ======================================================================

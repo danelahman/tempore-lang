@@ -152,7 +152,8 @@ module type S = sig
 
   (** The literals, delays and top of the grade under the rigid grades of timed
       operations, with strict delays ({!StrictDelays}); a grade with strict
-      delays is printed as its normal form. *)
+      delays is printed as the first brace literal read of its normal form, and
+      as its normal form if none was read. *)
   module Strict : StrictDelays.GRADE with type grade = t and type delay = int
 end
 
