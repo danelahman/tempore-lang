@@ -29,12 +29,14 @@ default ReadImu () = delay 0.6; 3
 operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
 default Redraw () = delay 21.5
 
-(* Correctly accepted by the typechecker: three polls, each a reading of the
-   inertial unit and a time stamp, each after a delay of at most 2.5
-   milliseconds. The loop demands its polls: a pause or another operation
-   between them is not a poll. *)
+(* Correctly accepted by the typechecker: the time stamp read before the
+   polls is boxed, and the time from it to the last poll is measured after
+   three polls, each a reading of the inertial unit and a time stamp, each
+   after a delay of at most 2.5 milliseconds. The loop demands its polls: a
+   pause or another operation between them is not a poll. *)
 let polls () =
-  box {(2.5; ReadImu; ReadClock)*} (Stamp 0) as p in
+  let start = perform ReadClock () in
+  box {(2.5; ReadImu; ReadClock)*} start as p in
   delay 1.8;
   let a = perform ReadImu () in
   let s = perform ReadClock () in
@@ -44,32 +46,35 @@ let polls () =
   delay 0.75;
   let c = perform ReadImu () in
   let u = perform ReadClock () in
-  unbox p as x in
-  x
+  unbox p as start' in
+  u - start'
 
-(* Correctly accepted by the typechecker: the time stamp follows the start
-   signal at once, without a delay that could buy another operation between
-   them, and the first poll follows within 750 milliseconds. *)
-let stamped () =
-  box {Beep; ReadClock; [0, 750]} (Stamp 0) as s in
+(* Correctly accepted by the typechecker: the lane of the athlete is boxed,
+   and the start is recorded for it, with its time stamp, only if the time
+   stamp follows the start signal at once, without a delay that could buy
+   another operation between them, and the first poll follows within 750
+   milliseconds. *)
+let stamped (lane : nat) =
+  box {Beep; ReadClock; [0, 750]} lane as s in
   perform Beep ();
   let t = perform ReadClock () in
   delay 312.5;
   let a = perform ReadImu () in
-  unbox s as x in
-  Stamp t
+  unbox s as lane' in
+  (lane', Stamp t)
 
-(* Correctly accepted by the typechecker: the redraw is not in the bound, and
-   is bought within its delay of at most 40 milliseconds before the time
-   stamp, at its upper running-time bound of 33. *)
-let redrawn () =
-  box {Beep; [0, 40]; ReadClock} (Stamp 0) as s in
+(* Correctly accepted by the typechecker: as 'stamped', the time stamp read
+   within 40 milliseconds of the start signal. The redraw is not in the
+   bound, and is bought within its delay of at most 40 milliseconds before
+   the time stamp, at its upper running-time bound of 33. *)
+let redrawn (lane : nat) =
+  box {Beep; [0, 40]; ReadClock} lane as s in
   perform Beep ();
   perform Redraw ();
   delay 6.5;
   let t = perform ReadClock () in
-  unbox s as x in
-  Stamp t
+  unbox s as lane' in
+  (lane', Stamp t)
 
 (* Correctly rejected by the typechecker: a redraw of up to 33 milliseconds
    between two polls exceeds the 2.5 the loop allows. Under the allowance
@@ -88,14 +93,15 @@ let redrawn () =
 *)
 (*
 let polls_redrawn () =
-  box {(2.5; ReadImu; ReadClock)*} (Stamp 0) as p in
+  let start = perform ReadClock () in
+  box {(2.5; ReadImu; ReadClock)*} start as p in
   let a = perform ReadImu () in
   let s = perform ReadClock () in
   perform Redraw ();
   let b = perform ReadImu () in
   let t = perform ReadClock () in
-  unbox p as x in
-  x
+  unbox p as start' in
+  t - start'
 *)
 
 (* Correctly rejected by the typechecker: the screen is redrawn between the
@@ -104,45 +110,45 @@ let polls_redrawn () =
    bound left out and the redraw bought within the 750 milliseconds:
 
      Typing error: Variable `s` is unboxed with grade
-       `{Beep; Redraw; ReadClock; 312.5; ReadImu}` accumulated since it was
+       `{Beep; Redraw; ReadClock; !312.5; ReadImu}` accumulated since it was
        bound, which is not below its box grade `{Beep; ReadClock; [0, 750]}`
        ...
        Note: the resource inequality
-         `{Beep; Redraw; ReadClock; 312.5; ReadImu} <= {Beep; ReadClock; [0, 750]}`
+         `{Beep; Redraw; ReadClock; !312.5; ReadImu} <= {Beep; ReadClock; [0, 750]}`
          does not hold
 *)
 (*
-let stamped_late () =
-  box {Beep; ReadClock; [0, 750]} (Stamp 0) as s in
+let stamped_late (lane : nat) =
+  box {Beep; ReadClock; [0, 750]} lane as s in
   perform Beep ();
   perform Redraw ();
   let t = perform ReadClock () in
   delay 312.5;
   let a = perform ReadImu () in
-  unbox s as x in
-  Stamp t
+  unbox s as lane' in
+  (lane', Stamp t)
 *)
 
 (* Correctly rejected by the typechecker: a redraw of up to 33 milliseconds and
    a delay of 7.5 exceed the 40 before the time stamp:
 
      Typing error: Variable `s` is unboxed with grade
-       `{Beep; Redraw; 7.5; ReadClock}` accumulated since it was bound, which
+       `{Beep; Redraw; !7.5; ReadClock}` accumulated since it was bound, which
        is not below its box grade `{Beep; [0, 40]; ReadClock}`
        ...
        Note: the resource inequality
-         `{Beep; Redraw; 7.5; ReadClock} <= {Beep; [0, 40]; ReadClock}` does
+         `{Beep; Redraw; !7.5; ReadClock} <= {Beep; [0, 40]; ReadClock}` does
          not hold
 *)
 (*
-let redrawn_slowly () =
-  box {Beep; [0, 40]; ReadClock} (Stamp 0) as s in
+let redrawn_slowly (lane : nat) =
+  box {Beep; [0, 40]; ReadClock} lane as s in
   perform Beep ();
   perform Redraw ();
   delay 7.5;
   let t = perform ReadClock () in
-  unbox s as x in
-  Stamp t
+  unbox s as lane' in
+  (lane', Stamp t)
 *)
 
-run stamped ()
+run stamped 4

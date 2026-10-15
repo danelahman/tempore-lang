@@ -1453,9 +1453,9 @@ tests show those runs in detail.
   ../examples/regular_timed_rigid/upper_bounds_rational.tpe
   ======================================================================
   === Run 1 ===
-  return (Stamp 1200)
+  return (4, Stamp 1200)
   State: [
-    { resource_0 ↦ Stamp 0 # {Beep; ReadClock; [0, 750]} },
+    { resource_0 ↦ 4 # {Beep; ReadClock; [0, 750]} },
     {!0.1},
     {!0.02},
     {!312.5},
