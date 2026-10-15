@@ -83,7 +83,7 @@ def ChangeTip(ctx, unit):
     return ()
 
 
-def ReleaseDNA(ctx, unit):
+def EluteDNA(ctx, unit):
     pipette = ctx["pipette"]
     for sample in ctx["samples"]:
         if not ctx["tip"]:

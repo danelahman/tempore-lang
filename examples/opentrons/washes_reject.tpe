@@ -18,8 +18,8 @@ default Wash () = delay 1
 operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
 default ChangeTip () = delay 0
 
-operation ReleaseDNA : unit ~> unit # {ReleaseDNA} within [1, 2]
-default ReleaseDNA () = delay 1
+operation EluteDNA : unit ~> unit # {EluteDNA} within [1, 2]
+default EluteDNA () = delay 1
 
 (* Correctly rejected by the typechecker: the beads are washed once only:
 
@@ -33,6 +33,6 @@ let one_wash (beads : beads) =
   delay 3;
   perform ChangeTip ();
   unbox washed as beads in
-  perform ReleaseDNA ()
+  perform EluteDNA ()
 
 run one_wash "beads"

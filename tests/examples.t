@@ -779,7 +779,7 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/beads_reject.tpe
   ======================================================================
-  File "../examples/opentrons/beads_reject.tpe", lines 36-37, characters 2-26:
+  File "../examples/opentrons/beads_reject.tpe", lines 36-37, characters 2-24:
   36 |   unbox drying as beads in
          ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
@@ -1180,7 +1180,7 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/washes_reject.tpe
   ======================================================================
-  File "../examples/opentrons/washes_reject.tpe", lines 35-36, characters 2-23:
+  File "../examples/opentrons/washes_reject.tpe", lines 35-36, characters 2-21:
   35 |   unbox washed as beads in
          ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `washed` is unboxed with grade `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]`

@@ -68,7 +68,7 @@ def FinalWash(ctx, beads):
     return beads
 
 
-def ReleaseDNA(ctx, beads):
+def EluteDNA(ctx, beads):
     ctx["pipette"].transfer(25, ctx["reservoir"]["A3"], ctx["samples"], mix_after=(5, 20), new_tip="always")
     tempore_elapse(90)
     return ()
