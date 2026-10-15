@@ -1,0 +1,86 @@
+(* Closures, compiled by defunctionalisation: a thunk in a nested box, a
+   closure returned by a function and applied by its caller, two functions of
+   one type chosen by a branch, a closure of a parameter capturing a tuple, a
+   closure capturing another closure, closures passed to a top-level function,
+   and a closure created outside a handle and applied inside it, whose
+   operation the handler handles. *)
+
+operation A : unit ~> nat # {A} within [1, 2]
+operation B : unit ~> unit # {B} within [1, 2]
+operation C : unit ~> unit # {C} within [1, 2]
+operation Read : unit ~> nat # {Read} within [1, 2]
+
+(* The results of A, B and C, and the number read, each operation taking one
+   unit of time. *)
+let device (a : nat) (r : nat) =
+  handler
+  | x -> x
+  | A () k -> continue k with a
+  | B () k -> continue k with ()
+  | C () k -> continue k with ()
+  | Read () k -> continue k with r
+
+(* A thunk in a nested box: the outer box is unboxed after B, the inner one
+   after C. *)
+type staged = [{B}](unit -> [{C}]nat)
+
+let stage (x : nat) : staged =
+  box {B} (fun () -> box {C} x as inner in inner) as outer in
+  outer
+
+let staged_read () : nat # {A; B; C} =
+  let x = perform A () in
+  let outer = stage x in
+  perform B ();
+  unbox outer as t in
+  let inner = t () in
+  perform C ();
+  unbox inner as v in
+  v
+
+(* A closure returned by a function and applied by its caller. *)
+let adder (n : nat) = let f = fun (m : nat) -> n + m in f
+
+let added () = let g = adder 5 in (g 1, g 2)
+
+(* Two functions of one type, chosen by a branch. *)
+let choose (b : bool) (k : nat) =
+  if b then fun (m : nat) -> m * k else fun (m : nat) -> m + k
+
+let chosen () =
+  let f = choose true 3 in
+  let g = choose false 3 in
+  (f 4, g 4)
+
+(* A closure of a parameter capturing a tuple. *)
+let scaled (p : nat * nat) =
+  let h = fun (x : nat) -> let a, b = p in a * x + b in
+  (h 1, h 10)
+
+(* A closure capturing another closure. *)
+let composed (k : nat) =
+  let inc = fun (x : nat) -> x + k in
+  let twice = fun (x : float) -> nat_of_float x + inc (inc 0) in
+  twice 2.5
+
+(* Closures passed to a top-level function. *)
+let apply_twice (f : nat -> nat) (x : nat) = f (f x)
+
+let applied (k : nat) = (apply_twice (fun (x : nat) -> x * k) 3, apply_twice (fun (x : nat) -> x + k) 3)
+
+(* A closure created outside a handle and applied inside it: its operation is
+   handled by the handler of the application, not by the handler around the
+   function. *)
+let deferred () =
+  let read = fun () -> let r = perform Read () in r + 1 in
+  let inside = handle read () with device 0 40 in
+  let outside = perform Read () in
+  (inside, outside)
+
+run handle staged_read () with device 7 0
+run added ()
+run chosen ()
+run scaled (3, 4)
+run composed 10
+run applied 2
+run handle deferred () with device 0 2

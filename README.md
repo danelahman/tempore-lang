@@ -1447,7 +1447,7 @@ are unchanged; `--timeline-full` prints them in full.
 
 ### Arduino
 
-The proof-of-concept Arduino backend compiles a first-order fragment of
+The proof-of-concept Arduino backend compiles a fragment of
 Tempore to allocation-free C++ and generates a PlatformIO project for an
 Arduino or ESP32 board, with FreeRTOS tasks. A device manifest names the
 board, the periodic and free tasks and the peripheral packages, which declare

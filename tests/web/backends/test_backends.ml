@@ -902,14 +902,17 @@ let () =
         refused ~sub:"missing" );
     ]
     "let double (n : nat) = n + n\nrun double 2";
-  arduino_program ~name:"a local function" ~grade:"time-interval-rational"
-    ~settings:[]
+  arduino_program ~name:"a local recursive function"
+    ~grade:"time-interval-rational" ~settings:[]
     [
       ( [],
         fun output ->
           refused ~sub:"Compilation error" output && located ~file:"" output );
     ]
-    "let twice (n : nat) = let f (m : nat) = m + m in f n\nrun twice 2";
+    "let count (n : nat) =\n\
+    \  let rec f (m : nat) = match m with | 0 -> 0 | k + 1 -> f k in\n\
+    \  f n\n\
+     run count 2";
   (* A handler that is not tail-resumptive: a warning located in the program
      when no task uses it, the project compiled; an error when one does. *)
   let free task =

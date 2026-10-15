@@ -1,5 +1,5 @@
-(** The first-order fragment of Tempore that the Arduino backend compiles, and
-    its typed intermediate representation.
+(** The fragment of Tempore that the Arduino backend compiles, and its typed
+    intermediate representation.
 
     A program accepted by the typechecker is checked against the fragment
     definition by definition, starting from its roots and, if requested, its
@@ -13,7 +13,11 @@
     - top-level functions, possibly curried, applied to all their arguments; the
       arguments of a curried application may be supplied through intermediate
       variables;
-    - top-level constants, built from constants, tuples and constructors;
+    - top-level constants, built from constants, tuples, constructors and
+      closures;
+    - anonymous functions [fun p -> c] as values, each with its environment, the
+      values of its free variables, and their applications to an argument; the
+      body of such a function is not in tail position of the definition;
     - [let] and [do], [if] and [match], with patterns over tuples, constructors,
       constants and successors [n + k];
     - natural numbers, floats, booleans, the unit and tuples, and the
@@ -47,13 +51,14 @@
     of its continuation, not by a rejection, since it is not compiled. The
     handlers of the standard library and of the [run] commands are not checked.
 
-    Rejected are, among others, functions other than top-level definitions,
-    functions and handlers used as values, partial applications, handlers that
-    are not tail-resumptive, lists, strings elsewhere (also as results of
-    operations and arguments of constructors), recursive calls outside tail
-    position (also inside a [handle] and its handler), and natural number
-    literals of more than 32 bits. A rejection is a compilation
-    {!Utils.Diagnostic.t} at the construct.
+    Rejected are, among others, local recursive functions, top-level functions
+    and handlers used as values, partial applications, datatypes whose
+    constructors take functions, comparisons of functions, handlers that are not
+    tail-resumptive, lists, strings elsewhere (also as results of operations and
+    arguments of constructors), recursive calls outside tail position (also
+    inside a [handle] and its handler), and natural number literals of more than
+    32 bits. A rejection is a compilation {!Utils.Diagnostic.t} at the
+    construct.
 
     Types are reconstructed by unification, with the top-level definitions
     generalised over the type variables of their types. A polymorphic definition
@@ -71,6 +76,7 @@ type ty =
   | Tuple of ty list  (** the unit type is the empty tuple *)
   | Data of Language.Ast.ty_name
       (** a datatype without type parameters, not recursive *)
+  | Arrow of ty * ty  (** a function, represented by its closures *)
   | Meta of int  (** a type variable of the reconstruction *)
 
 val compare_ty : ty -> ty -> int
@@ -83,6 +89,9 @@ val substitute : (int -> ty option) -> ty -> ty
 val has_string : ty -> bool
 (** [has_string ty] is whether [ty] has a string component. The datatypes of the
     fragment have none. *)
+
+val has_function : ty -> bool
+(** [has_function ty] is whether [ty] has a function component. *)
 
 val type_variables : ty list -> int list
 (** [type_variables tys] is the type variables of [tys], in the order of their
@@ -105,8 +114,18 @@ and value_node =
   | Constant of Language.Const.t
   | Tuple_value of value list
   | Construct of Language.Ast.label * value option
+  | Closure of closure  (** an anonymous function and its environment *)
 
-type pattern = { pattern : pattern_node; pattern_ty : ty }
+and closure = {
+  closure_name : Language.Ast.variable;  (** a fresh variable *)
+  closure_at : Utils.Location.t;
+  environment : (Language.Ast.variable * ty) list;
+      (** the free variables of the function, with their types *)
+  closure_parameter : pattern;
+  closure_body : computation;
+}
+
+and pattern = { pattern : pattern_node; pattern_ty : ty }
 
 and pattern_node =
   | PVar of Language.Ast.variable
@@ -117,12 +136,12 @@ and pattern_node =
   | PSucc of pattern * Z.t  (** [p + k] *)
   | PAny
 
-type callee =
+and callee =
   | Self  (** the function being defined, called in tail position *)
   | Function of global  (** a top-level function *)
   | Primitive of Language.Primitives.primitive
 
-type computation = { computation : computation_node; result : ty }
+and computation = { computation : computation_node; result : ty }
 
 and computation_node =
   | Return of value
@@ -132,6 +151,7 @@ and computation_node =
   | Call of callee * value list
       (** all the arguments of the function; the single argument of a primitive
       *)
+  | Apply of value * value  (** the application of a closure to its argument *)
   | Perform of Language.Ast.operation * value
   | Delay of Grades.Rational.t * computation
   | Handle of handler_use * computation
