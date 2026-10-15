@@ -5,6 +5,7 @@
     "regex-timed-lower-bound-rational-symbolic": "i2c_timed_ops.tpe",
     "regex-timed-upper-bound-rational-symbolic": "i2c_timed_ops.tpe",
     "regex-timed-interval-rational-symbolic": "i2c_timed_ops.tpe",
+    "regex-timed-rigid-lower-bound-rational-symbolic": "i2c_timed_ops.tpe",
     "regex-timed-rigid-upper-bound-rational-symbolic": "i2c_timed_ops.tpe",
     "regex-timed-rigid-interval-rational-symbolic": "i2c_timed_ops.tpe",
     "event-separation": "i2c_timed_ops.tpe",
