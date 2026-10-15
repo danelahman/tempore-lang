@@ -19,3 +19,13 @@ val packages :
     at [path], under the grades [grades]: each with its name, its text and the
     running-time bounds of the board named by a [--board NAME] option, if any.
     @raise Failure if a package is unknown or has no files under [grades]. *)
+
+val corpus :
+  string ->
+  (string
+  * string
+  * (string * string * (string * Grades.Grade.running_time) list) list)
+  list
+(** [corpus root] is the files typechecked by the solver tests: those of
+    [root/examples], then those directly in [root/tests], each with its grades
+    and, for the examples, its packages. *)

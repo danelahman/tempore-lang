@@ -611,7 +611,9 @@ a reader of the closure.
 
 They can be compared by running
 `dune exec --profile release bench/regular/bench_regular.exe`; see
-[`bench/regular/README.md`](bench/regular/README.md).
+[`bench/regular/README.md`](bench/regular/README.md). The typechecking times of
+the examples and tests are in
+[`bench/typecheck/README.md`](bench/typecheck/README.md).
 
 ### Regular expressions of timed operations
 
