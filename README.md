@@ -1479,7 +1479,8 @@ The examples in [`examples/arduino/`](examples/arduino/), by board:
   gyroscope bias removed by a handler; [`peak`](examples/arduino/peak/peak.tpe),
   a peak recorder; [`level`](examples/arduino/level/level.tpe), a digital
   level; [`fall`](examples/arduino/fall/fall.tpe), a fall detector;
-  [`steps`](examples/arduino/steps/steps.tpe), a step counter.
+  [`steps`](examples/arduino/steps/steps.tpe), a step counter;
+  [`starter`](examples/arduino/starter/starter.tpe), a sprint starter.
 
 #### Quick start
 <!-- web-skip -->

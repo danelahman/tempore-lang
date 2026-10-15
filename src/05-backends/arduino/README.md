@@ -101,6 +101,9 @@ timed operations over rational delays (`regex-timed-*-rational-symbolic`) and
     divider of the MPU6886), so that the conversion of M5Unified stays valid.
   - `CheckAtRest` is a check of plausibility, not a self-test: four readings
     started 6 ms apart, true if the unit is at rest.
+  - Each reading of `ReadImu` is passed to `m5_imu_observe(accel, gyro)`,
+    defined weakly to do nothing, which an application may define to record
+    the readings.
 - `m5-display`, with colours of 24 bits, `0xRRGGBB`:
   - `ShowText`, `ShowNumber` and `ClearDisplay`, lines of text of size 2
     written one below another;
@@ -118,7 +121,9 @@ timed operations over rational delays (`regex-timed-*-rational-symbolic`) and
   through `M5.Touch.update` under the I2C lock (the touch screens of the
   CoreS3 and the Core2, capability `touch`).
 - `m5-speaker`: `Beep`, which starts a tone of a frequency and a duration on
-  the speaker and returns at once (capability `speaker`).
+  the speaker and returns at once (capability `speaker`). Each tone is passed
+  to `m5_speaker_observe(frequency, duration)`, defined weakly to do nothing,
+  as `m5_imu_observe` is, on the device and in the host simulation.
 - `bala2-base`: `SetMotors`, `ReadEncoders` and `ResetEncoders` of the base of
   the M5Stack BALA2, with a watchdog of the motor setpoints. The counts of the
   encoders increase in the direction in which a positive drive turns the
@@ -786,6 +791,21 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - The handler `walk`, not compiled, replays a walk in the interpreter.
   - Under `-DSTEPS_RECORD` the readings and the events are recorded in flash
     memory ([Recording the step counter](#recording-the-step-counter)).
+- [`starter`](../../../examples/arduino/starter/starter.tpe): a sprint
+  starter and false-start judge, under the regular expressions of timed
+  operations.
+  - The protocol of a start is three boxes nested in each other, each holding
+    a closure that creates the next: Set at least a second after On your
+    marks, the gun 1.5 to 3 s after Set, and the athlete judged within a
+    second of the gun.
+  - The gun follows the Set command after a hold of 80 polls and as many
+    further polls as the clock gives, 1576 to 2919 ms; the time of the gun is
+    read at once, with no operation between.
+  - A reaction under 100 ms or a movement in Set is a false start: a warning
+    for the first, a disqualification for the second. "Stand up" abandons a
+    start before the gun, and "Reset" clears the tally.
+  - The host model observes the tones of the Set command and of the gun
+    through `m5_speaker_observe` and scripts the pushes after them.
 
 #### Using the digital level
 
