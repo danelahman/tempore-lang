@@ -796,14 +796,15 @@ operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
 operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
 
 let polls () =
-  box {(2.5; ReadImu; ReadClock)*} () as p in
+  let start = perform ReadClock () in
+  box {(2.5; ReadImu; ReadClock)*} start as p in
   let a = perform ReadImu () in
   let s = perform ReadClock () in
   delay 2.25;
   let b = perform ReadImu () in
   let t = perform ReadClock () in
-  unbox p as x in
-  x
+  unbox p as start' in
+  t - start'
 ```
 
 is accepted, while `perform Redraw ()` in place of `delay 2.25` is rejected, as
@@ -873,14 +874,15 @@ operation ReadImu : unit ~> nat # {ReadImu} within [0.2, 1.5]
 operation Beep : unit ~> unit # {Beep} within [0, 0.15]
 
 let sampled () =
-  box {(![9.5, 10.5]; ReadImu)*} () as s in
+  let first = perform ReadImu () in
+  box {(![9.5, 10.5]; ReadImu)*} first as s in
   delay 10;
   let a = perform ReadImu () in
   perform Beep ();
   delay 10;
   let b = perform ReadImu () in
-  unbox s as x in
-  x
+  unbox s as first' in
+  (first' + a + b) / 3
 ```
 
 is rejected, as the beep falls in a strict delay:
@@ -896,16 +898,22 @@ A bound whose delays are strict admits no operation it does not name, so
 complements of operations exclude them: `{(!_ & ~A)*}`, or
 `{!_* & ~(_*; A; _*)}`, permits every trace without `A` whose delays are
 strict, and `{!_*}` every trace with strict delays only. With `ReadImu` and
-`ConfigureImu` declared, the box grade `{(!_ & ~ConfigureImu)*}` rejects
+`ConfigureImu` declared, the box grade `{(!_ & ~ConfigureImu)*}` keeps a
+reference reading from a reconfiguration, and the program
 
 ```
+let drift () =
+  let reference = perform ReadImu () in
+  box {(!_ & ~ConfigureImu)*} reference as w in
   let a = perform ReadImu () in
   delay 2;
   perform ConfigureImu ();
   let b = perform ReadImu () in
+  unbox w as reference' in
+  (a + b) / 2 - reference'
 ```
 
-with
+is rejected with
 
     Variable `w` is unboxed with grade `{ReadImu; !2; ConfigureImu; ReadImu}`
     accumulated since it was bound, which is not below its box grade
