@@ -38,27 +38,30 @@ operation Report : unit ~> unit
   # [{Sample; Compress; Transmit}, {Sample; Compress; Transmit}]
 
 (* Correctly accepted by the typechecker: the reading is compressed after a
-   delay of a fifth of a second, which lets the sensors settle. The packet may
-   be used after 0.8 seconds, which the sample, the delay and the compression
-   bank at their lower running-time bounds, 1/2 + 0.2 + 1/4 = 0.95, and must be
-   used within three, which they take at most, 3/2 + 0.2 + 1 = 2.7. *)
-let settled_packet () =
-  box [0.8, 3] () as window in
+   delay of a fifth of a second, which lets the sensors settle. The previous
+   packet is boxed and transmitted after 0.8 seconds, which the sample, the
+   delay and the compression bank at their lower running-time bounds,
+   1/2 + 0.2 + 1/4 = 0.95, and within three, which they take at most,
+   3/2 + 0.2 + 1 = 2.7. *)
+let settled_packet (previous : packet) =
+  box [0.8, 3] previous as window in
   let r = perform Sample () in
   delay 1/5;
   let p = perform Compress r in
-  unbox window as w in
+  unbox window as previous' in
+  perform Transmit previous';
   p
 
-(* Correctly accepted by the typechecker: a window written as traces, demanding
-   the sample and the delay and allowing the sample, the delay and the
-   compression. *)
-let settled_by_events () =
-  box [{Sample; 0.2}, {Sample; 1/5; Compress}] () as window in
+(* Correctly accepted by the typechecker: as 'settled_packet', with a window
+   written as traces, demanding the sample and the delay and allowing the
+   sample, the delay and the compression. *)
+let settled_by_events (previous : packet) =
+  box [{Sample; 0.2}, {Sample; 1/5; Compress}] previous as window in
   let r = perform Sample () in
   delay 1/5;
   let p = perform Compress r in
-  unbox window as w in
+  unbox window as previous' in
+  perform Transmit previous';
   p
 
 (* Correctly accepted by the typechecker: the report itself, performed by
@@ -70,16 +73,14 @@ let report_by_hand () =
 
 (* Correctly accepted by the typechecker: a report fits a radio slot that opens
    after 3/2 seconds and closes after 11/2, since its operations bank at least
-   1/2 + 1/4 + 1 = 7/4 and take at most 3/2 + 1 + 5/2 = 5. *)
-let report_in_slot () =
-  box [3/2, 11/2] () as slot in
-  perform Report ();
-  unbox slot as s in
-  s
+   1/2 + 1/4 + 1 = 7/4 and take at most 3/2 + 1 + 5/2 = 5; the slot is the
+   annotated grade of the function. *)
+let report_in_slot () : unit # [3/2, 11/2] =
+  perform Report ()
 
-(* Correctly rejected by the typechecker: without the delay, the packet is not
-   ready after 0.8 seconds, since the sample and the compression bank only
-   their lower running-time bounds, 1/2 + 1/4 = 0.75:
+(* Correctly rejected by the typechecker: without the delay, the previous
+   packet may be transmitted before 0.8 seconds, since the sample and the
+   compression bank only their lower running-time bounds, 1/2 + 1/4 = 0.75:
 
      Typing error: Variable `window` is unboxed with grade
        `[{Sample; Compress}, {Sample; Compress}]` accumulated since it was
@@ -89,11 +90,12 @@ let report_in_slot () =
          hold
 *)
 (*
-let hasty_packet () =
-  box [0.8, 3] () as window in
+let hasty_packet (previous : packet) =
+  box [0.8, 3] previous as window in
   let r = perform Sample () in
   let p = perform Compress r in
-  unbox window as w in
+  unbox window as previous' in
+  perform Transmit previous';
   p
 *)
 
@@ -109,12 +111,13 @@ let hasty_packet () =
          not hold
 *)
 (*
-let idle_packet () =
-  box [0.8, 3] () as window in
+let idle_packet (previous : packet) =
+  box [0.8, 3] previous as window in
   let r = perform Sample () in
   delay 1;
   let p = perform Compress r in
-  unbox window as w in
+  unbox window as previous' in
+  perform Transmit previous';
   p
 *)
 

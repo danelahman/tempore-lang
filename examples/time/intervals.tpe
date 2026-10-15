@@ -11,16 +11,17 @@
      - Product: componentwise addition *)
 
 (* Correctly accepted by the typechecker: the two delays accumulate [3, 3],
-   which lies inside the [1, 4] the box demands. *)
+   which lies inside the [1, 4] the box demands, and the unboxed value is
+   used in an addition. *)
 let foo1 () = 
   box [1, 4] 1 as r in
   let _ = delay 1 in
   let _ = delay 2 in
   unbox r as y in
-  1
+  y + 1
 
-(* Correctly accepted by the typechecker: as 'foo1', and the unboxed value may
-   be returned since the box has been opened. *)
+(* Correctly accepted by the typechecker: as 'foo1', with the unboxed value
+   returned. *)
 let foo2 () = 
   box [1, 4] 1 as r in
   let _ = delay 1 in

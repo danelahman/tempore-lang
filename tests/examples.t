@@ -174,7 +174,7 @@ tests show those runs in detail.
   ]
   
   === Run 7 ===
-  return resource_0
+  return 11
   State: [
     5,
     { resource_0 ↦ 11 # 3 },
@@ -189,7 +189,7 @@ tests show those runs in detail.
   ]
   
   === Run 9 ===
-  return (43, "test")
+  return (142, "test")
   State: [
     2,
     10,
@@ -1433,8 +1433,9 @@ tests show those runs in detail.
   === Run 1 ===
   return (Sample 3)
   State: [
+    [{!0.6}, {!0.6}],
     { resource_0 ↦
-        Sample 0
+        3
         # [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]
     },
     [{!1.75}, {!1.75}],
@@ -1452,9 +1453,9 @@ tests show those runs in detail.
   ../examples/regular_timed_rigid/upper_bounds_rational.tpe
   ======================================================================
   === Run 1 ===
-  return (Stamp 1200)
+  return (4, Stamp 1200)
   State: [
-    { resource_0 ↦ Stamp 0 # {Beep; ReadClock; [0, 750]} },
+    { resource_0 ↦ 4 # {Beep; ReadClock; [0, 750]} },
     {!0.1},
     {!0.02},
     {!312.5},
@@ -1573,7 +1574,7 @@ tests show those runs in detail.
   ../examples/time/intervals.tpe
   ======================================================================
   === Run 1 ===
-  return 1
+  return 2
   State: [
     { resource_0 ↦ 1 # [1, 4] },
     [1, 1],

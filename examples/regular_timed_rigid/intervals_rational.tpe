@@ -24,13 +24,15 @@ default ReadClock () = delay 0.02; 1200
 operation Redraw : unit ~> unit # {Redraw} within [0.05, 33]
 default Redraw () = delay 21.5
 
-(* Correctly accepted by the typechecker: three polls, which the lower bound
-   demands, each after a delay of at most 2.5 milliseconds, as the upper bound
-   allows, which demands every operation of its rounds and so excludes a pause
-   or another operation between them. *)
+(* Correctly accepted by the typechecker: the first reading is boxed and
+   averaged with the readings of three polls, which the lower bound demands,
+   each after a delay of at most 2.5 milliseconds, as the upper bound allows,
+   which demands every operation of its rounds and so excludes a pause or
+   another operation between them. *)
 let window () =
+  let first = perform ReadImu () in
   box [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
-       {(2.5; ReadImu; ReadClock)*}] (Sample 0) as w in
+       {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in
   let s = perform ReadClock () in
@@ -40,35 +42,36 @@ let window () =
   delay 1.5;
   let c = perform ReadImu () in
   let u = perform ReadClock () in
-  unbox w as x in
-  Sample c
+  unbox w as first' in
+  Sample ((first' + a + b + c) / 4)
 
-(* Correctly rejected by the typechecker: the window closes after two polls,
+(* Correctly rejected by the typechecker: the average is taken after two polls,
    short of the three the lower bound demands:
 
      Typing error: Variable `w` is unboxed with grade
-       `[{1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock},
-         {1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock}]` accumulated
+       `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock},
+         {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}]` accumulated
        since it was bound, which is not below its box grade
        `[{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
          {(2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `[{1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock}, {1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock}] <= [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]`
+         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock}] <= [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*
 let window_short () =
+  let first = perform ReadImu () in
   box [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
-       {(2.5; ReadImu; ReadClock)*}] (Sample 0) as w in
+       {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in
   let s = perform ReadClock () in
   delay 2.25;
   let b = perform ReadImu () in
   let t = perform ReadClock () in
-  unbox w as x in
-  Sample b
+  unbox w as first' in
+  Sample ((first' + a + b) / 3)
 *)
 
 (* Correctly rejected by the typechecker: the screen is redrawn between the
@@ -77,22 +80,23 @@ let window_short () =
    further rounds of the upper bound paying for the redraw:
 
      Typing error: Variable `w` is unboxed with grade
-       `[{1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock; Redraw; ReadImu;
+       `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu;
           ReadClock},
-         {1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock; Redraw; ReadImu;
+         {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu;
           ReadClock}]` accumulated since it was bound, which is not below its
        box grade
        `[{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
          {(2.5; ReadImu; ReadClock)*}]`
        ...
        Note: the resource inequality
-         `[{1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}, {1.75; ReadImu; ReadClock; 2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}] <= [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]`
+         `[{!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}, {!1.75; ReadImu; ReadClock; !2.25; ReadImu; ReadClock; Redraw; ReadImu; ReadClock}] <= [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]`
          does not hold
 *)
 (*
 let window_redrawn () =
+  let first = perform ReadImu () in
   box [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock},
-       {(2.5; ReadImu; ReadClock)*}] (Sample 0) as w in
+       {(2.5; ReadImu; ReadClock)*}] first as w in
   delay 1.75;
   let a = perform ReadImu () in
   let s = perform ReadClock () in
@@ -102,8 +106,8 @@ let window_redrawn () =
   perform Redraw ();
   let c = perform ReadImu () in
   let u = perform ReadClock () in
-  unbox w as x in
-  Sample c
+  unbox w as first' in
+  Sample ((first' + a + b + c) / 4)
 *)
 
 run window ()

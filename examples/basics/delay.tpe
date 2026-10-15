@@ -61,13 +61,12 @@ let bar2 n = delay 23
 let foobar () = foo bar1 bar2 7
 
 (* Correctly accepted by the typechecker: grade 8, the five ticks of
-   'higher 5 6' inside the box plus the delay of three. The box type is not
-   eternal, but under this monoid zero is the top of the sub-grade order, so
-   returning it after the delay is still allowed. *)
+   'higher 5 6' inside the box plus the delay of three, which banks the three
+   the unbox demands. *)
 let test () = 
   let x = box 3 (higher 5 6) in 
   delay 3; 
-  x
+  unbox x as y in y
 
 (* Correctly accepted by the typechecker: the delay banks five ticks, more
    than the three the box demands. *)
@@ -89,7 +88,7 @@ let test3 () =
   in 
   delay 3; 
   let (n, a, h) = unbox r in 
-  (n, h)
+  (n + a, h)
 
 (* The runs below evaluate the definitions above; the resource state printed
    with each is the delays it accumulated. *)
