@@ -844,12 +844,12 @@ tests show those runs in detail.
         <fun>
         # [{AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}, {AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}]
     },
-    [{2}, {2}],
-    [{7}, {7}],
-    [{1}, {1}],
+    [{!2}, {!2}],
+    [{!7}, {!7}],
+    [{!1}, {!1}],
     { resource_2 ↦ "beads" # [{3}, {5}] },
-    [{4}, {4}],
-    [{1}, {1}],
+    [{!4}, {!4}],
+    [{!1}, {!1}],
     { resource_3 ↦
         "beads"
         # [{AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; 2; (0 | 1)}, {AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; 2; (0 | 1)}],
@@ -857,53 +857,53 @@ tests show those runs in detail.
         <fun>
         # [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]
     },
-    [{1}, {1}],
-    [{1}, {1}],
-    [{2}, {2}],
+    [{!1}, {!1}],
+    [{!1}, {!1}],
+    [{!2}, {!2}],
     { resource_7 ↦
         <fun>
         # [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]
     },
-    [{1}, {1}],
-    [{1}, {1}],
-    [{2}, {2}],
-    [{3}, {3}],
+    [{!1}, {!1}],
+    [{!1}, {!1}],
+    [{!2}, {!2}],
+    [{!3}, {!3}],
     { resource_9 ↦
         <fun>
         # [{MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}, {MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}]
     },
-    [{1}, {1}],
-    [{1}, {1}],
-    [{3}, {3}],
-    [{1}, {1}],
-    [{4}, {4}],
-    [{2}, {2}]
+    [{!1}, {!1}],
+    [{!1}, {!1}],
+    [{!3}, {!3}],
+    [{!1}, {!1}],
+    [{!4}, {!4}],
+    [{!2}, {!2}]
   ]
   
   ======================================================================
   ../examples/opentrons/cleanup_reject.tpe
   ======================================================================
-  File "../examples/opentrons/cleanup_reject.tpe", line 36, characters 6-24:
-  36 |       continue k with ()
+  File "../examples/opentrons/cleanup_reject.tpe", line 37, characters 6-24:
+  37 |       continue k with ()
              ^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `k` is unboxed with grade `[{RemoveEthanol; 1; AddEthanol}, {RemoveEthanol; 1; AddEthanol}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
-    File "../examples/opentrons/cleanup_reject.tpe", line 32, characters 19-20:
-    32 |   | EthanolWash () k ->
+  Typing error: Variable `k` is unboxed with grade `[{RemoveEthanol; !1; AddEthanol}, {RemoveEthanol; !1; AddEthanol}]` accumulated since it was bound, which is not below its box grade `[{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]`
+    File "../examples/opentrons/cleanup_reject.tpe", line 33, characters 19-20:
+    33 |   | EthanolWash () k ->
                             ^
     `k` is bound here
-    File "../examples/opentrons/cleanup_reject.tpe", line 33, characters 6-30:
-    33 |       perform RemoveEthanol ();
+    File "../examples/opentrons/cleanup_reject.tpe", line 34, characters 6-30:
+    34 |       perform RemoveEthanol ();
                ^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{RemoveEthanol}, {RemoveEthanol}]` accumulates here (operation `RemoveEthanol`)
-    File "../examples/opentrons/cleanup_reject.tpe", line 34, characters 6-13:
-    34 |       delay 1;
+    File "../examples/opentrons/cleanup_reject.tpe", line 35, characters 6-13:
+    35 |       delay 1;
                ^^^^^^^
-    grade `[{1}, {1}]` accumulates here (delay)
-    File "../examples/opentrons/cleanup_reject.tpe", line 35, characters 6-27:
-    35 |       perform AddEthanol ();
+    grade `[{!1}, {!1}]` accumulates here (delay)
+    File "../examples/opentrons/cleanup_reject.tpe", line 36, characters 6-27:
+    36 |       perform AddEthanol ();
                ^^^^^^^^^^^^^^^^^^^^^
     grade `[{AddEthanol}, {AddEthanol}]` accumulates here (operation `AddEthanol`)
-    Note: the resource inequality `[{RemoveEthanol; 1; AddEthanol}, {RemoveEthanol; 1; AddEthanol}] <= [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]` does not hold
+    Note: the resource inequality `[{RemoveEthanol; !1; AddEthanol}, {RemoveEthanol; !1; AddEthanol}] <= [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]` does not hold
   ======================================================================
   ../examples/opentrons/contamination.tpe
   ======================================================================

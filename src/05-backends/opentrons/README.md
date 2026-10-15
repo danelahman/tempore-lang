@@ -193,7 +193,7 @@ each is a minute.
   read with plates boxed `[0, 30]`, under `time-interval`.
 - [`cleanup.tpe`](../../../examples/opentrons/cleanup.tpe): a bead clean-up
   whose compound operations are performed by a handler through the atomic
-  operations, under `regex-timed-interval-symbolic`.
+  operations, under `regex-timed-rigid-interval-symbolic`.
 - [`purification.tpe`](../../../examples/opentrons/purification.tpe): a
   bead purification under `regex-timed-interval-rational-symbolic` whose
   steps each take the beads in a box and return them in the box of the next

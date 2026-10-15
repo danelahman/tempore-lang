@@ -74,7 +74,7 @@ let expected_rejections =
     ("examples/handlers/nested_reject.tpe", [ 18 ]);
     ("examples/opentrons/beads_reject.tpe", [ 32 ]);
     ("examples/opentrons/binding_reject.tpe", [ 42 ]);
-    ("examples/opentrons/cleanup_reject.tpe", [ 29 ]);
+    ("examples/opentrons/cleanup_reject.tpe", [ 30 ]);
     ("examples/opentrons/contamination_reject.tpe", [ 39 ]);
     ("examples/opentrons/elisa_reject.tpe", [ 31 ]);
     ("examples/opentrons/enzyme_reject.tpe", [ 44 ]);

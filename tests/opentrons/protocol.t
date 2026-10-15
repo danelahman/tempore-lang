@@ -347,7 +347,7 @@ atomic operations call binding functions and are commented. The compound
 operations, which have neither binding functions nor defaults, are neither
 errors nor warnings.
 
-  $ ../../tempore --grades regex-timed-interval-symbolic --emit-opentrons cleanup.py \
+  $ ../../tempore --grades regex-timed-rigid-interval-symbolic --emit-opentrons cleanup.py \
   >   --bind $examples/cleanup_bindings.py --time-unit minutes $examples/cleanup.tpe
   Wrote _opentrons/protocols/cleanup.py
   $ simulate cleanup.py
