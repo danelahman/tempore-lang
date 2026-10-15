@@ -245,9 +245,11 @@ let expected_rejections =
     ("examples/basics/basic_unbox.tpe", [ 20; 30 ]);
     ("examples/handlers/nested_reject.tpe", [ 18 ]);
     ("examples/opentrons/beads_reject.tpe", [ 32 ]);
+    ("examples/opentrons/binding_reject.tpe", [ 40 ]);
     ("examples/opentrons/cleanup_reject.tpe", [ 29 ]);
     ("examples/opentrons/contamination_reject.tpe", [ 39 ]);
     ("examples/opentrons/elisa_reject.tpe", [ 31 ]);
+    ("examples/opentrons/enzyme_reject.tpe", [ 44 ]);
     ("examples/opentrons/reagents_reject.tpe", [ 41 ]);
     ("examples/opentrons/staggered_reject.tpe", [ 30 ]);
     ("examples/opentrons/stopread_reject.tpe", [ 41 ]);
@@ -314,6 +316,7 @@ let expected_rejections =
     ("tests/list_constructor_reject.tpe", [ 3 ]);
     ("tests/malformed_type_application.tpe", [ 4 ]);
     ("tests/mode_switch_costs_reject.tpe", [ 13; 16; 23; 28; 35 ]);
+    ("tests/mode_times_reject.tpe", [ 18; 25; 29; 32 ]);
     ("tests/nat_reject_successor_pattern.tpe", [ 3; 5 ]);
     ("tests/noneternal_reject_after_delay.tpe", [ 11 ]);
     ("tests/noneternal_reject_alias.tpe", [ 9 ]);
@@ -379,6 +382,8 @@ let expected_rejections =
     ("tests/traces_reject_undecided_condition.tpe", [ 20 ]);
     ("tests/traces_reject_unknown_event.tpe", [ 11 ]);
     ("tests/windowed_schedules_reject.tpe", [ 11; 16; 21; 29; 36 ]);
+    ("tests/event_separation_reject.tpe", [ 18; 29; 40; 49; 58 ]);
+    ("tests/event_separation_reject_unknown.tpe", [ 11 ]);
   ]
 
 let slow = ref []

@@ -11,14 +11,14 @@
 
 type beads = string
 
-operation Disengage : beads ~> unit # [0, 1]
-default Disengage beads = ()
+operation MagnetOff : beads ~> unit # [0, 1]
+default MagnetOff beads = ()
 
-operation LastEthanol : beads ~> [[2, 3]]beads # [1, 2]
-default LastEthanol beads = delay 1; box [2, 3] beads
+operation FinalWash : beads ~> [[2, 3]]beads # [1, 2]
+default FinalWash beads = delay 1; box [2, 3] beads
 
-operation Elute : beads ~> unit # [1, 2]
-default Elute beads = delay 1
+operation ReleaseDNA : beads ~> unit # [1, 2]
+default ReleaseDNA beads = delay 1
 
 (* Correctly rejected by the typechecker: the elution buffer is added four to
    five minutes after the last ethanol wash, when the beads are overdried:
@@ -30,10 +30,10 @@ default Elute beads = delay 1
        Note: the resource inequality `[4, 5] <= [2, 3]` does not hold
 *)
 let overdried (beads : beads) =
-  let drying = perform LastEthanol beads in
+  let drying = perform FinalWash beads in
   delay 4;
-  perform Disengage beads;
+  perform MagnetOff beads;
   unbox drying as beads in
-  perform Elute beads
+  perform ReleaseDNA beads
 
 run overdried "beads"

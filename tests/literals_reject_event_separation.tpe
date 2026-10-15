@@ -1,0 +1,11 @@
+(* Run this test with the 'event-separation' grading monoid, e.g.
+
+     ./tempore --grades event-separation \
+       tests/literals_reject_event_separation.tpe
+
+   Rejected: a specification of event separation lists one interval, the
+   gaps, or three, the lead, the gaps and the tail. *)
+
+operation Beat : unit ~> unit # {Beat} within [0.1, 0.5]
+
+let beat () : unit # (Beat, [0, 1], [0, 5]) = perform Beat ()

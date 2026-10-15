@@ -1,5 +1,5 @@
 # Binding functions of the atomic operations of cleanup.tpe for the Opentrons
-# Flex. The compound operations Bind, EthanolWash and Elute have none: the
+# Flex. The compound operations Bind, EthanolWash and ReleaseDNA have none: the
 # handler of the program performs them by these operations.
 #
 # The samples are the first four wells of a PCR plate on the deck, moved onto
@@ -39,19 +39,19 @@ def AddBeads(ctx, unit):
     return ()
 
 
-def Engage(ctx, unit):
+def MagnetOn(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], ctx["magnet"], use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def Disengage(ctx, unit):
+def MagnetOff(ctx, unit):
     ctx["protocol"].move_labware(ctx["plate"], "D2", use_gripper=True)
     tempore_elapse(30)
     return ()
 
 
-def RemoveSupernatant(ctx, unit):
+def RemoveLiquid(ctx, unit):
     ctx["pipette"].transfer(80, ctx["samples"], ctx["reservoir"]["A12"], new_tip="always")
     tempore_elapse(90)
     return ()

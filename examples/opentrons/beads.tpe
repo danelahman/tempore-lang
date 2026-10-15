@@ -45,31 +45,31 @@ type beads = string
 operation AddBeads : beads ~> unit # [1, 2]
 default AddBeads beads = delay 1
 
-operation RemoveSupernatant : beads ~> unit # [1, 2]
-default RemoveSupernatant beads = delay 1
+operation RemoveLiquid : beads ~> unit # [1, 2]
+default RemoveLiquid beads = delay 1
 
 (* Moving the plate onto the magnetic block takes at most a minute; the beads
    then settle in at least three minutes. Moving it off takes at most a
    minute. *)
-operation Engage : beads ~> [[3, ∞)]beads # [0, 1]
-default Engage beads = box [3, ∞) beads
+operation MagnetOn : beads ~> [[3, ∞)]beads # [0, 1]
+default MagnetOn beads = box [3, ∞) beads
 
-operation Disengage : beads ~> unit # [0, 1]
-default Disengage beads = ()
+operation MagnetOff : beads ~> unit # [0, 1]
+default MagnetOff beads = ()
 
 (* An ethanol wash adds and removes the ethanol in one to two minutes. The
    last wash leaves the beads to air-dry: the elution buffer is added two to
    three minutes after it, once the ethanol has evaporated. *)
-operation Ethanol : beads ~> unit # [1, 2]
-default Ethanol beads = delay 1
+operation Wash : beads ~> unit # [1, 2]
+default Wash beads = delay 1
 
-operation LastEthanol : beads ~> [[2, 3]]beads # [1, 2]
-default LastEthanol beads = delay 1; box [2, 3] beads
+operation FinalWash : beads ~> [[2, 3]]beads # [1, 2]
+default FinalWash beads = delay 1; box [2, 3] beads
 
 (* Adding the elution buffer and transferring the eluate take one to two
    minutes each. *)
-operation Elute : beads ~> unit # [1, 2]
-default Elute beads = delay 1
+operation ReleaseDNA : beads ~> unit # [1, 2]
+default ReleaseDNA beads = delay 1
 
 operation Transfer : beads ~> unit # [1, 2]
 default Transfer beads = delay 1
@@ -80,18 +80,18 @@ default Transfer beads = delay 1
 let cleanup (beads : beads) =
   perform AddBeads beads;
   delay 5;
-  let settling = perform Engage beads in
+  let settling = perform MagnetOn beads in
   delay 3;
   unbox settling as beads in
-  perform RemoveSupernatant beads;
-  perform Ethanol beads;
-  let drying = perform LastEthanol beads in
+  perform RemoveLiquid beads;
+  perform Wash beads;
+  let drying = perform FinalWash beads in
   delay 2;
-  perform Disengage beads;
+  perform MagnetOff beads;
   unbox drying as beads in
-  perform Elute beads;
+  perform ReleaseDNA beads;
   delay 2;
-  let settling = perform Engage beads in
+  let settling = perform MagnetOn beads in
   delay 3;
   unbox settling as beads in
   perform Transfer beads
@@ -106,11 +106,11 @@ let cleanup (beads : beads) =
 *)
 (*
 let cleanup_overdried (beads : beads) =
-  let drying = perform LastEthanol beads in
+  let drying = perform FinalWash beads in
   delay 4;
-  perform Disengage beads;
+  perform MagnetOff beads;
   unbox drying as beads in
-  perform Elute beads
+  perform ReleaseDNA beads
 *)
 
 run cleanup "beads"

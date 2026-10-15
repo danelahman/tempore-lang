@@ -5,7 +5,8 @@
 ; expressions with the regular trace grade over rational delays, and the regular
 ; trace grades of timed operations over rational delays with their closures; the
 ; sets of delays against an implementation by lists of intervals; the laws of
-; every registered grade, on samples, by the checks the tests share.
+; every registered grade, on samples, by the checks the tests share; and the
+; event-separation grade against concrete computations.
 
 (library
  (name lawChecks)
@@ -55,3 +56,8 @@
   (source_tree ../../examples)
   ../../src/06-loader/stdlib.tpe)
  (libraries grades lawChecks parser))
+
+(test
+ (name test_eventSeparation)
+ (modules test_eventSeparation)
+ (libraries utils grades lawChecks parser sugaredAst))

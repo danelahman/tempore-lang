@@ -12,27 +12,27 @@
 
 type beads = string
 
-operation Ethanol : unit ~> unit # {Ethanol} within [1, 2]
-default Ethanol () = delay 1
+operation Wash : unit ~> unit # {Wash} within [1, 2]
+default Wash () = delay 1
 
 operation ChangeTip : unit ~> unit # {ChangeTip} within [0, 1]
 default ChangeTip () = delay 0
 
-operation Elute : unit ~> unit # {Elute} within [1, 2]
-default Elute () = delay 1
+operation ReleaseDNA : unit ~> unit # {ReleaseDNA} within [1, 2]
+default ReleaseDNA () = delay 1
 
 (* Correctly rejected by the typechecker: the beads are washed once only:
 
      Typing error: Variable `washed` is unboxed with grade
-       `[{Ethanol; 3; ChangeTip}, {Ethanol; 3; ChangeTip}]` accumulated since
+       `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}]` accumulated since
        it was bound, which is not below its box grade ...
 *)
 let one_wash (beads : beads) =
-  box {Ethanol; ChangeTip; Ethanol; [2, 3]; ChangeTip} beads as washed in
-  perform Ethanol ();
+  box {Wash; ChangeTip; Wash; [2, 3]; ChangeTip} beads as washed in
+  perform Wash ();
   delay 3;
   perform ChangeTip ();
   unbox washed as beads in
-  perform Elute ()
+  perform ReleaseDNA ()
 
 run one_wash "beads"

@@ -1,0 +1,7 @@
+(* Run this test with the 'mode-times' grading monoid, e.g.
+
+     ./tempore --grades mode-times tests/literals_reject_mode_times_bound.tpe
+
+   Rejected: the time in a mode does not exceed the total time. *)
+
+let claim () = box (Cold, Cold, (Out, [40, 50]), [0, 30]) 1
