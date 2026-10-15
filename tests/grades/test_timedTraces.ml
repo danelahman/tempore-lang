@@ -241,7 +241,7 @@ let rec finite_words = function
         (finite_words r)
   | Grade.Union (r, s) -> finite_words r @ finite_words s
   | Grade.Frac _ | Grade.Delays _ | Grade.Any | Grade.Star _ | Grade.Inter _
-  | Grade.Compl _ ->
+  | Grade.Compl _ | Grade.Strict _ ->
       invalid_arg "finite_words"
 
 (* [Reader (G)] reads the literals of [G] by the parser, in the grade position

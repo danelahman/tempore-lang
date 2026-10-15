@@ -1121,12 +1121,14 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-lower-bound-rational";
           "traces-timed-rigid-upper-bound-rational";
           "traces-timed-rigid-interval-rational";
           "regex-upper-bound-rational-symbolic";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-lower-bound-rational-symbolic";
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
           "mode-times";
@@ -1140,12 +1142,14 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-lower-bound-rational";
           "traces-timed-rigid-upper-bound-rational";
           "traces-timed-rigid-interval-rational";
           "regex-upper-bound-rational-symbolic";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-lower-bound-rational-symbolic";
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
           "event-separation";
@@ -1157,11 +1161,13 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-lower-bound-rational";
           "traces-timed-rigid-upper-bound-rational";
           "traces-timed-rigid-interval-rational";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-lower-bound-rational-symbolic";
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
           "mode-times";
@@ -1178,12 +1184,14 @@ let registry =
           "traces-timed-lower-bound-rational";
           "traces-timed-upper-bound-rational";
           "traces-timed-interval-rational";
+          "traces-timed-rigid-lower-bound-rational";
           "traces-timed-rigid-upper-bound-rational";
           "traces-timed-rigid-interval-rational";
           "regex-upper-bound-rational-symbolic";
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-lower-bound-rational-symbolic";
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
           "security-levels";
@@ -1213,8 +1221,10 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-lower-bound-symbolic";
           "regex-timed-rigid-upper-bound-symbolic";
           "regex-timed-rigid-interval-symbolic";
+          "regex-timed-rigid-lower-bound-rational-symbolic";
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
         ]
@@ -1226,6 +1236,7 @@ let registry =
           "regex-timed-lower-bound-rational-symbolic";
           "regex-timed-upper-bound-rational-symbolic";
           "regex-timed-interval-rational-symbolic";
+          "regex-timed-rigid-lower-bound-rational-symbolic";
           "regex-timed-rigid-upper-bound-rational-symbolic";
           "regex-timed-rigid-interval-rational-symbolic";
           "event-separation";
@@ -1253,12 +1264,16 @@ let registry =
           "regex-timed-lower-bound-letter-derivatives";
           "regex-timed-upper-bound-letter-derivatives";
           "regex-timed-interval-letter-derivatives";
+          "regex-timed-rigid-lower-bound-letter-automata";
           "regex-timed-rigid-upper-bound-letter-automata";
           "regex-timed-rigid-interval-letter-automata";
+          "regex-timed-rigid-lower-bound-rational-automata";
           "regex-timed-rigid-upper-bound-rational-automata";
           "regex-timed-rigid-interval-rational-automata";
+          "regex-timed-rigid-lower-bound-symbolic-by-letters";
           "regex-timed-rigid-upper-bound-symbolic-by-letters";
           "regex-timed-rigid-interval-symbolic-by-letters";
+          "regex-timed-rigid-lower-bound-letter-derivatives";
           "regex-timed-rigid-upper-bound-letter-derivatives";
           "regex-timed-rigid-interval-letter-derivatives";
         ]

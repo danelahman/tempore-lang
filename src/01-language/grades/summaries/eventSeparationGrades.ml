@@ -297,6 +297,7 @@ let of_braces lit r =
         | None -> Terms.delays (lo, hi))
     | Seq (r, s) -> mul (go r) (go s)
     | Union (r, s) -> join (go r) (go s)
+    | Strict _ as r -> component_of_lit lit ~context:"" strict_unsupported r
     | Any | Star _ | Inter _ | Compl _ ->
         invalid_lit lit
           "the brace literals of event separation are sequences `;` and unions \

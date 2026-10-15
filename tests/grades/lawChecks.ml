@@ -443,11 +443,21 @@ let of_delay_laws (module G : Grade.S) bounds ?monotone () =
           (pairs samples);
       ]
 
+(* [strict_delays name] is whether the grade named [name] is one of the rigid
+   grades of timed operations, whose grade of [delay d] is the strict delay
+   [!d], a wait, below the budget [d] of the time shadow. *)
+let strict_delays name =
+  List.exists
+    (fun prefix -> String.starts_with ~prefix name)
+    [ "regex-timed-rigid-"; "traces-timed-rigid-" ]
+
 (* [of_bounds_laws (module G) bounds] checks the time shadow on the sample
    delays of [G] under [bounds]: the shadow of exact bounds [(d, d)] is the
-   grade of [delay d], and the grade of a delay [d] with [lo ≤ d ≤ hi] is below
-   the shadow of [(lo, hi)]. *)
+   grade of [delay d], or above it under the grades with strict delays, and
+   the grade of a delay [d] with [lo ≤ d ≤ hi] is below the shadow of
+   [(lo, hi)]. *)
 let of_bounds_laws (module G : Grade.S) bounds =
+  let shadow_law = if strict_delays G.name then G.leq else G.equal in
   let samples = delays (module G.Delay) in
   let le (q, _) (r, _) = Rational.compare (value q) (value r) <= 0 in
   let within =
@@ -463,9 +473,8 @@ let of_bounds_laws (module G : Grade.S) bounds =
       (G.name ^ ": of_bounds of exact bounds is of_delay")
       (fun (q, _) -> show_lit q)
       (fun (_, d) ->
-        G.equal bounds
-          (G.of_bounds (Grade.Closed d, Grade.Closed d))
-          (G.of_delay d))
+        shadow_law bounds (G.of_delay d)
+          (G.of_bounds (Grade.Closed d, Grade.Closed d)))
       samples;
     all
       (G.name ^ ": a delay within the bounds is below of_bounds")

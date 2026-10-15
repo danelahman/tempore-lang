@@ -28,9 +28,13 @@ module Base (D : Delay.S) : sig
   type event =
     | Ev of string  (** an operation event, named by its surface name *)
     | Wait of D.t  (** a delay; in normal form its duration is not [zero] *)
+    | Strict of D.t
+        (** a strict delay, of the rigid grades, a wait that admits nothing
+            else; in normal form its duration is not [zero] *)
 
   type trace = event list
-  (** One trace. Normal form: no [Wait zero], no two adjacent [Wait]s. *)
+  (** One trace. Normal form: no [Wait zero] or [Strict zero], no two adjacent
+      [Wait]s and no two adjacent [Strict]s. *)
 
   type traces = trace list
   (** A non-empty finite set of traces. Normal form: sorted and duplicate-free.
@@ -47,9 +51,9 @@ module Base (D : Delay.S) : sig
 
   val normalise : event list -> trace
   (** [normalise evs] is the trace denoted by the raw event sequence [evs]: zero
-      delays are dropped and adjacent delays are merged. This invariant is what
-      makes [of_delay (add m n)] equal to the product of [of_delay m] and
-      [of_delay n] on the nose. *)
+      delays are dropped and adjacent delays of the same kind are merged. This
+      invariant is what makes [of_delay (add m n)] equal to the product of
+      [of_delay m] and [of_delay n] on the nose. *)
 
   val concat : trace -> trace -> trace
   (** [concat s t] is the trace monoid [_∙_]: the trailing delay of [s] is
@@ -70,6 +74,13 @@ module Base (D : Delay.S) : sig
   (** [of_delay n] is the singleton set containing the pure delay of duration
       [n]; [of_delay zero] is the unit [{ε}]. *)
 
+  val of_strict_delay : D.t -> traces
+  (** [of_strict_delay n] is the singleton set containing the strict delay of
+      duration [n]; [of_strict_delay zero] is the unit [{ε}]. *)
+
+  val has_strict : trace -> bool
+  (** [has_strict t] is whether the trace [t] has a strict delay. *)
+
   val missing : traces -> traces -> trace option
   (** [missing p q] is the least trace of [p] that [q] does not list, if any,
       found by a merge of the two sorted sets. *)
@@ -82,16 +93,18 @@ module Base (D : Delay.S) : sig
       mentioned anywhere in [p]. *)
 
   val show : traces -> string
-  (** [show p] prints a set of traces as [{Read; 3; Send | Send; Send}]; the
-      empty trace prints as [0], the delay [zero] it denotes. *)
+  (** [show p] prints a set of traces as [{Read; 3; Send | Send; !2}], a strict
+      delay with [!]; the empty trace prints as [0], the delay [zero] it
+      denotes. *)
 
   val number : GradeLiteral.lit -> Rational.t option
   (** [number lit] is the value of the numeric literal [lit] if it or its
       negation is a delay. *)
 
-  val of_lit : number:string -> GradeLiteral.lit -> traces
-  (** [of_lit ~number:n lit] is the set of traces the one-sided literal [lit]
-      denotes, [n] naming the literals of the delays in the singular. A negative
+  val of_lit : strict:bool -> number:string -> GradeLiteral.lit -> traces
+  (** [of_lit ~strict ~number:n lit] is the set of traces the one-sided literal
+      [lit] denotes, [n] naming the literals of the delays in the singular, its
+      strict delays [!d] read if [strict] and rejected otherwise. A negative
       number is rejected as such where its absolute value is a delay. *)
 end
 
@@ -111,7 +124,15 @@ module Make (D : Delay.MONUS) : sig
       at all. The operations of [t] may be left out, contributing nothing,
       unless [rigid]: the rigid allowance order matches every operation of [t],
       in order, so that [s = s₀ o₁ s₁ ⋯ oₙ sₙ] for [t = d₀ o₁ d₁ ⋯ oₙ dₙ] in gap
-      form, the weight of each [sᵢ] at most [dᵢ]. *)
+      form, the weight of each [sᵢ] at most [dᵢ].
+
+      With strict delays, a gap of [t] is a sequence of delays and strict
+      delays, and the segment of [s] facing it is split among them, a strict
+      delay of [s] possibly divided between consecutive ones: the part facing a
+      strict delay of [t] consists of strict delays of total duration at most
+      it. A strict delay of [s] counts by its duration against a delay of [t].
+      The orders other than the rigid one, and the budgets [k] other than
+      [zero], read a strict delay as a delay. *)
 
   val coverage : (string -> D.t) -> D.t -> trace -> trace -> bool
   (** [coverage running_time k s t] decides the coverage order at budget [k]:
@@ -120,7 +141,13 @@ module Make (D : Delay.MONUS) : sig
       unmatched operations at their [running_time] and its delays at their
       length, and is spent only on delays [s] demands. Nothing but the operation
       itself discharges a demand for an operation, which is what a guarantee
-      wants and what makes this order not the converse of {!allowance}. *)
+      wants and what makes this order not the converse of {!allowance}.
+
+      With strict delays, the part of [t] facing a strict delay of [s] consists
+      of strict delays of total duration at least it, a strict delay of [t]
+      possibly divided between consecutive delays of [s]; a strict delay of [t]
+      counts by its duration towards a delay of [s]. At a budget [k] other than
+      [zero], a strict delay is read as a delay. *)
 
   val upper_bound_le : rigid:bool -> (string -> D.t) -> traces -> traces -> bool
   (** [upper_bound_le ~rigid running_time p q] is the Hoare lift of the

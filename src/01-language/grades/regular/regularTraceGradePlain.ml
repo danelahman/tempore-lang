@@ -37,6 +37,7 @@ let of_regex r =
     | Inter (r, s) -> Regex.inter [ go r; go s ]
     | Star r -> Regex.star (go r)
     | Compl r -> Regex.compl (go r)
+    | Strict _ as r -> strict_unsupported r
   in
   { names; regex = go r }
 

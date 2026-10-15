@@ -61,8 +61,9 @@ module type WORLD = sig
   (** [inhabited bounds rho] is whether [rho] has a trace over the declared
       operations and the names it mentions, the running times aside. *)
 
-  val grade_of_word : word -> grade
-  (** [grade_of_word w] is the grade of the single trace [w]. *)
+  val literal_of_word : word -> lit
+  (** [literal_of_word w] is the literal of the single trace [w], its strict
+      delays written [!d]. *)
 
   val single : lit -> bool
   (** [single lit] is whether the literal [lit] of an interval abbreviates the
@@ -86,11 +87,15 @@ module type WORLD = sig
 end
 
 (** The grades over [L] in the world [W], named ["regex-timed-lower-bound"],
-    ["regex-timed-upper-bound"] and ["regex-timed-interval"], and in the rigid
-    allowance order ["regex-timed-rigid-upper-bound"] and
-    ["regex-timed-rigid-interval"], each followed by [W.suffix]. *)
+    ["regex-timed-upper-bound"] and ["regex-timed-interval"], and, with the
+    literals, delays and top [S] and the rigid allowance order,
+    ["regex-timed-rigid-lower-bound"], ["regex-timed-rigid-upper-bound"] and
+    ["regex-timed-rigid-interval"], each followed by [W.suffix]. The events of a
+    grade are the names of [L.events] other than those that encode strict delays
+    ({!StrictDelays}). *)
 module Make
     (L : Grade.S)
+    (S : StrictDelays.GRADE with type grade = L.t and type delay = L.Delay.t)
     (W : WORLD with type grade = L.t and type delay = L.Delay.t) : sig
   (** Lower bounds, in the coverage order at [lo]. *)
   module Lower : Grade.S with type t = L.t and type Delay.t = L.Delay.t
@@ -102,8 +107,12 @@ module Make
   module Interval : Grade.S with type t = L.t * L.t and type Delay.t = L.Delay.t
 
   (** The grades in the rigid allowance order, which matches every operation of
-      a bound; the unit is not the least upper bound. *)
+      a bound; the unit is not the least upper bound. Their literals, delays and
+      top are those of [S]: a delay [d] is the strict delay [!d]. *)
   module Rigid : sig
+    (** Lower bounds, in the coverage order at [lo], with strict delays. *)
+    module Lower : Grade.S with type t = L.t and type Delay.t = L.Delay.t
+
     (** Upper bounds, in the rigid allowance order at [hi]. *)
     module Upper : Grade.S with type t = L.t and type Delay.t = L.Delay.t
 

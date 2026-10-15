@@ -140,6 +140,7 @@ let rec matches r w =
   | Grade.Union (r, s) -> matches r w || matches s w
   | Grade.Inter (r, s) -> matches r w && matches s w
   | Grade.Compl r -> not (matches r w)
+  | Grade.Strict _ -> invalid_arg "matches: a strict delay"
   | Grade.Star r' ->
       w = []
       || List.exists

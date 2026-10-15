@@ -268,25 +268,38 @@ let timed_interval_rational =
   "Closed intervals [L, U] of a lower and an upper regular-language bound over \
    rational delays, compared componentwise; exact."
 
+let rigid_lower =
+  "Regular languages of traces in the coverage order, operations counting at \
+   their lower running-time bounds; a strict delay !d is covered by waiting \
+   only."
+
 let rigid_upper =
   "Regular languages of traces in the rigid allowance order: every operation \
    of a bound's trace is matched, in order, and the program's other operations \
-   are bought within its delays at their upper running-time bounds."
+   are bought within its delays at their upper running-time bounds; a strict \
+   delay !d admits waiting only."
 
 let rigid_interval =
   "Closed intervals [L, U] of a lower bound in the coverage order and an upper \
-   bound in the rigid allowance order, compared componentwise."
+   bound in the rigid allowance order, compared componentwise, with strict \
+   delays !d."
+
+let rigid_lower_rational =
+  "Regular languages of traces over rational delays in the coverage order, \
+   operations counting at their lower running-time bounds, which may be \
+   fractional; a strict delay !d is covered by waiting only; exact."
 
 let rigid_upper_rational =
   "Regular languages of traces over rational delays in the rigid allowance \
    order: every operation of a bound's trace is matched, in order, and the \
    program's other operations are bought within its delays at their upper \
-   running-time bounds, which may be fractional; exact."
+   running-time bounds, which may be fractional; a strict delay !d admits \
+   waiting only; exact."
 
 let rigid_interval_rational =
   "Closed intervals [L, U] of a lower bound in the coverage order and an upper \
    bound in the rigid allowance order over rational delays, compared \
-   componentwise; exact."
+   componentwise, with strict delays !d; exact."
 
 let entries =
   [
@@ -358,28 +371,42 @@ let entries =
       "Closed intervals [L, U] of a lower and an upper trace bound with \
        rational delays, compared componentwise.";
     entry
+      (module TimedTraceGrades.Rigid.LowerBound)
+      traces_timed_rigid "Lower bounds"
+      "Sets of traces in the coverage order, operations counting at their \
+       lower running-time bounds; a strict delay !d is covered by waiting \
+       only.";
+    entry
       (module TimedTraceGrades.Rigid.UpperBound)
       traces_timed_rigid "Upper bounds"
       "Sets of traces in the rigid allowance order: every operation of a \
        bound's trace is matched, in order, and the program's other operations \
-       are bought within its delays at their upper running-time bounds.";
+       are bought within its delays at their upper running-time bounds; a \
+       strict delay !d admits waiting only.";
     entry
       (module TimedTraceGrades.Rigid.Interval)
       traces_timed_rigid "Intervals"
       "Closed intervals [L, U] of a lower bound in the coverage order and an \
-       upper bound in the rigid allowance order, compared componentwise.";
+       upper bound in the rigid allowance order, compared componentwise, with \
+       strict delays !d.";
+    entry
+      (module TimedTraceGrades.Rational.Rigid.LowerBound)
+      traces_timed_rigid "Lower bounds (rational)"
+      "Sets of traces with rational delays in the coverage order, operations \
+       counting at their lower running-time bounds, which may be fractional; a \
+       strict delay !d is covered by waiting only.";
     entry
       (module TimedTraceGrades.Rational.Rigid.UpperBound)
       traces_timed_rigid "Upper bounds (rational)"
       "Sets of traces with rational delays in the rigid allowance order, \
        operations counting at their upper running-time bounds, which may be \
-       fractional.";
+       fractional; a strict delay !d admits waiting only.";
     entry
       (module TimedTraceGrades.Rational.Rigid.Interval)
       traces_timed_rigid "Intervals (rational)"
       "Closed intervals [L, U] of a lower bound in the coverage order and an \
        upper bound in the rigid allowance order with rational delays, compared \
-       componentwise.";
+       componentwise, with strict delays !d.";
     entry ~implementation:symbolic
       (module RegularTraceGradeDerivative)
       regex "Upper bounds (symbolic)" regular_languages;
@@ -453,11 +480,17 @@ let entries =
       (module RegularTimedTraceGrades.Plain.Interval)
       regex_timed "Intervals (letter derivatives)" timed_interval;
     entry ~implementation:timed_symbolic
+      (module RegularTimedTraceGrades.Symbolic.Rigid.Lower)
+      regex_timed_rigid "Lower bounds (symbolic)" rigid_lower;
+    entry ~implementation:timed_symbolic
       (module RegularTimedTraceGrades.Symbolic.Rigid.Upper)
       regex_timed_rigid "Upper bounds (symbolic)" rigid_upper;
     entry ~implementation:timed_symbolic
       (module RegularTimedTraceGrades.Symbolic.Rigid.Interval)
       regex_timed_rigid "Intervals (symbolic)" rigid_interval;
+    entry ~implementation:timed_rational_symbolic
+      (module RegularTimedTraceGradesRational.Rigid.Lower)
+      regex_timed_rigid "Lower bounds (rational, symbolic)" rigid_lower_rational;
     entry ~implementation:timed_rational_symbolic
       (module RegularTimedTraceGradesRational.Rigid.Upper)
       regex_timed_rigid "Upper bounds (rational, symbolic)" rigid_upper_rational;
@@ -465,11 +498,17 @@ let entries =
       (module RegularTimedTraceGradesRational.Rigid.Interval)
       regex_timed_rigid "Intervals (rational, symbolic)" rigid_interval_rational;
     entry ~visibility:Hidden ~implementation:timed_letter_automata
+      (module RegularTimedTraceGrades.Rigid.Lower)
+      regex_timed_rigid "Lower bounds (letter automata)" rigid_lower;
+    entry ~visibility:Hidden ~implementation:timed_letter_automata
       (module RegularTimedTraceGrades.Rigid.Upper)
       regex_timed_rigid "Upper bounds (letter automata)" rigid_upper;
     entry ~visibility:Hidden ~implementation:timed_letter_automata
       (module RegularTimedTraceGrades.Rigid.Interval)
       regex_timed_rigid "Intervals (letter automata)" rigid_interval;
+    entry ~visibility:Hidden ~implementation:timed_rational_automata
+      (module RegularTimedTraceGradesRational.Automata.Rigid.Lower)
+      regex_timed_rigid "Lower bounds (rational, automata)" rigid_lower_rational;
     entry ~visibility:Hidden ~implementation:timed_rational_automata
       (module RegularTimedTraceGradesRational.Automata.Rigid.Upper)
       regex_timed_rigid "Upper bounds (rational, automata)" rigid_upper_rational;
@@ -477,11 +516,17 @@ let entries =
       (module RegularTimedTraceGradesRational.Automata.Rigid.Interval)
       regex_timed_rigid "Intervals (rational, automata)" rigid_interval_rational;
     entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
+      (module RegularTimedTraceGrades.Concrete.Rigid.Lower)
+      regex_timed_rigid "Lower bounds (symbolic by letters)" rigid_lower;
+    entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
       (module RegularTimedTraceGrades.Concrete.Rigid.Upper)
       regex_timed_rigid "Upper bounds (symbolic by letters)" rigid_upper;
     entry ~visibility:Hidden ~implementation:timed_symbolic_by_letters
       (module RegularTimedTraceGrades.Concrete.Rigid.Interval)
       regex_timed_rigid "Intervals (symbolic by letters)" rigid_interval;
+    entry ~visibility:Hidden ~implementation:timed_letter_derivatives
+      (module RegularTimedTraceGrades.Plain.Rigid.Lower)
+      regex_timed_rigid "Lower bounds (letter derivatives)" rigid_lower;
     entry ~visibility:Hidden ~implementation:timed_letter_derivatives
       (module RegularTimedTraceGrades.Plain.Rigid.Upper)
       regex_timed_rigid "Upper bounds (letter derivatives)" rigid_upper;

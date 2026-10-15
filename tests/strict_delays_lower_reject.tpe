@@ -1,0 +1,44 @@
+(* Run this test with the 'regex-timed-rigid-lower-bound-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-lower-bound-rational-symbolic \
+       tests/strict_delays_lower_reject.tpe
+
+   Rejected under the 'regex-timed-rigid-lower-bound-rational-symbolic' grading
+   monoid: a strict delay of a lower bound demands an undisturbed wait, which
+   operations counting at their lower running-time bounds do not cover; the
+   second definition is rejected, the others accepted. *)
+
+type token = Token of string
+
+operation Open : unit ~> unit # {Open} within [1, 1]
+operation Close : unit ~> unit # {Close} within [1, 1]
+operation Stir : unit ~> unit # {Stir} within [3, 4]
+
+(* A wait of five covers the demanded settling. *)
+let settled () =
+  box {Open; !5; Close} (Token "w") as w in
+  perform Open ();
+  delay 5;
+  perform Close ();
+  unbox w as tok in
+  tok
+
+(* Two stirs take at least six, but are no wait. *)
+let stirred () =
+  box {Open; !5; Close} (Token "w") as w in
+  perform Open ();
+  perform Stir ();
+  perform Stir ();
+  perform Close ();
+  unbox w as tok in
+  tok
+
+(* Under a budget demand of five, the stirs count. *)
+let stirred_budget () =
+  box {Open; 5; Close} (Token "w") as w in
+  perform Open ();
+  perform Stir ();
+  perform Stir ();
+  perform Close ();
+  unbox w as tok in
+  tok

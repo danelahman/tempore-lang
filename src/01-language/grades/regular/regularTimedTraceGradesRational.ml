@@ -130,15 +130,15 @@ module ByGaps = struct
 end
 
 (* The grades over the languages [L], decided by [D], their names ending in
-   [N.suffix]. *)
+   [N.suffix], the rigid ones reading the literals, delays and top [S]. *)
 module Make
     (L : Grade.S with type Delay.t = Delay.Rational.t)
+    (S : StrictDelays.GRADE with type grade = L.t and type delay = Rational.t)
     (D : DECISIONS with type t = L.t)
     (N : sig
       val suffix : string
     end) =
-  RegularTimedOrders.Make
-    (L)
+  RegularTimedOrders.Make (L) (S)
     (struct
       type grade = L.t
       type delay = L.Delay.t
@@ -151,13 +151,16 @@ module Make
          grades [rhos], each with the extremal value of the [endpoint] of its
          running-time bounds as its running time: the names [rhos] mention, and
          of the other declared operations, which [rhos] do not tell apart, the
-         least name of each running time. *)
+         least name of each running time; the names that encode strict delays
+         take no time. *)
       let world endpoint bounds rhos =
         let mentioned =
           List.sort_uniq String.compare (List.concat_map L.events rhos)
         in
         let running_time name =
-          extremum (endpoint (bounds.running_time name))
+          if GradeLiteral.is_marker name then
+            DelaySet.Finite (Rational.zero, true)
+          else extremum (endpoint (bounds.running_time name))
         in
         let others =
           List.filter
@@ -194,7 +197,7 @@ module Make
           (world (Fun.const (Closed Rational.zero)) bounds [ rho ])
           rho
 
-      let grade_of_word word = L.of_lit (Braces (DelayRegex.of_word word))
+      let literal_of_word word = Braces (DelayRegex.of_word word)
       let single = function Int _ | Rat _ | Braces _ -> true | _ -> false
       let number = L.Delay.read
 
@@ -225,13 +228,16 @@ module Make
     end)
 
 include
-  Make (RegularTraceGradeRational) (ByGaps)
+  Make (RegularTraceGradeRational) (RegularTraceGradeRational.Strict) (ByGaps)
     (struct
       let suffix = "-symbolic"
     end)
 
 module Automata =
-  Make (RegularTraceGradeRational.Automata) (ByAutomata)
+  Make
+    (RegularTraceGradeRational.Automata)
+    (StrictDelays.Without (RegularTraceGradeRational.Automata))
+    (ByAutomata)
     (struct
       let suffix = "-automata"
     end)

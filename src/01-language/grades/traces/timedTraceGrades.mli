@@ -107,10 +107,10 @@ module Bounded (D : Delay.S) : sig
   val of_delay : D.t -> t
   (** [of_delay d] is the set of the single trace [d]. *)
 
-  val of_lit : number:string -> GradeLiteral.lit -> t
-  (** [of_lit ~number lit] is the set of traces the one-sided literal [lit]
-      denotes, or [Unbounded] for [⊤], [number] naming the literals of the
-      delays in the singular. *)
+  val of_lit : strict:bool -> number:string -> GradeLiteral.lit -> t
+  (** [of_lit ~strict ~number lit] is the set of traces the one-sided literal
+      [lit] denotes, or [Unbounded] for [⊤], [number] naming the literals of the
+      delays in the singular, its strict delays read if [strict]. *)
 
   val show : t -> string
   (** [show p] prints [p], [Unbounded] as [⊤]. *)
@@ -138,9 +138,16 @@ module Make (D : Delay.MEASURED) (N : TIMED_NAMES) : sig
       its order. *)
 
   (** The grades in the rigid allowance order ({!TimedTrace.Make.allowance}):
-      every operation of a bound is matched, in order. The lower bounds are
-      those of {!LowerBound}. *)
+      every operation of a bound is matched, in order. Their literals have
+      strict delays [!d], waits that admit nothing else, and the grade of a
+      delay [d] is the strict delay [!d]. *)
   module Rigid : sig
+    module LowerBound : Grade.S with type Delay.t = D.t
+    (** Sets of traces read as lower bounds,
+        ["traces-timed-rigid-lower-bound" ^ N.suffix], in the coverage order
+        with strict delays; on sets of traces without strict delays it is that
+        of {!LowerBound}. *)
+
     module UpperBound : Grade.S with type Delay.t = D.t
     (** Sets of traces read as upper bounds,
         ["traces-timed-rigid-upper-bound" ^ N.suffix], in the rigid allowance
@@ -173,9 +180,11 @@ module Interval : Grade.S with type Delay.t = Delay.Nat.t
     [[{n}, {m}]]; an open endpoint abbreviates a closed one, [(n, m)] being
     [[n + 1, m - 1]]. Either end may be [⊤], the top of its order. *)
 
-(** The upper bounds and intervals in the rigid allowance order,
-    ["traces-timed-rigid-upper-bound"] and ["traces-timed-rigid-interval"]. *)
+(** The grades with strict delays and the rigid allowance order,
+    ["traces-timed-rigid-lower-bound"], ["traces-timed-rigid-upper-bound"] and
+    ["traces-timed-rigid-interval"]. *)
 module Rigid : sig
+  module LowerBound : Grade.S with type Delay.t = Delay.Nat.t
   module UpperBound : Grade.S with type Delay.t = Delay.Nat.t
   module Interval : Grade.S with type Delay.t = Delay.Nat.t
 end
@@ -200,10 +209,12 @@ module Rational : sig
       ["traces-timed-interval-rational"], compared componentwise. An open
       endpoint, a set of delays, is no finite set of traces, and is rejected. *)
 
-  (** The upper bounds and intervals in the rigid allowance order,
+  (** The grades with strict delays and the rigid allowance order,
+      ["traces-timed-rigid-lower-bound-rational"],
       ["traces-timed-rigid-upper-bound-rational"] and
       ["traces-timed-rigid-interval-rational"]. *)
   module Rigid : sig
+    module LowerBound : Grade.S with type Delay.t = Delay.Rational.t
     module UpperBound : Grade.S with type Delay.t = Delay.Rational.t
     module Interval : Grade.S with type Delay.t = Delay.Rational.t
   end

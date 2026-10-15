@@ -102,6 +102,14 @@ val of_regex : GradeLiteral.regex -> t
     atom [⟨{q}⟩], an interval of delays the atom of its delays, and [_] is
     [⟨ℚ>0⟩ | Σ_names]. *)
 
+val of_strict_regex : GradeLiteral.regex -> t
+(** [of_strict_regex r] is the expression of the brace literal [r] under the
+    rigid grades of timed operations, with strict delays ({!StrictDelays}). *)
+
+val strict_top : t
+(** [strict_top] is the language of all well-formed timed words with strict
+    delays, [_*] under the rigid grades ({!StrictDelays}). *)
+
 (** {1 Queries} *)
 
 val nullable : t -> bool

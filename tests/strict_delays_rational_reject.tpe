@@ -1,0 +1,75 @@
+(* Run this test with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
+
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
+       tests/strict_delays_rational_reject.tpe
+
+   Rejected under the 'regex-timed-rigid-interval-rational-symbolic' grading
+   monoid: a strict delay `!d` admits waiting only. Each budget form is
+   accepted and the strict form after it rejected; the bound of strict delays
+   without `Reset` admits no reset, and its complement is accepted. *)
+
+type token = Token of string
+
+operation AddBeads : unit ~> unit # {AddBeads} within [1, 1]
+operation ChangeTip : unit ~> unit # {ChangeTip} within [1, 1]
+operation MagnetOn : unit ~> unit # {MagnetOn} within [1, 1]
+operation Read : unit ~> nat # {Read} within [0.1, 0.1]
+operation Log : unit ~> unit # {Log} within [0.1, 0.4]
+operation Reset : unit ~> unit # {Reset} within [0.1, 0.1]
+
+(* A tip changed during the binding fits a budget of up to ten minutes. *)
+let binding_budget () =
+  box {AddBeads; [5, 10]; MagnetOn} (Token "b") as b in
+  perform AddBeads ();
+  delay 7;
+  perform ChangeTip ();
+  perform MagnetOn ();
+  unbox b as tok in
+  tok
+
+let binding_strict () =
+  box {AddBeads; ![5, 10]; MagnetOn} (Token "b") as b in
+  perform AddBeads ();
+  delay 7;
+  perform ChangeTip ();
+  perform MagnetOn ();
+  unbox b as tok in
+  tok
+
+(* A log between two readings fits a sampling period with jitter. *)
+let sampling_budget () =
+  box {([9.5, 10.5]; Read)*} (Token "s") as s in
+  delay 10;
+  let a = perform Read () in
+  perform Log ();
+  delay 10;
+  let b = perform Read () in
+  unbox s as tok in
+  tok
+
+let sampling_strict () =
+  box {(![9.5, 10.5]; Read)*} (Token "s") as s in
+  delay 10;
+  let a = perform Read () in
+  perform Log ();
+  delay 10;
+  let b = perform Read () in
+  unbox s as tok in
+  tok
+
+(* Readings and waits only: no reset. *)
+let without_reset () =
+  box {(!_ & ~Reset)*} (Token "r") as r in
+  let a = perform Read () in
+  delay 2;
+  let b = perform Read () in
+  unbox r as tok in
+  tok
+
+let with_reset () =
+  box {(!_ & ~Reset)*} (Token "r") as r in
+  let a = perform Read () in
+  delay 2;
+  perform Reset ();
+  unbox r as tok in
+  tok

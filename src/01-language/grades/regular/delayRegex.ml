@@ -17,6 +17,7 @@ let rec delays = function
   | Inter (r, s) -> DelaySet.inter (delays r) (delays s)
   | Compl r -> DelaySet.compl (delays r)
   | Star r -> DelaySet.star (delays r)
+  | Strict r -> DelaySet.inter (delays r) DelaySet.zero
 
 (* [letterless r] is whether [r] has no name, [_] or complement: its words are
    then single delays, those of [delays r]. *)
@@ -24,7 +25,7 @@ let rec letterless = function
   | Tick _ | Frac _ | Delays _ -> true
   | Seq (r, s) | Union (r, s) | Inter (r, s) -> letterless r && letterless s
   | Star r -> letterless r
-  | Letter _ | Any | Compl _ -> false
+  | Letter _ | Any | Compl _ | Strict _ -> false
 
 (* A letterless expression is the single transition on its delays. *)
 let rec automaton = function
@@ -37,6 +38,7 @@ let rec automaton = function
   | Union (r, s) -> A.union (automaton r) (automaton s)
   | Inter (r, s) -> A.inter (automaton r) (automaton s)
   | Star r -> A.star (automaton r)
+  | Strict _ as r -> strict_unsupported r
 
 let unions = function
   | [] -> None
@@ -59,15 +61,23 @@ let of_class (c : A.Class.t) =
                   (Delays (Open Rational.zero, Unbounded)
                   :: List.map (fun n -> Letter n) names))) )
 
+(* [is_name name c] is whether the class [c] is the one name [name]. *)
+let is_name name (c : A.Class.t) =
+  match c.names with
+  | SymbolicRegex.Letters.Only [ n ] -> String.equal n name
+  | _ -> false
+
 let of_word word =
-  let atoms =
-    List.filter_map
-      (function
-        | A.Delay d when Rational.sign d = 0 -> None
-        | A.Delay d -> Some (rational_tick d)
-        | A.Operation c -> Some (of_class c))
-      word
+  let rec atoms = function
+    | [] -> []
+    | A.Operation c :: A.Delay d :: A.Operation c' :: word
+      when is_name strict_opening c && is_name strict_closing c' ->
+        Strict (rational_tick d) :: atoms word
+    | A.Delay d :: word when Rational.sign d = 0 -> atoms word
+    | A.Delay d :: word -> rational_tick d :: atoms word
+    | A.Operation c :: word -> of_class c :: atoms word
   in
+  let atoms = atoms word in
   match atoms with
   | [] -> Tick 0
   | r :: rs -> List.fold_left (fun r s -> Seq (r, s)) r rs

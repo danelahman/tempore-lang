@@ -194,6 +194,10 @@ let expected_rejections =
     ("tests/regular_reject_protocol.tpe", [ 14; 23 ]);
     ("tests/resource_levels_by_resource_reject.tpe", [ 16; 23; 33 ]);
     ("tests/resource_levels_reject.tpe", [ 13; 22; 31; 34; 42; 45; 53 ]);
+    ("tests/strict_delays_lower_reject.tpe", [ 27 ]);
+    ("tests/strict_delays_rational_reject.tpe", [ 30; 50; 69 ]);
+    ("tests/strict_delays_traces_reject.tpe", [ 26 ]);
+    ("tests/strict_delays_whole_reject.tpe", [ 27 ]);
     ("tests/termination_reject_ackermann.tpe", [ 4 ]);
     ("tests/termination_reject_countdown.tpe", [ 4 ]);
     ("tests/termination_reject_escape.tpe", [ 4 ]);

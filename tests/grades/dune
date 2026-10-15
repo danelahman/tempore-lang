@@ -49,6 +49,11 @@
  (libraries grades parser sugaredAst))
 
 (test
+ (name test_strictDelays)
+ (modules test_strictDelays)
+ (libraries utils grades parser sugaredAst lawChecks))
+
+(test
  (name test_accepts)
  (modules test_accepts)
  (deps

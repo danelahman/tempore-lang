@@ -67,6 +67,7 @@ let dfa_of_regex names =
     | Inter (r, s) -> Dfa.inter (go r) (go s)
     | Star r -> Dfa.star (go r)
     | Compl r -> Dfa.complement (go r)
+    | Strict _ as r -> strict_unsupported r
   in
   go
 

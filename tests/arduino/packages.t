@@ -41,7 +41,7 @@ package under other grades, and --package with --device are refused:
   $ ../../tempore --grades time-interval-rational --package m5-gyro filter.tpe 2>&1 | head -1 | sed 's/^.*tempore: //'
   option '--package': 'm5-gyro' is not one of bala2-base, i2c, m5-display, m5-imu, m5-speaker, m5-touch.
   $ ../../tempore --grades time-interval --package m5-imu filter.tpe
-  Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `event-separation`, `counts-upper-bound`, not `time-interval`
+  Error: The package `m5-imu` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `event-separation`, `counts-upper-bound`, not `time-interval`
   [1]
   $ emit tilt --device packages/tilt.device.json --package m5-imu packages/tilt.tpe
   ../../tempore: option '--package' cannot be used with '--device'.
@@ -420,5 +420,5 @@ unknown package and a package under other grades are refused:
   File "packages/memory.device.json", line 4, characters 15-20:
   4 |   "packages": ["i2c"],
                      ^^^^^
-  Compilation error: The package `i2c` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `event-separation`, `counts-upper-bound`, not `time-interval`
+  Compilation error: The package `i2c` declares its operations under the grades `time-interval-rational`, `regex-timed-lower-bound-rational-symbolic`, `regex-timed-upper-bound-rational-symbolic`, `regex-timed-interval-rational-symbolic`, `regex-timed-rigid-lower-bound-rational-symbolic`, `regex-timed-rigid-upper-bound-rational-symbolic`, `regex-timed-rigid-interval-rational-symbolic`, `event-separation`, `counts-upper-bound`, not `time-interval`
   exit 1

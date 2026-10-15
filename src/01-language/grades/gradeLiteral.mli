@@ -30,6 +30,24 @@ type regex =
   | Star of regex  (** Repetition, [r*] *)
   | Inter of regex * regex  (** Intersection, [r & s] *)
   | Compl of regex  (** Complement, [~r] *)
+  | Strict of regex
+      (** A strict delay, [!r], [r] the wildcard [_] or an expression of delays
+          only ({!delays_only}): [!3], [![2, 3]], [!_] *)
+
+val delays_only : regex -> bool
+(** [delays_only r] is whether [r] is built from delays and intervals of delays
+    by [;], [|], [&] and [*] alone, so that its words are delays. *)
+
+val strict_opening : string
+(** The name that opens a strict delay in the languages of the rigid grades of
+    timed operations, no operation name. *)
+
+val strict_closing : string
+(** The name that closes a strict delay, no operation name. *)
+
+val is_marker : string -> bool
+(** [is_marker name] is whether [name] is {!strict_opening} or
+    {!strict_closing}. *)
 
 val regex_names : regex -> string list
 (** [regex_names r] is the list of the operation names [r] mentions, in
@@ -39,8 +57,9 @@ val show_regex : regex -> string
 (** [show_regex r] prints [r] as the contents of a brace literal, with the
     parentheses the precedences require: union [|], intersection [&],
     concatenation [;], complement [~] and repetition [*], by increasing
-    precedence. The three binary operators are printed as associative, and a
-    fraction under a repetition is parenthesised. *)
+    precedence, a strict delay [!r] as an atom. The three binary operators are
+    printed as associative, and a fraction under a repetition is parenthesised.
+*)
 
 (** Grade literals as they appear in source. *)
 type lit =
@@ -99,6 +118,12 @@ val distinct_entries :
     @raise Invalid_literal
       on [lit] with the reason [twice k] if two entries have the same key [k].
 *)
+
+val strict_unsupported : regex -> 'a
+(** [strict_unsupported r] rejects the strict delay [r], [!d], under a grade
+    other than the rigid grades of timed operations.
+
+    @raise Invalid_literal on the brace literal of [r]. *)
 
 val rational_lit : Rational.t -> lit
 (** [rational_lit q] is the literal of the rational [q]: [Int n] if [q] is an
