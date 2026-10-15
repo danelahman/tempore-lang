@@ -180,7 +180,8 @@ each is a minute.
   settling of `{![2, 5]}`. The annotated grade of the clean-up excludes a
   removal of liquid with the plate off the magnet.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
-  ddPCR plate set-up under `time-upper-bound-levels`.
+  ddPCR plate set-up under `time-upper-bound-levels`, whose master mix is
+  boxed `(30, High)` and unboxed for each dispensing.
 - [`reagents.tpe`](../../../examples/opentrons/reagents.tpe): a tagmentation
   with reagents boxed `[0, 30]`, under `time-interval`.
 - [`staggered.tpe`](../../../examples/opentrons/staggered.tpe): a fixation
