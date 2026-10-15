@@ -754,10 +754,12 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
 - [`fall`](../../../examples/arduino/fall/fall.tpe): a fall detector, under
   the regular expressions of timed operations.
   - A free fall of at least 100 ms followed within a second by an impact is
-    a fall.
+    a fall; it is confirmed from readings alone, each after a wait of 9.5
+    to 10.5 ms.
   - After a fall, a prompt, in orange, a tone and a countdown of 10 seconds
     with a shrinking bar precede the alarm, in red, raised only 10 to 30
-    seconds after the prompt unless a tap cancels, and stopped by a tap.
+    seconds after the prompt unless a tap cancels, sounding a tone every
+    second until a tap stops it.
   - While watching, in green, the screen shows the falls counted, the time
     since the last event and a bar of the acceleration.
 - [`steps`](../../../examples/arduino/steps/steps.tpe): a step counter,

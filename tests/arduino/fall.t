@@ -1,8 +1,8 @@
 The fall detector of examples/arduino/fall on the M5Stack CoreS3 Lite, with
-the packages m5-imu, m5-display, m5-touch and m5-speaker, under the regular
-expressions of timed operations: its run by the interpreter, its rejected
-variants, its project and its host simulation, over the falls and the taps
-of its host model.
+the packages m5-imu, m5-display, m5-touch and m5-speaker, under the rigid
+regular expressions of timed operations: its run by the interpreter, its
+rejected variants, its project and its host simulation, over the falls and
+the taps of its host model.
 
   $ app=../../examples/arduino/fall
   $ . ../helpers.sh
@@ -15,48 +15,49 @@ the operations, which read a unit at rest:
   === Run 1 ===
   return 0
   State: [
-    { resource_0 ↦ 0.1 # [{100}, ∞) },
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}],
-    [{10}, {10}],
-    [{0.6}, {0.6}]
+    { resource_0 ↦ 0.1 # [{100}, {(![9.5, 10.5]; ReadImu)*}] },
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}],
+    [{!10}, {!10}],
+    [{!0.6}, {!0.6}]
   ]
   
 
 The rejected variants, each loaded after the application: a free fall
-confirmed within 100 ms, an impact searched for beyond a second, and an
-alarm raised without the prompt:
+confirmed within 100 ms, an impact searched for beyond a second, an alarm
+raised without the prompt, the unit reconfigured before the confirmation of
+a free fall, and an alarm sounding on the even seconds only:
 
-  $ for v in brief late silent; do packages --typecheck-only $app/fall.tpe fall/$v.tpe; echo "[$?]"; done
+  $ for v in brief late silent rated even; do packages --typecheck-only $app/fall.tpe fall/$v.tpe; echo "[$?]"; done
   File "fall/brief.tpe", line 6, characters 18-49:
   6 |   if falling then (unbox onset as least in least) else first
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `onset` is unboxed with grade `[{10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}, {10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}]` accumulated since it was bound, which is not below its box grade `[{100}, ∞)`
-    File "fall/brief.tpe", line 4, characters 26-31:
-    4 |   box [100, ∞) first as onset in
-                                ^^^^^
+  Typing error: Variable `onset` is unboxed with grade `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulated since it was bound, which is not below its box grade `[{100}, {(![9.5, 10.5]; ReadImu)*}]`
+    File "fall/brief.tpe", line 4, characters 51-56:
+    4 |   box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
+                                                           ^^^^^
     `onset` is bound here
     File "fall/brief.tpe", line 5, characters 16-48:
     5 |   let falling = low (low (low (low (low true)))) in
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}, {10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}]` accumulates here (this computation)
-    Note: the resource inequality `[{10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}, {10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}] <= [{100}, ∞)` does not hold
+    grade `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulates here (this computation)
+    Note: the resource inequality `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}] <= [{100}, {(![9.5, 10.5]; ReadImu)*}]` does not hold
   [1]
   File "fall/late.tpe", line 6, characters 24-69:
   6 |   if peak > impact then (unbox window as least in Fall (least, peak))
@@ -75,7 +76,7 @@ alarm raised without the prompt:
   File "fall/silent.tpe", lines 6-7, characters 2-12:
   6 |   unbox event as fall in
         ^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `event` is unboxed with grade `[{20000}, {20000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
+  Typing error: Variable `event` is unboxed with grade `[{!20000}, {!20000}]` accumulated since it was bound, which is not below its box grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
     File "fall/silent.tpe", line 4, characters 73-78:
     4 |   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
                                                                                  ^^^^^
@@ -83,8 +84,33 @@ alarm raised without the prompt:
     File "fall/silent.tpe", line 5, characters 2-13:
     5 |   delay 20000;
           ^^^^^^^^^^^
-    grade `[{20000}, {20000}]` accumulates here (delay)
-    Note: the resource inequality `[{20000}, {20000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
+    grade `[{!20000}, {!20000}]` accumulates here (delay)
+    Note: the resource inequality `[{!20000}, {!20000}] <= [{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}, {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]` does not hold
+  [1]
+  File "fall/rated.tpe", line 7, characters 18-49:
+  7 |   if falling then (unbox onset as least in least) else first
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  Typing error: Variable `onset` is unboxed with grade `[{ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulated since it was bound, which is not below its box grade `[{100}, {(![9.5, 10.5]; ReadImu)*}]`
+    File "fall/rated.tpe", line 4, characters 51-56:
+    4 |   box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
+                                                           ^^^^^
+    `onset` is bound here
+    File "fall/rated.tpe", line 5, characters 2-26:
+    5 |   perform ConfigureImu 400;
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+    grade `[{ConfigureImu}, {ConfigureImu}]` accumulates here (operation `ConfigureImu`)
+    File "fall/rated.tpe", line 6, characters 16-26:
+    6 |   let falling = confirm () in
+                        ^^^^^^^^^^
+    grade `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulates here (this computation)
+    Note: the resource inequality `[{ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}] <= [{100}, {(![9.5, 10.5]; ReadImu)*}]` does not hold
+  [1]
+  File "fall/even.tpe", lines 3-21, characters 45-35:
+  3 | let rec alarm_even (n : nat) (seconds : nat) : unit
+                                                   ^^^^^^
+  Typing error: This function's body has grade `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}, {[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}]`, which does not match its annotated grade `[{([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}, {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}]`
+    Note: the effect inequality `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}, {[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}] <= [{([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}, {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}]` does not hold
+    Note: the grade `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}, {1030; ShowColourTextAt; ShowTimeAt}]` is below `[{[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}, {[1000, 1030]; (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}]` but not below `[{([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}, {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)}]`
   [1]
 
 The project, for the board m5stack-cores3; its sources compile without

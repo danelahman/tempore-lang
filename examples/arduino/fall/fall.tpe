@@ -1,9 +1,9 @@
 (* A fall detector on the M5Stack CoreS3 Lite: a free fall and an impact
    within a second, and an alarm raised 10 to 30 s after a prompt
 
-   Run this example with the 'regex-timed-interval-rational-symbolic' grading monoid, e.g.
+   Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
-     ./tempore --grades regex-timed-interval-rational-symbolic \
+     ./tempore --grades regex-timed-rigid-interval-rational-symbolic \
        --package m5-imu \
        --package m5-display \
        --package m5-touch \
@@ -11,8 +11,8 @@
        --board m5stack-cores3 \
        examples/arduino/fall/fall.tpe
 
-   Grades [L, U]: a lower and upper regular-language bound on the traces with
-   rational durations
+   Grades [L, U]: a lower bound in the coverage order and an upper bound in
+   the rigid allowance order on the traces with rational durations
      - Unit [{0}, {0}]: nothing demanded, only the empty trace allowed
      - Top [{0}, ∞): nothing demanded, every trace allowed
      - Product: concatenation of traces, componentwise *)
@@ -59,18 +59,19 @@ let load () : float # {ReadImu} =
    to its unboxing within one function body. A recursion has a grade whose
    repetitions it includes, which bounds no duration; the phases are
    therefore written out as fixed sequences of readings and of polls of the
-   screen, each sequence annotated with the interval of its durations,
-   which the callers see in place of its operations. *)
+   screen. The readings of the confirmation are seen by their callers; the
+   other sequences are annotated with the interval of their durations,
+   which the callers see in place of their operations. *)
 
-(* A reading 10 ms after the last, and whether the free fall continues. *)
-let low (falling : bool) : bool # {10; ReadImu} =
+(* A reading after a wait of 10 ms, and whether the free fall continues. *)
+let low (falling : bool) : bool # {!10; ReadImu} =
   delay 10;
   let a = load () in
   falling && a < free_fall
 
 (* Ten readings 10 ms apart: whether the free fall lasts throughout, 102 to
    115 ms. *)
-let confirm () : bool # {[100, 120]} =
+let confirm () : bool =
   let falling = true in
   let falling = low falling in
   let falling = low falling in
@@ -173,11 +174,16 @@ let cancel () =
   perform ShowColourTextAt (0, 76, 2, black, green, "Glad you're OK");
   delay 2000
 
-(* The alarm, raised: a tone every second, the alarm flashing and the time
-   since it was raised, until a tap stops it, for at most n seconds. It
-   needs no box: the box of the fall licenses raising it, and the alarm
-   then lasts until it is stopped. *)
-let rec alarm (n : nat) (seconds : nat) : unit # {_*} =
+(* Correctly accepted by the typechecker: the alarm, raised: a tone every
+   second, the alarm flashing and the time since it was raised, until a tap
+   stops it, for at most n seconds. It needs no box: the box of the fall
+   licenses raising it, and the alarm then lasts until it is stopped. The
+   grade is the alarm: rounds of twenty polls of the screen, the alarm, the
+   time and a tone, ended by the polls of a tap, its tone and the message,
+   and nothing else. *)
+let rec alarm (n : nat) (seconds : nat) : unit
+    # {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*;
+       (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)} =
   match n with
   | 0 -> ()
   | m + 1 ->
@@ -216,8 +222,8 @@ let raise ((Fall (_, peak)) : fall) =
    only on the path on which no second was tapped, 10018 to 10960 ms after
    the tone. Within the delay '[10000, 30000]' of the box grade any
    operation may come, at the upper bound of its running time: the box
-   bounds the time to the alarm, and the operations it names before that
-   delay, but not those within it. *)
+   demands its three operations first, with none between, and bounds the
+   time to the alarm, but not the operations within that delay. *)
 let respond (fall : fall) =
   frame ();
   box {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]} fall as event in
@@ -248,14 +254,15 @@ let respond (fall : fall) =
   raise fall
 
 (* Correctly accepted by the typechecker: a suspected fall, from the reading
-   'first' below 0.3 g. The reading is boxed with a delay of at least 100 ms:
-   the free fall is confirmed only after ten further readings, at least
-   102 ms. An impact is then searched for, and the end of the free fall
-   boxed with a delay of at most a second: a fall is reported only if the
-   search, of at most 920 ms, finds an impact. The result is the number of
-   falls, counted or not. *)
+   'first' below 0.3 g. The reading is boxed with a delay of at least 100 ms
+   and readings after waits of 9.5 to 10.5 ms, with no other operation: the
+   free fall is confirmed only after ten further readings, at least 102 ms,
+   and from these readings alone. An impact is then searched for, and the
+   end of the free fall boxed with a delay of at most a second: a fall is
+   reported only if the search, of at most 920 ms, finds an impact. The
+   result is the number of falls, counted or not. *)
 let suspect (falls : nat) (first : float) : nat =
-  box [100, ∞) first as onset in
+  box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
   let falling = confirm () in
   if falling then (
     unbox onset as least in
@@ -317,16 +324,16 @@ let watch () =
 (* Correctly rejected by the typechecker: the free fall is confirmed after
    five readings, 51 to 57.5 ms, shorter than 100 ms:
 
-     Typing error: Variable `onset` is unboxed with grade
-       `[{10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu},
-       {10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu; 10; ReadImu}]`
+     Typing error: Variable `onset` is unboxed with grade `[{!10; ReadImu;
+       !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10;
+       ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]`
        accumulated since it was bound, which is not below its box grade
-       `[{100}, ∞)`
+       `[{100}, {(![9.5, 10.5]; ReadImu)*}]`
        ...
 *)
 (*
 let suspect_brief (first : float) =
-  box [100, ∞) first as onset in
+  box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
   let falling = low (low (low (low (low true)))) in
   if falling then (unbox onset as least in least) else first
 *)
@@ -334,14 +341,10 @@ let suspect_brief (first : float) =
 (* Correctly rejected by the typechecker: the impact is searched for over a
    hundred readings, up to 1150 ms after the end of the free fall:
 
-     Typing error: Variable `window` is unboxed with grade
-       `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}]`
-       accumulated since it was bound, which is not below its box grade
-       `[{0}, {1000}]`
+     Typing error: Variable `window` is unboxed with grade `[{[0, 920];
+       [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}]` accumulated
+       since it was bound, which is not below its box grade `[{0}, {1000}]`
        ...
-       Note: the resource inequality
-         `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}] <=
-         [{0}, {1000}]` does not hold
 *)
 (*
 let suspect_late (least : float) =
@@ -354,10 +357,9 @@ let suspect_late (least : float) =
 (* Correctly rejected by the typechecker: the response waits twenty seconds
    and raises the alarm without the prompt and the tone that ask for a tap:
 
-     Typing error: Variable `event` is unboxed with grade
-       `[{20000}, {20000}]` accumulated since it was bound, which is not
-       below its box grade
-       `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
+     Typing error: Variable `event` is unboxed with grade `[{!20000},
+       {!20000}]` accumulated since it was bound, which is not below its box
+       grade `[{ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]},
        {ShowColourTextAt; ShowColourTextAt; Beep; [10000, 30000]}]`
        ...
 *)
@@ -367,6 +369,68 @@ let respond_silent (fall : fall) =
   delay 20000;
   unbox event as fall in
   raise fall
+*)
+
+(* Correctly rejected by the typechecker: the unit is reconfigured to 400 Hz
+   at the onset of a free fall, before the readings that confirm it; with
+   budget delays in place of the strict ones, the box would admit the
+   reconfiguration, of at most 0.4 ms, beside the wait of 10 ms:
+
+     Typing error: Variable `onset` is unboxed with grade `[{ConfigureImu;
+       !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu;
+       !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu},
+       {ConfigureImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu;
+       !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu;
+       !10; ReadImu}]` accumulated since it was bound, which is not below its
+       box grade `[{100}, {(![9.5, 10.5]; ReadImu)*}]`
+       ...
+*)
+(*
+let suspect_rated (first : float) =
+  box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
+  perform ConfigureImu 400;
+  let falling = confirm () in
+  if falling then (unbox onset as least in least) else first
+*)
+
+(* Correctly rejected by the typechecker: the alarm sounds its tone only on
+   the even seconds:
+
+     Typing error: This function's body has grade `[{[1000, 1030];
+       (ShowColourTextAt; ShowTimeAt; (0 | Beep); ([1000, 1030];
+       ShowColourTextAt; ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep;
+       ShowColourTextAt; ShowColourTextAt; 2000) | Beep; ShowColourTextAt;
+       ShowColourTextAt; !2000) | 0}, {[1000, 1030]; (ShowColourTextAt;
+       ShowTimeAt; (0 | Beep); ([1000, 1030]; ShowColourTextAt; ShowTimeAt;
+       Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt;
+       2000) | Beep; ShowColourTextAt; ShowColourTextAt; !2000) | 0}]`, which
+       does not match its annotated grade `[{([1000, 1030]; ShowColourTextAt;
+       ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt;
+       ShowColourTextAt; 2000)}, {([1000, 1030]; ShowColourTextAt;
+       ShowTimeAt; Beep)*; (0 | [1000, 1030]; Beep; ShowColourTextAt;
+       ShowColourTextAt; 2000)}]`
+       ...
+*)
+(*
+let rec alarm_even (n : nat) (seconds : nat) : unit
+    # {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*;
+       (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let tapped = polls false in
+      if tapped then (
+        perform Beep (1500, 100);
+        perform ShowColourTextAt (0, 44, 3, black, green, "Alarm stopped");
+        perform ShowColourTextAt (0, 76, 2, black, green, "");
+        delay 2000)
+      else (
+        (if seconds mod 2 = 0 then
+           perform ShowColourTextAt (0, 44, 3, red, white, "ALARM")
+         else perform ShowColourTextAt (0, 44, 3, white, red, "ALARM"));
+        perform ShowTimeAt (0, 146, 2, "Alarm for ", seconds + 1);
+        (if seconds mod 2 = 0 then perform Beep (2000, 500) else ());
+        alarm_even m (seconds + 1))
 *)
 
 (* A suspected fall from a reading of 0.1 g, with the default

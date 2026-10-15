@@ -1,0 +1,21 @@
+(* A rejected variant of examples/arduino/fall/fall.tpe. *)
+
+let rec alarm_even (n : nat) (seconds : nat) : unit
+    # {([1000, 1030]; ShowColourTextAt; ShowTimeAt; Beep)*;
+       (0 | [1000, 1030]; Beep; ShowColourTextAt; ShowColourTextAt; 2000)} =
+  match n with
+  | 0 -> ()
+  | m + 1 ->
+      let tapped = polls false in
+      if tapped then (
+        perform Beep (1500, 100);
+        perform ShowColourTextAt (0, 44, 3, black, green, "Alarm stopped");
+        perform ShowColourTextAt (0, 76, 2, black, green, "");
+        delay 2000)
+      else (
+        (if seconds mod 2 = 0 then
+           perform ShowColourTextAt (0, 44, 3, red, white, "ALARM")
+         else perform ShowColourTextAt (0, 44, 3, white, red, "ALARM"));
+        perform ShowTimeAt (0, 146, 2, "Alarm for ", seconds + 1);
+        (if seconds mod 2 = 0 then perform Beep (2000, 500) else ());
+        alarm_even m (seconds + 1))
