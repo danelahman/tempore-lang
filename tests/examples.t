@@ -820,8 +820,8 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/binding_reject.tpe
   ======================================================================
-  File "../examples/opentrons/binding_reject.tpe", lines 40-45, characters 25-12:
-  40 | let binding_late_wash () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
+  File "../examples/opentrons/binding_reject.tpe", lines 42-47, characters 25-12:
+  42 | let binding_late_wash () : unit # (Mix, [1, 2], [2, 5], [0, 5]) =
                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: This function's body has grade `{AddBeads; Mix; 2; FillWashPlate} · (Mix, [0, 0], [2, 5], [0, 5])`, which does not match its annotated grade `(Mix, [1, 2], [2, 5], [0, 5])`
     Note: the effect inequality `{AddBeads; Mix; 2; FillWashPlate} · (Mix, [0, 0], [2, 5], [0, 5]) <= (Mix, [1, 2], [2, 5], [0, 5])` does not hold
