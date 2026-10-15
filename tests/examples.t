@@ -1433,8 +1433,9 @@ tests show those runs in detail.
   === Run 1 ===
   return (Sample 3)
   State: [
+    [{!0.6}, {!0.6}],
     { resource_0 ↦
-        Sample 0
+        3
         # [{ReadImu; ReadClock; ReadImu; ReadClock; ReadImu; ReadClock}, {(2.5; ReadImu; ReadClock)*}]
     },
     [{!1.75}, {!1.75}],
