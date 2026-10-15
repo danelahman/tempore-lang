@@ -34,12 +34,16 @@
 //   formatted at start-up, after which the device restarts: an erase stops
 //   both cores for each sector, so that the readings stall meanwhile.
 // - A task of core 0 reads commands from the serial port: "dump" prints the
-//   recordings, and "erase" erases them and restarts the device. The dump
-//   begins with the line "# Recordings", each recording with the line
-//   "# Recording N" and ends with the line "# End of recording N, R rows",
-//   and the dump ends with "# End of the recordings". The line of the
+//   recordings, "dump N" the recording N only, and "erase" erases them and
+//   restarts the device. The dump begins with the line "# Recordings: R
+//   records, the last recording K", each recording with
+//   the line "# Recording N" and ends with the line "# End of recording N, R
+//   rows", and the dump ends with "# End of the recordings". The line of the
 //   columns and each row begin with "@", so that a line of the log written
-//   at the same time does not mix with them.
+//   at the same time does not mix with them. Each line of the dump ends with
+//   "*" and the CRC-16/CCITT-FALSE of the characters before it, in four
+//   hexadecimal digits, and is written once the transmit buffer of the port
+//   has room for it, so that no byte is dropped by a full buffer.
 // - The reset reason of the start-up is logged, and given in the header of
 //   its first recording.
 //
@@ -56,6 +60,7 @@
 #include <freertos/task.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <atomic>
@@ -207,6 +212,7 @@ static std::atomic<bool> steps_ready{false};
 static std::atomic<uint32_t> steps_written{0};
 static std::atomic<bool> steps_full{false};
 static std::atomic<uint32_t> steps_number{0};
+static std::atomic<uint32_t> steps_last{0};
 static std::atomic<bool> steps_marker_dirty{true};
 static std::atomic<bool> steps_erasing{false};
 static std::atomic<bool> steps_paused{false};
@@ -451,28 +457,52 @@ static void steps_format(uint32_t erase, uint32_t capacity) {
   steps_storage_write(0, &header, sizeof header);
 }
 
-// Writes a line of the dump and a newline in one write; false if the port is
-// not connected.
+// The CRC-16/CCITT-FALSE of n bytes: the polynomial 0x1021, the initial
+// value 0xffff, bit by bit.
+static uint16_t steps_crc(const char *data, int n) {
+  uint16_t crc = 0xffff;
+  for (int i = 0; i < n; ++i) {
+    crc ^= static_cast<uint16_t>(static_cast<uint8_t>(data[i]) << 8);
+    for (int k = 0; k < 8; ++k)
+      crc = crc & 0x8000 ? static_cast<uint16_t>((crc << 1) ^ 0x1021)
+                         : static_cast<uint16_t>(crc << 1);
+  }
+  return crc;
+}
+
+#ifndef TEMPORE_HOST
+// The time within which the transmit buffer of the port must have room for
+// a line of the dump, in milliseconds.
+static const uint32_t steps_room_ms = 2000;
+#endif
+
+// Writes a line of the dump, its checksum and a newline in one write, once
+// the transmit buffer has room for them; false if the port is not
+// connected or the buffer has no room within steps_room_ms.
 static bool steps_line(const char *format, ...)
     __attribute__((format(printf, 1, 2)));
 
 static bool steps_line(const char *format, ...) {
   char line[112];
+  const int room = static_cast<int>(sizeof line) - 7;
   va_list arguments;
   va_start(arguments, format);
-  int n = vsnprintf(line, sizeof line - 1, format, arguments);
+  int n = vsnprintf(line, room + 1, format, arguments);
   va_end(arguments);
   if (n < 0) return false;
-  if (n > static_cast<int>(sizeof line) - 2) n = sizeof line - 2;
-  line[n] = '\n';
-  line[n + 1] = '\0';
+  if (n > room) n = room;
+  n += snprintf(line + n, sizeof line - n, "*%04X\n", steps_crc(line, n));
 #ifdef TEMPORE_HOST
   Serial.print(line);
   return true;
 #else
-  if (!Serial) return false;
-  Serial.write(reinterpret_cast<const uint8_t *>(line), n + 1);
-  return true;
+  const uint32_t start = millis();
+  while (Serial.availableForWrite() < n) {
+    if (!Serial || millis() - start > steps_room_ms) return false;
+    vTaskDelay(1);
+  }
+  return Serial.write(reinterpret_cast<const uint8_t *>(line), n) ==
+         static_cast<size_t>(n);
 #endif
 }
 
@@ -499,12 +529,15 @@ static bool steps_row(const steps_record &r, unsigned long t, uint32_t kind) {
   }
 }
 
-// Prints the records written so far, recording by recording; stops if the
-// port is not connected.
-static void steps_dump() {
+// Prints the records written so far, recording by recording, or the
+// recording only alone if only is not 0; stops if the port is not
+// connected.
+static void steps_dump(uint32_t only) {
   const uint32_t end = steps_written.load();
-  if (!steps_line("# Recordings: %lu records, %.1f of %u s recorded%s",
+  if (!steps_line("# Recordings: %lu records, the last recording %lu, %.1f "
+                  "of %u s recorded%s",
                   static_cast<unsigned long>(end / sizeof(steps_record)),
+                  static_cast<unsigned long>(steps_last.load()),
                   steps_recorded_ms.load() / 1000.0,
                   static_cast<unsigned>(STEPS_RECORD),
                   steps_full.load() ? ", full" : ""))
@@ -526,7 +559,8 @@ static void steps_dump() {
           return;
         number = steps_held(r);
         rows = 0;
-        open = true;
+        open = only == 0 || number == only;
+        if (!open) continue;
         const int reason = r.value[2] - 1;
         const bool ok =
             (r.value[2] > 0
@@ -570,8 +604,8 @@ static void steps_erase() {
   esp_restart();
 }
 
-// Reads the commands "dump" and "erase", each a line, from the serial port;
-// the input that arrives during a dump is discarded.
+// Reads the commands "dump", "dump N" and "erase", each a line, from the
+// serial port; the input that arrives during a dump is discarded.
 static void steps_console_task(void *) {
   char line[16];
   size_t n = 0;
@@ -583,7 +617,10 @@ static void steps_console_task(void *) {
         line[n] = '\0';
         n = 0;
         if (strcmp(line, "dump") == 0) {
-          steps_dump();
+          steps_dump(0);
+          while (Serial.available() > 0) Serial.read();
+        } else if (strncmp(line, "dump ", 5) == 0 && atol(line + 5) > 0) {
+          steps_dump(static_cast<uint32_t>(atol(line + 5)));
           while (Serial.available() > 0) Serial.read();
         } else if (strcmp(line, "erase") == 0) {
           steps_erase();
@@ -644,6 +681,7 @@ static void steps_writer_task(void *) {
   uint32_t written = steps_scan(tally);
   steps_written.store(written);
   steps_recorded_ms.store(tally.recorded_ms);
+  steps_last.store(tally.number);
   steps_full.store(tally.recorded_ms >= steps_bound_ms ||
                    written + sizeof(steps_record) > steps_formatted);
   tempore_log("Recorder: %lu recordings, %lu records, %lu ms recorded%s",
@@ -720,6 +758,7 @@ static void steps_writer_task(void *) {
       written += n * sizeof(steps_record);
       steps_written.store(written);
       steps_recorded_ms.store(tally.recorded_ms);
+      steps_last.store(tally.number);
     }
     last_write = xTaskGetTickCount();
     if (tally.number != steps_number.load()) {
@@ -730,7 +769,7 @@ static void steps_writer_task(void *) {
 }
 
 #ifdef TEMPORE_HOST
-void steps_record_print() { steps_dump(); }
+void steps_record_print() { steps_dump(0); }
 #endif
 
 #endif

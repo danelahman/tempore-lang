@@ -637,8 +637,11 @@ recording, with the columns `t_ms`, `ax`, `ay`, `az` (g), `gx`, `gy`, `gz`
 (degrees per second) and `event` (a count of steps, a reset, the start and
 the end of a calibration), and the lines read to
 `_arduino/recordings/steps-TIME.log`. The device answers a command line,
-sent again until it does, so that a reset by the opening of the port does
-not matter. `make arduino-steps-erase` erases the recordings and restarts
+sent again until the first line of the answer arrives, so that a reset by
+the opening of the port does not matter. Each line of the dump carries a
+CRC-16 and is written once the transmit buffer of the port has room for
+it; a recording that arrives damaged or incomplete is requested again by
+its number. `make arduino-steps-erase` erases the recordings and restarts
 the device. With `STEPS_REPLAY=FILE`, the host simulation of `steps` reads
 the accelerometer readings of a recording.
 
@@ -728,8 +731,8 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   under `event-separation`: one loop reads the unit at least every 50 ms
   and the touch screen while it redraws the screen, one band per round: the
   state, the steps, the prompt of a reset, the Reset button, the cadence,
-  the distance at a stride of 0.7 m, and a bar of the vertical acceleration
-  with its thresholds. Two buttons of 156 by 40 pixels, "Calibrate" and
+  the distance at a stride of 0.7 m, and a bar of the smoothed magnitude of
+  the acceleration with its thresholds. Two buttons of 156 by 40 pixels, "Calibrate" and
   "Reset", fill the band above the footer; a touch counts for a button when
   it begins inside it, and elsewhere does nothing.
   - At start-up and at each tap on Calibrate, with "Hold still" shown, the
@@ -741,15 +744,21 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     counting, applies the gain to every reading. The steps are kept from
     one session to the next, and the loop of the sessions proves the counts
     250 ms apart across the calibrations.
-  - The smoothed acceleration is split into its parts along gravity and
-    across it. A step is a rise of the vertical part above thresholds that
-    follow its recent range, confirmed by a second reading, boxed 10 to
-    45 ms after the first, a new sample of the unit at 100 Hz, its time read
-    by the operation `ReadClock` within 0.1 ms of the decision, and with a
-    horizontal sway of at least 0.1 g since the last rise.
-  - Steps count only 0.25 to 2 s apart, and after a run of four, then added
-    at once, so that shaking, a bump, moving the device or bouncing on the
-    spot counts none; the host model plays these motions and walks.
+  - The step signal is the magnitude of the acceleration, smoothed by two
+    exponential moving averages, less its slow mean, so that no orientation
+    is assumed. A step is a rise of the signal through a hysteresis of
+    0.35 times its root mean square, at least 0.03 g, decided at the second
+    reading of a round, boxed 10 to 45 ms after the first, a new sample of
+    the unit at 100 Hz, its time read by the operation `ReadClock` within
+    0.1 ms of the decision.
+  - A rise in a motion along a line, the effective dimension of the recent
+    covariance of the acceleration below 1.4, is no step and ends the run,
+    so that moving the device up and down, bouncing or shaking it counts
+    none.
+  - A rise within 0.25 s of the last is ignored, a gap above 1.5 s ends the
+    run, and a gap outside 0.5 to 1.5 times the last restarts it; steps
+    count after a run of four, then added at once. The host model plays
+    these motions and walks, and replays recordings.
   - Each count goes through the operation `CountStep` of the example and is
     followed by a cooldown of twelve rounds, so that the typechecker proves
     the counts at least 250 ms apart.
@@ -758,7 +767,9 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
     first, resets the count through `ResetSteps`, and a tap on Calibrate
     clears the prompt. The button of the first tap is boxed over the
     recursive wait, which reads the unit at least every 50 ms; the steps
-    found meanwhile are passed to `CountStep` with the next count.
+    found meanwhile are passed to `CountStep` with the next count. The
+    confirming tap beeps, the counter boxed with the beep before any band
+    of the screen is redrawn.
   - The operation `ShowButton` of the example draws a button, idle or
     active.
   - The handler `walk`, not compiled, replays a walk in the interpreter.

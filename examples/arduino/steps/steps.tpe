@@ -24,10 +24,10 @@
    counts steps in one loop of rounds of two readings, which also draws the
    screen band by band and reads the touch screen. Two buttons at the bottom
    of the screen: "Calibrate" stops the counting and calibrates again, and
-   "Reset", tapped twice, resets the count. bindings.cpp defines CountStep,
-   ResetSteps, ReadClock and ShowButton, world.cpp models walks, motions that
-   are none and taps. The figures below are those under the bounds of the
-   CoreS3, some of them provisional.
+   "Reset", tapped twice, resets the count with a short beep. bindings.cpp
+   defines CountStep, ResetSteps, ReadClock and ShowButton, world.cpp models
+   walks, motions that are none and taps. The figures below are those under
+   the bounds of the CoreS3, some of them provisional.
 
    On the board: make arduino-steps-upload; simulated on the host: make
    arduino-steps-simulate ('make examples-help',
@@ -54,24 +54,25 @@ operation ShowButton : nat * nat * nat * nat * bool * string ~> unit
 default ShowButton _ = delay 3
 
 (* The states of the counter: at rest, a run of steps not yet confirmed, a
-   confirmed walk, rises too fast for steps, and rises without a horizontal
-   sway. *)
-type status = Still | Checking | Walking | Shaking | Swayless
+   confirmed walk, and a rise in a motion along a line. *)
+type status = Still | Checking | Walking | Linear
 
-(* The weight of a reading in the smoothed acceleration and in the direction
-   of gravity, exponential moving averages; the decay of the envelopes of
-   the vertical part per reading, the least half swing between the
-   thresholds and the least swing of the horizontal part in a step, in g;
-   the shortest and the longest time between rises, in ms; the steps of a
-   confirming run; the assumed stride, in cm; the time within which a
-   second tap on Reset resets, in ms. *)
+(* The weights of a reading in exponential moving averages: in each of the
+   two smoothings of the magnitude, in the slow means of the magnitude and of
+   the moments of the acceleration, and in the mean square of the step
+   signal. The least half width of the hysteresis, in g, and its ratio to
+   the root mean square of the step signal; the least effective dimension of
+   the motion; the shortest and the longest time between rises, in ms; the
+   steps of a confirming run; the assumed stride, in cm; the time within
+   which a second tap on Reset resets, in ms. *)
 let weight = 0.25
-let gravity_weight = 0.01
-let decay = 0.002
-let least_half_swing = 0.075
-let least_sway = 0.1
+let slow_weight = 0.01
+let power_weight = 0.005
+let least_half_width = 0.03
+let width_ratio = 0.35
+let least_dimension = 1.4
 let shortest_gap = 250
-let longest_gap = 2000
+let longest_gap = 1500
 let run_length = 4
 let stride = 70
 let window = 2000
@@ -134,90 +135,140 @@ let ten (sum : vector) =
   sample (sample (sample (sample (sample (sample (sample (sample (sample
     (sample sum)))))))))
 
-(* The filter: the smoothed acceleration, the direction of gravity, the
-   upper and lower envelopes of the vertical part, whether it fell below the
-   low threshold since the last rise, and the least and the greatest
-   horizontal part since then. *)
-type filter = vector * vector * float * float * bool * float * float
+(* The filter: the two smoothings of the magnitude of the acceleration, the
+   slow mean of the magnitude, the mean square of the step signal, whether
+   the step signal fell below the hysteresis since the last rise, and the
+   slow means of the acceleration, of the squares of its components and of
+   the products of consecutive components. *)
+type filter = float * float * float * float * bool * vector * vector * vector
 
-(* The filter after a reading x, and the vertical part. The direction of
-   gravity follows the readings slowly, so that no orientation of the unit
-   is assumed; the smoothed acceleration is split into its part along
-   gravity and the rest, whose magnitude is the horizontal part. Each
-   envelope follows the vertical part outwards at once and inwards by the
-   decay. Walking forwards and backwards are not distinguished. *)
-let filter ((y, g, upper, lower, armed, least, most) : filter) (x : vector) =
-  let y = toward weight y x in
-  let g = toward gravity_weight g x in
-  let u = scale (1.0 /. norm g) g in
-  let v = dot y u in
-  let h = norm (minus y (scale v u)) in
-  ((y, g, max v (upper -. decay), min v (lower +. decay), armed, min h least,
-    max h most), v)
+(* The squares of the components of a vector and the products of
+   consecutive components. *)
+let moments ((x, y, z) : vector) : vector * vector =
+  ((x *. x, y *. y, z *. z), (x *. y, y *. z, z *. x))
 
-(* The high and low thresholds: the middle of the envelopes plus and minus a
-   quarter of their distance, at least the least half swing. *)
-let thresholds (upper : float) (lower : float) =
-  let middle = (upper +. lower) /. 2.0 in
-  let half = max ((upper -. lower) /. 4.0) least_half_swing in
-  (middle +. half, middle -. half)
+(* The filter after a reading x, and whether the step signal rose above
+   the hysteresis after it fell below it. The magnitude is smoothed by
+   two exponential moving averages in series, a low-pass filter of about
+   2 Hz at the rate of the readings, so that a step is one hump; the step
+   signal is the second smoothing less the slow mean. The half width of the
+   hysteresis is the greater of the least half width and the ratio times
+   the root mean square of the step signal, compared as squares. No orientation
+   of the unit is assumed. *)
+let filter ((s1, s2, base, power, armed, mean, square, cross) : filter)
+    (x : vector) =
+  let m = norm x in
+  let s1 = s1 +. (weight *. (m -. s1)) in
+  let s2 = s2 +. (weight *. (s1 -. s2)) in
+  let base = base +. (slow_weight *. (m -. base)) in
+  let d = s2 -. base in
+  let power = power +. (power_weight *. ((d *. d) -. power)) in
+  let wide =
+    d *. d
+    > max (least_half_width *. least_half_width)
+        (width_ratio *. width_ratio *. power)
+  in
+  let above = wide && d > 0.0 in
+  let below = wide && d < 0.0 in
+  let xx, xy = moments x in
+  ( ( s1,
+      s2,
+      base,
+      power,
+      below || (armed && not above),
+      toward slow_weight mean x,
+      toward slow_weight square xx,
+      toward slow_weight cross xy ),
+    armed && above )
+
+(* Whether the recent motion is along a line: the effective dimension
+   tr(C)^2 / ||C||^2 of the covariance C of the acceleration, from its slow
+   means, below the least, compared without a division; it is 1 for a
+   motion along a line and 3 for an isotropic one. *)
+let along_line ((_, _, _, _, _, (m1, m2, m3), (q1, q2, q3), (p1, p2, p3)) :
+    filter) =
+  let a = q1 -. (m1 *. m1) in
+  let b = q2 -. (m2 *. m2) in
+  let c = q3 -. (m3 *. m3) in
+  let p = p1 -. (m1 *. m2) in
+  let q = p2 -. (m2 *. m3) in
+  let r = p3 -. (m3 *. m1) in
+  let trace = a +. b +. c in
+  trace *. trace
+  < least_dimension
+    *. ((a *. a) +. (b *. b) +. (c *. c)
+       +. (2.0 *. ((p *. p) +. (q *. q) +. (r *. r))))
+
+(* The second smoothing of the magnitude, and the high and low thresholds:
+   the slow mean plus and minus the half width of the hysteresis. *)
+let smoothed ((_, s2, _, _, _, _, _, _) : filter) = s2
+
+let thresholds ((_, _, base, power, _, _, _, _) : filter) =
+  let half = max least_half_width (width_ratio *. sqrt power) in
+  (base +. half, base -. half)
 
 (* The length of the bar of an acceleration of a g, in pixels: 320 for
    2 g. *)
 let bar (a : float) = nat_of_float (a *. 160.0)
 
-(* The readings of a round, the first followed by the bar of the vertical
-   part and a delay of 10 ms. Returns the filter, whether the two vertical
-   parts rose above the high threshold after it fell below the low one,
-   whether the horizontal part swung by the least sway since the last rise,
-   and the time.
+(* The readings of a round, each followed by the time, the first by the
+   bar of the smoothed magnitude and a delay of 10 ms. Returns the filter,
+   whether the step signal rose at either reading, whether the motion is
+   along a line, the time of the reading at which it rose, and the time of
+   the second reading.
 
    The filter after the first reading is boxed until the second, with a
-   count: exactly one reading, started 10 to 43 ms after the first ended,
-   and the decision at its end. The unit samples at 100 Hz, and a reading
-   within 10 ms of another may return the same sample; the second reading
-   is thus a new sample, taken within the rise.
+   count: exactly one reading, started 10 to 43 ms after the box, and the
+   decision at its end. The unit samples at 100 Hz, and a reading within
+   10 ms of another may return the same sample; the decision of the round,
+   the rise and the test of the line, is thus taken after a new sample.
 
-   The decision is boxed until it is paired with the time, with exactly one
-   ReadClock, started at most 0.1 ms after the box and ended within 0.05 ms:
-   the time of a rise is that of its confirming reading. A time read with
-   the first reading, 10.2 to 44.5 ms earlier, would let the gaps between
-   rises err by up to 34.3 ms, across the shortest gap of 250 ms. *)
+   The decision is boxed until it is paired with the time of the second
+   reading, with exactly one ReadClock, started at most 0.1 ms after the box
+   and ended within 0.05 ms. A rise at the second reading is thus timed by
+   it, and one at the first by the time read after the first; the time of
+   the round alone, 10.2 to 44.55 ms after that time, would let the gaps
+   between rises err by up to 34.35 ms, across the shortest gap of
+   250 ms. *)
 let sense (f : filter) =
   let x = reading () in
-  let first, va = filter f x in
+  let before = perform ReadClock () in
+  let first, early = filter f x in
+  let level = smoothed first in
   box (1, ReadImu, [10, 45], [0, 1.5]) first as boxed in
-  perform DrawBar (0, 146, 320, 10, bar va, blue);
+  perform DrawBar (0, 146, 320, 10, bar level, blue);
   delay 10;
   let x = reading () in
   unbox boxed as first in
-  let second, vb = filter first x in
-  let y, g, upper, lower, armed, least, most = second in
-  let high, low = thresholds upper lower in
-  let rose = armed && va > high && vb > high in
-  box (1, ReadClock, [0, 0.1], [0, 0.05]) (rose, most -. least >= least_sway)
+  let second, late = filter first x in
+  box (1, ReadClock, [0, 0.1], [0, 0.05]) (early || late, along_line second)
   as decision in
   let t = perform ReadClock () in
-  unbox decision as (rose, swayed) in
-  let h = norm (minus y (scale (dot y g /. dot g g) g)) in
-  let armed = (armed && not rose) || va < low || vb < low in
-  if rose then ((y, g, upper, lower, armed, h, h), rose, swayed, t)
-  else ((y, g, upper, lower, armed, least, most), rose, swayed, t)
+  unbox decision as (rose, linear) in
+  (second, rose, linear, (if early then before else t), t)
 
 (* The rhythm: the state, the steps of the current run, the time of its last
    rise and the time between its last two steps, in ms. *)
 type rhythm = status * nat * nat * nat
 
-(* A rise at the time t: too fast for a step within the shortest gap of the
-   last rise; no step without a sway; the first step of a run after a gap
-   above the longest, and otherwise the next. With the steps to count: those
-   of the run once it is confirmed, and then each step. *)
-let rise ((status, streak, last, interval) : rhythm) (t : nat) (swayed : bool)
+(* Whether the gap between two rises is regular after the interval: within
+   half the interval of it. *)
+let regular (gap : nat) (interval : nat) =
+  2 * gap >= interval && 2 * gap <= 3 * interval
+
+(* A rise at the time t: ignored within the shortest gap of the last rise;
+   no step in a motion along a line; the first step of a run after a gap
+   above the longest; the second, with the last step, after a gap not
+   regular; and otherwise the next. With the steps to count: those of the
+   run once it is confirmed, and then each step. *)
+let rise ((status, streak, last, interval) : rhythm) (t : nat) (linear : bool)
     =
   let gap = t - last in
-  if gap < shortest_gap then ((Shaking, 0, t, interval), 0)
-  else if not swayed then ((Swayless, 0, t, interval), 0)
+  if gap < shortest_gap then ((status, streak, last, interval), 0)
+  else if linear then ((Linear, 0, t, interval), 0)
   else if streak = 0 || gap > longest_gap then ((Checking, 1, t, interval), 0)
+  else if streak >= 2 && not (regular gap interval) then
+    ((Checking, 2, t, gap), 0)
   else if streak + 1 < run_length then ((Checking, streak + 1, t, gap), 0)
   else
     let added = if streak + 1 = run_length then run_length else 1 in
@@ -268,10 +319,9 @@ let show_status (status : status) =
   | Checking ->
       perform ShowColourTextAt (0, 30, 2, yellow, black, "Checking rhythm")
   | Walking -> perform ShowColourTextAt (0, 30, 2, green, black, "Walking")
-  | Shaking ->
-      perform ShowColourTextAt (0, 30, 2, orange, black, "Ignored: too fast")
-  | Swayless ->
-      perform ShowColourTextAt (0, 30, 2, orange, black, "Ignored: no sway")
+  | Linear ->
+      perform ShowColourTextAt
+        (0, 30, 2, orange, black, "Ignored: along a line")
 
 let show_steps (steps : nat) =
   perform ShowNumberAt (120, 52, 4, 0, float_of_nat steps)
@@ -293,7 +343,7 @@ let screen (steps : nat) =
   perform ShowNumberAt (200, 92, 2, 0, 0.0);
   perform ShowTextAt (0, 112, 2, "Distance, m");
   show_distance steps;
-  perform ShowTextAt (0, 134, 1, "Vertical acceleration, 0 to 2 g; thresholds");
+  perform ShowTextAt (0, 134, 1, "Acceleration, 0 to 2 g; thresholds");
   show_calibrate false;
   show_reset false;
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
@@ -307,9 +357,8 @@ let changed (before : status) (after : status) ((s, n, p, r, c, d) : bands) =
    redraw, and otherwise one of the thresholds in turn. The prompt and the
    Reset button, active while the prompt is shown, are two bands. *)
 let show ((f, rhythm, steps, bands, turn, touch, prompt, now) : counter) =
-  let _, _, upper, lower, _, _, _ = f in
   let status, _, _, interval = rhythm in
-  let high, low = thresholds upper lower in
+  let high, low = thresholds f in
   let s, n, p, r, c, d = bands in
   let shown, _ = steps in
   if s then (
@@ -342,9 +391,11 @@ let show ((f, rhythm, steps, bands, turn, touch, prompt, now) : counter) =
 (* The readings of a round and the rhythm after them: the counter, its
    bands left to redraw, and the steps to count. *)
 let advance ((f, rhythm, steps, bands, turn, touch, prompt, _) : counter) =
-  let f, rose, swayed, t = sense f in
+  let f, rose, linear, at, t = sense f in
   let status, _, _, _ = rhythm in
-  let next, added = if rose then rise rhythm t swayed else (idle rhythm t, 0) in
+  let next, added =
+    if rose then rise rhythm at linear else (idle rhythm t, 0)
+  in
   let after, _, _, _ = next in
   ((f, next, steps, changed status after bands, turn, touch, prompt, t), added)
 
@@ -365,8 +416,9 @@ let count ((f, rhythm, (shown, deferred), (state, _, p, r, _, _), turn,
   (f, rhythm, (shown + added, 0), (state, false, p, r, true, true), turn,
     touch, prompt, now)
 
-(* The rest of a round with steps added while the prompt is shown: the steps
-   and a delay of 10 ms, their count deferred to the next count. *)
+(* The rest of a round with steps added where none may be counted, while
+   the prompt is shown or in the cooldown: the steps and a delay of 10 ms,
+   their count deferred to the next count. *)
 let defer ((f, rhythm, (shown, deferred), (state, _, p, r, _, _), turn,
     touch, prompt, now) : counter) (added : nat) =
   show_steps (shown + added);
@@ -374,18 +426,10 @@ let defer ((f, rhythm, (shown, deferred), (state, _, p, r, _, _), turn,
   (f, rhythm, (shown + added, deferred + added),
     (state, false, p, r, true, true), turn, touch, prompt, now)
 
-(* A round in which no step counts: a rise is too fast for a step, and ends
-   the run. *)
-let quiet ((f, rhythm, steps, bands, turn, touch, prompt, _) : counter) =
-  let f, rose, _, t = sense f in
-  let status, _, _, interval = rhythm in
-  let next = if rose then (Shaking, 0, t, interval) else rhythm in
-  let counter =
-    let after, _, _, _ = next in
-    show (f, next, steps, changed status after bands, turn, touch, prompt, t)
-  in
-  delay 10;
-  counter
+(* A round in which no step counts: its steps deferred. *)
+let quiet c =
+  let c, added = advance c in
+  if added = 0 then pause c else defer c added
 
 (* A reading of the touch screen, 0 to 1.45 ms: a touch begins where the
    screen is touched and was not at the last reading, so that a finger left
@@ -402,10 +446,10 @@ let polled c = poll (quiet c)
 let tapped ((_, _, _, _, _, (_, began, x, y), _, _) : counter) =
   if began then key x y else Elsewhere
 
-(* The cooldown: twelve rounds in which no step counts, each of at least
-   20.4 ms, two readings of at least 0.2 ms and two delays of 10 ms, the
-   bands, the clock and the touch screen taking at least 0; with the touch
-   screen read in each, or not. *)
+(* The cooldown: twelve rounds in which no step counts, their steps
+   deferred, each of at least 20.4 ms, two readings of at least 0.2 ms and
+   two delays of 10 ms, the bands, the clock and the touch screen taking at
+   least 0; with the touch screen read in each, or not. *)
 let quiet3 c = quiet (quiet (quiet c))
 let cooldown c = quiet3 (quiet3 (quiet3 (quiet3 c)))
 let polled3 c = polled (polled (polled c))
@@ -453,11 +497,22 @@ let prompt ((f, rhythm, steps, (s, n, _, _, c, d), turn, touch, _, now) :
   (f, rhythm, steps, (s, n, true, true, c, d), turn, touch, shown, now)
 
 (* The reset: the steps set to zero, and the bands of the steps, the prompt,
-   the Reset button and the distance to redraw. *)
+   the Reset button and the distance to redraw. The counter is boxed after
+   ResetSteps with exactly one Beep, at once, and the end within 0.15 ms of
+   its start; the box is returned, and unboxed where the beep is
+   performed. The beep thus answers the confirming tap before any band of
+   the screen is redrawn; a beep after the band of the steps, redrawn in
+   0.05 to 33 ms, is rejected. *)
+type confirmation = [(1, Beep, [0, 0], [0, 0.15])]counter
+
 let reset ((f, rhythm, _, (s, _, _, _, c, _), turn, touch, _, now) : counter)
-    =
+    : confirmation =
   perform ResetSteps ();
-  (f, rhythm, (0, 0), (s, true, true, true, c, true), turn, touch, false, now)
+  box (1, Beep, [0, 0], [0, 0.15])
+    (f, rhythm, (0, 0), (s, true, true, true, c, true), turn, touch, false,
+      now)
+  as confirmed in
+  confirmed
 
 (* Correctly accepted by the typechecker: the response to a tap begun on the
    button k, with the prompt "Tap Reset again to reset" and the button
@@ -485,7 +540,12 @@ let respond (c : counter) (k : key) =
   let c = settle (prompt c true) in
   let c, second = wait 100 since c in
   unbox tap as first in
-  if second = first then reset c else prompt c false
+  if second = first then (
+    let confirmed = reset c in
+    perform Beep (3000, 50);
+    unbox confirmed as c in
+    c)
+  else prompt c false
 
 (* Correctly accepted by the typechecker: at most n rounds of a session,
    each count followed by the cooldown, a tap on Reset answered by
@@ -494,10 +554,10 @@ let respond (c : counter) (k : key) =
 
    ReadImu: the loop starts with a reading, and the starts of consecutive
    readings are at most 50 ms apart, as is the end from the start of the
-   last. The first reading of a round, a band and the delay take at most
-   44.5 ms; the second, the clock, a band, the delay and the touch screen
-   46 ms, and 46.2 ms with ResetSteps; the second, the clock, a count, the
-   steps and the delay 44.75 ms.
+   last. The first reading of a round, the clock, a band and the delay take
+   at most 44.55 ms; the second, the clock, a band, the delay and the touch
+   screen 46 ms, and 46.35 ms with ResetSteps and the beep; the second, the
+   clock, a count, the steps and the delay 44.75 ms.
 
    CountStep: the starts of consecutive counts at least 250 ms apart. A
    count is followed by its band, of at least 0.05 ms, the delay of 10 ms
@@ -506,10 +566,10 @@ let respond (c : counter) (k : key) =
    count add to the gap.
 
    Both are closed under sequencing as the loop is built, so that they hold
-   of any number of rounds. The smoothing, the thresholds, the sway, the
-   shortest and longest gaps between rises and the confirming run are
-   program logic, which the types do not check; a rise within the cooldown
-   is no step. *)
+   of any number of rounds. The smoothing, the hysteresis, the test of the
+   line, the shortest and longest gaps between rises, their regularity and
+   the confirming run are program logic, which the types do not check; the
+   steps found within the cooldown are counted with the next count. *)
 let rec listen (n : nat) (c : counter) : counter
     # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
   match n with
@@ -525,8 +585,12 @@ let rec listen (n : nat) (c : counter) : counter
 
 (* The counter at rest with gravity along g: the filter at g, not armed; no
    run; no steps; nothing to redraw; the touch screen not touched. *)
+let at_rest (g : vector) : filter =
+  let square, cross = moments g in
+  (1.0, 1.0, 1.0, 0.0, false, g, square, cross)
+
 let rest (g : vector) : counter =
-  ( (g, g, 1.0, 1.0, false, 0.0, 0.0),
+  ( at_rest g,
     (Still, 0, 0, 0),
     (0, 0),
     (false, false, false, false, false, false),
@@ -540,7 +604,7 @@ let rest (g : vector) : counter =
    left on Calibrate begins no touch. *)
 let resume (g : vector) ((_, _, steps, _, turn, _, _, now) : counter) :
     counter =
-  ( (g, g, 1.0, 1.0, false, 0.0, 0.0),
+  ( at_rest g,
     (Still, 0, 0, 0),
     steps,
     (false, false, false, false, false, false),

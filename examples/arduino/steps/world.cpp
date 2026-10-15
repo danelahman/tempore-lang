@@ -11,7 +11,7 @@
 // - bouncing on the spot from 15 s to 19 s, two bounces a second of 0.4 g,
 //   vertical only;
 // - a walk from 21 s to 26 s of two steps a second, ten steps, the vertical
-//   acceleration swinging by 0.4 g and the horizontal one by 0.2 g a
+//   acceleration swinging by 0.4 g and the horizontal one by 0.3 g a
 //   quarter period later;
 // - taps of 150 ms: on Calibrate at 28 s, on Reset at 31 s and at the
 //   centre of the screen, outside the buttons, at 34 s; and two of 120 ms
@@ -22,7 +22,9 @@
 // When the environment variable STEPS_REPLAY names a recording written by
 // the target arduino-steps-capture, the accelerometer reads its readings
 // instead, from its first at time 0, each until the next, the last held, and
-// the screen is not touched; its events are ignored. Under the build flag
+// the screen is not touched; its events are ignored. The readings are
+// given to the accelerometer as they are, without trigonometry, so that the
+// replay does not depend on the mathematical library. Under the build flag
 // STEPS_RECORD the recordings are printed at the end of the simulation.
 
 #include <math.h>
@@ -92,7 +94,7 @@ void motion(double t, double &vertical, double &horizontal) {
   } else if ((t >= 21.0 && t < 26.0) || (t >= 39.0 && t < 42.0)) {
     const double s = t < 30.0 ? t - 21.0 : t - 39.0;
     vertical = -0.4 * sin(w * s);
-    horizontal = 0.2 * cos(w * s);
+    horizontal = 0.3 * cos(w * s);
   }
 }
 
@@ -115,13 +117,10 @@ void world_start(tempore_world &w) {
   load_replay();
 }
 
-// The reading a of a recording: its magnitude is the load, and its direction
-// gives the roll and the tilt.
+// The reading a of a recording, given to the accelerometer.
 static void replay_reading(tempore_world &w, const double *a) {
-  const double load = sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
-  w.load = load;
-  w.roll = load > 0 ? asin(a[0] / load) : 0;
-  w.tilt = atan2(a[1], a[2]);
+  w.accel_given = true;
+  for (int k = 0; k < 3; ++k) w.accel[k] = a[k];
   w.touched = false;
 }
 

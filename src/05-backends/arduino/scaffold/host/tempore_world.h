@@ -28,6 +28,10 @@ struct tempore_world {
                          // in g: 1 at rest, 0 in free fall
   bool touched;          // whether the touch screen is touched
   double touch[2];       // the point touched, in pixels
+  bool accel_given;      // whether accel is the reading of the
+                         // accelerometer
+  double accel[3];       // that reading, in g, in place of the one of the
+                         // load, the roll and the tilt
 };
 
 // The length of a step.
