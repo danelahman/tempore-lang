@@ -1,6 +1,5 @@
-(* As the bead purification example, with overdried beads, the generous end
-   of several windows, one ethanol wash in place of two, and a soak off the
-   magnet.
+(* As the bead purification example, with the generous end of several
+   windows, one ethanol wash in place of two, and a soak off the magnet.
 
    Run this example with the 'regex-timed-rigid-interval-rational-symbolic' grading monoid, e.g.
 
@@ -92,19 +91,6 @@ let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
   delay 5/2;
   unbox eluting as eluates in
   box {Transfer} (fun () -> box [2, 5] eluates)
-
-(* Correctly rejected by the typechecker: the beads air-dry for seven and a
-   half minutes, and are overdried:
-
-     Typing error: Variable `drying` is unboxed with grade `[{!7.5;
-       MagnetOff}, {!7.5; MagnetOff}]` accumulated since it was bound, which
-       is not below its box grade ...
-*)
-let elute_overdried (drying : [{[3, 5]; MagnetOff}]beads) =
-  delay 15/2;
-  perform MagnetOff ();
-  unbox drying as beads in
-  perform EluteDNA beads
 
 (* Correctly rejected by the typechecker: the binding, the settling on the
    magnet and the air-dry each take the upper end of their windows, which

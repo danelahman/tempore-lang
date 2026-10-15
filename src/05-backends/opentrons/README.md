@@ -210,9 +210,9 @@ each is a minute.
   their box `[2, 5]` of the master mix, so that its window starts on the
   cold block. A box `[0, 40]` of the samples, whose scope encloses the
   steps, bounds their time at room temperature, below the 47 minutes the
-  windows of the steps allow in all. Its rejected variants overdry the
-  beads, take the upper end of several windows, wash once, and move the
-  plate off the magnet during a soak.
+  windows of the steps allow in all. Its rejected variants take the upper
+  end of several windows, wash once, and move the plate off the magnet
+  during a soak.
 
 ## Adding an example
 
