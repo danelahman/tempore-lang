@@ -723,10 +723,13 @@ port variable `PORT_M5STACK_GRAY`).
     of its gyroscope in the interpreter, each case of an operation performing
     that operation.
 - [`wheels`](../../../examples/arduino/wheels/wheels.tpe): a wheel check of
-  the robot on a stand, under the regular expressions of timed operations:
-  the counts of the encoders are divided by the length of the window only
-  after a drive command, 100 to 101 ms and a reading of the encoders, in this
-  order.
+  the robot on a stand, under the regular expressions of timed operations.
+  - The counts of the encoders are divided by the length of the window only
+    after a drive command, 100 to 101 ms and a reading of the encoders, in
+    this order.
+  - A spin-up profile samples the encoders after the drive command, each
+    sample after a wait of 19 to 21 ms with no other operation, and shows
+    the time of each wheel to reach 90 % of its final speed.
 
 ### M5Stack CoreS3 and CoreS3 Lite
 
