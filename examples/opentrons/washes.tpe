@@ -101,26 +101,26 @@ let cleanup (beads : beads) (n : nat)
   perform AddBeads ();
   delay 7;
   perform MagnetOn ();
-  unbox binding as beads in
+  unbox binding as bound in
   delay 3;
-  perform RemoveLiquid beads;
+  perform RemoveLiquid bound;
   box [{Wash; ChangeTip; Wash; !2; ChangeTip},
-       {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] beads as washed in
-  perform Wash beads;
+       {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] bound as washed in
+  perform Wash bound;
   perform ChangeTip ();
-  washes beads n;
-  perform Wash beads;
+  washes bound n;
+  perform Wash bound;
   delay 3;
   perform ChangeTip ();
-  unbox washed as beads in
+  unbox washed as dried in
   perform MagnetOff ();
-  let eluates = perform EluteDNA beads in
+  let eluates = perform EluteDNA dried in
   delay 2;
   perform MagnetOn ();
   box {![2, 5]} eluates as settling in
   delay 3;
-  unbox settling as eluates in
-  perform Transfer eluates
+  unbox settling as settled in
+  perform Transfer settled
 
 (* Correctly rejected by the typechecker: the further washes share a tip.
    Under 'regex-timed-interval-symbolic' it is accepted, the tip changes of
@@ -167,8 +167,8 @@ let elute_off_magnet (beads : beads)
   delay 2;
   box {![2, 5]} eluates as settling in
   delay 3;
-  unbox settling as eluates in
-  perform Transfer eluates
+  unbox settling as settled in
+  perform Transfer settled
 *)
 
 (* Correctly rejected by the typechecker: the residual ethanol is removed
@@ -196,8 +196,8 @@ let cleanup_short_dry (beads : beads) (n : nat) =
   perform RemoveLiquid beads;
   delay 1;
   perform ChangeTip ();
-  unbox washed as beads in
-  perform EluteDNA beads
+  unbox washed as dried in
+  perform EluteDNA dried
 *)
 
 run cleanup "beads" 0
