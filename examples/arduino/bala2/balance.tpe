@@ -177,12 +177,12 @@ let step ((tilt, speed, integral, position, heading) : state) : state
       (tilt_gain *. (tilt -. balance_point -. reference)) +. (rate_gain *. rate)
     in
     let heading = if magnitude turn > 0.0 then difference else heading in
-    let turn =
+    let command_turn =
       turn +. clamp heading_limit (~-.(heading_gain *. (difference -. heading)))
     in
     perform SetMotors
-      ( bala2_drive (compensated left_dead_band (drive +. turn)),
-        bala2_drive (compensated right_dead_band (drive -. turn)) );
+      ( bala2_drive (compensated left_dead_band (drive +. command_turn)),
+        bala2_drive (compensated right_dead_band (drive -. command_turn)) );
     (tilt, speed, integral, now, heading)
   else (
     perform SetMotors (0i, 0i);
