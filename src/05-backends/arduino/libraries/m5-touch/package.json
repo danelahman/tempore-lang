@@ -11,5 +11,5 @@
   "requires": ["m5unified", "touch"],
   "sources": ["m5_touch.cpp"],
   "host_models": ["m5_touch_model.cpp"],
-  "bindings": ["Touched"]
+  "bindings": ["ReadTouch"]
 }

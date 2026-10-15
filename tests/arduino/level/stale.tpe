@@ -2,8 +2,8 @@
 
 let step_stale ((reference, age, rate, touching) : state) : state =
   let accel, _ = perform ReadImu () in
-  box {Touched} accel as reading in
-  let touched, x, y = perform Touched () in
+  box {ReadTouch} accel as reading in
+  let touched, x, y = perform ReadTouch () in
   if touched && not touching && on_sensor x y then (
     let rate = if rate = 100 then 400 else 100 in
     perform ConfigureImu rate;

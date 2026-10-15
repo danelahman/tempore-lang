@@ -10,8 +10,8 @@
 
 #include "tempore_bindings.h"
 
-#ifdef TEMPORE_PERFORMS_Touched
-tempore_result_Touched binding_Touched(tempore_argument_Touched) {
+#ifdef TEMPORE_PERFORMS_ReadTouch
+tempore_result_ReadTouch binding_ReadTouch(tempore_argument_ReadTouch) {
   {
     const tempore_i2c_guard guard;
     M5.Touch.update(millis());

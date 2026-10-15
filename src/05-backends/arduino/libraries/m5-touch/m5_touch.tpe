@@ -1,7 +1,7 @@
 (* The package m5-touch: the touch screen of an M5Stack core, read through
    M5Unified. Grades: time-interval-rational, in milliseconds.
 
-   Touched () returns whether the screen is touched and, if so, the point
+   ReadTouch () returns whether the screen is touched and, if so, the point
    touched, in pixels from the top left corner, and otherwise (false, 0, 0).
    The screen is read at most once every 4 ms; a reading within 4 ms of the
    last returns its state. A tap shorter than the interval between two
@@ -10,8 +10,8 @@
 
    The bounds are measured on an M5Stack CoreS3 Lite by the profile of the
    device (2026-10-14): the lower bound is the least time measured, rounded
-   down, and the upper bound 1.5 times the greatest, rounded up. Touched took
+   down, and the upper bound 1.5 times the greatest, rounded up. ReadTouch took
    0.021 to 0.942 ms: [0, 1.45]. They are not measured on other boards. *)
 
-operation Touched : unit ~> bool * nat * nat # [0, 1.45]
-default Touched () = delay 3/10; (false, 0, 0)
+operation ReadTouch : unit ~> bool * nat * nat # [0, 1.45]
+default ReadTouch () = delay 3/10; (false, 0, 0)
