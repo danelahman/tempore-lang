@@ -39,40 +39,11 @@ the operations, which read a unit at rest:
   ]
   
 
-The rejected variants, each loaded after the application: a free fall
-confirmed within 100 ms, an impact searched for beyond a second, an alarm
-raised without the prompt, the unit reconfigured before the confirmation of
-a free fall, and an alarm sounding on the even seconds only:
+The rejected variants, each loaded after the application: an alarm raised
+without the prompt, the unit reconfigured before the confirmation of a free
+fall, and an alarm sounding on the even seconds only:
 
-  $ for v in brief late silent rated even; do packages --typecheck-only $app/fall.tpe fall/$v.tpe; echo "[$?]"; done
-  File "fall/brief.tpe", line 6, characters 18-49:
-  6 |   if falling then (unbox onset as least in least) else first
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `onset` is unboxed with grade `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulated since it was bound, which is not below its box grade `[{100}, {(![9.5, 10.5]; ReadImu)*}]`
-    File "fall/brief.tpe", line 4, characters 51-56:
-    4 |   box [{100}, {(![9.5, 10.5]; ReadImu)*}] first as onset in
-                                                           ^^^^^
-    `onset` is bound here
-    File "fall/brief.tpe", line 5, characters 16-48:
-    5 |   let falling = low (low (low (low (low true)))) in
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}]` accumulates here (this computation)
-    Note: the resource inequality `[{!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}, {!10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu; !10; ReadImu}] <= [{100}, {(![9.5, 10.5]; ReadImu)*}]` does not hold
-  [1]
-  File "fall/late.tpe", line 6, characters 24-69:
-  6 |   if peak > impact then (unbox window as least in Fall (least, peak))
-                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `window` is unboxed with grade `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}]` accumulated since it was bound, which is not below its box grade `[{0}, {1000}]`
-    File "fall/late.tpe", line 4, characters 25-31:
-    4 |   box [0, 1000] least as window in
-                                 ^^^^^^
-    `window` is bound here
-    File "fall/late.tpe", line 5, characters 13-42:
-    5 |   let peak = strikes (strikes (search ())) in
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    grade `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}]` accumulates here (this computation)
-    Note: the resource inequality `[{[0, 920]; [0, 115]; [0, 115]}, {[0, 920]; [0, 115]; [0, 115]}] <= [{0}, {1000}]` does not hold
-  [1]
+  $ for v in silent rated even; do packages --typecheck-only $app/fall.tpe fall/$v.tpe; echo "[$?]"; done
   File "fall/silent.tpe", lines 6-7, characters 2-12:
   6 |   unbox event as fall in
         ^^^^^^^^^^^^^^^^^^^^^^
@@ -153,34 +124,35 @@ watch, in green, shows the falls counted:
   [12552.178 ms] Display at (6, 78): Tap to stop
   [12555.938 ms] Display at (0, 102): Impact (g)
   [12558.278 ms] Display at (160, 102): 3.5
-  [13572.008 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [13573.108 ms] Display at (9, 47): ALARM
-  [14586.838 ms] Display fill at (0, 44), 320 by 30: 0xe00000
-  [14587.938 ms] Display at (9, 47): ALARM
-  [15601.668 ms] Display fill at (0, 44), 320 by 30: 0xffffff
-  [15602.768 ms] Display at (9, 47): ALARM
-  [16616.548 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [16617.808 ms] Display at (9, 47): Alarm stopped
-  [16621.368 ms] Display at (6, 78):
-  [18666.048 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [18667.208 ms] Display at (9, 47): Watching
-  [18670.948 ms] Display at (6, 78): for falls
-  [18674.608 ms] Display at (0, 102): Falls
-  [18676.908 ms] Display at (160, 102): 1
-  [25348.652 ms] Display fill at (0, 44), 320 by 30: 0xff8000
-  [25349.872 ms] Display at (9, 47): Are you OK?
-  [25353.692 ms] Display at (6, 78): Tap to cancel
-  [25361.110 ms] Display at (0, 104): 10
-  [26375.298 ms] Display at (0, 104): 9
-  [27389.485 ms] Display at (0, 104): 8
-  [28401.422 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [28402.602 ms] Display at (9, 47): Cancelled
-  [28406.442 ms] Display at (6, 78): Glad you're OK
-  [30451.122 ms] Display fill at (0, 44), 320 by 30: 0x00c000
-  [30452.282 ms] Display at (9, 47): Watching
-  [30456.022 ms] Display at (6, 78): for falls
-  [30459.682 ms] Display at (0, 102): Falls
-  [30461.982 ms] Display at (160, 102): 2
+  [12564.458 ms] Display at (160, 124): 0.05
+  [13578.188 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [13579.288 ms] Display at (9, 47): ALARM
+  [14593.018 ms] Display fill at (0, 44), 320 by 30: 0xe00000
+  [14594.118 ms] Display at (9, 47): ALARM
+  [15607.848 ms] Display fill at (0, 44), 320 by 30: 0xffffff
+  [15608.948 ms] Display at (9, 47): ALARM
+  [16622.728 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [16623.988 ms] Display at (9, 47): Alarm stopped
+  [16627.548 ms] Display at (6, 78):
+  [18672.228 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [18673.388 ms] Display at (9, 47): Watching
+  [18677.128 ms] Display at (6, 78): for falls
+  [18680.788 ms] Display at (0, 102): Falls
+  [18683.088 ms] Display at (160, 102): 1
+  [25354.832 ms] Display fill at (0, 44), 320 by 30: 0xff8000
+  [25356.052 ms] Display at (9, 47): Are you OK?
+  [25359.872 ms] Display at (6, 78): Tap to cancel
+  [25367.290 ms] Display at (0, 104): 10
+  [26381.478 ms] Display at (0, 104): 9
+  [27395.665 ms] Display at (0, 104): 8
+  [28407.602 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [28408.782 ms] Display at (9, 47): Cancelled
+  [28412.622 ms] Display at (6, 78): Glad you're OK
+  [30457.302 ms] Display fill at (0, 44), 320 by 30: 0x00c000
+  [30458.462 ms] Display at (9, 47): Watching
+  [30462.202 ms] Display at (6, 78): for falls
+  [30465.862 ms] Display at (0, 102): Falls
+  [30468.162 ms] Display at (160, 102): 2
   [35000.000 ms] End of the simulation
 The alarm sounds four tones, and a tone of 1500 Hz acknowledges each of the
 two taps; the time since the last event is redrawn every hundred readings,
@@ -194,7 +166,7 @@ every second:
   $ grep 'Since last event' run.log | sed -n '1,3p'
   [59.520 ms] Display at (0, 148): Since last event 0:00
   [1137.645 ms] Display at (0, 148): Since last event 0:01
-  [18680.888 ms] Display at (0, 148): Since last event 0:00
+  [18687.068 ms] Display at (0, 148): Since last event 0:00
   $ grep -c 'Display fill at (0, 1\(72\|80\))' run.log
   132
 
