@@ -141,3 +141,57 @@ whole milliseconds, is well within the bound of 50 ms:
 
   $ awk '/Speaker/ { s = 1; p = 0 } /Hold still/ { s = 0 } s && /Operation ReadImu took/ { t = substr($1, 2) + 0; if (p && t - p > m) m = t - p; p = t } END { printf "%.0f ms\n", m }' run.log
   15 ms
+
+Under the build flag STEPS_RECORD, here 600 s, bindings.cpp records the
+readings and the events in a partition, in memory on the host, one
+recording per calibration, and world.cpp prints them at the end. The
+partition is formatted at the first record; the marker shows the number of
+the recording; the events are those of the run above:
+
+  $ cd _arduino/projects/steps
+  $ build () { c++ -std=c++17 -Wall -Wextra -Werror -ffp-contract=off -DTEMPORE_HOST "$@" -pthread -I host -I src src/*.cpp host/*.cpp -o simulation; }
+  $ build -DSTEPS_RECORD=600 && ./simulation 46000000 > record.log
+  $ grep -e '^# ' -e 'Recorder' record.log | sed 's/^\[[0-9.]* ms\] //'
+  Recorder: start-up after the reset reason host (0)
+  Recorder: formatting the partition
+  Recorder: 0 recordings, 0 records, 0 ms recorded
+  # Recordings: 3936 records, 45.9 of 600 s recorded
+  # Recording 1, the first after the start-up by the reset reason host (0)
+  # End of recording 1, 2397 rows
+  # Recording 2
+  # End of recording 2, 1372 rows
+  # Recording 3
+  # End of recording 3, 167 rows
+  # End of the recordings
+  $ grep 'Display at (290, 134)' record.log | sed 's/^\[[0-9.]* ms\] //' | uniq
+  Display at (290, 134): REC 1
+  Display at (290, 134): REC 2
+  Display at (290, 134): REC 3
+  $ grep '^@[0-9]' record.log | grep -v ',$' | sed 's/^@[0-9]*,,,,,,,//' | uniq -c | sed 's/^ *//'
+  1 calibration start
+  1 calibration end
+  1 count 4
+  6 count 1
+  1 calibration start
+  1 calibration end
+  1 reset
+  1 count 4
+  2 count 1
+  1 calibration start
+  1 calibration end
+
+The readings of the recordings have the 8 fields of the columns, and are at
+most 24 ms apart but from the end of each calibration to the beep:
+
+  $ grep '^@[0-9]' record.log | awk -F, 'NF != 8 { print "row: " $0 } /calibration end/ { p = 0 } $2 != "" { t = substr($1, 2) + 0; if (p && t - p > m) m = t - p; p = t } END { print m " ms" }'
+  24 ms
+
+With a bound of 10 s, the recording stops at the bound, and the marker
+shows FULL:
+
+  $ build -DSTEPS_RECORD=10 && ./simulation 20000000 > full.log
+  $ grep -e '^# Recordings' -e 'full' -e 'FULL' full.log | sed 's/^\[[0-9.]* ms\] //'
+  Recorder: full, 9992 ms recorded
+  Display at (296, 134): FULL
+  # Recordings: 856 records, 10.0 of 10 s recorded, full
+  $ cd ../../..

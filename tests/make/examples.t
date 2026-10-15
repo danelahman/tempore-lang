@@ -3,7 +3,8 @@ fragment of each example, shown by dry runs, which need neither PlatformIO
 nor Python. The variables of the targets are those of the Makefile.
 
   $ unset MAKEFLAGS MFLAGS MAKELEVEL PORT PORT_M5STACK_GRAY PORT_M5STACK_CORES3 \
-  >   CAPTURE SIMULATE MONITOR BALANCE_LOG BALANCE_RECORD PLATFORMIO_BUILD_FLAGS
+  >   CAPTURE SIMULATE MONITOR BALANCE_LOG BALANCE_RECORD STEPS_RECORD \
+  >   PLATFORMIO_BUILD_FLAGS
   $ cd ../..
   $ dry () {
   >   make -s --no-print-directory -n "$@" |
@@ -130,6 +131,16 @@ _arduino/recordings, and extracts the recordings from the log:
   >   grep -o -e '\./tempore .*tpe' -e 'awk -f [^ ]*'
   ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino balance_regex-record --device examples/arduino/bala2-regex/balance_regex.device.json --capture 60 --port /dev/cu.usbserial-02012C91 examples/arduino/bala2-regex/balance_regex.tpe
   awk -f examples/arduino/bala2/recordings.awk
+
+The targets -capture and -erase of steps ask the device for its recordings
+and to erase them through the script of its fragment:
+
+  $ make -s --no-print-directory -n arduino-steps-capture arduino-steps-erase CAPTURE=60 |
+  >   grep -o 'python3 .*--wait 60'
+  python3 -I scripts/steps-recording.py capture --port /dev/cu.usbmodem101 --wait 60
+  python3 -I scripts/steps-recording.py erase --port /dev/cu.usbmodem101 --wait 60
+  $ dry arduino-steps-record STEPS_RECORD=60
+  PLATFORMIO_BUILD_FLAGS="-DSTEPS_RECORD=60" ./tempore --grades event-separation --emit-arduino steps-record --device examples/arduino/steps/steps.device.json --monitor warn --upload --port /dev/cu.usbmodem101 --capture 30 examples/arduino/steps/steps.tpe
   $ dry arduino-tilt-build SIMULATE=5
   ./tempore --grades time-interval-rational --emit-arduino tilt --device examples/arduino/tilt/tilt.device.json --monitor abort --build examples/arduino/tilt/tilt.tpe
   $ dry arduino-tilt-simulate SIMULATE=5

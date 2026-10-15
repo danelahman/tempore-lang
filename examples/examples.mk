@@ -14,7 +14,9 @@
 #   optionally EXAMPLE_LOG_FLAGS, the build flags of its target -log, and
 #   EXAMPLE_RECORD_FLAGS and EXAMPLE_RECORD_FILTER, the build flags of its
 #   target -record and the awk program that extracts the recordings from the
-#   serial output read by its target -capture. The
+#   serial output read by its target -capture, or, in place of the filter,
+#   EXAMPLE_RECORD_TOOL, a Python script by which the targets -capture and
+#   -erase read and erase the recordings kept on the device. The
 #   board is that of the manifest, and its port the variable PORT_BOARD, the
 #   name of the board in upper case with '-' replaced by '_'. 'make
 #   examples-help' groups the Arduino targets by board, named by the member
@@ -49,7 +51,8 @@ tempore-cli:
 
 # The variables a fragment sets, emptied before each fragment is read.
 EXAMPLE_FIELDS = EXAMPLE_GRADES EXAMPLE_TIME_UNIT EXAMPLE_SIMULATE \
-  EXAMPLE_LOG_FLAGS EXAMPLE_RECORD_FLAGS EXAMPLE_RECORD_FILTER
+  EXAMPLE_LOG_FLAGS EXAMPLE_RECORD_FLAGS EXAMPLE_RECORD_FILTER \
+  EXAMPLE_RECORD_TOOL
 
 # The fragments of the Opentrons example $(1) and of the Arduino example $(1).
 opentrons_fragment = examples/opentrons/$(1).mk
@@ -177,7 +180,8 @@ endef
 # arduino_template: -record builds and uploads the project
 # _arduino/projects/$(3)-record with the build flags EXAMPLE_RECORD_FLAGS and
 # reads the serial port for CAPTURE seconds; -capture, without an upload,
-# reads the serial port for CAPTURE seconds into
+# as in arduino_record_tool under EXAMPLE_RECORD_TOOL, and otherwise reads
+# the serial port for CAPTURE seconds into
 # _arduino/recordings/$(1)-TIME.log, TIME the date and time of the capture,
 # and writes the recordings extracted from it by the awk program
 # EXAMPLE_RECORD_FILTER, run under the locale C, to
@@ -194,6 +198,16 @@ arduino-$(1)-record: tempore-cli arduino-deps
 	  --capture $$(CAPTURE) \
 	  $(2)/$(3).tpe
 
+$(if $(EXAMPLE_RECORD_TOOL),$(call arduino_record_tool,$(1),$(4)),$(call \
+  arduino_record_filter,$(1),$(2),$(3),$(4)))
+ARDUINO_RECORDS_$(4) += $(1)
+ARDUINO_TARGETS += arduino-$(1)-record arduino-$(1)-capture
+ARDUINO_RECORD_FLAGS_$(1) = $(EXAMPLE_RECORD_FLAGS)
+endef
+
+# The target -capture of the Arduino example $(1) under
+# EXAMPLE_RECORD_FILTER, as in arduino_record.
+define arduino_record_filter
 arduino-$(1)-capture: tempore-cli
 	mkdir -p _arduino/recordings
 	name=_arduino/recordings/$(1)-$$$$(date +%Y%m%d-%H%M%S); \
@@ -208,9 +222,27 @@ arduino-$(1)-capture: tempore-cli
 	  echo "No complete recording was read; the serial output is in $$$$name.log."; \
 	  exit 1; fi
 
-ARDUINO_RECORDS_$(4) += $(1)
-ARDUINO_TARGETS += arduino-$(1)-record arduino-$(1)-capture
-ARDUINO_RECORD_FLAGS_$(1) = $(EXAMPLE_RECORD_FLAGS)
+ARDUINO_CAPTURED_$(1) = _arduino/recordings/$(1)-TIME.csv
+endef
+
+# The targets -capture and -erase of the Arduino example $(1) of the board
+# $(2) under EXAMPLE_RECORD_TOOL: -capture asks the device for its
+# recordings, waiting CAPTURE seconds for the answer, and writes the lines
+# read to _arduino/recordings/$(1)-TIME.log and each recording N to
+# _arduino/recordings/$(1)-TIME-N.csv; -erase asks the device to erase them.
+define arduino_record_tool
+arduino-$(1)-capture:
+	mkdir -p _arduino/recordings
+	python3 -I $(EXAMPLE_RECORD_TOOL) capture --port $$(call port,$(2)) \
+	  --wait $$(CAPTURE) _arduino/recordings/$(1)-$$$$(date +%Y%m%d-%H%M%S)
+
+arduino-$(1)-erase:
+	python3 -I $(EXAMPLE_RECORD_TOOL) erase --port $$(call port,$(2)) \
+	  --wait $$(CAPTURE)
+
+ARDUINO_CAPTURED_$(1) = _arduino/recordings/$(1)-TIME-N.csv
+ARDUINO_ERASES_$(2) += $(1)
+ARDUINO_TARGETS += arduino-$(1)-erase
 endef
 
 arduino_example = $(call arduino_template,$(1),$(2),$(call \
@@ -233,6 +265,12 @@ arduino-build-all: $(ARDUINO_EXAMPLES:%=arduino-%-build)
 board_title = $(shell sed -n 's/^ *"title": *"\([^"]*\)".*/\1/p' \
   src/05-backends/arduino/boards/$(1).json)
 
+# A newline, which ends the lines of the recipe of each board below.
+define newline
+
+
+endef
+
 # The help of the Arduino examples of the board $(1): its title, port
 # variable and port, and the targets of its examples.
 define arduino_board_help
@@ -249,12 +287,14 @@ define arduino_board_help
 	  "arduino-$(name)-record" \
 	  "uploads the project with $(ARDUINO_RECORD_FLAGS_$(name)) and reads the port" \
 	  "arduino-$(name)-capture" \
-	  "reads the recordings from the port into _arduino/recordings/$(name)-TIME.csv";)
+	  "reads the recordings from the port into $(ARDUINO_CAPTURED_$(name))" \
+	  $(if $(filter $(name),$(ARDUINO_ERASES_$(1))),"arduino-$(name)-erase" \
+	  "erases the recordings on the device");)
 endef
 
 examples-help:
 	@echo "Arduino examples, by board:"
-	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_board_help,$(board)))
+	$(foreach board,$(sort $(ARDUINO_BOARDS)),$(call arduino_board_help,$(board))$(newline))
 	@echo "All Arduino examples:"
 	@echo "  arduino-simulate-all          arduino-NAME-simulate for every example"
 	@echo "  arduino-build-all             arduino-NAME-build for every example"

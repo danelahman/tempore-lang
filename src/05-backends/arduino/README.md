@@ -408,7 +408,10 @@ and `bala2` and `bala2-regex` also
 - `make arduino-NAME-record`, the upload with `-DBALANCE_RECORD`, then
   `--capture`;
 - `make arduino-NAME-capture`, `--capture` without an upload, saving the
-  recordings.
+  recordings;
+
+and `steps` the targets `-record`, `-capture` and `-erase` of
+[Recording the step counter](#recording-the-step-counter).
 
 `make arduino-simulate-all` and `make arduino-build-all` run the first two for
 every example, and `make examples-help` lists the targets by board with the
@@ -423,6 +426,8 @@ environment, are
   targets that read the port);
 - `BALANCE_LOG` and `BALANCE_RECORD`, the intervals in milliseconds of the log
   and of the samples of a recording (default 20);
+- `STEPS_RECORD`, the bound of the recordings of `steps`, in seconds
+  (default 600);
 - `PORT` and `PORT_BOARD`, the serial port (below).
 
 ### Ports
@@ -458,6 +463,10 @@ recordings from the serial output:
     BALANCE_RECORD ?= 20
     EXAMPLE_RECORD_FLAGS = -DBALANCE_RECORD=$(BALANCE_RECORD)
     EXAMPLE_RECORD_FILTER = examples/arduino/bala2/recordings.awk
+
+Instead of the awk program, `EXAMPLE_RECORD_TOOL` names a Python script by
+which the targets `-capture` and `-erase` read and erase the recordings kept
+on the device, as for `steps`.
 
 [`tests/make/examples.t`](../../../tests/make/examples.t) checks that every
 example has a fragment, that the targets its header names exist and run
@@ -587,6 +596,52 @@ of the wheels, the time of a fall beyond the cutoff, the difference of the
 counts of the wheels and its drift, the fraction of the time each wheel is at
 rest, and the correlation of the speed with the reference tilt.
 
+## Recording the step counter
+
+Under the build flag `STEPS_RECORD`, a bound in seconds,
+[`steps/bindings.cpp`](../../../examples/arduino/steps/bindings.cpp) records
+every reading of the unit, its time and its raw acceleration and angular
+rate, and the events of the counter in the flash memory of the CoreS3, so
+that the recordings persist across resets and losses of power. The readings
+reach it through `m5_imu_observe`, a function of the package `m5-imu` that
+an application may define; the program and its grades are unchanged.
+
+- Each calibration, at start-up and at each tap on Calibrate, begins a new
+  numbered recording; the screen shows "REC n" in red at the right end of
+  the row 134, and "FULL" once the recordings hold `STEPS_RECORD` seconds,
+  after which nothing more is recorded.
+- A record takes 16 bytes, about 1.6 KB a second; the records are buffered
+  in RAM and written to the data partition `spiffs` a page at a time, after
+  a reading, so that the programming of the flash memory, which stops both
+  cores for under a millisecond a page, falls between the readings.
+- The first start-up of a record build formats the partition, which stalls
+  the readings for about 15 seconds, and restarts. Each start-up logs its
+  reset reason.
+
+The procedure, with the cable connected:
+
+    make arduino-steps-record
+    make arduino-steps-erase       # clears the earlier recordings
+
+Then, on the battery and without the cable: tap Calibrate, hold the device
+still until the beep, walk for 20 seconds; tap Calibrate again, move the
+device up and down for 20 seconds; and so on, one motion per recording.
+Connect the cable and run
+
+    make arduino-steps-capture
+
+which asks the device for its recordings through
+[`scripts/steps-recording.py`](../../../scripts/steps-recording.py) and
+writes them to `_arduino/recordings/steps-TIME-N.csv`, N the number of the
+recording, with the columns `t_ms`, `ax`, `ay`, `az` (g), `gx`, `gy`, `gz`
+(degrees per second) and `event` (a count of steps, a reset, the start and
+the end of a calibration), and the lines read to
+`_arduino/recordings/steps-TIME.log`. The device answers a command line,
+sent again until it does, so that a reset by the opening of the port does
+not matter. `make arduino-steps-erase` erases the recordings and restarts
+the device. With `STEPS_REPLAY=FILE`, the host simulation of `steps` reads
+the accelerometer readings of a recording.
+
 ## Host simulation
 
 Under `--host-simulate` the tasks run against host models of the devices and
@@ -707,6 +762,8 @@ Profile `m5stack-cores3`, port variable `PORT_M5STACK_CORES3`.
   - The operation `ShowButton` of the example draws a button, idle or
     active.
   - The handler `walk`, not compiled, replays a walk in the interpreter.
+  - Under `-DSTEPS_RECORD` the readings and the events are recorded in flash
+    memory ([Recording the step counter](#recording-the-step-counter)).
 
 #### Using the digital level
 

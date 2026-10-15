@@ -18,12 +18,58 @@
 //   on Reset at 36 s and 36.6 s;
 // - a walk of six steps from 39 s to 42 s;
 // - a tap of 150 ms on Calibrate at 44 s.
+//
+// When the environment variable STEPS_REPLAY names a recording written by
+// the target arduino-steps-capture, the accelerometer reads its readings
+// instead, from its first at time 0, each until the next, the last held, and
+// the screen is not touched; its events are ignored. Under the build flag
+// STEPS_RECORD the recordings are printed at the end of the simulation.
 
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <vector>
 
 #include "tempore_world.h"
 
+#ifdef STEPS_RECORD
+void steps_record_print();
+
+void world_finish(const tempore_world &) { steps_record_print(); }
+#endif
+
 namespace {
+
+// A reading of a recording: its time, in ms from the first, and the
+// acceleration, in g.
+struct reading {
+  double t;
+  double a[3];
+};
+
+std::vector<reading> replay;
+size_t replayed = 0;
+
+// The readings of the recording named by STEPS_REPLAY, if any: the rows of
+// four numbers or more after the line of the columns.
+void load_replay() {
+  const char *path = getenv("STEPS_REPLAY");
+  if (path == nullptr) return;
+  FILE *f = fopen(path, "r");
+  if (f == nullptr) {
+    fprintf(stderr, "STEPS_REPLAY: cannot open %s\n", path);
+    exit(1);
+  }
+  char line[160];
+  while (fgets(line, sizeof line, f) != nullptr) {
+    reading r;
+    if (sscanf(line, "%lf,%lf,%lf,%lf", &r.t, &r.a[0], &r.a[1], &r.a[2]) == 4)
+      replay.push_back(r);
+  }
+  fclose(f);
+  for (size_t i = replay.size(); i-- > 0;) replay[i].t -= replay[0].t;
+}
 
 // The vertical and horizontal accelerations at the time t, in seconds, less
 // gravity, in g.
@@ -64,12 +110,32 @@ bool tapped(double t, int &x, int &y) {
 
 }  // namespace
 
-void world_start(tempore_world &w) { w.tilt = 0; }
+void world_start(tempore_world &w) {
+  w.tilt = 0;
+  load_replay();
+}
+
+// The reading a of a recording: its magnitude is the load, and its direction
+// gives the roll and the tilt.
+static void replay_reading(tempore_world &w, const double *a) {
+  const double load = sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+  w.load = load;
+  w.roll = load > 0 ? asin(a[0] / load) : 0;
+  w.tilt = atan2(a[1], a[2]);
+  w.touched = false;
+}
 
 // The reading of the unit is load (sin roll, sin tilt cos roll, cos tilt cos
 // roll); the force (horizontal, 0, 1 + vertical), rotated into the frame of
 // the unit and scaled by 0.95, gives the load, the roll and the tilt.
 void world_advance(tempore_world &w, double) {
+  if (!replay.empty()) {
+    while (replayed + 1 < replay.size() &&
+           replay[replayed + 1].t <= w.time * 1000.0)
+      ++replayed;
+    replay_reading(w, replay[replayed].a);
+    return;
+  }
   double vertical, horizontal;
   motion(w.time, vertical, horizontal);
   const double a = 0.5, b = 0.3;
