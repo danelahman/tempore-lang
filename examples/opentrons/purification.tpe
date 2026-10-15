@@ -23,16 +23,19 @@
    Each step unboxes the beads boxed by the step before it and returns them
    boxed with the window of the next step: binding, separation, removal of
    the supernatant, exactly two ethanol washes, air-drying, elution,
-   collection. A box enclosing these steps bounds the time the samples spend
-   at room temperature. Modelled on the Opentrons Protocol Library protocol
+   collection. The eluates are then boxed in two successive stages: the
+   transfer to the cold block, and from there the addition of the PCR master
+   mix. A box enclosing the steps bounds the time the samples spend at room
+   temperature. Modelled on the Opentrons Protocol Library protocol
    kapa-amp-cleanup; the windows are the example's own. *)
 
 type sample = string
 type beads = string
 
 (* The beads are mixed into the samples, the supernatant and the ethanol
-   removed, the elution buffer mixed in and the eluates transferred to a
-   plate on the cold block, in one to two minutes each; the plate is moved
+   removed, the elution buffer mixed in, the eluates transferred to a plate
+   on the cold block and the master mix mixed into them, in one to two
+   minutes each; the plate is moved
    onto and off the magnetic block, the ethanol added from above and the
    residual ethanol removed, in at most a minute. *)
 operation AddBeads : sample ~> beads # {AddBeads} within [1, 2]
@@ -61,8 +64,11 @@ default RemoveResidualEthanol beads = delay 3/4
 operation EluteDNA : beads ~> unit # {EluteDNA} within [1, 2]
 default EluteDNA beads = delay 3/2
 
-operation Transfer : beads * sample ~> unit # {Transfer} within [1, 2]
-default Transfer (beads, samples) = delay 3/2
+operation Transfer : sample ~> unit # {Transfer} within [1, 2]
+default Transfer samples = delay 3/2
+
+operation AddMasterMix : beads ~> unit # {AddMasterMix} within [1, 2]
+default AddMasterMix eluates = delay 3/2
 
 (* The steps. The box a step takes is its argument's annotated type, and the
    box it returns that of the next step:
@@ -76,7 +82,8 @@ default Transfer (beads, samples) = delay 3/2
                     → [{[3, 5]; MagnetOff}]beads
      elute      : [{[3, 5]; MagnetOff}]beads
                     → [{[2, 5]; MagnetOn; [2, 5]}]beads
-     collect    : [{[2, 5]; MagnetOn; [2, 5]}]beads → beads
+     collect    : [{[2, 5]; MagnetOn; [2, 5]}]beads
+                    → [{Transfer}](unit → [[2, 5]]beads)
 
    The beads bind the samples for five to ten minutes before the plate goes
    on the magnet, where they settle for three to five minutes. *)
@@ -131,28 +138,41 @@ let elute (drying : [{[3, 5]; MagnetOff}]beads) =
   perform EluteDNA beads;
   box {[2, 5]; MagnetOn; [2, 5]} beads
 
+(* The eluates are licensed in two stages: they are transferred to the cold
+   block, with no other step before, and once there cool to 4 °C for two to
+   five minutes before they take the master mix. The inner box is created
+   when the function in the outer box is called, after the outer box is
+   opened, so that its window starts on the cold block. The box
+   `box {Transfer} (box [2, 5] eluates)` would start the inner window at the
+   collection, and is rejected, its content not eternal. *)
 let collect (eluting : [{[2, 5]; MagnetOn; [2, 5]}]beads) =
   delay 3;
   perform MagnetOn ();
   delay 5/2;
-  unbox eluting as beads in
-  beads
+  unbox eluting as eluates in
+  box {Transfer} (fun () -> box [2, 5] eluates)
 
 (* Correctly accepted by the typechecker: every step is taken within the
-   window of its box, and the eluates reach the cold block 26.25 to 36.25
-   minutes after the beads were added. The samples are boxed for at most 40
-   minutes at room temperature, a box whose scope encloses the boxes of the
-   steps: the windows of the steps allow up to 47 minutes in all, so the box
-   of the samples bounds their combination. A third wash is rejected as the one
+   window of its box, the eluates reach the cold block 26.25 to 36.25
+   minutes after the beads were added, and take the master mix two to five
+   minutes later. The samples are boxed for at most 40 minutes at room
+   temperature, a box whose scope encloses the boxes of the steps: the
+   windows of the steps allow up to 47 minutes in all, so the box of the
+   samples bounds their combination. A third wash is rejected as the one
    wash below is, its box not allowing for the removal of the ethanol. *)
 let purification (samples : sample) =
   let binding = bind samples in
   box [0, 40] samples as warm in
-  let beads =
+  let collected =
     collect (elute (final_wash (wash (clear (separate binding)))))
   in
   unbox warm as samples in
-  perform Transfer (beads, samples)
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
 
 (* Correctly rejected by the typechecker: the beads air-dry for seven and a
    half minutes, and are overdried:
@@ -204,12 +224,17 @@ let elute_long (drying : [{[3, 5]; MagnetOff}]beads) =
 let purification_generous (samples : sample) =
   let binding = bind samples in
   box [0, 40] samples as warm in
-  let beads =
+  let collected =
     collect
       (elute_long (final_wash (wash (clear_long (separate_long binding)))))
   in
   unbox warm as samples in
-  perform Transfer (beads, samples)
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
 *)
 
 (* Correctly rejected by the typechecker: the beads are washed once, and the
@@ -225,9 +250,14 @@ let purification_generous (samples : sample) =
 let purification_one_wash (samples : sample) =
   let binding = bind samples in
   box [0, 40] samples as warm in
-  let beads = collect (elute (final_wash (clear (separate binding)))) in
+  let collected = collect (elute (final_wash (clear (separate binding)))) in
   unbox warm as samples in
-  perform Transfer (beads, samples)
+  perform Transfer samples;
+  unbox collected as cool in
+  let cooling = cool () in
+  delay 7/2;
+  unbox cooling as eluates in
+  perform AddMasterMix eluates
 *)
 
 run purification "samples"

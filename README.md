@@ -1535,7 +1535,8 @@ binding file and a rejected variant:
 - [`cleanup`](examples/opentrons/cleanup.tpe), a bead clean-up by compound
   operations implemented by a handler;
 - [`purification`](examples/opentrons/purification.tpe), a bead purification
-  whose steps unbox and rebox the beads, within a box of the whole run.
+  whose steps unbox and rebox the beads, within a box of the whole run, and
+  whose eluates are boxed in two successive stages.
 
 #### Quick start
 <!-- web-skip -->
