@@ -994,9 +994,9 @@ tests show those runs in detail.
   ======================================================================
   ../examples/opentrons/elisa_reject.tpe
   ======================================================================
-  File "../examples/opentrons/elisa_reject.tpe", lines 34-35, characters 2-20:
-  34 |   unbox incubating as plate in
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "../examples/opentrons/elisa_reject.tpe", lines 34-35, characters 2-24:
+  34 |   unbox incubating as incubated in
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `incubating` is unboxed with grade `[30, 30]` accumulated since it was bound, which is not below its box grade `[60, ∞)`
     File "../examples/opentrons/elisa_reject.tpe", line 32, characters 6-16:
     32 |   let incubating = perform Detect (plate, antibody) in
