@@ -1102,8 +1102,8 @@ tests show those runs in detail.
   ../examples/opentrons/purification_reject.tpe
   ======================================================================
   File "../examples/opentrons/purification_reject.tpe", lines 129-135, characters 2-30:
-  129 |   unbox warm as samples in
-          ^^^^^^^^^^^^^^^^^^^^^^^^
+  129 |   unbox warm as warm_samples in
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `warm` is unboxed with grade `[{!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}, {!10; MagnetOn; !5; RemoveSupernatant; AddEthanol; !1; RemoveEthanol; AddEthanol; !0.75; RemoveEthanol; RemoveResidualEthanol; !5; MagnetOff; EluteDNA; !3; MagnetOn; !2.5}]` accumulated since it was bound, which is not below its box grade `[{0}, {40}]`
     File "../examples/opentrons/purification_reject.tpe", line 124, characters 25-29:
     124 |   box [0, 40] samples as warm in
