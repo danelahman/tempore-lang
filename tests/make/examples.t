@@ -3,7 +3,7 @@ fragment of each example, shown by dry runs, which need neither PlatformIO
 nor Python. The variables of the targets are those of the Makefile.
 
   $ unset MAKEFLAGS MFLAGS MAKELEVEL PORT PORT_M5STACK_GRAY PORT_M5STACK_CORES3 \
-  >   CAPTURE SIMULATE MONITOR BALANCE_LOG BALANCE_RECORD STEPS_RECORD \
+  >   CAPTURE SIMULATE MONITOR BRIGHTNESS BALANCE_LOG BALANCE_RECORD STEPS_RECORD \
   >   PLATFORMIO_BUILD_FLAGS
   $ cd ../..
   $ dry () {
@@ -124,6 +124,21 @@ Further targets, under variables set on the command line:
   $ dry arduino-bala2-record BALANCE_RECORD=50
   PLATFORMIO_BUILD_FLAGS="-DBALANCE_RECORD=50" ./tempore --grades time-interval-rational --emit-arduino balance-record --device examples/arduino/bala2/balance.device.json --monitor warn --upload --port /dev/cu.usbserial-02012C91 --capture 30 examples/arduino/bala2/balance.tpe
 
+BRIGHTNESS adds the flag TEMPORE_DISPLAY_BRIGHTNESS to the build flags of
+every target that builds a device project, before those of the example:
+
+  $ dry arduino-starter-build BRIGHTNESS=60
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60" ./tempore --grades regex-timed-interval-rational-symbolic --emit-arduino starter --device examples/arduino/starter/starter.device.json --monitor abort --build examples/arduino/starter/starter.tpe
+  $ for t in starter-upload starter-profile bala2-log bala2-record steps-record; do
+  >   make -s --no-print-directory -n "arduino-$t" BRIGHTNESS=60 |
+  >     grep -o '^PLATFORMIO_BUILD_FLAGS="[^"]*"'
+  > done
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60"
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60"
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DBALANCE_LOG=20"
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DBALANCE_RECORD=20"
+  PLATFORMIO_BUILD_FLAGS="-DTEMPORE_DISPLAY_BRIGHTNESS=60 -DSTEPS_RECORD=600"
+
 The target -capture reads the port without an upload, into a log under
 _arduino/recordings, and extracts the recordings from the log:
 
@@ -183,6 +198,7 @@ listed apart:
     PORT=                                        when set, the port of every upload
     SIMULATE=                                    when set, the simulated seconds of every example
     MONITOR=                                     when set, the monitor policy of every target
+    BRIGHTNESS=                                  when set, the display brightness, 0 to 255, of every build
   Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help
   $ make -s arduino-diagnostics-help
   Arduino diagnostic targets, by board:
@@ -205,3 +221,4 @@ listed apart:
     PORT=                                        when set, the port of every upload
     CAPTURE=30                                   the seconds for which the port is read
     MONITOR=                                     when set, the monitor policy of every target
+    BRIGHTNESS=                                  when set, the display brightness, 0 to 255, of every build

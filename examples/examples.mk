@@ -36,14 +36,16 @@
 # and by a target -capture;
 # SIMULATE, when set, the simulated time, in seconds, of every host
 # simulation, by default that of the example; MONITOR, when set, the monitor
-# policy, by default abort, and warn for the uploads that capture. Each can
-# be set on the command line or in the environment.
+# policy, by default abort, and warn for the uploads that capture;
+# BRIGHTNESS, when set, the brightness of the display, from 0 to 255, of every
+# device build. Each can be set on the command line or in the environment.
 PORT_M5STACK_GRAY ?= /dev/cu.usbserial-02012C91
 PORT_M5STACK_CORES3 ?= /dev/cu.usbmodem101
 PORT ?=
 CAPTURE ?= 30
 SIMULATE ?=
 MONITOR ?=
+BRIGHTNESS ?=
 
 TEMPORE = ./tempore
 
@@ -54,6 +56,15 @@ tempore-cli:
 EXAMPLE_FIELDS = EXAMPLE_GRADES EXAMPLE_TIME_UNIT EXAMPLE_SIMULATE \
   EXAMPLE_LOG_FLAGS EXAMPLE_RECORD_FLAGS EXAMPLE_RECORD_FILTER \
   EXAMPLE_RECORD_TOOL
+
+# The build flags of a device build: PLATFORMIO_BUILD_FLAGS, the flag
+# TEMPORE_DISPLAY_BRIGHTNESS under BRIGHTNESS, and the flags $(1); and the
+# assignment of these flags without $(1) under BRIGHTNESS, prefixed to the
+# commands of the device builds that add no flags.
+device_flags = $(strip $(PLATFORMIO_BUILD_FLAGS) $(if \
+  $(BRIGHTNESS),-DTEMPORE_DISPLAY_BRIGHTNESS=$(BRIGHTNESS)) $(1))
+brightness_flags = $(if $(BRIGHTNESS),PLATFORMIO_BUILD_FLAGS="$(call \
+  device_flags)" )
 
 # The fragments of the Opentrons example $(1) and of the Arduino example $(1).
 opentrons_fragment = examples/opentrons/$(1).mk
@@ -127,7 +138,7 @@ arduino-$(1)-simulate: tempore-cli
 	  $(2)/$(3).tpe
 
 arduino-$(1)-build: tempore-cli arduino-deps
-	$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(brightness_flags)$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3) \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),abort) \
@@ -135,7 +146,7 @@ arduino-$(1)-build: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-upload: tempore-cli arduino-deps
-	$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(brightness_flags)$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3) \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),abort) \
@@ -143,7 +154,7 @@ arduino-$(1)-upload: tempore-cli arduino-deps
 	  $(2)/$(3).tpe
 
 arduino-$(1)-profile: tempore-cli arduino-deps
-	$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
+	$$(brightness_flags)$$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-profile \
 	  --device $(2)/$(3).device.json \
 	  --monitor $$(or $$(MONITOR),warn) \
@@ -162,7 +173,7 @@ endef
 # The target -log of the Arduino example $(1), as in arduino_template.
 define arduino_log
 arduino-$(1)-log: tempore-cli arduino-deps
-	PLATFORMIO_BUILD_FLAGS="$$(strip $$(PLATFORMIO_BUILD_FLAGS) $(EXAMPLE_LOG_FLAGS))" \
+	PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$(EXAMPLE_LOG_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-log \
 	  --device $(2)/$(3).device.json \
@@ -190,7 +201,7 @@ endef
 # full.
 define arduino_record
 arduino-$(1)-record: tempore-cli arduino-deps
-	PLATFORMIO_BUILD_FLAGS="$$(strip $$(PLATFORMIO_BUILD_FLAGS) $(EXAMPLE_RECORD_FLAGS))" \
+	PLATFORMIO_BUILD_FLAGS="$$(call device_flags,$(EXAMPLE_RECORD_FLAGS))" \
 	  $$(TEMPORE) --grades $(EXAMPLE_GRADES) \
 	  --emit-arduino $(3)-record \
 	  --device $(2)/$(3).device.json \
@@ -314,7 +325,8 @@ examples-help:
 	@printf '  %-44s %s\n' \
 	  "PORT=$(PORT)" "when set, the port of every upload" \
 	  "SIMULATE=$(SIMULATE)" "when set, the simulated seconds of every example" \
-	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target"
+	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
+	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 255, of every build"
 	@echo "Diagnostic targets (profiles, logs and recordings): make arduino-diagnostics-help"
 
 arduino-diagnostics-help:
@@ -324,7 +336,8 @@ arduino-diagnostics-help:
 	@printf '  %-44s %s\n' \
 	  "PORT=$(PORT)" "when set, the port of every upload" \
 	  "CAPTURE=$(CAPTURE)" "the seconds for which the port is read" \
-	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target"
+	  "MONITOR=$(MONITOR)" "when set, the monitor policy of every target" \
+	  "BRIGHTNESS=$(BRIGHTNESS)" "when set, the display brightness, 0 to 255, of every build"
 
 .PHONY: tempore-cli opentrons-simulate-all arduino-simulate-all \
   arduino-build-all examples-help arduino-diagnostics-help \
