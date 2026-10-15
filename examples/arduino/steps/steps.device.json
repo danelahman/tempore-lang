@@ -4,7 +4,7 @@
   "tasks": [
     { "function": "watch", "kind": "free", "repeat": true, "priority": 1 }
   ],
-  "packages": ["m5-imu", "m5-display"],
+  "packages": ["m5-imu", "m5-display", "m5-speaker"],
   "bindings": "bindings.cpp",
   "safe_state": "steps_safe_state",
   "host_models": ["world.cpp"]

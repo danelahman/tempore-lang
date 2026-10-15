@@ -90,7 +90,10 @@
     of the next. The invariant of a loop whose body starts with [X] and takes at
     most [t] is the full form [(X, [0, 0], [0, t], [0, t])]: no time before the
     first [X], gaps and tail at most [t]; it is closed under sequencing. A rate
-    limit [(X, \[s, ∞))] is closed under sequencing.
+    limit [(X, \[s, ∞))] is not closed under sequencing, as the tail of one part
+    and the lead of the next may form a gap shorter than [s]; it is the
+    invariant of a loop each of whose rounds that performs [X] takes at least
+    [s] from the start of its last [X] to its end.
 
     Counts add under sequencing, so that an invariant states none, or [\[0, ∞)];
     a count suits a bounded stretch, such as the time from a box to its

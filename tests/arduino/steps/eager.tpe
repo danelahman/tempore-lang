@@ -1,0 +1,31 @@
+(* A rejected variant of examples/arduino/steps/steps.tpe. *)
+
+let rec listen_eager (n : nat) counter
+    : unit # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
+  match n with
+  | 0 -> ()
+  | m + 1 -> (
+      let filtered, rhythm, steps, redraw, turn = counter in
+      let filtered, rose, t = sense filtered in
+      if rose then
+        match rise rhythm t with
+        | next, 0 ->
+            let counter =
+              show (filtered, next, steps, redraws rhythm next redraw, turn)
+            in
+            delay 10;
+            listen_eager m counter
+        | next, added ->
+            perform CountStep added;
+            perform Beep (2400, 30);
+            show_steps (steps + added);
+            delay 10;
+            listen_eager m
+              (filtered, next, steps + added, redraws rhythm next 2, turn)
+      else
+        let next = idle rhythm t in
+        let counter =
+          show (filtered, next, steps, redraws rhythm next redraw, turn)
+        in
+        delay 10;
+        listen_eager m counter)
