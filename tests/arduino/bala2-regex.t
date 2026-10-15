@@ -154,8 +154,8 @@ bounds, and prints the other events as they are:
                                   ^
   Warning: The handler `simulated_robot` is not tail-resumptive: the continuation `k` of its case of `SetMotors` is resumed outside tail position; it is not compiled for the device, and the interpreter can run it
   [31.245 ms] Display cleared
-  [35.365 ms] Display at (0, 0): Balancing robot with regexes
-  [38.125 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [35.365 ms] Display at (0, 2): Balancing robot with regexes
+  [38.125 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [39.125 ms] Display: Calibrating
   [540.125 ms] Display: Hold upright
   [1541.125 ms] Display: Armed

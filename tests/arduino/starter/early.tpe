@@ -2,14 +2,16 @@
 
 let start_early (a : athlete) : outcome =
   let mark = marks a in
-  perform ShowColourTextAt (0, 44, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 40, 3, black, white, "ON YOUR MARKS");
+  perform ShowColourTextAt (0, 70, 2, black, white, "Settle for 1 s");
   let s = ten_slow (ten_slow (ten_slow (ten_slow (ten_slow (ten_slow
     (0.0, 0.0, 10.0, 0.0, true, false)))))) in
   let sum, _, _, _, held, _ = s in
   let mean = sum /. mark_polls in
   unbox mark as set_thunk in
   let set = set_thunk () in
-  perform ShowColourTextAt (0, 44, 3, black, yellow, "SET");
+  perform ShowColourTextAt (0, 40, 3, black, yellow, "SET");
+  perform ShowColourTextAt (0, 70, 2, black, yellow, "Hold still");
   perform Beep (1500, 80);
   let _ = ten_slow (ten_slow (ten_slow (ten_slow (ten_slow (ten_slow
     (0.0, 0.0, mean, mean, held, false)))))) in

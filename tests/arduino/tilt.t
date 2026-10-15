@@ -92,28 +92,28 @@ right corner once the display has drawn over it:
 
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep '\] Display\|simulation'
   [31.000 ms] Display cleared
-  [34.800 ms] Display at (0, 0): Tilt display
+  [34.800 ms] Display at (0, 2): Tilt display
   [35.800 ms] Display: Tilt (degrees)
   [36.800 ms] Display: 5.706
-  [39.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [39.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [40.818 ms] Display at (254, 0): Battery 87%
   [321.000 ms] Display cleared
-  [324.800 ms] Display at (0, 0): Tilt display
+  [324.800 ms] Display at (0, 2): Tilt display
   [325.800 ms] Display: Tilt (degrees)
   [326.800 ms] Display: 2.997
-  [329.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [329.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [330.818 ms] Display at (254, 0): Battery 87%
   [611.000 ms] Display cleared
-  [614.800 ms] Display at (0, 0): Tilt display
+  [614.800 ms] Display at (0, 2): Tilt display
   [615.800 ms] Display: Tilt (degrees)
   [616.800 ms] Display: -1.797
-  [619.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [619.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [620.818 ms] Display at (254, 0): Battery 87%
   [901.000 ms] Display cleared
-  [904.800 ms] Display at (0, 0): Tilt display
+  [904.800 ms] Display at (0, 2): Tilt display
   [905.800 ms] Display: Tilt (degrees)
   [906.800 ms] Display: -5.394
-  [909.560 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [909.560 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [910.818 ms] Display at (254, 0): Battery 87%
   [1000.000 ms] End of the simulation
   $ tempore --emit-arduino tilt --device $app/tilt.device.json --host-simulate 1 $app/tilt.tpe | grep -c 'Release step'
@@ -130,7 +130,7 @@ and a red banner across the middle of the screen states the violation:
   $ cd _arduino/projects/tilt_abort
   $ tighten && build && ./simulation 1000000 | grep -v '\] Operation'
   [31.000 ms] Display cleared
-  [34.800 ms] Display at (0, 0): Tilt display
+  [34.800 ms] Display at (0, 2): Tilt display
   [34.800 ms] Tilt display stopped
   [34.800 ms] Monitor: operation ShowTextAt took 3800 us, outside its running-time bounds [50, 3000] us
   [34.800 ms] Safe state entered

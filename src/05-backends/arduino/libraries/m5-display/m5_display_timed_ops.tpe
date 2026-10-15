@@ -31,6 +31,13 @@ operation ShowColourTextAt : nat * nat * nat * nat * nat * string ~> unit
     # {ShowColourTextAt} within [0.05, 33]
 default ShowColourTextAt _ = delay 3
 
+(* The bounds of ShowColourNumberAt are those of ShowNumberAt, not measured
+   separately. *)
+operation ShowColourNumberAt
+    : nat * nat * nat * nat * nat * nat * float ~> unit
+    # {ShowColourNumberAt} within [0.05, 33]
+default ShowColourNumberAt _ = delay 3
+
 operation DrawButton : nat * nat * nat * nat * string ~> unit
     # {DrawButton} within [0, 33]
 default DrawButton _ = delay 3

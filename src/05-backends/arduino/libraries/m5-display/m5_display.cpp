@@ -37,13 +37,15 @@ static inline void m5_display_line_drawn() {
 }
 #endif
 
-#if defined(TEMPORE_PERFORMS_ShowTextAt) ||   \
-    defined(TEMPORE_PERFORMS_ShowNumberAt) || \
-    defined(TEMPORE_PERFORMS_ShowTimeAt) ||   \
-    defined(TEMPORE_PERFORMS_ShowColourTextAt)
-// Writes text at (x, y) in text of size 1 to 4 (size clamped), in the colour
-// foreground over the band from x to the right edge, 10 * size pixels high,
-// filled with the colour background; the next line starts below the band.
+#if defined(TEMPORE_PERFORMS_ShowTextAt) ||       \
+    defined(TEMPORE_PERFORMS_ShowNumberAt) ||     \
+    defined(TEMPORE_PERFORMS_ShowTimeAt) ||       \
+    defined(TEMPORE_PERFORMS_ShowColourTextAt) || \
+    defined(TEMPORE_PERFORMS_ShowColourNumberAt)
+// Writes text of size 1 to 4 (size clamped), in the colour foreground over
+// the band from (x, y) to the right edge, 10 * size pixels high, filled with
+// the colour background, centred vertically in the band; the next line
+// starts below the band.
 static inline void m5_display_at(uint32_t x, uint32_t y, uint32_t size,
                                  uint32_t foreground, uint32_t background,
                                  const char *text) {
@@ -53,7 +55,9 @@ static inline void m5_display_at(uint32_t x, uint32_t y, uint32_t size,
   M5.Display.fillRect(left, top, M5.Display.width() - left, 10 * s, background);
   M5.Display.setTextColor(foreground, background);
   M5.Display.setTextSize(s);
-  M5.Display.setCursor(left, top);
+  // A band of a colour other than black has a left margin of 3 * size pixels.
+  const int32_t margin = background == m5_display_black ? 0 : 3 * s;
+  M5.Display.setCursor(left + margin, top + s);
   M5.Display.print(text);
   M5.Display.setTextColor(m5_display_white, m5_display_black);
   M5.Display.setTextSize(m5_display_line_size);
@@ -127,6 +131,18 @@ tempore_result_ShowColourTextAt binding_ShowColourTextAt(
     tempore_argument_ShowColourTextAt a) {
   const tempore_display_guard guard;
   m5_display_at(a.c0, a.c1, a.c2, a.c3, a.c4, a.c5);
+  return {};
+}
+#endif
+
+#ifdef TEMPORE_PERFORMS_ShowColourNumberAt
+tempore_result_ShowColourNumberAt binding_ShowColourNumberAt(
+    tempore_argument_ShowColourNumberAt a) {
+  const tempore_display_guard guard;
+  char text[24];
+  snprintf(text, sizeof text, "%.*f", static_cast<int>(a.c3 > 6 ? 6 : a.c3),
+           static_cast<double>(a.c6));
+  m5_display_at(a.c0, a.c1, a.c2, a.c4, a.c5, text);
   return {};
 }
 #endif

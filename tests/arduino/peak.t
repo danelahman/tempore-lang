@@ -78,23 +78,23 @@ drawn over it:
 
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep '\] \(Display\|Flash\)\|simulation'
   [31.000 ms] Display cleared
-  [34.920 ms] Display at (0, 0): Peak tilt recorder
+  [34.920 ms] Display at (0, 2): Peak tilt recorder
   [35.920 ms] Display: Peak tilt
   [36.920 ms] Display: 0.000
-  [39.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [39.680 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [40.938 ms] Display at (254, 0): Battery 87%
   [1040.000 ms] Flash: record 5.639 degrees
   [1071.000 ms] Display cleared
-  [1074.920 ms] Display at (0, 0): Peak tilt recorder
+  [1074.920 ms] Display at (0, 2): Peak tilt recorder
   [1075.920 ms] Display: Peak tilt
   [1076.920 ms] Display: 5.639
-  [1079.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [1079.680 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [1080.938 ms] Display at (254, 0): Battery 87%
   [2111.000 ms] Display cleared
-  [2114.920 ms] Display at (0, 0): Peak tilt recorder
+  [2114.920 ms] Display at (0, 2): Peak tilt recorder
   [2115.920 ms] Display: Peak tilt
   [2116.920 ms] Display: 5.639
-  [2119.680 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [2119.680 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [2120.938 ms] Display at (254, 0): Battery 87%
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino peak --device $app/peak.device.json --host-simulate 3 $app/peak.tpe | grep -c 'Release step'

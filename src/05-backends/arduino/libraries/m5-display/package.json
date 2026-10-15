@@ -12,7 +12,7 @@
   "sources": ["m5_display.cpp"],
   "bindings": [
     "ShowText", "ShowNumber", "ClearDisplay", "ShowTextAt", "ShowNumberAt",
-    "ShowTimeAt", "ShowColourTextAt", "DrawButton", "DrawBar", "DrawLevel"
+    "ShowTimeAt", "ShowColourTextAt", "ShowColourNumberAt", "DrawButton", "DrawBar", "DrawLevel"
   ],
   "init": "m5_display_init"
 }

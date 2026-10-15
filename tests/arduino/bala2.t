@@ -134,8 +134,8 @@ they are:
 
   $ tempore --emit-arduino balance --device $app/balance.device.json --host-simulate 8 $app/balance.tpe | grep -v '^Wrote\|\] \(Release\|Start\|End step\|Operation\|IMU\|I2C\|Delay\)' | balanced
   [31.245 ms] Display cleared
-  [35.105 ms] Display at (0, 0): Balancing robot
-  [37.865 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [35.105 ms] Display at (0, 2): Balancing robot
+  [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [38.865 ms] Display: Calibrating
   [539.865 ms] Display: Hold upright
   [1540.865 ms] Display: Armed
@@ -157,8 +157,8 @@ step never drives the motors, and the robot falls when released at 2 s:
   $ cd _arduino/projects/balance
   $ build -DPLANT_TILT=1.3 && events 8000000
   [31.245 ms] Display cleared
-  [35.105 ms] Display at (0, 0): Balancing robot
-  [37.865 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [35.105 ms] Display at (0, 2): Balancing robot
+  [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [38.865 ms] Display: Calibrating
   [539.865 ms] Display: Hold upright
   [1540.865 ms] Display: Armed
@@ -181,8 +181,8 @@ the robot falls:
 
   $ build -DBALANCE_SLOW_FROM_MS=4000 && events 8000000
   [31.245 ms] Display cleared
-  [35.105 ms] Display at (0, 0): Balancing robot
-  [37.865 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [35.105 ms] Display at (0, 2): Balancing robot
+  [37.865 ms] Display at (80, 231): Typechecked by Tempore (tempore-lang.ee)
   [38.865 ms] Display: Calibrating
   [539.865 ms] Display: Hold upright
   [1540.865 ms] Display: Armed
