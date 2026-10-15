@@ -26,6 +26,12 @@ The I2C buses of a profile are started after M5Unified and then set to their
 frequency, since M5Unified may already have started a bus that shares their
 port at 100 kHz.
 
+On a board with M5Unified and the capability `display`, the build flag
+`TEMPORE_DISPLAY_BRIGHTNESS`, from 0 to 255, sets the brightness of the
+display once at start-up, after the initialisation of M5Unified and of the
+packages and before the tasks of the manifest are created; without it the
+brightness is the default of M5Unified. The host simulation ignores it.
+
 The optional member `imu_frequency` sets the frequency of the
 transactions with the inertial measurement unit (`M5.Imu.setClock`, and the
 build flag `TEMPORE_IMU_FREQUENCY` of the package `m5-imu`; 400 kHz by
@@ -440,6 +446,8 @@ environment, are
   the example);
 - `MONITOR`, the monitor policy (by default `abort`, and `warn` for the
   targets that read the port);
+- `BRIGHTNESS`, when set, the brightness of the display, from 0 to 255,
+  passed as `-DTEMPORE_DISPLAY_BRIGHTNESS` to every target that builds;
 - `BALANCE_LOG` and `BALANCE_RECORD`, the intervals in milliseconds of the log
   and of the samples of a recording (default 20);
 - `STEPS_RECORD`, the bound of the recordings of `steps`, in seconds

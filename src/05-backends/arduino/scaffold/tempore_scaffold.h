@@ -193,11 +193,13 @@ using tempore_i2c_guard =
 using tempore_display_guard =
     tempore_lock_guard<tempore_display_lock, tempore_display_unlock>;
 
-// The display of the events of the monitor on the screen of the board: stop
+// The display of the events of the monitor on the screen of the board: begin
+// sets up the screen, called once by tempore_monitor_display_begin; stop
 // draws a banner that states that the monitor stopped the tasks, with the two
 // lines first and second of the violation; warnings draws the line of the
-// warnings. Each is called with the lock of the display held.
+// warnings. Stop and warnings are called with the lock of the display held.
 struct tempore_monitor_display {
+  void (*begin)();
   void (*stop)(const char *first, const char *second);
   void (*warnings)(const char *line);
 };

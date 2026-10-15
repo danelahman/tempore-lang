@@ -4,13 +4,21 @@
 // text of size 1 above the footer of the examples at y = 230. Text is cut at
 // the right edge of the screen; the line of the warnings leaves the cursor,
 // the text size and the colours white on black as the bindings of the display
-// expect them.
+// expect them. The brightness of the display is TEMPORE_DISPLAY_BRIGHTNESS,
+// from 0 to 255, when it is defined, set once at start-up, and otherwise the
+// default of M5Unified; the host simulation ignores it.
 
 #include <M5Unified.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "tempore_scaffold.h"
+
+#ifdef TEMPORE_DISPLAY_BRIGHTNESS
+static_assert(TEMPORE_DISPLAY_BRIGHTNESS >= 0 &&
+                  TEMPORE_DISPLAY_BRIGHTNESS <= 255,
+              "TEMPORE_DISPLAY_BRIGHTNESS is a level from 0 to 255");
+#endif
 
 namespace {
 
@@ -49,6 +57,17 @@ void centred(const char *text, int32_t y, uint32_t background) {
   M5.Display.print(line);
 }
 
+// Sets the brightness of the display under TEMPORE_DISPLAY_BRIGHTNESS. The
+// tasks created by the initialisations of the packages may be running, and
+// some boards set the backlight over the internal I2C bus, through the power
+// management chip, so the lock of the I2C buses is held.
+void begin() {
+#if defined(TEMPORE_DISPLAY_BRIGHTNESS) && !defined(TEMPORE_HOST)
+  const tempore_i2c_guard guard;
+  M5.Display.setBrightness(TEMPORE_DISPLAY_BRIGHTNESS);
+#endif
+}
+
 void stop(const char *first, const char *second) {
   const int32_t top = (M5.Display.height() - banner_height) / 2;
   M5.Display.fillRect(0, top, M5.Display.width(), banner_height, red);
@@ -76,4 +95,5 @@ void warnings(const char *text) {
 
 extern const tempore_monitor_display tempore_m5_monitor_display;
 
-const tempore_monitor_display tempore_m5_monitor_display = {stop, warnings};
+const tempore_monitor_display tempore_m5_monitor_display = {begin, stop,
+                                                            warnings};

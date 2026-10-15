@@ -184,6 +184,25 @@ A board with M5Unified initialises it, and its sources build with the stubs:
   $ c++ -std=c++17 -Wall -Wextra -Werror -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
 
+On a board with M5Unified and a display, the scaffold sets the brightness of
+the display under the build flag TEMPORE_DISPLAY_BRIGHTNESS, from 0 to 255,
+with the lock of the I2C buses held; the host simulation ignores the flag,
+and a board without a display has no such call:
+
+  $ grep -A 4 '^void begin' _arduino/projects/gray/src/tempore_m5_monitor.cpp
+  void begin() {
+  #if defined(TEMPORE_DISPLAY_BRIGHTNESS) && !defined(TEMPORE_HOST)
+    const tempore_i2c_guard guard;
+    M5.Display.setBrightness(TEMPORE_DISPLAY_BRIGHTNESS);
+  #endif
+  $ grep -rl TEMPORE_DISPLAY_BRIGHTNESS _arduino/projects/toy
+  [1]
+  $ cd _arduino/projects/gray
+  $ c++ -std=c++17 -Wall -Wextra -Werror -fsyntax-only -DTEMPORE_HOST -DTEMPORE_DISPLAY_BRIGHTNESS=60 -I host -I src src/*.cpp
+  $ c++ -std=c++17 -fsyntax-only -DTEMPORE_HOST -DTEMPORE_DISPLAY_BRIGHTNESS=256 -I host -I src src/tempore_m5_monitor.cpp 2>&1 | grep -o 'TEMPORE_DISPLAY_BRIGHTNESS is a level from 0 to 255' | head -1
+  TEMPORE_DISPLAY_BRIGHTNESS is a level from 0 to 255
+  $ cd ../../..
+
 Under the member battery, on a board with a display and a battery gauge, the
 scaffold draws the battery indicator also for a program that does not use the
 display; the host model reports a charge of 87 percent:

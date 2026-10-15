@@ -321,6 +321,7 @@ static void tempore_warning_display(void *) {
 
 void tempore_monitor_display_begin(const tempore_monitor_display *display) {
   tempore_monitor_screen = display;
+  display->begin();
   if (tempore_monitor == tempore_monitor_policy::warn)
     xTaskCreatePinnedToCore(tempore_warning_display, "tempore-monitor", 4096,
                             nullptr, tskIDLE_PRIORITY, nullptr,
