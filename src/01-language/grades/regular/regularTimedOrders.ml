@@ -18,7 +18,7 @@ module type WORLD = sig
   val min_weight : world -> grade -> Rational.t bound option
   val max_weight : world -> grade -> Rational.t bound option
   val inhabited : bounds -> grade -> bool
-  val grade_of_word : word -> grade
+  val literal_of_word : word -> lit
   val single : lit -> bool
   val number : lit -> Rational.t option
   val close : lower:bool -> lit -> lit
@@ -28,6 +28,7 @@ end
 
 module Make
     (L : Grade.S)
+    (S : StrictDelays.GRADE with type grade = L.t and type delay = L.Delay.t)
     (W : WORLD with type grade = L.t and type delay = L.Delay.t) =
 struct
   type order = {
@@ -35,22 +36,35 @@ struct
     search : W.world -> L.t -> L.t -> W.word option;
     endpoint : running_time -> Rational.t bound;
     top : L.t;
+    of_lit : lit -> L.t;
   }
   (** An order on traces: whether every trace of the lesser grade is in the
       closure of the greater one, and the search for a trace outside it, over a
       world; the end of the running-time bounds it reads as the running time of
-      an operation, and the representation of its greatest grade. *)
+      an operation, the representation of its greatest grade, and the reader of
+      the literals of the traces found. *)
+
+  (** [literals ~rigid] is the reader of the literals of the rigid grades, with
+      strict delays, if [rigid], and of the others otherwise. *)
+  let literals ~rigid = if rigid then S.of_lit else L.of_lit
 
   let allowance ~rigid =
     {
       holds = W.in_allowance ~rigid;
       search = W.allowance ~rigid;
       endpoint = snd;
-      top = L.top;
+      top = (if rigid then S.top else L.top);
+      of_lit = literals ~rigid;
     }
 
-  let coverage =
-    { holds = W.in_coverage; search = W.coverage; endpoint = fst; top = L.one }
+  let coverage ~rigid =
+    {
+      holds = W.in_coverage;
+      search = W.coverage;
+      endpoint = fst;
+      top = L.one;
+      of_lit = literals ~rigid;
+    }
 
   (** [trivial order bounds rho rho'] is whether [rho ≾ rho'] holds by the
       underlying grade: [rho] and [rho'] are the same language or [rho'] is
@@ -76,7 +90,9 @@ struct
   let counterexample order bounds rho rho' =
     if trivial order bounds rho rho' then None
     else
-      Option.map W.grade_of_word (compared order bounds order.search rho rho')
+      Option.map
+        (fun word -> order.of_lit (W.literal_of_word word))
+        (compared order bounds order.search rho rho')
 
   let duration_bounds bounds lower upper =
     match
@@ -97,13 +113,17 @@ struct
     let one = L.one
     let mul = L.mul
     let join = L.join
-    let of_delay = L.of_delay
     let leq_symbol = "<="
     let commutative = false
     let needs_op_bounds = true
     let duration_bounds bounds rho = duration_bounds bounds rho rho
     let inhabited = W.inhabited
-    let events = L.events
+
+    let events rho =
+      let names = L.events rho in
+      if StrictDelays.has_markers names then StrictDelays.operations names
+      else names
+
     let compare = L.compare
     let hash = L.hash
     let is_atomic = L.is_atomic
@@ -111,31 +131,42 @@ struct
     let witnesses = L.witnesses
   end
 
-  module Lower = struct
-    include Common
-
-    let name = "regex-timed-lower-bound" ^ W.suffix
-    let leq = leq coverage
-    let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
-    let counterexample = counterexample coverage
-
-    (** The unit [{0}], covered by every trace. *)
-    let top = coverage.top
-
-    let is_top = is_top coverage
-    let unit_least = false
-    let of_lit = function Top -> top | lit -> L.of_lit lit
-    let accepts = function Top -> true | lit -> L.accepts lit
-    let of_bounds (lo, _hi) = W.lower_shadow lo
-  end
-
-  (** The upper bounds and the intervals, in the allowance order, rigid if
-      [O.rigid], named with the infix [O.infix]. *)
+  (** The lower bounds, the upper bounds and the intervals, the upper bounds in
+      the allowance order, rigid if [O.rigid], named with the infix [O.infix].
+      The literals of the rigid grades have strict delays, and the grade of a
+      delay [d] is the strict delay [!d] ({!StrictDelays}). *)
   module Uppers (O : sig
     val rigid : bool
     val infix : string
   end) =
   struct
+    (** [of_delay d] is the grade of the delay [d], strict if [O.rigid]. *)
+    let of_delay = if O.rigid then S.of_delay else L.of_delay
+
+    module Lower = struct
+      include Common
+
+      let name = "regex-timed-" ^ O.infix ^ "lower-bound" ^ W.suffix
+      let coverage = coverage ~rigid:O.rigid
+      let leq = leq coverage
+      let equal bounds rho rho' = leq bounds rho rho' && leq bounds rho' rho
+      let counterexample = counterexample coverage
+
+      (** The unit [{0}], covered by every trace. *)
+      let top = coverage.top
+
+      let is_top = is_top coverage
+      let unit_least = false
+      let of_delay = of_delay
+      let of_lit = function Top -> top | lit -> literals ~rigid:O.rigid lit
+
+      let accepts = function
+        | Top -> true
+        | lit -> if O.rigid then S.accepts lit else L.accepts lit
+
+      let of_bounds (lo, _hi) = W.lower_shadow lo
+    end
+
     module Upper = struct
       include Common
 
@@ -147,8 +178,9 @@ struct
       let top = allowance.top
       let is_top = is_top allowance
       let unit_least = not O.rigid
-      let of_lit = L.of_lit
-      let accepts = L.accepts
+      let of_delay = of_delay
+      let of_lit = literals ~rigid:O.rigid
+      let accepts = if O.rigid then S.accepts else L.accepts
       let of_bounds (_lo, hi) = W.upper_shadow hi
     end
 
@@ -192,12 +224,12 @@ struct
         W.inhabited bounds lo && W.inhabited bounds hi
 
       let events (lo, hi) =
-        List.sort_uniq String.compare (L.events lo @ L.events hi)
+        List.sort_uniq String.compare (Common.events lo @ Common.events hi)
 
       let of_lit = function
         | Top -> top
         | lit when W.single lit ->
-            let rho = L.of_lit lit in
+            let rho = Upper.of_lit lit in
             (rho, rho)
         | lit ->
             bounds_of_lit lit ~number:W.number ~close:W.close
@@ -206,7 +238,7 @@ struct
 
       let accepts = function
         | Top -> true
-        | lit when W.single lit -> L.accepts lit
+        | lit when W.single lit -> Upper.accepts lit
         | lit ->
             reads_lit
               (fun lit ->
@@ -215,7 +247,7 @@ struct
                   ~unbounded:() ~bounds:"regular expressions")
               lit
 
-      let of_delay d = (L.of_delay d, L.of_delay d)
+      let of_delay d = (of_delay d, of_delay d)
       let of_bounds (lo, hi) = (W.lower_shadow lo, W.upper_shadow hi)
       let is_atomic name (lo, hi) = L.is_atomic name lo && L.is_atomic name hi
 

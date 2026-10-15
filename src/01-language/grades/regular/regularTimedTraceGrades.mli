@@ -152,6 +152,7 @@ module Make
   (** The upper bounds and the intervals in the rigid allowance order, named
       with ["rigid-"] after ["regex-timed-"]. *)
   module Rigid : sig
+    module Lower : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
     module Upper : Grade.S with type t = L.t and type Delay.t = Delay.Nat.t
 
     module Interval :
@@ -221,6 +222,9 @@ module Interval :
 (** The upper bounds and the intervals in the rigid allowance order, named with
     ["rigid-"] after ["regex-timed-"]. *)
 module Rigid : sig
+  module Lower :
+    Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
+
   module Upper :
     Grade.S with type t = RegularTraceGrade.t and type Delay.t = Delay.Nat.t
 
@@ -272,6 +276,11 @@ module Symbolic : sig
   (** The upper bounds and the intervals in the rigid allowance order, named
       with ["rigid-"] after ["regex-timed-"]. *)
   module Rigid : sig
+    module Lower :
+      Grade.S
+        with type t = RegularTraceGradeDerivative.t
+         and type Delay.t = Delay.Nat.t
+
     module Upper :
       Grade.S
         with type t = RegularTraceGradeDerivative.t
@@ -310,6 +319,11 @@ module Concrete : sig
   (** The upper bounds and the intervals in the rigid allowance order, named
       with ["rigid-"] after ["regex-timed-"]. *)
   module Rigid : sig
+    module Lower :
+      Grade.S
+        with type t = RegularTraceGradeDerivative.t
+         and type Delay.t = Delay.Nat.t
+
     module Upper :
       Grade.S
         with type t = RegularTraceGradeDerivative.t
@@ -347,6 +361,11 @@ module Plain : sig
   (** The upper bounds and the intervals in the rigid allowance order, named
       with ["rigid-"] after ["regex-timed-"]. *)
   module Rigid : sig
+    module Lower :
+      Grade.S
+        with type t = RegularTraceGradePlain.t
+         and type Delay.t = Delay.Nat.t
+
     module Upper :
       Grade.S
         with type t = RegularTraceGradePlain.t

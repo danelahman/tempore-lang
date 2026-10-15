@@ -112,6 +112,11 @@ module Interval :
 (** The upper bounds and the intervals in the rigid allowance order, named with
     ["rigid-"] after ["regex-timed-"]. *)
 module Rigid : sig
+  module Lower :
+    Grade.S
+      with type t = RegularTraceGradeRational.t
+       and type Delay.t = Delay.Rational.t
+
   module Upper :
     Grade.S
       with type t = RegularTraceGradeRational.t
@@ -150,6 +155,11 @@ module Automata : sig
   (** The upper bounds and the intervals in the rigid allowance order, named
       with ["rigid-"] after ["regex-timed-"]. *)
   module Rigid : sig
+    module Lower :
+      Grade.S
+        with type t = RegularTraceGradeRational.Automata.t
+         and type Delay.t = Delay.Rational.t
+
     module Upper :
       Grade.S
         with type t = RegularTraceGradeRational.Automata.t

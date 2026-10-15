@@ -260,15 +260,16 @@ module ByGaps = struct
 end
 
 (** The grades over [L], decided by [D] over the least names of the classes of
-    the names of a comparison and their running times. *)
+    the names of a comparison and their running times, the rigid ones reading
+    the literals, delays and top [S]. *)
 module Over
     (L : LANGUAGE)
+    (S : StrictDelays.GRADE with type grade = L.t and type delay = L.Delay.t)
     (D : DECISIONS with type t = L.t)
     (Variant : sig
       val suffix : string
     end) =
-  RegularTimedOrders.Make
-    (L)
+  RegularTimedOrders.Make (L) (S)
     (struct
       type grade = L.t
       type delay = L.Delay.t
@@ -296,13 +297,16 @@ module Over
 
       (* The running time of an operation is the value of the [endpoint] of
          its running-time bounds, in time steps; over whole time steps, the ends
-         are closed where the bounds are declared ({!Grade.close_running_time}). *)
+         are closed where the bounds are declared ({!Grade.close_running_time}).
+         The names that encode strict delays take no time. *)
       let world endpoint bounds =
         classes
           (fun name ->
-            Delay.Nat.to_int
-              (read_bound L.Delay.read
-                 (end_value (endpoint (bounds.running_time name)))))
+            if GradeLiteral.is_marker name then 0
+            else
+              Delay.Nat.to_int
+                (read_bound L.Delay.read
+                   (end_value (endpoint (bounds.running_time name)))))
           bounds
 
       let in_allowance ~rigid (names, running_times) =
@@ -328,9 +332,18 @@ module Over
       let inhabited bounds rho =
         D.inhabited (fst (classes (Fun.const 0) bounds [ rho ])) rho
 
-      (* The grade of the single trace of the delays and names [word]. *)
-      let grade_of_word word =
-        L.of_lit (Braces (List.fold_left (fun r s -> Seq (r, s)) (Tick 0) word))
+      (* The literal of the single trace of the delays and names [word], the
+         delays between the names that encode a strict delay written as one. *)
+      let literal_of_word word =
+        let rec atoms = function
+          | Letter o :: (Tick _ as d) :: Letter c :: word
+            when String.equal o strict_opening && String.equal c strict_closing
+            ->
+              Strict d :: atoms word
+          | r :: word -> r :: atoms word
+          | [] -> []
+        in
+        Braces (List.fold_left (fun r s -> Seq (r, s)) (Tick 0) (atoms word))
 
       let single = function Int _ | Braces _ -> true | _ -> false
       let number = function Int n -> Some (Rational.of_int n) | _ -> None
@@ -443,7 +456,7 @@ module PlainDerivatives = struct
   let representatives = every_name
 end
 
-module Make (L : LANGUAGE) = Over (L) (ByLetters (L))
+module Make (L : LANGUAGE) = Over (L) (StrictDelays.Without (L)) (ByLetters (L))
 
 include
   Make
@@ -453,7 +466,7 @@ include
     end)
 
 module Symbolic =
-  Over (Derivatives) (ByGaps)
+  Over (Derivatives) (Derivatives.Strict) (ByGaps)
     (struct
       let suffix = "-symbolic"
     end)

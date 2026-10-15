@@ -77,13 +77,17 @@ type graph = {
   ops : (string * int) list array;
   final : bool array;
   live : bool;
+  markers : bool;
+  strict : bool array;
 }
 (* The automaton of a language over the names of a comparison, restricted to
    its live states, from which a final state is reachable: row [g] of [gaps]
    lists the transitions of the gap state [g], row [o] of [ops] those of the
    operation state [o] by each name; the rows of the other states are empty.
    [live] is whether the start is live, i.e. whether the language has a word
-   over the names. *)
+   over the names. [markers] is whether a transition reads a name that opens
+   or closes a strict delay, and then [strict] marks the gap states entered by
+   the opening name, whose delays are strict; it is empty otherwise. *)
 
 let graph ~gaps ~ops ~final =
   let ng = Array.length gaps in
@@ -105,11 +109,32 @@ let graph ~gaps ~ops ~final =
   let keep live' live row =
     if live then List.filter (fun (_, q) -> live'.(q)) row else []
   in
+  let ops = Array.mapi (fun o row -> keep live_gap live_op.(o) row) ops in
+  let markers =
+    Array.exists
+      (List.exists (fun (name, _) -> GradeLiteral.is_marker name))
+      ops
+  in
+  let strict =
+    if markers then
+      let opened =
+        Array.fold_left
+          (List.fold_left (fun opened (name, g) ->
+               if String.equal name GradeLiteral.strict_opening then
+                 IntSet.add g opened
+               else opened))
+          IntSet.empty ops
+      in
+      Array.init ng (fun g -> IntSet.mem g opened)
+    else [||]
+  in
   {
     gaps = Array.mapi (fun g row -> keep live_op live_gap.(g) row) gaps;
-    ops = Array.mapi (fun o row -> keep live_gap live_op.(o) row) ops;
+    ops;
     final = Array.mapi (fun o f -> f && live_op.(o)) final;
     live = ng > 0 && live_gap.(0);
+    markers;
+    strict;
   }
 
 let member name c = not (A.Class.is_empty (A.Class.inter (A.Class.name name) c))
@@ -246,14 +271,20 @@ type config = value IntMap.t
 (* A configuration of a reader: a weight for some gap states of the automaton
    of the bound. *)
 
-type reader = {
-  start : config;
-  delay : value -> config -> config;
-  operation : string -> config -> config;
-  accepts : config -> bool;
+let compare_config : config -> config -> int =
+  IntMap.compare (compare_with Bool.compare)
+
+type 'c reader = {
+  start : 'c;
+  delay : strict:bool -> value -> 'c -> 'c;
+  operation : string -> 'c -> 'c;
+  accepts : 'c -> bool;
+  compare : 'c -> 'c -> int;
 }
-(* A deterministic reader of a closure, its transitions normalising the
-   configurations. *)
+(* A deterministic reader of a closure over configurations ['c] ordered by
+   [compare], its transitions normalising the configurations; [delay ~strict]
+   reads a delay, strict if [strict]. The names that open and close strict
+   delays are not given to it. *)
 
 (* [set_weight better q x config] maps [q] to the [better] of [x] and its
    weight in [config]. *)
@@ -374,7 +405,7 @@ let allowance_reader ~rigid world (a : graph) =
            else Some x)
          config
   in
-  let delay v config = normalise (IntMap.map (add v) config) in
+  let delay ~strict:_ v config = normalise (IntMap.map (add v) config) in
   let operation name config =
     let bought = IntMap.map (add (running_time_of world name)) config in
     normalise
@@ -390,6 +421,7 @@ let allowance_reader ~rigid world (a : graph) =
       operation;
       accepts =
         IntMap.exists (fun q x -> List.exists (down.passes x) finals.(q));
+      compare = compare_config;
     },
     Rational.add (Rational.of_int 1)
       (largest (List.concat_map (List.map fst) (Array.to_list segments))) )
@@ -409,7 +441,7 @@ let coverage_reader world (a : graph) =
             else Some x)
       config
   in
-  let delay v config = normalise (IntMap.map (add v) config) in
+  let delay ~strict:_ v config = normalise (IntMap.map (add v) config) in
   let operation name config =
     let banked = IntMap.map (add (running_time_of world name)) config in
     normalise
@@ -425,7 +457,233 @@ let coverage_reader world (a : graph) =
     accepts =
       IntMap.exists (fun q x ->
           List.exists (fun (t, o) -> a.final.(o) && up.passes x t) gaps.(q));
+    compare = compare_config;
   }
+
+(* {2 Readers of bounds with strict delays}
+
+   A gap of a bound with strict delays is a sequence of pieces, budget and
+   strict delays, each read from a gap state of its automaton: a strict piece
+   is entered by the name that opens it and left by the one that closes it.
+   The segment of a word between two matched operations is split among the
+   pieces of the gap it faces, a strict delay of the word possibly divided
+   between consecutive pieces, and a strict piece admits strict delays of the
+   word only. A configuration maps each piece to the weight read in it, and is
+   closed under leaving a piece whose delay admits its weight for the next
+   piece, of weight [0]; a strict delay that exceeds a piece passes its excess
+   into the next ones. *)
+
+type weight = { value : value; harm : bool }
+(* A weight of a reader of a bound with strict delays. [harm] is an
+   infinitesimal against acceptance, of lower order than the flag of [value]:
+   the excess of a weight over a delay of the bound approached, not attained,
+   the delays of the bound approaching their extremal values more closely than
+   those of the word. *)
+
+let plain value = { value; harm = false }
+let weigh x v = { x with value = add x.value v }
+
+(* [tie x t] is whether the exact value [x] equals the finite value [t]. *)
+let tie x t =
+  match (x, t) with
+  | Finite (a, true), Finite (c, _) -> Rational.equal a c
+  | _ -> false
+
+(* [admits domain x t] is whether a set of delays of extremal value [t] admits
+   the weight [x], its [harm] failing a tie. *)
+let admits (domain : domain) x t =
+  domain.passes x.value t && not (x.harm && tie x.value t)
+
+(* [excess x t] is the weight [x] less the finite value [t], harmed if [t] is
+   not attained. *)
+let excess x t =
+  match (x.value, t) with
+  | Finite (a, f), Finite (c, g) ->
+      { value = Finite (Rational.sub a c, f); harm = x.harm || not g }
+  | Infinite, _ | _, Infinite -> plain Infinite
+
+(* [compare_weight domain x y] orders the weights in [domain], a harmed weight
+   being worse: greater among suprema and lesser among infima. *)
+let compare_weight (domain : domain) x y =
+  match domain.compare x.value y.value with
+  | 0 ->
+      let c = Bool.compare x.harm y.harm in
+      if domain == up then -c else c
+  | c -> c
+
+(* [positive v] is whether the extremal value [v] of a delay is not the delay
+   [0], that is, whether the delay is there. *)
+let positive v = not (tie v zero)
+
+(* [pieces_reader domain ~extremum ~overflow ~cost a] is the reader of the
+   closure of the bound [a] with strict delays in [domain], over suprema for
+   the allowance order and over infima for coverage: a delay of [a] counts by
+   its [extremum]; an operation not matched costs [cost name] in a budget
+   piece; the weight of a piece is the least read in the domain of suprema
+   and the greatest in that of infima; [overflow before after v t] is the
+   weight that a strict delay [v], which brings the weight of a piece from
+   [before] to [after], passes into the next pieces beyond the extremal value
+   [t] of its delay, if any. *)
+let pieces_reader (domain : domain) ~extremum ~overflow ~cost (a : graph) =
+  let better x y =
+    let c = compare_weight domain x y in
+    if (domain == up && c >= 0) || (domain == down && c <= 0) then x else y
+  in
+  let rows = gap_rows extremum a in
+  let next =
+    Array.map
+      (List.filter_map (fun (name, g) ->
+           if GradeLiteral.is_marker name then Some g else None))
+      a.ops
+  in
+  let finals =
+    Array.map
+      (fun row ->
+        List.filter_map (fun (t, o) -> if a.final.(o) then Some t else None) row)
+      rows
+  in
+  let set q x config =
+    IntMap.update q
+      (function None -> Some x | Some y -> Some (better x y))
+      config
+  in
+  let same = IntMap.equal (fun x y -> compare_weight domain x y = 0) in
+  (* The closure under leaving the pieces whose delays admit their weights. *)
+  let rec advance config =
+    let config' =
+      IntMap.fold
+        (fun q x c ->
+          List.fold_left
+            (fun c (t, o) ->
+              if admits domain x t then
+                List.fold_left (fun c g -> set g (plain zero) c) c next.(o)
+              else c)
+            c rows.(q))
+        config config
+    in
+    if same config config' then config else advance config'
+  in
+  (* A weight that no delay of its state admits is dropped. Under the
+     allowance order, one that no finite delay admits, where an infinite one
+     does, is set to infinity, and under coverage, one that every delay of its
+     state admits. *)
+  let normalise config =
+    advance
+      (IntMap.filter_map
+         (fun q x ->
+           let thresholds = List.map fst rows.(q) in
+           if domain == down then
+             if not (List.exists (admits down x) thresholds) then None
+             else if
+               is_finite x.value
+               && not
+                    (List.exists
+                       (fun t -> is_finite t && admits down x t)
+                       thresholds)
+             then Some (plain Infinite)
+             else Some x
+           else if List.is_empty thresholds then None
+           else if List.for_all (admits up x) thresholds then
+             Some (plain Infinite)
+           else Some x)
+         config)
+  in
+  let budget_only config = IntMap.filter (fun q _ -> not a.strict.(q)) config in
+  (* [flow config pending] passes the excess of the weights [pending], each a
+     state with its weight before and after a strict delay, into the next
+     pieces, and on. *)
+  let rec flow config = function
+    | [] -> config
+    | (q, before, after, v) :: pending ->
+        let passed =
+          List.concat_map
+            (fun (t, o) ->
+              match if is_finite t then overflow before after v t else None with
+              | Some rest -> List.map (fun g -> (g, rest)) next.(o)
+              | None -> [])
+            rows.(q)
+        in
+        let config, pending =
+          List.fold_left
+            (fun (config, pending) (g, rest) ->
+              match IntMap.find_opt g config with
+              | Some y when compare_weight domain (better y rest) y = 0 ->
+                  (config, pending)
+              | _ ->
+                  ( IntMap.add g rest config,
+                    (g, plain zero, rest, rest) :: pending ))
+            (config, pending) passed
+        in
+        flow config pending
+  in
+  let delay ~strict v config =
+    if strict then
+      normalise
+        (flow
+           (IntMap.map (fun x -> weigh x v) config)
+           (IntMap.fold
+              (fun q x pending -> (q, x, weigh x v, plain v) :: pending)
+              config []))
+    else if positive v then
+      normalise (IntMap.map (fun x -> weigh x v) (budget_only config))
+    else config
+  in
+  let operation name config =
+    let unmatched =
+      IntMap.map (fun x -> weigh x (cost name)) (budget_only config)
+    in
+    let matched =
+      IntMap.fold
+        (fun q x targets ->
+          List.fold_left
+            (fun targets (t, o) ->
+              if admits domain x t then
+                List.filter_map
+                  (fun (name', g) ->
+                    if String.equal name' name then Some g else None)
+                  a.ops.(o)
+                @ targets
+              else targets)
+            targets rows.(q))
+        config []
+    in
+    normalise
+      (List.fold_left (fun c g -> set g (plain zero) c) unmatched matched)
+  in
+  {
+    start =
+      normalise
+        (if a.live then IntMap.singleton 0 (plain zero) else IntMap.empty);
+    delay;
+    operation;
+    accepts =
+      IntMap.exists (fun q x -> List.exists (admits domain x) finals.(q));
+    compare = IntMap.compare (compare_weight domain);
+  }
+
+(* The reader of [↓ʳm] for a bound [m] with strict delays: a strict delay
+   overflows a piece that admits the weight before it but not after it, by the
+   excess of the weight after it. *)
+let pieces_allowance_reader world a =
+  pieces_reader down ~extremum:DelaySet.sup
+    ~overflow:(fun before after _ t ->
+      if admits down before t && not (admits down after t) then
+        Some (excess after t)
+      else None)
+    ~cost:(running_time_of world) a
+
+(* The reader of [↑m] for a guarantee [m] with strict delays: a strict delay
+   that covers the delay of a piece passes into the next ones what of it
+   exceeds the delay, at most itself: the rest of the weight of the piece is
+   made of earlier events, which do not follow the piece. *)
+let pieces_coverage_reader world a =
+  pieces_reader up ~extremum:DelaySet.inf
+    ~overflow:(fun _ after v t ->
+      if admits up after t then
+        let rest = excess after t in
+        Some (if compare_weight up rest v <= 0 then rest else v)
+      else None)
+    ~cost:(running_time_of world) a
 
 (* [operation_of world c] is the first name of [world] in the class [c]. *)
 let operation_of world c =
@@ -440,44 +698,76 @@ let operation_of world c =
    [world], its delays exact. *)
 let reads world reader word =
   reader.accepts
-    (List.fold_left
-       (fun config -> function
-         | A.Delay d -> reader.delay (exact d) config
-         | A.Operation c -> reader.operation (operation_of world c) config)
-       reader.start word)
+    (fst
+       (List.fold_left
+          (fun (config, strict) -> function
+            | A.Delay d -> (reader.delay ~strict (exact d) config, strict)
+            | A.Operation c -> (
+                match operation_of world c with
+                | name when String.equal name GradeLiteral.strict_opening ->
+                    (config, true)
+                | name when String.equal name GradeLiteral.strict_closing ->
+                    (config, false)
+                | name -> (reader.operation name config, strict)))
+          (reader.start, false) word))
+
+type 'r use = { use : 'c. 'c reader -> 'r }
+(* A use of a reader, whatever its configurations. *)
+
+(* [with_allowance_reader ~rigid world m k] is [k.use] on the reader of
+   [↓m], [↓ʳm] if [rigid], by whether [m] has strict delays. *)
+let with_allowance_reader ~rigid world (m : graph) k =
+  if rigid && m.markers then k.use (pieces_allowance_reader world m)
+  else k.use (fst (allowance_reader ~rigid world m))
+
+(* [with_coverage_reader world m k] is [k.use] on the reader of [↑m]. *)
+let with_coverage_reader world (m : graph) k =
+  if m.markers then k.use (pieces_coverage_reader world m)
+  else k.use (coverage_reader world m)
 
 let permits ~rigid world m word =
-  reads world (fst (allowance_reader ~rigid world m)) word
+  with_allowance_reader ~rigid world m
+    { use = (fun reader -> reads world reader word) }
 
-let covers world m word = reads world (coverage_reader world m) word
+let covers world m word =
+  with_coverage_reader world m { use = (fun reader -> reads world reader word) }
 
 (* {1 The product} *)
 
-type node = Gap of int * config | Op of int * config
+type 'c node = Gap of int * 'c | Op of int * 'c
 
-let compare_config = IntMap.compare (compare_with Bool.compare)
-
-let compare_node n n' =
+let compare_node compare n n' =
   match (n, n') with
   | Gap (p, c), Gap (p', c') | Op (p, c), Op (p', c') -> (
-      match Int.compare p p' with 0 -> compare_config c c' | k -> k)
+      match Int.compare p p' with 0 -> compare c c' | k -> k)
   | Gap _, Op _ -> -1
   | Op _, Gap _ -> 1
 
-module Visited = Map.Make (struct
-  type t = node
-
-  let compare = compare_node
-end)
-
 type step = Read of DelaySet.t | Perform of string
 
-(* [search domain reader l] is a shortest path of the graph [l] to a final
-   state at which [reader] rejects, the delays
-   of [l] read as their extremal values in [domain]: breadth-first search of the
-   pairs of a state of [l] and a configuration, each recording the pair it was
-   reached from and the step taken. *)
-let search domain reader (a : graph) =
+(* [readings s] is the sets of delays that a budget delay of the language
+   included, read from [s] and facing a guarantee with strict delays, is taken
+   from, each by its extremal value: [{0}] and the positive delays of [s]
+   apart, the delay [0] being no delay and any positive one excluded by a
+   strict delay. *)
+let readings s =
+  if DelaySet.mem Rational.zero s && not (DelaySet.equal s DelaySet.zero) then
+    [ DelaySet.zero; DelaySet.diff s DelaySet.zero ]
+  else [ s ]
+
+(* [search domain ~pieces reader l] is a shortest path of the graph [l] to a
+   final state at which [reader] rejects, the delays of [l] read as their
+   extremal values in [domain], a budget delay from the sets of {!readings} if
+   [pieces], the guarantee having strict delays:
+   breadth-first search of the pairs of a state of [l] and a configuration,
+   each recording the pair it was reached from and the step taken. The names
+   that open and close strict delays are not read. *)
+let search (type c) domain ~pieces (reader : c reader) (a : graph) =
+  let module Visited = Map.Make (struct
+    type t = c node
+
+    let compare = compare_node reader.compare
+  end) in
   let rec path parent node acc =
     match Visited.find node parent with
     | None -> acc
@@ -494,20 +784,30 @@ let search domain reader (a : graph) =
       when a.final.(p) && not (reader.accepts config) ->
         Some (path parent node [])
     | Some ((Gap (p, config) as node), fifo) ->
+        let strict = a.markers && a.strict.(p) in
+        let read (s, o) =
+          Option.map
+            (fun v -> (Op (o, reader.delay ~strict v config), (node, Read s)))
+            (domain.extremum s)
+        in
         go
           (List.fold_left visit (parent, fifo)
-             (List.filter_map
-                (fun (s, o) ->
-                  Option.map
-                    (fun v -> (Op (o, reader.delay v config), (node, Read s)))
-                    (domain.extremum s))
-                a.gaps.(p)))
+             (if pieces && not strict then
+                List.concat_map
+                  (fun (s, o) ->
+                    List.filter_map (fun s -> read (s, o)) (readings s))
+                  a.gaps.(p)
+              else List.filter_map read a.gaps.(p)))
     | Some ((Op (p, config) as node), fifo) ->
+        let operation name =
+          if a.markers && GradeLiteral.is_marker name then config
+          else reader.operation name config
+        in
         go
           (List.fold_left visit (parent, fifo)
              (List.map
                 (fun (name, g) ->
-                  (Gap (g, reader.operation name config), (node, Perform name)))
+                  (Gap (g, operation name), (node, Perform name)))
                 a.ops.(p)))
   in
   if not a.live then None
@@ -593,22 +893,39 @@ let concretise delay rejects steps =
 
 module Graph = struct
   let allowance ~rigid world l m =
-    let reader, above = allowance_reader ~rigid world m in
-    Option.map
-      (concretise (highest ~above) (fun w -> not (reads world reader w)))
-      (search down reader l)
+    let above = snd (allowance_reader ~rigid world m) in
+    with_allowance_reader ~rigid world m
+      {
+        use =
+          (fun reader ->
+            Option.map
+              (concretise (highest ~above) (fun w -> not (reads world reader w)))
+              (search down ~pieces:false reader l));
+      }
 
   let coverage world l m =
-    let reader = coverage_reader world m in
-    Option.map
-      (concretise lowest (fun w -> not (reads world reader w)))
-      (search up reader l)
+    with_coverage_reader world m
+      {
+        use =
+          (fun reader ->
+            Option.map
+              (concretise lowest (fun w -> not (reads world reader w)))
+              (search up ~pieces:m.markers reader l));
+      }
 
   let in_allowance ~rigid world l m =
-    Option.is_none (search down (fst (allowance_reader ~rigid world m)) l)
+    with_allowance_reader ~rigid world m
+      {
+        use =
+          (fun reader -> Option.is_none (search down ~pieces:false reader l));
+      }
 
   let in_coverage world l m =
-    Option.is_none (search up (coverage_reader world m) l)
+    with_coverage_reader world m
+      {
+        use =
+          (fun reader -> Option.is_none (search up ~pieces:m.markers reader l));
+      }
 
   let permits = permits
   let covers = covers
