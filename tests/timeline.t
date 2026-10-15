@@ -37,7 +37,7 @@ Values boxed for time intervals.
 
   $ ../tempore --grades time-interval --timeline ../examples/time/intervals.tpe
   === Run 1 ===
-  return 1
+  return 2
   State: [
     { resource_0 ↦ 1 # [1, 4] },
     [1, 1],
@@ -50,7 +50,7 @@ Values boxed for time intervals.
   1    [0, 0]  delay                    [1, 1]
   1    [1, 1]  delay                    [2, 2]
   1    [3, 3]  unbox r
-  Run 1 returned 1 at [3, 3].
+  Run 1 returned 2 at [3, 3].
   
   === Run 2 ===
   return 1

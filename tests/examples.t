@@ -1573,7 +1573,7 @@ tests show those runs in detail.
   ../examples/time/intervals.tpe
   ======================================================================
   === Run 1 ===
-  return 1
+  return 2
   State: [
     { resource_0 ↦ 1 # [1, 4] },
     [1, 1],
