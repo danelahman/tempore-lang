@@ -18,8 +18,8 @@ let rec fact n =
 
 (* The Fibonacci numbers, by a tail-recursive local helper. *)
 let fib n =
-  let rec aux n a b =
-    match n with
+  let rec aux remaining a b =
+    match remaining with
     | 0 -> a
     | m + 1 -> aux m b (a + b)
   in
