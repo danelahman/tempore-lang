@@ -174,7 +174,7 @@ tests show those runs in detail.
   ]
   
   === Run 7 ===
-  return resource_0
+  return 11
   State: [
     5,
     { resource_0 ↦ 11 # 3 },
@@ -189,7 +189,7 @@ tests show those runs in detail.
   ]
   
   === Run 9 ===
-  return (43, "test")
+  return (142, "test")
   State: [
     2,
     10,
