@@ -71,7 +71,7 @@ operation Stop : plate ~> plate # [0, 1]
 default Stop plate = plate
 
 operation Read : plate ~> nat # [1, 2]
-default Read plate = delay 1; 0
+default Read plate = delay 2; 0
 
 let wash3 (plate : plate) : plate # [6, 12] =
   let plate = perform Wash plate in
@@ -79,20 +79,20 @@ let wash3 (plate : plate) : plate # [6, 12] =
   perform Wash plate
 
 (* Correctly accepted by the typechecker: the antibody is used three washes,
-   six to 12 minutes, after its dilution; the plate incubates with it for 60
-   minutes before it is washed; and the development is stopped after the 15
-   minutes of the delay. *)
+   six to 12 minutes, after its dilution; the plate incubates with it for 65
+   minutes, beyond the 60 it demands, before it is washed; and the development
+   is stopped after the 17 minutes of the delay. *)
 let elisa (plate : plate) =
   let plate = perform AddSample plate in
   let antibody = perform Dilute () in
   let plate = wash3 plate in
   unbox antibody as detection in
   let incubating = perform Detect (plate, detection) in
-  delay 60;
+  delay 65;
   unbox incubating as plate in
   let plate = perform Wash plate in
   let developing = perform Develop plate in
-  delay 15;
+  delay 17;
   unbox developing as plate in
   let plate = perform Stop plate in
   perform Read plate

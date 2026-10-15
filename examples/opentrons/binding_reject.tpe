@@ -13,13 +13,13 @@
      - Product: (a, G, b) · (a', G', b') = (a, G ∪ G' ∪ {b + a'}, b') *)
 
 operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
-default AddBeads () = delay 1
+default AddBeads () = delay 2
 
 operation Mix : unit ~> unit # {Mix} within [1, 2]
 default Mix () = delay 1
 
 operation FillWashPlate : unit ~> unit # {FillWashPlate} within [2, 3]
-default FillWashPlate () = delay 2
+default FillWashPlate () = delay 3
 
 let rec incubate (n : nat) : unit # (Mix, [0, 0], [2, 5], [0, 5]) =
   match n with

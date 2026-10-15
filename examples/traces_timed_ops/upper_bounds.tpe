@@ -31,7 +31,7 @@ default Heat m = delay 1; Heated m
 (* A freshly extruded model is still hot: it goes to the cooler, which must
    collect it within two ticks. *)
 operation Extrude : heated ~> [2] extruded # {Extrude} within [3, 5]
-default Extrude h = delay 3; box 2 (Extruded h)
+default Extrude h = delay 4; box 2 (Extruded h)
 
 (* The cooler takes the hot extruded model and cools it down to something that
    can be handled. *)
@@ -95,13 +95,13 @@ let print_sword () =
 
 (* Correctly accepted by the typechecker: the same bound realised by hand,
    without the handler --- the three steps and the closing rest cost at most
-   2 + 5 + 2 + 2 = 11, which is exactly what the epoxy of 'MixEpoxy' allows. *)
+   2 + 5 + 2 + 1 = 10, within the eleven the epoxy of 'MixEpoxy' allows. *)
 let print_cog () =
   let glue = perform MixEpoxy () in
   let h = perform Heat (Model "Cog") in
   let p = perform Extrude h in
   let c = perform Cool p in
-  delay 2;
+  delay 1;
   unbox glue as g in
   perform Mount (Printed c, g)
 
@@ -155,11 +155,11 @@ let send_retry =
   | Send msg k -> perform Tx msg; perform Tx msg; continue k with ()
 
 (* Correctly accepted by the typechecker: the receipt must be collected within
-   six ticks, which pays for the costlier alternative of 'Send', because
-   3 + 3 = 6. *)
+   seven ticks, which pays for the costlier alternative of 'Send', costing at
+   most 3 + 3 = 6. *)
 let send_telemetry () =
   handle
-    box 6 (Receipt "telemetry") as slot in
+    box 7 (Receipt "telemetry") as slot in
     perform Send "telemetry";
     unbox slot as r in
     r

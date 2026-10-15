@@ -45,7 +45,7 @@ default Fix column = delay 1; box [12, 20] column
 
 (* Rinsing a column takes one to two minutes. *)
 operation Rinse : column ~> unit # [1, 2]
-default Rinse column = delay 1
+default Rinse column = delay 2
 
 (* Rinses the column [fixed] and starts the next column while the column in
    [fixing] fixes. The pair of the boxed column and the column to rinse is
@@ -54,14 +54,14 @@ default Rinse column = delay 1
 let rec stagger (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
   perform Rinse fixed;
   match columns with
-  | [] -> delay 11; unbox fixing as last in perform Rinse last
+  | [] -> delay 14; unbox fixing as last in perform Rinse last
   | column :: rest ->
-      delay 10;
+      delay 13;
       let started = perform Fix column in
       unbox fixing as previous in
       stagger rest (started, previous)
 
-(* Correctly accepted by the typechecker: each column is rinsed 12 to 14
+(* Correctly accepted by the typechecker: each column is rinsed 15 to 17
    minutes after its fixative was added. *)
 let fixation (columns : column list) =
   match columns with
@@ -69,15 +69,15 @@ let fixation (columns : column list) =
   | first :: rest -> (
       let fixing = perform Fix first in
       match rest with
-      | [] -> delay 12; unbox fixing as first in perform Rinse first
+      | [] -> delay 15; unbox fixing as first in perform Rinse first
       | second :: rest ->
-          delay 11;
+          delay 14;
           let started = perform Fix second in
           unbox fixing as first in
           stagger rest (started, first))
 
 (* Correctly rejected by the typechecker: the next column is started five
-   minutes after the rinse instead of ten, so a column is rinsed seven to
+   minutes after the rinse instead of 13, so a column is rinsed seven to
    nine minutes after its fixative was added:
 
      Typing error: Variable `fixing` is unboxed with grade `[7, 9]`
@@ -89,7 +89,7 @@ let fixation (columns : column list) =
 let rec stagger_early (columns : column list) ((fixing : [[12, 20]]column), (fixed : column)) : unit # [0, ∞) =
   perform Rinse fixed;
   match columns with
-  | [] -> delay 11; unbox fixing as last in perform Rinse last
+  | [] -> delay 14; unbox fixing as last in perform Rinse last
   | column :: rest ->
       delay 5;
       let started = perform Fix column in

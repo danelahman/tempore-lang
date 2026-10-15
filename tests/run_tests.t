@@ -5072,7 +5072,7 @@ it names none:
   return 42
   State: [
     { resource_0 ↦ 42 # 3 },
-    3
+    5
   ]
   
   === Run 9 ===
@@ -6453,7 +6453,7 @@ implementations above, the examples over rational delays excepted:
     [{1}, {1}],
     [{4}, {4}],
     [{1}, {1}],
-    [{1}, {1}]
+    [{2}, {2}]
   ]
   
   ======================================================================
@@ -6465,7 +6465,7 @@ implementations above, the examples over rational delays excepted:
     [{1}, {1}],
     [{4}, {4}],
     [{1}, {1}],
-    [{1}, {1}]
+    [{2}, {2}]
   ]
   
   ======================================================================
@@ -6477,7 +6477,7 @@ implementations above, the examples over rational delays excepted:
     { resource_0 ↦ Part "gear" # {Coat; 4} },
     {1},
     {4},
-    {1}
+    {2}
   ]
   
   ======================================================================
@@ -6489,7 +6489,7 @@ implementations above, the examples over rational delays excepted:
     { resource_0 ↦ Part "gear" # {Coat; 4} },
     {1},
     {4},
-    {1}
+    {2}
   ]
   
   ======================================================================
@@ -6499,7 +6499,7 @@ implementations above, the examples over rational delays excepted:
   return (Checkpoint 5, 2)
   State: [
     { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6512,7 +6512,7 @@ implementations above, the examples over rational delays excepted:
   === Run 2 ===
   return (Message (1, "Agenda", false))
   State: [
-    {2},
+    {3},
     {1},
     {1}
   ]
@@ -6521,7 +6521,7 @@ implementations above, the examples over rational delays excepted:
   return 3
   State: [
     { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6546,7 +6546,7 @@ implementations above, the examples over rational delays excepted:
   return (Checkpoint 5, 2)
   State: [
     { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6559,7 +6559,7 @@ implementations above, the examples over rational delays excepted:
   === Run 2 ===
   return (Message (1, "Agenda", false))
   State: [
-    {2},
+    {3},
     {1},
     {1}
   ]
@@ -6568,7 +6568,7 @@ implementations above, the examples over rational delays excepted:
   return 3
   State: [
     { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -6593,7 +6593,7 @@ implementations above, the examples over rational delays excepted:
   return (Reading 0)
   State: [
     { resource_0 ↦ Reading 0 # {2; Send; 6} },
-    {1},
+    {2},
     {2},
     {5}
   ]
@@ -6605,7 +6605,7 @@ implementations above, the examples over rational delays excepted:
   return (Reading 0)
   State: [
     { resource_0 ↦ Reading 0 # {2; Send; 6} },
-    {1},
+    {2},
     {2},
     {5}
   ]

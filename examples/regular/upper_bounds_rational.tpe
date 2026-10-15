@@ -28,7 +28,7 @@ let report () : unit # {Read; (0, 1/2); Report} =
    more than a quarter and at most half a second, any number of times. *)
 let sample_twice () : nat # {(Read; (1/4, 1/2])*} =
   let x = perform Read () in
-  delay 1/2;
+  delay 2/5;
   let y = perform Read () in
   delay 0.3;
   x + y

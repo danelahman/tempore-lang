@@ -18,7 +18,7 @@ default Login user = delay 1; box (5, Low) (Token user)
 
 (* Querying the public database takes at most two ticks. *)
 operation Query : token * string ~> string # (2, Low)
-default Query (t, q) = delay 2; "rows"
+default Query (t, q) = delay 1; "rows"
 
 (* Reading the payroll takes at most a tick and touches secret data. *)
 operation ReadPayroll : unit ~> string # (1, High)

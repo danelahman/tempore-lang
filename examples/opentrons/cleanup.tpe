@@ -48,7 +48,7 @@ type beads = string
    magnetic block, and the ethanol is added from above, in at most a
    minute. *)
 operation AddBeads : unit ~> unit # {AddBeads} within [1, 2]
-default AddBeads () = delay 1
+default AddBeads () = delay 2
 
 operation MagnetOn : unit ~> unit # {MagnetOn} within [0, 1]
 default MagnetOn () = delay 1
@@ -63,13 +63,13 @@ operation AddEthanol : unit ~> unit # {AddEthanol} within [0, 1]
 default AddEthanol () = delay 1
 
 operation RemoveEthanol : unit ~> unit # {RemoveEthanol} within [1, 2]
-default RemoveEthanol () = delay 1
+default RemoveEthanol () = delay 2
 
 operation AddBuffer : unit ~> unit # {AddBuffer} within [1, 2]
 default AddBuffer () = delay 1
 
 operation Transfer : unit ~> unit # {Transfer} within [1, 2]
-default Transfer () = delay 1
+default Transfer () = delay 2
 
 (* The compound operations, their running-time bounds derived from their
    grades. Binding adds the beads, lets them bind the sample for five to ten
@@ -93,7 +93,7 @@ let cleanup_steps =
   | x -> x
   | Bind beads k ->
       perform AddBeads ();
-      delay 5;
+      delay 7;
       perform MagnetOn ();
       continue k with (box [3, 5] beads)
   | EthanolWash () k ->
@@ -104,9 +104,9 @@ let cleanup_steps =
   | EluteDNA beads k ->
       perform MagnetOff ();
       perform AddBuffer ();
-      delay 2;
-      perform MagnetOn ();
       delay 3;
+      perform MagnetOn ();
+      delay 4;
       perform Transfer ();
       continue k with beads
 
@@ -115,14 +115,14 @@ let cleanup_steps =
    and an air-dry of two to three minutes. *)
 let cleanup (beads : beads) =
   let settling = perform Bind beads in
-  delay 3;
+  delay 4;
   unbox settling as beads in
   perform RemoveLiquid ();
   box {AddEthanol; 1; RemoveEthanol; AddEthanol; 1; RemoveEthanol; [2, 3]} beads
     as washed in
   perform EthanolWash ();
   perform EthanolWash ();
-  delay 2;
+  delay 3;
   unbox washed as beads in
   perform EluteDNA beads
 

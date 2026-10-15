@@ -27,11 +27,11 @@ implementations of the operations:
   State: [
     [{0.35}, {0.35}],
     { resource_0 ↦
-        0.1
+        0.1005
         # [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]
     },
     [{0.2}, {0.2}],
-    [{100}, {100}],
+    [{100.5}, {100.5}],
     [{0.5}, {0.5}],
     [{0.2}, {0.2}]
   ]
@@ -44,15 +44,15 @@ after the wait, and the drive shown on the display within the window:
   File "wheels/unordered.tpe", lines 9-11, characters 2-63:
   9 |   unbox window as seconds in
         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `window` is unboxed with grade `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
-    File "wheels/unordered.tpe", line 5, characters 51-57:
-    5 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
-                                                           ^^^^^^
+  Typing error: Variable `window` is unboxed with grade `[{100.5; SetMotors; ReadEncoders}, {100.5; SetMotors; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
+    File "wheels/unordered.tpe", line 5, characters 54-60:
+    5 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
+                                                              ^^^^^^
     `window` is bound here
-    File "wheels/unordered.tpe", line 6, characters 2-11:
-    6 |   delay 100;
-          ^^^^^^^^^
-    grade `[{100}, {100}]` accumulates here (delay)
+    File "wheels/unordered.tpe", line 6, characters 2-13:
+    6 |   delay 100.5;
+          ^^^^^^^^^^^
+    grade `[{100.5}, {100.5}]` accumulates here (delay)
     File "wheels/unordered.tpe", line 7, characters 2-34:
     7 |   perform SetMotors (drive, drive);
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -61,15 +61,15 @@ after the wait, and the drive shown on the display within the window:
     8 |   let left, right = perform ReadEncoders () in
                             ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
-    Note: the resource inequality `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
+    Note: the resource inequality `[{100.5; SetMotors; ReadEncoders}, {100.5; SetMotors; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
   [1]
   File "wheels/shown.tpe", lines 11-13, characters 2-63:
   11 |   unbox window as seconds in
          ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `window` is unboxed with grade `[{SetMotors; ShowNumber; 100; ReadEncoders}, {SetMotors; ShowNumber; 100; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
-    File "wheels/shown.tpe", line 6, characters 51-57:
-    6 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
-                                                           ^^^^^^
+  Typing error: Variable `window` is unboxed with grade `[{SetMotors; ShowNumber; 100.5; ReadEncoders}, {SetMotors; ShowNumber; 100.5; ReadEncoders}]` accumulated since it was bound, which is not below its box grade `[{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]`
+    File "wheels/shown.tpe", line 6, characters 54-60:
+    6 |   box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
+                                                              ^^^^^^
     `window` is bound here
     File "wheels/shown.tpe", line 7, characters 2-34:
     7 |   perform SetMotors (drive, drive);
@@ -79,15 +79,15 @@ after the wait, and the drive shown on the display within the window:
     8 |   perform ShowNumber shown;
           ^^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ShowNumber}, {ShowNumber}]` accumulates here (operation `ShowNumber`)
-    File "wheels/shown.tpe", line 9, characters 2-11:
-    9 |   delay 100;
-          ^^^^^^^^^
-    grade `[{100}, {100}]` accumulates here (delay)
+    File "wheels/shown.tpe", line 9, characters 2-13:
+    9 |   delay 100.5;
+          ^^^^^^^^^^^
+    grade `[{100.5}, {100.5}]` accumulates here (delay)
     File "wheels/shown.tpe", line 10, characters 20-43:
     10 |   let left, right = perform ReadEncoders () in
                              ^^^^^^^^^^^^^^^^^^^^^^^
     grade `[{ReadEncoders}, {ReadEncoders}]` accumulates here (operation `ReadEncoders`)
-    Note: the resource inequality `[{SetMotors; ShowNumber; 100; ReadEncoders}, {SetMotors; ShowNumber; 100; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
+    Note: the resource inequality `[{SetMotors; ShowNumber; 100.5; ReadEncoders}, {SetMotors; ShowNumber; 100.5; ReadEncoders}] <= [{SetMotors; [100, 101]; ReadEncoders}, {SetMotors; [100, 101]; ReadEncoders}]` does not hold
   [1]
 
 A periodic task whose trace takes 10.2 to 10.8 ms is refused for a period of
@@ -176,29 +176,29 @@ exceptions and run-time type information:
 
 Three seconds of simulated time: the check spins the wheels forwards and
 backwards, each window from the drive command to the reading of the encoders
-lasting about 100.47 ms, shows the forward speeds, 310 counts per second, and
-repeats after two seconds; the step runs every 10 ms:
+lasting about 100.97 ms, shows the forward speeds, about 308 counts per
+second, and repeats after two seconds; the step runs every 10 ms:
 
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep '\] \(Display\|Operation SetMotors\|Operation ReadEncoders\)\|simulation'
   [31.245 ms] Display cleared
   [35.025 ms] Display at (0, 0): Wheel check
   [37.785 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
   [38.365 ms] Operation SetMotors took 245 us
-  [138.833 ms] Operation ReadEncoders took 468 us
-  [139.078 ms] Operation SetMotors took 245 us
-  [439.658 ms] Operation SetMotors took 245 us
-  [540.126 ms] Operation ReadEncoders took 468 us
-  [540.371 ms] Operation SetMotors took 245 us
-  [541.371 ms] Display: Wheels turn
-  [542.371 ms] Display: 310.000
-  [543.371 ms] Display: 310.000
-  [2575.000 ms] Display cleared
-  [2578.780 ms] Display at (0, 0): Wheel check
-  [2581.540 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
-  [2582.120 ms] Operation SetMotors took 245 us
-  [2682.588 ms] Operation ReadEncoders took 468 us
-  [2682.833 ms] Operation SetMotors took 245 us
-  [2983.413 ms] Operation SetMotors took 245 us
+  [139.333 ms] Operation ReadEncoders took 468 us
+  [139.578 ms] Operation SetMotors took 245 us
+  [440.158 ms] Operation SetMotors took 245 us
+  [541.126 ms] Operation ReadEncoders took 468 us
+  [541.371 ms] Operation SetMotors took 245 us
+  [542.371 ms] Display: Wheels turn
+  [543.371 ms] Display: 308.458
+  [544.371 ms] Display: 308.458
+  [2576.000 ms] Display cleared
+  [2579.780 ms] Display at (0, 0): Wheel check
+  [2582.540 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [2583.120 ms] Operation SetMotors took 245 us
+  [2684.088 ms] Operation ReadEncoders took 468 us
+  [2684.333 ms] Operation SetMotors took 245 us
+  [2984.913 ms] Operation SetMotors took 245 us
   [3000.000 ms] End of the simulation
   $ tempore --emit-arduino wheels --device $app/wheels.device.json --host-simulate 3 $app/wheels.tpe | grep -c 'Release watch'
   300
@@ -211,9 +211,9 @@ With the right wheel stalled, the check reports its fault:
   [31.245 ms] Display cleared
   [35.025 ms] Display at (0, 0): Wheel check
   [37.785 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
-  [541.371 ms] Display: Right wheel fault
-  [542.371 ms] Display: 310.000
-  [543.371 ms] Display: 0.000
-  [2575.000 ms] Display cleared
-  [2578.780 ms] Display at (0, 0): Wheel check
-  [2581.540 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)
+  [542.371 ms] Display: Right wheel fault
+  [543.371 ms] Display: 308.458
+  [544.371 ms] Display: 0.000
+  [2576.000 ms] Display cleared
+  [2579.780 ms] Display at (0, 0): Wheel check
+  [2582.540 ms] Display at (80, 230): Typechecked by Tempore (tempore-lang.ee)

@@ -82,7 +82,7 @@ let before_revoke () =
    which is not '⊤': the top grade is not absorbing. *)
 let settle () =
   box {3; _*} "settled" as s in
-  delay 3;
+  delay 5;
   perform Fetch ();
   unbox s as msg in
   msg

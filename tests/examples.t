@@ -176,7 +176,7 @@ tests show those runs in detail.
   return 42
   State: [
     { resource_0 ↦ 42 # 3 },
-    3
+    5
   ]
   
   === Run 9 ===
@@ -253,7 +253,7 @@ tests show those runs in detail.
       resource_9 ↦ <fun> # 10,
       resource_10 ↦ <fun> # 10
     },
-    10
+    12
   ]
   
   ======================================================================
@@ -301,13 +301,13 @@ tests show those runs in detail.
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
     { resource_1 ↦ <fun> # 7 },
-    7,
+    9,
     { resource_2 ↦ Fresh (Model "Sword") # 5, resource_4 ↦ <fun> # 7 },
-    7,
+    9,
     { resource_5 ↦ Fresh (Model "Hammer") # 5, resource_7 ↦ <fun> # 5 },
-    5,
+    6,
     { resource_9 ↦ <fun> # 5 },
-    5
+    6
   ]
   
   ======================================================================
@@ -317,14 +317,14 @@ tests show those runs in detail.
   return 48
   State: [
     { resource_1 ↦ <fun> # 71 },
-    71
+    80
   ]
   
   === Run 2 ===
   return 23
   State: [
     { resource_1 ↦ <fun> # 71 },
-    71
+    74
   ]
   
   === Run 3 (unhandled operation) ===
@@ -341,7 +341,7 @@ tests show those runs in detail.
   return 7
   State: [
     { resource_1 ↦ <fun> # 2, resource_3 ↦ <fun> # 3 },
-    3
+    4
   ]
   
   ======================================================================
@@ -350,7 +350,7 @@ tests show those runs in detail.
   File "../examples/handlers/nested_reject.tpe", lines 29-31, characters 13-24:
   29 |            | Op2 q k' ->
                     ^^^^^^^^^^^
-  Typing error: For every grade `ε_Op2` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε_Op2`, but its grade `3` does not
+  Typing error: For every grade `ε_Op2` the continuation `k'` may have, the case for `Op2` must have a grade matching `3 · ε_Op2`, but its grade `4` does not
     File "../examples/handlers/nested_reject.tpe", line 13, characters 0-32:
     13 | operation Op2 : unit ~> unit # 3
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -359,7 +359,7 @@ tests show those runs in detail.
     29 |            | Op2 q k' ->
                             ^^
     `k'` may have any grade `ε_Op2`
-    Note: the effect inequality `∀ε_Op2. 3 >= 3 · ε_Op2` does not hold: for `ε_Op2 = 1` it becomes `3 >= 4`
+    Note: the effect inequality `∀ε_Op2. 4 >= 3 · ε_Op2` does not hold: for `ε_Op2 = 2` it becomes `4 >= 5`
   ======================================================================
   ../examples/handlers/upper_bound.tpe
   ======================================================================
@@ -462,35 +462,35 @@ tests show those runs in detail.
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Retried (Host "db-2"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
   State: [
     { resource_0 ↦ probe_with_two_retries # (0, High) },
-    (6, Low),
+    (8, Low),
     { resource_2 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
       resource_5 ↦ <fun> # (0, Low)
     },
-    (10, Low),
+    (12, Low),
     { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_11 ↦ <fun> # (0, Low), resource_13 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_14 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_16 ↦ <fun> # (0, Low), resource_18 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_20 ↦ <fun> # (0, Low), resource_22 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_24 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_26 ↦ <fun> # (0, Low), resource_28 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_29 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_31 ↦ <fun> # (0, Low), resource_33 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_35 ↦ <fun> # (0, Low), resource_37 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_39 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_41 ↦ <fun> # (0, Low), resource_43 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_45 ↦ <fun> # (0, Low) },
@@ -498,11 +498,11 @@ tests show those runs in detail.
     { resource_47 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_48 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_50 ↦ <fun> # (0, Low) },
-    (10, Low),
+    (12, Low),
     { resource_52 ↦ <fun> # (0, Low) },
-    (10, Low),
+    (12, Low),
     { resource_54 ↦ <fun> # (0, Low) }
   ]
   
@@ -511,46 +511,46 @@ tests show those runs in detail.
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "web-2"))::(Installed (Host "web-3"))::(Observed 0)::(Installed (Host "db-1"))::(Installed (Host "db-2"))::(Reverted (Host "db-2"))::(Reverted (Host "db-1"))::(Reverted (Host "web-3"))::(Reverted (Host "web-2"))::(Reverted (Host "web-1"))::[])
   State: [
     { resource_0 ↦ probe_without_retries # (0, High) },
-    (6, Low),
+    (8, Low),
     { resource_2 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
       resource_5 ↦ <fun> # (0, Low)
     },
-    (10, Low),
+    (12, Low),
     { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_11 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_12 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_14 ↦ <fun> # (0, Low), resource_16 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_18 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_20 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_22 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_23 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_25 ↦ <fun> # (0, Low), resource_27 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_29 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_31 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_33 ↦ <fun> # (0, Low) },
     (1, Low),
-    (2, Low),
+    (3, Low),
     { resource_35 ↦ <fun> # (0, Low) },
-    (2, Low),
+    (3, Low),
     { resource_37 ↦ <fun> # (0, Low) },
-    (2, Low),
+    (3, Low),
     { resource_39 ↦ <fun> # (0, Low) },
-    (2, Low),
+    (3, Low),
     { resource_41 ↦ <fun> # (0, Low) },
-    (2, Low),
+    (3, Low),
     { resource_43 ↦ <fun> # (0, Low) }
   ]
   
@@ -559,21 +559,21 @@ tests show those runs in detail.
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "cache-1"))::(Observed 1)::(Reverted (Host "cache-1"))::[])
   State: [
     { resource_0 ↦ probe_with_two_retries # (0, High) },
-    (6, Low),
+    (8, Low),
     { resource_2 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
       resource_5 ↦ <fun> # (0, Low)
     },
-    (10, Low),
+    (12, Low),
     { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_11 ↦ <fun> # (0, Low), resource_13 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_14 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_16 ↦ <fun> # (0, Low) },
-    (2, Low),
+    (3, Low),
     { resource_18 ↦ <fun> # (0, Low) }
   ]
   
@@ -582,21 +582,21 @@ tests show those runs in detail.
           (Built 7)::(Approved 7)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Retried (Host "db-3"))::(Retried (Host "db-3"))::(Reverted (Host "db-3"))::(Reverted (Host "web-1"))::(HotfixFetched 8)::(Built 8)::(Approved 8)::(Observed 0)::(Installed (Host "web-1"))::(Observed 0)::(Installed (Host "db-3"))::(Observed 0)::(Observed 0)::(Observed 0)::[])
   State: [
     { resource_0 ↦ probe_with_two_retries # (0, High) },
-    (6, Low),
+    (8, Low),
     { resource_2 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_3 ↦ Release (Artefact ("api", 7)) # (8, Low),
       resource_5 ↦ <fun> # (0, Low)
     },
-    (10, Low),
+    (12, Low),
     { resource_7 ↦ <fun> # (0, Low), resource_9 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_11 ↦ <fun> # (0, Low), resource_13 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_14 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_16 ↦ <fun> # (0, Low), resource_18 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_20 ↦ <fun> # (0, Low), resource_22 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_24 ↦ <fun> # (0, Low) },
@@ -607,37 +607,37 @@ tests show those runs in detail.
     (3, Low),
     { resource_30 ↦ <fun> # (1, Low) },
     (1, Low),
-    (2, Low),
+    (3, Low),
     { resource_32 ↦ <fun> # (0, Low) },
-    (2, Low),
+    (3, Low),
     { resource_34 ↦ <fun> # (0, Low) },
-    (2, Low),
+    (3, Low),
     { resource_36 ↦ <fun> # (0, Low),
       resource_37 ↦ probe_with_two_retries # (0, High)
     },
-    (6, Low),
+    (8, Low),
     { resource_39 ↦ <fun> # (0, Low) },
     (1, Low),
     { resource_40 ↦ Release (Artefact ("hotfix", 8)) # (8, Low),
       resource_42 ↦ <fun> # (0, Low)
     },
-    (10, Low),
+    (12, Low),
     { resource_44 ↦ <fun> # (0, Low), resource_46 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_48 ↦ <fun> # (0, Low), resource_50 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_51 ↦ Release (Artefact ("hotfix", 8)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_53 ↦ <fun> # (0, Low), resource_55 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_57 ↦ <fun> # (0, Low), resource_59 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_60 ↦ Release (Artefact ("hotfix", 8)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_62 ↦ <fun> # (0, Low) },
-    (10, Low),
+    (12, Low),
     { resource_64 ↦ <fun> # (0, Low) },
-    (10, Low),
+    (12, Low),
     { resource_66 ↦ <fun> # (0, Low) }
   ]
   
@@ -645,18 +645,18 @@ tests show those runs in detail.
   return (HostFailed (Host "db-3", 2))
   State: [
     { resource_0 ↦ probe_with_two_retries # (0, High) },
-    (6, Low),
+    (8, Low),
     (1, Low),
     { resource_1 ↦ Release (Artefact ("api", 7)) # (8, Low) },
-    (10, Low),
+    (12, Low),
     { resource_3 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_5 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_6 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_8 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_10 ↦ <fun> # (1, Low) },
     (1, Low),
     (3, Low),
@@ -665,8 +665,8 @@ tests show those runs in detail.
     (3, Low),
     { resource_14 ↦ <fun> # (1, Low) },
     (1, Low),
-    (2, Low),
-    (2, Low)
+    (3, Low),
+    (3, Low)
   ]
   
   === Run 8 ===
@@ -675,41 +675,41 @@ tests show those runs in detail.
     { resource_0 ↦ "release notes" # (17, Low),
       resource_1 ↦ probe_with_two_retries # (0, High)
     },
-    (6, Low),
+    (8, Low),
     (1, Low),
     { resource_2 ↦ Release (Artefact ("api", 7)) # (8, Low) },
-    (10, Low),
+    (12, Low),
     { resource_4 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_6 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_7 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_9 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_11 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_13 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_15 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_16 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
+    (12, Low),
     { resource_18 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_20 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_22 ↦ <fun> # (4, Low) },
-    (3, Low),
+    (4, Low),
     { resource_24 ↦ <fun> # (1, Low) },
     (1, Low),
     (3, Low),
     { resource_26 ↦ <fun> # (1, Low) },
     (1, Low),
     { resource_27 ↦ Release (Artefact ("api", 7)) # (10, Low) },
-    (10, Low),
-    (10, Low),
-    (10, Low)
+    (12, Low),
+    (12, Low),
+    (12, Low)
   ]
   
   ======================================================================
@@ -718,19 +718,19 @@ tests show those runs in detail.
   === Run 1 ===
   return (Report "quarterly figures")
   State: [
-    (2, Low),
-    { resource_0 ↦ Report "quarterly figures" # (3, Low) },
     (3, Low),
+    { resource_0 ↦ Report "quarterly figures" # (3, Low) },
+    (4, Low),
     (1, Low)
   ]
   
   === Run 2 ===
   return (Report "quarterly figures")
   State: [
-    (2, Low),
+    (3, Low),
     { resource_0 ↦ Report "quarterly figures" # (3, Low) },
+    (3, Low),
     (2, Low),
-    (1, Low),
     (1, Low)
   ]
   
@@ -743,7 +743,7 @@ tests show those runs in detail.
     (1, Low),
     { resource_0 ↦ Token "alice" # (5, Low) },
     (3, Low),
-    (2, Low)
+    (1, Low)
   ]
   
   === Run 2 ===
@@ -751,7 +751,7 @@ tests show those runs in detail.
   State: [
     { resource_0 ↦ Token "bob" # (∞, Low) },
     (100, Low),
-    (2, Low)
+    (1, Low)
   ]
   
   ======================================================================
@@ -760,12 +760,12 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    [1, 1],
+    [2, 2],
     [5, 5],
     { resource_0 ↦ "beads" # [3, ∞) },
-    [3, 3],
+    [4, 4],
     [1, 1],
-    [1, 1],
+    [2, 2],
     [1, 1],
     { resource_1 ↦ "beads" # [2, 3] },
     [2, 2],
@@ -773,7 +773,7 @@ tests show those runs in detail.
     [2, 2],
     { resource_2 ↦ "beads" # [3, ∞) },
     [3, 3],
-    [1, 1]
+    [2, 2]
   ]
   
   ======================================================================
@@ -802,9 +802,9 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    1,
-    1,
     2,
+    1,
+    3,
     1,
     2,
     1,
@@ -813,7 +813,7 @@ tests show those runs in detail.
     2,
     1,
     3,
-    1,
+    2,
     1
   ]
   
@@ -835,11 +835,11 @@ tests show those runs in detail.
         <fun>
         # [{AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}, {AddBeads; 5; (0 | 1; (0 | 1; (0 | 1; (0 | 1; (0 | 1))))); MagnetOn}]
     },
-    [{1}, {1}],
-    [{5}, {5}],
+    [{2}, {2}],
+    [{7}, {7}],
     [{1}, {1}],
     { resource_2 ↦ "beads" # [{3}, {5}] },
-    [{3}, {3}],
+    [{4}, {4}],
     [{1}, {1}],
     { resource_3 ↦
         "beads"
@@ -850,25 +850,25 @@ tests show those runs in detail.
     },
     [{1}, {1}],
     [{1}, {1}],
-    [{1}, {1}],
+    [{2}, {2}],
     { resource_7 ↦
         <fun>
         # [{AddEthanol; 1; RemoveEthanol}, {AddEthanol; 1; RemoveEthanol}]
     },
     [{1}, {1}],
     [{1}, {1}],
-    [{1}, {1}],
     [{2}, {2}],
+    [{3}, {3}],
     { resource_9 ↦
         <fun>
         # [{MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}, {MagnetOff; AddBuffer; 2; (0 | 1; (0 | 1; (0 | 1))); MagnetOn; 3; (0 | 1; (0 | 1)); Transfer}]
     },
     [{1}, {1}],
     [{1}, {1}],
-    [{2}, {2}],
-    [{1}, {1}],
     [{3}, {3}],
-    [{1}, {1}]
+    [{1}, {1}],
+    [{4}, {4}],
+    [{2}, {2}]
   ]
   
   ======================================================================
@@ -912,10 +912,10 @@ tests show those runs in detail.
     (1, Low),
     (1, Low),
     { resource_3 ↦ Tip # (∞, Low) },
-    (2, Low),
+    (1, Low),
     (1, Low),
     { resource_4 ↦ Tip # (∞, Low) },
-    (2, Low),
+    (1, Low),
     (1, Low),
     { resource_5 ↦ Tip # (∞, Low) },
     (1, Low),
@@ -974,12 +974,12 @@ tests show those runs in detail.
     [3, 3],
     [2, 2],
     { resource_1 ↦ "plate" # [60, ∞) },
-    [60, 60],
+    [65, 65],
     [3, 3],
     [1, 1],
     { resource_2 ↦ "plate" # [15, 20] },
-    [15, 15],
-    [1, 1]
+    [17, 17],
+    [2, 2]
   ]
   
   ======================================================================
@@ -1006,22 +1006,22 @@ tests show those runs in detail.
   State: [
     1,
     1,
-    3,
+    4,
     1,
     1,
     1,
     1,
-    3,
+    4,
     1,
     1,
     1,
     1,
-    3,
+    4,
     1,
     1,
     1,
     1,
-    3,
+    4,
     1,
     1
   ]
@@ -1144,13 +1144,13 @@ tests show those runs in detail.
   State: [
     [6, 6],
     { resource_0 ↦ "amplicon tagment mix" # [0, 30] },
+    [2, 2],
     [1, 1],
-    [1, 1],
-    [1, 1],
+    [2, 2],
     [6, 6],
     { resource_1 ↦ "neutralize tagment buffer" # [0, 30] },
     [6, 6],
-    [1, 1]
+    [2, 2]
   ]
   
   ======================================================================
@@ -1169,20 +1169,20 @@ tests show those runs in detail.
   State: [
     [1, 1],
     { resource_0 ↦ 1 # [12, 20] },
-    [11, 11],
+    [14, 14],
     [1, 1],
     { resource_1 ↦ 2 # [12, 20] },
-    [1, 1],
-    [10, 10],
+    [2, 2],
+    [13, 13],
     [1, 1],
     { resource_2 ↦ 3 # [12, 20] },
-    [1, 1],
-    [10, 10],
+    [2, 2],
+    [13, 13],
     [1, 1],
     { resource_3 ↦ 4 # [12, 20] },
-    [1, 1],
-    [11, 11],
-    [1, 1]
+    [2, 2],
+    [14, 14],
+    [2, 2]
   ]
   
   ======================================================================
@@ -1216,9 +1216,9 @@ tests show those runs in detail.
   return (0, 0)
   State: [
     { resource_1 ↦ <fun> # [1, 2] },
-    [1, 1],
+    [2, 2],
     { resource_2 ↦ "plate 1" # [0, 30], resource_4 ↦ <fun> # [1, 2] },
-    [1, 1],
+    [2, 2],
     { resource_5 ↦ "plate 2" # [0, 30], resource_7 ↦ <fun> # [1, 2] },
     [1, 1],
     { resource_9 ↦ <fun> # [1, 2] },
@@ -1251,25 +1251,27 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    [{1}, {1}],
+    [{2}, {2}],
     { resource_0 ↦ "beads" # [{5}, {10}] },
-    [{5}, {5}],
+    [{7}, {7}],
     [{1}, {1}],
     [{3}, {3}],
-    [{1}, {1}],
+    [{2}, {2}],
     { resource_1 ↦
         "beads"
         # [{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]
     },
     [{1}, {1}],
     [{1}, {1}],
+    [{1}, {1}],
     [{3}, {3}],
+    [{1}, {1}],
     [{1}, {1}],
     [{1}, {1}],
     [{2}, {2}],
     [{1}, {1}],
     [{3}, {3}],
-    [{1}, {1}]
+    [{2}, {2}]
   ]
   
   ======================================================================
@@ -1326,7 +1328,7 @@ tests show those runs in detail.
     [{1}, {1}],
     [{4}, {4}],
     [{1}, {1}],
-    [{1}, {1}]
+    [{2}, {2}]
   ]
   
   ======================================================================
@@ -1336,7 +1338,7 @@ tests show those runs in detail.
   return ()
   State: [
     [{0.75}, {0.75}],
-    [{0.25}, {0.25}],
+    [{0.6}, {0.6}],
     [{0.75}, {0.75}]
   ]
   
@@ -1349,7 +1351,7 @@ tests show those runs in detail.
     { resource_0 ↦ Part "gear" # {Coat; 4} },
     {1},
     {4},
-    {1}
+    {2}
   ]
   
   ======================================================================
@@ -1359,7 +1361,7 @@ tests show those runs in detail.
   return (Checkpoint 5, 2)
   State: [
     { resource_0 ↦ Checkpoint 5 # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -1372,7 +1374,7 @@ tests show those runs in detail.
   === Run 2 ===
   return (Message (1, "Agenda", false))
   State: [
-    {2},
+    {3},
     {1},
     {1}
   ]
@@ -1381,7 +1383,7 @@ tests show those runs in detail.
   return 3
   State: [
     { resource_1 ↦ <fun> # {Login; (Fetch | Store)*; Logout} },
-    {2},
+    {3},
     {1},
     {1},
     {1},
@@ -1406,7 +1408,7 @@ tests show those runs in detail.
   return (Reading 0)
   State: [
     { resource_0 ↦ Reading 0 # {2; Send; 6} },
-    {1},
+    {2},
     {2},
     {5}
   ]
@@ -1418,7 +1420,7 @@ tests show those runs in detail.
   return (Reading 0)
   State: [
     { resource_0 ↦ Reading 0 # {[0, 1.5]; Send; 5.5} },
-    {0.5},
+    {0.8},
     {1.5},
     {5}
   ]
@@ -1476,7 +1478,7 @@ tests show those runs in detail.
   State: [
     1,
     { resource_0 ↦ 21 # [3, 5] },
-    3,
+    4,
     1
   ]
   
@@ -1487,48 +1489,48 @@ tests show those runs in detail.
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
-    7,
+    8,
     { resource_0 ↦ Fresh (Model "Sword") # 5 },
-    7,
+    8,
     { resource_1 ↦ Fresh (Model "Hammer") # 5 },
-    5,
-    5
+    6,
+    6
   ]
   
   === Run 2 ===
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
-    7,
+    8,
     { resource_0 ↦ Fresh (Model "Sword") # 5 },
-    7,
+    8,
     { resource_1 ↦ Fresh (Model "Hammer") # 5 },
-    5,
-    5
+    6,
+    6
   ]
   
   === Run 3 ===
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
-    7,
+    8,
     { resource_0 ↦ Fresh (Model "Sword") # 5 },
-    7,
+    8,
     { resource_1 ↦ Fresh (Model "Hammer") # 5 },
-    5,
-    5
+    6,
+    6
   ]
   
   === Run 4 ===
   return (Complete (UvCured (Cooled (Fresh (Model "Sword")))), 
           Complete (UvCured (Cooled (Fresh (Model "Hammer")))))
   State: [
-    7,
+    8,
     { resource_0 ↦ Fresh (Model "Sword") # 5 },
-    7,
+    8,
     { resource_1 ↦ Fresh (Model "Hammer") # 5 },
-    5,
-    5
+    6,
+    6
   ]
   
   ======================================================================
@@ -1588,16 +1590,16 @@ tests show those runs in detail.
   return 500
   State: [
     { resource_0 ↦ 500 # [4, 6] },
-    [3.75, 3.75],
-    [0.25, 0.25]
+    [4.25, 4.25],
+    [0.375, 0.375]
   ]
   
   === Run 2 ===
   return 25
   State: [
     { resource_0 ↦ 25 # (4, 6] },
-    [4, 4],
-    [0.25, 0.25]
+    [4.5, 4.5],
+    [0.375, 0.375]
   ]
   
   === Run 3 ===
@@ -1658,7 +1660,7 @@ tests show those runs in detail.
       resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
-    [{3}, {3}],
+    [{4}, {4}],
     { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
     [{2}, {2}],
     { resource_4 ↦
@@ -1674,14 +1676,14 @@ tests show those runs in detail.
   State: [
     { resource_1 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}] },
     [{1}, {1}],
-    [{3}, {3}],
+    [{4}, {4}],
     { resource_2 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
     [{2}, {2}],
     { resource_3 ↦
         Printed (Cooled (Extruded (Heated (Model "Sword"))))
         # [{2}, {8}]
     },
-    [{2}, {2}]
+    [{4}, {4}]
   ]
   
   === Run 3 ===
@@ -1705,7 +1707,7 @@ tests show those runs in detail.
       resource_2 ↦ <fun> # [{Heat; Extrude; Cool}, {Heat; Extrude; Cool}]
     },
     [{1}, {1}],
-    [{3}, {3}],
+    [{4}, {4}],
     { resource_3 ↦ Extruded (Heated (Model "Sword")) # [{2}, {2}] },
     [{2}, {2}],
     { resource_4 ↦
@@ -1723,8 +1725,8 @@ tests show those runs in detail.
   return ()
   State: [
     [{0.75}, {0.75}],
-    [{0.25}, {0.25}],
-    [{1}, {1}]
+    [{0.5}, {0.5}],
+    [{1.75}, {1.75}]
   ]
   
   ======================================================================
@@ -1736,7 +1738,7 @@ tests show those runs in detail.
     {1},
     { resource_0 ↦ Epoxy # {8}, resource_2 ↦ <fun> # {Heat; Extrude; Cool} },
     {1},
-    {3},
+    {4},
     { resource_3 ↦ Extruded (Heated (Model "Sword")) # {2} },
     {2},
     { resource_4 ↦ Printed (Cooled (Extruded (Heated (Model "Sword")))) # {2} },
@@ -1750,7 +1752,7 @@ tests show those runs in detail.
   === Run 1 ===
   return (Receipt "telemetry")
   State: [
-    { resource_0 ↦ Receipt "telemetry" # {6},
+    { resource_0 ↦ Receipt "telemetry" # {7},
       resource_2 ↦ <fun> # {Tx | Tx; Tx}
     },
     {2},

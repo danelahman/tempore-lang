@@ -61,16 +61,16 @@ let magnitude (x : float) = if x < 0.0 then ~-.x else x
 
 (* Correctly accepted by the typechecker: the speeds of the wheels, in
    encoder counts per second, at the drive 'drive' of both motors. The
-   encoders are reset, and the length of the window, 0.1 s, is boxed with
+   encoders are reset, and the length of the window, 0.1005 s, is boxed with
    the trace of the window: a drive command, 100 to 101 ms, and a reading of
    the encoders, in this order. The counts read are divided by the length
    only once it is unboxed, so that they are counts over the window; the
    motors are then stopped. *)
 let spin (drive : int) : float * float =
   perform ResetEncoders ();
-  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
   perform SetMotors (drive, drive);
-  delay 100;
+  delay 100.5;
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
   perform SetMotors (0i, 0i);
@@ -81,21 +81,23 @@ let spin (drive : int) : float * float =
    to 0.45 ms after the drive command, not 100 to 101 ms:
 
      Typing error: Variable `window` is unboxed with grade
-       `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}]`
-       accumulated since it was bound, which is not below its box grade
+       `[{100.5; SetMotors; ReadEncoders},
+       {100.5; SetMotors; ReadEncoders}]` accumulated since it was bound, which
+       is not below its box grade
        `[{SetMotors; [100, 101]; ReadEncoders},
        {SetMotors; [100, 101]; ReadEncoders}]`
        ...
        Note: the resource inequality
-         `[{100; SetMotors; ReadEncoders}, {100; SetMotors; ReadEncoders}] <=
+         `[{100.5; SetMotors; ReadEncoders},
+         {100.5; SetMotors; ReadEncoders}] <=
          [{SetMotors; [100, 101]; ReadEncoders},
          {SetMotors; [100, 101]; ReadEncoders}]` does not hold
 *)
 (*
 let spin_unordered (drive : int) : float * float =
   perform ResetEncoders ();
-  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
-  delay 100;
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
+  delay 100.5;
   perform SetMotors (drive, drive);
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
@@ -105,18 +107,18 @@ let spin_unordered (drive : int) : float * float =
 
 (* Correctly rejected by the typechecker: the drive is shown on the display
    within the window, which takes up to 12.5 ms, so that the counts may be
-   read up to 112.5 ms after the drive command:
+   read up to 113 ms after the drive command:
 
      Typing error: Variable `window` is unboxed with grade
-       `[{SetMotors; ShowNumber; 100; ReadEncoders},
-       {SetMotors; ShowNumber; 100; ReadEncoders}]` accumulated since it was
+       `[{SetMotors; ShowNumber; 100.5; ReadEncoders},
+       {SetMotors; ShowNumber; 100.5; ReadEncoders}]` accumulated since it was
        bound, which is not below its box grade
        `[{SetMotors; [100, 101]; ReadEncoders},
        {SetMotors; [100, 101]; ReadEncoders}]`
        ...
        Note: the resource inequality
-         `[{SetMotors; ShowNumber; 100; ReadEncoders},
-         {SetMotors; ShowNumber; 100; ReadEncoders}] <=
+         `[{SetMotors; ShowNumber; 100.5; ReadEncoders},
+         {SetMotors; ShowNumber; 100.5; ReadEncoders}] <=
          [{SetMotors; [100, 101]; ReadEncoders},
          {SetMotors; [100, 101]; ReadEncoders}]` does not hold
 *)
@@ -124,10 +126,10 @@ let spin_unordered (drive : int) : float * float =
 let spin_shown (drive : int) : float * float =
   let shown = float_of_int drive in
   perform ResetEncoders ();
-  box {SetMotors; [100, 101]; ReadEncoders} 0.1 as window in
+  box {SetMotors; [100, 101]; ReadEncoders} 0.1005 as window in
   perform SetMotors (drive, drive);
   perform ShowNumber shown;
-  delay 100;
+  delay 100.5;
   let left, right = perform ReadEncoders () in
   unbox window as seconds in
   perform SetMotors (0i, 0i);

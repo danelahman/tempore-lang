@@ -11,27 +11,27 @@
      - Product: componentwise addition, an end open if either end added is *)
 
 (* A nurse's check-in with the patient takes between a quarter and half an
-   hour; its default takes a quarter of an hour. *)
+   hour; its default takes 3/8 of an hour. *)
 operation CheckIn : unit ~> unit # [0.25, 0.5]
 
-default CheckIn () = delay 0.25
+default CheckIn () = delay 3/8
 
 (* Correctly accepted by the typechecker: the next dose is released between
-   four and six hours after the last, and waiting 3.75 hours and checking in
-   accumulates [4, 4.25], which lies inside [4, 6]. *)
+   four and six hours after the last, and waiting 4.25 hours and checking in
+   accumulates [4.5, 4.75], which lies inside [4, 6]. *)
 let next_dose dose =
   box [4, 6] dose as d in
-  delay 3.75;
+  delay 4.25;
   perform CheckIn ();
   unbox d as x in
   x
 
 (* Correctly accepted by the typechecker: a sedative is given strictly more
-   than four hours after the last dose, and at most six; waiting four hours
-   and checking in accumulates [4.25, 4.5], which lies inside (4, 6]. *)
+   than four hours after the last dose, and at most six; waiting 4.5 hours
+   and checking in accumulates [4.75, 5], which lies inside (4, 6]. *)
 let next_sedative dose =
   box (4, 6] dose as d in
-  delay 4;
+  delay 4.5;
   perform CheckIn ();
   unbox d as x in
   x

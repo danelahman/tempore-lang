@@ -12,7 +12,7 @@
 type plate = string
 
 operation AddStop : plate ~> [[0, 30]]plate # [1, 2]
-default AddStop plate = delay 1; box [0, 30] plate
+default AddStop plate = delay 2; box [0, 30] plate
 
 operation Stop : plate ~> [[0, 30]]plate # [1, 2]
 default Stop plate = delay 1; box [0, 30] plate
