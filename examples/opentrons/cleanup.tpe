@@ -82,7 +82,7 @@ operation Bind : beads ~> [[3, 5]] beads # {AddBeads; [5, 10]; MagnetOn}
 
 operation EthanolWash : unit ~> unit # {AddEthanol; 1; RemoveEthanol}
 
-operation ReleaseDNA : beads ~> beads
+operation EluteDNA : beads ~> beads
   # {MagnetOff; AddBuffer; [2, 5]; MagnetOn; [3, 5]; Transfer}
 
 (* Correctly accepted by the typechecker: each case performs the atomic
@@ -101,7 +101,7 @@ let cleanup_steps =
       delay 1;
       perform RemoveEthanol ();
       continue k with ()
-  | ReleaseDNA beads k ->
+  | EluteDNA beads k ->
       perform MagnetOff ();
       perform AddBuffer ();
       delay 2;
@@ -124,7 +124,7 @@ let cleanup (beads : beads) =
   perform EthanolWash ();
   delay 2;
   unbox washed as beads in
-  perform ReleaseDNA beads
+  perform EluteDNA beads
 
 (* Correctly rejected by the typechecker: the ethanol wash removes the ethanol
    without the minute of washing:

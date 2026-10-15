@@ -1435,7 +1435,7 @@ prints
 Grades whose ends exceed 40 characters, such as the traces of the Opentrons
 examples under `regex-timed-interval-symbolic`, are shortened for display at
 the separators `; ` of their events, never inside an event: the grade
-accumulated keeps its last events, `{…; 3; ChangeTip; MagnetOff; ReleaseDNA}`, a box
+accumulated keeps its last events, `{…; 3; ChangeTip; MagnetOff; EluteDNA}`, a box
 grade its first, `{Wash; ChangeTip; Wash; 2; …}`. The grades themselves
 are unchanged; `--timeline-full` prints them in full.
 

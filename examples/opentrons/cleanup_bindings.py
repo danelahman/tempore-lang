@@ -1,5 +1,5 @@
 # Binding functions of the atomic operations of cleanup.tpe for the Opentrons
-# Flex. The compound operations Bind, EthanolWash and ReleaseDNA have none: the
+# Flex. The compound operations Bind, EthanolWash and EluteDNA have none: the
 # handler of the program performs them by these operations.
 #
 # The samples are the first four wells of a PCR plate on the deck, moved onto

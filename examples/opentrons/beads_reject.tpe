@@ -17,8 +17,8 @@ default MagnetOff beads = ()
 operation FinalWash : beads ~> [[2, 3]]beads # [1, 2]
 default FinalWash beads = delay 1; box [2, 3] beads
 
-operation ReleaseDNA : beads ~> unit # [1, 2]
-default ReleaseDNA beads = delay 1
+operation EluteDNA : beads ~> unit # [1, 2]
+default EluteDNA beads = delay 1
 
 (* Correctly rejected by the typechecker: the elution buffer is added four to
    five minutes after the last ethanol wash, when the beads are overdried:
@@ -34,6 +34,6 @@ let overdried (beads : beads) =
   delay 4;
   perform MagnetOff beads;
   unbox drying as beads in
-  perform ReleaseDNA beads
+  perform EluteDNA beads
 
 run overdried "beads"

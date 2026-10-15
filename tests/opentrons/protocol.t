@@ -133,7 +133,7 @@ regex-timed-interval-symbolic, a time unit given in seconds.
   pipette.pick_up_tip()
   pipette.transfer(25, A3 of D1, D1 of D2, mix_after=(5, 20), new_tip='never')
   pipette.drop_tip()
-  comment: Tempore timeline: At 1110 s: operation `ReleaseDNA` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1110 s: operation `EluteDNA` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore timeline: At 1200 s: delay of 120 s
   delay(seconds=120.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
@@ -305,7 +305,7 @@ solution in the case of a handler that simulates the reader.
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, 'D2', use_gripper=True)
   comment: Tempore timeline: At 990 s: operation `MagnetOff` took 30 s, within its running-time bounds [0, 60] s
   pipette.transfer(25, A3 of D1, [A1 of D2, B1 of D2, C1 of D2, D1 of D2], mix_after=(5, 20), new_tip='always')
-  comment: Tempore timeline: At 1020 s: operation `ReleaseDNA` took 90 s, within its running-time bounds [60, 120] s
+  comment: Tempore timeline: At 1020 s: operation `EluteDNA` took 90 s, within its running-time bounds [60, 120] s
   comment: Tempore timeline: At 1110 s: delay of 120 s
   delay(seconds=120.0)
   move_labware(nest_96_wellplate_100ul_pcr_full_skirt in D2, magneticBlockV1, use_gripper=True)
