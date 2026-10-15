@@ -12,6 +12,6 @@ let step_reconfigured ((reference, age, rate, touching) : state) : state =
       rate)
     else rate
   in
-  unbox kept as reference in
-  display reference (angles accel reference) age 0;
-  (reference, age, rate, touched)
+  unbox kept as kept_reference in
+  display kept_reference (angles accel kept_reference) age 0;
+  (kept_reference, age, rate, touched)
