@@ -170,7 +170,12 @@ each is a minute.
 - [`elisa.tpe`](../../../examples/opentrons/elisa.tpe): an enzyme-linked
   immunosorbent assay under `time-interval`.
 - [`washes.tpe`](../../../examples/opentrons/washes.tpe): a bead clean-up
-  with exactly two ethanol washes, under `regex-timed-interval-symbolic`.
+  with two or more ethanol washes, under `regex-timed-rigid-interval-symbolic`,
+  whose recursion `washes n` has the grade `{(Wash; ChangeTip)*}`: each wash
+  is followed by a fresh tip and nothing else. The binding and the air-dry
+  are strict delays, `{AddBeads; ![5, 10]; MagnetOn}`, waiting only, and a
+  box of the whole run excludes a removal of liquid with the plate off the
+  magnet.
 - [`contamination.tpe`](../../../examples/opentrons/contamination.tpe): a
   ddPCR plate set-up under `time-upper-bound-levels`.
 - [`reagents.tpe`](../../../examples/opentrons/reagents.tpe): a tagmentation

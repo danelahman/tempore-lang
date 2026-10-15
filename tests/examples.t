@@ -1260,53 +1260,59 @@ tests show those runs in detail.
   === Run 1 ===
   return ()
   State: [
-    [{2}, {2}],
-    { resource_0 ↦ "beads" # [{5}, {10}] },
-    [{7}, {7}],
-    [{1}, {1}],
-    [{3}, {3}],
-    [{2}, {2}],
-    { resource_1 ↦
+    { resource_0 ↦
         "beads"
-        # [{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]
+        # [{!_* & ~(_*; MagnetOff; (_ & ~MagnetOn)*; (RemoveLiquid | Wash | Transfer); _*)}, {!_* & ~(_*; MagnetOff; (_ & ~MagnetOn)*; (RemoveLiquid | Wash | Transfer); _*)}],
+      resource_1 ↦
+        "beads"
+        # [{AddBeads; ![5, 10]; MagnetOn}, {AddBeads; ![5, 10]; MagnetOn}]
     },
-    [{1}, {1}],
-    [{1}, {1}],
-    [{1}, {1}],
-    [{3}, {3}],
-    [{1}, {1}],
-    [{1}, {1}],
-    [{1}, {1}],
-    [{2}, {2}],
-    [{1}, {1}],
-    [{3}, {3}],
-    [{2}, {2}]
+    [{!2}, {!2}],
+    [{!7}, {!7}],
+    [{!1}, {!1}],
+    [{!3}, {!3}],
+    [{!2}, {!2}],
+    { resource_2 ↦
+        "beads"
+        # [{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}]
+    },
+    [{!1}, {!1}],
+    [{!1}, {!1}],
+    [{!1}, {!1}],
+    [{!3}, {!3}],
+    [{!1}, {!1}],
+    [{!1}, {!1}],
+    [{!1}, {!1}],
+    [{!2}, {!2}],
+    [{!1}, {!1}],
+    [{!3}, {!3}],
+    [{!2}, {!2}]
   ]
   
   ======================================================================
   ../examples/opentrons/washes_reject.tpe
   ======================================================================
-  File "../examples/opentrons/washes_reject.tpe", lines 35-36, characters 2-21:
-  35 |   unbox washed as beads in
+  File "../examples/opentrons/washes_reject.tpe", lines 38-39, characters 2-21:
+  38 |   unbox washed as beads in
          ^^^^^^^^^^^^^^^^^^^^^^^^
-  Typing error: Variable `washed` is unboxed with grade `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]`
-    File "../examples/opentrons/washes_reject.tpe", line 31, characters 58-64:
-    31 |   box {Wash; ChangeTip; Wash; [2, 3]; ChangeTip} beads as washed in
-                                                                   ^^^^^^
+  Typing error: Variable `washed` is unboxed with grade `[{Wash; !3; ChangeTip}, {Wash; !3; ChangeTip}]` accumulated since it was bound, which is not below its box grade `[{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}]`
+    File "../examples/opentrons/washes_reject.tpe", line 34, characters 64-70:
+    34 |        {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}] beads as washed in
+                                                                         ^^^^^^
     `washed` is bound here
-    File "../examples/opentrons/washes_reject.tpe", line 32, characters 2-17:
-    32 |   perform Wash ();
+    File "../examples/opentrons/washes_reject.tpe", line 35, characters 2-17:
+    35 |   perform Wash ();
            ^^^^^^^^^^^^^^^
     grade `[{Wash}, {Wash}]` accumulates here (operation `Wash`)
-    File "../examples/opentrons/washes_reject.tpe", line 33, characters 2-9:
-    33 |   delay 3;
+    File "../examples/opentrons/washes_reject.tpe", line 36, characters 2-9:
+    36 |   delay 3;
            ^^^^^^^
-    grade `[{3}, {3}]` accumulates here (delay)
-    File "../examples/opentrons/washes_reject.tpe", line 34, characters 2-22:
-    34 |   perform ChangeTip ();
+    grade `[{!3}, {!3}]` accumulates here (delay)
+    File "../examples/opentrons/washes_reject.tpe", line 37, characters 2-22:
+    37 |   perform ChangeTip ();
            ^^^^^^^^^^^^^^^^^^^^
     grade `[{ChangeTip}, {ChangeTip}]` accumulates here (operation `ChangeTip`)
-    Note: the resource inequality `[{Wash; 3; ChangeTip}, {Wash; 3; ChangeTip}] <= [{Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}, {Wash; ChangeTip; Wash; 2; (0 | 1); ChangeTip}]` does not hold
+    Note: the resource inequality `[{Wash; !3; ChangeTip}, {Wash; !3; ChangeTip}] <= [{Wash; ChangeTip; Wash; !2; ChangeTip}, {(Wash; ChangeTip)*; Wash; ![2, 3]; ChangeTip}]` does not hold
   ======================================================================
   ../examples/regular/upper_bounds.tpe
   ======================================================================
