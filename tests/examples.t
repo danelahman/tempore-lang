@@ -789,7 +789,7 @@ tests show those runs in detail.
   ../examples/opentrons/beads_reject.tpe
   ======================================================================
   File "../examples/opentrons/beads_reject.tpe", lines 36-37, characters 2-24:
-  36 |   unbox drying as beads in
+  36 |   unbox drying as dried in
          ^^^^^^^^^^^^^^^^^^^^^^^^
   Typing error: Variable `drying` is unboxed with grade `[4, 5]` accumulated since it was bound, which is not below its box grade `[2, 3]`
     File "../examples/opentrons/beads_reject.tpe", line 33, characters 6-12:
