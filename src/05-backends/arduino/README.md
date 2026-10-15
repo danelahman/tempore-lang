@@ -313,19 +313,19 @@ monitor only, and the operations have no running-time bounds.
 Boxes specify how long a reading may be used and, under other grades, which
 operations must or may not precede its use.
 
-Under the regular expressions of timed operations, the examples write a grade
-as one expression, which is both bounds:
+The examples under the regular expressions of timed operations use their
+rigid variants and write a grade as one expression, which is both bounds:
 
 - the operations it names are demanded, in its order;
 - the delays between them are bounded below and above;
 - another operation may come between them only within a delay, at the upper
-  bound of its running time.
+  bound of its running time, and not within a strict delay `!d`;
+- a Kleene star of rounds permits these rounds only.
 
 A box grade without delays therefore excludes every operation it does not
-name, while a box grade with a delay bounds the time but not the operations
-within it. Under the rigid variants, an upper bound alone demands its
-operations, in its order. These guarantees are relative to the declared bounds
-of the operations.
+name, while a box grade with a delay bounds the time, and the operations
+within it only by their running times. These guarantees are relative to the
+declared bounds of the operations.
 
 ## Monitors
 
