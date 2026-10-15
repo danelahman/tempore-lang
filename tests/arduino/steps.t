@@ -26,8 +26,8 @@ followed by the cooldown, so that two counts may be 10.05 ms apart:
   Typing error: This function's body has grade
   CountStep: active ([10.4, ∞), [10.05, ∞), [0, ∞))
 
-The second: the wait for the second tap reads only the touch screen, so that
-the unit is not read while the prompt is shown:
+The second: the wait for the second tap on Reset reads only the touch
+screen, so that the unit is not read while the prompt is shown:
 
   $ packages --typecheck-only $app/steps.tpe steps/touch_only.tpe > touch_only.log 2>&1; echo "[$?]"
   [1]
@@ -54,25 +54,32 @@ exceptions and run-time type information:
   $ c++ -std=c++17 -Wall -Wextra -Werror -fno-exceptions -fno-rtti -fsyntax-only -DTEMPORE_HOST -I host -I src src/*.cpp
   $ cd ../../..
 
-43 seconds of simulated time over the motions of the host model, by the
+46 seconds of simulated time over the motions of the host model, by the
 last motion begun: the calibration at rest and the beep; shaking, a bump,
 the device picked up and put down, bouncing on the spot and a walk of ten
-steps; a single tap, a finger held on the screen, a double tap, and a walk
-of six steps. The states, the counts, the prompt and the tones, in order:
-shaking is too fast, the bump no rise, picking the device up a single rise,
-putting it down and bouncing have no sway, and the walk is counted once four
-of its steps are confirmed; the single tap and the held finger clear the prompt, and the
-double tap resets the count:
+steps; a tap on Calibrate, a single tap on Reset, a tap outside the
+buttons, a double tap on Reset, a walk of six steps and a tap on Calibrate.
+The states, the counts, the prompt, the buttons, drawn active or idle, and
+the tones, in order: shaking is too fast, the bump a single rise, putting
+the device down and bouncing have no sway, and the walk is counted once
+four of its steps are confirmed; each tap on Calibrate calibrates again,
+the button active meanwhile, and beeps once; the single tap on Reset
+clears the prompt, the tap outside the buttons does nothing, and the double
+tap on Reset resets the count:
 
-  $ tempore --emit-arduino steps --device $app/steps.device.json --host-simulate 43 $app/steps.tpe > run.log
-  $ awk '/Display at \(0, (44|116)\)|Steps:|Speaker/ { t = substr($1, 2) / 1000; w = t < 3 ? "rest" : t < 7 ? "shaking" : t < 9 ? "bump" : t < 12 ? "picked up" : t < 15 ? "put down" : t < 21 ? "bouncing" : t < 28 ? "walk" : t < 31 ? "single tap" : t < 35 ? "held finger" : t < 38 ? "double tap" : "walk"; sub(/^\[[0-9.]* ms\] (Display at \(0, 44\): )?/, ""); sub(/^Display at \(0, 116\): ?/, "prompt: "); print w ": " $0 }' run.log | sed 's/ *$//'
+  $ tempore --emit-arduino steps --device $app/steps.device.json --host-simulate 46 $app/steps.tpe > run.log
+  $ awk '/Display at \(0, (30|168)\)|Steps:|Speaker|fill at \((0|164), 188\)/ { t = substr($1, 2) / 1000; w = t < 3 ? "rest" : t < 7 ? "shaking" : t < 9 ? "bump" : t < 12 ? "picked up" : t < 15 ? "put down" : t < 21 ? "bouncing" : t < 28 ? "walk" : t < 31 ? "calibrate" : t < 34 ? "single reset" : t < 36 ? "outside" : t < 39 ? "double reset" : t < 44 ? "walk" : "calibrate"; sub(/^\[[0-9.]* ms\] (Display at \(0, 30\): )?/, ""); sub(/^Display at \(0, 168\): ?/, "prompt: "); sub(/^Display fill at \(0, 188\), 156 by 40:/, "Calibrate:"); sub(/^Display fill at \(164, 188\), 156 by 40:/, "Reset:"); sub(/0xffd000/, "active"); sub(/0x303030/, "idle"); print w ": " $0 }' run.log | sed 's/ *$//'
   rest: Hold still
+  rest: prompt: Calibrating: not counting
+  rest: Calibrate: active
   rest: Still
+  rest: Calibrate: idle
+  rest: Reset: idle
   rest: Speaker: 2000 Hz for 150 ms
   shaking: Checking rhythm
   shaking: Ignored: too fast
   shaking: Still
-  picked up: Checking rhythm
+  bump: Checking rhythm
   picked up: Still
   put down: Ignored: no sway
   put down: Still
@@ -88,30 +95,49 @@ double tap resets the count:
   walk: Steps: 1 counted, 9 in all
   walk: Steps: 1 counted, 10 in all
   walk: Still
-  single tap: prompt: Tap again to reset
-  single tap: prompt:
-  held finger: prompt: Tap again to reset
-  held finger: prompt:
-  double tap: prompt: Tap again to reset
-  double tap: Steps: reset
-  double tap: prompt:
+  calibrate: Hold still
+  calibrate: prompt: Calibrating: not counting
+  calibrate: Calibrate: active
+  calibrate: Still
+  calibrate: Calibrate: idle
+  calibrate: Reset: idle
+  calibrate: Speaker: 2000 Hz for 150 ms
+  single reset: prompt: Tap Reset again to reset
+  single reset: Reset: active
+  single reset: prompt:
+  single reset: Reset: idle
+  double reset: prompt: Tap Reset again to reset
+  double reset: Reset: active
+  double reset: Steps: reset
+  double reset: prompt:
+  double reset: Reset: idle
   walk: Checking rhythm
   walk: Steps: 4 counted, 4 in all
   walk: Walking
   walk: Steps: 1 counted, 5 in all
   walk: Steps: 1 counted, 6 in all
   walk: Still
+  calibrate: Hold still
+  calibrate: prompt: Calibrating: not counting
+  calibrate: Calibrate: active
+  calibrate: Still
+  calibrate: Calibrate: idle
+  calibrate: Reset: idle
+  calibrate: Speaker: 2000 Hz for 150 ms
 
-The steps and the distance, in metres, shown at the end:
+The steps redrawn after the first tap on Calibrate, kept; and the steps and
+the distance, in metres, shown at the end, kept by the second:
 
-  $ grep "Display at (120, 72)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
-  Display at (120, 72): 6
-  $ grep "Display at (200, 162)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
-  Display at (200, 162): 4
+  $ grep "Display at (120, 52)" run.log | awk '{ t = substr($1, 2) / 1000 } t > 28 && t < 29' | sed "s/^\[[0-9.]* ms\] //"
+  Display at (120, 52): 10
+  $ grep "Display at (120, 52)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
+  Display at (120, 52): 6
+  $ grep "Display at (200, 112)" run.log | tail -1 | sed "s/^\[[0-9.]* ms\] //"
+  Display at (200, 112): 4
 
-After the beep, the readings are about 12 ms apart; the longest time between
-the ends of two readings, in whole milliseconds, is well within the bound of
-50 ms:
+While counting, from each beep to the next calibration, the readings are
+about 12 ms apart; the longest time between the ends of two readings, in
+whole milliseconds, is well within the bound of 50 ms:
 
-  $ awk '/Speaker/ { s = 1 } s && /Operation ReadImu took/ { t = substr($1, 2) + 0; if (p && t - p > m) m = t - p; p = t } END { printf "%.0f ms\n", m }' run.log
+  $ awk '/Speaker/ { s = 1; p = 0 } /Hold still/ { s = 0 } s && /Operation ReadImu took/ { t = substr($1, 2) + 0; if (p && t - p > m) m = t - p; p = t } END { printf "%.0f ms\n", m }' run.log
   15 ms

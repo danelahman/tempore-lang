@@ -22,10 +22,12 @@
 (* Runs on the M5Stack CoreS3 Lite carried by a walker (steps.device.json):
    'watch' as a free task. It calibrates the accelerometer, beeps once and
    counts steps in one loop of rounds of two readings, which also draws the
-   screen band by band and reads the touch screen: a double tap resets the
-   count. bindings.cpp defines CountStep, ResetSteps and ReadClock, world.cpp
-   models a walk and motions that are none. The figures below are those
-   under the bounds of the CoreS3, some of them provisional.
+   screen band by band and reads the touch screen. Two buttons at the bottom
+   of the screen: "Calibrate" stops the counting and calibrates again, and
+   "Reset", tapped twice, resets the count. bindings.cpp defines CountStep,
+   ResetSteps, ReadClock and ShowButton, world.cpp models walks, motions that
+   are none and taps. The figures below are those under the bounds of the
+   CoreS3, some of them provisional.
 
    On the board: make arduino-steps-upload; simulated on the host: make
    arduino-steps-simulate ('make examples-help',
@@ -33,7 +35,10 @@
 
 (* CountStep n adds n steps to the steps counted, kept by bindings.cpp, and
    ResetSteps sets them to zero; ReadClock () is the time since start-up, in
-   milliseconds. Their bounds are PROVISIONAL, not yet measured. *)
+   milliseconds; ShowButton (x, y, w, h, active, s) draws a button labelled
+   s from (x, y), w by h pixels, with a white border: dark grey with a white
+   label, or, active, yellow with a black label. Their bounds are
+   PROVISIONAL, not yet measured. *)
 
 operation CountStep : nat ~> unit # {CountStep} within [0, 0.2]
 default CountStep _ = delay 1/10
@@ -43,6 +48,10 @@ default ResetSteps () = delay 1/10
 
 operation ReadClock : unit ~> nat # {ReadClock} within [0, 0.05]
 default ReadClock () = delay 1/100; 0
+
+operation ShowButton : nat * nat * nat * nat * bool * string ~> unit
+    # {ShowButton} within [0, 33]
+default ShowButton _ = delay 3
 
 (* The states of the counter: at rest, a run of steps not yet confirmed, a
    confirmed walk, rises too fast for steps, and rises without a horizontal
@@ -55,8 +64,7 @@ type status = Still | Checking | Walking | Shaking | Swayless
    thresholds and the least swing of the horizontal part in a step, in g;
    the shortest and the longest time between rises, in ms; the steps of a
    confirming run; the assumed stride, in cm; the time within which a
-   second tap resets, in ms, and its greatest distance from the first, in
-   pixels. *)
+   second tap on Reset resets, in ms. *)
 let weight = 0.25
 let gravity_weight = 0.01
 let decay = 0.002
@@ -67,7 +75,6 @@ let longest_gap = 2000
 let run_length = 4
 let stride = 70
 let window = 2000
-let reach = 60
 
 (* The colours of 24 bits: the bar, the thresholds, the states and the
    background. *)
@@ -180,7 +187,7 @@ let sense (f : filter) =
   let x = reading () in
   let first, va = filter f x in
   box (1, ReadImu, [10, 45], [0, 1.5]) first as boxed in
-  perform DrawBar (0, 198, 320, 12, bar va, blue);
+  perform DrawBar (0, 146, 320, 10, bar va, blue);
   delay 10;
   let x = reading () in
   unbox boxed as first in
@@ -226,9 +233,26 @@ let idle ((status, streak, last, interval) : rhythm) (t : nat) =
    that reading began a touch, and its point. *)
 type touch = bool * bool * nat * nat
 
+(* The buttons, 40 pixels high from the row 188, each 156 pixels wide:
+   Calibrate from the column 0 and Reset from the column 164. The key of a
+   point is the button that contains it, if any. *)
+type key = Calibration | Reset | Elsewhere
+
+let key (x : nat) (y : nat) =
+  if y < 188 || y >= 228 then Elsewhere
+  else if x < 156 then Calibration
+  else if x >= 164 then Reset
+  else Elsewhere
+
+let show_calibrate (active : bool) =
+  perform ShowButton (0, 188, 156, 40, active, "Calibrate")
+
+let show_reset (active : bool) =
+  perform ShowButton (164, 188, 156, 40, active, "Reset")
+
 (* The bands of the screen left to redraw: the state, the steps, the prompt,
-   the cadence and the distance. *)
-type bands = bool * bool * bool * bool * bool
+   the Reset button, the cadence and the distance. *)
+type bands = bool * bool * bool * bool * bool * bool
 
 (* The counter: the filter, the rhythm, the steps shown and those of them
    not yet passed to CountStep, the bands left to redraw, the threshold
@@ -240,69 +264,79 @@ type counter =
 (* The state on the screen: its text and colour. *)
 let show_status (status : status) =
   match status with
-  | Still -> perform ShowColourTextAt (0, 44, 2, white, black, "Still")
+  | Still -> perform ShowColourTextAt (0, 30, 2, white, black, "Still")
   | Checking ->
-      perform ShowColourTextAt (0, 44, 2, yellow, black, "Checking rhythm")
-  | Walking -> perform ShowColourTextAt (0, 44, 2, green, black, "Walking")
+      perform ShowColourTextAt (0, 30, 2, yellow, black, "Checking rhythm")
+  | Walking -> perform ShowColourTextAt (0, 30, 2, green, black, "Walking")
   | Shaking ->
-      perform ShowColourTextAt (0, 44, 2, orange, black, "Ignored: too fast")
+      perform ShowColourTextAt (0, 30, 2, orange, black, "Ignored: too fast")
   | Swayless ->
-      perform ShowColourTextAt (0, 44, 2, orange, black, "Ignored: no sway")
+      perform ShowColourTextAt (0, 30, 2, orange, black, "Ignored: no sway")
 
 let show_steps (steps : nat) =
-  perform ShowNumberAt (120, 72, 4, 0, float_of_nat steps)
+  perform ShowNumberAt (120, 52, 4, 0, float_of_nat steps)
 
-(* The screen of the counter: the title, the guarantees, the state, the
-   steps, the cadence and the distance, the label of the bar and the
-   footer. *)
-let screen () =
+let show_distance (steps : nat) =
+  perform ShowNumberAt (200, 112, 2, 0, float_of_nat (steps * stride / 100))
+
+(* The screen of the counter with the given steps: the title, the
+   guarantees, the state, the steps, the cadence and the distance, the label
+   of the bar, the buttons and the footer. *)
+let screen (steps : nat) =
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Step counter");
-  perform ShowTextAt (0, 24, 1, "Read every 50 ms, steps counted 250 ms apart");
+  perform ShowTextAt (0, 20, 1, "Read every 50 ms, steps counted 250 ms apart");
   show_status Still;
-  perform ShowTextAt (0, 80, 2, "Steps");
-  show_steps 0;
-  perform ShowTextAt (0, 140, 2, "Steps a minute");
-  perform ShowNumberAt (200, 140, 2, 0, 0.0);
-  perform ShowTextAt (0, 162, 2, "Distance, m");
-  perform ShowNumberAt (200, 162, 2, 0, 0.0);
-  perform ShowTextAt (0, 186, 1, "Vertical acceleration, 0 to 2 g; thresholds");
+  perform ShowTextAt (0, 60, 2, "Steps");
+  show_steps steps;
+  perform ShowTextAt (0, 92, 2, "Steps a minute");
+  perform ShowNumberAt (200, 92, 2, 0, 0.0);
+  perform ShowTextAt (0, 112, 2, "Distance, m");
+  show_distance steps;
+  perform ShowTextAt (0, 134, 1, "Vertical acceleration, 0 to 2 g; thresholds");
+  show_calibrate false;
+  show_reset false;
   perform ShowTextAt (80, 230, 1, "Typechecked by Tempore (tempore-lang.ee)")
 
 (* The bands to redraw after the state before changes to after: the state,
    the cadence and the distance where it changes. *)
-let changed (before : status) (after : status) ((s, n, p, c, d) : bands) =
-  if before = after then (s, n, p, c, d) else (true, n, p, true, true)
+let changed (before : status) (after : status) ((s, n, p, r, c, d) : bands) =
+  if before = after then (s, n, p, r, c, d) else (true, n, p, r, true, true)
 
 (* The band of a round, after its second reading: the next band left to
-   redraw, and otherwise one of the thresholds in turn. *)
+   redraw, and otherwise one of the thresholds in turn. The prompt and the
+   Reset button, active while the prompt is shown, are two bands. *)
 let show ((f, rhythm, steps, bands, turn, touch, prompt, now) : counter) =
   let _, _, upper, lower, _, _, _ = f in
   let status, _, _, interval = rhythm in
   let high, low = thresholds upper lower in
-  let s, n, p, c, d = bands in
+  let s, n, p, r, c, d = bands in
   let shown, _ = steps in
   if s then (
     show_status status;
-    (f, rhythm, steps, (false, n, p, c, d), turn, touch, prompt, now))
+    (f, rhythm, steps, (false, n, p, r, c, d), turn, touch, prompt, now))
   else if n then (
     show_steps shown;
-    (f, rhythm, steps, (s, false, p, c, d), turn, touch, prompt, now))
+    (f, rhythm, steps, (s, false, p, r, c, d), turn, touch, prompt, now))
   else if p then (
     (if prompt then
-       perform ShowColourTextAt (0, 116, 2, black, yellow, "Tap again to reset")
-     else perform ShowColourTextAt (0, 116, 2, white, black, ""));
-    (f, rhythm, steps, (s, n, false, c, d), turn, touch, prompt, now))
+       perform ShowColourTextAt
+         (0, 168, 2, black, yellow, "Tap Reset again to reset")
+     else perform ShowColourTextAt (0, 168, 2, white, black, ""));
+    (f, rhythm, steps, (s, n, false, r, c, d), turn, touch, prompt, now))
+  else if r then (
+    show_reset prompt;
+    (f, rhythm, steps, (s, n, p, false, c, d), turn, touch, prompt, now))
   else if c then (
     let cadence = if status = Walking then 60000 / interval else 0 in
-    perform ShowNumberAt (200, 140, 2, 0, float_of_nat cadence);
-    (f, rhythm, steps, (s, n, p, false, d), turn, touch, prompt, now))
+    perform ShowNumberAt (200, 92, 2, 0, float_of_nat cadence);
+    (f, rhythm, steps, (s, n, p, r, false, d), turn, touch, prompt, now))
   else if d then (
-    perform ShowNumberAt (200, 162, 2, 0, float_of_nat (shown * stride / 100));
-    (f, rhythm, steps, (s, n, p, c, false), turn, touch, prompt, now))
+    show_distance shown;
+    (f, rhythm, steps, (s, n, p, r, c, false), turn, touch, prompt, now))
   else (
-    (if turn then perform DrawBar (0, 212, 320, 4, bar high, orange)
-     else perform DrawBar (0, 218, 320, 4, bar low, green));
+    (if turn then perform DrawBar (0, 158, 320, 4, bar high, orange)
+     else perform DrawBar (0, 163, 320, 4, bar low, green));
     (f, rhythm, steps, bands, not turn, touch, prompt, now))
 
 (* The readings of a round and the rhythm after them: the counter, its
@@ -323,22 +357,22 @@ let pause (c : counter) =
 (* The rest of a round with a count of the steps added: the count of these
    and of those deferred, the steps and a delay of 10 ms, with the state,
    the cadence and the distance left to redraw. *)
-let count ((f, rhythm, (shown, deferred), (state, _, p, _, _), turn, touch,
-    prompt, now) : counter) (added : nat) =
+let count ((f, rhythm, (shown, deferred), (state, _, p, r, _, _), turn,
+    touch, prompt, now) : counter) (added : nat) =
   perform CountStep (added + deferred);
   show_steps (shown + added);
   delay 10;
-  (f, rhythm, (shown + added, 0), (state, false, p, true, true), turn, touch,
-    prompt, now)
+  (f, rhythm, (shown + added, 0), (state, false, p, r, true, true), turn,
+    touch, prompt, now)
 
 (* The rest of a round with steps added while the prompt is shown: the steps
    and a delay of 10 ms, their count deferred to the next count. *)
-let defer ((f, rhythm, (shown, deferred), (state, _, p, _, _), turn, touch,
-    prompt, now) : counter) (added : nat) =
+let defer ((f, rhythm, (shown, deferred), (state, _, p, r, _, _), turn,
+    touch, prompt, now) : counter) (added : nat) =
   show_steps (shown + added);
   delay 10;
-  (f, rhythm, (shown + added, deferred + added), (state, false, p, true, true),
-    turn, touch, prompt, now)
+  (f, rhythm, (shown + added, deferred + added),
+    (state, false, p, r, true, true), turn, touch, prompt, now)
 
 (* A round in which no step counts: a rise is too fast for a step, and ends
    the run. *)
@@ -363,6 +397,10 @@ let poll ((f, rhythm, steps, bands, turn, (held, _, _, _), prompt, now) :
     now)
 
 let polled c = poll (quiet c)
+
+(* The button on which a touch began at the last reading, if any. *)
+let tapped ((_, _, _, _, _, (_, began, x, y), _, _) : counter) =
+  if began then key x y else Elsewhere
 
 (* The cooldown: twelve rounds in which no step counts, each of at least
    20.4 ms, two readings of at least 0.2 ms and two delays of 10 ms, the
@@ -393,67 +431,66 @@ let step5 c = step (step (step (step (step c))))
 let settle c = step5 (step5 (step5 c))
 
 (* Correctly accepted by the typechecker: the rounds after a tap, until a
-   second touch begins or 'window' ms have passed since the time 'since',
-   for at most n rounds; with the point of the second touch, if any. The
-   grade is an invariant: readings at least every 50 ms, the end at most
-   46 ms after the start of the last, and no count, the steps found being
-   deferred. *)
-let rec wait (n : nat) (since : nat) (c : counter)
-    : counter * (bool * nat * nat)
+   touch begins on a button or 'window' ms have passed since the time
+   'since', for at most n rounds; with that button, if any. The grade is an
+   invariant: readings at least every 50 ms, the end at most 46 ms after the
+   start of the last, and no count, the steps found being deferred. *)
+let rec wait (n : nat) (since : nat) (c : counter) : counter * key
     # ((ReadImu, [0, 0], [0, 50], [0, 46]), (0, CountStep, [0, ∞))) =
   match n with
-  | 0 -> (c, (false, 0, 0))
+  | 0 -> (c, Elsewhere)
   | m + 1 ->
       let c = step_deferred c in
-      let _, _, _, _, _, (_, began, x, y), _, now = c in
-      if began then (c, (true, x, y))
-      else if now - since > window then (c, (false, 0, 0))
+      let _, _, _, _, _, _, _, now = c in
+      let k = tapped c in
+      if not (k = Elsewhere) then (c, k)
+      else if now - since > window then (c, Elsewhere)
       else wait m since c
 
-(* The prompt shown, or cleared, by the band queue. *)
-let prompt ((f, rhythm, steps, (s, n, _, c, d), turn, touch, _, now) : counter)
-    (shown : bool) =
-  (f, rhythm, steps, (s, n, true, c, d), turn, touch, shown, now)
+(* The prompt and the Reset button shown, or cleared, by the band queue. *)
+let prompt ((f, rhythm, steps, (s, n, _, _, c, d), turn, touch, _, now) :
+    counter) (shown : bool) =
+  (f, rhythm, steps, (s, n, true, true, c, d), turn, touch, shown, now)
 
-(* The reset: the steps set to zero, and the bands of the steps, the prompt
-   and the distance to redraw. *)
-let reset ((f, rhythm, _, (s, _, _, c, _), turn, touch, _, now) : counter) =
+(* The reset: the steps set to zero, and the bands of the steps, the prompt,
+   the Reset button and the distance to redraw. *)
+let reset ((f, rhythm, _, (s, _, _, _, c, _), turn, touch, _, now) : counter)
+    =
   perform ResetSteps ();
-  (f, rhythm, (0, 0), (s, true, true, c, true), turn, touch, false, now)
+  (f, rhythm, (0, 0), (s, true, true, true, c, true), turn, touch, false, now)
 
-(* Whether a and b are at most 'reach' apart. *)
-let near (a : nat) (b : nat) = a - b <= reach && b - a <= reach
-
-(* Correctly accepted by the typechecker: the response to a touch begun at
-   the point (x, y), with the prompt "Tap again to reset", while the rounds
-   go on. The point is boxed until the reset, over the recursive call of
-   'wait', with the product of two entries: readings of the unit at least
-   every 50 ms, so that no step is missed while the prompt is shown, and no
-   reading of the touch screen within 300 ms, longer than a tap, so that
-   the tap and the bounces of its contact are not read as a second. The
-   fifteen rounds of 'settle' read none, at least 306 ms; fourteen, at
-   least 285.6 ms, are rejected. A second touch at most 'reach' pixels from
-   the first and at most 'window' ms after it resets the count; otherwise
-   the prompt is cleared. The boxes of each round, in 'sense', are bound and
-   unboxed within this one, each checked against its own grade.
+(* Correctly accepted by the typechecker: the response to a tap begun on the
+   button k, with the prompt "Tap Reset again to reset" and the button
+   active, while the rounds go on. The button is boxed until the reset, over
+   the recursive call of 'wait', with the product of two entries: readings
+   of the unit at least every 50 ms, so that no step is missed while the
+   prompt is shown, and no reading of the touch screen within 300 ms, longer
+   than a tap, so that the tap and the bounces of its contact are not read
+   as a second. The fifteen rounds of 'settle' read none, at least 306 ms;
+   fourteen, at least 285.6 ms, are rejected. A second tap on the same
+   button at most 'window' ms after the first resets the count; a tap on the
+   other button, or none, clears the prompt, and a touch elsewhere does
+   nothing. The boxes of each round, in 'sense', are bound and unboxed
+   within this one, each checked against its own grade.
 
    The steps found while the prompt is shown are shown at once and passed to
    CountStep with the next count, or cleared by the reset: a rate limit of
    the counts is not closed under sequencing, so that the loop of the
    counter could not follow the recursive call with a count, while the
    invariant of no count is. *)
-let respond (c : counter) (x : nat) (y : nat) =
+let respond (c : counter) (k : key) =
   let _, _, _, _, _, _, _, since = c in
   box ((ReadImu, [0, 50], [0, 50], [0, 50]),
-       (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) (x, y) as tap in
+       (ReadTouch, [300, ∞), [0, ∞), [0, ∞))) k as tap in
   let c = settle (prompt c true) in
-  let c, (again, x2, y2) = wait 100 since c in
-  unbox tap as (x1, y1) in
-  if again && near x1 x2 && near y1 y2 then reset c else prompt c false
+  let c, second = wait 100 since c in
+  unbox tap as first in
+  if second = first then reset c else prompt c false
 
-(* Correctly accepted by the typechecker: n rounds, each count followed by
-   the cooldown, and a touch begun answered by 'respond'. The grade is the
-   invariant of the loop.
+(* Correctly accepted by the typechecker: at most n rounds of a session,
+   each count followed by the cooldown, a tap on Reset answered by
+   'respond', until a tap on Calibrate; with the counter at its end. The
+   grade is the invariant of the loop.
 
    ReadImu: the loop starts with a reading, and the starts of consecutive
    readings are at most 50 ms apart, as is the end from the start of the
@@ -469,20 +506,20 @@ let respond (c : counter) (x : nat) (y : nat) =
    count add to the gap.
 
    Both are closed under sequencing as the loop is built, so that they hold
-   of any number of rounds, and of the repetitions of the task, up to the
-   tick of the scheduler between them. The smoothing, the thresholds, the
-   sway, the shortest and longest gaps between rises and the confirming run
-   are program logic, which the types do not check; a rise within the
-   cooldown is no step. *)
-let rec listen (n : nat) (c : counter)
-    : unit # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
+   of any number of rounds. The smoothing, the thresholds, the sway, the
+   shortest and longest gaps between rises and the confirming run are
+   program logic, which the types do not check; a rise within the cooldown
+   is no step. *)
+let rec listen (n : nat) (c : counter) : counter
+    # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
   match n with
-  | 0 -> ()
+  | 0 -> c
   | m + 1 ->
       let c = step_polled c in
-      let _, _, _, _, _, (_, began, x, y), _, _ = c in
-      if began then
-        let c = respond c x y in
+      let k = tapped c in
+      if k = Calibration then c
+      else if k = Reset then
+        let c = respond c k in
         listen m c
       else listen m c
 
@@ -492,23 +529,38 @@ let rest (g : vector) : counter =
   ( (g, g, 1.0, 1.0, false, 0.0, 0.0),
     (Still, 0, 0, 0),
     (0, 0),
-    (false, false, false, false, false),
+    (false, false, false, false, false, false),
     false,
     (false, false, 0, 0),
     false,
     0 )
 
+(* The counter c at the start of a session with gravity along g: at rest,
+   its steps kept, and the touch screen taken as touched, so that a finger
+   left on Calibrate begins no touch. *)
+let resume (g : vector) ((_, _, steps, _, turn, _, _, now) : counter) :
+    counter =
+  ( (g, g, 1.0, 1.0, false, 0.0, 0.0),
+    (Still, 0, 0, 0),
+    steps,
+    (false, false, false, false, false, false),
+    turn,
+    (true, false, 0, 0),
+    false,
+    now )
+
 (* The calibration, a value whose box changes as it passes through two
    stages, each box licensing its use only after the computation its grade
    admits.
 
-   The sampling: at the prompt "Hold still", the number of samples is boxed
-   with exactly 50 readings, the starts of consecutive readings 10 to 45 ms
-   apart, and at most 50 ms before the first and after the last; the box is
-   returned, and unboxed where the mean is formed. The mean thus divides
-   the sum by the number of readings taken, and the unit, at 100 Hz,
-   returns a new sample at each. A count is not closed under recursion,
-   whose grade states none, so the readings are written out.
+   The sampling: with "Hold still", "Calibrating: not counting" and the
+   Calibrate button active, the number of samples is boxed with exactly 50
+   readings, the starts of consecutive readings 10 to 45 ms apart, and at
+   most 50 ms before the first and after the last; the box is returned, and
+   unboxed where the mean is formed. The mean thus divides the sum by the
+   number of readings taken, and the unit, at 100 Hz, returns a new sample
+   at each. A count is not closed under recursion, whose grade states none,
+   so the readings are written out.
 
    The readiness: the gain, 1 g over the magnitude of the mean, and the
    direction of gravity are boxed after the screen of the counter is drawn,
@@ -516,38 +568,59 @@ let rest (g : vector) : counter =
    its running time at most 0.15 ms; the box is returned, and unboxed where
    the counting starts. The counter, whose loop starts with a reading, thus
    sees the first steps after the beep. A beep before the screen, whose
-   drawing takes 31.55 to 411 ms, and thus 31.6 to 411.15 ms from the start
+   drawing takes 31.55 to 477 ms, and thus 31.6 to 477.15 ms from the start
    of the beep to the counting, is rejected. *)
 type sampling = [(50, ReadImu, [0, 50], [10, 45], [0, 50])]float
 type readiness = [(1, Beep, [0, 0], [0, 0.2])](float * vector)
 
 let hold_still () : sampling =
-  perform ShowColourTextAt (0, 44, 2, yellow, black, "Hold still");
+  perform ShowColourTextAt (0, 30, 2, yellow, black, "Hold still");
+  perform ShowColourTextAt
+    (0, 168, 2, white, black, "Calibrating: not counting");
+  show_calibrate true;
   box (50, ReadImu, [0, 50], [10, 45], [0, 50]) 50.0 as samples in
   samples
 
-let calibrate (samples : sampling) : readiness =
+let calibrate (samples : sampling) (steps : nat) : readiness =
   let sum = ten (ten (ten (ten (ten (0.0, 0.0, 0.0))))) in
   unbox samples as n in
   let mean = scale (1.0 /. n) sum in
   let gain = 1.0 /. norm mean in
-  screen ();
+  screen steps;
   box (1, Beep, [0, 0], [0, 0.2]) (gain, scale gain mean) as ready in
   ready
 
+(* Correctly accepted by the typechecker: at least n sessions, each a
+   calibration, a beep that tells the walker to start and the counter read
+   through the calibration handler with its gain, for 4 billion rounds, at
+   least 2.5 years, or until a tap on Calibrate. The steps are kept from one
+   session to the next, and none is counted during a calibration.
+
+   The grade is the invariant of the loop: the starts of consecutive counts
+   at least 250 ms apart, within a session by the grade of 'listen' and
+   across sessions by the calibration that starts each, at least 541.7 ms
+   before its first count. The rate limit (CountStep, [250, ∞)), whose
+   lead may be 0, is not closed under this sequencing and is rejected. *)
+let rec sessions (n : nat) (c : counter)
+    : unit # (CountStep, [250, ∞), [250, ∞), [0, ∞)) =
+  let _, _, (shown, _), _, _, _, _, _ = c in
+  let samples = hold_still () in
+  let ready = calibrate samples shown in
+  perform Beep (2000, 150);
+  unbox ready as (gain, g) in
+  let c = handle listen 4000000000 (resume g c) with calibrated gain in
+  match n with
+  | 0 -> ()
+  | m + 1 -> sessions m c
+
 (* Correctly accepted by the typechecker: the task. The output data rate of
-   the accelerometer is set to 100 Hz; the calibration is taken, and a beep
-   tells the walker to start. The counter reads through the calibration
-   handler, for 4 billion rounds, at least 2.5 years. *)
+   the accelerometer is set to 100 Hz, and the sessions start with the
+   counter at rest. *)
 let watch () =
   perform ConfigureImu 100;
   perform ClearDisplay ();
   perform ShowTextAt (0, 0, 2, "Step counter");
-  let samples = hold_still () in
-  let ready = calibrate samples in
-  perform Beep (2000, 150);
-  unbox ready as (gain, g) in
-  handle listen 4000000000 (rest g) with calibrated gain
+  sessions 4000000000 (rest (0.0, 0.0, 1.0))
 
 (* The simulation of a walk in the interpreter, which has no clock. The
    handler 'walk t' replaces the readings by those of a walk at the time t,

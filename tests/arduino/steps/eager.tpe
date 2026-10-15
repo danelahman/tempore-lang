@@ -4,14 +4,15 @@ let step_eager c =
   let c, added = advance c in
   if added = 0 then poll (pause c) else poll (count c added)
 
-let rec listen_eager (n : nat) (c : counter)
-    : unit # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
+let rec listen_eager (n : nat) (c : counter) : counter
+    # ((ReadImu, [0, 0], [0, 50], [0, 50]), (CountStep, [250, ∞))) =
   match n with
-  | 0 -> ()
+  | 0 -> c
   | m + 1 ->
       let c = step_eager c in
-      let _, _, _, _, _, (_, began, x, y), _, _ = c in
-      if began then
-        let c = respond c x y in
+      let k = tapped c in
+      if k = Calibration then c
+      else if k = Reset then
+        let c = respond c k in
         listen_eager m c
       else listen_eager m c
