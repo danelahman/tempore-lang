@@ -199,8 +199,8 @@ let poll_fast (m : float) (w : float) ((found, at) : bool * nat) : bool * nat
     let a = load () in
     box {ReadClock} a as fresh in
     let t = perform ReadClock () in
-    unbox fresh as a in
-    if absolute (a -. m) > w then (true, t) else (false, at))
+    unbox fresh as reading in
+    if absolute (reading -. m) > w then (true, t) else (false, at))
 
 (* Ten fast polls, until the push: up to 40.5 ms. *)
 let ten_fast (m : float) (w : float) (r : bool * nat) : bool * nat =
@@ -491,16 +491,16 @@ let say (m : message) : unit # {ShowColourTextAt; ShowColourTextAt} =
   | Legal ->
       perform ShowColourTextAt (0, 40, 3, black, green, "LEGAL START");
       perform ShowColourTextAt (0, 70, 2, black, green, "Reaction, s")
-  | Warned moved ->
+  | Warned in_set ->
       perform ShowColourTextAt (0, 40, 3, white, red, "FALSE START");
-      if moved then
+      if in_set then
         perform ShowColourTextAt
           (0, 70, 2, white, red, "Warning: moved in Set")
       else
         perform ShowColourTextAt (0, 70, 2, white, red, "Warning: under 0.1 s")
-  | Disqualified moved ->
+  | Disqualified in_set ->
       perform ShowColourTextAt (0, 40, 3, white, red, "DISQUALIFIED");
-      if moved then
+      if in_set then
         perform ShowColourTextAt (0, 70, 2, white, red, "Moved in Set")
       else
         perform ShowColourTextAt (0, 70, 2, white, red, "Reaction under 0.1 s")
@@ -509,13 +509,13 @@ let say (m : message) : unit # {ShowColourTextAt; ShowColourTextAt} =
    warning for the first, a disqualification for each further one (the
    rule of the combined events), with the recall. *)
 let charge ((legal, warned, out, none, best) : tally)
-    ((lane, warnings) : athlete) (moved : bool) : tally * athlete =
+    ((lane, warnings) : athlete) (in_set : bool) : tally * athlete =
   recall ();
   if warnings = 0 then (
-    say (Warned moved);
+    say (Warned in_set);
     ((legal, warned + 1, out, none, best), (lane, 1)))
   else (
-    say (Disqualified moved);
+    say (Disqualified in_set);
     ((legal, warned, out + 1, none, best), (lane, warnings + 1)))
 
 (* The outcome of a start on the screen and in the tally, for the athlete
